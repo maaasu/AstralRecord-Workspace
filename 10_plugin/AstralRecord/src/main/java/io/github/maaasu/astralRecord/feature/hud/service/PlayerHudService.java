@@ -7,6 +7,8 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeSidebarInfo;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonSidebarInfo;
+import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.combat.service.CombatDpsTrackerService;
@@ -40,6 +42,7 @@ public class PlayerHudService {
     private final WorldService worldService;
     private final PlayerHudView playerHudView;
     private CombatDpsTrackerService combatDpsTrackerService;
+    private DungeonService dungeonService;
     private final Map<UUID, BukkitTask> actionBarOverrideTasks = new HashMap<>();
     private final Map<UUID, Function<AstPlayer, Component>> primaryActionBarRenderers = new HashMap<>();
     private AstralRecord plugin;
@@ -77,6 +80,11 @@ public class PlayerHudService {
 
     public void setCombatDpsTrackerService(@NotNull CombatDpsTrackerService combatDpsTrackerService) {
         this.combatDpsTrackerService = combatDpsTrackerService;
+    }
+
+    /** @param dungeonService ダンジョン Sidebar 情報の参照先 */
+    public void setDungeonService(@NotNull DungeonService dungeonService) {
+        this.dungeonService = dungeonService;
     }
 
     public void start(AstralRecord plugin) {
@@ -203,6 +211,8 @@ public class PlayerHudService {
                     astPlayer.getUser().getUuid()
                 );
                 BossChallengeSidebarInfo bossInfo = bossChallengeService.findSidebarInfo(player.getUniqueId());
+                DungeonSidebarInfo dungeonInfo = dungeonService == null
+                        ? null : dungeonService.findSidebarInfo(player.getUniqueId());
                 WorldType worldType = worldService.resolveWorldType(player.getWorld());
                 String regionName = astPlayer.getCurrentRegion();
                 if (regionName == null || regionName.isBlank()) {
@@ -222,6 +232,7 @@ public class PlayerHudService {
                     resolveRegionLevel(astPlayer, worldType, bossInfo),
                     showPerformanceInfo,
                     bossInfo,
+                    dungeonInfo,
                     showBuffInfo,
                     statusService.getActiveBuffs(astPlayer)
                 );

@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.hud.view;
 
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeSidebarInfo;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonSidebarInfo;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.condition.model.ActiveCondition;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
@@ -155,6 +156,27 @@ public class PlayerHudView {
         String regionName,
         int regionLevel,
         boolean showPerformanceInfo,
+        BossChallengeSidebarInfo bossInfo,
+        boolean showBuffInfo,
+        List<ActiveBuff> activeBuffs
+    ) {
+        renderSidebar(player, mspt, playerLevel, experienceProgress, classLevel, className,
+                worldName, regionName, regionLevel, showPerformanceInfo, bossInfo, null,
+                showBuffInfo, activeBuffs);
+    }
+
+    /** Dungeon 情報を含めてサイドバーを描画します。 */
+    public void renderSidebar(
+        Player player,
+        double mspt,
+        int playerLevel,
+        double experienceProgress,
+        int classLevel,
+        String className,
+        String worldName,
+        String regionName,
+        int regionLevel,
+        boolean showPerformanceInfo,
         BossChallengeSidebarInfo bossInfo
     ) {
         renderSidebar(
@@ -169,6 +191,7 @@ public class PlayerHudView {
             regionLevel,
             showPerformanceInfo,
             bossInfo,
+            null,
             false,
             List.of()
         );
@@ -204,6 +227,7 @@ public class PlayerHudView {
         int regionLevel,
         boolean showPerformanceInfo,
         BossChallengeSidebarInfo bossInfo,
+        DungeonSidebarInfo dungeonInfo,
         boolean showBuffInfo,
         List<ActiveBuff> activeBuffs
     ) {
@@ -225,8 +249,9 @@ public class PlayerHudView {
 
         int ping = player.getPing();
         clearSidebar(objective);
-        List<String> buffLines = buildBuffLines(activeBuffs, showBuffInfo, bossInfo != null);
-        int fixedLineCount = 8 + (bossInfo == null ? 0 : 5) + buffLines.size();
+        int challengeLineCount = bossInfo != null ? 5 : dungeonInfo != null ? 6 : 0;
+        List<String> buffLines = buildBuffLines(activeBuffs, showBuffInfo, challengeLineCount);
+        int fixedLineCount = 8 + challengeLineCount + buffLines.size();
         boolean renderPerformance = showPerformanceInfo && SIDEBAR_LINE_LIMIT - fixedLineCount >= 2;
 
         List<String> lines = new ArrayList<>(SIDEBAR_LINE_LIMIT);
@@ -250,6 +275,8 @@ public class PlayerHudView {
         lines.addAll(buffLines);
         if (bossInfo != null) {
             appendBossInfo(lines, bossInfo);
+        } else if (dungeonInfo != null) {
+            appendDungeonInfo(lines, dungeonInfo);
         }
 
         for (int index = 0; index < Math.min(lines.size(), SIDEBAR_LINE_LIMIT); index++) {
@@ -291,12 +318,32 @@ public class PlayerHudView {
                 + ColorCodeUtil.WHITE + String.join("、", info.participantNames()));
     }
 
-    private List<String> buildBuffLines(List<ActiveBuff> activeBuffs, boolean showBuffInfo, boolean hasBossInfo) {
+    private void appendDungeonInfo(List<String> lines, DungeonSidebarInfo info) {
+        lines.add(buildSeparator("dungeon"));
+        lines.add(ColorCodeUtil.AQUA + "ダンジョン" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.toLegacyText(info.dungeonDisplayName(), "ダンジョン"));
+        lines.add(ColorCodeUtil.RED + "デス" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.WHITE + info.deathCount() + "/" + info.deathLimit());
+        lines.add(ColorCodeUtil.GOLD + "部屋" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.WHITE + info.clearedRooms() + "/" + info.totalRooms());
+        lines.add(ColorCodeUtil.LIGHT_PURPLE + "参加者" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.WHITE + String.join("、", info.participantNames()));
+        lines.add(info.returnRemainingSeconds() >= 0L
+                ? ColorCodeUtil.YELLOW + "帰還まで" + ColorCodeUtil.GRAY + ": "
+                    + ColorCodeUtil.WHITE + info.returnRemainingSeconds() + "s"
+                : ColorCodeUtil.GRAY + "攻略進行中");
+    }
+
+    private List<String> buildBuffLines(
+            List<ActiveBuff> activeBuffs,
+            boolean showBuffInfo,
+            int challengeLineCount
+    ) {
         if (!showBuffInfo || activeBuffs.isEmpty()) {
             return List.of();
         }
 
-        int availableEntries = Math.max(0, SIDEBAR_LINE_LIMIT - 8 - (hasBossInfo ? 5 : 0) - 1);
+        int availableEntries = Math.max(0, SIDEBAR_LINE_LIMIT - 8 - challengeLineCount - 1);
         int displayCount = Math.min(Math.min(BUFF_DISPLAY_LIMIT, activeBuffs.size()), availableEntries);
         if (displayCount == 0) {
             return List.of();

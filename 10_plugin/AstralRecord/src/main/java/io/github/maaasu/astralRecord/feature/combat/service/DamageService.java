@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageScaling;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.combat.model.SuperStarCriticalMode;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
+import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
@@ -77,6 +78,7 @@ public final class DamageService {
     private final PlayerDeathService playerDeathService;
     private final SuperStarCriticalProjectileService superStarCriticalProjectileService;
     private BossChallengeService bossChallengeService;
+    private DungeonService dungeonService;
     private ConditionService conditionService;
     private EquipmentDurabilityService equipmentDurabilityService;
     private TemporarySkillEffectService temporarySkillEffectService;
@@ -178,6 +180,15 @@ public final class DamageService {
      */
     public void setBossChallengeService(@Nullable BossChallengeService bossChallengeService) {
         this.bossChallengeService = bossChallengeService;
+    }
+
+    /**
+     * ダンジョン死亡・固定報酬対象の連携先を設定します。
+     *
+     * @param dungeonService ダンジョンサービス。{@code null} で連携無効
+     */
+    public void setDungeonService(@Nullable DungeonService dungeonService) {
+        this.dungeonService = dungeonService;
     }
 
     /**
@@ -819,7 +830,9 @@ public final class DamageService {
                 if (updated.getCurrentHp() <= 0.0D && playerDeathService != null) {
                     boolean handledByBoss = bossChallengeService != null
                             && bossChallengeService.handleParticipantDeath(victim.player(), victim.location());
-                    if (!handledByBoss) {
+                    boolean handledByDungeon = !handledByBoss && dungeonService != null
+                            && dungeonService.handleParticipantDeath(victim.player(), victim.location());
+                    if (!handledByBoss && !handledByDungeon) {
                         playerDeathService.startDeath(victim.player(), victim.location());
                     }
                 }
@@ -878,6 +891,8 @@ public final class DamageService {
             if (bossMob) {
                 mobCombatService.handleDeath(mob, bossChallengeService.resolveRewardRecipients(mob.instanceId()));
                 bossChallengeService.handleBossDefeated(mob.instanceId(), deathLocation);
+            } else if (dungeonService != null && dungeonService.isDungeonMob(mob.instanceId())) {
+                mobCombatService.handleDeath(mob, dungeonService.resolveMobRewardRecipients(mob.instanceId()));
             } else {
                 mobCombatService.handleDeath(mob);
             }

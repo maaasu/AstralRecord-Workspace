@@ -2,6 +2,8 @@ package io.github.maaasu.astralRecord.feature.dungeon.repository;
 
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonDefinition;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomShape;
+import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobDropItem;
 import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import org.bukkit.Material;
@@ -64,6 +66,8 @@ public final class DungeonDefinitionRepository {
         ConfigurationSection theme = yaml.getConfigurationSection("theme");
         ConfigurationSection pillar = theme == null ? null : theme.getConfigurationSection("pillar");
         ConfigurationSection encounter = requireSection(yaml, "encounter");
+        ConfigurationSection challenge = yaml.getConfigurationSection("challenge");
+        ConfigurationSection clearRewards = yaml.getConfigurationSection("clearRewards");
 
         return new DungeonDefinition(
                 schemaVersion,
@@ -79,6 +83,10 @@ public final class DungeonDefinitionRepository {
                         optionalDouble(entry, "radius", 2.0D)
                 ),
                 parseRange(yaml.getConfigurationSection("party"), "party", 1, 4),
+                new DungeonDefinition.Challenge(
+                        optionalInt(challenge, "deathLimit", 5),
+                        optionalInt(challenge, "reviveDelaySeconds", 5)
+                ),
                 new DungeonDefinition.Generation(
                         optionalInt(area, "width", 128),
                         optionalInt(area, "depth", 128),
@@ -110,7 +118,32 @@ public final class DungeonDefinitionRepository {
                         parseRange(encounter.getConfigurationSection("mobsPerRoom"), "encounter.mobsPerRoom", 2, 4),
                         optionalInt(encounter, "firstCombatRoomMaxMobLevel", 10),
                         stripPrefix(requireString(encounter, "bossMobId"))
-                )
+                ),
+                parseClearRewards(clearRewards)
+        );
+    }
+
+    /** クリア時のプレイヤー別抽選報酬を既存 drops 形式へ変換します。 */
+    private @NotNull MobDropConfig parseClearRewards(ConfigurationSection section) {
+        if (section == null) {
+            return new MobDropConfig(0, null, List.of(), null);
+        }
+        List<MobDropItem> items = new ArrayList<>();
+        for (Map<?, ?> entry : section.getMapList("items")) {
+            items.add(new MobDropItem(
+                    stripPrefix(requiredMapString(entry, "itemId", "clearRewards.items")),
+                    optionalMapDouble(entry, "rate", 100.0D),
+                    optionalMapAmount(entry, "amount", "1"),
+                    false,
+                    false
+            ));
+        }
+        String lootTable = optionalString(section, "lootTable");
+        return new MobDropConfig(
+                0,
+                null,
+                items,
+                lootTable == null ? null : stripPrefix(lootTable)
         );
     }
 
@@ -242,7 +275,12 @@ public final class DungeonDefinitionRepository {
         if (!(value instanceof Number number)) {
             throw new IllegalArgumentException("Missing integer: " + path + "." + key);
         }
-        return number.intValue();
+        double numeric = number.doubleValue();
+        if (!Double.isFinite(numeric) || numeric != Math.rint(numeric)
+                || numeric < Integer.MIN_VALUE || numeric > Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Invalid integer: " + path + "." + key);
+        }
+        return (int) numeric;
     }
 
     private double requireDouble(@NotNull ConfigurationSection section, @NotNull String key) {
@@ -326,14 +364,59 @@ public final class DungeonDefinitionRepository {
     ) {
         Object value = entry.get(key);
         if (value instanceof Number number) {
-            return number.intValue();
+            double numeric = number.doubleValue();
+            if (Double.isFinite(numeric) && numeric == Math.rint(numeric)
+                    && numeric >= Integer.MIN_VALUE && numeric <= Integer.MAX_VALUE) {
+                return (int) numeric;
+            }
         }
-        throw new IllegalArgumentException("Missing integer: " + path + "." + key);
+        throw new IllegalArgumentException("Invalid integer: " + path + "." + key);
     }
 
     /** map 内の省略可能な整数を読み、未定義なら既定値を返します。 */
     private int optionalMapInt(@NotNull Map<?, ?> entry, @NotNull String key, int fallback) {
         return entry.containsKey(key) ? requiredMapInt(entry, key, key) : fallback;
+    }
+
+    private double optionalMapDouble(@NotNull Map<?, ?> entry, @NotNull String key, double fallback) {
+        if (!entry.containsKey(key)) return fallback;
+        Object value = entry.get(key);
+        if (!(value instanceof Number number) || !Double.isFinite(number.doubleValue())) {
+            throw new IllegalArgumentException("Invalid number: " + key);
+        }
+        return number.doubleValue();
+    }
+
+    private @NotNull String optionalMapAmount(
+            @NotNull Map<?, ?> entry,
+            @NotNull String key,
+            @NotNull String fallback
+    ) {
+        if (!entry.containsKey(key)) return fallback;
+        Object value = entry.get(key);
+        if (!(value instanceof String) && !(value instanceof Number)) {
+            throw new IllegalArgumentException("Invalid amount: " + key);
+        }
+        String amount = value.toString().trim();
+        String[] parts = amount.split("~", -1);
+        if (parts.length < 1 || parts.length > 2) {
+            throw new IllegalArgumentException("Invalid amount: " + key);
+        }
+        try {
+            int minimum = Integer.parseInt(parts[0]);
+            int maximum = parts.length == 1 ? minimum : Integer.parseInt(parts[1]);
+            if (minimum < 1 || maximum < minimum) {
+                throw new IllegalArgumentException("Invalid amount: " + key);
+            }
+        } catch (NumberFormatException failure) {
+            throw new IllegalArgumentException("Invalid amount: " + key, failure);
+        }
+        return amount;
+    }
+
+    private String optionalString(@NotNull ConfigurationSection section, @NotNull String key) {
+        String value = section.getString(key);
+        return value == null || value.isBlank() ? null : value.trim();
     }
 
     private @NotNull String stripPrefix(@NotNull String raw) {

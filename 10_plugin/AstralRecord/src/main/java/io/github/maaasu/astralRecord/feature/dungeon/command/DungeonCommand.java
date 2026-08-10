@@ -60,6 +60,10 @@ public final class DungeonCommand extends AstCommand {
             case ACCEPTED -> {
                 // 準備開始メッセージは参加者全員へ DungeonService から送信済みです。
             }
+            case REJOINED -> {
+                // 再参加完了メッセージは転送成功後に DungeonService から送信します。
+            }
+            case ALREADY_IN_PROGRESS -> messages.send(astPlayer, PlayerMsgId.P_7024);
             case UNAVAILABLE -> messages.send(astPlayer, PlayerMsgId.P_7000);
             case NOT_FOUND -> messages.send(astPlayer, PlayerMsgId.P_7002, args[1]);
             case NOT_PARTY_LEADER -> messages.send(astPlayer, PlayerMsgId.P_7003);

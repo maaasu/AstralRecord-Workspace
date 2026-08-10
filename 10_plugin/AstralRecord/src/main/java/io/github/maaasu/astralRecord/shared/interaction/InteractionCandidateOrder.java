@@ -7,6 +7,8 @@ package io.github.maaasu.astralRecord.shared.interaction;
 public final class InteractionCandidateOrder {
     public static final int BOSS_CONTROLLER = 10;
     public static final int BOSS_ENTRY = 10;
+    public static final int DUNGEON_CONTROLLER = 10;
+    public static final int DUNGEON_ENTRY = 10;
     public static final int WORLD_SPAWN_ACTION = 15;
     public static final int NPC = 20;
     public static final int SKILL_TREE = 30;

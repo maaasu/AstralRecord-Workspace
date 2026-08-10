@@ -22,6 +22,8 @@
 | `entry.yaw/pitch` | Double | `0.0`。門型パーティクルの向きにも使用 |
 | `entry.radius` | Double | `2.0`、`0.5..16.0` |
 | `party.min/max` | Integer | `1/4`、`1..6`、min <= max |
+| `challenge.deathLimit` | Integer | `5`、`0` 以上。設定回数までは死亡可能で、次の死亡時にセッション終了 |
+| `challenge.reviveDelaySeconds` | Integer | `5`、`1` 以上。許容回数内の死亡後に開始地点へ復帰するまでの秒数 |
 | `generation.area.width/depth` | Integer | `128/128`。各 `32..256`、積 65,536 以下 |
 | `generation.baseY` | Integer | `64`。天井を含め `-60..316` 内 |
 | `generation.roomCount.min/max` | Integer | `7/11`、`3..64`。seed 抽選 |
@@ -43,8 +45,15 @@
 | `encounter.normalMobPool[].weight` | Integer | `1`。正の相対 weight |
 | `encounter.mobsPerRoom.min/max` | Integer | `2/4`、`1..16` |
 | `encounter.firstCombatRoomMaxMobLevel` | Integer | `10`。開始部屋候補の level 上限 |
+| `clearRewards.items[]` | List | プレイヤーごとにクリア時点で独立抽選する直接報酬 |
+| `clearRewards.items[].itemId` | String | `item:` 参照 |
+| `clearRewards.items[].rate` | Double | `100.0`、有限値の `0.0..100.0`（%） |
+| `clearRewards.items[].amount` | String / Integer | `"1"`。1以上の固定整数または、1以上かつ min <= max の `"1~3"` 形式 |
+| `clearRewards.lootTable` | String | 任意の `loot_table:` 参照。直接報酬と独立抽選して結合 |
 
 ダンジョンごとの DUNGEON World マスタは不要です。Plugin が共通インスタンスルートと保護設定から実行時 World 定義を生成します。
+
+既定値はキーを省略した場合だけ適用します。キーを明示した場合、非数値、境界外、負数、不正な数量範囲を既定値へ補正せず、マスタの load／公開を失敗させます。
 
 ## 最小 YAML 例
 
@@ -62,6 +71,14 @@ encounter:
     - mobId: mob:example_skeleton
     - mobId: mob:example_guard
   bossMobId: mob:example_ruins_boss
+challenge:
+  deathLimit: 5
+  reviveDelaySeconds: 5
+clearRewards:
+  items:
+    - itemId: item:example_ruins_fragment
+      rate: 100.0
+      amount: "1~2"
 ```
 
 生成範囲、部屋数、Material、柱、Mob 数を個別調整したいダンジョンだけ、省略可能項目を追加します。

@@ -23,7 +23,7 @@ public record BossChallengeConfig(
         partyMin = Math.max(1, partyMin);
         partyMax = Math.max(partyMin, partyMax);
         timeLimitSeconds = Math.max(30L, timeLimitSeconds);
-        deathLimit = Math.max(1, deathLimit);
+        deathLimit = Math.max(0, deathLimit);
         reviveDelaySeconds = Math.max(1L, reviveDelaySeconds);
         if (scaling == null) {
             scaling = BossScalingConfig.EMPTY;

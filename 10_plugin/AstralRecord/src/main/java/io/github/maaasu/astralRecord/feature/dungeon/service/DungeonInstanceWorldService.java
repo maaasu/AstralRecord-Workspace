@@ -209,13 +209,23 @@ public final class DungeonInstanceWorldService {
     public @NotNull CompletableFuture<Boolean> destroyAsync(@NotNull InstanceWorld instance) {
         requireMainThread();
         CompletableFuture<Boolean> result = new CompletableFuture<>();
-        releaseTickets(instance.world());
+        attemptDestroy(instance, result);
+        return result;
+    }
+
+    private void attemptDestroy(
+            @NotNull InstanceWorld instance,
+            @NotNull CompletableFuture<Boolean> result
+    ) {
+        if (result.isDone()) return;
         World loaded = Bukkit.getWorld(instance.world().getUID());
-        if (loaded != null && !Bukkit.unloadWorld(loaded, false)) {
-            Logger.log(LogId.E_7003, instance.world().getName(), instance.folder().toString());
-            scheduleDestroyRetry(instance);
-            result.complete(false);
-            return result;
+        if (loaded != null) {
+            releaseTickets(loaded);
+            if (!Bukkit.unloadWorld(loaded, false)) {
+                Logger.log(LogId.E_7003, instance.world().getName(), instance.folder().toString());
+                scheduleDestroyRetry(instance, result);
+                return;
+            }
         }
         worldService.unregisterRuntimeWorld(instance.world());
         trackedInstances.remove(instance.world().getUID());
@@ -225,10 +235,9 @@ public final class DungeonInstanceWorldService {
                 result.complete(true);
             } catch (IOException ex) {
                 Logger.log(LogId.E_7002, ex, instance.folder().toString());
-                result.complete(false);
+                scheduleDestroyRetry(instance, result);
             }
         });
-        return result;
     }
 
     /** プラグイン停止時にスケジューラを使わずワールドとフォルダを回収します。 */
@@ -268,6 +277,17 @@ public final class DungeonInstanceWorldService {
                 destroyAsync(instance);
             }
         }, CLEANUP_RETRY_TICKS);
+    }
+
+    private void scheduleDestroyRetry(
+            @NotNull InstanceWorld instance,
+            @NotNull CompletableFuture<Boolean> result
+    ) {
+        if (!plugin.isEnabled()) {
+            result.complete(false);
+            return;
+        }
+        Bukkit.getScheduler().runTaskLater(plugin, () -> attemptDestroy(instance, result), CLEANUP_RETRY_TICKS);
     }
 
     /**

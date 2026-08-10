@@ -8,15 +8,30 @@ import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonBlockPlan;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonDefinition;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLayout;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomShape;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRewardEntry;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonSidebarInfo;
+import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonCancelGui;
+import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonRewardGui;
 import io.github.maaasu.astralRecord.feature.dungeon.repository.DungeonDefinitionRepository;
+import io.github.maaasu.astralRecord.feature.dungeon.view.DungeonCancelController;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
+import io.github.maaasu.astralRecord.feature.mob.model.MobDropResultItem;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
@@ -26,13 +41,23 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeDeathPolicy;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeStartCountdown;
+import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
+import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
+import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
+import net.kyori.adventure.title.Title;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -41,6 +66,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -51,16 +77,26 @@ import java.util.SplittableRandom;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.Consumer;
+import java.time.Duration;
 
 /**
  * ダンジョンマスタ、セッション進行、部屋戦闘、ゲート解放を一元管理します。
  * アクティブセッションは開始時のマスタと Mob テンプレートを保持するため、reload の影響を受けません。
  */
 public final class DungeonService {
+    /** 受付ゲート候補と中心までの距離です。 */
+    public record DungeonEntryHit(@NotNull String dungeonId, double hitDistance) {
+    }
     private static final String INSTANCE_ROOT_PATH = "plugins/AstralRecord/_world_instances/dungeon";
     private static final long ENTRY_VISUAL_PERIOD_TICKS = 10L;
     private static final int ENTRY_FRAME_POINTS = 20;
     private static final double ENTRY_VIEW_DISTANCE_SQUARED = 48.0D * 48.0D;
+    private static final long CLEAR_RETURN_DELAY_TICKS = 30L * 20L;
+    private static final double RETURN_GATE_RADIUS_SQUARED = 2.25D * 2.25D;
+    private static final String REWARD_SOURCE = "dungeon_clear";
+    private static final Title.Times COUNTDOWN_TITLE_TIMES = Title.Times.times(
+            Duration.ofMillis(100L), Duration.ofMillis(900L), Duration.ofMillis(100L));
     private final AstralRecord plugin;
     private final DungeonDefinitionRepository repository;
     private final DungeonDefinitionValidator validator;
@@ -73,13 +109,26 @@ public final class DungeonService {
     private final MobService mobService;
     private final PlayerMessageService messageService;
     private final ParticleDisplayService particleDisplayService;
+    private final DisplayTextService displayTextService;
+    private final PlayerDeathService playerDeathService;
+    private final MobDropService mobDropService;
+    private final InventoryService inventoryService;
+    private final ItemService itemService;
+    private final DungeonCancelGui cancelGui;
+    private final DungeonRewardGui rewardGui;
     private final String hubWorldId;
 
     private volatile Map<String, LoadedDefinition> loadedDefinitions = Map.of();
     private final Map<UUID, Session> sessionsById = new LinkedHashMap<>();
     private final Map<UUID, UUID> sessionIdByParticipant = new HashMap<>();
+    private final Map<UUID, UUID> sessionIdByBusyParticipant = new HashMap<>();
     private final Map<UUID, UUID> sessionIdByWorld = new HashMap<>();
+    private final Map<String, UUID> sessionIdByPartyKey = new HashMap<>();
+    private final Map<UUID, UUID> dungeonDeathSessionByParticipant = new HashMap<>();
     private final Map<UUID, MobBinding> mobBindings = new HashMap<>();
+    private final Map<UUID, DungeonCancelController> cancelControllers = new HashMap<>();
+    private final Map<UUID, UUID> sessionIdByCancelInteraction = new HashMap<>();
+    private final Map<String, DisplayTextService.ManagedTextDisplay> entryPromptDisplays = new HashMap<>();
     private BukkitTask entryVisualTask;
     private long entryVisualFrame;
     private boolean stopping;
@@ -94,6 +143,12 @@ public final class DungeonService {
      * @param mobService Mob 管理サービス
      * @param messageService プレイヤーメッセージサービス
      * @param particleDisplayService パーティクル表示サービス
+     * @param displayTextService TextDisplay 管理サービス
+     * @param playerDeathService 死亡・復帰サービス
+     * @param mobDropService クリア報酬抽選サービス
+     * @param inventoryService 報酬付与先インベントリ
+     * @param itemService アイテム定義サービス
+     * @param itemStackFactory 報酬 GUI の ItemStack 生成サービス
      * @param hubWorldId 生成待機中に参加者を退避する HUB World ID
      */
     public DungeonService(
@@ -104,6 +159,12 @@ public final class DungeonService {
             @NotNull MobService mobService,
             @NotNull PlayerMessageService messageService,
             @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull DisplayTextService displayTextService,
+            @NotNull PlayerDeathService playerDeathService,
+            @NotNull MobDropService mobDropService,
+            @NotNull InventoryService inventoryService,
+            @NotNull ItemService itemService,
+            @NotNull ItemStackFactory itemStackFactory,
             @NotNull String hubWorldId
     ) {
         this.plugin = plugin;
@@ -118,6 +179,13 @@ public final class DungeonService {
         this.mobService = mobService;
         this.messageService = messageService;
         this.particleDisplayService = particleDisplayService;
+        this.displayTextService = displayTextService;
+        this.playerDeathService = playerDeathService;
+        this.mobDropService = mobDropService;
+        this.inventoryService = inventoryService;
+        this.itemService = itemService;
+        this.cancelGui = new DungeonCancelGui();
+        this.rewardGui = new DungeonRewardGui(itemService, itemStackFactory);
         this.hubWorldId = hubWorldId;
     }
 
@@ -189,6 +257,7 @@ public final class DungeonService {
         if (entryVisualTask != null) {
             entryVisualTask.cancel();
         }
+        clearEntryPromptDisplays();
         entryVisualTask = Bukkit.getScheduler().runTaskTimer(
                 plugin,
                 this::tickEntryVisuals,
@@ -209,6 +278,53 @@ public final class DungeonService {
             @NotNull String dungeonId
     ) {
         return requestStart(leader, dungeonId, OptionalLong.empty());
+    }
+
+    /**
+     * プレイヤーを含む最寄り受付ゲートを副作用なしで返します。
+     *
+     * @param player 判定対象
+     * @return 最寄り受付。範囲外なら {@code null}
+     */
+    public @Nullable DungeonEntryHit findNearestEntry(@NotNull Player player) {
+        DungeonEntryHit nearest = null;
+        for (LoadedDefinition loaded : loadedDefinitions.values()) {
+            if (!isInsideEntry(player, loaded)) continue;
+            Location center = entryLocation(loaded.definition().entry(), player.getWorld());
+            DungeonEntryHit hit = new DungeonEntryHit(
+                    loaded.definition().id(), Math.sqrt(player.getLocation().distanceSquared(center)));
+            if (nearest == null || hit.hitDistance() < nearest.hitDistance()
+                    || (Double.compare(hit.hitDistance(), nearest.hitDistance()) == 0
+                    && hit.dungeonId().compareTo(nearest.dungeonId()) < 0)) nearest = hit;
+        }
+        return nearest;
+    }
+
+    /**
+     * 受付ゲートのスニーク操作から開始／同一インスタンス再参加を要求します。
+     *
+     * @param player 受付操作プレイヤー
+     * @param dungeonId 受付対象ダンジョン ID
+     * @return 開始または再参加の即時結果
+     */
+    public @NotNull StartRequestResult requestEntry(@NotNull Player player, @NotNull String dungeonId) {
+        requireMainThread();
+        Party party = partyService.findParty(player.getUniqueId());
+        String partyKey = partyKey(player.getUniqueId(), party);
+        UUID activeSessionId = sessionIdByPartyKey.get(partyKey);
+        Session active = activeSessionId == null ? null : sessionsById.get(activeSessionId);
+        if (active == null) {
+            return requestStart(player, dungeonId);
+        }
+        if (!active.loaded.definition().id().equals(dungeonId)
+                || !canRejoinParticipant(
+                        active.originalParticipants,
+                        active.gateReturnEligible,
+                        player.getUniqueId()
+                )) {
+            return StartRequestResult.of(StartStatus.ALREADY_IN_PROGRESS);
+        }
+        return requestRejoin(active, player);
     }
 
     /** テスト・再現調査向けに seed を明示できる開始 API です。 */
@@ -242,6 +358,10 @@ public final class DungeonService {
             return StartRequestResult.of(StartStatus.NOT_PARTY_LEADER);
         }
         List<Player> participants = snapshotParticipants(leader, party);
+        String partyKey = partyKey(leader.getUniqueId(), party);
+        if (sessionIdByPartyKey.containsKey(partyKey)) {
+            return StartRequestResult.of(StartStatus.ALREADY_IN_PROGRESS);
+        }
         if (participants.stream().anyMatch(player ->
                 !AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(player)))) {
             return StartRequestResult.of(StartStatus.NOT_GAMEPLAY);
@@ -251,7 +371,8 @@ public final class DungeonService {
         if (participantCount < allowed.min() || participantCount > allowed.max()) {
             return new StartRequestResult(StartStatus.PARTY_SIZE, allowed.min(), allowed.max(), participantCount);
         }
-        if (participants.stream().anyMatch(player -> sessionIdByParticipant.containsKey(player.getUniqueId()))) {
+        if (participants.stream().anyMatch(player ->
+                sessionIdByBusyParticipant.containsKey(player.getUniqueId()))) {
             return StartRequestResult.of(StartStatus.PARTICIPANT_BUSY);
         }
 
@@ -265,14 +386,62 @@ public final class DungeonService {
             participantIds.add(participant.getUniqueId());
             returnLocations.put(participant.getUniqueId(), participant.getLocation().clone());
             sessionIdByParticipant.put(participant.getUniqueId(), sessionId);
+            sessionIdByBusyParticipant.put(participant.getUniqueId(), sessionId);
         }
 
-        Session session = new Session(sessionId, seed, loaded, participantIds, returnLocations);
+        Session session = new Session(
+                sessionId,
+                seed,
+                loaded,
+                partyKey,
+                leader.getUniqueId(),
+                participantIds,
+                returnLocations
+        );
         sessionsById.put(sessionId, session);
+        sessionIdByPartyKey.put(partyKey, sessionId);
         Logger.log(LogId.I_7001, sessionId.toString(), dungeonId, seed, participantCount);
         message(participants, PlayerMsgId.P_7008, loaded.definition().displayName());
         transferToHubAndPrepare(session, participants, hubData);
         return StartRequestResult.of(StartStatus.ACCEPTED);
+    }
+
+    private @NotNull String partyKey(@NotNull UUID playerId, @Nullable Party party) {
+        return party == null ? "solo:" + playerId : "party:" + party.getPartyId();
+    }
+
+    private @NotNull StartRequestResult requestRejoin(@NotNull Session session, @NotNull Player player) {
+        if (session.ending || session.instanceWorld == null || !isInsideEntry(player, session.loaded)
+                || !AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(player))) {
+            return StartRequestResult.of(StartStatus.UNAVAILABLE);
+        }
+        UUID playerId = player.getUniqueId();
+        if (!session.id.equals(sessionIdByBusyParticipant.get(playerId))) {
+            return StartRequestResult.of(StartStatus.UNAVAILABLE);
+        }
+        session.gateReturnEligible.remove(playerId);
+        session.participants.add(playerId);
+        sessionIdByParticipant.put(playerId, session.id);
+        DungeonBlockPlan.Position spawn = session.blockPlan.playerSpawn();
+        Location target = new Location(session.instanceWorld.world(), spawn.x() + 0.5D, spawn.y(), spawn.z() + 0.5D);
+        long transferGeneration = session.transferGeneration;
+        CompletableFuture<Boolean> transfer = trackEntryTransfer(
+                session, playerId, worldService.teleportPlayerAsync(player, target, null));
+        transfer.whenComplete((success, failure) -> runMain(() -> {
+            if (!isActiveTransferCallback(session, transferGeneration)) return;
+            if (!session.participants.contains(playerId)
+                    || !session.id.equals(sessionIdByParticipant.get(playerId))
+                    || !player.isOnline()) {
+                session.gateReturnEligible.remove(playerId);
+                return;
+            }
+            if (failure != null || !Boolean.TRUE.equals(success)) {
+                finalizeParticipantRemoval(session, playerId, true);
+                return;
+            }
+            messageService.send(player, PlayerMsgId.P_7025);
+        }));
+        return StartRequestResult.of(StartStatus.REJOINED);
     }
 
     /**
@@ -287,15 +456,19 @@ public final class DungeonService {
             @NotNull List<Player> participants,
             @NotNull WorldMasterData hubData
     ) {
+        long transferGeneration = session.transferGeneration;
         List<CompletableFuture<Boolean>> transfers = new ArrayList<>();
         for (Player participant : participants) {
-            CompletableFuture<Boolean> transfer = worldService.teleportToSpawnAsync(participant, hubData);
-            session.entryTransfers.put(participant.getUniqueId(), transfer);
+            CompletableFuture<Boolean> transfer = trackEntryTransfer(
+                    session,
+                    participant.getUniqueId(),
+                    worldService.teleportToSpawnAsync(participant, hubData)
+            );
             transfers.add(transfer);
         }
         CompletableFuture.allOf(transfers.toArray(CompletableFuture[]::new))
                 .whenComplete((ignored, failure) -> runMain(() -> {
-                    if (session.ending || sessionsById.get(session.id) != session) {
+                    if (!isActiveTransferCallback(session, transferGeneration)) {
                         return;
                     }
                     retainEligiblePreparingParticipants(session, hubData);
@@ -323,6 +496,8 @@ public final class DungeonService {
 
     private void prepareAsync(@NotNull Session session) {
         CompletableFuture<PreparedPlan> preparation = new CompletableFuture<>();
+        CompletableFuture<Void> preparationLifecycle = new CompletableFuture<>();
+        session.preparationLifecycle = preparationLifecycle;
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 DungeonLayout layout = layoutPlanner.plan(session.loaded.definition(), session.seed);
@@ -334,9 +509,11 @@ public final class DungeonService {
         });
         preparation.whenComplete((prepared, failure) -> runMain(() -> {
             if (session.ending || stopping || sessionsById.get(session.id) != session) {
+                preparationLifecycle.complete(null);
                 return;
             }
             if (failure != null) {
+                preparationLifecycle.complete(null);
                 failPreparation(session, failure);
                 return;
             }
@@ -351,15 +528,20 @@ public final class DungeonService {
             ).whenComplete((instance, worldFailure) -> runMain(() -> {
                 if (session.ending || stopping || sessionsById.get(session.id) != session) {
                     if (instance != null) {
-                        instanceWorldService.destroyAsync(instance);
+                        instanceWorldService.destroyAsync(instance)
+                                .whenComplete((destroyed, destroyFailure) -> preparationLifecycle.complete(null));
+                    } else {
+                        preparationLifecycle.complete(null);
                     }
                     return;
                 }
                 if (worldFailure != null) {
+                    preparationLifecycle.complete(null);
                     failPreparation(session, worldFailure);
                     return;
                 }
                 handleWorldReady(session, instance);
+                preparationLifecycle.complete(null);
             }));
         }));
     }
@@ -390,22 +572,22 @@ public final class DungeonService {
         }
         DungeonBlockPlan.Position spawn = session.blockPlan.playerSpawn();
         Location target = new Location(instance.world(), spawn.x() + 0.5D, spawn.y(), spawn.z() + 0.5D);
+        long transferGeneration = session.transferGeneration;
         List<CompletableFuture<Boolean>> transfers = new ArrayList<>();
         for (UUID playerId : session.participants) {
             Player player = Bukkit.getPlayer(playerId);
             if (player != null && player.isOnline()) {
-                CompletableFuture<Boolean> transfer = worldService.teleportPlayerAsync(
-                        player,
-                        target.clone(),
-                        null
+                CompletableFuture<Boolean> transfer = trackEntryTransfer(
+                        session,
+                        playerId,
+                        worldService.teleportPlayerAsync(player, target.clone(), null)
                 );
-                session.entryTransfers.put(playerId, transfer);
                 transfers.add(transfer);
             }
         }
         CompletableFuture.allOf(transfers.toArray(CompletableFuture[]::new))
                 .whenComplete((ignored, transferFailure) -> runMain(() -> {
-                    if (session.ending || sessionsById.get(session.id) != session) {
+                    if (!isActiveTransferCallback(session, transferGeneration)) {
                         return;
                     }
                     boolean allTransferred = transferFailure == null
@@ -415,15 +597,106 @@ public final class DungeonService {
                         return;
                     }
                     Logger.log(LogId.I_7002, session.id.toString(), instance.world().getName());
-                    activateRoom(session, session.layout.startRoomId());
+                    try {
+                        createSessionControls(session, target);
+                        beginStartCountdown(session);
+                    } catch (RuntimeException ex) {
+                        Logger.log(LogId.E_7000, ex, session.id.toString(), session.loaded.definition().id());
+                        completeSession(session, EndReason.PREPARATION_FAILED, false);
+                    }
                 }));
+    }
+
+    /** 開始地点に帰還ゲート、中止装置、案内表示を生成します。 */
+    private void createSessionControls(@NotNull Session session, @NotNull Location playerSpawn) {
+        session.returnGateLocation = playerSpawn.clone();
+        session.returnGateDisplay = displayTextService.create(
+                DisplayAnchor.fixed(playerSpawn.clone().add(0.0D, 2.4D, 0.0D)),
+                DisplayTextOptions.defaults(PlayerMsgResource.getMessage(PlayerMsgId.P_7034.getId()))
+                        .withLineWidth(280).withViewRange(48.0F).withShadowed(true)
+        );
+        Location controllerLocation = playerSpawn.clone().add(2.5D, 0.0D, 0.0D);
+        DungeonCancelController controller = DungeonCancelController.spawn(session.id, controllerLocation, displayTextService);
+        cancelControllers.put(session.id, controller);
+        sessionIdByCancelInteraction.put(controller.interaction().getUniqueId(), session.id);
+    }
+
+    /** 初回転送後の10秒間は Mob を生成せず、参加者へ毎秒開始演出を送ります。 */
+    private void beginStartCountdown(@NotNull Session session) {
+        ChallengeStartCountdown countdown = new ChallengeStartCountdown();
+        BukkitTask[] taskRef = new BukkitTask[1];
+        taskRef[0] = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            try {
+                if (session.ending || sessionsById.get(session.id) != session || session.instanceWorld == null) {
+                    taskRef[0].cancel();
+                    session.startCountdownTask = null;
+                    return;
+                }
+                List<Player> inWorld = activePlayersInWorld(session);
+                if (inWorld.isEmpty()) {
+                    taskRef[0].cancel();
+                    session.startCountdownTask = null;
+                    completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
+                    return;
+                }
+                ChallengeStartCountdown.Tick tick = countdown.advance();
+                if (tick.phase() == ChallengeStartCountdown.Phase.COUNTDOWN) {
+                    showDungeonCountdown(inWorld, session.loaded.definition().displayName(), tick.remainingSeconds());
+                    return;
+                }
+                taskRef[0].cancel();
+                session.startCountdownTask = null;
+                showDungeonStart(inWorld, session.loaded.definition().displayName());
+                session.combatStarted = true;
+                activateRoom(session, session.layout.startRoomId());
+            } catch (RuntimeException failure) {
+                if (taskRef[0] != null) taskRef[0].cancel();
+                session.startCountdownTask = null;
+                Logger.log(LogId.E_7000, failure, session.id.toString(), session.loaded.definition().id());
+                completeSession(session, EndReason.SPAWN_FAILED, false);
+            }
+        }, 0L, 20L);
+        session.startCountdownTask = taskRef[0];
+    }
+
+    private void showDungeonCountdown(@NotNull List<Player> players, @NotNull String name, int seconds) {
+        for (Player player : players) {
+            player.showTitle(Title.title(
+                    PlayerMsgResource.formatComponent(PlayerMsgId.P_7020.getId(), seconds),
+                    PlayerMsgResource.formatComponent(PlayerMsgId.P_7021.getId(), name),
+                    COUNTDOWN_TITLE_TIMES
+            ));
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, SoundCategory.PLAYERS, 0.8F, 1.2F);
+        }
+    }
+
+    private void showDungeonStart(@NotNull List<Player> players, @NotNull String name) {
+        for (Player player : players) {
+            player.showTitle(Title.title(
+                    PlayerMsgResource.formatComponent(PlayerMsgId.P_7022.getId(), name),
+                    PlayerMsgResource.getComponent(PlayerMsgId.P_7023.getId()),
+                    COUNTDOWN_TITLE_TIMES
+            ));
+            player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.9F, 1.0F);
+        }
+    }
+
+    private @NotNull List<Player> activePlayersInWorld(@NotNull Session session) {
+        if (session.instanceWorld == null) return List.of();
+        UUID worldId = session.instanceWorld.world().getUID();
+        List<Player> result = new ArrayList<>();
+        for (UUID participantId : session.participants) {
+            Player player = Bukkit.getPlayer(participantId);
+            if (player != null && player.isOnline() && player.getWorld().getUID().equals(worldId)) result.add(player);
+        }
+        return result;
     }
 
     /** プレイヤーが解放済みの部屋へ入ったとき、その部屋の戦闘を開始します。 */
     public void handleMove(@NotNull Player player, @NotNull Location destination) {
         UUID sessionId = sessionIdByParticipant.get(player.getUniqueId());
         Session session = sessionId == null ? null : sessionsById.get(sessionId);
-        if (session == null || session.ending || session.instanceWorld == null
+        if (session == null || session.ending || session.instanceWorld == null || !session.combatStarted
                 || destination.getWorld() == null
                 || !destination.getWorld().getUID().equals(session.instanceWorld.world().getUID())) {
             return;
@@ -443,6 +716,15 @@ public final class DungeonService {
             return;
         }
         session.roomStates.put(roomId, RoomState.ACTIVE);
+        try {
+            activateRoomContent(session, roomId);
+        } catch (RuntimeException failure) {
+            Logger.log(LogId.E_7000, failure, session.id.toString(), session.loaded.definition().id());
+            completeSession(session, EndReason.SPAWN_FAILED, false);
+        }
+    }
+
+    private void activateRoomContent(@NotNull Session session, int roomId) {
         DungeonLayout.Room room = room(session, roomId);
         List<MobTemplate> encounters;
         if (room.role() == DungeonLayout.RoomRole.BOSS) {
@@ -516,7 +798,7 @@ public final class DungeonService {
         Logger.log(LogId.I_7003, session.id.toString(), roomId, cleared.role().name());
         if (cleared.role() == DungeonLayout.RoomRole.BOSS) {
             message(session.participants, PlayerMsgId.P_7012, session.loaded.definition().displayName());
-            completeSession(session, EndReason.CLEARED, true);
+            beginClearedWait(session, cleared);
             return;
         }
 
@@ -554,8 +836,397 @@ public final class DungeonService {
         if (session == null || session.ending) {
             return LeaveResult.NO_SESSION;
         }
-        requestParticipantLeave(session, player);
+        requestParticipantLeave(session, player, false);
         return LeaveResult.LEFT;
+    }
+
+    /** @return 3.5 block以内にある中止装置のセッション ID。対象外なら {@code null} */
+    public @Nullable UUID findNearbyCancelController(@NotNull Player player) {
+        return cancelControllers.values().stream()
+                .filter(controller -> controller.isNear(player))
+                .map(DungeonCancelController::sessionId)
+                .findFirst()
+                .orElse(null);
+    }
+
+    /** @return Interaction に対応するセッション ID。対象外なら {@code null} */
+    public @Nullable UUID resolveCancelInteraction(@NotNull org.bukkit.entity.Entity entity) {
+        return sessionIdByCancelInteraction.get(entity.getUniqueId());
+    }
+
+    /**
+     * 現在のパーティーリーダー、またはソロ開始者かを判定します。
+     *
+     * @param playerId 操作プレイヤー UUID
+     * @param sessionId セッション ID
+     * @return 中止権限があれば {@code true}
+     */
+    public boolean isSessionLeader(@NotNull UUID playerId, @NotNull UUID sessionId) {
+        Session session = sessionsById.get(sessionId);
+        if (session == null || session.ending) return false;
+        if (session.partyKey.startsWith("solo:")) return session.initiatorId.equals(playerId);
+        Party party = partyService.findParty(playerId);
+        return party != null && session.partyKey.equals("party:" + party.getPartyId()) && party.isLeader(playerId);
+    }
+
+    /** リーダーによる全員強制帰還付き中止を実行します。 */
+    public @NotNull CancelResult cancelForLeader(@NotNull UUID playerId, @NotNull UUID sessionId) {
+        Session session = sessionsById.get(sessionId);
+        if (session == null || session.ending) return CancelResult.NO_SESSION;
+        if (!isSessionLeader(playerId, sessionId)) return CancelResult.NOT_LEADER;
+        completeSession(session, EndReason.CANCELLED, false);
+        return CancelResult.CANCELLED;
+    }
+
+    /** ボス部屋クリア時の受取人と報酬を固定し、30秒の受取猶予を開始します。 */
+    private void beginClearedWait(@NotNull Session session, @NotNull DungeonLayout.Room bossRoom) {
+        if (session.cleared || session.ending || session.instanceWorld == null) return;
+        session.cleared = true;
+        try {
+        for (Player player : activePlayersInWorld(session)) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null) continue;
+            MobDropResult result = mobDropService.roll(session.loaded.definition().clearRewards(), astPlayer);
+            List<DungeonRewardEntry> rewards = createRewardEntries(result.items());
+            session.rewardsByPlayer.put(player.getUniqueId(), new ArrayList<>(rewards));
+        }
+        Location chestLocation = findRewardChestLocation(session, bossRoom);
+        Block chest = chestLocation.getBlock();
+        session.rewardChestLocation = chest.getLocation();
+        if (!chest.getRelative(BlockFace.DOWN).getType().isSolid()) {
+            chest.getRelative(BlockFace.DOWN).setType(
+                    session.loaded.definition().theme().floor().getFirst().material(), false);
+        }
+        chest.getRelative(BlockFace.UP).setType(Material.AIR, false);
+        chest.setType(Material.CHEST, false);
+        if (chest.getBlockData() instanceof org.bukkit.block.data.type.Chest chestData) {
+            chestData.setFacing(BlockFace.SOUTH);
+            chest.setBlockData(chestData, false);
+        }
+        session.rewardDisplay = displayTextService.create(
+                DisplayAnchor.fixed(chest.getLocation().clone().add(0.5D, 1.8D, 0.5D)),
+                DisplayTextOptions.defaults(PlayerMsgResource.format(
+                                PlayerMsgId.P_7033.getId(), session.loaded.definition().displayName()))
+                        .withLineWidth(300).withViewRange(48.0F).withShadowed(true)
+        );
+        session.clearReturnEndsAtMs = System.currentTimeMillis() + CLEAR_RETURN_DELAY_TICKS * 50L;
+        session.clearReturnTask = Bukkit.getScheduler().runTaskLater(
+                plugin,
+                () -> completeSession(session, EndReason.CLEARED, true),
+                CLEAR_RETURN_DELAY_TICKS
+        );
+        } catch (RuntimeException ex) {
+            Logger.log(LogId.E_7000, ex, session.id.toString(), session.loaded.definition().id());
+            completeSession(session, EndReason.SPAWN_FAILED, false);
+        }
+    }
+
+    private @NotNull Location findRewardChestLocation(
+            @NotNull Session session,
+            @NotNull DungeonLayout.Room room
+    ) {
+        int centerX = (room.bounds().minX() + room.bounds().maxX()) / 2;
+        int centerZ = (room.bounds().minZ() + room.bounds().maxZ()) / 2;
+        int y = session.loaded.definition().generation().baseY() + 1;
+        World world = session.instanceWorld.world();
+        int maxRadius = Math.max(room.bounds().width(), room.bounds().depth());
+        for (int radius = 0; radius <= maxRadius; radius++) {
+            for (int x = centerX - radius; x <= centerX + radius; x++) {
+                for (int z = centerZ - radius; z <= centerZ + radius; z++) {
+                    if (Math.max(Math.abs(x - centerX), Math.abs(z - centerZ)) != radius) continue;
+                    if (!contains(room, x, z)) continue;
+                    Block candidate = world.getBlockAt(x, y, z);
+                    if (candidate.getType().isAir() && candidate.getRelative(BlockFace.UP).getType().isAir()
+                            && candidate.getRelative(BlockFace.DOWN).getType().isSolid()) {
+                        return candidate.getLocation();
+                    }
+                }
+            }
+        }
+        return new Location(world, centerX, y, centerZ);
+    }
+
+    /**
+     * 右クリックされた実チェストが当該セッション報酬なら個人 GUI を開きます。
+     *
+     * @param player 操作プレイヤー
+     * @param block 右クリック対象
+     * @return 報酬チェストとして処理した場合 {@code true}
+     */
+    public boolean openRewardChest(@NotNull Player player, @NotNull Block block) {
+        UUID sessionId = sessionIdByParticipant.get(player.getUniqueId());
+        Session session = sessionId == null ? null : sessionsById.get(sessionId);
+        if (session == null || !session.cleared || session.ending || session.rewardChestLocation == null
+                || !sameBlock(session.rewardChestLocation, block.getLocation())) return false;
+        openRewardGui(session, player, 0);
+        return true;
+    }
+
+    /** @return 稼働中セッションが所有するクリア報酬 CHEST なら {@code true} */
+    public boolean isRewardChest(@NotNull Block block) {
+        UUID sessionId = sessionIdByWorld.get(block.getWorld().getUID());
+        Session session = sessionId == null ? null : sessionsById.get(sessionId);
+        return session != null && session.cleared && !session.ending && session.rewardChestLocation != null
+                && sameBlock(session.rewardChestLocation, block.getLocation());
+    }
+
+    private boolean sameBlock(@NotNull Location first, @NotNull Location second) {
+        return first.getWorld() != null && second.getWorld() != null
+                && first.getWorld().getUID().equals(second.getWorld().getUID())
+                && first.getBlockX() == second.getBlockX()
+                && first.getBlockY() == second.getBlockY()
+                && first.getBlockZ() == second.getBlockZ();
+    }
+
+    private void openRewardGui(@NotNull Session session, @NotNull Player player, int page) {
+        List<DungeonRewardEntry> rewards = session.rewardsByPlayer.get(player.getUniqueId());
+        if (rewards == null) {
+            messageService.send(player, PlayerMsgId.P_7032);
+            return;
+        }
+        rewardGui.open(player, session.id, session.loaded.definition().displayName(), rewards, page);
+    }
+
+    /** @return 報酬 GUI view */
+    public @NotNull DungeonRewardGui rewardGui() { return rewardGui; }
+
+    /** @return 中止 GUI view */
+    public @NotNull DungeonCancelGui cancelGui() { return cancelGui; }
+
+    /**
+     * 報酬 GUI のクリックを処理します。
+     *
+     * @param player 操作プレイヤー
+     * @param sessionId セッション ID
+     * @param page 0始まりページ
+     * @param slot GUI raw slot
+     * @param expectedClaimId GUI 描画時に slot へ固定した claim ID
+     */
+    public void handleRewardClick(
+            @NotNull Player player,
+            @NotNull UUID sessionId,
+            int page,
+            int slot,
+            @Nullable UUID expectedClaimId
+    ) {
+        Session session = sessionsById.get(sessionId);
+        if (session == null || session.ending || !session.cleared
+                || !session.participants.contains(player.getUniqueId())) {
+            messageService.send(player, PlayerMsgId.P_7032);
+            player.closeInventory();
+            return;
+        }
+        List<DungeonRewardEntry> rewards = session.rewardsByPlayer.get(player.getUniqueId());
+        if (rewards == null) {
+            messageService.send(player, PlayerMsgId.P_7032);
+            player.closeInventory();
+            return;
+        }
+        if (slot == DungeonRewardGui.PREVIOUS_SLOT) {
+            openRewardGui(session, player, Math.max(0, page - 1));
+            return;
+        }
+        if (slot == DungeonRewardGui.NEXT_SLOT) {
+            openRewardGui(session, player, page + 1);
+            return;
+        }
+        if (slot < 0 || slot >= DungeonRewardGui.CONTENT_SIZE) return;
+        if (expectedClaimId == null) return;
+        int index = findRewardIndex(rewards, expectedClaimId);
+        if (index < 0) return;
+        DungeonRewardEntry reward = rewards.get(index);
+        ItemModel model = itemService.findLoadedById(reward.itemId());
+        if (model == null) model = itemService.loadItem(reward.itemId());
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (model == null || astPlayer == null) {
+            messageService.send(player, PlayerMsgId.P_7032);
+            return;
+        }
+        int granted = inventoryService.addItemToNormalInventory(astPlayer, model, reward.amount(), REWARD_SOURCE);
+        if (granted <= 0) {
+            messageService.send(player, PlayerMsgId.P_7031);
+            return;
+        }
+        if (granted >= reward.amount()) rewards.remove(index);
+        else rewards.set(index, reward.withAmount(reward.amount() - granted));
+        openRewardGui(session, player, page);
+    }
+
+    static boolean canRejoinParticipant(
+            @NotNull Collection<UUID> originalParticipants,
+            @NotNull Collection<UUID> gateReturnEligible,
+            @NotNull UUID playerId
+    ) {
+        return originalParticipants.contains(playerId) && gateReturnEligible.contains(playerId);
+    }
+
+    static @NotNull List<DungeonRewardEntry> createRewardEntries(
+            @NotNull Collection<MobDropResultItem> rolledItems
+    ) {
+        return rolledItems.stream()
+                .sorted(Comparator.comparingDouble(MobDropResultItem::dropRate))
+                .map(item -> new DungeonRewardEntry(
+                        UUID.randomUUID(), item.itemId(), item.amount(), item.dropRate()))
+                .toList();
+    }
+
+    static int findRewardIndex(
+            @NotNull List<DungeonRewardEntry> rewards,
+            @NotNull UUID expectedClaimId
+    ) {
+        for (int index = 0; index < rewards.size(); index++) {
+            if (rewards.get(index).claimId().equals(expectedClaimId)) return index;
+        }
+        return -1;
+    }
+
+    /** @return 指定 Mob が進行中ダンジョンに紐付く場合 {@code true} */
+    public boolean isDungeonMob(@NotNull UUID mobInstanceId) {
+        return mobBindings.containsKey(mobInstanceId);
+    }
+
+    /**
+     * Mob 死亡確定時に同一インスタンス内へいる現在参加者だけを固定受取人として返します。
+     *
+     * @param mobInstanceId ダンジョン Mob UUID
+     * @return 固定報酬受取人
+     */
+    public @NotNull List<AstPlayer> resolveMobRewardRecipients(@NotNull UUID mobInstanceId) {
+        MobBinding binding = mobBindings.get(mobInstanceId);
+        Session session = binding == null ? null : sessionsById.get(binding.sessionId());
+        if (session == null || session.ending) return List.of();
+        List<AstPlayer> result = new ArrayList<>();
+        for (Player player : activePlayersInWorld(session)) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null) result.add(astPlayer);
+        }
+        return List.copyOf(result);
+    }
+
+    /**
+     * ダンジョン参加者の死亡を共有回数へ記録し、許容回数内なら開始地点へ復帰させます。
+     *
+     * @param astPlayer 死亡プレイヤー
+     * @param deathLocation 死亡地点
+     * @return ダンジョン死亡として処理した場合 {@code true}
+     */
+    public boolean handleParticipantDeath(@NotNull AstPlayer astPlayer, @NotNull Location deathLocation) {
+        UUID playerId = astPlayer.getBukkit().getUniqueId();
+        UUID sessionId = sessionIdByParticipant.get(playerId);
+        Session session = sessionId == null ? null : sessionsById.get(sessionId);
+        if (session == null || session.ending || session.instanceWorld == null
+                || deathLocation.getWorld() == null
+                || !deathLocation.getWorld().getUID().equals(session.instanceWorld.world().getUID())) return false;
+        if (playerDeathService.isDead(playerId)) return true;
+        if (session.cleared) {
+            boolean started = playerDeathService.startDeath(
+                    astPlayer,
+                    deathLocation,
+                    session.loaded.definition().challenge().reviveDelaySeconds() * 1_000L,
+                    false,
+                    () -> reviveParticipant(session.id, playerId)
+            );
+            if (started) registerDungeonDeath(session, playerId);
+            return true;
+        }
+        session.deathCount++;
+        session.deathsByPlayer.merge(playerId, 1, Integer::sum);
+        boolean started = playerDeathService.startDeath(
+                astPlayer,
+                deathLocation,
+                session.loaded.definition().challenge().reviveDelaySeconds() * 1_000L,
+                false,
+                () -> reviveParticipant(session.id, playerId)
+        );
+        if (!started) return true;
+        registerDungeonDeath(session, playerId);
+        int limit = session.loaded.definition().challenge().deathLimit();
+        if (ChallengeDeathPolicy.isExceeded(session.deathCount, limit)) {
+            message(session.participants, PlayerMsgId.P_7027, session.deathCount, limit);
+            completeSession(session, EndReason.DEATH_LIMIT, false);
+        } else {
+            messageService.send(astPlayer, PlayerMsgId.P_7026,
+                    session.loaded.definition().challenge().reviveDelaySeconds(), session.deathCount, limit);
+        }
+        return true;
+    }
+
+    /**
+     * Dungeon死亡復帰callbackを再検証し、同じ稼働セッションの現在参加者をSTART地点へ戻します。
+     *
+     * @param sessionId 死亡を受理したDungeonセッションID
+     * @param playerId 復帰対象プレイヤーUUID
+     */
+    private void reviveParticipant(@NotNull UUID sessionId, @NotNull UUID playerId) {
+        Session session = sessionsById.get(sessionId);
+        if (session != null) session.dungeonDeathParticipants.remove(playerId);
+        dungeonDeathSessionByParticipant.remove(playerId, sessionId);
+        Player player = Bukkit.getPlayer(playerId);
+        if (session == null || session.instanceWorld == null
+                || !canRunDungeonRecoveryCallback(
+                        sessionId,
+                        sessionsById.get(sessionId) == session ? session.id : null,
+                        session.ending,
+                        session.participants,
+                        playerId
+                )
+                || player == null || !player.isOnline()) return;
+        DungeonBlockPlan.Position spawn = session.blockPlan.playerSpawn();
+        Location target = new Location(session.instanceWorld.world(), spawn.x() + 0.5D, spawn.y(), spawn.z() + 0.5D);
+        long transferGeneration = session.transferGeneration;
+        CompletableFuture<Boolean> transfer = trackEntryTransfer(
+                session, playerId, worldService.teleportPlayerAsync(player, target, null));
+        transfer.whenComplete((success, failure) -> runMain(() -> {
+            if (isActiveTransferCallback(session, transferGeneration)
+                    && (failure != null || !Boolean.TRUE.equals(success))) {
+                completeSession(session, EndReason.TRANSFER_FAILED, false);
+            }
+        }));
+    }
+
+    /** @return 現在のダンジョン Sidebar 情報。参加中でなければ {@code null} */
+    public @Nullable DungeonSidebarInfo findSidebarInfo(@NotNull UUID playerId) {
+        UUID sessionId = sessionIdByParticipant.get(playerId);
+        Session session = sessionId == null ? null : sessionsById.get(sessionId);
+        if (session == null || session.ending || session.layout == null) return null;
+        int clearedRooms = (int) session.roomStates.values().stream().filter(state -> state == RoomState.CLEARED).count();
+        List<String> names = activePlayersInWorld(session).stream().map(Player::getName).toList();
+        long remaining = session.cleared
+                ? Math.max(0L, (session.clearReturnEndsAtMs - System.currentTimeMillis() + 999L) / 1_000L)
+                : -1L;
+        return new DungeonSidebarInfo(
+                session.loaded.definition().displayName(), session.deathCount,
+                session.loaded.definition().challenge().deathLimit(), clearedRooms,
+                session.layout.rooms().size(), names, remaining
+        );
+    }
+
+    /**
+     * 帰還ゲート内のスニークを処理し、受付へ戻した上で再参加権を付与します。
+     *
+     * @param player 操作プレイヤー
+     * @return 帰還処理を受理した場合 {@code true}
+     */
+    public boolean handleReturnGateSneak(@NotNull Player player) {
+        UUID sessionId = sessionIdByParticipant.get(player.getUniqueId());
+        Session session = sessionId == null ? null : sessionsById.get(sessionId);
+        if (session == null || session.ending || session.returnGateLocation == null
+                || !player.getWorld().getUID().equals(session.returnGateLocation.getWorld().getUID())
+                || player.getLocation().distanceSquared(session.returnGateLocation) > RETURN_GATE_RADIUS_SQUARED) {
+            return false;
+        }
+        requestParticipantLeave(session, player, true);
+        return true;
+    }
+
+    /** @return 帰還ゲート内にいる参加者のセッション ID。対象外なら {@code null} */
+    public @Nullable UUID findReturnGate(@NotNull Player player) {
+        UUID sessionId = sessionIdByParticipant.get(player.getUniqueId());
+        Session session = sessionId == null ? null : sessionsById.get(sessionId);
+        return session != null && !session.ending && session.returnGateLocation != null
+                && player.getWorld().getUID().equals(session.returnGateLocation.getWorld().getUID())
+                && player.getLocation().distanceSquared(session.returnGateLocation) <= RETURN_GATE_RADIUS_SQUARED
+                ? session.id : null;
     }
 
     /** ログアウトした参加者をセッションから外します。 */
@@ -563,52 +1234,76 @@ public final class DungeonService {
         UUID sessionId = sessionIdByParticipant.get(playerId);
         Session session = sessionId == null ? null : sessionsById.get(sessionId);
         if (session != null && !session.ending) {
-            finalizeParticipantRemoval(session, playerId);
+            finalizeParticipantRemoval(session, playerId, false);
+        }
+        for (Session active : sessionsById.values()) {
+            if (active.gateReturnEligible.remove(playerId)) {
+                recoverDungeonDeath(active, playerId);
+                releaseBusyParticipantWhenTransfersSettle(active, playerId);
+            }
         }
     }
 
-    private void requestParticipantLeave(@NotNull Session session, @NotNull Player player) {
+    private void requestParticipantLeave(
+            @NotNull Session session,
+            @NotNull Player player,
+            boolean rejoinEligible
+    ) {
         UUID playerId = player.getUniqueId();
         if (!session.departingParticipants.add(playerId)) {
             return;
         }
         CompletableFuture<Boolean> entryTransfer = session.entryTransfers.get(playerId);
         if (entryTransfer == null) {
-            beginParticipantDeparture(session, player);
+            beginParticipantDeparture(session, player, rejoinEligible);
             return;
         }
         entryTransfer.whenComplete((ignored, failure) -> runMain(() ->
-                beginParticipantDeparture(session, player)));
+                beginParticipantDeparture(session, player, rejoinEligible)));
     }
 
-    private void beginParticipantDeparture(@NotNull Session session, @NotNull Player player) {
+    private void beginParticipantDeparture(
+            @NotNull Session session,
+            @NotNull Player player,
+            boolean rejoinEligible
+    ) {
         UUID playerId = player.getUniqueId();
         if (!isCurrentParticipant(session, playerId)) {
             return;
         }
         World instance = session.instanceWorld == null ? null : session.instanceWorld.world();
         if (!player.isOnline()) {
-            finalizeParticipantRemoval(session, playerId);
+            finalizeParticipantRemoval(session, playerId, false);
             return;
         }
 
-        Location target = resolveReturnLocation(session.returnLocations.get(playerId), instance);
+        World entryWorld = worldService.resolveLoadedWorld(session.loaded.entryWorldData());
+        Location target = entryWorld == null
+                ? resolveReturnLocation(session.returnLocations.get(playerId), instance)
+                : entryLocation(session.loaded.definition().entry(), entryWorld);
         if (target == null) {
             session.departingParticipants.remove(playerId);
             messageService.send(player, PlayerMsgId.P_7017);
             return;
         }
 
-        worldService.teleportPlayerAsync(player, target, null)
+        long transferGeneration = session.transferGeneration;
+        CompletableFuture<Boolean> returnTransfer = trackReturnTransfer(
+                session,
+                playerId,
+                worldService.teleportPlayerAsync(player, target, null)
+        );
+        returnTransfer
                 .whenComplete((success, failure) -> runMain(() -> {
-                    if (!isCurrentParticipant(session, playerId)) {
+                    if (!isActiveTransferCallback(session, transferGeneration)
+                            || !isCurrentParticipant(session, playerId)) {
                         return;
                     }
                     boolean reachedReturnWorld = player.isOnline()
                             && target.getWorld() != null
                             && player.getWorld().getUID().equals(target.getWorld().getUID());
                     if ((failure == null && Boolean.TRUE.equals(success)) || reachedReturnWorld) {
-                        finalizeParticipantRemoval(session, playerId);
+                        finalizeParticipantRemoval(session, playerId, rejoinEligible);
                         if (player.isOnline()) {
                             messageService.send(player, PlayerMsgId.P_7015);
                         }
@@ -625,17 +1320,146 @@ public final class DungeonService {
                 && session.participants.contains(playerId);
     }
 
-    private void finalizeParticipantRemoval(@NotNull Session session, @NotNull UUID playerId) {
+    private void finalizeParticipantRemoval(
+            @NotNull Session session,
+            @NotNull UUID playerId,
+            boolean rejoinEligible
+    ) {
         if (!session.participants.remove(playerId)) {
             return;
         }
         session.departingParticipants.remove(playerId);
-        session.entryTransfers.remove(playerId);
-        sessionIdByParticipant.remove(playerId);
-        session.returnLocations.remove(playerId);
+        sessionIdByParticipant.remove(playerId, session.id);
+        recoverDungeonDeath(session, playerId);
+        if (rejoinEligible && !session.ending) {
+            session.gateReturnEligible.add(playerId);
+        } else {
+            session.gateReturnEligible.remove(playerId);
+        }
         if (session.participants.isEmpty()) {
             completeSession(session, EndReason.EMPTY, false);
+        } else if (!rejoinEligible) {
+            releaseBusyParticipantWhenTransfersSettle(session, playerId);
         }
+    }
+
+    private @NotNull CompletableFuture<Boolean> trackEntryTransfer(
+            @NotNull Session session,
+            @NotNull UUID playerId,
+            @NotNull CompletableFuture<Boolean> transfer
+    ) {
+        session.entryTransfers.put(playerId, transfer);
+        transfer.whenComplete((ignored, failure) -> runMain(() ->
+                session.entryTransfers.remove(playerId, transfer)));
+        return transfer;
+    }
+
+    private @NotNull CompletableFuture<Boolean> trackReturnTransfer(
+            @NotNull Session session,
+            @NotNull UUID playerId,
+            @NotNull CompletableFuture<Boolean> transfer
+    ) {
+        session.returnTransfers.put(playerId, transfer);
+        transfer.whenComplete((ignored, failure) -> runMain(() ->
+                session.returnTransfers.remove(playerId, transfer)));
+        return transfer;
+    }
+
+    private boolean isActiveTransferCallback(@NotNull Session session, long transferGeneration) {
+        Session indexed = sessionsById.get(session.id);
+        return isTransferCallbackCurrent(
+                session.id,
+                indexed == session ? session.id : null,
+                transferGeneration,
+                session.transferGeneration,
+                session.ending,
+                false
+        );
+    }
+
+    private boolean isEndingTransferCallback(@NotNull Session session, long transferGeneration) {
+        Session indexed = sessionsById.get(session.id);
+        return isTransferCallbackCurrent(
+                session.id,
+                indexed == session ? session.id : null,
+                transferGeneration,
+                session.transferGeneration,
+                session.ending,
+                true
+        );
+    }
+
+    static boolean isTransferCallbackCurrent(
+            @NotNull UUID expectedSessionId,
+            @Nullable UUID indexedSessionId,
+            long expectedGeneration,
+            long currentGeneration,
+            boolean ending,
+            boolean endingCallback
+    ) {
+        return expectedSessionId.equals(indexedSessionId)
+                && expectedGeneration == currentGeneration
+                && ending == endingCallback;
+    }
+
+    private void releaseBusyParticipantWhenTransfersSettle(
+            @NotNull Session session,
+            @NotNull UUID playerId
+    ) {
+        List<CompletableFuture<Boolean>> transfers = new ArrayList<>(2);
+        CompletableFuture<Boolean> entryTransfer = session.entryTransfers.get(playerId);
+        if (entryTransfer != null) transfers.add(entryTransfer);
+        CompletableFuture<Boolean> returnTransfer = session.returnTransfers.get(playerId);
+        if (returnTransfer != null) transfers.add(returnTransfer);
+        CompletableFuture.allOf(transfers.toArray(CompletableFuture[]::new))
+                .whenComplete((ignored, failure) -> runMain(() -> {
+                    if (!session.ending
+                            && !session.participants.contains(playerId)
+                            && !session.gateReturnEligible.contains(playerId)) {
+                        sessionIdByBusyParticipant.remove(playerId, session.id);
+                    }
+                }));
+    }
+
+    private void registerDungeonDeath(@NotNull Session session, @NotNull UUID playerId) {
+        session.dungeonDeathParticipants.add(playerId);
+        dungeonDeathSessionByParticipant.put(playerId, session.id);
+    }
+
+    private void recoverDungeonDeath(@NotNull Session session, @NotNull UUID playerId) {
+        session.dungeonDeathParticipants.remove(playerId);
+        recoverOwnedDungeonDeath(
+                dungeonDeathSessionByParticipant,
+                session.id,
+                playerId,
+                ignored -> playerDeathService.recoverNow(playerId)
+        );
+    }
+
+    static boolean recoverOwnedDungeonDeath(
+            @NotNull Map<UUID, UUID> ownershipByPlayer,
+            @NotNull UUID sessionId,
+            @NotNull UUID playerId,
+            @NotNull Consumer<UUID> recovery
+    ) {
+        if (!ownershipByPlayer.remove(playerId, sessionId)) return false;
+        recovery.accept(playerId);
+        return true;
+    }
+
+    /**
+     * @return 同じ稼働セッションの現在参加者に対する死亡復帰callbackなら{@code true}
+     */
+    static boolean canRunDungeonRecoveryCallback(
+            @NotNull UUID expectedSessionId,
+            @Nullable UUID indexedSessionId,
+            boolean ending,
+            @NotNull Set<UUID> participants,
+            @NotNull UUID playerId
+    ) {
+        return expectedSessionId.equals(indexedSessionId)
+                && !ending
+                && participants.contains(playerId);
     }
 
     private void failPreparation(@NotNull Session session, @NotNull Throwable failure) {
@@ -649,30 +1473,39 @@ public final class DungeonService {
             return;
         }
         session.ending = true;
-        sessionsById.remove(session.id);
-        if (session.instanceWorld != null) {
-            sessionIdByWorld.remove(session.instanceWorld.world().getUID());
-        }
-        for (UUID participant : session.participants) {
-            sessionIdByParticipant.remove(participant);
+        long endingGeneration = ++session.transferGeneration;
+        closeSessionGuis(session);
+        cancelSessionTasks(session);
+        destroySessionControls(session);
+        for (UUID participant : List.copyOf(session.dungeonDeathParticipants)) {
+            recoverDungeonDeath(session, participant);
         }
         for (Set<UUID> roomMobs : session.liveMobsByRoom.values()) {
             for (UUID mobId : List.copyOf(roomMobs)) {
                 mobBindings.remove(mobId);
-                mobService.destroy(mobId);
+                cleanupSafely(session, "mob:" + mobId, () -> mobService.destroy(mobId));
             }
             roomMobs.clear();
         }
         Logger.log(LogId.I_7004, session.id.toString(), session.loaded.definition().id(), reason.name());
-        if (!success && reason != EndReason.PREPARATION_FAILED) {
+        if (!success && reason != EndReason.PREPARATION_FAILED && reason != EndReason.DEATH_LIMIT) {
             message(session.participants, PlayerMsgId.P_7013, session.loaded.definition().displayName());
         }
 
-        if (session.instanceWorld == null) {
-            returnParticipants(session, null);
-            return;
-        }
-        World instance = session.instanceWorld.world();
+        List<CompletableFuture<?>> pendingTransfers = new ArrayList<>();
+        pendingTransfers.addAll(session.entryTransfers.values());
+        pendingTransfers.addAll(session.returnTransfers.values());
+        pendingTransfers.add(session.preparationLifecycle);
+        CompletableFuture.allOf(pendingTransfers.toArray(CompletableFuture[]::new))
+                .whenComplete((ignored, failure) -> runMain(() -> {
+                    if (!isEndingTransferCallback(session, endingGeneration)) return;
+                    returnParticipantsAndDestroy(session, endingGeneration);
+                }));
+    }
+
+    /** 保留転送失効後に現在参加者を退避し、一時 World の破棄完了まで索引を保持します。 */
+    private void returnParticipantsAndDestroy(@NotNull Session session, long endingGeneration) {
+        World instance = session.instanceWorld == null ? null : session.instanceWorld.world();
         List<CompletableFuture<Boolean>> transfers = new ArrayList<>();
         for (UUID participantId : session.participants) {
             Player participant = Bukkit.getPlayer(participantId);
@@ -680,15 +1513,108 @@ public final class DungeonService {
                 continue;
             }
             Location target = resolveReturnLocation(session.returnLocations.get(participantId), instance);
-            transfers.add(target == null
+            CompletableFuture<Boolean> transfer = target == null
                     ? CompletableFuture.completedFuture(false)
-                    : worldService.teleportPlayerAsync(participant, target, null));
+                    : worldService.teleportPlayerAsync(participant, target, null);
+            transfers.add(trackReturnTransfer(session, participantId, transfer));
         }
         CompletableFuture.allOf(transfers.toArray(CompletableFuture[]::new))
                 .whenComplete((ignored, failure) -> runMain(() -> {
+                    if (!isEndingTransferCallback(session, endingGeneration)) return;
+                    if (instance == null || session.instanceWorld == null) {
+                        finishSessionCleanup(session, endingGeneration);
+                        return;
+                    }
                     evacuateRemainingPlayers(instance);
-                    instanceWorldService.destroyAsync(session.instanceWorld);
+                    instanceWorldService.destroyAsync(session.instanceWorld)
+                            .whenComplete((destroyed, destroyFailure) -> runMain(() -> {
+                                if (isEndingTransferCallback(session, endingGeneration)
+                                        && destroyFailure == null && Boolean.TRUE.equals(destroyed)) {
+                                    finishSessionCleanup(session, endingGeneration);
+                                }
+                            }));
                 }));
+    }
+
+    /** 帰還と一時 World 破棄が完了したセッションの reverse index を最後に解放します。 */
+    private void finishSessionCleanup(@NotNull Session session, long endingGeneration) {
+        if (!isEndingTransferCallback(session, endingGeneration)) return;
+        session.transferGeneration++;
+        sessionsById.remove(session.id, session);
+        sessionIdByPartyKey.remove(session.partyKey, session.id);
+        if (session.instanceWorld != null) {
+            sessionIdByWorld.remove(session.instanceWorld.world().getUID(), session.id);
+        }
+        for (UUID participant : session.originalParticipants) {
+            sessionIdByParticipant.remove(participant, session.id);
+            sessionIdByBusyParticipant.remove(participant, session.id);
+            dungeonDeathSessionByParticipant.remove(participant, session.id);
+        }
+        session.entryTransfers.clear();
+        session.returnTransfers.clear();
+    }
+
+    private void cancelSessionTasks(@NotNull Session session) {
+        if (session.startCountdownTask != null) {
+            BukkitTask task = session.startCountdownTask;
+            session.startCountdownTask = null;
+            cleanupSafely(session, "start_countdown_task", task::cancel);
+        }
+        if (session.clearReturnTask != null) {
+            BukkitTask task = session.clearReturnTask;
+            session.clearReturnTask = null;
+            cleanupSafely(session, "clear_return_task", task::cancel);
+        }
+    }
+
+    private void destroySessionControls(@NotNull Session session) {
+        DungeonCancelController controller = cancelControllers.remove(session.id);
+        if (controller != null) {
+            sessionIdByCancelInteraction.remove(controller.interaction().getUniqueId());
+            cleanupSafely(session, "cancel_controller", controller::destroy);
+        }
+        if (session.returnGateDisplay != null) {
+            DisplayTextService.ManagedTextDisplay display = session.returnGateDisplay;
+            session.returnGateDisplay = null;
+            cleanupSafely(session, "return_gate_display", display::destroy);
+        }
+        if (session.rewardDisplay != null) {
+            DisplayTextService.ManagedTextDisplay display = session.rewardDisplay;
+            session.rewardDisplay = null;
+            cleanupSafely(session, "reward_display", display::destroy);
+        }
+        if (session.rewardChestLocation != null && session.rewardChestLocation.getWorld() != null) {
+            Location chestLocation = session.rewardChestLocation;
+            session.rewardChestLocation = null;
+            cleanupSafely(session, "reward_chest", () -> chestLocation.getBlock().setType(Material.AIR, false));
+        }
+        session.rewardsByPlayer.clear();
+    }
+
+    private void closeSessionGuis(@NotNull Session session) {
+        for (UUID playerId : session.originalParticipants) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player == null || !player.isOnline()) continue;
+            org.bukkit.inventory.Inventory top = player.getOpenInventory().getTopInventory();
+            UUID cancelSessionId = cancelGui.sessionId(top);
+            DungeonRewardGui.Holder rewardHolder = rewardGui.holder(top);
+            if (session.id.equals(cancelSessionId)
+                    || (rewardHolder != null && session.id.equals(rewardHolder.sessionId()))) {
+                player.closeInventory();
+            }
+        }
+    }
+
+    private void cleanupSafely(
+            @NotNull Session session,
+            @NotNull String element,
+            @NotNull Runnable cleanup
+    ) {
+        try {
+            cleanup.run();
+        } catch (RuntimeException failure) {
+            Logger.log(LogId.E_7004, failure, session.id.toString(), element);
+        }
     }
 
     private @Nullable Location resolveReturnLocation(@Nullable Location requested, @Nullable World instance) {
@@ -723,12 +1649,16 @@ public final class DungeonService {
             entryVisualTask.cancel();
             entryVisualTask = null;
         }
+        clearEntryPromptDisplays();
         for (Session session : List.copyOf(sessionsById.values())) {
             session.ending = true;
+            closeSessionGuis(session);
+            cancelSessionTasks(session);
+            destroySessionControls(session);
             for (Set<UUID> roomMobs : session.liveMobsByRoom.values()) {
                 for (UUID mobId : roomMobs) {
                     mobBindings.remove(mobId);
-                    mobService.destroy(mobId);
+                    cleanupSafely(session, "mob:" + mobId, () -> mobService.destroy(mobId));
                 }
             }
             if (session.instanceWorld != null) {
@@ -753,6 +1683,9 @@ public final class DungeonService {
                     }
                 }
             }
+            for (UUID participantId : List.copyOf(session.dungeonDeathParticipants)) {
+                recoverDungeonDeath(session, participantId);
+            }
         }
         for (DungeonInstanceWorldService.InstanceWorld instance : instanceWorldService.activeInstances()) {
             evacuateRemainingPlayers(instance.world());
@@ -760,8 +1693,13 @@ public final class DungeonService {
         instanceWorldService.destroyAllNow();
         sessionsById.clear();
         sessionIdByParticipant.clear();
+        sessionIdByBusyParticipant.clear();
         sessionIdByWorld.clear();
+        sessionIdByPartyKey.clear();
+        dungeonDeathSessionByParticipant.clear();
         mobBindings.clear();
+        cancelControllers.clear();
+        sessionIdByCancelInteraction.clear();
     }
 
     /** 指定ワールドが稼働中または実行時登録済みの DUNGEON ワールドかを返します。 */
@@ -844,36 +1782,26 @@ public final class DungeonService {
                 continue;
             }
             session.participants.remove(participantId);
-            sessionIdByParticipant.remove(participantId);
-            session.entryTransfers.remove(participantId);
+            sessionIdByParticipant.remove(participantId, session.id);
+            recoverDungeonDeath(session, participantId);
             if (player != null && player.isOnline()) {
                 Location target = resolveReturnLocation(session.returnLocations.get(participantId), null);
                 if (target != null) {
-                    worldService.teleportPlayerAsync(player, target, null);
+                    trackReturnTransfer(
+                            session,
+                            participantId,
+                            worldService.teleportPlayerAsync(player, target, null)
+                    );
                 }
             }
-        }
-    }
-
-    /**
-     * 残存オンライン参加者を受付前 Location または安全な非 DUNGEON World へ戻します。
-     *
-     * @param session 終了対象セッション
-     * @param instance 除外すべき一時 World。未生成時は {@code null}
-     */
-    private void returnParticipants(@NotNull Session session, @Nullable World instance) {
-        for (UUID participantId : session.participants) {
-            Player player = Bukkit.getPlayer(participantId);
-            Location target = resolveReturnLocation(session.returnLocations.get(participantId), instance);
-            if (player != null && player.isOnline() && target != null) {
-                worldService.teleportPlayerAsync(player, target, null);
-            }
+            releaseBusyParticipantWhenTransfersSettle(session, participantId);
         }
     }
 
     /** ロード済み受付地点のうち、近隣プレイヤーがいる地点へダンジョン専用演出を表示します。 */
     private void tickEntryVisuals() {
         double pulse = 0.08D * Math.sin(entryVisualFrame * 0.35D);
+        Set<String> activePromptIds = new HashSet<>();
         for (LoadedDefinition loaded : loadedDefinitions.values()) {
             World world = worldService.resolveLoadedWorld(loaded.entryWorldData());
             if (world == null) {
@@ -895,8 +1823,38 @@ public final class DungeonService {
                     center.clone().add(0.0D, 1.25D, 0.0D),
                     SharedParticleDefinitions.DUNGEON_ENTRY_PORTAL
             );
+            updateEntryPrompt(loaded, center);
+            activePromptIds.add(loaded.definition().id());
+        }
+        for (String id : List.copyOf(entryPromptDisplays.keySet())) {
+            if (!activePromptIds.contains(id)) {
+                entryPromptDisplays.remove(id).destroy();
+            }
+        }
+        for (Session session : sessionsById.values()) {
+            if (session.ending || session.returnGateLocation == null || session.instanceWorld == null
+                    || session.instanceWorld.world().getPlayers().isEmpty()) continue;
+            particleDisplayService.spawnForNearbyViewers(
+                    session.returnGateLocation.clone().add(0.0D, 1.0D, 0.0D),
+                    SharedParticleDefinitions.DUNGEON_ENTRY_PORTAL
+            );
         }
         entryVisualFrame++;
+    }
+
+    private void updateEntryPrompt(@NotNull LoadedDefinition loaded, @NotNull Location center) {
+        String id = loaded.definition().id();
+        String text = PlayerMsgResource.format(PlayerMsgId.P_7035.getId(), loaded.definition().displayName());
+        if (entryPromptDisplays.containsKey(id)) return;
+        entryPromptDisplays.put(id, displayTextService.create(
+                DisplayAnchor.fixed(center.clone().add(0.0D, 2.8D, 0.0D)),
+                DisplayTextOptions.defaults(text).withLineWidth(300).withViewRange(48.0F).withShadowed(true)
+        ));
+    }
+
+    private void clearEntryPromptDisplays() {
+        for (DisplayTextService.ManagedTextDisplay display : entryPromptDisplays.values()) display.destroy();
+        entryPromptDisplays.clear();
     }
 
     /**
@@ -1031,6 +1989,8 @@ public final class DungeonService {
     /** 開始受付の状態です。 */
     public enum StartStatus {
         ACCEPTED,
+        REJOINED,
+        ALREADY_IN_PROGRESS,
         UNAVAILABLE,
         NOT_FOUND,
         NOT_PARTY_LEADER,
@@ -1054,6 +2014,13 @@ public final class DungeonService {
         NO_SESSION
     }
 
+    /** 中止確認 GUI の確定結果です。 */
+    public enum CancelResult {
+        CANCELLED,
+        NO_SESSION,
+        NOT_LEADER
+    }
+
     private enum RoomState {
         LOCKED,
         AVAILABLE,
@@ -1064,6 +2031,8 @@ public final class DungeonService {
     private enum EndReason {
         CLEARED,
         EMPTY,
+        DEATH_LIMIT,
+        CANCELLED,
         PREPARATION_FAILED,
         PARTICIPANT_REQUIREMENT_NOT_MET,
         TRANSFER_FAILED,
@@ -1074,27 +2043,52 @@ public final class DungeonService {
         private final UUID id;
         private final long seed;
         private final LoadedDefinition loaded;
+        private final String partyKey;
+        private final UUID initiatorId;
+        private final LinkedHashSet<UUID> originalParticipants;
         private final LinkedHashSet<UUID> participants;
+        private final Set<UUID> gateReturnEligible = new LinkedHashSet<>();
         private final Map<UUID, Location> returnLocations;
         private final Map<UUID, CompletableFuture<Boolean>> entryTransfers = new HashMap<>();
+        private final Map<UUID, CompletableFuture<Boolean>> returnTransfers = new HashMap<>();
+        private CompletableFuture<Void> preparationLifecycle = CompletableFuture.completedFuture(null);
         private final Set<UUID> departingParticipants = new LinkedHashSet<>();
         private final Map<Integer, RoomState> roomStates = new LinkedHashMap<>();
         private final Map<Integer, Set<UUID>> liveMobsByRoom = new LinkedHashMap<>();
         private DungeonLayout layout;
         private DungeonBlockPlan blockPlan;
         private DungeonInstanceWorldService.InstanceWorld instanceWorld;
+        private Location returnGateLocation;
+        private Location rewardChestLocation;
+        private DisplayTextService.ManagedTextDisplay returnGateDisplay;
+        private DisplayTextService.ManagedTextDisplay rewardDisplay;
+        private BukkitTask startCountdownTask;
+        private BukkitTask clearReturnTask;
+        private long clearReturnEndsAtMs;
+        private final Map<UUID, Integer> deathsByPlayer = new HashMap<>();
+        private final Set<UUID> dungeonDeathParticipants = new LinkedHashSet<>();
+        private final Map<UUID, List<DungeonRewardEntry>> rewardsByPlayer = new HashMap<>();
+        private int deathCount;
+        private boolean combatStarted;
+        private boolean cleared;
         private boolean ending;
+        private long transferGeneration = 1L;
 
         private Session(
                 @NotNull UUID id,
                 long seed,
                 @NotNull LoadedDefinition loaded,
+                @NotNull String partyKey,
+                @NotNull UUID initiatorId,
                 @NotNull LinkedHashSet<UUID> participants,
                 @NotNull Map<UUID, Location> returnLocations
         ) {
             this.id = id;
             this.seed = seed;
             this.loaded = loaded;
+            this.partyKey = partyKey;
+            this.initiatorId = initiatorId;
+            this.originalParticipants = new LinkedHashSet<>(participants);
             this.participants = participants;
             this.returnLocations = returnLocations;
         }

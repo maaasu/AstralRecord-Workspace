@@ -46,6 +46,19 @@ public final class DungeonDefinitionValidator {
             fail(definition, "schemaVersion, id and displayName are required");
         }
         validateRange(definition, "party", definition.partySize(), 1, 6);
+        if (definition.challenge().deathLimit() < 0) {
+            fail(definition, "challenge.deathLimit must be zero or greater");
+        }
+        if (definition.challenge().reviveDelaySeconds() < 1L) {
+            fail(definition, "challenge.reviveDelaySeconds must be positive");
+        }
+        definition.clearRewards().items().forEach(item -> {
+            if (item.itemId() == null || item.itemId().isBlank()
+                    || !Double.isFinite(item.rate()) || item.rate() < 0.0D || item.rate() > 100.0D
+                    || !isValidAmount(item.amount())) {
+                fail(definition, "clearRewards.items contains an invalid entry");
+            }
+        });
 
         DungeonDefinition.Entry entry = definition.entry();
         WorldMasterData world = worldsById.get(entry.worldId());
@@ -159,6 +172,19 @@ public final class DungeonDefinitionValidator {
             if (weight <= 0) {
                 fail(definition, path + " weights must be positive");
             }
+        }
+    }
+
+    private boolean isValidAmount(String amount) {
+        if (amount == null || amount.isBlank()) return false;
+        String[] parts = amount.trim().split("~", -1);
+        if (parts.length < 1 || parts.length > 2) return false;
+        try {
+            int minimum = Integer.parseInt(parts[0]);
+            int maximum = parts.length == 1 ? minimum : Integer.parseInt(parts[1]);
+            return minimum >= 1 && maximum >= minimum;
+        } catch (NumberFormatException failure) {
+            return false;
         }
     }
 

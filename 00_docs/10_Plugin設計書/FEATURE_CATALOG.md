@@ -305,7 +305,7 @@
 ### [[32_0-概要|32-dungeon]]
 
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/dungeon/*`
-- `10_plugin/AstralRecord/src/main/resources/player.properties`（`P_7000` から `P_7017`）
+- `10_plugin/AstralRecord/src/main/resources/player.properties`（`P_7000` から `P_7047`）
 - `10_plugin/AstralRecord/src/main/resources/logger.properties`（Dungeon の `7000` 系）
 - `40_filebase/65.features.dungeon/*`
 
@@ -314,5 +314,6 @@
 次の package は単一の業務 feature に所有させず、`PLUGIN_GUIDE.md` の共通規約を設計正本とする。各 feature は必要な契約だけを依存境界として記載する。
 
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/infrastructure/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/challenge/*`（Boss／Dungeon 共用の開始 countdown・死亡許容判定）
 
 feature 固有 resource の ID 範囲や利用条件は各 feature が所有し、共通 loader、resolver、logger、正規化処理の実装境界はこの共通基盤が所有する。

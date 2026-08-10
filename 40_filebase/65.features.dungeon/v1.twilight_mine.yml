@@ -9,9 +9,20 @@ entry:
   x: -418.5
   y: 17.0
   z: -366.5
+challenge:
+  deathLimit: 5
+  reviveDelaySeconds: 5
 encounter:
   normalMobPool:
     - mobId: mob:midgard_forest_moss_wisp
     - mobId: mob:midgard_forest_root_guard
   firstCombatRoomMaxMobLevel: 5
   bossMobId: mob:twilight_colossus
+clearRewards:
+  items:
+    - itemId: item:magic_crystal
+      rate: 100.0
+      amount: "2~4"
+    - itemId: item:dark_essence
+      rate: 10.0
+      amount: "1"

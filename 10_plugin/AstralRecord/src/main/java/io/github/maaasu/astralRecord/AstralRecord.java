@@ -20,6 +20,7 @@ import io.github.maaasu.astralRecord.feature.combat.event.CombatDamageEventHandl
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.combat.service.CombatDpsTrackerService;
 import io.github.maaasu.astralRecord.feature.dungeon.event.DungeonWorldEventHandler;
+import io.github.maaasu.astralRecord.feature.dungeon.event.DungeonInteractionEventHandler;
 import io.github.maaasu.astralRecord.feature.dungeon.repository.DungeonDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.condition.display.ConditionDisplayService;
@@ -886,8 +887,15 @@ public final class AstralRecord extends JavaPlugin {
             mobService,
             playerMessageService,
             particleDisplayService,
+            displayTextService,
+            playerDeathService,
+            new MobDropService(lootService),
+            inventoryService,
+            itemService,
+            itemStackFactory,
             bossHubWorldId
         );
+        damageService.setDungeonService(dungeonService);
         damageService.setMobDeathListener(dungeonService::handleMobDefeated);
         bossChallengeCancelGui = new BossChallengeCancelGui();
         playerHudService = new PlayerHudService(
@@ -900,6 +908,7 @@ public final class AstralRecord extends JavaPlugin {
             worldService
         );
         playerHudService.setCombatDpsTrackerService(combatDpsTrackerService);
+        playerHudService.setDungeonService(dungeonService);
         skillTreeService.setPlayerHudService(playerHudService);
 
         // dodge
@@ -1223,6 +1232,7 @@ public final class AstralRecord extends JavaPlugin {
             returnToBaseService
         );
         var bossEntryEventHandler = new BossEntryEventHandler(bossChallengeService);
+        var dungeonInteractionEventHandler = new DungeonInteractionEventHandler(dungeonService, inventoryService);
         eventManager.registerHandler(
             new BossPlayerEventHandler(bossChallengeService),
             getServer().getPluginManager()
@@ -1231,6 +1241,7 @@ public final class AstralRecord extends JavaPlugin {
             new DungeonWorldEventHandler(dungeonService),
             getServer().getPluginManager()
         );
+        eventManager.registerHandler(dungeonInteractionEventHandler, getServer().getPluginManager());
         var bossChallengeCancelEventHandler = new BossChallengeCancelEventHandler(
             bossChallengeService,
             bossChallengeCancelGui
@@ -1470,6 +1481,7 @@ public final class AstralRecord extends JavaPlugin {
                 java.util.List.of(
                     bossChallengeCancelEventHandler,
                     bossEntryEventHandler,
+                    dungeonInteractionEventHandler,
                     baseWorldSpawnTeleportEventHandler,
                     overworldSpawnReturnEventHandler,
                     itemInteractionBlockEventHandler,

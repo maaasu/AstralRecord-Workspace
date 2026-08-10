@@ -20,6 +20,16 @@ class BossChallengeInstanceTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/26_1-モデル定義.md
+     * 章・見出し: # 26_1-モデル定義 > ## 1. ボス挑戦設定
+     * 検証契約: Boss challenge modelは死亡許容回数0を有効値として保持する。
+     */
+    @Test
+    void preservesZeroDeathLimit() {
+        assertEquals(0, createChallenge(List.of(UUID.randomUUID())).config().deathLimit());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/26_1-モデル定義.md
      * 章・見出し: # 26_1-モデル定義 > ## 4. ボス挑戦インスタンス
      * 検証契約: 受付時参加予定者を維持しつつ、入場直前の実参加者を別一覧へ確定してconfirmedを立てる。
      */
@@ -68,7 +78,7 @@ class BossChallengeInstanceTest {
                 1,
                 6,
                 600L,
-                5,
+                0,
                 5L,
                 BossScalingConfig.EMPTY
         );

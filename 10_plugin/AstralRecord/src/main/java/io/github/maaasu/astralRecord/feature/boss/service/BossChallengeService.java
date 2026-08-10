@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -27,6 +28,8 @@ import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeDeathPolicy;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeStartCountdown;
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
@@ -34,12 +37,15 @@ import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
+import net.kyori.adventure.title.Title;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -55,6 +61,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.time.Duration;
 
 /**
  * Coordinates boss challenge acceptance, field entry, and completion.
@@ -71,6 +78,11 @@ public final class BossChallengeService {
     private static final double ENTRY_PROMPT_Y_OFFSET = 2.35D;
     private static final double ENTRY_VIEWER_DISTANCE_SQUARED = 64.0D * 64.0D;
     private static final long END_RETRY_DELAY_TICKS = 5L * 20L;
+    private static final Title.Times COUNTDOWN_TITLE_TIMES = Title.Times.times(
+            Duration.ofMillis(100L),
+            Duration.ofMillis(900L),
+            Duration.ofMillis(100L)
+    );
 
     private final AstralRecord plugin;
     private final MobService mobService;
@@ -392,7 +404,7 @@ public final class BossChallengeService {
         if (!started) {
             return true;
         }
-        if (deathCount >= challenge.config().deathLimit()) {
+        if (ChallengeDeathPolicy.isExceeded(deathCount, challenge.config().deathLimit())) {
             notifyParticipants(challenge, PlayerMsgId.P_6525, deathCount, challenge.config().deathLimit());
             endChallenge(challenge, BossChallengeEndReason.DEATH_LIMIT);
         } else {
@@ -727,6 +739,53 @@ public final class BossChallengeService {
             return;
         }
 
+        beginStartCountdown(challenge);
+    }
+
+    /** フィールド転送後に10秒の開始カウントダウンを開始します。 */
+    private void beginStartCountdown(@NotNull BossChallengeInstance challenge) {
+        ChallengeStartCountdown countdown = new ChallengeStartCountdown();
+        BukkitTask[] taskRef = new BukkitTask[1];
+        taskRef[0] = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            try {
+                if (challenge.state() != BossChallengeState.PREPARING || challenge.field() == null) {
+                    taskRef[0].cancel();
+                    challenge.startCountdownTask(null);
+                    return;
+                }
+                List<Player> participantsInField = participantsInField(challenge);
+                if (participantsInField.size() < challenge.config().partyMin()) {
+                    taskRef[0].cancel();
+                    challenge.startCountdownTask(null);
+                    endChallenge(challenge, BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET);
+                    return;
+                }
+                ChallengeStartCountdown.Tick tick = countdown.advance();
+                if (tick.phase() == ChallengeStartCountdown.Phase.COUNTDOWN) {
+                    showCountdown(participantsInField, challenge.bossTemplate().displayName(), tick.remainingSeconds());
+                    return;
+                }
+                taskRef[0].cancel();
+                challenge.startCountdownTask(null);
+                showChallengeStart(participantsInField, challenge.bossTemplate().displayName());
+                startBossCombat(challenge);
+            } catch (RuntimeException failure) {
+                if (taskRef[0] != null) taskRef[0].cancel();
+                challenge.startCountdownTask(null);
+                Logger.log(LogId.E_6500, failure,
+                        challenge.bossTemplate().id(), challenge.config().fieldWorldId());
+                endChallenge(challenge, BossChallengeEndReason.BOSS_SPAWN_FAILED);
+            }
+        }, 0L, 20L);
+        challenge.startCountdownTask(taskRef[0]);
+    }
+
+    /** カウントダウン完了後にのみボスと中止装置を生成します。 */
+    private void startBossCombat(@NotNull BossChallengeInstance challenge) {
+        BossFieldInstance field = challenge.field();
+        if (challenge.state() != BossChallengeState.PREPARING || field == null) {
+            return;
+        }
         Location bossSpawn = challenge.config().bossSpawnLocation().toLocation(field.world());
         MobInstance boss = null;
         try {
@@ -759,6 +818,38 @@ public final class BossChallengeService {
             endChallenge(challenge, BossChallengeEndReason.BOSS_SPAWN_FAILED);
         } finally {
             fieldInstanceService.releaseStartupChunkTickets(challenge.challengeId());
+        }
+    }
+
+    private @NotNull List<Player> participantsInField(@NotNull BossChallengeInstance challenge) {
+        if (challenge.field() == null) {
+            return List.of();
+        }
+        UUID worldId = challenge.field().world().getUID();
+        return onlinePlayers(challenge.participantIds()).stream()
+                .filter(player -> player.getWorld().getUID().equals(worldId))
+                .toList();
+    }
+
+    private void showCountdown(@NotNull List<Player> players, @NotNull String name, int seconds) {
+        for (Player player : players) {
+            player.showTitle(Title.title(
+                    PlayerMsgResource.formatComponent(PlayerMsgId.P_6529.getId(), seconds),
+                    PlayerMsgResource.formatComponent(PlayerMsgId.P_6530.getId(), name),
+                    COUNTDOWN_TITLE_TIMES
+            ));
+            player.playSound(player.getLocation(), Sound.BLOCK_NOTE_BLOCK_HAT, SoundCategory.PLAYERS, 0.8F, 1.2F);
+        }
+    }
+
+    private void showChallengeStart(@NotNull List<Player> players, @NotNull String name) {
+        for (Player player : players) {
+            player.showTitle(Title.title(
+                    PlayerMsgResource.formatComponent(PlayerMsgId.P_6531.getId(), name),
+                    PlayerMsgResource.getComponent(PlayerMsgId.P_6532.getId()),
+                    COUNTDOWN_TITLE_TIMES
+            ));
+            player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.9F, 1.0F);
         }
     }
 
@@ -840,6 +931,7 @@ public final class BossChallengeService {
         }
         fieldInstanceService.cancelPendingCreation(challenge.challengeId());
         challenge.state(BossChallengeState.ENDING);
+        cancelStartCountdown(challenge);
         destroyCancelController(challenge.challengeId());
         destroyBossBar(challenge);
         if (!challenge.participantsConfirmed()) {
@@ -945,6 +1037,14 @@ public final class BossChallengeService {
         }
         challengeIdByCancelInteraction.remove(controller.interaction().getUniqueId());
         controller.destroy();
+    }
+
+    private void cancelStartCountdown(@NotNull BossChallengeInstance challenge) {
+        BukkitTask task = challenge.startCountdownTask();
+        if (task != null) {
+            task.cancel();
+            challenge.startCountdownTask(null);
+        }
     }
 
     /**
@@ -1425,6 +1525,7 @@ public final class BossChallengeService {
 
     private void forceShutdownChallenge(@NotNull BossChallengeInstance challenge) {
         challenge.state(BossChallengeState.ENDING);
+        cancelStartCountdown(challenge);
         destroyCancelController(challenge.challengeId());
         if (!challenge.participantsConfirmed()) {
             challenge.confirmParticipants(

@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.dungeon.model;
 
+import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 
@@ -17,13 +18,51 @@ public record DungeonDefinition(
         @NotNull String displayName,
         @NotNull Entry entry,
         @NotNull IntRange partySize,
+        @NotNull Challenge challenge,
         @NotNull Generation generation,
         @NotNull Theme theme,
-        @NotNull Encounter encounter
+        @NotNull Encounter encounter,
+        @NotNull MobDropConfig clearRewards
 ) {
     public DungeonDefinition {
         id = id.trim();
         displayName = displayName.trim();
+    }
+
+    /**
+     * 死亡制限・クリア報酬追加前の呼び出し元向け互換コンストラクタです。
+     *
+     * @param schemaVersion スキーマ版
+     * @param id ダンジョン ID
+     * @param displayName 表示名
+     * @param entry 受付地点
+     * @param partySize 参加人数範囲
+     * @param generation 生成設定
+     * @param theme 外観設定
+     * @param encounter 戦闘設定
+     */
+    public DungeonDefinition(
+            int schemaVersion,
+            @NotNull String id,
+            @NotNull String displayName,
+            @NotNull Entry entry,
+            @NotNull IntRange partySize,
+            @NotNull Generation generation,
+            @NotNull Theme theme,
+            @NotNull Encounter encounter
+    ) {
+        this(
+                schemaVersion,
+                id,
+                displayName,
+                entry,
+                partySize,
+                new Challenge(5, 5L),
+                generation,
+                theme,
+                encounter,
+                new MobDropConfig(0, null, List.of(), null)
+        );
     }
 
     /** 挑戦を受け付ける通常ワールド上の地点です。 */
@@ -43,6 +82,10 @@ public record DungeonDefinition(
 
     /** 最小値と最大値を両端を含めて表す範囲です。 */
     public record IntRange(int min, int max) {
+    }
+
+    /** パーティー共有の死亡許容回数と死亡後の復帰待機時間です。 */
+    public record Challenge(int deathLimit, long reviveDelaySeconds) {
     }
 
     /** BSP と部屋・通路の寸法設定です。 */

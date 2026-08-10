@@ -34,6 +34,7 @@ public final class BossChallengeInstance {
     private long startedAtMs;
     private long resultWaitEndsAtMs;
     private BukkitTask resultWaitTask;
+    private BukkitTask startCountdownTask;
     private DisplayTextService.ManagedTextDisplay resultDisplay;
     private BossBar bossBar;
 
@@ -187,6 +188,16 @@ public final class BossChallengeInstance {
 
     public void resultWaitTask(@Nullable BukkitTask resultWaitTask) {
         this.resultWaitTask = resultWaitTask;
+    }
+
+    /** @return 開始カウントダウン task。未開始または回収済みなら {@code null} */
+    public @Nullable BukkitTask startCountdownTask() {
+        return startCountdownTask;
+    }
+
+    /** @param startCountdownTask 挑戦開始までのカウントダウン task */
+    public void startCountdownTask(@Nullable BukkitTask startCountdownTask) {
+        this.startCountdownTask = startCountdownTask;
     }
 
     public @Nullable DisplayTextService.ManagedTextDisplay resultDisplay() {
