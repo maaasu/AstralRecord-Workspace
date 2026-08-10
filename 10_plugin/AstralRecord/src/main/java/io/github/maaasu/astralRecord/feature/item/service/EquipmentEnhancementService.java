@@ -36,6 +36,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
@@ -66,7 +67,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 public final class EquipmentEnhancementService {
-    private static final Component TITLE = Component.text("装備加工（修理・強化）", NamedTextColor.GOLD);
 
     private final Plugin plugin;
     private final MenuView menuView;
@@ -138,7 +138,12 @@ public final class EquipmentEnhancementService {
         open(player, EquipmentProcessingMode.ENHANCEMENT);
     }
 
-    /** 修理・強化をまとめた装備加工 GUI を開きます。 */
+    /**
+     * 指定モードの装備加工 GUI を開きます。画面タイトルと上部の色・アイコンは現在モードを常時示します。
+     *
+     * @param player GUI を開くプレイヤー
+     * @param mode 初期表示する修理または強化モード
+     */
     public void open(@NotNull Player player, @NotNull EquipmentProcessingMode mode) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
@@ -153,16 +158,24 @@ public final class EquipmentEnhancementService {
         }
         switchProcessingMode(player, session, mode);
         session.closeRequested = false;
+        session.processingScreen = ProcessingScreen.MAIN;
+        session.materialListPage = 0;
 
         Inventory inventory = Bukkit.createInventory(
             new MenuInventoryHolder(MenuScreen.EQUIPMENT_PROCESSING, -1, 0, mode.contentId()),
             BaseMenuScreenView.SIZE,
-            TITLE
+            processingView.processingTitle(mode)
         );
         renderProcessing(player, inventory, session);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
+    /**
+     * 装備加工 GUI 上段のクリックを処理します。必要素材一覧の表示中は戻る・ページ移動を優先します。
+     *
+     * @param player 操作したプレイヤー
+     * @param rawSlot クリックされた GUI slot
+     */
     public void handleTopClick(@NotNull Player player, int rawSlot) {
         if (isProcessingMenu(player.getOpenInventory().getTopInventory())) {
             handleProcessingTopClick(player, rawSlot);
@@ -305,14 +318,33 @@ public final class EquipmentEnhancementService {
         return true;
     }
 
+    /**
+     * 加工GUI下段のクリックを処理します。必要素材一覧の表示中は対象装備を差し替えません。
+     *
+     * @param player 操作したプレイヤー
+     * @param bukkitSlot クリックされた Bukkit PlayerInventory スロット
+     * @param displayedItem クリック時に表示されていた ItemStack。照合できない場合は {@code null}
+     * @return 加工GUIの操作として消費した場合 {@code true}
+     */
     private boolean handleProcessingPlayerInventoryClick(
         @NotNull Player player,
         int bukkitSlot,
         @Nullable ItemStack displayedItem
     ) {
+        EnhancementSession session = sessions.get(player.getUniqueId());
+        if (session != null && session.owner == player && session.processingScreen == ProcessingScreen.MATERIAL_LIST) {
+            GuiSound.DENY.play(player);
+            return true;
+        }
         return handleEnhancementInventoryClick(player, bukkitSlot, displayedItem, true);
     }
 
+    /**
+     * 加工GUI上段のモード切替、素材一覧、対象返却、実行操作を処理します。
+     *
+     * @param player 操作したプレイヤー
+     * @param rawSlot クリックされた GUI slot
+     */
     private void handleProcessingTopClick(@NotNull Player player, int rawSlot) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
@@ -329,12 +361,20 @@ public final class EquipmentEnhancementService {
             GuiSound.DENY.play(player);
             return;
         }
+        if (session.processingScreen == ProcessingScreen.MATERIAL_LIST) {
+            handleMaterialListTopClick(player, astPlayer, session, rawSlot);
+            return;
+        }
         if (rawSlot == EquipmentProcessingMenuScreenView.REPAIR_TAB_SLOT) {
             switchProcessingMode(player, session, EquipmentProcessingMode.REPAIR);
             return;
         }
         if (rawSlot == EquipmentProcessingMenuScreenView.ENHANCEMENT_TAB_SLOT) {
             switchProcessingMode(player, session, EquipmentProcessingMode.ENHANCEMENT);
+            return;
+        }
+        if (rawSlot == EquipmentProcessingMenuScreenView.MATERIAL_LIST_SLOT) {
+            openMaterialList(player, astPlayer, session);
             return;
         }
         if (rawSlot == EquipmentProcessingMenuScreenView.TARGET_SLOT) {
@@ -353,6 +393,81 @@ public final class EquipmentEnhancementService {
             } else {
                 executeEnhancement(player, astPlayer, session);
             }
+            return;
+        }
+        GuiSound.DENY.play(player);
+    }
+
+    /**
+     * 強化対象の必要素材一覧を開きます。対象未選択時と修理モードでは一覧を開きません。
+     *
+     * @param player 操作したプレイヤー
+     * @param astPlayer 操作したプレイヤーのゲーム状態
+     * @param session 対象装備を保持する加工セッション
+     */
+    private void openMaterialList(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
+        @NotNull EnhancementSession session
+    ) {
+        if (session.mode != EquipmentProcessingMode.ENHANCEMENT) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        SelectionResult selection = resolveSelection(session.selectedEquipment);
+        if (selection.context() == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        session.confirmationPending = false;
+        session.processingScreen = ProcessingScreen.MATERIAL_LIST;
+        session.materialListPage = 0;
+        renderMaterialList(player, astPlayer, player.getOpenInventory().getTopInventory(), session);
+        GuiSound.SELECT.play(player);
+    }
+
+    /**
+     * 必要素材一覧の戻る・ページ移動操作を処理します。
+     *
+     * @param player 操作したプレイヤー
+     * @param astPlayer 操作したプレイヤーのゲーム状態
+     * @param session 対象装備を保持する加工セッション
+     * @param rawSlot クリックされた GUI slot
+     */
+    private void handleMaterialListTopClick(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
+        @NotNull EnhancementSession session,
+        int rawSlot
+    ) {
+        if (rawSlot == EquipmentProcessingMenuScreenView.MATERIAL_LIST_BACK_SLOT) {
+            session.processingScreen = ProcessingScreen.MAIN;
+            session.materialListPage = 0;
+            renderProcessing(player, player.getOpenInventory().getTopInventory(), session);
+            GuiSound.SELECT.play(player);
+            return;
+        }
+
+        SelectionResult selection = resolveSelection(session.selectedEquipment);
+        if (selection.context() == null) {
+            session.processingScreen = ProcessingScreen.MAIN;
+            renderProcessing(player, player.getOpenInventory().getTopInventory(), session);
+            GuiSound.DENY.play(player);
+            return;
+        }
+        List<MaterialRequirement> requirements = collectMaterialRequirements(astPlayer, selection.context());
+        int pageCount = materialListPageCount(requirements);
+        if (rawSlot == EquipmentProcessingMenuScreenView.MATERIAL_LIST_PREVIOUS_SLOT && session.materialListPage > 0) {
+            session.materialListPage--;
+            renderMaterialList(player, astPlayer, player.getOpenInventory().getTopInventory(), session);
+            GuiSound.SELECT.play(player);
+            return;
+        }
+        if (rawSlot == EquipmentProcessingMenuScreenView.MATERIAL_LIST_NEXT_SLOT
+            && session.materialListPage + 1 < pageCount) {
+            session.materialListPage++;
+            renderMaterialList(player, astPlayer, player.getOpenInventory().getTopInventory(), session);
+            GuiSound.SELECT.play(player);
             return;
         }
         GuiSound.DENY.play(player);
@@ -720,17 +835,30 @@ public final class EquipmentEnhancementService {
         @NotNull EnhancementSession session
     ) {
         if (isProcessingMenu(inventory)) {
-            renderProcessing(player, inventory, session);
+            AstPlayer astPlayer = Objects.requireNonNull(AstPlayerCache.get(player));
+            if (session.processingScreen == ProcessingScreen.MATERIAL_LIST) {
+                renderMaterialList(player, astPlayer, inventory, session);
+            } else {
+                renderProcessing(player, inventory, session);
+            }
         } else {
             render(player, inventory, session);
         }
     }
 
+    /**
+     * 通常の装備加工画面を描画し、モード名を含む画面タイトルを同期します。
+     *
+     * @param player 操作中のプレイヤー
+     * @param inventory 描画先の装備加工 inventory
+     * @param session 対象装備を保持する加工セッション
+     */
     private void renderProcessing(
         @NotNull Player player,
         @NotNull Inventory inventory,
         @NotNull EnhancementSession session
     ) {
+        updateProcessingTitle(player, inventory, processingView.processingTitle(session.mode));
         boolean repairMode = session.mode == EquipmentProcessingMode.REPAIR;
         ItemStack selectedEquipment = session.selectedEquipment;
         SelectionResult selection = repairMode ? null : resolveSelection(selectedEquipment);
@@ -762,10 +890,64 @@ public final class EquipmentEnhancementService {
             createProcessingGuideItem(session.mode),
             infoItem,
             repairMode ? List.of() : createMaterialItems(requirements),
+            repairMode ? createRepairMaterialInfoItem() : createMaterialListItem(selection, requirements),
             executeItem
         );
     }
 
+    /**
+     * 強化対象の全必要素材をページ表示します。対象がなくなった場合は通常の加工画面へ戻します。
+     *
+     * @param player 操作中のプレイヤー
+     * @param astPlayer 操作中のプレイヤーのゲーム状態
+     * @param inventory 描画先の装備加工 inventory
+     * @param session 対象装備を保持する加工セッション
+     */
+    private void renderMaterialList(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
+        @NotNull Inventory inventory,
+        @NotNull EnhancementSession session
+    ) {
+        SelectionResult selection = resolveSelection(session.selectedEquipment);
+        if (session.mode != EquipmentProcessingMode.ENHANCEMENT || selection.context() == null) {
+            session.processingScreen = ProcessingScreen.MAIN;
+            session.materialListPage = 0;
+            renderProcessing(player, inventory, session);
+            return;
+        }
+        List<MaterialRequirement> requirements = collectMaterialRequirements(astPlayer, selection.context());
+        List<ItemStack> materialItems = createMaterialItems(requirements);
+        int pageCount = materialListPageCount(requirements);
+        session.materialListPage = Math.max(0, Math.min(session.materialListPage, pageCount - 1));
+        updateProcessingTitle(player, inventory, processingView.materialListTitle());
+        processingView.renderMaterialList(inventory, materialItems, session.materialListPage, pageCount);
+    }
+
+    /**
+     * 現在開かれている装備加工 GUI のタイトルを必要なときだけ更新します。
+     *
+     * @param player 操作中のプレイヤー
+     * @param inventory 表示対象の inventory
+     * @param title 設定する画面タイトル
+     */
+    private void updateProcessingTitle(
+        @NotNull Player player,
+        @NotNull Inventory inventory,
+        @NotNull String title
+    ) {
+        if (player.getOpenInventory().getTopInventory() == inventory
+            && !title.equals(player.getOpenInventory().getTitle())) {
+            player.getOpenInventory().setTitle(title);
+        }
+    }
+
+    /**
+     * 現在モードの操作手順と常時表示の見分け方を示すガイドアイテムを生成します。
+     *
+     * @param mode 現在の加工モード
+     * @return 加工ガイド表示アイテム
+     */
     private @NotNull ItemStack createProcessingGuideItem(@NotNull EquipmentProcessingMode mode) {
         if (mode == EquipmentProcessingMode.REPAIR) {
             return createItem(
@@ -774,7 +956,8 @@ public final class EquipmentEnhancementService {
                 List.of(
                     Component.text("修理: 下の装備をクリックしてセット", NamedTextColor.GREEN),
                     Component.text("セットした装備の耐久と必要ゴールドを確認します。", NamedTextColor.GRAY),
-                    Component.text("修理実行をクリックすると最大耐久まで回復します。", NamedTextColor.GRAY)
+                    Component.text("修理実行をクリックすると最大耐久まで回復します。", NamedTextColor.GRAY),
+                    Component.text("画面タイトルと緑色の帯が修理モードを示します。", NamedTextColor.GRAY)
                 )
             );
         }
@@ -784,16 +967,22 @@ public final class EquipmentEnhancementService {
             List.of(
                 Component.text("強化: 下の装備をクリックしてセット", NamedTextColor.GREEN),
                 Component.text("必要素材・次の効果・必要ゴールドを確認します。", NamedTextColor.GRAY),
+                Component.text("素材一覧をクリックすると全素材を実アイテムで確認できます。", NamedTextColor.GRAY),
+                Component.text("画面タイトルと紫色の帯が強化モードを示します。", NamedTextColor.GRAY),
                 Component.text("実行ボタンをクリックすると強化します。", NamedTextColor.GRAY)
             )
         );
     }
 
+    /**
+     * 強化で消費する全素材を、必要数と所持数の lore を付けた実アイテム表示へ変換します。
+     *
+     * @param requirements 強化に必要な素材
+     * @return 素材一覧と通常画面の先行表示に使う実アイテム表示
+     */
     private @NotNull List<ItemStack> createMaterialItems(@NotNull List<MaterialRequirement> requirements) {
         List<ItemStack> items = new ArrayList<>();
-        int visibleCount = Math.min(EquipmentProcessingMenuScreenView.MATERIAL_SLOT_COUNT, requirements.size());
-        for (int index = 0; index < visibleCount; index++) {
-            MaterialRequirement requirement = requirements.get(index);
+        for (MaterialRequirement requirement : requirements) {
             ItemStack item = !requirement.displayable()
                 ? createItem(Material.CHEST, Component.text("未登録の素材", NamedTextColor.RED), List.of(
                     Component.text("素材情報を取得できません。", NamedTextColor.RED)))
@@ -808,9 +997,6 @@ public final class EquipmentEnhancementService {
                 requirement.enough() ? NamedTextColor.GREEN : NamedTextColor.RED
             ));
             lore.add(Component.text("強化実行時に消費", NamedTextColor.GRAY));
-            if (index == visibleCount - 1 && requirements.size() > visibleCount) {
-                lore.add(Component.text("ほか " + (requirements.size() - visibleCount) + " 種類は実行ボタンを確認", NamedTextColor.YELLOW));
-            }
             if (meta != null) {
                 meta.lore(lore);
                 item.setItemMeta(meta);
@@ -818,6 +1004,51 @@ public final class EquipmentEnhancementService {
             items.add(item);
         }
         return items;
+    }
+
+    /**
+     * 強化の全必要素材を確認する一覧ボタンを生成します。対象未選択時は操作不可の表示を返します。
+     *
+     * @param selection 現在の対象装備に対する強化可否
+     * @param requirements 強化に必要な素材
+     * @return 必要素材一覧を開く操作アイテム
+     */
+    private @NotNull ItemStack createMaterialListItem(
+        @NotNull SelectionResult selection,
+        @NotNull List<MaterialRequirement> requirements
+    ) {
+        if (selection.context() == null) {
+            return createItem(Material.BARRIER, Component.text("必要素材一覧", NamedTextColor.RED, TextDecoration.BOLD), List.of(
+                Component.text("装備をセットすると素材を確認できます。", NamedTextColor.GRAY)));
+        }
+        ItemStack item = createItem(Material.CHEST, Component.text("必要素材一覧", NamedTextColor.YELLOW, TextDecoration.BOLD), List.of(
+            Component.text("必要素材: " + requirements.size() + " 種類", NamedTextColor.GRAY),
+            Component.text("クリックして全素材を実アイテムで確認", NamedTextColor.YELLOW)
+        ));
+        item.setAmount(Math.max(1, Math.min(item.getMaxStackSize(), requirements.size())));
+        return item;
+    }
+
+    /**
+     * 修理が素材ではなくゴールドだけを消費することを示す表示アイテムを生成します。
+     *
+     * @return 修理時の消費情報アイテム
+     */
+    private @NotNull ItemStack createRepairMaterialInfoItem() {
+        return createItem(Material.GOLD_INGOT, Component.text("必要素材なし", NamedTextColor.GREEN, TextDecoration.BOLD), List.of(
+            Component.text("修理ではゴールドのみを消費します。", NamedTextColor.GRAY),
+            Component.text("必要ゴールドは修理実行で確認できます。", NamedTextColor.GRAY)));
+    }
+
+    /**
+     * 必要素材数から一覧画面の全ページ数を算出します。
+     *
+     * @param requirements 強化に必要な素材
+     * @return 少なくとも1となる一覧ページ数
+     */
+    private int materialListPageCount(@NotNull List<MaterialRequirement> requirements) {
+        return Math.max(1, (requirements.size() + PagedGuiView.CONTENT_SLOT_COUNT - 1)
+            / PagedGuiView.CONTENT_SLOT_COUNT);
     }
 
     private @NotNull ItemStack createMaterialSummaryItem(
@@ -1190,6 +1421,13 @@ public final class EquipmentEnhancementService {
         return created;
     }
 
+    /**
+     * 加工モードを切り替え、素材一覧表示と確認待ち状態を通常画面へ戻します。
+     *
+     * @param player 操作したプレイヤー
+     * @param session 対象装備を保持する加工セッション
+     * @param mode 切り替え先の加工モード
+     */
     private void switchProcessingMode(
         @NotNull Player player,
         @NotNull EnhancementSession session,
@@ -1199,6 +1437,8 @@ public final class EquipmentEnhancementService {
             session.confirmationPending = false;
             session.mode = mode;
         }
+        session.processingScreen = ProcessingScreen.MAIN;
+        session.materialListPage = 0;
         if (isProcessingMenu(player.getOpenInventory().getTopInventory())) {
             renderProcessing(player, player.getOpenInventory().getTopInventory(), session);
             GuiSound.SELECT.play(player);
@@ -1453,6 +1693,8 @@ public final class EquipmentEnhancementService {
         private final PlayerInventoryState inventoryState;
         private final InventoryType previousDisplayedType;
         private EquipmentProcessingMode mode = EquipmentProcessingMode.ENHANCEMENT;
+        private ProcessingScreen processingScreen = ProcessingScreen.MAIN;
+        private int materialListPage;
         private ItemStack selectedEquipment;
         private InventoryEntryModel selectedEntry;
         private UUID inFlightOperationId;
@@ -1474,6 +1716,12 @@ public final class EquipmentEnhancementService {
             this.inventoryState = inventoryState;
             this.previousDisplayedType = previousDisplayedType;
         }
+    }
+
+    /** 装備加工 GUI 内で切り替える表示画面です。 */
+    private enum ProcessingScreen {
+        MAIN,
+        MATERIAL_LIST
     }
 
     private record SelectionResult(
