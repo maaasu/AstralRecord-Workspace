@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.inventory.service.EquipmentOperatio
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryState;
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentProcessingDisplayState;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhance;
@@ -164,7 +165,7 @@ public final class EquipmentEnhancementService {
         Inventory inventory = Bukkit.createInventory(
             new MenuInventoryHolder(MenuScreen.EQUIPMENT_PROCESSING, -1, 0, mode.contentId()),
             BaseMenuScreenView.SIZE,
-            processingView.processingTitle(mode)
+            processingView.processingTitle(EquipmentProcessingDisplayState.from(mode, false))
         );
         renderProcessing(player, inventory, session);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
@@ -847,7 +848,7 @@ public final class EquipmentEnhancementService {
     }
 
     /**
-     * 通常の装備加工画面を描画し、モード名を含む画面タイトルを同期します。
+     * 通常の装備加工画面を描画し、現在の加工状態を含む画面タイトルを同期します。
      *
      * @param player 操作中のプレイヤー
      * @param inventory 描画先の装備加工 inventory
@@ -858,10 +859,11 @@ public final class EquipmentEnhancementService {
         @NotNull Inventory inventory,
         @NotNull EnhancementSession session
     ) {
-        updateProcessingTitle(player, inventory, processingView.processingTitle(session.mode));
         boolean repairMode = session.mode == EquipmentProcessingMode.REPAIR;
         ItemStack selectedEquipment = session.selectedEquipment;
         SelectionResult selection = repairMode ? null : resolveSelection(selectedEquipment);
+        EquipmentProcessingDisplayState displayState = processingDisplayState(session.mode, selection);
+        updateProcessingTitle(player, inventory, processingView.processingTitle(displayState));
         List<MaterialRequirement> requirements = selection == null || selection.context() == null
             ? List.of()
             : collectMaterialRequirements(Objects.requireNonNull(AstPlayerCache.get(player)), selection.context());
@@ -886,10 +888,11 @@ public final class EquipmentEnhancementService {
         processingView.render(
             inventory,
             session.mode,
+            displayState,
             selectedEquipment == null ? null : selectedEquipment.clone(),
-            createProcessingGuideItem(session.mode),
+            createProcessingGuideItem(displayState),
             infoItem,
-            repairMode ? List.of() : createMaterialItems(requirements),
+            repairMode ? List.of() : createMaterialItems(requirements, displayState),
             repairMode ? createRepairMaterialInfoItem() : createMaterialListItem(selection, requirements),
             executeItem
         );
@@ -917,11 +920,29 @@ public final class EquipmentEnhancementService {
             return;
         }
         List<MaterialRequirement> requirements = collectMaterialRequirements(astPlayer, selection.context());
-        List<ItemStack> materialItems = createMaterialItems(requirements);
+        EquipmentProcessingDisplayState displayState = processingDisplayState(session.mode, selection);
+        List<ItemStack> materialItems = createMaterialItems(requirements, displayState);
         int pageCount = materialListPageCount(requirements);
         session.materialListPage = Math.max(0, Math.min(session.materialListPage, pageCount - 1));
-        updateProcessingTitle(player, inventory, processingView.materialListTitle());
-        processingView.renderMaterialList(inventory, materialItems, session.materialListPage, pageCount);
+        updateProcessingTitle(player, inventory, processingView.materialListTitle(displayState));
+        processingView.renderMaterialList(inventory, displayState, materialItems, session.materialListPage, pageCount);
+    }
+
+    /**
+     * 選択中タブと次の実行内容から、装備加工 GUI の常時表示状態を決定します。
+     *
+     * @param mode 現在選択中の修理または強化タブ
+     * @param selection 現在セットしている装備の操作可否
+     * @return タイトル・帯・アイコンに使用する加工状態
+     */
+    private @NotNull EquipmentProcessingDisplayState processingDisplayState(
+        @NotNull EquipmentProcessingMode mode,
+        @Nullable SelectionResult selection
+    ) {
+        boolean transcendenceReady = selection != null
+            && selection.context() != null
+            && selection.context().isTranscendence();
+        return EquipmentProcessingDisplayState.from(mode, transcendenceReady);
     }
 
     /**
@@ -943,13 +964,13 @@ public final class EquipmentEnhancementService {
     }
 
     /**
-     * 現在モードの操作手順と常時表示の見分け方を示すガイドアイテムを生成します。
+     * 現在の加工状態の操作手順と常時表示の見分け方を示すガイドアイテムを生成します。
      *
-     * @param mode 現在の加工モード
+     * @param displayState 現在プレイヤーへ表示する加工状態
      * @return 加工ガイド表示アイテム
      */
-    private @NotNull ItemStack createProcessingGuideItem(@NotNull EquipmentProcessingMode mode) {
-        if (mode == EquipmentProcessingMode.REPAIR) {
+    private @NotNull ItemStack createProcessingGuideItem(@NotNull EquipmentProcessingDisplayState displayState) {
+        if (displayState == EquipmentProcessingDisplayState.REPAIR) {
             return createItem(
                 Material.BOOK,
                 Component.text("装備加工ガイド", NamedTextColor.GOLD, TextDecoration.BOLD),
@@ -958,6 +979,19 @@ public final class EquipmentEnhancementService {
                     Component.text("セットした装備の耐久と必要ゴールドを確認します。", NamedTextColor.GRAY),
                     Component.text("修理実行をクリックすると最大耐久まで回復します。", NamedTextColor.GRAY),
                     Component.text("画面タイトルと緑色の帯が修理モードを示します。", NamedTextColor.GRAY)
+                )
+            );
+        }
+        if (displayState == EquipmentProcessingDisplayState.TRANSCENDENCE) {
+            return createItem(
+                Material.END_CRYSTAL,
+                Component.text("状態変化ガイド", NamedTextColor.AQUA, TextDecoration.BOLD),
+                List.of(
+                    Component.text("現在の強化上限に到達したため、自動で状態変化に切り替わっています。", NamedTextColor.GRAY),
+                    Component.text("必要素材・変化後の内容・必要ゴールドを確認します。", NamedTextColor.GRAY),
+                    Component.text("素材一覧をクリックすると全素材を実アイテムで確認できます。", NamedTextColor.GRAY),
+                    Component.text("画面タイトル、水色の帯、結晶アイコンが状態変化中を示します。", NamedTextColor.GRAY),
+                    Component.text("状態変化実行をクリックすると次の段階へ進みます。", NamedTextColor.GRAY)
                 )
             );
         }
@@ -975,12 +1009,16 @@ public final class EquipmentEnhancementService {
     }
 
     /**
-     * 強化で消費する全素材を、必要数と所持数の lore を付けた実アイテム表示へ変換します。
+     * 強化または状態変化で消費する全素材を、必要数と所持数の lore を付けた実アイテム表示へ変換します。
      *
-     * @param requirements 強化に必要な素材
+     * @param requirements 実行に必要な素材
+     * @param displayState 素材を消費する加工状態
      * @return 素材一覧と通常画面の先行表示に使う実アイテム表示
      */
-    private @NotNull List<ItemStack> createMaterialItems(@NotNull List<MaterialRequirement> requirements) {
+    private @NotNull List<ItemStack> createMaterialItems(
+        @NotNull List<MaterialRequirement> requirements,
+        @NotNull EquipmentProcessingDisplayState displayState
+    ) {
         List<ItemStack> items = new ArrayList<>();
         for (MaterialRequirement requirement : requirements) {
             ItemStack item = !requirement.displayable()
@@ -996,7 +1034,7 @@ public final class EquipmentEnhancementService {
                 "必要数: " + requirement.amount() + " / 所持: " + requirement.ownedAmount(),
                 requirement.enough() ? NamedTextColor.GREEN : NamedTextColor.RED
             ));
-            lore.add(Component.text("強化実行時に消費", NamedTextColor.GRAY));
+            lore.add(Component.text(displayState.displayName() + "実行時に消費", NamedTextColor.GRAY));
             if (meta != null) {
                 meta.lore(lore);
                 item.setItemMeta(meta);
