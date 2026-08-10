@@ -1,0 +1,29 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1067",
+  "name": "&d星詠みの星脈",
+  "icon": "ENCHANTED_BOOK",
+  "lore": [
+    "&7星々の理を読み解き、知力を高める。"
+  ],
+  "tags": [
+    "status",
+    "primary",
+    "intelligence",
+    "astral"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "INTELLIGENCE",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "playerLevel": 13
+  }
+}

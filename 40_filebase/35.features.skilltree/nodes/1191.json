@@ -1,0 +1,29 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1191",
+  "name": "&d蒼泉の星脈",
+  "icon": "AMETHYST_SHARD",
+  "lore": [
+    "&7天の蒼泉から魔力を汲み、最大MPを高める。"
+  ],
+  "tags": [
+    "status",
+    "resource",
+    "mana",
+    "azure"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 10
+    }
+  ],
+  "unlockCondition": {
+    "classId": "mage"
+  }
+}

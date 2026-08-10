@@ -1,0 +1,28 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1185",
+  "name": "&d星衣の星脈",
+  "icon": "ENCHANTED_GOLDEN_APPLE",
+  "lore": [
+    "&7星光の衣をまとい、魔法防御力を高める。"
+  ],
+  "tags": [
+    "status",
+    "defense",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAGIC_DEFENSE",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "classId": "mage"
+  }
+}

@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1051",
+  "name": "&d風渡りの星脈",
+  "icon": "FEATHER",
+  "lore": [
+    "&7風の精気を身にまとい、敏捷性を高める。"
+  ],
+  "tags": [
+    "status",
+    "primary",
+    "agility",
+    "wind"
+  ],
+  "pointType": "PP",
+  "pointCost": 0,
+  "effects": [
+    {
+      "type": "status",
+      "status": "AGILITY",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ]
+}

@@ -1,0 +1,28 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1155",
+  "name": "&d蒼穹の星脈",
+  "icon": "ENDER_PEARL",
+  "lore": [
+    "&7天駆ける蒼穹の息吹を宿し、最大ENを高める。"
+  ],
+  "tags": [
+    "status",
+    "resource",
+    "energy"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_ENERGY",
+      "modifierType": "FLAT",
+      "value": 5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "hunter"
+  }
+}

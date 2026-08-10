@@ -1,0 +1,27 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1154",
+  "name": "&d暁刃の星脈",
+  "icon": "IRON_SWORD",
+  "lore": [
+    "&7暁の刃気をまとい、攻撃力を高める。"
+  ],
+  "tags": [
+    "status",
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ATTACK",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "classId": "hunter"
+  }
+}

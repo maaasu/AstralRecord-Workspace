@@ -167,6 +167,102 @@ class SkillTreeEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 12. skill tree 入力候補・node 実行
+     * 検証契約: 解放ポイント残高が0でも、rootまたは無料PP nodeのpointCostが0なら最終可否判定を経て解放する。
+     */
+    @Test
+    void unlocksRootAndFreePassiveNodesWithoutAvailablePoints() {
+        for (String nodeId : List.of("1047", "1048")) {
+            SkillTreePosition position = new SkillTreePosition(nodeId, "skill_tree", 0, 64, 0);
+            SkillTreeService.SkillTreePositionHit hit =
+                new SkillTreeService.SkillTreePositionHit(position, 2.5D);
+            SkillTreeNodeDefinition node = node(nodeId, 0);
+            AstPlayer astPlayer = mock(AstPlayer.class);
+            PlayerMessageService messageService = mock(PlayerMessageService.class);
+
+            allowSnapshotRefresh();
+            when(service.findTargetedPositionHit(any(PlayerInteractionSnapshot.class)))
+                .thenReturn(Optional.of(hit));
+            when(service.getNode(nodeId)).thenReturn(node);
+            when(service.isStateReady(astPlayer)).thenReturn(true);
+            when(service.hasAvailableUnlockPoint(astPlayer)).thenReturn(false);
+            when(service.canUnlockNode(astPlayer, node)).thenReturn(true);
+            when(service.unlockNode(astPlayer, node)).thenReturn(true);
+
+            PlayerInputContext<PlayerInteractionSnapshot> leftClickContext = new PlayerInputContext<>(
+                UUID.fromString("00000000-0000-0000-0000-000000000581"),
+                3L,
+                InputFamily.LEFT_CLICK,
+                InputSource.PRE_PLAYER_ATTACK_ENTITY,
+                snapshot
+            );
+            PlayerInputCandidate candidate = new SkillTreeEventHandler(service)
+                .resolve(leftClickContext)
+                .iterator()
+                .next();
+
+            try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+                 MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+                cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+                messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+                assertTrue(candidate.executeIfValid());
+            }
+
+            verify(service, never()).hasAvailableUnlockPoint(astPlayer);
+            verify(service).unlockNode(astPlayer, node);
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 12. skill tree 入力候補・node 実行
+     * 検証契約: 解放ポイント残高が0でpointCostが1のPP nodeを指定した場合、最終可否判定や解放を行わず拒否する。
+     */
+    @Test
+    void rejectsPaidPassiveNodeWithoutAvailablePoints() {
+        String nodeId = "1056";
+        SkillTreePosition position = new SkillTreePosition(nodeId, "skill_tree", 0, 64, 0);
+        SkillTreeService.SkillTreePositionHit hit =
+            new SkillTreeService.SkillTreePositionHit(position, 2.5D);
+        SkillTreeNodeDefinition node = node(nodeId, 1);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+
+        allowSnapshotRefresh();
+        when(service.findTargetedPositionHit(any(PlayerInteractionSnapshot.class)))
+            .thenReturn(Optional.of(hit));
+        when(service.getNode(nodeId)).thenReturn(node);
+        when(service.isStateReady(astPlayer)).thenReturn(true);
+        when(service.hasAvailableUnlockPoint(astPlayer)).thenReturn(false);
+
+        PlayerInputContext<PlayerInteractionSnapshot> leftClickContext = new PlayerInputContext<>(
+            UUID.fromString("00000000-0000-0000-0000-000000000581"),
+            4L,
+            InputFamily.LEFT_CLICK,
+            InputSource.PRE_PLAYER_ATTACK_ENTITY,
+            snapshot
+        );
+        PlayerInputCandidate candidate = new SkillTreeEventHandler(service)
+            .resolve(leftClickContext)
+            .iterator()
+            .next();
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+            assertTrue(candidate.executeIfValid());
+        }
+
+        verify(service).hasAvailableUnlockPoint(astPlayer);
+        verify(service, never()).canUnlockNode(astPlayer, node);
+        verify(service, never()).unlockNode(astPlayer, node);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 12. skill tree 入力候補・node 実行
      * 検証契約: 右click winnerは確認省略状態では解決済みnodeのrelockを実行する。
      */
     @Test
@@ -253,6 +349,10 @@ class SkillTreeEventHandlerTest {
     }
 
     private SkillTreeNodeDefinition node(String nodeId) {
+        return node(nodeId, 1);
+    }
+
+    private SkillTreeNodeDefinition node(String nodeId, int pointCost) {
         return new SkillTreeNodeDefinition(
             nodeId,
             "Test Node",
@@ -260,7 +360,7 @@ class SkillTreeEventHandlerTest {
             List.of(),
             List.of(),
             SkillTreePointType.PASSIVE_POINT,
-            1,
+            pointCost,
             List.of()
         );
     }

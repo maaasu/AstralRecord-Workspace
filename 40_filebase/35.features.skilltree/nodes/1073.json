@@ -1,0 +1,28 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1073",
+  "name": "&d迅風の星脈",
+  "icon": "SUGAR",
+  "lore": [
+    "&7迅風の流れに乗り、移動速度を高める。"
+  ],
+  "tags": [
+    "status",
+    "agility",
+    "wind"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MOVEMENT_SPEED",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "playerLevel": 19
+  }
+}

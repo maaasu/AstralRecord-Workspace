@@ -59,6 +59,9 @@ growthPerLevel:
   - status: MAGIC_DEFENSE
     value: 0.4
 expRate: 100
+usableSkills:
+  - skill:adventurer_astral_edge
+  - skill:adventurer_smash
 tags:
   - tier1
   - melee

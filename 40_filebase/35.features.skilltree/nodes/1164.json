@@ -1,0 +1,29 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1164",
+  "name": "&d灯火の星脈",
+  "icon": "HEART_OF_THE_SEA",
+  "lore": [
+    "&7消えぬ星灯を胸に宿し、最大HPを高める。"
+  ],
+  "tags": [
+    "status",
+    "resource",
+    "health",
+    "starlight"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 10
+    }
+  ],
+  "unlockCondition": {
+    "classId": "hunter"
+  }
+}

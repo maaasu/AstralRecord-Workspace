@@ -1,0 +1,29 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1075",
+  "name": "&d還流の星脈",
+  "icon": "PRISMARINE_CRYSTALS",
+  "lore": [
+    "&7蒼き魔力の巡りを整え、MP回復力を高める。"
+  ],
+  "tags": [
+    "status",
+    "resource",
+    "mana",
+    "azure"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MP_REGEN",
+      "modifierType": "FLAT",
+      "value": 0.2
+    }
+  ],
+  "unlockCondition": {
+    "playerLevel": 21
+  }
+}

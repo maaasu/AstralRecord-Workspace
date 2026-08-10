@@ -1,0 +1,29 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1123",
+  "name": "&d紅蓮の星脈",
+  "icon": "BLAZE_POWDER",
+  "lore": [
+    "&7燃ゆる星の鼓動を宿し、筋力を高める。"
+  ],
+  "tags": [
+    "status",
+    "primary",
+    "strength",
+    "ember"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "STRENGTH",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}

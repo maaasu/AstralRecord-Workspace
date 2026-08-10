@@ -1,0 +1,28 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1089",
+  "name": "&d大樹の星脈",
+  "icon": "OAK_SAPLING",
+  "lore": [
+    "&7大樹の息吹を身に宿し、体力を高める。"
+  ],
+  "tags": [
+    "status",
+    "primary",
+    "durability"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "VITALITY",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "classId": "adventurer"
+  }
+}

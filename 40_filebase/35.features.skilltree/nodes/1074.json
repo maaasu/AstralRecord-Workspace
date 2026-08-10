@@ -1,0 +1,29 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1074",
+  "name": "&d玄岩の星脈",
+  "icon": "OBSIDIAN",
+  "lore": [
+    "&7大地の星核を身に宿し、防御力を高める。"
+  ],
+  "tags": [
+    "status",
+    "defense",
+    "durability",
+    "stone"
+  ],
+  "pointType": "PP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "DEFENSE",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "playerLevel": 20
+  }
+}

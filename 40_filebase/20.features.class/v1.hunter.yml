@@ -59,6 +59,9 @@ growthPerLevel:
   - status: MAGIC_DEFENSE
     value: 0.3
 expRate: 100
+usableSkills:
+  - skill:adventurer_blast_arrow
+  - skill:adventurer_quick_shot
 tags:
   - tier1
   - ranged

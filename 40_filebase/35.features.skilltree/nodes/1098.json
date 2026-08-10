@@ -1,0 +1,28 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1098",
+  "name": "&d銀矢の星脈",
+  "icon": "ARROW",
+  "lore": [
+    "&7銀の軌跡を見極め、器用さを高める。"
+  ],
+  "tags": [
+    "status",
+    "primary",
+    "dexterity"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "DEXTERITY",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "classId": "adventurer"
+  }
+}

@@ -59,6 +59,9 @@ growthPerLevel:
   - status: MP_REGEN
     value: 0.2
 expRate: 100
+usableSkills:
+  - skill:adventurer_mana_burst
+  - skill:adventurer_lightning_bolt
 tags:
   - tier1
   - magic

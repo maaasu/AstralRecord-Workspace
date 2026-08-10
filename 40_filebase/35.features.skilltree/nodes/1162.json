@@ -1,0 +1,28 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1162",
+  "name": "&d巡星の星脈",
+  "icon": "EMERALD",
+  "lore": [
+    "&7巡る星の導きを受け、幸運を高める。"
+  ],
+  "tags": [
+    "status",
+    "primary",
+    "luck"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "LUCK",
+      "modifierType": "FLAT",
+      "value": 1
+    }
+  ],
+  "unlockCondition": {
+    "classId": "hunter"
+  }
+}
