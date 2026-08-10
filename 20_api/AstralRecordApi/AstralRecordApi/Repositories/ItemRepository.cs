@@ -24,6 +24,7 @@ public class ItemRepository(MasterDataDbContext dbContext) : IItemRepository
         "currency",
         "equipment",
         "material",
+        "enhancement_material",
         "rune",
         "sigil",
     };

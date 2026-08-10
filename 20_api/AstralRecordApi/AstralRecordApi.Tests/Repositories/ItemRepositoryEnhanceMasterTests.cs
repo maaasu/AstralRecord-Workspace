@@ -15,6 +15,29 @@ namespace AstralRecordApi.Tests.Repositories;
 public class ItemRepositoryEnhanceMasterTests
 {
     [Fact]
+    public async Task EnhancementMaterialItems_AreReturnedByListAndDetailRepositories()
+    {
+        await using var dbContext = await CreateSeededMasterDataDbContextAsync();
+        var repository = new ItemRepository(dbContext);
+
+        var summaries = repository.GetAllSummaries()
+            .Where(item => item.Category == "enhancement_material")
+            .ToArray();
+
+        Assert.Equal(
+            ["aegis_orb", "freya_orb", "tyr_orb"],
+            summaries.Select(item => item.Id).OrderBy(id => id).ToArray());
+
+        foreach (var itemId in summaries.Select(item => item.Id))
+        {
+            var item = repository.GetById(itemId);
+
+            Assert.NotNull(item);
+            Assert.Equal("enhancement_material", item!.Category);
+        }
+    }
+
+    [Fact]
     public async Task GetById_ReturnsEnhanceData_ForEnhancementGuiTargets()
     {
         await using var dbContext = await CreateSeededMasterDataDbContextAsync();
