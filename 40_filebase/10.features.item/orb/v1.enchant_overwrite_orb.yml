@@ -1,0 +1,20 @@
+# design:
+#   motif: "エンチャント / 星律の再抽選"
+#   progression: 1
+schemaVersion: 1
+id: enchant_overwrite_orb
+category: orb
+name: "&c再抽選のオーブ"
+icon: MAGMA_CREAM
+rarity: RARE
+maxStack: 64
+saleValue: 100
+lore:
+  - "&7既存エンチャント1枠をランダムに上書きする。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: ENCHANT
+    enchantMasterId: enchant:enchant001
+    enchantOperation: OVERWRITE_RANDOM

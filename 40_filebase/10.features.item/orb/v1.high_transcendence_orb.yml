@@ -1,0 +1,20 @@
+# design:
+#   motif: "装備状態変化 / 上位互換の星核"
+#   progression: 5
+schemaVersion: 1
+id: high_transcendence_orb
+category: orb
+name: "&d上位状態変化のオーブ"
+icon: NETHER_STAR
+rarity: LEGENDARY
+maxStack: 64
+saleValue: 500
+lore:
+  - "&7次の状態がランク5以下の装備に使用できる。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: TRANSCENDENCE
+    rank: 5
+    rankMode: AT_MOST

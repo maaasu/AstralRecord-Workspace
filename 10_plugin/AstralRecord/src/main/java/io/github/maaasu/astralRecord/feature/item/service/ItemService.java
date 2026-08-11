@@ -5,7 +5,10 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCurrency;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemSummary;
+import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffectType;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationResult;
+import io.github.maaasu.astralRecord.feature.item.model.EnchantMaster;
 import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.item.model.SetEffect;
 import io.github.maaasu.astralRecord.feature.item.repository.ItemRepository;
@@ -22,6 +25,8 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
+import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -36,16 +41,25 @@ public class ItemService {
 
     private final ItemRepository itemRepository;
     private final SetEffectRepository setEffectRepository;
-    private final Map<String, ItemModel> loadedItems;
+    private volatile MasterDataSnapshot loadedMasterData;
     private final Map<String, SetEffect> loadedSetEffects;
     private final Map<String, EquipmentInstance> loadedEquipmentInstances;
     private final Map<String, RuneInstance> loadedRuneInstances;
     private final Map<String, PendingDurabilityUpdate> dirtyEquipmentDurability;
+    private final Object equipmentStateMutex = new Object();
+    private long durabilityRevision;
 
     public ItemService() {
-        this.itemRepository = new ItemRepository();
-        this.setEffectRepository = new SetEffectRepository();
-        this.loadedItems = new ConcurrentHashMap<>();
+        this(new ItemRepository(), new SetEffectRepository());
+    }
+
+    ItemService(
+        @NotNull ItemRepository itemRepository,
+        @NotNull SetEffectRepository setEffectRepository
+    ) {
+        this.itemRepository = itemRepository;
+        this.setEffectRepository = setEffectRepository;
+        this.loadedMasterData = new MasterDataSnapshot(Map.of(), Map.of());
         this.loadedSetEffects = new ConcurrentHashMap<>();
         this.loadedEquipmentInstances = new ConcurrentHashMap<>();
         this.loadedRuneInstances = new ConcurrentHashMap<>();
@@ -59,7 +73,7 @@ public class ItemService {
      * @return ロードしたアイテムの総件数
      */
     public int loadAll() {
-        List<ItemModel> snapshot = loadMasterDataSnapshot();
+        MasterDataSnapshot snapshot = loadMasterDataSnapshot();
         replaceMasterDataSnapshot(snapshot);
         return snapshot.size();
     }
@@ -69,7 +83,7 @@ public class ItemService {
      *
      * @return アイテムマスタスナップショット
      */
-    public @NotNull List<ItemModel> loadMasterDataSnapshot() {
+    public @NotNull MasterDataSnapshot loadMasterDataSnapshot() {
         Map<String, ItemModel> snapshot = new LinkedHashMap<>();
         Map<String, Integer> categoryCounts = new HashMap<>();
 
@@ -79,7 +93,8 @@ public class ItemService {
                 ItemModel item = itemRepository.findById(summary.getId(), summary.getCategory());
                 if (item == null) {
                     Logger.log(LogId.W_5200, summary.getCategory(), summary.getId());
-                    continue;
+                    throw new IllegalStateException(
+                        "Item detail is unavailable: " + summary.getCategory() + ":" + summary.getId());
                 }
 
                 snapshot.put(normalize(item.getId()), item);
@@ -87,6 +102,10 @@ public class ItemService {
             }
         } catch (Exception e) {
             Logger.log(LogId.E_5202, e, "loadAll");
+            if (e instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+            throw new IllegalStateException("Failed to prepare item master snapshot", e);
         }
 
         for (GoldDenomination denomination : GoldDenomination.values()) {
@@ -101,8 +120,24 @@ public class ItemService {
             Logger.log(LogId.I_5202, entry.getKey(), entry.getValue());
         }
 
+        Map<String, EnchantMaster> enchantMasters = new LinkedHashMap<>();
+        Set<String> enchantMasterIds = snapshot.values().stream()
+            .filter(item -> item.getOrb() != null && item.getOrb().getEffect() != null)
+            .filter(item -> item.getOrb().getEffect().getType() == ItemOrbEffectType.ENCHANT)
+            .map(item -> item.getOrb().getEffect().getEnchantMasterId())
+            .filter(id -> id != null && !id.isBlank())
+            .map(this::normalize)
+            .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
+        for (String enchantMasterId : enchantMasterIds) {
+            EnchantMaster master = itemRepository.findEnchantMasterById(enchantMasterId);
+            if (master == null) {
+                throw new IllegalStateException("Enchant master is unavailable: " + enchantMasterId);
+            }
+            enchantMasters.put(normalize(master.getId()), master);
+        }
+
         Logger.log(LogId.I_5203, snapshot.size());
-        return List.copyOf(snapshot.values());
+        return new MasterDataSnapshot(snapshot, enchantMasters);
     }
 
     /**
@@ -111,17 +146,15 @@ public class ItemService {
      *
      * @param snapshot アイテムマスタスナップショット
      */
-    public void replaceMasterDataSnapshot(@NotNull List<ItemModel> snapshot) {
-        loadedItems.clear();
+    public void replaceMasterDataSnapshot(@NotNull MasterDataSnapshot snapshot) {
+        loadedMasterData = snapshot;
         loadedSetEffects.clear();
-        for (ItemModel item : snapshot) {
-            cacheItem(item);
-        }
+        snapshot.items().values().forEach(item -> Logger.log(LogId.D_5203, item));
     }
 
     /** Reloads only filebase/API-backed item caches; runtime equipment state is preserved. */
     public void clearMasterDataCache() {
-        loadedItems.clear();
+        loadedMasterData = new MasterDataSnapshot(Map.of(), Map.of());
         loadedSetEffects.clear();
     }
 
@@ -221,7 +254,7 @@ public class ItemService {
      * ロード済みアイテムの一覧を返します。
      */
     public @NotNull List<ItemModel> getLoadedItems() {
-        return loadedItems.values().stream()
+        return loadedMasterData.items().values().stream()
             .sorted(Comparator.comparing(ItemModel::getCategory).thenComparing(ItemModel::getId))
             .toList();
     }
@@ -249,7 +282,7 @@ public class ItemService {
             return null;
         }
 
-        return loadedItems.get(normalizedId);
+        return loadedMasterData.items().get(normalizedId);
     }
 
     private @Nullable ItemModel resolveBuiltinItem(@NotNull String normalizedId) {
@@ -302,6 +335,7 @@ public class ItemService {
             null,
             null,
             null,
+            null,
             null
         );
     }
@@ -323,6 +357,7 @@ public class ItemService {
             true,
             null,
             new ItemCurrency("astrald", "donation", null),
+            null,
             null,
             null,
             null,
@@ -400,7 +435,9 @@ public class ItemService {
         try {
             EquipmentInstance instance = itemRepository.createEquipmentInstance(equipmentId, accountId, source, createdBy);
             if (instance != null) {
-                loadedEquipmentInstances.put(normalize(instance.getEquipmentInstanceId()), instance);
+                synchronized (equipmentStateMutex) {
+                    loadedEquipmentInstances.put(normalize(instance.getEquipmentInstanceId()), instance);
+                }
             }
             return instance;
         } catch (Exception e) {
@@ -414,14 +451,23 @@ public class ItemService {
         if (normalizedId.isBlank()) {
             return null;
         }
-        EquipmentInstance cached = loadedEquipmentInstances.get(normalizedId);
+        EquipmentInstance cached;
+        synchronized (equipmentStateMutex) {
+            cached = loadedEquipmentInstances.get(normalizedId);
+        }
         if (cached != null) {
             return cached;
         }
         try {
             EquipmentInstance loaded = itemRepository.findEquipmentInstanceById(instanceId);
             if (loaded != null) {
-                loadedEquipmentInstances.put(normalizedId, loaded);
+                synchronized (equipmentStateMutex) {
+                    EquipmentInstance newer = loadedEquipmentInstances.get(normalizedId);
+                    if (newer != null) {
+                        return newer;
+                    }
+                    loadedEquipmentInstances.put(normalizedId, loaded);
+                }
             }
             return loaded;
         } catch (Exception e) {
@@ -430,46 +476,180 @@ public class ItemService {
         }
     }
 
-    public @Nullable EquipmentInstance enhanceEquipmentInstance(
+    /**
+     * API通信を行わず、ロード済み装備個体だけを返します。
+     *
+     * @param instanceId 装備個体ID
+     * @return キャッシュ済み個体。未ロードの場合は {@code null}
+     */
+    public @Nullable EquipmentInstance findLoadedEquipmentInstanceById(@NotNull String instanceId) {
+        String normalizedId = normalize(instanceId);
+        if (normalizedId.isBlank()) {
+            return null;
+        }
+        synchronized (equipmentStateMutex) {
+            return loadedEquipmentInstances.get(normalizedId);
+        }
+    }
+
+    /**
+     * 指定された装備個体を非同期I/Oスレッド用に事前ロードします。
+     *
+     * @param instanceIds 事前ロードする装備個体ID
+     * @return 全個体を利用可能にできた結果。API障害と404を区別する
+     */
+    public @NotNull EquipmentPreloadResult preloadEquipmentInstances(@NotNull Collection<String> instanceIds) {
+        boolean missing = false;
+        for (String instanceId : instanceIds.stream()
+            .filter(java.util.Objects::nonNull)
+            .map(String::trim)
+            .filter(id -> !id.isBlank())
+            .distinct()
+            .toList()) {
+            if (findLoadedEquipmentInstanceById(instanceId) != null) {
+                continue;
+            }
+            try {
+                EquipmentInstance loaded = itemRepository.findEquipmentInstanceById(instanceId);
+                if (loaded == null) {
+                    missing = true;
+                    continue;
+                }
+                String key = normalize(loaded.getEquipmentInstanceId());
+                synchronized (equipmentStateMutex) {
+                    loadedEquipmentInstances.putIfAbsent(key, loaded);
+                }
+            } catch (Exception exception) {
+                Logger.log(LogId.E_5202, exception, instanceId);
+                return EquipmentPreloadResult.UNAVAILABLE;
+            }
+        }
+        return missing ? EquipmentPreloadResult.MISSING : EquipmentPreloadResult.COMPLETE;
+    }
+
+    /**
+     * オーブ装備操作をAPIへ送信し、確定装備を耐久dirtyと原子的にマージします。
+     *
+     * @param operationId 冪等操作ID
+     * @param accountId 所有アカウントID
+     * @param instanceId 対象装備個体ID
+     * @param orbInventoryEntryId 起点オーブentry ID
+     * @param orbItemId オーブitem ID
+     * @return API確定結果。通信失敗時は {@code null}
+     */
+    public @Nullable EquipmentOrbOperationResult applyEquipmentOrbOperation(
+        @NotNull String operationId,
+        @NotNull String accountId,
         @NotNull String instanceId,
-        int targetLevel,
-        @NotNull String updatedBy
+        @NotNull String orbInventoryEntryId,
+        @NotNull String orbItemId
     ) {
         try {
-            EquipmentInstance instance = itemRepository.enhanceEquipmentInstance(instanceId, targetLevel, updatedBy);
-            if (instance != null) {
-                loadedEquipmentInstances.put(normalize(instance.getEquipmentInstanceId()), instance);
-            }
-            return instance;
-        } catch (Exception e) {
-            Logger.log(LogId.E_5202, e, instanceId);
+            return mergeOrbOperationResult(itemRepository.applyEquipmentOrbOperation(
+                operationId, accountId, instanceId, orbInventoryEntryId, orbItemId));
+        } catch (Exception exception) {
+            Logger.log(LogId.E_5202, exception, instanceId);
             return null;
         }
     }
 
     /**
-     * 装備インスタンスを指定した状態変化ランクへ更新し、Plugin 側キャッシュへ反映します。
+     * 保存済みオーブ操作結果を照会し、確定装備をキャッシュへ反映します。
      *
-     * @param instanceId 装備インスタンス ID
-     * @param targetRank 目標状態変化ランク
-     * @param updatedBy 更新者アカウント ID
-     * @return 更新後の装備インスタンス。対象不在または条件不成立時は {@code null}
+     * @param operationId 冪等操作ID
+     * @param accountId 所有アカウントID
+     * @return 保存済み結果。未確定または通信失敗時は {@code null}
      */
-    public @Nullable EquipmentInstance transcendEquipmentInstance(
-        @NotNull String instanceId,
-        int targetRank,
-        @NotNull String updatedBy
+    public @Nullable EquipmentOrbOperationResult findEquipmentOrbOperation(
+        @NotNull String operationId,
+        @NotNull String accountId
     ) {
         try {
-            EquipmentInstance instance = itemRepository.transcendEquipmentInstance(instanceId, targetRank, updatedBy);
-            if (instance != null) {
-                loadedEquipmentInstances.put(normalize(instance.getEquipmentInstanceId()), instance);
-            }
-            return instance;
-        } catch (Exception e) {
-            Logger.log(LogId.E_5202, e, instanceId);
+            return mergeOrbOperationResult(itemRepository.findEquipmentOrbOperation(operationId, accountId));
+        } catch (Exception exception) {
+            Logger.log(LogId.E_5202, exception, operationId);
             return null;
         }
+    }
+
+    private @Nullable EquipmentOrbOperationResult mergeOrbOperationResult(
+        @Nullable EquipmentOrbOperationResult result
+    ) {
+        if (result == null || result.getEquipment() == null) {
+            return result;
+        }
+        EquipmentInstance merged = cacheEquipmentMutationResult(result.getEquipment());
+        return new EquipmentOrbOperationResult(
+            result.getOperationId(),
+            result.getResult(),
+            result.getOperationType(),
+            merged,
+            result.getTargetAvailable(),
+            result.getAffectedInventoryEntryIds(),
+            result.getPaymentConsumed(),
+            result.getEnhancementSucceeded(),
+            result.getFailAction(),
+            result.getSuccessRate(),
+            result.getRepairedAmount(),
+            result.getTransitionName()
+        );
+    }
+
+    /** 指定IDの共通エンチャントマスタを通信なしでスナップショットから取得します。 */
+    public @Nullable EnchantMaster findEnchantMasterById(@NotNull String enchantMasterId) {
+        String key = normalize(enchantMasterId);
+        return loadedMasterData.enchantMasters().get(key);
+    }
+
+    private @NotNull EquipmentInstance cacheEquipmentMutationResult(@NotNull EquipmentInstance result) {
+        String key = normalize(result.getEquipmentInstanceId());
+        synchronized (equipmentStateMutex) {
+            return cacheEquipmentMutationResultLocked(key, result);
+        }
+    }
+
+    private @NotNull EquipmentInstance cacheEquipmentMutationResultLocked(
+        @NotNull String key,
+        @NotNull EquipmentInstance result
+    ) {
+        PendingDurabilityUpdate pending = dirtyEquipmentDurability.get(key);
+        if (pending == null) {
+            loadedEquipmentInstances.put(key, result);
+            return result;
+        }
+        int mergedDurabilityMax = result.getDurabilityMax();
+        // pre-saveで確定したbaseline以前の損耗はAPI結果へ既に含まれる。
+        // operation待機中に発生した差分だけを結果へ重ね、REPAIR効果を古い欠損量で打ち消さない。
+        int pendingDelta = pending.durabilityValue() - pending.baseDurabilityValue();
+        int mergedDurabilityValue = Math.max(0, Math.min(
+            mergedDurabilityMax,
+            result.getDurabilityValue() + pendingDelta
+        ));
+        EquipmentInstance merged = new EquipmentInstance(
+            result.getEquipmentInstanceId(),
+            result.getAccountId(),
+            result.getItemId(),
+            result.getEnhanceLevel(),
+            result.getRuneMaxSlots(),
+            result.getTranscendenceRank(),
+            mergedDurabilityMax,
+            mergedDurabilityValue,
+            result.getCreatedAt(),
+            result.getUpdatedAt(),
+            result.getStatRolls(),
+            result.getEnchants(),
+            result.getRunes()
+        );
+        loadedEquipmentInstances.put(key, merged);
+        dirtyEquipmentDurability.put(key, new PendingDurabilityUpdate(
+            pending.instanceId(),
+            pending.accountId(),
+            result.getDurabilityValue(),
+            mergedDurabilityValue,
+            pending.updatedBy(),
+            ++durabilityRevision
+        ));
+        return merged;
     }
 
     /**
@@ -490,33 +670,45 @@ public class ItemService {
         if (normalizedId.isBlank()) {
             return null;
         }
-        EquipmentInstance current = findEquipmentInstanceById(instanceId);
-        if (current == null) {
-            return null;
+        synchronized (equipmentStateMutex) {
+            EquipmentInstance current = loadedEquipmentInstances.get(normalizedId);
+            if (current == null) {
+                return null;
+            }
+            int clampedValue = Math.max(0, Math.min(current.getDurabilityMax(), durabilityValue));
+            PendingDurabilityUpdate previousPending = dirtyEquipmentDurability.get(normalizedId);
+            int baseDurabilityValue = previousPending == null
+                ? current.getDurabilityValue()
+                : previousPending.baseDurabilityValue();
+            EquipmentInstance updated = new EquipmentInstance(
+                current.getEquipmentInstanceId(),
+                current.getAccountId(),
+                current.getItemId(),
+                current.getEnhanceLevel(),
+                current.getRuneMaxSlots(),
+                current.getTranscendenceRank(),
+                current.getDurabilityMax(),
+                clampedValue,
+                current.getCreatedAt(),
+                LocalDateTime.now().toString(),
+                current.getStatRolls(),
+                current.getEnchants(),
+                current.getRunes()
+            );
+            loadedEquipmentInstances.put(normalizedId, updated);
+            dirtyEquipmentDurability.put(
+                normalizedId,
+                new PendingDurabilityUpdate(
+                    updated.getEquipmentInstanceId(),
+                    updated.getAccountId(),
+                    baseDurabilityValue,
+                    clampedValue,
+                    updatedBy,
+                    ++durabilityRevision
+                )
+            );
+            return updated;
         }
-        int clampedValue = Math.max(0, Math.min(current.getDurabilityMax(), durabilityValue));
-        EquipmentInstance updated = new EquipmentInstance(
-            current.getEquipmentInstanceId(),
-            current.getAccountId(),
-            current.getItemId(),
-            current.getEnhanceLevel(),
-            current.getRuneMaxSlots(),
-            current.getTranscendenceRank(),
-            current.getDurabilityMax(),
-            clampedValue,
-            current.getCreatedAt(),
-            LocalDateTime.now().toString(),
-            current.getStatRolls(),
-            current.getEnchants(),
-            current.getRunes(),
-            current.getEnchantPools()
-        );
-        loadedEquipmentInstances.put(normalizedId, updated);
-        dirtyEquipmentDurability.put(
-            normalizedId,
-            new PendingDurabilityUpdate(updated.getEquipmentInstanceId(), updated.getAccountId(), clampedValue, updatedBy)
-        );
-        return updated;
     }
 
     /**
@@ -527,8 +719,10 @@ public class ItemService {
      */
     public boolean hasDirtyEquipmentDurability(@NotNull UUID accountId) {
         String targetAccountId = accountId.toString();
-        return dirtyEquipmentDurability.values().stream()
-            .anyMatch(update -> update.accountId().equalsIgnoreCase(targetAccountId));
+        synchronized (equipmentStateMutex) {
+            return dirtyEquipmentDurability.values().stream()
+                .anyMatch(update -> update.accountId().equalsIgnoreCase(targetAccountId));
+        }
     }
 
     /**
@@ -540,23 +734,32 @@ public class ItemService {
      */
     public boolean flushDirtyEquipmentDurability(@NotNull UUID accountId) {
         String targetAccountId = accountId.toString();
+        List<Map.Entry<String, PendingDurabilityUpdate>> snapshots;
+        synchronized (equipmentStateMutex) {
+            snapshots = dirtyEquipmentDurability.entrySet().stream()
+                .filter(entry -> entry.getValue().accountId().equalsIgnoreCase(targetAccountId))
+                .map(entry -> Map.entry(entry.getKey(), entry.getValue()))
+                .toList();
+        }
         boolean allOk = true;
-        for (Map.Entry<String, PendingDurabilityUpdate> entry : dirtyEquipmentDurability.entrySet()) {
+        for (Map.Entry<String, PendingDurabilityUpdate> entry : snapshots) {
             PendingDurabilityUpdate pending = entry.getValue();
-            if (!pending.accountId().equalsIgnoreCase(targetAccountId)) {
-                continue;
-            }
-            EquipmentInstance cached = loadedEquipmentInstances.get(entry.getKey());
-            int durabilityValue = cached == null ? pending.durabilityValue() : cached.getDurabilityValue();
             try {
                 EquipmentInstance persisted = itemRepository.updateEquipmentDurability(
                     pending.instanceId(),
-                    durabilityValue,
+                    pending.durabilityValue(),
                     pending.updatedBy()
                 );
                 if (persisted != null) {
-                    loadedEquipmentInstances.put(entry.getKey(), persisted);
-                    dirtyEquipmentDurability.remove(entry.getKey(), pending);
+                    synchronized (equipmentStateMutex) {
+                        PendingDurabilityUpdate current = dirtyEquipmentDurability.get(entry.getKey());
+                        if (current != null && current.revision() == pending.revision()) {
+                            loadedEquipmentInstances.put(entry.getKey(), persisted);
+                            dirtyEquipmentDurability.remove(entry.getKey());
+                        } else {
+                            allOk = false;
+                        }
+                    }
                 } else {
                     allOk = false;
                 }
@@ -576,14 +779,47 @@ public class ItemService {
      */
     public void clearDirtyEquipmentDurability(@NotNull UUID accountId) {
         String targetAccountId = accountId.toString();
-        dirtyEquipmentDurability.entrySet().removeIf(entry -> entry.getValue().accountId().equalsIgnoreCase(targetAccountId));
+        synchronized (equipmentStateMutex) {
+            dirtyEquipmentDurability.entrySet().removeIf(
+                entry -> entry.getValue().accountId().equalsIgnoreCase(targetAccountId));
+        }
+    }
+
+    /** 保存成功後に対象アカウントの装備個体 cache と durability dirty を同じ境界で破棄します。 */
+    public void clearEquipmentState(@NotNull UUID accountId) {
+        String targetAccountId = accountId.toString();
+        synchronized (equipmentStateMutex) {
+            loadedEquipmentInstances.entrySet().removeIf(
+                entry -> entry.getValue().getAccountId().equalsIgnoreCase(targetAccountId));
+            dirtyEquipmentDurability.entrySet().removeIf(
+                entry -> entry.getValue().accountId().equalsIgnoreCase(targetAccountId));
+        }
+    }
+
+    /**
+     * API が削除・譲渡済みと確定した装備個体を、通信せずローカル状態から破棄します。
+     * durability dirty も同じ排他境界で除去し、後続保存による旧所有者からの復活を防ぎます。
+     *
+     * @param instanceId API 正本で利用不能と確定した装備個体 ID
+     */
+    public void evictEquipmentInstanceFromCache(@NotNull String instanceId) {
+        String normalizedId = normalize(instanceId);
+        if (normalizedId.isBlank()) {
+            return;
+        }
+        synchronized (equipmentStateMutex) {
+            loadedEquipmentInstances.remove(normalizedId);
+            dirtyEquipmentDurability.remove(normalizedId);
+        }
     }
 
     private record PendingDurabilityUpdate(
         @NotNull String instanceId,
         @NotNull String accountId,
+        int baseDurabilityValue,
         int durabilityValue,
-        @NotNull String updatedBy
+        @NotNull String updatedBy,
+        long revision
     ) {
     }
 
@@ -595,7 +831,10 @@ public class ItemService {
         try {
             boolean deleted = itemRepository.deleteEquipmentInstance(instanceId);
             if (deleted) {
-                loadedEquipmentInstances.remove(normalizedId);
+                synchronized (equipmentStateMutex) {
+                    loadedEquipmentInstances.remove(normalizedId);
+                    dirtyEquipmentDurability.remove(normalizedId);
+                }
             }
             return deleted;
         } catch (Exception e) {
@@ -668,9 +907,34 @@ public class ItemService {
      *
      * @param item 登録するアイテム
      */
-    private void cacheItem(@NotNull ItemModel item) {
-        loadedItems.put(normalize(item.getId()), item);
+    private synchronized void cacheItem(@NotNull ItemModel item) {
+        Map<String, ItemModel> updatedItems = new LinkedHashMap<>(loadedMasterData.items());
+        updatedItems.put(normalize(item.getId()), item);
+        loadedMasterData = new MasterDataSnapshot(updatedItems, loadedMasterData.enchantMasters());
         Logger.log(LogId.D_5203, item);
+    }
+
+    /** 原子的に公開するアイテム・共通エンチャントマスタのスナップショットです。 */
+    public record MasterDataSnapshot(
+        @NotNull Map<String, ItemModel> items,
+        @NotNull Map<String, EnchantMaster> enchantMasters
+    ) {
+        public MasterDataSnapshot {
+            items = Map.copyOf(items);
+            enchantMasters = Map.copyOf(enchantMasters);
+        }
+
+        /** @return アイテム件数 */
+        public int size() {
+            return items.size();
+        }
+    }
+
+    /** 装備個体事前ロード結果です。 */
+    public enum EquipmentPreloadResult {
+        COMPLETE,
+        MISSING,
+        UNAVAILABLE,
     }
 
     private @NotNull String normalize(@NotNull String value) {

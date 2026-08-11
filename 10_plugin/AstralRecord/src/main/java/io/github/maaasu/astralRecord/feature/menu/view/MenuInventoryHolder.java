@@ -51,7 +51,7 @@ public record MenuInventoryHolder(
     public int getBackSlot() {
         return switch (screen) {
             case MAIN -> MenuView.BACK_SLOT;
-            case CLASS, EQUIPMENT_PROCESSING, EQUIPMENT_ENHANCE, EQUIPMENT_REPAIR, SELL, STORAGE -> -1;
+            case CLASS, SELL, STORAGE -> -1;
             case TRASH_CONFIRM -> 14;
             case SELL_CONFIRM -> 22;
             default -> MenuView.BACK_SLOT;

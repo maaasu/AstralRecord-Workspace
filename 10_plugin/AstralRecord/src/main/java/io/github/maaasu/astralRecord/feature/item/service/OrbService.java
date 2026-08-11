@@ -1,0 +1,2050 @@
+package io.github.maaasu.astralRecord.feature.item.service;
+
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.inventory.state.InventoryPersistence;
+import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
+import io.github.maaasu.astralRecord.feature.item.gui.OrbGuiHolder;
+import io.github.maaasu.astralRecord.feature.item.model.EnchantMaster;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationResult;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationResultType;
+import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceFailAction;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscendence;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffect;
+import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffectType;
+import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
+import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import org.bukkit.Bukkit;
+import org.bukkit.Material;
+import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
+import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.scheduler.BukkitTask;
+import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
+
+/**
+ * 通常インベントリ上のオーブクリックから装備選択・実行・固定演出までを管理します。
+ */
+public final class OrbService {
+
+    private static final int CONTENT_SLOT_COUNT = 45;
+    private static final int PREVIOUS_PAGE_SLOT = 45;
+    private static final int INFO_SLOT = 49;
+    private static final int NEXT_PAGE_SLOT = 53;
+    private static final int CONFIRM_TARGET_SLOT = 4;
+    private static final int CONFIRM_BACK_SLOT = 45;
+    private static final int CONFIRM_GOLD_SLOT = 47;
+    private static final int CONFIRM_EXECUTE_SLOT = 49;
+    private static final int[] CONFIRM_MATERIAL_SLOTS = {
+        18, 19, 20, 21, 22, 23, 24, 25, 26,
+        27, 28, 29, 30, 31, 32, 33, 34, 35,
+    };
+    private static final Material[] ANIMATION_FRAMES = {
+        Material.AMETHYST_BLOCK,
+        Material.BUDDING_AMETHYST,
+        Material.CRYING_OBSIDIAN,
+        Material.END_CRYSTAL,
+        Material.NETHER_STAR,
+    };
+    private static final long FRAME_TICKS = 2L;
+    private static final long REFRESH_WAIT_TICKS = 10L;
+    private static final long OPERATION_RETRY_INITIAL_MILLIS = 250L;
+    private static final long OPERATION_RETRY_MAX_MILLIS = 2_000L;
+
+    /**
+     * 固定5フレーム演出の長さを返します。
+     *
+     * @return 演出時間（tick）
+     */
+    static long animationDurationTicks() {
+        return ANIMATION_FRAMES.length * FRAME_TICKS;
+    }
+
+    /**
+     * 装備更新確定後から一覧再描画まで操作を遮断する総時間を返します。
+     *
+     * @return 演出と更新待機を合わせた時間（tick）
+     */
+    static long postMutationLockDurationTicks() {
+        return animationDurationTicks() + REFRESH_WAIT_TICKS;
+    }
+
+    private final Plugin plugin;
+    private final InventoryService inventoryService;
+    private final InventorySaveCoordinator inventorySaveCoordinator;
+    private final PlayerInventoryStateRegistry inventoryStateRegistry;
+    private final ItemService itemService;
+    private final ItemStackFactory itemStackFactory;
+    private final OrbInventoryOpener inventoryOpener;
+    private final OrbRetryWaiter retryWaiter;
+    private final Map<UUID, OrbSession> sessions = new ConcurrentHashMap<>();
+    private @Nullable StatusService statusService;
+
+    /**
+     * オーブ GUI サービスを初期化します。
+     *
+     * @param plugin Bukkit task の所有プラグイン
+     * @param inventoryService 所持品の正本参照・差分消費サービス
+     * @param inventorySaveCoordinator ログアウト保存との直列化サービス
+     * @param inventoryStateRegistry ログイン世代 state の検証レジストリ
+     * @param itemService 装備・共通マスタ参照と更新サービス
+     * @param itemStackFactory 装備表示生成サービス
+     */
+    public OrbService(
+        @NotNull Plugin plugin,
+        @NotNull InventoryService inventoryService,
+        @NotNull InventorySaveCoordinator inventorySaveCoordinator,
+        @NotNull PlayerInventoryStateRegistry inventoryStateRegistry,
+        @NotNull ItemService itemService,
+        @NotNull ItemStackFactory itemStackFactory
+    ) {
+        this(
+            plugin,
+            inventoryService,
+            inventorySaveCoordinator,
+            inventoryStateRegistry,
+            itemService,
+            itemStackFactory,
+            GuiOpenSupport::open,
+            OrbService::sleepForOperationRetry
+        );
+    }
+
+    OrbService(
+        @NotNull Plugin plugin,
+        @NotNull InventoryService inventoryService,
+        @NotNull InventorySaveCoordinator inventorySaveCoordinator,
+        @NotNull PlayerInventoryStateRegistry inventoryStateRegistry,
+        @NotNull ItemService itemService,
+        @NotNull ItemStackFactory itemStackFactory,
+        @NotNull OrbInventoryOpener inventoryOpener
+    ) {
+        this(
+            plugin,
+            inventoryService,
+            inventorySaveCoordinator,
+            inventoryStateRegistry,
+            itemService,
+            itemStackFactory,
+            inventoryOpener,
+            OrbService::sleepForOperationRetry
+        );
+    }
+
+    OrbService(
+        @NotNull Plugin plugin,
+        @NotNull InventoryService inventoryService,
+        @NotNull InventorySaveCoordinator inventorySaveCoordinator,
+        @NotNull PlayerInventoryStateRegistry inventoryStateRegistry,
+        @NotNull ItemService itemService,
+        @NotNull ItemStackFactory itemStackFactory,
+        @NotNull OrbInventoryOpener inventoryOpener,
+        @NotNull OrbRetryWaiter retryWaiter
+    ) {
+        this.plugin = plugin;
+        this.inventoryService = inventoryService;
+        this.inventorySaveCoordinator = inventorySaveCoordinator;
+        this.inventoryStateRegistry = inventoryStateRegistry;
+        this.itemService = itemService;
+        this.itemStackFactory = itemStackFactory;
+        this.inventoryOpener = inventoryOpener;
+        this.retryWaiter = retryWaiter;
+    }
+
+    /**
+     * 装備更新後に装備中ステータスを再計算するサービスを接続します。
+     *
+     * @param statusService ステータス再計算サービス。未接続を許可する場合は {@code null}
+     */
+    public void setStatusService(@Nullable StatusService statusService) {
+        this.statusService = statusService;
+    }
+
+    /**
+     * 対象インベントリがオーブ専用 GUI か判定します。
+     *
+     * @param inventory 判定対象
+     * @return オーブ GUI の場合 {@code true}
+     */
+    public boolean isOrbInventory(@Nullable Inventory inventory) {
+        return inventory != null && inventory.getHolder() instanceof OrbGuiHolder;
+    }
+
+    /**
+     * プレイヤーがオーブ操作の通信・演出・更新待機中か判定します。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 同一プレイヤーのセッションが通信・演出・更新待機中なら {@code true}
+     */
+    public boolean isLocked(@NotNull Player player) {
+        OrbSession session = sessions.get(player.getUniqueId());
+        return session != null && session.interactionLock.isLocked() && !session.detached;
+    }
+
+    /**
+     * 通常プレイヤーインベントリのクリックをオーブ起動として処理します。
+     * 表示 ItemStack ではなく BAG/HOTBAR の entry ID と item ID を正本として保存します。
+     *
+     * @param event 通常インベントリのクリックイベント
+     * @return オーブ起動としてイベントを消費した場合 {@code true}
+     */
+    public boolean handleInventoryOrbClick(@NotNull InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)
+            || event.getView().getType() != org.bukkit.event.inventory.InventoryType.CRAFTING
+            || !(event.getClickedInventory() instanceof PlayerInventory)) {
+            return false;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
+            return false;
+        }
+        InventoryEntryModel entry = inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, event.getSlot());
+        ItemModel orbModel = resolveOrbModel(entry);
+        if (entry == null || orbModel == null) {
+            return false;
+        }
+
+        event.setCancelled(true);
+        OrbSession previous = sessions.get(player.getUniqueId());
+        if (previous != null
+            && (previous.operationFuture != null || previous.preloadFuture != null)) {
+            GuiSound.DENY.play(player);
+            return true;
+        }
+        removeSession(player.getUniqueId());
+        OrbSession session = new OrbSession(
+            player,
+            astPlayer,
+            astPlayer.getAccount().getUuid(),
+            UUID.randomUUID(),
+            entry.getInventoryEntryId(),
+            orbModel.getId()
+        );
+        sessions.put(player.getUniqueId(), session);
+        preloadAndOpenList(session, orbModel);
+        return true;
+    }
+
+    /**
+     * Bukkit state から候補 ID だけを同期取得し、装備個体の API 取得は非同期で完了させてから一覧を開きます。
+     * reload 時に温め済みの個体も同じ経路を通るため、候補描画・クリック再検証は常に cache-only です。
+     */
+    private void preloadAndOpenList(@NotNull OrbSession session, @NotNull ItemModel orbModel) {
+        Set<String> instanceIds = candidateInstanceIds(session);
+        session.interactionLock.beginMutation();
+        CompletableFuture<ItemService.EquipmentPreloadResult> future = AsyncTaskUtil.supplyAsync(
+            plugin,
+            () -> itemService.preloadEquipmentInstances(instanceIds)
+        );
+        session.preloadFuture = future;
+        future.whenComplete((result, throwable) -> AsyncTaskUtil.runSync(plugin, () -> {
+            if (sessions.get(session.player.getUniqueId()) != session
+                || session.detached
+                || inventoryStateRegistry.get(session.accountId) == null
+                || AstPlayerCache.get(session.player) != session.astPlayer) {
+                return;
+            }
+            session.preloadFuture = null;
+            session.interactionLock.release();
+            if (throwable != null || result == ItemService.EquipmentPreloadResult.UNAVAILABLE) {
+                sessions.remove(session.player.getUniqueId(), session);
+                PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5295);
+                GuiSound.DENY.play(session.player);
+                return;
+            }
+            ItemModel currentOrb = resolveCurrentOrb(session);
+            if (currentOrb == null || !currentOrb.getId().equalsIgnoreCase(orbModel.getId())) {
+                sessions.remove(session.player.getUniqueId(), session);
+                PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5289);
+                GuiSound.DENY.play(session.player);
+                return;
+            }
+            openList(session, currentOrb);
+        }));
+    }
+
+    /** 候補となり得る装備個体 ID をメモリ上のロードアウトと通常 inventory から固定します。 */
+    private @NotNull Set<String> candidateInstanceIds(@NotNull OrbSession session) {
+        Set<String> instanceIds = new LinkedHashSet<>();
+        for (ItemReference reference : inventoryService.getEquippedItemReferences(session.astPlayer)) {
+            if (reference.hasEquipmentInstanceId()) {
+                instanceIds.add(reference.equipmentInstanceId());
+            }
+        }
+        for (InventoryEntryModel entry : ownedEntries(session.accountId)) {
+            if (entry.getInstanceId() != null
+                && ItemCategory.fromApiValue(entry.getItemCategory()) == ItemCategory.EQUIPMENT) {
+                instanceIds.add(entry.getInstanceId().toString());
+            }
+        }
+        return Set.copyOf(instanceIds);
+    }
+
+    /**
+     * オーブ GUI の全クリック方式を取り込み、許可した上段操作だけを実行します。
+     *
+     * @param event オーブ GUI 上のクリックイベント
+     */
+    public void handleGuiClick(@NotNull InventoryClickEvent event) {
+        event.setCancelled(true);
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        OrbSession session = currentSession(player, event.getView().getTopInventory());
+        if (session == null || session.interactionLock.isLocked() || session.transitioning) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        handleUnlockedGuiClick(event, session);
+    }
+
+    /**
+     * オーブ GUI へのドラッグを常に拒否し、演出中を含む複数スロット変更を防ぎます。
+     *
+     * @param event ドラッグイベント
+     */
+    public void handleGuiDrag(@NotNull InventoryDragEvent event) {
+        if (isOrbInventory(event.getView().getTopInventory())) {
+            event.setCancelled(true);
+        }
+    }
+
+    /**
+     * 演出・更新待機中のホットバー選択変更を拒否します。
+     *
+     * @param event ホットバー選択変更イベント
+     * @return ロック中として拒否した場合 {@code true}
+     */
+    public boolean handleHeldChange(@NotNull PlayerItemHeldEvent event) {
+        if (!isLocked(event.getPlayer())) {
+            return false;
+        }
+        event.setCancelled(true);
+        return true;
+    }
+
+    /**
+     * GUI を閉じたプレイヤーを処理します。操作確定・演出・更新待機中は同じ GUI を次 tick に
+     * 再表示して固定演出とクリックロックを最後まで維持します。
+     *
+     * @param player GUI を閉じたプレイヤー
+     */
+    public void handleClose(@NotNull Player player) {
+        OrbSession session = sessions.get(player.getUniqueId());
+        if (session == null || session.player != player || session.transitioning) {
+            return;
+        }
+        if (session.interactionLock.isLocked() && !session.detached && player.isOnline()) {
+            scheduleLockedReopen(session);
+            return;
+        }
+        session.uiClosed = true;
+        session.interactionLock.close();
+        cancelScheduledTask(session);
+        if (session.operationFuture == null) {
+            sessions.remove(player.getUniqueId(), session);
+        }
+    }
+
+    /** 操作中の Escape close 後に同じ token・inventory を再表示します。 */
+    private void scheduleLockedReopen(@NotNull OrbSession session) {
+        if (session.reopenTask != null) {
+            return;
+        }
+        session.reopening = true;
+        session.reopenTask = plugin.getServer().getScheduler().runTask(plugin, () -> {
+            session.reopenTask = null;
+            if (session.detached
+                || sessions.get(session.player.getUniqueId()) != session
+                || !session.player.isOnline()) {
+                session.reopening = false;
+                return;
+            }
+            if (!session.interactionLock.isLocked()) {
+                session.reopening = false;
+                sessions.remove(session.player.getUniqueId(), session);
+                return;
+            }
+            session.player.openInventory(session.inventory);
+            session.reopening = false;
+            if (!isCurrentInventory(session.player, session)) {
+                sessions.remove(session.player.getUniqueId(), session);
+                session.interactionLock.close();
+                cancelScheduledTask(session);
+            }
+        });
+    }
+
+    /**
+     * ログアウト保存前に対象セッションを切り離し、通信中なら保存キュー上で結果を確定します。
+     *
+     * @param player ログアウトするプレイヤー
+     */
+    public void prepareForPlayerSave(@NotNull Player player) {
+        OrbSession session = sessions.get(player.getUniqueId());
+        if (session == null || session.player != player || !sessions.remove(player.getUniqueId(), session)) {
+            return;
+        }
+        detachForSave(session);
+    }
+
+    /**
+     * プラグイン停止前に全オーブセッションを停止し、未確定通信を保存キューへ登録します。
+     */
+    public void prepareAllForShutdown() {
+        for (OrbSession session : List.copyOf(sessions.values())) {
+            if (sessions.remove(session.player.getUniqueId(), session)) {
+                detachForSave(session);
+            }
+        }
+    }
+
+    /**
+     * 適格装備を収集してオーブ対象一覧を開きます。
+     *
+     * @param session 操作セッション
+     * @param orbModel 使用オーブのマスタ
+     */
+    private void openList(@NotNull OrbSession session, @NotNull ItemModel orbModel) {
+        List<OrbCandidate> candidates = collectCandidates(session, orbModel);
+        if (candidates.isEmpty()) {
+            sessions.remove(session.player.getUniqueId(), session);
+            PlayerMessageService.getInstance().send(
+                session.player,
+                orbModel.getOrb().getEffect().getType() == ItemOrbEffectType.ENCHANT
+                    ? PlayerMsgId.P_5294
+                    : PlayerMsgId.P_5288
+            );
+            GuiSound.DENY.play(session.player);
+            return;
+        }
+        Inventory inventory = Bukkit.createInventory(
+            new OrbGuiHolder(session.player.getUniqueId(), session.token, OrbGuiHolder.Screen.LIST),
+            OrbGuiHolder.SIZE,
+            Component.text("オーブ対象装備", NamedTextColor.DARK_PURPLE)
+        );
+        session.screen = OrbGuiHolder.Screen.LIST;
+        session.inventory = inventory;
+        renderList(session, orbModel, inventory, candidates);
+        inventoryOpener.open(session.player, inventory, () -> GuiSound.OPEN.play(session.player), () ->
+            sessions.remove(session.player.getUniqueId(), session));
+    }
+
+    /**
+     * 現在ページの候補とナビゲーションを一覧へ再描画します。
+     *
+     * @param session 操作セッション
+     * @param orbModel 使用オーブのマスタ
+     * @param inventory 描画先GUI
+     * @param candidates 正本から再収集した候補
+     */
+    private void renderList(
+        @NotNull OrbSession session,
+        @NotNull ItemModel orbModel,
+        @NotNull Inventory inventory,
+        @NotNull List<OrbCandidate> candidates
+    ) {
+        fillInventory(inventory);
+        int pageCount = Math.max(1, (candidates.size() + CONTENT_SLOT_COUNT - 1) / CONTENT_SLOT_COUNT);
+        session.page = Math.max(0, Math.min(session.page, pageCount - 1));
+        int fromIndex = session.page * CONTENT_SLOT_COUNT;
+        int toIndex = Math.min(candidates.size(), fromIndex + CONTENT_SLOT_COUNT);
+        Map<Integer, String> displayed = new LinkedHashMap<>();
+        for (int index = fromIndex; index < toIndex; index++) {
+            int slot = index - fromIndex;
+            OrbCandidate candidate = candidates.get(index);
+            inventory.setItem(slot, createCandidateItem(candidate, orbModel.getOrb().getEffect()));
+            displayed.put(slot, candidate.instance.getEquipmentInstanceId());
+        }
+        session.displayedTargets = Map.copyOf(displayed);
+        inventory.setItem(PREVIOUS_PAGE_SLOT, pageButton(false, session.page > 0));
+        inventory.setItem(NEXT_PAGE_SLOT, pageButton(true, session.page + 1 < pageCount));
+        ItemStack info = itemStackFactory.create(orbModel, 1);
+        appendLore(info, List.of(
+            Component.empty(),
+            Component.text("対象装備のみ表示しています。", NamedTextColor.GRAY),
+            Component.text("ページ " + (session.page + 1) + " / " + pageCount, NamedTextColor.DARK_GRAY)
+        ));
+        inventory.setItem(INFO_SLOT, info);
+    }
+
+    /**
+     * ロックされていないGUIの左クリックだけをページ移動または装備操作へ振り分けます。
+     *
+     * @param event 取消済みクリックイベント
+     * @param session 現在セッション
+     */
+    private void handleUnlockedGuiClick(@NotNull InventoryClickEvent event, @NotNull OrbSession session) {
+        if (event.getRawSlot() < 0
+            || event.getRawSlot() >= event.getView().getTopInventory().getSize()
+            || event.getClick() != ClickType.LEFT) {
+            GuiSound.DENY.play(session.player);
+            return;
+        }
+        if (session.screen == OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM) {
+            handleConfirmationClick(event.getRawSlot(), session);
+            return;
+        }
+
+        ItemModel orbModel = resolveCurrentOrb(session);
+        if (orbModel == null) {
+            PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5289);
+            closeAndRemove(session);
+            return;
+        }
+        if (event.getRawSlot() == PREVIOUS_PAGE_SLOT && session.page > 0) {
+            session.page--;
+            renderList(session, orbModel, session.inventory, collectCandidates(session, orbModel));
+            GuiSound.PAGE.play(session.player);
+            return;
+        }
+        if (event.getRawSlot() == NEXT_PAGE_SLOT) {
+            int pageCount = Math.max(1,
+                (collectCandidates(session, orbModel).size() + CONTENT_SLOT_COUNT - 1) / CONTENT_SLOT_COUNT);
+            if (session.page + 1 < pageCount) {
+                session.page++;
+                renderList(session, orbModel, session.inventory, collectCandidates(session, orbModel));
+                GuiSound.PAGE.play(session.player);
+            } else {
+                GuiSound.DENY.play(session.player);
+            }
+            return;
+        }
+        String targetId = session.displayedTargets.get(event.getRawSlot());
+        if (targetId == null) {
+            GuiSound.DENY.play(session.player);
+            return;
+        }
+        OrbCandidate target = collectCandidates(session, orbModel).stream()
+            .filter(candidate -> candidate.instance.getEquipmentInstanceId().equalsIgnoreCase(targetId))
+            .findFirst()
+            .orElse(null);
+        if (target == null) {
+            PlayerMessageService.getInstance().send(
+                session.player,
+                orbModel.getOrb().getEffect().getType() == ItemOrbEffectType.ENCHANT
+                    ? PlayerMsgId.P_5294
+                    : PlayerMsgId.P_5290
+            );
+            renderList(session, orbModel, session.inventory, collectCandidates(session, orbModel));
+            GuiSound.DENY.play(session.player);
+            return;
+        }
+        session.animationSlot = event.getRawSlot();
+        if (orbModel.getOrb().getEffect().getType() == ItemOrbEffectType.TRANSCENDENCE) {
+            openTranscendenceConfirmation(session, orbModel, target);
+            return;
+        }
+        executeCandidate(session, orbModel, target);
+    }
+
+    /**
+     * 正本entryが数量を持つオーブか検証してロード済みマスタを返します。
+     *
+     * @param entry 検証する所持品entry
+     * @return 有効なオーブマスタ。条件外は {@code null}
+     */
+    private @Nullable ItemModel resolveOrbModel(@Nullable InventoryEntryModel entry) {
+        if (entry == null
+            || entry.isDeleted()
+            || entry.getQuantity() <= 0L
+            || entry.getItemId() == null
+            || ItemCategory.fromApiValue(entry.getItemCategory()) != ItemCategory.ORB) {
+            return null;
+        }
+        ItemModel model = itemService.findLoadedById(entry.getItemId());
+        return model != null
+            && ItemCategory.fromApiValue(model.getCategory()) == ItemCategory.ORB
+            && model.getOrb() != null
+            && model.getOrb().getEffect() != null
+            ? model
+            : null;
+    }
+
+    /**
+     * 保存したentry IDとitem IDを正本stateで照合し、同種の次スタックへの継続も解決します。
+     *
+     * @param session 操作セッション
+     * @return 現在消費できるオーブマスタ。全消費済みなら {@code null}
+     */
+    private @Nullable ItemModel resolveCurrentOrb(@NotNull OrbSession session) {
+        if (inventoryStateRegistry.get(session.accountId) == null
+            || AstPlayerCache.get(session.player) != session.astPlayer) {
+            return null;
+        }
+        InventoryEntryModel exact = inventoryService.findOwnedEntry(session.accountId, session.orbEntryId);
+        ItemModel exactModel = resolveOrbModel(exact);
+        if (exactModel != null && exactModel.getId().equalsIgnoreCase(session.orbItemId)) {
+            return exactModel;
+        }
+        for (InventoryEntryModel entry : ownedEntries(session.accountId)) {
+            ItemModel model = resolveOrbModel(entry);
+            if (model != null && model.getId().equalsIgnoreCase(session.orbItemId)) {
+                session.orbEntryId = entry.getInventoryEntryId();
+                return model;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * BAG、HOTBAR順かつ各スロット順で有効entryを取得します。
+     *
+     * @param accountId 対象アカウントID
+     * @return 安定順の所持品entry
+     */
+    private @NotNull List<InventoryEntryModel> ownedEntries(@NotNull UUID accountId) {
+        List<InventoryEntryModel> entries = new ArrayList<>();
+        inventoryService.getInventories(accountId).stream()
+            .filter(inventory -> inventory.isEnabled() && !inventory.isDeleted())
+            .filter(inventory -> inventory.getInventoryType() == InventoryType.BAG
+                || inventory.getInventoryType() == InventoryType.HOTBAR)
+            .sorted(Comparator.comparingInt(inventory ->
+                inventory.getInventoryType() == InventoryType.BAG ? 0 : 1))
+            .forEach(inventory -> inventoryService.getEntries(inventory.getInventoryId()).stream()
+                .filter(entry -> !entry.isDeleted())
+                .sorted(Comparator
+                    .comparing((InventoryEntryModel entry) -> entry.getSlotIndex() == null
+                        ? Integer.MAX_VALUE
+                        : entry.getSlotIndex())
+                    .thenComparing(InventoryEntryModel::getCreatedAt))
+                .forEach(entries::add));
+        return List.copyOf(entries);
+    }
+
+    /**
+     * 装備中を先頭にし、instance IDを重複排除して適格装備だけを収集します。
+     *
+     * @param session 操作セッション
+     * @param orbModel 使用オーブのマスタ
+     * @return 表示・再検証に共用する候補
+     */
+    private @NotNull List<OrbCandidate> collectCandidates(
+        @NotNull OrbSession session,
+        @NotNull ItemModel orbModel
+    ) {
+        ItemOrbEffect effect = orbModel.getOrb().getEffect();
+        EnchantMaster enchantMaster = effect.getType() == ItemOrbEffectType.ENCHANT
+            && effect.getEnchantMasterId() != null
+            ? itemService.findEnchantMasterById(effect.getEnchantMasterId())
+            : null;
+        Map<String, OrbCandidate> candidates = new LinkedHashMap<>();
+
+        for (ItemReference reference : inventoryService.getEquippedItemReferences(session.astPlayer)) {
+            if (reference.hasEquipmentInstanceId()) {
+                addCandidate(candidates, session, effect, enchantMaster, reference.equipmentInstanceId(), true);
+            }
+        }
+        for (InventoryEntryModel entry : ownedEntries(session.accountId)) {
+            if (entry.getInstanceId() == null
+                || ItemCategory.fromApiValue(entry.getItemCategory()) != ItemCategory.EQUIPMENT) {
+                continue;
+            }
+            addCandidate(candidates, session, effect, enchantMaster, entry.getInstanceId().toString(), false);
+        }
+        return List.copyOf(candidates.values());
+    }
+
+    /**
+     * 所有・マスタ・効果条件を満たす装備個体を候補へ追加します。
+     *
+     * @param candidates instance ID正規化キーの候補map
+     * @param session 操作セッション
+     * @param effect オーブ効果
+     * @param enchantMaster エンチャント時の共通マスタ
+     * @param equipmentInstanceId 検証対象instance ID
+     * @param equipped 装備中として見つかった場合 {@code true}
+     */
+    private void addCandidate(
+        @NotNull Map<String, OrbCandidate> candidates,
+        @NotNull OrbSession session,
+        @NotNull ItemOrbEffect effect,
+        @Nullable EnchantMaster enchantMaster,
+        @NotNull String equipmentInstanceId,
+        boolean equipped
+    ) {
+        String normalizedId = equipmentInstanceId.trim().toLowerCase(Locale.ROOT);
+        OrbCandidate existing = candidates.get(normalizedId);
+        if (existing != null) {
+            if (equipped && !existing.equipped) {
+                candidates.put(normalizedId, new OrbCandidate(existing.model, existing.instance, true));
+            }
+            return;
+        }
+        EquipmentInstance instance = itemService.findLoadedEquipmentInstanceById(equipmentInstanceId);
+        if (instance == null || !instance.getAccountId().equalsIgnoreCase(session.accountId.toString())) {
+            return;
+        }
+        ItemModel model = itemService.findLoadedById(instance.getItemId());
+        if (model == null
+            || ItemCategory.fromApiValue(model.getCategory()) != ItemCategory.EQUIPMENT
+            || model.getEquipment() == null
+            || !isEligible(effect, model, instance, enchantMaster)) {
+            return;
+        }
+        candidates.put(normalizedId, new OrbCandidate(model, instance, equipped));
+    }
+
+    /**
+     * 効果種別ごとの候補条件を純粋判定へ委譲します。
+     *
+     * @param effect オーブ効果
+     * @param model 装備マスタ
+     * @param instance 装備個体
+     * @param enchantMaster エンチャント共通マスタ
+     * @return 一覧へ表示できる場合 {@code true}
+     */
+    private boolean isEligible(
+        @NotNull ItemOrbEffect effect,
+        @NotNull ItemModel model,
+        @NotNull EquipmentInstance instance,
+        @Nullable EnchantMaster enchantMaster
+    ) {
+        return switch (effect.getType()) {
+            case ENHANCE -> OrbEligibility.resolveEnhancement(effect, model, instance) != null;
+            case REPAIR -> OrbEligibility.canRepair(effect, model, instance);
+            case TRANSCENDENCE -> OrbEligibility.resolveTranscendence(effect, model, instance) != null;
+            case ENCHANT -> OrbEligibility.canEnchant(effect, model, instance, enchantMaster);
+        };
+    }
+
+    /**
+     * 装備表示へ各操作の実行結果説明を追記します。
+     *
+     * @param candidate 表示候補
+     * @param effect オーブ効果
+     * @return GUI表示用ItemStack
+     */
+    private @NotNull ItemStack createCandidateItem(
+        @NotNull OrbCandidate candidate,
+        @NotNull ItemOrbEffect effect
+    ) {
+        ItemStack item = itemStackFactory.create(candidate.model, candidate.instance, 1);
+        List<Component> lore = new ArrayList<>();
+        lore.add(Component.empty());
+        if (candidate.equipped) {
+            lore.add(Component.text("装備中", NamedTextColor.GREEN));
+        }
+        switch (effect.getType()) {
+            case ENHANCE -> {
+                OrbEligibility.EnhancementPlan plan = Objects.requireNonNull(
+                    OrbEligibility.resolveEnhancement(effect, candidate.model, candidate.instance));
+                lore.add(Component.text("次の強化値: +" + plan.targetLevel(), NamedTextColor.YELLOW));
+                lore.add(Component.text(
+                    "成功率: " + formatPercent(plan.levelDefinition().getSuccessRate()) + "%",
+                    NamedTextColor.AQUA
+                ));
+                lore.add(Component.text(
+                    "失敗時: " + failureDescription(plan.levelDefinition().getFailAction(),
+                        plan.levelDefinition().getFailTargetLevel()),
+                    NamedTextColor.RED
+                ));
+            }
+            case REPAIR -> {
+                int recovered = effect.getRepairFull()
+                    ? candidate.instance.getDurabilityMax() - candidate.instance.getDurabilityValue()
+                    : Math.min(
+                        Objects.requireNonNullElse(effect.getRepairAmount(), 0),
+                        candidate.instance.getDurabilityMax() - candidate.instance.getDurabilityValue()
+                    );
+                lore.add(Component.text(
+                    effect.getRepairFull() ? "耐久値を全回復" : "耐久値を " + recovered + " 回復",
+                    NamedTextColor.GREEN
+                ));
+            }
+            case TRANSCENDENCE -> {
+                OrbEligibility.TranscendencePlan plan = Objects.requireNonNull(
+                    OrbEligibility.resolveTranscendence(effect, candidate.model, candidate.instance));
+                lore.add(Component.text(
+                    transitionListDescription(plan.definition()),
+                    NamedTextColor.LIGHT_PURPLE
+                ));
+                lore.add(Component.text("クリックして必要素材を確認", NamedTextColor.YELLOW));
+            }
+            case ENCHANT -> {
+                int maxSlots = OrbEligibility.effectiveEnchantMaxSlots(
+                    candidate.model.getEquipment(), candidate.instance.getTranscendenceRank());
+                lore.add(Component.text(
+                    "エンチャント枠: " + candidate.instance.getEnchants().size() + " / " + maxSlots,
+                    NamedTextColor.AQUA
+                ));
+                lore.add(Component.text(enchantOperationDescription(effect), NamedTextColor.YELLOW));
+            }
+        }
+        lore.add(Component.text("クリックして実行", NamedTextColor.GOLD));
+        appendLore(item, lore);
+        return item;
+    }
+
+    /**
+     * ページ移動ボタンを作成します。
+     *
+     * @param next 次ページボタンなら {@code true}
+     * @param enabled 移動可能なら {@code true}
+     * @return 表示用ボタン
+     */
+    private @NotNull ItemStack pageButton(boolean next, boolean enabled) {
+        Material material = enabled ? Material.ARROW : Material.GRAY_DYE;
+        String name = next ? "次のページ" : "前のページ";
+        NamedTextColor color = enabled ? NamedTextColor.YELLOW : NamedTextColor.DARK_GRAY;
+        return GuiItems.create(material, Component.text(name, color), List.of());
+    }
+
+    /**
+     * GUI全枠を操作不能な背景itemで初期化します。
+     *
+     * @param inventory 描画先GUI
+     */
+    private void fillInventory(@NotNull Inventory inventory) {
+        ItemStack filler = GuiItems.create(
+            Material.GRAY_STAINED_GLASS_PANE,
+            Component.text(" "),
+            List.of()
+        );
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            inventory.setItem(slot, filler);
+        }
+    }
+
+    /**
+     * 既存loreを保持して説明行を末尾へ追加します。
+     *
+     * @param item 更新対象item
+     * @param additions 追加する説明行
+     */
+    private void appendLore(@NotNull ItemStack item, @NotNull List<Component> additions) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return;
+        }
+        List<Component> lore = meta.lore() == null
+            ? new ArrayList<>()
+            : new ArrayList<>(meta.lore());
+        lore.addAll(additions);
+        meta.lore(lore);
+        item.setItemMeta(meta);
+    }
+
+    /**
+     * 強化失敗時のマスタ動作をプレイヤー向け文言へ変換します。
+     *
+     * @param action 失敗時動作
+     * @param targetLevel SET_LEVEL時の指定値
+     * @return 説明文
+     */
+    private @NotNull String failureDescription(
+        @NotNull ItemEquipmentEnhanceFailAction action,
+        @Nullable Integer targetLevel
+    ) {
+        return switch (action) {
+            case NONE -> "強化値は変化しない";
+            case SET_LEVEL -> "強化値が +" + Math.max(0, Objects.requireNonNullElse(targetLevel, 0)) + " になる";
+            case DECREASE_ONE -> "現在の強化値から1下がる";
+        };
+    }
+
+    /**
+     * エンチャント枠操作をプレイヤー向け文言へ変換します。
+     *
+     * @param effect オーブ効果
+     * @return 説明文
+     */
+    private @NotNull String enchantOperationDescription(@NotNull ItemOrbEffect effect) {
+        if (effect.getEnchantOperation() == null) {
+            return "エンチャント情報を取得できません";
+        }
+        return switch (effect.getEnchantOperation()) {
+            case OVERWRITE_RANDOM -> "既存の1枠をランダムに上書き";
+            case FILL_ONE_EMPTY -> "空いている1枠へ付与";
+            case FILL_ALL_EMPTY -> "空いている全枠へ1個で付与";
+        };
+    }
+
+    /**
+     * 状態変化名を空値フォールバック付きで返します。
+     *
+     * @param definition 状態変化定義
+     * @return プレイヤー表示名
+     */
+    private @NotNull String transitionName(@NotNull ItemEquipmentTranscendence definition) {
+        return definition.getName() == null || definition.getName().isBlank()
+            ? "次の状態"
+            : definition.getName();
+    }
+
+    /**
+     * 一覧用に数値ランクを含まない状態変化説明を返します。
+     *
+     * @param definition 状態変化定義
+     * @return 「状態変化名へ変化」形式の説明
+     */
+    static @NotNull String transitionListDescription(@NotNull ItemEquipmentTranscendence definition) {
+        String name = definition.getName() == null || definition.getName().isBlank()
+            ? "次の状態"
+            : definition.getName();
+        return name + "へ変化";
+    }
+
+    /**
+     * 0から1の割合を末尾ゼロなしの百分率数値へ変換します。
+     *
+     * @param rate 割合
+     * @return パーセント記号を含まない数値文字列
+     */
+    private @NotNull String formatPercent(double rate) {
+        return BigDecimal.valueOf(Math.clamp(rate, 0.0D, 1.0D) * 100.0D)
+            .stripTrailingZeros()
+            .toPlainString();
+    }
+
+    /**
+     * 選択装備を保持して状態変化専用の確認画面へ遷移します。
+     *
+     * @param session 操作セッション
+     * @param orbModel 使用オーブのマスタ
+     * @param target 再検証済み対象装備
+     */
+    private void openTranscendenceConfirmation(
+        @NotNull OrbSession session,
+        @NotNull ItemModel orbModel,
+        @NotNull OrbCandidate target
+    ) {
+        session.selectedTargetId = target.instance.getEquipmentInstanceId();
+        Inventory confirmation = Bukkit.createInventory(
+            new OrbGuiHolder(
+                session.player.getUniqueId(),
+                session.token,
+                OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM
+            ),
+            OrbGuiHolder.SIZE,
+            Component.text("状態変化の確認", NamedTextColor.DARK_PURPLE)
+        );
+        renderTranscendenceConfirmation(session, orbModel, target, confirmation);
+        transitionInventory(session, confirmation, OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM);
+    }
+
+    /**
+     * 即時次ランク名と素材・ゴールドの所持状況を確認画面へ描画します。
+     *
+     * @param session 操作セッション
+     * @param orbModel 使用オーブのマスタ
+     * @param target 再検証済み対象装備
+     * @param inventory 描画先GUI
+     */
+    private void renderTranscendenceConfirmation(
+        @NotNull OrbSession session,
+        @NotNull ItemModel orbModel,
+        @NotNull OrbCandidate target,
+        @NotNull Inventory inventory
+    ) {
+        fillInventory(inventory);
+        ItemOrbEffect effect = orbModel.getOrb().getEffect();
+        OrbEligibility.TranscendencePlan plan = OrbEligibility.resolveTranscendence(
+            effect, target.model, target.instance);
+        if (plan == null) {
+            inventory.setItem(CONFIRM_EXECUTE_SLOT, GuiItems.create(
+                Material.BARRIER,
+                Component.text("状態変化できません", NamedTextColor.RED),
+                List.of(Component.text("対象条件が変化しました。", NamedTextColor.GRAY))
+            ));
+            return;
+        }
+
+        ItemStack targetItem = itemStackFactory.create(target.model, target.instance, 1);
+        appendLore(targetItem, List.of(
+            Component.empty(),
+            Component.text("状態変化先: " + transitionName(plan.definition()), NamedTextColor.LIGHT_PURPLE)
+        ));
+        inventory.setItem(CONFIRM_TARGET_SLOT, targetItem);
+
+        List<InventoryService.InventoryItemRequirement> requirements = materialRequirements(
+            plan.definition(), orbModel.getId());
+        int displayed = Math.min(requirements.size(), CONFIRM_MATERIAL_SLOTS.length);
+        for (int index = 0; index < displayed; index++) {
+            InventoryService.InventoryItemRequirement requirement = requirements.get(index);
+            long owned = inventoryService.getNormalItemAmount(session.accountId, requirement.itemId());
+            ItemModel materialModel = itemService.findLoadedById(requirement.itemId());
+            ItemStack materialItem = materialModel == null
+                ? GuiItems.create(
+                    Material.CHEST,
+                    Component.text("未登録の素材", NamedTextColor.RED),
+                    List.of(Component.text("この素材情報を取得できません。", NamedTextColor.RED))
+                )
+                : itemStackFactory.create(materialModel, 1);
+            appendLore(materialItem, List.of(
+                Component.empty(),
+                Component.text(
+                    "必要: " + requirement.amount() + " / 所持: " + owned,
+                    owned >= requirement.amount() ? NamedTextColor.GREEN : NamedTextColor.RED
+                )
+            ));
+            inventory.setItem(CONFIRM_MATERIAL_SLOTS[index], materialItem);
+        }
+        if (requirements.size() > CONFIRM_MATERIAL_SLOTS.length) {
+            inventory.setItem(CONFIRM_MATERIAL_SLOTS[CONFIRM_MATERIAL_SLOTS.length - 1], GuiItems.create(
+                Material.CHEST,
+                Component.text("必要素材がほかにもあります", NamedTextColor.YELLOW),
+                List.of(Component.text(
+                    "全 " + requirements.size() + " 種類",
+                    NamedTextColor.GRAY
+                ))
+            ));
+        }
+
+        long requiredGold = Math.max(0, plan.definition().getRequiredCurrency());
+        long ownedGold = inventoryService.getGoldAmount(session.accountId);
+        inventory.setItem(CONFIRM_GOLD_SLOT, GuiItems.create(
+            Material.GOLD_INGOT,
+            Component.text("必要ゴールド", NamedTextColor.GOLD),
+            List.of(Component.text(
+                "必要: " + requiredGold + " / 所持: " + ownedGold,
+                ownedGold >= requiredGold ? NamedTextColor.GREEN : NamedTextColor.RED
+            ))
+        ));
+        inventory.setItem(CONFIRM_BACK_SLOT, GuiItems.create(
+            Material.ARROW,
+            Component.text("一覧へ戻る", NamedTextColor.YELLOW),
+            List.of()
+        ));
+        boolean enough = hasTransitionRequirements(session, plan.definition(), orbModel.getId());
+        inventory.setItem(CONFIRM_EXECUTE_SLOT, GuiItems.create(
+            enough ? Material.LIME_CONCRETE : Material.BARRIER,
+            Component.text(
+                enough ? "状態変化を実行" : "素材またはゴールドが不足",
+                enough ? NamedTextColor.GREEN : NamedTextColor.RED
+            ),
+            List.of(Component.text(
+                enough ? "クリックして実行します。" : "不足を解消すると実行できます。",
+                NamedTextColor.GRAY
+            ))
+        ));
+    }
+
+    /**
+     * 確認画面の戻る操作または不足再検証付き実行を処理します。
+     *
+     * @param rawSlot クリックされた上段raw slot
+     * @param session 操作セッション
+     */
+    private void handleConfirmationClick(int rawSlot, @NotNull OrbSession session) {
+        ItemModel orbModel = resolveCurrentOrb(session);
+        if (orbModel == null) {
+            PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5289);
+            closeAndRemove(session);
+            return;
+        }
+        if (rawSlot == CONFIRM_BACK_SLOT) {
+            Inventory list = Bukkit.createInventory(
+                new OrbGuiHolder(session.player.getUniqueId(), session.token, OrbGuiHolder.Screen.LIST),
+                OrbGuiHolder.SIZE,
+                Component.text("オーブ対象装備", NamedTextColor.DARK_PURPLE)
+            );
+            renderList(session, orbModel, list, collectCandidates(session, orbModel));
+            transitionInventory(session, list, OrbGuiHolder.Screen.LIST);
+            return;
+        }
+        if (rawSlot != CONFIRM_EXECUTE_SLOT || session.selectedTargetId == null) {
+            GuiSound.DENY.play(session.player);
+            return;
+        }
+        OrbCandidate target = collectCandidates(session, orbModel).stream()
+            .filter(candidate -> candidate.instance.getEquipmentInstanceId()
+                .equalsIgnoreCase(session.selectedTargetId))
+            .findFirst()
+            .orElse(null);
+        if (target == null) {
+            PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5290);
+            GuiSound.DENY.play(session.player);
+            closeAndRemove(session);
+            return;
+        }
+        OrbEligibility.TranscendencePlan plan = OrbEligibility.resolveTranscendence(
+            orbModel.getOrb().getEffect(), target.model, target.instance);
+        if (plan == null) {
+            PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5290);
+            GuiSound.DENY.play(session.player);
+            closeAndRemove(session);
+            return;
+        }
+        if (!hasTransitionRequirements(session, plan.definition(), orbModel.getId())) {
+            PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5291);
+            renderTranscendenceConfirmation(session, orbModel, target, session.inventory);
+            GuiSound.DENY.play(session.player);
+            return;
+        }
+        session.animationSlot = CONFIRM_TARGET_SLOT;
+        executeCandidate(session, orbModel, target);
+    }
+
+    /**
+     * closeイベントからセッションを保護しつつオーブ内部画面を切り替えます。
+     *
+     * @param session 操作セッション
+     * @param target 遷移先GUI
+     * @param screen 遷移先画面種別
+     */
+    private void transitionInventory(
+        @NotNull OrbSession session,
+        @NotNull Inventory target,
+        @NotNull OrbGuiHolder.Screen screen
+    ) {
+        session.transitioning = true;
+        inventoryOpener.open(session.player, target, () -> {
+            if (sessions.get(session.player.getUniqueId()) != session) {
+                return;
+            }
+            session.inventory = target;
+            session.screen = screen;
+            session.transitioning = false;
+            GuiSound.SELECT.play(session.player);
+        }, () -> {
+            session.transitioning = false;
+            sessions.remove(session.player.getUniqueId(), session);
+        });
+    }
+
+    /**
+     * 状態変化マスタの有効な必要素材を消費サービス用へ変換します。
+     *
+     * @param definition 状態変化定義
+     * @return 正の数量を持つ素材要件
+     */
+    private @NotNull List<InventoryService.InventoryItemRequirement> materialRequirements(
+        @NotNull ItemEquipmentTranscendence definition,
+        @NotNull String orbItemId
+    ) {
+        Map<String, InventoryService.InventoryItemRequirement> aggregated = new LinkedHashMap<>();
+        definition.getRequiredMaterials().stream()
+            .filter(material -> material.getAmount() > 0 && !material.getItemId().isBlank())
+            .forEach(material -> {
+                String key = material.getItemId().trim().toLowerCase(Locale.ROOT);
+                InventoryService.InventoryItemRequirement previous = aggregated.get(key);
+                long amount = material.getAmount() + (previous == null ? 0L : previous.amount());
+                aggregated.put(key, new InventoryService.InventoryItemRequirement(material.getItemId(), amount));
+            });
+        String normalizedOrbItemId = orbItemId.trim().toLowerCase(Locale.ROOT);
+        InventoryService.InventoryItemRequirement orbMaterial = aggregated.get(normalizedOrbItemId);
+        if (orbMaterial != null) {
+            aggregated.put(normalizedOrbItemId, new InventoryService.InventoryItemRequirement(
+                orbMaterial.itemId(), Math.addExact(orbMaterial.amount(), 1L)));
+        }
+        return List.copyOf(aggregated.values());
+    }
+
+    /**
+     * 確認画面表示時点で全素材とゴールドを所持しているか判定します。
+     *
+     * @param session 操作セッション
+     * @param definition 状態変化定義
+     * @return 全要件を満たす場合 {@code true}
+     */
+    private boolean hasTransitionRequirements(
+        @NotNull OrbSession session,
+        @NotNull ItemEquipmentTranscendence definition,
+        @NotNull String orbItemId
+    ) {
+        if (inventoryService.getGoldAmount(session.accountId) < Math.max(0, definition.getRequiredCurrency())) {
+            return false;
+        }
+        return materialRequirements(definition, orbItemId).stream().allMatch(requirement ->
+            itemService.findLoadedById(requirement.itemId()) != null
+                && inventoryService.getNormalItemAmount(session.accountId, requirement.itemId()) >= requirement.amount());
+    }
+
+    /**
+     * オーブと対象を再検証し、API の単一 transaction へ冪等 operation を送ります。
+     * 支払いはローカル state から先行消費せず、API が装備更新と同時に確定します。
+     */
+    private void executeCandidate(
+        @NotNull OrbSession session,
+        @NotNull ItemModel orbModel,
+        @NotNull OrbCandidate target
+    ) {
+        ItemModel currentOrb = resolveCurrentOrb(session);
+        if (currentOrb == null || !currentOrb.getId().equalsIgnoreCase(orbModel.getId())) {
+            PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5289);
+            closeAndRemove(session);
+            return;
+        }
+        ItemOrbEffect effect = currentOrb.getOrb().getEffect();
+        OrbEligibility.TranscendencePlan transitionPlan = null;
+        if (effect.getType() == ItemOrbEffectType.TRANSCENDENCE) {
+            transitionPlan = OrbEligibility.resolveTranscendence(
+                effect, target.model, target.instance);
+            if (transitionPlan == null) {
+                PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5290);
+                GuiSound.DENY.play(session.player);
+                return;
+            }
+        }
+
+        UUID operationId = UUID.randomUUID();
+        if (!reserveOperationPayment(session, currentOrb, transitionPlan, operationId)) {
+            PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5289);
+            GuiSound.DENY.play(session.player);
+            return;
+        }
+        session.interactionLock.beginMutation();
+        session.operationId = operationId;
+        session.externalOperationStarted = false;
+        showAnimationFrame(session, 0);
+        startAsyncMutation(session, target, currentOrb);
+    }
+
+    /** APIが支払う資産をローカル消費から予約し、報酬加算や移動は止めず二重支出だけを防ぎます。 */
+    private boolean reserveOperationPayment(
+        @NotNull OrbSession session,
+        @NotNull ItemModel orbModel,
+        @Nullable OrbEligibility.TranscendencePlan transitionPlan,
+        @NotNull UUID operationId
+    ) {
+        Map<String, Long> normalItems = new LinkedHashMap<>();
+        try {
+            normalItems.put(orbModel.getId().trim().toLowerCase(Locale.ROOT), 1L);
+            if (transitionPlan != null) {
+                transitionPlan.definition().getRequiredMaterials().stream()
+                    .filter(material -> material.getAmount() > 0 && !material.getItemId().isBlank())
+                    .forEach(material -> normalItems.merge(
+                        material.getItemId().trim().toLowerCase(Locale.ROOT),
+                        (long) material.getAmount(),
+                        Math::addExact
+                    ));
+            }
+        } catch (ArithmeticException overflow) {
+            return false;
+        }
+        long gold = transitionPlan == null
+            ? 0L
+            : Math.max(0L, transitionPlan.definition().getRequiredCurrency());
+        return inventoryService.reserveOrbOperationPayment(
+            session.accountId,
+            operationId,
+            session.orbEntryId,
+            normalItems,
+            gold
+        );
+    }
+
+    /** 保存 lane 内で事前保存、冪等 API 操作、影響 entry の正本照合を一続きで実行します。 */
+    private void startAsyncMutation(
+        @NotNull OrbSession session,
+        @NotNull OrbCandidate target,
+        @NotNull ItemModel orbModel
+    ) {
+        UUID operationId = Objects.requireNonNull(session.operationId);
+        CompletableFuture<MutationResult> future = inventorySaveCoordinator.executeExclusiveAfterSave(
+            session.accountId,
+            baseline -> performOrbOperation(session, target, orbModel, operationId, baseline)
+        );
+        session.operationFuture = future;
+        future.whenComplete((result, throwable) -> {
+            if (throwable != null && !session.externalOperationStarted) {
+                inventoryService.releaseOrbOperationPayment(session.accountId, operationId);
+            }
+            if (session.detached) {
+                return;
+            }
+            AsyncTaskUtil.runSync(plugin, () -> {
+                if (session.detached
+                    || !Objects.equals(operationId, session.operationId)
+                    || sessions.get(session.player.getUniqueId()) != session) {
+                    return;
+                }
+                completeMutation(
+                    session,
+                    throwable == null && result != null
+                        ? result
+                        : MutationResult.failed(MutationStatus.FAILED)
+                );
+            });
+        });
+    }
+
+    /** transport failure 時も同一 operationId を保持し、台帳結果と正本照合が完了するまでlaneを解放しません。 */
+    private @NotNull MutationResult performOrbOperation(
+        @NotNull OrbSession session,
+        @NotNull OrbCandidate target,
+        @NotNull ItemModel orbModel,
+        @NotNull UUID operationId,
+        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline
+    ) {
+        if (!inventoryService.finalizeOrbOperationPaymentReservation(
+            session.accountId,
+            operationId,
+            baseline
+        )) {
+            inventoryService.releaseOrbOperationPayment(session.accountId, operationId);
+            return MutationResult.failed(MutationStatus.PAYMENT_UNAVAILABLE);
+        }
+        // From this point onward the POST may commit even if its response is lost. A failure must
+        // retain both the unresolved account lane and payment reservation until reconciliation.
+        session.externalOperationStarted = true;
+        String accountId = session.accountId.toString();
+        String operationIdText = operationId.toString();
+        long retryDelayMillis = OPERATION_RETRY_INITIAL_MILLIS;
+        EquipmentOrbOperationResult operation = null;
+        while (operation == null) {
+            ensureOperationThreadActive(operationId);
+            operation = itemService.applyEquipmentOrbOperation(
+                operationIdText,
+                accountId,
+                target.instance.getEquipmentInstanceId(),
+                session.orbEntryId.toString(),
+                orbModel.getId()
+            );
+            if (operation == null) {
+                operation = itemService.findEquipmentOrbOperation(operationIdText, accountId);
+            }
+            if (operation == null) {
+                waitForOperationRetry(operationId, retryDelayMillis);
+                retryDelayMillis = Math.min(OPERATION_RETRY_MAX_MILLIS, retryDelayMillis * 2L);
+            }
+        }
+
+        Set<UUID> reconciliationEntryIds = new LinkedHashSet<>();
+        for (String affectedEntryId : operation.getAffectedInventoryEntryIds()) {
+            reconciliationEntryIds.add(UUID.fromString(affectedEntryId));
+        }
+        // request origin は古いAPIのaffected欠落や業務失敗でも必ず照合する。
+        reconciliationEntryIds.add(session.orbEntryId);
+        while (true) {
+            ensureOperationThreadActive(operationId);
+            try {
+                inventoryService.reconcileOrbOperationEntries(
+                    session.accountId,
+                    reconciliationEntryIds,
+                    baseline
+                );
+                break;
+            } catch (Exception reconciliationFailure) {
+                waitForOperationRetry(operationId, retryDelayMillis);
+                retryDelayMillis = Math.min(OPERATION_RETRY_MAX_MILLIS, retryDelayMillis * 2L);
+            }
+        }
+
+        // 三者マージは上で一度だけ完了済み。以後のcleanup retryでAPI消費deltaを再適用しない。
+        if (!operation.getTargetAvailable()
+            && operation.getResult() != EquipmentOrbOperationResultType.OPERATION_CONFLICT
+            && operation.getResult() != EquipmentOrbOperationResultType.INVALID) {
+            UUID targetInstanceId = UUID.fromString(target.instance.getEquipmentInstanceId());
+            while (true) {
+                ensureOperationThreadActive(operationId);
+                try {
+                    itemService.evictEquipmentInstanceFromCache(target.instance.getEquipmentInstanceId());
+                    inventoryService.discardUnavailableEquipmentInstance(session.accountId, targetInstanceId);
+                    break;
+                } catch (Exception cleanupFailure) {
+                    waitForOperationRetry(operationId, retryDelayMillis);
+                    retryDelayMillis = Math.min(OPERATION_RETRY_MAX_MILLIS, retryDelayMillis * 2L);
+                }
+            }
+        }
+        MutationResult result = toMutationResult(operation, target, orbModel);
+        inventoryService.releaseOrbOperationPayment(session.accountId, operationId);
+        return result;
+    }
+
+    /** shutdown interrupt時はpending境界を残したままlane jobを失敗させます。 */
+    private void ensureOperationThreadActive(@NotNull UUID operationId) {
+        if (Thread.currentThread().isInterrupted()) {
+            throw new IllegalStateException("Orb operation reconciliation interrupted: " + operationId);
+        }
+    }
+
+    /** 同一operationId再送の指数backoffを非メインスレッドで待機します。 */
+    private void waitForOperationRetry(@NotNull UUID operationId, long delayMillis) {
+        retryWaiter.await(operationId, Math.max(1L, delayMillis));
+    }
+
+    /** production用の再送待機。interruptを復元してpending境界を維持したまま失敗させます。 */
+    private static void sleepForOperationRetry(@NotNull UUID operationId, long delayMillis) {
+        try {
+            Thread.sleep(delayMillis);
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(
+                "Orb operation reconciliation interrupted: " + operationId,
+                interrupted
+            );
+        }
+    }
+
+    /** API 台帳結果を GUI 演出用の結果へ変換します。 */
+    private @NotNull MutationResult toMutationResult(
+        @NotNull EquipmentOrbOperationResult operation,
+        @NotNull OrbCandidate target,
+        @NotNull ItemModel orbModel
+    ) {
+        // Availability is current-state metadata, so it takes precedence over the fixed
+        // business result (including PAYMENT_UNAVAILABLE/NO_CANDIDATE replays).
+        if (!operation.getTargetAvailable()
+            && operation.getResult() != EquipmentOrbOperationResultType.OPERATION_CONFLICT
+            && operation.getResult() != EquipmentOrbOperationResultType.INVALID) {
+            return MutationResult.failed(MutationStatus.TARGET_UNAVAILABLE);
+        }
+        if (operation.getResult() == EquipmentOrbOperationResultType.NO_CANDIDATE
+            || operation.getResult() == EquipmentOrbOperationResultType.NO_SLOT) {
+            return MutationResult.failed(MutationStatus.NO_CANDIDATE);
+        }
+        if (operation.getResult() == EquipmentOrbOperationResultType.PAYMENT_UNAVAILABLE) {
+            return MutationResult.failed(MutationStatus.PAYMENT_UNAVAILABLE);
+        }
+        EquipmentInstance instance = operation.getEquipment();
+        if (instance == null && operation.getResult() == EquipmentOrbOperationResultType.APPLIED) {
+            return MutationResult.failed(MutationStatus.FAILED);
+        }
+        if (operation.getResult() == EquipmentOrbOperationResultType.NOT_ELIGIBLE) {
+            return MutationResult.failed(MutationStatus.TARGET_CHANGED);
+        }
+        if (operation.getResult() != EquipmentOrbOperationResultType.APPLIED) {
+            return MutationResult.failed(MutationStatus.FAILED);
+        }
+        ItemModel model = itemService.findLoadedById(instance.getItemId());
+        if (model == null) {
+            model = target.model;
+        }
+        return switch (operation.getOperationType().trim().toUpperCase(Locale.ROOT)) {
+            case "ENHANCE" -> MutationResult.enhancement(
+                model,
+                instance,
+                operation.getEnhancementSucceeded(),
+                Objects.requireNonNullElse(operation.getFailAction(), ItemEquipmentEnhanceFailAction.NONE),
+                Objects.requireNonNullElse(operation.getSuccessRate(), 0.0D)
+            );
+            case "REPAIR" -> MutationResult.repair(
+                model,
+                instance,
+                Objects.requireNonNullElse(operation.getRepairedAmount(), 0)
+            );
+            case "ENCHANT" -> MutationResult.enchant(model, instance);
+            case "TRANSCENDENCE" -> {
+                String name = operation.getTransitionName();
+                if (name == null || name.isBlank()) {
+                    OrbEligibility.TranscendencePlan plan = OrbEligibility.resolveTranscendence(
+                        orbModel.getOrb().getEffect(), target.model, target.instance);
+                    name = plan == null ? "次の状態" : transitionName(plan.definition());
+                }
+                yield MutationResult.transcendence(model, instance, name);
+            }
+            default -> MutationResult.failed(MutationStatus.FAILED);
+        };
+    }
+
+    /** 装備処理結果を業務失敗表示または演出開始へ収束させます。 */
+    private void completeMutation(@NotNull OrbSession session, @NotNull MutationResult result) {
+        session.operationFuture = null;
+        session.operationId = null;
+        session.externalOperationStarted = false;
+        if (result.status != MutationStatus.SUCCESS) {
+            session.interactionLock.release();
+            if (session.detached) {
+                return;
+            }
+            // Failure responses still carry authoritative origin-entry reconciliation.
+            // Redraw BAG/HOTBAR before closing or re-rendering the orb screen so a removed
+            // orb cannot remain as a ghost Bukkit ItemStack.
+            inventoryService.refreshManagedInventoryUi(session.astPlayer);
+            if (result.status == MutationStatus.TARGET_UNAVAILABLE
+                || result.status == MutationStatus.TARGET_CHANGED) {
+                inventoryService.refreshEquipmentDisplaysForSave(session.astPlayer);
+                if (statusService != null) {
+                    statusService.refreshStatus(session.astPlayer);
+                }
+            }
+            if (session.player.isOnline()) {
+                PlayerMessageService.getInstance().send(
+                    session.player,
+                    switch (result.status) {
+                        case NO_CANDIDATE -> PlayerMsgId.P_5294;
+                        case PAYMENT_UNAVAILABLE -> session.screen == OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM
+                            ? PlayerMsgId.P_5291
+                            : PlayerMsgId.P_5289;
+                        case TARGET_UNAVAILABLE, TARGET_CHANGED -> PlayerMsgId.P_5290;
+                        default -> PlayerMsgId.P_5295;
+                    }
+                );
+                GuiSound.DENY.play(session.player);
+            }
+            if (session.uiClosed) {
+                sessions.remove(session.player.getUniqueId(), session);
+                return;
+            }
+            refreshCurrentScreen(session);
+            return;
+        }
+
+        if (result.instance != null && session.player.isOnline()) {
+            inventoryService.refreshManagedInventoryUi(session.astPlayer);
+            inventoryService.refreshEquipmentInstanceDisplay(session.astPlayer, result.instance);
+            if (statusService != null) {
+                statusService.refreshStatus(session.astPlayer);
+            }
+        }
+        if (session.uiClosed
+            || !session.player.isOnline()
+            || !session.reopening && !isCurrentInventory(session.player, session)) {
+            if (session.player.isOnline()) {
+                sendMutationResult(session.player, result);
+            }
+            sessions.remove(session.player.getUniqueId(), session);
+            return;
+        }
+        startAnimation(session, result);
+    }
+
+    /**
+     * 2tick間隔の固定5フレーム演出を開始し、完了後も10tickロックします。
+     *
+     * @param session 操作セッション
+     * @param result 成功した装備処理結果
+     */
+    private void startAnimation(@NotNull OrbSession session, @NotNull MutationResult result) {
+        cancelScheduledTask(session);
+        session.interactionLock.beginAnimation();
+        // The first frame is rendered immediately so that five 2-tick frames occupy
+        // exactly 10 ticks.  The timer then advances four frames and completes the
+        // animation on tick 10; using an initial-delay-zero timer required a sixth
+        // invocation and kept the GUI locked for an extra tick.
+        showAnimationFrame(session, 0);
+        session.scheduledTask = new BukkitRunnable() {
+            private int frameIndex = 1;
+
+            @Override
+            public void run() {
+                if (session.detached
+                    || sessions.get(session.player.getUniqueId()) != session
+                    || !session.reopening && !isCurrentInventory(session.player, session)) {
+                    cancel();
+                    session.scheduledTask = null;
+                    sessions.remove(session.player.getUniqueId(), session);
+                    return;
+                }
+                if (frameIndex < ANIMATION_FRAMES.length) {
+                    showAnimationFrame(session, frameIndex++);
+                    return;
+                }
+                cancel();
+                session.scheduledTask = null;
+                if (result.instance != null && result.model != null) {
+                    session.inventory.setItem(
+                        session.animationSlot,
+                        itemStackFactory.create(result.model, result.instance, 1)
+                    );
+                }
+                sendMutationResult(session.player, result);
+                GuiSound.SUCCESS.play(session.player);
+                session.interactionLock.beginRefreshWait();
+                session.scheduledTask = plugin.getServer().getScheduler().runTaskLater(
+                    plugin,
+                    () -> finishAnimationWait(session, result),
+                    REFRESH_WAIT_TICKS
+                );
+            }
+        }.runTaskTimer(plugin, FRAME_TICKS, FRAME_TICKS);
+    }
+
+    /**
+     * 選択スロットのアイコンとpitchを指定フレームへ更新します。
+     *
+     * @param session 操作セッション
+     * @param frameIndex 0始まりのフレーム番号
+     */
+    private void showAnimationFrame(@NotNull OrbSession session, int frameIndex) {
+        if (session.inventory == null
+            || session.animationSlot < 0
+            || session.animationSlot >= session.inventory.getSize()) {
+            return;
+        }
+        Material material = ANIMATION_FRAMES[Math.clamp(frameIndex, 0, ANIMATION_FRAMES.length - 1)];
+        session.inventory.setItem(session.animationSlot, GuiItems.create(
+            material,
+            Component.text("装備を更新しています", NamedTextColor.LIGHT_PURPLE),
+            List.of(Component.text("操作が完了するまでお待ちください。", NamedTextColor.GRAY))
+        ));
+        session.player.playSound(
+            session.player.getLocation(),
+            org.bukkit.Sound.BLOCK_AMETHYST_BLOCK_CHIME,
+            org.bukkit.SoundCategory.PLAYERS,
+            0.55F,
+            0.8F + frameIndex * 0.18F
+        );
+    }
+
+    /**
+     * 更新待機を終え、状態変化は閉じ、それ以外は残オーブ確認後に全一覧を更新します。
+     *
+     * @param session 操作セッション
+     * @param result 演出した装備処理結果
+     */
+    private void finishAnimationWait(@NotNull OrbSession session, @NotNull MutationResult result) {
+        session.scheduledTask = null;
+        if (session.detached
+            || sessions.get(session.player.getUniqueId()) != session
+            || !session.player.isOnline()) {
+            sessions.remove(session.player.getUniqueId(), session);
+            return;
+        }
+        if (!isCurrentInventory(session.player, session)) {
+            if (session.reopening) {
+                session.scheduledTask = plugin.getServer().getScheduler().runTask(
+                    plugin,
+                    () -> finishAnimationWait(session, result)
+                );
+                return;
+            }
+            sessions.remove(session.player.getUniqueId(), session);
+            return;
+        }
+        ItemModel orbModel = result.kind == MutationKind.TRANSCENDENCE ? null : resolveCurrentOrb(session);
+        if (shouldCloseAfterRefresh(result.kind, orbModel != null)) {
+            closeAndRemove(session);
+            return;
+        }
+        session.interactionLock.release();
+        session.page = 0;
+        inventoryService.refreshManagedInventoryUi(session.astPlayer);
+        ItemModel remainingOrb = Objects.requireNonNull(orbModel);
+        renderList(session, remainingOrb, session.inventory, collectCandidates(session, remainingOrb));
+        PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5297);
+        GuiSound.SELECT.play(session.player);
+    }
+
+    /**
+     * 失敗後に正本を再収集し、現在の一覧または状態変化確認画面を更新します。
+     *
+     * @param session 操作セッション
+     */
+    private void refreshCurrentScreen(@NotNull OrbSession session) {
+        ItemModel orbModel = resolveCurrentOrb(session);
+        if (orbModel == null) {
+            closeAndRemove(session);
+            return;
+        }
+        if (session.screen == OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM
+            && session.selectedTargetId != null) {
+            OrbCandidate target = collectCandidates(session, orbModel).stream()
+                .filter(candidate -> candidate.instance.getEquipmentInstanceId()
+                    .equalsIgnoreCase(session.selectedTargetId))
+                .findFirst()
+                .orElse(null);
+            if (target == null) {
+                closeAndRemove(session);
+                return;
+            }
+            renderTranscendenceConfirmation(session, orbModel, target, session.inventory);
+            return;
+        }
+        renderList(session, orbModel, session.inventory, collectCandidates(session, orbModel));
+    }
+
+    /**
+     * 効果種別と結果に対応するresourceメッセージを送信します。
+     *
+     * @param player 送信先プレイヤー
+     * @param result 成功した装備処理結果
+     */
+    private void sendMutationResult(@NotNull Player player, @NotNull MutationResult result) {
+        if (result.model == null || result.instance == null || result.kind == null) {
+            return;
+        }
+        String displayName = result.model.getName() == null || result.model.getName().isBlank()
+            ? "装備"
+            : result.model.getName();
+        switch (result.kind) {
+            case ENHANCEMENT -> {
+                if (result.enhancementSucceeded) {
+                    PlayerMessageService.getInstance().send(
+                        player,
+                        PlayerMsgId.P_5257,
+                        displayName,
+                        result.instance.getEnhanceLevel(),
+                        formatPercent(result.successRate)
+                    );
+                } else if (result.failAction == ItemEquipmentEnhanceFailAction.NONE) {
+                    PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5258, displayName);
+                } else {
+                    PlayerMessageService.getInstance().send(
+                        player,
+                        PlayerMsgId.P_5259,
+                        displayName,
+                        result.instance.getEnhanceLevel()
+                    );
+                }
+            }
+            case REPAIR -> PlayerMessageService.getInstance().send(
+                player,
+                PlayerMsgId.P_5292,
+                displayName,
+                result.instance.getDurabilityValue(),
+                result.instance.getDurabilityMax()
+            );
+            case ENCHANT -> PlayerMessageService.getInstance().send(
+                player, PlayerMsgId.P_5293, displayName);
+            case TRANSCENDENCE -> PlayerMessageService.getInstance().send(
+                player, PlayerMsgId.P_5287, displayName, result.transitionName);
+        }
+    }
+
+    /**
+     * 現在画面であることを先に判定してtask・session・GUIを終了します。
+     *
+     * @param session 終了する操作セッション
+     */
+    private void closeAndRemove(@NotNull OrbSession session) {
+        boolean shouldClose = isCurrentInventory(session.player, session);
+        sessions.remove(session.player.getUniqueId(), session);
+        cancelReopenTask(session);
+        cancelScheduledTask(session);
+        session.interactionLock.close();
+        if (shouldClose) {
+            session.player.closeInventory();
+        }
+    }
+
+    /**
+     * holderの所有者・世代tokenとmemory上の現在セッションを照合します。
+     *
+     * @param player 操作プレイヤー
+     * @param inventory 操作対象GUI
+     * @return 同じ世代のセッション。不一致なら {@code null}
+     */
+    private @Nullable OrbSession currentSession(@NotNull Player player, @NotNull Inventory inventory) {
+        if (!(inventory.getHolder() instanceof OrbGuiHolder holder)
+            || !holder.ownerId().equals(player.getUniqueId())) {
+            return null;
+        }
+        OrbSession session = sessions.get(player.getUniqueId());
+        return session != null && session.token.equals(holder.sessionToken()) ? session : null;
+    }
+
+    /**
+     * プレイヤーが同じ世代のオーブGUIを現在開いているか判定します。
+     *
+     * @param player 操作プレイヤー
+     * @param session 比較セッション
+     * @return 現在画面なら {@code true}
+     */
+    private boolean isCurrentInventory(@NotNull Player player, @NotNull OrbSession session) {
+        return currentSession(player, player.getOpenInventory().getTopInventory()) == session;
+    }
+
+    /**
+     * Bukkit task と表示だけを切り離します。operation 自体が account save lane 内にあるため、
+     * logout save はその後ろで待機し、同じ lane へ待機 job を再登録しません。
+     */
+    private void detachForSave(@NotNull OrbSession session) {
+        session.detached = true;
+        session.uiClosed = true;
+        cancelReopenTask(session);
+        session.interactionLock.close();
+        cancelScheduledTask(session);
+    }
+
+    /**
+     * 既存の非通信セッションを無効化して表示taskを止めます。
+     *
+     * @param playerId 対象プレイヤーUUID
+     */
+    private void removeSession(@NotNull UUID playerId) {
+        OrbSession previous = sessions.remove(playerId);
+        if (previous != null) {
+            previous.detached = true;
+            cancelReopenTask(previous);
+            previous.interactionLock.close();
+            cancelScheduledTask(previous);
+        }
+    }
+
+    /**
+     * セッションが保持する演出または更新待機taskを一度だけ取消します。
+     *
+     * @param session 操作セッション
+     */
+    private void cancelScheduledTask(@NotNull OrbSession session) {
+        BukkitTask task = session.scheduledTask;
+        session.scheduledTask = null;
+        if (task != null) {
+            task.cancel();
+        }
+    }
+
+    /** Escape close 後の再表示 task を取消します。 */
+    private void cancelReopenTask(@NotNull OrbSession session) {
+        BukkitTask task = session.reopenTask;
+        session.reopenTask = null;
+        session.reopening = false;
+        if (task != null) {
+            task.cancel();
+        }
+    }
+
+    /**
+     * 演出後にGUIを閉じるべきか判定します。
+     *
+     * @param kind 実行したオーブ効果
+     * @param hasRemainingOrb 同じオーブをまだ所持している場合 {@code true}
+     * @return 状態変化または残オーブなしなら {@code true}
+     */
+    static boolean shouldCloseAfterRefresh(@NotNull MutationKind kind, boolean hasRemainingOrb) {
+        return kind == MutationKind.TRANSCENDENCE || !hasRemainingOrb;
+    }
+
+    enum MutationStatus {
+        SUCCESS,
+        NO_CANDIDATE,
+        PAYMENT_UNAVAILABLE,
+        TARGET_UNAVAILABLE,
+        TARGET_CHANGED,
+        FAILED,
+    }
+
+    enum MutationKind {
+        ENHANCEMENT,
+        REPAIR,
+        ENCHANT,
+        TRANSCENDENCE,
+    }
+
+    @FunctionalInterface
+    interface OrbInventoryOpener {
+        void open(
+            @NotNull Player player,
+            @NotNull Inventory inventory,
+            @NotNull Runnable onOpened,
+            @NotNull Runnable onCancelled
+        );
+    }
+
+    /** API台帳の再照会backoffをテストから制御する境界です。 */
+    @FunctionalInterface
+    interface OrbRetryWaiter {
+        void await(@NotNull UUID operationId, long delayMillis);
+    }
+
+    private record MutationResult(
+        @NotNull MutationStatus status,
+        @Nullable MutationKind kind,
+        @Nullable ItemModel model,
+        @Nullable EquipmentInstance instance,
+        boolean enhancementSucceeded,
+        @Nullable ItemEquipmentEnhanceFailAction failAction,
+        double successRate,
+        int repairedAmount,
+        @Nullable String transitionName
+    ) {
+
+        /**
+         * 装備内容を持たない失敗結果を作成します。
+         *
+         * @param status 失敗区分
+         * @return 失敗結果
+         */
+        private static @NotNull MutationResult failed(@NotNull MutationStatus status) {
+            return new MutationResult(status, null, null, null, false, null, 0.0D, 0, null);
+        }
+
+        /**
+         * 強化抽選の確定結果を作成します。
+         *
+         * @param model 装備マスタ
+         * @param instance 更新後装備個体
+         * @param succeeded 抽選成功時 {@code true}
+         * @param failAction 失敗時動作
+         * @param successRate 使用した成功率
+         * @return 強化結果
+         */
+        private static @NotNull MutationResult enhancement(
+            @NotNull ItemModel model,
+            @NotNull EquipmentInstance instance,
+            boolean succeeded,
+            @NotNull ItemEquipmentEnhanceFailAction failAction,
+            double successRate
+        ) {
+            return new MutationResult(
+                MutationStatus.SUCCESS,
+                MutationKind.ENHANCEMENT,
+                model,
+                instance,
+                succeeded,
+                failAction,
+                successRate,
+                0,
+                null
+            );
+        }
+
+        /**
+         * 耐久回復の確定結果を作成します。
+         *
+         * @param model 装備マスタ
+         * @param instance 更新後装備個体
+         * @param repairedAmount 回復量
+         * @return 修理結果
+         */
+        private static @NotNull MutationResult repair(
+            @NotNull ItemModel model,
+            @NotNull EquipmentInstance instance,
+            int repairedAmount
+        ) {
+            return new MutationResult(
+                MutationStatus.SUCCESS,
+                MutationKind.REPAIR,
+                model,
+                instance,
+                false,
+                null,
+                0.0D,
+                repairedAmount,
+                null
+            );
+        }
+
+        /**
+         * エンチャント適用の確定結果を作成します。
+         *
+         * @param model 装備マスタ
+         * @param instance 更新後装備個体
+         * @return エンチャント結果
+         */
+        private static @NotNull MutationResult enchant(
+            @NotNull ItemModel model,
+            @NotNull EquipmentInstance instance
+        ) {
+            return new MutationResult(
+                MutationStatus.SUCCESS,
+                MutationKind.ENCHANT,
+                model,
+                instance,
+                false,
+                null,
+                0.0D,
+                0,
+                null
+            );
+        }
+
+        /**
+         * 状態変化の確定結果を作成します。
+         *
+         * @param model 装備マスタ
+         * @param instance 更新後装備個体
+         * @param transitionName 状態変化名
+         * @return 状態変化結果
+         */
+        private static @NotNull MutationResult transcendence(
+            @NotNull ItemModel model,
+            @NotNull EquipmentInstance instance,
+            @NotNull String transitionName
+        ) {
+            return new MutationResult(
+                MutationStatus.SUCCESS,
+                MutationKind.TRANSCENDENCE,
+                model,
+                instance,
+                false,
+                null,
+                0.0D,
+                0,
+                transitionName
+            );
+        }
+    }
+
+    private record OrbCandidate(
+        @NotNull ItemModel model,
+        @NotNull EquipmentInstance instance,
+        boolean equipped
+    ) {
+    }
+
+    private static final class OrbSession {
+        private final Player player;
+        private final AstPlayer astPlayer;
+        private final UUID accountId;
+        private final UUID token;
+        private UUID orbEntryId;
+        private final String orbItemId;
+        private OrbGuiHolder.Screen screen = OrbGuiHolder.Screen.LIST;
+        private Inventory inventory;
+        private Map<Integer, String> displayedTargets = Map.of();
+        private int page;
+        private String selectedTargetId;
+        private final OrbInteractionLock interactionLock = new OrbInteractionLock();
+        private boolean transitioning;
+        private boolean uiClosed;
+        private boolean reopening;
+        private boolean detached;
+        private UUID operationId;
+        private volatile boolean externalOperationStarted;
+        private int animationSlot = -1;
+        private CompletableFuture<ItemService.EquipmentPreloadResult> preloadFuture;
+        private CompletableFuture<MutationResult> operationFuture;
+        private BukkitTask scheduledTask;
+        private BukkitTask reopenTask;
+
+        /**
+         * 通常インベントリで検証したオーブentryを新しい世代へ固定します。
+         *
+         * @param player 操作プレイヤー
+         * @param astPlayer 操作中ログイン世代
+         * @param accountId アカウントID
+         * @param token GUI世代token
+         * @param orbEntryId 起点オーブentry ID
+         * @param orbItemId 起点オーブitem ID
+         */
+        private OrbSession(
+            @NotNull Player player,
+            @NotNull AstPlayer astPlayer,
+            @NotNull UUID accountId,
+            @NotNull UUID token,
+            @NotNull UUID orbEntryId,
+            @NotNull String orbItemId
+        ) {
+            this.player = player;
+            this.astPlayer = astPlayer;
+            this.accountId = accountId;
+            this.token = token;
+            this.orbEntryId = orbEntryId;
+            this.orbItemId = orbItemId;
+        }
+    }
+}

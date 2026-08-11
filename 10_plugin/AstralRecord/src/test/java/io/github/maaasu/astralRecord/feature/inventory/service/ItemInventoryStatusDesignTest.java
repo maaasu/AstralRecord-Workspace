@@ -284,7 +284,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 17. 一時保持・補償・feature 境界
+     * 章・見出し: # 08_3-サービス > ## 17. feature 境界
      * 検証契約: 同itemがhotbar割当済みでもstorage transferを優先し対応entryを移動する。
      */
     @Test
@@ -355,7 +355,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 17. 一時保持・補償・feature 境界
+     * 章・見出し: # 08_3-サービス > ## 17. feature 境界
      * 検証契約: legacy BAG内currency stackをCURRENCY inventoryへ一括移動する。
      */
     @Test
@@ -399,7 +399,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 17. 一時保持・補償・feature 境界
+     * 章・見出し: # 08_3-サービス > ## 17. feature 境界
      * 検証契約: status refreshがinventory/loadout上の装備instance参照をbonus計算へ渡す。
      */
     @Test

@@ -1,8 +1,5 @@
 package io.github.maaasu.astralRecord.feature.mob.event;
 
-import io.github.maaasu.astralRecord.feature.item.service.EquipmentEnhancementService;
-import io.github.maaasu.astralRecord.feature.item.service.EquipmentRepairService;
-import io.github.maaasu.astralRecord.feature.item.model.EquipmentProcessingMode;
 import io.github.maaasu.astralRecord.feature.currency.event.CurrencyExchangeGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
@@ -48,8 +45,6 @@ public final class MobInteractionEventHandler
     private final MenuView menuView;
     private final PlayerClassService playerClassService;
     private final StorageService storageService;
-    private final EquipmentEnhancementService equipmentEnhancementService;
-    private final EquipmentRepairService equipmentRepairService;
     private final QuestGuiEventHandler questGuiEventHandler;
     private final CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler;
     private final LoginBonusService loginBonusService;
@@ -63,8 +58,6 @@ public final class MobInteractionEventHandler
      * @param menuView            メニュー GUI ビュー
      * @param playerClassService  職業表示用サービス
      * @param storageService      ストレージ GUI サービス
-     * @param equipmentEnhancementService 装備強化 GUI サービス
-     * @param equipmentRepairService 装備修理 GUI サービス
      * @param questGuiEventHandler クエストボード GUI ハンドラ
      * @param currencyExchangeGuiEventHandler ゴールド両替 GUI ハンドラ
      * @param loginBonusService ログインボーナス GUI サービス
@@ -76,8 +69,6 @@ public final class MobInteractionEventHandler
             @NotNull MenuView menuView,
             @NotNull PlayerClassService playerClassService,
             @NotNull StorageService storageService,
-            @NotNull EquipmentEnhancementService equipmentEnhancementService,
-            @NotNull EquipmentRepairService equipmentRepairService,
             @NotNull QuestGuiEventHandler questGuiEventHandler,
             @NotNull CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler,
             @NotNull LoginBonusService loginBonusService,
@@ -87,8 +78,6 @@ public final class MobInteractionEventHandler
         this.menuView = menuView;
         this.playerClassService = playerClassService;
         this.storageService = storageService;
-        this.equipmentEnhancementService = equipmentEnhancementService;
-        this.equipmentRepairService = equipmentRepairService;
         this.questGuiEventHandler = questGuiEventHandler;
         this.currencyExchangeGuiEventHandler = currencyExchangeGuiEventHandler;
         this.loginBonusService = loginBonusService;
@@ -200,9 +189,6 @@ public final class MobInteractionEventHandler
             }
             case "CLASS" -> openClass(player);
             case "STORAGE" -> openStorage(player);
-            case "EQUIPMENT_PROCESSING", "PROCESSING" -> openEquipmentProcessing(player, EquipmentProcessingMode.ENHANCEMENT);
-            case "EQUIPMENT_ENHANCE", "ENHANCE" -> openEquipmentProcessing(player, EquipmentProcessingMode.ENHANCEMENT);
-            case "EQUIPMENT_REPAIR", "REPAIR" -> openEquipmentProcessing(player, EquipmentProcessingMode.REPAIR);
             case "CURRENCY_EXCHANGE", "EXCHANGE" -> currencyExchangeGuiEventHandler.open(player);
             case "LOGIN_BONUS" -> openLoginBonus(player);
             case "SKILL_FORGET", "FORGET_SKILL" -> openSkillForget(player);
@@ -243,14 +229,6 @@ public final class MobInteractionEventHandler
 
     private void openStorage(@NotNull Player player) {
         storageService.open(player);
-        GuiSound.OPEN.play(player);
-    }
-
-    private void openEquipmentProcessing(
-        @NotNull Player player,
-        @NotNull EquipmentProcessingMode mode
-    ) {
-        equipmentEnhancementService.open(player, mode);
         GuiSound.OPEN.play(player);
     }
 

@@ -1,8 +1,8 @@
 # Recipe YAML スキーマ定義
 
-クラフト・強化・調合などのレシピを定義するリソース。
+クラフト・調合・分解・販売条件などのレシピを定義するリソース。
 
-素材にはアイテムIDの直接指定のほか、equipment の強化素材と同様に参照値（`ref:`）による指定も可能です。
+素材にはアイテムIDの直接指定のほか、参照値（`ref:`）による指定も可能です。
 
 ---
 
@@ -17,8 +17,8 @@
 | `name`                 | String       | ×  | Null      | レシピの表示名（UI表示用。色コード利用可能）                                         |
 | `lore`                 | List<String> | ×  | emptyList | レシピの説明文（§ または & の色コード利用可能）                                      |
 | `tags`                 | List<String> | ×  | emptyList | 共有タグカタログの`RECIPE`対象ID（例: `blacksmith`, `alchemy`）             |
-| `result.itemId`        | String       | △  | -         | 生成されるアイテムのID（参照値。例: `ref: item:iron_sword`）。`ENHANCE` では不使用（後述） |
-| `result.amount`        | Integer      | ×  | 1         | 生成数。`ENHANCE` では不使用                                             |
+| `result.itemId`        | String       | △  | -         | 生成されるアイテムのID（参照値。例: `ref: item:iron_sword`）          |
+| `result.amount`        | Integer      | ×  | 1         | 生成数                                                           |
 | `ingredients[]`        | List         | ○  | -         | 素材リスト                                                           |
 | `ingredients[].itemId` | String       | ○  | -         | 素材アイテムのID（参照値。例: `ref: item:iron_ingot`）                        |
 | `ingredients[].amount` | Integer      | ○  | -         | 必要数                                                             |
@@ -39,20 +39,15 @@
 | 値           | 説明                                           | `result` 必須 |
 |:------------|:---------------------------------------------|:------------|
 | `CRAFT`     | 通常クラフト（素材を組み合わせてアイテムを生成）                     | ○           |
-| `ENHANCE`   | 強化レシピ（既存アイテムを素材で強化。equipment の enhance と連携可） | ×（不使用）      |
 | `ALCHEMY`   | 調合レシピ（ポーション・消耗品などの生成）                        | ○           |
 | `DISMANTLE` | 分解レシピ（アイテムを素材に分解）                            | ○           |
 | `SHOP`      | shop GUI の購入条件から参照する素材・通貨コスト。`result` は販売対象の説明用。 | 任意          |
-
-> **`ENHANCE` における `result` について**  
-> `category: ENHANCE` の場合、強化対象はプレイヤーが持ち込んだアイテム自体です。プラグイン側は「持ち込まれたアイテムを強化して返す」処理を行うため、`result.itemId` / `result.amount` は参照されません。`ENHANCE` レシピでは `result` ブロックを省略してください。
 
 ### FailAction
 
 | 値           | 説明                          |
 |:------------|:----------------------------|
 | `NONE`      | 何も起きない（素材と通貨のみ消費）           |
-| `DOWNGRADE` | 結果アイテムの品質・強化レベルが1段階下がる      |
 | `DESTROY`   | 素材が消滅する（結果アイテムは生成されない）      |
 
 ### 参照（ref）
@@ -94,40 +89,6 @@ failAction: NONE
 onSuccess:
   sound: block.anvil.use
   particle: crit
-```
-
-### 例: 強化レシピ（equipment の enhance と連携）
-
-```yaml
-schemaVersion: 1
-id: iron_sword_enhance_lv3_recipe
-type: RECIPE
-category: ENHANCE
-name: "&f鉄の剣 強化Lv3 レシピ"
-lore:
-  - "&7鉄の剣をさらに強化する。失敗するとレベルが下がる。"
-tags:
-  - blacksmith
-  - enhance
-# result は ENHANCE では不使用のため省略
-ingredients:
-  - itemId:
-      ref: item:iron_ingot
-    amount: 6
-  - itemId:
-      ref: item:magic_crystal
-    amount: 1
-requiredLevel: 10
-requiredCurrency: 000
-stationId: blacksmith_station
-successRate: 70.0
-failAction: DOWNGRADE
-onSuccess:
-  sound: block.anvil.use
-  particle: crit
-onFail:
-  sound: block.anvil.break
-  particle: smoke
 ```
 
 ### 例: 調合レシピ

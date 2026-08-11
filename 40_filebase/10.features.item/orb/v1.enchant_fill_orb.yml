@@ -1,0 +1,20 @@
+# design:
+#   motif: "エンチャント / 空き枠への星印"
+#   progression: 1
+schemaVersion: 1
+id: enchant_fill_orb
+category: orb
+name: "&3刻印のオーブ"
+icon: PRISMARINE_CRYSTALS
+rarity: RARE
+maxStack: 64
+saleValue: 100
+lore:
+  - "&7空いているエンチャント枠1つへ付与する。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: ENCHANT
+    enchantMasterId: enchant:enchant001
+    enchantOperation: FILL_ONE_EMPTY

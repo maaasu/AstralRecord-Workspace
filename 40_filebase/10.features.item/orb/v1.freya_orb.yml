@@ -1,0 +1,22 @@
+# design:
+#   motif: "アクセサリ強化 / フレイヤ / 幸運の加護"
+#   progression: 0
+schemaVersion: 1
+id: freya_orb
+category: orb
+name: "&dフレイヤのオーブ"
+icon: FIRE_CHARGE
+rarity: RARE
+maxStack: 64
+saleValue: 80
+lore:
+  - "&7状態ランク0のアクセサリを1段階強化する。"
+  - "&7成功率と失敗時挙動は装備ごとに異なる。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: ENHANCE
+    targetSlots: [ACCESSORY]
+    rank: 0
+    rankMode: EXACT

@@ -24,4 +24,5 @@ data class ItemModel(
     val consumable: ItemConsumable?,
     val skillGem: ItemSkillGem? = null,
     val sigil: ItemSigil? = null,
+    val orb: ItemOrb? = null,
 )

@@ -32,8 +32,7 @@ class ItemRepositoryEquipmentParsingTest {
                   "updatedAt":null,
                   "statRolls":null,
                   "enchants":null,
-                  "runes":null,
-                  "enchantPools":null
+                  "runes":null
                 }
                 """);
 
@@ -44,7 +43,6 @@ class ItemRepositoryEquipmentParsingTest {
         assertTrue(instance.getStatRolls().isEmpty());
         assertTrue(instance.getEnchants().isEmpty());
         assertTrue(instance.getRunes().isEmpty());
-        assertTrue(instance.getEnchantPools().isEmpty());
     }
 
     /**
@@ -85,6 +83,35 @@ class ItemRepositoryEquipmentParsingTest {
         assertEquals(5, item.getEquipment().getTranscendence().getFirst().getRequiredEnhanceLevel());
         assertEquals(2, item.getEquipment().getTranscendence().getFirst().getRequiredMaterials().getFirst().getAmount());
         assertEquals(100, item.getEquipment().getTranscendence().getFirst().getRequiredCurrency());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
+     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.8 `ItemOrb`
+     * 検証契約: Seeder 用の enchant 参照prefixは Plugin内部のマスタIDから除く。
+     */
+    @Test
+    void orbEnchantReferencePrefixIsNormalized() throws Exception {
+        ItemModel item = parseItem("""
+            {
+              "schemaVersion":1,
+              "id":"enchant_fill_orb",
+              "category":"orb",
+              "name":"enchant orb",
+              "icon":"PRISMARINE_CRYSTALS",
+              "rarity":"RARE",
+              "maxStack":64,
+              "orb":{
+                "effect":{
+                  "type":"ENCHANT",
+                  "enchantMasterId":"enchant:enchant001",
+                  "enchantOperation":"FILL_ONE_EMPTY"
+                }
+              }
+            }
+            """);
+
+        assertEquals("enchant001", item.getOrb().getEffect().getEnchantMasterId());
     }
 
     private EquipmentInstance parseEquipmentInstance(String json) throws Exception {

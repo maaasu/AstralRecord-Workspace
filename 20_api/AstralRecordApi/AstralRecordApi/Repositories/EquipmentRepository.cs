@@ -1,3 +1,4 @@
+using System.Data;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using Microsoft.EntityFrameworkCore;
@@ -8,11 +9,8 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
 {
     public async Task AddAsync(
         EquipmentInstanceEntity instance,
-        IReadOnlyList<EquipmentInstanceStatRollEntity> statRolls,
-        IReadOnlyList<EquipmentInstanceEnchantPoolEntity> enchantPools)
+        IReadOnlyList<EquipmentInstanceStatRollEntity> statRolls)
     {
-        _ = enchantPools;
-
         await dbContext.EquipmentInstances.AddAsync(instance);
 
         if (statRolls.Count > 0)
@@ -47,77 +45,65 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
             .OrderBy(x => x.SlotIndex)
             .ToListAsync();
 
-    public Task<IReadOnlyList<EquipmentInstanceEnchantPoolEntity>> FindEnchantPoolsAsync(Guid instanceId)
+    public async Task<bool> DeleteEnchantBySlotIndexAsync(Guid instanceId, int slotIndex, Guid accountId)
     {
-        _ = instanceId;
-        return Task.FromResult<IReadOnlyList<EquipmentInstanceEnchantPoolEntity>>([]);
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var live = await FindInstanceForUpdateAsync(instanceId);
+            if (live is null || live.IsDeleted || live.AccountId != accountId)
+                return false;
+
+            var enchants = await dbContext.EquipmentInstanceEnchants
+                .Where(x => x.EquipmentInstanceId == instanceId && x.SlotIndex == slotIndex)
+                .ToListAsync();
+            if (enchants.Count == 0)
+                return false;
+
+            dbContext.EquipmentInstanceEnchants.RemoveRange(enchants);
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return true;
+        });
     }
 
-    public async Task ApplyEnchantAsync(EquipmentInstanceEntity instance, EquipmentInstanceEnchantEntity enchant, Guid? overwriteEnchantId)
+    public async Task<bool> UpsertRuneAsync(
+        Guid instanceId,
+        Guid accountId,
+        EquipmentInstanceRuneEntity rune)
     {
-        UpdateTrackedEquipmentInstance(instance);
-
-        if (overwriteEnchantId.HasValue)
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
         {
-            var existing = await dbContext.EquipmentInstanceEnchants
-                .FirstOrDefaultAsync(x => x.EnchantId == overwriteEnchantId.Value && x.EquipmentInstanceId == instance.EquipmentInstanceId);
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var live = await FindInstanceForUpdateAsync(instanceId);
+            if (live is null || live.IsDeleted || live.AccountId != accountId)
+                return false;
 
-            if (existing is not null)
+            live.UpdatedAt = rune.UpdatedAt;
+            live.UpdatedBy = rune.UpdatedBy;
+            var existing = await dbContext.EquipmentInstanceRunes
+                .FirstOrDefaultAsync(x => x.EquipmentInstanceId == instanceId && x.SlotIndex == rune.SlotIndex);
+
+            if (existing is null)
             {
-                existing.PoolIndex = enchant.PoolIndex;
-                existing.Status = enchant.Status;
-                existing.Type = enchant.Type;
-                existing.Value = enchant.Value;
-                existing.UpdatedAt = enchant.UpdatedAt;
-                existing.UpdatedBy = enchant.UpdatedBy;
+                await dbContext.EquipmentInstanceRunes.AddAsync(rune);
             }
             else
             {
-                await dbContext.EquipmentInstanceEnchants.AddAsync(enchant);
+                existing.RuneInstanceId = rune.RuneInstanceId;
+                existing.ItemId = rune.ItemId;
+                existing.UpdatedAt = rune.UpdatedAt;
+                existing.UpdatedBy = rune.UpdatedBy;
             }
-        }
-        else
-        {
-            await dbContext.EquipmentInstanceEnchants.AddAsync(enchant);
-        }
 
-        await dbContext.SaveChangesAsync();
-    }
-
-    public async Task<bool> DeleteEnchantByPoolIndexAsync(Guid instanceId, int poolIndex)
-    {
-        var enchants = await dbContext.EquipmentInstanceEnchants
-            .Where(x => x.EquipmentInstanceId == instanceId && x.PoolIndex == poolIndex)
-            .ToListAsync();
-
-        if (enchants.Count == 0)
-            return false;
-
-        dbContext.EquipmentInstanceEnchants.RemoveRange(enchants);
-        await dbContext.SaveChangesAsync();
-        return true;
-    }
-
-    public async Task UpsertRuneAsync(EquipmentInstanceEntity instance, EquipmentInstanceRuneEntity rune)
-    {
-        UpdateTrackedEquipmentInstance(instance);
-
-        var existing = await dbContext.EquipmentInstanceRunes
-            .FirstOrDefaultAsync(x => x.EquipmentInstanceId == rune.EquipmentInstanceId && x.SlotIndex == rune.SlotIndex);
-
-        if (existing is null)
-        {
-            await dbContext.EquipmentInstanceRunes.AddAsync(rune);
-        }
-        else
-        {
-            existing.RuneInstanceId = rune.RuneInstanceId;
-            existing.ItemId = rune.ItemId;
-            existing.UpdatedAt = rune.UpdatedAt;
-            existing.UpdatedBy = rune.UpdatedBy;
-        }
-
-        await dbContext.SaveChangesAsync();
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return true;
+        });
     }
 
     public async Task<bool> DeleteRuneBySlotIndexAsync(Guid instanceId, int slotIndex)
@@ -133,10 +119,31 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
         return true;
     }
 
-    public async Task UpdateInstanceAsync(EquipmentInstanceEntity instance)
+    public async Task<EquipmentInstanceEntity?> UpdateDurabilityAsync(
+        Guid instanceId,
+        int durabilityValue,
+        Guid updatedBy)
     {
-        UpdateTrackedEquipmentInstance(instance);
-        await dbContext.SaveChangesAsync();
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var live = await FindInstanceForUpdateAsync(instanceId);
+            if (live is null
+                || live.IsDeleted
+                || live.AccountId != updatedBy
+                || !live.DurabilityMax.HasValue
+                || !live.DurabilityValue.HasValue)
+                return null;
+
+            live.DurabilityValue = Math.Clamp(durabilityValue, 0, live.DurabilityMax.Value);
+            live.UpdatedAt = DateTime.UtcNow;
+            live.UpdatedBy = updatedBy;
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return live;
+        });
     }
 
     public async Task<bool> SoftDeleteInstanceAsync(Guid instanceId)
@@ -152,18 +159,18 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
         return true;
     }
 
-    private void UpdateTrackedEquipmentInstance(EquipmentInstanceEntity instance)
+    private async Task<EquipmentInstanceEntity?> FindInstanceForUpdateAsync(Guid instanceId)
     {
-        var tracked = dbContext.EquipmentInstances.Local
-            .FirstOrDefault(x => x.EquipmentInstanceId == instance.EquipmentInstanceId);
-
-        if (tracked is null)
+        if (dbContext.Database.IsSqlServer())
         {
-            dbContext.EquipmentInstances.Attach(instance);
-            dbContext.Entry(instance).State = EntityState.Modified;
-            return;
+            return await dbContext.EquipmentInstances
+                .FromSqlInterpolated($"""
+                    SELECT * FROM [dbo].[equipment_instance] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE [equipment_instance_id] = {instanceId}
+                    """)
+                .SingleOrDefaultAsync();
         }
-
-        dbContext.Entry(tracked).CurrentValues.SetValues(instance);
+        return await dbContext.EquipmentInstances
+            .SingleOrDefaultAsync(instance => instance.EquipmentInstanceId == instanceId);
     }
 }

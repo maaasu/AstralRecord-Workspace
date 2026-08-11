@@ -28,17 +28,6 @@
 | `equipment[].durability.consume`                          | Integer       | ×  | 1     | 1回の使用/攻撃で減る耐久値。`durability.max` を指定した場合に使用。                                                                                                    |
 | `equipment[].enchant`                                     | Object        | ×  | -     | エンチャントシステム設定。指定しない場合はエンチャント不可。                                                                                                                 |
 | `equipment[].enchant.maxSlots`                            | Integer       | ×  | 1     | 装備に付与できるエンチャントの最大スロット数。固定値。                                                                                                                    |
-| `equipment[].enchant.pools[]`                             | List          | ×  | -     | エンチャントプールのリスト。素材ごとに異なるステータス候補を定義できる。                                                                                                           |
-| `equipment[].enchant.pools[].id`                          | String        | ×  | -     | 任意のプール識別子。未指定時でも API の `poolIndex` により上から `0,1,2...` が自動採番される。                                                                                 |
-| `equipment[].enchant.pools[].recipeId`                    | String        | ×  | -     | 強化に使用するレシピID（参照値。例: `ref: recipe:iron_sword_enhant`）。`requiredMaterials` / `requiredCurrency` / `successRate` / `failAction` はレシピ側で定義するため省略可。  |
-| `equipment[].enchant.pools[].requiredMaterial.itemId`     | String        | ×  | -     | このプールを発動させるために必要な素材アイテムID。                                                                                                                     |
-| `equipment[].enchant.pools[].requiredMaterial.amount`     | Integer       | ×  | 1     | 必要な素材の個数。                                                                                                                                      |
-| `equipment[].enchant.pools[].requiredCurrency`            | Integer       | ×  | 0     | エンチャント実行に必要な通貨量（ゴールドなど）。                                                                                                                       |
-| `equipment[].enchant.pools[].entries[]`                   | List          | ×  | -     | このプールが持つステータス候補のリスト。実行時にリストからランダムに1つ選ばれて付与される。                                                                                                 |
-| `equipment[].enchant.pools[].entries[].status`            | String        | ×  | -     | 付与されるステータス（`StatusType`）。                                                                                                                      |
-| `equipment[].enchant.pools[].entries[].type`              | String        | ×  | -     | 補正方式（`FLAT` / `SCALAR`）。                                                                                                                       |
-| `equipment[].enchant.pools[].entries[].value`             | String        | ×  | -     | 付与される値。固定値または範囲（例: `5` / `3~8`）。                                                                                                               |
-| `equipment[].enchant.pools[].entries[].weight`            | Integer       | ×  | 1     | 抽選重み。値が大きいほど選ばれやすい。                                                                                                                            |
 | `equipment[].enhance.maxLevel`                            | Integer       | ×  | -     | 強化の最大レベル。指定しない場合は強化不可。固定値。                                                                                                                     |
 | `equipment[].enhance.levels[].level`                      | Integer       | ×  | 0     | 強化レベル（1 〜 `maxLevel`）。                                                                                                                         |
 | `equipment[].enhance.levels[].statIncrease[]`             | List          | ×  | -     | この強化レベルで上昇するステータス幅のリスト（前レベルからの差分）。プラグインはこの値を累積してステータス補正を計算する。                                                                                  |
@@ -46,12 +35,9 @@
 | `equipment[].enhance.levels[].statIncrease[].type`        | String        | ×  | -     | 補正方式（`FLAT` / `SCALAR`）。                                                                                                                       |
 | `equipment[].enhance.levels[].statIncrease[].value`       | String        | ×  | -     | 上昇幅。固定値または範囲（例: `3` / `2~5`）。                                                                                                                  |
 | `equipment[].enhance.levels[].durabilityBonus`            | Integer       | ×  | -     | この強化レベルで加算される最大耐久値。                                                                                                                            |
-| `equipment[].enhance.levels[].recipeId`                   | String        | ×  | -     | 強化に使用するレシピID（参照値。例: `ref: recipe:iron_sword_enhance`）。`requiredMaterials` / `requiredCurrency` / `successRate` / `failAction` はレシピ側で定義するため省略可。 |
-| `equipment[].enhance.levels[].requiredMaterials[].itemId` | String        | ×  | -     | 強化に必要な素材アイテムID。`recipeId` を指定した場合は省略可。                                                                                                         |
-| `equipment[].enhance.levels[].requiredMaterials[].amount` | Integer       | ×  | -     | 必要な素材の個数。`recipeId` を指定した場合は省略可。                                                                                                               |
-| `equipment[].enhance.levels[].requiredCurrency`           | Integer       | ×  | -     | 強化に必要な通貨量（ゴールドなど）。`recipeId` を指定した場合は省略可。                                                                                                      |
-| `equipment[].enhance.levels[].successRate`                | Float         | ×  | 1.0   | 強化成功率（`0.0` 〜 `1.0`）。`1.0` で必ず成功。`recipeId` を指定した場合は省略可。                                                                                       |
-| `equipment[].enhance.levels[].failAction`                 | String        | ×  | NONE  | 強化失敗時の挙動（`NONE` / `DOWNGRADE` / `DESTROY`）。`recipeId` を指定した場合は省略可。                                                                             |
+| `equipment[].enhance.levels[].successRate`                | Float         | ×  | 1.0   | 強化成功率（`0.0` 〜 `1.0`）。`1.0` で必ず成功。                                                                                                                   |
+| `equipment[].enhance.levels[].failAction`                 | String        | ×  | NONE  | 強化失敗時の挙動（`NONE` / `SET_LEVEL` / `DECREASE_ONE`）。                                                                                                       |
+| `equipment[].enhance.levels[].failTargetLevel`            | Integer       | ×  | -     | `failAction: SET_LEVEL` の失敗時に設定する強化値。                                                                                                                |
 | `equipment[].rune`                                        | Object        | ×  | -     | ルーンスロットシステム設定。指定しない場合はルーン装着不可。                                                                                                                 |
 | `equipment[].rune.maxSlots`                               | Integer       | ×  | 0     | 装備に装着できるルーンの最大スロット数。`0` で装着不可。固定値。                                                                                                             |
 | `equipment[].rune.maxSlots.random[].min`                  | Integer       | ×  | -     | 固定値（例: `1`）。装備作成時にスロット数をランダムに決定する最小値。「`rune.maxSlots.random: 1~3`」も可能。指定時maxSlotsの指定は必要なし。                                                     |
@@ -60,11 +46,10 @@
 | `equipment[].transcendence[]`                             | List          | ×  | -     | 状態変化（進化・覚醒・超越など）の定義リスト。指定した素材を消費することでアイテムの各種パラメータを上書きする。                                                                                       |
 | `equipment[].transcendence[].name`                        | String        | ×  | -     | 状態変化の名称（例: `進化` / `覚醒` / `超越`）。ゲーム内UIに表示される。                                                                                                   |
 | `equipment[].transcendence[].rank`                        | Integer       | ×  | -     | 状態変化の強さ指標。数値が大きいほど上位の状態変化。同一装備内で一意である必要がある。プラグインはこの値を使い、現在の状態変化より `rank` が低い状態変化への遷移を禁止する。                                                     |
-| `equipment[].transcendence[].requiredEnhanceLevel`        | Integer       | ×  | 0     | 状態変化に必要な最小強化値。装備強化 GUI では、現在状態の有効な `enhance.maxLevel` 到達後、かつこの値以上の場合に状態変化を実行できる。                                                       |
-| `equipment[].transcendence[].recipeId`                    | String        | ×  | -     | 状態変化に使用するレシピID（参照値。例: `ref: recipe:iron_sword_evolution`）。`requiredMaterials` / `requiredCurrency` はレシピ側で定義するため省略可。                            |
-| `equipment[].transcendence[].requiredMaterials[].itemId`  | String        | ×  | -     | 状態変化に必要な素材アイテムID。`recipeId` を指定した場合は省略可。                                                                                                       |
-| `equipment[].transcendence[].requiredMaterials[].amount`  | Integer       | ×  | -     | 必要な素材の個数。`recipeId` を指定した場合は省略可。                                                                                                               |
-| `equipment[].transcendence[].requiredCurrency`            | Integer       | ×  | 0     | 状態変化に必要な通貨量（ゴールドなど）。`recipeId` を指定した場合は省略可。                                                                                                    |
+| `equipment[].transcendence[].requiredEnhanceLevel`        | Integer       | ×  | 0     | 状態変化に必要な最小強化値。オーブ対象一覧では、現在状態の有効な `enhance.maxLevel` 到達後、かつこの値以上の場合に状態変化を選択できる。                                                   |
+| `equipment[].transcendence[].requiredMaterials[].itemId`  | String        | ×  | -     | 状態変化に必要な素材アイテムID。                                                                                                                                |
+| `equipment[].transcendence[].requiredMaterials[].amount`  | Integer       | ×  | -     | 必要な素材の個数。                                                                                                                                       |
+| `equipment[].transcendence[].requiredCurrency`            | Integer       | ×  | 0     | 状態変化に必要な通貨量（ゴールドなど）。                                                                                                                            |
 | `equipment[].transcendence[].overrides.name`              | String        | ×  | -     | 状態変化後のアイテム名称。未指定時は変更なし。                                                                                                                        |
 | `equipment[].transcendence[].overrides.enhance.maxLevel`  | Integer       | ×  | -     | 状態変化後に上書きする `enhance.maxLevel`。未指定時は変更なし。                                                                                                      |
 | `equipment[].transcendence[].overrides.enchant.maxSlots`  | Integer       | ×  | -     | 状態変化後に上書きする `enchant.maxSlots`。未指定時は変更なし。                                                                                                      |
@@ -129,9 +114,11 @@
 ### equipment[].enhance.levels[].failAction
 強化失敗時の挙動を指定します。
 
-- `NONE` : 何も起きない（素材・通貨のみ消費）
-- `DOWNGRADE` : 強化レベルが 1 下がる
-- `DESTROY` : 装備が消滅する
+- `NONE` : 強化値を変更しない
+- `SET_LEVEL` : `failTargetLevel` で指定した強化値へ変更する
+- `DECREASE_ONE` : 現在の強化値を 1 下げる（強化値 0 未満にはならない）
+
+強化試行は結果にかかわらず、起点となったオーブを必ず 1 個だけ消費します。装備マスタ側では追加素材・通貨を定義しません。
 
 ### statIncrease について
 
@@ -151,30 +138,22 @@
 
 ### equipment[].enchant について
 
-エンチャントシステムは、指定した素材を消費することで装備にランダムなステータスを付与する仕組みです。
+装備マスタは `maxSlots` だけを保持します。重み付き効果候補は共通エンチャントマスタ
+`40_filebase/12.features.enchant/` へ装備種別ごとに定義し、エンチャントオーブがそのマスタ ID と
+空き枠・全空き枠・ランダム上書きの動作を指定します。同じ `effectId` は一つの装備へ重複付与されません。
 
-- `pools` に素材とステータス候補リスト（`entries`）を定義します。
-- プレイヤーが素材を使用してエンチャントを実行すると、対応するプールの `entries` からランダムに1つだけ選ばれてステータスが付与されます。
-- `entries[].weight` で各ステータスの選ばれやすさを調整できます（重み付き抽選）。
-- `maxSlots` で装備に同時に付与できるエンチャント数の上限を設定します。上限に達している場合は既存のエンチャントをランダムに 1 件選んで上書きします。
-- `pools[].id` は任意の識別子です。未指定でも API は `poolIndex` を 0 始まりで自動採番します。
-- 複数の `pools` を定義することで、素材の種類によって異なるステータス候補を提供できます。
+### オーブによる強化
 
-### 強化素材の指定方法
-強化レベルごとの素材は以下の2通りで指定できます。
-
-1. **直接指定**（`requiredMaterials` / `requiredCurrency` / `successRate` / `failAction` を直接記述）
-2. **レシピ参照**（`recipeId` に `ref: recipe:<id>` を指定し、素材・通貨・成功率・失敗挙動をレシピ側で一元管理）
-
-両方を指定した場合は `recipeId` が優先されます。
+装備マスタには各レベルの `successRate`、`failAction`、必要に応じて `failTargetLevel` を定義します。
+対象ランク・装備種別はオーブ側で定義し、強化時の消費は使用したオーブ 1 個だけです。
 
 ### equipment[].transcendence について
 
-状態変化システムは、指定した素材（またはレシピ）を消費することでアイテムの各種パラメータを上書きする仕組みです。「進化」「覚醒」「超越」など、ゲームデザインに応じた名称を自由に設定できます。
+状態変化システムは、指定した素材・通貨を消費することでアイテムの各種パラメータを上書きする仕組みです。「進化」「覚醒」「超越」など、ゲームデザインに応じた名称を自由に設定できます。
 
 - `name` で状態変化の名称を指定します（例: `進化` / `覚醒` / `超越`）。
-- `requiredEnhanceLevel` で状態変化に必要な強化値を指定します。装備強化 GUI は現在状態の有効な強化上限へ到達した次の操作として、次 rank の状態変化を提示します。
-- 素材はレシピ参照（`recipeId`）または直接指定（`requiredMaterials` / `requiredCurrency`）のいずれかで指定します。両方を指定した場合は `recipeId` が優先されます。
+- `requiredEnhanceLevel` で状態変化に必要な強化値を指定します。オーブ対象一覧は現在状態の有効な強化上限へ到達した次の rank だけを提示します。
+- 必要な素材・通貨は `requiredMaterials` / `requiredCurrency` へ直接指定し、オーブとは別に確認画面で不足を表示します。
 - `overrides` に上書きしたいパラメータのみ指定します。未指定のパラメータは変更されません。
 - 上書き可能なパラメータ: `name`（アイテム名称）/ `enhance.maxLevel` / `enchant.maxSlots` / `rune.maxSlots`。
 - 複数の状態変化を定義した場合、リストの順番に段階的に適用できます（例: 進化→覚醒→超越）。
@@ -193,10 +172,6 @@
 Equipment の追加効果で Buff を参照する場合は `buff:` prefix を使用します（aliases: `bf`）。
 
 - 例: `ref: buff:haste_small`
-
-強化レシピを参照する場合は `recipe:` prefix を使用します（aliases: `rc`）。
-
-- 例: `ref: recipe:iron_sword_enhance_lv1`
 
 ルーンを参照する場合は `rune:` prefix を使用します（aliases: `rn`）。
 
@@ -290,7 +265,7 @@ equipment:
         max: 12~16
 ```
 
-### 例4: 強化対応武器（直接指定）
+### 例4: 強化対応武器
 
 ```yaml
 schemaVersion: 1
@@ -324,10 +299,6 @@ equipment:
             type: FLAT
             value: 3
         durabilityBonus: 10
-        requiredMaterials:
-          - itemId: iron_ingot
-            amount: 2
-        requiredCurrency: 100
         successRate: 1.0
         failAction: NONE
       - level: 2
@@ -336,10 +307,6 @@ equipment:
             type: FLAT
             value: 2
         durabilityBonus: 10
-        requiredMaterials:
-          - itemId: iron_ingot
-            amount: 4
-        requiredCurrency: 200
         successRate: 0.9
         failAction: NONE
       - level: 3
@@ -351,14 +318,9 @@ equipment:
             type: FLAT
             value: 1.0
         durabilityBonus: 20
-        requiredMaterials:
-          - itemId: iron_ingot
-            amount: 6
-          - itemId: magic_crystal
-            amount: 1
-        requiredCurrency: 500
         successRate: 0.75
-        failAction: DOWNGRADE
+        failAction: SET_LEVEL
+        failTargetLevel: 0
 ```
 
 ### 例5: エンチャント対応装備
@@ -388,45 +350,6 @@ equipment:
     consume: 1
   enchant:
     maxSlots: 2
-    pools:
-      - requiredMaterial:
-          itemId: magic_crystal
-          amount: 1
-        requiredCurrency: 200
-        entries:
-          - status: DEFENSE
-            type: FLAT
-            value: 3~8
-            weight: 10
-          - status: MAX_HEALTH
-            type: FLAT
-            value: 10~20
-            weight: 10
-          - status: MAGIC_DEFENSE
-            type: FLAT
-            value: 3~6
-            weight: 8
-          - status: HP_REGEN
-            type: FLAT
-            value: 2~5
-            weight: 5
-      - requiredMaterial:
-          itemId: astral_dust
-          amount: 3
-        requiredCurrency: 500
-        entries:
-          - status: DEFENSE
-            type: SCALAR
-            value: 0.05~0.10
-            weight: 8
-          - status: EVASION
-            type: FLAT
-            value: 2~5
-            weight: 5
-          - status: CRITICAL_RATE
-            type: FLAT
-            value: 1~3
-            weight: 3
 ```
 
 ### 例6: ルーンスロット対応装備
@@ -462,8 +385,8 @@ equipment:
           - status: ATTACK
             type: FLAT
             value: 3
-        recipeId:
-          ref: recipe:runic_iron_sword_enhance_lv1
+        successRate: 1.0
+        failAction: NONE
   rune:
     maxSlots: 2
 ```
@@ -528,8 +451,8 @@ equipment:
           - status: DEFENSE
             type: FLAT
             value: 5
-        recipeId:
-          ref: recipe:sacred_chestplate_enhance_lv1
+        successRate: 1.0
+        failAction: NONE
   rune:
     maxSlots: 3
     allowedRuneIds:
@@ -584,8 +507,10 @@ equipment:
           maxSlots: 2
     - name: 覚醒
       rank: 2
-      recipeId:
-        ref: recipe:iron_sword_awakening
+      requiredMaterials:
+        - itemId: astral_dust
+          amount: 20
+      requiredCurrency: 10000
       overrides:
         name: "&b覚醒した鉄の剣"
         enhance:
@@ -594,61 +519,4 @@ equipment:
           maxSlots: 3
         rune:
           maxSlots: 3
-```
-
-### 例9: 強化対応武器（レシピ参照）
-
-```yaml
-schemaVersion: 1
-id: iron_sword
-category: EQUIPMENT
-name: "&f鉄の剣"
-icon: IRON_SWORD
-rarity: UNCOMMON
-lore:
-  - "&7強化することでさらに力を引き出せる剣。"
-
-maxStack: 1
-equipment:
-  slot: WEAPON
-  handType: ONE
-  tag: SWORD
-  requiredLevel: 5
-  stats:
-    - status: ATTACK
-      type: FLAT
-      value: 20
-  durability:
-    max: 150
-    consume: 1
-  enhance:
-    maxLevel: 3
-    levels:
-      - level: 1
-        statIncrease:
-          - status: ATTACK
-            type: FLAT
-            value: 3
-        durabilityBonus: 10
-        recipeId:
-          ref: recipe:iron_sword_enhance_lv1
-      - level: 2
-        statIncrease:
-          - status: ATTACK
-            type: FLAT
-            value: 2
-        durabilityBonus: 10
-        recipeId:
-          ref: recipe:iron_sword_enhance_lv2
-      - level: 3
-        statIncrease:
-          - status: ATTACK
-            type: FLAT
-            value: 3
-          - status: CRITICAL_RATE
-            type: FLAT
-            value: 1.0
-        durabilityBonus: 20
-        recipeId:
-          ref: recipe:iron_sword_enhance_lv3
 ```

@@ -3,6 +3,8 @@ schemaVersion: 1
 database:
   - name: item #カテゴリごとにサブディレクトリが作成されていることを前提とする。
     path: 10.features.item
+  - name: enchant
+    path: 12.features.enchant
   - name: class
     path: 20.features.class
   - name: skill
@@ -40,6 +42,9 @@ referenceResolver:
   - prefix: "item:"
     database: item
     aliases: ["im"]
+  - prefix: "enchant:"
+    database: enchant
+    aliases: ["en"]
   - prefix: "loot_table:"
     database: loot.table
     aliases: ["lt"]

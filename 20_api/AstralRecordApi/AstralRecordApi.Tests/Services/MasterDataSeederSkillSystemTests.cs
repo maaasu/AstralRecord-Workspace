@@ -42,6 +42,41 @@ public class MasterDataSeederSkillSystemTests
     }
 
     /// <summary>
+    /// 設計入力: 40_filebase/10.features.item/orb/docs.orb.YAMLスキーマ定義.md
+    /// 検証契約: オーブが参照する共通エンチャントマスタが存在しない場合、Seeder は必須参照エラーにする。
+    /// </summary>
+    [Fact]
+    public async Task ValidateReferencesAsync_RejectsMissingOrbEnchantMasterReference()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        var orb = fixture.AddEntry("item", "broken_enchant_orb", "orb", "{}");
+        fixture.Db.References.Add(new MasterDataReferenceEntity
+        {
+            ReferenceId = Guid.NewGuid(),
+            FromEntryId = orb.EntryId,
+            FromMasterType = "item",
+            FromMasterId = "broken_enchant_orb",
+            ReferenceType = "enchant",
+            ReferenceIdValue = "missing_enchant",
+            ReferencePath = "$.orb.effect.enchantMasterId",
+            IsRequired = true,
+            CreatedAt = fixture.Now,
+            UpdatedAt = fixture.Now,
+            CreatedBy = fixture.SystemUser,
+            UpdatedBy = fixture.SystemUser,
+        });
+        await fixture.Db.SaveChangesAsync();
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            InvokeAsync(fixture.Seeder, "ValidateReferencesAsync", new List<string>(), CancellationToken.None));
+
+        Assert.Contains(
+            "item:broken_enchant_orb -> enchant:missing_enchant",
+            error.Message,
+            StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// 設計入力: 40_filebase/10.features.item/docs.item.YAMLスキーマ定義.md
     /// 検証契約: シジルmodifierは共有カタログに存在するstatus IDだけを許可する。
     /// </summary>

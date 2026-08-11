@@ -1,12 +1,7 @@
-﻿using AstralRecordApi.Data;
+using AstralRecordApi.Data.Entities;
+using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
 using AstralRecordApi.Services;
-using AstralRecordApi.Models;
-using AstralRecordApi.Tests.TestSupport;
-using Microsoft.Data.Sqlite;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace AstralRecordApi.Tests.Services;
@@ -14,356 +9,342 @@ namespace AstralRecordApi.Tests.Services;
 public class EquipmentServiceTests
 {
     [Fact]
-    public async Task EnchantAsync_SelectsMultipleStatuses_FromWeightedPool()
+    public async Task ApplyOrb_DelegatesUnifiedRequestAndReturnsTerminalResult()
     {
-        await using var connection = new SqliteConnection("Data Source=:memory:");
-        await connection.OpenAsync();
-
-        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
-            .UseSqlite(connection)
-            .Options;
-
-        var accountId = Guid.NewGuid();
-        var actorId = Guid.NewGuid();
-
-        await using (var setupContext = new AstralRecordDbContext(options))
+        var orbOperations = new TestOrbOperationRepository
         {
-            await CreateEquipmentTestSchemaAsync(setupContext);
-
-            setupContext.Accounts.Add(new AstralRecordApi.Data.Entities.AccountEntity
+            ExecuteResult = new EquipmentOrbOperationResponse
             {
-                Uuid = accountId,
-                UserId = Guid.NewGuid(),
-                AccountName = "tester",
-                SlotIndex = 0,
-                IsActive = true,
-                Mode = 0,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                CreatedBy = actorId,
-                UpdatedBy = actorId,
-                IsDeleted = false,
-            });
-
-            await setupContext.SaveChangesAsync();
-            await setupContext.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");
-        }
-
-        var itemRepository = await CreateItemRepositoryFromFilebaseAsync();
-
-        await using var dbContext = new AstralRecordDbContext(options);
-        var equipmentRepository = new EquipmentRepository(dbContext);
-        var accountRepository = new AccountRepository(dbContext);
-        var runeRepository = new RuneRepository(dbContext);
-        var service = new EquipmentService(itemRepository, equipmentRepository, runeRepository, accountRepository);
-
-        var created = await service.CreateAsync(new EquipmentCreateRequest
+                OperationId = Guid.NewGuid(),
+                Result = "APPLIED",
+                OperationType = "REPAIR",
+                PaymentConsumed = true,
+            },
+        };
+        var service = CreateService(orbOperations);
+        var request = new EquipmentOrbOperationRequest
         {
-            EquipmentId = "sample_sword",
-            AccountId = accountId,
-            Source = "test",
-            CreatedBy = actorId
-        });
-
-        Assert.NotNull(created);
-
-        var observedStatuses = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-        for (var i = 0; i < 200; i++)
-        {
-            var result = await service.EnchantAsync(new EquipmentEnchantRequest
-            {
-                EquipmentInstanceId = created!.EquipmentInstanceId,
-                PoolIndex = 0,
-                UpdatedBy = actorId,
-            });
-
-            Assert.NotNull(result);
-            var latest = result!.Enchants.Single(x => x.PoolIndex == 0);
-            observedStatuses.Add(latest.Status);
-        }
-
-        Assert.Contains("ATTACK", observedStatuses);
-        Assert.True(observedStatuses.Count > 1, $"Expected multiple statuses from weighted pool, but got: {string.Join(", ", observedStatuses)}");
-    }
-
-    [Fact]
-    public async Task CreateAsync_Succeeds_WithoutLegacyEnchantPoolTable()
-    {
-        await using var connection = new SqliteConnection("Data Source=:memory:");
-        await connection.OpenAsync();
-
-        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
-            .UseSqlite(connection)
-            .Options;
-
-        var accountId = Guid.NewGuid();
-        var actorId = Guid.NewGuid();
-
-        await using (var setupContext = new AstralRecordDbContext(options))
-        {
-            await CreateEquipmentTestSchemaAsync(setupContext);
-
-            setupContext.Accounts.Add(new AstralRecordApi.Data.Entities.AccountEntity
-            {
-                Uuid = accountId,
-                UserId = Guid.NewGuid(),
-                AccountName = "tester",
-                SlotIndex = 0,
-                IsActive = true,
-                Mode = 0,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                CreatedBy = actorId,
-                UpdatedBy = actorId,
-                IsDeleted = false,
-            });
-
-            await setupContext.SaveChangesAsync();
-            await setupContext.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");
-        }
-
-        var itemRepository = await CreateItemRepositoryFromFilebaseAsync();
-
-        await using var dbContext = new AstralRecordDbContext(options);
-        var equipmentRepository = new EquipmentRepository(dbContext);
-        var accountRepository = new AccountRepository(dbContext);
-        var runeRepository = new RuneRepository(dbContext);
-        var service = new EquipmentService(itemRepository, equipmentRepository, runeRepository, accountRepository);
-
-        var result = await service.CreateAsync(new EquipmentCreateRequest
-        {
-            EquipmentId = "sample_sword",
-            AccountId = accountId,
-            Source = "test",
-            CreatedBy = actorId
-        });
-
-        Assert.NotNull(result);
-        Assert.Equal(5, result!.StatRolls.Count);
-        Assert.Contains(result.StatRolls, x => x.Status == "ATTACK");
-        Assert.Contains(result.StatRolls, x => x.Status == "STRENGTH" && x.Min == "6" && x.Max == "6");
-        Assert.Contains(result.StatRolls, x => x.Status == "CRITICAL_RATE" && x.Min == "0" && x.Max == "8");
-        Assert.Contains(result.StatRolls, x => x.Status == "ATTACK_SPEED" && x.Min == "0.03" && x.Max == "0.08");
-        Assert.Contains(result.StatRolls, x => x.Status == "ACCURACY" && x.Min == "0" && x.Max == "9");
-    }
-
-    [Fact]
-    public async Task CreateAsync_ReturnsNull_WhenAccountDoesNotExist()
-    {
-        await using var connection = new SqliteConnection("Data Source=:memory:");
-        await connection.OpenAsync();
-
-        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
-            .UseSqlite(connection)
-            .Options;
-
-        await using (var setupContext = new AstralRecordDbContext(options))
-        {
-            await CreateEquipmentTestSchemaAsync(setupContext);
-            await setupContext.Database.ExecuteSqlRawAsync(@"
-                CREATE TABLE equipment_instance_enchant_pool (
-                    enchant_pool_id TEXT NOT NULL PRIMARY KEY,
-                    equipment_instance_id TEXT NOT NULL,
-                    pool_index INTEGER NOT NULL,
-                    recipe_id TEXT NULL,
-                    required_material_item_id TEXT NULL,
-                    required_material_amount INTEGER NOT NULL,
-                    required_currency INTEGER NOT NULL,
-                    created_at TEXT NOT NULL,
-                    updated_at TEXT NOT NULL,
-                    created_by TEXT NOT NULL,
-                    updated_by TEXT NOT NULL,
-                    is_deleted INTEGER NOT NULL
-                );");
-            await setupContext.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");
-        }
-
-        var itemRepository = await CreateItemRepositoryFromFilebaseAsync();
-
-        await using var dbContext = new AstralRecordDbContext(options);
-        var equipmentRepository = new EquipmentRepository(dbContext);
-        var accountRepository = new AccountRepository(dbContext);
-        var runeRepository = new RuneRepository(dbContext);
-        var service = new EquipmentService(itemRepository, equipmentRepository, runeRepository, accountRepository);
-
-        var result = await service.CreateAsync(new EquipmentCreateRequest
-        {
-            EquipmentId = "sample_sword",
+            OperationId = orbOperations.ExecuteResult.OperationId,
             AccountId = Guid.NewGuid(),
-            Source = "test",
-            CreatedBy = Guid.NewGuid()
+            EquipmentInstanceId = Guid.NewGuid(),
+            OrbInventoryEntryId = Guid.NewGuid(),
+            OrbItemId = "repair_orb",
+        };
+
+        var result = await service.ApplyOrbAsync(request);
+
+        Assert.Same(request, orbOperations.LastExecuteRequest);
+        Assert.Same(orbOperations.ExecuteResult, result);
+    }
+
+    [Fact]
+    public async Task FindOrbOperation_DelegatesOwnerScopedLookup()
+    {
+        var operationId = Guid.NewGuid();
+        var accountId = Guid.NewGuid();
+        var orbOperations = new TestOrbOperationRepository
+        {
+            FindResult = new EquipmentOrbOperationResponse
+            {
+                OperationId = operationId,
+                Result = "PAYMENT_UNAVAILABLE",
+                OperationType = "TRANSCENDENCE",
+            },
+        };
+        var service = CreateService(orbOperations);
+
+        var result = await service.FindOrbOperationAsync(operationId, accountId);
+
+        Assert.Same(orbOperations.FindResult, result);
+        Assert.Equal((operationId, accountId), orbOperations.LastFindRequest);
+    }
+
+    [Fact]
+    public async Task DeleteEnchant_RejectsEquipmentOwnedByAnotherAccount()
+    {
+        var ownerId = Guid.NewGuid();
+        var equipment = new TestEquipmentRepository
+        {
+            Instance = CreateInstance(ownerId),
+        };
+        var service = CreateService(new TestOrbOperationRepository(), equipment);
+
+        var result = await service.DeleteEnchantAsync(new EquipmentEnchantDeleteRequest
+        {
+            EquipmentInstanceId = equipment.Instance.EquipmentInstanceId,
+            SlotIndex = 0,
+            UpdatedBy = Guid.NewGuid(),
         });
 
         Assert.Null(result);
+        Assert.False(equipment.DeleteEnchantCalled);
     }
 
     [Fact]
-    public async Task UpdateDurabilityAsync_ClampsValue_ToDurabilityMax()
+    public async Task Create_PersistsEquipmentAndResolvedStatRolls()
     {
-        await using var connection = new SqliteConnection("Data Source=:memory:");
-        await connection.OpenAsync();
-
-        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
-            .UseSqlite(connection)
-            .Options;
-
         var accountId = Guid.NewGuid();
         var actorId = Guid.NewGuid();
+        var item = CreateEquipmentItem();
+        var equipment = new TestEquipmentRepository();
+        var service = new EquipmentService(
+            new TestItemRepository(item),
+            equipment,
+            new TestOrbOperationRepository(),
+            new TestRuneRepository(),
+            new TestAccountRepository(accountId));
 
-        await using (var setupContext = new AstralRecordDbContext(options))
+        var result = await service.CreateAsync(new EquipmentCreateRequest
         {
-            await CreateEquipmentTestSchemaAsync(setupContext);
-
-            setupContext.Accounts.Add(new AstralRecordApi.Data.Entities.AccountEntity
-            {
-                Uuid = accountId,
-                UserId = Guid.NewGuid(),
-                AccountName = "tester",
-                SlotIndex = 0,
-                IsActive = true,
-                Mode = 0,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                CreatedBy = actorId,
-                UpdatedBy = actorId,
-                IsDeleted = false,
-            });
-
-            await setupContext.SaveChangesAsync();
-            await setupContext.Database.ExecuteSqlRawAsync("PRAGMA foreign_keys = ON;");
-        }
-
-        var itemRepository = await CreateItemRepositoryFromFilebaseAsync();
-
-        await using var dbContext = new AstralRecordDbContext(options);
-        var equipmentRepository = new EquipmentRepository(dbContext);
-        var accountRepository = new AccountRepository(dbContext);
-        var runeRepository = new RuneRepository(dbContext);
-        var service = new EquipmentService(itemRepository, equipmentRepository, runeRepository, accountRepository);
-
-        var created = await service.CreateAsync(new EquipmentCreateRequest
-        {
-            EquipmentId = "sample_sword",
+            EquipmentId = item.Id,
             AccountId = accountId,
             Source = "test",
-            CreatedBy = actorId
+            CreatedBy = actorId,
         });
 
-        Assert.NotNull(created);
-        Assert.True(created!.DurabilityMax > 0);
-        var durabilityMax = created.DurabilityMax!.Value;
+        Assert.NotNull(result);
+        Assert.Equal(accountId, result!.AccountId);
+        Assert.Equal(100, result.DurabilityMax);
+        Assert.Equal(100, result.DurabilityValue);
+        Assert.Equal(2, result.StatRolls.Count);
+        Assert.Equal(["ATTACK", "CRITICAL_RATE"], result.StatRolls.Select(roll => roll.Status).ToArray());
+        Assert.NotNull(equipment.Instance);
+        Assert.Equal(2, equipment.AddedStatRolls.Count);
+    }
+
+    [Fact]
+    public async Task Create_ReturnsNullWithoutPersistingWhenAccountDoesNotExist()
+    {
+        var equipment = new TestEquipmentRepository();
+        var service = new EquipmentService(
+            new TestItemRepository(CreateEquipmentItem()),
+            equipment,
+            new TestOrbOperationRepository(),
+            new TestRuneRepository(),
+            new TestAccountRepository(Guid.NewGuid()));
+
+        var result = await service.CreateAsync(new EquipmentCreateRequest
+        {
+            EquipmentId = "test_equipment",
+            AccountId = Guid.NewGuid(),
+            Source = "test",
+            CreatedBy = Guid.NewGuid(),
+        });
+
+        Assert.Null(result);
+        Assert.Null(equipment.Instance);
+    }
+
+    [Fact]
+    public async Task UpdateDurability_ClampsValueAndEnforcesOwnership()
+    {
+        var accountId = Guid.NewGuid();
+        var equipment = new TestEquipmentRepository
+        {
+            Instance = CreateInstance(accountId),
+        };
+        equipment.Instance.DurabilityMax = 100;
+        equipment.Instance.DurabilityValue = 20;
+        var service = CreateService(new TestOrbOperationRepository(), equipment);
 
         var updated = await service.UpdateDurabilityAsync(new EquipmentDurabilityUpdateRequest
         {
-            EquipmentInstanceId = created.EquipmentInstanceId,
-            DurabilityValue = durabilityMax + 100,
-            UpdatedBy = actorId
+            EquipmentInstanceId = equipment.Instance.EquipmentInstanceId,
+            DurabilityValue = 999,
+            UpdatedBy = accountId,
+        });
+        var rejected = await service.UpdateDurabilityAsync(new EquipmentDurabilityUpdateRequest
+        {
+            EquipmentInstanceId = equipment.Instance.EquipmentInstanceId,
+            DurabilityValue = 1,
+            UpdatedBy = Guid.NewGuid(),
         });
 
-        Assert.NotNull(updated);
-        Assert.Equal(durabilityMax, updated!.DurabilityValue);
+        Assert.Equal(100, updated!.DurabilityValue);
+        Assert.Null(rejected);
+        Assert.Equal(1, equipment.UpdateInstanceCount);
     }
 
-    private static async Task<ItemRepository> CreateItemRepositoryFromFilebaseAsync()
+    private static EquipmentService CreateService(
+        IEquipmentOrbOperationRepository orbOperations,
+        TestEquipmentRepository? equipment = null)
     {
-        var masterDbConnection = new SqliteConnection("Data Source=:memory:");
-        await masterDbConnection.OpenAsync();
-        var masterOptions = new DbContextOptionsBuilder<MasterDataDbContext>()
-            .UseSqlite(masterDbConnection)
-            .Options;
-        var masterContext = new MasterDataDbContext(masterOptions);
-        await MasterDataTestSeed.CreateSchemaAsync(masterContext);
-        await MasterDataTestSeed.SeedEntryAsync(
-            masterContext,
-            @"E:\AstralRecord-Workspace\40_filebase\10.features.item\equipment\v1.sample_sword.yml",
-            masterType: "item",
-            category: "equipment");
-        return new ItemRepository(masterContext);
+        var accountId = Guid.NewGuid();
+        return new EquipmentService(
+            new TestItemRepository(),
+            equipment ?? new TestEquipmentRepository(),
+            orbOperations,
+            new TestRuneRepository(),
+            new TestAccountRepository(accountId));
     }
 
-    private static async Task CreateEquipmentTestSchemaAsync(AstralRecordDbContext setupContext)
+    private static EquipmentInstanceEntity CreateInstance(Guid accountId) => new()
     {
-        await setupContext.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE account (
-                uuid TEXT NOT NULL PRIMARY KEY,
-                user_id TEXT NOT NULL,
-                account_name TEXT NOT NULL,
-                slot_index INTEGER NOT NULL,
-                is_active INTEGER NOT NULL,
-                mode INTEGER NOT NULL,
-                menu_shortcuts_json TEXT NOT NULL,
-                level INTEGER NOT NULL,
-                total_experience INTEGER NOT NULL,
-                class_id TEXT NOT NULL,
-                class_level INTEGER NOT NULL,
-                class_experience INTEGER NOT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                created_by TEXT NOT NULL,
-                updated_by TEXT NOT NULL,
-                is_deleted INTEGER NOT NULL
-            );");
+        EquipmentInstanceId = Guid.NewGuid(),
+        AccountId = accountId,
+        ItemId = "test_equipment",
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow,
+        CreatedBy = accountId,
+        UpdatedBy = accountId,
+    };
 
-        await setupContext.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE equipment_instance (
-                equipment_instance_id TEXT NOT NULL PRIMARY KEY,
-                account_id TEXT NOT NULL,
-                item_id TEXT NOT NULL,
-                enhance_level INTEGER NOT NULL,
-                rune_max_slots INTEGER NOT NULL,
-                transcendence_rank INTEGER NOT NULL,
-                durability_max INTEGER NULL,
-                durability_value INTEGER NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                created_by TEXT NOT NULL,
-                updated_by TEXT NOT NULL,
-                is_deleted INTEGER NOT NULL,
-                FOREIGN KEY(account_id) REFERENCES account(uuid)
-            );");
+    private static ItemResponse CreateEquipmentItem() => new()
+    {
+        SchemaVersion = 1,
+        Id = "test_equipment",
+        Category = "equipment",
+        Name = "test equipment",
+        Icon = "IRON_SWORD",
+        Rarity = "COMMON",
+        Equipment = new ItemEquipmentResponse
+        {
+            Slot = "WEAPON",
+            Durability = new ItemEquipmentDurabilityResponse { Max = 100 },
+            Stats =
+            [
+                new ItemEquipmentStatResponse
+                {
+                    Status = "ATTACK",
+                    Type = "FLAT",
+                    Value = new ItemEquipmentStatValueResponse { Min = "10", Max = "10" },
+                },
+                new ItemEquipmentStatResponse
+                {
+                    Status = "CRITICAL_RATE",
+                    Type = "FLAT",
+                    Value = new ItemEquipmentStatValueResponse { Min = "1", Max = "5" },
+                },
+            ],
+        },
+    };
 
-        await setupContext.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE equipment_instance_stat_roll (
-                stat_roll_id TEXT NOT NULL PRIMARY KEY,
-                equipment_instance_id TEXT NOT NULL,
-                status TEXT NOT NULL,
-                random_min TEXT NOT NULL,
-                random_max TEXT NOT NULL,
-                sort_order INTEGER NOT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                created_by TEXT NOT NULL,
-                updated_by TEXT NOT NULL
-            );");
+    private sealed class TestOrbOperationRepository : IEquipmentOrbOperationRepository
+    {
+        public EquipmentOrbOperationResponse ExecuteResult { get; init; } = new()
+        {
+            OperationId = Guid.Empty,
+            Result = "NOT_ELIGIBLE",
+            OperationType = string.Empty,
+        };
 
-        await setupContext.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE equipment_instance_enchant (
-                enchant_id TEXT NOT NULL PRIMARY KEY,
-                equipment_instance_id TEXT NOT NULL,
-                slot_index INTEGER NOT NULL,
-                pool_index INTEGER NOT NULL,
-                status TEXT NOT NULL,
-                type TEXT NOT NULL,
-                value TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                created_by TEXT NOT NULL,
-                updated_by TEXT NOT NULL,
-                FOREIGN KEY(equipment_instance_id) REFERENCES equipment_instance(equipment_instance_id)
-            );");
+        public EquipmentOrbOperationResponse? FindResult { get; init; }
 
-        await setupContext.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE equipment_instance_rune (
-                rune_id TEXT NOT NULL PRIMARY KEY,
-                equipment_instance_id TEXT NOT NULL,
-                rune_instance_id TEXT NULL,
-                slot_index INTEGER NOT NULL,
-                item_id TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                created_by TEXT NOT NULL,
-                updated_by TEXT NOT NULL
-            );");
+        public EquipmentOrbOperationRequest? LastExecuteRequest { get; private set; }
+
+        public (Guid OperationId, Guid AccountId)? LastFindRequest { get; private set; }
+
+        public Task<EquipmentOrbOperationResponse> ExecuteAsync(EquipmentOrbOperationRequest request)
+        {
+            LastExecuteRequest = request;
+            return Task.FromResult(ExecuteResult);
+        }
+
+        public Task<EquipmentOrbOperationResponse?> FindAsync(Guid operationId, Guid accountId)
+        {
+            LastFindRequest = (operationId, accountId);
+            return Task.FromResult(FindResult);
+        }
+    }
+
+    private sealed class TestItemRepository(ItemResponse? item = null) : IItemRepository
+    {
+        public IReadOnlyList<ItemSummaryResponse> GetAllSummaries() => item is null
+            ? []
+            : [new ItemSummaryResponse { Id = item.Id, Category = item.Category }];
+
+        public ItemResponse? GetById(string itemId) =>
+            item is not null && string.Equals(item.Id, itemId, StringComparison.OrdinalIgnoreCase)
+                ? item
+                : null;
+    }
+
+    private sealed class TestEquipmentRepository : IEquipmentRepository
+    {
+        public EquipmentInstanceEntity? Instance { get; set; }
+
+        public IReadOnlyList<EquipmentInstanceStatRollEntity> AddedStatRolls { get; private set; } = [];
+
+        public bool DeleteEnchantCalled { get; private set; }
+
+        public int UpdateInstanceCount { get; private set; }
+
+        public Task AddAsync(
+            EquipmentInstanceEntity instance,
+            IReadOnlyList<EquipmentInstanceStatRollEntity> statRolls)
+        {
+            Instance = instance;
+            AddedStatRolls = statRolls;
+            return Task.CompletedTask;
+        }
+
+        public Task<EquipmentInstanceEntity?> FindInstanceAsync(Guid instanceId) =>
+            Task.FromResult(Instance?.EquipmentInstanceId == instanceId ? Instance : null);
+
+        public Task<IReadOnlyList<EquipmentInstanceStatRollEntity>> FindStatRollsAsync(Guid instanceId) =>
+            Task.FromResult<IReadOnlyList<EquipmentInstanceStatRollEntity>>([]);
+
+        public Task<IReadOnlyList<EquipmentInstanceEnchantEntity>> FindEnchantsAsync(Guid instanceId) =>
+            Task.FromResult<IReadOnlyList<EquipmentInstanceEnchantEntity>>([]);
+
+        public Task<IReadOnlyList<EquipmentInstanceRuneEntity>> FindRunesAsync(Guid instanceId) =>
+            Task.FromResult<IReadOnlyList<EquipmentInstanceRuneEntity>>([]);
+
+        public Task<bool> DeleteEnchantBySlotIndexAsync(Guid instanceId, int slotIndex, Guid accountId)
+        {
+            DeleteEnchantCalled = true;
+            return Task.FromResult(true);
+        }
+
+        public Task<bool> UpsertRuneAsync(Guid instanceId, Guid accountId, EquipmentInstanceRuneEntity rune) =>
+            Task.FromResult(true);
+
+        public Task<bool> DeleteRuneBySlotIndexAsync(Guid instanceId, int slotIndex) =>
+            Task.FromResult(false);
+
+        public Task<EquipmentInstanceEntity?> UpdateDurabilityAsync(
+            Guid instanceId,
+            int durabilityValue,
+            Guid updatedBy)
+        {
+            if (Instance?.EquipmentInstanceId != instanceId
+                || Instance.AccountId != updatedBy
+                || !Instance.DurabilityMax.HasValue
+                || !Instance.DurabilityValue.HasValue)
+                return Task.FromResult<EquipmentInstanceEntity?>(null);
+            Instance.DurabilityValue = Math.Clamp(durabilityValue, 0, Instance.DurabilityMax.Value);
+            Instance.UpdatedBy = updatedBy;
+            UpdateInstanceCount++;
+            return Task.FromResult<EquipmentInstanceEntity?>(Instance);
+        }
+
+        public Task<bool> SoftDeleteInstanceAsync(Guid instanceId) => Task.FromResult(false);
+    }
+
+    private sealed class TestRuneRepository : IRuneRepository
+    {
+        public Task AddAsync(RuneInstanceEntity instance, IReadOnlyList<RuneInstanceStatRollEntity> statRolls) =>
+            Task.CompletedTask;
+
+        public Task<RuneInstanceEntity?> FindInstanceAsync(Guid instanceId) =>
+            Task.FromResult<RuneInstanceEntity?>(null);
+
+        public Task<IReadOnlyList<RuneInstanceStatRollEntity>> FindStatRollsAsync(Guid instanceId) =>
+            Task.FromResult<IReadOnlyList<RuneInstanceStatRollEntity>>([]);
+    }
+
+    private sealed class TestAccountRepository(Guid accountId) : IAccountRepository
+    {
+        public Task<IReadOnlyList<AccountResponse>> GetByUserIdAsync(Guid userId) =>
+            Task.FromResult<IReadOnlyList<AccountResponse>>([]);
+
+        public Task<AccountResponse?> GetByUuidAsync(Guid uuid) =>
+            Task.FromResult<AccountResponse?>(uuid == accountId ? new AccountResponse { Uuid = uuid } : null);
+
+        public Task<AccountResponse> CreateAsync(AccountCreateRequest request) =>
+            throw new NotSupportedException();
+
+        public Task<AccountResponse?> UpdateAsync(Guid uuid, AccountUpdateRequest request) =>
+            throw new NotSupportedException();
     }
 }
-

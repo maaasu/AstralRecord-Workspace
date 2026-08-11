@@ -505,11 +505,6 @@ tags:
     description: 通貨交換を提供する NPC。
     category: NPC_ROLE
     appliesTo: [MOB]
-  - id: equipment_processing
-    displayName: 装備加工
-    description: 装備の修理と強化を提供する NPC。
-    category: NPC_ROLE
-    appliesTo: [MOB]
   - id: armor_shop
     displayName: 防具店
     description: 防具を扱う店舗 NPC。
@@ -559,11 +554,6 @@ tags:
   - id: blacksmith
     displayName: 鍛冶
     description: 鍛冶設備や鍛冶工程で扱うレシピ。
-    category: CRAFTING
-    appliesTo: [RECIPE]
-  - id: enhance
-    displayName: 強化
-    description: 既存アイテムを強化するレシピ。
     category: CRAFTING
     appliesTo: [RECIPE]
   - id: alchemy

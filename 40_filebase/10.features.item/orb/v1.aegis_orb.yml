@@ -1,0 +1,22 @@
+# design:
+#   motif: "防具強化 / イージス / 守りの加護"
+#   progression: 0
+schemaVersion: 1
+id: aegis_orb
+category: orb
+name: "&9イージスのオーブ"
+icon: HEART_OF_THE_SEA
+rarity: RARE
+maxStack: 64
+saleValue: 80
+lore:
+  - "&7状態ランク0の防具を1段階強化する。"
+  - "&7成功率と失敗時挙動は防具ごとに異なる。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: ENHANCE
+    targetSlots: [HEAD, CHEST, LEGS, FEET]
+    rank: 0
+    rankMode: EXACT

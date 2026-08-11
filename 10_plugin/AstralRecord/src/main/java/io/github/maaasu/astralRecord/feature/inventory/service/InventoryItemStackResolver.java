@@ -20,6 +20,7 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 
 /**
  * API の inventory_entry を Bukkit の ItemStack に解決します。
@@ -43,8 +44,18 @@ final class InventoryItemStackResolver {
      * @return 生成できた ItemStack。アイテム情報が見つからない場合は null
      */
     @Nullable ItemStack resolve(@NotNull InventoryEntryModel entry) {
+        return resolve(entry, null);
+    }
+
+    /** 所有accountが分かる表示経路では、別accountへ譲渡済みの装備を生成しません。 */
+    @Nullable ItemStack resolve(
+        @NotNull InventoryEntryModel entry,
+        @Nullable UUID expectedAccountId
+    ) {
         if (entry.getItemId() != null && !entry.getItemId().isBlank()) {
-            ItemModel itemModel = resolveItemModel(entry.getItemId());
+            ItemModel itemModel = expectedAccountId == null
+                ? resolveItemModel(entry.getItemId())
+                : itemService.findLoadedById(entry.getItemId());
             if (itemModel == null) {
                 return null;
             }
@@ -57,13 +68,20 @@ final class InventoryItemStackResolver {
         }
 
         return switch (instanceType) {
-            case EQUIPMENT -> resolveEquipment(entry);
+            case EQUIPMENT -> resolveEquipment(entry, expectedAccountId);
             case RUNE -> resolveRune(entry);
         };
     }
 
     @Nullable ItemStack resolveCurrencyDisplay(@NotNull InventoryEntryModel entry) {
-        ItemStack resolved = resolve(entry);
+        return resolveCurrencyDisplay(entry, null);
+    }
+
+    @Nullable ItemStack resolveCurrencyDisplay(
+        @NotNull InventoryEntryModel entry,
+        @Nullable UUID expectedAccountId
+    ) {
+        ItemStack resolved = resolve(entry, expectedAccountId);
         if (resolved == null) {
             return null;
         }
@@ -99,13 +117,21 @@ final class InventoryItemStackResolver {
         itemStack.setItemMeta(meta);
     }
 
-    private @Nullable ItemStack resolveEquipment(@NotNull InventoryEntryModel entry) {
-        EquipmentInstance instance = itemService.findEquipmentInstanceById(entry.getInstanceId().toString());
-        if (instance == null) {
+    private @Nullable ItemStack resolveEquipment(
+        @NotNull InventoryEntryModel entry,
+        @Nullable UUID expectedAccountId
+    ) {
+        EquipmentInstance instance = expectedAccountId == null
+            ? itemService.findEquipmentInstanceById(entry.getInstanceId().toString())
+            : itemService.findLoadedEquipmentInstanceById(entry.getInstanceId().toString());
+        if (instance == null || expectedAccountId != null
+            && !instance.getAccountId().equalsIgnoreCase(expectedAccountId.toString())) {
             return null;
         }
 
-        ItemModel itemModel = resolveItemModel(instance.getItemId());
+        ItemModel itemModel = expectedAccountId == null
+            ? resolveItemModel(instance.getItemId())
+            : itemService.findLoadedById(instance.getItemId());
         if (itemModel == null) {
             return null;
         }

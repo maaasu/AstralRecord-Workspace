@@ -76,7 +76,7 @@ public final class PlayerInventoryState {
     /**
      * 状態変更があったことを記録します。次回オートセーブで永続化が試行されます。
      */
-    public void markDirty() {
+    public synchronized void markDirty() {
         dirty.set(true);
     }
 
@@ -85,18 +85,18 @@ public final class PlayerInventoryState {
      *
      * @return 直前まで dirty だった場合 true
      */
-    public boolean takeAndClearDirty() {
+    public synchronized boolean takeAndClearDirty() {
         return dirty.getAndSet(false);
     }
 
     /**
      * 永続化に失敗した場合、変更を失わないため dirty フラグを戻します。
      */
-    public void restoreDirty() {
+    public synchronized void restoreDirty() {
         dirty.set(true);
     }
 
-    public boolean isDirty() {
+    public synchronized boolean isDirty() {
         return dirty.get();
     }
 
@@ -421,6 +421,51 @@ public final class PlayerInventoryState {
             return null;
         }
         return previousInventoryId;
+    }
+
+    /**
+     * API 正本で削除・譲渡済みと確定した装備個体へのローカル参照を破棄します。
+     * <p>
+     * これはプレイヤー操作による削除ではなく外部正本との照合だが、失効したDB membershipも
+     * cleanupする必要があるため dirty を立てます。呼び出し側は外部操作laneを解放する前に保存します。
+     *
+     * @param equipmentInstanceId 利用不能になった装備個体 ID
+     */
+    public synchronized void discardUnavailableEquipmentInstance(@NotNull UUID equipmentInstanceId) {
+        boolean changed = false;
+        for (List<InventoryEntryModel> entries : entriesByInventoryId.values()) {
+            changed |= entries.removeIf(entry ->
+                equipmentInstanceId.equals(entry.getInstanceId())
+                    && "EQUIPMENT".equalsIgnoreCase(entry.getInstanceType()));
+        }
+        for (int index = 0; index < loadouts.size(); index++) {
+            EquipmentLoadoutModel loadout = loadouts.get(index);
+            List<EquipmentLoadoutSlotModel> retainedSlots = loadout.getSlots().stream()
+                .filter(slot -> !equipmentInstanceId.equals(slot.getEquipmentInstanceId()))
+                .toList();
+            if (retainedSlots.size() == loadout.getSlots().size()) {
+                continue;
+            }
+            loadouts.set(index, new EquipmentLoadoutModel(
+                loadout.getEquipmentLoadoutId(),
+                loadout.getAccountId(),
+                loadout.getLoadoutProfile(),
+                loadout.getLoadoutName(),
+                loadout.getSortOrder(),
+                loadout.isActive(),
+                loadout.getMetadataJson(),
+                retainedSlots,
+                loadout.getCreatedAt(),
+                loadout.getUpdatedAt(),
+                loadout.getCreatedBy(),
+                loadout.getUpdatedBy(),
+                loadout.isDeleted()
+            ));
+            changed = true;
+        }
+        if (changed) {
+            markDirty();
+        }
     }
 
     /**

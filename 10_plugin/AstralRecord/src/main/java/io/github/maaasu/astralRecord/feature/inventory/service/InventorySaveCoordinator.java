@@ -13,11 +13,16 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 /**
@@ -29,6 +34,9 @@ import java.util.function.Supplier;
  */
 public final class InventorySaveCoordinator {
 
+    private static final long EXTERNAL_SAVE_RETRY_INITIAL_MILLIS = 25L;
+    private static final long EXTERNAL_SAVE_RETRY_MAX_MILLIS = 1_000L;
+
     private final InventoryPersistence persistence;
     private final PlayerInventoryStateRegistry stateRegistry;
     private final Executor asyncExecutor;
@@ -36,6 +44,7 @@ public final class InventorySaveCoordinator {
     private final Map<UUID, SaveLane> lanes = new HashMap<>();
     private final Object retainedStateLock = new Object();
     private final Map<UUID, RetainedStateSlot> retainedStates = new HashMap<>();
+    private final Set<UUID> unresolvedExternalOperations = ConcurrentHashMap.newKeySet();
     private boolean closing;
 
     /**
@@ -72,6 +81,10 @@ public final class InventorySaveCoordinator {
             if (stateRegistry.get(accountId) != state) {
                 return true;
             }
+            if (unresolvedExternalOperations.contains(accountId)) {
+                state.restoreDirty();
+                return false;
+            }
             boolean succeeded = persistence.saveNow(state);
             if (!succeeded) {
                 Logger.warn(LogId.W_5255, accountId);
@@ -95,9 +108,209 @@ public final class InventorySaveCoordinator {
             if (stateRegistry.get(accountId) != state) {
                 return true;
             }
+            if (unresolvedExternalOperations.contains(accountId)) {
+                state.restoreDirty();
+                return false;
+            }
             persistence.save(state, InventoryPersistence.SaveTrigger.AUTO);
             return !persistence.hasPendingChanges(state);
         });
+    }
+
+    /**
+     * 現在の inventory state を保存した直後に、同じアカウント lane 内で外部の原子操作を実行します。
+     * <p>
+     * この job は coalesce されません。操作の supplier が戻るまで後続の auto-save / logout-save は
+     * 開始されないため、API が直接更新した inventory entry を supplier 内で正本照合してから lane を
+     * 解放できます。支払いのローカル先行消費は行わず、API transaction を唯一の消費正本にします。
+     *
+     * @param accountId 対象アカウント ID
+     * @param operation 事前保存後に実行する原子操作と正本照合
+     * @param <T> 操作結果型
+     * @return 操作結果を返す future。事前保存失敗時または lane 実行失敗時は例外完了する
+     */
+    public <T> @NotNull CompletableFuture<T> executeExclusiveAfterSave(
+        @NotNull UUID accountId,
+        @NotNull Supplier<T> operation
+    ) {
+        PlayerInventoryState expectedState = stateRegistry.get(accountId);
+        CompletableFuture<T> operationResult = new CompletableFuture<>();
+        if (expectedState == null) {
+            operationResult.completeExceptionally(
+                new IllegalStateException("Inventory state is not loaded for account " + accountId)
+            );
+            return operationResult;
+        }
+
+        expectedState.markDirty();
+        // lane待機中もaccepted済み外部操作として扱い、shutdown/quitの先行snapshot保存を防ぐ。
+        unresolvedExternalOperations.add(accountId);
+        AtomicBoolean operationStarted = new AtomicBoolean();
+        AtomicReference<T> completedResult = new AtomicReference<>();
+        CompletableFuture<Boolean> laneResult = enqueue(accountId, false, () -> {
+            if (stateRegistry.get(accountId) != expectedState) {
+                unresolvedExternalOperations.remove(accountId);
+                throw new IllegalStateException("Inventory state generation changed for account " + accountId);
+            }
+            if (!persistence.saveNow(expectedState)) {
+                unresolvedExternalOperations.remove(accountId);
+                Logger.warn(LogId.W_5255, accountId);
+                throw new IllegalStateException("Failed to persist inventory before external operation");
+            }
+
+            operationStarted.set(true);
+            T result = operation.get();
+            completedResult.set(result);
+            unresolvedExternalOperations.remove(accountId);
+            return true;
+        });
+        laneResult.whenComplete((succeeded, throwable) -> {
+            if (!operationStarted.get()
+                && (throwable != null || !Boolean.TRUE.equals(succeeded))) {
+                unresolvedExternalOperations.remove(accountId);
+            }
+            if (throwable != null) {
+                operationResult.completeExceptionally(throwable);
+            } else if (!Boolean.TRUE.equals(succeeded)) {
+                operationResult.completeExceptionally(new IllegalStateException(
+                    "Inventory save coordinator rejected external operation for account " + accountId
+                ));
+            } else {
+                operationResult.complete(completedResult.get());
+            }
+        });
+        return operationResult;
+    }
+
+    /**
+     * 保存済み entry baseline を受け取る外部原子操作を、同一 account lane 内で実行します。
+     * <p>
+     * pre-save は保存中のローカル変更が無くなるまで繰り返し、最後に API が返した persisted rows を
+     * operation へ渡します。operation はその baseline・現在のローカル state・API 正本を三者マージし、
+     * 一度だけ結果を返してください。その後も dirty が安定して消えるまで保存を繰り返し、state monitor
+     * 内で未解決境界を解除します。これにより API 待機中の報酬・消費を失わず、logout / shutdown save を
+     * マージ済み状態の永続化より先へ進めません。
+     *
+     * @param accountId 対象アカウント ID
+     * @param operation 保存済み baseline を受け取る原子操作と三者マージ
+     * @param <T> 操作結果型
+     * @return 操作結果を返す future
+     */
+    public <T> @NotNull CompletableFuture<T> executeExclusiveAfterSave(
+        @NotNull UUID accountId,
+        @NotNull Function<InventoryPersistence.PersistedInventoryBaseline, T> operation
+    ) {
+        PlayerInventoryState expectedState = stateRegistry.get(accountId);
+        CompletableFuture<T> operationResult = new CompletableFuture<>();
+        if (expectedState == null) {
+            operationResult.completeExceptionally(
+                new IllegalStateException("Inventory state is not loaded for account " + accountId)
+            );
+            return operationResult;
+        }
+
+        expectedState.markDirty();
+        unresolvedExternalOperations.add(accountId);
+        AtomicBoolean operationStarted = new AtomicBoolean();
+        AtomicReference<T> completedResult = new AtomicReference<>();
+        CompletableFuture<Boolean> laneResult = enqueue(accountId, false, () -> {
+            if (stateRegistry.get(accountId) != expectedState) {
+                unresolvedExternalOperations.remove(accountId);
+                throw new IllegalStateException("Inventory state generation changed for account " + accountId);
+            }
+
+            InventoryPersistence.PersistedInventoryBaseline baseline;
+            try {
+                baseline = awaitStablePreSave(accountId, expectedState);
+            } catch (RuntimeException | Error preSaveFailure) {
+                // operation.apply has not run, so no external transaction can be in doubt.
+                unresolvedExternalOperations.remove(accountId);
+                throw preSaveFailure;
+            }
+            operationStarted.set(true);
+            T result = operation.apply(baseline);
+            completedResult.set(result);
+            persistMergedStateUntilStable(accountId, expectedState);
+            return true;
+        });
+        laneResult.whenComplete((succeeded, throwable) -> {
+            if (!operationStarted.get()
+                && (throwable != null || !Boolean.TRUE.equals(succeeded))) {
+                unresolvedExternalOperations.remove(accountId);
+            }
+            if (throwable != null) {
+                operationResult.completeExceptionally(throwable);
+            } else if (!Boolean.TRUE.equals(succeeded)) {
+                operationResult.completeExceptionally(new IllegalStateException(
+                    "Inventory save coordinator rejected external operation for account " + accountId
+                ));
+            } else {
+                operationResult.complete(completedResult.get());
+            }
+        });
+        return operationResult;
+    }
+
+    private @NotNull InventoryPersistence.PersistedInventoryBaseline awaitStablePreSave(
+        @NotNull UUID accountId,
+        @NotNull PlayerInventoryState expectedState
+    ) {
+        long retryDelayMillis = EXTERNAL_SAVE_RETRY_INITIAL_MILLIS;
+        while (true) {
+            if (stateRegistry.get(accountId) != expectedState) {
+                unresolvedExternalOperations.remove(accountId);
+                throw new IllegalStateException("Inventory state generation changed for account " + accountId);
+            }
+            InventoryPersistence.PersistedInventoryBaseline baseline =
+                persistence.saveNowWithBaseline(expectedState);
+            if (baseline != null && baseline.accountId().equals(accountId)) {
+                return baseline;
+            }
+            Logger.warn(LogId.W_5255, accountId);
+            waitForExternalSaveRetry(accountId, retryDelayMillis);
+            retryDelayMillis = Math.min(EXTERNAL_SAVE_RETRY_MAX_MILLIS, retryDelayMillis * 2L);
+        }
+    }
+
+    private void persistMergedStateUntilStable(
+        @NotNull UUID accountId,
+        @NotNull PlayerInventoryState expectedState
+    ) {
+        long retryDelayMillis = EXTERNAL_SAVE_RETRY_INITIAL_MILLIS;
+        while (true) {
+            if (stateRegistry.get(accountId) != expectedState) {
+                throw new IllegalStateException(
+                    "Inventory state generation changed after external operation for account " + accountId
+                );
+            }
+            boolean saved = persistence.saveNow(expectedState);
+            synchronized (expectedState) {
+                if (stateRegistry.get(accountId) != expectedState) {
+                    throw new IllegalStateException(
+                        "Inventory state generation changed after external operation for account " + accountId
+                    );
+                }
+                if (saved && !persistence.hasPendingChanges(expectedState)) {
+                    unresolvedExternalOperations.remove(accountId);
+                    return;
+                }
+            }
+            Logger.warn(LogId.W_5255, accountId);
+            waitForExternalSaveRetry(accountId, retryDelayMillis);
+            retryDelayMillis = Math.min(EXTERNAL_SAVE_RETRY_MAX_MILLIS, retryDelayMillis * 2L);
+        }
+    }
+
+    private static void waitForExternalSaveRetry(@NotNull UUID accountId, long delayMillis) {
+        try {
+            TimeUnit.MILLISECONDS.sleep(Math.max(1L, delayMillis));
+        } catch (InterruptedException interrupted) {
+            Thread.currentThread().interrupt();
+            throw new IllegalStateException(
+                "Inventory reconciliation save interrupted for account " + accountId,
+                interrupted
+            );
+        }
     }
 
     /**
@@ -135,6 +348,12 @@ public final class InventorySaveCoordinator {
         @NotNull Runnable logoutSave
     ) {
         CompletableFuture<Boolean> future = enqueue(accountId, false, () -> {
+            if (unresolvedExternalOperations.contains(accountId)) {
+                if (expectedState != null) {
+                    expectedState.restoreDirty();
+                }
+                return false;
+            }
             logoutSave.run();
             boolean succeeded = expectedState == null || !persistence.hasPendingChanges(expectedState);
             if (!succeeded) {
@@ -170,7 +389,7 @@ public final class InventorySaveCoordinator {
      */
     public void cleanupAfterRetry(@NotNull PlayerInventoryState state) {
         UUID accountId = state.getAccountId();
-        if (persistence.hasPendingChanges(state)) {
+        if (unresolvedExternalOperations.contains(accountId) || persistence.hasPendingChanges(state)) {
             return;
         }
         boolean removed;
@@ -204,6 +423,16 @@ public final class InventorySaveCoordinator {
             lane.jobs.addLast(new SaveJob(false, () -> true, barrier));
         }
         return barrier.thenApply(ignored -> null);
+    }
+
+    /**
+     * API側の原子操作結果または正本照合が未確定で、ローカルstateを保存してはならないか返します。
+     *
+     * @param accountId 対象アカウントID
+     * @return 未確定操作を保持している場合 {@code true}
+     */
+    public boolean hasUnresolvedExternalOperation(@NotNull UUID accountId) {
+        return unresolvedExternalOperations.contains(accountId);
     }
 
     /**

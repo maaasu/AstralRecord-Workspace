@@ -80,6 +80,8 @@ feature 設計書の先頭番号は、原則として `40_filebase` のディレ
 │  ├─ 09-guide.md
 │  ├─ 10-item.md
 │  ├─ 11-bundle.md
+│  ├─ 12-enchant.md
+│  ├─ 13-orb.md
 │  ├─ 14-consumable.md
 │  ├─ 15-currency.md
 │  ├─ 16-equipment.md

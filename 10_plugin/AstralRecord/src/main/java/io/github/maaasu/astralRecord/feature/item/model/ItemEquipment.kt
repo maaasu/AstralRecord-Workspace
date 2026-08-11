@@ -167,11 +167,10 @@ data class ItemEquipmentEnhanceLevel(
     val statIncrease: List<ItemEquipmentEnhanceStatIncrease> = emptyList(),
     /** このレベルで加算される最大耐久値 */
     val durabilityBonus: Int?,
-    val recipeId: String? = null,
-    val requiredMaterials: List<ItemEquipmentEnhanceMaterial> = emptyList(),
-    val requiredCurrency: Int = 0,
     val successRate: Double = 1.0,
     val failAction: ItemEquipmentEnhanceFailAction = ItemEquipmentEnhanceFailAction.NONE,
+    /** SET_LEVEL 失敗時に設定する強化値。 */
+    val failTargetLevel: Int? = null,
 )
 
 /**
@@ -194,8 +193,8 @@ data class ItemEquipmentEnhanceMaterial(
 
 enum class ItemEquipmentEnhanceFailAction {
     NONE,
-    DOWNGRADE,
-    DESTROY,
+    SET_LEVEL,
+    DECREASE_ONE,
     ;
 
     companion object {

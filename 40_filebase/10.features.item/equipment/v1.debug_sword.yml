@@ -33,31 +33,28 @@ equipment:
           - status: ATTACK
             type: FLAT
             value: 100
-        requiredCurrency: 1
-        successRate: 1.0
+        successRate: 0.75
         failAction: NONE
       - level: 2
         statIncrease:
           - status: ATTACK
             type: FLAT
             value: 100
-        requiredCurrency: 1
-        successRate: 1.0
-        failAction: NONE
+        successRate: 0.75
+        failAction: DECREASE_ONE
       - level: 3
         statIncrease:
           - status: ATTACK
             type: FLAT
             value: 100
-        requiredCurrency: 1
-        successRate: 1.0
-        failAction: NONE
+        successRate: 0.50
+        failAction: SET_LEVEL
+        failTargetLevel: 0
       - level: 4
         statIncrease:
           - status: ATTACK
             type: FLAT
             value: 100
-        requiredCurrency: 1
         successRate: 1.0
         failAction: NONE
       - level: 5
@@ -65,7 +62,6 @@ equipment:
           - status: ATTACK
             type: FLAT
             value: 100
-        requiredCurrency: 1
         successRate: 1.0
         failAction: NONE
       - level: 6
@@ -73,6 +69,21 @@ equipment:
           - status: ATTACK
             type: FLAT
             value: 100
-        requiredCurrency: 1
         successRate: 1.0
         failAction: NONE
+  enchant:
+    maxSlots: 3
+  transcendence:
+    - name: 星鋼化
+      rank: 1
+      requiredEnhanceLevel: 5
+      requiredMaterials:
+        - itemId: astral_dust
+          amount: 1
+      requiredCurrency: 10
+      overrides:
+        name: "&b星鋼のデバッグソード"
+        enhance:
+          maxLevel: 6
+        enchant:
+          maxSlots: 3

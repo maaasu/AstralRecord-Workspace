@@ -1,0 +1,20 @@
+# design:
+#   motif: "エンチャント / 満天の星印"
+#   progression: 2
+schemaVersion: 1
+id: enchant_fill_all_orb
+category: orb
+name: "&6満天刻印のオーブ"
+icon: ECHO_SHARD
+rarity: EPIC
+maxStack: 64
+saleValue: 240
+lore:
+  - "&7空いている全エンチャント枠へ一括付与する。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: ENCHANT
+    enchantMasterId: enchant:enchant001
+    enchantOperation: FILL_ALL_EMPTY

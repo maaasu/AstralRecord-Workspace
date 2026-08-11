@@ -15,41 +15,107 @@ namespace AstralRecordApi.Tests.Repositories;
 public class ItemRepositoryEnhanceMasterTests
 {
     [Fact]
-    public async Task EnhancementMaterialItems_AreReturnedByListAndDetailRepositories()
+    public async Task OrbItems_AreReturnedByListAndDetailRepositories_WithOperationContracts()
     {
         await using var dbContext = await CreateSeededMasterDataDbContextAsync();
         var repository = new ItemRepository(dbContext);
 
-        var summaries = repository.GetAllSummaries()
-            .Where(item => item.Category == "enhancement_material")
+        var allSummaries = repository.GetAllSummaries();
+        var summaries = allSummaries
+            .Where(item => item.Category == "orb")
             .ToArray();
 
-        Assert.Equal(
-            ["aegis_orb", "freya_orb", "tyr_orb"],
-            summaries.Select(item => item.Id).OrderBy(id => id).ToArray());
+        Assert.DoesNotContain(allSummaries, item => item.Category == "enhancement_material");
+
+        Assert.Contains(summaries, item => item.Id == "tyr_orb");
+        Assert.Contains(summaries, item => item.Id == "repair_orb");
+        Assert.Contains(summaries, item => item.Id == "transcendence_orb");
+        Assert.Contains(summaries, item => item.Id == "enchant_fill_all_orb");
 
         foreach (var itemId in summaries.Select(item => item.Id))
         {
             var item = repository.GetById(itemId);
 
             Assert.NotNull(item);
-            Assert.Equal("enhancement_material", item!.Category);
+            Assert.Equal("orb", item!.Category);
+            Assert.NotNull(item.Orb?.Effect);
         }
+
+        var weaponEnhance = repository.GetById("tyr_orb");
+        var armorEnhance = repository.GetById("aegis_orb");
+        var accessoryEnhance = repository.GetById("freya_orb");
+        Assert.Equal("ENHANCE", weaponEnhance!.Orb!.Effect.Type);
+        Assert.Equal(["WEAPON", "SUBWEAPON"], weaponEnhance.Orb.Effect.TargetSlots);
+        Assert.Equal(["HEAD", "CHEST", "LEGS", "FEET"], armorEnhance!.Orb!.Effect.TargetSlots);
+        Assert.Equal(["ACCESSORY"], accessoryEnhance!.Orb!.Effect.TargetSlots);
+
+        var overwrite = repository.GetById("enchant_overwrite_orb");
+        var fillOne = repository.GetById("enchant_fill_orb");
+        var fillAll = repository.GetById("enchant_fill_all_orb");
+        Assert.Equal("ENCHANT", fillAll!.Orb!.Effect.Type);
+        Assert.Equal("enchant:enchant001", fillAll.Orb.Effect.EnchantMasterId);
+        Assert.Equal("OVERWRITE_RANDOM", overwrite!.Orb!.Effect.EnchantOperation);
+        Assert.Equal("FILL_ONE_EMPTY", fillOne!.Orb!.Effect.EnchantOperation);
+        Assert.Equal("FILL_ALL_EMPTY", fillAll.Orb.Effect.EnchantOperation);
+
+        var highRank = repository.GetById("high_tyr_orb");
+        Assert.Equal(5, highRank!.Orb!.Effect.Rank);
+        Assert.Equal("AT_MOST", highRank.Orb.Effect.RankMode);
+        Assert.Contains("WEAPON", highRank.Orb.Effect.TargetSlots);
+
+        var exactTransition = repository.GetById("transcendence_orb");
+        var highTransition = repository.GetById("high_transcendence_orb");
+        Assert.Equal(1, exactTransition!.Orb!.Effect.Rank);
+        Assert.Equal("EXACT", exactTransition.Orb.Effect.RankMode);
+        Assert.Equal(5, highTransition!.Orb!.Effect.Rank);
+        Assert.Equal("AT_MOST", highTransition.Orb.Effect.RankMode);
+
+        var fixedRepair = repository.GetById("repair_orb");
+        var fullRepair = repository.GetById("full_repair_orb");
+        Assert.Equal(50, fixedRepair!.Orb!.Effect.RepairAmount);
+        Assert.False(fixedRepair.Orb.Effect.RepairFull);
+        Assert.True(fullRepair!.Orb!.Effect.RepairFull);
+    }
+
+    /// <summary>
+    /// 設計入力: 40_filebase/10.features.item/orb/docs.orb.YAMLスキーマ定義.md
+    /// 検証契約: すべてのエンチャントオーブは共通エンチャントマスタへの必須参照として Seeder に収集される。
+    /// </summary>
+    [Fact]
+    public async Task Seeder_CollectsRequiredEnchantMasterReference_FromEveryEnchantOrb()
+    {
+        await using var dbContext = await CreateSeededMasterDataDbContextAsync();
+
+        var references = await dbContext.References
+            .Where(reference => reference.FromMasterType == "item"
+                && reference.ReferenceType == "enchant"
+                && reference.ReferenceIdValue == "enchant001")
+            .OrderBy(reference => reference.FromMasterId)
+            .ToArrayAsync();
+
+        Assert.Equal(
+            ["enchant_fill_all_orb", "enchant_fill_orb", "enchant_overwrite_orb"],
+            references.Select(reference => reference.FromMasterId));
+        Assert.All(references, reference =>
+        {
+            Assert.True(reference.IsRequired);
+            Assert.Equal("$.orb.effect.enchantMasterId", reference.ReferencePath);
+        });
     }
 
     [Fact]
-    public async Task GetById_ReturnsEnhanceData_ForEnhancementGuiTargets()
+    public async Task GetById_ReturnsEnhanceData_ForOrbEnhancementTargets()
     {
         await using var dbContext = await CreateSeededMasterDataDbContextAsync();
         var repository = new ItemRepository(dbContext);
 
         var expectations = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["bronze_sword"] = "WEAPON",
-            ["iron_chestplate"] = "CHEST",
-            ["leather_boots"] = "FEET",
-            ["status_lab_helm"] = "HEAD",
-            ["status_lab_leggings"] = "LEGS",
+            ["traveler_sword"] = "WEAPON",
+            ["traveler_melee_chest"] = "CHEST",
+            ["traveler_melee_boots"] = "FEET",
+            ["traveler_hunter_cap"] = "HEAD",
+            ["traveler_melee_legs"] = "LEGS",
         };
 
         foreach (var expectation in expectations)
@@ -72,22 +138,29 @@ public class ItemRepositoryEnhanceMasterTests
     }
 
     [Fact]
-    public async Task GetById_ReturnsBronzeSwordEnhanceStep_WithRequirements_ForGui()
+    public async Task GetById_ReturnsEnhanceSuccessRateAndThreeFailureContracts_ForOrbGui()
     {
         await using var dbContext = await CreateSeededMasterDataDbContextAsync();
         var repository = new ItemRepository(dbContext);
 
-        var payloadJson = dbContext.Entries.Single(entry => entry.MasterId == "bronze_sword").PayloadJson;
+        var payloadJson = dbContext.Entries.Single(entry => entry.MasterId == "debug_sword").PayloadJson;
         Assert.Contains("\"enhance\":", payloadJson, StringComparison.OrdinalIgnoreCase);
 
-        var item = repository.GetById("bronze_sword");
+        var item = repository.GetById("debug_sword");
 
         Assert.NotNull(item);
-        var firstLevel = Assert.Single(item!.Equipment!.Enhance!.Levels, level => level.Level == 1);
-        Assert.NotEmpty(firstLevel.RequiredMaterials);
-        Assert.True((firstLevel.RequiredCurrency ?? 0) > 0);
-        Assert.True(firstLevel.SuccessRate > 0);
-        Assert.Equal("NONE", firstLevel.FailAction);
+        var levels = item!.Equipment!.Enhance!.Levels;
+        var noChange = Assert.Single(levels, level => level.Level == 1);
+        var decreaseOne = Assert.Single(levels, level => level.Level == 2);
+        var setLevel = Assert.Single(levels, level => level.Level == 3);
+        Assert.Equal(0.75f, noChange.SuccessRate);
+        Assert.Equal("NONE", noChange.FailAction);
+        Assert.Equal(0.75f, decreaseOne.SuccessRate);
+        Assert.Equal("DECREASE_ONE", decreaseOne.FailAction);
+        Assert.Equal(0.50f, setLevel.SuccessRate);
+        Assert.Equal("SET_LEVEL", setLevel.FailAction);
+        Assert.Equal(0, setLevel.FailTargetLevel);
+        Assert.Equal(3, item.Equipment.Enchant!.MaxSlots);
     }
 
     [Fact]
@@ -126,15 +199,9 @@ public class ItemRepositoryEnhanceMasterTests
                           "value": 2
                         }
                       ],
-                      "requiredMaterials": [
-                        {
-                          "itemId": "iron_ingot",
-                          "amount": 1
-                        }
-                      ],
-                      "requiredCurrency": 80,
-                      "successRate": 1.0,
-                      "failAction": "NONE"
+                      "successRate": 0.5,
+                      "failAction": "SET_LEVEL",
+                      "failTargetLevel": 0
                     }
                   ]
                 }
@@ -148,7 +215,10 @@ public class ItemRepositoryEnhanceMasterTests
         Assert.NotNull(item!.Equipment);
         Assert.NotNull(item.Equipment!.Enhance);
         Assert.Equal(3, item.Equipment.Enhance!.MaxLevel);
-        Assert.Single(item.Equipment.Enhance.Levels);
+        var level = Assert.Single(item.Equipment.Enhance.Levels);
+        Assert.Equal(0.5f, level.SuccessRate);
+        Assert.Equal("SET_LEVEL", level.FailAction);
+        Assert.Equal(0, level.FailTargetLevel);
     }
 
     [Fact]

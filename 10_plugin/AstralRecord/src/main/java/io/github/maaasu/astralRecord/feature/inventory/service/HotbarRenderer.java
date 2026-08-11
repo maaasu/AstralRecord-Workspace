@@ -32,10 +32,13 @@ final class HotbarRenderer {
         @Nullable Integer selectedSlot
     ) {
         PlayerInventory inventory = astPlayer.getBukkit().getInventory();
+        var accountId = astPlayer.getAccount().getUuid();
         boolean changed = false;
         for (int dbSlot = HotbarLayout.DB_SLOT_START; dbSlot <= HotbarLayout.DB_SLOT_END; dbSlot++) {
             InventoryEntryModel entry = entries.get(dbSlot);
-            ItemStack itemStack = entry == null ? createHotbarDummyItem(dbSlot) : itemStackResolver.resolve(entry);
+            ItemStack itemStack = entry == null
+                ? createHotbarDummyItem(dbSlot)
+                : itemStackResolver.resolve(entry, accountId);
             if (itemStack == null || itemStack.getType() == Material.AIR) {
                 itemStack = createHotbarDummyItem(dbSlot);
             }
@@ -47,7 +50,7 @@ final class HotbarRenderer {
         InventoryEntryModel offhandEntry = entries.get(HotbarLayout.DB_SLOT_OFFHAND);
         ItemStack offhandStack = offhandEntry == null
             ? createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND)
-            : itemStackResolver.resolve(offhandEntry);
+            : itemStackResolver.resolve(offhandEntry, accountId);
         if (offhandStack == null || offhandStack.getType() == Material.AIR) {
             offhandStack = createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND);
         }

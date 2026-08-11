@@ -78,10 +78,10 @@
 | GET `/api/seteffect/{setId}` | セット効果取得 | `00_docs/20_API設計書/feature/04-item/3-エンドポイント仕様/04_3.00-索引.md` |
 | POST `/api/equipment/instances` | 装備インスタンス作成 | `00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.00-索引.md` |
 | GET `/api/equipment/instances/{instanceId}` | 装備インスタンス取得 | `00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.00-索引.md` |
-| POST `/api/equipment/enchant` | エンチャント適用 | `00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.00-索引.md` |
+| GET `/api/enchant/{enchantMasterId}` | 共通エンチャントマスタ取得 | `00_docs/20_API設計書/feature/04-item/3-エンドポイント仕様/04_3.00-索引.md` |
+| POST `/api/equipment/orb-operations` | オーブ支払い・装備更新・台帳確定 | `00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.00-索引.md` |
+| GET `/api/equipment/orb-operations/{operationId}` | オーブ操作結果照会 | `00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.00-索引.md` |
 | DELETE `/api/equipment/enchant` | エンチャント削除 | `00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.00-索引.md` |
-| POST `/api/equipment/enhance` | 装備強化 | `00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.00-索引.md` |
-| POST `/api/equipment/transcendence` | 超越適用 | `00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.00-索引.md` |
 | POST `/api/equipment/rune` | ルーン装着 | `00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.00-索引.md` |
 | DELETE `/api/equipment/rune` | ルーン解除 | `00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.00-索引.md` |
 | GET `/api/equipment/loadouts?account_id={account_id}` | 装備プリセット一覧取得 | `00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.03-ロードアウト系.md` |
@@ -128,6 +128,18 @@
 | POST `/api/master-data/seed` | filebase から MasterDataDB を同期 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
 | GET `/api/master-data/seed-runs` | Seeder 実行履歴取得 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
 | GET `/api/master-data/health` | MasterDataDB の参照可能状態取得 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
+
+## SQL Server 統合テスト
+
+オーブ操作の本番用 `UPDLOCK` / `HOLDLOCK` 分岐は、`localhost\SQLEXPRESS` 上に
+`AstralRecordOrbIntegration_<random UUID>` の一時 DB を作成する opt-in テストで検証します。
+通常の `dotnet test` では環境変数未指定を検知して実DB処理を行わず終了します。専用テストを実行する場合は次を使用してください。
+
+```powershell
+$env:ASTRALRECORD_RUN_SQLSERVER_INTEGRATION = '1'
+dotnet test 20_api/AstralRecordApi/AstralRecordApi.Tests/AstralRecordApi.Tests.csproj --filter 'FullyQualifiedName~EquipmentOrbOperationSqlServerIntegrationTests'
+Remove-Item Env:ASTRALRECORD_RUN_SQLSERVER_INTEGRATION
+```
 
 ## Scalar API UI
 

@@ -141,6 +141,7 @@ public final class DesignTestFixtures {
             null,
             null,
             null,
+            null,
             null
         );
     }
@@ -180,6 +181,7 @@ public final class DesignTestFixtures {
             null,
             null,
             null,
+            null,
             null
         );
     }
@@ -205,7 +207,6 @@ public final class DesignTestFixtures {
             now,
             now,
             List.of(new EquipmentStatRoll(UUID.randomUUID().toString(), status, min, max, 0)),
-            List.of(),
             List.of(),
             List.of()
         );

@@ -15,7 +15,6 @@ public class EquipmentInstanceResponse
     public IReadOnlyList<EquipmentInstanceStatRollResponse> StatRolls { get; init; } = [];
     public IReadOnlyList<EquipmentInstanceEnchantResponse> Enchants { get; init; } = [];
     public IReadOnlyList<EquipmentInstanceRuneResponse> Runes { get; init; } = [];
-    public IReadOnlyList<EquipmentInstanceEnchantPoolResponse> EnchantPools { get; init; } = [];
 }
 
 public class EquipmentInstanceStatRollResponse
@@ -32,7 +31,8 @@ public class EquipmentInstanceEnchantResponse
     public Guid EnchantId { get; init; }
     public Guid EquipmentInstanceId { get; init; }
     public int SlotIndex { get; init; }
-    public int PoolIndex { get; init; }
+    public string EnchantMasterId { get; init; } = string.Empty;
+    public string EffectId { get; init; } = string.Empty;
     public string Status { get; init; } = string.Empty;
     public string Type { get; init; } = string.Empty;
     public decimal Value { get; init; }
@@ -53,13 +53,4 @@ public class EquipmentInstanceRuneResponse
     public DateTime UpdatedAt { get; init; }
     public Guid CreatedBy { get; init; }
     public Guid UpdatedBy { get; init; }
-}
-
-public class EquipmentInstanceEnchantPoolResponse
-{
-    public int PoolIndex { get; init; }
-    public string? RecipeId { get; init; }
-    public string? RequiredMaterialItemId { get; init; }
-    public int RequiredMaterialAmount { get; init; }
-    public int RequiredCurrency { get; init; }
 }

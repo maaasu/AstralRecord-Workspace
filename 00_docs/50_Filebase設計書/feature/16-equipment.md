@@ -41,9 +41,11 @@ Equipment は、装備中のステータス、武器タグに応じた通常攻�
 ## 強化・セット効果・特殊効果
 
 - 強化は同じ装備を継続利用する手段とし、無強化時の役割を変えません。
-- 状態変化は現在状態の強化上限到達後に装備強化 GUI から実行し、`requiredEnhanceLevel`、必要素材、必要通貨を満たした次 rank へ進めます。
+- 状態変化は現在状態の強化上限到達後に状態変化オーブから確認画面を開き、`requiredEnhanceLevel`、必要素材、必要通貨を満たした即時次 rank へ進めます。
 - `requiredLevel` はプレイヤーレベル、`requiredClasses[].level` は現在選択中クラスのクラスレベルとして判定します。条件未達装備は装備由来性能を発揮しません。
 - セット効果は複数部位を固定するコストに見合う効果とし、単品装備の主役を残します。
+- 装備の `enchant` は `maxSlots` だけを持ち、抽選候補は `12.features.enchant` の共通マスタへ定義します。装備個別のプール・素材・通貨は定義しません。
+- 強化レベルは `successRate` と `failAction`（`NONE` / `SET_LEVEL` / `DECREASE_ONE`）を持ちます。強化素材・通貨は定義せず、試行に使うオーブ1個だけを消費します。
 - enchant、rune、transcendence は、Plugin と各スキーマに存在する仕組みだけを使用します。装備・rune・セット効果には skill 付与を定義しません。
 - 特殊効果を持たせる場合、発動条件、対象、頻度、代替できない理由を明確にします。
 
@@ -51,11 +53,13 @@ Equipment は、装備中のステータス、武器タグに応じた通常攻�
 
 - 入手前に攻略が必要な対象と、その装備で攻略させたい対象が逆転していないこと。
 - loot、recipe、shop、quest の複数経路を設ける場合、最も早い経路を progression の基準にすること。
-- 強化素材やセット構成品が、装備本体より大きく後の段階に偏っていないこと。
+- オーブやセット構成品が、装備本体より大きく後の段階に偏っていないこと。
 
 ## 正本参照
 
 - YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\equipment\docs.equipment.YAMLスキーマ定義.md`
+- 共通 enchant YAML: `E:\AstralRecord-Workspace\40_filebase\12.features.enchant\docs.enchant.YAMLスキーマ定義.md`
+- orb YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\orb\docs.orb.YAMLスキーマ定義.md`
 - set effect YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\equipment\set_effect\docs.set_effect.YAMLスキーマ定義.md`
 - status: `E:\AstralRecord-Workspace\40_filebase\75.shared.status\v1.status_types.yml`
 - slot / hand type / enhance / enchant / rune / transcendence: `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main\java\io\github\maaasu\astralRecord\feature\item\model\ItemEquipment.kt`

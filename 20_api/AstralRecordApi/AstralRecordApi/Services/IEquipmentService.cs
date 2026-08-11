@@ -15,17 +15,20 @@ public interface IEquipmentService
     /// </summary>
     Task<EquipmentInstanceResponse?> GetByInstanceIdAsync(Guid instanceId);
 
-    Task<EquipmentInstanceResponse?> EnchantAsync(EquipmentEnchantRequest request);
+    /// <summary>オーブ支払いと装備更新を冪等な単一トランザクションとして実行する。</summary>
+    Task<EquipmentOrbOperationResponse> ApplyOrbAsync(EquipmentOrbOperationRequest request);
 
+    /// <summary>保存済みオーブ操作結果を所有者照合付きで取得する。</summary>
+    Task<EquipmentOrbOperationResponse?> FindOrbOperationAsync(Guid operationId, Guid accountId);
+
+    /// <summary>所有装備の指定スロットからエンチャントを削除する。</summary>
+    /// <param name="request">削除リクエスト</param>
+    /// <returns>削除後装備。対象不正・所有者不一致時は <c>null</c></returns>
     Task<EquipmentInstanceResponse?> DeleteEnchantAsync(EquipmentEnchantDeleteRequest request);
-
-    Task<EquipmentInstanceResponse?> EnhanceAsync(EquipmentEnhanceRequest request);
 
     Task<EquipmentInstanceResponse?> UpdateDurabilityAsync(EquipmentDurabilityUpdateRequest request);
 
     Task<bool> DeleteAsync(Guid instanceId);
-
-    Task<EquipmentInstanceResponse?> TranscendAsync(EquipmentTranscendenceRequest request);
 
     Task<EquipmentInstanceResponse?> AttachRuneAsync(EquipmentRuneAttachRequest request);
 

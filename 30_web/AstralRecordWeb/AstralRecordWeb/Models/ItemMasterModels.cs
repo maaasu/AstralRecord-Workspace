@@ -42,6 +42,8 @@ public class ItemMasterResponse
     public ItemBundleResponse? Bundle { get; init; }
 
     public ItemRuneResponse? Rune { get; init; }
+
+    public ItemOrbResponse? Orb { get; init; }
 }
 
 public class ItemConsumableResponse
@@ -155,15 +157,11 @@ public class ItemEquipmentEnhanceLevelResponse
 
     public int? DurabilityBonus { get; init; }
 
-    public string? RecipeId { get; init; }
-
-    public IReadOnlyList<ItemEquipmentEnhanceMaterialResponse> RequiredMaterials { get; init; } = [];
-
-    public int? RequiredCurrency { get; init; }
-
     public float SuccessRate { get; init; } = 1.0f;
 
     public string FailAction { get; init; } = "NONE";
+
+    public int? FailTargetLevel { get; init; }
 }
 
 public class ItemEquipmentEnhanceStatIncreaseResponse
@@ -185,41 +183,30 @@ public class ItemEquipmentEnhanceMaterialResponse
 public class ItemEquipmentEnchantResponse
 {
     public int MaxSlots { get; init; } = 1;
-
-    public IReadOnlyList<ItemEquipmentEnchantPoolResponse> Pools { get; init; } = [];
 }
 
-public class ItemEquipmentEnchantPoolResponse
+public class ItemOrbResponse
 {
-    public int PoolIndex { get; init; }
-
-    public string? Id { get; init; }
-
-    public string? RecipeId { get; init; }
-
-    public ItemEquipmentEnchantPoolMaterialResponse? RequiredMaterial { get; init; }
-
-    public int RequiredCurrency { get; init; }
-
-    public IReadOnlyList<ItemEquipmentEnchantEntryResponse> Entries { get; init; } = [];
+    public required ItemOrbEffectResponse Effect { get; init; }
 }
 
-public class ItemEquipmentEnchantPoolMaterialResponse
+public class ItemOrbEffectResponse
 {
-    public required string ItemId { get; init; }
+    public required string Type { get; init; }
 
-    public int Amount { get; init; } = 1;
-}
+    public IReadOnlyList<string> TargetSlots { get; init; } = [];
 
-public class ItemEquipmentEnchantEntryResponse
-{
-    public string? Status { get; init; }
+    public int? Rank { get; init; }
 
-    public string? Type { get; init; }
+    public string RankMode { get; init; } = "EXACT";
 
-    public string? Value { get; init; }
+    public int? RepairAmount { get; init; }
 
-    public int Weight { get; init; } = 1;
+    public bool RepairFull { get; init; }
+
+    public string? EnchantMasterId { get; init; }
+
+    public string? EnchantOperation { get; init; }
 }
 
 public class ItemEquipmentRuneResponse
@@ -235,7 +222,7 @@ public class ItemEquipmentTranscendenceResponse
 
     public int Rank { get; init; }
 
-    public string? RecipeId { get; init; }
+    public int RequiredEnhanceLevel { get; init; }
 
     public IReadOnlyList<ItemEquipmentEnhanceMaterialResponse> RequiredMaterials { get; init; } = [];
 

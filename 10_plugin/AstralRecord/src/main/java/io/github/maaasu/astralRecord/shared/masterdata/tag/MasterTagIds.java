@@ -326,9 +326,6 @@ public final class MasterTagIds {
         /** 通貨交換: 通貨交換を提供する NPC。 */
         public static final String CURRENCY_EXCHANGE = "currency_exchange";
 
-        /** 装備加工: 装備の修理と強化を提供する NPC。 */
-        public static final String EQUIPMENT_PROCESSING = "equipment_processing";
-
         /** 防具店: 防具を扱う店舗 NPC。 */
         public static final String ARMOR_SHOP = "armor_shop";
 
@@ -364,9 +361,6 @@ public final class MasterTagIds {
 
         /** 鍛冶: 鍛冶設備や鍛冶工程で扱うレシピ。 */
         public static final String BLACKSMITH = "blacksmith";
-
-        /** 強化: 既存アイテムを強化するレシピ。 */
-        public static final String ENHANCE = "enhance";
 
         /** 錬金: 錬金・調合工程で扱うレシピ。 */
         public static final String ALCHEMY = "alchemy";
@@ -518,7 +512,6 @@ public final class MasterTagIds {
         Map.entry("acacia", new Definition("acacia", "アカシア", "アカシアをモチーフとする分類。", "LOCATION", List.of("MOB"))),
         Map.entry("class_guide", new Definition("class_guide", "クラス案内", "クラス選択を案内する NPC。", "NPC_ROLE", List.of("MOB"))),
         Map.entry("currency_exchange", new Definition("currency_exchange", "通貨交換", "通貨交換を提供する NPC。", "NPC_ROLE", List.of("MOB"))),
-        Map.entry("equipment_processing", new Definition("equipment_processing", "装備加工", "装備の修理と強化を提供する NPC。", "NPC_ROLE", List.of("MOB"))),
         Map.entry("armor_shop", new Definition("armor_shop", "防具店", "防具を扱う店舗 NPC。", "NPC_ROLE", List.of("MOB"))),
         Map.entry("weapon_shop", new Definition("weapon_shop", "武器店", "武器を扱う店舗 NPC。", "NPC_ROLE", List.of("MOB"))),
         Map.entry("shop", new Definition("shop", "店舗", "店舗機能を持つ NPC。", "NPC_ROLE", List.of("MOB"))),
@@ -529,7 +522,6 @@ public final class MasterTagIds {
         Map.entry("weapon", new Definition("weapon", "武器", "武器を成果物とするレシピ。", "CRAFTING", List.of("RECIPE"))),
         Map.entry("armor", new Definition("armor", "防具", "防具を成果物とするレシピ。", "CRAFTING", List.of("RECIPE"))),
         Map.entry("blacksmith", new Definition("blacksmith", "鍛冶", "鍛冶設備や鍛冶工程で扱うレシピ。", "CRAFTING", List.of("RECIPE"))),
-        Map.entry("enhance", new Definition("enhance", "強化", "既存アイテムを強化するレシピ。", "CRAFTING", List.of("RECIPE"))),
         Map.entry("alchemy", new Definition("alchemy", "錬金", "錬金・調合工程で扱うレシピ。", "CRAFTING", List.of("RECIPE"))),
         Map.entry("consumable", new Definition("consumable", "消耗品", "消耗品を成果物とするレシピ。", "CRAFTING", List.of("RECIPE"))),
         Map.entry("administrator", new Definition("administrator", "管理者", "管理者専用クラス。", "THEME", List.of("CLASS"))),

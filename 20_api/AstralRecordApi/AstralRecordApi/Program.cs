@@ -52,6 +52,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddScoped<IBuffRepository, BuffRepository>();
 builder.Services.AddScoped<IClassRepository, ClassRepository>();
 builder.Services.AddScoped<IItemRepository, ItemRepository>();
+builder.Services.AddScoped<IEnchantRepository, EnchantRepository>();
 builder.Services.AddScoped<ILootRepository, LootRepository>();
 builder.Services.AddScoped<IRecipeRepository, RecipeRepository>();
 builder.Services.AddScoped<ISetEffectRepository, SetEffectRepository>();
@@ -75,6 +76,7 @@ builder.Services.AddScoped<IAccountLearnedSkillRepository, AccountLearnedSkillRe
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
 builder.Services.AddScoped<IEquipmentRepository, EquipmentRepository>();
+builder.Services.AddScoped<IEquipmentOrbOperationRepository, EquipmentOrbOperationRepository>();
 builder.Services.AddScoped<IEquipmentLoadoutRepository, EquipmentLoadoutRepository>();
 builder.Services.AddScoped<IRuneRepository, RuneRepository>();
 builder.Services.AddScoped<IMarketRepository, MarketRepository>();

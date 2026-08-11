@@ -55,14 +55,17 @@ import org.jetbrains.annotations.Nullable;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -106,6 +109,8 @@ public class InventoryService {
      * 表示専用の予約として保持します。stack の全量ではなく、実際に消費予定の一個だけを除外します。</p>
      */
     private final Map<UUID, Map<UUID, Integer>> temporarilyHiddenEntryQuantitiesByAccount = new ConcurrentHashMap<>();
+    /** API原子操作が支払うまで、同じ資産をローカル消費へ二重使用させないaccount単位予約。 */
+    private final Map<UUID, OrbPaymentReservation> orbPaymentReservationsByAccount = new ConcurrentHashMap<>();
 
     /**
      * インベントリサービスを構築します。
@@ -209,6 +214,277 @@ public class InventoryService {
         return state;
     }
 
+    /**
+     * オーブAPI操作が消費予定の通常アイテムとgoldを予約します。
+     * <p>
+     * 予約はstateを減算しないため、報酬加算・移動・三者マージを妨げません。ローカル消費APIだけが
+     * 予約量を利用可能残高から除外し、APIと同じ1個を二重支出することを防ぎます。
+     */
+    public boolean reserveOrbOperationPayment(
+        @NotNull UUID accountId,
+        @NotNull UUID operationId,
+        @NotNull UUID orbEntryId,
+        @NotNull Map<String, Long> normalItemAmounts,
+        long goldAmount
+    ) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null || goldAmount < 0L) {
+            return false;
+        }
+        Map<String, Long> normalized = new LinkedHashMap<>();
+        try {
+            normalItemAmounts.forEach((itemId, amount) -> {
+                if (itemId == null || itemId.isBlank() || amount == null || amount <= 0L) {
+                    return;
+                }
+                String key = itemId.trim().toLowerCase(Locale.ROOT);
+                normalized.merge(key, amount, Math::addExact);
+            });
+        } catch (ArithmeticException overflow) {
+            return false;
+        }
+        synchronized (state) {
+            OrbPaymentReservation current = orbPaymentReservationsByAccount.get(accountId);
+            if (current != null && current.stateGeneration() == state) {
+                return current.operationId().equals(operationId);
+            }
+            if (current != null) {
+                orbPaymentReservationsByAccount.remove(accountId, current);
+            }
+            InventoryEntryModel origin = findOwnedEntry(accountId, orbEntryId);
+            if (origin == null || origin.getItemId() == null || origin.getQuantity() <= 0L) {
+                return false;
+            }
+            String originItemId = origin.getItemId().trim().toLowerCase(Locale.ROOT);
+            normalized.compute(originItemId, (ignored, amount) -> amount == null ? 1L : Math.max(1L, amount));
+            for (Map.Entry<String, Long> requirement : normalized.entrySet()) {
+                if (getNormalItemAmount(accountId, requirement.getKey()) < requirement.getValue()) {
+                    return false;
+                }
+            }
+            if (getGoldAmount(accountId) < goldAmount) {
+                return false;
+            }
+
+            orbPaymentReservationsByAccount.put(
+                accountId,
+                new OrbPaymentReservation(
+                    operationId,
+                    orbEntryId,
+                    state,
+                    Map.copyOf(normalized),
+                    Map.of(),
+                    false,
+                    goldAmount
+                )
+            );
+            return true;
+        }
+    }
+
+    /**
+     * stable pre-save が返した正確な persisted rows へ通常アイテム予約を割り当て直します。
+     * この確定前は対象 item のローカル消費を全停止し、pre-save 中に追加された早い slot の stack と
+     * API の消費順がずれても二重支出が起きないようにします。
+     */
+    public boolean finalizeOrbOperationPaymentReservation(
+        @NotNull UUID accountId,
+        @NotNull UUID operationId,
+        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline
+    ) {
+        if (!baseline.accountId().equals(accountId)) {
+            return false;
+        }
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return false;
+        }
+        synchronized (state) {
+            if (getState(accountId) != state) {
+                return false;
+            }
+            OrbPaymentReservation reservation = orbPaymentReservationsByAccount.get(accountId);
+            if (reservation == null
+                || reservation.stateGeneration() != state
+                || !reservation.operationId().equals(operationId)) {
+                return false;
+            }
+            if (reservation.baselineAllocated()) {
+                return true;
+            }
+            Set<UUID> normalInventoryIds = new LinkedHashSet<>();
+            for (InventoryType type : List.of(InventoryType.BAG, InventoryType.HOTBAR)) {
+                InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, type);
+                if (inventory != null && inventory.isEnabled() && !inventory.isDeleted()) {
+                    normalInventoryIds.add(inventory.getInventoryId());
+                }
+            }
+            List<InventoryEntryModel> persistedNormalEntries = new ArrayList<>();
+            for (UUID inventoryId : normalInventoryIds) {
+                baseline.entriesByInventoryId().getOrDefault(inventoryId, List.of()).stream()
+                    .filter(entry -> !entry.isDeleted() && entry.getQuantity() > 0L)
+                    .forEach(persistedNormalEntries::add);
+            }
+            Map<UUID, Long> allocation = allocateNormalPaymentEntries(
+                reservation,
+                persistedNormalEntries
+            );
+            if (allocation == null) {
+                return false;
+            }
+            orbPaymentReservationsByAccount.put(
+                accountId,
+                new OrbPaymentReservation(
+                    reservation.operationId(),
+                    reservation.orbEntryId(),
+                    state,
+                    reservation.normalItemAmounts(),
+                    Map.copyOf(allocation),
+                    true,
+                    reservation.goldAmount()
+                )
+            );
+            return true;
+        }
+    }
+
+    private @Nullable Map<UUID, Long> allocateNormalPaymentEntries(
+        @NotNull OrbPaymentReservation reservation,
+        @NotNull List<InventoryEntryModel> persistedNormalEntries
+    ) {
+        List<InventoryEntryModel> ordered = persistedNormalEntries.stream()
+            .sorted(Comparator
+                .comparing((InventoryEntryModel entry) ->
+                    entry.getSlotIndex() == null ? Integer.MAX_VALUE : entry.getSlotIndex())
+                .thenComparing(InventoryEntryModel::getInventoryEntryId))
+            .toList();
+        InventoryEntryModel origin = ordered.stream()
+            .filter(entry -> entry.getInventoryEntryId().equals(reservation.orbEntryId()))
+            .findFirst()
+            .orElse(null);
+        if (origin == null || origin.getItemId() == null || origin.getQuantity() <= 0L) {
+            return null;
+        }
+        Map<UUID, Long> reservedByEntryId = new LinkedHashMap<>();
+        reservedByEntryId.put(origin.getInventoryEntryId(), 1L);
+        for (Map.Entry<String, Long> requirement : reservation.normalItemAmounts().entrySet().stream()
+            .sorted(Map.Entry.comparingByKey())
+            .toList()) {
+            long alreadyReserved = 0L;
+            try {
+                for (InventoryEntryModel entry : ordered) {
+                    if (entry.getItemId() != null
+                        && entry.getItemId().equalsIgnoreCase(requirement.getKey())) {
+                        alreadyReserved = Math.addExact(
+                            alreadyReserved,
+                            reservedByEntryId.getOrDefault(entry.getInventoryEntryId(), 0L)
+                        );
+                    }
+                }
+            } catch (ArithmeticException overflow) {
+                return null;
+            }
+            long remaining = requirement.getValue() - alreadyReserved;
+            for (InventoryEntryModel entry : ordered) {
+                if (remaining <= 0L) {
+                    break;
+                }
+                if (entry.getItemId() == null
+                    || !entry.getItemId().equalsIgnoreCase(requirement.getKey())) {
+                    continue;
+                }
+                long reserved = reservedByEntryId.getOrDefault(entry.getInventoryEntryId(), 0L);
+                long available = entry.getQuantity() - reserved;
+                if (available <= 0L) {
+                    continue;
+                }
+                long allocated = Math.min(available, remaining);
+                try {
+                    reservedByEntryId.merge(
+                        entry.getInventoryEntryId(),
+                        allocated,
+                        Math::addExact
+                    );
+                } catch (ArithmeticException overflow) {
+                    return null;
+                }
+                remaining -= allocated;
+            }
+            if (remaining > 0L) {
+                return null;
+            }
+        }
+        return reservedByEntryId;
+    }
+
+    /** terminal結果の三者マージ完了後に、同じoperationの支払い予約を解除します。 */
+    public void releaseOrbOperationPayment(@NotNull UUID accountId, @NotNull UUID operationId) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            orbPaymentReservationsByAccount.computeIfPresent(accountId, (ignored, reservation) ->
+                reservation.operationId().equals(operationId) ? null : reservation
+            );
+            return;
+        }
+        synchronized (state) {
+            orbPaymentReservationsByAccount.computeIfPresent(accountId, (ignored, reservation) ->
+                reservation.operationId().equals(operationId) ? null : reservation
+            );
+        }
+    }
+
+    private long reservedNormalItemAmount(@NotNull UUID accountId, @NotNull String itemId) {
+        OrbPaymentReservation reservation = currentOrbPaymentReservation(accountId);
+        if (reservation == null) {
+            return 0L;
+        }
+        return reservation.normalItemAmounts().getOrDefault(
+            itemId.trim().toLowerCase(Locale.ROOT),
+            0L
+        );
+    }
+
+    private long reservedGoldAmount(@NotNull UUID accountId) {
+        OrbPaymentReservation reservation = currentOrbPaymentReservation(accountId);
+        return reservation == null ? 0L : reservation.goldAmount();
+    }
+
+    private long reservedEntryAmount(@NotNull UUID accountId, @NotNull UUID inventoryEntryId) {
+        OrbPaymentReservation reservation = currentOrbPaymentReservation(accountId);
+        return reservation == null
+            ? 0L
+            : reservation.normalEntryAmounts().getOrDefault(inventoryEntryId, 0L);
+    }
+
+    private boolean hasUnreservedNormalItem(
+        @NotNull UUID accountId,
+        @Nullable String itemId,
+        long amount
+    ) {
+        if (amount <= 0L) {
+            return true;
+        }
+        if (itemId == null || itemId.isBlank()) {
+            return false;
+        }
+        OrbPaymentReservation reservation = currentOrbPaymentReservation(accountId);
+        String normalizedItemId = itemId.trim().toLowerCase(Locale.ROOT);
+        if (reservation != null
+            && !reservation.baselineAllocated()
+            && reservation.normalItemAmounts().containsKey(normalizedItemId)) {
+            return false;
+        }
+        long owned = getNormalItemAmount(accountId, itemId);
+        long reserved = reservedNormalItemAmount(accountId, normalizedItemId);
+        return owned >= reserved && owned - reserved >= amount;
+    }
+
+    private @Nullable OrbPaymentReservation currentOrbPaymentReservation(@NotNull UUID accountId) {
+        OrbPaymentReservation reservation = orbPaymentReservationsByAccount.get(accountId);
+        PlayerInventoryState state = getState(accountId);
+        return reservation != null && reservation.stateGeneration() == state ? reservation : null;
+    }
+
     public List<InventoryModel> getInventories(@NotNull UUID accountId) {
         PlayerInventoryState state = getState(accountId);
         return state == null ? List.of() : state.snapshotInventories();
@@ -239,11 +515,25 @@ public class InventoryService {
         @NotNull UUID inventoryEntryId
     ) {
         PlayerInventoryState state = getState(accountId);
-        if (state == null) return;
+        if (state == null) {
+            throw new IllegalStateException(
+                "Inventory state is not loaded during authoritative reconciliation: " + accountId
+            );
+        }
         InventoryEntryModel authoritative = inventoryRepository.findEntryById(inventoryEntryId);
         // API mutation の非同期 thread とメイン thread の収納操作を同じ state monitor で直列化する。
-        // reconcile と前詰めの間に取得した古い snapshot で無関係 entry を置換しない。
+        // owner検証・reconcile・前詰めの間に古いsnapshotで無関係entryを置換しない。
         synchronized (state) {
+            if (authoritative != null) {
+                InventoryModel authoritativeInventory = state.findInventoryById(authoritative.getInventoryId());
+                if (authoritativeInventory == null
+                    || authoritativeInventory.isDeleted()
+                    || !authoritativeInventory.getAccountId().equals(accountId)) {
+                    // Entry ID survives a market transfer/move, but a different account's
+                    // inventory must never be imported into this player's state.
+                    authoritative = null;
+                }
+            }
             UUID compactInventoryId = state.reconcileAuthoritativeEntry(inventoryEntryId, authoritative);
             if (compactInventoryId != null) {
                 compactInventoryEntriesAfterRemoval(state, compactInventoryId);
@@ -417,14 +707,19 @@ public class InventoryService {
         }
         int safeAmount = Math.max(1, amount);
         InventoryType inventoryType = resolveTargetInventoryType(model);
-        InventoryModel targetInventory = ensureInventory(state, inventoryType);
-        Set<Integer> usedSlots = collectUsedSlots(state, targetInventory);
-
-        int granted = switch (ItemCategory.fromApiValue(model.getCategory())) {
-            case EQUIPMENT -> addInstanceItems(state, targetInventory, model, safeAmount, InventoryInstanceType.EQUIPMENT, usedSlots, source);
-            case RUNE -> addInstanceItems(state, targetInventory, model, safeAmount, InventoryInstanceType.RUNE, usedSlots, source);
-            default -> addStackedItems(state, targetInventory, model, safeAmount, usedSlots);
-        };
+        int granted;
+        synchronized (state) {
+            InventoryModel targetInventory = ensureInventory(state, inventoryType);
+            granted = switch (ItemCategory.fromApiValue(model.getCategory())) {
+                case EQUIPMENT -> addInstanceItems(
+                    state, targetInventory, model, safeAmount,
+                    InventoryInstanceType.EQUIPMENT, source);
+                case RUNE -> addInstanceItems(
+                    state, targetInventory, model, safeAmount,
+                    InventoryInstanceType.RUNE, source);
+                default -> addStackedItems(state, targetInventory, model, safeAmount);
+            };
+        }
         if (granted > 0) {
             autoSwitchDisplayedInventory(astPlayer, inventoryType);
         }
@@ -443,28 +738,32 @@ public class InventoryService {
         }
 
         InventoryType inventoryType = resolveTargetInventoryType(model);
-        InventoryModel targetInventory = ensureInventory(state, inventoryType);
-        Set<Integer> usedSlots = collectUsedSlots(state, targetInventory);
-        Integer slot = findNextFreeSlot(targetInventory, usedSlots);
-        if (slot == null) {
-            return 0;
-        }
+        synchronized (state) {
+            InventoryModel targetInventory = ensureInventory(state, inventoryType);
+            Set<Integer> usedSlots = collectUsedSlots(state, targetInventory);
+            Integer slot = findNextFreeSlot(targetInventory, usedSlots);
+            if (slot == null) {
+                return 0;
+            }
 
-        List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(targetInventory.getInventoryId()).stream()
-            .filter(entry -> !entry.isDeleted())
-            .toList());
-        entries.add(newEntry(
-            targetInventory.getInventoryId(),
-            slot,
-            model.getCategory(),
-            null,
-            instanceType.getCode(),
-            instanceId,
-            1L,
-            null,
-            state.getAccountId()
-        ));
-        state.replaceEntries(targetInventory.getInventoryId(), entries);
+            List<InventoryEntryModel> entries = new ArrayList<>(
+                state.snapshotEntries(targetInventory.getInventoryId()).stream()
+                    .filter(entry -> !entry.isDeleted())
+                    .toList()
+            );
+            entries.add(newEntry(
+                targetInventory.getInventoryId(),
+                slot,
+                model.getCategory(),
+                null,
+                instanceType.getCode(),
+                instanceId,
+                1L,
+                null,
+                state.getAccountId()
+            ));
+            state.replaceEntries(targetInventory.getInventoryId(), entries);
+        }
         autoSwitchDisplayedInventory(astPlayer, inventoryType);
         return 1;
     }
@@ -546,13 +845,11 @@ public class InventoryService {
                         succeeded = false;
                         break;
                     }
-                    Set<Integer> usedSlots = collectUsedSlots(state, targetInventory);
                     succeeded = addStackedItems(
                         state,
                         targetInventory,
                         reward.model(),
-                        reward.amount(),
-                        usedSlots
+                        reward.amount()
                     ) == reward.amount();
                 }
                 if (!succeeded) {
@@ -729,94 +1026,101 @@ public class InventoryService {
         @NotNull ItemModel model,
         int amount,
         @NotNull InventoryInstanceType instanceType,
-        @NotNull Set<Integer> usedSlots,
         @NotNull String source
     ) {
-        UUID accountId = state.getAccountId();
-        List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(inventory.getInventoryId()).stream()
-            .filter(e -> !e.isDeleted())
-            .toList());
-        int granted = 0;
-        for (int i = 0; i < amount; i++) {
-            Integer slot = findNextFreeSlot(inventory, usedSlots);
-            if (slot == null) {
-                break;
+        synchronized (state) {
+            Set<Integer> currentUsedSlots = collectUsedSlots(state, inventory);
+            UUID accountId = state.getAccountId();
+            List<InventoryEntryModel> entries = new ArrayList<>(
+                state.snapshotEntries(inventory.getInventoryId()).stream()
+                    .filter(e -> !e.isDeleted())
+                    .toList()
+            );
+            int granted = 0;
+            for (int i = 0; i < amount; i++) {
+                Integer slot = findNextFreeSlot(inventory, currentUsedSlots);
+                if (slot == null) {
+                    break;
+                }
+                UUID instanceId = createInstanceId(model, accountId, instanceType, source);
+                if (instanceId == null) {
+                    break;
+                }
+                entries.add(newEntry(inventory.getInventoryId(), slot, model.getCategory(), null,
+                    instanceType.getCode(), instanceId, 1L, null, accountId));
+                currentUsedSlots.add(slot);
+                granted++;
             }
-            UUID instanceId = createInstanceId(model, accountId, instanceType, source);
-            if (instanceId == null) {
-                break;
+            if (granted > 0) {
+                state.replaceEntries(inventory.getInventoryId(), entries);
             }
-            entries.add(newEntry(inventory.getInventoryId(), slot, model.getCategory(), null,
-                instanceType.getCode(), instanceId, 1L, null, accountId));
-            usedSlots.add(slot);
-            granted++;
+            return granted;
         }
-        if (granted > 0) {
-            state.replaceEntries(inventory.getInventoryId(), entries);
-        }
-        return granted;
     }
 
     private int addStackedItems(
         @NotNull PlayerInventoryState state,
         @NotNull InventoryModel inventory,
         @NotNull ItemModel model,
-        int amount,
-        @NotNull Set<Integer> usedSlots
+        int amount
     ) {
-        UUID accountId = state.getAccountId();
-        int maxStack = Math.max(1, model.getMaxStack());
-        boolean unlimitedStack = inventory.getInventoryType() == InventoryType.CURRENCY;
-        int capacity = inventoryCapacity(inventory);
-        List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(inventory.getInventoryId()).stream()
-            .filter(e -> !e.isDeleted())
-            .toList());
-        if (unlimitedStack) {
-            entries = new ArrayList<>(normalizeCurrencyEntries(state, inventory));
-            usedSlots.clear();
-            usedSlots.addAll(collectUsedSlots(state, inventory));
+        synchronized (state) {
+            Set<Integer> currentUsedSlots = collectUsedSlots(state, inventory);
+            UUID accountId = state.getAccountId();
+            int maxStack = Math.max(1, model.getMaxStack());
+            boolean unlimitedStack = inventory.getInventoryType() == InventoryType.CURRENCY;
+            int capacity = inventoryCapacity(inventory);
+            List<InventoryEntryModel> entries = new ArrayList<>(
+                state.snapshotEntries(inventory.getInventoryId()).stream()
+                    .filter(e -> !e.isDeleted())
+                    .toList()
+            );
+            if (unlimitedStack) {
+                entries = new ArrayList<>(normalizeCurrencyEntries(state, inventory));
+                currentUsedSlots = collectUsedSlots(state, inventory);
+            }
+            int remaining = amount;
+            int granted = 0;
+            for (int index = 0; index < entries.size(); index++) {
+                if (remaining <= 0) {
+                    break;
+                }
+                InventoryEntryModel entry = entries.get(index);
+                Integer entrySlot = entry.getSlotIndex();
+                if (!unlimitedStack && (entrySlot == null
+                    || !NormalInventoryLayout.isManagedSlot(entrySlot, capacity))) {
+                    continue;
+                }
+                if (!isStackableEntry(entry, model, maxStack)) {
+                    continue;
+                }
+                int addAmount = unlimitedStack
+                    ? remaining
+                    : (int) Math.min(maxStack - entry.getQuantity(), remaining);
+                if (addAmount <= 0) {
+                    continue;
+                }
+                entries.set(index, withQuantity(entry, entry.getQuantity() + addAmount, accountId));
+                granted += addAmount;
+                remaining -= addAmount;
+            }
+            while (remaining > 0) {
+                Integer slot = findNextFreeSlot(inventory, currentUsedSlots);
+                if (slot == null) {
+                    break;
+                }
+                int stackAmount = unlimitedStack ? remaining : Math.min(maxStack, remaining);
+                entries.add(newEntry(inventory.getInventoryId(), slot, model.getCategory(), model.getId(),
+                    null, null, stackAmount, null, accountId));
+                currentUsedSlots.add(slot);
+                granted += stackAmount;
+                remaining -= stackAmount;
+            }
+            if (granted > 0) {
+                state.replaceEntries(inventory.getInventoryId(), entries);
+            }
+            return granted;
         }
-        int remaining = amount;
-        int granted = 0;
-        for (int index = 0; index < entries.size(); index++) {
-            if (remaining <= 0) {
-                break;
-            }
-            InventoryEntryModel entry = entries.get(index);
-            Integer entrySlot = entry.getSlotIndex();
-            if (!unlimitedStack && (entrySlot == null
-                || !NormalInventoryLayout.isManagedSlot(entrySlot, capacity))) {
-                continue;
-            }
-            if (!isStackableEntry(entry, model, maxStack)) {
-                continue;
-            }
-            int addAmount = unlimitedStack
-                ? remaining
-                : (int) Math.min(maxStack - entry.getQuantity(), remaining);
-            if (addAmount <= 0) {
-                continue;
-            }
-            entries.set(index, withQuantity(entry, entry.getQuantity() + addAmount, accountId));
-            granted += addAmount;
-            remaining -= addAmount;
-        }
-        while (remaining > 0) {
-            Integer slot = findNextFreeSlot(inventory, usedSlots);
-            if (slot == null) {
-                break;
-            }
-            int stackAmount = unlimitedStack ? remaining : Math.min(maxStack, remaining);
-            entries.add(newEntry(inventory.getInventoryId(), slot, model.getCategory(), model.getId(),
-                null, null, stackAmount, null, accountId));
-            usedSlots.add(slot);
-            granted += stackAmount;
-            remaining -= stackAmount;
-        }
-        if (granted > 0) {
-            state.replaceEntries(inventory.getInventoryId(), entries);
-        }
-        return granted;
     }
 
     // ---------------------------------------------------------------
@@ -1054,7 +1358,7 @@ public class InventoryService {
             if (guiSlotIndex < 0 || guiSlotIndex >= playerInventory.getStorageContents().length) {
                 continue;
             }
-            ItemStack itemStack = itemStackResolver.resolve(entry);
+            ItemStack itemStack = itemStackResolver.resolve(entry, state.getAccountId());
             if (itemStack == null) {
                 continue;
             }
@@ -1162,8 +1466,8 @@ public class InventoryService {
                 entry -> entry.getSlotIndex() == null ? Integer.MAX_VALUE : entry.getSlotIndex()
             ).thenComparing(InventoryEntryModel::getCreatedAt))
             .map(entry -> inventoryType == InventoryType.CURRENCY
-                ? itemStackResolver.resolveCurrencyDisplay(entry)
-                : itemStackResolver.resolve(entry))
+                ? itemStackResolver.resolveCurrencyDisplay(entry, accountId)
+                : itemStackResolver.resolve(entry, accountId))
             .filter(itemStack -> itemStack != null && itemStack.getType() != Material.AIR)
             .toList();
         if (inventoryType != InventoryType.CURRENCY
@@ -1200,7 +1504,7 @@ public class InventoryService {
 
         return state.snapshotEntries(storageInventory.getInventoryId()).stream()
             .filter(entry -> !entry.isDeleted())
-            .map(this::toStorageViewEntry)
+            .map(entry -> toStorageViewEntry(entry, accountId))
             .filter(entry -> entry != null)
             .filter(entry -> matchesStorageFilters(entry, options))
             .sorted(storageComparator(options))
@@ -1224,55 +1528,57 @@ public class InventoryService {
         if (state == null) {
             return 0;
         }
-        boolean hotbarSlot = sourceBukkitSlot >= 0 && sourceBukkitSlot <= 8;
-        InventoryEntryModel sourceEntry = hotbarSlot
-            ? findHotbarEntryBySlot(state, sourceBukkitSlot + 1)
-            : findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
-        if (sourceEntry == null) {
-            return 0;
-        }
-        ItemStack sourceItem = itemStackResolver.resolve(sourceEntry);
-        if (sourceItem == null || sourceItem.getType() == Material.AIR) {
-            return 0;
-        }
-
-        boolean takeAll = amount <= 0
-            || amount >= sourceItem.getAmount()
-            || sourceEntry.getInstanceType() != null;
-        int movedAmount = takeAll ? sourceItem.getAmount() : Math.max(1, amount);
-        InventoryModel storageInventory = ensureInventory(
-            state,
-            InventoryType.STORAGE,
-            null,
-            state.getAccountId(),
-            DEFAULT_PROFILE
-        );
-        List<InventoryEntryModel> storageEntries = new ArrayList<>(state.snapshotEntries(storageInventory.getInventoryId()).stream()
-            .filter(entry -> !entry.isDeleted())
-            .toList());
-        int stackableIndex = findStackableStorageEntryIndex(storageEntries, sourceEntry);
-        if (stackableIndex >= 0) {
-            InventoryEntryModel existing = storageEntries.get(stackableIndex);
-            storageEntries.set(
-                stackableIndex,
-                withQuantity(existing, existing.getQuantity() + movedAmount, state.getAccountId())
-            );
-        } else {
-            storageEntries.add(copyEntryToStorage(sourceEntry, storageInventory.getInventoryId(), movedAmount, state.getAccountId()));
-        }
-        state.replaceEntries(storageInventory.getInventoryId(), storageEntries);
-
-        if (takeAll) {
-            if (hotbarSlot) {
-                removeHotbarEntryAfterMove(state, sourceEntry);
-            } else {
-                removeDisplayedEntryAfterMove(state, sourceEntry);
+        synchronized (state) {
+            boolean hotbarSlot = sourceBukkitSlot >= 0 && sourceBukkitSlot <= 8;
+            InventoryEntryModel sourceEntry = hotbarSlot
+                ? findHotbarEntryBySlot(state, sourceBukkitSlot + 1)
+                : findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
+            if (sourceEntry == null) {
+                return 0;
             }
-        } else {
-            reduceDisplayedEntryQuantity(state, sourceEntry, sourceEntry.getQuantity() - movedAmount);
+            ItemStack sourceItem = itemStackResolver.resolve(sourceEntry, state.getAccountId());
+            if (sourceItem == null || sourceItem.getType() == Material.AIR) {
+                return 0;
+            }
+
+            boolean takeAll = amount <= 0
+                || amount >= sourceItem.getAmount()
+                || sourceEntry.getInstanceType() != null;
+            int movedAmount = takeAll ? sourceItem.getAmount() : Math.max(1, amount);
+            InventoryModel storageInventory = ensureInventory(
+                state,
+                InventoryType.STORAGE,
+                null,
+                state.getAccountId(),
+                DEFAULT_PROFILE
+            );
+            List<InventoryEntryModel> storageEntries = new ArrayList<>(state.snapshotEntries(storageInventory.getInventoryId()).stream()
+                .filter(entry -> !entry.isDeleted())
+                .toList());
+            int stackableIndex = findStackableStorageEntryIndex(storageEntries, sourceEntry);
+            if (stackableIndex >= 0) {
+                InventoryEntryModel existing = storageEntries.get(stackableIndex);
+                storageEntries.set(
+                    stackableIndex,
+                    withQuantity(existing, existing.getQuantity() + movedAmount, state.getAccountId())
+                );
+            } else {
+                storageEntries.add(copyEntryToStorage(sourceEntry, storageInventory.getInventoryId(), movedAmount, state.getAccountId()));
+            }
+            state.replaceEntries(storageInventory.getInventoryId(), storageEntries);
+
+            if (takeAll) {
+                if (hotbarSlot) {
+                    removeHotbarEntryAfterMove(state, sourceEntry);
+                } else {
+                    removeDisplayedEntryAfterMove(state, sourceEntry);
+                }
+            } else {
+                reduceDisplayedEntryQuantity(state, sourceEntry, sourceEntry.getQuantity() - movedAmount);
+            }
+            requestManagedInventoryUiRefresh(astPlayer, hotbarSlot);
+            return movedAmount;
         }
-        requestManagedInventoryUiRefresh(astPlayer, hotbarSlot);
-        return movedAmount;
     }
 
     /**
@@ -1291,43 +1597,45 @@ public class InventoryService {
         if (state == null) {
             return 0;
         }
-        OwnedItemBatch batch = collectOwnedItemBatch(state, sourceBukkitSlot);
-        if (batch == null) {
-            return 0;
-        }
-        if (!isStackableByItemId(batch.sourceEntry())) {
-            return moveOwnedItemToStorage(astPlayer, sourceBukkitSlot, 0);
-        }
+        synchronized (state) {
+            OwnedItemBatch batch = collectOwnedItemBatch(state, sourceBukkitSlot);
+            if (batch == null) {
+                return 0;
+            }
+            if (!isStackableByItemId(batch.sourceEntry())) {
+                return moveOwnedItemToStorage(astPlayer, sourceBukkitSlot, 0);
+            }
 
-        InventoryModel storageInventory = ensureInventory(
-            state,
-            InventoryType.STORAGE,
-            null,
-            state.getAccountId(),
-            DEFAULT_PROFILE
-        );
-        List<InventoryEntryModel> storageEntries = new ArrayList<>(state.snapshotEntries(storageInventory.getInventoryId()).stream()
-            .filter(entry -> !entry.isDeleted())
-            .toList());
-        int stackableIndex = findStackableStorageEntryIndex(storageEntries, batch.sourceEntry());
-        if (stackableIndex >= 0) {
-            InventoryEntryModel existing = storageEntries.get(stackableIndex);
-            storageEntries.set(
-                stackableIndex,
-                withQuantity(existing, existing.getQuantity() + batch.amount(), state.getAccountId())
+            InventoryModel storageInventory = ensureInventory(
+                state,
+                InventoryType.STORAGE,
+                null,
+                state.getAccountId(),
+                DEFAULT_PROFILE
             );
-        } else {
-            storageEntries.add(copyEntryToStorage(
-                batch.sourceEntry(),
-                storageInventory.getInventoryId(),
-                batch.amount(),
-                state.getAccountId()
-            ));
+            List<InventoryEntryModel> storageEntries = new ArrayList<>(state.snapshotEntries(storageInventory.getInventoryId()).stream()
+                .filter(entry -> !entry.isDeleted())
+                .toList());
+            int stackableIndex = findStackableStorageEntryIndex(storageEntries, batch.sourceEntry());
+            if (stackableIndex >= 0) {
+                InventoryEntryModel existing = storageEntries.get(stackableIndex);
+                storageEntries.set(
+                    stackableIndex,
+                    withQuantity(existing, existing.getQuantity() + batch.amount(), state.getAccountId())
+                );
+            } else {
+                storageEntries.add(copyEntryToStorage(
+                    batch.sourceEntry(),
+                    storageInventory.getInventoryId(),
+                    batch.amount(),
+                    state.getAccountId()
+                ));
+            }
+            state.replaceEntries(storageInventory.getInventoryId(), storageEntries);
+            removeOwnedItemBatch(state, batch);
+            requestManagedInventoryUiRefresh(astPlayer, batch.includesHotbar());
+            return batch.amount();
         }
-        state.replaceEntries(storageInventory.getInventoryId(), storageEntries);
-        removeOwnedItemBatch(state, batch);
-        requestManagedInventoryUiRefresh(astPlayer, batch.includesHotbar());
-        return batch.amount();
     }
 
     /**
@@ -1347,60 +1655,61 @@ public class InventoryService {
         if (state == null) {
             return 0;
         }
-        InventoryModel storageInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.STORAGE);
-        if (storageInventory == null || !storageInventory.isEnabled()) {
-            return 0;
-        }
-        List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(storageInventory.getInventoryId()).stream()
-            .filter(entry -> !entry.isDeleted())
-            .toList());
-        for (int index = 0; index < entries.size(); index++) {
-            InventoryEntryModel entry = entries.get(index);
-            if (!entry.getInventoryEntryId().equals(storageEntryId)) {
-                continue;
-            }
-            ItemStack itemStack = itemStackResolver.resolve(entry);
-            if (itemStack == null || itemStack.getType() == Material.AIR) {
+        synchronized (state) {
+            InventoryModel storageInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.STORAGE);
+            if (storageInventory == null || !storageInventory.isEnabled()) {
                 return 0;
             }
-            if (entry.getInstanceType() != null) {
-                if (returnItemToOwnedInventory(astPlayer, itemStack.clone()) == null) {
+            List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(storageInventory.getInventoryId()).stream()
+                .filter(entry -> !entry.isDeleted())
+                .toList());
+            for (int index = 0; index < entries.size(); index++) {
+                InventoryEntryModel entry = entries.get(index);
+                if (!entry.getInventoryEntryId().equals(storageEntryId)) {
+                    continue;
+                }
+                ItemStack itemStack = itemStackResolver.resolve(entry, state.getAccountId());
+                if (itemStack == null || itemStack.getType() == Material.AIR) {
                     return 0;
                 }
-                entries.remove(index);
+                if (entry.getInstanceType() != null) {
+                    if (returnItemToOwnedInventory(astPlayer, itemStack.clone()) == null) {
+                        return 0;
+                    }
+                    entries.remove(index);
+                    state.replaceEntries(storageInventory.getInventoryId(), entries);
+                    return itemStack.getAmount();
+                }
+                int availableQuantity = (int) Math.clamp(entry.getQuantity(), 1L, Integer.MAX_VALUE);
+                int requestedAmount = amount <= 0 ? availableQuantity : Math.max(1, amount);
+                int desiredAmount = Math.min(availableQuantity, requestedAmount);
+                ItemModel model = resolveItemModel(entry);
+                if (model == null) {
+                    return 0;
+                }
+                InventoryType targetType = resolveTargetInventoryType(model);
+                InventoryModel targetInventory = ensureInventory(state, targetType);
+                int movedAmount = addStackedItems(
+                    state,
+                    targetInventory,
+                    model,
+                    desiredAmount
+                );
+                if (movedAmount <= 0) {
+                    return 0;
+                }
+                if (movedAmount >= availableQuantity) {
+                    entries.remove(index);
+                } else {
+                    entries.set(index, withQuantity(entry, availableQuantity - movedAmount, state.getAccountId()));
+                }
                 state.replaceEntries(storageInventory.getInventoryId(), entries);
-                return itemStack.getAmount();
+                compactInventoryEntries(state, targetInventory.getInventoryId());
+                autoSwitchDisplayedInventory(astPlayer, targetType);
+                return movedAmount;
             }
-            int availableQuantity = (int) Math.clamp(entry.getQuantity(), 1L, Integer.MAX_VALUE);
-            int requestedAmount = amount <= 0 ? availableQuantity : Math.max(1, amount);
-            int desiredAmount = Math.min(availableQuantity, requestedAmount);
-            ItemModel model = resolveItemModel(entry);
-            if (model == null) {
-                return 0;
-            }
-            InventoryType targetType = resolveTargetInventoryType(model);
-            InventoryModel targetInventory = ensureInventory(state, targetType);
-            int movedAmount = addStackedItems(
-                state,
-                targetInventory,
-                model,
-                desiredAmount,
-                collectUsedSlots(state, targetInventory)
-            );
-            if (movedAmount <= 0) {
-                return 0;
-            }
-            if (movedAmount >= availableQuantity) {
-                entries.remove(index);
-            } else {
-                entries.set(index, withQuantity(entry, availableQuantity - movedAmount, state.getAccountId()));
-            }
-            state.replaceEntries(storageInventory.getInventoryId(), entries);
-            compactInventoryEntries(state, targetInventory.getInventoryId());
-            autoSwitchDisplayedInventory(astPlayer, targetType);
-            return movedAmount;
+            return 0;
         }
-        return 0;
     }
 
     /**
@@ -1459,31 +1768,38 @@ public class InventoryService {
         int sourceBukkitSlot,
         int amount
     ) {
-        InventoryEntryModel sourceEntry = getOwnedEntryAtBukkitSlot(astPlayer, sourceBukkitSlot);
-        if (sourceEntry == null || ItemCategory.fromApiValue(sourceEntry.getItemCategory()) != ItemCategory.CURRENCY) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
             return 0;
         }
-        ItemStack sourceItem = itemStackResolver.resolve(sourceEntry);
-        if (sourceItem == null || sourceItem.getType() == Material.AIR) {
-            return 0;
-        }
-        int requested = amount <= 0 ? sourceItem.getAmount() : Math.min(amount, sourceItem.getAmount());
-        if (requested <= 0) {
-            return 0;
-        }
+        synchronized (state) {
+            InventoryEntryModel sourceEntry = getOwnedEntryAtBukkitSlot(astPlayer, sourceBukkitSlot);
+            if (sourceEntry == null
+                || ItemCategory.fromApiValue(sourceEntry.getItemCategory()) != ItemCategory.CURRENCY) {
+                return 0;
+            }
+            ItemStack sourceItem = itemStackResolver.resolve(sourceEntry, astPlayer.getAccount().getUuid());
+            if (sourceItem == null || sourceItem.getType() == Material.AIR) {
+                return 0;
+            }
+            int requested = amount <= 0 ? sourceItem.getAmount() : Math.min(amount, sourceItem.getAmount());
+            if (requested <= 0) {
+                return 0;
+            }
 
-        InventoryStateSnapshot snapshot = snapshotState(astPlayer.getAccount().getUuid());
-        ItemStack moved = takeOwnedItemAmount(astPlayer, sourceBukkitSlot, requested);
-        if (moved == null) {
-            return 0;
+            InventoryStateSnapshot snapshot = snapshotState(astPlayer.getAccount().getUuid());
+            ItemStack moved = takeOwnedItemAmount(astPlayer, sourceBukkitSlot, requested);
+            if (moved == null) {
+                return 0;
+            }
+            InventoryType targetType = returnItemToOwnedInventory(astPlayer, moved);
+            if (targetType != InventoryType.CURRENCY) {
+                restoreState(snapshot);
+                requestManagedInventoryUiRefresh(astPlayer, sourceBukkitSlot <= 8);
+                return 0;
+            }
+            return moved.getAmount();
         }
-        InventoryType targetType = returnItemToOwnedInventory(astPlayer, moved);
-        if (targetType != InventoryType.CURRENCY) {
-            restoreState(snapshot);
-            requestManagedInventoryUiRefresh(astPlayer, sourceBukkitSlot <= 8);
-            return 0;
-        }
-        return moved.getAmount();
     }
 
     /**
@@ -1501,35 +1817,36 @@ public class InventoryService {
         if (state == null) {
             return 0;
         }
-        OwnedItemBatch batch = collectOwnedItemBatch(state, sourceBukkitSlot);
-        if (batch == null
-            || !isStackableByItemId(batch.sourceEntry())
-            || ItemCategory.fromApiValue(batch.sourceEntry().getItemCategory()) != ItemCategory.CURRENCY) {
-            return 0;
-        }
-        ItemModel model = resolveItemModel(batch.sourceEntry());
-        InventoryStateSnapshot snapshot = snapshotState(astPlayer.getAccount().getUuid());
-        if (model == null || snapshot == null) {
-            return 0;
-        }
+        synchronized (state) {
+            OwnedItemBatch batch = collectOwnedItemBatch(state, sourceBukkitSlot);
+            if (batch == null
+                || !isStackableByItemId(batch.sourceEntry())
+                || ItemCategory.fromApiValue(batch.sourceEntry().getItemCategory()) != ItemCategory.CURRENCY) {
+                return 0;
+            }
+            ItemModel model = resolveItemModel(batch.sourceEntry());
+            InventoryStateSnapshot snapshot = snapshotState(astPlayer.getAccount().getUuid());
+            if (model == null || snapshot == null) {
+                return 0;
+            }
 
-        removeOwnedItemBatch(state, batch);
-        InventoryModel currencyInventory = ensureInventory(state, InventoryType.CURRENCY);
-        int added = addStackedItems(
-            state,
-            currencyInventory,
-            model,
-            batch.amount(),
-            collectUsedSlots(state, currencyInventory)
-        );
-        if (added != batch.amount()) {
-            restoreState(snapshot);
+            removeOwnedItemBatch(state, batch);
+            InventoryModel currencyInventory = ensureInventory(state, InventoryType.CURRENCY);
+            int added = addStackedItems(
+                state,
+                currencyInventory,
+                model,
+                batch.amount()
+            );
+            if (added != batch.amount()) {
+                restoreState(snapshot);
+                requestManagedInventoryUiRefresh(astPlayer, batch.includesHotbar());
+                return 0;
+            }
+            compactInventoryEntries(state, currencyInventory.getInventoryId());
             requestManagedInventoryUiRefresh(astPlayer, batch.includesHotbar());
-            return 0;
+            return added;
         }
-        compactInventoryEntries(state, currencyInventory.getInventoryId());
-        requestManagedInventoryUiRefresh(astPlayer, batch.includesHotbar());
-        return added;
     }
 
     public long getNormalItemAmount(@NotNull UUID accountId, @NotNull String itemId) {
@@ -1543,6 +1860,155 @@ public class InventoryService {
         }
         return getItemAmount(state, InventoryType.BAG, normalizedItemId)
             + getItemAmount(state, InventoryType.HOTBAR, normalizedItemId);
+    }
+
+    /**
+     * BAG または HOTBAR にある、指定アカウント所有の entry を ID で取得します。
+     * GUI 表示 ItemStack ではなく state 正本を再検証するための読み取り API です。
+     *
+     * @param accountId 所有アカウント ID
+     * @param inventoryEntryId entry ID
+     * @return 現在も通常インベントリに存在する entry。存在しない場合は {@code null}
+     */
+    public @Nullable InventoryEntryModel findOwnedEntry(
+        @NotNull UUID accountId,
+        @NotNull UUID inventoryEntryId
+    ) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return null;
+        }
+        synchronized (state) {
+            for (InventoryType type : List.of(InventoryType.BAG, InventoryType.HOTBAR)) {
+                InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, type);
+                if (inventory == null || !inventory.isEnabled()) {
+                    continue;
+                }
+                for (InventoryEntryModel entry : state.snapshotEntries(inventory.getInventoryId())) {
+                    if (!entry.isDeleted() && entry.getInventoryEntryId().equals(inventoryEntryId)) {
+                        return entry;
+                    }
+                }
+            }
+            return null;
+        }
+    }
+
+    /**
+     * オーブ操作の affected entry を、操作直前の保存済み baseline・現在のローカル state・API 正本で
+     * 三者マージします。API I/O は state monitor の外で完了させ、全正本取得に成功した後だけ一括反映します。
+     * <p>
+     * 通常 stack は {@code authoritative + (current - baseline)}、ゴールドは全額面と互換 ID を価値へ
+     * 換算して同じ式を適用します。API が削除した stack へ正のローカル差分がある場合は新しい entry ID を
+     * 採番し、削除済み ID を復活させません。
+     *
+     * @param accountId 対象 account
+     * @param affectedEntryIds API 操作が返した affected IDs と request origin ID
+     * @param baseline 操作直前に API が保存済みと返した entry
+     */
+    public void reconcileOrbOperationEntries(
+        @NotNull UUID accountId,
+        @NotNull Collection<UUID> affectedEntryIds,
+        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline
+    ) {
+        if (!baseline.accountId().equals(accountId)) {
+            throw new IllegalArgumentException("Inventory baseline account mismatch: " + accountId);
+        }
+        PlayerInventoryState state = requireState(accountId);
+        UUID currencyInventoryId;
+        synchronized (state) {
+            if (getState(accountId) != state) {
+                throw new IllegalStateException("Inventory state generation changed for account " + accountId);
+            }
+            InventoryModel currency = state.findInventory(DEFAULT_PROFILE, InventoryType.CURRENCY);
+            currencyInventoryId = currency == null || !currency.isEnabled() || currency.isDeleted()
+                ? null
+                : currency.getInventoryId();
+        }
+
+        List<InventoryEntryModel> authoritativeCurrency = currencyInventoryId == null
+            ? List.of()
+            : inventoryRepository.findEntries(currencyInventoryId);
+        Map<UUID, InventoryEntryModel> currencyById = new HashMap<>();
+        authoritativeCurrency.stream()
+            .filter(entry -> !entry.isDeleted())
+            .forEach(entry -> currencyById.put(entry.getInventoryEntryId(), entry));
+        Map<UUID, Optional<InventoryEntryModel>> authoritativeAffected = new LinkedHashMap<>();
+        for (UUID entryId : new LinkedHashSet<>(affectedEntryIds)) {
+            InventoryEntryModel authoritative = currencyById.get(entryId);
+            if (authoritative == null) {
+                authoritative = inventoryRepository.findEntryById(entryId);
+            }
+            authoritativeAffected.put(entryId, Optional.ofNullable(authoritative));
+        }
+
+        synchronized (state) {
+            if (getState(accountId) != state) {
+                throw new IllegalStateException("Inventory state generation changed for account " + accountId);
+            }
+            List<InventoryModel> inventories = state.snapshotInventories();
+            Map<UUID, List<InventoryEntryModel>> currentEntries = new LinkedHashMap<>();
+            for (InventoryModel inventory : inventories) {
+                currentEntries.put(
+                    inventory.getInventoryId(),
+                    state.snapshotEntries(inventory.getInventoryId())
+                );
+            }
+            OrbInventoryThreeWayMerger.MergeResult result = OrbInventoryThreeWayMerger.merge(
+                accountId,
+                inventories,
+                baseline.entriesByInventoryId(),
+                currentEntries,
+                authoritativeAffected,
+                currencyInventoryId,
+                authoritativeCurrency
+            );
+            Map<UUID, List<InventoryEntryModel>> finalizedEntries = new LinkedHashMap<>();
+            for (UUID inventoryId : result.changedInventoryIds()) {
+                List<InventoryEntryModel> entries = result.entriesByInventoryId()
+                    .getOrDefault(inventoryId, List.of());
+                finalizedEntries.put(
+                    inventoryId,
+                    inventoryId.equals(currencyInventoryId)
+                        ? List.copyOf(entries)
+                        : compactMergedEntriesAfterRemoval(state, inventoryId, entries)
+                );
+            }
+            // All calculations above operate on detached lists and may fail without mutating state.
+            // Once this loop starts, replacement is an in-memory, non-I/O publication only, so a
+            // reconciliation retry cannot apply the API delta twice after a partial publish.
+            for (Map.Entry<UUID, List<InventoryEntryModel>> finalized : finalizedEntries.entrySet()) {
+                state.replaceEntries(finalized.getKey(), finalized.getValue());
+            }
+        }
+    }
+
+    private @NotNull List<InventoryEntryModel> compactMergedEntriesAfterRemoval(
+        @NotNull PlayerInventoryState state,
+        @NotNull UUID inventoryId,
+        @NotNull List<InventoryEntryModel> entries
+    ) {
+        InventoryModel inventory = state.findInventoryById(inventoryId);
+        if (inventory == null || inventory.isDeleted() || !inventory.isEnabled()) {
+            throw new IllegalStateException("Merged inventory is unavailable: " + inventoryId);
+        }
+        List<InventoryEntryModel> ordered = entries.stream()
+            .filter(entry -> !entry.isDeleted())
+            .sorted(Comparator.<InventoryEntryModel, Integer>comparing(
+                entry -> entry.getSlotIndex() == null ? Integer.MAX_VALUE : entry.getSlotIndex()
+            ).thenComparing(InventoryEntryModel::getCreatedAt)
+                .thenComparing(InventoryEntryModel::getInventoryEntryId))
+            .toList();
+        boolean preserveBeyondCapacity = inventory.getInventoryType() == InventoryType.BAG;
+        int nextSlot = NormalInventoryLayout.DB_SLOT_START;
+        List<InventoryEntryModel> compacted = new ArrayList<>();
+        for (InventoryEntryModel entry : ordered) {
+            if (!preserveBeyondCapacity && nextSlot > inventoryCapacity(inventory)) {
+                break;
+            }
+            compacted.add(withSlot(entry, nextSlot++, state.getAccountId()));
+        }
+        return List.copyOf(compacted);
     }
 
     /**
@@ -1620,6 +2086,11 @@ public class InventoryService {
         }
         synchronized (state) {
             long legacyAmount = getCurrencyAmount(accountId, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID);
+            long ownedGold = getGoldAmount(accountId);
+            long reservedGold = reservedGoldAmount(accountId);
+            if (ownedGold < reservedGold || ownedGold - reservedGold < amount) {
+                return false;
+            }
             Map<GoldDenomination, Long> remainingBalances = GoldCurrencyCalculator.spendSmallestFirst(
                 denomination -> {
                     long denominationAmount = getCurrencyAmount(accountId, denomination.itemId());
@@ -1679,11 +2150,33 @@ public class InventoryService {
         if (state == null) {
             return false;
         }
-        InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, InventoryType.CURRENCY);
-        if (inventory == null || !inventory.isEnabled() || getCurrencyAmount(accountId, normalizedItemId) < amount) {
-            return false;
+        synchronized (state) {
+            InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, InventoryType.CURRENCY);
+            GoldDenomination denomination = GoldDenomination.findByItemId(normalizedItemId);
+            boolean legacyGold = ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(
+                normalizedItemId
+            );
+            if (denomination != null || legacyGold) {
+                long unitValue = denomination == null ? 1L : denomination.goldValue();
+                long requestedValue;
+                try {
+                    requestedValue = Math.multiplyExact(unitValue, amount);
+                } catch (ArithmeticException overflow) {
+                    return false;
+                }
+                long ownedGold = getGoldAmount(accountId);
+                long reservedGold = reservedGoldAmount(accountId);
+                if (ownedGold < reservedGold || ownedGold - reservedGold < requestedValue) {
+                    return false;
+                }
+            }
+            if (inventory == null
+                || !inventory.isEnabled()
+                || getCurrencyAmount(accountId, normalizedItemId) < amount) {
+                return false;
+            }
+            return consumeItemAmountFromInventory(state, inventory, normalizedItemId, amount) == amount;
         }
-        return consumeItemAmountFromInventory(state, inventory, normalizedItemId, amount) == amount;
     }
 
     /**
@@ -1892,19 +2385,21 @@ public class InventoryService {
         if (state == null) {
             return false;
         }
-        if (getNormalItemAmount(accountId, itemId) < amount) {
-            return false;
+        synchronized (state) {
+            if (!hasUnreservedNormalItem(accountId, itemId, amount)) {
+                return false;
+            }
+            long remaining = amount;
+            InventoryModel normalInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.BAG);
+            if (normalInventory != null && normalInventory.isEnabled()) {
+                remaining -= consumeItemAmountFromInventory(state, normalInventory, itemId, remaining);
+            }
+            InventoryModel hotbarInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.HOTBAR);
+            if (remaining > 0L && hotbarInventory != null && hotbarInventory.isEnabled()) {
+                remaining -= consumeItemAmountFromInventory(state, hotbarInventory, itemId, remaining);
+            }
+            return remaining <= 0L;
         }
-        long remaining = amount;
-        InventoryModel normalInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.BAG);
-        if (normalInventory != null && normalInventory.isEnabled()) {
-            remaining -= consumeItemAmountFromInventory(state, normalInventory, itemId, remaining);
-        }
-        InventoryModel hotbarInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.HOTBAR);
-        if (remaining > 0L && hotbarInventory != null && hotbarInventory.isEnabled()) {
-            remaining -= consumeItemAmountFromInventory(state, hotbarInventory, itemId, remaining);
-        }
-        return remaining <= 0L;
     }
 
     /**
@@ -2142,7 +2637,9 @@ public class InventoryService {
             if (slot.isDeleted()) {
                 continue;
             }
-            ItemStack itemStack = itemStackResolver.resolve(toInventoryEntry(slot));
+            ItemStack itemStack = itemStackResolver.resolve(
+                toInventoryEntry(slot),
+                astPlayer.getAccount().getUuid());
             if (itemStack == null) {
                 continue;
             }
@@ -2334,10 +2831,20 @@ public class InventoryService {
             if (inventory.getMetadataJson() != null && !inventory.getMetadataJson().isBlank()) {
                 var snapshot = snapshotCodec.decode(inventory.getMetadataJson());
                 if (snapshot != null) {
-                    EquipSlotLayout.applySnapshot(bukkitPlayer, snapshot);
+                    EquipSlotLayout.applySnapshot(
+                        bukkitPlayer,
+                        resolveEquipmentSnapshotForDisplay(state.getAccountId(), snapshot)
+                    );
                 }
-            } else if (!entries.isEmpty()) {
-                EquipSlotLayout.applyEntriesToPlayer(bukkitPlayer, entries, itemStackResolver::resolve);
+            }
+            // Metadata is only a raw slot-layout fallback for vanilla/unmanaged items.
+            // Managed entries remain authoritative and must always overlay it so that a
+            // quit-time snapshot cannot resurrect pre-operation NBT/lore on next login.
+            if (!entries.isEmpty()) {
+                EquipSlotLayout.applyEntriesToPlayer(
+                    bukkitPlayer,
+                    entries,
+                    entry -> itemStackResolver.resolve(entry, state.getAccountId()));
             }
         }
         bukkitPlayer.updateInventory();
@@ -2376,7 +2883,9 @@ public class InventoryService {
         entries.add(copyEntryWithSlot(entry, equipInventory.getInventoryId(), slotIndex, state.getAccountId()));
         state.replaceEntries(equipInventory.getInventoryId(), entries);
         EquipmentType.fromEquipSlotIndex(slotIndex)
-            .applyTo(astPlayer.getBukkit().getInventory(), itemStackResolver.resolve(entry));
+            .applyTo(
+                astPlayer.getBukkit().getInventory(),
+                itemStackResolver.resolve(entry, state.getAccountId()));
         astPlayer.getBukkit().updateInventory();
     }
 
@@ -2415,26 +2924,30 @@ public class InventoryService {
         if (state == null) {
             return false;
         }
-        InventoryEntryModel entry = findHotbarEntryBySlot(state, hotbarSlotIndex);
-        if (entry != null) {
-            state.setSelectedHotbarSlot(null);
-            boolean returned = returnHotbarEntryToInventory(astPlayer, state, entry);
-            renderHotbarInventory(astPlayer);
-            return returned;
-        }
+        synchronized (state) {
+            InventoryEntryModel entry = findHotbarEntryBySlot(state, hotbarSlotIndex);
+            if (entry != null) {
+                state.setSelectedHotbarSlot(null);
+                boolean returned = returnHotbarEntryToInventory(astPlayer, state, entry);
+                renderHotbarInventory(astPlayer);
+                return returned;
+            }
 
-        Integer currentSelected = state.getSelectedHotbarSlot();
-        if (Integer.valueOf(hotbarSlotIndex).equals(currentSelected)) {
-            state.setSelectedHotbarSlot(null);
+            Integer currentSelected = state.getSelectedHotbarSlot();
+            if (Integer.valueOf(hotbarSlotIndex).equals(currentSelected)) {
+                state.setSelectedHotbarSlot(null);
+                renderHotbarInventory(astPlayer);
+                return true;
+            }
+            state.setSelectedHotbarSlot(hotbarSlotIndex);
+            if (HotbarLayout.isMainHotbarSlot(hotbarSlotIndex)) {
+                astPlayer.getBukkit().getInventory().setHeldItemSlot(
+                    HotbarLayout.toBukkitSlot(hotbarSlotIndex)
+                );
+            }
             renderHotbarInventory(astPlayer);
             return true;
         }
-        state.setSelectedHotbarSlot(hotbarSlotIndex);
-        if (HotbarLayout.isMainHotbarSlot(hotbarSlotIndex)) {
-            astPlayer.getBukkit().getInventory().setHeldItemSlot(HotbarLayout.toBukkitSlot(hotbarSlotIndex));
-        }
-        renderHotbarInventory(astPlayer);
-        return true;
     }
 
     public void moveToHotbar(
@@ -2449,12 +2962,14 @@ public class InventoryService {
         if (state == null) {
             return;
         }
-        ItemStack itemStack = itemStackResolver.resolve(entry);
-        if (itemStack == null) {
-            return;
+        synchronized (state) {
+            ItemStack itemStack = itemStackResolver.resolve(entry, state.getAccountId());
+            if (itemStack == null) {
+                return;
+            }
+            upsertHotbarEntry(state, entry, hotbarSlotIndex);
+            renderHotbarInventory(astPlayer);
         }
-        upsertHotbarEntry(state, entry, hotbarSlotIndex);
-        renderHotbarInventory(astPlayer);
     }
 
     /**
@@ -2476,43 +2991,54 @@ public class InventoryService {
         if (state == null) {
             return false;
         }
-
-        int safeAmount = Math.max(1, amount);
-        int hotbarSlot = toHotbarDbSlot(astPlayer, hand);
-        InventoryEntryModel entry = findHotbarEntryBySlot(state, hotbarSlot);
-        if (entry == null || entry.isDeleted()) {
-            return false;
-        }
-        if (entry.getItemId() == null || !entry.getItemId().equalsIgnoreCase(expectedItemId)) {
-            return false;
-        }
-        if (entry.getQuantity() < safeAmount) {
-            return false;
-        }
-
-        InventoryModel hotbarInventory = ensureInventory(
-            state, InventoryType.HOTBAR, HotbarLayout.CAPACITY, state.getAccountId(), DEFAULT_PROFILE);
-        List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(hotbarInventory.getInventoryId()).stream()
-            .filter(e -> !e.isDeleted())
-            .toList());
-        for (int index = 0; index < entries.size(); index++) {
-            InventoryEntryModel candidate = entries.get(index);
-            if (!candidate.getInventoryEntryId().equals(entry.getInventoryEntryId())) {
-                continue;
+        synchronized (state) {
+            int safeAmount = Math.max(1, amount);
+            int hotbarSlot = toHotbarDbSlot(astPlayer, hand);
+            InventoryEntryModel entry = findHotbarEntryBySlot(state, hotbarSlot);
+            if (entry == null || entry.isDeleted()) {
+                return false;
+            }
+            if (entry.getItemId() == null || !entry.getItemId().equalsIgnoreCase(expectedItemId)) {
+                return false;
+            }
+            if (entry.getQuantity() < safeAmount) {
+                return false;
+            }
+            long reservedAmount = reservedEntryAmount(
+                state.getAccountId(),
+                entry.getInventoryEntryId()
+            );
+            if (!hasUnreservedNormalItem(state.getAccountId(), expectedItemId, safeAmount)
+                || entry.getQuantity() - reservedAmount < safeAmount) {
+                return false;
             }
 
-            long remaining = candidate.getQuantity() - safeAmount;
-            if (remaining > 0) {
-                entries.set(index, withQuantity(candidate, remaining, state.getAccountId()));
-            } else {
-                entries.remove(index);
-            }
-            state.replaceEntries(hotbarInventory.getInventoryId(), entries);
-            renderHotbarInventory(astPlayer);
-            return true;
-        }
+            InventoryModel hotbarInventory = ensureInventory(
+                state, InventoryType.HOTBAR, HotbarLayout.CAPACITY, state.getAccountId(), DEFAULT_PROFILE);
+            List<InventoryEntryModel> entries = new ArrayList<>(
+                state.snapshotEntries(hotbarInventory.getInventoryId()).stream()
+                    .filter(e -> !e.isDeleted())
+                    .toList()
+            );
+            for (int index = 0; index < entries.size(); index++) {
+                InventoryEntryModel candidate = entries.get(index);
+                if (!candidate.getInventoryEntryId().equals(entry.getInventoryEntryId())) {
+                    continue;
+                }
 
-        return false;
+                long remaining = candidate.getQuantity() - safeAmount;
+                if (remaining > 0) {
+                    entries.set(index, withQuantity(candidate, remaining, state.getAccountId()));
+                } else {
+                    entries.remove(index);
+                }
+                state.replaceEntries(hotbarInventory.getInventoryId(), entries);
+                renderHotbarInventory(astPlayer);
+                return true;
+            }
+
+            return false;
+        }
     }
 
     /**
@@ -2565,8 +3091,7 @@ public class InventoryService {
                 return false;
             }
             int amount = Math.max(1, (int) hotbarEntry.getQuantity());
-            Set<Integer> usedSlots = collectUsedSlots(state, targetInventory);
-            if (addStackedItems(state, targetInventory, model, amount, usedSlots) != amount) {
+            if (addStackedItems(state, targetInventory, model, amount) != amount) {
                 return false;
             }
         }
@@ -2695,7 +3220,7 @@ public class InventoryService {
         if (sourceEntry == null) {
             return false;
         }
-        ItemStack sourceItem = itemStackResolver.resolve(sourceEntry);
+        ItemStack sourceItem = itemStackResolver.resolve(sourceEntry, state.getAccountId());
         if (sourceItem == null || sourceItem.getType() == Material.AIR) {
             return false;
         }
@@ -2824,38 +3349,40 @@ public class InventoryService {
         if (state == null) {
             return false;
         }
-        boolean hotbarSlot = sourceBukkitSlot >= 0 && sourceBukkitSlot <= 8;
-        InventoryEntryModel sourceEntry = hotbarSlot
-            ? findHotbarEntryBySlot(state, sourceBukkitSlot + 1)
-            : findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
-        if (sourceEntry == null) {
-            return false;
-        }
-        boolean hasReplacedItem = replacedItem != null && replacedItem.getType() != Material.AIR;
-        if (hasReplacedItem && itemReferenceResolver.resolve(replacedItem) == null) {
-            return false;
-        }
-        if (!canReturnReplacedEquipment(state, sourceEntry, hotbarSlot, replacedItem)) {
-            return false;
-        }
-        List<InventoryEntryModel> sourceInventoryEntries = state.snapshotEntries(sourceEntry.getInventoryId());
-        if (hotbarSlot) {
-            List<InventoryEntryModel> remaining = state.snapshotEntries(sourceEntry.getInventoryId()).stream()
-                .filter(entry -> !entry.isDeleted())
-                .filter(entry -> !entry.getInventoryEntryId().equals(sourceEntry.getInventoryEntryId()))
-                .toList();
-            state.replaceEntries(sourceEntry.getInventoryId(), remaining);
-            state.setSelectedHotbarSlot(null);
-        } else {
-            removeDisplayedEntryAfterMove(state, sourceEntry);
-        }
-        if (hasReplacedItem && returnItemToOwnedInventory(astPlayer, replacedItem.clone()) == null) {
-            state.replaceEntries(sourceEntry.getInventoryId(), sourceInventoryEntries);
+        synchronized (state) {
+            boolean hotbarSlot = sourceBukkitSlot >= 0 && sourceBukkitSlot <= 8;
+            InventoryEntryModel sourceEntry = hotbarSlot
+                ? findHotbarEntryBySlot(state, sourceBukkitSlot + 1)
+                : findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
+            if (sourceEntry == null) {
+                return false;
+            }
+            boolean hasReplacedItem = replacedItem != null && replacedItem.getType() != Material.AIR;
+            if (hasReplacedItem && itemReferenceResolver.resolve(replacedItem) == null) {
+                return false;
+            }
+            if (!canReturnReplacedEquipment(state, sourceEntry, hotbarSlot, replacedItem)) {
+                return false;
+            }
+            List<InventoryEntryModel> sourceInventoryEntries = state.snapshotEntries(sourceEntry.getInventoryId());
+            if (hotbarSlot) {
+                List<InventoryEntryModel> remaining = state.snapshotEntries(sourceEntry.getInventoryId()).stream()
+                    .filter(entry -> !entry.isDeleted())
+                    .filter(entry -> !entry.getInventoryEntryId().equals(sourceEntry.getInventoryEntryId()))
+                    .toList();
+                state.replaceEntries(sourceEntry.getInventoryId(), remaining);
+                state.setSelectedHotbarSlot(null);
+            } else {
+                removeDisplayedEntryAfterMove(state, sourceEntry);
+            }
+            if (hasReplacedItem && returnItemToOwnedInventory(astPlayer, replacedItem.clone()) == null) {
+                state.replaceEntries(sourceEntry.getInventoryId(), sourceInventoryEntries);
+                requestManagedInventoryUiRefresh(astPlayer, hotbarSlot);
+                return false;
+            }
             requestManagedInventoryUiRefresh(astPlayer, hotbarSlot);
-            return false;
+            return true;
         }
-        requestManagedInventoryUiRefresh(astPlayer, hotbarSlot);
-        return true;
     }
 
     public @Nullable ItemStack takeDisplayedItem(
@@ -2893,33 +3420,42 @@ public class InventoryService {
         if (state == null) {
             return null;
         }
-        boolean hotbarSlot = sourceBukkitSlot >= 0 && sourceBukkitSlot <= 8;
-        InventoryEntryModel sourceEntry = hotbarSlot
-            ? findHotbarEntryBySlot(state, sourceBukkitSlot + 1)
-            : findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
-        if (sourceEntry == null) {
-            return null;
+        synchronized (state) {
+            boolean hotbarSlot = sourceBukkitSlot >= 0 && sourceBukkitSlot <= 8;
+            InventoryEntryModel sourceEntry = hotbarSlot
+                ? findHotbarEntryBySlot(state, sourceBukkitSlot + 1)
+                : findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
+            if (sourceEntry == null) {
+                return null;
+            }
+            ItemStack sourceItem = itemStackResolver.resolve(sourceEntry, state.getAccountId());
+            if (sourceItem == null || sourceItem.getType() == Material.AIR) {
+                return null;
+            }
+            int totalAmount = sourceItem.getAmount();
+            boolean takeAll = amount <= 0
+                || amount >= totalAmount
+                || sourceEntry.getInstanceType() != null;
+            int takeAmount = takeAll ? totalAmount : amount;
+            if (sourceEntry.getItemId() != null
+                && (!hasUnreservedNormalItem(
+                    state.getAccountId(), sourceEntry.getItemId(), takeAmount)
+                    || sourceEntry.getQuantity() - reservedEntryAmount(
+                        state.getAccountId(), sourceEntry.getInventoryEntryId()) < takeAmount)) {
+                return null;
+            }
+            if (takeAll && hotbarSlot) {
+                removeHotbarEntryAfterMove(state, sourceEntry);
+            } else if (takeAll) {
+                removeDisplayedEntryAfterMove(state, sourceEntry);
+            } else {
+                reduceDisplayedEntryQuantity(state, sourceEntry, sourceEntry.getQuantity() - takeAmount);
+            }
+            requestManagedInventoryUiRefresh(astPlayer, hotbarSlot);
+            ItemStack result = sourceItem.clone();
+            result.setAmount(takeAmount);
+            return result;
         }
-        ItemStack sourceItem = itemStackResolver.resolve(sourceEntry);
-        if (sourceItem == null || sourceItem.getType() == Material.AIR) {
-            return null;
-        }
-        int totalAmount = sourceItem.getAmount();
-        boolean takeAll = amount <= 0
-            || amount >= totalAmount
-            || sourceEntry.getInstanceType() != null;
-        int takeAmount = takeAll ? totalAmount : amount;
-        if (takeAll && hotbarSlot) {
-            removeHotbarEntryAfterMove(state, sourceEntry);
-        } else if (takeAll) {
-            removeDisplayedEntryAfterMove(state, sourceEntry);
-        } else {
-            reduceDisplayedEntryQuantity(state, sourceEntry, sourceEntry.getQuantity() - takeAmount);
-        }
-        requestManagedInventoryUiRefresh(astPlayer, hotbarSlot);
-        ItemStack result = sourceItem.clone();
-        result.setAmount(takeAmount);
-        return result;
     }
 
     /**
@@ -2940,28 +3476,37 @@ public class InventoryService {
         if (state == null) {
             return null;
         }
-        InventoryEntryModel sourceEntry = findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
-        if (sourceEntry == null) {
-            return null;
+        synchronized (state) {
+            InventoryEntryModel sourceEntry = findDisplayedEntryAtBukkitSlot(state, sourceBukkitSlot);
+            if (sourceEntry == null) {
+                return null;
+            }
+            ItemStack sourceItem = itemStackResolver.resolve(sourceEntry, state.getAccountId());
+            if (sourceItem == null || sourceItem.getType() == Material.AIR) {
+                return null;
+            }
+            int totalAmount = sourceItem.getAmount();
+            boolean takeAll = amount <= 0
+                || amount >= totalAmount
+                || sourceEntry.getInstanceType() != null;
+            int takeAmount = takeAll ? totalAmount : amount;
+            if (sourceEntry.getItemId() != null
+                && (!hasUnreservedNormalItem(
+                    state.getAccountId(), sourceEntry.getItemId(), takeAmount)
+                    || sourceEntry.getQuantity() - reservedEntryAmount(
+                        state.getAccountId(), sourceEntry.getInventoryEntryId()) < takeAmount)) {
+                return null;
+            }
+            if (takeAll) {
+                removeDisplayedEntryAfterMove(state, sourceEntry);
+            } else {
+                reduceDisplayedEntryQuantity(state, sourceEntry, sourceEntry.getQuantity() - takeAmount);
+            }
+            requestManagedInventoryUiRefresh(astPlayer, false);
+            ItemStack result = sourceItem.clone();
+            result.setAmount(takeAmount);
+            return result;
         }
-        ItemStack sourceItem = itemStackResolver.resolve(sourceEntry);
-        if (sourceItem == null || sourceItem.getType() == Material.AIR) {
-            return null;
-        }
-        int totalAmount = sourceItem.getAmount();
-        boolean takeAll = amount <= 0
-            || amount >= totalAmount
-            || sourceEntry.getInstanceType() != null;
-        int takeAmount = takeAll ? totalAmount : amount;
-        if (takeAll) {
-            removeDisplayedEntryAfterMove(state, sourceEntry);
-        } else {
-            reduceDisplayedEntryQuantity(state, sourceEntry, sourceEntry.getQuantity() - takeAmount);
-        }
-        requestManagedInventoryUiRefresh(astPlayer, false);
-        ItemStack result = sourceItem.clone();
-        result.setAmount(takeAmount);
-        return result;
     }
 
     private void reduceDisplayedEntryQuantity(
@@ -3051,6 +3596,40 @@ public class InventoryService {
             return;
         }
         returnItemToOwnedInventory(astPlayer, replacedItem.clone());
+    }
+
+    /**
+     * オーブ等の state 差分 mutation 後に、現在表示中の BAG と HOTBAR を Bukkit inventory へ再描画します。
+     * 装備ロードアウトを保存し直さず、次 tick の再同期も既存共通経路へ委譲します。
+     *
+     * @param astPlayer 対象プレイヤー
+     */
+    public void refreshManagedInventoryUi(@NotNull AstPlayer astPlayer) {
+        requestManagedInventoryUiRefresh(astPlayer, true);
+    }
+
+    /** APIで削除・譲渡済みと確定した装備参照を、保存対象stateから破棄します。 */
+    public void discardUnavailableEquipmentInstance(
+        @NotNull UUID accountId,
+        @NotNull UUID equipmentInstanceId
+    ) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            throw new IllegalStateException("Inventory state is unavailable for account " + accountId);
+        }
+        state.discardUnavailableEquipmentInstance(equipmentInstanceId);
+    }
+
+    /**
+     * 外部原子操作の照合で生じたstate cleanupを、現在実行中のaccount lane内から直接保存します。
+     * 呼び出し側は同laneへ再enqueueせず、成功するまでoperationIdを保持して再試行します。
+     */
+    public boolean persistReconciledStateNow(@NotNull UUID accountId) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            throw new IllegalStateException("Inventory state is unavailable for account " + accountId);
+        }
+        return persistence.saveNow(state);
     }
 
     private void requestManagedInventoryUiRefresh(@NotNull AstPlayer astPlayer, boolean includeHotbar) {
@@ -3274,7 +3853,9 @@ public class InventoryService {
             if (slot.getEquipmentInstanceId() == null) {
                 continue;
             }
-            ItemStack item = itemStackResolver.resolve(toInventoryEntry(slot));
+            ItemStack item = itemStackResolver.resolve(
+                toInventoryEntry(slot),
+                astPlayer.getAccount().getUuid());
             if (item == null || item.getType() == Material.AIR) {
                 continue;
             }
@@ -3314,9 +3895,6 @@ public class InventoryService {
     ) {
         ItemModel model = itemService.findLoadedById(instance.getItemId());
         if (model == null) {
-            model = itemService.loadItem(instance.getItemId());
-        }
-        if (model == null) {
             return;
         }
         ItemStack updated = itemStackFactory.create(model, instance, 1);
@@ -3345,6 +3923,59 @@ public class InventoryService {
         astPlayer.getBukkit().updateInventory();
     }
 
+    /**
+     * logout/disable保存直前に、raw ItemStack内の装備個体をロード済みAPI正本から再構築します。
+     * managed装備が譲渡・削除済み、所有者不一致、cache欠落ならraw snapshotを信用せず除去します。
+     *
+     * @param astPlayer 保存対象プレイヤー
+     */
+    public void refreshEquipmentDisplaysForSave(@NotNull AstPlayer astPlayer) {
+        if (!astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
+            return;
+        }
+        PlayerInventory inventory = astPlayer.getBukkit().getInventory();
+        UUID accountId = astPlayer.getAccount().getUuid();
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            ItemStack current = inventory.getItem(slot);
+            UUID instanceId = readEquipmentInstanceId(current);
+            if (instanceId == null) {
+                continue;
+            }
+            inventory.setItem(slot, resolveEquipmentItemForDisplay(accountId, instanceId));
+        }
+        astPlayer.getBukkit().updateInventory();
+    }
+
+    /** metadata snapshot内のmanaged装備だけを現在個体へ置換し、vanilla/unmanaged itemは維持します。 */
+    private @NotNull ItemStack[] resolveEquipmentSnapshotForDisplay(
+        @NotNull UUID accountId,
+        @NotNull ItemStack[] snapshot
+    ) {
+        ItemStack[] resolved = snapshot.clone();
+        for (int slot = 0; slot < resolved.length; slot++) {
+            UUID instanceId = readEquipmentInstanceId(resolved[slot]);
+            if (instanceId != null) {
+                resolved[slot] = resolveEquipmentItemForDisplay(accountId, instanceId);
+            }
+        }
+        return resolved;
+    }
+
+    /** managed装備をcache-onlyで現在表示へ解決します。 */
+    private @NotNull ItemStack resolveEquipmentItemForDisplay(
+        @NotNull UUID accountId,
+        @NotNull UUID instanceId
+    ) {
+        EquipmentInstance instance = itemService.findLoadedEquipmentInstanceById(instanceId.toString());
+        if (instance == null || !instance.getAccountId().equalsIgnoreCase(accountId.toString())) {
+            return new ItemStack(Material.AIR);
+        }
+        ItemModel model = itemService.findLoadedById(instance.getItemId());
+        return model == null
+            ? new ItemStack(Material.AIR)
+            : itemStackFactory.create(model, instance, 1);
+    }
+
     public void moveToAccessorySlot(
         @NotNull AstPlayer astPlayer,
         @NotNull InventoryEntryModel entry,
@@ -3362,12 +3993,14 @@ public class InventoryService {
         }
         int loadoutSlotIndex = toAccessoryLoadoutSlotIndex(slotIndex);
         if (ensureActiveEquipmentLoadout(state.getAccountId()) != null && loadoutSlotIndex >= 0) {
-            ItemStack itemStack = itemStackResolver.resolve(entry);
+            ItemStack itemStack = itemStackResolver.resolve(entry, state.getAccountId());
             state.upsertActiveLoadoutSlot(DEFAULT_PROFILE, SLOT_TYPE_ACCESSORY,
                 loadoutSlotIndex, readEquipmentInstanceId(itemStack), state.getAccountId());
         }
         EquipmentType.fromAccessorySlotIndex(slotIndex)
-            .applyTo(astPlayer.getBukkit().getInventory(), itemStackResolver.resolve(entry));
+            .applyTo(
+                astPlayer.getBukkit().getInventory(),
+                itemStackResolver.resolve(entry, state.getAccountId()));
         astPlayer.getBukkit().updateInventory();
     }
 
@@ -3651,8 +4284,7 @@ public class InventoryService {
             case RUNE -> addExistingInstanceEntry(state, targetInventory, model,
                 InventoryInstanceType.RUNE, reference.runeInstanceId());
             default -> {
-                Set<Integer> usedSlots = collectUsedSlots(state, targetInventory);
-                yield addStackedItems(state, targetInventory, model, amount, usedSlots) > 0;
+                yield addStackedItems(state, targetInventory, model, amount) > 0;
             }
         };
         if (!added) {
@@ -4171,8 +4803,11 @@ public class InventoryService {
         return object.toString();
     }
 
-    private @Nullable StorageViewEntry toStorageViewEntry(@NotNull InventoryEntryModel entry) {
-        ItemStack itemStack = itemStackResolver.resolve(entry);
+    private @Nullable StorageViewEntry toStorageViewEntry(
+        @NotNull InventoryEntryModel entry,
+        @NotNull UUID accountId
+    ) {
+        ItemStack itemStack = itemStackResolver.resolve(entry, accountId);
         ItemModel itemModel = resolveItemModel(entry);
         if (itemStack == null || itemStack.getType() == Material.AIR || itemModel == null) {
             return null;
@@ -4372,33 +5007,42 @@ public class InventoryService {
         if (amount <= 0L) {
             return 0L;
         }
-        List<InventoryEntryModel> sourceEntries = inventory.getInventoryType() == InventoryType.CURRENCY
-            ? normalizeCurrencyEntries(state, inventory)
-            : state.snapshotEntries(inventory.getInventoryId()).stream()
-                .filter(entry -> !entry.isDeleted())
-                .toList();
-        List<InventoryEntryModel> entries = new ArrayList<>(sourceEntries);
-        long remaining = amount;
-        for (int index = 0; index < entries.size() && remaining > 0L; index++) {
-            InventoryEntryModel entry = entries.get(index);
-            if (entry.getItemId() == null || !entry.getItemId().equalsIgnoreCase(itemId)) {
-                continue;
+        synchronized (state) {
+            List<InventoryEntryModel> sourceEntries = inventory.getInventoryType() == InventoryType.CURRENCY
+                ? normalizeCurrencyEntries(state, inventory)
+                : state.snapshotEntries(inventory.getInventoryId()).stream()
+                    .filter(entry -> !entry.isDeleted())
+                    .toList();
+            List<InventoryEntryModel> entries = new ArrayList<>(sourceEntries);
+            long remaining = amount;
+            for (int index = 0; index < entries.size() && remaining > 0L; index++) {
+                InventoryEntryModel entry = entries.get(index);
+                if (entry.getItemId() == null || !entry.getItemId().equalsIgnoreCase(itemId)) {
+                    continue;
+                }
+                long reserved = inventory.getInventoryType() == InventoryType.CURRENCY
+                    ? 0L
+                    : reservedEntryAmount(state.getAccountId(), entry.getInventoryEntryId());
+                long available = entry.getQuantity() - reserved;
+                if (available <= 0L) {
+                    continue;
+                }
+                long consumed = Math.min(available, remaining);
+                long nextQuantity = entry.getQuantity() - consumed;
+                remaining -= consumed;
+                if (nextQuantity > 0L) {
+                    entries.set(index, withQuantity(entry, nextQuantity, state.getAccountId()));
+                } else {
+                    entries.remove(index);
+                    index--;
+                }
             }
-            long consumed = Math.min(entry.getQuantity(), remaining);
-            long nextQuantity = entry.getQuantity() - consumed;
-            remaining -= consumed;
-            if (nextQuantity > 0L) {
-                entries.set(index, withQuantity(entry, nextQuantity, state.getAccountId()));
-            } else {
-                entries.remove(index);
-                index--;
+            long consumedTotal = amount - remaining;
+            if (consumedTotal > 0L) {
+                state.replaceEntries(inventory.getInventoryId(), entries);
             }
+            return consumedTotal;
         }
-        long consumedTotal = amount - remaining;
-        if (consumedTotal > 0L) {
-            state.replaceEntries(inventory.getInventoryId(), entries);
-        }
-        return consumedTotal;
     }
 
     private boolean isStackableEntry(@NotNull InventoryEntryModel entry, @NotNull ItemModel model, int maxStack) {
@@ -4823,4 +5467,20 @@ public class InventoryService {
             entriesByInventoryId = Map.copyOf(immutableEntries);
         }
     }
+
+    /** オーブ装備操作が要求する通常アイテム数量です。 */
+    public record InventoryItemRequirement(@NotNull String itemId, long amount) {
+    }
+
+    private record OrbPaymentReservation(
+        @NotNull UUID operationId,
+        @NotNull UUID orbEntryId,
+        @NotNull PlayerInventoryState stateGeneration,
+        @NotNull Map<String, Long> normalItemAmounts,
+        @NotNull Map<UUID, Long> normalEntryAmounts,
+        boolean baselineAllocated,
+        long goldAmount
+    ) {
+    }
+
 }

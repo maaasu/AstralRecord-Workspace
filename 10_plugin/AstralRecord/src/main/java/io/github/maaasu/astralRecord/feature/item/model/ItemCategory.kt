@@ -10,7 +10,7 @@ enum class ItemCategory(val apiValue: String, val displayNameJa: String) {
     CURRENCY("currency", "通貨"),
     EQUIPMENT("equipment", "装備"),
     MATERIAL("material", "素材"),
-    ENHANCEMENT_MATERIAL("enhancement_material", "強化素材"),
+    ORB("orb", "オーブ"),
     CONSUMABLE("consumable", "消耗品"),
     RUNE("rune", "ルーン"),
     SKILL_GEM("skill_gem", "スキルジェム"),

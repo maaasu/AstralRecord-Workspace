@@ -1,0 +1,22 @@
+# design:
+#   motif: "武器強化 / テュール / 戦いの加護"
+#   progression: 0
+schemaVersion: 1
+id: tyr_orb
+category: orb
+name: "&bテュールのオーブ"
+icon: ENDER_PEARL
+rarity: RARE
+maxStack: 64
+saleValue: 80
+lore:
+  - "&7状態ランク0の武器を1段階強化する。"
+  - "&7成功率と失敗時挙動は武器ごとに異なる。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: ENHANCE
+    targetSlots: [WEAPON, SUBWEAPON]
+    rank: 0
+    rankMode: EXACT

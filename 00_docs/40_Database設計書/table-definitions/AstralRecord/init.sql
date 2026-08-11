@@ -997,7 +997,8 @@ CREATE TABLE [dbo].[equipment_instance_enchant] (
     [enchant_id]                  UNIQUEIDENTIFIER  NOT NULL,
     [equipment_instance_id]       UNIQUEIDENTIFIER  NOT NULL,
     [slot_index]                  INT               NOT NULL,
-    [pool_index]                  INT               NOT NULL,
+    [enchant_master_id]           NVARCHAR(100)     NOT NULL,
+    [effect_id]                   NVARCHAR(100)     NOT NULL,
     [status]                      NVARCHAR(50)      NOT NULL,
     [type]                        NVARCHAR(20)      NOT NULL,
     [value]                       DECIMAL(18, 4)    NOT NULL,
@@ -1012,12 +1013,44 @@ CREATE TABLE [dbo].[equipment_instance_enchant] (
         ON DELETE CASCADE
         ON UPDATE NO ACTION,
     CONSTRAINT [UQ_equipment_instance_enchant_slot_index] UNIQUE ([equipment_instance_id], [slot_index]),
-    CONSTRAINT [UQ_equipment_instance_enchant_pool_index] UNIQUE ([equipment_instance_id], [pool_index])
+    CONSTRAINT [UQ_equipment_instance_enchant_effect_id] UNIQUE ([equipment_instance_id], [effect_id])
 );
 GO
 
 CREATE NONCLUSTERED INDEX [IX_equipment_instance_enchant_equipment_instance_id]
     ON [dbo].[equipment_instance_enchant] ([equipment_instance_id]);
+GO
+
+-- ============================================================
+-- AstralRecord\dbo.equipment_orb_operation.md
+-- ============================================================
+
+CREATE TABLE [dbo].[equipment_orb_operation] (
+    [operation_id]                       UNIQUEIDENTIFIER  NOT NULL,
+    [account_id]                         UNIQUEIDENTIFIER  NOT NULL,
+    [equipment_instance_id]              UNIQUEIDENTIFIER  NOT NULL,
+    [orb_inventory_entry_id]             UNIQUEIDENTIFIER  NOT NULL,
+    [orb_item_id]                        NVARCHAR(128)     NOT NULL,
+    [operation_type]                     NVARCHAR(32)      NOT NULL,
+    [request_hash]                       CHAR(64)          NOT NULL,
+    [result_code]                        NVARCHAR(32)      NOT NULL,
+    [result_payload_json]                NVARCHAR(MAX)     NOT NULL,
+    [payment_consumed]                   BIT               NOT NULL,
+    [affected_inventory_entry_ids_json]  NVARCHAR(MAX)     NOT NULL,
+    [created_at]                         DATETIME2(3)       NOT NULL,
+    [completed_at]                       DATETIME2(3)       NOT NULL,
+    [created_by]                         UNIQUEIDENTIFIER   NOT NULL,
+
+    CONSTRAINT [PK_equipment_orb_operation] PRIMARY KEY CLUSTERED ([operation_id]),
+    CONSTRAINT [CK_equipment_orb_operation_result_payload_json]
+        CHECK (ISJSON([result_payload_json]) = 1),
+    CONSTRAINT [CK_equipment_orb_operation_affected_entries_json]
+        CHECK (ISJSON([affected_inventory_entry_ids_json]) = 1)
+);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_equipment_orb_operation_account_created_at]
+    ON [dbo].[equipment_orb_operation] ([account_id], [created_at]);
 GO
 
 -- ============================================================

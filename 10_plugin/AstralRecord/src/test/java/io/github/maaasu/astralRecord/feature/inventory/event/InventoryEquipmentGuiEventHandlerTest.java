@@ -2,8 +2,7 @@ package io.github.maaasu.astralRecord.feature.inventory.event;
 
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.item.service.EquipmentEnhancementService;
-import io.github.maaasu.astralRecord.feature.item.service.EquipmentRepairService;
+import io.github.maaasu.astralRecord.feature.item.service.OrbService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
@@ -32,8 +31,7 @@ class InventoryEquipmentGuiEventHandlerTest {
             mock(CurrencyService.class),
             mock(StatusService.class),
             mock(PassiveSkillService.class),
-            mock(EquipmentEnhancementService.class),
-            mock(EquipmentRepairService.class),
+            mock(OrbService.class),
             mock(MenuGuiTransitionService.class),
             mock(MenuOpenEventHandler.class),
             mock(SkillGemLearnEventHandler.class)

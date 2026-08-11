@@ -5,7 +5,8 @@ public class EquipmentInstanceEnchantEntity
     public Guid EnchantId { get; set; }
     public Guid EquipmentInstanceId { get; set; }
     public int SlotIndex { get; set; }
-    public int PoolIndex { get; set; }
+    public string EnchantMasterId { get; set; } = string.Empty;
+    public string EffectId { get; set; } = string.Empty;
     public string Status { get; set; } = string.Empty;
     public string Type { get; set; } = string.Empty;
     public decimal Value { get; set; }

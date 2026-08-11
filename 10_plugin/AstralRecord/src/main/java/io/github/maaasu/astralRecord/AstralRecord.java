@@ -61,10 +61,9 @@ import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDef
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseEffectService;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
-import io.github.maaasu.astralRecord.feature.item.service.EquipmentEnhancementService;
-import io.github.maaasu.astralRecord.feature.item.service.EquipmentRepairService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemDropAnimationService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
+import io.github.maaasu.astralRecord.feature.item.service.OrbService;
 import io.github.maaasu.astralRecord.feature.item.service.PotionUseService;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepository;
 import io.github.maaasu.astralRecord.feature.inventory.repository.EquipmentLoadoutRepository;
@@ -360,8 +359,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerClassService playerClassService;
     private ItemWeaponAttackService itemWeaponAttackService;
     private EquipmentDurabilityService equipmentDurabilityService;
-    private EquipmentEnhancementService equipmentEnhancementService;
-    private EquipmentRepairService equipmentRepairService;
+    private OrbService orbService;
     private WorldService worldService;
     private OverworldTeleportService overworldTeleportService;
     private OverworldTeleportGui overworldTeleportGui;
@@ -512,13 +510,17 @@ public final class AstralRecord extends JavaPlugin {
         if (tradeService != null) {
             tradeService.cancelAll();
         }
-        if (equipmentEnhancementService != null) {
-            equipmentEnhancementService.prepareAllForShutdown();
+        if (orbService != null) {
+            orbService.prepareAllForShutdown();
         }
-        if (equipmentRepairService != null) {
-            equipmentRepairService.prepareAllForShutdown();
+        if (inventorySaveCoordinator != null) {
+            // accepted済み操作・正本照合を先に待つ。main threadへ戻った後に現在装備表示を再構築し、
+            // 解決済みaccountだけの停止snapshotを取得する。
+            inventorySaveCoordinator.awaitPendingWrites(5000L);
         }
         if (playerService != null) {
+            // accepted済みorb operationの後ろへ停止保存を全件登録してからlane受付を閉じる。
+            // timeout/失敗時は正本未照合stateを直接保存・clearしない。
             playerService.saveAllOnlinePlayersAndClear();
         }
         if (inventorySaveCoordinator != null) {
@@ -947,28 +949,15 @@ public final class AstralRecord extends JavaPlugin {
             inventorySaveCoordinator,
             menuGuiTransitionService
         );
-        equipmentEnhancementService = new EquipmentEnhancementService(
+        orbService = new OrbService(
             this,
-            menuView,
             inventoryService,
             inventorySaveCoordinator,
             inventoryStateRegistry,
             itemService,
-            itemStackFactory,
-            particleDisplayService
+            itemStackFactory
         );
-        equipmentRepairService = new EquipmentRepairService(
-            this,
-            menuView,
-            inventoryService,
-            inventorySaveCoordinator,
-            inventoryStateRegistry,
-            itemService,
-            itemStackFactory,
-            particleDisplayService
-        );
-        equipmentEnhancementService.setEquipmentRepairService(equipmentRepairService);
-        equipmentRepairService.setStatusService(statusService);
+        orbService.setStatusService(statusService);
         equipmentDurabilityService = new EquipmentDurabilityService(inventoryService, itemService);
         equipmentDurabilityService.setStatusService(statusService);
         damageService.setEquipmentDurabilityService(equipmentDurabilityService);
@@ -1336,8 +1325,7 @@ public final class AstralRecord extends JavaPlugin {
                 currencyService,
                 statusService,
                 passiveSkillService,
-                equipmentEnhancementService,
-                equipmentRepairService,
+                orbService,
                 menuGuiTransitionService,
                 menuOpenEventHandler,
                 skillGemLearnEventHandler
@@ -1458,8 +1446,6 @@ public final class AstralRecord extends JavaPlugin {
             menuView,
             playerClassService,
             storageService,
-            equipmentEnhancementService,
-            equipmentRepairService,
             questGuiEventHandler,
             currencyExchangeGuiEventHandler,
             loginBonusService,
@@ -1623,19 +1609,6 @@ public final class AstralRecord extends JavaPlugin {
 
     public SellService getSellService() {
         return sellService;
-    }
-
-    /**
-     * 装備強化 GUI サービスを取得します。
-     *
-     * @return 装備強化 GUI サービス
-     */
-    public EquipmentEnhancementService getEquipmentEnhancementService() {
-        return equipmentEnhancementService;
-    }
-
-    public EquipmentRepairService getEquipmentRepairService() {
-        return equipmentRepairService;
     }
 
     public EquipmentDurabilityService getEquipmentDurabilityService() {

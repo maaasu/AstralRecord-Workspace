@@ -32,8 +32,6 @@ data class EquipmentInstance(
     val enchants: List<EquipmentEnchant> = emptyList(),
     /** ルーン一覧 */
     val runes: List<EquipmentRune> = emptyList(),
-    /** エンチャントプール一覧 */
-    val enchantPools: List<EquipmentEnchantPool> = emptyList(),
 )
 
 /**
@@ -63,8 +61,10 @@ data class EquipmentEnchant(
     val equipmentInstanceId: String,
     /** 使用しているスロット番号 */
     val slotIndex: Int,
-    /** 付与元エンチャントプールのインデックス */
-    val poolIndex: Int,
+    /** 付与元共通エンチャントマスタ ID */
+    val enchantMasterId: String,
+    /** 重複判定に使用する安定した効果 ID */
+    val effectId: String,
     /** 付与ステータス */
     val status: String,
     /** 補正方式 */
@@ -86,20 +86,3 @@ data class EquipmentRune(
     /** 装着中のルーンアイテム ID */
     val itemId: String,
 )
-
-/**
- * 装備インスタンスのエンチャントプール構成。
- */
-data class EquipmentEnchantPool(
-    /** プールインデックス */
-    val poolIndex: Int,
-    /** レシピ ID（nullable） */
-    val recipeId: String?,
-    /** 必要素材アイテム ID */
-    val requiredMaterialItemId: String,
-    /** 必要素材数量 */
-    val requiredMaterialAmount: Int,
-    /** 必要通貨量 */
-    val requiredCurrency: Int,
-)
-

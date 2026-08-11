@@ -1,0 +1,57 @@
+# design:
+#   motif: "星律 / 基礎装備のランダム刻印"
+#   progression: 1
+schemaVersion: 1
+id: enchant001
+targets:
+  - equipmentType: WEAPON
+    entries:
+      - effectId: weapon_attack_scalar_130
+        status: ATTACK
+        type: SCALAR
+        value: 1.30
+        weight: 30
+      - effectId: weapon_critical_rate_19
+        status: CRITICAL_RATE
+        type: FLAT
+        value: 19
+        weight: 1
+      - effectId: weapon_attack_flat_5
+        status: ATTACK
+        type: FLAT
+        value: 5
+        weight: 10
+  - equipmentType: ARMOR
+    entries:
+      - effectId: armor_defense_scalar_130
+        status: DEFENSE
+        type: SCALAR
+        value: 1.30
+        weight: 30
+      - effectId: armor_evasion_3
+        status: EVASION
+        type: FLAT
+        value: 3
+        weight: 5
+      - effectId: armor_max_health_20
+        status: MAX_HEALTH
+        type: FLAT
+        value: 20
+        weight: 10
+  - equipmentType: ACCESSORY
+    entries:
+      - effectId: accessory_luck_scalar_120
+        status: LUCK
+        type: SCALAR
+        value: 1.20
+        weight: 20
+      - effectId: accessory_critical_rate_5
+        status: CRITICAL_RATE
+        type: FLAT
+        value: 5
+        weight: 10
+      - effectId: accessory_max_mana_15
+        status: MAX_MANA
+        type: FLAT
+        value: 15
+        weight: 10

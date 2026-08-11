@@ -1,7 +1,7 @@
 # dbo.equipment_instance_enchant テーブル定義
 
 装備個体に付与されたエンチャント情報を管理するテーブルです。  
-`equipment[].enchant.pools[].entries[]` から抽選され、実際に付与されたステータス値を保持します。
+共通エンチャントマスタから抽選され、実際に付与されたステータス値を保持します。
 
 ---
 
@@ -25,7 +25,8 @@
 | `enchant_id`            | `UNIQUEIDENTIFIER` | ○  |    ○    |        | エンチャントレコードID             |
 | `equipment_instance_id` | `UNIQUEIDENTIFIER` |    |    ○    |        | 対象装備個体ID（FK）             |
 | `slot_index`            | `INT`              |    |    ○    |        | エンチャントスロット番号（0始まり）       |
-| `pool_index`            | `INT`              |    |    ○    |        | 付与元エンチャントプール番号（0始まり）   |
+| `enchant_master_id`     | `NVARCHAR(100)`    |    |    ○    |        | 付与元共通エンチャントマスタID       |
+| `effect_id`             | `NVARCHAR(100)`    |    |    ○    |        | 候補を一意に表す効果ID             |
 | `status`                | `NVARCHAR(50)`     |    |    ○    |        | 付与されたステータス（`StatusType`） |
 | `type`                  | `NVARCHAR(20)`     |    |    ○    |        | 補正方式（`FLAT` / `SCALAR`）  |
 | `value`                 | `DECIMAL(18, 4)`   |    |    ○    |        | 実際に付与された数値（範囲から決定された後の値） |
@@ -55,7 +56,7 @@
 | 制約名                                        | カラム                                   | 説明                |
 |:-------------------------------------------|:--------------------------------------|:------------------|
 | `UQ_equipment_instance_enchant_slot_index` | `equipment_instance_id`, `slot_index` | 同一個体でスロット番号の重複を防ぐ |
-| `UQ_equipment_instance_enchant_pool_index` | `equipment_instance_id`, `pool_index` | 同一個体で同一プールの多重付与を防ぐ |
+| `UQ_equipment_instance_enchant_effect_id` | `equipment_instance_id`, `effect_id` | 同一個体で同一効果の多重付与を防ぐ |
 
 ---
 
@@ -75,7 +76,8 @@ CREATE TABLE [dbo].[equipment_instance_enchant] (
     [enchant_id]                  UNIQUEIDENTIFIER  NOT NULL,
     [equipment_instance_id]       UNIQUEIDENTIFIER  NOT NULL,
     [slot_index]                  INT               NOT NULL,
-    [pool_index]                  INT               NOT NULL,
+    [enchant_master_id]           NVARCHAR(100)     NOT NULL,
+    [effect_id]                   NVARCHAR(100)     NOT NULL,
     [status]                      NVARCHAR(50)      NOT NULL,
     [type]                        NVARCHAR(20)      NOT NULL,
     [value]                       DECIMAL(18, 4)    NOT NULL,
@@ -90,7 +92,7 @@ CREATE TABLE [dbo].[equipment_instance_enchant] (
         ON DELETE CASCADE
         ON UPDATE NO ACTION,
     CONSTRAINT [UQ_equipment_instance_enchant_slot_index] UNIQUE ([equipment_instance_id], [slot_index]),
-    CONSTRAINT [UQ_equipment_instance_enchant_pool_index] UNIQUE ([equipment_instance_id], [pool_index])
+    CONSTRAINT [UQ_equipment_instance_enchant_effect_id] UNIQUE ([equipment_instance_id], [effect_id])
 );
 GO
 
@@ -106,8 +108,19 @@ GO
 | 用途         | 説明                            |
 |:-----------|:------------------------------|
 | エンチャント情報保持 | 個体に付与された具体的なエンチャントステータスを保持する  |
-| 上書き制御      | スロット上限到達時にどのプール由来のエンチャントかを識別する |
+| 重複制御       | 同じ `effect_id` のエンチャントが同一装備へ重複しないよう識別する |
 | ステータス計算    | 装備の最終ステータス算出時に利用する            |
+
+---
+
+## 旧スキーマからの移行
+
+`20260810_orb_enchant_effect_id.sql` は既存行を削除せず、`enchant_master_id = legacy`、
+`effect_id = legacy_{enchant_id}` として付与済みのステータス値を保持します。旧 `pool_index` だけから
+共通マスタの安定した `effect_id` 自体は復元できません。runtimeの候補判定では `legacy_` 行に限り
+`status` / `type` が一致し、保存済み `value` が候補定義の固定値または範囲内にある場合を意味的重複として除外します。
+これにより既存行を保持したまま同義効果の再付与を防ぎます。
+新規付与分は通常の `effect_id` で重複制御します。
 
 ---
 

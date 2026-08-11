@@ -17,6 +17,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -91,7 +92,41 @@ public final class InventoryPersistence {
             for (EquipmentLoadoutModel loadout : loadouts) {
                 state.putLoadout(loadout);
             }
-            lastPersistedLoadoutSlots.put(accountId, snapshotLoadoutSlots(state));
+            Set<String> equipmentInstanceIds = new HashSet<>();
+            for (InventoryModel inventory : state.snapshotInventories()) {
+                state.snapshotEntries(inventory.getInventoryId()).stream()
+                    .filter(entry -> !entry.isDeleted())
+                    .filter(entry -> entry.getInstanceId() != null)
+                    .filter(entry -> "EQUIPMENT".equalsIgnoreCase(entry.getItemCategory()))
+                    .map(entry -> entry.getInstanceId().toString())
+                    .forEach(equipmentInstanceIds::add);
+            }
+            loadouts.stream()
+                .flatMap(loadout -> loadout.getSlots().stream())
+                .filter(slot -> !slot.isDeleted())
+                .map(slot -> slot.getEquipmentInstanceId().toString())
+                .forEach(equipmentInstanceIds::add);
+            // APIから取得したloadoutをcleanup前に保存し、owner不一致slotを次回saveのdelete diffへ残す。
+            Map<SlotKey, UUID> persistedLoadoutSlots = snapshotLoadoutSlots(state);
+            ItemService.EquipmentPreloadResult preloadResult =
+                itemService.preloadEquipmentInstances(equipmentInstanceIds);
+            if (preloadResult == ItemService.EquipmentPreloadResult.UNAVAILABLE) {
+                Logger.warn(LogId.W_5252, accountId, preloadResult);
+            }
+            // owner不一致はpartial preload後に別IDが通信失敗しても確定情報として除去する。
+            // nullは全preloadが完了した場合だけ404確定として扱い、UNAVAILABLEでは保持する。
+            for (String instanceId : equipmentInstanceIds) {
+                var loaded = itemService.findLoadedEquipmentInstanceById(instanceId);
+                boolean unavailableOwner = loaded != null
+                    && !loaded.getAccountId().equalsIgnoreCase(accountId.toString());
+                boolean confirmedMissing = loaded == null
+                    && preloadResult != ItemService.EquipmentPreloadResult.UNAVAILABLE;
+                if (unavailableOwner || confirmedMissing) {
+                    state.discardUnavailableEquipmentInstance(UUID.fromString(instanceId));
+                    itemService.evictEquipmentInstanceFromCache(instanceId);
+                }
+            }
+            lastPersistedLoadoutSlots.put(accountId, persistedLoadoutSlots);
         } catch (RuntimeException e) {
             Logger.warn(LogId.W_5252, accountId, e.getMessage());
         }
@@ -111,6 +146,14 @@ public final class InventoryPersistence {
      * @return 実際に save 処理を走らせた場合 true
      */
     public boolean save(@NotNull PlayerInventoryState state, @NotNull SaveTrigger trigger) {
+        return save(state, trigger, null);
+    }
+
+    private boolean save(
+        @NotNull PlayerInventoryState state,
+        @NotNull SaveTrigger trigger,
+        @Nullable Map<UUID, List<InventoryEntryModel>> persistedEntries
+    ) {
         UUID accountId = state.getAccountId();
         boolean inventoryDirty = state.takeAndClearDirty();
         boolean durabilityDirty = itemService.hasDirtyEquipmentDurability(accountId);
@@ -155,6 +198,7 @@ public final class InventoryPersistence {
                             accountId
                         );
                         state.acknowledgePersistedEntries(targetInventory.getInventoryId(), entries, persisted);
+                        capturePersistedEntries(persistedEntries, targetInventory.getInventoryId(), persisted);
                     } catch (InventoryApiException e) {
                         if (e.getStatusCode() != 404) {
                             logInventorySyncFailure(accountId, targetInventory.getInventoryId(), trigger, entries.size(), e);
@@ -195,6 +239,7 @@ public final class InventoryPersistence {
                                 accountId
                             );
                             state.acknowledgePersistedEntries(targetInventory.getInventoryId(), entries, persisted);
+                            capturePersistedEntries(persistedEntries, targetInventory.getInventoryId(), persisted);
                         } catch (RuntimeException retryFailure) {
                             logInventorySyncFailure(
                                 accountId,
@@ -264,6 +309,38 @@ public final class InventoryPersistence {
         state.markDirty();
         save(state, SaveTrigger.IMMEDIATE);
         return !hasPendingChanges(state);
+    }
+
+    /**
+     * 外部原子操作の直前状態を保存し、API が実際に永続化した entry を baseline として返します。
+     * <p>
+     * 保存中にローカル変更が入った場合、{@link PlayerInventoryState#acknowledgePersistedEntries(UUID, List, List)}
+     * はその変更を保持して dirty を残します。この場合は不安定な snapshot を baseline にせず {@code null}
+     * を返し、呼び出し側が同じ account lane 内で再保存します。
+     *
+     * @param state 対象 state
+     * @return 全 inventory の保存済み entry。通信失敗または保存中変更が残る場合は {@code null}
+     */
+    public @Nullable PersistedInventoryBaseline saveNowWithBaseline(
+        @NotNull PlayerInventoryState state
+    ) {
+        Map<UUID, List<InventoryEntryModel>> persistedEntries = new LinkedHashMap<>();
+        state.markDirty();
+        save(state, SaveTrigger.IMMEDIATE, persistedEntries);
+        if (hasPendingChanges(state)) {
+            return null;
+        }
+        return new PersistedInventoryBaseline(state.getAccountId(), persistedEntries);
+    }
+
+    private static void capturePersistedEntries(
+        @Nullable Map<UUID, List<InventoryEntryModel>> target,
+        @NotNull UUID inventoryId,
+        @NotNull List<InventoryEntryModel> persisted
+    ) {
+        if (target != null) {
+            target.put(inventoryId, List.copyOf(persisted));
+        }
     }
 
     private void saveLoadoutSlotsDiff(@NotNull PlayerInventoryState state) {
@@ -349,7 +426,7 @@ public final class InventoryPersistence {
      */
     public void clearAccount(@NotNull UUID accountId) {
         lastPersistedLoadoutSlots.remove(accountId);
-        itemService.clearDirtyEquipmentDurability(accountId);
+        itemService.clearEquipmentState(accountId);
     }
 
     /**
@@ -482,6 +559,43 @@ public final class InventoryPersistence {
         LOGOUT,
         PLUGIN_DISABLE,
         IMMEDIATE,
+    }
+
+    /**
+     * 外部原子操作の直前に API が保存済みと確認した inventory entry 群です。
+     * ローカル current snapshot とは分離し、操作後の三者マージでのみ使用します。
+     *
+     * @param accountId baseline を所有する account
+     * @param entriesByInventoryId inventory ごとの保存済み entry
+     */
+    public record PersistedInventoryBaseline(
+        @NotNull UUID accountId,
+        @NotNull Map<UUID, List<InventoryEntryModel>> entriesByInventoryId
+    ) {
+        public PersistedInventoryBaseline {
+            Map<UUID, List<InventoryEntryModel>> copied = new LinkedHashMap<>();
+            entriesByInventoryId.forEach((inventoryId, entries) ->
+                copied.put(inventoryId, List.copyOf(entries))
+            );
+            entriesByInventoryId = Map.copyOf(copied);
+        }
+
+        /** 指定 entry ID の保存済み行を返します。 */
+        public @Nullable InventoryEntryModel findEntry(@NotNull UUID inventoryEntryId) {
+            for (List<InventoryEntryModel> entries : entriesByInventoryId.values()) {
+                for (InventoryEntryModel entry : entries) {
+                    if (!entry.isDeleted() && entry.getInventoryEntryId().equals(inventoryEntryId)) {
+                        return entry;
+                    }
+                }
+            }
+            return null;
+        }
+
+        /** 指定 inventory の保存済み行を返します。 */
+        public @NotNull List<InventoryEntryModel> entries(@NotNull UUID inventoryId) {
+            return entriesByInventoryId.getOrDefault(inventoryId, List.of());
+        }
     }
 
     /**

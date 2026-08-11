@@ -27,7 +27,10 @@ import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 /**
  * プレイヤー機能のビジネスロジックを担うサービスクラス。
@@ -356,17 +359,34 @@ public class PlayerService {
     }
 
     /**
-     * キャッシュ済みオンラインプレイヤーを保存してキャッシュを空にします。
-     * プラグイン停止時に呼び出し、/reload 相当の再起動でセッション情報が残らないようにします。
+     * キャッシュ済みオンラインプレイヤーの停止保存をアカウントlaneへ登録します。
+     * accepted済みオーブ操作と正本照合の後ろで保存し、成功したセッションだけstate/cacheを解放します。
+     *
+     * @return 各プレイヤーの停止保存future
      */
-    public void saveAllOnlinePlayersAndClear() {
-        for (AstPlayer astPlayer : AstPlayerCache.getAll()) {
+    public @NotNull List<CompletableFuture<Boolean>> saveAllOnlinePlayersAndClear() {
+        List<CompletableFuture<Boolean>> saves = new ArrayList<>();
+        for (AstPlayer astPlayer : List.copyOf(AstPlayerCache.getAll())) {
+            UUID accountId = astPlayer.getAccount().getUuid();
+            if (inventorySaveCoordinator.hasUnresolvedExternalOperation(accountId)) {
+                continue;
+            }
+            inventoryService.refreshEquipmentDisplaysForSave(astPlayer);
             playerSaveCoordinator.prepare(astPlayer, PlayerSaveTrigger.PLUGIN_DISABLE);
-            playerSaveCoordinator.save(astPlayer, PlayerSaveTrigger.PLUGIN_DISABLE);
-            inventoryStateRegistry.remove(astPlayer.getAccount().getUuid());
-            inventoryPersistence.clearAccount(astPlayer.getAccount().getUuid());
+            PlayerInventoryState state = inventoryStateRegistry.get(accountId);
+            CompletableFuture<Boolean> save = inventorySaveCoordinator.saveOnLogout(
+                accountId,
+                state,
+                () -> playerSaveCoordinator.save(astPlayer, PlayerSaveTrigger.PLUGIN_DISABLE)
+            );
+            save.whenComplete((succeeded, throwable) -> {
+                if (throwable == null && Boolean.TRUE.equals(succeeded)) {
+                    AstPlayerCache.remove(astPlayer.getBukkit().getUniqueId(), astPlayer);
+                }
+            });
+            saves.add(save);
         }
-        AstPlayerCache.clear();
+        return List.copyOf(saves);
     }
 
     /**

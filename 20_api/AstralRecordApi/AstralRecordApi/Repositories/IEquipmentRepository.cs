@@ -9,8 +9,7 @@ public interface IEquipmentRepository
     /// </summary>
     Task AddAsync(
         EquipmentInstanceEntity instance,
-        IReadOnlyList<EquipmentInstanceStatRollEntity> statRolls,
-        IReadOnlyList<EquipmentInstanceEnchantPoolEntity> enchantPools);
+        IReadOnlyList<EquipmentInstanceStatRollEntity> statRolls);
 
     /// <summary>
     /// 指定した装備インスタンス ID のエンティティを返す。論理削除済みは返さない。
@@ -32,20 +31,13 @@ public interface IEquipmentRepository
     /// </summary>
     Task<IReadOnlyList<EquipmentInstanceRuneEntity>> FindRunesAsync(Guid instanceId);
 
-    /// <summary>
-    /// 指定した装備インスタンスに紐づくエンチャントプールを返す。
-    /// </summary>
-    Task<IReadOnlyList<EquipmentInstanceEnchantPoolEntity>> FindEnchantPoolsAsync(Guid instanceId);
+    Task<bool> DeleteEnchantBySlotIndexAsync(Guid instanceId, int slotIndex, Guid accountId);
 
-    Task ApplyEnchantAsync(EquipmentInstanceEntity instance, EquipmentInstanceEnchantEntity enchant, Guid? overwriteEnchantId);
-
-    Task<bool> DeleteEnchantByPoolIndexAsync(Guid instanceId, int poolIndex);
-
-    Task UpsertRuneAsync(EquipmentInstanceEntity instance, EquipmentInstanceRuneEntity rune);
+    Task<bool> UpsertRuneAsync(Guid instanceId, Guid accountId, EquipmentInstanceRuneEntity rune);
 
     Task<bool> DeleteRuneBySlotIndexAsync(Guid instanceId, int slotIndex);
 
-    Task UpdateInstanceAsync(EquipmentInstanceEntity instance);
+    Task<EquipmentInstanceEntity?> UpdateDurabilityAsync(Guid instanceId, int durabilityValue, Guid updatedBy);
 
     Task<bool> SoftDeleteInstanceAsync(Guid instanceId);
 }

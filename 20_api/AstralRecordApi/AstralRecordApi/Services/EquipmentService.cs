@@ -5,7 +5,12 @@ using AstralRecordApi.Utilities;
 
 namespace AstralRecordApi.Services;
 
-public class EquipmentService(IItemRepository itemRepository, IEquipmentRepository equipmentRepository, IRuneRepository runeRepository, IAccountRepository accountRepository) : IEquipmentService
+public class EquipmentService(
+    IItemRepository itemRepository,
+    IEquipmentRepository equipmentRepository,
+    IEquipmentOrbOperationRepository equipmentOrbOperationRepository,
+    IRuneRepository runeRepository,
+    IAccountRepository accountRepository) : IEquipmentService
 {
     public async Task<EquipmentInstanceResponse?> CreateAsync(EquipmentCreateRequest request)
     {
@@ -42,11 +47,9 @@ public class EquipmentService(IItemRepository itemRepository, IEquipmentReposito
         };
 
         var statRolls = BuildStatRolls(instanceId, equipment.Stats, request.CreatedBy, now);
-        var enchantPools = BuildEnchantPools(instanceId, equipment, request.CreatedBy, now);
+        await equipmentRepository.AddAsync(instance, statRolls);
 
-        await equipmentRepository.AddAsync(instance, statRolls, enchantPools);
-
-        return MapToResponse(instance, statRolls, [], [], enchantPools);
+        return MapToResponse(instance, statRolls, [], []);
     }
 
     public async Task<EquipmentInstanceResponse?> GetByInstanceIdAsync(Guid instanceId)
@@ -58,190 +61,44 @@ public class EquipmentService(IItemRepository itemRepository, IEquipmentReposito
         return await BuildResponseAsync(instance);
     }
 
-    public async Task<EquipmentInstanceResponse?> EnchantAsync(EquipmentEnchantRequest request)
-    {
-        if (request.PoolIndex < 0)
-            return null;
+    public Task<EquipmentOrbOperationResponse> ApplyOrbAsync(EquipmentOrbOperationRequest request)
+        => equipmentOrbOperationRepository.ExecuteAsync(request);
 
-        var instance = await equipmentRepository.FindInstanceAsync(request.EquipmentInstanceId);
-        if (instance is null)
-            return null;
-
-        var item = itemRepository.GetById(instance.ItemId);
-        if (item?.Equipment?.Enchant is null || request.PoolIndex >= item.Equipment.Enchant.Pools.Count)
-            return null;
-
-        var maxSlots = GetEffectiveEnchantMaxSlots(item.Equipment, instance.TranscendenceRank);
-        if (maxSlots <= 0)
-            return null;
-
-        var pool = item.Equipment.Enchant.Pools[request.PoolIndex];
-        var entry = SelectRandomEnchantEntry(pool.Entries);
-        if (entry is null || string.IsNullOrWhiteSpace(entry.Status) || string.IsNullOrWhiteSpace(entry.Type) || string.IsNullOrWhiteSpace(entry.Value))
-            return null;
-
-        var now = DateTime.UtcNow;
-        var currentEnchants = await equipmentRepository.FindEnchantsAsync(instance.EquipmentInstanceId);
-        var existingForPool = currentEnchants.FirstOrDefault(x => x.PoolIndex == request.PoolIndex);
-
-        Guid? overwriteEnchantId = existingForPool?.EnchantId;
-        var slotIndex = existingForPool?.SlotIndex ?? -1;
-        var createdAt = existingForPool?.CreatedAt ?? now;
-        var createdBy = existingForPool?.CreatedBy ?? request.UpdatedBy;
-
-        if (slotIndex < 0)
-        {
-            if (currentEnchants.Count < maxSlots)
-            {
-                slotIndex = GetNextAvailableSlotIndex(currentEnchants, maxSlots);
-            }
-            else
-            {
-                var overwriteTarget = currentEnchants[Random.Shared.Next(currentEnchants.Count)];
-                overwriteEnchantId = overwriteTarget.EnchantId;
-                slotIndex = overwriteTarget.SlotIndex;
-                createdAt = overwriteTarget.CreatedAt;
-                createdBy = overwriteTarget.CreatedBy;
-            }
-        }
-
-        instance.UpdatedAt = now;
-        instance.UpdatedBy = request.UpdatedBy;
-
-        var enchant = new EquipmentInstanceEnchantEntity
-        {
-            EnchantId = overwriteEnchantId ?? Guid.NewGuid(),
-            EquipmentInstanceId = instance.EquipmentInstanceId,
-            SlotIndex = slotIndex,
-            PoolIndex = request.PoolIndex,
-            Status = entry.Status,
-            Type = entry.Type,
-            Value = RangeValueResolver.ResolveDecimal(entry.Value),
-            CreatedAt = createdAt,
-            UpdatedAt = now,
-            CreatedBy = createdBy,
-            UpdatedBy = request.UpdatedBy,
-        };
-
-        await equipmentRepository.ApplyEnchantAsync(instance, enchant, overwriteEnchantId);
-        return await GetByInstanceIdAsync(instance.EquipmentInstanceId);
-    }
+    public Task<EquipmentOrbOperationResponse?> FindOrbOperationAsync(Guid operationId, Guid accountId)
+        => equipmentOrbOperationRepository.FindAsync(operationId, accountId);
 
     public async Task<EquipmentInstanceResponse?> DeleteEnchantAsync(EquipmentEnchantDeleteRequest request)
     {
         var instance = await equipmentRepository.FindInstanceAsync(request.EquipmentInstanceId);
-        if (instance is null)
+        if (instance is null || instance.AccountId != request.UpdatedBy)
             return null;
 
-        var deleted = await equipmentRepository.DeleteEnchantByPoolIndexAsync(request.EquipmentInstanceId, request.PoolIndex);
+        var deleted = await equipmentRepository.DeleteEnchantBySlotIndexAsync(
+            request.EquipmentInstanceId,
+            request.SlotIndex,
+            request.UpdatedBy);
         if (!deleted)
             return null;
 
         return await GetByInstanceIdAsync(request.EquipmentInstanceId);
     }
 
-    public async Task<EquipmentInstanceResponse?> EnhanceAsync(EquipmentEnhanceRequest request)
-    {
-        var instance = await equipmentRepository.FindInstanceAsync(request.EquipmentInstanceId);
-        if (instance is null)
-            return null;
-
-        var item = itemRepository.GetById(instance.ItemId);
-        if (item?.Equipment?.Enhance is null)
-            return null;
-
-        var maxLevel = GetEffectiveEnhanceMaxLevel(item.Equipment, instance.TranscendenceRank);
-        var targetLevel = request.TargetLevel ?? (instance.EnhanceLevel + 1);
-
-        if (targetLevel < 0 || targetLevel > maxLevel || targetLevel == instance.EnhanceLevel)
-            return null;
-
-        var currentDurabilityBonus = item.Equipment.Enhance.Levels
-            .Where(level => level.Level <= instance.EnhanceLevel)
-            .Sum(level => level.DurabilityBonus ?? 0);
-        var targetDurabilityBonus = item.Equipment.Enhance.Levels
-            .Where(level => level.Level <= targetLevel)
-            .Sum(level => level.DurabilityBonus ?? 0);
-        var durabilityDelta = targetDurabilityBonus - currentDurabilityBonus;
-
-        instance.EnhanceLevel = targetLevel;
-        if (durabilityDelta != 0 && instance.DurabilityMax.HasValue && instance.DurabilityValue.HasValue)
-        {
-            var updatedDurabilityMax = instance.DurabilityMax.Value + durabilityDelta;
-            var updatedDurabilityValue = instance.DurabilityValue.Value + durabilityDelta;
-            instance.DurabilityMax = updatedDurabilityMax;
-            instance.DurabilityValue = Math.Clamp(updatedDurabilityValue, 0, updatedDurabilityMax);
-        }
-
-        instance.UpdatedAt = DateTime.UtcNow;
-        instance.UpdatedBy = request.UpdatedBy;
-
-        await equipmentRepository.UpdateInstanceAsync(instance);
-        return await GetByInstanceIdAsync(instance.EquipmentInstanceId);
-    }
-
     public async Task<EquipmentInstanceResponse?> UpdateDurabilityAsync(EquipmentDurabilityUpdateRequest request)
     {
-        var instance = await equipmentRepository.FindInstanceAsync(request.EquipmentInstanceId);
-        if (instance is null || !instance.DurabilityMax.HasValue || !instance.DurabilityValue.HasValue)
-            return null;
-
-        instance.DurabilityValue = Math.Clamp(request.DurabilityValue, 0, instance.DurabilityMax.Value);
-        instance.UpdatedAt = DateTime.UtcNow;
-        instance.UpdatedBy = request.UpdatedBy;
-
-        await equipmentRepository.UpdateInstanceAsync(instance);
-        return await GetByInstanceIdAsync(instance.EquipmentInstanceId);
+        var instance = await equipmentRepository.UpdateDurabilityAsync(
+            request.EquipmentInstanceId,
+            request.DurabilityValue,
+            request.UpdatedBy);
+        return instance is null ? null : await BuildResponseAsync(instance);
     }
 
     public async Task<bool> DeleteAsync(Guid instanceId)
         => await equipmentRepository.SoftDeleteInstanceAsync(instanceId);
 
-    public async Task<EquipmentInstanceResponse?> TranscendAsync(EquipmentTranscendenceRequest request)
-    {
-        var instance = await equipmentRepository.FindInstanceAsync(request.EquipmentInstanceId);
-        if (instance is null)
-            return null;
-
-        var item = itemRepository.GetById(instance.ItemId);
-        if (item?.Equipment is null || item.Equipment.Transcendence.Count == 0)
-            return null;
-
-        var target = item.Equipment.Transcendence
-            .Where(t => t.Rank > instance.TranscendenceRank)
-            .OrderBy(t => t.Rank)
-            .FirstOrDefault();
-        if (target is null || request.TargetRank is int requestedRank && requestedRank != target.Rank)
-            return null;
-
-        var effectiveMaxLevel = item.Equipment.Enhance?.MaxLevel ?? 0;
-        foreach (var applied in item.Equipment.Transcendence
-                     .Where(t => t.Rank <= instance.TranscendenceRank)
-                     .OrderBy(t => t.Rank))
-        {
-            if (applied.Overrides?.Enhance is not null)
-                effectiveMaxLevel = applied.Overrides.Enhance.MaxLevel;
-        }
-
-        if (instance.EnhanceLevel < effectiveMaxLevel
-            || instance.EnhanceLevel < target.RequiredEnhanceLevel)
-            return null;
-
-        instance.TranscendenceRank = target.Rank;
-        if (target.Overrides?.Rune is not null && !string.IsNullOrWhiteSpace(target.Overrides.Rune.MaxSlots))
-            instance.RuneMaxSlots = RangeValueResolver.ResolveInt(target.Overrides.Rune.MaxSlots);
-
-        instance.UpdatedAt = DateTime.UtcNow;
-        instance.UpdatedBy = request.UpdatedBy;
-
-        await equipmentRepository.UpdateInstanceAsync(instance);
-        return await GetByInstanceIdAsync(instance.EquipmentInstanceId);
-    }
-
     public async Task<EquipmentInstanceResponse?> AttachRuneAsync(EquipmentRuneAttachRequest request)
     {
         var instance = await equipmentRepository.FindInstanceAsync(request.EquipmentInstanceId);
-        if (instance is null)
+        if (instance is null || instance.AccountId != request.UpdatedBy)
             return null;
 
         var equipmentItem = itemRepository.GetById(instance.ItemId);
@@ -289,7 +146,12 @@ public class EquipmentService(IItemRepository itemRepository, IEquipmentReposito
             UpdatedBy = request.UpdatedBy,
         };
 
-        await equipmentRepository.UpsertRuneAsync(instance, rune);
+        var saved = await equipmentRepository.UpsertRuneAsync(
+            instance.EquipmentInstanceId,
+            request.UpdatedBy,
+            rune);
+        if (!saved)
+            return null;
         return await GetByInstanceIdAsync(instance.EquipmentInstanceId);
     }
 
@@ -311,12 +173,7 @@ public class EquipmentService(IItemRepository itemRepository, IEquipmentReposito
         var statRolls = await equipmentRepository.FindStatRollsAsync(instance.EquipmentInstanceId);
         var enchants = await equipmentRepository.FindEnchantsAsync(instance.EquipmentInstanceId);
         var runes = await equipmentRepository.FindRunesAsync(instance.EquipmentInstanceId);
-        var item = itemRepository.GetById(instance.ItemId);
-        var enchantPools = item?.Equipment is null
-            ? []
-            : BuildEnchantPools(instance.EquipmentInstanceId, item.Equipment, instance.CreatedBy, instance.CreatedAt);
-
-        return MapToResponse(instance, statRolls, enchants, runes, enchantPools);
+        return MapToResponse(instance, statRolls, enchants, runes);
     }
 
     private static IReadOnlyList<EquipmentInstanceStatRollEntity> BuildStatRolls(
@@ -360,76 +217,6 @@ public class EquipmentService(IItemRepository itemRepository, IEquipmentReposito
         return result;
     }
 
-    private static IReadOnlyList<EquipmentInstanceEnchantPoolEntity> BuildEnchantPools(
-        Guid instanceId,
-        ItemEquipmentResponse equipment,
-        Guid createdBy,
-        DateTime now)
-    {
-        if (equipment.Enchant is null)
-            return [];
-
-        var result = new List<EquipmentInstanceEnchantPoolEntity>(equipment.Enchant.Pools.Count);
-
-        for (var i = 0; i < equipment.Enchant.Pools.Count; i++)
-        {
-            var pool = equipment.Enchant.Pools[i];
-            result.Add(new EquipmentInstanceEnchantPoolEntity
-            {
-                EnchantPoolId = Guid.NewGuid(),
-                EquipmentInstanceId = instanceId,
-                PoolIndex = i,
-                RecipeId = pool.RecipeId,
-                RequiredMaterialItemId = pool.RequiredMaterial?.ItemId,
-                RequiredMaterialAmount = pool.RequiredMaterial?.Amount ?? 1,
-                RequiredCurrency = pool.RequiredCurrency,
-                CreatedAt = now,
-                UpdatedAt = now,
-                CreatedBy = createdBy,
-                UpdatedBy = createdBy,
-                IsDeleted = false,
-            });
-        }
-
-        return result;
-    }
-
-    private static ItemEquipmentEnchantEntryResponse? SelectRandomEnchantEntry(IReadOnlyList<ItemEquipmentEnchantEntryResponse> entries)
-    {
-        var candidates = entries
-            .Where(entry => !string.IsNullOrWhiteSpace(entry.Status)
-                && !string.IsNullOrWhiteSpace(entry.Type)
-                && !string.IsNullOrWhiteSpace(entry.Value))
-            .ToList();
-
-        if (candidates.Count == 0)
-            return null;
-
-        var totalWeight = candidates.Sum(entry => Math.Max(entry.Weight, 1));
-        var roll = Random.Shared.Next(1, totalWeight + 1);
-
-        foreach (var candidate in candidates)
-        {
-            roll -= Math.Max(candidate.Weight, 1);
-            if (roll <= 0)
-                return candidate;
-        }
-
-        return candidates[^1];
-    }
-
-    private static int GetNextAvailableSlotIndex(IReadOnlyList<EquipmentInstanceEnchantEntity> enchants, int maxSlots)
-    {
-        var usedSlots = enchants.Select(e => e.SlotIndex).ToHashSet();
-        for (var i = 0; i < maxSlots; i++)
-        {
-            if (!usedSlots.Contains(i))
-                return i;
-        }
-
-        return 0;
-    }
-
     private static int GetNextAvailableRuneSlot(IReadOnlyList<EquipmentInstanceRuneEntity> runes, int maxSlots)
     {
         var usedSlots = runes.Select(e => e.SlotIndex).ToHashSet();
@@ -458,42 +245,11 @@ public class EquipmentService(IItemRepository itemRepository, IEquipmentReposito
             || string.Equals(slot, equipment.Slot, StringComparison.OrdinalIgnoreCase));
     }
 
-    private static int GetEffectiveEnchantMaxSlots(ItemEquipmentResponse equipment, int transcendenceRank)
-    {
-        var maxSlots = equipment.Enchant?.MaxSlots ?? 0;
-        foreach (var transcendence in equipment.Transcendence.OrderBy(x => x.Rank))
-        {
-            if (transcendence.Rank > transcendenceRank)
-                break;
-
-            if (transcendence.Overrides?.Enchant is not null)
-                maxSlots = transcendence.Overrides.Enchant.MaxSlots;
-        }
-
-        return maxSlots;
-    }
-
-    private static int GetEffectiveEnhanceMaxLevel(ItemEquipmentResponse equipment, int transcendenceRank)
-    {
-        var maxLevel = equipment.Enhance?.MaxLevel ?? 0;
-        foreach (var transcendence in equipment.Transcendence.OrderBy(x => x.Rank))
-        {
-            if (transcendence.Rank > transcendenceRank)
-                break;
-
-            if (transcendence.Overrides?.Enhance is not null)
-                maxLevel = transcendence.Overrides.Enhance.MaxLevel;
-        }
-
-        return maxLevel;
-    }
-
     private static EquipmentInstanceResponse MapToResponse(
         EquipmentInstanceEntity instance,
         IEnumerable<EquipmentInstanceStatRollEntity> statRolls,
         IEnumerable<EquipmentInstanceEnchantEntity> enchants,
-        IEnumerable<EquipmentInstanceRuneEntity> runes,
-        IEnumerable<EquipmentInstanceEnchantPoolEntity> enchantPools) => new()
+        IEnumerable<EquipmentInstanceRuneEntity> runes) => new()
     {
         EquipmentInstanceId = instance.EquipmentInstanceId,
         AccountId = instance.AccountId,
@@ -518,7 +274,8 @@ public class EquipmentService(IItemRepository itemRepository, IEquipmentReposito
             EnchantId = e.EnchantId,
             EquipmentInstanceId = e.EquipmentInstanceId,
             SlotIndex = e.SlotIndex,
-            PoolIndex = e.PoolIndex,
+            EnchantMasterId = e.EnchantMasterId,
+            EffectId = e.EffectId,
             Status = e.Status,
             Type = e.Type,
             Value = e.Value,
@@ -539,13 +296,5 @@ public class EquipmentService(IItemRepository itemRepository, IEquipmentReposito
             CreatedBy = r.CreatedBy,
             UpdatedBy = r.UpdatedBy,
         }).OrderBy(r => r.SlotIndex).ToList(),
-        EnchantPools = enchantPools.Select(p => new EquipmentInstanceEnchantPoolResponse
-        {
-            PoolIndex = p.PoolIndex,
-            RecipeId = p.RecipeId,
-            RequiredMaterialItemId = p.RequiredMaterialItemId,
-            RequiredMaterialAmount = p.RequiredMaterialAmount,
-            RequiredCurrency = p.RequiredCurrency,
-        }).ToList(),
     };
 }

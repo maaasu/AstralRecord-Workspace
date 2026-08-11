@@ -8,8 +8,7 @@ import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.inventory.service.HotbarLayout;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.item.service.EquipmentEnhancementService;
-import io.github.maaasu.astralRecord.feature.item.service.EquipmentRepairService;
+import io.github.maaasu.astralRecord.feature.item.service.OrbService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
@@ -30,7 +29,9 @@ import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
+import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryType;
+import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
@@ -47,8 +48,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     private final CurrencyService currencyService;
     private final StatusService statusService;
     private final PassiveSkillService passiveSkillService;
-    private final EquipmentEnhancementService equipmentEnhancementService;
-    private final EquipmentRepairService equipmentRepairService;
+    private final OrbService orbService;
     private final MenuGuiTransitionService menuGuiTransitionService;
     private final MenuOpenEventHandler menuOpenEventHandler;
     private final SkillGemLearnEventHandler skillGemLearnEventHandler;
@@ -69,8 +69,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull CurrencyService currencyService,
         @NotNull StatusService statusService,
         @NotNull PassiveSkillService passiveSkillService,
-        @NotNull EquipmentEnhancementService equipmentEnhancementService,
-        @NotNull EquipmentRepairService equipmentRepairService,
+        @NotNull OrbService orbService,
         @NotNull MenuGuiTransitionService menuGuiTransitionService,
         @NotNull MenuOpenEventHandler menuOpenEventHandler,
         @NotNull SkillGemLearnEventHandler skillGemLearnEventHandler
@@ -80,8 +79,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         this.currencyService = currencyService;
         this.statusService = statusService;
         this.passiveSkillService = passiveSkillService;
-        this.equipmentEnhancementService = equipmentEnhancementService;
-        this.equipmentRepairService = equipmentRepairService;
+        this.orbService = orbService;
         this.menuGuiTransitionService = menuGuiTransitionService;
         this.menuOpenEventHandler = menuOpenEventHandler;
         this.skillGemLearnEventHandler = skillGemLearnEventHandler;
@@ -95,7 +93,15 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = true)
     public void onInventoryClick(InventoryClickEvent event) {
         runSafely(() -> {
+            if (event.getWhoClicked() instanceof Player player && orbService.isLocked(player)) {
+                event.setCancelled(true);
+                return;
+            }
             var topInventory = event.getView().getTopInventory();
+            if (orbService.isOrbInventory(topInventory)) {
+                orbService.handleGuiClick(event);
+                return;
+            }
             if (isEquipmentMenu(topInventory)) {
                 if (event.getWhoClicked() instanceof Player player
                     && !AccountModeGuard.isGameplayPlayer(player)) {
@@ -104,36 +110,6 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                     return;
                 }
                 handleEquipmentMenuClick(event, topInventory);
-                return;
-            }
-            if (equipmentEnhancementService.isProcessingMenu(topInventory)) {
-                if (event.getWhoClicked() instanceof Player player
-                    && !AccountModeGuard.isGameplayPlayer(player)) {
-                    event.setCancelled(true);
-                    player.closeInventory();
-                    return;
-                }
-                handleProcessingMenuClick(event, topInventory);
-                return;
-            }
-            if (equipmentEnhancementService.isEnhancementMenu(topInventory)) {
-                if (event.getWhoClicked() instanceof Player player
-                    && !AccountModeGuard.isGameplayPlayer(player)) {
-                    event.setCancelled(true);
-                    player.closeInventory();
-                    return;
-                }
-                handleEnhancementMenuClick(event, topInventory);
-                return;
-            }
-            if (equipmentRepairService.isRepairMenu(topInventory)) {
-                if (event.getWhoClicked() instanceof Player player
-                    && !AccountModeGuard.isGameplayPlayer(player)) {
-                    event.setCancelled(true);
-                    player.closeInventory();
-                    return;
-                }
-                handleRepairMenuClick(event, topInventory);
                 return;
             }
             handlePlayerInventoryClick(event);
@@ -151,17 +127,11 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             if (!(event.getPlayer() instanceof Player player)) {
                 return;
             }
+            if (orbService.isOrbInventory(event.getInventory())) {
+                orbService.handleClose(player);
+                return;
+            }
             if (!isEquipmentMenu(event.getInventory())) {
-                if (equipmentEnhancementService.isProcessingMenu(event.getInventory())) {
-                    equipmentEnhancementService.handleClose(player);
-                    return;
-                }
-                if (equipmentEnhancementService.isEnhancementMenu(event.getInventory())) {
-                    equipmentEnhancementService.handleClose(player);
-                }
-                if (equipmentRepairService.isRepairMenu(event.getInventory())) {
-                    equipmentRepairService.handleClose(player);
-                }
                 return;
             }
             saveEquipmentMenuSnapshot(player, event.getInventory());
@@ -169,14 +139,13 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     }
 
     /**
-     * プレイヤー保存より先に、強化・修理 GUI が退避中の装備を対象ログイン世代の state へ戻します。
+     * プレイヤー保存より先に、オーブ装備操作の同一ID再送と正本照合を保存laneで完了させます。
      *
      * @param event Bukkit のログアウトイベント
      */
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        equipmentEnhancementService.prepareForPlayerSave(event.getPlayer());
-        equipmentRepairService.prepareForPlayerSave(event.getPlayer());
+        orbService.prepareForPlayerSave(event.getPlayer());
     }
 
     /**
@@ -184,9 +153,12 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
      *
      * @param event Bukkit のホットバー選択変更イベント
      */
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onPlayerItemHeld(PlayerItemHeldEvent event) {
         runSafely(() -> {
+            if (orbService.handleHeldChange(event)) {
+                return;
+            }
             Player player = event.getPlayer();
             Inventory topInventory = player.getOpenInventory().getTopInventory();
             if (!isEquipmentMenu(topInventory)) {
@@ -197,6 +169,26 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 player.getInventory().getItem(event.getNewSlot())
             );
         }, LogId.E_5601, event.getPlayer().getName(), "equipment_gui_held_item");
+    }
+
+    /** オーブ GUI 上のドラッグを、操作ロックを含めて専用サービスへ委譲します。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
+    public void onInventoryDrag(@NotNull InventoryDragEvent event) {
+        if (event.getWhoClicked() instanceof Player player && orbService.isLocked(player)) {
+            event.setCancelled(true);
+            return;
+        }
+        if (orbService.isOrbInventory(event.getView().getTopInventory())) {
+            orbService.handleGuiDrag(event);
+        }
+    }
+
+    /** 演出・更新待機中の Q ドロップによる state 逸脱を防ぎます。 */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
+    public void onPlayerDropItem(@NotNull PlayerDropItemEvent event) {
+        if (orbService.isLocked(event.getPlayer())) {
+            event.setCancelled(true);
+        }
     }
 
     /**
@@ -269,106 +261,6 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             return true;
         }
         return false;
-    }
-
-    private void handleEnhancementMenuClick(@NotNull InventoryClickEvent event, @NotNull Inventory topInventory) {
-        if (!(event.getWhoClicked() instanceof Player player)) {
-            return;
-        }
-        event.setCancelled(true);
-
-        if (event.getRawSlot() >= topInventory.getSize()) {
-            if (!(event.getClickedInventory() instanceof PlayerInventory)) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            if (event.getCursor().getType() != Material.AIR) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            if (equipmentEnhancementService.handlePlayerInventoryClick(player, event.getSlot())) {
-                return;
-            }
-            if (!HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
-                GuiSound.DENY.play(player);
-            }
-            return;
-        }
-
-        equipmentEnhancementService.handleTopClick(player, event.getRawSlot());
-    }
-
-    private void handleProcessingMenuClick(@NotNull InventoryClickEvent event, @NotNull Inventory topInventory) {
-        if (!(event.getWhoClicked() instanceof Player player)) {
-            return;
-        }
-        event.setCancelled(true);
-
-        if (event.getRawSlot() >= topInventory.getSize()) {
-            if (!(event.getClickedInventory() instanceof PlayerInventory)) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            if (event.getCursor().getType() != Material.AIR) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            if (equipmentEnhancementService.handlePlayerInventoryClick(
-                player,
-                event.getSlot(),
-                event.getCurrentItem()
-            )) {
-                return;
-            }
-            if (!HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
-                GuiSound.DENY.play(player);
-            }
-            return;
-        }
-
-        equipmentEnhancementService.handleTopClick(player, event.getRawSlot());
-    }
-
-    private void handleRepairMenuClick(@NotNull InventoryClickEvent event, @NotNull Inventory topInventory) {
-        if (!(event.getWhoClicked() instanceof Player player)) {
-            return;
-        }
-        event.setCancelled(true);
-
-        if (event.getRawSlot() >= topInventory.getSize()) {
-            if (!(event.getClickedInventory() instanceof PlayerInventory)) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            if (event.getCursor().getType() != Material.AIR) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            if (equipmentRepairService.handlePlayerInventoryClick(player, event.getSlot())) {
-                return;
-            }
-            if (!HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
-                GuiSound.DENY.play(player);
-            }
-            return;
-        }
-
-        equipmentRepairService.handleTopClick(player, event.getRawSlot());
     }
 
     private void handleEquipmentMenuSlotClick(
@@ -561,6 +453,10 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
 
         var astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || !astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
+            return;
+        }
+
+        if (orbService.handleInventoryOrbClick(event)) {
             return;
         }
 

@@ -1,22 +1,9 @@
 namespace AstralRecordApi.Models;
 
-public class EquipmentEnchantRequest
-{
-    public Guid EquipmentInstanceId { get; set; }
-    public int PoolIndex { get; set; }
-    public Guid UpdatedBy { get; set; }
-}
-
 public class EquipmentEnchantDeleteRequest
 {
     public Guid EquipmentInstanceId { get; set; }
-    public int PoolIndex { get; set; }
-}
-
-public class EquipmentEnhanceRequest
-{
-    public Guid EquipmentInstanceId { get; set; }
-    public int? TargetLevel { get; set; }
+    public int SlotIndex { get; set; }
     public Guid UpdatedBy { get; set; }
 }
 
@@ -24,13 +11,6 @@ public class EquipmentDurabilityUpdateRequest
 {
     public Guid EquipmentInstanceId { get; set; }
     public int DurabilityValue { get; set; }
-    public Guid UpdatedBy { get; set; }
-}
-
-public class EquipmentTranscendenceRequest
-{
-    public Guid EquipmentInstanceId { get; set; }
-    public int? TargetRank { get; set; }
     public Guid UpdatedBy { get; set; }
 }
 

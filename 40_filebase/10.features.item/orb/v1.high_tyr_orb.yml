@@ -1,0 +1,23 @@
+# design:
+#   motif: "上位武器強化 / 階級をまたぐ炎"
+#   progression: 5
+schemaVersion: 1
+id: high_tyr_orb
+category: orb
+name: "&6上位テュールのオーブ"
+icon: MAGMA_CREAM
+rarity: EPIC
+maxStack: 64
+saleValue: 500
+lore:
+  - "&7状態変化ランク5以下の武器を強化する。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: ENHANCE
+    targetSlots:
+      - WEAPON
+      - SUBWEAPON
+    rank: 5
+    rankMode: AT_MOST

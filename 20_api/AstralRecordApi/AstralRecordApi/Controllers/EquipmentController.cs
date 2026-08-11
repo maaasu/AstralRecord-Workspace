@@ -47,36 +47,49 @@ public class EquipmentController(IEquipmentService equipmentService) : Controlle
         return Ok(instance);
     }
 
-    [HttpPost("enchant")]
+    /// <summary>オーブ支払いと装備更新を冪等かつ原子的に実施</summary>
+    /// <param name="request">operationId、所有者、オーブ entry、対象装備</param>
+    /// <response code="200">確定済みの業務結果。同一 operationId は同じ結果を再生する</response>
+    /// <response code="409">同じ operationId が異なる要求内容で使用済み</response>
+    [HttpPost("orb-operations")]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Enchant([FromBody] EquipmentEnchantRequest request)
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ApplyOrb([FromBody] EquipmentOrbOperationRequest request)
     {
-        var instance = await equipmentService.EnchantAsync(request);
-        if (instance is null)
-            return NotFound();
-
-        return Ok(instance);
+        if (request.OperationId == Guid.Empty
+            || request.AccountId == Guid.Empty
+            || request.EquipmentInstanceId == Guid.Empty
+            || request.OrbInventoryEntryId == Guid.Empty
+            || string.IsNullOrWhiteSpace(request.OrbItemId))
+            return BadRequest();
+        var result = await equipmentService.ApplyOrbAsync(request);
+        return result.Result == "OPERATION_CONFLICT" ? Conflict(result) : Ok(result);
     }
 
+    /// <summary>通信結果が不明なオーブ操作の台帳結果を取得</summary>
+    [HttpGet("orb-operations/{operationId:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> GetOrbOperation(Guid operationId, [FromQuery(Name = "account_id")] Guid accountId)
+    {
+        if (operationId == Guid.Empty || accountId == Guid.Empty)
+            return BadRequest();
+
+        var result = await equipmentService.FindOrbOperationAsync(operationId, accountId);
+        return result is null ? NotFound() : Ok(result);
+    }
+
+    /// <summary>指定スロットのエンチャントを削除</summary>
+    /// <param name="request">対象装備、スロット番号、所有アカウントを含むリクエスト</param>
+    /// <response code="200">削除後の装備インスタンス</response>
+    /// <response code="404">対象装備・スロットが存在しない、または所有者が一致しない</response>
     [HttpDelete("enchant")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<IActionResult> DeleteEnchant([FromBody] EquipmentEnchantDeleteRequest request)
     {
         var instance = await equipmentService.DeleteEnchantAsync(request);
-        if (instance is null)
-            return NotFound();
-
-        return Ok(instance);
-    }
-
-    [HttpPost("enhance")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Enhance([FromBody] EquipmentEnhanceRequest request)
-    {
-        var instance = await equipmentService.EnhanceAsync(request);
         if (instance is null)
             return NotFound();
 
@@ -109,18 +122,6 @@ public class EquipmentController(IEquipmentService equipmentService) : Controlle
             return NotFound();
 
         return NoContent();
-    }
-
-    [HttpPost("transcendence")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> Transcend([FromBody] EquipmentTranscendenceRequest request)
-    {
-        var instance = await equipmentService.TranscendAsync(request);
-        if (instance is null)
-            return NotFound();
-
-        return Ok(instance);
     }
 
     /// <summary>ルーン装着</summary>

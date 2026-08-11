@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.shared.gui.event;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.gui.OrbGuiHolder;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import org.bukkit.entity.Player;
@@ -45,6 +46,9 @@ public final class GuiClickCooldownEventHandler extends AbstractEventHandler {
                 return;
             }
             if (!isPluginGui(event.getView().getTopInventory())) {
+                return;
+            }
+            if (event.getView().getTopInventory().getHolder() instanceof OrbGuiHolder) {
                 return;
             }
             if (HotbarShortcutClickSupport.handleInventoryControlClick(event, player, inventoryService)) {

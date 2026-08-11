@@ -19,10 +19,10 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<EquipmentLoadoutSlotEntity> EquipmentLoadoutSlots => Set<EquipmentLoadoutSlotEntity>();
     public DbSet<EquipmentInstanceStatRollEntity> EquipmentInstanceStatRolls => Set<EquipmentInstanceStatRollEntity>();
     public DbSet<EquipmentInstanceEnchantEntity> EquipmentInstanceEnchants => Set<EquipmentInstanceEnchantEntity>();
+    public DbSet<EquipmentOrbOperationEntity> EquipmentOrbOperations => Set<EquipmentOrbOperationEntity>();
     public DbSet<EquipmentInstanceRuneEntity> EquipmentInstanceRunes => Set<EquipmentInstanceRuneEntity>();
     public DbSet<RuneInstanceEntity> RuneInstances => Set<RuneInstanceEntity>();
     public DbSet<RuneInstanceStatRollEntity> RuneInstanceStatRolls => Set<RuneInstanceStatRollEntity>();
-    public DbSet<EquipmentInstanceEnchantPoolEntity> EquipmentInstanceEnchantPools => Set<EquipmentInstanceEnchantPoolEntity>();
     public DbSet<PlayerMailStateEntity> PlayerMailStates => Set<PlayerMailStateEntity>();
     public DbSet<PlayerMailDeliveryEntity> PlayerMailDeliveries => Set<PlayerMailDeliveryEntity>();
     public DbSet<AccountMobRecordEntity> AccountMobRecords => Set<AccountMobRecordEntity>();
@@ -614,7 +614,8 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(e => e.EnchantId).HasColumnName("enchant_id");
             entity.Property(e => e.EquipmentInstanceId).HasColumnName("equipment_instance_id");
             entity.Property(e => e.SlotIndex).HasColumnName("slot_index");
-            entity.Property(e => e.PoolIndex).HasColumnName("pool_index");
+            entity.Property(e => e.EnchantMasterId).HasColumnName("enchant_master_id");
+            entity.Property(e => e.EffectId).HasColumnName("effect_id");
             entity.Property(e => e.Status).HasColumnName("status");
             entity.Property(e => e.Type).HasColumnName("type");
             entity.Property(e => e.Value).HasColumnName("value").HasPrecision(18, 4);
@@ -622,6 +623,31 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
+            entity.HasIndex(e => new { e.EquipmentInstanceId, e.SlotIndex }).IsUnique();
+            entity.HasIndex(e => new { e.EquipmentInstanceId, e.EffectId }).IsUnique();
+        });
+
+        modelBuilder.Entity<EquipmentOrbOperationEntity>(entity =>
+        {
+            entity.ToTable("equipment_orb_operation", "dbo");
+            entity.HasKey(operation => operation.OperationId);
+
+            entity.Property(operation => operation.OperationId).HasColumnName("operation_id");
+            entity.Property(operation => operation.AccountId).HasColumnName("account_id");
+            entity.Property(operation => operation.EquipmentInstanceId).HasColumnName("equipment_instance_id");
+            entity.Property(operation => operation.OrbInventoryEntryId).HasColumnName("orb_inventory_entry_id");
+            entity.Property(operation => operation.OrbItemId).HasColumnName("orb_item_id").HasMaxLength(128);
+            entity.Property(operation => operation.OperationType).HasColumnName("operation_type").HasMaxLength(32);
+            entity.Property(operation => operation.RequestHash).HasColumnName("request_hash").HasMaxLength(64);
+            entity.Property(operation => operation.ResultCode).HasColumnName("result_code").HasMaxLength(32);
+            entity.Property(operation => operation.ResultPayloadJson).HasColumnName("result_payload_json");
+            entity.Property(operation => operation.PaymentConsumed).HasColumnName("payment_consumed");
+            entity.Property(operation => operation.AffectedInventoryEntryIdsJson)
+                .HasColumnName("affected_inventory_entry_ids_json");
+            entity.Property(operation => operation.CreatedAt).HasColumnName("created_at");
+            entity.Property(operation => operation.CompletedAt).HasColumnName("completed_at");
+            entity.Property(operation => operation.CreatedBy).HasColumnName("created_by");
+            entity.HasIndex(operation => new { operation.AccountId, operation.CreatedAt });
         });
 
         modelBuilder.Entity<EquipmentInstanceRuneEntity>(entity =>
@@ -666,25 +692,6 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(e => e.Type).HasColumnName("type");
             entity.Property(e => e.RandomValue).HasColumnName("random_value");
             entity.Property(e => e.SortOrder).HasColumnName("sort_order");
-            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
-            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
-            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
-            entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
-            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
-        });
-
-        modelBuilder.Entity<EquipmentInstanceEnchantPoolEntity>(entity =>
-        {
-            entity.ToTable("equipment_instance_enchant_pool", "dbo");
-            entity.HasKey(e => e.EnchantPoolId);
-
-            entity.Property(e => e.EnchantPoolId).HasColumnName("enchant_pool_id");
-            entity.Property(e => e.EquipmentInstanceId).HasColumnName("equipment_instance_id");
-            entity.Property(e => e.PoolIndex).HasColumnName("pool_index");
-            entity.Property(e => e.RecipeId).HasColumnName("recipe_id");
-            entity.Property(e => e.RequiredMaterialItemId).HasColumnName("required_material_item_id");
-            entity.Property(e => e.RequiredMaterialAmount).HasColumnName("required_material_amount");
-            entity.Property(e => e.RequiredCurrency).HasColumnName("required_currency");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");

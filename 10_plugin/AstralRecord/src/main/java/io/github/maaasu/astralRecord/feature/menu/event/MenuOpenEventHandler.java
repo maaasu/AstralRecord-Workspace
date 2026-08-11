@@ -339,10 +339,7 @@ public class MenuOpenEventHandler extends AbstractEventHandler
                     storageService.handleClick(event);
                     return;
                 }
-                if (menuScreen == MenuScreen.EQUIPMENT_GUI
-                    || menuScreen == MenuScreen.EQUIPMENT_PROCESSING
-                    || menuScreen == MenuScreen.EQUIPMENT_ENHANCE
-                    || menuScreen == MenuScreen.EQUIPMENT_REPAIR) {
+                if (menuScreen == MenuScreen.EQUIPMENT_GUI) {
                     return;
                 }
                 if (handleMenuHotbarShortcutClick(event, player)) {
@@ -461,12 +458,6 @@ public class MenuOpenEventHandler extends AbstractEventHandler
             case BUFF -> handleBuffClick(player, event.getRawSlot());
             case CLASS -> handleClassClick(player, event.getCurrentItem(), event.getRawSlot());
             case EQUIPMENT_GUI -> {
-            }
-            case EQUIPMENT_PROCESSING -> {
-            }
-            case EQUIPMENT_ENHANCE -> {
-            }
-            case EQUIPMENT_REPAIR -> {
             }
             case CURRENCY -> handleCurrencyClick(event, player);
             case GUIDE -> handleGuideClick(event, player);

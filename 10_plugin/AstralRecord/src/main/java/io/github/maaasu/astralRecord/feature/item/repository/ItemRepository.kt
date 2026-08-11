@@ -4,8 +4,9 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentEnchant
-import io.github.maaasu.astralRecord.feature.item.model.EquipmentEnchantPool
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationResult
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationResultType
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentRune
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentStatRoll
 import io.github.maaasu.astralRecord.feature.item.model.RuneInstance
@@ -36,11 +37,20 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStat
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscendence
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel
+import io.github.maaasu.astralRecord.feature.item.model.ItemOrb
+import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffect
+import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffectType
+import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEnchantOperation
+import io.github.maaasu.astralRecord.feature.item.model.ItemOrbRankMode
 import io.github.maaasu.astralRecord.feature.item.model.ItemRune
 import io.github.maaasu.astralRecord.feature.item.model.ItemSummary
 import io.github.maaasu.astralRecord.feature.item.model.ItemSkillGem
 import io.github.maaasu.astralRecord.feature.item.model.ItemSigil
 import io.github.maaasu.astralRecord.feature.item.model.ItemSigilModifier
+import io.github.maaasu.astralRecord.feature.item.model.EnchantEntry
+import io.github.maaasu.astralRecord.feature.item.model.EnchantEquipmentType
+import io.github.maaasu.astralRecord.feature.item.model.EnchantMaster
+import io.github.maaasu.astralRecord.feature.item.model.EnchantTarget
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil
@@ -184,85 +194,6 @@ class ItemRepository {
                     else -> {
                         Logger.log(LogId.E_5200, "HTTP ${response.statusCode()} for GET $path")
                         throw IOException("Unexpected status ${response.statusCode()} for GET $path")
-                    }
-                }
-            }
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
-            throw RuntimeException(e)
-        } catch (e: IOException) {
-            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
-            throw e
-        }
-    }
-
-    fun enhanceEquipmentInstance(
-        instanceId: String,
-        targetLevel: Int,
-        updatedBy: String,
-    ): EquipmentInstance? {
-        val path = "/api/equipment/enhance"
-        val body = ApiRequestUtil.buildJsonBody {
-            addProperty("equipmentInstanceId", instanceId)
-            addProperty("targetLevel", targetLevel)
-            addProperty("updatedBy", updatedBy)
-        }
-        try {
-            ApiRequestUtil.buildClient().use { client ->
-                val request = ApiRequestUtil.buildRequestBuilder(path)
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-                return when (response.statusCode()) {
-                    200 -> parseEquipmentInstance(response.body())
-                    404 -> null
-                    else -> {
-                        Logger.log(LogId.E_5200, "HTTP ${response.statusCode()} for POST $path")
-                        throw IOException("Unexpected status ${response.statusCode()} for POST $path")
-                    }
-                }
-            }
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
-            throw RuntimeException(e)
-        } catch (e: IOException) {
-            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
-            throw e
-        }
-    }
-
-    /**
-     * 装備インスタンスを指定した状態変化ランクへ更新します。
-     *
-     * @param instanceId 装備インスタンス ID
-     * @param targetRank 目標状態変化ランク
-     * @param updatedBy 更新者アカウント ID
-     * @return 更新後の装備インスタンス。対象不在または条件不成立時は null
-     */
-    fun transcendEquipmentInstance(
-        instanceId: String,
-        targetRank: Int,
-        updatedBy: String,
-    ): EquipmentInstance? {
-        val path = "/api/equipment/transcendence"
-        val body = ApiRequestUtil.buildJsonBody {
-            addProperty("equipmentInstanceId", instanceId)
-            addProperty("targetRank", targetRank)
-            addProperty("updatedBy", updatedBy)
-        }
-        try {
-            ApiRequestUtil.buildClient().use { client ->
-                val request = ApiRequestUtil.buildRequestBuilder(path)
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-                return when (response.statusCode()) {
-                    200 -> parseEquipmentInstance(response.body())
-                    400, 404 -> null
-                    else -> {
-                        throw IOException("Unexpected status ${response.statusCode()} for POST $path")
                     }
                 }
             }
@@ -497,7 +428,116 @@ class ItemRepository {
             consumable = parseConsumable(obj),
             skillGem = parseSkillGem(obj),
             sigil = parseSigil(obj),
+            orb = parseOrb(obj),
         )
+    }
+
+    /** 共通エンチャントマスタを取得します。 */
+    fun findEnchantMasterById(enchantMasterId: String): EnchantMaster? {
+        val encodedId = URLEncoder.encode(enchantMasterId, StandardCharsets.UTF_8).replace("+", "%20")
+        val path = "/api/enchant/$encodedId"
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val response = client.send(
+                    ApiRequestUtil.buildRequestBuilder(path).GET().build(),
+                    HttpResponse.BodyHandlers.ofString(),
+                )
+                return when (response.statusCode()) {
+                    200 -> parseEnchantMaster(response.body())
+                    404 -> null
+                    else -> throw IOException("Unexpected status ${response.statusCode()} for GET $path")
+                }
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw RuntimeException(e)
+        }
+    }
+
+    /** オーブ支払いと装備更新を同一 operationId でAPIへ要求します。 */
+    fun applyEquipmentOrbOperation(
+        operationId: String,
+        accountId: String,
+        instanceId: String,
+        orbInventoryEntryId: String,
+        orbItemId: String,
+    ): EquipmentOrbOperationResult? {
+        val path = "/api/equipment/orb-operations"
+        val body = ApiRequestUtil.buildJsonBody {
+            addProperty("operationId", operationId)
+            addProperty("accountId", accountId)
+            addProperty("equipmentInstanceId", instanceId)
+            addProperty("orbInventoryEntryId", orbInventoryEntryId)
+            addProperty("orbItemId", orbItemId)
+        }
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val response = client.send(
+                    ApiRequestUtil.buildRequestBuilder(path)
+                        .POST(HttpRequest.BodyPublishers.ofString(body))
+                        .build(),
+                    HttpResponse.BodyHandlers.ofString(),
+                )
+                return when (response.statusCode()) {
+                    200, 409 -> parseOrbOperationResult(response.body())
+                    else -> throw IOException("Unexpected status ${response.statusCode()} for POST $path")
+                }
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw RuntimeException(e)
+        }
+    }
+
+    /** operationIdに保存されたオーブ装備操作結果を照会します。 */
+    fun findEquipmentOrbOperation(operationId: String, accountId: String): EquipmentOrbOperationResult? {
+        val encodedAccountId = URLEncoder.encode(accountId, StandardCharsets.UTF_8).replace("+", "%20")
+        val path = "/api/equipment/orb-operations/$operationId?account_id=$encodedAccountId"
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val response = client.send(
+                    ApiRequestUtil.buildRequestBuilder(path).GET().build(),
+                    HttpResponse.BodyHandlers.ofString(),
+                )
+                return when (response.statusCode()) {
+                    200 -> parseOrbOperationResult(response.body())
+                    404 -> null
+                    else -> throw IOException("Unexpected status ${response.statusCode()} for GET $path")
+                }
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw RuntimeException(e)
+        }
+    }
+
+    private fun parseOrb(obj: JsonObject): ItemOrb? {
+        val orbObj = parseObjectOrNull(obj, "orb") ?: return null
+        val effectObj = parseObjectOrNull(orbObj, "effect") ?: return null
+        val type = ItemOrbEffectType.fromApiValue(parseStringOrNull(effectObj, "type")) ?: return null
+        val targetSlots = parseStringList(effectObj.getAsJsonArray("targetSlots"))
+            .map(ItemEquipmentSlot::fromApiValue)
+            .filter { it != ItemEquipmentSlot.UNKNOWN }
+        return ItemOrb(ItemOrbEffect(
+            type = type,
+            targetSlots = targetSlots,
+            rank = parseIntOrNull(effectObj, "rank"),
+            rankMode = ItemOrbRankMode.fromApiValue(parseStringOrNull(effectObj, "rankMode")),
+            repairAmount = parseIntOrNull(effectObj, "repairAmount"),
+            repairFull = effectObj.get("repairFull")?.takeIf { !it.isJsonNull }?.asBoolean ?: false,
+            enchantMasterId = normalizeEnchantMasterReference(parseStringOrNull(effectObj, "enchantMasterId")),
+            enchantOperation = ItemOrbEnchantOperation.fromApiValue(parseStringOrNull(effectObj, "enchantOperation")),
+        ))
+    }
+
+    /** Seeder/API と同じく既知の enchant: prefix だけを除去する。 */
+    private fun normalizeEnchantMasterReference(reference: String?): String? {
+        val normalized = reference?.trim() ?: return null
+        return if (normalized.startsWith("enchant:", ignoreCase = true)) {
+            normalized.substring("enchant:".length)
+        } else {
+            normalized
+        }
     }
 
     private fun parseSkillGem(obj: JsonObject): ItemSkillGem? {
@@ -699,11 +739,9 @@ class ItemRepository {
                 level = level,
                 statIncrease = statIncrease,
                 durabilityBonus = parseIntOrNull(lvlObj, "durabilityBonus"),
-                recipeId = parseStringOrNull(lvlObj, "recipeId"),
-                requiredMaterials = parseEquipmentEnhanceMaterials(lvlObj.getAsJsonArray("requiredMaterials")),
-                requiredCurrency = parseIntOrNull(lvlObj, "requiredCurrency") ?: 0,
                 successRate = parseDoubleOrNull(lvlObj, "successRate") ?: 1.0,
                 failAction = ItemEquipmentEnhanceFailAction.fromApiValue(parseStringOrNull(lvlObj, "failAction")),
+                failTargetLevel = parseIntOrNull(lvlObj, "failTargetLevel"),
             )
         }
         return ItemEquipmentEnhance(maxLevel = maxLevel, levels = levels)
@@ -937,6 +975,10 @@ class ItemRepository {
 
     private fun parseEquipmentInstance(json: String): EquipmentInstance {
         val obj = JsonParser.parseString(json).asJsonObject
+        return parseEquipmentInstance(obj)
+    }
+
+    private fun parseEquipmentInstance(obj: JsonObject): EquipmentInstance {
         return EquipmentInstance(
             equipmentInstanceId = obj.get("equipmentInstanceId").asString,
             accountId = obj.get("accountId").asString,
@@ -951,7 +993,56 @@ class ItemRepository {
             statRolls = parseStatRolls(parseArrayOrNull(obj, "statRolls")),
             enchants = parseEnchants(parseArrayOrNull(obj, "enchants")),
             runes = parseRunes(parseArrayOrNull(obj, "runes")),
-            enchantPools = parseEnchantPools(parseArrayOrNull(obj, "enchantPools")),
+        )
+    }
+
+    private fun parseOrbOperationResult(json: String): EquipmentOrbOperationResult {
+        val obj = JsonParser.parseString(json).asJsonObject
+        val equipment = parseObjectOrNull(obj, "equipment")?.let(::parseEquipmentInstance)
+        val failAction = parseStringOrNull(obj, "failAction")?.let {
+            ItemEquipmentEnhanceFailAction.fromApiValue(it)
+        }
+        return EquipmentOrbOperationResult(
+            operationId = parseStringOrNull(obj, "operationId") ?: "",
+            result = EquipmentOrbOperationResultType.fromApiValue(parseStringOrNull(obj, "result")),
+            operationType = parseStringOrNull(obj, "operationType") ?: "",
+            equipment = equipment,
+            targetAvailable = obj.get("targetAvailable")?.takeIf { !it.isJsonNull }?.asBoolean ?: false,
+            affectedInventoryEntryIds = parseStringList(parseArrayOrNull(obj, "affectedInventoryEntryIds")),
+            paymentConsumed = obj.get("paymentConsumed")?.takeIf { !it.isJsonNull }?.asBoolean ?: false,
+            enhancementSucceeded = obj.get("enhancementSucceeded")?.takeIf { !it.isJsonNull }?.asBoolean ?: false,
+            failAction = failAction,
+            successRate = obj.get("successRate")?.takeIf { !it.isJsonNull }?.asDouble,
+            repairedAmount = parseIntOrNull(obj, "repairedAmount"),
+            transitionName = parseStringOrNull(obj, "transitionName"),
+        )
+    }
+
+    private fun parseEnchantMaster(json: String): EnchantMaster {
+        val obj = JsonParser.parseString(json).asJsonObject
+        val targets = obj.getAsJsonArray("targets")?.mapNotNull { targetElement ->
+            if (!targetElement.isJsonObject) return@mapNotNull null
+            val targetObj = targetElement.asJsonObject
+            val equipmentType = runCatching {
+                EnchantEquipmentType.valueOf(parseStringOrNull(targetObj, "equipmentType")?.uppercase() ?: "")
+            }.getOrNull() ?: return@mapNotNull null
+            val entries = targetObj.getAsJsonArray("entries")?.mapNotNull { entryElement ->
+                if (!entryElement.isJsonObject) return@mapNotNull null
+                val entryObj = entryElement.asJsonObject
+                EnchantEntry(
+                    effectId = parseStringOrNull(entryObj, "effectId") ?: return@mapNotNull null,
+                    status = parseStringOrNull(entryObj, "status") ?: return@mapNotNull null,
+                    type = parseStringOrNull(entryObj, "type") ?: return@mapNotNull null,
+                    value = parseStringOrNull(entryObj, "value") ?: return@mapNotNull null,
+                    weight = parseIntOrNull(entryObj, "weight") ?: 1,
+                )
+            }.orEmpty()
+            EnchantTarget(equipmentType, entries)
+        }.orEmpty()
+        return EnchantMaster(
+            schemaVersion = parseIntOrNull(obj, "schemaVersion") ?: 1,
+            id = parseStringOrNull(obj, "id") ?: "",
+            targets = targets,
         )
     }
 
@@ -979,7 +1070,8 @@ class ItemRepository {
                 enchantId = parseStringOrNull(obj, "enchantId") ?: return@mapNotNull null,
                 equipmentInstanceId = parseStringOrNull(obj, "equipmentInstanceId") ?: return@mapNotNull null,
                 slotIndex = parseIntOrNull(obj, "slotIndex") ?: 0,
-                poolIndex = parseIntOrNull(obj, "poolIndex") ?: 0,
+                enchantMasterId = parseStringOrNull(obj, "enchantMasterId") ?: return@mapNotNull null,
+                effectId = parseStringOrNull(obj, "effectId") ?: return@mapNotNull null,
                 status = parseStringOrNull(obj, "status") ?: return@mapNotNull null,
                 type = parseStringOrNull(obj, "type") ?: return@mapNotNull null,
                 value = obj.get("value")?.takeIf { !it.isJsonNull }?.asDouble ?: 0.0,
@@ -997,21 +1089,6 @@ class ItemRepository {
                 equipmentInstanceId = parseStringOrNull(obj, "equipmentInstanceId") ?: return@mapNotNull null,
                 slotIndex = parseIntOrNull(obj, "slotIndex") ?: 0,
                 itemId = parseStringOrNull(obj, "itemId") ?: return@mapNotNull null,
-            )
-        }
-    }
-
-    private fun parseEnchantPools(array: JsonArray?): List<EquipmentEnchantPool> {
-        if (array == null) return emptyList()
-        return array.mapNotNull { element ->
-            if (!element.isJsonObject) return@mapNotNull null
-            val obj = element.asJsonObject
-            EquipmentEnchantPool(
-                poolIndex = parseIntOrNull(obj, "poolIndex") ?: return@mapNotNull null,
-                recipeId = parseStringOrNull(obj, "recipeId"),
-                requiredMaterialItemId = parseStringOrNull(obj, "requiredMaterialItemId") ?: return@mapNotNull null,
-                requiredMaterialAmount = parseIntOrNull(obj, "requiredMaterialAmount") ?: 0,
-                requiredCurrency = parseIntOrNull(obj, "requiredCurrency") ?: 0,
             )
         }
     }
