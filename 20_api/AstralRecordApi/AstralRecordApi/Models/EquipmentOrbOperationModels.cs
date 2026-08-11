@@ -1,15 +1,30 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace AstralRecordApi.Models;
 
 /// <summary>
 /// オーブ装備操作の要求。効果内容は API がオーブマスタから解決する。
 /// </summary>
-public class EquipmentOrbOperationRequest
+public class EquipmentOrbOperationRequest : IValidatableObject
 {
+    public const int OrbItemIdMaxLength = 128;
+
     public Guid OperationId { get; set; }
     public Guid AccountId { get; set; }
     public Guid EquipmentInstanceId { get; set; }
     public Guid OrbInventoryEntryId { get; set; }
     public required string OrbItemId { get; set; }
+
+    public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
+    {
+        var normalized = OrbItemId?.Trim() ?? string.Empty;
+        if (normalized.Length is < 1 or > OrbItemIdMaxLength)
+        {
+            yield return new ValidationResult(
+                $"OrbItemId must be 1 to {OrbItemIdMaxLength} UTF-16 code units after normalization.",
+                [nameof(OrbItemId)]);
+        }
+    }
 }
 
 /// <summary>

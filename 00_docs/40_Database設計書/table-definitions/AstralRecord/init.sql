@@ -1257,8 +1257,8 @@ CREATE NONCLUSTERED INDEX [IX_market_listing_item_status_price]
     ON [dbo].[market_listing] ([item_category], [item_id], [status], [unit_price]);
 GO
 
-CREATE NONCLUSTERED INDEX [IX_market_listing_instance_status]
-    ON [dbo].[market_listing] ([instance_type], [instance_id], [status]);
+CREATE NONCLUSTERED INDEX [IX_market_listing_instance_active_status]
+    ON [dbo].[market_listing] ([instance_type], [instance_id], [is_deleted], [status]);
 GO
 
 CREATE NONCLUSTERED INDEX [IX_market_listing_is_deleted]

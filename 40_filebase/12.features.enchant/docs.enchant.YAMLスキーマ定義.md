@@ -11,6 +11,7 @@
 | `targets[].entries[].status` | String | ○ | 共有ステータスID |
 | `targets[].entries[].type` | String | ○ | `FLAT` / `SCALAR` |
 | `targets[].entries[].value` | String | ○ | 固定値または `min~max` |
-| `targets[].entries[].weight` | Integer | ○ | 正の抽選重み |
+| `targets[].entries[].weight` | Integer | ○ | 正の32-bit抽選重み。範囲は `1..2147483647` |
 
 `FILL_ALL_EMPTY` は未付与 `effectId` の候補が空き枠数以上ある場合だけ原子的に成功します。
+候補重みの合計はAPIが64-bit整数で計算し、32-bit合計を超える候補集合も抽選できます。

@@ -52,6 +52,34 @@ public class EquipmentControllerOrbOperationTests
     }
 
     [Fact]
+    public async Task ApplyOrb_AcceptsOrbItemIdAtUtf16Boundary()
+    {
+        var request = ValidRequest();
+        request.OrbItemId = " " + string.Concat(Enumerable.Repeat("😀", 64)) + " ";
+        Assert.Equal(EquipmentOrbOperationRequest.OrbItemIdMaxLength, request.OrbItemId.Trim().Length);
+        var service = new TestEquipmentService();
+
+        var result = await new EquipmentController(service).ApplyOrb(request);
+
+        Assert.IsType<OkObjectResult>(result);
+        Assert.Same(request, service.AppliedRequest);
+    }
+
+    [Fact]
+    public async Task ApplyOrb_RejectsOrbItemIdAboveUtf16BoundaryWithoutCallingService()
+    {
+        var request = ValidRequest();
+        request.OrbItemId = string.Concat(Enumerable.Repeat("😀", 65));
+        Assert.True(request.OrbItemId.Length > EquipmentOrbOperationRequest.OrbItemIdMaxLength);
+        var service = new TestEquipmentService();
+
+        var result = await new EquipmentController(service).ApplyOrb(request);
+
+        Assert.IsType<BadRequestResult>(result);
+        Assert.Null(service.AppliedRequest);
+    }
+
+    [Fact]
     public async Task ApplyOrb_ReturnsConflictForReusedOperationIdWithDifferentRequest()
     {
         var request = ValidRequest();

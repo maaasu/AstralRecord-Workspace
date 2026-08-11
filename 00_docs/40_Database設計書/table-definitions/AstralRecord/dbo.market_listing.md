@@ -80,7 +80,7 @@
 | `IX_market_listing_status_listed_at` | `status`, `listed_at` | NONCLUSTERED | 出品一覧 |
 | `IX_market_listing_seller_status` | `seller_account_id`, `status` | NONCLUSTERED | アカウント別出品数集計 |
 | `IX_market_listing_item_status_price` | `item_category`, `item_id`, `status`, `unit_price` | NONCLUSTERED | 商品検索 |
-| `IX_market_listing_instance_status` | `instance_type`, `instance_id`, `status` | NONCLUSTERED | 個体出品状態検索 |
+| `IX_market_listing_instance_active_status` | `instance_type`, `instance_id`, `is_deleted`, `status` | NONCLUSTERED | 個体出品状態の key-range 更新ロック |
 | `IX_market_listing_is_deleted` | `is_deleted` | NONCLUSTERED | 論理削除フィルタ |
 
 ---
@@ -148,8 +148,8 @@ CREATE NONCLUSTERED INDEX [IX_market_listing_item_status_price]
     ON [dbo].[market_listing] ([item_category], [item_id], [status], [unit_price]);
 GO
 
-CREATE NONCLUSTERED INDEX [IX_market_listing_instance_status]
-    ON [dbo].[market_listing] ([instance_type], [instance_id], [status]);
+CREATE NONCLUSTERED INDEX [IX_market_listing_instance_active_status]
+    ON [dbo].[market_listing] ([instance_type], [instance_id], [is_deleted], [status]);
 GO
 
 CREATE NONCLUSTERED INDEX [IX_market_listing_is_deleted]

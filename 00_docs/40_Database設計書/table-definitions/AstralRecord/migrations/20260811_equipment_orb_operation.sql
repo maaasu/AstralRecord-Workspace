@@ -38,6 +38,29 @@ BEGIN
         ON [dbo].[equipment_orb_operation] ([account_id], [created_at]);
 END;
 
+-- オーブ操作と個体出品作成が同じ key range を UPDLOCK/HOLDLOCK できる索引へ置換する。
+IF OBJECT_ID(N'[dbo].[market_listing]', N'U') IS NOT NULL
+BEGIN
+    IF NOT EXISTS (
+        SELECT 1 FROM sys.indexes
+        WHERE [name] = N'IX_market_listing_instance_active_status'
+          AND [object_id] = OBJECT_ID(N'[dbo].[market_listing]')
+    )
+    BEGIN
+        CREATE NONCLUSTERED INDEX [IX_market_listing_instance_active_status]
+            ON [dbo].[market_listing] ([instance_type], [instance_id], [is_deleted], [status]);
+    END;
+
+    IF EXISTS (
+        SELECT 1 FROM sys.indexes
+        WHERE [name] = N'IX_market_listing_instance_status'
+          AND [object_id] = OBJECT_ID(N'[dbo].[market_listing]')
+    )
+    BEGIN
+        DROP INDEX [IX_market_listing_instance_status] ON [dbo].[market_listing];
+    END;
+END;
+
 -- enhancement_material から orb へのマスタ種別変更後も、既存所持 entry をそのまま利用可能にする。
 -- item_id と個数は維持し、楽観的整合性確認のため updated_at だけを更新する。
 UPDATE [dbo].[inventory_entry]

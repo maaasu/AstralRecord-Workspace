@@ -50,9 +50,11 @@ public class EquipmentController(IEquipmentService equipmentService) : Controlle
     /// <summary>オーブ支払いと装備更新を冪等かつ原子的に実施</summary>
     /// <param name="request">operationId、所有者、オーブ entry、対象装備</param>
     /// <response code="200">確定済みの業務結果。同一 operationId は同じ結果を再生する</response>
+    /// <response code="400">識別子が空、または orbItemId が128 UTF-16 code unitを超える</response>
     /// <response code="409">同じ operationId が異なる要求内容で使用済み</response>
     [HttpPost("orb-operations")]
     [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> ApplyOrb([FromBody] EquipmentOrbOperationRequest request)
     {
@@ -60,7 +62,8 @@ public class EquipmentController(IEquipmentService equipmentService) : Controlle
             || request.AccountId == Guid.Empty
             || request.EquipmentInstanceId == Guid.Empty
             || request.OrbInventoryEntryId == Guid.Empty
-            || string.IsNullOrWhiteSpace(request.OrbItemId))
+            || string.IsNullOrWhiteSpace(request.OrbItemId)
+            || request.OrbItemId.Trim().Length > EquipmentOrbOperationRequest.OrbItemIdMaxLength)
             return BadRequest();
         var result = await equipmentService.ApplyOrbAsync(request);
         return result.Result == "OPERATION_CONFLICT" ? Conflict(result) : Ok(result);

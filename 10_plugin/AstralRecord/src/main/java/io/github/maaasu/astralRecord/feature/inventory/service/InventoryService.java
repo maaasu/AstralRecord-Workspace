@@ -1967,11 +1967,15 @@ public class InventoryService {
             for (UUID inventoryId : result.changedInventoryIds()) {
                 List<InventoryEntryModel> entries = result.entriesByInventoryId()
                     .getOrDefault(inventoryId, List.of());
+                InventoryModel inventory = state.findInventoryById(inventoryId);
+                boolean compactBag = inventory != null
+                    && inventory.getInventoryType() == InventoryType.BAG
+                    && result.inventoryIdsNeedingCompaction().contains(inventoryId);
                 finalizedEntries.put(
                     inventoryId,
-                    inventoryId.equals(currencyInventoryId)
-                        ? List.copyOf(entries)
-                        : compactMergedEntriesAfterRemoval(state, inventoryId, entries)
+                    compactBag
+                        ? compactMergedEntriesAfterRemoval(state, inventoryId, entries)
+                        : List.copyOf(entries)
                 );
             }
             // All calculations above operate on detached lists and may fail without mutating state.

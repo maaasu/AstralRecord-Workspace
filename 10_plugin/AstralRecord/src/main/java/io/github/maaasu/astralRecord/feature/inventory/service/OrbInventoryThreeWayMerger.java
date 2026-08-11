@@ -56,6 +56,7 @@ final class OrbInventoryThreeWayMerger {
         Map<UUID, InventoryEntryModel> baselineById = indexEntries(baselineEntries);
         Map<UUID, InventoryEntryModel> currentById = indexEntries(currentEntries);
         Set<UUID> changedInventoryIds = new LinkedHashSet<>();
+        Set<UUID> inventoryIdsNeedingCompaction = new LinkedHashSet<>();
 
         for (Map.Entry<UUID, Optional<InventoryEntryModel>> affected
             : authoritativeAffectedEntries.entrySet()) {
@@ -87,7 +88,8 @@ final class OrbInventoryThreeWayMerger {
                     apiDelta,
                     accountId,
                     ownedInventories,
-                    changedInventoryIds
+                    changedInventoryIds,
+                    inventoryIdsNeedingCompaction
                 );
                 reconcileAffectedEntryIdentity(
                     merged,
@@ -170,7 +172,11 @@ final class OrbInventoryThreeWayMerger {
 
         Map<UUID, List<InventoryEntryModel>> immutable = new LinkedHashMap<>();
         merged.forEach((inventoryId, entries) -> immutable.put(inventoryId, List.copyOf(entries)));
-        return new MergeResult(Map.copyOf(immutable), Set.copyOf(changedInventoryIds));
+        return new MergeResult(
+            Map.copyOf(immutable),
+            Set.copyOf(changedInventoryIds),
+            Set.copyOf(inventoryIdsNeedingCompaction)
+        );
     }
 
     private static void mergeGoldCurrency(
@@ -259,7 +265,8 @@ final class OrbInventoryThreeWayMerger {
         long apiDelta,
         @NotNull UUID accountId,
         @NotNull Map<UUID, InventoryModel> ownedInventories,
-        @NotNull Set<UUID> changedInventoryIds
+        @NotNull Set<UUID> changedInventoryIds,
+        @NotNull Set<UUID> inventoryIdsNeedingCompaction
     ) {
         if (apiDelta == 0L) {
             return;
@@ -305,6 +312,7 @@ final class OrbInventoryThreeWayMerger {
             long nextQuantity = current.getQuantity() - consumed;
             if (nextQuantity == 0L) {
                 rows.remove(index);
+                inventoryIdsNeedingCompaction.add(located.inventoryId());
             } else {
                 rows.set(index, withQuantity(current, nextQuantity, accountId));
             }
@@ -601,7 +609,8 @@ final class OrbInventoryThreeWayMerger {
 
     record MergeResult(
         @NotNull Map<UUID, List<InventoryEntryModel>> entriesByInventoryId,
-        @NotNull Set<UUID> changedInventoryIds
+        @NotNull Set<UUID> changedInventoryIds,
+        @NotNull Set<UUID> inventoryIdsNeedingCompaction
     ) {
     }
 

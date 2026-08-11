@@ -19,6 +19,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -26,7 +28,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
-import java.util.Collection;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -171,15 +172,15 @@ public class ItemService {
         }
 
         try {
-            List<io.github.maaasu.astralRecord.feature.item.model.ItemModel> items =
-                itemRepository.findAllByCategory(normalizedCategory);
-            for (io.github.maaasu.astralRecord.feature.item.model.ItemModel item : items) {
-                cacheItem(item);
-            }
+            List<ItemModel> items = new ArrayList<>(
+                itemRepository.findAllByCategory(normalizedCategory));
             int total = items.size();
             if (ItemCategory.CURRENCY.getApiValue().equalsIgnoreCase(normalizedCategory)) {
-                total += cacheBuiltInItems(new HashMap<>());
+                List<ItemModel> builtInItems = createBuiltInItems();
+                items.addAll(builtInItems);
+                total += builtInItems.size();
             }
+            cacheItemsWithEnchantDependencies(items);
             Logger.log(LogId.I_5202, normalizedCategory, total);
             return total;
         } catch (Exception e) {
@@ -299,16 +300,13 @@ public class ItemService {
         return null;
     }
 
-    private int cacheBuiltInItems(@NotNull Map<String, Integer> categoryCounts) {
+    private @NotNull List<ItemModel> createBuiltInItems() {
+        List<ItemModel> items = new ArrayList<>();
         for (GoldDenomination denomination : GoldDenomination.values()) {
-            ItemModel currency = createGoldCurrencyItem(denomination, denomination.itemId());
-            cacheItem(currency);
-            categoryCounts.merge(currency.getCategory().toLowerCase(Locale.ROOT), 1, Integer::sum);
+            items.add(createGoldCurrencyItem(denomination, denomination.itemId()));
         }
-        ItemModel astrald = createAstraldCurrencyItem();
-        cacheItem(astrald);
-        categoryCounts.merge(astrald.getCategory().toLowerCase(Locale.ROOT), 1, Integer::sum);
-        return GoldDenomination.values().length + 1;
+        items.add(createAstraldCurrencyItem());
+        return List.copyOf(items);
     }
 
     private @NotNull ItemModel createGoldCurrencyItem(
@@ -907,11 +905,45 @@ public class ItemService {
      *
      * @param item 登録するアイテム
      */
-    private synchronized void cacheItem(@NotNull ItemModel item) {
+    private void cacheItem(@NotNull ItemModel item) {
+        cacheItemsWithEnchantDependencies(List.of(item));
+    }
+
+    /**
+     * 参照する共通エンチャントマスタを先に全件取得し、itemと同じ世代で公開します。
+     * 依存取得が失敗した場合は公開済みsnapshotを変更しません。
+     */
+    private void cacheItemsWithEnchantDependencies(@NotNull List<ItemModel> items) {
+        Map<String, EnchantMaster> resolvedEnchantMasters = new LinkedHashMap<>();
+        Set<String> enchantMasterIds = items.stream()
+            .filter(item -> item.getOrb() != null && item.getOrb().getEffect() != null)
+            .filter(item -> item.getOrb().getEffect().getType() == ItemOrbEffectType.ENCHANT)
+            .map(item -> item.getOrb().getEffect().getEnchantMasterId())
+            .filter(id -> id != null && !id.isBlank())
+            .map(this::normalize)
+            .collect(java.util.stream.Collectors.toCollection(java.util.LinkedHashSet::new));
+        for (String enchantMasterId : enchantMasterIds) {
+            EnchantMaster master = itemRepository.findEnchantMasterById(enchantMasterId);
+            if (master == null) {
+                throw new IllegalStateException("Enchant master is unavailable: " + enchantMasterId);
+            }
+            resolvedEnchantMasters.put(normalize(master.getId()), master);
+        }
+
+        publishCachedItems(items, resolvedEnchantMasters);
+    }
+
+    private synchronized void publishCachedItems(
+        @NotNull List<ItemModel> items,
+        @NotNull Map<String, EnchantMaster> resolvedEnchantMasters
+    ) {
         Map<String, ItemModel> updatedItems = new LinkedHashMap<>(loadedMasterData.items());
-        updatedItems.put(normalize(item.getId()), item);
-        loadedMasterData = new MasterDataSnapshot(updatedItems, loadedMasterData.enchantMasters());
-        Logger.log(LogId.D_5203, item);
+        items.forEach(item -> updatedItems.put(normalize(item.getId()), item));
+        Map<String, EnchantMaster> updatedEnchantMasters =
+            new LinkedHashMap<>(loadedMasterData.enchantMasters());
+        updatedEnchantMasters.putAll(resolvedEnchantMasters);
+        loadedMasterData = new MasterDataSnapshot(updatedItems, updatedEnchantMasters);
+        items.forEach(item -> Logger.log(LogId.D_5203, item));
     }
 
     /** 原子的に公開するアイテム・共通エンチャントマスタのスナップショットです。 */

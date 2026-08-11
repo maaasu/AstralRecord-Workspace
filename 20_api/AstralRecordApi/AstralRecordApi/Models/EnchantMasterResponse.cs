@@ -1,3 +1,5 @@
+using System.ComponentModel.DataAnnotations;
+
 namespace AstralRecordApi.Models;
 
 public class EnchantMasterResponse
@@ -26,5 +28,6 @@ public class EnchantEntryResponse
 
     public required string Value { get; init; }
 
+    [Range(1, int.MaxValue)]
     public int Weight { get; init; } = 1;
 }

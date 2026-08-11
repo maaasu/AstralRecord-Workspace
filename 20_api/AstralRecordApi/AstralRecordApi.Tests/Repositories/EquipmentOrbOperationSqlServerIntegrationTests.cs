@@ -151,6 +151,57 @@ public class EquipmentOrbOperationSqlServerIntegrationTests
     }
 
     [Fact]
+    public async Task OrbMutationConcurrentWithMarketListing_SerializesWithoutDeadlock()
+    {
+        if (!SqlServerIntegrationEnabled()) return;
+        await using var harness = await SqlServerHarness.CreateAsync(durabilityValue: 40);
+        var orb = await harness.AddOrbAsync("market_race_repair_orb", new ItemOrbEffectResponse
+        {
+            Type = "REPAIR",
+            RepairFull = true,
+        });
+        using var start = new Barrier(2);
+
+        var orbTask = Task.Run(async () =>
+        {
+            start.SignalAndWait();
+            return await harness.ExecuteAsync(Guid.NewGuid(), "market_race_repair_orb", orb);
+        });
+        var listingTask = Task.Run(async () =>
+        {
+            start.SignalAndWait();
+            return await harness.CreateMarketListingWithSharedLockOrderAsync();
+        });
+
+        await Task.WhenAll(orbTask, listingTask).WaitAsync(TimeSpan.FromSeconds(20));
+        var orbResult = await orbTask;
+        var listingResult = await listingTask;
+
+        Assert.True(listingResult);
+        Assert.Contains(orbResult.Result, new[] { "APPLIED", "NOT_ELIGIBLE" });
+        Assert.Equal(orbResult.Result == "APPLIED", orbResult.PaymentConsumed);
+        Assert.Equal(orbResult.PaymentConsumed, await harness.IsEntryDeletedAsync(orb));
+        Assert.Equal(1, await harness.CountActiveEquipmentListingsAsync());
+    }
+
+    [Fact]
+    public async Task EnchantEffectMigration_FailureRollsBackEverySchemaChange()
+    {
+        if (!SqlServerIntegrationEnabled()) return;
+        await using var harness = await SqlServerHarness.CreateAsync();
+        await harness.PrepareFailingLegacyEnchantSchemaAsync();
+
+        await Assert.ThrowsAsync<SqlException>(() => harness.ApplyEnchantEffectMigrationAsync());
+
+        var state = await harness.ReadLegacyEnchantSchemaStateAsync();
+        Assert.True(state.HasPoolIndex);
+        Assert.False(state.HasEnchantMasterId);
+        Assert.False(state.HasEffectId);
+        Assert.True(state.HasLegacyUniqueConstraint);
+        Assert.Equal(1, state.RowCount);
+    }
+
+    [Fact]
     public async Task LegacyEnhancementMaterialMarketRows_MigrateCategorySignatureAndSnapshotTogether()
     {
         if (!SqlServerIntegrationEnabled()) return;
@@ -268,6 +319,7 @@ public class EquipmentOrbOperationSqlServerIntegrationTests
             try
             {
                 await CreateSchemaAsync(connectionString);
+                await AssertMarketListingRangeLockIndexAsync(connectionString);
                 var accountId = Guid.NewGuid();
                 var equipmentInstanceId = Guid.NewGuid();
                 var bagInventoryId = Guid.NewGuid();
@@ -453,6 +505,140 @@ public class EquipmentOrbOperationSqlServerIntegrationTests
         {
             await using var dbContext = CreateDbContext(connectionString);
             return await dbContext.EquipmentOrbOperations.AsNoTracking().CountAsync();
+        }
+
+        public async Task<bool> CreateMarketListingWithSharedLockOrderAsync()
+        {
+            await using var dbContext = CreateDbContext(connectionString);
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(
+                System.Data.IsolationLevel.Serializable);
+            if (await MarketListingRangeLock.HasActiveOrSuspendedAsync(
+                    dbContext,
+                    "EQUIPMENT",
+                    EquipmentInstanceId))
+                return false;
+
+            var equipment = await dbContext.EquipmentInstances.FromSqlInterpolated($"""
+                    SELECT * FROM [dbo].[equipment_instance] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE [equipment_instance_id] = {EquipmentInstanceId}
+                    """)
+                .SingleAsync();
+            if (equipment.AccountId != AccountId)
+                return false;
+            var present = await dbContext.InventoryEntries.FromSqlInterpolated($"""
+                    SELECT entry.*
+                    FROM [dbo].[inventory_entry] AS entry WITH (UPDLOCK, HOLDLOCK)
+                    INNER JOIN [dbo].[inventory] AS inventory WITH (HOLDLOCK)
+                        ON inventory.[inventory_id] = entry.[inventory_id]
+                    WHERE inventory.[account_id] = {AccountId}
+                      AND inventory.[inventory_profile] = 'GAME'
+                      AND inventory.[inventory_type] IN ('BAG', 'HOTBAR')
+                      AND inventory.[is_enabled] = 1
+                      AND inventory.[is_deleted] = 0
+                      AND entry.[instance_type] = 'EQUIPMENT'
+                      AND entry.[instance_id] = {EquipmentInstanceId}
+                      AND entry.[is_deleted] = 0
+                    """)
+                .AnyAsync();
+            if (!present)
+                return false;
+
+            await dbContext.Database.ExecuteSqlInterpolatedAsync($"""
+                INSERT INTO [dbo].[market_listing]
+                    ([listing_id], [item_category], [instance_type], [instance_id], [status],
+                     [is_deleted], [version], [updated_at])
+                VALUES
+                    ({Guid.NewGuid()}, N'equipment', N'EQUIPMENT', {EquipmentInstanceId}, N'ACTIVE',
+                     0, 1, SYSUTCDATETIME())
+                """);
+            await transaction.CommitAsync();
+            return true;
+        }
+
+        public async Task<int> CountActiveEquipmentListingsAsync()
+        {
+            await using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync();
+            await using var command = new SqlCommand("""
+                SELECT COUNT(*) FROM dbo.market_listing
+                WHERE instance_type = N'EQUIPMENT'
+                  AND instance_id = @instance_id
+                  AND status = N'ACTIVE'
+                  AND is_deleted = 0;
+                """, connection);
+            command.Parameters.AddWithValue("@instance_id", EquipmentInstanceId);
+            return Convert.ToInt32(await command.ExecuteScalarAsync());
+        }
+
+        public async Task PrepareFailingLegacyEnchantSchemaAsync()
+        {
+            await using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync();
+            await EquipmentOrbOperationSqlServerIntegrationTests.ExecuteAsync(connection, """
+                DROP TABLE [dbo].[equipment_instance_enchant];
+                CREATE TABLE [dbo].[equipment_instance_enchant] (
+                    [enchant_id] UNIQUEIDENTIFIER NOT NULL PRIMARY KEY,
+                    [equipment_instance_id] UNIQUEIDENTIFIER NOT NULL,
+                    [pool_index] INT NOT NULL,
+                    CONSTRAINT [UQ_equipment_instance_enchant_pool_index]
+                        UNIQUE ([equipment_instance_id], [pool_index])
+                );
+                INSERT INTO [dbo].[equipment_instance_enchant]
+                    ([enchant_id], [equipment_instance_id], [pool_index])
+                VALUES (NEWID(), NEWID(), 0);
+                EXEC(N'CREATE TRIGGER [dbo].[TR_fail_orb_enchant_migration]
+                    ON [dbo].[equipment_instance_enchant]
+                    AFTER UPDATE AS
+                    THROW 51001, N''forced migration failure'', 1;');
+                """);
+        }
+
+        public async Task ApplyEnchantEffectMigrationAsync()
+        {
+            var migrationPath = FindWorkspaceFile(
+                "00_docs",
+                "40_Database設計書",
+                "table-definitions",
+                "AstralRecord",
+                "migrations",
+                "20260810_orb_enchant_effect_id.sql");
+            var script = await File.ReadAllTextAsync(migrationPath);
+            await using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync();
+            foreach (var batch in Regex.Split(
+                         script,
+                         @"^\s*GO\s*$",
+                         RegexOptions.Multiline | RegexOptions.IgnoreCase))
+            {
+                if (!string.IsNullOrWhiteSpace(batch))
+                    await EquipmentOrbOperationSqlServerIntegrationTests.ExecuteAsync(connection, batch);
+            }
+        }
+
+        public async Task<LegacyEnchantSchemaState> ReadLegacyEnchantSchemaStateAsync()
+        {
+            await using var connection = new SqlConnection(connectionString);
+            await connection.OpenAsync();
+            await using var command = new SqlCommand("""
+                SELECT
+                    CASE WHEN COL_LENGTH(N'dbo.equipment_instance_enchant', N'pool_index') IS NULL THEN 0 ELSE 1 END,
+                    CASE WHEN COL_LENGTH(N'dbo.equipment_instance_enchant', N'enchant_master_id') IS NULL THEN 0 ELSE 1 END,
+                    CASE WHEN COL_LENGTH(N'dbo.equipment_instance_enchant', N'effect_id') IS NULL THEN 0 ELSE 1 END,
+                    CASE WHEN EXISTS (
+                        SELECT 1 FROM sys.key_constraints
+                        WHERE [name] = N'UQ_equipment_instance_enchant_pool_index'
+                          AND [parent_object_id] = OBJECT_ID(N'dbo.equipment_instance_enchant')
+                    ) THEN 1 ELSE 0 END,
+                    (SELECT COUNT(*) FROM dbo.equipment_instance_enchant);
+                """, connection);
+            await using var reader = await command.ExecuteReaderAsync();
+            Assert.True(await reader.ReadAsync());
+            return new LegacyEnchantSchemaState(
+                reader.GetInt32(0) == 1,
+                reader.GetInt32(1) == 1,
+                reader.GetInt32(2) == 1,
+                reader.GetInt32(3) == 1,
+                reader.GetInt32(4));
         }
 
         public async Task SeedLegacyMarketRowsAsync()
@@ -745,11 +931,17 @@ public class EquipmentOrbOperationSqlServerIntegrationTests
             CREATE TABLE dbo.market_listing (
                 listing_id uniqueidentifier NOT NULL PRIMARY KEY,
                 item_category nvarchar(100) NOT NULL,
+                instance_type nvarchar(32) NULL,
+                instance_id uniqueidentifier NULL,
                 valuation_signature nvarchar(300) NULL,
                 valuation_snapshot_json nvarchar(max) NULL,
+                status nvarchar(32) NOT NULL CONSTRAINT DF_orb_test_market_status DEFAULT N'ACTIVE',
+                is_deleted bit NOT NULL CONSTRAINT DF_orb_test_market_deleted DEFAULT 0,
                 version int NOT NULL,
                 updated_at datetime2 NOT NULL
             );
+            CREATE INDEX IX_market_listing_instance_active_status
+                ON dbo.market_listing(instance_type, instance_id, is_deleted, status);
             CREATE TABLE dbo.market_transaction (
                 transaction_id uniqueidentifier NOT NULL PRIMARY KEY,
                 item_category nvarchar(100) NOT NULL,
@@ -762,6 +954,33 @@ public class EquipmentOrbOperationSqlServerIntegrationTests
                 valuation_signature nvarchar(300) NULL
             );
             """);
+    }
+
+    private static async Task AssertMarketListingRangeLockIndexAsync(string connectionString)
+    {
+        await using var connection = new SqlConnection(connectionString);
+        await connection.OpenAsync();
+        await using var command = new SqlCommand("""
+            SELECT [column].[name]
+            FROM sys.indexes AS [index]
+            INNER JOIN sys.index_columns AS [index_column]
+                ON [index_column].[object_id] = [index].[object_id]
+               AND [index_column].[index_id] = [index].[index_id]
+            INNER JOIN sys.columns AS [column]
+                ON [column].[object_id] = [index_column].[object_id]
+               AND [column].[column_id] = [index_column].[column_id]
+            WHERE [index].[object_id] = OBJECT_ID(N'dbo.market_listing')
+              AND [index].[name] = N'IX_market_listing_instance_active_status'
+              AND [index_column].[key_ordinal] > 0
+            ORDER BY [index_column].[key_ordinal];
+            """, connection);
+        await using var reader = await command.ExecuteReaderAsync();
+        var columns = new List<string>();
+        while (await reader.ReadAsync())
+            columns.Add(reader.GetString(0));
+        Assert.Equal(
+            ["instance_type", "instance_id", "is_deleted", "status"],
+            columns);
     }
 
     private static string FindWorkspaceFile(params string[] relativeParts)
@@ -826,4 +1045,11 @@ public class EquipmentOrbOperationSqlServerIntegrationTests
         string? SnapshotSignature,
         string? CamelCaseSnapshotCategory,
         string? CamelCaseSnapshotSignature);
+
+    private sealed record LegacyEnchantSchemaState(
+        bool HasPoolIndex,
+        bool HasEnchantMasterId,
+        bool HasEffectId,
+        bool HasLegacyUniqueConstraint,
+        int RowCount);
 }

@@ -108,6 +108,73 @@ class ItemServiceMasterSnapshotTest {
         assertPreviousSnapshot(service, repository);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 1. アイテムマスタロード > ### 個別アイテムロード
+     * 検証契約: ENCHANTオーブの単品ロードは参照masterを先に解決し、itemと同じsnapshotで公開する。
+     */
+    @Test
+    void loadItemPublishesReferencedEnchantMasterAtomically() {
+        ItemRepository repository = mock(ItemRepository.class);
+        ItemService service = serviceWithPreviousSnapshot(repository);
+        ItemModel orb = enchantOrb("dynamic_orb", "dynamic_enchant");
+        EnchantMaster master = new EnchantMaster(1, "dynamic_enchant", List.of());
+        when(repository.findById(orb.getId(), ItemCategory.ORB.getApiValue())).thenReturn(orb);
+        when(repository.findEnchantMasterById(master.getId())).thenReturn(master);
+
+        assertSame(orb, service.loadItem(orb.getId(), ItemCategory.ORB.getApiValue()));
+
+        assertSame(orb, service.findLoadedById(orb.getId()));
+        assertSame(master, service.findEnchantMasterById(master.getId()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 1. アイテムマスタロード > ### 個別アイテムロード
+     * 検証契約: 単品ロードの参照master取得が失敗した場合はitemだけを公開せず、旧snapshotを維持する。
+     */
+    @Test
+    void loadItemDependencyFailureKeepsPreviousSnapshot() {
+        ItemRepository repository = mock(ItemRepository.class);
+        ItemService service = serviceWithPreviousSnapshot(repository);
+        ItemModel orb = enchantOrb("broken_dynamic_orb", "missing_dynamic_enchant");
+        when(repository.findById(orb.getId(), ItemCategory.ORB.getApiValue())).thenReturn(orb);
+        when(repository.findEnchantMasterById("missing_dynamic_enchant"))
+            .thenThrow(new IllegalStateException("enchant unavailable"));
+
+        assertThrows(IllegalStateException.class,
+            () -> service.loadItem(orb.getId(), ItemCategory.ORB.getApiValue()));
+
+        assertNull(service.findLoadedById(orb.getId()));
+        assertPreviousSnapshot(service, repository);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 1. アイテムマスタロード > ### カテゴリ単位ロード
+     * 検証契約: カテゴリ再ロードは同じIDの共通enchant masterも新世代へ更新する。
+     */
+    @Test
+    void loadAllByCategoryRefreshesChangedEnchantMaster() {
+        ItemRepository repository = mock(ItemRepository.class);
+        ItemService service = serviceWithPreviousSnapshot(repository);
+        ItemModel orb = enchantOrb("category_orb", "shared_enchant");
+        EnchantMaster oldMaster = new EnchantMaster(1, "shared_enchant", List.of());
+        EnchantMaster newMaster = new EnchantMaster(2, "shared_enchant", List.of());
+        service.replaceMasterDataSnapshot(new ItemService.MasterDataSnapshot(
+            Map.of("previous_item",
+                DesignTestFixtures.item("previous_item", ItemCategory.MATERIAL, 64)),
+            Map.of(oldMaster.getId(), oldMaster)
+        ));
+        when(repository.findAllByCategory(ItemCategory.ORB.getApiValue())).thenReturn(List.of(orb));
+        when(repository.findEnchantMasterById(newMaster.getId())).thenReturn(newMaster);
+
+        assertEquals(1, service.loadAllByCategory(ItemCategory.ORB.getApiValue()));
+
+        assertSame(orb, service.findLoadedById(orb.getId()));
+        assertSame(newMaster, service.findEnchantMasterById(newMaster.getId()));
+    }
+
     private ItemService serviceWithPreviousSnapshot(ItemRepository repository) {
         ItemService service = new ItemService(repository, mock(SetEffectRepository.class));
         service.replaceMasterDataSnapshot(new ItemService.MasterDataSnapshot(

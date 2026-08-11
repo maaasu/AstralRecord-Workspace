@@ -24,6 +24,8 @@
 |:--|:--|:--|
 | `AstralRecord` | `AstralRecord/migrations/20260801_remove_builder.sql` | 廃止済みアカウント・権限値の移行と管理用プロファイルの改名 |
 | `AstralRecord` | `AstralRecord/migrations/20260802_add_learned_skills.sql` | 習得スキル個体、装着シジル、6プリセット、動的補償メールの追加 |
+| `AstralRecord` | `AstralRecord/migrations/20260810_orb_enchant_effect_id.sql` | 装備エンチャントを共通マスタ effect ID 参照へ原子的に移行 |
+| `AstralRecord` | `AstralRecord/migrations/20260811_equipment_orb_operation.sql` | オーブ操作台帳、個体出品range-lock索引、旧カテゴリデータ移行 |
 
 ## AstralRecord
 
@@ -49,6 +51,7 @@
 | `dbo.equipment_instance_stat_roll` | `AstralRecord/dbo.equipment_instance_stat_roll.md` |
 | `dbo.equipment_instance_enchant` | `AstralRecord/dbo.equipment_instance_enchant.md` |
 | `dbo.equipment_instance_rune` | `AstralRecord/dbo.equipment_instance_rune.md` |
+| `dbo.equipment_orb_operation` | `AstralRecord/dbo.equipment_orb_operation.md` |
 | `dbo.equipment_loadout` | `AstralRecord/dbo.equipment_loadout.md` |
 | `dbo.equipment_loadout_slot` | `AstralRecord/dbo.equipment_loadout_slot.md` |
 | `dbo.rune_instance` | `AstralRecord/dbo.rune_instance.md` |

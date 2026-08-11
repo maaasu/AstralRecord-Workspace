@@ -754,7 +754,8 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.HasIndex(e => new { e.Status, e.ListedAt }).HasDatabaseName("IX_market_listing_status_listed_at");
             entity.HasIndex(e => new { e.SellerAccountId, e.Status }).HasDatabaseName("IX_market_listing_seller_status");
             entity.HasIndex(e => new { e.ItemCategory, e.ItemId, e.Status, e.UnitPrice }).HasDatabaseName("IX_market_listing_item_status_price");
-            entity.HasIndex(e => new { e.InstanceType, e.InstanceId, e.Status }).HasDatabaseName("IX_market_listing_instance_status");
+            entity.HasIndex(e => new { e.InstanceType, e.InstanceId, e.IsDeleted, e.Status })
+                .HasDatabaseName("IX_market_listing_instance_active_status");
         });
 
         modelBuilder.Entity<MarketTransactionEntity>(entity =>

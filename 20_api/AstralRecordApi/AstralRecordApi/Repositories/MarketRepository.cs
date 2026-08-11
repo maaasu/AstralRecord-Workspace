@@ -1,3 +1,4 @@
+using System.Data;
 using System.Text.Json;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
@@ -87,68 +88,95 @@ public class MarketRepository(
         if (activeCount >= limit.MaxActiveListingCount)
             return MarketOperationResult<MarketListingResponse>.Failure(400, "market.listing_limit_exceeded", "Active listing limit exceeded.");
 
-        var quote = await marketPriceService.CreateQuoteAsync(new MarketPriceQuoteRequest
+        var listingId = Guid.NewGuid();
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
         {
-            AccountId = request.SellerAccountId,
-            ItemCategory = request.ItemCategory,
-            ItemId = request.ItemId,
-            InstanceType = request.InstanceType,
-            InstanceId = request.InstanceId,
-            Quantity = request.Quantity,
-            UnitPrice = request.UnitPrice,
+            dbContext.ChangeTracker.Clear();
+            var committedListing = await dbContext.MarketListings
+                .AsNoTracking()
+                .FirstOrDefaultAsync(listing => listing.ListingId == listingId && !listing.IsDeleted);
+            if (committedListing is not null)
+                return MarketOperationResult<MarketListingResponse>.Success(MapListing(committedListing));
+
+            var now = DateTime.UtcNow;
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable);
+
+            async Task<MarketOperationResult<MarketListingResponse>> RollbackFailureAsync(
+                int statusCode,
+                string errorCode,
+                string detail)
+            {
+                await transaction.RollbackAsync();
+                dbContext.ChangeTracker.Clear();
+                return MarketOperationResult<MarketListingResponse>.Failure(
+                    statusCode,
+                    errorCode,
+                    detail);
+            }
+
+            var escrow = await ReserveEscrowAsync(request);
+            if (!escrow.Succeeded)
+                return await RollbackFailureAsync(escrow.StatusCode, escrow.ErrorCode!, escrow.Detail!);
+
+            var normalizedInstanceType = request.InstanceType?.Trim().ToUpperInvariant();
+            var quote = await marketPriceService.CreateQuoteAsync(new MarketPriceQuoteRequest
+            {
+                AccountId = request.SellerAccountId,
+                ItemCategory = request.ItemCategory,
+                ItemId = request.ItemId,
+                InstanceType = normalizedInstanceType,
+                InstanceId = request.InstanceId,
+                Quantity = request.Quantity,
+                UnitPrice = request.UnitPrice,
+            });
+
+            if (quote is null)
+                return await RollbackFailureAsync(404, "market.item_not_found", "Item or instance was not found.");
+            if (quote.SellPrice <= 0)
+                return await RollbackFailureAsync(400, "market.sell_price_missing", "Item sell price is missing.");
+            if (quote.Judgement is "BLOCK_BELOW_SELL_VALUE" or "BLOCK_OUT_OF_MARKET_RANGE")
+                return await RollbackFailureAsync(400, "market.price_guard_rejected", quote.Judgement);
+
+            var listing = new MarketListingEntity
+            {
+                ListingId = listingId,
+                SellerAccountId = request.SellerAccountId,
+                SourceInventoryEntryId = request.SourceInventoryEntryId,
+                ItemCategory = request.ItemCategory,
+                ItemId = request.ItemId,
+                InstanceType = normalizedInstanceType,
+                InstanceId = request.InstanceId,
+                Quantity = request.Quantity,
+                CurrencyId = request.CurrencyId,
+                UnitPrice = request.UnitPrice,
+                TotalPrice = request.UnitPrice * request.Quantity,
+                PriceFloor = quote.SellPrice,
+                ReferenceUnitPrice = quote.ReferenceUnitPrice,
+                PriceDeviationRate = quote.ReferenceUnitPrice.HasValue && quote.ReferenceUnitPrice.Value > 0
+                    ? Math.Round(request.UnitPrice / (decimal)quote.ReferenceUnitPrice.Value, 6)
+                    : null,
+                PriceConfidence = quote.Confidence,
+                ValuationSignature = quote.ValuationSignature,
+                ValuationSnapshotJson = JsonSerializer.Serialize(quote),
+                Status = "ACTIVE",
+                ListedAt = now,
+                ExpiresAt = request.ExpiresAt ?? now.AddDays(7),
+                Version = 1,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = request.CreatedBy,
+                UpdatedBy = request.CreatedBy,
+                IsDeleted = false,
+            };
+            await dbContext.MarketListings.AddAsync(listing);
+            await dbContext.MarketPriceSnapshots.AddAsync(CreateSnapshot(quote, listing.ListingId, null, now));
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+
+            return MarketOperationResult<MarketListingResponse>.Success(MapListing(listing));
         });
-
-        if (quote is null)
-            return MarketOperationResult<MarketListingResponse>.Failure(404, "market.item_not_found", "Item or instance was not found.");
-        if (quote.SellPrice <= 0)
-            return MarketOperationResult<MarketListingResponse>.Failure(400, "market.sell_price_missing", "Item sell price is missing.");
-        if (quote.Judgement is "BLOCK_BELOW_SELL_VALUE" or "BLOCK_OUT_OF_MARKET_RANGE")
-            return MarketOperationResult<MarketListingResponse>.Failure(400, "market.price_guard_rejected", quote.Judgement);
-
-        var now = DateTime.UtcNow;
-        await using var transaction = await dbContext.Database.BeginTransactionAsync();
-
-        var escrow = await ReserveEscrowAsync(request);
-        if (!escrow.Succeeded)
-            return MarketOperationResult<MarketListingResponse>.Failure(escrow.StatusCode, escrow.ErrorCode!, escrow.Detail!);
-
-        var listing = new MarketListingEntity
-        {
-            ListingId = Guid.NewGuid(),
-            SellerAccountId = request.SellerAccountId,
-            SourceInventoryEntryId = request.SourceInventoryEntryId,
-            ItemCategory = request.ItemCategory,
-            ItemId = request.ItemId,
-            InstanceType = request.InstanceType,
-            InstanceId = request.InstanceId,
-            Quantity = request.Quantity,
-            CurrencyId = request.CurrencyId,
-            UnitPrice = request.UnitPrice,
-            TotalPrice = request.UnitPrice * request.Quantity,
-            PriceFloor = quote.SellPrice,
-            ReferenceUnitPrice = quote.ReferenceUnitPrice,
-            PriceDeviationRate = quote.ReferenceUnitPrice.HasValue && quote.ReferenceUnitPrice.Value > 0
-                ? Math.Round(request.UnitPrice / (decimal)quote.ReferenceUnitPrice.Value, 6)
-                : null,
-            PriceConfidence = quote.Confidence,
-            ValuationSignature = quote.ValuationSignature,
-            ValuationSnapshotJson = JsonSerializer.Serialize(quote),
-            Status = "ACTIVE",
-            ListedAt = now,
-            ExpiresAt = request.ExpiresAt ?? now.AddDays(7),
-            Version = 1,
-            CreatedAt = now,
-            UpdatedAt = now,
-            CreatedBy = request.CreatedBy,
-            UpdatedBy = request.CreatedBy,
-            IsDeleted = false,
-        };
-        await dbContext.MarketListings.AddAsync(listing);
-        await dbContext.MarketPriceSnapshots.AddAsync(CreateSnapshot(quote, listing.ListingId, null, now));
-        await dbContext.SaveChangesAsync();
-        await transaction.CommitAsync();
-
-        return MarketOperationResult<MarketListingResponse>.Success(MapListing(listing));
     }
 
     public async Task<MarketOperationResult<MarketTransactionResponse>> PurchaseListingAsync(Guid listingId, MarketPurchaseRequest request)
@@ -284,28 +312,33 @@ public class MarketRepository(
 
     private async Task<MarketOperationResult<bool>> ReserveInstanceAsync(MarketListingCreateRequest request)
     {
-        var hasActiveListing = await dbContext.MarketListings.AnyAsync(listing =>
-            !listing.IsDeleted
-            && (listing.Status == "ACTIVE" || listing.Status == "SUSPENDED")
-            && listing.InstanceId == request.InstanceId);
-        if (hasActiveListing)
-            return MarketOperationResult<bool>.Failure(409, "market.instance_already_listed", "Instance is already listed.");
+        var instanceId = request.InstanceId!.Value;
+        var instanceType = request.InstanceType!.Trim().ToUpperInvariant();
+        var hasActiveListing = await MarketListingRangeLock.HasActiveOrSuspendedAsync(
+            dbContext,
+            instanceType,
+            instanceId);
 
-        if (KeyComparer.Equals(request.InstanceType, "EQUIPMENT"))
+        if (KeyComparer.Equals(instanceType, "EQUIPMENT"))
         {
-            var equipment = await dbContext.EquipmentInstances
-                .FirstOrDefaultAsync(x => x.EquipmentInstanceId == request.InstanceId && !x.IsDeleted);
+            var equipment = await FindEquipmentForUpdateAsync(instanceId);
+            if (hasActiveListing)
+                return MarketOperationResult<bool>.Failure(409, "market.instance_already_listed", "Instance is already listed.");
             if (equipment is null)
                 return MarketOperationResult<bool>.Failure(404, "market.instance_not_found", "Equipment instance was not found.");
             if (equipment.AccountId != request.SellerAccountId)
                 return MarketOperationResult<bool>.Failure(409, "market.instance_owner_mismatch", "Equipment owner mismatch.");
+            if (!await IsEquipmentPresentForUpdateAsync(request.SellerAccountId, instanceId))
+                return MarketOperationResult<bool>.Failure(409, "market.instance_not_present", "Equipment is not present in BAG, HOTBAR, or the active loadout.");
             return MarketOperationResult<bool>.Success(true);
         }
 
-        if (KeyComparer.Equals(request.InstanceType, "RUNE"))
+        if (KeyComparer.Equals(instanceType, "RUNE"))
         {
             var rune = await dbContext.RuneInstances
-                .FirstOrDefaultAsync(x => x.RuneInstanceId == request.InstanceId && !x.IsDeleted);
+                .FirstOrDefaultAsync(x => x.RuneInstanceId == instanceId && !x.IsDeleted);
+            if (hasActiveListing)
+                return MarketOperationResult<bool>.Failure(409, "market.instance_already_listed", "Instance is already listed.");
             if (rune is null)
                 return MarketOperationResult<bool>.Failure(404, "market.instance_not_found", "Rune instance was not found.");
             if (rune.AccountId != request.SellerAccountId)
@@ -314,6 +347,89 @@ public class MarketRepository(
         }
 
         return MarketOperationResult<bool>.Failure(400, "market.unsupported_instance_type", "Unsupported instance type.");
+    }
+
+    private async Task<EquipmentInstanceEntity?> FindEquipmentForUpdateAsync(Guid equipmentInstanceId)
+    {
+        if (dbContext.Database.IsSqlServer())
+        {
+            return await dbContext.EquipmentInstances
+                .FromSqlInterpolated($"""
+                    SELECT * FROM [dbo].[equipment_instance] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE [equipment_instance_id] = {equipmentInstanceId}
+                    """)
+                .SingleOrDefaultAsync();
+        }
+        return await dbContext.EquipmentInstances
+            .SingleOrDefaultAsync(instance => instance.EquipmentInstanceId == equipmentInstanceId);
+    }
+
+    private async Task<bool> IsEquipmentPresentForUpdateAsync(Guid accountId, Guid equipmentInstanceId)
+    {
+        bool inNormalInventory;
+        if (dbContext.Database.IsSqlServer())
+        {
+            inNormalInventory = await dbContext.InventoryEntries.FromSqlInterpolated($"""
+                    SELECT entry.*
+                    FROM [dbo].[inventory_entry] AS entry WITH (UPDLOCK, HOLDLOCK)
+                    INNER JOIN [dbo].[inventory] AS inventory WITH (HOLDLOCK)
+                        ON inventory.[inventory_id] = entry.[inventory_id]
+                    WHERE inventory.[account_id] = {accountId}
+                      AND inventory.[is_deleted] = 0
+                      AND inventory.[is_enabled] = 1
+                      AND inventory.[inventory_profile] = 'GAME'
+                      AND inventory.[inventory_type] IN ('BAG', 'HOTBAR')
+                      AND entry.[is_deleted] = 0
+                      AND entry.[instance_type] = 'EQUIPMENT'
+                      AND entry.[instance_id] = {equipmentInstanceId}
+                    """)
+                .AnyAsync();
+        }
+        else
+        {
+            inNormalInventory = await (from entry in dbContext.InventoryEntries
+                                       join inventory in dbContext.Inventories
+                                           on entry.InventoryId equals inventory.InventoryId
+                                       where inventory.AccountId == accountId
+                                             && !inventory.IsDeleted
+                                             && inventory.IsEnabled
+                                             && inventory.InventoryProfile == "GAME"
+                                             && (inventory.InventoryType == "BAG"
+                                                 || inventory.InventoryType == "HOTBAR")
+                                             && !entry.IsDeleted
+                                             && entry.InstanceType == "EQUIPMENT"
+                                             && entry.InstanceId == equipmentInstanceId
+                                       select entry).AnyAsync();
+        }
+        if (inNormalInventory)
+            return true;
+
+        if (dbContext.Database.IsSqlServer())
+        {
+            return await dbContext.EquipmentLoadoutSlots.FromSqlInterpolated($"""
+                    SELECT slot.*
+                    FROM [dbo].[equipment_loadout_slot] AS slot WITH (UPDLOCK, HOLDLOCK)
+                    INNER JOIN [dbo].[equipment_loadout] AS loadout WITH (HOLDLOCK)
+                        ON loadout.[equipment_loadout_id] = slot.[equipment_loadout_id]
+                    WHERE loadout.[account_id] = {accountId}
+                      AND loadout.[loadout_profile] = 'GAME'
+                      AND loadout.[is_active] = 1
+                      AND loadout.[is_deleted] = 0
+                      AND slot.[is_deleted] = 0
+                      AND slot.[equipment_instance_id] = {equipmentInstanceId}
+                    """)
+                .AnyAsync();
+        }
+        return await (from slot in dbContext.EquipmentLoadoutSlots
+                      join loadout in dbContext.EquipmentLoadouts
+                          on slot.EquipmentLoadoutId equals loadout.EquipmentLoadoutId
+                      where loadout.AccountId == accountId
+                            && loadout.LoadoutProfile == "GAME"
+                            && loadout.IsActive
+                            && !loadout.IsDeleted
+                            && !slot.IsDeleted
+                            && slot.EquipmentInstanceId == equipmentInstanceId
+                      select slot).AnyAsync();
     }
 
     private async Task<MarketOperationResult<bool>> TransferListingItemAsync(

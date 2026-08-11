@@ -1,3 +1,4 @@
+using System.Data.Common;
 using System.Text.Json;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
@@ -5,6 +6,7 @@ using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Xunit;
 
 namespace AstralRecordApi.Tests.Repositories;
@@ -109,6 +111,49 @@ public class EquipmentOrbOperationRepositoryTests
             .Count());
         Assert.Equal(1, await harness.GetEntryQuantityAsync(orb));
         await harness.AssertSingleTerminalLedgerAsync(result.OperationId, paymentConsumed: true);
+    }
+
+    [Fact]
+    public async Task EnchantFillAll_SupportsIntMaxWeightsWithoutOverflow()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        harness.SetEnchantMaster(CreateEnchantMaster(
+            CreateEnchantEntry("max_weight_attack", "ATTACK", "FLAT", "5", int.MaxValue),
+            CreateEnchantEntry("max_weight_critical", "CRITICAL_RATE", "FLAT", "19", int.MaxValue)));
+        var orb = await harness.AddOrbAsync("max_weight_enchant_orb", new ItemOrbEffectResponse
+        {
+            Type = "ENCHANT",
+            EnchantMasterId = "enchant001",
+            EnchantOperation = "FILL_ALL_EMPTY",
+        });
+
+        var result = await harness.ExecuteAsync("max_weight_enchant_orb", orb);
+
+        Assert.Equal("APPLIED", result.Result);
+        Assert.True(result.PaymentConsumed);
+        Assert.Equal(2, result.Equipment!.Enchants.Count);
+        Assert.Equal(1, await harness.GetEntryQuantityAsync(orb));
+    }
+
+    [Fact]
+    public async Task ActiveMarketListing_BlocksOrbMutationWithoutConsumingPayment()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        await harness.SetEquipmentStateAsync(instance => instance.DurabilityValue = 40);
+        await harness.AddActiveMarketListingAsync();
+        var orb = await harness.AddOrbAsync("listed_repair_orb", new ItemOrbEffectResponse
+        {
+            Type = "REPAIR",
+            RepairAmount = 25,
+        });
+
+        var result = await harness.ExecuteAsync("listed_repair_orb", orb);
+
+        Assert.Equal("NOT_ELIGIBLE", result.Result);
+        Assert.False(result.PaymentConsumed);
+        Assert.Equal(2, await harness.GetEntryQuantityAsync(orb));
+        Assert.Equal(40, (await harness.GetEquipmentAsync()).DurabilityValue);
+        await harness.AssertSingleTerminalLedgerAsync(result.OperationId, paymentConsumed: false);
     }
 
     [Fact]
@@ -318,6 +363,34 @@ public class EquipmentOrbOperationRepositoryTests
         Assert.Null(lookup.Equipment);
         Assert.Equal(1, await harness.GetEntryQuantityAsync(orb));
         await harness.AssertSingleTerminalLedgerAsync(operationId, paymentConsumed: true);
+    }
+
+    [Fact]
+    public async Task ReplayAndFind_ReadLedgerAndCurrentEquipmentInsideOneTransactionSnapshot()
+    {
+        var interceptor = new TransactionReadInterceptor();
+        await using var harness = await OrbOperationHarness.CreateAsync(interceptor: interceptor);
+        var orb = await harness.AddOrbAsync("transaction_snapshot_repair_orb", new ItemOrbEffectResponse
+        {
+            Type = "REPAIR",
+            RepairFull = true,
+        });
+        await harness.SetEquipmentStateAsync(instance => instance.DurabilityValue = 40);
+        var request = harness.CreateRequest(
+            Guid.NewGuid(),
+            "transaction_snapshot_repair_orb",
+            orb);
+        await harness.ExecuteAsync(request);
+
+        interceptor.Reset();
+        var replay = await harness.ExecuteAsync(request);
+        Assert.Equal("APPLIED", replay.Result);
+        interceptor.AssertAllReadsAreTransactional();
+
+        interceptor.Reset();
+        var lookup = await harness.FindAsync(request.OperationId, harness.AccountId);
+        Assert.NotNull(lookup);
+        interceptor.AssertAllReadsAreTransactional();
     }
 
     [Fact]
@@ -548,13 +621,17 @@ public class EquipmentOrbOperationRepositoryTests
 
         public Guid CurrencyInventoryId { get; }
 
-        public static async Task<OrbOperationHarness> CreateAsync(ItemEquipmentResponse? equipment = null)
+        public static async Task<OrbOperationHarness> CreateAsync(
+            ItemEquipmentResponse? equipment = null,
+            DbCommandInterceptor? interceptor = null)
         {
             var connection = new SqliteConnection("Data Source=:memory:");
             await connection.OpenAsync();
-            var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
-                .UseSqlite(connection)
-                .Options;
+            var optionsBuilder = new DbContextOptionsBuilder<AstralRecordDbContext>()
+                .UseSqlite(connection);
+            if (interceptor is not null)
+                optionsBuilder.AddInterceptors(interceptor);
+            var options = optionsBuilder.Options;
             var dbContext = new AstralRecordDbContext(options);
             await dbContext.Database.EnsureCreatedAsync();
 
@@ -687,6 +764,34 @@ public class EquipmentOrbOperationRepositoryTests
                 Status = status,
                 Type = type,
                 Value = value,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = AccountId,
+                UpdatedBy = AccountId,
+            });
+            await dbContext.SaveChangesAsync();
+        }
+
+        public async Task AddActiveMarketListingAsync()
+        {
+            var now = DateTime.UtcNow;
+            dbContext.MarketListings.Add(new MarketListingEntity
+            {
+                ListingId = Guid.NewGuid(),
+                SellerAccountId = AccountId,
+                ItemCategory = "equipment",
+                ItemId = "test_equipment",
+                InstanceType = "EQUIPMENT",
+                InstanceId = EquipmentInstanceId,
+                Quantity = 1,
+                CurrencyId = "gold",
+                UnitPrice = 100,
+                TotalPrice = 100,
+                PriceFloor = 1,
+                PriceConfidence = "HIGH",
+                Status = "ACTIVE",
+                ListedAt = now,
+                ExpiresAt = now.AddDays(1),
                 CreatedAt = now,
                 UpdatedAt = now,
                 CreatedBy = AccountId,
@@ -1113,5 +1218,43 @@ public class EquipmentOrbOperationRepositoryTests
             && string.Equals(Master.Id, enchantMasterId.Trim(), StringComparison.OrdinalIgnoreCase)
                 ? Master
                 : null;
+    }
+
+    private sealed class TransactionReadInterceptor : DbCommandInterceptor
+    {
+        private readonly List<bool> transactionalReads = [];
+
+        public override InterceptionResult<DbDataReader> ReaderExecuting(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result)
+        {
+            Record(command);
+            return result;
+        }
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            Record(command);
+            return ValueTask.FromResult(result);
+        }
+
+        public void Reset() => transactionalReads.Clear();
+
+        public void AssertAllReadsAreTransactional()
+        {
+            Assert.True(transactionalReads.Count >= 5);
+            Assert.All(transactionalReads, Assert.True);
+        }
+
+        private void Record(DbCommand command)
+        {
+            if (command.CommandText.TrimStart().StartsWith("SELECT", StringComparison.OrdinalIgnoreCase))
+                transactionalReads.Add(command.Transaction is not null);
+        }
     }
 }

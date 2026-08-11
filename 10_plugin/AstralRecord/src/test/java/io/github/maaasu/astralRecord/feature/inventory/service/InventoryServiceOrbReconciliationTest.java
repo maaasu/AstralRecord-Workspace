@@ -317,6 +317,102 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 検証契約: BAG内entryの数量だけが減少した場合、疎なslot配置を前詰めしない。
+     */
+    @Test
+    void partialAffectedQuantityDecreasePreservesSparseBagSlots() {
+        Harness harness = harness(InventoryType.BAG);
+        UUID unrelatedEntryId = UUID.randomUUID();
+        InventoryEntryModel baselineOrb = entry(
+            harness.orbEntryId, harness.accountId, harness.bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START + 2, "orb.weapon_tyr", 3L);
+        InventoryEntryModel unrelated = entry(
+            unrelatedEntryId, harness.accountId, harness.bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START + 8, "unrelated_material", 7L);
+        harness.state.replaceEntriesFromLoad(harness.bag.getInventoryId(), List.of(
+            baselineOrb, unrelated));
+        when(harness.repository.findEntryById(harness.orbEntryId)).thenReturn(entry(
+            harness.orbEntryId, harness.accountId, harness.bag.getInventoryId(),
+            baselineOrb.getSlotIndex(), "orb.weapon_tyr", 2L));
+
+        harness.service.reconcileOrbOperationEntries(
+            harness.accountId,
+            List.of(harness.orbEntryId),
+            baseline(harness.accountId, harness.bag.getInventoryId(), List.of(
+                baselineOrb, unrelated))
+        );
+
+        assertEquals(baselineOrb.getSlotIndex(), harness.service.findOwnedEntry(
+            harness.accountId, harness.orbEntryId).getSlotIndex());
+        assertEquals(unrelated.getSlotIndex(), harness.service.findOwnedEntry(
+            harness.accountId, unrelatedEntryId).getSlotIndex());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 検証契約: HOTBARからentryが全削除されても固定slotを前詰めしない。
+     */
+    @Test
+    void fullAffectedRemovalPreservesFixedHotbarSlots() {
+        Harness harness = harness(InventoryType.HOTBAR);
+        UUID unrelatedEntryId = UUID.randomUUID();
+        InventoryEntryModel consumed = entry(
+            harness.orbEntryId, harness.accountId, harness.bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START + 2, "orb.weapon_tyr", 1L);
+        InventoryEntryModel unrelated = entry(
+            unrelatedEntryId, harness.accountId, harness.bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START + 8, "unrelated_material", 7L);
+        harness.state.replaceEntriesFromLoad(harness.bag.getInventoryId(), List.of(
+            consumed, unrelated));
+        when(harness.repository.findEntryById(harness.orbEntryId)).thenReturn(null);
+
+        harness.service.reconcileOrbOperationEntries(
+            harness.accountId,
+            List.of(harness.orbEntryId),
+            baseline(harness.accountId, harness.bag.getInventoryId(), List.of(
+                consumed, unrelated))
+        );
+
+        assertNull(harness.service.findOwnedEntry(harness.accountId, harness.orbEntryId));
+        assertEquals(unrelated.getSlotIndex(), harness.service.findOwnedEntry(
+            harness.accountId, unrelatedEntryId).getSlotIndex());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 検証契約: BAGからentryが全削除された場合だけ、残存entryを表示順で前詰めする。
+     */
+    @Test
+    void fullAffectedRemovalCompactsBagInDisplayOrder() {
+        Harness harness = harness(InventoryType.BAG);
+        UUID unrelatedEntryId = UUID.randomUUID();
+        InventoryEntryModel consumed = entry(
+            harness.orbEntryId, harness.accountId, harness.bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START + 2, "orb.weapon_tyr", 1L);
+        InventoryEntryModel unrelated = entry(
+            unrelatedEntryId, harness.accountId, harness.bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START + 8, "unrelated_material", 7L);
+        harness.state.replaceEntriesFromLoad(harness.bag.getInventoryId(), List.of(
+            consumed, unrelated));
+        when(harness.repository.findEntryById(harness.orbEntryId)).thenReturn(null);
+
+        harness.service.reconcileOrbOperationEntries(
+            harness.accountId,
+            List.of(harness.orbEntryId),
+            baseline(harness.accountId, harness.bag.getInventoryId(), List.of(
+                consumed, unrelated))
+        );
+
+        assertNull(harness.service.findOwnedEntry(harness.accountId, harness.orbEntryId));
+        assertEquals(NormalInventoryLayout.DB_SLOT_START, harness.service.findOwnedEntry(
+            harness.accountId, unrelatedEntryId).getSlotIndex());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
      * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
      * 検証契約: API正本でオーブentryが消滅した場合はそのentryだけを除去して後続slotを前詰めし、同時に存在する無関係entryを保持する。
@@ -470,11 +566,15 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     private static Harness harness() {
+        return harness(InventoryType.BAG);
+    }
+
+    private static Harness harness(InventoryType inventoryType) {
         UUID accountId = UUID.randomUUID();
         UUID orbEntryId = UUID.randomUUID();
         PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
         PlayerInventoryState state = new PlayerInventoryState(accountId);
-        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG, 27);
+        InventoryModel bag = DesignTestFixtures.inventory(accountId, inventoryType, 27);
         state.putInventory(bag);
         state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(entry(
             orbEntryId,

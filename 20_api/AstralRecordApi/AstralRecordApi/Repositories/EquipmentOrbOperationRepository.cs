@@ -60,18 +60,18 @@ public class EquipmentOrbOperationRepository(
             var existing = await FindLedgerForUpdateAsync(request.OperationId);
             if (existing is not null)
             {
-                await transaction.CommitAsync();
-                return existing.AccountId == request.AccountId
+                var replay = existing.AccountId == request.AccountId
                     && string.Equals(existing.RequestHash, requestHash, StringComparison.Ordinal)
                     ? await WithCurrentEquipmentAsync(
                         Deserialize(existing.ResultPayloadJson),
                         existing.AccountId,
                         existing.EquipmentInstanceId)
                     : Conflict(request.OperationId);
+                await transaction.CommitAsync();
+                return replay;
             }
 
             var now = DateTime.UtcNow;
-            var instance = await FindEquipmentForUpdateAsync(request.EquipmentInstanceId);
             var orbItem = itemRepository.GetById(normalizedOrbItemId);
             var effect = orbItem?.Orb?.Effect;
             var operationType = effect?.Type?.Trim().ToUpperInvariant() ?? string.Empty;
@@ -125,13 +125,21 @@ public class EquipmentOrbOperationRepository(
                     CreatedBy = request.AccountId,
                 });
                 await dbContext.SaveChangesAsync();
-                await transaction.CommitAsync();
-                // 初回応答も commit 後にDBから読み直し、replay/GETと同じ安全な現在値・精度で返す。
-                return await WithCurrentEquipmentAsync(
+                var current = await WithCurrentEquipmentAsync(
                     response,
                     request.AccountId,
                     request.EquipmentInstanceId);
+                await transaction.CommitAsync();
+                return current;
             }
+
+            var hasActiveListing = await MarketListingRangeLock.HasActiveOrSuspendedAsync(
+                dbContext,
+                "EQUIPMENT",
+                request.EquipmentInstanceId);
+            var instance = await FindEquipmentForUpdateAsync(request.EquipmentInstanceId);
+            if (hasActiveListing)
+                return await CompleteAsync("NOT_ELIGIBLE");
 
             if (instance is null
                 || instance.AccountId != request.AccountId
@@ -315,15 +323,24 @@ public class EquipmentOrbOperationRepository(
     /// <inheritdoc />
     public async Task<EquipmentOrbOperationResponse?> FindAsync(Guid operationId, Guid accountId)
     {
-        var entity = await dbContext.EquipmentOrbOperations.AsNoTracking()
-            .FirstOrDefaultAsync(operation => operation.OperationId == operationId
-                && operation.AccountId == accountId);
-        return entity is null
-            ? null
-            : await WithCurrentEquipmentAsync(
-                Deserialize(entity.ResultPayloadJson),
-                entity.AccountId,
-                entity.EquipmentInstanceId);
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable);
+            var entity = await dbContext.EquipmentOrbOperations.AsNoTracking()
+                .FirstOrDefaultAsync(operation => operation.OperationId == operationId
+                    && operation.AccountId == accountId);
+            var response = entity is null
+                ? null
+                : await WithCurrentEquipmentAsync(
+                    Deserialize(entity.ResultPayloadJson),
+                    entity.AccountId,
+                    entity.EquipmentInstanceId);
+            await transaction.CommitAsync();
+            return response;
+        });
     }
 
     private async Task<EquipmentOrbOperationResponse> WithCurrentEquipmentAsync(
@@ -911,14 +928,19 @@ public class EquipmentOrbOperationRepository(
         var selected = new List<EnchantEntryResponse>(count);
         while (selected.Count < count && remaining.Count > 0)
         {
-            var totalWeight = remaining.Sum(entry => Math.Max(entry.Weight, 1));
-            var roll = Random.Shared.Next(1, totalWeight + 1);
+            long totalWeight = 0L;
+            foreach (var entry in remaining)
+                totalWeight = checked(totalWeight + Math.Max((long)entry.Weight, 1L));
+            var roll = Random.Shared.NextInt64(totalWeight);
             var selectedIndex = remaining.Count - 1;
             for (var index = 0; index < remaining.Count; index++)
             {
-                roll -= Math.Max(remaining[index].Weight, 1);
-                if (roll > 0)
+                var weight = Math.Max((long)remaining[index].Weight, 1L);
+                if (roll >= weight)
+                {
+                    roll -= weight;
                     continue;
+                }
                 selectedIndex = index;
                 break;
             }
