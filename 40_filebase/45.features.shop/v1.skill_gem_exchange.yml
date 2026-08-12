@@ -165,8 +165,8 @@ items:
       ref: item:00_skill_gem_administrator_shield_recharge
     category: skill_gem
     amount: 1
-    page: 1
-    slot: 12
+    page: 2
+    slot: 8
     requiredItems:
       - itemId:
           ref: item:skill_gem_raw_advanced
