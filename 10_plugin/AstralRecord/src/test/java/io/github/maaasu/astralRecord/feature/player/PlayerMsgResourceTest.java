@@ -37,6 +37,18 @@ class PlayerMsgResourceTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 6. クリア報酬と30秒回収
+     * 検証契約: 改行を含む報酬チェスト表示へダンジョン名を差し込む。
+     */
+    @Test
+    void dungeonRewardDisplayFormatsDungeonNameAcrossMultipleLines() {
+        String formatted = PlayerMsgResource.format(PlayerMsgId.P_7033.getId(), "黄昏の坑道");
+
+        assertEquals("§6黄昏の坑道\n§eダンジョン報酬\n§f右クリックで開く", formatted);
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
      * 章・見出し: # 03_1-モデル定義 > ## 8. プレイヤーメッセージリソース
      * 検証契約: Component化後のplain textに&カラーコードを残さず色付き本文を保持する。

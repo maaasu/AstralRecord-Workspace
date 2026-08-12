@@ -28,7 +28,7 @@ public final class MessageFormatUtil {
         }
         try {
             // {0}, {1}, ... 形式のプレースホルダーが含まれている場合は MessageFormat を使用
-            if (message.matches(".*\\{[0-9]+}.*")) {
+            if (message.matches("(?s).*\\{[0-9]+}.*")) {
                 return MessageFormat.format(message, args);
             }
             // それ以外の場合は String.format を使用（%s など）
