@@ -111,6 +111,14 @@ public class InventoryService {
     private final Map<UUID, Map<UUID, Integer>> temporarilyHiddenEntryQuantitiesByAccount = new ConcurrentHashMap<>();
     /** API原子操作が支払うまで、同じ資産をローカル消費へ二重使用させないaccount単位予約。 */
     private final Map<UUID, OrbPaymentReservation> orbPaymentReservationsByAccount = new ConcurrentHashMap<>();
+    /**
+     * 非同期の装備・ルーン個体生成が完了するまで、他の付与処理へ使用させない BAG slot 予約です。
+     *
+     * <p>予約は {@link PlayerInventoryState} の entry へ仮データを書き込まないため、保存対象になりません。
+     * すべての通常 slot 解決へ合成し、個体生成成功時だけ予約 slot を実 entry へ置き換えます。</p>
+     */
+    private final Map<UUID, Map<UUID, PendingBagSlotReservation>> pendingBagSlotReservationsByAccount =
+        new ConcurrentHashMap<>();
 
     /**
      * インベントリサービスを構築します。
@@ -193,7 +201,11 @@ public class InventoryService {
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         if (state == null) return;
         int capacity = Math.max(0, (int) Math.floor(slotCount));
-        if (state.setBagSlotCapacity(capacity)) {
+        boolean changed;
+        synchronized (state) {
+            changed = state.setBagSlotCapacity(capacity);
+        }
+        if (changed) {
             applyInventoryToGuiInternal(astPlayer, InventoryType.BAG, false);
         }
     }
@@ -701,15 +713,44 @@ public class InventoryService {
         int amount,
         @NotNull String source
     ) {
+        return addItemToNormalInventoryWithCapacityResult(astPlayer, model, amount, source).grantedAmount();
+    }
+
+    /**
+     * 通常インベントリへアイテムを追加し、BAG slot の占有結果を同じ state lock 内で返します。
+     * <p>
+     * 通貨は BAG slot を消費しないため、{@link NormalInventoryGrantResult#remainingBagSlots()} は
+     * {@code -1} になります。state 未登録時も同じく {@code -1} を返します。
+     * 装備・ルーンの API 個体生成は従来どおりこのメソッド内で実行するため、
+     * 非同期ドロップ演出で個体を先に生成する場合は
+     * {@link #reserveBagSlotForPreparedInstance(AstPlayer, ItemModel)} を使用してください。
+     *
+     * @param astPlayer 追加先プレイヤー
+     * @param model     追加するアイテム
+     * @param amount    追加数。1 未満は 1 として扱う
+     * @param source    インスタンス生成元
+     * @return 実際の付与数、BAG 新規占有枠数、付与後空き枠数を含む結果
+     */
+    public @NotNull NormalInventoryGrantResult addItemToNormalInventoryWithCapacityResult(
+        @NotNull AstPlayer astPlayer,
+        @NotNull ItemModel model,
+        int amount,
+        @NotNull String source
+    ) {
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
-        if (state == null) {
-            return 0;
-        }
         int safeAmount = Math.max(1, amount);
+        if (state == null) {
+            return new NormalInventoryGrantResult(safeAmount, 0, 0, -1);
+        }
         InventoryType inventoryType = resolveTargetInventoryType(model);
         int granted;
+        int remainingBagSlotsBefore = -1;
+        int remainingBagSlotsAfter = -1;
         synchronized (state) {
             InventoryModel targetInventory = ensureInventory(state, inventoryType);
+            if (inventoryType == InventoryType.BAG) {
+                remainingBagSlotsBefore = remainingBagSlotCount(state, targetInventory);
+            }
             granted = switch (ItemCategory.fromApiValue(model.getCategory())) {
                 case EQUIPMENT -> addInstanceItems(
                     state, targetInventory, model, safeAmount,
@@ -719,11 +760,22 @@ public class InventoryService {
                     InventoryInstanceType.RUNE, source);
                 default -> addStackedItems(state, targetInventory, model, safeAmount);
             };
+            if (inventoryType == InventoryType.BAG) {
+                remainingBagSlotsAfter = remainingBagSlotCount(state, targetInventory);
+            }
         }
         if (granted > 0) {
             autoSwitchDisplayedInventory(astPlayer, inventoryType);
         }
-        return granted;
+        int newlyOccupiedBagSlots = remainingBagSlotsBefore < 0 || remainingBagSlotsAfter < 0
+            ? 0
+            : Math.max(0, remainingBagSlotsBefore - remainingBagSlotsAfter);
+        return new NormalInventoryGrantResult(
+            safeAmount,
+            granted,
+            newlyOccupiedBagSlots,
+            remainingBagSlotsAfter
+        );
     }
 
     public int addPreparedInstanceToNormalInventory(
@@ -766,6 +818,160 @@ public class InventoryService {
         }
         autoSwitchDisplayedInventory(astPlayer, inventoryType);
         return 1;
+    }
+
+    /**
+     * 非同期で生成する装備・ルーン個体のために、BAG の空き slot を予約します。
+     * <p>
+     * 予約済み slot は通常のアイテム付与・移動処理からも使用済みとして扱われます。
+     * 呼び出し元は API 個体生成に成功した場合
+     * {@link #completePreparedInstanceReservation(AstPlayer, ItemModel, InventoryInstanceType, UUID, PreparedInstanceSlotReservation)}、
+     * 失敗または取消時は {@link #releasePreparedInstanceReservation(PreparedInstanceSlotReservation)} を必ず呼び出してください。
+     *
+     * @param astPlayer 予約対象プレイヤー
+     * @param model     装備またはルーンのアイテム定義
+     * @return 予約結果。空きがない場合は reservation が {@code null}、state 未登録または対象外カテゴリでは空き枠数が {@code -1}
+     */
+    public @NotNull PreparedInstanceSlotReservationResult reserveBagSlotForPreparedInstance(
+        @NotNull AstPlayer astPlayer,
+        @NotNull ItemModel model
+    ) {
+        ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
+        if (category != ItemCategory.EQUIPMENT && category != ItemCategory.RUNE) {
+            return new PreparedInstanceSlotReservationResult(null, -1);
+        }
+
+        UUID accountId = astPlayer.getAccount().getUuid();
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return new PreparedInstanceSlotReservationResult(null, -1);
+        }
+
+        synchronized (state) {
+            if (getState(accountId) != state) {
+                return new PreparedInstanceSlotReservationResult(null, -1);
+            }
+            InventoryModel bag = ensureInventory(state, InventoryType.BAG);
+            Set<Integer> usedSlots = collectUsedSlots(state, bag);
+            int remainingBagSlots = Math.max(0, inventoryCapacity(bag) - usedSlots.size());
+            Integer slot = findNextFreeSlot(bag, usedSlots);
+            if (slot == null) {
+                return new PreparedInstanceSlotReservationResult(null, remainingBagSlots);
+            }
+
+            UUID reservationId = UUID.randomUUID();
+            PendingBagSlotReservation pending = new PendingBagSlotReservation(
+                reservationId,
+                state,
+                bag.getInventoryId(),
+                slot
+            );
+            pendingBagSlotReservationsByAccount.compute(accountId, (ignored, reservations) -> {
+                Map<UUID, PendingBagSlotReservation> next = reservations == null
+                    ? new ConcurrentHashMap<>()
+                    : reservations;
+                next.put(reservationId, pending);
+                return next;
+            });
+            return new PreparedInstanceSlotReservationResult(
+                new PreparedInstanceSlotReservation(reservationId, accountId),
+                remainingBagSlots - 1
+            );
+        }
+    }
+
+    /**
+     * 予約済み BAG slot へ API 生成済みの装備またはルーン個体を確定追加します。
+     * <p>
+     * 予約時と同じ player state が有効である場合だけ、予約 slot を instance entry へ原子的に置き換えます。
+     * state が入れ替わった場合は entry を追加せず成功フラグ {@code false} を返すため、呼び出し元は既存の取消・退場時処理へ委譲します。
+     *
+     * @param astPlayer    追加先プレイヤー
+     * @param model        追加するアイテム定義
+     * @param instanceType 生成済み個体の種別
+     * @param instanceId   生成済み個体 ID
+     * @param reservation 事前取得した BAG slot 予約
+     * @return 予約 slot への追加結果。成功時は state lock 内で確定した付与後の BAG 空き slot 数を含む
+     */
+    public @NotNull PreparedInstanceReservationCompletion completePreparedInstanceReservation(
+        @NotNull AstPlayer astPlayer,
+        @NotNull ItemModel model,
+        @NotNull InventoryInstanceType instanceType,
+        @NotNull UUID instanceId,
+        @NotNull PreparedInstanceSlotReservation reservation
+    ) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        if (!accountId.equals(reservation.accountId())) {
+            return new PreparedInstanceReservationCompletion(false, -1);
+        }
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            removePendingBagSlotReservation(reservation);
+            return new PreparedInstanceReservationCompletion(false, -1);
+        }
+
+        boolean completed = false;
+        int remainingBagSlots = -1;
+        synchronized (state) {
+            PendingBagSlotReservation pending = findPendingBagSlotReservation(reservation);
+            if (pending == null || pending.stateGeneration() != state || getState(accountId) != state) {
+                removePendingBagSlotReservation(reservation);
+            } else {
+                InventoryModel bag = state.findInventoryById(pending.inventoryId());
+                if (bag == null || bag.getInventoryType() != InventoryType.BAG) {
+                    removePendingBagSlotReservation(reservation);
+                } else {
+                    List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(bag.getInventoryId()).stream()
+                        .filter(entry -> !entry.isDeleted())
+                        .toList());
+                    boolean alreadyOccupied = entries.stream()
+                        .map(InventoryEntryModel::getSlotIndex)
+                        .anyMatch(slot -> slot != null && slot == pending.slotIndex());
+                    if (alreadyOccupied) {
+                        removePendingBagSlotReservation(reservation);
+                    } else {
+                        entries.add(newEntry(
+                            bag.getInventoryId(),
+                            pending.slotIndex(),
+                            model.getCategory(),
+                            null,
+                            instanceType.getCode(),
+                            instanceId,
+                            1L,
+                            null,
+                            state.getAccountId()
+                        ));
+                        state.replaceEntries(bag.getInventoryId(), entries);
+                        removePendingBagSlotReservation(reservation);
+                        completed = true;
+                        remainingBagSlots = remainingBagSlotCount(state, bag);
+                    }
+                }
+            }
+        }
+        if (completed) {
+            autoSwitchDisplayedInventory(astPlayer, InventoryType.BAG);
+        }
+        return new PreparedInstanceReservationCompletion(completed, remainingBagSlots);
+    }
+
+    /**
+     * 未使用の装備・ルーン用 BAG slot 予約を解除します。
+     * <p>
+     * API 個体生成失敗、回収演出の取消、プレイヤー退出時の既存フォールバックへ移る前に呼び出します。
+     * 既に確定または解除済みの予約を指定しても何もしません。
+     *
+     * @param reservation 解除する BAG slot 予約
+     */
+    public void releasePreparedInstanceReservation(@NotNull PreparedInstanceSlotReservation reservation) {
+        PlayerInventoryState state = getState(reservation.accountId());
+        if (state == null) {
+            removePendingBagSlotReservation(reservation);
+            return;
+        }
+        synchronized (state) {
+            removePendingBagSlotReservation(reservation);
+        }
     }
 
     /**
@@ -2004,9 +2210,13 @@ public class InventoryService {
                 .thenComparing(InventoryEntryModel::getInventoryEntryId))
             .toList();
         boolean preserveBeyondCapacity = inventory.getInventoryType() == InventoryType.BAG;
+        Set<Integer> reservedBagSlots = inventory.getInventoryType() == InventoryType.BAG
+            ? reservedBagSlotIndexes(state, inventory)
+            : Set.of();
         int nextSlot = NormalInventoryLayout.DB_SLOT_START;
         List<InventoryEntryModel> compacted = new ArrayList<>();
         for (InventoryEntryModel entry : ordered) {
+            nextSlot = nextUnreservedBagSlot(nextSlot, reservedBagSlots);
             if (!preserveBeyondCapacity && nextSlot > inventoryCapacity(inventory)) {
                 break;
             }
@@ -2438,39 +2648,41 @@ public class InventoryService {
         if (targetType == InventoryType.CURRENCY) {
             return true;
         }
-        InventoryModel inventory = ensureInventory(state, targetType);
-        Set<Integer> usedSlots = collectUsedSlots(state, inventory);
-        ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
-        if (category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE) {
-            int freeSlots = 0;
+        synchronized (state) {
+            InventoryModel inventory = ensureInventory(state, targetType);
+            Set<Integer> usedSlots = collectUsedSlots(state, inventory);
+            ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
+            if (category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE) {
+                int freeSlots = 0;
+                Set<Integer> simulatedUsed = new HashSet<>(usedSlots);
+                for (int i = 0; i < safeAmount; i++) {
+                    Integer freeSlot = findNextFreeSlot(inventory, simulatedUsed);
+                    if (freeSlot == null) {
+                        break;
+                    }
+                    simulatedUsed.add(freeSlot);
+                    freeSlots++;
+                }
+                return freeSlots >= safeAmount;
+            }
+
+            int maxStack = Math.max(1, model.getMaxStack());
+            long capacity = state.snapshotEntries(inventory.getInventoryId()).stream()
+                .filter(entry -> !entry.isDeleted())
+                .filter(entry -> isStackableEntry(entry, model, maxStack))
+                .mapToLong(entry -> maxStack - entry.getQuantity())
+                .sum();
             Set<Integer> simulatedUsed = new HashSet<>(usedSlots);
-            for (int i = 0; i < safeAmount; i++) {
+            while (capacity < safeAmount) {
                 Integer freeSlot = findNextFreeSlot(inventory, simulatedUsed);
                 if (freeSlot == null) {
                     break;
                 }
                 simulatedUsed.add(freeSlot);
-                freeSlots++;
+                capacity += maxStack;
             }
-            return freeSlots >= safeAmount;
+            return capacity >= safeAmount;
         }
-
-        int maxStack = Math.max(1, model.getMaxStack());
-        long capacity = state.snapshotEntries(inventory.getInventoryId()).stream()
-            .filter(entry -> !entry.isDeleted())
-            .filter(entry -> isStackableEntry(entry, model, maxStack))
-            .mapToLong(entry -> maxStack - entry.getQuantity())
-            .sum();
-        Set<Integer> simulatedUsed = new HashSet<>(usedSlots);
-        while (capacity < safeAmount) {
-            Integer freeSlot = findNextFreeSlot(inventory, simulatedUsed);
-            if (freeSlot == null) {
-                break;
-            }
-            simulatedUsed.add(freeSlot);
-            capacity += maxStack;
-        }
-        return capacity >= safeAmount;
     }
 
     private long getItemAmount(
@@ -3077,10 +3289,8 @@ public class InventoryService {
         ItemCategory category = ItemCategory.fromApiValue(hotbarEntry.getItemCategory());
         if (category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE) {
             List<InventoryEntryModel> targetEntries = state.snapshotEntries(targetInventory.getInventoryId());
-            Set<Integer> usedSlots = NormalInventoryLayout.collectUsedSlots(
-                targetEntries, inventoryCapacity(targetInventory));
-            Integer targetSlot = NormalInventoryLayout.findNextFreeSlot(
-                usedSlots, inventoryCapacity(targetInventory));
+            Set<Integer> usedSlots = collectUsedSlots(state, targetInventory);
+            Integer targetSlot = findNextFreeSlot(targetInventory, usedSlots);
             if (targetSlot == null) {
                 return false;
             }
@@ -3581,15 +3791,14 @@ public class InventoryService {
             return false;
         }
         int capacity = state.getBagSlotCapacity();
-        Set<Integer> usedSlots = NormalInventoryLayout.collectUsedSlots(
-            state.snapshotEntries(bag.getInventoryId()), capacity);
+        Set<Integer> usedSlots = collectUsedSlots(state, bag);
         if (!sourceIsHotbar && sourceEntry.getInventoryId().equals(bag.getInventoryId())) {
             Integer sourceSlot = sourceEntry.getSlotIndex();
             if (sourceSlot != null && NormalInventoryLayout.isManagedSlot(sourceSlot, capacity)) {
                 usedSlots.remove(sourceSlot);
             }
         }
-        return NormalInventoryLayout.findNextFreeSlot(usedSlots, capacity) != null;
+        return findNextFreeSlot(bag, usedSlots) != null;
     }
 
     private void returnReplacedItemToOwnedInventory(
@@ -4279,22 +4488,22 @@ public class InventoryService {
         }
         ItemCategory category = ItemCategory.fromApiValue(reference.category());
         InventoryType targetType = resolveTargetInventoryType(model);
-        InventoryModel targetInventory = ensureInventory(state, targetType,
-            resolveSlotCapacity(targetType), state.getAccountId(), DEFAULT_PROFILE);
+        synchronized (state) {
+            InventoryModel targetInventory = ensureInventory(state, targetType,
+                resolveSlotCapacity(targetType), state.getAccountId(), DEFAULT_PROFILE);
 
-        boolean added = switch (category) {
-            case EQUIPMENT -> addExistingInstanceEntry(state, targetInventory, model,
-                InventoryInstanceType.EQUIPMENT, reference.equipmentInstanceId());
-            case RUNE -> addExistingInstanceEntry(state, targetInventory, model,
-                InventoryInstanceType.RUNE, reference.runeInstanceId());
-            default -> {
-                yield addStackedItems(state, targetInventory, model, amount) > 0;
+            boolean added = switch (category) {
+                case EQUIPMENT -> addExistingInstanceEntry(state, targetInventory, model,
+                    InventoryInstanceType.EQUIPMENT, reference.equipmentInstanceId());
+                case RUNE -> addExistingInstanceEntry(state, targetInventory, model,
+                    InventoryInstanceType.RUNE, reference.runeInstanceId());
+                default -> addStackedItems(state, targetInventory, model, amount) > 0;
+            };
+            if (!added) {
+                return null;
             }
-        };
-        if (!added) {
-            return null;
+            compactInventoryEntries(state, targetInventory.getInventoryId());
         }
-        compactInventoryEntries(state, targetInventory.getInventoryId());
         autoSwitchDisplayedInventory(astPlayer, targetType);
         return targetType;
     }
@@ -4335,7 +4544,9 @@ public class InventoryService {
         if (state == null) {
             return;
         }
-        compactInventoryEntries(state, inventoryId);
+        synchronized (state) {
+            compactInventoryEntries(state, inventoryId);
+        }
     }
 
     /**
@@ -4390,10 +4601,14 @@ public class InventoryService {
         if (inventory != null && inventory.getInventoryType() == InventoryType.CURRENCY) {
             entries = normalizeCurrencyEntries(state, inventory);
         }
+        Set<Integer> reservedBagSlots = inventory != null && inventory.getInventoryType() == InventoryType.BAG
+            ? reservedBagSlotIndexes(state, inventory)
+            : Set.of();
         int next = NormalInventoryLayout.DB_SLOT_START;
         List<InventoryEntryModel> compacted = new ArrayList<>();
         boolean changed = false;
         for (InventoryEntryModel entry : entries) {
+            next = nextUnreservedBagSlot(next, reservedBagSlots);
             if (!preserveEntriesBeyondCapacity && inventory != null && next > inventoryCapacity(inventory)) {
                 break;
             }
@@ -5342,7 +5557,11 @@ public class InventoryService {
     ) {
         List<InventoryEntryModel> entries = state.snapshotEntries(inventory.getInventoryId());
         if (inventory.getInventoryType() != InventoryType.CURRENCY) {
-            return NormalInventoryLayout.collectUsedSlots(entries, inventoryCapacity(inventory));
+            Set<Integer> usedSlots = NormalInventoryLayout.collectUsedSlots(entries, inventoryCapacity(inventory));
+            if (inventory.getInventoryType() == InventoryType.BAG) {
+                usedSlots.addAll(reservedManagedBagSlotIndexes(state, inventory));
+            }
+            return usedSlots;
         }
         Set<Integer> usedSlots = new HashSet<>();
         for (InventoryEntryModel entry : entries) {
@@ -5352,6 +5571,73 @@ public class InventoryService {
             }
         }
         return usedSlots;
+    }
+
+    /** BAG の実効容量内で、予約済み枠を含めずに残る slot 数を返します。 */
+    private int remainingBagSlotCount(@NotNull PlayerInventoryState state, @NotNull InventoryModel bag) {
+        if (bag.getInventoryType() != InventoryType.BAG) {
+            return -1;
+        }
+        return Math.max(0, inventoryCapacity(bag) - collectUsedSlots(state, bag).size());
+    }
+
+    /** 指定 state / BAG でまだ entry 化されていない slot 予約を収集します。 */
+    private @NotNull Set<Integer> reservedBagSlotIndexes(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryModel bag
+    ) {
+        Map<UUID, PendingBagSlotReservation> reservations = pendingBagSlotReservationsByAccount.get(
+            state.getAccountId()
+        );
+        if (reservations == null || reservations.isEmpty()) {
+            return Set.of();
+        }
+        Set<Integer> slots = new HashSet<>();
+        for (PendingBagSlotReservation reservation : reservations.values()) {
+            if (reservation.stateGeneration() == state
+                && reservation.inventoryId().equals(bag.getInventoryId())) {
+                slots.add(reservation.slotIndex());
+            }
+        }
+        return slots;
+    }
+
+    /** 現在の BAG 実効容量内にある予約 slot だけを、空き判定用に収集します。 */
+    private @NotNull Set<Integer> reservedManagedBagSlotIndexes(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryModel bag
+    ) {
+        int capacity = inventoryCapacity(bag);
+        return reservedBagSlotIndexes(state, bag).stream()
+            .filter(slot -> NormalInventoryLayout.isManagedSlot(slot, capacity))
+            .collect(java.util.stream.Collectors.toCollection(HashSet::new));
+    }
+
+    /** account 単位の予約表から、指定済みの未確定 BAG slot 予約を取得します。 */
+    private @Nullable PendingBagSlotReservation findPendingBagSlotReservation(
+        @NotNull PreparedInstanceSlotReservation reservation
+    ) {
+        Map<UUID, PendingBagSlotReservation> reservations = pendingBagSlotReservationsByAccount.get(
+            reservation.accountId()
+        );
+        return reservations == null ? null : reservations.get(reservation.reservationId());
+    }
+
+    /** 指定 reservation が有効な場合だけ、account 単位の予約表から取り出します。 */
+    private void removePendingBagSlotReservation(@NotNull PreparedInstanceSlotReservation reservation) {
+        pendingBagSlotReservationsByAccount.computeIfPresent(reservation.accountId(), (ignored, reservations) -> {
+            reservations.remove(reservation.reservationId());
+            return reservations.isEmpty() ? null : reservations;
+        });
+    }
+
+    /** BAG 圧縮時に、非同期個体生成へ確保済みの slot を飛ばして次の配置先を返します。 */
+    private int nextUnreservedBagSlot(int candidate, @NotNull Set<Integer> reservedBagSlots) {
+        int next = candidate;
+        while (reservedBagSlots.contains(next)) {
+            next++;
+        }
+        return next;
     }
 
     private @Nullable Integer findNextFreeSlot(@NotNull InventoryModel inventory, @NotNull Set<Integer> usedSlots) {
@@ -5382,6 +5668,71 @@ public class InventoryService {
         }
         return NormalInventoryLayout.effectiveCapacity(
             inventory.getInventoryType(), inventory.getSlotCapacity());
+    }
+
+    /**
+     * 通常インベントリ付与を state lock 内で確定した結果です。
+     *
+     * @param requestedAmount 依頼数（1 未満を補正後）
+     * @param grantedAmount 実際に追加できた数
+     * @param newlyOccupiedBagSlots 今回新しく占有した BAG slot 数
+     * @param remainingBagSlots 付与後の BAG 空き slot 数。通貨または state 未登録時は {@code -1}
+     */
+    public record NormalInventoryGrantResult(
+        int requestedAmount,
+        int grantedAmount,
+        int newlyOccupiedBagSlots,
+        int remainingBagSlots
+    ) {
+        /** @return 依頼数の一部または全部を追加できなかった場合 {@code true} */
+        public boolean hasShortfall() {
+            return grantedAmount < requestedAmount;
+        }
+
+        /** @return 今回の付与で新しい BAG slot を使用した場合 {@code true} */
+        public boolean consumedNewBagSlot() {
+            return newlyOccupiedBagSlots > 0;
+        }
+    }
+
+    /**
+     * API 個体生成の前に確保した BAG slot を識別する予約です。
+     *
+     * @param reservationId 予約を一意に識別する ID
+     * @param accountId 予約対象アカウント ID
+     */
+    public record PreparedInstanceSlotReservation(
+        @NotNull UUID reservationId,
+        @NotNull UUID accountId
+    ) {
+    }
+
+    /**
+     * API 個体生成前の BAG slot 予約結果です。
+     *
+     * @param reservation 予約成功時の予約情報。空きなしまたは state 未登録時は {@code null}
+     * @param remainingBagSlots 判定後の BAG 空き slot 数。state 未登録または対象外カテゴリでは {@code -1}
+     */
+    public record PreparedInstanceSlotReservationResult(
+        @Nullable PreparedInstanceSlotReservation reservation,
+        int remainingBagSlots
+    ) {
+        /** @return BAG slot の予約に成功した場合 {@code true} */
+        public boolean reserved() {
+            return reservation != null;
+        }
+    }
+
+    /**
+     * 予約済み個体を BAG へ確定追加した結果です。
+     *
+     * @param completed 予約 slot への追加に成功した場合 {@code true}
+     * @param remainingBagSlots 確定追加後の BAG 空き slot 数。失敗時は {@code -1}
+     */
+    public record PreparedInstanceReservationCompletion(
+        boolean completed,
+        int remainingBagSlots
+    ) {
     }
 
     /**
@@ -5484,6 +5835,15 @@ public class InventoryService {
         @NotNull Map<UUID, Long> normalEntryAmounts,
         boolean baselineAllocated,
         long goldAmount
+    ) {
+    }
+
+    /** 非同期個体生成が完了するまで保持する内部 BAG slot 予約です。 */
+    private record PendingBagSlotReservation(
+        @NotNull UUID reservationId,
+        @NotNull PlayerInventoryState stateGeneration,
+        @NotNull UUID inventoryId,
+        int slotIndex
     ) {
     }
 

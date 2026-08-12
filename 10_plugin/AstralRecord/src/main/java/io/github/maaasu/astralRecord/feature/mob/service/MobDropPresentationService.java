@@ -20,6 +20,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Color;
 import org.bukkit.Location;
@@ -369,6 +370,15 @@ public final class MobDropPresentationService {
         return BigDecimal.valueOf(dropRate).stripTrailingZeros().toPlainString();
     }
 
+    /**
+     * 回収演出付きドロップを開始します。装備・ルーンは演出開始前に BAG slot を予約します。
+     *
+     * @param recipient 受取プレイヤー
+     * @param deathLocation ドロップ発生位置
+     * @param item 付与対象アイテム
+     * @param index 同時演出のずらし番号
+     * @param dropSource インスタンス生成元
+     */
     private void spawnCollectingItem(
         @NotNull AstPlayer recipient,
         @NotNull Location deathLocation,
@@ -382,9 +392,14 @@ public final class MobDropPresentationService {
             return;
         }
 
+        InventoryService.PreparedInstanceSlotReservation reservation = reserveInstanceSlotOrNotify(recipient, item);
+        if (requiresPreparedInstanceSlot(item) && reservation == null) {
+            return;
+        }
         CompletableFuture<PreparedDropGrant> future = prepareDropAsync(recipient, item, dropSource);
         future.whenComplete((ignored, ex) -> {
             if (ex != null) {
+                releaseReservation(reservation);
                 Logger.error(LogId.E_5202, ex, item.model().getId());
             }
         });
@@ -397,26 +412,42 @@ public final class MobDropPresentationService {
             item.amount(),
             index,
             future,
-            () -> grantPreparedItem(recipient, dropLocation, future, dropSource),
-            () -> handleCancelledPreparedItem(dropLocation, future)
+            () -> grantPreparedItem(recipient, dropLocation, future, dropSource, reservation),
+            () -> handleCancelledPreparedItem(dropLocation, future, reservation)
         );
     }
 
+    /**
+     * 演出上限を超えたドロップを、同じ容量判定・個体予約契約で付与します。
+     *
+     * @param recipient 受取プレイヤー
+     * @param deathLocation ドロップ発生位置
+     * @param item 付与対象アイテム
+     * @param dropSource インスタンス生成元
+     */
     private void grantWithoutAnimation(
         @NotNull AstPlayer recipient,
         @NotNull Location deathLocation,
         @NotNull ResolvedDropItem item,
         @NotNull String dropSource
     ) {
+        InventoryService.PreparedInstanceSlotReservation reservation = reserveInstanceSlotOrNotify(recipient, item);
+        if (requiresPreparedInstanceSlot(item) && reservation == null) {
+            return;
+        }
         CompletableFuture<PreparedDropGrant> future = prepareDropAsync(recipient, item, dropSource);
         future.whenComplete((prepared, ex) -> plugin.getServer().getScheduler().runTask(plugin, () -> {
             if (ex != null) {
+                releaseReservation(reservation);
                 Logger.error(LogId.E_5202, ex, item.model().getId());
                 return;
             }
             if (prepared == null || !recipient.getBukkit().isOnline()) {
                 if (prepared != null) {
+                    releaseReservation(reservation);
                     dropPreparedItem(deathLocation, prepared);
+                } else {
+                    releaseReservation(reservation);
                 }
                 return;
             }
@@ -424,11 +455,54 @@ public final class MobDropPresentationService {
                 recipient,
                 deathLocation,
                 CompletableFuture.completedFuture(prepared),
-                dropSource
+                dropSource,
+                reservation
             );
         }));
     }
 
+    /**
+     * 装備・ルーンの API 個体生成前に BAG slot を予約し、空き不足時は取得拒否を通知します。
+     *
+     * @param recipient 受取プレイヤー
+     * @param item 付与対象アイテム
+     * @return 装備・ルーンで予約できた場合の予約。通常スタック品または予約不能時は {@code null}
+     */
+    private @Nullable InventoryService.PreparedInstanceSlotReservation reserveInstanceSlotOrNotify(
+        @NotNull AstPlayer recipient,
+        @NotNull ResolvedDropItem item
+    ) {
+        if (!requiresPreparedInstanceSlot(item)) {
+            return null;
+        }
+        InventoryService.PreparedInstanceSlotReservationResult result =
+            inventoryService.reserveBagSlotForPreparedInstance(recipient, item.model());
+        if (!result.reserved()) {
+            notifyInventoryFullIfKnown(recipient, result.remainingBagSlots());
+            return null;
+        }
+        return result.reservation();
+    }
+
+    /**
+     * 指定ドロップが個体 API を生成する装備またはルーンかを判定します。
+     *
+     * @param item 判定対象ドロップ
+     * @return BAG slot の事前予約が必要な場合 {@code true}
+     */
+    private boolean requiresPreparedInstanceSlot(@NotNull ResolvedDropItem item) {
+        ItemCategory category = ItemCategory.fromApiValue(item.model().getCategory());
+        return category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE;
+    }
+
+    /**
+     * 個体が必要なドロップだけを非同期で API 生成し、通常スタック品は即時結果に変換します。
+     *
+     * @param recipient 受取プレイヤー
+     * @param item 生成対象ドロップ
+     * @param dropSource インスタンス生成元
+     * @return 付与可能な準備済みドロップの future
+     */
     private @NotNull CompletableFuture<PreparedDropGrant> prepareDropAsync(
         @NotNull AstPlayer recipient,
         @NotNull ResolvedDropItem item,
@@ -468,80 +542,227 @@ public final class MobDropPresentationService {
         return CompletableFuture.completedFuture(PreparedDropGrant.stacked(item));
     }
 
+    /**
+     * 演出または非演出の完了時に、準備済みアイテムをインベントリへ確定付与します。
+     *
+     * @param recipient 受取プレイヤー
+     * @param dropLocation 非容量系の取消・退出時に使用するドロップ位置
+     * @param future 準備済みドロップ future
+     * @param dropSource 通常スタック品の付与元
+     * @param reservation 装備・ルーン用の事前予約。通常スタック品では {@code null}
+     */
     private void grantPreparedItem(
         @NotNull AstPlayer recipient,
         @NotNull Location dropLocation,
         @NotNull CompletableFuture<PreparedDropGrant> future,
-        @NotNull String dropSource
+        @NotNull String dropSource,
+        @Nullable InventoryService.PreparedInstanceSlotReservation reservation
     ) {
         PreparedDropGrant prepared = joinPrepared(future);
         if (prepared == null) {
+            releaseReservation(reservation);
             return;
         }
         if (!recipient.getBukkit().isOnline()) {
+            releaseReservation(reservation);
             dropPreparedItem(dropLocation, prepared);
             return;
         }
 
         switch (prepared.kind()) {
-            case STACKED -> grantStackedItem(recipient, dropLocation, prepared, dropSource);
-            case EQUIPMENT, RUNE -> grantPreparedInstance(recipient, dropLocation, prepared);
+            case STACKED -> grantStackedItem(recipient, prepared, dropSource);
+            case EQUIPMENT, RUNE -> grantPreparedInstance(recipient, dropLocation, prepared, reservation);
         }
     }
 
+    /**
+     * 通常スタック品を付与し、容量不足の残数はワールドへ出さず破棄します。
+     *
+     * @param recipient 受取プレイヤー
+     * @param prepared 準備済み通常スタック品
+     * @param dropSource 付与元
+     * @return 実際に付与できた数
+     */
     private int grantStackedItem(
         @NotNull AstPlayer recipient,
-        @NotNull Location dropLocation,
         @NotNull PreparedDropGrant prepared,
         @NotNull String dropSource
     ) {
-        return grantStackedItemWithFallback(
+        return grantStackedItemDiscardingShortfall(
             recipient,
-            dropLocation,
             prepared.item().model(),
             prepared.item().amount(),
             dropSource
         );
     }
 
-    int grantStackedItemWithFallback(
+    /**
+     * 通常スタック品の付与結果を容量通知へ変換し、入りきらない残数を破棄します。
+     *
+     * @param recipient 受取プレイヤー
+     * @param model 追加するアイテム定義
+     * @param requested 追加希望数
+     * @param dropSource 付与元
+     * @return 実際に付与できた数
+     */
+    int grantStackedItemDiscardingShortfall(
         @NotNull AstPlayer recipient,
-        @NotNull Location dropLocation,
         @NotNull ItemModel model,
         int requested,
         @NotNull String dropSource
     ) {
-        int granted = inventoryService.addItemToNormalInventory(
+        InventoryService.NormalInventoryGrantResult result = inventoryService.addItemToNormalInventoryWithCapacityResult(
             recipient,
             model,
             requested,
             dropSource
         );
-        int shortfall = Math.max(0, requested - Math.max(0, granted));
-        return Math.max(0, granted) + dropStackedItem(dropLocation, model, shortfall);
+        notifyInventoryCapacity(recipient, result);
+        return Math.max(0, result.grantedAmount());
     }
 
+    /**
+     * 予約済み slot へ装備・ルーン個体を確定追加します。
+     * <p>
+     * 通常の容量不足は API 個体生成前に予約で拒否されるため、ここでの失敗は state 入れ替わりなど
+     * 非容量系の既存 world-drop fallback として扱います。
+     *
+     * @param recipient 受取プレイヤー
+     * @param dropLocation 非容量系 fallback の位置
+     * @param prepared API 生成済み個体
+     * @param reservation 事前予約した BAG slot
+     * @return インベントリへ追加した場合は 1、それ以外は fallback 数
+     */
     private int grantPreparedInstance(
         @NotNull AstPlayer recipient,
         @NotNull Location dropLocation,
-        @NotNull PreparedDropGrant prepared
+        @NotNull PreparedDropGrant prepared,
+        @Nullable InventoryService.PreparedInstanceSlotReservation reservation
     ) {
-        int granted = inventoryService.addPreparedInstanceToNormalInventory(
+        if (reservation == null) {
+            return 0;
+        }
+        InventoryInstanceType instanceType = prepared.instanceType();
+        UUID instanceId = prepared.instanceId();
+        if (instanceType == null || instanceId == null) {
+            releaseReservation(reservation);
+            return dropPreparedItem(dropLocation, prepared);
+        }
+        InventoryService.PreparedInstanceReservationCompletion completion =
+            inventoryService.completePreparedInstanceReservation(
             recipient,
             prepared.item().model(),
-            prepared.instanceType(),
-            prepared.instanceId()
+            instanceType,
+            instanceId,
+            reservation
         );
-        return granted > 0 ? granted : dropPreparedItem(dropLocation, prepared);
+        if (completion.completed()) {
+            notifyInventoryCapacityAfterReservedInstance(recipient, completion.remainingBagSlots());
+            return 1;
+        }
+        releaseReservation(reservation);
+        return dropPreparedItem(dropLocation, prepared);
     }
 
+    /**
+     * 回収演出が取消された場合、予約を解除して従来どおり準備済みアイテムをワールドへ戻します。
+     *
+     * @param dropLocation world-drop fallback の位置
+     * @param future 準備済みドロップ future
+     * @param reservation 装備・ルーン用の事前予約。通常スタック品では {@code null}
+     */
     private void handleCancelledPreparedItem(
         @NotNull Location dropLocation,
-        @NotNull CompletableFuture<PreparedDropGrant> future
+        @NotNull CompletableFuture<PreparedDropGrant> future,
+        @Nullable InventoryService.PreparedInstanceSlotReservation reservation
     ) {
         future.thenAccept(prepared ->
-            plugin.getServer().getScheduler().runTask(plugin, () -> dropPreparedItem(dropLocation, prepared))
-        ).exceptionally(ex -> null);
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                releaseReservation(reservation);
+                dropPreparedItem(dropLocation, prepared);
+            })
+        ).exceptionally(ex -> {
+            releaseReservation(reservation);
+            return null;
+        });
+    }
+
+    /**
+     * 通常スタック品の付与結果から、満杯または残り3枠の容量通知を送ります。
+     *
+     * @param recipient 受取プレイヤー
+     * @param result state lock 内で確定した付与結果
+     */
+    private void notifyInventoryCapacity(
+        @NotNull AstPlayer recipient,
+        @NotNull InventoryService.NormalInventoryGrantResult result
+    ) {
+        if (result.hasShortfall() && result.remainingBagSlots() == 0) {
+            notifyInventoryFullIfKnown(recipient, result.remainingBagSlots());
+            return;
+        }
+        if (result.consumedNewBagSlot() && result.remainingBagSlots() == 3) {
+            notifyInventoryLow(recipient, result.remainingBagSlots());
+        }
+    }
+
+    /**
+     * 予約済み個体の確定追加後、実際に残り3枠になった場合だけ容量低下を通知します。
+     *
+     * @param recipient 受取プレイヤー
+     * @param remainingBagSlots state lock 内で確定した付与後の BAG 空き slot 数
+     */
+    private void notifyInventoryCapacityAfterReservedInstance(
+        @NotNull AstPlayer recipient,
+        int remainingBagSlots
+    ) {
+        if (remainingBagSlots == 3) {
+            notifyInventoryLow(recipient, remainingBagSlots);
+        }
+    }
+
+    /**
+     * BAG が満杯であることを通知します。state 未登録を示す値では通知しません。
+     *
+     * @param recipient 受取プレイヤー
+     * @param remainingBagSlots 判定時の残り BAG slot 数
+     */
+    private void notifyInventoryFullIfKnown(@NotNull AstPlayer recipient, int remainingBagSlots) {
+        if (remainingBagSlots != 0) {
+            return;
+        }
+        Player player = recipient.getBukkit();
+        if (!player.isOnline()) {
+            return;
+        }
+        PlayerMessageService.getInstance().send(recipient, PlayerMsgId.P_5241);
+        GuiSound.DENY.play(player);
+    }
+
+    /**
+     * BAG の空き枠が少なくなったことを通知します。
+     *
+     * @param recipient 受取プレイヤー
+     * @param remainingBagSlots 通知する残り BAG slot 数
+     */
+    private void notifyInventoryLow(@NotNull AstPlayer recipient, int remainingBagSlots) {
+        Player player = recipient.getBukkit();
+        if (!player.isOnline()) {
+            return;
+        }
+        PlayerMessageService.getInstance().send(recipient, PlayerMsgId.P_5244, remainingBagSlots);
+        GuiSound.DENY.play(player);
+    }
+
+    /**
+     * 個体生成に使用しなかった BAG slot 予約を安全に解除します。
+     *
+     * @param reservation 解除対象。通常スタック品では {@code null}
+     */
+    private void releaseReservation(@Nullable InventoryService.PreparedInstanceSlotReservation reservation) {
+        if (reservation != null) {
+            inventoryService.releasePreparedInstanceReservation(reservation);
+        }
     }
 
     private int dropPreparedItem(@NotNull Location location, @NotNull PreparedDropGrant prepared) {

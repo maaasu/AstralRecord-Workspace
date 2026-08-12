@@ -36,6 +36,8 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -67,6 +69,209 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         assertEquals(ItemCategory.MATERIAL.getApiValue(), entries.get(0).getItemCategory());
         assertEquals(3L, entries.get(0).getQuantity());
         assertTrue(state.isDirty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
+     * 検証契約: 付与結果は新規BAG slot使用数と付与後空きslot数をstate lock内で確定し、既存stack加算は新規slotを消費しない。
+     */
+    @Test
+    void capacityResultDistinguishesNewBagSlotFromExistingStack() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        state.setBagSlotCapacity(4);
+        harness.addInventory(state, InventoryType.BAG);
+        ItemModel material = DesignTestFixtures.item("capacity_result_test", ItemCategory.MATERIAL, 64);
+
+        InventoryService.NormalInventoryGrantResult first =
+            harness.inventoryService.addItemToNormalInventoryWithCapacityResult(astPlayer, material, 1, "test");
+        InventoryService.NormalInventoryGrantResult stacked =
+            harness.inventoryService.addItemToNormalInventoryWithCapacityResult(astPlayer, material, 1, "test");
+
+        assertEquals(1, first.grantedAmount());
+        assertEquals(1, first.newlyOccupiedBagSlots());
+        assertEquals(3, first.remainingBagSlots());
+        assertEquals(1, stacked.grantedAmount());
+        assertEquals(0, stacked.newlyOccupiedBagSlots());
+        assertEquals(3, stacked.remainingBagSlots());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
+     * 検証契約: 非同期個体生成前のBAG slot予約は同一空きslotの二重予約を拒否し、予約成功時だけ生成済みinstanceを確定追加する。
+     */
+    @Test
+    void preparedInstanceReservationPreventsDoubleBookingOfLastBagSlot() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        state.setBagSlotCapacity(1);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        ItemModel rune = DesignTestFixtures.item("reservation_rune", ItemCategory.RUNE, 1);
+
+        InventoryService.PreparedInstanceSlotReservationResult first =
+            harness.inventoryService.reserveBagSlotForPreparedInstance(astPlayer, rune);
+        InventoryService.PreparedInstanceSlotReservationResult second =
+            harness.inventoryService.reserveBagSlotForPreparedInstance(astPlayer, rune);
+        UUID instanceId = UUID.randomUUID();
+
+        assertTrue(first.reserved());
+        assertNotNull(first.reservation());
+        assertEquals(0, first.remainingBagSlots());
+        assertFalse(second.reserved());
+        assertNull(second.reservation());
+        assertEquals(0, second.remainingBagSlots());
+        InventoryService.PreparedInstanceReservationCompletion completion =
+            harness.inventoryService.completePreparedInstanceReservation(
+            astPlayer,
+            rune,
+            InventoryInstanceType.RUNE,
+            instanceId,
+            first.reservation()
+        );
+        assertTrue(completion.completed());
+        assertEquals(0, completion.remainingBagSlots());
+        List<InventoryEntryModel> entries = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(1, entries.size());
+        assertEquals(1, entries.getFirst().getSlotIndex());
+        assertEquals(instanceId, entries.getFirst().getInstanceId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
+     * 検証契約: 非同期個体生成中の予約slotはBAG削除後の前詰め処理でも他entryに使わせない。
+     */
+    @Test
+    void bagCompactionSkipsPreparedInstanceReservationSlot() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        state.setBagSlotCapacity(4);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        harness.addInventory(state, InventoryType.STORAGE);
+        ItemModel first = DesignTestFixtures.item("reservation_compact_first", ItemCategory.MATERIAL, 64);
+        ItemModel middle = DesignTestFixtures.item("reservation_compact_middle", ItemCategory.MATERIAL, 64);
+        ItemModel last = DesignTestFixtures.item("reservation_compact_last", ItemCategory.MATERIAL, 64);
+        ItemModel rune = DesignTestFixtures.item("reservation_compact_rune", ItemCategory.RUNE, 1);
+        when(harness.itemService.findLoadedById(last.getId())).thenReturn(last);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
+            bagEntry(state.getAccountId(), bag.getInventoryId(), 1, first.getId(), 1L),
+            bagEntry(state.getAccountId(), bag.getInventoryId(), 3, middle.getId(), 1L),
+            bagEntry(state.getAccountId(), bag.getInventoryId(), 4, last.getId(), 1L)
+        ));
+
+        InventoryService.PreparedInstanceSlotReservation reservation = harness.inventoryService
+            .reserveBagSlotForPreparedInstance(astPlayer, rune)
+            .reservation();
+
+        assertNotNull(reservation);
+        assertFalse(harness.inventoryService.canAddItemToNormalInventory(
+            astPlayer,
+            DesignTestFixtures.item("reservation_compact_other", ItemCategory.MATERIAL, 1),
+            1
+        ));
+        assertEquals(1, harness.inventoryService.moveOwnedItemToStorage(astPlayer, 11, 1));
+        List<InventoryEntryModel> afterCompaction = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(2, afterCompaction.size());
+        assertEquals(first.getId(), afterCompaction.get(0).getItemId());
+        assertEquals(1, afterCompaction.get(0).getSlotIndex());
+        assertEquals(middle.getId(), afterCompaction.get(1).getItemId());
+        assertEquals(3, afterCompaction.get(1).getSlotIndex());
+
+        UUID instanceId = UUID.randomUUID();
+        InventoryService.PreparedInstanceReservationCompletion completion = harness.inventoryService
+            .completePreparedInstanceReservation(
+                astPlayer,
+                rune,
+                InventoryInstanceType.RUNE,
+                instanceId,
+                reservation
+            );
+
+        assertTrue(completion.completed());
+        assertEquals(3, state.snapshotEntries(bag.getInventoryId()).size());
+        assertTrue(state.snapshotEntries(bag.getInventoryId()).stream()
+            .anyMatch(entry -> entry.getSlotIndex() == 2 && instanceId.equals(entry.getInstanceId())));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
+     * 検証契約: 予約中にBAG実効容量が下がっても、予約済みinstanceは確保済みslotへ確定し永続孤児を作らない。
+     */
+    @Test
+    void preparedInstanceReservationSurvivesBagCapacityReduction() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        state.setBagSlotCapacity(2);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        ItemModel rune = DesignTestFixtures.item("reservation_capacity_reduction_rune", ItemCategory.RUNE, 1);
+
+        InventoryService.PreparedInstanceSlotReservation reservation = harness.inventoryService
+            .reserveBagSlotForPreparedInstance(astPlayer, rune)
+            .reservation();
+        assertNotNull(reservation);
+
+        harness.inventoryService.applyBagSlotCapacity(astPlayer, 0.0D);
+        UUID instanceId = UUID.randomUUID();
+        InventoryService.PreparedInstanceReservationCompletion completion = harness.inventoryService
+            .completePreparedInstanceReservation(
+                astPlayer,
+                rune,
+                InventoryInstanceType.RUNE,
+                instanceId,
+                reservation
+            );
+
+        assertTrue(completion.completed());
+        assertEquals(0, completion.remainingBagSlots());
+        assertTrue(state.snapshotEntries(bag.getInventoryId()).stream()
+            .anyMatch(entry -> entry.getSlotIndex() == 1 && instanceId.equals(entry.getInstanceId())));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
+     * 検証契約: 容量縮小で容量外になった既存予約は、現在の実効容量内で新たに空いたslotを塞がない。
+     */
+    @Test
+    void reservationOutsideReducedCapacityDoesNotBlockNewManagedSlot() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        state.setBagSlotCapacity(4);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        harness.addInventory(state, InventoryType.STORAGE);
+        ItemModel first = DesignTestFixtures.item("reservation_reduce_first", ItemCategory.MATERIAL, 64);
+        ItemModel second = DesignTestFixtures.item("reservation_reduce_second", ItemCategory.MATERIAL, 64);
+        ItemModel third = DesignTestFixtures.item("reservation_reduce_third", ItemCategory.MATERIAL, 64);
+        ItemModel rune = DesignTestFixtures.item("reservation_reduce_rune", ItemCategory.RUNE, 1);
+        when(harness.itemService.findLoadedById(first.getId())).thenReturn(first);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
+            bagEntry(state.getAccountId(), bag.getInventoryId(), 1, first.getId(), 1L),
+            bagEntry(state.getAccountId(), bag.getInventoryId(), 2, second.getId(), 1L),
+            bagEntry(state.getAccountId(), bag.getInventoryId(), 3, third.getId(), 1L)
+        ));
+
+        InventoryService.PreparedInstanceSlotReservation firstReservation = harness.inventoryService
+            .reserveBagSlotForPreparedInstance(astPlayer, rune)
+            .reservation();
+        assertNotNull(firstReservation);
+
+        harness.inventoryService.applyBagSlotCapacity(astPlayer, 3.0D);
+        assertEquals(1, harness.inventoryService.moveOwnedItemToStorage(astPlayer, 9, 1));
+        InventoryService.PreparedInstanceSlotReservationResult secondReservation = harness.inventoryService
+            .reserveBagSlotForPreparedInstance(astPlayer, rune);
+
+        assertTrue(secondReservation.reserved());
+        assertEquals(0, secondReservation.remainingBagSlots());
+        harness.inventoryService.releasePreparedInstanceReservation(firstReservation);
+        harness.inventoryService.releasePreparedInstanceReservation(secondReservation.reservation());
     }
 
     /**

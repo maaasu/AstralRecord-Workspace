@@ -7,19 +7,28 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import org.bukkit.Location;
-import org.bukkit.World;
-import org.bukkit.inventory.ItemStack;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
+import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class MobDropPresentationServiceTest {
@@ -78,10 +87,10 @@ class MobDropPresentationServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
      * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### ドロップ配布対象と演出
-     * 検証契約: inventoryに入らなかった数量を安全なworld dropへfallbackする。
+     * 検証契約: inventoryに入らなかった通常アイテムの残数をworld dropへfallbackせず破棄する。
      */
     @Test
-    void inventoryShortfallFallsBackToWorldDrop() {
+    void inventoryShortfallIsDiscardedWithoutWorldDrop() {
         Plugin plugin = mock(Plugin.class);
         ItemService itemService = mock(ItemService.class);
         InventoryService inventoryService = mock(InventoryService.class);
@@ -98,23 +107,108 @@ class MobDropPresentationServiceTest {
         );
         AstPlayer recipient = mock(AstPlayer.class);
         ItemModel model = mock(ItemModel.class);
-        World world = mock(World.class);
-        Location dropLocation = new Location(world, 0.0D, 64.0D, 0.0D);
-        ItemStack fallbackStack = mock(ItemStack.class);
-        when(model.getMaxStack()).thenReturn(64);
-        when(inventoryService.addItemToNormalInventory(recipient, model, 5, "mob_drop")).thenReturn(2);
-        when(itemStackFactory.create(model, 3)).thenReturn(fallbackStack);
-        when(itemStackFactory.asDisplayStack(fallbackStack)).thenReturn(fallbackStack);
+        when(inventoryService.addItemToNormalInventoryWithCapacityResult(recipient, model, 5, "mob_drop"))
+            .thenReturn(new InventoryService.NormalInventoryGrantResult(5, 2, 0, 1));
 
-        int handled = service.grantStackedItemWithFallback(
+        int granted = service.grantStackedItemDiscardingShortfall(
             recipient,
-            dropLocation,
             model,
             5,
             "mob_drop"
         );
 
-        assertEquals(5, handled);
-        verify(world).dropItemNaturally(dropLocation, fallbackStack);
+        assertEquals(2, granted);
+        verifyNoInteractions(itemStackFactory);
     }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### ドロップ配布対象と演出
+     * 検証契約: BAG が満杯で通常スタック品を新規付与できないとき、P_5241 と拒否音を送る。
+     */
+    @Test
+    void fullInventorySendsCapacityMessageAndDenySound() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        MobDropPresentationService service = createService(inventoryService);
+        AstPlayer recipient = mock(AstPlayer.class);
+        Player player = onlinePlayer();
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+        ItemModel model = mock(ItemModel.class);
+        when(recipient.getBukkit()).thenReturn(player);
+        when(inventoryService.addItemToNormalInventoryWithCapacityResult(recipient, model, 1, "mob_drop"))
+            .thenReturn(new InventoryService.NormalInventoryGrantResult(1, 0, 0, 0));
+
+        try (MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+            assertEquals(0, service.grantStackedItemDiscardingShortfall(recipient, model, 1, "mob_drop"));
+        }
+
+        verify(messageService).send(recipient, PlayerMsgId.P_5241);
+        verify(player).playSound(
+            any(Location.class),
+            eq(Sound.BLOCK_NOTE_BLOCK_BASS),
+            eq(SoundCategory.PLAYERS),
+            eq(0.5F),
+            eq(0.7F)
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### ドロップ配布対象と演出
+     * 検証契約: 新規 BAG slot を消費して残り3枠になったときだけ、P_5244 と拒否音を一度送る。
+     */
+    @Test
+    void newlyOccupiedBagSlotAtThreeRemainingSendsLowCapacityMessageOnlyOnce() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        MobDropPresentationService service = createService(inventoryService);
+        AstPlayer recipient = mock(AstPlayer.class);
+        Player player = onlinePlayer();
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+        ItemModel model = mock(ItemModel.class);
+        when(recipient.getBukkit()).thenReturn(player);
+        when(inventoryService.addItemToNormalInventoryWithCapacityResult(recipient, model, 1, "mob_drop"))
+            .thenReturn(
+                new InventoryService.NormalInventoryGrantResult(1, 1, 1, 3),
+                new InventoryService.NormalInventoryGrantResult(1, 1, 0, 3)
+            );
+
+        try (MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+            assertEquals(1, service.grantStackedItemDiscardingShortfall(recipient, model, 1, "mob_drop"));
+            assertEquals(1, service.grantStackedItemDiscardingShortfall(recipient, model, 1, "mob_drop"));
+        }
+
+        verify(messageService, times(1)).send(recipient, PlayerMsgId.P_5244, 3);
+        verify(player, times(1)).playSound(
+            any(Location.class),
+            eq(Sound.BLOCK_NOTE_BLOCK_BASS),
+            eq(SoundCategory.PLAYERS),
+            eq(0.5F),
+            eq(0.7F)
+        );
+    }
+
+    private static @org.jetbrains.annotations.NotNull MobDropPresentationService createService(
+        @org.jetbrains.annotations.NotNull InventoryService inventoryService
+    ) {
+        return new MobDropPresentationService(
+            mock(Plugin.class),
+            mock(ItemService.class),
+            inventoryService,
+            mock(ItemStackFactory.class),
+            mock(ItemDropAnimationService.class),
+            mock(PlayerSettingService.class)
+        );
+    }
+
+    private static @org.jetbrains.annotations.NotNull Player onlinePlayer() {
+        Player player = mock(Player.class);
+        when(player.isOnline()).thenReturn(true);
+        when(player.getLocation()).thenReturn(mock(Location.class));
+        return player;
+    }
+
 }
