@@ -55,10 +55,11 @@ Use these rules when adding or changing player-facing messages, `MsgId`, or `pla
 5. Do not call `Player#sendMessage(...)` directly for plugin-managed player messaging. Use `PlayerMessageService` so the common tag/prefix and chat routing rules stay consistent.
 6. Do not pass string literals directly to `sendInfo`, `sendSuccess`, `sendError`, `sendMessage`, or new player-message helper methods unless the API is explicitly for managed chat formatting.
 7. Check color codes, placeholders, and existing wording style.
-8. Avoid changing an existing message's meaning without checking all call sites.
-9. When a player-facing message includes filebase/master-data display strings such as `name`, `title`, `description`, or lore text, route the value through `PlayerMsgResource` / `PlayerMessageService` formatting or explicitly normalize it with `ColorCodeUtil`; raw `&` color codes from master data must never be displayed to players.
-10. Before choosing a new player message ID, search `PlayerMsgId.java`, feature-specific `*MsgId`, and `player.properties`; update every authoritative enum and the property in the same patch.
-11. Run the Plugin resource validation script from the Logs section after edits; it also rejects direct `sendMessage` calls, string literals passed to command message helpers, duplicate property keys, and player ID/property drift.
+8. For a success notification after gold is consumed, include the settled amount in the exact `（消費ゴールド: {0}）` format, pass the actual consumed amount as an argument, and never hard-code the amount in the message text.
+9. Avoid changing an existing message's meaning without checking all call sites.
+10. When a player-facing message includes filebase/master-data display strings such as `name`, `title`, `description`, or lore text, route the value through `PlayerMsgResource` / `PlayerMessageService` formatting or explicitly normalize it with `ColorCodeUtil`; raw `&` color codes from master data must never be displayed to players.
+11. Before choosing a new player message ID, search `PlayerMsgId.java`, feature-specific `*MsgId`, and `player.properties`; update every authoritative enum and the property in the same patch.
+12. Run the Plugin resource validation script from the Logs section after edits; it also rejects direct `sendMessage` calls, string literals passed to command message helpers, duplicate property keys, and player ID/property drift.
 
 ## Database, API, and Filebase Contracts
 

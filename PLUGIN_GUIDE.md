@@ -91,6 +91,7 @@
 - プレイヤー向けメッセージ送信の正本は `io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService` とする。
 - `Player#sendMessage(...)`・`AstPlayer#sendMessage(...)` の新規利用は禁止し、既存経路を変更する場合も `PlayerMessageService` 経由へ寄せる。
 - システムメッセージは `PlayerMessageService` が付与する共通タグ付き形式を維持する。全体チャット・パーティーチャット・ダイレクトメッセージも同サービス経由で管理する。
+- 所持金（ゴールド）を消費する操作の成功通知には、確定した実消費額を `（消費ゴールド: {0}）` の形式で必ず含める。新規・変更時は `player.properties` のプレースホルダーと全呼び出し側の引数を確認し、金額をメッセージへ直書きしない。
 
 ## 共通基盤の設定スナップショットと入力正規化
 

@@ -352,7 +352,7 @@ public final class TeleporterService {
                         }
                         WaystoneUnlockState current = unlockStatesByAccount.getOrDefault(accountId, new WaystoneUnlockState(accountId, Set.of()));
                         unlockStatesByAccount.put(accountId, current.withUnlocked(definition.id()));
-                        PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5952, definition.name());
+                        PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5952, definition.name(), cost);
                         syncView(player);
                         playUnlockEffects(player, definition);
                     } finally {

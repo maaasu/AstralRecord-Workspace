@@ -296,7 +296,8 @@ public class SkillTreeEventHandler extends AbstractEventHandler
             PlayerMessageService.getInstance().send(
                     player,
                     PlayerMsgId.P_5826,
-                    ColorCodeUtil.toLegacyText(node.name(), node.nodeId())
+                    ColorCodeUtil.toLegacyText(node.name(), node.nodeId()),
+                    SkillTreeService.RELOCK_GOLD_COST
             );
         } else {
             playDenied(player, 0.75F);
