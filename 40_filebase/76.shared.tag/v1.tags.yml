@@ -117,6 +117,11 @@ tags:
     description: 採取用のクワとして扱う装備。
     category: EQUIPMENT
     appliesTo: [EQUIPMENT, GATHERING_REQUIRED_TOOL]
+  - id: MAIN_MENU
+    displayName: メインメニュー
+    description: 右クリックでメインメニューを開く装備。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT]
 
   - id: active
     displayName: アクティブ

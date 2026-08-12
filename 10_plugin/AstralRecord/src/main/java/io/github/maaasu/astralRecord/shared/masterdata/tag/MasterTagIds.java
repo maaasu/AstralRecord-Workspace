@@ -49,6 +49,9 @@ public final class MasterTagIds {
 
         /** クワ: 採取用のクワとして扱う装備。 */
         public static final String HOE = "HOE";
+
+        /** メインメニュー: 右クリックでメインメニューを開く装備。 */
+        public static final String MAIN_MENU = "MAIN_MENU";
     }
 
     /** 機能種別タグです。 */
@@ -436,6 +439,7 @@ public final class MasterTagIds {
         Map.entry("PICKAXE", new Definition("PICKAXE", "ツルハシ", "採掘用のツルハシとして扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
         Map.entry("AXE", new Definition("AXE", "斧", "伐採用の斧として扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
         Map.entry("HOE", new Definition("HOE", "クワ", "採取用のクワとして扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
+        Map.entry("MAIN_MENU", new Definition("MAIN_MENU", "メインメニュー", "右クリックでメインメニューを開く装備。", "EQUIPMENT", List.of("EQUIPMENT"))),
         Map.entry("active", new Definition("active", "アクティブ", "能動的に発動するスキル。", "ACTIVITY", List.of("SKILL"))),
         Map.entry("passive", new Definition("passive", "パッシブ", "常時または条件付きで自動適用されるスキル。", "ACTIVITY", List.of("SKILL"))),
         Map.entry("mob", new Definition("mob", "Mob用", "Mob が使用するスキル。", "ACTIVITY", List.of("SKILL"))),

@@ -167,7 +167,7 @@ class GuiSessionTransitionEventHandlerTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-イベント.md
-     * 章・見出し: # 09_3-イベント > ## 3. 共通 GUI セッション終了
+     * 章・見出し: # 09_3-イベント > ## 4. 共通 GUI セッション終了
      * 検証契約: ログアウトは現在の管理 GUI の終了 event を一度だけ発行して cleanup へ委譲するが、CLOSE 音は再生しない。
      */
     @Test

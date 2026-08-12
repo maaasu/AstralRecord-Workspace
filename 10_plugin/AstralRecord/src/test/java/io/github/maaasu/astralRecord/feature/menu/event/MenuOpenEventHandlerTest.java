@@ -1,9 +1,14 @@
 package io.github.maaasu.astralRecord.feature.menu.event;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.currency.event.CurrencyExchangeGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.service.PlayerGuiRenderContextFactory;
 import io.github.maaasu.astralRecord.feature.menu.service.TrashService;
@@ -17,14 +22,24 @@ import io.github.maaasu.astralRecord.feature.world.service.ReturnToBaseService;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionTransitionEventHandler;
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionTransitionService;
+import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
+import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
+import io.github.maaasu.astralRecord.shared.interaction.InputSource;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionTier;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionRayTrace;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Bukkit;
 import org.bukkit.Registry;
 import org.bukkit.Server;
 import org.bukkit.Sound;
+import org.bukkit.event.Event;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.scheduler.BukkitScheduler;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
@@ -32,6 +47,7 @@ import org.mockbukkit.mockbukkit.entity.PlayerMock;
 import org.mockbukkit.mockbukkit.plugin.PluginMock;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
@@ -42,7 +58,72 @@ class MenuOpenEventHandlerTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-イベント.md
-     * 章・見出し: # 09_3-イベント > ## 2. クラフト枠・画面ライフサイクル
+     * 章・見出し: # 09_3-イベント > ## 1. メニューアイテム右クリック入力解決
+     * 検証契約: RIGHT_CLICK の EQUIPMENT / TOOL / MAIN_MENU アイテムは、元入力をキャンセルするメインメニュー候補へ解決される。
+     */
+    @Test
+    void rightClickMainMenuToolReturnsMenuCandidate() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        MenuOpenEventHandler menuHandler = newMenuHandler(
+            mock(TrashService.class),
+            mock(SellService.class),
+            mock(StorageService.class),
+            mock(MenuGuiTransitionService.class),
+            inventoryService
+        );
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        ItemModel menuItem = mock(ItemModel.class);
+        ItemEquipment equipment = mock(ItemEquipment.class);
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getMode()).thenReturn(AccountMode.PLAYER);
+        when(inventoryService.getItemModelInHand(astPlayer, EquipmentSlot.HAND)).thenReturn(menuItem);
+        when(menuItem.getId()).thenReturn("nox_menu_tool");
+        when(menuItem.getCategory()).thenReturn("equipment");
+        when(menuItem.getEquipment()).thenReturn(equipment);
+        when(equipment.getSlot()).thenReturn(ItemEquipmentSlot.TOOL);
+        when(equipment.getTag()).thenReturn("MAIN_MENU");
+        PlayerInteractionRayTrace ray = PlayerInteractionRayTrace.create(
+            new Vector(0.0D, 0.0D, 0.0D),
+            new Vector(0.0D, 0.0D, 1.0D),
+            8.0D
+        );
+        PlayerInteractionSnapshot snapshot = new PlayerInteractionSnapshot(
+            player,
+            mock(Event.class),
+            EquipmentSlot.HAND,
+            null,
+            null,
+            null,
+            null,
+            false,
+            ray,
+            8.0D
+        );
+        PlayerInputContext<PlayerInteractionSnapshot> context = new PlayerInputContext<>(
+            player.getUniqueId(),
+            0L,
+            InputFamily.RIGHT_CLICK,
+            InputSource.PLAYER_INTERACT,
+            snapshot
+        );
+
+        try (var cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            var candidates = menuHandler.resolve(context);
+
+            assertEquals(1, candidates.size());
+            assertEquals("menu-tool-open", candidates.get(0).id());
+            assertEquals(InteractionTier.ITEM_USE, candidates.get(0).tier());
+            assertEquals(InputClaimPolicy.CLAIM_AND_CANCEL, candidates.get(0).claimPolicy());
+            assertNotNull(candidates.get(0).executor());
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-イベント.md
+     * 章・見出し: # 09_3-イベント > ## 3. クラフト枠・画面ライフサイクル
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
      * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
      * 検証契約: ログアウトの音なし session end は Trash、Sell、Storage、dummy inventory、hotbar shortcut の終了 cleanup を一度ずつ実行し、CLOSE 音を再生しない。

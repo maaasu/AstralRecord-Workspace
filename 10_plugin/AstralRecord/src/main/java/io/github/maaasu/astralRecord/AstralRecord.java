@@ -88,6 +88,7 @@ import io.github.maaasu.astralRecord.feature.mail.repository.MailRepository;
 import io.github.maaasu.astralRecord.feature.mail.service.MailService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
+import io.github.maaasu.astralRecord.feature.menu.service.MenuToolJoinGrantService;
 import io.github.maaasu.astralRecord.feature.menu.service.PlayerGuiRenderContextFactory;
 import io.github.maaasu.astralRecord.feature.menu.service.TrashService;
 import io.github.maaasu.astralRecord.feature.menu.player.PlayerBrowserGuiEventHandler;
@@ -1171,6 +1172,7 @@ public final class AstralRecord extends JavaPlugin {
             new UserLoginEventHandler(userService),
             getServer().getPluginManager()
         );
+        var menuToolJoinGrantService = new MenuToolJoinGrantService(itemService, inventoryService);
         var playerJoinEventHandler = new PlayerJoinEventHandler(
             this,
             playerService,
@@ -1180,7 +1182,8 @@ public final class AstralRecord extends JavaPlugin {
             learnedSkillService,
             loginBonusService,
             mailService,
-            guideService
+            guideService,
+            menuToolJoinGrantService
         );
         eventManager.registerHandler(playerJoinEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(

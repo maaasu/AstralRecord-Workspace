@@ -25,6 +25,7 @@ export const MASTER_TAGS = [
   { id: "PICKAXE", displayName: "ツルハシ", description: "採掘用のツルハシとして扱う装備。", category: "EQUIPMENT", appliesTo: ["EQUIPMENT", "GATHERING_REQUIRED_TOOL"] },
   { id: "AXE", displayName: "斧", description: "伐採用の斧として扱う装備。", category: "EQUIPMENT", appliesTo: ["EQUIPMENT", "GATHERING_REQUIRED_TOOL"] },
   { id: "HOE", displayName: "クワ", description: "採取用のクワとして扱う装備。", category: "EQUIPMENT", appliesTo: ["EQUIPMENT", "GATHERING_REQUIRED_TOOL"] },
+  { id: "MAIN_MENU", displayName: "メインメニュー", description: "右クリックでメインメニューを開く装備。", category: "EQUIPMENT", appliesTo: ["EQUIPMENT"] },
   { id: "active", displayName: "アクティブ", description: "能動的に発動するスキル。", category: "ACTIVITY", appliesTo: ["SKILL"] },
   { id: "passive", displayName: "パッシブ", description: "常時または条件付きで自動適用されるスキル。", category: "ACTIVITY", appliesTo: ["SKILL"] },
   { id: "mob", displayName: "Mob用", description: "Mob が使用するスキル。", category: "ACTIVITY", appliesTo: ["SKILL"] },

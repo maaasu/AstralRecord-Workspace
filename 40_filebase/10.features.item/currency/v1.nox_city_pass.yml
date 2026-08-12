@@ -1,0 +1,18 @@
+# design:
+#   motif: "星影の街ノクス / 入場証"
+#   progression: 1
+schemaVersion: 1
+id: nox_city_pass
+category: currency
+name: "&7星影の街ノクスの通行証"
+icon: PAPER
+rarity: COMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7星影の街ノクスへ通じる通行証。"
+unTradeable: true
+unSellable: true
+currency:
+  type: PASS
+  group: nox

@@ -8,6 +8,9 @@ import io.github.maaasu.astralRecord.feature.currency.event.CurrencyExchangeGuiE
 import io.github.maaasu.astralRecord.feature.currency.view.CurrencyGuiView;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemTransferSupport;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutAction;
@@ -41,6 +44,7 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
+import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -57,6 +61,7 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.CraftingInventory;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
@@ -157,6 +162,28 @@ public class MenuOpenEventHandler extends AbstractEventHandler
     public @NotNull List<PlayerInputCandidate> resolve(
         @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
     ) {
+        if (context.family() == InputFamily.RIGHT_CLICK) {
+            PlayerInteractionSnapshot snapshot = context.inputSnapshot();
+            AstPlayer astPlayer = AstPlayerCache.get(snapshot.player());
+            if (isPlayerMode(snapshot.player()) && snapshot.hand() != null && astPlayer != null) {
+                ItemModel itemModel = inventoryService.getItemModelInHand(astPlayer, snapshot.hand());
+                if (isMainMenuTool(itemModel)) {
+                    return List.of(new PlayerInputCandidate(
+                        "menu-tool-open",
+                        InteractionTier.ITEM_USE,
+                        0.0D,
+                        InteractionCandidateOrder.MENU_SHORTCUT,
+                        itemModel.getId() + ":" + snapshot.hand().name(),
+                        InputClaimPolicy.CLAIM_AND_CANCEL,
+                        () -> isMainMenuToolInHand(snapshot.player(), snapshot.hand()),
+                        () -> {
+                            GuiSound.OPEN.play(snapshot.player());
+                            openMainMenu(snapshot.player());
+                        }
+                    ));
+                }
+            }
+        }
         if (context.family() != InputFamily.DROP_ITEM
             || !(context.inputSnapshot().event() instanceof PlayerDropItemEvent event)
             || !menuView.isCraftShortcutItem(event.getItemDrop().getItemStack())) {
@@ -174,6 +201,22 @@ public class MenuOpenEventHandler extends AbstractEventHandler
                 cleanupCraftShortcuts(event.getPlayer(), true);
             }, LogId.E_5600, event.getPlayer().getName())
         ));
+    }
+
+    private boolean isMainMenuTool(@Nullable ItemModel model) {
+        return model != null
+            && ItemCategory.fromApiValue(model.getCategory()) == ItemCategory.EQUIPMENT
+            && model.getEquipment() != null
+            && model.getEquipment().getSlot() == ItemEquipmentSlot.TOOL
+            && MasterTagIds.Equipment.MAIN_MENU.equalsIgnoreCase(model.getEquipment().getTag());
+    }
+
+    private boolean isMainMenuToolInHand(@Nullable Player player, @Nullable EquipmentSlot hand) {
+        if (!isPlayerMode(player) || player == null || hand == null) {
+            return false;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return astPlayer != null && isMainMenuTool(inventoryService.getItemModelInHand(astPlayer, hand));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

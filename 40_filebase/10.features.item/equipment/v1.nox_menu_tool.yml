@@ -1,0 +1,20 @@
+# design:
+#   motif: "星影の街ノクス / メニュー導線"
+#   progression: 0
+schemaVersion: 1
+id: nox_menu_tool
+category: equipment
+name: "&b星影の街ノクスの案内具"
+icon: COMPASS
+rarity: COMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7右クリックでメインメニューを開く。"
+unTradeable: true
+unSellable: true
+equipment:
+  slot: TOOL
+  handType: ONE
+  tag: MAIN_MENU
+  requiredLevel: 0

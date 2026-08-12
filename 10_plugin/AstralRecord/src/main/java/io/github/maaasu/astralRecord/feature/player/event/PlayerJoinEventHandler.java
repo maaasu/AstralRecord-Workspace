@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusService;
 import io.github.maaasu.astralRecord.feature.mail.service.MailService;
+import io.github.maaasu.astralRecord.feature.menu.service.MenuToolJoinGrantService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -70,6 +71,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private final LoginBonusService loginBonusService;
     private final MailService mailService;
     private final @Nullable GuideService guideService;
+    private final @Nullable MenuToolJoinGrantService menuToolJoinGrantService;
     private final AstralRecord plugin;
     private final Map<UUID, JoinAttempt> joinAttempts = new ConcurrentHashMap<>();
     private final Map<UUID, LoadingControl> loadingControls = new ConcurrentHashMap<>();
@@ -90,7 +92,25 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         MailService mailService
     ) {
         this(plugin, playerService, skillTreeService, questService, skillBindPresetService, learnedSkillService,
-            loginBonusService, mailService, null);
+            loginBonusService, mailService, null, null);
+    }
+
+    /**
+     * 参加時メニュー導線を使用しないテスト・互換用途のコンストラクタです。
+     */
+    public PlayerJoinEventHandler(
+        AstralRecord plugin,
+        PlayerService playerService,
+        SkillTreeService skillTreeService,
+        QuestService questService,
+        SkillBindPresetService skillBindPresetService,
+        LearnedSkillService learnedSkillService,
+        LoginBonusService loginBonusService,
+        MailService mailService,
+        @Nullable GuideService guideService
+    ) {
+        this(plugin, playerService, skillTreeService, questService, skillBindPresetService, learnedSkillService,
+            loginBonusService, mailService, guideService, null);
     }
 
     /**
@@ -104,6 +124,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
      * @param loginBonusService ログインボーナスサービス
      * @param mailService メールサービス
      * @param guideService ガイド進行サービス
+     * @param menuToolJoinGrantService 参加時メニュー導線付与サービス
      */
     public PlayerJoinEventHandler(
         AstralRecord plugin,
@@ -114,7 +135,8 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         LearnedSkillService learnedSkillService,
         LoginBonusService loginBonusService,
         MailService mailService,
-        @Nullable GuideService guideService
+        @Nullable GuideService guideService,
+        @Nullable MenuToolJoinGrantService menuToolJoinGrantService
     ) {
         this.plugin = plugin;
         this.playerService = playerService;
@@ -125,6 +147,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         this.loginBonusService = loginBonusService;
         this.mailService = mailService;
         this.guideService = guideService;
+        this.menuToolJoinGrantService = menuToolJoinGrantService;
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -246,6 +269,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             }
 
             PlayerService.PlayerJoinInventoryState inventoryState = null;
+            MenuToolJoinGrantService.PreparedGrant preparedMenuGrant = null;
             boolean handedOffToMain = false;
             QuestService.InitialState questStateToDiscard = null;
             try {
@@ -280,13 +304,29 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 if (!isJoinLoading(attempt)) {
                     return;
                 }
+                preparedMenuGrant = menuToolJoinGrantService == null
+                    ? null
+                    : menuToolJoinGrantService.prepareIfMissing(inventoryState.state());
+                if (!isJoinLoading(attempt)) {
+                    return;
+                }
                 PlayerService.PlayerJoinData joinData = new PlayerService.PlayerJoinData(
                     user,
                     account,
                     inventoryState
                 );
+                MenuToolJoinGrantService.PreparedGrant grantForMain = preparedMenuGrant;
                 plugin.getServer().getScheduler().runTask(plugin, () ->
-                    applyJoinData(attempt, playerName, joinData, skillTreeState, questState, skillBindPresets, learnedSkills)
+                    applyJoinData(
+                        attempt,
+                        playerName,
+                        joinData,
+                        skillTreeState,
+                        questState,
+                        skillBindPresets,
+                        learnedSkills,
+                        grantForMain
+                    )
                 );
                 handedOffToMain = true;
                 questStateToDiscard = null;
@@ -297,6 +337,9 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     }
                     if (inventoryState != null) {
                         playerService.discardPlayerJoinInventoryState(inventoryState);
+                    }
+                    if (preparedMenuGrant != null) {
+                        menuToolJoinGrantService.cleanupPreparedGrant(preparedMenuGrant);
                     }
                 }
             }
@@ -310,11 +353,13 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         @Nullable SkillTreePlayerState skillTreeState,
         QuestService.InitialState questState,
         List<SkillBindPreset> skillBindPresets,
-        List<LearnedSkillInstance> learnedSkills
+        List<LearnedSkillInstance> learnedSkills,
+        @Nullable MenuToolJoinGrantService.PreparedGrant preparedMenuGrant
     ) {
         boolean questApplied = false;
         boolean skillTreeApplied = false;
         boolean skillBindPresetsApplied = false;
+        boolean preparedMenuGrantCleanupScheduled = false;
         PlayerService.PlayerJoinApplication playerJoinApplication = null;
         try {
             Player player = plugin.getServer().getPlayer(attempt.playerUuid());
@@ -332,6 +377,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     false,
                     null
                 );
+                cleanupPreparedGrantAsync(preparedMenuGrant);
                 finishJoinLoading(attempt, false);
                 return;
             }
@@ -346,6 +392,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     false,
                     null
                 );
+                cleanupPreparedGrantAsync(preparedMenuGrant);
                 finishJoinLoading(attempt, false);
                 return;
             }
@@ -361,6 +408,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     false,
                     null
                 );
+                cleanupPreparedGrantAsync(preparedMenuGrant);
                 finishJoinLoading(attempt, false);
                 return;
             }
@@ -382,12 +430,22 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     skillBindPresetsApplied,
                     null
                 );
+                cleanupPreparedGrantAsync(preparedMenuGrant);
                 finishJoinLoading(attempt, false);
                 return;
             }
+            AstPlayer appliedPlayer = AstPlayerCache.get(player);
+            if (menuToolJoinGrantService != null && preparedMenuGrant != null) {
+                if (appliedPlayer == null) {
+                    throw new IllegalStateException("AstPlayer was not published after join application");
+                }
+                if (!menuToolJoinGrantService.grantPreparedIfMissing(appliedPlayer, preparedMenuGrant)) {
+                    cleanupPreparedGrantAsync(preparedMenuGrant);
+                    preparedMenuGrantCleanupScheduled = true;
+                }
+            }
             loginBonusService.openAfterDataLoaded(player);
             playerService.commitPlayerJoin(playerJoinApplication);
-            AstPlayer appliedPlayer = AstPlayerCache.get(player);
             if (appliedPlayer != null) {
                 plugin.getPlayerClassService().updatePlayerListName(appliedPlayer);
             }
@@ -405,6 +463,9 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 skillBindPresetsApplied,
                 playerJoinApplication
             );
+            if (!preparedMenuGrantCleanupScheduled) {
+                cleanupPreparedGrantAsync(preparedMenuGrant);
+            }
             Logger.log(LogId.E_5070, exception, playerName);
             finishJoinLoading(attempt, false);
             return;
@@ -456,6 +517,19 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 () -> playerService.discardPlayerJoinInventoryState(joinData.inventoryState())
             );
         }
+    }
+
+    private void cleanupPreparedGrantAsync(
+        @Nullable MenuToolJoinGrantService.PreparedGrant preparedMenuGrant
+    ) {
+        MenuToolJoinGrantService grantService = menuToolJoinGrantService;
+        if (grantService == null || preparedMenuGrant == null) {
+            return;
+        }
+        plugin.getServer().getScheduler().runTaskAsynchronously(
+            plugin,
+            () -> grantService.cleanupPreparedGrant(preparedMenuGrant)
+        );
     }
 
     private void runJoinRollbackStep(String playerName, Runnable rollbackStep) {
