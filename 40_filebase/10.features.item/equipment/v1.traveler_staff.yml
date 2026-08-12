@@ -19,7 +19,7 @@ equipment:
   tag: STAFF
   requiredLevel: 0
   stats:
-    - status: ATTACK
+    - status: MAGIC_ATTACK
       type: FLAT
       value: 5~7
     - status: INTELLIGENCE
@@ -36,35 +36,35 @@ equipment:
     levels:
       - level: 1
         statIncrease:
-          - status: ATTACK
+          - status: MAGIC_ATTACK
             type: FLAT
             value: 1
         successRate: 1.0
         failAction: NONE
       - level: 2
         statIncrease:
-          - status: ATTACK
+          - status: MAGIC_ATTACK
             type: FLAT
             value: 1
         successRate: 1.0
         failAction: NONE
       - level: 3
         statIncrease:
-          - status: ATTACK
+          - status: MAGIC_ATTACK
             type: FLAT
             value: 1
         successRate: 1.0
         failAction: NONE
       - level: 4
         statIncrease:
-          - status: ATTACK
+          - status: MAGIC_ATTACK
             type: FLAT
             value: 2
         successRate: 1.0
         failAction: NONE
       - level: 5
         statIncrease:
-          - status: ATTACK
+          - status: MAGIC_ATTACK
             type: FLAT
             value: 2
         successRate: 1.0

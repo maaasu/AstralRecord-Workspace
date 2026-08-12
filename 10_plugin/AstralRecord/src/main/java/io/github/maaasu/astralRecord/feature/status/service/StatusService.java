@@ -696,9 +696,9 @@ public class StatusService {
             case LUCK -> 5.0D;
             // 攻撃系
             case ATTACK -> 8.0D;
-            case MELEE_ATTACK -> 0.0D;     // ATTACK × STR から派生（将来の戦闘システムで算出）
-            case RANGED_ATTACK -> 0.0D;    // ATTACK × DEX から派生
-            case MAGIC_ATTACK -> 0.0D;     // ATTACK × INT から派生
+            case MELEE_ATTACK -> 0.0D;     // 装備・職業・スキル等から加算される種別攻撃力
+            case RANGED_ATTACK -> 0.0D;    // 装備・職業・スキル等から加算される種別攻撃力
+            case MAGIC_ATTACK -> 0.0D;     // 装備・職業・スキル等から加算される種別攻撃力
             case CRITICAL_RATE -> 5.0D;
             case CRITICAL_DAMAGE -> 150.0D;
             case SUPER_CRITICAL_RATE -> 0.0D;

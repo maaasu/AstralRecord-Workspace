@@ -77,7 +77,7 @@ class ConditionServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/27_1-モデル定義.md
      * 章・見出し: # 27_1-モデル定義 > ## 2. `ConditionEffect`
-     * 検証契約: 炎上は攻撃種別の解決攻撃力を基準にし、固定値や係数上書きで種別既定係数の上限を超えない。
+     * 検証契約: 炎上は攻撃種別の解決攻撃力（ATTACK と種別攻撃力の合計へ基本能力値倍率を適用）を基準にし、固定値や係数上書きで種別既定係数の上限を超えない。
      */
     @Test
     void burningSnapshotUsesResolvedAttackPowerWithDotCoefficientCap() {
@@ -104,7 +104,7 @@ class ConditionServiceTest {
             ConditionApplyReason.SKILL
         )).condition();
 
-        assertEquals(34.0D, condition.snapshotPower(), 0.0001D);
+        assertEquals(36.0D, condition.snapshotPower(), 0.0001D);
     }
 
     /**

@@ -33,7 +33,7 @@ class DamageCalculatorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
      * 章・見出し: # 14_3-サービス > ## 1. damage 計算
-     * 検証契約: ATTACK×(1+primary/100)+typed attackを解決し対応defenseを適用する。
+     * 検証契約: (ATTACK+typed attack)×(1+primary/100)を解決し対応defenseを適用する。
      */
     @Test
     void attackerStatusScalingUsesAttackPrimaryTypedAttackAndDefense() {
@@ -54,8 +54,60 @@ class DamageCalculatorDesignTest {
             DamageScaling.ATTACKER_STATUS
         ));
 
-        assertEquals(30.7301607D, result.finalDamage(), 0.0001D);
+        assertEquals(33.2252482D, result.finalDamage(), 0.0001D);
         assertFalse(result.critical());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/07_1-モデル定義.md
+     * 章・見出し: # 07_1-モデル定義 > ## 4. ステータス種別 > ### 4.3 攻撃系
+     * 検証契約: 近接・間接・魔法の各攻撃種別で、対応する種別攻撃力と基本能力値だけを解決攻撃力へ反映する。
+     */
+    @Test
+    void attackerStatusScalingUsesMatchingTypedAttackAndPrimaryStatus() {
+        DamageCalculator calculator = new DamageCalculator(() -> 100.0D);
+        MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
+
+        var melee = calculator.calculate(new DamageContext(
+            AstEntity.player(player(Map.of(
+                StatusType.ATTACK, 10.0D,
+                StatusType.STRENGTH, 50.0D,
+                StatusType.MELEE_ATTACK, 5.0D,
+                StatusType.ACCURACY, 100.0D
+            ))),
+            AstEntity.mob(victim),
+            0.0D,
+            AttackType.MELEE,
+            DamageScaling.ATTACKER_STATUS
+        ));
+        var ranged = calculator.calculate(new DamageContext(
+            AstEntity.player(player(Map.of(
+                StatusType.ATTACK, 10.0D,
+                StatusType.DEXTERITY, 50.0D,
+                StatusType.RANGED_ATTACK, 5.0D,
+                StatusType.ACCURACY, 100.0D
+            ))),
+            AstEntity.mob(victim),
+            0.0D,
+            AttackType.RANGED,
+            DamageScaling.ATTACKER_STATUS
+        ));
+        var magic = calculator.calculate(new DamageContext(
+            AstEntity.player(player(Map.of(
+                StatusType.ATTACK, 10.0D,
+                StatusType.INTELLIGENCE, 50.0D,
+                StatusType.MAGIC_ATTACK, 5.0D,
+                StatusType.ACCURACY, 100.0D
+            ))),
+            AstEntity.mob(victim),
+            0.0D,
+            AttackType.MAGIC,
+            DamageScaling.ATTACKER_STATUS
+        ));
+
+        assertEquals(22.5D, melee.breakdown().resolvedAttackPower(), 0.0001D);
+        assertEquals(22.5D, ranged.breakdown().resolvedAttackPower(), 0.0001D);
+        assertEquals(22.5D, magic.breakdown().resolvedAttackPower(), 0.0001D);
     }
 
     /**

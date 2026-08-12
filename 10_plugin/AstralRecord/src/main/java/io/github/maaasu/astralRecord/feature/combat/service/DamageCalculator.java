@@ -238,7 +238,7 @@ public final class DamageCalculator {
     }
 
     /**
-     * 攻撃種別と基本能力値を反映した解決攻撃力を返します。
+     * 攻撃種別に対応する基本能力値と種別攻撃力を反映した解決攻撃力を返します。
      *
      * @param attacker 攻撃者
      * @param attackType 攻撃種別
@@ -251,7 +251,7 @@ public final class DamageCalculator {
         double attack = attacker.statValue(StatusType.ATTACK);
         double typedAttack = attacker.statValue(attackType.statusType());
         double primary = attacker.statValue(attackType.primaryStatusType());
-        return attack * (1.0D + primary / 100.0D) + typedAttack;
+        return (attack + typedAttack) * (1.0D + primary / 100.0D);
     }
 
     /**

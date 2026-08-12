@@ -66,6 +66,8 @@
 - `ACCESSORY`
 - `TOOL`
 
+`slot: WEAPON` の主攻撃力は、`tag: SWORD` なら `MELEE_ATTACK`、`tag: BOW` なら `RANGED_ATTACK`、`tag: STAFF` なら `MAGIC_ATTACK` のように、攻撃種別に対応するステータスを指定します。`ATTACK` は全攻撃種別へ影響する共通攻撃力として、追加で指定する場合に使用します。
+
 ### equipment[].handType
 `slot=WEAPON` のときに指定します。
 
@@ -205,7 +207,7 @@ equipment:
 		- classId: swordsman
 		  level: 5
 	stats:
-		- status: ATTACK
+		- status: MELEE_ATTACK
 		  type: FLAT
 		  value: 12
 		- status: CRITICAL_RATE
@@ -284,7 +286,7 @@ equipment:
   tag: SWORD
   requiredLevel: 5
   stats:
-    - status: ATTACK
+    - status: MELEE_ATTACK
       type: FLAT
       value: 20
   durability:
@@ -295,7 +297,7 @@ equipment:
     levels:
       - level: 1
         statIncrease:
-          - status: ATTACK
+          - status: MELEE_ATTACK
             type: FLAT
             value: 3
         durabilityBonus: 10
@@ -303,7 +305,7 @@ equipment:
         failAction: NONE
       - level: 2
         statIncrease:
-          - status: ATTACK
+          - status: MELEE_ATTACK
             type: FLAT
             value: 2
         durabilityBonus: 10
@@ -311,7 +313,7 @@ equipment:
         failAction: NONE
       - level: 3
         statIncrease:
-          - status: ATTACK
+          - status: MELEE_ATTACK
             type: FLAT
             value: 3
           - status: CRITICAL_RATE
@@ -371,7 +373,7 @@ equipment:
   tag: SWORD
   requiredLevel: 5
   stats:
-    - status: ATTACK
+    - status: MELEE_ATTACK
       type: FLAT
       value: 20
   durability:
@@ -382,7 +384,7 @@ equipment:
     levels:
       - level: 1
         statIncrease:
-          - status: ATTACK
+          - status: MELEE_ATTACK
             type: FLAT
             value: 3
         successRate: 1.0
@@ -411,7 +413,7 @@ equipment:
   tag: SWORD
   requiredLevel: 5
   stats:
-    - status: ATTACK
+    - status: MELEE_ATTACK
       type: FLAT
       value: 20
   durability:
@@ -479,7 +481,7 @@ equipment:
   tag: SWORD
   requiredLevel: 5
   stats:
-    - status: ATTACK
+    - status: MELEE_ATTACK
       type: FLAT
       value: 20
   enhance:
