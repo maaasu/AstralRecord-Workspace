@@ -190,8 +190,9 @@ public class MobAiService {
                         mobService.stopPathfinding(instance);
                         continue;
                     }
-                    if (conditionService != null
-                            && !conditionService.canMove(AstEntity.mob(instance))) {
+                    boolean movementAllowed = conditionService == null
+                            || conditionService.canMove(AstEntity.mob(instance));
+                    if (!movementAllowed) {
                         mobService.stopPathfinding(instance);
                     }
                     spawnBlockNpcParticles(instance);
@@ -222,6 +223,11 @@ public class MobAiService {
                             }
                         }
                         case DEAD -> mobService.destroy(instance.instanceId());
+                    }
+                    if (!movementAllowed) {
+                        mobService.stopPathfinding(instance);
+                    } else if (instance.state() != MobState.DEAD) {
+                        mobService.tickVexNavigation(instance);
                     }
                 } catch (RuntimeException ex) {
                     Logger.warn(LogId.W_5702, instance.instanceId());
@@ -630,8 +636,8 @@ public class MobAiService {
         double length = Math.sqrt(lengthSq);
         double retreatDistance = Math.max(MIN_RETREAT_DISTANCE, preferredRange + RANGED_RETREAT_BUFFER);
         Location retreatTarget = current.clone().add(dx / length * retreatDistance, 0.0D, dz / length * retreatDistance);
-        applyDirectMovement(instance, dx, dz, DIRECT_RETREAT_VELOCITY);
         moveToward(instance, retreatTarget, instance.template().idle().speed());
+        applyDirectMovement(instance, dx, dz, DIRECT_RETREAT_VELOCITY);
     }
 
     private boolean shouldRetreat(@NotNull MobInstance instance, double horizontalSq, double preferredRange) {

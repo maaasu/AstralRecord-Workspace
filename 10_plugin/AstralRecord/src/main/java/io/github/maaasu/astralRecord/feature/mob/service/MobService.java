@@ -606,6 +606,15 @@ public class MobService {
     }
 
     /**
+     * Vex が保持している三次元経路を 1 tick 分追従させます。
+     *
+     * @param instance 追従対象インスタンス
+     */
+    public void tickVexNavigation(@NotNull MobInstance instance) {
+        entityController.tickVexNavigation(instance);
+    }
+
+    /**
      * 対象 Mob の経路探索を停止します。
      *
      * @param instance 対象インスタンス

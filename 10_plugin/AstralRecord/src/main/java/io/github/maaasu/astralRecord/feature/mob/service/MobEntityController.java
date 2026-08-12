@@ -16,6 +16,7 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.entity.Ageable;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.BlockDisplay;
@@ -32,6 +33,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.event.entity.CreatureSpawnEvent;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
@@ -41,13 +43,15 @@ import org.joml.Vector3f;
 
 import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
 
 /**
  * AstralRecord Mob と Bukkit 実体 Mob の橋渡しを担当します。
  *
- * <p>バニラ goal を全削除し、実体の同期・当たり判定・Paper Pathfinder だけを利用します。
+ * <p>バニラ goal を全削除し、実体の同期・当たり判定・Paper Pathfinder・Vex 用三次元経路を利用します。
  * AI の意思決定、攻撃判定、HP は {@link MobInstance} 側で管理します。</p>
  */
 public class MobEntityController {
@@ -62,6 +66,14 @@ public class MobEntityController {
     private static final double VEX_FLIGHT_SPEED_MULTIPLIER = 0.18D;
     private static final double MIN_VEX_FLIGHT_SPEED = 0.05D;
     private static final double MAX_VEX_FLIGHT_SPEED = 0.35D;
+    private static final int VEX_PATH_HORIZONTAL_RADIUS = 20;
+    private static final int VEX_PATH_VERTICAL_RADIUS = 10;
+    private static final int VEX_PATH_MAX_EXPANDED_NODES = 768;
+    private static final long VEX_NO_PATH_RECOMPUTE_INTERVAL_TICKS = 20L;
+    private static final double VEX_PATH_NODE_Y_OFFSET = 0.1D;
+    private static final double VEX_PATH_WAYPOINT_DISTANCE_SQ = 0.16D;
+    private static final double VEX_COLLISION_MARGIN = 0.04D;
+    private static final double VEX_SWEEP_STEP = 0.15D;
     private static final float BLOCK_DISPLAY_VIEW_RANGE = 64.0F;
     private static final float BLOCK_DISPLAY_RENDER_SCALE = 0.75F;
     private static final float BLOCK_DISPLAY_RENDER_XZ_OFFSET = -BLOCK_DISPLAY_RENDER_SCALE / 2.0F;
@@ -571,7 +583,7 @@ public class MobEntityController {
         }
 
         if (mob instanceof Vex vex) {
-            return moveVexTo(instance, vex, target, aiSpeedModifier);
+            return moveVexTo(instance, vex, target, aiSpeedModifier, currentTick);
         }
 
         Location current = mob.getLocation();
@@ -581,7 +593,7 @@ public class MobEntityController {
             return false;
         }
 
-        boolean targetDrifted = hasTargetDrifted(instance, target);
+        boolean targetDrifted = hasGroundTargetDrifted(instance, target);
         boolean intervalPassed = currentTick - instance.navRecomputeTick() >= PATH_RECOMPUTE_INTERVAL_TICKS;
         boolean hasPath = mob.getPathfinder().hasPath();
         if (hasPath && !targetDrifted && !intervalPassed) {
@@ -612,6 +624,80 @@ public class MobEntityController {
             instance.currentLocation(mob.getLocation());
         }
         instance.clearNavPath();
+    }
+
+    /**
+     * Vex が保持している三次元経路を 1 tick 分追従させます。
+     *
+     * <p>AI の目標再評価間隔とは独立して毎 tick 呼び出し、継続中の速度が
+     * 壁・床・天井を横切らないよう移動線分を検査します。</p>
+     *
+     * @param instance 追従対象の Mob インスタンス
+     */
+    public void tickVexNavigation(@NotNull MobInstance instance) {
+        Mob mob = getMob(instance);
+        if (!(mob instanceof Vex vex)) {
+            return;
+        }
+        Location current = vex.getLocation();
+        if (instance.navDirectVelocityOverride()) {
+            instance.navDirectVelocityOverride(false);
+            guardVexDirectVelocity(vex, current);
+            instance.currentLocation(current);
+            return;
+        }
+
+        List<Location> path = instance.navPath();
+        double speed = instance.navFlightSpeed();
+        if (path == null || path.isEmpty() || speed <= 0.0D) {
+            guardVexDirectVelocity(vex, current);
+            instance.currentLocation(current);
+            return;
+        }
+
+        int index = instance.navPathIndex();
+        while (index < path.size() && current.distanceSquared(path.get(index)) <= VEX_PATH_WAYPOINT_DISTANCE_SQ) {
+            index++;
+        }
+        if (index >= path.size()) {
+            vex.setVelocity(new Vector());
+            instance.clearNavPath();
+            instance.currentLocation(current);
+            return;
+        }
+
+        Location waypoint = path.get(index);
+        Vector direction = waypoint.toVector().subtract(current.toVector());
+        double distance = direction.length();
+        if (distance <= 0.0D) {
+            vex.setVelocity(new Vector());
+            return;
+        }
+
+        Vector velocity = direction.multiply(Math.min(speed, distance) / distance);
+        Location next = current.clone().add(velocity);
+        if (!isVexSweepClear(vex, current, next)) {
+            vex.setVelocity(new Vector());
+            instance.clearNavPath();
+            instance.navRecomputeTick(-1000L);
+            instance.currentLocation(current);
+            return;
+        }
+
+        instance.navPathIndex(index);
+        vex.setVelocity(velocity);
+        instance.currentLocation(current);
+    }
+
+    private void guardVexDirectVelocity(@NotNull Vex vex, @NotNull Location current) {
+        Vector velocity = vex.getVelocity();
+        if (velocity.lengthSquared() <= 0.0D) {
+            return;
+        }
+        Location next = current.clone().add(velocity);
+        if (!isVexSweepClear(vex, current, next)) {
+            vex.setVelocity(new Vector());
+        }
     }
 
     /**
@@ -732,6 +818,10 @@ public class MobEntityController {
         Mob mob = getMob(instance);
         if (mob == null) {
             return;
+        }
+        if (mob instanceof Vex) {
+            instance.clearNavPath();
+            instance.navDirectVelocityOverride(true);
         }
         mob.setVelocity(mob.getVelocity().add(velocity));
         instance.currentLocation(mob.getLocation());
@@ -953,44 +1043,242 @@ public class MobEntityController {
         attribute.setBaseValue(0.0D);
     }
 
-    private boolean hasTargetDrifted(@NotNull MobInstance instance, @NotNull Location target) {
+    /**
+     * 地上 Mob の前回目標からの水平移動量を判定します。
+     *
+     * @param instance 前回目標座標を保持する Mob インスタンス
+     * @param target   今回の目標座標
+     * @return 再経路探索が必要な距離を超えた場合は {@code true}
+     */
+    private boolean hasGroundTargetDrifted(@NotNull MobInstance instance, @NotNull Location target) {
         double dx = target.getX() - instance.navTargetX();
         double dz = target.getZ() - instance.navTargetZ();
+        return hasGroundTargetDrifted(dx, dz);
+    }
+
+    /**
+     * 地上 Mob の目標移動量を水平二軸だけで判定します。
+     *
+     * @param dx 前回目標からの X 方向差分
+     * @param dz 前回目標からの Z 方向差分
+     * @return 再経路探索が必要な距離を超えた場合は {@code true}
+     */
+    static boolean hasGroundTargetDrifted(double dx, double dz) {
         return dx * dx + dz * dz > PATH_TARGET_DRIFT_DISTANCE_SQ;
+    }
+
+    /**
+     * Vex の前回目標からの三次元移動量を判定します。
+     *
+     * @param instance 前回目標座標を保持する Mob インスタンス
+     * @param target   今回の目標座標
+     * @return 再経路探索が必要な距離を超えた場合は {@code true}
+     */
+    private boolean hasVexTargetDrifted(@NotNull MobInstance instance, @NotNull Location target) {
+        double dx = target.getX() - instance.navTargetX();
+        double dy = target.getY() - instance.navTargetY();
+        double dz = target.getZ() - instance.navTargetZ();
+        return hasVexTargetDrifted(dx, dy, dz);
+    }
+
+    /**
+     * Vex の目標移動量を三軸で判定します。
+     *
+     * @param dx 前回目標からの X 方向差分
+     * @param dy 前回目標からの Y 方向差分
+     * @param dz 前回目標からの Z 方向差分
+     * @return 再経路探索が必要な距離を超えた場合は {@code true}
+     */
+    static boolean hasVexTargetDrifted(double dx, double dy, double dz) {
+        return dx * dx + dy * dy + dz * dz > PATH_TARGET_DRIFT_DISTANCE_SQ;
     }
 
     /**
      * Vex を目標地点へ三次元で飛行させます。
      *
      * <p>Vex は地上 Mob 用の Paper Pathfinder では経路を生成できないため、
-     * 目標地点への正規化ベクトルを直接速度として設定します。停止時は
-     * {@link #stopPathfinding(MobInstance)} が速度をゼロへ戻します。</p>
+     * 有界三次元 A* で安全なウェイポイントを計算します。実際の速度設定は
+     * {@link #tickVexNavigation(MobInstance)} が毎 tick 行います。</p>
      *
      * @param instance        移動対象の Mob インスタンス
      * @param vex             移動させる Vex
      * @param target          追従する目標地点
      * @param aiSpeedModifier AI 設定の速度倍率
-     * @return 速度を設定した場合は {@code true}
+     * @param currentTick     Mob AI 内部 tick
+     * @return 経路を更新した場合は {@code true}
      */
     private boolean moveVexTo(
             @NotNull MobInstance instance,
             @NotNull Vex vex,
             @NotNull Location target,
-            double aiSpeedModifier) {
+            double aiSpeedModifier,
+            long currentTick) {
         Location current = vex.getLocation();
-        Vector direction = target.toVector().subtract(current.toVector());
-        if (direction.lengthSquared() <= PATH_STOP_DISTANCE_SQ) {
-            vex.setVelocity(new Vector());
+        if (current.distanceSquared(target) <= PATH_STOP_DISTANCE_SQ || aiSpeedModifier <= 0.0D) {
+            stopPathfinding(instance);
+            return false;
+        }
+        if (instance.navDirectVelocityOverride()) {
             instance.currentLocation(current);
             return false;
         }
 
-        double speed = resolveVexFlightSpeed(instance, aiSpeedModifier);
-        vex.setVelocity(direction.normalize().multiply(speed));
+        boolean targetDrifted = hasVexTargetDrifted(instance, target);
+        List<Location> currentPath = instance.navPath();
+        boolean hasPath = currentPath != null && instance.navPathIndex() < currentPath.size();
+        long requiredInterval = currentPath != null && currentPath.isEmpty()
+                ? VEX_NO_PATH_RECOMPUTE_INTERVAL_TICKS
+                : PATH_RECOMPUTE_INTERVAL_TICKS;
+        boolean intervalPassed = currentTick - instance.navRecomputeTick() >= requiredInterval;
+        if (hasPath && !targetDrifted) {
+            instance.navFlightSpeed(resolveVexFlightSpeed(instance, aiSpeedModifier));
+            instance.currentLocation(current);
+            return false;
+        }
+        if (!intervalPassed) {
+            return false;
+        }
+
+        List<Location> path = calculateVexPath(vex, current, target);
+        instance.navPath(path);
+        instance.navPathIndex(0);
+        instance.navFlightSpeed(resolveVexFlightSpeed(instance, aiSpeedModifier));
         instance.navTargetX(target.getX());
+        instance.navTargetY(target.getY());
         instance.navTargetZ(target.getZ());
+        instance.navRecomputeTick(currentTick);
         instance.currentLocation(current);
+        if (path.isEmpty()) {
+            vex.setVelocity(new Vector());
+            instance.navFlightSpeed(0.0D);
+            return false;
+        }
         return true;
+    }
+
+    private @NotNull List<Location> calculateVexPath(
+            @NotNull Vex vex,
+            @NotNull Location current,
+            @NotNull Location target) {
+        double horizontalDistance = Math.hypot(target.getX() - current.getX(), target.getZ() - current.getZ());
+        double verticalDistance = Math.abs(target.getY() - current.getY());
+        if (horizontalDistance <= VEX_PATH_HORIZONTAL_RADIUS
+                && verticalDistance <= VEX_PATH_VERTICAL_RADIUS
+                && isVexSweepClear(vex, current, target)) {
+            return List.of(target.clone());
+        }
+
+        VexFlightPathfinder.GridPoint start = gridPoint(current);
+        VexFlightPathfinder.GridPoint goal = gridPoint(target);
+        List<VexFlightPathfinder.GridPoint> gridPath = VexFlightPathfinder.findPath(
+                start,
+                goal,
+                point -> isVexPositionClear(vex, gridLocation(current.getWorld(), point)),
+                VEX_PATH_HORIZONTAL_RADIUS,
+                VEX_PATH_VERTICAL_RADIUS,
+                VEX_PATH_MAX_EXPANDED_NODES
+        );
+        if (gridPath.isEmpty()) {
+            return List.of();
+        }
+
+        List<Location> path = new ArrayList<>(gridPath.size() + 1);
+        for (VexFlightPathfinder.GridPoint point : gridPath) {
+            path.add(gridLocation(current.getWorld(), point));
+        }
+        if (gridPath.getLast().equals(goal) && isVexSweepClear(vex, path.getLast(), target)) {
+            path.add(target.clone());
+        }
+        return List.copyOf(path);
+    }
+
+    private boolean isVexSweepClear(@NotNull Vex vex, @NotNull Location from, @NotNull Location to) {
+        if (from.getWorld() == null || from.getWorld() != to.getWorld()) {
+            return false;
+        }
+        Vector delta = to.toVector().subtract(from.toVector());
+        double distance = delta.length();
+        int steps = Math.max(1, (int) Math.ceil(distance / VEX_SWEEP_STEP));
+        for (int step = 1; step <= steps; step++) {
+            double ratio = (double) step / steps;
+            Location sample = from.clone().add(delta.clone().multiply(ratio));
+            if (!isVexPositionClear(vex, sample)) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isVexPositionClear(@NotNull Vex vex, @NotNull Location location) {
+        World world = location.getWorld();
+        if (world == null || world != vex.getWorld()) {
+            return false;
+        }
+
+        Location current = vex.getLocation();
+        Vector shift = location.toVector().subtract(current.toVector());
+        BoundingBox bounds = vex.getBoundingBox().clone().shift(shift).expand(VEX_COLLISION_MARGIN);
+        int minX = (int) Math.floor(bounds.getMinX());
+        int maxX = (int) Math.floor(Math.nextDown(bounds.getMaxX()));
+        int minY = (int) Math.floor(bounds.getMinY());
+        int maxY = (int) Math.floor(Math.nextDown(bounds.getMaxY()));
+        int minZ = (int) Math.floor(bounds.getMinZ());
+        int maxZ = (int) Math.floor(Math.nextDown(bounds.getMaxZ()));
+        if (minY < world.getMinHeight() || maxY >= world.getMaxHeight()) {
+            return false;
+        }
+
+        for (int x = minX; x <= maxX; x++) {
+            for (int z = minZ; z <= maxZ; z++) {
+                if (!world.isChunkLoaded(x >> 4, z >> 4)) {
+                    return false;
+                }
+                for (int y = minY; y <= maxY; y++) {
+                    Block block = world.getBlockAt(x, y, z);
+                    BoundingBox blockLocalBounds = toBlockLocalBounds(bounds, x, y, z);
+                    if (block.getCollisionShape().overlaps(blockLocalBounds)) {
+                        return false;
+                    }
+                }
+            }
+        }
+        return true;
+    }
+
+    /**
+     * ワールド座標の AABB を指定 block のローカル座標へ変換します。
+     *
+     * @param worldBounds ワールド座標の AABB
+     * @param blockX      block のワールド X 座標
+     * @param blockY      block のワールド Y 座標
+     * @param blockZ      block のワールド Z 座標
+     * @return block 原点を 0 とする新しい AABB
+     */
+    static @NotNull BoundingBox toBlockLocalBounds(
+            @NotNull BoundingBox worldBounds,
+            int blockX,
+            int blockY,
+            int blockZ) {
+        return worldBounds.clone().shift(-blockX, -blockY, -blockZ);
+    }
+
+    private static @NotNull VexFlightPathfinder.GridPoint gridPoint(@NotNull Location location) {
+        return new VexFlightPathfinder.GridPoint(
+                location.getBlockX(),
+                location.getBlockY(),
+                location.getBlockZ()
+        );
+    }
+
+    private static @NotNull Location gridLocation(
+            @NotNull World world,
+            @NotNull VexFlightPathfinder.GridPoint point) {
+        return new Location(
+                world,
+                point.x() + 0.5D,
+                point.y() + VEX_PATH_NODE_Y_OFFSET,
+                point.z() + 0.5D
+        );
     }
 
     private double resolvePathfinderSpeed(@NotNull MobInstance instance, double aiSpeedModifier) {

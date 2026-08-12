@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
+import com.destroystokyo.paper.entity.Pathfinder;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig;
@@ -13,27 +14,37 @@ import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Sheep;
+import org.bukkit.entity.Vex;
 import org.bukkit.entity.Villager;
 import org.bukkit.entity.ZombieVillager;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.util.BoundingBox;
 import org.bukkit.util.Transformation;
+import org.bukkit.util.Vector;
+import org.bukkit.util.VoxelShape;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.plugin.PluginMock;
 
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.doAnswer;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -42,6 +53,120 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MobEntityControllerTest extends MockBukkitTestBase {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
+     * 章・見出し: # 12_3-実体Mob制御 > ## 4. Pathfinder 移動要求 > ### Vex 三次元経路
+     * 検証契約: Vex の world 座標 AABB を原点以外の block collision shape と同じローカル座標へ変換する。
+     */
+    @Test
+    void vexBoundsAreConvertedToNonOriginBlockLocalCoordinates() {
+        BoundingBox worldBounds = new BoundingBox(120.2D, 64.1D, -31.8D, 120.8D, 64.9D, -31.2D);
+
+        BoundingBox localBounds = MobEntityController.toBlockLocalBounds(worldBounds, 120, 64, -32);
+
+        assertEquals(0.2D, localBounds.getMinX(), 1.0E-12D);
+        assertEquals(0.1D, localBounds.getMinY(), 1.0E-12D);
+        assertEquals(0.2D, localBounds.getMinZ(), 1.0E-12D);
+        assertEquals(0.8D, localBounds.getMaxX(), 1.0E-12D);
+        assertEquals(0.9D, localBounds.getMaxY(), 1.0E-12D);
+        assertEquals(0.8D, localBounds.getMaxZ(), 1.0E-12D);
+        assertEquals(new BoundingBox(120.2D, 64.1D, -31.8D, 120.8D, 64.9D, -31.2D), worldBounds);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
+     * 章・見出し: # 12_3-実体Mob制御 > ## 4. Pathfinder 移動要求
+     * 検証契約: 地上 Mob は X/Z だけ、Vex は X/Y/Z の目標移動量で再経路探索を判定する。
+     */
+    @Test
+    void groundDriftIgnoresVerticalMovementWhileVexDriftIncludesIt() {
+        assertFalse(MobEntityController.hasGroundTargetDrifted(0.0D, 0.0D));
+        assertTrue(MobEntityController.hasVexTargetDrifted(0.0D, 2.0D, 0.0D));
+        assertTrue(MobEntityController.hasGroundTargetDrifted(2.0D, 0.0D));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
+     * 章・見出し: # 12_3-実体Mob制御 > ## 4. Pathfinder 移動要求 > ### Vex 三次元経路
+     * 検証契約: Vex の strafe / retreat 用直接速度は経路状態を解除し、直後の経路 tick でも保持する。
+     */
+    @Test
+    void vexDirectMovementSurvivesNavigationTick() {
+        VexFixture fixture = vexFixture("vex_direct_movement_world");
+        fixture.instance().navPath(List.of(fixture.location().clone().add(5.0D, 0.0D, 0.0D)));
+        fixture.instance().navFlightSpeed(0.2D);
+        fixture.instance().navRecomputeTick(10L);
+        Vector directVelocity = new Vector(0.0D, 0.0D, 0.12D);
+
+        fixture.controller().addVelocity(fixture.instance(), directVelocity);
+        fixture.controller().tickVexNavigation(fixture.instance());
+        fixture.controller().moveTo(
+                fixture.instance(), fixture.location().clone().add(5.0D, 0.0D, 0.0D), 1.0D, 11L
+        );
+        fixture.controller().tickVexNavigation(fixture.instance());
+
+        assertEquals(directVelocity, fixture.vex().getVelocity());
+        assertEquals(null, fixture.instance().navPath());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 2. MobKnockbackService メソッド仕様 > ### ノックバック適用
+     * 検証契約: addVelocity で Vex に加算したノックバックは直後の経路 tick で上書きしない。
+     */
+    @Test
+    void vexKnockbackVelocitySurvivesNavigationTick() {
+        VexFixture fixture = vexFixture("vex_knockback_world");
+        fixture.vex().setVelocity(new Vector(0.1D, 0.0D, 0.0D));
+        fixture.instance().navPath(List.of(fixture.location().clone().add(0.0D, 0.0D, 5.0D)));
+        fixture.instance().navFlightSpeed(0.2D);
+        Vector knockback = new Vector(0.3D, 0.2D, 0.0D);
+
+        fixture.controller().addVelocity(fixture.instance(), knockback);
+        fixture.controller().moveTo(
+                fixture.instance(), fixture.location().clone().add(0.0D, 0.0D, 5.0D), 1.0D, 100L
+        );
+        fixture.controller().tickVexNavigation(fixture.instance());
+
+        assertEquals(new Vector(0.4D, 0.2D, 0.0D), fixture.vex().getVelocity());
+        assertEquals(null, fixture.instance().navPath());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
+     * 章・見出し: # 12_3-実体Mob制御 > ## 4. Pathfinder 移動要求 > ### Vex 三次元経路
+     * 検証契約: 明示的な停止は直接速度保護中でも velocity と経路状態を確実に消去する。
+     */
+    @Test
+    void explicitVexStopClearsDirectVelocityAndOverride() {
+        VexFixture fixture = vexFixture("vex_explicit_stop_world");
+        fixture.controller().addVelocity(fixture.instance(), new Vector(0.2D, 0.1D, 0.0D));
+
+        fixture.controller().stopPathfinding(fixture.instance());
+        fixture.controller().tickVexNavigation(fixture.instance());
+
+        assertEquals(new Vector(), fixture.vex().getVelocity());
+        assertFalse(fixture.instance().navDirectVelocityOverride());
+        assertEquals(null, fixture.instance().navPath());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
+     * 章・見出し: # 12_3-実体Mob制御 > ## 4. Pathfinder 移動要求 > ### Vex 三次元経路
+     * 検証契約: Vex の直接速度も次 tick の移動線分を検査し、壁へ入る場合だけ速度をゼロにする。
+     */
+    @Test
+    void vexDirectVelocityStopsBeforeWall() {
+        VexFixture fixture = vexFixture("vex_direct_collision_world");
+        when(fixture.collisionShape().overlaps(any(BoundingBox.class))).thenReturn(true);
+
+        fixture.controller().addVelocity(fixture.instance(), new Vector(1.0D, 0.0D, 0.0D));
+        fixture.controller().tickVexNavigation(fixture.instance());
+
+        assertEquals(new Vector(), fixture.vex().getVelocity());
+        assertFalse(fixture.instance().navDirectVelocityOverride());
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
@@ -368,5 +493,50 @@ class MobEntityControllerTest extends MockBukkitTestBase {
                 null,
                 null
         );
+    }
+
+    private VexFixture vexFixture(String worldName) {
+        World world = mock(World.class);
+        Location location = new Location(world, 0.5D, 64.0D, 0.5D);
+        Vex vex = mock(Vex.class);
+        Block block = mock(Block.class);
+        VoxelShape collisionShape = mock(VoxelShape.class);
+        AtomicReference<Vector> velocity = new AtomicReference<>(new Vector());
+        when(world.getName()).thenReturn(worldName);
+        when(world.getMinHeight()).thenReturn(-64);
+        when(world.getMaxHeight()).thenReturn(320);
+        when(world.isChunkLoaded(anyInt(), anyInt())).thenReturn(true);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(block);
+        when(block.getCollisionShape()).thenReturn(collisionShape);
+        when(collisionShape.overlaps(any(BoundingBox.class))).thenReturn(false);
+        when(vex.getWorld()).thenReturn(world);
+        when(vex.getLocation()).thenAnswer(ignored -> location.clone());
+        when(vex.getBoundingBox()).thenReturn(new BoundingBox(0.2D, 64.0D, 0.2D, 0.8D, 64.8D, 0.8D));
+        when(vex.getVelocity()).thenAnswer(ignored -> velocity.get().clone());
+        when(vex.getPathfinder()).thenReturn(mock(Pathfinder.class));
+        doAnswer(invocation -> {
+            velocity.set(invocation.getArgument(0, Vector.class).clone());
+            return null;
+        }).when(vex).setVelocity(any(Vector.class));
+        MobTemplate template = new MobTemplate(
+                1, "enemy:test_vex", MobCategory.ENEMY, "Test Vex", null,
+                1, EntityType.VEX, false, null, List.of(), List.of(), null,
+                MobEquipmentConfig.EMPTY, List.of(), MobShieldConfig.EMPTY, MobIdleConfig.defaults(), false,
+                MobInteractionsConfig.EMPTY, null, null, null
+        );
+        MobInstance instance = new MobInstance(UUID.randomUUID(), template, location);
+        MobEntityController controller = spy(new MobEntityController(
+                PluginMock.builder().withPluginName("AstralRecordTest").build()
+        ));
+        doReturn(vex).when(controller).getMob(instance);
+        return new VexFixture(controller, instance, vex, location, collisionShape);
+    }
+
+    private record VexFixture(
+            MobEntityController controller,
+            MobInstance instance,
+            Vex vex,
+            Location location,
+            VoxelShape collisionShape) {
     }
 }

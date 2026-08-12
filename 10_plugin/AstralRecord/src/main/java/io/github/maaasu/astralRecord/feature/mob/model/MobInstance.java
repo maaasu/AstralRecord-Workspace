@@ -54,6 +54,8 @@ public final class MobInstance {
     private int navPathIndex;
     /** 最後に経路計算したターゲットの X 座標。 */
     private double navTargetX;
+    /** 最後に経路計算したターゲットの Y 座標。 */
+    private double navTargetY;
     /** 最後に経路計算したターゲットの Z 座標。 */
     private double navTargetZ;
     /** 最後に経路を再計算した内部 tick（レート制限用）。 */
@@ -62,6 +64,10 @@ public final class MobInstance {
     private long navBlockedSinceTick = -1L;
     /** 移動進捗を最後に観測した位置。 */
     private Location navLastObservedLocation;
+    /** Vex が現在の経路を追従するときの 1 tick あたり速度。 */
+    private double navFlightSpeed;
+    /** Vex の直接速度を次の経路追従 tick まで保護するか。 */
+    private boolean navDirectVelocityOverride;
     /** WANDER 行動時の現在の徘徊目的地。 */
     private Location wanderTarget;
     /** WANDER 停止を解除する内部 tick。 */
@@ -534,6 +540,20 @@ public final class MobInstance {
         this.navTargetX = x;
     }
 
+    /** 最後に経路計算したターゲットの Y 座標を返します。 */
+    public double navTargetY() {
+        return navTargetY;
+    }
+
+    /**
+     * 最後に経路計算したターゲットの Y 座標を設定します。
+     *
+     * @param y Y 座標
+     */
+    public void navTargetY(double y) {
+        this.navTargetY = y;
+    }
+
     /** 最後に経路計算したターゲットの Z 座標を返します。 */
     public double navTargetZ() {
         return navTargetZ;
@@ -595,12 +615,42 @@ public final class MobInstance {
         this.navLastObservedLocation = location == null ? null : location.clone();
     }
 
+    /** Vex の現在の経路追従速度を返します。 */
+    public double navFlightSpeed() {
+        return navFlightSpeed;
+    }
+
+    /**
+     * Vex の現在の経路追従速度を設定します。
+     *
+     * @param speed 1 tick あたりの速度。負値は 0 に丸める
+     */
+    public void navFlightSpeed(double speed) {
+        this.navFlightSpeed = Math.max(0.0D, speed);
+    }
+
+    /** Vex の直接速度が経路追従より優先されている場合は {@code true}。 */
+    public boolean navDirectVelocityOverride() {
+        return navDirectVelocityOverride;
+    }
+
+    /**
+     * Vex の直接速度を次の経路追従 tick まで優先するか設定します。
+     *
+     * @param override 直接速度を優先する場合は {@code true}
+     */
+    public void navDirectVelocityOverride(boolean override) {
+        this.navDirectVelocityOverride = override;
+    }
+
     /** 現在の経路をリセットします（次 tick で再計算される）。 */
     public void clearNavPath() {
         this.navPath = null;
         this.navPathIndex = 0;
         this.navBlockedSinceTick = -1L;
         this.navLastObservedLocation = null;
+        this.navFlightSpeed = 0.0D;
+        this.navDirectVelocityOverride = false;
     }
 
     /** WANDER 時の現在の徘徊目的地を返します。未設定なら {@code null}。 */
