@@ -30,6 +30,10 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitRunnable;
@@ -67,6 +71,11 @@ public class SkillService {
 
     /** Minecraft 1 tick あたりのミリ秒（20 tick = 1 秒）。 */
     private static final long MS_PER_TICK = 50L;
+    /** 詠唱中の移動速度補正を識別する属性 modifier のキーです。 */
+    private static final NamespacedKey CAST_MOVEMENT_SPEED_MODIFIER_KEY =
+            new NamespacedKey("astralrecord", "skill_casting_slowdown");
+    /** 詠唱中は通常の移動速度を半分にします。 */
+    private static final double CAST_MOVEMENT_SPEED_MODIFIER_AMOUNT = -0.5D;
 
     private final SkillRepository repository;
     private final SkillRegistry registry;
@@ -727,8 +736,10 @@ public class SkillService {
         StatusSnapshot effectiveStatus = runtime == null ? caster.statusSnapshot() : runtime.statusSnapshot();
         long castTimeTicks = resolveCastTimeTicks(playerCaster, definition, effectiveStatus);
         astPlayer.setSkillCastingUntilMs(System.currentTimeMillis() + castTimeTicks * MS_PER_TICK);
-        float originalWalkSpeed = player.getWalkSpeed();
-        player.setWalkSpeed(clampWalkSpeed(originalWalkSpeed * 0.5F));
+        AttributeInstance movementSpeed = player.getAttribute(Attribute.MOVEMENT_SPEED);
+        Runnable movementSpeedCleanup = movementSpeed == null
+                ? () -> { }
+                : applyCastMovementSpeedModifier(movementSpeed);
         AtomicLong remainingCastTicks = new AtomicLong(castTimeTicks);
         startPlayerCastFeedback(astPlayer, definition, castTimeTicks, remainingCastTicks::get);
 
@@ -764,10 +775,35 @@ public class SkillService {
         BukkitTask task = runnable.runTaskTimer(plugin, 0L, 1L);
         castingSessions.put(player.getUniqueId(), new CastingSession(task, () -> {
             astPlayer.setSkillCastingUntilMs(0L);
-            player.setWalkSpeed(originalWalkSpeed);
+            movementSpeedCleanup.run();
             stopPlayerCastFeedback(astPlayer);
         }));
         return SkillCastResult.succeeded();
+    }
+
+    /**
+     * 詠唱中だけ移動速度を半分にする一時 modifier を適用します。
+     * <p>
+     * 開始時の速度値を保存して復元するのではなく modifier だけを除去するため、
+     * 詠唱中にステータスや装備が更新されても更新後の速度を維持できます。
+     *
+     * @param attribute プレイヤーの移動速度属性
+     * @return 詠唱終了時に適用した modifier だけを除去する cleanup
+     */
+    static @NotNull Runnable applyCastMovementSpeedModifier(@NotNull AttributeInstance attribute) {
+        if (attribute.getModifier(CAST_MOVEMENT_SPEED_MODIFIER_KEY) != null) {
+            attribute.removeModifier(CAST_MOVEMENT_SPEED_MODIFIER_KEY);
+        }
+        attribute.addTransientModifier(new AttributeModifier(
+                CAST_MOVEMENT_SPEED_MODIFIER_KEY,
+                CAST_MOVEMENT_SPEED_MODIFIER_AMOUNT,
+                AttributeModifier.Operation.MULTIPLY_SCALAR_1
+        ));
+        return () -> {
+            if (attribute.getModifier(CAST_MOVEMENT_SPEED_MODIFIER_KEY) != null) {
+                attribute.removeModifier(CAST_MOVEMENT_SPEED_MODIFIER_KEY);
+            }
+        };
     }
 
     private @NotNull SkillCastResult beginMobCast(
@@ -989,10 +1025,6 @@ public class SkillService {
             return PlayerMsgId.P_5863;
         }
         return null;
-    }
-
-    private float clampWalkSpeed(float value) {
-        return Math.max(-1.0F, Math.min(1.0F, value));
     }
 
     /**

@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
@@ -21,6 +22,10 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
+import org.bukkit.NamespacedKey;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.Test;
@@ -321,6 +326,93 @@ class SkillServiceDesignTest extends MockBukkitTestBase {
 
         assertFalse(result.success());
         assertEquals(PlayerMsgId.P_5810, result.messageId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 5. cooldown・cast lifecycle
+     * 検証契約: 詠唱終了時は開始時の速度値を復元せず、詠唱用補正だけを除去して詠唱中の速度更新を保持する。
+     */
+    @Test
+    void castMovementSpeedCleanupKeepsMovementSpeedChangedDuringCasting() {
+        Player player = server().addPlayer();
+        AttributeInstance movementSpeed = player.getAttribute(Attribute.MOVEMENT_SPEED);
+        assertNotNull(movementSpeed);
+
+        movementSpeed.setBaseValue(0.12D);
+        Runnable cleanup = SkillService.applyCastMovementSpeedModifier(movementSpeed);
+        assertEquals(0.06D, movementSpeed.getValue(), 0.0001D);
+
+        movementSpeed.setBaseValue(0.17D);
+        cleanup.run();
+
+        assertEquals(0.17D, movementSpeed.getBaseValue(), 0.0001D);
+        assertEquals(0.17D, movementSpeed.getValue(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 5. cooldown・cast lifecycle
+     * 検証契約: 正の castTimeTicks の詠唱を scheduler で完了させると、詠唱用補正だけを除去し、
+     * 詠唱中に更新した移動速度 base/status を維持する。
+     */
+    @Test
+    void castSkillSchedulerCompletionKeepsMovementSpeedChangedDuringCasting() {
+        var player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
+        SkillRegistry registry = new SkillRegistry();
+        TestExecutor executor = new TestExecutor("cast_lifecycle_impl");
+        SkillDefinition definition = skill(
+            "cast_lifecycle_skill",
+            "cast_lifecycle_impl",
+            0.0D,
+            0L,
+            Map.of(),
+            SkillKind.ACTIVE,
+            3L,
+            1,
+            null,
+            null
+        );
+        registry.registerExecutor(executor);
+        registry.replaceDefinitions(Map.of(definition.getId(), definition));
+        AstralRecord plugin = mock(AstralRecord.class);
+        when(plugin.isEnabled()).thenReturn(true);
+        SkillService service = new SkillService(mock(SkillRepository.class), registry, plugin);
+        AttributeInstance movementSpeed = player.getAttribute(Attribute.MOVEMENT_SPEED);
+        assertNotNull(movementSpeed);
+
+        NamespacedKey statusModifierKey = new NamespacedKey("astralrecord", "test_status_movement_speed");
+        AttributeModifier statusModifier = new AttributeModifier(
+            statusModifierKey,
+            0.04D,
+            AttributeModifier.Operation.ADD_NUMBER
+        );
+        movementSpeed.setBaseValue(0.12D);
+
+        SkillCastResult result = service.castSkill(
+            caster,
+            definition.getId(),
+            SkillCastTrigger.SYSTEM,
+            player.getLocation(),
+            null,
+            List.of()
+        );
+
+        assertTrue(result.success());
+        assertEquals(0.06D, movementSpeed.getValue(), 0.0001D);
+        movementSpeed.setBaseValue(0.17D);
+        movementSpeed.addTransientModifier(statusModifier);
+        double expectedMovementSpeed = movementSpeed.getBaseValue() + statusModifier.getAmount();
+        assertEquals(expectedMovementSpeed * 0.5D, movementSpeed.getValue(), 0.0001D);
+
+        server().getScheduler().performTicks(3L);
+
+        assertSame(definition, executor.lastContext.skill());
+        assertEquals(expectedMovementSpeed, movementSpeed.getValue(), 0.0001D);
+        assertEquals(0.17D, movementSpeed.getBaseValue(), 0.0001D);
+        assertNotNull(movementSpeed.getModifier(statusModifierKey));
     }
 
     /**
