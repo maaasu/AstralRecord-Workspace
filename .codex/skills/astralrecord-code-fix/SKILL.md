@@ -79,8 +79,9 @@ If no review result or finding detail is available, ask for the review result be
    - Do not restructure documents beyond what the fix requires.
 7. After editing, re-read changed snippets and verify that each fixed finding is addressed.
 8. Verify:
-   - Run the narrowest meaningful build / test / static-analysis check for the touched project.
-   - For Plugin source/resource fixes, run `python .codex/skills/astralrecord-code/scripts/check_plugin_resources.py --repo-root <task-worktree>` and resolve ID/property drift, duplicate keys, log placeholder mismatches, direct logger/message calls, and string literals passed to command message helpers before marking any finding fixed. Verify manually that reused IDs describe the actual operation.
+    - Run the narrowest meaningful build / test / static-analysis check for the touched project.
+    - For feature/behavior fixes, executable scripts, schemas/data contracts, workspace skill logic, multi-file fixes, or security/concurrency/data-integrity fixes, capture complete verification output including standard error and inspect warnings as well as the exit status. Resolve warnings introduced by the fix and rerun the same check. For a remaining warning, classify it as pre-existing (verify against current local `develop` when practical) or external/toolchain-originated, and report the command, warning summary, classification, and reason. Do not mark a finding fixed while a new unexplained warning or a fix-originated warning remains, unless the user explicitly approved its deferral.
+    - For Plugin source/resource fixes, run `python .codex/skills/astralrecord-code/scripts/check_plugin_resources.py --repo-root <task-worktree>` and resolve ID/property drift, duplicate keys, log placeholder mismatches, direct logger/message calls, and string literals passed to command message helpers before marking any finding fixed. Verify manually that reused IDs describe the actual operation.
    - If a full build is too expensive or blocked, run targeted compile / test / lint checks and report what was not run.
 9. If the review source is a saved record under `<task-root>\00_docs\99_資料\レビュー結果`, update only fixed states and derived metadata with:
 

@@ -1,6 +1,6 @@
 ---
 name: astralrecord-code-version-commit-develop
-description: AstralRecord で未コミット差分が発生する実装・設計書反映・本番向け filebase 作成に優先して使う品質ゲート付き統合入口。task branch / worktree を作り、実装後に独立レビュー、レビュー記録検証、自動修正、再検証、独立再レビューを行ってから commit / develop rebase / fast-forward merge / cleanup へ進む。サブエージェントが利用可能なら実装者・reviewer・fixerを分離し、プラグイン版番号は最新版 develop へ rebase 済みの finalize 時だけ更新する。
+description: AstralRecord で未コミット差分が発生する実装・設計書反映・本番向け filebase 作成に優先して使う品質ゲート付き統合入口。task branch / worktree を作り、実装後に独立レビュー、ビルド警告の確認・対処、レビュー記録検証、自動修正、再検証、独立再レビューを行ってから commit / develop rebase / fast-forward merge / cleanup へ進む。サブエージェントが利用可能なら実装者・reviewer・fixerを分離し、プラグイン版番号は最新版 develop へ rebase 済みの finalize 時だけ更新する。
 ---
 
 # AstralRecord Code Version Commit Develop
@@ -51,24 +51,36 @@ Choose one tier before implementation:
 - Light gate: one-file typo, comment, display metadata, or similarly non-behavioral edit. Run one independent review when collaboration tools are available, otherwise use the documented sequential fallback. If it finds an issue, fix it and run one targeted confirmation; otherwise Round 2 is not required. Record the reason for choosing this tier.
 - Review-fix entry: when the request starts from an existing canonical review record, treat that record as Round 1, run the matching fix worker, verify, and continue at Round 2. Do not create a replacement record.
 
-1. Run the worker's verification before review. Independently inspect the complete task diff against `astralrecord-code/references/plugin-code.md` "Plugin Test Traceability Gate"; when any listed test source, Plugin POM, allowed design input, or test-policy path changes, run `python .codex/skills/astralrecord-plugin-test/scripts/validate_test_traceability.py` from `<task-root>` regardless of which worker ran or whether test source changed. This common gate cannot be replaced by `mvn verify`.
+### Build Warning Gate
+
+For every Standard gate, treat build warnings as verification output, not as successful-build noise. Apply this gate whenever a meaningful build, compile, test, or static-analysis command exists for the touched project.
+
+1. Capture the complete output of the selected verification command, including standard error, and inspect warnings as well as the exit status.
+2. Identify each warning as task-originated, pre-existing, or external/toolchain-originated. Do not assume that a successful exit status means the check passed.
+3. Fix every task-originated warning that is reasonably actionable, then rerun the same verification command and re-inspect its warnings.
+4. For a warning classified as pre-existing, verify the same command against the current local `develop` when practical. For an external/toolchain warning, record the source and why the task cannot resolve it. Include the warning text or an unambiguous summary, classification, and verification command in the quality-gate report or canonical record.
+5. Do not finalize when a new warning remains unexplained, a task-originated warning remains without an explicit user-approved deferral, or warning output could not be captured and inspected. If the project has no meaningful command, record that fact and use the strongest available static check instead.
+
+Light-gate changes do not require a full build solely for this rule, unless their touched project rules already require one. If a build or static check is run for a Light gate, still inspect and report any warnings it emits.
+
+1. Run the worker's verification before review, including the Build Warning Gate for a Standard gate. Independently inspect the complete task diff against `astralrecord-code/references/plugin-code.md` "Plugin Test Traceability Gate"; when any listed test source, Plugin POM, allowed design input, or test-policy path changes, run `python .codex/skills/astralrecord-plugin-test/scripts/validate_test_traceability.py` from `<task-root>` regardless of which worker ran or whether test source changed. This common gate cannot be replaced by `mvn verify`.
 2. Review Round 1:
    - use an independent reviewer when collaboration tools are available, otherwise use the documented sequential fallback;
    - review the exact task diff plus impacted call sites, tests, resources, and design contracts;
    - save one canonical record under `<task-root>\00_docs\99_資料\レビュー結果`;
    - validate it with `.codex\skills\_shared\scripts\validate_review_record.py`.
 3. Fix Pass 1:
-   - if `自動修正可` findings exist, run the matching fix skill with a single writer;
-   - the fix skill runs the updater exactly once and returns the new canonical record path; the coordinator must not run the updater again;
-   - rerun targeted build/test/static checks after the fix skill returns;
-   - do not resolve `要確認` or `設計判断待ち` by assumption.
+    - if `自動修正可` findings exist, run the matching fix skill with a single writer;
+    - the fix skill runs the updater exactly once and returns the new canonical record path; the coordinator must not run the updater again;
+    - rerun targeted build/test/static checks after the fix skill returns and reapply the Build Warning Gate to their complete output;
+    - do not resolve `要確認` or `設計判断待ち` by assumption.
 4. Review Round 2:
    - use a reviewer independent of the fixer when collaboration tools are available, otherwise use the documented sequential fallback;
    - verify previous findings against the current diff and append only genuinely new findings with sequential IDs;
    - preserve the same canonical record, original timestamp, target path, and existing finding text;
    - recalculate its states/summary and validate it again.
-5. If Round 2 finds an automatically fixable regression, allow Fix Pass 2 followed by one targeted confirmation limited to those IDs. Do not run more than two full reviews, two fix passes, and one targeted confirmation.
-6. Pass only when verification succeeds, the record validates, no `自動修正可` finding remains unresolved, and no `[高]` or `[中]` finding is waiting for confirmation/design judgment.
+5. If Round 2 finds an automatically fixable regression, allow Fix Pass 2 followed by one targeted confirmation limited to those IDs. Reapply the Build Warning Gate when that confirmation runs. Do not run more than two full reviews, two fix passes, and one targeted confirmation.
+6. Pass only when verification succeeds, the applicable Build Warning Gate passes, the record validates, no `自動修正可` finding remains unresolved, and no `[高]` or `[中]` finding is waiting for confirmation/design judgment.
 7. `[低]` or `[情報]` findings that require user/design judgment may remain only when their non-blocking rationale is recorded. Report them explicitly.
 8. Stop before finalize and retain the branch/worktree when verification fails, record validation fails, a blocking finding remains, the loop cap is reached, or a user/design decision is required.
 
