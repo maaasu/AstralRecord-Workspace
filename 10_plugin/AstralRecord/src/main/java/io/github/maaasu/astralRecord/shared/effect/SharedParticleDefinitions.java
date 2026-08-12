@@ -64,6 +64,32 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(90, 220, 255), 0.9F)
         );
+    public static final SharedParticleDefinition SHIELD_DRAIN_SLASH_DUST =
+        new SharedParticleDefinition(
+            "shield_drain_slash_dust",
+            Particle.DUST,
+            2,
+            0.025D,
+            0.025D,
+            0.025D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(185, 240, 255), 1.15F)
+        );
+    public static final SharedParticleDefinition SHIELD_DRAIN_FOCUS_SPARK =
+        new SharedParticleDefinition("shield_drain_focus_spark", Particle.ELECTRIC_SPARK, 2, 0.04D, 0.04D, 0.04D, 0.025D);
+    public static final SharedParticleDefinition SHIELD_DRAIN_ABSORB_END_ROD =
+        new SharedParticleDefinition("shield_drain_absorb_end_rod", Particle.END_ROD, 1, 0.03D, 0.03D, 0.03D, 0.015D);
+    public static final SharedParticleDefinition SHIELD_DRAIN_RING_DUST =
+        new SharedParticleDefinition(
+            "shield_drain_ring_dust",
+            Particle.DUST,
+            1,
+            0.015D,
+            0.015D,
+            0.015D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(115, 210, 255), 0.95F)
+        );
     public static final SharedParticleDefinition DAMAGE_HIT_INDICATOR =
         new SharedParticleDefinition("damage_hit_indicator", Particle.DAMAGE_INDICATOR, 6, 0.18D, 0.25D, 0.18D, 0.0D);
     public static final SharedParticleDefinition CRITICAL_HIT_CRIT =

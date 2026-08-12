@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.Ad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerBlastArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerLightningBoltExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerManaBurstExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanShieldDrainExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanBladeCounterExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanBladeCounterRuntimeService;
@@ -43,13 +44,14 @@ class ActiveSkillExecutorDesignTest {
         "adventurer_smash",
         "adventurer_quick_shot",
         "adventurer_lightning_bolt",
-        "swordsman_blade_counter"
+        "swordsman_blade_counter",
+        "swordsman_shield_drain"
     );
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載6 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載8 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {
@@ -234,6 +236,38 @@ class ActiveSkillExecutorDesignTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 11. シールドドレインの実装契約 > ### 11.1 数値・対象・演出
+     * 検証契約: シールドドレインは正の射程・対象角・ダメージ・Shield倍率と、0より大きく1以下の吸収率を必須とする。
+     */
+    @Test
+    void shieldDrainValidatesCombatParams() {
+        SwordsmanShieldDrainExecutor executor = new SwordsmanShieldDrainExecutor(activeSkillServices());
+
+        assertDoesNotThrow(() -> executor.validateParams(shieldDrainDefinition(Map.of(
+                "range", 6.0D,
+                "targetAngle", 40.0D,
+                "damageRatio", 0.65D,
+                "shieldBreakMultiplier", 3.0D,
+                "shieldAbsorbRatio", 0.50D,
+                "fullShieldDamageBonus", 1.0D
+        ))));
+
+        SkillParameterException exception = assertThrows(
+                SkillParameterException.class,
+                () -> executor.validateParams(shieldDrainDefinition(Map.of(
+                        "range", 6.0D,
+                        "targetAngle", 40.0D,
+                        "damageRatio", 0.65D,
+                        "shieldBreakMultiplier", 3.0D,
+                        "shieldAbsorbRatio", 1.5D,
+                        "fullShieldDamageBonus", 1.0D
+                )))
+        );
+        assertEquals("shieldAbsorbRatio", exception.key());
+    }
+
     private static SkillDefinition astralEdgeDefinition(Map<String, Object> params) {
         return new SkillDefinition(
                 "adventurer_astral_edge",
@@ -341,6 +375,28 @@ class ActiveSkillExecutorDesignTest {
             true,
             SkillResourceType.ENERGY,
             20.0D
+        );
+    }
+
+    private static SkillDefinition shieldDrainDefinition(Map<String, Object> params) {
+        return new SkillDefinition(
+                "swordsman_shield_drain",
+                "swordsman_shield_drain",
+                "シールドドレイン",
+                null,
+                "HEART_OF_THE_SEA",
+                List.of(),
+                60L,
+                0.0D,
+                0L,
+                1,
+                null,
+                params,
+                List.of("active", "melee"),
+                SkillKind.ACTIVE,
+                true,
+                SkillResourceType.ENERGY,
+                10.0D
         );
     }
 

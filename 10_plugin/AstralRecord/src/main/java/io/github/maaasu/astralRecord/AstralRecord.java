@@ -1079,7 +1079,7 @@ public final class AstralRecord extends JavaPlugin {
         playerDeathService.setDeathStartedListener(activeSkillLifecycleService::clearAll);
         var activeSkillServices = new ActiveSkillServices(
             activeSkillTargetingService,
-            new SkillCombatService(damageService, conditionService, mobKnockbackService),
+            new SkillCombatService(damageService, conditionService, mobKnockbackService, statusService),
             activeSkillEffectService,
             new SkillProjectileService(
                 activeSkillTargetingService,

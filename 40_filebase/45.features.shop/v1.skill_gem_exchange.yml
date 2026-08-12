@@ -80,95 +80,102 @@ items:
         amount: 1
 
   - id: astral_edge_from_raw
-    itemId: { ref: "item:00_skill_gem_adventurer_astral_edge" }
+    itemId: { ref: item:00_skill_gem_adventurer_astral_edge }
     category: skill_gem
     amount: 1
     page: 2
     slot: 0
     requiredItems:
-      - itemId: { ref: "item:skill_gem_raw" }
+      - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1
   - id: smash_from_raw
-    itemId: { ref: "item:00_skill_gem_adventurer_smash" }
+    itemId: { ref: item:00_skill_gem_adventurer_smash }
     category: skill_gem
     amount: 1
     page: 2
     slot: 1
     requiredItems:
-      - itemId: { ref: "item:skill_gem_raw" }
+      - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1
   - id: blast_arrow_from_raw
-    itemId: { ref: "item:00_skill_gem_adventurer_blast_arrow" }
+    itemId: { ref: item:00_skill_gem_adventurer_blast_arrow }
     category: skill_gem
     amount: 1
     page: 2
     slot: 2
     requiredItems:
-      - itemId: { ref: "item:skill_gem_raw" }
+      - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1
   - id: quick_shot_from_raw
-    itemId: { ref: "item:00_skill_gem_adventurer_quick_shot" }
+    itemId: { ref: item:00_skill_gem_adventurer_quick_shot }
     category: skill_gem
     amount: 1
     page: 2
     slot: 3
     requiredItems:
-      - itemId: { ref: "item:skill_gem_raw" }
+      - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1
   - id: lightning_bolt_from_raw
-    itemId: { ref: "item:00_skill_gem_adventurer_lightning_bolt" }
+    itemId: { ref: item:00_skill_gem_adventurer_lightning_bolt }
     category: skill_gem
     amount: 1
     page: 2
     slot: 4
     requiredItems:
-      - itemId: { ref: "item:skill_gem_raw" }
+      - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1
   - id: mana_burst_from_raw
-    itemId: { ref: "item:00_skill_gem_adventurer_mana_burst" }
+    itemId: { ref: item:00_skill_gem_adventurer_mana_burst }
     category: skill_gem
     amount: 1
     page: 2
     slot: 5
     requiredItems:
-      - itemId: { ref: "item:skill_gem_raw" }
+      - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1
   - id: meditation_from_raw
-    itemId: { ref: "item:00_skill_gem_adventurer_meditation" }
+    itemId: { ref: item:00_skill_gem_adventurer_meditation }
     category: skill_gem
     amount: 1
     page: 2
     slot: 6
     requiredItems:
-      - itemId: { ref: "item:skill_gem_raw" }
+      - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1
   - id: blade_counter_from_raw
-    itemId: { ref: "item:00_skill_gem_swordsman_blade_counter" }
+    itemId: { ref: item:00_skill_gem_swordsman_blade_counter }
     category: skill_gem
     amount: 1
     page: 2
     slot: 7
     requiredItems:
-      - itemId: { ref: "item:skill_gem_raw" }
+      - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1
-
   - id: administrator_shield_recharge_from_advanced_raw
-    itemId:
-      ref: item:00_skill_gem_administrator_shield_recharge
+    itemId: { ref: item:00_skill_gem_administrator_shield_recharge }
     category: skill_gem
     amount: 1
     page: 2
     slot: 8
     requiredItems:
-      - itemId:
-          ref: item:skill_gem_raw_advanced
+      - itemId: { ref: item:skill_gem_raw_advanced }
+        category: material
+        amount: 1
+  - id: shield_drain_from_raw
+    itemId: { ref: item:00_skill_gem_swordsman_shield_drain }
+    category: skill_gem
+    amount: 1
+    page: 2
+    slot: 9
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1

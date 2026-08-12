@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
 import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
@@ -28,6 +29,7 @@ public final class SkillCombatService {
     private final DamageService damageService;
     private final ConditionService conditionService;
     private final MobKnockbackService knockbackService;
+    private final StatusService statusService;
 
     /**
      * 戦闘サービスで初期化します。
@@ -35,15 +37,18 @@ public final class SkillCombatService {
      * @param damageService custom combat ダメージサービス
      * @param conditionService 状態異常サービス
      * @param knockbackService ノックバック耐性を適用する共通サービス
+     * @param statusService シールド回復と実増加量の解決に使用するステータスサービス
      */
     public SkillCombatService(
             @NotNull DamageService damageService,
             @NotNull ConditionService conditionService,
-            @NotNull MobKnockbackService knockbackService
+            @NotNull MobKnockbackService knockbackService,
+            @NotNull StatusService statusService
     ) {
         this.damageService = damageService;
         this.conditionService = conditionService;
         this.knockbackService = knockbackService;
+        this.statusService = statusService;
     }
 
     /**
@@ -75,6 +80,52 @@ public final class SkillCombatService {
             Arrays.stream(conditions).forEach(condition -> applyCondition(attacker, target, attackType, condition));
         }
         return result;
+    }
+
+    /**
+     * この一撃だけのシールドブレイク倍率を指定して単一属性スキルダメージを適用します。
+     *
+     * @param attacker 発動者
+     * @param target 対象
+     * @param attackType 攻撃種別
+     * @param element 属性
+     * @param ratio ダメージ倍率
+     * @param shieldBreakMultiplier シールドダメージ倍率
+     * @return 実際に適用したHP・シールドダメージ
+     */
+    public @NotNull DamageResult hit(
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity target,
+            @NotNull AttackType attackType,
+            @NotNull DamageElement element,
+            double ratio,
+            double shieldBreakMultiplier
+    ) {
+        return damageService.attack(
+                attacker,
+                target,
+                attackType,
+                List.of(new DamageComponent(element, ratio)),
+                DamageSource.SKILL,
+                1.0D,
+                shieldBreakMultiplier
+        );
+    }
+
+    /**
+     * プレイヤーの現在シールドを既存回復規則で回復し、実際の増加量を返します。
+     *
+     * @param target 回復対象プレイヤー
+     * @param amount 回復要求量
+     * @return 上限・回復阻害を反映した実増加量
+     */
+    public double recoverShield(@NotNull AstEntity target, double amount) {
+        if (!target.isPlayer() || target.player() == null || amount <= 0.0D) {
+            return 0.0D;
+        }
+        double before = statusService.getStatus(target.player()).getCurrentShield();
+        double after = statusService.recoverShield(target.player(), amount).getCurrentShield();
+        return Math.max(0.0D, after - before);
     }
 
     /**

@@ -1,0 +1,51 @@
+# design:
+#   motif: "盾戦技 / 奪取"
+#   progression: 2
+schemaVersion: 1
+id: swordsman_shield_drain
+type: SKILL
+implementationId: swordsman_shield_drain
+name: "&bシールドドレイン"
+description: "&7敵のシールドを砕き、削った力を自身のシールドへ変換する単体攻撃。"
+icon: HEART_OF_THE_SEA
+lore:
+  - "&7前方{skill.range}mの敵1体へ近接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&7シールドダメージ{skill.shieldBreakMultiplier:percent}%、実際に削った量の{skill.shieldAbsorbRatio:percent}%を吸収。"
+  - "&7発動時に自身のシールドが最大ならダメージ倍率を追加で{skill.fullShieldDamageBonus:percent}%する。"
+  - "&8消費EN: 10 / クールダウン: 3.0秒"
+cooldownTicks: 60
+resourceType: ENERGY
+resourceCost: 10
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 3
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 4
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 5
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+params:
+  range: 6.0
+  targetAngle: 40.0
+  damageRatio: 0.65
+  shieldBreakMultiplier: 3.0
+  shieldAbsorbRatio: 0.50
+  fullShieldDamageBonus: 1.0
+tags:
+  - active
+  - melee

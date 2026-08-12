@@ -151,11 +151,27 @@ public final class DamageService {
             @Nullable PlayerDeathService playerDeathService,
             @Nullable Plugin plugin
     ) {
+        this(statusService, mobService, mobCombatService, knockbackService, displayTextService,
+                playerSettingService, particleDisplayService, playerDeathService, plugin, new DamageCalculator());
+    }
+
+    DamageService(
+            @NotNull StatusService statusService,
+            @NotNull MobService mobService,
+            @NotNull MobCombatService mobCombatService,
+            @NotNull MobKnockbackService knockbackService,
+            @NotNull DisplayTextService displayTextService,
+            @NotNull PlayerSettingService playerSettingService,
+            @NotNull ParticleDisplayService particleDisplayService,
+            @Nullable PlayerDeathService playerDeathService,
+            @Nullable Plugin plugin,
+            @NotNull DamageCalculator damageCalculator
+    ) {
         this.statusService = statusService;
         this.mobService = mobService;
         this.mobCombatService = mobCombatService;
         this.knockbackService = knockbackService;
-        this.damageCalculator = new DamageCalculator();
+        this.damageCalculator = damageCalculator;
         this.displayTextService = displayTextService;
         this.playerSettingService = playerSettingService;
         this.particleDisplayService = particleDisplayService;
@@ -363,6 +379,30 @@ public final class DamageService {
             @NotNull DamageSource source,
             double attackerDamageMultiplier
     ) {
+        return attack(attacker, victim, attackType, components, source, attackerDamageMultiplier, 1.0D);
+    }
+
+    /**
+     * 攻撃者固有倍率と、この一撃だけのシールドブレイク倍率を指定してダメージを適用します。
+     *
+     * @param attacker 攻撃者
+     * @param victim 被弾者
+     * @param attackType 攻撃種別
+     * @param components 属性別の攻撃倍率
+     * @param source 発生元
+     * @param attackerDamageMultiplier 攻撃者固有のダメージ倍率
+     * @param shieldBreakMultiplier この一撃のシールドダメージ倍率。通常攻撃は1.0
+     * @return ダメージ結果
+     */
+    public @NotNull DamageResult attack(
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> components,
+            @NotNull DamageSource source,
+            double attackerDamageMultiplier,
+            double shieldBreakMultiplier
+    ) {
         return applyDamage(
                 attacker,
                 victim,
@@ -371,7 +411,8 @@ public final class DamageService {
                 components,
                 DamageScaling.ATTACKER_STATUS,
                 source,
-                attackerDamageMultiplier
+                attackerDamageMultiplier,
+                shieldBreakMultiplier
         );
     }
 
@@ -507,7 +548,22 @@ public final class DamageService {
             double attackerDamageMultiplier
     ) {
         return applyDamage(attacker, victim, baseDamage, attackType, components, scaling, source,
-                attackerDamageMultiplier, SuperStarCriticalMode.ROLL);
+                attackerDamageMultiplier, 1.0D);
+    }
+
+    private @NotNull DamageResult applyDamage(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            double baseDamage,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> components,
+            @NotNull DamageScaling scaling,
+            @NotNull DamageSource source,
+            double attackerDamageMultiplier,
+            double shieldBreakMultiplier
+    ) {
+        return applyDamage(attacker, victim, baseDamage, attackType, components, scaling, source,
+                attackerDamageMultiplier, shieldBreakMultiplier, SuperStarCriticalMode.ROLL);
     }
 
     /**
@@ -532,6 +588,22 @@ public final class DamageService {
             @NotNull DamageScaling scaling,
             @NotNull DamageSource source,
             double attackerDamageMultiplier,
+            @NotNull SuperStarCriticalMode superStarCriticalMode
+    ) {
+        return applyDamage(attacker, victim, baseDamage, attackType, components, scaling, source,
+                attackerDamageMultiplier, 1.0D, superStarCriticalMode);
+    }
+
+    private @NotNull DamageResult applyDamage(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            double baseDamage,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> components,
+            @NotNull DamageScaling scaling,
+            @NotNull DamageSource source,
+            double attackerDamageMultiplier,
+            double shieldBreakMultiplier,
             @NotNull SuperStarCriticalMode superStarCriticalMode
     ) {
         if (attacker != null && attacker.isPlayer() && isPlayerDead(attacker.id())) {
@@ -587,7 +659,7 @@ public final class DamageService {
         long rechargeEventAtMs = System.currentTimeMillis();
         completeShieldRechargeIfReady(victim, rechargeEventAtMs);
         boolean shieldWasActive = hasActiveShield(victim);
-        DamageResult result = applyShieldDamage(attacker, victim, calculated);
+        DamageResult result = applyShieldDamage(attacker, victim, calculated, shieldBreakMultiplier);
         if (!shieldWasActive && isDirectDamage(source) && !result.evaded()) {
             result = result.withAddedFixedHealthDamage(fixedHealthDamage(attacker) * directDamageMultiplier);
         }
@@ -793,24 +865,44 @@ public final class DamageService {
     private @NotNull DamageResult applyShieldDamage(
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim,
-            @NotNull DamageResult result
+            @NotNull DamageResult result,
+            double shieldBreakMultiplier
     ) {
         if (result.finalDamage() <= 0.0D || !hasActiveShield(victim)) {
             return result;
         }
 
         double shieldBreak = attacker == null ? 0.0D : Math.max(0.0D, attacker.statValue(StatusType.SHIELD_BREAK));
-        double baseShieldDamage = Math.max(
-                1.0D,
-                Math.floor(result.finalDamage() / Math.max(1.0D, victim.maxHealth() * 0.1D))
-        );
-        double calculatedShieldDamage = baseShieldDamage + shieldBreak;
-
         double currentShield = currentShield(victim);
-        double shieldDamage = Math.min(currentShield, calculatedShieldDamage);
+        double shieldDamage = calculateShieldDamage(
+                result.finalDamage(),
+                victim.maxHealth(),
+                shieldBreak,
+                shieldBreakMultiplier,
+                currentShield
+        );
         boolean shieldBroken = currentShield > 0.0D && currentShield - shieldDamage <= 0.0D;
         consumeShield(victim, shieldDamage);
         return DamageResult.shield(shieldDamage, shieldBroken, result);
+    }
+
+    /**
+     * 一撃のシールド換算値へ攻撃者加算とスキル固有倍率を適用し、実消費量へ丸めます。
+     */
+    static double calculateShieldDamage(
+            double finalDamage,
+            double victimMaxHealth,
+            double shieldBreak,
+            double shieldBreakMultiplier,
+            double currentShield
+    ) {
+        double baseShieldDamage = Math.max(
+                1.0D,
+                Math.floor(Math.max(0.0D, finalDamage) / Math.max(1.0D, victimMaxHealth * 0.1D))
+        );
+        double calculated = (baseShieldDamage + Math.max(0.0D, shieldBreak))
+                * Math.max(0.0D, shieldBreakMultiplier);
+        return Math.min(Math.max(0.0D, currentShield), calculated);
     }
 
     private void applyDamageResult(
