@@ -26,6 +26,7 @@
 | `AstralRecord` | `AstralRecord/migrations/20260802_add_learned_skills.sql` | 習得スキル個体、装着シジル、6プリセット、動的補償メールの追加 |
 | `AstralRecord` | `AstralRecord/migrations/20260810_orb_enchant_effect_id.sql` | 装備エンチャントを共通マスタ effect ID 参照へ原子的に移行 |
 | `AstralRecord` | `AstralRecord/migrations/20260811_equipment_orb_operation.sql` | オーブ操作台帳、個体出品range-lock索引、旧カテゴリデータ移行 |
+| `AstralRecord` | `AstralRecord/migrations/20260812_account_dungeon_record.sql` | アカウント単位のダンジョン踏破記録を追加 |
 
 ## AstralRecord
 
@@ -36,6 +37,7 @@
 | `dbo.player_mail_state` | `AstralRecord/dbo.player_mail_state.md` |
 | `dbo.player_mail_delivery` | `AstralRecord/dbo.player_mail_delivery.md` |
 | `dbo.account_mob_record` | `AstralRecord/dbo.account_mob_record.md` |
+| `dbo.account_dungeon_record` | `AstralRecord/dbo.account_dungeon_record.md` |
 | `dbo.account` | `AstralRecord/dbo.account.md` |
 | `dbo.account_class_progress` | `AstralRecord/dbo.account_class_progress.md` |
 | `dbo.account_learned_skill` | `AstralRecord/dbo.account_learned_skill.md` |

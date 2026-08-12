@@ -1044,6 +1044,8 @@ public enum LogId {
     E_7002(7002),
     E_7003(7003),
     E_7004(7004),
+    E_7005(7005),
+    E_7006(7006),
     // endregion
 
     // region /feature/skilltree/ 9000-9009

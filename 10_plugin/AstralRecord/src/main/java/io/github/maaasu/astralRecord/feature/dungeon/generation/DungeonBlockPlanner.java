@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonBlockPlan;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonDefinition;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLayout;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomShape;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomType;
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
 
@@ -20,8 +21,8 @@ import java.util.SplittableRandom;
 /** 配置計画を、重み付きテーマを適用したブロック列へ変換します。 */
 public final class DungeonBlockPlanner {
     private static final long BLOCK_RANDOM_SALT = 0xBB67AE8584CAA73BL;
+    private static final long DECORATION_RANDOM_SALT = 0x510E527FADE682D1L;
     private static final int LIGHT_SPACING = 6;
-    private static final Material LIGHT_MATERIAL = Material.TORCH;
 
     /**
      * ブロック計画を生成します。Bukkit ワールドには触れないため非同期実行できます。
@@ -40,6 +41,7 @@ public final class DungeonBlockPlanner {
         for (DungeonLayout.Room room : layout.rooms()) {
             roomById.put(room.id(), room);
             buildRoom(blocks, room, definition, layout, random);
+            decorateRoom(blocks, room, definition, layout);
         }
 
         Set<DungeonLayout.Point> corridorFootprint = createCorridorFootprint(
@@ -68,8 +70,9 @@ public final class DungeonBlockPlanner {
                 buildPillar(blocks, room, definition, layout);
             }
         }
-        buildRoomLighting(blocks, layout.rooms(), layout);
-        buildCorridorLighting(blocks, layout.connections(), gates, layout);
+        buildRoomLighting(blocks, layout.rooms(), layout, definition.theme().lightMaterial());
+        buildCorridorLighting(
+                blocks, layout.connections(), gates, layout, definition.theme().lightMaterial());
 
         Map<Integer, List<DungeonBlockPlan.Position>> spawnPoints = new LinkedHashMap<>();
         for (DungeonLayout.Room room : layout.rooms()) {
@@ -114,6 +117,103 @@ public final class DungeonBlockPlanner {
                 for (int y = floorY + 1; y < ceilingY; y++) {
                     put(blocks, x, y, z,
                             boundary ? choose(definition.theme().wall(), random) : Material.AIR);
+                }
+            }
+        }
+    }
+
+    /** 部屋タイプに応じた装飾を、中央導線を維持したまま決定的に配置します。 */
+    private void decorateRoom(
+            @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
+            @NotNull DungeonLayout.Room room,
+            @NotNull DungeonDefinition definition,
+            @NotNull DungeonLayout layout
+    ) {
+        SplittableRandom random = new SplittableRandom(
+                layout.seed() ^ (DECORATION_RANDOM_SALT * (room.id() + 1L)));
+        switch (room.type()) {
+            case STANDARD -> {
+            }
+            case SUPPORT_HALL -> buildSupportHall(blocks, room, definition, layout);
+            case COLLAPSED -> buildCollapsedRoom(blocks, room, definition, layout, random);
+            case ORE_CHAMBER -> buildOreChamber(blocks, room, definition, layout, random);
+        }
+    }
+
+    private void buildSupportHall(
+            @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
+            @NotNull DungeonLayout.Room room,
+            @NotNull DungeonDefinition definition,
+            @NotNull DungeonLayout layout
+    ) {
+        int floorY = layout.baseY();
+        int ceilingY = floorY + layout.roomHeight() - 1;
+        DungeonDefinition.Decorations decorations = definition.theme().decorations();
+        for (int x = room.bounds().minX(); x <= room.bounds().maxX(); x++) {
+            for (int z = room.bounds().minZ(); z <= room.bounds().maxZ(); z++) {
+                if (!contains(room, x, z)) {
+                    continue;
+                }
+                if (isBoundary(room, x, z)
+                        && Math.floorMod(x * 31 + z * 17 + room.id(), 5) == 0) {
+                    for (int y = floorY + 1; y < ceilingY; y++) {
+                        put(blocks, x, y, z, decorations.supportMaterial());
+                    }
+                }
+                if ((x == room.bounds().centerX() || z == room.bounds().centerZ())
+                        && !isBoundary(room, x, z)) {
+                    put(blocks, x, ceilingY, z, decorations.beamMaterial());
+                }
+            }
+        }
+    }
+
+    private void buildCollapsedRoom(
+            @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
+            @NotNull DungeonLayout.Room room,
+            @NotNull DungeonDefinition definition,
+            @NotNull DungeonLayout layout,
+            @NotNull SplittableRandom random
+    ) {
+        int centerX = room.bounds().centerX();
+        int centerZ = room.bounds().centerZ();
+        int clearHalfWidth = definition.generation().corridorWidth() / 2 + 1;
+        int y = layout.baseY() + 1;
+        for (int x = room.bounds().minX() + 1; x < room.bounds().maxX(); x++) {
+            for (int z = room.bounds().minZ() + 1; z < room.bounds().maxZ(); z++) {
+                if (!contains(room, x, z)
+                        || Math.abs(x - centerX) <= clearHalfWidth
+                        || Math.abs(z - centerZ) <= clearHalfWidth
+                        || random.nextDouble() >= 0.16D) {
+                    continue;
+                }
+                DungeonBlockPlan.Position position = new DungeonBlockPlan.Position(x, y, z);
+                DungeonBlockPlan.Placement current = blocks.get(position);
+                if (current != null && current.material().isAir()) {
+                    put(blocks, position, choose(definition.theme().decorations().rubble(), random), null);
+                }
+            }
+        }
+    }
+
+    private void buildOreChamber(
+            @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
+            @NotNull DungeonLayout.Room room,
+            @NotNull DungeonDefinition definition,
+            @NotNull DungeonLayout layout,
+            @NotNull SplittableRandom random
+    ) {
+        int floorY = layout.baseY();
+        int ceilingY = floorY + layout.roomHeight() - 1;
+        for (int x = room.bounds().minX(); x <= room.bounds().maxX(); x++) {
+            for (int z = room.bounds().minZ(); z <= room.bounds().maxZ(); z++) {
+                if (!contains(room, x, z) || !isBoundary(room, x, z)) {
+                    continue;
+                }
+                for (int y = floorY + 1; y < ceilingY; y++) {
+                    if (random.nextDouble() < 0.14D) {
+                        put(blocks, x, y, z, choose(definition.theme().decorations().accent(), random));
+                    }
                 }
             }
         }
@@ -275,7 +375,8 @@ public final class DungeonBlockPlanner {
     private void buildRoomLighting(
             @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
             @NotNull List<DungeonLayout.Room> rooms,
-            @NotNull DungeonLayout layout
+            @NotNull DungeonLayout layout,
+            @NotNull Material lightMaterial
     ) {
         for (DungeonLayout.Room room : rooms) {
             int centerX = room.bounds().centerX();
@@ -289,12 +390,13 @@ public final class DungeonBlockPlanner {
                     if (Math.floorMod(z - centerZ, LIGHT_SPACING) == 0 && contains(room, x, z)) {
                         placed |= placeFloorLight(
                                 blocks,
-                                new DungeonBlockPlan.Position(x, layout.baseY() + 1, z));
+                                new DungeonBlockPlan.Position(x, layout.baseY() + 1, z),
+                                lightMaterial);
                     }
                 }
             }
             if (!placed) {
-                placeNearestRoomLight(blocks, room, layout);
+                placeNearestRoomLight(blocks, room, layout, lightMaterial);
             }
         }
     }
@@ -311,7 +413,8 @@ public final class DungeonBlockPlanner {
     private boolean placeNearestRoomLight(
             @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
             @NotNull DungeonLayout.Room room,
-            @NotNull DungeonLayout layout
+            @NotNull DungeonLayout layout,
+            @NotNull Material lightMaterial
     ) {
         int centerX = room.bounds().centerX();
         int centerZ = room.bounds().centerZ();
@@ -329,7 +432,7 @@ public final class DungeonBlockPlanner {
                 .thenComparingInt(DungeonBlockPlan.Position::x)
                 .thenComparingInt(DungeonBlockPlan.Position::z));
         for (DungeonBlockPlan.Position candidate : candidates) {
-            if (placeFloorLight(blocks, candidate)) {
+            if (placeFloorLight(blocks, candidate, lightMaterial)) {
                 return true;
             }
         }
@@ -348,7 +451,8 @@ public final class DungeonBlockPlanner {
             @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
             @NotNull List<DungeonLayout.Connection> connections,
             @NotNull Map<Integer, List<DungeonBlockPlan.Position>> gates,
-            @NotNull DungeonLayout layout
+            @NotNull DungeonLayout layout,
+            @NotNull Material lightMaterial
     ) {
         Set<DungeonBlockPlan.Position> gatePositions = new LinkedHashSet<>();
         gates.values().forEach(gatePositions::addAll);
@@ -357,10 +461,11 @@ public final class DungeonBlockPlanner {
             boolean placed = false;
             for (int index = LIGHT_SPACING / 2; index < line.size(); index += LIGHT_SPACING) {
                 DungeonLayout.Point point = line.get(index);
-                placed |= placeCorridorLight(blocks, gatePositions, layout, point);
+                placed |= placeCorridorLight(blocks, gatePositions, layout, point, lightMaterial);
             }
             if (!placed) {
-                placeCorridorLight(blocks, gatePositions, layout, line.get(line.size() / 2));
+                placeCorridorLight(
+                        blocks, gatePositions, layout, line.get(line.size() / 2), lightMaterial);
             }
         }
     }
@@ -379,14 +484,15 @@ public final class DungeonBlockPlanner {
             @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
             @NotNull Set<DungeonBlockPlan.Position> gatePositions,
             @NotNull DungeonLayout layout,
-            @NotNull DungeonLayout.Point point
+            @NotNull DungeonLayout.Point point,
+            @NotNull Material lightMaterial
     ) {
         DungeonBlockPlan.Position position = new DungeonBlockPlan.Position(
                 point.x(), layout.baseY() + 1, point.z());
         if (gatePositions.contains(position)) {
             return false;
         }
-        return placeFloorLight(blocks, position);
+        return placeFloorLight(blocks, position, lightMaterial);
     }
 
     /**
@@ -399,7 +505,8 @@ public final class DungeonBlockPlanner {
      */
     private boolean placeFloorLight(
             @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
-            @NotNull DungeonBlockPlan.Position position
+            @NotNull DungeonBlockPlan.Position position,
+            @NotNull Material lightMaterial
     ) {
         DungeonBlockPlan.Placement target = blocks.get(position);
         DungeonBlockPlan.Placement support = blocks.get(new DungeonBlockPlan.Position(
@@ -411,7 +518,7 @@ public final class DungeonBlockPlanner {
                 || above == null || !above.material().isAir()) {
             return false;
         }
-        put(blocks, position, LIGHT_MATERIAL, null);
+        put(blocks, position, lightMaterial, null);
         return true;
     }
 

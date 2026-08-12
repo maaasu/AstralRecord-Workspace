@@ -26,6 +26,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<PlayerMailStateEntity> PlayerMailStates => Set<PlayerMailStateEntity>();
     public DbSet<PlayerMailDeliveryEntity> PlayerMailDeliveries => Set<PlayerMailDeliveryEntity>();
     public DbSet<AccountMobRecordEntity> AccountMobRecords => Set<AccountMobRecordEntity>();
+    public DbSet<AccountDungeonRecordEntity> AccountDungeonRecords => Set<AccountDungeonRecordEntity>();
     public DbSet<AccountSkillTreeStateEntity> AccountSkillTreeStates => Set<AccountSkillTreeStateEntity>();
     public DbSet<AccountSkillTreeUnlockedNodeEntity> AccountSkillTreeUnlockedNodes => Set<AccountSkillTreeUnlockedNodeEntity>();
     public DbSet<AccountWaystoneUnlockEntity> AccountWaystoneUnlocks => Set<AccountWaystoneUnlockEntity>();
@@ -211,6 +212,35 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
                 .HasDatabaseName("UX_account_mob_record_account_mob");
             entity.HasIndex(record => new { record.AccountId, record.MobCategory, record.LastDefeatedAt })
                 .HasDatabaseName("IX_account_mob_record_account_category_last_defeated");
+        });
+
+        modelBuilder.Entity<AccountDungeonRecordEntity>(entity =>
+        {
+            entity.ToTable("account_dungeon_record", "dbo");
+            entity.HasKey(record => record.AccountDungeonRecordId);
+
+            entity.Property(record => record.AccountDungeonRecordId).HasColumnName("account_dungeon_record_id");
+            entity.Property(record => record.AccountId).HasColumnName("account_id");
+            entity.Property(record => record.DungeonId).HasColumnName("dungeon_id").HasMaxLength(100);
+            entity.Property(record => record.ClearCount).HasColumnName("clear_count");
+            entity.Property(record => record.FirstClearedAt).HasColumnName("first_cleared_at");
+            entity.Property(record => record.LastClearedAt).HasColumnName("last_cleared_at");
+            entity.Property(record => record.CreatedAt).HasColumnName("created_at");
+            entity.Property(record => record.UpdatedAt).HasColumnName("updated_at");
+            entity.Property(record => record.CreatedBy).HasColumnName("created_by");
+            entity.Property(record => record.UpdatedBy).HasColumnName("updated_by");
+            entity.Property(record => record.IsDeleted).HasColumnName("is_deleted");
+            entity.HasOne<AccountEntity>()
+                .WithMany()
+                .HasForeignKey(record => record.AccountId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(record => new { record.AccountId, record.DungeonId })
+                .IsUnique()
+                .HasDatabaseName("UX_account_dungeon_record_account_dungeon");
+            entity.HasIndex(record => new { record.AccountId, record.LastClearedAt })
+                .HasDatabaseName("IX_account_dungeon_record_account_last_cleared");
+            entity.HasIndex(record => record.IsDeleted)
+                .HasDatabaseName("IX_account_dungeon_record_is_deleted");
         });
 
         modelBuilder.Entity<AccountSkillTreeStateEntity>(entity =>

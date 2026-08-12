@@ -1,0 +1,96 @@
+package io.github.maaasu.astralRecord.feature.dungeon.gui;
+
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLayout;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonMapRoomState;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomShape;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomType;
+import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
+import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.Material;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.junit.jupiter.api.Test;
+
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+
+class DungeonMapGuiTest extends MockBukkitTestBase {
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ
+     * 検証契約: LOCKEDは?、AVAILABLE/ACTIVE/CLEARED/currentは別素材で表示し、内部room IDを表示文言へ含めない。
+     */
+    @Test
+    void visuallySeparatesRoomStatesWithoutExposingInternalIds() {
+        DungeonLayout layout = new DungeonLayout(
+                123L,
+                128,
+                128,
+                64,
+                8,
+                List.of(
+                        room(101, 0, 0),
+                        room(202, 50, 0),
+                        room(303, 0, 50),
+                        room(404, 50, 50)
+                ),
+                List.of(),
+                101,
+                404
+        );
+        Map<Integer, DungeonMapRoomState> states = new LinkedHashMap<>();
+        states.put(101, DungeonMapRoomState.LOCKED);
+        states.put(202, DungeonMapRoomState.AVAILABLE);
+        states.put(303, DungeonMapRoomState.ACTIVE);
+        states.put(404, DungeonMapRoomState.CLEARED);
+        DungeonService.MapSnapshot snapshot = new DungeonService.MapSnapshot(
+                UUID.randomUUID(), "internal_master_id", "表示名", layout, states, 303);
+        var player = server().addPlayer();
+
+        new DungeonMapGui().open(player, snapshot, 0);
+
+        Inventory inventory = player.getOpenInventory().getTopInventory();
+        Map<Integer, DungeonMapLayoutPlanner.Placement> placementByRoom = new LinkedHashMap<>();
+        new DungeonMapLayoutPlanner().plan(layout).forEach(placement ->
+                placementByRoom.put(placement.roomId(), placement));
+        assertItem(inventory, placementByRoom.get(101).slot(), Material.BLACK_STAINED_GLASS_PANE, "?");
+        assertItem(inventory, placementByRoom.get(202).slot(), Material.YELLOW_STAINED_GLASS_PANE, "未踏査の部屋");
+        assertItem(inventory, placementByRoom.get(303).slot(), Material.RECOVERY_COMPASS, "現在地");
+        assertItem(inventory, placementByRoom.get(404).slot(), Material.LIME_STAINED_GLASS_PANE, "攻略済みの部屋");
+        for (ItemStack item : inventory.getContents()) {
+            if (item == null || item.getType().isAir()) continue;
+            String rendered = PlainTextComponentSerializer.plainText().serialize(item.getItemMeta().displayName());
+            if (item.getItemMeta().lore() != null) {
+                rendered += item.getItemMeta().lore().stream()
+                        .map(PlainTextComponentSerializer.plainText()::serialize)
+                        .reduce("", String::concat);
+            }
+            assertFalse(rendered.contains("101") || rendered.contains("202")
+                    || rendered.contains("303") || rendered.contains("404"));
+        }
+    }
+
+    private void assertItem(Inventory inventory, int slot, Material material, String displayName) {
+        ItemStack item = inventory.getItem(slot);
+        assertEquals(material, item.getType());
+        assertEquals(displayName,
+                PlainTextComponentSerializer.plainText().serialize(item.getItemMeta().displayName()));
+    }
+
+    private DungeonLayout.Room room(int id, int x, int z) {
+        return new DungeonLayout.Room(
+                id,
+                new DungeonLayout.Rect(x, z, x + 8, z + 8),
+                DungeonRoomShape.RECTANGLE,
+                DungeonRoomType.STANDARD,
+                id == 101 ? DungeonLayout.RoomRole.START : DungeonLayout.RoomRole.NORMAL,
+                id
+        );
+    }
+}

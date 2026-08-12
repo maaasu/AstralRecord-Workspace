@@ -98,6 +98,7 @@ public final class DungeonDefinitionValidator {
             fail(definition, "generation.splitRatio must be ordered inside 0.25..0.50");
         }
         validatePositiveWeights(definition, "generation.roomShapes", generation.roomShapes());
+        validatePositiveWeights(definition, "generation.roomTypes", generation.roomTypes());
         int minimumPartition = generation.roomSize().min() + 4;
         int capacity = Math.max(1, generation.areaWidth() / minimumPartition)
                 * Math.max(1, generation.areaDepth() / minimumPartition);
@@ -109,6 +110,8 @@ public final class DungeonDefinitionValidator {
         validatePositiveWeights(definition, "theme.wall", definition.theme().wall());
         validatePositiveWeights(definition, "theme.ceiling", definition.theme().ceiling());
         validatePositiveWeights(definition, "theme.corridor", definition.theme().corridor());
+        validatePositiveWeights(definition, "theme.decorations.rubble", definition.theme().decorations().rubble());
+        validatePositiveWeights(definition, "theme.decorations.accent", definition.theme().decorations().accent());
         if (definition.theme().pillar().chance() < 0.0D
                 || definition.theme().pillar().chance() > 1.0D) {
             fail(definition, "theme.pillar.chance must be 0.0..1.0");
@@ -165,6 +168,7 @@ public final class DungeonDefinitionValidator {
         for (Object entry : entries) {
             int weight = switch (entry) {
                 case DungeonDefinition.WeightedShape value -> value.weight();
+                case DungeonDefinition.WeightedRoomType value -> value.weight();
                 case DungeonDefinition.WeightedMaterial value -> value.weight();
                 case DungeonDefinition.WeightedMob value -> value.weight();
                 default -> 0;

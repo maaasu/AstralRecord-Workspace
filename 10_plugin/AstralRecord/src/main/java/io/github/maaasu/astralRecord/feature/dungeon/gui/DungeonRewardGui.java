@@ -93,10 +93,6 @@ public final class DungeonRewardGui {
         List<Component> lore = meta.hasLore() && meta.lore() != null ? new ArrayList<>(meta.lore()) : new ArrayList<>();
         lore.add(Component.empty());
         lore.add(PlayerMsgResource.formatComponent(PlayerMsgId.P_7045.getId(), reward.amount()));
-        lore.add(PlayerMsgResource.formatComponent(
-                PlayerMsgId.P_7046.getId(),
-                String.format(java.util.Locale.ROOT, "%.2f", reward.configuredRate())
-        ));
         lore.add(PlayerMsgResource.getComponent(PlayerMsgId.P_7047.getId()));
         meta.lore(lore);
         stack.setItemMeta(meta);

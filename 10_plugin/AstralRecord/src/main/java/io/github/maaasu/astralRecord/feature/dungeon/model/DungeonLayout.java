@@ -61,9 +61,20 @@ public record DungeonLayout(
             int id,
             @NotNull Rect bounds,
             @NotNull DungeonRoomShape shape,
+            @NotNull DungeonRoomType type,
             @NotNull RoomRole role,
             int distanceFromStart
     ) {
+        /** 部屋タイプ導入前の呼び出し元向け互換コンストラクタです。 */
+        public Room(
+                int id,
+                @NotNull Rect bounds,
+                @NotNull DungeonRoomShape shape,
+                @NotNull RoomRole role,
+                int distanceFromStart
+        ) {
+            this(id, bounds, shape, DungeonRoomType.STANDARD, role, distanceFromStart);
+        }
     }
 
     /** 直交通路の中心線上の座標です。 */

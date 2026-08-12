@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.dungeon.event;
 
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonCancelGui;
+import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonArchiveGui;
+import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonMapGui;
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonRewardGui;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
@@ -286,6 +288,29 @@ class DungeonInteractionEventHandlerTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ
+     * 検証契約: 踏破記録詳細から戻る場合は、詳細を開いた一覧ページへ復帰する。
+     */
+    @Test
+    void returnsToOriginatingArchiveListPage() {
+        TestContext context = new TestContext();
+        InventoryClickEvent event = mock(InventoryClickEvent.class);
+        UUID accountId = UUID.randomUUID();
+        DungeonArchiveGui.DetailHolder holder = new DungeonArchiveGui.DetailHolder(
+                context.player.getUniqueId(), accountId, "dungeon", 3, 0);
+        when(event.getView()).thenReturn(context.view);
+        when(event.getWhoClicked()).thenReturn(context.player);
+        when(event.getRawSlot()).thenReturn(DungeonArchiveGui.BACK_SLOT);
+        when(context.archiveGui.detailHolder(context.top)).thenReturn(holder);
+
+        context.handler.onInventoryClick(event);
+
+        verify(event).setCancelled(true);
+        verify(context.service).openArchiveListPage(context.player, accountId, 3);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 5. 離脱・再参加・中止
      * 検証契約: 中止GUI表示中のplayer inventory clickを共通HotbarShortcut契約へ委譲する。
      */
@@ -409,6 +434,8 @@ class DungeonInteractionEventHandlerTest {
         private final DungeonService service = mock(DungeonService.class);
         private final DungeonCancelGui cancelGui = mock(DungeonCancelGui.class);
         private final DungeonRewardGui rewardGui = mock(DungeonRewardGui.class);
+        private final DungeonMapGui mapGui = mock(DungeonMapGui.class);
+        private final DungeonArchiveGui archiveGui = mock(DungeonArchiveGui.class);
         private final InventoryService inventoryService = mock(InventoryService.class);
         private final Player player = mock(Player.class);
         private final World world = mock(World.class);
@@ -426,6 +453,8 @@ class DungeonInteractionEventHandlerTest {
             when(world.getUID()).thenReturn(UUID.randomUUID());
             when(service.cancelGui()).thenReturn(cancelGui);
             when(service.rewardGui()).thenReturn(rewardGui);
+            when(service.mapGui()).thenReturn(mapGui);
+            when(service.archiveGui()).thenReturn(archiveGui);
         }
     }
 }

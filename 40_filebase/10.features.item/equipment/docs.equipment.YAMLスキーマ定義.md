@@ -69,7 +69,11 @@
 `slot: WEAPON` の主攻撃力は、`tag: SWORD` なら `MELEE_ATTACK`、`tag: BOW` なら `RANGED_ATTACK`、`tag: STAFF` なら `MAGIC_ATTACK` のように、攻撃種別に対応するステータスを指定します。`ATTACK` は全攻撃種別へ影響する共通攻撃力として、追加で指定する場合に使用します。
 
 ### equipment[].handType
-`slot=WEAPON` のときに指定します。
+`slot=WEAPON` または `slot=TOOL` のときに指定します。
+
+### CARTOGRAPH tool
+
+共有tag `CARTOGRAPH` は、ダンジョンmap／archiveを開く再利用可能toolを表します。標準定義 `cartograph` は `slot: TOOL`、`handType: ONE`、`maxStack: 1`、最大耐久300、登録消費75です。`durability.consume` はこのtoolでは通常clickごとの消費ではなく、異なるdungeon sessionを初回登録した時だけPluginが固定消費します。同じsessionの再表示では消費しません。耐久回復は既存のgeneric repair orbを使用します。
 
 ### equipment[].tag（アクセサリ）
 

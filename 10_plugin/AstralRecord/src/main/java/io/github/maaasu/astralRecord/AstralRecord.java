@@ -896,6 +896,8 @@ public final class AstralRecord extends JavaPlugin {
             inventoryService,
             itemService,
             itemStackFactory,
+            lootService,
+            new AdventureRecordRepository(),
             bossHubWorldId
         );
         damageService.setDungeonService(dungeonService);

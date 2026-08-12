@@ -52,6 +52,9 @@ public final class MasterTagIds {
 
         /** メインメニュー: 右クリックでメインメニューを開く装備。 */
         public static final String MAIN_MENU = "MAIN_MENU";
+
+        /** カルトグラフ: ダンジョンの現在地図と踏破記録を閲覧する再利用可能な道具。 */
+        public static final String CARTOGRAPH = "CARTOGRAPH";
     }
 
     /** 機能種別タグです。 */
@@ -440,6 +443,7 @@ public final class MasterTagIds {
         Map.entry("AXE", new Definition("AXE", "斧", "伐採用の斧として扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
         Map.entry("HOE", new Definition("HOE", "クワ", "採取用のクワとして扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
         Map.entry("MAIN_MENU", new Definition("MAIN_MENU", "メインメニュー", "右クリックでメインメニューを開く装備。", "EQUIPMENT", List.of("EQUIPMENT"))),
+        Map.entry("CARTOGRAPH", new Definition("CARTOGRAPH", "カルトグラフ", "ダンジョンの現在地図と踏破記録を閲覧する再利用可能な道具。", "EQUIPMENT", List.of("EQUIPMENT"))),
         Map.entry("active", new Definition("active", "アクティブ", "能動的に発動するスキル。", "ACTIVITY", List.of("SKILL"))),
         Map.entry("passive", new Definition("passive", "パッシブ", "常時または条件付きで自動適用されるスキル。", "ACTIVITY", List.of("SKILL"))),
         Map.entry("mob", new Definition("mob", "Mob用", "Mob が使用するスキル。", "ACTIVITY", List.of("SKILL"))),

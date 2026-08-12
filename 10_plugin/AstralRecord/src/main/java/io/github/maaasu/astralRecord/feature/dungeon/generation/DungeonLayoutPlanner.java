@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.dungeon.generation;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonDefinition;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLayout;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomShape;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomType;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayDeque;
@@ -101,8 +102,9 @@ public final class DungeonLayoutPlanner {
             Node leaf = leaves.get(id);
             DungeonLayout.Rect roomBounds = createRoomBounds(leaf.bounds, generation.roomSize(), random);
             DungeonRoomShape shape = chooseShape(generation.roomShapes(), random);
+            DungeonRoomType type = chooseRoomType(generation.roomTypes(), random);
             leaf.roomId = id;
-            placedRooms.add(new PlacedRoom(id, roomBounds, shape));
+            placedRooms.add(new PlacedRoom(id, roomBounds, shape, type));
         }
 
         List<Edge> edges = new ArrayList<>(leaves.size() - 1);
@@ -143,6 +145,7 @@ public final class DungeonLayoutPlanner {
                     room.id,
                     room.bounds,
                     room.shape,
+                    room.type,
                     role,
                     traversal.distance.get(room.id)
             ));
@@ -289,6 +292,21 @@ public final class DungeonLayoutPlanner {
             }
         }
         return shapes.getLast().shape();
+    }
+
+    private @NotNull DungeonRoomType chooseRoomType(
+            @NotNull List<DungeonDefinition.WeightedRoomType> roomTypes,
+            @NotNull SplittableRandom random
+    ) {
+        int total = roomTypes.stream().mapToInt(DungeonDefinition.WeightedRoomType::weight).sum();
+        int roll = random.nextInt(total);
+        for (DungeonDefinition.WeightedRoomType roomType : roomTypes) {
+            roll -= roomType.weight();
+            if (roll < 0) {
+                return roomType.type();
+            }
+        }
+        return roomTypes.getLast().type();
     }
 
     private @NotNull List<Integer> collectConnections(
@@ -502,7 +520,12 @@ public final class DungeonLayoutPlanner {
         }
     }
 
-    private record PlacedRoom(int id, @NotNull DungeonLayout.Rect bounds, @NotNull DungeonRoomShape shape) {
+    private record PlacedRoom(
+            int id,
+            @NotNull DungeonLayout.Rect bounds,
+            @NotNull DungeonRoomShape shape,
+            @NotNull DungeonRoomType type
+    ) {
     }
 
     private record Edge(int first, int second) {

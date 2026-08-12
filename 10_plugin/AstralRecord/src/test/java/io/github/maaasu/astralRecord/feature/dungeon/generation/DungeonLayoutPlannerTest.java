@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.dungeon.generation;
 import io.github.maaasu.astralRecord.feature.dungeon.DungeonTestFixtures;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonDefinition;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLayout;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomType;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayDeque;
@@ -12,6 +13,7 @@ import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -176,6 +178,46 @@ class DungeonLayoutPlannerTest {
         assertEquals(1L, bossCount);
         assertEquals(1, adjacency.get(boss.id()).size());
         assertEquals(farthestLeafDistance, boss.distanceFromStart());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 1. BSP 配置生成
+     * 検証契約: roomTypesの正の相対weightを用い、同じdefinitionとseedでは各roomへ同じtypeを決定的に割り当てる。
+     */
+    @Test
+    void assignsWeightedRoomTypesDeterministically() {
+        DungeonDefinition source = DungeonTestFixtures.definition();
+        DungeonDefinition.Generation generation = source.generation();
+        DungeonDefinition definition = new DungeonDefinition(
+                source.schemaVersion(), source.id(), source.displayName(), source.entry(), source.partySize(),
+                source.challenge(),
+                new DungeonDefinition.Generation(
+                        generation.areaWidth(), generation.areaDepth(), generation.baseY(),
+                        generation.roomCount(), generation.roomSize(), generation.roomHeight(),
+                        generation.corridorWidth(), generation.corridorHeight(),
+                        generation.splitRatioMin(), generation.splitRatioMax(), generation.roomShapes(),
+                        List.of(
+                                new DungeonDefinition.WeightedRoomType(DungeonRoomType.STANDARD, 1),
+                                new DungeonDefinition.WeightedRoomType(DungeonRoomType.SUPPORT_HALL, 1),
+                                new DungeonDefinition.WeightedRoomType(DungeonRoomType.COLLAPSED, 1),
+                                new DungeonDefinition.WeightedRoomType(DungeonRoomType.ORE_CHAMBER, 1)
+                        )
+                ),
+                source.theme(), source.encounter(), source.clearRewards()
+        );
+        Set<DungeonRoomType> observed = new HashSet<>();
+
+        for (long seed = 0; seed < 100; seed++) {
+            DungeonLayout first = planner.plan(definition, seed);
+            DungeonLayout second = planner.plan(definition, seed);
+            assertEquals(
+                    first.rooms().stream().map(DungeonLayout.Room::type).toList(),
+                    second.rooms().stream().map(DungeonLayout.Room::type).toList());
+            first.rooms().stream().map(DungeonLayout.Room::type).forEach(observed::add);
+        }
+
+        assertEquals(Set.of(DungeonRoomType.values()), observed);
     }
 
     private Map<Integer, Set<Integer>> adjacency(DungeonLayout layout) {

@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.dungeon.repository;
 
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonDefinition;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomShape;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomType;
 import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
@@ -91,6 +92,54 @@ class DungeonDefinitionRepositoryTest {
         assertEquals(5L, definition.challenge().reviveDelaySeconds());
         assertEquals(100.0D, definition.clearRewards().items().getFirst().rate());
         assertEquals("1", definition.clearRewards().items().getFirst().amount());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
+     * 章・見出し: # 32_1-モデル定義 > ## 1. DungeonDefinition
+     * 検証契約: weighted roomTypesと照明・support・beam・rubble・accentテーマをfilebaseから型付きモデルへ読み込む。
+     */
+    @Test
+    void parsesRoomTypesAndGenericDecorationTheme() throws IOException {
+        String source = yaml().replace("encounter:\n", """
+                generation:
+                  roomTypes:
+                    - type: SUPPORT_HALL
+                      weight: 3
+                    - type: COLLAPSED
+                      weight: 2
+                    - type: ORE_CHAMBER
+                      weight: 1
+                theme:
+                  lightMaterial: SOUL_TORCH
+                  decorations:
+                    supportMaterial: SPRUCE_LOG
+                    beamMaterial: STRIPPED_SPRUCE_LOG
+                    rubble:
+                      - material: TUFF
+                        weight: 2
+                    accent:
+                      - material: DEEPSLATE_IRON_ORE
+                        weight: 4
+                encounter:
+                """);
+
+        DungeonDefinition definition = load(source);
+
+        assertEquals(List.of(
+                        DungeonRoomType.SUPPORT_HALL,
+                        DungeonRoomType.COLLAPSED,
+                        DungeonRoomType.ORE_CHAMBER),
+                definition.generation().roomTypes().stream()
+                        .map(DungeonDefinition.WeightedRoomType::type).toList());
+        assertEquals(List.of(3, 2, 1), definition.generation().roomTypes().stream()
+                .map(DungeonDefinition.WeightedRoomType::weight).toList());
+        assertEquals(Material.SOUL_TORCH, definition.theme().lightMaterial());
+        assertEquals(Material.SPRUCE_LOG, definition.theme().decorations().supportMaterial());
+        assertEquals(Material.STRIPPED_SPRUCE_LOG, definition.theme().decorations().beamMaterial());
+        assertEquals(Material.TUFF, definition.theme().decorations().rubble().getFirst().material());
+        assertEquals(Material.DEEPSLATE_IRON_ORE,
+                definition.theme().decorations().accent().getFirst().material());
     }
 
     /**

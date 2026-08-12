@@ -1,0 +1,27 @@
+# design:
+#   motif: "星図盤 / ダンジョン測量器"
+#   progression: 10
+schemaVersion: 1
+id: cartograph
+category: equipment
+name: "&bカルトグラフ"
+icon: RECOVERY_COMPASS
+rarity: RARE
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7踏み入った迷宮の構造を星図として刻む測量器。"
+  - "&7ダンジョン内で右クリックすると現在地図を登録・表示する。"
+  - "&7ダンジョン外では踏破済み迷宮の報酬記録を閲覧できる。"
+unTradeable: false
+unSellable: true
+
+equipment:
+  slot: TOOL
+  handType: ONE
+  tag: CARTOGRAPH
+  requiredLevel: 0
+  stats: []
+  durability:
+    max: 300
+    consume: 75

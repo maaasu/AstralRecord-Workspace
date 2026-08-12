@@ -2,6 +2,8 @@ package io.github.maaasu.astralRecord.feature.dungeon.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonRewardGui;
+import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonArchiveGui;
+import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonMapGui;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -94,23 +96,41 @@ public final class DungeonInteractionEventHandler extends AbstractEventHandler
         }
         if (context.family() == InputFamily.RIGHT_CLICK && snapshot.isMainHandInput()) {
             DungeonService.DungeonRewardChestTarget target = service.findRewardChestTarget(snapshot.player());
-            if (target == null) {
+            if (target != null) {
+                Double hitDistance = snapshot.hitDistance(target.block());
+                if (hitDistance != null && snapshot.isVisible(hitDistance)) {
+                    String targetKey = rewardChestTargetKey(target);
+                    return List.of(new PlayerInputCandidate(
+                            "dungeon-reward-chest",
+                            InteractionTier.WORLD_INTERACTION,
+                            hitDistance,
+                            InteractionCandidateOrder.DUNGEON_CONTROLLER,
+                            targetKey,
+                            InputClaimPolicy.CLAIM_AND_CANCEL,
+                            () -> isCurrentRewardChestTarget(snapshot, targetKey),
+                            () -> service.openRewardChest(snapshot.player(), target.block())
+                    ));
+                }
+            }
+            DungeonService.CartographTarget cartograph = service.findCartographTarget(snapshot.player());
+            if (cartograph == null) {
                 return List.of();
             }
-            Double hitDistance = snapshot.hitDistance(target.block());
-            if (hitDistance == null || !snapshot.isVisible(hitDistance)) {
-                return List.of();
-            }
-            String targetKey = rewardChestTargetKey(target);
             return List.of(new PlayerInputCandidate(
-                    "dungeon-reward-chest",
-                    InteractionTier.WORLD_INTERACTION,
-                    hitDistance,
-                    InteractionCandidateOrder.DUNGEON_CONTROLLER,
-                    targetKey,
+                    "dungeon-cartograph",
+                    InteractionTier.ITEM_USE,
+                    0.0D,
+                    0,
+                    cartograph.equipmentInstanceId(),
                     InputClaimPolicy.CLAIM_AND_CANCEL,
-                    () -> isCurrentRewardChestTarget(snapshot, targetKey),
-                    () -> service.openRewardChest(snapshot.player(), target.block())
+                    () -> service.isCurrentCartographTarget(
+                            snapshot.player(), cartograph.equipmentInstanceId()),
+                    () -> runSafely(
+                            () -> service.handleCartographRightClick(snapshot.player()),
+                            LogId.E_7001,
+                            snapshot.player().getName(),
+                            "cartograph"
+                    )
             ));
         }
         return List.of();
@@ -197,23 +217,81 @@ public final class DungeonInteractionEventHandler extends AbstractEventHandler
             return;
         }
         DungeonRewardGui.Holder holder = service.rewardGui().holder(event.getView().getTopInventory());
-        if (holder == null) return;
+        if (holder != null) {
+            event.setCancelled(true);
+            if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) return;
+            if (!holder.playerId().equals(player.getUniqueId())) return;
+            service.handleRewardClick(
+                    player,
+                    holder.sessionId(),
+                    holder.pageIndex(),
+                    event.getRawSlot(),
+                    holder.claimIdAt(event.getRawSlot())
+            );
+            return;
+        }
+        DungeonMapGui.Holder mapHolder = service.mapGui().holder(event.getView().getTopInventory());
+        if (mapHolder != null) {
+            event.setCancelled(true);
+            if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) return;
+            if (!mapHolder.playerId().equals(player.getUniqueId())) return;
+            if (event.getRawSlot() == DungeonMapGui.CLOSE_SLOT) {
+                player.closeInventory();
+            } else if (event.getRawSlot() == DungeonMapGui.PREVIOUS_SLOT) {
+                service.openMapPage(player, mapHolder.sessionId(), mapHolder.pageIndex() - 1);
+            } else if (event.getRawSlot() == DungeonMapGui.NEXT_SLOT) {
+                service.openMapPage(player, mapHolder.sessionId(), mapHolder.pageIndex() + 1);
+            }
+            return;
+        }
+        DungeonArchiveGui.ListHolder listHolder = service.archiveGui()
+                .listHolder(event.getView().getTopInventory());
+        if (listHolder != null) {
+            event.setCancelled(true);
+            if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) return;
+            if (!listHolder.playerId().equals(player.getUniqueId())) return;
+            if (event.getRawSlot() == DungeonArchiveGui.BACK_SLOT) {
+                player.closeInventory();
+            } else if (event.getRawSlot() == DungeonArchiveGui.PREVIOUS_SLOT) {
+                service.openArchiveListPage(player, listHolder.accountId(), listHolder.pageIndex() - 1);
+            } else if (event.getRawSlot() == DungeonArchiveGui.NEXT_SLOT) {
+                service.openArchiveListPage(player, listHolder.accountId(), listHolder.pageIndex() + 1);
+            } else {
+                String dungeonId = listHolder.dungeonIdAt(event.getRawSlot());
+                if (dungeonId != null) {
+                    service.openArchiveDetails(
+                            player, listHolder.accountId(), dungeonId, listHolder.pageIndex(), 0);
+                }
+            }
+            return;
+        }
+        DungeonArchiveGui.DetailHolder detailHolder = service.archiveGui()
+                .detailHolder(event.getView().getTopInventory());
+        if (detailHolder == null) return;
         event.setCancelled(true);
         if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) return;
-        if (!holder.playerId().equals(player.getUniqueId())) return;
-        service.handleRewardClick(
-                player,
-                holder.sessionId(),
-                holder.pageIndex(),
-                event.getRawSlot(),
-                holder.claimIdAt(event.getRawSlot())
-        );
+        if (!detailHolder.playerId().equals(player.getUniqueId())) return;
+        if (event.getRawSlot() == DungeonArchiveGui.BACK_SLOT) {
+            service.openArchiveListPage(
+                    player, detailHolder.accountId(), detailHolder.listPageIndex());
+        } else if (event.getRawSlot() == DungeonArchiveGui.PREVIOUS_SLOT) {
+            service.openArchiveDetails(
+                    player, detailHolder.accountId(), detailHolder.dungeonId(),
+                    detailHolder.listPageIndex(), detailHolder.pageIndex() - 1);
+        } else if (event.getRawSlot() == DungeonArchiveGui.NEXT_SLOT) {
+            service.openArchiveDetails(
+                    player, detailHolder.accountId(), detailHolder.dungeonId(),
+                    detailHolder.listPageIndex(), detailHolder.pageIndex() + 1);
+        }
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onInventoryDrag(@NotNull InventoryDragEvent event) {
         if (service.cancelGui().isInventory(event.getView().getTopInventory())
-                || service.rewardGui().isInventory(event.getView().getTopInventory())) {
+                || service.rewardGui().isInventory(event.getView().getTopInventory())
+                || service.mapGui().holder(event.getView().getTopInventory()) != null
+                || service.archiveGui().listHolder(event.getView().getTopInventory()) != null
+                || service.archiveGui().detailHolder(event.getView().getTopInventory()) != null) {
             event.setCancelled(true);
         }
     }

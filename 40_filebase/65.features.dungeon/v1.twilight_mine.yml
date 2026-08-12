@@ -12,6 +12,86 @@ entry:
 challenge:
   deathLimit: 5
   reviveDelaySeconds: 5
+generation:
+  area:
+    width: 128
+    depth: 128
+  baseY: 64
+  roomCount:
+    min: 7
+    max: 11
+  roomSize:
+    min: 11
+    max: 23
+  roomHeight: 8
+  corridorWidth: 3
+  corridorHeight: 4
+  splitRatio:
+    min: 0.35
+    max: 0.50
+  roomShapes:
+    - type: RECTANGLE
+      weight: 3
+    - type: CYLINDER
+      weight: 1
+  roomTypes:
+    - type: STANDARD
+      weight: 4
+    - type: SUPPORT_HALL
+      weight: 3
+    - type: COLLAPSED
+      weight: 2
+    - type: ORE_CHAMBER
+      weight: 2
+theme:
+  floor:
+    - material: POLISHED_DEEPSLATE
+      weight: 3
+    - material: DEEPSLATE_TILES
+      weight: 1
+    - material: TUFF_BRICKS
+      weight: 1
+  wall:
+    - material: DEEPSLATE_BRICKS
+      weight: 4
+    - material: CRACKED_DEEPSLATE_BRICKS
+      weight: 1
+    - material: TUFF_BRICKS
+      weight: 1
+  ceiling:
+    - material: DEEPSLATE_TILES
+      weight: 3
+    - material: TUFF_BRICKS
+      weight: 1
+  corridor:
+    - material: COBBLED_DEEPSLATE
+      weight: 3
+    - material: TUFF
+      weight: 1
+  gateMaterial: IRON_BARS
+  lightMaterial: SOUL_TORCH
+  pillar:
+    enabled: true
+    chance: 0.25
+    material: CHISELED_DEEPSLATE
+    stairMaterial: DEEPSLATE_TILE_STAIRS
+  decorations:
+    supportMaterial: SPRUCE_LOG
+    beamMaterial: STRIPPED_SPRUCE_LOG
+    rubble:
+      - material: COBBLED_DEEPSLATE
+        weight: 3
+      - material: TUFF
+        weight: 2
+      - material: GRAVEL
+        weight: 1
+    accent:
+      - material: DEEPSLATE_IRON_ORE
+        weight: 3
+      - material: DEEPSLATE_COPPER_ORE
+        weight: 2
+      - material: DEEPSLATE_GOLD_ORE
+        weight: 1
 encounter:
   normalMobPool:
     - mobId: mob:midgard_forest_moss_wisp

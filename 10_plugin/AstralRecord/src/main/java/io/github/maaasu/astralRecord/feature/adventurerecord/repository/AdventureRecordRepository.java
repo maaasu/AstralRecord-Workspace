@@ -5,6 +5,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureMobRecord;
+import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureDungeonRecord;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
 import org.jetbrains.annotations.NotNull;
@@ -108,6 +109,75 @@ public class AdventureRecordRepository {
         }
     }
 
+    /**
+     * ダンジョン踏破記録一覧を取得します。
+     *
+     * @param accountId 対象アカウント ID
+     * @return 踏破記録一覧
+     */
+    public @NotNull List<AdventureDungeonRecord> findDungeonRecords(@NotNull UUID accountId) {
+        String path = "/api/adventure-record/dungeon?account_id=" + accountId;
+        try {
+            try (var client = ApiRequestUtil.buildClient()) {
+                var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() != 200) {
+                    throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
+                }
+                JsonArray array = JsonParser.parseString(response.body()).getAsJsonArray();
+                List<AdventureDungeonRecord> result = new ArrayList<>();
+                for (JsonElement element : array) {
+                    if (element.isJsonObject()) {
+                        result.add(parseDungeonRecord(element.getAsJsonObject()));
+                    }
+                }
+                return List.copyOf(result);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    /**
+     * ダンジョン踏破を 1 回記録します。
+     *
+     * @param accountId 対象アカウント ID
+     * @param dungeonId ダンジョンマスタ ID
+     * @param updatedBy 更新者ユーザー ID
+     * @return API が確定した踏破記録
+     */
+    public @NotNull AdventureDungeonRecord recordDungeonClear(
+            @NotNull UUID accountId,
+            @NotNull String dungeonId,
+            @NotNull UUID updatedBy
+    ) {
+        JsonObject body = new JsonObject();
+        body.addProperty("accountId", accountId.toString());
+        body.addProperty("dungeonId", dungeonId);
+        body.addProperty("updatedBy", updatedBy.toString());
+        String path = "/api/adventure-record/dungeon/clear";
+        try {
+            try (var client = ApiRequestUtil.buildClient()) {
+                var request = ApiRequestUtil.buildRequestBuilder(path)
+                        .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
+                        .build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() != 200) {
+                    throw new IOException("Unexpected status " + response.statusCode() + " for POST " + path);
+                }
+                return parseDungeonRecord(JsonParser.parseString(response.body()).getAsJsonObject());
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     private @NotNull AdventureMobRecord parseRecord(@NotNull JsonObject obj) {
         return new AdventureMobRecord(
             UUID.fromString(obj.get("accountMobRecordId").getAsString()),
@@ -117,6 +187,17 @@ public class AdventureRecordRepository {
             obj.get("defeatCount").getAsLong(),
             parseApiInstant(obj.get("firstDefeatedAt").getAsString()),
             parseApiInstant(obj.get("lastDefeatedAt").getAsString())
+        );
+    }
+
+    private @NotNull AdventureDungeonRecord parseDungeonRecord(@NotNull JsonObject obj) {
+        return new AdventureDungeonRecord(
+                UUID.fromString(obj.get("accountDungeonRecordId").getAsString()),
+                UUID.fromString(obj.get("accountId").getAsString()),
+                obj.get("dungeonId").getAsString(),
+                obj.get("clearCount").getAsLong(),
+                parseApiInstant(obj.get("firstClearedAt").getAsString()),
+                parseApiInstant(obj.get("lastClearedAt").getAsString())
         );
     }
 

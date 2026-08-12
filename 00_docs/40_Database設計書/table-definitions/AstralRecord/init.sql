@@ -1091,6 +1091,41 @@ CREATE NONCLUSTERED INDEX [IX_account_mob_record_is_deleted]
 GO
 
 -- ============================================================
+-- AstralRecord\dbo.account_dungeon_record.md
+-- ============================================================
+
+CREATE TABLE [dbo].[account_dungeon_record] (
+    [account_dungeon_record_id] UNIQUEIDENTIFIER NOT NULL,
+    [account_id]                 UNIQUEIDENTIFIER NOT NULL,
+    [dungeon_id]                 NVARCHAR(100)    NOT NULL,
+    [clear_count]                BIGINT           NOT NULL CONSTRAINT [DF_account_dungeon_record_clear_count] DEFAULT (1),
+    [first_cleared_at]           DATETIME2(3)     NOT NULL,
+    [last_cleared_at]            DATETIME2(3)     NOT NULL,
+    [created_at]                 DATETIME2(3)     NOT NULL,
+    [updated_at]                 DATETIME2(3)     NOT NULL,
+    [created_by]                 UNIQUEIDENTIFIER NOT NULL,
+    [updated_by]                 UNIQUEIDENTIFIER NOT NULL,
+    [is_deleted]                 BIT              NOT NULL CONSTRAINT [DF_account_dungeon_record_is_deleted] DEFAULT (0),
+
+    CONSTRAINT [PK_account_dungeon_record] PRIMARY KEY CLUSTERED ([account_dungeon_record_id]),
+    CONSTRAINT [FK_account_dungeon_record_account] FOREIGN KEY ([account_id])
+        REFERENCES [dbo].[account] ([uuid])
+        ON DELETE CASCADE
+        ON UPDATE NO ACTION,
+    CONSTRAINT [UX_account_dungeon_record_account_dungeon] UNIQUE ([account_id], [dungeon_id]),
+    CONSTRAINT [CK_account_dungeon_record_clear_count] CHECK ([clear_count] >= 1)
+);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_account_dungeon_record_account_last_cleared]
+    ON [dbo].[account_dungeon_record] ([account_id], [last_cleared_at] DESC);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_account_dungeon_record_is_deleted]
+    ON [dbo].[account_dungeon_record] ([is_deleted]);
+GO
+
+-- ============================================================
 -- AstralRecord\dbo.equipment_instance_rune.md
 -- ============================================================
 

@@ -33,15 +33,21 @@
 | `generation.corridorHeight` | Integer | `4`、`2..roomHeight-2` |
 | `generation.splitRatio.min/max` | Double | `0.35/0.50`、`0.25..0.50` |
 | `generation.roomShapes[]` | List | `RECTANGLE:3`, `CYLINDER:1`。type は両列挙値、weight 省略時 `1` |
+| `generation.roomTypes[]` | List | `STANDARD:1`。type は `STANDARD` / `SUPPORT_HALL` / `COLLAPSED` / `ORE_CHAMBER`、weight 省略時 `1` |
 | `theme.floor/wall/ceiling[]` | List | 各 `STONE_BRICKS:1` |
 | `theme.corridor[]` | List | `COBBLESTONE:1` |
 | `theme.*[].material` | String | AIR ではない solid block Material |
 | `theme.*[].weight` | Integer | `1`。正の相対 weight |
 | `theme.gateMaterial` | String | `IRON_BARS` |
+| `theme.lightMaterial` | String | `TORCH`。床置き可能な照明block Material |
 | `theme.pillar.enabled` | Boolean | `false` |
 | `theme.pillar.chance` | Double | `0.35`、`0.0..1.0` |
 | `theme.pillar.material` | String | `CHISELED_STONE_BRICKS` |
 | `theme.pillar.stairMaterial` | String | `STONE_BRICK_STAIRS` |
+| `theme.decorations.supportMaterial` | String | `OAK_LOG`。`SUPPORT_HALL` の外周支柱 |
+| `theme.decorations.beamMaterial` | String | `OAK_PLANKS`。`SUPPORT_HALL` の天井梁 |
+| `theme.decorations.rubble[]` | List | `COBBLESTONE:1`。`COLLAPSED` の床上瓦礫Materialと正の相対weight |
+| `theme.decorations.accent[]` | List | `COAL_ORE:1`。`ORE_CHAMBER` の外周壁accent Materialと正の相対weight |
 | `encounter.normalMobPool[].weight` | Integer | `1`。正の相対 weight |
 | `encounter.mobsPerRoom.min/max` | Integer | `2/4`、`1..16` |
 | `encounter.firstCombatRoomMaxMobLevel` | Integer | `10`。開始部屋候補の level 上限 |
@@ -52,6 +58,8 @@
 | `clearRewards.lootTable` | String | 任意の `loot_table:` 参照。直接報酬と独立抽選して結合 |
 
 ダンジョンごとの DUNGEON World マスタは不要です。Plugin が共通インスタンスルートと保護設定から実行時 World 定義を生成します。
+
+room typeは部屋のSTART／NORMAL／BOSS役割とは独立してseedから決定されます。同じ定義とseedは同じtypeを返します。`SUPPORT_HALL`は外周支柱と天井梁、`COLLAPSED`は中央縦横導線外の瓦礫、`ORE_CHAMBER`は外周壁accentを生成し、gate・spawn・通路を塞ぎません。
 
 既定値はキーを省略した場合だけ適用します。キーを明示した場合、非数値、境界外、負数、不正な数量範囲を既定値へ補正せず、マスタの load／公開を失敗させます。
 
@@ -82,3 +90,33 @@ clearRewards:
 ```
 
 生成範囲、部屋数、Material、柱、Mob 数を個別調整したいダンジョンだけ、省略可能項目を追加します。
+
+## 視覚テーマ YAML 例
+
+```yaml
+generation:
+  roomTypes:
+    - type: STANDARD
+      weight: 4
+    - type: SUPPORT_HALL
+      weight: 3
+    - type: COLLAPSED
+      weight: 2
+    - type: ORE_CHAMBER
+      weight: 2
+theme:
+  lightMaterial: SOUL_TORCH
+  decorations:
+    supportMaterial: SPRUCE_LOG
+    beamMaterial: STRIPPED_SPRUCE_LOG
+    rubble:
+      - material: COBBLED_DEEPSLATE
+        weight: 3
+      - material: TUFF
+        weight: 2
+    accent:
+      - material: DEEPSLATE_IRON_ORE
+        weight: 3
+      - material: DEEPSLATE_GOLD_ORE
+        weight: 1
+```

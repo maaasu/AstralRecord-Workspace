@@ -22,3 +22,24 @@ public class AccountMobDefeatRequest
     public required string MobCategory { get; init; }
     public Guid UpdatedBy { get; init; }
 }
+
+public class AccountDungeonRecordResponse
+{
+    public Guid AccountDungeonRecordId { get; init; }
+    public Guid AccountId { get; init; }
+    public required string DungeonId { get; init; }
+    public long ClearCount { get; init; }
+    public DateTime FirstClearedAt { get; init; }
+    public DateTime LastClearedAt { get; init; }
+    public DateTime CreatedAt { get; init; }
+    public DateTime UpdatedAt { get; init; }
+    public Guid CreatedBy { get; init; }
+    public Guid UpdatedBy { get; init; }
+}
+
+public class AccountDungeonClearRequest
+{
+    public Guid AccountId { get; init; }
+    public required string DungeonId { get; init; }
+    public Guid UpdatedBy { get; init; }
+}

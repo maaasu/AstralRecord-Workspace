@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.dungeon.service;
 
 import io.github.maaasu.astralRecord.feature.dungeon.DungeonTestFixtures;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonDefinition;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomType;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropItem;
@@ -16,6 +17,7 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DungeonDefinitionValidatorTest {
     private final DungeonDefinitionValidator validator = new DungeonDefinitionValidator();
@@ -135,6 +137,60 @@ class DungeonDefinitionValidatorTest {
             assertThrows(IllegalArgumentException.class, () -> validator.validateAll(
                     List.of(withRewards(source, invalid)), Map.of(), Map.of()));
         }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_0-概要.md
+     * 章・見出し: # 32_0-概要 > ## 4. 主要境界と不変条件
+     * 検証契約: roomTypesおよび部屋タイプ装飾paletteは空でなく、すべての相対weightが正でなければ公開しない。
+     */
+    @Test
+    void rejectsNonPositiveRoomTypeAndDecorationWeights() {
+        DungeonDefinition source = DungeonTestFixtures.definition();
+        DungeonDefinition.Generation generation = source.generation();
+        DungeonDefinition invalidRoomType = new DungeonDefinition(
+                source.schemaVersion(), source.id(), source.displayName(), source.entry(), source.partySize(),
+                source.challenge(),
+                new DungeonDefinition.Generation(
+                        generation.areaWidth(), generation.areaDepth(), generation.baseY(),
+                        generation.roomCount(), generation.roomSize(), generation.roomHeight(),
+                        generation.corridorWidth(), generation.corridorHeight(),
+                        generation.splitRatioMin(), generation.splitRatioMax(), generation.roomShapes(),
+                        List.of(new DungeonDefinition.WeightedRoomType(DungeonRoomType.STANDARD, 0))
+                ),
+                source.theme(), source.encounter(), source.clearRewards()
+        );
+        DungeonDefinition.Theme theme = source.theme();
+        DungeonDefinition invalidDecoration = new DungeonDefinition(
+                source.schemaVersion(), source.id(), source.displayName(), source.entry(), source.partySize(),
+                source.challenge(), source.generation(),
+                new DungeonDefinition.Theme(
+                        theme.floor(), theme.wall(), theme.ceiling(), theme.corridor(),
+                        theme.gateMaterial(), theme.pillar(), theme.lightMaterial(),
+                        new DungeonDefinition.Decorations(
+                                theme.decorations().supportMaterial(),
+                                theme.decorations().beamMaterial(),
+                                List.of(new DungeonDefinition.WeightedMaterial(org.bukkit.Material.COBBLESTONE, 0)),
+                                theme.decorations().accent()
+                        )
+                ),
+                source.encounter(), source.clearRewards()
+        );
+        Map<String, MobTemplate> mobs = Map.of(
+                "weak", DungeonTestFixtures.mob("weak", 5, MobCategory.ENEMY),
+                "strong", DungeonTestFixtures.mob("strong", 20, MobCategory.ENEMY),
+                "boss", DungeonTestFixtures.mob("boss", 30, MobCategory.BOSS)
+        );
+        Map<String, WorldMasterData> worlds = Map.of(
+                source.entry().worldId(), world(source.entry().worldId()));
+
+        IllegalArgumentException roomFailure = assertThrows(IllegalArgumentException.class,
+                () -> validator.validateAll(List.of(invalidRoomType), mobs, worlds));
+        IllegalArgumentException decorationFailure = assertThrows(IllegalArgumentException.class,
+                () -> validator.validateAll(List.of(invalidDecoration), mobs, worlds));
+
+        assertTrue(roomFailure.getMessage().contains("generation.roomTypes"));
+        assertTrue(decorationFailure.getMessage().contains("theme.decorations.rubble"));
     }
 
     private DungeonDefinition withChallenge(

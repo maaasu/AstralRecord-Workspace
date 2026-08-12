@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.dungeon.repository;
 
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonDefinition;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomShape;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomType;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropItem;
 import io.github.maaasu.astralRecord.infrastructure.database.file.FileDatabaseManager;
@@ -65,6 +66,7 @@ public final class DungeonDefinitionRepository {
         ConfigurationSection splitRatio = generation == null ? null : generation.getConfigurationSection("splitRatio");
         ConfigurationSection theme = yaml.getConfigurationSection("theme");
         ConfigurationSection pillar = theme == null ? null : theme.getConfigurationSection("pillar");
+        ConfigurationSection decorations = theme == null ? null : theme.getConfigurationSection("decorations");
         ConfigurationSection encounter = requireSection(yaml, "encounter");
         ConfigurationSection challenge = yaml.getConfigurationSection("challenge");
         ConfigurationSection clearRewards = yaml.getConfigurationSection("clearRewards");
@@ -98,7 +100,8 @@ public final class DungeonDefinitionRepository {
                         optionalInt(generation, "corridorHeight", 4),
                         optionalDouble(splitRatio, "min", 0.35D),
                         optionalDouble(splitRatio, "max", 0.50D),
-                        parseShapes(generation)
+                        parseShapes(generation),
+                        parseRoomTypes(generation)
                 ),
                 new DungeonDefinition.Theme(
                         parseMaterials(theme, "floor"),
@@ -111,6 +114,13 @@ public final class DungeonDefinitionRepository {
                                 optionalDouble(pillar, "chance", 0.35D),
                                 optionalBlock(pillar, "material", Material.CHISELED_STONE_BRICKS, true),
                                 optionalStairs(pillar, "stairMaterial", Material.STONE_BRICK_STAIRS)
+                        ),
+                        optionalBlock(theme, "lightMaterial", Material.TORCH, false),
+                        new DungeonDefinition.Decorations(
+                                optionalBlock(decorations, "supportMaterial", Material.OAK_LOG, true),
+                                optionalBlock(decorations, "beamMaterial", Material.OAK_PLANKS, true),
+                                parseMaterials(decorations, "rubble", Material.COBBLESTONE),
+                                parseMaterials(decorations, "accent", Material.COAL_ORE)
                         )
                 ),
                 new DungeonDefinition.Encounter(
@@ -168,13 +178,40 @@ public final class DungeonDefinitionRepository {
         return List.copyOf(result);
     }
 
+    /** 省略時は装飾なしの標準部屋だけを返します。 */
+    private @NotNull List<DungeonDefinition.WeightedRoomType> parseRoomTypes(
+            ConfigurationSection generation
+    ) {
+        if (generation == null || !generation.isList("roomTypes")) {
+            return List.of(new DungeonDefinition.WeightedRoomType(DungeonRoomType.STANDARD, 1));
+        }
+        List<DungeonDefinition.WeightedRoomType> result = new ArrayList<>();
+        for (Map<?, ?> entry : generation.getMapList("roomTypes")) {
+            String type = requiredMapString(entry, "type", "generation.roomTypes");
+            result.add(new DungeonDefinition.WeightedRoomType(
+                    DungeonRoomType.from(type),
+                    optionalMapInt(entry, "weight", 1)
+            ));
+        }
+        return List.copyOf(result);
+    }
+
     /** 対象テーマ一覧を読み、未定義時は用途別の既定 Material を返します。 */
     private @NotNull List<DungeonDefinition.WeightedMaterial> parseMaterials(
             ConfigurationSection theme,
             @NotNull String key
     ) {
+        Material fallback = key.equals("corridor") ? Material.COBBLESTONE : Material.STONE_BRICKS;
+        return parseMaterials(theme, key, fallback);
+    }
+
+    /** 対象テーマ一覧を読み、未定義時は明示した既定 Material を返します。 */
+    private @NotNull List<DungeonDefinition.WeightedMaterial> parseMaterials(
+            ConfigurationSection theme,
+            @NotNull String key,
+            @NotNull Material fallback
+    ) {
         if (theme == null || !theme.isList(key)) {
-            Material fallback = key.equals("corridor") ? Material.COBBLESTONE : Material.STONE_BRICKS;
             return List.of(new DungeonDefinition.WeightedMaterial(fallback, 1));
         }
         List<DungeonDefinition.WeightedMaterial> result = new ArrayList<>();

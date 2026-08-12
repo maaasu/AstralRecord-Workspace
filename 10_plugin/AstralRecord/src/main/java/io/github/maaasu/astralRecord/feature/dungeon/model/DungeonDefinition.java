@@ -100,15 +100,40 @@ public record DungeonDefinition(
             int corridorHeight,
             double splitRatioMin,
             double splitRatioMax,
-            @NotNull List<WeightedShape> roomShapes
+            @NotNull List<WeightedShape> roomShapes,
+            @NotNull List<WeightedRoomType> roomTypes
     ) {
         public Generation {
             roomShapes = List.copyOf(roomShapes);
+            roomTypes = List.copyOf(roomTypes);
+        }
+
+        /** 部屋タイプ導入前の呼び出し元向け互換コンストラクタです。 */
+        public Generation(
+                int areaWidth,
+                int areaDepth,
+                int baseY,
+                @NotNull IntRange roomCount,
+                @NotNull IntRange roomSize,
+                int roomHeight,
+                int corridorWidth,
+                int corridorHeight,
+                double splitRatioMin,
+                double splitRatioMax,
+                @NotNull List<WeightedShape> roomShapes
+        ) {
+            this(areaWidth, areaDepth, baseY, roomCount, roomSize, roomHeight,
+                    corridorWidth, corridorHeight, splitRatioMin, splitRatioMax, roomShapes,
+                    List.of(new WeightedRoomType(DungeonRoomType.STANDARD, 1)));
         }
     }
 
     /** 部屋形状と相対抽選重みです。 */
     public record WeightedShape(@NotNull DungeonRoomShape shape, int weight) {
+    }
+
+    /** 部屋タイプと相対抽選重みです。 */
+    public record WeightedRoomType(@NotNull DungeonRoomType type, int weight) {
     }
 
     /** ブロックテーマと任意の中央柱設定です。 */
@@ -118,13 +143,41 @@ public record DungeonDefinition(
             @NotNull List<WeightedMaterial> ceiling,
             @NotNull List<WeightedMaterial> corridor,
             @NotNull Material gateMaterial,
-            @NotNull Pillar pillar
+            @NotNull Pillar pillar,
+            @NotNull Material lightMaterial,
+            @NotNull Decorations decorations
     ) {
         public Theme {
             floor = List.copyOf(floor);
             wall = List.copyOf(wall);
             ceiling = List.copyOf(ceiling);
             corridor = List.copyOf(corridor);
+        }
+
+        /** 照明・部屋タイプ装飾導入前の呼び出し元向け互換コンストラクタです。 */
+        public Theme(
+                @NotNull List<WeightedMaterial> floor,
+                @NotNull List<WeightedMaterial> wall,
+                @NotNull List<WeightedMaterial> ceiling,
+                @NotNull List<WeightedMaterial> corridor,
+                @NotNull Material gateMaterial,
+                @NotNull Pillar pillar
+        ) {
+            this(
+                    floor,
+                    wall,
+                    ceiling,
+                    corridor,
+                    gateMaterial,
+                    pillar,
+                    Material.TORCH,
+                    new Decorations(
+                            Material.OAK_LOG,
+                            Material.OAK_PLANKS,
+                            List.of(new WeightedMaterial(Material.COBBLESTONE, 1)),
+                            List.of(new WeightedMaterial(Material.COAL_ORE, 1))
+                    )
+            );
         }
     }
 
@@ -139,6 +192,19 @@ public record DungeonDefinition(
             @NotNull Material material,
             @NotNull Material stairMaterial
     ) {
+    }
+
+    /** 部屋タイプ別の汎用装飾素材です。 */
+    public record Decorations(
+            @NotNull Material supportMaterial,
+            @NotNull Material beamMaterial,
+            @NotNull List<WeightedMaterial> rubble,
+            @NotNull List<WeightedMaterial> accent
+    ) {
+        public Decorations {
+            rubble = List.copyOf(rubble);
+            accent = List.copyOf(accent);
+        }
     }
 
     /** 通常部屋とボス部屋の戦闘設定です。 */

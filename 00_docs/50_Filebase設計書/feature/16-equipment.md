@@ -49,6 +49,16 @@ Equipment は、装備中のステータス、武器タグに応じた通常攻�
 - enchant、rune、transcendence は、Plugin と各スキーマに存在する仕組みだけを使用します。装備・rune・セット効果には skill 付与を定義しません。
 - 特殊効果を持たせる場合、発動条件、対象、頻度、代替できない理由を明確にします。
 
+## カルトグラフ
+
+`cartograph` は共有equipment tag `CARTOGRAPH` を持つ、1スタックの再利用可能な `TOOL` です。最大耐久は300、`durability.consume` は75です。今回、loot・shop・quest・recipe等の入手経路は追加しません。
+
+- ダンジョン内のmain hand右クリックは、装備instanceへ現在のdungeon session mapをメモリ登録してGUIを開きます。
+- 新規session登録時だけ現在耐久75以上を要求して固定75を消費します。同じsessionの再表示は消費せず、残耐久0でも可能です。同じmasterでもsessionが異なれば新規登録です。
+- session離脱・終了・失敗・logoutで登録を削除します。登録情報をitem PDCへ永続化しません。
+- ダンジョン外ではaccountの踏破済みdungeonと設定報酬・数量・確率を表示します。
+- 耐久は既存の装備instance耐久として管理し、generic repair orbで回復できます。将来の状態変化による最大耐久拡張は今回定義しません。
+
 ## 入手方法の確認
 
 - 入手前に攻略が必要な対象と、その装備で攻略させたい対象が逆転していないこと。

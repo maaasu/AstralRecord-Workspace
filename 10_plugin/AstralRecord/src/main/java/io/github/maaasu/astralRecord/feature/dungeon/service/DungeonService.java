@@ -1,21 +1,28 @@
 package io.github.maaasu.astralRecord.feature.dungeon.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureDungeonRecord;
+import io.github.maaasu.astralRecord.feature.adventurerecord.repository.AdventureRecordRepository;
 import io.github.maaasu.astralRecord.feature.dungeon.generation.DungeonBlockPlanner;
 import io.github.maaasu.astralRecord.feature.dungeon.generation.DungeonEncounterPlanner;
 import io.github.maaasu.astralRecord.feature.dungeon.generation.DungeonLayoutPlanner;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonBlockPlan;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonDefinition;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLayout;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonMapRoomState;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomShape;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRewardEntry;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonSidebarInfo;
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonCancelGui;
+import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonArchiveGui;
+import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonMapGui;
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonRewardGui;
 import io.github.maaasu.astralRecord.feature.dungeon.repository.DungeonDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.dungeon.view.DungeonCancelController;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
+import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
@@ -24,6 +31,8 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobDropResultItem;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
+import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
+import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
@@ -47,6 +56,7 @@ import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
+import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -79,6 +89,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.Consumer;
 import java.time.Duration;
+import java.time.Instant;
 
 /**
  * ダンジョンマスタ、セッション進行、部屋戦闘、ゲート解放を一元管理します。
@@ -115,8 +126,14 @@ public final class DungeonService {
     private final MobDropService mobDropService;
     private final InventoryService inventoryService;
     private final ItemService itemService;
+    private final LootService lootService;
+    private final AdventureRecordRepository adventureRecordRepository;
+    private final CartographDurabilityService cartographDurabilityService;
+    private final CartographSessionRegistry cartographBindings = new CartographSessionRegistry();
     private final DungeonCancelGui cancelGui;
     private final DungeonRewardGui rewardGui;
+    private final DungeonMapGui mapGui;
+    private final DungeonArchiveGui archiveGui;
     private final String hubWorldId;
 
     private volatile Map<String, LoadedDefinition> loadedDefinitions = Map.of();
@@ -130,6 +147,9 @@ public final class DungeonService {
     private final Map<UUID, DungeonCancelController> cancelControllers = new HashMap<>();
     private final Map<UUID, UUID> sessionIdByCancelInteraction = new HashMap<>();
     private final Map<String, DisplayTextService.ManagedTextDisplay> entryPromptDisplays = new HashMap<>();
+    private final Map<UUID, List<DungeonArchiveGui.ArchiveDungeon>> archiveByAccount = new HashMap<>();
+    private final Set<UUID> loadedArchiveAccounts = new HashSet<>();
+    private final Set<UUID> loadingArchiveAccounts = new HashSet<>();
     private BukkitTask entryVisualTask;
     private long entryVisualFrame;
     private boolean stopping;
@@ -150,6 +170,8 @@ public final class DungeonService {
      * @param inventoryService 報酬付与先インベントリ
      * @param itemService アイテム定義サービス
      * @param itemStackFactory 報酬 GUI の ItemStack 生成サービス
+     * @param lootService ロード済みルートテーブルサービス
+     * @param adventureRecordRepository 踏破記録 API リポジトリ
      * @param hubWorldId 生成待機中に参加者を退避する HUB World ID
      */
     public DungeonService(
@@ -166,6 +188,8 @@ public final class DungeonService {
             @NotNull InventoryService inventoryService,
             @NotNull ItemService itemService,
             @NotNull ItemStackFactory itemStackFactory,
+            @NotNull LootService lootService,
+            @NotNull AdventureRecordRepository adventureRecordRepository,
             @NotNull String hubWorldId
     ) {
         this.plugin = plugin;
@@ -186,8 +210,13 @@ public final class DungeonService {
         this.mobDropService = mobDropService;
         this.inventoryService = inventoryService;
         this.itemService = itemService;
+        this.lootService = lootService;
+        this.adventureRecordRepository = adventureRecordRepository;
+        this.cartographDurabilityService = new CartographDurabilityService(inventoryService, itemService);
         this.cancelGui = new DungeonCancelGui();
         this.rewardGui = new DungeonRewardGui(itemService, itemStackFactory);
+        this.mapGui = new DungeonMapGui();
+        this.archiveGui = new DungeonArchiveGui(itemService, itemStackFactory);
         this.hubWorldId = hubWorldId;
     }
 
@@ -705,6 +734,20 @@ public final class DungeonService {
         }
         int x = destination.getBlockX();
         int z = destination.getBlockZ();
+        Integer currentRoomId = session.layout.rooms().stream()
+                .filter(room -> contains(room, x, z))
+                .map(DungeonLayout.Room::id)
+                .findFirst()
+                .orElse(null);
+        Integer previousRoomId = session.currentRoomByParticipant.get(player.getUniqueId());
+        if (currentRoomId == null) {
+            session.currentRoomByParticipant.remove(player.getUniqueId());
+        } else {
+            session.currentRoomByParticipant.put(player.getUniqueId(), currentRoomId);
+        }
+        if (!java.util.Objects.equals(previousRoomId, currentRoomId)) {
+            refreshOpenMaps(session);
+        }
         for (DungeonLayout.Room room : session.layout.rooms()) {
             if (session.roomStates.get(room.id()) == RoomState.AVAILABLE && contains(room, x, z)) {
                 activateRoom(session, room.id());
@@ -718,6 +761,7 @@ public final class DungeonService {
             return;
         }
         session.roomStates.put(roomId, RoomState.ACTIVE);
+        refreshOpenMaps(session);
         try {
             activateRoomContent(session, roomId);
         } catch (RuntimeException failure) {
@@ -805,6 +849,7 @@ public final class DungeonService {
         DungeonLayout.Room cleared = room(session, roomId);
         Logger.log(LogId.I_7003, session.id.toString(), roomId, cleared.role().name());
         if (cleared.role() == DungeonLayout.RoomRole.BOSS) {
+            refreshOpenMaps(session);
             message(session.participants, PlayerMsgId.P_7012, session.loaded.definition().displayName());
             beginClearedWait(session, cleared);
             return;
@@ -821,6 +866,7 @@ public final class DungeonService {
                 session.roomStates.put(connection.toRoomId(), RoomState.AVAILABLE);
             }
         }
+        refreshOpenMaps(session);
     }
 
     private void openGate(@NotNull Session session, int connectionId) {
@@ -896,6 +942,7 @@ public final class DungeonService {
             MobDropResult result = mobDropService.roll(session.loaded.definition().clearRewards(), astPlayer);
             List<DungeonRewardEntry> rewards = createRewardEntries(result.items());
             session.rewardsByPlayer.put(player.getUniqueId(), new ArrayList<>(rewards));
+            recordDungeonClearAsync(astPlayer, session.loaded.definition());
         }
         Location chestLocation = findRewardChestLocation(session, bossRoom);
         Block chest = chestLocation.getBlock();
@@ -926,6 +973,30 @@ public final class DungeonService {
             Logger.log(LogId.E_7000, ex, session.id.toString(), session.loaded.definition().id());
             completeSession(session, EndReason.SPAWN_FAILED, false);
         }
+    }
+
+    /** 踏破記録をAPIへ非同期保存し、保存成功後だけキャッシュへ反映します。 */
+    private void recordDungeonClearAsync(
+            @NotNull AstPlayer astPlayer,
+            @NotNull DungeonDefinition definition
+    ) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        UUID userId = astPlayer.getUser().getUuid();
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                AdventureDungeonRecord persisted = adventureRecordRepository.recordDungeonClear(
+                        accountId, definition.id(), userId);
+                runMain(() -> {
+                    DungeonArchiveGui.ArchiveDungeon entry = toArchiveDungeon(persisted);
+                    if (entry != null) {
+                        archiveByAccount.put(accountId, mergeArchive(
+                                List.of(entry), archiveByAccount.getOrDefault(accountId, List.of())));
+                    }
+                });
+            } catch (RuntimeException failure) {
+                Logger.log(LogId.E_7006, failure, accountId, definition.id());
+            }
+        });
     }
 
     private @NotNull Location findRewardChestLocation(
@@ -1041,6 +1112,329 @@ public final class DungeonService {
 
     /** @return 中止 GUI view */
     public @NotNull DungeonCancelGui cancelGui() { return cancelGui; }
+
+    /** @return カルトグラフ現在地図 GUI view */
+    public @NotNull DungeonMapGui mapGui() { return mapGui; }
+
+    /** @return カルトグラフ踏破記録 GUI view */
+    public @NotNull DungeonArchiveGui archiveGui() { return archiveGui; }
+
+    /**
+     * メインハンドが利用可能なカルトグラフ装備個体なら入力候補を返します。
+     * 候補生成時には耐久消費や GUI 表示を行いません。
+     *
+     * @param player 操作プレイヤー
+     * @return カルトグラフ候補。対象外なら {@code null}
+     */
+    public @Nullable CartographTarget findCartographTarget(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            return null;
+        }
+        ItemReference reference = inventoryService.getItemReferenceInHand(
+                astPlayer, org.bukkit.inventory.EquipmentSlot.HAND);
+        if (reference == null || !reference.hasEquipmentInstanceId()) {
+            return null;
+        }
+        ItemModel model = itemService.findLoadedById(reference.itemId());
+        if (model == null || model.getEquipment() == null
+                || model.getEquipment().getSlot() != ItemEquipmentSlot.TOOL
+                || !MasterTagIds.Equipment.CARTOGRAPH.equals(model.getEquipment().getTag())) {
+            return null;
+        }
+        return new CartographTarget(reference.equipmentInstanceId());
+    }
+
+    /** @return 指定装備個体が現在もメインハンドのカルトグラフなら {@code true} */
+    public boolean isCurrentCartographTarget(
+            @NotNull Player player,
+            @NotNull String equipmentInstanceId
+    ) {
+        CartographTarget current = findCartographTarget(player);
+        return current != null && current.equipmentInstanceId().equals(equipmentInstanceId);
+    }
+
+    /**
+     * カルトグラフ右クリックを処理します。ダンジョン内では現在地図、外では踏破記録を開きます。
+     *
+     * @param player 操作プレイヤー
+     */
+    public void handleCartographRightClick(@NotNull Player player) {
+        requireMainThread();
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        CartographTarget target = findCartographTarget(player);
+        if (astPlayer == null || target == null) {
+            messageService.send(player, PlayerMsgId.P_7063);
+            return;
+        }
+        UUID sessionId = sessionIdByParticipant.get(player.getUniqueId());
+        Session session = sessionId == null ? null : sessionsById.get(sessionId);
+        if (session == null || session.ending || session.layout == null
+                || session.instanceWorld == null
+                || !player.getWorld().getUID().equals(session.instanceWorld.world().getUID())) {
+            openArchiveAsync(astPlayer);
+            return;
+        }
+
+        if (!cartographBindings.isBound(
+                target.equipmentInstanceId(), player.getUniqueId(), session.id)) {
+            ItemReference reference = inventoryService.getItemReferenceInHand(
+                    astPlayer, org.bukkit.inventory.EquipmentSlot.HAND);
+            if (reference == null) {
+                messageService.send(player, PlayerMsgId.P_7063);
+                return;
+            }
+            CartographDurabilityService.Result consumed =
+                    cartographDurabilityService.consumeForNewRegistration(astPlayer, reference);
+            if (consumed == CartographDurabilityService.Result.INSUFFICIENT) {
+                messageService.send(player, PlayerMsgId.P_7062);
+                return;
+            }
+            if (consumed != CartographDurabilityService.Result.CONSUMED) {
+                messageService.send(player, PlayerMsgId.P_7063);
+                return;
+            }
+            cartographBindings.bind(
+                    target.equipmentInstanceId(), player.getUniqueId(), session.id);
+            messageService.send(player, PlayerMsgId.P_7064);
+        }
+        openMapPage(player, session.id, 0);
+    }
+
+    /** 指定セッションの現在地図を再検証して開きます。 */
+    public void openMapPage(@NotNull Player player, @NotNull UUID sessionId, int page) {
+        MapSnapshot snapshot = mapSnapshot(player, sessionId);
+        if (snapshot == null) {
+            messageService.send(player, PlayerMsgId.P_7075);
+            player.closeInventory();
+            return;
+        }
+        mapGui.open(player, snapshot, page);
+    }
+
+    /** 指定アカウントのキャッシュ済み踏破記録一覧を開きます。 */
+    public void openArchiveListPage(
+            @NotNull Player player,
+            @NotNull UUID accountId,
+            int page
+    ) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || !astPlayer.getAccount().getUuid().equals(accountId)
+                || !loadedArchiveAccounts.contains(accountId)) {
+            return;
+        }
+        archiveGui.openList(player, accountId, archiveByAccount.getOrDefault(accountId, List.of()), page);
+    }
+
+    /** 指定ダンジョンのキャッシュ済み報酬詳細を開きます。 */
+    public void openArchiveDetails(
+            @NotNull Player player,
+            @NotNull UUID accountId,
+            @NotNull String dungeonId,
+            int listPage,
+            int detailPage
+    ) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || !astPlayer.getAccount().getUuid().equals(accountId)) {
+            return;
+        }
+        DungeonArchiveGui.ArchiveDungeon dungeon = archiveByAccount
+                .getOrDefault(accountId, List.of()).stream()
+                .filter(entry -> entry.dungeonId().equals(dungeonId))
+                .findFirst()
+                .orElse(null);
+        if (dungeon != null) {
+            archiveGui.openDetails(player, accountId, dungeon, listPage, detailPage);
+        }
+    }
+
+    private void openArchiveAsync(@NotNull AstPlayer astPlayer) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        if (loadedArchiveAccounts.contains(accountId)) {
+            archiveGui.openList(
+                    astPlayer.getBukkit(), accountId,
+                    archiveByAccount.getOrDefault(accountId, List.of()), 0);
+            return;
+        }
+        if (!loadingArchiveAccounts.add(accountId)) {
+            messageService.send(astPlayer, PlayerMsgId.P_7065);
+            return;
+        }
+        UUID playerId = astPlayer.getBukkit().getUniqueId();
+        messageService.send(astPlayer, PlayerMsgId.P_7065);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                List<AdventureDungeonRecord> records = adventureRecordRepository.findDungeonRecords(accountId);
+                runMain(() -> {
+                    loadingArchiveAccounts.remove(accountId);
+                    List<DungeonArchiveGui.ArchiveDungeon> loaded = buildArchive(records);
+                    List<DungeonArchiveGui.ArchiveDungeon> merged = mergeArchive(
+                            loaded, archiveByAccount.getOrDefault(accountId, List.of()));
+                    archiveByAccount.put(accountId, merged);
+                    loadedArchiveAccounts.add(accountId);
+                    Player player = Bukkit.getPlayer(playerId);
+                    AstPlayer current = player == null ? null : AstPlayerCache.get(player);
+                    if (player != null && player.isOnline() && current != null
+                            && current.getAccount().getUuid().equals(accountId)) {
+                        archiveGui.openList(player, accountId, merged, 0);
+                    }
+                });
+            } catch (RuntimeException failure) {
+                Logger.log(LogId.E_7005, failure, accountId);
+                runMain(() -> {
+                    loadingArchiveAccounts.remove(accountId);
+                    Player player = Bukkit.getPlayer(playerId);
+                    if (player != null && player.isOnline()) {
+                        messageService.send(player, PlayerMsgId.P_7066);
+                    }
+                });
+            }
+        });
+    }
+
+    private @NotNull List<DungeonArchiveGui.ArchiveDungeon> buildArchive(
+            @NotNull List<AdventureDungeonRecord> records
+    ) {
+        return records.stream()
+                .filter(record -> record.clearCount() > 0L)
+                .map(this::toArchiveDungeon)
+                .filter(java.util.Objects::nonNull)
+                .sorted(Comparator
+                        .comparing(DungeonArchiveGui.ArchiveDungeon::lastClearedAt)
+                        .reversed()
+                        .thenComparing(DungeonArchiveGui.ArchiveDungeon::displayName))
+                .toList();
+    }
+
+    private @Nullable DungeonArchiveGui.ArchiveDungeon toArchiveDungeon(
+            @NotNull AdventureDungeonRecord record
+    ) {
+        LoadedDefinition loaded = loadedDefinitions.get(record.dungeonId());
+        if (loaded == null) {
+            return null;
+        }
+        return archiveDungeon(
+                loaded.definition(), record.clearCount(), record.lastClearedAt());
+    }
+
+    private @NotNull DungeonArchiveGui.ArchiveDungeon archiveDungeon(
+            @NotNull DungeonDefinition definition,
+            long clearCount,
+            @NotNull Instant lastClearedAt
+    ) {
+        List<DungeonArchiveGui.ArchiveReward> rewards = new ArrayList<>();
+        definition.clearRewards().items().stream()
+                .filter(item -> !item.hidden())
+                .forEach(item -> rewards.add(new DungeonArchiveGui.ArchiveReward(
+                        item.itemId(), item.amount(), item.rate())));
+        String lootTableId = definition.clearRewards().lootTable();
+        if (lootTableId != null && !lootTableId.isBlank()) {
+            LootModel loot = lootService.getLoaded(lootTableId);
+            if (loot != null) {
+                loot.flattenedEntries().forEach(entry -> rewards.add(
+                        new DungeonArchiveGui.ArchiveReward(
+                                entry.getItemId(),
+                                entry.getMinAmount() == entry.getMaxAmount()
+                                        ? Integer.toString(entry.getMinAmount())
+                                        : entry.getMinAmount() + "~" + entry.getMaxAmount(),
+                                entry.getWeight()
+                        )
+                ));
+            }
+        }
+        return new DungeonArchiveGui.ArchiveDungeon(
+                definition.id(), definition.displayName(), clearCount, lastClearedAt, rewards);
+    }
+
+    static @NotNull List<DungeonArchiveGui.ArchiveDungeon> mergeArchive(
+            @NotNull List<DungeonArchiveGui.ArchiveDungeon> loaded,
+            @NotNull List<DungeonArchiveGui.ArchiveDungeon> optimistic
+    ) {
+        Map<String, DungeonArchiveGui.ArchiveDungeon> merged = new LinkedHashMap<>();
+        loaded.forEach(entry -> merged.put(entry.dungeonId(), entry));
+        optimistic.forEach(entry -> merged.merge(entry.dungeonId(), entry, (first, second) ->
+                second.clearCount() > first.clearCount()
+                        || second.lastClearedAt().isAfter(first.lastClearedAt()) ? second : first));
+        return merged.values().stream()
+                .sorted(Comparator
+                        .comparing(DungeonArchiveGui.ArchiveDungeon::lastClearedAt)
+                        .reversed()
+                        .thenComparing(DungeonArchiveGui.ArchiveDungeon::displayName))
+                .toList();
+    }
+
+    private @Nullable MapSnapshot mapSnapshot(
+            @NotNull Player player,
+            @NotNull UUID expectedSessionId
+    ) {
+        UUID indexedSessionId = sessionIdByParticipant.get(player.getUniqueId());
+        Session session = sessionsById.get(expectedSessionId);
+        if (!expectedSessionId.equals(indexedSessionId) || session == null || session.ending
+                || session.layout == null || session.instanceWorld == null
+                || !session.participants.contains(player.getUniqueId())
+                || !player.getWorld().getUID().equals(session.instanceWorld.world().getUID())) {
+            return null;
+        }
+        boolean ownsBinding = cartographBindings.findForPlayerSession(
+                player.getUniqueId(), session.id) != null;
+        if (!ownsBinding) {
+            return null;
+        }
+        Map<Integer, DungeonMapRoomState> states = new LinkedHashMap<>();
+        session.roomStates.forEach((roomId, state) ->
+                states.put(roomId, DungeonMapRoomState.valueOf(state.name())));
+        return new MapSnapshot(
+                session.id,
+                session.loaded.definition().id(),
+                session.loaded.definition().displayName(),
+                session.layout,
+                states,
+                currentRoomId(session, player.getLocation())
+        );
+    }
+
+    private @Nullable Integer currentRoomId(@NotNull Session session, @NotNull Location location) {
+        int x = location.getBlockX();
+        int z = location.getBlockZ();
+        return session.layout.rooms().stream()
+                .filter(room -> contains(room, x, z))
+                .map(DungeonLayout.Room::id)
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void refreshOpenMaps(@NotNull Session session) {
+        for (UUID playerId : session.participants) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player == null || !player.isOnline()) {
+                continue;
+            }
+            DungeonMapGui.Holder holder = mapGui.holder(player.getOpenInventory().getTopInventory());
+            if (holder != null && holder.sessionId().equals(session.id)
+                    && holder.playerId().equals(playerId)) {
+                MapSnapshot snapshot = mapSnapshot(player, session.id);
+                if (snapshot != null) {
+                    mapGui.open(player, snapshot, holder.pageIndex());
+                }
+            }
+        }
+    }
+
+    /** カルトグラフ入力候補の装備個体 ID です。 */
+    public record CartographTarget(@NotNull String equipmentInstanceId) {
+    }
+
+    /** GUI 公開用の不変ダンジョン地図スナップショットです。 */
+    public record MapSnapshot(
+            @NotNull UUID sessionId,
+            @NotNull String dungeonId,
+            @NotNull String displayName,
+            @NotNull DungeonLayout layout,
+            @NotNull Map<Integer, DungeonMapRoomState> roomStates,
+            @Nullable Integer currentRoomId
+    ) {
+        public MapSnapshot { roomStates = Map.copyOf(roomStates); }
+    }
 
     /**
      * 報酬 GUI のクリックを処理します。
@@ -1379,6 +1773,16 @@ public final class DungeonService {
         }
         session.departingParticipants.remove(playerId);
         sessionIdByParticipant.remove(playerId, session.id);
+        cartographBindings.removeParticipant(playerId, session.id);
+        session.currentRoomByParticipant.remove(playerId);
+        Player departingPlayer = Bukkit.getPlayer(playerId);
+        if (departingPlayer != null) {
+            DungeonMapGui.Holder holder = mapGui.holder(
+                    departingPlayer.getOpenInventory().getTopInventory());
+            if (holder != null && holder.sessionId().equals(session.id)) {
+                departingPlayer.closeInventory();
+            }
+        }
         recoverDungeonDeath(session, playerId);
         if (rejoinEligible && !session.ending) {
             session.gateReturnEligible.add(playerId);
@@ -1522,6 +1926,7 @@ public final class DungeonService {
             return;
         }
         session.ending = true;
+        cartographBindings.removeSession(session.id);
         long endingGeneration = ++session.transferGeneration;
         closeSessionGuis(session);
         cancelSessionTasks(session);
@@ -1647,8 +2052,10 @@ public final class DungeonService {
             org.bukkit.inventory.Inventory top = player.getOpenInventory().getTopInventory();
             UUID cancelSessionId = cancelGui.sessionId(top);
             DungeonRewardGui.Holder rewardHolder = rewardGui.holder(top);
+            DungeonMapGui.Holder mapHolder = mapGui.holder(top);
             if (session.id.equals(cancelSessionId)
-                    || (rewardHolder != null && session.id.equals(rewardHolder.sessionId()))) {
+                    || (rewardHolder != null && session.id.equals(rewardHolder.sessionId()))
+                    || (mapHolder != null && session.id.equals(mapHolder.sessionId()))) {
                 player.closeInventory();
             }
         }
@@ -1749,6 +2156,10 @@ public final class DungeonService {
         mobBindings.clear();
         cancelControllers.clear();
         sessionIdByCancelInteraction.clear();
+        cartographBindings.clear();
+        archiveByAccount.clear();
+        loadedArchiveAccounts.clear();
+        loadingArchiveAccounts.clear();
     }
 
     /** 指定ワールドが稼働中または実行時登録済みの DUNGEON ワールドかを返します。 */
@@ -2104,6 +2515,7 @@ public final class DungeonService {
         private final Set<UUID> departingParticipants = new LinkedHashSet<>();
         private final Map<Integer, RoomState> roomStates = new LinkedHashMap<>();
         private final Map<Integer, Set<UUID>> liveMobsByRoom = new LinkedHashMap<>();
+        private final Map<UUID, Integer> currentRoomByParticipant = new HashMap<>();
         private DungeonLayout layout;
         private DungeonBlockPlan blockPlan;
         private DungeonInstanceWorldService.InstanceWorld instanceWorld;
