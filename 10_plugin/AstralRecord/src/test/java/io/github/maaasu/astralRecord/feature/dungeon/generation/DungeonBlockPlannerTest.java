@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.dungeon.DungeonTestFixtures;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonBlockPlan;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonDefinition;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLayout;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomShape;
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
 
@@ -118,6 +119,77 @@ class DungeonBlockPlannerTest {
         assertTrue(plan.placements().stream()
                 .filter(placement -> placement.stair() != null)
                 .allMatch(placement -> placement.material() == definition.theme().pillar().stairMaterial()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 2. ブロック生成
+     * 検証契約: 各部屋と接続通路へ床置きのたいまつを生成し、Mob 出現候補と閉鎖ゲートを占有しない。
+     */
+    @Test
+    void placesTorchesInRoomsAndCorridorsWithoutBlockingSpawnsOrGates() {
+        DungeonDefinition definition = DungeonTestFixtures.definition();
+        DungeonLayout layout = new DungeonLayoutPlanner().plan(definition, 778899L);
+        DungeonBlockPlan plan = new DungeonBlockPlanner().plan(definition, layout);
+        Set<DungeonBlockPlan.Position> torchPositions = plan.placements().stream()
+                .filter(placement -> placement.material() == Material.TORCH)
+                .map(DungeonBlockPlan.Placement::position)
+                .collect(java.util.stream.Collectors.toSet());
+
+        assertFalse(torchPositions.isEmpty());
+        assertTrue(layout.rooms().stream().allMatch(room -> torchPositions.stream()
+                .anyMatch(position -> room.bounds().contains(position.x(), position.z()))));
+        assertTrue(layout.connections().stream().allMatch(connection -> connection.centerLine().stream()
+                .map(point -> new DungeonBlockPlan.Position(point.x(), layout.baseY() + 1, point.z()))
+                .anyMatch(torchPositions::contains)));
+        Set<DungeonBlockPlan.Position> spawnPositions = plan.spawnPointsByRoom().values().stream()
+                .flatMap(List::stream)
+                .collect(java.util.stream.Collectors.toSet());
+        Set<DungeonBlockPlan.Position> gatePositions = plan.gateBlocksByConnection().values().stream()
+                .flatMap(List::stream)
+                .collect(java.util.stream.Collectors.toSet());
+        assertTrue(torchPositions.stream().noneMatch(spawnPositions::contains));
+        assertTrue(torchPositions.stream().noneMatch(gatePositions::contains));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 2. ブロック生成
+     * 検証契約: 各部屋へ床置きの TORCH を配置し、中央柱と重なる候補では歩行可能な別の床へ配置する。
+     */
+    @Test
+    void placesTorchInMinimumRoomWithGuaranteedCentralPillar() {
+        DungeonDefinition source = DungeonTestFixtures.definition();
+        DungeonDefinition definition = new DungeonDefinition(
+                source.schemaVersion(), source.id(), source.displayName(), source.entry(), source.partySize(),
+                source.generation(),
+                new DungeonDefinition.Theme(
+                        source.theme().floor(), source.theme().wall(), source.theme().ceiling(),
+                        source.theme().corridor(), source.theme().gateMaterial(),
+                        new DungeonDefinition.Pillar(
+                                true, 1.0D, source.theme().pillar().material(),
+                                source.theme().pillar().stairMaterial())
+                ),
+                source.encounter()
+        );
+        DungeonLayout layout = new DungeonLayout(
+                445566L, 7, 7, definition.generation().baseY(), definition.generation().roomHeight(),
+                List.of(new DungeonLayout.Room(
+                        0, new DungeonLayout.Rect(0, 0, 6, 6),
+                        DungeonRoomShape.RECTANGLE, DungeonLayout.RoomRole.START, 0
+                )),
+                List.of(), 0, 0
+        );
+
+        DungeonBlockPlan plan = new DungeonBlockPlanner().plan(definition, layout);
+        Set<DungeonBlockPlan.Position> torchPositions = plan.placements().stream()
+                .filter(placement -> placement.material() == Material.TORCH)
+                .map(DungeonBlockPlan.Placement::position)
+                .collect(java.util.stream.Collectors.toSet());
+
+        assertEquals(1, torchPositions.size());
+        assertFalse(torchPositions.contains(new DungeonBlockPlan.Position(
+                3, definition.generation().baseY() + 1, 3)));
     }
 
     private boolean canReach(
