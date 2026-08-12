@@ -186,6 +186,47 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
         assertEquals(100.0D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_0-概要.md
+     * 章・見出し: # 14_0-概要 > ## 5. 固定HPダメージとShield
+     * 検証契約: シールドリチャージは被ダメージ後の待機を経て毎秒回復し、再被弾で待機をやり直す。
+     */
+    @Test
+    void configuredRechargeRecoversContinuouslyAndDamageRestartsDelay() {
+        StatusService service = new StatusService();
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        player.setStatusSnapshot(shieldSnapshot(30.0D));
+        service.configureShieldRecharge(player, 8.0D, 10.0D);
+
+        ShieldRechargeState initial = service.startShieldRecharge(player, 1_000L);
+        assertEquals(9_000L, initial.completesAtMs());
+        assertTrue(service.completeShieldRechargeIfReady(player, 9_000L));
+        assertEquals(3.0D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
+
+        ShieldRechargeState restarted = service.startShieldRecharge(player, 9_500L);
+        assertEquals(17_500L, restarted.completesAtMs());
+        assertEquals(false, service.completeShieldRechargeIfReady(player, 17_499L));
+        assertTrue(service.completeShieldRechargeIfReady(player, 17_500L));
+        assertEquals(6.0D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_0-概要.md
+     * 章・見出し: # 14_0-概要 > ## 5. 固定HPダメージとShield
+     * 検証契約: シールドリチャージを持たないプレイヤーは従来の30秒一括回復を維持する。
+     */
+    @Test
+    void unconfiguredPlayerUsesLegacyShieldRecharge() {
+        StatusService service = new StatusService();
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        player.setStatusSnapshot(shieldSnapshot(30.0D));
+
+        ShieldRechargeState state = service.startShieldRecharge(player, 1_000L);
+        assertEquals(31_000L, state.completesAtMs());
+        assertTrue(service.completeShieldRechargeIfReady(player, 31_000L));
+        assertEquals(30.0D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
+    }
+
     private AstPlayer rechargingPlayer(StatusService service, double maxShield) {
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
         player.setStatusSnapshot(shieldSnapshot(maxShield));

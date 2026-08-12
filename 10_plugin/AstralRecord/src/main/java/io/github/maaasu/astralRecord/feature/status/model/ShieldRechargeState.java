@@ -1,11 +1,11 @@
 package io.github.maaasu.astralRecord.feature.status.model;
 
 /**
- * シールド破壊後のリチャージ進行を表すセッション内状態です。
+ * シールドの再充填待機・進行を表すセッション内状態です。
  *
- * @param startedAtMs リチャージを開始した時刻（epoch milliseconds）
- * @param completesAtMs リチャージが完了する予定時刻（epoch milliseconds）
- * @param rechargeAmount 完了時に一括設定するシールド値
+ * @param startedAtMs 最後に被ダメージを受けた時刻、または再充填を開始した時刻（epoch milliseconds）
+ * @param completesAtMs 再充填を開始できる時刻（epoch milliseconds）
+ * @param rechargeAmount 1秒あたりのシールド回復量
  */
 public record ShieldRechargeState(
         long startedAtMs,
@@ -24,7 +24,7 @@ public record ShieldRechargeState(
     }
 
     /**
-     * 指定時刻における進捗率を返します。
+     * 指定時刻における待機の進捗率を返します。
      *
      * @param nowMs 判定時刻（epoch milliseconds）
      * @return 0.0 以上 1.0 以下の進捗率
@@ -38,7 +38,7 @@ public record ShieldRechargeState(
     }
 
     /**
-     * 完了予定時刻へ待機時間を追加した新しい状態を返します。
+     * 再充填開始時刻へ待機時間を追加した新しい状態を返します。
      *
      * @param additionalMs 追加するミリ秒。0 以下は無視する
      * @return 延長後の状態

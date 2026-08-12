@@ -167,6 +167,7 @@ import io.github.maaasu.astralRecord.feature.skill.event.SkillGemLearnEventHandl
 import io.github.maaasu.astralRecord.feature.skill.event.SkillForgetGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.executor.FireBoostSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.IronWillSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorShieldRechargeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.MeditationSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
@@ -1034,6 +1035,7 @@ public final class AstralRecord extends JavaPlugin {
         skillService.setPlayerHudService(playerHudService);
         meditationSkillRuntimeService = new MeditationSkillRuntimeService(particleDisplayService);
         skillService.registerExecutor(new MeditationSkillExecutor(meditationSkillRuntimeService));
+        skillService.registerExecutor(new AdministratorShieldRechargeSkillExecutor(statusService, particleDisplayService));
         skillService.registerExecutor(new FireBoostSkillExecutor(particleDisplayService));
         skillService.registerExecutor(new IronWillSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());

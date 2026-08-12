@@ -1,0 +1,33 @@
+# design:
+#   motif: "運営管理 / 防御フィールド修復"
+#   progression: 0
+schemaVersion: 1
+id: administrator_shield_recharge
+type: SKILL
+implementationId: administrator_shield_recharge
+name: "&bシールドリチャージ"
+description: "&7被ダメージから{skill.rechargeDelaySeconds}秒後、シールドを毎秒{skill.rechargePercentPerSecond}%ずつ再充填する。再充填中にダメージを受けると待機をやり直す。"
+icon: SHIELD
+cooldownTicks: 0
+resourceType: MANA
+resourceCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 1
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+allowedSigilIds: []
+gem:
+  rarity: RARE
+  tradeable: false
+  sellable: false
+passive:
+  bindRequired: true
+params:
+  maxShield: 30
+  rechargeDelaySeconds: 8
+  rechargePercentPerSecond: 10
+  particleIntervalTicks: 10
+tags:
+  - passive
+  - defense

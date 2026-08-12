@@ -166,3 +166,16 @@ items:
           ref: item:skill_gem_raw_beginner
         category: material
         amount: 1
+
+  - id: administrator_shield_recharge_from_advanced_raw
+    itemId:
+      ref: item:00_skill_gem_administrator_shield_recharge
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 12
+    requiredItems:
+      - itemId:
+          ref: item:skill_gem_raw_advanced
+        category: material
+        amount: 1

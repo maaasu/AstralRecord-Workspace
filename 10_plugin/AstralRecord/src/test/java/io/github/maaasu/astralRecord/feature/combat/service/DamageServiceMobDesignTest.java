@@ -37,6 +37,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
@@ -235,6 +236,28 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         assertEquals(MobState.AGGRO, mob.state());
         assertEquals(attacker.getBukkit().getUniqueId(), mob.targetId());
         verify(harness.knockbackService, never()).apply(any(AstEntity.class), any(AstEntity.class), eq(1.0D));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_0-概要.md
+     * 章・見出し: # 14_0-概要 > ## 5. 固定HPダメージとShield
+     * 検証契約: シールドリチャージ設定済みプレイヤーは、シールドが残っている被ダメージでも待機を更新する。
+     */
+    @Test
+    void configuredPlayerRechargeRestartsOnShieldDamage() {
+        DamageHarness harness = damageHarness();
+        AstPlayer attacker = attacker();
+        AstPlayer victim = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        victim.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D, StatusType.MAX_SHIELD, 30.0D
+        ), 100.0D, 0.0D, 30.0D));
+        when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
+        when(harness.statusService.getStatus(victim)).thenReturn(victim.getStatusSnapshot());
+        when(harness.statusService.hasConfiguredShieldRecharge(victim)).thenReturn(true);
+
+        harness.service.applyDamage(AstEntity.player(attacker), AstEntity.player(victim), 10.0D, AttackType.MELEE);
+
+        verify(harness.statusService).startShieldRecharge(eq(victim), anyLong());
     }
 
     /**

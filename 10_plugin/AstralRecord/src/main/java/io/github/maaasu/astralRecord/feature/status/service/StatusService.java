@@ -69,7 +69,7 @@ public class StatusService {
     private static final double AGILITY_MOVEMENT_SPEED_PER_POINT = 1.0D;
     private static final double AGILITY_EVASION_PER_POINT = 0.1D;
     private static final double LUCK_CRITICAL_RATE_PER_POINT = 0.1D;
-    /** プレイヤーシールドの既定リチャージ秒数です。 */
+    /** プレイヤーシールドの既定再充填開始待機秒数です。 */
     public static final double PLAYER_SHIELD_RECHARGE_SECONDS = 30.0D;
 
     private final BuffService buffService;
@@ -81,6 +81,7 @@ public class StatusService {
     private PlayerClassService playerClassService;
     private ConditionService conditionService;
     private final Map<UUID, ShieldRechargeState> shieldRechargeStates = new HashMap<>();
+    private final Map<UUID, ShieldRechargeConfiguration> shieldRechargeConfigurations = new HashMap<>();
     private final Map<UUID, Double> shieldDisplayCapacities = new HashMap<>();
 
     public StatusService() {
@@ -289,7 +290,7 @@ public class StatusService {
     }
 
     /**
-     * シールド破壊時点の短縮率を固定し、プレイヤーのリチャージを開始します。
+     * 被ダメージ時点の短縮率を固定し、プレイヤーのシールド再充填待機を開始します。
      *
      * @param player 対象プレイヤー
      * @param nowMs 破壊時刻（epoch milliseconds）
@@ -305,22 +306,22 @@ public class StatusService {
             long nowMs
     ) {
         double maxShield = snapshot.getMaxValue(StatusType.MAX_SHIELD);
-        if (maxShield <= 0.0D || snapshot.getCurrentShield() > 0.0D) {
+        if (maxShield <= 0.0D) {
             return null;
         }
         UUID playerId = player.getBukkit().getUniqueId();
-        ShieldRechargeState existing = shieldRechargeStates.get(playerId);
-        if (existing != null) {
-            return existing;
-        }
+        ShieldRechargeConfiguration configuration = shieldRechargeConfigurations.getOrDefault(
+            playerId,
+            ShieldRechargeConfiguration.defaultConfiguration()
+        );
         long durationMs = reducedDurationMs(
-            PLAYER_SHIELD_RECHARGE_SECONDS * 1000.0D,
+            configuration.delaySeconds() * 1000.0D,
             snapshot.rollValue(StatusType.SHIELD_RECHARGE_REDUCTION)
         );
         ShieldRechargeState state = new ShieldRechargeState(
             nowMs,
             saturatingAdd(nowMs, durationMs),
-            maxShield
+            configuration.rechargePerSecond(maxShield)
         );
         shieldRechargeStates.put(playerId, state);
         return state;
@@ -352,7 +353,7 @@ public class StatusService {
     }
 
     /**
-     * 完了時刻を過ぎていれば、回復阻害とは独立してシールドを一括復元します。
+     * 待機時間を過ぎていれば、1秒分のシールドを回復します。
      *
      * @param player 対象プレイヤー
      * @param nowMs 判定時刻（epoch milliseconds）
@@ -370,10 +371,15 @@ public class StatusService {
             clearShieldRuntimeState(playerId);
             return false;
         }
-        StatusSnapshot updated = snapshot.withCurrentShield(maxShield);
+        boolean configuredRecharge = shieldRechargeConfigurations.containsKey(playerId);
+        StatusSnapshot updated = snapshot.withCurrentShield(
+            configuredRecharge ? snapshot.getCurrentShield() + state.rechargeAmount() : maxShield
+        );
         player.setStatusSnapshot(updated);
         shieldDisplayCapacities.put(playerId, maxShield);
-        shieldRechargeStates.remove(playerId);
+        if (updated.getCurrentShield() >= maxShield) {
+            shieldRechargeStates.remove(playerId);
+        }
         return true;
     }
 
@@ -385,6 +391,16 @@ public class StatusService {
      */
     public @Nullable ShieldRechargeState getShieldRechargeState(@NotNull AstPlayer player) {
         return shieldRechargeStates.get(player.getBukkit().getUniqueId());
+    }
+
+    /**
+     * シールド再充填パッシブが対象プレイヤーへ設定されているかを返します。
+     *
+     * @param player 対象プレイヤー
+     * @return パッシブ由来の再充填設定が有効なら {@code true}
+     */
+    public boolean hasConfiguredShieldRecharge(@NotNull AstPlayer player) {
+        return shieldRechargeConfigurations.containsKey(player.getBukkit().getUniqueId());
     }
 
     /**
@@ -416,7 +432,37 @@ public class StatusService {
      */
     public void clearShieldRuntimeState(@NotNull UUID playerId) {
         shieldRechargeStates.remove(playerId);
+        shieldRechargeConfigurations.remove(playerId);
         shieldDisplayCapacities.remove(playerId);
+    }
+
+    /**
+     * パッシブスキル由来のプレイヤーシールド再充填設定を適用します。
+     *
+     * @param player 対象プレイヤー
+     * @param delaySeconds 被ダメージ後に再充填を開始するまでの秒数
+     * @param rechargePercentPerSecond 最大シールドに対する毎秒回復率（%）
+     */
+    public void configureShieldRecharge(
+        @NotNull AstPlayer player,
+        double delaySeconds,
+        double rechargePercentPerSecond
+    ) {
+        shieldRechargeConfigurations.put(
+            player.getBukkit().getUniqueId(),
+            new ShieldRechargeConfiguration(delaySeconds, rechargePercentPerSecond)
+        );
+    }
+
+    /**
+     * パッシブスキル由来のプレイヤーシールド再充填設定を解除します。
+     *
+     * @param player 対象プレイヤー
+     */
+    public void clearShieldRechargeConfiguration(@NotNull AstPlayer player) {
+        UUID playerId = player.getBukkit().getUniqueId();
+        shieldRechargeConfigurations.remove(playerId);
+        shieldRechargeStates.remove(playerId);
     }
 
     /**
@@ -1322,6 +1368,21 @@ public class StatusService {
 
     private boolean isHealingBlocked(@NotNull AstPlayer player) {
         return conditionService != null && conditionService.isHealingBlocked(AstEntity.player(player));
+    }
+
+    private record ShieldRechargeConfiguration(double delaySeconds, double rechargePercentPerSecond) {
+        private ShieldRechargeConfiguration {
+            delaySeconds = Math.max(0.0D, delaySeconds);
+            rechargePercentPerSecond = Math.max(0.0D, rechargePercentPerSecond);
+        }
+
+        private static @NotNull ShieldRechargeConfiguration defaultConfiguration() {
+            return new ShieldRechargeConfiguration(PLAYER_SHIELD_RECHARGE_SECONDS, 100.0D);
+        }
+
+        private double rechargePerSecond(double maxShield) {
+            return maxShield * rechargePercentPerSecond / 100.0D;
+        }
     }
 
 }

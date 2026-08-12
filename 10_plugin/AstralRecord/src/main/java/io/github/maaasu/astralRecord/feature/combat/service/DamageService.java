@@ -570,7 +570,12 @@ public final class DamageService {
         if (!shieldWasActive && isDirectDamage(source) && !result.evaded()) {
             result = result.withAddedFixedHealthDamage(fixedHealthDamage(attacker));
         }
-        if (result.shieldBroken()) {
+        boolean configuredPlayerRecharge = victim.isPlayer()
+            && victim.player() != null
+            && statusService.hasConfiguredShieldRecharge(victim.player());
+        if (result.shieldBroken() || (configuredPlayerRecharge
+            && !result.evaded()
+            && (result.shieldDamage() > 0.0D || effectiveHealthDamage(victim, result) > 0.0D))) {
             startShieldRecharge(victim, rechargeEventAtMs);
         }
         applyShieldRechargeDelay(attacker, victim, result, source);
