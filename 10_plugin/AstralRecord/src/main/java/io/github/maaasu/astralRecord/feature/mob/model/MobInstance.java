@@ -643,14 +643,24 @@ public final class MobInstance {
         this.navDirectVelocityOverride = override;
     }
 
-    /** 現在の経路をリセットします（次 tick で再計算される）。 */
-    public void clearNavPath() {
+    /**
+     * Vex の飛行経路だけをリセットします。
+     *
+     * <p>WANDER NPC の詰まり検知状態は維持し、部分経路の完了や衝突によって
+     * 配置アンカーへの復帰判定が先送りされないようにします。</p>
+     */
+    public void clearVexFlightPath() {
         this.navPath = null;
         this.navPathIndex = 0;
-        this.navBlockedSinceTick = -1L;
-        this.navLastObservedLocation = null;
         this.navFlightSpeed = 0.0D;
         this.navDirectVelocityOverride = false;
+    }
+
+    /** 現在の経路をリセットします（次 tick で再計算される）。 */
+    public void clearNavPath() {
+        clearVexFlightPath();
+        this.navBlockedSinceTick = -1L;
+        this.navLastObservedLocation = null;
     }
 
     /** WANDER 時の現在の徘徊目的地を返します。未設定なら {@code null}。 */

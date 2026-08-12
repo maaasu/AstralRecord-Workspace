@@ -169,6 +169,27 @@ class MobEntityControllerTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
+     * 章・見出し: # 12_3-実体Mob制御 > ## 4. Pathfinder 移動要求 > ### Vex 三次元経路
+     * 検証契約: Vex の部分経路を使い切っても WANDER NPC の詰まり観測状態を維持する。
+     */
+    @Test
+    void vexPathCompletionPreservesWanderStuckObservation() {
+        VexFixture fixture = vexFixture("vex_wander_observation_world");
+        Location observed = fixture.location().clone().subtract(0.1D, 0.0D, 0.0D);
+        fixture.instance().navBlockedSinceTick(40L);
+        fixture.instance().navLastObservedLocation(observed);
+        fixture.instance().navPath(List.of(fixture.location().clone()));
+        fixture.instance().navFlightSpeed(0.2D);
+
+        fixture.controller().tickVexNavigation(fixture.instance());
+
+        assertEquals(null, fixture.instance().navPath());
+        assertEquals(40L, fixture.instance().navBlockedSinceTick());
+        assertEquals(observed, fixture.instance().navLastObservedLocation());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
      * 章・見出し: # 12_3-サービス > ## 2. MobEntityController メソッド仕様 > ### 実体 Mob 取得
      * 検証契約: spawn直後の非dead ArmorStandをPaper isValid反映前でも管理対象として利用可能にする。

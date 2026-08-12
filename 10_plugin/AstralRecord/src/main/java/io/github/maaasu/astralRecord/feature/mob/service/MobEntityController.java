@@ -661,7 +661,7 @@ public class MobEntityController {
         }
         if (index >= path.size()) {
             vex.setVelocity(new Vector());
-            instance.clearNavPath();
+            instance.clearVexFlightPath();
             instance.currentLocation(current);
             return;
         }
@@ -678,7 +678,7 @@ public class MobEntityController {
         Location next = current.clone().add(velocity);
         if (!isVexSweepClear(vex, current, next)) {
             vex.setVelocity(new Vector());
-            instance.clearNavPath();
+            instance.clearVexFlightPath();
             instance.navRecomputeTick(-1000L);
             instance.currentLocation(current);
             return;
@@ -820,7 +820,7 @@ public class MobEntityController {
             return;
         }
         if (mob instanceof Vex) {
-            instance.clearNavPath();
+            instance.clearVexFlightPath();
             instance.navDirectVelocityOverride(true);
         }
         mob.setVelocity(mob.getVelocity().add(velocity));
