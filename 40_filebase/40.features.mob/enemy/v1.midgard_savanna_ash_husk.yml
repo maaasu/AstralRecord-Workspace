@@ -10,8 +10,8 @@ level: 3
 entityType: HUSK
 icon: CHARCOAL
 lore:
-  - "&7熱風に運ばれた灰から立ち上がる干からびた亡者。"
-  - "&7揺らめく陽炎を弾にして、遠くの獲物を焼く。"
+  - "&7熱風の灰から立ち上がる亡者。"
+  - "&7予兆のある陽炎弾で遠距離を攻める。"
 tags:
   - midgard
   - savanna
@@ -21,15 +21,15 @@ tags:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 95
+    value: 240
   - status: ATTACK
-    value: 14
-  - status: INTELLIGENCE
-    value: 16
+    value: 76
   - status: DEFENSE
+    value: 42
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
     value: 3
-  - status: MAGIC_DEFENSE
-    value: 4
   - status: MOVEMENT_SPEED
     value: 100
 
@@ -40,29 +40,15 @@ ai:
     speed: 0.85
   targeting:
     strategy: NEAREST
-    aggroRange: 17
-    deaggroRange: 27
-    leashRange: 32
+    aggroRange: 18
+    deaggroRange: 28
+    leashRange: 33
   combat:
     style: MAGIC
-    preferredRange: 7.0
-    attackIntervalTicks: 36
+    preferredRange: 7.5
+    attackIntervalTicks: 42
     skills:
       - ref: skill:mob_savanna_heatwave_bolt
 
 drops:
-  exp: 24
-  money:
-    min: 2
-    max: 7
-  items:
-    - itemId:
-        ref: item:midgard_savanna_ashcloth
-      rate: 50.0
-      amount: 1~2
-    - itemId:
-        ref: item:midgard_savanna_wind_talisman
-      rate: 1.5
-      amount: 1
-  lootTable:
-    ref: loot_table:midgard_grassland_orb_table
+  exp: 28

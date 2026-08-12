@@ -1,0 +1,57 @@
+# design:
+#   motif: "北欧神話 / 雷痕の戦斧"
+#   progression: 7
+schemaVersion: 1
+id: mob_stormscar_cleave
+type: SKILL
+implementationId: normal_attack
+name: "&e雷痕の連断"
+description: "&7前方二体へ連なる斬撃。"
+icon: GOLDEN_AXE
+cooldownTicks: 24
+castTimeTicks: 12
+resourceType: ENERGY
+resourceCost: 0
+requiredLevel: 1
+maxLevel: 1
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+params:
+  attackType: MELEE
+  damageComponents:
+    - element: LIGHTNING
+      ratio: 0.95
+  particle: ELECTRIC_SPARK
+  particleCount: 6
+  spreadX: 0
+  spreadY: 0
+  spreadZ: 0
+  extra: 0
+  forwardOffset: 1
+  upwardOffset: 0.0
+  activationRange: 3.2
+  hitRange: 3.2
+  hitRadius: 1
+  hitStepDistance: 0.55
+  maxTargets: 2
+  trailSteps: 3
+  trailIntervalTicks: 1
+  trailStepDistance: 0.8
+  trailParticleCount: 3
+  trailSpreadX: 0.03
+  trailSpreadY: 0.03
+  trailSpreadZ: 0.03
+  trailExtra: 0.0
+  castSound: entity.evoker.prepare_attack
+  castSoundVolume: 0.75
+  castSoundPitch: 0.9
+  sound: entity.player.attack.sweep
+  soundVolume: 0.9
+  soundPitch: 0.85
+tags:
+  - mob
+  - active
+  - melee
+  - lightning

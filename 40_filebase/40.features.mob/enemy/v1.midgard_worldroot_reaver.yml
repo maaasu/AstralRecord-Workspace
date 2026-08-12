@@ -1,0 +1,55 @@
+# design:
+#   motif: "北欧神話 / 世界樹を裂く獣"
+#   progression: 8
+schemaVersion: 1
+id: midgard_worldroot_reaver
+type: MOB
+category: ENEMY
+name: "&2世界根のリーヴァー"
+level: 25
+entityType: WOLF
+icon: FERMENTED_SPIDER_EYE
+lore:
+  - "&7世界樹の根を食い裂く獣。"
+  - "&7耐久を捨てた裂傷攻撃を行う。"
+tags:
+  - midgard
+  - forest
+  - root
+  - beast
+  - wolf
+  - melee
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 10400
+  - status: ATTACK
+    value: 3297
+  - status: DEFENSE
+    value: 1811
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 116
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 1
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 22
+    deaggroRange: 34
+    leashRange: 40
+  combat:
+    style: MELEE
+    preferredRange: 2.2
+    attackIntervalTicks: 34
+    skills:
+      - ref: skill:mob_worldroot_rend
+
+drops:
+  exp: 440

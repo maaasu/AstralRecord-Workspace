@@ -1,0 +1,54 @@
+# design:
+#   motif: "北欧神話 / 雷霊の巫視"
+#   progression: 7
+schemaVersion: 1
+id: midgard_stormscar_seer
+type: MOB
+category: ENEMY
+name: "&b雷痕のシーア"
+level: 21
+entityType: BREEZE
+icon: WIND_CHARGE
+lore:
+  - "&7雷霊の流れを読む高火力の術者。"
+  - "&7連鎖する雷弾は散開して受ける。"
+tags:
+  - midgard
+  - mountain
+  - spirit
+  - magic
+  - lightning
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 7200
+  - status: ATTACK
+    value: 2282
+  - status: DEFENSE
+    value: 1254
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 112
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 1
+  targeting:
+    strategy: RANDOM
+    aggroRange: 26
+    deaggroRange: 38
+    leashRange: 44
+  combat:
+    style: MAGIC
+    preferredRange: 9.5
+    attackIntervalTicks: 50
+    skills:
+      - ref: skill:mob_stormscar_chain_bolt
+
+drops:
+  exp: 380

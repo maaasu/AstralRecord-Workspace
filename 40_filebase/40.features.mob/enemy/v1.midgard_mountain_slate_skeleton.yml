@@ -10,8 +10,8 @@ level: 8
 entityType: SKELETON
 icon: DEEPSLATE
 lore:
-  - "&7粘板岩の裂け目に埋もれていた、重い骨の射手。"
-  - "&7岩肌に紛れ、遠くから硬い矢を射かける。"
+  - "&7粘板岩の裂け目に潜む射手。"
+  - "&7近接敵の後方から硬い矢を射る。"
 tags:
   - midgard
   - mountain
@@ -24,15 +24,15 @@ equipment:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 180
+    value: 1400
   - status: ATTACK
-    value: 30
-  - status: DEXTERITY
-    value: 34
+    value: 254
   - status: DEFENSE
-    value: 8
-  - status: MAGIC_DEFENSE
-    value: 5
+    value: 244
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
   - status: MOVEMENT_SPEED
     value: 98
 
@@ -43,29 +43,15 @@ ai:
     speed: 0.8
   targeting:
     strategy: NEAREST
-    aggroRange: 21
+    aggroRange: 22
     deaggroRange: 32
     leashRange: 38
   combat:
     style: RANGED
-    preferredRange: 9.5
-    attackIntervalTicks: 30
+    preferredRange: 10
+    attackIntervalTicks: 40
     skills:
       - ref: skill:mob_skeleton_bow_shot
 
 drops:
-  exp: 76
-  money:
-    min: 10
-    max: 24
-  items:
-    - itemId:
-        ref: item:midgard_mountain_slate
-      rate: 50.0
-      amount: 1~2
-    - itemId:
-        ref: item:midgard_mountain_eagle_core
-      rate: 0.8
-      amount: 1
-  lootTable:
-    ref: loot_table:midgard_grassland_orb_table
+  exp: 105

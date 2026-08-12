@@ -1,0 +1,28 @@
+# design:
+#   motif: "雷痕高地 / Lv.25武器更新 / 間接"
+#   progression: 7
+schemaVersion: 1
+id: midgard_stormscar_bow
+category: equipment
+name: "&a雷痕の弓"
+icon: BOW
+rarity: LEGENDARY
+maxStack: 1
+saleValue: 3000
+lore:
+  - "&7雷痕高地の力を封じたLv.25間接武器。"
+  - "&7職業制限はなく、間接攻撃力だけを更新する。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: TWO
+  tag: BOW
+  requiredLevel: 25
+  stats:
+    - status: RANGED_ATTACK
+      type: FLAT
+      value: 1130
+  durability:
+    max: 340
+    consume: 1

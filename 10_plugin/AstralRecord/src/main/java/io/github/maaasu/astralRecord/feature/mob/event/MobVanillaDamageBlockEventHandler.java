@@ -78,7 +78,7 @@ public final class MobVanillaDamageBlockEventHandler extends AbstractEventHandle
     }
 
     private boolean isProtectedMob(@NotNull Entity entity) {
-        MobInstance instance = mobService.getInstanceByEntity(entity.getUniqueId());
+        MobInstance instance = mobService.getInstanceByEntity(entity);
         return instance != null && PROTECTED_CATEGORIES.contains(instance.template().category());
     }
 }

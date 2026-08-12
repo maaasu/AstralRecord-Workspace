@@ -3,7 +3,9 @@ package io.github.maaasu.astralRecord.feature.combat.service;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
@@ -31,7 +33,6 @@ import org.junit.jupiter.api.Test;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -162,6 +163,38 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
 
         assertEquals(9.0D, result.finalDamage(), 0.0001D);
         assertEquals(1.0D, mob.currentHealth(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: Mobの実行時outgoingDamageMultiplierを通常攻撃とskillに共通する最終倍率として一度だけ適用する。
+     */
+    @Test
+    void mobRuntimeOutgoingMultiplierScalesFinalDamageOnce() {
+        DamageHarness harness = damageHarness();
+        MobInstance attacker = DesignTestFixtures.mobInstanceWithAttack(100.0D, 10.0D, 0.0D, 0.0D);
+        MobInstance normalAttackVictim = DesignTestFixtures.mobInstance(40.0D, 0.0D, 0.0D);
+        MobInstance skillVictim = DesignTestFixtures.mobInstance(40.0D, 0.0D, 0.0D);
+        attacker.outgoingDamageMultiplier(1.5D);
+
+        DamageResult normalAttack = harness.service.attack(
+            AstEntity.mob(attacker),
+            AstEntity.mob(normalAttackVictim),
+            AttackType.MELEE
+        );
+        DamageResult skill = harness.service.attack(
+            AstEntity.mob(attacker),
+            AstEntity.mob(skillVictim),
+            AttackType.MELEE,
+            List.of(DamageComponent.defaultComponent()),
+            DamageSource.SKILL
+        );
+
+        assertEquals(15.0D, normalAttack.finalDamage(), 0.0001D);
+        assertEquals(15.0D, skill.finalDamage(), 0.0001D);
+        assertEquals(25.0D, normalAttackVictim.currentHealth(), 0.0001D);
+        assertEquals(25.0D, skillVictim.currentHealth(), 0.0001D);
     }
 
     /**
@@ -629,12 +662,8 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         MobInstance mob = DesignTestFixtures.mobInstance(10.0D, 0.0D, 0.0D);
         Entity damager = mock(Entity.class);
         Entity victim = mock(Entity.class);
-        UUID damagerId = UUID.randomUUID();
-        UUID victimId = UUID.randomUUID();
-        when(damager.getUniqueId()).thenReturn(damagerId);
-        when(victim.getUniqueId()).thenReturn(victimId);
-        when(harness.mobService.getInstanceByEntity(damagerId)).thenReturn(null);
-        when(harness.mobService.getInstanceByEntity(victimId)).thenReturn(mob);
+        when(harness.mobService.getInstanceByEntity(damager)).thenReturn(null);
+        when(harness.mobService.getInstanceByEntity(victim)).thenReturn(mob);
 
         EntityDamageByEntityEvent event = mock(EntityDamageByEntityEvent.class);
         AtomicReference<Double> eventDamage = new AtomicReference<>(6.0D);

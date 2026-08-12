@@ -6,73 +6,57 @@ id: mob_mountain_thunder_bolt
 type: SKILL
 implementationId: normal_attack
 name: "&b山雷の閃光"
-description: "&7Mob AI が使用する、短時間の感電を伴う雷属性の魔法弾。"
+description: "&7短い感電を伴うMob用雷属性弾。"
 icon: LIGHTNING_ROD
-cooldownTicks: 44
-manaCost: 0
-castTimeTicks: 22
+cooldownTicks: 24
+castTimeTicks: 24
+resourceType: MANA
+resourceCost: 0
 requiredLevel: 1
-maxLevel: 5
-levels:
-  - level: 2
-    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
-  - level: 3
-    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
-  - level: 4
-    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
-  - level: 5
-    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
-sigilSlotsByLevel:
-  - { level: 1, slots: 1 }
-  - { level: 3, slots: 2 }
-  - { level: 5, slots: 3 }
-allowedSigilIds:
-  - cooldown_sigil
-  - cooldown_sigil_ii
+maxLevel: 1
 gem:
   rarity: COMMON
   tradeable: false
   sellable: false
 params:
-  resourceType: ENERGY
-  resourceCost: 0
   attackType: MAGIC
   damageComponents:
     - element: LIGHTNING
-      ratio: 1.0
-  particle: END_ROD
-  particleCount: 16
+      ratio: 0.9
+  particle: ELECTRIC_SPARK
+  particleCount: 12
   spreadX: 0.1
   spreadY: 0.1
   spreadZ: 0.1
   extra: 0.01
-  forwardOffset: 1.0
+  forwardOffset: 1.1
   upwardOffset: 0.0
-  hitRange: 9.0
-  activationRange: 9.0
+  activationRange: 9.5
+  hitRange: 9.5
   hitRadius: 0.85
   hitStepDistance: 0.8
   maxTargets: 1
-  projectileSpeed: 0.9
-  homingStrength: 0.16
-  homingRange: 4.0
   trailSteps: 0
   trailIntervalTicks: 1
-  trailStepDistance: 0.9
+  trailStepDistance: 0.8
   trailParticleCount: 4
   trailSpreadX: 0.03
   trailSpreadY: 0.03
   trailSpreadZ: 0.03
   trailExtra: 0.0
-  castSound: entity.lightning_bolt.impact
-  castSoundVolume: 0.55
-  castSoundPitch: 1.35
+  castSound: entity.evoker.prepare_attack
+  castSoundVolume: 0.75
+  castSoundPitch: 1.2
   sound: entity.evoker.cast_spell
   soundVolume: 0.9
-  soundPitch: 1.4
+  soundPitch: 1.15
+  projectileSpeed: 0.85
+  projectileGravity: 0.0
+  homingStrength: 0.14
+  homingRange: 4
   conditions:
     - type: SHOCKED
-      chance: 18
+      chance: 15
       durationTicks: 20
 tags:
   - mob

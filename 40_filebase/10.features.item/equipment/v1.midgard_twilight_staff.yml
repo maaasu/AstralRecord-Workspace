@@ -1,0 +1,28 @@
+# design:
+#   motif: "黄昏鉱脈 / Lv.15武器更新 / 魔法"
+#   progression: 5
+schemaVersion: 1
+id: midgard_twilight_staff
+category: equipment
+name: "&d黄昏の杖"
+icon: BLAZE_ROD
+rarity: EPIC
+maxStack: 1
+saleValue: 800
+lore:
+  - "&7黄昏鉱脈の力を封じたLv.15魔法武器。"
+  - "&7職業制限はなく、魔法攻撃力だけを更新する。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: TWO
+  tag: STAFF
+  requiredLevel: 15
+  stats:
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 380
+  durability:
+    max: 260
+    consume: 1

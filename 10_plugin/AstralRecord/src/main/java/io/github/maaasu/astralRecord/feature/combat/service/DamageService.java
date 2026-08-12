@@ -476,7 +476,7 @@ public final class DamageService {
             }
         }
 
-        var mob = mobService.getInstanceByEntity(entity.getUniqueId());
+        var mob = mobService.getInstanceByEntity(entity);
         if (mob != null) {
             return AstEntity.mob(mob);
         }
@@ -768,10 +768,11 @@ public final class DamageService {
             return 1.0D;
         }
         if (attacker.isMob() && attacker.mob() != null) {
-            return Math.max(
+            double templateMultiplier = Math.max(
                     0.0D,
                     attacker.mob().template().statValue(StatusType.FINAL_DAMAGE_MULTIPLIER.name(), 100.0D)
             ) / 100.0D;
+            return templateMultiplier * attacker.mob().outgoingDamageMultiplier();
         }
         double configured = attacker.statValue(StatusType.FINAL_DAMAGE_MULTIPLIER);
         return Math.max(0.0D, configured) / 100.0D;

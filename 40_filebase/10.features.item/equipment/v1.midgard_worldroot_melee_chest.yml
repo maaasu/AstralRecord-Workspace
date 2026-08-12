@@ -1,0 +1,29 @@
+# design:
+#   motif: "世界樹深層 / Lv.30中核防具更新 / 近接"
+#   progression: 8
+schemaVersion: 1
+id: midgard_worldroot_melee_chest
+category: equipment
+name: "&c世界根の戦装"
+icon: NETHERITE_CHESTPLATE
+rarity: LEGENDARY
+maxStack: 1
+saleValue: 5000
+lore:
+  - "&7世界樹深層の素材で作るLv.30近接中核防具。"
+  - "&7頭・脚・足を維持したまま、胸部1枠で耐久を更新する。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: CHEST
+  requiredLevel: 30
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 1710
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 4725
+  durability:
+    max: 380
+    consume: 1

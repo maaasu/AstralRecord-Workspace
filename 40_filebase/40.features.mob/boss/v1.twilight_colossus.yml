@@ -1,71 +1,63 @@
-# NOTE: 現在実装されているマスタデータはすべてデバッグ用の仮設定です。正式なゲームバランス・報酬・入手設計として扱わないでください。
+# design:
+#   motif: "北欧神話 / 黄昏門の守護巨像"
+#   progression: 5
 schemaVersion: 1
 id: twilight_colossus
 type: MOB
 category: BOSS
 name: "&5&l黄昏の巨像"
 title: "&8-- 崩れた門の守護者 --"
-level: 45
+level: 15
 entityType: IRON_GOLEM
 icon: CRYING_OBSIDIAN
 nameVisible: true
 lore:
-  - "&7崩れた黄昏の門を守る巨大な構造体。"
-  - "&7最初のボス挑戦として設計された強敵。"
+  - "&7黄昏門を守る三段階の構造体。"
+  - "&7地響き、交差ルーン、内外輪の安全地帯を見極める。"
 tags:
   - boss
   - golem
+  - guardian
   - twilight
+  - melee
+  - shield
 
 baseStats:
   - status: MAX_HEALTH
-    value: 18000
+    value: 35200
   - status: ATTACK
-    value: 120
+    value: 956
   - status: DEFENSE
-    value: 55
-  - status: MAGIC_DEFENSE
-    value: 45
+    value: 882
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
   - status: MOVEMENT_SPEED
-    value: 80
-  - status: CRITICAL_RATE
-    value: 5.0
-  - status: CRITICAL_DAMAGE
-    value: 160.0
+    value: 78
 
 shield:
   enabled: true
-  max: 30
+  max: 10
 
 ai:
   idle:
     behavior: STATIONARY
   targeting:
     strategy: HIGHEST_THREAT
-    aggroRange: 30
-    deaggroRange: 48
-    leashRange: 64
+    aggroRange: 40
+    deaggroRange: 60
+    leashRange: 80
   combat:
     style: MELEE
     preferredRange: 4
-    attackIntervalTicks: 32
+    attackIntervalTicks: 40
     skills:
-      - skill:iron_will
+      - ref: skill:boss_twilight_gate_slam
+      - ref: skill:boss_twilight_rune_bolt
 
 drops:
-  exp: 1200
-  money:
-    min: 200
-    max: 350
-  items:
-    - itemId: item:magic_crystal
-      rate: 0.65
-      amount: "2~4"
-      luckAffected: true
-    - itemId: item:dark_essence
-      rate: 0.25
-      amount: "1"
-      luckAffected: true
+  exp: 2500
 
 challenge:
   fieldWorldId: twilight_colossus_field
@@ -96,5 +88,5 @@ challenge:
   reviveDelaySeconds: 5
   scaling:
     enabled: true
-    healthPerExtraPlayer: 35.0
-    attackPerExtraPlayer: 10.0
+    healthPerExtraPlayer: 100.0
+    attackPerExtraPlayer: 0.0

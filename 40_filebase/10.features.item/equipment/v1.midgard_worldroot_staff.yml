@@ -1,0 +1,28 @@
+# design:
+#   motif: "世界樹深層 / Lv.30武器更新 / 魔法"
+#   progression: 8
+schemaVersion: 1
+id: midgard_worldroot_staff
+category: equipment
+name: "&d世界根の杖"
+icon: BLAZE_ROD
+rarity: LEGENDARY
+maxStack: 1
+saleValue: 5000
+lore:
+  - "&7世界樹深層の力を封じたLv.30魔法武器。"
+  - "&7職業制限はなく、魔法攻撃力だけを更新する。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: TWO
+  tag: STAFF
+  requiredLevel: 30
+  stats:
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 1655
+  durability:
+    max: 380
+    consume: 1

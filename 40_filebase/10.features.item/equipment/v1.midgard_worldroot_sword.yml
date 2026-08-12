@@ -1,0 +1,28 @@
+# design:
+#   motif: "世界樹深層 / Lv.30武器更新 / 近接"
+#   progression: 8
+schemaVersion: 1
+id: midgard_worldroot_sword
+category: equipment
+name: "&c世界根の剣"
+icon: NETHERITE_SWORD
+rarity: LEGENDARY
+maxStack: 1
+saleValue: 5000
+lore:
+  - "&7世界樹深層の力を封じたLv.30近接武器。"
+  - "&7職業制限はなく、近接攻撃力だけを更新する。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: ONE
+  tag: SWORD
+  requiredLevel: 30
+  stats:
+    - status: MELEE_ATTACK
+      type: FLAT
+      value: 1655
+  durability:
+    max: 380
+    consume: 1

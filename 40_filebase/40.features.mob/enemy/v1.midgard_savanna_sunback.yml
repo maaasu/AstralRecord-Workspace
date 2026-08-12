@@ -6,12 +6,12 @@ id: midgard_savanna_sunback
 type: MOB
 category: ENEMY
 name: "&eミズガルズ・サンバック"
-level: 2
+level: 4
 entityType: CAMEL
 icon: HAY_BLOCK
 lore:
-  - "&7陽に灼かれた背を持つ、サバンナの大型獣。"
-  - "&7不用意に近づかなければ、争いを好まない。"
+  - "&7陽に灼かれた背を持つ大型獣。"
+  - "&7刺激しなければ戦闘を避けられる耐久型。"
 tags:
   - midgard
   - savanna
@@ -20,19 +20,23 @@ tags:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 75
+    value: 600
   - status: ATTACK
-    value: 10
+    value: 58
   - status: DEFENSE
-    value: 2
+    value: 88
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
   - status: MOVEMENT_SPEED
-    value: 98
+    value: 92
 
 ai:
   idle:
     behavior: WANDER
     wanderRadius: 14
-    speed: 0.85
+    speed: 0.8
   targeting:
     strategy: HIGHEST_THREAT
     aggroRange: 24
@@ -41,23 +45,10 @@ ai:
     retaliateOnly: true
   combat:
     style: MELEE
-    preferredRange: 2.2
-    attackIntervalTicks: 30
-    skills: []
+    preferredRange: 2.3
+    attackIntervalTicks: 38
+    skills:
+      - ref: skill:mob_goblin_slash
 
 drops:
-  exp: 14
-  money:
-    min: 1
-    max: 4
-  items:
-    - itemId:
-        ref: item:midgard_savanna_sunhide
-      rate: 55.0
-      amount: 1~2
-    - itemId:
-        ref: item:midgard_savanna_fang_talisman
-      rate: 1.5
-      amount: 1
-  lootTable:
-    ref: loot_table:midgard_grassland_orb_table
+  exp: 38

@@ -1,0 +1,68 @@
+# design:
+#   motif: "北欧神話 / 暗黒竜の火"
+#   progression: 6
+schemaVersion: 1
+id: boss_dark_dragon_shadow_bolt
+type: SKILL
+implementationId: normal_attack
+name: "&c深淵火弾"
+description: "&7暗黒竜が遠距離へ放つ炎の追尾弾。"
+icon: FIRE_CHARGE
+cooldownTicks: 50
+castTimeTicks: 22
+resourceType: MANA
+resourceCost: 0
+requiredLevel: 1
+maxLevel: 1
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+params:
+  attackType: MAGIC
+  damageComponents:
+    - element: FIRE
+      ratio: 0.58
+  particle: FLAME
+  particleCount: 12
+  spreadX: 0.1
+  spreadY: 0.1
+  spreadZ: 0.1
+  extra: 0.01
+  forwardOffset: 1.1
+  upwardOffset: 0.0
+  activationRange: 13
+  hitRange: 13
+  hitRadius: 1
+  hitStepDistance: 0.8
+  maxTargets: 1
+  trailSteps: 0
+  trailIntervalTicks: 1
+  trailStepDistance: 0.8
+  trailParticleCount: 4
+  trailSpreadX: 0.03
+  trailSpreadY: 0.03
+  trailSpreadZ: 0.03
+  trailExtra: 0.0
+  castSound: entity.evoker.prepare_attack
+  castSoundVolume: 0.75
+  castSoundPitch: 1.2
+  sound: entity.evoker.cast_spell
+  soundVolume: 0.9
+  soundPitch: 1.15
+  projectileSpeed: 0.85
+  projectileGravity: 0.0
+  homingStrength: 0.14
+  homingRange: 5
+  conditions:
+    - type: BURNING
+      chance: 20
+      durationTicks: 40
+      basePower: 1
+      powerCoefficient: 0.04
+      tickIntervalTicks: 20
+tags:
+  - mob
+  - active
+  - magic
+  - fire

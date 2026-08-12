@@ -1,5 +1,5 @@
 # design:
-#   motif: "ミズガルズ / 星影の街ノクス / 近接上位装備 / チェスト"
+#   motif: "ミズガルズ / 第1中核防具更新 / 近接"
 #   progression: 3
 schemaVersion: 1
 id: midgard_melee_chest
@@ -8,27 +8,24 @@ name: "&cミズガルズ・バトル・チェスト"
 icon: LEATHER_CHESTPLATE
 rarity: RARE
 maxStack: 1
-saleValue: 90
+saleValue: 110
 appearance:
   color: "#7A3E3E"
 lore:
-  - "&7森林の獣牙と根木を仕立てたミズガルズ・バトルのチェスト。"
-  - "&7トラベラー装備より防御力が高く、近接向けの能力を伸ばす。"
+  - "&7獣牙と根木を仕立てたLv.5中核防具。"
+  - "&7既存の頭・脚・足装備と組み合わせて耐久を更新する。"
 unTradeable: false
 unSellable: false
 equipment:
   slot: CHEST
-  requiredLevel: 3
+  requiredLevel: 5
   stats:
     - status: DEFENSE
       type: FLAT
-      value: 12
+      value: 30
     - status: MAX_HEALTH
       type: FLAT
-      value: 20
-    - status: STRENGTH
-      type: FLAT
-      value: 3
+      value: 100
   durability:
-    max: 150
+    max: 180
     consume: 1

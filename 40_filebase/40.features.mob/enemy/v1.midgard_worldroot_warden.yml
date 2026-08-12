@@ -1,0 +1,98 @@
+# design:
+#   motif: "北欧神話 / 世界樹深層の番人"
+#   progression: 8
+schemaVersion: 1
+id: midgard_worldroot_warden
+type: MOB
+category: ENEMY
+name: "&6世界根のウォーデン"
+level: 29
+entityType: RAVAGER
+icon: MOSSY_COBBLESTONE
+lore:
+  - "&7世界樹深層を塞ぐ帯域の強敵。"
+  - "&7根縛りの範囲を見て安全地帯へ移る。"
+tags:
+  - midgard
+  - forest
+  - root
+  - guardian
+  - beast
+  - magic
+  - shield
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 53400
+  - status: ATTACK
+    value: 3709
+  - status: DEFENSE
+    value: 3418
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 82
+
+shield:
+  enabled: true
+  max: 9
+  rechargeTimeSeconds: 24
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.72
+  targeting:
+    strategy: RANDOM
+    aggroRange: 26
+    deaggroRange: 38
+    leashRange: 44
+  combat:
+    style: MAGIC
+    preferredRange: 6
+    attackIntervalTicks: 58
+    skills:
+      - ref: skill:mob_worldroot_root_prison
+
+drops:
+  exp: 980
+  items:
+    - itemId:
+        ref: item:midgard_worldroot_sword
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_worldroot_bow
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_worldroot_staff
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_worldroot_melee_chest
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_worldroot_hunter_chest
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_worldroot_mage_chest
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false

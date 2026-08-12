@@ -1,0 +1,28 @@
+# design:
+#   motif: "黄昏鉱脈 / Lv.15武器更新 / 間接"
+#   progression: 5
+schemaVersion: 1
+id: midgard_twilight_bow
+category: equipment
+name: "&a黄昏の弓"
+icon: BOW
+rarity: EPIC
+maxStack: 1
+saleValue: 800
+lore:
+  - "&7黄昏鉱脈の力を封じたLv.15間接武器。"
+  - "&7職業制限はなく、間接攻撃力だけを更新する。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: TWO
+  tag: BOW
+  requiredLevel: 15
+  stats:
+    - status: RANGED_ATTACK
+      type: FLAT
+      value: 380
+  durability:
+    max: 260
+    consume: 1

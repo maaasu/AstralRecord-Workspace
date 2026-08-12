@@ -10,8 +10,8 @@ level: 4
 entityType: WOLF
 icon: WOLF_SPAWN_EGG
 lore:
-  - "&7シダに覆われた獣道を駆ける、深森の狩人。"
-  - "&7一度獲物を見定めると、鋭い爪で間合いを裂く。"
+  - "&7深森を駆ける素早い狩人。"
+  - "&7低い耐久と高い攻撃を持つ。"
 tags:
   - midgard
   - forest
@@ -21,13 +21,15 @@ tags:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 120
+    value: 320
   - status: ATTACK
-    value: 18
-  - status: STRENGTH
-    value: 18
+    value: 102
   - status: DEFENSE
-    value: 4
+    value: 56
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
   - status: MOVEMENT_SPEED
     value: 112
 
@@ -35,7 +37,7 @@ ai:
   idle:
     behavior: WANDER
     wanderRadius: 14
-    speed: 1.0
+    speed: 1
   targeting:
     strategy: NEAREST
     aggroRange: 18
@@ -43,24 +45,10 @@ ai:
     leashRange: 34
   combat:
     style: MELEE
-    preferredRange: 2.0
-    attackIntervalTicks: 24
+    preferredRange: 2
+    attackIntervalTicks: 30
     skills:
       - ref: skill:mob_goblin_slash
 
 drops:
-  exp: 38
-  money:
-    min: 4
-    max: 11
-  items:
-    - itemId:
-        ref: item:midgard_forest_brackenfang
-      rate: 55.0
-      amount: 1~2
-    - itemId:
-        ref: item:midgard_forest_root_relic
-      rate: 1.2
-      amount: 1
-  lootTable:
-    ref: loot_table:midgard_grassland_orb_table
+  exp: 44

@@ -1,0 +1,28 @@
+# design:
+#   motif: "霜沼 / Lv.20武器更新 / 近接"
+#   progression: 6
+schemaVersion: 1
+id: midgard_frostmere_sword
+category: equipment
+name: "&c霜沼の剣"
+icon: DIAMOND_SWORD
+rarity: EPIC
+maxStack: 1
+saleValue: 1600
+lore:
+  - "&7霜沼の力を封じたLv.20近接武器。"
+  - "&7職業制限はなく、近接攻撃力だけを更新する。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: ONE
+  tag: SWORD
+  requiredLevel: 20
+  stats:
+    - status: MELEE_ATTACK
+      type: FLAT
+      value: 695
+  durability:
+    max: 300
+    consume: 1

@@ -84,7 +84,7 @@ class MobAiServiceTest {
     void stalledWanderingNpcIsResetAfterNoHorizontalProgress() throws ReflectiveOperationException {
         MobService mobService = mock(MobService.class);
         MobInstance instance = new MobInstance(
-                UUID.randomUUID(),
+                UUID.fromString("00000000-0000-0000-0000-000000000001"),
                 wanderingNpcTemplate(),
                 new Location(null, 0.0D, 64.0D, 0.0D)
         );

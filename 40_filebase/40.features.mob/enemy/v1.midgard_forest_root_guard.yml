@@ -10,8 +10,8 @@ level: 6
 entityType: IRON_GOLEM
 icon: OAK_LOG
 lore:
-  - "&7地表に現れた巨大な根を核に、森を守る石の番人。"
-  - "&7重い腕を振るい、樹木を傷つける者を押し返す。"
+  - "&7世界樹の根を核にした森の強敵。"
+  - "&7広い薙ぎ払いは予兆から離れて避ける。"
 tags:
   - midgard
   - forest
@@ -21,48 +21,34 @@ tags:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 210
+    value: 2400
   - status: ATTACK
-    value: 25
-  - status: STRENGTH
-    value: 26
+    value: 167
   - status: DEFENSE
-    value: 10
-  - status: MAGIC_DEFENSE
-    value: 5
+    value: 153
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
   - status: MOVEMENT_SPEED
-    value: 90
+    value: 86
 
 ai:
   idle:
     behavior: WANDER
     wanderRadius: 9
-    speed: 0.75
+    speed: 0.72
   targeting:
     strategy: HIGHEST_THREAT
-    aggroRange: 16
-    deaggroRange: 26
-    leashRange: 30
+    aggroRange: 18
+    deaggroRange: 28
+    leashRange: 32
   combat:
     style: MELEE
-    preferredRange: 2.6
-    attackIntervalTicks: 36
+    preferredRange: 2.8
+    attackIntervalTicks: 50
     skills:
       - ref: skill:mob_field_heavy_slash
 
 drops:
-  exp: 58
-  money:
-    min: 7
-    max: 18
-  items:
-    - itemId:
-        ref: item:midgard_forest_rootwood
-      rate: 45.0
-      amount: 1~2
-    - itemId:
-        ref: item:midgard_forest_moon_relic
-      rate: 1.2
-      amount: 1
-  lootTable:
-    ref: loot_table:midgard_grassland_orb_table
+  exp: 100

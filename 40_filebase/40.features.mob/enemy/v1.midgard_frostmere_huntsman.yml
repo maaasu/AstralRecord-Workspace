@@ -1,0 +1,57 @@
+# design:
+#   motif: "北欧神話 / 霜の狩人"
+#   progression: 6
+schemaVersion: 1
+id: midgard_frostmere_huntsman
+type: MOB
+category: ENEMY
+name: "&f霜沼のハンツマン"
+level: 16
+entityType: STRAY
+icon: TIPPED_ARROW
+lore:
+  - "&7白霧の奥から狙う高火力の射手。"
+  - "&7凍気の矢は移動を鈍らせる。"
+tags:
+  - midgard
+  - mountain
+  - undead
+  - skeleton
+  - ranged
+
+equipment:
+  mainHand: BOW
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 4096
+  - status: ATTACK
+    value: 1298
+  - status: DEFENSE
+    value: 714
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 101
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.88
+  targeting:
+    strategy: NEAREST
+    aggroRange: 26
+    deaggroRange: 38
+    leashRange: 44
+  combat:
+    style: RANGED
+    preferredRange: 11
+    attackIntervalTicks: 46
+    skills:
+      - ref: skill:mob_frostmere_frost_arrow
+
+drops:
+  exp: 270

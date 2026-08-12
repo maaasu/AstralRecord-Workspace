@@ -89,6 +89,10 @@
 | `damageComponents[].element` | String | 必須 | - | `NONE` / `FIRE` / `ICE` / `LIGHTNING` |
 | `damageComponents[].ratio` | Double | 必須 | - | 攻撃種別から求めた攻撃力に掛ける倍率。`0.8` は80% |
 | `activationRange` | Double | 任意 | `hitRange` | Mob AI が発動を開始する最大距離 |
+| `hitRange` | Double | 任意 | 攻撃種別ごとの既定値 | 近接判定またはprojectileの最大射程 |
+| `hitRadius` | Double | 任意 | `0.75` | 近接判定またはprojectile衝突判定の半径 |
+| `impactRadius` | Double | 任意 | `0` | projectile命中時に追加対象を探す半径。`0`は単体命中 |
+| `maxTargets` | Integer | 任意 | 近接`8` / projectile`1` | 近接判定または着弾範囲が命中させる上限数 |
 | `conditions` | List | 任意 | `[]` | 命中時に付与する状態異常定義 |
 | `castSound` | String | 任意 | `null` | 詠唱開始 sound key |
 | `castSoundVolume` | Double | 任意 | `1.0` | 詠唱開始音量 |

@@ -45,7 +45,7 @@ public class MobRepositoryPayloadTests
 
         Assert.NotNull(mob?.Shield);
         Assert.True(mob!.Shield!.Enabled);
-        Assert.Equal(10.0D, mob.Shield.Max);
+        Assert.Equal(4.0D, mob.Shield.Max);
         Assert.Equal(15.0D, mob.Shield.RechargeTimeSeconds);
         Assert.Null(mob.Shield.RechargeAmount);
     }

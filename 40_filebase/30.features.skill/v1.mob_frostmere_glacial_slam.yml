@@ -1,0 +1,60 @@
+# design:
+#   motif: "北欧神話 / 霜巨人の震撃"
+#   progression: 6
+schemaVersion: 1
+id: mob_frostmere_glacial_slam
+type: SKILL
+implementationId: normal_attack
+name: "&b氷河震"
+description: "&7複数対象へ冷気を叩き込む強敵用攻撃。"
+icon: BLUE_ICE
+cooldownTicks: 26
+castTimeTicks: 30
+resourceType: ENERGY
+resourceCost: 0
+requiredLevel: 1
+maxLevel: 1
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+params:
+  attackType: MELEE
+  damageComponents:
+    - element: ICE
+      ratio: 1.2
+  particle: SNOWFLAKE
+  particleCount: 6
+  spreadX: 0
+  spreadY: 0
+  spreadZ: 0
+  extra: 0
+  forwardOffset: 1
+  upwardOffset: 0.0
+  activationRange: 4
+  hitRange: 4
+  hitRadius: 1.5
+  hitStepDistance: 0.55
+  maxTargets: 4
+  trailSteps: 3
+  trailIntervalTicks: 1
+  trailStepDistance: 0.8
+  trailParticleCount: 3
+  trailSpreadX: 0.03
+  trailSpreadY: 0.03
+  trailSpreadZ: 0.03
+  trailExtra: 0.0
+  castSound: entity.evoker.prepare_attack
+  castSoundVolume: 0.75
+  castSoundPitch: 0.9
+  sound: entity.player.attack.sweep
+  soundVolume: 0.9
+  soundPitch: 0.85
+  conditions:
+    - type: CHILLED
+      chance: 35
+      durationTicks: 50
+tags:
+  - mob
+  - active
+  - melee

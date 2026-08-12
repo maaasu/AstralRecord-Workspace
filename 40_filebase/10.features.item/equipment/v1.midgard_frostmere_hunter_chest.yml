@@ -1,0 +1,29 @@
+# design:
+#   motif: "霜沼 / Lv.20中核防具更新 / 間接"
+#   progression: 6
+schemaVersion: 1
+id: midgard_frostmere_hunter_chest
+category: equipment
+name: "&a霜沼の狩装"
+icon: DIAMOND_CHESTPLATE
+rarity: EPIC
+maxStack: 1
+saleValue: 1600
+lore:
+  - "&7霜沼の素材で作るLv.20間接中核防具。"
+  - "&7頭・脚・足を維持したまま、胸部1枠で耐久を更新する。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: CHEST
+  requiredLevel: 20
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 710
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 1975
+  durability:
+    max: 300
+    consume: 1

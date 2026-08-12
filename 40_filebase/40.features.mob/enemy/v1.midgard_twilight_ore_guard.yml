@@ -1,0 +1,97 @@
+# design:
+#   motif: "北欧神話 / 黄昏鉱脈の番人"
+#   progression: 5
+schemaVersion: 1
+id: midgard_twilight_ore_guard
+type: MOB
+category: ENEMY
+name: "&6黄昏のオアガード"
+level: 14
+entityType: IRON_GOLEM
+icon: CRYING_OBSIDIAN
+lore:
+  - "&7黄昏鉱石で組まれた帯域の強敵。"
+  - "&7Shieldと広範囲の地響きを持つ。"
+tags:
+  - midgard
+  - twilight
+  - guardian
+  - golem
+  - melee
+  - shield
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 11760
+  - status: ATTACK
+    value: 817
+  - status: DEFENSE
+    value: 751
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 84
+
+shield:
+  enabled: true
+  max: 7
+  rechargeTimeSeconds: 20
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 0.72
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 22
+    deaggroRange: 34
+    leashRange: 40
+  combat:
+    style: MELEE
+    preferredRange: 3
+    attackIntervalTicks: 54
+    skills:
+      - ref: skill:mob_twilight_ore_quake
+
+drops:
+  exp: 420
+  items:
+    - itemId:
+        ref: item:midgard_twilight_sword
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_twilight_bow
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_twilight_staff
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_twilight_melee_chest
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_twilight_hunter_chest
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_twilight_mage_chest
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false

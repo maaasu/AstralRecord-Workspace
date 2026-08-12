@@ -1,0 +1,28 @@
+# design:
+#   motif: "霜沼 / Lv.20武器更新 / 魔法"
+#   progression: 6
+schemaVersion: 1
+id: midgard_frostmere_staff
+category: equipment
+name: "&d霜沼の杖"
+icon: BLAZE_ROD
+rarity: EPIC
+maxStack: 1
+saleValue: 1600
+lore:
+  - "&7霜沼の力を封じたLv.20魔法武器。"
+  - "&7職業制限はなく、魔法攻撃力だけを更新する。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: TWO
+  tag: STAFF
+  requiredLevel: 20
+  stats:
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 695
+  durability:
+    max: 300
+    consume: 1

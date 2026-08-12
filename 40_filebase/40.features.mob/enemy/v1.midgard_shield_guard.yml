@@ -12,8 +12,8 @@ variant:
   age: ADULT
 icon: ZOMBIE_HEAD
 lore:
-  - "&7草原の道標を守る、盾を携えたミズガルズの番兵。"
-  - "&7旅人を試すように、ゆっくりと距離を詰めてくる。"
+  - "&7道標を守る盾持ちの番兵。"
+  - "&7防御を崩してから重い一撃を避ける。"
 tags:
   - midgard
   - grassland
@@ -30,24 +30,28 @@ equipment:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 135
+    value: 450
   - status: ATTACK
-    value: 18
+    value: 43
   - status: DEFENSE
-    value: 7
+    value: 65
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
   - status: MOVEMENT_SPEED
-    value: 101
+    value: 94
 
 shield:
   enabled: true
-  max: 10
+  max: 4
   rechargeTimeSeconds: 15
 
 ai:
   idle:
     behavior: WANDER
     wanderRadius: 10
-    speed: 0.85
+    speed: 0.8
   targeting:
     strategy: NEAREST
     aggroRange: 16
@@ -55,22 +59,10 @@ ai:
     leashRange: 30
   combat:
     style: MELEE
-    preferredRange: 2.2
-    attackIntervalTicks: 30
+    preferredRange: 2.4
+    attackIntervalTicks: 42
     skills:
       - ref: skill:mob_field_heavy_slash
 
 drops:
   exp: 32
-  money:
-    min: 3
-    max: 10
-  items:
-    - itemId:
-        ref: item:midgard_iron_shard
-      rate: 42.0
-      amount: 1
-      luckAffected: true
-      hidden: false
-  lootTable:
-    ref: loot_table:midgard_grassland_orb_table

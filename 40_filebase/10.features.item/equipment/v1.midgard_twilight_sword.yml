@@ -1,0 +1,28 @@
+# design:
+#   motif: "黄昏鉱脈 / Lv.15武器更新 / 近接"
+#   progression: 5
+schemaVersion: 1
+id: midgard_twilight_sword
+category: equipment
+name: "&c黄昏の剣"
+icon: DIAMOND_SWORD
+rarity: EPIC
+maxStack: 1
+saleValue: 800
+lore:
+  - "&7黄昏鉱脈の力を封じたLv.15近接武器。"
+  - "&7職業制限はなく、近接攻撃力だけを更新する。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: ONE
+  tag: SWORD
+  requiredLevel: 15
+  stats:
+    - status: MELEE_ATTACK
+      type: FLAT
+      value: 380
+  durability:
+    max: 260
+    consume: 1

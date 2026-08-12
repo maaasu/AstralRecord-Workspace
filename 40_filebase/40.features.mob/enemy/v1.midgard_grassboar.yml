@@ -10,8 +10,8 @@ level: 1
 entityType: PIG
 icon: PIG
 lore:
-  - "&7ミズガルズの草原をのんびり歩く野生のブタ。"
-  - "&7手を出さなければ、こちらを敵とは見なさない。"
+  - "&7草原を歩く温厚な野生獣。"
+  - "&7攻撃を受けたときだけ反撃する。"
 tags:
   - midgard
   - grassland
@@ -20,11 +20,15 @@ tags:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 45
+    value: 100
   - status: ATTACK
-    value: 6
+    value: 18
   - status: DEFENSE
-    value: 0
+    value: 17
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
   - status: MOVEMENT_SPEED
     value: 100
 
@@ -41,21 +45,9 @@ ai:
     retaliateOnly: true
   combat:
     style: MELEE
-    preferredRange: 2.0
-    attackIntervalTicks: 28
+    preferredRange: 2
+    attackIntervalTicks: 30
     skills: []
 
 drops:
   exp: 8
-  money:
-    min: 0
-    max: 2
-  items:
-    - itemId:
-        ref: item:grassboar_pelt
-      rate: 35.0
-      amount: 1
-      luckAffected: true
-      hidden: false
-  lootTable:
-    ref: loot_table:midgard_grassland_orb_table

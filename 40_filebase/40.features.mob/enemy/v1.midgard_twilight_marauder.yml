@@ -1,0 +1,56 @@
+# design:
+#   motif: "北欧神話 / 黄昏鉱脈の略奪者"
+#   progression: 5
+schemaVersion: 1
+id: midgard_twilight_marauder
+type: MOB
+category: ENEMY
+name: "&5黄昏のマローダー"
+level: 11
+entityType: VINDICATOR
+icon: IRON_AXE
+lore:
+  - "&7黄昏鉱脈を巡回する近接兵。"
+  - "&7横薙ぎの予兆を見て背後へ回る。"
+tags:
+  - midgard
+  - twilight
+  - humanoid
+  - melee
+
+equipment:
+  mainHand: IRON_AXE
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 2480
+  - status: ATTACK
+    value: 449
+  - status: DEFENSE
+    value: 432
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 102
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 0.88
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 22
+    deaggroRange: 34
+    leashRange: 40
+  combat:
+    style: MELEE
+    preferredRange: 2.4
+    attackIntervalTicks: 38
+    skills:
+      - ref: skill:mob_twilight_cleave
+
+drops:
+  exp: 170

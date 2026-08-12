@@ -1,0 +1,56 @@
+# design:
+#   motif: "北欧神話 / 嵐風の追撃者"
+#   progression: 7
+schemaVersion: 1
+id: midgard_stormscar_harrier
+type: MOB
+category: ENEMY
+name: "&a雷痕のハリアー"
+level: 21
+entityType: PILLAGER
+icon: CROSSBOW
+lore:
+  - "&7嵐風を読んで距離を保つ射手。"
+  - "&7速い射撃で静止を許さない。"
+tags:
+  - midgard
+  - mountain
+  - humanoid
+  - ranged
+
+equipment:
+  mainHand: CROSSBOW
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 9000
+  - status: ATTACK
+    value: 1630
+  - status: DEFENSE
+    value: 1568
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 108
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.88
+  targeting:
+    strategy: NEAREST
+    aggroRange: 26
+    deaggroRange: 38
+    leashRange: 44
+  combat:
+    style: RANGED
+    preferredRange: 11
+    attackIntervalTicks: 40
+    skills:
+      - ref: skill:mob_stormscar_gale_shot
+
+drops:
+  exp: 350

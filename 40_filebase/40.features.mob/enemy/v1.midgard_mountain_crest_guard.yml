@@ -10,63 +10,76 @@ level: 10
 entityType: IRON_GOLEM
 icon: IRON_BLOCK
 lore:
-  - "&7山道の稜線に立つ、鉄と岩でできた番人。"
-  - "&7重い一撃で、山奥へ踏み入る者を押し返す。"
+  - "&7山道の終端を守る鉄と岩の強敵。"
+  - "&7Shieldを破り、重い薙ぎ払いを見て避ける。"
 tags:
   - midgard
   - mountain
   - guardian
   - melee
   - iron
+  - shield
 
 baseStats:
   - status: MAX_HEALTH
-    value: 290
+    value: 6000
   - status: ATTACK
-    value: 38
-  - status: STRENGTH
-    value: 40
+    value: 416
   - status: DEFENSE
-    value: 15
-  - status: MAGIC_DEFENSE
-    value: 8
+    value: 383
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
   - status: MOVEMENT_SPEED
-    value: 86
+    value: 84
 
 shield:
   enabled: true
-  max: 12
+  max: 6
+  rechargeTimeSeconds: 20
 
 ai:
   idle:
     behavior: WANDER
     wanderRadius: 9
-    speed: 0.7
+    speed: 0.68
   targeting:
     strategy: HIGHEST_THREAT
-    aggroRange: 18
-    deaggroRange: 28
-    leashRange: 32
+    aggroRange: 20
+    deaggroRange: 30
+    leashRange: 34
   combat:
     style: MELEE
-    preferredRange: 2.8
-    attackIntervalTicks: 38
+    preferredRange: 3
+    attackIntervalTicks: 52
     skills:
       - ref: skill:mob_field_heavy_slash
 
 drops:
-  exp: 110
-  money:
-    min: 16
-    max: 36
+  exp: 180
   items:
     - itemId:
-        ref: item:midgard_mountain_slate
-      rate: 35.0
-      amount: 1~2
-    - itemId:
-        ref: item:midgard_mountain_iron_core
-      rate: 1.0
+        ref: item:midgard_mountain_sword
+      rate: 4.0
       amount: 1
-  lootTable:
-    ref: loot_table:midgard_grassland_orb_table
+    - itemId:
+        ref: item:midgard_mountain_bow
+      rate: 4.0
+      amount: 1
+    - itemId:
+        ref: item:midgard_mountain_staff
+      rate: 4.0
+      amount: 1
+    - itemId:
+        ref: item:midgard_mountain_melee_chest
+      rate: 4.0
+      amount: 1
+    - itemId:
+        ref: item:midgard_mountain_hunter_chest
+      rate: 4.0
+      amount: 1
+    - itemId:
+        ref: item:midgard_mountain_mage_chest
+      rate: 4.0
+      amount: 1

@@ -1,0 +1,56 @@
+# design:
+#   motif: "北欧神話 / 黄昏鉱脈の地響き"
+#   progression: 5
+schemaVersion: 1
+id: mob_twilight_ore_quake
+type: SKILL
+implementationId: normal_attack
+name: "&6黄昏鉱震"
+description: "&7広い範囲を打つ強敵用の重撃。"
+icon: CRYING_OBSIDIAN
+cooldownTicks: 24
+castTimeTicks: 30
+resourceType: ENERGY
+resourceCost: 0
+requiredLevel: 1
+maxLevel: 1
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+params:
+  attackType: MELEE
+  damageComponents:
+    - element: NONE
+      ratio: 1.2
+  particle: SOUL_FIRE_FLAME
+  particleCount: 6
+  spreadX: 0
+  spreadY: 0
+  spreadZ: 0
+  extra: 0
+  forwardOffset: 1
+  upwardOffset: 0.0
+  activationRange: 3.8
+  hitRange: 3.8
+  hitRadius: 1.45
+  hitStepDistance: 0.55
+  maxTargets: 4
+  trailSteps: 3
+  trailIntervalTicks: 1
+  trailStepDistance: 0.8
+  trailParticleCount: 3
+  trailSpreadX: 0.03
+  trailSpreadY: 0.03
+  trailSpreadZ: 0.03
+  trailExtra: 0.0
+  castSound: entity.evoker.prepare_attack
+  castSoundVolume: 0.75
+  castSoundPitch: 0.9
+  sound: entity.player.attack.sweep
+  soundVolume: 0.9
+  soundPitch: 0.85
+tags:
+  - mob
+  - active
+  - melee

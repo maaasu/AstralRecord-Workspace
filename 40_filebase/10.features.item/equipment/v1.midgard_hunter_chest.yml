@@ -1,5 +1,5 @@
 # design:
-#   motif: "ミズガルズ / 星影の街ノクス / 間接上位装備 / チェスト"
+#   motif: "ミズガルズ / 第1中核防具更新 / 間接"
 #   progression: 3
 schemaVersion: 1
 id: midgard_hunter_chest
@@ -8,27 +8,24 @@ name: "&aミズガルズ・レンジャー・チェスト"
 icon: LEATHER_CHESTPLATE
 rarity: RARE
 maxStack: 1
-saleValue: 90
+saleValue: 110
 appearance:
   color: "#3F6B4A"
 lore:
-  - "&7サバンナの皮と乾いた布を仕立てたミズガルズ・レンジャーのチェスト。"
-  - "&7トラベラー装備より防御力が高く、間接向けの能力を伸ばす。"
+  - "&7乾いた皮を重ねたLv.5中核防具。"
+  - "&7既存の頭・脚・足装備と組み合わせて耐久を更新する。"
 unTradeable: false
 unSellable: false
 equipment:
   slot: CHEST
-  requiredLevel: 3
+  requiredLevel: 5
   stats:
     - status: DEFENSE
       type: FLAT
-      value: 12
+      value: 30
     - status: MAX_HEALTH
       type: FLAT
-      value: 20
-    - status: DEXTERITY
-      type: FLAT
-      value: 4
+      value: 100
   durability:
-    max: 150
+    max: 180
     consume: 1

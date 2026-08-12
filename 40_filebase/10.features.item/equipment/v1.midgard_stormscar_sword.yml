@@ -1,0 +1,28 @@
+# design:
+#   motif: "雷痕高地 / Lv.25武器更新 / 近接"
+#   progression: 7
+schemaVersion: 1
+id: midgard_stormscar_sword
+category: equipment
+name: "&c雷痕の剣"
+icon: GOLDEN_SWORD
+rarity: LEGENDARY
+maxStack: 1
+saleValue: 3000
+lore:
+  - "&7雷痕高地の力を封じたLv.25近接武器。"
+  - "&7職業制限はなく、近接攻撃力だけを更新する。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: ONE
+  tag: SWORD
+  requiredLevel: 25
+  stats:
+    - status: MELEE_ATTACK
+      type: FLAT
+      value: 1130
+  durability:
+    max: 340
+    consume: 1

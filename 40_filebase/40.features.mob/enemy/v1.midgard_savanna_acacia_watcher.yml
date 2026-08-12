@@ -10,8 +10,8 @@ level: 4
 entityType: PILLAGER
 icon: CROSSBOW
 lore:
-  - "&7アカシアの枝に潜み、乾いた平原を見張る狩人。"
-  - "&7木の棘を思わせる矢で、距離を取る旅人を狙う。"
+  - "&7乾いた平原を見張る狩人。"
+  - "&7遮蔽物を意識させる遠距離射撃を行う。"
 tags:
   - midgard
   - savanna
@@ -24,13 +24,15 @@ equipment:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 110
+    value: 400
   - status: ATTACK
-    value: 17
-  - status: DEXTERITY
-    value: 20
+    value: 73
   - status: DEFENSE
-    value: 4
+    value: 70
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
   - status: MOVEMENT_SPEED
     value: 104
 
@@ -41,29 +43,15 @@ ai:
     speed: 0.9
   targeting:
     strategy: NEAREST
-    aggroRange: 19
+    aggroRange: 20
     deaggroRange: 30
     leashRange: 36
   combat:
     style: RANGED
-    preferredRange: 8.5
-    attackIntervalTicks: 30
+    preferredRange: 9
+    attackIntervalTicks: 38
     skills:
       - ref: skill:mob_skeleton_bow_shot
 
 drops:
-  exp: 34
-  money:
-    min: 4
-    max: 10
-  items:
-    - itemId:
-        ref: item:midgard_savanna_acaciafiber
-      rate: 45.0
-      amount: 1~2
-    - itemId:
-        ref: item:midgard_savanna_sun_talisman
-      rate: 1.5
-      amount: 1
-  lootTable:
-    ref: loot_table:midgard_grassland_orb_table
+  exp: 42

@@ -1,5 +1,5 @@
 # design:
-#   motif: "ミズガルズ / 星影の街ノクス / サバンナの皮と乾いた風"
+#   motif: "ミズガルズ / 第1武器更新"
 #   progression: 3
 schemaVersion: 1
 id: midgard_bow
@@ -8,24 +8,21 @@ name: "&fミズガルズ・ボウ"
 icon: BOW
 rarity: RARE
 maxStack: 1
-saleValue: 80
+saleValue: 100
 lore:
-  - "&7サバンナの皮と乾いた風を束ね、ノクスの職人が鍛えたミズガルズ・ボウ。"
-  - "&7職業制限はなく、間接攻撃に適した武器。"
+  - "&7ミズガルズ各地の素材を張り合わせたLv.5間接武器。"
+  - "&7職業制限はなく、間接攻撃力だけを更新する。"
 unTradeable: false
 unSellable: false
 equipment:
   slot: WEAPON
   handType: TWO
   tag: BOW
-  requiredLevel: 3
+  requiredLevel: 5
   stats:
     - status: RANGED_ATTACK
       type: FLAT
-      value: 17~21
-    - status: DEXTERITY
-      type: FLAT
-      value: 4
+      value: 40
   durability:
-    max: 160
+    max: 180
     consume: 1

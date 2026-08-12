@@ -1,0 +1,98 @@
+# design:
+#   motif: "北欧神話 / 雷壁の守護像"
+#   progression: 7
+schemaVersion: 1
+id: midgard_stormscar_bulwark
+type: MOB
+category: ENEMY
+name: "&6雷痕のブルワーク"
+level: 24
+entityType: IRON_GOLEM
+icon: LIGHTNING_ROD
+lore:
+  - "&7雷を蓄えた帯域の強敵。"
+  - "&7突進線から外れて反撃する。"
+tags:
+  - midgard
+  - mountain
+  - guardian
+  - golem
+  - melee
+  - lightning
+  - shield
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 36000
+  - status: ATTACK
+    value: 2500
+  - status: DEFENSE
+    value: 2299
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 86
+
+shield:
+  enabled: true
+  max: 8
+  rechargeTimeSeconds: 22
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 0.72
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 22
+    deaggroRange: 34
+    leashRange: 40
+  combat:
+    style: MELEE
+    preferredRange: 3
+    attackIntervalTicks: 56
+    skills:
+      - ref: skill:mob_stormscar_bulwark_charge
+
+drops:
+  exp: 760
+  items:
+    - itemId:
+        ref: item:midgard_stormscar_sword
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_stormscar_bow
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_stormscar_staff
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_stormscar_melee_chest
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_stormscar_hunter_chest
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_stormscar_mage_chest
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false

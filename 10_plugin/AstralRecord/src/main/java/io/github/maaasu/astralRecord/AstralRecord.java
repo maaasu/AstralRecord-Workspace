@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.boss.event.BossPlayerEventHandler;
 import io.github.maaasu.astralRecord.feature.boss.gui.BossChallengeCancelGui;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.boss.service.BossFieldInstanceService;
+import io.github.maaasu.astralRecord.feature.boss.service.BossMechanicService;
 import io.github.maaasu.astralRecord.feature.combat.event.CombatDamageEventHandler;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.combat.service.CombatDpsTrackerService;
@@ -391,6 +392,7 @@ public final class AstralRecord extends JavaPlugin {
     private GoldAmountSettingGui goldAmountSettingGui;
     private BossFieldInstanceService bossFieldInstanceService;
     private BossChallengeService bossChallengeService;
+    private BossMechanicService bossMechanicService;
     private BossChallengeCancelGui bossChallengeCancelGui;
     private DungeonService dungeonService;
     private String joinSpawnWorldId;
@@ -548,6 +550,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (overheadDisplayService != null) {
             overheadDisplayService.stop();
+        }
+        if (bossMechanicService != null) {
+            bossMechanicService.stop();
         }
         if (dungeonService != null) {
             dungeonService.stop();
@@ -908,6 +913,13 @@ public final class AstralRecord extends JavaPlugin {
         );
         damageService.setDungeonService(dungeonService);
         damageService.setMobDeathListener(dungeonService::handleMobDefeated);
+        bossMechanicService = new BossMechanicService(
+            this,
+            mobService,
+            damageService,
+            dungeonService,
+            particleDisplayService
+        );
         bossChallengeCancelGui = new BossChallengeCancelGui();
         playerHudService = new PlayerHudService(
             statusService,
@@ -1038,6 +1050,7 @@ public final class AstralRecord extends JavaPlugin {
         skillCooldownBossBarService = new SkillCooldownBossBarService(skillService);
         skillService.setConditionService(conditionService);
         skillService.setPlayerHudService(playerHudService);
+        mobService.setDestroyListener(skillService::clearCasterState);
         meditationSkillRuntimeService = new MeditationSkillRuntimeService(particleDisplayService);
         skillService.registerExecutor(new MeditationSkillExecutor(meditationSkillRuntimeService));
         skillService.registerExecutor(new AdministratorShieldRechargeSkillExecutor(statusService, particleDisplayService));
@@ -1542,6 +1555,7 @@ public final class AstralRecord extends JavaPlugin {
         gatheringSpawnerService.start();
         questService.start();
         bossChallengeService.start();
+        bossMechanicService.start();
         passiveSkillService.start();
         skillTreeService.start();
         // インベントリオートセーブ（60 秒）を開始

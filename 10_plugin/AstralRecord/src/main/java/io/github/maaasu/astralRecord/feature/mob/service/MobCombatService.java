@@ -240,8 +240,7 @@ public class MobCombatService {
                 AstEntity.player(astTarget),
                 attackType(combat.style()),
                 List.of(DamageComponent.defaultComponent()),
-                DamageSource.NORMAL_ATTACK,
-                instance.outgoingDamageMultiplier()
+                DamageSource.NORMAL_ATTACK
         );
         instance.lastAttackTick(serverTick);
     }

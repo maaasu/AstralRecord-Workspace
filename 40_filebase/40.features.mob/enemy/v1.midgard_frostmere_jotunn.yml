@@ -1,0 +1,91 @@
+# design:
+#   motif: "北欧神話 / 霜の巨人"
+#   progression: 6
+schemaVersion: 1
+id: midgard_frostmere_jotunn
+type: MOB
+category: ENEMY
+name: "&b霜沼のヨトゥン"
+level: 19
+entityType: RAVAGER
+icon: BLUE_ICE
+lore:
+  - "&7霜沼を踏み割る巨人の眷属。"
+  - "&7広い氷震は外周へ離れて避ける。"
+tags:
+  - midgard
+  - mountain
+  - beast
+  - guardian
+  - melee
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 21840
+  - status: ATTACK
+    value: 1517
+  - status: DEFENSE
+    value: 1396
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 82
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 0.72
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 22
+    deaggroRange: 34
+    leashRange: 40
+  combat:
+    style: MELEE
+    preferredRange: 3.2
+    attackIntervalTicks: 56
+    skills:
+      - ref: skill:mob_frostmere_glacial_slam
+
+drops:
+  exp: 580
+  items:
+    - itemId:
+        ref: item:midgard_frostmere_sword
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_frostmere_bow
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_frostmere_staff
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_frostmere_melee_chest
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_frostmere_hunter_chest
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:midgard_frostmere_mage_chest
+      rate: 4.0
+      amount: 1
+      luckAffected: true
+      hidden: false

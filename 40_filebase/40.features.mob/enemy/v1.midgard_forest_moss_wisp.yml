@@ -10,8 +10,8 @@ level: 5
 entityType: VEX
 icon: GLOW_BERRIES
 lore:
-  - "&7古い幹に宿る苔の灯が、淡い精霊となったもの。"
-  - "&7樹間を縫う青白い光で、侵入者を遠ざける。"
+  - "&7古い幹の苔に宿る精霊。"
+  - "&7樹間から雷の魔法弾を放つ。"
 tags:
   - midgard
   - forest
@@ -21,15 +21,15 @@ tags:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 100
+    value: 500
   - status: ATTACK
-    value: 19
-  - status: INTELLIGENCE
-    value: 22
+    value: 91
   - status: DEFENSE
+    value: 87
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
     value: 3
-  - status: MAGIC_DEFENSE
-    value: 8
   - status: MOVEMENT_SPEED
     value: 108
 
@@ -40,29 +40,15 @@ ai:
     speed: 0.95
   targeting:
     strategy: RANDOM
-    aggroRange: 18
+    aggroRange: 19
     deaggroRange: 29
     leashRange: 34
   combat:
     style: MAGIC
-    preferredRange: 7.5
-    attackIntervalTicks: 38
+    preferredRange: 8
+    attackIntervalTicks: 44
     skills:
       - ref: skill:mob_glowlamp_bolt
 
 drops:
-  exp: 46
-  money:
-    min: 5
-    max: 14
-  items:
-    - itemId:
-        ref: item:midgard_forest_mossessence
-      rate: 50.0
-      amount: 1~2
-    - itemId:
-        ref: item:midgard_forest_canopy_relic
-      rate: 1.2
-      amount: 1
-  lootTable:
-    ref: loot_table:midgard_grassland_orb_table
+  exp: 55

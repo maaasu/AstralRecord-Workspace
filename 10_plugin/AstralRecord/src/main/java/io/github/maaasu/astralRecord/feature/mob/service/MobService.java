@@ -12,6 +12,8 @@ import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionRayTrace;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.entity.ComplexEntityPart;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.util.BoundingBox;
@@ -29,6 +31,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 /**
  * Mob テンプレートのキャッシュ・実体 Mob インスタンス管理を担うサービス。
@@ -70,6 +73,7 @@ public class MobService {
     private final MobEntityController entityController;
     private final NpcPlayerSkinPacketService playerSkinPacketService;
     private ConditionService conditionService;
+    private Consumer<UUID> destroyListener = ignored -> { };
 
     private final Map<String, MobTemplate> templates = new LinkedHashMap<>();
     private final Map<UUID, MobInstance> instances = new LinkedHashMap<>();
@@ -97,6 +101,15 @@ public class MobService {
      */
     public void setConditionService(@NotNull ConditionService conditionService) {
         this.conditionService = conditionService;
+    }
+
+    /**
+     * Mob 破棄時の runtime 状態解放先を設定します。
+     *
+     * @param destroyListener 破棄した Mob インスタンス UUID の通知先
+     */
+    public void setDestroyListener(@NotNull Consumer<UUID> destroyListener) {
+        this.destroyListener = destroyListener;
     }
 
     /**
@@ -261,6 +274,20 @@ public class MobService {
     public MobInstance getInstanceByEntity(@NotNull UUID entityId) {
         UUID instanceId = instanceByEntity.get(entityId);
         return instanceId == null ? null : instances.get(instanceId);
+    }
+
+    /**
+     * Bukkit Entity から AstralRecord Mob インスタンスを取得します。
+     *
+     * <p>Ender Dragon などの複合 Entity は、攻撃を受けた部位ではなく親 Entity の UUID で解決します。</p>
+     *
+     * @param entity Bukkit Entity または複合 Entity の部位
+     * @return 対応する Mob インスタンス。未管理の場合は {@code null}
+     */
+    @Nullable
+    public MobInstance getInstanceByEntity(@NotNull Entity entity) {
+        Entity resolved = entity instanceof ComplexEntityPart part ? part.getParent() : entity;
+        return getInstanceByEntity(resolved.getUniqueId());
     }
 
     /**
@@ -451,6 +478,7 @@ public class MobService {
         untrackEntity(instance.bukkitEntityId());
         untrackEntity(instance.displayEntityId());
         entityController.remove(instance);
+        destroyListener.accept(instanceId);
         Logger.log(LogId.D_5702, instanceId);
         return true;
     }
@@ -505,6 +533,7 @@ public class MobService {
             }
             playerSkinPacketService.remove(instance);
             entityController.remove(instance);
+            destroyListener.accept(instance.instanceId());
         }
         instances.clear();
         instanceByEntity.clear();

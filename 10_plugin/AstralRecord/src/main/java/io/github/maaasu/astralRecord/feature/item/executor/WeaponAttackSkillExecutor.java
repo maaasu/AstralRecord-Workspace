@@ -33,6 +33,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -156,8 +157,9 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         requireNonNegativeDouble(skill, "activationRange");
         requireNonNegativeDouble(skill, "hitRange");
         requireNonNegativeDouble(skill, "hitRadius");
+        requireNonNegativeDouble(skill, "impactRadius");
         requireNonNegativeDouble(skill, "hitStepDistance");
-        requireNonNegativeDouble(skill, "maxTargets");
+        requireNonNegativeInt(skill, "maxTargets");
     }
 
     private void applyAttackDamage(
@@ -183,7 +185,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         double hitRadius = readDoubleParam(skill, "hitRadius", 0.75D);
         double hitRange = readDoubleParam(skill, "hitRange", 2.5D);
         double hitStepDistance = readDoubleParam(skill, "hitStepDistance", Math.max(0.45D, hitRadius));
-        int maxTargets = Math.max(1, (int) Math.round(readDoubleParam(skill, "maxTargets", 8.0D)));
+        int maxTargets = Math.max(1, readIntParam(skill, "maxTargets", 8));
 
         Map<UUID, AstEntity> victims = new LinkedHashMap<>();
         int steps = Math.max(1, (int) Math.ceil(hitRange / Math.max(0.1D, hitStepDistance)));
@@ -222,6 +224,8 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     ) {
         double hitRadius = readDoubleParam(skill, "hitRadius", 0.75D);
         double hitRange = readDoubleParam(skill, "hitRange", 6.0D);
+        double impactRadius = readDoubleParam(skill, "impactRadius", 0.0D);
+        int maxTargets = Math.max(1, readIntParam(skill, "maxTargets", 1));
         double projectileSpeed = readDoubleParam(skill, "projectileSpeed", attackType == AttackType.RANGED ? 1.0D : 0.8D);
         double gravity = attackType == AttackType.RANGED
                 ? readDoubleParam(skill, "projectileGravity", DEFAULT_RANGED_GRAVITY)
@@ -289,8 +293,21 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
 
                 AstEntity victim = findClosestTarget(currentLocation, hitRadius, attacker);
                 if (victim != null) {
-                    DamageResult result = damageService.attack(attacker, victim, attackType, damageComponents);
-                    applyConditions(skill, attacker, victim, attackType, result);
+                    for (AstEntity impactVictim : findProjectileImpactTargets(
+                            currentLocation,
+                            impactRadius,
+                            maxTargets,
+                            attacker,
+                            victim
+                    )) {
+                        DamageResult result = damageService.attack(
+                                attacker,
+                                impactVictim,
+                                attackType,
+                                damageComponents
+                        );
+                        applyConditions(skill, attacker, impactVictim, attackType, result);
+                    }
                     spawnImpactEffect(currentLocation, attackType);
                     cancel();
                 }
@@ -516,6 +533,28 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             }
         }
         return nearest;
+    }
+
+    @NotNull List<AstEntity> findProjectileImpactTargets(
+            @NotNull Location center,
+            double impactRadius,
+            int maxTargets,
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity primaryTarget
+    ) {
+        if (impactRadius <= 0.0D || maxTargets <= 1) {
+            return List.of(primaryTarget);
+        }
+
+        Map<UUID, AstEntity> targets = new LinkedHashMap<>();
+        targets.put(primaryTarget.id(), primaryTarget);
+        center.getWorld().getNearbyEntities(center, impactRadius, impactRadius, impactRadius).stream()
+                .map(damageService::resolveEntity)
+                .filter(candidate -> isAttackableTarget(attacker, candidate))
+                .filter(candidate -> candidate.location().distanceSquared(center) <= impactRadius * impactRadius)
+                .sorted(Comparator.comparingDouble(candidate -> candidate.location().distanceSquared(center)))
+                .forEach(candidate -> targets.putIfAbsent(candidate.id(), candidate));
+        return targets.values().stream().limit(maxTargets).toList();
     }
 
     private boolean isAttackableTarget(@NotNull AstEntity attacker, @NotNull AstEntity victim) {

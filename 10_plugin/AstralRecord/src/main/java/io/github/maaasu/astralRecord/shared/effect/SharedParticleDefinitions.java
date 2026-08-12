@@ -110,6 +110,20 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition BOSS_ENTRY_SOUL_FIRE =
         new SharedParticleDefinition("boss_entry_soul_fire", Particle.SOUL_FIRE_FLAME, 3, 0.16D, 0.12D, 0.16D, 0.01D);
+    public static final SharedParticleDefinition BOSS_MECHANIC_CRIT =
+        new SharedParticleDefinition("boss_mechanic_crit", Particle.CRIT, 1, 0.02D, 0.02D, 0.02D, 0.0D);
+    public static final SharedParticleDefinition BOSS_MECHANIC_SPARK =
+        new SharedParticleDefinition("boss_mechanic_spark", Particle.ELECTRIC_SPARK, 1, 0.02D, 0.02D, 0.02D, 0.0D);
+    public static final SharedParticleDefinition BOSS_MECHANIC_SOUL_FIRE =
+        new SharedParticleDefinition("boss_mechanic_soul_fire", Particle.SOUL_FIRE_FLAME, 1, 0.02D, 0.02D, 0.02D, 0.0D);
+    public static final SharedParticleDefinition BOSS_MECHANIC_FLAME =
+        new SharedParticleDefinition("boss_mechanic_flame", Particle.FLAME, 1, 0.02D, 0.02D, 0.02D, 0.0D);
+    public static final SharedParticleDefinition BOSS_MECHANIC_CLOUD =
+        new SharedParticleDefinition("boss_mechanic_cloud", Particle.CLOUD, 1, 0.02D, 0.02D, 0.02D, 0.0D);
+    public static final SharedParticleDefinition BOSS_MECHANIC_SMOKE =
+        new SharedParticleDefinition("boss_mechanic_smoke", Particle.LARGE_SMOKE, 1, 0.02D, 0.02D, 0.02D, 0.0D);
+    public static final SharedParticleDefinition BOSS_MECHANIC_PORTAL =
+        new SharedParticleDefinition("boss_mechanic_portal", Particle.PORTAL, 1, 0.02D, 0.02D, 0.02D, 0.0D);
     public static final SharedParticleDefinition DUNGEON_ENTRY_FRAME_DUST =
         new SharedParticleDefinition(
             "dungeon_entry_frame_dust",

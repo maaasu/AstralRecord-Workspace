@@ -1,5 +1,5 @@
 # design:
-#   motif: "ミズガルズ / 星影の街ノクス / 山岳の嵐と黒板石"
+#   motif: "ミズガルズ / 第1武器更新"
 #   progression: 3
 schemaVersion: 1
 id: midgard_staff
@@ -8,24 +8,21 @@ name: "&fミズガルズ・スタッフ"
 icon: END_ROD
 rarity: RARE
 maxStack: 1
-saleValue: 80
+saleValue: 100
 lore:
-  - "&7山岳の嵐と黒板石を束ね、ノクスの職人が鍛えたミズガルズ・スタッフ。"
-  - "&7職業制限はなく、魔法攻撃に適した武器。"
+  - "&7ミズガルズ各地の魔力を束ねたLv.5魔法武器。"
+  - "&7職業制限はなく、魔法攻撃力だけを更新する。"
 unTradeable: false
 unSellable: false
 equipment:
   slot: WEAPON
   handType: TWO
   tag: STAFF
-  requiredLevel: 3
+  requiredLevel: 5
   stats:
     - status: MAGIC_ATTACK
       type: FLAT
-      value: 16~20
-    - status: INTELLIGENCE
-      type: FLAT
-      value: 4
+      value: 40
   durability:
-    max: 160
+    max: 180
     consume: 1

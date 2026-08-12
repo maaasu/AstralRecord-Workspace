@@ -1,0 +1,29 @@
+# design:
+#   motif: "黄昏鉱脈 / Lv.15中核防具更新 / 間接"
+#   progression: 5
+schemaVersion: 1
+id: midgard_twilight_hunter_chest
+category: equipment
+name: "&a黄昏の狩装"
+icon: CHAINMAIL_CHESTPLATE
+rarity: EPIC
+maxStack: 1
+saleValue: 800
+lore:
+  - "&7黄昏鉱脈の素材で作るLv.15間接中核防具。"
+  - "&7頭・脚・足を維持したまま、胸部1枠で耐久を更新する。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: CHEST
+  requiredLevel: 15
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 385
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 1075
+  durability:
+    max: 260
+    consume: 1

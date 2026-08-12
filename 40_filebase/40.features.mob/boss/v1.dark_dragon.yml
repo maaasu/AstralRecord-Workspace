@@ -1,36 +1,38 @@
-# NOTE: 現在実装されているマスタデータはすべてデバッグ用の仮設定です。正式なゲームバランス・報酬・入手設計として扱わないでください。
+# design:
+#   motif: "北欧神話 / 深淵の暗黒竜"
+#   progression: 6
 schemaVersion: 1
 id: dark_dragon
 type: MOB
 category: BOSS
 name: "&0&l暗黒竜ヴァルザード"
 title: "&8―― 深淵の支配者 ――"
-level: 80
+level: 15
 entityType: ENDER_DRAGON
 icon: DRAGON_HEAD
+nameVisible: true
 lore:
-  - "&7古より封印されし暗黒竜。"
-  - "&7強大な力を持ち、挑戦者を待ち受ける。"
+  - "&7封印を破って現れた三段階の暗黒竜。"
+  - "&7炎線、落下隕石、翼圧、崩壊波を予兆から処理する。"
 tags:
   - dragon
   - boss
   - fire
+  - magic
 
 baseStats:
   - status: MAX_HEALTH
-    value: 50000
+    value: 35200
   - status: ATTACK
-    value: 200
+    value: 956
   - status: DEFENSE
-    value: 80
-  - status: MAGIC_DEFENSE
-    value: 80
+    value: 882
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
   - status: MOVEMENT_SPEED
     value: 100
-  - status: CRITICAL_RATE
-    value: 10.0
-  - status: CRITICAL_DAMAGE
-    value: 200.0
 
 ai:
   idle:
@@ -42,9 +44,11 @@ ai:
     leashRange: 80
   combat:
     style: MAGIC
-    preferredRange: 8
-    attackIntervalTicks: 40
+    preferredRange: 9
+    attackIntervalTicks: 42
     skills:
-      - ref: skill:fire_boost
-      - ref: skill:fire_boost
-      - ref: skill:iron_will
+      - ref: skill:boss_dark_dragon_shadow_bolt
+      - ref: skill:boss_dark_dragon_claw_sweep
+
+drops:
+  exp: 2500

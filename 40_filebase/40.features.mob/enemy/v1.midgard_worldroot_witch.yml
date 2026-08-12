@@ -1,0 +1,54 @@
+# design:
+#   motif: "北欧神話 / 腐根の呪術"
+#   progression: 8
+schemaVersion: 1
+id: midgard_worldroot_witch
+type: MOB
+category: ENEMY
+name: "&5世界根のウィッチ"
+level: 26
+entityType: WITCH
+icon: NETHER_WART
+lore:
+  - "&7腐根の力を集める呪術師。"
+  - "&7回復を阻害する魔法弾を放つ。"
+tags:
+  - midgard
+  - forest
+  - root
+  - humanoid
+  - magic
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 14200
+  - status: ATTACK
+    value: 2572
+  - status: DEFENSE
+    value: 2475
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 100
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.88
+  targeting:
+    strategy: RANDOM
+    aggroRange: 26
+    deaggroRange: 38
+    leashRange: 44
+  combat:
+    style: MAGIC
+    preferredRange: 9.5
+    attackIntervalTicks: 50
+    skills:
+      - ref: skill:mob_worldroot_decay_bolt
+
+drops:
+  exp: 470

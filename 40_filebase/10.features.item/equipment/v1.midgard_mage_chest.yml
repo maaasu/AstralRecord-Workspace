@@ -1,5 +1,5 @@
 # design:
-#   motif: "ミズガルズ / 星影の街ノクス / 魔法上位装備 / チェスト"
+#   motif: "ミズガルズ / 第1中核防具更新 / 魔法"
 #   progression: 3
 schemaVersion: 1
 id: midgard_mage_chest
@@ -8,30 +8,24 @@ name: "&dミズガルズ・アルカナ・チェスト"
 icon: LEATHER_CHESTPLATE
 rarity: RARE
 maxStack: 1
-saleValue: 90
+saleValue: 110
 appearance:
   color: "#5E4B8B"
 lore:
-  - "&7山岳の嵐と森林の苔を仕立てたミズガルズ・アルカナのチェスト。"
-  - "&7トラベラー装備より防御力が高く、魔法向けの能力を伸ばす。"
+  - "&7苔の魔力を織り込んだLv.5中核防具。"
+  - "&7既存の頭・脚・足装備と組み合わせて耐久を更新する。"
 unTradeable: false
 unSellable: false
 equipment:
   slot: CHEST
-  requiredLevel: 3
+  requiredLevel: 5
   stats:
     - status: DEFENSE
       type: FLAT
-      value: 12
+      value: 30
     - status: MAX_HEALTH
       type: FLAT
-      value: 20
-    - status: INTELLIGENCE
-      type: FLAT
-      value: 4
-    - status: MAX_MANA
-      type: FLAT
-      value: 10
+      value: 100
   durability:
-    max: 150
+    max: 180
     consume: 1

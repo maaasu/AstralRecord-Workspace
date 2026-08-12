@@ -10,8 +10,8 @@ level: 2
 entityType: SKELETON
 icon: SKELETON_SKULL
 lore:
-  - "&7草原の古い石標に縛られたスケルトン。"
-  - "&7骨に刻まれたルーンが、放つ矢を支えている。"
+  - "&7古い石標のルーンに縛られた射手。"
+  - "&7距離を保って矢を放つ。"
 tags:
   - midgard
   - grassland
@@ -24,13 +24,15 @@ equipment:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 70
+    value: 160
   - status: ATTACK
-    value: 11
-  - status: DEXTERITY
-    value: 15
+    value: 50
   - status: DEFENSE
-    value: 2
+    value: 27
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
   - status: MOVEMENT_SPEED
     value: 102
 
@@ -46,22 +48,10 @@ ai:
     leashRange: 34
   combat:
     style: RANGED
-    preferredRange: 7.5
-    attackIntervalTicks: 28
+    preferredRange: 8
+    attackIntervalTicks: 36
     skills:
       - ref: skill:mob_skeleton_bow_shot
 
 drops:
   exp: 18
-  money:
-    min: 1
-    max: 5
-  items:
-    - itemId:
-        ref: item:rune_bone
-      rate: 48.0
-      amount: 1
-      luckAffected: true
-      hidden: false
-  lootTable:
-    ref: loot_table:midgard_grassland_orb_table

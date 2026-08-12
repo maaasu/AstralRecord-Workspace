@@ -250,6 +250,26 @@ public final class DesignTestFixtures {
         double magicDefense,
         MobShieldConfig shield
     ) {
+        return mobInstance(level, maxHealth, 0.0D, defense, magicDefense, shield);
+    }
+
+    public static MobInstance mobInstanceWithAttack(
+        double maxHealth,
+        double attack,
+        double defense,
+        double magicDefense
+    ) {
+        return mobInstance(1, maxHealth, attack, defense, magicDefense, MobShieldConfig.EMPTY);
+    }
+
+    private static MobInstance mobInstance(
+        int level,
+        double maxHealth,
+        double attack,
+        double defense,
+        double magicDefense,
+        MobShieldConfig shield
+    ) {
         MobTemplate template = new MobTemplate(
             1,
             "test_mob",
@@ -266,6 +286,7 @@ public final class DesignTestFixtures {
             MobEquipmentConfig.EMPTY,
             List.of(
                 new MobBaseStat(StatusType.MAX_HEALTH.name(), maxHealth),
+                new MobBaseStat(StatusType.ATTACK.name(), attack),
                 new MobBaseStat(StatusType.DEFENSE.name(), defense),
                 new MobBaseStat(StatusType.MAGIC_DEFENSE.name(), magicDefense)
             ),

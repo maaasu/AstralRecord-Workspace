@@ -1,67 +1,56 @@
+# design:
+#   motif: "Mob共通 / 重い薙ぎ払い"
+#   progression: 1
 schemaVersion: 1
 id: mob_field_heavy_slash
 type: SKILL
 implementationId: normal_attack
-name: "&6フィールドヘビースラッシュ"
-description: "&7Mob AI が使用する少し広い近接薙ぎ払い。"
-icon: IRON_SWORD
-cooldownTicks: 34
-manaCost: 0
-castTimeTicks: 16
+name: "&6ヘビースイープ"
+description: "&7長い予兆の後に前方を広く薙ぐMob用攻撃。"
+icon: IRON_AXE
+cooldownTicks: 20
+castTimeTicks: 22
+resourceType: ENERGY
+resourceCost: 0
 requiredLevel: 1
-maxLevel: 5
-levels:
-  - level: 2
-    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
-  - level: 3
-    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
-  - level: 4
-    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
-  - level: 5
-    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
-sigilSlotsByLevel:
-  - { level: 1, slots: 1 }
-  - { level: 3, slots: 2 }
-  - { level: 5, slots: 3 }
-allowedSigilIds:
-  - cooldown_sigil
-  - cooldown_sigil_ii
+maxLevel: 1
 gem:
   rarity: COMMON
   tradeable: false
   sellable: false
 params:
-  resourceType: ENERGY
-  resourceCost: 0
   attackType: MELEE
+  damageComponents:
+    - element: NONE
+      ratio: 1.25
   particle: SWEEP_ATTACK
   particleCount: 6
-  spreadX: 0.0
-  spreadY: 0.0
-  spreadZ: 0.0
-  extra: 0.0
-  forwardOffset: 1.05
-  upwardOffset: -0.1
-  hitRange: 3.1
+  spreadX: 0
+  spreadY: 0
+  spreadZ: 0
+  extra: 0
+  forwardOffset: 1
+  upwardOffset: 0.0
+  activationRange: 3.4
+  hitRange: 3.4
   hitRadius: 1.25
-  hitStepDistance: 0.6
+  hitStepDistance: 0.55
   maxTargets: 3
-  trailSteps: 4
+  trailSteps: 3
   trailIntervalTicks: 1
   trailStepDistance: 0.8
   trailParticleCount: 3
-  trailSpreadX: 0.04
-  trailSpreadY: 0.04
-  trailSpreadZ: 0.04
+  trailSpreadX: 0.03
+  trailSpreadY: 0.03
+  trailSpreadZ: 0.03
   trailExtra: 0.0
   castSound: entity.evoker.prepare_attack
-  castSoundVolume: 0.85
-  castSoundPitch: 0.95
+  castSoundVolume: 0.75
+  castSoundPitch: 0.9
   sound: entity.player.attack.sweep
-  soundVolume: 1.0
-  soundPitch: 0.75
+  soundVolume: 0.9
+  soundPitch: 0.85
 tags:
   - mob
   - active
   - melee
-  - field

@@ -1,0 +1,60 @@
+# design:
+#   motif: "北欧神話 / 黄昏の残光"
+#   progression: 5
+schemaVersion: 1
+id: mob_twilight_gloom_bolt
+type: SKILL
+implementationId: normal_attack
+name: "&9薄明の追光"
+description: "&7黄昏の残光が対象を緩く追う魔法弾。"
+icon: ECHO_SHARD
+cooldownTicks: 26
+castTimeTicks: 20
+resourceType: MANA
+resourceCost: 0
+requiredLevel: 1
+maxLevel: 1
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+params:
+  attackType: MAGIC
+  damageComponents:
+    - element: NONE
+      ratio: 0.95
+  particle: PORTAL
+  particleCount: 12
+  spreadX: 0.1
+  spreadY: 0.1
+  spreadZ: 0.1
+  extra: 0.01
+  forwardOffset: 1.1
+  upwardOffset: 0.0
+  activationRange: 10
+  hitRange: 10
+  hitRadius: 0.9
+  hitStepDistance: 0.8
+  maxTargets: 1
+  trailSteps: 0
+  trailIntervalTicks: 1
+  trailStepDistance: 0.8
+  trailParticleCount: 4
+  trailSpreadX: 0.03
+  trailSpreadY: 0.03
+  trailSpreadZ: 0.03
+  trailExtra: 0.0
+  castSound: entity.evoker.prepare_attack
+  castSoundVolume: 0.75
+  castSoundPitch: 1.2
+  sound: entity.evoker.cast_spell
+  soundVolume: 0.9
+  soundPitch: 1.15
+  projectileSpeed: 0.8
+  projectileGravity: 0.0
+  homingStrength: 0.14
+  homingRange: 4.5
+tags:
+  - mob
+  - active
+  - magic
