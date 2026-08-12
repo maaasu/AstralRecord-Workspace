@@ -34,7 +34,7 @@ public class PlayerHudView {
     private static final int SIDEBAR_BAR_LENGTH = 40;
     private static final int SIDEBAR_LINE_LIMIT = 15;
     private static final int BUFF_DISPLAY_LIMIT = 5;
-    private static final String SIDEBAR_BAR_CHAR = "|";
+    private static final String SIDEBAR_BAR_CHAR = "▰";
 
     public void renderActionBar(Player player, StatusSnapshot snapshot) {
         renderActionBar(player, snapshot, List.of(), null, 0.0D);
@@ -150,7 +150,7 @@ public class PlayerHudView {
      * @param player 対象プレイヤー
      * @param mspt 現在のMSPT
      * @param playerLevel アカウント単位のプレイヤーレベル
-     * @param experienceProgress 現在レベル内の経験値進捗（0.0-1.0）
+     * @param classExperienceProgress 現在クラスレベル内の経験値進捗（0.0-1.0）
      * @param classLevel 現在のクラスレベル
      * @param className 現在のクラス表示名
      * @param worldName 現在のワールド表示名
@@ -163,7 +163,7 @@ public class PlayerHudView {
         Player player,
         double mspt,
         int playerLevel,
-        double experienceProgress,
+        double classExperienceProgress,
         int classLevel,
         String className,
         String worldName,
@@ -174,7 +174,7 @@ public class PlayerHudView {
         boolean showBuffInfo,
         List<ActiveBuff> activeBuffs
     ) {
-        renderSidebar(player, mspt, playerLevel, experienceProgress, classLevel, className,
+        renderSidebar(player, mspt, playerLevel, classExperienceProgress, classLevel, className,
                 worldName, regionName, regionLevel, showPerformanceInfo, bossInfo, null,
                 showBuffInfo, activeBuffs);
     }
@@ -184,7 +184,7 @@ public class PlayerHudView {
         Player player,
         double mspt,
         int playerLevel,
-        double experienceProgress,
+        double classExperienceProgress,
         int classLevel,
         String className,
         String worldName,
@@ -197,7 +197,7 @@ public class PlayerHudView {
             player,
             mspt,
             playerLevel,
-            experienceProgress,
+            classExperienceProgress,
             classLevel,
             className,
             worldName,
@@ -218,7 +218,7 @@ public class PlayerHudView {
      * @param player 対象プレイヤー
      * @param mspt 現在のMSPT
      * @param playerLevel アカウント単位のプレイヤーレベル
-     * @param experienceProgress 現在レベル内の経験値進捗（0.0-1.0）
+     * @param classExperienceProgress 現在クラスレベル内の経験値進捗（0.0-1.0）
      * @param classLevel 現在のクラスレベル
      * @param className 現在のクラス表示名
      * @param worldName 現在のワールド表示名
@@ -233,7 +233,7 @@ public class PlayerHudView {
         Player player,
         double mspt,
         int playerLevel,
-        double experienceProgress,
+        double classExperienceProgress,
         int classLevel,
         String className,
         String worldName,
@@ -283,9 +283,9 @@ public class PlayerHudView {
                 + "Lv." + ColorCodeUtil.YELLOW + Math.max(0, regionLevel));
         lines.add(buildSeparator("player"));
         lines.add(ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv." + ColorCodeUtil.YELLOW + playerLevel);
-        lines.add(buildExperienceBar("経験値", experienceProgress, ColorCodeUtil.GREEN));
         lines.add(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": " + className
                 + ColorCodeUtil.GRAY + " Lv." + ColorCodeUtil.YELLOW + classLevel);
+        lines.add(buildExperienceBar("経験値", classExperienceProgress, ColorCodeUtil.AQUA));
         lines.addAll(buffLines);
         if (bossInfo != null) {
             appendBossInfo(lines, bossInfo);

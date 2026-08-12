@@ -161,6 +161,53 @@ class PlayerHudViewTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
      * 章・見出し: # 10_3-View > ## 4. sidebar 描画・解除
+     * 検証契約: プレイヤーはレベル値だけを表示し、クラス行の直下へ上下幅の小さいブロック形式のクラス経験値バーを描く。
+     */
+    @Test
+    void rendersClassExperienceBarBelowClassWithoutPlayerExperienceBar() {
+        Player player = mock(Player.class);
+        Scoreboard scoreboard = mock(Scoreboard.class);
+        Objective objective = mock(Objective.class);
+        Score score = mock(Score.class);
+        when(player.getScoreboard()).thenReturn(scoreboard);
+        when(player.getPing()).thenReturn(25);
+        when(scoreboard.getObjective("astral_info")).thenReturn(objective);
+        when(scoreboard.getEntries()).thenReturn(Collections.emptySet());
+        when(objective.getScoreboard()).thenReturn(scoreboard);
+        when(objective.getScore(anyString())).thenReturn(score);
+
+        new PlayerHudView().renderSidebar(
+                player,
+                20.0D,
+                10,
+                0.75D,
+                5,
+                "剣士",
+                "試練の大地",
+                "風待ち草原",
+                42,
+                false,
+                null
+        );
+
+        ArgumentCaptor<String> entries = ArgumentCaptor.forClass(String.class);
+        verify(objective, org.mockito.Mockito.times(8)).getScore(entries.capture());
+        List<String> rendered = entries.getAllValues().stream().map(ColorCodeUtil::stripColor).toList();
+        String classLine = rendered.stream()
+                .filter(entry -> entry.contains("クラス") && entry.contains("剣士") && entry.contains("Lv.5"))
+                .findFirst()
+                .orElseThrow();
+        String experienceLine = rendered.stream()
+                .filter(entry -> entry.contains("経験値") && entry.contains("75%") && entry.contains("▰"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(rendered.indexOf(classLine) + 1, rendered.indexOf(experienceLine));
+        assertEquals(1L, rendered.stream().filter(entry -> entry.contains("経験値")).count());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
+     * 章・見出し: # 10_3-View > ## 4. sidebar 描画・解除
      * 検証契約: 解除時にplugin専用astral_info objectiveだけをunregisterする。
      */
     @Test

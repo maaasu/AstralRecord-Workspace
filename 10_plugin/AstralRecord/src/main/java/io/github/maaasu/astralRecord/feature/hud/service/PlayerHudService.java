@@ -52,7 +52,7 @@ public class PlayerHudService {
      * HUD サービスを構築します。
      *
      * @param statusService       ステータスサービス
-     * @param playerClassService  職業サービス（サイドバーの職業名・レベル表示に使用）
+     * @param playerClassService  職業サービス（サイドバーの職業名・レベル・経験値進捗表示に使用）
      * @param accountService      アカウント経験値サービス
      * @param playerSettingService プレイヤー設定サービス
      * @param conditionService 状態異常サービス
@@ -205,6 +205,7 @@ public class PlayerHudService {
                 renderPrimaryActionBar(astPlayer, snapshot);
                 }
                 String className = playerClassService.getDisplayName(astPlayer.getClassId());
+                double classExperienceProgress = playerClassService.classExperienceProgress(astPlayer);
                 boolean showPerformanceInfo = playerSettingService.isPerformanceInfoDisplayEnabled(
                     astPlayer.getUser().getUuid()
                 );
@@ -225,7 +226,7 @@ public class PlayerHudService {
                     player,
                     mspt,
                     playerLevel,
-                    experienceProgress,
+                    classExperienceProgress,
                     astPlayer.getClassLevel(),
                     className,
                     worldService.resolveDisplayName(player.getWorld()),
