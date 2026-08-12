@@ -162,7 +162,8 @@ class DungeonInteractionEventHandlerTest {
         Block chest = rewardChestBlock(context);
         DungeonService.DungeonRewardChestTarget target =
                 new DungeonService.DungeonRewardChestTarget(UUID.randomUUID(), chest);
-        when(context.service.findRewardChestTarget(context.player)).thenReturn(target, null);
+        when(context.service.findRewardChestTarget(context.player)).thenReturn(
+                target, (DungeonService.DungeonRewardChestTarget) null);
         PlayerInputCandidate candidate = context.handler.resolve(
                 rightClick(rewardSnapshot(context, 8.0D))).iterator().next();
 
