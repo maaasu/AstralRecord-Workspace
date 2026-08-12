@@ -3,6 +3,8 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.executor.SkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerSkillExecutorCatalog;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanBladeCounterRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanSkillExecutorCatalog;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -15,14 +17,19 @@ public final class ActiveSkillExecutorCatalog {
     }
 
     /**
-     * 実装済みの冒険者用 executor を生成します。
+     * 実装済みのプレイヤー用 executor を生成します。
      *
      * @param services 共有発動スキルサービス
-     * @return 6個の executor
+     * @param bladeCounterRuntime ブレードカウンターruntime
+     * @return 7個の executor
      */
-    public static @NotNull List<SkillExecutor> create(@NotNull ActiveSkillServices services) {
-        List<SkillExecutor> executors = new ArrayList<>(6);
+    public static @NotNull List<SkillExecutor> create(
+            @NotNull ActiveSkillServices services,
+            @NotNull SwordsmanBladeCounterRuntimeService bladeCounterRuntime
+    ) {
+        List<SkillExecutor> executors = new ArrayList<>(7);
         executors.addAll(AdventurerSkillExecutorCatalog.create(services));
+        executors.addAll(SwordsmanSkillExecutorCatalog.create(services, bladeCounterRuntime));
         return List.copyOf(executors);
     }
 }

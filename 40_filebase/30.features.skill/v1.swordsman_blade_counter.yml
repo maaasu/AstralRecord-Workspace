@@ -1,0 +1,49 @@
+# design:
+#   motif: "剣術 / 受け流し"
+#   progression: 2
+schemaVersion: 1
+id: swordsman_blade_counter
+type: SKILL
+implementationId: swordsman_blade_counter
+name: "&fブレードカウンター"
+description: "&7通常攻撃後の一瞬に敵の攻撃を受け流し、被ダメージを半減して即座に斬り返す。"
+icon: WHITE_STAINED_GLASS
+lore:
+  - "&7詠唱後20秒間、通常攻撃直後の0.5秒をカウンター受付状態にする。"
+  - "&7管理対象Mobの直接攻撃を50%軽減し、近接攻撃力{skill.counterDamageRatio:percent}%で反撃する。"
+  - "&7反撃可能回数: {skill.maximumCounters}回。受付中は連続攻撃にも反撃する。"
+  - "&8消費EN: 20 / クールダウン: 30秒 / 詠唱: 1秒"
+cooldownTicks: 600
+resourceType: ENERGY
+resourceCost: 20
+castTimeTicks: 20
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 3
+    paramDeltas: { maximumCounters: 1 }
+  - level: 5
+    paramDeltas: { maximumCounters: 1 }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+onCast:
+  sound: item.armor.equip_iron
+tags:
+  - active
+  - melee
+  - defense
+params:
+  buffDurationTicks: 400
+  receptionTicks: 10
+  maximumCounters: 3
+  counterDamageRatio: 1.0
+  damageReductionRate: 0.5

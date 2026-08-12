@@ -171,6 +171,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorShieldR
 import io.github.maaasu.astralRecord.feature.skill.executor.MeditationSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanBladeCounterRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillForgetGui;
 import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
@@ -345,6 +346,7 @@ public final class AstralRecord extends JavaPlugin {
     private ActiveSkillLifecycleService activeSkillLifecycleService;
     private SkillTaskService activeSkillTaskService;
     private TemporarySkillEffectService temporarySkillEffectService;
+    private SwordsmanBladeCounterRuntimeService swordsmanBladeCounterRuntimeService;
     private DamageService damageService;
     private CombatDpsTrackerService combatDpsTrackerService;
     private ConditionService conditionService;
@@ -613,6 +615,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (temporarySkillEffectService != null) {
             temporarySkillEffectService.clearAll();
+        }
+        if (swordsmanBladeCounterRuntimeService != null) {
+            swordsmanBladeCounterRuntimeService.stop();
         }
         if (skillActionRingService != null) {
             skillActionRingService.stop();
@@ -1042,6 +1047,11 @@ public final class AstralRecord extends JavaPlugin {
         skillService.registerExecutor(new WeaponAttackSkillExecutor(particleDisplayService, damageService, conditionService));
         var activeSkillTargetingService = new SkillTargetingService(mobService);
         var activeSkillEffectService = new SkillEffectService(particleDisplayService);
+        swordsmanBladeCounterRuntimeService = new SwordsmanBladeCounterRuntimeService(
+            this,
+            damageService,
+            activeSkillEffectService
+        );
         activeSkillTaskService = new SkillTaskService(this);
         temporarySkillEffectService = new TemporarySkillEffectService();
         mobKnockbackService.setAdditionalKnockbackMultiplier(
@@ -1052,6 +1062,7 @@ public final class AstralRecord extends JavaPlugin {
             activeSkillTaskService,
             temporarySkillEffectService
         );
+        activeSkillLifecycleService.setAdditionalClearer(swordsmanBladeCounterRuntimeService::clear);
         playerDeathService.setDeathStartedListener(activeSkillLifecycleService::clearAll);
         var activeSkillServices = new ActiveSkillServices(
             activeSkillTargetingService,
@@ -1066,8 +1077,10 @@ public final class AstralRecord extends JavaPlugin {
             temporarySkillEffectService,
             activeSkillTaskService
         );
-        ActiveSkillExecutorCatalog.create(activeSkillServices).forEach(skillService::registerExecutor);
+        ActiveSkillExecutorCatalog.create(activeSkillServices, swordsmanBladeCounterRuntimeService)
+            .forEach(skillService::registerExecutor);
         damageService.setTemporarySkillEffectService(temporarySkillEffectService);
+        damageService.setDirectDamageModifier(swordsmanBladeCounterRuntimeService::modifyIncomingDirectDamage);
         skillService.registerBuiltInDefinitions(BuiltInWeaponAttackDefinitions.definitions());
         learnedSkillService = new LearnedSkillService(this, new LearnedSkillRepository(), inventoryService);
         skillOwnershipService = new SkillOwnershipService(learnedSkillService);
@@ -1114,6 +1127,9 @@ public final class AstralRecord extends JavaPlugin {
         skillBindGui = new SkillBindGui(this, itemService, skillService);
         itemWeaponAttackService = new ItemWeaponAttackService(inventoryService, skillService);
         itemWeaponAttackService.setEquipmentDurabilityService(equipmentDurabilityService);
+        itemWeaponAttackService.setSuccessfulAttackListener(
+            swordsmanBladeCounterRuntimeService::onNormalAttack
+        );
         skillActionRingService.setItemWeaponAttackService(itemWeaponAttackService);
 
         // item, loot, skill, class 等のマスターデータを非同期ロード

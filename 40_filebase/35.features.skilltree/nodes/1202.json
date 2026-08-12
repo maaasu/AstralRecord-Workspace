@@ -2,17 +2,23 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1202",
-  "name": "&8未定の星座",
-  "icon": "GRAY_DYE",
+  "name": "&f反照の剣星",
+  "icon": "WHITE_STAINED_GLASS",
   "lore": [
-    "&8将来のスキル用に確保された予約枠。"
+    "&7攻めの直後に刃を返し、敵の一撃を反撃へ変える。"
   ],
-  "tags": [],
+  "tags": [
+    "defense"
+  ],
   "pointType": "CP",
-  "pointCost": 0,
-  "effects": [],
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordsman_blade_counter"
+    }
+  ],
   "unlockCondition": {
-    "classId": "swordsman",
-    "playerLevel": 2147483647
+    "classId": "swordsman"
   }
 }

@@ -50,6 +50,67 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 1. damage 計算
+     * 検証契約: direct damage modifierはshield反映前の通常damageへ倍率を適用する。
+     */
+    @Test
+    void directDamageModifierScalesCalculatedDamageBeforeApplication() {
+        DamageHarness harness = damageHarness();
+        AstPlayer attacker = attacker();
+        attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D,
+            StatusType.ATTACK, 10.0D,
+            StatusType.ACCURACY, 100.0D,
+            StatusType.FINAL_DAMAGE_MULTIPLIER, 100.0D
+        ), 100.0D, 0.0D, 0.0D));
+        MobInstance mob = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
+        when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
+        harness.service.setDirectDamageModifier((source, victim, attackType, damageSource, result) ->
+                DirectDamageModification.multiplier(0.5D));
+
+        DamageResult result = harness.service.attack(
+            AstEntity.player(attacker),
+            AstEntity.mob(mob),
+            AttackType.MELEE
+        );
+
+        assertEquals(5.0D, result.finalDamage(), 0.0001D);
+        assertEquals(95.0D, mob.currentHealth(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 10. ソードマン・ブレードカウンターの実装契約
+     * 検証契約: direct damage modifierの後処理は元hitのHP反映と表示処理が完了した後に実行する。
+     */
+    @Test
+    void directDamageModifierRunsPostHitActionAfterOriginalDamageApplication() {
+        DamageHarness harness = damageHarness();
+        AstPlayer attacker = attacker();
+        attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+                StatusType.MAX_HEALTH, 100.0D,
+                StatusType.ATTACK, 10.0D,
+                StatusType.ACCURACY, 100.0D,
+                StatusType.FINAL_DAMAGE_MULTIPLIER, 100.0D
+        ), 100.0D, 0.0D, 0.0D));
+        MobInstance mob = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
+        AtomicReference<Double> healthSeenByPostHit = new AtomicReference<>();
+        when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
+        harness.service.setDirectDamageModifier((source, victim, attackType, damageSource, result) ->
+                new DirectDamageModification(0.5D, () -> healthSeenByPostHit.set(victim.currentHealth())));
+
+        DamageResult result = harness.service.attack(
+                AstEntity.player(attacker),
+                AstEntity.mob(mob),
+                AttackType.MELEE
+        );
+
+        assertEquals(5.0D, result.finalDamage(), 0.0001D);
+        assertEquals(95.0D, healthSeenByPostHit.get(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
      * 章・見出し: # 14_3-サービス > ## 9. result 反映（内部）
      * 検証契約: playerからMobへのHP damageをcurrentHealthへ反映しthreatを加算してaggroへ移行する。
      */

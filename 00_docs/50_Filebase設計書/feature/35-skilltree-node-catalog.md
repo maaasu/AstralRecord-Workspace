@@ -35,6 +35,7 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `status-max-energy-flat-5` | `MAX_ENERGY` / `FLAT` / `5` | `&d蒼穹の星脈` | `ENDER_PEARL` | `&7天駆ける蒼穹の息吹を宿し、最大ENを高める。` | `status`, `resource`, `energy` |
 | `status-movement-speed-flat-1` | `MOVEMENT_SPEED` / `FLAT` / `1` | `&d迅風の星脈` | `SUGAR` | `&7迅風の流れに乗り、移動速度を高める。` | `status`, `agility`, `wind` |
 | `status-mp-regen-flat-0.2` | `MP_REGEN` / `FLAT` / `0.2` | `&d還流の星脈` | `PRISMARINE_CRYSTALS` | `&7蒼き魔力の巡りを整え、MP回復力を高める。` | `status`, `resource`, `mana`, `azure` |
+| `skill-swordsman-blade-counter` | `skill` / `swordsman_blade_counter` | `&f反照の剣星` | `WHITE_STAINED_GLASS` | `&7攻めの直後に刃を返し、敵の一撃を反撃へ変える。` | `defense` |
 
 表の表示名には JSON に保存する Legacy color code を含めます。同じ能力を追加するときは、表の表示名、`icon`、`lore`、タグをすべて同一にします。各配置済みノードには、従来どおり一意の `nodeId` を割り当てます。
 

@@ -16,6 +16,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Locale;
+import java.util.function.Consumer;
 
 /**
  * weapon equipment の左クリック攻撃を処理します。
@@ -25,6 +26,7 @@ public final class ItemWeaponAttackService {
     private final InventoryService inventoryService;
     private final SkillService skillService;
     private EquipmentDurabilityService equipmentDurabilityService;
+    private Consumer<AstPlayer> successfulAttackListener = player -> { };
 
     public ItemWeaponAttackService(
             @NotNull InventoryService inventoryService,
@@ -36,6 +38,15 @@ public final class ItemWeaponAttackService {
 
     public void setEquipmentDurabilityService(@Nullable EquipmentDurabilityService equipmentDurabilityService) {
         this.equipmentDurabilityService = equipmentDurabilityService;
+    }
+
+    /**
+     * 通常攻撃executorが成功した直後の通知先を設定します。
+     *
+     * @param successfulAttackListener 成功通知先
+     */
+    public void setSuccessfulAttackListener(@NotNull Consumer<AstPlayer> successfulAttackListener) {
+        this.successfulAttackListener = successfulAttackListener;
     }
 
     public void handleLeftClick(
@@ -150,6 +161,9 @@ public final class ItemWeaponAttackService {
         );
         if (result.success() && cooldownTicks > 0) {
             skillService.startAttackCooldown(caster, skillId, cooldownTicks);
+        }
+        if (result.success()) {
+            successfulAttackListener.accept(player);
         }
     }
 

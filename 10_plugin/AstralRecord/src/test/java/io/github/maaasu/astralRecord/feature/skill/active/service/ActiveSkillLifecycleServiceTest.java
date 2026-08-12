@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import org.junit.jupiter.api.Test;
 
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -26,6 +27,8 @@ class ActiveSkillLifecycleServiceTest {
                 taskService,
                 temporaryEffectService
         );
+        @SuppressWarnings("unchecked") Consumer<UUID> additionalClearer = mock(Consumer.class);
+        lifecycleService.setAdditionalClearer(additionalClearer);
         UUID playerId = UUID.randomUUID();
 
         lifecycleService.clearTransient(playerId);
@@ -34,6 +37,7 @@ class ActiveSkillLifecycleServiceTest {
         verify(skillService, never()).clearCasterState(playerId);
         verify(taskService).clearCaster(playerId);
         verify(temporaryEffectService).clear(playerId);
+        verify(additionalClearer).accept(playerId);
     }
 
     /**
@@ -51,6 +55,8 @@ class ActiveSkillLifecycleServiceTest {
                 taskService,
                 temporaryEffectService
         );
+        @SuppressWarnings("unchecked") Consumer<UUID> additionalClearer = mock(Consumer.class);
+        lifecycleService.setAdditionalClearer(additionalClearer);
         UUID playerId = UUID.randomUUID();
 
         lifecycleService.clearAll(playerId);
@@ -59,5 +65,6 @@ class ActiveSkillLifecycleServiceTest {
         verify(skillService, never()).cancelCasting(playerId);
         verify(taskService).clearCaster(playerId);
         verify(temporaryEffectService).clear(playerId);
+        verify(additionalClearer).accept(playerId);
     }
 }

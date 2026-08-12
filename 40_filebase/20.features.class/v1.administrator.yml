@@ -77,6 +77,7 @@ usableSkills:
   - skill:adventurer_meditation
   - skill:adventurer_quick_shot
   - skill:adventurer_lightning_bolt
+  - skill:swordsman_blade_counter
   - skill:mob_field_heavy_slash
   - skill:mob_glowlamp_bolt
   - skill:mob_goblin_slash
