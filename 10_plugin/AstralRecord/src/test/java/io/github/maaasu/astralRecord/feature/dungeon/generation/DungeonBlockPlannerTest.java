@@ -33,12 +33,16 @@ class DungeonBlockPlannerTest {
         DungeonBlockPlan plan = new DungeonBlockPlanner().plan(definition, layout);
 
         assertEquals(layout.connections().size(), plan.gateBlocksByConnection().size());
+        assertEquals(layout.connections().size(), plan.gateBarrierBlocksByConnection().size());
         int expectedGateBlocks = definition.generation().corridorWidth()
                 * definition.generation().corridorHeight();
         for (DungeonLayout.Connection connection : layout.connections()) {
             List<DungeonBlockPlan.Position> gate = plan.gateBlocksByConnection().get(connection.id());
+            List<DungeonBlockPlan.Position> barriers = plan.gateBarrierBlocksByConnection().get(connection.id());
             assertNotNull(gate);
+            assertNotNull(barriers);
             assertEquals(expectedGateBlocks, gate.size());
+            assertEquals(expectedGateBlocks, barriers.size());
             for (DungeonBlockPlan.Position position : gate) {
                 Material finalMaterial = plan.placements().stream()
                         .filter(placement -> placement.position().equals(position))
@@ -46,6 +50,18 @@ class DungeonBlockPlannerTest {
                         .orElseThrow()
                         .material();
                 assertEquals(definition.theme().gateMaterial(), finalMaterial);
+            }
+            for (int index = 0; index < gate.size(); index++) {
+                DungeonBlockPlan.Position visual = gate.get(index);
+                DungeonBlockPlan.Position barrier = barriers.get(index);
+                Material finalMaterial = plan.placements().stream()
+                        .filter(placement -> placement.position().equals(barrier))
+                        .findFirst()
+                        .orElseThrow()
+                        .material();
+                assertEquals(Material.BARRIER, finalMaterial);
+                assertEquals(1, Math.abs(barrier.x() - visual.x()) + Math.abs(barrier.z() - visual.z()));
+                assertEquals(visual.y(), barrier.y());
             }
         }
     }
@@ -81,6 +97,11 @@ class DungeonBlockPlannerTest {
 
             Set<Cell> openedGate = new HashSet<>();
             for (DungeonBlockPlan.Position position : plan.gateBlocksByConnection().get(connection.id())) {
+                if (position.y() == walkY) {
+                    openedGate.add(new Cell(position.x(), position.z()));
+                }
+            }
+            for (DungeonBlockPlan.Position position : plan.gateBarrierBlocksByConnection().get(connection.id())) {
                 if (position.y() == walkY) {
                     openedGate.add(new Cell(position.x(), position.z()));
                 }

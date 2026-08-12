@@ -11,12 +11,14 @@ import java.util.Map;
 public record DungeonBlockPlan(
         @NotNull List<Placement> placements,
         @NotNull Map<Integer, List<Position>> gateBlocksByConnection,
+        @NotNull Map<Integer, List<Position>> gateBarrierBlocksByConnection,
         @NotNull Map<Integer, List<Position>> spawnPointsByRoom,
         @NotNull Position playerSpawn
 ) {
     public DungeonBlockPlan {
         placements = List.copyOf(placements);
         gateBlocksByConnection = Map.copyOf(gateBlocksByConnection);
+        gateBarrierBlocksByConnection = Map.copyOf(gateBarrierBlocksByConnection);
         spawnPointsByRoom = Map.copyOf(spawnPointsByRoom);
     }
 

@@ -109,6 +109,7 @@ public final class DungeonService {
     private final MobService mobService;
     private final PlayerMessageService messageService;
     private final ParticleDisplayService particleDisplayService;
+    private final DungeonGateReleaseService gateReleaseService;
     private final DisplayTextService displayTextService;
     private final PlayerDeathService playerDeathService;
     private final MobDropService mobDropService;
@@ -179,6 +180,7 @@ public final class DungeonService {
         this.mobService = mobService;
         this.messageService = messageService;
         this.particleDisplayService = particleDisplayService;
+        this.gateReleaseService = new DungeonGateReleaseService(particleDisplayService);
         this.displayTextService = displayTextService;
         this.playerDeathService = playerDeathService;
         this.mobDropService = mobDropService;
@@ -772,8 +774,14 @@ public final class DungeonService {
         }
     }
 
-    /** DamageService の死亡確定後フックから呼ばれ、対象部屋の全滅を判定します。 */
+    /**
+     * DamageService の死亡確定後フックから呼ばれ、対象部屋の全滅を判定します。
+     *
+     * @param mobInstanceId 死亡確定した Mob instance UUID
+     * @implNote Bukkit のブロック更新とセッション状態を変更するため、メインスレッドから呼び出す必要があります。
+     */
     public void handleMobDefeated(@NotNull UUID mobInstanceId) {
+        requireMainThread();
         MobBinding binding = mobBindings.remove(mobInstanceId);
         if (binding == null) {
             return;
@@ -818,14 +826,12 @@ public final class DungeonService {
         if (session.instanceWorld == null) {
             return;
         }
-        List<DungeonBlockPlan.Position> positions = session.blockPlan.gateBlocksByConnection().get(connectionId);
-        if (positions == null) {
+        List<DungeonBlockPlan.Position> visualBlocks = session.blockPlan.gateBlocksByConnection().get(connectionId);
+        List<DungeonBlockPlan.Position> barrierBlocks = session.blockPlan.gateBarrierBlocksByConnection().get(connectionId);
+        if (visualBlocks == null || barrierBlocks == null) {
             return;
         }
-        World world = session.instanceWorld.world();
-        for (DungeonBlockPlan.Position position : positions) {
-            world.getBlockAt(position.x(), position.y(), position.z()).setType(Material.AIR, false);
-        }
+        gateReleaseService.release(session.instanceWorld.world(), visualBlocks, barrierBlocks);
     }
 
     /** コマンドによる自主離脱です。 */

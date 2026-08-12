@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.shared.effect;
 
 import org.bukkit.Color;
 import org.bukkit.Particle;
+import org.bukkit.block.data.BlockData;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -355,6 +356,25 @@ public final class SharedParticleDefinitions {
     private static final Map<String, SharedParticleDefinition> DEFINITIONS = buildDefinitionMap();
 
     private SharedParticleDefinitions() {}
+
+    /**
+     * ダンジョンの表示ゲートを破壊した際の、ブロック材質に応じた破片パーティクル定義を返します。
+     *
+     * @param blockData 破壊する表示ゲートのブロックデータ
+     * @return 表示ゲートの材質を反映した破片パーティクル定義
+     */
+    public static @NotNull SharedParticleDefinition dungeonGateReleaseBlock(@NotNull BlockData blockData) {
+        return new SharedParticleDefinition(
+            "dungeon_gate_release_block",
+            Particle.BLOCK,
+            18,
+            0.32D,
+            0.42D,
+            0.32D,
+            0.04D,
+            blockData
+        );
+    }
 
     /**
      * 共通の正規化ルールでパーティクル種別を解決します。

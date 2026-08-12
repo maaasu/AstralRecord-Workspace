@@ -49,16 +49,18 @@ public final class DungeonBlockPlanner {
         buildCorridors(blocks, corridorFootprint, layout.rooms(), definition, layout, random);
 
         Map<Integer, List<DungeonBlockPlan.Position>> gates = new LinkedHashMap<>();
+        Map<Integer, List<DungeonBlockPlan.Position>> gateBarriers = new LinkedHashMap<>();
         for (DungeonLayout.Connection connection : layout.connections()) {
             DungeonLayout.Room parent = roomById.get(connection.fromRoomId());
-            List<DungeonBlockPlan.Position> gate = buildGate(
+            GateBlocks gate = buildGate(
                     blocks,
                     parent,
                     connection,
                     definition,
                     layout
             );
-            gates.put(connection.id(), gate);
+            gates.put(connection.id(), gate.visualBlocks());
+            gateBarriers.put(connection.id(), gate.barrierBlocks());
         }
 
         for (DungeonLayout.Room room : layout.rooms()) {
@@ -85,6 +87,7 @@ public final class DungeonBlockPlanner {
         return new DungeonBlockPlan(
                 List.copyOf(blocks.values()),
                 immutableLists(gates),
+                immutableLists(gateBarriers),
                 immutableLists(spawnPoints),
                 playerSpawn
         );
@@ -171,7 +174,17 @@ public final class DungeonBlockPlanner {
         }
     }
 
-    private @NotNull List<DungeonBlockPlan.Position> buildGate(
+    /**
+     * 見た目のゲート面と、その通路奥側にある通行遮断用バリア面を生成します。
+     *
+     * @param blocks 確定途中のブロック配置
+     * @param parent 接続元の親部屋
+     * @param connection 親子部屋の接続
+     * @param definition ダンジョン定義
+     * @param layout ダンジョン配置
+     * @return 表示ゲートと通行遮断バリアの座標
+     */
+    private @NotNull GateBlocks buildGate(
             @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
             @NotNull DungeonLayout.Room parent,
             @NotNull DungeonLayout.Connection connection,
@@ -198,6 +211,7 @@ public final class DungeonBlockPlanner {
         int negative = (definition.generation().corridorWidth() - 1) / 2;
         int positive = definition.generation().corridorWidth() / 2;
         List<DungeonBlockPlan.Position> gateBlocks = new ArrayList<>();
+        List<DungeonBlockPlan.Position> barrierBlocks = new ArrayList<>();
         for (int offset = -negative; offset <= positive; offset++) {
             int x = gateCenter.x() + (dz == 0 ? 0 : offset);
             int z = gateCenter.z() + (dx == 0 ? 0 : offset);
@@ -207,9 +221,12 @@ public final class DungeonBlockPlanner {
                 DungeonBlockPlan.Position position = new DungeonBlockPlan.Position(x, y, z);
                 put(blocks, position, definition.theme().gateMaterial(), null);
                 gateBlocks.add(position);
+                DungeonBlockPlan.Position barrierPosition = new DungeonBlockPlan.Position(x + dx, y, z + dz);
+                put(blocks, barrierPosition, Material.BARRIER, null);
+                barrierBlocks.add(barrierPosition);
             }
         }
-        return List.copyOf(gateBlocks);
+        return new GateBlocks(List.copyOf(gateBlocks), List.copyOf(barrierBlocks));
     }
 
     private boolean shouldBuildPillar(
@@ -528,5 +545,12 @@ public final class DungeonBlockPlanner {
         Map<K, List<DungeonBlockPlan.Position>> result = new LinkedHashMap<>();
         source.forEach((key, value) -> result.put(key, List.copyOf(value)));
         return Map.copyOf(result);
+    }
+
+    /** 閉鎖中に表示するゲート面と、通行を確実に遮断する不可視バリア面です。 */
+    private record GateBlocks(
+            @NotNull List<DungeonBlockPlan.Position> visualBlocks,
+            @NotNull List<DungeonBlockPlan.Position> barrierBlocks
+    ) {
     }
 }
