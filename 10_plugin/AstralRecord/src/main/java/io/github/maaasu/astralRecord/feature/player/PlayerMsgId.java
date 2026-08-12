@@ -386,8 +386,6 @@ public enum PlayerMsgId {
     P_5294(5294),
     /** 装備操作失敗と支払い返却。 */
     P_5295(5295),
-    /** オーブ対象一覧の再取得完了。 */
-    P_5297(5297),
     // endregion
 
     // region /feature/user/command/UserPermissionCommand.java 5300-5309

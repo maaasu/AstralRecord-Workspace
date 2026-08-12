@@ -1571,7 +1571,11 @@ public final class OrbService {
                     );
                 }
                 sendMutationResult(session.player, result);
-                GuiSound.SUCCESS.play(session.player);
+                if (result.kind == MutationKind.ENHANCEMENT && !result.enhancementSucceeded) {
+                    GuiSound.DENY.play(session.player);
+                } else {
+                    GuiSound.SUCCESS.play(session.player);
+                }
                 session.interactionLock.beginRefreshWait();
                 session.scheduledTask = plugin.getServer().getScheduler().runTaskLater(
                     plugin,
@@ -1644,7 +1648,6 @@ public final class OrbService {
         inventoryService.refreshManagedInventoryUi(session.astPlayer);
         ItemModel remainingOrb = Objects.requireNonNull(orbModel);
         renderList(session, remainingOrb, session.inventory, collectCandidates(session, remainingOrb));
-        PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5297);
         GuiSound.SELECT.play(session.player);
     }
 
