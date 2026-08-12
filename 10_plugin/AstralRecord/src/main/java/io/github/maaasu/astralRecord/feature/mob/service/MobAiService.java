@@ -64,6 +64,15 @@ public class MobAiService {
     /** WANDER 行動で同一ターゲットを追い続ける最大 tick 数（スタック防止）。 */
     private static final long WANDER_TARGET_MAX_TICKS = 100L;
 
+    /** NPC の WANDER 位置を配置アンカーへ定期的に戻す間隔（60秒）。 */
+    private static final long NPC_WANDER_RESET_INTERVAL_TICKS = 20L * 60L;
+
+    /** NPC の WANDER が進捗しない場合に詰まりと判定する時間（3秒）。10 tick ごとに判定する。 */
+    private static final long NPC_WANDER_STUCK_TIMEOUT_TICKS = 30L;
+
+    /** 10 tick 間隔の移動観測で進捗とみなす水平移動量の二乗。 */
+    private static final double NPC_WANDER_MIN_PROGRESS_DISTANCE_SQ = 0.09D;
+
     private static final int WANDER_PAUSE_MIN_TICKS = 20;
     private static final int WANDER_PAUSE_MAX_TICKS = 60;
 
@@ -262,8 +271,19 @@ public class MobAiService {
             return;
         }
 
+        if (isWanderingNpc(instance)
+                && shouldProcess(instance, NPC_WANDER_RESET_INTERVAL_TICKS)) {
+            resetWanderingNpcPosition(instance);
+            return;
+        }
+
         Location currentLoc = instance.currentLocation();
         Location wanderTarget = instance.wanderTarget();
+
+        if (isWanderingNpc(instance) && isWanderingNpcStuck(instance, currentLoc, wanderTarget)) {
+            resetWanderingNpcPosition(instance);
+            return;
+        }
 
         boolean needNewTarget = wanderTarget == null;
         if (!needNewTarget) {
@@ -278,6 +298,7 @@ public class MobAiService {
         if (needNewTarget) {
             instance.wanderTarget(null);
             mobService.stopPathfinding(instance);
+            instance.clearNavPath();
             if (instance.wanderPauseUntilTick() == 0L) {
                 instance.wanderPauseUntilTick(internalTick + randomWanderPauseTicks());
             }
@@ -297,6 +318,44 @@ public class MobAiService {
         if (instance.wanderTarget() != null) {
             moveToward(instance, instance.wanderTarget(), template.idle().speed());
         }
+    }
+
+    private boolean isWanderingNpc(@NotNull MobInstance instance) {
+        return instance.template().category() == MobCategory.NPC
+                && instance.template().idle().behavior() == IdleBehavior.WANDER;
+    }
+
+    private boolean isWanderingNpcStuck(
+            @NotNull MobInstance instance,
+            @NotNull Location current,
+            @Nullable Location target
+    ) {
+        if (target == null || horizontalDistanceSquared(current, target) <= 0.25D) {
+            instance.navBlockedSinceTick(-1L);
+            instance.navLastObservedLocation(null);
+            return false;
+        }
+
+        Location previous = instance.navLastObservedLocation();
+        instance.navLastObservedLocation(current);
+        if (previous == null
+                || horizontalDistanceSquared(current, previous) >= NPC_WANDER_MIN_PROGRESS_DISTANCE_SQ) {
+            instance.navBlockedSinceTick(-1L);
+            return false;
+        }
+
+        if (instance.navBlockedSinceTick() < 0L) {
+            instance.navBlockedSinceTick(internalTick);
+            return false;
+        }
+        return internalTick - instance.navBlockedSinceTick() >= NPC_WANDER_STUCK_TIMEOUT_TICKS;
+    }
+
+    private void resetWanderingNpcPosition(@NotNull MobInstance instance) {
+        mobService.resetPosition(instance, instance.wanderAnchor());
+        instance.wanderTarget(null);
+        instance.wanderPauseUntilTick(0L);
+        instance.clearNavPath();
     }
 
     /**

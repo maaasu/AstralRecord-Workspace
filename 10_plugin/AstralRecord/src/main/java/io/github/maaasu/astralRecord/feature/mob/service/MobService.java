@@ -638,6 +638,16 @@ public class MobService {
         entityController.holdPosition(instance, anchor);
     }
 
+    /**
+     * 対象 Mob を配置アンカーへ戻し、移動状態をリセットします。
+     *
+     * @param instance リセット対象インスタンス
+     * @param anchor   戻し先の配置アンカー
+     */
+    public void resetPosition(@NotNull MobInstance instance, @NotNull Location anchor) {
+        entityController.resetPosition(instance, anchor);
+    }
+
     public void lookAt(@NotNull MobInstance instance, @NotNull Location target) {
         entityController.lookAt(instance, target);
     }

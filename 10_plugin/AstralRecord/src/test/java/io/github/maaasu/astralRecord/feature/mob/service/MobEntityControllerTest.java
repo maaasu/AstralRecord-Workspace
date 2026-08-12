@@ -299,12 +299,51 @@ class MobEntityControllerTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
+     * 章・見出し: # 12_3-実体Mob制御 > ## 5. 配置アンカーへの位置リセット
+     * 検証契約: NPCを配置アンカーへ戻し、現在の視線方向を維持しながらMobInstanceの位置も同期する。
+     */
+    @Test
+    void resetPositionReturnsNpcToAnchorAndKeepsCurrentRotation() {
+        World world = server().addSimpleWorld("npc_reset_world");
+        PluginMock plugin = PluginMock.builder().withPluginName("AstralRecordTest").build();
+        Location anchor = new Location(world, 1.5D, 64.0D, 2.5D, 30.0F, 5.0F);
+        MobInstance instance = new MobInstance(
+                UUID.randomUUID(),
+                templateWithVariant(MobVariantConfig.DEFAULT, EntityType.ARMOR_STAND),
+                anchor
+        );
+        MobEntityController controller = new MobEntityController(plugin);
+
+        Entity entity = controller.spawn(instance, anchor);
+
+        assertTrue(entity instanceof ArmorStand);
+        Location moved = new Location(world, 10.5D, 64.0D, 12.5D, 120.0F, 15.0F);
+        assertTrue(entity.teleport(moved));
+
+        controller.resetPosition(instance, anchor);
+
+        Location reset = entity.getLocation();
+        assertEquals(anchor.getX(), reset.getX(), 1.0E-6D);
+        assertEquals(anchor.getY(), reset.getY(), 1.0E-6D);
+        assertEquals(anchor.getZ(), reset.getZ(), 1.0E-6D);
+        assertEquals(moved.getYaw(), reset.getYaw());
+        assertEquals(moved.getPitch(), reset.getPitch());
+        assertEquals(anchor.getX(), instance.currentLocation().getX(), 1.0E-6D);
+        assertEquals(anchor.getZ(), instance.currentLocation().getZ(), 1.0E-6D);
+    }
+
+    /**
      * 外見差分テスト用の NPC テンプレートを生成します。
      *
      * @param variant 検証対象の外見差分
      * @return 指定された外見差分を持つ NPC テンプレート
      */
     private static MobTemplate templateWithVariant(MobVariantConfig variant) {
+        return templateWithVariant(variant, EntityType.VILLAGER);
+    }
+
+    private static MobTemplate templateWithVariant(MobVariantConfig variant, EntityType entityType) {
         return new MobTemplate(
                 1,
                 "npc:test_villager",
@@ -312,7 +351,7 @@ class MobEntityControllerTest extends MockBukkitTestBase {
                 "Test Villager",
                 null,
                 1,
-                EntityType.VILLAGER,
+                entityType,
                 false,
                 null,
                 List.of(),

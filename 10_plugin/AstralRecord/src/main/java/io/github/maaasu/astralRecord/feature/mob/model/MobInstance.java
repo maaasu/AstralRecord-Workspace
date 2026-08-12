@@ -60,6 +60,8 @@ public final class MobInstance {
     private long navRecomputeTick = -1000L;
     /** 移動が詰まり始めた内部 tick。詰まりなしは -1。 */
     private long navBlockedSinceTick = -1L;
+    /** 移動進捗を最後に観測した位置。 */
+    private Location navLastObservedLocation;
     /** WANDER 行動時の現在の徘徊目的地。 */
     private Location wanderTarget;
     /** WANDER 停止を解除する内部 tick。 */
@@ -574,11 +576,31 @@ public final class MobInstance {
         this.navBlockedSinceTick = tick;
     }
 
+    /**
+     * 移動進捗を最後に観測した位置を返します。
+     *
+     * @return 最後に観測した位置。未観測の場合は {@code null}
+     */
+    @Nullable
+    public Location navLastObservedLocation() {
+        return navLastObservedLocation == null ? null : navLastObservedLocation.clone();
+    }
+
+    /**
+     * 移動進捗を最後に観測した位置を設定します。
+     *
+     * @param location 観測位置。{@code null} で未観測状態に戻す
+     */
+    public void navLastObservedLocation(@Nullable Location location) {
+        this.navLastObservedLocation = location == null ? null : location.clone();
+    }
+
     /** 現在の経路をリセットします（次 tick で再計算される）。 */
     public void clearNavPath() {
         this.navPath = null;
         this.navPathIndex = 0;
         this.navBlockedSinceTick = -1L;
+        this.navLastObservedLocation = null;
     }
 
     /** WANDER 時の現在の徘徊目的地を返します。未設定なら {@code null}。 */

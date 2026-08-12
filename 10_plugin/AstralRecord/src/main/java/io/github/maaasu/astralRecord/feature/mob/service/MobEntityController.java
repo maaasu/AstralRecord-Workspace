@@ -678,6 +678,51 @@ public class MobEntityController {
     }
 
     /**
+     * 管理 Entity を指定された配置アンカーへテレポートし、移動状態をリセットします。
+     *
+     * <p>配置アンカーの座標だけを採用し、通常 Entity の現在の yaw / pitch は維持します。
+     * block NPC は既存の配置ルールに従って pitch を 0 とし、当たり判定 Entity と表示 Entity を同時に移動します。</p>
+     *
+     * @param instance リセット対象インスタンス
+     * @param anchor   戻し先の配置アンカー
+     */
+    public void resetPosition(@NotNull MobInstance instance, @NotNull Location anchor) {
+        if (instance.template().blockMaterial() != null) {
+            Entity interaction = getEntity(instance);
+            if (interaction == null || interaction.getWorld() != anchor.getWorld()) {
+                return;
+            }
+
+            Location reset = blockInteractionLocation(anchor);
+            reset.setYaw(interaction.getLocation().getYaw());
+            teleportBlockNpc(instance, reset);
+            instance.clearNavPath();
+            return;
+        }
+
+        Entity entity = getEntity(instance);
+        if (entity == null || entity.getWorld() != anchor.getWorld()) {
+            return;
+        }
+
+        if (entity instanceof Mob mob) {
+            mob.getPathfinder().stopPathfinding();
+        }
+        entity.setVelocity(new Vector(0.0D, 0.0D, 0.0D));
+
+        Location reset = anchor.clone();
+        Location current = entity.getLocation();
+        reset.setYaw(current.getYaw());
+        reset.setPitch(current.getPitch());
+        if (entity.teleport(reset)) {
+            instance.currentLocation(reset);
+        } else {
+            instance.currentLocation(entity.getLocation());
+        }
+        instance.clearNavPath();
+    }
+
+    /**
      * 実体 Mob に速度を加算します。ArmorStand など Mob 以外の管理 Entity には適用しません。
      *
      * @param instance 対象インスタンス
