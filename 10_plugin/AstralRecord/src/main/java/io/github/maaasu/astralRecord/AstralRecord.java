@@ -1416,7 +1416,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         var playerSneakEventHandler = new PlayerSneakEventHandler(airActionService, dodgeService);
         eventManager.registerHandler(
-            new PlayerVanillaDamageBlockEventHandler(),
+            new PlayerVanillaDamageBlockEventHandler(worldService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

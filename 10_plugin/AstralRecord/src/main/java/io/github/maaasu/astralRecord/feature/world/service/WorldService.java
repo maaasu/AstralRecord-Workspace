@@ -441,6 +441,39 @@ public class WorldService {
      */
     public boolean teleportToSpawn(@NotNull org.bukkit.entity.Player player, @NotNull WorldMasterData data) {
         Location spawnLocation = resolveOrLoadSpawnLocation(data);
+        return teleportToSpawnLocation(player, spawnLocation);
+    }
+
+    /**
+     * 指定した Bukkit ワールド内の WorldMasterData スポーン地点へプレイヤーを移動します。
+     * 同一マスターから複数の runtime world が存在する場合でも、指定ワールドを転送先として使用します。
+     *
+     * @param player 移動対象プレイヤー
+     * @param data 移動先 WorldMasterData
+     * @param targetWorld マスタースポーン座標を適用する Bukkit ワールド
+     * @return 移動に成功した場合は {@code true}
+     */
+    public boolean teleportToSpawnInWorld(
+            @NotNull org.bukkit.entity.Player player,
+            @NotNull WorldMasterData data,
+            @NotNull org.bukkit.World targetWorld
+    ) {
+        var spawn = data.spawnLocation();
+        Location spawnLocation = new Location(
+                targetWorld,
+                spawn.x(),
+                spawn.y(),
+                spawn.z(),
+                spawn.yaw(),
+                spawn.pitch()
+        );
+        return teleportToSpawnLocation(player, spawnLocation);
+    }
+
+    private boolean teleportToSpawnLocation(
+            @NotNull org.bukkit.entity.Player player,
+            @Nullable Location spawnLocation
+    ) {
         if (spawnLocation == null || spawnLocation.getWorld() == null) {
             return false;
         }
