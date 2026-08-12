@@ -13,10 +13,7 @@ import org.bukkit.event.block.BlockPlaceEvent;
 import org.bukkit.event.entity.CreatureSpawnEvent;
 import org.bukkit.event.entity.EntityDeathEvent;
 import org.bukkit.event.player.PlayerMoveEvent;
-import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
-import org.bukkit.event.block.Action;
-import org.bukkit.inventory.EquipmentSlot;
 import org.jetbrains.annotations.NotNull;
 
 /** ダンジョン内のブロック保護、部屋進入、ログアウトを処理します。 */
@@ -58,17 +55,6 @@ public final class DungeonWorldEventHandler extends AbstractEventHandler {
     public void onEntityDeath(@NotNull EntityDeathEvent event) {
         if (dungeonService.isDungeonWorld(event.getEntity().getWorld())) {
             event.getDrops().clear();
-        }
-    }
-
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
-    public void onRewardChestInteract(@NotNull PlayerInteractEvent event) {
-        if (event.getAction() != Action.RIGHT_CLICK_BLOCK
-                || event.getClickedBlock() == null) return;
-        if (!dungeonService.isRewardChest(event.getClickedBlock())) return;
-        event.setCancelled(true);
-        if (event.getHand() == EquipmentSlot.HAND) {
-            dungeonService.openRewardChest(event.getPlayer(), event.getClickedBlock());
         }
     }
 

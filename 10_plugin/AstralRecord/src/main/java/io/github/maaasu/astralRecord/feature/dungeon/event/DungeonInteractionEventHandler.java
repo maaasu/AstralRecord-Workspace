@@ -17,7 +17,9 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
+import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.block.Block;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -90,7 +92,64 @@ public final class DungeonInteractionEventHandler extends AbstractEventHandler
                     )
             ));
         }
+        if (context.family() == InputFamily.RIGHT_CLICK && snapshot.isMainHandInput()) {
+            DungeonService.DungeonRewardChestTarget target = service.findRewardChestTarget(snapshot.player());
+            if (target == null) {
+                return List.of();
+            }
+            Double hitDistance = snapshot.hitDistance(target.block());
+            if (hitDistance == null || !snapshot.isVisible(hitDistance)) {
+                return List.of();
+            }
+            String targetKey = rewardChestTargetKey(target);
+            return List.of(new PlayerInputCandidate(
+                    "dungeon-reward-chest",
+                    InteractionTier.WORLD_INTERACTION,
+                    hitDistance,
+                    InteractionCandidateOrder.DUNGEON_CONTROLLER,
+                    targetKey,
+                    InputClaimPolicy.CLAIM_AND_CANCEL,
+                    () -> isCurrentRewardChestTarget(snapshot, targetKey),
+                    () -> service.openRewardChest(snapshot.player(), target.block())
+            ));
+        }
         return List.of();
+    }
+
+    /**
+     * 報酬 CHEST 候補を現在の視線・所有権・受取対象で再検証します。
+     *
+     * @param snapshot 入力時の interaction snapshot
+     * @param expectedTargetKey 選択時の報酬 CHEST 識別子
+     * @return 同じ報酬 CHEST を現在も視認して操作できる場合は {@code true}
+     */
+    private boolean isCurrentRewardChestTarget(
+            @NotNull PlayerInteractionSnapshot snapshot,
+            @NotNull String expectedTargetKey
+    ) {
+        DungeonService.DungeonRewardChestTarget current = service.findRewardChestTarget(snapshot.player());
+        if (current == null
+                || current.block().getType() != Material.CHEST
+                || !rewardChestTargetKey(current).equals(expectedTargetKey)) {
+            return false;
+        }
+        PlayerInteractionSnapshot currentSnapshot = snapshot.refresh();
+        Double hitDistance = currentSnapshot.hitDistance(current.block());
+        return hitDistance != null && currentSnapshot.isVisible(hitDistance);
+    }
+
+    /**
+     * 報酬 CHEST のセッションとブロック座標から決定的な候補キーを生成します。
+     *
+     * @param target 報酬 CHEST 候補
+     * @return 同じ報酬 CHEST を一意に識別するキー
+     */
+    private @NotNull String rewardChestTargetKey(
+            @NotNull DungeonService.DungeonRewardChestTarget target
+    ) {
+        Block block = target.block();
+        return target.sessionId() + ":" + block.getWorld().getUID()
+                + ":" + block.getX() + ":" + block.getY() + ":" + block.getZ();
     }
 
     private void notifyEntryResult(@NotNull Player player, @NotNull DungeonService.StartRequestResult result) {

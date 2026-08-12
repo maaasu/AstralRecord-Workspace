@@ -811,10 +811,11 @@ public final class DungeonService {
         }
 
         message(session.participants, PlayerMsgId.P_7011, cleared.distanceFromStart() + 1);
-        for (DungeonLayout.Connection connection : session.layout.connections()) {
-            if (connection.fromRoomId() != roomId) {
-                continue;
-            }
+        for (DungeonLayout.Connection connection : DungeonBossGatePolicy.connectionsToUnlockAfterClear(
+                session.layout,
+                roomId,
+                candidateRoomId -> session.roomStates.get(candidateRoomId) == RoomState.CLEARED
+        )) {
             openGate(session, connection.id());
             if (session.roomStates.get(connection.toRoomId()) == RoomState.LOCKED) {
                 session.roomStates.put(connection.toRoomId(), RoomState.AVAILABLE);
@@ -952,28 +953,70 @@ public final class DungeonService {
         return new Location(world, centerX, y, centerZ);
     }
 
+    /** 操作可能な報酬 CHEST と所有セッションです。 */
+    public record DungeonRewardChestTarget(@NotNull UUID sessionId, @NotNull Block block) {
+    }
+
     /**
-     * 右クリックされた実チェストが当該セッション報酬なら個人 GUI を開きます。
+     * 操作プレイヤーが受取対象である、同一ワールド内の報酬 CHEST を返します。
      *
      * @param player 操作プレイヤー
-     * @param block 右クリック対象
+     * @return 操作可能な報酬 CHEST。参加中でない、受取対象でない、または回収終了後なら {@code null}
+     */
+    public @Nullable DungeonRewardChestTarget findRewardChestTarget(@NotNull Player player) {
+        Session session = rewardSession(player);
+        if (session == null) {
+            return null;
+        }
+        Block block = session.rewardChestLocation.getBlock();
+        return new DungeonRewardChestTarget(session.id, block);
+    }
+
+    /**
+     * 共通 interaction gateway が選択した実チェストから個人 GUI を開きます。
+     *
+     * @param player 操作プレイヤー
+     * @param block 視線候補として選択された報酬 CHEST
      * @return 報酬チェストとして処理した場合 {@code true}
      */
     public boolean openRewardChest(@NotNull Player player, @NotNull Block block) {
-        UUID sessionId = sessionIdByParticipant.get(player.getUniqueId());
-        Session session = sessionId == null ? null : sessionsById.get(sessionId);
-        if (session == null || !session.cleared || session.ending || session.rewardChestLocation == null
+        Session session = rewardSession(player);
+        if (session == null || block.getType() != Material.CHEST
                 || !sameBlock(session.rewardChestLocation, block.getLocation())) return false;
         openRewardGui(session, player, 0);
         return true;
     }
 
-    /** @return 稼働中セッションが所有するクリア報酬 CHEST なら {@code true} */
-    public boolean isRewardChest(@NotNull Block block) {
-        UUID sessionId = sessionIdByWorld.get(block.getWorld().getUID());
+    /**
+     * プレイヤーが現在操作できる報酬セッションを返します。
+     *
+     * @param player 操作プレイヤー
+     * @return 受取対象として固定済みのセッション。対象外なら {@code null}
+     */
+    private @Nullable Session rewardSession(@NotNull Player player) {
+        UUID sessionId = sessionIdByParticipant.get(player.getUniqueId());
         Session session = sessionId == null ? null : sessionsById.get(sessionId);
-        return session != null && session.cleared && !session.ending && session.rewardChestLocation != null
-                && sameBlock(session.rewardChestLocation, block.getLocation());
+        if (session == null || session.rewardChestLocation == null) {
+            return null;
+        }
+        World rewardWorld = session.rewardChestLocation.getWorld();
+        if (rewardWorld == null) {
+            return null;
+        }
+        Block rewardBlock = session.rewardChestLocation.getBlock();
+        if (!DungeonRewardChestPolicy.canAccess(
+                session.cleared,
+                session.ending,
+                session.participants,
+                session.rewardsByPlayer,
+                player.getUniqueId(),
+                rewardWorld.getUID(),
+                player.getWorld().getUID(),
+                rewardBlock.getType()
+        )) {
+            return null;
+        }
+        return session;
     }
 
     private boolean sameBlock(@NotNull Location first, @NotNull Location second) {
