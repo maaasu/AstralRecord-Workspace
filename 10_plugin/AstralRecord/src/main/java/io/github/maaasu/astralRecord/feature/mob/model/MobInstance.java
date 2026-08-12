@@ -72,6 +72,8 @@ public final class MobInstance {
     private Location wanderTarget;
     /** WANDER 停止を解除する内部 tick。 */
     private long wanderPauseUntilTick;
+    /** WANDER の緊急テレポートを最後に実行した内部 tick。未実行は -1。 */
+    private long lastWanderTeleportTick = -1L;
 
     // 頭部の向き（プレイヤーへの追跡用）
     /** 頭部の yaw（度）。体と独立してプレイヤー方向を向く。 */
@@ -690,6 +692,20 @@ public final class MobInstance {
      */
     public void wanderPauseUntilTick(long tick) {
         this.wanderPauseUntilTick = tick;
+    }
+
+    /** WANDER の緊急テレポートを最後に実行した内部 tick を返します。 */
+    public long lastWanderTeleportTick() {
+        return lastWanderTeleportTick;
+    }
+
+    /**
+     * WANDER の緊急テレポートを最後に実行した内部 tick を設定します。
+     *
+     * @param tick 実行した内部 tick。未実行状態は {@code -1}
+     */
+    public void lastWanderTeleportTick(long tick) {
+        this.lastWanderTeleportTick = tick;
     }
 
     // ---------- 頭部の向き ----------

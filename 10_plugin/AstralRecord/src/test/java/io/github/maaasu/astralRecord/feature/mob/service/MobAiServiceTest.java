@@ -19,9 +19,11 @@ import java.lang.reflect.Field;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -33,10 +35,10 @@ class MobAiServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
      * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
-     * 検証契約: NPCのWANDER位置を分散した周期で配置アンカーへ戻し、徘徊目的地を破棄する。
+     * 検証契約: NPCのWANDERが30秒周期で配置アンカーへの経路を設定し、テレポートを実行しない。
      */
     @Test
-    void wanderingNpcIsPeriodicallyResetToPlacementAnchor() throws ReflectiveOperationException {
+    void wanderingNpcPeriodicallyRoutesToPlacementAnchorWithoutTeleporting() throws ReflectiveOperationException {
         MobService mobService = mock(MobService.class);
         MobInstance instance = new MobInstance(
                 UUID.randomUUID(),
@@ -52,27 +54,31 @@ class MobAiServiceTest {
                 mock(MobCombatService.class),
                 mock(SkillService.class)
         );
-        long resetTick = Math.floorMod(-(long) instance.instanceId().hashCode(), 1_200L);
-        if (resetTick == 0L) {
-            resetTick = 1_200L;
+        long routeTick = Math.floorMod(-(long) instance.instanceId().hashCode(), 20L * 30L);
+        if (routeTick == 0L) {
+            routeTick = 20L * 30L;
         }
-        setInternalTick(aiService, resetTick - 1L);
+        setInternalTick(aiService, routeTick - 1L);
 
         aiService.tick();
 
-        verify(mobService).resetPosition(
+        verify(mobService, never()).resetPosition(any(MobInstance.class), any(Location.class));
+        verify(mobService).moveToward(
                 same(instance),
                 argThat(anchor -> anchor.getX() == 0.0D
                         && anchor.getY() == 64.0D
-                        && anchor.getZ() == 0.0D)
+                        && anchor.getZ() == 0.0D),
+                eq(0.75D),
+                eq(routeTick)
         );
-        assertNull(instance.wanderTarget());
+        assertEquals(0.0D, instance.wanderTarget().getX());
+        assertEquals(0.0D, instance.wanderTarget().getZ());
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
      * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
-     * 検証契約: WANDER目的地への水平移動が3秒間ないNPCを詰まりとして配置アンカーへ戻す。
+     * 検証契約: WANDER目的地への水平移動が10秒間ないNPCを緊急テレポートで配置アンカーへ戻す。
      */
     @Test
     void stalledWanderingNpcIsResetAfterNoHorizontalProgress() throws ReflectiveOperationException {
@@ -97,7 +103,7 @@ class MobAiServiceTest {
         }
 
         for (long decisionTick = firstDecisionTick;
-             decisionTick <= firstDecisionTick + 30L;
+             decisionTick <= firstDecisionTick + 20L * 10L;
              decisionTick += 10L) {
             setInternalTick(aiService, decisionTick - 1L);
             aiService.tick();
@@ -105,7 +111,7 @@ class MobAiServiceTest {
 
         verify(mobService, never()).resetPosition(any(MobInstance.class), any(Location.class));
 
-        setInternalTick(aiService, firstDecisionTick + 39L);
+        setInternalTick(aiService, firstDecisionTick + 20L * 10L + 9L);
         aiService.tick();
 
         verify(mobService).resetPosition(
@@ -115,6 +121,54 @@ class MobAiServiceTest {
                         && anchor.getZ() == 0.0D)
         );
         assertNull(instance.wanderTarget());
+        assertEquals(firstDecisionTick + 20L * 10L + 10L, instance.lastWanderTeleportTick());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
+     * 検証契約: 緊急テレポートから3分以内に再び10秒間停止しても、アンカーへの経路設定だけを行う。
+     */
+    @Test
+    void stalledWanderingNpcUsesAnchorRouteDuringTeleportCooldown() throws ReflectiveOperationException {
+        MobService mobService = mock(MobService.class);
+        MobInstance instance = new MobInstance(
+                UUID.randomUUID(),
+                wanderingNpcTemplate(),
+                new Location(null, 0.0D, 64.0D, 0.0D)
+        );
+        instance.currentLocation(new Location(null, 20.0D, 64.0D, 20.0D));
+        instance.wanderTarget(new Location(null, 8.0D, 64.0D, 0.0D));
+        instance.navBlockedSinceTick(0L);
+        instance.navLastObservedLocation(instance.currentLocation());
+        instance.lastWanderTeleportTick(0L);
+        when(mobService.getInstances()).thenReturn(List.of(instance));
+        when(mobService.syncLocation(instance)).thenReturn(true);
+
+        MobAiService aiService = new MobAiService(
+                mobService,
+                mock(MobCombatService.class),
+                mock(SkillService.class)
+        );
+        long decisionTick = 20L * 10L;
+        while (Math.floorMod(instance.instanceId().hashCode() + decisionTick, 10L) != 0L) {
+            decisionTick++;
+        }
+        setInternalTick(aiService, decisionTick - 1L);
+
+        aiService.tick();
+
+        verify(mobService, never()).resetPosition(any(MobInstance.class), any(Location.class));
+        verify(mobService).moveToward(
+                same(instance),
+                argThat(anchor -> anchor.getX() == 0.0D
+                        && anchor.getY() == 64.0D
+                        && anchor.getZ() == 0.0D),
+                eq(0.75D),
+                eq(decisionTick)
+        );
+        assertEquals(0.0D, instance.wanderTarget().getX());
+        assertEquals(0.0D, instance.wanderTarget().getZ());
     }
 
     private static MobTemplate wanderingNpcTemplate() {

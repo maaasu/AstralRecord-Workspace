@@ -64,11 +64,14 @@ public class MobAiService {
     /** WANDER 行動で同一ターゲットを追い続ける最大 tick 数（スタック防止）。 */
     private static final long WANDER_TARGET_MAX_TICKS = 100L;
 
-    /** NPC の WANDER 位置を配置アンカーへ定期的に戻す間隔（60秒）。 */
-    private static final long NPC_WANDER_RESET_INTERVAL_TICKS = 20L * 60L;
+    /** NPC の WANDER 位置を配置アンカーへ戻す経路を設定する間隔（30秒）。 */
+    private static final long NPC_WANDER_ANCHOR_ROUTE_INTERVAL_TICKS = 20L * 30L;
 
-    /** NPC の WANDER が進捗しない場合に詰まりと判定する時間（3秒）。10 tick ごとに判定する。 */
-    private static final long NPC_WANDER_STUCK_TIMEOUT_TICKS = 30L;
+    /** NPC の WANDER が進捗しない場合に緊急復帰を検討する時間（10秒）。10 tick ごとに判定する。 */
+    private static final long NPC_WANDER_STUCK_TIMEOUT_TICKS = 20L * 10L;
+
+    /** NPC の WANDER で緊急テレポートを再実行できるまでの間隔（3分）。 */
+    private static final long NPC_WANDER_TELEPORT_COOLDOWN_TICKS = 20L * 60L * 3L;
 
     /** 10 tick 間隔の移動観測で進捗とみなす水平移動量の二乗。 */
     private static final double NPC_WANDER_MIN_PROGRESS_DISTANCE_SQ = 0.09D;
@@ -278,8 +281,8 @@ public class MobAiService {
         }
 
         if (isWanderingNpc(instance)
-                && shouldProcess(instance, NPC_WANDER_RESET_INTERVAL_TICKS)) {
-            resetWanderingNpcPosition(instance);
+                && shouldProcess(instance, NPC_WANDER_ANCHOR_ROUTE_INTERVAL_TICKS)) {
+            routeWanderingNpcToAnchor(instance);
             return;
         }
 
@@ -287,7 +290,11 @@ public class MobAiService {
         Location wanderTarget = instance.wanderTarget();
 
         if (isWanderingNpc(instance) && isWanderingNpcStuck(instance, currentLoc, wanderTarget)) {
-            resetWanderingNpcPosition(instance);
+            if (canTeleportWanderingNpc(instance)) {
+                teleportWanderingNpcToAnchor(instance);
+            } else {
+                routeWanderingNpcToAnchor(instance);
+            }
             return;
         }
 
@@ -357,8 +364,30 @@ public class MobAiService {
         return internalTick - instance.navBlockedSinceTick() >= NPC_WANDER_STUCK_TIMEOUT_TICKS;
     }
 
-    private void resetWanderingNpcPosition(@NotNull MobInstance instance) {
+    private boolean canTeleportWanderingNpc(@NotNull MobInstance instance) {
+        long lastTeleportTick = instance.lastWanderTeleportTick();
+        return lastTeleportTick < 0L
+                || internalTick - lastTeleportTick >= NPC_WANDER_TELEPORT_COOLDOWN_TICKS;
+    }
+
+    private void routeWanderingNpcToAnchor(@NotNull MobInstance instance) {
+        Location anchor = instance.wanderAnchor();
+        instance.wanderPauseUntilTick(0L);
+        mobService.stopPathfinding(instance);
+        instance.clearNavPath();
+
+        if (horizontalDistanceSquared(instance.currentLocation(), anchor) <= 0.25D) {
+            instance.wanderTarget(null);
+            return;
+        }
+
+        instance.wanderTarget(anchor);
+        moveToward(instance, anchor, instance.template().idle().speed());
+    }
+
+    private void teleportWanderingNpcToAnchor(@NotNull MobInstance instance) {
         mobService.resetPosition(instance, instance.wanderAnchor());
+        instance.lastWanderTeleportTick(internalTick);
         instance.wanderTarget(null);
         instance.wanderPauseUntilTick(0L);
         instance.clearNavPath();
