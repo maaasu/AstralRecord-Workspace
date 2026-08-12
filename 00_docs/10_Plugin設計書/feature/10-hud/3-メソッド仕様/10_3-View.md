@@ -23,7 +23,8 @@ HP、MP、ENG の現在値 / 最大値を表示し、`MAX_SHIELD > 0` の場合�
 |---|---|
 | HP / MAX_HEALTH | health attribute の最大値を 20 に保ち、health 0.5..20 へ写像 |
 | EN / MAX_ENERGY | food level 0..20、saturation 0 |
-| MP / MAX_MANA | experience progress 0..1 |
+| MP / MAX_MANA | `MAX_ABSORPTION` を 20 に保ち、absorption 0..20 へ写像。最大10個の黄色いハートで表示。独自HP / Shieldダメージでは消費しない |
+| account EXP / player level | Paper の経験値表示パケットへレベル内進捗とアカウントプレイヤーレベルを渡す。vanilla経験値の実値は変更しない |
 | shield / MAX_SHIELD | armor attribute 0..20。リチャージ中は現在 Shield 0 のため 0 |
 
 ## 4. sidebar 描画・解除

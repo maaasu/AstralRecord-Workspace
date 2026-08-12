@@ -122,11 +122,25 @@ public class PlayerHudView {
         renderTransientActionBar(player, "WALL", progressRemaining, NamedTextColor.AQUA, NamedTextColor.WHITE);
     }
 
-    public void renderBars(Player player, StatusSnapshot snapshot) {
+    /**
+     * HP、MP、EN、Shield およびアカウント経験値を vanilla HUD へ描画します。
+     *
+     * @param player 対象プレイヤー
+     * @param snapshot 現在のステータス
+     * @param playerLevel アカウントプレイヤーレベル
+     * @param experienceProgress 現在レベル内の経験値進捗（0.0-1.0）
+     */
+    public void renderBars(
+        Player player,
+        StatusSnapshot snapshot,
+        int playerLevel,
+        double experienceProgress
+    ) {
         setHealthBar(player, ratio(snapshot.getCurrentHp(), snapshot.getMaxValue(StatusType.MAX_HEALTH)));
         player.setFoodLevel((int) Math.round(ratio(snapshot.getCurrentEnergy(), snapshot.getMaxValue(StatusType.MAX_ENERGY)) * 20.0D));
         player.setSaturation(0.0F);
-        player.setExp((float) ratio(snapshot.getCurrentMp(), snapshot.getMaxValue(StatusType.MAX_MANA)));
+        setManaBar(player, ratio(snapshot.getCurrentMp(), snapshot.getMaxValue(StatusType.MAX_MANA)));
+        player.sendExperienceChange((float) ratio(experienceProgress, 1.0D), Math.max(0, playerLevel));
         setArmorBar(player, ratio(snapshot.getCurrentShield(), snapshot.getMaxValue(StatusType.MAX_SHIELD)));
     }
 
@@ -387,6 +401,17 @@ public class PlayerHudView {
         double health = Math.clamp(ratio * 20.0D, 0.5D, 20.0D);
         if (player.getHealth() != health) {
             player.setHealth(health);
+        }
+    }
+
+    private void setManaBar(Player player, double ratio) {
+        var maxAbsorption = player.getAttribute(Attribute.MAX_ABSORPTION);
+        if (maxAbsorption != null && maxAbsorption.getBaseValue() != 20.0D) {
+            maxAbsorption.setBaseValue(20.0D);
+        }
+        double absorption = Math.clamp(ratio * 20.0D, 0.0D, 20.0D);
+        if (Double.compare(player.getAbsorptionAmount(), absorption) != 0) {
+            player.setAbsorptionAmount(absorption);
         }
     }
 

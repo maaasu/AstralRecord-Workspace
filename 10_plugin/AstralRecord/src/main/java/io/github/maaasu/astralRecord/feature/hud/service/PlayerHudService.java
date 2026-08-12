@@ -190,6 +190,12 @@ public class PlayerHudService {
             }
 
             StatusSnapshot snapshot = statusService.getStatus(astPlayer);
+            int playerLevel = astPlayer.getAccount().getLevel();
+            double experienceProgress = accountService.experienceProgress(
+                astPlayer.getAccount().getUuid(),
+                playerLevel,
+                astPlayer.getAccount().getTotalExperience()
+            );
             if (astPlayer.getAccount().getMode().shouldProcessGameplay()) {
                 if (isWallClingActive(astPlayer)) {
                     renderWallClingWindow(astPlayer);
@@ -198,11 +204,6 @@ public class PlayerHudService {
                 } else {
                 renderPrimaryActionBar(astPlayer, snapshot);
                 }
-                double experienceProgress = accountService.experienceProgress(
-                    astPlayer.getAccount().getUuid(),
-                    astPlayer.getAccount().getLevel(),
-                    astPlayer.getAccount().getTotalExperience()
-                );
                 String className = playerClassService.getDisplayName(astPlayer.getClassId());
                 boolean showPerformanceInfo = playerSettingService.isPerformanceInfoDisplayEnabled(
                     astPlayer.getUser().getUuid()
@@ -223,7 +224,7 @@ public class PlayerHudService {
                 playerHudView.renderSidebar(
                     player,
                     mspt,
-                    astPlayer.getAccount().getLevel(),
+                    playerLevel,
                     experienceProgress,
                     astPlayer.getClassLevel(),
                     className,
@@ -240,7 +241,7 @@ public class PlayerHudService {
                 cancelActionBarOverrideTask(player.getUniqueId());
                 playerHudView.removeSidebar(player);
             }
-            playerHudView.renderBars(player, snapshot);
+            playerHudView.renderBars(player, snapshot, playerLevel, experienceProgress);
             playerHudView.renderTabList(
                 player,
                 mspt,

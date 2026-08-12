@@ -14,6 +14,8 @@ import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.entity.Player;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Score;
@@ -207,6 +209,41 @@ class PlayerHudViewTest extends MockBukkitTestBase {
         assertTrue(plainText.contains("ENG 30/60"));
         assertTrue(plainText.contains("[火] 燃焼"));
         assertTrue(hasDecoratedText(component.getValue(), "燃焼"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
+     * 章・見出し: # 10_3-View > ## 3. vanilla bar 描画
+     * 検証契約: MPを最大10個の黄色い吸収ハートへ、アカウント経験値を経験値バーとレベル値へ描画する。
+     */
+    @Test
+    void rendersManaAsAbsorptionHeartsAndAccountExperienceAsVanillaExperience() {
+        Player player = mock(Player.class);
+        StatusSnapshot snapshot = mock(StatusSnapshot.class);
+        AttributeInstance maxHealth = mock(AttributeInstance.class);
+        AttributeInstance maxAbsorption = mock(AttributeInstance.class);
+        AttributeInstance armor = mock(AttributeInstance.class);
+        when(player.getAttribute(Attribute.MAX_HEALTH)).thenReturn(maxHealth);
+        when(player.getAttribute(Attribute.MAX_ABSORPTION)).thenReturn(maxAbsorption);
+        when(player.getAttribute(Attribute.ARMOR)).thenReturn(armor);
+        when(maxHealth.getBaseValue()).thenReturn(20.0D);
+        when(maxAbsorption.getBaseValue()).thenReturn(0.0D);
+        when(player.getHealth()).thenReturn(20.0D);
+        when(player.getAbsorptionAmount()).thenReturn(0.0D);
+        when(snapshot.getMaxValue(StatusType.MAX_HEALTH)).thenReturn(100.0D);
+        when(snapshot.getMaxValue(StatusType.MAX_MANA)).thenReturn(80.0D);
+        when(snapshot.getMaxValue(StatusType.MAX_ENERGY)).thenReturn(60.0D);
+        when(snapshot.getMaxValue(StatusType.MAX_SHIELD)).thenReturn(0.0D);
+        when(snapshot.getCurrentHp()).thenReturn(100.0D);
+        when(snapshot.getCurrentMp()).thenReturn(40.0D);
+        when(snapshot.getCurrentEnergy()).thenReturn(30.0D);
+
+        new PlayerHudView().renderBars(player, snapshot, 12, 0.75D);
+
+        verify(maxAbsorption).setBaseValue(20.0D);
+        verify(player).setAbsorptionAmount(10.0D);
+        verify(player).sendExperienceChange(0.75F, 12);
+        org.mockito.Mockito.verify(player, org.mockito.Mockito.never()).setExp(org.mockito.ArgumentMatchers.anyFloat());
     }
 
     /**
