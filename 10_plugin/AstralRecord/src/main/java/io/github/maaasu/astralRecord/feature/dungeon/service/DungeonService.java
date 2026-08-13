@@ -56,6 +56,7 @@ import io.github.maaasu.astralRecord.shared.challenge.ChallengeStartCountdown;
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import org.bukkit.Bukkit;
@@ -1649,6 +1650,7 @@ public final class DungeonService {
             messageService.send(player, PlayerMsgId.P_7031);
             return;
         }
+        GuiSound.REWARD.play(player);
         if (granted >= reward.amount()) rewards.remove(index);
         else rewards.set(index, reward.withAmount(reward.amount() - granted));
         openRewardGui(session, player, page);

@@ -7,8 +7,10 @@ import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonBlockPlan;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLayout;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonMapRoomState;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomShape;
+import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRewardEntry;
 import io.github.maaasu.astralRecord.feature.dungeon.repository.DungeonDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
@@ -16,7 +18,9 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
@@ -40,6 +44,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -128,6 +133,42 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         verify(normalDisplay, times(1)).destroy();
         verify(bossDisplay, times(1)).destroy();
         assertTrue(mapField(session, "roomStatusDisplays").isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 9. GUI サウンド意味付け
+     * 検証契約: ダンジョン報酬を1個以上インベントリへ付与できた場合だけ、報酬受取音を再生する。
+     */
+    @Test
+    void playsRewardSoundWhenDungeonRewardIsGranted() throws Exception {
+        MobService mobService = mock(MobService.class);
+        DungeonService service = service(mobService, mock(DisplayTextService.class));
+        InventoryService inventoryService = field(service, "inventoryService", InventoryService.class);
+        ItemService itemService = field(service, "itemService", ItemService.class);
+        ItemModel model = mock(ItemModel.class);
+        when(itemService.findLoadedById("reward_item")).thenReturn(model);
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        Object session = session(player.getUniqueId());
+        UUID sessionId = field(session, "id", UUID.class);
+        UUID claimId = UUID.randomUUID();
+        setField(session, "cleared", true);
+        mapField(session, "rewardsByPlayer").put(
+                player.getUniqueId(), new ArrayList<>(List.of(
+                        new DungeonRewardEntry(claimId, "reward_item", 1, 1.0D))));
+        mapField(service, "sessionsById").put(sessionId, session);
+        when(inventoryService.addItemToNormalInventory(astPlayer, model, 1, "dungeon_clear"))
+                .thenReturn(1);
+
+        try (MockedStatic<AstPlayerCache> cache = Mockito.mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            service.handleRewardClick(player, sessionId, 0, 0, claimId);
+        }
+
+        assertEquals(1L, player.getHeardSounds().stream()
+                .filter(sound -> sound.getSound().equals("ui.toast.challenge_complete"))
+                .count());
     }
 
     /** テスト対象サービスを最小依存で構成します。 */
