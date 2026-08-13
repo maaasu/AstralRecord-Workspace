@@ -19,13 +19,18 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /** カルトグラフへ登録された現在ダンジョンの相対地図を表示します。 */
 public final class DungeonMapGui {
     public static final int SIZE = 54;
     public static final int PREVIOUS_SLOT = 45;
+    public static final int DIRECTION_SLOT = 47;
     public static final int CLOSE_SLOT = 49;
     public static final int NEXT_SLOT = 53;
     private final DungeonMapLayoutPlanner layoutPlanner = new DungeonMapLayoutPlanner();
@@ -37,13 +42,35 @@ public final class DungeonMapGui {
             int requestedPage
     ) {
         List<DungeonMapLayoutPlanner.Placement> placements = layoutPlanner.plan(snapshot.layout());
+        List<DungeonMapLayoutPlanner.CorridorPlacement> corridors =
+                layoutPlanner.planCorridors(snapshot.layout(), placements);
         int maxPage = placements.stream().mapToInt(DungeonMapLayoutPlanner.Placement::page).max().orElse(0);
         int page = Math.max(0, Math.min(requestedPage, maxPage));
+        Map<Integer, Integer> visibleRoomIds = new LinkedHashMap<>();
+        placements.stream()
+                .filter(placement -> placement.page() == page)
+                .forEach(placement -> visibleRoomIds.put(placement.slot(), placement.roomId()));
+        Set<Integer> roomSlots = placements.stream()
+                .filter(placement -> placement.page() == page)
+                .map(DungeonMapLayoutPlanner.Placement::slot)
+                .collect(java.util.stream.Collectors.toSet());
         Inventory inventory = Bukkit.createInventory(
-                new Holder(snapshot.sessionId(), player.getUniqueId(), page),
+                new Holder(snapshot.sessionId(), player.getUniqueId(), page, visibleRoomIds),
                 SIZE,
                 PlayerMsgResource.formatComponent(PlayerMsgId.P_7048.getId(), snapshot.displayName())
         );
+        Map<Integer, DungeonLayout.Connection> connectionsById = new HashMap<>();
+        snapshot.layout().connections().forEach(connection ->
+                connectionsById.put(connection.id(), connection));
+        for (DungeonMapLayoutPlanner.CorridorPlacement corridor : corridors) {
+            if (corridor.page() != page || roomSlots.contains(corridor.slot())) {
+                continue;
+            }
+            DungeonLayout.Connection connection = connectionsById.get(corridor.connectionId());
+            if (connection != null) {
+                inventory.setItem(corridor.slot(), corridorItem(isConnectionOpen(snapshot, connection)));
+            }
+        }
         for (DungeonMapLayoutPlanner.Placement placement : placements) {
             if (placement.page() != page) {
                 continue;
@@ -56,8 +83,10 @@ public final class DungeonMapGui {
                     room.id(), DungeonMapRoomState.LOCKED);
             boolean current = snapshot.currentRoomId() != null
                     && snapshot.currentRoomId() == room.id();
-            inventory.setItem(placement.slot(), roomItem(room, state, current));
+            inventory.setItem(placement.slot(), roomItem(
+                    room, state, current, state == DungeonMapRoomState.CLEARED));
         }
+        inventory.setItem(DIRECTION_SLOT, directionItem(snapshot.playerYaw()));
         if (page > 0) {
             inventory.setItem(PREVIOUS_SLOT, GuiItems.create(
                     Material.ARROW,
@@ -74,10 +103,36 @@ public final class DungeonMapGui {
         GuiOpenSupport.open(player, inventory);
     }
 
+    private boolean isConnectionOpen(
+            @NotNull DungeonService.MapSnapshot snapshot,
+            @NotNull DungeonLayout.Connection connection
+    ) {
+        DungeonMapRoomState from = snapshot.roomStates().getOrDefault(
+                connection.fromRoomId(), DungeonMapRoomState.LOCKED);
+        DungeonMapRoomState to = snapshot.roomStates().getOrDefault(
+                connection.toRoomId(), DungeonMapRoomState.LOCKED);
+        return from == DungeonMapRoomState.CLEARED && to != DungeonMapRoomState.LOCKED;
+    }
+
+    private @NotNull ItemStack corridorItem(boolean open) {
+        return GuiItems.create(
+                open ? Material.WHITE_STAINED_GLASS_PANE : Material.GRAY_STAINED_GLASS_PANE,
+                PlayerMsgResource.getComponent(PlayerMsgId.P_7088.getId()),
+                List.of());
+    }
+
+    private @NotNull ItemStack directionItem(float yaw) {
+        return GuiItems.create(
+                Material.ARROW,
+                PlayerMsgResource.getComponent(LookDirection.fromYaw(yaw).messageId().getId()),
+                List.of());
+    }
+
     private @NotNull ItemStack roomItem(
             @NotNull DungeonLayout.Room room,
             @NotNull DungeonMapRoomState state,
-            boolean current
+            boolean current,
+            boolean teleportable
     ) {
         if (state == DungeonMapRoomState.LOCKED) {
             return GuiItems.create(
@@ -111,6 +166,9 @@ public final class DungeonMapGui {
                 PlayerMsgId.P_7057.getId(),
                 PlayerMsgResource.getMessage(roomTypeMessage(room.type()).getId())
         ));
+        if (teleportable) {
+            lore.add(PlayerMsgResource.getComponent(PlayerMsgId.P_7089.getId()));
+        }
         return GuiItems.create(material, name, lore);
     }
 
@@ -128,10 +186,68 @@ public final class DungeonMapGui {
     }
 
     /** 現在地図の不変識別情報です。 */
-    public record Holder(@NotNull UUID sessionId, @NotNull UUID playerId, int pageIndex)
+    public record Holder(
+            @NotNull UUID sessionId,
+            @NotNull UUID playerId,
+            int pageIndex,
+            @NotNull Map<Integer, Integer> visibleRoomIds
+    )
             implements HotbarShortcutGuiHolder {
+        public Holder(@NotNull UUID sessionId, @NotNull UUID playerId, int pageIndex) {
+            this(sessionId, playerId, pageIndex, Map.of());
+        }
+
+        public Holder {
+            visibleRoomIds = Map.copyOf(visibleRoomIds);
+        }
+
+        /**
+         * 指定 slot の部屋 ID を返します。
+         *
+         * @param slot inventory GUI の raw slot
+         * @return 部屋 ID。部屋でない slot、または別ページの slot なら {@code null}
+         */
+        public @Nullable Integer roomIdAt(int slot) {
+            return visibleRoomIds.get(slot);
+        }
+
         @Override public int getBackSlot() { return CLOSE_SLOT; }
         @Override public boolean isAlwaysCloseNavigation() { return true; }
         @Override public @NotNull Inventory getInventory() { return Bukkit.createInventory(this, SIZE); }
+    }
+
+    private enum LookDirection {
+        NORTH(PlayerMsgId.P_7080),
+        NORTH_EAST(PlayerMsgId.P_7081),
+        EAST(PlayerMsgId.P_7082),
+        SOUTH_EAST(PlayerMsgId.P_7083),
+        SOUTH(PlayerMsgId.P_7084),
+        SOUTH_WEST(PlayerMsgId.P_7085),
+        WEST(PlayerMsgId.P_7086),
+        NORTH_WEST(PlayerMsgId.P_7087);
+
+        private final PlayerMsgId messageId;
+
+        LookDirection(@NotNull PlayerMsgId messageId) {
+            this.messageId = messageId;
+        }
+
+        private @NotNull PlayerMsgId messageId() {
+            return messageId;
+        }
+
+        private static @NotNull LookDirection fromYaw(float yaw) {
+            int octant = Math.floorMod((int) Math.floor((yaw + 22.5F) / 45.0F), 8);
+            return switch (octant) {
+                case 0 -> SOUTH;
+                case 1 -> SOUTH_WEST;
+                case 2 -> WEST;
+                case 3 -> NORTH_WEST;
+                case 4 -> NORTH;
+                case 5 -> NORTH_EAST;
+                case 6 -> EAST;
+                default -> SOUTH_EAST;
+            };
+        }
     }
 }

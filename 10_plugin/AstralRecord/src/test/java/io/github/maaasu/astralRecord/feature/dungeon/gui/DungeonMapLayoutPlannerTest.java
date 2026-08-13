@@ -64,6 +64,36 @@ class DungeonMapLayoutPlannerTest {
                 placement.slot() >= 0 && placement.slot() < DungeonMapLayoutPlanner.PAGE_SIZE));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ > ### 8.2 現在ダンジョンマップ
+     * 検証契約: 部屋 slot を避けた通路が同一ページ上の接続部屋を結ぶ。
+     */
+    @Test
+    void projectsConnectionsIntoCorridorSlots() {
+        List<DungeonLayout.Room> rooms = List.of(
+                room(0, 0, 0),
+                room(1, 50, 0)
+        );
+        DungeonLayout layout = new DungeonLayout(
+                123L, 128, 128, 64, 8, rooms,
+                List.of(new DungeonLayout.Connection(
+                        7, 0, 1, List.of(new DungeonLayout.Point(8, 4)))),
+                0,
+                1
+        );
+
+        List<DungeonMapLayoutPlanner.Placement> placements = planner.plan(layout);
+        List<DungeonMapLayoutPlanner.CorridorPlacement> corridors =
+                planner.planCorridors(layout, placements);
+
+        assertEquals(7, corridors.size());
+        assertTrue(corridors.stream().allMatch(corridor -> corridor.page() == 0));
+        assertTrue(corridors.stream().noneMatch(corridor ->
+                placements.stream().anyMatch(placement ->
+                        placement.page() == corridor.page() && placement.slot() == corridor.slot())));
+    }
+
     private DungeonLayout layout(List<DungeonLayout.Room> rooms) {
         return new DungeonLayout(123L, 128, 128, 64, 8, rooms, List.of(), 0, rooms.getLast().id());
     }

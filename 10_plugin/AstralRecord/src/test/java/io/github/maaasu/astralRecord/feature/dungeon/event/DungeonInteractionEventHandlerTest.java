@@ -288,6 +288,32 @@ class DungeonInteractionEventHandlerTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ > ### 8.2 現在ダンジョンマップ
+     * 検証契約: 攻略済み部屋 slot のクリックは session と room ID を service へ渡し、成功時に地図を閉じる。
+     */
+    @Test
+    void delegatesClearedRoomClickAndClosesMapOnSuccess() {
+        TestContext context = new TestContext();
+        InventoryClickEvent event = mock(InventoryClickEvent.class);
+        UUID sessionId = UUID.randomUUID();
+        int roomId = 404;
+        DungeonMapGui.Holder holder = new DungeonMapGui.Holder(
+                sessionId, context.player.getUniqueId(), 0, java.util.Map.of(0, roomId));
+        when(event.getView()).thenReturn(context.view);
+        when(event.getWhoClicked()).thenReturn(context.player);
+        when(event.getRawSlot()).thenReturn(0);
+        when(context.mapGui.holder(context.top)).thenReturn(holder);
+        when(context.service.teleportToClearedRoom(context.player, sessionId, roomId)).thenReturn(true);
+
+        context.handler.onInventoryClick(event);
+
+        verify(event).setCancelled(true);
+        verify(context.service).teleportToClearedRoom(context.player, sessionId, roomId);
+        verify(context.player).closeInventory();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ
      * 検証契約: 踏破記録詳細から戻る場合は、詳細を開いた一覧ページへ復帰する。
      */

@@ -83,6 +83,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.OptionalLong;
 import java.util.Set;
 import java.util.SplittableRandom;
@@ -1136,13 +1137,23 @@ public final class DungeonService {
         }
     }
 
-    /** 踏破記録をAPIへ非同期保存し、保存成功後だけキャッシュへ反映します。 */
+    /** 踏破記録をキャッシュへ楽観反映した上で、APIへ非同期保存します。 */
     private void recordDungeonClearAsync(
             @NotNull AstPlayer astPlayer,
             @NotNull DungeonDefinition definition
     ) {
         UUID accountId = astPlayer.getAccount().getUuid();
         UUID userId = astPlayer.getUser().getUuid();
+        DungeonArchiveGui.ArchiveDungeon previous = archiveByAccount
+                .getOrDefault(accountId, List.of()).stream()
+                .filter(entry -> entry.dungeonId().equals(definition.id()))
+                .findFirst()
+                .orElse(null);
+        long optimisticCount = previous == null ? 1L : previous.clearCount() + 1L;
+        DungeonArchiveGui.ArchiveDungeon optimistic = archiveDungeon(
+                definition, optimisticCount, Instant.now());
+        archiveByAccount.put(accountId, mergeArchive(
+                List.of(optimistic), archiveByAccount.getOrDefault(accountId, List.of())));
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
                 AdventureDungeonRecord persisted = adventureRecordRepository.recordDungeonClear(
@@ -1156,6 +1167,11 @@ public final class DungeonService {
                 });
             } catch (RuntimeException failure) {
                 Logger.log(LogId.E_7006, failure, accountId, definition.id());
+                runMain(() -> {
+                    // API/DBを正本とするため、失敗時は次回archive表示で必ず再取得します。
+                    archiveByAccount.remove(accountId);
+                    loadedArchiveAccounts.remove(accountId);
+                });
             }
         });
     }
@@ -1549,7 +1565,8 @@ public final class DungeonService {
                 session.loaded.definition().displayName(),
                 session.layout,
                 states,
-                currentRoomId(session, player.getLocation())
+                currentRoomId(session, player.getLocation()),
+                player.getLocation().getYaw()
         );
     }
 
@@ -1561,6 +1578,129 @@ public final class DungeonService {
                 .map(DungeonLayout.Room::id)
                 .findFirst()
                 .orElse(null);
+    }
+
+    /**
+     * カルトグラフから指定された攻略済み部屋へプレイヤーを移動します。
+     * 現在のセッション、参加者、地図 binding、部屋状態を再検証してから転送します。
+     *
+     * @param player 操作プレイヤー
+     * @param sessionId 地図を開いているセッション ID
+     * @param roomId 移動先部屋 ID
+     * @return 転送を開始した場合は {@code true}、対象が失効している場合は {@code false}
+     */
+    public boolean teleportToClearedRoom(
+            @NotNull Player player,
+            @NotNull UUID sessionId,
+            int roomId
+    ) {
+        MapSnapshot snapshot = mapSnapshot(player, sessionId);
+        if (snapshot == null
+                || snapshot.roomStates().getOrDefault(roomId, DungeonMapRoomState.LOCKED)
+                != DungeonMapRoomState.CLEARED) {
+            return false;
+        }
+        Session session = sessionsById.get(sessionId);
+        if (session == null || session.blockPlan == null || session.instanceWorld == null) {
+            return false;
+        }
+        DungeonLayout.Room room = session.layout.rooms().stream()
+                .filter(candidate -> candidate.id() == roomId)
+                .findFirst()
+                .orElse(null);
+        if (room == null) {
+            return false;
+        }
+        Location target = roomTeleportLocation(session, room);
+        worldService.teleportPlayerAsync(player, target, null)
+                .whenComplete((success, failure) -> {
+                    if (failure != null || !Boolean.TRUE.equals(success)) {
+                        runMain(() -> {
+                            if (player.isOnline()) {
+                                messageService.send(player, PlayerMsgId.P_7091);
+                            }
+                        });
+                    }
+                });
+        return true;
+    }
+
+    private @NotNull Location roomTeleportLocation(
+            @NotNull Session session,
+            @NotNull DungeonLayout.Room room
+    ) {
+        World world = session.instanceWorld.world();
+        List<DungeonBlockPlan.Position> spawnPoints = session.blockPlan.spawnPointsByRoom()
+                .getOrDefault(room.id(), List.of());
+        DungeonBlockPlan.Position position = spawnPoints.stream()
+                .filter(candidate -> isSafeTeleportPosition(world, candidate))
+                .findFirst()
+                .orElseGet(() -> findSafeRoomPosition(world, session.layout.baseY() + 1, room)
+                        .orElseGet(() -> spawnPoints.isEmpty()
+                                ? new DungeonBlockPlan.Position(
+                                        room.bounds().centerX(), session.layout.baseY() + 1,
+                                        room.bounds().centerZ())
+                                : spawnPoints.getFirst()));
+        return new Location(
+                world,
+                position.x() + 0.5D,
+                position.y(),
+                position.z() + 0.5D
+        );
+    }
+
+    private boolean isSafeTeleportPosition(
+            @NotNull World world,
+            @NotNull DungeonBlockPlan.Position position
+    ) {
+        Block feet = world.getBlockAt(position.x(), position.y(), position.z());
+        Block head = feet.getRelative(BlockFace.UP);
+        Block floor = feet.getRelative(BlockFace.DOWN);
+        return feet.isPassable() && head.isPassable() && !floor.isPassable();
+    }
+
+    private @NotNull Optional<DungeonBlockPlan.Position> findSafeRoomPosition(
+            @NotNull World world,
+            int y,
+            @NotNull DungeonLayout.Room room
+    ) {
+        int centerX = room.bounds().centerX();
+        int centerZ = room.bounds().centerZ();
+        List<DungeonBlockPlan.Position> candidates = new ArrayList<>();
+        for (int x = room.bounds().minX() + 1; x < room.bounds().maxX(); x++) {
+            for (int z = room.bounds().minZ() + 1; z < room.bounds().maxZ(); z++) {
+                candidates.add(new DungeonBlockPlan.Position(x, y, z));
+            }
+        }
+        candidates.sort(Comparator
+                .comparingInt((DungeonBlockPlan.Position candidate) ->
+                        Math.abs(candidate.x() - centerX) + Math.abs(candidate.z() - centerZ))
+                .thenComparingInt(DungeonBlockPlan.Position::x)
+                .thenComparingInt(DungeonBlockPlan.Position::z));
+        return candidates.stream().filter(candidate -> isSafeTeleportPosition(world, candidate)).findFirst();
+    }
+
+    /**
+     * 現在地図を開いているプレイヤーの向きだけを再描画します。
+     * 地図を開いていない、またはセッション・参加資格が失効している場合は何もしません。
+     *
+     * @param player 向きを再描画するプレイヤー
+     */
+    public void refreshOpenMap(@NotNull Player player) {
+        UUID sessionId = sessionIdByParticipant.get(player.getUniqueId());
+        Session session = sessionId == null ? null : sessionsById.get(sessionId);
+        if (session == null || session.ending || session.instanceWorld == null) {
+            return;
+        }
+        DungeonMapGui.Holder holder = mapGui.holder(player.getOpenInventory().getTopInventory());
+        if (holder == null || !holder.sessionId().equals(session.id)
+                || !holder.playerId().equals(player.getUniqueId())) {
+            return;
+        }
+        MapSnapshot snapshot = mapSnapshot(player, session.id);
+        if (snapshot != null) {
+            mapGui.open(player, snapshot, holder.pageIndex());
+        }
     }
 
     private void refreshOpenMaps(@NotNull Session session) {
@@ -1591,8 +1731,20 @@ public final class DungeonService {
             @NotNull String displayName,
             @NotNull DungeonLayout layout,
             @NotNull Map<Integer, DungeonMapRoomState> roomStates,
-            @Nullable Integer currentRoomId
+            @Nullable Integer currentRoomId,
+            float playerYaw
     ) {
+        public MapSnapshot(
+                @NotNull UUID sessionId,
+                @NotNull String dungeonId,
+                @NotNull String displayName,
+                @NotNull DungeonLayout layout,
+                @NotNull Map<Integer, DungeonMapRoomState> roomStates,
+                @Nullable Integer currentRoomId
+        ) {
+            this(sessionId, dungeonId, displayName, layout, roomStates, currentRoomId, 0.0F);
+        }
+
         public MapSnapshot { roomStates = Map.copyOf(roomStates); }
     }
 

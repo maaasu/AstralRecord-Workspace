@@ -58,6 +58,7 @@ public final class DungeonWorldEventHandler extends AbstractEventHandler {
         }
     }
 
+    /** プレイヤーの部屋移動または向き変更を地図表示へ反映します。 */
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onMove(@NotNull PlayerMoveEvent event) {
         Location from = event.getFrom();
@@ -65,6 +66,14 @@ public final class DungeonWorldEventHandler extends AbstractEventHandler {
         if (from.getBlockX() == to.getBlockX()
                 && from.getBlockY() == to.getBlockY()
                 && from.getBlockZ() == to.getBlockZ()) {
+            if (Float.compare(from.getYaw(), to.getYaw()) != 0) {
+                runSafely(
+                        () -> dungeonService.refreshOpenMap(event.getPlayer()),
+                        LogId.E_7001,
+                        event.getPlayer().getName(),
+                        "map-look"
+                );
+            }
             return;
         }
         runSafely(

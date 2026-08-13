@@ -241,6 +241,16 @@ public final class DungeonInteractionEventHandler extends AbstractEventHandler
                 service.openMapPage(player, mapHolder.sessionId(), mapHolder.pageIndex() - 1);
             } else if (event.getRawSlot() == DungeonMapGui.NEXT_SLOT) {
                 service.openMapPage(player, mapHolder.sessionId(), mapHolder.pageIndex() + 1);
+            } else {
+                Integer roomId = mapHolder.roomIdAt(event.getRawSlot());
+                if (roomId != null) {
+                    if (service.teleportToClearedRoom(player, mapHolder.sessionId(), roomId)) {
+                        player.closeInventory();
+                    } else {
+                        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7090);
+                        GuiSound.DENY.play(player);
+                    }
+                }
             }
             return;
         }
