@@ -57,3 +57,35 @@ ai:
 
 drops:
   exp: 12000
+
+challenge:
+  fieldWorldId: twilight_colossus_field
+  entryLocation:
+    worldId: midgard_greenfields
+    x: -252.5
+    y: 14.0
+    z: -419.5
+    yaw: 0.0
+    pitch: 0.0
+  entryRadius: 2
+  playerSpawnLocation:
+    x: -10.5
+    y: 118.0
+    z: 17.5
+    yaw: 0.0
+    pitch: 0.0
+  bossSpawnLocation:
+    x: -11.5
+    y: 121.0
+    z: 7.5
+    yaw: 180.0
+    pitch: 0.0
+  partyMin: 1
+  partyMax: 6
+  timeLimitSeconds: 600
+  deathLimit: 5
+  reviveDelaySeconds: 5
+  scaling:
+    enabled: true
+    healthPerExtraPlayer: 100.0
+    attackPerExtraPlayer: 0.0
