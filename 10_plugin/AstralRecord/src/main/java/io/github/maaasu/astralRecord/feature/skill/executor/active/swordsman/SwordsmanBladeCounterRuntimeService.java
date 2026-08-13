@@ -35,7 +35,6 @@ import java.util.UUID;
 public final class SwordsmanBladeCounterRuntimeService {
 
     private static final long VISUAL_PERIOD_TICKS = 4L;
-    private static final int DISPLAY_COUNT = 4;
     private static final double DISPLAY_RADIUS = 1.15D;
     private final DamageService damageService;
     private final SkillEffectService effects;
@@ -93,7 +92,7 @@ public final class SwordsmanBladeCounterRuntimeService {
                 player,
                 counterAttacker,
                 new BladeCounterState(maximumCounters, currentTick + durationTicks),
-                spawnDisplays(player.getBukkit()),
+                spawnDisplays(player.getBukkit(), maximumCounters),
                 receptionTicks,
                 counterDamageRatio,
                 damageReductionRate
@@ -103,7 +102,8 @@ public final class SwordsmanBladeCounterRuntimeService {
     }
 
     /**
-     * 成立した通常攻撃の直後にカウンター受付を開始します。
+     * 通常攻撃の試行でカウンター回数を1回消費し、残数があれば直後の受付を開始します。
+     * 通常攻撃の対象命中や、その後のカウンター成否には依存しません。
      *
      * @param player 通常攻撃を行ったプレイヤー
      */
@@ -116,6 +116,15 @@ public final class SwordsmanBladeCounterRuntimeService {
             }
             return;
         }
+        if (!entry.state().consumeCounter(currentTick)) {
+            clear(player.getBukkit().getUniqueId());
+            return;
+        }
+        removeConsumedDisplays(entry);
+        if (!entry.state().isActive(currentTick)) {
+            clear(player.getBukkit().getUniqueId());
+            return;
+        }
         entry.state().openReception(currentTick, entry.receptionTicks());
         Location center = player.getBukkit().getLocation().add(0.0D, 1.0D, 0.0D);
         effects.ring(center, 1.05D, 12, SharedParticleDefinitions.SKILL_SWORD_GUARD_DUST);
@@ -123,7 +132,8 @@ public final class SwordsmanBladeCounterRuntimeService {
     }
 
     /**
-     * 管理戦闘の直接攻撃を検査し、受付中なら回数を先に消費して倍率と反映完了後処理を返します。
+     * 管理戦闘の直接攻撃を検査し、受付中なら倍率と反映完了後処理を返します。
+     * 受付枠は通常攻撃時に先に消費しているため、この処理では回数を戻しません。
      *
      * @param attacker 元攻撃者
      * @param victim 被弾者
@@ -147,7 +157,7 @@ public final class SwordsmanBladeCounterRuntimeService {
         }
         RuntimeEntry entry = entries.get(victim.id());
         long currentTick = Bukkit.getCurrentTick();
-        if (entry == null || !entry.state().consumeCounter(currentTick)) {
+        if (entry == null || !entry.state().consumeReception(currentTick)) {
             if (entry != null && !entry.state().isActive(currentTick)) {
                 clear(victim.id());
             }
@@ -155,9 +165,6 @@ public final class SwordsmanBladeCounterRuntimeService {
         }
 
         if (calculated.evaded()) {
-            if (entry.state().remainingCounters() <= 0) {
-                clear(victim.id());
-            }
             return DirectDamageModification.none();
         }
 
@@ -221,11 +228,12 @@ public final class SwordsmanBladeCounterRuntimeService {
         return entry == null ? 0 : entry.state().remainingCounters();
     }
 
-    private @NotNull List<ItemDisplay> spawnDisplays(@NotNull Player player) {
+    private @NotNull List<ItemDisplay> spawnDisplays(@NotNull Player player, int displayCount) {
         World world = player.getWorld();
         Location center = player.getLocation().add(0.0D, 1.0D, 0.0D);
-        List<ItemDisplay> displays = new ArrayList<>(DISPLAY_COUNT);
-        for (int index = 0; index < DISPLAY_COUNT; index++) {
+        int count = Math.max(0, displayCount);
+        List<ItemDisplay> displays = new ArrayList<>(count);
+        for (int index = 0; index < count; index++) {
             ItemDisplay display = world.spawn(center, ItemDisplay.class, entity -> {
                 entity.setItemStack(new ItemStack(Material.WHITE_STAINED_GLASS));
                 entity.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
@@ -241,6 +249,16 @@ public final class SwordsmanBladeCounterRuntimeService {
         return List.copyOf(displays);
     }
 
+    private void removeConsumedDisplays(@NotNull RuntimeEntry entry) {
+        int remainingCounters = Math.max(0, entry.state().remainingCounters());
+        for (int index = remainingCounters; index < entry.displays().size(); index++) {
+            ItemDisplay display = entry.displays().get(index);
+            if (display.isValid()) {
+                display.remove();
+            }
+        }
+    }
+
     private void updateVisuals() {
         long currentTick = Bukkit.getCurrentTick();
         visualFrame++;
@@ -254,12 +272,19 @@ public final class SwordsmanBladeCounterRuntimeService {
                 continue;
             }
             Location center = player.getLocation().add(0.0D, 1.0D, 0.0D);
+            int displayCount = Math.min(entry.state().remainingCounters(), entry.displays().size());
             for (int index = 0; index < entry.displays().size(); index++) {
                 ItemDisplay display = entry.displays().get(index);
+                if (index >= displayCount) {
+                    if (display.isValid()) {
+                        display.remove();
+                    }
+                    continue;
+                }
                 if (!display.isValid() || display.getWorld() != player.getWorld()) {
                     continue;
                 }
-                double angle = visualFrame * 0.30D + Math.PI * 2.0D * index / DISPLAY_COUNT;
+                double angle = visualFrame * 0.30D + Math.PI * 2.0D * index / displayCount;
                 double height = index % 2 == 0 ? 0.28D : -0.18D;
                 display.teleport(center.clone().add(
                         Math.cos(angle) * DISPLAY_RADIUS,

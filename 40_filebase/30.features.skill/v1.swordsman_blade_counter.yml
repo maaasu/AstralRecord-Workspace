@@ -9,9 +9,9 @@ name: "&fブレードカウンター"
 description: "&7通常攻撃後の一瞬に敵の攻撃を受け流し、被ダメージを半減して即座に斬り返す。"
 icon: WHITE_STAINED_GLASS
 lore:
-  - "&7詠唱後20秒間、通常攻撃直後の0.5秒をカウンター受付状態にする。"
+  - "&7詠唱後20秒間、通常攻撃ごとに残数を1消費し、残りの反撃回数を鏡のブロックで表示する。"
   - "&7管理対象Mobの直接攻撃を50%軽減し、近接攻撃力{skill.counterDamageRatio:percent}%で反撃する。"
-  - "&7反撃可能回数: {skill.maximumCounters}回。受付中は連続攻撃にも反撃する。"
+  - "&7反撃可能回数: {skill.maximumCounters}回。受付中の最初の一撃に反撃する。"
   - "&8消費EN: 20 / クールダウン: 30秒 / 詠唱: 1秒"
 cooldownTicks: 600
 resourceType: ENERGY

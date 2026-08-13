@@ -1,6 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman;
 
-/** ブレードカウンター1回分の残回数と受付時間を保持する純粋なruntime状態です。 */
+/** ブレードカウンターの残回数と、直近の通常攻撃に対応する受付時間を保持します。 */
 final class BladeCounterState {
 
     private int remainingCounters;
@@ -23,10 +23,18 @@ final class BladeCounterState {
     }
 
     boolean consumeCounter(long currentTick) {
-        if (!isActive(currentTick) || currentTick >= receptionEndsAtTick) {
+        if (!isActive(currentTick)) {
             return false;
         }
         remainingCounters--;
+        return true;
+    }
+
+    boolean consumeReception(long currentTick) {
+        if (!isActive(currentTick) || currentTick >= receptionEndsAtTick) {
+            return false;
+        }
+        receptionEndsAtTick = Long.MIN_VALUE;
         return true;
     }
 

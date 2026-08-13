@@ -6,15 +6,23 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import org.bukkit.Location;
 import org.bukkit.inventory.EquipmentSlot;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -120,6 +128,41 @@ class ItemWeaponAttackServiceTest {
         assertEquals(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MELEE, service.currentLeftClickSkillId(player));
         assertEquals(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_BOW, service.currentLeftClickSkillId(player));
         assertEquals(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MAGIC, service.currentLeftClickSkillId(player));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### 武器左クリック処理
+     * 検証契約: 通常攻撃の試行通知は、通常攻撃executorの成功・失敗にかかわらず呼び出される。
+     */
+    @Test
+    void attackAttemptListenerRunsForSuccessfulAndFailedNormalAttack() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        SkillService skillService = mock(SkillService.class);
+        AstPlayer player = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        ItemModel weapon = weaponModel("SWORD");
+        when(inventoryService.getItemModelInHand(player, EquipmentSlot.HAND)).thenReturn(weapon, weapon);
+        when(player.getAccount()).thenReturn(account);
+        when(account.getLevel()).thenReturn(1);
+        when(skillService.isOnCooldown(any(), anyString())).thenReturn(false);
+        when(skillService.castSkill(
+                any(),
+                eq(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MELEE),
+                eq(SkillCastTrigger.AUTO_ATTACK),
+                any(Location.class),
+                isNull(),
+                any()
+        )).thenReturn(SkillCastResult.succeeded(), SkillCastResult.failure(null));
+
+        ItemWeaponAttackService service = new ItemWeaponAttackService(inventoryService, skillService);
+        AtomicInteger attempts = new AtomicInteger();
+        service.setAttackAttemptListener(playerToNotify -> attempts.incrementAndGet());
+
+        service.handleLeftClick(player, new Location(null, 0.0D, 0.0D, 0.0D));
+        service.handleLeftClick(player, new Location(null, 0.0D, 0.0D, 0.0D));
+
+        assertEquals(2, attempts.get());
     }
 
     private ItemModel weaponModel() {

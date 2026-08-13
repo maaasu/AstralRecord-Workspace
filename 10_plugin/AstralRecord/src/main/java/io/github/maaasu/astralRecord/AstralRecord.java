@@ -1140,7 +1140,7 @@ public final class AstralRecord extends JavaPlugin {
         skillBindGui = new SkillBindGui(this, itemService, skillService);
         itemWeaponAttackService = new ItemWeaponAttackService(inventoryService, skillService);
         itemWeaponAttackService.setEquipmentDurabilityService(equipmentDurabilityService);
-        itemWeaponAttackService.setSuccessfulAttackListener(
+        itemWeaponAttackService.setAttackAttemptListener(
             swordsmanBladeCounterRuntimeService::onNormalAttack
         );
         skillActionRingService.setItemWeaponAttackService(itemWeaponAttackService);

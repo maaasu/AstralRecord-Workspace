@@ -46,7 +46,7 @@ class SwordsmanBladeCounterRuntimeServiceTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 10. ソードマン・ブレードカウンターの実装契約
-     * 検証契約: 回避されたMob直接hitは回数だけを消費し、軽減・成功演出・反撃を行わない。
+     * 検証契約: 通常攻撃で先に消費した受付枠が回避hitへ反応せず、軽減・成功演出・反撃を行わない。
      */
     @Test
     void evadedMobDirectHitConsumesAttemptWithoutCounter() {
@@ -72,7 +72,7 @@ class SwordsmanBladeCounterRuntimeServiceTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 10. ソードマン・ブレードカウンターの実装契約
-     * 検証契約: 非回避の0damage直接hitでも50%倍率を返し、元hit反映後処理でのみ反撃する。
+     * 検証契約: 非回避の0damage直接hitでも50%倍率を返し、枠消費済みの受付から元hit反映後処理でのみ反撃する。
      */
     @Test
     void zeroDamageMobDirectHitDefersCounterUntilPostHit() {
@@ -106,7 +106,7 @@ class SwordsmanBladeCounterRuntimeServiceTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 10. ソードマン・ブレードカウンターの実装契約
-     * 検証契約: OTHERとPvPは受付回数を消費せず、後処理も作らない。
+     * 検証契約: OTHERとPvPは通常攻撃で作った受付枠を消費せず、後処理も作らない。
      */
     @Test
     void otherAndPvpDamageDoNotConsumeCounterAttempt() {
@@ -133,9 +133,35 @@ class SwordsmanBladeCounterRuntimeServiceTest extends MockBukkitTestBase {
 
         assertEquals(1.0D, other.damageMultiplier(), 0.0001D);
         assertEquals(1.0D, pvp.damageMultiplier(), 0.0001D);
-        assertEquals(3, runtime.remainingCounters(player.getBukkit().getUniqueId()));
+        assertEquals(2, runtime.remainingCounters(player.getBukkit().getUniqueId()));
         verifyNoInteractions(harness.effects);
         verifyNoInteractions(harness.damageService);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 10. ソードマン・ブレードカウンターの実装契約
+     * 検証契約: 通常攻撃の試行ごとに成功・失敗を問わず回数を消費し、0回でruntimeと表示を終了する。
+     */
+    @Test
+    void normalAttackAttemptsConsumeCountersAndExhaustRuntime() {
+        RuntimeHarness harness = runtimeHarness();
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        player.setStatusSnapshot(DesignTestFixtures.statusSnapshot(
+                Map.of(StatusType.MAX_HEALTH, 100.0D),
+                100.0D,
+                0.0D,
+                0.0D
+        ));
+        installRuntimeEntry(player, 3);
+
+        runtime.onNormalAttack(player);
+        assertEquals(2, runtime.remainingCounters(player.getBukkit().getUniqueId()));
+        runtime.onNormalAttack(player);
+        assertEquals(1, runtime.remainingCounters(player.getBukkit().getUniqueId()));
+        runtime.onNormalAttack(player);
+        assertEquals(0, runtime.remainingCounters(player.getBukkit().getUniqueId()));
+        verify(harness.damageService, never()).attack(any(), any(), any(), anyList(), any());
     }
 
     private RuntimeHarness runtimeHarness() {

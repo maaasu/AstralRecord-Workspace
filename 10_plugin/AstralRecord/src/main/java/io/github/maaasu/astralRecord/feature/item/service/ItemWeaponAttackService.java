@@ -26,7 +26,7 @@ public final class ItemWeaponAttackService {
     private final InventoryService inventoryService;
     private final SkillService skillService;
     private EquipmentDurabilityService equipmentDurabilityService;
-    private Consumer<AstPlayer> successfulAttackListener = player -> { };
+    private Consumer<AstPlayer> attackAttemptListener = player -> { };
 
     public ItemWeaponAttackService(
             @NotNull InventoryService inventoryService,
@@ -41,12 +41,13 @@ public final class ItemWeaponAttackService {
     }
 
     /**
-     * 通常攻撃executorが成功した直後の通知先を設定します。
+     * 通常攻撃executorの試行直後に呼び出す通知先を設定します。
+     * executorの成否にかかわらず通知するため、受付枠などの試行回数を管理できます。
      *
-     * @param successfulAttackListener 成功通知先
+     * @param attackAttemptListener 試行通知先
      */
-    public void setSuccessfulAttackListener(@NotNull Consumer<AstPlayer> successfulAttackListener) {
-        this.successfulAttackListener = successfulAttackListener;
+    public void setAttackAttemptListener(@NotNull Consumer<AstPlayer> attackAttemptListener) {
+        this.attackAttemptListener = attackAttemptListener;
     }
 
     public void handleLeftClick(
@@ -162,9 +163,7 @@ public final class ItemWeaponAttackService {
         if (result.success() && cooldownTicks > 0) {
             skillService.startAttackCooldown(caster, skillId, cooldownTicks);
         }
-        if (result.success()) {
-            successfulAttackListener.accept(player);
-        }
+        attackAttemptListener.accept(player);
     }
 
     private @Nullable WeaponAttackDefinition resolveAttack(@Nullable String rawTag) {
