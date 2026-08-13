@@ -50,7 +50,7 @@
 | `theme.decorations.accent[]` | List | `COAL_ORE:1`。`ORE_CHAMBER` の外周壁accent Materialと正の相対weight |
 | `encounter.normalMobPool[].weight` | Integer | `1`。正の相対 weight |
 | `encounter.mobsPerRoom.min/max` | Integer | `2/4`、`1..16` |
-| `encounter.firstCombatRoomMaxMobLevel` | Integer | `10`。開始部屋候補の level 上限 |
+| `encounter.firstCombatRoomMaxMobLevel` | Integer | `10`。START直後に攻略する最初のNORMAL部屋候補の level 上限 |
 | `clearRewards.items[]` | List | プレイヤーごとにクリア時点で独立抽選する直接報酬 |
 | `clearRewards.items[].itemId` | String | `item:` 参照 |
 | `clearRewards.items[].rate` | Double | `100.0`、有限値の `0.0..100.0`（%） |

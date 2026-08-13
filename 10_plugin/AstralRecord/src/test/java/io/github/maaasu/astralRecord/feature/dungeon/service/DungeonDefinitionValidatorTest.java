@@ -25,7 +25,7 @@ class DungeonDefinitionValidatorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_0-概要.md
      * 章・見出し: # 32_0-概要 > ## 4. 主要境界と不変条件
-     * 検証契約: 開始部屋レベル上限内のENEMY候補とBOSS参照を持つ定義だけを公開可能とする。
+     * 検証契約: 最初の戦闘部屋レベル上限内のENEMY候補とBOSS参照を持つ定義だけを公開可能とする。
      */
     @Test
     void acceptsDefinitionWithEligibleFirstRoomEnemyAndBossReference() {
@@ -43,7 +43,7 @@ class DungeonDefinitionValidatorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_0-概要.md
      * 章・見出し: # 32_0-概要 > ## 4. 主要境界と不変条件
-     * 検証契約: normalMobPoolに開始部屋レベル上限内の候補が一体もなければ定義公開を拒否する。
+     * 検証契約: normalMobPoolに最初の戦闘部屋レベル上限内の候補が一体もなければ定義公開を拒否する。
      */
     @Test
     void rejectsDefinitionWithoutAnyEligibleFirstRoomEnemy() {

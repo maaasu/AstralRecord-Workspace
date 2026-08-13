@@ -14,7 +14,7 @@ class DungeonEncounterPlannerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 3. 遭遇 Mob と部屋進行
-     * 検証契約: START部屋ではweightに関係なくfirstCombatRoomMaxMobLevelを超える通常Mobを抽選候補から除外する。
+     * 検証契約: START直後の最初の戦闘部屋ではweightに関係なくfirstCombatRoomMaxMobLevelを超える通常Mobを抽選候補から除外する。
      */
     @Test
     void excludesOverLevelNormalMobsFromTheFirstCombatRoom() {

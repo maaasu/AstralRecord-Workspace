@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonMapGui;
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonRewardGui;
 import io.github.maaasu.astralRecord.feature.dungeon.repository.DungeonDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.dungeon.view.DungeonCancelController;
+import io.github.maaasu.astralRecord.feature.dungeon.view.DungeonRoomStatusText;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
@@ -577,12 +578,17 @@ public final class DungeonService {
         }));
     }
 
+    /**
+     * 全室を未開放で初期化し、STARTだけを開始待ち状態にします。
+     *
+     * @param session 配置計画を保持する準備中セッション
+     */
     private void initializeRoomStates(@NotNull Session session) {
         for (DungeonLayout.Room room : session.layout.rooms()) {
-            session.roomStates.put(room.id(), RoomState.LOCKED);
+            session.roomStates.put(room.id(), DungeonMapRoomState.LOCKED);
             session.liveMobsByRoom.put(room.id(), new LinkedHashSet<>());
         }
-        session.roomStates.put(session.layout.startRoomId(), RoomState.AVAILABLE);
+        session.roomStates.put(session.layout.startRoomId(), DungeonMapRoomState.AVAILABLE);
     }
 
     private void handleWorldReady(
@@ -638,7 +644,7 @@ public final class DungeonService {
                 }));
     }
 
-    /** 開始地点に帰還ゲート、中止装置、案内表示を生成します。 */
+    /** 開始地点の操作物と、各部屋内で攻略状態を示す案内表示を生成します。 */
     private void createSessionControls(@NotNull Session session, @NotNull Location playerSpawn) {
         session.returnGateLocation = playerSpawn.clone();
         session.returnGateDisplay = displayTextService.create(
@@ -646,13 +652,112 @@ public final class DungeonService {
                 DisplayTextOptions.defaults(PlayerMsgResource.getMessage(PlayerMsgId.P_7034.getId()))
                         .withLineWidth(280).withViewRange(48.0F).withShadowed(true)
         );
+        createRoomStatusDisplays(session);
         Location controllerLocation = playerSpawn.clone().add(2.5D, 0.0D, 0.0D);
         DungeonCancelController controller = DungeonCancelController.spawn(session.id, controllerLocation, displayTextService);
         cancelControllers.put(session.id, controller);
         sessionIdByCancelInteraction.put(controller.interaction().getUniqueId(), session.id);
     }
 
-    /** 初回転送後の10秒間は Mob を生成せず、参加者へ毎秒開始演出を送ります。 */
+    /**
+     * 配置済みの全室へ、役割と攻略状態を示す固定TextDisplayを生成します。
+     *
+     * @param session 生成済みWorld、配置、ブロック計画、部屋状態を保持するセッション
+     * @implNote TextDisplayを生成しセッションへ保持するため、メインスレッドから呼び出します。
+     */
+    private void createRoomStatusDisplays(@NotNull Session session) {
+        for (DungeonLayout.Room room : session.layout.rooms()) {
+            DungeonMapRoomState state = session.roomStates.get(room.id());
+            if (state == null) {
+                throw new IllegalStateException("Room state is missing: " + room.id());
+            }
+            DisplayTextService.ManagedTextDisplay display = displayTextService.create(
+                    DisplayAnchor.fixed(roomStatusLocation(session, room)),
+                    DisplayTextOptions.defaults(DungeonRoomStatusText.render(
+                                    session.layout,
+                                    room,
+                                    state))
+                            .withLineWidth(240)
+                            .withViewRange(32.0F)
+                            .withShadowed(true)
+            );
+            session.roomStatusDisplays.put(room.id(), display);
+        }
+    }
+
+    /**
+     * Mob候補座標のうち部屋中心に最も近い位置から、状態表示の固定座標を決定します。
+     * 候補がない場合は部屋中心へ退避します。
+     *
+     * @param session 生成済みWorldとブロック計画を保持するセッション
+     * @param room 表示対象の部屋
+     * @return 天井内へ収まる状態表示座標
+     */
+    private @NotNull Location roomStatusLocation(
+            @NotNull Session session,
+            @NotNull DungeonLayout.Room room
+    ) {
+        List<DungeonBlockPlan.Position> spawnPoints = session.blockPlan.spawnPointsByRoom()
+                .getOrDefault(room.id(), List.of());
+        DungeonBlockPlan.Position anchor = spawnPoints.stream()
+                .min(Comparator.comparingInt(position ->
+                        Math.abs(position.x() - room.bounds().centerX())
+                                + Math.abs(position.z() - room.bounds().centerZ())))
+                .orElse(null);
+        if (anchor == null) {
+            return new Location(
+                    session.instanceWorld.world(),
+                    room.bounds().centerX() + 0.5D,
+                    roomStatusY(session),
+                    room.bounds().centerZ() + 0.5D
+            );
+        }
+        return new Location(
+                session.instanceWorld.world(),
+                anchor.x() + 0.5D,
+                roomStatusY(session),
+                anchor.z() + 0.5D
+        );
+    }
+
+    /**
+     * 最小部屋高でも天井へ埋まらない状態表示Y座標を返します。
+     *
+     * @param session 部屋基準Yと高さを保持するセッション
+     * @return 状態表示のWorld Y座標
+     */
+    private double roomStatusY(@NotNull Session session) {
+        return Math.min(
+                session.layout.baseY() + 4.6D,
+                session.layout.baseY() + session.layout.roomHeight() - 1.5D
+        );
+    }
+
+    /**
+     * 生成済みの全室表示へ、現在の部屋状態を即時反映します。
+     *
+     * @param session 部屋状態と生成済み表示を保持するセッション
+     */
+    private void refreshRoomStatusDisplays(@NotNull Session session) {
+        for (Map.Entry<Integer, DisplayTextService.ManagedTextDisplay> entry
+                : session.roomStatusDisplays.entrySet()) {
+            DungeonMapRoomState state = session.roomStates.get(entry.getKey());
+            if (state == null) {
+                continue;
+            }
+            entry.getValue().setText(DungeonRoomStatusText.render(
+                    session.layout,
+                    room(session, entry.getKey()),
+                    state
+            ));
+        }
+    }
+
+    /**
+     * 初回転送後の10秒間はMobを生成せず、完了時にSTARTを安全完了して最初の攻略先を解放します。
+     *
+     * @param session 初回転送を完了した稼働セッション
+     */
     private void beginStartCountdown(@NotNull Session session) {
         ChallengeStartCountdown countdown = new ChallengeStartCountdown();
         BukkitTask[] taskRef = new BukkitTask[1];
@@ -679,7 +784,7 @@ public final class DungeonService {
                 session.startCountdownTask = null;
                 showDungeonStart(inWorld, session.loaded.definition().displayName());
                 session.combatStarted = true;
-                activateRoom(session, session.layout.startRoomId());
+                completeSafeStartRoom(session);
             } catch (RuntimeException failure) {
                 if (taskRef[0] != null) taskRef[0].cancel();
                 session.startCountdownTask = null;
@@ -749,18 +854,25 @@ public final class DungeonService {
             refreshOpenMaps(session);
         }
         for (DungeonLayout.Room room : session.layout.rooms()) {
-            if (session.roomStates.get(room.id()) == RoomState.AVAILABLE && contains(room, x, z)) {
+            if (session.roomStates.get(room.id()) == DungeonMapRoomState.AVAILABLE && contains(room, x, z)) {
                 activateRoom(session, room.id());
                 return;
             }
         }
     }
 
+    /**
+     * 進入可能なNORMAL／BOSS部屋を攻略中へ遷移させ、対応する遭遇戦を開始します。
+     *
+     * @param session 稼働セッション
+     * @param roomId 進入した部屋ID
+     */
     private void activateRoom(@NotNull Session session, int roomId) {
-        if (session.roomStates.get(roomId) != RoomState.AVAILABLE || session.ending) {
+        if (session.roomStates.get(roomId) != DungeonMapRoomState.AVAILABLE || session.ending) {
             return;
         }
-        session.roomStates.put(roomId, RoomState.ACTIVE);
+        session.roomStates.put(roomId, DungeonMapRoomState.ACTIVE);
+        refreshRoomStatusDisplays(session);
         refreshOpenMaps(session);
         try {
             activateRoomContent(session, roomId);
@@ -770,8 +882,18 @@ public final class DungeonService {
         }
     }
 
+    /**
+     * 部屋役割に応じたMobを生成します。STARTは防御的に遭遇戦を拒否して安全完了します。
+     *
+     * @param session 稼働セッション
+     * @param roomId 攻略開始対象の部屋ID
+     */
     private void activateRoomContent(@NotNull Session session, int roomId) {
         DungeonLayout.Room room = room(session, roomId);
+        if (!DungeonRoomEncounterPolicy.hasEncounter(room)) {
+            completeSafeStartRoom(session);
+            return;
+        }
         List<MobTemplate> encounters;
         if (room.role() == DungeonLayout.RoomRole.BOSS) {
             encounters = List.of(session.loaded.bossMob());
@@ -782,7 +904,7 @@ public final class DungeonService {
             encounters = encounterPlanner.planNormalRoom(
                     session.loaded.definition(),
                     pool,
-                    room.role() == DungeonLayout.RoomRole.START,
+                    DungeonRoomEncounterPolicy.isFirstCombatRoom(room),
                     session.seed,
                     roomId
             );
@@ -839,16 +961,23 @@ public final class DungeonService {
             return;
         }
         live.remove(mobInstanceId);
-        if (live.isEmpty() && session.roomStates.get(binding.roomId()) == RoomState.ACTIVE) {
+        if (live.isEmpty() && session.roomStates.get(binding.roomId()) == DungeonMapRoomState.ACTIVE) {
             clearRoom(session, binding.roomId());
         }
     }
 
+    /**
+     * 戦闘部屋を攻略済みにし、通常子部屋または最終BOSS部屋のゲートを条件付きで解放します。
+     *
+     * @param session 稼働セッション
+     * @param roomId 生存Mobが0になった部屋ID
+     */
     private void clearRoom(@NotNull Session session, int roomId) {
-        session.roomStates.put(roomId, RoomState.CLEARED);
+        session.roomStates.put(roomId, DungeonMapRoomState.CLEARED);
         DungeonLayout.Room cleared = room(session, roomId);
         Logger.log(LogId.I_7003, session.id.toString(), roomId, cleared.role().name());
         if (cleared.role() == DungeonLayout.RoomRole.BOSS) {
+            refreshRoomStatusDisplays(session);
             refreshOpenMaps(session);
             message(session.participants, PlayerMsgId.P_7012, session.loaded.definition().displayName());
             beginClearedWait(session, cleared);
@@ -856,17 +985,48 @@ public final class DungeonService {
         }
 
         message(session.participants, PlayerMsgId.P_7011, cleared.distanceFromStart() + 1);
+        unlockRoomsAfterClear(session, roomId);
+        refreshRoomStatusDisplays(session);
+        refreshOpenMaps(session);
+    }
+
+    /**
+     * STARTを戦闘なしで攻略済みにし、最初の攻略先の状態とゲートだけを解放します。
+     *
+     * @param session 開始カウントを完了した稼働セッション
+     */
+    private void completeSafeStartRoom(@NotNull Session session) {
+        int startRoomId = session.layout.startRoomId();
+        DungeonStartRoomProgression.Transition transition =
+                DungeonStartRoomProgression.complete(session.layout, session.roomStates);
+        if (!transition.completed()) {
+            return;
+        }
+        Logger.log(LogId.I_7003, session.id.toString(), startRoomId, DungeonLayout.RoomRole.START.name());
+        for (DungeonLayout.Connection connection : transition.connectionsToOpen()) {
+            openGate(session, connection.id());
+        }
+        refreshRoomStatusDisplays(session);
+        refreshOpenMaps(session);
+    }
+
+    /**
+     * 戦闘部屋のクリア条件から解放対象接続を求め、ゲート除去と子部屋状態更新を行います。
+     *
+     * @param session 稼働セッション
+     * @param roomId 今回攻略済みになった部屋ID
+     */
+    private void unlockRoomsAfterClear(@NotNull Session session, int roomId) {
         for (DungeonLayout.Connection connection : DungeonBossGatePolicy.connectionsToUnlockAfterClear(
                 session.layout,
                 roomId,
-                candidateRoomId -> session.roomStates.get(candidateRoomId) == RoomState.CLEARED
+                candidateRoomId -> session.roomStates.get(candidateRoomId) == DungeonMapRoomState.CLEARED
         )) {
             openGate(session, connection.id());
-            if (session.roomStates.get(connection.toRoomId()) == RoomState.LOCKED) {
-                session.roomStates.put(connection.toRoomId(), RoomState.AVAILABLE);
+            if (session.roomStates.get(connection.toRoomId()) == DungeonMapRoomState.LOCKED) {
+                session.roomStates.put(connection.toRoomId(), DungeonMapRoomState.AVAILABLE);
             }
         }
-        refreshOpenMaps(session);
     }
 
     private void openGate(@NotNull Session session, int connectionId) {
@@ -1381,8 +1541,7 @@ public final class DungeonService {
             return null;
         }
         Map<Integer, DungeonMapRoomState> states = new LinkedHashMap<>();
-        session.roomStates.forEach((roomId, state) ->
-                states.put(roomId, DungeonMapRoomState.valueOf(state.name())));
+        states.putAll(session.roomStates);
         return new MapSnapshot(
                 session.id,
                 session.loaded.definition().id(),
@@ -1632,7 +1791,9 @@ public final class DungeonService {
         UUID sessionId = sessionIdByParticipant.get(playerId);
         Session session = sessionId == null ? null : sessionsById.get(sessionId);
         if (session == null || session.ending || session.layout == null) return null;
-        int clearedRooms = (int) session.roomStates.values().stream().filter(state -> state == RoomState.CLEARED).count();
+        int clearedRooms = (int) session.roomStates.values().stream()
+                .filter(state -> state == DungeonMapRoomState.CLEARED)
+                .count();
         List<String> names = activePlayersInWorld(session).stream().map(Player::getName).toList();
         long remaining = session.cleared
                 ? Math.max(0L, (session.clearReturnEndsAtMs - System.currentTimeMillis() + 999L) / 1_000L)
@@ -2021,6 +2182,11 @@ public final class DungeonService {
         }
     }
 
+    /**
+     * セッションに属する操作物、全室状態表示、報酬表示とチェストを安全に破棄します。
+     *
+     * @param session 終了またはPlugin停止で回収するセッション
+     */
     private void destroySessionControls(@NotNull Session session) {
         DungeonCancelController controller = cancelControllers.remove(session.id);
         if (controller != null) {
@@ -2032,6 +2198,11 @@ public final class DungeonService {
             session.returnGateDisplay = null;
             cleanupSafely(session, "return_gate_display", display::destroy);
         }
+        for (Map.Entry<Integer, DisplayTextService.ManagedTextDisplay> entry
+                : List.copyOf(session.roomStatusDisplays.entrySet())) {
+            cleanupSafely(session, "room_status_display:" + entry.getKey(), entry.getValue()::destroy);
+        }
+        session.roomStatusDisplays.clear();
         if (session.rewardDisplay != null) {
             DisplayTextService.ManagedTextDisplay display = session.rewardDisplay;
             session.rewardDisplay = null;
@@ -2481,13 +2652,6 @@ public final class DungeonService {
         NOT_LEADER
     }
 
-    private enum RoomState {
-        LOCKED,
-        AVAILABLE,
-        ACTIVE,
-        CLEARED
-    }
-
     private enum EndReason {
         CLEARED,
         EMPTY,
@@ -2513,8 +2677,9 @@ public final class DungeonService {
         private final Map<UUID, CompletableFuture<Boolean>> returnTransfers = new HashMap<>();
         private CompletableFuture<Void> preparationLifecycle = CompletableFuture.completedFuture(null);
         private final Set<UUID> departingParticipants = new LinkedHashSet<>();
-        private final Map<Integer, RoomState> roomStates = new LinkedHashMap<>();
+        private final Map<Integer, DungeonMapRoomState> roomStates = new LinkedHashMap<>();
         private final Map<Integer, Set<UUID>> liveMobsByRoom = new LinkedHashMap<>();
+        private final Map<Integer, DisplayTextService.ManagedTextDisplay> roomStatusDisplays = new LinkedHashMap<>();
         private final Map<UUID, Integer> currentRoomByParticipant = new HashMap<>();
         private DungeonLayout layout;
         private DungeonBlockPlan blockPlan;

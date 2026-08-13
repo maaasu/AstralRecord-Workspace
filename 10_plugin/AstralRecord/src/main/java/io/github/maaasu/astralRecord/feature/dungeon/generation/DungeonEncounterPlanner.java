@@ -12,11 +12,11 @@ public final class DungeonEncounterPlanner {
     private static final long ENCOUNTER_SALT = 0xA54FF53A5F1D36F1L;
 
     /**
-     * 通常部屋の Mob を抽選します。開始部屋だけレベル上限を先に適用します。
+     * 通常部屋の Mob を抽選します。最初の戦闘部屋だけレベル上限を先に適用します。
      *
      * @param definition ダンジョン定義
      * @param pool 受付時点の Mob テンプレート
-     * @param firstCombatRoom 開始部屋か
+     * @param firstCombatRoom START の直後に攻略する最初の戦闘部屋か
      * @param seed ダンジョン seed
      * @param roomId 部屋 ID
      * @return スポーン順の Mob テンプレート
