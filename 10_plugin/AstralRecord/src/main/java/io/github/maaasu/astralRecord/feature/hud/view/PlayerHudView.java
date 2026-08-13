@@ -31,7 +31,7 @@ import java.util.Locale;
 public class PlayerHudView {
     private static final String OBJECTIVE_NAME = "astral_info";
     private static final int TRANSIENT_BAR_LENGTH = 28;
-    private static final int SIDEBAR_BAR_LENGTH = 40;
+    private static final int SIDEBAR_BAR_LENGTH = 10;
     private static final int SIDEBAR_LINE_LIMIT = 15;
     private static final int BUFF_DISPLAY_LIMIT = 5;
     private static final String SIDEBAR_BAR_CHAR = "▰";
@@ -285,7 +285,7 @@ public class PlayerHudView {
         lines.add(ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv." + ColorCodeUtil.YELLOW + playerLevel);
         lines.add(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": " + className
                 + ColorCodeUtil.GRAY + " Lv." + ColorCodeUtil.YELLOW + classLevel);
-        lines.add(buildExperienceBar("経験値", classExperienceProgress, ColorCodeUtil.AQUA));
+        lines.add(buildExperienceBar("EXP", classExperienceProgress, ColorCodeUtil.AQUA));
         lines.addAll(buffLines);
         if (bossInfo != null) {
             appendBossInfo(lines, bossInfo);

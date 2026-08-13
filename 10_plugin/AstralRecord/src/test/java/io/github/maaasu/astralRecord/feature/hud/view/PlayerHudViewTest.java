@@ -198,11 +198,13 @@ class PlayerHudViewTest extends MockBukkitTestBase {
                 .findFirst()
                 .orElseThrow();
         String experienceLine = rendered.stream()
-                .filter(entry -> entry.contains("経験値") && entry.contains("75%") && entry.contains("▰"))
+                .filter(entry -> entry.contains("EXP") && entry.contains("75%") && entry.contains("▰"))
                 .findFirst()
                 .orElseThrow();
         assertEquals(rendered.indexOf(classLine) + 1, rendered.indexOf(experienceLine));
-        assertEquals(1L, rendered.stream().filter(entry -> entry.contains("経験値")).count());
+        assertEquals(1L, rendered.stream().filter(entry -> entry.contains("EXP")).count());
+        assertEquals(10L, experienceLine.chars().filter(character -> character == '▰').count());
+        assertTrue(rendered.stream().noneMatch(entry -> entry.contains("経験値")));
     }
 
     /**
