@@ -18,7 +18,7 @@ baseStats:
   - status: MAX_MANA
     value: 110
   - status: MAX_ENERGY
-    value: 80
+    value: 30
   - status: STRENGTH
     value: 2
   - status: DEXTERITY
@@ -37,8 +37,6 @@ baseStats:
     value: 3
   - status: MAGIC_DEFENSE
     value: 7
-  - status: MOVEMENT_SPEED
-    value: 100
 growthPerLevel:
   - status: MAX_HEALTH
     value: 4
