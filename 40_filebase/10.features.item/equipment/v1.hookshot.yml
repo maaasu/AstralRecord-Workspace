@@ -1,0 +1,26 @@
+# design:
+#   motif: "登山具 / 鉤縄"
+#   progression: 10
+schemaVersion: 1
+id: hookshot
+category: equipment
+name: "&bフックショット"
+icon: FISHING_ROD
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 120
+lore:
+  - "&7固体ブロックへフックを射出して自分を引き寄せる道具。"
+  - "&7有効な射出ごとにフックを1個と耐久を消費する。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: TOOL
+  handType: ONE
+  tag: HOOKSHOT
+  requiredLevel: 0
+  stats: []
+  durability:
+    max: 200
+    consume: 1

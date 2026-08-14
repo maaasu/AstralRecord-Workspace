@@ -75,6 +75,10 @@
 
 共有tag `CARTOGRAPH` は、ダンジョンmap／archiveを開く再利用可能toolを表します。標準定義 `cartograph` は `slot: TOOL`、`handType: ONE`、`maxStack: 1`、最大耐久300、登録消費75です。`durability.consume` はこのtoolでは通常clickごとの消費ではなく、異なるdungeon sessionを初回登録した時だけPluginが固定消費します。同じsessionの再表示では消費しません。耐久回復は既存のgeneric repair orbを使用します。
 
+### HOOKSHOT tool
+
+共有tag `HOOKSHOT` は、固体blockへフックを射出して使用者を物理的に牽引するtoolを表します。標準定義 `hookshot` は `slot: TOOL`、`handType: ONE`、`maxStack: 1`、最大耐久200、`durability.consume: 1`です。Pluginは固体blockへ有効に命中した射出だけで、`hook` materialを1個とこの耐久値を消費します。照準・素材・耐久のいずれかが不成立なら消費しません。
+
 ### equipment[].tag（アクセサリ）
 
 `equipment[].slot=ACCESSORY` のときは、配置可能な種類別アクセサリ枠を次の値で指定します。同じ tag の複数枠はゲーム側が空き枠を選択します。

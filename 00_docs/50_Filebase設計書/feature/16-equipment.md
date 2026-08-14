@@ -59,6 +59,16 @@ Equipment は、装備中のステータス、武器タグに応じた通常攻�
 - ダンジョン外ではaccountの踏破済みdungeonと設定報酬・数量・確率を表示します。
 - 耐久は既存の装備instance耐久として管理し、generic repair orbで回復できます。将来の状態変化による最大耐久拡張は今回定義しません。
 
+## フックショット
+
+`hookshot` は共有equipment tag `HOOKSHOT` を持つ、1スタックの `TOOL` です。最大耐久は200、`durability.consume` は1です。今回、loot・shop・quest・recipe等の入手経路は追加しません。
+
+- main hand右クリック時、最大24 block先までの最初の固体blockへ命中した場合だけ、有効な射出として扱います。
+- 有効な射出ごとに `hook` materialを1個とinstance耐久を1消費します。照準失敗、フック不足、耐久不足ではどちらも消費しません。
+- プレイヤーをteleportせず、現在velocityにアンカー方向の加速度を加えるため、衝突・重力・落下はゲーム物理に従います。牽引は最大36 tick、速度上限は1.20です。
+- 命中面には短命の金属格子型BlockDisplay、プレイヤーとアンカーの間にはparticle tetherを表示します。素材 `hook` のiconは `TRIPWIRE_HOOK` ですが、アイテム専用MaterialのためBlockDisplayには使いません。
+- 耐久は既存の装備instance耐久として管理し、generic repair orbで回復できます。
+
 ## 入手方法の確認
 
 - 入手前に攻略が必要な対象と、その装備で攻略させたい対象が逆転していないこと。

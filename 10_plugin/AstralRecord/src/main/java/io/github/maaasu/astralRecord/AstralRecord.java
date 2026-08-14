@@ -53,6 +53,7 @@ import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionTransitionEven
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionTransitionService;
 import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitService;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
+import io.github.maaasu.astralRecord.feature.item.event.HookshotInteractionEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemAdminGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemWeaponAttackEventHandler;
@@ -62,6 +63,7 @@ import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDef
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseEffectService;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
+import io.github.maaasu.astralRecord.feature.item.service.HookshotUseService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemDropAnimationService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.item.service.OrbService;
@@ -367,6 +369,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerClassService playerClassService;
     private ItemWeaponAttackService itemWeaponAttackService;
     private EquipmentDurabilityService equipmentDurabilityService;
+    private HookshotUseService hookshotUseService;
     private OrbService orbService;
     private WorldService worldService;
     private OverworldTeleportService overworldTeleportService;
@@ -620,6 +623,9 @@ public final class AstralRecord extends JavaPlugin {
         if (returnToBaseService != null) {
             returnToBaseService.cancelAll();
         }
+        if (hookshotUseService != null) {
+            hookshotUseService.shutdown();
+        }
         if (activeSkillTaskService != null) {
             activeSkillTaskService.stop();
         }
@@ -754,6 +760,7 @@ public final class AstralRecord extends JavaPlugin {
             playerSettingService
         );
         particleDisplayService = new ParticleDisplayService(playerSettingService);
+        hookshotUseService = new HookshotUseService(this, inventoryService, itemService, particleDisplayService);
         mobSpawnerService.setParticleDisplayService(particleDisplayService);
         gatheringSpawnerService.setParticleDisplayService(particleDisplayService);
         displayTextService = new DisplayTextService();
@@ -1302,7 +1309,9 @@ public final class AstralRecord extends JavaPlugin {
             bundleUseService,
             potionUseService
         );
+        var hookshotInteractionEventHandler = new HookshotInteractionEventHandler(hookshotUseService);
         eventManager.registerHandler(itemInteractionBlockEventHandler, getServer().getPluginManager());
+        eventManager.registerHandler(hookshotInteractionEventHandler, getServer().getPluginManager());
         menuOpenEventHandler = new MenuOpenEventHandler(
             this,
             menuView,
@@ -1525,6 +1534,7 @@ public final class AstralRecord extends JavaPlugin {
                     dungeonInteractionEventHandler,
                     baseWorldSpawnTeleportEventHandler,
                     overworldSpawnReturnEventHandler,
+                    hookshotInteractionEventHandler,
                     itemInteractionBlockEventHandler,
                     menuOpenEventHandler,
                     teleporterInteractEventHandler,

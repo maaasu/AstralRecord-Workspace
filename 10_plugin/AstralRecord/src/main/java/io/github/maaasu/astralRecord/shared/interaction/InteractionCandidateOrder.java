@@ -16,6 +16,7 @@ public final class InteractionCandidateOrder {
     public static final int GATHERING = 50;
     public static final int MOB_SPAWNER = 60;
     public static final int GATHERING_SPAWNER = 70;
+    public static final int HOOKSHOT = 80;
     public static final int VANILLA_INTERACTION = 90;
     public static final int MENU_SHORTCUT = 90;
     public static final int OPEN_ACTION_RING = 100;

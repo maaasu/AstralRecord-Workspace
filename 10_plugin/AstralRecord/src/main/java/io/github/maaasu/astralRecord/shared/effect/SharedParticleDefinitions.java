@@ -180,6 +180,10 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition POTION_USE_ENCHANT =
         new SharedParticleDefinition("potion_use_enchant", Particle.ENCHANT, 3, 0.24D, 0.28D, 0.24D, 0.02D);
+    public static final SharedParticleDefinition HOOKSHOT_TRAIL =
+        new SharedParticleDefinition("hookshot_trail", Particle.ELECTRIC_SPARK, 1, 0.01D, 0.01D, 0.01D, 0.0D);
+    public static final SharedParticleDefinition HOOKSHOT_ANCHOR =
+        new SharedParticleDefinition("hookshot_anchor", Particle.CRIT, 8, 0.12D, 0.12D, 0.12D, 0.04D);
     public static final SharedParticleDefinition SKILLTREE_TARGET_ENCHANT =
         new SharedParticleDefinition("skilltree_target_enchant", Particle.ENCHANT, 2, 0.10D, 0.10D, 0.10D, 0.01D);
     public static final SharedParticleDefinition SKILLTREE_TARGET_LOCKED_DUST =

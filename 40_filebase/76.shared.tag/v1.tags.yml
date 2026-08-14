@@ -127,6 +127,11 @@ tags:
     description: ダンジョンの現在地図と踏破記録を閲覧する再利用可能な道具。
     category: EQUIPMENT
     appliesTo: [EQUIPMENT]
+  - id: HOOKSHOT
+    displayName: フックショット
+    description: 固体ブロックへフックを射出し、使用者を物理的に牽引する道具。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT]
 
   - id: active
     displayName: アクティブ

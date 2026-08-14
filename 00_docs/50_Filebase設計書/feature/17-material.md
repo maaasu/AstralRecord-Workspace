@@ -17,6 +17,10 @@ Material は、敵、採集、報酬などから入手し、recipe、強化、�
 - 希少素材は入手元と同値から `+1` を許容します。
 - 複数段階で使う共通素材は、最初に標準入手できる段階を記載します。
 
+## フック
+
+`hook` は progression 10 の通常素材です。iconは `TRIPWIRE_HOOK`、最大スタックは64で、`hookshot` の有効な射出ごとに1個だけ消費します。本変更ではloot・shop・quest・recipeの入手経路は追加せず、既存の管理者付与から検証・配布します。
+
 ## 正本参照
 
 - YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\material\docs.material.YAMLスキーマ定義.md`
