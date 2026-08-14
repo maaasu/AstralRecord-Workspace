@@ -87,6 +87,9 @@ import io.github.maaasu.astralRecord.feature.mail.event.MailGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.mail.gui.MailGuiView;
 import io.github.maaasu.astralRecord.feature.mail.repository.MailRepository;
 import io.github.maaasu.astralRecord.feature.mail.service.MailService;
+import io.github.maaasu.astralRecord.feature.market.event.MarketGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.market.repository.MarketRepository;
+import io.github.maaasu.astralRecord.feature.market.service.MarketService;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuToolJoinGrantService;
@@ -390,6 +393,8 @@ public final class AstralRecord extends JavaPlugin {
     private TradeGui tradeGui;
     private TradeCancelConfirmGui tradeCancelConfirmGui;
     private GoldAmountSettingGui goldAmountSettingGui;
+    private MarketService marketService;
+    private MarketGuiEventHandler marketGuiEventHandler;
     private BossFieldInstanceService bossFieldInstanceService;
     private BossChallengeService bossChallengeService;
     private BossMechanicService bossMechanicService;
@@ -1043,6 +1048,18 @@ public final class AstralRecord extends JavaPlugin {
             playerMessageService,
             itemService
         );
+        marketService = new MarketService(new MarketRepository());
+        marketGuiEventHandler = new MarketGuiEventHandler(
+            this,
+            itemService,
+            itemStackFactory,
+            marketService,
+            inventoryService,
+            inventorySaveCoordinator,
+            currencyService,
+            playerMessageService,
+            goldAmountSettingGui
+        );
 
         // skill
         skillService = new SkillService(new SkillRepository(), new SkillRegistry(), this);
@@ -1331,6 +1348,7 @@ public final class AstralRecord extends JavaPlugin {
             ),
             getServer().getPluginManager()
         );
+        eventManager.registerHandler(marketGuiEventHandler, getServer().getPluginManager());
         playerBrowserGuiEventHandler = new PlayerBrowserGuiEventHandler(
             this,
             playerListGui,
@@ -1485,7 +1503,8 @@ public final class AstralRecord extends JavaPlugin {
             questGuiEventHandler,
             currencyExchangeGuiEventHandler,
             loginBonusService,
-            skillForgetGuiEventHandler
+            skillForgetGuiEventHandler,
+            marketGuiEventHandler
         );
         eventManager.registerHandler(
             new TrainingDummyGuiEventHandler(trainingDummyGui, trainingDummyService),
@@ -2087,5 +2106,9 @@ public final class AstralRecord extends JavaPlugin {
      */
     public TradeService getTradeService() {
         return tradeService;
+    }
+
+    public MarketGuiEventHandler getMarketGuiEventHandler() {
+        return marketGuiEventHandler;
     }
 }

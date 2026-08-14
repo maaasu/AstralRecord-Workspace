@@ -972,6 +972,13 @@ public enum LogId {
     W_6300(6300),
     // endregion
 
+    // region /feature/market/ 6320-6329
+    /**
+     * マーケット GUI のイベント処理に失敗しました: player=%s, operation=%s
+     */
+    E_6320(6320),
+    // endregion
+
     // region shared local placement persistence 6400-6499
     /**
      * ローカル配置データの保存に失敗しました: type=%s, path=%s, reason=%s

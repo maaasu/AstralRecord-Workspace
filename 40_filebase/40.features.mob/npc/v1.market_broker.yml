@@ -1,0 +1,44 @@
+# design:
+#   motif: "交易 / 星見の市場"
+#   progression: 0
+schemaVersion: 1
+id: market_broker
+type: MOB
+category: NPC
+name: "&6市場管理人セレス"
+title: "&7アストラル・マーケット"
+level: 1
+entityType: VILLAGER
+variant:
+  profession: LIBRARIAN
+  villagerType: PLAINS
+  villagerLevel: 3
+nameVisible: true
+damageImmune: true
+icon: EMERALD
+lore:
+  - "&7プレイヤー間の Gold 建て取引を仲介する。"
+  - "&7右クリックでマーケットを開ける。"
+tags:
+  - npc
+  - shop
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&6市場管理人セレス&7: 右クリックでマーケットを開きます。"
+  rightClick:
+    - id: gui
+      params:
+        type: MARKET

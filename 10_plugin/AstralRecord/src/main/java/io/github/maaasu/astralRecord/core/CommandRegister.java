@@ -20,6 +20,7 @@ import io.github.maaasu.astralRecord.feature.item.command.ItemCommand;
 import io.github.maaasu.astralRecord.feature.item.command.ItemTabCompleter;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import io.github.maaasu.astralRecord.feature.market.command.MarketCommand;
 import io.github.maaasu.astralRecord.feature.menu.command.MenuCommand;
 import io.github.maaasu.astralRecord.feature.menu.command.PlayerInfoCommand;
 import io.github.maaasu.astralRecord.feature.menu.command.PlayerInfoTabCompleter;
@@ -174,6 +175,7 @@ public class CommandRegister {
         cm.registerCommand("p", particleCommand, particleTabCompleter);
         cm.registerCommand("trade", new TradeCommand(), new TradeTabCompleter());
         cm.registerCommand("shop", new ShopCommand(), new ShopTabCompleter());
+        cm.registerCommand("market", new MarketCommand());
         cm.registerCommand("quest", new QuestCommand());
         cm.registerCommand("web", new WebAuthCommand(new WebAuthService(new WebAuthRepository())));
         cm.registerCommand("textdisplay", new TextDisplayCommand(textDisplayPlacementService), new TextDisplayTabCompleter(textDisplayPlacementService));

@@ -29,6 +29,7 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -87,7 +88,7 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
                 handleCancelConfirmClick(event);
                 return;
             }
-            if (goldAmountSettingGui.isGoldAmountInventory(top)) {
+            if (isTradeGoldAmountInventory(top)) {
                 if (event.getWhoClicked() instanceof Player player
                     && !AccountModeGuard.isGameplayPlayer(player)) {
                     event.setCancelled(true);
@@ -110,7 +111,7 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
             Inventory top = event.getView().getTopInventory();
             if (!tradeGui.isTradeInventory(top)
                 && !cancelConfirmGui.isCancelInventory(top)
-                && !goldAmountSettingGui.isGoldAmountInventory(top)) {
+                && !isTradeGoldAmountInventory(top)) {
                 return;
             }
             if (event.getWhoClicked() instanceof Player player
@@ -119,7 +120,7 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
                 player.closeInventory();
                 return;
             }
-            if (cancelConfirmGui.isCancelInventory(top) || goldAmountSettingGui.isGoldAmountInventory(top)) {
+            if (cancelConfirmGui.isCancelInventory(top) || isTradeGoldAmountInventory(top)) {
                 event.setCancelled(true);
                 return;
             }
@@ -138,7 +139,7 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
         Inventory inventory = event.getInventory();
         boolean tradeInventory = tradeGui.isTradeInventory(inventory);
         boolean cancelInventory = cancelConfirmGui.isCancelInventory(inventory);
-        boolean goldAmountInventory = goldAmountSettingGui.isGoldAmountInventory(inventory);
+        boolean goldAmountInventory = isTradeGoldAmountInventory(inventory);
         if (!tradeInventory && !cancelInventory && !goldAmountInventory) {
             return;
         }
@@ -330,6 +331,11 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
         return holder != null
             && TradeService.GOLD_AMOUNT_SOURCE_KEY.equals(holder.sourceKey())
             && isCurrentSessionView(player, holder.viewerUuid(), holder.contextId());
+    }
+
+    private boolean isTradeGoldAmountInventory(@Nullable Inventory inventory) {
+        GoldAmountSettingGui.GoldAmountHolder holder = goldAmountSettingGui.getHolder(inventory);
+        return holder != null && TradeService.GOLD_AMOUNT_SOURCE_KEY.equals(holder.sourceKey());
     }
 
     private boolean isCurrentSessionView(

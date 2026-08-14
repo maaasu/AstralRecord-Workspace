@@ -5,7 +5,10 @@ namespace AstralRecordApi.Services;
 
 public class MarketListingLimitService : IMarketListingLimitService
 {
-    public MarketAccountSummaryResponse BuildSummary(MarketAccountStateEntity state, int activeListingCount)
+    public MarketAccountSummaryResponse BuildSummary(
+        MarketAccountStateEntity state,
+        int activeListingCount,
+        int usedListingSlotCount)
     {
         var limit = ResolveLimit(state.CompletedTradeCount);
         return new MarketAccountSummaryResponse
@@ -13,6 +16,8 @@ public class MarketListingLimitService : IMarketListingLimitService
             AccountId = state.AccountId,
             ActiveListingCount = activeListingCount,
             MaxActiveListingCount = limit.MaxActiveListingCount,
+            UsedListingSlotCount = usedListingSlotCount,
+            MaxListingSlotCount = limit.MaxActiveListingCount,
             CompletedTradeCount = state.CompletedTradeCount,
             Tier = limit.Tier,
             SuspendedUntil = state.SuspendedUntil,

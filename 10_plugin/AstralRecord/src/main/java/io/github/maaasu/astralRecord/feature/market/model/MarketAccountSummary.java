@@ -9,6 +9,8 @@ public record MarketAccountSummary(
     UUID accountId,
     int activeListingCount,
     int maxActiveListingCount,
+    int usedListingSlotCount,
+    int maxListingSlotCount,
     int completedTradeCount,
     String tier,
     @Nullable Instant suspendedUntil,

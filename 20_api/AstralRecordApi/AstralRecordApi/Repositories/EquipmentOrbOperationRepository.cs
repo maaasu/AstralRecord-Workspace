@@ -21,28 +21,6 @@ public class EquipmentOrbOperationRepository(
 {
     private const string GameProfile = "GAME";
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
-    private static readonly IReadOnlyDictionary<string, long> GoldValues =
-        new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase)
-        {
-            ["gold"] = 1L,
-            ["ast_gold"] = 1L,
-            ["gold_coin"] = 10L,
-            ["gold_ingot"] = 100L,
-            ["gold_block"] = 1_000L,
-            ["gold_diamond"] = 10_000L,
-            ["gold_diamond_block"] = 100_000L,
-            ["yggdrasil_star_core"] = 1_000_000L,
-        };
-    private static readonly (string ItemId, long Value)[] CanonicalGold =
-    [
-        ("yggdrasil_star_core", 1_000_000L),
-        ("gold_diamond_block", 100_000L),
-        ("gold_diamond", 10_000L),
-        ("gold_block", 1_000L),
-        ("gold_ingot", 100L),
-        ("gold_coin", 10L),
-        ("gold", 1L),
-    ];
 
     /// <inheritdoc />
     public async Task<EquipmentOrbOperationResponse> ExecuteAsync(EquipmentOrbOperationRequest request)
@@ -682,46 +660,8 @@ public class EquipmentOrbOperationRepository(
     {
         if (requiredGold <= 0)
             return true;
-        var entries = await FindGoldEntriesAsync(accountId);
-        return TotalGold(entries) >= requiredGold;
-    }
-
-    private async Task<List<InventoryEntryEntity>> FindGoldEntriesAsync(Guid accountId)
-    {
-        List<InventoryEntryEntity> entries;
-        if (dbContext.Database.IsSqlServer())
-        {
-            entries = await dbContext.InventoryEntries.FromSqlInterpolated($"""
-                    SELECT entry.*
-                    FROM [dbo].[inventory_entry] AS entry WITH (UPDLOCK, HOLDLOCK)
-                    INNER JOIN [dbo].[inventory] AS inventory WITH (HOLDLOCK)
-                        ON inventory.[inventory_id] = entry.[inventory_id]
-                    WHERE inventory.[account_id] = {accountId}
-                      AND inventory.[is_deleted] = 0
-                      AND inventory.[is_enabled] = 1
-                      AND inventory.[inventory_profile] = 'GAME'
-                      AND inventory.[inventory_type] = 'CURRENCY'
-                      AND entry.[is_deleted] = 0
-                      AND entry.[quantity] > 0
-                    """)
-                .OrderBy(entry => entry.InventoryEntryId)
-                .ToListAsync();
-        }
-        else
-        {
-            entries = await (from entry in dbContext.InventoryEntries
-                      join inventory in dbContext.Inventories on entry.InventoryId equals inventory.InventoryId
-                      where inventory.AccountId == accountId
-                            && !inventory.IsDeleted
-                            && inventory.IsEnabled
-                            && inventory.InventoryProfile == GameProfile
-                            && inventory.InventoryType == "CURRENCY"
-                            && !entry.IsDeleted
-                            && entry.Quantity > 0
-                      orderby entry.InventoryEntryId
-                      select entry).ToListAsync();
-        }
-        return entries.Where(entry => entry.ItemId is not null && GoldValues.ContainsKey(entry.ItemId)).ToList();
+        var balance = await GoldCurrencyBalanceSupport.LoadForUpdateAsync(dbContext, accountId);
+        return balance is not null && GoldCurrencyBalanceSupport.TotalGold(balance.Entries) >= requiredGold;
     }
 
     private async Task RewriteGoldBalanceAsync(
@@ -731,84 +671,21 @@ public class EquipmentOrbOperationRepository(
         DateTime now,
         ISet<Guid> affectedEntryIds)
     {
-        var entries = await FindGoldEntriesAsync(accountId);
-        var total = TotalGold(entries);
-        var remainingValue = total - requiredGold;
-        var currencyInventory = await dbContext.Inventories.FirstAsync(inventory =>
-            inventory.AccountId == accountId
-            && !inventory.IsDeleted
-            && inventory.IsEnabled
-            && inventory.InventoryProfile == GameProfile
-            && inventory.InventoryType == "CURRENCY");
-        var unused = new Queue<InventoryEntryEntity>(entries);
-        foreach (var denomination in CanonicalGold)
-        {
-            var quantity = remainingValue / denomination.Value;
-            remainingValue %= denomination.Value;
-            if (quantity <= 0)
-                continue;
-            var matching = entries.FirstOrDefault(entry => !entry.IsDeleted
-                && IdEquals(entry.ItemId, denomination.ItemId)
-                && unused.Contains(entry));
-            InventoryEntryEntity target;
-            if (matching is not null)
-            {
-                target = matching;
-                unused = new Queue<InventoryEntryEntity>(unused.Where(entry => entry != matching));
-            }
-            else if (unused.Count > 0)
-            {
-                target = unused.Dequeue();
-            }
-            else
-            {
-                target = new InventoryEntryEntity
-                {
-                    InventoryEntryId = Guid.NewGuid(),
-                    InventoryId = currencyInventory.InventoryId,
-                    ItemCategory = "currency",
-                    CreatedAt = now,
-                    CreatedBy = updatedBy,
-                };
-                dbContext.InventoryEntries.Add(target);
-            }
-            target.ItemCategory = "currency";
-            target.ItemId = denomination.ItemId;
-            target.InstanceType = null;
-            target.InstanceId = null;
-            target.Quantity = quantity;
-            target.MetadataJson = null;
-            target.IsDeleted = false;
-            target.UpdatedAt = now;
-            target.UpdatedBy = updatedBy;
-            affectedEntryIds.Add(target.InventoryEntryId);
-        }
-        foreach (var entry in unused)
-        {
-            entry.IsDeleted = true;
-            entry.UpdatedAt = now;
-            entry.UpdatedBy = updatedBy;
-            affectedEntryIds.Add(entry.InventoryEntryId);
-        }
-    }
+        var balance = await GoldCurrencyBalanceSupport.LoadForUpdateAsync(dbContext, accountId)
+            ?? throw new InvalidOperationException("Gold currency inventory was not found.");
+        var total = GoldCurrencyBalanceSupport.TotalGold(balance.Entries);
+        if (total < requiredGold)
+            throw new InvalidOperationException("Gold balance changed during orb operation.");
 
-    private static long TotalGold(IEnumerable<InventoryEntryEntity> entries)
-    {
-        long total = 0L;
-        foreach (var entry in entries)
+        foreach (var entryId in await GoldCurrencyBalanceSupport.RewriteBalanceAsync(
+                     dbContext,
+                     balance,
+                     total - requiredGold,
+                     updatedBy,
+                     now))
         {
-            if (entry.ItemId is null || !GoldValues.TryGetValue(entry.ItemId, out var value))
-                continue;
-            try
-            {
-                total = checked(total + checked(entry.Quantity * value));
-            }
-            catch (OverflowException)
-            {
-                return long.MaxValue;
-            }
+            affectedEntryIds.Add(entryId);
         }
-        return total;
     }
 
     private static bool HasMaterials(

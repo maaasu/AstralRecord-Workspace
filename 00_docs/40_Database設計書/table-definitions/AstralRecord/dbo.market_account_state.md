@@ -1,7 +1,7 @@
 ﻿# dbo.market_account_state テーブル定義
 
-マーケット利用状態と出品数 Tier をアカウント単位で保持するテーブルです。
-成立取引数を元に最大同時出品数を算出し、Plugin/Web 共通の制限判定に使用します。
+マーケット利用状態と出品枠 Tier をアカウント単位で保持するテーブルです。
+成立取引数を元に最大出品枠数を算出し、Plugin/Web 共通の制限判定に使用します。
 
 ---
 
@@ -25,7 +25,7 @@
 | `account_id` | `UNIQUEIDENTIFIER` | ○ | ○ |  | アカウント UUID |
 | `completed_trade_count` | `INT` |  | ○ | `0` | Tier 算出対象の累計成立取引数 |
 | `tier` | `NVARCHAR(10)` |  | ○ | `N'T0'` | `T0` / `T1` / `T2` / `T3` / `T4` |
-| `max_active_listing_count` | `INT` |  | ○ | `3` | 最大同時出品数 |
+| `max_active_listing_count` | `INT` |  | ○ | `3` | 互換名の最大出品枠数。API response では `maxListingSlotCount` として返す |
 | `suspended_until` | `DATETIME2(3)` |  |  |  | マーケット利用停止期限 |
 | `created_at` | `DATETIME2(3)` |  | ○ |  | 作成日時 |
 | `updated_at` | `DATETIME2(3)` |  | ○ |  | 更新日時 |
@@ -91,3 +91,7 @@ CREATE NONCLUSTERED INDEX [IX_market_account_state_is_deleted]
     ON [dbo].[market_account_state] ([is_deleted]);
 GO
 ```
+
+## 出品枠集計
+
+物理列 `max_active_listing_count` の名称は既存互換のため変更しない。新規出品時は `market_listing` の `ACTIVE` / `SUSPENDED` / `CANCELED` を使用済み枠として集計し、この上限と比較する。`SOLD` / `EXPIRED` は枠を解放する。

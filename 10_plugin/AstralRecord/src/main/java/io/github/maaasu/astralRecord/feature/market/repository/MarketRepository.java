@@ -374,6 +374,8 @@ public class MarketRepository {
             uuid(obj, "accountId"),
             intValue(obj, "activeListingCount", 0),
             intValue(obj, "maxActiveListingCount", 0),
+            intValue(obj, "usedListingSlotCount", intValue(obj, "activeListingCount", 0)),
+            intValue(obj, "maxListingSlotCount", intValue(obj, "maxActiveListingCount", 0)),
             intValue(obj, "completedTradeCount", 0),
             string(obj, "tier", "T0"),
             nullableInstant(obj, "suspendedUntil"),
@@ -397,6 +399,7 @@ public class MarketRepository {
             longValue(obj, "totalPrice", 0),
             longValue(obj, "feeAmount", 0),
             longValue(obj, "sellerProceeds", 0),
+            uuidList(obj, "affectedInventoryEntryIds"),
             instant(obj, "completedAt")
         );
     }
@@ -433,6 +436,24 @@ public class MarketRepository {
 
     private @Nullable Double nullableDouble(@NotNull JsonObject obj, @NotNull String key) {
         return obj.has(key) && !obj.get(key).isJsonNull() ? obj.get(key).getAsDouble() : null;
+    }
+
+    private @NotNull List<UUID> uuidList(@NotNull JsonObject obj, @NotNull String key) {
+        if (!obj.has(key) || obj.get(key).isJsonNull() || !obj.get(key).isJsonArray()) {
+            return List.of();
+        }
+        List<UUID> result = new ArrayList<>();
+        for (var element : obj.getAsJsonArray(key)) {
+            if (element.isJsonNull()) {
+                continue;
+            }
+            try {
+                result.add(UUID.fromString(element.getAsString()));
+            } catch (IllegalArgumentException ignored) {
+                // API の追加フィールドに不正値が混ざっても、約定結果自体は扱えるようにします。
+            }
+        }
+        return List.copyOf(result);
     }
 
     private Instant instant(@NotNull JsonObject obj, @NotNull String key) {

@@ -2101,7 +2101,7 @@ public class InventoryService {
     }
 
     /**
-     * オーブ操作の affected entry を、操作直前の保存済み baseline・現在のローカル state・API 正本で
+     * 外部原子操作の affected entry を、操作直前の保存済み baseline・現在のローカル state・API 正本で
      * 三者マージします。API I/O は state monitor の外で完了させ、全正本取得に成功した後だけ一括反映します。
      * <p>
      * 通常 stack は {@code authoritative + (current - baseline)}、ゴールドは全額面と互換 ID を価値へ
@@ -2112,7 +2112,7 @@ public class InventoryService {
      * @param affectedEntryIds API 操作が返した affected IDs と request origin ID
      * @param baseline 操作直前に API が保存済みと返した entry
      */
-    public void reconcileOrbOperationEntries(
+    public void reconcileExternalInventoryEntries(
         @NotNull UUID accountId,
         @NotNull Collection<UUID> affectedEntryIds,
         @NotNull InventoryPersistence.PersistedInventoryBaseline baseline
@@ -2191,6 +2191,21 @@ public class InventoryService {
                 state.replaceEntries(finalized.getKey(), finalized.getValue());
             }
         }
+    }
+
+    /**
+     * オーブ操作向けの互換入口です。
+     *
+     * @param accountId 対象 account
+     * @param affectedEntryIds API 操作が返した affected IDs と request origin ID
+     * @param baseline 操作直前に API が保存済みと返した entry
+     */
+    public void reconcileOrbOperationEntries(
+        @NotNull UUID accountId,
+        @NotNull Collection<UUID> affectedEntryIds,
+        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline
+    ) {
+        reconcileExternalInventoryEntries(accountId, affectedEntryIds, baseline);
     }
 
     private @NotNull List<InventoryEntryModel> compactMergedEntriesAfterRemoval(

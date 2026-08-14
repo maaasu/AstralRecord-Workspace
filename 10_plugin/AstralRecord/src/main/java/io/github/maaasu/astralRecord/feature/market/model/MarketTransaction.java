@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.market.model;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public record MarketTransaction(
@@ -20,6 +21,7 @@ public record MarketTransaction(
     long totalPrice,
     long feeAmount,
     long sellerProceeds,
+    List<UUID> affectedInventoryEntryIds,
     Instant completedAt
 ) {
 }

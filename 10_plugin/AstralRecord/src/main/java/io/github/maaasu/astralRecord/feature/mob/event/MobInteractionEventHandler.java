@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.mob.event;
 
 import io.github.maaasu.astralRecord.feature.currency.event.CurrencyExchangeGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusService;
+import io.github.maaasu.astralRecord.feature.market.event.MarketGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionActionConfig;
@@ -49,6 +50,7 @@ public final class MobInteractionEventHandler
     private final CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler;
     private final LoginBonusService loginBonusService;
     private final SkillForgetGuiEventHandler skillForgetGuiEventHandler;
+    private final MarketGuiEventHandler marketGuiEventHandler;
 
     /**
      * ハンドラを生成します。
@@ -62,6 +64,7 @@ public final class MobInteractionEventHandler
      * @param currencyExchangeGuiEventHandler ゴールド両替 GUI ハンドラ
      * @param loginBonusService ログインボーナス GUI サービス
      * @param skillForgetGuiEventHandler スキル忘却 GUI ハンドラ
+     * @param marketGuiEventHandler マーケット GUI ハンドラ
      */
     public MobInteractionEventHandler(
             @NotNull MobService mobService,
@@ -72,7 +75,8 @@ public final class MobInteractionEventHandler
             @NotNull QuestGuiEventHandler questGuiEventHandler,
             @NotNull CurrencyExchangeGuiEventHandler currencyExchangeGuiEventHandler,
             @NotNull LoginBonusService loginBonusService,
-            @NotNull SkillForgetGuiEventHandler skillForgetGuiEventHandler) {
+            @NotNull SkillForgetGuiEventHandler skillForgetGuiEventHandler,
+            @NotNull MarketGuiEventHandler marketGuiEventHandler) {
         this.mobService = mobService;
         this.shopGuiEventHandler = shopGuiEventHandler;
         this.menuView = menuView;
@@ -82,6 +86,7 @@ public final class MobInteractionEventHandler
         this.currencyExchangeGuiEventHandler = currencyExchangeGuiEventHandler;
         this.loginBonusService = loginBonusService;
         this.skillForgetGuiEventHandler = skillForgetGuiEventHandler;
+        this.marketGuiEventHandler = marketGuiEventHandler;
     }
 
     @Override
@@ -190,6 +195,7 @@ public final class MobInteractionEventHandler
             case "CLASS" -> openClass(player);
             case "STORAGE" -> openStorage(player);
             case "CURRENCY_EXCHANGE", "EXCHANGE" -> currencyExchangeGuiEventHandler.open(player);
+            case "MARKET" -> marketGuiEventHandler.openFromNpc(player);
             case "LOGIN_BONUS" -> openLoginBonus(player);
             case "SKILL_FORGET", "FORGET_SKILL" -> openSkillForget(player);
             default -> GuiSound.DENY.play(player);

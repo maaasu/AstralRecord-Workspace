@@ -110,6 +110,10 @@ public class MarketTransactionResponse
     public long TotalPrice { get; init; }
     public long FeeAmount { get; init; }
     public long SellerProceeds { get; init; }
+    /// <summary>
+    /// 購入者の Plugin インベントリ再同期に必要な、API 側で更新した entry ID です。
+    /// </summary>
+    public IReadOnlyList<Guid> AffectedInventoryEntryIds { get; init; } = Array.Empty<Guid>();
     public DateTime CompletedAt { get; init; }
 }
 
@@ -117,7 +121,12 @@ public class MarketAccountSummaryResponse
 {
     public Guid AccountId { get; init; }
     public int ActiveListingCount { get; init; }
+    /// <summary>互換用の旧フィールドです。MaxListingSlotCount と同じ値を返します。</summary>
     public int MaxActiveListingCount { get; init; }
+    /// <summary>ACTIVE / SUSPENDED / CANCELED を含む、消費済み出品枠数です。</summary>
+    public int UsedListingSlotCount { get; init; }
+    /// <summary>出品中・取り下げ済みを通算して使える出品枠の上限です。</summary>
+    public int MaxListingSlotCount { get; init; }
     public int CompletedTradeCount { get; init; }
     public string Tier { get; init; } = string.Empty;
     public DateTime? SuspendedUntil { get; init; }
