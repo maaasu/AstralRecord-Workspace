@@ -1802,7 +1802,7 @@ public final class DungeonService {
             messageService.send(player, PlayerMsgId.P_7031);
             return;
         }
-        GuiSound.REWARD.play(player);
+        GuiSound.ITEM_RECEIVE.play(player);
         if (granted >= reward.amount()) rewards.remove(index);
         else rewards.set(index, reward.withAmount(reward.amount() - granted));
         openRewardGui(session, player, page);

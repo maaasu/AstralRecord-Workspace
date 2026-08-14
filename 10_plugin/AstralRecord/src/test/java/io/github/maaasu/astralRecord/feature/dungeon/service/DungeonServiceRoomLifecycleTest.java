@@ -138,7 +138,7 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
      * 章・見出し: # 09_3-サービス > ## 9. GUI サウンド意味付け
-     * 検証契約: ダンジョン報酬を1個以上インベントリへ付与できた場合だけ、報酬受取音を再生する。
+     * 検証契約: ダンジョン報酬を1個以上インベントリへ付与できた場合だけ、控えめなアイテム受取音を再生する。
      */
     @Test
     void playsRewardSoundWhenDungeonRewardIsGranted() throws Exception {
@@ -167,7 +167,7 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         }
 
         assertEquals(1L, player.getHeardSounds().stream()
-                .filter(sound -> sound.getSound().equals("ui.toast.challenge_complete"))
+                .filter(sound -> sound.getSound().equals("entity.item.pickup"))
                 .count());
     }
 
