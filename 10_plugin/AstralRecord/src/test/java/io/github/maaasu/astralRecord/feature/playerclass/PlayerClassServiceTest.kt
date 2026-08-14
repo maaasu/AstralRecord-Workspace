@@ -1,8 +1,11 @@
 package io.github.maaasu.astralRecord.feature.playerclass
 
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
+import io.github.maaasu.astralRecord.feature.`class`.model.ClassStat
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassUnlockClassLevel
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode
+import io.github.maaasu.astralRecord.feature.status.model.StatusType
+import io.github.maaasu.astralRecord.feature.status.service.StatusService
 import io.github.maaasu.astralRecord.support.DesignTestFixtures
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
@@ -123,6 +126,73 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### 補正値取得
+     * 検証契約: 現在クラスの baseStats と growthPerLevel を、クラスレベルに応じて全 StatusType の補正値として計算する。
+     */
+    @Test
+    fun calculatesStatusBonusFromBaseAndCurrentClassLevelGrowth() {
+        val player = server().addPlayer()
+        val astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER)
+        astPlayer.selectClass("growth")
+        astPlayer.classLevel = 4
+
+        val service = PlayerClassService()
+        service.replaceSnapshot(
+            mapOf(
+                "growth" to classModel(
+                    id = "growth",
+                    name = "Growth",
+                    baseStats = listOf(ClassStat(StatusType.ATTACK.name, 10.0)),
+                    growthPerLevel = listOf(ClassStat(StatusType.ATTACK.name, 2.0)),
+                ),
+            ),
+        )
+
+        assertEquals(16.0, service.getStatusBonus(astPlayer, StatusType.ATTACK), 0.0001)
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### ステータス再計算
+     * 検証契約: クラスレベル上昇後の status refresh が、クラス補正を非 Shield ステータスの最終値へ反映する。
+     */
+    @Test
+    fun refreshStatusReflectsLoadedClassGrowthAfterClassLevelIncrease() {
+        val player = server().addPlayer()
+        val astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER)
+        astPlayer.selectClass("growth")
+
+        val playerClassService = PlayerClassService()
+        playerClassService.replaceSnapshot(
+            mapOf(
+                "growth" to classModel(
+                    id = "growth",
+                    name = "Growth",
+                    baseStats = listOf(
+                        ClassStat(StatusType.ATTACK.name, 10.0),
+                        ClassStat(StatusType.MAX_HEALTH.name, 30.0),
+                    ),
+                    growthPerLevel = listOf(
+                        ClassStat(StatusType.ATTACK.name, 2.0),
+                        ClassStat(StatusType.MAX_HEALTH.name, 5.0),
+                    ),
+                ),
+            ),
+        )
+        val statusService = StatusService()
+
+        statusService.setPlayerClassService(playerClassService)
+        val levelOne = statusService.refreshStatus(astPlayer)
+        astPlayer.classLevel = 4
+        val levelFour = statusService.refreshStatus(astPlayer)
+
+        assertEquals(18.0, levelOne.getMaxValue(StatusType.ATTACK), 0.0001)
+        assertEquals(24.0, levelFour.getMaxValue(StatusType.ATTACK), 0.0001)
+        assertEquals(75.0, levelFour.getMaxValue(StatusType.MAX_HEALTH), 0.0001)
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
      * 章・見出し: # 10_3-View > ## 5. tab list 描画
      * 検証契約: tab list名の左へ正式class名tagを反映する。
@@ -168,6 +238,8 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         parentIds: List<String> = emptyList(),
         shortName: String = id.takeLast(3).padStart(3, '_'),
         order: Double = 0.0,
+        baseStats: List<ClassStat> = emptyList(),
+        growthPerLevel: List<ClassStat> = emptyList(),
     ) = ClassModel(
         schemaVersion = 1,
         id = id,
@@ -182,8 +254,8 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         commandOnly = false,
         unlockLevel = 1,
         unlockClassLevel = parentIds.map { ClassUnlockClassLevel(it, 1) },
-        baseStats = emptyList(),
-        growthPerLevel = emptyList(),
+        baseStats = baseStats,
+        growthPerLevel = growthPerLevel,
         expRate = 100,
         usableSkills = emptyList(),
         tags = emptyList(),

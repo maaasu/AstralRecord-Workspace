@@ -17,6 +17,16 @@ Class は、プレイヤーの戦闘上の役割、成長傾向、利用でき�
 - 上記以外の skill は class の `usableSkills` に追加せず、skilltree の `skill` 効果で使用許可を付与する。運営検証用 `administrator` は実装済みスキルだけを許可する。
 - チャットのプレイヤー情報には `shortName` の3文字短縮名、タブのプレイヤーリストには `name` の正式名を表示します。`shortName` は色コードを除いてちょうど3文字かつクラス間で一意にします。
 
+## status の成長
+
+`baseStats` は、StatusService の共有基礎値へ加算する現在クラスの初期補正です。`growthPerLevel` はクラスレベルが1上がるごとの追加補正です。現在クラスのステータス補正は、次の式で求めます。
+
+```text
+class status bonus = baseStats + growthPerLevel × (classLevel - 1)
+```
+
+クラス補正は `StatusType` ごとに加算し、未定義のステータスは `0.0` とします。これはクラスレベル1の `baseStats` を含む補正値であり、共有基礎値をクラス値で置き換えません。
+
 ## order
 
 `order` はクラス一覧の表示順を表す数値です。値が小さいクラスから順に表示し、同値の場合はクラス ID の昇順とします。プレイヤー情報画面の全クラスレベル一覧もこの順序を使用します。

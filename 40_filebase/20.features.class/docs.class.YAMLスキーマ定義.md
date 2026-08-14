@@ -26,12 +26,12 @@ Class（職業）のスキーマ定義。
 | `unlockClassLevel[]`       | List         | ×  | -         | 解放に必要な素材クラスとレベルを指定                               |
 | `unlockClassLevel[].class` | String       | ×  | -         | 解放に必要な素材クラスを指定                                   |
 | `unlockClassLevel[].level` | Integer      | ×  | -         | 解放に必要な素材クラスのレベルを指定                               |
-| `baseStats[]`              | List         | ○  | -         | 初期ステータスのリスト（後述）                                  |
+| `baseStats[]`              | List         | ○  | -         | 現在クラスの初期ステータス補正のリスト（共有基礎値へ加算。後述）                                  |
 | `baseStats[].status`       | String       | ○  | -         | 共有カタログのステータスID（例: `MAX_HEALTH`）   |
-| `baseStats[].value`        | Double       | ○  | -         | 初期値                                              |
-| `growthPerLevel[]`         | List         | ×  | emptyList | レベルアップ時の成長量リスト（後述）                               |
+| `baseStats[].value`        | Double       | ○  | -         | クラスレベル1の補正値                                              |
+| `growthPerLevel[]`         | List         | ×  | emptyList | クラスレベルアップ時の成長量リスト（後述）                               |
 | `growthPerLevel[].status`  | String       | ○  | -         | ステータス名（`StatusType`。`baseStats` と同様）             |
-| `growthPerLevel[].value`   | Double       | ○  | -         | 1レベルあたりの増加量                                      |
+| `growthPerLevel[].value`   | Double       | ○  | -         | クラスレベル1上昇あたりの増加量                                      |
 | `expRate`                  | Integer      | ×  | 100       | 必要経験値の倍率指標（基準値 `100`。値が大きいほど必要経験値が増え、レベルが上がりにくい） |
 | `usableSkills`             | List<String> | ×  | emptyList | 現在クラスで発動を許可するスキル ID。習得・所持は変更しない |
 | `tags`                     | List<String> | ×  | emptyList | 共有タグカタログの`CLASS`対象ID（例: `melee`, `tank`）      |
@@ -58,6 +58,8 @@ Class（職業）のスキーマ定義。
 ### baseStats[].status / growthPerLevel[].status（StatusType）
 
 共有カタログで定義される不変ステータスIDを指定します。使用可能な値は[`v1.status_types.yml`](../75.shared.status/v1.status_types.yml)を参照してください。
+
+`baseStats` と `growthPerLevel` は StatusService の共有基礎値へ加算するクラス補正です。現在クラスの補正値は、`baseStats + growthPerLevel × (classLevel - 1)` で計算します。`classLevel` はクラスごとの `maxLevel` の範囲へ補正し、定義されていないステータスの補正は `0.0` とします。
 
 ### 参照（ref）
 他DBからclassを参照する場合は `class:` prefix を使用します（aliases: `cls`）。

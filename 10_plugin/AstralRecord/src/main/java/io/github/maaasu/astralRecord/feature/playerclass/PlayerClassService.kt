@@ -86,6 +86,16 @@ class PlayerClassService @JvmOverloads constructor(
 
     fun getLoadedClasses(): List<ClassModel> = classService.getLoadedClasses()
 
+    /**
+     * 現在クラスの指定ステータス補正を返します。
+     *
+     * 補正値は `baseStats` と `growthPerLevel × (classLevel - 1)` の合計です。
+     * クラス未ロード時は 0.0 を返します。
+     *
+     * @param astPlayer 対象プレイヤー。現在クラスとクラスレベルを参照します
+     * @param statusType 取得するステータス種別
+     * @return 現在クラスのステータス補正値
+     */
     fun getStatusBonus(astPlayer: AstPlayer, statusType: StatusType): Double {
         val model = classService.getLoadedClass(astPlayer.classId) ?: return 0.0
         val base = classStatValue(model.baseStats, statusType)

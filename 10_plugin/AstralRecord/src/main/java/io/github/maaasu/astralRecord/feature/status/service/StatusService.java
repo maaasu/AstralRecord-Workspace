@@ -53,8 +53,8 @@ import java.util.UUID;
 /**
  * ステータス機能のビジネスロジックを担うサービスクラスです。
  * <p>
- * 現時点ではプレイヤーの {@code account mode} とレベルから簡易的なステータスを計算します。
- * 将来的にレベル・装備・バフ補正を追加する際も、このサービスへ集約する想定です。
+ * プレイヤーの account mode、プレイヤー／クラスレベル、クラス、装備、スキル、バフから
+ * ステータスを計算します。
  */
 public class StatusService {
 
@@ -814,7 +814,7 @@ public class StatusService {
     ) {
         double nonBuffBonus = getAccountModeBonus(player.getAccount().getMode(), type);
         nonBuffBonus += getLevelBonus(player, type);
-        nonBuffBonus += getClassShieldBonus(player, type);
+        nonBuffBonus += getClassBonus(player, type);
         nonBuffBonus += getEquipmentBonus(equipmentBonus, type, baseValue + nonBuffBonus, endpoint);
         nonBuffBonus += getSkillTreeBonus(player, type, baseValue + nonBuffBonus);
         if (includePassiveSkills) {
@@ -886,17 +886,8 @@ public class StatusService {
         return passiveSkillService == null ? 0.0D : passiveSkillService.getStatusBonus(player, type, baseValue);
     }
 
-    private double getClassShieldBonus(@NotNull AstPlayer player, @NotNull StatusType type) {
-        if (playerClassService == null || !isShieldStatus(type)) {
-            return 0.0D;
-        }
-        return playerClassService.getStatusBonus(player, type);
-    }
-
-    private boolean isShieldStatus(@NotNull StatusType type) {
-        return type == StatusType.MAX_SHIELD
-            || type == StatusType.SHIELD_BREAK
-            || type == StatusType.SHIELD_RECHARGE_REDUCTION;
+    private double getClassBonus(@NotNull AstPlayer player, @NotNull StatusType type) {
+        return playerClassService == null ? 0.0D : playerClassService.getStatusBonus(player, type);
     }
 
     private double getEquipmentBonus(

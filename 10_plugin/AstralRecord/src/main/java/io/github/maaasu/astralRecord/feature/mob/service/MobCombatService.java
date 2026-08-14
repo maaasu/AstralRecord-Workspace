@@ -413,7 +413,6 @@ public class MobCombatService {
                 progress.levelUps()
             );
             playPlayerLevelUp(recipient.getBukkit());
-            skillTreeService.refreshProgressDerivedState(recipient);
         }
         if (classProgress.getLeveledUp()) {
             PlayerMessageService.getInstance().send(
@@ -424,10 +423,9 @@ public class MobCombatService {
                 classProgress.getClassPointGains()
             );
             playClassLevelUp(recipient.getBukkit());
-            skillTreeService.refreshProgressDerivedState(recipient);
         }
         if (progress.leveledUp() || classProgress.getLeveledUp()) {
-            statusService.refreshStatus(recipient);
+            skillTreeService.refreshProgressDerivedState(recipient);
         }
     }
 
