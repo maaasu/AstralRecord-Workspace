@@ -90,45 +90,51 @@ public class AdventureRecordRepository(AstralRecordDbContext dbContext) : IAdven
         if (request.UpdatedBy == Guid.Empty)
             throw new ArgumentException("UpdatedBy must not be empty.", nameof(request));
         var dungeonId = NormalizeDungeonId(request.DungeonId);
-        var now = DateTime.UtcNow;
-
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(
-            IsolationLevel.Serializable);
-        var entity = await dbContext.AccountDungeonRecords
-            .FirstOrDefaultAsync(record =>
-                record.AccountId == request.AccountId
-                && record.DungeonId == dungeonId);
-
-        if (entity is null)
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+        return await executionStrategy.ExecuteAsync(async () =>
         {
-            entity = new AccountDungeonRecordEntity
+            // SQL Server のリトライ戦略が有効なため、手動トランザクションは
+            // ExecutionStrategy の実行スコープ内で開始する必要がある。
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable);
+            var now = DateTime.UtcNow;
+            var entity = await dbContext.AccountDungeonRecords
+                .FirstOrDefaultAsync(record =>
+                    record.AccountId == request.AccountId
+                    && record.DungeonId == dungeonId);
+
+            if (entity is null)
             {
-                AccountDungeonRecordId = Guid.NewGuid(),
-                AccountId = request.AccountId,
-                DungeonId = dungeonId,
-                ClearCount = 1,
-                FirstClearedAt = now,
-                LastClearedAt = now,
-                CreatedAt = now,
-                UpdatedAt = now,
-                CreatedBy = request.UpdatedBy,
-                UpdatedBy = request.UpdatedBy,
-                IsDeleted = false,
-            };
-            await dbContext.AccountDungeonRecords.AddAsync(entity);
-        }
-        else
-        {
-            entity.ClearCount += 1;
-            entity.LastClearedAt = now;
-            entity.UpdatedAt = now;
-            entity.UpdatedBy = request.UpdatedBy;
-            entity.IsDeleted = false;
-        }
+                entity = new AccountDungeonRecordEntity
+                {
+                    AccountDungeonRecordId = Guid.NewGuid(),
+                    AccountId = request.AccountId,
+                    DungeonId = dungeonId,
+                    ClearCount = 1,
+                    FirstClearedAt = now,
+                    LastClearedAt = now,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    CreatedBy = request.UpdatedBy,
+                    UpdatedBy = request.UpdatedBy,
+                    IsDeleted = false,
+                };
+                await dbContext.AccountDungeonRecords.AddAsync(entity);
+            }
+            else
+            {
+                entity.ClearCount += 1;
+                entity.LastClearedAt = now;
+                entity.UpdatedAt = now;
+                entity.UpdatedBy = request.UpdatedBy;
+                entity.IsDeleted = false;
+            }
 
-        await dbContext.SaveChangesAsync();
-        await transaction.CommitAsync();
-        return Map(entity);
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return Map(entity);
+        });
     }
 
     private static string NormalizeCategory(string? category)
