@@ -27,6 +27,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -41,7 +42,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -159,6 +159,9 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         @NotNull Player player,
         @NotNull MarketSession session
     ) {
+        if (handleHotbarShortcutClick(event, player)) {
+            return;
+        }
         int rawSlot = event.getRawSlot();
         if (rawSlot >= 0 && rawSlot < PAGE_SIZE) {
             if (rawSlot >= session.listings.size()) {
@@ -192,7 +195,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             case MarketGui.SELL_SLOT -> {
                 session.screen = MarketScreen.SELL_SELECT;
                 session.draft = null;
-                marketGui.openSellSelect(player, session.sessionId, session.summary);
+                marketGui.openSellSelect(player, session.sessionId, session.summary, goldAmount(player));
                 GuiSound.OPEN.play(player);
             }
             case MarketGui.REFRESH_SLOT -> openListings(player, session.ownListings, session.page);
@@ -206,8 +209,16 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         @NotNull Player player,
         @NotNull MarketSession session
     ) {
+        if (event.getRawSlot() == MarketGui.BROWSE_SLOT) {
+            openListings(player, false, 1);
+            GuiSound.SELECT.play(player);
+            return;
+        }
         if (event.getRawSlot() == MarketGui.CLOSE_SLOT) {
             player.closeInventory();
+            return;
+        }
+        if (HotbarShortcutClickSupport.handleInventoryControlClick(event, player, inventoryService)) {
             return;
         }
         if (!(event.getClickedInventory() instanceof PlayerInventory)) {
@@ -222,7 +233,11 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         }
         InventoryEntryModel entry = inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, event.getSlot());
         ItemModel item = inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, event.getSlot());
-        if (!isMarketable(entry, item)) {
+        if (entry == null || item == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (!MarketListingEligibility.isEligible(entry, item)) {
             messageService.send(player, PlayerMsgId.P_6304);
             GuiSound.DENY.play(player);
             return;
@@ -254,6 +269,9 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         @NotNull Player player,
         @NotNull MarketSession session
     ) {
+        if (handleHotbarShortcutClick(event, player)) {
+            return;
+        }
         MarketListingDraft draft = session.draft;
         if (draft == null) {
             openListings(player, false, 1);
@@ -262,7 +280,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         switch (event.getRawSlot()) {
             case MarketGui.BACK_SLOT -> {
                 session.screen = MarketScreen.SELL_SELECT;
-                marketGui.openSellSelect(player, session.sessionId, session.summary);
+                marketGui.openSellSelect(player, session.sessionId, session.summary, goldAmount(player));
                 GuiSound.SELECT.play(player);
             }
             case MarketGui.QUANTITY_DOWN_SLOT -> {
@@ -296,6 +314,9 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         @NotNull Player player,
         @NotNull MarketSession session
     ) {
+        if (handleHotbarShortcutClick(event, player)) {
+            return;
+        }
         if (event.getRawSlot() == MarketGui.BACK_SLOT) {
             openListings(player, false, session.page);
             return;
@@ -318,6 +339,9 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         @NotNull Player player,
         @NotNull MarketSession session
     ) {
+        if (handleHotbarShortcutClick(event, player)) {
+            return;
+        }
         if (event.getRawSlot() == MarketGui.BACK_SLOT) {
             openListings(player, true, session.page);
             return;
@@ -617,24 +641,19 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         return holder != null && GOLD_AMOUNT_SOURCE_KEY.equals(holder.sourceKey());
     }
 
-    private boolean isMarketable(@Nullable InventoryEntryModel entry, @Nullable ItemModel item) {
-        if (entry == null || item == null || entry.getItemId() == null || item.getUnTradeable()) {
-            return false;
-        }
-        String category = entry.getItemCategory().trim().toUpperCase(Locale.ROOT);
-        if (!category.equals("MATERIAL")
-            && !category.equals("CONSUMABLE")
-            && !category.equals("EQUIPMENT")
-            && !category.equals("RUNE")) {
-            return false;
-        }
-        if (entry.getInstanceId() == null) {
-            return entry.getInstanceType() == null && entry.getQuantity() > 0L;
-        }
-        return entry.getQuantity() == 1L
-            && entry.getInstanceType() != null
-            && (entry.getInstanceType().equalsIgnoreCase("EQUIPMENT")
-                || entry.getInstanceType().equalsIgnoreCase("RUNE"));
+    /**
+     * 共通ホットバー操作をマーケットの一覧・確認画面へ委譲します。
+     * 出品対象選択画面だけは、バッグ／ホットバーのアイテムを選択するため個別処理します。
+     *
+     * @param event クリックイベント
+     * @param player 操作プレイヤー
+     * @return 共通操作を処理した場合は {@code true}
+     */
+    private boolean handleHotbarShortcutClick(
+        @NotNull InventoryClickEvent event,
+        @NotNull Player player
+    ) {
+        return HotbarShortcutClickSupport.handle(event, player, inventoryService);
     }
 
     private boolean isCancelable(@NotNull MarketListing listing) {

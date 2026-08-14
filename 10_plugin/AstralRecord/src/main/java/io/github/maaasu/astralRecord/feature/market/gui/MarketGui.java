@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.market.model.MarketAccountSummary;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListing;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingDraft;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -14,7 +15,6 @@ import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.jetbrains.annotations.NotNull;
@@ -35,9 +35,9 @@ public final class MarketGui {
     public static final int BROWSE_SLOT = 46;
     public static final int MY_LISTINGS_SLOT = 47;
     public static final int SELL_SLOT = 48;
-    public static final int REFRESH_SLOT = 49;
+    public static final int CLOSE_SLOT = 49;
     public static final int SUMMARY_SLOT = 50;
-    public static final int CLOSE_SLOT = 52;
+    public static final int REFRESH_SLOT = 51;
     public static final int NEXT_SLOT = 53;
     public static final int BACK_SLOT = 21;
     public static final int CONFIRM_SLOT = 23;
@@ -128,19 +128,40 @@ public final class MarketGui {
         open(viewer, inventory);
     }
 
-    public void openSellSelect(@NotNull Player viewer, @NotNull UUID sessionId, @Nullable MarketAccountSummary summary) {
+    /**
+     * 所持品から出品対象を選ぶ画面を開きます。
+     *
+     * @param viewer 表示対象プレイヤー
+     * @param sessionId 操作セッションID
+     * @param summary 出品枠の利用状況。未取得時は {@code null}
+     * @param goldAmount 表示する現在のGold残高
+     */
+    public void openSellSelect(
+        @NotNull Player viewer,
+        @NotNull UUID sessionId,
+        @Nullable MarketAccountSummary summary,
+        long goldAmount
+    ) {
         Inventory inventory = create(viewer, sessionId, MarketScreen.SELL_SELECT, LIST_SIZE, "マーケット: 出品するアイテムを選択");
         fill(inventory);
-        inventory.setItem(13, item(
+        inventory.setItem(ITEM_SLOT, item(
             Material.CHEST,
             "出品アイテムを選択",
             NamedTextColor.GREEN,
             List.of(
-                "下の所持品から出品するアイテムをクリックしてください。",
-                "取引不可アイテム・通貨は出品できません。"
+                "1. 下のバッグまたはホットバーからアイテムをクリックします。",
+                "2. 数量と1個あたりの価格を設定して出品を確定します。",
+                "バッグは表示内の矢印で上下にスクロールできます。",
+                "取引不可アイテムとGoldは出品できません。"
             )
         ));
-        inventory.setItem(SUMMARY_SLOT, summaryItem(summary, 0L));
+        inventory.setItem(BROWSE_SLOT, item(
+            Material.SPECTRAL_ARROW,
+            "出品一覧へ戻る",
+            NamedTextColor.WHITE,
+            List.of("公開中の出品一覧へ戻ります。")
+        ));
+        inventory.setItem(SUMMARY_SLOT, summaryItem(summary, goldAmount));
         inventory.setItem(CLOSE_SLOT, GuiItems.closeButton());
         open(viewer, inventory);
     }
@@ -373,7 +394,32 @@ public final class MarketGui {
         @NotNull UUID sessionId,
         @NotNull UUID viewerUuid,
         @NotNull MarketScreen screen
-    ) implements InventoryHolder {
+    ) implements HotbarShortcutGuiHolder {
+        /**
+         * 一覧系画面で共通ナビゲーションが扱う閉じるボタンのスロットを返します。
+         *
+         * @return 閉じるボタンのスロット。確認・設定画面では {@code -1}
+         */
+        @Override
+        public int getBackSlot() {
+            return switch (screen) {
+                case BROWSE, MY_LISTINGS, SELL_SELECT -> CLOSE_SLOT;
+                default -> -1;
+            };
+        }
+
+        /**
+         * 一覧系画面の共通ナビゲーションボタンを常に閉じる操作として扱うか返します。
+         *
+         * @return 一覧系画面の場合は {@code true}
+         */
+        @Override
+        public boolean isAlwaysCloseNavigation() {
+            return screen == MarketScreen.BROWSE
+                || screen == MarketScreen.MY_LISTINGS
+                || screen == MarketScreen.SELL_SELECT;
+        }
+
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, 9);
