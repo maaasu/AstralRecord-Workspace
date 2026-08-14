@@ -5,7 +5,7 @@
 クラス名: `PlayerHudView`
 物理名: `renderActionBar`
 
-HP、MP、ENG の現在値 / 最大値を表示し、`MAX_SHIELD > 0` の場合だけ SH を追加する。Shield リチャージ中は現在 Shield が 0 であることを示しつつ、通常の SH 表示をオレンジ色の `SH RC` と 0.1 秒単位の残り時間へ置換する。有効な状態異常は固定優先順位で最大3件を右側へ併記し、種別ごとの色、太字の識別記号・表示名、残り秒数で装飾する。4件目以降は `+N` で省略数を示す。
+HP、MP、ENG の現在値 / 最大値を表示し、`MAX_SHIELD > 0` の場合だけ SH を追加する。Shield リチャージ中も現在 Shield / 最大値を維持し、SH の後ろへオレンジ色の `(RC 残り秒数)` を0.1秒単位で併記する。有効な状態異常は固定優先順位で最大3件を右側へ併記し、種別ごとの色、太字の識別記号・表示名、残り秒数で装飾する。4件目以降は `+N` で省略数を示し、リチャージ中の残り時間とSH値を優先する。
 
 ## 2. 一時 ActionBar 描画
 
@@ -25,7 +25,7 @@ HP、MP、ENG の現在値 / 最大値を表示し、`MAX_SHIELD > 0` の場合�
 | EN / MAX_ENERGY | food level 0..20、saturation 0 |
 | MP / MAX_MANA | `MAX_ABSORPTION` を 20 に保ち、absorption 0..20 へ写像。最大10個の黄色いハートで表示。独自HP / Shieldダメージでは消費しない |
 | account EXP / player level | Paper の経験値表示パケットへレベル内進捗とアカウントプレイヤーレベルを渡す。vanilla経験値の実値は変更しない |
-| shield / MAX_SHIELD | armor attribute 0..20。リチャージ中は現在 Shield 0 のため 0 |
+| shield / MAX_SHIELD | armor attribute 0..20。リチャージ中も現在 Shield / 最大値の比率を使用 |
 
 ## 4. sidebar 描画・解除
 

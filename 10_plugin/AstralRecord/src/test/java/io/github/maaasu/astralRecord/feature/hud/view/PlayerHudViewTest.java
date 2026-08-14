@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.buff.model.BuffType;
 import io.github.maaasu.astralRecord.feature.condition.model.ActiveCondition;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
+import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -258,6 +259,39 @@ class PlayerHudViewTest extends MockBukkitTestBase {
         assertTrue(plainText.contains("ENG 30/60"));
         assertTrue(plainText.contains("[火] 燃焼"));
         assertTrue(hasDecoratedText(component.getValue(), "燃焼"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
+     * 章・見出し: # 10_3-View > ## 1. status ActionBar 描画
+     * 検証契約: シールドリチャージ中も現在Shield/最大値を残し、同じ欄へリチャージ残り時間を併記する。
+     */
+    @Test
+    void keepsShieldValueVisibleAlongsideRechargeCountdownOnActionBar() {
+        Player player = mock(Player.class);
+        StatusSnapshot snapshot = mock(StatusSnapshot.class);
+        when(snapshot.getMaxValue(StatusType.MAX_HEALTH)).thenReturn(100.0D);
+        when(snapshot.getMaxValue(StatusType.MAX_MANA)).thenReturn(80.0D);
+        when(snapshot.getMaxValue(StatusType.MAX_ENERGY)).thenReturn(60.0D);
+        when(snapshot.getMaxValue(StatusType.MAX_SHIELD)).thenReturn(30.0D);
+        when(snapshot.getCurrentHp()).thenReturn(75.0D);
+        when(snapshot.getCurrentMp()).thenReturn(40.0D);
+        when(snapshot.getCurrentEnergy()).thenReturn(30.0D);
+        when(snapshot.getCurrentShield()).thenReturn(4.0D);
+
+        new PlayerHudView().renderActionBar(
+                player,
+                snapshot,
+                List.of(),
+                new ShieldRechargeState(1_000L, System.currentTimeMillis() + 8_000L, 0.6D)
+        );
+
+        ArgumentCaptor<Component> component = ArgumentCaptor.forClass(Component.class);
+        verify(player).sendActionBar(component.capture());
+        String plainText = PlainTextComponentSerializer.plainText().serialize(component.getValue());
+        assertTrue(plainText.contains("SH 4/30"));
+        assertTrue(plainText.contains("(RC "));
+        assertTrue(plainText.contains("s)"));
     }
 
     /**

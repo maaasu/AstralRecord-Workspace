@@ -5,7 +5,7 @@ package io.github.maaasu.astralRecord.feature.status.model;
  *
  * @param startedAtMs 最後に被ダメージを受けた時刻、または再充填を開始した時刻（epoch milliseconds）
  * @param completesAtMs 再充填を開始できる時刻（epoch milliseconds）
- * @param rechargeAmount 1秒あたりのシールド回復量
+ * @param rechargeAmount 1回の処理で適用するシールド回復量。Player は1秒あたりの加算量、Mob は完了時の設定値
  */
 public record ShieldRechargeState(
         long startedAtMs,

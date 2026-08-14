@@ -505,13 +505,16 @@ public class PlayerHudView {
         if (maxShield <= 0.0D) {
             return Component.empty();
         }
+        Component shield = Component.text("  ", NamedTextColor.DARK_GRAY)
+            .append(statText("SH", snapshot.getCurrentShield(), maxShield, NamedTextColor.BLUE));
         if (rechargeState != null) {
             double remainingSeconds = rechargeState.remainingMs(System.currentTimeMillis()) / 1000.0D;
-            return Component.text("  SH RC ", NamedTextColor.GOLD, TextDecoration.BOLD)
-                .append(Component.text(String.format("%.1fs", remainingSeconds), NamedTextColor.WHITE));
+            return shield
+                .append(Component.text(" (RC ", NamedTextColor.GOLD, TextDecoration.BOLD))
+                .append(Component.text(String.format("%.1fs", remainingSeconds), NamedTextColor.WHITE))
+                .append(Component.text(")", NamedTextColor.GOLD, TextDecoration.BOLD));
         }
-        return Component.text("  ", NamedTextColor.DARK_GRAY)
-            .append(statText("SH", snapshot.getCurrentShield(), maxShield, NamedTextColor.BLUE));
+        return shield;
     }
 
     private Component conditionActionText(Collection<ActiveCondition> activeConditions) {

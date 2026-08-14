@@ -26,7 +26,7 @@ passive:
 params:
   maxShield: 30
   rechargeDelaySeconds: 8
-  rechargePercentPerSecond: 10
+  rechargePercentPerSecond: 2
   particleIntervalTicks: 10
 tags:
   - passive

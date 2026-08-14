@@ -196,18 +196,18 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
         StatusService service = new StatusService();
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
         player.setStatusSnapshot(shieldSnapshot(30.0D));
-        service.configureShieldRecharge(player, 8.0D, 10.0D);
+        service.configureShieldRecharge(player, 8.0D, 2.0D);
 
         ShieldRechargeState initial = service.startShieldRecharge(player, 1_000L);
         assertEquals(9_000L, initial.completesAtMs());
         assertTrue(service.completeShieldRechargeIfReady(player, 9_000L));
-        assertEquals(3.0D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
+        assertEquals(0.6D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
 
         ShieldRechargeState restarted = service.startShieldRecharge(player, 9_500L);
         assertEquals(17_500L, restarted.completesAtMs());
         assertEquals(false, service.completeShieldRechargeIfReady(player, 17_499L));
         assertTrue(service.completeShieldRechargeIfReady(player, 17_500L));
-        assertEquals(6.0D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
+        assertEquals(1.2D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
     }
 
     /**
