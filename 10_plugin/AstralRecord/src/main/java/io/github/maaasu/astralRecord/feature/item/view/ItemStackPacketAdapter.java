@@ -260,6 +260,8 @@ public class ItemStackPacketAdapter {
             }
         }
 
+        modified |= ItemStackFactory.hideBundleContentsTooltip(replaced);
+
         if (customModelData != null) {
             var meta = replaced.getItemMeta();
             if (meta != null) {

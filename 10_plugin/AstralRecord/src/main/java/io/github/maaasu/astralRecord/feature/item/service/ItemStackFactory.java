@@ -31,6 +31,8 @@ import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.CustomModelDataComponentUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.TooltipDisplay;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Color;
@@ -214,9 +216,36 @@ public class ItemStackFactory {
         ItemStack replaced = iconMaterial == null || iconMaterial == item.getType()
                 ? item.clone()
                 : item.withType(iconMaterial);
+        hideBundleContentsTooltip(replaced);
         applyAppearance(replaced);
         applyDurabilityVisual(replaced);
         return replaced;
+    }
+
+    /**
+     * Bundle のバニラ内容量表示を非表示にします。
+     *
+     * @param item 表示対象の ItemStack
+     * @return 内容量表示の非表示設定を追加した場合は {@code true}
+     */
+    public static boolean hideBundleContentsTooltip(@NotNull ItemStack item) {
+        if (item.getType() != Material.BUNDLE) {
+            return false;
+        }
+
+        TooltipDisplay current = item.getData(DataComponentTypes.TOOLTIP_DISPLAY);
+        if (current != null && current.hiddenComponents().contains(DataComponentTypes.BUNDLE_CONTENTS)) {
+            return false;
+        }
+
+        TooltipDisplay.Builder builder = TooltipDisplay.tooltipDisplay();
+        if (current != null) {
+            builder.hideTooltip(current.hideTooltip())
+                    .hiddenComponents(new HashSet<>(current.hiddenComponents()));
+        }
+        builder.addHiddenComponents(DataComponentTypes.BUNDLE_CONTENTS);
+        item.setData(DataComponentTypes.TOOLTIP_DISPLAY, builder);
+        return true;
     }
 
     public static boolean applyDurabilityVisual(@NotNull ItemStack item) {
