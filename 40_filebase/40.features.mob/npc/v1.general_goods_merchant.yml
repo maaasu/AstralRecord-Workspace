@@ -1,0 +1,45 @@
+# design:
+#   motif: "交易 / 雑貨店"
+#   progression: 0
+schemaVersion: 1
+id: general_goods_merchant
+type: MOB
+category: NPC
+name: "&e雑貨商ミナ"
+title: "&7旅立ちの雑貨店"
+level: 1
+entityType: VILLAGER
+variant:
+  profession: FARMER
+  villagerType: PLAINS
+  villagerLevel: 3
+nameVisible: true
+damageImmune: true
+icon: CHEST
+lore:
+  - "&7旅立ちに必要な武器や装備、日用品を扱う雑貨商。"
+  - "&7右クリックで雑貨店を開ける。"
+tags:
+  - npc
+  - shop
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&e雑貨商ミナ&7: 武器も装備も、旅の支度は任せてね。"
+  rightClick:
+    - id: gui
+      params:
+        type: SHOP
+        shopId: general_goods_shop
