@@ -28,6 +28,8 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 
 class AdministratorShieldRechargeSkillExecutorTest extends MockBukkitTestBase {
 
@@ -40,7 +42,7 @@ class AdministratorShieldRechargeSkillExecutorTest extends MockBukkitTestBase {
     void filebaseRechargeRateReachesStatusRuntime() {
         StatusService statusService = new StatusService();
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
-        player.setStatusSnapshot(shieldSnapshot(30.0D));
+        player.setStatusSnapshot(shieldSnapshot(30.0D, 10.0D));
 
         AdministratorShieldRechargeSkillExecutor executor = new AdministratorShieldRechargeSkillExecutor(
             statusService,
@@ -53,20 +55,61 @@ class AdministratorShieldRechargeSkillExecutorTest extends MockBukkitTestBase {
             0L
         ));
 
-        ShieldRechargeState state = statusService.startShieldRecharge(player, 1_000L);
+        ShieldRechargeState state = statusService.startShieldRechargeWhileRetained(player, 1_000L);
 
         assertNotNull(state);
         assertEquals(9_000L, state.completesAtMs());
         assertEquals(0.6D, state.rechargeAmount(), 0.0001D);
         assertTrue(statusService.completeShieldRechargeIfReady(player, 9_000L));
-        assertEquals(0.6D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
+        assertEquals(10.6D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
         assertNotNull(statusService.getShieldRechargeState(player));
 
-        for (int second = 1; second < 50; second++) {
+        for (int second = 1; second < 34; second++) {
             assertTrue(statusService.completeShieldRechargeIfReady(player, 9_000L + second * 1_000L));
         }
         assertEquals(30.0D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
         assertNull(statusService.getShieldRechargeState(player));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_0-概要.md
+     * 章・見出し: # 14_0-概要 > ## 5. 固定HPダメージとShield
+     * 検証契約: 管理者向けスキルを有効にしていても、破壊後は通常の30秒全回復となり、スキル演出を出さない。
+     */
+    @Test
+    void brokenShieldUsesFullRecoveryEvenWithSkillConfigured() {
+        StatusService statusService = new StatusService();
+        ParticleDisplayService particleDisplayService = mock(ParticleDisplayService.class);
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        player.setStatusSnapshot(shieldSnapshot(30.0D));
+
+        AdministratorShieldRechargeSkillExecutor executor = new AdministratorShieldRechargeSkillExecutor(
+            statusService,
+            particleDisplayService
+        );
+        executor.onActivate(new PassiveSkillContext(
+            player,
+            loadDefinitionFromFilebase(),
+            Instant.EPOCH,
+            0L
+        ));
+
+        ShieldRechargeState state = statusService.startShieldRecharge(player, 1_000L);
+        executor.onTick(new PassiveSkillContext(
+            player,
+            loadDefinitionFromFilebase(),
+            Instant.EPOCH,
+            10L
+        ));
+
+        assertEquals(31_000L, state.completesAtMs());
+        assertEquals(30.0D, state.rechargeAmount(), 0.0001D);
+        assertEquals(false, state.incrementalRecovery());
+        verify(particleDisplayService, never()).spawnForNearbyViewers(
+            org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.anyList(),
+            org.mockito.ArgumentMatchers.any()
+        );
     }
 
     private static SkillDefinition loadDefinitionFromFilebase() {
@@ -113,9 +156,13 @@ class AdministratorShieldRechargeSkillExecutorTest extends MockBukkitTestBase {
     }
 
     private static StatusSnapshot shieldSnapshot(double maxShield) {
+        return shieldSnapshot(maxShield, 0.0D);
+    }
+
+    private static StatusSnapshot shieldSnapshot(double maxShield, double currentShield) {
         return DesignTestFixtures.statusSnapshot(Map.of(
             StatusType.MAX_HEALTH, 100.0D,
             StatusType.MAX_SHIELD, maxShield
-        ), 100.0D, 0.0D, 0.0D);
+        ), 100.0D, 0.0D, 0.0D).withCurrentShield(currentShield);
     }
 }

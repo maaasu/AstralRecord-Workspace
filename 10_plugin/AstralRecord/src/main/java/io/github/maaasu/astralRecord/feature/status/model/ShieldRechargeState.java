@@ -6,12 +6,25 @@ package io.github.maaasu.astralRecord.feature.status.model;
  * @param startedAtMs 最後に被ダメージを受けた時刻、または再充填を開始した時刻（epoch milliseconds）
  * @param completesAtMs 再充填を開始できる時刻（epoch milliseconds）
  * @param rechargeAmount 1回の処理で適用するシールド回復量。Player は1秒あたりの加算量、Mob は完了時の設定値
+ * @param incrementalRecovery Player のシールド残存時スキルによる段階回復なら {@code true}。破壊後の全回復なら {@code false}
  */
 public record ShieldRechargeState(
         long startedAtMs,
         long completesAtMs,
-        double rechargeAmount
+        double rechargeAmount,
+        boolean incrementalRecovery
 ) {
+
+    /**
+     * Mob または破壊後の全回復用の状態を作成します。
+     *
+     * @param startedAtMs 開始時刻
+     * @param completesAtMs 回復適用可能時刻
+     * @param rechargeAmount 回復量
+     */
+    public ShieldRechargeState(long startedAtMs, long completesAtMs, double rechargeAmount) {
+        this(startedAtMs, completesAtMs, rechargeAmount, false);
+    }
 
     /**
      * 指定時刻における残り時間を返します。
@@ -53,6 +66,6 @@ public record ShieldRechargeState(
         } catch (ArithmeticException ignored) {
             extendedAt = Long.MAX_VALUE;
         }
-        return new ShieldRechargeState(startedAtMs, extendedAt, rechargeAmount);
+        return new ShieldRechargeState(startedAtMs, extendedAt, rechargeAmount, incrementalRecovery);
     }
 }

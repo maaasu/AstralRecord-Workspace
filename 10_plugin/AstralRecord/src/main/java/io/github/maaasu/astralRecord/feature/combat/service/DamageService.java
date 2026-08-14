@@ -666,10 +666,13 @@ public final class DamageService {
         boolean configuredPlayerRecharge = victim.isPlayer()
             && victim.player() != null
             && statusService.hasConfiguredShieldRecharge(victim.player());
-        if (result.shieldBroken() || (configuredPlayerRecharge
-            && !result.evaded()
-            && (result.shieldDamage() > 0.0D || effectiveHealthDamage(victim, result) > 0.0D))) {
+        if (result.shieldBroken()) {
             startShieldRecharge(victim, rechargeEventAtMs);
+        } else if (configuredPlayerRecharge
+            && !result.evaded()
+            && currentShield(victim) > 0.0D
+            && (result.shieldDamage() > 0.0D || effectiveHealthDamage(victim, result) > 0.0D)) {
+            startShieldRechargeWhileRetained(victim, rechargeEventAtMs);
         }
         applyShieldRechargeDelay(attacker, victim, result, source);
         completeShieldRechargeIfReady(victim, rechargeEventAtMs);
@@ -1365,6 +1368,12 @@ public final class DamageService {
                 victim.statValue(StatusType.SHIELD_RECHARGE_REDUCTION)
         );
         victim.mob().startShieldRecharge(nowMs, durationMs);
+    }
+
+    private void startShieldRechargeWhileRetained(@NotNull AstEntity victim, long nowMs) {
+        if (victim.isPlayer() && victim.player() != null) {
+            statusService.startShieldRechargeWhileRetained(victim.player(), nowMs);
+        }
     }
 
     private void applyShieldRechargeDelay(

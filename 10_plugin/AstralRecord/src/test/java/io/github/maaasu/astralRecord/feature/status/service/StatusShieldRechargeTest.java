@@ -13,6 +13,7 @@ import org.junit.jupiter.api.Test;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -37,6 +38,7 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
 
         ShieldRechargeState started = service.startShieldRecharge(player, 1_000L);
         assertEquals(21_000L, started.completesAtMs() - started.startedAtMs());
+        assertEquals(false, started.incrementalRecovery());
 
         assertTrue(service.extendShieldRecharge(player, 10.0D));
         ShieldRechargeState extended = service.getShieldRechargeState(player);
@@ -195,19 +197,62 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
     void configuredRechargeRecoversContinuouslyAndDamageRestartsDelay() {
         StatusService service = new StatusService();
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
-        player.setStatusSnapshot(shieldSnapshot(30.0D));
+        player.setStatusSnapshot(shieldSnapshot(30.0D, 10.0D));
         service.configureShieldRecharge(player, 8.0D, 2.0D);
 
-        ShieldRechargeState initial = service.startShieldRecharge(player, 1_000L);
+        ShieldRechargeState initial = service.startShieldRechargeWhileRetained(player, 1_000L);
         assertEquals(9_000L, initial.completesAtMs());
+        assertEquals(true, initial.incrementalRecovery());
         assertTrue(service.completeShieldRechargeIfReady(player, 9_000L));
-        assertEquals(0.6D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
+        assertEquals(10.6D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
 
-        ShieldRechargeState restarted = service.startShieldRecharge(player, 9_500L);
+        ShieldRechargeState restarted = service.startShieldRechargeWhileRetained(player, 9_500L);
         assertEquals(17_500L, restarted.completesAtMs());
         assertEquals(false, service.completeShieldRechargeIfReady(player, 17_499L));
         assertTrue(service.completeShieldRechargeIfReady(player, 17_500L));
-        assertEquals(1.2D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
+        assertEquals(11.2D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_0-概要.md
+     * 章・見出し: # 14_0-概要 > ## 5. 固定HPダメージとShield
+     * 検証契約: シールドが破壊された場合は再充填パッシブ設定を無視して30秒後に全回復する。
+     */
+    @Test
+    void configuredPlayerBreakUsesLegacyFullRecovery() {
+        StatusService service = new StatusService();
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        player.setStatusSnapshot(shieldSnapshot(30.0D));
+        service.configureShieldRecharge(player, 8.0D, 2.0D);
+
+        ShieldRechargeState state = service.startShieldRecharge(player, 1_000L);
+
+        assertEquals(31_000L, state.completesAtMs());
+        assertEquals(30.0D, state.rechargeAmount(), 0.0001D);
+        assertEquals(false, state.incrementalRecovery());
+        assertTrue(service.completeShieldRechargeIfReady(player, 31_000L));
+        assertEquals(30.0D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
+        assertNull(service.getShieldRechargeState(player));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### Shield リチャージ
+     * 検証契約: スキル解除時も破壊後の通常全回復状態は中断せず、残存中の段階回復状態だけを破棄する。
+     */
+    @Test
+    void clearingRechargeConfigurationPreservesBrokenShieldRecovery() {
+        StatusService service = new StatusService();
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        player.setStatusSnapshot(shieldSnapshot(30.0D));
+        service.configureShieldRecharge(player, 8.0D, 2.0D);
+        service.startShieldRecharge(player, 1_000L);
+
+        service.clearShieldRechargeConfiguration(player);
+
+        assertNotNull(service.getShieldRechargeState(player));
+        assertTrue(service.completeShieldRechargeIfReady(player, 31_000L));
+        assertEquals(30.0D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
     }
 
     /**
@@ -237,9 +282,13 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
     }
 
     private static StatusSnapshot shieldSnapshot(double maxShield) {
+        return shieldSnapshot(maxShield, 0.0D);
+    }
+
+    private static StatusSnapshot shieldSnapshot(double maxShield, double currentShield) {
         return DesignTestFixtures.statusSnapshot(Map.of(
             StatusType.MAX_HEALTH, 100.0D,
             StatusType.MAX_SHIELD, maxShield
-        ), 100.0D, 0.0D, 0.0D);
+        ), 100.0D, 0.0D, 0.0D).withCurrentShield(currentShield);
     }
 }

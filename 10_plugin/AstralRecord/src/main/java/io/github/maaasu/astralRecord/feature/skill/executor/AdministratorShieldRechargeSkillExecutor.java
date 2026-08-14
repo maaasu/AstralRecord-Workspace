@@ -58,7 +58,11 @@ public final class AdministratorShieldRechargeSkillExecutor implements SkillExec
         configure(context);
         int interval = Math.max(1, new SkillParamReader(context.skill().getId(), context.skill().getParams()).getInt("particleIntervalTicks", 10));
         ShieldRechargeState state = statusService.getShieldRechargeState(context.player());
-        if (context.activeTicks() % interval != 0L || state == null || state.remainingMs(System.currentTimeMillis()) > 0L) return;
+        if (context.activeTicks() % interval != 0L
+                || state == null
+                || !state.incrementalRecovery()
+                || statusService.getStatus(context.player()).getCurrentShield() <= 0.0D
+                || state.remainingMs(System.currentTimeMillis()) > 0L) return;
         renderRecharge(context);
     }
 

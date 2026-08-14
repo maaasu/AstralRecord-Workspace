@@ -344,14 +344,44 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         AstPlayer victim = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
         victim.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
             StatusType.MAX_HEALTH, 100.0D, StatusType.MAX_SHIELD, 30.0D
-        ), 100.0D, 0.0D, 30.0D));
+        ), 100.0D, 0.0D, 0.0D).withCurrentShield(30.0D));
         when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
         when(harness.statusService.getStatus(victim)).thenReturn(victim.getStatusSnapshot());
         when(harness.statusService.hasConfiguredShieldRecharge(victim)).thenReturn(true);
 
         harness.service.applyDamage(AstEntity.player(attacker), AstEntity.player(victim), 10.0D, AttackType.MELEE);
 
+        verify(harness.statusService).startShieldRechargeWhileRetained(eq(victim), anyLong());
+        verify(harness.statusService, never()).startShieldRecharge(eq(victim), anyLong());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_0-概要.md
+     * 章・見出し: # 14_0-概要 > ## 5. 固定HPダメージとShield
+     * 検証契約: 管理者向け再充填パッシブがあっても、シールド破壊時は通常の全回復経路だけを開始する。
+     */
+    @Test
+    void configuredPlayerBreakStartsFullRecoveryInsteadOfRetainedRecharge() {
+        DamageHarness harness = damageHarness();
+        AstPlayer attacker = attacker();
+        AstPlayer victim = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        victim.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D, StatusType.MAX_SHIELD, 30.0D
+        ), 100.0D, 0.0D, 0.0D).withCurrentShield(30.0D));
+        when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
+        when(harness.statusService.getStatus(victim)).thenReturn(victim.getStatusSnapshot());
+        when(harness.statusService.hasConfiguredShieldRecharge(victim)).thenReturn(true);
+
+        DamageResult result = harness.service.applyDamage(
+            AstEntity.player(attacker),
+            AstEntity.player(victim),
+            500.0D,
+            AttackType.MELEE
+        );
+
+        assertEquals(true, result.shieldBroken());
         verify(harness.statusService).startShieldRecharge(eq(victim), anyLong());
+        verify(harness.statusService, never()).startShieldRechargeWhileRetained(eq(victim), anyLong());
     }
 
     /**

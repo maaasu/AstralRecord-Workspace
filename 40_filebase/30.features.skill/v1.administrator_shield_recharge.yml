@@ -6,7 +6,7 @@ id: administrator_shield_recharge
 type: SKILL
 implementationId: administrator_shield_recharge
 name: "&bシールドリチャージ"
-description: "&7被ダメージから{skill.rechargeDelaySeconds}秒後、シールドを毎秒{skill.rechargePercentPerSecond}%ずつ再充填する。再充填中にダメージを受けると待機をやり直す。"
+description: "&7シールドが残っている状態で被ダメージを受けた後、{skill.rechargeDelaySeconds}秒後から最大シールドの毎秒{skill.rechargePercentPerSecond}%を再充填する。再充填中にダメージを受けると待機をやり直す。シールド破壊時は通常仕様に従い一定時間後に全回復する。"
 icon: SHIELD
 cooldownTicks: 0
 resourceType: MANA
