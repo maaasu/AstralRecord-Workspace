@@ -403,6 +403,8 @@ public final class HookshotUseService {
             0.75F,
             1.15F
         );
+        // 装填完了を起点に現在の照準へ即時発射します。照準が無効ならloaded状態を保持します。
+        fire(astPlayer);
     }
 
     private boolean shouldContinueLoading(@NotNull AstPlayer player, @NotNull LoadingHook loading) {

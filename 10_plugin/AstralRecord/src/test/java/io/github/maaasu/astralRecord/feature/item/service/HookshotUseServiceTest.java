@@ -48,6 +48,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -93,7 +94,7 @@ class HookshotUseServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
-     * 検証契約: 右クリック装填は30 tick完了時だけhook1個とloaded metadataを同時確定し、耐久を消費しない。
+     * 検証契約: 左クリック装填は30 tick完了時だけhook1個とloaded metadataを同時確定し、耐久を消費しない。
      */
     @Test
     void completesLoadingWithOneHookAndNoDurabilityCost() {
@@ -127,6 +128,82 @@ class HookshotUseServiceTest {
         verify(fixture.inventoryService()).refreshManagedInventoryUi(fixture.astPlayer());
         verify(fixture.movementSpeed()).addTransientModifier(any());
         verify(fixture.task()).cancel();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
+     * 検証契約: 装填完了時は現在の有効な固体アンカーへ自動発射し、発射時だけ耐久を消費する。
+     */
+    @Test
+    void firesAutomaticallyWhenLoadingCompletesWithValidAnchor() {
+        String loadedMetadata = "{\"hookshot\":{\"loaded\":true}}";
+        Fixture fixture = createFixture(solidBlockHit(), null);
+        InventoryEntryModel loadedEntry = inventoryEntry(
+            UUID.fromString(fixture.instanceId()),
+            loadedMetadata,
+            fixture.accountId()
+        );
+        when(fixture.inventoryService().consumeNormalItemAndUpdateHotbarEquipmentMetadata(
+            eq(fixture.astPlayer()),
+            eq(EquipmentSlot.HAND),
+            eq(fixture.instanceId()),
+            eq(null),
+            anyString(),
+            eq(HookshotCostService.HOOK_ITEM_ID),
+            eq(HookshotCostService.HOOK_AMOUNT_PER_LOAD)
+        )).thenAnswer(invocation -> {
+            when(fixture.inventoryService().getHotbarEntryInHand(fixture.astPlayer(), EquipmentSlot.HAND))
+                .thenReturn(loadedEntry);
+            return true;
+        });
+        EquipmentInstance reduced = fixture.equipmentInstance(199);
+        when(fixture.itemService().updateEquipmentDurability(
+            fixture.instanceId(),
+            199,
+            fixture.accountId().toString()
+        )).thenReturn(reduced);
+        when(fixture.inventoryService().updateHotbarEquipmentMetadata(
+            fixture.astPlayer(),
+            EquipmentSlot.HAND,
+            fixture.instanceId(),
+            loadedMetadata,
+            null
+        )).thenReturn(true);
+
+        fixture.service().startLoading(fixture.astPlayer());
+        Runnable tick = captureTick(fixture);
+        for (int index = 0; index < HookshotUseService.LOAD_DURATION_TICKS; index++) {
+            tick.run();
+        }
+
+        verify(fixture.inventoryService()).consumeNormalItemAndUpdateHotbarEquipmentMetadata(
+            eq(fixture.astPlayer()),
+            eq(EquipmentSlot.HAND),
+            eq(fixture.instanceId()),
+            eq(null),
+            anyString(),
+            eq(HookshotCostService.HOOK_ITEM_ID),
+            eq(HookshotCostService.HOOK_AMOUNT_PER_LOAD)
+        );
+        verify(fixture.itemService()).updateEquipmentDurability(
+            fixture.instanceId(),
+            199,
+            fixture.accountId().toString()
+        );
+        verify(fixture.inventoryService()).updateHotbarEquipmentMetadata(
+            fixture.astPlayer(),
+            EquipmentSlot.HAND,
+            fixture.instanceId(),
+            loadedMetadata,
+            null
+        );
+        verify(fixture.scheduler(), times(2)).runTaskTimer(
+            eq(fixture.plugin()),
+            any(Runnable.class),
+            eq(1L),
+            eq(1L)
+        );
     }
 
     /**

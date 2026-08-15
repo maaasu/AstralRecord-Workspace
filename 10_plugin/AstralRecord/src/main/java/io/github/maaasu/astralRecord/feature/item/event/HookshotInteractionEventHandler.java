@@ -26,7 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.List;
 
-/** フックショットの装填・発射候補と短期処理の終了イベントを共通gatewayへ接続します。 */
+/** フックショットの左クリック装填・自動発射候補と短期処理の終了イベントを共通gatewayへ接続します。 */
 public final class HookshotInteractionEventHandler extends AbstractEventHandler
     implements PlayerInputResolver<PlayerInteractionSnapshot> {
 
@@ -53,15 +53,17 @@ public final class HookshotInteractionEventHandler extends AbstractEventHandler
         if (!isPlayerMode(astPlayer)) {
             return List.of();
         }
+        if (context.family() != InputFamily.LEFT_CLICK) {
+            return List.of();
+        }
         String equipmentInstanceId = hookshotUseService.findCurrentHookshotInstanceId(astPlayer);
         if (equipmentInstanceId == null) {
             return List.of();
         }
-        return switch (context.family()) {
-            case RIGHT_CLICK -> resolveLoadingCandidate(snapshot, astPlayer, equipmentInstanceId);
-            case LEFT_CLICK -> resolveFireCandidate(snapshot, astPlayer, equipmentInstanceId);
-            default -> List.of();
-        };
+        if (hookshotUseService.isCurrentHookshotLoaded(astPlayer, equipmentInstanceId)) {
+            return resolveFireCandidate(snapshot, astPlayer, equipmentInstanceId);
+        }
+        return resolveLoadingCandidate(snapshot, astPlayer, equipmentInstanceId);
     }
 
     private @NotNull Collection<PlayerInputCandidate> resolveLoadingCandidate(
@@ -75,7 +77,7 @@ public final class HookshotInteractionEventHandler extends AbstractEventHandler
         return List.of(new PlayerInputCandidate(
             "hookshot-load",
             InteractionTier.WORLD_INTERACTION,
-            candidateDistance(snapshot, Action.RIGHT_CLICK_BLOCK),
+            candidateDistance(snapshot, Action.LEFT_CLICK_BLOCK),
             InteractionCandidateOrder.HOOKSHOT,
             equipmentInstanceId,
             InputClaimPolicy.CLAIM_AND_CANCEL,
