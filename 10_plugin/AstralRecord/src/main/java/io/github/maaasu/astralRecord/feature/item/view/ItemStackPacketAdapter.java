@@ -22,6 +22,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
@@ -71,6 +73,7 @@ public class ItemStackPacketAdapter {
     private final PlayerSettingService playerSettingService;
     private final SkillActionRingService actionRingService;
     private final EquipmentOverrideRegistry equipmentOverrideRegistry = new EquipmentOverrideRegistry();
+    private final Map<UUID, Integer> selectedHotbarSlots = new ConcurrentHashMap<>();
     private boolean registered = false;
 
     /**
@@ -130,7 +133,7 @@ public class ItemStackPacketAdapter {
                 boolean actionRingOpen = actionRingService.isOpen(viewer);
                 int selectedHotbarSlot = actionRingOpen
                     ? actionRingService.getSelectedHotbarSlot(viewer)
-                    : -1;
+                    : selectedHotbarSlots.getOrDefault(viewer.getUniqueId(), -1);
 
                 if (type == PacketType.Play.Server.SET_SLOT) {
                     handleSetSlot(
@@ -138,7 +141,6 @@ public class ItemStackPacketAdapter {
                         armorDisplayEnabled,
                         shouldVirtualizeHotbarWeapon(
                             actionRingHoldSelectEnabled,
-                            actionRingOpen,
                             hotbarSlotForSetSlot(packet),
                             selectedHotbarSlot
                         )
@@ -148,7 +150,6 @@ public class ItemStackPacketAdapter {
                         packet,
                         armorDisplayEnabled,
                         actionRingHoldSelectEnabled,
-                        actionRingOpen,
                         selectedHotbarSlot
                     );
                 } else if (type == PacketType.Play.Server.ENTITY_EQUIPMENT) {
@@ -158,7 +159,28 @@ public class ItemStackPacketAdapter {
         });
         plugin.getServer().getPluginManager().registerEvents(new Listener() {
             @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
+            public void onPlayerJoin(@NotNull PlayerJoinEvent event) {
+                selectedHotbarSlots.put(
+                    event.getPlayer().getUniqueId(),
+                    event.getPlayer().getInventory().getHeldItemSlot()
+                );
+            }
+
+            @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
+            public void onPlayerItemHeld(@NotNull PlayerItemHeldEvent event) {
+                if (event.isCancelled()) {
+                    return;
+                }
+                Player player = event.getPlayer();
+                selectedHotbarSlots.put(player.getUniqueId(), event.getNewSlot());
+                if (playerSettingService.isActionRingHoldSelectEnabled(player.getUniqueId())) {
+                    player.updateInventory();
+                }
+            }
+
+            @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
             public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
+                selectedHotbarSlots.remove(event.getPlayer().getUniqueId());
                 equipmentOverrideRegistry.discardViewer(event.getPlayer().getUniqueId());
             }
         }, plugin);
@@ -198,14 +220,12 @@ public class ItemStackPacketAdapter {
      * @param packet 書き換え対象パケット
      * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
      * @param actionRingHoldSelectEnabled 長押し選択設定が有効な場合は {@code true}
-     * @param actionRingOpen アクションリングを表示中の場合は {@code true}
      * @param selectedHotbarSlot 選択中 hotbar slot（0-8）、不明な場合は負値
      */
     private void handleWindowItems(
         @NotNull PacketContainer packet,
         boolean armorDisplayEnabled,
         boolean actionRingHoldSelectEnabled,
-        boolean actionRingOpen,
         int selectedHotbarSlot
     ) {
         var items = packet.getItemListModifier().readSafely(0);
@@ -222,7 +242,6 @@ public class ItemStackPacketAdapter {
 
             boolean virtualTrident = shouldVirtualizeHotbarWeapon(
                 actionRingHoldSelectEnabled,
-                actionRingOpen,
                 playerInventoryHotbarSlot(packet, i),
                 selectedHotbarSlot
             );
@@ -407,19 +426,16 @@ public class ItemStackPacketAdapter {
      * 長押し選択用の仮想トライデントを表示する条件を判定します。
      *
      * @param actionRingHoldSelectEnabled 長押し選択設定が有効か
-     * @param actionRingOpen アクションリングが表示中か
      * @param hotbarSlot 判定対象 hotbar slot
      * @param selectedHotbarSlot プレイヤーが選択中の hotbar slot
      * @return 選択中の武器を仮想トライデント化する場合は {@code true}
      */
     static boolean shouldVirtualizeHotbarWeapon(
         boolean actionRingHoldSelectEnabled,
-        boolean actionRingOpen,
         int hotbarSlot,
         int selectedHotbarSlot
     ) {
         return actionRingHoldSelectEnabled
-            && actionRingOpen
             && hotbarSlot >= 0
             && hotbarSlot < 9
             && hotbarSlot == selectedHotbarSlot;
@@ -429,7 +445,7 @@ public class ItemStackPacketAdapter {
      * 指定プレイヤーの inventory と、そのプレイヤーが追跡中の全プレイヤーの防具表示を再送します。
      *
      * <p>Bukkit メインスレッドから呼び出してください。設定変更時とログイン設定ロード完了時に、
-     * 次の通常装備更新を待たず表示状態を即時反映します。</p>
+     * 次の通常装備更新を待たず、現在選択中 hotbar slot の仮想表示を含む表示状態を即時反映します。</p>
      *
      * @param viewer 表示設定を反映する受信プレイヤー
      */
@@ -437,6 +453,7 @@ public class ItemStackPacketAdapter {
         if (!viewer.isOnline()) {
             return;
         }
+        selectedHotbarSlots.put(viewer.getUniqueId(), viewer.getInventory().getHeldItemSlot());
         viewer.updateInventory();
         for (Player target : plugin.getServer().getOnlinePlayers()) {
             if (target != viewer && !target.isTrackedBy(viewer)) {

@@ -312,8 +312,8 @@ public final class SkillActionRingService {
 
     /**
      * 指定プレイヤーのリングを閉じます。
-     * <p>表示を破棄した後に本人の inventory を再送し、リング表示中だけ適用する
-     * クライアント専用表示を通常表示へ戻します。</p>
+     * <p>表示を破棄した後に本人の inventory を再送し、現在の設定と選択中 hotbar slot に
+     * 応じたクライアント専用表示へ再同期します。</p>
      *
      * @param player 対象プレイヤー
      */

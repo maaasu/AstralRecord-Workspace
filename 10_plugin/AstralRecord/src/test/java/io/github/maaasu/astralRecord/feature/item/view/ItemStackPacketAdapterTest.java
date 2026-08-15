@@ -134,14 +134,14 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
      * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### アイコン書き換え判定
-     * 検証契約: 長押し選択設定が有効でアクションリング表示中の場合だけ、選択中 hotbar slot の武器を仮想トライデント化する。
+     * 検証契約: 長押し選択設定が有効で選択中 hotbar slot の場合だけ、選択中 hotbar slot の武器を仮想トライデント化する。
      */
     @Test
-    void virtualTridentRequiresOpenActionRingAndSelectedHotbarSlot() {
-        assertTrue(ItemStackPacketAdapter.shouldVirtualizeHotbarWeapon(true, true, 2, 2));
-        assertFalse(ItemStackPacketAdapter.shouldVirtualizeHotbarWeapon(true, true, 1, 2));
-        assertFalse(ItemStackPacketAdapter.shouldVirtualizeHotbarWeapon(true, false, 2, 2));
-        assertFalse(ItemStackPacketAdapter.shouldVirtualizeHotbarWeapon(false, true, 2, 2));
+    void virtualTridentRequiresEnabledSettingAndSelectedHotbarSlot() {
+        assertTrue(ItemStackPacketAdapter.shouldVirtualizeHotbarWeapon(true, 2, 2));
+        assertFalse(ItemStackPacketAdapter.shouldVirtualizeHotbarWeapon(true, 1, 2));
+        assertFalse(ItemStackPacketAdapter.shouldVirtualizeHotbarWeapon(false, 2, 2));
+        assertFalse(ItemStackPacketAdapter.shouldVirtualizeHotbarWeapon(true, -1, 2));
     }
 
     /**
