@@ -1053,7 +1053,8 @@ public final class AstralRecord extends JavaPlugin {
             inventoryService,
             currencyService,
             playerMessageService,
-            itemService
+            itemService,
+            inventorySaveCoordinator
         );
         marketService = new MarketService(new MarketRepository());
         marketGuiEventHandler = new MarketGuiEventHandler(

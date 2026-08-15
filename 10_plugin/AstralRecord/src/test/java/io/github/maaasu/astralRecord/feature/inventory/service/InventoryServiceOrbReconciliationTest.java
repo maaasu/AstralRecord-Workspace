@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.inventory.service;
 
 import io.github.maaasu.astralRecord.feature.currency.model.GoldDenomination;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentLoadoutModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentLoadoutSlotModel;
@@ -15,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStat
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import org.junit.jupiter.api.Test;
 
@@ -38,6 +40,54 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class InventoryServiceOrbReconciliationTest {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_0-概要.md
+     * 章・見出し: # 22_0-概要 > ## 責務
+     * 検証契約: 受取 capacity 判定の仮差引は全量送付 entry を除去し、部分送付 entry は残量だけを保持する。
+     */
+    @Test
+    void capacityCheckSubtractsFullAndPartialOutgoingReservationsFromAuthoritativeState() {
+        Harness harness = harness();
+        UUID fullTransferId = UUID.randomUUID();
+        UUID partialTransferId = UUID.randomUUID();
+        harness.state.replaceEntriesFromLoad(harness.bag.getInventoryId(), List.of(
+            entry(
+                fullTransferId,
+                harness.accountId,
+                harness.bag.getInventoryId(),
+                NormalInventoryLayout.DB_SLOT_START,
+                "trade.full",
+                5L
+            ),
+            entry(
+                partialTransferId,
+                harness.accountId,
+                harness.bag.getInventoryId(),
+                NormalInventoryLayout.DB_SLOT_START + 1,
+                "trade.partial",
+                5L
+            )
+        ));
+        AstPlayer player = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        when(player.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(harness.accountId);
+
+        boolean subtracted = harness.service.removeOwnedEntryAmountsForCapacityCheck(
+            player,
+            Map.of(fullTransferId, 5L, partialTransferId, 3L)
+        );
+
+        assertTrue(subtracted);
+        List<InventoryEntryModel> simulated = harness.state.snapshotEntries(harness.bag.getInventoryId());
+        assertFalse(simulated.stream().anyMatch(entry -> entry.getInventoryEntryId().equals(fullTransferId)));
+        assertEquals(2L, simulated.stream()
+            .filter(entry -> entry.getInventoryEntryId().equals(partialTransferId))
+            .findFirst()
+            .orElseThrow()
+            .getQuantity());
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
@@ -351,6 +401,81 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_0-概要.md
+     * 章・見出し: # 22_0-概要 > ## 責務
+     * 検証契約: Trade API が未配置で返す通常 item・装備・ルーンの受取 BAG entry は、再同期後に重複しない有効 slot を持ち、後続保存で表示可能な state になる。
+     */
+    @Test
+    void tradeRecipientEntriesWithoutApiSlotsAreAssignedBagSlotsDuringReconciliation() {
+        Harness harness = harness(InventoryType.BAG);
+        UUID retainedEntryId = UUID.randomUUID();
+        UUID materialEntryId = UUID.randomUUID();
+        UUID equipmentEntryId = UUID.randomUUID();
+        UUID runeEntryId = UUID.randomUUID();
+        InventoryEntryModel retained = entry(
+            retainedEntryId,
+            harness.accountId,
+            harness.bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START,
+            "retained_material",
+            1L
+        );
+        InventoryEntryModel material = categoryEntry(
+            materialEntryId,
+            harness.accountId,
+            harness.bag.getInventoryId(),
+            null,
+            ItemCategory.MATERIAL,
+            "trade_material",
+            3L
+        );
+        InventoryEntryModel equipment = instanceEntry(
+            equipmentEntryId,
+            harness.accountId,
+            harness.bag.getInventoryId(),
+            ItemCategory.EQUIPMENT,
+            "EQUIPMENT"
+        );
+        InventoryEntryModel rune = instanceEntry(
+            runeEntryId,
+            harness.accountId,
+            harness.bag.getInventoryId(),
+            ItemCategory.RUNE,
+            "RUNE"
+        );
+        harness.state.replaceEntriesFromLoad(harness.bag.getInventoryId(), List.of(retained));
+        when(harness.repository.findEntryById(materialEntryId)).thenReturn(material);
+        when(harness.repository.findEntryById(equipmentEntryId)).thenReturn(equipment);
+        when(harness.repository.findEntryById(runeEntryId)).thenReturn(rune);
+
+        harness.service.reconcileExternalInventoryEntries(
+            harness.accountId,
+            List.of(materialEntryId, equipmentEntryId, runeEntryId),
+            baseline(harness.accountId, harness.bag.getInventoryId(), List.of(retained))
+        );
+
+        List<InventoryEntryModel> entries = harness.state.snapshotEntries(harness.bag.getInventoryId());
+        AtomicReference<List<InventoryEntryModel>> savedEntries = new AtomicReference<>();
+        when(harness.persistence.saveNow(harness.state)).thenAnswer(invocation -> {
+            savedEntries.set(List.copyOf(harness.state.snapshotEntries(harness.bag.getInventoryId())));
+            return true;
+        });
+        assertTrue(harness.service.persistReconciledStateNow(harness.accountId));
+
+        assertEquals(4, entries.size());
+        assertEquals(4, entries.stream()
+            .map(InventoryEntryModel::getSlotIndex)
+            .filter(slot -> slot != null && NormalInventoryLayout.isManagedSlot(slot, 27))
+            .distinct()
+            .count());
+        assertNotNull(savedEntries.get());
+        assertTrue(savedEntries.get().stream().allMatch(entry ->
+            entry.getSlotIndex() != null && NormalInventoryLayout.isManagedSlot(entry.getSlotIndex(), 27)));
+        assertEquals(NormalInventoryLayout.DB_SLOT_START, harness.service.findOwnedEntry(
+            harness.accountId, retainedEntryId).getSlotIndex());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
      * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
      * 検証契約: HOTBARからentryが全削除されても固定slotを前詰めしない。
@@ -586,16 +711,17 @@ class InventoryServiceOrbReconciliationTest {
         )));
         registry.put(state);
         InventoryRepository repository = mock(InventoryRepository.class);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
         InventoryService service = new InventoryService(
             repository,
             mock(EquipmentLoadoutRepository.class),
             mock(ItemService.class),
             mock(ItemStackFactory.class),
             registry,
-            mock(InventoryPersistence.class),
+            persistence,
             mock(InventorySaveCoordinator.class)
         );
-        return new Harness(accountId, orbEntryId, bag, state, repository, service);
+        return new Harness(accountId, orbEntryId, bag, state, repository, persistence, service);
     }
 
     private static InventoryEntryModel entry(
@@ -616,7 +742,7 @@ class InventoryServiceOrbReconciliationTest {
         UUID entryId,
         UUID accountId,
         UUID inventoryId,
-        int slot,
+        Integer slot,
         ItemCategory category,
         String itemId,
         long quantity
@@ -631,6 +757,32 @@ class InventoryServiceOrbReconciliationTest {
             null,
             null,
             quantity,
+            null,
+            now,
+            now,
+            accountId,
+            accountId,
+            false
+        );
+    }
+
+    private static InventoryEntryModel instanceEntry(
+        UUID entryId,
+        UUID accountId,
+        UUID inventoryId,
+        ItemCategory category,
+        String instanceType
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+        return new InventoryEntryModel(
+            entryId,
+            inventoryId,
+            null,
+            category.getApiValue(),
+            null,
+            instanceType,
+            UUID.randomUUID(),
+            1L,
             null,
             now,
             now,
@@ -715,6 +867,7 @@ class InventoryServiceOrbReconciliationTest {
         InventoryModel bag,
         PlayerInventoryState state,
         InventoryRepository repository,
+        InventoryPersistence persistence,
         InventoryService service
     ) {
     }

@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.trade.model;
 
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.ArrayList;
@@ -18,6 +19,8 @@ public final class TradeSession {
     private final String playerBName;
     private List<ItemStack> playerAItems;
     private List<ItemStack> playerBItems;
+    private List<UUID> playerAItemSourceEntryIds;
+    private List<UUID> playerBItemSourceEntryIds;
     private long playerAGoldAmount;
     private long playerBGoldAmount;
     private boolean playerAReady;
@@ -45,6 +48,8 @@ public final class TradeSession {
         this.playerBName = playerBName;
         this.playerAItems = List.of();
         this.playerBItems = List.of();
+        this.playerAItemSourceEntryIds = List.of();
+        this.playerBItemSourceEntryIds = List.of();
         this.status = TradeSessionStatus.OPEN;
         this.openedAt = openedAt;
         this.updatedAt = openedAt;
@@ -96,19 +101,65 @@ public final class TradeSession {
     }
 
     public void setItems(@NotNull UUID playerUuid, @NotNull List<ItemStack> items) {
+        setItems(playerUuid, items, null);
+    }
+
+    /**
+     * 提示 item と API 確定で使う元 inventory entry ID を同時に更新します。
+     *
+     * @param playerUuid 提示者 UUID
+     * @param items 提示 item
+     * @param sourceEntryIds item と同順の source entry ID。テスト用など未指定時は null
+     */
+    public void setItems(
+        @NotNull UUID playerUuid,
+        @NotNull List<ItemStack> items,
+        @Nullable List<UUID> sourceEntryIds
+    ) {
         List<ItemStack> clones = cloneItems(items);
         List<ItemStack> current = playerAUuid.equals(playerUuid) ? playerAItems : playerBItems;
-        if (sameItems(current, clones)) {
+        List<UUID> currentSourceIds = playerAUuid.equals(playerUuid)
+            ? playerAItemSourceEntryIds : playerBItemSourceEntryIds;
+        List<UUID> normalizedSourceIds = normalizeSourceEntryIds(clones.size(), sourceEntryIds);
+        if (sameItems(current, clones) && currentSourceIds.equals(normalizedSourceIds)) {
             return;
         }
         if (playerAUuid.equals(playerUuid)) {
             playerAItems = clones;
+            playerAItemSourceEntryIds = normalizedSourceIds;
         } else {
             playerBItems = clones;
+            playerBItemSourceEntryIds = normalizedSourceIds;
         }
         playerAReady = false;
         playerBReady = false;
         touch();
+    }
+
+    /**
+     * 現在の提示を API 確定用 entry ID・数量へ変換します。
+     *
+     * @param playerUuid 提示者 UUID
+     * @return source entry が確定している提示明細。未解決明細があれば空のリスト
+     */
+    public @NotNull List<TradeCommitItem> getCommitItems(@NotNull UUID playerUuid) {
+        List<ItemStack> items = playerAUuid.equals(playerUuid) ? playerAItems : playerBItems;
+        List<UUID> sourceIds = playerAUuid.equals(playerUuid)
+            ? playerAItemSourceEntryIds : playerBItemSourceEntryIds;
+        if (items.size() != sourceIds.size() || sourceIds.stream().anyMatch(java.util.Objects::isNull)) {
+            return List.of();
+        }
+        List<TradeCommitItem> result = new ArrayList<>();
+        for (int index = 0; index < items.size(); index++) {
+            result.add(new TradeCommitItem(sourceIds.get(index), items.get(index).getAmount()));
+        }
+        return List.copyOf(result);
+    }
+
+    public @Nullable UUID getItemSourceEntryId(@NotNull UUID playerUuid, int offerIndex) {
+        List<UUID> sourceIds = playerAUuid.equals(playerUuid)
+            ? playerAItemSourceEntryIds : playerBItemSourceEntryIds;
+        return offerIndex < 0 || offerIndex >= sourceIds.size() ? null : sourceIds.get(offerIndex);
     }
 
     public void setGoldAmount(@NotNull UUID playerUuid, long amount) {
@@ -169,6 +220,13 @@ public final class TradeSession {
             }
         }
         return clones;
+    }
+
+    private static @NotNull List<UUID> normalizeSourceEntryIds(int itemCount, @Nullable List<UUID> sourceEntryIds) {
+        if (sourceEntryIds == null || sourceEntryIds.size() != itemCount) {
+            return new ArrayList<>(java.util.Collections.nCopies(itemCount, null));
+        }
+        return new ArrayList<>(sourceEntryIds);
     }
 
     private static boolean sameItems(@NotNull List<ItemStack> left, @NotNull List<ItemStack> right) {

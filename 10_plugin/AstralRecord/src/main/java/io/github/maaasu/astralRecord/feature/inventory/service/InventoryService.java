@@ -594,10 +594,29 @@ public class InventoryService {
      * @param inventoryEntryId 一時的に隠す entry ID
      */
     public void hideOwnedEntryFromGui(@NotNull AstPlayer astPlayer, @NotNull UUID inventoryEntryId) {
+        hideOwnedEntryQuantityFromGui(astPlayer, inventoryEntryId, 1);
+    }
+
+    /**
+     * 指定数量だけ所持 entry を表示から予約します。正本 state を減算しないため、外部原子操作まで
+     * autosave が提示品を消失させません。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param inventoryEntryId 一時的に隠す entry ID
+     * @param quantity 一時的に隠す数量
+     */
+    public void hideOwnedEntryQuantityFromGui(
+        @NotNull AstPlayer astPlayer,
+        @NotNull UUID inventoryEntryId,
+        int quantity
+    ) {
+        if (quantity <= 0) {
+            return;
+        }
         UUID accountId = astPlayer.getAccount().getUuid();
         temporarilyHiddenEntryQuantitiesByAccount
             .computeIfAbsent(accountId, ignored -> new ConcurrentHashMap<>())
-            .merge(inventoryEntryId, 1, Integer::sum);
+            .merge(inventoryEntryId, quantity, Integer::sum);
         requestManagedInventoryUiRefresh(astPlayer, true);
     }
 
@@ -608,12 +627,31 @@ public class InventoryService {
      * @param inventoryEntryId 復元する entry ID
      */
     public void restoreHiddenEntryToGui(@NotNull AstPlayer astPlayer, @NotNull UUID inventoryEntryId) {
+        restoreHiddenEntryQuantityToGui(astPlayer, inventoryEntryId, 1);
+    }
+
+    /**
+     * 一時表示予約を指定数量だけ解除します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param inventoryEntryId 復元する entry ID
+     * @param quantity 復元する数量
+     */
+    public void restoreHiddenEntryQuantityToGui(
+        @NotNull AstPlayer astPlayer,
+        @NotNull UUID inventoryEntryId,
+        int quantity
+    ) {
+        if (quantity <= 0) {
+            return;
+        }
         UUID accountId = astPlayer.getAccount().getUuid();
         Map<UUID, Integer> reserved = temporarilyHiddenEntryQuantitiesByAccount.get(accountId);
         if (reserved == null || !reserved.containsKey(inventoryEntryId)) {
             return;
         }
-        reserved.computeIfPresent(inventoryEntryId, (ignored, quantity) -> quantity <= 1 ? null : quantity - 1);
+        reserved.computeIfPresent(inventoryEntryId, (ignored, reservedQuantity) ->
+            reservedQuantity <= quantity ? null : reservedQuantity - quantity);
         if (reserved.isEmpty()) {
             temporarilyHiddenEntryQuantitiesByAccount.remove(accountId, reserved);
         }
@@ -2176,7 +2214,9 @@ public class InventoryService {
                 InventoryModel inventory = state.findInventoryById(inventoryId);
                 boolean compactBag = inventory != null
                     && inventory.getInventoryType() == InventoryType.BAG
-                    && result.inventoryIdsNeedingCompaction().contains(inventoryId);
+                    && (result.inventoryIdsNeedingCompaction().contains(inventoryId)
+                        || entries.stream().anyMatch(entry ->
+                            !entry.isDeleted() && entry.getSlotIndex() == null));
                 finalizedEntries.put(
                     inventoryId,
                     compactBag
@@ -2696,6 +2736,63 @@ public class InventoryService {
 
     public InventoryType resolveInventoryType(@NotNull ItemModel model) {
         return resolveTargetInventoryType(model);
+    }
+
+    /**
+     * トレード等の容量判定中だけ、指定した通常 inventory entry の予約数量を local state から差し引きます。
+     * <p>
+     * 呼び出し側は先に {@link #snapshotState(UUID)} を取得し、必ず {@link #restoreState(InventoryStateSnapshot)}
+     * で復元してください。BAG/HOTBAR の source entry が全て現在の数量内にある場合だけ反映し、部分送付は
+     * stack の残量を維持します。Bukkit 表示や API 保存は行いません。
+     *
+     * @param astPlayer 判定対象のプレイヤー状態
+     * @param reservedAmounts source entry ID ごとの予約送付数量
+     * @return 全予約を仮差引できた場合は {@code true}
+     */
+    public boolean removeOwnedEntryAmountsForCapacityCheck(
+        @NotNull AstPlayer astPlayer,
+        @NotNull Map<UUID, Long> reservedAmounts
+    ) {
+        if (reservedAmounts.isEmpty()) {
+            return true;
+        }
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return false;
+        }
+        Map<UUID, Long> remaining = new HashMap<>();
+        for (Map.Entry<UUID, Long> reservation : reservedAmounts.entrySet()) {
+            if (reservation.getValue() == null || reservation.getValue() <= 0L) {
+                return false;
+            }
+            remaining.put(reservation.getKey(), reservation.getValue());
+        }
+        synchronized (state) {
+            Map<UUID, List<InventoryEntryModel>> replacements = new LinkedHashMap<>();
+            for (InventoryType type : List.of(InventoryType.BAG, InventoryType.HOTBAR)) {
+                InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, type);
+                if (inventory == null || !inventory.isEnabled()) {
+                    continue;
+                }
+                List<InventoryEntryModel> nextEntries = new ArrayList<>();
+                for (InventoryEntryModel entry : state.snapshotEntries(inventory.getInventoryId())) {
+                    Long reservedAmount = remaining.remove(entry.getInventoryEntryId());
+                    if (reservedAmount == null) {
+                        nextEntries.add(entry);
+                    } else if (entry.isDeleted() || reservedAmount > entry.getQuantity()) {
+                        return false;
+                    } else if (reservedAmount < entry.getQuantity()) {
+                        nextEntries.add(withQuantity(entry, entry.getQuantity() - reservedAmount, state.getAccountId()));
+                    }
+                }
+                replacements.put(inventory.getInventoryId(), nextEntries);
+            }
+            if (!remaining.isEmpty()) {
+                return false;
+            }
+            replacements.forEach(state::replaceEntries);
+            return true;
+        }
     }
 
     public boolean canAddItemToNormalInventory(

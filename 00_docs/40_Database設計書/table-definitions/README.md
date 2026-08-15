@@ -27,6 +27,7 @@
 | `AstralRecord` | `AstralRecord/migrations/20260810_orb_enchant_effect_id.sql` | 装備エンチャントを共通マスタ effect ID 参照へ原子的に移行 |
 | `AstralRecord` | `AstralRecord/migrations/20260811_equipment_orb_operation.sql` | オーブ操作台帳、個体出品range-lock索引、旧カテゴリデータ移行 |
 | `AstralRecord` | `AstralRecord/migrations/20260812_account_dungeon_record.sql` | アカウント単位のダンジョン踏破記録を追加 |
+| `AstralRecord` | `AstralRecord/migrations/20260815_trade_commit.sql` | プレイヤー間トレードの冪等確定台帳を追加 |
 
 ## AstralRecord
 
@@ -62,6 +63,7 @@
 | `dbo.market_listing` | `AstralRecord/dbo.market_listing.md` |
 | `dbo.market_transaction` | `AstralRecord/dbo.market_transaction.md` |
 | `dbo.market_price_snapshot` | `AstralRecord/dbo.market_price_snapshot.md` |
+| `dbo.trade_commit` | `AstralRecord/dbo.trade_commit.md` |
 | `dbo.web_login_challenge` | `AstralRecord/dbo.web_login_challenge.md` |
 
 ## MasterDataDB

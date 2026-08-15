@@ -80,6 +80,7 @@ builder.Services.AddScoped<IEquipmentOrbOperationRepository, EquipmentOrbOperati
 builder.Services.AddScoped<IEquipmentLoadoutRepository, EquipmentLoadoutRepository>();
 builder.Services.AddScoped<IRuneRepository, RuneRepository>();
 builder.Services.AddScoped<IMarketRepository, MarketRepository>();
+builder.Services.AddScoped<ITradeRepository, TradeRepository>();
 builder.Services.AddScoped<IWebAuthRepository, WebAuthRepository>();
 builder.Services.AddScoped<IEquipmentService, EquipmentService>();
 builder.Services.AddScoped<IRuneService, RuneService>();

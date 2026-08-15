@@ -251,6 +251,123 @@ public final class InventorySaveCoordinator {
         return operationResult;
     }
 
+    /**
+     * 外部原子操作の開始前に、同一 account の保存済み baseline だけを取得します。
+     * <p>
+     * 成功後も未解決境界は維持するため、呼び出し側は API 応答待機中に autosave や logout save が
+     * 操作前 state を保存しないよう保護されます。取得した handle は
+     * {@link #completePreparedExternalOperation(PreparedExternalOperation, Function)} で成功完了するか、
+     * API が未確定のまま失敗した場合に {@link #abandonPreparedExternalOperation(PreparedExternalOperation)}
+     * で明示的に解除してください。
+     *
+     * @param accountId 対象アカウント ID
+     * @return 保存済み baseline と対象 state を保持する handle の future
+     * @throws IllegalStateException 対象 state が未ロード、または pre-save を完了できない場合
+     */
+    public @NotNull CompletableFuture<PreparedExternalOperation> prepareExternalOperationAfterSave(
+        @NotNull UUID accountId
+    ) {
+        PlayerInventoryState expectedState = stateRegistry.get(accountId);
+        CompletableFuture<PreparedExternalOperation> preparedResult = new CompletableFuture<>();
+        if (expectedState == null) {
+            preparedResult.completeExceptionally(
+                new IllegalStateException("Inventory state is not loaded for account " + accountId)
+            );
+            return preparedResult;
+        }
+
+        expectedState.markDirty();
+        unresolvedExternalOperations.add(accountId);
+        AtomicReference<InventoryPersistence.PersistedInventoryBaseline> baselineReference = new AtomicReference<>();
+        CompletableFuture<Boolean> laneResult = enqueue(accountId, false, () -> {
+            if (stateRegistry.get(accountId) != expectedState) {
+                unresolvedExternalOperations.remove(accountId);
+                throw new IllegalStateException("Inventory state generation changed for account " + accountId);
+            }
+            try {
+                baselineReference.set(awaitStablePreSave(accountId, expectedState));
+                return true;
+            } catch (RuntimeException | Error preSaveFailure) {
+                unresolvedExternalOperations.remove(accountId);
+                throw preSaveFailure;
+            }
+        });
+        laneResult.whenComplete((succeeded, throwable) -> {
+            if (throwable != null) {
+                unresolvedExternalOperations.remove(accountId);
+                preparedResult.completeExceptionally(throwable);
+            } else if (!Boolean.TRUE.equals(succeeded) || baselineReference.get() == null) {
+                unresolvedExternalOperations.remove(accountId);
+                preparedResult.completeExceptionally(new IllegalStateException(
+                    "Inventory save coordinator rejected external operation for account " + accountId
+                ));
+            } else {
+                preparedResult.complete(new PreparedExternalOperation(accountId, expectedState, baselineReference.get()));
+            }
+        });
+        return preparedResult;
+    }
+
+    /**
+     * 事前保存済み handle の同一 account lane で API 正本照合と再保存を完了します。
+     * <p>
+     * operation が例外になった場合は、API transaction が確定済みの可能性を保護するため未解決境界を
+     * 解除しません。同じ handle と operation ID の API replay で再試行し、再同期と保存が成功した時だけ
+     * 境界を解除します。
+     *
+     * @param prepared {@link #prepareExternalOperationAfterSave(UUID)} が返した handle
+     * @param operation API 正本照合を行う処理
+     * @param <T> 処理結果型
+     * @return 再同期・保存を完了した結果 future
+     * @throws IllegalStateException handle が無効、または対象 state 世代が変化した場合
+     */
+    public <T> @NotNull CompletableFuture<T> completePreparedExternalOperation(
+        @NotNull PreparedExternalOperation prepared,
+        @NotNull Function<InventoryPersistence.PersistedInventoryBaseline, T> operation
+    ) {
+        UUID accountId = prepared.accountId();
+        CompletableFuture<T> operationResult = new CompletableFuture<>();
+        if (!unresolvedExternalOperations.contains(accountId)) {
+            operationResult.completeExceptionally(new IllegalStateException(
+                "External operation is no longer unresolved for account " + accountId
+            ));
+            return operationResult;
+        }
+        AtomicReference<T> completedResult = new AtomicReference<>();
+        CompletableFuture<Boolean> laneResult = enqueue(accountId, false, () -> {
+            if (stateRegistry.get(accountId) != prepared.state()) {
+                throw new IllegalStateException("Inventory state generation changed for account " + accountId);
+            }
+            T result = operation.apply(prepared.baseline());
+            completedResult.set(result);
+            persistMergedStateUntilStable(accountId, prepared.state());
+            return true;
+        });
+        laneResult.whenComplete((succeeded, throwable) -> {
+            if (throwable != null) {
+                operationResult.completeExceptionally(throwable);
+            } else if (!Boolean.TRUE.equals(succeeded)) {
+                operationResult.completeExceptionally(new IllegalStateException(
+                    "Inventory save coordinator rejected external operation for account " + accountId
+                ));
+            } else {
+                operationResult.complete(completedResult.get());
+            }
+        });
+        return operationResult;
+    }
+
+    /**
+     * API transaction が未確定のまま失敗した事前保存 handle を破棄します。
+     *
+     * @param prepared 破棄する handle
+     */
+    public void abandonPreparedExternalOperation(@NotNull PreparedExternalOperation prepared) {
+        if (stateRegistry.get(prepared.accountId()) == prepared.state()) {
+            unresolvedExternalOperations.remove(prepared.accountId());
+        }
+    }
+
     private @NotNull InventoryPersistence.PersistedInventoryBaseline awaitStablePreSave(
         @NotNull UUID accountId,
         @NotNull PlayerInventoryState expectedState
@@ -699,6 +816,20 @@ public final class InventorySaveCoordinator {
         @NotNull UUID accountId,
         @NotNull PlayerInventoryState state,
         long generation
+    ) {
+    }
+
+    /**
+     * API 呼び出し前の保存済み baseline と、その間に保持する state 世代です。
+     *
+     * @param accountId 対象アカウント ID
+     * @param state 事前保存時から同一である必要がある state
+     * @param baseline API 正本照合に使う保存済み entry
+     */
+    public record PreparedExternalOperation(
+        @NotNull UUID accountId,
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline
     ) {
     }
 

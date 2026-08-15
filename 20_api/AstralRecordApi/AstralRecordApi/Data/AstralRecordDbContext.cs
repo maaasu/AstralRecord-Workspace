@@ -41,6 +41,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<MarketListingEntity> MarketListings => Set<MarketListingEntity>();
     public DbSet<MarketTransactionEntity> MarketTransactions => Set<MarketTransactionEntity>();
     public DbSet<MarketPriceSnapshotEntity> MarketPriceSnapshots => Set<MarketPriceSnapshotEntity>();
+    public DbSet<TradeCommitEntity> TradeCommits => Set<TradeCommitEntity>();
     public DbSet<WebLoginChallengeEntity> WebLoginChallenges => Set<WebLoginChallengeEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -848,6 +849,22 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.HasIndex(e => e.ListingId).HasDatabaseName("IX_market_price_snapshot_listing");
             entity.HasIndex(e => new { e.ItemCategory, e.ItemId, e.EvaluatedAt }).HasDatabaseName("IX_market_price_snapshot_item_evaluated");
             entity.HasIndex(e => new { e.ValuationSignature, e.EvaluatedAt }).HasDatabaseName("IX_market_price_snapshot_signature_evaluated");
+        });
+
+        modelBuilder.Entity<TradeCommitEntity>(entity =>
+        {
+            entity.ToTable("trade_commit", "dbo");
+            entity.HasKey(e => e.OperationId);
+            entity.Property(e => e.OperationId).HasColumnName("operation_id");
+            entity.Property(e => e.PlayerAAccountId).HasColumnName("player_a_account_id");
+            entity.Property(e => e.PlayerBAccountId).HasColumnName("player_b_account_id");
+            entity.Property(e => e.RequestHash).HasColumnName("request_hash").HasMaxLength(64);
+            entity.Property(e => e.ResultPayloadJson).HasColumnName("result_payload_json");
+            entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
+            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
+            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
+            entity.HasIndex(e => new { e.PlayerAAccountId, e.PlayerBAccountId, e.CompletedAt })
+                .HasDatabaseName("IX_trade_commit_accounts_completed");
         });
     }
 }
