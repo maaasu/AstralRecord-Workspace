@@ -149,7 +149,7 @@ public final class PlayerMessageService {
     ) {
         sendComponent(
             player,
-            PlayerMsgResource.formatComponent(msgId.getId(), args)
+            PlayerMsgResource.formatPlainComponent(msgId.getId(), args)
                 .clickEvent(ClickEvent.runCommand(command))
         );
     }

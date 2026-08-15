@@ -116,6 +116,17 @@ public final class PlayerMsgResource {
     }
 
     /**
+     * キーに対応するメッセージを Component として取得し、引数へのクリック・hover 補助を付与しません。
+     *
+     * @param key メッセージキー
+     * @param args フォーマット引数
+     * @return 引数のクリック・hover 補助を持たない Component
+     */
+    public static Component formatPlainComponent(String key, Object... args) {
+        return LEGACY_SERIALIZER.deserialize(format(key, args));
+    }
+
+    /**
      * 任意のメッセージ文字列を Component 化し、引数文字列へクリック・hover 補助を付与します。
      *
      * @param message メッセージ本文

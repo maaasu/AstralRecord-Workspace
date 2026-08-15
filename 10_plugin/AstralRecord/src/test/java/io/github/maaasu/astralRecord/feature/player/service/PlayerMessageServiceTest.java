@@ -64,6 +64,29 @@ class PlayerMessageServiceTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
+     * 章・見出し: # 19_3-メソッド仕様 > ## 作成・招待
+     * 検証契約: クリック可能メッセージの置換引数にプレイヤー名が含まれても、指定コマンド以外のクリック操作を付与しない。
+     */
+    @Test
+    void clickableMessageDoesNotReplaceCommandWithPlayerInfo() {
+        Player player = onlinePlayer();
+        Player inviter = onlinePlayer();
+        when(inviter.getName()).thenReturn("Alice");
+        PlayerMessageService service = new PlayerMessageService();
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(Set.of());
+            bukkit.when(() -> Bukkit.getPlayerExact("Alice")).thenReturn(inviter);
+            service.sendClickable(player, PlayerMsgId.P_5908, "/party accept Alice", "Alice");
+
+            Component sent = captureMessage(player);
+            assertTrue(hasRunCommand(sent, "/party accept Alice"));
+            assertTrue(hasNoRunCommand(sent, "/player info Alice"));
+        }
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
      * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### 全体チャット配信
      * 検証契約: 全体chatで3文字短縮class tagをplayer名より前に置く。
@@ -115,5 +138,19 @@ class PlayerMessageServiceTest {
             return true;
         }
         return component.children().stream().anyMatch(child -> hasRunCommand(child, command));
+    }
+
+    private boolean hasNoRunCommand(Component component, String command) {
+        ClickEvent clickEvent = component.clickEvent();
+        if (clickEvent != null && clickEvent.action() == ClickEvent.Action.RUN_COMMAND) {
+            ClickEvent.Payload.Text payload = assertInstanceOf(
+                ClickEvent.Payload.Text.class,
+                clickEvent.payload()
+            );
+            if (command.equals(payload.value())) {
+                return false;
+            }
+        }
+        return component.children().stream().allMatch(child -> hasNoRunCommand(child, command));
     }
 }

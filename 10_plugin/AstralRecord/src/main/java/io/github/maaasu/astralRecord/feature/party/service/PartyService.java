@@ -109,7 +109,13 @@ public final class PartyService {
 
         invitesByTarget.computeIfAbsent(targetId, ignored -> new LinkedHashMap<>())
             .put(inviterId, new PartyInvite(party.getPartyId(), inviterId, targetId, java.time.Instant.now()));
-        PlayerMessageService.getInstance().send(target, PlayerMsgId.P_5908, inviter.getBukkit().getName());
+        String inviterName = inviter.getBukkit().getName();
+        PlayerMessageService.getInstance().sendClickable(
+            target,
+            PlayerMsgId.P_5908,
+            "/party accept " + inviterName,
+            inviterName
+        );
         recordHistory(inviterId, "PARTY_INVITED", "Party invite sent to " + target.getName());
         recordHistory(targetId, "PARTY_INVITE_RECEIVED", "Party invite received from " + inviter.getBukkit().getName());
         return PartyActionResult.success(PlayerMsgId.P_5907, target.getName());
