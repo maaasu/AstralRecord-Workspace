@@ -18,7 +18,7 @@ items:
 
   - id: nox_sword
     itemId:
-      ref: item:traveler_sword
+      ref: item:nox_sword
     category: equipment
     amount: 1
     page: 1
@@ -26,7 +26,7 @@ items:
     priceGold: 20
   - id: nox_bow
     itemId:
-      ref: item:traveler_bow
+      ref: item:nox_bow
     category: equipment
     amount: 1
     page: 1
@@ -34,7 +34,7 @@ items:
     priceGold: 20
   - id: nox_staff
     itemId:
-      ref: item:traveler_staff
+      ref: item:nox_staff
     category: equipment
     amount: 1
     page: 1
