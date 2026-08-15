@@ -17,6 +17,7 @@ unSellable: true
 equipment:
   slot: WEAPON
   handType: ONE
+  tag: SWORD
   requiredLevel: 0
   stats:
     - status: ATTACK
