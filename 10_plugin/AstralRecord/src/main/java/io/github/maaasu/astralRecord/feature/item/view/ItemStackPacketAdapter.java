@@ -48,7 +48,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * <ul>
  *   <li>{@code SET_SLOT} — 単一スロットの更新</li>
  *   <li>{@code WINDOW_ITEMS} — インベントリ全体の一括送信</li>
- *   <li>{@code ENTITY_EQUIPMENT} — 他エンティティの手持ち・装備更新</li>
+ *   <li>{@code ENTITY_EQUIPMENT} — 本人を含むエンティティの手持ち・装備更新</li>
  * </ul>
  * <p>
  * <b>性能上の考慮:</b>
@@ -153,7 +153,12 @@ public class ItemStackPacketAdapter {
                         selectedHotbarSlot
                     );
                 } else if (type == PacketType.Play.Server.ENTITY_EQUIPMENT) {
-                    handleEntityEquipment(event, armorDisplayEnabled);
+                    handleEntityEquipment(
+                        event,
+                        armorDisplayEnabled,
+                        actionRingHoldSelectEnabled,
+                        selectedHotbarSlot
+                    );
                 }
             }
         });
@@ -259,23 +264,44 @@ public class ItemStackPacketAdapter {
 
     /**
      * ENTITY_EQUIPMENT パケットを中止し、Paper API が符号化する受信者専用の装備更新へ置き換えます。
+     * 本人のメインハンドだけは、選択中 hotbar slot の仮想トライデント表示も再適用します。
      *
      * @param event 中止対象のパケットイベント
      * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
+     * @param actionRingHoldSelectEnabled 長押し選択設定が有効な場合は {@code true}
+     * @param selectedHotbarSlot 受信者が選択中の hotbar slot
      */
-    private void handleEntityEquipment(@NotNull PacketEvent event, boolean armorDisplayEnabled) {
+    private void handleEntityEquipment(
+        @NotNull PacketEvent event,
+        boolean armorDisplayEnabled,
+        boolean actionRingHoldSelectEnabled,
+        int selectedHotbarSlot
+    ) {
         PacketContainer packet = event.getPacket();
         List<Pair<EnumWrappers.ItemSlot, ItemStack>> equipment = packet.getSlotStackPairLists().readSafely(0);
         if (equipment == null || equipment.isEmpty()) {
             return;
         }
 
+        Integer entityId = packet.getIntegers().readSafely(0);
+        if (entityId == null) {
+            return;
+        }
+
+        Player viewer = event.getPlayer();
+        boolean virtualizeSelectedMainHand = shouldVirtualizeSelectedMainHand(
+            actionRingHoldSelectEnabled,
+            selectedHotbarSlot,
+            entityId == viewer.getEntityId()
+        );
         List<EquipmentUpdate> updates = new java.util.ArrayList<>(equipment.size());
         boolean requiresOverride = false;
         for (Pair<EnumWrappers.ItemSlot, ItemStack> pair : equipment) {
             ItemStack original = pair.getSecond();
+            boolean virtualTrident = virtualizeSelectedMainHand
+                && pair.getFirst() == EnumWrappers.ItemSlot.MAINHAND;
             if (original != null && original.getType() != Material.AIR
-                && replaceIcon(original, armorDisplayEnabled) != null) {
+                && replaceIcon(original, armorDisplayEnabled, virtualTrident) != null) {
                 requiresOverride = true;
             }
             updates.add(new EquipmentUpdate(
@@ -288,13 +314,17 @@ public class ItemStackPacketAdapter {
             return;
         }
 
-        int entityId = packet.getIntegers().readSafely(0);
-        Player viewer = event.getPlayer();
         PacketContainer originalPacket = packet.deepClone();
         event.setCancelled(true);
         plugin.getServer().getScheduler().runTask(
             plugin,
-            () -> sendEquipmentOverride(viewer, entityId, updates, originalPacket)
+            () -> sendEquipmentOverride(
+                viewer,
+                entityId,
+                updates,
+                originalPacket,
+                virtualizeSelectedMainHand
+            )
         );
     }
 
@@ -442,6 +472,25 @@ public class ItemStackPacketAdapter {
     }
 
     /**
+     * 本人の ENTITY_EQUIPMENT メインハンドを仮想トライデント表示にする条件を判定します。
+     *
+     * @param actionRingHoldSelectEnabled 長押し選択設定が有効か
+     * @param selectedHotbarSlot 受信者が選択中の hotbar slot
+     * @param viewerEntityPacket 本人のエンティティ向けパケットか
+     * @return 本人のメインハンドを仮想トライデント化する場合は {@code true}
+     */
+    static boolean shouldVirtualizeSelectedMainHand(
+        boolean actionRingHoldSelectEnabled,
+        int selectedHotbarSlot,
+        boolean viewerEntityPacket
+    ) {
+        return actionRingHoldSelectEnabled
+            && viewerEntityPacket
+            && selectedHotbarSlot >= 0
+            && selectedHotbarSlot < 9;
+    }
+
+    /**
      * 指定プレイヤーの inventory と、そのプレイヤーが追跡中の全プレイヤーの防具表示を再送します。
      *
      * <p>Bukkit メインスレッドから呼び出してください。設定変更時とログイン設定ロード完了時に、
@@ -475,12 +524,14 @@ public class ItemStackPacketAdapter {
      * @param entityId 元パケットのエンティティ ID
      * @param updates 元パケットから退避した装備更新
      * @param originalPacket 解決失敗時にフィルタを通さず再送する元パケット
+     * @param virtualizeSelectedMainHand 本人のメインハンドを仮想トライデント化する場合は {@code true}
      */
     private void sendEquipmentOverride(
         @NotNull Player viewer,
         int entityId,
         @NotNull List<EquipmentUpdate> updates,
-        @NotNull PacketContainer originalPacket
+        @NotNull PacketContainer originalPacket,
+        boolean virtualizeSelectedMainHand
     ) {
         if (!viewer.isOnline()) {
             return;
@@ -497,7 +548,7 @@ public class ItemStackPacketAdapter {
             return;
         }
 
-        sendEquipmentOverride(viewer, target, updates);
+        sendEquipmentOverride(viewer, target, updates, virtualizeSelectedMainHand);
     }
 
     /**
@@ -512,11 +563,29 @@ public class ItemStackPacketAdapter {
         @NotNull org.bukkit.entity.LivingEntity target,
         @NotNull List<EquipmentUpdate> updates
     ) {
+        sendEquipmentOverride(viewer, target, updates, false);
+    }
+
+    /**
+     * Paper API 経由で装備更新を送信し、必要な場合は本人のメインハンドだけを仮想化します。
+     *
+     * @param viewer 装備表示を受信するプレイヤー
+     * @param target 装備を表示する対象エンティティ
+     * @param updates 送信する装備更新
+     * @param virtualizeSelectedMainHand 本人のメインハンドを仮想トライデント化する場合は {@code true}
+     */
+    private void sendEquipmentOverride(
+        @NotNull Player viewer,
+        @NotNull org.bukkit.entity.LivingEntity target,
+        @NotNull List<EquipmentUpdate> updates,
+        boolean virtualizeSelectedMainHand
+    ) {
 
         boolean armorDisplayEnabled = playerSettingService.isArmorDisplayEnabled(viewer.getUniqueId());
         Map<EquipmentSlot, ItemStack> equipment = new EnumMap<>(EquipmentSlot.class);
         for (EquipmentUpdate update : updates) {
-            ItemStack replaced = replaceIcon(update.item(), armorDisplayEnabled);
+            boolean virtualTrident = virtualizeSelectedMainHand && update.slot() == EquipmentSlot.HAND;
+            ItemStack replaced = replaceIcon(update.item(), armorDisplayEnabled, virtualTrident);
             equipment.put(update.slot(), replaced != null ? replaced : update.item());
         }
         if (equipment.isEmpty()) {

@@ -146,6 +146,20 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
+     * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### ENTITY_EQUIPMENT書き換え
+     * 検証契約: ENTITY_EQUIPMENTでは本人のメインハンドだけが選択中 hotbar slot の仮想トライデント対象になる。
+     */
+    @Test
+    void entityEquipmentVirtualTridentRequiresViewerPacketAndSelectedHotbarSlot() {
+        assertTrue(ItemStackPacketAdapter.shouldVirtualizeSelectedMainHand(true, 2, true));
+        assertFalse(ItemStackPacketAdapter.shouldVirtualizeSelectedMainHand(true, 2, false));
+        assertFalse(ItemStackPacketAdapter.shouldVirtualizeSelectedMainHand(false, 2, true));
+        assertFalse(ItemStackPacketAdapter.shouldVirtualizeSelectedMainHand(true, -1, true));
+        assertFalse(ItemStackPacketAdapter.shouldVirtualizeSelectedMainHand(true, 9, true));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
      * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### アイコン書き換え判定
      * 検証契約: 長押し選択設定時の主武器だけは送信コピーをTRIDENTへ変換し、サーバー側のPaper ItemStackを変更しない。
      */
