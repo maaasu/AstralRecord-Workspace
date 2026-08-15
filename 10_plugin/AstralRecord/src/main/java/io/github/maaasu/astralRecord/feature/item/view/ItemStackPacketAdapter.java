@@ -11,6 +11,7 @@ import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.Pair;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -68,6 +69,7 @@ public class ItemStackPacketAdapter {
 
     private final Plugin plugin;
     private final PlayerSettingService playerSettingService;
+    private final SkillActionRingService actionRingService;
     private final EquipmentOverrideRegistry equipmentOverrideRegistry = new EquipmentOverrideRegistry();
     private boolean registered = false;
 
@@ -76,13 +78,16 @@ public class ItemStackPacketAdapter {
      *
      * @param plugin プラグインインスタンス
      * @param playerSettingService 受信者ごとの防具表示設定を参照するサービス
+     * @param actionRingService 受信者のアクションリング表示状態を参照するサービス
      */
     public ItemStackPacketAdapter(
         @NotNull Plugin plugin,
-        @NotNull PlayerSettingService playerSettingService
+        @NotNull PlayerSettingService playerSettingService,
+        @NotNull SkillActionRingService actionRingService
     ) {
         this.plugin = plugin;
         this.playerSettingService = playerSettingService;
+        this.actionRingService = actionRingService;
     }
 
     /**
@@ -111,28 +116,48 @@ public class ItemStackPacketAdapter {
 
                 PacketContainer packet = event.getPacket();
                 PacketType type = packet.getType();
+                Player viewer = event.getPlayer();
                 if (type == PacketType.Play.Server.ENTITY_EQUIPMENT
-                    && equipmentOverrideRegistry.consume(packet, event.getPlayer().getUniqueId(), System.currentTimeMillis())) {
+                    && equipmentOverrideRegistry.consume(packet, viewer.getUniqueId(), System.currentTimeMillis())) {
                     return;
                 }
                 boolean armorDisplayEnabled = playerSettingService.isArmorDisplayEnabled(
-                    event.getPlayer().getUniqueId()
+                    viewer.getUniqueId()
                 );
                 boolean actionRingHoldSelectEnabled = playerSettingService.isActionRingHoldSelectEnabled(
-                    event.getPlayer().getUniqueId()
+                    viewer.getUniqueId()
                 );
+                boolean actionRingOpen = actionRingService.isOpen(viewer);
+                int selectedHotbarSlot = actionRingOpen
+                    ? actionRingService.getSelectedHotbarSlot(viewer)
+                    : -1;
 
                 if (type == PacketType.Play.Server.SET_SLOT) {
-                    handleSetSlot(packet, armorDisplayEnabled, isHotbarWeaponSetSlot(packet, actionRingHoldSelectEnabled));
+                    handleSetSlot(
+                        packet,
+                        armorDisplayEnabled,
+                        shouldVirtualizeHotbarWeapon(
+                            actionRingHoldSelectEnabled,
+                            actionRingOpen,
+                            hotbarSlotForSetSlot(packet),
+                            selectedHotbarSlot
+                        )
+                    );
                 } else if (type == PacketType.Play.Server.WINDOW_ITEMS) {
-                    handleWindowItems(packet, armorDisplayEnabled, actionRingHoldSelectEnabled);
+                    handleWindowItems(
+                        packet,
+                        armorDisplayEnabled,
+                        actionRingHoldSelectEnabled,
+                        actionRingOpen,
+                        selectedHotbarSlot
+                    );
                 } else if (type == PacketType.Play.Server.ENTITY_EQUIPMENT) {
                     handleEntityEquipment(event, armorDisplayEnabled);
                 }
             }
         });
         plugin.getServer().getPluginManager().registerEvents(new Listener() {
-            @EventHandler(priority = EventPriority.MONITOR)
+            @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
             public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
                 equipmentOverrideRegistry.discardViewer(event.getPlayer().getUniqueId());
             }
@@ -149,6 +174,7 @@ public class ItemStackPacketAdapter {
      *
      * @param packet 書き換え対象パケット
      * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
+     * @param virtualTrident 選択中の主武器を長押し入力用トライデントとして表示する場合は {@code true}
      */
     private void handleSetSlot(
         @NotNull PacketContainer packet,
@@ -171,11 +197,16 @@ public class ItemStackPacketAdapter {
      *
      * @param packet 書き換え対象パケット
      * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
+     * @param actionRingHoldSelectEnabled 長押し選択設定が有効な場合は {@code true}
+     * @param actionRingOpen アクションリングを表示中の場合は {@code true}
+     * @param selectedHotbarSlot 選択中 hotbar slot（0-8）、不明な場合は負値
      */
     private void handleWindowItems(
         @NotNull PacketContainer packet,
         boolean armorDisplayEnabled,
-        boolean virtualHotbarWeapons
+        boolean actionRingHoldSelectEnabled,
+        boolean actionRingOpen,
+        int selectedHotbarSlot
     ) {
         var items = packet.getItemListModifier().readSafely(0);
         if (items == null || items.isEmpty()) {
@@ -189,8 +220,12 @@ public class ItemStackPacketAdapter {
                 continue;
             }
 
-            boolean virtualTrident = virtualHotbarWeapons
-                && isPlayerInventoryHotbarIndex(packet, i);
+            boolean virtualTrident = shouldVirtualizeHotbarWeapon(
+                actionRingHoldSelectEnabled,
+                actionRingOpen,
+                playerInventoryHotbarSlot(packet, i),
+                selectedHotbarSlot
+            );
             var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident);
             if (replaced != null) {
                 items.set(i, replaced);
@@ -331,10 +366,7 @@ public class ItemStackPacketAdapter {
         return modified ? replaced : null;
     }
 
-    private boolean isHotbarWeaponSetSlot(@NotNull PacketContainer packet, boolean virtualHotbarWeapons) {
-        if (!virtualHotbarWeapons) {
-            return false;
-        }
+    private int hotbarSlotForSetSlot(@NotNull PacketContainer packet) {
         Integer windowId = packet.getIntegers().readSafely(0);
         Integer slot = packet.getIntegers().readSafely(2);
         if (slot == null) {
@@ -342,27 +374,55 @@ public class ItemStackPacketAdapter {
             slot = shortSlot == null ? null : Short.toUnsignedInt(shortSlot);
         }
         if (windowId == null || slot == null) {
-            return false;
+            return -1;
         }
         if (windowId == PLAYER_INVENTORY_WINDOW_ID) {
-            return slot >= PLAYER_INVENTORY_HOTBAR_START_SLOT
-                && slot < PLAYER_INVENTORY_HOTBAR_START_SLOT + 9;
+            return playerInventoryHotbarSlot(slot);
         }
-        return windowId == PLAYER_INVENTORY_DIRECT_WINDOW_ID && slot >= 0 && slot < 9;
+        return windowId == PLAYER_INVENTORY_DIRECT_WINDOW_ID && slot >= 0 && slot < 9 ? slot : -1;
     }
 
     /**
-     * player inventory window 内の hotbar item index かを返します。
+     * player inventory window 内の hotbar item index を hotbar slot へ変換します。
      *
-     * <p>選択中の一枠だけを変換すると、slot 切替直後にクライアントが旧 icon のまま右クリックする
-     * 競合が生じます。そのため設定有効時は hotbar の武器全枠をあらかじめ仮想トライデントにします。</p>
+     * @param packet WINDOW_ITEMS パケット
+     * @param itemIndex パケット内の item index
+     * @return hotbar slot（0-8）、対象外の場合は負値
      */
-    private boolean isPlayerInventoryHotbarIndex(@NotNull PacketContainer packet, int itemIndex) {
+    private int playerInventoryHotbarSlot(@NotNull PacketContainer packet, int itemIndex) {
         Integer windowId = packet.getIntegers().readSafely(0);
-        return windowId != null
-            && windowId == PLAYER_INVENTORY_WINDOW_ID
-            && itemIndex >= PLAYER_INVENTORY_HOTBAR_START_SLOT
-            && itemIndex < PLAYER_INVENTORY_HOTBAR_START_SLOT + 9;
+        return windowId != null && windowId == PLAYER_INVENTORY_WINDOW_ID
+            ? playerInventoryHotbarSlot(itemIndex)
+            : -1;
+    }
+
+    private static int playerInventoryHotbarSlot(int inventorySlot) {
+        return inventorySlot >= PLAYER_INVENTORY_HOTBAR_START_SLOT
+            && inventorySlot < PLAYER_INVENTORY_HOTBAR_START_SLOT + 9
+            ? inventorySlot - PLAYER_INVENTORY_HOTBAR_START_SLOT
+            : -1;
+    }
+
+    /**
+     * 長押し選択用の仮想トライデントを表示する条件を判定します。
+     *
+     * @param actionRingHoldSelectEnabled 長押し選択設定が有効か
+     * @param actionRingOpen アクションリングが表示中か
+     * @param hotbarSlot 判定対象 hotbar slot
+     * @param selectedHotbarSlot プレイヤーが選択中の hotbar slot
+     * @return 選択中の武器を仮想トライデント化する場合は {@code true}
+     */
+    static boolean shouldVirtualizeHotbarWeapon(
+        boolean actionRingHoldSelectEnabled,
+        boolean actionRingOpen,
+        int hotbarSlot,
+        int selectedHotbarSlot
+    ) {
+        return actionRingHoldSelectEnabled
+            && actionRingOpen
+            && hotbarSlot >= 0
+            && hotbarSlot < 9
+            && hotbarSlot == selectedHotbarSlot;
     }
 
     /**

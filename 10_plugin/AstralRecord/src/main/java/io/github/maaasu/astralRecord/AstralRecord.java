@@ -1217,7 +1217,7 @@ public final class AstralRecord extends JavaPlugin {
         worldSpawnParticleTask = new WorldSpawnParticleTask(this, worldService, particleDisplayService, displayTextService);
 
         // item: ProtocolLib パケットアダプター（icon 差し替え）登録
-        itemStackPacketAdapter = new ItemStackPacketAdapter(this, playerSettingService);
+        itemStackPacketAdapter = new ItemStackPacketAdapter(this, playerSettingService, skillActionRingService);
         itemStackPacketAdapter.register();
 
     }

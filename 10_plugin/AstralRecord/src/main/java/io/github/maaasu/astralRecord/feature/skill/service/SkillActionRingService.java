@@ -143,6 +143,8 @@ public final class SkillActionRingService {
 
     /**
      * 指定した選択案内でアクションリングを表示します。
+     * <p>表示開始時に本人の inventory を再送し、長押し選択設定が有効な場合の
+     * 選択中武器のクライアント表示を同期します。</p>
      *
      * @param astPlayer 対象プレイヤー
      * @param selectionInstruction 選択中にリング内へ表示する案内メッセージ
@@ -171,6 +173,9 @@ public final class SkillActionRingService {
         sessions.put(playerId, session);
         GuiSound.RING_OPEN.play(player);
         openListener.accept(astPlayer);
+        if (player.isOnline()) {
+            player.updateInventory();
+        }
         ensureTask();
         return true;
     }
@@ -183,6 +188,21 @@ public final class SkillActionRingService {
      */
     public boolean isOpen(@NotNull Player player) {
         return sessions.containsKey(player.getUniqueId());
+    }
+
+    /**
+     * 表示中のアクションリングを開いた時点で選択していた hotbar slot を返します。
+     *
+     * <p>アクションリング表示中は hotbar slot の変更入力をガードするため、
+     * パケット表示側がメインスレッド外から Bukkit inventory を読む必要がないよう、
+     * リングセッションに保存した値を返します。</p>
+     *
+     * @param player 対象プレイヤー
+     * @return hotbar slot（0-8）、リング非表示時は負値
+     */
+    public int getSelectedHotbarSlot(@NotNull Player player) {
+        RingSession session = sessions.get(player.getUniqueId());
+        return session == null ? -1 : session.hotbarSlot();
     }
 
     /**
@@ -292,6 +312,8 @@ public final class SkillActionRingService {
 
     /**
      * 指定プレイヤーのリングを閉じます。
+     * <p>表示を破棄した後に本人の inventory を再送し、リング表示中だけ適用する
+     * クライアント専用表示を通常表示へ戻します。</p>
      *
      * @param player 対象プレイヤー
      */
@@ -349,6 +371,9 @@ public final class SkillActionRingService {
     private void destroySession(@NotNull Player player, @NotNull RingSession session) {
         session.destroy();
         closeListener.accept(player);
+        if (player.isOnline()) {
+            player.updateInventory();
+        }
     }
 
     private @NotNull List<SlotView> resolveSlots(@NotNull AstPlayer astPlayer, @NotNull PlayerSkillCaster caster) {
@@ -649,6 +674,7 @@ public final class SkillActionRingService {
         private final List<SkillActionRingDisplay.DisplayEntity> circleDots = new ArrayList<>(CIRCLE_DISPLAY_POINTS);
         private final AttributeInstance blockBreakSpeedAttribute;
         private final Double originalBlockBreakSpeed;
+        private final int hotbarSlot;
         private SkillActionRingDisplay.DisplayEntity timerLabel;
         private SkillActionRingDisplay.DisplayEntity instructionLabel;
         private Location renderedCenter;
@@ -669,6 +695,7 @@ public final class SkillActionRingService {
             @NotNull SkillActionRingDisplay actionRingDisplay,
             @NotNull SkillService skillService,
             @NotNull PlayerSkillCaster caster,
+            int hotbarSlot,
             AttributeInstance blockBreakSpeedAttribute,
             Double originalBlockBreakSpeed
         ) {
@@ -682,6 +709,7 @@ public final class SkillActionRingService {
             this.actionRingDisplay = actionRingDisplay;
             this.skillService = skillService;
             this.caster = caster;
+            this.hotbarSlot = hotbarSlot;
             this.blockBreakSpeedAttribute = blockBreakSpeedAttribute;
             this.originalBlockBreakSpeed = originalBlockBreakSpeed;
             this.selectedIndex = firstSelectableSlot(slots);
@@ -722,12 +750,17 @@ public final class SkillActionRingService {
                 actionRingDisplay,
                 skillService,
                 caster,
+                player.getInventory().getHeldItemSlot(),
                 blockBreakSpeed,
                 originalBlockBreakSpeed
             );
             session.selectionInstruction = selectionInstruction;
             session.spawnEntities(player);
             return session;
+        }
+
+        private int hotbarSlot() {
+            return hotbarSlot;
         }
 
         private void spawnEntities(@NotNull Player player) {

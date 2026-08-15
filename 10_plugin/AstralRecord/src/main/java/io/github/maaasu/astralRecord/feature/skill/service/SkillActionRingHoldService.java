@@ -272,7 +272,9 @@ public final class SkillActionRingHoldService extends AbstractEventHandler {
             actionRingService.close(player);
             return;
         }
-        actionRingService.confirmSelected(astPlayer);
+        if (!actionRingService.confirmSelected(astPlayer)) {
+            actionRingService.close(player);
+        }
     }
 
     private static final class HoldSession {

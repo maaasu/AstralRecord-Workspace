@@ -5,6 +5,7 @@ import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.events.PacketContainer;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.Equippable;
@@ -133,12 +134,27 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
      * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### アイコン書き換え判定
+     * 検証契約: 長押し選択設定が有効でアクションリング表示中の場合だけ、選択中 hotbar slot の武器を仮想トライデント化する。
+     */
+    @Test
+    void virtualTridentRequiresOpenActionRingAndSelectedHotbarSlot() {
+        assertTrue(ItemStackPacketAdapter.shouldVirtualizeHotbarWeapon(true, true, 2, 2));
+        assertFalse(ItemStackPacketAdapter.shouldVirtualizeHotbarWeapon(true, true, 1, 2));
+        assertFalse(ItemStackPacketAdapter.shouldVirtualizeHotbarWeapon(true, false, 2, 2));
+        assertFalse(ItemStackPacketAdapter.shouldVirtualizeHotbarWeapon(false, true, 2, 2));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
+     * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### アイコン書き換え判定
      * 検証契約: 長押し選択設定時の主武器だけは送信コピーをTRIDENTへ変換し、サーバー側のPaper ItemStackを変更しない。
      */
     @Test
     void virtualTridentKeepsServerPaperWeaponUntouched() throws ReflectiveOperationException {
         ItemStack serverWeapon = astralWeapon("sword_test", "instance_test");
-        ItemStackPacketAdapter adapter = new ItemStackPacketAdapter(mock(Plugin.class), mock(PlayerSettingService.class));
+        ItemStackPacketAdapter adapter = new ItemStackPacketAdapter(
+            mock(Plugin.class), mock(PlayerSettingService.class), mock(SkillActionRingService.class)
+        );
         Method replaceIcon = ItemStackPacketAdapter.class.getDeclaredMethod(
             "replaceIcon", ItemStack.class, boolean.class, boolean.class
         );

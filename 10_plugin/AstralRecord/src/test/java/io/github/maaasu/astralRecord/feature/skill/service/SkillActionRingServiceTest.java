@@ -307,7 +307,7 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
         return sessionConstructor.newInstance(
             eye, eye.clone().add(0.0D, 0.0D, 3.0D), new org.bukkit.util.Vector(0.0D, 0.0D, 1.0D),
             new org.bukkit.util.Vector(-1.0D, 0.0D, 0.0D), new org.bukkit.util.Vector(0.0D, 1.0D, 0.0D),
-            slots, viewer, display, skillService, mock(PlayerSkillCaster.class), null, null
+            slots, viewer, display, skillService, mock(PlayerSkillCaster.class), 0, null, null
         );
     }
 
