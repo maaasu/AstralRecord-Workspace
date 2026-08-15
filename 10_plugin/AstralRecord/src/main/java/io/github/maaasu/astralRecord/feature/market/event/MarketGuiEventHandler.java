@@ -26,6 +26,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -495,6 +496,9 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             );
             return transaction;
         }).whenComplete((transaction, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
+            if (throwable == null) {
+                synchronizeOnlineSellerProceeds(transaction);
+            }
             if (!isCurrentSession(player, session)) {
                 return;
             }
@@ -504,7 +508,6 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                 openListings(player, false, session.page);
                 return;
             }
-            applyOnlineSellerProceeds(transaction);
             messageService.send(player, PlayerMsgId.P_6302);
             GuiSound.SUCCESS.play(player);
             openListings(player, false, session.page);
@@ -691,14 +694,35 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         return astPlayer == null ? 0L : currencyService.getGoldAmount(astPlayer.getAccount().getUuid());
     }
 
-    private void applyOnlineSellerProceeds(@NotNull MarketTransaction transaction) {
+    /**
+     * オンライン出品者の API 確定済み通貨を非同期で正本へ合わせます。
+     *
+     * @param transaction 購入 API が確定した取引
+     */
+    private void synchronizeOnlineSellerProceeds(@NotNull MarketTransaction transaction) {
         for (AstPlayer seller : AstPlayerCache.getAll()) {
             if (!seller.getAccount().getUuid().equals(transaction.sellerAccountId())) {
                 continue;
             }
-            if (inventoryService.addGold(seller, transaction.sellerProceeds())) {
-                messageService.send(seller, PlayerMsgId.P_6303);
-            }
+            UUID sellerAccountId = seller.getAccount().getUuid();
+            UUID sellerPlayerId = seller.getBukkit().getUniqueId();
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                try {
+                    if (!inventoryService.refreshAuthoritativeCurrencyEntries(sellerAccountId)) {
+                        return;
+                    }
+                } catch (RuntimeException failure) {
+                    Logger.warn(LogId.W_5252, sellerAccountId, failure.getMessage());
+                    return;
+                }
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    AstPlayer currentSeller = AstPlayerCache.get(sellerPlayerId);
+                    if (currentSeller != null
+                        && currentSeller.getAccount().getUuid().equals(sellerAccountId)) {
+                        messageService.send(currentSeller, PlayerMsgId.P_6303);
+                    }
+                });
+            });
             return;
         }
     }

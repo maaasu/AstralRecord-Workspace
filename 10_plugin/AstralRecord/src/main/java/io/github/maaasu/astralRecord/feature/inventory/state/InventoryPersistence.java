@@ -200,6 +200,35 @@ public final class InventoryPersistence {
                         state.acknowledgePersistedEntries(targetInventory.getInventoryId(), entries, persisted);
                         capturePersistedEntries(persistedEntries, targetInventory.getInventoryId(), persisted);
                     } catch (InventoryApiException e) {
+                        if (e.getStatusCode() == 409) {
+                            try {
+                                List<InventoryEntryModel> authoritative = inventoryRepository.findEntries(
+                                    targetInventory.getInventoryId()
+                                );
+                                if (state.replaceEntriesFromAuthoritativeSnapshotIfUnchanged(
+                                    targetInventory.getInventoryId(),
+                                    entries,
+                                    authoritative
+                                )) {
+                                    capturePersistedEntries(
+                                        persistedEntries,
+                                        targetInventory.getInventoryId(),
+                                        authoritative
+                                    );
+                                    continue;
+                                }
+                            } catch (RuntimeException recoveryFailure) {
+                                logInventorySyncFailure(
+                                    accountId,
+                                    targetInventory.getInventoryId(),
+                                    trigger,
+                                    entries.size(),
+                                    recoveryFailure
+                                );
+                                allOk = false;
+                                continue;
+                            }
+                        }
                         if (e.getStatusCode() != 404) {
                             logInventorySyncFailure(accountId, targetInventory.getInventoryId(), trigger, entries.size(), e);
                             allOk = false;

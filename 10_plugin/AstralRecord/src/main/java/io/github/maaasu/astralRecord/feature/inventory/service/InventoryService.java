@@ -2194,6 +2194,55 @@ public class InventoryService {
     }
 
     /**
+     * 別アカウントの外部取引で更新された通貨 inventory を API 正本で再同期します。
+     * <p>
+     * API 通信を行うため Bukkit メインスレッド外で呼び出してください。取得済みの正本は
+     * 通貨 inventory にだけ反映し、プレイヤー操作としては扱わないため dirty は新たに立てません。
+     *
+     * @param accountId 対象 account
+     * @return state が有効で正本を反映できた場合は {@code true}
+     */
+    public boolean refreshAuthoritativeCurrencyEntries(@NotNull UUID accountId) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return false;
+        }
+
+        UUID currencyInventoryId;
+        List<InventoryEntryModel> expectedEntries;
+        synchronized (state) {
+            InventoryModel currency = state.findInventory(DEFAULT_PROFILE, InventoryType.CURRENCY);
+            if (currency == null
+                || !currency.isEnabled()
+                || currency.isDeleted()
+                || !currency.getAccountId().equals(accountId)) {
+                return false;
+            }
+            currencyInventoryId = currency.getInventoryId();
+            expectedEntries = state.snapshotEntries(currencyInventoryId);
+        }
+
+        List<InventoryEntryModel> authoritative = inventoryRepository.findEntries(currencyInventoryId);
+        synchronized (state) {
+            if (getState(accountId) != state) {
+                return false;
+            }
+            InventoryModel currency = state.findInventoryById(currencyInventoryId);
+            if (currency == null
+                || !currency.isEnabled()
+                || currency.isDeleted()
+                || !currency.getAccountId().equals(accountId)) {
+                return false;
+            }
+            if (!state.snapshotEntries(currencyInventoryId).equals(expectedEntries)) {
+                return false;
+            }
+            state.replaceEntriesFromAuthoritativeSnapshot(currencyInventoryId, authoritative);
+            return true;
+        }
+    }
+
+    /**
      * オーブ操作向けの互換入口です。
      *
      * @param accountId 対象 account

@@ -293,7 +293,48 @@ public final class PlayerInventoryState {
         @NotNull UUID inventoryId,
         @NotNull List<InventoryEntryModel> entries
     ) {
+        replaceEntriesFromAuthoritativeSnapshot(inventoryId, entries);
+    }
+
+    /**
+     * API 正本から取得した entry 一覧でローカル snapshot を差し替えます。
+     * <p>
+     * 外部原子操作後の再同期にも使用します。プレイヤー操作としては扱わないため、
+     * このメソッド単体では dirty フラグを変更しません。
+     *
+     * @param inventoryId 対象UUID
+     * @param entries API 正本の entry 一覧
+     */
+    public synchronized void replaceEntriesFromAuthoritativeSnapshot(
+        @NotNull UUID inventoryId,
+        @NotNull List<InventoryEntryModel> entries
+    ) {
         entriesByInventoryId.put(inventoryId, new ArrayList<>(entries));
+    }
+
+    /**
+     * 保存送信後に同じ inventory のローカル変更が無い場合だけ、API 正本へ差し替えます。
+     * <p>
+     * 楽観ロック競合の復旧で使います。送信後にプレイヤー操作が入っていた場合は
+     * ローカル変更を失わないよう何も変更せず {@code false} を返します。
+     *
+     * @param inventoryId 対象UUID
+     * @param submitted 保存時に送信した entry 一覧
+     * @param authoritative API から再取得した entry 一覧
+     * @return 正本で差し替えた場合は {@code true}
+     */
+    synchronized boolean replaceEntriesFromAuthoritativeSnapshotIfUnchanged(
+        @NotNull UUID inventoryId,
+        @NotNull List<InventoryEntryModel> submitted,
+        @NotNull List<InventoryEntryModel> authoritative
+    ) {
+        List<InventoryEntryModel> current = entriesByInventoryId.get(inventoryId);
+        List<InventoryEntryModel> currentSnapshot = current == null ? List.of() : List.copyOf(current);
+        if (!currentSnapshot.equals(submitted)) {
+            return false;
+        }
+        replaceEntriesFromAuthoritativeSnapshot(inventoryId, authoritative);
+        return true;
     }
 
     /**
