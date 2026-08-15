@@ -1,33 +1,33 @@
 # design:
-#   motif: "星影の街ノクス / 魔法攻撃 / ノクス"
+#   motif: "星影の街ノクス / 間接攻撃 / ノクス"
 #   progression: 0
 schemaVersion: 1
-id: traveler_staff
+id: nox_bow
 category: equipment
-name: "&fノクススタッフ"
-icon: BLAZE_ROD
+name: "&fノクスボウ"
+icon: BOW
 rarity: COMMON
 maxStack: 1
-saleValue: 20
+saleValue: 1
 lore:
-  - "&7星影の街ノクスで魔法を学ぶ者に手渡される、簡素な杖。"
+  - "&7星影の街ノクスの夜道を進む者のために作られた小型弓。"
 unTradeable: false
 unSellable: false
 equipment:
   slot: WEAPON
   handType: TWO
-  tag: STAFF
+  tag: BOW
   requiredLevel: 0
   stats:
-    - status: MAGIC_ATTACK
+    - status: RANGED_ATTACK
       type: FLAT
-      value: 5~7
-    - status: INTELLIGENCE
+      value: 8~9
+    - status: DEXTERITY
       type: FLAT
-      value: 3
-    - status: MP_REGEN
+      value: 2
+    - status: ACCURACY
       type: FLAT
-      value: 1.0
+      value: 2.0
   durability:
     max: 80
     consume: 1
@@ -36,35 +36,35 @@ equipment:
     levels:
       - level: 1
         statIncrease:
-          - status: MAGIC_ATTACK
+          - status: RANGED_ATTACK
             type: FLAT
             value: 1
         successRate: 1.0
         failAction: NONE
       - level: 2
         statIncrease:
-          - status: MAGIC_ATTACK
+          - status: RANGED_ATTACK
             type: FLAT
             value: 1
         successRate: 1.0
         failAction: NONE
       - level: 3
         statIncrease:
-          - status: MAGIC_ATTACK
+          - status: RANGED_ATTACK
             type: FLAT
             value: 1
         successRate: 1.0
         failAction: NONE
       - level: 4
         statIncrease:
-          - status: MAGIC_ATTACK
+          - status: RANGED_ATTACK
             type: FLAT
             value: 2
         successRate: 1.0
         failAction: NONE
       - level: 5
         statIncrease:
-          - status: MAGIC_ATTACK
+          - status: RANGED_ATTACK
             type: FLAT
             value: 2
         successRate: 1.0

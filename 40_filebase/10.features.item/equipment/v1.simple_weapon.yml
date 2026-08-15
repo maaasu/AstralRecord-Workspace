@@ -1,0 +1,35 @@
+# design:
+#   motif: "冒険者 / 簡素な初期武器"
+#   progression: 1
+schemaVersion: 1
+id: simple_weapon
+category: equipment
+name: "&f簡素な武器"
+icon: STICK
+rarity: COMMON
+maxStack: 1
+saleValue: 1
+lore:
+  - "&7冒険者へ支給される簡素な武器。"
+  - "&7あらゆる攻撃方法の基礎となる攻撃力を持つ。"
+unTradeable: false
+unSellable: true
+equipment:
+  slot: WEAPON
+  handType: ONE
+  requiredLevel: 0
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value: 10
+  durability:
+    max: 80
+    consume: 1
+  enhance:
+    maxLevel: 1
+    levels:
+      - level: 1
+        statIncrease:
+          - status: ATTACK
+            type: FLAT
+            value: 1
