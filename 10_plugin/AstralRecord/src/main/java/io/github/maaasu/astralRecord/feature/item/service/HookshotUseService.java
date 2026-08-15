@@ -2,6 +2,8 @@ package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
@@ -13,11 +15,17 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
+import org.bukkit.attribute.AttributeModifier;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
@@ -33,27 +41,36 @@ import org.joml.Vector3f;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 
 /**
- * フックショットの照準、消費、視覚効果、および物理的な牽引を扱います。
+ * フックショットの装填状態、照準、視覚効果、および物理的な牽引を扱います。
  * <p>
- * プレイヤー座標の直接変更やteleportは行わず、短時間だけ現在velocityへアンカー方向の加速度を加えます。
+ * 装填済み状態は equipment inventory entry metadata に保存します。プレイヤー座標の直接変更や
+ * teleport は行わず、短時間だけ現在 velocity へアンカー方向の加速度を加えます。
  */
 public final class HookshotUseService {
     static final double MAX_RANGE = 24.0D;
-    static final int MAX_PULL_TICKS = 36;
-    static final double MAX_PULL_SPEED = 1.20D;
+    static final int LOAD_DURATION_TICKS = 30;
+    static final int MAX_PULL_TICKS = 44;
+    static final double MAX_PULL_SPEED = 2.05D;
+    static final double MIN_PULL_ACCELERATION = 0.16D;
+    static final double MAX_PULL_ACCELERATION = 0.27D;
 
-    private static final double STOP_DISTANCE = 1.35D;
-    private static final double PULL_ACCELERATION = 0.11D;
-    private static final double VELOCITY_RETENTION = 0.82D;
+    private static final double STOP_DISTANCE = 1.15D;
+    private static final double FORWARD_VELOCITY_RETENTION = 0.88D;
+    private static final double LATERAL_VELOCITY_RETENTION = 0.68D;
     private static final double MIN_VECTOR_LENGTH_SQUARED = 1.0E-6D;
     private static final double ANCHOR_SURFACE_OFFSET = 0.03D;
     private static final int TRAIL_INTERVAL_TICKS = 2;
-    private static final int MAX_TETHER_PARTICLE_POINTS = 10;
+    private static final int MAX_TETHER_PARTICLE_POINTS = 12;
+    private static final int LOAD_ACTION_BAR_LENGTH = 16;
     private static final String ANCHOR_DISPLAY_TAG = "astralrecord_hookshot_anchor";
+    private static final NamespacedKey LOADING_MOVEMENT_SPEED_MODIFIER_KEY =
+        new NamespacedKey("astralrecord", "hookshot_loading_slowdown");
+    private static final double LOADING_MOVEMENT_SPEED_MODIFIER_AMOUNT = -0.5D;
 
     private final AstralRecord plugin;
     private final InventoryService inventoryService;
@@ -61,12 +78,14 @@ public final class HookshotUseService {
     private final HookshotCostService costService;
     private final ParticleDisplayService particleDisplayService;
     private final Map<UUID, ActiveHook> activeHooks = new HashMap<>();
+    private final Map<UUID, LoadingHook> loadingHooks = new HashMap<>();
+    private @Nullable PlayerHudService playerHudService;
 
     /**
      * フックショットの実行サービスを構成します。
      *
      * @param plugin taskを所有するPlugin
-     * @param inventoryService 主手参照と表示更新の正本サービス
+     * @param inventoryService 主手参照・装填状態の正本サービス
      * @param itemService equipment instance解決・耐久更新サービス
      * @param particleDisplayService viewer設定に従う粒子表示サービス
      */
@@ -83,6 +102,11 @@ public final class HookshotUseService {
         this.particleDisplayService = particleDisplayService;
     }
 
+    /** 装填中 ActionBar を通常 HUD と協調して表示するサービスを設定します。 */
+    public void setPlayerHudService(@NotNull PlayerHudService playerHudService) {
+        this.playerHudService = playerHudService;
+    }
+
     /**
      * 現在の主手がフックショットなら、そのequipment instance IDを返します。
      *
@@ -92,6 +116,14 @@ public final class HookshotUseService {
     public @Nullable String findCurrentHookshotInstanceId(@NotNull AstPlayer player) {
         CurrentHookshot current = findCurrentHookshot(player);
         return current == null ? null : current.instance().getEquipmentInstanceId();
+    }
+
+    /** 指定した主手フックショットが metadata 上も装填済みか判定します。 */
+    public boolean isCurrentHookshotLoaded(@NotNull AstPlayer player, @NotNull String expectedInstanceId) {
+        CurrentHookshot current = findCurrentHookshot(player);
+        return current != null
+            && current.instance().getEquipmentInstanceId().equalsIgnoreCase(expectedInstanceId)
+            && HookshotLoadState.isLoaded(current.metadataJson());
     }
 
     /**
@@ -107,6 +139,71 @@ public final class HookshotUseService {
             && current.instance().getEquipmentInstanceId().equalsIgnoreCase(expectedInstanceId);
     }
 
+    /** 現在の主手フックショットで副作用なく装填開始できるか判定します。 */
+    public boolean canStartLoading(@NotNull AstPlayer player) {
+        if (!isPlayerMode(player) || player.isSkillCasting()) {
+            return false;
+        }
+        UUID playerId = player.getBukkit().getUniqueId();
+        if (activeHooks.containsKey(playerId) || loadingHooks.containsKey(playerId)) {
+            return false;
+        }
+        CurrentHookshot current = findCurrentHookshot(player);
+        if (current == null || HookshotLoadState.isLoaded(current.metadataJson())) {
+            return false;
+        }
+        ItemEquipment equipment = current.model().getEquipment();
+        return equipment != null && EquipmentRequirementService.check(player, equipment).allowed();
+    }
+
+    /**
+     * 現在の主手フックショットを装填します。素材・耐久は開始時に消費しません。
+     * <p>
+     * 30 tick の装填を完了した時点で、hook 1個の消費と metadata の loaded 化を同じ inventory state lock で確定します。
+     *
+     * @param player 装填プレイヤー
+     */
+    public void startLoading(@NotNull AstPlayer player) {
+        if (!canStartLoading(player)) {
+            return;
+        }
+        CurrentHookshot current = findCurrentHookshot(player);
+        if (current == null) {
+            return;
+        }
+        ItemEquipment equipment = current.model().getEquipment();
+        if (equipment == null || !EquipmentRequirementService.checkAndNotify(player, equipment)) {
+            return;
+        }
+        Player bukkitPlayer = player.getBukkit();
+        if (!bukkitPlayer.isOnline() || bukkitPlayer.isDead()) {
+            return;
+        }
+
+        UUID playerId = bukkitPlayer.getUniqueId();
+        LoadingHook loading = new LoadingHook(
+            player,
+            current.instance().getEquipmentInstanceId(),
+            current.metadataJson(),
+            applyLoadingMovementSpeedModifier(bukkitPlayer)
+        );
+        loadingHooks.put(playerId, loading);
+        startLoadingFeedback(loading);
+        loading.task = plugin.getServer().getScheduler().runTaskTimer(
+            plugin,
+            () -> tickLoading(playerId),
+            1L,
+            1L
+        );
+        bukkitPlayer.playSound(
+            bukkitPlayer.getLocation(),
+            Sound.ITEM_CROSSBOW_LOADING_START,
+            SoundCategory.PLAYERS,
+            0.65F,
+            1.0F
+        );
+    }
+
     /**
      * 現在の視線上にフックショットが発射可能な固体アンカーがあるかを副作用なしで判定します。
      *
@@ -117,20 +214,37 @@ public final class HookshotUseService {
         return findAnchor(player.getBukkit()) != null;
     }
 
+    /** 装填済みの主手フックショットで、副作用なく発射候補を返せるか判定します。 */
+    public boolean canFire(@NotNull AstPlayer player, @NotNull String expectedInstanceId) {
+        if (!isPlayerMode(player) || player.isSkillCasting()) {
+            return false;
+        }
+        UUID playerId = player.getBukkit().getUniqueId();
+        return !activeHooks.containsKey(playerId)
+            && !loadingHooks.containsKey(playerId)
+            && isCurrentHookshotLoaded(player, expectedInstanceId)
+            && hasValidAnchor(player);
+    }
+
     /**
-     * 現在の主手フックショットを発射します。
+     * 装填済みの現在の主手フックショットを発射します。
      * <p>
-     * 固体blockへ命中した場合だけコストを消費し、BlockDisplayとtether particleを生成して牽引を開始します。
+     * 固体blockへ命中した場合だけ耐久を消費して loaded 状態を外し、BlockDisplay と tether particle を生成して牽引を開始します。
+     * 無効照準・耐久不足時には loaded 状態を保持します。
      *
      * @param player 発射プレイヤー
      */
     public void fire(@NotNull AstPlayer player) {
-        if (!isPlayerMode(player) || activeHooks.containsKey(player.getBukkit().getUniqueId())) {
+        if (!isPlayerMode(player) || player.isSkillCasting()) {
+            return;
+        }
+        UUID playerId = player.getBukkit().getUniqueId();
+        if (activeHooks.containsKey(playerId) || loadingHooks.containsKey(playerId)) {
             return;
         }
 
         CurrentHookshot current = findCurrentHookshot(player);
-        if (current == null) {
+        if (current == null || !HookshotLoadState.isLoaded(current.metadataJson())) {
             return;
         }
         ItemEquipment equipment = current.model().getEquipment();
@@ -148,32 +262,50 @@ public final class HookshotUseService {
             return;
         }
 
+        HookshotLoadState.Update unloaded = HookshotLoadState.setLoaded(current.metadataJson(), false);
+        if (!unloaded.accepted()) {
+            playDenied(bukkitPlayer);
+            return;
+        }
         BlockDisplay anchorDisplay = spawnAnchorDisplay(anchor);
         if (anchorDisplay == null) {
             playDenied(bukkitPlayer);
             return;
         }
 
-        HookshotCostService.Result costResult = costService.consumeForLaunch(
+        HookshotCostService.DurabilityConsumption durabilityConsumption = costService.consumeDurabilityForFire(
             player,
             current.model(),
             current.reference()
         );
-        if (costResult != HookshotCostService.Result.CONSUMED) {
+        if (durabilityConsumption == null) {
             anchorDisplay.remove();
             playDenied(bukkitPlayer);
             return;
         }
+        if (!inventoryService.updateHotbarEquipmentMetadata(
+            player,
+            EquipmentSlot.HAND,
+            current.instance().getEquipmentInstanceId(),
+            current.metadataJson(),
+            unloaded.metadataJson()
+        )) {
+            costService.rollbackDurability(player, durabilityConsumption);
+            anchorDisplay.remove();
+            playDenied(bukkitPlayer);
+            return;
+        }
+        inventoryService.refreshManagedInventoryUi(player);
 
         ActiveHook active = new ActiveHook(
             current.instance().getEquipmentInstanceId(),
             anchor,
             anchorDisplay
         );
-        activeHooks.put(bukkitPlayer.getUniqueId(), active);
+        activeHooks.put(playerId, active);
         active.task = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
-            () -> tick(bukkitPlayer.getUniqueId()),
+            () -> tickPull(playerId),
             1L,
             1L
         );
@@ -202,20 +334,100 @@ public final class HookshotUseService {
         }
     }
 
-    /** Plugin停止時にすべての牽引を終了します。 */
+    /** 指定プレイヤーの未完了装填を中断し、移動低下・ActionBar・taskだけを回収します。 */
+    public void cancelLoading(@NotNull UUID playerId) {
+        LoadingHook loading = loadingHooks.remove(playerId);
+        if (loading == null) {
+            return;
+        }
+        if (loading.task != null) {
+            loading.task.cancel();
+        }
+        loading.movementSpeedCleanup.run();
+        stopLoadingFeedback(loading);
+    }
+
+    /** Plugin停止時に牽引と未完了装填を終了します。完成済みの loaded metadata は変更しません。 */
     public void shutdown() {
         for (UUID playerId : List.copyOf(activeHooks.keySet())) {
             cancel(playerId);
         }
+        for (UUID playerId : List.copyOf(loadingHooks.keySet())) {
+            cancelLoading(playerId);
+        }
     }
 
-    private void tick(@NotNull UUID playerId) {
+    private void tickLoading(@NotNull UUID playerId) {
+        LoadingHook loading = loadingHooks.get(playerId);
+        if (loading == null) {
+            return;
+        }
+        Player bukkitPlayer = loading.player.getBukkit();
+        AstPlayer astPlayer = AstPlayerCache.get(bukkitPlayer);
+        if (astPlayer == null || !shouldContinueLoading(astPlayer, loading)) {
+            cancelLoading(playerId);
+            return;
+        }
+
+        loading.elapsedTicks++;
+        refreshLoadingFeedback(loading);
+        if (loading.elapsedTicks < LOAD_DURATION_TICKS) {
+            return;
+        }
+
+        CurrentHookshot current = findCurrentHookshot(astPlayer);
+        HookshotLoadState.Update loaded = current == null
+            ? HookshotLoadState.Update.rejected()
+            : HookshotLoadState.setLoaded(current.metadataJson(), true);
+        boolean completed = current != null
+            && loaded.accepted()
+            && inventoryService.consumeNormalItemAndUpdateHotbarEquipmentMetadata(
+                astPlayer,
+                EquipmentSlot.HAND,
+                loading.equipmentInstanceId,
+                loading.metadataJson,
+                loaded.metadataJson(),
+                HookshotCostService.HOOK_ITEM_ID,
+                HookshotCostService.HOOK_AMOUNT_PER_LOAD
+            );
+        cancelLoading(playerId);
+        if (!completed) {
+            playDenied(bukkitPlayer);
+            return;
+        }
+        inventoryService.refreshManagedInventoryUi(astPlayer);
+        bukkitPlayer.playSound(
+            bukkitPlayer.getLocation(),
+            Sound.ITEM_CROSSBOW_LOADING_END,
+            SoundCategory.PLAYERS,
+            0.75F,
+            1.15F
+        );
+    }
+
+    private boolean shouldContinueLoading(@NotNull AstPlayer player, @NotNull LoadingHook loading) {
+        Player bukkitPlayer = player.getBukkit();
+        if (!isPlayerMode(player)
+            || player.isSkillCasting()
+            || !bukkitPlayer.isOnline()
+            || bukkitPlayer.isDead()
+            || activeHooks.containsKey(bukkitPlayer.getUniqueId())) {
+            return false;
+        }
+        CurrentHookshot current = findCurrentHookshot(player);
+        return current != null
+            && current.instance().getEquipmentInstanceId().equalsIgnoreCase(loading.equipmentInstanceId)
+            && !HookshotLoadState.isLoaded(current.metadataJson())
+            && java.util.Objects.equals(current.metadataJson(), loading.metadataJson);
+    }
+
+    private void tickPull(@NotNull UUID playerId) {
         ActiveHook active = activeHooks.get(playerId);
         if (active == null) {
             return;
         }
         Player player = plugin.getServer().getPlayer(playerId);
-        if (!shouldContinue(player, active)) {
+        if (!shouldContinuePull(player, active)) {
             cancel(playerId);
             return;
         }
@@ -238,21 +450,41 @@ public final class HookshotUseService {
         }
     }
 
+    /**
+     * 現在速度をアンカー方向へ自然に曲げる、距離比例の牽引 velocity を返します。
+     * <p>
+     * 前方速度は保持し、横方向の慣性だけを減衰してロープに引かれる軌道を作ります。
+     */
     static @NotNull Vector calculatePullVelocity(
         @NotNull Vector currentVelocity,
         @NotNull Vector towardAnchor
     ) {
-        Vector next = currentVelocity.clone().multiply(VELOCITY_RETENTION);
-        if (towardAnchor.lengthSquared() > MIN_VECTOR_LENGTH_SQUARED) {
-            next.add(towardAnchor.clone().normalize().multiply(PULL_ACCELERATION));
+        double distanceSquared = towardAnchor.lengthSquared();
+        if (distanceSquared <= MIN_VECTOR_LENGTH_SQUARED) {
+            return currentVelocity.clone();
         }
+        double distance = Math.sqrt(distanceSquared);
+        Vector direction = towardAnchor.clone().multiply(1.0D / distance);
+        double normalizedDistance = Math.clamp(
+            (distance - STOP_DISTANCE) / Math.max(1.0D, MAX_RANGE - STOP_DISTANCE),
+            0.0D,
+            1.0D
+        );
+        double acceleration = MIN_PULL_ACCELERATION
+            + (MAX_PULL_ACCELERATION - MIN_PULL_ACCELERATION) * normalizedDistance;
+        double forwardSpeed = currentVelocity.dot(direction);
+        Vector forward = direction.clone().multiply(Math.max(0.0D, forwardSpeed) * FORWARD_VELOCITY_RETENTION + acceleration);
+        Vector lateral = currentVelocity.clone()
+            .subtract(direction.clone().multiply(forwardSpeed))
+            .multiply(LATERAL_VELOCITY_RETENTION);
+        Vector next = forward.add(lateral);
         if (next.lengthSquared() <= MAX_PULL_SPEED * MAX_PULL_SPEED) {
             return next;
         }
         return next.normalize().multiply(MAX_PULL_SPEED);
     }
 
-    private boolean shouldContinue(@Nullable Player player, @NotNull ActiveHook active) {
+    private boolean shouldContinuePull(@Nullable Player player, @NotNull ActiveHook active) {
         if (player == null
             || !player.isOnline()
             || player.isDead()
@@ -267,13 +499,17 @@ public final class HookshotUseService {
     }
 
     private @Nullable CurrentHookshot findCurrentHookshot(@NotNull AstPlayer player) {
+        InventoryEntryModel entry = inventoryService.getHotbarEntryInHand(player, EquipmentSlot.HAND);
+        if (entry == null) {
+            return null;
+        }
         ItemReference reference = inventoryService.getItemReferenceInHand(player, EquipmentSlot.HAND);
         ItemModel model = itemReferenceResolver.resolveItemModel(reference);
         EquipmentInstance instance = itemReferenceResolver.resolveEquipmentInstance(reference);
         if (model == null || instance == null || !isHookshot(model)) {
             return null;
         }
-        return new CurrentHookshot(reference, model, instance);
+        return new CurrentHookshot(reference, model, instance, entry.getMetadataJson());
     }
 
     private boolean isHookshot(@NotNull ItemModel model) {
@@ -358,6 +594,67 @@ public final class HookshotUseService {
         return points;
     }
 
+    private @NotNull Runnable applyLoadingMovementSpeedModifier(@NotNull Player player) {
+        AttributeInstance movementSpeed = player.getAttribute(Attribute.MOVEMENT_SPEED);
+        if (movementSpeed == null) {
+            return () -> { };
+        }
+        if (movementSpeed.getModifier(LOADING_MOVEMENT_SPEED_MODIFIER_KEY) != null) {
+            movementSpeed.removeModifier(LOADING_MOVEMENT_SPEED_MODIFIER_KEY);
+        }
+        movementSpeed.addTransientModifier(new AttributeModifier(
+            LOADING_MOVEMENT_SPEED_MODIFIER_KEY,
+            LOADING_MOVEMENT_SPEED_MODIFIER_AMOUNT,
+            AttributeModifier.Operation.MULTIPLY_SCALAR_1
+        ));
+        return () -> {
+            if (movementSpeed.getModifier(LOADING_MOVEMENT_SPEED_MODIFIER_KEY) != null) {
+                movementSpeed.removeModifier(LOADING_MOVEMENT_SPEED_MODIFIER_KEY);
+            }
+        };
+    }
+
+    private void startLoadingFeedback(@NotNull LoadingHook loading) {
+        PlayerHudService hudService = playerHudService;
+        if (hudService == null) {
+            loading.player.getBukkit().sendActionBar(createLoadingActionBar(loading.elapsedTicks));
+            return;
+        }
+        hudService.setPrimaryActionBarRenderer(
+            loading.player.getBukkit().getUniqueId(),
+            ignored -> createLoadingActionBar(loading.elapsedTicks)
+        );
+        hudService.refreshActionBar(loading.player);
+    }
+
+    private void refreshLoadingFeedback(@NotNull LoadingHook loading) {
+        PlayerHudService hudService = playerHudService;
+        if (hudService == null) {
+            loading.player.getBukkit().sendActionBar(createLoadingActionBar(loading.elapsedTicks));
+            return;
+        }
+        hudService.refreshActionBar(loading.player);
+    }
+
+    private void stopLoadingFeedback(@NotNull LoadingHook loading) {
+        PlayerHudService hudService = playerHudService;
+        if (hudService == null || loading.player.isSkillCasting()) {
+            return;
+        }
+        hudService.clearPrimaryActionBarRenderer(loading.player.getBukkit().getUniqueId());
+        hudService.refreshActionBar(loading.player);
+    }
+
+    private @NotNull Component createLoadingActionBar(int elapsedTicks) {
+        int safeElapsed = Math.clamp(elapsedTicks, 0, LOAD_DURATION_TICKS);
+        int remainingTicks = LOAD_DURATION_TICKS - safeElapsed;
+        int completed = (int) Math.round((double) safeElapsed / LOAD_DURATION_TICKS * LOAD_ACTION_BAR_LENGTH);
+        String bar = "■".repeat(completed) + "□".repeat(LOAD_ACTION_BAR_LENGTH - completed);
+        return Component.text("フック装填中 ", NamedTextColor.AQUA)
+            .append(Component.text(String.format(Locale.ROOT, "%.1fs ", remainingTicks / 20.0D), NamedTextColor.WHITE))
+            .append(Component.text(bar, NamedTextColor.GREEN));
+    }
+
     private void playDenied(@NotNull Player player) {
         player.playSound(
             player.getLocation(),
@@ -375,8 +672,30 @@ public final class HookshotUseService {
     private record CurrentHookshot(
         @NotNull ItemReference reference,
         @NotNull ItemModel model,
-        @NotNull EquipmentInstance instance
+        @NotNull EquipmentInstance instance,
+        @Nullable String metadataJson
     ) {
+    }
+
+    private static final class LoadingHook {
+        private final AstPlayer player;
+        private final String equipmentInstanceId;
+        private final @Nullable String metadataJson;
+        private final Runnable movementSpeedCleanup;
+        private int elapsedTicks;
+        private @Nullable BukkitTask task;
+
+        private LoadingHook(
+            @NotNull AstPlayer player,
+            @NotNull String equipmentInstanceId,
+            @Nullable String metadataJson,
+            @NotNull Runnable movementSpeedCleanup
+        ) {
+            this.player = player;
+            this.equipmentInstanceId = equipmentInstanceId;
+            this.metadataJson = metadataJson;
+            this.movementSpeedCleanup = movementSpeedCleanup;
+        }
     }
 
     private static final class ActiveHook {

@@ -52,19 +52,21 @@ class HookshotInteractionEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-イベント.md
      * 章・見出し: # 04_3-イベント > ## 1. クリック入力受付 > ### フックショット入力候補解決
-     * 検証契約: 有効な固体アンカーを向く主手フックショットはWORLD_INTERACTION候補としてvanilla block候補より先に比較できる。
+     * 検証契約: 未装填フックショットのmain hand右クリックは、アンカー照準を必要とせず装填候補を返す。
      */
     @Test
-    void resolvesHookshotAsClaimedWorldInteractionCandidate() {
+    void resolvesRightClickAsLoadingCandidateWithoutAnchor() {
         HandlerFixture fixture = handlerFixture();
         when(fixture.service().findCurrentHookshotInstanceId(fixture.astPlayer())).thenReturn("hookshot-instance");
-        when(fixture.service().hasValidAnchor(fixture.astPlayer())).thenReturn(true);
+        when(fixture.service().canStartLoading(fixture.astPlayer())).thenReturn(true);
         HookshotInteractionEventHandler handler = new HookshotInteractionEventHandler(fixture.service());
 
         PlayerInputCandidate candidate;
         try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
             cache.when(() -> AstPlayerCache.get(fixture.player())).thenReturn(fixture.astPlayer());
-            candidate = handler.resolve(hookshotContext(fixture)).stream().findFirst().orElseThrow();
+            candidate = handler.resolve(hookshotContext(fixture, InputFamily.RIGHT_CLICK, Action.RIGHT_CLICK_AIR)).stream()
+                .findFirst()
+                .orElseThrow();
         }
 
         assertEquals(InteractionTier.WORLD_INTERACTION, candidate.tier());
@@ -76,29 +78,51 @@ class HookshotInteractionEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-イベント.md
      * 章・見出し: # 04_3-イベント > ## 1. クリック入力受付 > ### フックショット入力候補解決
-     * 検証契約: 固体アンカーを確認できない照準は候補を返さず、通常world操作をclaimしない。
+     * 検証契約: 左クリックは装填済みかつ有効な固体アンカーを再確認できる場合だけ発射候補を返す。
      */
     @Test
-    void doesNotResolveHookshotWithoutValidAnchor() {
+    void doesNotResolveLeftClickWhenLoadedShotCannotFire() {
         HandlerFixture fixture = handlerFixture();
         when(fixture.service().findCurrentHookshotInstanceId(fixture.astPlayer())).thenReturn("hookshot-instance");
+        when(fixture.service().canFire(fixture.astPlayer(), "hookshot-instance")).thenReturn(false);
         HookshotInteractionEventHandler handler = new HookshotInteractionEventHandler(fixture.service());
 
         try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
             cache.when(() -> AstPlayerCache.get(fixture.player())).thenReturn(fixture.astPlayer());
-
-            assertTrue(handler.resolve(hookshotContext(fixture)).isEmpty());
+            assertTrue(handler.resolve(hookshotContext(fixture, InputFamily.LEFT_CLICK, Action.LEFT_CLICK_AIR)).isEmpty());
         }
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-イベント.md
      * 章・見出し: # 28_3-イベント > ## 1. 右・左クリック受付
-     * 検証契約: RIGHT_CLICK_BLOCKでは有効hookshotが同距離のgeneric vanilla block候補より先に勝者となる。
+     * 検証契約: RIGHT_CLICK_BLOCKの装填候補は同距離のgeneric vanilla block候補より先に実行される。
      */
     @Test
-    void gatewayExecutesHookshotBeforeGenericVanillaBlockCandidate() {
-        GatewayFixture fixture = gatewayFixture();
+    void gatewayStartsLoadingBeforeGenericVanillaBlockCandidate() {
+        GatewayFixture fixture = gatewayFixture(Action.RIGHT_CLICK_BLOCK, 6.0D, 2.0D);
+        HookshotInteractionEventHandler handler = new HookshotInteractionEventHandler(fixture.service());
+        PlayerInteractionGatewayEventHandler gateway = gateway(fixture.plugin(), List.of(handler));
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(fixture.player())).thenReturn(fixture.astPlayer());
+            gateway.onPlayerInteract(fixture.event());
+        }
+
+        verify(fixture.service()).startLoading(fixture.astPlayer());
+        verify(fixture.event()).setCancelled(true);
+        verify(fixture.event()).setUseItemInHand(Event.Result.DENY);
+        verify(fixture.event()).setUseInteractedBlock(Event.Result.DENY);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-イベント.md
+     * 章・見出し: # 28_3-イベント > ## 1. 右・左クリック受付
+     * 検証契約: 装填済みで有効アンカーを向くLEFT_CLICKは発射を一回だけ実行する。
+     */
+    @Test
+    void gatewayFiresLoadedHookshotOnLeftClick() {
+        GatewayFixture fixture = gatewayFixture(Action.LEFT_CLICK_BLOCK, 6.0D, 2.0D);
         HookshotInteractionEventHandler handler = new HookshotInteractionEventHandler(fixture.service());
         PlayerInteractionGatewayEventHandler gateway = gateway(fixture.plugin(), List.of(handler));
 
@@ -108,42 +132,18 @@ class HookshotInteractionEventHandlerTest {
         }
 
         verify(fixture.service()).fire(fixture.astPlayer());
+        verify(fixture.service(), never()).startLoading(fixture.astPlayer());
         verify(fixture.event()).setCancelled(true);
-        verify(fixture.event()).setUseItemInHand(Event.Result.DENY);
-        verify(fixture.event()).setUseInteractedBlock(Event.Result.DENY);
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-イベント.md
-     * 章・見出し: # 28_3-イベント > ## 1. 右・左クリック受付
-     * 検証契約: RIGHT_CLICK_BLOCKでは、通過可能なclicked blockが固体アンカーより手前でも、
-     * generic vanilla block候補と同じ入口距離で比較してhookshotが勝者となる。
-     */
-    @Test
-    void gatewayExecutesHookshotBeforeGenericVanillaBlockWhenClickedBlockIsNearerThanAnchor() {
-        GatewayFixture fixture = gatewayFixture(6.0D, 2.0D);
-        HookshotInteractionEventHandler handler = new HookshotInteractionEventHandler(fixture.service());
-        PlayerInteractionGatewayEventHandler gateway = gateway(fixture.plugin(), List.of(handler));
-
-        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
-            cache.when(() -> AstPlayerCache.get(fixture.player())).thenReturn(fixture.astPlayer());
-            gateway.onPlayerInteract(fixture.event());
-        }
-
-        verify(fixture.service()).fire(fixture.astPlayer());
-        verify(fixture.event()).setCancelled(true);
-        verify(fixture.event()).setUseItemInHand(Event.Result.DENY);
-        verify(fixture.event()).setUseInteractedBlock(Event.Result.DENY);
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-サービス.md
      * 章・見出し: # 28_3-サービス > ## 3. family別候補契約
-     * 検証契約: 同距離の既存独自WORLD_INTERACTION候補はhookshotより先に実行される。
+     * 検証契約: 同距離の既存独自WORLD_INTERACTION候補はフックショット装填より先に実行される。
      */
     @Test
-    void gatewayDefersHookshotToExistingWorldInteractionAtSameDistance() {
-        GatewayFixture fixture = gatewayFixture();
+    void gatewayDefersLoadingToExistingWorldInteractionAtSameDistance() {
+        GatewayFixture fixture = gatewayFixture(Action.RIGHT_CLICK_BLOCK, 3.0D, 3.0D);
         HookshotInteractionEventHandler handler = new HookshotInteractionEventHandler(fixture.service());
         AtomicInteger existingWorldExecutions = new AtomicInteger();
         PlayerInputResolver<PlayerInteractionSnapshot> existingWorldResolver = context -> List.of(
@@ -168,7 +168,7 @@ class HookshotInteractionEventHandlerTest {
         }
 
         assertEquals(1, existingWorldExecutions.get());
-        verify(fixture.service(), never()).fire(fixture.astPlayer());
+        verify(fixture.service(), never()).startLoading(fixture.astPlayer());
     }
 
     private HandlerFixture handlerFixture() {
@@ -182,12 +182,16 @@ class HookshotInteractionEventHandlerTest {
         return new HandlerFixture(player, astPlayer, mock(HookshotUseService.class), playerId);
     }
 
-    private PlayerInputContext<PlayerInteractionSnapshot> hookshotContext(HandlerFixture fixture) {
+    private PlayerInputContext<PlayerInteractionSnapshot> hookshotContext(
+        HandlerFixture fixture,
+        InputFamily family,
+        Action action
+    ) {
         PlayerInteractionSnapshot snapshot = new PlayerInteractionSnapshot(
             fixture.player(),
             mock(Event.class),
             EquipmentSlot.HAND,
-            null,
+            action,
             null,
             null,
             null,
@@ -198,17 +202,13 @@ class HookshotInteractionEventHandlerTest {
         return new PlayerInputContext<>(
             fixture.playerId(),
             1L,
-            InputFamily.RIGHT_CLICK,
+            family,
             InputSource.SYNTHETIC,
             snapshot
         );
     }
 
-    private GatewayFixture gatewayFixture() {
-        return gatewayFixture(3.0D, 3.0D);
-    }
-
-    private GatewayFixture gatewayFixture(double blockingDistance, double clickedBlockDistance) {
+    private GatewayFixture gatewayFixture(Action action, double blockingDistance, double clickedBlockDistance) {
         HandlerFixture handler = handlerFixture();
         AstralRecord plugin = mock(AstralRecord.class);
         Server server = mock(Server.class);
@@ -234,7 +234,7 @@ class HookshotInteractionEventHandlerTest {
         )).thenReturn(blockHit);
         when(blockHit.getHitPosition()).thenReturn(new Vector(0.0D, 64.0D, blockingDistance));
         when(event.getPlayer()).thenReturn(handler.player());
-        when(event.getAction()).thenReturn(Action.RIGHT_CLICK_BLOCK);
+        when(event.getAction()).thenReturn(action);
         when(event.getHand()).thenReturn(EquipmentSlot.HAND);
         when(event.getClickedBlock()).thenReturn(clickedBlock);
         when(event.useInteractedBlock()).thenReturn(Event.Result.DEFAULT);
@@ -254,8 +254,12 @@ class HookshotInteractionEventHandlerTest {
             )
         );
         when(handler.service().findCurrentHookshotInstanceId(handler.astPlayer())).thenReturn("hookshot-instance");
-        when(handler.service().hasValidAnchor(handler.astPlayer())).thenReturn(true);
         when(handler.service().isCurrentHookshot(handler.astPlayer(), "hookshot-instance")).thenReturn(true);
+        if (action == Action.RIGHT_CLICK_BLOCK) {
+            when(handler.service().canStartLoading(handler.astPlayer())).thenReturn(true);
+        } else {
+            when(handler.service().canFire(handler.astPlayer(), "hookshot-instance")).thenReturn(true);
+        }
 
         return new GatewayFixture(plugin, event, handler.player(), handler.astPlayer(), handler.service());
     }

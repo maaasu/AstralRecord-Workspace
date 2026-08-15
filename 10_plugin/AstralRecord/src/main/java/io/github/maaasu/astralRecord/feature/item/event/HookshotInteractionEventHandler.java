@@ -26,7 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.List;
 
-/** フックショットの右クリック候補と短期牽引の終了イベントを共通gatewayへ接続します。 */
+/** フックショットの装填・発射候補と短期処理の終了イベントを共通gatewayへ接続します。 */
 public final class HookshotInteractionEventHandler extends AbstractEventHandler
     implements PlayerInputResolver<PlayerInteractionSnapshot> {
 
@@ -46,7 +46,7 @@ public final class HookshotInteractionEventHandler extends AbstractEventHandler
         @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
     ) {
         PlayerInteractionSnapshot snapshot = context.inputSnapshot();
-        if (context.family() != InputFamily.RIGHT_CLICK || !snapshot.isMainHandInput()) {
+        if (!snapshot.isMainHandInput()) {
             return List.of();
         }
         AstPlayer astPlayer = AstPlayerCache.get(snapshot.player());
@@ -57,48 +57,94 @@ public final class HookshotInteractionEventHandler extends AbstractEventHandler
         if (equipmentInstanceId == null) {
             return List.of();
         }
-        if (!hookshotUseService.hasValidAnchor(astPlayer)) {
+        return switch (context.family()) {
+            case RIGHT_CLICK -> resolveLoadingCandidate(snapshot, astPlayer, equipmentInstanceId);
+            case LEFT_CLICK -> resolveFireCandidate(snapshot, astPlayer, equipmentInstanceId);
+            default -> List.of();
+        };
+    }
+
+    private @NotNull Collection<PlayerInputCandidate> resolveLoadingCandidate(
+        @NotNull PlayerInteractionSnapshot snapshot,
+        @NotNull AstPlayer astPlayer,
+        @NotNull String equipmentInstanceId
+    ) {
+        if (!hookshotUseService.canStartLoading(astPlayer)) {
             return List.of();
         }
-        Double clickedBlockDistance = snapshot.action() == Action.RIGHT_CLICK_BLOCK
-            && snapshot.clickedBlock() != null
-            ? snapshot.hitDistance(snapshot.clickedBlock())
-            : null;
         return List.of(new PlayerInputCandidate(
-            "hookshot-use",
+            "hookshot-load",
             InteractionTier.WORLD_INTERACTION,
-            clickedBlockDistance == null ? snapshot.blockingDistance() : clickedBlockDistance,
+            candidateDistance(snapshot, Action.RIGHT_CLICK_BLOCK),
             InteractionCandidateOrder.HOOKSHOT,
             equipmentInstanceId,
             InputClaimPolicy.CLAIM_AND_CANCEL,
             () -> hookshotUseService.isCurrentHookshot(astPlayer, equipmentInstanceId)
-                && hookshotUseService.hasValidAnchor(astPlayer),
+                && hookshotUseService.canStartLoading(astPlayer),
+            () -> runSafely(
+                () -> hookshotUseService.startLoading(astPlayer),
+                LogId.E_3002,
+                "hookshot_load:" + snapshot.player().getName()
+            )
+        ));
+    }
+
+    private @NotNull Collection<PlayerInputCandidate> resolveFireCandidate(
+        @NotNull PlayerInteractionSnapshot snapshot,
+        @NotNull AstPlayer astPlayer,
+        @NotNull String equipmentInstanceId
+    ) {
+        if (!hookshotUseService.canFire(astPlayer, equipmentInstanceId)) {
+            return List.of();
+        }
+        return List.of(new PlayerInputCandidate(
+            "hookshot-fire",
+            InteractionTier.WORLD_INTERACTION,
+            candidateDistance(snapshot, Action.LEFT_CLICK_BLOCK),
+            InteractionCandidateOrder.HOOKSHOT,
+            equipmentInstanceId,
+            InputClaimPolicy.CLAIM_AND_CANCEL,
+            () -> hookshotUseService.canFire(astPlayer, equipmentInstanceId),
             () -> runSafely(
                 () -> hookshotUseService.fire(astPlayer),
                 LogId.E_3002,
-                "hookshot_use:" + snapshot.player().getName()
+                "hookshot_fire:" + snapshot.player().getName()
             )
         ));
+    }
+
+    private static double candidateDistance(
+        @NotNull PlayerInteractionSnapshot snapshot,
+        @NotNull Action blockAction
+    ) {
+        Double clickedBlockDistance = snapshot.action() == blockAction && snapshot.clickedBlock() != null
+            ? snapshot.hitDistance(snapshot.clickedBlock())
+            : null;
+        return clickedBlockDistance == null ? snapshot.blockingDistance() : clickedBlockDistance;
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
         hookshotUseService.cancel(event.getPlayer().getUniqueId());
+        hookshotUseService.cancelLoading(event.getPlayer().getUniqueId());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerDeath(@NotNull PlayerDeathEvent event) {
         hookshotUseService.cancel(event.getEntity().getUniqueId());
+        hookshotUseService.cancelLoading(event.getEntity().getUniqueId());
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerChangedWorld(@NotNull PlayerChangedWorldEvent event) {
         hookshotUseService.cancel(event.getPlayer().getUniqueId());
+        hookshotUseService.cancelLoading(event.getPlayer().getUniqueId());
     }
 
     @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
     public void onPlayerTeleport(@NotNull PlayerTeleportEvent event) {
         hookshotUseService.cancel(event.getPlayer().getUniqueId());
+        hookshotUseService.cancelLoading(event.getPlayer().getUniqueId());
     }
 
     private static boolean isPlayerMode(AstPlayer player) {

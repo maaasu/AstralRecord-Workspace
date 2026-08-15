@@ -10,6 +10,6 @@ rarity: COMMON
 maxStack: 64
 saleValue: 2
 lore:
-  - "&7フックショットの射出に使う金属製の鉤。"
+  - "&7フックショットの装填完了時に使う金属製の鉤。"
 unTradeable: false
 unSellable: false

@@ -19,7 +19,7 @@ Material は、敵、採集、報酬などから入手し、recipe、強化、�
 
 ## フック
 
-`hook` は progression 10 の通常素材です。iconは `TRIPWIRE_HOOK`、最大スタックは64で、`hookshot` の有効な射出ごとに1個だけ消費します。本変更ではloot・shop・quest・recipeの入手経路は追加せず、既存の管理者付与から検証・配布します。
+`hook` は progression 10 の通常素材です。iconは `TRIPWIRE_HOOK`、最大スタックは64で、`hookshot` の装填完了ごとに1個だけ消費します。本変更ではloot・shop・quest・recipeの入手経路は追加せず、既存の管理者付与から検証・配布します。
 
 ## 正本参照
 

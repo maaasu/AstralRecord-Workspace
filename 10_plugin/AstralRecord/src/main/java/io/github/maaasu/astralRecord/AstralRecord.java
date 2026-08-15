@@ -945,6 +945,7 @@ public final class AstralRecord extends JavaPlugin {
         playerHudService.setCombatDpsTrackerService(combatDpsTrackerService);
         playerHudService.setDungeonService(dungeonService);
         skillTreeService.setPlayerHudService(playerHudService);
+        hookshotUseService.setPlayerHudService(playerHudService);
 
         // dodge
         dodgeService = new DodgeService(this, statusService, playerHudService, particleDisplayService);

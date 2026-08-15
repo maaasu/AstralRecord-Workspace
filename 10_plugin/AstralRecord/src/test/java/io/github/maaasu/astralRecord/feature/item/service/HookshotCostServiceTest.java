@@ -15,9 +15,10 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
@@ -30,10 +31,10 @@ class HookshotCostServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
-     * 検証契約: 有効な射出はhookをちょうど1個、master設定の耐久をちょうど1回だけ消費して表示を更新する。
+     * 検証契約: 有効な発射だけが master 設定の耐久を1回消費し、装填素材はここで消費しない。
      */
     @Test
-    void consumesOneHookAndConfiguredDurability() {
+    void consumesConfiguredDurabilityOnlyWhenFiring() {
         TestContext context = new TestContext(4, 1);
         EquipmentInstance reduced = context.instance(3);
         when(context.itemService.updateEquipmentDurability(
@@ -41,40 +42,31 @@ class HookshotCostServiceTest {
             3,
             context.accountId.toString()
         )).thenReturn(reduced);
-        when(context.inventoryService.consumeNormalItem(
-            context.accountId,
-            HookshotCostService.HOOK_ITEM_ID,
-            HookshotCostService.HOOK_AMOUNT_PER_LAUNCH
-        )).thenReturn(true);
 
-        HookshotCostService.Result result = context.service.consumeForLaunch(
+        HookshotCostService.DurabilityConsumption result = context.service.consumeDurabilityForFire(
             context.player,
             context.model,
             context.reference
         );
 
-        assertEquals(HookshotCostService.Result.CONSUMED, result);
+        assertNotNull(result);
+        assertEquals(4, result.previousDurability());
         verify(context.itemService).updateEquipmentDurability(
             context.instanceId,
             3,
             context.accountId.toString()
         );
-        verify(context.inventoryService).consumeNormalItem(
-            context.accountId,
-            HookshotCostService.HOOK_ITEM_ID,
-            HookshotCostService.HOOK_AMOUNT_PER_LAUNCH
-        );
         verify(context.inventoryService).refreshEquipmentInstanceDisplay(context.player, reduced);
-        verify(context.inventoryService).refreshManagedInventoryUi(context.player);
+        verify(context.inventoryService, never()).consumeNormalItem(any(), anyString(), anyInt());
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
-     * 検証契約: フック消費の最終確認が失敗した場合は、仮更新した耐久を元値へ戻して無消費で終える。
+     * 検証契約: 発射直前の装填状態更新が失敗した場合、消費済み耐久だけを元値へ補償する。
      */
     @Test
-    void restoresDurabilityWhenHookConsumptionFails() {
+    void restoresDurabilityWhenLoadedStateCannotBeCleared() {
         TestContext context = new TestContext(4, 1);
         EquipmentInstance reduced = context.instance(3);
         EquipmentInstance restored = context.instance(4);
@@ -83,34 +75,25 @@ class HookshotCostServiceTest {
             3,
             context.accountId.toString()
         )).thenReturn(reduced);
-        when(context.inventoryService.consumeNormalItem(
-            context.accountId,
-            HookshotCostService.HOOK_ITEM_ID,
-            HookshotCostService.HOOK_AMOUNT_PER_LAUNCH
-        )).thenReturn(false);
         when(context.itemService.updateEquipmentDurability(
             context.instanceId,
             4,
             context.accountId.toString()
         )).thenReturn(restored);
 
-        HookshotCostService.Result result = context.service.consumeForLaunch(
+        HookshotCostService.DurabilityConsumption consumption = context.service.consumeDurabilityForFire(
             context.player,
             context.model,
             context.reference
         );
+        assertNotNull(consumption);
+        context.service.rollbackDurability(context.player, consumption);
 
-        assertEquals(HookshotCostService.Result.MISSING_HOOK, result);
-        InOrder order = inOrder(context.itemService, context.inventoryService);
+        InOrder order = inOrder(context.itemService);
         order.verify(context.itemService).updateEquipmentDurability(
             context.instanceId,
             3,
             context.accountId.toString()
-        );
-        order.verify(context.inventoryService).consumeNormalItem(
-            context.accountId,
-            HookshotCostService.HOOK_ITEM_ID,
-            HookshotCostService.HOOK_AMOUNT_PER_LAUNCH
         );
         order.verify(context.itemService).updateEquipmentDurability(
             context.instanceId,
@@ -118,29 +101,27 @@ class HookshotCostServiceTest {
             context.accountId.toString()
         );
         verify(context.inventoryService).refreshEquipmentInstanceDisplay(context.player, restored);
-        verify(context.inventoryService, never()).refreshManagedInventoryUi(context.player);
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
-     * 検証契約: 消費耐久未満のtoolは素材・耐久・表示を一切変更しない。
+     * 検証契約: 消費耐久未満のtoolは耐久・素材・表示を一切変更しない。
      */
     @Test
-    void rejectsInsufficientDurabilityWithoutConsumingHook() {
+    void rejectsInsufficientDurabilityWithoutMutation() {
         TestContext context = new TestContext(0, 1);
 
-        HookshotCostService.Result result = context.service.consumeForLaunch(
+        HookshotCostService.DurabilityConsumption result = context.service.consumeDurabilityForFire(
             context.player,
             context.model,
             context.reference
         );
 
-        assertEquals(HookshotCostService.Result.INSUFFICIENT_DURABILITY, result);
+        assertNull(result);
         verify(context.itemService, never()).updateEquipmentDurability(anyString(), anyInt(), anyString());
-        verify(context.inventoryService, never()).consumeNormalItem(any(), anyString(), anyLong());
+        verify(context.inventoryService, never()).consumeNormalItem(any(), anyString(), anyInt());
         verify(context.inventoryService, never()).refreshEquipmentInstanceDisplay(any(), any());
-        verify(context.inventoryService, never()).refreshManagedInventoryUi(any());
     }
 
     private static final class TestContext {

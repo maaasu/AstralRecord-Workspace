@@ -56,7 +56,7 @@ public final class MasterTagIds {
         /** カルトグラフ: ダンジョンの現在地図と踏破記録を閲覧する再利用可能な道具。 */
         public static final String CARTOGRAPH = "CARTOGRAPH";
 
-        /** フックショット: 固体ブロックへフックを射出し、使用者を物理的に牽引する道具。 */
+        /** フックショット: フックを装填して固体ブロックへ射出し、使用者を物理的に牽引する道具。 */
         public static final String HOOKSHOT = "HOOKSHOT";
     }
 
@@ -447,7 +447,7 @@ public final class MasterTagIds {
         Map.entry("HOE", new Definition("HOE", "クワ", "採取用のクワとして扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
         Map.entry("MAIN_MENU", new Definition("MAIN_MENU", "メインメニュー", "右クリックでメインメニューを開く装備。", "EQUIPMENT", List.of("EQUIPMENT"))),
         Map.entry("CARTOGRAPH", new Definition("CARTOGRAPH", "カルトグラフ", "ダンジョンの現在地図と踏破記録を閲覧する再利用可能な道具。", "EQUIPMENT", List.of("EQUIPMENT"))),
-        Map.entry("HOOKSHOT", new Definition("HOOKSHOT", "フックショット", "固体ブロックへフックを射出し、使用者を物理的に牽引する道具。", "EQUIPMENT", List.of("EQUIPMENT"))),
+        Map.entry("HOOKSHOT", new Definition("HOOKSHOT", "フックショット", "フックを装填して固体ブロックへ射出し、使用者を物理的に牽引する道具。", "EQUIPMENT", List.of("EQUIPMENT"))),
         Map.entry("active", new Definition("active", "アクティブ", "能動的に発動するスキル。", "ACTIVITY", List.of("SKILL"))),
         Map.entry("passive", new Definition("passive", "パッシブ", "常時または条件付きで自動適用されるスキル。", "ACTIVITY", List.of("SKILL"))),
         Map.entry("mob", new Definition("mob", "Mob用", "Mob が使用するスキル。", "ACTIVITY", List.of("SKILL"))),

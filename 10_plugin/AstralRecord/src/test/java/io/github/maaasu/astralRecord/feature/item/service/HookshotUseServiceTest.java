@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.item.service;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
@@ -19,19 +20,21 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Server;
 import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.util.Vector;
 import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InOrder;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
 import java.util.function.Consumer;
@@ -58,24 +61,24 @@ class HookshotUseServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
-     * 検証契約: 牽引はアンカー方向へ加速するvelocityを返し、プレイヤー座標を直接変更しない。
+     * 検証契約: 牽引は距離に応じて強くアンカー方向へ加速し、横方向の慣性を自然に減衰する。
      */
     @Test
-    void addsAccelerationTowardAnchor() {
+    void bendsVelocityTowardAnchorWithDistanceScaledAcceleration() {
         Vector velocity = HookshotUseService.calculatePullVelocity(
-            new Vector(0.0D, 0.0D, 0.0D),
-            new Vector(3.0D, 2.0D, 0.0D)
+            new Vector(0.60D, 0.0D, 0.0D),
+            new Vector(0.0D, 0.0D, HookshotUseService.MAX_RANGE)
         );
 
-        assertTrue(velocity.getX() > 0.0D);
-        assertTrue(velocity.getY() > 0.0D);
+        assertTrue(velocity.getZ() >= HookshotUseService.MIN_PULL_ACCELERATION);
+        assertTrue(velocity.getX() > 0.0D && velocity.getX() < 0.60D);
         assertTrue(velocity.length() <= HookshotUseService.MAX_PULL_SPEED);
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
-     * 検証契約: 合成velocityは設計上限1.20を超えない。
+     * 検証契約: 合成velocityは設計上限2.05を超えない。
      */
     @Test
     void capsResultingVelocityAtConfiguredMaximum() {
@@ -90,37 +93,67 @@ class HookshotUseServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
-     * 検証契約: 固体blockに命中した有効な射出はhookと耐久を消費し、velocityで牽引した後に表示とtaskを回収する。
+     * 検証契約: 右クリック装填は30 tick完了時だけhook1個とloaded metadataを同時確定し、耐久を消費しない。
      */
     @Test
-    void pullsTowardSolidAnchorAndReclaimsDisplayAndTaskAtEndpoint() {
-        Fixture fixture = createFixture(solidBlockHit());
+    void completesLoadingWithOneHookAndNoDurabilityCost() {
+        Fixture fixture = createFixture(null);
+        when(fixture.inventoryService().consumeNormalItemAndUpdateHotbarEquipmentMetadata(
+            eq(fixture.astPlayer()),
+            eq(EquipmentSlot.HAND),
+            eq(fixture.instanceId()),
+            eq(null),
+            anyString(),
+            eq(HookshotCostService.HOOK_ITEM_ID),
+            eq(HookshotCostService.HOOK_AMOUNT_PER_LOAD)
+        )).thenReturn(true);
 
-        fixture.service().fire(fixture.astPlayer());
+        fixture.service().startLoading(fixture.astPlayer());
+        Runnable tick = captureTick(fixture);
+        for (int index = 0; index < HookshotUseService.LOAD_DURATION_TICKS; index++) {
+            tick.run();
+        }
 
-        InOrder launchOrder = org.mockito.Mockito.inOrder(
-            fixture.itemService(),
-            fixture.inventoryService(),
-            fixture.scheduler()
+        verify(fixture.inventoryService()).consumeNormalItemAndUpdateHotbarEquipmentMetadata(
+            eq(fixture.astPlayer()),
+            eq(EquipmentSlot.HAND),
+            eq(fixture.instanceId()),
+            eq(null),
+            anyString(),
+            eq(HookshotCostService.HOOK_ITEM_ID),
+            eq(HookshotCostService.HOOK_AMOUNT_PER_LOAD)
         );
-        launchOrder.verify(fixture.itemService()).updateEquipmentDurability(
+        verify(fixture.itemService(), never()).updateEquipmentDurability(anyString(), anyInt(), anyString());
+        verify(fixture.inventoryService()).refreshManagedInventoryUi(fixture.astPlayer());
+        verify(fixture.movementSpeed()).addTransientModifier(any());
+        verify(fixture.task()).cancel();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
+     * 検証契約: 装填済みフックショットの有効な発射だけが耐久とloaded状態を消費し、velocityで牽引した後に表示とtaskを回収する。
+     */
+    @Test
+    void pullsLoadedHookshotTowardSolidAnchorAndReclaimsDisplayAndTask() {
+        String loadedMetadata = "{\"hookshot\":{\"loaded\":true}}";
+        Fixture fixture = createFixture(solidBlockHit(), loadedMetadata);
+        EquipmentInstance reduced = fixture.equipmentInstance(199);
+        when(fixture.itemService().updateEquipmentDurability(
             fixture.instanceId(),
             199,
             fixture.accountId().toString()
-        );
-        launchOrder.verify(fixture.inventoryService()).consumeNormalItem(
-            fixture.accountId(),
-            HookshotCostService.HOOK_ITEM_ID,
-            HookshotCostService.HOOK_AMOUNT_PER_LAUNCH
-        );
-        launchOrder.verify(fixture.scheduler()).runTaskTimer(
-            eq(fixture.plugin()),
-            any(Runnable.class),
-            eq(1L),
-            eq(1L)
-        );
-        Runnable tick = captureTick(fixture);
+        )).thenReturn(reduced);
+        when(fixture.inventoryService().updateHotbarEquipmentMetadata(
+            fixture.astPlayer(),
+            EquipmentSlot.HAND,
+            fixture.instanceId(),
+            loadedMetadata,
+            null
+        )).thenReturn(true);
 
+        fixture.service().fire(fixture.astPlayer());
+        Runnable tick = captureTick(fixture);
         tick.run();
 
         ArgumentCaptor<Vector> velocity = ArgumentCaptor.forClass(Vector.class);
@@ -128,6 +161,14 @@ class HookshotUseServiceTest {
         assertTrue(velocity.getValue().getZ() > 0.0D);
         assertTrue(velocity.getValue().length() <= HookshotUseService.MAX_PULL_SPEED);
         verify(fixture.player(), never()).teleport(any(Location.class));
+        verify(fixture.inventoryService()).updateHotbarEquipmentMetadata(
+            fixture.astPlayer(),
+            EquipmentSlot.HAND,
+            fixture.instanceId(),
+            loadedMetadata,
+            null
+        );
+        verify(fixture.inventoryService(), never()).consumeNormalItem(any(), anyString(), anyLong());
 
         when(fixture.player().getLocation()).thenReturn(new Location(fixture.world(), 0.0D, 64.0D, 8.0D));
         tick.run();
@@ -139,16 +180,18 @@ class HookshotUseServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
-     * 検証契約: 固体blockへ命中しない照準は表示・taskを生成せず、hookも耐久も消費しない。
+     * 検証契約: 装填済みでも無効照準では耐久・loaded状態・表示・taskを変更しない。
      */
     @Test
-    void doesNotConsumeCostWhenAimHitsNoSolidBlock() {
-        Fixture fixture = createFixture(null);
+    void preservesLoadedStateWhenAimHitsNoSolidBlock() {
+        Fixture fixture = createFixture(null, "{\"hookshot\":{\"loaded\":true}}");
 
         fixture.service().fire(fixture.astPlayer());
 
         verify(fixture.itemService(), never()).updateEquipmentDurability(anyString(), anyInt(), anyString());
-        verify(fixture.inventoryService(), never()).consumeNormalItem(any(), anyString(), anyLong());
+        verify(fixture.inventoryService(), never()).updateHotbarEquipmentMetadata(
+            any(), any(), anyString(), any(), any()
+        );
         verify(fixture.world(), never()).spawn(
             any(Location.class),
             eq(BlockDisplay.class),
@@ -183,9 +226,14 @@ class HookshotUseServiceTest {
     }
 
     private Fixture createFixture(RayTraceResult hit) {
+        return createFixture(hit, null);
+    }
+
+    private Fixture createFixture(RayTraceResult hit, String metadataJson) {
         UUID playerId = UUID.randomUUID();
         UUID accountId = UUID.randomUUID();
-        String instanceId = UUID.randomUUID().toString();
+        UUID instanceUuid = UUID.randomUUID();
+        String instanceId = instanceUuid.toString();
         AstralRecord plugin = mock(AstralRecord.class);
         Server server = mock(Server.class);
         BukkitScheduler scheduler = mock(BukkitScheduler.class);
@@ -193,6 +241,7 @@ class HookshotUseServiceTest {
         World world = mock(World.class);
         Player player = mock(Player.class);
         BlockDisplay anchorDisplay = mock(BlockDisplay.class);
+        AttributeInstance movementSpeed = mock(AttributeInstance.class);
         InventoryService inventoryService = mock(InventoryService.class);
         ItemService itemService = mock(ItemService.class);
         ParticleDisplayService particleDisplayService = mock(ParticleDisplayService.class);
@@ -203,7 +252,7 @@ class HookshotUseServiceTest {
         ItemEquipmentDurability durability = mock(ItemEquipmentDurability.class);
         ItemReference reference = new ItemReference("hookshot", "EQUIPMENT", instanceId, null);
         EquipmentInstance current = equipmentInstance(instanceId, accountId, 200);
-        EquipmentInstance reduced = equipmentInstance(instanceId, accountId, 199);
+        InventoryEntryModel entry = inventoryEntry(instanceUuid, metadataJson, accountId);
 
         when(plugin.getServer()).thenReturn(server);
         when(server.getScheduler()).thenReturn(scheduler);
@@ -216,6 +265,7 @@ class HookshotUseServiceTest {
         when(player.getEyeLocation()).thenReturn(new Location(world, 0.0D, 64.0D, 0.0D, 0.0F, 0.0F));
         when(player.getLocation()).thenReturn(new Location(world, 0.0D, 64.0D, 0.0D));
         when(player.getVelocity()).thenReturn(new Vector());
+        when(player.getAttribute(Attribute.MOVEMENT_SPEED)).thenReturn(movementSpeed);
         when(world.rayTraceBlocks(
             any(Location.class),
             any(Vector.class),
@@ -239,15 +289,10 @@ class HookshotUseServiceTest {
         when(equipment.getRequiredClasses()).thenReturn(List.of());
         when(equipment.getDurability()).thenReturn(durability);
         when(durability.getConsume()).thenReturn(1);
+        when(inventoryService.getHotbarEntryInHand(astPlayer, EquipmentSlot.HAND)).thenReturn(entry);
         when(inventoryService.getItemReferenceInHand(astPlayer, EquipmentSlot.HAND)).thenReturn(reference);
         when(itemService.findLoadedById("hookshot")).thenReturn(model);
         when(itemService.findEquipmentInstanceById(instanceId)).thenReturn(current);
-        when(itemService.updateEquipmentDurability(instanceId, 199, accountId.toString())).thenReturn(reduced);
-        when(inventoryService.consumeNormalItem(
-            accountId,
-            HookshotCostService.HOOK_ITEM_ID,
-            HookshotCostService.HOOK_AMOUNT_PER_LAUNCH
-        )).thenReturn(true);
         AstPlayerCache.put(astPlayer);
 
         return new Fixture(
@@ -257,12 +302,33 @@ class HookshotUseServiceTest {
             world,
             player,
             anchorDisplay,
+            movementSpeed,
             inventoryService,
             itemService,
             astPlayer,
             accountId,
             instanceId,
             new HookshotUseService(plugin, inventoryService, itemService, particleDisplayService)
+        );
+    }
+
+    private InventoryEntryModel inventoryEntry(UUID instanceId, String metadataJson, UUID accountId) {
+        LocalDateTime now = LocalDateTime.of(2026, 8, 15, 0, 0);
+        return new InventoryEntryModel(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            1,
+            "EQUIPMENT",
+            null,
+            "EQUIPMENT",
+            instanceId,
+            1L,
+            metadataJson,
+            now,
+            now,
+            accountId,
+            accountId,
+            false
         );
     }
 
@@ -291,6 +357,7 @@ class HookshotUseServiceTest {
         World world,
         Player player,
         BlockDisplay anchorDisplay,
+        AttributeInstance movementSpeed,
         InventoryService inventoryService,
         ItemService itemService,
         AstPlayer astPlayer,
@@ -298,5 +365,22 @@ class HookshotUseServiceTest {
         String instanceId,
         HookshotUseService service
     ) {
+        private EquipmentInstance equipmentInstance(int durabilityValue) {
+            return new EquipmentInstance(
+                instanceId,
+                accountId.toString(),
+                "hookshot",
+                0,
+                0,
+                0,
+                200,
+                durabilityValue,
+                "2026-08-14T00:00:00Z",
+                "2026-08-14T00:00:00Z",
+                List.of(),
+                List.of(),
+                List.of()
+            );
+        }
     }
 }

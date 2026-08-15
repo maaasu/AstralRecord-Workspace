@@ -5,13 +5,14 @@ schemaVersion: 1
 id: hookshot
 category: equipment
 name: "&bフックショット"
-icon: FISHING_ROD
+icon: CROSSBOW
 rarity: UNCOMMON
 maxStack: 1
 saleValue: 120
 lore:
-  - "&7固体ブロックへフックを射出して自分を引き寄せる道具。"
-  - "&7有効な射出ごとにフックを1個と耐久を消費する。"
+  - "&7右クリックでフックを装填し、左クリックで固体ブロックへ射出する。"
+  - "&7装填完了時にフックを1個、発射時に耐久を消費する。"
+  - "&7装填済みのフックは取り外せない。"
 unTradeable: false
 unSellable: false
 

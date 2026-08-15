@@ -7,11 +7,12 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
-/** フックショットの発射コストを、フック素材と装備耐久の組として処理します。 */
+/** フックショットの装填素材と発射耐久を、別の確定時点で扱います。 */
 public final class HookshotCostService {
     public static final String HOOK_ITEM_ID = "hook";
-    public static final long HOOK_AMOUNT_PER_LAUNCH = 1L;
+    public static final long HOOK_AMOUNT_PER_LOAD = 1L;
 
     private final InventoryService inventoryService;
     private final ItemService itemService;
@@ -33,17 +34,17 @@ public final class HookshotCostService {
     }
 
     /**
-     * 1回の有効な発射に対してフック1個とmaster設定の耐久を消費します。
+     * 有効な発射に対してだけ master 設定の耐久を消費します。
      * <p>
-     * 素材在庫の最終確認は {@link InventoryService#consumeNormalItem} に委譲します。耐久を先に
-     * cache更新した直後に素材消費が失敗した場合は、同じinstanceを元の耐久へ戻して無消費で終了します。
+     * フック素材は装填完了時に {@link InventoryService} の metadata 更新と一緒に消費するため、
+     * このメソッドでは耐久だけを変更します。
      *
      * @param player 所有プレイヤー
      * @param model フックショットのequipment master
      * @param reference 主手のequipment instance参照
-     * @return 消費結果
+     * @return 消費済み耐久の補償情報。耐久不足・個体不在時はnull
      */
-    public @NotNull Result consumeForLaunch(
+    public @Nullable DurabilityConsumption consumeDurabilityForFire(
         @NotNull AstPlayer player,
         @NotNull ItemModel model,
         @NotNull ItemReference reference
@@ -53,12 +54,12 @@ public final class HookshotCostService {
             ? null
             : model.getEquipment().getDurability();
         if (current == null || durability == null) {
-            return Result.UNAVAILABLE;
+            return null;
         }
 
         int durabilityCost = Math.max(1, durability.getConsume());
         if (current.getDurabilityMax() <= 0 || current.getDurabilityValue() < durabilityCost) {
-            return Result.INSUFFICIENT_DURABILITY;
+            return null;
         }
 
         String updatedBy = player.getAccount().getUuid().toString();
@@ -68,35 +69,37 @@ public final class HookshotCostService {
             updatedBy
         );
         if (reduced == null) {
-            return Result.UNAVAILABLE;
+            return null;
         }
-
-        if (!inventoryService.consumeNormalItem(
-            player.getAccount().getUuid(),
-            HOOK_ITEM_ID,
-            HOOK_AMOUNT_PER_LAUNCH
-        )) {
-            EquipmentInstance restored = itemService.updateEquipmentDurability(
-                current.getEquipmentInstanceId(),
-                current.getDurabilityValue(),
-                updatedBy
-            );
-            if (restored != null) {
-                inventoryService.refreshEquipmentInstanceDisplay(player, restored);
-            }
-            return Result.MISSING_HOOK;
-        }
-
         inventoryService.refreshEquipmentInstanceDisplay(player, reduced);
-        inventoryService.refreshManagedInventoryUi(player);
-        return Result.CONSUMED;
+        return new DurabilityConsumption(current.getEquipmentInstanceId(), current.getDurabilityValue(), updatedBy);
     }
 
-    /** フックショットの発射コスト判定結果です。 */
-    public enum Result {
-        CONSUMED,
-        MISSING_HOOK,
-        INSUFFICIENT_DURABILITY,
-        UNAVAILABLE
+    /**
+     * 発射開始前の永続状態更新が失敗した場合に、直前の耐久消費だけを戻します。
+     *
+     * @param player 所有プレイヤー
+     * @param consumption 消費時に得た補償情報
+     */
+    public void rollbackDurability(
+        @NotNull AstPlayer player,
+        @NotNull DurabilityConsumption consumption
+    ) {
+        EquipmentInstance restored = itemService.updateEquipmentDurability(
+            consumption.equipmentInstanceId(),
+            consumption.previousDurability(),
+            consumption.updatedBy()
+        );
+        if (restored != null) {
+            inventoryService.refreshEquipmentInstanceDisplay(player, restored);
+        }
+    }
+
+    /** 発射耐久を補償するための、直前の装備状態です。 */
+    public record DurabilityConsumption(
+        @NotNull String equipmentInstanceId,
+        int previousDurability,
+        @NotNull String updatedBy
+    ) {
     }
 }

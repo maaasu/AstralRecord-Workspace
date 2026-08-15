@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.inventory.service;
 
+import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import com.google.gson.JsonSyntaxException;
@@ -1917,7 +1918,7 @@ public class InventoryService {
                     return 0;
                 }
                 if (entry.getInstanceType() != null) {
-                    if (returnItemToOwnedInventory(astPlayer, itemStack.clone()) == null) {
+                    if (returnItemToOwnedInventory(astPlayer, entry) == null) {
                         return 0;
                     }
                     entries.remove(index);
@@ -2982,6 +2983,91 @@ public class InventoryService {
     }
 
     /**
+     * 主手またはオフハンドの equipment entry metadata を、現在の個体・metadata と一致する場合だけ更新します。
+     * <p>
+     * metadata 全体の一致を条件にするため、同じ装備個体の持ち替え・移動後に古い入力が状態を上書きしません。
+     * state 更新は通常の autosave 対象です。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param hand 対象の手
+     * @param expectedEquipmentInstanceId 期待する equipment instance ID
+     * @param expectedMetadataJson 期待する metadata
+     * @param updatedMetadataJson 保存する metadata
+     * @return 現在の entry を更新できた場合は true
+     */
+    public boolean updateHotbarEquipmentMetadata(
+        @NotNull AstPlayer astPlayer,
+        @NotNull EquipmentSlot hand,
+        @NotNull String expectedEquipmentInstanceId,
+        @Nullable String expectedMetadataJson,
+        @Nullable String updatedMetadataJson
+    ) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return false;
+        }
+        synchronized (state) {
+            InventoryEntryModel entry = findHotbarEntryBySlot(state, toHotbarDbSlot(astPlayer, hand));
+            if (!matchesEquipmentMetadata(entry, expectedEquipmentInstanceId, expectedMetadataJson)) {
+                return false;
+            }
+            replaceEntryMetadata(state, entry, updatedMetadataJson);
+            return true;
+        }
+    }
+
+    /**
+     * 通常素材の消費と、手持ち equipment entry metadata の更新を同じ state lock で確定します。
+     * <p>
+     * 素材不足・個体の持ち替え・metadata 競合のいずれでも state は変更しません。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param hand 対象の手
+     * @param expectedEquipmentInstanceId 期待する equipment instance ID
+     * @param expectedMetadataJson 期待する metadata
+     * @param updatedMetadataJson 保存する metadata
+     * @param consumedItemId 消費する通常アイテム ID
+     * @param amount 消費数
+     * @return 素材と metadata の両方を更新できた場合は true
+     */
+    public boolean consumeNormalItemAndUpdateHotbarEquipmentMetadata(
+        @NotNull AstPlayer astPlayer,
+        @NotNull EquipmentSlot hand,
+        @NotNull String expectedEquipmentInstanceId,
+        @Nullable String expectedMetadataJson,
+        @Nullable String updatedMetadataJson,
+        @NotNull String consumedItemId,
+        long amount
+    ) {
+        if (amount <= 0L) {
+            return updateHotbarEquipmentMetadata(
+                astPlayer,
+                hand,
+                expectedEquipmentInstanceId,
+                expectedMetadataJson,
+                updatedMetadataJson
+            );
+        }
+        UUID accountId = astPlayer.getAccount().getUuid();
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return false;
+        }
+        synchronized (state) {
+            InventoryEntryModel entry = findHotbarEntryBySlot(state, toHotbarDbSlot(astPlayer, hand));
+            if (!matchesEquipmentMetadata(entry, expectedEquipmentInstanceId, expectedMetadataJson)
+                || !hasUnreservedNormalItem(accountId, consumedItemId, amount)) {
+                return false;
+            }
+            if (!consumeNormalItem(accountId, consumedItemId, amount)) {
+                return false;
+            }
+            replaceEntryMetadata(state, entry, updatedMetadataJson);
+            return true;
+        }
+    }
+
+    /**
      * 指定した手に対応する HOTBAR 正本のアイテムモデルを返します。
      *
      * @param astPlayer 対象プレイヤー
@@ -3523,6 +3609,36 @@ public class InventoryService {
             }
         }
         return null;
+    }
+
+    private boolean matchesEquipmentMetadata(
+        @Nullable InventoryEntryModel entry,
+        @NotNull String expectedEquipmentInstanceId,
+        @Nullable String expectedMetadataJson
+    ) {
+        return entry != null
+            && !entry.isDeleted()
+            && entry.getInstanceId() != null
+            && entry.getInstanceId().toString().equalsIgnoreCase(expectedEquipmentInstanceId)
+            && Objects.equals(entry.getMetadataJson(), expectedMetadataJson);
+    }
+
+    private void replaceEntryMetadata(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryEntryModel entry,
+        @Nullable String metadataJson
+    ) {
+        List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(entry.getInventoryId()));
+        for (int index = 0; index < entries.size(); index++) {
+            InventoryEntryModel candidate = entries.get(index);
+            if (!candidate.getInventoryEntryId().equals(entry.getInventoryEntryId())) {
+                continue;
+            }
+            entries.set(index, withMetadata(candidate, metadataJson, state.getAccountId()));
+            state.replaceEntries(entry.getInventoryId(), entries);
+            return;
+        }
+        throw new IllegalStateException("Current hotbar entry disappeared while its state lock was held");
     }
 
     private void renderHotbarInventory(@NotNull AstPlayer astPlayer) {
@@ -4596,6 +4712,7 @@ public class InventoryService {
 
     /**
      * inventory entry を正本として、対象アイテムを所有インベントリへ戻します。
+     * instance entry は metadata も引き継ぎます。
      *
      * @param astPlayer 対象プレイヤー
      * @param entry 返却対象 entry
@@ -4611,7 +4728,8 @@ public class InventoryService {
         return returnResolvedItemToOwnedInventory(
             astPlayer,
             resolveItemReference(entry),
-            Math.max(1, (int) Math.min(Integer.MAX_VALUE, entry.getQuantity()))
+            Math.max(1, (int) Math.min(Integer.MAX_VALUE, entry.getQuantity())),
+            entry.getMetadataJson()
         );
     }
 
@@ -4636,6 +4754,15 @@ public class InventoryService {
         @Nullable ItemReference reference,
         int amount
     ) {
+        return returnResolvedItemToOwnedInventory(astPlayer, reference, amount, null);
+    }
+
+    private @Nullable InventoryType returnResolvedItemToOwnedInventory(
+        @NotNull AstPlayer astPlayer,
+        @Nullable ItemReference reference,
+        int amount,
+        @Nullable String metadataJson
+    ) {
         if (reference == null) {
             return null;
         }
@@ -4655,9 +4782,9 @@ public class InventoryService {
 
             boolean added = switch (category) {
                 case EQUIPMENT -> addExistingInstanceEntry(state, targetInventory, model,
-                    InventoryInstanceType.EQUIPMENT, reference.equipmentInstanceId());
+                    InventoryInstanceType.EQUIPMENT, reference.equipmentInstanceId(), metadataJson);
                 case RUNE -> addExistingInstanceEntry(state, targetInventory, model,
-                    InventoryInstanceType.RUNE, reference.runeInstanceId());
+                    InventoryInstanceType.RUNE, reference.runeInstanceId(), metadataJson);
                 default -> addStackedItems(state, targetInventory, model, amount) > 0;
             };
             if (!added) {
@@ -4674,7 +4801,8 @@ public class InventoryService {
         @NotNull InventoryModel inventory,
         @NotNull ItemModel model,
         @NotNull InventoryInstanceType instanceType,
-        @Nullable String instanceIdValue
+        @Nullable String instanceIdValue,
+        @Nullable String metadataJson
     ) {
         UUID instanceId = instanceIdValue == null ? null : parseUuidOrNull(instanceIdValue);
         if (instanceId == null) {
@@ -4689,7 +4817,7 @@ public class InventoryService {
             .filter(e -> !e.isDeleted())
             .toList());
         entries.add(newEntry(inventory.getInventoryId(), slot, model.getCategory(),
-            null, instanceType.getCode(), instanceId, 1L, null, state.getAccountId()));
+            null, instanceType.getCode(), instanceId, 1L, metadataJson, state.getAccountId()));
         state.replaceEntries(inventory.getInventoryId(), entries);
         return true;
     }
@@ -5178,9 +5306,24 @@ public class InventoryService {
     }
 
     private @NotNull String storageMetadataJson(@NotNull InventoryEntryModel sourceEntry) {
-        JsonObject object = new JsonObject();
+        JsonObject object = parseMetadataObject(sourceEntry.getMetadataJson());
         object.addProperty(STORAGE_ACQUIRED_AT_KEY, sourceEntry.getCreatedAt().toString());
         return object.toString();
+    }
+
+    private @NotNull JsonObject parseMetadataObject(@Nullable String metadataJson) {
+        if (metadataJson == null || metadataJson.isBlank()) {
+            return new JsonObject();
+        }
+        try {
+            JsonElement parsed = JsonParser.parseString(metadataJson);
+            if (parsed.isJsonObject()) {
+                return parsed.getAsJsonObject();
+            }
+        } catch (JsonSyntaxException | IllegalStateException ignored) {
+            // 不正な既存metadataは従来どおり storage 固有情報だけへ置き換える。
+        }
+        return new JsonObject();
     }
 
     private @Nullable StorageViewEntry toStorageViewEntry(
@@ -5314,6 +5457,29 @@ public class InventoryService {
             entry.getInstanceId(),
             quantity,
             entry.getMetadataJson(),
+            entry.getCreatedAt(),
+            entry.getUpdatedAt(),
+            entry.getCreatedBy(),
+            actor,
+            entry.isDeleted()
+        );
+    }
+
+    private @NotNull InventoryEntryModel withMetadata(
+        @NotNull InventoryEntryModel entry,
+        @Nullable String metadataJson,
+        @NotNull UUID actor
+    ) {
+        return new InventoryEntryModel(
+            entry.getInventoryEntryId(),
+            entry.getInventoryId(),
+            entry.getSlotIndex(),
+            entry.getItemCategory(),
+            entry.getItemId(),
+            entry.getInstanceType(),
+            entry.getInstanceId(),
+            entry.getQuantity(),
+            metadataJson,
             entry.getCreatedAt(),
             entry.getUpdatedAt(),
             entry.getCreatedBy(),
