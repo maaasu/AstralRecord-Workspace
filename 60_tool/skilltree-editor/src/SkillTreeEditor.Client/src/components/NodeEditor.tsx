@@ -59,11 +59,13 @@ export function NodeEditor({ node, schemas, isNew, saving, onSave, onDuplicate, 
     if (!selected) return
     const generated = defaultFromSchema(selected.content)
     if (generated === null || typeof generated !== 'object' || Array.isArray(generated)) return
-    updateDraft({
+    const next: JsonObject = {
       ...generated,
       $schema: `../schemas/${selected.summary.fileName}`,
       nodeId: '',
-    })
+    }
+    if (Array.isArray(next.lore) && next.lore.length === 0) delete next.lore
+    updateDraft(next)
   }
 
   return (

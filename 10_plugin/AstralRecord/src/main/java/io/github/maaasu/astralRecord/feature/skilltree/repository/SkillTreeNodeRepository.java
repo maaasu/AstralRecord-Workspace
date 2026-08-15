@@ -129,7 +129,7 @@ public class SkillTreeNodeRepository {
         String nodeId = digitId(node, "nodeId", file, "node");
         String name = SkillTreeJsonReader.requiredString(node, "name", file, "node");
         Material icon = parseMaterial(SkillTreeJsonReader.requiredString(node, "icon", file, "node"), file);
-        List<String> lore = stringArray(node, "lore", file);
+        List<String> lore = optionalStringArray(node, "lore", file);
         List<String> tags = tags(node, file);
         SkillTreePointType pointType = parsePointType(
                 SkillTreeJsonReader.requiredString(node, "pointType", file, "node"),
@@ -241,6 +241,10 @@ public class SkillTreeNodeRepository {
             result.add(element.getAsString());
         }
         return List.copyOf(result);
+    }
+
+    private @NotNull List<String> optionalStringArray(JsonObject object, String key, File file) {
+        return object.has(key) ? stringArray(object, key, file) : List.of();
     }
 
     private @NotNull List<String> tags(JsonObject object, File file) {

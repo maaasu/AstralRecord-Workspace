@@ -329,6 +329,7 @@ export default function App() {
           $schema: '../schemas/node.v1.schema.json', schemaVersion: 1, nodeId: '', name: '', icon: '', lore: [], tags: [],
           pointType: 'CP', pointCost: 1, effects: [],
         }
+    if (Array.isArray(template.lore) && template.lore.length === 0) delete template.lore
     if (selectedSchema) template.$schema = `../schemas/${selectedSchema.summary.fileName}`
     template.nodeId = ''
     setNodeEditor({ node: template, isNew: true })

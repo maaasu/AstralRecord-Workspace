@@ -44,7 +44,7 @@ SkillTree のノード定義と配置・接続構造は、`40_filebase/35.featur
 | `nodeId` | String | 必須 | 数字だけで構成するノード ID。最大 100 文字 |
 | `name` | String | 必須 | Legacy color code を使用できる表示名。空白のみ不可 |
 | `icon` | String | 必須 | Bukkit `Material` 名。空白のみ不可 |
-| `lore` | List\<String\> | 必須 | ノード説明 |
+| `lore` | List\<String\> | 任意 | ノード説明。省略時はゲーム内・エディターのノード説明を表示しない |
 | `tags` | List\<String\> | 必須 | `76.shared.tag/v1.tags.yml`で`SKILLTREE_NODE`対象に定義されたタグID。各要素は重複不可 |
 | `pointType` | String | 必須 | `CP` または `PP` |
 | `pointCost` | Integer | 必須 | 0 以上、2147483647 以下の解放コスト（Java `int` 範囲） |

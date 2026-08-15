@@ -10,7 +10,6 @@
     "nodeId",
     "name",
     "icon",
-    "lore",
     "tags",
     "pointType",
     "pointCost",
@@ -38,6 +37,7 @@
     },
     "lore": {
       "type": "array",
+      "description": "任意のノード説明。省略時はノード説明を表示しません。",
       "items": {
         "type": "string"
       }

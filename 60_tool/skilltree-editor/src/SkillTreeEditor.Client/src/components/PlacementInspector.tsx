@@ -77,6 +77,13 @@ export function PlacementInspector({
     edges: structure.edges.filter((edge) => edge.sourceNodeId !== placement.nodeId && edge.targetNodeId !== placement.nodeId),
   })
   const updateMaster = (key: string, value: JsonValue) => setDraft((current) => current ? { ...current, [key]: value } : current)
+  const updateLore = (value: string) => setDraft((current) => {
+    if (!current) return current
+    const next = { ...current }
+    if (value.trim().length === 0) delete next.lore
+    else next.lore = value.split(/\r?\n/)
+    return next
+  })
   const saveMaster = async () => {
     if (!draft) return
     const saved = await onSaveMaster(draft)
@@ -192,12 +199,12 @@ export function PlacementInspector({
                 ))}
               </div>
             )}
-            <label>Lore <small>1行につき1項目</small>
+            <label>Lore <small>任意。1行につき1項目（未入力時は未定義）</small>
               <textarea
                 aria-label="Lore"
                 rows={3}
                 value={(draft.lore ?? []).map(String).join('\n')}
-                onChange={(event) => updateMaster('lore', event.target.value.split(/\r?\n/))}
+                onChange={(event) => updateLore(event.target.value)}
               />
             </label>
           </div>

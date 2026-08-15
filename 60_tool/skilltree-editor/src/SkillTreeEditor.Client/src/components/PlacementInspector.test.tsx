@@ -68,4 +68,28 @@ describe('PlacementInspector', () => {
       tags: ['root', 'primary'],
     }))
   })
+
+  it('omits optional lore when the inline field is cleared', async () => {
+    const onSaveMaster = vi.fn(async (node: NodeMaster) => node)
+
+    render(
+      <PlacementInspector
+        nodeId="1012"
+        structure={structure}
+        master={master}
+        saving={false}
+        iconRevision={0}
+        onChange={vi.fn()}
+        onSaveMaster={onSaveMaster}
+        onEditMaster={vi.fn()}
+        onRetryIcons={vi.fn()}
+      />,
+    )
+
+    fireEvent.change(screen.getByLabelText('Lore'), { target: { value: '' } })
+    fireEvent.click(screen.getByRole('button', { name: 'マスター定義を保存' }))
+
+    await waitFor(() => expect(onSaveMaster).toHaveBeenCalledTimes(1))
+    expect(onSaveMaster.mock.calls[0][0]).not.toHaveProperty('lore')
+  })
 })

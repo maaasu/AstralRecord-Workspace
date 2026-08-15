@@ -20,8 +20,10 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusModifierType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
+import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionRayTrace;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -40,8 +42,10 @@ import org.mockito.InOrder;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -56,7 +60,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class SkillTreeServiceTest {
+class SkillTreeServiceTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
@@ -72,6 +76,56 @@ class SkillTreeServiceTest {
 
             cache.verifyNoInteractions();
         }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 10. skill tree 設定・master snapshot
+     * 検証契約: lore未定義のnodeは、ワールド表示の説明行を追加しない。
+     */
+    @Test
+    void nodeFieldLabelOmitsDescriptionWhenLoreIsUndefined() {
+        SkillTreeNodeDefinition node = node("1000");
+        SkillTreeService service = newService(node);
+        service.replaceMasterDataSnapshot(new SkillTreeService.SkillTreeMasterDataSnapshot(
+                node.nodeId(),
+                List.of(node),
+                List.of(),
+                List.of()
+        ));
+
+        String label = PlainTextComponentSerializer.plainText().serialize(
+                service.nodeFieldLabel(
+                        node,
+                        SkillTreeService.NodePresentationState.UNLOCKED,
+                        SkillTreeService.NodeLabelDetail.DETAILED
+                )
+        );
+
+        assertEquals("Test Node", label);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 10. skill tree 設定・master snapshot
+     * 検証契約: lore未定義のnodeは、スキルツリーのホットバーItemStackへノード固有の説明行を追加しない。
+     */
+    @Test
+    void nodeHotbarItemOmitsDescriptionWhenLoreIsUndefined() {
+        UUID accountId = UUID.randomUUID();
+        SkillTreeNodeDefinition node = node("1000");
+        SkillTreeService service = newService(node);
+        AstPlayer player = astPlayer(accountId);
+        when(player.getClassId()).thenReturn("adventurer");
+        service.applyInitialPlayerState(new SkillTreePlayerState(accountId, Set.of()));
+
+        var itemStack = invokeNodeHotbarItem(service, player, node);
+        var itemMeta = Objects.requireNonNull(itemStack.getItemMeta());
+        var itemLore = Objects.requireNonNull(itemMeta.lore());
+
+        assertFalse(itemLore.stream()
+                .map(PlainTextComponentSerializer.plainText()::serialize)
+                .anyMatch("Lore"::equals));
     }
 
     /**
@@ -531,6 +585,24 @@ class SkillTreeServiceTest {
                 0,
                 List.of()
         );
+    }
+
+    private org.bukkit.inventory.ItemStack invokeNodeHotbarItem(
+            SkillTreeService service,
+            AstPlayer player,
+            SkillTreeNodeDefinition node
+    ) {
+        try {
+            Method method = SkillTreeService.class.getDeclaredMethod(
+                    "createNodeHotbarItem",
+                    AstPlayer.class,
+                    SkillTreeNodeDefinition.class
+            );
+            method.setAccessible(true);
+            return (org.bukkit.inventory.ItemStack) method.invoke(service, player, node);
+        } catch (ReflectiveOperationException e) {
+            throw new AssertionError(e);
+        }
     }
 
     @SuppressWarnings("unchecked")

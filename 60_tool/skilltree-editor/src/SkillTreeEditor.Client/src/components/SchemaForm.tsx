@@ -241,7 +241,9 @@ function resolveSchema(schema: JsonObject, root: JsonObject): JsonObject {
   for (const segment of reference.slice(2).split('/')) {
     const object = asObject(current)
     if (!object) return schema
-    current = object[segment.replaceAll('~1', '/').replaceAll('~0', '~')]
+    const next = object[segment.replaceAll('~1', '/').replaceAll('~0', '~')]
+    if (next === undefined) return schema
+    current = next
   }
   const resolved: JsonObject = { ...asObject(current), ...schema }
   delete resolved.$ref

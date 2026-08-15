@@ -61,6 +61,48 @@ class SkillTreeNodeRepositoryTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
      * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
+     * 検証契約: 未定義のloreを空の説明として読み込み、node定義を正常に公開する。
+     */
+    @Test
+    void loadsNodeWithoutOptionalLore() throws IOException {
+        writeNode("1000.json", nodeJson("1000", "[]").replace("  \"lore\": [\"Lore\"],\n", ""));
+
+        var node = repository().findAll().getFirst();
+
+        assertTrue(node.lore().isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
+     * 検証契約: 空配列のloreは有効な定義として読み込む。
+     */
+    @Test
+    void loadsNodeWithEmptyOptionalLore() throws IOException {
+        writeNode("1000.json", nodeJson("1000", "[]").replace("[\"Lore\"]", "[]"));
+
+        var node = repository().findAll().getFirst();
+
+        assertTrue(node.lore().isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
+     * 検証契約: loreのnullは未定義とは区別して不正なnode定義として拒否する。
+     */
+    @Test
+    void rejectsNullLore() throws IOException {
+        writeNode("1000.json", nodeJson("1000", "[]").replace("  \"lore\": [\"Lore\"],", "  \"lore\": null,"));
+
+        IllegalStateException error = assertThrows(IllegalStateException.class, () -> repository().findAll());
+
+        assertTrue(error.getMessage().contains("lore must be an array"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-リポジトリ.md
+     * 章・見出し: # 13_3-リポジトリ > ## 6. skill tree node 定義読込
      * 検証契約: 複数file間で重複するnode IDを全体load失敗にする。
      */
     @Test

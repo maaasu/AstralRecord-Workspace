@@ -152,6 +152,49 @@ public sealed class EditorEndpointMutationTests : IDisposable
         Assert.Contains("MASTER_TAG_TARGET_INVALID", await wrongTargetResponse.Content.ReadAsStringAsync());
     }
 
+    [Fact]
+    public async Task NodeSaveAllowsUndefinedLore()
+    {
+        await using var host = await StartAsync();
+        var node = Node("1000", "Without lore");
+        node.Remove("lore");
+
+        using var response = await host.Client.PutAsJsonAsync("/api/nodes/1000", node);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var saved = JsonNode.Parse(await response.Content.ReadAsStringAsync())!.AsObject();
+        Assert.False(saved.ContainsKey("lore"));
+        var persisted = JsonNode.Parse(
+            await File.ReadAllTextAsync(Path.Combine(host.Paths.Nodes, "1000.json"))
+        )!.AsObject();
+        Assert.False(persisted.ContainsKey("lore"));
+    }
+
+    [Fact]
+    public async Task NodeSaveAllowsEmptyLore()
+    {
+        await using var host = await StartAsync();
+        var node = Node("1000", "Empty lore");
+
+        using var response = await host.Client.PutAsJsonAsync("/api/nodes/1000", node);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var saved = JsonNode.Parse(await response.Content.ReadAsStringAsync())!.AsObject();
+        Assert.Empty(saved["lore"]!.AsArray());
+    }
+
+    [Fact]
+    public async Task NodeSaveRejectsNullLore()
+    {
+        await using var host = await StartAsync();
+        var node = Node("1000", "Null lore");
+        node["lore"] = null;
+
+        using var response = await host.Client.PutAsJsonAsync("/api/nodes/1000", node);
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+    }
+
     private async Task<RunningEditor> StartAsync()
     {
         PrepareWorkspace();
