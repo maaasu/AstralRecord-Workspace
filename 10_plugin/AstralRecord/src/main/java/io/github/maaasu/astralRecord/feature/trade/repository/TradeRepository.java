@@ -95,6 +95,7 @@ public final class TradeRepository {
 
     /** Trade API が要求を受理せず、DB transaction を確定していないと明示した 4xx 応答です。 */
     public static final class TradeCommitRejectedException extends IllegalStateException {
+        private static final long serialVersionUID = 1L;
         private final int statusCode;
 
         /**
