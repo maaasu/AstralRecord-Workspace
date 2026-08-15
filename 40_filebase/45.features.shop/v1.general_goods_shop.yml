@@ -15,6 +15,7 @@ items:
     page: 1
     slot: 0
     priceGold: 20
+
   - id: nox_sword
     itemId:
       ref: item:traveler_sword
@@ -39,6 +40,16 @@ items:
     page: 1
     slot: 4
     priceGold: 20
+
+  - id: cartograph
+    itemId:
+      ref: item:cartograph
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 6
+    priceGold: 6000
+
   - id: hookshot
     itemId:
       ref: item:hookshot
