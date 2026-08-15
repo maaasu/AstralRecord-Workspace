@@ -3,15 +3,22 @@ package io.github.maaasu.astralRecord.feature.item.view;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.events.PacketContainer;
+import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.Equippable;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.Plugin;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Method;
 import java.util.Map;
 import java.util.UUID;
 
@@ -121,5 +128,39 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
         ItemStackPacketAdapter.sendOriginalPacketWithoutFilters(manager, viewer, originalPacket);
 
         verify(manager).sendServerPacket(viewer, originalPacket, false);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
+     * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### アイコン書き換え判定
+     * 検証契約: 長押し選択設定時の主武器だけは送信コピーをTRIDENTへ変換し、サーバー側のPaper ItemStackを変更しない。
+     */
+    @Test
+    void virtualTridentKeepsServerPaperWeaponUntouched() throws ReflectiveOperationException {
+        ItemStack serverWeapon = astralWeapon("sword_test", "instance_test");
+        ItemStackPacketAdapter adapter = new ItemStackPacketAdapter(mock(Plugin.class), mock(PlayerSettingService.class));
+        Method replaceIcon = ItemStackPacketAdapter.class.getDeclaredMethod(
+            "replaceIcon", ItemStack.class, boolean.class, boolean.class
+        );
+        replaceIcon.setAccessible(true);
+
+        ItemStack clientWeapon = (ItemStack) replaceIcon.invoke(adapter, serverWeapon, true, true);
+
+        assertEquals(Material.PAPER, serverWeapon.getType());
+        assertEquals(Material.TRIDENT, clientWeapon.getType());
+        assertTrue(ItemStackFactory.isWeapon(serverWeapon));
+        assertEquals("sword_test", ItemStackFactory.getAstralItemId(clientWeapon));
+        assertEquals("instance_test", ItemStackFactory.getEquipmentInstanceId(clientWeapon));
+    }
+
+    private ItemStack astralWeapon(String itemId, String instanceId) {
+        ItemStack item = new ItemStack(Material.PAPER);
+        ItemMeta meta = item.getItemMeta();
+        var pdc = meta.getPersistentDataContainer();
+        pdc.set(new NamespacedKey("astralrecord", "item_id"), PersistentDataType.STRING, itemId);
+        pdc.set(new NamespacedKey("astralrecord", "equipment_slot"), PersistentDataType.STRING, "WEAPON");
+        pdc.set(new NamespacedKey("astralrecord", "equipment_instance_id"), PersistentDataType.STRING, instanceId);
+        item.setItemMeta(meta);
+        return item;
     }
 }

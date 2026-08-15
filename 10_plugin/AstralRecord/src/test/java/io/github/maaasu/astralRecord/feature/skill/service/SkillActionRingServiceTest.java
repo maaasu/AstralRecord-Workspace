@@ -60,6 +60,9 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
         assertEquals("§e左クリックでスキルを選択", LegacyComponentSerializer.legacySection().serialize(
             PlayerMsgResource.getComponent(PlayerMsgId.P_5854.getId())
         ));
+        assertEquals("§e右クリックを離してスキルを選択", LegacyComponentSerializer.legacySection().serialize(
+            PlayerMsgResource.getComponent(PlayerMsgId.P_5871.getId())
+        ));
         assertEquals("§a(§2左クリックでスキルを発動§a)", LegacyComponentSerializer.legacySection().serialize(
             PlayerMsgResource.getComponent(PlayerMsgId.P_5855.getId())
         ));
@@ -85,13 +88,14 @@ class SkillActionRingServiceTest extends MockBukkitTestBase {
         Object session = newRingSession(viewer, display);
         setField(session, "timerLabel", timerLabel);
         setField(session, "instructionLabel", instructionLabel);
+        setField(session, "selectionInstruction", PlayerMsgId.P_5871);
         populateDisplayEntities(session);
 
         Method tick = session.getClass().getDeclaredMethod("tick", Player.class);
         tick.setAccessible(true);
         assertTrue((Boolean) tick.invoke(session, viewer));
         verify(display).updateText(same(viewer), same(instructionLabel),
-            org.mockito.ArgumentMatchers.eq(PlayerMsgResource.getComponent(PlayerMsgId.P_5854.getId())),
+            org.mockito.ArgumentMatchers.eq(PlayerMsgResource.getComponent(PlayerMsgId.P_5871.getId())),
             org.mockito.ArgumentMatchers.eq(0.60F));
         Method confirmSelection = session.getClass().getDeclaredMethod("confirmSelection");
         confirmSelection.setAccessible(true);

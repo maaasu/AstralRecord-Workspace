@@ -17,10 +17,13 @@
 | 25 | `AUTO_SAVE_MESSAGE` |
 | 26 | `BUFF_SIDEBAR_DISPLAY` |
 | 27 | `ARMOR_DISPLAY` |
+| 28 | `ACTION_RING_HOLD_SELECT`（`TRIDENT` icon） |
 | 49 | 前画面へ戻る |
 | 53 | icon を置かない管理者用 super mode secret slot |
 
 `TEMP_DROP_DISPLAY` と `TEMP_BLOCK_DISPLAY` は GUI に表示せず、コマンドから変更する。
+
+`ACTION_RING_HOLD_SELECT` は既定 `false` で、`true` のときだけ右クリック長押し選択を使う。保存後は inventory を再送して、hotbar 内の主武器のクライアント表示を直ちに切り替える。
 
 ## 2. GUI 識別・slot 解決
 

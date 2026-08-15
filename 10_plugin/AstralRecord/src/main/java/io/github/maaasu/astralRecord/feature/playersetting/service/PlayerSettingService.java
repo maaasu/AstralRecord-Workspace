@@ -273,6 +273,27 @@ public final class PlayerSettingService {
     }
 
     /**
+     * 指定プレイヤーでアクションリング長押し選択が有効かを、API 通信を行わずキャッシュから返します。
+     *
+     * <p>クリック入力の処理中に呼ばれるため、cache miss 時は従来操作を維持する既定値 {@code false} へ
+     * 直ちに fallback します。</p>
+     *
+     * @param userId 判定対象ユーザー ID
+     * @return 長押しで選択を確定する場合は {@code true}
+     */
+    public boolean isActionRingHoldSelectEnabled(@NotNull UUID userId) {
+        PlayerSettingSnapshot snapshot = cache.find(userId);
+        if (snapshot == null) {
+            return (Boolean) PlayerSettingKey.ACTION_RING_HOLD_SELECT.getDefaultValue();
+        }
+        PlayerSettingEntry entry = snapshot.getEntry(PlayerSettingKey.ACTION_RING_HOLD_SELECT);
+        Object value = entry == null ? null : entry.getValue();
+        return value instanceof Boolean enabled
+            ? enabled
+            : (Boolean) PlayerSettingKey.ACTION_RING_HOLD_SELECT.getDefaultValue();
+    }
+
+    /**
      * 指定セッションのプレイヤー設定を更新します。
      *
      * <p>同一ユーザーの更新は直列化されます。呼び出し元はリポジトリ通信を Bukkit

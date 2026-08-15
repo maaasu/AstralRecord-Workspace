@@ -248,6 +248,13 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
                 if (armorSettingSynchronized) {
                     itemStackPacketAdapter.refreshEquipmentView(player);
                 }
+                boolean actionRingHoldSelectSynchronized = results.stream().anyMatch(persisted ->
+                    persisted.key() == PlayerSettingKey.ACTION_RING_HOLD_SELECT
+                        && !persisted.result().staleSession()
+                );
+                if (actionRingHoldSelectSynchronized) {
+                    player.updateInventory();
+                }
             }));
     }
 

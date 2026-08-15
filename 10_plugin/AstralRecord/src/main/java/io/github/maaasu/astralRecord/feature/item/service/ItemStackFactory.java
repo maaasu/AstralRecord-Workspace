@@ -107,6 +107,10 @@ public class ItemStackFactory {
     private static final NamespacedKey KEY_EQUIPMENT_INSTANCE_ID =
             new NamespacedKey("astralrecord", "equipment_instance_id");
 
+    /** PDC キー: 装備スロット種別 */
+    private static final NamespacedKey KEY_EQUIPMENT_SLOT =
+            new NamespacedKey("astralrecord", "equipment_slot");
+
     private static final NamespacedKey KEY_DURABILITY_MAX =
             new NamespacedKey("astralrecord", "durability_max");
 
@@ -532,6 +536,30 @@ public class ItemStackFactory {
         }
         return item.getItemMeta().getPersistentDataContainer()
                 .get(KEY_EQUIPMENT_INSTANCE_ID, PersistentDataType.STRING);
+    }
+
+    /**
+     * ItemStack に埋め込まれた装備スロット種別を取得します。
+     *
+     * @param item 判定対象
+     * @return 装備スロット種別。装備でなければ {@code null}
+     */
+    public static @Nullable String getEquipmentSlot(@NotNull ItemStack item) {
+        if (!item.hasItemMeta()) {
+            return null;
+        }
+        return item.getItemMeta().getPersistentDataContainer()
+                .get(KEY_EQUIPMENT_SLOT, PersistentDataType.STRING);
+    }
+
+    /**
+     * ItemStack が主武器として定義された装備かを返します。
+     *
+     * @param item 判定対象
+     * @return 主武器の場合は {@code true}
+     */
+    public static boolean isWeapon(@NotNull ItemStack item) {
+        return ItemEquipmentSlot.WEAPON.name().equals(getEquipmentSlot(item));
     }
 
     /**
@@ -1485,6 +1513,9 @@ public class ItemStackFactory {
         }
         pdc.set(KEY_CATEGORY, PersistentDataType.STRING, model.getCategory());
         pdc.set(KEY_RARITY, PersistentDataType.STRING, model.getRarity());
+        if (model.getEquipment() != null && model.getEquipment().getSlot() != null) {
+            pdc.set(KEY_EQUIPMENT_SLOT, PersistentDataType.STRING, model.getEquipment().getSlot().name());
+        }
     }
 
     private static @Nullable Color parseColor(@Nullable String raw) {

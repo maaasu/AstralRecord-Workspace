@@ -19,6 +19,7 @@ import io.papermc.paper.datacomponent.DataComponentTypes;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
+import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
@@ -61,6 +62,9 @@ public class ItemStackPacketAdapter {
     /** Material 名キャッシュ (大文字名 → Material) */
     private static final Map<String, Material> MATERIAL_CACHE = new ConcurrentHashMap<>();
     private static final long EQUIPMENT_OVERRIDE_TTL_MILLIS = 5_000L;
+    private static final int PLAYER_INVENTORY_WINDOW_ID = 0;
+    private static final int PLAYER_INVENTORY_DIRECT_WINDOW_ID = -2;
+    private static final int PLAYER_INVENTORY_HOTBAR_START_SLOT = 36;
 
     private final Plugin plugin;
     private final PlayerSettingService playerSettingService;
@@ -114,18 +118,21 @@ public class ItemStackPacketAdapter {
                 boolean armorDisplayEnabled = playerSettingService.isArmorDisplayEnabled(
                     event.getPlayer().getUniqueId()
                 );
+                boolean actionRingHoldSelectEnabled = playerSettingService.isActionRingHoldSelectEnabled(
+                    event.getPlayer().getUniqueId()
+                );
 
                 if (type == PacketType.Play.Server.SET_SLOT) {
-                    handleSetSlot(packet, armorDisplayEnabled);
+                    handleSetSlot(packet, armorDisplayEnabled, isHotbarWeaponSetSlot(packet, actionRingHoldSelectEnabled));
                 } else if (type == PacketType.Play.Server.WINDOW_ITEMS) {
-                    handleWindowItems(packet, armorDisplayEnabled);
+                    handleWindowItems(packet, armorDisplayEnabled, actionRingHoldSelectEnabled);
                 } else if (type == PacketType.Play.Server.ENTITY_EQUIPMENT) {
                     handleEntityEquipment(event, armorDisplayEnabled);
                 }
             }
         });
         plugin.getServer().getPluginManager().registerEvents(new Listener() {
-            @EventHandler
+            @EventHandler(priority = EventPriority.MONITOR)
             public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
                 equipmentOverrideRegistry.discardViewer(event.getPlayer().getUniqueId());
             }
@@ -143,13 +150,17 @@ public class ItemStackPacketAdapter {
      * @param packet 書き換え対象パケット
      * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
      */
-    private void handleSetSlot(@NotNull PacketContainer packet, boolean armorDisplayEnabled) {
+    private void handleSetSlot(
+        @NotNull PacketContainer packet,
+        boolean armorDisplayEnabled,
+        boolean virtualTrident
+    ) {
         var original = packet.getItemModifier().readSafely(0);
         if (original == null || original.getType() == Material.AIR) {
             return;
         }
 
-        var replaced = replaceIcon(original, armorDisplayEnabled);
+        var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident);
         if (replaced != null) {
             packet.getItemModifier().writeSafely(0, replaced);
         }
@@ -161,7 +172,11 @@ public class ItemStackPacketAdapter {
      * @param packet 書き換え対象パケット
      * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
      */
-    private void handleWindowItems(@NotNull PacketContainer packet, boolean armorDisplayEnabled) {
+    private void handleWindowItems(
+        @NotNull PacketContainer packet,
+        boolean armorDisplayEnabled,
+        boolean virtualHotbarWeapons
+    ) {
         var items = packet.getItemListModifier().readSafely(0);
         if (items == null || items.isEmpty()) {
             return;
@@ -174,7 +189,9 @@ public class ItemStackPacketAdapter {
                 continue;
             }
 
-            var replaced = replaceIcon(original, armorDisplayEnabled);
+            boolean virtualTrident = virtualHotbarWeapons
+                && isPlayerInventoryHotbarIndex(packet, i);
+            var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident);
             if (replaced != null) {
                 items.set(i, replaced);
                 modified = true;
@@ -240,19 +257,43 @@ public class ItemStackPacketAdapter {
      * @return icon 適用済み ItemStack、または {@code null}
      */
     private ItemStack replaceIcon(@NotNull ItemStack original, boolean armorDisplayEnabled) {
+        return replaceIcon(original, armorDisplayEnabled, false);
+    }
+
+    /**
+     * AstralRecord アイテムをクライアント表示用へ変換します。
+     *
+     * @param original サーバー側 ItemStack
+     * @param armorDisplayEnabled 防具の身体描画を表示する場合は {@code true}
+     * @param virtualTrident hotbar 内の武器を長押し入力用トライデントとして表示する場合は {@code true}
+     * @return 変換済み ItemStack。変換不要の場合は {@code null}
+     */
+    private ItemStack replaceIcon(
+        @NotNull ItemStack original,
+        boolean armorDisplayEnabled,
+        boolean virtualTrident
+    ) {
         var iconName = ItemStackFactory.getIconName(original);
         var customModelData = ItemStackFactory.getCustomModelData(original);
         var appearanceColor = ItemStackFactory.getAppearanceColor(original);
         var potionType = ItemStackFactory.getPotionType(original);
+        boolean virtualWeapon = virtualTrident && ItemStackFactory.isWeapon(original);
 
-        if (iconName == null && customModelData == null && appearanceColor == null && potionType == null) {
+        if (!virtualWeapon
+            && iconName == null
+            && customModelData == null
+            && appearanceColor == null
+            && potionType == null) {
             return null;
         }
 
         ItemStack replaced = original.clone();
         boolean modified = false;
 
-        if (iconName != null) {
+        if (virtualWeapon) {
+            replaced = original.withType(Material.TRIDENT);
+            modified = true;
+        } else if (iconName != null) {
             var iconMaterial = resolveMaterial(iconName);
             if (iconMaterial != null && iconMaterial != original.getType()) {
                 replaced = original.withType(iconMaterial);
@@ -288,6 +329,40 @@ public class ItemStackPacketAdapter {
         }
 
         return modified ? replaced : null;
+    }
+
+    private boolean isHotbarWeaponSetSlot(@NotNull PacketContainer packet, boolean virtualHotbarWeapons) {
+        if (!virtualHotbarWeapons) {
+            return false;
+        }
+        Integer windowId = packet.getIntegers().readSafely(0);
+        Integer slot = packet.getIntegers().readSafely(2);
+        if (slot == null) {
+            Short shortSlot = packet.getShorts().readSafely(0);
+            slot = shortSlot == null ? null : Short.toUnsignedInt(shortSlot);
+        }
+        if (windowId == null || slot == null) {
+            return false;
+        }
+        if (windowId == PLAYER_INVENTORY_WINDOW_ID) {
+            return slot >= PLAYER_INVENTORY_HOTBAR_START_SLOT
+                && slot < PLAYER_INVENTORY_HOTBAR_START_SLOT + 9;
+        }
+        return windowId == PLAYER_INVENTORY_DIRECT_WINDOW_ID && slot >= 0 && slot < 9;
+    }
+
+    /**
+     * player inventory window 内の hotbar item index かを返します。
+     *
+     * <p>選択中の一枠だけを変換すると、slot 切替直後にクライアントが旧 icon のまま右クリックする
+     * 競合が生じます。そのため設定有効時は hotbar の武器全枠をあらかじめ仮想トライデントにします。</p>
+     */
+    private boolean isPlayerInventoryHotbarIndex(@NotNull PacketContainer packet, int itemIndex) {
+        Integer windowId = packet.getIntegers().readSafely(0);
+        return windowId != null
+            && windowId == PLAYER_INVENTORY_WINDOW_ID
+            && itemIndex >= PLAYER_INVENTORY_HOTBAR_START_SLOT
+            && itemIndex < PLAYER_INVENTORY_HOTBAR_START_SLOT + 9;
     }
 
     /**

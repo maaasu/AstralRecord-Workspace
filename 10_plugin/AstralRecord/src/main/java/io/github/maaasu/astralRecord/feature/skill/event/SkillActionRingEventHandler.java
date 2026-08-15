@@ -8,6 +8,8 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingHoldService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
@@ -21,6 +23,7 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapsho
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.jetbrains.annotations.NotNull;
@@ -35,6 +38,8 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
     implements PlayerInputResolver<PlayerInteractionSnapshot> {
     private final SkillActionRingService actionRingService;
     private final InventoryService inventoryService;
+    private final PlayerSettingService playerSettingService;
+    private final SkillActionRingHoldService actionRingHoldService;
 
     /**
      * ハンドラを生成します。
@@ -43,23 +48,39 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
      */
     public SkillActionRingEventHandler(
         @NotNull SkillActionRingService actionRingService,
-        @NotNull InventoryService inventoryService
+        @NotNull InventoryService inventoryService,
+        @NotNull PlayerSettingService playerSettingService,
+        @NotNull SkillActionRingHoldService actionRingHoldService
     ) {
         this.actionRingService = actionRingService;
         this.inventoryService = inventoryService;
+        this.playerSettingService = playerSettingService;
+        this.actionRingHoldService = actionRingHoldService;
     }
 
     @Override
     public @NotNull Collection<PlayerInputCandidate> resolve(
         @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
     ) {
+        Player contextPlayer = context.inputSnapshot().player();
+        if (actionRingHoldService.isHolding(contextPlayer)
+            && (context.family() == InputFamily.HOTBAR_SLOT
+                || context.family() == InputFamily.RIGHT_CLICK
+                || context.family() == InputFamily.LEFT_CLICK)) {
+            return List.of(candidate(
+                "skill-action-ring-hold-guard",
+                InteractionCandidateOrder.OPEN_ACTION_RING,
+                contextPlayer,
+                () -> {
+                }
+            ));
+        }
         if (context.family() == InputFamily.HOTBAR_SLOT) {
-            Player player = context.inputSnapshot().player();
-            return actionRingService.isOpen(player)
+            return actionRingService.isOpen(contextPlayer)
                 ? List.of(candidate(
                     "skill-action-ring-hotbar-guard",
                     InteractionCandidateOrder.OPEN_ACTION_RING,
-                    player,
+                    contextPlayer,
                     () -> {
                     }
                 ))
@@ -125,11 +146,24 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
         if (context.family() == InputFamily.RIGHT_CLICK
             && isPlayerMode(astPlayer)
             && isWeapon(astPlayer)) {
+            boolean holdSelectEnabled = playerSettingService.isActionRingHoldSelectEnabled(player.getUniqueId());
+            // 長押しはクライアント側の仮想トライデント使用を始められる AIR 入力だけで受け付ける。
+            // 従来モードは block / entity 右クリックも含めた既存の入力範囲を維持する。
+            if (holdSelectEnabled && snapshot.action() != Action.RIGHT_CLICK_AIR) {
+                return List.of();
+            }
             return List.of(candidate(
                 "skill-action-ring-open",
                 InteractionCandidateOrder.NEW_ACTION_RING,
                 player,
-                () -> actionRingService.toggle(astPlayer)
+                holdSelectEnabled ? InputClaimPolicy.CLAIM : InputClaimPolicy.CLAIM_AND_CANCEL,
+                () -> {
+                    if (holdSelectEnabled) {
+                        actionRingHoldService.begin(astPlayer);
+                    } else {
+                        actionRingService.toggle(astPlayer);
+                    }
+                }
             ));
         }
         return List.of();
@@ -141,13 +175,23 @@ public final class SkillActionRingEventHandler extends AbstractEventHandler
         Player player,
         Runnable executor
     ) {
+        return candidate(id, stableOrder, player, InputClaimPolicy.CLAIM_AND_CANCEL, executor);
+    }
+
+    private PlayerInputCandidate candidate(
+        String id,
+        int stableOrder,
+        Player player,
+        InputClaimPolicy claimPolicy,
+        Runnable executor
+    ) {
         return new PlayerInputCandidate(
             id,
             InteractionTier.FALLBACK,
             0.0D,
             stableOrder,
             player.getUniqueId().toString(),
-            InputClaimPolicy.CLAIM_AND_CANCEL,
+            claimPolicy,
             executor
         );
     }

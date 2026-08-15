@@ -188,6 +188,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillResolver;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.MeditationSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingHoldService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillCooldownBossBarService;
@@ -339,6 +340,7 @@ public final class AstralRecord extends JavaPlugin {
     private ItemStackPacketAdapter itemStackPacketAdapter;
     private SkillService skillService;
     private SkillActionRingService skillActionRingService;
+    private SkillActionRingHoldService skillActionRingHoldService;
     private SkillCooldownBossBarService skillCooldownBossBarService;
     private PassiveSkillService passiveSkillService;
     private MeditationSkillRuntimeService meditationSkillRuntimeService;
@@ -634,6 +636,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (swordsmanBladeCounterRuntimeService != null) {
             swordsmanBladeCounterRuntimeService.stop();
+        }
+        if (skillActionRingHoldService != null) {
+            skillActionRingHoldService.stop();
         }
         if (skillActionRingService != null) {
             skillActionRingService.stop();
@@ -1170,6 +1175,12 @@ public final class AstralRecord extends JavaPlugin {
             swordsmanBladeCounterRuntimeService::onNormalAttack
         );
         skillActionRingService.setItemWeaponAttackService(itemWeaponAttackService);
+        skillActionRingHoldService = new SkillActionRingHoldService(
+            this,
+            skillActionRingService,
+            playerSettingService
+        );
+        skillActionRingService.setCloseListener(skillActionRingHoldService::cancel);
 
         // item, loot, skill, class 等のマスターデータを非同期ロード
         getServer().getScheduler().runTaskAsynchronously(this, () -> {
@@ -1460,9 +1471,12 @@ public final class AstralRecord extends JavaPlugin {
             skillForgetGuiEventHandler,
             getServer().getPluginManager()
         );
+        eventManager.registerHandler(skillActionRingHoldService, getServer().getPluginManager());
         var skillActionRingEventHandler = new SkillActionRingEventHandler(
             skillActionRingService,
-            inventoryService
+            inventoryService,
+            playerSettingService,
+            skillActionRingHoldService
         );
         eventManager.registerHandler(skillActionRingEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(

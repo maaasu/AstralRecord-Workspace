@@ -65,6 +65,7 @@ public final class SkillActionRingService {
     private final Set<UUID> suppressedAttackPlayers = ConcurrentHashMap.newKeySet();
     private ItemWeaponAttackService itemWeaponAttackService;
     private Consumer<AstPlayer> openListener = player -> { };
+    private Consumer<Player> closeListener = player -> { };
     private BukkitTask task;
 
     /**
@@ -107,22 +108,55 @@ public final class SkillActionRingService {
     }
 
     /**
+     * アクションリングを閉じた後に実行する listener を設定します。
+     *
+     * @param listener 表示を閉じたプレイヤーを受け取る listener
+     */
+    public void setCloseListener(@NotNull Consumer<Player> listener) {
+        this.closeListener = listener;
+    }
+
+    /**
      * プレイヤーのアクションリング表示状態を切り替えます。
      *
      * @param astPlayer 対象プレイヤー
      */
     public void toggle(@NotNull AstPlayer astPlayer) {
         var player = astPlayer.getBukkit();
-        var playerId = player.getUniqueId();
-        var current = sessions.remove(playerId);
-        if (current != null) {
-            current.destroy();
+        if (isOpen(player)) {
+            close(player);
             GuiSound.CLOSE.play(player);
             return;
         }
+        open(astPlayer);
+    }
+
+    /**
+     * 既定の選択案内でアクションリングを表示します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return 表示に成功した場合は {@code true}
+     */
+    public boolean open(@NotNull AstPlayer astPlayer) {
+        return open(astPlayer, PlayerMsgId.P_5854);
+    }
+
+    /**
+     * 指定した選択案内でアクションリングを表示します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param selectionInstruction 選択中にリング内へ表示する案内メッセージ
+     * @return 表示に成功した場合は {@code true}
+     */
+    public boolean open(@NotNull AstPlayer astPlayer, @NotNull PlayerMsgId selectionInstruction) {
+        var player = astPlayer.getBukkit();
+        var playerId = player.getUniqueId();
+        if (sessions.containsKey(playerId)) {
+            return false;
+        }
         if (!hasUsableMainHandWeapon(astPlayer)) {
             GuiSound.DENY.play(player);
-            return;
+            return false;
         }
 
         PlayerSkillCaster caster = new PlayerSkillCaster(astPlayer);
@@ -131,12 +165,14 @@ public final class SkillActionRingService {
             resolveSlots(astPlayer, caster),
             actionRingDisplay,
             skillService,
-            caster
+            caster,
+            selectionInstruction
         );
         sessions.put(playerId, session);
         GuiSound.RING_OPEN.play(player);
         openListener.accept(astPlayer);
         ensureTask();
+        return true;
     }
 
     /**
@@ -171,7 +207,32 @@ public final class SkillActionRingService {
     }
 
     /**
-     * 表示中の選択をデバッグ発動として通知し、リングを閉じます。
+     * 表示中の選択を確定し、次の左クリックで発動できる状態へ遷移します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return 選択を確定できた場合は {@code true}
+     */
+    public boolean confirmSelected(@NotNull AstPlayer astPlayer) {
+        Player player = astPlayer.getBukkit();
+        RingSession session = sessions.get(player.getUniqueId());
+        if (session == null) {
+            return false;
+        }
+        if (!hasUsableMainHandWeapon(astPlayer)) {
+            GuiSound.DENY.play(player);
+            return false;
+        }
+        if (session.hasConfirmedSelection() || !session.canActivateSelected()) {
+            GuiSound.DENY.play(player);
+            return false;
+        }
+        session.confirmSelection();
+        GuiSound.RING_SELECT.play(player);
+        return true;
+    }
+
+    /**
+     * 表示中の選択を発動し、リングを閉じます。
      *
      * @param astPlayer 対象プレイヤー
      */
@@ -181,6 +242,7 @@ public final class SkillActionRingService {
         if (session == null) {
             return;
         }
+
         if (!hasUsableMainHandWeapon(astPlayer)) {
             GuiSound.DENY.play(player);
             return;
@@ -189,16 +251,18 @@ public final class SkillActionRingService {
             GuiSound.DENY.play(player);
             return;
         }
+
         if (!session.hasConfirmedSelection()) {
-            session.confirmSelection();
-            GuiSound.RING_SELECT.play(player);
+            confirmSelected(astPlayer);
             return;
         }
 
-        sessions.remove(player.getUniqueId());
+        if (!sessions.remove(player.getUniqueId(), session)) {
+            return;
+        }
         String skillId = session.selectedSkillId();
         int selectedSlot = session.selectedIndex + 1;
-        session.destroy();
+        destroySession(player, session);
         String skillDisplayName = "未設定";
         if (SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID.equals(skillId)) {
             if (itemWeaponAttackService == null) {
@@ -234,7 +298,7 @@ public final class SkillActionRingService {
     public void close(@NotNull Player player) {
         RingSession session = sessions.remove(player.getUniqueId());
         if (session != null) {
-            session.destroy();
+            destroySession(player, session);
         }
     }
 
@@ -246,10 +310,11 @@ public final class SkillActionRingService {
             task.cancel();
             task = null;
         }
-        for (RingSession session : sessions.values()) {
-            session.destroy();
+        for (RingSession session : List.copyOf(sessions.values())) {
+            if (sessions.remove(session.viewer.getUniqueId(), session)) {
+                destroySession(session.viewer, session);
+            }
         }
-        sessions.clear();
         suppressedAttackPlayers.clear();
     }
 
@@ -264,19 +329,26 @@ public final class SkillActionRingService {
         for (Map.Entry<UUID, RingSession> entry : sessions.entrySet()) {
             Player player = plugin.getServer().getPlayer(entry.getKey());
             if (player == null || !player.isOnline()) {
-                entry.getValue().destroy();
-                sessions.remove(entry.getKey());
+                if (sessions.remove(entry.getKey(), entry.getValue())) {
+                    destroySession(entry.getValue().viewer, entry.getValue());
+                }
                 continue;
             }
             if (!entry.getValue().tick(player)) {
-                entry.getValue().destroy();
-                sessions.remove(entry.getKey());
+                if (sessions.remove(entry.getKey(), entry.getValue())) {
+                    destroySession(player, entry.getValue());
+                }
             }
         }
         if (sessions.isEmpty() && task != null) {
             task.cancel();
             task = null;
         }
+    }
+
+    private void destroySession(@NotNull Player player, @NotNull RingSession session) {
+        session.destroy();
+        closeListener.accept(player);
     }
 
     private @NotNull List<SlotView> resolveSlots(@NotNull AstPlayer astPlayer, @NotNull PlayerSkillCaster caster) {
@@ -584,6 +656,7 @@ public final class SkillActionRingService {
         private int confirmedIndex = -1;
         private RingPhase phase = RingPhase.SELECTING;
         private long phaseElapsedTicks;
+        private PlayerMsgId selectionInstruction = PlayerMsgId.P_5854;
 
         private RingSession(
             @NotNull Location baseEye,
@@ -619,7 +692,8 @@ public final class SkillActionRingService {
             @NotNull List<SlotView> slots,
             @NotNull SkillActionRingDisplay actionRingDisplay,
             @NotNull SkillService skillService,
-            @NotNull PlayerSkillCaster caster
+            @NotNull PlayerSkillCaster caster,
+            @NotNull PlayerMsgId selectionInstruction
         ) {
             Location eye = player.getEyeLocation();
             Vector normal = eye.getDirection().normalize();
@@ -651,6 +725,7 @@ public final class SkillActionRingService {
                 blockBreakSpeed,
                 originalBlockBreakSpeed
             );
+            session.selectionInstruction = selectionInstruction;
             session.spawnEntities(player);
             return session;
         }
@@ -867,7 +942,7 @@ public final class SkillActionRingService {
             Component instruction;
             Location instructionLocation;
             if (phase == RingPhase.SELECTING) {
-                instruction = PlayerMsgResource.getComponent(PlayerMsgId.P_5854.getId());
+                instruction = PlayerMsgResource.getComponent(selectionInstruction.getId());
                 instructionLocation = center.clone().add(up.clone().multiply(0.30D));
             } else {
                 instruction = PlayerMsgResource.getComponent(PlayerMsgId.P_5855.getId());
