@@ -2,14 +2,14 @@
 #   motif: "容器 / エネルギー"
 #   progression: 0
 schemaVersion: 1
-id: energy_bucket
+id: energy_baked
 category: consumable
-name: "&bエネルギーバケット"
-icon: BUCKET
+name: "&bエネルギーベイクド"
+icon: bread
 rarity: COMMON
 maxStack: 16
 lore:
-  - "&7蓄えたエネルギーを瞬時に補給する容器。"
+  - "&7蓄えたエネルギーを瞬時に補給する。"
 unTradeable: false
 unSellable: false
 
