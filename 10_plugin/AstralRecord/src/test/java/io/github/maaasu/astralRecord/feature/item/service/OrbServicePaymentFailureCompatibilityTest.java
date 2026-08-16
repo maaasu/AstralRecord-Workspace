@@ -137,6 +137,8 @@ class OrbServicePaymentFailureCompatibilityTest extends MockBukkitTestBase {
             .thenReturn(new ItemStack(Material.AMETHYST_SHARD));
         when(itemStackFactory.create(equipmentModel, equipment, 1))
             .thenReturn(new ItemStack(Material.DIAMOND_SWORD));
+        when(itemStackFactory.create(equipmentModel, equipment, 1, null))
+            .thenReturn(new ItemStack(Material.DIAMOND_SWORD));
         InventoryPersistence persistence = mock(InventoryPersistence.class);
         InventoryPersistence.PersistedInventoryBaseline baseline =
             new InventoryPersistence.PersistedInventoryBaseline(

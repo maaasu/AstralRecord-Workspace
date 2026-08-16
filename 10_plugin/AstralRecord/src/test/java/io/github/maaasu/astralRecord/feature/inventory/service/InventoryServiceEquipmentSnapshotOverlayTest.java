@@ -126,12 +126,14 @@ class InventoryServiceEquipmentSnapshotOverlayTest extends MockBukkitTestBase {
         when(itemStackFactory.create(
             equipmentModel,
             before,
-            1
+            1,
+            null
         )).thenReturn(staleStack.clone());
         when(itemStackFactory.create(
             equipmentModel,
             after,
-            1
+            1,
+            null
         )).thenReturn(authoritativeStack.clone());
         InventoryPersistence persistence = mock(InventoryPersistence.class);
         List<String> order = new ArrayList<>();
@@ -258,7 +260,7 @@ class InventoryServiceEquipmentSnapshotOverlayTest extends MockBukkitTestBase {
         when(itemService.findEquipmentInstanceById(instanceId.toString())).thenReturn(foreign);
         when(itemService.findLoadedById(equipmentModel.getId())).thenReturn(equipmentModel);
         ItemStackFactory itemStackFactory = mock(ItemStackFactory.class);
-        when(itemStackFactory.create(equipmentModel, foreign, 1)).thenReturn(foreignStack);
+        when(itemStackFactory.create(equipmentModel, foreign, 1, null)).thenReturn(foreignStack);
         InventoryService inventoryService = new InventoryService(
             mock(InventoryRepository.class),
             mock(EquipmentLoadoutRepository.class),
@@ -273,7 +275,7 @@ class InventoryServiceEquipmentSnapshotOverlayTest extends MockBukkitTestBase {
 
         ItemStack displayed = player.getInventory().getChestplate();
         assertTrue(displayed == null || displayed.getType() == Material.AIR);
-        verify(itemStackFactory, never()).create(equipmentModel, foreign, 1);
+        verify(itemStackFactory, never()).create(equipmentModel, foreign, 1, null);
     }
 
     private static InventoryModel inventoryWithMetadata(
