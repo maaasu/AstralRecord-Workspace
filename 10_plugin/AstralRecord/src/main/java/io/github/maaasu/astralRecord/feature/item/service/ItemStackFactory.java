@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.feature.buff.model.BuffType;
 import io.github.maaasu.astralRecord.feature.buff.repository.BuffRepository;
+import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentEnchant;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentRune;
@@ -31,6 +32,7 @@ import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.CustomModelDataComponentUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
+import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.TooltipDisplay;
 import net.kyori.adventure.text.Component;
@@ -717,6 +719,11 @@ public class ItemStackFactory {
             lore.add(ColorCodeUtil.GRAY + " ▸ スロット: " + ColorCodeUtil.WHITE
                     + toEquipmentSlotLabel(equipment.getSlot()));
         }
+        String accessorySlotLabel = toAccessorySlotLabel(equipment);
+        if (accessorySlotLabel != null) {
+            lore.add(ColorCodeUtil.GRAY + " ▸ アクセサリ枠: " + ColorCodeUtil.WHITE
+                    + accessorySlotLabel);
+        }
         if (shouldShowHandType(equipment.getSlot())) {
             lore.add(ColorCodeUtil.GRAY + " ▸ ハンド: " + ColorCodeUtil.WHITE
                     + toHandTypeLabel(equipment.getHandType()));
@@ -953,6 +960,11 @@ public class ItemStackFactory {
             if (eq.getSlot() != null) {
                 lore.add(ColorCodeUtil.GRAY + " ▸ スロット: " + ColorCodeUtil.WHITE
                         + toEquipmentSlotLabel(eq.getSlot()));
+            }
+            String accessorySlotLabel = toAccessorySlotLabel(eq);
+            if (accessorySlotLabel != null) {
+                lore.add(ColorCodeUtil.GRAY + " ▸ アクセサリ枠: " + ColorCodeUtil.WHITE
+                        + accessorySlotLabel);
             }
             if (shouldShowHandType(eq.getSlot())) {
                 lore.add(ColorCodeUtil.GRAY + " ▸ ハンド: " + ColorCodeUtil.WHITE
@@ -1398,6 +1410,26 @@ public class ItemStackFactory {
      */
     private @NotNull String toEquipmentSlotLabel(@Nullable ItemEquipmentSlot slot) {
         return Objects.requireNonNullElse(slot, ItemEquipmentSlot.UNKNOWN).getDisplayName();
+    }
+
+    /**
+     * アクセサリの equipment tag を種類別スロット名へ変換します。
+     *
+     * @param equipment 装備定義
+     * @return 共有タグの表示名。アクセサリ以外または未登録タグの場合は {@code null}
+     */
+    private @Nullable String toAccessorySlotLabel(@NotNull ItemEquipment equipment) {
+        if (equipment.getSlot() != ItemEquipmentSlot.ACCESSORY) {
+            return null;
+        }
+
+        AccessorySlotType slotType = AccessorySlotType.fromEquipmentTag(equipment.getTag());
+        if (slotType == null || slotType.getEquipmentTag() == null) {
+            return null;
+        }
+
+        MasterTagIds.Definition definition = MasterTagIds.find(slotType.getEquipmentTag());
+        return definition == null ? null : definition.displayName();
     }
 
     /**
