@@ -7,6 +7,8 @@ public class GatheringSpawnerResponse
 
     public required string Id { get; init; }
 
+    public required string Type { get; init; }
+
     public double RadiusMeters { get; init; }
 
     public IReadOnlyList<GatheringSpawnEntryResponse> SpawnGatherings { get; init; } = [];

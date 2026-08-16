@@ -15,6 +15,19 @@ namespace AstralRecordApi.Tests.Repositories;
 public class ItemRepositoryEnhanceMasterTests
 {
     [Fact]
+    public async Task GetById_FromEnergyBakedYaml_PreservesConsumableUseTiming()
+    {
+        await using var dbContext = await CreateSeededMasterDataDbContextAsync();
+        var repository = new ItemRepository(dbContext);
+
+        var item = repository.GetById("energy_baked");
+
+        Assert.NotNull(item?.Consumable?.OnUse);
+        Assert.Equal(16, item!.Consumable!.OnUse!.UseTimeTicks);
+        Assert.Equal(16, item.Consumable.OnUse.CooldownTicks);
+    }
+
+    [Fact]
     public async Task OrbItems_AreReturnedByListAndDetailRepositories_WithOperationContracts()
     {
         await using var dbContext = await CreateSeededMasterDataDbContextAsync();

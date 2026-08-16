@@ -57,6 +57,7 @@ public class MobRepositoryPayloadTests
             {
               "schemaVersion": 1,
               "id": "goblin_warrior",
+              "type": "MOB",
               "category": "ENEMY",
               "name": "goblin warrior",
               "level": 5,
@@ -97,6 +98,7 @@ public class MobRepositoryPayloadTests
             {
               "schemaVersion": 1,
               "id": "twilight_colossus",
+              "type": "MOB",
               "category": "BOSS",
               "name": "Twilight Colossus",
               "level": 45,
@@ -145,6 +147,7 @@ public class MobRepositoryPayloadTests
             {
               "schemaVersion": 1,
               "id": "village_elder",
+              "type": "MOB",
               "category": "NPC",
               "name": "Village Elder",
               "level": 1,

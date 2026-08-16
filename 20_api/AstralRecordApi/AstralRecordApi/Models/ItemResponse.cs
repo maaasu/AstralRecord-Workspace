@@ -73,6 +73,10 @@ public class ItemConsumableOnUseResponse
     public string? Effect { get; init; }
 
     public int Amount { get; init; } = 1;
+
+    public long UseTimeTicks { get; init; } = 40;
+
+    public long CooldownTicks { get; init; } = 40;
 }
 
 public class ItemConsumableEffectResponse
@@ -335,7 +339,37 @@ public class ItemBundleItemResponse
 
 public class ItemBundleOnUseResponse
 {
+    public ItemBundleSoundResponse? Sound { get; init; }
+
+    public ItemBundleParticleResponse? Particle { get; init; }
+}
+
+public class ItemBundleSoundResponse
+{
     public string? Sound { get; init; }
 
+    public double? Volume { get; init; }
+
+    public double? Pitch { get; init; }
+}
+
+public class ItemBundleParticleResponse
+{
     public string? Particle { get; init; }
+
+    public int? Count { get; init; }
+
+    public double? OriginOffsetX { get; init; }
+
+    public double? OriginOffsetY { get; init; }
+
+    public double? OriginOffsetZ { get; init; }
+
+    public double? OffsetX { get; init; }
+
+    public double? OffsetY { get; init; }
+
+    public double? OffsetZ { get; init; }
+
+    public double? Extra { get; init; }
 }

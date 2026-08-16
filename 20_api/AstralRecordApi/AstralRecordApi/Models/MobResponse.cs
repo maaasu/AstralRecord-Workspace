@@ -1,3 +1,5 @@
+using System.Text.Json.Serialization;
+
 namespace AstralRecordApi.Models;
 
 /// <summary>
@@ -11,6 +13,8 @@ public class MobResponse
 
     public required string Id { get; init; }
 
+    public required string Type { get; init; }
+
     public required string Category { get; init; }
 
     public required string Name { get; init; }
@@ -22,6 +26,12 @@ public class MobResponse
     public required string EntityType { get; init; }
 
     public bool NameVisible { get; init; } = true;
+
+    /// <summary>
+    /// NPC スキーマでは推奨項目ですが任意項目です。未指定時はクライアント側のカテゴリ既定値を維持します。
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public bool? DamageImmune { get; init; }
 
     public string? Icon { get; init; }
 
