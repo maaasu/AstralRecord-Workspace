@@ -475,6 +475,23 @@ public final class BossChallengeService {
     }
 
     /**
+     * プレイヤーが終了処理を含むボス挑戦へ参加中かを返します。
+     *
+     * @param playerId 判定対象プレイヤーの UUID
+     * @return 挑戦の準備中、進行中、結果待ち、または終了処理中であれば {@code true}
+     */
+    public boolean isPlayerInActiveChallenge(@NotNull UUID playerId) {
+        for (BossChallengeInstance challenge : challengesById.values()) {
+            if (challenge.state() == BossChallengeState.ENDED
+                    || !displayParticipantIds(challenge).contains(playerId)) {
+                continue;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * プレイヤーが中止操作を開ける挑戦 ID を返します。
      *
      * @param playerId プレイヤー UUID

@@ -440,6 +440,16 @@ public final class DungeonService {
         return StartRequestResult.of(StartStatus.ACCEPTED);
     }
 
+    /**
+     * プレイヤーがダンジョンセッションの参加者として扱われているかを返します。
+     *
+     * @param playerId 判定対象プレイヤーの UUID
+     * @return 受付後からセッション終了処理完了までの参加者であれば {@code true}
+     */
+    public boolean isPlayerInActiveSession(@NotNull UUID playerId) {
+        return sessionIdByParticipant.containsKey(playerId);
+    }
+
     private @NotNull String partyKey(@NotNull UUID playerId, @Nullable Party party) {
         return party == null ? "solo:" + playerId : "party:" + party.getPartyId();
     }

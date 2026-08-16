@@ -897,14 +897,6 @@ public final class AstralRecord extends JavaPlugin {
             playerSaveCoordinator,
             playerRegionService
         );
-        returnToBaseService = new ReturnToBaseService(
-            this,
-            movementCancelableWaitService,
-            worldService,
-            inventoryService,
-            particleDisplayService,
-            joinSpawnWorldId
-        );
         bossFieldInstanceService = new BossFieldInstanceService(this, worldService);
         String bossHubWorldId = getConfig().getString(
             "boss.hubWorldId",
@@ -943,6 +935,16 @@ public final class AstralRecord extends JavaPlugin {
         );
         damageService.setDungeonService(dungeonService);
         damageService.setMobDeathListener(dungeonService::handleMobDefeated);
+        returnToBaseService = new ReturnToBaseService(
+            this,
+            movementCancelableWaitService,
+            worldService,
+            inventoryService,
+            particleDisplayService,
+            dungeonService,
+            bossChallengeService,
+            joinSpawnWorldId
+        );
         bossMechanicService = new BossMechanicService(
             this,
             mobService,

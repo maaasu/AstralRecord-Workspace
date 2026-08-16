@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.world.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
+import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -48,6 +50,8 @@ public final class ReturnToBaseService {
     private final WorldService worldService;
     private final InventoryService inventoryService;
     private final ParticleDisplayService particleDisplayService;
+    private final DungeonService dungeonService;
+    private final BossChallengeService bossChallengeService;
     private final String joinSpawnWorldId;
     private final Map<UUID, PendingReturn> pendingReturns = new ConcurrentHashMap<>();
 
@@ -59,6 +63,8 @@ public final class ReturnToBaseService {
      * @param worldService ワールドサービス
      * @param inventoryService インベントリサービス
      * @param particleDisplayService パーティクル表示サービス
+     * @param dungeonService ダンジョン参加状態サービス
+     * @param bossChallengeService ボス挑戦参加状態サービス
      * @param joinSpawnWorldId 参加時スポーン先の WorldMasterData ID
      */
     public ReturnToBaseService(
@@ -67,6 +73,8 @@ public final class ReturnToBaseService {
         @NotNull WorldService worldService,
         @NotNull InventoryService inventoryService,
         @NotNull ParticleDisplayService particleDisplayService,
+        @NotNull DungeonService dungeonService,
+        @NotNull BossChallengeService bossChallengeService,
         @NotNull String joinSpawnWorldId
     ) {
         this.plugin = plugin;
@@ -74,6 +82,8 @@ public final class ReturnToBaseService {
         this.worldService = worldService;
         this.inventoryService = inventoryService;
         this.particleDisplayService = particleDisplayService;
+        this.dungeonService = dungeonService;
+        this.bossChallengeService = bossChallengeService;
         this.joinSpawnWorldId = joinSpawnWorldId;
     }
 
@@ -96,6 +106,10 @@ public final class ReturnToBaseService {
     public boolean beginReturn(@NotNull AstPlayer astPlayer) {
         Player player = astPlayer.getBukkit();
         if (!player.isOnline()) {
+            return false;
+        }
+        if (isReturnBlocked(astPlayer)) {
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5611);
             return false;
         }
 
@@ -165,6 +179,10 @@ public final class ReturnToBaseService {
         if (!player.isOnline()) {
             return false;
         }
+        if (isReturnBlocked(astPlayer)) {
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5611);
+            return false;
+        }
 
         WorldMasterData baseWorld = resolveBaseWorld();
         if (baseWorld == null) {
@@ -219,6 +237,10 @@ public final class ReturnToBaseService {
             cancelPending(playerId, false);
             return;
         }
+        if (isReturnBlocked(pending.astPlayer())) {
+            cancelPending(playerId, false);
+            return;
+        }
 
         pending.bossBar().setProgress(progress);
 
@@ -257,6 +279,10 @@ public final class ReturnToBaseService {
         Player player = pending.astPlayer().getBukkit();
         cleanupPending(pending);
         if (!player.isOnline()) {
+            return;
+        }
+        if (isReturnBlocked(pending.astPlayer())) {
+            PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5611);
             return;
         }
 
@@ -309,6 +335,12 @@ public final class ReturnToBaseService {
         pending.astPlayer().getBukkit().resetTitle();
         pending.bossBar().removeAll();
         pending.bossBar().setVisible(false);
+    }
+
+    private boolean isReturnBlocked(@NotNull AstPlayer astPlayer) {
+        UUID playerId = astPlayer.getBukkit().getUniqueId();
+        return dungeonService.isPlayerInActiveSession(playerId)
+                || bossChallengeService.isPlayerInActiveChallenge(playerId);
     }
 
     private @Nullable WorldMasterData resolveBaseWorld() {
