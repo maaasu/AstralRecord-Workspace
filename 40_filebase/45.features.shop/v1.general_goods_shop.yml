@@ -102,7 +102,7 @@ items:
       - itemId:
           ref: item:sindri_orb
         category: orb
-        amount: 4
+        amount: 3
   - id: sindri_orb_advanced_from_base
     itemId:
       ref: item:sindri_orb_advanced
@@ -110,7 +110,7 @@ items:
     amount: 1
     page: 1
     slot: 17
-    priceGold: 60
+    priceGold: 120
     requiredItems:
       - itemId:
           ref: item:sindri_orb
@@ -123,9 +123,9 @@ items:
     amount: 1
     page: 1
     slot: 24
-    priceGold: 60
+    priceGold: 120
     requiredItems:
       - itemId:
           ref: item:sindri_orb_intermediate
         category: orb
-        amount: 2
+        amount: 3
