@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.shared.gui;
 
+import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -42,6 +43,7 @@ public final class GuiItems {
             meta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(meta);
         }
+        ItemStackFactory.hideBundleContentsTooltip(itemStack);
         return itemStack;
     }
 

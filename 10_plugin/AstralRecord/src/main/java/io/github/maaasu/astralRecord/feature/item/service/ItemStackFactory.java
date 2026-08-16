@@ -215,7 +215,9 @@ public class ItemStackFactory {
     public @NotNull ItemStack asDisplayStack(@NotNull ItemStack item) {
         String iconName = getIconName(item);
         if (iconName == null || iconName.isBlank()) {
-            return item.clone();
+            ItemStack cloned = item.clone();
+            hideBundleContentsTooltip(cloned);
+            return cloned;
         }
 
         Material iconMaterial = resolveIconMaterial(iconName);

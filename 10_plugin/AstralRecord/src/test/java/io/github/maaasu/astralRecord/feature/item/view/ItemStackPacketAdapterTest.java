@@ -25,6 +25,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -181,6 +182,28 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
         assertTrue(ItemStackFactory.isWeapon(serverWeapon));
         assertEquals("sword_test", ItemStackFactory.getAstralItemId(clientWeapon));
         assertEquals("instance_test", ItemStackFactory.getEquipmentInstanceId(clientWeapon));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
+     * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### アイコン書き換え判定
+     * 検証契約: 独自表示情報を持たない純粋なBUNDLEは、送信コピーへ変換せずバニラ内容量表示を維持する。
+     */
+    @Test
+    void rawBundleIsSkippedByPacketDisplay() throws ReflectiveOperationException {
+        ItemStack serverBundle = new ItemStack(Material.BUNDLE);
+        ItemStackPacketAdapter adapter = new ItemStackPacketAdapter(
+            mock(Plugin.class), mock(PlayerSettingService.class), mock(SkillActionRingService.class)
+        );
+        Method replaceIcon = ItemStackPacketAdapter.class.getDeclaredMethod(
+            "replaceIcon", ItemStack.class, boolean.class, boolean.class
+        );
+        replaceIcon.setAccessible(true);
+
+        ItemStack clientBundle = (ItemStack) replaceIcon.invoke(adapter, serverBundle, true, false);
+
+        assertNull(clientBundle);
+        assertFalse(serverBundle.hasData(DataComponentTypes.TOOLTIP_DISPLAY));
     }
 
     private ItemStack astralWeapon(String itemId, String instanceId) {

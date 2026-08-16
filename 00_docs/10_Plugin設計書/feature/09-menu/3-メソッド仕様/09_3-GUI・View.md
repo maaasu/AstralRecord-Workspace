@@ -49,7 +49,7 @@ online player をページ表示し、選択対象のプロフィール・ステ
 
 ## 5. 画面固有の描画不変条件
 
-- `MenuIconFactory` は共有 icon 定義から呼出ごとに独立した `ItemStack` を生成する。通貨詳細は最大 10 件とし、超過時は ellipsis を加える。
+- `MenuIconFactory` は共有 icon 定義から呼出ごとに独立した `ItemStack` を生成する。`CURRENCY` の `BUNDLE` アイコンはバニラの内容量を表示しない。通貨詳細は最大 10 件とし、超過時は ellipsis を加える。
 - equipment 画面は main hand / off hand に専用の空 marker を使い、accessory GUI slot を `AccessorySlotType` へ対応付ける。空 slot の自動選択は同じ equipment tag category 内に限定する。
 
 equipment 画面は 54 slot とし、次の配置と空 marker を正本とする。
