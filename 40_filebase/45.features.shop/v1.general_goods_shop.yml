@@ -46,7 +46,7 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 2
+    slot: 1
     priceGold: 100
   - id: nox_hoe
     itemId:
@@ -54,7 +54,7 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 2
+    slot: 8
     priceGold: 100
   - id: hookshot
     itemId:
