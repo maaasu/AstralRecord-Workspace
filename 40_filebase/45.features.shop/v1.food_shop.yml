@@ -1,0 +1,9 @@
+# design:
+#   motif: "交易 / 食料品店"
+#   progression: 0
+schemaVersion: 1
+id: food_shop
+type: SHOP
+name: "&e食料品店"
+access: NPC_ONLY
+items: []

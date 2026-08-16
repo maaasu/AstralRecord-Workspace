@@ -1,0 +1,45 @@
+# design:
+#   motif: "交易 / 食料品店"
+#   progression: 0
+schemaVersion: 1
+id: food_merchant
+type: MOB
+category: NPC
+name: "&e食料商人リーネ"
+title: "&7食料品店"
+level: 1
+entityType: VILLAGER
+variant:
+  profession: BUTCHER
+  villagerType: PLAINS
+  villagerLevel: 2
+nameVisible: true
+damageImmune: true
+icon: BREAD
+lore:
+  - "&7冒険に持っていく食料系アイテムを扱う商人。"
+  - "&7右クリックで食料品店を開ける。"
+tags:
+  - npc
+  - shop
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&e食料商人リーネ&7: 冒険のお供に、食料を用意しておくと安心ですよ。"
+  rightClick:
+    - id: gui
+      params:
+        type: SHOP
+        shopId: food_shop
