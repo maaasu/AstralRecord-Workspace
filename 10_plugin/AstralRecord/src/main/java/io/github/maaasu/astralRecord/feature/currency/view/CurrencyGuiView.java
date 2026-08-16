@@ -37,7 +37,7 @@ public final class CurrencyGuiView {
     ) {
         pagedGuiView.render(inventory, asBalanceDisplayItems(items), pageIndex);
         fillEmptySlots(inventory);
-        inventory.setItem(EXCHANGE_SLOT, createExchangeIcon(exchangeUnlocked));
+        inventory.setItem(EXCHANGE_SLOT, exchangeUnlocked ? createExchangeIcon() : createFiller());
     }
 
     /**
@@ -129,17 +129,11 @@ public final class CurrencyGuiView {
         return itemStack;
     }
 
-    private @NotNull ItemStack createExchangeIcon(boolean unlocked) {
+    private @NotNull ItemStack createExchangeIcon() {
         return io.github.maaasu.astralRecord.shared.gui.GuiItems.create(
             Material.EMERALD,
-            Component.text(
-                unlocked ? "ゴールド両替所" : "両替所は利用できません",
-                unlocked ? net.kyori.adventure.text.format.NamedTextColor.GOLD
-                    : net.kyori.adventure.text.format.NamedTextColor.RED
-            ),
-            unlocked
-                ? List.of(Component.text("クリックして両替GUIを開きます"))
-                : List.of(Component.text("ユグドラシルの星核を所持すると、ここから両替できます"))
+            Component.text("ゴールド両替所", NamedTextColor.GOLD),
+            List.of(Component.text("クリックして両替GUIを開きます"))
         );
     }
 }

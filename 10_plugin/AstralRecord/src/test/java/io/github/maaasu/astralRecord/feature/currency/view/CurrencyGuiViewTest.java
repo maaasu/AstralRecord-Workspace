@@ -26,27 +26,17 @@ class CurrencyGuiViewTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/16-currency/16_0-概要.md
      * 章・見出し: # 16_0-概要 > ## 4. GUI
-     * 検証契約: 通貨一覧slot 51へ両替導線を描画し、星核所持有無に対応したロック表示を維持する。
+     * 検証契約: 通貨一覧slot 51は両替条件を満たす場合だけ両替アイコンを描画し、条件未達時はダミーpaneを描画する。
      */
     @Test
-    void rendersLockedAndUnlockedExchangeShortcut() {
+    void rendersExchangeShortcutOnlyWhenUnlocked() {
         CurrencyGuiView view = new CurrencyGuiView();
         Inventory inventory = Bukkit.createInventory(null, 54);
 
         view.render(inventory, List.of(), 0, false);
         assertEquals(51, CurrencyGuiView.EXCHANGE_SLOT);
         assertEquals(Material.GRAY_STAINED_GLASS_PANE, inventory.getItem(50).getType());
-        assertEquals(Material.EMERALD, inventory.getItem(CurrencyGuiView.EXCHANGE_SLOT).getType());
-        var lockedMeta = inventory.getItem(CurrencyGuiView.EXCHANGE_SLOT).getItemMeta();
-        assertEquals(
-            "両替所は利用できません",
-            PlainTextComponentSerializer.plainText().serialize(Objects.requireNonNull(lockedMeta.displayName()))
-        );
-        assertEquals(NamedTextColor.RED, lockedMeta.displayName().color());
-        assertEquals(
-            "ユグドラシルの星核を所持すると、ここから両替できます",
-            PlainTextComponentSerializer.plainText().serialize(Objects.requireNonNull(lockedMeta.lore()).getFirst())
-        );
+        assertEquals(inventory.getItem(0), inventory.getItem(CurrencyGuiView.EXCHANGE_SLOT));
 
         view.render(inventory, List.of(), 0, true);
         assertEquals(Material.EMERALD, inventory.getItem(CurrencyGuiView.EXCHANGE_SLOT).getType());
@@ -60,6 +50,9 @@ class CurrencyGuiViewTest extends MockBukkitTestBase {
             "クリックして両替GUIを開きます",
             PlainTextComponentSerializer.plainText().serialize(Objects.requireNonNull(unlockedMeta.lore()).getFirst())
         );
+
+        view.render(inventory, List.of(), 0, false);
+        assertEquals(inventory.getItem(0), inventory.getItem(CurrencyGuiView.EXCHANGE_SLOT));
     }
 
     /**
