@@ -14,30 +14,62 @@ import org.jetbrains.annotations.NotNull;
  * /player info でプレイヤー情報 GUI を開くコマンドです。
  */
 public final class PlayerInfoCommand extends AstCommand {
+    private final boolean shortcut;
 
+    /**
+     * `/player info` コマンドを生成します。
+     */
     public PlayerInfoCommand() {
-        super("player", "プレイヤー情報GUIを開きます。", "/player info <playerName>", true);
+        this("player", "/player info [<playerName>]", false);
+    }
+
+    /**
+     * プレイヤー情報コマンドを指定形式で生成します。
+     *
+     * @param commandName コマンド名
+     * @param usage 使用方法
+     * @param shortcut `/player info` を省略した短縮コマンドかどうか
+     */
+    public PlayerInfoCommand(
+        @NotNull String commandName,
+        @NotNull String usage,
+        boolean shortcut
+    ) {
+        super(commandName, "プレイヤー情報GUIを開きます。", usage, true);
+        this.shortcut = shortcut;
     }
 
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
-        if (!checkArgsLength(args, 2, player.getBukkit())) {
-            return;
-        }
-        if (!"info".equalsIgnoreCase(args[0])) {
-            sendUsage(player.getBukkit());
-            return;
+        int targetIndex;
+        if (shortcut) {
+            if (args.length > 1) {
+                sendUsage(player.getBukkit());
+                return;
+            }
+            targetIndex = 0;
+        } else {
+            if (!checkArgsLength(args, 1, player.getBukkit())) {
+                return;
+            }
+            if (!"info".equalsIgnoreCase(args[0])) {
+                sendUsage(player.getBukkit());
+                return;
+            }
+            targetIndex = 1;
         }
 
-        Player target = Bukkit.getPlayerExact(args[1]);
+        Player target = targetIndex < args.length
+            ? Bukkit.getPlayerExact(args[targetIndex])
+            : player.getBukkit();
         if (target == null) {
-            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5603, args[1]);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5603, args[targetIndex]);
             return;
         }
 
         PlayerBrowserGuiEventHandler handler = AstralRecord.getInstance().getPlayerBrowserGuiEventHandler();
         if (handler == null) {
-            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5603, args[1]);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5603, target.getName());
             return;
         }
         handler.openDetailFromCommand(player.getBukkit(), target);

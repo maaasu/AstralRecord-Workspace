@@ -9,11 +9,11 @@ class ManagedChatEventHandlerTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### バニラDMコマンド遮断
-     * 検証契約: msg/tell/w/whisperをnamespace有無にかかわらず遮断する。
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### バニラメッセージコマンド変換
+     * 検証契約: msg/tell/w/whisperをnamespace有無にかかわらず管理DMへ変換対象として認識する。
      */
     @Test
-    void blocksVanillaDirectMessageAliasesWithOrWithoutNamespace() {
+    void recognizesVanillaDirectMessageAliasesWithOrWithoutNamespace() {
         assertTrue(ManagedChatEventHandler.isVanillaDirectMessageCommand("/msg player hello"));
         assertTrue(ManagedChatEventHandler.isVanillaDirectMessageCommand("/minecraft:tell player hello"));
         assertTrue(ManagedChatEventHandler.isVanillaDirectMessageCommand("/bukkit:w player hello"));
@@ -22,8 +22,33 @@ class ManagedChatEventHandlerTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
-     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### バニラDMコマンド遮断
-     * 検証契約: AstralRecord管理のmessageコマンドは遮断対象にしない。
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### バニラメッセージコマンド変換
+     * 検証契約: sayをnamespace有無にかかわらず管理全体チャットへ変換対象として認識する。
+     */
+    @Test
+    void recognizesVanillaGlobalMessageCommandWithOrWithoutNamespace() {
+        assertTrue(ManagedChatEventHandler.isVanillaGlobalMessageCommand("/say hello"));
+        assertTrue(ManagedChatEventHandler.isVanillaGlobalMessageCommand("/minecraft:say hello"));
+        assertFalse(ManagedChatEventHandler.isVanillaGlobalMessageCommand("/message player hello"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### バニラメッセージコマンド変換
+     * 検証契約: 引数なしのhelpだけをguide変換対象とし、helpのサブコマンドは残す。
+     */
+    @Test
+    void recognizesOnlyArgumentlessHelpAsGuideShortcut() {
+        assertTrue(ManagedChatEventHandler.isGuideHelpCommand("/help"));
+        assertTrue(ManagedChatEventHandler.isGuideHelpCommand("/minecraft:help"));
+        assertFalse(ManagedChatEventHandler.isGuideHelpCommand("/help commands"));
+        assertFalse(ManagedChatEventHandler.isGuideHelpCommand("/guide"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### バニラメッセージコマンド変換
+     * 検証契約: AstralRecord管理のmessageコマンドはバニラ変換対象にしない。
      */
     @Test
     void keepsManagedMessageCommandAvailable() {

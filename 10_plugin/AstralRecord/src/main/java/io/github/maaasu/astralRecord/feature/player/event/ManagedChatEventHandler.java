@@ -3,22 +3,29 @@ package io.github.maaasu.astralRecord.feature.player.event;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.PlayerCommandPreprocessEvent;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
+import java.util.Set;
 
 /**
  * バニラチャットを AstralRecord 管理チャットへ置き換えるイベントハンドラ。
  */
 public final class ManagedChatEventHandler extends AbstractEventHandler {
     private static final PlainTextComponentSerializer PLAIN_TEXT = PlainTextComponentSerializer.plainText();
+    private static final Set<String> VANILLA_DIRECT_MESSAGE_COMMANDS = Set.of("msg", "tell", "w", "whisper");
+    private static final Set<String> VANILLA_GLOBAL_MESSAGE_COMMANDS = Set.of("say");
     private final AstralRecord plugin;
 
     /**
@@ -50,24 +57,49 @@ public final class ManagedChatEventHandler extends AbstractEventHandler {
     }
 
     /**
-     * バニラDM系コマンドを無効化し、自前コマンド利用を促す。
+     * バニラのメッセージ送信コマンドを AstralRecord 管理の送信経路へ変換します。
      *
      * @param event コマンド前処理イベント
      */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onPlayerCommandPreprocess(@NotNull PlayerCommandPreprocessEvent event) {
         runSafely(() -> {
-            String raw = event.getMessage().trim().toLowerCase(Locale.ROOT);
-            if (!isVanillaDirectMessageCommand(raw)) {
+            String raw = event.getMessage().trim();
+            if (isVanillaDirectMessageCommand(raw)) {
+                String arguments = commandArguments(raw);
+                event.setMessage(arguments.isBlank() ? "/message" : "/message " + arguments);
                 return;
             }
-            event.setCancelled(true);
-            PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5945);
+            if (isVanillaGlobalMessageCommand(raw)) {
+                event.setCancelled(true);
+                String message = commandArguments(raw);
+                if (message.isBlank()) {
+                    PlayerMessageService.getInstance().send(event.getPlayer(), PlayerMsgId.P_5946);
+                    return;
+                }
+                PlayerMessageService.getInstance().broadcastGlobalChat(event.getPlayer(), message);
+                return;
+            }
+            if (isGuideHelpCommand(raw) && hasPlayerPermission(event.getPlayer())) {
+                event.setMessage("/guide");
+            }
         }, LogId.E_3002, handlerName + ":command");
     }
 
     static boolean isVanillaDirectMessageCommand(@NotNull String raw) {
-        String commandToken = raw.split("\\s+", 2)[0];
+        return VANILLA_DIRECT_MESSAGE_COMMANDS.contains(commandToken(raw));
+    }
+
+    static boolean isVanillaGlobalMessageCommand(@NotNull String raw) {
+        return VANILLA_GLOBAL_MESSAGE_COMMANDS.contains(commandToken(raw));
+    }
+
+    static boolean isGuideHelpCommand(@NotNull String raw) {
+        return commandToken(raw).equals("help") && commandArguments(raw).isBlank();
+    }
+
+    private static @NotNull String commandToken(@NotNull String raw) {
+        String commandToken = raw.trim().split("\\s+", 2)[0].toLowerCase(Locale.ROOT);
         if (commandToken.startsWith("/")) {
             commandToken = commandToken.substring(1);
         }
@@ -75,9 +107,24 @@ public final class ManagedChatEventHandler extends AbstractEventHandler {
         if (namespaceSeparator >= 0) {
             commandToken = commandToken.substring(namespaceSeparator + 1);
         }
-        return commandToken.equals("msg")
-            || commandToken.equals("tell")
-            || commandToken.equals("w")
-            || commandToken.equals("whisper");
+        return commandToken;
+    }
+
+    private static @NotNull String commandArguments(@NotNull String raw) {
+        String trimmed = raw.trim();
+        int separator = -1;
+        for (int index = 0; index < trimmed.length(); index++) {
+            if (Character.isWhitespace(trimmed.charAt(index))) {
+                separator = index;
+                break;
+            }
+        }
+        return separator < 0 ? "" : trimmed.substring(separator + 1).trim();
+    }
+
+    private static boolean hasPlayerPermission(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return astPlayer != null
+            && astPlayer.getUser().getPermission() == UserPermission.PLAYER.getValue();
     }
 }

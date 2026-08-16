@@ -914,6 +914,15 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         });
     }
 
+    /**
+     * コマンドから通貨一覧GUIを開きます。
+     *
+     * @param player GUIを表示するプレイヤー
+     */
+    public void openCurrencyFromCommand(@NotNull Player player) {
+        openCurrency(player, 0);
+    }
+
     private void openEquipmentGui(@NotNull Player player) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {

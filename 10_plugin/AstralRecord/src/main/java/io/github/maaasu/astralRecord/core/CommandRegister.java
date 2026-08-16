@@ -9,11 +9,13 @@ import io.github.maaasu.astralRecord.feature.account.command.AccountTabCompleter
 import io.github.maaasu.astralRecord.feature.account.command.LevelCommand;
 import io.github.maaasu.astralRecord.feature.account.command.LevelTabCompleter;
 import io.github.maaasu.astralRecord.feature.boss.command.BossCommand;
+import io.github.maaasu.astralRecord.feature.currency.command.CurrencyCommand;
 import io.github.maaasu.astralRecord.feature.dungeon.command.DungeonCommand;
 import io.github.maaasu.astralRecord.feature.gathering.command.GatheringCommand;
 import io.github.maaasu.astralRecord.feature.gathering.command.GatheringTabCompleter;
 import io.github.maaasu.astralRecord.feature.gathering.service.GatheringService;
 import io.github.maaasu.astralRecord.feature.gathering.spawner.service.GatheringSpawnerService;
+import io.github.maaasu.astralRecord.feature.guide.command.GuideCommand;
 import io.github.maaasu.astralRecord.feature.inventory.command.InventoryCommand;
 import io.github.maaasu.astralRecord.feature.inventory.command.InventoryTabCompleter;
 import io.github.maaasu.astralRecord.feature.item.command.ItemCommand;
@@ -145,8 +147,22 @@ public class CommandRegister {
         cm.registerCommand("statusbuff", new StatusBuffCommand(), new StatusBuffTabCompleter());
         cm.registerCommand("inventory", new InventoryCommand(), new InventoryTabCompleter());
         cm.registerCommand("menu", new MenuCommand());
-        cm.registerCommand("player", new PlayerInfoCommand(), new PlayerInfoTabCompleter());
-        cm.registerCommand("trash", new TrashCommand());
+        cm.registerCommand("guide", new GuideCommand());
+        PlayerInfoCommand playerInfoCommand = new PlayerInfoCommand();
+        cm.registerCommand("player", playerInfoCommand, new PlayerInfoTabCompleter());
+        cm.registerCommand(
+            "pi",
+            new PlayerInfoCommand("pi", "/pi [<playerName>]", true),
+            new PlayerInfoTabCompleter(true)
+        );
+        TrashCommand trashCommand = new TrashCommand();
+        cm.registerCommand("trash", trashCommand);
+        cm.registerCommand("g", trashCommand);
+        cm.registerCommand("gomi", trashCommand);
+        CurrencyCommand currencyCommand = new CurrencyCommand();
+        cm.registerCommand("currency", currencyCommand);
+        cm.registerCommand("c", currencyCommand);
+        cm.registerCommand("gold", currencyCommand);
         cm.registerCommand("sell", new SellCommand());
         cm.registerCommand("storage", new StorageCommand());
         cm.registerCommand("item", new ItemCommand(itemService), new ItemTabCompleter(itemService));
