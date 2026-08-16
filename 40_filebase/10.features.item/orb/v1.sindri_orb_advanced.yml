@@ -1,0 +1,19 @@
+# design:
+#   motif: "北欧神話 / シンドリ / 鍛冶"
+#   progression: 3
+schemaVersion: 1
+id: sindri_orb_advanced
+category: orb
+name: "&9シンドリのオーブ(上級)"
+icon: CHISELED_SANDSTONE
+rarity: RARE
+maxStack: 64
+saleValue: 240
+lore:
+  - "&7装備の耐久値を300回復する。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: REPAIR
+    repairAmount: 300

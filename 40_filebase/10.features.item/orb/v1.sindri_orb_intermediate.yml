@@ -1,0 +1,19 @@
+# design:
+#   motif: "北欧神話 / シンドリ / 鍛冶"
+#   progression: 2
+schemaVersion: 1
+id: sindri_orb_intermediate
+category: orb
+name: "&bシンドリのオーブ(中級)"
+icon: CUT_SANDSTONE
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 120
+lore:
+  - "&7装備の耐久値を150回復する。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: REPAIR
+    repairAmount: 150

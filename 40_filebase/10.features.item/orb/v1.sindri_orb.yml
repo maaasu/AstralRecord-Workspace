@@ -1,0 +1,19 @@
+# design:
+#   motif: "北欧神話 / シンドリ / 鍛冶"
+#   progression: 1
+schemaVersion: 1
+id: sindri_orb
+category: orb
+name: "&aシンドリのオーブ"
+icon: SMOOTH_SANDSTONE
+rarity: COMMON
+maxStack: 64
+saleValue: 60
+lore:
+  - "&7装備の耐久値を75回復する。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: REPAIR
+    repairAmount: 75

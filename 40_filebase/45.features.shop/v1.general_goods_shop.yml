@@ -82,3 +82,50 @@ items:
     slot: 6
     priceGold: 6000
 
+  - id: sindri_orb
+    itemId:
+      ref: item:sindri_orb
+    category: orb
+    amount: 1
+    page: 1
+    slot: 3
+    priceGold: 75
+  - id: sindri_orb_intermediate
+    itemId:
+      ref: item:sindri_orb_intermediate
+    category: orb
+    amount: 1
+    page: 1
+    slot: 10
+    priceGold: 30
+    requiredItems:
+      - itemId:
+          ref: item:sindri_orb
+        category: orb
+        amount: 4
+  - id: sindri_orb_advanced_from_base
+    itemId:
+      ref: item:sindri_orb_advanced
+    category: orb
+    amount: 1
+    page: 1
+    slot: 17
+    priceGold: 60
+    requiredItems:
+      - itemId:
+          ref: item:sindri_orb
+        category: orb
+        amount: 10
+  - id: sindri_orb_advanced_from_intermediate
+    itemId:
+      ref: item:sindri_orb_advanced
+    category: orb
+    amount: 1
+    page: 1
+    slot: 24
+    priceGold: 60
+    requiredItems:
+      - itemId:
+          ref: item:sindri_orb_intermediate
+        category: orb
+        amount: 2
