@@ -812,7 +812,13 @@ public final class AstralRecord extends JavaPlugin {
             particleDisplayService
         );
         statusRegenTask = new StatusRegenTask(statusService);
-        overheadDisplayService = new OverheadDisplayService(displayTextService, statusService, mobService, playerClassService);
+        overheadDisplayService = new OverheadDisplayService(
+                displayTextService,
+                statusService,
+                mobService,
+                playerClassService,
+                skillTreeService::isSkillTreeWorld
+        );
 
         // combat
         mobDropPresentationService = new MobDropPresentationService(

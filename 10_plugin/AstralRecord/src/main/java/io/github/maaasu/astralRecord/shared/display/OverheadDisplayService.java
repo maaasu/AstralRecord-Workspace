@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import org.bukkit.Bukkit;
+import org.bukkit.World;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
@@ -28,6 +29,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 
 /**
  * プレイヤーと Mob の頭上に、実体 TextDisplay としてステータス文字列を表示するサービスです。
@@ -44,6 +46,7 @@ public class OverheadDisplayService {
     private final StatusService statusService;
     private final MobService mobService;
     private final PlayerClassService playerClassService;
+    private final Predicate<World> suppressPlayerDisplayInWorld;
     private final Map<UUID, DisplayTextService.ManagedTextDisplay> playerDisplays = new HashMap<>();
     private final Map<UUID, DisplayTextService.ManagedTextDisplay> mobDisplays = new HashMap<>();
     private final Set<UUID> suspendedPlayerDisplays = ConcurrentHashMap.newKeySet();
@@ -56,17 +59,21 @@ public class OverheadDisplayService {
      * @param displayService TextDisplay 管理サービス
      * @param statusService  ステータス参照サービス
      * @param mobService     Mob 管理サービス
+     * @param playerClassService プレイヤークラス参照サービス
+     * @param suppressPlayerDisplayInWorld プレイヤー頭上 TextDisplay を非表示にするワールド判定
      */
     public OverheadDisplayService(
             @NotNull DisplayTextService displayService,
             @NotNull StatusService statusService,
             @NotNull MobService mobService,
-            @NotNull PlayerClassService playerClassService
+            @NotNull PlayerClassService playerClassService,
+            @NotNull Predicate<World> suppressPlayerDisplayInWorld
     ) {
         this.displayService = displayService;
         this.statusService = statusService;
         this.mobService = mobService;
         this.playerClassService = playerClassService;
+        this.suppressPlayerDisplayInWorld = suppressPlayerDisplayInWorld;
     }
 
     /**
@@ -123,10 +130,10 @@ public class OverheadDisplayService {
 
         for (Player subject : onlinePlayers) {
             UUID subjectId = subject.getUniqueId();
-            activeSubjects.add(subjectId);
             subject.setCustomNameVisible(false);
 
-            if (suspendedPlayerDisplays.contains(subjectId)) {
+            if (suspendedPlayerDisplays.contains(subjectId)
+                    || suppressPlayerDisplayInWorld.test(subject.getWorld())) {
                 DisplayTextService.ManagedTextDisplay suspendedDisplay = playerDisplays.remove(subjectId);
                 if (suspendedDisplay != null) {
                     suspendedDisplay.destroy();
@@ -134,6 +141,7 @@ public class OverheadDisplayService {
                 continue;
             }
 
+            activeSubjects.add(subjectId);
             DisplayTextService.ManagedTextDisplay display = playerDisplays.computeIfAbsent(
                     subjectId,
                     ignored -> displayService.create(
