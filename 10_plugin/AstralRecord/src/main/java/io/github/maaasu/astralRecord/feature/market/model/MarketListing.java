@@ -8,6 +8,7 @@ import java.util.UUID;
 public record MarketListing(
     UUID listingId,
     UUID sellerAccountId,
+    String sellerAccountName,
     @Nullable UUID buyerAccountId,
     @Nullable UUID sourceInventoryEntryId,
     String itemCategory,

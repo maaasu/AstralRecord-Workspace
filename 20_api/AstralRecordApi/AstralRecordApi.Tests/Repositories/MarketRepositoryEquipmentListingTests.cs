@@ -16,6 +16,30 @@ namespace AstralRecordApi.Tests.Repositories;
 public class MarketRepositoryEquipmentListingTests
 {
     [Fact]
+    public async Task ListingResponsesIncludeSellerAccountName()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: true);
+
+        var created = await harness.Repository.CreateListingAsync(harness.CreateRequest());
+
+        Assert.True(created.Succeeded);
+        Assert.Equal("market-test", created.Value!.SellerAccountName);
+
+        var listings = await harness.Repository.GetListingsAsync(new MarketListingQuery
+        {
+            SellerAccountId = harness.AccountId,
+            Page = 1,
+            PageSize = 10,
+        });
+
+        var listing = Assert.Single(listings);
+        Assert.Equal("market-test", listing.SellerAccountName);
+
+        var detail = await harness.Repository.GetListingAsync(listing.ListingId);
+        Assert.Equal("market-test", detail!.SellerAccountName);
+    }
+
+    [Fact]
     public async Task CreateListing_RejectsEquipmentWithoutEscrowSourceBeforeQuote()
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: false);

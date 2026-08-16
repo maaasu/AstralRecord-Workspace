@@ -6,6 +6,7 @@ public class MarketListingResponse
 {
     public Guid ListingId { get; init; }
     public Guid SellerAccountId { get; init; }
+    public string SellerAccountName { get; init; } = string.Empty;
     public Guid? BuyerAccountId { get; init; }
     public Guid? SourceInventoryEntryId { get; init; }
     public string ItemCategory { get; init; } = string.Empty;

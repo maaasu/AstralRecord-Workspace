@@ -387,6 +387,7 @@ public final class MarketGui {
             lore.addAll(meta.lore());
         }
         lore.add(Component.empty());
+        lore.add(Component.text("出品者: " + displaySellerName(listing.sellerAccountName()), NamedTextColor.AQUA));
         lore.add(Component.text("数量: " + format(listing.quantity()), NamedTextColor.WHITE));
         lore.add(Component.text("単価: " + format(listing.unitPrice()) + " Gold", NamedTextColor.GOLD));
         lore.add(Component.text("合計: " + format(listing.totalPrice()) + " Gold", NamedTextColor.YELLOW));
@@ -456,6 +457,10 @@ public final class MarketGui {
 
     private static @NotNull String format(long amount) {
         return String.format(Locale.ROOT, "%,d", amount);
+    }
+
+    private static @NotNull String displaySellerName(@NotNull String sellerAccountName) {
+        return sellerAccountName.isBlank() ? "不明な出品者" : sellerAccountName;
     }
 
     private static @NotNull String displayStatus(@NotNull String status) {

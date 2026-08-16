@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.market.gui;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.market.model.MarketAccountSummary;
+import io.github.maaasu.astralRecord.feature.market.model.MarketListing;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -105,6 +106,22 @@ class MarketGuiTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_3-メソッド仕様.md
      * 章・見出し: # 23_3-メソッド仕様 > ## GUI 起動・プレイヤー操作
+     * 検証契約: 公開中の出品アイテムにはAPIから取得した出品者アカウント名を表示する。
+     */
+    @Test
+    void rendersSellerAccountNameForBrowseListing() {
+        MarketGui gui = gui();
+        var player = server().addPlayer();
+
+        gui.openListings(player, UUID.randomUUID(), MarketScreen.BROWSE, List.of(listing("market-seller")), summary(), 1, 0L, false);
+
+        Inventory inventory = player.getOpenInventory().getTopInventory();
+        assertTrue(loreText(inventory, MarketGui.CONTENT_START_SLOT).contains("出品者: market-seller"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_3-メソッド仕様.md
+     * 章・見出し: # 23_3-メソッド仕様 > ## GUI 起動・プレイヤー操作
      * 検証契約: 出品選択画面はバッグ・ホットバーの選択手順とスクロール案内を表示し、出品枠表示には実際のGold残高を表示する。
      */
     @Test
@@ -138,6 +155,40 @@ class MarketGuiTest extends MockBukkitTestBase {
             "NOVICE",
             null,
             Instant.EPOCH
+        );
+    }
+
+    private MarketListing listing(String sellerAccountName) {
+        Instant listedAt = Instant.EPOCH;
+        return new MarketListing(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            sellerAccountName,
+            null,
+            null,
+            "MATERIAL",
+            "stone",
+            null,
+            null,
+            1,
+            "gold",
+            100,
+            100,
+            1,
+            null,
+            null,
+            "HIGH",
+            null,
+            null,
+            "ACTIVE",
+            null,
+            listedAt,
+            listedAt.plusSeconds(3600),
+            null,
+            null,
+            1,
+            listedAt,
+            listedAt
         );
     }
 

@@ -319,6 +319,7 @@ public class MarketRepository {
         return new MarketListing(
             uuid(obj, "listingId"),
             uuid(obj, "sellerAccountId"),
+            string(obj, "sellerAccountName", ""),
             nullableUuid(obj, "buyerAccountId"),
             nullableUuid(obj, "sourceInventoryEntryId"),
             string(obj, "itemCategory", ""),
