@@ -808,7 +808,7 @@ public class ItemStackFactory {
     }
 
     private void appendSaleValueLore(@NotNull List<String> lore, @NotNull ItemModel model) {
-        if (isCurrencyItem(model)) {
+        if (model.getUnSellable() || isCurrencyItem(model)) {
             return;
         }
         lore.add(ColorCodeUtil.GRAY + " ▸ 売値: "
