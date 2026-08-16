@@ -319,6 +319,33 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加 > ### 通常アイテムの消費順
+     * 検証契約: 同一アイテムを消費するときは、通常インベントリ内の後方slotから先に減算し、前方の満杯stackを維持する。
+     */
+    @Test
+    void normalItemConsumptionStartsAtTheHighestSlot() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
+            bagEntry(state.getAccountId(), bag.getInventoryId(), 1, "consume_order_test", 64L),
+            bagEntry(state.getAccountId(), bag.getInventoryId(), 2, "consume_order_test", 30L)
+        ));
+
+        assertTrue(harness.inventoryService.consumeNormalItem(
+            state.getAccountId(), "consume_order_test", 1L));
+
+        List<InventoryEntryModel> entries = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(2, entries.size());
+        assertEquals(1, entries.get(0).getSlotIndex());
+        assertEquals(64L, entries.get(0).getQuantity());
+        assertEquals(2, entries.get(1).getSlotIndex());
+        assertEquals(29L, entries.get(1).getQuantity());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
      * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
      * 検証契約: equipment/runeをinstance ID付きで統合BAGへ格納する。
      */

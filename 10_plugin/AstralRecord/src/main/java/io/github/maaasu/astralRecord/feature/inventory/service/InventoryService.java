@@ -5560,9 +5560,22 @@ public class InventoryService {
                     .filter(entry -> !entry.isDeleted())
                     .toList();
             List<InventoryEntryModel> entries = new ArrayList<>(sourceEntries);
+            List<InventoryEntryModel> consumptionOrder = inventory.getInventoryType() == InventoryType.CURRENCY
+                ? sourceEntries
+                : sourceEntries.stream()
+                    .sorted(Comparator.<InventoryEntryModel, Integer>comparing(
+                        entry -> entry.getSlotIndex() == null ? Integer.MIN_VALUE : entry.getSlotIndex()
+                    ).reversed())
+                    .toList();
             long remaining = amount;
-            for (int index = 0; index < entries.size() && remaining > 0L; index++) {
-                InventoryEntryModel entry = entries.get(index);
+            for (InventoryEntryModel entry : consumptionOrder) {
+                if (remaining <= 0L) {
+                    break;
+                }
+                int index = entries.indexOf(entry);
+                if (index < 0) {
+                    continue;
+                }
                 if (entry.getItemId() == null || !entry.getItemId().equalsIgnoreCase(itemId)) {
                     continue;
                 }
@@ -5580,7 +5593,6 @@ public class InventoryService {
                     entries.set(index, withQuantity(entry, nextQuantity, state.getAccountId()));
                 } else {
                     entries.remove(index);
-                    index--;
                 }
             }
             long consumedTotal = amount - remaining;
