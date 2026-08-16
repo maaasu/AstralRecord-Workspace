@@ -26,7 +26,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Collection;
 import java.util.List;
 
-/** フックショットの左クリック装填・自動発射候補と短期処理の終了イベントを共通gatewayへ接続します。 */
+/** フックショットのクリック装填・自動発射候補と短期処理の終了イベントを共通gatewayへ接続します。 */
 public final class HookshotInteractionEventHandler extends AbstractEventHandler
     implements PlayerInputResolver<PlayerInteractionSnapshot> {
 
@@ -53,23 +53,41 @@ public final class HookshotInteractionEventHandler extends AbstractEventHandler
         if (!isPlayerMode(astPlayer)) {
             return List.of();
         }
-        if (context.family() != InputFamily.LEFT_CLICK) {
+        if (context.family() != InputFamily.RIGHT_CLICK && context.family() != InputFamily.LEFT_CLICK) {
             return List.of();
         }
         String equipmentInstanceId = hookshotUseService.findCurrentHookshotInstanceId(astPlayer);
         if (equipmentInstanceId == null) {
             return List.of();
         }
+
+        if (context.family() == InputFamily.RIGHT_CLICK) {
+            return resolveLoadingCandidate(
+                snapshot,
+                astPlayer,
+                equipmentInstanceId,
+                Action.RIGHT_CLICK_BLOCK,
+                false
+            );
+        }
         if (hookshotUseService.isCurrentHookshotLoaded(astPlayer, equipmentInstanceId)) {
             return resolveFireCandidate(snapshot, astPlayer, equipmentInstanceId);
         }
-        return resolveLoadingCandidate(snapshot, astPlayer, equipmentInstanceId);
+        return resolveLoadingCandidate(
+            snapshot,
+            astPlayer,
+            equipmentInstanceId,
+            Action.LEFT_CLICK_BLOCK,
+            true
+        );
     }
 
     private @NotNull Collection<PlayerInputCandidate> resolveLoadingCandidate(
         @NotNull PlayerInteractionSnapshot snapshot,
         @NotNull AstPlayer astPlayer,
-        @NotNull String equipmentInstanceId
+        @NotNull String equipmentInstanceId,
+        @NotNull Action blockAction,
+        boolean fireOnCompletion
     ) {
         if (!hookshotUseService.canStartLoading(astPlayer)) {
             return List.of();
@@ -77,14 +95,14 @@ public final class HookshotInteractionEventHandler extends AbstractEventHandler
         return List.of(new PlayerInputCandidate(
             "hookshot-load",
             InteractionTier.WORLD_INTERACTION,
-            candidateDistance(snapshot, Action.LEFT_CLICK_BLOCK),
+            candidateDistance(snapshot, blockAction),
             InteractionCandidateOrder.HOOKSHOT,
             equipmentInstanceId,
             InputClaimPolicy.CLAIM_AND_CANCEL,
             () -> hookshotUseService.isCurrentHookshot(astPlayer, equipmentInstanceId)
                 && hookshotUseService.canStartLoading(astPlayer),
             () -> runSafely(
-                () -> hookshotUseService.startLoading(astPlayer),
+                () -> hookshotUseService.startLoading(astPlayer, fireOnCompletion),
                 LogId.E_3002,
                 "hookshot_load:" + snapshot.player().getName()
             )

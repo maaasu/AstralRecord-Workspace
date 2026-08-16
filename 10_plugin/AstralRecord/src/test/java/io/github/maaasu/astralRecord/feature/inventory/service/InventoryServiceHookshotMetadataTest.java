@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStat
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
@@ -32,7 +33,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 
 class InventoryServiceHookshotMetadataTest extends MockBukkitTestBase {
 
@@ -133,6 +138,87 @@ class InventoryServiceHookshotMetadataTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### display・shop ItemStack生成
+     * 検証契約: 装備の個別再描画と保存前再構築は、inventory entryの装填metadataを表示ItemStackへ引き継ぐ。
+     */
+    @Test
+    void equipmentDisplayRebuildKeepsLoadedMetadataFromInventoryEntry() {
+        ItemService itemService = mock(ItemService.class);
+        InventoryRepository inventoryRepository = mock(InventoryRepository.class);
+        EquipmentLoadoutRepository loadoutRepository = mock(EquipmentLoadoutRepository.class);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        InventoryPersistence persistence = new InventoryPersistence(inventoryRepository, loadoutRepository, itemService);
+        ItemStackFactory itemStackFactory = mock(ItemStackFactory.class);
+        InventoryService service = new InventoryService(
+            inventoryRepository,
+            loadoutRepository,
+            itemService,
+            itemStackFactory,
+            registry,
+            persistence,
+            new InventorySaveCoordinator(persistence, registry, Runnable::run)
+        );
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer player = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.PLAYER);
+        PlayerInventoryState state = new PlayerInventoryState(player.getAccount().getUuid());
+        registry.put(state);
+        InventoryModel hotbar = DesignTestFixtures.inventory(state.getAccountId(), InventoryType.HOTBAR);
+        state.putInventory(hotbar);
+
+        UUID instanceId = UUID.randomUUID();
+        ItemModel hookshotModel = DesignTestFixtures.equipmentItem(
+            "hookshot",
+            "ATTACK",
+            ItemEquipmentStatType.FLAT
+        );
+        EquipmentInstance hookshotInstance = DesignTestFixtures.equipmentInstance(
+            instanceId,
+            state.getAccountId(),
+            hookshotModel.getId(),
+            "ATTACK",
+            "0",
+            "0"
+        );
+        String loadedMetadata = "{\"hookshot\":{\"loaded\":true}}";
+        InventoryEntryModel entry = new InventoryEntryModel(
+            UUID.randomUUID(),
+            hotbar.getInventoryId(),
+            1,
+            ItemCategory.EQUIPMENT.getApiValue(),
+            null,
+            "EQUIPMENT",
+            instanceId,
+            1L,
+            loadedMetadata,
+            LocalDateTime.of(2026, 8, 15, 0, 0),
+            LocalDateTime.of(2026, 8, 15, 0, 0),
+            state.getAccountId(),
+            state.getAccountId(),
+            false
+        );
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of(entry));
+        when(itemService.findLoadedById(hookshotModel.getId())).thenReturn(hookshotModel);
+        when(itemService.findLoadedEquipmentInstanceById(instanceId.toString())).thenReturn(hookshotInstance);
+
+        ItemStack currentItem = new ItemStackFactory(mock(LootService.class), itemService)
+            .create(hookshotModel, hookshotInstance, 1);
+        when(itemStackFactory.create(hookshotModel, hookshotInstance, 1, loadedMetadata))
+            .thenReturn(currentItem);
+        bukkitPlayer.getInventory().setItem(0, currentItem);
+
+        service.refreshEquipmentInstanceDisplay(player, hookshotInstance);
+        service.refreshEquipmentDisplaysForSave(player);
+
+        verify(itemStackFactory, times(2)).create(
+            hookshotModel,
+            hookshotInstance,
+            1,
+            loadedMetadata
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
      * 検証契約: storageへ格納した装填済みフックショットは、同じinstance metadataを保持して所持inventoryへ戻る。
      */
@@ -177,6 +263,12 @@ class InventoryServiceHookshotMetadataTest extends MockBukkitTestBase {
         when(itemService.findLoadedById(hookshotModel.getId())).thenReturn(hookshotModel);
         when(itemStackFactory.create(hookshotModel, hookshotInstance, 1))
             .thenAnswer(invocation -> new ItemStack(Material.PAPER));
+        when(itemStackFactory.create(
+            eq(hookshotModel),
+            eq(hookshotInstance),
+            eq(1),
+            anyString()
+        )).thenAnswer(invocation -> new ItemStack(Material.PAPER));
 
         LocalDateTime now = LocalDateTime.of(2026, 8, 15, 0, 0);
         InventoryEntryModel hookshot = new InventoryEntryModel(

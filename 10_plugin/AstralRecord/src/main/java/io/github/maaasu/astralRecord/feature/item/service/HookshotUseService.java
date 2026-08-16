@@ -164,6 +164,20 @@ public final class HookshotUseService {
      * @param player 装填プレイヤー
      */
     public void startLoading(@NotNull AstPlayer player) {
+        startLoading(player, true);
+    }
+
+    /**
+     * 現在の主手フックショットを装填し、完了時に自動発射するかを指定します。
+     * <p>
+     * 左クリックは従来どおり {@code true} として扱い、右クリックの装填だけは
+     * {@code false} を指定して loaded 状態を保持します。素材・耐久は開始時に消費せず、
+     * 30 tick 完了時の hook 消費と metadata 更新を同じ inventory state lock で確定します。
+     *
+     * @param player 装填プレイヤー
+     * @param fireOnCompletion 装填完了時に現在の有効なアンカーへ自動発射する場合は true
+     */
+    public void startLoading(@NotNull AstPlayer player, boolean fireOnCompletion) {
         if (!canStartLoading(player)) {
             return;
         }
@@ -185,6 +199,7 @@ public final class HookshotUseService {
             player,
             current.instance().getEquipmentInstanceId(),
             current.metadataJson(),
+            fireOnCompletion,
             applyLoadingMovementSpeedModifier(bukkitPlayer)
         );
         loadingHooks.put(playerId, loading);
@@ -403,8 +418,11 @@ public final class HookshotUseService {
             0.75F,
             1.15F
         );
-        // 装填完了を起点に現在の照準へ即時発射します。照準が無効ならloaded状態を保持します。
-        fire(astPlayer);
+        if (loading.fireOnCompletion) {
+            // 左クリック装填では、完了を起点に現在の照準へ即時発射します。
+            // 右クリック装填は loaded 状態を表示したまま保持します。
+            fire(astPlayer);
+        }
     }
 
     private boolean shouldContinueLoading(@NotNull AstPlayer player, @NotNull LoadingHook loading) {
@@ -683,6 +701,7 @@ public final class HookshotUseService {
         private final AstPlayer player;
         private final String equipmentInstanceId;
         private final @Nullable String metadataJson;
+        private final boolean fireOnCompletion;
         private final Runnable movementSpeedCleanup;
         private int elapsedTicks;
         private @Nullable BukkitTask task;
@@ -691,11 +710,13 @@ public final class HookshotUseService {
             @NotNull AstPlayer player,
             @NotNull String equipmentInstanceId,
             @Nullable String metadataJson,
+            boolean fireOnCompletion,
             @NotNull Runnable movementSpeedCleanup
         ) {
             this.player = player;
             this.equipmentInstanceId = equipmentInstanceId;
             this.metadataJson = metadataJson;
+            this.fireOnCompletion = fireOnCompletion;
             this.movementSpeedCleanup = movementSpeedCleanup;
         }
     }

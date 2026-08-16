@@ -4387,7 +4387,12 @@ public class InventoryService {
         if (model == null) {
             return;
         }
-        ItemStack updated = itemStackFactory.create(model, instance, 1);
+        ItemStack updated = itemStackFactory.create(
+            model,
+            instance,
+            1,
+            findEquipmentMetadata(astPlayer.getAccount().getUuid(), instance.getEquipmentInstanceId())
+        );
         String instanceId = instance.getEquipmentInstanceId();
         PlayerInventory inventory = astPlayer.getBukkit().getInventory();
         for (int slot = 0; slot < inventory.getSize(); slot++) {
@@ -4451,6 +4456,29 @@ public class InventoryService {
         return resolved;
     }
 
+    /** managed装備の inventory entry metadata を cache-only で解決します。 */
+    private @Nullable String findEquipmentMetadata(
+        @NotNull UUID accountId,
+        @NotNull String equipmentInstanceId
+    ) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return null;
+        }
+        for (InventoryModel inventory : state.snapshotInventories()) {
+            for (InventoryEntryModel entry : state.snapshotEntries(inventory.getInventoryId())) {
+                if (entry.isDeleted()
+                    || !"EQUIPMENT".equalsIgnoreCase(entry.getInstanceType())
+                    || entry.getInstanceId() == null
+                    || !equipmentInstanceId.equalsIgnoreCase(entry.getInstanceId().toString())) {
+                    continue;
+                }
+                return entry.getMetadataJson();
+            }
+        }
+        return null;
+    }
+
     /** managed装備をcache-onlyで現在表示へ解決します。 */
     private @NotNull ItemStack resolveEquipmentItemForDisplay(
         @NotNull UUID accountId,
@@ -4463,7 +4491,12 @@ public class InventoryService {
         ItemModel model = itemService.findLoadedById(instance.getItemId());
         return model == null
             ? new ItemStack(Material.AIR)
-            : itemStackFactory.create(model, instance, 1);
+            : itemStackFactory.create(
+                model,
+                instance,
+                1,
+                findEquipmentMetadata(accountId, instanceId.toString())
+            );
     }
 
     public void moveToAccessorySlot(

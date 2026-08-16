@@ -77,7 +77,7 @@
 
 ### HOOKSHOT tool
 
-共有tag `HOOKSHOT` は、crossbow iconでフックを装填し、固体blockへ射出して使用者を物理的に牽引するtoolを表します。標準定義 `hookshot` は `slot: TOOL`、`handType: ONE`、`maxStack: 1`、最大耐久200、`durability.consume: 1`です。未装填の左クリックは30 tickの装填を開始し、右クリックは何も発動しません。装填完了時だけ `hook` materialを1個消費して個体のinventory metadataへloaded状態を保存し、現在の照準が有効なら自動発射します。装填完了時または再試行の左クリックが固体blockへ有効に命中した場合だけ、この耐久値を消費して発射します。照準・耐久のいずれかが不成立ならloaded状態と耐久を保持し、装填済みフックを外す操作は提供しません。
+共有tag `HOOKSHOT` は、crossbow iconでフックを装填し、固体blockへ射出して使用者を物理的に牽引するtoolを表します。標準定義 `hookshot` は `slot: TOOL`、`handType: ONE`、`maxStack: 1`、最大耐久200、`durability.consume: 1`です。未装填の左クリックは従来どおり30 tickの装填を開始し、未装填の右クリックも30 tickの装填だけを開始します。装填完了時だけ `hook` materialを1個消費して個体のinventory metadataへloaded状態を保存し、左クリック装填で現在の照準が有効な場合だけ自動発射します。右クリック装填は自動発射せずloaded状態を保持します。装填完了時または再試行の左クリックが固体blockへ有効に命中した場合だけ、この耐久値を消費して発射します。照準・耐久のいずれかが不成立ならloaded状態と耐久を保持し、装填済みフックを外す操作は提供しません。loaded状態はLoreに `フック装填済み` と表示し、クライアント向けにはバニラのチャージ済みクロスボウアイコンを表示します。
 
 ### equipment[].tag（アクセサリ）
 

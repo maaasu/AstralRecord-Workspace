@@ -119,6 +119,10 @@ public class ItemStackFactory {
     private static final NamespacedKey KEY_DURABILITY_VALUE =
             new NamespacedKey("astralrecord", "durability_value");
 
+    /** PDC キー: フックショットのフック装填済み表示状態 */
+    private static final NamespacedKey KEY_HOOKSHOT_LOADED =
+            new NamespacedKey("astralrecord", "hookshot_loaded");
+
     /** PDC キー: ルーンインスタンス ID */
     private static final NamespacedKey KEY_RUNE_INSTANCE_ID =
             new NamespacedKey("astralrecord", "rune_instance_id");
@@ -290,11 +294,32 @@ public class ItemStackFactory {
      * @return 生成された ItemStack
      */
     public @NotNull ItemStack create(@NotNull ItemModel model, @NotNull EquipmentInstance instance, int amount) {
+        return create(model, instance, amount, null);
+    }
+
+    /**
+     * {@link ItemModel} と {@link EquipmentInstance}、inventory entry metadata から ItemStack を生成します。
+     * インスタンス固有のステータスロール値とフックショットの装填状態を Lore / PDC に反映します。
+     *
+     * @param model        アイテムマスタ定義
+     * @param instance     装備インスタンス
+     * @param amount       個数
+     * @param metadataJson inventory entry の metadata。フックショット以外では無視します
+     * @return 生成された ItemStack
+     */
+    public @NotNull ItemStack create(
+            @NotNull ItemModel model,
+            @NotNull EquipmentInstance instance,
+            int amount,
+            @Nullable String metadataJson
+    ) {
         var item = new ItemStack(BASE_MATERIAL, 1);
         var meta = item.getItemMeta();
         if (meta == null) {
             return item;
         }
+
+        boolean hookshotLoaded = isHookshotEquipment(model) && HookshotLoadState.isLoaded(metadataJson);
 
         var rarityColor = rarityToColor(model.getRarity());
 
@@ -311,7 +336,7 @@ public class ItemStackFactory {
         meta.displayName(LEGACY_SERIALIZER.deserialize(
                 visibleName + enhanceSuffix + ColorCodeUtil.RESET));
 
-        var loreStrings = buildLoreForEquipmentInstance(model, instance);
+        var loreStrings = buildLoreForEquipmentInstance(model, instance, hookshotLoaded);
         meta.lore(loreStrings.stream()
                 .map(ColorCodeUtil::translateAlternateColorCodes)
                 .map(LEGACY_SERIALIZER::deserialize)
@@ -333,6 +358,9 @@ public class ItemStackFactory {
         pdc.set(KEY_EQUIPMENT_INSTANCE_ID, PersistentDataType.STRING, instance.getEquipmentInstanceId());
         pdc.set(KEY_DURABILITY_MAX, PersistentDataType.INTEGER, instance.getDurabilityMax());
         pdc.set(KEY_DURABILITY_VALUE, PersistentDataType.INTEGER, instance.getDurabilityValue());
+        if (hookshotLoaded) {
+            pdc.set(KEY_HOOKSHOT_LOADED, PersistentDataType.BYTE, (byte) 1);
+        }
 
         item.setItemMeta(meta);
         item.setAmount(Math.clamp(amount, 1, model.getMaxStack()));
@@ -540,6 +568,21 @@ public class ItemStackFactory {
         }
         return item.getItemMeta().getPersistentDataContainer()
                 .get(KEY_EQUIPMENT_INSTANCE_ID, PersistentDataType.STRING);
+    }
+
+    /**
+     * ItemStack が装填済みフックショットの表示状態を持つか判定します。
+     *
+     * @param item 判定対象
+     * @return 装填済み表示を適用する場合は {@code true}
+     */
+    public static boolean isHookshotLoaded(@NotNull ItemStack item) {
+        if (!item.hasItemMeta()) {
+            return false;
+        }
+        Byte loaded = item.getItemMeta().getPersistentDataContainer()
+                .get(KEY_HOOKSHOT_LOADED, PersistentDataType.BYTE);
+        return loaded != null && loaded != 0;
     }
 
     /**
@@ -939,6 +982,14 @@ public class ItemStackFactory {
      */
     private @NotNull List<String> buildLoreForEquipmentInstance(
             @NotNull ItemModel model, @NotNull EquipmentInstance instance) {
+        return buildLoreForEquipmentInstance(model, instance, false);
+    }
+
+    private @NotNull List<String> buildLoreForEquipmentInstance(
+            @NotNull ItemModel model,
+            @NotNull EquipmentInstance instance,
+            boolean hookshotLoaded
+    ) {
         List<String> lore = new ArrayList<>();
 
         lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
@@ -978,6 +1029,9 @@ public class ItemStackFactory {
             if (!eq.getRequiredClasses().isEmpty()) {
                 lore.add(ColorCodeUtil.GRAY + " ▸ 必要クラス: " + ColorCodeUtil.WHITE
                         + formatRequiredClasses(eq));
+            }
+            if (hookshotLoaded && isHookshotEquipment(model)) {
+                lore.add(ColorCodeUtil.GREEN + " ▸ フック装填済み");
             }
 
             // --- transcendence 状態変化表示 ---
@@ -1320,6 +1374,13 @@ public class ItemStackFactory {
         bar.append(ColorCodeUtil.GRAY);
         bar.repeat(DURABILITY_BAR_CHAR, DURABILITY_BAR_LENGTH - filledLength);
         return ColorCodeUtil.GRAY + " ▸ 耐久値: " + bar;
+    }
+
+    private boolean isHookshotEquipment(@NotNull ItemModel model) {
+        ItemEquipment equipment = model.getEquipment();
+        return equipment != null
+                && equipment.getSlot() == ItemEquipmentSlot.TOOL
+                && MasterTagIds.Equipment.HOOKSHOT.equalsIgnoreCase(equipment.getTag());
     }
 
     private static @NotNull String durabilityBarColor(double durabilityRate, int max) {

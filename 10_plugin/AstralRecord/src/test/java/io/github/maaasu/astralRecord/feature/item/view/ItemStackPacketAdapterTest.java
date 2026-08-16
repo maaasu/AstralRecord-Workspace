@@ -3,10 +3,20 @@ package io.github.maaasu.astralRecord.feature.item.view;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.ProtocolManager;
 import com.comphenix.protocol.events.PacketContainer;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
+import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentDurability;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
+import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.Equippable;
 import org.bukkit.Material;
@@ -19,11 +29,13 @@ import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.inventory.meta.CrossbowMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
@@ -192,6 +204,43 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
      * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### アイコン書き換え判定
+     * 検証契約: 装填済みフックショットはLoreへ状態を表示し、送信コピーだけをバニラのチャージ済みクロスボウ表示へ変換する。
+     */
+    @Test
+    void loadedHookshotUsesChargedCrossbowIconAndLoadedLore() throws ReflectiveOperationException {
+        ItemStack serverHookshot = new ItemStackFactory(
+            mock(LootService.class),
+            mock(ItemService.class)
+        ).create(
+            hookshotModel(),
+            hookshotInstance(),
+            1,
+            "{\"hookshot\":{\"loaded\":true}}"
+        );
+        ItemMeta serverMeta = serverHookshot.getItemMeta();
+        assertTrue(ItemStackFactory.isHookshotLoaded(serverHookshot));
+        assertTrue(serverMeta != null && serverMeta.lore() != null
+            && serverMeta.lore().stream().anyMatch(line -> line.toString().contains("フック装填済み")));
+
+        ItemStackPacketAdapter adapter = new ItemStackPacketAdapter(
+            mock(Plugin.class), mock(PlayerSettingService.class), mock(SkillActionRingService.class)
+        );
+        Method replaceIcon = ItemStackPacketAdapter.class.getDeclaredMethod(
+            "replaceIcon", ItemStack.class, boolean.class, boolean.class
+        );
+        replaceIcon.setAccessible(true);
+
+        ItemStack clientHookshot = (ItemStack) replaceIcon.invoke(adapter, serverHookshot, true, false);
+
+        assertEquals(Material.PAPER, serverHookshot.getType());
+        assertEquals(Material.CROSSBOW, clientHookshot.getType());
+        assertTrue(clientHookshot.getItemMeta() instanceof CrossbowMeta);
+        assertTrue(((CrossbowMeta) clientHookshot.getItemMeta()).hasChargedProjectiles());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
+     * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### アイコン書き換え判定
      * 検証契約: 独自表示情報を持たない純粋なBUNDLEは、送信コピーへ変換せずバニラ内容量表示を維持する。
      */
     @Test
@@ -245,5 +294,63 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
         pdc.set(new NamespacedKey("astralrecord", "equipment_instance_id"), PersistentDataType.STRING, instanceId);
         item.setItemMeta(meta);
         return item;
+    }
+
+    private ItemModel hookshotModel() {
+        ItemEquipment equipment = new ItemEquipment(
+            ItemEquipmentSlot.TOOL,
+            ItemEquipmentHandType.ONE,
+            MasterTagIds.Equipment.HOOKSHOT,
+            0,
+            List.of(),
+            null,
+            List.of(),
+            new ItemEquipmentDurability(200, 1),
+            null,
+            null,
+            null,
+            List.of()
+        );
+        return new ItemModel(
+            1,
+            "hookshot",
+            ItemCategory.EQUIPMENT.getApiValue(),
+            "フックショット",
+            "CROSSBOW",
+            "common",
+            1,
+            0,
+            null,
+            null,
+            List.of(),
+            false,
+            false,
+            null,
+            null,
+            equipment,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
+    }
+
+    private EquipmentInstance hookshotInstance() {
+        return new EquipmentInstance(
+            "hookshot-instance",
+            "account-id",
+            "hookshot",
+            0,
+            0,
+            0,
+            200,
+            200,
+            "2026-08-15T00:00:00Z",
+            "2026-08-15T00:00:00Z",
+            List.of(),
+            List.of(),
+            List.of()
+        );
     }
 }

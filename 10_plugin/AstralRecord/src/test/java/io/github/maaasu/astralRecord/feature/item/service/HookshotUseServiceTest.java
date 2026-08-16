@@ -209,6 +209,52 @@ class HookshotUseServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
+     * 検証契約: 右クリックの装填はhookを消費してloaded metadataだけを確定し、有効アンカーがあっても自動発射しない。
+     */
+    @Test
+    void chargeOnlyLoadingKeepsLoadedStateWithoutAutomaticFire() {
+        Fixture fixture = createFixture(solidBlockHit(), null);
+        when(fixture.inventoryService().consumeNormalItemAndUpdateHotbarEquipmentMetadata(
+            eq(fixture.astPlayer()),
+            eq(EquipmentSlot.HAND),
+            eq(fixture.instanceId()),
+            eq(null),
+            anyString(),
+            eq(HookshotCostService.HOOK_ITEM_ID),
+            eq(HookshotCostService.HOOK_AMOUNT_PER_LOAD)
+        )).thenReturn(true);
+
+        fixture.service().startLoading(fixture.astPlayer(), false);
+        Runnable tick = captureTick(fixture);
+        for (int index = 0; index < HookshotUseService.LOAD_DURATION_TICKS; index++) {
+            tick.run();
+        }
+
+        verify(fixture.inventoryService()).consumeNormalItemAndUpdateHotbarEquipmentMetadata(
+            eq(fixture.astPlayer()),
+            eq(EquipmentSlot.HAND),
+            eq(fixture.instanceId()),
+            eq(null),
+            anyString(),
+            eq(HookshotCostService.HOOK_ITEM_ID),
+            eq(HookshotCostService.HOOK_AMOUNT_PER_LOAD)
+        );
+        verify(fixture.inventoryService()).refreshManagedInventoryUi(fixture.astPlayer());
+        verify(fixture.inventoryService(), never()).updateHotbarEquipmentMetadata(
+            any(), any(), anyString(), any(), any()
+        );
+        verify(fixture.itemService(), never()).updateEquipmentDurability(anyString(), anyInt(), anyString());
+        verify(fixture.scheduler(), times(1)).runTaskTimer(
+            eq(fixture.plugin()),
+            any(Runnable.class),
+            eq(1L),
+            eq(1L)
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
      * 検証契約: 装填済みフックショットの有効な発射だけが耐久とloaded状態を消費し、velocityで牽引した後に表示とtaskを回収する。
      */
     @Test

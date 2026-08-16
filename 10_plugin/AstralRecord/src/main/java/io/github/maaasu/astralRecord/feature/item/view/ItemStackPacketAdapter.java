@@ -31,6 +31,8 @@ import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.CrossbowMeta;
+import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -380,6 +382,7 @@ public class ItemStackPacketAdapter {
         var customModelData = ItemStackFactory.getCustomModelData(original);
         var appearanceColor = ItemStackFactory.getAppearanceColor(original);
         var potionType = ItemStackFactory.getPotionType(original);
+        boolean hookshotLoaded = ItemStackFactory.isHookshotLoaded(original);
         boolean virtualWeapon = virtualTrident && ItemStackFactory.isWeapon(original);
 
         if (!virtualWeapon
@@ -404,6 +407,7 @@ public class ItemStackPacketAdapter {
             }
         }
 
+        modified |= applyHookshotChargedIcon(replaced, hookshotLoaded);
         modified |= ItemStackFactory.hideBundleContentsTooltip(replaced);
 
         if (customModelData != null) {
@@ -432,6 +436,26 @@ public class ItemStackPacketAdapter {
         }
 
         return modified ? replaced : null;
+    }
+
+    /**
+     * 装填済みフックショットの送信コピーへ、バニラのチャージ済みクロスボウ状態を適用します。
+     *
+     * @param item 送信コピー
+     * @param hookshotLoaded 元 ItemStack が装填済みフックショット表示を持つ場合は true
+     * @return ItemMeta を変更した場合は true
+     */
+    static boolean applyHookshotChargedIcon(@NotNull ItemStack item, boolean hookshotLoaded) {
+        if (!hookshotLoaded || item.getType() != Material.CROSSBOW) {
+            return false;
+        }
+        ItemMeta meta = item.getItemMeta();
+        if (!(meta instanceof CrossbowMeta crossbowMeta) || crossbowMeta.hasChargedProjectiles()) {
+            return false;
+        }
+        crossbowMeta.setChargedProjectiles(List.of(new ItemStack(Material.ARROW)));
+        item.setItemMeta(crossbowMeta);
+        return true;
     }
 
     private int hotbarSlotForSetSlot(@NotNull PacketContainer packet) {

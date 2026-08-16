@@ -52,21 +52,27 @@ class HookshotInteractionEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-イベント.md
      * 章・見出し: # 04_3-イベント > ## 1. クリック入力受付 > ### フックショット入力候補解決
-     * 検証契約: フックショットの右クリックは候補を返さず、装填を開始しない。
+     * 検証契約: 未装填フックショットのmain hand右クリックは、発射ではなく装填候補を返す。
      */
     @Test
-    void ignoresRightClickWithoutStartingLoading() {
+    void resolvesRightClickAsChargeOnlyLoadingCandidate() {
         HandlerFixture fixture = handlerFixture();
         when(fixture.service().findCurrentHookshotInstanceId(fixture.astPlayer())).thenReturn("hookshot-instance");
+        when(fixture.service().canStartLoading(fixture.astPlayer())).thenReturn(true);
         HookshotInteractionEventHandler handler = new HookshotInteractionEventHandler(fixture.service());
 
+        PlayerInputCandidate candidate;
         try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
             cache.when(() -> AstPlayerCache.get(fixture.player())).thenReturn(fixture.astPlayer());
-            assertTrue(handler.resolve(
+            candidate = handler.resolve(
                 hookshotContext(fixture, InputFamily.RIGHT_CLICK, Action.RIGHT_CLICK_AIR)
-            ).isEmpty());
+            ).stream().findFirst().orElseThrow();
         }
 
+        assertEquals(InteractionTier.WORLD_INTERACTION, candidate.tier());
+        assertEquals(8.0D, candidate.hitDistance());
+        assertEquals(InteractionCandidateOrder.HOOKSHOT, candidate.stableOrder());
+        assertEquals(InputClaimPolicy.CLAIM_AND_CANCEL, candidate.claimPolicy());
         verify(fixture.service(), never()).startLoading(fixture.astPlayer());
     }
 
@@ -119,10 +125,10 @@ class HookshotInteractionEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-イベント.md
      * 章・見出し: # 28_3-イベント > ## 1. 右・左クリック受付
-     * 検証契約: hookshotのRIGHT_CLICK_BLOCKは候補を返さず、装填も入力claimも発生させない。
+     * 検証契約: 未装填hookshotのRIGHT_CLICK_BLOCKは装填だけを開始し、入力をclaimしてvanilla操作を抑止する。
      */
     @Test
-    void gatewayLeavesRightClickUntouched() {
+    void gatewayStartsChargeOnlyLoadingOnRightClick() {
         GatewayFixture fixture = gatewayFixture(Action.RIGHT_CLICK_BLOCK, 6.0D, 2.0D);
         HookshotInteractionEventHandler handler = new HookshotInteractionEventHandler(fixture.service());
         PlayerInteractionGatewayEventHandler gateway = gateway(fixture.plugin(), List.of(handler));
@@ -132,10 +138,28 @@ class HookshotInteractionEventHandlerTest {
             gateway.onPlayerInteract(fixture.event());
         }
 
-        verify(fixture.service(), never()).startLoading(fixture.astPlayer());
-        verify(fixture.event(), never()).setCancelled(true);
-        verify(fixture.event(), never()).setUseItemInHand(Event.Result.DENY);
-        verify(fixture.event(), never()).setUseInteractedBlock(Event.Result.DENY);
+        verify(fixture.service()).startLoading(fixture.astPlayer(), false);
+        verify(fixture.event()).setCancelled(true);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/28-player-interaction/3-メソッド仕様/28_3-イベント.md
+     * 章・見出し: # 28_3-イベント > ## 1. 右・左クリック受付
+     * 検証契約: 装填済みhookshotの右クリックは発射せず、追加の装填も開始しない。
+     */
+    @Test
+    void gatewayDoesNotFireLoadedHookshotOnRightClick() {
+        GatewayFixture fixture = gatewayFixture(Action.RIGHT_CLICK_BLOCK, 6.0D, 2.0D, true);
+        HookshotInteractionEventHandler handler = new HookshotInteractionEventHandler(fixture.service());
+        PlayerInteractionGatewayEventHandler gateway = gateway(fixture.plugin(), List.of(handler));
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(fixture.player())).thenReturn(fixture.astPlayer());
+            gateway.onPlayerInteract(fixture.event());
+        }
+
+        verify(fixture.service(), never()).fire(fixture.astPlayer());
+        verify(fixture.service(), never()).startLoading(fixture.astPlayer(), false);
     }
 
     /**

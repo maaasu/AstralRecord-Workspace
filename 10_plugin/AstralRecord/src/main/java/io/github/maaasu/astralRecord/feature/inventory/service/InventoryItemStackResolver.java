@@ -135,7 +135,7 @@ final class InventoryItemStackResolver {
         if (itemModel == null) {
             return null;
         }
-        return itemStackFactory.create(itemModel, instance, 1);
+        return itemStackFactory.create(itemModel, instance, 1, entry.getMetadataJson());
     }
 
     private @Nullable ItemStack resolveRune(@NotNull InventoryEntryModel entry) {
