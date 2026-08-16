@@ -20,8 +20,23 @@ public record OrbGuiHolder(
     @NotNull Screen screen
 ) implements InventoryHolder {
 
-    /** オーブ GUI の固定サイズです。 */
+    /** オーブ一覧・消費アイテム一覧 GUI のサイズです。 */
     public static final int SIZE = 54;
+
+    /** 状態変化確認 GUI のサイズです。 */
+    public static final int TRANSCENDENCE_CONFIRM_SIZE = 27;
+
+    /**
+     * 画面種別に対応する GUI サイズを返します。
+     *
+     * @param screen 画面種別
+     * @return 画面に必要なスロット数
+     */
+    public static int sizeFor(@NotNull Screen screen) {
+        return screen == Screen.TRANSCENDENCE_CONFIRM
+            ? TRANSCENDENCE_CONFIRM_SIZE
+            : SIZE;
+    }
 
     /**
      * holder API が要求する空インベントリを返します。
@@ -30,12 +45,13 @@ public record OrbGuiHolder(
      */
     @Override
     public @NotNull Inventory getInventory() {
-        return Bukkit.createInventory(this, SIZE);
+        return Bukkit.createInventory(this, sizeFor(screen));
     }
 
     /** オーブ GUI 内の画面種別です。 */
     public enum Screen {
         LIST,
         TRANSCENDENCE_CONFIRM,
+        TRANSCENDENCE_MATERIAL_LIST,
     }
 }

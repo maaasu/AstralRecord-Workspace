@@ -14,7 +14,7 @@ class OrbGuiHolderTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 54枠GUIは所有者UUID・session token・確認画面種別をholderへ保持してイベント世代を分離する。
+     * 検証契約: GUIサイズに応じたInventoryを生成し、所有者UUID・session token・確認画面種別をholderへ保持してイベント世代を分離する。
      */
     @Test
     void inventoryRetainsOwnerGenerationAndScreenForEventIsolation() {
@@ -28,7 +28,7 @@ class OrbGuiHolderTest extends MockBukkitTestBase {
 
         Inventory inventory = holder.getInventory();
 
-        assertEquals(OrbGuiHolder.SIZE, inventory.getSize());
+        assertEquals(OrbGuiHolder.TRANSCENDENCE_CONFIRM_SIZE, inventory.getSize());
         assertSame(holder, inventory.getHolder());
         assertEquals(ownerId, holder.ownerId());
         assertEquals(token, holder.sessionToken());

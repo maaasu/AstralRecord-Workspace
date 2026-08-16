@@ -70,14 +70,16 @@ public final class OrbService {
     private static final int PREVIOUS_PAGE_SLOT = 45;
     private static final int INFO_SLOT = 49;
     private static final int NEXT_PAGE_SLOT = 53;
-    private static final int CONFIRM_TARGET_SLOT = 4;
-    private static final int CONFIRM_BACK_SLOT = 45;
-    private static final int CONFIRM_GOLD_SLOT = 47;
-    private static final int CONFIRM_EXECUTE_SLOT = 49;
-    private static final int[] CONFIRM_MATERIAL_SLOTS = {
-        18, 19, 20, 21, 22, 23, 24, 25, 26,
-        27, 28, 29, 30, 31, 32, 33, 34, 35,
-    };
+    private static final int CONFIRM_TARGET_SLOT = 11;
+    private static final int CONFIRM_MATERIAL_LIST_SLOT = 13;
+    private static final int CONFIRM_GOLD_SLOT = 4;
+    private static final int CONFIRM_EXECUTE_SLOT = 15;
+    private static final int CONFIRM_BACK_SLOT = 22;
+    private static final int MATERIAL_LIST_PREVIOUS_PAGE_SLOT = 45;
+    private static final int MATERIAL_LIST_PAGE_INFO_SLOT = 46;
+    private static final int MATERIAL_LIST_GOLD_SLOT = 47;
+    private static final int MATERIAL_LIST_BACK_SLOT = 49;
+    private static final int MATERIAL_LIST_NEXT_PAGE_SLOT = 53;
     private static final Material[] ANIMATION_FRAMES = {
         Material.AMETHYST_BLOCK,
         Material.BUDDING_AMETHYST,
@@ -459,7 +461,7 @@ public final class OrbService {
         }
         Inventory inventory = Bukkit.createInventory(
             new OrbGuiHolder(session.player.getUniqueId(), session.token, OrbGuiHolder.Screen.LIST),
-            OrbGuiHolder.SIZE,
+            OrbGuiHolder.sizeFor(OrbGuiHolder.Screen.LIST),
             Component.text("オーブ対象装備", NamedTextColor.DARK_PURPLE)
         );
         session.screen = OrbGuiHolder.Screen.LIST;
@@ -522,6 +524,10 @@ public final class OrbService {
         }
         if (session.screen == OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM) {
             handleConfirmationClick(event.getRawSlot(), session);
+            return;
+        }
+        if (session.screen == OrbGuiHolder.Screen.TRANSCENDENCE_MATERIAL_LIST) {
+            handleMaterialListClick(event.getRawSlot(), session);
             return;
         }
 
@@ -955,7 +961,7 @@ public final class OrbService {
                 session.token,
                 OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM
             ),
-            OrbGuiHolder.SIZE,
+            OrbGuiHolder.sizeFor(OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM),
             Component.text("状態変化の確認", NamedTextColor.DARK_PURPLE)
         );
         renderTranscendenceConfirmation(session, orbModel, target, confirmation);
@@ -980,6 +986,22 @@ public final class OrbService {
         ItemOrbEffect effect = orbModel.getOrb().getEffect();
         OrbEligibility.TranscendencePlan plan = OrbEligibility.resolveTranscendence(
             effect, target.model, target.instance);
+        ItemStack targetItem = itemStackFactory.create(target.model, target.instance, 1);
+        appendLore(targetItem, List.of(
+            Component.empty(),
+            Component.text(
+                plan == null
+                    ? "状態変化先を確認できません"
+                    : "状態変化先: " + transitionName(plan.definition()),
+                plan == null ? NamedTextColor.RED : NamedTextColor.LIGHT_PURPLE
+            )
+        ));
+        inventory.setItem(CONFIRM_TARGET_SLOT, targetItem);
+        inventory.setItem(CONFIRM_BACK_SLOT, GuiItems.create(
+            Material.ARROW,
+            Component.text("一覧へ戻る", NamedTextColor.YELLOW),
+            List.of()
+        ));
         if (plan == null) {
             inventory.setItem(CONFIRM_EXECUTE_SLOT, GuiItems.create(
                 Material.BARRIER,
@@ -989,61 +1011,19 @@ public final class OrbService {
             return;
         }
 
-        ItemStack targetItem = itemStackFactory.create(target.model, target.instance, 1);
-        appendLore(targetItem, List.of(
-            Component.empty(),
-            Component.text("状態変化先: " + transitionName(plan.definition()), NamedTextColor.LIGHT_PURPLE)
-        ));
-        inventory.setItem(CONFIRM_TARGET_SLOT, targetItem);
-
         List<InventoryService.InventoryItemRequirement> requirements = materialRequirements(
             plan.definition(), orbModel.getId());
-        int displayed = Math.min(requirements.size(), CONFIRM_MATERIAL_SLOTS.length);
-        for (int index = 0; index < displayed; index++) {
-            InventoryService.InventoryItemRequirement requirement = requirements.get(index);
-            long owned = inventoryService.getNormalItemAmount(session.accountId, requirement.itemId());
-            ItemModel materialModel = itemService.findLoadedById(requirement.itemId());
-            ItemStack materialItem = materialModel == null
-                ? GuiItems.create(
-                    Material.CHEST,
-                    Component.text("未登録の素材", NamedTextColor.RED),
-                    List.of(Component.text("この素材情報を取得できません。", NamedTextColor.RED))
-                )
-                : itemStackFactory.create(materialModel, 1);
-            appendLore(materialItem, List.of(
-                Component.empty(),
-                Component.text(
-                    "必要: " + requirement.amount() + " / 所持: " + owned,
-                    owned >= requirement.amount() ? NamedTextColor.GREEN : NamedTextColor.RED
-                )
-            ));
-            inventory.setItem(CONFIRM_MATERIAL_SLOTS[index], materialItem);
-        }
-        if (requirements.size() > CONFIRM_MATERIAL_SLOTS.length) {
-            inventory.setItem(CONFIRM_MATERIAL_SLOTS[CONFIRM_MATERIAL_SLOTS.length - 1], GuiItems.create(
-                Material.CHEST,
-                Component.text("必要素材がほかにもあります", NamedTextColor.YELLOW),
-                List.of(Component.text(
-                    "全 " + requirements.size() + " 種類",
-                    NamedTextColor.GRAY
-                ))
-            ));
-        }
-
-        long requiredGold = Math.max(0, plan.definition().getRequiredCurrency());
-        long ownedGold = inventoryService.getGoldAmount(session.accountId);
-        inventory.setItem(CONFIRM_GOLD_SLOT, GuiItems.create(
-            Material.GOLD_INGOT,
-            Component.text("必要ゴールド", NamedTextColor.GOLD),
-            List.of(Component.text(
-                "必要: " + requiredGold + " / 所持: " + ownedGold,
-                ownedGold >= requiredGold ? NamedTextColor.GREEN : NamedTextColor.RED
-            ))
+        inventory.setItem(CONFIRM_MATERIAL_LIST_SLOT, GuiItems.create(
+            Material.CHEST,
+            Component.text("消費アイテム一覧", NamedTextColor.YELLOW),
+            List.of(
+                Component.text("必要素材: " + requirements.size() + " 種類", NamedTextColor.GRAY),
+                Component.text("クリックして一覧を開く", NamedTextColor.WHITE)
+            )
         ));
-        inventory.setItem(CONFIRM_BACK_SLOT, GuiItems.create(
-            Material.ARROW,
-            Component.text("一覧へ戻る", NamedTextColor.YELLOW),
-            List.of()
+        inventory.setItem(CONFIRM_GOLD_SLOT, createGoldRequirementItem(
+            session,
+            Math.max(0, plan.definition().getRequiredCurrency())
         ));
         boolean enough = hasTransitionRequirements(session, plan.definition(), orbModel.getId());
         inventory.setItem(CONFIRM_EXECUTE_SLOT, GuiItems.create(
@@ -1057,6 +1037,187 @@ public final class OrbService {
                 NamedTextColor.GRAY
             ))
         ));
+    }
+
+    /**
+     * 状態変化に必要な消費アイテム一覧をページ付きGUIへ描画します。
+     *
+     * @param session 操作セッション
+     * @param orbModel 使用オーブのマスタ
+     * @param target 状態変化対象装備
+     * @param inventory 描画先GUI
+     */
+    private void renderTranscendenceMaterialList(
+        @NotNull OrbSession session,
+        @NotNull ItemModel orbModel,
+        @NotNull OrbCandidate target,
+        @NotNull Inventory inventory
+    ) {
+        fillInventory(inventory);
+        OrbEligibility.TranscendencePlan plan = OrbEligibility.resolveTranscendence(
+            orbModel.getOrb().getEffect(), target.model, target.instance);
+        inventory.setItem(MATERIAL_LIST_BACK_SLOT, GuiItems.create(
+            Material.ARROW,
+            Component.text("確認画面へ戻る", NamedTextColor.YELLOW),
+            List.of()
+        ));
+        if (plan == null) {
+            inventory.setItem(MATERIAL_LIST_GOLD_SLOT, GuiItems.create(
+                Material.BARRIER,
+                Component.text("状態変化できません", NamedTextColor.RED),
+                List.of(Component.text("対象条件が変化しました。", NamedTextColor.GRAY))
+            ));
+            return;
+        }
+
+        List<InventoryService.InventoryItemRequirement> requirements = materialRequirements(
+            plan.definition(), orbModel.getId());
+        int pageCount = Math.max(1, (requirements.size() + CONTENT_SLOT_COUNT - 1) / CONTENT_SLOT_COUNT);
+        session.materialPage = Math.max(0, Math.min(session.materialPage, pageCount - 1));
+        int fromIndex = session.materialPage * CONTENT_SLOT_COUNT;
+        int toIndex = Math.min(requirements.size(), fromIndex + CONTENT_SLOT_COUNT);
+        for (int index = fromIndex; index < toIndex; index++) {
+            InventoryService.InventoryItemRequirement requirement = requirements.get(index);
+            inventory.setItem(index - fromIndex, createMaterialRequirementItem(session, requirement));
+        }
+
+        inventory.setItem(MATERIAL_LIST_PREVIOUS_PAGE_SLOT,
+            pageButton(false, session.materialPage > 0));
+        inventory.setItem(MATERIAL_LIST_PAGE_INFO_SLOT, GuiItems.create(
+            Material.PAPER,
+            Component.text("ページ " + (session.materialPage + 1) + " / " + pageCount,
+                NamedTextColor.WHITE),
+            List.of(Component.text("消費アイテム一覧", NamedTextColor.GRAY))
+        ));
+        inventory.setItem(MATERIAL_LIST_NEXT_PAGE_SLOT,
+            pageButton(true, session.materialPage + 1 < pageCount));
+        inventory.setItem(MATERIAL_LIST_GOLD_SLOT, createGoldRequirementItem(
+            session,
+            Math.max(0, plan.definition().getRequiredCurrency())
+        ));
+        inventory.setItem(MATERIAL_LIST_BACK_SLOT, GuiItems.create(
+            Material.ARROW,
+            Component.text("確認画面へ戻る", NamedTextColor.YELLOW),
+            List.of(Component.text(
+                "状態変化: " + transitionName(plan.definition()),
+                NamedTextColor.LIGHT_PURPLE
+            ))
+        ));
+    }
+
+    /**
+     * 消費アイテム要件の表示アイコンを作成します。
+     *
+     * @param session 操作セッション
+     * @param requirement アイテム要件
+     * @return 要件表示アイコン
+     */
+    private @NotNull ItemStack createMaterialRequirementItem(
+        @NotNull OrbSession session,
+        @NotNull InventoryService.InventoryItemRequirement requirement
+    ) {
+        ItemModel materialModel = itemService.findLoadedById(requirement.itemId());
+        ItemStack materialItem = materialModel == null
+            ? GuiItems.create(
+                Material.CHEST,
+                Component.text("未登録の素材", NamedTextColor.RED),
+                List.of(Component.text("この素材情報を取得できません。", NamedTextColor.RED))
+            )
+            : itemStackFactory.create(materialModel, 1);
+        long owned = inventoryService.getNormalItemAmount(session.accountId, requirement.itemId());
+        appendLore(materialItem, List.of(
+            Component.empty(),
+            Component.text(
+                "必要: " + requirement.amount() + " / 所持: " + owned,
+                owned >= requirement.amount() ? NamedTextColor.GREEN : NamedTextColor.RED
+            )
+        ));
+        return materialItem;
+    }
+
+    /**
+     * 必要ゴールドと現在の所持ゴールドを表示するアイコンを作成します。
+     *
+     * @param session 操作セッション
+     * @param requiredGold 必要ゴールド
+     * @return ゴールド要件表示アイコン
+     */
+    private @NotNull ItemStack createGoldRequirementItem(
+        @NotNull OrbSession session,
+        long requiredGold
+    ) {
+        long ownedGold = inventoryService.getGoldAmount(session.accountId);
+        return GuiItems.create(
+            Material.GOLD_INGOT,
+            Component.text("必要ゴールド", NamedTextColor.GOLD),
+            List.of(Component.text(
+                "必要: " + requiredGold + " / 所持: " + ownedGold,
+                ownedGold >= requiredGold ? NamedTextColor.GREEN : NamedTextColor.RED
+            ))
+        );
+    }
+
+    /**
+     * 消費アイテム一覧GUIのページ操作と確認画面への復帰を処理します。
+     *
+     * @param rawSlot クリックされた上段raw slot
+     * @param session 操作セッション
+     */
+    private void handleMaterialListClick(int rawSlot, @NotNull OrbSession session) {
+        ItemModel orbModel = resolveCurrentOrb(session);
+        if (orbModel == null || session.selectedTargetId == null) {
+            PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5289);
+            closeAndRemove(session);
+            return;
+        }
+        OrbCandidate target = collectCandidates(session, orbModel).stream()
+            .filter(candidate -> candidate.instance.getEquipmentInstanceId()
+                .equalsIgnoreCase(session.selectedTargetId))
+            .findFirst()
+            .orElse(null);
+        if (target == null) {
+            PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5290);
+            GuiSound.DENY.play(session.player);
+            closeAndRemove(session);
+            return;
+        }
+        OrbEligibility.TranscendencePlan plan = OrbEligibility.resolveTranscendence(
+            orbModel.getOrb().getEffect(), target.model, target.instance);
+        if (plan == null) {
+            PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5290);
+            GuiSound.DENY.play(session.player);
+            closeAndRemove(session);
+            return;
+        }
+
+        List<InventoryService.InventoryItemRequirement> requirements = materialRequirements(
+            plan.definition(), orbModel.getId());
+        int pageCount = Math.max(1, (requirements.size() + CONTENT_SLOT_COUNT - 1) / CONTENT_SLOT_COUNT);
+        if (rawSlot == MATERIAL_LIST_BACK_SLOT) {
+            openTranscendenceConfirmation(session, orbModel, target);
+            return;
+        }
+        if (rawSlot == MATERIAL_LIST_PREVIOUS_PAGE_SLOT) {
+            if (session.materialPage <= 0) {
+                GuiSound.DENY.play(session.player);
+                return;
+            }
+            session.materialPage--;
+            renderTranscendenceMaterialList(session, orbModel, target, session.inventory);
+            GuiSound.PAGE.play(session.player);
+            return;
+        }
+        if (rawSlot == MATERIAL_LIST_NEXT_PAGE_SLOT) {
+            if (session.materialPage + 1 >= pageCount) {
+                GuiSound.DENY.play(session.player);
+                return;
+            }
+            session.materialPage++;
+            renderTranscendenceMaterialList(session, orbModel, target, session.inventory);
+            GuiSound.PAGE.play(session.player);
+            return;
+        }
+        GuiSound.DENY.play(session.player);
     }
 
     /**
@@ -1075,11 +1236,47 @@ public final class OrbService {
         if (rawSlot == CONFIRM_BACK_SLOT) {
             Inventory list = Bukkit.createInventory(
                 new OrbGuiHolder(session.player.getUniqueId(), session.token, OrbGuiHolder.Screen.LIST),
-                OrbGuiHolder.SIZE,
+                OrbGuiHolder.sizeFor(OrbGuiHolder.Screen.LIST),
                 Component.text("オーブ対象装備", NamedTextColor.DARK_PURPLE)
             );
             renderList(session, orbModel, list, collectCandidates(session, orbModel));
             transitionInventory(session, list, OrbGuiHolder.Screen.LIST);
+            return;
+        }
+        if (rawSlot == CONFIRM_MATERIAL_LIST_SLOT) {
+            if (session.selectedTargetId == null) {
+                GuiSound.DENY.play(session.player);
+                return;
+            }
+            OrbCandidate target = collectCandidates(session, orbModel).stream()
+                .filter(candidate -> candidate.instance.getEquipmentInstanceId()
+                    .equalsIgnoreCase(session.selectedTargetId))
+                .findFirst()
+                .orElse(null);
+            if (target == null
+                || OrbEligibility.resolveTranscendence(
+                    orbModel.getOrb().getEffect(), target.model, target.instance) == null) {
+                PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5290);
+                GuiSound.DENY.play(session.player);
+                closeAndRemove(session);
+                return;
+            }
+            session.materialPage = 0;
+            Inventory materialList = Bukkit.createInventory(
+                new OrbGuiHolder(
+                    session.player.getUniqueId(),
+                    session.token,
+                    OrbGuiHolder.Screen.TRANSCENDENCE_MATERIAL_LIST
+                ),
+                OrbGuiHolder.sizeFor(OrbGuiHolder.Screen.TRANSCENDENCE_MATERIAL_LIST),
+                Component.text("消費アイテム一覧", NamedTextColor.DARK_PURPLE)
+            );
+            renderTranscendenceMaterialList(session, orbModel, target, materialList);
+            transitionInventory(
+                session,
+                materialList,
+                OrbGuiHolder.Screen.TRANSCENDENCE_MATERIAL_LIST
+            );
             return;
         }
         if (rawSlot != CONFIRM_EXECUTE_SLOT || session.selectedTargetId == null) {
@@ -2010,6 +2207,7 @@ public final class OrbService {
         private Inventory inventory;
         private Map<Integer, String> displayedTargets = Map.of();
         private int page;
+        private int materialPage;
         private String selectedTargetId;
         private final OrbInteractionLock interactionLock = new OrbInteractionLock();
         private boolean transitioning;

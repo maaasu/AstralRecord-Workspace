@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationRes
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentDurability;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceMaterial;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscendence;
@@ -492,8 +493,14 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         OrbGuiHolder confirmationHolder = (OrbGuiHolder) harness.player
             .getOpenInventory().getTopInventory().getHolder();
         assertEquals(OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM, confirmationHolder.screen());
+        Inventory confirmation = harness.player.getOpenInventory().getTopInventory();
+        assertEquals(OrbGuiHolder.TRANSCENDENCE_CONFIRM_SIZE, confirmation.getSize());
+        assertNotNull(confirmation.getItem(11));
+        assertEquals(Material.CHEST, confirmation.getItem(13).getType());
+        assertEquals(Material.LIME_CONCRETE, confirmation.getItem(15).getType());
+        assertEquals(Material.ARROW, confirmation.getItem(22).getType());
 
-        harness.handler.onInventoryClick(harness.guiClick(49));
+        harness.handler.onInventoryClick(harness.guiClick(15));
         harness.laneExecutor.runAll();
         server().getScheduler().performOneTick();
         server().getScheduler().performTicks(20L);
@@ -501,6 +508,43 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         assertEquals(1, harness.orbQuantity.get());
         assertFalse(harness.service.isOrbInventory(
             harness.player.getOpenInventory().getTopInventory()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
+     * 検証契約: 状態変化確認画面の消費アイテム一覧は54枠で、45枠を超える素材をページ移動でき、ゴールドと確認画面への戻る操作を下段へ表示する。
+     */
+    @Test
+    void transcendenceMaterialListUsesPagingAndShowsGoldAndBackControls() {
+        List<ItemEquipmentEnhanceMaterial> materials = new ArrayList<>();
+        for (int index = 0; index < 46; index++) {
+            materials.add(new ItemEquipmentEnhanceMaterial("material_" + index, 1));
+        }
+        Harness harness = new Harness(ItemOrbEffectType.TRANSCENDENCE, materials, 123);
+        harness.openOrbList();
+        harness.handler.onInventoryClick(harness.guiClick(0));
+        harness.handler.onInventoryClick(harness.guiClick(13));
+
+        Inventory materialList = harness.player.getOpenInventory().getTopInventory();
+        OrbGuiHolder materialHolder = (OrbGuiHolder) materialList.getHolder();
+        assertEquals(OrbGuiHolder.Screen.TRANSCENDENCE_MATERIAL_LIST, materialHolder.screen());
+        assertEquals(OrbGuiHolder.SIZE, materialList.getSize());
+        assertEquals(Material.GRAY_DYE, materialList.getItem(45).getType());
+        assertEquals(Material.PAPER, materialList.getItem(46).getType());
+        assertEquals(Material.GOLD_INGOT, materialList.getItem(47).getType());
+        assertEquals(Material.ARROW, materialList.getItem(49).getType());
+        assertEquals(Material.ARROW, materialList.getItem(53).getType());
+
+        harness.handler.onInventoryClick(harness.guiClick(53));
+        assertEquals(Material.ARROW, materialList.getItem(45).getType());
+        harness.handler.onInventoryClick(harness.guiClick(49));
+        assertEquals(
+            OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM,
+            ((OrbGuiHolder) harness.player.getOpenInventory().getTopInventory().getHolder()).screen()
+        );
+        assertEquals(OrbGuiHolder.TRANSCENDENCE_CONFIRM_SIZE,
+            harness.player.getOpenInventory().getTopInventory().getSize());
     }
 
     /**
@@ -853,10 +897,20 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         private final List<String> operationIds = new ArrayList<>();
 
         private Harness(ItemOrbEffectType effectType) {
+            this(effectType, List.of(), 0);
+        }
+
+        private Harness(
+            ItemOrbEffectType effectType,
+            List<ItemEquipmentEnhanceMaterial> transcendenceMaterials,
+            int transcendenceCurrency
+        ) {
             this.effectType = effectType;
             this.orbModel = orbModel(effectType);
-            this.equippedModel = equipmentModel("equipped_sword", effectType);
-            this.bagModel = equipmentModel("bag_sword", effectType);
+            this.equippedModel = equipmentModel(
+                "equipped_sword", effectType, transcendenceMaterials, transcendenceCurrency);
+            this.bagModel = equipmentModel(
+                "bag_sword", effectType, transcendenceMaterials, transcendenceCurrency);
             this.equippedInstance = new AtomicReference<>(instance(
                 equippedInstanceId, "equipped_sword", 0, 70));
             this.bagInstance = new AtomicReference<>(instance(
@@ -1230,9 +1284,19 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         }
 
         private ItemModel equipmentModel(String itemId, ItemOrbEffectType type) {
+            return equipmentModel(itemId, type, List.of(), 0);
+        }
+
+        private ItemModel equipmentModel(
+            String itemId,
+            ItemOrbEffectType type,
+            List<ItemEquipmentEnhanceMaterial> transcendenceMaterials,
+            int transcendenceCurrency
+        ) {
             List<ItemEquipmentTranscendence> transitions = type == ItemOrbEffectType.TRANSCENDENCE
                 ? List.of(new ItemEquipmentTranscendence(
-                    "星鋼化", 1, 0, List.of(), 0, null, null, null))
+                    "星鋼化", 1, 0, transcendenceMaterials, transcendenceCurrency,
+                    null, null, null))
                 : List.of();
             ItemEquipment equipment = new ItemEquipment(
                 ItemEquipmentSlot.WEAPON,
