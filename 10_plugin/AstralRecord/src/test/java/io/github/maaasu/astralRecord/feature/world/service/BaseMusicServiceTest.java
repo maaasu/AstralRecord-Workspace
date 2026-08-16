@@ -54,6 +54,7 @@ class BaseMusicServiceTest {
     @Test
     void defaultEnabledBasePlayerStartsMusic() {
         TestContext context = context(WorldType.BASE, true);
+        Location playerLocation = context.player.getLocation();
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
             bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(context.player));
@@ -62,7 +63,7 @@ class BaseMusicServiceTest {
         }
 
         verify(context.player).playSound(
-            isNull(Location.class),
+            eq(playerLocation),
             any(Sound.class),
             eq(SoundCategory.MUSIC),
             eq(0.35F),
@@ -204,6 +205,7 @@ class BaseMusicServiceTest {
     @Test
     void shuffleBagAvoidsImmediateRepeatsAcrossTrackChanges() {
         TestContext context = context(WorldType.BASE, true);
+        Location playerLocation = context.player.getLocation();
         List<Sound> playedSounds = new ArrayList<>();
         List<Long> scheduledDelays = new ArrayList<>();
         AtomicReference<Runnable> scheduledNextTrack = new AtomicReference<>();
@@ -211,7 +213,7 @@ class BaseMusicServiceTest {
             playedSounds.add(invocation.getArgument(1, Sound.class));
             return null;
         }).when(context.player).playSound(
-            isNull(Location.class),
+            eq(playerLocation),
             any(Sound.class),
             eq(SoundCategory.MUSIC),
             anyFloat(),
@@ -253,6 +255,7 @@ class BaseMusicServiceTest {
         BukkitTask task = mock(BukkitTask.class);
         World world = mock(World.class);
         Player player = mock(Player.class);
+        Location playerLocation = mock(Location.class);
         WorldService worldService = mock(WorldService.class);
         PlayerSettingService playerSettingService = mock(PlayerSettingService.class);
         UUID userId = UUID.randomUUID();
@@ -262,6 +265,7 @@ class BaseMusicServiceTest {
         when(scheduler.runTaskLater(eq(plugin), any(Runnable.class), anyLong())).thenReturn(task);
         when(player.isOnline()).thenReturn(true);
         when(player.getWorld()).thenReturn(world);
+        when(player.getLocation()).thenReturn(playerLocation);
         when(player.getUniqueId()).thenReturn(userId);
         when(worldService.resolveWorldType(world)).thenReturn(worldType);
         when(playerSettingService.isBaseMusicReady(userId)).thenReturn(true);

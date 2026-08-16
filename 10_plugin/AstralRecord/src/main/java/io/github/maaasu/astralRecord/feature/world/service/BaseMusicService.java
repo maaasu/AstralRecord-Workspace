@@ -4,7 +4,6 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import org.bukkit.Bukkit;
-import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
@@ -162,7 +161,7 @@ public final class BaseMusicService {
 
     private void playTrack(@NotNull Player player, @NotNull BaseMusicTrack track) {
         stopTrack(player);
-        player.playSound((Location) null, track.sound(), MUSIC_CATEGORY, MUSIC_VOLUME, MUSIC_PITCH);
+        player.playSound(player.getLocation(), track.sound(), MUSIC_CATEGORY, MUSIC_VOLUME, MUSIC_PITCH);
     }
 
     private void stopTrack(@NotNull Player player) {
