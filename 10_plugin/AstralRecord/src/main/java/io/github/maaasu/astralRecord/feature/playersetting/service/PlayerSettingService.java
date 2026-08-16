@@ -294,6 +294,36 @@ public final class PlayerSettingService {
     }
 
     /**
+     * 指定プレイヤーで拠点ワールド音楽が有効かを、API 通信を行わずキャッシュから返します。
+     *
+     * <p>ワールドイベントや音楽 task から呼ばれるため、cache miss 時はデフォルト値へ fallback します。</p>
+     *
+     * @param userId 判定対象ユーザー ID
+     * @return 拠点ワールド音楽が有効な場合は {@code true}
+     */
+    public boolean isBaseMusicEnabled(@NotNull UUID userId) {
+        PlayerSettingSnapshot snapshot = cache.find(userId);
+        if (snapshot == null) {
+            return (Boolean) PlayerSettingKey.BASE_MUSIC.getDefaultValue();
+        }
+        PlayerSettingEntry entry = snapshot.getEntry(PlayerSettingKey.BASE_MUSIC);
+        Object value = entry == null ? null : entry.getValue();
+        return value instanceof Boolean enabled
+            ? enabled
+            : (Boolean) PlayerSettingKey.BASE_MUSIC.getDefaultValue();
+    }
+
+    /**
+     * 指定プレイヤーの設定 warmup が完了しているかを cache のみから返します。
+     *
+     * @param userId 判定対象ユーザー ID
+     * @return 設定 snapshot が cache に存在する場合は {@code true}
+     */
+    public boolean isBaseMusicReady(@NotNull UUID userId) {
+        return cache.find(userId) != null;
+    }
+
+    /**
      * 指定セッションのプレイヤー設定を更新します。
      *
      * <p>同一ユーザーの更新は直列化されます。呼び出し元はリポジトリ通信を Bukkit

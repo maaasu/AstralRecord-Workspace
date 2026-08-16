@@ -88,6 +88,10 @@ public final class PlayerSettingCommand extends AstCommand {
                 if (!player.getBukkit().isOnline()) {
                     return;
                 }
+                if (service.captureSessionToken(request.userId()) != sessionToken
+                    || plugin.getServer().getPlayer(request.userId()) != player.getBukkit()) {
+                    return;
+                }
                 if (throwable != null) {
                     Logger.log(LogId.E_5312, throwable, key.getCode());
                     sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerSettingMsgId.P_5326.getId()));
@@ -101,6 +105,9 @@ public final class PlayerSettingCommand extends AstCommand {
                 }
                 if (key == PlayerSettingKey.ACTION_RING_HOLD_SELECT) {
                     player.getBukkit().updateInventory();
+                }
+                if (key == PlayerSettingKey.BASE_MUSIC) {
+                    plugin.getBaseMusicService().refreshPlayer(player.getBukkit());
                 }
                 if (result.conflict()) {
                     sendError(player.getBukkit(), result.message());
