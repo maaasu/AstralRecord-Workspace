@@ -12,8 +12,12 @@ import io.papermc.paper.datacomponent.item.Equippable;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.EquipmentSlot;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
@@ -29,6 +33,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class ItemStackPacketAdapterTest extends MockBukkitTestBase {
 
@@ -204,6 +209,31 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
 
         assertNull(clientBundle);
         assertFalse(serverBundle.hasData(DataComponentTypes.TOOLTIP_DISPLAY));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
+     * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### パケットアダプタ登録
+      * 検証契約: GUIセッション終了後の再同期はプレイヤーインベントリだけが表示中の場合に限り、別GUI表示中は実行しない。
+      */
+    @Test
+    void equipmentRefreshRequiresPlayerInventoryOnlyView() {
+        Player player = mock(Player.class);
+        InventoryView view = mock(InventoryView.class);
+        Inventory topInventory = mock(Inventory.class);
+        when(player.getOpenInventory()).thenReturn(view);
+        when(view.getTopInventory()).thenReturn(topInventory);
+        when(view.getType()).thenReturn(InventoryType.CRAFTING);
+
+        assertTrue(ItemStackPacketAdapter.isPlayerInventoryOnlyOpen(player));
+
+        when(view.getType()).thenReturn(InventoryType.CHEST);
+        assertFalse(ItemStackPacketAdapter.isPlayerInventoryOnlyOpen(player));
+
+        when(view.getType()).thenReturn(InventoryType.CRAFTING);
+        InventoryHolder pluginGuiHolder = () -> topInventory;
+        when(topInventory.getHolder()).thenReturn(pluginGuiHolder);
+        assertFalse(ItemStackPacketAdapter.isPlayerInventoryOnlyOpen(player));
     }
 
     private ItemStack astralWeapon(String itemId, String instanceId) {

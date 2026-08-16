@@ -16,12 +16,16 @@ import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.CustomModelDataComponentUtil;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndEvent;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndReason;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionTransitionService;
 import io.papermc.paper.datacomponent.DataComponentTypes;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.Listener;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerItemHeldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
@@ -181,6 +185,21 @@ public class ItemStackPacketAdapter {
                 if (playerSettingService.isActionRingHoldSelectEnabled(player.getUniqueId())) {
                     player.updateInventory();
                 }
+            }
+
+            @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
+            public void onGuiSessionEnd(@NotNull GuiSessionEndEvent event) {
+                if (event.getReason() != GuiSessionEndReason.MANUAL_CLOSE) {
+                    return;
+                }
+                plugin.getServer().getScheduler().runTask(plugin, () -> {
+                    Player player = event.getPlayer();
+                    if (player.isOnline()
+                        && playerSettingService.isActionRingHoldSelectEnabled(player.getUniqueId())
+                        && isPlayerInventoryOnlyOpen(player)) {
+                        player.updateInventory();
+                    }
+                });
             }
 
             @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
@@ -488,6 +507,21 @@ public class ItemStackPacketAdapter {
             && viewerEntityPacket
             && selectedHotbarSlot >= 0
             && selectedHotbarSlot < 9;
+    }
+
+    /**
+     * プレイヤーインベントリだけが表示されている状態かを判定します。
+     *
+     * <p>GUI セッション終了後の再同期に使います。プラグイン管理 GUI の遷移中や、
+     * バニラの別インベントリが表示中の場合は {@code false} を返します。</p>
+     *
+     * @param player 判定対象プレイヤー
+     * @return プレイヤーインベントリだけが表示中の場合は {@code true}
+     */
+    static boolean isPlayerInventoryOnlyOpen(@NotNull Player player) {
+        var view = player.getOpenInventory();
+        return view.getType() == InventoryType.CRAFTING
+            && !GuiSessionTransitionService.isPluginManagedGui(view.getTopInventory());
     }
 
     /**
