@@ -73,6 +73,32 @@ class BaseMusicServiceTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
+     * 章・見出し: # 17_4-統合フロー > ## 5. 拠点音楽
+     * 検証契約: Join 後のスポーン完了などで同期が重複しても、同じ current track を再起動しない。
+     */
+    @Test
+    void repeatedRefreshDoesNotRestartTheCurrentTrack() {
+        TestContext context = context(WorldType.BASE, true);
+        Location playerLocation = context.player.getLocation();
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(context.player));
+
+            context.service.refreshPlayer(context.player);
+            context.service.refreshPlayer(context.player);
+        }
+
+        verify(context.player, times(1)).playSound(
+            eq(playerLocation),
+            any(Sound.class),
+            eq(SoundCategory.MUSIC),
+            eq(0.35F),
+            eq(1.0F)
+        );
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/11_4-統合フロー.md
      * 章・見出し: # 11_4-統合フロー > ## 1. login warmup・logout cleanup
      * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md

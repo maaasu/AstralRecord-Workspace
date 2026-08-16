@@ -1280,7 +1280,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new WorldJoinSpawnEventHandler(this, joinSpawnWorldId, worldService),
+            new WorldJoinSpawnEventHandler(this, joinSpawnWorldId, worldService, baseMusicService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

@@ -14,7 +14,10 @@ import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Deque;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.UUID;
 
 /**
  * 拠点ワールド向けのレコード音楽を管理します。
@@ -28,6 +31,7 @@ public final class BaseMusicService {
     private final WorldService worldService;
     private final PlayerSettingService playerSettingService;
     private final Deque<BaseMusicTrack> remainingTracks = new ArrayDeque<>();
+    private final Map<UUID, BaseMusicTrack> activeTracksByPlayer = new HashMap<>();
     private BaseMusicTrack currentTrack;
     private BukkitTask nextTrackTask;
 
@@ -112,6 +116,7 @@ public final class BaseMusicService {
         for (Player player : Bukkit.getOnlinePlayers()) {
             stopTrack(player);
         }
+        activeTracksByPlayer.clear();
         currentTrack = null;
         remainingTracks.clear();
     }
@@ -160,14 +165,20 @@ public final class BaseMusicService {
     }
 
     private void playTrack(@NotNull Player player, @NotNull BaseMusicTrack track) {
+        UUID playerId = player.getUniqueId();
+        if (activeTracksByPlayer.get(playerId) == track) {
+            return;
+        }
         stopTrack(player);
         player.playSound(player.getLocation(), track.sound(), MUSIC_CATEGORY, MUSIC_VOLUME, MUSIC_PITCH);
+        activeTracksByPlayer.put(playerId, track);
     }
 
     private void stopTrack(@NotNull Player player) {
         for (BaseMusicTrack track : BaseMusicTrack.values()) {
             player.stopSound(track.sound(), MUSIC_CATEGORY);
         }
+        activeTracksByPlayer.remove(player.getUniqueId());
     }
 
     private boolean hasEligibleListeners() {
@@ -196,6 +207,7 @@ public final class BaseMusicService {
         cancelNextTrackTask();
         currentTrack = null;
         remainingTracks.clear();
+        activeTracksByPlayer.clear();
     }
 
     private void cancelNextTrackTask() {
