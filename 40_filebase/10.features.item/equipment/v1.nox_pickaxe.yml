@@ -1,0 +1,25 @@
+# design:
+#   motif: "天体 / 星影"
+#   progression: 1
+schemaVersion: 1
+id: nox_pickaxe
+category: equipment
+name: "ノクスツルハシ"
+icon: WOODEN_PICKAXE
+rarity: COMMON
+saleValue: 2
+lore:
+  - "&7ノクスで使われている簡素な採掘道具。"
+  - "&7鉱石や岩石の採掘に使用する。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: TOOL
+  handType: ONE
+  tag: PICKAXE
+  requiredLevel: 0
+  stats:
+  - status: MINING_SPEED
+    type: FLAT
+    value: 2

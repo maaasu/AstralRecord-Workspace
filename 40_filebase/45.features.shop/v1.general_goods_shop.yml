@@ -15,14 +15,13 @@ items:
     page: 1
     slot: 0
     priceGold: 20
-
   - id: nox_sword
     itemId:
       ref: item:nox_sword
     category: equipment
     amount: 1
     page: 1
-    slot: 2
+    slot: 7
     priceGold: 20
   - id: nox_bow
     itemId:
@@ -30,7 +29,7 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 3
+    slot: 14
     priceGold: 20
   - id: nox_staff
     itemId:
@@ -38,8 +37,41 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 4
+    slot: 21
     priceGold: 20
+
+  - id: nox_pickaxe
+    itemId:
+      ref: item:nox_pickaxe
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 2
+    priceGold: 100
+  - id: nox_hoe
+    itemId:
+      ref: item:nox_hoe
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 2
+    priceGold: 100
+  - id: hookshot
+    itemId:
+      ref: item:hookshot
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 15
+    priceGold: 900
+  - id: hook
+    itemId:
+      ref: item:hook
+    category: material
+    amount: 1
+    page: 1
+    slot: 22
+    priceGold: 5
 
   - id: cartograph
     itemId:
@@ -50,19 +82,3 @@ items:
     slot: 6
     priceGold: 6000
 
-  - id: hookshot
-    itemId:
-      ref: item:hookshot
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 7
-    priceGold: 900
-  - id: hook
-    itemId:
-      ref: item:hook
-    category: material
-    amount: 1
-    page: 1
-    slot: 8
-    priceGold: 5

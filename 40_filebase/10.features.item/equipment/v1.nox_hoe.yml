@@ -1,0 +1,25 @@
+# design:
+#   motif: "天体 / 星影"
+#   progression: 1
+schemaVersion: 1
+id: nox_hoe
+category: equipment
+name: "ノクスクワ"
+icon: WOODEN_HOE
+rarity: COMMON
+saleValue: 2
+lore:
+  - "&7ノクスで使われている簡素な採取道具。"
+  - "&7植物などの採取に使用する。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: TOOL
+  handType: ONE
+  tag: HOE
+  requiredLevel: 0
+  stats:
+  - status: MINING_SPEED
+    type: FLAT
+    value: 2
