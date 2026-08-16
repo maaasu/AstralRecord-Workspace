@@ -82,6 +82,15 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 public class InventoryService {
     private static final InventoryProfile DEFAULT_PROFILE = InventoryProfile.GAME;
+    /**
+     * 通常アイテムを itemId で支払うときの inventory 内順序です。
+     * slotIndex の後方から消費し、同一 slot の不正な重複だけは entry ID で決定的にします。
+     */
+    private static final Comparator<InventoryEntryModel> NORMAL_ITEM_CONSUMPTION_ENTRY_ORDER =
+        Comparator.<InventoryEntryModel, Integer>comparing(
+            entry -> entry.getSlotIndex() == null ? Integer.MIN_VALUE : entry.getSlotIndex()
+        ).reversed()
+            .thenComparing(InventoryEntryModel::getInventoryEntryId);
     private static final String DEFAULT_LOADOUT_NAME = "Default";
     private static final String SLOT_TYPE_HEAD = "HEAD";
     private static final String SLOT_TYPE_CHEST = "CHEST";
@@ -297,8 +306,8 @@ public class InventoryService {
 
     /**
      * stable pre-save が返した正確な persisted rows へ通常アイテム予約を割り当て直します。
-     * この確定前は対象 item のローカル消費を全停止し、pre-save 中に追加された早い slot の stack と
-     * API の消費順がずれても二重支出が起きないようにします。
+     * この確定前は対象 item のローカル消費を全停止し、pre-save 中に追加された stack と
+     * API の共通消費順がずれても二重支出が起きないようにします。
      */
     public boolean finalizeOrbOperationPaymentReservation(
         @NotNull UUID accountId,
@@ -340,7 +349,8 @@ public class InventoryService {
             }
             Map<UUID, Long> allocation = allocateNormalPaymentEntries(
                 reservation,
-                persistedNormalEntries
+                persistedNormalEntries,
+                normalInventoryIds
             );
             if (allocation == null) {
                 return false;
@@ -363,14 +373,13 @@ public class InventoryService {
 
     private @Nullable Map<UUID, Long> allocateNormalPaymentEntries(
         @NotNull OrbPaymentReservation reservation,
-        @NotNull List<InventoryEntryModel> persistedNormalEntries
+        @NotNull List<InventoryEntryModel> persistedNormalEntries,
+        @NotNull Collection<UUID> inventoryOrder
     ) {
-        List<InventoryEntryModel> ordered = persistedNormalEntries.stream()
-            .sorted(Comparator
-                .comparing((InventoryEntryModel entry) ->
-                    entry.getSlotIndex() == null ? Integer.MAX_VALUE : entry.getSlotIndex())
-                .thenComparing(InventoryEntryModel::getInventoryEntryId))
-            .toList();
+        List<InventoryEntryModel> ordered = orderNormalItemConsumptionEntries(
+            persistedNormalEntries,
+            inventoryOrder
+        );
         InventoryEntryModel origin = ordered.stream()
             .filter(entry -> entry.getInventoryEntryId().equals(reservation.orbEntryId()))
             .findFirst()
@@ -5595,11 +5604,7 @@ public class InventoryService {
             List<InventoryEntryModel> entries = new ArrayList<>(sourceEntries);
             List<InventoryEntryModel> consumptionOrder = inventory.getInventoryType() == InventoryType.CURRENCY
                 ? sourceEntries
-                : sourceEntries.stream()
-                    .sorted(Comparator.<InventoryEntryModel, Integer>comparing(
-                        entry -> entry.getSlotIndex() == null ? Integer.MIN_VALUE : entry.getSlotIndex()
-                    ).reversed())
-                    .toList();
+                : orderNormalItemConsumptionEntries(sourceEntries, List.of(inventory.getInventoryId()));
             long remaining = amount;
             for (InventoryEntryModel entry : consumptionOrder) {
                 if (remaining <= 0L) {
@@ -5634,6 +5639,26 @@ public class InventoryService {
             }
             return consumedTotal;
         }
+    }
+
+    /**
+     * 通常 itemId 消費の候補を inventory の優先順、slotIndex の降順で並べます。
+     * 通常 inventory の横断順は BAG、HOTBAR の順で、未指定 slot は最後に扱います。
+     */
+    private static @NotNull List<InventoryEntryModel> orderNormalItemConsumptionEntries(
+        @NotNull List<InventoryEntryModel> entries,
+        @NotNull Collection<UUID> inventoryOrder
+    ) {
+        Map<UUID, Integer> inventoryOrderById = new HashMap<>();
+        int order = 0;
+        for (UUID inventoryId : inventoryOrder) {
+            inventoryOrderById.putIfAbsent(inventoryId, order++);
+        }
+        return entries.stream()
+            .sorted(Comparator.comparingInt((InventoryEntryModel entry) ->
+                inventoryOrderById.getOrDefault(entry.getInventoryId(), Integer.MAX_VALUE))
+                .thenComparing(NORMAL_ITEM_CONSUMPTION_ENTRY_ORDER))
+            .toList();
     }
 
     private boolean isStackableEntry(@NotNull InventoryEntryModel entry, @NotNull ItemModel model, int maxStack) {

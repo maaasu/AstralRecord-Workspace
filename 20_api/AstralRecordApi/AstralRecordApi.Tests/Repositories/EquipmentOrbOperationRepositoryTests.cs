@@ -195,6 +195,45 @@ public class EquipmentOrbOperationRepositoryTests
         await harness.AssertSingleTerminalLedgerAsync(result.OperationId, paymentConsumed: true);
     }
 
+    /**
+     * 設計入力: 00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.02-登録系.md
+     * 章・見出し: オーブ装備操作 > 支払い entry の消費順
+     * 検証契約: itemId で素材を分割消費するときは、同一 inventory 内の slotIndex が大きい entry から消費する。
+     */
+    [Fact]
+    public async Task Transcendence_ConsumesMaterialsFromHighestSlotFirst()
+    {
+        var equipment = CreateEquipment(transcendence:
+        [
+            new ItemEquipmentTranscendenceResponse
+            {
+                Name = "星鋼化",
+                Rank = 1,
+                RequiredEnhanceLevel = 3,
+                RequiredMaterials =
+                [
+                    new ItemEquipmentEnhanceMaterialResponse { ItemId = "star_ore", Amount = 2 },
+                ],
+            },
+        ]);
+        await using var harness = await OrbOperationHarness.CreateAsync(equipment: equipment);
+        await harness.SetEquipmentStateAsync(instance => instance.EnhanceLevel = 3);
+        var orb = await harness.AddOrbAsync("highest_slot_orb", new ItemOrbEffectResponse
+        {
+            Type = "TRANSCENDENCE",
+            Rank = 1,
+        });
+        var lowSlot = await harness.AddNormalEntryAsync("star_ore", "material", 3, slotIndex: 1);
+        var highSlot = await harness.AddNormalEntryAsync("star_ore", "material", 3, slotIndex: 2);
+
+        var result = await harness.ExecuteAsync("highest_slot_orb", orb);
+
+        Assert.Equal("APPLIED", result.Result);
+        Assert.True(result.PaymentConsumed);
+        Assert.Equal(3, await harness.GetEntryQuantityAsync(lowSlot));
+        Assert.Equal(1, await harness.GetEntryQuantityAsync(highSlot));
+    }
+
     [Fact]
     public async Task NoCandidate_IsPersistedWithoutPaymentOrEquipmentMutation()
     {
@@ -716,7 +755,11 @@ public class EquipmentOrbOperationRepositoryTests
             return await AddNormalEntryAsync(itemId, "orb", quantity);
         }
 
-        public async Task<Guid> AddNormalEntryAsync(string itemId, string category, long quantity)
+        public async Task<Guid> AddNormalEntryAsync(
+            string itemId,
+            string category,
+            long quantity,
+            int? slotIndex = null)
         {
             var id = Guid.NewGuid();
             dbContext.InventoryEntries.Add(CreateEntry(
@@ -726,7 +769,8 @@ public class EquipmentOrbOperationRepositoryTests
                 itemId,
                 category,
                 quantity,
-                DateTime.UtcNow));
+                DateTime.UtcNow,
+                slotIndex));
             await dbContext.SaveChangesAsync();
             return id;
         }
@@ -942,10 +986,12 @@ public class EquipmentOrbOperationRepositoryTests
             string itemId,
             string category,
             long quantity,
-            DateTime now) => new()
+            DateTime now,
+            int? slotIndex = null) => new()
         {
             InventoryEntryId = entryId,
             InventoryId = inventoryId,
+            SlotIndex = slotIndex,
             ItemCategory = category,
             ItemId = itemId,
             Quantity = quantity,

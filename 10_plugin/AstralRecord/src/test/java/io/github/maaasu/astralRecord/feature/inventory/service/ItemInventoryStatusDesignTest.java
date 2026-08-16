@@ -319,7 +319,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加 > ### 通常アイテムの消費順
+     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加 > ### 通常アイテムの消費・支払い順
      * 検証契約: 同一アイテムを消費するときは、通常インベントリ内の後方slotから先に減算し、前方の満杯stackを維持する。
      */
     @Test

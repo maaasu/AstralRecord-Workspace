@@ -144,7 +144,7 @@ class InventoryServiceOrbPaymentReservationTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
      * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
-     * 検証契約: 素材予約はslot/entry単位で割り当て、複数stackに余剰がある場合のローカル消費は予約済み数量を避けて未予約分だけを一度減らす。
+     * 検証契約: 素材予約は共通のBAG/HOTBAR・後方slot順でentry単位に割り当て、複数stackに余剰がある場合のローカル消費は予約済み数量を避けて未予約分だけを一度減らす。
      */
     @Test
     void materialReservationAcrossStacksConsumesOnlyUnreservedQuantity() {
@@ -181,19 +181,19 @@ class InventoryServiceOrbPaymentReservationTest extends MockBukkitTestBase {
                 InventoryEntryModel::getInventoryEntryId,
                 InventoryEntryModel::getQuantity
             ));
-        assertEquals(1L, quantities.get(firstMaterialId));
-        assertEquals(1L, quantities.get(secondMaterialId));
+        assertFalse(quantities.containsKey(firstMaterialId));
+        assertEquals(2L, quantities.get(secondMaterialId));
         assertFalse(harness.service.consumeNormalItem(
             harness.accountId(), "material.rune", 1L));
-        when(harness.repository.findEntryById(firstMaterialId)).thenReturn(null);
-        when(harness.repository.findEntryById(secondMaterialId)).thenReturn(entry(
-            secondMaterialId,
+        when(harness.repository.findEntryById(firstMaterialId)).thenReturn(entry(
+            firstMaterialId,
             harness,
-            3,
+            2,
             ItemCategory.MATERIAL,
             "material.rune",
             1L
         ));
+        when(harness.repository.findEntryById(secondMaterialId)).thenReturn(null);
         harness.service.reconcileOrbOperationEntries(
             harness.accountId(),
             List.of(firstMaterialId, secondMaterialId),
@@ -202,6 +202,48 @@ class InventoryServiceOrbPaymentReservationTest extends MockBukkitTestBase {
         );
         assertEquals(0L, harness.service.getNormalItemAmount(
             harness.accountId(), "material.rune"));
+        harness.service.releaseOrbOperationPayment(harness.accountId(), operationId);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加 > ### 通常アイテムの消費・支払い順
+     * 検証契約: オーブ起点の予約割当も通常消費と同じくBAGの後方slotから先に素材を予約する。
+     */
+    @Test
+    void orbMaterialReservationUsesTheSameHighestSlotOrderAsNormalConsumption() {
+        Harness harness = harness(false);
+        UUID originId = UUID.randomUUID();
+        UUID lowSlotId = UUID.randomUUID();
+        UUID highSlotId = UUID.randomUUID();
+        InventoryEntryModel origin = entry(
+            originId, harness, 1, ItemCategory.ORB, "orb.transition", 1L);
+        InventoryEntryModel lowSlot = entry(
+            lowSlotId, harness, 2, ItemCategory.MATERIAL, "material.rune", 3L);
+        InventoryEntryModel highSlot = entry(
+            highSlotId, harness, 3, ItemCategory.MATERIAL, "material.rune", 3L);
+        List<InventoryEntryModel> baselineEntries = List.of(origin, lowSlot, highSlot);
+        harness.state.replaceEntriesFromLoad(harness.bag.getInventoryId(), baselineEntries);
+        UUID operationId = UUID.randomUUID();
+
+        assertTrue(harness.service.reserveOrbOperationPayment(
+            harness.accountId(), operationId, originId, Map.of("orb.transition", 1L, "material.rune", 2L), 0L));
+        assertTrue(harness.service.finalizeOrbOperationPaymentReservation(
+            harness.accountId(),
+            operationId,
+            new InventoryPersistence.PersistedInventoryBaseline(
+                harness.accountId(), Map.of(harness.bag.getInventoryId(), baselineEntries))
+        ));
+        assertTrue(harness.service.consumeNormalItem(
+            harness.accountId(), "material.rune", 1L));
+
+        Map<UUID, Long> quantities = harness.state.snapshotEntries(harness.bag.getInventoryId()).stream()
+            .collect(java.util.stream.Collectors.toMap(
+                InventoryEntryModel::getInventoryEntryId,
+                InventoryEntryModel::getQuantity
+            ));
+        assertEquals(3L, quantities.get(lowSlotId));
+        assertEquals(2L, quantities.get(highSlotId));
         harness.service.releaseOrbOperationPayment(harness.accountId(), operationId);
     }
 

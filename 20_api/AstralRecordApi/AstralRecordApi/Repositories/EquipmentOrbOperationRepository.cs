@@ -584,9 +584,10 @@ public class EquipmentOrbOperationRepository(
 
     private async Task<List<InventoryEntryEntity>> FindOwnedNormalEntriesAsync(Guid accountId)
     {
+        List<InventoryEntryEntity> entries;
         if (dbContext.Database.IsSqlServer())
         {
-            return await dbContext.InventoryEntries.FromSqlInterpolated($"""
+            entries = await dbContext.InventoryEntries.FromSqlInterpolated($"""
                     SELECT entry.*
                     FROM [dbo].[inventory_entry] AS entry WITH (UPDLOCK, HOLDLOCK)
                     INNER JOIN [dbo].[inventory] AS inventory WITH (HOLDLOCK)
@@ -597,23 +598,30 @@ public class EquipmentOrbOperationRepository(
                       AND inventory.[inventory_profile] = 'GAME'
                       AND inventory.[inventory_type] IN ('BAG', 'HOTBAR')
                       AND entry.[is_deleted] = 0
-                    """)
-                .OrderBy(entry => entry.SlotIndex ?? int.MaxValue)
-                .ThenBy(entry => entry.InventoryEntryId)
-                .ToListAsync();
+                    """).ToListAsync();
         }
-        return await (from entry in dbContext.InventoryEntries
-                      join inventory in dbContext.Inventories on entry.InventoryId equals inventory.InventoryId
-                      where inventory.AccountId == accountId
-                            && !inventory.IsDeleted
-                            && inventory.IsEnabled
-                            && inventory.InventoryProfile == GameProfile
-                            && (inventory.InventoryType == "BAG" || inventory.InventoryType == "HOTBAR")
-                            && !entry.IsDeleted
-                      orderby inventory.InventoryType == "BAG" ? 0 : 1,
-                          entry.SlotIndex ?? int.MaxValue,
-                          entry.InventoryEntryId
-                      select entry).ToListAsync();
+        else
+        {
+            entries = await (from entry in dbContext.InventoryEntries
+                             join inventory in dbContext.Inventories on entry.InventoryId equals inventory.InventoryId
+                             where inventory.AccountId == accountId
+                                   && !inventory.IsDeleted
+                                   && inventory.IsEnabled
+                                   && inventory.InventoryProfile == GameProfile
+                                   && (inventory.InventoryType == "BAG" || inventory.InventoryType == "HOTBAR")
+                                   && !entry.IsDeleted
+                             select entry).ToListAsync();
+        }
+
+        var inventoryTypeById = await dbContext.Inventories
+            .Where(inventory => inventory.AccountId == accountId
+                                && !inventory.IsDeleted
+                                && inventory.IsEnabled
+                                && inventory.InventoryProfile == GameProfile
+                                && (inventory.InventoryType == "BAG" || inventory.InventoryType == "HOTBAR"))
+            .Select(inventory => new { inventory.InventoryId, inventory.InventoryType })
+            .ToDictionaryAsync(inventory => inventory.InventoryId, inventory => inventory.InventoryType);
+        return InventoryEntryConsumptionOrder.OrderNormalEntries(entries, inventoryTypeById).ToList();
     }
 
     private async Task<bool> IsTargetPresentForUpdateAsync(
