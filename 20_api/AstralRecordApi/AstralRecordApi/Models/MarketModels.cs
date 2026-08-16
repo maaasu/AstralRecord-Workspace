@@ -13,7 +13,11 @@ public class MarketListingResponse
     public string ItemId { get; init; } = string.Empty;
     public string? InstanceType { get; init; }
     public Guid? InstanceId { get; init; }
+    /// <summary>出品作成・取消応答で返す source inventory entry の一覧です。Plugin の正本再同期にのみ使用します。</summary>
+    public IReadOnlyList<Guid> SourceInventoryEntryIds { get; init; } = Array.Empty<Guid>();
     public long Quantity { get; init; }
+    /// <summary>現在 escrow に残る購入可能数量です。SOLD または取り下げ済みの場合は 0 です。</summary>
+    public long RemainingQuantity { get; init; }
     public string CurrencyId { get; init; } = string.Empty;
     public long UnitPrice { get; init; }
     public long TotalPrice { get; init; }
@@ -32,12 +36,21 @@ public class MarketListingResponse
     public int Version { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime UpdatedAt { get; init; }
+    /// <summary>売上受取前の約定売上合計です。ACTIVE 中は受け取りできません。</summary>
+    public long PendingProceeds { get; init; }
+}
+
+public class MarketListingSourceRequest
+{
+    public Guid InventoryEntryId { get; set; }
+    public long Quantity { get; set; }
 }
 
 public class MarketListingCreateRequest
 {
     public Guid SellerAccountId { get; set; }
-    public Guid? SourceInventoryEntryId { get; set; }
+    /// <summary>出品数量を escrow 化する BAG/HOTBAR entry ごとの確保量です。</summary>
+    public List<MarketListingSourceRequest> SourceEntries { get; set; } = [];
     public required string ItemCategory { get; set; }
     public required string ItemId { get; set; }
     public string? InstanceType { get; set; }
@@ -84,6 +97,8 @@ public class MarketPriceQuoteResponse
 public class MarketPurchaseRequest
 {
     public Guid BuyerAccountId { get; set; }
+    /// <summary>購入する数量です。個体品は必ず 1 です。</summary>
+    public long Quantity { get; set; } = 1;
     public required string IdempotencyKey { get; set; }
     public Guid UpdatedBy { get; set; }
 }
@@ -93,6 +108,25 @@ public class MarketCancelRequest
     public Guid SellerAccountId { get; set; }
     public string? Reason { get; set; }
     public Guid UpdatedBy { get; set; }
+}
+
+public class MarketProceedsClaimRequest
+{
+    public Guid SellerAccountId { get; set; }
+    /// <summary>
+    /// 売上受取を再送しても同じ確定結果を返すためのキーです。
+    /// 同一出品の再送では必ず同じ値を指定します。
+    /// </summary>
+    public required string IdempotencyKey { get; set; }
+    public Guid UpdatedBy { get; set; }
+}
+
+public class MarketProceedsClaimResponse
+{
+    public Guid ListingId { get; init; }
+    public long Amount { get; init; }
+    /// <summary>Plugin が API 正本へ再同期する必要がある売主の通貨 entry ID です。</summary>
+    public IReadOnlyList<Guid> AffectedInventoryEntryIds { get; init; } = Array.Empty<Guid>();
 }
 
 public class MarketTransactionResponse
@@ -124,9 +158,9 @@ public class MarketAccountSummaryResponse
     public int ActiveListingCount { get; init; }
     /// <summary>互換用の旧フィールドです。MaxListingSlotCount と同じ値を返します。</summary>
     public int MaxActiveListingCount { get; init; }
-    /// <summary>ACTIVE / SUSPENDED / CANCELED を含む、消費済み出品枠数です。</summary>
+    /// <summary>ACTIVE / SUSPENDED / 売上未受取 SOLD を含む、消費済み出品枠数です。</summary>
     public int UsedListingSlotCount { get; init; }
-    /// <summary>出品中・取り下げ済みを通算して使える出品枠の上限です。</summary>
+    /// <summary>出品中・売上未受取を通算して使える出品枠の上限です。</summary>
     public int MaxListingSlotCount { get; init; }
     public int CompletedTradeCount { get; init; }
     public string Tier { get; init; } = string.Empty;

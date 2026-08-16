@@ -62,6 +62,19 @@ class MarketListingEligibilityTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
      * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入
+     * 検証契約: 売却不可フラグと売値 0 はマーケット対象外ではなく、API の単価ガードで売値以下だけを拒否する。
+     */
+    @Test
+    void acceptsUnsellableAndZeroSellValueItemsForApiPriceGuard() {
+        assertTrue(MarketListingEligibility.isEligible(
+            stackEntry(ItemCategory.MATERIAL, null),
+            item(false, true, 0)
+        ));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入
      * 検証契約: EQUIPMENTとRUNEの個体entryは数量1かつ対応カテゴリであれば出品候補にできる。
      */
     @Test
@@ -106,6 +119,10 @@ class MarketListingEligibilityTest {
     }
 
     private ItemModel item(boolean unTradeable) {
+        return item(unTradeable, false, 1);
+    }
+
+    private ItemModel item(boolean unTradeable, boolean unSellable, int saleValue) {
         return new ItemModel(
             1,
             "test_item",
@@ -114,12 +131,12 @@ class MarketListingEligibilityTest {
             "STONE",
             "COMMON",
             64,
-            1,
+            saleValue,
             null,
             null,
             List.<String>of(),
             unTradeable,
-            false,
+            unSellable,
             null,
             null,
             null,

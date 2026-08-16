@@ -128,7 +128,7 @@ public final class MarketGui {
             Material.WRITABLE_BOOK,
             "自分の出品",
             NamedTextColor.GOLD,
-            List.of("出品中・取り下げ済みの出品を確認します。")
+            List.of("出品中・売上受取待ちの出品を確認します。")
         ));
         inventory.setItem(SUMMARY_SLOT, summaryItem(summary, goldAmount));
         if (hasNextPage) {
@@ -161,7 +161,8 @@ public final class MarketGui {
                 "1. 下のバッグまたはホットバーからアイテムをクリックします。",
                 "2. 数量と1個あたりの価格を設定して出品を確定します。",
                 "バッグは表示内の矢印で上下にスクロールできます。",
-                "取引不可アイテムとGoldは出品できません。"
+                "取引不可のアイテムとGoldは出品できません。売却不可でも出品できます。",
+                "売値以下の価格では出品できません。"
             )
         ));
         inventory.setItem(SELL_SELECT_BACK_SLOT, item(
@@ -223,23 +224,47 @@ public final class MarketGui {
         @NotNull Player viewer,
         @NotNull UUID sessionId,
         @NotNull MarketListing listing,
+        long purchaseQuantity,
         long goldAmount
     ) {
         Inventory inventory = create(viewer, sessionId, MarketScreen.PURCHASE_CONFIRM, DIALOG_SIZE, "マーケット: 購入確認");
         fill(inventory);
+        long safeQuantity = Math.max(1L, Math.min(purchaseQuantity, listing.remainingQuantity()));
+        long purchasePrice = totalPrice(listing.unitPrice(), safeQuantity);
+        inventory.setItem(QUANTITY_DOWN_SLOT, item(
+            Material.RED_CONCRETE,
+            "購入数を減らす",
+            NamedTextColor.RED,
+            List.of("Shiftクリックで 16 個減らします。")
+        ));
+        inventory.setItem(QUANTITY_SLOT, item(
+            Material.HOPPER,
+            "購入数: " + format(safeQuantity),
+            NamedTextColor.YELLOW,
+            List.of("残り: " + format(listing.remainingQuantity()))
+        ));
         inventory.setItem(ITEM_SLOT, listingItem(listing, false));
-        inventory.setItem(11, item(
+        inventory.setItem(PRICE_SLOT, item(
             Material.GOLD_INGOT,
-            "購入額: " + format(listing.totalPrice()) + " Gold",
+            "購入額: " + format(purchasePrice) + " Gold",
             NamedTextColor.GOLD,
-            List.of("所持 Gold: " + format(goldAmount))
+            List.of(
+                "単価: " + format(listing.unitPrice()) + " Gold",
+                "所持 Gold: " + format(goldAmount)
+            )
+        ));
+        inventory.setItem(QUANTITY_UP_SLOT, item(
+            Material.LIME_CONCRETE,
+            "購入数を増やす",
+            NamedTextColor.GREEN,
+            List.of("Shiftクリックで 16 個増やします。")
         ));
         inventory.setItem(BACK_SLOT, GuiItems.backButton());
         inventory.setItem(CONFIRM_SLOT, item(
             Material.EMERALD_BLOCK,
             "購入を確定",
             NamedTextColor.GREEN,
-            List.of("Gold とアイテムを即時交換します。")
+            List.of(format(safeQuantity) + " 個を購入します。")
         ));
         open(viewer, inventory);
     }
@@ -257,7 +282,11 @@ public final class MarketGui {
             Material.ORANGE_CONCRETE,
             "出品を取り下げる",
             NamedTextColor.GOLD,
-            List.of("アイテムは所持品へ返却されます。", "取り下げ済み出品も出品枠を使用します。")
+            List.of(
+                "未売却分のアイテムは所持品へ返却されます。",
+                "所持品に収まらない場合は取り下げできません。",
+                "売上がある場合は、続けて売上を受け取ってください。"
+            )
         ));
         open(viewer, inventory);
     }
@@ -374,7 +403,7 @@ public final class MarketGui {
         ItemModel model = itemService.findLoadedById(listing.itemId());
         ItemStack stack = model == null
             ? new ItemStack(Material.CHEST)
-            : itemStackFactory.createShopDisplay(model, Math.max(1, (int) Math.min(64L, listing.quantity())));
+            : itemStackFactory.createShopDisplay(model, Math.max(1, (int) Math.min(64L, listing.remainingQuantity())));
         ItemMeta meta = stack.getItemMeta();
         if (meta == null) {
             return stack;
@@ -388,16 +417,23 @@ public final class MarketGui {
         }
         lore.add(Component.empty());
         lore.add(Component.text("出品者: " + displaySellerName(listing.sellerAccountName()), NamedTextColor.AQUA));
-        lore.add(Component.text("数量: " + format(listing.quantity()), NamedTextColor.WHITE));
+        lore.add(Component.text("出品数: " + format(listing.quantity()), NamedTextColor.WHITE));
+        lore.add(Component.text("残り: " + format(listing.remainingQuantity()), NamedTextColor.WHITE));
         lore.add(Component.text("単価: " + format(listing.unitPrice()) + " Gold", NamedTextColor.GOLD));
-        lore.add(Component.text("合計: " + format(listing.totalPrice()) + " Gold", NamedTextColor.YELLOW));
+        lore.add(Component.text(
+            "残り合計: " + format(totalPrice(listing.unitPrice(), listing.remainingQuantity())) + " Gold",
+            NamedTextColor.YELLOW
+        ));
         lore.add(Component.text("出品日時: " + DATE_TIME_FORMAT.format(listing.listedAt()), NamedTextColor.GRAY));
         if (ownListing) {
             lore.add(Component.text("状態: " + displayStatus(listing.status()), statusColor(listing.status())));
-            lore.add(Component.text(
-                listing.status().equalsIgnoreCase("ACTIVE") ? "クリックして取り下げます。" : "取り下げ済み出品も枠を使用します。",
-                NamedTextColor.GRAY
-            ));
+            if (listing.pendingProceeds() > 0L) {
+                lore.add(Component.text(
+                    "受取待ち売上: " + format(listing.pendingProceeds()) + " Gold",
+                    NamedTextColor.GOLD
+                ));
+            }
+            lore.add(Component.text(ownListingAction(listing), NamedTextColor.GRAY));
         } else {
             lore.add(Component.text("クリックして購入確認へ進みます。", NamedTextColor.GREEN));
         }
@@ -437,7 +473,7 @@ public final class MarketGui {
                 "出品枠: " + summary.usedListingSlotCount() + " / " + summary.maxListingSlotCount(),
                 "出品中: " + summary.activeListingCount(),
                 "所持 Gold: " + format(goldAmount),
-                "取り下げ済み出品も出品枠を使用します。"
+                "売上未受取の売却済み出品も出品枠を使用します。"
             )
         );
     }
@@ -476,6 +512,23 @@ public final class MarketGui {
 
     private static @NotNull NamedTextColor statusColor(@NotNull String status) {
         return status.equalsIgnoreCase("ACTIVE") ? NamedTextColor.GREEN : NamedTextColor.YELLOW;
+    }
+
+    private static @NotNull String ownListingAction(@NotNull MarketListing listing) {
+        if (listing.status().equalsIgnoreCase("SOLD")) {
+            return "クリックして売上を受け取ります。";
+        }
+        if (listing.status().equalsIgnoreCase("ACTIVE") || listing.status().equalsIgnoreCase("SUSPENDED")) {
+            return "クリックして取り下げます。";
+        }
+        return "この出品は操作できません。";
+    }
+
+    private static long totalPrice(long unitPrice, long quantity) {
+        if (unitPrice < 1L || quantity < 1L || unitPrice > Long.MAX_VALUE / quantity) {
+            return Long.MAX_VALUE;
+        }
+        return unitPrice * quantity;
     }
 
     public record MarketHolder(

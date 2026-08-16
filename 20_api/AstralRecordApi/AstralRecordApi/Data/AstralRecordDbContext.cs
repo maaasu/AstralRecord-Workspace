@@ -39,6 +39,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<LoginBonusClaimEntity> LoginBonusClaims => Set<LoginBonusClaimEntity>();
     public DbSet<MarketAccountStateEntity> MarketAccountStates => Set<MarketAccountStateEntity>();
     public DbSet<MarketListingEntity> MarketListings => Set<MarketListingEntity>();
+    public DbSet<MarketListingSourceEntity> MarketListingSources => Set<MarketListingSourceEntity>();
     public DbSet<MarketTransactionEntity> MarketTransactions => Set<MarketTransactionEntity>();
     public DbSet<MarketPriceSnapshotEntity> MarketPriceSnapshots => Set<MarketPriceSnapshotEntity>();
     public DbSet<TradeCommitEntity> TradeCommits => Set<TradeCommitEntity>();
@@ -761,6 +762,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(e => e.InstanceType).HasColumnName("instance_type");
             entity.Property(e => e.InstanceId).HasColumnName("instance_id");
             entity.Property(e => e.Quantity).HasColumnName("quantity");
+            entity.Property(e => e.RemainingQuantity).HasColumnName("remaining_quantity").HasColumnType("int");
             entity.Property(e => e.CurrencyId).HasColumnName("currency_id");
             entity.Property(e => e.UnitPrice).HasColumnName("unit_price");
             entity.Property(e => e.TotalPrice).HasColumnName("total_price");
@@ -776,6 +778,13 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(e => e.ExpiresAt).HasColumnName("expires_at");
             entity.Property(e => e.SoldAt).HasColumnName("sold_at");
             entity.Property(e => e.CanceledAt).HasColumnName("canceled_at");
+            entity.Property(e => e.ProceedsClaimIdempotencyKey)
+                .HasColumnName("proceeds_claim_idempotency_key")
+                .HasMaxLength(128);
+            entity.Property(e => e.ProceedsClaimAmount).HasColumnName("proceeds_claim_amount");
+            entity.Property(e => e.ProceedsClaimAffectedInventoryEntryIdsJson)
+                .HasColumnName("proceeds_claim_affected_entry_ids_json");
+            entity.Property(e => e.ProceedsClaimedAt).HasColumnName("proceeds_claimed_at");
             entity.Property(e => e.Version).HasColumnName("version");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
@@ -787,6 +796,24 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.HasIndex(e => new { e.ItemCategory, e.ItemId, e.Status, e.UnitPrice }).HasDatabaseName("IX_market_listing_item_status_price");
             entity.HasIndex(e => new { e.InstanceType, e.InstanceId, e.IsDeleted, e.Status })
                 .HasDatabaseName("IX_market_listing_instance_active_status");
+        });
+
+        modelBuilder.Entity<MarketListingSourceEntity>(entity =>
+        {
+            entity.ToTable("market_listing_source", "dbo");
+            entity.HasKey(e => new { e.ListingId, e.InventoryEntryId });
+            entity.Property(e => e.ListingId).HasColumnName("listing_id");
+            entity.Property(e => e.InventoryEntryId).HasColumnName("inventory_entry_id");
+            entity.Property(e => e.Quantity).HasColumnName("quantity").HasColumnType("int");
+            entity.HasIndex(e => e.InventoryEntryId).HasDatabaseName("IX_market_listing_source_inventory_entry");
+            entity.HasOne<MarketListingEntity>()
+                .WithMany()
+                .HasForeignKey(e => e.ListingId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne<InventoryEntryEntity>()
+                .WithMany()
+                .HasForeignKey(e => e.InventoryEntryId)
+                .OnDelete(DeleteBehavior.NoAction);
         });
 
         modelBuilder.Entity<MarketTransactionEntity>(entity =>
@@ -814,7 +841,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
-            entity.HasIndex(e => e.ListingId).IsUnique().HasDatabaseName("UQ_market_transaction_listing");
+            entity.HasIndex(e => e.ListingId).HasDatabaseName("IX_market_transaction_listing");
             entity.HasIndex(e => new { e.BuyerAccountId, e.IdempotencyKey }).IsUnique().HasDatabaseName("UQ_market_transaction_idempotency");
             entity.HasIndex(e => new { e.ItemCategory, e.ItemId, e.CompletedAt }).HasDatabaseName("IX_market_transaction_item_completed");
             entity.HasIndex(e => new { e.ValuationSignature, e.CompletedAt }).HasDatabaseName("IX_market_transaction_signature_completed");

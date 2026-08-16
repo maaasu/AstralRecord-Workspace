@@ -60,11 +60,15 @@ public class MarketRepository(
                 .AsNoTracking()
                 .Where(account => !account.IsDeleted && sellerAccountIds.Contains(account.Uuid))
                 .ToDictionaryAsync(account => account.Uuid, account => account.AccountName);
+        var listingIds = result.Select(listing => listing.ListingId).ToArray();
+        var pendingProceedsByListing = await LoadPendingProceedsByListingAsync(listingIds);
 
         return result
             .Select(listing => MapListing(
                 listing,
-                sellerAccountNames.GetValueOrDefault(listing.SellerAccountId, string.Empty)))
+                sellerAccountNames.GetValueOrDefault(listing.SellerAccountId, string.Empty),
+                Array.Empty<Guid>(),
+                pendingProceedsByListing.GetValueOrDefault(listing.ListingId)))
             .ToList();
     }
 
@@ -77,7 +81,12 @@ public class MarketRepository(
         if (listing is null)
             return null;
 
-        return MapListing(listing, await GetSellerAccountNameAsync(listing.SellerAccountId));
+        var pendingProceedsByListing = await LoadPendingProceedsByListingAsync([listingId]);
+        return MapListing(
+            listing,
+            await GetSellerAccountNameAsync(listing.SellerAccountId),
+            Array.Empty<Guid>(),
+            pendingProceedsByListing.GetValueOrDefault(listing.ListingId));
     }
 
     public async Task<MarketAccountSummaryResponse?> GetAccountSummaryAsync(Guid accountId)
@@ -119,7 +128,11 @@ public class MarketRepository(
                 .AsNoTracking()
                 .FirstOrDefaultAsync(listing => listing.ListingId == listingId && !listing.IsDeleted);
             if (committedListing is not null)
-                return MarketOperationResult<MarketListingResponse>.Success(MapListing(committedListing, sellerAccountName));
+                return MarketOperationResult<MarketListingResponse>.Success(MapListing(
+                    committedListing,
+                    sellerAccountName,
+                    request.SourceEntries.Select(source => source.InventoryEntryId).ToArray(),
+                    0L));
 
             var now = DateTime.UtcNow;
             await using var transaction = await dbContext.Database.BeginTransactionAsync(
@@ -145,7 +158,7 @@ public class MarketRepository(
                 return await RollbackFailureAsync(
                     400,
                     "market.listing_slot_limit_exceeded",
-                    "Listing slot limit exceeded. Active, suspended, and canceled listings use slots.");
+                    "Listing slot limit exceeded. Active, suspended, and unclaimed sold listings use slots.");
 
             var escrow = await ReserveEscrowAsync(request);
             if (!escrow.Succeeded)
@@ -165,9 +178,8 @@ public class MarketRepository(
 
             if (quote is null)
                 return await RollbackFailureAsync(404, "market.item_not_found", "Item or instance was not found.");
-            if (quote.SellPrice <= 0)
-                return await RollbackFailureAsync(400, "market.sell_price_missing", "Item sell price is missing.");
-            if (quote.Judgement is "BLOCK_BELOW_SELL_VALUE" or "BLOCK_OUT_OF_MARKET_RANGE")
+            if (quote.Judgement is "BLOCK_AT_OR_BELOW_SELL_VALUE"
+                or "BLOCK_OUT_OF_MARKET_RANGE")
                 return await RollbackFailureAsync(400, "market.price_guard_rejected", quote.Judgement);
 
             long totalPrice;
@@ -184,12 +196,13 @@ public class MarketRepository(
             {
                 ListingId = listingId,
                 SellerAccountId = request.SellerAccountId,
-                SourceInventoryEntryId = request.SourceInventoryEntryId,
+                SourceInventoryEntryId = request.SourceEntries[0].InventoryEntryId,
                 ItemCategory = request.ItemCategory,
                 ItemId = request.ItemId,
                 InstanceType = normalizedInstanceType,
                 InstanceId = request.InstanceId,
                 Quantity = request.Quantity,
+                RemainingQuantity = request.Quantity,
                 CurrencyId = GoldCurrencyBalanceSupport.MarketCurrencyId,
                 UnitPrice = request.UnitPrice,
                 TotalPrice = totalPrice,
@@ -212,21 +225,32 @@ public class MarketRepository(
                 IsDeleted = false,
             };
             await dbContext.MarketListings.AddAsync(listing);
+            await dbContext.MarketListingSources.AddRangeAsync(request.SourceEntries.Select(source =>
+                new MarketListingSourceEntity
+                {
+                    ListingId = listingId,
+                    InventoryEntryId = source.InventoryEntryId,
+                    Quantity = source.Quantity,
+                }));
             await dbContext.MarketPriceSnapshots.AddAsync(CreateSnapshot(quote, listing.ListingId, null, now));
             await dbContext.SaveChangesAsync();
             await transaction.CommitAsync();
 
-            return MarketOperationResult<MarketListingResponse>.Success(MapListing(listing, sellerAccountName));
+            return MarketOperationResult<MarketListingResponse>.Success(MapListing(
+                listing,
+                sellerAccountName,
+                request.SourceEntries.Select(source => source.InventoryEntryId).ToArray(),
+                0L));
         });
     }
 
     public async Task<MarketOperationResult<MarketTransactionResponse>> PurchaseListingAsync(Guid listingId, MarketPurchaseRequest request)
     {
-        if (string.IsNullOrWhiteSpace(request.IdempotencyKey))
+        if (request.Quantity < 1L || request.Quantity > int.MaxValue || string.IsNullOrWhiteSpace(request.IdempotencyKey))
             return MarketOperationResult<MarketTransactionResponse>.Failure(
                 400,
-                "market.idempotency_key_required",
-                "Idempotency key is required.");
+                "market.invalid_purchase_request",
+                "Purchase quantity and idempotency key are required.");
 
         var strategy = dbContext.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
@@ -263,6 +287,10 @@ public class MarketRepository(
                 return await RollbackFailureAsync(409, "market.listing_not_active", "Listing is not active.");
             if (listing.SellerAccountId == request.BuyerAccountId)
                 return await RollbackFailureAsync(400, "market.self_purchase", "Seller cannot buy own listing.");
+            if (request.Quantity > listing.RemainingQuantity)
+                return await RollbackFailureAsync(409, "market.insufficient_listing_quantity", "Listing does not have enough remaining quantity.");
+            if (listing.InstanceId.HasValue && request.Quantity != 1L)
+                return await RollbackFailureAsync(400, "market.instance_quantity_invalid", "Instance listings must be purchased one at a time.");
             if (!GoldCurrencyBalanceSupport.IsMarketGoldCurrency(listing.CurrencyId))
                 return await RollbackFailureAsync(409, "market.unsupported_currency", "Listing currency is not Gold.");
 
@@ -271,17 +299,30 @@ public class MarketRepository(
             if (!buyerExists)
                 return await RollbackFailureAsync(404, "market.buyer_not_found", "Buyer account was not found.");
 
+            long totalPrice;
+            try
+            {
+                totalPrice = checked(listing.UnitPrice * request.Quantity);
+            }
+            catch (OverflowException)
+            {
+                return await RollbackFailureAsync(400, "market.total_price_overflow", "Purchase total price is too large.");
+            }
+
             var now = DateTime.UtcNow;
-            var payment = await TransferGoldAsync(
+            var payment = await DebitGoldAsync(
                 request.BuyerAccountId,
-                listing.SellerAccountId,
-                listing.TotalPrice,
+                totalPrice,
                 request.UpdatedBy,
                 now);
             if (!payment.Succeeded)
                 return await RollbackFailureAsync(payment.StatusCode, payment.ErrorCode!, payment.Detail!);
 
-            var transfer = await TransferListingItemAsync(listing, request.BuyerAccountId, request.UpdatedBy);
+            var transfer = await TransferListingItemAsync(
+                listing,
+                request.Quantity,
+                request.BuyerAccountId,
+                request.UpdatedBy);
             if (!transfer.Succeeded)
                 return await RollbackFailureAsync(transfer.StatusCode, transfer.ErrorCode!, transfer.Detail!);
 
@@ -295,12 +336,12 @@ public class MarketRepository(
                 ItemId = listing.ItemId,
                 InstanceType = listing.InstanceType,
                 InstanceId = listing.InstanceId,
-                Quantity = listing.Quantity,
+                Quantity = request.Quantity,
                 CurrencyId = GoldCurrencyBalanceSupport.MarketCurrencyId,
                 UnitPrice = listing.UnitPrice,
-                TotalPrice = listing.TotalPrice,
+                TotalPrice = totalPrice,
                 FeeAmount = 0,
-                SellerProceeds = listing.TotalPrice,
+                SellerProceeds = totalPrice,
                 ValuationSignature = listing.ValuationSignature,
                 ValuationSnapshotJson = listing.ValuationSnapshotJson,
                 IdempotencyKey = request.IdempotencyKey,
@@ -310,8 +351,12 @@ public class MarketRepository(
             };
 
             listing.BuyerAccountId = request.BuyerAccountId;
-            listing.Status = "SOLD";
-            listing.SoldAt = now;
+            listing.RemainingQuantity -= request.Quantity;
+            if (listing.RemainingQuantity == 0L)
+            {
+                listing.Status = "SOLD";
+                listing.SoldAt = now;
+            }
             listing.UpdatedAt = now;
             listing.UpdatedBy = request.UpdatedBy;
             listing.Version += 1;
@@ -356,14 +401,30 @@ public class MarketRepository(
                 return await RollbackFailureAsync(400, "market.cancel_invalid_status", "Listing cannot be canceled.");
 
             var sellerAccountName = await GetSellerAccountNameAsync(listing.SellerAccountId);
+            var sources = await GetListingSourcesAsync(listing.ListingId);
+            if (sources.Count == 0)
+                return await RollbackFailureAsync(409, "market.source_inventory_missing", "Listing escrow sources are missing.");
 
-            var restore = await RestoreEscrowAsync(listing, request.UpdatedBy);
+            var restore = await RestoreEscrowAsync(listing, sources, request.UpdatedBy);
             if (!restore.Succeeded)
                 return await RollbackFailureAsync(restore.StatusCode, restore.ErrorCode!, restore.Detail!);
 
             var now = DateTime.UtcNow;
-            listing.Status = "CANCELED";
-            listing.StatusReason = request.Reason;
+            var transactionProceeds = await LoadPendingProceedsByListingAsync([listing.ListingId]);
+            var pendingProceeds = transactionProceeds.GetValueOrDefault(listing.ListingId);
+            listing.RemainingQuantity = 0L;
+            if (pendingProceeds > 0L)
+            {
+                listing.Status = "SOLD";
+                listing.StatusReason = request.Reason ?? "CANCELED_AFTER_PARTIAL_SALE";
+                listing.SoldAt = now;
+            }
+            else
+            {
+                listing.Status = "CANCELED";
+                listing.StatusReason = request.Reason;
+                listing.IsDeleted = true;
+            }
             listing.CanceledAt = now;
             listing.UpdatedAt = now;
             listing.UpdatedBy = request.UpdatedBy;
@@ -372,53 +433,175 @@ public class MarketRepository(
             await dbContext.SaveChangesAsync();
             await transactionScope.CommitAsync();
 
-            return MarketOperationResult<MarketListingResponse>.Success(MapListing(listing, sellerAccountName));
+            return MarketOperationResult<MarketListingResponse>.Success(MapListing(
+                listing,
+                sellerAccountName,
+                sources.Select(source => source.InventoryEntryId).ToArray(),
+                pendingProceeds));
+        });
+    }
+
+    public async Task<MarketOperationResult<MarketProceedsClaimResponse>> ClaimProceedsAsync(
+        Guid listingId,
+        MarketProceedsClaimRequest request)
+    {
+        if (string.IsNullOrWhiteSpace(request.IdempotencyKey) || request.IdempotencyKey.Length > 128)
+            return MarketOperationResult<MarketProceedsClaimResponse>.Failure(
+                400,
+                "market.invalid_claim_request",
+                "Claim idempotency key is required.");
+
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            await using var transactionScope = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable);
+
+            async Task<MarketOperationResult<MarketProceedsClaimResponse>> RollbackFailureAsync(
+                int statusCode,
+                string errorCode,
+                string detail)
+            {
+                await transactionScope.RollbackAsync();
+                dbContext.ChangeTracker.Clear();
+                return MarketOperationResult<MarketProceedsClaimResponse>.Failure(statusCode, errorCode, detail);
+            }
+
+            var listing = await FindListingForClaimForUpdateAsync(listingId);
+            if (listing is null)
+                return await RollbackFailureAsync(404, "market.listing_not_found", "Listing was not found.");
+            if (listing.SellerAccountId != request.SellerAccountId)
+                return await RollbackFailureAsync(403, "market.not_seller", "Only seller can claim listing proceeds.");
+            if (listing.IsDeleted)
+            {
+                if (listing.Status == "SOLD"
+                    && string.Equals(
+                        listing.ProceedsClaimIdempotencyKey,
+                        request.IdempotencyKey,
+                        StringComparison.Ordinal)
+                    && listing.ProceedsClaimAmount is > 0L
+                    && listing.ProceedsClaimAffectedInventoryEntryIdsJson is not null)
+                {
+                    IReadOnlyList<Guid> affectedInventoryEntryIds;
+                    try
+                    {
+                        affectedInventoryEntryIds = JsonSerializer.Deserialize<List<Guid>>(
+                            listing.ProceedsClaimAffectedInventoryEntryIdsJson) ?? [];
+                    }
+                    catch (JsonException)
+                    {
+                        return await RollbackFailureAsync(
+                            409,
+                            "market.claim_receipt_invalid",
+                            "Claim receipt is invalid.");
+                    }
+
+                    await transactionScope.CommitAsync();
+                    return MarketOperationResult<MarketProceedsClaimResponse>.Success(new MarketProceedsClaimResponse
+                    {
+                        ListingId = listingId,
+                        Amount = listing.ProceedsClaimAmount.Value,
+                        AffectedInventoryEntryIds = affectedInventoryEntryIds,
+                    });
+                }
+
+                if (!string.IsNullOrWhiteSpace(listing.ProceedsClaimIdempotencyKey))
+                    return await RollbackFailureAsync(
+                        409,
+                        "market.claim_already_completed",
+                        "Listing proceeds were already claimed with another idempotency key.");
+
+                return await RollbackFailureAsync(404, "market.listing_not_found", "Listing was not found.");
+            }
+            if (listing.Status != "SOLD")
+                return await RollbackFailureAsync(400, "market.claim_invalid_status", "Listing proceeds cannot be claimed yet.");
+
+            var proceeds = await dbContext.MarketTransactions
+                .Where(transaction => transaction.ListingId == listingId)
+                .Select(transaction => transaction.SellerProceeds)
+                .ToListAsync();
+            long amount;
+            try
+            {
+                amount = proceeds.Aggregate(0L, (sum, value) => checked(sum + value));
+            }
+            catch (OverflowException)
+            {
+                return await RollbackFailureAsync(409, "market.proceeds_overflow", "Pending proceeds are too large.");
+            }
+            if (amount < 1L)
+                return await RollbackFailureAsync(409, "market.proceeds_missing", "Listing has no pending proceeds.");
+
+            var now = DateTime.UtcNow;
+            var credit = await CreditGoldAsync(listing.SellerAccountId, amount, request.UpdatedBy, now);
+            if (!credit.Succeeded)
+                return await RollbackFailureAsync(credit.StatusCode, credit.ErrorCode!, credit.Detail!);
+
+            listing.IsDeleted = true;
+            listing.StatusReason = "PROCEEDS_CLAIMED";
+            listing.ProceedsClaimIdempotencyKey = request.IdempotencyKey;
+            listing.ProceedsClaimAmount = amount;
+            listing.ProceedsClaimAffectedInventoryEntryIdsJson = JsonSerializer.Serialize(credit.Value!);
+            listing.ProceedsClaimedAt = now;
+            listing.UpdatedAt = now;
+            listing.UpdatedBy = request.UpdatedBy;
+            listing.Version += 1;
+            await dbContext.SaveChangesAsync();
+            await transactionScope.CommitAsync();
+
+            return MarketOperationResult<MarketProceedsClaimResponse>.Success(new MarketProceedsClaimResponse
+            {
+                ListingId = listingId,
+                Amount = amount,
+                AffectedInventoryEntryIds = credit.Value!,
+            });
         });
     }
 
     private async Task<MarketOperationResult<bool>> ReserveEscrowAsync(MarketListingCreateRequest request)
     {
-        if (!request.SourceInventoryEntryId.HasValue)
-            return MarketOperationResult<bool>.Failure(400, "market.source_inventory_required", "Source inventory entry is required.");
-
-        var entry = await FindInventoryEntryForUpdateAsync(request.SourceInventoryEntryId.Value, includeDeleted: false);
-        if (entry is null)
-            return MarketOperationResult<bool>.Failure(404, "market.source_inventory_not_found", "Source inventory entry was not found.");
-
-        var inventory = await dbContext.Inventories
-            .FirstOrDefaultAsync(x => x.InventoryId == entry.InventoryId && !x.IsDeleted);
-        if (inventory is null
-            || inventory.AccountId != request.SellerAccountId
-            || !inventory.IsEnabled
-            || !string.Equals(inventory.InventoryProfile, "GAME", StringComparison.OrdinalIgnoreCase)
-            || inventory.InventoryType is not ("BAG" or "HOTBAR"))
-            return MarketOperationResult<bool>.Failure(409, "market.source_inventory_owner_mismatch", "Source inventory owner mismatch.");
-        if (!KeyComparer.Equals(entry.ItemId, request.ItemId) || !KeyComparer.Equals(entry.ItemCategory, request.ItemCategory))
-            return MarketOperationResult<bool>.Failure(400, "market.source_item_mismatch", "Source inventory item mismatch.");
-
-        if (request.InstanceId.HasValue)
+        foreach (var source in request.SourceEntries.OrderBy(source => source.InventoryEntryId))
         {
-            var instanceReservation = await ReserveInstanceAsync(request, entry);
-            if (!instanceReservation.Succeeded)
-                return instanceReservation;
+            var entry = await FindInventoryEntryForUpdateAsync(source.InventoryEntryId, includeDeleted: false);
+            if (entry is null)
+                return MarketOperationResult<bool>.Failure(404, "market.source_inventory_not_found", "Source inventory entry was not found.");
 
-            entry.Quantity = 0;
-            entry.IsDeleted = true;
+            var inventory = await dbContext.Inventories
+                .FirstOrDefaultAsync(x => x.InventoryId == entry.InventoryId && !x.IsDeleted);
+            if (inventory is null
+                || inventory.AccountId != request.SellerAccountId
+                || !inventory.IsEnabled
+                || !string.Equals(inventory.InventoryProfile, "GAME", StringComparison.OrdinalIgnoreCase)
+                || inventory.InventoryType is not ("BAG" or "HOTBAR"))
+                return MarketOperationResult<bool>.Failure(409, "market.source_inventory_owner_mismatch", "Source inventory owner mismatch.");
+            if (!KeyComparer.Equals(entry.ItemId, request.ItemId) || !KeyComparer.Equals(entry.ItemCategory, request.ItemCategory))
+                return MarketOperationResult<bool>.Failure(400, "market.source_item_mismatch", "Source inventory item mismatch.");
+
+            if (request.InstanceId.HasValue)
+            {
+                var instanceReservation = await ReserveInstanceAsync(request, entry);
+                if (!instanceReservation.Succeeded)
+                    return instanceReservation;
+
+                entry.Quantity = 0;
+                entry.IsDeleted = true;
+                entry.UpdatedAt = DateTime.UtcNow;
+                entry.UpdatedBy = request.CreatedBy;
+                continue;
+            }
+
+            if (entry.InstanceId.HasValue || !string.IsNullOrWhiteSpace(entry.InstanceType))
+                return MarketOperationResult<bool>.Failure(400, "market.source_instance_mismatch", "Stack listing source must not be an instance.");
+            if (entry.Quantity < source.Quantity)
+                return MarketOperationResult<bool>.Failure(400, "market.quantity_shortage", "Source inventory quantity is not enough.");
+
+            entry.Quantity -= source.Quantity;
             entry.UpdatedAt = DateTime.UtcNow;
             entry.UpdatedBy = request.CreatedBy;
-            return MarketOperationResult<bool>.Success(true);
+            if (entry.Quantity == 0)
+                entry.IsDeleted = true;
         }
-
-        if (entry.InstanceId.HasValue || !string.IsNullOrWhiteSpace(entry.InstanceType))
-            return MarketOperationResult<bool>.Failure(400, "market.source_instance_mismatch", "Stack listing source must not be an instance.");
-        if (entry.Quantity < request.Quantity)
-            return MarketOperationResult<bool>.Failure(400, "market.quantity_shortage", "Source inventory quantity is not enough.");
-
-        entry.Quantity -= request.Quantity;
-        entry.UpdatedAt = DateTime.UtcNow;
-        entry.UpdatedBy = request.CreatedBy;
-        if (entry.Quantity == 0)
-            entry.IsDeleted = true;
 
         return MarketOperationResult<bool>.Success(true);
     }
@@ -489,6 +672,32 @@ public class MarketRepository(
             .SingleOrDefaultAsync(instance => instance.EquipmentInstanceId == equipmentInstanceId && !instance.IsDeleted);
     }
 
+    private async Task<IReadOnlyList<MarketListingSourceEntity>> GetListingSourcesAsync(Guid listingId)
+    {
+        return await dbContext.MarketListingSources
+            .AsNoTracking()
+            .Where(source => source.ListingId == listingId)
+            .OrderBy(source => source.InventoryEntryId)
+            .ToListAsync();
+    }
+
+    private async Task<IReadOnlyDictionary<Guid, long>> LoadPendingProceedsByListingAsync(
+        IReadOnlyCollection<Guid> listingIds)
+    {
+        if (listingIds.Count == 0)
+            return new Dictionary<Guid, long>();
+        var proceeds = await dbContext.MarketTransactions
+            .AsNoTracking()
+            .Where(transaction => listingIds.Contains(transaction.ListingId))
+            .Select(transaction => new { transaction.ListingId, transaction.SellerProceeds })
+            .ToListAsync();
+        return proceeds
+            .GroupBy(transaction => transaction.ListingId)
+            .ToDictionary(
+                group => group.Key,
+                group => group.Aggregate(0L, (sum, transaction) => checked(sum + transaction.SellerProceeds)));
+    }
+
     private async Task<MarketListingEntity?> FindListingForUpdateAsync(Guid listingId)
     {
         if (dbContext.Database.IsSqlServer())
@@ -504,6 +713,25 @@ public class MarketRepository(
 
         return await dbContext.MarketListings
             .SingleOrDefaultAsync(listing => listing.ListingId == listingId && !listing.IsDeleted);
+    }
+
+    /// <summary>
+    /// 売上受取の再送を処理するため、論理削除済みの受取済み出品も更新ロック付きで取得します。
+    /// </summary>
+    private async Task<MarketListingEntity?> FindListingForClaimForUpdateAsync(Guid listingId)
+    {
+        if (dbContext.Database.IsSqlServer())
+        {
+            return await dbContext.MarketListings
+                .FromSqlInterpolated($"""
+                    SELECT * FROM [dbo].[market_listing] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE [listing_id] = {listingId}
+                    """)
+                .SingleOrDefaultAsync();
+        }
+
+        return await dbContext.MarketListings
+            .SingleOrDefaultAsync(listing => listing.ListingId == listingId);
     }
 
     private async Task<InventoryEntryEntity?> FindInventoryEntryForUpdateAsync(
@@ -556,11 +784,12 @@ public class MarketRepository(
 
     private async Task<MarketOperationResult<IReadOnlyList<Guid>>> TransferListingItemAsync(
         MarketListingEntity listing,
+        long quantity,
         Guid buyerAccountId,
         Guid updatedBy
     )
     {
-        var inventory = await FindBuyerBagInventoryAsync(buyerAccountId);
+        var inventory = await FindBagInventoryAsync(buyerAccountId);
         if (inventory is null)
             return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
                 400,
@@ -629,7 +858,7 @@ public class MarketRepository(
             && !entry.IsDeleted);
         if (existing is not null)
         {
-            existing.Quantity += listing.Quantity;
+            existing.Quantity += quantity;
             existing.UpdatedAt = now;
             existing.UpdatedBy = updatedBy;
             return MarketOperationResult<IReadOnlyList<Guid>>.Success([existing.InventoryEntryId]);
@@ -641,7 +870,7 @@ public class MarketRepository(
             InventoryId = inventory.InventoryId,
             ItemCategory = listing.ItemCategory,
             ItemId = listing.ItemId,
-            Quantity = listing.Quantity,
+            Quantity = quantity,
             CreatedAt = now,
             UpdatedAt = now,
             CreatedBy = updatedBy,
@@ -652,40 +881,95 @@ public class MarketRepository(
         return MarketOperationResult<IReadOnlyList<Guid>>.Success([created.InventoryEntryId]);
     }
 
-    private async Task<MarketOperationResult<bool>> RestoreEscrowAsync(MarketListingEntity listing, Guid updatedBy)
+    private async Task<MarketOperationResult<IReadOnlyList<Guid>>> RestoreEscrowAsync(
+        MarketListingEntity listing,
+        IReadOnlyList<MarketListingSourceEntity> sources,
+        Guid updatedBy)
     {
-        if (!listing.SourceInventoryEntryId.HasValue)
-            return MarketOperationResult<bool>.Failure(409, "market.source_inventory_missing", "Source inventory entry is missing.");
-
-        var entry = await FindInventoryEntryForUpdateAsync(listing.SourceInventoryEntryId.Value, includeDeleted: true);
-        if (entry is null)
-            return MarketOperationResult<bool>.Failure(404, "market.source_inventory_not_found", "Source inventory entry was not found.");
-
-        if (listing.InstanceId.HasValue)
+        var remainingToRestore = listing.RemainingQuantity;
+        var affectedEntryIds = new List<Guid>();
+        foreach (var source in sources.OrderBy(source => source.InventoryEntryId))
         {
-            entry.Quantity = 1;
-        }
-        else
-        {
-            try
+            if (remainingToRestore <= 0L)
+                break;
+            var restoreQuantity = Math.Min(source.Quantity, remainingToRestore);
+            var entry = await FindInventoryEntryForUpdateAsync(source.InventoryEntryId, includeDeleted: true);
+            if (entry is null)
+                return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
+                    404,
+                    "market.source_inventory_not_found",
+                    "Source inventory entry was not found.");
+
+            if (listing.InstanceId.HasValue)
             {
-                entry.Quantity = checked(entry.Quantity + listing.Quantity);
+                entry.Quantity = 1;
             }
-            catch (OverflowException)
+            else
             {
-                return MarketOperationResult<bool>.Failure(
-                    409,
-                    "market.escrow_restore_overflow",
-                    "Escrow quantity is too large to restore.");
+                try
+                {
+                    entry.Quantity = checked(entry.Quantity + restoreQuantity);
+                }
+                catch (OverflowException)
+                {
+                    return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
+                        409,
+                        "market.escrow_restore_overflow",
+                        "Escrow quantity is too large to restore.");
+                }
             }
+            if (entry.IsDeleted && entry.SlotIndex.HasValue)
+            {
+                var slotIsOccupied = await dbContext.InventoryEntries.AnyAsync(candidate =>
+                    candidate.InventoryId == entry.InventoryId
+                    && candidate.InventoryEntryId != entry.InventoryEntryId
+                    && candidate.SlotIndex == entry.SlotIndex
+                    && !candidate.IsDeleted);
+                if (slotIsOccupied)
+                {
+                    // HOTBAR の slot 未指定 entry はクライアントへ描画されないため、競合時は
+                    // 返却先を BAG に切り替える。Plugin は cancel 前の保存 lane で BAG 容量を
+                    // 再確認しており、BAG の slot 未指定 entry は正本再同期で表示 slot へ詰め直す。
+                    var sourceInventory = await dbContext.Inventories
+                        .FirstOrDefaultAsync(inventory => inventory.InventoryId == entry.InventoryId
+                            && inventory.AccountId == listing.SellerAccountId
+                            && inventory.IsEnabled
+                            && !inventory.IsDeleted);
+                    if (sourceInventory is null)
+                        return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
+                            409,
+                            "market.source_inventory_not_found",
+                            "Source inventory was not found.");
+
+                    if (KeyComparer.Equals(sourceInventory.InventoryType, "HOTBAR"))
+                    {
+                        var bag = await FindBagInventoryAsync(listing.SellerAccountId);
+                        if (bag is null)
+                            return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
+                                409,
+                                "market.seller_inventory_missing",
+                                "Seller BAG inventory was not found.");
+                        entry.InventoryId = bag.InventoryId;
+                    }
+                    entry.SlotIndex = null;
+                }
+            }
+            entry.IsDeleted = false;
+            entry.UpdatedAt = DateTime.UtcNow;
+            entry.UpdatedBy = updatedBy;
+            affectedEntryIds.Add(entry.InventoryEntryId);
+            remainingToRestore -= restoreQuantity;
         }
-        entry.IsDeleted = false;
-        entry.UpdatedAt = DateTime.UtcNow;
-        entry.UpdatedBy = updatedBy;
-        return MarketOperationResult<bool>.Success(true);
+
+        if (remainingToRestore > 0L)
+            return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
+                409,
+                "market.escrow_restore_shortage",
+                "Listing escrow sources cannot restore the remaining quantity.");
+        return MarketOperationResult<IReadOnlyList<Guid>>.Success(affectedEntryIds);
     }
 
-    private async Task<InventoryEntity?> FindBuyerBagInventoryAsync(Guid accountId)
+    private async Task<InventoryEntity?> FindBagInventoryAsync(Guid accountId)
     {
         return await dbContext.Inventories
             .Where(inventory => inventory.AccountId == accountId
@@ -696,9 +980,8 @@ public class MarketRepository(
             .FirstOrDefaultAsync();
     }
 
-    private async Task<MarketOperationResult<IReadOnlyList<Guid>>> TransferGoldAsync(
+    private async Task<MarketOperationResult<IReadOnlyList<Guid>>> DebitGoldAsync(
         Guid buyerAccountId,
-        Guid sellerAccountId,
         long amount,
         Guid updatedBy,
         DateTime now)
@@ -709,23 +992,12 @@ public class MarketRepository(
                 "market.invalid_total_price",
                 "Listing total price is invalid.");
 
-        // 同じ二者間で逆向きの購入が同時に起きても deadlock しないよう、account ID 順で row lock を取得します。
-        var firstAccountId = buyerAccountId.CompareTo(sellerAccountId) <= 0 ? buyerAccountId : sellerAccountId;
-        var secondAccountId = firstAccountId == buyerAccountId ? sellerAccountId : buyerAccountId;
-        var firstBalance = await GoldCurrencyBalanceSupport.LoadForUpdateAsync(dbContext, firstAccountId);
-        var secondBalance = await GoldCurrencyBalanceSupport.LoadForUpdateAsync(dbContext, secondAccountId);
-        var buyerBalance = firstAccountId == buyerAccountId ? firstBalance : secondBalance;
-        var sellerBalance = firstAccountId == sellerAccountId ? firstBalance : secondBalance;
+        var buyerBalance = await GoldCurrencyBalanceSupport.LoadForUpdateAsync(dbContext, buyerAccountId);
         if (buyerBalance is null)
             return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
                 400,
                 "market.buyer_currency_inventory_missing",
                 "Buyer Gold inventory was not found.");
-        if (sellerBalance is null)
-            return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
-                409,
-                "market.seller_currency_inventory_missing",
-                "Seller Gold inventory was not found.");
 
         var buyerGold = GoldCurrencyBalanceSupport.TotalGold(buyerBalance.Entries);
         if (buyerGold < amount)
@@ -734,6 +1006,33 @@ public class MarketRepository(
                 "market.insufficient_gold",
                 "Buyer does not have enough Gold.");
 
+        var buyerAffected = await GoldCurrencyBalanceSupport.RewriteBalanceAsync(
+            dbContext,
+            buyerBalance,
+            buyerGold - amount,
+            updatedBy,
+            now);
+        return MarketOperationResult<IReadOnlyList<Guid>>.Success(buyerAffected);
+    }
+
+    private async Task<MarketOperationResult<IReadOnlyList<Guid>>> CreditGoldAsync(
+        Guid sellerAccountId,
+        long amount,
+        Guid updatedBy,
+        DateTime now)
+    {
+        if (amount <= 0L)
+            return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
+                400,
+                "market.invalid_proceeds",
+                "Listing proceeds are invalid.");
+
+        var sellerBalance = await GoldCurrencyBalanceSupport.LoadForUpdateAsync(dbContext, sellerAccountId);
+        if (sellerBalance is null)
+            return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
+                409,
+                "market.seller_currency_inventory_missing",
+                "Seller Gold inventory was not found.");
         long sellerGold;
         try
         {
@@ -747,19 +1046,13 @@ public class MarketRepository(
                 "Seller Gold balance is too large.");
         }
 
-        var buyerAffected = await GoldCurrencyBalanceSupport.RewriteBalanceAsync(
-            dbContext,
-            buyerBalance,
-            buyerGold - amount,
-            updatedBy,
-            now);
-        await GoldCurrencyBalanceSupport.RewriteBalanceAsync(
+        var affected = await GoldCurrencyBalanceSupport.RewriteBalanceAsync(
             dbContext,
             sellerBalance,
             sellerGold,
             updatedBy,
             now);
-        return MarketOperationResult<IReadOnlyList<Guid>>.Success(buyerAffected);
+        return MarketOperationResult<IReadOnlyList<Guid>>.Success(affected);
     }
 
     private async Task<MarketAccountStateEntity> EnsureAccountStateAsync(Guid accountId, Guid updatedBy)
@@ -814,24 +1107,44 @@ public class MarketRepository(
             && !listing.IsDeleted
             && (listing.Status == "ACTIVE"
                 || listing.Status == "SUSPENDED"
-                || listing.Status == "CANCELED"));
+                || listing.Status == "SOLD"));
     }
 
     private static bool IsValidListingPayload(MarketListingCreateRequest request)
     {
         if (request.Quantity < 1
+            || request.Quantity > int.MaxValue
             || request.UnitPrice < 1
             || string.IsNullOrWhiteSpace(request.CurrencyId)
             || string.IsNullOrWhiteSpace(request.ItemCategory)
             || string.IsNullOrWhiteSpace(request.ItemId)
-            || !request.SourceInventoryEntryId.HasValue)
+            || request.SourceEntries is null
+            || request.SourceEntries.Count == 0
+            || request.SourceEntries.Any(source => source.InventoryEntryId == Guid.Empty
+                || source.Quantity < 1L
+                || source.Quantity > int.MaxValue)
+            || request.SourceEntries.Select(source => source.InventoryEntryId).Distinct().Count() != request.SourceEntries.Count)
+            return false;
+
+        long sourceQuantity;
+        try
+        {
+            sourceQuantity = request.SourceEntries.Aggregate(0L, (sum, source) => checked(sum + source.Quantity));
+        }
+        catch (OverflowException)
+        {
+            return false;
+        }
+        if (sourceQuantity != request.Quantity)
             return false;
 
         var hasStackPayload = string.IsNullOrWhiteSpace(request.InstanceType)
             && !request.InstanceId.HasValue;
         var hasInstancePayload = !string.IsNullOrWhiteSpace(request.InstanceType)
             && request.InstanceId.HasValue
-            && request.Quantity == 1;
+            && request.Quantity == 1
+            && request.SourceEntries.Count == 1
+            && request.SourceEntries[0].Quantity == 1L;
 
         return hasStackPayload || hasInstancePayload;
     }
@@ -877,7 +1190,9 @@ public class MarketRepository(
 
     private static MarketListingResponse MapListing(
         MarketListingEntity entity,
-        string sellerAccountName) => new()
+        string sellerAccountName,
+        IReadOnlyList<Guid>? sourceInventoryEntryIds = null,
+        long pendingProceeds = 0L) => new()
     {
         ListingId = entity.ListingId,
         SellerAccountId = entity.SellerAccountId,
@@ -888,7 +1203,9 @@ public class MarketRepository(
         ItemId = entity.ItemId,
         InstanceType = entity.InstanceType,
         InstanceId = entity.InstanceId,
+        SourceInventoryEntryIds = sourceInventoryEntryIds ?? Array.Empty<Guid>(),
         Quantity = entity.Quantity,
+        RemainingQuantity = entity.RemainingQuantity,
         CurrencyId = entity.CurrencyId,
         UnitPrice = entity.UnitPrice,
         TotalPrice = entity.TotalPrice,
@@ -907,6 +1224,7 @@ public class MarketRepository(
         Version = entity.Version,
         CreatedAt = entity.CreatedAt,
         UpdatedAt = entity.UpdatedAt,
+        PendingProceeds = pendingProceeds,
     };
 
     private static MarketTransactionResponse MapTransaction(

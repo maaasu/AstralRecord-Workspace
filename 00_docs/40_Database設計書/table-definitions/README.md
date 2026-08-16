@@ -61,6 +61,7 @@
 | `dbo.rune_instance_stat_roll` | `AstralRecord/dbo.rune_instance_stat_roll.md` |
 | `dbo.market_account_state` | `AstralRecord/dbo.market_account_state.md` |
 | `dbo.market_listing` | `AstralRecord/dbo.market_listing.md` |
+| `dbo.market_listing_source` | `AstralRecord/dbo.market_listing_source.md` |
 | `dbo.market_transaction` | `AstralRecord/dbo.market_transaction.md` |
 | `dbo.market_price_snapshot` | `AstralRecord/dbo.market_price_snapshot.md` |
 | `dbo.trade_commit` | `AstralRecord/dbo.trade_commit.md` |

@@ -4,6 +4,7 @@ import java.util.UUID;
 
 public record MarketPurchaseRequest(
     UUID buyerAccountId,
+    long quantity,
     String idempotencyKey,
     UUID updatedBy
 ) {

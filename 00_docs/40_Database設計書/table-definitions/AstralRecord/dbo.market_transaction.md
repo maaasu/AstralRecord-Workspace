@@ -53,7 +53,7 @@
 | `FK_market_transaction_listing` | `listing_id` → `dbo.market_listing(listing_id)` | 出品参照 |
 | `FK_market_transaction_seller_account` | `seller_account_id` → `dbo.account(uuid)` | 出品者 |
 | `FK_market_transaction_buyer_account` | `buyer_account_id` → `dbo.account(uuid)` | 購入者 |
-| `UQ_market_transaction_listing` | `listing_id` | 1 出品 1 約定 |
+| `IX_market_transaction_listing` | `listing_id` | 部分購入を含む出品別約定検索 |
 | `UQ_market_transaction_idempotency` | `buyer_account_id`, `idempotency_key` | 二重購入防止 |
 | `CK_market_transaction_quantity` | `[quantity] >= 1` | 数量 |
 | `CK_market_transaction_price` | `[unit_price] >= 1 AND [total_price] = [unit_price] * [quantity] AND [fee_amount] >= 0 AND [seller_proceeds] = [total_price] - [fee_amount]` | 価格 |
@@ -66,7 +66,7 @@
 | インデックス名 | カラム | 種別 | 用途 |
 |:--|:--|:--|:--|
 | `PK_market_transaction` | `transaction_id` | CLUSTERED | 主キー検索 |
-| `UQ_market_transaction_listing` | `listing_id` | UNIQUE | 1 出品 1 約定保証 |
+| `IX_market_transaction_listing` | `listing_id` | NONCLUSTERED | 部分購入を含む出品別約定検索 |
 | `UQ_market_transaction_idempotency` | `buyer_account_id`, `idempotency_key` | UNIQUE | 冪等性保証 |
 | `IX_market_transaction_item_completed` | `item_category`, `item_id`, `completed_at` | NONCLUSTERED | 相場算出 |
 | `IX_market_transaction_signature_completed` | `valuation_signature`, `completed_at` | NONCLUSTERED | 個体条件別相場算出 |
@@ -107,12 +107,15 @@ CREATE TABLE [dbo].[market_transaction] (
         REFERENCES [dbo].[account] ([uuid]) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT [FK_market_transaction_buyer_account] FOREIGN KEY ([buyer_account_id])
         REFERENCES [dbo].[account] ([uuid]) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT [UQ_market_transaction_listing] UNIQUE ([listing_id]),
     CONSTRAINT [UQ_market_transaction_idempotency] UNIQUE ([buyer_account_id], [idempotency_key]),
     CONSTRAINT [CK_market_transaction_quantity] CHECK ([quantity] >= 1),
     CONSTRAINT [CK_market_transaction_price] CHECK ([unit_price] >= 1 AND [total_price] = [unit_price] * [quantity] AND [fee_amount] >= 0 AND [seller_proceeds] = [total_price] - [fee_amount]),
     CONSTRAINT [CK_market_transaction_valuation_json] CHECK ([valuation_snapshot_json] IS NULL OR ISJSON([valuation_snapshot_json]) = 1)
 );
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_transaction_listing]
+    ON [dbo].[market_transaction] ([listing_id]);
 GO
 
 CREATE NONCLUSTERED INDEX [IX_market_transaction_item_completed]

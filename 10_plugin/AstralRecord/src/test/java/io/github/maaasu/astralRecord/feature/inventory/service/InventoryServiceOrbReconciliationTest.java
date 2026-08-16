@@ -476,6 +476,75 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
+     * 検証契約: HOTBAR出品元の元slotが再利用された取り下げで、APIがBAGへ返した未配置entryを有効なBAG slotへ再配置して可視な所持品にする。
+     */
+    @Test
+    void marketCancellationReconcilesConflictedHotbarSourceIntoVisibleBagSlot() {
+        UUID accountId = UUID.randomUUID();
+        UUID restoredEntryId = UUID.randomUUID();
+        UUID hotbarOccupantId = UUID.randomUUID();
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG, 27);
+        InventoryModel hotbar = DesignTestFixtures.inventory(accountId, InventoryType.HOTBAR, 9);
+        state.putInventory(bag);
+        state.putInventory(hotbar);
+        InventoryEntryModel hotbarOccupant = categoryEntry(
+            hotbarOccupantId,
+            accountId,
+            hotbar.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START,
+            ItemCategory.MATERIAL,
+            "hotbar_occupant",
+            1L
+        );
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of());
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of(hotbarOccupant));
+        registry.put(state);
+        InventoryRepository repository = mock(InventoryRepository.class);
+        InventoryService service = new InventoryService(
+            repository,
+            mock(EquipmentLoadoutRepository.class),
+            mock(ItemService.class),
+            mock(ItemStackFactory.class),
+            registry,
+            mock(InventoryPersistence.class),
+            mock(InventorySaveCoordinator.class)
+        );
+        InventoryEntryModel restored = categoryEntry(
+            restoredEntryId,
+            accountId,
+            bag.getInventoryId(),
+            null,
+            ItemCategory.MATERIAL,
+            "market_material",
+            3L
+        );
+        when(repository.findEntryById(restoredEntryId)).thenReturn(restored);
+
+        service.reconcileExternalInventoryEntries(
+            accountId,
+            List.of(restoredEntryId),
+            new InventoryPersistence.PersistedInventoryBaseline(
+                accountId,
+                Map.of(
+                    bag.getInventoryId(), List.of(),
+                    hotbar.getInventoryId(), List.of(hotbarOccupant)
+                )
+            )
+        );
+
+        InventoryEntryModel visible = service.findOwnedEntry(accountId, restoredEntryId);
+        assertNotNull(visible);
+        assertEquals(bag.getInventoryId(), visible.getInventoryId());
+        assertEquals(NormalInventoryLayout.DB_SLOT_START, visible.getSlotIndex());
+        assertEquals(hotbar.getInventoryId(), service.findOwnedEntry(
+            accountId, hotbarOccupantId).getInventoryId());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
      * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
      * 検証契約: HOTBARからentryが全削除されても固定slotを前詰めしない。

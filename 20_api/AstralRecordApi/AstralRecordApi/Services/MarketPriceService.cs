@@ -16,7 +16,9 @@ public class MarketPriceService(
     public async Task<MarketPriceQuoteResponse?> CreateQuoteAsync(MarketPriceQuoteRequest request)
     {
         var item = itemRepository.GetById(request.ItemId);
-        if (item is null || !KeyComparer.Equals(item.Category, request.ItemCategory))
+        if (item is null
+            || !KeyComparer.Equals(item.Category, request.ItemCategory)
+            || item.UnTradeable)
             return null;
 
         var now = DateTime.UtcNow;
@@ -250,10 +252,8 @@ public class MarketPriceService(
     {
         if (!unitPrice.HasValue)
             return "ALLOW";
-        if (sellPrice <= 0)
-            return "BLOCK_BELOW_SELL_VALUE";
-        if (unitPrice.Value < sellPrice)
-            return "BLOCK_BELOW_SELL_VALUE";
+        if (unitPrice.Value <= sellPrice)
+            return "BLOCK_AT_OR_BELOW_SELL_VALUE";
         if (unitPrice.Value < allowedMin || unitPrice.Value > allowedMax)
             return confidence == "LOW" ? "LOW_CONFIDENCE_ALLOW" : "BLOCK_OUT_OF_MARKET_RANGE";
 

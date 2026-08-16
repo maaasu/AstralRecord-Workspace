@@ -15,4 +15,6 @@ public interface IMarketRepository
     Task<MarketOperationResult<MarketTransactionResponse>> PurchaseListingAsync(Guid listingId, MarketPurchaseRequest request);
 
     Task<MarketOperationResult<MarketListingResponse>> CancelListingAsync(Guid listingId, MarketCancelRequest request);
+
+    Task<MarketOperationResult<MarketProceedsClaimResponse>> ClaimProceedsAsync(Guid listingId, MarketProceedsClaimRequest request);
 }

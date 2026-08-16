@@ -8,8 +8,11 @@ import io.github.maaasu.astralRecord.feature.market.model.MarketCancelRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListing;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingCreateRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingQuery;
+import io.github.maaasu.astralRecord.feature.market.model.MarketListingSource;
 import io.github.maaasu.astralRecord.feature.market.model.MarketPriceQuote;
 import io.github.maaasu.astralRecord.feature.market.model.MarketPriceQuoteRequest;
+import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaim;
+import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaimRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketPurchaseRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketTransaction;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
@@ -189,8 +192,32 @@ public class MarketRepository {
         ensureStatus(response, 200, "POST " + path);
         MarketListing listing = parseListing(JsonParser.parseString(response.body()).getAsJsonObject());
         invalidateSeller(listing.sellerAccountId());
-        listingCache.put(listingId, MarketCacheEntry.of(listing, DETAIL_TTL));
+        if (listing.status().equalsIgnoreCase("CANCELED")) {
+            listingCache.remove(listingId);
+        } else {
+            listingCache.put(listingId, MarketCacheEntry.of(listing, DETAIL_TTL));
+        }
         return listing;
+    }
+
+    /**
+     * 売却済み出品の売上を受け取り、関連する seller cache を破棄します。
+     *
+     * @param listingId 売上受取対象の出品 ID
+     * @param request 出品者、再送用冪等キー、更新者を含む受取リクエスト
+     * @return 受取確定額と再同期対象の通貨 entry
+     */
+    public @NotNull MarketProceedsClaim claimProceeds(
+        @NotNull UUID listingId,
+        @NotNull MarketProceedsClaimRequest request
+    ) {
+        String path = "/api/market/listings/" + listingId + "/claim-proceeds";
+        HttpResponse<String> response = post(path, claimProceedsBody(request));
+        ensureStatus(response, 200, "POST " + path);
+        MarketProceedsClaim claim = parseProceedsClaim(JsonParser.parseString(response.body()).getAsJsonObject());
+        invalidateSeller(request.sellerAccountId());
+        listingCache.remove(listingId);
+        return claim;
     }
 
     /**
@@ -258,7 +285,14 @@ public class MarketRepository {
     private JsonObject listingBody(@NotNull MarketListingCreateRequest request) {
         JsonObject body = new JsonObject();
         body.addProperty("sellerAccountId", request.sellerAccountId().toString());
-        addUuid(body, "sourceInventoryEntryId", request.sourceInventoryEntryId());
+        JsonArray sourceEntries = new JsonArray();
+        for (MarketListingSource source : request.sourceEntries()) {
+            JsonObject sourceBody = new JsonObject();
+            sourceBody.addProperty("inventoryEntryId", source.inventoryEntryId().toString());
+            sourceBody.addProperty("quantity", source.quantity());
+            sourceEntries.add(sourceBody);
+        }
+        body.add("sourceEntries", sourceEntries);
         body.addProperty("itemCategory", request.itemCategory());
         body.addProperty("itemId", request.itemId());
         addString(body, "instanceType", request.instanceType());
@@ -290,6 +324,7 @@ public class MarketRepository {
     private JsonObject purchaseBody(@NotNull MarketPurchaseRequest request) {
         JsonObject body = new JsonObject();
         body.addProperty("buyerAccountId", request.buyerAccountId().toString());
+        body.addProperty("quantity", request.quantity());
         body.addProperty("idempotencyKey", request.idempotencyKey());
         body.addProperty("updatedBy", request.updatedBy().toString());
         return body;
@@ -299,6 +334,14 @@ public class MarketRepository {
         JsonObject body = new JsonObject();
         body.addProperty("sellerAccountId", request.sellerAccountId().toString());
         addString(body, "reason", request.reason());
+        body.addProperty("updatedBy", request.updatedBy().toString());
+        return body;
+    }
+
+    private JsonObject claimProceedsBody(@NotNull MarketProceedsClaimRequest request) {
+        JsonObject body = new JsonObject();
+        body.addProperty("sellerAccountId", request.sellerAccountId().toString());
+        body.addProperty("idempotencyKey", request.idempotencyKey());
         body.addProperty("updatedBy", request.updatedBy().toString());
         return body;
     }
@@ -327,6 +370,7 @@ public class MarketRepository {
             nullableString(obj, "instanceType"),
             nullableUuid(obj, "instanceId"),
             longValue(obj, "quantity", 0),
+            longValue(obj, "remainingQuantity", longValue(obj, "quantity", 0)),
             string(obj, "currencyId", ""),
             longValue(obj, "unitPrice", 0),
             longValue(obj, "totalPrice", 0),
@@ -344,7 +388,9 @@ public class MarketRepository {
             nullableInstant(obj, "canceledAt"),
             intValue(obj, "version", 1),
             instant(obj, "createdAt"),
-            instant(obj, "updatedAt")
+            instant(obj, "updatedAt"),
+            longValue(obj, "pendingProceeds", 0),
+            uuidList(obj, "sourceInventoryEntryIds")
         );
     }
 
@@ -402,6 +448,14 @@ public class MarketRepository {
             longValue(obj, "sellerProceeds", 0),
             uuidList(obj, "affectedInventoryEntryIds"),
             instant(obj, "completedAt")
+        );
+    }
+
+    private MarketProceedsClaim parseProceedsClaim(@NotNull JsonObject obj) {
+        return new MarketProceedsClaim(
+            uuid(obj, "listingId"),
+            longValue(obj, "amount", 0),
+            uuidList(obj, "affectedInventoryEntryIds")
         );
     }
 

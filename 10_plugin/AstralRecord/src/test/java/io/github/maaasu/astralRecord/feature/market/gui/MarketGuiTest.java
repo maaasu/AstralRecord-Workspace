@@ -140,6 +140,24 @@ class MarketGuiTest extends MockBukkitTestBase {
         assertTrue(loreText(inventory, MarketGui.SUMMARY_SLOT).contains("所持 Gold: 12,345"));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_3-メソッド仕様.md
+     * 章・見出し: # 23_3-メソッド仕様 > ## GUI 起動・プレイヤー操作
+     * 検証契約: 複数個出品の購入確認では、選択数量とその数量に対応する購入額を表示する。
+     */
+    @Test
+    void rendersSelectedPartialPurchaseQuantityAndPrice() {
+        MarketGui gui = gui();
+        var player = server().addPlayer();
+
+        gui.openPurchaseConfirm(player, UUID.randomUUID(), listing("market-seller", 5L, 5L), 3L, 1_000L);
+
+        Inventory inventory = player.getOpenInventory().getTopInventory();
+        assertItemName(inventory, MarketGui.QUANTITY_SLOT, Material.HOPPER, "購入数: 3");
+        assertItemName(inventory, MarketGui.PRICE_SLOT, Material.GOLD_INGOT, "購入額: 300 Gold");
+        assertTrue(loreText(inventory, MarketGui.QUANTITY_SLOT).contains("残り: 5"));
+    }
+
     private MarketGui gui() {
         return new MarketGui(mock(ItemService.class), mock(ItemStackFactory.class));
     }
@@ -159,6 +177,10 @@ class MarketGuiTest extends MockBukkitTestBase {
     }
 
     private MarketListing listing(String sellerAccountName) {
+        return listing(sellerAccountName, 1L, 1L);
+    }
+
+    private MarketListing listing(String sellerAccountName, long quantity, long remainingQuantity) {
         Instant listedAt = Instant.EPOCH;
         return new MarketListing(
             UUID.randomUUID(),
@@ -170,10 +192,11 @@ class MarketGuiTest extends MockBukkitTestBase {
             "stone",
             null,
             null,
-            1,
+            quantity,
+            remainingQuantity,
             "gold",
             100,
-            100,
+            quantity * 100,
             1,
             null,
             null,
@@ -188,7 +211,9 @@ class MarketGuiTest extends MockBukkitTestBase {
             null,
             1,
             listedAt,
-            listedAt
+            listedAt,
+            0L,
+            List.of()
         );
     }
 

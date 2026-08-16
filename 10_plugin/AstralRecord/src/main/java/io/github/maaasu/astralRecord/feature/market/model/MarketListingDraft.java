@@ -3,6 +3,8 @@ package io.github.maaasu.astralRecord.feature.market.model;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -10,7 +12,7 @@ import java.util.UUID;
  */
 public final class MarketListingDraft {
     private final UUID contextId;
-    private final UUID sourceInventoryEntryId;
+    private final List<MarketListingSource> sourceEntries;
     private final String itemCategory;
     private final String itemId;
     private final @Nullable String instanceType;
@@ -21,7 +23,7 @@ public final class MarketListingDraft {
 
     public MarketListingDraft(
         @NotNull UUID contextId,
-        @NotNull UUID sourceInventoryEntryId,
+        @NotNull List<MarketListingSource> sourceEntries,
         @NotNull String itemCategory,
         @NotNull String itemId,
         @Nullable String instanceType,
@@ -30,7 +32,7 @@ public final class MarketListingDraft {
         long unitPrice
     ) {
         this.contextId = contextId;
-        this.sourceInventoryEntryId = sourceInventoryEntryId;
+        this.sourceEntries = List.copyOf(sourceEntries);
         this.itemCategory = itemCategory;
         this.itemId = itemId;
         this.instanceType = instanceType;
@@ -44,8 +46,8 @@ public final class MarketListingDraft {
         return contextId;
     }
 
-    public @NotNull UUID sourceInventoryEntryId() {
-        return sourceInventoryEntryId;
+    public @NotNull List<MarketListingSource> sourceEntries() {
+        return sourceEntries;
     }
 
     public @NotNull String itemCategory() {
@@ -86,5 +88,27 @@ public final class MarketListingDraft {
 
     public long totalPrice() {
         return unitPrice > Long.MAX_VALUE / quantity ? Long.MAX_VALUE : unitPrice * quantity;
+    }
+
+    /**
+     * 現在の出品予定数量を、選択した source entry の順に割り当てた escrow 要求を返します。
+     *
+     * @return API へ送信する entry ごとの確保数量
+     */
+    public @NotNull List<MarketListingSource> selectedSources() {
+        long remaining = quantity;
+        List<MarketListingSource> selected = new ArrayList<>();
+        for (MarketListingSource source : sourceEntries) {
+            if (remaining <= 0L) {
+                break;
+            }
+            long selectedQuantity = Math.min(source.quantity(), remaining);
+            selected.add(new MarketListingSource(source.inventoryEntryId(), selectedQuantity));
+            remaining -= selectedQuantity;
+        }
+        if (remaining > 0L) {
+            throw new IllegalStateException("Selected sources do not cover draft quantity");
+        }
+        return List.copyOf(selected);
     }
 }

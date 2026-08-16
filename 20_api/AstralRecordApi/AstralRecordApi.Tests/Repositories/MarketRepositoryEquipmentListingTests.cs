@@ -16,6 +16,65 @@ namespace AstralRecordApi.Tests.Repositories;
 public class MarketRepositoryEquipmentListingTests
 {
     [Fact]
+    public async Task MarketPriceQuote_RejectsUntradeableItems()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var priceService = new MarketPriceService(
+            harness.DbContext,
+            new StaticItemRepository(CreateMarketItem(true, false, saleValue: 100)));
+
+        var quote = await priceService.CreateQuoteAsync(new MarketPriceQuoteRequest
+        {
+            ItemCategory = "material",
+            ItemId = "market_material",
+            Quantity = 1,
+            UnitPrice = 101,
+        });
+
+        Assert.Null(quote);
+    }
+
+    [Fact]
+    public async Task MarketPriceQuote_AllowsUnsellableItemWithPriceAboveZeroSellValue()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var priceService = new MarketPriceService(
+            harness.DbContext,
+            new StaticItemRepository(CreateMarketItem(false, true, saleValue: 0)));
+
+        var quote = await priceService.CreateQuoteAsync(new MarketPriceQuoteRequest
+        {
+            ItemCategory = "material",
+            ItemId = "market_material",
+            Quantity = 1,
+            UnitPrice = 1,
+        });
+
+        Assert.NotNull(quote);
+        Assert.Equal("LOW_CONFIDENCE_ALLOW", quote.Judgement);
+    }
+
+    [Fact]
+    public async Task MarketPriceQuote_RejectsPriceAtOrBelowSellValue()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var priceService = new MarketPriceService(
+            harness.DbContext,
+            new StaticItemRepository(CreateMarketItem(false, false, saleValue: 100)));
+
+        var quote = await priceService.CreateQuoteAsync(new MarketPriceQuoteRequest
+        {
+            ItemCategory = "material",
+            ItemId = "market_material",
+            Quantity = 1,
+            UnitPrice = 100,
+        });
+
+        Assert.NotNull(quote);
+        Assert.Equal("BLOCK_AT_OR_BELOW_SELL_VALUE", quote.Judgement);
+    }
+
+    [Fact]
     public async Task ListingResponsesIncludeSellerAccountName()
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: true);
@@ -127,7 +186,7 @@ public class MarketRepositoryEquipmentListingTests
     }
 
     [Fact]
-    public async Task CreateListing_CanceledListingStillConsumesListingSlot()
+    public async Task CreateListing_CanceledListingReleasesListingSlot()
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: true, maxListingSlots: 1);
 
@@ -139,15 +198,18 @@ public class MarketRepositoryEquipmentListingTests
             UpdatedBy = harness.AccountId,
         });
         Assert.True(canceled.Succeeded);
+        var restored = await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == harness.EquipmentEntryId);
+        Assert.False(restored.IsDeleted);
+        Assert.Equal(1, restored.Quantity);
 
         var retry = await harness.Repository.CreateListingAsync(harness.CreateRequest());
 
-        Assert.False(retry.Succeeded);
-        Assert.Equal("market.listing_slot_limit_exceeded", retry.ErrorCode);
+        Assert.True(retry.Succeeded);
         var source = await harness.DbContext.InventoryEntries.AsNoTracking()
             .SingleAsync(entry => entry.InventoryEntryId == harness.EquipmentEntryId);
-        Assert.False(source.IsDeleted);
-        Assert.Equal(1, source.Quantity);
+        Assert.True(source.IsDeleted);
+        Assert.Equal(0, source.Quantity);
     }
 
     [Fact]
@@ -173,6 +235,171 @@ public class MarketRepositoryEquipmentListingTests
     }
 
     [Fact]
+    public async Task CancelListing_ReleasesTheOriginalSlotWhenItWasReusedWhileListed()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var entryId = await harness.AddStackEntryAsync(quantity: 3);
+        var listing = await harness.Repository.CreateListingAsync(
+            harness.CreateStackRequest(entryId, quantity: 3));
+        Assert.True(listing.Succeeded);
+
+        var sourceInventoryId = await harness.DbContext.InventoryEntries
+            .Where(entry => entry.InventoryEntryId == entryId)
+            .Select(entry => entry.InventoryId)
+            .SingleAsync();
+        var now = DateTime.UtcNow;
+        harness.DbContext.InventoryEntries.Add(new InventoryEntryEntity
+        {
+            InventoryEntryId = Guid.NewGuid(),
+            InventoryId = sourceInventoryId,
+            SlotIndex = 1,
+            ItemCategory = "material",
+            ItemId = "another_material",
+            Quantity = 1,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = harness.AccountId,
+            UpdatedBy = harness.AccountId,
+        });
+        await harness.DbContext.SaveChangesAsync();
+
+        var canceled = await harness.Repository.CancelListingAsync(listing.Value!.ListingId, new MarketCancelRequest
+        {
+            SellerAccountId = harness.AccountId,
+            UpdatedBy = harness.AccountId,
+        });
+
+        Assert.True(canceled.Succeeded);
+        var restored = await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == entryId);
+        Assert.False(restored.IsDeleted);
+        Assert.Equal(3, restored.Quantity);
+        Assert.Null(restored.SlotIndex);
+    }
+
+    [Fact]
+    public async Task CancelListing_MovesHotbarSourceToBagWhenOriginalSlotWasReused()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var bagInventoryId = Guid.NewGuid();
+        var hotbarInventoryId = Guid.NewGuid();
+        var entryId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        harness.DbContext.Inventories.AddRange(
+            new InventoryEntity
+            {
+                InventoryId = bagInventoryId,
+                AccountId = harness.AccountId,
+                InventoryType = "BAG",
+                InventoryProfile = "GAME",
+                IsEnabled = true,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = harness.AccountId,
+                UpdatedBy = harness.AccountId,
+            },
+            new InventoryEntity
+            {
+                InventoryId = hotbarInventoryId,
+                AccountId = harness.AccountId,
+                InventoryType = "HOTBAR",
+                InventoryProfile = "GAME",
+                IsEnabled = true,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = harness.AccountId,
+                UpdatedBy = harness.AccountId,
+            });
+        harness.DbContext.InventoryEntries.Add(new InventoryEntryEntity
+        {
+            InventoryEntryId = entryId,
+            InventoryId = hotbarInventoryId,
+            SlotIndex = 1,
+            ItemCategory = "material",
+            ItemId = "market_material",
+            Quantity = 3,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = harness.AccountId,
+            UpdatedBy = harness.AccountId,
+        });
+        await harness.DbContext.SaveChangesAsync();
+
+        var listing = await harness.Repository.CreateListingAsync(
+            harness.CreateStackRequest(entryId, quantity: 3));
+        Assert.True(listing.Succeeded);
+
+        harness.DbContext.InventoryEntries.Add(new InventoryEntryEntity
+        {
+            InventoryEntryId = Guid.NewGuid(),
+            InventoryId = hotbarInventoryId,
+            SlotIndex = 1,
+            ItemCategory = "material",
+            ItemId = "another_material",
+            Quantity = 1,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = harness.AccountId,
+            UpdatedBy = harness.AccountId,
+        });
+        await harness.DbContext.SaveChangesAsync();
+
+        var canceled = await harness.Repository.CancelListingAsync(listing.Value!.ListingId, new MarketCancelRequest
+        {
+            SellerAccountId = harness.AccountId,
+            UpdatedBy = harness.AccountId,
+        });
+
+        Assert.True(canceled.Succeeded);
+        var restored = await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == entryId);
+        Assert.False(restored.IsDeleted);
+        Assert.Equal(3, restored.Quantity);
+        Assert.Equal(bagInventoryId, restored.InventoryId);
+        Assert.Null(restored.SlotIndex);
+    }
+
+    [Fact]
+    public async Task CreateListing_ReservesAndRestoresMultipleStackSources()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var firstEntryId = await harness.AddStackEntryAsync(quantity: 2);
+        var secondEntryId = await harness.AddStackEntryAsync(quantity: 6);
+        var request = harness.CreateStackRequest(firstEntryId, quantity: 6);
+        request.SourceEntries =
+        [
+            new MarketListingSourceRequest { InventoryEntryId = firstEntryId, Quantity = 2 },
+            new MarketListingSourceRequest { InventoryEntryId = secondEntryId, Quantity = 4 },
+        ];
+
+        var created = await harness.Repository.CreateListingAsync(request);
+
+        Assert.True(created.Succeeded);
+        Assert.Equal(2, await harness.DbContext.MarketListingSources.CountAsync());
+        var firstAfterCreate = await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == firstEntryId);
+        var secondAfterCreate = await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == secondEntryId);
+        Assert.True(firstAfterCreate.IsDeleted);
+        Assert.Equal(2, secondAfterCreate.Quantity);
+
+        var canceled = await harness.Repository.CancelListingAsync(created.Value!.ListingId, new MarketCancelRequest
+        {
+            SellerAccountId = harness.AccountId,
+            UpdatedBy = harness.AccountId,
+        });
+
+        Assert.True(canceled.Succeeded);
+        var firstAfterCancel = await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == firstEntryId);
+        var secondAfterCancel = await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == secondEntryId);
+        Assert.False(firstAfterCancel.IsDeleted);
+        Assert.Equal(2, firstAfterCancel.Quantity);
+        Assert.Equal(6, secondAfterCancel.Quantity);
+    }
+
+    [Fact]
     public async Task CreateListing_RejectsDeletedEquipmentInstanceBeforeQuote()
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: true);
@@ -189,7 +416,7 @@ public class MarketRepositoryEquipmentListingTests
     }
 
     [Fact]
-    public async Task PurchaseListing_TransfersPluginGoldAndEscrowedEquipmentAtomically()
+    public async Task PurchaseListing_HoldsSellerProceedsUntilClaimAndTransfersEscrowedEquipment()
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: true);
         var listing = await harness.Repository.CreateListingAsync(harness.CreateRequest());
@@ -208,7 +435,7 @@ public class MarketRepositoryEquipmentListingTests
         Assert.Equal(100, result.Value!.TotalPrice);
         Assert.NotEmpty(result.Value.AffectedInventoryEntryIds);
         Assert.Equal(400, await harness.TotalGoldAsync(buyer.AccountId));
-        Assert.Equal(100, await harness.TotalGoldAsync(harness.AccountId));
+        Assert.Equal(0, await harness.TotalGoldAsync(harness.AccountId));
         var source = await harness.DbContext.InventoryEntries.AsNoTracking()
             .SingleAsync(entry => entry.InventoryEntryId == harness.EquipmentEntryId);
         Assert.Equal(buyer.BagInventoryId, source.InventoryId);
@@ -216,6 +443,105 @@ public class MarketRepositoryEquipmentListingTests
         var equipment = await harness.DbContext.EquipmentInstances.AsNoTracking()
             .SingleAsync(instance => instance.EquipmentInstanceId == harness.EquipmentInstanceId);
         Assert.Equal(buyer.AccountId, equipment.AccountId);
+
+        var claimRequest = new MarketProceedsClaimRequest
+        {
+            SellerAccountId = harness.AccountId,
+            IdempotencyKey = "claim-equipment-listing",
+            UpdatedBy = harness.AccountId,
+        };
+        var claim = await harness.Repository.ClaimProceedsAsync(listing.Value.ListingId, claimRequest);
+        Assert.True(claim.Succeeded);
+        Assert.Equal(100, claim.Value!.Amount);
+        Assert.Equal(100, await harness.TotalGoldAsync(harness.AccountId));
+
+        // HTTP 応答喪失後の再送を表す。同一キーは確定済み receipt を返し、Gold を二重加算しない。
+        var replay = await harness.Repository.ClaimProceedsAsync(listing.Value.ListingId, claimRequest);
+        Assert.True(replay.Succeeded);
+        Assert.Equal(claim.Value.Amount, replay.Value!.Amount);
+        Assert.Equal(claim.Value.AffectedInventoryEntryIds, replay.Value.AffectedInventoryEntryIds);
+        Assert.Equal(100, await harness.TotalGoldAsync(harness.AccountId));
+
+        var duplicateWithAnotherKey = await harness.Repository.ClaimProceedsAsync(listing.Value.ListingId,
+            new MarketProceedsClaimRequest
+            {
+                SellerAccountId = harness.AccountId,
+                IdempotencyKey = "another-claim-key",
+                UpdatedBy = harness.AccountId,
+            });
+        Assert.False(duplicateWithAnotherKey.Succeeded);
+        Assert.Equal("market.claim_already_completed", duplicateWithAnotherKey.ErrorCode);
+    }
+
+    [Fact]
+    public async Task PartialPurchase_CancelThenClaimKeepsSlotUntilProceedsAreReceived()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false, maxListingSlots: 1);
+        var sourceEntryId = await harness.AddStackEntryAsync(quantity: 10);
+        var created = await harness.Repository.CreateListingAsync(
+            harness.CreateStackRequest(sourceEntryId, quantity: 8));
+        Assert.True(created.Succeeded);
+        await harness.AddGoldInventoryAsync(harness.AccountId, 0);
+        var buyer = await harness.AddBuyerWithGoldAsync(1_000);
+
+        var purchased = await harness.Repository.PurchaseListingAsync(created.Value!.ListingId, new MarketPurchaseRequest
+        {
+            BuyerAccountId = buyer.AccountId,
+            Quantity = 3,
+            IdempotencyKey = Guid.NewGuid().ToString(),
+            UpdatedBy = buyer.AccountId,
+        });
+
+        Assert.True(purchased.Succeeded);
+        Assert.Equal(300, purchased.Value!.TotalPrice);
+        Assert.Equal(700, await harness.TotalGoldAsync(buyer.AccountId));
+        Assert.Equal(0, await harness.TotalGoldAsync(harness.AccountId));
+        var active = await harness.Repository.GetListingAsync(created.Value.ListingId);
+        Assert.NotNull(active);
+        Assert.Equal("ACTIVE", active.Status);
+        Assert.Equal(5, active.RemainingQuantity);
+        Assert.Equal(300, active.PendingProceeds);
+
+        var tooEarlyClaim = await harness.Repository.ClaimProceedsAsync(created.Value.ListingId, new MarketProceedsClaimRequest
+        {
+            SellerAccountId = harness.AccountId,
+            IdempotencyKey = "early-claim",
+            UpdatedBy = harness.AccountId,
+        });
+        Assert.False(tooEarlyClaim.Succeeded);
+        Assert.Equal("market.claim_invalid_status", tooEarlyClaim.ErrorCode);
+
+        var canceled = await harness.Repository.CancelListingAsync(created.Value.ListingId, new MarketCancelRequest
+        {
+            SellerAccountId = harness.AccountId,
+            UpdatedBy = harness.AccountId,
+        });
+        Assert.True(canceled.Succeeded);
+        Assert.Equal("SOLD", canceled.Value!.Status);
+        Assert.Equal(0, canceled.Value.RemainingQuantity);
+        Assert.Equal(300, canceled.Value.PendingProceeds);
+
+        var sourceAfterCancel = await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == sourceEntryId);
+        Assert.Equal(7, sourceAfterCancel.Quantity);
+        var blockedByUnclaimedSale = await harness.Repository.CreateListingAsync(
+            harness.CreateStackRequest(sourceEntryId, quantity: 1));
+        Assert.False(blockedByUnclaimedSale.Succeeded);
+        Assert.Equal("market.listing_slot_limit_exceeded", blockedByUnclaimedSale.ErrorCode);
+
+        var claimed = await harness.Repository.ClaimProceedsAsync(created.Value.ListingId, new MarketProceedsClaimRequest
+        {
+            SellerAccountId = harness.AccountId,
+            IdempotencyKey = "partial-claim",
+            UpdatedBy = harness.AccountId,
+        });
+        Assert.True(claimed.Succeeded);
+        Assert.Equal(300, claimed.Value!.Amount);
+        Assert.Equal(300, await harness.TotalGoldAsync(harness.AccountId));
+
+        var retry = await harness.Repository.CreateListingAsync(
+            harness.CreateStackRequest(sourceEntryId, quantity: 1));
+        Assert.True(retry.Succeeded);
     }
 
     private sealed class MarketHarness : IAsyncDisposable
@@ -340,7 +666,14 @@ public class MarketRepositoryEquipmentListingTests
         public MarketListingCreateRequest CreateRequest() => new()
         {
             SellerAccountId = AccountId,
-            SourceInventoryEntryId = EquipmentEntryId,
+            SourceEntries =
+            [
+                new MarketListingSourceRequest
+                {
+                    InventoryEntryId = EquipmentEntryId ?? Guid.Empty,
+                    Quantity = 1,
+                },
+            ],
             ItemCategory = "equipment",
             ItemId = "market_equipment",
             InstanceType = "equipment",
@@ -354,7 +687,14 @@ public class MarketRepositoryEquipmentListingTests
         public MarketListingCreateRequest CreateStackRequest(Guid entryId, int quantity) => new()
         {
             SellerAccountId = AccountId,
-            SourceInventoryEntryId = entryId,
+            SourceEntries =
+            [
+                new MarketListingSourceRequest
+                {
+                    InventoryEntryId = entryId,
+                    Quantity = quantity,
+                },
+            ],
             ItemCategory = "material",
             ItemId = "market_material",
             Quantity = quantity,
@@ -409,6 +749,7 @@ public class MarketRepositoryEquipmentListingTests
                 InstanceType = "EQUIPMENT",
                 InstanceId = EquipmentInstanceId,
                 Quantity = 1,
+                RemainingQuantity = 1,
                 CurrencyId = "gold",
                 UnitPrice = 100,
                 TotalPrice = 100,
@@ -552,6 +893,30 @@ public class MarketRepositoryEquipmentListingTests
                 EvaluatedAt = DateTime.UtcNow,
             });
         }
+    }
+
+    private static ItemResponse CreateMarketItem(bool unTradeable, bool unSellable, int saleValue) => new()
+    {
+        SchemaVersion = 1,
+        Id = "market_material",
+        Category = "material",
+        Name = "Market Material",
+        Icon = "STONE",
+        Rarity = "COMMON",
+        SaleValue = saleValue,
+        UnTradeable = unTradeable,
+        UnSellable = unSellable,
+    };
+
+    private sealed class StaticItemRepository(ItemResponse item) : IItemRepository
+    {
+        public IReadOnlyList<ItemSummaryResponse> GetAllSummaries() =>
+        [
+            new ItemSummaryResponse { Id = item.Id, Category = item.Category },
+        ];
+
+        public ItemResponse? GetById(string itemId) =>
+            string.Equals(itemId, item.Id, StringComparison.OrdinalIgnoreCase) ? item : null;
     }
 
     private sealed class FixedLimitService(int maxListingSlots) : IMarketListingLimitService

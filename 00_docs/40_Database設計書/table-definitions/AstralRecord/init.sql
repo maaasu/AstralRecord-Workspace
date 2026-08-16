@@ -1242,6 +1242,7 @@ CREATE TABLE [dbo].[market_listing] (
     [instance_type]            NVARCHAR(30)         NULL,
     [instance_id]              UNIQUEIDENTIFIER     NULL,
     [quantity]                 INT              NOT NULL,
+    [remaining_quantity]       INT              NOT NULL CONSTRAINT [DF_market_listing_remaining_quantity] DEFAULT (0),
     [currency_id]              NVARCHAR(50)     NOT NULL,
     [unit_price]               BIGINT           NOT NULL,
     [total_price]              BIGINT           NOT NULL,
@@ -1257,6 +1258,10 @@ CREATE TABLE [dbo].[market_listing] (
     [expires_at]               DATETIME2(3)     NOT NULL,
     [sold_at]                  DATETIME2(3)         NULL,
     [canceled_at]              DATETIME2(3)         NULL,
+    [proceeds_claim_idempotency_key] NVARCHAR(128)       NULL,
+    [proceeds_claim_amount]    BIGINT               NULL,
+    [proceeds_claim_affected_entry_ids_json] NVARCHAR(MAX) NULL,
+    [proceeds_claimed_at]      DATETIME2(3)         NULL,
     [version]                  INT              NOT NULL CONSTRAINT [DF_market_listing_version] DEFAULT (1),
     [created_at]               DATETIME2(3)     NOT NULL,
     [updated_at]               DATETIME2(3)     NOT NULL,
@@ -1272,11 +1277,14 @@ CREATE TABLE [dbo].[market_listing] (
     CONSTRAINT [FK_market_listing_source_inventory_entry] FOREIGN KEY ([source_inventory_entry_id])
         REFERENCES [dbo].[inventory_entry] ([inventory_entry_id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT [CK_market_listing_quantity] CHECK ([quantity] >= 1),
+    CONSTRAINT [CK_market_listing_remaining_quantity] CHECK ([remaining_quantity] >= 0 AND [remaining_quantity] <= [quantity]),
     CONSTRAINT [CK_market_listing_price] CHECK ([unit_price] >= 1 AND [total_price] = [unit_price] * [quantity] AND [price_floor] >= 0),
     CONSTRAINT [CK_market_listing_confidence] CHECK ([price_confidence] IN (N'HIGH', N'MEDIUM', N'LOW')),
     CONSTRAINT [CK_market_listing_status] CHECK ([status] IN (N'ACTIVE', N'SOLD', N'CANCELED', N'EXPIRED', N'SUSPENDED')),
     CONSTRAINT [CK_market_listing_version] CHECK ([version] >= 1),
-    CONSTRAINT [CK_market_listing_valuation_json] CHECK ([valuation_snapshot_json] IS NULL OR ISJSON([valuation_snapshot_json]) = 1)
+    CONSTRAINT [CK_market_listing_valuation_json] CHECK ([valuation_snapshot_json] IS NULL OR ISJSON([valuation_snapshot_json]) = 1),
+    CONSTRAINT [CK_market_listing_proceeds_claim_amount] CHECK ([proceeds_claim_amount] IS NULL OR [proceeds_claim_amount] >= 1),
+    CONSTRAINT [CK_market_listing_proceeds_claim_entries_json] CHECK ([proceeds_claim_affected_entry_ids_json] IS NULL OR ISJSON([proceeds_claim_affected_entry_ids_json]) = 1)
 );
 GO
 
@@ -1298,6 +1306,28 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_market_listing_is_deleted]
     ON [dbo].[market_listing] ([is_deleted]);
+GO
+
+-- ============================================================
+-- AstralRecord\dbo.market_listing_source.md
+-- ============================================================
+
+CREATE TABLE [dbo].[market_listing_source] (
+    [listing_id]         UNIQUEIDENTIFIER NOT NULL,
+    [inventory_entry_id] UNIQUEIDENTIFIER NOT NULL,
+    [quantity]           INT              NOT NULL,
+
+    CONSTRAINT [PK_market_listing_source] PRIMARY KEY CLUSTERED ([listing_id], [inventory_entry_id]),
+    CONSTRAINT [FK_market_listing_source_listing] FOREIGN KEY ([listing_id])
+        REFERENCES [dbo].[market_listing] ([listing_id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT [FK_market_listing_source_inventory_entry] FOREIGN KEY ([inventory_entry_id])
+        REFERENCES [dbo].[inventory_entry] ([inventory_entry_id]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT [CK_market_listing_source_quantity] CHECK ([quantity] >= 1)
+);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_listing_source_inventory_entry]
+    ON [dbo].[market_listing_source] ([inventory_entry_id]);
 GO
 
 -- ============================================================
@@ -1333,12 +1363,15 @@ CREATE TABLE [dbo].[market_transaction] (
         REFERENCES [dbo].[account] ([uuid]) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT [FK_market_transaction_buyer_account] FOREIGN KEY ([buyer_account_id])
         REFERENCES [dbo].[account] ([uuid]) ON DELETE NO ACTION ON UPDATE NO ACTION,
-    CONSTRAINT [UQ_market_transaction_listing] UNIQUE ([listing_id]),
     CONSTRAINT [UQ_market_transaction_idempotency] UNIQUE ([buyer_account_id], [idempotency_key]),
     CONSTRAINT [CK_market_transaction_quantity] CHECK ([quantity] >= 1),
     CONSTRAINT [CK_market_transaction_price] CHECK ([unit_price] >= 1 AND [total_price] = [unit_price] * [quantity] AND [fee_amount] >= 0 AND [seller_proceeds] = [total_price] - [fee_amount]),
     CONSTRAINT [CK_market_transaction_valuation_json] CHECK ([valuation_snapshot_json] IS NULL OR ISJSON([valuation_snapshot_json]) = 1)
 );
+GO
+
+CREATE NONCLUSTERED INDEX [IX_market_transaction_listing]
+    ON [dbo].[market_transaction] ([listing_id]);
 GO
 
 CREATE NONCLUSTERED INDEX [IX_market_transaction_item_completed]

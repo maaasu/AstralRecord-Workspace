@@ -134,6 +134,21 @@ public class MarketController(
         return result.Succeeded ? Ok(result.Value) : Error(result);
     }
 
+    /// <summary>
+    /// 売却済み出品の未受取売上を出品者へ払い出し、出品枠を解放します。
+    /// </summary>
+    [HttpPost("listings/{listingId:guid}/claim-proceeds")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status403Forbidden)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> ClaimProceeds(Guid listingId, [FromBody] MarketProceedsClaimRequest request)
+    {
+        var result = await marketRepository.ClaimProceedsAsync(listingId, request);
+        return result.Succeeded ? Ok(result.Value) : Error(result);
+    }
+
     private IActionResult Error<T>(MarketOperationResult<T> result)
     {
         return Problem(

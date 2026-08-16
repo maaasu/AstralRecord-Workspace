@@ -15,6 +15,7 @@ Web サイトと Plugin は同じ API 契約を利用し、マーケットの基
 - `20_api/AstralRecordApi/AstralRecordApi/Services/MarketPriceService.cs`
 - `20_api/AstralRecordApi/AstralRecordApi/Services/MarketListingLimitService.cs`
 - `20_api/AstralRecordApi/AstralRecordApi/Data/Entities/MarketListing.cs`
+- `20_api/AstralRecordApi/AstralRecordApi/Data/Entities/MarketListingSource.cs`
 - `20_api/AstralRecordApi/AstralRecordApi/Data/Entities/MarketTransaction.cs`
 - `20_api/AstralRecordApi/AstralRecordApi/Data/Entities/MarketPriceSnapshot.cs`
 - `20_api/AstralRecordApi/AstralRecordApi/Data/Entities/MarketAccountState.cs`
@@ -23,7 +24,7 @@ Web サイトと Plugin は同じ API 契約を利用し、マーケットの基
 
 - Plugin 側に専用 feature を追加する場合は `23-market` として採番する。
 - Plugin は GUI 操作、通知、アイテム表示のみを担当し、出品可否・価格判定・購入確定は API に委譲する。
-- Web は一覧、検索、相場確認、出品、購入、キャンセルを同じ API から実行する。
+- Web は一覧、検索、相場確認、出品、購入、キャンセル、売上受取を同じ API から実行する。
 
 ## ドキュメント一覧
 

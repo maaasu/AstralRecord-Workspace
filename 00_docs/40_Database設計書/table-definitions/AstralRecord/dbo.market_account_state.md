@@ -94,4 +94,4 @@ GO
 
 ## 出品枠集計
 
-物理列 `max_active_listing_count` の名称は既存互換のため変更しない。新規出品時は `market_listing` の `ACTIVE` / `SUSPENDED` / `CANCELED` を使用済み枠として集計し、この上限と比較する。`SOLD` / `EXPIRED` は枠を解放する。
+物理列 `max_active_listing_count` の名称は既存互換のため変更しない。新規出品時は `market_listing` の `ACTIVE` / `SUSPENDED` / 売上未受取の `SOLD` を使用済み枠として集計し、この上限と比較する。売上受取済み・取り下げ済み出品は論理削除され、枠を解放する。

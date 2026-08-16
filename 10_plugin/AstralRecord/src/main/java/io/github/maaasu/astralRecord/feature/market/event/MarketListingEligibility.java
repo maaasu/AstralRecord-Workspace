@@ -14,7 +14,8 @@ final class MarketListingEligibility {
     /**
      * 所持品 entry をマーケット出品候補として選択できるか判定します。
      * API が escrow・所有権・出品枠などの業務判定を最終確定するため、ここでは
-     * 取引不可・Gold・不正なentry形式だけを早期に除外します。
+     * 取引不可・Gold・不正なentry形式だけを早期に除外します。売却不可フラグと売値は
+     * マーケット対象外の条件ではなく、価格ガードで単価と比較します。
      *
      * @param entry 所持品正本 entry
      * @param item entry に対応するアイテム定義

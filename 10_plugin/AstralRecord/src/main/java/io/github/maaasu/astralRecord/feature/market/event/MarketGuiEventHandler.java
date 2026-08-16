@@ -17,6 +17,9 @@ import io.github.maaasu.astralRecord.feature.market.model.MarketListing;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingCreateRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingDraft;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingQuery;
+import io.github.maaasu.astralRecord.feature.market.model.MarketListingSource;
+import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaim;
+import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaimRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketPurchaseRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketTransaction;
 import io.github.maaasu.astralRecord.feature.market.service.MarketService;
@@ -26,7 +29,6 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
-import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -42,8 +44,10 @@ import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -57,6 +61,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
     private final AstralRecord plugin;
     private final MarketGui marketGui;
     private final MarketService marketService;
+    private final ItemService itemService;
     private final InventoryService inventoryService;
     private final InventorySaveCoordinator inventorySaveCoordinator;
     private final CurrencyService currencyService;
@@ -78,6 +83,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         this.plugin = plugin;
         this.marketGui = new MarketGui(itemService, itemStackFactory);
         this.marketService = marketService;
+        this.itemService = itemService;
         this.inventoryService = inventoryService;
         this.inventorySaveCoordinator = inventorySaveCoordinator;
         this.currencyService = currencyService;
@@ -161,6 +167,13 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         @NotNull Player player,
         @NotNull MarketSession session
     ) {
+        if (session.ownListings && event.getClickedInventory() instanceof PlayerInventory) {
+            if (HotbarShortcutClickSupport.handleInventoryControlClick(event, player, inventoryService)) {
+                return;
+            }
+            selectOwnListingFromInventoryClick(event, player, session);
+            return;
+        }
         if (handleHotbarShortcutClick(event, player)) {
             return;
         }
@@ -185,19 +198,19 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             }
             MarketListing listing = session.listings.get(listingIndex);
             if (session.ownListings) {
-                if (!isCancelable(listing)) {
-                    GuiSound.DENY.play(player);
-                    return;
-                }
-                session.selectedListing = listing;
-                session.screen = MarketScreen.CANCEL_CONFIRM;
-                marketGui.openCancelConfirm(player, session.sessionId, listing);
-                GuiSound.SELECT.play(player);
+                openOwnListingAction(player, session, listing);
+                return;
+            }
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null && listing.sellerAccountId().equals(astPlayer.getAccount().getUuid())) {
+                messageService.send(player, PlayerMsgId.P_6309);
+                GuiSound.DENY.play(player);
                 return;
             }
             session.selectedListing = listing;
+            session.purchaseQuantity = 1L;
             session.screen = MarketScreen.PURCHASE_CONFIRM;
-            marketGui.openPurchaseConfirm(player, session.sessionId, listing, goldAmount(player));
+            marketGui.openPurchaseConfirm(player, session.sessionId, listing, session.purchaseQuantity, goldAmount(player));
             GuiSound.SELECT.play(player);
             return;
         }
@@ -229,6 +242,117 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             }
             default -> GuiSound.DENY.play(player);
         }
+    }
+
+    /**
+     * 自分の出品画面で所持品をクリックしたとき、同じアイテムの公開中出品を自動選択します。
+     * 現在ページにない出品も対象にするため、必要時だけ API から対象アイテムの公開中出品を取得します。
+     */
+    private void selectOwnListingFromInventoryClick(
+        @NotNull InventoryClickEvent event,
+        @NotNull Player player,
+        @NotNull MarketSession session
+    ) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || session.busy) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        InventoryEntryModel entry = inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, event.getSlot());
+        if (entry == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        MarketListing currentPageMatch = findMatchingActiveListing(session.listings, entry);
+        if (currentPageMatch != null) {
+            openOwnListingAction(player, session, currentPageMatch);
+            return;
+        }
+
+        UUID accountId = astPlayer.getAccount().getUuid();
+        int returnPage = session.page;
+        session.busy = true;
+        session.screen = MarketScreen.LOADING;
+        marketGui.openLoading(player, session.sessionId);
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            List<MarketListing> candidates;
+            try {
+                candidates = marketService.findListings(new MarketListingQuery(
+                    accountId,
+                    entry.getItemCategory(),
+                    entry.getItemId(),
+                    "ACTIVE",
+                    null,
+                    null,
+                    "listed_desc",
+                    1,
+                    100
+                ));
+            } catch (RuntimeException failure) {
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (!isCurrentSession(player, session)) {
+                        return;
+                    }
+                    session.busy = false;
+                    sendMarketFailure(player, failure);
+                    openListings(player, true, returnPage);
+                });
+                return;
+            }
+            MarketListing matching = findMatchingActiveListing(candidates, entry);
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                if (!isCurrentSession(player, session)) {
+                    return;
+                }
+                session.busy = false;
+                if (matching == null) {
+                    GuiSound.DENY.play(player);
+                    openListings(player, true, returnPage);
+                    return;
+                }
+                openOwnListingAction(player, session, matching);
+            });
+        });
+    }
+
+    private @Nullable MarketListing findMatchingActiveListing(
+        @NotNull List<MarketListing> listings,
+        @NotNull InventoryEntryModel entry
+    ) {
+        for (MarketListing listing : listings) {
+            if (!listing.status().equalsIgnoreCase("ACTIVE")
+                || !sameText(listing.itemCategory(), entry.getItemCategory())
+                || !sameText(listing.itemId(), entry.getItemId())) {
+                continue;
+            }
+            if (listing.instanceId() == null && entry.getInstanceId() == null) {
+                return listing;
+            }
+            if (Objects.equals(listing.instanceId(), entry.getInstanceId())
+                && sameText(listing.instanceType(), entry.getInstanceType())) {
+                return listing;
+            }
+        }
+        return null;
+    }
+
+    private void openOwnListingAction(
+        @NotNull Player player,
+        @NotNull MarketSession session,
+        @NotNull MarketListing listing
+    ) {
+        if (isClaimable(listing)) {
+            claimProceeds(player, session, listing);
+            return;
+        }
+        if (!isCancelable(listing)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        session.selectedListing = listing;
+        session.screen = MarketScreen.CANCEL_CONFIRM;
+        marketGui.openCancelConfirm(player, session.sessionId, listing);
+        GuiSound.SELECT.play(player);
     }
 
     private void handleSellSelectClick(
@@ -267,20 +391,58 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         }
 
         boolean instanceListing = entry.getInstanceId() != null;
-        long maxQuantity = instanceListing ? 1L : entry.getQuantity();
-        if (maxQuantity < 1L) {
+        List<MarketListingSource> sourceEntries = new ArrayList<>();
+        long maxQuantity;
+        if (instanceListing) {
+            sourceEntries.add(new MarketListingSource(entry.getInventoryEntryId(), 1L));
+            maxQuantity = 1L;
+        } else {
+            List<InventoryEntryModel> matchingEntries = inventoryService.getOwnedStackEntries(
+                astPlayer,
+                entry.getItemCategory(),
+                entry.getItemId()
+            );
+            long total = 0L;
+            for (InventoryEntryModel sourceEntry : matchingEntries) {
+                if (sourceEntry.getInventoryEntryId().equals(entry.getInventoryEntryId())) {
+                    continue;
+                }
+                try {
+                    total = Math.addExact(total, sourceEntry.getQuantity());
+                } catch (ArithmeticException overflow) {
+                    messageService.send(player, PlayerMsgId.P_6304);
+                    GuiSound.DENY.play(player);
+                    return;
+                }
+                sourceEntries.add(new MarketListingSource(
+                    sourceEntry.getInventoryEntryId(),
+                    sourceEntry.getQuantity()
+                ));
+            }
+            try {
+                total = Math.addExact(total, entry.getQuantity());
+            } catch (ArithmeticException overflow) {
+                messageService.send(player, PlayerMsgId.P_6304);
+                GuiSound.DENY.play(player);
+                return;
+            }
+            sourceEntries.add(0, new MarketListingSource(entry.getInventoryEntryId(), entry.getQuantity()));
+            maxQuantity = total;
+        }
+        long minimumUnitPrice = minimumListingUnitPrice(item);
+        if (maxQuantity < 1L || sourceEntries.isEmpty() || minimumUnitPrice < 1L) {
             GuiSound.DENY.play(player);
             return;
         }
         session.draft = new MarketListingDraft(
             UUID.randomUUID(),
-            entry.getInventoryEntryId(),
+            sourceEntries,
             entry.getItemCategory(),
             entry.getItemId(),
             entry.getInstanceType(),
             entry.getInstanceId(),
             maxQuantity,
-            Math.max(1L, item.getSaleValue())
+            minimumUnitPrice
         );
         session.screen = MarketScreen.SELL_CONFIG;
         marketGui.openSellConfig(player, session.sessionId, session.draft);
@@ -344,17 +506,44 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             openListings(player, false, session.page);
             return;
         }
-        if (event.getRawSlot() != MarketGui.CONFIRM_SLOT || session.selectedListing == null) {
+        if (session.selectedListing == null) {
             GuiSound.DENY.play(player);
             return;
         }
         MarketListing listing = session.selectedListing;
-        if (goldAmount(player) < listing.totalPrice()) {
+        if (event.getRawSlot() == MarketGui.QUANTITY_DOWN_SLOT) {
+            adjustPurchaseQuantity(session, listing, -(event.isShiftClick() ? 16L : 1L));
+            marketGui.openPurchaseConfirm(player, session.sessionId, listing, session.purchaseQuantity, goldAmount(player));
+            GuiSound.SELECT.play(player);
+            return;
+        }
+        if (event.getRawSlot() == MarketGui.QUANTITY_UP_SLOT) {
+            adjustPurchaseQuantity(session, listing, event.isShiftClick() ? 16L : 1L);
+            marketGui.openPurchaseConfirm(player, session.sessionId, listing, session.purchaseQuantity, goldAmount(player));
+            GuiSound.SELECT.play(player);
+            return;
+        }
+        if (event.getRawSlot() != MarketGui.CONFIRM_SLOT) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (listing.sellerAccountId().equals(astPlayer.getAccount().getUuid())) {
+            messageService.send(player, PlayerMsgId.P_6309);
+            GuiSound.DENY.play(player);
+            return;
+        }
+        long totalPrice = selectedPurchaseTotal(listing, session.purchaseQuantity);
+        if (goldAmount(player) < totalPrice) {
             messageService.send(player, PlayerMsgId.P_6307);
             GuiSound.DENY.play(player);
             return;
         }
-        purchaseListing(player, session, listing);
+        purchaseListing(player, session, listing, session.purchaseQuantity);
     }
 
     private void handleCancelConfirmClick(
@@ -370,6 +559,12 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (event.getRawSlot() != MarketGui.CONFIRM_SLOT || session.selectedListing == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || !canReturnListingToInventory(astPlayer, session.selectedListing)) {
+            messageService.send(player, PlayerMsgId.P_6308);
             GuiSound.DENY.play(player);
             return;
         }
@@ -460,7 +655,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         inventorySaveCoordinator.executeExclusiveAfterSave(accountId, baseline -> {
             MarketListing listing = marketService.createListing(new MarketListingCreateRequest(
                 accountId,
-                draft.sourceInventoryEntryId(),
+                draft.selectedSources(),
                 draft.itemCategory(),
                 draft.itemId(),
                 draft.instanceType(),
@@ -471,7 +666,11 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                 null,
                 accountId
             ));
-            inventoryService.reconcileExternalInventoryEntries(accountId, List.of(draft.sourceInventoryEntryId()), baseline);
+            inventoryService.reconcileExternalInventoryEntries(
+                accountId,
+                draft.selectedSources().stream().map(MarketListingSource::inventoryEntryId).toList(),
+                baseline
+            );
             return listing;
         }).whenComplete((listing, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
             if (!isCurrentSession(player, session)) {
@@ -494,7 +693,8 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
     private void purchaseListing(
         @NotNull Player player,
         @NotNull MarketSession session,
-        @NotNull MarketListing listing
+        @NotNull MarketListing listing,
+        long purchaseQuantity
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || session.busy) {
@@ -508,6 +708,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         inventorySaveCoordinator.executeExclusiveAfterSave(accountId, baseline -> {
             MarketTransaction transaction = marketService.purchase(listing.listingId(), new MarketPurchaseRequest(
                 accountId,
+                purchaseQuantity,
                 UUID.randomUUID().toString(),
                 accountId
             ));
@@ -518,9 +719,6 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             );
             return transaction;
         }).whenComplete((transaction, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
-            if (throwable == null) {
-                synchronizeOnlineSellerProceeds(transaction);
-            }
             if (!isCurrentSession(player, session)) {
                 return;
             }
@@ -530,7 +728,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                 openListings(player, false, session.page);
                 return;
             }
-            messageService.send(player, PlayerMsgId.P_6302);
+            messageService.send(player, PlayerMsgId.P_6302, transaction.totalPrice());
             GuiSound.SUCCESS.play(player);
             openListings(player, false, session.page);
         }));
@@ -542,7 +740,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         @NotNull MarketListing listing
     ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || session.busy || listing.sourceInventoryEntryId() == null) {
+        if (astPlayer == null || session.busy) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -551,6 +749,9 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         session.screen = MarketScreen.LOADING;
         marketGui.openLoading(player, session.sessionId);
         inventorySaveCoordinator.executeExclusiveAfterSave(accountId, baseline -> {
+            if (!canReturnListingToInventory(astPlayer, listing)) {
+                return CancelListingResult.capacityFailure();
+            }
             MarketListing canceled = marketService.cancel(listing.listingId(), new MarketCancelRequest(
                 accountId,
                 "player_cancel",
@@ -558,11 +759,13 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             ));
             inventoryService.reconcileExternalInventoryEntries(
                 accountId,
-                List.of(listing.sourceInventoryEntryId()),
+                canceled.sourceInventoryEntryIds().isEmpty()
+                    ? legacySourceEntryIds(listing)
+                    : canceled.sourceInventoryEntryIds(),
                 baseline
             );
-            return canceled;
-        }).whenComplete((canceled, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
+            return CancelListingResult.completed();
+        }).whenComplete((result, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
             if (!isCurrentSession(player, session)) {
                 return;
             }
@@ -572,7 +775,57 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                 openListings(player, true, session.page);
                 return;
             }
+            if (result.inventoryCapacityInsufficient()) {
+                messageService.send(player, PlayerMsgId.P_6308);
+                GuiSound.DENY.play(player);
+                openListings(player, true, session.page);
+                return;
+            }
             messageService.send(player, PlayerMsgId.P_6301);
+            GuiSound.SUCCESS.play(player);
+            openListings(player, true, session.page);
+        }));
+    }
+
+    /** 売却済み出品をクリックして、売上を受け取り出品枠を解放します。 */
+    private void claimProceeds(
+        @NotNull Player player,
+        @NotNull MarketSession session,
+        @NotNull MarketListing listing
+    ) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || session.busy || !isClaimable(listing)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        UUID accountId = astPlayer.getAccount().getUuid();
+        MarketProceedsClaimRequest request = new MarketProceedsClaimRequest(
+            accountId,
+            proceedsClaimIdempotencyKey(listing.listingId()),
+            accountId
+        );
+        session.busy = true;
+        session.screen = MarketScreen.LOADING;
+        marketGui.openLoading(player, session.sessionId);
+        inventorySaveCoordinator.executeExclusiveAfterSave(accountId, baseline -> {
+            MarketProceedsClaim claim = claimProceedsWithReplay(listing.listingId(), request);
+            inventoryService.reconcileExternalInventoryEntries(
+                accountId,
+                claim.affectedInventoryEntryIds(),
+                baseline
+            );
+            return claim;
+        }).whenComplete((claim, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!isCurrentSession(player, session)) {
+                return;
+            }
+            session.busy = false;
+            if (throwable != null) {
+                sendMarketFailure(player, throwable);
+                openListings(player, true, session.page);
+                return;
+            }
+            messageService.send(player, PlayerMsgId.P_6303);
             GuiSound.SUCCESS.play(player);
             openListings(player, true, session.page);
         }));
@@ -603,6 +856,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         session.ownListings = ownListings;
         session.page = Math.max(1, page);
         session.selectedListing = null;
+        session.purchaseQuantity = 1L;
         marketGui.openLoading(player, session.sessionId);
 
         UUID accountId = astPlayer.getAccount().getUuid();
@@ -710,6 +964,93 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         return listing.status().equalsIgnoreCase("ACTIVE") || listing.status().equalsIgnoreCase("SUSPENDED");
     }
 
+    private boolean isClaimable(@NotNull MarketListing listing) {
+        return listing.status().equalsIgnoreCase("SOLD") && listing.pendingProceeds() > 0L;
+    }
+
+    private @NotNull List<UUID> legacySourceEntryIds(@NotNull MarketListing listing) {
+        return listing.sourceInventoryEntryId() == null ? List.of() : List.of(listing.sourceInventoryEntryId());
+    }
+
+    private boolean canReturnListingToInventory(
+        @NotNull AstPlayer astPlayer,
+        @NotNull MarketListing listing
+    ) {
+        if (listing.remainingQuantity() < 1L || listing.remainingQuantity() > Integer.MAX_VALUE) {
+            return false;
+        }
+        ItemModel model = itemService.findLoadedById(listing.itemId());
+        return model != null && inventoryService.canAddItemToNormalInventory(
+            astPlayer,
+            model,
+            (int) listing.remainingQuantity()
+        );
+    }
+
+    private long minimumListingUnitPrice(@NotNull ItemModel item) {
+        if (item.getSaleValue() == Long.MAX_VALUE) {
+            return 0L;
+        }
+        return Math.max(1L, item.getSaleValue() + 1L);
+    }
+
+    /**
+     * 応答喪失の可能性がある売上受取を、同じ冪等キーで一度だけ再送します。
+     * <p>
+     * API は受取済み出品の receipt を同じキーで再生するため、最初の要求が確定済みでも
+     * Gold を二重加算せず、通貨 entry の正本再同期を完了できます。
+     *
+     * @param listingId 売上受取対象の出品 ID
+     * @param request 再送時にも同じキーを使うリクエスト
+     * @return API が確定した売上受取結果
+     */
+    private @NotNull MarketProceedsClaim claimProceedsWithReplay(
+        @NotNull UUID listingId,
+        @NotNull MarketProceedsClaimRequest request
+    ) {
+        try {
+            return marketService.claimProceeds(listingId, request);
+        } catch (RuntimeException firstFailure) {
+            try {
+                return marketService.claimProceeds(listingId, request);
+            } catch (RuntimeException retryFailure) {
+                retryFailure.addSuppressed(firstFailure);
+                throw retryFailure;
+            }
+        }
+    }
+
+    private @NotNull String proceedsClaimIdempotencyKey(@NotNull UUID listingId) {
+        return "market-proceeds-claim-" + listingId;
+    }
+
+    private void adjustPurchaseQuantity(
+        @NotNull MarketSession session,
+        @NotNull MarketListing listing,
+        long delta
+    ) {
+        long current = Math.max(1L, Math.min(session.purchaseQuantity, listing.remainingQuantity()));
+        long next;
+        try {
+            next = Math.addExact(current, delta);
+        } catch (ArithmeticException overflow) {
+            next = delta < 0L ? 1L : listing.remainingQuantity();
+        }
+        session.purchaseQuantity = Math.max(1L, Math.min(next, listing.remainingQuantity()));
+    }
+
+    private long selectedPurchaseTotal(@NotNull MarketListing listing, long quantity) {
+        long safeQuantity = Math.max(1L, Math.min(quantity, listing.remainingQuantity()));
+        if (listing.unitPrice() < 1L || listing.unitPrice() > Long.MAX_VALUE / safeQuantity) {
+            return Long.MAX_VALUE;
+        }
+        return listing.unitPrice() * safeQuantity;
+    }
+
+    private boolean sameText(@Nullable String left, @Nullable String right) {
+        return left != null && right != null && left.equalsIgnoreCase(right);
+    }
+
     private void adjustDraftQuantity(@NotNull MarketListingDraft draft, long delta) {
         long next;
         try {
@@ -741,39 +1082,6 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         return astPlayer == null ? 0L : currencyService.getGoldAmount(astPlayer.getAccount().getUuid());
     }
 
-    /**
-     * オンライン出品者の API 確定済み通貨を非同期で正本へ合わせます。
-     *
-     * @param transaction 購入 API が確定した取引
-     */
-    private void synchronizeOnlineSellerProceeds(@NotNull MarketTransaction transaction) {
-        for (AstPlayer seller : AstPlayerCache.getAll()) {
-            if (!seller.getAccount().getUuid().equals(transaction.sellerAccountId())) {
-                continue;
-            }
-            UUID sellerAccountId = seller.getAccount().getUuid();
-            UUID sellerPlayerId = seller.getBukkit().getUniqueId();
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-                try {
-                    if (!inventoryService.refreshAuthoritativeCurrencyEntries(sellerAccountId)) {
-                        return;
-                    }
-                } catch (RuntimeException failure) {
-                    Logger.warn(LogId.W_5252, sellerAccountId, failure.getMessage());
-                    return;
-                }
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    AstPlayer currentSeller = AstPlayerCache.get(sellerPlayerId);
-                    if (currentSeller != null
-                        && currentSeller.getAccount().getUuid().equals(sellerAccountId)) {
-                        messageService.send(currentSeller, PlayerMsgId.P_6303);
-                    }
-                });
-            });
-            return;
-        }
-    }
-
     private void sendMarketFailure(@NotNull Player player, @NotNull Throwable throwable) {
         Throwable cause = throwable;
         while (cause.getCause() != null && cause.getCause() != cause) {
@@ -782,6 +1090,8 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         String message = cause.getMessage();
         if (message != null && message.contains("market.insufficient_gold")) {
             messageService.send(player, PlayerMsgId.P_6307);
+        } else if (message != null && message.contains("market.self_purchase")) {
+            messageService.send(player, PlayerMsgId.P_6309);
         } else if (message != null && message.contains("listing_slot_limit")) {
             messageService.send(player, PlayerMsgId.P_6306);
         } else {
@@ -801,5 +1111,17 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         private @Nullable MarketAccountSummary summary;
         private @Nullable MarketListing selectedListing;
         private @Nullable MarketListingDraft draft;
+        private long purchaseQuantity = 1L;
+    }
+
+    /** 取消の保存 lane で確認した容量不足を、外部 API 未呼出の正常完了として返します。 */
+    private record CancelListingResult(boolean inventoryCapacityInsufficient) {
+        private static @NotNull CancelListingResult capacityFailure() {
+            return new CancelListingResult(true);
+        }
+
+        private static @NotNull CancelListingResult completed() {
+            return new CancelListingResult(false);
+        }
     }
 }

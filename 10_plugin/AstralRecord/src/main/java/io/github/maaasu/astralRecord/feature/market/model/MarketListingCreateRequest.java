@@ -3,11 +3,12 @@ package io.github.maaasu.astralRecord.feature.market.model;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 public record MarketListingCreateRequest(
     UUID sellerAccountId,
-    @Nullable UUID sourceInventoryEntryId,
+    List<MarketListingSource> sourceEntries,
     String itemCategory,
     String itemId,
     @Nullable String instanceType,
@@ -18,4 +19,7 @@ public record MarketListingCreateRequest(
     @Nullable Instant expiresAt,
     UUID createdBy
 ) {
+    public MarketListingCreateRequest {
+        sourceEntries = List.copyOf(sourceEntries);
+    }
 }

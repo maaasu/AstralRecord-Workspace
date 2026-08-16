@@ -2117,6 +2117,54 @@ public class InventoryService {
     }
 
     /**
+     * BAG と HOTBAR にある同一スタック品の正本 entry を返します。
+     * マーケットの複数スタック出品では、クリックした stack だけでなくこの一覧全体を
+     * escrow 候補として扱います。個体品・削除済み entry は含めません。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param itemCategory アイテムカテゴリ
+     * @param itemId アイテムID
+     * @return 出品候補となる通常 stack entry。state 未ロード時は空
+     */
+    public @NotNull List<InventoryEntryModel> getOwnedStackEntries(
+        @NotNull AstPlayer astPlayer,
+        @NotNull String itemCategory,
+        @NotNull String itemId
+    ) {
+        String normalizedCategory = itemCategory.trim();
+        String normalizedItemId = itemId.trim();
+        if (normalizedCategory.isBlank() || normalizedItemId.isBlank()) {
+            return List.of();
+        }
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return List.of();
+        }
+        synchronized (state) {
+            List<InventoryEntryModel> result = new ArrayList<>();
+            for (InventoryType type : List.of(InventoryType.BAG, InventoryType.HOTBAR)) {
+                InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, type);
+                if (inventory == null || !inventory.isEnabled() || inventory.isDeleted()) {
+                    continue;
+                }
+                state.snapshotEntries(inventory.getInventoryId()).stream()
+                    .filter(entry -> !entry.isDeleted())
+                    .filter(entry -> entry.getQuantity() > 0L)
+                    .filter(entry -> entry.getInstanceId() == null
+                        && (entry.getInstanceType() == null || entry.getInstanceType().isBlank()))
+                    .filter(entry -> normalizedCategory.equalsIgnoreCase(entry.getItemCategory()))
+                    .filter(entry -> normalizedItemId.equalsIgnoreCase(entry.getItemId()))
+                    .sorted(Comparator
+                        .comparing((InventoryEntryModel entry) ->
+                            entry.getSlotIndex() == null ? Integer.MAX_VALUE : entry.getSlotIndex())
+                        .thenComparing(InventoryEntryModel::getInventoryEntryId))
+                    .forEach(result::add);
+            }
+            return List.copyOf(result);
+        }
+    }
+
+    /**
      * BAG または HOTBAR にある、指定アカウント所有の entry を ID で取得します。
      * GUI 表示 ItemStack ではなく state 正本を再検証するための読み取り API です。
      *

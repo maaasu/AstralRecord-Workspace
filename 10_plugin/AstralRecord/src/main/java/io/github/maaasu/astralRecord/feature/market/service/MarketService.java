@@ -7,6 +7,8 @@ import io.github.maaasu.astralRecord.feature.market.model.MarketListingCreateReq
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingQuery;
 import io.github.maaasu.astralRecord.feature.market.model.MarketPriceQuote;
 import io.github.maaasu.astralRecord.feature.market.model.MarketPriceQuoteRequest;
+import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaim;
+import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaimRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketPurchaseRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketTransaction;
 import io.github.maaasu.astralRecord.feature.market.repository.MarketRepository;
@@ -97,6 +99,20 @@ public class MarketService {
      */
     public @NotNull MarketListing cancel(@NotNull UUID listingId, @NotNull MarketCancelRequest request) {
         return repository.cancel(listingId, request);
+    }
+
+    /**
+     * 売却済み出品の売上を受け取り、出品枠を解放します。
+     *
+     * @param listingId 受取対象の出品 ID
+     * @param request 出品者・再送用冪等キー・更新者
+     * @return 受取金額と再同期対象の通貨 entry
+     */
+    public @NotNull MarketProceedsClaim claimProceeds(
+        @NotNull UUID listingId,
+        @NotNull MarketProceedsClaimRequest request
+    ) {
+        return repository.claimProceeds(listingId, request);
     }
 
     /**

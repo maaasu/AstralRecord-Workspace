@@ -11,6 +11,7 @@ public class MarketListingEntity
     public string? InstanceType { get; set; }
     public Guid? InstanceId { get; set; }
     public long Quantity { get; set; }
+    public long RemainingQuantity { get; set; }
     public string CurrencyId { get; set; } = string.Empty;
     public long UnitPrice { get; set; }
     public long TotalPrice { get; set; }
@@ -26,6 +27,14 @@ public class MarketListingEntity
     public DateTime ExpiresAt { get; set; }
     public DateTime? SoldAt { get; set; }
     public DateTime? CanceledAt { get; set; }
+    /// <summary>売上受取を再送するための確定済み idempotency key です。</summary>
+    public string? ProceedsClaimIdempotencyKey { get; set; }
+    /// <summary>確定済み売上受取額です。</summary>
+    public long? ProceedsClaimAmount { get; set; }
+    /// <summary>確定済み売上受取で更新した通貨 entry ID の JSON 配列です。</summary>
+    public string? ProceedsClaimAffectedInventoryEntryIdsJson { get; set; }
+    /// <summary>売上受取を確定した日時です。</summary>
+    public DateTime? ProceedsClaimedAt { get; set; }
     public int Version { get; set; } = 1;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
