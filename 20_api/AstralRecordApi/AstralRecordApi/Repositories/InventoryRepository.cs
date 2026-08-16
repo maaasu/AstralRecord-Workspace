@@ -129,10 +129,19 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
 
     public async Task<InventoryEntryResponse?> CreateEntryAsync(Guid inventoryId, InventoryEntryCreateRequest request)
     {
-        var inventoryExists = await dbContext.Inventories
-            .AnyAsync(x => x.InventoryId == inventoryId && !x.IsDeleted);
+        var inventory = await dbContext.Inventories
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.InventoryId == inventoryId && !x.IsDeleted);
 
-        if (!inventoryExists)
+        if (inventory is null)
+            return null;
+
+        var itemId = await ResolveEntryItemIdAsync(
+            request.ItemId,
+            request.InstanceType,
+            request.InstanceId,
+            inventory.AccountId);
+        if (itemId is null)
             return null;
 
         var now = DateTime.UtcNow;
@@ -142,7 +151,7 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
             InventoryId = inventoryId,
             SlotIndex = request.SlotIndex,
             ItemCategory = request.ItemCategory,
-            ItemId = request.ItemId,
+            ItemId = itemId,
             InstanceType = request.InstanceType,
             InstanceId = request.InstanceId,
             Quantity = request.Quantity,
@@ -168,9 +177,24 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
         if (entity is null)
             return null;
 
+        var ownerAccountId = await dbContext.Inventories
+            .Where(inventory => inventory.InventoryId == entity.InventoryId && !inventory.IsDeleted)
+            .Select(inventory => (Guid?)inventory.AccountId)
+            .FirstOrDefaultAsync();
+        if (!ownerAccountId.HasValue)
+            return null;
+
+        var itemId = await ResolveEntryItemIdAsync(
+            request.ItemId,
+            request.InstanceType,
+            request.InstanceId,
+            ownerAccountId.Value);
+        if (itemId is null)
+            return null;
+
         entity.SlotIndex = request.SlotIndex;
         entity.ItemCategory = request.ItemCategory;
-        entity.ItemId = request.ItemId;
+        entity.ItemId = itemId;
         entity.InstanceType = request.InstanceType;
         entity.InstanceId = request.InstanceId;
         entity.Quantity = request.Quantity;
@@ -201,6 +225,18 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
 
             if (inventory is null)
                 return null;
+
+            var resolvedItemIds = new List<string?>(request.Entries.Count);
+            foreach (var requested in request.Entries) {
+                var itemId = await ResolveEntryItemIdAsync(
+                    requested.ItemId,
+                    requested.InstanceType,
+                    requested.InstanceId,
+                    inventory.AccountId);
+                if (itemId is null)
+                    return null;
+                resolvedItemIds.Add(itemId);
+            }
 
             var requestedIds = request.Entries
                 .Where(entry => entry.InventoryEntryId.HasValue)
@@ -260,8 +296,9 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
                 await dbContext.SaveChangesAsync();
 
             var nextEntries = new List<InventoryEntryEntity>(request.Entries.Count);
-            foreach (var entry in request.Entries)
+            for (var entryIndex = 0; entryIndex < request.Entries.Count; entryIndex++)
             {
+                var entry = request.Entries[entryIndex];
                 InventoryEntryEntity entity;
                 if (entry.InventoryEntryId.HasValue
                     && knownEntries.TryGetValue(entry.InventoryEntryId.Value, out var known))
@@ -282,7 +319,7 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
                 entity.InventoryId = inventoryId;
                 entity.SlotIndex = entry.SlotIndex;
                 entity.ItemCategory = entry.ItemCategory;
-                entity.ItemId = entry.ItemId;
+                entity.ItemId = resolvedItemIds[entryIndex];
                 entity.InstanceType = entry.InstanceType;
                 entity.InstanceId = entry.InstanceId;
                 entity.Quantity = entry.Quantity;
@@ -319,6 +356,75 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
 
         await dbContext.SaveChangesAsync();
         return true;
+    }
+
+    public async Task<int> RepairEquipmentEntryItemIdsAsync(Guid accountId)
+    {
+        var candidates = await (
+            from entry in dbContext.InventoryEntries
+            join inventory in dbContext.Inventories on entry.InventoryId equals inventory.InventoryId
+            join equipment in dbContext.EquipmentInstances on entry.InstanceId equals (Guid?)equipment.EquipmentInstanceId
+            where !entry.IsDeleted
+                && !inventory.IsDeleted
+                && !equipment.IsDeleted
+                && inventory.AccountId == accountId
+                && equipment.AccountId == accountId
+                && entry.ItemCategory == "equipment"
+                && entry.InstanceType == "EQUIPMENT"
+                && entry.Quantity == 1L
+                && string.IsNullOrWhiteSpace(entry.ItemId)
+                && !string.IsNullOrWhiteSpace(equipment.ItemId)
+            select new { Entry = entry, EquipmentItemId = equipment.ItemId }
+        ).ToListAsync();
+
+        if (candidates.Count == 0)
+            return 0;
+
+        var now = DateTime.UtcNow;
+        foreach (var candidate in candidates)
+        {
+            candidate.Entry.ItemId = candidate.EquipmentItemId;
+            candidate.Entry.UpdatedAt = now;
+            candidate.Entry.UpdatedBy = accountId;
+        }
+
+        await dbContext.SaveChangesAsync();
+        return candidates.Count;
+    }
+
+    private async Task<string?> ResolveEntryItemIdAsync(
+        string? requestedItemId,
+        string? instanceType,
+        Guid? instanceId,
+        Guid ownerAccountId)
+    {
+        if (string.IsNullOrWhiteSpace(instanceType) || !instanceId.HasValue)
+            return requestedItemId;
+
+        var normalizedInstanceType = instanceType.Trim();
+        string? authoritativeItemId = normalizedInstanceType.ToUpperInvariant() switch
+        {
+            "EQUIPMENT" => await dbContext.EquipmentInstances
+                .Where(instance => instance.EquipmentInstanceId == instanceId.Value
+                    && instance.AccountId == ownerAccountId
+                    && !instance.IsDeleted)
+                .Select(instance => instance.ItemId)
+                .FirstOrDefaultAsync(),
+            "RUNE" => await dbContext.RuneInstances
+                .Where(instance => instance.RuneInstanceId == instanceId.Value
+                    && instance.AccountId == ownerAccountId
+                    && !instance.IsDeleted)
+                .Select(instance => instance.ItemId)
+                .FirstOrDefaultAsync(),
+            _ => null,
+        };
+        if (string.IsNullOrWhiteSpace(authoritativeItemId))
+            return null;
+
+        return string.IsNullOrWhiteSpace(requestedItemId)
+            || string.Equals(requestedItemId, authoritativeItemId, StringComparison.OrdinalIgnoreCase)
+            ? authoritativeItemId
+            : null;
     }
 
     private static InventoryResponse MapInventory(InventoryEntity entity) => new()

@@ -47,7 +47,6 @@ import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -80,8 +79,33 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         @NotNull PlayerMessageService messageService,
         @NotNull GoldAmountSettingGui goldAmountSettingGui
     ) {
+        this(
+            plugin,
+            itemService,
+            new MarketGui(itemService, itemStackFactory),
+            marketService,
+            inventoryService,
+            inventorySaveCoordinator,
+            currencyService,
+            messageService,
+            goldAmountSettingGui
+        );
+    }
+
+    /** GUI を差し替えてイベント callback を検証するための package-private 構築子です。 */
+    MarketGuiEventHandler(
+        @NotNull AstralRecord plugin,
+        @NotNull ItemService itemService,
+        @NotNull MarketGui marketGui,
+        @NotNull MarketService marketService,
+        @NotNull InventoryService inventoryService,
+        @NotNull InventorySaveCoordinator inventorySaveCoordinator,
+        @NotNull CurrencyService currencyService,
+        @NotNull PlayerMessageService messageService,
+        @NotNull GoldAmountSettingGui goldAmountSettingGui
+    ) {
         this.plugin = plugin;
-        this.marketGui = new MarketGui(itemService, itemStackFactory);
+        this.marketGui = marketGui;
         this.marketService = marketService;
         this.itemService = itemService;
         this.inventoryService = inventoryService;
@@ -168,10 +192,9 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         @NotNull MarketSession session
     ) {
         if (session.ownListings && event.getClickedInventory() instanceof PlayerInventory) {
-            if (HotbarShortcutClickSupport.handleInventoryControlClick(event, player, inventoryService)) {
-                return;
-            }
-            selectOwnListingFromInventoryClick(event, player, session);
+            // 下部所持品は出品枠ではないため取り下げ対象にしない。共通ホットバー操作を先に処理し、
+            // それ以外は出品候補選択と同じ処理へ委譲する。
+            handleSellSelectClick(event, player, session);
             return;
         }
         if (handleHotbarShortcutClick(event, player)) {
@@ -242,98 +265,6 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             }
             default -> GuiSound.DENY.play(player);
         }
-    }
-
-    /**
-     * 自分の出品画面で所持品をクリックしたとき、同じアイテムの公開中出品を自動選択します。
-     * 現在ページにない出品も対象にするため、必要時だけ API から対象アイテムの公開中出品を取得します。
-     */
-    private void selectOwnListingFromInventoryClick(
-        @NotNull InventoryClickEvent event,
-        @NotNull Player player,
-        @NotNull MarketSession session
-    ) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || session.busy) {
-            GuiSound.DENY.play(player);
-            return;
-        }
-        InventoryEntryModel entry = inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, event.getSlot());
-        if (entry == null) {
-            GuiSound.DENY.play(player);
-            return;
-        }
-        MarketListing currentPageMatch = findMatchingActiveListing(session.listings, entry);
-        if (currentPageMatch != null) {
-            openOwnListingAction(player, session, currentPageMatch);
-            return;
-        }
-
-        UUID accountId = astPlayer.getAccount().getUuid();
-        int returnPage = session.page;
-        session.busy = true;
-        session.screen = MarketScreen.LOADING;
-        marketGui.openLoading(player, session.sessionId);
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            List<MarketListing> candidates;
-            try {
-                candidates = marketService.findListings(new MarketListingQuery(
-                    accountId,
-                    entry.getItemCategory(),
-                    entry.getItemId(),
-                    "ACTIVE",
-                    null,
-                    null,
-                    "listed_desc",
-                    1,
-                    100
-                ));
-            } catch (RuntimeException failure) {
-                Bukkit.getScheduler().runTask(plugin, () -> {
-                    if (!isCurrentSession(player, session)) {
-                        return;
-                    }
-                    session.busy = false;
-                    sendMarketFailure(player, failure);
-                    openListings(player, true, returnPage);
-                });
-                return;
-            }
-            MarketListing matching = findMatchingActiveListing(candidates, entry);
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if (!isCurrentSession(player, session)) {
-                    return;
-                }
-                session.busy = false;
-                if (matching == null) {
-                    GuiSound.DENY.play(player);
-                    openListings(player, true, returnPage);
-                    return;
-                }
-                openOwnListingAction(player, session, matching);
-            });
-        });
-    }
-
-    private @Nullable MarketListing findMatchingActiveListing(
-        @NotNull List<MarketListing> listings,
-        @NotNull InventoryEntryModel entry
-    ) {
-        for (MarketListing listing : listings) {
-            if (!listing.status().equalsIgnoreCase("ACTIVE")
-                || !sameText(listing.itemCategory(), entry.getItemCategory())
-                || !sameText(listing.itemId(), entry.getItemId())) {
-                continue;
-            }
-            if (listing.instanceId() == null && entry.getInstanceId() == null) {
-                return listing;
-            }
-            if (Objects.equals(listing.instanceId(), entry.getInstanceId())
-                && sameText(listing.instanceType(), entry.getInstanceType())) {
-                return listing;
-            }
-        }
-        return null;
     }
 
     private void openOwnListingAction(
@@ -673,6 +604,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             );
             return listing;
         }).whenComplete((listing, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
+            refreshInventoryUiAfterMarketMutation(player, throwable);
             if (!isCurrentSession(player, session)) {
                 return;
             }
@@ -719,6 +651,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             );
             return transaction;
         }).whenComplete((transaction, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
+            refreshInventoryUiAfterMarketMutation(player, throwable);
             if (!isCurrentSession(player, session)) {
                 return;
             }
@@ -766,6 +699,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             );
             return CancelListingResult.completed();
         }).whenComplete((result, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
+            refreshInventoryUiAfterMarketMutation(player, throwable);
             if (!isCurrentSession(player, session)) {
                 return;
             }
@@ -816,6 +750,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             );
             return claim;
         }).whenComplete((claim, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
+            refreshInventoryUiAfterMarketMutation(player, throwable);
             if (!isCurrentSession(player, session)) {
                 return;
             }
@@ -960,6 +895,25 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         return HotbarShortcutClickSupport.handle(event, player, inventoryService);
     }
 
+    /**
+     * API 正本の再同期に成功したマーケット確定操作後、メインスレッドでプレイヤー所持品の表示を更新します。
+     *
+     * @param player 操作プレイヤー
+     * @param throwable 非 null の場合は同期まで完了していないため表示を変更しない
+     */
+    private void refreshInventoryUiAfterMarketMutation(
+        @NotNull Player player,
+        @Nullable Throwable throwable
+    ) {
+        if (throwable != null || !player.isOnline()) {
+            return;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null) {
+            inventoryService.refreshManagedInventoryUi(astPlayer);
+        }
+    }
+
     private boolean isCancelable(@NotNull MarketListing listing) {
         return listing.status().equalsIgnoreCase("ACTIVE") || listing.status().equalsIgnoreCase("SUSPENDED");
     }
@@ -1045,10 +999,6 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             return Long.MAX_VALUE;
         }
         return listing.unitPrice() * safeQuantity;
-    }
-
-    private boolean sameText(@Nullable String left, @Nullable String right) {
-        return left != null && right != null && left.equalsIgnoreCase(right);
     }
 
     private void adjustDraftQuantity(@NotNull MarketListingDraft draft, long delta) {

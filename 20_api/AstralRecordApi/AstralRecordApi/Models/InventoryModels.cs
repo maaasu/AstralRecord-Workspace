@@ -96,3 +96,8 @@ public class InventoryEntryResponse
     public Guid UpdatedBy { get; init; }
     public bool IsDeleted { get; init; }
 }
+
+public class InventoryEquipmentEntryItemIdRepairResponse
+{
+    public int RepairedEntryCount { get; init; }
+}

@@ -72,6 +72,36 @@ class InventoryRepository {
         return sendGetSingle(path, ::parseInventoryEntryModel)
     }
 
+    /**
+     * 指定アカウントの装備 entry に欠損している itemId を API 正本から補正します。
+     *
+     * @param accountId 補正対象アカウント
+     * @return 補正した entry 件数
+     */
+    fun repairEquipmentEntryItemIds(accountId: UUID): Int {
+        val path = "/api/inventory/accounts/$accountId/repair-equipment-entry-item-ids"
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .POST(HttpRequest.BodyPublishers.noBody())
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                return when (response.statusCode()) {
+                    200 -> JsonParser.parseString(response.body()).asJsonObject
+                        .get("repairedEntryCount")
+                        .asInt
+                    404 -> 0
+                    else -> throw IOException(
+                        "Unexpected status ${response.statusCode()} for POST $path: ${response.body()}"
+                    )
+                }
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw RuntimeException(e)
+        }
+    }
+
     fun createEntry(
         inventoryId: UUID,
         draft: InventoryEntryDraft,

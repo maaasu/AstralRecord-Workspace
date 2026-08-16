@@ -262,6 +262,107 @@ public class InventoryRepositoryTests
         Assert.False(persisted.IsDeleted);
     }
 
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.03-更新系.md
+    /// 検証契約: 所有装備個体の itemId と一致する値だけを個体 entry に保存し、任意の itemId にすり替えられない。
+    /// </summary>
+    [Fact]
+    public async Task CreateEntryAsync_UsesAuthoritativeEquipmentItemIdAndRejectsMismatch()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var dbContext = new AstralRecordDbContext(options);
+        await CreateSchemaAsync(dbContext);
+
+        var accountId = Guid.NewGuid();
+        var inventoryId = Guid.NewGuid();
+        var equipmentId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        dbContext.Inventories.Add(CreateInventory(inventoryId, accountId, now));
+        dbContext.EquipmentInstances.Add(new EquipmentInstanceEntity
+        {
+            EquipmentInstanceId = equipmentId,
+            AccountId = accountId,
+            ItemId = "iron_sword",
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = accountId,
+            UpdatedBy = accountId,
+        });
+        await dbContext.SaveChangesAsync();
+
+        var repository = new InventoryRepository(dbContext);
+        var created = await repository.CreateEntryAsync(inventoryId, new InventoryEntryCreateRequest
+        {
+            ItemCategory = "EQUIPMENT",
+            ItemId = "iron_sword",
+            InstanceType = "EQUIPMENT",
+            InstanceId = equipmentId,
+            Quantity = 1,
+            CreatedBy = accountId,
+        });
+        var rejected = await repository.CreateEntryAsync(inventoryId, new InventoryEntryCreateRequest
+        {
+            ItemCategory = "EQUIPMENT",
+            ItemId = "diamond_sword",
+            InstanceType = "EQUIPMENT",
+            InstanceId = equipmentId,
+            Quantity = 1,
+            CreatedBy = accountId,
+        });
+
+        Assert.NotNull(created);
+        Assert.Equal("iron_sword", created.ItemId);
+        Assert.Null(rejected);
+    }
+
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/13-inventory/3-エンドポイント仕様/13_3.03-更新系.md
+    /// 検証契約: 既存データ補正は同一account所有、EQUIPMENT、数量1、空itemIdの entry だけを更新する。
+    /// </summary>
+    [Fact]
+    public async Task RepairEquipmentEntryItemIdsAsync_RepairsOnlyEligibleOwnedEntries()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var dbContext = new AstralRecordDbContext(options);
+        await CreateSchemaAsync(dbContext);
+
+        var accountId = Guid.NewGuid();
+        var otherAccountId = Guid.NewGuid();
+        var inventoryId = Guid.NewGuid();
+        var otherInventoryId = Guid.NewGuid();
+        var equipmentId = Guid.NewGuid();
+        var otherEquipmentId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        dbContext.Inventories.AddRange(
+            CreateInventory(inventoryId, accountId, now),
+            CreateInventory(otherInventoryId, otherAccountId, now));
+        dbContext.EquipmentInstances.AddRange(
+            CreateEquipment(equipmentId, accountId, "iron_sword", now),
+            CreateEquipment(otherEquipmentId, otherAccountId, "diamond_sword", now));
+        var eligible = CreateEquipmentEntry(Guid.NewGuid(), inventoryId, null, equipmentId, null, 1, accountId, now);
+        var nonEmpty = CreateEquipmentEntry(Guid.NewGuid(), inventoryId, null, equipmentId, "kept", 1, accountId, now);
+        var wrongQuantity = CreateEquipmentEntry(Guid.NewGuid(), inventoryId, null, equipmentId, null, 2, accountId, now);
+        var otherOwner = CreateEquipmentEntry(Guid.NewGuid(), otherInventoryId, null, otherEquipmentId, null, 1, otherAccountId, now);
+        dbContext.InventoryEntries.AddRange(eligible, nonEmpty, wrongQuantity, otherOwner);
+        await dbContext.SaveChangesAsync();
+
+        var repaired = await new InventoryRepository(dbContext).RepairEquipmentEntryItemIdsAsync(accountId);
+
+        Assert.Equal(1, repaired);
+        Assert.Equal("iron_sword", eligible.ItemId);
+        Assert.Equal("kept", nonEmpty.ItemId);
+        Assert.Null(wrongQuantity.ItemId);
+        Assert.Null(otherOwner.ItemId);
+    }
+
     private static InventoryEntity CreateInventory(Guid inventoryId, Guid accountId, DateTime now) => new()
     {
         InventoryId = inventoryId,
@@ -278,7 +379,7 @@ public class InventoryRepositoryTests
     private static InventoryEntryEntity CreateEntry(
         Guid entryId,
         Guid inventoryId,
-        int slotIndex,
+        int? slotIndex,
         string itemId,
         Guid accountId,
         DateTime now) => new()
@@ -289,6 +390,45 @@ public class InventoryRepositoryTests
         ItemCategory = "material",
         ItemId = itemId,
         Quantity = 1,
+        CreatedAt = now,
+        UpdatedAt = now,
+        CreatedBy = accountId,
+        UpdatedBy = accountId,
+    };
+
+    private static EquipmentInstanceEntity CreateEquipment(
+        Guid equipmentId,
+        Guid accountId,
+        string itemId,
+        DateTime now) => new()
+    {
+        EquipmentInstanceId = equipmentId,
+        AccountId = accountId,
+        ItemId = itemId,
+        CreatedAt = now,
+        UpdatedAt = now,
+        CreatedBy = accountId,
+        UpdatedBy = accountId,
+    };
+
+    private static InventoryEntryEntity CreateEquipmentEntry(
+        Guid entryId,
+        Guid inventoryId,
+        int? slotIndex,
+        Guid equipmentId,
+        string? itemId,
+        long quantity,
+        Guid accountId,
+        DateTime now) => new()
+    {
+        InventoryEntryId = entryId,
+        InventoryId = inventoryId,
+        SlotIndex = slotIndex,
+        ItemCategory = "equipment",
+        ItemId = itemId,
+        InstanceType = "EQUIPMENT",
+        InstanceId = equipmentId,
+        Quantity = quantity,
         CreatedAt = now,
         UpdatedAt = now,
         CreatedBy = accountId,
@@ -333,5 +473,33 @@ public class InventoryRepositoryTests
             CREATE UNIQUE INDEX ux_inventory_entry_slot_active
                 ON inventory_entry (inventory_id, slot_index)
                 WHERE is_deleted = 0 AND slot_index IS NOT NULL;");
+
+        await dbContext.Database.ExecuteSqlRawAsync(@"
+            CREATE TABLE equipment_instance (
+                equipment_instance_id TEXT NOT NULL PRIMARY KEY,
+                account_id TEXT NOT NULL,
+                item_id TEXT NOT NULL,
+                enhance_level INTEGER NOT NULL,
+                rune_max_slots INTEGER NOT NULL,
+                transcendence_rank INTEGER NOT NULL,
+                durability_max INTEGER NULL,
+                durability_value INTEGER NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                created_by TEXT NOT NULL,
+                updated_by TEXT NOT NULL,
+                is_deleted INTEGER NOT NULL
+            );
+
+            CREATE TABLE rune_instance (
+                rune_instance_id TEXT NOT NULL PRIMARY KEY,
+                account_id TEXT NOT NULL,
+                item_id TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                created_by TEXT NOT NULL,
+                updated_by TEXT NOT NULL,
+                is_deleted INTEGER NOT NULL
+            );");
     }
 }

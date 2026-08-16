@@ -71,5 +71,8 @@ public class InventoryControllerTests
 
         public Task<bool?> DeleteEntryAsync(Guid inventoryEntryId, Guid updatedBy) =>
             throw new NotSupportedException();
+
+        public Task<int> RepairEquipmentEntryItemIdsAsync(Guid accountId) =>
+            throw new NotSupportedException();
     }
 }

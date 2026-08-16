@@ -855,7 +855,7 @@ public class InventoryService {
                 targetInventory.getInventoryId(),
                 slot,
                 model.getCategory(),
-                null,
+                model.getId(),
                 instanceType.getCode(),
                 instanceId,
                 1L,
@@ -982,7 +982,7 @@ public class InventoryService {
                             bag.getInventoryId(),
                             pending.slotIndex(),
                             model.getCategory(),
-                            null,
+                            model.getId(),
                             instanceType.getCode(),
                             instanceId,
                             1L,
@@ -1206,7 +1206,7 @@ public class InventoryService {
             inventory.getInventoryId(),
             slot,
             model.getCategory(),
-            null,
+            model.getId(),
             instanceType.getCode(),
             instanceId,
             1L,
@@ -1300,7 +1300,7 @@ public class InventoryService {
                 if (instanceId == null) {
                     break;
                 }
-                entries.add(newEntry(inventory.getInventoryId(), slot, model.getCategory(), null,
+                entries.add(newEntry(inventory.getInventoryId(), slot, model.getCategory(), model.getId(),
                     instanceType.getCode(), instanceId, 1L, null, accountId));
                 currentUsedSlots.add(slot);
                 granted++;
@@ -4907,7 +4907,7 @@ public class InventoryService {
             .filter(e -> !e.isDeleted())
             .toList());
         entries.add(newEntry(inventory.getInventoryId(), slot, model.getCategory(),
-            null, instanceType.getCode(), instanceId, 1L, metadataJson, state.getAccountId()));
+            model.getId(), instanceType.getCode(), instanceId, 1L, metadataJson, state.getAccountId()));
         state.replaceEntries(inventory.getInventoryId(), entries);
         return true;
     }

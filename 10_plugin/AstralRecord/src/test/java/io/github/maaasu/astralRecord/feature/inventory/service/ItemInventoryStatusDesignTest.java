@@ -347,7 +347,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
      * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
-     * 検証契約: equipment/runeをinstance ID付きで統合BAGへ格納する。
+     * 検証契約: equipment/runeをinstance IDと対応itemId付きで統合BAGへ格納する。
      */
     @Test
     void itemGetFlowStoresEquipmentAndRuneTogetherInBag() {
@@ -391,9 +391,11 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         InventoryEntryModel equipmentEntry = bagEntries.get(0);
         InventoryEntryModel runeEntry = bagEntries.get(1);
         assertEquals(1, grantedEquipment);
+        assertEquals("bronze_sword", equipmentEntry.getItemId());
         assertEquals(InventoryInstanceType.EQUIPMENT.getCode(), equipmentEntry.getInstanceType());
         assertEquals(equipmentInstanceId, equipmentEntry.getInstanceId());
         assertEquals(1, grantedRune);
+        assertEquals("minor_rune", runeEntry.getItemId());
         assertEquals(InventoryInstanceType.RUNE.getCode(), runeEntry.getInstanceType());
         assertEquals(runeInstanceId, runeEntry.getInstanceId());
     }

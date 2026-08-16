@@ -81,6 +81,8 @@ public final class InventoryPersistence {
     public @NotNull PlayerInventoryState load(@NotNull UUID accountId) {
         PlayerInventoryState state = new PlayerInventoryState(accountId);
         try {
+            // 過去に itemId を併記せず保存された装備 entry を、マーケット照合前に API 正本で補正する。
+            inventoryRepository.repairEquipmentEntryItemIds(accountId);
             List<InventoryModel> inventories = inventoryRepository.findByAccountId(accountId);
             for (InventoryModel inventory : inventories) {
                 state.putInventory(inventory);

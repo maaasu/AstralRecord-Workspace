@@ -14,4 +14,5 @@ public interface IInventoryRepository
     Task<InventoryEntryResponse?> UpdateEntryAsync(Guid inventoryEntryId, InventoryEntryUpdateRequest request);
     Task<IReadOnlyList<InventoryEntryResponse>?> ReplaceEntriesAsync(Guid inventoryId, InventoryEntryReplaceRequest request);
     Task<bool?> DeleteEntryAsync(Guid inventoryEntryId, Guid updatedBy);
+    Task<int> RepairEquipmentEntryItemIdsAsync(Guid accountId);
 }

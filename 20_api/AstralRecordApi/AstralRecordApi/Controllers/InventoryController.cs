@@ -152,10 +152,29 @@ public class InventoryController(IInventoryRepository inventoryRepository) : Con
         return NoContent();
     }
 
+    /// <summary>
+    /// 装備個体を参照する entry で欠損した itemId を、同一アカウント所有の装備個体から安全に補正します。
+    /// </summary>
+    [HttpPost("accounts/{accountId:guid}/repair-equipment-entry-item-ids")]
+    [ProducesResponseType(typeof(InventoryEquipmentEntryItemIdRepairResponse), StatusCodes.Status200OK)]
+    public async Task<IActionResult> RepairEquipmentEntryItemIds(Guid accountId)
+    {
+        var repairedEntryCount = await inventoryRepository.RepairEquipmentEntryItemIdsAsync(accountId);
+        return Ok(new InventoryEquipmentEntryItemIdRepairResponse
+        {
+            RepairedEntryCount = repairedEntryCount,
+        });
+    }
+
     private static bool HasValidPayload(string? itemId, string? instanceType, Guid? instanceId)
     {
         var hasItemPayload = !string.IsNullOrWhiteSpace(itemId);
-        var hasInstancePayload = !string.IsNullOrWhiteSpace(instanceType) && instanceId.HasValue;
-        return hasItemPayload ^ hasInstancePayload;
+        var hasInstanceType = !string.IsNullOrWhiteSpace(instanceType);
+        var hasInstanceId = instanceId.HasValue;
+        if (hasInstanceType != hasInstanceId)
+            return false;
+
+        // 個体 entry は検索・マーケット照合用に itemId を併記できます。
+        return hasInstanceType || hasItemPayload;
     }
 }
