@@ -9,11 +9,11 @@ their corresponding fix skills.
 1. Resolve `<task-root>` with `git rev-parse --show-toplevel` before creating a record.
 2. Never write a review record into the main `develop` checkout. If the selected root is
    `E:\AstralRecord-Workspace` on `develop`, prepare a dedicated `codex/review-*` worktree first.
-3. Store the record only at `<task-root>\00_docs\99_資料\レビュー結果`.
-4. In an implementation workflow, keep the record in the implementation task worktree.
+3. When at least one finding needs to be handed off, store the record only at `<task-root>\00_docs\99_資料\レビュー結果`. If a review has no findings, do not create a record.
+4. In an implementation workflow, keep the record in the implementation task worktree when one is created.
 5. For a standalone review in a newly prepared review worktree, let `$astralrecord-git-worktree-develop`
-   Finalize stage and commit the validated record before merge. In a pre-existing task worktree,
-   commit only the record with an explicit path and leave finalize ownership unchanged.
+   Finalize stage and commit the validated record before merge when one exists. In a pre-existing task
+   worktree, commit only that record with an explicit path and leave finalize ownership unchanged.
 6. One canonical writer owns the record. Read-only reviewers may return candidate findings,
    but must not edit the same Markdown file in parallel.
 
@@ -31,7 +31,7 @@ Use exactly one of these forms:
 - Use fullwidth `：` and `／` in the filename.
 - Preserve the timestamp and skill name when a fix skill renames the file.
 - Use the count prefix while at least one finding has `修正状態: 未修正`.
-- Use `[完了]` only when every finding is `修正済み` (or there are no findings) and `未確認/質問` is `なし。`.
+- Use `[完了]` only when every finding is `修正済み` and `未確認/質問` is `なし。`.
 - Never combine the completion prefix and count prefix.
 
 ## Canonical body
@@ -89,8 +89,9 @@ summary section, rename a heading, omit an empty section, or change `/` to anoth
 ```
 
 For docs reviews, replace `AR-CODE-*` / `Q-CODE-*` with `AR-DOC-*` / `Q-DOC-*`.
-When a section has no findings or questions, write exactly `指摘なし。` or `なし。` on the
-line after its heading. Keep all other sections present.
+When a record has findings, a section with no findings or questions must contain exactly
+`指摘なし。` or `なし。` on the line after its heading. Keep all other sections present. A
+review with no findings must not create a record; report unresolved questions separately.
 
 ## State rules
 

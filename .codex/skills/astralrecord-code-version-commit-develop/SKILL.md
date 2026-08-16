@@ -23,7 +23,7 @@ Do not redefine implementation, review, fix, plugin versioning, or git workflow 
 4. Do not run `$astralrecord-plugin-version` during the implementation or review/fix phase. Plugin versioning belongs to the rebased finalize step handled by `$astralrecord-git-worktree-develop`.
 5. If the user wants a serial end-to-end run, finalize only after the quality gate passes.
 6. If the user wants parallel execution or delayed merge, complete the quality gate first, then stop with a clean, committed or explicitly coordinator-owned task state for later finalize.
-7. Keep the commit scope limited to implementation, directly synchronized docs, canonical review record, review-driven fixes, and the later version-update file.
+7. Keep the commit scope limited to implementation, directly synchronized docs, a canonical review record when findings exist, review-driven fixes, and the later version-update file.
 8. Keep the commit message format from `E:\AstralRecord-Workspace\COMMIT_RULES.md`.
 9. If the user also wants accumulated merged `codex/*` residues cleaned after finalize, delegate that last step to `$astralrecord-prune-codex-worktrees` instead of extending `$astralrecord-git-worktree-develop` beyond the current task.
 10. Use `E:\AstralRecord-Workspace\.codex\skills\astralrecord-git-worktree-develop\references\worktree-management.md` for worktree management content. Ensure the management snapshot is refreshed whenever this integrated flow leaves a worktree for later finalize.
@@ -67,22 +67,24 @@ Light-gate changes do not require a full build solely for this rule, unless thei
 2. Review Round 1:
    - use an independent reviewer when collaboration tools are available, otherwise use the documented sequential fallback;
    - review the exact task diff plus impacted call sites, tests, resources, and design contracts;
-   - save one canonical record under `<task-root>\00_docs\99_資料\レビュー結果`;
-   - validate it with `.codex\skills\_shared\scripts\validate_review_record.py`.
+   - when findings exist, save one canonical record under `<task-root>\00_docs\99_資料\レビュー結果`;
+   - when no findings exist, do not create a record; report unresolved questions separately;
+   - validate the record with `.codex\skills\_shared\scripts\validate_review_record.py` only when one exists.
 3. Fix Pass 1:
-    - if `自動修正可` findings exist, run the matching fix skill with a single writer;
+    - if a canonical record exists and `自動修正可` findings exist, run the matching fix skill with a single writer;
     - the fix skill runs the updater exactly once and returns the new canonical record path; the coordinator must not run the updater again;
     - rerun targeted build/test/static checks after the fix skill returns and reapply the Build Warning Gate to their complete output;
     - do not resolve `要確認` or `設計判断待ち` by assumption.
 4. Review Round 2:
    - use a reviewer independent of the fixer when collaboration tools are available, otherwise use the documented sequential fallback;
-   - verify previous findings against the current diff and append only genuinely new findings with sequential IDs;
+   - if a canonical record exists, verify previous findings against the current diff and append only genuinely new findings with sequential IDs;
    - preserve the same canonical record, original timestamp, target path, and existing finding text;
-   - recalculate its states/summary and validate it again.
+   - create a record only if this round produces a finding; otherwise leave no record;
+   - recalculate the record's states/summary and validate it again when one exists.
 5. If Round 2 finds an automatically fixable regression, allow Fix Pass 2 followed by one targeted confirmation limited to those IDs. Reapply the Build Warning Gate when that confirmation runs. Do not run more than two full reviews, two fix passes, and one targeted confirmation.
-6. Pass only when verification succeeds, the applicable Build Warning Gate passes, the record validates, no `自動修正可` finding remains unresolved, and no `[高]` or `[中]` finding is waiting for confirmation/design judgment.
+6. Pass only when verification succeeds, the applicable Build Warning Gate passes, any existing record validates, no `自動修正可` finding remains unresolved, and no `[高]` or `[中]` finding is waiting for confirmation/design judgment.
 7. `[低]` or `[情報]` findings that require user/design judgment may remain only when their non-blocking rationale is recorded. Report them explicitly.
-8. Stop before finalize and retain the branch/worktree when verification fails, record validation fails, a blocking finding remains, the loop cap is reached, or a user/design decision is required.
+8. Stop before finalize and retain the branch/worktree when verification fails, existing-record validation fails, a blocking finding remains, the loop cap is reached, or a user/design decision is required.
 
 ## Parallel Filebase Flow
 
@@ -175,7 +177,7 @@ $astralrecord-prune-codex-worktrees を使って、E:\AstralRecord-Workspace の
 Write the final result in Japanese and merge all executed steps into one report.
 
 - `実装結果`: 実行した worker skill の要点
-- `品質ゲート`: review rounds、fix passes、verification、review record path、残存 findings
+- `品質ゲート`: review rounds、fix passes、verification、review record path（指摘なしなら記録なし）、残存 findings
 - `サブエージェント利用`: implementer / reviewer / fixer / specialist の役割と結果。未使用なら理由
 - `Branch / Worktree`: 準備した branch 名と worktree パス
 - `並列所有情報`: filebase parallel package の owned paths、reserved IDs、dependencies、finalize order。単独作業なら不要

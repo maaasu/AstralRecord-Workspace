@@ -1,13 +1,13 @@
 ---
 name: astralrecord-code-review
-description: AstralRecord モノレポのソースコード、実装データ、workspace skill をレビューし、固定書式のレビュー記録を専用 task worktree 内へ安全に保存する。コード/skillレビュー、実装監査、ルール準拠、設計整合、バグ・死コード・セキュリティ・テスト・保守性の評価、実装後の独立レビューで使う。対象成果物は編集せず、可能な場合は読み取り専用サブエージェントを活用する。
+description: AstralRecord モノレポのソースコード、実装データ、workspace skill をレビューし、指摘がある場合のみ固定書式のレビュー記録を専用 task worktree 内へ安全に保存する。コード/skillレビュー、実装監査、ルール準拠、設計整合、バグ・死コード・セキュリティ・テスト・保守性の評価、実装後の独立レビューで使う。対象成果物は編集せず、可能な場合は読み取り専用サブエージェントを活用する。
 ---
 
 # AstralRecord Code Review
 
 ## Core Rule
 
-Review implementation artifacts without editing them. This includes source code, implementation configuration/data, SQL Server schema docs, scripts, tools, and workspace skill definitions; other design-doc-only review belongs to `$astralrecord-docs-review`. The only file content this skill may create is the canonical review record. Treat findings as proposals; actual changes are the job of `$astralrecord-code-fix`.
+Review implementation artifacts without editing them. This includes source code, implementation configuration/data, SQL Server schema docs, scripts, tools, and workspace skill definitions; other design-doc-only review belongs to `$astralrecord-docs-review`. Create the canonical review record only when at least one finding exists. If there are no findings, do not create a review record; report that no record was created and include any unresolved questions in the review result. Treat findings as proposals; actual changes are the job of `$astralrecord-code-fix`.
 
 Base every judgment on documented rules first (root guide, project README/AGENTS.md, design docs, `references/*`). Do not infer project rules from the code alone when an authoritative document exists. If documented rules are silent, fall back to general engineering practice and clearly mark the finding as a general-practice judgment rather than a rule violation.
 
@@ -20,9 +20,9 @@ Complete this before creating the review record.
 1. Resolve the selected checkout with `git rev-parse --show-toplevel` and inspect `git status --short --branch`.
 2. If already inside a dedicated non-`develop` task worktree, set that root as `<task-root>`.
 3. If the selected checkout is the main `develop` workspace, inspect whether uncommitted changes overlap the review target. If they do, stop before writing and require those changes to be moved to a task worktree; never review a stale HEAD copy as though it contains the dirty diff. Otherwise invoke `$astralrecord-git-worktree-develop` in Prepare mode to create `codex/review-<slug>`, remap the target path into that worktree, and use the new root as `<task-root>`.
-4. Never save to the literal main-workspace path from a task worktree. The only destination is `<task-root>\00_docs\99_資料\レビュー結果`.
-5. If a review-only request ends in an existing task worktree, invoke `$astralrecord-commit-current-diff` and commit only the validated record. Do not finalize an existing implementation worktree unless requested.
-6. If this skill created a review-only worktree, invoke `$astralrecord-git-worktree-develop` in Finalize mode directly after validation; Finalize owns staging and committing the record. If finalize is blocked, keep the branch/worktree and report it. Never pre-commit and then call Finalize, and never fall back to writing on `develop`.
+4. Never save to the literal main-workspace path from a task worktree. When findings require a record, the only destination is `<task-root>\00_docs\99_資料\レビュー結果`.
+5. If a review-only request ends in an existing task worktree and a record was created, invoke `$astralrecord-commit-current-diff` and commit only the validated record. If no record was created because there were no findings, there is no record commit. Do not finalize an existing implementation worktree unless requested.
+6. If this skill created a review-only worktree and a record was created, invoke `$astralrecord-git-worktree-develop` in Finalize mode directly after validation; Finalize owns staging and committing the record. If no record was created, report that no record was needed. If finalize is blocked, keep the branch/worktree and report it. Never pre-commit and then call Finalize, and never fall back to writing on `develop`.
 
 ## Required Context
 
@@ -73,10 +73,10 @@ Complete this before creating the review record.
 7. For a non-trivial scope and when sub-agents are available, delegate at least one independent read-only pass to an agent that did not implement the change. For multi-project, security, concurrency, or data-integrity work, use a second read-only specialist with a distinct concern. Give them the target diff and authoritative context, not expected findings. The coordinating reviewer de-duplicates evidence and remains the only canonical record writer. Never allow parallel edits to the record.
 8. Resolve questions that can be answered from the reviewed code, design docs, or documented rules during the review. Only leave `## 未確認/質問` entries for decisions or facts that cannot be confirmed from the allowed review sources.
 9. If a finding-specific question is needed, put it under `## 未確認/質問` and reference the finding from `関連指摘`. Do not leave questions inline only inside the finding body.
-10. Create exactly one canonical record using the shared format. Use the allowed code-review types below, start every new finding with `修正状態: 未修正`, and do not add extra headings.
-    - Round 1 creates the record and returns its absolute path to the coordinator.
-    - Round 2 must receive that canonical record path as input, update the same file, preserve existing IDs/text/timestamp/target, and append only new sequential findings. It must not create a second record.
-11. Validate the saved file with `<task-root>\.codex\skills\_shared\scripts\validate_review_record.py`. Correct the record until it passes.
+10. When at least one finding exists, create exactly one canonical record using the shared format. Use the allowed code-review types below, start every new finding with `修正状態: 未修正`, and do not add extra headings. When no findings exist, do not create a record.
+    - Round 1 creates the record only when it has findings and returns its absolute path to the coordinator.
+    - Round 2 must receive that canonical record path as input when one exists, update the same file, preserve existing IDs/text/timestamp/target, and append only new sequential findings. It must not create a second record or an empty record.
+11. When a record was created, validate it with `<task-root>\.codex\skills\_shared\scripts\validate_review_record.py`. Correct the record until it passes. Do not validate or save a record for a finding-free review.
 12. Complete the review-only commit/finalize behavior from Git Preflight. In an integrated implementation workflow, leave commit/finalize ownership to the coordinator so implementation, record, and fixes remain one scoped task.
 
 ## Review Checklist
@@ -112,7 +112,7 @@ Adjust depth to the target project, but cover these categories:
 
 ## Report Format
 
-Write the review in Japanese and emit the validated saved record body without restructuring it. Use the canonical body and exact section order from the shared format. Severity is exactly `[高]`, `[中]`, `[低]`, or `[情報]`.
+Write the review in Japanese. When a record exists, emit its validated body without restructuring it and use the canonical body and exact section order from the shared format. When no findings exist, report that no record was created and include unresolved questions in the review result. Severity is exactly `[高]`, `[中]`, `[低]`, or `[情報]`.
 
 The allowed `種別` values for code review are:
 
@@ -122,7 +122,7 @@ Set `修正可否: 自動修正可` only when `$astralrecord-code-fix` can resol
 
 ## Review Result File
 
-Save exactly one Markdown record under `<task-root>\00_docs\99_資料\レビュー結果`. The shared format is the sole authority for filename, metadata, fields, empty values, state transitions, and validation. Do not use `E:\AstralRecord-Workspace` as a literal destination when `<task-root>` is another worktree.
+When at least one finding exists, save exactly one Markdown record under `<task-root>\00_docs\99_資料\レビュー結果`. If the review has no findings, save no record. Report unresolved questions in the review result instead of creating a finding-free record. The shared format is the sole authority for filename, metadata, fields, empty values, state transitions, and validation. Do not use `E:\AstralRecord-Workspace` as a literal destination when `<task-root>` is another worktree.
 
 ## Out of Scope
 

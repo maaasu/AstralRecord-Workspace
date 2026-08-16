@@ -54,9 +54,9 @@ $<skill-name> を使って、<absolute-path> に対して <task> を行い、結
 | 新規実装・仕様反映 | `$astralrecord-code` | 実装と関連設計書の同期を扱う |
 | Minecraft 内スキルの新規追加・仕様変更 | `$astralrecord-skill-author` | 依頼不足を確認してから、skill / gem / shop / Plugin / 演出 / DPS / 設計書を一貫して扱う |
 | 実装から develop merge まで一気通貫 | `$astralrecord-code-version-commit-develop` | 実装後の独立レビュー・自動修正・再レビューを含む統合入口 |
-| コードレビュー | `$astralrecord-code-review` | ソースを編集せず、固定書式の記録を task worktree に保存する |
+| コードレビュー | `$astralrecord-code-review` | ソースを編集せず、指摘がある場合のみ固定書式の記録を保存・検証する |
 | コードレビュー指摘の修正 | `$astralrecord-code-fix` | レビュー結果を入力にして最小修正する |
-| 設計書レビュー | `$astralrecord-docs-review` | ソースコードを読まず、固定書式の記録を task worktree に保存する |
+| 設計書レビュー | `$astralrecord-docs-review` | ソースコードを読まず、指摘がある場合のみ固定書式の記録を保存・検証する |
 | 設計書レビュー指摘の修正 | `$astralrecord-docs-fix` | docs だけを編集する |
 | 現在の branch/worktree の差分だけ commit | `$astralrecord-commit-current-diff` | branch 作成や merge はしない |
 | 複数の `codex/*` branch をまとめて監査・merge | `$astralrecord-merge-codex-branches-develop` | 既定は dry-run、監査後に worktree 管理ファイルを更新 |
@@ -96,7 +96,7 @@ AstralRecord モノレポ全体の実装変更を行います。設計書パス�
 
 ### `$astralrecord-code-review`
 
-AstralRecord モノレポのソースコード、実装データ、workspace skill をレビューします。設計書との整合、ルール、バグ、死コード、セキュリティ、テスト不足などを点検し、対象成果物は編集しません。記録は共通固定書式で task worktree 内へ保存・検証し、review-only 依頼でも `develop` に未コミット差分を残しません。
+AstralRecord モノレポのソースコード、実装データ、workspace skill をレビューします。設計書との整合、ルール、バグ、死コード、セキュリティ、テスト不足などを点検し、対象成果物は編集しません。指摘がある場合のみ、記録を共通固定書式で task worktree 内へ保存・検証し、指摘がなければ記録を残しません。未確認事項がある場合はレビュー結果の報告に記載します。review-only 依頼でも `develop` に未コミット差分を残しません。
 
 使う場面:
 
@@ -116,7 +116,7 @@ AstralRecord モノレポのソースコード、実装データ、workspace ski
 
 ### `$astralrecord-docs-review`
 
-AstralRecord の設計書をレビューします。ソースコードは読まず、設計上の矛盾、不足、未決事項、フォーマット差分を確認します。記録は共通固定書式で task worktree 内へ保存・検証します。
+AstralRecord の設計書をレビューします。ソースコードは読まず、設計上の矛盾、不足、未決事項、フォーマット差分を確認します。指摘がある場合のみ、記録を共通固定書式で task worktree 内へ保存・検証し、指摘がなければ記録を残しません。未確認事項がある場合はレビュー結果の報告に記載します。
 
 使う場面:
 
