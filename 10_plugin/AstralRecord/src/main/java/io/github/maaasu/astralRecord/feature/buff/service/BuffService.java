@@ -14,6 +14,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -33,7 +34,11 @@ public class BuffService {
     private final Map<String, BuffType> buffCache;
 
     public BuffService() {
-        this.buffRepository = new BuffRepository();
+        this(new BuffRepository());
+    }
+
+    BuffService(@NotNull BuffRepository buffRepository) {
+        this.buffRepository = buffRepository;
         this.buffCache = new ConcurrentHashMap<>();
     }
 
@@ -52,7 +57,7 @@ public class BuffService {
         }
 
         purgeExpired(player);
-        remove(player, buffId);
+        removeOverlapping(player, type);
 
         LocalDateTime now = LocalDateTime.now();
         long durationSeconds = Math.max(0L, type.getDurationTicks() / 20L);
@@ -93,6 +98,7 @@ public class BuffService {
             TEMPORARY_FLAT_BUFF_DISPLAY_NAME,
             Math.toIntExact(durationSeconds * 20L),
             false,
+            null,
             List.of(new BuffModifier(statusType, BuffModifierType.FLAT, value))
         );
         purgeExpired(player);
@@ -113,6 +119,27 @@ public class BuffService {
      */
     public boolean remove(@NotNull AstPlayer player, @NotNull String buffId) {
         return player.getActiveBuffs().removeIf(buff -> buff.getType().getId().equals(buffId));
+    }
+
+    private boolean removeOverlapping(@NotNull AstPlayer player, @NotNull BuffType type) {
+        return player.getActiveBuffs().removeIf(buff -> isOverlapping(buff.getType(), type));
+    }
+
+    private boolean isOverlapping(@NotNull BuffType existing, @NotNull BuffType incoming) {
+        if (existing.getId().equals(incoming.getId())) {
+            return true;
+        }
+
+        String existingGroup = normalizeStackGroup(existing.getStackGroup());
+        String incomingGroup = normalizeStackGroup(incoming.getStackGroup());
+        return existingGroup != null && existingGroup.equals(incomingGroup);
+    }
+
+    private @Nullable String normalizeStackGroup(@Nullable String stackGroup) {
+        if (stackGroup == null || stackGroup.isBlank()) {
+            return null;
+        }
+        return stackGroup.trim().toLowerCase(Locale.ROOT);
     }
 
     /**

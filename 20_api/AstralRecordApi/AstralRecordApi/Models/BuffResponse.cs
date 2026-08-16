@@ -18,6 +18,8 @@ public class BuffResponse
 
     public bool IsDebuff { get; init; }
 
+    public string? StackGroup { get; init; }
+
     public IReadOnlyList<BuffModifierResponse> Modifiers { get; init; } = [];
 }
 
@@ -34,6 +36,8 @@ public class BuffSummaryResponse
     public long DurationTicks { get; init; }
 
     public bool IsDebuff { get; init; }
+
+    public string? StackGroup { get; init; }
 }
 
 public class BuffModifierResponse

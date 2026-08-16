@@ -52,6 +52,7 @@ class BuffRepository {
             displayName = obj.get("name").asString,
             durationTicks = obj.get("durationTicks").asInt,
             isDebuff = obj.get("isDebuff").asBoolean,
+            stackGroup = obj.get("stackGroup")?.takeUnless { it.isJsonNull }?.asString,
             modifiers = parseModifiers(modifiersArray),
         )
     }
@@ -85,4 +86,3 @@ class BuffRepository {
         }
     }
 }
-

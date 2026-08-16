@@ -32,6 +32,7 @@ public class BuffRepository(MasterDataDbContext dbContext) : IBuffRepository
                 Icon = buff.Icon,
                 DurationTicks = buff.DurationTicks,
                 IsDebuff = buff.IsDebuff,
+                StackGroup = buff.StackGroup,
             })
             .ToArray();
     }

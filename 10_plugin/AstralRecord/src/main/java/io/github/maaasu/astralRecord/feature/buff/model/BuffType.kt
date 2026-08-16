@@ -11,5 +11,6 @@ data class BuffType(
     val displayName: String,
     val durationTicks: Int,
     val isDebuff: Boolean,
+    val stackGroup: String?,
     val modifiers: List<BuffModifier>,
 )

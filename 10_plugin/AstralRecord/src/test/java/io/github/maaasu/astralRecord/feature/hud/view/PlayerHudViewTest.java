@@ -93,7 +93,7 @@ class PlayerHudViewTest extends MockBukkitTestBase {
         DungeonSidebarInfo dungeonInfo = new DungeonSidebarInfo(
                 "黄昏の坑道", 1, 3, 7, 7, List.of("Player"), 9L);
         ActiveBuff buff = new ActiveBuff(
-                new BuffType("test_buff", "TEST", "試験バフ", 1_200, false, List.of()),
+                new BuffType("test_buff", "TEST", "試験バフ", 1_200, false, null, List.of()),
                 LocalDateTime.now(),
                 LocalDateTime.now().plusMinutes(1)
         );
@@ -349,7 +349,7 @@ class PlayerHudViewTest extends MockBukkitTestBase {
         LocalDateTime now = LocalDateTime.now();
         List<ActiveBuff> buffs = java.util.stream.IntStream.rangeClosed(1, 7)
                 .mapToObj(index -> new ActiveBuff(
-                        new BuffType("buff_" + index, "TEST", "バフ" + index, 1_200, false, List.of()),
+                        new BuffType("buff_" + index, "TEST", "バフ" + index, 1_200, false, null, List.of()),
                         now.minusSeconds(index),
                         now.plusMinutes(index)
                 ))

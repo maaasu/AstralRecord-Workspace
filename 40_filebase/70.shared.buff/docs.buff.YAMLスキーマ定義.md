@@ -19,6 +19,7 @@ Buff（一定時間付与される効果）のスキーマ定義。
 | `lore`               | List<String> | ×  | emptyList | 説明文（§ または & の色コード利用可能）                                           |
 | `durationTicks`      | Long         | ○  | -         | 効果時間（tick）。Minecraftの慣習として 20 tick = 1 秒。`-1` の場合は無期限（tickで減らない） |
 | `isDebuff`           | Boolean      | ×  | false     | trueでデバフ扱い（表示や演出用途。計算式には影響しない）                                   |
+| `stackGroup`         | String       | ×  | Null      | 同じ値のバフは同時に保持せず、後から付与したバフを残す。未指定時は `id` 単位で重複判定する |
 | `modifiers[]`        | List         | ○  | -         | 付与するステータス補正のリスト（後述）                                              |
 | `modifiers[].status` | String       | ○  | -         | 対象ステータス（`StatusType`。例: `ATTACK`）                                |
 | `modifiers[].type`   | String       | ○  | -         | 補正タイプ（`ModifierType`。`FLAT` / `SCALAR`）                          |
@@ -44,6 +45,7 @@ schemaVersion: 1
 id: haste_small
 type: BUFF
 name: "&e迅速(小)"
+stackGroup: movement_speed
 lore:
   - "&7一定時間、移動速度が上昇する。"
 durationTicks: 600 # 30秒
