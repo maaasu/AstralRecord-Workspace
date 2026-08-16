@@ -31,13 +31,14 @@ import java.util.UUID;
 public final class MarketGui {
     public static final int LIST_SIZE = 54;
     public static final int DIALOG_SIZE = 27;
+    public static final int HEADER_ACTION_SLOT = 4;
+    public static final int CONTENT_START_SLOT = 9;
+    public static final int CONTENT_SLOT_COUNT = 36;
     public static final int PREVIOUS_SLOT = 45;
     public static final int BROWSE_SLOT = 46;
     public static final int MY_LISTINGS_SLOT = 47;
-    public static final int SELL_SLOT = 48;
-    public static final int CLOSE_SLOT = 49;
+    public static final int SELL_SELECT_BACK_SLOT = 49;
     public static final int SUMMARY_SLOT = 50;
-    public static final int REFRESH_SLOT = 51;
     public static final int NEXT_SLOT = 53;
     public static final int BACK_SLOT = 21;
     public static final int CONFIRM_SLOT = 23;
@@ -47,7 +48,6 @@ public final class MarketGui {
     public static final int PRICE_SLOT = 15;
     public static final int QUANTITY_UP_SLOT = 16;
 
-    private static final int LISTING_COUNT = 45;
     private static final DateTimeFormatter DATE_TIME_FORMAT = DateTimeFormatter
         .ofPattern("yyyy/MM/dd HH:mm", Locale.JAPAN)
         .withZone(ZoneId.systemDefault());
@@ -72,6 +72,18 @@ public final class MarketGui {
         open(viewer, inventory);
     }
 
+    /**
+     * 出品一覧または自分の出品一覧を開きます。
+     *
+     * @param viewer 表示対象プレイヤー
+     * @param sessionId 操作セッションID
+     * @param screen 一覧画面種別
+     * @param listings 現在ページに表示する出品
+     * @param summary 出品枠の利用状況。未取得時は {@code null}
+     * @param page 1始まりのページ番号
+     * @param goldAmount 表示する現在のGold残高
+     * @param hasNextPage 次ページに表示できる出品が存在する場合は {@code true}
+     */
     public void openListings(
         @NotNull Player viewer,
         @NotNull UUID sessionId,
@@ -79,20 +91,33 @@ public final class MarketGui {
         @NotNull List<MarketListing> listings,
         @Nullable MarketAccountSummary summary,
         int page,
-        long goldAmount
+        long goldAmount,
+        boolean hasNextPage
     ) {
         String title = screen == MarketScreen.MY_LISTINGS ? "マーケット: あなたの出品" : "マーケット";
         Inventory inventory = create(viewer, sessionId, screen, LIST_SIZE, title);
         fill(inventory);
-        for (int index = 0; index < Math.min(LISTING_COUNT, listings.size()); index++) {
-            inventory.setItem(index, listingItem(listings.get(index), screen == MarketScreen.MY_LISTINGS));
+        fillHeader(inventory);
+        if (screen == MarketScreen.MY_LISTINGS) {
+            renderOwnListings(inventory, listings, summary, page);
+            inventory.setItem(HEADER_ACTION_SLOT, item(
+                Material.CHEST,
+                "新しく出品する",
+                NamedTextColor.GREEN,
+                List.of("出品するアイテムを選択します。")
+            ));
+        } else {
+            renderBrowseListings(inventory, listings);
+            inventory.setItem(HEADER_ACTION_SLOT, item(
+                Material.CLOCK,
+                "更新",
+                NamedTextColor.YELLOW,
+                List.of("公開中の出品情報を再取得します。")
+            ));
         }
-        inventory.setItem(PREVIOUS_SLOT, item(
-            Material.SPECTRAL_ARROW,
-            "前のページ",
-            NamedTextColor.YELLOW,
-            List.of("ページ: " + Math.max(1, page - 1))
-        ));
+        if (page > 1) {
+            inventory.setItem(PREVIOUS_SLOT, pageItem("前のページ", page - 1));
+        }
         inventory.setItem(BROWSE_SLOT, item(
             Material.COMPASS,
             "出品を探す",
@@ -105,26 +130,10 @@ public final class MarketGui {
             NamedTextColor.GOLD,
             List.of("出品中・取り下げ済みの出品を確認します。")
         ));
-        inventory.setItem(SELL_SLOT, item(
-            Material.CHEST,
-            "出品する",
-            NamedTextColor.GREEN,
-            List.of("手持ちのアイテムを選択して出品します。")
-        ));
-        inventory.setItem(REFRESH_SLOT, item(
-            Material.CLOCK,
-            "更新",
-            NamedTextColor.YELLOW,
-            List.of("最新の出品情報を取得します。")
-        ));
         inventory.setItem(SUMMARY_SLOT, summaryItem(summary, goldAmount));
-        inventory.setItem(CLOSE_SLOT, GuiItems.closeButton());
-        inventory.setItem(NEXT_SLOT, item(
-            Material.ARROW,
-            "次のページ",
-            NamedTextColor.YELLOW,
-            List.of("ページ: " + (Math.max(1, page) + 1))
-        ));
+        if (hasNextPage) {
+            inventory.setItem(NEXT_SLOT, pageItem("次のページ", page + 1));
+        }
         open(viewer, inventory);
     }
 
@@ -155,14 +164,13 @@ public final class MarketGui {
                 "取引不可アイテムとGoldは出品できません。"
             )
         ));
-        inventory.setItem(BROWSE_SLOT, item(
+        inventory.setItem(SELL_SELECT_BACK_SLOT, item(
             Material.SPECTRAL_ARROW,
-            "出品一覧へ戻る",
+            "自分の出品一覧へ戻る",
             NamedTextColor.WHITE,
-            List.of("公開中の出品一覧へ戻ります。")
+            List.of("自分の出品一覧へ戻ります。")
         ));
         inventory.setItem(SUMMARY_SLOT, summaryItem(summary, goldAmount));
-        inventory.setItem(CLOSE_SLOT, GuiItems.closeButton());
         open(viewer, inventory);
     }
 
@@ -287,6 +295,81 @@ public final class MarketGui {
         }
     }
 
+    private void fillHeader(@NotNull Inventory inventory) {
+        ItemStack filler = item(Material.BLACK_STAINED_GLASS_PANE, " ", NamedTextColor.DARK_GRAY, List.of());
+        for (int slot = 0; slot < 9; slot++) {
+            inventory.setItem(slot, filler.clone());
+        }
+    }
+
+    private void renderBrowseListings(
+        @NotNull Inventory inventory,
+        @NotNull List<MarketListing> listings
+    ) {
+        for (int index = 0; index < Math.min(CONTENT_SLOT_COUNT, listings.size()); index++) {
+            inventory.setItem(CONTENT_START_SLOT + index, listingItem(listings.get(index), false));
+        }
+    }
+
+    private void renderOwnListings(
+        @NotNull Inventory inventory,
+        @NotNull List<MarketListing> listings,
+        @Nullable MarketAccountSummary summary,
+        int page
+    ) {
+        int pageStart = Math.max(0, Math.max(1, page) - 1) * CONTENT_SLOT_COUNT;
+        for (int index = 0; index < CONTENT_SLOT_COUNT; index++) {
+            int slot = CONTENT_START_SLOT + index;
+            if (index < listings.size()) {
+                inventory.setItem(slot, listingItem(listings.get(index), true));
+                continue;
+            }
+            inventory.setItem(slot, listingSlotItem(pageStart + index, summary));
+        }
+    }
+
+    private @NotNull ItemStack listingSlotItem(
+        int slotIndex,
+        @Nullable MarketAccountSummary summary
+    ) {
+        if (summary == null) {
+            return item(
+                Material.IRON_BARS,
+                "出品枠を取得中",
+                NamedTextColor.YELLOW,
+                List.of("出品枠の利用状況を取得しています。")
+            );
+        }
+        int usedSlots = Math.max(0, summary.usedListingSlotCount());
+        int maxSlots = Math.max(0, summary.maxListingSlotCount());
+        if (slotIndex < usedSlots) {
+            return item(
+                Material.IRON_BARS,
+                "使用中の出品枠",
+                NamedTextColor.GRAY,
+                List.of("出品情報を取得できませんでした。")
+            );
+        }
+        if (slotIndex < maxSlots) {
+            return item(
+                Material.LIGHT_GRAY_STAINED_GLASS_PANE,
+                "出品可能枠",
+                NamedTextColor.WHITE,
+                List.of("「新しく出品する」から出品できます。")
+            );
+        }
+        return item(
+            Material.IRON_BARS,
+            "未開放の出品枠",
+            NamedTextColor.DARK_GRAY,
+            List.of("この出品枠は現在利用できません。")
+        );
+    }
+
+    private @NotNull ItemStack pageItem(@NotNull String name, int page) {
+        return item(Material.PAPER, name, NamedTextColor.YELLOW, List.of("ページ: " + Math.max(1, page)));
+    }
+
     private @NotNull ItemStack listingItem(@NotNull MarketListing listing, boolean ownListing) {
         ItemModel model = itemService.findLoadedById(listing.itemId());
         ItemStack stack = model == null
@@ -395,31 +478,6 @@ public final class MarketGui {
         @NotNull UUID viewerUuid,
         @NotNull MarketScreen screen
     ) implements HotbarShortcutGuiHolder {
-        /**
-         * 一覧系画面で共通ナビゲーションが扱う閉じるボタンのスロットを返します。
-         *
-         * @return 閉じるボタンのスロット。確認・設定画面では {@code -1}
-         */
-        @Override
-        public int getBackSlot() {
-            return switch (screen) {
-                case BROWSE, MY_LISTINGS, SELL_SELECT -> CLOSE_SLOT;
-                default -> -1;
-            };
-        }
-
-        /**
-         * 一覧系画面の共通ナビゲーションボタンを常に閉じる操作として扱うか返します。
-         *
-         * @return 一覧系画面の場合は {@code true}
-         */
-        @Override
-        public boolean isAlwaysCloseNavigation() {
-            return screen == MarketScreen.BROWSE
-                || screen == MarketScreen.MY_LISTINGS
-                || screen == MarketScreen.SELL_SELECT;
-        }
-
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, 9);

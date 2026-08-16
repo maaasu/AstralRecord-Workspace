@@ -51,7 +51,8 @@ import java.util.concurrent.ConcurrentHashMap;
 public final class MarketGuiEventHandler extends AbstractEventHandler {
     public static final String GOLD_AMOUNT_SOURCE_KEY = "market-listing-price";
     private static final String MARKET_CURRENCY_ID = "gold";
-    private static final int PAGE_SIZE = 45;
+    private static final int PAGE_SIZE = MarketGui.CONTENT_SLOT_COUNT;
+    private static final int QUERY_PAGE_SIZE = PAGE_SIZE + 1;
 
     private final AstralRecord plugin;
     private final MarketGui marketGui;
@@ -86,12 +87,12 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
 
     /** 管理コマンドからマーケットを開きます。 */
     public void openFromCommand(@NotNull Player player) {
-        openBrowse(player, 1);
+        openBrowse(player, 1, true);
     }
 
     /** マーケット NPC からマーケットを開きます。 */
     public void openFromNpc(@NotNull Player player) {
-        openBrowse(player, 1);
+        openBrowse(player, 1, true);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -164,12 +165,25 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             return;
         }
         int rawSlot = event.getRawSlot();
-        if (rawSlot >= 0 && rawSlot < PAGE_SIZE) {
-            if (rawSlot >= session.listings.size()) {
+        if (rawSlot == MarketGui.HEADER_ACTION_SLOT) {
+            if (session.ownListings) {
+                session.screen = MarketScreen.SELL_SELECT;
+                session.draft = null;
+                marketGui.openSellSelect(player, session.sessionId, session.summary, goldAmount(player));
+            } else {
+                openListings(player, false, session.page);
+            }
+            GuiSound.SELECT.play(player);
+            return;
+        }
+        if (rawSlot >= MarketGui.CONTENT_START_SLOT
+            && rawSlot < MarketGui.CONTENT_START_SLOT + PAGE_SIZE) {
+            int listingIndex = rawSlot - MarketGui.CONTENT_START_SLOT;
+            if (listingIndex >= session.listings.size()) {
                 GuiSound.DENY.play(player);
                 return;
             }
-            MarketListing listing = session.listings.get(rawSlot);
+            MarketListing listing = session.listings.get(listingIndex);
             if (session.ownListings) {
                 if (!isCancelable(listing)) {
                     GuiSound.DENY.play(player);
@@ -189,18 +203,30 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         }
 
         switch (rawSlot) {
-            case MarketGui.PREVIOUS_SLOT -> openListings(player, session.ownListings, Math.max(1, session.page - 1));
-            case MarketGui.NEXT_SLOT -> openListings(player, session.ownListings, session.page + 1);
-            case MarketGui.BROWSE_SLOT -> openListings(player, false, 1);
-            case MarketGui.MY_LISTINGS_SLOT -> openListings(player, true, 1);
-            case MarketGui.SELL_SLOT -> {
-                session.screen = MarketScreen.SELL_SELECT;
-                session.draft = null;
-                marketGui.openSellSelect(player, session.sessionId, session.summary, goldAmount(player));
-                GuiSound.OPEN.play(player);
+            case MarketGui.PREVIOUS_SLOT -> {
+                if (session.page <= 1) {
+                    GuiSound.DENY.play(player);
+                    return;
+                }
+                GuiSound.PAGE.play(player);
+                openListings(player, session.ownListings, session.page - 1);
             }
-            case MarketGui.REFRESH_SLOT -> openListings(player, session.ownListings, session.page);
-            case MarketGui.CLOSE_SLOT -> player.closeInventory();
+            case MarketGui.NEXT_SLOT -> {
+                if (!session.hasNextPage) {
+                    GuiSound.DENY.play(player);
+                    return;
+                }
+                GuiSound.PAGE.play(player);
+                openListings(player, session.ownListings, session.page + 1);
+            }
+            case MarketGui.BROWSE_SLOT -> {
+                GuiSound.SELECT.play(player);
+                openListings(player, false, 1);
+            }
+            case MarketGui.MY_LISTINGS_SLOT -> {
+                GuiSound.SELECT.play(player);
+                openListings(player, true, 1);
+            }
             default -> GuiSound.DENY.play(player);
         }
     }
@@ -210,13 +236,9 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         @NotNull Player player,
         @NotNull MarketSession session
     ) {
-        if (event.getRawSlot() == MarketGui.BROWSE_SLOT) {
-            openListings(player, false, 1);
+        if (event.getRawSlot() == MarketGui.SELL_SELECT_BACK_SLOT) {
+            openListings(player, true, session.page);
             GuiSound.SELECT.play(player);
-            return;
-        }
-        if (event.getRawSlot() == MarketGui.CLOSE_SLOT) {
-            player.closeInventory();
             return;
         }
         if (HotbarShortcutClickSupport.handleInventoryControlClick(event, player, inventoryService)) {
@@ -275,7 +297,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         }
         MarketListingDraft draft = session.draft;
         if (draft == null) {
-            openListings(player, false, 1);
+            openListings(player, true, 1);
             return;
         }
         switch (event.getRawSlot()) {
@@ -556,11 +578,20 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         }));
     }
 
-    private void openBrowse(@NotNull Player player, int page) {
-        openListings(player, false, page);
+    private void openBrowse(@NotNull Player player, int page, boolean playOpenSound) {
+        openListings(player, false, page, playOpenSound);
     }
 
     private void openListings(@NotNull Player player, boolean ownListings, int page) {
+        openListings(player, ownListings, page, false);
+    }
+
+    private void openListings(
+        @NotNull Player player,
+        boolean ownListings,
+        int page,
+        boolean playOpenSound
+    ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || !AccountModeGuard.isGameplayPlayer(player)) {
             GuiSound.DENY.play(player);
@@ -589,7 +620,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                     null,
                     ownListings ? "listed_desc" : "price_asc",
                     requestedPage,
-                    PAGE_SIZE
+                    QUERY_PAGE_SIZE
                 ));
                 summary = marketService.findAccountSummary(accountId).orElse(null);
             } catch (RuntimeException failure) {
@@ -602,24 +633,40 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                 });
                 return;
             }
+            boolean hasNextPage = listings.size() > PAGE_SIZE;
+            List<MarketListing> pageListings = hasNextPage
+                ? List.copyOf(listings.subList(0, PAGE_SIZE))
+                : List.copyOf(listings);
+            if (requestedPage > 1 && pageListings.isEmpty()) {
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (isCurrentSession(player, session)) {
+                        openListings(player, ownListings, requestedPage - 1, false);
+                    }
+                });
+                return;
+            }
             Bukkit.getScheduler().runTask(plugin, () -> {
                 if (!isCurrentSession(player, session)) {
                     return;
                 }
                 session.busy = false;
-                session.listings = List.copyOf(listings);
+                session.listings = pageListings;
+                session.hasNextPage = hasNextPage;
                 session.summary = summary;
                 session.screen = ownListings ? MarketScreen.MY_LISTINGS : MarketScreen.BROWSE;
                 marketGui.openListings(
                     player,
                     session.sessionId,
                     session.screen,
-                    session.listings,
+                    pageListings,
                     summary,
                     requestedPage,
-                    goldAmount(player)
+                    goldAmount(player),
+                    hasNextPage
                 );
-                GuiSound.OPEN.play(player);
+                if (playOpenSound) {
+                    GuiSound.OPEN.play(player);
+                }
             });
         });
     }
@@ -749,6 +796,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         private boolean ownListings;
         private boolean busy;
         private int page = 1;
+        private boolean hasNextPage;
         private List<MarketListing> listings = List.of();
         private @Nullable MarketAccountSummary summary;
         private @Nullable MarketListing selectedListing;

@@ -16,6 +16,7 @@ import java.util.Objects;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -25,25 +26,80 @@ class MarketGuiTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_3-メソッド仕様.md
      * 章・見出し: # 23_3-メソッド仕様 > ## GUI 起動・プレイヤー操作
-     * 検証契約: 54slotの出品一覧はfooter slot49の共通閉じるボタン、slot51の更新、共通ホットバーGUI holderを使用する。
+     * 検証契約: 54slotの出品一覧は上段中央の更新、閉じるボタンを持たない共通ホットバーGUI holder、ページ有無に応じたfooterナビゲーションを使用する。
      */
     @Test
-    void rendersListingsWithStandardCloseNavigationLayout() {
+    void rendersBrowseListingsWithHeaderNavigationWithoutCloseButton() {
         MarketGui gui = gui();
         var player = server().addPlayer();
 
-        gui.openListings(player, UUID.randomUUID(), MarketScreen.BROWSE, List.of(), summary(), 1, 12_345L);
+        gui.openListings(player, UUID.randomUUID(), MarketScreen.BROWSE, List.of(), summary(), 1, 12_345L, false);
 
         Inventory inventory = player.getOpenInventory().getTopInventory();
         MarketGui.MarketHolder holder = gui.getHolder(inventory);
         assertNotNull(holder);
         assertEquals(MarketGui.LIST_SIZE, inventory.getSize());
         assertInstanceOf(HotbarShortcutGuiHolder.class, inventory.getHolder());
-        assertEquals(49, MarketGui.CLOSE_SLOT);
-        assertEquals(MarketGui.CLOSE_SLOT, holder.getBackSlot());
-        assertTrue(holder.isAlwaysCloseNavigation());
-        assertItemName(inventory, MarketGui.CLOSE_SLOT, Material.BARRIER, "閉じる");
-        assertItemName(inventory, MarketGui.REFRESH_SLOT, Material.CLOCK, "更新");
+        assertEquals(-1, holder.getBackSlot());
+        assertFalse(holder.isAlwaysCloseNavigation());
+        assertItemName(inventory, MarketGui.HEADER_ACTION_SLOT, Material.CLOCK, "更新");
+        assertEquals(Material.GRAY_STAINED_GLASS_PANE, Objects.requireNonNull(inventory.getItem(MarketGui.SELL_SELECT_BACK_SLOT)).getType());
+        assertEquals(Material.GRAY_STAINED_GLASS_PANE, Objects.requireNonNull(inventory.getItem(MarketGui.NEXT_SLOT)).getType());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_3-メソッド仕様.md
+     * 章・見出し: # 23_3-メソッド仕様 > ## GUI 起動・プレイヤー操作
+     * 検証契約: 自分の出品一覧は使用中・出品可能・未開放の出品枠を異なるアイコンで表示し、上段中央に新規出品ボタンを表示する。
+     */
+    @Test
+    void rendersOwnListingSlotsWithAvailableAndLockedStates() {
+        MarketGui gui = gui();
+        var player = server().addPlayer();
+        MarketAccountSummary summary = new MarketAccountSummary(
+            UUID.randomUUID(),
+            1,
+            5,
+            1,
+            3,
+            0,
+            "NOVICE",
+            null,
+            Instant.EPOCH
+        );
+
+        gui.openListings(player, UUID.randomUUID(), MarketScreen.MY_LISTINGS, List.of(), summary, 1, 12_345L, false);
+
+        Inventory inventory = player.getOpenInventory().getTopInventory();
+        assertItemName(inventory, MarketGui.HEADER_ACTION_SLOT, Material.CHEST, "新しく出品する");
+        assertItemName(inventory, MarketGui.CONTENT_START_SLOT, Material.IRON_BARS, "使用中の出品枠");
+        assertItemName(inventory, MarketGui.CONTENT_START_SLOT + 1, Material.LIGHT_GRAY_STAINED_GLASS_PANE, "出品可能枠");
+        assertItemName(inventory, MarketGui.CONTENT_START_SLOT + 2, Material.LIGHT_GRAY_STAINED_GLASS_PANE, "出品可能枠");
+        assertItemName(inventory, MarketGui.CONTENT_START_SLOT + 3, Material.IRON_BARS, "未開放の出品枠");
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_3-メソッド仕様.md
+     * 章・見出し: # 23_3-メソッド仕様 > ## GUI 起動・プレイヤー操作
+     * 検証契約: 前後ページボタンは存在するページだけに紙アイコンで表示し、存在しない側は表示しない。
+     */
+    @Test
+    void rendersOnlyExistingPageNavigationItems() {
+        MarketGui gui = gui();
+        var player = server().addPlayer();
+
+        gui.openListings(player, UUID.randomUUID(), MarketScreen.BROWSE, List.of(), summary(), 1, 0L, true);
+
+        Inventory firstPage = player.getOpenInventory().getTopInventory();
+        assertItemName(firstPage, MarketGui.NEXT_SLOT, Material.PAPER, "次のページ");
+        assertEquals(Material.GRAY_STAINED_GLASS_PANE, Objects.requireNonNull(firstPage.getItem(MarketGui.PREVIOUS_SLOT)).getType());
+
+        var lastPagePlayer = server().addPlayer();
+        gui.openListings(lastPagePlayer, UUID.randomUUID(), MarketScreen.BROWSE, List.of(), summary(), 2, 0L, false);
+
+        Inventory lastPage = lastPagePlayer.getOpenInventory().getTopInventory();
+        assertItemName(lastPage, MarketGui.PREVIOUS_SLOT, Material.PAPER, "前のページ");
+        assertEquals(Material.GRAY_STAINED_GLASS_PANE, Objects.requireNonNull(lastPage.getItem(MarketGui.NEXT_SLOT)).getType());
     }
 
     /**
@@ -59,8 +115,8 @@ class MarketGuiTest extends MockBukkitTestBase {
         gui.openSellSelect(player, UUID.randomUUID(), summary(), 12_345L);
 
         Inventory inventory = player.getOpenInventory().getTopInventory();
-        assertItemName(inventory, MarketGui.BROWSE_SLOT, Material.SPECTRAL_ARROW, "出品一覧へ戻る");
-        assertItemName(inventory, MarketGui.CLOSE_SLOT, Material.BARRIER, "閉じる");
+        assertItemName(inventory, MarketGui.SELL_SELECT_BACK_SLOT, Material.SPECTRAL_ARROW, "自分の出品一覧へ戻る");
+        assertEquals(Material.GRAY_STAINED_GLASS_PANE, Objects.requireNonNull(inventory.getItem(MarketGui.BROWSE_SLOT)).getType());
         String selectionLore = loreText(inventory, MarketGui.ITEM_SLOT);
         assertTrue(selectionLore.contains("バッグまたはホットバー"));
         assertTrue(selectionLore.contains("上下にスクロール"));
