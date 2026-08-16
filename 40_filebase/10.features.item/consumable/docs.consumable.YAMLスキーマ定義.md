@@ -16,7 +16,7 @@
 | `consumable[].effects[].type`      | String  | ○  | -     | 効果種別（`RECOVER` / `BUFF`）                                        |
 | `consumable[].effects[].rate`      | Double  | ×  | 100   | 発動確率（0〜100）                                                     |
 | `consumable[].effects[].value`     | Double  | ×  | -     | 回復量（type=RECOVER時に使用）                                           |
-| `consumable[].effects[].status`    | String  | ×  | -     | 回復対象（type=RECOVER時に使用。`HP` / `MP`）                              |
+| `consumable[].effects[].status`    | String  | ×  | -     | 回復対象（type=RECOVER時に使用。`HP` / `MP` / `ENERGY`）                  |
 | `consumable[].effects[].isPercent` | Boolean | ×  | false | trueの場合、`value` を割合（%）として扱う（例: 0.10 = 最大値の10%回復）※type=RECOVER専用 |
 | `consumable[].effects[].buffId`    | String  | ×  | -     | 付与するBuff（type=BUFF時に使用）※参照値                                     |
 
@@ -31,6 +31,7 @@
 type=RECOVER の場合に指定します。
 - `HP`
 - `MP`
+- `ENERGY`
 
 
 ## YAML 例

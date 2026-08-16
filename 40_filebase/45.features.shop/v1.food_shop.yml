@@ -6,4 +6,12 @@ id: food_shop
 type: SHOP
 name: "&e食料品店"
 access: NPC_ONLY
-items: []
+items:
+  - id: energy_bucket
+    itemId:
+      ref: item:energy_bucket
+    category: consumable
+    amount: 1
+    page: 1
+    slot: 0
+    priceGold: 10
