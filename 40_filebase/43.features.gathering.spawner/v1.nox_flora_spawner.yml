@@ -27,11 +27,11 @@ spawnTimes:
     endTick: 23999
 
 itemMaterial: SPAWNER
-spawnIntervalTicks: 120
+spawnIntervalTicks: 40
 
 spawnLimit:
   maxAlivePerSpawner: 10
-  maxNearbyGatherings: 20
+  maxNearbyGatherings: 60
   spawnPerPlayer: 2
 
 requiredBaseBlocks:
