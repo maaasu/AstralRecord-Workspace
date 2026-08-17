@@ -1,0 +1,16 @@
+# design:
+#   motif: "植物 / 影"
+#   progression: 1
+schemaVersion: 1
+id: nox_shadowgrass_fiber
+category: material
+name: "&f影草の繊維"
+icon: STRING
+rarity: COMMON
+maxStack: 64
+saleValue: 3
+lore:
+  - "&7夜の庭先で静かに伸びる草から採れる繊維。"
+  - "&7薬草の下処理や簡単な細工に使われる。"
+unTradeable: false
+unSellable: false

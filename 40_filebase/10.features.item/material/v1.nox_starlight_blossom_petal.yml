@@ -1,0 +1,16 @@
+# design:
+#   motif: "天体 / 星明かりの花"
+#   progression: 2
+schemaVersion: 1
+id: nox_starlight_blossom_petal
+category: material
+name: "&b星灯花の花弁"
+icon: AMETHYST_SHARD
+rarity: RARE
+maxStack: 64
+saleValue: 36
+lore:
+  - "&7星の灯りのように淡く輝く希少な花弁。"
+  - "&7少量でも強い光を宿す調合素材。"
+unTradeable: false
+unSellable: false

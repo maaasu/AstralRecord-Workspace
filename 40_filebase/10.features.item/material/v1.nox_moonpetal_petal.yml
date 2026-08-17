@@ -1,0 +1,16 @@
+# design:
+#   motif: "天体 / 月の欠片"
+#   progression: 1
+schemaVersion: 1
+id: nox_moonpetal_petal
+category: material
+name: "&f月片花の花弁"
+icon: WHITE_DYE
+rarity: COMMON
+maxStack: 64
+saleValue: 6
+lore:
+  - "&7月の欠片を思わせる淡い花弁。"
+  - "&7淡い色合いの調合や装飾に使われる。"
+unTradeable: false
+unSellable: false

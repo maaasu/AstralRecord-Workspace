@@ -1,0 +1,16 @@
+# design:
+#   motif: "植物 / 鐘形の花"
+#   progression: 1
+schemaVersion: 1
+id: nox_duskbell_petal
+category: material
+name: "&f宵鐘花の花弁"
+icon: BLUE_DYE
+rarity: COMMON
+maxStack: 64
+saleValue: 5
+lore:
+  - "&7夕暮れに鈴のような形を開く花の花弁。"
+  - "&7香りづけや染料の材料に使われる。"
+unTradeable: false
+unSellable: false

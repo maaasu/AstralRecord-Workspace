@@ -1,0 +1,16 @@
+# design:
+#   motif: "気象 / 夜露"
+#   progression: 1
+schemaVersion: 1
+id: nox_dewgrass_leaf
+category: material
+name: "&f夜露草の葉"
+icon: FERN
+rarity: COMMON
+maxStack: 64
+saleValue: 4
+lore:
+  - "&7夜露を含んだ柔らかな葉。"
+  - "&7水分を保つ調合素材として扱われる。"
+unTradeable: false
+unSellable: false

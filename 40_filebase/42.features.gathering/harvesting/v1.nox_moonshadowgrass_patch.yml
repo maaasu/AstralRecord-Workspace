@@ -1,0 +1,33 @@
+# design:
+#   motif: "天体 / 月影"
+#   progression: 2
+schemaVersion: 1
+id: nox_moonshadowgrass_patch
+type: GATHERING
+category: HARVESTING
+name: "&b月影草の茂み"
+maxHealth: 13
+displayBlock: LARGE_FERN
+displayScale:
+  x: 0.75
+  y: 1.1
+  z: 0.75
+requiredToolTags:
+  - HOE
+sounds:
+  hit:
+    sound: block.grass.hit
+    volume: 0.7
+    pitch: 0.9
+  break:
+    sound: block.grass.break
+    volume: 0.85
+    pitch: 0.85
+drops:
+  exp: 2
+  items:
+    - itemId: item:nox_moonshadowgrass_leaf
+      rate: 100.0
+      amount: "1"
+      luckAffected: false
+      hidden: false

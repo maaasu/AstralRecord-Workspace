@@ -1,0 +1,16 @@
+# design:
+#   motif: "天体 / 月影"
+#   progression: 2
+schemaVersion: 1
+id: nox_moonshadowgrass_leaf
+category: material
+name: "&b月影草の葉"
+icon: ECHO_SHARD
+rarity: RARE
+maxStack: 64
+saleValue: 28
+lore:
+  - "&7月明かりを抱えた希少な草の葉。"
+  - "&7夜の植物からしか採れない澄んだ魔力を含む。"
+unTradeable: false
+unSellable: false

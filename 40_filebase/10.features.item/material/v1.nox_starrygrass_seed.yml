@@ -1,0 +1,16 @@
+# design:
+#   motif: "天体 / 星明かり"
+#   progression: 1
+schemaVersion: 1
+id: nox_starrygrass_seed
+category: material
+name: "&f星映え草の種"
+icon: WHEAT_SEEDS
+rarity: COMMON
+maxStack: 64
+saleValue: 4
+lore:
+  - "&7葉先に星明かりを映す草の種。"
+  - "&7夜の草花を育てるための基礎素材。"
+unTradeable: false
+unSellable: false

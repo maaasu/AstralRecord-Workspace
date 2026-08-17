@@ -1,0 +1,40 @@
+# design:
+#   motif: "植物 / 夜の草花"
+#   progression: 2
+schemaVersion: 1
+id: nox_flora_spawner
+type: GATHERING_SPAWNER
+radiusMeters: 18
+
+spawnGatherings:
+  - gatheringId: gathering:nox_shadowgrass_patch
+    weight: 24
+  - gatheringId: gathering:nox_starrygrass_patch
+    weight: 20
+  - gatheringId: gathering:nox_dewgrass_patch
+    weight: 16
+  - gatheringId: gathering:nox_moonshadowgrass_patch
+    weight: 4
+  - gatheringId: gathering:nox_duskbell_patch
+    weight: 20
+  - gatheringId: gathering:nox_moonpetal_patch
+    weight: 16
+  - gatheringId: gathering:nox_starlight_blossom_patch
+    weight: 4
+
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+
+itemMaterial: SPAWNER
+spawnIntervalTicks: 120
+
+spawnLimit:
+  maxAlivePerSpawner: 10
+  maxNearbyGatherings: 20
+  spawnPerPlayer: 2
+
+requiredBaseBlocks:
+  - GRASS_BLOCK
+  - DIRT
+  - MOSS_BLOCK

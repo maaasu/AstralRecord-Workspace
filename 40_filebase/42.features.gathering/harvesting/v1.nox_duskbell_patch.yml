@@ -1,0 +1,33 @@
+# design:
+#   motif: "植物 / 鐘形の花"
+#   progression: 1
+schemaVersion: 1
+id: nox_duskbell_patch
+type: GATHERING
+category: HARVESTING
+name: "&e宵鐘花の群生"
+maxHealth: 6
+displayBlock: BLUE_ORCHID
+displayScale:
+  x: 0.65
+  y: 0.7
+  z: 0.65
+requiredToolTags:
+  - HOE
+sounds:
+  hit:
+    sound: block.grass.hit
+    volume: 0.65
+    pitch: 1.2
+  break:
+    sound: block.grass.break
+    volume: 0.8
+    pitch: 1.1
+drops:
+  exp: 1
+  items:
+    - itemId: item:nox_duskbell_petal
+      rate: 100.0
+      amount: "1~2"
+      luckAffected: false
+      hidden: false

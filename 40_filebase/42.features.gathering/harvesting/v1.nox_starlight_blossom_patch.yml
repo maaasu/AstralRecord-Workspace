@@ -1,0 +1,33 @@
+# design:
+#   motif: "天体 / 星明かりの花"
+#   progression: 2
+schemaVersion: 1
+id: nox_starlight_blossom_patch
+type: GATHERING
+category: HARVESTING
+name: "&b星灯花の群生"
+maxHealth: 21
+displayBlock: ALLIUM
+displayScale:
+  x: 0.7
+  y: 0.75
+  z: 0.7
+requiredToolTags:
+  - HOE
+sounds:
+  hit:
+    sound: block.grass.hit
+    volume: 0.7
+    pitch: 1.0
+  break:
+    sound: block.grass.break
+    volume: 0.85
+    pitch: 0.9
+drops:
+  exp: 2
+  items:
+    - itemId: item:nox_starlight_blossom_petal
+      rate: 100.0
+      amount: "1"
+      luckAffected: false
+      hidden: false

@@ -1,0 +1,33 @@
+# design:
+#   motif: "天体 / 星明かり"
+#   progression: 1
+schemaVersion: 1
+id: nox_starrygrass_patch
+type: GATHERING
+category: HARVESTING
+name: "&a星映え草の茂み"
+maxHealth: 2
+displayBlock: FERN
+displayScale:
+  x: 0.8
+  y: 0.9
+  z: 0.8
+requiredToolTags:
+  - HOE
+sounds:
+  hit:
+    sound: block.grass.hit
+    volume: 0.65
+    pitch: 1.1
+  break:
+    sound: block.grass.break
+    volume: 0.8
+    pitch: 1.0
+drops:
+  exp: 1
+  items:
+    - itemId: item:nox_starrygrass_seed
+      rate: 100.0
+      amount: "1~2"
+      luckAffected: false
+      hidden: false
