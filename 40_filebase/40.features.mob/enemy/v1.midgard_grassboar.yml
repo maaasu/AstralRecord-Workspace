@@ -58,3 +58,9 @@ drops:
       amount: 1
       luckAffected: true
       hidden: false
+    - itemId:
+        ref: item:grassboar_meat
+      rate: 80.0
+      amount: 2~3
+      luckAffected: true
+      hidden: false
