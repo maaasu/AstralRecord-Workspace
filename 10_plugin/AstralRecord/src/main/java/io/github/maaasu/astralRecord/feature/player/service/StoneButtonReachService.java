@@ -150,7 +150,7 @@ public final class StoneButtonReachService {
                 eye.getDirection(),
                 STONE_BUTTON_REACH,
                 FluidCollisionMode.NEVER,
-                true
+                false
         );
         if (hit == null) {
             return false;

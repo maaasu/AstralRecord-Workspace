@@ -90,7 +90,7 @@ class StoneButtonReachServiceTest {
                 any(Vector.class),
                 eq(4.5D),
                 eq(FluidCollisionMode.NEVER),
-                eq(true)
+                eq(false)
         );
     }
 
@@ -173,7 +173,7 @@ class StoneButtonReachServiceTest {
                 any(Vector.class),
                 eq(4.5D),
                 eq(FluidCollisionMode.NEVER),
-                eq(true)
+                eq(false)
         );
     }
 
@@ -195,7 +195,7 @@ class StoneButtonReachServiceTest {
                 any(Vector.class),
                 eq(4.5D),
                 eq(FluidCollisionMode.NEVER),
-                eq(true)
+                eq(false)
         );
     }
 
@@ -261,7 +261,7 @@ class StoneButtonReachServiceTest {
                 any(Vector.class),
                 eq(4.5D),
                 eq(FluidCollisionMode.NEVER),
-                eq(true)
+                eq(false)
         )).thenReturn(rayTrace);
 
         if (rayTrace != null) {
