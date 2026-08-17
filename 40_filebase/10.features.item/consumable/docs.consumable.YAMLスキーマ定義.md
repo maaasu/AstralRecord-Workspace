@@ -7,11 +7,12 @@
 | キー                                 | 型       | 必須 | デフォルト | 説明                                                              |
 |:-----------------------------------|:--------|:--:|-------|:----------------------------------------------------------------|
 | `maxStack`                         | Integer | ×  | 64    | アイテムの最大スタック数                                                    |
-| `consumable[].onUse[].sound`       | String  | ×  | Null  | 使用時に流れるサウンド（SoundKey想定。例: `entity.player.levelup`）              |
-| `consumable[].onUse[].effect`      | String  | ×  | Null  | 使用時のパーティクル（実装側で解釈。例: `happy_villager`）                          |
-| `consumable[].onUse[].amount`      | Integer | ×  | 1     | 消費する個数（スタックから減る数）                                               |
-| `consumable[].onUse[].useTimeTicks` | Long    | ×  | 40    | 使用完了まで静止する必要がある時間（tick 単位。20 tick = 1 秒）                        |
-| `consumable[].onUse[].cooldownTicks` | Long    | ×  | 40    | 使用成功後のクールタイム（tick 単位。20 tick = 1 秒）                                |
+| `consumable.onUse.usingSound`      | String  | ×  | Null  | 使用待機の開始時と待機中に流れるサウンド（SoundKey想定。未指定時は `entity.generic.drink`） |
+| `consumable.onUse.sound`           | String  | ×  | Null  | 効果適用後に流れるサウンド（SoundKey想定。例: `entity.player.levelup`）          |
+| `consumable.onUse.effect`          | String  | ×  | Null  | 使用時のパーティクル（実装側で解釈。例: `happy_villager`）                          |
+| `consumable.onUse.amount`          | Integer | ×  | 1     | 消費する個数（スタックから減る数）                                               |
+| `consumable.onUse.useTimeTicks`    | Long    | ×  | 40    | 使用完了まで静止する必要がある時間（tick 単位。20 tick = 1 秒）                        |
+| `consumable.onUse.cooldownTicks`  | Long    | ×  | 40    | 使用成功後のクールタイム（tick 単位。20 tick = 1 秒）                                |
 | `consumable[].effects[]`           | List    | ○  | -     | 使用時に適用する効果のリスト（後述）                                              |
 | `consumable[].effects[].type`      | String  | ○  | -     | 効果種別（`RECOVER` / `BUFF`）                                        |
 | `consumable[].effects[].rate`      | Double  | ×  | 100   | 発動確率（0〜100）                                                     |
@@ -51,6 +52,7 @@ untradeable: false
 
 consumable:
   onUse:
+    usingSound: entity.generic.drink
     sound: entity.player.levelup
     effect: happy_villager
     amount: 1
@@ -66,3 +68,5 @@ consumable:
         ref: buff:haste_small
       rate: 100
 ```
+
+`usingSound` は使用中、`sound` は使用完了後のサウンドを指定します。食料などは `usingSound: entity.generic.eat` を指定してください。

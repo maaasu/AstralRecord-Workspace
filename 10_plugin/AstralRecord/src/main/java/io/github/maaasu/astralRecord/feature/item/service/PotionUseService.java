@@ -143,7 +143,7 @@ public final class PotionUseService {
 
         PendingPotionUse pending = new PendingPotionUse(astPlayer, hand, model, consumable, useTimeTicks, bossBar);
         updateUseDisplay(pending, secondsRemaining(useTimeTicks, 0L));
-        playUseStartEffects(astPlayer.getBukkit());
+        playUseStartEffects(astPlayer.getBukkit(), consumable.getOnUse());
         pendingUses.put(playerId, pending);
         pending.setWait(movementCancelableWaitService.begin(
             astPlayer.getBukkit(),
@@ -272,7 +272,7 @@ public final class PotionUseService {
             updateUseDisplay(pending, remainingSeconds);
         }
         if (elapsedTicks % EFFECT_PERIOD_TICKS == 0L) {
-            playUseChargeEffects(player, elapsedTicks, progress);
+            playUseChargeEffects(player, elapsedTicks, progress, pending.consumable().getOnUse());
         }
     }
 
@@ -310,12 +310,17 @@ public final class PotionUseService {
         ));
     }
 
-    private void playUseStartEffects(@NotNull Player player) {
-        player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_DRINK, SoundCategory.PLAYERS, 0.7F, 1.0F);
-        playUseChargeEffects(player, 0L, 0.0D);
+    private void playUseStartEffects(@NotNull Player player, @Nullable ItemConsumableOnUse onUse) {
+        playUsingSound(player, onUse, 0.7F, 1.0F);
+        playUseChargeEffects(player, 0L, 0.0D, onUse);
     }
 
-    private void playUseChargeEffects(@NotNull Player player, long elapsedTicks, double progress) {
+    private void playUseChargeEffects(
+        @NotNull Player player,
+        long elapsedTicks,
+        double progress,
+        @Nullable ItemConsumableOnUse onUse
+    ) {
         Location base = player.getLocation().clone();
         double radius = 0.55D + (progress * 0.25D) + (Math.sin(elapsedTicks * 0.22D) * 0.04D);
         for (int index = 0; index < RING_POINTS; index++) {
@@ -333,14 +338,22 @@ public final class PotionUseService {
             SharedParticleDefinitions.POTION_USE_ENCHANT
         );
         if (elapsedTicks % 10L == 0L) {
-            player.playSound(
-                player.getLocation(),
-                Sound.ENTITY_GENERIC_DRINK,
-                SoundCategory.PLAYERS,
-                0.35F,
-                (float) (1.18D + (progress * 0.24D))
-            );
+            playUsingSound(player, onUse, 0.35F, (float) (1.18D + (progress * 0.24D)));
         }
+    }
+
+    private void playUsingSound(
+        @NotNull Player player,
+        @Nullable ItemConsumableOnUse onUse,
+        float volume,
+        float pitch
+    ) {
+        String usingSound = onUse == null ? null : onUse.getUsingSound();
+        if (usingSound != null && !usingSound.isBlank()) {
+            player.playSound(player.getLocation(), usingSound.trim(), SoundCategory.PLAYERS, volume, pitch);
+            return;
+        }
+        player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_DRINK, SoundCategory.PLAYERS, volume, pitch);
     }
 
     private boolean applyAndConsume(@NotNull PendingPotionUse pending) {

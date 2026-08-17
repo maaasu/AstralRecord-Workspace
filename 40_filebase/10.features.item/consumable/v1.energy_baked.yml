@@ -15,6 +15,7 @@ unSellable: false
 
 consumable:
   onUse:
+    usingSound: entity.generic.eat
     sound: block.note_block.chime
     effect: electric_spark
     amount: 1

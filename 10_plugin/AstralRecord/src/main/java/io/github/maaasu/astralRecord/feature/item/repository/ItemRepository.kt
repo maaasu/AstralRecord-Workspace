@@ -835,6 +835,7 @@ class ItemRepository {
         val onUseObj = parseObjectOrNull(consumableObj, "onUse")
         val onUse = if (onUseObj != null) {
             ItemConsumableOnUse(
+                usingSound = onUseObj.get("usingSound")?.takeIf { !it.isJsonNull }?.asString,
                 sound = onUseObj.get("sound")?.takeIf { !it.isJsonNull }?.asString,
                 effect = onUseObj.get("effect")?.takeIf { !it.isJsonNull }?.asString,
                 amount = onUseObj.get("amount")?.asInt ?: 1,

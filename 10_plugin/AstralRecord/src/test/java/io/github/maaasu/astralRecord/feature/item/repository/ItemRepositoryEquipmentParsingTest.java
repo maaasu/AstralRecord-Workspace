@@ -114,6 +114,35 @@ class ItemRepositoryEquipmentParsingTest {
         assertEquals("enchant001", item.getOrb().getEffect().getEnchantMasterId());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
+     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.4 `ItemConsumable`
+     * 検証契約: 消耗品の使用中サウンドと使用完了後サウンドを別々のマスタ項目として保持する。
+     */
+    @Test
+    void consumableUsingAndCompletionSoundsAreParsedSeparately() throws Exception {
+        ItemModel item = parseItem("""
+            {
+              "schemaVersion":1,
+              "id":"energy_baked",
+              "category":"consumable",
+              "name":"energy baked",
+              "icon":"BREAD",
+              "rarity":"COMMON",
+              "consumable":{
+                "onUse":{
+                  "usingSound":"entity.generic.eat",
+                  "sound":"block.note_block.chime"
+                },
+                "effects":[]
+              }
+            }
+            """);
+
+        assertEquals("entity.generic.eat", item.getConsumable().getOnUse().getUsingSound());
+        assertEquals("block.note_block.chime", item.getConsumable().getOnUse().getSound());
+    }
+
     private EquipmentInstance parseEquipmentInstance(String json) throws Exception {
         ItemRepository repository = new ItemRepository();
         Method parser = ItemRepository.class.getDeclaredMethod("parseEquipmentInstance", String.class);
