@@ -4,7 +4,7 @@
 schemaVersion: 1
 id: nox_flora_spawner
 type: GATHERING_SPAWNER
-radiusMeters: 18
+radiusMeters: 36
 
 spawnGatherings:
   - gatheringId: gathering:nox_shadowgrass_patch
