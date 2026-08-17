@@ -638,19 +638,23 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         session.screen = MarketScreen.LOADING;
         marketGui.openLoading(player, session.sessionId);
         inventorySaveCoordinator.executeExclusiveAfterSave(accountId, baseline -> {
+            PlayerMsgId preflightRejection = purchasePreflightRejection(astPlayer, listing, purchaseQuantity);
+            if (preflightRejection != null) {
+                return PurchaseListingResult.rejected(preflightRejection);
+            }
             MarketTransaction transaction = marketService.purchase(listing.listingId(), new MarketPurchaseRequest(
                 accountId,
                 purchaseQuantity,
                 UUID.randomUUID().toString(),
                 accountId
             ));
-            inventoryService.reconcileExternalInventoryEntries(
-                accountId,
+            inventoryService.reconcileExternalInventoryEntriesToOwnedInventory(
+                astPlayer,
                 transaction.affectedInventoryEntryIds(),
                 baseline
             );
-            return transaction;
-        }).whenComplete((transaction, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
+            return PurchaseListingResult.completed(transaction);
+        }).whenComplete((result, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
             refreshInventoryUiAfterMarketMutation(player, throwable);
             if (!isCurrentSession(player, session)) {
                 return;
@@ -658,6 +662,23 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             session.busy = false;
             if (throwable != null) {
                 sendMarketFailure(player, throwable);
+                openListings(player, false, session.page);
+                return;
+            }
+            if (result == null) {
+                sendMarketFailure(player, new IllegalStateException("Market purchase result was empty"));
+                openListings(player, false, session.page);
+                return;
+            }
+            if (result.rejectionMessage() != null) {
+                messageService.send(player, result.rejectionMessage());
+                GuiSound.DENY.play(player);
+                openListings(player, false, session.page);
+                return;
+            }
+            MarketTransaction transaction = result.transaction();
+            if (transaction == null) {
+                sendMarketFailure(player, new IllegalStateException("Market purchase result was empty"));
                 openListings(player, false, session.page);
                 return;
             }
@@ -690,8 +711,8 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                 "player_cancel",
                 accountId
             ));
-            inventoryService.reconcileExternalInventoryEntries(
-                accountId,
+            inventoryService.reconcileExternalInventoryEntriesToOwnedInventory(
+                astPlayer,
                 canceled.sourceInventoryEntryIds().isEmpty()
                     ? legacySourceEntryIds(listing)
                     : canceled.sourceInventoryEntryIds(),
@@ -941,6 +962,27 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         );
     }
 
+    /** 購入 API の直前に数量・item 解決・所持容量を同一保存 lane で検証します。 */
+    private @Nullable PlayerMsgId purchasePreflightRejection(
+        @NotNull AstPlayer astPlayer,
+        @NotNull MarketListing listing,
+        long purchaseQuantity
+    ) {
+        if (purchaseQuantity < 1L
+            || listing.remainingQuantity() < 1L
+            || purchaseQuantity > listing.remainingQuantity()
+            || purchaseQuantity > Integer.MAX_VALUE) {
+            return PlayerMsgId.P_6305;
+        }
+        ItemModel model = itemService.findLoadedById(listing.itemId());
+        if (model == null) {
+            return PlayerMsgId.P_6305;
+        }
+        return inventoryService.canAddItemToNormalInventory(astPlayer, model, (int) purchaseQuantity)
+            ? null
+            : PlayerMsgId.P_5241;
+    }
+
     private long minimumListingUnitPrice(@NotNull ItemModel item) {
         if (item.getSaleValue() == Long.MAX_VALUE) {
             return 0L;
@@ -1072,6 +1114,20 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
 
         private static @NotNull CancelListingResult completed() {
             return new CancelListingResult(false);
+        }
+    }
+
+    /** 購入 API 前の拒否結果、または API 確定済み transaction を保持します。 */
+    private record PurchaseListingResult(
+        @Nullable MarketTransaction transaction,
+        @Nullable PlayerMsgId rejectionMessage
+    ) {
+        private static @NotNull PurchaseListingResult completed(@NotNull MarketTransaction transaction) {
+            return new PurchaseListingResult(transaction, null);
+        }
+
+        private static @NotNull PurchaseListingResult rejected(@NotNull PlayerMsgId rejectionMessage) {
+            return new PurchaseListingResult(null, rejectionMessage);
         }
     }
 }

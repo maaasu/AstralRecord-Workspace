@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.inventory.service;
 
 import io.github.maaasu.astralRecord.feature.currency.model.GoldDenomination;
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentLoadoutModel;
@@ -14,6 +15,8 @@ import io.github.maaasu.astralRecord.feature.inventory.state.InventoryPersistenc
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryState;
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -545,6 +548,546 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
+     * 検証契約: HOTBAR stackの部分出品後はgeneric三者マージだけを行い、残数量と元slotを維持する。
+     */
+    @Test
+    void marketListingPartialHotbarSourceKeepsRemainingQuantityAndSlot() {
+        UUID accountId = UUID.randomUUID();
+        UUID sourceEntryId = UUID.randomUUID();
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG, 27);
+        InventoryModel hotbar = DesignTestFixtures.inventory(accountId, InventoryType.HOTBAR, 9);
+        state.putInventory(bag);
+        state.putInventory(hotbar);
+        InventoryEntryModel baselineEntry = categoryEntry(
+            sourceEntryId,
+            accountId,
+            hotbar.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START + 2,
+            ItemCategory.MATERIAL,
+            "market_partial_material",
+            5L
+        );
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of(baselineEntry));
+        registry.put(state);
+        InventoryRepository repository = mock(InventoryRepository.class);
+        InventoryService service = new InventoryService(
+            repository,
+            mock(EquipmentLoadoutRepository.class),
+            mock(ItemService.class),
+            mock(ItemStackFactory.class),
+            registry,
+            mock(InventoryPersistence.class),
+            mock(InventorySaveCoordinator.class)
+        );
+        InventoryEntryModel remaining = categoryEntry(
+            sourceEntryId,
+            accountId,
+            hotbar.getInventoryId(),
+            baselineEntry.getSlotIndex(),
+            ItemCategory.MATERIAL,
+            "market_partial_material",
+            3L
+        );
+        when(repository.findEntryById(sourceEntryId)).thenReturn(remaining);
+
+        service.reconcileExternalInventoryEntries(
+            accountId,
+            List.of(sourceEntryId),
+            baseline(accountId, hotbar.getInventoryId(), List.of(baselineEntry))
+        );
+
+        List<InventoryEntryModel> entries = state.snapshotEntries(hotbar.getInventoryId());
+        assertEquals(1, entries.size());
+        assertEquals(sourceEntryId, entries.getFirst().getInventoryEntryId());
+        assertEquals(baselineEntry.getSlotIndex(), entries.getFirst().getSlotIndex());
+        assertEquals(3L, entries.getFirst().getQuantity());
+        assertTrue(state.snapshotEntries(bag.getInventoryId()).isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
+     * 検証契約: 取り下げでBAGへ復元されたaffected stackは同一BAGの既存stackを共通付与処理で統合し、affected IDを正本として保持する。
+     */
+    @Test
+    void marketCancellationMergesRestoredBagStackIntoAffectedCanonicalEntry() {
+        UUID accountId = UUID.randomUUID();
+        UUID existingEntryId = UUID.randomUUID();
+        UUID restoredEntryId = UUID.randomUUID();
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG, 27);
+        state.putInventory(bag);
+        InventoryEntryModel existing = categoryEntry(
+            existingEntryId,
+            accountId,
+            bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START,
+            ItemCategory.MATERIAL,
+            "market_material",
+            10L
+        );
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(existing));
+        registry.put(state);
+        InventoryRepository repository = mock(InventoryRepository.class);
+        ItemService itemService = mock(ItemService.class);
+        InventoryService service = new InventoryService(
+            repository,
+            mock(EquipmentLoadoutRepository.class),
+            itemService,
+            mock(ItemStackFactory.class),
+            registry,
+            mock(InventoryPersistence.class),
+            mock(InventorySaveCoordinator.class)
+        );
+        InventoryEntryModel restored = categoryEntry(
+            restoredEntryId,
+            accountId,
+            bag.getInventoryId(),
+            null,
+            ItemCategory.MATERIAL,
+            "market_material",
+            5L
+        );
+        when(repository.findEntryById(restoredEntryId)).thenReturn(restored);
+        when(itemService.findLoadedById("market_material"))
+            .thenReturn(DesignTestFixtures.item("market_material", ItemCategory.MATERIAL, 64));
+        AstPlayer player = astPlayer(accountId);
+
+        service.reconcileExternalInventoryEntriesToOwnedInventory(
+            player,
+            List.of(restoredEntryId),
+            baseline(accountId, bag.getInventoryId(), List.of(existing))
+        );
+
+        List<InventoryEntryModel> entries = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(1, entries.size(), entries.toString());
+        assertEquals(restoredEntryId, entries.getFirst().getInventoryEntryId());
+        assertEquals(15L, entries.getFirst().getQuantity());
+        assertNull(service.findOwnedEntry(accountId, existingEntryId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
+     * 検証契約: 容量外へ返されたaffected stackは同一itemの管理slotをaffected IDへ引き継ぎ、共通stack処理で一行へ統合する。
+     */
+    @Test
+    void marketCancellationMovesOverflowAffectedStackIntoManagedCanonicalSlot() {
+        UUID accountId = UUID.randomUUID();
+        UUID existingEntryId = UUID.randomUUID();
+        UUID restoredEntryId = UUID.randomUUID();
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        state.setBagSlotCapacity(1);
+        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG, 1);
+        state.putInventory(bag);
+        InventoryEntryModel existing = categoryEntry(
+            existingEntryId,
+            accountId,
+            bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START,
+            ItemCategory.MATERIAL,
+            "market_overflow_material",
+            63L
+        );
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(existing));
+        registry.put(state);
+        InventoryRepository repository = mock(InventoryRepository.class);
+        ItemService itemService = mock(ItemService.class);
+        InventoryService service = new InventoryService(
+            repository,
+            mock(EquipmentLoadoutRepository.class),
+            itemService,
+            mock(ItemStackFactory.class),
+            registry,
+            mock(InventoryPersistence.class),
+            mock(InventorySaveCoordinator.class)
+        );
+        InventoryEntryModel restored = categoryEntry(
+            restoredEntryId,
+            accountId,
+            bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START + 1,
+            ItemCategory.MATERIAL,
+            "market_overflow_material",
+            1L
+        );
+        when(repository.findEntryById(restoredEntryId)).thenReturn(restored);
+        when(itemService.findLoadedById("market_overflow_material"))
+            .thenReturn(DesignTestFixtures.item("market_overflow_material", ItemCategory.MATERIAL, 64));
+
+        service.reconcileExternalInventoryEntriesToOwnedInventory(
+            astPlayer(accountId),
+            List.of(restoredEntryId),
+            baseline(accountId, bag.getInventoryId(), List.of(existing))
+        );
+
+        List<InventoryEntryModel> entries = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(1, entries.size(), entries.toString());
+        assertEquals(restoredEntryId, entries.getFirst().getInventoryEntryId());
+        assertEquals(NormalInventoryLayout.DB_SLOT_START, entries.getFirst().getSlotIndex());
+        assertEquals(64L, entries.getFirst().getQuantity());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
+     * 検証契約: HOTBARへ復元された取り下げentryは個別配置を維持せず、共通所有インベントリ返却処理でBAGの同一stackへ統合する。
+     */
+    @Test
+    void marketCancellationMovesRestoredHotbarStackThroughSharedBagReturnPath() {
+        UUID accountId = UUID.randomUUID();
+        UUID existingEntryId = UUID.randomUUID();
+        UUID restoredEntryId = UUID.randomUUID();
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG, 27);
+        InventoryModel hotbar = DesignTestFixtures.inventory(accountId, InventoryType.HOTBAR, 9);
+        state.putInventory(bag);
+        state.putInventory(hotbar);
+        InventoryEntryModel existing = categoryEntry(
+            existingEntryId,
+            accountId,
+            bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START,
+            ItemCategory.MATERIAL,
+            "market_material",
+            10L
+        );
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(existing));
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of());
+        registry.put(state);
+        InventoryRepository repository = mock(InventoryRepository.class);
+        ItemService itemService = mock(ItemService.class);
+        InventoryService service = new InventoryService(
+            repository,
+            mock(EquipmentLoadoutRepository.class),
+            itemService,
+            mock(ItemStackFactory.class),
+            registry,
+            mock(InventoryPersistence.class),
+            mock(InventorySaveCoordinator.class)
+        );
+        InventoryEntryModel restored = categoryEntry(
+            restoredEntryId,
+            accountId,
+            hotbar.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START,
+            ItemCategory.MATERIAL,
+            "market_material",
+            5L
+        );
+        when(repository.findEntryById(restoredEntryId)).thenReturn(restored);
+        when(itemService.findLoadedById("market_material"))
+            .thenReturn(DesignTestFixtures.item("market_material", ItemCategory.MATERIAL, 64));
+        AstPlayer player = astPlayer(accountId);
+
+        service.reconcileExternalInventoryEntriesToOwnedInventory(
+            player,
+            List.of(restoredEntryId),
+            new InventoryPersistence.PersistedInventoryBaseline(
+                accountId,
+                Map.of(
+                    bag.getInventoryId(), List.of(existing),
+                    hotbar.getInventoryId(), List.of()
+                )
+            )
+        );
+
+        List<InventoryEntryModel> bagEntries = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(1, bagEntries.size());
+        assertEquals(existingEntryId, bagEntries.getFirst().getInventoryEntryId());
+        assertEquals(15L, bagEntries.getFirst().getQuantity());
+        assertTrue(state.snapshotEntries(hotbar.getInventoryId()).isEmpty());
+        assertNull(service.findOwnedEntry(accountId, restoredEntryId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
+     * 検証契約: 購入APIが加算したaffected BAG entryをcanonicalとして、操作前から残る同一itemの別entryを共通付与処理で統合する。
+     */
+    @Test
+    void marketPurchaseKeepsAffectedApiEntryAndMergesExistingDuplicateStack() {
+        UUID accountId = UUID.randomUUID();
+        UUID affectedEntryId = UUID.randomUUID();
+        UUID duplicateEntryId = UUID.randomUUID();
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG, 27);
+        state.putInventory(bag);
+        InventoryEntryModel affectedBeforePurchase = categoryEntry(
+            affectedEntryId,
+            accountId,
+            bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START,
+            ItemCategory.MATERIAL,
+            "market_material",
+            10L
+        );
+        InventoryEntryModel duplicate = categoryEntry(
+            duplicateEntryId,
+            accountId,
+            bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START + 1,
+            ItemCategory.MATERIAL,
+            "market_material",
+            3L
+        );
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(affectedBeforePurchase, duplicate));
+        registry.put(state);
+        InventoryRepository repository = mock(InventoryRepository.class);
+        ItemService itemService = mock(ItemService.class);
+        InventoryService service = new InventoryService(
+            repository,
+            mock(EquipmentLoadoutRepository.class),
+            itemService,
+            mock(ItemStackFactory.class),
+            registry,
+            mock(InventoryPersistence.class),
+            mock(InventorySaveCoordinator.class)
+        );
+        InventoryEntryModel affectedAfterPurchase = categoryEntry(
+            affectedEntryId,
+            accountId,
+            bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START,
+            ItemCategory.MATERIAL,
+            "market_material",
+            15L
+        );
+        when(repository.findEntryById(affectedEntryId)).thenReturn(affectedAfterPurchase);
+        when(itemService.findLoadedById("market_material"))
+            .thenReturn(DesignTestFixtures.item("market_material", ItemCategory.MATERIAL, 64));
+
+        service.reconcileExternalInventoryEntriesToOwnedInventory(
+            astPlayer(accountId),
+            List.of(affectedEntryId),
+            baseline(
+                accountId,
+                bag.getInventoryId(),
+                List.of(affectedBeforePurchase, duplicate)
+            )
+        );
+
+        List<InventoryEntryModel> entries = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(1, entries.size());
+        assertEquals(affectedEntryId, entries.getFirst().getInventoryEntryId());
+        assertEquals(18L, entries.getFirst().getQuantity());
+        assertNull(service.findOwnedEntry(accountId, duplicateEntryId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 12.2 外部取引で受け取った所有アイテムの正規化
+     * 検証契約: maxStack=1の通常itemは同一item IDでもstack統合せず、API affected IDと既存IDを個別に維持する。
+     */
+    @Test
+    void marketReconciliationDoesNotMergeMaxStackOneItems() {
+        UUID accountId = UUID.randomUUID();
+        UUID existingEntryId = UUID.randomUUID();
+        UUID affectedEntryId = UUID.randomUUID();
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG, 27);
+        state.putInventory(bag);
+        InventoryEntryModel existing = categoryEntry(
+            existingEntryId, accountId, bag.getInventoryId(), NormalInventoryLayout.DB_SLOT_START,
+            ItemCategory.MATERIAL, "market_unique_material", 1L);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(existing));
+        registry.put(state);
+        InventoryRepository repository = mock(InventoryRepository.class);
+        ItemService itemService = mock(ItemService.class);
+        InventoryService service = new InventoryService(
+            repository,
+            mock(EquipmentLoadoutRepository.class),
+            itemService,
+            mock(ItemStackFactory.class),
+            registry,
+            mock(InventoryPersistence.class),
+            mock(InventorySaveCoordinator.class)
+        );
+        InventoryEntryModel affected = categoryEntry(
+            affectedEntryId, accountId, bag.getInventoryId(), null,
+            ItemCategory.MATERIAL, "market_unique_material", 1L);
+        when(repository.findEntryById(affectedEntryId)).thenReturn(affected);
+        when(itemService.findLoadedById("market_unique_material"))
+            .thenReturn(DesignTestFixtures.item("market_unique_material", ItemCategory.MATERIAL, 1));
+
+        service.reconcileExternalInventoryEntriesToOwnedInventory(
+            astPlayer(accountId),
+            List.of(affectedEntryId),
+            baseline(accountId, bag.getInventoryId(), List.of(existing))
+        );
+
+        List<InventoryEntryModel> entries = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(2, entries.size());
+        assertNotNull(service.findOwnedEntry(accountId, existingEntryId));
+        assertNotNull(service.findOwnedEntry(accountId, affectedEntryId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 12.2 外部取引で受け取った所有アイテムの正規化
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
+     * 検証契約: itemIdを併記したequipment entryがHOTBARへ復元されてもinstanceIdを落とさず、共通返却処理でBAGへ移す。
+     */
+    @Test
+    void marketCancellationPreservesEquipmentInstanceWhenReturningHotbarEntryToBag() {
+        UUID accountId = UUID.randomUUID();
+        UUID affectedEntryId = UUID.randomUUID();
+        UUID equipmentInstanceId = UUID.randomUUID();
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG, 27);
+        InventoryModel hotbar = DesignTestFixtures.inventory(accountId, InventoryType.HOTBAR, 9);
+        state.putInventory(bag);
+        state.putInventory(hotbar);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of());
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of());
+        registry.put(state);
+        InventoryRepository repository = mock(InventoryRepository.class);
+        ItemService itemService = mock(ItemService.class);
+        InventoryService service = new InventoryService(
+            repository,
+            mock(EquipmentLoadoutRepository.class),
+            itemService,
+            mock(ItemStackFactory.class),
+            registry,
+            mock(InventoryPersistence.class),
+            mock(InventorySaveCoordinator.class)
+        );
+        LocalDateTime now = LocalDateTime.now();
+        InventoryEntryModel affected = new InventoryEntryModel(
+            affectedEntryId,
+            hotbar.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START,
+            ItemCategory.EQUIPMENT.getApiValue(),
+            "market_equipment",
+            "EQUIPMENT",
+            equipmentInstanceId,
+            1L,
+            null,
+            now,
+            now,
+            accountId,
+            accountId,
+            false
+        );
+        when(repository.findEntryById(affectedEntryId)).thenReturn(affected);
+        when(itemService.findLoadedById("market_equipment"))
+            .thenReturn(DesignTestFixtures.item("market_equipment", ItemCategory.EQUIPMENT, 1));
+
+        service.reconcileExternalInventoryEntriesToOwnedInventory(
+            astPlayer(accountId),
+            List.of(affectedEntryId),
+            new InventoryPersistence.PersistedInventoryBaseline(
+                accountId,
+                Map.of(
+                    bag.getInventoryId(), List.of(),
+                    hotbar.getInventoryId(), List.of()
+                )
+            )
+        );
+
+        assertTrue(state.snapshotEntries(hotbar.getInventoryId()).isEmpty());
+        List<InventoryEntryModel> bagEntries = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(1, bagEntries.size());
+        assertEquals("market_equipment", bagEntries.getFirst().getItemId());
+        assertEquals("EQUIPMENT", bagEntries.getFirst().getInstanceType());
+        assertEquals(equipmentInstanceId, bagEntries.getFirst().getInstanceId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 12.2 外部取引で受け取った所有アイテムの正規化
+     * 検証契約: 共通返却処理が要求数の一部しか収容できない場合は失敗し、追加済みの一部stackもsnapshotへrollbackする。
+     */
+    @Test
+    void sharedOwnedInventoryReturnRollsBackPartialStackAddition() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        state.setBagSlotCapacity(1);
+        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG, 1);
+        state.putInventory(bag);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of());
+        registry.put(state);
+        ItemService itemService = mock(ItemService.class);
+        InventoryService service = new InventoryService(
+            mock(InventoryRepository.class),
+            mock(EquipmentLoadoutRepository.class),
+            itemService,
+            mock(ItemStackFactory.class),
+            registry,
+            mock(InventoryPersistence.class),
+            mock(InventorySaveCoordinator.class)
+        );
+        when(itemService.findLoadedById("market_material"))
+            .thenReturn(DesignTestFixtures.item("market_material", ItemCategory.MATERIAL, 64));
+
+        InventoryType returnedTo = service.returnItemToOwnedInventory(
+            astPlayer(accountId),
+            new ItemReference(
+                "market_material",
+                ItemCategory.MATERIAL.getApiValue(),
+                null,
+                null
+            ),
+            65
+        );
+
+        assertNull(returnedTo);
+        assertTrue(state.snapshotEntries(bag.getInventoryId()).isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
+     * 検証契約: 取り下げ前の容量判定は、容量外またはslot未指定のstack残量を空き容量へ算入しない。
+     */
+    @Test
+    void capacityCheckIgnoresRoomInOverflowStackWhenReturningMarketItem() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        state.setBagSlotCapacity(1);
+        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG, 1);
+        state.putInventory(bag);
+        ItemService itemService = mock(ItemService.class);
+        InventoryService service = new InventoryService(
+            mock(InventoryRepository.class),
+            mock(EquipmentLoadoutRepository.class),
+            itemService,
+            mock(ItemStackFactory.class),
+            registry,
+            mock(InventoryPersistence.class),
+            mock(InventorySaveCoordinator.class)
+        );
+        registry.put(state);
+        ItemModel marketItem = DesignTestFixtures.item("market_capacity_material", ItemCategory.MATERIAL, 64);
+        when(itemService.findLoadedById(marketItem.getId())).thenReturn(marketItem);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
+            categoryEntry(
+                UUID.randomUUID(), accountId, bag.getInventoryId(), NormalInventoryLayout.DB_SLOT_START,
+                ItemCategory.MATERIAL, marketItem.getId(), marketItem.getMaxStack()
+            ),
+            categoryEntry(
+                UUID.randomUUID(), accountId, bag.getInventoryId(), null,
+                ItemCategory.MATERIAL, marketItem.getId(), 1L
+            )
+        ));
+
+        assertFalse(service.canAddItemToNormalInventory(astPlayer(accountId), marketItem, 1));
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
      * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
      * 検証契約: HOTBARからentryが全削除されても固定slotを前詰めしない。
@@ -761,6 +1304,15 @@ class InventoryServiceOrbReconciliationTest {
 
     private static Harness harness() {
         return harness(InventoryType.BAG);
+    }
+
+    private static AstPlayer astPlayer(UUID accountId) {
+        AstPlayer player = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        when(player.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+        when(account.getMode()).thenReturn(AccountMode.ADMIN);
+        return player;
     }
 
     private static Harness harness(InventoryType inventoryType) {

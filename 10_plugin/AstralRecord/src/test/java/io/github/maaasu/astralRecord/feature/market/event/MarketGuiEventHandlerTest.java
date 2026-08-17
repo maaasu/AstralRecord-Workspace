@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.inventory.state.InventoryPersistence;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
@@ -14,6 +15,8 @@ import io.github.maaasu.astralRecord.feature.market.gui.MarketGui;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListing;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingDraft;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingSource;
+import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaim;
+import io.github.maaasu.astralRecord.feature.market.model.MarketTransaction;
 import io.github.maaasu.astralRecord.feature.market.service.MarketService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -35,11 +38,13 @@ import java.time.Instant;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -115,6 +120,291 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
         verify(inventoryService, times(4)).refreshManagedInventoryUi(astPlayer);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入
+     * 検証契約: 購入・取り下げ確定はAPIのaffected IDsを個別配置せず、共通の所有インベントリ正規化付きreconcileへ渡す。
+     */
+    @Test
+    void purchaseAndCancellationUseSharedOwnedInventoryReconciliation() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        InventorySaveCoordinator coordinator = mock(InventorySaveCoordinator.class);
+        MarketService marketService = mock(MarketService.class);
+        ItemService itemService = mock(ItemService.class);
+        MarketGuiEventHandler handler = new MarketGuiEventHandler(
+            mock(AstralRecord.class),
+            itemService,
+            mock(MarketGui.class),
+            marketService,
+            inventoryService,
+            coordinator,
+            mock(CurrencyService.class),
+            mock(PlayerMessageService.class),
+            mock(GoldAmountSettingGui.class)
+        );
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        AstPlayerCache.put(astPlayer);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        UUID affectedEntryId = UUID.randomUUID();
+        MarketListing listing = listing(UUID.randomUUID(), "ACTIVE", 0L);
+        MarketListing ownListing = listing(accountId, "ACTIVE", 0L);
+        ItemModel marketItem = item();
+        MarketTransaction transaction = new MarketTransaction(
+            UUID.randomUUID(),
+            listing.listingId(),
+            listing.sellerAccountId(),
+            accountId,
+            ItemCategory.MATERIAL.getApiValue(),
+            "market_test_material",
+            null,
+            null,
+            1L,
+            "gold",
+            1L,
+            1L,
+            0L,
+            1L,
+            List.of(affectedEntryId),
+            Instant.parse("2026-08-17T00:00:00Z")
+        );
+        InventoryPersistence.PersistedInventoryBaseline baseline =
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of());
+        when(marketService.purchase(any(), any())).thenReturn(transaction);
+        when(marketService.cancel(any(), any())).thenReturn(ownListing);
+        when(itemService.findLoadedById("market-test")).thenReturn(marketItem);
+        when(itemService.findLoadedById("market_test_material")).thenReturn(marketItem);
+        when(inventoryService.canAddItemToNormalInventory(astPlayer, marketItem, 1)).thenReturn(true);
+        executeMarketMutation(coordinator, baseline);
+
+        invoke(handler, "purchaseListing",
+            new Class<?>[] { Player.class, newMarketSession().getClass(), MarketListing.class, long.class },
+            player, newMarketSession(), listing, 1L);
+        invoke(handler, "cancelListing",
+            new Class<?>[] { Player.class, newMarketSession().getClass(), MarketListing.class },
+            player, newMarketSession(), ownListing);
+        server().getScheduler().performOneTick();
+
+        verify(inventoryService).reconcileExternalInventoryEntriesToOwnedInventory(
+            astPlayer,
+            List.of(affectedEntryId),
+            baseline
+        );
+        verify(inventoryService).reconcileExternalInventoryEntriesToOwnedInventory(
+            astPlayer,
+            List.of(ownListing.sourceInventoryEntryId()),
+            baseline
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入
+     * 検証契約: 出品作成と売上受取は受取アイテム正規化を行わず、外部APIの三者マージだけでsource slot／通貨正本を保持する。
+     */
+    @Test
+    void listingAndProceedsUseGenericInventoryReconciliation() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        InventorySaveCoordinator coordinator = mock(InventorySaveCoordinator.class);
+        MarketService marketService = mock(MarketService.class);
+        MarketGuiEventHandler handler = handler(inventoryService, marketService, coordinator);
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        AstPlayerCache.put(astPlayer);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        MarketListingDraft draft = draft(accountId);
+        MarketListing soldListing = listing(accountId, "SOLD", 1L);
+        UUID currencyAffectedId = UUID.randomUUID();
+        InventoryPersistence.PersistedInventoryBaseline baseline =
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of());
+        when(marketService.createListing(any())).thenReturn(listing(accountId, "ACTIVE", 0L));
+        when(marketService.claimProceeds(any(), any())).thenReturn(
+            new MarketProceedsClaim(soldListing.listingId(), 1L, List.of(currencyAffectedId))
+        );
+        executeMarketMutation(coordinator, baseline);
+
+        invoke(handler, "submitListing",
+            new Class<?>[] { Player.class, newMarketSession().getClass(), MarketListingDraft.class },
+            player, newMarketSession(), draft);
+        invoke(handler, "claimProceeds",
+            new Class<?>[] { Player.class, newMarketSession().getClass(), MarketListing.class },
+            player, newMarketSession(), soldListing);
+
+        verify(inventoryService).reconcileExternalInventoryEntries(
+            accountId,
+            List.of(draft.selectedSources().getFirst().inventoryEntryId()),
+            baseline
+        );
+        verify(inventoryService).reconcileExternalInventoryEntries(
+            accountId,
+            List.of(currencyAffectedId),
+            baseline
+        );
+        verify(inventoryService, never()).reconcileExternalInventoryEntriesToOwnedInventory(
+            any(), any(), any()
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 4. 購入 > ### 例外・終了条件
+     * 検証契約: 指定数量を購入者BAGへ収容できない場合、保存lane内で購入APIを呼ばず拒否する。
+     */
+    @Test
+    void purchaseRejectsBeforeMarketApiWhenCapacityPreflightFails() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        InventorySaveCoordinator coordinator = mock(InventorySaveCoordinator.class);
+        MarketService marketService = mock(MarketService.class);
+        ItemService itemService = mock(ItemService.class);
+        MarketGuiEventHandler handler = new MarketGuiEventHandler(
+            mock(AstralRecord.class),
+            itemService,
+            mock(MarketGui.class),
+            marketService,
+            inventoryService,
+            coordinator,
+            mock(CurrencyService.class),
+            mock(PlayerMessageService.class),
+            mock(GoldAmountSettingGui.class)
+        );
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        AstPlayerCache.put(astPlayer);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        MarketListing listing = listing(UUID.randomUUID(), "ACTIVE", 0L);
+        ItemModel marketItem = item();
+        when(itemService.findLoadedById(listing.itemId())).thenReturn(marketItem);
+        when(inventoryService.canAddItemToNormalInventory(astPlayer, marketItem, 1)).thenReturn(false);
+        executeMarketMutation(
+            coordinator,
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of())
+        );
+
+        invoke(handler, "purchaseListing",
+            new Class<?>[] { Player.class, newMarketSession().getClass(), MarketListing.class, long.class },
+            player, newMarketSession(), listing, 1L);
+
+        verify(inventoryService).canAddItemToNormalInventory(astPlayer, marketItem, 1);
+        verify(marketService, never()).purchase(any(), any());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 4. 購入 > ### 処理要点
+     * 検証契約: APIの許容範囲外の購入数量は購入APIを呼ばず拒否する。
+     */
+    @Test
+    void purchaseRejectsInvalidQuantityBeforeMarketApi() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        InventorySaveCoordinator coordinator = mock(InventorySaveCoordinator.class);
+        MarketService marketService = mock(MarketService.class);
+        MarketGuiEventHandler handler = handler(inventoryService, marketService, coordinator);
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        AstPlayerCache.put(astPlayer);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        MarketListing listing = listing(UUID.randomUUID(), "ACTIVE", 0L);
+        executeMarketMutation(
+            coordinator,
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of())
+        );
+
+        invoke(handler, "purchaseListing",
+            new Class<?>[] { Player.class, newMarketSession().getClass(), MarketListing.class, long.class },
+            player, newMarketSession(), listing, 0L);
+
+        verify(marketService, never()).purchase(any(), any());
+        verify(inventoryService, never()).canAddItemToNormalInventory(any(), any(), anyInt());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 4. 購入 > ### 処理要点
+     * 検証契約: 購入対象 item model を解決できない場合は購入APIを呼ばず拒否する。
+     */
+    @Test
+    void purchaseRejectsUnresolvedItemBeforeMarketApi() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        InventorySaveCoordinator coordinator = mock(InventorySaveCoordinator.class);
+        MarketService marketService = mock(MarketService.class);
+        ItemService itemService = mock(ItemService.class);
+        MarketGuiEventHandler handler = new MarketGuiEventHandler(
+            mock(AstralRecord.class),
+            itemService,
+            mock(MarketGui.class),
+            marketService,
+            inventoryService,
+            coordinator,
+            mock(CurrencyService.class),
+            mock(PlayerMessageService.class),
+            mock(GoldAmountSettingGui.class)
+        );
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        AstPlayerCache.put(astPlayer);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        MarketListing listing = listing(UUID.randomUUID(), "ACTIVE", 0L);
+        when(itemService.findLoadedById(listing.itemId())).thenReturn(null);
+        executeMarketMutation(
+            coordinator,
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of())
+        );
+
+        invoke(handler, "purchaseListing",
+            new Class<?>[] { Player.class, newMarketSession().getClass(), MarketListing.class, long.class },
+            player, newMarketSession(), listing, 1L);
+
+        verify(marketService, never()).purchase(any(), any());
+        verify(inventoryService, never()).canAddItemToNormalInventory(any(), any(), anyInt());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入
+     * 検証契約: 取り下げ前の容量判定に失敗した場合は、マーケット取り下げAPIを呼び出さない。
+     */
+    @Test
+    void cancellationRejectsBeforeMarketApiWhenCapacityPreflightFails() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        InventorySaveCoordinator coordinator = mock(InventorySaveCoordinator.class);
+        MarketService marketService = mock(MarketService.class);
+        ItemService itemService = mock(ItemService.class);
+        MarketGuiEventHandler handler = new MarketGuiEventHandler(
+            mock(AstralRecord.class),
+            itemService,
+            mock(MarketGui.class),
+            marketService,
+            inventoryService,
+            coordinator,
+            mock(CurrencyService.class),
+            mock(PlayerMessageService.class),
+            mock(GoldAmountSettingGui.class)
+        );
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        AstPlayerCache.put(astPlayer);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        MarketListing listing = listing(accountId, "ACTIVE", 0L);
+        ItemModel marketItem = item();
+        when(itemService.findLoadedById(marketItem.getId())).thenReturn(marketItem);
+        when(inventoryService.canAddItemToNormalInventory(astPlayer, marketItem, 1)).thenReturn(false);
+        executeMarketMutation(
+            coordinator,
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of())
+        );
+
+        invoke(handler, "cancelListing",
+            new Class<?>[] { Player.class, newMarketSession().getClass(), MarketListing.class },
+            player, newMarketSession(), listing);
+        server().getScheduler().performOneTick();
+
+        verify(inventoryService).canAddItemToNormalInventory(astPlayer, marketItem, 1);
+        verify(marketService, never()).cancel(any(), any());
+        verify(inventoryService, never()).reconcileExternalInventoryEntriesToOwnedInventory(
+            any(), any(), any()
+        );
+    }
+
     @AfterEach
     void clearPlayerCache() {
         AstPlayerCache.clear();
@@ -154,6 +444,22 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
             any(UUID.class),
             any(Function.class)
         );
+    }
+
+    @SuppressWarnings({ "rawtypes", "unchecked" })
+    private static void executeMarketMutation(
+        InventorySaveCoordinator coordinator,
+        InventoryPersistence.PersistedInventoryBaseline baseline
+    ) {
+        when(coordinator.executeExclusiveAfterSave(any(UUID.class), any(Function.class)))
+            .thenAnswer(invocation -> {
+                Function action = invocation.getArgument(1);
+                try {
+                    return CompletableFuture.completedFuture(action.apply(baseline));
+                } catch (RuntimeException exception) {
+                    return CompletableFuture.failedFuture(exception);
+                }
+            });
     }
 
     private static void invokeMarketMutationCallbacks(
