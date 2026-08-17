@@ -137,6 +137,7 @@ import io.github.maaasu.astralRecord.feature.player.service.DodgeService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerRegionService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
+import io.github.maaasu.astralRecord.feature.player.service.StoneButtonReachService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.quest.event.QuestGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.quest.gui.QuestGui;
@@ -379,6 +380,7 @@ public final class AstralRecord extends JavaPlugin {
     private OverworldTeleportGuiEventHandler overworldTeleportGuiEventHandler;
     private ReturnToBaseService returnToBaseService;
     private WorldSpawnParticleTask worldSpawnParticleTask;
+    private StoneButtonReachService stoneButtonReachService;
     private PartyService partyService;
     private PartyGui partyGui;
     private PartyMemberActionGui partyMemberActionGui;
@@ -533,6 +535,9 @@ public final class AstralRecord extends JavaPlugin {
             // accepted済み操作・正本照合を先に待つ。main threadへ戻った後に現在装備表示を再構築し、
             // 解決済みaccountだけの停止snapshotを取得する。
             inventorySaveCoordinator.awaitPendingWrites(5000L);
+        }
+        if (stoneButtonReachService != null) {
+            stoneButtonReachService.stop();
         }
         if (playerService != null) {
             // accepted済みorb operationの後ろへ停止保存を全件登録してからlane受付を閉じる。
@@ -1223,6 +1228,7 @@ public final class AstralRecord extends JavaPlugin {
         mobAiService.start();
         trainingDummyService.start();
         worldSpawnParticleTask = new WorldSpawnParticleTask(this, worldService, particleDisplayService, displayTextService);
+        stoneButtonReachService = new StoneButtonReachService(this, worldService);
 
         // item: ProtocolLib パケットアダプター（icon 差し替え）登録
         itemStackPacketAdapter = new ItemStackPacketAdapter(this, playerSettingService, skillActionRingService);
@@ -1607,6 +1613,7 @@ public final class AstralRecord extends JavaPlugin {
         conditionDisplayTask.start(this);
         conditionCleanupTask.start(this);
         worldSpawnParticleTask.start();
+        stoneButtonReachService.start();
         mobSpawnerService.start();
         gatheringService.start();
         gatheringSpawnerService.start();
