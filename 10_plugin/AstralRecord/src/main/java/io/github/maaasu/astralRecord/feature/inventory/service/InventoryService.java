@@ -3831,6 +3831,24 @@ public class InventoryService {
         return null;
     }
 
+    /**
+     * 同一通常アイテムのホットバー entry を DB slot 順で最初に返します。
+     * 個体アイテムは {@link #isSameStackableItem(InventoryEntryModel, InventoryEntryModel)}
+     * の判定により統合対象になりません。
+     */
+    private @Nullable InventoryEntryModel findFirstMatchingHotbarStack(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryEntryModel sourceEntry
+    ) {
+        for (int slot = HotbarLayout.DB_SLOT_START; slot <= HotbarLayout.DB_SLOT_OFFHAND; slot++) {
+            InventoryEntryModel candidate = findHotbarEntryBySlot(state, slot);
+            if (candidate != null && isSameStackableItem(candidate, sourceEntry)) {
+                return candidate;
+            }
+        }
+        return null;
+    }
+
     private boolean matchesEquipmentMetadata(
         @Nullable InventoryEntryModel entry,
         @NotNull String expectedEquipmentInstanceId,
@@ -3914,6 +3932,8 @@ public class InventoryService {
 
     /**
      * 表示中インベントリ上のアイテムを、その entry を正本として装備または HOTBAR へ割り当てます。
+     * 選択スロットがない場合、同一の通常アイテムが HOTBAR にあれば最初の stack へ加算し、
+     * 最大値を超える分は元の BAG entry に残します。既存 stack が満杯の場合は空き HOTBAR slot へ移動します。
      *
      * @param astPlayer 対象プレイヤー
      * @param sourceBukkitSlot 表示中インベントリ上の Bukkit スロット
@@ -3961,12 +3981,12 @@ public class InventoryService {
                 return equipAccessoryItem(astPlayer, state, sourceEntry, sourceItem, sourceBukkitSlot);
             }
             if (itemSlot == ItemEquipmentSlot.WEAPON || itemSlot == ItemEquipmentSlot.TOOL) {
-                return assignHotbarItem(astPlayer, state, sourceEntry);
+                return assignHotbarItem(astPlayer, state, sourceEntry, model);
             }
             return false;
         }
         if (category == ItemCategory.BUNDLE || category == ItemCategory.CONSUMABLE) {
-            return assignHotbarItem(astPlayer, state, sourceEntry);
+            return assignHotbarItem(astPlayer, state, sourceEntry, model);
         }
         return false;
     }
@@ -4027,10 +4047,33 @@ public class InventoryService {
     private boolean assignHotbarItem(
         @NotNull AstPlayer astPlayer,
         @NotNull PlayerInventoryState state,
-        @NotNull InventoryEntryModel sourceEntry
+        @NotNull InventoryEntryModel sourceEntry,
+        @NotNull ItemModel sourceModel
     ) {
         Integer selectedHotbarSlotIndex = state.getSelectedHotbarSlot();
         state.setSelectedHotbarSlot(null);
+
+        if (selectedHotbarSlotIndex == null) {
+            InventoryEntryModel existingStack = findFirstMatchingHotbarStack(state, sourceEntry);
+            if (existingStack != null) {
+                long maxStack = Math.max(1L, sourceModel.getMaxStack());
+                long existingQuantity = Math.max(0L, existingStack.getQuantity());
+                long sourceQuantity = Math.max(0L, sourceEntry.getQuantity());
+                long availableQuantity = maxStack - existingQuantity;
+                if (availableQuantity > 0L && sourceQuantity > 0L) {
+                    long movedQuantity = Math.min(availableQuantity, sourceQuantity);
+                    replaceEntryQuantity(state, existingStack, existingQuantity + movedQuantity);
+                    if (movedQuantity < sourceQuantity) {
+                        reduceDisplayedEntryQuantity(state, sourceEntry, sourceQuantity - movedQuantity);
+                    } else {
+                        removeDisplayedEntryAfterMove(state, sourceEntry);
+                    }
+                    requestManagedInventoryUiRefresh(astPlayer, true);
+                    return true;
+                }
+            }
+        }
+
         int targetDbSlot = selectedHotbarSlotIndex != null && HotbarLayout.isManagedSlot(selectedHotbarSlotIndex)
             ? selectedHotbarSlotIndex
             : findNextHotbarSlot(state);
@@ -4220,23 +4263,31 @@ public class InventoryService {
         }
     }
 
+    private void replaceEntryQuantity(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryEntryModel targetEntry,
+        long newQuantity
+    ) {
+        List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(targetEntry.getInventoryId()).stream()
+            .filter(e -> !e.isDeleted())
+            .toList());
+        for (int index = 0; index < entries.size(); index++) {
+            InventoryEntryModel candidate = entries.get(index);
+            if (!candidate.getInventoryEntryId().equals(targetEntry.getInventoryEntryId())) {
+                continue;
+            }
+            entries.set(index, withQuantity(candidate, newQuantity, state.getAccountId()));
+            state.replaceEntries(targetEntry.getInventoryId(), entries);
+            return;
+        }
+    }
+
     private void reduceDisplayedEntryQuantity(
         @NotNull PlayerInventoryState state,
         @NotNull InventoryEntryModel sourceEntry,
         long newQuantity
     ) {
-        List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(sourceEntry.getInventoryId()).stream()
-            .filter(e -> !e.isDeleted())
-            .toList());
-        for (int index = 0; index < entries.size(); index++) {
-            InventoryEntryModel candidate = entries.get(index);
-            if (!candidate.getInventoryEntryId().equals(sourceEntry.getInventoryEntryId())) {
-                continue;
-            }
-            entries.set(index, withQuantity(candidate, newQuantity, state.getAccountId()));
-            state.replaceEntries(sourceEntry.getInventoryId(), entries);
-            return;
-        }
+        replaceEntryQuantity(state, sourceEntry, newQuantity);
     }
 
     private void removeHotbarEntryAfterMove(

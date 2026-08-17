@@ -671,6 +671,122 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
      * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
+     * 検証契約: 選択スロットがない場合、同一通常アイテムの最初のHOTBAR stackへ数量を加算する。
+     */
+    @Test
+    void assigningItemMergesIntoFirstMatchingHotbarStack() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel hotbar = harness.addInventory(state, InventoryType.HOTBAR);
+        ItemModel consumable = DesignTestFixtures.item("hotbar_merge_test", ItemCategory.CONSUMABLE, 64);
+        when(harness.itemService.findLoadedById(consumable.getId())).thenReturn(consumable);
+
+        assertEquals(12, harness.inventoryService.addItemToNormalInventory(astPlayer, consumable, 12, "test"));
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of(
+            inventoryEntry(state.getAccountId(), hotbar.getInventoryId(), 1,
+                ItemCategory.CONSUMABLE, consumable.getId(), 30L),
+            inventoryEntry(state.getAccountId(), hotbar.getInventoryId(), 3,
+                ItemCategory.CONSUMABLE, consumable.getId(), 5L)
+        ));
+
+        assertTrue(harness.inventoryService.equipOrAssignClickedItem(astPlayer, 9));
+
+        List<InventoryEntryModel> hotbarEntries = state.snapshotEntries(hotbar.getInventoryId());
+        assertEquals(42L, entryAt(hotbarEntries, 1).getQuantity());
+        assertEquals(5L, entryAt(hotbarEntries, 3).getQuantity());
+        assertTrue(state.snapshotEntries(bag.getInventoryId()).isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
+     * 検証契約: 同一stackへの加算で最大値を超える場合、超過分をクリック元slotへ残す。
+     */
+    @Test
+    void assigningItemLeavesOverflowInClickedBagSlot() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel hotbar = harness.addInventory(state, InventoryType.HOTBAR);
+        ItemModel consumable = DesignTestFixtures.item("hotbar_overflow_test", ItemCategory.CONSUMABLE, 64);
+        when(harness.itemService.findLoadedById(consumable.getId())).thenReturn(consumable);
+
+        assertEquals(10, harness.inventoryService.addItemToNormalInventory(astPlayer, consumable, 10, "test"));
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of(
+            inventoryEntry(state.getAccountId(), hotbar.getInventoryId(), 1,
+                ItemCategory.CONSUMABLE, consumable.getId(), 60L)
+        ));
+
+        assertTrue(harness.inventoryService.equipOrAssignClickedItem(astPlayer, 9));
+
+        assertEquals(64L, entryAt(state.snapshotEntries(hotbar.getInventoryId()), 1).getQuantity());
+        List<InventoryEntryModel> bagEntries = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(1, bagEntries.size());
+        assertEquals(1, bagEntries.getFirst().getSlotIndex());
+        assertEquals(6L, bagEntries.getFirst().getQuantity());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
+     * 検証契約: 既存stackが満杯の場合、1〜9、オフハンド順の最初の空きslotへ移動する。
+     */
+    @Test
+    void assigningItemUsesNextFreeHotbarSlotWhenExistingStackIsFull() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel hotbar = harness.addInventory(state, InventoryType.HOTBAR);
+        ItemModel consumable = DesignTestFixtures.item("hotbar_full_stack_test", ItemCategory.CONSUMABLE, 64);
+        when(harness.itemService.findLoadedById(consumable.getId())).thenReturn(consumable);
+
+        assertEquals(12, harness.inventoryService.addItemToNormalInventory(astPlayer, consumable, 12, "test"));
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of(
+            inventoryEntry(state.getAccountId(), hotbar.getInventoryId(), 1,
+                ItemCategory.CONSUMABLE, consumable.getId(), 64L)
+        ));
+
+        assertTrue(harness.inventoryService.equipOrAssignClickedItem(astPlayer, 9));
+
+        assertEquals(64L, entryAt(state.snapshotEntries(hotbar.getInventoryId()), 1).getQuantity());
+        assertEquals(12L, entryAt(state.snapshotEntries(hotbar.getInventoryId()), 2).getQuantity());
+        assertTrue(state.snapshotEntries(bag.getInventoryId()).isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
+     * 検証契約: ホットバーに空きがない場合、クリック元とホットバーを変更しない。
+     */
+    @Test
+    void assigningItemDoesNotChangeWhenHotbarIsFull() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel hotbar = harness.addInventory(state, InventoryType.HOTBAR);
+        ItemModel consumable = DesignTestFixtures.item("hotbar_no_space_test", ItemCategory.CONSUMABLE, 64);
+        when(harness.itemService.findLoadedById(consumable.getId())).thenReturn(consumable);
+
+        assertEquals(12, harness.inventoryService.addItemToNormalInventory(astPlayer, consumable, 12, "test"));
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), java.util.stream.IntStream.rangeClosed(1, 10)
+            .mapToObj(slot -> inventoryEntry(state.getAccountId(), hotbar.getInventoryId(), slot,
+                ItemCategory.CONSUMABLE, consumable.getId(), 64L))
+            .toList());
+
+        assertFalse(harness.inventoryService.equipOrAssignClickedItem(astPlayer, 9));
+
+        assertEquals(12L, state.snapshotEntries(bag.getInventoryId()).getFirst().getQuantity());
+        assertEquals(10, state.snapshotEntries(hotbar.getInventoryId()).size());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
      * 検証契約: Bukkit hotbar 0〜8の全9slotを通常item割当として描画する。
      */
     @Test
@@ -723,12 +839,23 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         String itemId,
         long quantity
     ) {
+        return inventoryEntry(accountId, inventoryId, slot, ItemCategory.MATERIAL, itemId, quantity);
+    }
+
+    private static InventoryEntryModel inventoryEntry(
+        UUID accountId,
+        UUID inventoryId,
+        int slot,
+        ItemCategory category,
+        String itemId,
+        long quantity
+    ) {
         LocalDateTime now = LocalDateTime.now();
         return new InventoryEntryModel(
             UUID.randomUUID(),
             inventoryId,
             slot,
-            ItemCategory.MATERIAL.getApiValue(),
+            category.getApiValue(),
             itemId,
             null,
             null,
@@ -740,6 +867,13 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
             accountId,
             false
         );
+    }
+
+    private static InventoryEntryModel entryAt(List<InventoryEntryModel> entries, int slot) {
+        return entries.stream()
+            .filter(entry -> Integer.valueOf(slot).equals(entry.getSlotIndex()))
+            .findFirst()
+            .orElseThrow();
     }
 
     private record InventoryHarness(
