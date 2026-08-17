@@ -15,7 +15,6 @@ import io.github.maaasu.astralRecord.feature.playersetting.model.ParticleDensity
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingChangeRequest;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
-import io.github.maaasu.astralRecord.feature.world.service.BaseMusicService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
@@ -47,7 +46,6 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
     private final PlayerSettingService playerSettingService;
     private final InventoryService inventoryService;
     private final ItemStackPacketAdapter itemStackPacketAdapter;
-    private final BaseMusicService baseMusicService;
     private final ConcurrentHashMap<UUID, Integer> secretClickCounts = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, EnumMap<PlayerSettingKey, Object>> draftValues = new ConcurrentHashMap<>();
 
@@ -58,20 +56,17 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
      * @param playerSettingService プレイヤー設定サービス
      * @param inventoryService hotbar shortcut 用 inventory サービス
      * @param itemStackPacketAdapter 防具表示を再同期するパケットアダプタ
-     * @param baseMusicService 拠点音楽サービス
      */
     public PlayerSettingGuiEventHandler(
         @NotNull PlayerSettingGui gui,
         @NotNull PlayerSettingService playerSettingService,
         @NotNull InventoryService inventoryService,
-        @NotNull ItemStackPacketAdapter itemStackPacketAdapter,
-        @NotNull BaseMusicService baseMusicService
+        @NotNull ItemStackPacketAdapter itemStackPacketAdapter
     ) {
         this.gui = gui;
         this.playerSettingService = playerSettingService;
         this.inventoryService = inventoryService;
         this.itemStackPacketAdapter = itemStackPacketAdapter;
-        this.baseMusicService = baseMusicService;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -263,13 +258,6 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
                 );
                 if (actionRingHoldSelectSynchronized) {
                     player.updateInventory();
-                }
-                boolean baseMusicSynchronized = results.stream().anyMatch(persisted ->
-                    persisted.key() == PlayerSettingKey.BASE_MUSIC
-                        && !persisted.result().staleSession()
-                );
-                if (baseMusicSynchronized) {
-                    baseMusicService.refreshPlayer(player);
                 }
             }));
     }

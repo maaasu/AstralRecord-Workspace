@@ -234,7 +234,6 @@ import io.github.maaasu.astralRecord.feature.user.event.UserLoginEventHandler;
 import io.github.maaasu.astralRecord.feature.user.repository.UserRepository;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
 import io.github.maaasu.astralRecord.feature.world.config.PluginJoinSpawnWorldConfig;
-import io.github.maaasu.astralRecord.feature.world.event.BaseMusicEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.BaseWorldGatewayEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.BaseWorldSpawnTeleportEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.OverworldTeleportGuiEventHandler;
@@ -244,7 +243,6 @@ import io.github.maaasu.astralRecord.feature.world.event.WorldJoinSpawnEventHand
 import io.github.maaasu.astralRecord.feature.world.event.WorldNaturalSpawnBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.world.gui.OverworldTeleportGui;
 import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
-import io.github.maaasu.astralRecord.feature.world.service.BaseMusicService;
 import io.github.maaasu.astralRecord.feature.world.service.OverworldTeleportService;
 import io.github.maaasu.astralRecord.feature.world.service.ReturnToBaseService;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
@@ -339,7 +337,6 @@ public final class AstralRecord extends JavaPlugin {
     private OverheadDisplayService overheadDisplayService;
     private PlayerSettingService playerSettingService;
     private PlayerSettingGui playerSettingGui;
-    private BaseMusicService baseMusicService;
     private ItemStackPacketAdapter itemStackPacketAdapter;
     private SkillService skillService;
     private SkillActionRingService skillActionRingService;
@@ -622,9 +619,6 @@ public final class AstralRecord extends JavaPlugin {
         if (worldSpawnParticleTask != null) {
             worldSpawnParticleTask.stop();
         }
-        if (baseMusicService != null) {
-            baseMusicService.stop();
-        }
         if (partyService != null) {
             partyService.clearAll();
         }
@@ -751,7 +745,6 @@ public final class AstralRecord extends JavaPlugin {
             new PlayerSettingDefaults(),
             new PlayerSettingCache()
         );
-        baseMusicService = new BaseMusicService(this, worldService, playerSettingService);
         // class
         playerClassService = new PlayerClassService(accountService);
         playerClassService.setSkillTreeService(skillTreeService);
@@ -1280,15 +1273,11 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
-            new WorldJoinSpawnEventHandler(this, joinSpawnWorldId, worldService, baseMusicService),
+            new WorldJoinSpawnEventHandler(this, joinSpawnWorldId, worldService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
             new WorldChangeTitleEventHandler(worldService, playerRegionService),
-            getServer().getPluginManager()
-        );
-        eventManager.registerHandler(
-            new BaseMusicEventHandler(baseMusicService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
@@ -1435,8 +1424,7 @@ public final class AstralRecord extends JavaPlugin {
             new PlayerSettingJoinEventHandler(
                 this,
                 playerSettingService,
-                itemStackPacketAdapter,
-                baseMusicService
+                itemStackPacketAdapter
             ),
             getServer().getPluginManager()
         );
@@ -1445,8 +1433,7 @@ public final class AstralRecord extends JavaPlugin {
                 playerSettingGui,
                 playerSettingService,
                 inventoryService,
-                itemStackPacketAdapter,
-                baseMusicService
+                itemStackPacketAdapter
             ),
             getServer().getPluginManager()
         );
@@ -1804,15 +1791,6 @@ public final class AstralRecord extends JavaPlugin {
 
     public PlayerSettingGui getPlayerSettingGui() {
         return playerSettingGui;
-    }
-
-    /**
-     * 拠点音楽サービスを取得します。
-     *
-     * @return 拠点音楽サービス
-     */
-    public BaseMusicService getBaseMusicService() {
-        return baseMusicService;
     }
 
     /**

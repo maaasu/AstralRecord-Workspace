@@ -35,7 +35,6 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     public static final int BUFF_SIDEBAR_DISPLAY_SLOT = 26;
     public static final int ARMOR_DISPLAY_SLOT = 27;
     public static final int ACTION_RING_HOLD_SELECT_SLOT = 28;
-    public static final int BASE_MUSIC_SLOT = 29;
     public static final int SUPER_MODE_SECRET_SLOT = 53;
     public static final int BACK_TO_MENU_SLOT = BaseMenuScreenView.BACK_SLOT;
 
@@ -80,7 +79,6 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             case BUFF_SIDEBAR_DISPLAY_SLOT -> PlayerSettingKey.BUFF_SIDEBAR_DISPLAY;
             case ARMOR_DISPLAY_SLOT -> PlayerSettingKey.ARMOR_DISPLAY;
             case ACTION_RING_HOLD_SELECT_SLOT -> PlayerSettingKey.ACTION_RING_HOLD_SELECT;
-            case BASE_MUSIC_SLOT -> PlayerSettingKey.BASE_MUSIC;
             default -> null;
         };
     }
@@ -141,11 +139,6 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             Material.TRIDENT,
             PlayerSettingKey.ACTION_RING_HOLD_SELECT,
             (Boolean) resolveValue(userId, PlayerSettingKey.ACTION_RING_HOLD_SELECT, draftValues)
-        ));
-        inventory.setItem(BASE_MUSIC_SLOT, createBooleanItem(
-            Material.JUKEBOX,
-            PlayerSettingKey.BASE_MUSIC,
-            (Boolean) resolveValue(userId, PlayerSettingKey.BASE_MUSIC, draftValues)
         ));
         inventory.setItem(BACK_TO_MENU_SLOT, backItem());
     }

@@ -4,7 +4,6 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.item.view.ItemStackPacketAdapter;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
-import io.github.maaasu.astralRecord.feature.world.service.BaseMusicService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -21,7 +20,6 @@ public final class PlayerSettingJoinEventHandler extends AbstractEventHandler {
     private final AstralRecord plugin;
     private final PlayerSettingService playerSettingService;
     private final ItemStackPacketAdapter itemStackPacketAdapter;
-    private final BaseMusicService baseMusicService;
 
     /**
      * ログイン時の設定ロードと装備表示再同期を行うハンドラを初期化します。
@@ -29,18 +27,15 @@ public final class PlayerSettingJoinEventHandler extends AbstractEventHandler {
      * @param plugin プラグインインスタンス
      * @param playerSettingService プレイヤー設定サービス
      * @param itemStackPacketAdapter 装備表示を再同期するパケットアダプタ
-     * @param baseMusicService 拠点音楽サービス
      */
     public PlayerSettingJoinEventHandler(
         @NotNull AstralRecord plugin,
         @NotNull PlayerSettingService playerSettingService,
-        @NotNull ItemStackPacketAdapter itemStackPacketAdapter,
-        @NotNull BaseMusicService baseMusicService
+        @NotNull ItemStackPacketAdapter itemStackPacketAdapter
     ) {
         this.plugin = plugin;
         this.playerSettingService = playerSettingService;
         this.itemStackPacketAdapter = itemStackPacketAdapter;
-        this.baseMusicService = baseMusicService;
     }
 
     @EventHandler(priority = EventPriority.MONITOR)
@@ -56,7 +51,6 @@ public final class PlayerSettingJoinEventHandler extends AbstractEventHandler {
                     && player.isOnline()
                     && playerSettingService.captureSessionToken(userId) == sessionToken) {
                     itemStackPacketAdapter.refreshEquipmentView(player);
-                    baseMusicService.refreshPlayer(player);
                 }
             });
         }, LogId.E_5314, playerName));

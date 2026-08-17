@@ -18,15 +18,12 @@
 | 26 | `BUFF_SIDEBAR_DISPLAY` |
 | 27 | `ARMOR_DISPLAY` |
 | 28 | `ACTION_RING_HOLD_SELECT`（`TRIDENT` icon） |
-| 29 | `BASE_MUSIC`（`JUKEBOX` icon） |
 | 49 | 前画面へ戻る |
 | 53 | icon を置かない管理者用 super mode secret slot |
 
 `TEMP_DROP_DISPLAY` と `TEMP_BLOCK_DISPLAY` は GUI に表示せず、コマンドから変更する。
 
 `ACTION_RING_HOLD_SELECT` は既定 `false` で、`true` のときだけ右クリック長押し選択を使う。保存後は inventory を再送し、選択中 hotbar 主武器だけをクライアント専用トライデント表示へ直ちに切り替える。ホットバースロット切り替え時も選択中 slot の表示を再同期する。
-
-`BASE_MUSIC` は既定 `true` で、拠点ワールドのレコード音楽をプレイヤー単位で ON / OFF する。保存後は現在のワールドが BASE の場合だけ再生状態を直ちに同期する。
 
 ## 2. GUI 識別・slot 解決
 

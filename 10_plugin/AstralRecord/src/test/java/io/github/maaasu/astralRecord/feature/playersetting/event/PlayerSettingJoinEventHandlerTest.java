@@ -3,7 +3,6 @@ package io.github.maaasu.astralRecord.feature.playersetting.event;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.item.view.ItemStackPacketAdapter;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
-import io.github.maaasu.astralRecord.feature.world.service.BaseMusicService;
 import org.bukkit.Server;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerJoinEvent;
@@ -27,12 +26,10 @@ class PlayerSettingJoinEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/11_4-統合フロー.md
      * 章・見出し: # 11_4-統合フロー > ## 1. login warmup・logout cleanup
-     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
-     * 章・見出し: # 17_4-統合フロー > ## 5. 拠点音楽
-     * 検証契約: 初回 Join の拠点音楽は設定 warmup 完了後のメインスレッド同期でのみ開始し、warmup 前の既定値再生を発生させない。
+     * 検証契約: 設定 warmup 完了後、同一 session の online player へ装備表示をメインスレッドで再同期する。
      */
     @Test
-    void baseMusicStartsOnlyAfterSettingWarmupCompletes() {
+    void settingWarmupRefreshesEquipmentAfterCompletion() {
         UUID userId = UUID.randomUUID();
         long sessionToken = 7L;
         AstralRecord plugin = mock(AstralRecord.class);
@@ -40,7 +37,6 @@ class PlayerSettingJoinEventHandlerTest {
         BukkitScheduler scheduler = mock(BukkitScheduler.class);
         PlayerSettingService playerSettingService = mock(PlayerSettingService.class);
         ItemStackPacketAdapter itemStackPacketAdapter = mock(ItemStackPacketAdapter.class);
-        BaseMusicService baseMusicService = mock(BaseMusicService.class);
         Player player = mock(Player.class);
         PlayerJoinEvent event = mock(PlayerJoinEvent.class);
         AtomicReference<Runnable> asyncTask = new AtomicReference<>();
@@ -67,20 +63,18 @@ class PlayerSettingJoinEventHandlerTest {
         PlayerSettingJoinEventHandler handler = new PlayerSettingJoinEventHandler(
             plugin,
             playerSettingService,
-            itemStackPacketAdapter,
-            baseMusicService
+            itemStackPacketAdapter
         );
 
         handler.onPlayerJoin(event);
 
-        verify(baseMusicService, never()).refreshPlayer(player);
+        verify(itemStackPacketAdapter, never()).refreshEquipmentView(player);
         asyncTask.get().run();
         verify(playerSettingService).warmup(userId, sessionToken);
-        verify(baseMusicService, never()).refreshPlayer(player);
+        verify(itemStackPacketAdapter, never()).refreshEquipmentView(player);
 
         syncTask.get().run();
 
         verify(itemStackPacketAdapter).refreshEquipmentView(player);
-        verify(baseMusicService).refreshPlayer(player);
     }
 }

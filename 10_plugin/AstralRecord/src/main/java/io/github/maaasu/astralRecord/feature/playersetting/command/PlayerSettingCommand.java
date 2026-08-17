@@ -106,9 +106,6 @@ public final class PlayerSettingCommand extends AstCommand {
                 if (key == PlayerSettingKey.ACTION_RING_HOLD_SELECT) {
                     player.getBukkit().updateInventory();
                 }
-                if (key == PlayerSettingKey.BASE_MUSIC) {
-                    plugin.getBaseMusicService().refreshPlayer(player.getBukkit());
-                }
                 if (result.conflict()) {
                     sendError(player.getBukkit(), result.message());
                     return;
