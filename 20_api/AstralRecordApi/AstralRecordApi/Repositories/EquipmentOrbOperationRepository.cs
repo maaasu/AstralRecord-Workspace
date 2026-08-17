@@ -143,6 +143,7 @@ public class EquipmentOrbOperationRepository(
                 entry.InventoryEntryId == request.OrbInventoryEntryId
                 && !entry.IsDeleted
                 && entry.Quantity > 0
+                && IsNormalStackEntry(entry)
                 && IdEquals(entry.ItemCategory, "ORB")
                 && IdEquals(entry.ItemId, normalizedOrbItemId));
             if (orbEntry is null)
@@ -270,7 +271,9 @@ public class EquipmentOrbOperationRepository(
             {
                 var remaining = requirement.Value;
                 foreach (var entry in normalEntries.Where(entry =>
-                             !entry.IsDeleted && entry.Quantity > 0 && IdEquals(entry.ItemId, requirement.Key)))
+                             IsNormalStackEntry(entry)
+                             && entry.Quantity > 0
+                             && IdEquals(entry.ItemId, requirement.Key)))
                 {
                     if (remaining <= 0)
                         break;
@@ -705,10 +708,17 @@ public class EquipmentOrbOperationRepository(
         {
             var required = requirement.Value + (IdEquals(requirement.Key, orbItemId) ? 1L : 0L);
             return entries
-                .Where(entry => !entry.IsDeleted && entry.Quantity > 0 && IdEquals(entry.ItemId, requirement.Key))
+                .Where(entry => IsNormalStackEntry(entry)
+                                && entry.Quantity > 0
+                                && IdEquals(entry.ItemId, requirement.Key))
                 .Sum(entry => entry.Quantity) >= required;
         });
     }
+
+    private static bool IsNormalStackEntry(InventoryEntryEntity entry) =>
+        !entry.IsDeleted
+        && entry.InstanceId is null
+        && string.IsNullOrWhiteSpace(entry.InstanceType);
 
     private static void ConsumeEntry(
         InventoryEntryEntity entry,

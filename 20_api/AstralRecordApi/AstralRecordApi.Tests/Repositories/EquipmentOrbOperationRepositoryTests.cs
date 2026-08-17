@@ -235,6 +235,39 @@ public class EquipmentOrbOperationRepositoryTests
     }
 
     [Fact]
+    public async Task Transcendence_DoesNotUseItemIdPopulatedEquipmentAsMaterial()
+    {
+        var equipment = CreateEquipment(transcendence:
+        [
+            new ItemEquipmentTranscendenceResponse
+            {
+                Name = "装備ID素材化",
+                Rank = 1,
+                RequiredEnhanceLevel = 3,
+                RequiredMaterials =
+                [
+                    new ItemEquipmentEnhanceMaterialResponse { ItemId = "test_equipment", Amount = 1 },
+                ],
+            },
+        ]);
+        await using var harness = await OrbOperationHarness.CreateAsync(equipment: equipment);
+        await harness.SetEquipmentStateAsync(instance => instance.EnhanceLevel = 3);
+        await harness.SetEquipmentEntryItemIdAsync("test_equipment");
+        var orb = await harness.AddOrbAsync("equipment_as_material_orb", new ItemOrbEffectResponse
+        {
+            Type = "TRANSCENDENCE",
+            Rank = 1,
+        });
+
+        var result = await harness.ExecuteAsync("equipment_as_material_orb", orb);
+
+        Assert.Equal("PAYMENT_UNAVAILABLE", result.Result);
+        Assert.False(result.PaymentConsumed);
+        Assert.Equal(0, (await harness.GetEquipmentAsync()).TranscendenceRank);
+        Assert.Equal(2, await harness.GetEntryQuantityAsync(orb));
+    }
+
+    [Fact]
     public async Task NoCandidate_IsPersistedWithoutPaymentOrEquipmentMutation()
     {
         await using var harness = await OrbOperationHarness.CreateAsync();
@@ -850,6 +883,15 @@ public class EquipmentOrbOperationRepositoryTests
             var instance = await dbContext.EquipmentInstances.SingleAsync(candidate =>
                 candidate.EquipmentInstanceId == EquipmentInstanceId);
             mutate(instance);
+            await dbContext.SaveChangesAsync();
+        }
+
+        public async Task SetEquipmentEntryItemIdAsync(string itemId)
+        {
+            dbContext.ChangeTracker.Clear();
+            var entry = await dbContext.InventoryEntries.SingleAsync(candidate =>
+                candidate.InstanceId == EquipmentInstanceId && !candidate.IsDeleted);
+            entry.ItemId = itemId;
             await dbContext.SaveChangesAsync();
         }
 

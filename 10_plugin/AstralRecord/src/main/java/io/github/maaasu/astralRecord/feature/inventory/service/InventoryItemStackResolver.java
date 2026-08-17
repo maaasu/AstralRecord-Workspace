@@ -52,25 +52,32 @@ final class InventoryItemStackResolver {
         @NotNull InventoryEntryModel entry,
         @Nullable UUID expectedAccountId
     ) {
-        if (entry.getItemId() != null && !entry.getItemId().isBlank()) {
-            ItemModel itemModel = expectedAccountId == null
-                ? resolveItemModel(entry.getItemId())
-                : itemService.findLoadedById(entry.getItemId());
-            if (itemModel == null) {
-                return null;
-            }
-            return itemStackFactory.create(itemModel, normalizeAmount(entry.getQuantity(), itemModel.getMaxStack()));
-        }
-
-        InventoryInstanceType instanceType = InventoryInstanceType.fromCode(entry.getInstanceType());
-        if (instanceType == null || entry.getInstanceId() == null) {
+        boolean hasInstanceType = entry.getInstanceType() != null && !entry.getInstanceType().isBlank();
+        boolean hasInstanceId = entry.getInstanceId() != null;
+        if (hasInstanceType != hasInstanceId) {
             return null;
         }
+        if (hasInstanceType) {
+            InventoryInstanceType instanceType = InventoryInstanceType.fromCode(entry.getInstanceType());
+            if (instanceType == null) {
+                return null;
+            }
+            return switch (instanceType) {
+                case EQUIPMENT -> resolveEquipment(entry, expectedAccountId);
+                case RUNE -> resolveRune(entry);
+            };
+        }
 
-        return switch (instanceType) {
-            case EQUIPMENT -> resolveEquipment(entry, expectedAccountId);
-            case RUNE -> resolveRune(entry);
-        };
+        if (entry.getItemId() == null || entry.getItemId().isBlank()) {
+            return null;
+        }
+        ItemModel itemModel = expectedAccountId == null
+            ? resolveItemModel(entry.getItemId())
+            : itemService.findLoadedById(entry.getItemId());
+        if (itemModel == null) {
+            return null;
+        }
+        return itemStackFactory.create(itemModel, normalizeAmount(entry.getQuantity(), itemModel.getMaxStack()));
     }
 
     @Nullable ItemStack resolveCurrencyDisplay(@NotNull InventoryEntryModel entry) {

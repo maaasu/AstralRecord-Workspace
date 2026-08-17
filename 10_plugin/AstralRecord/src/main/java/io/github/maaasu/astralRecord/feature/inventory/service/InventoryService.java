@@ -274,7 +274,7 @@ public class InventoryService {
                 orbPaymentReservationsByAccount.remove(accountId, current);
             }
             InventoryEntryModel origin = findOwnedEntry(accountId, orbEntryId);
-            if (origin == null || origin.getItemId() == null || origin.getQuantity() <= 0L) {
+            if (origin == null || !isNormalItemEntry(origin) || origin.getQuantity() <= 0L) {
                 return false;
             }
             String originItemId = origin.getItemId().trim().toLowerCase(Locale.ROOT);
@@ -384,7 +384,7 @@ public class InventoryService {
             .filter(entry -> entry.getInventoryEntryId().equals(reservation.orbEntryId()))
             .findFirst()
             .orElse(null);
-        if (origin == null || origin.getItemId() == null || origin.getQuantity() <= 0L) {
+        if (origin == null || !isNormalItemEntry(origin) || origin.getQuantity() <= 0L) {
             return null;
         }
         Map<UUID, Long> reservedByEntryId = new LinkedHashMap<>();
@@ -395,7 +395,7 @@ public class InventoryService {
             long alreadyReserved = 0L;
             try {
                 for (InventoryEntryModel entry : ordered) {
-                    if (entry.getItemId() != null
+                    if (isNormalItemEntry(entry)
                         && entry.getItemId().equalsIgnoreCase(requirement.getKey())) {
                         alreadyReserved = Math.addExact(
                             alreadyReserved,
@@ -411,7 +411,7 @@ public class InventoryService {
                 if (remaining <= 0L) {
                     break;
                 }
-                if (entry.getItemId() == null
+                if (!isNormalItemEntry(entry)
                     || !entry.getItemId().equalsIgnoreCase(requirement.getKey())) {
                     continue;
                 }
@@ -1986,7 +1986,8 @@ public class InventoryService {
         }
         return normalizeCurrencyEntries(state, inventory).stream()
             .filter(entry -> !entry.isDeleted())
-            .filter(entry -> entry.getItemId() != null && entry.getItemId().equalsIgnoreCase(normalizedItemId))
+            .filter(this::isNormalItemEntry)
+            .filter(entry -> entry.getItemId().equalsIgnoreCase(normalizedItemId))
             .mapToLong(InventoryEntryModel::getQuantity)
             .sum();
     }
@@ -2851,7 +2852,7 @@ public class InventoryService {
         List<InventoryEntryModel> entries = new ArrayList<>(normalizeCurrencyEntries(state, inventory));
         for (int index = 0; index < entries.size(); index++) {
             InventoryEntryModel entry = entries.get(index);
-            if (entry.getItemId() == null || !entry.getItemId().equalsIgnoreCase(itemId)) {
+            if (!isNormalItemEntry(entry) || !entry.getItemId().equalsIgnoreCase(itemId)) {
                 continue;
             }
             if (entry.getQuantity() > Long.MAX_VALUE - amount) {
@@ -3078,7 +3079,8 @@ public class InventoryService {
         }
         return state.snapshotEntries(inventory.getInventoryId()).stream()
             .filter(entry -> !entry.isDeleted())
-            .filter(entry -> entry.getItemId() != null && entry.getItemId().equalsIgnoreCase(itemId))
+            .filter(this::isNormalItemEntry)
+            .filter(entry -> entry.getItemId().equalsIgnoreCase(itemId))
             .mapToLong(InventoryEntryModel::getQuantity)
             .sum();
     }
@@ -3681,7 +3683,7 @@ public class InventoryService {
             if (entry == null || entry.isDeleted()) {
                 return false;
             }
-            if (entry.getItemId() == null || !entry.getItemId().equalsIgnoreCase(expectedItemId)) {
+            if (!isNormalItemEntry(entry) || !entry.getItemId().equalsIgnoreCase(expectedItemId)) {
                 return false;
             }
             if (entry.getQuantity() < safeAmount) {
@@ -4191,7 +4193,7 @@ public class InventoryService {
                 || amount >= totalAmount
                 || sourceEntry.getInstanceType() != null;
             int takeAmount = takeAll ? totalAmount : amount;
-            if (sourceEntry.getItemId() != null
+            if (isNormalItemEntry(sourceEntry)
                 && (!hasUnreservedNormalItem(
                     state.getAccountId(), sourceEntry.getItemId(), takeAmount)
                     || sourceEntry.getQuantity() - reservedEntryAmount(
@@ -4244,7 +4246,7 @@ public class InventoryService {
                 || amount >= totalAmount
                 || sourceEntry.getInstanceType() != null;
             int takeAmount = takeAll ? totalAmount : amount;
-            if (sourceEntry.getItemId() != null
+            if (isNormalItemEntry(sourceEntry)
                 && (!hasUnreservedNormalItem(
                     state.getAccountId(), sourceEntry.getItemId(), takeAmount)
                     || sourceEntry.getQuantity() - reservedEntryAmount(
@@ -5596,10 +5598,15 @@ public class InventoryService {
     }
 
     private boolean isStackableByItemId(@NotNull InventoryEntryModel entry) {
-        return entry.getInstanceType() == null
+        return isNormalItemEntry(entry);
+    }
+
+    /** itemId が併記される個体 entry と、通常 stack entry を区別します。 */
+    private boolean isNormalItemEntry(@NotNull InventoryEntryModel entry) {
+        return entry.getItemId() != null
+            && !entry.getItemId().isBlank()
             && entry.getInstanceId() == null
-            && entry.getItemId() != null
-            && !entry.getItemId().isBlank();
+            && (entry.getInstanceType() == null || entry.getInstanceType().isBlank());
     }
 
     private record OwnedItemBatch(
@@ -5832,7 +5839,7 @@ public class InventoryService {
 
         for (InventoryEntryModel entry : entries) {
             String itemId = entry.getItemId();
-            if (itemId == null || itemId.isBlank()) {
+            if (!isNormalItemEntry(entry)) {
                 mergedByItemId.put("__entry__:" + entry.getInventoryEntryId(), entry);
                 continue;
             }
@@ -5895,7 +5902,7 @@ public class InventoryService {
                 if (index < 0) {
                     continue;
                 }
-                if (entry.getItemId() == null || !entry.getItemId().equalsIgnoreCase(itemId)) {
+                if (!isNormalItemEntry(entry) || !entry.getItemId().equalsIgnoreCase(itemId)) {
                     continue;
                 }
                 long reserved = inventory.getInventoryType() == InventoryType.CURRENCY
@@ -5947,14 +5954,15 @@ public class InventoryService {
         if (!isCurrency && maxStack <= 1) return false;
         if (entry.getItemId() == null || !entry.getItemId().equals(model.getId())) return false;
         if (!entry.getItemCategory().equalsIgnoreCase(model.getCategory())) return false;
-        if (entry.getInstanceType() != null || entry.getInstanceId() != null) return false;
+        if (!isNormalItemEntry(entry)) return false;
         return isCurrency || entry.getQuantity() < maxStack;
     }
 
     private boolean hasCurrencyEntry(@NotNull List<InventoryEntryModel> entries, @NotNull String itemId) {
         return entries.stream()
             .filter(entry -> !entry.isDeleted())
-            .anyMatch(entry -> entry.getItemId() != null && entry.getItemId().equalsIgnoreCase(itemId));
+            .filter(this::isNormalItemEntry)
+            .anyMatch(entry -> entry.getItemId().equalsIgnoreCase(itemId));
     }
 
     private @NotNull List<ItemStack> goldCurrencyDisplay(long amount) {
@@ -6123,6 +6131,53 @@ public class InventoryService {
         if (entry == null) {
             return null;
         }
+        boolean hasInstanceType = entry.getInstanceType() != null && !entry.getInstanceType().isBlank();
+        boolean hasInstanceId = entry.getInstanceId() != null;
+        if (hasInstanceType != hasInstanceId) {
+            return null;
+        }
+        InventoryInstanceType instanceType = hasInstanceType
+            ? InventoryInstanceType.fromCode(entry.getInstanceType())
+            : null;
+        if (hasInstanceType && instanceType == null) {
+            return null;
+        }
+        if (instanceType != null) {
+            String entryItemId = entry.getItemId();
+            ItemModel entryModel = entryItemId == null || entryItemId.isBlank()
+                ? null
+                : resolveItemModel(entryItemId);
+            return switch (instanceType) {
+                case EQUIPMENT -> {
+                    EquipmentInstance instance = entryModel == null
+                        ? itemService.findEquipmentInstanceById(entry.getInstanceId().toString())
+                        : null;
+                    ItemModel model = entryModel != null
+                        ? entryModel
+                        : instance == null ? null : resolveItemModel(instance.getItemId());
+                    yield model == null ? null : new ItemReference(
+                        model.getId(),
+                        model.getCategory(),
+                        entry.getInstanceId().toString(),
+                        null
+                    );
+                }
+                case RUNE -> {
+                    RuneInstance instance = entryModel == null
+                        ? itemService.findRuneInstanceById(entry.getInstanceId().toString())
+                        : null;
+                    ItemModel model = entryModel != null
+                        ? entryModel
+                        : instance == null ? null : resolveItemModel(instance.getItemId());
+                    yield model == null ? null : new ItemReference(
+                        model.getId(),
+                        model.getCategory(),
+                        null,
+                        entry.getInstanceId().toString()
+                    );
+                }
+            };
+        }
         if (entry.getItemId() != null && !entry.getItemId().isBlank()) {
             String category = entry.getItemCategory();
             if (category == null || category.isBlank()) {
@@ -6134,32 +6189,7 @@ public class InventoryService {
             }
             return new ItemReference(entry.getItemId(), category, null, null);
         }
-        InventoryInstanceType instanceType = InventoryInstanceType.fromCode(entry.getInstanceType());
-        if (instanceType == null || entry.getInstanceId() == null) {
-            return null;
-        }
-        return switch (instanceType) {
-            case EQUIPMENT -> {
-                EquipmentInstance instance = itemService.findEquipmentInstanceById(entry.getInstanceId().toString());
-                ItemModel model = instance == null ? null : resolveItemModel(instance.getItemId());
-                yield model == null ? null : new ItemReference(
-                    model.getId(),
-                    model.getCategory(),
-                    instance.getEquipmentInstanceId(),
-                    null
-                );
-            }
-            case RUNE -> {
-                RuneInstance instance = itemService.findRuneInstanceById(entry.getInstanceId().toString());
-                ItemModel model = instance == null ? null : resolveItemModel(instance.getItemId());
-                yield model == null ? null : new ItemReference(
-                    model.getId(),
-                    model.getCategory(),
-                    null,
-                    instance.getRuneInstanceId()
-                );
-            }
-        };
+        return null;
     }
 
     /** 返却対象の個体 entry では itemId より instanceType / instanceId を優先して参照を組み立てます。 */
