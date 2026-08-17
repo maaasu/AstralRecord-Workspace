@@ -25,6 +25,7 @@ public class ItemRepositoryEnhanceMasterTests
         Assert.NotNull(item?.Consumable?.OnUse);
         Assert.Equal(16, item!.Consumable!.OnUse!.UseTimeTicks);
         Assert.Equal(16, item.Consumable.OnUse.CooldownTicks);
+        Assert.Equal("entity.generic.eat", item.Consumable.OnUse.UsingSound);
     }
 
     [Fact]

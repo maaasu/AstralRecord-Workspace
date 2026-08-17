@@ -21,6 +21,7 @@ public class MasterDataPayloadContractTests
               "rarity": "COMMON",
               "consumable": {
                 "onUse": {
+                  "usingSound": "entity.generic.eat",
                   "sound": "block.note_block.chime",
                   "effect": "ELECTRIC_SPARK",
                   "amount": 1,
@@ -34,6 +35,8 @@ public class MasterDataPayloadContractTests
 
         Assert.Equal(16, item.Consumable!.OnUse!.UseTimeTicks);
         Assert.Equal(16, item.Consumable.OnUse.CooldownTicks);
+        Assert.Equal("entity.generic.eat", item.Consumable.OnUse.UsingSound);
+        Assert.Equal("block.note_block.chime", item.Consumable.OnUse.Sound);
 
         using var document = JsonDocument.Parse(JsonSerializer.Serialize(item, MasterDataJsonOptions()));
         var onUse = document.RootElement
@@ -41,6 +44,8 @@ public class MasterDataPayloadContractTests
             .GetProperty("onUse");
         Assert.Equal(16, onUse.GetProperty("useTimeTicks").GetInt64());
         Assert.Equal(16, onUse.GetProperty("cooldownTicks").GetInt64());
+        Assert.Equal("entity.generic.eat", onUse.GetProperty("usingSound").GetString());
+        Assert.Equal("block.note_block.chime", onUse.GetProperty("sound").GetString());
     }
 
     [Fact]

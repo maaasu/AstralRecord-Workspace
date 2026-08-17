@@ -68,6 +68,8 @@ public class ItemConsumableResponse
 
 public class ItemConsumableOnUseResponse
 {
+    public string? UsingSound { get; init; }
+
     public string? Sound { get; init; }
 
     public string? Effect { get; init; }
