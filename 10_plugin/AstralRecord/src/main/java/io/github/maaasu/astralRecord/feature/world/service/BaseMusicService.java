@@ -23,7 +23,7 @@ import java.util.UUID;
  * 拠点ワールド向けのレコード音楽を管理します。
  */
 public final class BaseMusicService {
-    private static final SoundCategory MUSIC_CATEGORY = SoundCategory.MUSIC;
+    private static final SoundCategory RECORDS_CATEGORY = SoundCategory.RECORDS;
     private static final float MUSIC_VOLUME = 0.35F;
     private static final float MUSIC_PITCH = 1.0F;
 
@@ -170,13 +170,13 @@ public final class BaseMusicService {
             return;
         }
         stopTrack(player);
-        player.playSound(player.getLocation(), track.sound(), MUSIC_CATEGORY, MUSIC_VOLUME, MUSIC_PITCH);
+        player.playSound(player.getLocation(), track.sound(), RECORDS_CATEGORY, MUSIC_VOLUME, MUSIC_PITCH);
         activeTracksByPlayer.put(playerId, track);
     }
 
     private void stopTrack(@NotNull Player player) {
         for (BaseMusicTrack track : BaseMusicTrack.values()) {
-            player.stopSound(track.sound(), MUSIC_CATEGORY);
+            player.stopSound(track.sound(), RECORDS_CATEGORY);
         }
         activeTracksByPlayer.remove(player.getUniqueId());
     }

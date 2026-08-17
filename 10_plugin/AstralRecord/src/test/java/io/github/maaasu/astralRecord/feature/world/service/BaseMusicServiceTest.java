@@ -49,7 +49,7 @@ class BaseMusicServiceTest {
      * 章・見出し: # 17_0-概要 > ## 責務
      * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/11_1-モデル定義.md
      * 章・見出し: # 11_1-モデル定義 > ## 3. 設定 key
-     * 検証契約: BASE のプレイヤーは BASE_MUSIC の既定値 true により MUSIC category のレコード音楽を再生し、次曲 task を予約する。
+     * 検証契約: BASE のプレイヤーは BASE_MUSIC の既定値 true により RECORDS category のレコード音楽を再生し、次曲 task を予約する。
      */
     @Test
     void defaultEnabledBasePlayerStartsMusic() {
@@ -65,7 +65,7 @@ class BaseMusicServiceTest {
         verify(context.player).playSound(
             eq(playerLocation),
             any(Sound.class),
-            eq(SoundCategory.MUSIC),
+            eq(SoundCategory.RECORDS),
             eq(0.35F),
             eq(1.0F)
         );
@@ -92,7 +92,7 @@ class BaseMusicServiceTest {
         verify(context.player, times(1)).playSound(
             eq(playerLocation),
             any(Sound.class),
-            eq(SoundCategory.MUSIC),
+            eq(SoundCategory.RECORDS),
             eq(0.35F),
             eq(1.0F)
         );
@@ -131,7 +131,7 @@ class BaseMusicServiceTest {
      * 章・見出し: # 17_4-統合フロー > ## 5. 拠点音楽
      * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/11_2-ユースケース.md
      * 章・見出し: # 11_2-ユースケース > ## 3. GUI から変更する
-     * 検証契約: BASE_MUSIC が false のプレイヤーには音楽を再生せず、管理対象の MUSIC sound を停止する。
+     * 検証契約: BASE_MUSIC が false のプレイヤーには音楽を再生せず、管理対象の RECORDS sound を停止する。
      */
     @Test
     void disabledBaseMusicStopsWithoutStartingPlayback() {
@@ -150,7 +150,7 @@ class BaseMusicServiceTest {
             anyFloat(),
             anyFloat()
         );
-        verify(context.player, times(5)).stopSound(any(Sound.class), eq(SoundCategory.MUSIC));
+        verify(context.player, times(5)).stopSound(any(Sound.class), eq(SoundCategory.RECORDS));
     }
 
     /**
@@ -175,7 +175,7 @@ class BaseMusicServiceTest {
             anyFloat(),
             anyFloat()
         );
-        verify(context.player, times(5)).stopSound(any(Sound.class), eq(SoundCategory.MUSIC));
+        verify(context.player, times(5)).stopSound(any(Sound.class), eq(SoundCategory.RECORDS));
     }
 
     /**
@@ -241,7 +241,7 @@ class BaseMusicServiceTest {
         }).when(context.player).playSound(
             eq(playerLocation),
             any(Sound.class),
-            eq(SoundCategory.MUSIC),
+            eq(SoundCategory.RECORDS),
             anyFloat(),
             anyFloat()
         );
