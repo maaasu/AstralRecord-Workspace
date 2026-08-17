@@ -51,3 +51,10 @@ ai:
 
 drops:
   exp: 8
+  items:
+    - itemId:
+        ref: item:grassboar_pelt
+      rate: 35.0
+      amount: 1
+      luckAffected: true
+      hidden: false
