@@ -1,0 +1,41 @@
+# design:
+#   motif: "錬金術 / 薬品店"
+#   progression: 0
+schemaVersion: 1
+id: potion_merchant
+type: MOB
+category: NPC
+name: "&bポーション商人イリス"
+title: "&7ポーションショップ"
+level: 1
+entityType: WITCH
+nameVisible: true
+damageImmune: true
+icon: POTION
+lore:
+  - "&7冒険に必要なポーションを扱う商人。"
+  - "&7右クリックでポーションショップを開ける。"
+tags:
+  - npc
+  - shop
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&bポーション商人イリス&7: 冒険に必要な薬を揃えています。"
+  rightClick:
+    - id: gui
+      params:
+        type: SHOP
+        shopId: potion_shop

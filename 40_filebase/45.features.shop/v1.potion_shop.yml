@@ -1,0 +1,25 @@
+# design:
+#   motif: "交易 / 薬品店"
+#   progression: 0
+schemaVersion: 1
+id: potion_shop
+type: SHOP
+name: "&bポーションショップ"
+access: NPC_ONLY
+items:
+  - id: mana_potion_small
+    itemId:
+      ref: item:mana_potion_small
+    category: consumable
+    amount: 1
+    page: 1
+    slot: 0
+    priceGold: 20
+  - id: healing_potion_small
+    itemId:
+      ref: item:healing_potion_small
+    category: consumable
+    amount: 1
+    page: 1
+    slot: 1
+    priceGold: 10

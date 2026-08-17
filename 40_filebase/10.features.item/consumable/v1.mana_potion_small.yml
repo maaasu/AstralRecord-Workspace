@@ -1,3 +1,6 @@
+# design:
+#   motif: "錬金術 / 魔力の小瓶"
+#   progression: 0
 # NOTE: 現在実装されているマスタデータはすべてデバッグ用の仮設定です。正式なゲームバランス・報酬・入手設計として扱わないでください。
 schemaVersion: 1
 id: mana_potion_small
@@ -7,6 +10,8 @@ icon: POTION
 rarity: COMMON
 maxStack: 64
 saleValue: 20
+appearance:
+  potionType: SWIFTNESS
 lore:
   - "&7魔力を取り戻す力を封じた小瓶。"
 unTradeable: false
@@ -18,11 +23,11 @@ consumable:
     sound: entity.generic.drink
     effect: witch
     amount: 1
-    useTimeTicks: 40
+    useTimeTicks: 20
     cooldownTicks: 40
   effects:
-    - type: HEAL
+    - type: RECOVER
       status: MP
-      value: 0.20
-      isPercent: true
+      value: 10
+      isPercent: false
       rate: 100
