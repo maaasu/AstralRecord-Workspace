@@ -26,7 +26,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -40,8 +39,6 @@ public final class TrashService {
     private final MenuGuiTransitionService menuGuiTransitionService;
     private final ItemReferenceResolver transferItemResolver;
     private final ConcurrentHashMap<UUID, List<ItemStack>> trashItemsByPlayer = new ConcurrentHashMap<>();
-    private final Set<UUID> suppressTrashConfirmOnClose = ConcurrentHashMap.newKeySet();
-    private final Set<UUID> suppressTrashConfirmRestoreOnClose = ConcurrentHashMap.newKeySet();
 
     /**
      * ゴミ箱 GUI サービスを初期化します。
@@ -164,31 +161,16 @@ public final class TrashService {
         }
         UUID playerId = player.getUniqueId();
         if (screen == MenuScreen.TRASH) {
-            if (suppressTrashConfirmOnClose.remove(playerId)) {
-                List<ItemStack> items = snapshotTrashItems(inventory);
-                trashItemsByPlayer.put(playerId, items);
-                return;
-            }
             List<ItemStack> allItems = collectAllTrashItems(inventory, playerId);
-            boolean returned = returnTrashItemsToInventory(player, allItems);
-            discard(player);
-            if (returned) {
-                notifyTrashReturned(player, allItems);
-            }
+            closeTrashAndReturnItems(player, allItems);
             return;
         }
         if (screen == MenuScreen.TRASH_CONFIRM) {
-            if (suppressTrashConfirmOnClose.remove(playerId)) {
-                if (!suppressTrashConfirmRestoreOnClose.remove(playerId)) {
-                    menuGuiTransitionService.restorePlayerInventory(player);
-                }
-                return;
-            }
+            List<ItemStack> allItems = normalizeTrashItems(
+                trashItemsByPlayer.getOrDefault(playerId, List.of())
+            );
+            closeTrashAndReturnItems(player, allItems);
             menuGuiTransitionService.restorePlayerInventory(player);
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                GuiSound.SELECT.play(player);
-                open(player, 0);
-            });
         }
     }
 
@@ -216,7 +198,6 @@ public final class TrashService {
             return;
         }
         trashItemsByPlayer.put(player.getUniqueId(), normalized);
-        suppressTrashConfirmOnClose.add(player.getUniqueId());
         GuiSound.CONFIRM.play(player);
         menuView.openTrashConfirm(player, normalized, pageIndex);
         menuGuiTransitionService.fillPlayerInventoryDummy(player);
@@ -234,8 +215,10 @@ public final class TrashService {
         }
 
         if (rawSlot == MenuView.BACK_SLOT) {
-            suppressTrashConfirmOnClose.add(player.getUniqueId());
-            GuiSound.SELECT.play(player);
+            closeTrashAndReturnItems(
+                player,
+                collectAllTrashItems(topInventory, player.getUniqueId())
+            );
             menuGuiTransitionService.switchGuiWithInventoryRestore(
                 player,
                 () -> plugin.getGuiNavigationService().openPrevious(player)
@@ -245,7 +228,6 @@ public final class TrashService {
         if (rawSlot == MenuView.TRASH_CONFIRM_SLOT) {
             if (currentTrashItems.isEmpty()) {
                 discard(player);
-                suppressTrashConfirmOnClose.add(player.getUniqueId());
                 player.closeInventory();
                 return;
             }
@@ -298,14 +280,11 @@ public final class TrashService {
             discard(player);
             notifyTrashDisposed(player, disposedItems);
             menuGuiTransitionService.restorePlayerInventory(player);
-            suppressTrashConfirmOnClose.add(player.getUniqueId());
             player.closeInventory();
             return;
         }
         if (rawSlot == MenuView.TRASH_CONFIRM_RETURN_SLOT) {
-            GuiSound.SELECT.play(player);
-            suppressTrashConfirmOnClose.add(player.getUniqueId());
-            suppressTrashConfirmRestoreOnClose.add(player.getUniqueId());
+            closeTrashAndReturnItems(player, currentTrashItems);
             menuGuiTransitionService.switchGuiWithInventoryRestore(
                 player,
                 () -> plugin.getGuiNavigationService().openPrevious(player)
@@ -443,21 +422,49 @@ public final class TrashService {
         ));
     }
 
-    private boolean returnTrashItemsToInventory(@NotNull Player player, @NotNull List<ItemStack> items) {
+    private void closeTrashAndReturnItems(@NotNull Player player, @NotNull List<ItemStack> items) {
+        ReturnTrashItemsResult result = returnTrashItemsToInventory(player, items);
+        dropTrashItems(player, result.failedItems());
+        discard(player);
+        if (!result.returnedItems().isEmpty()) {
+            notifyTrashReturned(player, result.returnedItems());
+        }
+    }
+
+    private @NotNull ReturnTrashItemsResult returnTrashItemsToInventory(
+        @NotNull Player player,
+        @NotNull List<ItemStack> items
+    ) {
         if (items.isEmpty()) {
-            return false;
+            return ReturnTrashItemsResult.empty();
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
-            return false;
+            return new ReturnTrashItemsResult(List.of(), new ArrayList<>(items));
         }
+        List<ItemStack> returnedItems = new ArrayList<>();
+        List<ItemStack> failedItems = new ArrayList<>();
         for (ItemStack itemStack : items) {
             if (itemStack == null || itemStack.getType() == Material.AIR) {
                 continue;
             }
-            inventoryService.returnItemToOwnedInventory(astPlayer, itemStack.clone());
+            ItemStack cleanItem = stripTransferDisplayLore(itemStack);
+            if (inventoryService.returnItemToOwnedInventory(astPlayer, cleanItem.clone()) == null) {
+                failedItems.add(cleanItem);
+                continue;
+            }
+            returnedItems.add(cleanItem);
         }
-        return true;
+        return new ReturnTrashItemsResult(returnedItems, failedItems);
+    }
+
+    private void dropTrashItems(@NotNull Player player, @NotNull List<ItemStack> items) {
+        for (ItemStack itemStack : items) {
+            if (itemStack == null || itemStack.getType() == Material.AIR) {
+                continue;
+            }
+            player.getWorld().dropItemNaturally(player.getLocation(), itemStack.clone());
+        }
     }
 
     private void notifyTrashDisposed(@NotNull Player player, @NotNull List<ItemStack> items) {
@@ -554,5 +561,14 @@ public final class TrashService {
 
     private void discard(@NotNull Player player) {
         trashItemsByPlayer.remove(player.getUniqueId());
+    }
+
+    private record ReturnTrashItemsResult(
+        @NotNull List<ItemStack> returnedItems,
+        @NotNull List<ItemStack> failedItems
+    ) {
+        private static @NotNull ReturnTrashItemsResult empty() {
+            return new ReturnTrashItemsResult(List.of(), List.of());
+        }
     }
 }

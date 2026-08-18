@@ -306,7 +306,10 @@ public final class SellService {
             return;
         }
         if (rawSlot == MenuView.SELL_CONFIRM_RETURN_SLOT) {
-            GuiSound.SELECT.play(player);
+            if (!closeSellAndReturnItems(player, currentSellItems)) {
+                menuGuiTransitionService.restorePlayerInventory(player);
+                return;
+            }
             menuGuiTransitionService.switchGuiWithInventoryRestore(
                 player,
                 () -> plugin.getGuiNavigationService().openPrevious(player)
@@ -460,7 +463,7 @@ public final class SellService {
         return GuiPagination.normalizePage(pageIndex, itemCount, SellScreenView.CONTENT_SLOT_COUNT);
     }
 
-    private void closeSellAndReturnItems(@NotNull Player player, @NotNull List<ItemStack> items) {
+    private boolean closeSellAndReturnItems(@NotNull Player player, @NotNull List<ItemStack> items) {
         ReturnSellItemsResult result = returnSellItemsToInventory(player, items);
         if (result.failedItems().isEmpty()) {
             discard(player);
@@ -477,6 +480,7 @@ public final class SellService {
         if (!result.returnedItems().isEmpty()) {
             notifySellReturned(player, result.returnedItems());
         }
+        return result.failedItems().isEmpty();
     }
 
     private @NotNull ReturnSellItemsResult returnSellItemsToInventory(

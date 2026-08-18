@@ -19,7 +19,9 @@ import org.bukkit.NamespacedKey;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataContainer;
@@ -119,10 +121,72 @@ class SellServiceSoundTest {
         verify(menuView, org.mockito.Mockito.never()).openSell(any(Player.class), anyList(), eq(0));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 売却
+     * 検証契約: 売却確認画面の戻る操作でも、保持 item を返却してから画面遷移する。
+     */
+    @Test
+    void returningFromConfirmReturnsReservedItemsBeforeNavigation() throws Exception {
+        AstralRecord plugin = mock(AstralRecord.class);
+        ItemService itemService = mock(ItemService.class);
+        when(plugin.getItemService()).thenReturn(itemService);
+        MenuView menuView = mock(MenuView.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        MenuGuiTransitionService transitionService = mock(MenuGuiTransitionService.class);
+        SellService service = new SellService(plugin, menuView, inventoryService, transitionService);
+        Player player = mock(Player.class);
+        Location location = mock(Location.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getLocation()).thenReturn(location);
+        Inventory confirmInventory = mock(Inventory.class);
+        when(confirmInventory.getSize()).thenReturn(27);
+        InventoryView view = mock(InventoryView.class);
+        InventoryClickEvent event = mock(InventoryClickEvent.class);
+        when(event.getRawSlot()).thenReturn(MenuView.SELL_CONFIRM_RETURN_SLOT);
+        when(event.getView()).thenReturn(view);
+        when(view.getTopInventory()).thenReturn(confirmInventory);
+
+        ItemModel itemModel = mock(ItemModel.class);
+        when(itemModel.getUnSellable()).thenReturn(false);
+        when(itemService.findLoadedById("test_item")).thenReturn(itemModel);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        when(inventoryService.canAddItemToNormalInventory(astPlayer, itemModel, 1)).thenReturn(true);
+        when(inventoryService.returnItemToOwnedInventory(eq(astPlayer), any(ItemStack.class)))
+            .thenReturn(InventoryType.BAG);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+            invokeOpenConfirm(service, player, List.of(astralItem()), 0);
+            invokeConfirmClick(service, event, player);
+        }
+
+        verify(transitionService).switchGuiWithInventoryRestore(eq(player), any(Runnable.class));
+        verify(inventoryService).returnItemToOwnedInventory(eq(astPlayer), any(ItemStack.class));
+    }
+
     private void invokeOpenConfirm(SellService service, Player player, List<ItemStack> items, int pageIndex) throws Exception {
         Method method = SellService.class.getDeclaredMethod("openSellConfirm", Player.class, List.class, int.class);
         method.setAccessible(true);
         method.invoke(service, player, items, pageIndex);
+    }
+
+    private void invokeConfirmClick(
+        SellService service,
+        InventoryClickEvent event,
+        Player player
+    ) throws Exception {
+        Method method = SellService.class.getDeclaredMethod(
+            "handleSellConfirmClick",
+            InventoryClickEvent.class,
+            Player.class
+        );
+        method.setAccessible(true);
+        method.invoke(service, event, player);
     }
 
     private ItemStack normalizableItem() {
