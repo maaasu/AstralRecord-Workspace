@@ -30,7 +30,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -45,8 +44,6 @@ public final class SellService {
     private final ItemReferenceResolver transferItemResolver;
     private final ConcurrentHashMap<UUID, List<ItemStack>> sellItemsByPlayer = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, Integer> sellPageByPlayer = new ConcurrentHashMap<>();
-    private final Set<UUID> suppressSellConfirmOnClose = ConcurrentHashMap.newKeySet();
-    private final Set<UUID> suppressSellConfirmRestoreOnClose = ConcurrentHashMap.newKeySet();
 
     /**
      * 売却 GUI サービスを初期化します。
@@ -169,6 +166,8 @@ public final class SellService {
 
     /**
      * 売却 GUI クローズ時の後処理を行います。
+     * 売却確定済みでない保持アイテムは、編集画面と確認画面のどちらを閉じた場合も
+     * 通常インベントリへ返却します。
      *
      * @param inventory 閉じられたインベントリ
      * @param player 対象プレイヤー
@@ -180,42 +179,16 @@ public final class SellService {
         }
         UUID playerId = player.getUniqueId();
         if (screen == MenuScreen.SELL) {
-            if (suppressSellConfirmOnClose.remove(playerId)) {
-                List<ItemStack> items = snapshotSellItems(inventory);
-                sellItemsByPlayer.put(playerId, items);
-                return;
-            }
             List<ItemStack> allItems = collectAllSellItems(inventory, playerId);
-            ReturnSellItemsResult result = returnSellItemsToInventory(player, allItems);
-            if (result.failedItems().isEmpty()) {
-                discard(player);
-            } else {
-                List<ItemStack> failedItems = normalizeSellItems(result.failedItems());
-                sellItemsByPlayer.put(playerId, failedItems);
-                sellPageByPlayer.put(playerId, normalizeSellPage(0, failedItems.size()));
-                plugin.getServer().getScheduler().runTask(plugin, () -> {
-                    if (player.isOnline()) {
-                        open(player, 0);
-                    }
-                });
-            }
-            if (!result.returnedItems().isEmpty()) {
-                notifySellReturned(player, result.returnedItems());
-            }
+            closeSellAndReturnItems(player, allItems);
             return;
         }
         if (screen == MenuScreen.SELL_CONFIRM) {
-            if (suppressSellConfirmOnClose.remove(playerId)) {
-                if (!suppressSellConfirmRestoreOnClose.remove(playerId)) {
-                    menuGuiTransitionService.restorePlayerInventory(player);
-                }
-                return;
-            }
+            List<ItemStack> allItems = normalizeSellItems(
+                sellItemsByPlayer.getOrDefault(playerId, List.of())
+            );
+            closeSellAndReturnItems(player, allItems);
             menuGuiTransitionService.restorePlayerInventory(player);
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                GuiSound.SELECT.play(player);
-                open(player, 0);
-            });
         }
     }
 
@@ -249,7 +222,6 @@ public final class SellService {
             return;
         }
         sellItemsByPlayer.put(player.getUniqueId(), normalized);
-        suppressSellConfirmOnClose.add(player.getUniqueId());
         menuGuiTransitionService.switchGuiWithoutInventoryReload(player, () -> {
             GuiSound.CONFIRM.play(player);
             menuView.openSellConfirm(player, normalized, pageIndex);
@@ -271,7 +243,6 @@ public final class SellService {
         if (rawSlot == MenuView.SELL_CONFIRM_SLOT) {
             if (currentSellItems.isEmpty()) {
                 discard(player);
-                suppressSellConfirmOnClose.add(player.getUniqueId());
                 player.closeInventory();
                 return;
             }
@@ -331,14 +302,11 @@ public final class SellService {
             discard(player);
             notifySellCompleted(player, soldItems, totalSaleValue);
             menuGuiTransitionService.restorePlayerInventory(player);
-            suppressSellConfirmOnClose.add(player.getUniqueId());
             player.closeInventory();
             return;
         }
         if (rawSlot == MenuView.SELL_CONFIRM_RETURN_SLOT) {
             GuiSound.SELECT.play(player);
-            suppressSellConfirmOnClose.add(player.getUniqueId());
-            suppressSellConfirmRestoreOnClose.add(player.getUniqueId());
             menuGuiTransitionService.switchGuiWithInventoryRestore(
                 player,
                 () -> plugin.getGuiNavigationService().openPrevious(player)
@@ -490,6 +458,25 @@ public final class SellService {
 
     private int normalizeSellPage(int pageIndex, int itemCount) {
         return GuiPagination.normalizePage(pageIndex, itemCount, SellScreenView.CONTENT_SLOT_COUNT);
+    }
+
+    private void closeSellAndReturnItems(@NotNull Player player, @NotNull List<ItemStack> items) {
+        ReturnSellItemsResult result = returnSellItemsToInventory(player, items);
+        if (result.failedItems().isEmpty()) {
+            discard(player);
+        } else {
+            List<ItemStack> failedItems = normalizeSellItems(result.failedItems());
+            sellItemsByPlayer.put(player.getUniqueId(), failedItems);
+            sellPageByPlayer.put(player.getUniqueId(), normalizeSellPage(0, failedItems.size()));
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                if (player.isOnline()) {
+                    open(player, 0);
+                }
+            });
+        }
+        if (!result.returnedItems().isEmpty()) {
+            notifySellReturned(player, result.returnedItems());
+        }
     }
 
     private @NotNull ReturnSellItemsResult returnSellItemsToInventory(
