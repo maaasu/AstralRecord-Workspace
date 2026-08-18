@@ -23,3 +23,19 @@ items:
     page: 1
     slot: 1
     priceGold: 10
+  - id: mana_potion_medium
+    itemId:
+      ref: item:mana_potion_medium
+    category: consumable
+    amount: 1
+    page: 1
+    slot: 2
+    priceGold: 60
+  - id: healing_potion_medium
+    itemId:
+      ref: item:healing_potion_medium
+    category: consumable
+    amount: 1
+    page: 1
+    slot: 3
+    priceGold: 35
