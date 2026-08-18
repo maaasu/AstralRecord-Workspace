@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -20,6 +21,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
@@ -40,6 +42,9 @@ public final class BossMechanicService {
 
     private static final long TICK_PERIOD = 5L;
     private static final double TARGET_RANGE = 32.0D;
+    private static final double COLOSSUS_RUNE_LANES_MAX_LENGTH = TARGET_RANGE;
+    private static final double COLOSSUS_RUNE_LANES_HALF_WIDTH = 1.0D;
+    private static final double LINE_PARTICLE_INTERVAL = 0.5D;
 
     private final JavaPlugin plugin;
     private final MobService mobService;
@@ -279,11 +284,18 @@ public final class BossMechanicService {
         };
     }
 
+    /**
+     * 予兆または発動瞬間の、現在有効な攻撃範囲を表示します。
+     *
+     * @param pending 表示対象のギミック情報
+     */
     private void renderTelegraph(@NotNull PendingMechanic pending) {
         switch (pending.mechanic()) {
             case COLOSSUS_QUAKE -> renderCircle(pending.anchor(), 4.5D, SharedParticleDefinitions.BOSS_MECHANIC_CRIT, 28);
             case COLOSSUS_RUNE_LANES -> renderCross(
-                pending.anchor(), pending.direction(), 7.0D, SharedParticleDefinitions.BOSS_MECHANIC_SPARK
+                pending.anchor(), pending.direction(), COLOSSUS_RUNE_LANES_MAX_LENGTH,
+                COLOSSUS_RUNE_LANES_HALF_WIDTH,
+                SharedParticleDefinitions.BOSS_MECHANIC_SPARK
             );
             case COLOSSUS_COLLAPSE -> {
                 renderCircle(pending.anchor(), 2.8D, SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE, 20);
@@ -315,18 +327,26 @@ public final class BossMechanicService {
         }
     }
 
+    /**
+     * 予兆終了時に範囲演出と対応するギミック効果を適用します。
+     *
+     * @param boss ギミックを発動するボス
+     * @param pending 発動時刻を過ぎた予兆情報
+     */
     private void executeMechanic(@NotNull MobInstance boss, @NotNull PendingMechanic pending) {
         World world = pending.anchor().getWorld();
         if (world == null) {
             return;
         }
+        renderImpact(pending);
         switch (pending.mechanic()) {
             case COLOSSUS_QUAKE -> {
                 damageCircle(boss, pending.anchor(), 0.0D, 4.5D, AttackType.MELEE, DamageElement.NONE, 0.78D, 0.55D);
                 breakCrater(boss, pending.anchor(), 3.0D);
             }
             case COLOSSUS_RUNE_LANES -> damageCross(
-                boss, pending.anchor(), pending.direction(), 7.0D, 1.0D,
+                boss, pending.anchor(), pending.direction(), COLOSSUS_RUNE_LANES_MAX_LENGTH,
+                COLOSSUS_RUNE_LANES_HALF_WIDTH,
                 AttackType.MAGIC, DamageElement.LIGHTNING, 0.68D
             );
             case COLOSSUS_COLLAPSE -> {
@@ -409,6 +429,18 @@ public final class BossMechanicService {
         }
     }
 
+    /**
+     * 壁で区切られた交差ルーンの線分内にいるプレイヤーへダメージを適用します。
+     *
+     * @param boss 攻撃するボス
+     * @param origin 交差の中心
+     * @param direction 基準となる向き
+     * @param length 壁がない場合の各方向の最大長
+     * @param width 各線分の半幅
+     * @param attackType 攻撃種別
+     * @param element ダメージ属性
+     * @param ratio 攻撃倍率
+     */
     private void damageCross(
         @NotNull MobInstance boss,
         @NotNull Location origin,
@@ -419,13 +451,16 @@ public final class BossMechanicService {
         @NotNull DamageElement element,
         double ratio
     ) {
-        Vector side = new Vector(-direction.getZ(), 0.0D, direction.getX());
+        List<LineSegment> segments = resolveCrossSegments(origin, direction, length);
         for (Player player : nearbyManagedPlayers(origin, length + width)) {
             Location point = player.getLocation();
-            boolean hit = insideLine(point, origin, direction, length, width)
-                || insideLine(point, origin, side, length, width)
-                || insideLine(point, origin, direction.clone().multiply(-1.0D), length, width)
-                || insideLine(point, origin, side.clone().multiply(-1.0D), length, width);
+            boolean hit = segments.stream().anyMatch(segment -> insideLine(
+                point,
+                origin,
+                segment.direction(),
+                segment.length(),
+                width
+            ));
             if (hit) {
                 damagePlayer(boss, player, attackType, element, ratio);
             }
@@ -555,19 +590,37 @@ public final class BossMechanicService {
         return direction.normalize();
     }
 
+    /**
+     * 円形の攻撃範囲を1回の近傍閲覧者判定で表示します。
+     *
+     * @param center 円の中心
+     * @param radius 円の半径
+     * @param particle 表示する共通パーティクル定義
+     * @param points 円周上の表示地点数
+     */
     private void renderCircle(
         @NotNull Location center,
         double radius,
         @NotNull SharedParticleDefinition particle,
         int points
     ) {
+        List<Location> locations = new ArrayList<>(points);
         for (int index = 0; index < points; index++) {
             double angle = (Math.PI * 2.0D * index) / points;
-            Location point = center.clone().add(Math.cos(angle) * radius, 0.15D, Math.sin(angle) * radius);
-            particleDisplayService.spawnForNearbyViewers(point, particle);
+            locations.add(center.clone().add(Math.cos(angle) * radius, 0.15D, Math.sin(angle) * radius));
         }
+        renderRange(center, locations, particle);
     }
 
+    /**
+     * 線形レーンの中央と両端を1回の近傍閲覧者判定で表示します。
+     *
+     * @param origin レーンの始点
+     * @param direction レーンの向き
+     * @param length レーンの長さ
+     * @param halfWidth レーンの半幅
+     * @param particle 表示する共通パーティクル定義
+     */
     private void renderLane(
         @NotNull Location origin,
         @NotNull Vector direction,
@@ -576,45 +629,192 @@ public final class BossMechanicService {
         @NotNull SharedParticleDefinition particle
     ) {
         Vector side = new Vector(-direction.getZ(), 0.0D, direction.getX()).normalize().multiply(halfWidth);
-        renderLine(origin.clone().add(side), direction, length, particle);
-        renderLine(origin.clone().subtract(side), direction, length, particle);
+        List<Location> locations = new ArrayList<>();
+        appendLine(locations, origin, direction, length);
+        appendLine(locations, origin.clone().add(side), direction, length);
+        appendLine(locations, origin.clone().subtract(side), direction, length);
+        renderRange(origin, locations, particle);
     }
 
+    /**
+     * 壁で区切られた交差ルーンの4方向を1回の近傍閲覧者判定で表示します。
+     *
+     * @param origin 交差の中心
+     * @param direction 基準となる向き
+     * @param maximumLength 壁がない場合の各方向の安全な最大長
+     * @param halfWidth 各方向の命中帯の半幅
+     * @param particle 表示する共通パーティクル定義
+     */
     private void renderCross(
         @NotNull Location origin,
         @NotNull Vector direction,
-        double length,
+        double maximumLength,
+        double halfWidth,
         @NotNull SharedParticleDefinition particle
     ) {
-        Vector side = new Vector(-direction.getZ(), 0.0D, direction.getX()).normalize();
-        renderLine(origin, direction, length, particle);
-        renderLine(origin, direction.clone().multiply(-1.0D), length, particle);
-        renderLine(origin, side, length, particle);
-        renderLine(origin, side.clone().multiply(-1.0D), length, particle);
+        renderRange(origin, crossParticleLocations(origin, direction, maximumLength, halfWidth), particle);
     }
 
+    /**
+     * 扇形の境界と中心線を1回の近傍閲覧者判定で表示します。
+     *
+     * @param origin 扇形の起点
+     * @param direction 扇形の中心方向
+     * @param length 扇形の長さ
+     * @param particle 表示する共通パーティクル定義
+     */
     private void renderCone(
         @NotNull Location origin,
         @NotNull Vector direction,
         double length,
         @NotNull SharedParticleDefinition particle
     ) {
-        renderLine(origin, direction.clone().rotateAroundY(Math.toRadians(-26.0D)), length, particle);
-        renderLine(origin, direction, length, particle);
-        renderLine(origin, direction.clone().rotateAroundY(Math.toRadians(26.0D)), length, particle);
+        List<Location> locations = new ArrayList<>();
+        appendLine(locations, origin, direction.clone().rotateAroundY(Math.toRadians(-26.0D)), length);
+        appendLine(locations, origin, direction, length);
+        appendLine(locations, origin, direction.clone().rotateAroundY(Math.toRadians(26.0D)), length);
+        renderRange(origin, locations, particle);
     }
 
-    private void renderLine(
+    /**
+     * 指定した線分上のパーティクル地点を追加します。
+     *
+     * @param locations 追加先の地点一覧
+     * @param origin 線分の始点
+     * @param direction 線分の向き
+     * @param length 線分の長さ
+     */
+    private static void appendLine(
+        @NotNull List<Location> locations,
         @NotNull Location origin,
         @NotNull Vector direction,
-        double length,
-        @NotNull SharedParticleDefinition particle
+        double length
     ) {
         Vector step = direction.clone().setY(0.0D).normalize();
-        for (double distance = 0.5D; distance <= length; distance += 0.7D) {
-            Location point = origin.clone().add(step.clone().multiply(distance)).add(0.0D, 0.15D, 0.0D);
-            particleDisplayService.spawnForNearbyViewers(point, particle);
+        for (double distance = 0.5D; distance <= length; distance += LINE_PARTICLE_INTERVAL) {
+            locations.add(origin.clone().add(step.clone().multiply(distance)).add(0.0D, 0.15D, 0.0D));
         }
+    }
+
+    /**
+     * 交差ルーンの中心線と命中帯境界のパーティクル地点を作成します。
+     *
+     * @param origin 交差の中心
+     * @param direction 基準となる向き
+     * @param maximumLength 壁がない場合の各方向の安全な最大長
+     * @param halfWidth 各方向の命中帯の半幅
+     * @return 中心線と両境界線を含む表示地点
+     */
+    static @NotNull List<Location> crossParticleLocations(
+        @NotNull Location origin,
+        @NotNull Vector direction,
+        double maximumLength,
+        double halfWidth
+    ) {
+        List<Location> locations = new ArrayList<>();
+        for (LineSegment segment : resolveCrossSegments(origin, direction, maximumLength)) {
+            Vector side = new Vector(-segment.direction().getZ(), 0.0D, segment.direction().getX())
+                .normalize()
+                .multiply(halfWidth);
+            appendLine(locations, origin, segment.direction(), segment.length());
+            appendLine(locations, origin.clone().add(side), segment.direction(), segment.length());
+            appendLine(locations, origin.clone().subtract(side), segment.direction(), segment.length());
+        }
+        return List.copyOf(locations);
+    }
+
+    /**
+     * 範囲内の閲覧者を一度だけ解決し、全地点へ共通パーティクルを送信します。
+     *
+     * @param center 閲覧者探索の中心
+     * @param locations 表示地点
+     * @param particle 表示する共通パーティクル定義
+     */
+    private void renderRange(
+        @NotNull Location center,
+        @NotNull List<Location> locations,
+        @NotNull SharedParticleDefinition particle
+    ) {
+        particleDisplayService.spawnForNearbyViewers(center, locations, particle);
+    }
+
+    /**
+     * 予兆が完了した瞬間に、実際に攻撃する範囲をパーティクルで再表示します。
+     *
+     * @param pending 発動するギミックの予兆情報
+     */
+    private void renderImpact(@NotNull PendingMechanic pending) {
+        renderTelegraph(pending);
+    }
+
+    /**
+     * 交差ルーンの各腕を、壁との衝突または指定上限までの線分へ解決します。
+     *
+     * @param origin 交差の中心
+     * @param direction 基準となる向き
+     * @param maximumLength 壁がない場合の各方向の最大長
+     * @return 前後左右の攻撃線分
+     */
+    private static @NotNull List<LineSegment> resolveCrossSegments(
+        @NotNull Location origin,
+        @NotNull Vector direction,
+        double maximumLength
+    ) {
+        Vector forward = direction.clone().setY(0.0D).normalize();
+        Vector side = new Vector(-forward.getZ(), 0.0D, forward.getX());
+        Vector backward = forward.clone().multiply(-1.0D);
+        Vector oppositeSide = side.clone().multiply(-1.0D);
+        return List.of(
+            new LineSegment(forward, wallLimitedLength(origin, forward, maximumLength)),
+            new LineSegment(backward, wallLimitedLength(origin, backward, maximumLength)),
+            new LineSegment(side, wallLimitedLength(origin, side, maximumLength)),
+            new LineSegment(oppositeSide, wallLimitedLength(origin, oppositeSide, maximumLength))
+        );
+    }
+
+    /**
+     * 指定方向の壁までの長さを、必ず指定上限以内で返します。
+     *
+     * @param origin 探索の始点
+     * @param direction 探索方向
+     * @param maximumLength 呼び出し側が要求する最大長（交差ルーンの安全上限以内へ丸める）
+     * @return 壁がない場合は上限、壁がある場合は衝突地点までの長さ
+     */
+    static double wallLimitedLength(
+        @NotNull Location origin,
+        @NotNull Vector direction,
+        double maximumLength
+    ) {
+        double boundedLength = cappedCrossArmLength(maximumLength, maximumLength);
+        World world = origin.getWorld();
+        Vector normalized = direction.clone().setY(0.0D);
+        if (world == null || boundedLength <= 0.0D || normalized.lengthSquared() <= 0.001D) {
+            return boundedLength;
+        }
+        normalized.normalize();
+        RayTraceResult hit = world.rayTraceBlocks(
+            origin,
+            normalized,
+            boundedLength,
+            FluidCollisionMode.NEVER,
+            true
+        );
+        if (hit == null || hit.getHitPosition() == null) {
+            return boundedLength;
+        }
+        return cappedCrossArmLength(maximumLength, origin.toVector().distance(hit.getHitPosition()));
+    }
+
+    /**
+     * 交差ルーンの壁までの距離を、安全上限の範囲へ丸めます。
+     *
+     * @param maximumLength 呼び出し側が要求する最大長
+     * @param collisionDistance 壁との衝突地点までの距離
+     * @return 0以上かつ交差ルーンの安全上限以下の有効長
+     */
+    static double cappedCrossArmLength(double maximumLength, double collisionDistance) {
+        double boundedLength = Math.clamp(maximumLength, 0.0D, COLOSSUS_RUNE_LANES_MAX_LENGTH);
+        return Math.clamp(collisionDistance, 0.0D, boundedLength);
     }
 
     private void breakCrater(@NotNull MobInstance boss, @NotNull Location center, double radius) {
@@ -700,6 +900,16 @@ public final class BossMechanicService {
         }
         block.setType(Material.AIR, false);
         return 1;
+    }
+
+    /**
+     * 方向と壁で制限済みの長さを持つ、交差ルーンの一方向分の線分です。
+     */
+    private record LineSegment(@NotNull Vector direction, double length) {
+        private LineSegment {
+            direction = direction.clone().setY(0.0D).normalize();
+            length = Math.max(0.0D, length);
+        }
     }
 
     private static final class BossRuntime {
