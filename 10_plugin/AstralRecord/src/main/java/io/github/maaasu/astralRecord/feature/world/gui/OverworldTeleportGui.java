@@ -39,6 +39,25 @@ public final class OverworldTeleportGui {
      * @param destinations 表示するワールド一覧
      */
     public void open(@NotNull Player player, @NotNull List<WorldMasterData> destinations) {
+        open(player, destinations, () -> {
+        }, () -> {
+        });
+    }
+
+    /**
+     * GUI を開き、表示結果に応じた処理を実行します。
+     *
+     * @param player 表示対象プレイヤー
+     * @param destinations 表示するワールド一覧
+     * @param onOpened GUI の表示に成功した場合の処理
+     * @param onCancelled GUI の表示が取り消された場合の処理
+     */
+    public void open(
+            @NotNull Player player,
+            @NotNull List<WorldMasterData> destinations,
+            @NotNull Runnable onOpened,
+            @NotNull Runnable onCancelled
+    ) {
         Map<Integer, String> worldIdsBySlot = worldIdsBySlot(destinations);
         Inventory inventory = Bukkit.createInventory(
                 new Holder(worldIdsBySlot),
@@ -46,7 +65,7 @@ public final class OverworldTeleportGui {
                 Component.text("オーバーワールド転送", NamedTextColor.AQUA, TextDecoration.BOLD)
         );
         render(inventory, destinations, worldIdsBySlot);
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory, onOpened, onCancelled);
     }
 
     /**
