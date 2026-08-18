@@ -23,3 +23,6 @@ equipment:
   - status: MINING_SPEED
     type: FLAT
     value: 2
+  durability:
+    max: 150
+    consume: 1
