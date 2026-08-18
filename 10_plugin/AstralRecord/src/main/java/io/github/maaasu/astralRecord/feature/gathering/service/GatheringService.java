@@ -1,9 +1,12 @@
 package io.github.maaasu.astralRecord.feature.gathering.service;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountExperienceResult;
+import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.gathering.model.GatheringDefinition;
 import io.github.maaasu.astralRecord.feature.gathering.model.GatheringDefinition.GatheringSound;
 import io.github.maaasu.astralRecord.feature.gathering.model.GatheringInstance;
 import io.github.maaasu.astralRecord.feature.gathering.repository.GatheringDefinitionRepository;
+import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
@@ -11,14 +14,24 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
+import io.github.maaasu.astralRecord.feature.playerclass.model.ClassExperienceResult;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
+import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusValue;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionRayTrace;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
@@ -68,7 +81,12 @@ public class GatheringService {
     private final GatheringDefinitionRepository definitionRepository;
     private final MobDropService dropService;
     private final ItemService itemService;
+    private EquipmentDurabilityService equipmentDurabilityService;
     private MobDropPresentationService dropPresentationService;
+    private AccountService accountService;
+    private PlayerClassService playerClassService;
+    private SkillTreeService skillTreeService;
+    private ParticleDisplayService particleDisplayService;
     private QuestService questService;
     private final Map<String, GatheringDefinition> definitions = new LinkedHashMap<>();
     private final Map<UUID, GatheringInstance> instances = new LinkedHashMap<>();
@@ -91,6 +109,35 @@ public class GatheringService {
 
     public void setDropPresentationService(@NotNull MobDropPresentationService dropPresentationService) {
         this.dropPresentationService = dropPresentationService;
+    }
+
+    /**
+     * 採集完了時のメインハンド耐久値消費サービスを設定します。
+     *
+     * @param equipmentDurabilityService 装備耐久値サービス
+     */
+    public void setEquipmentDurabilityService(@NotNull EquipmentDurabilityService equipmentDurabilityService) {
+        this.equipmentDurabilityService = equipmentDurabilityService;
+    }
+
+    /**
+     * 採集報酬のアカウント・クラス経験値反映サービスを設定します。
+     *
+     * @param accountService アカウント経験値サービス
+     * @param playerClassService クラス経験値サービス
+     * @param skillTreeService レベルアップ後の派生状態更新サービス
+     * @param particleDisplayService レベルアップ演出サービス
+     */
+    public void setProgressionServices(
+        @NotNull AccountService accountService,
+        @NotNull PlayerClassService playerClassService,
+        @NotNull SkillTreeService skillTreeService,
+        @NotNull ParticleDisplayService particleDisplayService
+    ) {
+        this.accountService = accountService;
+        this.playerClassService = playerClassService;
+        this.skillTreeService = skillTreeService;
+        this.particleDisplayService = particleDisplayService;
     }
 
     public void setQuestService(@NotNull QuestService questService) {
@@ -349,6 +396,10 @@ public class GatheringService {
         AstPlayer recipient = astPlayer;
         if (recipient != null && dropPresentationService != null) {
             MobDropResult result = dropService.roll(instance.definition().drops(), recipient);
+            applyExperienceAndSkillPoints(recipient, result);
+            if (equipmentDurabilityService != null) {
+                equipmentDurabilityService.consumeOnGathering(recipient);
+            }
             dropPresentationService.presentAndGrant(
                     recipient,
                     instance.location(),
@@ -417,12 +468,91 @@ public class GatheringService {
     }
 
     private boolean canUseCurrentTool(@NotNull Player player, @NotNull GatheringDefinition definition) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (equipmentDurabilityService != null
+                && astPlayer != null
+                && !equipmentDurabilityService.canUseMainHandTool(astPlayer)) {
+            return false;
+        }
         List<String> required = definition.requiredToolTags();
         if (required.isEmpty()) {
             return true;
         }
         Set<String> currentTags = currentToolTags(player.getInventory().getItemInMainHand());
         return required.stream().anyMatch(currentTags::contains);
+    }
+
+    private void applyExperienceAndSkillPoints(@NotNull AstPlayer recipient, @NotNull MobDropResult result) {
+        if (result.exp() <= 0 || accountService == null || playerClassService == null) {
+            return;
+        }
+        try {
+            AccountExperienceResult progress = accountService.grantExperienceCached(
+                recipient.getAccount(),
+                result.exp(),
+                recipient.getUser().getUuid()
+            );
+            ClassExperienceResult classProgress = playerClassService.grantClassExperience(recipient, result.exp());
+            applyExperienceAndSkillPointsResult(recipient, progress, classProgress);
+        } catch (RuntimeException ex) {
+            Logger.error(LogId.E_5159, ex, recipient.getAccount().getUuid(), result.exp());
+        }
+    }
+
+    private void applyExperienceAndSkillPointsResult(
+        @NotNull AstPlayer recipient,
+        @NotNull AccountExperienceResult progress,
+        @NotNull ClassExperienceResult classProgress
+    ) {
+        recipient.setAccount(progress.updatedAccount());
+        if (!recipient.getBukkit().isOnline()) {
+            return;
+        }
+
+        if (progress.leveledUp()) {
+            PlayerMessageService.getInstance().send(
+                recipient,
+                PlayerMsgId.P_5835,
+                progress.updatedAccount().getLevel(),
+                progress.grantedExperience(),
+                progress.levelUps()
+            );
+            playPlayerLevelUp(recipient.getBukkit());
+        }
+        if (classProgress.getLeveledUp()) {
+            PlayerMessageService.getInstance().send(
+                recipient,
+                PlayerMsgId.P_5847,
+                recipient.getClassLevel(),
+                classProgress.getGrantedExperience(),
+                classProgress.getClassPointGains()
+            );
+            playClassLevelUp(recipient.getBukkit());
+        }
+        if (skillTreeService != null && (progress.leveledUp() || classProgress.getLeveledUp())) {
+            skillTreeService.refreshProgressDerivedState(recipient);
+        }
+    }
+
+    private void playPlayerLevelUp(@NotNull Player player) {
+        Location location = player.getLocation().add(0.0D, 1.0D, 0.0D);
+        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.9F, 0.85F);
+        player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.7F, 1.05F);
+        player.playSound(player.getLocation(), Sound.BLOCK_BEACON_ACTIVATE, SoundCategory.PLAYERS, 0.45F, 1.35F);
+        if (particleDisplayService != null) {
+            particleDisplayService.spawnForNearbyViewers(location, SharedParticleDefinitions.PLAYER_LEVEL_UP_TOTEM);
+            particleDisplayService.spawnForNearbyViewers(location, SharedParticleDefinitions.PLAYER_LEVEL_UP_END_ROD);
+        }
+    }
+
+    private void playClassLevelUp(@NotNull Player player) {
+        Location location = player.getLocation().add(0.0D, 0.9D, 0.0D);
+        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.45F, 1.45F);
+        player.playSound(player.getLocation(), Sound.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.PLAYERS, 0.4F, 1.75F);
+        if (particleDisplayService != null) {
+            particleDisplayService.spawnForNearbyViewers(location, SharedParticleDefinitions.CLASS_LEVEL_UP_DUST);
+            particleDisplayService.spawnForNearbyViewers(location, SharedParticleDefinitions.CLASS_LEVEL_UP_ENCHANT);
+        }
     }
 
     private @NotNull Set<String> currentToolTags(@Nullable ItemStack itemStack) {

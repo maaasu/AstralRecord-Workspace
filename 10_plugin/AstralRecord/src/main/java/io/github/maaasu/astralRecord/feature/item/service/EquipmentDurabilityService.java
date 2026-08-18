@@ -71,12 +71,30 @@ public final class EquipmentDurabilityService {
      * @return 武器攻撃に使用できる場合は {@code true}
      */
     public boolean canUseMainHandWeapon(@NotNull AstPlayer player) {
+        return canUseMainHandEquipment(player, ItemEquipmentSlot.WEAPON);
+    }
+
+    /**
+     * メインハンドの採集ツールが使用可能な耐久値を持つか判定します。
+     * 装備インスタンスでないアイテム、ツールでない装備、耐久値を持たないツールは使用可能として扱います。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 採集ツールとして使用できる場合は {@code true}
+     */
+    public boolean canUseMainHandTool(@NotNull AstPlayer player) {
+        return canUseMainHandEquipment(player, ItemEquipmentSlot.TOOL);
+    }
+
+    private boolean canUseMainHandEquipment(
+        @NotNull AstPlayer player,
+        @NotNull ItemEquipmentSlot expectedSlot
+    ) {
         ItemReference reference = inventoryService.getItemReferenceInHand(player, EquipmentSlot.HAND);
         if (reference == null || !reference.hasEquipmentInstanceId()) {
             return true;
         }
         ItemModel model = itemReferenceResolver.resolveItemModel(reference);
-        if (model == null || model.getEquipment() == null || model.getEquipment().getSlot() != ItemEquipmentSlot.WEAPON) {
+        if (model == null || model.getEquipment() == null || model.getEquipment().getSlot() != expectedSlot) {
             return true;
         }
         EquipmentInstance instance = itemReferenceResolver.resolveEquipmentInstance(reference);
@@ -129,6 +147,22 @@ public final class EquipmentDurabilityService {
         consumeStack(player, inventory.getLeggings(), armorPredicate, ARMOR_DAMAGE_TAKEN_CONSUME_CHANCE, consumed);
         consumeStack(player, inventory.getBoots(), armorPredicate, ARMOR_DAMAGE_TAKEN_CONSUME_CHANCE, consumed);
         consumeAccessories(player, ACCESSORY_DAMAGE_TAKEN_CONSUME_CHANCE, consumed);
+    }
+
+    /**
+     * 採集オブジェクトの破壊完了時に、メインハンドの TOOL の耐久値を1回分減少させます。
+     * 耐久値または装備インスタンスが未設定の場合は何もしません。
+     *
+     * @param player 採集を完了したプレイヤー
+     */
+    public void consumeOnGathering(@NotNull AstPlayer player) {
+        consumeReference(
+            player,
+            inventoryService.getItemReferenceInHand(player, EquipmentSlot.HAND),
+            equipment -> equipment.getSlot() == ItemEquipmentSlot.TOOL,
+            1.0D,
+            new HashSet<>()
+        );
     }
 
     /**

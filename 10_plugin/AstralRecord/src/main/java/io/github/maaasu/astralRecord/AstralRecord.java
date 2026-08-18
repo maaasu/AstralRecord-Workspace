@@ -1013,6 +1013,7 @@ public final class AstralRecord extends JavaPlugin {
         equipmentDurabilityService = new EquipmentDurabilityService(inventoryService, itemService);
         equipmentDurabilityService.setStatusService(statusService);
         damageService.setEquipmentDurabilityService(equipmentDurabilityService);
+        gatheringService.setEquipmentDurabilityService(equipmentDurabilityService);
         playerListGui = new PlayerListGui(worldService);
         playerDetailGui = new PlayerDetailGui(worldService);
         playerSettingGui = new PlayerSettingGui(playerSettingService);
@@ -1057,6 +1058,12 @@ public final class AstralRecord extends JavaPlugin {
             particleDisplayService
         );
         questService.setSkillTreeService(skillTreeService);
+        gatheringService.setProgressionServices(
+            accountService,
+            playerClassService,
+            skillTreeService,
+            particleDisplayService
+        );
         questGui = new QuestGui(this, questService);
         questGuiEventHandler = new QuestGuiEventHandler(questGui, questService, inventoryService);
         mobCombatService.setQuestService(questService);

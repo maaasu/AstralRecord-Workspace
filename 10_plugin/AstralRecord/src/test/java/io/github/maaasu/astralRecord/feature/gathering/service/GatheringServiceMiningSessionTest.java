@@ -1,16 +1,26 @@
 package io.github.maaasu.astralRecord.feature.gathering.service;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountExperienceResult;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.gathering.model.GatheringDefinition;
 import io.github.maaasu.astralRecord.feature.gathering.model.GatheringInstance;
 import io.github.maaasu.astralRecord.feature.gathering.repository.GatheringDefinitionRepository;
+import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
+import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
+import io.github.maaasu.astralRecord.feature.playerclass.model.ClassExperienceResult;
+import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
+import io.github.maaasu.astralRecord.feature.user.model.UserModel;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Server;
@@ -30,6 +40,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -89,6 +100,36 @@ class GatheringServiceMiningSessionTest {
         verify(fixture.task()).cancel();
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_2-ユースケース.md
+     * 章・見出し: # 12_2-ユースケース > ## 10. 採集 object を採集する
+     * 検証契約: 採集 object の破壊完了時に、drops.expをアカウント・クラス経験値へ反映し、メインハンドのツール耐久値消費を1回実行する。
+     */
+    @Test
+    void destroyingObjectConsumesToolDurabilityAndGrantsExperience() {
+        Fixture fixture = createFixture(1, 7);
+        UUID userId = UUID.randomUUID();
+        UserModel user = mock(UserModel.class);
+        when(user.getUuid()).thenReturn(userId);
+        when(fixture.astPlayer().getUser()).thenReturn(user);
+
+        AccountModel currentAccount = fixture.astPlayer().getAccount();
+        AccountModel updatedAccount = mock(AccountModel.class);
+        when(fixture.dropService().roll(any(MobDropConfig.class), eq(fixture.astPlayer())))
+            .thenReturn(new MobDropResult(List.of(), 7, 0));
+        when(fixture.accountService().grantExperienceCached(currentAccount, 7, userId))
+            .thenReturn(new AccountExperienceResult(currentAccount, updatedAccount, 7, 0));
+        when(fixture.playerClassService().grantClassExperience(fixture.astPlayer(), 7))
+            .thenReturn(new ClassExperienceResult(1, 1, 7, 0));
+
+        assertTrue(fixture.service().startMining(fixture.player()));
+
+        verify(fixture.equipmentDurabilityService()).consumeOnGathering(fixture.astPlayer());
+        verify(fixture.accountService()).grantExperienceCached(currentAccount, 7, userId);
+        verify(fixture.playerClassService()).grantClassExperience(fixture.astPlayer(), 7);
+        assertNull(fixture.service().getInstance(fixture.instance().instanceId()));
+    }
+
     private Runnable captureContinuation(Fixture fixture) {
         ArgumentCaptor<Runnable> runnable = ArgumentCaptor.forClass(Runnable.class);
         verify(fixture.scheduler()).runTaskTimer(
@@ -101,6 +142,10 @@ class GatheringServiceMiningSessionTest {
     }
 
     private Fixture createFixture() {
+        return createFixture(10, 0);
+    }
+
+    private Fixture createFixture(int maxHealth, int experience) {
         Plugin plugin = mock(Plugin.class);
         Server server = mock(Server.class);
         BukkitScheduler scheduler = mock(BukkitScheduler.class);
@@ -133,29 +178,57 @@ class GatheringServiceMiningSessionTest {
                 "test_ore",
                 "MINING",
                 "Test Ore",
-                10,
+                maxHealth,
                 Material.STONE,
                 new Vector3f(1.0F),
                 List.of(),
-                new MobDropConfig(0, null, List.of(), null),
+                new MobDropConfig(experience, null, List.of(), null),
                 GatheringDefinition.GatheringSoundConfig.empty()
         );
         GatheringDefinitionRepository repository = mock(GatheringDefinitionRepository.class);
         when(repository.findAll()).thenReturn(List.of(definition));
 
+        MobDropService dropService = mock(MobDropService.class);
+        MobDropPresentationService dropPresentationService = mock(MobDropPresentationService.class);
+        EquipmentDurabilityService equipmentDurabilityService = mock(EquipmentDurabilityService.class);
+        when(equipmentDurabilityService.canUseMainHandTool(astPlayer)).thenReturn(true);
+        AccountService accountService = mock(AccountService.class);
+        PlayerClassService playerClassService = mock(PlayerClassService.class);
+        SkillTreeService skillTreeService = mock(SkillTreeService.class);
+
         GatheringService service = new GatheringService(
                 plugin,
                 repository,
-                mock(MobDropService.class),
+                dropService,
                 mock(ItemService.class),
-                null
+                dropPresentationService
+        );
+        service.setEquipmentDurabilityService(equipmentDurabilityService);
+        service.setProgressionServices(
+            accountService,
+            playerClassService,
+            skillTreeService,
+            mock(ParticleDisplayService.class)
         );
         service.loadAll();
         GatheringInstance instance = service.spawn("test_ore", new Location(world, 0.0D, 0.0D, 0.0D));
         if (instance == null) {
             throw new IllegalStateException("テスト用採集オブジェクトを生成できませんでした");
         }
-        return new Fixture(plugin, scheduler, task, service, player, world, instance);
+        return new Fixture(
+            plugin,
+            scheduler,
+            task,
+            service,
+            player,
+            world,
+            instance,
+            astPlayer,
+            dropService,
+            equipmentDurabilityService,
+            accountService,
+            playerClassService
+        );
     }
 
     private record Fixture(
@@ -165,7 +238,12 @@ class GatheringServiceMiningSessionTest {
             GatheringService service,
             Player player,
             World world,
-            GatheringInstance instance
+            GatheringInstance instance,
+            AstPlayer astPlayer,
+            MobDropService dropService,
+            EquipmentDurabilityService equipmentDurabilityService,
+            AccountService accountService,
+            PlayerClassService playerClassService
     ) {
     }
 }

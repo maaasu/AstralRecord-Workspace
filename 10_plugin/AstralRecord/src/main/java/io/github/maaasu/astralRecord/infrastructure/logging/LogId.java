@@ -457,6 +457,10 @@ public enum LogId {
      * Mob報酬の経験値反映に失敗しました: accountId=%s, experience=%d
      */
     E_5158(5158),
+    /**
+     * 採集報酬の経験値反映に失敗しました: accountId=%s, experience=%d
+     */
+    E_5159(5159),
     // endregion
 
     // region /feature/guide/ 5180-5189
