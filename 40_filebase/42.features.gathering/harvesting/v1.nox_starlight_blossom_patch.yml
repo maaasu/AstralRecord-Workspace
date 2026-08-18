@@ -26,8 +26,13 @@ sounds:
 drops:
   exp: 2
   items:
-    - itemId: item:nox_starlight_blossom_petal
+    - itemId: item:nox_night_herb
       rate: 100.0
+      amount: "1"
+      luckAffected: false
+      hidden: false
+    - itemId: item:nox_starlight_blossom_petal
+      rate: 10.0
       amount: "1"
       luckAffected: false
       hidden: false

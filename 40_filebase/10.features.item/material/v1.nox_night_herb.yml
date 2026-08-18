@@ -1,0 +1,16 @@
+# design:
+#   motif: "植物 / 夜の香草"
+#   progression: 1
+schemaVersion: 1
+id: nox_night_herb
+category: material
+name: "&f夜香草"
+icon: FERN
+rarity: COMMON
+maxStack: 64
+saleValue: 2
+lore:
+  - "&7夜の草花に共通して芽吹く香り豊かな若葉。"
+  - "&7肉料理の香りづけや保存食に使われる。"
+unTradeable: false
+unSellable: false

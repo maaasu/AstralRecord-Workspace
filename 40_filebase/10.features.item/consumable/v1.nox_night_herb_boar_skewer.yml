@@ -1,0 +1,31 @@
+# design:
+#   motif: "料理 / 香草焼き"
+#   progression: 1
+schemaVersion: 1
+id: nox_night_herb_boar_skewer
+category: consumable
+name: "&e夜香草のグラスボア串"
+icon: COOKED_PORKCHOP
+rarity: COMMON
+maxStack: 16
+saleValue: 10
+lore:
+  - "&7グラスボア肉を夜香草で香ばしく焼いた串料理。"
+  - "&7失われたエネルギーを補給する。"
+unTradeable: false
+unSellable: false
+
+consumable:
+  onUse:
+    usingSound: entity.generic.eat
+    sound: block.note_block.chime
+    effect: electric_spark
+    amount: 1
+    useTimeTicks: 24
+    cooldownTicks: 24
+  effects:
+    - type: RECOVER
+      status: ENERGY
+      value: 15
+      isPercent: false
+      rate: 100

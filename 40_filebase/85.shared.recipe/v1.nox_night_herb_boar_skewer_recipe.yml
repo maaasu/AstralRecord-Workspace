@@ -1,0 +1,27 @@
+# design:
+#   motif: "料理 / 香草焼き"
+#   progression: 1
+schemaVersion: 1
+id: nox_night_herb_boar_skewer_recipe
+type: RECIPE
+category: ALCHEMY
+name: "&e夜香草のグラスボア串の調理法"
+lore:
+  - "&7グラスボア肉と夜香草を焼き、エネルギーを補給する料理を作る。"
+tags:
+  - consumable
+result:
+  itemId:
+    ref: item:nox_night_herb_boar_skewer
+  amount: 1
+ingredients:
+  - itemId:
+      ref: item:grassboar_meat
+    amount: 1
+  - itemId:
+      ref: item:nox_night_herb
+    amount: 2
+requiredLevel: 0
+requiredCurrency: 0
+successRate: 100.0
+failAction: NONE
