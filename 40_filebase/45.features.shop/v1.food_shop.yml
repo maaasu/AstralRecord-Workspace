@@ -15,3 +15,11 @@ items:
     page: 1
     slot: 0
     priceGold: 10
+  - id: nox_night_herb_boar_skewer
+    itemId:
+      ref: item:nox_night_herb_boar_skewer
+    category: consumable
+    amount: 1
+    page: 1
+    slot: 1
+    priceGold: 15
