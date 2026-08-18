@@ -5,6 +5,7 @@ package io.github.maaasu.astralRecord.shared.interaction;
  * 距離が異なる場合は本値より hitDistance が優先されます。
  */
 public final class InteractionCandidateOrder {
+    public static final int PLAYER_BLOCK_CLICK_GUARD = 0;
     public static final int BOSS_CONTROLLER = 10;
     public static final int BOSS_ENTRY = 10;
     public static final int DUNGEON_CONTROLLER = 10;

@@ -1576,6 +1576,7 @@ public final class AstralRecord extends JavaPlugin {
             new PlayerInteractionGatewayEventHandler(
                 this,
                 java.util.List.of(
+                    stoneButtonReachService,
                     bossChallengeCancelEventHandler,
                     bossEntryEventHandler,
                     dungeonInteractionEventHandler,
