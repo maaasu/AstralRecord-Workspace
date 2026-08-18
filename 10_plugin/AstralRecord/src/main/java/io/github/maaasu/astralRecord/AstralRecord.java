@@ -56,6 +56,7 @@ import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.item.event.HookshotInteractionEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemAdminGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.item.event.ItemChatShareEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemWeaponAttackEventHandler;
 import io.github.maaasu.astralRecord.feature.item.gui.ItemAdminGuiView;
 import io.github.maaasu.astralRecord.feature.item.executor.WeaponAttackSkillExecutor;
@@ -65,6 +66,7 @@ import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
 import io.github.maaasu.astralRecord.feature.item.service.HookshotUseService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemDropAnimationService;
+import io.github.maaasu.astralRecord.feature.item.service.ItemChatShareService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.item.service.OrbService;
 import io.github.maaasu.astralRecord.feature.item.service.PotionUseService;
@@ -1249,6 +1251,10 @@ public final class AstralRecord extends JavaPlugin {
     private void registerPluginFeatures() {
         eventManager.registerHandler(
             new GuiClickCooldownEventHandler(inventoryService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new ItemChatShareEventHandler(new ItemChatShareService()),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

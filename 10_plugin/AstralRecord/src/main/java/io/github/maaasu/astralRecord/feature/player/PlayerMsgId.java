@@ -1122,6 +1122,8 @@ public enum PlayerMsgId {
     P_5947(5947),
     /** クラス正式名タグ付きのタブプレイヤー名。 */
     P_5948(5948),
+    /** 所持品内に共有対象のアイテムが見つからない。 */
+    P_5949(5949),
     // endregion
 
     // region /feature/teleporter 5950-5969

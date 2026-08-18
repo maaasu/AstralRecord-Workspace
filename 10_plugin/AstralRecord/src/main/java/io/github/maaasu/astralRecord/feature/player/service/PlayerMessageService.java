@@ -11,6 +11,7 @@ import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -166,6 +167,37 @@ public final class PlayerMessageService {
             resolveShortClassName(sender),
             sender.getName(),
             message
+        );
+        for (Player recipient : Bukkit.getOnlinePlayers()) {
+            if (recipient.isOnline()) {
+                recipient.sendMessage(component);
+            }
+        }
+    }
+
+    /**
+     * アイテム名をホバー・コピー操作付きで全体チャットへ配信する。
+     *
+     * @param sender 送信者
+     * @param itemName チャットへ表示するアイテム名
+     * @param itemTooltip ホバー表示に使うアイテムのスナップショット
+     * @param clipboardText クリック時にコピーする表示名
+     */
+    public void broadcastGlobalItemChat(
+        @NotNull Player sender,
+        @NotNull Component itemName,
+        @NotNull ItemStack itemTooltip,
+        @NotNull String clipboardText
+    ) {
+        Component component = PlayerMsgResource.formatComponent(
+            PlayerMsgId.P_5941.getId(),
+            resolveShortClassName(sender),
+            sender.getName(),
+            ""
+        ).append(
+            itemName
+                .hoverEvent(itemTooltip.asHoverEvent())
+                .clickEvent(ClickEvent.copyToClipboard(clipboardText))
         );
         for (Player recipient : Bukkit.getOnlinePlayers()) {
             if (recipient.isOnline()) {
