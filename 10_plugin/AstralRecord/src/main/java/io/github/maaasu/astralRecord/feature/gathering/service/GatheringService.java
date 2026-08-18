@@ -199,14 +199,38 @@ public class GatheringService {
         instances.clear();
     }
 
+    /**
+     * 採集 object を指定ブロックへ生成します。
+     *
+     * @param gatheringId 採集定義 ID。namespace prefix は許可します。
+     * @param location 生成位置。ブロック中央へ正規化します。
+     * @return 生成した instance。定義・world が不正、または同一ブロックに既存 instance がある場合は null
+     */
     public @Nullable GatheringInstance spawn(@NotNull String gatheringId, @NotNull Location location) {
         GatheringDefinition definition = definitions.get(stripPrefix(gatheringId));
         if (definition == null || location.getWorld() == null) {
             return null;
         }
-        GatheringInstance instance = new GatheringInstance(UUID.randomUUID(), definition, blockCenter(location));
+        Location spawnLocation = blockCenter(location);
+        if (hasInstanceAt(spawnLocation)) {
+            return null;
+        }
+        GatheringInstance instance = new GatheringInstance(UUID.randomUUID(), definition, spawnLocation);
         instances.put(instance.instanceId(), instance);
         return instance;
+    }
+
+    private boolean hasInstanceAt(@NotNull Location location) {
+        for (GatheringInstance instance : instances.values()) {
+            Location current = instance.location();
+            if (current.getWorld() == location.getWorld()
+                    && current.getBlockX() == location.getBlockX()
+                    && current.getBlockY() == location.getBlockY()
+                    && current.getBlockZ() == location.getBlockZ()) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public void destroy(@NotNull UUID instanceId) {

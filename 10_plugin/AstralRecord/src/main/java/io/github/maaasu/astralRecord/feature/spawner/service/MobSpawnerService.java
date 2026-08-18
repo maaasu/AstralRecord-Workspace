@@ -22,6 +22,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
+import org.bukkit.Tag;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Player;
@@ -370,13 +371,13 @@ public class MobSpawnerService {
     }
 
     /**
-     * スポナー表示を見せる管理権限があるか判定します。
+     * スポナー表示を見せる account mode か判定します。
      *
      * @param astPlayer 対象プレイヤー
-     * @return user.permission が {@link UserPermission#ADMIN} と一致する場合は true
+     * @return account mode が {@link AccountMode#ADMIN} の場合は true
      */
     public boolean canViewSpawnerVisual(@Nullable AstPlayer astPlayer) {
-        return hasSpawnerAdminPermission(astPlayer);
+        return astPlayer != null && astPlayer.getAccount().getMode() == AccountMode.ADMIN;
     }
 
     private boolean hasSpawnerAdminPermission(@Nullable AstPlayer astPlayer) {
@@ -539,7 +540,11 @@ public class MobSpawnerService {
         if (entry == null) {
             return;
         }
-        MobInstance instance = mobService.spawn(entry.mobId(), randomSpawnLocation(origin, definition.radiusMeters()));
+        Location spawnLocation = randomSpawnLocation(origin, definition.radiusMeters());
+        if (spawnLocation == null) {
+            return;
+        }
+        MobInstance instance = mobService.spawn(entry.mobId(), spawnLocation);
         if (instance != null) {
             spawnedByLocation.computeIfAbsent(spawnerLocation.locationKey(), key -> new HashSet<>())
                     .add(instance.instanceId());
@@ -596,12 +601,12 @@ public class MobSpawnerService {
         return entries.get(entries.size() - 1);
     }
 
-    @NotNull
+    @Nullable
     private Location randomSpawnLocation(@NotNull Location origin, double radius) {
         ThreadLocalRandom random = ThreadLocalRandom.current();
         World world = origin.getWorld();
         if (world == null) {
-            return origin.clone();
+            return null;
         }
 
         int minInteriorY = Math.max(world.getMinHeight() + 1, origin.getBlockY() + INTERIOR_Y_OFFSET);
@@ -622,7 +627,7 @@ public class MobSpawnerService {
         if (surfaceLocation != null) {
             return surfaceLocation;
         }
-        return origin.clone();
+        return null;
     }
 
     @NotNull
@@ -676,7 +681,7 @@ public class MobSpawnerService {
         return isSpawnSpace(candidate) ? blockCenter(candidate) : null;
     }
 
-    private boolean isSpawnSpace(@NotNull Location location) {
+    static boolean isSpawnSpace(@NotNull Location location) {
         World world = location.getWorld();
         if (world == null) {
             return false;
@@ -691,7 +696,8 @@ public class MobSpawnerService {
         Block ground = world.getBlockAt(x, y - 1, z);
         Block feet = world.getBlockAt(x, y, z);
         Block head = world.getBlockAt(x, y + 1, z);
-        return ground.getType().isSolid()
+        return !Tag.LEAVES.isTagged(ground.getType())
+                && ground.getType().isSolid()
                 && feet.isPassable()
                 && !feet.isLiquid()
                 && head.isPassable()

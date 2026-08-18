@@ -37,7 +37,7 @@ class MobSpawnerBlockEventHandlerTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
-     * 章・見出し: # 12_1-モデル定義 > ## 22. Mob スポナー座標 > ### Mob spawner 削除認可
+     * 章・見出し: # 12_1-モデル定義 > ## 22. Mob スポナー座標 > ### Mob spawner 表示・削除認可
      * 検証契約: user.permission=99でもaccount modeがPLAYERなら左クリック候補をclaim/cancelしない。
      */
     @Test

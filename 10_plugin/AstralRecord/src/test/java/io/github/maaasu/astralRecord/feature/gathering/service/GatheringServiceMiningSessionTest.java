@@ -128,6 +128,23 @@ class GatheringServiceMiningSessionTest {
         verify(fixture.accountService()).grantExperienceCached(currentAccount, 7, userId);
         verify(fixture.playerClassService()).grantClassExperience(fixture.astPlayer(), 7);
         assertNull(fixture.service().getInstance(fixture.instance().instanceId()));
+
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 7. GatheringService メソッド仕様 > ### 採集 instance の生成・破棄
+     * 検証契約: 同一ワールドの同一ブロック座標に既存の採集 object がある場合、新しい instance を生成しない。
+     */
+    @Test
+    void rejectsGatheringSpawnOnAnOccupiedBlock() {
+        Fixture fixture = createFixture();
+
+        assertNull(fixture.service().spawn(
+                "test_ore",
+                new Location(fixture.world(), 0.9D, 0.25D, 0.2D)
+        ));
+        assertEquals(1, fixture.service().getInstances().size());
     }
 
     private Runnable captureContinuation(Fixture fixture) {

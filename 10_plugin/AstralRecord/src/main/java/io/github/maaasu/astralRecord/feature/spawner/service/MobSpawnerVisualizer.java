@@ -21,7 +21,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * user.permission 99 のプレイヤーにだけスポナー位置と ID を表示します。
+ * AccountMode.ADMIN の viewer にだけスポナー位置と ID を表示します。表示可否は user.permission に依存しません。
  */
 final class MobSpawnerVisualizer {
 

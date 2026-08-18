@@ -22,26 +22,32 @@ class MobSpawnerVisualPermissionTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
-     * 章・見出し: # 12_1-モデル定義 > ## 22. Mob スポナー座標 > ### Mob spawner 削除認可
-     * 検証契約: user.permission=99ならaccount modeに関係なくMob spawner packet visualを見せる。
+     * 章・見出し: # 12_1-モデル定義 > ## 22. Mob スポナー座標 > ### Mob spawner 表示・削除認可
+     * 検証契約: account modeがADMINならuser.permissionに関係なくMob spawner packet visualを見せる。
      */
     @Test
-    void adminPermissionCanViewSpawnerVisualRegardlessOfAccountMode() {
+    void adminAccountModeCanViewSpawnerVisualRegardlessOfPermission() {
         MobSpawnerService service = service();
-        AstPlayer administrator = playerWithPermission(UserPermission.ADMIN.getValue());
+        AstPlayer administrator = playerWithPermission(UserPermission.PLAYER.getValue());
+        AccountModel account = mock(AccountModel.class);
+        when(administrator.getAccount()).thenReturn(account);
+        when(account.getMode()).thenReturn(AccountMode.ADMIN);
 
         assertTrue(service.canViewSpawnerVisual(administrator));
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
-     * 章・見出し: # 12_1-モデル定義 > ## 22. Mob スポナー座標 > ### Mob spawner 削除認可
-     * 検証契約: admin permissionなしplayerへMob spawner packet visualを見せない。
+     * 章・見出し: # 12_1-モデル定義 > ## 22. Mob スポナー座標 > ### Mob spawner 表示・削除認可
+     * 検証契約: account modeがPLAYERのプレイヤーにはuser.permissionに関係なくMob spawner packet visualを見せない。
      */
     @Test
-    void playerWithoutAdminPermissionCannotViewSpawnerVisual() {
+    void playerAccountModeCannotViewSpawnerVisual() {
         MobSpawnerService service = service();
-        AstPlayer player = playerWithPermission(UserPermission.PLAYER.getValue());
+        AstPlayer player = playerWithPermission(UserPermission.ADMIN.getValue());
+        AccountModel account = mock(AccountModel.class);
+        when(player.getAccount()).thenReturn(account);
+        when(account.getMode()).thenReturn(AccountMode.PLAYER);
 
         assertFalse(service.canViewSpawnerVisual(player));
         assertFalse(service.canViewSpawnerVisual(null));
@@ -49,7 +55,7 @@ class MobSpawnerVisualPermissionTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
-     * 章・見出し: # 12_1-モデル定義 > ## 22. Mob スポナー座標 > ### Mob spawner 削除認可
+     * 章・見出し: # 12_1-モデル定義 > ## 22. Mob スポナー座標 > ### Mob spawner 表示・削除認可
      * 検証契約: Mob spawnerの削除はuser.permission=99かつaccount mode=ADMINでだけ許可する。
      */
     @Test
@@ -73,8 +79,8 @@ class MobSpawnerVisualPermissionTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
-     * 章・見出し: # 12_1-モデル定義 > ## 22. Mob スポナー座標 > ### Mob spawner 削除認可
-     * 検証契約: 将来の user.permission=100 は99以上でもMob spawnerの表示・削除を許可しない。
+     * 章・見出し: # 12_1-モデル定義 > ## 22. Mob スポナー座標 > ### Mob spawner 表示・削除認可
+     * 検証契約: 将来のuser.permission=100でも、AccountMode.ADMINなら表示し、削除は既存の99一致条件を満たさないため許可しない。
      */
     @Test
     void higherFuturePermissionCannotViewOrRemoveSpawner() {
@@ -85,7 +91,7 @@ class MobSpawnerVisualPermissionTest extends MockBukkitTestBase {
         when(futurePermissionPlayer.getAccount()).thenReturn(adminAccount);
         when(adminAccount.getMode()).thenReturn(AccountMode.ADMIN);
 
-        assertFalse(service.canViewSpawnerVisual(futurePermissionPlayer));
+        assertTrue(service.canViewSpawnerVisual(futurePermissionPlayer));
         assertFalse(service.canRemoveSpawner(futurePermissionPlayer));
     }
 
