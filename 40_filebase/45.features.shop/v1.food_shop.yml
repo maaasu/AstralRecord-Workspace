@@ -23,3 +23,19 @@ items:
     page: 1
     slot: 1
     priceGold: 15
+  - id: grassboar_meat
+    itemId:
+      ref: item:grassboar_meat
+    category: material
+    amount: 1
+    page: 1
+    slot: 2
+    priceGold: 8
+  - id: nox_night_herb
+    itemId:
+      ref: item:nox_night_herb
+    category: material
+    amount: 1
+    page: 1
+    slot: 3
+    priceGold: 4
