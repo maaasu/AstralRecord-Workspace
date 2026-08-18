@@ -5,7 +5,7 @@ schemaVersion: 1
 id: nox_starlight_blossom_petal
 category: material
 name: "&b星灯花の花弁"
-icon: AMETHYST_SHARD
+icon: cactus_flower
 rarity: RARE
 maxStack: 64
 saleValue: 36

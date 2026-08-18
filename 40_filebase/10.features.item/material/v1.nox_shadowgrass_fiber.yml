@@ -5,7 +5,7 @@ schemaVersion: 1
 id: nox_shadowgrass_fiber
 category: material
 name: "&f影草の繊維"
-icon: STRING
+icon: dead_horn_coral
 rarity: COMMON
 maxStack: 64
 saleValue: 3

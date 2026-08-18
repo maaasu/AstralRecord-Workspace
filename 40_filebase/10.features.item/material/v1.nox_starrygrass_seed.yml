@@ -5,7 +5,7 @@ schemaVersion: 1
 id: nox_starrygrass_seed
 category: material
 name: "&f星映え草の種"
-icon: WHEAT_SEEDS
+icon: torchflower_seeds
 rarity: COMMON
 maxStack: 64
 saleValue: 4

@@ -5,7 +5,7 @@ schemaVersion: 1
 id: nox_moonshadowgrass_leaf
 category: material
 name: "&b月影草の葉"
-icon: ECHO_SHARD
+icon: sculk_vein
 rarity: RARE
 maxStack: 64
 saleValue: 28
