@@ -3,7 +3,7 @@ id: glimmercap_cluster
 type: GATHERING
 category: HARVESTING
 name: "&e灯茸の群生"
-maxHealth: 24
+maxHealth: 6
 displayBlock: BROWN_MUSHROOM_BLOCK
 displayScale:
   x: 0.75

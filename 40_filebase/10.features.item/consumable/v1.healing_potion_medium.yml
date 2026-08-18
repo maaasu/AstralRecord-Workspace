@@ -1,0 +1,32 @@
+# design:
+#   motif: "錬金術 / 癒やしの中瓶"
+#   progression: 1
+schemaVersion: 1
+id: healing_potion_medium
+category: consumable
+name: "&a回復ポーション（中）"
+icon: POTION
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 35
+appearance:
+  potionType: STRONG_HEALING
+lore:
+  - "&7風待ち若葉と灯茸の胞子を調合した中瓶。"
+unTradeable: false
+unSellable: false
+
+consumable:
+  onUse:
+    usingSound: entity.generic.drink
+    sound: entity.generic.drink
+    effect: heart
+    amount: 1
+    useTimeTicks: 30
+    cooldownTicks: 50
+  effects:
+    - type: RECOVER
+      status: HP
+      value: 60
+      isPercent: false
+      rate: 100

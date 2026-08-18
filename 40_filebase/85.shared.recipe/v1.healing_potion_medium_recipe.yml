@@ -1,0 +1,31 @@
+# design:
+#   motif: "錬金術 / 若葉の調合"
+#   progression: 1
+schemaVersion: 1
+id: healing_potion_medium_recipe
+type: RECIPE
+category: ALCHEMY
+name: "&a回復ポーション（中）の調合法"
+lore:
+  - "&7風待ち若葉と灯茸の胞子を調合して回復薬を作る。"
+tags:
+  - alchemy
+  - consumable
+result:
+  itemId:
+    ref: item:healing_potion_medium
+  amount: 1
+ingredients:
+  - itemId:
+      ref: item:windleaf_sprig
+    amount: 2
+  - itemId:
+      ref: item:glimmercap_spore
+    amount: 1
+  - itemId:
+      ref: item:nox_dewgrass_leaf
+    amount: 1
+requiredLevel: 0
+requiredCurrency: 0
+successRate: 100.0
+failAction: NONE

@@ -1,0 +1,28 @@
+# design:
+#   motif: "錬金術 / 月影の調合"
+#   progression: 2
+schemaVersion: 1
+id: mana_potion_medium_recipe
+type: RECIPE
+category: ALCHEMY
+name: "&9マナポーション（中）の調合法"
+lore:
+  - "&7月影草と夜露草を調合して魔力を蓄える薬を作る。"
+tags:
+  - alchemy
+  - consumable
+result:
+  itemId:
+    ref: item:mana_potion_medium
+  amount: 1
+ingredients:
+  - itemId:
+      ref: item:nox_moonshadowgrass_leaf
+    amount: 1
+  - itemId:
+      ref: item:nox_dewgrass_leaf
+    amount: 2
+requiredLevel: 0
+requiredCurrency: 0
+successRate: 100.0
+failAction: NONE

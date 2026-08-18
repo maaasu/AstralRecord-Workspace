@@ -27,7 +27,7 @@ consumable:
     cooldownTicks: 40
   effects:
     - type: RECOVER
-      status: MP
+      status: HP
       value: 15
       isPercent: false
       rate: 100

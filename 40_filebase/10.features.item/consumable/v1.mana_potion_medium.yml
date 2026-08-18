@@ -1,0 +1,32 @@
+# design:
+#   motif: "錬金術 / 月影の魔力瓶"
+#   progression: 2
+schemaVersion: 1
+id: mana_potion_medium
+category: consumable
+name: "&9マナポーション（中）"
+icon: POTION
+rarity: RARE
+maxStack: 64
+saleValue: 60
+appearance:
+  potionType: SWIFTNESS
+lore:
+  - "&7月影草と夜露草から作る中級の魔力瓶。"
+unTradeable: false
+unSellable: false
+
+consumable:
+  onUse:
+    usingSound: entity.generic.drink
+    sound: entity.generic.drink
+    effect: witch
+    amount: 1
+    useTimeTicks: 30
+    cooldownTicks: 50
+  effects:
+    - type: RECOVER
+      status: MP
+      value: 40
+      isPercent: false
+      rate: 100
