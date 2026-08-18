@@ -73,6 +73,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.locks.LockSupport;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -1097,9 +1098,20 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         private InventoryClickEvent openOrbList() {
             InventoryClickEvent event = normalInventoryClick();
             handler.onInventoryClick(event);
-            server().getScheduler().waitAsyncTasksFinished();
-            server().getScheduler().performOneTick();
-            assertTrue(service.isOrbInventory(player.getOpenInventory().getTopInventory()));
+            // MockBukkit は新しい非同期 task の開始前に worker pool が空と判定することがある。
+            // 非同期完了とその sync callback を bounded timeout 内でまとめて drain する。
+            long deadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+            while (!service.isOrbInventory(player.getOpenInventory().getTopInventory())
+                && System.nanoTime() < deadlineNanos) {
+                server().getScheduler().performOneTick();
+                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
+                assertFalse(Thread.currentThread().isInterrupted(),
+                    "Interrupted while waiting for the orb inventory to open");
+            }
+            assertTrue(
+                service.isOrbInventory(player.getOpenInventory().getTopInventory()),
+                "Orb inventory did not open within 2 seconds after the preload request"
+            );
             return event;
         }
 
