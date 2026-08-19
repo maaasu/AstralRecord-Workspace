@@ -84,12 +84,8 @@ public final class InstanceCreationQueue {
                 displayName
         );
         Pending pending = new Pending(ticket, onGranted);
-        if (hasCapacity(reserved)) {
-            grant(pending);
-        } else {
-            waiting(reserved).addLast(pending);
-        }
-        drain();
+        waiting(reserved).addLast(pending);
+        rethrow(drain());
         return ticket;
     }
 
@@ -102,7 +98,7 @@ public final class InstanceCreationQueue {
     public boolean cancelWaiting(@NotNull UUID ticketId) {
         boolean removed = removeWaiting(normalWaiting, ticketId) || removeWaiting(reservedWaiting, ticketId);
         if (removed) {
-            drain();
+            rethrow(drain());
         }
         return removed;
     }
@@ -118,7 +114,7 @@ public final class InstanceCreationQueue {
         if (removed == null) {
             return false;
         }
-        drain();
+        rethrow(drain());
         return true;
     }
 
@@ -169,7 +165,7 @@ public final class InstanceCreationQueue {
         removeWaitingIf(normalWaiting, predicate, removed);
         removeWaitingIf(reservedWaiting, predicate, removed);
         if (!removed.isEmpty()) {
-            drain();
+            rethrow(drain());
         }
         return List.copyOf(removed);
     }
@@ -193,28 +189,59 @@ public final class InstanceCreationQueue {
         return active.containsKey(ticketId);
     }
 
-    private void drain() {
+    private @Nullable Throwable drain() {
         if (draining) {
-            return;
+            return null;
         }
         draining = true;
+        Throwable failure = null;
         try {
-            drainLane(normalWaiting, false);
-            drainLane(reservedWaiting, true);
+            failure = drainLane(normalWaiting, false, failure);
+            failure = drainLane(reservedWaiting, true, failure);
         } finally {
             draining = false;
         }
+        return failure;
     }
 
-    private void drainLane(@NotNull Deque<Pending> lane, boolean reserved) {
+    private @Nullable Throwable drainLane(
+            @NotNull Deque<Pending> lane,
+            boolean reserved,
+            @Nullable Throwable firstFailure
+    ) {
         while (!lane.isEmpty() && hasCapacity(reserved)) {
-            grant(lane.removeFirst());
+            try {
+                grant(lane.removeFirst());
+            } catch (RuntimeException | Error ex) {
+                if (firstFailure == null) {
+                    firstFailure = ex;
+                }
+            }
         }
+        return firstFailure;
     }
 
     private void grant(@NotNull Pending pending) {
         active.put(pending.ticket().id(), pending);
-        pending.onGranted().accept(pending.ticket());
+        try {
+            pending.onGranted().accept(pending.ticket());
+        } catch (RuntimeException | Error ex) {
+            active.remove(pending.ticket().id(), pending);
+            throw ex;
+        }
+    }
+
+    private static void rethrow(@Nullable Throwable failure) {
+        if (failure == null) {
+            return;
+        }
+        if (failure instanceof RuntimeException exception) {
+            throw exception;
+        }
+        if (failure instanceof Error error) {
+            throw error;
+        }
+        throw new IllegalStateException("Instance creation queue callback failed", failure);
     }
 
     private boolean hasCapacity(boolean reserved) {

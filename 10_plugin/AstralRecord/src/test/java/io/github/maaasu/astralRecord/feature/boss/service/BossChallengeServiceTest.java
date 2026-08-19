@@ -12,6 +12,8 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class BossChallengeServiceTest {
 
@@ -74,5 +76,19 @@ class BossChallengeServiceTest {
         assertEquals(0.0D, BossChallengeService.bossBarProgress(-10.0D, 100.0D), 0.0001D);
         assertEquals(1.0D, BossChallengeService.bossBarProgress(150.0D, 100.0D), 0.0001D);
         assertEquals(0.0D, BossChallengeService.bossBarProgress(50.0D, 0.0D), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
+     * 章・見出し: # 26_3-サービス > ## 14. フィールド作成
+     * 検証契約: 参加者退出またはフィールド準備 callback が未完了の間は作成枠を回収せず、両方が完了した後だけ回収へ進む。
+     */
+    @Test
+    void fieldCleanupWaitsForPreparationAndParticipantExit() {
+        assertFalse(BossChallengeService.isFieldCleanupReady(false, true, false));
+        assertFalse(BossChallengeService.isFieldCleanupReady(false, true, true));
+        assertFalse(BossChallengeService.isFieldCleanupReady(true, false, false));
+        assertTrue(BossChallengeService.isFieldCleanupReady(false, false, true));
+        assertTrue(BossChallengeService.isFieldCleanupReady(true, true, true));
     }
 }

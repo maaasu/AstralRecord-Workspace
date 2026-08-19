@@ -9,6 +9,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class InstanceCreationQueueTest {
@@ -114,6 +115,45 @@ class InstanceCreationQueueTest {
         );
         assertTrue(queue.release(activeId));
         assertTrue(queue.isActive(remainingId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/26_0-概要.md
+     * 章・見出し: # 26_0-概要 > ## 4. 実装構成 > ### インスタンス作成枠（Boss／Dungeon共通）
+     * 検証契約: 開始 callback が例外でも作成枠をロールバックし、後続要求へ枠を渡す。
+     */
+    @Test
+    void callbackFailureRollsBackSlotAndAllowsFollowingRequest() {
+        InstanceCreationQueue queue = new InstanceCreationQueue(
+                new InstanceCreationQueueConfig.InstanceCreationLimits(1, 1)
+        );
+        UUID firstId = id(30);
+        UUID failedId = id(31);
+        UUID followingId = id(32);
+
+        queue.enqueue(firstId, List.of(firstId), false, "Boss", ignored -> { });
+        queue.enqueue(
+                failedId,
+                List.of(failedId),
+                false,
+                "Boss",
+                ignored -> { throw new IllegalStateException("field start failed"); }
+        );
+
+        assertThrows(IllegalStateException.class, () -> queue.release(firstId));
+        assertFalse(queue.isActive(failedId));
+
+        boolean[] followingStarted = {false};
+        queue.enqueue(
+                followingId,
+                List.of(followingId),
+                false,
+                "Boss",
+                ignored -> followingStarted[0] = true
+        );
+
+        assertTrue(followingStarted[0]);
+        assertTrue(queue.isActive(followingId));
     }
 
     /**

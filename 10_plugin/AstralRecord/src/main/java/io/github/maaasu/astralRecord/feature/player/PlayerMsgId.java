@@ -402,7 +402,7 @@ public enum PlayerMsgId {
      */
     P_5300(5300),
     /**
-     * permission は99以下の数値で指定してください。
+     * permission は名称（PLAYER/DONOR/ADMIN）または 0 / 5 / 99 のいずれかで指定してください。
      */
     P_5301(5301),
     /**

@@ -79,14 +79,18 @@ public final class BossFieldInstanceService {
                 copyDirectory(prepared.source(), prepared.target(), pending.cancelled());
             } catch (Throwable ex) {
                 if (prepared != null) {
-                    tryDeletePreparedTarget(prepared.target());
+                    completeAfterPreparedTargetCleanup(prepared.target(), ex, result);
+                } else {
+                    result.completeExceptionally(ex);
                 }
-                result.completeExceptionally(ex);
                 return;
             }
             if (pending.cancelled().get() || !plugin.isEnabled()) {
-                tryDeletePreparedTarget(prepared.target());
-                result.completeExceptionally(new CancellationException("Boss field creation was cancelled"));
+                completeAfterPreparedTargetCleanup(
+                        prepared.target(),
+                        new CancellationException("Boss field creation was cancelled"),
+                        result
+                );
                 return;
             }
             try {
@@ -96,8 +100,7 @@ public final class BossFieldInstanceService {
                         () -> loadPreparedFieldWhenSafe(challenge, worldData, completedPreparation, pending, result)
                 );
             } catch (RuntimeException ex) {
-                tryDeletePreparedTarget(prepared.target());
-                result.completeExceptionally(ex);
+                completeAfterPreparedTargetCleanup(prepared.target(), ex, result);
             }
         });
         return result;
@@ -238,8 +241,11 @@ public final class BossFieldInstanceService {
             @NotNull CompletableFuture<BossFieldInstance> result
     ) {
         if (pending.cancelled().get() || !plugin.isEnabled()) {
-            deletePreparedTargetAsync(prepared.target());
-            result.completeExceptionally(new CancellationException("Boss field creation was cancelled"));
+            completeAfterPreparedTargetCleanup(
+                    prepared.target(),
+                    new CancellationException("Boss field creation was cancelled"),
+                    result
+            );
             return;
         }
         if (Bukkit.isTickingWorlds() || !worldLoadSlotInUse.compareAndSet(false, true)) {
@@ -249,8 +255,7 @@ public final class BossFieldInstanceService {
                         () -> loadPreparedFieldWhenSafe(challenge, worldData, prepared, pending, result)
                 );
             } catch (RuntimeException ex) {
-                deletePreparedTargetAsync(prepared.target());
-                result.completeExceptionally(ex);
+                completeAfterPreparedTargetCleanup(prepared.target(), ex, result);
             }
             return;
         }
@@ -262,8 +267,7 @@ public final class BossFieldInstanceService {
             if (ex instanceof LoadedWorldRetainedException retainedException) {
                 cleanupFailedPreparedFieldUntilDone(retainedException.field(), ex, result);
             } else {
-                deletePreparedTargetAsync(prepared.target());
-                result.completeExceptionally(ex);
+                completeAfterPreparedTargetCleanup(prepared.target(), ex, result);
             }
             return;
         } finally {
@@ -293,9 +297,11 @@ public final class BossFieldInstanceService {
                 cleanupFailedPreparedFieldUntilDone(field, failure, result);
             };
             if (!runOnMainThread(completion)) {
-                result.completeExceptionally(throwable == null
+                Throwable failure = throwable == null
                         ? new CancellationException("Boss field creation was cancelled")
-                        : throwable);
+                        : throwable;
+                releaseStartupChunkTickets(challenge.challengeId());
+                cleanupFailedPreparedFieldUntilDone(field, failure, result);
             }
         });
     }
@@ -710,20 +716,56 @@ public final class BossFieldInstanceService {
         return "uid.dat".equalsIgnoreCase(name) || "session.lock".equalsIgnoreCase(name);
     }
 
-    private void tryDeletePreparedTarget(@NotNull Path target) {
-        try {
-            deleteDirectory(target);
-        } catch (IOException ex) {
-            Logger.log(LogId.E_6502, ex, target.toString());
-        }
+    /**
+     * コピー先の削除が成功するまで作成結果を完了させず、作成枠を保持します。
+     *
+     * @param target 削除対象のコピー先
+     * @param failure 作成処理の失敗理由
+     * @param result 作成処理の結果 Future
+     */
+    private void completeAfterPreparedTargetCleanup(
+            @NotNull Path target,
+            @NotNull Throwable failure,
+            @NotNull CompletableFuture<BossFieldInstance> result
+    ) {
+        deletePreparedTargetAsync(target).whenComplete((deleted, cleanupThrowable) -> {
+            if (Boolean.TRUE.equals(deleted)) {
+                result.completeExceptionally(failure);
+                return;
+            }
+            if (!plugin.isEnabled()) {
+                result.completeExceptionally(failure);
+                return;
+            }
+            try {
+                Bukkit.getScheduler().runTaskLater(
+                        plugin,
+                        () -> completeAfterPreparedTargetCleanup(target, failure, result),
+                        FAILED_FIELD_CLEANUP_RETRY_TICKS
+                );
+            } catch (RuntimeException ex) {
+                result.completeExceptionally(failure);
+            }
+        });
     }
 
-    private void deletePreparedTargetAsync(@NotNull Path target) {
+    private @NotNull CompletableFuture<Boolean> deletePreparedTargetAsync(@NotNull Path target) {
+        CompletableFuture<Boolean> result = new CompletableFuture<>();
         try {
-            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> tryDeletePreparedTarget(target));
+            Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+                try {
+                    deleteDirectory(target);
+                    result.complete(true);
+                } catch (IOException ex) {
+                    Logger.log(LogId.E_6502, ex, target.toString());
+                    result.complete(false);
+                }
+            });
         } catch (RuntimeException ex) {
             Logger.log(LogId.E_6502, ex, target.toString());
+            result.complete(false);
         }
+        return result;
     }
 
     static void deleteDirectory(@NotNull Path target) throws IOException {

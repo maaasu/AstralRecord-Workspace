@@ -104,6 +104,8 @@ public final class BossChallengeService {
     private final Map<UUID, UUID> challengeIdByBossMob = new ConcurrentHashMap<>();
     private final Map<UUID, BossChallengeCancelController> cancelControllersByChallengeId = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> challengeIdByCancelInteraction = new ConcurrentHashMap<>();
+    private final Set<UUID> pendingFieldPreparationChallenges = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> participantExitCompletedChallenges = ConcurrentHashMap.newKeySet();
     private final Map<String, EntryPromptDisplay> entryPromptDisplays = new HashMap<>();
     private BukkitTask tickTask;
     private BukkitTask entryVisualTask;
@@ -221,6 +223,8 @@ public final class BossChallengeService {
         challengeIdByBossMob.clear();
         cancelControllersByChallengeId.clear();
         challengeIdByCancelInteraction.clear();
+        pendingFieldPreparationChallenges.clear();
+        participantExitCompletedChallenges.clear();
     }
 
     /**
@@ -752,8 +756,14 @@ public final class BossChallengeService {
     }
 
     private void beginFieldPreparation(@NotNull BossChallengeInstance challenge, @NotNull WorldMasterData fieldData) {
-        fieldInstanceService.createFieldAsync(challenge, fieldData).whenComplete((field, throwable) ->
-                runSync(() -> finishFieldPreparation(challenge.challengeId(), field, throwable)));
+        pendingFieldPreparationChallenges.add(challenge.challengeId());
+        try {
+            fieldInstanceService.createFieldAsync(challenge, fieldData).whenComplete((field, throwable) ->
+                    runSync(() -> finishFieldPreparation(challenge.challengeId(), field, throwable)));
+        } catch (RuntimeException | Error ex) {
+            pendingFieldPreparationChallenges.remove(challenge.challengeId());
+            throw ex;
+        }
     }
 
     private void finishFieldPreparation(
@@ -761,10 +771,29 @@ public final class BossChallengeService {
             @Nullable BossFieldInstance field,
             @Nullable Throwable throwable
     ) {
+        pendingFieldPreparationChallenges.remove(challengeId);
         BossChallengeInstance challenge = challengesById.get(challengeId);
         if (challenge == null || challenge.state() != BossChallengeState.PREPARING) {
             if (field != null) {
-                fieldInstanceService.destroyFieldAsync(field);
+                if (challenge != null) {
+                    challenge.field(field);
+                    if (isFieldCleanupReady(
+                            true,
+                            false,
+                            participantExitCompletedChallenges.contains(challengeId)
+                    )) {
+                        cleanupFieldAndFinish(challenge);
+                    }
+                } else {
+                    fieldInstanceService.destroyFieldAsync(field);
+                }
+            } else if (challenge != null && isEnding(challenge)
+                    && isFieldCleanupReady(
+                            false,
+                            false,
+                            participantExitCompletedChallenges.contains(challengeId)
+                    )) {
+                finishChallengeRemoval(challenge);
             }
             return;
         }
@@ -1096,6 +1125,7 @@ public final class BossChallengeService {
             return;
         }
         fieldInstanceService.cancelPendingCreation(challenge.challengeId());
+        participantExitCompletedChallenges.remove(challenge.challengeId());
         UUID queueTicketId = challenge.creationQueueTicketId();
         if (queueTicketId != null) {
             creationQueue.cancelWaiting(queueTicketId);
@@ -1155,6 +1185,7 @@ public final class BossChallengeService {
                         return;
                     }
                     if (throwable != null || !Boolean.TRUE.equals(success)) {
+                        participantExitCompletedChallenges.remove(challenge.challengeId());
                         Bukkit.getScheduler().runTaskLater(
                                 plugin,
                                 () -> exitParticipantsAndCleanup(challenge),
@@ -1162,12 +1193,18 @@ public final class BossChallengeService {
                         );
                         return;
                     }
+                    participantExitCompletedChallenges.add(challenge.challengeId());
                     cleanupFieldAndFinish(challenge);
                 }));
     }
 
     private void cleanupFieldAndFinish(@NotNull BossChallengeInstance challenge) {
         BossFieldInstance field = challenge.field();
+        boolean preparationPending = pendingFieldPreparationChallenges.contains(challenge.challengeId());
+        boolean participantExitCompleted = participantExitCompletedChallenges.contains(challenge.challengeId());
+        if (!isFieldCleanupReady(field != null, preparationPending, participantExitCompleted)) {
+            return;
+        }
         if (field == null) {
             finishChallengeRemoval(challenge);
             return;
@@ -1189,8 +1226,26 @@ public final class BossChallengeService {
                 }));
     }
 
+    /**
+     * フィールド準備 callback と参加者退出が完了した後だけ作成枠回収へ進めるか判定します。
+     *
+     * @param fieldCreated フィールドが作成済みか
+     * @param preparationPending フィールド準備 callback が未完了か
+     * @param participantExitCompleted 参加者退出が完了したか
+     * @return 回収処理へ進める場合は true
+     */
+    static boolean isFieldCleanupReady(
+            boolean fieldCreated,
+            boolean preparationPending,
+            boolean participantExitCompleted
+    ) {
+        return participantExitCompleted && (fieldCreated || !preparationPending);
+    }
+
     private void finishChallengeRemoval(@NotNull BossChallengeInstance challenge) {
         destroyBossBar(challenge);
+        pendingFieldPreparationChallenges.remove(challenge.challengeId());
+        participantExitCompletedChallenges.remove(challenge.challengeId());
         UUID queueTicketId = challenge.creationQueueTicketId();
         if (queueTicketId != null) {
             creationQueue.release(queueTicketId);
