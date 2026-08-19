@@ -2,7 +2,6 @@ package io.github.maaasu.astralRecord.shared.challenge;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-import org.bukkit.entity.Player;
 
 import java.util.ArrayDeque;
 import java.util.ArrayList;
@@ -22,7 +21,6 @@ import java.util.function.Predicate;
  */
 public final class InstanceCreationQueue {
     private final InstanceCreationQueueConfig.InstanceCreationLimits limits;
-    private final String donorPermission;
     private final Deque<Pending> normalWaiting = new ArrayDeque<>();
     private final Deque<Pending> reservedWaiting = new ArrayDeque<>();
     private final Map<UUID, Pending> active = new java.util.LinkedHashMap<>();
@@ -36,31 +34,7 @@ public final class InstanceCreationQueue {
     public InstanceCreationQueue(
             @NotNull InstanceCreationQueueConfig.InstanceCreationLimits limits
     ) {
-        this(limits, InstanceCreationQueueConfig.DEFAULT_DONOR_PERMISSION);
-    }
-
-    /**
-     * 作成キューを寄付者権限ノード付きで構成します。
-     *
-     * @param limits 通常枠・予約枠の上限
-     * @param donorPermission 寄付者予約枠の権限ノード。空欄の場合は無効
-     */
-    public InstanceCreationQueue(
-            @NotNull InstanceCreationQueueConfig.InstanceCreationLimits limits,
-            @Nullable String donorPermission
-    ) {
         this.limits = limits;
-        this.donorPermission = donorPermission == null ? "" : donorPermission.trim();
-    }
-
-    /**
-     * プレイヤーが寄付者予約枠を要求できるか返します。
-     *
-     * @param player 判定対象
-     * @return 寄付者権限を持つ場合は true
-     */
-    public boolean isDonor(@NotNull Player player) {
-        return !donorPermission.isBlank() && player.hasPermission(donorPermission);
     }
 
     /**

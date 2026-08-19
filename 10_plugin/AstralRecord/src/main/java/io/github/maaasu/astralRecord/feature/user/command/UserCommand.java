@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.user.command;
 
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
@@ -17,7 +18,7 @@ public class UserCommand extends AstCommand {
      * ユーザー管理コマンドを初期化します。
      */
     public UserCommand() {
-        super("user", "ユーザーを管理します。", "/user permission <permission> [<player|uuid>]", false, 99);
+        super("user", "ユーザーを管理します。", "/user permission <permission> [<player|uuid>]", false, UserPermission.ADMIN.getValue());
     }
 
     /**

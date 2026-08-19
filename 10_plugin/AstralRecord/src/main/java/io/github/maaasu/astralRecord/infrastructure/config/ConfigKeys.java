@@ -15,7 +15,6 @@ public final class ConfigKeys {
     public static final String PLUGIN_DEBUG_USERS = "plugin.debugUsers";
 
     // Boss／Dungeon インスタンス作成枠
-    public static final String INSTANCE_LIMITS_DONOR_PERMISSION = "instanceLimits.donorPermission";
     public static final String INSTANCE_LIMITS_BOSS = "instanceLimits.boss";
     public static final String INSTANCE_LIMITS_DUNGEON = "instanceLimits.dungeon";
 

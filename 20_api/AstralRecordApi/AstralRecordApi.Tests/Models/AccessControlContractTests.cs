@@ -16,9 +16,10 @@ public class AccessControlContractTests
 
     [Theory]
     [InlineData(0, true)]
+    [InlineData(5, true)]
     [InlineData(10, false)]
     [InlineData(99, true)]
-    public void UserPermission_OnlyPlayerAndAdminAreAccepted(int permission, bool expected)
+    public void UserPermission_PlayerDonorAndAdminAreAccepted(int permission, bool expected)
     {
         Assert.Equal(expected, AccessControlContract.IsValidUserPermission(permission));
     }

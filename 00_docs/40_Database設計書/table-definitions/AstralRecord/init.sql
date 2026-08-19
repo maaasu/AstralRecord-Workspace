@@ -38,7 +38,7 @@ CREATE TABLE [dbo].[user] (
     [is_deleted]       BIT               NOT NULL  CONSTRAINT [DF_user_is_deleted]       DEFAULT (0),
 
     CONSTRAINT [PK_user] PRIMARY KEY CLUSTERED ([uuid]),
-    CONSTRAINT [CK_user_permission] CHECK ([permission] IN (0, 99))
+    CONSTRAINT [CK_user_permission] CHECK ([permission] IN (0, 5, 99))
 );
 GO
 

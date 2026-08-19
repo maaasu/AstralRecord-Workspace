@@ -20,8 +20,8 @@ boss:
 # Boss／Dungeon instance creation limits
 # normalLimit is reserved for ordinary requests. reservedLimit is a finite
 # donor-only pool and is never an unlimited bypass.
+# Donor classification uses the cached UserPermission.DONOR (5); it is not configurable here.
 instanceLimits:
-  donorPermission: "astralrecord.instance.donor"
   boss:
     normalLimit: 2
     reservedLimit: 1

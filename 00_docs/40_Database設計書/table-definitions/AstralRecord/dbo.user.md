@@ -30,7 +30,7 @@
 | `ban_indefinite` | `BIT`              |    |    ○    |  `0`   | 無期限 BAN フラグ（`1`: 有効 / `0`: 無効）                                               |
 | `ban_date`       | `DATETIME2(0)`     |    |         |        | 期限付き BAN の終了日時。現在日時より未来の場合に kick                                             |
 | `kick_ip`        | `BIT`              |    |    ○    |  `1`   | 同一 IP プレイヤーの参加拒否フラグ（`1`: 有効 / `0`: 無効）                                       |
-| `permission`     | `INT`              |    |    ○    |  `0`   | 権限レベル（現行は `0`: 一般 / `99`: 管理者）。数値は将来拡張用で、値の追加時は API の権限定義、Plugin enum、DB CHECK 制約を同期更新する |
+| `permission`     | `INT`              |    |    ○    |  `0`   | 権限レベル（`0`: 一般 / `5`: 寄付者 / `99`: 管理者）。許可値を追加する場合は API の権限定義、Plugin enum、DB CHECK 制約を同期更新する |
 | `created_at`     | `DATETIME2(3)`     |    |    ○    |        | レコード作成日時                                                                     |
 | `updated_at`     | `DATETIME2(3)`     |    |    ○    |        | レコード最終更新日時                                                                   |
 | `created_by`     | `UNIQUEIDENTIFIER` |    |    ○    |        | 作成者の UUID                                                                    |
@@ -70,7 +70,7 @@
 
 | 制約名 | カラム | 条件 | 説明 |
 |:--|:--|:--|:--|
-| `CK_user_permission` | `permission` | `IN (0, 99)` | プレイヤーまたは管理者だけを許可する |
+| `CK_user_permission` | `permission` | `IN (0, 5, 99)` | プレイヤー、寄付者、管理者だけを許可する |
 
 ---
 
@@ -107,7 +107,7 @@ CREATE TABLE [dbo].[user] (
     [is_deleted]       BIT               NOT NULL  CONSTRAINT [DF_user_is_deleted]       DEFAULT (0),
 
     CONSTRAINT [PK_user] PRIMARY KEY CLUSTERED ([uuid]),
-    CONSTRAINT [CK_user_permission] CHECK ([permission] IN (0, 99))
+    CONSTRAINT [CK_user_permission] CHECK ([permission] IN (0, 5, 99))
 );
 GO
 
@@ -136,7 +136,7 @@ GO
 | 無期限 BAN 管理   | `ban_indefinite = 1` のプレイヤーをサーバー接続時に kick する                                   |
 | 期限付き BAN 管理  | `ban_date` が現在日時より未来の場合に kick する（`NULL` は無効）                                   |
 | IP 制限による参加制御 | `kick_ip = 1` のプレイヤーと同一 IP の接続を拒否する                                            |
-| 権限管理         | `permission` でプレイヤーの権限レベルを管理する（`0`: 一般 / `99`: 管理者）                            |
+| 権限管理         | `permission` でプレイヤーの権限レベルを管理する（`0`: 一般 / `5`: 寄付者 / `99`: 管理者）                 |
 | 選択中アカウント管理   | `account_id` で選択中アカウントを管理する。`NULL` の場合は `dbo.account.is_active = 1` のレコードを参照する |
 | 論理削除         | `is_deleted = 1` で物理削除を行わず、データを保持したまま無効化する                                     |
 

@@ -917,10 +917,7 @@ public final class AstralRecord extends JavaPlugin {
             displayTextService,
             playerDeathService,
             bossHubWorldId,
-            new InstanceCreationQueue(
-                    instanceCreationQueueConfig.boss(),
-                    instanceCreationQueueConfig.donorPermission()
-            )
+            new InstanceCreationQueue(instanceCreationQueueConfig.boss())
         );
         damageService.setBossChallengeService(bossChallengeService);
         dungeonService = new DungeonService(
@@ -940,10 +937,7 @@ public final class AstralRecord extends JavaPlugin {
             lootService,
             new AdventureRecordRepository(),
             bossHubWorldId,
-            new InstanceCreationQueue(
-                    instanceCreationQueueConfig.dungeon(),
-                    instanceCreationQueueConfig.donorPermission()
-            )
+            new InstanceCreationQueue(instanceCreationQueueConfig.dungeon())
         );
         damageService.setDungeonService(dungeonService);
         damageService.setMobDeathListener(dungeonService::handleMobDefeated);

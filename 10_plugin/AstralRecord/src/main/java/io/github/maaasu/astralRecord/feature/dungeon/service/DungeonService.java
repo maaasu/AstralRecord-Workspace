@@ -43,6 +43,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
@@ -441,7 +442,8 @@ public final class DungeonService {
         if (loaded == null) {
             return StartRequestResult.of(StartStatus.NOT_FOUND);
         }
-        if (!AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(leader))) {
+        AstPlayer leaderAstPlayer = AstPlayerCache.get(leader);
+        if (!AccountModeGuard.isGameplayPlayer(leaderAstPlayer)) {
             return StartRequestResult.of(StartStatus.NOT_GAMEPLAY);
         }
         if (!isInsideEntry(leader, loaded)) {
@@ -498,7 +500,7 @@ public final class DungeonService {
                 participantIds,
                 returnLocations
         );
-        session.reservedCreationSlot = creationQueue.isDonor(leader);
+        session.reservedCreationSlot = leaderAstPlayer.hasPermissionLevel(UserPermission.DONOR.getValue());
         sessionsById.put(sessionId, session);
         sessionIdByPartyKey.put(partyKey, sessionId);
         Logger.log(LogId.I_7001, sessionId.toString(), dungeonId, seed, participantCount);

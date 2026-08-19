@@ -22,6 +22,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
@@ -357,7 +358,7 @@ public final class BossChallengeService {
                 config,
                 participants
         );
-        challenge.reservedCreationSlot(creationQueue.isDonor(player));
+        challenge.reservedCreationSlot(astPlayer.hasPermissionLevel(UserPermission.DONOR.getValue()));
         challengesById.put(challenge.challengeId(), challenge);
         challengeIdByPartyKey.put(partyKey, challenge.challengeId());
         Logger.log(LogId.I_6500, challenge.challengeId(), template.id(), partyKey);

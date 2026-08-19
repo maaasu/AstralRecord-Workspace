@@ -10,6 +10,9 @@ enum class UserPermission(val value: Int, val displayName: String) {
     /** プレイヤー */
     PLAYER(0, "プレイヤー"),
 
+    /** 寄付者 */
+    DONOR(5, "寄付者"),
+
     /** サーバー管理者 */
     ADMIN(99, "サーバー管理者");
 
@@ -17,7 +20,7 @@ enum class UserPermission(val value: Int, val displayName: String) {
         /**
          * 名称（大小文字無視）から [UserPermission] を取得します。
          *
-         * @param name 英語ID（`PLAYER` / `ADMIN`）
+         * @param name 英語ID（`PLAYER` / `DONOR` / `ADMIN`）
          * @return 一致する権限。一致しない場合は `null`
          */
         fun fromName(name: String): UserPermission? =
