@@ -17,6 +17,7 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
@@ -110,6 +111,23 @@ class TradeGuiEventHandlerTest {
         verify(context.tradeService).consumeSuppressedClose(context.playerId);
         verify(context.tradeService, never()).openCancelConfirmAfterClose(context.player);
         verify(context.tradeService, never()).cancelTrade(context.player);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
+     * 章・見出し: # 22_3-メソッド仕様 > ## GUI event
+     * 検証契約: 許可対象外ワールドへ移動した参加者の open session は即時に中止する。
+     */
+    @Test
+    void cancelsOpenTradeWhenParticipantMovesOutsideAllowedWorld() {
+        TestContext context = new TestContext();
+        PlayerChangedWorldEvent event = mock(PlayerChangedWorldEvent.class);
+        when(event.getPlayer()).thenReturn(context.player);
+        when(context.tradeService.isTradeAllowedWorld(context.player)).thenReturn(false);
+
+        context.handler.onPlayerChangedWorld(event);
+
+        verify(context.tradeService).cancelTrade(context.player);
     }
 
     private static final class TestContext {

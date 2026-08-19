@@ -12,22 +12,28 @@ import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStat
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeCancelConfirmGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeRequest;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeRequestStatus;
-import io.github.maaasu.astralRecord.feature.trade.model.TradeCommitItem;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeCommitRequest;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeCommitResult;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeSession;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeSessionStatus;
 import io.github.maaasu.astralRecord.feature.trade.repository.TradeRepository;
+import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
+import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
+import io.github.maaasu.astralRecord.feature.world.model.WorldType;
+import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.inventory.ItemStack;
@@ -147,6 +153,120 @@ class TradeServiceTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
+     * 章・見出し: # 22_3-メソッド仕様 > ## Ready・確定
+     * 検証契約: item または Gold の提示変更では ready を解除せず、本人の ready toggle だけが
+     * 準備解除を行う。
+     */
+    @Test
+    void offerAndGoldChangesKeepReadyUntilPlayerExplicitlyCancelsIt() throws Exception {
+        TestContext context = new TestContext();
+        ItemStack displayed = itemStack(4);
+        context.session.setReady(context.playerId, true);
+        context.session.setReady(context.partnerId, true);
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AccountModeGuard> accountModeGuard = mockStatic(AccountModeGuard.class)) {
+            cache.when(() -> AstPlayerCache.get(context.player)).thenReturn(context.astPlayer);
+            bukkit.when(() -> Bukkit.getPlayer(context.playerId)).thenReturn(context.player);
+            bukkit.when(() -> Bukkit.getPlayer(context.partnerId)).thenReturn(context.partner);
+            accountModeGuard.when(() -> AccountModeGuard.isGameplayPlayer(context.player)).thenReturn(true);
+
+            assertTrue(context.service.offerOwnedItem(context.player, 9, ClickType.SHIFT_LEFT, displayed));
+            context.session.setGoldAmount(context.playerId, 50L);
+
+            assertTrue(context.session.isPlayerAReady());
+            assertTrue(context.session.isPlayerBReady());
+
+            context.service.toggleReady(context.player);
+        }
+
+        assertFalse(context.session.isPlayerAReady());
+        assertTrue(context.session.isPlayerBReady());
+        verify(context.messageService).send(context.player, PlayerMsgId.P_6206);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_2-ユースケース.md
+     * 章・見出し: # 22_2-ユースケース > ## UC-22-01 招待する
+     * 検証契約: 拠点ワールド以外にいる参加者がいる場合は request を作成しない。
+     */
+    @Test
+    void requestTradeRejectsParticipantOutsideAllowedWorld() throws Exception {
+        TestContext context = new TestContext();
+        when(context.worldService.findByBukkitWorld(context.partnerWorld)).thenReturn(
+            worldDefinition("field", WorldType.OVERWORLD)
+        );
+
+        try (MockedStatic<AccountModeGuard> accountModeGuard = mockStatic(AccountModeGuard.class)) {
+            accountModeGuard.when(() -> AccountModeGuard.isGameplayPlayer(context.player)).thenReturn(true);
+            accountModeGuard.when(() -> AccountModeGuard.isGameplayPlayer(context.partner)).thenReturn(true);
+
+            context.service.requestTrade(context.player, context.partner);
+        }
+
+        assertTrue(TestContext.requestsOf(context.service).isEmpty());
+        verify(context.messageService).send(context.player, PlayerMsgId.P_6210);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_2-ユースケース.md
+     * 章・見出し: # 22_2-ユースケース > ## UC-22-02 招待を承認する
+     * 検証契約: accept 時にも申請者・承認者双方の現在ワールドを再検証し、申請後の移動で
+     * 許可外となった申請は開始しない。
+     */
+    @Test
+    void acceptTradeRevalidatesRequesterWorld() throws Exception {
+        TestContext context = new TestContext();
+        TestContext.clearSessions(context.service);
+        TradeRequest request = new TradeRequest(
+            UUID.randomUUID(),
+            context.playerId,
+            "sender",
+            context.partnerId,
+            "accepter",
+            Instant.now(),
+            Instant.now().plusSeconds(60L)
+        );
+        TestContext.registerRequest(context.service, request);
+        when(context.worldService.findByBukkitWorld(context.playerWorld)).thenReturn(
+            worldDefinition("field", WorldType.OVERWORLD)
+        );
+
+        try (MockedStatic<AccountModeGuard> accountModeGuard = mockStatic(AccountModeGuard.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            accountModeGuard.when(() -> AccountModeGuard.isGameplayPlayer(context.partner)).thenReturn(true);
+            accountModeGuard.when(() -> AccountModeGuard.isGameplayPlayer(context.player)).thenReturn(true);
+            bukkit.when(() -> Bukkit.getPlayer(context.playerId)).thenReturn(context.player);
+
+            context.service.acceptTrade(context.partner);
+        }
+
+        assertEquals(TradeRequestStatus.CANCELLED, request.getStatus());
+        assertTrue(TestContext.requestsOf(context.service).isEmpty());
+        verify(context.messageService).send(context.partner, PlayerMsgId.P_6210);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_2-ユースケース.md
+     * 章・見出し: # 22_2-ユースケース > ## UC-22-01 招待する
+     * 検証契約: スキルツリーサービスが認識する専用ワールドは拠点ワールドと同じく許可する。
+     */
+    @Test
+    void skillTreeWorldIsAllowedForTrade() throws Exception {
+        TestContext context = new TestContext();
+        var skillTreeService = mock(io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService.class);
+        when(context.plugin.getSkillTreeService()).thenReturn(skillTreeService);
+        when(context.worldService.findByBukkitWorld(context.playerWorld)).thenReturn(
+            worldDefinition("hub", WorldType.HUB)
+        );
+        when(skillTreeService.isSkillTreeWorld(context.playerWorld)).thenReturn(true);
+
+        assertTrue(context.service.isTradeAllowedWorld(context.player));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
      * 章・見出し: # 22_3-メソッド仕様 > ## 招待・承認
      * 検証契約: 期限切れの申請は EXPIRED に遷移後、pending 申請だけを保持する request 管理から除去する。
      */
@@ -198,12 +318,12 @@ class TradeServiceTest {
             assertFalse(context.coordinator.hasUnresolvedExternalOperation(context.playerAAccountId));
             assertFalse(context.coordinator.hasUnresolvedExternalOperation(context.playerBAccountId));
             verify(context.repository).commit(any());
-            verify(context.inventoryService).reconcileExternalInventoryEntries(
+            verify(context.inventoryService).reconcileTradeInventoryEntries(
                 eq(context.playerAAccountId),
                 eq(context.result.playerAAffectedInventoryEntryIds()),
                 any()
             );
-            verify(context.inventoryService).reconcileExternalInventoryEntries(
+            verify(context.inventoryService).reconcileTradeInventoryEntries(
                 eq(context.playerBAccountId),
                 eq(context.result.playerBAffectedInventoryEntryIds()),
                 any()
@@ -336,52 +456,35 @@ class TradeServiceTest {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_0-概要.md
-     * 章・見出し: # 22_0-概要 > ## 責務
-     * 検証契約: 受取 capacity は部分送付・同一 source の複数提示を合算して先に差し引き、
-     * その後に相手 item を既存 stack へ順に仮追加する。
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
+     * 章・見出し: # 22_3-メソッド仕様 > ## Ready・確定
+     * 検証契約: トレード確定は通常 inventory の容量シミュレーションを行わず、満杯でも API
+     * transaction と再同期を開始する。
      */
     @Test
-    void capacitySimulationSubtractsAggregatedOutgoingReservationsBeforeIncomingStackMerge() throws Exception {
-        TestContext context = new TestContext();
-        UUID sourceEntryId = UUID.randomUUID();
-        ItemStack firstIncoming = itemStack(1);
-        ItemStack secondIncoming = itemStack(1);
-        when(context.itemReferenceResolver.resolveItemModel(firstIncoming)).thenReturn(context.itemModel);
-        when(context.itemReferenceResolver.resolveItemModel(secondIncoming)).thenReturn(context.itemModel);
-        when(context.inventoryService.removeOwnedEntryAmountsForCapacityCheck(eq(context.astPlayer), any())).thenReturn(true);
-        when(context.inventoryService.canAddItemToNormalInventory(context.astPlayer, context.itemModel, 1)).thenReturn(true);
-        when(context.inventoryService.returnItemToOwnedInventory(eq(context.astPlayer), any(ItemStack.class)))
-            .thenReturn(InventoryType.BAG);
-        when(context.inventoryService.restoreState(context.snapshot)).thenReturn(true);
-
-        boolean receivable;
-        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+    void fullInventoryDoesNotPreventTradeCommitFromStarting() throws Exception {
+        try (CommitContext context = new CommitContext(false, false);
+             MockedStatic<AccountModeGuard> accountModeGuard = mockStatic(AccountModeGuard.class);
              MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
-            bukkit.when(() -> Bukkit.getPlayer(context.playerId)).thenReturn(context.player);
-            cache.when(() -> AstPlayerCache.get(context.player)).thenReturn(context.astPlayer);
+            ItemModel itemModel = mock(ItemModel.class);
+            when(itemModel.getUnTradeable()).thenReturn(false);
+            when(context.itemReferenceResolver.resolveItemModel(any(ItemStack.class))).thenReturn(itemModel);
+            context.session.setReady(context.playerAId, true);
+            context.session.setReady(context.playerBId, true);
+            accountModeGuard.when(() -> AccountModeGuard.isGameplayPlayer(context.playerA)).thenReturn(true);
+            accountModeGuard.when(() -> AccountModeGuard.isGameplayPlayer(context.playerB)).thenReturn(true);
+            bukkit.when(() -> Bukkit.getPlayer(context.playerAId)).thenReturn(context.playerA);
+            bukkit.when(() -> Bukkit.getPlayer(context.playerBId)).thenReturn(context.playerB);
+            bukkit.when(Bukkit::getScheduler).thenReturn(mock(BukkitScheduler.class));
 
-            receivable = invokeCanReceive(
-                context.service,
-                context.playerId,
-                List.of(firstIncoming, secondIncoming),
-                List.of(new TradeCommitItem(sourceEntryId, 2L), new TradeCommitItem(sourceEntryId, 3L))
-            );
+            invokeComplete(context.service, context.session);
+
+            assertEquals(TradeSessionStatus.COMMITTING, context.session.getStatus());
+            verify(context.repository).commit(any());
+            verify(context.inventoryService, never()).canAddItemToNormalInventory(any(), any(), anyInt());
+            verify(context.inventoryService, never()).returnItemToOwnedInventory(any(), any(ItemStack.class));
+            verify(context.inventoryService, never()).snapshotState(any());
         }
-
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<Map<UUID, Long>> reservations = ArgumentCaptor.forClass(Map.class);
-        assertTrue(receivable);
-        verify(context.inventoryService).removeOwnedEntryAmountsForCapacityCheck(
-            eq(context.astPlayer),
-            reservations.capture()
-        );
-        assertEquals(5L, reservations.getValue().get(sourceEntryId));
-        verify(context.inventoryService, times(2)).returnItemToOwnedInventory(
-            eq(context.astPlayer),
-            any(ItemStack.class)
-        );
-        verify(context.inventoryService).restoreState(context.snapshot);
     }
 
     @SuppressWarnings("unchecked")
@@ -404,20 +507,33 @@ class TradeServiceTest {
         finish.invoke(service, session, failure);
     }
 
-    private static boolean invokeCanReceive(
-        TradeService service,
-        UUID playerUuid,
-        List<ItemStack> incomingItems,
-        List<TradeCommitItem> outgoingItems
-    ) throws Exception {
-        Method canReceive = TradeService.class.getDeclaredMethod(
-            "canReceiveItems",
-            UUID.class,
-            List.class,
-            List.class
+    private static void invokeComplete(TradeService service, TradeSession session) throws Exception {
+        Method complete = TradeService.class.getDeclaredMethod("completeTrade", TradeSession.class);
+        complete.setAccessible(true);
+        complete.invoke(service, session);
+    }
+
+    private static WorldMasterData worldDefinition(String id, WorldType type) {
+        return new WorldMasterData(
+            1,
+            id,
+            id,
+            type,
+            "",
+            "",
+            false,
+            false,
+            0,
+            false,
+            false,
+            false,
+            false,
+            WorldSpawnLocation.defaultLocation(),
+            "",
+            null,
+            null,
+            null
         );
-        canReceive.setAccessible(true);
-        return (boolean) canReceive.invoke(service, playerUuid, incomingItems, outgoingItems);
     }
 
     private static final class TestContext {
@@ -435,6 +551,9 @@ class TradeServiceTest {
         private final ItemReferenceResolver itemReferenceResolver = mock(ItemReferenceResolver.class);
         private final Player player = mock(Player.class);
         private final Player partner = mock(Player.class);
+        private final WorldService worldService = mock(WorldService.class);
+        private final World playerWorld = mock(World.class);
+        private final World partnerWorld = mock(World.class);
         private final AstPlayer astPlayer = mock(AstPlayer.class);
         private final AccountModel account = mock(AccountModel.class);
         private final ItemModel itemModel = mock(ItemModel.class);
@@ -466,8 +585,13 @@ class TradeServiceTest {
         private TestContext() throws Exception {
             when(player.getUniqueId()).thenReturn(playerId);
             when(player.isOnline()).thenReturn(true);
+            when(player.getWorld()).thenReturn(playerWorld);
             when(partner.getUniqueId()).thenReturn(partnerId);
             when(partner.isOnline()).thenReturn(true);
+            when(partner.getWorld()).thenReturn(partnerWorld);
+            when(plugin.getWorldService()).thenReturn(worldService);
+            when(worldService.findByBukkitWorld(playerWorld)).thenReturn(worldDefinition("base", WorldType.BASE));
+            when(worldService.findByBukkitWorld(partnerWorld)).thenReturn(worldDefinition("base", WorldType.BASE));
             when(astPlayer.getAccount()).thenReturn(account);
             when(account.getUuid()).thenReturn(accountId);
             when(itemModel.getUnTradeable()).thenReturn(false);
@@ -489,6 +613,16 @@ class TradeServiceTest {
                 session.getPlayerAUuid(),
                 session.getSessionId()
             );
+        }
+
+        @SuppressWarnings("unchecked")
+        private static void clearSessions(TradeService service) throws Exception {
+            Field sessionsField = TradeService.class.getDeclaredField("sessions");
+            sessionsField.setAccessible(true);
+            ((Map<UUID, TradeSession>) sessionsField.get(service)).clear();
+            Field activeField = TradeService.class.getDeclaredField("activeSessionByPlayer");
+            activeField.setAccessible(true);
+            ((Map<UUID, UUID>) activeField.get(service)).clear();
         }
 
         @SuppressWarnings("unchecked")
@@ -523,6 +657,11 @@ class TradeServiceTest {
         private final CurrencyService currencyService = mock(CurrencyService.class);
         private final PlayerMessageService messageService = mock(PlayerMessageService.class);
         private final ItemReferenceResolver itemReferenceResolver = mock(ItemReferenceResolver.class);
+        private final Player playerA = mock(Player.class);
+        private final Player playerB = mock(Player.class);
+        private final WorldService worldService = mock(WorldService.class);
+        private final World playerAWorld = mock(World.class);
+        private final World playerBWorld = mock(World.class);
         private final TradeRepository repository = mock(TradeRepository.class);
         private final PlayerInventoryStateRegistry stateRegistry = new PlayerInventoryStateRegistry();
         private final PlayerInventoryState playerAState = new PlayerInventoryState(playerAAccountId);
@@ -570,11 +709,18 @@ class TradeServiceTest {
             when(persistence.hasPendingChanges(playerAState)).thenReturn(false);
             when(persistence.hasPendingChanges(playerBState)).thenReturn(false);
             when(repository.commit(any())).thenReturn(result);
+            when(playerA.getUniqueId()).thenReturn(playerAId);
+            when(playerA.getWorld()).thenReturn(playerAWorld);
+            when(playerB.getUniqueId()).thenReturn(playerBId);
+            when(playerB.getWorld()).thenReturn(playerBWorld);
+            when(plugin.getWorldService()).thenReturn(worldService);
+            when(worldService.findByBukkitWorld(playerAWorld)).thenReturn(worldDefinition("base", WorldType.BASE));
+            when(worldService.findByBukkitWorld(playerBWorld)).thenReturn(worldDefinition("base", WorldType.BASE));
             if (failPlayerBReconciliation) {
                 doThrow(new IllegalStateException("player-b local reconciliation failed"))
                     .doNothing()
                     .when(inventoryService)
-                    .reconcileExternalInventoryEntries(
+                    .reconcileTradeInventoryEntries(
                         eq(playerBAccountId),
                         eq(result.playerBAffectedInventoryEntryIds()),
                         any()

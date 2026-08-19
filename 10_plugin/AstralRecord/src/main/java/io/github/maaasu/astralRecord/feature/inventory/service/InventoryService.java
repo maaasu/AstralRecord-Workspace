@@ -2291,6 +2291,152 @@ public class InventoryService {
     }
 
     /**
+     * トレード API 確定後の affected BAG entry を再同期し、通常 item の最大スタック超過分を分割します。
+     * <p>
+     * 通常の取得経路は容量外 entry を新規追加先にしないため、この処理はトレード受取にだけ使用します。
+     * 実効容量内に空きがなければ、超過分は既存 entry の末尾に続く容量外 slot へ保持します。
+     *
+     * @param accountId 対象 account
+     * @param affectedEntryIds Trade API が返した affected entry ID
+     * @param baseline 操作直前に API が保存済みと返した entry
+     */
+    public void reconcileTradeInventoryEntries(
+        @NotNull UUID accountId,
+        @NotNull Collection<UUID> affectedEntryIds,
+        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline
+    ) {
+        reconcileExternalInventoryEntries(accountId, affectedEntryIds, baseline);
+        splitTradeBagStackOverflow(accountId, affectedEntryIds);
+    }
+
+    /** Trade で更新された BAG の通常 stack を最大 stack 数ごとの entry へ分割します。 */
+    private void splitTradeBagStackOverflow(
+        @NotNull UUID accountId,
+        @NotNull Collection<UUID> affectedEntryIds
+    ) {
+        PlayerInventoryState state = requireState(accountId);
+        Set<UUID> affectedIds = new HashSet<>(affectedEntryIds);
+        synchronized (state) {
+            if (getState(accountId) != state) {
+                throw new IllegalStateException("Inventory state generation changed for account " + accountId);
+            }
+            InventoryModel bag = state.findInventory(DEFAULT_PROFILE, InventoryType.BAG);
+            if (bag == null || !bag.isEnabled() || bag.isDeleted()) {
+                return;
+            }
+            List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(bag.getInventoryId()).stream()
+                .filter(entry -> !entry.isDeleted())
+                .toList());
+            List<InventoryEntryModel> affectedNormalStacks = entries.stream()
+                .filter(entry -> affectedIds.contains(entry.getInventoryEntryId()))
+                .filter(this::isNormalItemEntry)
+                .filter(entry -> ItemCategory.fromApiValue(entry.getItemCategory()) != ItemCategory.CURRENCY)
+                .toList();
+            if (affectedNormalStacks.isEmpty()) {
+                return;
+            }
+            Set<Integer> usedManagedSlots = collectUsedSlots(state, bag);
+            Set<Integer> occupiedSlots = entries.stream()
+                .map(InventoryEntryModel::getSlotIndex)
+                .filter(java.util.Objects::nonNull)
+                .filter(slot -> slot > 0)
+                .collect(java.util.stream.Collectors.toCollection(HashSet::new));
+            Set<Integer> seenSlots = new HashSet<>();
+            boolean changed = false;
+            List<InventoryEntryModel> splitEntries = new ArrayList<>();
+            for (InventoryEntryModel entry : entries) {
+                boolean belongsToAffectedStack = affectedNormalStacks.stream()
+                    .anyMatch(affected -> isSameStackableItem(entry, affected));
+                if (!belongsToAffectedStack) {
+                    splitEntries.add(entry);
+                    if (entry.getSlotIndex() != null && entry.getSlotIndex() > 0) {
+                        seenSlots.add(entry.getSlotIndex());
+                    }
+                    continue;
+                }
+                ItemModel model = resolveItemModel(entry);
+                int maxStack = model == null ? 0 : Math.max(1, model.getMaxStack());
+                if (maxStack <= 0) {
+                    splitEntries.add(entry);
+                    if (entry.getSlotIndex() != null && entry.getSlotIndex() > 0) {
+                        seenSlots.add(entry.getSlotIndex());
+                    }
+                    continue;
+                }
+                long remaining = entry.getQuantity();
+                boolean firstChunk = true;
+                while (remaining > 0L) {
+                    int slot = resolveTradeBagSlot(
+                        firstChunk ? entry.getSlotIndex() : null,
+                        seenSlots,
+                        occupiedSlots,
+                        usedManagedSlots,
+                        bag
+                    );
+                    long amount = Math.min(remaining, (long) maxStack);
+                    InventoryEntryModel split = firstChunk
+                        ? withSlot(withQuantity(entry, amount, accountId), slot, accountId)
+                        : newEntry(
+                            bag.getInventoryId(),
+                            slot,
+                            entry.getItemCategory(),
+                            entry.getItemId(),
+                            null,
+                            null,
+                            amount,
+                            entry.getMetadataJson(),
+                            accountId
+                        );
+                    changed |= amount != entry.getQuantity()
+                        || !java.util.Objects.equals(entry.getSlotIndex(), slot);
+                    splitEntries.add(split);
+                    seenSlots.add(slot);
+                    occupiedSlots.add(slot);
+                    remaining -= amount;
+                    firstChunk = false;
+                }
+            }
+            if (changed) {
+                state.replaceEntries(bag.getInventoryId(), splitEntries);
+            }
+        }
+    }
+
+    /** 既存 slot の重複を避けて、通常容量内または Trade 専用の容量外 slot を解決します。 */
+    private int resolveTradeBagSlot(
+        @Nullable Integer preferredSlot,
+        @NotNull Set<Integer> seenSlots,
+        @NotNull Set<Integer> occupiedSlots,
+        @NotNull Set<Integer> usedManagedSlots,
+        @NotNull InventoryModel bag
+    ) {
+        if (preferredSlot != null && preferredSlot > 0 && !seenSlots.contains(preferredSlot)) {
+            return preferredSlot;
+        }
+        Integer managedSlot = findNextFreeSlot(bag, usedManagedSlots);
+        if (managedSlot != null) {
+            usedManagedSlots.add(managedSlot);
+            return managedSlot;
+        }
+        return findNextTradeOverflowSlot(occupiedSlots, inventoryCapacity(bag));
+    }
+
+    /** 既存の容量外 entry を上書きしない、次の Trade 用容量外 slot を返します。 */
+    private int findNextTradeOverflowSlot(@NotNull Set<Integer> occupiedSlots, int capacity) {
+        int candidate = Math.max(0, capacity);
+        for (int slot : occupiedSlots) {
+            candidate = Math.max(candidate, slot);
+        }
+        while (candidate < Integer.MAX_VALUE) {
+            candidate++;
+            if (!occupiedSlots.contains(candidate)) {
+                return candidate;
+            }
+        }
+        throw new IllegalStateException("Trade BAG overflow slot limit reached");
+    }
+
+    /**
      * 外部原子操作の正本を三者マージした後、受け取った通常アイテムを共通の所有インベントリ返却処理へ
      * 正規化します。
      * <p>

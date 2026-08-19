@@ -1005,7 +1005,7 @@ public enum PlayerMsgId {
     P_5930(5930),
     // endregion
 
-    // region /feature/trade 6200-6209
+    // region /feature/trade 6200-6210
     P_6200(6200),
     P_6201(6201),
     P_6202(6202),
@@ -1016,6 +1016,7 @@ public enum PlayerMsgId {
     P_6207(6207),
     P_6208(6208),
     P_6209(6209),
+    P_6210(6210),
     // endregion
 
     // region /feature/market 6300-6309

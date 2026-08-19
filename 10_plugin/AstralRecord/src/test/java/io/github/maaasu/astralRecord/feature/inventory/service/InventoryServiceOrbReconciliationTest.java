@@ -479,6 +479,91 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_0-概要.md
+     * 章・見出し: # 22_0-概要 > ## 責務
+     * 検証契約: 満杯 BAG の同種 full stack へトレード受取を加算して最大 stack 数を超えた場合、
+     * 超過分を容量外 slot の別 entry として保存・表示し、通常取得ではその slot を再利用しない。
+     */
+    @Test
+    void tradeReconciliationSplitsFullStackIntoPersistedOverflowWithoutChangingNormalGrant() {
+        UUID accountId = UUID.randomUUID();
+        UUID entryId = UUID.randomUUID();
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        state.setBagSlotCapacity(1);
+        InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG, 1);
+        state.putInventory(bag);
+        InventoryRepository repository = mock(InventoryRepository.class);
+        ItemService itemService = mock(ItemService.class);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        InventoryService service = new InventoryService(
+            repository,
+            mock(EquipmentLoadoutRepository.class),
+            itemService,
+            mock(ItemStackFactory.class),
+            registry,
+            persistence,
+            mock(InventorySaveCoordinator.class)
+        );
+        ItemModel material = DesignTestFixtures.item("trade_capacity_material", ItemCategory.MATERIAL, 64);
+        InventoryEntryModel fullStack = categoryEntry(
+            entryId,
+            accountId,
+            bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START,
+            ItemCategory.MATERIAL,
+            material.getId(),
+            64L
+        );
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(fullStack));
+        registry.put(state);
+        when(itemService.findLoadedById(material.getId())).thenReturn(material);
+        when(repository.findEntryById(entryId)).thenReturn(categoryEntry(
+            entryId,
+            accountId,
+            bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START,
+            ItemCategory.MATERIAL,
+            material.getId(),
+            65L
+        ));
+
+        service.reconcileTradeInventoryEntries(
+            accountId,
+            List.of(entryId),
+            baseline(accountId, bag.getInventoryId(), List.of(fullStack))
+        );
+
+        List<InventoryEntryModel> reconciled = state.snapshotEntries(bag.getInventoryId());
+        InventoryEntryModel overflow = reconciled.stream()
+            .filter(entry -> !entry.getInventoryEntryId().equals(entryId))
+            .findFirst()
+            .orElseThrow();
+        assertEquals(2, reconciled.size());
+        assertEquals(64L, service.findOwnedEntry(accountId, entryId).getQuantity());
+        assertEquals(1L, overflow.getQuantity());
+        assertEquals(NormalInventoryLayout.DB_SLOT_START + 1, overflow.getSlotIndex());
+        assertEquals(NormalInventoryLayout.DB_SLOT_START + 1,
+            NormalInventoryLayout.displayCapacity(reconciled, 1));
+
+        assertEquals(0, service.addItemToNormalInventory(astPlayer(accountId), material, 1));
+        assertEquals(reconciled, state.snapshotEntries(bag.getInventoryId()));
+
+        AtomicReference<List<InventoryEntryModel>> savedEntries = new AtomicReference<>();
+        when(persistence.saveNow(state)).thenAnswer(invocation -> {
+            savedEntries.set(state.snapshotEntries(bag.getInventoryId()));
+            return true;
+        });
+        assertTrue(service.persistReconciledStateNow(accountId));
+        assertNotNull(savedEntries.get());
+        assertEquals(overflow.getSlotIndex(), savedEntries.get().stream()
+            .filter(entry -> entry.getInventoryEntryId().equals(overflow.getInventoryEntryId()))
+            .findFirst()
+            .orElseThrow()
+            .getSlotIndex());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
      * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
      * 検証契約: HOTBAR出品元の元slotが再利用された取り下げで、APIがBAGへ返した未配置entryを有効なBAG slotへ再配置して可視な所持品にする。

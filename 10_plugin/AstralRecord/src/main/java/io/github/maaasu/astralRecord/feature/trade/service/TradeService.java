@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeCancelConfirmGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGuiLayout;
@@ -26,6 +27,9 @@ import io.github.maaasu.astralRecord.feature.trade.model.TradeCommitResult;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeSession;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeSessionStatus;
 import io.github.maaasu.astralRecord.feature.trade.repository.TradeRepository;
+import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
+import io.github.maaasu.astralRecord.feature.world.model.WorldType;
+import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
@@ -159,6 +163,10 @@ public final class TradeService {
             messageService.send(sender, PlayerMsgId.P_5065);
             return;
         }
+        if (!isTradeAllowedWorld(sender) || !isTradeAllowedWorld(target)) {
+            messageService.send(sender, PlayerMsgId.P_6210);
+            return;
+        }
         if (sender.getUniqueId().equals(target.getUniqueId()) || !target.isOnline()
             || isTrading(sender.getUniqueId()) || isTrading(target.getUniqueId())) {
             messageService.send(sender, PlayerMsgId.P_6203);
@@ -201,6 +209,10 @@ public final class TradeService {
             messageService.send(accepter, PlayerMsgId.P_5065);
             return;
         }
+        if (!isTradeAllowedWorld(accepter)) {
+            messageService.send(accepter, PlayerMsgId.P_6210);
+            return;
+        }
         TradeRequest request = findLatestIncoming(accepter.getUniqueId());
         if (request == null) {
             messageService.send(accepter, PlayerMsgId.P_6202);
@@ -215,6 +227,11 @@ public final class TradeService {
         if (sender == null || !sender.isOnline() || isTrading(sender.getUniqueId()) || isTrading(accepter.getUniqueId())) {
             finishRequest(request, TradeRequestStatus.CANCELLED);
             messageService.send(accepter, PlayerMsgId.P_6203);
+            return;
+        }
+        if (!isTradeAllowedWorld(sender)) {
+            finishRequest(request, TradeRequestStatus.CANCELLED);
+            messageService.send(accepter, PlayerMsgId.P_6210);
             return;
         }
         AstPlayer senderAstPlayer = AstPlayerCache.get(sender);
@@ -250,6 +267,10 @@ public final class TradeService {
     public void toggleReady(@NotNull Player player) {
         if (!AccountModeGuard.isGameplayPlayer(player)) {
             messageService.send(player, PlayerMsgId.P_5065);
+            return;
+        }
+        if (!isTradeAllowedWorld(player)) {
+            messageService.send(player, PlayerMsgId.P_6210);
             return;
         }
         TradeSession session = getOpenSession(player.getUniqueId());
@@ -300,6 +321,10 @@ public final class TradeService {
             messageService.send(player, PlayerMsgId.P_5065);
             return;
         }
+        if (!isTradeAllowedWorld(player)) {
+            messageService.send(player, PlayerMsgId.P_6210);
+            return;
+        }
         TradeSession session = getOpenSession(player.getUniqueId());
         if (session == null) {
             return;
@@ -327,6 +352,10 @@ public final class TradeService {
     public void applyGoldAmount(@NotNull Player player, @NotNull UUID sessionId, long amount) {
         if (!AccountModeGuard.isGameplayPlayer(player)) {
             messageService.send(player, PlayerMsgId.P_5065);
+            return;
+        }
+        if (!isTradeAllowedWorld(player)) {
+            messageService.send(player, PlayerMsgId.P_6210);
             return;
         }
         TradeSession session = getOpenSession(player.getUniqueId());
@@ -447,6 +476,10 @@ public final class TradeService {
         @NotNull ClickType clickType,
         @Nullable ItemStack displayedItem
     ) {
+        if (!isTradeAllowedWorld(player)) {
+            messageService.send(player, PlayerMsgId.P_6210);
+            return false;
+        }
         TradeSession session = getOpenSession(player.getUniqueId());
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (session == null || astPlayer == null
@@ -510,6 +543,10 @@ public final class TradeService {
         int offerIndex,
         @NotNull ClickType clickType
     ) {
+        if (!isTradeAllowedWorld(player)) {
+            messageService.send(player, PlayerMsgId.P_6210);
+            return false;
+        }
         TradeSession session = getOpenSession(player.getUniqueId());
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (session == null || astPlayer == null
@@ -561,6 +598,12 @@ public final class TradeService {
                 cancelTrade(session);
                 return;
             }
+            if (!isTradeAllowedWorld(playerA) || !isTradeAllowedWorld(playerB)) {
+                sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6210);
+                sendIfOnline(session.getPlayerBUuid(), PlayerMsgId.P_6210);
+                cancelTrade(session);
+                return;
+            }
             if (!hasAnyOffer(session)) {
                 cancelTrade(session);
                 return;
@@ -582,21 +625,6 @@ public final class TradeService {
             }
             List<TradeCommitItem> playerACommitItems = session.getCommitItems(session.getPlayerAUuid());
             List<TradeCommitItem> playerBCommitItems = session.getCommitItems(session.getPlayerBUuid());
-            if (!canReceiveItems(
-                session.getPlayerBUuid(),
-                session.getItems(session.getPlayerAUuid()),
-                playerBCommitItems
-            ) || !canReceiveItems(
-                session.getPlayerAUuid(),
-                session.getItems(session.getPlayerBUuid()),
-                playerACommitItems
-            )) {
-                session.resetReady();
-                sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6209);
-                sendIfOnline(session.getPlayerBUuid(), PlayerMsgId.P_6209);
-                refreshBoth(session);
-                return;
-            }
             if (inventorySaveCoordinator == null || tradeRepository == null
                 || playerACommitItems.size() != session.getItems(session.getPlayerAUuid()).size()
                 || playerBCommitItems.size() != session.getItems(session.getPlayerBUuid()).size()) {
@@ -684,7 +712,7 @@ public final class TradeService {
             reconciliations.add(coordinator.completePreparedExternalOperation(
                 recovery.playerAPrepared(),
                 baseline -> {
-                    inventoryService.reconcileExternalInventoryEntries(
+                    inventoryService.reconcileTradeInventoryEntries(
                         session.getPlayerAAccountId(),
                         recovery.result().playerAAffectedInventoryEntryIds(),
                         baseline
@@ -697,7 +725,7 @@ public final class TradeService {
             reconciliations.add(coordinator.completePreparedExternalOperation(
                 recovery.playerBPrepared(),
                 baseline -> {
-                    inventoryService.reconcileExternalInventoryEntries(
+                    inventoryService.reconcileTradeInventoryEntries(
                         session.getPlayerBAccountId(),
                         recovery.result().playerBAffectedInventoryEntryIds(),
                         baseline
@@ -795,6 +823,10 @@ public final class TradeService {
     private void openTrade(@NotNull Player player, @NotNull TradeSession session, boolean suppressCurrentClose) {
         if (!AccountModeGuard.isGameplayPlayer(player)) {
             messageService.send(player, PlayerMsgId.P_5065);
+            return;
+        }
+        if (!isTradeAllowedWorld(player)) {
+            messageService.send(player, PlayerMsgId.P_6210);
             return;
         }
         if (suppressCurrentClose) {
@@ -948,65 +980,6 @@ public final class TradeService {
         }
     }
 
-    private boolean simulateIncomingItems(@NotNull AstPlayer astPlayer, @NotNull List<ItemStack> items) {
-        for (ItemStack item : items) {
-            if (item == null || item.getType().isAir()) {
-                continue;
-            }
-            ItemStack clone = item.clone();
-            ItemModel model = itemReferenceResolver.resolveItemModel(clone);
-            if (model == null
-                || !inventoryService.canAddItemToNormalInventory(astPlayer, model, clone.getAmount())
-                || inventoryService.returnItemToOwnedInventory(astPlayer, clone) == null) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private boolean canReceiveItems(
-        @NotNull UUID playerUuid,
-        @NotNull List<ItemStack> incomingItems,
-        @NotNull List<TradeCommitItem> outgoingItems
-    ) {
-        Player player = Bukkit.getPlayer(playerUuid);
-        AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
-        if (player == null || astPlayer == null) {
-            return false;
-        }
-        InventoryService.InventoryStateSnapshot stateSnapshot =
-            inventoryService.snapshotState(astPlayer.getAccount().getUuid());
-        if (stateSnapshot == null) {
-            return false;
-        }
-        boolean receivable;
-        boolean restored;
-        try {
-            Map<UUID, Long> reservedAmounts = reservedEntryAmounts(outgoingItems);
-            receivable = reservedAmounts != null
-                && inventoryService.removeOwnedEntryAmountsForCapacityCheck(astPlayer, reservedAmounts)
-                && simulateIncomingItems(astPlayer, incomingItems);
-        } finally {
-            restored = inventoryService.restoreState(stateSnapshot);
-        }
-        return restored && receivable;
-    }
-
-    private @Nullable Map<UUID, Long> reservedEntryAmounts(@NotNull List<TradeCommitItem> items) {
-        Map<UUID, Long> amounts = new HashMap<>();
-        for (TradeCommitItem item : items) {
-            if (item.quantity() <= 0L) {
-                return null;
-            }
-            try {
-                amounts.merge(item.sourceInventoryEntryId(), item.quantity(), Math::addExact);
-            } catch (ArithmeticException overflow) {
-                return null;
-            }
-        }
-        return Map.copyOf(amounts);
-    }
-
     private boolean allTradeable(@NotNull List<ItemStack> items) {
         return items.stream().allMatch(this::isTradeable);
     }
@@ -1035,6 +1008,25 @@ public final class TradeService {
         Player player = Bukkit.getPlayer(playerUuid);
         AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
         return astPlayer == null ? null : astPlayer.getAccount().getUuid();
+    }
+
+    /**
+     * トレードの開始・操作を許可するワールドか判定します。
+     * <p>
+     * 通常の拠点ワールド、およびスキルツリーサービスが解決する専用ワールドだけを許可します。
+     * 未登録ワールドやサービス未初期化時は許可しません。
+     *
+     * @param player 判定対象プレイヤー
+     * @return トレードを開始または操作できる場合は {@code true}
+     */
+    public boolean isTradeAllowedWorld(@NotNull Player player) {
+        WorldService worldService = plugin.getWorldService();
+        WorldMasterData worldData = worldService == null ? null : worldService.findByBukkitWorld(player.getWorld());
+        if (worldData != null && worldData.worldType() == WorldType.BASE) {
+            return true;
+        }
+        SkillTreeService skillTreeService = plugin.getSkillTreeService();
+        return skillTreeService != null && skillTreeService.isSkillTreeWorld(player.getWorld());
     }
 
     private void closeParticipants(@NotNull TradeSession session) {

@@ -24,6 +24,7 @@ import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
@@ -169,6 +170,20 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
         tradeService.cancelTrade(event.getPlayer());
+    }
+
+    /**
+     * 許可対象外ワールドへの移動時に、開いているトレードを中止します。
+     *
+     * @param event ワールド移動イベント
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onPlayerChangedWorld(@NotNull PlayerChangedWorldEvent event) {
+        Player player = event.getPlayer();
+        if (tradeService.getOpenSession(player.getUniqueId()) != null
+            && !tradeService.isTradeAllowedWorld(player)) {
+            tradeService.cancelTrade(player);
+        }
     }
 
     private void handleTradeClick(@NotNull InventoryClickEvent event) {

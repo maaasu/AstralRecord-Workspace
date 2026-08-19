@@ -106,6 +106,8 @@ public final class TradeSession {
 
     /**
      * 提示 item と API 確定で使う元 inventory entry ID を同時に更新します。
+     * <p>
+     * 提示内容の変更は、各プレイヤーが明示的に切り替えた ready 状態を変更しません。
      *
      * @param playerUuid 提示者 UUID
      * @param items 提示 item
@@ -131,8 +133,6 @@ public final class TradeSession {
             playerBItems = clones;
             playerBItemSourceEntryIds = normalizedSourceIds;
         }
-        playerAReady = false;
-        playerBReady = false;
         touch();
     }
 
@@ -162,6 +162,15 @@ public final class TradeSession {
         return offerIndex < 0 || offerIndex >= sourceIds.size() ? null : sourceIds.get(offerIndex);
     }
 
+    /**
+     * 提示 Gold を更新します。
+     * <p>
+     * 金額は 0 以上へ正規化します。提示内容の変更は、各プレイヤーが明示的に切り替えた
+     * ready 状態を変更しません。
+     *
+     * @param playerUuid 提示者 UUID
+     * @param amount 更新後の提示額
+     */
     public void setGoldAmount(@NotNull UUID playerUuid, long amount) {
         long normalized = Math.max(0L, amount);
         if (playerAUuid.equals(playerUuid)) {
@@ -175,8 +184,6 @@ public final class TradeSession {
             }
             playerBGoldAmount = normalized;
         }
-        playerAReady = false;
-        playerBReady = false;
         touch();
     }
 
