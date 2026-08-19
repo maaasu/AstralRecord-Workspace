@@ -11,12 +11,16 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.title.Title;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -38,6 +42,7 @@ import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
+import java.time.Duration;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -67,6 +72,11 @@ public final class HookshotUseService {
     private static final int TRAIL_INTERVAL_TICKS = 2;
     private static final int MAX_TETHER_PARTICLE_POINTS = 12;
     private static final int LOAD_ACTION_BAR_LENGTH = 16;
+    private static final Title.Times FIRE_FEEDBACK_TITLE_TIMES = Title.Times.times(
+        Duration.ZERO,
+        Duration.ofMillis(1400L),
+        Duration.ofMillis(200L)
+    );
     private static final String ANCHOR_DISPLAY_TAG = "astralrecord_hookshot_anchor";
     private static final NamespacedKey LOADING_MOVEMENT_SPEED_MODIFIER_KEY =
         new NamespacedKey("astralrecord", "hookshot_loading_slowdown");
@@ -159,6 +169,7 @@ public final class HookshotUseService {
     /**
      * 現在の主手フックショットを装填します。素材・耐久は開始時に消費しません。
      * <p>
+     * フックが不足している場合は装填taskを開始せず、エラーを表示します。フックがある場合は
      * 30 tick の装填を完了した時点で、hook 1個の消費と metadata の loaded 化を同じ inventory state lock で確定します。
      *
      * @param player 装填プレイヤー
@@ -193,6 +204,14 @@ public final class HookshotUseService {
         if (!bukkitPlayer.isOnline() || bukkitPlayer.isDead()) {
             return;
         }
+        if (inventoryService.getNormalItemAmount(
+            player.getAccount().getUuid(),
+            HookshotCostService.HOOK_ITEM_ID
+        ) < HookshotCostService.HOOK_AMOUNT_PER_LOAD) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5271);
+            playDenied(bukkitPlayer);
+            return;
+        }
 
         UUID playerId = bukkitPlayer.getUniqueId();
         LoadingHook loading = new LoadingHook(
@@ -220,7 +239,7 @@ public final class HookshotUseService {
     }
 
     /**
-     * 現在の視線上にフックショットが発射可能な固体アンカーがあるかを副作用なしで判定します。
+     * 現在の視線上にフックショットが発射可能な固体アンカーがあるかを副作用なく判定します。
      *
      * @param player 照準を確認するプレイヤー
      * @return 最大射程内の最初の命中先が固体blockの場合はtrue
@@ -229,7 +248,7 @@ public final class HookshotUseService {
         return findAnchor(player.getBukkit()) != null;
     }
 
-    /** 装填済みの主手フックショットで、副作用なく発射候補を返せるか判定します。 */
+    /** 装填済みの主手フックショットで、副作用なく発射試行候補を返せるか判定します。的なしはfire側で通知します。 */
     public boolean canFire(@NotNull AstPlayer player, @NotNull String expectedInstanceId) {
         if (!isPlayerMode(player) || player.isSkillCasting()) {
             return false;
@@ -237,15 +256,14 @@ public final class HookshotUseService {
         UUID playerId = player.getBukkit().getUniqueId();
         return !activeHooks.containsKey(playerId)
             && !loadingHooks.containsKey(playerId)
-            && isCurrentHookshotLoaded(player, expectedInstanceId)
-            && hasValidAnchor(player);
+            && isCurrentHookshotLoaded(player, expectedInstanceId);
     }
 
     /**
      * 装填済みの現在の主手フックショットを発射します。
      * <p>
      * 固体blockへ命中した場合だけ耐久を消費して loaded 状態を外し、BlockDisplay と tether particle を生成して牽引を開始します。
-     * 無効照準・耐久不足時には loaded 状態を保持します。
+     * 無効照準・耐久不足時には loaded 状態を保持します。無効照準時はタイトルを空欄にした灰色subtitleを表示します。
      *
      * @param player 発射プレイヤー
      */
@@ -273,6 +291,7 @@ public final class HookshotUseService {
         }
         Location anchor = findAnchor(bukkitPlayer);
         if (anchor == null) {
+            showMissFeedback(bukkitPlayer);
             playDenied(bukkitPlayer);
             return;
         }
@@ -683,6 +702,14 @@ public final class HookshotUseService {
             0.6F,
             1.0F
         );
+    }
+
+    private void showMissFeedback(@NotNull Player player) {
+        player.showTitle(Title.title(
+            Component.empty(),
+            PlayerMsgResource.getComponent(PlayerMsgId.P_5272.getId()),
+            FIRE_FEEDBACK_TITLE_TIMES
+        ));
     }
 
     private static boolean isPlayerMode(@NotNull AstPlayer player) {

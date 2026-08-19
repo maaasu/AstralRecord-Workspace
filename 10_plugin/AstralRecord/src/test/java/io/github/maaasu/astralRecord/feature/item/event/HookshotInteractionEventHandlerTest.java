@@ -105,7 +105,7 @@ class HookshotInteractionEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-イベント.md
      * 章・見出し: # 04_3-イベント > ## 1. クリック入力受付 > ### フックショット入力候補解決
-     * 検証契約: 左クリックは装填済みかつ有効な固体アンカーを再確認できる場合だけ発射候補を返す。
+     * 検証契約: 左クリックは装填済みかつ発射可能な状態を再確認できる場合に発射候補を返す。
      */
     @Test
     void doesNotResolveLeftClickWhenLoadedShotCannotFire() {
@@ -120,6 +120,34 @@ class HookshotInteractionEventHandlerTest {
             cache.when(() -> AstPlayerCache.get(fixture.player())).thenReturn(fixture.astPlayer());
             assertTrue(handler.resolve(hookshotContext(fixture, InputFamily.LEFT_CLICK, Action.LEFT_CLICK_AIR)).isEmpty());
         }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-イベント.md
+     * 章・見出し: # 04_3-イベント > ## 1. クリック入力受付 > ### フックショット入力候補解決
+     * 検証契約: 装填済みフックショットは的がない場合も発射候補を返し、executorで不命中通知を表示する。
+     */
+    @Test
+    void resolvesLoadedLeftClickWithoutAnchorForMissFeedback() {
+        HandlerFixture fixture = handlerFixture();
+        when(fixture.service().findCurrentHookshotInstanceId(fixture.astPlayer())).thenReturn("hookshot-instance");
+        when(fixture.service().isCurrentHookshotLoaded(fixture.astPlayer(), "hookshot-instance"))
+            .thenReturn(true);
+        when(fixture.service().canFire(fixture.astPlayer(), "hookshot-instance")).thenReturn(true);
+        HookshotInteractionEventHandler handler = new HookshotInteractionEventHandler(fixture.service());
+
+        PlayerInputCandidate candidate;
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(fixture.player())).thenReturn(fixture.astPlayer());
+            candidate = handler.resolve(hookshotContext(
+                fixture,
+                InputFamily.LEFT_CLICK,
+                Action.LEFT_CLICK_AIR
+            )).stream().findFirst().orElseThrow();
+        }
+
+        assertTrue(candidate.executeIfValid());
+        verify(fixture.service()).fire(fixture.astPlayer());
     }
 
     /**

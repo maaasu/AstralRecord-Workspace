@@ -15,6 +15,11 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.title.Title;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -33,6 +38,7 @@ import org.bukkit.util.Vector;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
+import org.mockito.MockedStatic;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -89,6 +95,37 @@ class HookshotUseServiceTest {
         );
 
         assertEquals(HookshotUseService.MAX_PULL_SPEED, velocity.length(), 1.0E-9D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
+     * 検証契約: フック不足時は装填task・移動低下を開始せず、エラーメッセージだけを送る。
+     */
+    @Test
+    void refusesToStartLoadingWithoutHook() {
+        Fixture fixture = createFixture(null);
+        when(fixture.inventoryService().getNormalItemAmount(
+            fixture.accountId(),
+            HookshotCostService.HOOK_ITEM_ID
+        )).thenReturn(0L);
+
+        try (MockedStatic<Bukkit> bukkit = org.mockito.Mockito.mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of());
+            fixture.service().startLoading(fixture.astPlayer());
+        }
+
+        verify(fixture.scheduler(), never()).runTaskTimer(
+            eq(fixture.plugin()),
+            any(Runnable.class),
+            anyLong(),
+            anyLong()
+        );
+        verify(fixture.movementSpeed(), never()).addTransientModifier(any());
+        ArgumentCaptor<Component> message = ArgumentCaptor.forClass(Component.class);
+        verify(fixture.player()).sendMessage(message.capture());
+        assertTrue(PlainTextComponentSerializer.plainText().serialize(message.getValue())
+            .contains("フックがありません"));
     }
 
     /**
@@ -303,14 +340,22 @@ class HookshotUseServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### フックショット
-     * 検証契約: 装填済みでも無効照準では耐久・loaded状態・表示・taskを変更しない。
+     * 検証契約: 装填済みでも無効照準では不命中subtitleを表示し、耐久・loaded状態・牽引表示・taskを変更しない。
      */
     @Test
-    void preservesLoadedStateWhenAimHitsNoSolidBlock() {
+    void showsMissTitleAndPreservesLoadedStateWhenAimHitsNoSolidBlock() {
         Fixture fixture = createFixture(null, "{\"hookshot\":{\"loaded\":true}}");
 
         fixture.service().fire(fixture.astPlayer());
 
+        ArgumentCaptor<Title> title = ArgumentCaptor.forClass(Title.class);
+        verify(fixture.player()).showTitle(title.capture());
+        assertEquals(Component.empty(), title.getValue().title());
+        assertEquals(
+            "フックが命中しませんでした。",
+            PlainTextComponentSerializer.plainText().serialize(title.getValue().subtitle())
+        );
+        assertEquals(NamedTextColor.GRAY, title.getValue().subtitle().color());
         verify(fixture.itemService(), never()).updateEquipmentDurability(anyString(), anyInt(), anyString());
         verify(fixture.inventoryService(), never()).updateHotbarEquipmentMetadata(
             any(), any(), anyString(), any(), any()
@@ -414,6 +459,10 @@ class HookshotUseServiceTest {
         when(durability.getConsume()).thenReturn(1);
         when(inventoryService.getHotbarEntryInHand(astPlayer, EquipmentSlot.HAND)).thenReturn(entry);
         when(inventoryService.getItemReferenceInHand(astPlayer, EquipmentSlot.HAND)).thenReturn(reference);
+        when(inventoryService.getNormalItemAmount(
+            accountId,
+            HookshotCostService.HOOK_ITEM_ID
+        )).thenReturn(HookshotCostService.HOOK_AMOUNT_PER_LOAD);
         when(itemService.findLoadedById("hookshot")).thenReturn(model);
         when(itemService.findEquipmentInstanceById(instanceId)).thenReturn(current);
         AstPlayerCache.put(astPlayer);
