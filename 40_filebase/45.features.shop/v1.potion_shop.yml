@@ -31,6 +31,13 @@ items:
     page: 1
     slot: 2
     priceGold: 60
+    requiredItems:
+      - itemId:
+          ref: item:nox_moonshadowgrass_leaf
+        amount: 1
+      - itemId:
+          ref: item:nox_dewgrass_leaf
+        amount: 2
   - id: healing_potion_medium
     itemId:
       ref: item:healing_potion_medium
@@ -39,3 +46,13 @@ items:
     page: 1
     slot: 3
     priceGold: 35
+    requiredItems:
+      - itemId:
+          ref: item:windleaf_sprig
+        amount: 2
+      - itemId:
+          ref: item:glimmercap_spore
+        amount: 1
+      - itemId:
+          ref: item:nox_dewgrass_leaf
+        amount: 1
