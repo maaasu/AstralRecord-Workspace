@@ -1610,7 +1610,7 @@ public class InventoryService {
             if (guiSlotIndex < 0 || guiSlotIndex >= playerInventory.getStorageContents().length) {
                 continue;
             }
-            ItemStack itemStack = itemStackResolver.resolve(entry, state.getAccountId());
+            ItemStack itemStack = itemStackResolver.resolveForBag(entry, state.getAccountId());
             if (itemStack == null) {
                 continue;
             }
@@ -1719,7 +1719,9 @@ public class InventoryService {
             ).thenComparing(InventoryEntryModel::getCreatedAt))
             .map(entry -> inventoryType == InventoryType.CURRENCY
                 ? itemStackResolver.resolveCurrencyDisplay(entry, accountId)
-                : itemStackResolver.resolve(entry, accountId))
+                : inventoryType == InventoryType.BAG
+                    ? itemStackResolver.resolveForBag(entry, accountId)
+                    : itemStackResolver.resolve(entry, accountId))
             .filter(itemStack -> itemStack != null && itemStack.getType() != Material.AIR)
             .toList();
         if (inventoryType != InventoryType.CURRENCY
