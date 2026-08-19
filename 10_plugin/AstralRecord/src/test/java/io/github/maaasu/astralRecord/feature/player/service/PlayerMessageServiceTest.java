@@ -9,11 +9,13 @@ import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 
 import java.util.Set;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -115,9 +117,30 @@ class PlayerMessageServiceTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-コマンド.md
+     * 章・見出し: # 04_3-コマンド > ## 9. showitem コマンド
+     * 検証契約: 全体チャットのアイテム名全体に COPY_TO_CLIPBOARD を設定し、表示名をそのままコピーする。
+     */
+    @Test
+    void globalItemChatMakesWholeItemNameCopyable() {
+        Player sender = onlinePlayer();
+        when(sender.getName()).thenReturn("Alice");
+        PlayerMessageService service = new PlayerMessageService();
+        ItemStack itemTooltip = mock(ItemStack.class);
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(Set.of(sender));
+            service.broadcastGlobalItemChat(sender, "星詠みの剣", itemTooltip);
+
+            assertTrue(hasCopyToClipboard(captureMessage(sender), "星詠みの剣"));
+        }
+    }
+
     private Player onlinePlayer() {
         Player player = mock(Player.class);
         when(player.isOnline()).thenReturn(true);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         return player;
     }
 
@@ -152,5 +175,18 @@ class PlayerMessageServiceTest {
             }
         }
         return component.children().stream().allMatch(child -> hasNoRunCommand(child, command));
+    }
+
+    private boolean hasCopyToClipboard(Component component, String text) {
+        ClickEvent clickEvent = component.clickEvent();
+        if (clickEvent != null && clickEvent.action() == ClickEvent.Action.COPY_TO_CLIPBOARD) {
+            ClickEvent.Payload.Text payload = assertInstanceOf(
+                ClickEvent.Payload.Text.class,
+                clickEvent.payload()
+            );
+            assertEquals(text, payload.value());
+            return true;
+        }
+        return component.children().stream().anyMatch(child -> hasCopyToClipboard(child, text));
     }
 }

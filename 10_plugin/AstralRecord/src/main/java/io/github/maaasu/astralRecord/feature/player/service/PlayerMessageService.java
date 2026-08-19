@@ -179,15 +179,13 @@ public final class PlayerMessageService {
      * アイテム名をホバー・コピー操作付きで全体チャットへ配信する。
      *
      * @param sender 送信者
-     * @param itemName チャットへ表示するアイテム名
+     * @param itemName チャットへ表示し、クリック時にコピーする装飾なしのアイテム名
      * @param itemTooltip ホバー表示に使うアイテムのスナップショット
-     * @param clipboardText クリック時にコピーする表示名
      */
     public void broadcastGlobalItemChat(
         @NotNull Player sender,
-        @NotNull Component itemName,
-        @NotNull ItemStack itemTooltip,
-        @NotNull String clipboardText
+        @NotNull String itemName,
+        @NotNull ItemStack itemTooltip
     ) {
         Component component = PlayerMsgResource.formatComponent(
             PlayerMsgId.P_5941.getId(),
@@ -195,9 +193,9 @@ public final class PlayerMessageService {
             sender.getName(),
             ""
         ).append(
-            itemName
+            Component.text(itemName)
                 .hoverEvent(itemTooltip.asHoverEvent())
-                .clickEvent(ClickEvent.copyToClipboard(clipboardText))
+                .clickEvent(ClickEvent.copyToClipboard(itemName))
         );
         for (Player recipient : Bukkit.getOnlinePlayers()) {
             if (recipient.isOnline()) {

@@ -76,18 +76,21 @@ public final class ItemChatShareService {
             return false;
         }
 
-        String clipboardText = PLAIN_TEXT.serialize(displayName).strip();
-        if (clipboardText.isBlank()) {
+        String shareName = resolvePlainDisplayName(item);
+        if (shareName == null) {
             return false;
         }
 
         PlayerMessageService.getInstance().broadcastGlobalItemChat(
             player,
-            displayName,
-            item.clone(),
-            clipboardText
+            shareName,
+            item.clone()
         );
         return true;
+    }
+
+    private @NotNull String removeShareDecoration(@NotNull String displayName) {
+        return displayName.replaceFirst("◆\\s*", "").strip();
     }
 
     private @Nullable String resolvePlainDisplayName(@Nullable ItemStack item) {
@@ -96,6 +99,7 @@ public final class ItemChatShareService {
             return null;
         }
         String plainText = PLAIN_TEXT.serialize(displayName).strip();
+        plainText = removeShareDecoration(plainText);
         return plainText.isBlank() ? null : plainText;
     }
 

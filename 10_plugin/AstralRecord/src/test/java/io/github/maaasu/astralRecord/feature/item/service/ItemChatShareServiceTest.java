@@ -35,6 +35,21 @@ class ItemChatShareServiceTest extends MockBukkitTestBase {
         assertSame(first, service.findShareableItem(contents, "星詠みの剣"));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-コマンド.md
+     * 章・見出し: # 04_3-コマンド > ## 9. showitem コマンド
+     * 検証契約: /si の候補・解決名ではアイテム名の ◆ 装飾を除き、装飾なしの名前を使用する。
+     */
+    @Test
+    void removesDecorativeMarkerFromShareableName() {
+        ItemChatShareService service = new ItemChatShareService();
+        ItemStack item = astralItem("star_sword", "◆ 星詠みの剣");
+        ItemStack[] contents = {item};
+
+        assertEquals(List.of("星詠みの剣"), service.getShareableItemNames(contents));
+        assertSame(item, service.findShareableItem(contents, "星詠みの剣"));
+    }
+
     private @NotNull ItemStack astralItem(@NotNull String itemId, @NotNull String displayName) {
         ItemStack item = new ItemStack(Material.PAPER);
         ItemMeta meta = item.getItemMeta();
