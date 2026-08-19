@@ -53,6 +53,9 @@ import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeDeathPolicy;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeStartCountdown;
+import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueue;
+import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueueConfig;
+import io.github.maaasu.astralRecord.shared.challenge.InstanceQueueTitleRenderer;
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
@@ -137,6 +140,7 @@ public final class DungeonService {
     private final DungeonRewardGui rewardGui;
     private final DungeonMapGui mapGui;
     private final DungeonArchiveGui archiveGui;
+    private final InstanceCreationQueue creationQueue;
     private final String hubWorldId;
 
     private volatile Map<String, LoadedDefinition> loadedDefinitions = Map.of();
@@ -195,6 +199,67 @@ public final class DungeonService {
             @NotNull AdventureRecordRepository adventureRecordRepository,
             @NotNull String hubWorldId
     ) {
+        this(
+                plugin,
+                repository,
+                worldService,
+                partyService,
+                mobService,
+                messageService,
+                particleDisplayService,
+                displayTextService,
+                playerDeathService,
+                mobDropService,
+                inventoryService,
+                itemService,
+                itemStackFactory,
+                lootService,
+                adventureRecordRepository,
+                hubWorldId,
+                new InstanceCreationQueue(InstanceCreationQueueConfig.DEFAULT_DUNGEON)
+        );
+    }
+
+    /**
+     * ダンジョンサービスをインスタンス作成枠キュー付きで構成します。
+     *
+     * @param plugin Plugin 本体
+     * @param repository ダンジョン定義リポジトリ
+     * @param worldService World 管理サービス
+     * @param partyService パーティー管理サービス
+     * @param mobService Mob 管理サービス
+     * @param messageService プレイヤーメッセージサービス
+     * @param particleDisplayService パーティクル表示サービス
+     * @param displayTextService TextDisplay サービス
+     * @param playerDeathService 死亡・復帰サービス
+     * @param mobDropService クリア報酬抽選サービス
+     * @param inventoryService 報酬付与先インベントリ
+     * @param itemService アイテム定義サービス
+     * @param itemStackFactory 報酬GUIのItemStack生成サービス
+     * @param lootService ルートテーブルサービス
+     * @param adventureRecordRepository 踏破記録リポジトリ
+     * @param hubWorldId 生成待機中に参加者を退避するHub World ID
+     * @param creationQueue インスタンス作成枠キュー
+     */
+    public DungeonService(
+            @NotNull AstralRecord plugin,
+            @NotNull DungeonDefinitionRepository repository,
+            @NotNull WorldService worldService,
+            @NotNull PartyService partyService,
+            @NotNull MobService mobService,
+            @NotNull PlayerMessageService messageService,
+            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull DisplayTextService displayTextService,
+            @NotNull PlayerDeathService playerDeathService,
+            @NotNull MobDropService mobDropService,
+            @NotNull InventoryService inventoryService,
+            @NotNull ItemService itemService,
+            @NotNull ItemStackFactory itemStackFactory,
+            @NotNull LootService lootService,
+            @NotNull AdventureRecordRepository adventureRecordRepository,
+            @NotNull String hubWorldId,
+            @NotNull InstanceCreationQueue creationQueue
+    ) {
         this.plugin = plugin;
         this.repository = repository;
         this.validator = new DungeonDefinitionValidator();
@@ -220,6 +285,7 @@ public final class DungeonService {
         this.rewardGui = new DungeonRewardGui(itemService, itemStackFactory);
         this.mapGui = new DungeonMapGui();
         this.archiveGui = new DungeonArchiveGui(itemService, itemStackFactory);
+        this.creationQueue = creationQueue;
         this.hubWorldId = hubWorldId;
     }
 
@@ -432,6 +498,7 @@ public final class DungeonService {
                 participantIds,
                 returnLocations
         );
+        session.reservedCreationSlot = creationQueue.isDonor(leader);
         sessionsById.put(sessionId, session);
         sessionIdByPartyKey.put(partyKey, sessionId);
         Logger.log(LogId.I_7001, sessionId.toString(), dungeonId, seed, participantCount);
@@ -520,8 +587,39 @@ public final class DungeonService {
                         completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
                         return;
                     }
-                    prepareAsync(session);
+                    enqueueInstanceCreation(session);
                 }));
+    }
+
+    /** Hub滞在確認後に作成枠を確保し、空き次第で生成を開始します。 */
+    private void enqueueInstanceCreation(@NotNull Session session) {
+        InstanceCreationQueue.Ticket ticket = creationQueue.enqueue(
+                session.id,
+                List.copyOf(session.participants),
+                session.reservedCreationSlot,
+                session.loaded.definition().displayName(),
+                ignored -> beginQueuedInstanceCreation(session)
+        );
+        session.creationQueueTicketId = ticket.id();
+        renderQueueStatus(session, ticket);
+    }
+
+    private void beginQueuedInstanceCreation(@NotNull Session session) {
+        if (session.ending || stopping || sessionsById.get(session.id) != session) {
+            return;
+        }
+        WorldMasterData hubData = worldService.getById(hubWorldId);
+        if (hubData == null) {
+            completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
+            return;
+        }
+        retainEligiblePreparingParticipants(session, hubData);
+        if (session.participants.size() < session.loaded.definition().partySize().min()) {
+            completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
+            return;
+        }
+        clearQueueTitles(session.participants);
+        prepareAsync(session);
     }
 
     private @NotNull List<Player> snapshotParticipants(@NotNull Player leader, @Nullable Party party) {
@@ -2002,6 +2100,12 @@ public final class DungeonService {
         UUID sessionId = sessionIdByParticipant.get(playerId);
         Session session = sessionId == null ? null : sessionsById.get(sessionId);
         if (session != null && !session.ending) {
+            if (session.creationQueueTicketId != null
+                    && creationQueue.cancelWaiting(session.creationQueueTicketId)) {
+                clearQueueTitles(session.participants);
+                completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
+                return;
+            }
             finalizeParticipantRemoval(session, playerId, false);
         }
         for (Session active : sessionsById.values()) {
@@ -2250,6 +2354,10 @@ public final class DungeonService {
         if (session.ending) {
             return;
         }
+        if (session.creationQueueTicketId != null) {
+            creationQueue.cancelWaiting(session.creationQueueTicketId);
+            clearQueueTitles(session.originalParticipants);
+        }
         session.ending = true;
         cartographBindings.removeSession(session.id);
         long endingGeneration = ++session.transferGeneration;
@@ -2319,6 +2427,10 @@ public final class DungeonService {
     private void finishSessionCleanup(@NotNull Session session, long endingGeneration) {
         if (!isEndingTransferCallback(session, endingGeneration)) return;
         session.transferGeneration++;
+        if (session.creationQueueTicketId != null) {
+            creationQueue.release(session.creationQueueTicketId);
+            session.creationQueueTicketId = null;
+        }
         sessionsById.remove(session.id, session);
         sessionIdByPartyKey.remove(session.partyKey, session.id);
         if (session.instanceWorld != null) {
@@ -2441,6 +2553,10 @@ public final class DungeonService {
             entryVisualTask = null;
         }
         clearEntryPromptDisplays();
+        for (InstanceCreationQueue.Ticket ticket : creationQueue.waitingTickets()) {
+            clearQueueTitles(ticket.participantIds());
+        }
+        creationQueue.clear();
         for (Session session : List.copyOf(sessionsById.values())) {
             session.ending = true;
             closeSessionGuis(session);
@@ -2595,6 +2711,7 @@ public final class DungeonService {
 
     /** ロード済み受付地点のうち、近隣プレイヤーがいる地点へダンジョン専用演出を表示します。 */
     private void tickEntryVisuals() {
+        refreshCreationQueue();
         double pulse = 0.08D * Math.sin(entryVisualFrame * 0.35D);
         Set<String> activePromptIds = new HashSet<>();
         for (LoadedDefinition loaded : loadedDefinitions.values()) {
@@ -2635,6 +2752,75 @@ public final class DungeonService {
             );
         }
         entryVisualFrame++;
+    }
+
+    /** 待機中DungeonのHub滞在を確認し、順番表示を更新します。 */
+    private void refreshCreationQueue() {
+        for (InstanceCreationQueue.Ticket ticket : creationQueue.waitingTickets()) {
+            Session session = sessionsById.get(ticket.id());
+            if (session == null || session.ending) {
+                creationQueue.cancelWaiting(ticket.id());
+                continue;
+            }
+            if (!isQueuedParticipantPresent(session, ticket)) {
+                creationQueue.cancelWaiting(ticket.id());
+                completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
+                continue;
+            }
+            renderQueueStatus(session, ticket);
+        }
+    }
+
+    private boolean isQueuedParticipantPresent(
+            @NotNull Session session,
+            @NotNull InstanceCreationQueue.Ticket ticket
+    ) {
+        WorldMasterData hubData = worldService.getById(hubWorldId);
+        World hubWorld = hubData == null ? null : worldService.resolveLoadedWorld(hubData);
+        if (hubWorld == null) {
+            return false;
+        }
+        for (UUID participantId : ticket.participantIds()) {
+            Player player = Bukkit.getPlayer(participantId);
+            if (player == null || !player.isOnline()
+                    || !session.participants.contains(participantId)
+                    || !AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(player))
+                    || !player.getWorld().getUID().equals(hubWorld.getUID())) {
+                return false;
+            }
+        }
+        return !ticket.participantIds().isEmpty();
+    }
+
+    private void renderQueueStatus(
+            @NotNull Session session,
+            @NotNull InstanceCreationQueue.Ticket ticket
+    ) {
+        InstanceCreationQueue.QueuePosition position = creationQueue.position(ticket.id());
+        if (position == null) {
+            return;
+        }
+        for (UUID participantId : ticket.participantIds()) {
+            Player player = Bukkit.getPlayer(participantId);
+            if (player != null && player.isOnline()) {
+                InstanceQueueTitleRenderer.show(
+                        player,
+                        PlayerMsgId.P_7092,
+                        PlayerMsgId.P_7093,
+                        session.loaded.definition().displayName(),
+                        position
+                );
+            }
+        }
+    }
+
+    private void clearQueueTitles(@NotNull Collection<UUID> playerIds) {
+        for (UUID playerId : playerIds) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null && player.isOnline()) {
+                player.clearTitle();
+            }
+        }
     }
 
     private void updateEntryPrompt(@NotNull LoadedDefinition loaded, @NotNull Location center) {
@@ -2862,6 +3048,8 @@ public final class DungeonService {
         private boolean combatStarted;
         private boolean cleared;
         private boolean ending;
+        private boolean reservedCreationSlot;
+        private UUID creationQueueTicketId;
         private long transferGeneration = 1L;
 
         private Session(

@@ -37,6 +37,8 @@ public final class BossChallengeInstance {
     private BukkitTask startCountdownTask;
     private DisplayTextService.ManagedTextDisplay resultDisplay;
     private BossBar bossBar;
+    private boolean reservedCreationSlot;
+    private UUID creationQueueTicketId;
 
     public BossChallengeInstance(
             @NotNull UUID challengeId,
@@ -107,6 +109,42 @@ public final class BossChallengeInstance {
 
     public void state(@NotNull BossChallengeState state) {
         this.state = state;
+    }
+
+    /**
+     * この挑戦が寄付者予約枠を要求するか返します。
+     *
+     * @return 予約枠要求なら true
+     */
+    public boolean reservedCreationSlot() {
+        return reservedCreationSlot;
+    }
+
+    /**
+     * 寄付者予約枠の要求状態を設定します。
+     *
+     * @param reservedCreationSlot 予約枠を要求する場合は true
+     */
+    public void reservedCreationSlot(boolean reservedCreationSlot) {
+        this.reservedCreationSlot = reservedCreationSlot;
+    }
+
+    /**
+     * 作成枠キューのチケット ID を返します。
+     *
+     * @return チケット ID。未登録なら null
+     */
+    public @Nullable UUID creationQueueTicketId() {
+        return creationQueueTicketId;
+    }
+
+    /**
+     * 作成枠キューのチケット ID を設定します。
+     *
+     * @param creationQueueTicketId チケット ID
+     */
+    public void creationQueueTicketId(@Nullable UUID creationQueueTicketId) {
+        this.creationQueueTicketId = creationQueueTicketId;
     }
 
     public @Nullable BossFieldInstance field() {

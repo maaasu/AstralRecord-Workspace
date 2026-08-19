@@ -264,6 +264,8 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
+import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueue;
+import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueueConfig;
 import io.github.maaasu.astralRecord.shared.display.OverheadDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionGatewayEventHandler;
@@ -902,6 +904,8 @@ public final class AstralRecord extends JavaPlugin {
             "boss.hubWorldId",
             getConfig().getString("plugin.boss.hubWorldId", "skyhaven_isle")
         );
+        InstanceCreationQueueConfig instanceCreationQueueConfig =
+                InstanceCreationQueueConfig.from(getConfig());
         bossChallengeService = new BossChallengeService(
             this,
             mobService,
@@ -912,7 +916,11 @@ public final class AstralRecord extends JavaPlugin {
             particleDisplayService,
             displayTextService,
             playerDeathService,
-            bossHubWorldId
+            bossHubWorldId,
+            new InstanceCreationQueue(
+                    instanceCreationQueueConfig.boss(),
+                    instanceCreationQueueConfig.donorPermission()
+            )
         );
         damageService.setBossChallengeService(bossChallengeService);
         dungeonService = new DungeonService(
@@ -931,7 +939,11 @@ public final class AstralRecord extends JavaPlugin {
             itemStackFactory,
             lootService,
             new AdventureRecordRepository(),
-            bossHubWorldId
+            bossHubWorldId,
+            new InstanceCreationQueue(
+                    instanceCreationQueueConfig.dungeon(),
+                    instanceCreationQueueConfig.donorPermission()
+            )
         );
         damageService.setDungeonService(dungeonService);
         damageService.setMobDeathListener(dungeonService::handleMobDefeated);

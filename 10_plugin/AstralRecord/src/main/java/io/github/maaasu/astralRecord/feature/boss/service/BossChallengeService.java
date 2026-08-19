@@ -30,6 +30,9 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeDeathPolicy;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeStartCountdown;
+import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueue;
+import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueueConfig;
+import io.github.maaasu.astralRecord.shared.challenge.InstanceQueueTitleRenderer;
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
@@ -93,6 +96,7 @@ public final class BossChallengeService {
     private final ParticleDisplayService particleDisplayService;
     private final DisplayTextService displayTextService;
     private final PlayerDeathService playerDeathService;
+    private final InstanceCreationQueue creationQueue;
     private final String hubWorldId;
     private final Map<UUID, BossChallengeInstance> challengesById = new ConcurrentHashMap<>();
     private final Map<String, UUID> challengeIdByPartyKey = new ConcurrentHashMap<>();
@@ -117,6 +121,49 @@ public final class BossChallengeService {
             @NotNull PlayerDeathService playerDeathService,
             @NotNull String hubWorldId
     ) {
+        this(
+                plugin,
+                mobService,
+                worldService,
+                partyService,
+                messageService,
+                fieldInstanceService,
+                particleDisplayService,
+                displayTextService,
+                playerDeathService,
+                hubWorldId,
+                new InstanceCreationQueue(InstanceCreationQueueConfig.DEFAULT_BOSS)
+        );
+    }
+
+    /**
+     * Boss 挑戦サービスを作成枠キュー付きで構成します。
+     *
+     * @param plugin Plugin 本体
+     * @param mobService Mob サービス
+     * @param worldService World サービス
+     * @param partyService Party サービス
+     * @param messageService プレイヤーメッセージサービス
+     * @param fieldInstanceService Boss フィールド生成サービス
+     * @param particleDisplayService パーティクル表示サービス
+     * @param displayTextService TextDisplay サービス
+     * @param playerDeathService 死亡・復帰サービス
+     * @param hubWorldId 待機HubのWorld ID
+     * @param creationQueue インスタンス作成枠キュー
+     */
+    public BossChallengeService(
+            @NotNull AstralRecord plugin,
+            @NotNull MobService mobService,
+            @NotNull WorldService worldService,
+            @NotNull PartyService partyService,
+            @NotNull PlayerMessageService messageService,
+            @NotNull BossFieldInstanceService fieldInstanceService,
+            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull DisplayTextService displayTextService,
+            @NotNull PlayerDeathService playerDeathService,
+            @NotNull String hubWorldId,
+            @NotNull InstanceCreationQueue creationQueue
+    ) {
         this.plugin = plugin;
         this.mobService = mobService;
         this.worldService = worldService;
@@ -126,6 +173,7 @@ public final class BossChallengeService {
         this.particleDisplayService = particleDisplayService;
         this.displayTextService = displayTextService;
         this.playerDeathService = playerDeathService;
+        this.creationQueue = creationQueue;
         this.hubWorldId = hubWorldId;
     }
 
@@ -159,6 +207,10 @@ public final class BossChallengeService {
             entryVisualTask = null;
         }
         clearEntryPromptDisplays();
+        for (InstanceCreationQueue.Ticket ticket : creationQueue.waitingTickets()) {
+            clearQueueTitles(ticket.participantIds());
+        }
+        creationQueue.clear();
         fieldInstanceService.cancelPendingCreations();
         for (BossChallengeInstance challenge : List.copyOf(challengesById.values())) {
             forceShutdownChallenge(challenge);
@@ -305,6 +357,7 @@ public final class BossChallengeService {
                 config,
                 participants
         );
+        challenge.reservedCreationSlot(creationQueue.isDonor(player));
         challengesById.put(challenge.challengeId(), challenge);
         challengeIdByPartyKey.put(partyKey, challenge.challengeId());
         Logger.log(LogId.I_6500, challenge.challengeId(), template.id(), partyKey);
@@ -654,10 +707,11 @@ public final class BossChallengeService {
         if (challenge == null || challenge.state() != BossChallengeState.PREPARING) {
             return;
         }
-        int readyCount = eligibleParticipantsForEntry(challenge).size();
+        List<Player> readyParticipants = eligibleParticipantsForEntry(challenge);
+        int readyCount = readyParticipants.size();
         if (readyCount < challenge.config().partyMin()) {
             challenge.confirmParticipants(
-                    eligibleParticipantsForEntry(challenge).stream().map(Player::getUniqueId).toList()
+                    readyParticipants.stream().map(Player::getUniqueId).toList()
             );
             notifyExpectedParticipants(
                     challenge,
@@ -669,6 +723,30 @@ public final class BossChallengeService {
             endChallenge(challenge, BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET);
             return;
         }
+        InstanceCreationQueue.Ticket ticket = creationQueue.enqueue(
+                challenge.challengeId(),
+                readyParticipants.stream().map(Player::getUniqueId).toList(),
+                challenge.reservedCreationSlot(),
+                challenge.bossTemplate().displayName(),
+                ignored -> beginQueuedFieldPreparation(challenge, fieldData)
+        );
+        challenge.creationQueueTicketId(ticket.id());
+        renderQueueStatus(challenge, ticket);
+    }
+
+    private void beginQueuedFieldPreparation(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull WorldMasterData fieldData
+    ) {
+        if (challenge.state() != BossChallengeState.PREPARING) {
+            return;
+        }
+        List<Player> participants = eligibleParticipantsForEntry(challenge);
+        if (participants.size() < challenge.config().partyMin()) {
+            endChallenge(challenge, BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET);
+            return;
+        }
+        clearQueueTitles(participants.stream().map(Player::getUniqueId).toList());
         beginFieldPreparation(challenge, fieldData);
     }
 
@@ -883,6 +961,7 @@ public final class BossChallengeService {
     }
 
     private void tick() {
+        refreshCreationQueue();
         long now = System.currentTimeMillis();
         for (BossChallengeInstance challenge : List.copyOf(challengesById.values())) {
             if (challenge.state() != BossChallengeState.IN_PROGRESS) {
@@ -896,6 +975,75 @@ public final class BossChallengeService {
             }
             if (!hasParticipantInField(challenge)) {
                 endChallenge(challenge, BossChallengeEndReason.NO_PARTICIPANTS);
+            }
+        }
+    }
+
+    /** 待機中BossのHub滞在を確認し、順番表示を更新します。 */
+    private void refreshCreationQueue() {
+        for (InstanceCreationQueue.Ticket ticket : creationQueue.waitingTickets()) {
+            BossChallengeInstance challenge = challengesById.get(ticket.id());
+            if (challenge == null || challenge.state() != BossChallengeState.PREPARING) {
+                creationQueue.cancelWaiting(ticket.id());
+                continue;
+            }
+            if (!isQueuedParticipantPresent(challenge, ticket)) {
+                creationQueue.cancelWaiting(ticket.id());
+                endChallenge(challenge, BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET);
+                continue;
+            }
+            renderQueueStatus(challenge, ticket);
+        }
+    }
+
+    private boolean isQueuedParticipantPresent(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull InstanceCreationQueue.Ticket ticket
+    ) {
+        WorldMasterData hubData = worldService.getById(hubWorldId);
+        World hubWorld = hubData == null ? null : worldService.resolveLoadedWorld(hubData);
+        if (hubWorld == null) {
+            return false;
+        }
+        for (UUID participantId : ticket.participantIds()) {
+            Player player = Bukkit.getPlayer(participantId);
+            if (player == null || !player.isOnline()
+                    || !AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(player))
+                    || !stillBelongsToAcceptedParty(challenge, participantId)
+                    || !player.getWorld().getUID().equals(hubWorld.getUID())) {
+                return false;
+            }
+        }
+        return !ticket.participantIds().isEmpty();
+    }
+
+    private void renderQueueStatus(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull InstanceCreationQueue.Ticket ticket
+    ) {
+        InstanceCreationQueue.QueuePosition position = creationQueue.position(ticket.id());
+        if (position == null) {
+            return;
+        }
+        for (UUID participantId : ticket.participantIds()) {
+            Player player = Bukkit.getPlayer(participantId);
+            if (player != null && player.isOnline()) {
+                InstanceQueueTitleRenderer.show(
+                        player,
+                        PlayerMsgId.P_6533,
+                        PlayerMsgId.P_6534,
+                        challenge.bossTemplate().displayName(),
+                        position
+                );
+            }
+        }
+    }
+
+    private void clearQueueTitles(@NotNull Collection<UUID> playerIds) {
+        for (UUID playerId : playerIds) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null && player.isOnline()) {
+                player.clearTitle();
             }
         }
     }
@@ -947,6 +1095,11 @@ public final class BossChallengeService {
             return;
         }
         fieldInstanceService.cancelPendingCreation(challenge.challengeId());
+        UUID queueTicketId = challenge.creationQueueTicketId();
+        if (queueTicketId != null) {
+            creationQueue.cancelWaiting(queueTicketId);
+            clearQueueTitles(challenge.expectedParticipantIds());
+        }
         challenge.state(BossChallengeState.ENDING);
         cancelStartCountdown(challenge);
         destroyCancelController(challenge.challengeId());
@@ -1037,6 +1190,11 @@ public final class BossChallengeService {
 
     private void finishChallengeRemoval(@NotNull BossChallengeInstance challenge) {
         destroyBossBar(challenge);
+        UUID queueTicketId = challenge.creationQueueTicketId();
+        if (queueTicketId != null) {
+            creationQueue.release(queueTicketId);
+            challenge.creationQueueTicketId(null);
+        }
         challenge.state(BossChallengeState.ENDED);
         challengeIdByPartyKey.remove(challenge.partyKey());
         challengesById.remove(challenge.challengeId());

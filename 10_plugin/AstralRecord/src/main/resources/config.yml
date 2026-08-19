@@ -17,6 +17,18 @@ skilltree:
 boss:
   hubWorldId: "skyhaven_isle"
 
+# Boss／Dungeon instance creation limits
+# normalLimit is reserved for ordinary requests. reservedLimit is a finite
+# donor-only pool and is never an unlimited bypass.
+instanceLimits:
+  donorPermission: "astralrecord.instance.donor"
+  boss:
+    normalLimit: 2
+    reservedLimit: 1
+  dungeon:
+    normalLimit: 3
+    reservedLimit: 1
+
 # Database Settings
 database:
   # SQL Server Settings

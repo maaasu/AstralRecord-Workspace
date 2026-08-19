@@ -314,6 +314,6 @@
 次の package は単一の業務 feature に所有させず、`PLUGIN_GUIDE.md` の共通規約を設計正本とする。各 feature は必要な契約だけを依存境界として記載する。
 
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/infrastructure/*`
-- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/challenge/*`（Boss／Dungeon 共用の開始 countdown・死亡許容判定）
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/shared/challenge/*`（Boss／Dungeon 共用の開始 countdown・死亡許容判定・インスタンス作成枠キュー）
 
 feature 固有 resource の ID 範囲や利用条件は各 feature が所有し、共通 loader、resolver、logger、正規化処理の実装境界はこの共通基盤が所有する。
