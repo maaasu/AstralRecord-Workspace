@@ -84,7 +84,11 @@ public final class ItemChatShareService {
         PlayerMessageService.getInstance().broadcastGlobalItemChat(
             player,
             shareName,
-            item.clone()
+            ItemTransferSupport.stripExactDisplayLore(
+                item,
+                "クリックでホットバースロットに設定",
+                "クリックで使用"
+            )
         );
         return true;
     }

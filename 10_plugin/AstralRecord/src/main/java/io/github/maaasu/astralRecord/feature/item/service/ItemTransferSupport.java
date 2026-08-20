@@ -116,6 +116,33 @@ public final class ItemTransferSupport {
     }
 
     /**
+     * 指定文言と完全一致する表示用 lore を取り除いた clone を返します。
+     *
+     * @param itemStack 対象 ItemStack
+     * @param loreLines 除去対象の完全一致文言
+     * @return 表示用 lore を除去した clone
+     */
+    public static @NotNull ItemStack stripExactDisplayLore(
+        @NotNull ItemStack itemStack,
+        @NotNull String... loreLines
+    ) {
+        var cleaned = itemStack.clone();
+        ItemMeta meta = cleaned.getItemMeta();
+        if (meta == null || !meta.hasLore() || meta.lore() == null) {
+            return cleaned;
+        }
+
+        var lore = new ArrayList<>(meta.lore());
+        boolean removed = lore.removeIf(line -> hasAnyExact(PLAIN_TEXT.serialize(line), loreLines));
+        if (!removed) {
+            return cleaned;
+        }
+        meta.lore(lore);
+        cleaned.setItemMeta(meta);
+        return cleaned;
+    }
+
+    /**
      * content 領域にある実アイテムを取得します。
      *
      * @param inventory 対象 GUI インベントリ
@@ -379,6 +406,15 @@ public final class ItemTransferSupport {
     private static boolean hasAnyPrefix(@NotNull String line, @NotNull String[] prefixes) {
         for (String prefix : prefixes) {
             if (line.startsWith(prefix)) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static boolean hasAnyExact(@NotNull String line, @NotNull String[] candidates) {
+        for (String candidate : candidates) {
+            if (line.equals(candidate)) {
                 return true;
             }
         }
