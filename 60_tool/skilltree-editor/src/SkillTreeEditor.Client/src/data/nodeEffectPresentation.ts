@@ -1,6 +1,6 @@
 import { STATUS_TYPE_BY_ID, formatStatusModifier, isStatusTypeId } from './statusTypes.generated'
 import { stripMinecraftFormatting } from '../utils/minecraft'
-import type { JsonObject, JsonValue, NodeMaster, SkillMasterSummary } from '../types/editor'
+import type { ClassMasterSummary, JsonObject, JsonValue, NodeMaster, SkillMasterSummary } from '../types/editor'
 
 export interface NodeEffectPresentation {
   kind: 'status' | 'skill' | 'unknown'
@@ -16,16 +16,27 @@ export interface NodeCostPresentation {
   searchText: string
 }
 
-export function describeNodeCost(node: NodeMaster): NodeCostPresentation {
+export function describeNodeCost(
+  node: NodeMaster,
+  classes: readonly ClassMasterSummary[] = [],
+): NodeCostPresentation {
   const pointType = node.pointType.toUpperCase()
   const kind = pointType === 'CP' ? 'cp' : pointType === 'PP' ? 'pp' : 'unknown'
-  const label = pointType || '未設定'
+  const classId = stringValue(asObject(node.unlockCondition)?.classId).trim().toLowerCase()
+  const classMaster = classId
+    ? classes.find((entry) => entry.id.toLowerCase() === classId)
+    : undefined
+  const className = classMaster ? stripMinecraftFormatting(classMaster.name) : classId
+  const label = classId
+    ? `${pointType || '未設定'}[${className || classId}]`
+    : pointType || '未設定'
   const title = `${label} ${node.pointCost}`
+  const classSearchText = classId ? ` ${classId} ${className} クラス条件 unlockCondition` : ''
   return {
     kind,
     title,
     detail: `${label}を${node.pointCost}消費`,
-    searchText: `${title} ${label}消費 ポイント消費`,
+    searchText: `${title} ${label}消費 ポイント消費${classSearchText}`,
   }
 }
 
@@ -40,8 +51,9 @@ export function describeNodeEffects(
 export function nodeTooltip(
   node: NodeMaster,
   effects: readonly NodeEffectPresentation[],
+  classes: readonly ClassMasterSummary[] = [],
 ): string {
-  const cost = describeNodeCost(node)
+  const cost = describeNodeCost(node, classes)
   const lines = [`${stripMinecraftFormatting(node.name)} (#${node.nodeId})`, `消費: ${cost.title}`]
   for (const effect of effects) {
     lines.push(`・${effect.title}`)

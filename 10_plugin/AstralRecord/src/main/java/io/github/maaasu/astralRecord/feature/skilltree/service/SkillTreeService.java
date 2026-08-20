@@ -1536,7 +1536,7 @@ public class SkillTreeService {
                     : canUnlock
                     ? "&8状態: &a解放可能"
                     : "&8状態: &c隣接ノードの解放が必要"));
-            lore.add(component("&8消費: &f" + node.pointType().displayName() + " " + node.pointCost()));
+            lore.add(component("&8消費: &f" + nodePointDisplayName(node) + " &e" + node.pointCost()));
             lore.add(component("&8" + currentClassPointLabel(astPlayer) + ": &f" + availableClassPoints(astPlayer)
                     + " &8/ PP: &f" + availablePoints(astPlayer, SkillTreePointType.PASSIVE_POINT)));
             if (inactive) {
@@ -1780,6 +1780,31 @@ public class SkillTreeService {
         );
     }
 
+    /**
+     * ノードのポイント種別を表示します。
+     * classId条件がある場合は解決済みのクラス表示名を角括弧へ付加し、
+     * 未登録または未初期化の場合は内部IDを表示せず汎用名へ置き換えます。
+     *
+     * @param node 表示対象ノード
+     * @return ポイント種別の表示名
+     */
+    private @NotNull String nodePointDisplayName(@NotNull SkillTreeNodeDefinition node) {
+        String pointType = node.pointType().displayName();
+        if (!node.unlockCondition().hasClassCondition()) {
+            return pointType;
+        }
+        String classId = node.unlockCondition().classId();
+        if (classId == null || classId.isBlank()) {
+            return pointType;
+        }
+        String className = playerClassService == null ? "" : playerClassService.getDisplayName(classId);
+        String plainClassName = ColorCodeUtil.toPlainText(className, "");
+        if (plainClassName.isBlank() || plainClassName.equalsIgnoreCase(classId)) {
+            plainClassName = "未登録のクラス";
+        }
+        return pointType + "[" + plainClassName + "]";
+    }
+
     private @NotNull Component createNodeFieldLabel(
             @NotNull SkillTreeNodeDefinition node,
             @NotNull NodePresentationState presentationState,
@@ -1791,8 +1816,9 @@ public class SkillTreeService {
         if (presentationState == NodePresentationState.INACTIVE && labelDetail == NodeLabelDetail.DETAILED) {
             lines.add("&c効果停止中: CP/PP 不足");
         }
-        if (labelDetail == NodeLabelDetail.DETAILED && node.pointCost() > 0) {
-            lines.add("&8Cost: &f" + node.pointType().displayName() + " " + node.pointCost());
+        if (labelDetail == NodeLabelDetail.DETAILED
+                && (node.pointCost() > 0 || node.unlockCondition().hasClassCondition())) {
+            lines.add("&8Cost: &f" + nodePointDisplayName(node) + " &e" + node.pointCost());
         }
         if (labelDetail == NodeLabelDetail.DETAILED) {
             appendNodeFieldStatusLines(lines, node, emphasized);

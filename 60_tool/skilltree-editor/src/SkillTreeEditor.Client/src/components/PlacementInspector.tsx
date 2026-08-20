@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import type { JsonValue, NodeMaster, SkillMasterSummary, StructureDocument, StructurePlacement } from '../types/editor'
+import type { ClassMasterSummary, JsonValue, NodeMaster, SkillMasterSummary, StructureDocument, StructurePlacement } from '../types/editor'
 import { MinecraftIcon } from './MinecraftIcon'
 import { stripMinecraftFormatting } from '../utils/minecraft'
 import { SuggestionInput } from './SuggestionInput'
@@ -24,6 +24,7 @@ interface PlacementInspectorProps {
   materialSuggestions?: readonly string[]
   tagSuggestions?: readonly string[]
   skillMasters?: readonly SkillMasterSummary[]
+  classMasters?: readonly ClassMasterSummary[]
 }
 
 export function PlacementInspector({
@@ -39,6 +40,7 @@ export function PlacementInspector({
   materialSuggestions = [],
   tagSuggestions = [],
   skillMasters = [],
+  classMasters = [],
 }: PlacementInspectorProps) {
   const [draft, setDraft] = useState<NodeMaster | null>(() => master ? structuredClone(master) : null)
 
@@ -210,8 +212,8 @@ export function PlacementInspector({
           </div>
           <div className="cost-summary">
             <strong>消費ポイント</strong>
-            <span className={`cost-chip ${describeNodeCost(draft).kind}`} title={describeNodeCost(draft).detail}>
-              {describeNodeCost(draft).title}
+            <span className={`cost-chip ${describeNodeCost(draft, classMasters).kind}`} title={describeNodeCost(draft, classMasters).detail}>
+              {describeNodeCost(draft, classMasters).title}
             </span>
           </div>
           <div className="effect-summary">

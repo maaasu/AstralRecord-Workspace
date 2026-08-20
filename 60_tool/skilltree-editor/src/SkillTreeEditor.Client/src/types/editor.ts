@@ -12,6 +12,7 @@ export interface NodeMaster extends JsonObject {
   tags: string[]
   pointType: string
   pointCost: number
+  unlockCondition?: JsonObject
   effects: JsonValue[]
 }
 

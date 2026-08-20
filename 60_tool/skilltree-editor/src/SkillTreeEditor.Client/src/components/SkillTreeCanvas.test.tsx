@@ -44,6 +44,32 @@ describe('SkillTreeCanvas', () => {
     })
   })
 
+  it('shows the unlock class in the canvas cost label', async () => {
+    const classMasters = [{ id: 'adventurer', name: '&6冒険者', parentClassIds: [] }]
+    const classMastersNodes = masters.map((master) => master.nodeId === '1001'
+      ? { ...master, pointType: 'CP', pointCost: 1, unlockCondition: { classId: 'adventurer' } }
+      : master)
+
+    render(
+      <div style={{ width: 800, height: 600 }}>
+        <SkillTreeCanvas
+          structure={structure}
+          masters={classMastersNodes}
+          classMasters={classMasters}
+          onRecord={vi.fn()}
+          onReplace={vi.fn()}
+          onBeginTransaction={vi.fn()}
+          onCommitTransaction={vi.fn()}
+          onSelectedNode={vi.fn()}
+          onEditMaster={vi.fn()}
+          onNotify={vi.fn()}
+        />
+      </div>,
+    )
+
+    expect(await screen.findByTestId('rf__node-1001')).toHaveTextContent('CP[冒険者] 1')
+  })
+
   it('renders and survives a parent selection rerender without a React Flow update loop', async () => {
     const onRecord = vi.fn()
     const onReplace = vi.fn()

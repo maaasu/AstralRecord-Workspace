@@ -35,6 +35,29 @@ describe('NodeSidebar', () => {
     expect(cost.closest('article')).toHaveAttribute('title', expect.stringContaining('消費: CP 3'))
   })
 
+  it('shows the unlock class in class point consumption', () => {
+    render(<NodeSidebar
+      nodes={[{
+        ...node,
+        pointType: 'CP',
+        pointCost: 1,
+        unlockCondition: { classId: 'adventurer' },
+      }]}
+      placedIds={new Set<string>()}
+      query=""
+      selectedTag=""
+      onQueryChange={vi.fn()}
+      onTagChange={vi.fn()}
+      onEdit={vi.fn()}
+      onCreate={vi.fn()}
+      skillMasters={[]}
+      classMasters={[{ id: 'adventurer', name: '&6冒険者', parentClassIds: [] }]}
+    />)
+
+    const cost = screen.getByText('消費 CP[冒険者] 1')
+    expect(cost.closest('article')).toHaveAttribute('title', expect.stringContaining('消費: CP[冒険者] 1'))
+  })
+
   it('shows and searches shared tags by their Japanese definitions', () => {
     const props = {
       nodes: [node],

@@ -23,6 +23,9 @@ import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionRayTrace;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.TextComponent;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -103,6 +106,141 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         );
 
         assertEquals("Test Node", label);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 10. skill tree 設定・master snapshot
+     * 検証契約: classId付きCPノードはクラス名付きCostを表示し、コスト値だけを黄色で表示する。
+     */
+    @Test
+    void nodeDisplaysClassPointConditionAndYellowCost() {
+        UUID accountId = UUID.randomUUID();
+        SkillTreeNodeDefinition node = new SkillTreeNodeDefinition(
+                "1000",
+                "Test Node",
+                Material.NETHER_STAR,
+                List.of(),
+                List.of(),
+                SkillTreePointType.CLASS_POINT,
+                1,
+                new SkillTreeUnlockCondition("adventurer", 0),
+                List.of()
+        );
+        PlayerClassService playerClassService = mock(PlayerClassService.class);
+        when(playerClassService.getDisplayName("adventurer")).thenReturn("&6冒険者");
+        SkillTreeService service = newService(node);
+        service.setPlayerClassService(playerClassService);
+        service.replaceMasterDataSnapshot(new SkillTreeService.SkillTreeMasterDataSnapshot(
+                node.nodeId(),
+                List.of(node),
+                List.of(),
+                List.of()
+        ));
+
+        String label = PlainTextComponentSerializer.plainText().serialize(
+                service.nodeFieldLabel(
+                        node,
+                        SkillTreeService.NodePresentationState.UNLOCKED,
+                        SkillTreeService.NodeLabelDetail.DETAILED
+                )
+        );
+        assertEquals("Test Node\nCost: CP[冒険者] 1", label);
+        assertTrue(hasYellowText(
+                service.nodeFieldLabel(
+                        node,
+                        SkillTreeService.NodePresentationState.UNLOCKED,
+                        SkillTreeService.NodeLabelDetail.DETAILED
+                ),
+                "1"
+        ));
+
+        AstPlayer player = astPlayer(accountId);
+        when(player.getClassId()).thenReturn("adventurer");
+        service.applyInitialPlayerState(new SkillTreePlayerState(accountId, Set.of()));
+        var itemMeta = Objects.requireNonNull(invokeNodeHotbarItem(service, player, node).getItemMeta());
+        var itemLore = Objects.requireNonNull(itemMeta.lore());
+        assertTrue(itemLore.stream()
+                .map(PlainTextComponentSerializer.plainText()::serialize)
+                .anyMatch("消費: CP[冒険者] 1"::equals));
+        assertTrue(itemLore.stream().anyMatch(line -> hasYellowText(line, "1")));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 10. skill tree 設定・master snapshot
+     * 検証契約: classId付きでコスト0のノードも、ワールド詳細ラベルへクラス条件と黄色のコスト値を表示する。
+     */
+    @Test
+    void nodeFieldLabelDisplaysClassConditionForZeroCost() {
+        SkillTreeNodeDefinition node = new SkillTreeNodeDefinition(
+                "1000",
+                "Test Node",
+                Material.NETHER_STAR,
+                List.of(),
+                List.of(),
+                SkillTreePointType.CLASS_POINT,
+                0,
+                new SkillTreeUnlockCondition("adventurer", 0),
+                List.of()
+        );
+        PlayerClassService playerClassService = mock(PlayerClassService.class);
+        when(playerClassService.getDisplayName("adventurer")).thenReturn("&6冒険者");
+        SkillTreeService service = newService(node);
+        service.setPlayerClassService(playerClassService);
+        service.replaceMasterDataSnapshot(new SkillTreeService.SkillTreeMasterDataSnapshot(
+                node.nodeId(),
+                List.of(node),
+                List.of(),
+                List.of()
+        ));
+
+        Component label = service.nodeFieldLabel(
+                node,
+                SkillTreeService.NodePresentationState.UNLOCKED,
+                SkillTreeService.NodeLabelDetail.DETAILED
+        );
+
+        assertEquals("Test Node\nCost: CP[冒険者] 0", PlainTextComponentSerializer.plainText().serialize(label));
+        assertTrue(hasYellowText(label, "0"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 10. skill tree 設定・master snapshot
+     * 検証契約: クラスマスタ未解決時は内部classIdをプレイヤー向け表示へ出さない。
+     */
+    @Test
+    void nodeUsesGenericClassLabelWhenClassMasterIsUnavailable() {
+        SkillTreeNodeDefinition node = new SkillTreeNodeDefinition(
+                "1000",
+                "Test Node",
+                Material.NETHER_STAR,
+                List.of(),
+                List.of(),
+                SkillTreePointType.CLASS_POINT,
+                1,
+                new SkillTreeUnlockCondition("adventurer", 0),
+                List.of()
+        );
+        SkillTreeService service = newService(node);
+        service.replaceMasterDataSnapshot(new SkillTreeService.SkillTreeMasterDataSnapshot(
+                node.nodeId(),
+                List.of(node),
+                List.of(),
+                List.of()
+        ));
+
+        String label = PlainTextComponentSerializer.plainText().serialize(
+                service.nodeFieldLabel(
+                        node,
+                        SkillTreeService.NodePresentationState.UNLOCKED,
+                        SkillTreeService.NodeLabelDetail.DETAILED
+                )
+        );
+
+        assertEquals("Test Node\nCost: CP[未登録のクラス] 1", label);
+        assertFalse(label.contains("adventurer"));
     }
 
     /**
@@ -649,5 +787,14 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         when(account.getUuid()).thenReturn(accountId);
         when(account.getLevel()).thenReturn(2);
         return player;
+    }
+
+    private boolean hasYellowText(Component component, String text) {
+        if (component instanceof TextComponent textComponent
+                && textComponent.content().equals(text)
+                && NamedTextColor.YELLOW.equals(component.color())) {
+            return true;
+        }
+        return component.children().stream().anyMatch(child -> hasYellowText(child, text));
     }
 }

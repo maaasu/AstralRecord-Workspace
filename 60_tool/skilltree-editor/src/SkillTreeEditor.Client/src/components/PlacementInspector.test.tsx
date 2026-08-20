@@ -27,6 +27,30 @@ const structure: StructureDocument = {
 }
 
 describe('PlacementInspector', () => {
+  it('shows the unlock class in the cost summary', () => {
+    render(
+      <PlacementInspector
+        nodeId="1012"
+        structure={structure}
+        master={{
+          ...master,
+          pointType: 'CP',
+          pointCost: 1,
+          unlockCondition: { classId: 'adventurer' },
+        }}
+        classMasters={[{ id: 'adventurer', name: '&6冒険者', parentClassIds: [] }]}
+        saving={false}
+        iconRevision={0}
+        onChange={vi.fn()}
+        onSaveMaster={vi.fn(async (node: NodeMaster) => node)}
+        onEditMaster={vi.fn()}
+        onRetryIcons={vi.fn()}
+      />,
+    )
+
+    expect(screen.getByText('CP[冒険者] 1')).toBeInTheDocument()
+  })
+
   it('edits selected placement coordinates and master fields inline', async () => {
     const onChange = vi.fn()
     const onSaveMaster = vi.fn(async (node: NodeMaster) => node)

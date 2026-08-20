@@ -488,6 +488,7 @@ export default function App() {
             onCreate={openNewNode}
             iconRevision={iconRevision}
             skillMasters={skillMasters}
+            classMasters={classMasters}
           />
         )}
         center={(
@@ -551,6 +552,7 @@ export default function App() {
                 iconRevision={iconRevision}
                 visibleNodeIds={simulationVisibleNodeIds}
                 skillMasters={skillMasters}
+                classMasters={classMasters}
                 nodeSize={nodeSize}
               />
             ) : (
@@ -569,6 +571,7 @@ export default function App() {
               materialSuggestions={minecraftMaterialSuggestions}
               tagSuggestions={tagSuggestions}
               skillMasters={skillMasters}
+              classMasters={classMasters}
               onChange={history.record}
               onSaveMaster={saveSelectedMaster}
               onEditMaster={(node) => setNodeEditor({ node, isNew: false })}

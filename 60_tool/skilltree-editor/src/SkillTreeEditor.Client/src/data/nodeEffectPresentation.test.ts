@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { describeNodeCost, describeNodeEffects, nodeTooltip } from './nodeEffectPresentation'
-import type { NodeMaster, SkillMasterSummary } from '../types/editor'
+import type { ClassMasterSummary, NodeMaster, SkillMasterSummary } from '../types/editor'
 
 const node: NodeMaster = {
   $schema: '../schemas/node.v1.schema.json',
@@ -26,6 +26,12 @@ const skills: SkillMasterSummary[] = [{
   type: 'SKILL',
 }]
 
+const classes: ClassMasterSummary[] = [{
+  id: 'adventurer',
+  name: '&6冒険者',
+  parentClassIds: [],
+}]
+
 describe('nodeEffectPresentation', () => {
   it('formats Japanese status values and skill information without changing ids', () => {
     const effects = describeNodeEffects(node, skills)
@@ -43,5 +49,23 @@ describe('nodeEffectPresentation', () => {
     })
     expect(nodeTooltip(node, effects)).toContain('消費: PP 1')
     expect(nodeTooltip(node, effects)).toContain('会心率 +5.0%')
+  })
+
+  it('includes the unlock class in class point cost presentations', () => {
+    const classNode: NodeMaster = {
+      ...node,
+      nodeId: '1001',
+      pointType: 'CP',
+      pointCost: 1,
+      unlockCondition: { classId: 'adventurer' },
+    }
+
+    expect(describeNodeCost(classNode, classes)).toEqual({
+      kind: 'cp',
+      title: 'CP[冒険者] 1',
+      detail: 'CP[冒険者]を1消費',
+      searchText: 'CP[冒険者] 1 CP[冒険者]消費 ポイント消費 adventurer 冒険者 クラス条件 unlockCondition',
+    })
+    expect(nodeTooltip(classNode, [], classes)).toContain('消費: CP[冒険者] 1')
   })
 })

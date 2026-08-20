@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import type { NodeMaster, SkillMasterSummary } from '../types/editor'
+import type { ClassMasterSummary, NodeMaster, SkillMasterSummary } from '../types/editor'
 import { MinecraftIcon } from './MinecraftIcon'
 import { stripMinecraftFormatting } from '../utils/minecraft'
 import { describeNodeCost, describeNodeEffects, nodeTooltip, type NodeEffectPresentation } from '../data/nodeEffectPresentation'
@@ -16,6 +16,7 @@ interface NodeSidebarProps {
   onCreate: () => void
   iconRevision?: number
   skillMasters: readonly SkillMasterSummary[]
+  classMasters?: readonly ClassMasterSummary[]
 }
 
 export function NodeSidebar({
@@ -29,6 +30,7 @@ export function NodeSidebar({
   onCreate,
   iconRevision = 0,
   skillMasters,
+  classMasters = [],
 }: NodeSidebarProps) {
   const effectsByNodeId = useMemo(
     () => new Map(nodes.map((node) => [node.nodeId, describeNodeEffects(node, skillMasters)])),
@@ -37,7 +39,7 @@ export function NodeSidebar({
   const tags = [...new Set(nodes.flatMap((node) => node.tags ?? []))].sort((a, b) => a.localeCompare(b, 'ja'))
   const filtered = nodes.filter((node) => {
     const keyword = query.trim().toLocaleLowerCase()
-    const cost = describeNodeCost(node)
+    const cost = describeNodeCost(node, classMasters)
     const matchesKeyword = !keyword
       || node.nodeId.toLocaleLowerCase().includes(keyword)
       || node.name.toLocaleLowerCase().includes(keyword)
@@ -70,8 +72,8 @@ export function NodeSidebar({
           {tags.map((tag) => <option key={tag} value={tag}>{masterTagLabel(tag, true)}</option>)}
         </select>
       </div>
-      <NodeGroup title={`未配置 ${unplaced.length}`} nodes={unplaced} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} effectsByNodeId={effectsByNodeId} />
-      <NodeGroup title={`配置済み ${placed.length}`} nodes={placed} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} effectsByNodeId={effectsByNodeId} />
+      <NodeGroup title={`未配置 ${unplaced.length}`} nodes={unplaced} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} effectsByNodeId={effectsByNodeId} classMasters={classMasters} />
+      <NodeGroup title={`配置済み ${placed.length}`} nodes={placed} placedIds={placedIds} onEdit={onEdit} iconRevision={iconRevision} effectsByNodeId={effectsByNodeId} classMasters={classMasters} />
     </aside>
   )
 }
@@ -83,6 +85,7 @@ function NodeGroup({
   onEdit,
   iconRevision,
   effectsByNodeId,
+  classMasters,
 }: {
   title: string
   nodes: NodeMaster[]
@@ -90,6 +93,7 @@ function NodeGroup({
   onEdit: (node: NodeMaster) => void
   iconRevision: number
   effectsByNodeId: ReadonlyMap<string, readonly NodeEffectPresentation[]>
+  classMasters: readonly ClassMasterSummary[]
 }) {
   return (
     <section className="node-group">
@@ -97,11 +101,11 @@ function NodeGroup({
       <div className="node-list">
         {nodes.map((node) => {
           const effects = effectsByNodeId.get(node.nodeId) ?? []
-          const cost = describeNodeCost(node)
+          const cost = describeNodeCost(node, classMasters)
           return <article
             className={`node-list-item ${placedIds.has(node.nodeId) ? 'placed' : ''}`}
             key={node.nodeId}
-            title={nodeTooltipWithTags(node, effects)}
+            title={nodeTooltipWithTags(node, effects, classMasters)}
             draggable={!placedIds.has(node.nodeId)}
             onDragStart={(event) => {
               event.dataTransfer.setData('application/x-astral-node', node.nodeId)
@@ -137,10 +141,14 @@ function NodeGroup({
   )
 }
 
-function nodeTooltipWithTags(node: NodeMaster, effects: readonly NodeEffectPresentation[]): string {
+function nodeTooltipWithTags(
+  node: NodeMaster,
+  effects: readonly NodeEffectPresentation[],
+  classMasters: readonly ClassMasterSummary[],
+): string {
   const tags = node.tags ?? []
   return [
-    nodeTooltip(node, effects),
+    nodeTooltip(node, effects, classMasters),
     ...(tags.length > 0 ? ['', 'タグ:', ...tags.map(masterTagTooltip)] : []),
   ].join('\n')
 }

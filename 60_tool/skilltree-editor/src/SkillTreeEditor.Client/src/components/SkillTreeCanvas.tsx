@@ -16,10 +16,10 @@ import {
   type NodeProps,
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
-import type { NodeMaster, SkillMasterSummary, StructureDocument } from '../types/editor'
+import type { ClassMasterSummary, NodeMaster, SkillMasterSummary, StructureDocument } from '../types/editor'
 import { MinecraftIcon } from './MinecraftIcon'
 import { stripMinecraftFormatting } from '../utils/minecraft'
-import { describeNodeEffects, nodeTooltip, type NodeEffectPresentation } from '../data/nodeEffectPresentation'
+import { describeNodeCost, describeNodeEffects, nodeTooltip, type NodeEffectPresentation } from '../data/nodeEffectPresentation'
 import { masterTagTooltip } from '../data/masterTagPresentation'
 
 interface SkillTreeCanvasProps {
@@ -35,6 +35,7 @@ interface SkillTreeCanvasProps {
   iconRevision?: number
   visibleNodeIds?: ReadonlySet<string> | null
   skillMasters?: readonly SkillMasterSummary[]
+  classMasters?: readonly ClassMasterSummary[]
   nodeSize?: number
 }
 
@@ -45,10 +46,10 @@ interface SkillNodeData extends Record<string, unknown> {
   root: boolean
   icon: NodeMaster['icon']
   iconRevision: number
-  pointCost: number
-  pointType: string
   effects: NodeEffectPresentation[]
   tags: string[]
+  costTitle: string
+  tooltip: string
   nodeSize: number
 }
 
@@ -84,6 +85,7 @@ function CanvasInner({
   iconRevision = 0,
   visibleNodeIds = null,
   skillMasters = [],
+  classMasters = [],
   nodeSize = 56,
 }: SkillTreeCanvasProps) {
   const { screenToFlowPosition } = useReactFlow()
@@ -96,6 +98,8 @@ function CanvasInner({
     .filter((placement) => !visibleNodeIds || visibleNodeIds.has(placement.nodeId))
     .map((placement) => {
     const master = masterMap.get(placement.nodeId)
+    const effects = master ? describeNodeEffects(master, skillMasters) : []
+    const cost = master ? describeNodeCost(master, classMasters) : null
     return {
       id: placement.nodeId,
       type: 'skill',
@@ -108,15 +112,15 @@ function CanvasInner({
         root: placement.nodeId === structure.rootNodeId,
         icon: master?.icon ?? '',
         iconRevision,
-        pointCost: master?.pointCost ?? 0,
-        pointType: master?.pointType ?? '',
-        effects: master ? describeNodeEffects(master, skillMasters) : [],
+        effects,
         tags: master?.tags ?? [],
+        costTitle: cost?.title ?? `${master?.pointType ?? ''} ${master?.pointCost ?? 0}`.trim(),
+        tooltip: master ? nodeTooltip(master, effects, classMasters) : `Unknown ${placement.nodeId}`,
         nodeSize,
       },
     }
     }),
-    [iconRevision, masterMap, nodeSize, selectedIds, skillMasters, structure.nodes, structure.rootNodeId, visibleNodeIds],
+    [classMasters, iconRevision, masterMap, nodeSize, selectedIds, skillMasters, structure.nodes, structure.rootNodeId, visibleNodeIds],
   )
   const edges = useMemo<Edge[]>(() => {
     const placementMap = new Map(structure.nodes.map((placement) => [placement.nodeId, placement]))
@@ -392,16 +396,12 @@ function CanvasInner({
 
 function SkillNode({ data, selected }: NodeProps<Node<SkillNodeData>>) {
   const compact = data.nodeSize < 72
-  const tooltipNode = {
-    $schema: '', schemaVersion: 1, nodeId: data.nodeId, name: data.label, icon: data.icon,
-    lore: [], tags: data.tags, pointType: data.pointType, pointCost: data.pointCost, effects: [],
-  } satisfies NodeMaster
   return (
     <div
       className={`skill-node ${selected ? 'selected' : ''} ${data.root ? 'root' : ''} ${compact ? 'compact' : ''}`}
       style={{ '--skill-node-size': `${data.nodeSize}px` } as CSSProperties}
       title={[
-        nodeTooltip(tooltipNode, data.effects),
+        data.tooltip,
         ...(data.tags.length > 0 ? ['', 'タグ:', ...data.tags.map(masterTagTooltip)] : []),
       ].join('\n')}
     >
@@ -411,7 +411,7 @@ function SkillNode({ data, selected }: NodeProps<Node<SkillNodeData>>) {
       <Handle type="target" position={Position.Top} id="top" />
       <strong title={data.label}>{data.label}</strong>
       <MinecraftIcon icon={data.icon} revision={data.iconRevision} className="canvas-node-icon" />
-      <span className="node-kicker">#{data.nodeId} · {data.pointType} {data.pointCost} · Y {data.y}</span>
+      <span className="node-kicker">#{data.nodeId} · {data.costTitle} · Y {data.y}</span>
       {data.effects.length > 0 && <span className="effect-count" aria-label={`効果 ${data.effects.length}件`}>{data.effects.length}</span>}
       {data.root && <span className="root-label">ROOT</span>}
     </div>
