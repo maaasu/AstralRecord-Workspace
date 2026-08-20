@@ -128,7 +128,7 @@ public class GatheringService {
      * @param accountService アカウント経験値サービス
      * @param playerClassService クラス経験値サービス
      * @param skillTreeService レベルアップ後の派生状態更新サービス
-     * @param particleDisplayService レベルアップ演出サービス
+     * @param particleDisplayService レベルアップおよび採集破壊演出サービス
      */
     public void setProgressionServices(
         @NotNull AccountService accountService,
@@ -440,6 +440,14 @@ public class GatheringService {
         }
 
         playSound(instance.location(), instance.definition().sounds().breakSound());
+        if (particleDisplayService != null) {
+            particleDisplayService.spawnForNearbyViewers(
+                instance.location().clone().add(0.0D, 0.5D, 0.0D),
+                SharedParticleDefinitions.gatheringBreakBlock(
+                    instance.definition().displayBlock().createBlockData()
+                )
+            );
+        }
         AstPlayer recipient = astPlayer;
         if (recipient != null && dropPresentationService != null) {
             MobDropResult result = dropService.roll(instance.definition().drops(), recipient);

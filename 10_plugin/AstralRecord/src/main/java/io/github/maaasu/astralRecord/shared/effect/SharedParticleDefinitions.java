@@ -432,6 +432,25 @@ public final class SharedParticleDefinitions {
     }
 
     /**
+     * 採集オブジェクトを破壊した際の、表示ブロック材質に応じた破片パーティクル定義を返します。
+     *
+     * @param blockData 破壊する採集オブジェクトの表示ブロックデータ
+     * @return 採集オブジェクトの材質を反映した破片パーティクル定義
+     */
+    public static @NotNull SharedParticleDefinition gatheringBreakBlock(@NotNull BlockData blockData) {
+        return new SharedParticleDefinition(
+            "gathering_break_block",
+            Particle.BLOCK,
+            18,
+            0.32D,
+            0.42D,
+            0.32D,
+            0.04D,
+            blockData
+        );
+    }
+
+    /**
      * 共通の正規化ルールでパーティクル種別を解決します。
      *
      * @param raw 入力文字列

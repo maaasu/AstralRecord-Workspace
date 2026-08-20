@@ -21,10 +21,14 @@ import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
+import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Particle;
 import org.bukkit.Server;
 import org.bukkit.World;
+import org.bukkit.block.data.BlockData;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.plugin.Plugin;
@@ -45,11 +49,12 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class GatheringServiceMiningSessionTest {
+class GatheringServiceMiningSessionTest extends MockBukkitTestBase {
 
     @AfterEach
     void clearPlayerCache() {
@@ -76,6 +81,10 @@ class GatheringServiceMiningSessionTest {
 
         assertEquals(8, fixture.instance().currentHealth());
         verify(fixture.player(), times(2)).swingMainHand();
+        verify(fixture.particleDisplayService(), never()).spawnForNearbyViewers(
+            any(Location.class),
+            any(SharedParticleDefinition.class)
+        );
     }
 
     /**
@@ -103,7 +112,7 @@ class GatheringServiceMiningSessionTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_2-ユースケース.md
      * 章・見出し: # 12_2-ユースケース > ## 10. 採集 object を採集する
-     * 検証契約: 採集 object の破壊完了時に、drops.expをアカウント・クラス経験値へ反映し、メインハンドのツール耐久値消費を1回実行する。
+     * 検証契約: 採集 object の破壊完了時に表示ブロック材質の破壊パーティクルを表示し、drops.expをアカウント・クラス経験値へ反映し、メインハンドのツール耐久値消費を1回実行する。
      */
     @Test
     void destroyingObjectConsumesToolDurabilityAndGrantsExperience() {
@@ -123,6 +132,18 @@ class GatheringServiceMiningSessionTest {
             .thenReturn(new ClassExperienceResult(1, 1, 7, 0));
 
         assertTrue(fixture.service().startMining(fixture.player()));
+
+        ArgumentCaptor<Location> particleLocationCaptor = ArgumentCaptor.forClass(Location.class);
+        ArgumentCaptor<SharedParticleDefinition> particleCaptor = ArgumentCaptor.forClass(SharedParticleDefinition.class);
+        verify(fixture.particleDisplayService()).spawnForNearbyViewers(
+            particleLocationCaptor.capture(),
+            particleCaptor.capture()
+        );
+        assertEquals(0.5D, particleLocationCaptor.getValue().getX(), 0.0001D);
+        assertEquals(0.5D, particleLocationCaptor.getValue().getY(), 0.0001D);
+        assertEquals(0.5D, particleLocationCaptor.getValue().getZ(), 0.0001D);
+        assertEquals(Particle.BLOCK, particleCaptor.getValue().particle());
+        assertEquals(Material.STONE, ((BlockData) particleCaptor.getValue().data()).getMaterial());
 
         verify(fixture.equipmentDurabilityService()).consumeOnGathering(fixture.astPlayer());
         verify(fixture.accountService()).grantExperienceCached(currentAccount, 7, userId);
@@ -212,6 +233,7 @@ class GatheringServiceMiningSessionTest {
         AccountService accountService = mock(AccountService.class);
         PlayerClassService playerClassService = mock(PlayerClassService.class);
         SkillTreeService skillTreeService = mock(SkillTreeService.class);
+        ParticleDisplayService particleDisplayService = mock(ParticleDisplayService.class);
 
         GatheringService service = new GatheringService(
                 plugin,
@@ -225,7 +247,7 @@ class GatheringServiceMiningSessionTest {
             accountService,
             playerClassService,
             skillTreeService,
-            mock(ParticleDisplayService.class)
+            particleDisplayService
         );
         service.loadAll();
         GatheringInstance instance = service.spawn("test_ore", new Location(world, 0.0D, 0.0D, 0.0D));
@@ -244,7 +266,8 @@ class GatheringServiceMiningSessionTest {
             dropService,
             equipmentDurabilityService,
             accountService,
-            playerClassService
+            playerClassService,
+            particleDisplayService
         );
     }
 
@@ -260,7 +283,8 @@ class GatheringServiceMiningSessionTest {
             MobDropService dropService,
             EquipmentDurabilityService equipmentDurabilityService,
             AccountService accountService,
-            PlayerClassService playerClassService
+            PlayerClassService playerClassService,
+            ParticleDisplayService particleDisplayService
     ) {
     }
 }
