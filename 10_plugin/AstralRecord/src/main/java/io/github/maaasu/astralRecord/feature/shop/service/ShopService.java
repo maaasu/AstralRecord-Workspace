@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 
 public final class ShopService {
     private static final String PURCHASE_SOURCE = "shop";
@@ -34,6 +35,7 @@ public final class ShopService {
     private final ItemService itemService;
     private final InventoryService inventoryService;
     private final CurrencyService currencyService;
+    private BiConsumer<AstPlayer, String> purchaseListener = (player, entryId) -> { };
 
     public ShopService(
         @NotNull ShopRepository shopRepository,
@@ -51,6 +53,15 @@ public final class ShopService {
 
     public @NotNull List<ShopDefinition> findAll() {
         return shopRepository.findAll();
+    }
+
+    /**
+     * 購入・交換成功時の通知先を設定します。
+     *
+     * @param purchaseListener 購入者とshop entry IDを受け取る通知先
+     */
+    public void setPurchaseListener(@NotNull BiConsumer<AstPlayer, String> purchaseListener) {
+        this.purchaseListener = purchaseListener;
     }
 
     /**
@@ -224,6 +235,7 @@ public final class ShopService {
             inventoryService.applyInventoryToGui(player, type);
         }
         inventoryService.saveNow(accountId);
+        purchaseListener.accept(player, entry.id());
         return true;
     }
 

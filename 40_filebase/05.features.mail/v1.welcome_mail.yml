@@ -1,12 +1,13 @@
 schemaVersion: 1
 id: welcome_mail
-icon: WRITABLE_BOOK
-title: "サーバ参加ありがとうございます"
-body: "AstralRecord サーバへ参加してくださりありがとうございます。\n冒険の始まりを記念して、100 アストラルドをお届けします。"
+icon: CHEST
+title: "初ログイン記念の贈り物"
+body: "AstralRecord へようこそ。\nノクスでの冒険の始まりを記念して、初ログインバンドルをお届けします。"
 publishFrom: "2026-06-01T00:00:00"
 publishTo: null
+firstLoginOnly: true
 receiveOnRead: true
 rewards:
-  - itemId: astrald
-    category: currency
-    amount: 100
+  - itemId: initial_login_bundle
+    category: bundle
+    amount: 1

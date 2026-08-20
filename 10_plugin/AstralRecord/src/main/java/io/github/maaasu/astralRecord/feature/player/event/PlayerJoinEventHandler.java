@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
@@ -451,6 +452,9 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             }
             if (guideService != null) {
                 guideService.loadProgressAsync(joinData.account().getUuid());
+                if (appliedPlayer != null) {
+                    guideService.recordCondition(appliedPlayer, GuideConditionType.PLAYER_LOGGED_IN, null);
+                }
             }
         } catch (Exception exception) {
             rollbackJoinApplication(

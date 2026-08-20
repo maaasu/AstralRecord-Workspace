@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.item.model.EquipmentStatRoll
 import io.github.maaasu.astralRecord.feature.item.model.RuneInstance
 import io.github.maaasu.astralRecord.feature.item.model.RuneStatRoll
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundle
+import io.github.maaasu.astralRecord.feature.item.model.ItemBundleReward
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundleOnUse
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundleParticle
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundleSound
@@ -575,6 +576,14 @@ class ItemRepository {
 
         return ItemBundle(
             lootTableId = parseStringOrNull(bundleObj, "lootTableId"),
+            items = parseArrayOrNull(bundleObj, "items")?.mapNotNull { element ->
+                if (!element.isJsonObject) return@mapNotNull null
+                val reward = element.asJsonObject
+                val itemId = parseStringOrNull(reward, "itemId") ?: return@mapNotNull null
+                val amount = parseIntOrNull(reward, "amount") ?: 1
+                ItemBundleReward(itemId, amount.coerceAtLeast(1))
+            }.orEmpty(),
+            gold = parseDoubleOrNull(bundleObj, "gold")?.toLong()?.coerceAtLeast(0L) ?: 0L,
             onUse = if (onUseObj != null) {
                 ItemBundleOnUse(
                     sound = parseBundleSound(onUseObj),

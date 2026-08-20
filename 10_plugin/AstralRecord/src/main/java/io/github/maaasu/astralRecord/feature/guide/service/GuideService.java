@@ -33,6 +33,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class GuideService {
+    private static final long PROGRESS_RETRY_DELAY_TICKS = 100L;
     private static final Pattern REFERENCE_PATTERN = Pattern.compile("\\{([a-zA-Z_]+):([^}]+)}");
 
     private final AstralRecord plugin;
@@ -46,6 +47,7 @@ public class GuideService {
     private final Map<UUID, Set<GuideStepKey>> completedStepsByAccount = new ConcurrentHashMap<>();
     private final Map<UUID, Long> progressGenerations = new ConcurrentHashMap<>();
     private final Map<UUID, Long> loadingGenerations = new ConcurrentHashMap<>();
+    private final Map<UUID, List<GuideConditionEvent>> pendingConditionsByAccount = new ConcurrentHashMap<>();
 
     /**
      * ガイドマスターとアカウント進行を扱うサービスを生成します。
@@ -145,6 +147,12 @@ public class GuideService {
                 loaded.addAll(progressRepository.findByAccountId(accountId));
                 if (progressGenerations.getOrDefault(accountId, 0L) == generation) {
                     completedStepsByAccount.put(accountId, loaded);
+                    List<GuideConditionEvent> pending = pendingConditionsByAccount.remove(accountId);
+                    if (pending != null && !pending.isEmpty()) {
+                        plugin.getServer().getScheduler().runTask(plugin, () -> pending.forEach(event ->
+                            recordCondition(event.player(), event.type(), event.targetId())
+                        ));
+                    }
                 }
             } catch (RuntimeException e) {
                 Logger.log(LogId.E_5182, e, "load", accountId, failureReason(e));
@@ -163,6 +171,7 @@ public class GuideService {
         progressGenerations.merge(accountId, 1L, Long::sum);
         completedStepsByAccount.remove(accountId);
         loadingGenerations.remove(accountId);
+        pendingConditionsByAccount.remove(accountId);
     }
 
     /**
@@ -205,6 +214,8 @@ public class GuideService {
         UUID accountId = player.getAccount().getUuid();
         Set<GuideStepKey> completed = completedStepsByAccount.get(accountId);
         if (completed == null) {
+            pendingConditionsByAccount.computeIfAbsent(accountId, ignored -> new java.util.concurrent.CopyOnWriteArrayList<>())
+                .add(new GuideConditionEvent(player, eventType, targetId));
             loadProgressAsync(accountId);
             return;
         }
@@ -249,8 +260,12 @@ public class GuideService {
                 progressRepository.completeStep(accountId, key, updatedBy);
             } catch (RuntimeException e) {
                 Set<GuideStepKey> completed = completedStepsByAccount.get(accountId);
-                if (completed != null) {
-                    completed.remove(key);
+                if (completed != null && completed.contains(key)) {
+                    plugin.getServer().getScheduler().runTaskLaterAsynchronously(
+                        plugin,
+                        () -> persistStepAsync(player, guide, key),
+                        PROGRESS_RETRY_DELAY_TICKS
+                    );
                 }
                 Logger.log(LogId.E_5182, e, "complete", guide.id() + ":" + key.stepId(), failureReason(e));
             }
@@ -313,5 +328,12 @@ public class GuideService {
     private static @NotNull String failureReason(@NotNull Throwable failure) {
         String message = failure.getMessage();
         return message == null || message.isBlank() ? failure.getClass().getSimpleName() : message;
+    }
+
+    private record GuideConditionEvent(
+        @NotNull AstPlayer player,
+        @NotNull GuideConditionType type,
+        @Nullable String targetId
+    ) {
     }
 }

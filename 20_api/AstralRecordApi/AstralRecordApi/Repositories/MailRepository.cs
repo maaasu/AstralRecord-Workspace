@@ -12,6 +12,11 @@ public class MailRepository(AstralRecordDbContext dbContext, MasterDataDbContext
     public async Task<IReadOnlyList<MailResponse>> GetAvailableByUserIdAsync(Guid userId, string? filter)
     {
         var now = DateTime.UtcNow;
+        var userJoinDate = await dbContext.Users
+            .AsNoTracking()
+            .Where(user => user.Uuid == userId && !user.IsDeleted)
+            .Select(user => (DateTime?)user.JoinDate)
+            .SingleOrDefaultAsync();
         var masters = await GetMailMastersAsync();
         var deliveries = await GetPlayerDeliveriesAsync(userId);
         var states = await dbContext.PlayerMailStates
@@ -23,6 +28,7 @@ public class MailRepository(AstralRecordDbContext dbContext, MasterDataDbContext
         return masters.Concat(deliveries)
             .Select(master => Merge(master, states.GetValueOrDefault(master.Id)))
             .Where(mail => mail.PublishFrom <= now && (mail.PublishTo is null || mail.PublishTo >= now))
+            .Where(mail => !mail.FirstLoginOnly || (userJoinDate is not null && userJoinDate >= mail.PublishFrom))
             .Where(mail => !mail.IsDeleted)
             .Where(mail => normalizedFilter switch
             {
@@ -149,7 +155,11 @@ public class MailRepository(AstralRecordDbContext dbContext, MasterDataDbContext
     {
         var master = await GetMailMasterByIdAsync(mailId);
         if (master is not null)
+        {
+            if (master.FirstLoginOnly && !await IsFirstLoginEligibleAsync(userId, master.PublishFrom))
+                return null;
             return master;
+        }
 
         var payload = await dbContext.PlayerMailDeliveries
             .AsNoTracking()
@@ -161,6 +171,13 @@ public class MailRepository(AstralRecordDbContext dbContext, MasterDataDbContext
         return payload is null ? null : MasterDataPayloadJson.Deserialize<MailResponse>(payload);
     }
 
+    private async Task<bool> IsFirstLoginEligibleAsync(Guid userId, DateTime publishFrom)
+    {
+        return await dbContext.Users
+            .AsNoTracking()
+            .AnyAsync(user => user.Uuid == userId && !user.IsDeleted && user.JoinDate >= publishFrom);
+    }
+
     private static MailResponse Merge(MailResponse master, PlayerMailStateEntity? state) => new()
     {
         SchemaVersion = master.SchemaVersion,
@@ -170,6 +187,7 @@ public class MailRepository(AstralRecordDbContext dbContext, MasterDataDbContext
         Body = master.Body,
         PublishFrom = master.PublishFrom,
         PublishTo = master.PublishTo,
+        FirstLoginOnly = master.FirstLoginOnly,
         ReceiveOnRead = master.ReceiveOnRead,
         Rewards = master.Rewards,
         IsRead = state?.IsRead ?? false,

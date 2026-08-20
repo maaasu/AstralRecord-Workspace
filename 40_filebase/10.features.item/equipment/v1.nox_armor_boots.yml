@@ -1,0 +1,53 @@
+# design:
+#   motif: "星影の街ノクス / 旅立ちの防具"
+#   progression: 0
+schemaVersion: 1
+id: nox_armor_boots
+category: equipment
+name: "&bノクスブーツ"
+icon: LEATHER_BOOTS
+rarity: COMMON
+maxStack: 1
+saleValue: 15
+appearance:
+  color: "#243B5A"
+lore:
+  - "&7星影の街ノクスで仕立てられた、旅立ちのための革製ブーツ。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: FEET
+  requiredLevel: 0
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 3
+    - status: MOVEMENT_SPEED
+      type: FLAT
+      value: 0.5
+  durability:
+    max: 90
+    consume: 1
+  enhance:
+    maxLevel: 5
+    levels:
+      - level: 1
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 2
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 3
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 4
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 5
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }]
+        successRate: 1.0
+        failAction: NONE

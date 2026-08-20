@@ -5,7 +5,15 @@ package io.github.maaasu.astralRecord.feature.item.model
  */
 data class ItemBundle(
     val lootTableId: String?,
+    val items: List<ItemBundleReward> = emptyList(),
+    val gold: Long = 0L,
     val onUse: ItemBundleOnUse?,
+)
+
+/** bundle から確定で付与するアイテムです。 */
+data class ItemBundleReward(
+    val itemId: String,
+    val amount: Int,
 )
 
 /**
@@ -34,4 +42,3 @@ data class ItemBundleParticle(
     val offsetZ: Double?,
     val extra: Double?,
 )
-

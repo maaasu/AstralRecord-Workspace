@@ -22,6 +22,7 @@ Bundle の中身の指定方法は 2 系統あります。
 | `maxStack` | Integer | × | 64 | アイテムの最大スタック数 |
 | `bundle.lootTableId` | String | × | Null | LootTableId の参照先 ID |
 | `bundle.items[]` | List | × | Null | 報酬アイテムの直接定義 |
+| `bundle.gold` | Integer | × | `0` | 開封時に加算するGold |
 | `bundle.onUse.sound` | Map | × | 既定値 | bundle 内に Sound 実体を定義 |
 | `bundle.onUse.particle` | Map | × | 既定値 | bundle 内に Particle 実体を定義 |
 
@@ -56,6 +57,8 @@ bundle:
 | `bundle.items[].rate` | Double | × | 100.0 | 抽選確率 |
 | `bundle.items[].luckAffected` | Boolean | × | false | `true` の場合は luck 補正対象 |
 | `bundle.items[].hidden` | Boolean | × | false | `true` の場合は開封前の表示から隠す |
+
+現行Pluginが直接報酬として解釈するのは `itemId` と固定の正整数 `amount` です。`rate`、`luckAffected`、`hidden` は将来の抽選表示拡張用であり、確率報酬には `lootTableId` を使用します。
 
 ---
 

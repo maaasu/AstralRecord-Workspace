@@ -42,6 +42,7 @@ public final class LoginBonusService {
     private final LoginBonusClaimRepository claimRepository;
     private final Set<UUID> claimInFlight = ConcurrentHashMap.newKeySet();
     private final Map<UUID, UUID> openRequestIds = new ConcurrentHashMap<>();
+    private Consumer<AstPlayer> claimSuccessListener = player -> { };
 
     /**
      * ログイン報酬サービスを構築します。
@@ -178,6 +179,15 @@ public final class LoginBonusService {
     }
 
     /**
+     * ログインボーナス受取成功時の通知先を設定します。
+     *
+     * @param claimSuccessListener 受取プレイヤーを受け取る通知先
+     */
+    public void setClaimSuccessListener(@NotNull Consumer<AstPlayer> claimSuccessListener) {
+        this.claimSuccessListener = claimSuccessListener;
+    }
+
+    /**
      * ログインボーナス GUI が利用するインベントリサービスを返します。
      *
      * @return インベントリサービス
@@ -298,6 +308,12 @@ public final class LoginBonusService {
                         ? PlayerMsgId.P_5075
                         : PlayerMsgId.P_5074
                 );
+            }
+            if (result == LoginBonusClaimResult.CREATED && player != null && player.isOnline()) {
+                var astPlayer = AstPlayerCache.get(player);
+                if (astPlayer != null) {
+                    claimSuccessListener.accept(astPlayer);
+                }
             }
             completion.accept(result == LoginBonusClaimResult.CREATED);
         });

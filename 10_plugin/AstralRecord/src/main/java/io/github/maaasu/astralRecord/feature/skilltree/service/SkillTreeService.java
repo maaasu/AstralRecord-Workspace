@@ -66,6 +66,7 @@ import java.io.File;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.function.BiConsumer;
 import java.util.concurrent.CompletableFuture;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -182,6 +183,7 @@ public class SkillTreeService {
     private BukkitTask feedbackTask;
     private SkillTreeVisualizer visualizer;
     private boolean playerStateSaveInProgress;
+    private BiConsumer<AstPlayer, String> nodeUnlockListener = (player, nodeId) -> { };
     private String rootNodeId = "";
 
     public SkillTreeService(
@@ -203,6 +205,15 @@ public class SkillTreeService {
 
     public void setInventoryService(@NotNull InventoryService inventoryService) {
         this.inventoryService = inventoryService;
+    }
+
+    /**
+     * ノード解放成功時の通知先を設定します。
+     *
+     * @param nodeUnlockListener 解放者とノードIDを受け取る通知先
+     */
+    public void setNodeUnlockListener(@NotNull BiConsumer<AstPlayer, String> nodeUnlockListener) {
+        this.nodeUnlockListener = nodeUnlockListener;
     }
 
     /**
@@ -1130,6 +1141,7 @@ public class SkillTreeService {
             derivedPlayerStates.put(state.accountId(), nextDerivedState);
             markDirty(state);
             markNodeStateChanged(astPlayer, node, previousSkillIds, nextDerivedState.unlockedSkillIds());
+            nodeUnlockListener.accept(astPlayer, node.nodeId());
         }
         return changed;
     }

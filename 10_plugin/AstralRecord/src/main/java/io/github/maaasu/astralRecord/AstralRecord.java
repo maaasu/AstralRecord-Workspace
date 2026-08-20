@@ -800,6 +800,9 @@ public final class AstralRecord extends JavaPlugin {
             bundleUseEffectService,
             particleDisplayService
         );
+        bundleUseService.setBundleOpenedListener((player, bundleId) ->
+            guideService.recordCondition(player, GuideConditionType.BUNDLE_OPENED, bundleId)
+        );
 
         // status
         statusService = new StatusService(itemService, inventoryService);
@@ -1037,14 +1040,23 @@ public final class AstralRecord extends JavaPlugin {
             itemService,
             new LoginBonusClaimRepository()
         );
+        loginBonusService.setClaimSuccessListener(player ->
+            guideService.recordCondition(player, GuideConditionType.LOGIN_BONUS_CLAIMED, null)
+        );
         partyMemberActionGui = new PartyMemberActionGui();
         mailService = new MailService(this, new MailRepository(), itemService, inventoryService);
+        mailService.setMailReceivedListener((player, mailId) ->
+            guideService.recordCondition(player, GuideConditionType.MAIL_RECEIVED, mailId)
+        );
         shopService = new ShopService(
             new ShopRepository(),
             new ShopRecipeRepository(),
             itemService,
             inventoryService,
             currencyService
+        );
+        shopService.setPurchaseListener((player, entryId) ->
+            guideService.recordCondition(player, GuideConditionType.SHOP_PURCHASED, entryId)
         );
         itemAdminGuiEventHandler = new ItemAdminGuiEventHandler(
             new ItemAdminGuiView(this, itemStackFactory),
@@ -1075,7 +1087,13 @@ public final class AstralRecord extends JavaPlugin {
         questGui = new QuestGui(this, questService);
         questGuiEventHandler = new QuestGuiEventHandler(questGui, questService, inventoryService);
         mobCombatService.setQuestService(questService);
+        mobCombatService.setMobDefeatedListener((player, mobId) ->
+            guideService.recordCondition(player, GuideConditionType.MOB_DEFEATED, mobId)
+        );
         gatheringService.setQuestService(questService);
+        gatheringService.setGatheringCompleteListener((player, spawnerOrGatheringId) ->
+            guideService.recordCondition(player, GuideConditionType.GATHERING_COMPLETED, spawnerOrGatheringId)
+        );
         tradeGui = new TradeGui();
         tradeCancelConfirmGui = new TradeCancelConfirmGui();
         goldAmountSettingGui = new GoldAmountSettingGui();
@@ -1185,6 +1203,9 @@ public final class AstralRecord extends JavaPlugin {
             player -> meditationSkillRuntimeService.interrupt(player.getBukkit().getUniqueId())
         );
         skillTreeService.setStatusService(statusService);
+        skillTreeService.setNodeUnlockListener((player, nodeId) ->
+            guideService.recordCondition(player, GuideConditionType.SKILLTREE_NODE_UNLOCKED, nodeId)
+        );
         skillTreeService.setSkillService(skillService);
         skillTreeService.setPassiveSkillService(passiveSkillService);
         skillActionRingService = new SkillActionRingService(
@@ -1488,6 +1509,9 @@ public final class AstralRecord extends JavaPlugin {
             learnedSkillService,
             passiveSkillService,
             inventoryService
+        );
+        skillBindGuiEventHandler.setSkillEnhancedListener((player, skillId) ->
+            guideService.recordCondition(player, GuideConditionType.SKILL_ENHANCED, skillId)
         );
         eventManager.registerHandler(
             skillBindGuiEventHandler,

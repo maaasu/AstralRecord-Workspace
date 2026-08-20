@@ -10,13 +10,20 @@ public final class GatheringInstance {
     private final UUID instanceId;
     private final GatheringDefinition definition;
     private final Location location;
+    private final String sourceSpawnerId;
     private int currentHealth;
     private UUID activePlayerId;
 
-    public GatheringInstance(@NotNull UUID instanceId, @NotNull GatheringDefinition definition, @NotNull Location location) {
+    public GatheringInstance(
+        @NotNull UUID instanceId,
+        @NotNull GatheringDefinition definition,
+        @NotNull Location location,
+        @Nullable String sourceSpawnerId
+    ) {
         this.instanceId = instanceId;
         this.definition = definition;
         this.location = location.clone();
+        this.sourceSpawnerId = sourceSpawnerId;
         this.currentHealth = definition.maxHealth();
     }
 
@@ -30,6 +37,11 @@ public final class GatheringInstance {
 
     public @NotNull Location location() {
         return location.clone();
+    }
+
+    /** この採集物を生成したスポナー ID。手動生成時は {@code null}。 */
+    public @Nullable String sourceSpawnerId() {
+        return sourceSpawnerId;
     }
 
     public int currentHealth() {

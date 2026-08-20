@@ -39,8 +39,17 @@ steps:
 
 | type | targetId | 達成タイミング |
 |:--|:--|:--|
+| `PLAYER_LOGGED_IN` | 使用しない | ゲームプレイ状態でログインしたとき |
+| `LOGIN_BONUS_CLAIMED` | 使用しない | ログインボーナスを受け取ったとき |
+| `MAIL_RECEIVED` | mail ID | メールを既読化し、報酬受取が成功したとき |
+| `BUNDLE_OPENED` | bundle item ID | bundle を開封して報酬付与が成功したとき |
+| `SHOP_PURCHASED` | shop entry ID | ショップの商品購入または交換が成功したとき |
+| `SKILLTREE_NODE_UNLOCKED` | node ID | スキルツリーのノード解放が成功したとき |
+| `SKILL_ENHANCED` | skill ID | スキルの強化が成功したとき |
 | `ACTION_RING_OPENED` | 使用しない | アクションリングの表示に成功したとき |
 | `SKILL_CAST` | 任意のskill ID | プレイヤーのスキル実行が成功したとき。未指定なら任意のスキル |
+| `MOB_DEFEATED` | mob master ID | 敵Mobを討伐したとき |
+| `GATHERING_COMPLETED` | gathering spawner ID | 指定スポナーに属する採集を完了したとき |
 
 Pluginは各guideの先頭の未達成stepだけを評価します。後続stepと同じイベントを先に実行しても達成にはなりません。
 

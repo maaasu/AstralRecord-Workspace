@@ -335,7 +335,7 @@ public class GatheringSpawnerService {
         if (entry == null || spawnLocation == null) {
             return;
         }
-        GatheringInstance instance = gatheringService.spawn(entry.gatheringId(), spawnLocation);
+        GatheringInstance instance = gatheringService.spawn(entry.gatheringId(), spawnLocation, definition.id());
         if (instance != null) {
             spawnedByLocation.computeIfAbsent(spawnerLocation.locationKey(), key -> new HashSet<>())
                     .add(instance.instanceId());

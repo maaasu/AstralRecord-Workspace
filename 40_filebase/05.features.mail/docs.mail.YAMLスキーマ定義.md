@@ -14,6 +14,7 @@
 | `body` | string | yes | メール本文。改行は `\n`。 |
 | `publishFrom` | ISO-8601 datetime | yes | 公開開始日時。 |
 | `publishTo` | ISO-8601 datetime/null | no | 公開終了日時。null の場合は無期限。 |
+| `firstLoginOnly` | boolean | no | 初回ログイン時だけ配信する場合は `true`。既定は `false`。 |
 | `receiveOnRead` | boolean | yes | 未読メールをクリックして既読化したときに `rewards` を付与するか。 |
 | `rewards` | array | no | 報酬アイテム一覧。 |
 

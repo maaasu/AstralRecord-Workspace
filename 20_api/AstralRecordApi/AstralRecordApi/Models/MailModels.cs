@@ -16,6 +16,7 @@ public class MailResponse
     public required string Body { get; init; }
     public DateTime PublishFrom { get; init; }
     public DateTime? PublishTo { get; init; }
+    public bool FirstLoginOnly { get; init; }
     public bool ReceiveOnRead { get; init; }
     public IReadOnlyList<MailRewardResponse> Rewards { get; init; } = [];
     public bool IsRead { get; init; }

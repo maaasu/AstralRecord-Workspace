@@ -50,6 +50,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiConsumer;
 
 /**
  * Mob の戦闘ロジックを担うサービス。
@@ -72,6 +73,7 @@ public class MobCombatService {
     private PlayerDeathService playerDeathService;
     private QuestService questService;
     private DamageService damageService;
+    private BiConsumer<AstPlayer, String> mobDefeatedListener;
 
     /**
      * コンストラクタ。
@@ -130,6 +132,11 @@ public class MobCombatService {
 
     public void setQuestService(@Nullable QuestService questService) {
         this.questService = questService;
+    }
+
+    /** Mob 討伐を外部機能へ通知するリスナーを設定します。 */
+    public void setMobDefeatedListener(@Nullable BiConsumer<AstPlayer, String> mobDefeatedListener) {
+        this.mobDefeatedListener = mobDefeatedListener;
     }
 
     /**
@@ -313,6 +320,9 @@ public class MobCombatService {
             results.add(result);
             if (questService != null) {
                 questService.recordMobKill(recipient, template.id());
+            }
+            if (mobDefeatedListener != null) {
+                mobDefeatedListener.accept(recipient, template.id());
             }
             applyExperienceAndSkillPoints(recipient, result);
             adventureRecordService.recordDefeatAsync(recipient, template);

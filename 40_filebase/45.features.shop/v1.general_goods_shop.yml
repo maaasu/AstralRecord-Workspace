@@ -82,6 +82,39 @@ items:
     slot: 6
     priceGold: 6000
 
+  - id: nox_armor_helmet
+    itemId:
+      ref: item:nox_armor_helmet
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 4
+    priceGold: 15
+  - id: nox_armor_chest
+    itemId:
+      ref: item:nox_armor_chest
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 11
+    priceGold: 30
+  - id: nox_armor_legs
+    itemId:
+      ref: item:nox_armor_legs
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 18
+    priceGold: 25
+  - id: nox_armor_boots
+    itemId:
+      ref: item:nox_armor_boots
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 25
+    priceGold: 15
+
   - id: sindri_orb
     itemId:
       ref: item:sindri_orb

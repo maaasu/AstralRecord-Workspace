@@ -49,6 +49,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 
 public class GatheringService {
     private static final double TARGET_DISTANCE = 5.5D;
@@ -88,6 +89,7 @@ public class GatheringService {
     private SkillTreeService skillTreeService;
     private ParticleDisplayService particleDisplayService;
     private QuestService questService;
+    private BiConsumer<AstPlayer, String> gatheringCompleteListener;
     private final Map<String, GatheringDefinition> definitions = new LinkedHashMap<>();
     private final Map<UUID, GatheringInstance> instances = new LinkedHashMap<>();
     private final Map<UUID, MiningSession> sessions = new HashMap<>();
@@ -142,6 +144,11 @@ public class GatheringService {
 
     public void setQuestService(@NotNull QuestService questService) {
         this.questService = questService;
+    }
+
+    /** 採集完了を外部機能へ通知するリスナーを設定します。 */
+    public void setGatheringCompleteListener(@Nullable BiConsumer<AstPlayer, String> gatheringCompleteListener) {
+        this.gatheringCompleteListener = gatheringCompleteListener;
     }
 
     public int loadAll() {
@@ -207,6 +214,22 @@ public class GatheringService {
      * @return 生成した instance。定義・world が不正、または同一ブロックに既存 instance がある場合は null
      */
     public @Nullable GatheringInstance spawn(@NotNull String gatheringId, @NotNull Location location) {
+        return spawn(gatheringId, location, null);
+    }
+
+    /**
+     * 採集 object を指定ブロックへ生成します。
+     *
+     * @param gatheringId 採集定義 ID。namespace prefix は許可します。
+     * @param location 生成位置。ブロック中央へ正規化します。
+     * @param sourceSpawnerId 生成元スポナー ID。手動生成時は {@code null}
+     * @return 生成した instance。定義・world が不正、または同一ブロックに既存 instance がある場合は null
+     */
+    public @Nullable GatheringInstance spawn(
+        @NotNull String gatheringId,
+        @NotNull Location location,
+        @Nullable String sourceSpawnerId
+    ) {
         GatheringDefinition definition = definitions.get(stripPrefix(gatheringId));
         if (definition == null || location.getWorld() == null) {
             return null;
@@ -215,7 +238,7 @@ public class GatheringService {
         if (hasInstanceAt(spawnLocation)) {
             return null;
         }
-        GatheringInstance instance = new GatheringInstance(UUID.randomUUID(), definition, spawnLocation);
+        GatheringInstance instance = new GatheringInstance(UUID.randomUUID(), definition, spawnLocation, sourceSpawnerId);
         instances.put(instance.instanceId(), instance);
         return instance;
     }
@@ -433,6 +456,12 @@ public class GatheringService {
             );
             if (questService != null) {
                 questService.recordGathering(recipient, instance.definition().id());
+            }
+            if (gatheringCompleteListener != null) {
+                String targetId = instance.sourceSpawnerId() == null
+                    ? instance.definition().id()
+                    : instance.sourceSpawnerId();
+                gatheringCompleteListener.accept(recipient, targetId);
             }
         }
         UUID instanceId = instance.instanceId();

@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundle;
+import io.github.maaasu.astralRecord.feature.item.model.ItemBundleReward;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
@@ -38,6 +39,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 /**
  * bundle アイテムの右クリック開封処理を担当します。
@@ -57,6 +59,7 @@ public class BundleUseService {
     private final BundleUseEffectService bundleUseEffectService;
     private final ParticleDisplayService particleDisplayService;
     private final Map<UUID, PendingBundleUse> pendingUses = new ConcurrentHashMap<>();
+    private BiConsumer<AstPlayer, String> bundleOpenedListener = (player, bundleId) -> { };
 
     /**
      * bundle 使用サービスを構築します。
@@ -104,13 +107,16 @@ public class BundleUseService {
         @NotNull ItemModel model
     ) {
         ItemBundle bundle = model.getBundle();
-        if (bundle == null || bundle.getLootTableId() == null || bundle.getLootTableId().isBlank()) {
+        if (bundle == null || (bundle.getLootTableId() == null || bundle.getLootTableId().isBlank())
+            && bundle.getItems().isEmpty() && bundle.getGold() <= 0L) {
             PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5242, model.getId());
             return false;
         }
 
-        LootModel lootModel = lootService.getLoadedOrFetch(bundle.getLootTableId());
-        if (lootModel == null) {
+        LootModel lootModel = bundle.getLootTableId() == null || bundle.getLootTableId().isBlank()
+            ? null
+            : lootService.getLoadedOrFetch(bundle.getLootTableId());
+        if (bundle.getLootTableId() != null && !bundle.getLootTableId().isBlank() && lootModel == null) {
             PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5242, bundle.getLootTableId());
             return false;
         }
@@ -161,6 +167,15 @@ public class BundleUseService {
         ));
         PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5246, displayName);
         return true;
+    }
+
+    /**
+     * bundle開封成功時の通知先を設定します。
+     *
+     * @param bundleOpenedListener 開封者とbundle item IDを受け取る通知先
+     */
+    public void setBundleOpenedListener(@NotNull BiConsumer<AstPlayer, String> bundleOpenedListener) {
+        this.bundleOpenedListener = bundleOpenedListener;
     }
 
     /**
@@ -234,7 +249,18 @@ public class BundleUseService {
             return;
         }
 
-        Map<String, Integer> rewards = rollRewards(pending.lootModel());
+        Map<String, Integer> rewards = rollRewards(pending.bundle(), pending.lootModel());
+        for (Map.Entry<String, Integer> reward : rewards.entrySet()) {
+            if (reward.getValue() <= 0) continue;
+            ItemModel rewardModel = itemService.findLoadedById(reward.getKey());
+            if (rewardModel == null) rewardModel = itemService.loadItem(reward.getKey());
+            if (rewardModel == null || !inventoryService.canAddItemToNormalInventory(
+                pending.astPlayer(), rewardModel, reward.getValue()
+            )) {
+                PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5245);
+                return;
+            }
+        }
         if (!inventoryService.consumeHotbarItemInHand(
             pending.astPlayer(),
             pending.hand(),
@@ -273,6 +299,11 @@ public class BundleUseService {
             }
 
         }
+        if (pending.bundle().getGold() > 0L
+            && inventoryService.addGold(pending.astPlayer(), pending.bundle().getGold())) {
+            rewardKinds++;
+            totalGranted++;
+        }
 
         playUseEffects(pending.astPlayer(), pending.bundle());
         playRewardDropAnimations(pending.astPlayer(), resolvedRewards);
@@ -280,6 +311,7 @@ public class BundleUseService {
         for (String rewardSummary : rewardSummaries) {
             PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5248, rewardSummary);
         }
+        bundleOpenedListener.accept(pending.astPlayer(), pending.model().getId());
     }
 
     private @NotNull String buildRewardSummary(@NotNull ItemModel rewardModel, int amount) {
@@ -301,9 +333,14 @@ public class BundleUseService {
         pending.bossBar().setVisible(false);
     }
 
-    private @NotNull Map<String, Integer> rollRewards(@NotNull LootModel lootModel) {
+    private @NotNull Map<String, Integer> rollRewards(@NotNull ItemBundle bundle, @Nullable LootModel lootModel) {
         Map<String, Integer> rewards = new LinkedHashMap<>();
-        for (LootRollResult reward : lootRollService.roll(lootModel)) {
+        if (lootModel != null) {
+            for (LootRollResult reward : lootRollService.roll(lootModel)) {
+                rewards.merge(reward.getItemId(), reward.getAmount(), Integer::sum);
+            }
+        }
+        for (ItemBundleReward reward : bundle.getItems()) {
             rewards.merge(reward.getItemId(), reward.getAmount(), Integer::sum);
         }
         return rewards;
@@ -383,7 +420,7 @@ public class BundleUseService {
         private final EquipmentSlot hand;
         private final ItemModel model;
         private final ItemBundle bundle;
-        private final LootModel lootModel;
+        private final @Nullable LootModel lootModel;
         private final BossBar bossBar;
         private MovementCancelableWait wait;
 
@@ -392,7 +429,7 @@ public class BundleUseService {
             @NotNull EquipmentSlot hand,
             @NotNull ItemModel model,
             @NotNull ItemBundle bundle,
-            @NotNull LootModel lootModel,
+            @Nullable LootModel lootModel,
             @NotNull BossBar bossBar
         ) {
             this.astPlayer = astPlayer;
@@ -419,7 +456,7 @@ public class BundleUseService {
             return bundle;
         }
 
-        private @NotNull LootModel lootModel() {
+        private @Nullable LootModel lootModel() {
             return lootModel;
         }
 

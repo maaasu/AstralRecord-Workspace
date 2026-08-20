@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -40,6 +41,7 @@ public final class MailService {
     private final InventoryService inventoryService;
     private final Set<MailClaimKey> claimsInFlight = ConcurrentHashMap.newKeySet();
     private final Set<MailClaimKey> completedClaims = ConcurrentHashMap.newKeySet();
+    private BiConsumer<AstPlayer, String> mailReceivedListener = (player, mailId) -> { };
 
     /**
      * メールサービスを構築します。
@@ -70,6 +72,15 @@ public final class MailService {
      */
     public @NotNull List<MailEntry> list(@NotNull UUID userId, @NotNull MailFilter filter) {
         return mailRepository.findAvailable(userId, filter);
+    }
+
+    /**
+     * メール報酬の受取成功時の通知先を設定します。
+     *
+     * @param mailReceivedListener 受取プレイヤーとメールIDを受け取る通知先
+     */
+    public void setMailReceivedListener(@NotNull BiConsumer<AstPlayer, String> mailReceivedListener) {
+        this.mailReceivedListener = mailReceivedListener;
     }
 
     /**
@@ -265,6 +276,9 @@ public final class MailService {
                 }
                 completedClaims.add(claimKey);
                 claimsInFlight.remove(claimKey);
+                if (online != null) {
+                    mailReceivedListener.accept(online, mail.id());
+                }
                 completion.accept(true);
             });
         });

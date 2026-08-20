@@ -58,6 +58,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 /** スキルマネージャーの一覧・バインド・合成操作を処理します。 */
 public final class SkillBindGuiEventHandler extends AbstractEventHandler {
@@ -79,6 +80,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     /** 選択不可素材の理由を、消費せず合成画面のバリア表示へ渡す一時プレビューです。 */
     private final Map<UUID, SynthesisPreview> synthesisPreviews = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> savingSessions = new ConcurrentHashMap<>();
+    private BiConsumer<AstPlayer, String> skillEnhancedListener;
 
     public SkillBindGuiEventHandler(
         @NotNull AstralRecord plugin,
@@ -100,6 +102,11 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         this.learnedSkillService = learnedSkillService;
         this.passiveSkillService = passiveSkillService;
         this.inventoryService = inventoryService;
+    }
+
+    /** スキル合成による強化完了を外部機能へ通知するリスナーを設定します。 */
+    public void setSkillEnhancedListener(@Nullable BiConsumer<AstPlayer, String> skillEnhancedListener) {
+        this.skillEnhancedListener = skillEnhancedListener;
     }
 
     /**
@@ -523,6 +530,9 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         synthesisPreviews.remove(playerId);
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || sessions.get(playerId) != session) return;
+        if (skillEnhancedListener != null) {
+            skillEnhancedListener.accept(astPlayer, updated.getSkillId());
+        }
         inventoryService.applyInventoriesToGui(astPlayer);
         passiveSkillService.markDirty(astPlayer);
         SkillManagerEntry updatedEntry = entry(astPlayer, updated.getLearnedSkillId().toString());

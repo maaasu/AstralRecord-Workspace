@@ -84,6 +84,48 @@ class GuideProgressEvaluatorTest {
         ).id());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
+     * 検証契約: onboarding条件は種別と対象IDの両方が一致した成功イベントだけを受理する。
+     */
+    @Test
+    void evaluate_AcceptsOnboardingConditionWithSpawnerTarget() {
+        GuideEntry guide = new GuideEntry(
+            2,
+            "nox_gathering",
+            "world",
+            10,
+            "gather",
+            null,
+            null,
+            List.of(new GuideStep(
+                "gather_at_nox",
+                "gather",
+                new GuideCondition(GuideConditionType.GATHERING_COMPLETED, "nox_flora_spawner")
+            ))
+        );
+
+        assertNull(GuideProgressEvaluator.evaluate(
+            guide,
+            Set.of(),
+            GuideConditionType.MOB_DEFEATED,
+            "midgard_grassboar"
+        ));
+        assertNull(GuideProgressEvaluator.evaluate(
+            guide,
+            Set.of(),
+            GuideConditionType.GATHERING_COMPLETED,
+            "other_spawner"
+        ));
+        assertEquals("gather_at_nox", GuideProgressEvaluator.evaluate(
+            guide,
+            Set.of(),
+            GuideConditionType.GATHERING_COMPLETED,
+            "nox_flora_spawner"
+        ).id());
+    }
+
     private GuideEntry guide() {
         return new GuideEntry(
             2,
