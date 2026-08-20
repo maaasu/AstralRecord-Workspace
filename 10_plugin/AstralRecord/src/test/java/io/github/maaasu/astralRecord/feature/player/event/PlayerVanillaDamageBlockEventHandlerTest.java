@@ -5,11 +5,15 @@ import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import org.bukkit.Location;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.junit.jupiter.api.Test;
 
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -23,13 +27,22 @@ class PlayerVanillaDamageBlockEventHandlerTest {
      * 検証契約: プレイヤーへの Bukkit EntityDamageEvent はキャッシュ状態や原因にかかわらず damage を0にしてキャンセルする。
      */
     @Test
-    void cancelsVanillaDamageForPlayerOutsidePlayerCache() {
+    void cancelsCampfireDamageWithoutFeedbackForPlayerOutsidePlayerCache() {
+        assertVanillaDamageWithoutFeedback(EntityDamageEvent.DamageCause.CAMPFIRE);
+    }
+
+    @Test
+    void cancelsSuffocationDamageWithoutFeedbackForPlayerOutsidePlayerCache() {
+        assertVanillaDamageWithoutFeedback(EntityDamageEvent.DamageCause.SUFFOCATION);
+    }
+
+    private void assertVanillaDamageWithoutFeedback(EntityDamageEvent.DamageCause cause) {
         WorldService worldService = mock(WorldService.class);
         Player player = mock(Player.class);
         World world = mock(World.class);
         EntityDamageEvent event = mock(EntityDamageEvent.class);
         when(event.getEntity()).thenReturn(player);
-        when(event.getCause()).thenReturn(EntityDamageEvent.DamageCause.CAMPFIRE);
+        when(event.getCause()).thenReturn(cause);
         when(event.getDamage()).thenReturn(2.0D);
         when(player.getWorld()).thenReturn(world);
         when(player.getLocation()).thenReturn(mock(Location.class));
@@ -38,6 +51,14 @@ class PlayerVanillaDamageBlockEventHandlerTest {
 
         verify(event).setDamage(0.0D);
         verify(event).setCancelled(true);
+        verify(player, never()).playHurtAnimation(0.0F);
+        verify(world, never()).playSound(
+                any(Location.class),
+                eq(Sound.ENTITY_PLAYER_HURT),
+                eq(SoundCategory.PLAYERS),
+                eq(0.75F),
+                eq(1.0F)
+        );
         verify(worldService, never()).findByBukkitWorld(org.mockito.ArgumentMatchers.any(World.class));
     }
 

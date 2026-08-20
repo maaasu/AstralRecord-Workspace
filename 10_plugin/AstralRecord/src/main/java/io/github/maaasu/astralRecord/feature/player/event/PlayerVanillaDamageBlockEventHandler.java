@@ -5,29 +5,16 @@ import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
-import org.bukkit.Sound;
-import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityDamageEvent;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.EnumSet;
-import java.util.Set;
-
 /**
  * プレイヤーへのバニラダメージを抑止するイベントハンドラ。
  */
 public class PlayerVanillaDamageBlockEventHandler extends AbstractEventHandler {
-
-    private static final Set<EntityDamageEvent.DamageCause> SILENT_DAMAGE_CAUSES =
-        EnumSet.of(
-            EntityDamageEvent.DamageCause.FALL,
-            EntityDamageEvent.DamageCause.FIRE,
-            EntityDamageEvent.DamageCause.FIRE_TICK,
-            EntityDamageEvent.DamageCause.POISON
-        );
 
     private final WorldService worldService;
 
@@ -53,7 +40,6 @@ public class PlayerVanillaDamageBlockEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            boolean wasCancelled = event.isCancelled();
             if (event.getCause() == EntityDamageEvent.DamageCause.VOID) {
                 event.setDamage(0.0D);
                 event.setCancelled(true);
@@ -61,12 +47,6 @@ public class PlayerVanillaDamageBlockEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            if (!wasCancelled
-                    && event.getDamage() > 0.0D
-                    && !SILENT_DAMAGE_CAUSES.contains(event.getCause())) {
-                player.playHurtAnimation(0.0F);
-                player.getWorld().playSound(player.getLocation(), Sound.ENTITY_PLAYER_HURT, SoundCategory.PLAYERS, 0.75F, 1.0F);
-            }
             event.setDamage(0.0D);
             event.setCancelled(true);
         }, LogId.E_3002, "vanilla_damage_block:" + event.getEntity().getName());
