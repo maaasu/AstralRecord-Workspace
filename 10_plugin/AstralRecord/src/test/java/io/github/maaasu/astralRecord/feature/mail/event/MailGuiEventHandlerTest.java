@@ -13,10 +13,12 @@ import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
+import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryView;
+import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -35,6 +37,83 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class MailGuiEventHandlerTest {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_3-メソッド仕様.md
+     * 章・見出し: # 18_3-メソッド仕様 > ## 既読・報酬受取
+     * 検証契約: 既読化だけが成功して報酬を付与しなかった場合、報酬音ではなく通常の成功音を一度だけ再生する。
+     */
+    @Test
+    void readOnlySuccessDoesNotPlayRewardSound() {
+        MailGuiView view = mock(MailGuiView.class);
+        MailService mailService = mock(MailService.class);
+        MailGuiEventHandler handler = new MailGuiEventHandler(view, mailService, mock(InventoryService.class));
+        Player player = mock(Player.class);
+        Location location = mock(Location.class);
+        InventoryClickEvent event = mock(InventoryClickEvent.class);
+        InventoryView inventoryView = mock(InventoryView.class);
+        Inventory inventory = mock(Inventory.class);
+        ItemStack itemStack = mock(ItemStack.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        UserModel user = mock(UserModel.class);
+        AccountModel account = mock(AccountModel.class);
+        UUID userId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        MailEntry mail = new MailEntry(
+            "mail-1",
+            "CHEST",
+            "既読メール",
+            "本文",
+            java.time.LocalDateTime.now().minusMinutes(1),
+            null,
+            false,
+            List.of(),
+            false,
+            null
+        );
+        AtomicReference<Consumer<MailService.ReadAndReceiveResult>> completion = new AtomicReference<>();
+
+        when(event.getView()).thenReturn(inventoryView);
+        when(inventoryView.getTopInventory()).thenReturn(inventory);
+        when(event.getWhoClicked()).thenReturn(player);
+        when(event.getClickedInventory()).thenReturn(inventory);
+        when(event.getRawSlot()).thenReturn(0);
+        when(event.getCurrentItem()).thenReturn(itemStack);
+        when(event.getClick()).thenReturn(ClickType.LEFT);
+        when(view.isInventory(inventory)).thenReturn(true);
+        when(view.getFilter(inventory)).thenReturn(MailFilter.ALL);
+        when(view.getPageIndex(inventory)).thenReturn(0);
+        when(view.getMails(inventory)).thenReturn(List.of(mail));
+        when(view.getMailId(itemStack)).thenReturn(mail.id());
+        when(astPlayer.getUser()).thenReturn(user);
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(user.getUuid()).thenReturn(userId);
+        when(account.getUuid()).thenReturn(accountId);
+        when(player.getLocation()).thenReturn(location);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getOpenInventory()).thenReturn(inventoryView);
+        when(player.isOnline()).thenReturn(true);
+        doAnswer(invocation -> {
+            completion.set(invocation.getArgument(2));
+            return null;
+        }).when(mailService).readAndReceive(any(), any(), any());
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+
+            handler.onInventoryClick(event);
+            completion.get().accept(new MailService.ReadAndReceiveResult(true, false));
+        }
+
+        verify(player).playSound(location, Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.65F, 1.15F);
+        verify(player, never()).playSound(
+            location,
+            Sound.UI_TOAST_CHALLENGE_COMPLETE,
+            SoundCategory.PLAYERS,
+            0.7F,
+            1.0F
+        );
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_4-統合フロー.md

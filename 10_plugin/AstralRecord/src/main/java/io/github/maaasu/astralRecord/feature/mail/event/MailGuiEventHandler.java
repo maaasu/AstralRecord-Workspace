@@ -195,8 +195,15 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
                 );
             }
             case LEFT, SHIFT_LEFT -> {
-                mailService.readAndReceive(astPlayer, mail, success ->
-                    finishMutation(player, topInventory, filter, pageIndex, success, true));
+                mailService.readAndReceive(astPlayer, mail, result ->
+                    finishMutation(
+                        player,
+                        topInventory,
+                        filter,
+                        pageIndex,
+                        result.success(),
+                        result.rewardReceived()
+                    ));
             }
             default -> GuiSound.DENY.play(player);
         }

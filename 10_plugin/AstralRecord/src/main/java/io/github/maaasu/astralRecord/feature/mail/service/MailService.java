@@ -41,7 +41,17 @@ public final class MailService {
     private final InventoryService inventoryService;
     private final Set<MailClaimKey> claimsInFlight = ConcurrentHashMap.newKeySet();
     private final Set<MailClaimKey> completedClaims = ConcurrentHashMap.newKeySet();
+    private final Set<PendingReceivedNotification> pendingReceivedNotifications = ConcurrentHashMap.newKeySet();
     private BiConsumer<AstPlayer, String> mailReceivedListener = (player, mailId) -> { };
+
+    /**
+     * メールの既読化・報酬受取処理の結果です。
+     *
+     * @param success 既読化処理が成功した場合は {@code true}
+     * @param rewardReceived この呼び出しで報酬がインベントリへ付与された場合は {@code true}
+     */
+    public record ReadAndReceiveResult(boolean success, boolean rewardReceived) {
+    }
 
     /**
      * メールサービスを構築します。
@@ -84,6 +94,31 @@ public final class MailService {
     }
 
     /**
+     * ログイン完了後のプレイヤーへ、受取成功通知を再送します。
+     *
+     * <p>報酬付与後にプレイヤーが切断した場合、既読化の最終確定時点で
+     * {@link AstPlayer} を安全に取得できないため通知を保留します。このメソッドは
+     * プレイヤーのデータとキャッシュが準備できた後に呼び出してください。</p>
+     *
+     * @param astPlayer 通知対象のログイン済みプレイヤー
+     */
+    public void notifyPendingMailReceived(@NotNull AstPlayer astPlayer) {
+        if (!astPlayer.getBukkit().isOnline()) {
+            return;
+        }
+        UUID userId = astPlayer.getUser().getUuid();
+        UUID accountId = astPlayer.getAccount().getUuid();
+        for (PendingReceivedNotification pending : pendingReceivedNotifications) {
+            if (!pending.userId().equals(userId)
+                || !pending.accountId().equals(accountId)
+                || !pendingReceivedNotifications.remove(pending)) {
+                continue;
+            }
+            mailReceivedListener.accept(astPlayer, pending.mailId());
+        }
+    }
+
+    /**
      * 表示可能な未読メール件数を返します。
      *
      * @param userId 対象ユーザー ID
@@ -112,7 +147,6 @@ public final class MailService {
                 List<MailEntry> mails = list(userId, filter);
                 preloadRewardModels(mails);
                 plugin.getServer().getScheduler().runTask(plugin, () -> {
-                    completedClaims.removeIf(claim -> claim.userId().equals(userId));
                     completion.accept(mails);
                 });
             } catch (RuntimeException e) {
@@ -126,29 +160,30 @@ public final class MailService {
      *
      * @param astPlayer 対象プレイヤー
      * @param mail メール
-     * @param completion 完了通知
+     * @param completion 完了通知。引数には既読化の成否と、この呼び出しで報酬が残ったかを渡す。
+     *                   rollback 失敗時は既読化が失敗していても報酬が残るため、後者は {@code true}
      */
     public void readAndReceive(
         @NotNull AstPlayer astPlayer,
         @NotNull MailEntry mail,
-        @NotNull Consumer<Boolean> completion
+        @NotNull Consumer<ReadAndReceiveResult> completion
     ) {
         UUID userId = astPlayer.getUser().getUuid();
         UUID accountId = astPlayer.getAccount().getUuid();
         UUID playerId = astPlayer.getBukkit().getUniqueId();
         MailClaimKey claimKey = new MailClaimKey(userId, mail.id());
         if (completedClaims.contains(claimKey)) {
-            completion.accept(true);
+            completion.accept(new ReadAndReceiveResult(true, false));
             return;
         }
         if (!claimsInFlight.add(claimKey)) {
-            completion.accept(false);
+            completion.accept(new ReadAndReceiveResult(false, false));
             return;
         }
         if (mail.read()) {
             completedClaims.add(claimKey);
             claimsInFlight.remove(claimKey);
-            completion.accept(true);
+            completion.accept(new ReadAndReceiveResult(true, false));
             return;
         }
 
@@ -238,7 +273,7 @@ public final class MailService {
         @NotNull MailEntry mail,
         @NotNull List<InventoryService.PreparedInventoryInstance> preparedInstances,
         @NotNull InventoryService.InventoryGrantReceipt receipt,
-        @NotNull Consumer<Boolean> completion
+        @NotNull Consumer<ReadAndReceiveResult> completion
     ) {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             MailEntry updated;
@@ -255,8 +290,9 @@ public final class MailService {
                         cleanupPreparedInstancesAsync(preparedInstances);
                         finishClaimFailure(claimKey, online, mail, completion, PlayerMsgId.P_5622);
                     } else {
-                        completion.accept(false);
+                        completion.accept(new ReadAndReceiveResult(false, !receipt.mutations().isEmpty()));
                         scheduleClaimReconciliation(
+                            playerId,
                             userId,
                             claimKey,
                             mail,
@@ -267,7 +303,8 @@ public final class MailService {
                     return;
                 }
 
-                if (!receipt.mutations().isEmpty() && online != null) {
+                boolean rewardReceived = !receipt.mutations().isEmpty();
+                if (rewardReceived && online != null) {
                     PlayerMessageService.getInstance().send(
                         online,
                         PlayerMsgId.P_5620,
@@ -276,15 +313,16 @@ public final class MailService {
                 }
                 completedClaims.add(claimKey);
                 claimsInFlight.remove(claimKey);
-                if (online != null) {
-                    mailReceivedListener.accept(online, mail.id());
+                if (rewardReceived) {
+                    notifyMailReceived(claimKey, playerId, userId, accountId, mail.id());
                 }
-                completion.accept(true);
+                completion.accept(new ReadAndReceiveResult(true, rewardReceived));
             });
         });
     }
 
     private void scheduleClaimReconciliation(
+        @NotNull UUID playerId,
         @NotNull UUID userId,
         @NotNull MailClaimKey claimKey,
         @NotNull MailEntry mail,
@@ -303,6 +341,9 @@ public final class MailService {
                 if (result != null) {
                     completedClaims.add(claimKey);
                     claimsInFlight.remove(claimKey);
+                    if (!receipt.mutations().isEmpty()) {
+                        notifyMailReceived(claimKey, playerId, userId, receipt.accountId(), mail.id());
+                    }
                     return;
                 }
                 if (inventoryService.rollbackPreparedRewards(receipt)) {
@@ -310,9 +351,28 @@ public final class MailService {
                     claimsInFlight.remove(claimKey);
                     return;
                 }
-                scheduleClaimReconciliation(userId, claimKey, mail, preparedInstances, receipt);
+                scheduleClaimReconciliation(playerId, userId, claimKey, mail, preparedInstances, receipt);
             });
         }, RECONCILIATION_DELAY_TICKS);
+    }
+
+    private void notifyMailReceived(
+        @NotNull MailClaimKey claimKey,
+        @NotNull UUID playerId,
+        @NotNull UUID userId,
+        @NotNull UUID accountId,
+        @NotNull String mailId
+    ) {
+        AstPlayer online = currentPlayer(playerId, userId, accountId);
+        if (online != null) {
+            mailReceivedListener.accept(online, mailId);
+            return;
+        }
+        pendingReceivedNotifications.add(new PendingReceivedNotification(
+            claimKey.userId(),
+            accountId,
+            mailId
+        ));
     }
 
     private void preloadRewardModels(@NotNull List<MailEntry> mails) {
@@ -446,7 +506,7 @@ public final class MailService {
         @NotNull MailClaimKey claimKey,
         @Nullable AstPlayer astPlayer,
         @NotNull MailEntry mail,
-        @NotNull Consumer<Boolean> completion,
+        @NotNull Consumer<ReadAndReceiveResult> completion,
         @NotNull PlayerMsgId messageId
     ) {
         claimsInFlight.remove(claimKey);
@@ -457,7 +517,7 @@ public final class MailService {
                 PlayerMessageService.getInstance().send(astPlayer, messageId);
             }
         }
-        completion.accept(false);
+        completion.accept(new ReadAndReceiveResult(false, false));
     }
 
     private @Nullable AstPlayer currentPlayer(
@@ -483,6 +543,13 @@ public final class MailService {
     }
 
     private record MailClaimKey(@NotNull UUID userId, @NotNull String mailId) {
+    }
+
+    private record PendingReceivedNotification(
+        @NotNull UUID userId,
+        @NotNull UUID accountId,
+        @NotNull String mailId
+    ) {
     }
 
     private record PreparedClaimRewards(

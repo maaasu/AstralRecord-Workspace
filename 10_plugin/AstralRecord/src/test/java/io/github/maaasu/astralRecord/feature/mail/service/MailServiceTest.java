@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.mail.model.MailEntry;
+import io.github.maaasu.astralRecord.feature.mail.model.MailFilter;
 import io.github.maaasu.astralRecord.feature.mail.model.MailReward;
 import io.github.maaasu.astralRecord.feature.mail.repository.MailRepository;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -60,13 +61,17 @@ class MailServiceTest {
             .thenReturn(receipt);
         when(context.repository.markRead(context.userId, context.mail.id()))
             .thenReturn(context.readMail());
-        AtomicReference<Boolean> result = new AtomicReference<>();
+        AtomicReference<MailService.ReadAndReceiveResult> result = new AtomicReference<>();
+        AtomicInteger receivedEvents = new AtomicInteger();
+        context.service.setMailReceivedListener((ignoredPlayer, ignoredMailId) -> receivedEvents.incrementAndGet());
 
         context.runWithPlayerServices(() ->
             context.service.readAndReceive(context.astPlayer, context.mail, result::set)
         );
 
-        assertTrue(result.get());
+        assertTrue(result.get().success());
+        assertTrue(result.get().rewardReceived());
+        assertEquals(1, receivedEvents.get());
         InOrder order = inOrder(context.inventoryService, context.repository);
         order.verify(context.inventoryService).addPreparedRewardsToNormalInventory(
             eq(context.astPlayer),
@@ -103,13 +108,13 @@ class MailServiceTest {
                 claimReward.addAndGet(-3);
                 return true;
             });
-        AtomicReference<Boolean> result = new AtomicReference<>();
+        AtomicReference<MailService.ReadAndReceiveResult> result = new AtomicReference<>();
 
         context.runWithPlayerServices(() ->
             context.service.readAndReceive(context.astPlayer, context.mail, result::set)
         );
 
-        assertFalse(result.get());
+        assertFalse(result.get().success());
         assertEquals(0, claimReward.get());
         assertEquals(1, concurrentReward.get());
         verify(context.inventoryService).rollbackPreparedRewards(receipt);
@@ -127,16 +132,56 @@ class MailServiceTest {
         MailEntry rewardless = TestContext.mail(false, List.of());
         when(context.repository.markRead(context.userId, rewardless.id()))
             .thenReturn(context.readMail(rewardless));
-        AtomicReference<Boolean> result = new AtomicReference<>();
+        AtomicReference<MailService.ReadAndReceiveResult> result = new AtomicReference<>();
+        AtomicInteger receivedEvents = new AtomicInteger();
+        context.service.setMailReceivedListener((ignoredPlayer, ignoredMailId) -> receivedEvents.incrementAndGet());
 
         context.runWithPlayerServices(() ->
             context.service.readAndReceive(context.astPlayer, rewardless, result::set)
         );
 
-        assertTrue(result.get());
+        assertTrue(result.get().success());
+        assertFalse(result.get().rewardReceived());
+        assertEquals(0, receivedEvents.get());
         verify(context.inventoryService, never()).addPreparedRewardsToNormalInventory(any(), any());
         verify(context.inventoryService, never()).snapshotState(any());
         verify(context.inventoryService, never()).restoreState(any());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_0-概要.md
+     * 章・見出し: # 18_0-概要 > ## 整合性原則
+     * 検証契約: 一覧再取得が stale な未読メールを返しても、完了済みclaimの排他を解除して二重付与しない。
+     */
+    @Test
+    void staleListRefreshDoesNotUnlockCompletedClaim() {
+        TestContext context = new TestContext();
+        InventoryService.InventoryGrantReceipt receipt = context.receipt(3L);
+        when(context.inventoryService.addPreparedRewardsToNormalInventory(eq(context.astPlayer), any()))
+            .thenReturn(receipt);
+        when(context.repository.markRead(context.userId, context.mail.id()))
+            .thenReturn(context.readMail());
+
+        context.runWithPlayerServices(() ->
+            context.service.readAndReceive(context.astPlayer, context.mail, ignored -> { })
+        );
+
+        when(context.repository.findAvailable(context.userId, MailFilter.ALL))
+            .thenReturn(List.of(context.mail));
+        context.service.listAsync(context.userId, MailFilter.ALL, ignored -> { }, () -> { });
+
+        AtomicReference<MailService.ReadAndReceiveResult> duplicateResult = new AtomicReference<>();
+        context.runWithPlayerServices(() ->
+            context.service.readAndReceive(context.astPlayer, context.mail, duplicateResult::set)
+        );
+
+        assertTrue(duplicateResult.get().success());
+        assertFalse(duplicateResult.get().rewardReceived());
+        verify(context.inventoryService, times(1)).addPreparedRewardsToNormalInventory(
+            eq(context.astPlayer),
+            any()
+        );
+        verify(context.repository, times(1)).markRead(context.userId, context.mail.id());
     }
 
     /**
@@ -205,6 +250,8 @@ class MailServiceTest {
         TestContext context = new TestContext();
         InventoryService.InventoryGrantReceipt receipt = context.receipt(3L);
         AtomicReference<Runnable> reconciliation = new AtomicReference<>();
+        AtomicInteger receivedEvents = new AtomicInteger();
+        context.service.setMailReceivedListener((ignoredPlayer, ignoredMailId) -> receivedEvents.incrementAndGet());
         when(context.inventoryService.addPreparedRewardsToNormalInventory(eq(context.astPlayer), any()))
             .thenReturn(receipt);
         when(context.repository.markRead(context.userId, context.mail.id())).thenReturn(null);
@@ -217,16 +264,17 @@ class MailServiceTest {
             any(Runnable.class),
             anyLong()
         );
-        AtomicReference<Boolean> firstResult = new AtomicReference<>();
-        AtomicReference<Boolean> duplicateResult = new AtomicReference<>();
+        AtomicReference<MailService.ReadAndReceiveResult> firstResult = new AtomicReference<>();
+        AtomicReference<MailService.ReadAndReceiveResult> duplicateResult = new AtomicReference<>();
 
         context.runWithPlayerServices(() -> {
             context.service.readAndReceive(context.astPlayer, context.mail, firstResult::set);
             context.service.readAndReceive(context.astPlayer, context.mail, duplicateResult::set);
         });
 
-        assertFalse(firstResult.get());
-        assertFalse(duplicateResult.get());
+        assertFalse(firstResult.get().success());
+        assertTrue(firstResult.get().rewardReceived());
+        assertFalse(duplicateResult.get().success());
         assertNotNull(reconciliation.get());
         verify(context.inventoryService, times(1)).addPreparedRewardsToNormalInventory(
             eq(context.astPlayer),
@@ -235,16 +283,61 @@ class MailServiceTest {
         verify(context.repository, times(1)).markRead(context.userId, context.mail.id());
 
         when(context.repository.markRead(context.userId, context.mail.id())).thenReturn(context.readMail());
-        reconciliation.get().run();
-        AtomicReference<Boolean> staleResult = new AtomicReference<>();
-        context.service.readAndReceive(context.astPlayer, context.mail, staleResult::set);
+        AtomicReference<MailService.ReadAndReceiveResult> staleResult = new AtomicReference<>();
+        context.runWithPlayerServices(() -> {
+            reconciliation.get().run();
+            context.service.readAndReceive(context.astPlayer, context.mail, staleResult::set);
+        });
 
-        assertTrue(staleResult.get());
+        assertTrue(staleResult.get().success());
+        assertFalse(staleResult.get().rewardReceived());
+        assertEquals(1, receivedEvents.get());
         verify(context.inventoryService, times(1)).addPreparedRewardsToNormalInventory(
             eq(context.astPlayer),
             any()
         );
         verify(context.repository, times(2)).markRead(context.userId, context.mail.id());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/18-mail/18_5-例外・ログ・運用.md
+     * 章・見出し: # 18_5-例外・ログ・運用 > ## 運用
+     * 検証契約: reconciliation 完了時にプレイヤーが offline なら通知を保留し、再ログイン後に一度だけ通知する。
+     */
+    @Test
+    void reconciliationDefersReceivedNotificationUntilPlayerReady() {
+        TestContext context = new TestContext();
+        InventoryService.InventoryGrantReceipt receipt = context.receipt(3L);
+        AtomicReference<Runnable> reconciliation = new AtomicReference<>();
+        AtomicInteger receivedEvents = new AtomicInteger();
+        context.service.setMailReceivedListener((ignoredPlayer, ignoredMailId) -> receivedEvents.incrementAndGet());
+        when(context.inventoryService.addPreparedRewardsToNormalInventory(eq(context.astPlayer), any()))
+            .thenReturn(receipt);
+        when(context.repository.markRead(context.userId, context.mail.id())).thenReturn(null);
+        when(context.inventoryService.rollbackPreparedRewards(receipt)).thenReturn(false);
+        doAnswer(invocation -> {
+            reconciliation.set(invocation.getArgument(1));
+            return mock(BukkitTask.class);
+        }).when(context.scheduler).runTaskLaterAsynchronously(
+            eq(context.plugin),
+            any(Runnable.class),
+            anyLong()
+        );
+        when(context.player.isOnline()).thenReturn(true, true, false, true);
+        when(context.repository.markRead(context.userId, context.mail.id())).thenReturn(null);
+
+        context.runWithPlayerServices(() ->
+            context.service.readAndReceive(context.astPlayer, context.mail, ignored -> { })
+        );
+
+        when(context.repository.markRead(context.userId, context.mail.id())).thenReturn(context.readMail());
+        context.runWithPlayerServices(() -> reconciliation.get().run());
+
+        assertEquals(0, receivedEvents.get());
+        context.runWithPlayerServices(() -> context.service.notifyPendingMailReceived(context.astPlayer));
+        assertEquals(1, receivedEvents.get());
+        context.runWithPlayerServices(() -> context.service.notifyPendingMailReceived(context.astPlayer));
+        assertEquals(1, receivedEvents.get());
     }
 
     private static final class TestContext {

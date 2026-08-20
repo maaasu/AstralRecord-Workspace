@@ -456,6 +456,9 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     guideService.recordCondition(appliedPlayer, GuideConditionType.PLAYER_LOGGED_IN, null);
                 }
             }
+            if (appliedPlayer != null) {
+                mailService.notifyPendingMailReceived(appliedPlayer);
+            }
         } catch (Exception exception) {
             rollbackJoinApplication(
                 playerName,
