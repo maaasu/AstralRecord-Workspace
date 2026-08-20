@@ -15,29 +15,13 @@ items:
     page: 1
     slot: 0
     priceGold: 20
-  - id: nox_sword
+  - id: simple_talisman
     itemId:
-      ref: item:nox_sword
+      ref: item:simple_talisman
     category: equipment
     amount: 1
     page: 1
     slot: 7
-    priceGold: 20
-  - id: nox_bow
-    itemId:
-      ref: item:nox_bow
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 14
-    priceGold: 20
-  - id: nox_staff
-    itemId:
-      ref: item:nox_staff
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 21
     priceGold: 20
 
   - id: nox_armor_helmet

@@ -47,16 +47,16 @@ steps:
       type: BUNDLE_OPENED
       targetId: initial_login_bundle
   - id: buy_starter_weapon
-    text: "&f雑貨商でノクスソードを購入する"
+    text: "&f雑貨商で簡素な武器を購入する"
     details:
-      - "&7雑貨商に話しかけ、ショップGUIでノクスソードを選択して購入する。"
+      - "&7雑貨商に話しかけ、ショップGUIで簡素な武器を選択して購入する。"
     action:
       type: NAVIGATE_NPC
       npcId: general_goods_merchant
       description: "&7クリックで雑貨商の場所を表示し、発光させる。"
     condition:
       type: SHOP_PURCHASED
-      targetId: nox_sword
+      targetId: nox_weapon
   - id: buy_starter_armor_helmet
     text: "&f雑貨商でノクスヘルムを購入する"
     details:

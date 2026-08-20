@@ -1,0 +1,24 @@
+# design:
+#   motif: "星影の街ノクス / 旅立ちのチャーム"
+#   progression: 0
+schemaVersion: 1
+id: nox_charm
+category: equipment
+name: "&fノクスチャーム"
+icon: IRON_CHAIN
+rarity: COMMON
+maxStack: 1
+saleValue: 1
+lore:
+  - "&7星影の街ノクスで旅立つ者へ渡されるチャーム。"
+  - "&7小さな幸運を引き寄せる。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: CHARM
+  requiredLevel: 0
+  stats:
+    - status: LUCK
+      type: FLAT
+      value: 1

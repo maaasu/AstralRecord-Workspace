@@ -1,0 +1,23 @@
+# design:
+#   motif: "冒険者 / 簡素な護符"
+#   progression: 1
+schemaVersion: 1
+id: simple_talisman
+category: equipment
+name: "&f簡素な護符"
+icon: TORCH
+rarity: COMMON
+maxStack: 1
+saleValue: 1
+lore:
+  - "&7冒険者へ支給される簡素な護符。"
+  - "&7オフハンドに装備して身を守る。"
+unTradeable: false
+unSellable: true
+equipment:
+  slot: SUBWEAPON
+  requiredLevel: 0
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 2
