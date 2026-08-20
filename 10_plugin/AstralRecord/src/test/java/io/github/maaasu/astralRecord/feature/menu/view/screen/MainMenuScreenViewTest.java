@@ -10,6 +10,7 @@ import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -42,7 +43,7 @@ class MainMenuScreenViewTest extends MockBukkitTestBase {
             )
         );
 
-        new MainMenuScreenView().render(inventory, context);
+        new MainMenuScreenView().render(inventory, player, context);
 
         assertEquals(20, MainMenuScreenView.STATUS_SLOT);
         assertEquals(21, MainMenuScreenView.EQUIPMENT_GUI_SLOT);
@@ -60,21 +61,22 @@ class MainMenuScreenViewTest extends MockBukkitTestBase {
         assertEquals(49, BaseMenuScreenView.BACK_SLOT);
         assertMaterial(inventory, 20, Material.PLAYER_HEAD);
         assertMaterial(inventory, 21, Material.NETHERITE_CHESTPLATE);
-        assertMaterial(inventory, 22, Material.ENCHANTED_BOOK);
-        assertMaterial(inventory, 23, Material.WRITABLE_BOOK);
+        assertMaterial(inventory, 22, Material.ENCHANTING_TABLE);
+        assertMaterial(inventory, 23, Material.MAP);
         assertMaterial(inventory, 24, Material.COMPARATOR);
         assertDisplayNameContains(inventory, 23, "クエスト");
-        assertMaterial(inventory, 29, Material.WRITTEN_BOOK);
-        assertMaterial(inventory, 30, Material.WRITABLE_BOOK);
-        assertMaterial(inventory, 31, Material.PLAYER_HEAD);
-        assertMaterial(inventory, 32, Material.SPYGLASS);
+        assertMaterial(inventory, 29, Material.SPYGLASS);
+        assertMaterial(inventory, 30, Material.CHEST);
+        assertMaterial(inventory, 31, Material.IRON_CHAIN);
+        assertMaterial(inventory, 32, Material.NAME_TAG);
         assertMaterial(inventory, 38, Material.BUNDLE);
-        assertMaterial(inventory, 39, Material.BOOK);
+        assertMaterial(inventory, 39, Material.KNOWLEDGE_BOOK);
         assertMaterial(inventory, 40, Material.BEACON);
         assertMaterial(inventory, 41, Material.LAVA_BUCKET);
         assertMaterial(inventory, 49, Material.BARRIER);
         assertDisplayNameContains(inventory, 20, "プレイヤー情報");
         assertDisplayNameContains(inventory, 31, "パーティー");
+        assertPlayerHeadProfile(inventory, 20, player);
     }
 
     /**
@@ -104,7 +106,7 @@ class MainMenuScreenViewTest extends MockBukkitTestBase {
             )
         );
 
-        new MainMenuScreenView().render(inventory, context);
+        new MainMenuScreenView().render(inventory, player, context);
 
         assertLoreContains(inventory, 21, "星頭巾");
         assertLoreContains(inventory, 38, "123 G");
@@ -119,6 +121,13 @@ class MainMenuScreenViewTest extends MockBukkitTestBase {
         var displayName = inventory.getItem(slot).getItemMeta().displayName();
         assertTrue(displayName != null
             && PlainTextComponentSerializer.plainText().serialize(displayName).contains(expected));
+    }
+
+    private static void assertPlayerHeadProfile(Inventory inventory, int slot, org.bukkit.entity.Player expected) {
+        var meta = inventory.getItem(slot).getItemMeta();
+        assertTrue(meta instanceof SkullMeta);
+        assertTrue(((SkullMeta) meta).getPlayerProfile() != null);
+        assertEquals(expected.getPlayerProfile().getId(), ((SkullMeta) meta).getPlayerProfile().getId());
     }
 
     private static void assertLoreContains(Inventory inventory, int slot, String expected) {

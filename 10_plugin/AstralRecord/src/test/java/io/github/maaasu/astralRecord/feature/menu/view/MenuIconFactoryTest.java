@@ -117,6 +117,38 @@ class MenuIconFactoryTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_1-モデル定義.md
+     * 章・見出し: # 09_1-モデル定義 > ## 3. 共通アイコン
+     * 検証契約: メインメニューの共通アイコンは用途ごとに異なる Material を使用する。
+     */
+    @Test
+    void usesDistinctMaterialsForEachMenuIconDefinition() {
+        List<Material> materials = java.util.Arrays.stream(MenuIconDefinition.values())
+            .map(MenuIconDefinition::getMaterial)
+            .toList();
+
+        assertEquals(materials.size(), new java.util.HashSet<>(materials).size());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
+     * 章・見出し: # 09_3-GUI・View > ## 3. アイコン生成
+     * 検証契約: プレイヤー情報アイコンへ対象プレイヤーのスキンを設定する。
+     */
+    @Test
+    void createsPlayerInfoIconWithTargetPlayerSkin() {
+        var player = server().addPlayer();
+
+        var itemStack = MenuIconFactory.createPlayerInfo(player);
+
+        assertEquals(Material.PLAYER_HEAD, itemStack.getType());
+        assertTrue(itemStack.getItemMeta() instanceof org.bukkit.inventory.meta.SkullMeta);
+        var profile = ((org.bukkit.inventory.meta.SkullMeta) itemStack.getItemMeta()).getPlayerProfile();
+        assertNotNull(profile);
+        assertEquals(player.getPlayerProfile().getId(), profile.getId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/09_1-モデル定義.md
      * 章・見出し: # 09_1-モデル定義 > ## 2. クラフトショートカット
      * 検証契約: 各shortcut actionを同じ意味の共通icon定義へ対応付ける。
      */

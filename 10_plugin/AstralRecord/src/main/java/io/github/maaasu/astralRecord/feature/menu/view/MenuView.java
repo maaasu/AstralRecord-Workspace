@@ -154,7 +154,7 @@ public class MenuView {
      */
     public void open(@NotNull AstPlayer astPlayer, @NotNull PlayerGuiRenderContext context) {
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.MAIN), SIZE, MAIN_TITLE);
-        mainMenuScreenView.render(inventory, context);
+        mainMenuScreenView.render(inventory, astPlayer.getBukkit(), context);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(astPlayer.getBukkit(), inventory);
     }
 

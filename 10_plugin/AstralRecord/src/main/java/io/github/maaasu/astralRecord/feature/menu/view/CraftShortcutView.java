@@ -63,6 +63,7 @@ final class CraftShortcutView {
             newMatrix[slot] = createCraftShortcutIcon(
                 slot,
                 action,
+                player,
                 context
             );
             ItemStack existing = slot < currentMatrix.length ? currentMatrix[slot] : null;
@@ -128,13 +129,14 @@ final class CraftShortcutView {
     private @NotNull ItemStack createCraftShortcutIcon(
         int shortcutSlotIndex,
         @NotNull MenuShortcutAction action,
+        @NotNull Player player,
         @NotNull PlayerGuiRenderContext context
     ) {
         if (action == MenuShortcutAction.NONE) {
             return new ItemStack(Material.AIR);
         }
         if (action == MenuShortcutAction.STATUS) {
-            return createStatusShortcutIcon(shortcutSlotIndex, context);
+            return createStatusShortcutIcon(shortcutSlotIndex, player, context);
         }
         if (action.isCurrencyAction()) {
             return createCurrencyShortcutIcon(shortcutSlotIndex, action, context);
@@ -156,6 +158,7 @@ final class CraftShortcutView {
 
     private @NotNull ItemStack createStatusShortcutIcon(
         int shortcutSlotIndex,
+        @NotNull Player player,
         @NotNull PlayerGuiRenderContext context
     ) {
         var selectedAccount = context.account();
@@ -199,7 +202,7 @@ final class CraftShortcutView {
         }
         lore.add(Component.text("━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));
         lore.add(MenuIconFactory.openHint());
-        ItemStack itemStack = MenuIconFactory.create(MenuIconDefinition.ACCOUNT_INFO, lore);
+        ItemStack itemStack = MenuIconFactory.createPlayerInfo(player, lore);
         markCraftShortcutIcon(itemStack, shortcutSlotIndex, MenuShortcutAction.STATUS);
         return itemStack;
     }

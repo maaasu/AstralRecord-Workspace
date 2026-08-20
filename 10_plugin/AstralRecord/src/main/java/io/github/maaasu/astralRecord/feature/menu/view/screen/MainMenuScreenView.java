@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.menu.model.MenuIconDefinition;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerGuiRenderContext;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuIconFactory;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 
@@ -26,12 +27,17 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
      * メインメニューを描画します。
      *
      * @param inventory 描画先インベントリ
+     * @param player スキンを表示する対象プレイヤー
      * @param context プレイヤー依存の GUI 描画コンテキスト
      */
-    public void render(@NotNull Inventory inventory, @NotNull PlayerGuiRenderContext context) {
+    public void render(
+        @NotNull Inventory inventory,
+        @NotNull Player player,
+        @NotNull PlayerGuiRenderContext context
+    ) {
         fill(inventory);
         inventory.setItem(BACK_SLOT, GuiItems.closeButton());
-        inventory.setItem(STATUS_SLOT, MenuIconFactory.create(MenuIconDefinition.ACCOUNT_INFO));
+        inventory.setItem(STATUS_SLOT, MenuIconFactory.createPlayerInfo(player));
         inventory.setItem(QUEST_SLOT, MenuIconFactory.create(MenuIconDefinition.QUEST));
         inventory.setItem(PLAYER_SETTING_SLOT, MenuIconFactory.create(MenuIconDefinition.PLAYER_SETTING));
         inventory.setItem(EQUIPMENT_GUI_SLOT, MenuIconFactory.create(

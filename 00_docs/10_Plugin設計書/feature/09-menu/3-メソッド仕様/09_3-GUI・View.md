@@ -25,14 +25,14 @@
 クラス名: `MainMenuScreenView`
 物理名: `render`
 
-54 slot inventory に [[09_2-ユースケース]].メインメニューを開く の配置で icon を描画する。クエスト icon は slot `23` に配置する。プレイヤー依存 lore は `PlayerGuiRenderContext` だけを参照し、描画中に各 repository を再取得しない。
+54 slot inventory に [[09_2-ユースケース]].メインメニューを開く の配置で icon を描画する。クエスト icon は slot `23` に配置する。`ACCOUNT_INFO` は描画対象 `Player` のスキンを `PLAYER_HEAD` へ設定する。プレイヤー依存 lore は `PlayerGuiRenderContext` だけを参照し、描画中に各 repository を再取得しない。
 
 ## 3. アイコン生成
 
 クラス名: `MenuIconFactory`
-物理名: `create`, `equipmentDetails`, `currencyDetails`, `returnToBaseDetails`, `openHint`, `executeHint`
+物理名: `create`, `createPlayerInfo`, `equipmentDetails`, `currencyDetails`, `returnToBaseDetails`, `openHint`, `executeHint`
 
-`MenuIconDefinition` の material、色、説明へ描画コンテキスト由来の詳細と操作 hint を組み合わせる。
+`MenuIconDefinition` の material、色、説明へ描画コンテキスト由来の詳細と操作 hint を組み合わせる。メインメニューの共通 icon 定義は用途ごとに異なる Material を使い、同じ意味に見える本・プレイヤーヘッドなどを重複させない。`createPlayerInfo` はメインメニューとステータス shortcut の両方で対象プレイヤーのスキンを設定する。
 
 ## 4. プレイヤー一覧・詳細
 

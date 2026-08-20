@@ -8,7 +8,9 @@ import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.meta.SkullMeta;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
@@ -56,6 +58,35 @@ public final class MenuIconFactory {
             Component.text(definition.getDisplayNameJa(), definition.getColor()),
             lore
         );
+    }
+
+    /**
+     * プレイヤー情報アイコンを対象プレイヤーのスキン付きで生成します。
+     *
+     * @param player スキンを表示する対象プレイヤー
+     * @return 対象プレイヤーのスキンを持つ GUI 用 ItemStack
+     */
+    public static @NotNull ItemStack createPlayerInfo(@NotNull Player player) {
+        return createPlayerInfo(player, List.of());
+    }
+
+    /**
+     * プレイヤー情報アイコンへ画面固有の lore を追加して生成します。
+     *
+     * @param player スキンを表示する対象プレイヤー
+     * @param additionalLore 画面固有の追加 lore
+     * @return 対象プレイヤーのスキンを持つ GUI 用 ItemStack
+     */
+    public static @NotNull ItemStack createPlayerInfo(
+        @NotNull Player player,
+        @NotNull List<Component> additionalLore
+    ) {
+        ItemStack itemStack = create(MenuIconDefinition.ACCOUNT_INFO, additionalLore);
+        if (itemStack.getItemMeta() instanceof SkullMeta skullMeta) {
+            skullMeta.setPlayerProfile(player.getPlayerProfile());
+            itemStack.setItemMeta(skullMeta);
+        }
+        return itemStack;
     }
 
     /**
