@@ -403,7 +403,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
      * 章・見出し: # 08_1-モデル定義 > ## 3. インベントリ種別
-     * 検証契約: 基礎24にplayer level 5ごと1slotを加算する。
+     * 検証契約: 基礎36にplayer level 5ごと1slotを加算する。
      */
     @Test
     void inventorySlotsIncreaseOncePerFivePlayerLevels() {
@@ -413,15 +413,15 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         AstPlayer levelFive = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER, 0, 5);
         AstPlayer levelTen = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER, 0, 10);
 
-        assertEquals(24.0D, statusService.refreshStatus(levelFour)
+        assertEquals(36.0D, statusService.refreshStatus(levelFour)
             .getMaxValue(StatusType.INVENTORY_SLOTS), 0.0001D);
-        assertEquals(25.0D, statusService.refreshStatus(levelFive)
+        assertEquals(37.0D, statusService.refreshStatus(levelFive)
             .getMaxValue(StatusType.INVENTORY_SLOTS), 0.0001D);
-        assertEquals(26.0D, statusService.refreshStatus(levelTen)
+        assertEquals(38.0D, statusService.refreshStatus(levelTen)
             .getMaxValue(StatusType.INVENTORY_SLOTS), 0.0001D);
-        verify(inventoryService).applyBagSlotCapacity(levelFour, 24.0D);
-        verify(inventoryService).applyBagSlotCapacity(levelFive, 25.0D);
-        verify(inventoryService).applyBagSlotCapacity(levelTen, 26.0D);
+        verify(inventoryService).applyBagSlotCapacity(levelFour, 36.0D);
+        verify(inventoryService).applyBagSlotCapacity(levelFive, 37.0D);
+        verify(inventoryService).applyBagSlotCapacity(levelTen, 38.0D);
     }
 
     /**
