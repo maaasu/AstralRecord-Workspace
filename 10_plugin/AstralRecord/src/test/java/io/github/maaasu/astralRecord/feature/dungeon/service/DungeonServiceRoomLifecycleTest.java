@@ -137,7 +137,7 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
-     * 章・見出し: # 09_3-サービス > ## 9. GUI サウンド意味付け
+     * 章・見出し: # 09_3-サービス > ## 10. GUI サウンド意味付け
      * 検証契約: ダンジョン報酬を1個以上インベントリへ付与できた場合だけ、控えめなアイテム受取音を再生する。
      */
     @Test

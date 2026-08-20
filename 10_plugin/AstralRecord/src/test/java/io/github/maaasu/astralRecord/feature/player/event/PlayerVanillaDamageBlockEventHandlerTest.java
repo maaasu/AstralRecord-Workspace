@@ -31,6 +31,11 @@ class PlayerVanillaDamageBlockEventHandlerTest {
         assertVanillaDamageWithoutFeedback(EntityDamageEvent.DamageCause.CAMPFIRE);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### バニラプレイヤーダメージ抑止
+     * 検証契約: プレイヤーへの Bukkit EntityDamageEvent は窒息ダメージでも damage を0にしてキャンセルする。
+     */
     @Test
     void cancelsSuffocationDamageWithoutFeedbackForPlayerOutsidePlayerCache() {
         assertVanillaDamageWithoutFeedback(EntityDamageEvent.DamageCause.SUFFOCATION);
