@@ -5,6 +5,8 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideEntry;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideAction;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideActionType;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideCondition;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideStep;
@@ -108,7 +110,7 @@ public class GuideRepository {
         }
 
         int schemaVersion = intValue(obj, "schemaVersion", 0);
-        if (schemaVersion != 2) {
+        if (schemaVersion != 3) {
             throw new IllegalArgumentException("Unsupported guide schemaVersion: " + schemaVersion + " (id=" + id + ")");
         }
         List<GuideStep> steps = steps(obj);
@@ -156,11 +158,45 @@ public class GuideRepository {
             values.add(new GuideStep(
                 stepId,
                 stringValue(step, "text", stepId),
+                strings(step, "details"),
                 new GuideCondition(
                     GuideConditionType.parse(conditionType),
                     nullableString(condition, "targetId")
-                )
+                ),
+                action(step)
             ));
+        }
+        return List.copyOf(values);
+    }
+
+    private @Nullable GuideAction action(@NotNull JsonObject step) {
+        if (!step.has("action") || step.get("action").isJsonNull() || !step.get("action").isJsonObject()) {
+            return null;
+        }
+        JsonObject action = step.getAsJsonObject("action");
+        String typeValue = stringValue(action, "type", "").trim();
+        if (typeValue.isBlank()) {
+            throw new IllegalArgumentException("Guide action type is required");
+        }
+        GuideActionType type = GuideActionType.parse(typeValue);
+        return new GuideAction(
+            type,
+            stringValue(action, "description", ""),
+            nullableString(action, "npcId"),
+            nullableString(action, "menuId")
+        );
+    }
+
+    private @NotNull List<String> strings(@NotNull JsonObject obj, @NotNull String key) {
+        JsonElement element = obj.get(key);
+        if (element == null || element.isJsonNull() || !element.isJsonArray()) {
+            return List.of();
+        }
+        List<String> values = new ArrayList<>();
+        for (JsonElement child : element.getAsJsonArray()) {
+            if (child.isJsonPrimitive()) {
+                values.add(child.getAsString());
+            }
         }
         return List.copyOf(values);
     }

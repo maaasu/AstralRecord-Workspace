@@ -11,41 +11,38 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
 
 class GuideProgressEvaluatorTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
      * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
-     * 検証契約: guide requires stepをmaster記載順に全件評価する。
+     * 検証契約: 表示順に関係なく、条件を満たした未達成 step を達成対象にする。
      */
     @Test
-    void evaluate_RequiresStepsInMasterOrder() {
+    void evaluate_AcceptsMatchingStepRegardlessOfDisplayOrder() {
         GuideEntry guide = guide();
 
-        assertNull(GuideProgressEvaluator.evaluate(
+        assertEquals(List.of("cast_skill"), ids(GuideProgressEvaluator.evaluate(
             guide,
             Set.of(),
             GuideConditionType.SKILL_CAST,
             "starter_skill"
-        ));
+        )));
 
-        GuideStep first = GuideProgressEvaluator.evaluate(
+        assertEquals(List.of("open_action_ring"), ids(GuideProgressEvaluator.evaluate(
             guide,
             Set.of(),
             GuideConditionType.ACTION_RING_OPENED,
             null
-        );
-        assertEquals("open_action_ring", first.id());
+        )));
 
-        GuideStep second = GuideProgressEvaluator.evaluate(
+        assertEquals(List.of("cast_skill"), ids(GuideProgressEvaluator.evaluate(
             guide,
-            Set.of(new GuideStepKey(guide.id(), first.id())),
+            Set.of(new GuideStepKey(guide.id(), "open_action_ring")),
             GuideConditionType.SKILL_CAST,
             "starter_skill"
-        );
-        assertEquals("cast_skill", second.id());
+        )));
     }
 
     /**
@@ -56,7 +53,7 @@ class GuideProgressEvaluatorTest {
     @Test
     void evaluate_AppliesOptionalTargetId() {
         GuideEntry guide = new GuideEntry(
-            2,
+            3,
             "specific_skill",
             "skill",
             10,
@@ -66,22 +63,71 @@ class GuideProgressEvaluatorTest {
             List.of(new GuideStep(
                 "cast",
                 "cast",
-                new GuideCondition(GuideConditionType.SKILL_CAST, "fire_boost")
+                List.of(),
+                new GuideCondition(GuideConditionType.SKILL_CAST, "fire_boost"),
+                null
             ))
         );
 
-        assertNull(GuideProgressEvaluator.evaluate(
+        assertEquals(List.of(), GuideProgressEvaluator.evaluate(
             guide,
             Set.of(),
             GuideConditionType.SKILL_CAST,
             "other_skill"
         ));
-        assertEquals("cast", GuideProgressEvaluator.evaluate(
+        assertEquals(List.of("cast"), ids(GuideProgressEvaluator.evaluate(
             guide,
             Set.of(),
             GuideConditionType.SKILL_CAST,
             "fire_boost"
-        ).id());
+        )));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
+     * 検証契約: 同一イベントに一致する未達成 step は、表示順に関係なくすべて達成対象にする。
+     */
+    @Test
+    void evaluate_ReturnsEveryMatchingUncompletedStep() {
+        GuideEntry guide = new GuideEntry(
+            3,
+            "duplicate_condition",
+            "guide",
+            10,
+            "guide",
+            null,
+            null,
+            List.of(
+                new GuideStep(
+                    "first",
+                    "first",
+                    List.of(),
+                    new GuideCondition(GuideConditionType.SKILL_CAST, "starter_skill"),
+                    null
+                ),
+                new GuideStep(
+                    "second",
+                    "second",
+                    List.of(),
+                    new GuideCondition(GuideConditionType.SKILL_CAST, "starter_skill"),
+                    null
+                )
+            )
+        );
+
+        assertEquals(List.of("first", "second"), ids(GuideProgressEvaluator.evaluate(
+            guide,
+            Set.of(),
+            GuideConditionType.SKILL_CAST,
+            "starter_skill"
+        )));
+        assertEquals(List.of("second"), ids(GuideProgressEvaluator.evaluate(
+            guide,
+            Set.of(new GuideStepKey(guide.id(), "first")),
+            GuideConditionType.SKILL_CAST,
+            "starter_skill"
+        )));
     }
 
     /**
@@ -92,7 +138,7 @@ class GuideProgressEvaluatorTest {
     @Test
     void evaluate_AcceptsOnboardingConditionWithSpawnerTarget() {
         GuideEntry guide = new GuideEntry(
-            2,
+            3,
             "nox_gathering",
             "world",
             10,
@@ -102,33 +148,35 @@ class GuideProgressEvaluatorTest {
             List.of(new GuideStep(
                 "gather_at_nox",
                 "gather",
-                new GuideCondition(GuideConditionType.GATHERING_COMPLETED, "nox_flora_spawner")
+                List.of(),
+                new GuideCondition(GuideConditionType.GATHERING_COMPLETED, "nox_flora_spawner"),
+                null
             ))
         );
 
-        assertNull(GuideProgressEvaluator.evaluate(
+        assertEquals(List.of(), GuideProgressEvaluator.evaluate(
             guide,
             Set.of(),
             GuideConditionType.MOB_DEFEATED,
             "midgard_grassboar"
         ));
-        assertNull(GuideProgressEvaluator.evaluate(
+        assertEquals(List.of(), GuideProgressEvaluator.evaluate(
             guide,
             Set.of(),
             GuideConditionType.GATHERING_COMPLETED,
             "other_spawner"
         ));
-        assertEquals("gather_at_nox", GuideProgressEvaluator.evaluate(
+        assertEquals(List.of("gather_at_nox"), ids(GuideProgressEvaluator.evaluate(
             guide,
             Set.of(),
             GuideConditionType.GATHERING_COMPLETED,
             "nox_flora_spawner"
-        ).id());
+        )));
     }
 
     private GuideEntry guide() {
         return new GuideEntry(
-            2,
+            3,
             "action_ring_skill_cast",
             "skill",
             10,
@@ -139,14 +187,22 @@ class GuideProgressEvaluatorTest {
                 new GuideStep(
                     "open_action_ring",
                     "open",
-                    new GuideCondition(GuideConditionType.ACTION_RING_OPENED, null)
+                    List.of(),
+                    new GuideCondition(GuideConditionType.ACTION_RING_OPENED, null),
+                    null
                 ),
                 new GuideStep(
                     "cast_skill",
                     "cast",
-                    new GuideCondition(GuideConditionType.SKILL_CAST, null)
+                    List.of(),
+                    new GuideCondition(GuideConditionType.SKILL_CAST, null),
+                    null
                 )
             )
         );
+    }
+
+    private List<String> ids(List<GuideStep> steps) {
+        return steps.stream().map(GuideStep::id).toList();
     }
 }

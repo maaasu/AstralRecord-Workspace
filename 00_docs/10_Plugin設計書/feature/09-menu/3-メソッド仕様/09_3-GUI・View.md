@@ -20,6 +20,8 @@
 
 各画面の slot 判定と描画は `view/screen/*ScreenView` へ委譲する。
 
+ガイド詳細の手順 item は、白色の `text`、灰色の `details[]`、灰色の `action.description` を順に lore へ表示する。action が定義された手順をクリックした場合は `GuideActionService` へ委譲し、NPC の座標案内・発光またはメール GUI 起動を実行する。action がない手順や表示対象外スロットは操作不可とする。
+
 ## 2. メイン画面
 
 クラス名: `MainMenuScreenView`

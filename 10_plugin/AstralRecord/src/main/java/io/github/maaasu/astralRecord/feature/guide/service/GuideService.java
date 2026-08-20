@@ -200,7 +200,7 @@ public class GuideService {
     }
 
     /**
-     * ゲーム内イベントをガイド条件として評価し、各ガイドの次の未達成手順を更新します。
+     * ゲーム内イベントをガイド条件として評価し、条件に一致する未達成手順を更新します。
      *
      * @param player イベントを実行したプレイヤー
      * @param eventType イベント種別
@@ -221,17 +221,15 @@ public class GuideService {
         }
 
         for (GuideEntry guide : getAll()) {
-            GuideStep step = GuideProgressEvaluator.evaluate(guide, completed, eventType, targetId);
-            if (step == null) {
-                continue;
-            }
-            GuideStepKey key = new GuideStepKey(guide.id(), step.id());
-            if (!completed.add(key)) {
-                continue;
-            }
+            for (GuideStep step : GuideProgressEvaluator.evaluate(guide, completed, eventType, targetId)) {
+                GuideStepKey key = new GuideStepKey(guide.id(), step.id());
+                if (!completed.add(key)) {
+                    continue;
+                }
 
-            notifyStepCompleted(player, guide, step);
-            persistStepAsync(player, guide, key);
+                notifyStepCompleted(player, guide, step);
+                persistStepAsync(player, guide, key);
+            }
         }
     }
 
@@ -288,21 +286,30 @@ public class GuideService {
         String normalizedId = id.trim();
         return switch (normalizedType) {
             case "item" -> resolveItem(normalizedId);
-            case "class" -> playerClassService.getDisplayName(normalizedId);
+            case "class" -> resolveClass(normalizedId);
             case "world" -> resolveWorld(normalizedId);
             case "menu" -> menuName(normalizedId);
-            default -> normalizedId;
+            default -> "&f未登録の情報";
         };
     }
 
     private @NotNull String resolveItem(@NotNull String itemId) {
         ItemModel item = itemService.findLoadedById(itemId);
-        return item == null ? itemId : item.getName();
+        return item == null || item.getName() == null || item.getName().isBlank() ? "&f未登録のアイテム" : item.getName();
+    }
+
+    private @NotNull String resolveClass(@NotNull String classId) {
+        if (playerClassService.getLoadedClass(classId) == null) {
+            return "&f未登録のクラス";
+        }
+        return playerClassService.getDisplayName(classId);
     }
 
     private @NotNull String resolveWorld(@NotNull String worldId) {
         WorldMasterData world = worldService.getById(worldId);
-        return world == null ? worldId : world.displayName();
+        return world == null || world.displayName() == null || world.displayName().isBlank()
+            ? "&f未登録のワールド"
+            : world.displayName();
     }
 
     private @NotNull String menuName(@NotNull String menuId) {
@@ -311,7 +318,8 @@ public class GuideService {
             case "skill_bind" -> "&bスキルマネージャー";
             case "status" -> "&eステータス";
             case "guide" -> "&dガイド";
-            default -> menuId;
+            case "mail" -> "&dメール";
+            default -> "&f未登録のメニュー";
         };
     }
 

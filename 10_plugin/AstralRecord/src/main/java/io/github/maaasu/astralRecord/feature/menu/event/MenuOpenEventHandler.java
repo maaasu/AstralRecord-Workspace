@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.currency.event.CurrencyExchangeGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.currency.view.CurrencyGuiView;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideStep;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
@@ -646,7 +647,13 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         }
 
         if (contentId != null) {
-            GuiSound.DENY.play(player);
+            GuideStep step = menuView.getGuideStepAtSlot(contentId, rawSlot);
+            if (step == null || step.action() == null || plugin.getGuideActionService() == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            boolean executed = plugin.getGuideActionService().execute(player, step.action());
+            (executed ? GuiSound.SELECT : GuiSound.DENY).play(player);
             return;
         }
 

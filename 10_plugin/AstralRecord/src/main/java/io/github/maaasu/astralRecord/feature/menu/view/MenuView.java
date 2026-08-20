@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.currency.view.CurrencyGuiView;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideEntry;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideStep;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
@@ -513,6 +514,18 @@ public class MenuView {
         List<GuideEntry> guides = guideService.getAll();
         int index = guideScreenView.normalizePage(pageIndex, guides.size()) * GuideScreenView.CONTENT_SLOT_COUNT + rawSlot;
         return index >= 0 && index < guides.size() ? guides.get(index) : null;
+    }
+
+    /**
+     * ガイド詳細画面の物理スロットから手順を解決します。
+     *
+     * @param guideId 詳細表示中のガイド ID
+     * @param rawSlot クリックされた物理スロット
+     * @return 対応する手順。対象外の場合は null
+     */
+    public @Nullable GuideStep getGuideStepAtSlot(@NotNull String guideId, int rawSlot) {
+        GuideEntry guide = guideService.getById(guideId);
+        return guide == null ? null : guideScreenView.getStepAtSlot(guide, rawSlot);
     }
 
     public boolean hasPreviousTrashPage(int pageIndex) {

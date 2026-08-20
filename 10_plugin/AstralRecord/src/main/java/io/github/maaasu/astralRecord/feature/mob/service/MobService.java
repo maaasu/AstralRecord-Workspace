@@ -166,6 +166,24 @@ public class MobService {
     }
 
     /**
+     * ロード済みの Mob テンプレートだけを取得します。API への遅延取得は行いません。
+     *
+     * @param mobId Mob テンプレート ID
+     * @return ロード済みテンプレート。存在しない場合は null
+     */
+    @Nullable
+    public MobTemplate findLoadedTemplate(@NotNull String mobId) {
+        MobTemplate direct = templates.get(mobId);
+        if (direct != null) {
+            return direct;
+        }
+        return templates.values().stream()
+            .filter(template -> template.id().equalsIgnoreCase(mobId))
+            .findFirst()
+            .orElse(null);
+    }
+
+    /**
      * ロード済みテンプレートの ID 一覧を返します。
      *
      * @return ID 集合（変更不可）

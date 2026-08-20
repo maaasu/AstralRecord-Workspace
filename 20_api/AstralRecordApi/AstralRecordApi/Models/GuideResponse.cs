@@ -20,14 +20,30 @@ public class GuideResponse
     public IReadOnlyList<GuideStepResponse> Steps { get; init; } = [];
 }
 
-/// <summary>ゲーム内ガイドの順序付き手順です。</summary>
+/// <summary>ゲーム内ガイドに表示する手順です。</summary>
 public class GuideStepResponse
 {
     public required string Id { get; init; }
 
     public required string Text { get; init; }
 
+    public IReadOnlyList<string> Details { get; init; } = [];
+
     public required GuideConditionResponse Condition { get; init; }
+
+    public GuideActionResponse? Action { get; init; }
+}
+
+/// <summary>ガイド詳細画面から実行できる案内アクションです。</summary>
+public class GuideActionResponse
+{
+    public required string Type { get; init; }
+
+    public string? Description { get; init; }
+
+    public string? NpcId { get; init; }
+
+    public string? MenuId { get; init; }
 }
 
 /// <summary>ガイド手順の達成条件です。</summary>

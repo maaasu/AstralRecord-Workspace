@@ -44,6 +44,7 @@ import io.github.maaasu.astralRecord.feature.gathering.spawner.service.Gathering
 import io.github.maaasu.astralRecord.feature.guide.repository.GuideRepository;
 import io.github.maaasu.astralRecord.feature.guide.repository.GuideProgressRepository;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
+import io.github.maaasu.astralRecord.feature.guide.service.GuideActionService;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideReminderTask;
 import io.github.maaasu.astralRecord.shared.gui.event.GuiClickCooldownEventHandler;
@@ -308,6 +309,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerDeathService playerDeathService;
     private ResourcePackService resourcePackService;
     private GuideService guideService;
+    private GuideActionService guideActionService;
     private GuideReminderTask guideReminderTask;
     private PlayerGuiRenderContextFactory playerGuiRenderContextFactory;
     private MenuView menuView;
@@ -999,6 +1001,7 @@ public final class AstralRecord extends JavaPlugin {
             worldService,
             playerMessageService
         );
+        guideActionService = new GuideActionService(this, mobService, npcPlacementService, playerMessageService);
         guideReminderTask = new GuideReminderTask(playerMessageService);
 
         // menu
@@ -1758,6 +1761,15 @@ public final class AstralRecord extends JavaPlugin {
 
     public GuideService getGuideService() {
         return guideService;
+    }
+
+    /**
+     * ガイド詳細画面の案内アクションサービスを取得します。
+     *
+     * @return ガイド案内アクションサービス
+     */
+    public GuideActionService getGuideActionService() {
+        return guideActionService;
     }
 
     public TrashService getTrashService() {

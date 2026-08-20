@@ -15,7 +15,7 @@ import java.util.List;
  * @param title 表示タイトル
  * @param iconMaterial GUI アイコン Material 名
  * @param summary 一覧用の短い説明
- * @param steps 順序付き達成手順
+ * @param steps 表示順に並んだ達成手順。達成判定は各 step の条件を個別に評価する
  */
 public record GuideEntry(
     int schemaVersion,

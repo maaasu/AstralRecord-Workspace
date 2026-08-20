@@ -1,0 +1,30 @@
+# design:
+#   motif: "星影の街ノクス / 夜の草花"
+#   progression: 1
+schemaVersion: 3
+id: nox_gathering
+category: world
+displayOrder: 10
+title: "&aノクスの採集ガイド"
+iconMaterial: WOODEN_HOE
+summary: "&7ノクスクワを使い、ノクスの草地から素材を採集する。"
+steps:
+  - id: obtain_hoe
+    text: "&f雑貨商でノクスクワを用意する"
+    details:
+      - "&7雑貨商に話しかけ、ショップGUIでノクスクワを選択して購入する。"
+    action:
+      type: NAVIGATE_NPC
+      npcId: general_goods_merchant
+      description: "&7クリックで雑貨商の場所を表示し、発光させる。"
+    condition:
+      type: SHOP_PURCHASED
+      targetId: nox_hoe
+  - id: gather_nox_flora
+    text: "&fノクスの草地で植物を採集する"
+    details:
+      - "&7ノクスの草地にある採集オブジェクトへ近づく。"
+      - "&7ノクスクワを使い、採集が完了するまで操作する。"
+    condition:
+      type: GATHERING_COMPLETED
+      targetId: nox_flora_spawner

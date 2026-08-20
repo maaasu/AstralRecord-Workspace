@@ -15,6 +15,7 @@ import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -88,7 +89,7 @@ public final class GuideScreenView extends BaseMenuScreenView {
             boolean completed = guideService.isStepCompleted(accountId, guide.id(), step.id());
             inventory.setItem(
                 DETAIL_LINE_SLOTS.get(i),
-                stepItem(i + 1, guideService.resolveText(step.text()), completed)
+                stepItem(i + 1, guideService.resolveText(step.text()), step, guideService, completed)
             );
         }
         if (steps.size() > DETAIL_LINE_SLOTS.size()) {
@@ -118,6 +119,18 @@ public final class GuideScreenView extends BaseMenuScreenView {
 
     public boolean isContentSlot(int rawSlot) {
         return rawSlot >= 0 && rawSlot < CONTENT_SLOT_COUNT;
+    }
+
+    /**
+     * 詳細画面の物理スロットから手順を解決します。
+     *
+     * @param guide 対象ガイド
+     * @param rawSlot クリックされた物理スロット
+     * @return 対応する手順。対象外または表示上限外の場合は null
+     */
+    public @Nullable GuideStep getStepAtSlot(@NotNull GuideEntry guide, int rawSlot) {
+        int index = DETAIL_LINE_SLOTS.indexOf(rawSlot);
+        return index < 0 || index >= guide.steps().size() ? null : guide.steps().get(index);
     }
 
     private void clear(@NotNull Inventory inventory) {
@@ -195,11 +208,25 @@ public final class GuideScreenView extends BaseMenuScreenView {
         );
     }
 
-    private @NotNull ItemStack stepItem(int lineNumber, @NotNull String text, boolean completed) {
+    private @NotNull ItemStack stepItem(
+        int lineNumber,
+        @NotNull String text,
+        @NotNull GuideStep step,
+        @NotNull GuideService guideService,
+        boolean completed
+    ) {
+        List<Component> lore = new ArrayList<>();
+        lore.add(component(text, "&f"));
+        for (String detail : step.details()) {
+            lore.add(component(guideService.resolveText(detail), "&7"));
+        }
+        if (step.action() != null && !step.action().description().isBlank()) {
+            lore.add(component(guideService.resolveText(step.action().description()), "&7"));
+        }
         return createItem(
             completed ? Material.LIME_DYE : Material.GRAY_DYE,
             Component.text((completed ? "✓ " : "□ ") + lineNumber + ".", completed ? NamedTextColor.GREEN : NamedTextColor.GRAY),
-            List.of(component(text, ""))
+            lore
         );
     }
 
