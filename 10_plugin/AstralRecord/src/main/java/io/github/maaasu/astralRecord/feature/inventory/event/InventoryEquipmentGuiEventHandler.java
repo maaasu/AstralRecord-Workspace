@@ -128,7 +128,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             if (orbService.isOrbInventory(event.getInventory())) {
-                orbService.handleClose(player);
+                orbService.handleClose(player, event.getInventory());
                 return;
             }
             if (!isEquipmentMenu(event.getInventory())) {
@@ -453,6 +453,10 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
 
         var astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || !astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
+            return;
+        }
+
+        if (orbService.handleInventoryInfoClick(event)) {
             return;
         }
 

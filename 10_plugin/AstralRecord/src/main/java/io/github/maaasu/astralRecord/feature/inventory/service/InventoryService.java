@@ -1642,6 +1642,16 @@ public class InventoryService {
     }
 
     /**
+     * 通常プレイヤーインベントリのインベントリ情報アイコン用スロットか判定します。
+     *
+     * @param bukkitSlot 判定する Bukkit スロット番号
+     * @return インベントリ情報アイコンのスロットなら {@code true}
+     */
+    public boolean isInventoryInfoSlot(int bukkitSlot) {
+        return bukkitSlot == NormalInventoryLayout.INFO_GUI_SLOT;
+    }
+
+    /**
      * BAG 右端列のスクロール・情報操作を処理します。
      *
      * @param astPlayer 操作したプレイヤー

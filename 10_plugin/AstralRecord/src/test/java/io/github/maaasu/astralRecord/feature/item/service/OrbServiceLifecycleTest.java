@@ -60,6 +60,7 @@ import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -120,6 +121,130 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         assertTrue(top.getHolder() instanceof OrbGuiHolder);
         assertEquals(Material.DIAMOND_SWORD, top.getItem(0).getType());
         assertEquals(Material.IRON_SWORD, top.getItem(1).getType());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 1.5. インベントリ内オーブ一覧
+     * 検証契約: 情報アイコンから54スロットの枠付きオーブ一覧を開き、同一オーブの複数entryを合算した数量を表示し、クリックしたオーブの装備候補GUIへ遷移する。
+     */
+    @Test
+    void inventoryInfoOpensAggregatedOrbListAndSelectingOrbStartsOperation() {
+        Harness harness = new Harness(ItemOrbEffectType.REPAIR);
+        harness.orbQuantity.set(64);
+        harness.additionalOrbQuantity = 32;
+
+        InventoryClickEvent infoClick = harness.normalInventoryClick(26);
+        harness.handler.onInventoryClick(infoClick);
+
+        verify(infoClick).setCancelled(true);
+        Inventory orbList = harness.player.getOpenInventory().getTopInventory();
+        OrbGuiHolder holder = (OrbGuiHolder) orbList.getHolder();
+        assertEquals(OrbGuiHolder.Screen.INVENTORY_ORB_LIST, holder.screen());
+        assertEquals(OrbGuiHolder.SIZE, orbList.getSize());
+        assertEquals(Material.BLACK_STAINED_GLASS_PANE, orbList.getItem(0).getType());
+        assertNotNull(orbList.getItem(10));
+        assertTrue(orbList.getItem(10).getItemMeta().lore().stream()
+            .anyMatch(line -> line.toString().contains("所持数: 96")));
+
+        harness.handler.onInventoryClick(harness.guiClick(10));
+        harness.awaitOrbScreen(OrbGuiHolder.Screen.LIST);
+        assertEquals(Material.DIAMOND_SWORD,
+            harness.player.getOpenInventory().getTopInventory().getItem(0).getType());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 1.5. インベントリ内オーブ一覧
+     * 検証契約: オーブ操作GUIの下段中央の起点オーブをクリックすると、所持オーブ一覧へ戻る。
+     */
+    @Test
+    void operationInfoOrbReturnsToInventoryOrbList() {
+        Harness harness = new Harness(ItemOrbEffectType.REPAIR);
+        harness.openOrbList();
+        Inventory operationInventory = harness.player.getOpenInventory().getTopInventory();
+
+        harness.handler.onInventoryClick(harness.guiClick(49));
+        InventoryCloseEvent oldOperationClose = mock(InventoryCloseEvent.class);
+        when(oldOperationClose.getPlayer()).thenReturn(harness.player);
+        when(oldOperationClose.getInventory()).thenReturn(operationInventory);
+        harness.handler.onInventoryClose(oldOperationClose);
+
+        assertEquals(
+            OrbGuiHolder.Screen.INVENTORY_ORB_LIST,
+            ((OrbGuiHolder) harness.player.getOpenInventory().getTopInventory().getHolder()).screen()
+        );
+        assertEquals(OrbGuiHolder.SIZE, harness.player.getOpenInventory().getTopInventory().getSize());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 1.5. インベントリ内オーブ一覧
+     * 検証契約: 一覧から操作GUIへ切り替えた後に旧一覧のclose eventが届いても操作GUIを維持する。
+     */
+    @Test
+    void inventoryOrbListSelectionKeepsOperationAfterOldListClose() {
+        Harness harness = new Harness(ItemOrbEffectType.REPAIR);
+        harness.handler.onInventoryClick(harness.normalInventoryClick(26));
+        Inventory oldList = harness.player.getOpenInventory().getTopInventory();
+
+        harness.handler.onInventoryClick(harness.guiClick(10));
+        harness.awaitOrbScreen(OrbGuiHolder.Screen.LIST);
+        Inventory operationInventory = harness.player.getOpenInventory().getTopInventory();
+
+        InventoryCloseEvent oldListClose = mock(InventoryCloseEvent.class);
+        when(oldListClose.getPlayer()).thenReturn(harness.player);
+        when(oldListClose.getInventory()).thenReturn(oldList);
+        harness.handler.onInventoryClose(oldListClose);
+
+        assertSame(operationInventory, harness.player.getOpenInventory().getTopInventory());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 1.5. インベントリ内オーブ一覧
+     * 検証契約: 29種類以上のオーブを28種類単位でページ分割し、前後ページボタンを状態に応じて描画する。
+     */
+    @Test
+    void inventoryOrbListPagesAtTwentyEightOrbTypes() {
+        Harness harness = new Harness(ItemOrbEffectType.REPAIR);
+        harness.addOrbTypesForPaging(28);
+        harness.handler.onInventoryClick(harness.normalInventoryClick(26));
+        Inventory list = harness.player.getOpenInventory().getTopInventory();
+
+        assertEquals(Material.ARROW, list.getItem(53).getType());
+        assertEquals(Material.GRAY_DYE, list.getItem(45).getType());
+
+        harness.handler.onInventoryClick(harness.guiClick(53));
+
+        assertEquals(Material.ARROW, list.getItem(45).getType());
+        assertEquals(Material.GRAY_DYE, list.getItem(53).getType());
+        assertNotNull(list.getItem(10));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 1.5. インベントリ内オーブ一覧
+     * 検証契約: 空一覧と表示後に消費された stale entry のクリックを安全に拒否し、一覧を再描画する。
+     */
+    @Test
+    void emptyOrStaleInventoryOrbListIsRedrawnWithoutStartingOperation() {
+        Harness emptyHarness = new Harness(ItemOrbEffectType.REPAIR);
+        emptyHarness.orbQuantity.set(0);
+        emptyHarness.handler.onInventoryClick(emptyHarness.normalInventoryClick(26));
+        Inventory emptyList = emptyHarness.player.getOpenInventory().getTopInventory();
+        assertEquals(Material.AIR, emptyList.getItem(10).getType());
+        assertEquals(Material.GRAY_DYE, emptyList.getItem(45).getType());
+        assertEquals(Material.GRAY_DYE, emptyList.getItem(53).getType());
+
+        Harness staleHarness = new Harness(ItemOrbEffectType.REPAIR);
+        staleHarness.handler.onInventoryClick(staleHarness.normalInventoryClick(26));
+        Inventory staleList = staleHarness.player.getOpenInventory().getTopInventory();
+        staleHarness.orbQuantity.set(0);
+        staleHarness.handler.onInventoryClick(staleHarness.guiClick(10));
+
+        assertSame(staleList, staleHarness.player.getOpenInventory().getTopInventory());
+        assertEquals(Material.AIR, staleList.getItem(10).getType());
     }
 
     /**
@@ -858,6 +983,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         private final AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
         private final UUID accountId = astPlayer.getAccount().getUuid();
         private final UUID orbEntryId = UUID.randomUUID();
+        private final UUID additionalOrbEntryId = UUID.randomUUID();
         private final UUID equippedEntryId = UUID.randomUUID();
         private final UUID bagEntryId = UUID.randomUUID();
         private final UUID equippedInstanceId = UUID.randomUUID();
@@ -876,11 +1002,14 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         private final InventoryEquipmentGuiEventHandler handler;
         private final ItemOrbEffectType effectType;
         private final ItemModel orbModel;
+        private final Map<String, ItemModel> loadedOrbModels = new LinkedHashMap<>();
+        private final List<InventoryEntryModel> pagingOrbEntries = new ArrayList<>();
         private final ItemModel equippedModel;
         private final ItemModel bagModel;
         private final AtomicReference<EquipmentInstance> equippedInstance;
         private final AtomicReference<EquipmentInstance> bagInstance;
         private final AtomicInteger orbQuantity = new AtomicInteger(2);
+        private int additionalOrbQuantity;
         private final AtomicReference<EquipmentOrbOperationResultType> apiResultType =
             new AtomicReference<>(EquipmentOrbOperationResultType.APPLIED);
         private final AtomicBoolean preloadRanOnPrimaryThread = new AtomicBoolean(true);
@@ -908,6 +1037,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         ) {
             this.effectType = effectType;
             this.orbModel = orbModel(effectType);
+            loadedOrbModels.put(orbModel.getId(), orbModel);
             this.equippedModel = equipmentModel(
                 "equipped_sword", effectType, transcendenceMaterials, transcendenceCurrency);
             this.bagModel = equipmentModel(
@@ -964,14 +1094,29 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 )
             ));
             when(inventoryService.getInventories(accountId)).thenReturn(List.of(bag));
-            when(inventoryService.getEntries(bag.getInventoryId())).thenAnswer(invocation -> List.of(
-                orbEntry(),
-                equipmentEntry(
-                    equippedEntryId, equippedInstanceId, equippedModel.getId(), 1),
-                equipmentEntry(bagEntryId, bagInstanceId, bagModel.getId(), 2)
-            ));
+            when(inventoryService.getEntries(bag.getInventoryId())).thenAnswer(invocation -> {
+                List<InventoryEntryModel> entries = new ArrayList<>(List.of(
+                    orbEntry(),
+                    equipmentEntry(
+                        equippedEntryId, equippedInstanceId, equippedModel.getId(), 1),
+                    equipmentEntry(bagEntryId, bagInstanceId, bagModel.getId(), 2)
+                ));
+                if (additionalOrbQuantity > 0) {
+                    entries.add(entry(
+                        additionalOrbEntryId,
+                        3,
+                        ItemCategory.ORB,
+                        orbModel.getId(),
+                        null,
+                        additionalOrbQuantity
+                    ));
+                }
+                entries.addAll(pagingOrbEntries);
+                return entries;
+            });
             when(inventoryService.findOwnedEntry(accountId, orbEntryId))
                 .thenAnswer(invocation -> orbEntry());
+            when(inventoryService.isInventoryInfoSlot(26)).thenReturn(true);
             when(inventoryService.reserveOrbOperationPayment(
                 eq(accountId),
                 any(UUID.class),
@@ -986,6 +1131,8 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             )).thenReturn(true);
             when(itemService.findLoadedById(anyString())).thenAnswer(invocation -> {
                 String id = invocation.getArgument(0, String.class);
+                ItemModel loadedOrb = loadedOrbModels.get(id);
+                if (loadedOrb != null) return loadedOrb;
                 if (orbModel.getId().equalsIgnoreCase(id)) return orbModel;
                 if (equippedModel.getId().equalsIgnoreCase(id)) return equippedModel;
                 if (bagModel.getId().equalsIgnoreCase(id)) return bagModel;
@@ -1115,13 +1262,48 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             return event;
         }
 
+        private void addOrbTypesForPaging(int count) {
+            for (int index = 1; index <= count; index++) {
+                String itemId = "orb.page_test_" + index;
+                ItemModel model = orbModel(itemId, ItemOrbEffectType.REPAIR);
+                loadedOrbModels.put(itemId, model);
+                pagingOrbEntries.add(entry(
+                    UUID.randomUUID(),
+                    3 + index,
+                    ItemCategory.ORB,
+                    itemId,
+                    null,
+                    1
+                ));
+            }
+        }
+
         private InventoryClickEvent normalInventoryClick() {
+            return normalInventoryClick(9);
+        }
+
+        private InventoryClickEvent normalInventoryClick(int slot) {
             InventoryClickEvent event = mock(InventoryClickEvent.class);
             when(event.getWhoClicked()).thenReturn(player);
             when(event.getView()).thenReturn(player.getOpenInventory());
             when(event.getClickedInventory()).thenReturn(player.getInventory());
-            when(event.getSlot()).thenReturn(9);
+            when(event.getSlot()).thenReturn(slot);
             return event;
+        }
+
+        private void awaitOrbScreen(OrbGuiHolder.Screen expected) {
+            long deadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+            while (!(player.getOpenInventory().getTopInventory().getHolder() instanceof OrbGuiHolder holder)
+                || holder.screen() != expected) {
+                if (System.nanoTime() >= deadlineNanos) {
+                    break;
+                }
+                server().getScheduler().performOneTick();
+                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
+            }
+            assertTrue(player.getOpenInventory().getTopInventory().getHolder() instanceof OrbGuiHolder holder
+                    && holder.screen() == expected,
+                "Orb GUI did not reach expected screen within 2 seconds: " + expected);
         }
 
         private InventoryClickEvent guiClick(int rawSlot) {
@@ -1263,6 +1445,15 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         }
 
         private ItemModel orbModel(ItemOrbEffectType type) {
+            return orbModel(
+                type == ItemOrbEffectType.TRANSCENDENCE
+                    ? "orb.transcendence_test"
+                    : "orb.repair_test",
+                type
+            );
+        }
+
+        private ItemModel orbModel(String itemId, ItemOrbEffectType type) {
             ItemOrbEffect effect = type == ItemOrbEffectType.TRANSCENDENCE
                 ? new ItemOrbEffect(
                     type, List.of(), 1, ItemOrbRankMode.EXACT, null, false, null, null)
@@ -1270,9 +1461,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                     type, List.of(), null, ItemOrbRankMode.EXACT, null, true, null, null);
             return new ItemModel(
                 1,
-                type == ItemOrbEffectType.TRANSCENDENCE
-                    ? "orb.transcendence_test"
-                    : "orb.repair_test",
+                itemId,
                 ItemCategory.ORB.getApiValue(),
                 "テストオーブ",
                 "AMETHYST_SHARD",

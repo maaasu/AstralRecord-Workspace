@@ -51,6 +51,7 @@ public record OrbGuiHolder(
     /** オーブ GUI 内の画面種別です。 */
     public enum Screen {
         LIST,
+        INVENTORY_ORB_LIST,
         TRANSCENDENCE_CONFIRM,
         TRANSCENDENCE_MATERIAL_LIST,
     }

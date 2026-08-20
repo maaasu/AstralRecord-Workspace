@@ -70,6 +70,10 @@ public final class OrbService {
     private static final int PREVIOUS_PAGE_SLOT = 45;
     private static final int INFO_SLOT = 49;
     private static final int NEXT_PAGE_SLOT = 53;
+    private static final int INVENTORY_ORB_CONTENT_SLOT_COUNT = 28;
+    private static final int INVENTORY_ORB_PREVIOUS_PAGE_SLOT = 45;
+    private static final int INVENTORY_ORB_INFO_SLOT = 49;
+    private static final int INVENTORY_ORB_NEXT_PAGE_SLOT = 53;
     private static final int CONFIRM_TARGET_SLOT = 11;
     private static final int CONFIRM_MATERIAL_LIST_SLOT = 13;
     private static final int CONFIRM_GOLD_SLOT = 4;
@@ -119,6 +123,7 @@ public final class OrbService {
     private final OrbInventoryOpener inventoryOpener;
     private final OrbRetryWaiter retryWaiter;
     private final Map<UUID, OrbSession> sessions = new ConcurrentHashMap<>();
+    private final Map<UUID, OrbInventoryListSession> inventoryOrbListSessions = new ConcurrentHashMap<>();
     private @Nullable StatusService statusService;
 
     /**
@@ -211,6 +216,12 @@ public final class OrbService {
         return inventory != null && inventory.getHolder() instanceof OrbGuiHolder;
     }
 
+    private boolean isInventoryOrbList(@Nullable Inventory inventory) {
+        return inventory != null
+            && inventory.getHolder() instanceof OrbGuiHolder holder
+            && holder.screen() == OrbGuiHolder.Screen.INVENTORY_ORB_LIST;
+    }
+
     /**
      * プレイヤーがオーブ操作の通信・演出・更新待機中か判定します。
      *
@@ -220,6 +231,29 @@ public final class OrbService {
     public boolean isLocked(@NotNull Player player) {
         OrbSession session = sessions.get(player.getUniqueId());
         return session != null && session.interactionLock.isLocked() && !session.detached;
+    }
+
+    /**
+     * 通常プレイヤーインベントリの情報アイコンから、所持オーブ一覧 GUI を開きます。
+     *
+     * @param event 通常プレイヤーインベントリのクリックイベント
+     * @return 情報アイコンのクリックとして処理した場合 {@code true}
+     */
+    public boolean handleInventoryInfoClick(@NotNull InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)
+            || event.getView().getType() != org.bukkit.event.inventory.InventoryType.CRAFTING
+            || !(event.getClickedInventory() instanceof PlayerInventory)
+            || !inventoryService.isInventoryInfoSlot(event.getSlot())) {
+            return false;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
+            return false;
+        }
+
+        event.setCancelled(true);
+        openInventoryOrbList(player, astPlayer, null);
+        return true;
     }
 
     /**
@@ -246,13 +280,32 @@ public final class OrbService {
         }
 
         event.setCancelled(true);
+        startOrbOperation(player, astPlayer, entry, orbModel);
+        return true;
+    }
+
+    /**
+     * 指定された所持オーブを起点に、既存の装備候補 GUI を開くセッションを開始します。
+     *
+     * @param player 操作プレイヤー
+     * @param astPlayer ログイン中のプレイヤー状態
+     * @param entry 起点となるオーブ entry
+     * @param orbModel 起点オーブのマスタ
+     */
+    private void startOrbOperation(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
+        @NotNull InventoryEntryModel entry,
+        @NotNull ItemModel orbModel
+    ) {
         OrbSession previous = sessions.get(player.getUniqueId());
         if (previous != null
             && (previous.operationFuture != null || previous.preloadFuture != null)) {
             GuiSound.DENY.play(player);
-            return true;
+            return;
         }
         removeSession(player.getUniqueId());
+        inventoryOrbListSessions.remove(player.getUniqueId());
         OrbSession session = new OrbSession(
             player,
             astPlayer,
@@ -263,7 +316,6 @@ public final class OrbService {
         );
         sessions.put(player.getUniqueId(), session);
         preloadAndOpenList(session, orbModel);
-        return true;
     }
 
     /**
@@ -331,6 +383,10 @@ public final class OrbService {
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
+        if (isInventoryOrbList(event.getView().getTopInventory())) {
+            handleInventoryOrbListClick(event);
+            return;
+        }
         OrbSession session = currentSession(player, event.getView().getTopInventory());
         if (session == null || session.interactionLock.isLocked() || session.transitioning) {
             GuiSound.DENY.play(player);
@@ -371,6 +427,29 @@ public final class OrbService {
      * @param player GUI を閉じたプレイヤー
      */
     public void handleClose(@NotNull Player player) {
+        handleClose(player, null);
+    }
+
+    /**
+     * 指定された GUI のクローズを、画面切替中の古いクローズイベントと区別して処理します。
+     *
+     * @param player GUI を閉じたプレイヤー
+     * @param closedInventory 閉じられたトップインベントリ。旧 API 互換の呼び出しでは {@code null}
+     */
+    public void handleClose(@NotNull Player player, @Nullable Inventory closedInventory) {
+        if (closedInventory != null && isInventoryOrbList(closedInventory)) {
+            OrbInventoryListSession currentList = currentInventoryOrbListSession(player, closedInventory);
+            if (currentList != null) {
+                inventoryOrbListSessions.remove(player.getUniqueId(), currentList);
+            }
+            return;
+        }
+        if (closedInventory != null && inventoryOrbListSessions.containsKey(player.getUniqueId())) {
+            return;
+        }
+        if (inventoryOrbListSessions.remove(player.getUniqueId()) != null) {
+            return;
+        }
         OrbSession session = sessions.get(player.getUniqueId());
         if (session == null || session.player != player || session.transitioning) {
             return;
@@ -422,6 +501,7 @@ public final class OrbService {
      * @param player ログアウトするプレイヤー
      */
     public void prepareForPlayerSave(@NotNull Player player) {
+        inventoryOrbListSessions.remove(player.getUniqueId());
         OrbSession session = sessions.get(player.getUniqueId());
         if (session == null || session.player != player || !sessions.remove(player.getUniqueId(), session)) {
             return;
@@ -433,6 +513,7 @@ public final class OrbService {
      * プラグイン停止前に全オーブセッションを停止し、未確定通信を保存キューへ登録します。
      */
     public void prepareAllForShutdown() {
+        inventoryOrbListSessions.clear();
         for (OrbSession session : List.copyOf(sessions.values())) {
             if (sessions.remove(session.player.getUniqueId(), session)) {
                 detachForSave(session);
@@ -469,6 +550,206 @@ public final class OrbService {
         renderList(session, orbModel, inventory, candidates);
         inventoryOpener.open(session.player, inventory, () -> GuiSound.OPEN.play(session.player), () ->
             sessions.remove(session.player.getUniqueId(), session));
+    }
+
+    /**
+     * インベントリ情報アイコンから所持オーブの一覧 GUI を開きます。
+     *
+     * @param player 操作プレイヤー
+     * @param astPlayer ログイン中のプレイヤー状態
+     * @param previousOperation 切替元のオーブ操作セッション。通常インベントリ起点では {@code null}
+     */
+    private void openInventoryOrbList(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
+        @Nullable OrbSession previousOperation
+    ) {
+        OrbSession currentOperation = sessions.get(player.getUniqueId());
+        if (previousOperation != null && currentOperation != previousOperation) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (currentOperation != null
+            && (currentOperation.interactionLock.isLocked()
+                || currentOperation.operationFuture != null
+                || currentOperation.preloadFuture != null)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+
+        if (currentOperation != null) {
+            removeSession(player.getUniqueId());
+        }
+        inventoryOrbListSessions.remove(player.getUniqueId());
+
+        UUID token = UUID.randomUUID();
+        Inventory inventory = Bukkit.createInventory(
+            new OrbGuiHolder(player.getUniqueId(), token, OrbGuiHolder.Screen.INVENTORY_ORB_LIST),
+            OrbGuiHolder.sizeFor(OrbGuiHolder.Screen.INVENTORY_ORB_LIST),
+            Component.text("インベントリ内のオーブ", NamedTextColor.DARK_PURPLE)
+        );
+        OrbInventoryListSession listSession = new OrbInventoryListSession(
+            astPlayer,
+            astPlayer.getAccount().getUuid(),
+            token,
+            inventory
+        );
+        inventoryOrbListSessions.put(player.getUniqueId(), listSession);
+        renderInventoryOrbList(listSession, collectInventoryOrbs(listSession.accountId));
+        inventoryOpener.open(player, inventory, () -> GuiSound.OPEN.play(player), () ->
+            inventoryOrbListSessions.remove(player.getUniqueId(), listSession));
+    }
+
+    /**
+     * 所持オーブ一覧 GUI のクリックをページ移動またはオーブ操作開始へ振り分けます。
+     *
+     * @param event オーブ一覧 GUI のクリックイベント
+     */
+    private void handleInventoryOrbListClick(@NotNull InventoryClickEvent event) {
+        if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        OrbInventoryListSession session = currentInventoryOrbListSession(
+            player, event.getView().getTopInventory());
+        if (session == null
+            || event.getRawSlot() < 0
+            || event.getRawSlot() >= event.getView().getTopInventory().getSize()
+            || event.getClick() != ClickType.LEFT) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+
+        List<OrbInventoryEntry> entries = collectInventoryOrbs(session.accountId);
+        int pageCount = inventoryOrbPageCount(entries.size());
+        if (event.getRawSlot() == INVENTORY_ORB_PREVIOUS_PAGE_SLOT) {
+            if (session.page > 0) {
+                session.page--;
+                renderInventoryOrbList(session, entries);
+                GuiSound.PAGE.play(player);
+            } else {
+                GuiSound.DENY.play(player);
+            }
+            return;
+        }
+        if (event.getRawSlot() == INVENTORY_ORB_NEXT_PAGE_SLOT) {
+            if (session.page + 1 < pageCount) {
+                session.page++;
+                renderInventoryOrbList(session, entries);
+                GuiSound.PAGE.play(player);
+            } else {
+                GuiSound.DENY.play(player);
+            }
+            return;
+        }
+        if (event.getRawSlot() == INVENTORY_ORB_INFO_SLOT) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+
+        String itemId = session.displayedOrbItemIds.get(event.getRawSlot());
+        if (itemId == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        InventoryEntryModel entry = findOwnedOrbEntry(session.accountId, itemId);
+        ItemModel orbModel = resolveOrbModel(entry);
+        if (entry == null || orbModel == null) {
+            renderInventoryOrbList(session, collectInventoryOrbs(session.accountId));
+            GuiSound.DENY.play(player);
+            return;
+        }
+
+        inventoryOrbListSessions.remove(player.getUniqueId(), session);
+        startOrbOperation(player, session.astPlayer, entry, orbModel);
+    }
+
+    /**
+     * 所持オーブ一覧の現在ページを描画します。
+     *
+     * @param session 一覧 GUI セッション
+     * @param entries 集約済みオーブ一覧
+     */
+    private void renderInventoryOrbList(
+        @NotNull OrbInventoryListSession session,
+        @NotNull List<OrbInventoryEntry> entries
+    ) {
+        fillInventoryOrbList(session.inventory);
+        int pageCount = inventoryOrbPageCount(entries.size());
+        session.page = Math.max(0, Math.min(session.page, pageCount - 1));
+        int fromIndex = session.page * INVENTORY_ORB_CONTENT_SLOT_COUNT;
+        int toIndex = Math.min(entries.size(), fromIndex + INVENTORY_ORB_CONTENT_SLOT_COUNT);
+        Map<Integer, String> displayed = new LinkedHashMap<>();
+        for (int index = fromIndex; index < toIndex; index++) {
+            int logicalSlot = index - fromIndex;
+            int slot = (logicalSlot / 7 + 1) * 9 + logicalSlot % 7 + 1;
+            OrbInventoryEntry entry = entries.get(index);
+            session.inventory.setItem(slot, createInventoryOrbItem(entry));
+            displayed.put(slot, entry.itemId());
+        }
+        session.displayedOrbItemIds = Map.copyOf(displayed);
+        session.inventory.setItem(
+            INVENTORY_ORB_PREVIOUS_PAGE_SLOT,
+            pageButton(false, session.page > 0)
+        );
+        session.inventory.setItem(
+            INVENTORY_ORB_INFO_SLOT,
+            createInventoryOrbListInfo(session.page, pageCount, entries.size())
+        );
+        session.inventory.setItem(
+            INVENTORY_ORB_NEXT_PAGE_SLOT,
+            pageButton(true, session.page + 1 < pageCount)
+        );
+    }
+
+    private int inventoryOrbPageCount(int entryCount) {
+        return Math.max(1, (entryCount + INVENTORY_ORB_CONTENT_SLOT_COUNT - 1)
+            / INVENTORY_ORB_CONTENT_SLOT_COUNT);
+    }
+
+    private @NotNull ItemStack createInventoryOrbItem(@NotNull OrbInventoryEntry entry) {
+        int maxStack = Math.max(1, entry.model().getMaxStack());
+        int displayAmount = (int) Math.min(
+            maxStack,
+            Math.max(1L, entry.quantity())
+        );
+        ItemStack item = itemStackFactory.create(entry.model(), displayAmount);
+        appendLore(item, List.of(
+            Component.empty(),
+            Component.text("所持数: " + entry.quantity(), NamedTextColor.AQUA),
+            Component.text("クリックで使用", NamedTextColor.GOLD)
+        ));
+        return item;
+    }
+
+    private @NotNull ItemStack createInventoryOrbListInfo(
+        int page,
+        int pageCount,
+        int orbTypeCount
+    ) {
+        return GuiItems.create(
+            Material.CHEST,
+            Component.text("インベントリ内のオーブ", NamedTextColor.GOLD),
+            List.of(
+                Component.text("種類数: " + orbTypeCount, NamedTextColor.GRAY),
+                Component.text("ページ: " + (page + 1) + " / " + pageCount, NamedTextColor.GRAY),
+                Component.text("オーブをクリックして使用", NamedTextColor.YELLOW)
+            )
+        );
+    }
+
+    private void fillInventoryOrbList(@NotNull Inventory inventory) {
+        ItemStack filler = GuiItems.create(
+            Material.BLACK_STAINED_GLASS_PANE,
+            Component.text(" "),
+            List.of()
+        );
+        for (int slot = 0; slot < inventory.getSize(); slot++) {
+            inventory.setItem(slot, filler);
+        }
+        for (int logicalSlot = 0; logicalSlot < INVENTORY_ORB_CONTENT_SLOT_COUNT; logicalSlot++) {
+            int slot = (logicalSlot / 7 + 1) * 9 + logicalSlot % 7 + 1;
+            inventory.setItem(slot, new ItemStack(Material.AIR));
+        }
     }
 
     /**
@@ -528,6 +809,11 @@ public final class OrbService {
         }
         if (session.screen == OrbGuiHolder.Screen.TRANSCENDENCE_MATERIAL_LIST) {
             handleMaterialListClick(event.getRawSlot(), session);
+            return;
+        }
+
+        if (event.getRawSlot() == INFO_SLOT) {
+            openInventoryOrbList(session.player, session.astPlayer, session);
             return;
         }
 
@@ -606,6 +892,23 @@ public final class OrbService {
             : null;
     }
 
+    private @Nullable OrbInventoryListSession currentInventoryOrbListSession(
+        @NotNull Player player,
+        @NotNull Inventory inventory
+    ) {
+        if (!(inventory.getHolder() instanceof OrbGuiHolder holder)
+            || holder.screen() != OrbGuiHolder.Screen.INVENTORY_ORB_LIST
+            || !holder.ownerId().equals(player.getUniqueId())) {
+            return null;
+        }
+        OrbInventoryListSession session = inventoryOrbListSessions.get(player.getUniqueId());
+        return session != null
+            && session.token.equals(holder.sessionToken())
+            && session.inventory == inventory
+            ? session
+            : null;
+    }
+
     /**
      * 保存したentry IDとitem IDを正本stateで照合し、同種の次スタックへの継続も解決します。
      *
@@ -655,6 +958,57 @@ public final class OrbService {
                     .thenComparing(InventoryEntryModel::getCreatedAt))
                 .forEach(entries::add));
         return List.copyOf(entries);
+    }
+
+    /**
+     * BAG と HOTBAR の有効なオーブ entry を item ID 単位へ集約します。
+     *
+     * @param accountId 対象アカウント ID
+     * @return 表示順を維持したオーブ種類一覧
+     */
+    private @NotNull List<OrbInventoryEntry> collectInventoryOrbs(@NotNull UUID accountId) {
+        Map<String, OrbInventoryEntry> byItemId = new LinkedHashMap<>();
+        for (InventoryEntryModel entry : ownedEntries(accountId)) {
+            ItemModel model = resolveOrbModel(entry);
+            if (model == null) {
+                continue;
+            }
+            String key = model.getId().toLowerCase(Locale.ROOT);
+            OrbInventoryEntry current = byItemId.get(key);
+            if (current == null) {
+                byItemId.put(key, new OrbInventoryEntry(model.getId(), model, entry.getQuantity()));
+            } else {
+                byItemId.put(key, new OrbInventoryEntry(
+                    current.itemId(),
+                    current.model(),
+                    saturatingAdd(current.quantity(), entry.getQuantity())
+                ));
+            }
+        }
+        return List.copyOf(byItemId.values());
+    }
+
+    private @Nullable InventoryEntryModel findOwnedOrbEntry(
+        @NotNull UUID accountId,
+        @NotNull String itemId
+    ) {
+        for (InventoryEntryModel entry : ownedEntries(accountId)) {
+            ItemModel model = resolveOrbModel(entry);
+            if (model != null && model.getId().equalsIgnoreCase(itemId)) {
+                return entry;
+            }
+        }
+        return null;
+    }
+
+    private long saturatingAdd(long left, long right) {
+        if (right <= 0L) {
+            return left;
+        }
+        if (Long.MAX_VALUE - left < right) {
+            return Long.MAX_VALUE;
+        }
+        return left + right;
     }
 
     /**
@@ -2194,6 +2548,34 @@ public final class OrbService {
         @NotNull EquipmentInstance instance,
         boolean equipped
     ) {
+    }
+
+    private record OrbInventoryEntry(
+        @NotNull String itemId,
+        @NotNull ItemModel model,
+        long quantity
+    ) {
+    }
+
+    private static final class OrbInventoryListSession {
+        private final AstPlayer astPlayer;
+        private final UUID accountId;
+        private final UUID token;
+        private final Inventory inventory;
+        private Map<Integer, String> displayedOrbItemIds = Map.of();
+        private int page;
+
+        private OrbInventoryListSession(
+            @NotNull AstPlayer astPlayer,
+            @NotNull UUID accountId,
+            @NotNull UUID token,
+            @NotNull Inventory inventory
+        ) {
+            this.astPlayer = astPlayer;
+            this.accountId = accountId;
+            this.token = token;
+            this.inventory = inventory;
+        }
     }
 
     private static final class OrbSession {
