@@ -40,55 +40,13 @@ items:
     slot: 21
     priceGold: 20
 
-  - id: nox_pickaxe
-    itemId:
-      ref: item:nox_pickaxe
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 1
-    priceGold: 100
-  - id: nox_hoe
-    itemId:
-      ref: item:nox_hoe
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 8
-    priceGold: 100
-  - id: hookshot
-    itemId:
-      ref: item:hookshot
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 15
-    priceGold: 900
-  - id: hook
-    itemId:
-      ref: item:hook
-    category: material
-    amount: 1
-    page: 1
-    slot: 22
-    priceGold: 5
-
-  - id: cartograph
-    itemId:
-      ref: item:cartograph
-    category: equipment
-    amount: 1
-    page: 1
-    slot: 6
-    priceGold: 6000
-
   - id: nox_armor_helmet
     itemId:
       ref: item:nox_armor_helmet
     category: equipment
     amount: 1
     page: 1
-    slot: 4
+    slot: 1
     priceGold: 15
   - id: nox_armor_chest
     itemId:
@@ -96,7 +54,7 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 11
+    slot: 8
     priceGold: 30
   - id: nox_armor_legs
     itemId:
@@ -104,7 +62,7 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 18
+    slot: 15
     priceGold: 25
   - id: nox_armor_boots
     itemId:
@@ -112,8 +70,41 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 25
+    slot: 22
     priceGold: 15
+
+  - id: nox_pickaxe
+    itemId:
+      ref: item:nox_pickaxe
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 2
+    priceGold: 100
+  - id: nox_hoe
+    itemId:
+      ref: item:nox_hoe
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 9
+    priceGold: 100
+  - id: hookshot
+    itemId:
+      ref: item:hookshot
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 16
+    priceGold: 900
+  - id: hook
+    itemId:
+      ref: item:hook
+    category: material
+    amount: 1
+    page: 1
+    slot: 23
+    priceGold: 5
 
   - id: sindri_orb
     itemId:
@@ -162,3 +153,21 @@ items:
           ref: item:sindri_orb_intermediate
         category: orb
         amount: 3
+
+
+  - id: nox_menu_tool
+    itemId:
+      ref: item:nox_menu_tool
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 20
+    priceGold: 1
+  - id: cartograph
+    itemId:
+      ref: item:cartograph
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 27
+    priceGold: 6000
