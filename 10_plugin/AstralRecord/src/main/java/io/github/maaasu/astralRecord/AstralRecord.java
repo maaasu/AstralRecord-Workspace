@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.boss.gui.BossChallengeCancelGui;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.boss.service.BossFieldInstanceService;
 import io.github.maaasu.astralRecord.feature.boss.service.BossMechanicService;
+import io.github.maaasu.astralRecord.feature.combat.event.BukkitDamageBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.combat.event.CombatDamageEventHandler;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.combat.service.CombatDpsTrackerService;
@@ -1545,6 +1546,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new CombatDamageEventHandler(damageService, skillActionRingService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new BukkitDamageBlockEventHandler(),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
