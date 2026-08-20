@@ -31,10 +31,10 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     public static final int PARTICLE_DENSITY_SLOT = 22;
     public static final int PERFORMANCE_INFO_SLOT = 23;
     public static final int DROP_LOG_SLOT = 24;
-    public static final int AUTO_SAVE_MESSAGE_SLOT = 25;
-    public static final int BUFF_SIDEBAR_DISPLAY_SLOT = 26;
-    public static final int ARMOR_DISPLAY_SLOT = 27;
-    public static final int ACTION_RING_HOLD_SELECT_SLOT = 28;
+    public static final int AUTO_SAVE_MESSAGE_SLOT = 29;
+    public static final int BUFF_SIDEBAR_DISPLAY_SLOT = 30;
+    public static final int ARMOR_DISPLAY_SLOT = 31;
+    public static final int ACTION_RING_HOLD_SELECT_SLOT = 32;
     public static final int SUPER_MODE_SECRET_SLOT = 53;
     public static final int BACK_TO_MENU_SLOT = BaseMenuScreenView.BACK_SLOT;
 
