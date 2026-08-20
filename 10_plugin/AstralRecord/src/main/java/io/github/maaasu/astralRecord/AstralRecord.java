@@ -52,6 +52,8 @@ import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationService;
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionTransitionEventHandler;
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionTransitionService;
 import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitService;
+import io.github.maaasu.astralRecord.feature.hud.event.AdminMessageBossBarEventHandler;
+import io.github.maaasu.astralRecord.feature.hud.service.AdminMessageBossBarService;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.item.event.HookshotInteractionEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEventHandler;
@@ -333,6 +335,7 @@ public final class AstralRecord extends JavaPlugin {
     private EventManager eventManager;
     private ParticleDisplayService particleDisplayService;
     private DisplayTextService displayTextService;
+    private AdminMessageBossBarService adminMessageBossBarService;
     private TextDisplayPlacementService textDisplayPlacementService;
     private TeleporterService teleporterService;
     private TeleporterGui teleporterGui;
@@ -418,6 +421,7 @@ public final class AstralRecord extends JavaPlugin {
     @Override
     public void onLoad() {
         instance = this;
+        adminMessageBossBarService = new AdminMessageBossBarService(this);
         itemService = new ItemService();
         lootService = new LootService();
         itemStackFactory = new ItemStackFactory(lootService, itemService);
@@ -474,6 +478,7 @@ public final class AstralRecord extends JavaPlugin {
                 teleporterService,
                 trainingDummyService,
                 trainingDummyGui,
+                adminMessageBossBarService,
                 () -> particleDisplayService
         );
         CommandManager.getInstance().initialize(this);
@@ -563,6 +568,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (skillCooldownBossBarService != null) {
             skillCooldownBossBarService.stop();
+        }
+        if (adminMessageBossBarService != null) {
+            adminMessageBossBarService.stop();
         }
         if (statusRegenTask != null) {
             statusRegenTask.stop();
@@ -1310,6 +1318,10 @@ public final class AstralRecord extends JavaPlugin {
             menuToolJoinGrantService
         );
         eventManager.registerHandler(playerJoinEventHandler, getServer().getPluginManager());
+        eventManager.registerHandler(
+            new AdminMessageBossBarEventHandler(adminMessageBossBarService),
+            getServer().getPluginManager()
+        );
         eventManager.registerHandler(
             new ManagedChatEventHandler(this),
             getServer().getPluginManager()

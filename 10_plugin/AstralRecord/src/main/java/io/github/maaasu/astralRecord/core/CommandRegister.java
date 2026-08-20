@@ -16,6 +16,8 @@ import io.github.maaasu.astralRecord.feature.gathering.command.GatheringTabCompl
 import io.github.maaasu.astralRecord.feature.gathering.service.GatheringService;
 import io.github.maaasu.astralRecord.feature.gathering.spawner.service.GatheringSpawnerService;
 import io.github.maaasu.astralRecord.feature.guide.command.GuideCommand;
+import io.github.maaasu.astralRecord.feature.hud.command.AdminMessageCommand;
+import io.github.maaasu.astralRecord.feature.hud.service.AdminMessageBossBarService;
 import io.github.maaasu.astralRecord.feature.inventory.command.InventoryCommand;
 import io.github.maaasu.astralRecord.feature.inventory.command.InventoryTabCompleter;
 import io.github.maaasu.astralRecord.feature.item.command.ItemCommand;
@@ -108,6 +110,7 @@ public class CommandRegister {
     private final TeleporterService teleporterService;
     private final TrainingDummyService trainingDummyService;
     private final TrainingDummyGui trainingDummyGui;
+    private final AdminMessageBossBarService adminMessageBossBarService;
     private final Supplier<ParticleDisplayService> particleDisplayServiceSupplier;
 
     public CommandRegister(
@@ -124,6 +127,7 @@ public class CommandRegister {
             TeleporterService teleporterService,
             TrainingDummyService trainingDummyService,
             TrainingDummyGui trainingDummyGui,
+            AdminMessageBossBarService adminMessageBossBarService,
             Supplier<ParticleDisplayService> particleDisplayServiceSupplier
     ) {
         this.itemService = itemService;
@@ -139,6 +143,7 @@ public class CommandRegister {
         this.teleporterService = teleporterService;
         this.trainingDummyService = trainingDummyService;
         this.trainingDummyGui = trainingDummyGui;
+        this.adminMessageBossBarService = adminMessageBossBarService;
         this.particleDisplayServiceSupplier = particleDisplayServiceSupplier;
         registerCommand();
     }
@@ -189,6 +194,9 @@ public class CommandRegister {
         cm.registerCommand("am", new AccountModeCommand("am", "/am <mode> [<player|accountUuid>]"), new AccountModeTabCompleter());
         cm.registerCommand("setting", new PlayerSettingCommand(), new PlayerSettingTabCompleter());
         cm.registerCommand("message", new DirectMessageCommand(), new DirectMessageTabCompleter());
+        AdminMessageCommand adminMessageCommand = new AdminMessageCommand(adminMessageBossBarService);
+        cm.registerCommand("adminmessage", adminMessageCommand);
+        cm.registerCommand("adminmsg", adminMessageCommand);
         cm.registerCommand("class", new ClassCommand(), new ClassTabCompleter());
         cm.registerCommand("skill", new SkillCommand());
         cm.registerCommand("skilltree", new SkillTreeCommand(skillTreeService), new SkillTreeTabCompleter());

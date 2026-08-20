@@ -1168,6 +1168,15 @@ public enum PlayerMsgId {
     P_6905(6905),
     // endregion
 
+    // region /feature/hud/command/AdminMessageCommand.java 6910-6919
+    /** 管理者メッセージの表示開始。{0}: 秒数 */
+    P_6910(6910),
+    /** 管理者メッセージの表示時間不正。{0}: 最大秒数 */
+    P_6911(6911),
+    /** 管理者メッセージの表示時間が数値でない。 */
+    P_6912(6912),
+    // endregion
+
     // region /feature/dungeon 7000-7019
     /** ダンジョン機能を利用できません。 */
     P_7000(7000),
