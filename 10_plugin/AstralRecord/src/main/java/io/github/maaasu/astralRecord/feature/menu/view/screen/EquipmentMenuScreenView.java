@@ -221,7 +221,7 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
             case EQUIPMENT_CHEST_SLOT -> equipmentPlaceholder(Material.LEATHER_CHESTPLATE, "胴", "胴防具スロット");
             case EQUIPMENT_LEGS_SLOT -> equipmentPlaceholder(Material.LEATHER_LEGGINGS, "脚", "脚防具スロット");
             case EQUIPMENT_FEET_SLOT -> equipmentPlaceholder(Material.LEATHER_BOOTS, "足", "足防具スロット");
-            case EQUIPMENT_OFF_HAND_SLOT -> equipmentPlaceholder(Material.GLOW_ITEM_FRAME, "オフハンド", "サブ武器スロット");
+            case EQUIPMENT_OFF_HAND_SLOT -> equipmentPlaceholder(Material.GLOW_ITEM_FRAME, "オフハンド", "補助武器スロット");
             case EQUIPMENT_AMULET_SLOT -> equipmentPlaceholder(Material.CHEST_MINECART, "アミュレット", "アミュレットスロット");
             case EQUIPMENT_TALISMAN_1_SLOT -> equipmentPlaceholder(Material.FURNACE_MINECART, "タリスマン 1", "タリスマンスロット 1/2");
             case EQUIPMENT_TALISMAN_2_SLOT -> equipmentPlaceholder(Material.FURNACE_MINECART, "タリスマン 2", "タリスマンスロット 2/2");

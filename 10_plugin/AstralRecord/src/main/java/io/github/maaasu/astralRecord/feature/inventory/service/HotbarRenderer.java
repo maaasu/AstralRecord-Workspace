@@ -5,11 +5,13 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Material;
+import org.bukkit.NamespacedKey;
 import org.bukkit.enchantments.Enchantment;
 import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
+import org.bukkit.persistence.PersistentDataType;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -20,6 +22,9 @@ import java.util.Map;
  * HOTBAR の割当アイテムを描画します。
  */
 final class HotbarRenderer {
+    private static final NamespacedKey HOTBAR_DUMMY_KEY =
+        new NamespacedKey("astralrecord", "hotbar_dummy");
+
     private final InventoryItemStackResolver itemStackResolver;
 
     HotbarRenderer(@NotNull InventoryItemStackResolver itemStackResolver) {
@@ -48,13 +53,18 @@ final class HotbarRenderer {
             changed |= setStorageItemIfChanged(inventory, HotbarLayout.toBukkitSlot(dbSlot), itemStack);
         }
         InventoryEntryModel offhandEntry = entries.get(HotbarLayout.DB_SLOT_OFFHAND);
+        ItemStack currentOffhand = inventory.getItemInOffHand();
         ItemStack offhandStack = offhandEntry == null
-            ? createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND)
+            ? isEmptyOrDummy(currentOffhand)
+                ? createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND)
+                : currentOffhand
             : itemStackResolver.resolve(offhandEntry, accountId);
         if (offhandStack == null || offhandStack.getType() == Material.AIR) {
             offhandStack = createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND);
         }
-        if (selectedSlot != null && selectedSlot == HotbarLayout.DB_SLOT_OFFHAND) {
+        if (selectedSlot != null
+            && selectedSlot == HotbarLayout.DB_SLOT_OFFHAND
+            && (offhandEntry != null || isHotbarDummy(offhandStack))) {
             offhandStack = withSelectionGlow(offhandStack);
         }
         if (!isSameItemStack(inventory.getItemInOffHand(), offhandStack)) {
@@ -70,6 +80,7 @@ final class HotbarRenderer {
         ItemStack itemStack = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
+            meta.getPersistentDataContainer().set(HOTBAR_DUMMY_KEY, PersistentDataType.INTEGER, 1);
             String label = HotbarLayout.isOffhandSlot(dbSlot)
                 ? ColorCodeUtil.GRAY + "オフハンドスロット"
                 : ColorCodeUtil.GRAY + "ホットバースロット[" + dbSlot + "]";
@@ -79,6 +90,28 @@ final class HotbarRenderer {
             itemStack.setItemMeta(meta);
         }
         return itemStack;
+    }
+
+    static boolean isHotbarDummy(@Nullable ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType() == Material.AIR || !itemStack.hasItemMeta()) {
+            return false;
+        }
+        ItemMeta meta = itemStack.getItemMeta();
+        if (meta == null) {
+            return false;
+        }
+        if (meta.getPersistentDataContainer().has(HOTBAR_DUMMY_KEY, PersistentDataType.INTEGER)) {
+            return true;
+        }
+        return itemStack.getType() == Material.GRAY_STAINED_GLASS_PANE
+            && Component.text(ColorCodeUtil.GRAY + "オフハンドスロット").equals(meta.displayName())
+            && List.of(Component.text(ColorCodeUtil.GRAY + "アイテム未選択")).equals(meta.lore());
+    }
+
+    private boolean isEmptyOrDummy(@Nullable ItemStack itemStack) {
+        return itemStack == null
+            || itemStack.getType() == Material.AIR
+            || isHotbarDummy(itemStack);
     }
 
     private @NotNull ItemStack withSelectionGlow(@NotNull ItemStack itemStack) {

@@ -3687,10 +3687,22 @@ public class InventoryService {
                 EquipSlotLayout.applyEntriesToPlayer(
                     bukkitPlayer,
                     entries,
-                    entry -> itemStackResolver.resolve(entry, state.getAccountId()));
+                    entry -> resolveEquipSlotEntryForGui(state.getAccountId(), entry));
             }
         }
         bukkitPlayer.updateInventory();
+    }
+
+    private @Nullable ItemStack resolveEquipSlotEntryForGui(
+        @NotNull UUID accountId,
+        @NotNull InventoryEntryModel entry
+    ) {
+        EquipmentType equipmentType = EquipmentType.fromEquipSlotIndex(
+            entry.getSlotIndex() == null ? -1 : entry.getSlotIndex());
+        if (!canPlaceInEquipmentGuiSlot(entry, equipmentType, null)) {
+            return null;
+        }
+        return itemStackResolver.resolve(entry, accountId);
     }
 
     public void saveEquipSlotSnapshot(@NotNull AstPlayer astPlayer) {
@@ -3713,6 +3725,10 @@ public class InventoryService {
         if (!EquipSlotLayout.isManagedSlot(slotIndex)) {
             return;
         }
+        EquipmentType equipmentType = EquipmentType.fromEquipSlotIndex(slotIndex);
+        if (!canPlaceInEquipmentGuiSlot(entry, equipmentType, null)) {
+            return;
+        }
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         if (state == null) {
             return;
@@ -3725,10 +3741,9 @@ public class InventoryService {
             .toList());
         entries.add(copyEntryWithSlot(entry, equipInventory.getInventoryId(), slotIndex, state.getAccountId()));
         state.replaceEntries(equipInventory.getInventoryId(), entries);
-        EquipmentType.fromEquipSlotIndex(slotIndex)
-            .applyTo(
-                astPlayer.getBukkit().getInventory(),
-                itemStackResolver.resolve(entry, state.getAccountId()));
+        equipmentType.applyTo(
+            astPlayer.getBukkit().getInventory(),
+            itemStackResolver.resolve(entry, state.getAccountId()));
         astPlayer.getBukkit().updateInventory();
     }
 
@@ -5572,9 +5587,13 @@ public class InventoryService {
             case CHEST -> inventory.getChestplate();
             case LEGS -> inventory.getLeggings();
             case FEET -> inventory.getBoots();
-            case OFF_HAND -> inventory.getItemInOffHand();
+            case OFF_HAND -> actualEquipmentItem(inventory.getItemInOffHand());
             case UNSUPPORTED -> null;
         };
+    }
+
+    private @Nullable ItemStack actualEquipmentItem(@Nullable ItemStack itemStack) {
+        return HotbarRenderer.isHotbarDummy(itemStack) ? null : itemStack;
     }
 
     // ---------------------------------------------------------------

@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.inventory.service;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryInstanceType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryModel;
@@ -12,6 +13,9 @@ import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStat
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
@@ -800,6 +804,76 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         assertEquals(Material.GRAY_STAINED_GLASS_PANE, player.getInventory().getItem(0).getType());
         assertEquals(Material.GRAY_STAINED_GLASS_PANE, player.getInventory().getItem(4).getType());
         assertEquals(Material.GRAY_STAINED_GLASS_PANE, player.getInventory().getItem(8).getType());
+        assertTrue(HotbarRenderer.isHotbarDummy(player.getInventory().getItemInOffHand()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
+     * 検証契約: HOTBARオフハンドentryがない場合も、既に装備中のオフハンドアイテムをダミーで上書きしない。
+     */
+    @Test
+    void hotbarRenderingPreservesActualOffhandWhenHotbarEntryIsAbsent() {
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        HotbarRenderer renderer = new HotbarRenderer(mock(InventoryItemStackResolver.class));
+        ItemStack equipped = new ItemStack(Material.SHIELD);
+        player.getInventory().setItemInOffHand(equipped);
+
+        renderer.renderHotbarInventory(astPlayer, Map.of(), null);
+
+        assertEquals(equipped, player.getInventory().getItemInOffHand());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 11. 装備移動とアクセサリ移動
+     * 検証契約: オフハンド未選択でも、空を表すオフハンドダミーを補助武器の交換対象にせず装備する。
+     */
+    @Test
+    void auxiliaryWeaponEquipsIntoEmptyOffhandWithoutSelectingOffhandHotbarSlot() {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        harness.addInventory(state, InventoryType.HOTBAR);
+        harness.addInventory(state, InventoryType.EQUIP_SLOT);
+        ItemModel auxiliaryWeapon = auxiliaryWeapon("auxiliary_weapon_test");
+        when(harness.itemService.findLoadedById(auxiliaryWeapon.getId())).thenReturn(auxiliaryWeapon);
+        InventoryEntryModel auxiliaryEntry = inventoryEntry(
+            state.getAccountId(),
+            bag.getInventoryId(),
+            1,
+            ItemCategory.EQUIPMENT,
+            auxiliaryWeapon.getId(),
+            1L
+        );
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(auxiliaryEntry));
+        assertTrue(harness.inventoryService.canPlaceInEquipmentGuiSlot(
+            auxiliaryEntry, EquipmentType.OFF_HAND, null));
+        assertFalse(harness.inventoryService.canPlaceInEquipmentGuiSlot(
+            auxiliaryEntry, EquipmentType.MAIN_HAND, null));
+        assertFalse(harness.inventoryService.canPlaceInEquipmentGuiSlot(
+            auxiliaryEntry, EquipmentType.HEAD, null));
+        assertFalse(harness.inventoryService.canPlaceInEquipmentGuiSlot(
+            auxiliaryEntry, EquipmentType.CHEST, null));
+        assertFalse(harness.inventoryService.canPlaceInEquipmentGuiSlot(
+            auxiliaryEntry, EquipmentType.LEGS, null));
+        assertFalse(harness.inventoryService.canPlaceInEquipmentGuiSlot(
+            auxiliaryEntry, EquipmentType.FEET, null));
+
+        HotbarRenderer renderer = new HotbarRenderer(mock(InventoryItemStackResolver.class));
+        renderer.renderHotbarInventory(astPlayer, Map.of(), null);
+        assertTrue(HotbarRenderer.isHotbarDummy(player.getInventory().getItemInOffHand()));
+        assertNull(state.getSelectedHotbarSlot());
+
+        assertTrue(harness.inventoryService.equipOrAssignClickedItem(astPlayer, 9));
+
+        assertEquals(ItemEquipmentSlot.SUBWEAPON,
+            ItemEquipmentSlot.fromApiValue(ItemStackFactory.getEquipmentSlot(
+                player.getInventory().getItemInOffHand())));
+        assertTrue(state.snapshotEntries(bag.getInventoryId()).isEmpty());
     }
 
     private static InventoryHarness inventoryHarness() {
@@ -840,6 +914,46 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         long quantity
     ) {
         return inventoryEntry(accountId, inventoryId, slot, ItemCategory.MATERIAL, itemId, quantity);
+    }
+
+    private static ItemModel auxiliaryWeapon(String id) {
+        ItemEquipment equipment = new ItemEquipment(
+            ItemEquipmentSlot.SUBWEAPON,
+            ItemEquipmentHandType.ONE,
+            null,
+            0,
+            List.of(),
+            null,
+            List.of(),
+            null,
+            null,
+            null,
+            null,
+            List.of()
+        );
+        return new ItemModel(
+            1,
+            id,
+            ItemCategory.EQUIPMENT.getApiValue(),
+            id,
+            "TORCH",
+            "common",
+            1,
+            0,
+            null,
+            null,
+            List.of(),
+            false,
+            false,
+            null,
+            null,
+            equipment,
+            null,
+            null,
+            null,
+            null,
+            null
+        );
     }
 
     private static InventoryEntryModel inventoryEntry(
