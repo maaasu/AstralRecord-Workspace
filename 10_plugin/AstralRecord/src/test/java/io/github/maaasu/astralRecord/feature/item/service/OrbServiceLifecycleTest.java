@@ -40,6 +40,8 @@ import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
+import org.bukkit.Registry;
+import org.bukkit.Sound;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
@@ -163,6 +165,8 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         harness.openOrbList();
         Inventory operationInventory = harness.player.getOpenInventory().getTopInventory();
+        long openSoundCountBefore = heardSoundCount(harness.player, Sound.BLOCK_CHEST_OPEN);
+        long selectSoundCountBefore = heardSoundCount(harness.player, Sound.UI_BUTTON_CLICK);
 
         harness.handler.onInventoryClick(harness.guiClick(49));
         InventoryCloseEvent oldOperationClose = mock(InventoryCloseEvent.class);
@@ -175,6 +179,8 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             ((OrbGuiHolder) harness.player.getOpenInventory().getTopInventory().getHolder()).screen()
         );
         assertEquals(OrbGuiHolder.SIZE, harness.player.getOpenInventory().getTopInventory().getSize());
+        assertEquals(openSoundCountBefore, heardSoundCount(harness.player, Sound.BLOCK_CHEST_OPEN));
+        assertEquals(selectSoundCountBefore + 1, heardSoundCount(harness.player, Sound.UI_BUTTON_CLICK));
     }
 
     /**
@@ -975,6 +981,20 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         assertEquals(List.of("pre-save", "post", "get", "retry", "reconcile"), harness.order);
         assertTrue(harness.coordinator.awaitPendingWrites(100));
         verify(harness.statusService, never()).refreshStatus(harness.astPlayer);
+    }
+
+    /**
+     * MockBukkit が記録した指定音の再生回数を返します。
+     *
+     * @param player 音声再生を確認するプレイヤー
+     * @param sound 確認対象の音
+     * @return 記録された再生回数
+     */
+    private static long heardSoundCount(PlayerMock player, Sound sound) {
+        String soundKey = Registry.SOUND_EVENT.getKeyOrThrow(sound).getKey();
+        return player.getHeardSounds().stream()
+            .filter(heardSound -> soundKey.equals(heardSound.getSound()))
+            .count();
     }
 
     private final class Harness {

@@ -1,8 +1,8 @@
 package io.github.maaasu.astralRecord.feature.item.gui;
 
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiCloseSoundHolder;
 import org.bukkit.Bukkit;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.inventory.InventoryHolder;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
@@ -18,7 +18,7 @@ public record OrbGuiHolder(
     @NotNull UUID ownerId,
     @NotNull UUID sessionToken,
     @NotNull Screen screen
-) implements InventoryHolder {
+) implements GuiCloseSoundHolder {
 
     /** オーブ一覧・消費アイテム一覧 GUI のサイズです。 */
     public static final int SIZE = 54;

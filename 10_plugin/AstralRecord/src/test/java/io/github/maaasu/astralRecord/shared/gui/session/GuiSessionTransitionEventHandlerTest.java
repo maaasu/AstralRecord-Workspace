@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.shared.gui.session;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.item.gui.OrbGuiHolder;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Bukkit;
@@ -23,6 +24,7 @@ import org.mockbukkit.mockbukkit.plugin.PluginMock;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -71,6 +73,30 @@ class GuiSessionTransitionEventHandlerTest extends MockBukkitTestBase {
         server().getScheduler().performOneTick();
 
         assertEquals(List.of(target), endRecorder.inventories());
+        assertEquals(List.of(GuiSessionEndReason.MANUAL_CLOSE), endRecorder.reasons());
+        assertEquals(1L, closeSoundCount(player));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 5. 共通 GUI セッション遷移
+     * 検証契約: オーブGUIの手動終了が確定した場合、共通セッション基盤がチェストクローズ音を一度だけ再生する。
+     */
+    @Test
+    void orbGuiManualClosePlaysCloseSoundOnce() {
+        PlayerMock player = server().addPlayer();
+        Inventory orbGui = Bukkit.createInventory(
+            new OrbGuiHolder(player.getUniqueId(), UUID.randomUUID(), OrbGuiHolder.Screen.LIST),
+            OrbGuiHolder.SIZE
+        );
+
+        player.openInventory(orbGui);
+        player.closeInventory();
+        server().getScheduler().performOneTick();
+
+        assertEquals(List.of(orbGui), endRecorder.inventories());
         assertEquals(List.of(GuiSessionEndReason.MANUAL_CLOSE), endRecorder.reasons());
         assertEquals(1L, closeSoundCount(player));
     }

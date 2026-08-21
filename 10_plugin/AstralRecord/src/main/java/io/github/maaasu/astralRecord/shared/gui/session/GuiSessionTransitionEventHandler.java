@@ -3,7 +3,7 @@ package io.github.maaasu.astralRecord.shared.gui.session;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
-import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiSupport;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiCloseSoundHolder;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -174,7 +174,7 @@ public final class GuiSessionTransitionEventHandler extends AbstractEventHandler
         }
         if (reason.isCloseSoundEnabled()
             && player.isOnline()
-            && HotbarShortcutGuiSupport.isManagedGui(closedInventory)) {
+            && closedInventory.getHolder() instanceof GuiCloseSoundHolder) {
             GuiSound.CLOSE.play(player);
         }
         plugin.getServer().getPluginManager().callEvent(new GuiSessionEndEvent(player, closedInventory, reason));

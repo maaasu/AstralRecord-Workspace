@@ -558,6 +558,8 @@ public final class OrbService {
      * @param player 操作プレイヤー
      * @param astPlayer ログイン中のプレイヤー状態
      * @param previousOperation 切替元のオーブ操作セッション。通常インベントリ起点では {@code null}
+     *                          であり、通常起点は {@link GuiSound#OPEN}、操作中の画面遷移は
+     *                          {@link GuiSound#SELECT} を再生します。
      */
     private void openInventoryOrbList(
         @NotNull Player player,
@@ -596,7 +598,8 @@ public final class OrbService {
         );
         inventoryOrbListSessions.put(player.getUniqueId(), listSession);
         renderInventoryOrbList(listSession, collectInventoryOrbs(listSession.accountId));
-        inventoryOpener.open(player, inventory, () -> GuiSound.OPEN.play(player), () ->
+        GuiSound openSound = previousOperation == null ? GuiSound.OPEN : GuiSound.SELECT;
+        inventoryOpener.open(player, inventory, () -> openSound.play(player), () ->
             inventoryOrbListSessions.remove(player.getUniqueId(), listSession));
     }
 
