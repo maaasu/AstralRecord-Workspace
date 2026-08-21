@@ -1,152 +1,253 @@
-﻿@page
+@page
 @model IndexModel
 @{
     ViewData["Title"] = "ホーム";
 }
 
-<section class="ar-hero">
-    <div class="ar-hero-overlay"></div>
-    <div class="container ar-hero-content">
-        <div class="row align-items-center g-4">
-            <div class="col-lg-7 text-center text-lg-start">
-                <p class="ar-kicker">Minecraft Java Edition MMO RPG</p>
-                <h1 class="ar-hero-title"><span>Astral</span><span>Record</span></h1>
-                <p class="ar-hero-desc">
-                    <span>星界を旅し、装備を鍛え、</span>
-                    <span>仲間と攻略を重ねる</span>
-                    <span>Minecraft RPG サーバー。</span>
-                    <span>公開に向けて、ゲーム基盤と</span>
-                    <span>Web連携を整備しています。</span>
-                </p>
-                <div class="ar-hero-actions">
-                    <a href="#access" class="btn ar-btn-primary">参加情報を見る</a>
-                    <a href="#features" class="btn ar-btn-outline">特徴を確認</a>
+<div class="ar-home">
+    <section class="ar-home-hero" aria-labelledby="hero-title">
+        <div class="ar-home-hero__sky" data-depth-layer="sky" aria-hidden="true"></div>
+        <div class="ar-home-hero__town" data-depth-layer="town" aria-hidden="true"></div>
+        <div class="ar-home-hero__glow" aria-hidden="true"></div>
+        <div class="ar-home-stars" aria-hidden="true"></div>
+
+        <div class="container ar-home-hero__content">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-7">
+                    <p class="ar-alpha-badge">
+                        <span class="ar-alpha-badge__dot" aria-hidden="true"></span>
+                        OPEN ALPHA
+                    </p>
+                    <p class="ar-home-kicker">Minecraft Java Edition RPG Server</p>
+                    <h1 class="ar-home-title" id="hero-title">
+                        <span>星を巡る、</span>
+                        <span>まだ途中の冒険。</span>
+                    </h1>
+                    <p class="ar-home-intro">
+                        Astral Recordは、クラスや装備、スキルを組み合わせて遊ぶMinecraft RPGサーバーです。
+                        完成を待たず、開発中の世界をオープンアルファとして公開しています。
+                    </p>
+                    <div class="ar-home-actions">
+                        <a href="#join" class="btn ar-home-button ar-home-button--primary">今すぐ参加する</a>
+                        <a href="#alpha-guide" class="btn ar-home-button ar-home-button--ghost">参加前に知ってほしいこと</a>
+                    </div>
+
+                    <div class="ar-quick-connect" aria-label="Java版サーバーアドレス">
+                        <div>
+                            <span class="ar-quick-connect__label">JAVA EDITION</span>
+                            <code>@Model.JavaServerAddress</code>
+                        </div>
+                        <button class="ar-copy-button" type="button"
+                                data-copy-server data-copy-value="@Model.JavaServerAddress"
+                                aria-label="Java版サーバーアドレスをコピー"
+                                aria-describedby="hero-copy-status">
+                            <span data-copy-label>コピー</span>
+                        </button>
+                    </div>
+                    <p class="visually-hidden" id="hero-copy-status" role="status" aria-live="polite" data-copy-status></p>
+                </div>
+
+                <div class="col-lg-5 d-none d-lg-block" aria-hidden="true">
+                    <div class="ar-astral-mark" data-depth-layer="mark">
+                        <div class="ar-astral-mark__orbit ar-astral-mark__orbit--outer"></div>
+                        <div class="ar-astral-mark__orbit ar-astral-mark__orbit--inner"></div>
+                        <div class="ar-astral-mark__core">
+                            <img src="~/images/icon.png"
+                                 srcset="/images/icon-128.webp 128w, /images/icon-256.webp 256w, /images/icon-512.webp 512w"
+                                 sizes="194px" width="512" height="512" alt="" />
+                        </div>
+                        <span class="ar-astral-mark__rune ar-astral-mark__rune--one">STATUS</span>
+                        <span class="ar-astral-mark__rune ar-astral-mark__rune--two">SKILL</span>
+                        <span class="ar-astral-mark__rune ar-astral-mark__rune--three">DUNGEON</span>
+                    </div>
                 </div>
             </div>
-            <div class="col-lg-5">
-                <div class="ar-hero-panel">
-                    <img src="~/images/icon.png" alt="Astral Record" class="ar-hero-icon" />
-                    <div>
-                        <p class="ar-panel-label">Current Status</p>
-                        <p class="ar-panel-title">公開準備中</p>
-                        <p class="ar-panel-text">
-                            <span>参加アドレスと最新のお知らせは、</span>
-                            <span>公開準備が整い次第</span>
-                            <span>このページで案内します。</span>
+        </div>
+
+        <a class="ar-scroll-cue" href="#features" aria-label="特徴までスクロール">
+            <span aria-hidden="true"></span>
+        </a>
+    </section>
+
+    <section class="ar-alpha-strip" id="alpha-guide" aria-labelledby="alpha-title">
+        <div class="container">
+            <div class="ar-alpha-strip__grid">
+                <div>
+                    <p class="ar-home-kicker">Before you join</p>
+                    <h2 id="alpha-title">オープンアルファとして公開中です</h2>
+                </div>
+                <p>
+                    開発中のサーバーを、そのまま公開しています。遊べる範囲はありますが、予告なく再起動したり、仕様が大きく変わったりします。
+                    プレイヤーデータの不具合に対する補償・個別対応は行いません。また、現在のデータは正式リリースへ引き継がれません。
+                </p>
+            </div>
+        </div>
+    </section>
+
+    <section class="ar-home-section ar-feature-section" id="features" aria-labelledby="features-title">
+        <div class="container">
+            <div class="ar-home-heading">
+                <p class="ar-home-kicker">What you can find</p>
+                <h2 id="features-title">この世界で目指していること</h2>
+                <p>
+                    RPGらしい手応えを、Minecraftの中で。公開中の範囲を遊んでもらいながら、ひとつずつ調整を重ねています。
+                </p>
+            </div>
+
+            <div class="ar-feature-grid">
+                <article class="ar-feature-card ar-feature-card--combat">
+                    <div class="ar-feature-card__number" aria-hidden="true">01</div>
+                    <div class="ar-feature-card__icon" aria-hidden="true">✦</div>
+                    <h3>戦って、組み替える</h3>
+                    <p>
+                        近接・遠距離・魔法、属性やシールドを含む独自戦闘を軸に、クラス、スキル、装備で戦い方を組み立てます。
+                    </p>
+                    <ul aria-label="関連システム">
+                        <li>クラス</li>
+                        <li>スキル</li>
+                        <li>装備</li>
+                        <li>ステータス</li>
+                    </ul>
+                </article>
+
+                <article class="ar-feature-card ar-feature-card--adventure">
+                    <div class="ar-feature-card__number" aria-hidden="true">02</div>
+                    <div class="ar-feature-card__icon" aria-hidden="true">⌖</div>
+                    <h3>寄り道も、攻略も</h3>
+                    <p>
+                        Mobとの戦闘、採集、クエスト、ボスやダンジョン。遊べる内容は更新ごとに変わりながら、冒険の行き先を増やしています。
+                    </p>
+                    <ul aria-label="関連システム">
+                        <li>クエスト</li>
+                        <li>採集</li>
+                        <li>ボス</li>
+                        <li>ダンジョン</li>
+                    </ul>
+                </article>
+
+                <article class="ar-feature-card ar-feature-card--community">
+                    <div class="ar-feature-card__number" aria-hidden="true">03</div>
+                    <div class="ar-feature-card__icon" aria-hidden="true">◇</div>
+                    <h3>ひとりでも、仲間とも</h3>
+                    <p>
+                        パーティーでの共闘やショップ、プレイヤー同士の取引、マーケットも開発対象です。利用できる機能はゲーム内の案内をご確認ください。
+                    </p>
+                    <ul aria-label="関連システム">
+                        <li>パーティー</li>
+                        <li>ショップ</li>
+                        <li>取引</li>
+                        <li>マーケット</li>
+                    </ul>
+                </article>
+            </div>
+        </div>
+    </section>
+
+    <section class="ar-world-section" aria-labelledby="world-title">
+        <div class="ar-world-section__image" data-depth-layer="world" aria-hidden="true"></div>
+        <div class="ar-world-section__shade" aria-hidden="true"></div>
+        <div class="container position-relative">
+            <div class="ar-world-copy">
+                <p class="ar-home-kicker">A world under construction</p>
+                <h2 id="world-title">完成前だから、変わっていく。</h2>
+                <p>
+                    いま見えている景色も、遊び方も、正式リリースまでに変わる可能性があります。
+                    気になったところは、公式Discordでぜひ教えてください。いただいた声も参考にしながら開発を続けます。
+                </p>
+                <a href="https://discord.gg/Fja6zmpjGX" class="ar-text-link" target="_blank" rel="noopener noreferrer"
+                   aria-label="Astral Record公式Discordを新しいタブで開く">
+                    公式Discordへ <span aria-hidden="true">↗</span>
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section class="ar-home-section ar-join-section" id="join" aria-labelledby="join-title">
+        <div class="container">
+            <div class="ar-home-heading ar-home-heading--center">
+                <p class="ar-home-kicker">Join the open alpha</p>
+                <h2 id="join-title">参加情報</h2>
+                <p>Java版は現在参加できます。統合版は公開に向けて準備中です。</p>
+            </div>
+
+            <div class="row g-4 justify-content-center">
+                <div class="col-lg-7">
+                    <article class="ar-edition-card ar-edition-card--available">
+                        <div class="ar-edition-card__head">
+                            <div>
+                                <span class="ar-edition-card__eyebrow">AVAILABLE NOW</span>
+                                <h3>Minecraft Java Edition</h3>
+                            </div>
+                            <span class="ar-edition-state ar-edition-state--open">公開中</span>
+                        </div>
+
+                        <button class="ar-address-button" type="button"
+                                data-copy-server data-copy-value="@Model.JavaServerAddress"
+                                aria-describedby="join-copy-help join-copy-status">
+                            <span>
+                                <small>サーバーアドレス</small>
+                                <strong>@Model.JavaServerAddress</strong>
+                            </span>
+                            <span class="ar-address-button__copy" data-copy-label>クリックしてコピー</span>
+                        </button>
+                        <p class="ar-address-help" id="join-copy-help">ポート: @Model.JavaServerPort（標準ポート）</p>
+                        <p class="ar-copy-status" id="join-copy-status" role="status" aria-live="polite" data-copy-status></p>
+
+                        <ol class="ar-join-steps">
+                            <li><span>1</span>Java版の「マルチプレイ」を開く</li>
+                            <li><span>2</span>「サーバーを追加」に上のアドレスを入力</li>
+                            <li><span>3</span>利用規約と注意事項を確認して参加</li>
+                        </ol>
+                    </article>
+                </div>
+
+                <div class="col-lg-5">
+                    <article class="ar-edition-card ar-edition-card--planned">
+                        <div class="ar-edition-card__head">
+                            <div>
+                                <span class="ar-edition-card__eyebrow">PLANNED</span>
+                                <h3>Minecraft Bedrock Edition</h3>
+                            </div>
+                            <span class="ar-edition-state">未公開</span>
+                        </div>
+                        <p>
+                            統合版からの参加にはまだ対応していません。参加できる環境を整えたあと、このサイトと公式Discordでお知らせします。
                         </p>
-                    </div>
-                </div>
-                <div class="ar-hero-metrics">
-                    <div>
-                        <span>RPG</span>
-                        <strong>育成</strong>
-                    </div>
-                    <div>
-                        <span>World</span>
-                        <strong>探索</strong>
-                    </div>
-                    <div>
-                        <span>Party</span>
-                        <strong>協力</strong>
-                    </div>
+                        <a href="https://discord.gg/Fja6zmpjGX" class="btn ar-home-button ar-home-button--discord" target="_blank"
+                           rel="noopener noreferrer" aria-label="Astral Record公式Discordを新しいタブで開く">
+                            公式Discordに参加する <span aria-hidden="true">↗</span>
+                        </a>
+                    </article>
                 </div>
             </div>
-        </div>
-    </div>
-    <div class="ar-hero-scroll-hint">
-        <span>&#8595;</span>
-    </div>
-</section>
 
-<section class="ar-section ar-section-dark" id="features">
-    <div class="container">
-        <div class="ar-section-heading text-center">
-            <p class="ar-kicker">Features</p>
-            <h2 class="ar-section-title">いまのAstral Record</h2>
-            <p class="ar-section-lead">
-                過去の仮ページから、現在開発しているRPGサーバーの姿が伝わる内容へ更新しました。
-            </p>
-        </div>
-        <div class="row g-4 mt-2">
-            <div class="col-md-4">
-                <div class="ar-card h-100">
-                    <p class="ar-card-index">01</p>
-                    <h3 class="ar-card-title">育成とビルド</h3>
-                    <p class="ar-card-text">
-                        ステータス、スキルツリー、装備を組み合わせて、自分の戦い方を形にしていく設計です。
-                    </p>
+            <div class="ar-alpha-notice" aria-labelledby="alpha-notice-title">
+                <div class="ar-alpha-notice__mark" aria-hidden="true">!</div>
+                <div>
+                    <h3 id="alpha-notice-title">オープンアルファ参加時の注意</h3>
+                    <ul>
+                        <li>メンテナンスの告知前後を問わず、急な再起動や停止が発生することがあります。</li>
+                        <li>プレイヤーデータの不具合、消失、巻き戻りについて、補償や個別の復旧対応は行いません。</li>
+                        <li>オープンアルファ中のプレイヤーデータは、正式リリース時に引き継がれません。</li>
+                        <li>開発中のため、仕様・バランス・遊べる範囲は予告なく変更されます。</li>
+                    </ul>
                 </div>
             </div>
-            <div class="col-md-4">
-                <div class="ar-card h-100">
-                    <p class="ar-card-index">02</p>
-                    <h3 class="ar-card-title">探索と攻略</h3>
-                    <p class="ar-card-text">
-                        星界を舞台に、街・フィールド・戦闘コンテンツを段階的に拡張していきます。
-                    </p>
-                </div>
-            </div>
-            <div class="col-md-4">
-                <div class="ar-card h-100">
-                    <p class="ar-card-index">03</p>
-                    <h3 class="ar-card-title">Web連携</h3>
-                    <p class="ar-card-text">
-                        APIとWeb UIを前提に、プレイヤー情報や運営画面を扱える構成へ育てています。
-                    </p>
-                </div>
-            </div>
-        </div>
-    </div>
-</section>
 
-<section class="ar-section ar-section-split">
-    <div class="container">
-        <div class="row align-items-center g-5">
-            <div class="col-lg-6">
-                <div class="ar-image-frame">
-                    <img src="~/images/bg-town.png" alt="Astral Record world" />
-                </div>
-            </div>
-            <div class="col-lg-6">
-                <p class="ar-kicker">World</p>
-                <h2 class="ar-section-title">冒険の入口を整備中</h2>
-                <p class="ar-section-text">
-                    公式サイトは、サーバー公開前の案内場所として整えています。
-                    参加方法、規約、今後のWeb機能をここから確認できるようにしていきます。
-                </p>
-                <div class="ar-progress-list">
-                    <div class="ar-progress-item">
-                        <span>01</span>
-                        <p>サーバー参加情報の掲載</p>
-                    </div>
-                    <div class="ar-progress-item">
-                        <span>02</span>
-                        <p>利用規約とプライバシーポリシーの整備</p>
-                    </div>
-                    <div class="ar-progress-item">
-                        <span>03</span>
-                        <p>運営・プレイヤー向けWeb機能の拡張</p>
-                    </div>
+            <div class="ar-join-footer">
+                <p>参加前に、利用規約とプライバシーポリシーをご確認ください。</p>
+                <div>
+                    <a asp-page="/Terms" class="ar-text-link">利用規約</a>
+                    <a asp-page="/Privacy" class="ar-text-link">プライバシーポリシー</a>
+                    <a asp-page="/Login" class="ar-text-link">ログイン（現在未実装）</a>
                 </div>
             </div>
         </div>
-    </div>
-</section>
+    </section>
 
-<section class="ar-section ar-section-bg" id="access" style="background-image: url('/images/bg-town.png');">
-    <div class="ar-section-overlay"></div>
-    <div class="container position-relative text-center">
-        <p class="ar-kicker">Access</p>
-        <h2 class="ar-section-title mb-3">参加情報</h2>
-        <p class="ar-section-text mb-4">Minecraft Java Edition 向けに公開準備を進めています。</p>
-        <div class="ar-server-address">
-            <span class="ar-server-label">サーバーアドレス</span>
-            <code class="ar-server-ip">公開準備中</code>
+    <noscript>
+        <div class="ar-noscript">
+            Java版サーバーアドレスは <strong>@Model.JavaServerAddress</strong> です。コピー機能と背景の奥行き演出のみJavaScriptを使用します。
         </div>
-        <div class="ar-access-links">
-            <a asp-page="/Terms" class="ar-link">利用規約</a>
-            <span></span>
-            <a asp-page="/Privacy" class="ar-link">プライバシーポリシー</a>
-        </div>
-    </div>
-</section>
+    </noscript>
+</div>

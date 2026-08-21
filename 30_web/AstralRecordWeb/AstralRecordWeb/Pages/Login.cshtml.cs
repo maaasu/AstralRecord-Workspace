@@ -13,6 +13,8 @@ namespace AstralRecordWeb.Pages;
 [AllowAnonymous]
 public class LoginModel(WebAuthApiClient webAuthApiClient) : PageModel
 {
+    private static readonly bool LoginEnabled = false;
+
     [BindProperty]
     [Required(ErrorMessage = "ログインコードを入力してください。")]
     [Display(Name = "ログインコード")]
@@ -24,6 +26,12 @@ public class LoginModel(WebAuthApiClient webAuthApiClient) : PageModel
 
     public async Task<IActionResult> OnPostAsync(CancellationToken cancellationToken)
     {
+        if (!LoginEnabled)
+        {
+            ModelState.AddModelError(string.Empty, "Webログインは現在未実装です。");
+            return Page();
+        }
+
         if (!ModelState.IsValid)
             return Page();
 

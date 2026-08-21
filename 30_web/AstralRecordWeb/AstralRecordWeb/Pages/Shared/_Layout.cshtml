@@ -3,6 +3,7 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="description" content="Minecraft RPGサーバー Astral Record。Java版オープンアルファ公開中。" />
     <title>@ViewData["Title"] - Astral Record</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -12,11 +13,14 @@
     <link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Noto+Sans+JP:wght@300;400;700&display=swap" rel="stylesheet" />
 </head>
 <body>
+    <a class="ar-skip-link" href="#main-content">本文へ移動</a>
     <nav class="navbar navbar-expand-lg ar-navbar fixed-top">
         <div class="container">
             <a class="navbar-brand ar-brand" asp-area="" asp-page="/Index">
-                <img src="~/images/icon.png" alt="Astral Record" class="ar-brand-icon" />
+                <img src="~/images/icon.png" srcset="/images/icon-128.webp 128w, /images/icon-256.webp 256w"
+                     sizes="40px" width="128" height="128" alt="Astral Record" class="ar-brand-icon" />
                 <span class="ar-brand-text">Astral Record</span>
+                <span class="ar-brand-alpha">OPEN ALPHA</span>
             </a>
             <button class="navbar-toggler ar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
@@ -31,7 +35,7 @@
                         <a class="nav-link ar-nav-link" asp-area="" asp-page="/Index" asp-fragment="features">特徴</a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link ar-nav-link" asp-area="" asp-page="/Index" asp-fragment="access">参加情報</a>
+                        <a class="nav-link ar-nav-link" asp-area="" asp-page="/Index" asp-fragment="join">参加情報</a>
                     </li>
                     <li class="nav-item">
                         <a class="nav-link ar-nav-link" asp-area="" asp-page="/Terms">利用規約</a>
@@ -61,7 +65,7 @@
                     else
                     {
                         <li class="nav-item">
-                            <a class="nav-link ar-nav-link" asp-area="" asp-page="/Login">ログイン</a>
+                            <a class="nav-link ar-nav-link ar-nav-login" asp-area="" asp-page="/Login">ログイン<span>未実装</span></a>
                         </li>
                     }
                 </ul>
@@ -69,7 +73,7 @@
         </div>
     </nav>
 
-    <main>
+    <main id="main-content">
         @RenderBody()
     </main>
 
@@ -77,7 +81,8 @@
         <div class="container">
             <div class="row align-items-center gy-3">
                 <div class="col-md-4 text-center text-md-start">
-                    <img src="~/images/icon.png" alt="Astral Record" class="ar-footer-icon" />
+                    <img src="~/images/icon.png" srcset="/images/icon-128.webp 128w, /images/icon-256.webp 256w"
+                         sizes="48px" width="128" height="128" alt="Astral Record" class="ar-footer-icon" />
                 </div>
                 <div class="col-md-4 text-center">
                     <p class="ar-footer-title mb-1">Astral Record</p>
@@ -87,11 +92,14 @@
                     <div class="ar-footer-links">
                         <a asp-page="/Index">ホーム</a>
                         <span class="mx-2 opacity-50">|</span>
-                        <a asp-page="/Index" asp-fragment="access">参加情報</a>
+                        <a asp-page="/Index" asp-fragment="join">参加情報</a>
                         <span class="mx-2 opacity-50">|</span>
                         <a asp-page="/Terms">利用規約</a>
                         <span class="mx-2 opacity-50">|</span>
                         <a asp-page="/Privacy">プライバシーポリシー</a>
+                        <span class="mx-2 opacity-50">|</span>
+                        <a href="https://discord.gg/Fja6zmpjGX" target="_blank" rel="noopener noreferrer"
+                           aria-label="Astral Record公式Discordを新しいタブで開く">Discord</a>
                     </div>
                 </div>
             </div>

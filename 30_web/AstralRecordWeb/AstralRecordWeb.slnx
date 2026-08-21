@@ -1,3 +1,4 @@
 <Solution>
   <Project Path="AstralRecordWeb/AstralRecordWeb.csproj" />
+  <Project Path="AstralRecordWeb.Tests/AstralRecordWeb.Tests.csproj" />
 </Solution>

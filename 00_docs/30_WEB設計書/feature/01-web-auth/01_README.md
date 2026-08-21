@@ -1,6 +1,6 @@
 # 01_README
 
-Web `web-auth` feature は、Minecraft で発行されたログインコードを受け取り、API で消費して ASP.NET Core Cookie 認証を開始します。
+Web `web-auth` feature は現在停止中です。`/Login` は未実装案内のみを表示し、フォームの操作、API でのコード消費、ASP.NET Core Cookie 認証の開始を行いません。既存の認証実装と以下の資料は再開時の同期対象として保持します。
 
 ## ドキュメント一覧（推奨順）
 
