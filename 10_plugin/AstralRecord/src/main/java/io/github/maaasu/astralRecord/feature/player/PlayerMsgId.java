@@ -1183,6 +1183,11 @@ public enum PlayerMsgId {
     P_6912(6912),
     // endregion
 
+    // region /feature/discord 6990-6999
+    /** Discordから受信した全体チャットの識別タグ。 */
+    P_6990(6990),
+    // endregion
+
     // region /feature/dungeon 7000-7019
     /** ダンジョン機能を利用できません。 */
     P_7000(7000),

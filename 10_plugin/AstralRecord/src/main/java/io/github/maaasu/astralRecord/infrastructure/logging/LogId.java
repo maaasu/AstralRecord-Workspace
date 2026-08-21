@@ -1074,6 +1074,19 @@ public enum LogId {
     W_9010(9010),
     // endregion
 
+    // region /feature/discord/ 7100-7109
+    /** DiscordSRV全体チャット連携を登録しました: channel=%s */
+    I_7100(7100),
+    /** DiscordSRVが未導入または無効のため全体チャット連携を無効化しました */
+    W_7100(7100),
+    /** Discord全体チャットチャンネルIDが未設定のため連携を無効化しました */
+    W_7101(7101),
+    /** DiscordSRV全体チャット連携の初期化に失敗しました: %s */
+    W_7102(7102),
+    /** DiscordSRVへのMinecraftチャット送信に失敗しました: %s */
+    E_7100(7100),
+    // endregion
+
     ;
     private final String id;
 

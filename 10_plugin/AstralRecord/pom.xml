@@ -173,6 +173,10 @@
             <id>central</id>
             <url>https://repo.maven.apache.org/maven2</url>
         </repository>
+        <repository>
+            <id>discordsrv</id>
+            <url>https://nexus.scarsz.me/content/repositories/releases/</url>
+        </repository>
     </repositories>
 
     <dependencies>
@@ -247,6 +251,14 @@
             <scope>provided</scope>
         </dependency>
 
+        <!-- DiscordSRV API: supplied by the optional server plugin -->
+        <dependency>
+            <groupId>com.discordsrv</groupId>
+            <artifactId>discordsrv</artifactId>
+            <version>1.30.5</version>
+            <scope>provided</scope>
+        </dependency>
+
         <!-- Reflections: クラスパススキャン用 -->
         <dependency>
             <groupId>org.reflections</groupId>
@@ -304,5 +316,4 @@
         </dependencies>
     </dependencyManagement>
 </project>
-
 

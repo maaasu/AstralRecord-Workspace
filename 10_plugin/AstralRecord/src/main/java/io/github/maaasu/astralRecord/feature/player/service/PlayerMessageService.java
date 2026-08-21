@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.player.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.discord.service.GlobalChatBridge;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -26,6 +27,7 @@ import java.util.Collection;
 public final class PlayerMessageService {
     private static final PlayerMessageService FALLBACK_INSTANCE = new PlayerMessageService();
     private final @Nullable PlayerClassService playerClassService;
+    private @Nullable GlobalChatBridge globalChatBridge;
 
     /**
      * PlayerMessageService を初期化する。
@@ -135,6 +137,15 @@ public final class PlayerMessageService {
     }
 
     /**
+     * 全体チャットの外部中継先を設定する。
+     *
+     * @param globalChatBridge 外部中継先。{@code null} で解除
+     */
+    public void setGlobalChatBridge(@Nullable GlobalChatBridge globalChatBridge) {
+        this.globalChatBridge = globalChatBridge;
+    }
+
+    /**
      * クリック時に指定コマンドを実行するシステムメッセージを送信する。
      *
      * @param player 送信先プレイヤー
@@ -162,12 +173,40 @@ public final class PlayerMessageService {
      * @param message チャット本文
      */
     public void broadcastGlobalChat(@NotNull Player sender, @NotNull String message) {
+        String normalizedMessage = ChatMessageSanitizer.normalize(message);
         Component component = PlayerMsgResource.formatComponent(
             PlayerMsgId.P_5941.getId(),
             resolveShortClassName(sender),
             sender.getName(),
-            message
-        );
+            ""
+        ).append(Component.text(normalizedMessage));
+        for (Player recipient : Bukkit.getOnlinePlayers()) {
+            if (recipient.isOnline()) {
+                recipient.sendMessage(component);
+            }
+        }
+        if (!normalizedMessage.isBlank() && globalChatBridge != null) {
+            globalChatBridge.publishMinecraftGlobalChat(sender, normalizedMessage);
+        }
+    }
+
+    /**
+     * Discordの全体チャットをオンラインプレイヤーへAstralRecord形式で配信する。
+     *
+     * @param authorName Discord表示名
+     * @param message メッセージ本文
+     */
+    public void broadcastDiscordGlobalChat(@NotNull String authorName, @NotNull String message) {
+        String normalizedAuthorName = ChatMessageSanitizer.normalize(authorName, 64);
+        String normalizedMessage = ChatMessageSanitizer.normalize(message);
+        if (normalizedAuthorName.isBlank() || normalizedMessage.isBlank()) {
+            return;
+        }
+        Component component = PlayerMsgResource.getComponent(PlayerMsgId.P_6990.getId())
+            .append(Component.space())
+            .append(Component.text(normalizedAuthorName))
+            .append(Component.text(": "))
+            .append(Component.text(normalizedMessage));
         for (Player recipient : Bukkit.getOnlinePlayers()) {
             if (recipient.isOnline()) {
                 recipient.sendMessage(component);

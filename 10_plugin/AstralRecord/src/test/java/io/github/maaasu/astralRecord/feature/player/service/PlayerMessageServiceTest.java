@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
+import io.github.maaasu.astralRecord.feature.discord.service.GlobalChatBridge;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -113,6 +114,54 @@ class PlayerMessageServiceTest {
             assertEquals(
                 "[全体] [魔術師] Alice: hello",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(sender))
+            );
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### 全体チャット配信
+     * 検証契約: 全体チャット本文の {@code &c} をカラーコードとして解釈せず、Discord中継にも同じ本文を渡す。
+     */
+    @Test
+    void globalChatKeepsAmpersandColorCodeLiteralAndPublishesIt() {
+        Player sender = onlinePlayer();
+        when(sender.getName()).thenReturn("Alice");
+        GlobalChatBridge bridge = mock(GlobalChatBridge.class);
+        PlayerMessageService service = new PlayerMessageService();
+        service.setGlobalChatBridge(bridge);
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(Set.of(sender));
+
+            service.broadcastGlobalChat(sender, "&chello");
+
+            assertEquals(
+                "[全体] [---] Alice: &chello",
+                PlainTextComponentSerializer.plainText().serialize(captureMessage(sender))
+            );
+            verify(bridge).publishMinecraftGlobalChat(sender, "&chello");
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### Discord全体チャット配信
+     * 検証契約: Discord本文の {@code &c} もカラーコードとして解釈せず、Discordタグ付きで配信する。
+     */
+    @Test
+    void discordGlobalChatKeepsAmpersandColorCodeLiteral() {
+        Player recipient = onlinePlayer();
+        PlayerMessageService service = new PlayerMessageService();
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(Set.of(recipient));
+
+            service.broadcastDiscordGlobalChat("Alice", "&chello");
+
+            assertEquals(
+                "[Discord] Alice: &chello",
+                PlainTextComponentSerializer.plainText().serialize(captureMessage(recipient))
             );
         }
     }

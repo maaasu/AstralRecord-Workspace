@@ -4,6 +4,7 @@ main: io.github.maaasu.astralRecord.AstralRecord
 api-version: '1.21'
 authors: [ "AstralRecord" ]
 depend: [ProtocolLib]
+softdepend: [DiscordSRV]
 
 dependencies:
   server:

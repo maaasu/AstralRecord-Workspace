@@ -57,6 +57,11 @@ public class ConfigProperties {
     private boolean resourcePackSkipBedrock;
     private List<String> resourcePackBedrockNamePrefixes;
 
+    // DiscordSRV chat bridge settings
+    private boolean discordEnabled;
+    private String discordGlobalChannelId;
+    private int discordMaxMessageLength;
+
     private ConfigProperties() {
         // private constructor for singleton
     }
@@ -134,6 +139,14 @@ public class ConfigProperties {
         if (this.resourcePackBedrockNamePrefixes.isEmpty()) {
             this.resourcePackBedrockNamePrefixes = List.of(".", "*");
         }
+
+        // DiscordSRV chat bridge settings
+        this.discordEnabled = configManager.getConfig().getBoolean(ConfigKeys.DISCORD_ENABLED, true);
+        this.discordGlobalChannelId = configManager.getConfig().getString(ConfigKeys.DISCORD_GLOBAL_CHANNEL_ID, "");
+        this.discordMaxMessageLength = Math.max(
+                1,
+                configManager.getConfig().getInt(ConfigKeys.DISCORD_MAX_MESSAGE_LENGTH, 256)
+        );
     }
 
     /**
@@ -309,6 +322,18 @@ public class ConfigProperties {
 
     public List<String> getResourcePackBedrockNamePrefixes() {
         return resourcePackBedrockNamePrefixes;
+    }
+
+    public boolean isDiscordEnabled() {
+        return discordEnabled;
+    }
+
+    public String getDiscordGlobalChannelId() {
+        return discordGlobalChannelId;
+    }
+
+    public int getDiscordMaxMessageLength() {
+        return discordMaxMessageLength;
     }
 
     private Set<UUID> parseDebugUsers(List<String> configuredUsers) {

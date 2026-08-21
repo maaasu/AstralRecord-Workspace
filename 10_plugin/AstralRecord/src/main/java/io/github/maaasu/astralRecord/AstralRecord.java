@@ -24,6 +24,8 @@ import io.github.maaasu.astralRecord.feature.dungeon.event.DungeonWorldEventHand
 import io.github.maaasu.astralRecord.feature.dungeon.event.DungeonInteractionEventHandler;
 import io.github.maaasu.astralRecord.feature.dungeon.repository.DungeonDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
+import io.github.maaasu.astralRecord.feature.discord.service.DiscordSrvChatBridge;
+import io.github.maaasu.astralRecord.feature.discord.service.GlobalChatBridge;
 import io.github.maaasu.astralRecord.feature.condition.display.ConditionDisplayService;
 import io.github.maaasu.astralRecord.feature.condition.event.ConditionPlayerEventHandler;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
@@ -293,6 +295,7 @@ public final class AstralRecord extends JavaPlugin {
     private UserService userService;
     private PlayerService playerService;
     private PlayerMessageService playerMessageService;
+    private GlobalChatBridge globalChatBridge;
     private PlayerRegionService playerRegionService;
     private InventoryService inventoryService;
     private InventorySaveCoordinator inventorySaveCoordinator;
@@ -510,6 +513,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         setupFeature();
+        setupDiscordChatBridge();
 
         // 4. イベントとコマンドを登録
         registerPluginFeatures();
@@ -517,6 +521,10 @@ public final class AstralRecord extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (globalChatBridge != null) {
+            globalChatBridge.close();
+            globalChatBridge = null;
+        }
         masterDataReloadGeneration.incrementAndGet();
         CompletableFuture<Integer> pendingMasterDataReload = masterDataReloadInFlight.getAndSet(null);
         if (pendingMasterDataReload != null && !pendingMasterDataReload.isDone()) {
@@ -1281,6 +1289,21 @@ public final class AstralRecord extends JavaPlugin {
         itemStackPacketAdapter = new ItemStackPacketAdapter(this, playerSettingService, skillActionRingService);
         itemStackPacketAdapter.register();
 
+    }
+
+    /**
+     * DiscordSRVが利用できる場合に全体チャット中継を初期化します。
+     */
+    private void setupDiscordChatBridge() {
+        if (!ConfigProperties.getInstance().isDiscordEnabled()) {
+            return;
+        }
+        try {
+            globalChatBridge = DiscordSrvChatBridge.create(this, playerMessageService);
+            playerMessageService.setGlobalChatBridge(globalChatBridge);
+        } catch (LinkageError | RuntimeException exception) {
+            Logger.log(LogId.W_7102, exception, exception.getClass().getSimpleName());
+        }
     }
 
     /**

@@ -58,4 +58,9 @@ public final class ConfigKeys {
     public static final String RESOURCE_PACK_SKIP_BEDROCK = "resourcePack.skipBedrock";
     public static final String RESOURCE_PACK_BEDROCK_NAME_PREFIXES = "resourcePack.bedrockNamePrefixes";
 
+    // DiscordSRV chat bridge settings
+    public static final String DISCORD_ENABLED = "discord.enabled";
+    public static final String DISCORD_GLOBAL_CHANNEL_ID = "discord.globalChannelId";
+    public static final String DISCORD_MAX_MESSAGE_LENGTH = "discord.maxMessageLength";
+
 }

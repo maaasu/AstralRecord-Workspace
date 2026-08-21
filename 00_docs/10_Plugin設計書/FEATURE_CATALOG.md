@@ -6,7 +6,7 @@
 |:--|:--|:--|:--|
 | 01 | [[01_0-概要]] | Minecraft ユーザー登録、権限、履歴 | `feature/user` |
 | 02 | [[02_0-概要]] | 選択アカウント、モード、アカウント進行 | `feature/account` |
-| 03 | [[03_0-概要]] | プレイヤーライフサイクル、チャット、死亡、ログインボーナス、クラス進行 | `feature/player`, `feature/loginbonus`, `feature/class`, `feature/playerclass` |
+| 03 | [[03_0-概要]] | プレイヤーライフサイクル、チャット、DiscordSRV連携、死亡、ログインボーナス、クラス進行 | `feature/player`, `feature/discord`, `feature/loginbonus`, `feature/class`, `feature/playerclass` |
 | 04 | [[04_0-概要]] | アイテム定義、生成、使用、装備操作 | `feature/item` |
 | 05 | [[05_0-概要]] | バフ定義と適用状態 | `feature/buff` |
 | 06 | [[06_0-概要]] | ルートテーブル取得と抽選 | `feature/loot` |
@@ -72,6 +72,7 @@
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/player/model/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/player/save/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/player/service/*`
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/discord/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/loginbonus/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/class/*`
 - `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/playerclass/*`
