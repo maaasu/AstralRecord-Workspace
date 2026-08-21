@@ -1,9 +1,16 @@
 ﻿<!DOCTYPE html>
 <html lang="ja">
+@inject Microsoft.Extensions.Options.IOptions<AstralRecordWeb.Options.PublicSiteOptions> PublicSiteOptionsAccessor
+@{
+    var publicSite = PublicSiteOptionsAccessor.Value;
+    var metaDescription = publicSite.IsOpenAlpha
+        ? "Minecraft RPGサーバー Astral Record。Java版オープンアルファ公開中。"
+        : "Minecraft RPGサーバー Astral Record。クラス、スキル、装備を組み合わせて冒険しよう。";
+}
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <meta name="description" content="Minecraft RPGサーバー Astral Record。Java版オープンアルファ公開中。" />
+    <meta name="description" content="@metaDescription" />
     <title>@ViewData["Title"] - Astral Record</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
@@ -20,7 +27,10 @@
                 <img src="~/images/icon.png" srcset="/images/icon-128.webp 128w, /images/icon-256.webp 256w"
                      sizes="40px" width="128" height="128" alt="Astral Record" class="ar-brand-icon" />
                 <span class="ar-brand-text">Astral Record</span>
-                <span class="ar-brand-alpha">OPEN ALPHA</span>
+                @if (publicSite.IsOpenAlpha)
+                {
+                    <span class="ar-brand-alpha">OPEN ALPHA</span>
+                }
             </a>
             <button class="navbar-toggler ar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">

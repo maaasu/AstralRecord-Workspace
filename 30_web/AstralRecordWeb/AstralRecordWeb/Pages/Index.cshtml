@@ -4,7 +4,7 @@
     ViewData["Title"] = "ホーム";
 }
 
-<div class="ar-home">
+<div class="ar-home" data-public-phase="@(Model.PublicSite.IsOpenAlpha ? "open-alpha" : "release")">
     <section class="ar-home-hero" aria-labelledby="hero-title">
         <div class="ar-home-hero__sky" data-depth-layer="sky" aria-hidden="true"></div>
         <div class="ar-home-hero__town" data-depth-layer="town" aria-hidden="true"></div>
@@ -14,37 +14,19 @@
         <div class="container ar-home-hero__content">
             <div class="row align-items-center g-5">
                 <div class="col-lg-7">
-                    <p class="ar-alpha-badge">
-                        <span class="ar-alpha-badge__dot" aria-hidden="true"></span>
-                        OPEN ALPHA
-                    </p>
                     <p class="ar-home-kicker">Minecraft Java Edition RPG Server</p>
                     <h1 class="ar-home-title" id="hero-title">
-                        <span>星を巡る、</span>
-                        <span>まだ途中の冒険。</span>
+                        <span>剣と魔法で、</span>
+                        <span>まだ見ぬ世界へ。</span>
                     </h1>
                     <p class="ar-home-intro">
                         Astral Recordは、クラスや装備、スキルを組み合わせて遊ぶMinecraft RPGサーバーです。
-                        完成を待たず、開発中の世界をオープンアルファとして公開しています。
+                        自分に合った戦い方を組み立て、仲間と一緒にダンジョンやボスへ挑めます。
                     </p>
                     <div class="ar-home-actions">
                         <a href="#join" class="btn ar-home-button ar-home-button--primary">今すぐ参加する</a>
-                        <a href="#alpha-guide" class="btn ar-home-button ar-home-button--ghost">参加前に知ってほしいこと</a>
+                        <a href="#features" class="btn ar-home-button ar-home-button--ghost">遊び方を見る</a>
                     </div>
-
-                    <div class="ar-quick-connect" aria-label="Java版サーバーアドレス">
-                        <div>
-                            <span class="ar-quick-connect__label">JAVA EDITION</span>
-                            <code>@Model.JavaServerAddress</code>
-                        </div>
-                        <button class="ar-copy-button" type="button"
-                                data-copy-server data-copy-value="@Model.JavaServerAddress"
-                                aria-label="Java版サーバーアドレスをコピー"
-                                aria-describedby="hero-copy-status">
-                            <span data-copy-label>コピー</span>
-                        </button>
-                    </div>
-                    <p class="visually-hidden" id="hero-copy-status" role="status" aria-live="polite" data-copy-status></p>
                 </div>
 
                 <div class="col-lg-5 d-none d-lg-block" aria-hidden="true">
@@ -69,28 +51,13 @@
         </a>
     </section>
 
-    <section class="ar-alpha-strip" id="alpha-guide" aria-labelledby="alpha-title">
-        <div class="container">
-            <div class="ar-alpha-strip__grid">
-                <div>
-                    <p class="ar-home-kicker">Before you join</p>
-                    <h2 id="alpha-title">オープンアルファとして公開中です</h2>
-                </div>
-                <p>
-                    開発中のサーバーを、そのまま公開しています。遊べる範囲はありますが、予告なく再起動したり、仕様が大きく変わったりします。
-                    プレイヤーデータの不具合に対する補償・個別対応は行いません。また、現在のデータは正式リリースへ引き継がれません。
-                </p>
-            </div>
-        </div>
-    </section>
-
     <section class="ar-home-section ar-feature-section" id="features" aria-labelledby="features-title">
         <div class="container">
             <div class="ar-home-heading">
                 <p class="ar-home-kicker">What you can find</p>
-                <h2 id="features-title">この世界で目指していること</h2>
+                <h2 id="features-title">この世界で楽しめること</h2>
                 <p>
-                    RPGらしい手応えを、Minecraftの中で。公開中の範囲を遊んでもらいながら、ひとつずつ調整を重ねています。
+                    Minecraftの操作感はそのままに、装備を整え、スキルを選び、手応えのある戦闘や探索を楽しめます。
                 </p>
             </div>
 
@@ -115,7 +82,7 @@
                     <div class="ar-feature-card__icon" aria-hidden="true">⌖</div>
                     <h3>寄り道も、攻略も</h3>
                     <p>
-                        Mobとの戦闘、採集、クエスト、ボスやダンジョン。遊べる内容は更新ごとに変わりながら、冒険の行き先を増やしています。
+                        Mobとの戦闘、採集、クエスト、ボスやダンジョン。更新を重ねながら、冒険できる場所や遊び方を増やしていきます。
                     </p>
                     <ul aria-label="関連システム">
                         <li>クエスト</li>
@@ -130,7 +97,7 @@
                     <div class="ar-feature-card__icon" aria-hidden="true">◇</div>
                     <h3>ひとりでも、仲間とも</h3>
                     <p>
-                        パーティーでの共闘やショップ、プレイヤー同士の取引、マーケットも開発対象です。利用できる機能はゲーム内の案内をご確認ください。
+                        パーティーでの共闘やショップ、プレイヤー同士の取引、マーケットを通して、それぞれの遊び方で世界に関われます。
                     </p>
                     <ul aria-label="関連システム">
                         <li>パーティー</li>
@@ -148,11 +115,11 @@
         <div class="ar-world-section__shade" aria-hidden="true"></div>
         <div class="container position-relative">
             <div class="ar-world-copy">
-                <p class="ar-home-kicker">A world under construction</p>
-                <h2 id="world-title">完成前だから、変わっていく。</h2>
+                <p class="ar-home-kicker">A growing world</p>
+                <h2 id="world-title">遊び方は、これからも増えていく。</h2>
                 <p>
-                    いま見えている景色も、遊び方も、正式リリースまでに変わる可能性があります。
-                    気になったところは、公式Discordでぜひ教えてください。いただいた声も参考にしながら開発を続けます。
+                    新しいクエストやダンジョン、装備などを継続して追加していきます。
+                    攻略情報の交換や更新のお知らせ、不具合の報告は公式Discordをご利用ください。
                 </p>
                 <a href="https://discord.gg/Fja6zmpjGX" class="ar-text-link" target="_blank" rel="noopener noreferrer"
                    aria-label="Astral Record公式Discordを新しいタブで開く">
@@ -165,10 +132,30 @@
     <section class="ar-home-section ar-join-section" id="join" aria-labelledby="join-title">
         <div class="container">
             <div class="ar-home-heading ar-home-heading--center">
-                <p class="ar-home-kicker">Join the open alpha</p>
+                <p class="ar-home-kicker">Join Astral Record</p>
                 <h2 id="join-title">参加情報</h2>
-                <p>Java版は現在参加できます。統合版は公開に向けて準備中です。</p>
+                <p>Java版から参加できます。統合版は未公開ですが、今後対応する予定です。</p>
             </div>
+
+            @if (Model.PublicSite.IsOpenAlpha)
+            {
+                <aside class="ar-alpha-notice" aria-labelledby="alpha-notice-title">
+                    <div class="ar-alpha-notice__mark" aria-hidden="true">!</div>
+                    <div>
+                        <p class="ar-alpha-notice__eyebrow">OPEN ALPHA</p>
+                        <h3 id="alpha-notice-title">参加前にご確認ください</h3>
+                        <p class="ar-alpha-notice__lead">
+                            現在は、開発中のサーバーを公開して遊べるようにしているオープンアルファ期間です。
+                        </p>
+                        <ul>
+                            <li>予告の有無にかかわらず、急な再起動や停止が頻繁に発生することがあります。</li>
+                            <li>プレイヤーデータの不具合、消失、巻き戻りは個別の復旧や補償の対象外です。</li>
+                            <li>この期間のプレイヤーデータは、正式リリース時に引き継がれません。</li>
+                            <li>機能、仕様、バランス、遊べる範囲は予告なく変更されることがあります。</li>
+                        </ul>
+                    </div>
+                </aside>
+            }
 
             <div class="row g-4 justify-content-center">
                 <div class="col-lg-7">
@@ -182,15 +169,15 @@
                         </div>
 
                         <button class="ar-address-button" type="button"
-                                data-copy-server data-copy-value="@Model.JavaServerAddress"
+                                data-copy-server data-copy-value="@Model.PublicSite.JavaServerAddress"
                                 aria-describedby="join-copy-help join-copy-status">
                             <span>
                                 <small>サーバーアドレス</small>
-                                <strong>@Model.JavaServerAddress</strong>
+                                <strong>@Model.PublicSite.JavaServerAddress</strong>
                             </span>
                             <span class="ar-address-button__copy" data-copy-label>クリックしてコピー</span>
                         </button>
-                        <p class="ar-address-help" id="join-copy-help">ポート: @Model.JavaServerPort（標準ポート）</p>
+                        <p class="ar-address-help" id="join-copy-help">ポート: @Model.PublicSite.JavaServerPort（標準ポート）</p>
                         <p class="ar-copy-status" id="join-copy-status" role="status" aria-live="polite" data-copy-status></p>
 
                         <ol class="ar-join-steps">
@@ -221,19 +208,6 @@
                 </div>
             </div>
 
-            <div class="ar-alpha-notice" aria-labelledby="alpha-notice-title">
-                <div class="ar-alpha-notice__mark" aria-hidden="true">!</div>
-                <div>
-                    <h3 id="alpha-notice-title">オープンアルファ参加時の注意</h3>
-                    <ul>
-                        <li>メンテナンスの告知前後を問わず、急な再起動や停止が発生することがあります。</li>
-                        <li>プレイヤーデータの不具合、消失、巻き戻りについて、補償や個別の復旧対応は行いません。</li>
-                        <li>オープンアルファ中のプレイヤーデータは、正式リリース時に引き継がれません。</li>
-                        <li>開発中のため、仕様・バランス・遊べる範囲は予告なく変更されます。</li>
-                    </ul>
-                </div>
-            </div>
-
             <div class="ar-join-footer">
                 <p>参加前に、利用規約とプライバシーポリシーをご確認ください。</p>
                 <div>
@@ -245,9 +219,4 @@
         </div>
     </section>
 
-    <noscript>
-        <div class="ar-noscript">
-            Java版サーバーアドレスは <strong>@Model.JavaServerAddress</strong> です。コピー機能と背景の奥行き演出のみJavaScriptを使用します。
-        </div>
-    </noscript>
 </div>

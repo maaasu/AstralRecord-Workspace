@@ -620,6 +620,147 @@ img {
     line-height: 1.8;
 }
 
+/* ===== Legal pages ===== */
+.ar-legal-page {
+    background:
+        radial-gradient(circle at 15% 8%, rgba(95, 183, 167, 0.08), transparent 28rem),
+        radial-gradient(circle at 88% 32%, rgba(201, 154, 59, 0.08), transparent 32rem),
+        #07090e;
+}
+
+.ar-legal-hero {
+    border-bottom: 1px solid var(--ar-border);
+    isolation: isolate;
+    min-height: 360px;
+    overflow: hidden;
+}
+
+.ar-legal-hero .ar-hero-overlay {
+    background:
+        linear-gradient(90deg, rgba(5, 7, 11, 0.72), rgba(5, 7, 11, 0.36), rgba(5, 7, 11, 0.72)),
+        linear-gradient(180deg, rgba(5, 7, 11, 0.2), #07090e 100%);
+    z-index: -1;
+}
+
+.ar-legal-stars {
+    background-image:
+        radial-gradient(circle, rgba(241, 202, 114, 0.76) 0 1px, transparent 1.5px),
+        radial-gradient(circle, rgba(141, 216, 202, 0.52) 0 1px, transparent 1.5px);
+    background-position: 0 0, 46px 68px;
+    background-size: 91px 91px, 137px 137px;
+    inset: 0;
+    mask-image: linear-gradient(to bottom, black, transparent 92%);
+    opacity: 0.35;
+    pointer-events: none;
+    position: absolute;
+    z-index: -1;
+}
+
+.ar-legal-hero .container {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    min-height: 360px;
+}
+
+.ar-legal-hero .ar-home-kicker {
+    margin-bottom: 1rem;
+}
+
+.ar-legal-content {
+    padding: clamp(4rem, 8vw, 7rem) 0;
+}
+
+.ar-legal-shell {
+    backdrop-filter: blur(16px);
+    background: linear-gradient(145deg, rgba(17, 21, 29, 0.96), rgba(9, 12, 18, 0.98));
+    border: 1px solid rgba(255, 255, 255, 0.11);
+    border-top-color: rgba(241, 202, 114, 0.42);
+    border-radius: 4px;
+    box-shadow: 0 35px 100px rgba(0, 0, 0, 0.34);
+    max-width: 980px;
+    padding: clamp(1.4rem, 5vw, 3.5rem);
+}
+
+.ar-legal-shell .ar-terms-intro {
+    background: rgba(95, 183, 167, 0.06);
+    border: 1px solid rgba(95, 183, 167, 0.18);
+    border-left: 3px solid var(--ar-teal);
+    margin-bottom: 3.5rem;
+    padding: 1.25rem 1.4rem;
+}
+
+.ar-legal-shell .ar-terms-section {
+    scroll-margin-top: calc(var(--ar-navbar-h) + 1rem);
+}
+
+.ar-terms-subheading {
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 700;
+    margin: 1.5rem 0 0.6rem;
+}
+
+.ar-terms-subheading:first-of-type {
+    margin-top: 1rem;
+}
+
+.ar-terms-note {
+    background: rgba(255, 255, 255, 0.035);
+    border-left: 2px solid rgba(241, 202, 114, 0.5);
+    margin-top: 1rem !important;
+    padding: 0.85rem 1rem;
+}
+
+.ar-legal-contact {
+    align-items: center;
+    border: 1px solid rgba(88, 101, 242, 0.58);
+    color: #c8cdfd;
+    display: inline-flex;
+    font-size: 0.86rem;
+    font-weight: 700;
+    gap: 0.45rem;
+    margin-top: 1.4rem;
+    padding: 0.65rem 0.9rem;
+    text-decoration: none;
+    transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+
+.ar-legal-contact:hover {
+    background: rgba(88, 101, 242, 0.14);
+    border-color: #8e97fa;
+    color: #fff;
+}
+
+.ar-privacy-data-list {
+    display: grid;
+    gap: 0.75rem;
+    margin: 1.2rem 0 0;
+}
+
+.ar-privacy-data-list > div {
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    display: grid;
+    gap: 0.7rem;
+    grid-template-columns: minmax(140px, 0.28fr) minmax(0, 1fr);
+    padding: 1rem;
+}
+
+.ar-privacy-data-list dt {
+    color: var(--ar-gold-light);
+    font-size: 0.86rem;
+}
+
+.ar-privacy-data-list dd {
+    color: var(--ar-text-muted);
+    font-size: 0.9rem;
+    line-height: 1.8;
+    margin: 0;
+    overflow-wrap: anywhere;
+}
+
 /* ===== Admin Item Master ===== */
 .ar-admin-hero {
     background-position: center 36%;
@@ -1255,14 +1396,6 @@ img {
     padding: 0.4rem 0.75rem;
 }
 
-.ar-alpha-badge__dot {
-    background: #79d7c6;
-    border-radius: 50%;
-    box-shadow: 0 0 0 4px rgba(121, 215, 198, 0.12), 0 0 16px rgba(121, 215, 198, 0.8);
-    height: 7px;
-    width: 7px;
-}
-
 .ar-home-kicker {
     color: var(--ar-gold-light);
     font-family: 'Cinzel', serif;
@@ -1348,55 +1481,6 @@ img {
     border-color: rgba(241, 202, 114, 0.55);
     color: #fff;
     transform: translateY(-2px);
-}
-
-.ar-quick-connect {
-    align-items: stretch;
-    backdrop-filter: blur(16px);
-    background: rgba(7, 9, 14, 0.7);
-    border: 1px solid rgba(255, 255, 255, 0.14);
-    border-left: 3px solid var(--ar-teal);
-    border-radius: 4px;
-    display: inline-flex;
-    margin-top: 2.4rem;
-    max-width: 100%;
-}
-
-.ar-quick-connect > div {
-    display: grid;
-    gap: 0.12rem;
-    padding: 0.72rem 1rem;
-}
-
-.ar-quick-connect__label {
-    color: var(--ar-text-muted);
-    font-size: 0.58rem;
-    letter-spacing: 0.16em;
-}
-
-.ar-quick-connect code {
-    background: none;
-    color: #fff;
-    font-size: 1rem;
-    padding: 0;
-}
-
-.ar-copy-button {
-    background: rgba(95, 183, 167, 0.12);
-    border: 0;
-    border-left: 1px solid rgba(255, 255, 255, 0.12);
-    color: #a8e2d7;
-    font-size: 0.76rem;
-    font-weight: 700;
-    min-width: 76px;
-    padding: 0.65rem 0.9rem;
-    transition: background 0.2s, color 0.2s;
-}
-
-.ar-copy-button:hover,
-.ar-copy-button[data-copy-state="done"] {
-    background: rgba(95, 183, 167, 0.24);
-    color: #d8fff7;
 }
 
 .ar-astral-mark {
@@ -1512,38 +1596,6 @@ img {
     height: 4px;
     margin-top: 7px;
     width: 4px;
-}
-
-.ar-alpha-strip {
-    background:
-        linear-gradient(90deg, rgba(209, 109, 79, 0.1), transparent 35%),
-        #0d1017;
-    border-bottom: 1px solid rgba(209, 109, 79, 0.24);
-    border-top: 1px solid rgba(209, 109, 79, 0.34);
-    padding: 2.5rem 0;
-    scroll-margin-top: calc(var(--ar-navbar-h) + 1rem);
-}
-
-.ar-alpha-strip__grid {
-    align-items: center;
-    display: grid;
-    gap: 2.5rem;
-    grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.5fr);
-}
-
-.ar-alpha-strip h2 {
-    color: #fff;
-    font-size: clamp(1.25rem, 3vw, 1.75rem);
-    font-weight: 700;
-    margin: 0;
-}
-
-.ar-alpha-strip p:last-child {
-    border-left: 1px solid rgba(209, 109, 79, 0.54);
-    color: #c7cfda;
-    line-height: 1.9;
-    margin: 0;
-    padding-left: 2.5rem;
 }
 
 .ar-home-section {
@@ -1959,7 +2011,7 @@ img {
     display: grid;
     gap: 1.3rem;
     grid-template-columns: auto 1fr;
-    margin-top: 2rem;
+    margin: 0 0 2rem;
     padding: clamp(1.25rem, 4vw, 2rem);
 }
 
@@ -1980,6 +2032,22 @@ img {
     color: #f4c1b2;
     font-size: 1.05rem;
     margin: 0 0 0.75rem;
+}
+
+.ar-alpha-notice__eyebrow {
+    color: #ef9e87;
+    font-family: 'Cinzel', serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    margin: 0 0 0.35rem;
+}
+
+.ar-alpha-notice__lead {
+    color: #d5dbe3;
+    font-size: 0.88rem;
+    line-height: 1.75;
+    margin: 0 0 0.8rem;
 }
 
 .ar-alpha-notice ul {
@@ -2020,14 +2088,6 @@ img {
 
 .ar-join-footer .ar-text-link {
     font-size: 0.82rem;
-}
-
-.ar-noscript {
-    background: #121824;
-    border-top: 1px solid var(--ar-border);
-    color: var(--ar-text-muted);
-    padding: 1rem;
-    text-align: center;
 }
 
 /* ===== Login unavailable ===== */
@@ -2124,6 +2184,7 @@ img {
 
 .ar-home a:focus-visible,
 .ar-home button:focus-visible,
+.ar-legal-page a:focus-visible,
 .ar-login-page a:focus-visible,
 .ar-login-page button:focus-visible,
 .ar-navbar a:focus-visible,
@@ -2156,18 +2217,6 @@ img {
         background:
             linear-gradient(90deg, rgba(5, 7, 11, 0.92), rgba(5, 7, 11, 0.66)),
             linear-gradient(180deg, transparent 54%, #07090e 100%);
-    }
-
-    .ar-alpha-strip__grid {
-        gap: 1.5rem;
-        grid-template-columns: 1fr;
-    }
-
-    .ar-alpha-strip p:last-child {
-        border-left: 0;
-        border-top: 1px solid rgba(209, 109, 79, 0.4);
-        padding-left: 0;
-        padding-top: 1.5rem;
     }
 
     .ar-feature-card--combat,
@@ -2264,23 +2313,19 @@ img {
         line-height: 1.85;
     }
 
+    .ar-legal-hero,
+    .ar-legal-hero .container {
+        min-height: 300px;
+    }
+
+    .ar-privacy-data-list > div {
+        gap: 0.35rem;
+        grid-template-columns: 1fr;
+    }
+
     .ar-home-actions,
     .ar-home-button {
         width: 100%;
-    }
-
-    .ar-quick-connect {
-        display: flex;
-        width: 100%;
-    }
-
-    .ar-quick-connect > div {
-        min-width: 0;
-    }
-
-    .ar-quick-connect code {
-        font-size: 0.9rem;
-        overflow-wrap: anywhere;
     }
 
     .ar-scroll-cue {

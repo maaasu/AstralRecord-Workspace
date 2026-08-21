@@ -4,77 +4,169 @@
     ViewData["Title"] = "プライバシーポリシー";
 }
 
-<section class="ar-page-hero ar-page-hero--sky">
-    <div class="ar-hero-overlay"></div>
-    <div class="container position-relative text-center py-5">
-        <h1 class="ar-page-hero-title">プライバシーポリシー</h1>
-        <p class="ar-page-hero-sub">Privacy Policy</p>
-    </div>
-</section>
-
-<section class="ar-section ar-section-dark">
-    <div class="container">
-        <div class="ar-terms-box">
-            <p class="ar-terms-intro">
-                Astral Record（以下「本サーバー」）は、ユーザーのプライバシーを尊重し、個人情報の保護に努めます。
-                本ポリシーは、本サーバーおよび本Webサイトにおける個人情報の取り扱いについて説明します。
-            </p>
-
-            <div class="ar-terms-section">
-                <h2 class="ar-terms-heading"><span class="ar-terms-num">01</span>収集する情報</h2>
-                <p>本サーバーでは、以下の情報を収集する場合があります。</p>
-                <ul class="ar-terms-list">
-                    <li>Minecraftプレイヤー名およびUUID</li>
-                    <li>ゲームプレイデータ（プレイ時間、進行状況等）</li>
-                    <li>本Webサイトへのアクセスログ（IPアドレス、ブラウザ情報等）</li>
-                </ul>
-            </div>
-
-            <div class="ar-terms-section">
-                <h2 class="ar-terms-heading"><span class="ar-terms-num">02</span>情報の利用目的</h2>
-                <p>収集した情報は、以下の目的のために利用します。</p>
-                <ul class="ar-terms-list">
-                    <li>サービスの提供・運営・改善</li>
-                    <li>不正行為の検知・防止</li>
-                    <li>ユーザーサポートへの対応</li>
-                    <li>サービスに関する重要なお知らせの送信</li>
-                </ul>
-            </div>
-
-            <div class="ar-terms-section">
-                <h2 class="ar-terms-heading"><span class="ar-terms-num">03</span>第三者への提供</h2>
-                <p>収集した個人情報は、以下の場合を除き第三者に提供しません。</p>
-                <ul class="ar-terms-list">
-                    <li>ユーザーの同意がある場合</li>
-                    <li>法令に基づく開示が必要な場合</li>
-                    <li>人の生命・身体・財産の保護のために必要な場合</li>
-                </ul>
-            </div>
-
-            <div class="ar-terms-section">
-                <h2 class="ar-terms-heading"><span class="ar-terms-num">04</span>Cookieの使用</h2>
-                <p>本Webサイトでは、サービス向上のためCookieを使用する場合があります。ブラウザの設定によりCookieを無効にすることができますが、一部機能が利用できなくなる場合があります。</p>
-            </div>
-
-            <div class="ar-terms-section">
-                <h2 class="ar-terms-heading"><span class="ar-terms-num">05</span>情報の管理</h2>
-                <p>収集した情報は、不正アクセス・紛失・破損・改ざん・漏洩等を防ぐため、適切なセキュリティ対策を講じて管理します。</p>
-            </div>
-
-            <div class="ar-terms-section">
-                <h2 class="ar-terms-heading"><span class="ar-terms-num">06</span>ポリシーの変更</h2>
-                <p>本ポリシーは必要に応じて変更することがあります。変更後のポリシーはWebサイトに掲載した時点で効力を生じます。</p>
-            </div>
-
-            <div class="ar-terms-section">
-                <h2 class="ar-terms-heading"><span class="ar-terms-num">07</span>お問い合わせ</h2>
-                <p>個人情報の取り扱いに関するお問い合わせは、Discordサーバーまたは公式SNSよりご連絡ください。</p>
-            </div>
-
-            <div class="ar-terms-footer">
-                <p>制定日：2026年3月16日</p>
-                <p>Astral Record 運営チーム</p>
-            </div>
+<div class="ar-legal-page">
+    <section class="ar-page-hero ar-page-hero--sky ar-legal-hero" aria-labelledby="privacy-title">
+        <div class="ar-hero-overlay"></div>
+        <div class="ar-legal-stars" aria-hidden="true"></div>
+        <div class="container position-relative text-center py-5">
+            <p class="ar-home-kicker">Data &amp; Privacy</p>
+            <h1 class="ar-page-hero-title" id="privacy-title">プライバシーポリシー</h1>
+            <p class="ar-page-hero-sub">Privacy Policy</p>
         </div>
-    </div>
-</section>
+    </section>
+
+    <section class="ar-legal-content">
+        <div class="container">
+            <article class="ar-terms-box ar-legal-shell">
+                <p class="ar-terms-intro">
+                    このポリシーは、Astral RecordのMinecraftサーバーとWebサイトで、どのような情報を扱い、何に利用するかを説明するものです。
+                    取得する情報は、ゲームの提供、データの保存、不正対策、問い合わせ対応に必要な範囲に限ります。
+                </p>
+
+                <section class="ar-terms-section">
+                    <h2 class="ar-terms-heading"><span class="ar-terms-num">01</span>対象となるサービス</h2>
+                    <p>
+                        本ポリシーは、Astral RecordのMinecraftサーバーおよびWebサイトに適用されます。
+                        公式Discordは問い合わせや交流の窓口ですが、Discord上での情報の取り扱いにはDiscordの規約とポリシーも適用されます。
+                    </p>
+                </section>
+
+                <section class="ar-terms-section">
+                    <h2 class="ar-terms-heading"><span class="ar-terms-num">02</span>取得・保存する情報</h2>
+                    <p>サービスの利用に伴い、次の情報を取得・保存します。</p>
+                    <dl class="ar-privacy-data-list">
+                        <div>
+                            <dt>プレイヤーとアカウント</dt>
+                            <dd>Minecraft UUID、MCID、Minecraftサーバー接続時のIPアドレス、初回・最終参加日時、ゲーム内アカウント名、設定、権限、BAN状態</dd>
+                        </div>
+                        <div>
+                            <dt>進行状況</dt>
+                            <dd>クラス、レベル、経験値、ステータス、スキル、クエストの進行状況、達成・受取などの記録</dd>
+                        </div>
+                        <div>
+                            <dt>所持品とゲーム内経済</dt>
+                            <dd>インベントリ、倉庫、装備、ルーン、通貨、ショップ・マーケット・プレイヤー間取引に関する状態と履歴</dd>
+                        </div>
+                        <div>
+                            <dt>ゲーム内のやり取り</dt>
+                            <dd>ゲーム内メールの配送・受取状態、パーティーなど共同プレイ機能に必要な状態</dd>
+                        </div>
+                        <div>
+                            <dt>運営・安全管理の記録</dt>
+                            <dd>機能の実行結果、取引や変更の履歴、エラー、不正対策、管理操作など、運営と調査に必要なログ</dd>
+                        </div>
+                        <div>
+                            <dt>Webログイン関連</dt>
+                            <dd>
+                                ログインコード照合用のハッシュ値、認証成立時にCookieへ保持するMinecraft UUID、MCID、アカウントID、権限などの認証情報。
+                                Webログイン画面は現在未実装として停止しており、一般ユーザーは利用できません。
+                            </dd>
+                        </div>
+                    </dl>
+                    <p class="ar-terms-note">
+                        メールアドレスやDiscordプロフィールをAstral Recordのアカウント情報として取得する機能はなく、
+                        MinecraftアカウントとDiscordアカウントが自動で連携されることもありません。
+                    </p>
+                </section>
+
+                <section class="ar-terms-section">
+                    <h2 class="ar-terms-heading"><span class="ar-terms-num">03</span>利用目的</h2>
+                    <ul class="ar-terms-list">
+                        <li>本人のプレイヤーデータを読み込み、ゲーム機能とWeb上の認証機能を提供するため</li>
+                        <li>進行状況、所持品、取引、メールなどを保存し、次回参加時に引き継ぐため</li>
+                        <li>チート、複数アカウント、攻撃、規約違反などを検知・調査し、安全を守るため</li>
+                        <li>障害や不具合の原因を調べ、復旧、修正、品質改善を行うため</li>
+                        <li>問い合わせへの回答、本人確認、処分に関する確認を行うため</li>
+                        <li>統計的な傾向を確認し、難易度、報酬、機能の利用状況を調整するため</li>
+                    </ul>
+                </section>
+
+                <section class="ar-terms-section">
+                    <h2 class="ar-terms-heading"><span class="ar-terms-num">04</span>外部サービスへの接続</h2>
+                    <ul class="ar-terms-list">
+                        <li>
+                            Webサイトのフォント表示にGoogle Fontsを利用しています。ページを表示するとブラウザからGoogleへ直接接続され、
+                            接続に必要なIPアドレスや端末情報などがGoogle側で扱われる場合があります。
+                        </li>
+                        <li>
+                            Discordへのリンクは、ユーザーがリンクを開いたときだけDiscordへ移動します。Astral RecordからDiscordプロフィールを自動取得することはありません。
+                        </li>
+                        <li>
+                            保護された管理者向けアイテム画面では、Minecraftのアイコン表示にassets.mcasset.cloudを利用します。
+                            対象画面を表示した場合に限り、ブラウザから同サービスへ画像を取得しにいきます。
+                        </li>
+                    </ul>
+                </section>
+
+                <section class="ar-terms-section">
+                    <h2 class="ar-terms-heading"><span class="ar-terms-num">05</span>第三者提供と業務委託</h2>
+                    <p>取得した情報を、本人の同意なく広告販売などの目的で第三者へ提供することはありません。ただし、次の場合を除きます。</p>
+                    <ul class="ar-terms-list">
+                        <li>法令に基づく対応が必要な場合</li>
+                        <li>人の生命、身体、財産またはサービスの安全を守るため緊急に必要な場合</li>
+                        <li>サーバー、データベース、バックアップなどの運用を委託し、委託先に必要な範囲で取り扱わせる場合</li>
+                        <li>事業の承継に伴い、必要な管理と告知を行ったうえでデータを引き継ぐ場合</li>
+                    </ul>
+                    <p class="ar-terms-note">業務委託を行う場合は、目的外利用をさせず、必要な安全管理を求めます。</p>
+                </section>
+
+                <section class="ar-terms-section">
+                    <h2 class="ar-terms-heading"><span class="ar-terms-num">06</span>Cookie</h2>
+                    <p>
+                        Webサイトでは、フォームの不正送信を防ぐためのCookieを使用します。
+                        Webログインを提供する際は、ログイン状態を保持するための認証Cookieも使用しますが、現在そのログイン機能は未実装です。
+                        現在、広告配信やアクセス解析を目的とするCookieは使用していません。
+                    </p>
+                    <p class="ar-terms-note">必要なCookieを無効にすると、フォーム送信や将来のログイン機能が正常に動作しない場合があります。</p>
+                </section>
+
+                <section class="ar-terms-section">
+                    <h2 class="ar-terms-heading"><span class="ar-terms-num">07</span>安全管理</h2>
+                    <p>
+                        アクセス権限の制限、認証情報の保護、通信の暗号化、ログの確認、バックアップなど、
+                        情報の漏えい、改ざん、消失、不正利用を防ぐために必要な対策を行います。
+                        問題が見つかった場合は、影響を確認し、必要な修正と対応を進めます。
+                    </p>
+                </section>
+
+                <section class="ar-terms-section">
+                    <h2 class="ar-terms-heading"><span class="ar-terms-num">08</span>保存期間と削除</h2>
+                    <p>
+                        データの種類ごとに一律の保存期間は設けず、サービス提供、不正対策、障害調査、問い合わせ対応に必要な期間保存します。
+                        不要になったデータは、システム上の制約や記録保持の必要性を確認したうえで削除または識別できない形にします。
+                        論理削除された情報やバックアップは、更新周期や復旧要件により一定期間残ることがあります。
+                    </p>
+                    <p class="ar-terms-note">
+                        運営フェーズごとのデータ引き継ぎについては、ホームの参加情報に表示する注意事項が優先されます。
+                    </p>
+                </section>
+
+                <section class="ar-terms-section">
+                    <h2 class="ar-terms-heading"><span class="ar-terms-num">09</span>確認・訂正・削除の依頼</h2>
+                    <p>
+                        自身の情報の確認、訂正、利用停止、削除を希望する場合は、公式Discordの案内された窓口からご連絡ください。
+                        なりすましを防ぐため、Minecraft UUIDやゲーム内での確認など、本人確認をお願いする場合があります。
+                        法令、セキュリティ、他のユーザーの権利、システム上の制約により、依頼の全部または一部に対応できない場合は理由をお知らせします。
+                    </p>
+                </section>
+
+                <section class="ar-terms-section">
+                    <h2 class="ar-terms-heading"><span class="ar-terms-num">10</span>変更・問い合わせ</h2>
+                    <p>
+                        取得する情報や利用方法が変わる場合は、本ポリシーを更新し、Webサイトまたは公式Discordでお知らせします。
+                        情報の取り扱いに関する問い合わせは、公式Discordの案内された窓口からご連絡ください。
+                    </p>
+                    <a class="ar-legal-contact" href="https://discord.gg/Fja6zmpjGX" target="_blank" rel="noopener noreferrer">
+                        公式Discordを開く <span aria-hidden="true">↗</span>
+                    </a>
+                </section>
+
+                <footer class="ar-terms-footer">
+                    <p>制定日：2026年3月16日</p>
+                    <p>改定日：2026年8月22日</p>
+                    <p>Astral Record 運営チーム</p>
+                </footer>
+            </article>
+        </div>
+    </section>
+</div>

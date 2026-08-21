@@ -1,12 +1,12 @@
+using AstralRecordWeb.Options;
 using Microsoft.AspNetCore.Mvc.RazorPages;
+using Microsoft.Extensions.Options;
 
 namespace AstralRecordWeb.Pages
 {
-    public class IndexModel : PageModel
+    public class IndexModel(IOptions<PublicSiteOptions> publicSiteOptions) : PageModel
     {
-        public string JavaServerAddress => "mc.astralrecord.com";
-
-        public int JavaServerPort => 25565;
+        public PublicSiteOptions PublicSite { get; } = publicSiteOptions.Value;
 
         public void OnGet()
         {

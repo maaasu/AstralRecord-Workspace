@@ -7,6 +7,19 @@ var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
 builder.Services.AddRazorPages();
+builder.Services
+    .AddOptions<PublicSiteOptions>()
+    .Bind(builder.Configuration.GetSection(PublicSiteOptions.SectionName))
+    .Validate(
+        options => Enum.IsDefined(options.Phase),
+        $"{PublicSiteOptions.SectionName}:Phase must be OpenAlpha or Release.")
+    .Validate(
+        options => !string.IsNullOrWhiteSpace(options.JavaServerAddress),
+        $"{PublicSiteOptions.SectionName}:JavaServerAddress is required.")
+    .Validate(
+        options => options.JavaServerPort is >= 1 and <= 65535,
+        $"{PublicSiteOptions.SectionName}:JavaServerPort must be between 1 and 65535.")
+    .ValidateOnStart();
 builder.Services.Configure<AstralRecordApiOptions>(
     builder.Configuration.GetSection(AstralRecordApiOptions.SectionName));
 builder.Services
