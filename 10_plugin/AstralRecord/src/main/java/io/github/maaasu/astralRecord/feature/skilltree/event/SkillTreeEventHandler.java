@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
@@ -168,15 +169,65 @@ public class SkillTreeEventHandler extends AbstractEventHandler
                 : service.unlockNode(astPlayer, node, consumedClassId);
         if (unlocked) {
             playUnlock(player);
-            PlayerMessageService.getInstance().send(
-                    player,
-                    PlayerMsgId.P_5824,
-                    ColorCodeUtil.toLegacyText(node.name(), node.nodeId())
-            );
+            sendUnlockSuccess(player, astPlayer, node, consumedClassId);
         } else {
             playDenied(player, 0.75F);
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5825);
         }
+    }
+
+    /**
+     * ノード解放成功通知へ、解放後の実際のポイント残高を付加して送信します。
+     * CPノードは実際に消費したクラス、PPノードはプレイヤー全体のPPを残高の対象にします。
+     *
+     * @param player 通知先プレイヤー
+     * @param astPlayer ポイント残高を持つプレイヤー
+     * @param node 解放したノード
+     * @param consumedClassId CPの消費元クラスID。ノード条件から決まる場合はnull
+     */
+    private void sendUnlockSuccess(
+            @NotNull Player player,
+            @NotNull AstPlayer astPlayer,
+            @NotNull SkillTreeNodeDefinition node,
+            String consumedClassId
+    ) {
+        String pointLabel;
+        int remainingPoints;
+        if (node.pointType() == SkillTreePointType.PASSIVE_POINT) {
+            pointLabel = node.pointType().displayName();
+            remainingPoints = service.availablePassivePoints(astPlayer);
+        } else {
+            String sourceClassId = consumedClassId != null
+                    ? consumedClassId
+                    : node.unlockCondition().classId();
+            SkillTreeService.CpSourceOption source = sourceClassId == null
+                    ? null
+                    : service.cpSourceOptions(astPlayer).stream()
+                    .filter(option -> option.classId().equalsIgnoreCase(sourceClassId))
+                    .findFirst()
+                    .orElse(null);
+            if (source == null && sourceClassId == null) {
+                pointLabel = service.currentClassPointLabel(astPlayer);
+                remainingPoints = service.availableClassPoints(astPlayer);
+            } else if (source == null) {
+                pointLabel = node.pointType().displayName();
+                remainingPoints = service.availableClassPoints(astPlayer, sourceClassId);
+            } else {
+                String className = ColorCodeUtil.toPlainText(source.displayName(), "");
+                if (className.isBlank() || className.equalsIgnoreCase(source.classId())) {
+                    className = "未登録のクラス";
+                }
+                pointLabel = node.pointType().displayName() + "[" + className + "]";
+                remainingPoints = source.availablePoints();
+            }
+        }
+        PlayerMessageService.getInstance().send(
+                player,
+                PlayerMsgId.P_5824,
+                ColorCodeUtil.toLegacyText(node.name(), node.nodeId()),
+                pointLabel,
+                remainingPoints
+        );
     }
 
     private void openCpSourceSelection(

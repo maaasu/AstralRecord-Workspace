@@ -2,11 +2,13 @@ package io.github.maaasu.astralRecord.feature.skilltree.event;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeUnlockCondition;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
 import io.github.maaasu.astralRecord.shared.interaction.InputSource;
@@ -138,6 +140,7 @@ class SkillTreeEventHandlerTest {
         when(service.hasAvailableUnlockPoint(astPlayer)).thenReturn(true);
         when(service.canUnlockNode(astPlayer, node)).thenReturn(true);
         when(service.unlockNode(astPlayer, node)).thenReturn(true);
+        when(service.availablePassivePoints(astPlayer)).thenReturn(4);
 
         PlayerInputContext<PlayerInteractionSnapshot> leftClickContext = new PlayerInputContext<>(
             UUID.fromString("00000000-0000-0000-0000-000000000581"),
@@ -161,7 +164,68 @@ class SkillTreeEventHandlerTest {
 
         verify(service).preloadState(astPlayer);
         verify(service).unlockNode(astPlayer, node);
+        verify(messageService).send(player, PlayerMsgId.P_5824, "Test Node", "PP", 4);
         verify(service, never()).findTargetedNode(player);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 12. skill tree 入力候補・node 実行
+     * 検証契約: CPノード解放成功通知は、実際の消費元クラスの表示名と解放後CP残高を含む。
+     */
+    @Test
+    void unlockMessageUsesConsumedClassPointBalance() {
+        String nodeId = "1000";
+        SkillTreePosition position = new SkillTreePosition(nodeId, "skill_tree", 0, 64, 0);
+        SkillTreeService.SkillTreePositionHit hit =
+            new SkillTreeService.SkillTreePositionHit(position, 2.5D);
+        SkillTreeNodeDefinition node = new SkillTreeNodeDefinition(
+            nodeId,
+            "Test Node",
+            Material.STONE,
+            List.of(),
+            List.of(),
+            SkillTreePointType.CLASS_POINT,
+            1,
+            new SkillTreeUnlockCondition("adventurer", 0),
+            List.of()
+        );
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+
+        allowSnapshotRefresh();
+        when(service.findTargetedPositionHit(any(PlayerInteractionSnapshot.class)))
+            .thenReturn(Optional.of(hit));
+        when(service.getNode(nodeId)).thenReturn(node);
+        when(service.isStateReady(astPlayer)).thenReturn(true);
+        when(service.hasAvailableUnlockPoint(astPlayer)).thenReturn(true);
+        when(service.canUnlockNode(astPlayer, node)).thenReturn(true);
+        when(service.unlockNode(astPlayer, node)).thenReturn(true);
+        when(service.cpSourceOptions(astPlayer)).thenReturn(List.of(
+            new SkillTreeService.CpSourceOption("adventurer", "&6冒険者", 3, 2)
+        ));
+
+        PlayerInputContext<PlayerInteractionSnapshot> leftClickContext = new PlayerInputContext<>(
+            UUID.fromString("00000000-0000-0000-0000-000000000581"),
+            5L,
+            InputFamily.LEFT_CLICK,
+            InputSource.PRE_PLAYER_ATTACK_ENTITY,
+            snapshot
+        );
+        PlayerInputCandidate candidate = new SkillTreeEventHandler(service)
+            .resolve(leftClickContext)
+            .iterator()
+            .next();
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+            assertTrue(candidate.executeIfValid());
+        }
+
+        verify(messageService).send(player, PlayerMsgId.P_5824, "Test Node", "CP[冒険者]", 2);
     }
 
     /**

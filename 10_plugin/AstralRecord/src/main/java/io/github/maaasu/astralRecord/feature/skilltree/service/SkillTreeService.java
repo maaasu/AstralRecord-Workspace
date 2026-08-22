@@ -901,7 +901,14 @@ public class SkillTreeService {
                 : availablePassivePoints(astPlayer);
     }
 
-    private int availableClassPoints(@NotNull AstPlayer astPlayer, @NotNull String classId) {
+    /**
+     * 指定クラスのスキルツリー解放に使用できるCP残高を返します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param classId CP消費元クラスID
+     * @return 指定クラスの未消費CP。残高が負数になる場合は0
+     */
+    public int availableClassPoints(@NotNull AstPlayer astPlayer, @NotNull String classId) {
         SkillTreePlayerState state = state(astPlayer);
         return Math.max(0, earnedClassPoints(astPlayer, classId) - spentClassPoints(state, classId));
     }
