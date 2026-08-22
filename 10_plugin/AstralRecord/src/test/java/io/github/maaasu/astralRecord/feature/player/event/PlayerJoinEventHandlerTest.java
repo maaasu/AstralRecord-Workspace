@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStat
 import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusService;
 import io.github.maaasu.astralRecord.feature.mail.service.MailService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestPlayerState;
@@ -15,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Server;
@@ -74,6 +76,8 @@ class PlayerJoinEventHandlerTest {
         PlayerQuitEvent oldQuit = mock(PlayerQuitEvent.class);
         List<Runnable> delayedTasks = new ArrayList<>();
 
+        when(messageService.formatInteractivePlayerMessage(any(PlayerMsgId.class), any(String.class)))
+            .thenReturn(Component.empty());
         when(plugin.getServer()).thenReturn(server);
         when(plugin.getPlayerMessageService()).thenReturn(messageService);
         when(plugin.getLogger()).thenReturn(java.util.logging.Logger.getLogger(
@@ -112,6 +116,10 @@ class PlayerJoinEventHandlerTest {
             handler.onPlayerJoin(oldJoin);
             handler.onPlayerQuit(oldQuit);
             handler.onPlayerJoin(newJoin);
+
+            verify(oldJoin).joinMessage(any(Component.class));
+            verify(oldQuit).quitMessage(any(Component.class));
+            verify(newJoin).joinMessage(any(Component.class));
 
             delayedTasks.getFirst().run();
 

@@ -137,6 +137,21 @@ public final class PlayerMessageService {
     }
 
     /**
+     * プレイヤー名をプレイヤー情報 GUI のクリック導線として含むメッセージを生成する。
+     * Bukkit の参加・退出イベントなど、呼び出し側が配信を担当するメッセージに利用する。
+     *
+     * @param msgId メッセージ ID
+     * @param playerName 対象プレイヤー名
+     * @return プレイヤー情報へのクリック導線を含むメッセージ
+     */
+    public @NotNull Component formatInteractivePlayerMessage(
+        @NotNull PlayerMsgId msgId,
+        @NotNull String playerName
+    ) {
+        return PlayerMsgResource.formatPlayerComponent(msgId.getId(), playerName);
+    }
+
+    /**
      * 全体チャットの外部中継先を設定する。
      *
      * @param globalChatBridge 外部中継先。{@code null} で解除

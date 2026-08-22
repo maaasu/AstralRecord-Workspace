@@ -116,6 +116,21 @@ public final class PlayerMsgResource {
     }
 
     /**
+     * プレイヤー名をプレイヤー情報 GUI のクリック導線として埋め込んだ Component を生成します。
+     * オンライン状態に依存せず、参加・退出イベントなど Bukkit が配信するメッセージにも利用できます。
+     *
+     * @param key メッセージキー
+     * @param playerName 対象プレイヤー名
+     * @return プレイヤー情報へのクリック導線を含む Component
+     */
+    public static Component formatPlayerComponent(String key, String playerName) {
+        Component component = LEGACY_SERIALIZER.deserialize(format(key, playerName));
+        return component.replaceText(builder -> builder
+            .matchLiteral(playerName)
+            .replacement(interactivePlayerArgument(playerName)));
+    }
+
+    /**
      * キーに対応するメッセージを Component として取得し、引数へのクリック・hover 補助を付与しません。
      *
      * @param key メッセージキー
@@ -171,12 +186,16 @@ public final class PlayerMsgResource {
 
         Player player = Bukkit.getPlayerExact(value);
         if (player != null) {
-            return Component.text(value)
-                .clickEvent(ClickEvent.runCommand("/player info " + value))
-                .hoverEvent(HoverEvent.showText(Component.text("クリックでプレイヤー情報を開く")));
+            return interactivePlayerArgument(value);
         }
         return Component.text(value)
             .hoverEvent(HoverEvent.showText(Component.text(value)));
+    }
+
+    private static Component interactivePlayerArgument(String value) {
+        return Component.text(value)
+            .clickEvent(ClickEvent.runCommand("/player info " + value))
+            .hoverEvent(HoverEvent.showText(Component.text("クリックでプレイヤー情報を開く")));
     }
 
     private static boolean isWebLoginCode(String value) {

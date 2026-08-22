@@ -67,6 +67,32 @@ class PlayerMessageServiceTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー退出イベント受付
+     * 検証契約: 参加・退出メッセージを RPG 表現で整形し、プレイヤー名から情報 GUI のコマンド導線を保持する。
+     */
+    @Test
+    void playerPresenceMessageMakesPlayerNameOpenInfo() {
+        PlayerMessageService service = new PlayerMessageService();
+
+        Component join = service.formatInteractivePlayerMessage(PlayerMsgId.P_5076, "Alice");
+        Component quit = service.formatInteractivePlayerMessage(PlayerMsgId.P_5077, "Alice");
+
+        assertEquals(
+            "[+] Alice が冒険の世界へ降り立ちました。",
+            PlainTextComponentSerializer.plainText().serialize(join)
+        );
+        assertEquals(
+            "[-] Alice が冒険の世界から去りました。",
+            PlainTextComponentSerializer.plainText().serialize(quit)
+        );
+        assertTrue(hasRunCommand(join, "/player info Alice"));
+        assertTrue(hasRunCommand(quit, "/player info Alice"));
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
      * 章・見出し: # 19_3-メソッド仕様 > ## 作成・招待
      * 検証契約: クリック可能メッセージの置換引数にプレイヤー名が含まれても、指定コマンド以外のクリック操作を付与しない。

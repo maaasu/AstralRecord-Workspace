@@ -157,6 +157,13 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         UUID playerUuid = player.getUniqueId();
         String playerName = player.getName();
 
+        event.joinMessage(
+            PlayerMessageService.getInstance().formatInteractivePlayerMessage(
+                PlayerMsgId.P_5076,
+                playerName
+            )
+        );
+
         JoinAttempt attempt = startJoinLoading(player);
         scheduleAsync(() -> loadUserStep(attempt, playerName), reserveJoinStartDelayTicks());
     }
@@ -205,6 +212,13 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         UUID playerUuid = player.getUniqueId();
         String playerName = player.getName();
         JoinAttempt attempt = currentJoinAttempt(player);
+
+        event.quitMessage(
+            PlayerMessageService.getInstance().formatInteractivePlayerMessage(
+                PlayerMsgId.P_5077,
+                playerName
+            )
+        );
 
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer != null) {
