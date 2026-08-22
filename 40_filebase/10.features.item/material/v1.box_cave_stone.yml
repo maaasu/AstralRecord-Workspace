@@ -1,0 +1,16 @@
+# design:
+#   motif: "鉱物 / 岩石"
+#   progression: 1
+schemaVersion: 1
+id: box_cave_stone
+category: material
+name: "&7洞窟の石ころ"
+icon: COBBLESTONE
+rarity: COMMON
+maxStack: 64
+saleValue: 1
+lore:
+  - "&7洞窟の岩盤から採れる素朴な石ころ。"
+  - "&7建材や基礎素材として扱われる。"
+unTradeable: false
+unSellable: false

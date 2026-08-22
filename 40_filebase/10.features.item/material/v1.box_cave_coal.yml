@@ -1,0 +1,16 @@
+# design:
+#   motif: "鉱物 / 石炭"
+#   progression: 1
+schemaVersion: 1
+id: box_cave_coal
+category: material
+name: "&8洞窟の石炭"
+icon: COAL
+rarity: COMMON
+maxStack: 64
+saleValue: 3
+lore:
+  - "&7洞窟の鉱脈から掘り出された石炭。"
+  - "&7燃料や加工の基礎となる素材。"
+unTradeable: false
+unSellable: false

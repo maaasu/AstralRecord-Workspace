@@ -1,0 +1,16 @@
+# design:
+#   motif: "鉱物 / 銅"
+#   progression: 1
+schemaVersion: 1
+id: box_cave_copper
+category: material
+name: "&6洞窟の粗銅"
+icon: RAW_COPPER
+rarity: COMMON
+maxStack: 64
+saleValue: 5
+lore:
+  - "&7洞窟の銅鉱脈から採れる粗銅の塊。"
+  - "&7金属加工の基礎素材として使われる。"
+unTradeable: false
+unSellable: false

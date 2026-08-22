@@ -1,0 +1,36 @@
+# design:
+#   motif: "地形 / 洞窟"
+#   progression: 1
+schemaVersion: 1
+id: box_cave_mining_spawner
+type: GATHERING_SPAWNER
+radiusMeters: 3.0
+
+spawnGatherings:
+  - gatheringId: gathering:box_cave_stone_outcrop
+    weight: 50
+  - gatheringId: gathering:box_cave_coal_vein
+    weight: 30
+  - gatheringId: gathering:box_cave_copper_vein
+    weight: 20
+
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+
+itemMaterial: SPAWNER
+spawnIntervalTicks: 20
+
+spawnLimit:
+  maxAlivePerSpawner: 16
+  maxNearbyGatherings: 24
+  spawnPerPlayer: 4
+
+requiredBaseBlocks:
+  - STONE
+  - ANDESITE
+  - TUFF
+  - COBBLESTONE
+  - DEEPSLATE
+  - CALCITE
+  - MOSSY_COBBLESTONE

@@ -1,0 +1,33 @@
+# design:
+#   motif: "鉱物 / 石炭"
+#   progression: 1
+schemaVersion: 1
+id: box_cave_coal_vein
+type: GATHERING
+category: MINING
+name: "&8石炭鉱脈"
+maxHealth: 28
+displayBlock: COAL_ORE
+displayScale:
+  x: 0.9
+  y: 0.9
+  z: 0.9
+requiredToolTags:
+  - PICKAXE
+sounds:
+  hit:
+    sound: block.stone.hit
+    volume: 0.75
+    pitch: 0.95
+  break:
+    sound: block.stone.break
+    volume: 0.85
+    pitch: 0.9
+drops:
+  exp: 1
+  items:
+    - itemId: item:box_cave_coal
+      rate: 100.0
+      amount: "1~3"
+      luckAffected: false
+      hidden: false

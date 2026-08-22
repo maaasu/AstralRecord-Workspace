@@ -1,0 +1,33 @@
+# design:
+#   motif: "鉱物 / 銅"
+#   progression: 1
+schemaVersion: 1
+id: box_cave_copper_vein
+type: GATHERING
+category: MINING
+name: "&6銅鉱脈"
+maxHealth: 36
+displayBlock: COPPER_ORE
+displayScale:
+  x: 0.9
+  y: 0.9
+  z: 0.9
+requiredToolTags:
+  - PICKAXE
+sounds:
+  hit:
+    sound: block.stone.hit
+    volume: 0.75
+    pitch: 0.9
+  break:
+    sound: block.stone.break
+    volume: 0.85
+    pitch: 0.85
+drops:
+  exp: 2
+  items:
+    - itemId: item:box_cave_copper
+      rate: 100.0
+      amount: "1~2"
+      luckAffected: false
+      hidden: false
