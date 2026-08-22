@@ -22,6 +22,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -69,6 +70,28 @@ class MobServiceLifecycleTest extends MockBukkitTestBase {
 
         assertEquals(2, service.destroyAll());
         assertEquals(List.of(first.instanceId(), second.instanceId()), destroyed);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 1. MobService メソッド仕様 > ### 視認距離外 enemy 破棄
+     * 検証契約: 視認距離内のプレイヤーがいない場合でも、維持指定された enemy は自動破棄されず、通常 enemy だけが破棄される。
+     */
+    @Test
+    void destroyEnemiesOutsideViewDistanceKeepsExplicitlyPreservedEnemy() {
+        PluginMock plugin = PluginMock.builder().withPluginName("AstralRecordTest").build();
+        MobService service = new MobService(plugin, mock(MobRepository.class));
+        World world = server().addSimpleWorld("mob_view_distance_world");
+
+        MobInstance kept = service.spawn(template(), new Location(world, 0.5D, 64.0D, 0.5D));
+        MobInstance removed = service.spawn(template(), new Location(world, 2.5D, 64.0D, 0.5D));
+        assertNotNull(kept);
+        assertNotNull(removed);
+        kept.keepWhenUnobserved(true);
+
+        assertEquals(1, service.destroyEnemiesOutsideViewDistance());
+        assertNotNull(service.getInstance(kept.instanceId()));
+        assertNull(service.getInstance(removed.instanceId()));
     }
 
     /**

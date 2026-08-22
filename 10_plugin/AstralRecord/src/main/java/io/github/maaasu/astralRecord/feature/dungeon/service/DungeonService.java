@@ -996,6 +996,7 @@ public final class DungeonService {
 
     /**
      * 部屋役割に応じたMobを生成します。STARTは防御的に遭遇戦を拒否して安全完了します。
+     * ダンジョン Mob は視認距離外でも維持し、セッション終了時の明示的な回収対象とします。
      *
      * @param session 稼働セッション
      * @param roomId 攻略開始対象の部屋ID
@@ -1038,6 +1039,7 @@ public final class DungeonService {
             );
             MobInstance mob = mobService.spawn(selected, location);
             if (mob != null) {
+                mob.keepWhenUnobserved(true);
                 liveMobs.add(mob.instanceId());
                 mobBindings.put(mob.instanceId(), new MobBinding(session.id, roomId));
             }
@@ -2569,6 +2571,7 @@ public final class DungeonService {
                     mobBindings.remove(mobId);
                     cleanupSafely(session, "mob:" + mobId, () -> mobService.destroy(mobId));
                 }
+                roomMobs.clear();
             }
             if (session.instanceWorld != null) {
                 World instance = session.instanceWorld.world();

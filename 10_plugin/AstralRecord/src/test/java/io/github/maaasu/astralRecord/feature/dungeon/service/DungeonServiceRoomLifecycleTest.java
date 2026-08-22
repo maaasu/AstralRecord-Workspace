@@ -15,6 +15,8 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
+import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
@@ -125,7 +127,6 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         verify(normalDisplay).setText(argThat(text -> text.contains("進入可能")));
         verify(bossDisplay).setText(argThat(text -> text.contains("未開放")));
 
-        setField(session, "instanceWorld", null);
         service.stop();
         service.stop();
 
@@ -133,6 +134,60 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         verify(normalDisplay, times(1)).destroy();
         verify(bossDisplay, times(1)).destroy();
         assertTrue(mapField(session, "roomStatusDisplays").isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 3. 遭遇 Mob と部屋進行
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 7. 終了と回収
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 1. MobService メソッド仕様 > ### 視認距離外 enemy 破棄
+     * 検証契約: ダンジョン Mob は視認距離外自動破棄から除外し、セッション停止時には明示的に破棄する。
+     */
+    @Test
+    void dungeonMobsStayWhenUnobservedAndAreDestroyedWhenSessionStops() throws Exception {
+        MobService mobService = mock(MobService.class);
+        WorldService worldService = mock(WorldService.class);
+        DungeonService service = service(mobService, mock(DisplayTextService.class), worldService);
+        World world = server().addSimpleWorld("dungeon-mob-lifecycle");
+        List<MobInstance> spawned = new ArrayList<>();
+        when(mobService.spawn(any(MobTemplate.class), any(Location.class))).thenAnswer(invocation -> {
+            MobTemplate template = invocation.getArgument(0, MobTemplate.class);
+            Location location = invocation.getArgument(1, Location.class);
+            MobInstance instance = new MobInstance(UUID.randomUUID(), template, location);
+            spawned.add(instance);
+            return instance;
+        });
+
+        Object session = session(
+                UUID.randomUUID(),
+                List.of(new DungeonService.LoadedMob(DungeonTestFixtures.mob("normal", 1, MobCategory.ENEMY), 1))
+        );
+        setField(session, "layout", layout());
+        setField(session, "blockPlan", blockPlan());
+        setField(session, "instanceWorld", new DungeonInstanceWorldService.InstanceWorld(
+                world,
+                Path.of("target", "dungeon-mob-lifecycle"),
+                Set.of()
+        ));
+        mapField(session, "roomStates").put(1, DungeonMapRoomState.ACTIVE);
+        mapField(session, "liveMobsByRoom").put(1, new LinkedHashSet<>());
+
+        invoke(service, "activateRoomContent", session, 1);
+
+        assertTrue(!spawned.isEmpty());
+        assertTrue(spawned.stream().allMatch(MobInstance::keepWhenUnobserved));
+        UUID sessionId = field(session, "id", UUID.class);
+        mapField(service, "sessionsById").put(sessionId, session);
+        service.stop();
+
+        for (MobInstance instance : spawned) {
+            verify(mobService).destroy(instance.instanceId());
+        }
+        verify(worldService).unregisterRuntimeWorld(world);
+        Map<Integer, Set<UUID>> liveMobsByRoom = mapField(session, "liveMobsByRoom");
+        assertTrue(liveMobsByRoom.get(1).isEmpty());
     }
 
     /**
@@ -173,13 +228,22 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
 
     /** テスト対象サービスを最小依存で構成します。 */
     private DungeonService service(MobService mobService, DisplayTextService displayTextService) {
+        return service(mobService, displayTextService, mock(WorldService.class));
+    }
+
+    /** テスト対象サービスをWorldServiceの検証可能な依存で構成します。 */
+    private DungeonService service(
+            MobService mobService,
+            DisplayTextService displayTextService,
+            WorldService worldService
+    ) {
         AstralRecord plugin = mock(AstralRecord.class);
         when(plugin.isEnabled()).thenReturn(true);
         when(plugin.getName()).thenReturn("DungeonServiceRoomLifecycleTest");
         return new DungeonService(
                 plugin,
                 mock(DungeonDefinitionRepository.class),
-                mock(WorldService.class),
+                worldService,
                 mock(PartyService.class),
                 mobService,
                 mock(PlayerMessageService.class),
@@ -251,6 +315,12 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
 
     /** DungeonServiceのprivate Sessionをテスト用に最小構成します。 */
     private Object session(UUID participantId) throws ReflectiveOperationException {
+        return session(participantId, List.of());
+    }
+
+    /** 通常 Mob のスナップショットを指定して DungeonService の private Session を構築します。 */
+    private Object session(UUID participantId, List<DungeonService.LoadedMob> normalMobs)
+            throws ReflectiveOperationException {
         Class<?> sessionType = sessionType();
         Constructor<?> constructor = sessionType.getDeclaredConstructors()[0];
         constructor.setAccessible(true);
@@ -258,7 +328,7 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
                 DungeonTestFixtures.definition(),
                 worldData("entry", WorldType.BASE),
                 worldData("instance", WorldType.DUNGEON),
-                List.of(),
+                normalMobs,
                 DungeonTestFixtures.mob("boss", 1, MobCategory.BOSS)
         );
         return constructor.newInstance(
@@ -323,6 +393,14 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         Method method = DungeonService.class.getDeclaredMethod(name, sessionType());
         method.setAccessible(true);
         method.invoke(service, session);
+    }
+
+    /** Session と部屋 ID を引数に取る DungeonService の private メソッドを呼び出します。 */
+    private void invoke(DungeonService service, String name, Object session, int roomId)
+            throws ReflectiveOperationException {
+        Method method = DungeonService.class.getDeclaredMethod(name, sessionType(), int.class);
+        method.setAccessible(true);
+        method.invoke(service, session, roomId);
     }
 
     /** DungeonService内のprivate Session型を解決します。 */
