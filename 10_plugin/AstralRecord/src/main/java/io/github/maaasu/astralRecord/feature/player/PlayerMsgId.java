@@ -1202,6 +1202,15 @@ public enum PlayerMsgId {
     P_6912(6912),
     // endregion
 
+    // region /feature/player/command/CreativeFlySpeedCommand.java 6920-6929
+    /** クリエイティブ飛行速度設定の成功通知。{0}: 対象プレイヤー名、{1}: パーセンテージ */
+    P_6920(6920),
+    /** クリエイティブ飛行速度パーセンテージの範囲不正。{0}: 最小、{1}: 最大 */
+    P_6921(6921),
+    /** クリエイティブ飛行速度パーセンテージの数値形式不正。 */
+    P_6922(6922),
+    // endregion
+
     // region /feature/discord 6990-6999
     /** Discordから受信した全体チャットの識別タグ。 */
     P_6990(6990),

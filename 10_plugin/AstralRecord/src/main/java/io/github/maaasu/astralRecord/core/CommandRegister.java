@@ -43,6 +43,7 @@ import io.github.maaasu.astralRecord.feature.particle.command.ParticleCommand;
 import io.github.maaasu.astralRecord.feature.particle.command.ParticleTabCompleter;
 import io.github.maaasu.astralRecord.feature.playersetting.command.PlayerSettingCommand;
 import io.github.maaasu.astralRecord.feature.playersetting.command.PlayerSettingTabCompleter;
+import io.github.maaasu.astralRecord.feature.player.command.CreativeFlySpeedCommand;
 import io.github.maaasu.astralRecord.feature.player.command.DirectMessageCommand;
 import io.github.maaasu.astralRecord.feature.player.command.DirectMessageTabCompleter;
 import io.github.maaasu.astralRecord.feature.playerclass.command.ClassCommand;
@@ -191,6 +192,7 @@ public class CommandRegister {
         cm.registerCommand("uperm", new UserPermissionCommand("uperm", "/uperm <permission> [<player|uuid>]"), new UserPermissionTabCompleter());
         cm.registerCommand("account", new AccountCommand(), new AccountTabCompleter());
         cm.registerCommand("level", new LevelCommand(), new LevelTabCompleter());
+        cm.registerCommand("flyspeed", new CreativeFlySpeedCommand());
         cm.registerCommand("am", new AccountModeCommand("am", "/am <mode> [<player|accountUuid>]"), new AccountModeTabCompleter());
         cm.registerCommand("setting", new PlayerSettingCommand(), new PlayerSettingTabCompleter());
         cm.registerCommand("message", new DirectMessageCommand(), new DirectMessageTabCompleter());
