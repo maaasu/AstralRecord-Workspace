@@ -104,11 +104,3 @@ encounter:
       weight: 1
   firstCombatRoomMaxMobLevel: 11
   bossMobId: mob:twilight_colossus
-clearRewards:
-  items:
-    - itemId: item:magic_crystal
-      rate: 100.0
-      amount: "2~4"
-    - itemId: item:dark_essence
-      rate: 10.0
-      amount: "1"

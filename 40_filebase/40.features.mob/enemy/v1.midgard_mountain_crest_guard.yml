@@ -58,28 +58,3 @@ ai:
 
 drops:
   exp: 180
-  items:
-    - itemId:
-        ref: item:midgard_mountain_sword
-      rate: 4.0
-      amount: 1
-    - itemId:
-        ref: item:midgard_mountain_bow
-      rate: 4.0
-      amount: 1
-    - itemId:
-        ref: item:midgard_mountain_staff
-      rate: 4.0
-      amount: 1
-    - itemId:
-        ref: item:midgard_mountain_melee_chest
-      rate: 4.0
-      amount: 1
-    - itemId:
-        ref: item:midgard_mountain_hunter_chest
-      rate: 4.0
-      amount: 1
-    - itemId:
-        ref: item:midgard_mountain_mage_chest
-      rate: 4.0
-      amount: 1

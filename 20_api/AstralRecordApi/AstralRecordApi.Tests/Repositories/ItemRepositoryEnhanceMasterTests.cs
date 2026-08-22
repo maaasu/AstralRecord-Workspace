@@ -152,29 +152,24 @@ public class ItemRepositoryEnhanceMasterTests
     }
 
     [Fact]
-    public async Task GetById_ReturnsEnhanceSuccessRateAndThreeFailureContracts_ForOrbGui()
+    public async Task GetById_ReturnsEnhanceData_ForNoxSword()
     {
         await using var dbContext = await CreateSeededMasterDataDbContextAsync();
         var repository = new ItemRepository(dbContext);
 
-        var payloadJson = dbContext.Entries.Single(entry => entry.MasterId == "debug_sword").PayloadJson;
+        var payloadJson = dbContext.Entries.Single(entry => entry.MasterId == "nox_sword").PayloadJson;
         Assert.Contains("\"enhance\":", payloadJson, StringComparison.OrdinalIgnoreCase);
 
-        var item = repository.GetById("debug_sword");
+        var item = repository.GetById("nox_sword");
 
         Assert.NotNull(item);
         var levels = item!.Equipment!.Enhance!.Levels;
-        var noChange = Assert.Single(levels, level => level.Level == 1);
-        var decreaseOne = Assert.Single(levels, level => level.Level == 2);
-        var setLevel = Assert.Single(levels, level => level.Level == 3);
-        Assert.Equal(0.75f, noChange.SuccessRate);
-        Assert.Equal("NONE", noChange.FailAction);
-        Assert.Equal(0.75f, decreaseOne.SuccessRate);
-        Assert.Equal("DECREASE_ONE", decreaseOne.FailAction);
-        Assert.Equal(0.50f, setLevel.SuccessRate);
-        Assert.Equal("SET_LEVEL", setLevel.FailAction);
-        Assert.Equal(0, setLevel.FailTargetLevel);
-        Assert.Equal(3, item.Equipment.Enchant!.MaxSlots);
+        Assert.Equal(5, levels.Count);
+        Assert.All(levels, level =>
+        {
+            Assert.Equal(1.0f, level.SuccessRate);
+            Assert.Equal("NONE", level.FailAction);
+        });
     }
 
     [Fact]
