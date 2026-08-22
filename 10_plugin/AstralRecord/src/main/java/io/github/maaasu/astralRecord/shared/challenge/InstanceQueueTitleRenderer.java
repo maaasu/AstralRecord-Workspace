@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.shared.challenge;
 
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
@@ -20,23 +21,19 @@ public final class InstanceQueueTitleRenderer {
     }
 
     /**
-     * 待機列の順番と待機人数を title／subtitle で表示します。
+     * 待機列の順番と待機人数を subtitle だけへ表示します。
      *
      * @param player 表示対象プレイヤー
-     * @param titleId title メッセージ ID。{0} は対象名
      * @param subtitleId subtitle メッセージ ID。{0} は順番、{1} は待機人数
-     * @param displayName 対象名
      * @param position 待機位置
      */
     public static void show(
             @NotNull Player player,
-            @NotNull PlayerMsgId titleId,
             @NotNull PlayerMsgId subtitleId,
-            @NotNull String displayName,
             @NotNull InstanceCreationQueue.QueuePosition position
     ) {
         player.showTitle(Title.title(
-                PlayerMsgResource.formatComponent(titleId.getId(), displayName),
+                Component.empty(),
                 PlayerMsgResource.formatComponent(
                         subtitleId.getId(),
                         position.position(),

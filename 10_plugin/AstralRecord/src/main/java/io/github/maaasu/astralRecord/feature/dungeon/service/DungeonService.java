@@ -54,6 +54,7 @@ import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeDeathPolicy;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeStartCountdown;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueue;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueueConfig;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceQueueTitleRenderer;
@@ -587,6 +588,7 @@ public final class DungeonService {
             }
             if (failure == null && Boolean.TRUE.equals(success)) {
                 session.waitingAbsentParticipants.remove(initiator.getUniqueId());
+                notifyWaitingPartyMembers(session, initiator.getName());
             }
             tryEnqueueWaitingSession(session);
         }));
@@ -2123,18 +2125,25 @@ public final class DungeonService {
     public @Nullable DungeonSidebarInfo findSidebarInfo(@NotNull UUID playerId) {
         UUID sessionId = sessionIdByParticipant.get(playerId);
         Session session = sessionId == null ? null : sessionsById.get(sessionId);
-        if (session == null || session.ending || session.layout == null) return null;
+        if (session == null || session.ending) return null;
+        ChallengeWaitingStatus waitingStatus = waitingStatus(session);
+        if (session.layout == null && !waitingStatus.isVisible()) return null;
         int clearedRooms = (int) session.roomStates.values().stream()
                 .filter(state -> state == DungeonMapRoomState.CLEARED)
                 .count();
-        List<String> names = activePlayersInWorld(session).stream().map(Player::getName).toList();
+        List<UUID> sidebarParticipantIds = waitingStatus.isVisible()
+                ? List.copyOf(session.participants)
+                : activePlayersInWorld(session).stream().map(Player::getUniqueId).toList();
+        List<String> names = sidebarParticipantIds.stream().map(this::playerName).toList();
         long remaining = session.cleared
                 ? Math.max(0L, (session.clearReturnEndsAtMs - System.currentTimeMillis() + 999L) / 1_000L)
                 : -1L;
         return new DungeonSidebarInfo(
                 session.loaded.definition().displayName(), session.deathCount,
                 session.loaded.definition().challenge().deathLimit(), clearedRooms,
-                session.layout.rooms().size(), names, remaining
+                session.layout == null ? 0 : session.layout.rooms().size(), names, remaining,
+                waitingStatus,
+                waitingParticipantNames(sidebarParticipantIds, waitingStatus)
         );
     }
 
@@ -2993,6 +3002,36 @@ public final class DungeonService {
                 && player.getWorld().getUID().equals(hubWorld.getUID());
     }
 
+    private boolean isInHub(@NotNull UUID playerId) {
+        Player player = Bukkit.getPlayer(playerId);
+        return player != null && isInHub(player);
+    }
+
+    private @NotNull ChallengeWaitingStatus waitingStatus(@NotNull Session session) {
+        if (waitingTicket(session) != null) {
+            return ChallengeWaitingStatus.QUEUE_WAITING;
+        }
+        return isWaitingForPartyMembers(session) && session.partyKey.startsWith("party:")
+                ? ChallengeWaitingStatus.PARTY_MEMBERS_WAITING
+                : ChallengeWaitingStatus.NONE;
+    }
+
+    private @NotNull Set<String> waitingParticipantNames(
+            @NotNull Collection<UUID> participantIds,
+            @NotNull ChallengeWaitingStatus waitingStatus
+    ) {
+        if (!waitingStatus.isVisible()) {
+            return Set.of();
+        }
+        Set<String> names = new LinkedHashSet<>();
+        for (UUID participantId : participantIds) {
+            if (!isInHub(participantId)) {
+                names.add(playerName(participantId));
+            }
+        }
+        return Set.copyOf(names);
+    }
+
     private @Nullable Session findHubWaitingSession(@NotNull Player player) {
         UUID sessionId = sessionIdByParticipant.get(player.getUniqueId());
         Session session = sessionId == null ? null : sessionsById.get(sessionId);
@@ -3189,13 +3228,7 @@ public final class DungeonService {
         for (UUID participantId : ticket.participantIds()) {
             Player player = Bukkit.getPlayer(participantId);
             if (player != null && player.isOnline()) {
-                InstanceQueueTitleRenderer.show(
-                        player,
-                        PlayerMsgId.P_7092,
-                        PlayerMsgId.P_7093,
-                        session.loaded.definition().displayName(),
-                        position
-                );
+                InstanceQueueTitleRenderer.show(player, PlayerMsgId.P_7093, position);
             }
         }
     }
@@ -3314,6 +3347,38 @@ public final class DungeonService {
         for (Player player : recipients) {
             messageService.send(player, id, args);
         }
+    }
+
+    private void notifyWaitingPartyMembers(
+            @NotNull Session session,
+            @NotNull String initiatorName
+    ) {
+        for (UUID participantId : session.participants) {
+            if (participantId.equals(session.initiatorId) || isInHub(participantId)) {
+                continue;
+            }
+            Player player = Bukkit.getPlayer(participantId);
+            if (player != null && player.isOnline()) {
+                messageService.send(
+                        player,
+                        PlayerMsgId.P_7094,
+                        initiatorName,
+                        session.loaded.definition().displayName()
+                );
+            }
+        }
+    }
+
+    private @NotNull String playerName(@NotNull UUID playerId) {
+        Player player = Bukkit.getPlayer(playerId);
+        if (player != null) {
+            return player.getName();
+        }
+        String offlineName = Bukkit.getOfflinePlayer(playerId).getName();
+        if (offlineName != null && !offlineName.isBlank()) {
+            return offlineName;
+        }
+        return playerId.toString().substring(0, 8);
     }
 
     private void runMain(@NotNull Runnable action) {

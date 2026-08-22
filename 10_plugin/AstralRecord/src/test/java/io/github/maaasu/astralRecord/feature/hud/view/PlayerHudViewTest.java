@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -37,6 +38,42 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class PlayerHudViewTest extends MockBukkitTestBase {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
+     * 章・見出し: # 10_3-View > ## 4. sidebar 描画・解除
+     * 検証契約: 挑戦準備中の待機状態を表示し、Hub未到着の参加者名だけを灰色で描画する。
+     */
+    @Test
+    void rendersWaitingStatusAndGreysMissingParticipantNames() {
+        Player player = mock(Player.class);
+        Scoreboard scoreboard = mock(Scoreboard.class);
+        Objective objective = mock(Objective.class);
+        Score score = mock(Score.class);
+        when(player.getScoreboard()).thenReturn(scoreboard);
+        when(player.getPing()).thenReturn(25);
+        when(scoreboard.getObjective("astral_info")).thenReturn(objective);
+        when(scoreboard.getEntries()).thenReturn(Collections.emptySet());
+        when(objective.getScoreboard()).thenReturn(scoreboard);
+        when(objective.getScore(anyString())).thenReturn(score);
+        BossChallengeSidebarInfo bossInfo = new BossChallengeSidebarInfo(
+                "星喰らい", 42, 0, 3, 0L, 180L,
+                List.of("Player", "Absent"),
+                ChallengeWaitingStatus.PARTY_MEMBERS_WAITING,
+                Set.of("Absent")
+        );
+
+        new PlayerHudView().renderSidebar(
+                player, 20.0D, 10, 0.5D, 5, "剣士", "坑道", "入口", 10,
+                false, bossInfo
+        );
+
+        ArgumentCaptor<String> entries = ArgumentCaptor.forClass(String.class);
+        verify(objective, org.mockito.Mockito.times(14)).getScore(entries.capture());
+        List<String> rendered = entries.getAllValues();
+        assertTrue(rendered.stream().anyMatch(entry -> entry.contains("パーティーメンバー待機中")));
+        assertTrue(rendered.stream().anyMatch(entry -> entry.contains(ColorCodeUtil.GRAY + "Absent")));
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md

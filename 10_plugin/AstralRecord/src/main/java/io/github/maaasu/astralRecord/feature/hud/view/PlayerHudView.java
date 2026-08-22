@@ -5,10 +5,12 @@ import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonSidebarInfo;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.condition.model.ActiveCondition;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -27,6 +29,7 @@ import java.util.Collection;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 public class PlayerHudView {
     private static final String OBJECTIVE_NAME = "astral_info";
@@ -263,7 +266,9 @@ public class PlayerHudView {
 
         int ping = player.getPing();
         clearSidebar(objective);
-        int challengeLineCount = bossInfo != null ? 5 : dungeonInfo != null ? 6 : 0;
+        int challengeLineCount = bossInfo != null
+                ? bossInfo.sidebarLineCount()
+                : dungeonInfo != null ? dungeonInfo.sidebarLineCount() : 0;
         List<String> buffLines = buildBuffLines(activeBuffs, showBuffInfo, challengeLineCount);
         int fixedLineCount = 8 + challengeLineCount + buffLines.size();
         boolean renderPerformance = showPerformanceInfo && SIDEBAR_LINE_LIMIT - fixedLineCount >= 2;
@@ -324,28 +329,46 @@ public class PlayerHudView {
         lines.add(buildSeparator("boss"));
         lines.add(ColorCodeUtil.RED + "ボス" + ColorCodeUtil.GRAY + ": "
                 + ColorCodeUtil.toLegacyText(info.bossDisplayName(), "ボス"));
+        appendWaitingStatus(lines, info.waitingStatus());
         lines.add(ColorCodeUtil.RED + "デス" + ColorCodeUtil.GRAY + ": "
                 + ColorCodeUtil.WHITE + info.deathCount() + "/" + info.deathLimit());
         lines.add(ColorCodeUtil.GOLD + "時間" + ColorCodeUtil.GRAY + ": "
                 + ColorCodeUtil.WHITE + info.elapsedSeconds() + "/" + info.timeLimitSeconds() + "s");
         lines.add(ColorCodeUtil.LIGHT_PURPLE + "参加者" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.WHITE + String.join("、", info.participantNames()));
+                + formatParticipantNames(info.participantNames(), info.waitingParticipantNames()));
     }
 
     private void appendDungeonInfo(List<String> lines, DungeonSidebarInfo info) {
         lines.add(buildSeparator("dungeon"));
         lines.add(ColorCodeUtil.AQUA + "ダンジョン" + ColorCodeUtil.GRAY + ": "
                 + ColorCodeUtil.toLegacyText(info.dungeonDisplayName(), "ダンジョン"));
+        appendWaitingStatus(lines, info.waitingStatus());
         lines.add(ColorCodeUtil.RED + "デス" + ColorCodeUtil.GRAY + ": "
                 + ColorCodeUtil.WHITE + info.deathCount() + "/" + info.deathLimit());
         lines.add(ColorCodeUtil.GOLD + "部屋" + ColorCodeUtil.GRAY + ": "
                 + ColorCodeUtil.WHITE + info.clearedRooms() + "/" + info.totalRooms());
         lines.add(ColorCodeUtil.LIGHT_PURPLE + "参加者" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.WHITE + String.join("、", info.participantNames()));
+                + formatParticipantNames(info.participantNames(), info.waitingParticipantNames()));
         lines.add(info.returnRemainingSeconds() >= 0L
                 ? ColorCodeUtil.YELLOW + "帰還まで" + ColorCodeUtil.GRAY + ": "
                     + ColorCodeUtil.WHITE + info.returnRemainingSeconds() + "s"
                 : ColorCodeUtil.GRAY + "攻略進行中");
+    }
+
+    private void appendWaitingStatus(List<String> lines, ChallengeWaitingStatus status) {
+        if (!status.isVisible() || status.messageId() == null) {
+            return;
+        }
+        lines.add(ColorCodeUtil.YELLOW + "状態" + ColorCodeUtil.GRAY + ": "
+                + ColorCodeUtil.WHITE + PlayerMsgResource.getMessage(status.messageId().getId()));
+    }
+
+    private String formatParticipantNames(List<String> participantNames, Set<String> waitingParticipantNames) {
+        return ColorCodeUtil.WHITE + String.join("、", participantNames.stream()
+                .map(name -> waitingParticipantNames.contains(name)
+                        ? ColorCodeUtil.GRAY + name + ColorCodeUtil.WHITE
+                        : name)
+                .toList());
     }
 
     private List<String> buildBuffLines(

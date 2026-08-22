@@ -31,6 +31,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeDeathPolicy;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeStartCountdown;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueue;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueueConfig;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceQueueTitleRenderer;
@@ -612,6 +613,8 @@ public final class BossChallengeService {
             long elapsed = challenge.startedAtMs() <= 0L
                     ? 0L
                     : Math.max(0L, (System.currentTimeMillis() - challenge.startedAtMs()) / 1000L);
+            List<UUID> sidebarParticipantIds = displayParticipantIds(challenge);
+            ChallengeWaitingStatus waitingStatus = waitingStatus(challenge);
             return new BossChallengeSidebarInfo(
                     challenge.bossTemplate().displayName(),
                     challenge.bossTemplate().level(),
@@ -619,7 +622,9 @@ public final class BossChallengeService {
                     challenge.config().deathLimit(),
                     elapsed,
                     challenge.config().timeLimitSeconds(),
-                    displayParticipantIds(challenge).stream().map(this::playerName).toList()
+                    sidebarParticipantIds.stream().map(this::playerName).toList(),
+                    waitingStatus,
+                    waitingParticipantNames(sidebarParticipantIds, waitingStatus)
             );
         }
         return null;
@@ -808,6 +813,9 @@ public final class BossChallengeService {
         }
         if (throwable == null && Boolean.TRUE.equals(result)) {
             challenge.clearWaitingAbsent(participantId);
+            if (challenge.initiatorId().equals(participantId)) {
+                notifyWaitingPartyMembers(challenge);
+            }
         }
         tryEnqueueWaitingChallenge(challenge, fieldData);
     }
@@ -1216,9 +1224,7 @@ public final class BossChallengeService {
             if (player != null && player.isOnline()) {
                 InstanceQueueTitleRenderer.show(
                         player,
-                        PlayerMsgId.P_6533,
                         PlayerMsgId.P_6534,
-                        challenge.bossTemplate().displayName(),
                         position
                 );
             }
@@ -1623,6 +1629,10 @@ public final class BossChallengeService {
         if (player != null) {
             return player.getName();
         }
+        String offlineName = Bukkit.getOfflinePlayer(playerId).getName();
+        if (offlineName != null && !offlineName.isBlank()) {
+            return offlineName;
+        }
         return playerId.toString().substring(0, 8);
     }
 
@@ -1673,6 +1683,36 @@ public final class BossChallengeService {
         World hubWorld = hubData == null ? null : worldService.resolveLoadedWorld(hubData);
         return hubWorld != null && player.isOnline()
                 && player.getWorld().getUID().equals(hubWorld.getUID());
+    }
+
+    private boolean isInHub(@NotNull UUID playerId) {
+        Player player = Bukkit.getPlayer(playerId);
+        return player != null && isInHub(player);
+    }
+
+    private @NotNull ChallengeWaitingStatus waitingStatus(@NotNull BossChallengeInstance challenge) {
+        if (waitingTicket(challenge) != null) {
+            return ChallengeWaitingStatus.QUEUE_WAITING;
+        }
+        return isWaitingForPartyMembers(challenge) && challenge.partyKey().startsWith("party:")
+                ? ChallengeWaitingStatus.PARTY_MEMBERS_WAITING
+                : ChallengeWaitingStatus.NONE;
+    }
+
+    private @NotNull Set<String> waitingParticipantNames(
+            @NotNull Collection<UUID> participantIds,
+            @NotNull ChallengeWaitingStatus waitingStatus
+    ) {
+        if (!waitingStatus.isVisible()) {
+            return Set.of();
+        }
+        Set<String> names = new java.util.LinkedHashSet<>();
+        for (UUID participantId : participantIds) {
+            if (!isInHub(participantId)) {
+                names.add(playerName(participantId));
+            }
+        }
+        return Set.copyOf(names);
     }
 
     private @NotNull List<Player> eligibleParticipantsForEntry(@NotNull BossChallengeInstance challenge) {
@@ -1872,6 +1912,26 @@ public final class BossChallengeService {
             }
         }
         return result;
+    }
+
+    private void notifyWaitingPartyMembers(@NotNull BossChallengeInstance challenge) {
+        String initiatorName = playerName(challenge.initiatorId());
+        for (UUID participantId : challenge.expectedParticipantIds()) {
+            if (participantId.equals(challenge.initiatorId())
+                    || isInHub(participantId)
+                    || !stillBelongsToAcceptedParty(challenge, participantId)) {
+                continue;
+            }
+            Player player = Bukkit.getPlayer(participantId);
+            if (player != null && player.isOnline()) {
+                messageService.send(
+                        player,
+                        PlayerMsgId.P_6535,
+                        initiatorName,
+                        challenge.bossTemplate().displayName()
+                );
+            }
+        }
     }
 
     private boolean hasParticipantInField(@NotNull BossChallengeInstance challenge) {
