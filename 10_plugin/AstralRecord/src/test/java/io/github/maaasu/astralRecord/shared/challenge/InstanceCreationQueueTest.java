@@ -118,6 +118,61 @@ class InstanceCreationQueueTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/26_2-ユースケース.md
+     * 章・見出し: # 26_2-ユースケース > ## 2. ハブ転送と最終参加者確定
+     * 検証契約: 待機列中にパーティーメンバーが脱退しても、残りのメンバーが全員ハブにいる場合はチケット位置を維持したまま参加者だけ更新する。
+     */
+    @Test
+    void updatingWaitingParticipantsKeepsTheQueuePosition() {
+        InstanceCreationQueue queue = new InstanceCreationQueue(
+                new InstanceCreationQueueConfig.InstanceCreationLimits(1, 0)
+        );
+        UUID activeId = id(40);
+        UUID waitingId = id(41);
+        UUID removedMemberId = id(42);
+        UUID remainingMemberId = id(43);
+
+        queue.enqueue(activeId, List.of(activeId), false, "Boss", ignored -> { });
+        queue.enqueue(waitingId, List.of(waitingId, removedMemberId), false, "Boss", ignored -> { });
+
+        InstanceCreationQueue.Ticket updated = queue.updateWaiting(
+                waitingId,
+                List.of(waitingId, remainingMemberId),
+                false
+        );
+
+        assertEquals(List.of(waitingId, remainingMemberId), updated.participantIds());
+        assertEquals(new InstanceCreationQueue.QueuePosition(1, 2, false), queue.position(waitingId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/26_5-例外・ログ・運用.md
+     * 章・見出し: # 26_5-例外・ログ・運用 > ## 5. 設定
+     * 検証契約: パーティー内の寄付者資格が変化した場合、待機チケットを予約列へ移し、移動先の末尾へ並べる。
+     */
+    @Test
+    void changingDonorLaneMovesWaitingTicketToTheTargetLane() {
+        InstanceCreationQueue queue = new InstanceCreationQueue(
+                new InstanceCreationQueueConfig.InstanceCreationLimits(1, 1)
+        );
+        UUID normalActive = id(50);
+        UUID normalWaiting = id(51);
+
+        queue.enqueue(normalActive, List.of(normalActive), false, "Boss", ignored -> { });
+        queue.enqueue(normalWaiting, List.of(normalWaiting), false, "Boss", ignored -> { });
+
+        InstanceCreationQueue.Ticket updated = queue.updateWaiting(
+                normalWaiting,
+                List.of(normalWaiting),
+                true
+        );
+
+        assertTrue(updated.reserved());
+        assertNull(queue.position(normalWaiting));
+        assertTrue(queue.isActive(normalWaiting));
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/26_0-概要.md
      * 章・見出し: # 26_0-概要 > ## 4. 実装構成 > ### インスタンス作成枠（Boss／Dungeon共通）
      * 検証契約: 開始 callback が例外でも作成枠をロールバックし、後続要求へ枠を渡す。

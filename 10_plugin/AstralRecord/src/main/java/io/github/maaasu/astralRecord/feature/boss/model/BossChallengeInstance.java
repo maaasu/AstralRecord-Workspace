@@ -8,7 +8,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.LinkedHashSet;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -21,7 +23,8 @@ public final class BossChallengeInstance {
     private final UUID initiatorId;
     private final MobTemplate bossTemplate;
     private final BossChallengeConfig config;
-    private final List<UUID> expectedParticipantIds;
+    private List<UUID> expectedParticipantIds;
+    private final Set<UUID> waitingAbsentParticipantIds = new LinkedHashSet<>();
     private final long createdAtMs;
     private final Map<UUID, Double> damageByPlayerId = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> deathsByPlayerId = new ConcurrentHashMap<>();
@@ -79,6 +82,44 @@ public final class BossChallengeInstance {
 
     public @NotNull List<UUID> expectedParticipantIds() {
         return expectedParticipantIds;
+    }
+
+    /**
+     * 挑戦待機中に参照する現在のパーティーメンバーを更新します。
+     *
+     * @param participantIds 現在のパーティーメンバー
+     */
+    public void updateExpectedParticipantIds(@NotNull List<UUID> participantIds) {
+        this.expectedParticipantIds = List.copyOf(participantIds);
+        waitingAbsentParticipantIds.retainAll(this.expectedParticipantIds);
+    }
+
+    /**
+     * 指定メンバーを待機ハブ未到着として記録します。
+     *
+     * @param participantId プレイヤー UUID
+     */
+    public void markWaitingAbsent(@NotNull UUID participantId) {
+        waitingAbsentParticipantIds.add(participantId);
+    }
+
+    /**
+     * 指定メンバーの待機ハブ未到着記録を解除します。
+     *
+     * @param participantId プレイヤー UUID
+     */
+    public void clearWaitingAbsent(@NotNull UUID participantId) {
+        waitingAbsentParticipantIds.remove(participantId);
+    }
+
+    /**
+     * 指定メンバーが待機ハブ未到着として扱われているか返します。
+     *
+     * @param participantId プレイヤー UUID
+     * @return 未到着扱いなら {@code true}
+     */
+    public boolean isWaitingAbsent(@NotNull UUID participantId) {
+        return waitingAbsentParticipantIds.contains(participantId);
     }
 
     public @NotNull List<UUID> participantIds() {

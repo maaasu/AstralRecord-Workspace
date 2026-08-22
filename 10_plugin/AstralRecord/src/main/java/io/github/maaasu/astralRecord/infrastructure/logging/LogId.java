@@ -961,6 +961,8 @@ public enum LogId {
     // region /feature/party/ 6100-6199
     W_6100(6100),
     E_6100(6100),
+    E_6110(6110),
+    E_6111(6111),
     // endregion
 
     // region /feature/trade/ 6200-6299

@@ -417,6 +417,13 @@ public final class DungeonService {
         if (active == null) {
             return requestStart(player, dungeonId);
         }
+        if (isWaitingForPartyMembers(active)) {
+            if (!active.loaded.definition().id().equals(dungeonId)
+                    || !isInsideEntry(player, active.loaded)) {
+                return StartRequestResult.of(StartStatus.ALREADY_IN_PROGRESS);
+            }
+            return acceptWaitingParticipant(active, player);
+        }
         if (!active.loaded.definition().id().equals(dungeonId)
                 || !canRejoinParticipant(
                         active.originalParticipants,
@@ -456,10 +463,8 @@ public final class DungeonService {
         }
 
         Party party = partyService.findParty(leader.getUniqueId());
-        if (party != null && !party.isLeader(leader.getUniqueId())) {
-            return StartRequestResult.of(StartStatus.NOT_PARTY_LEADER);
-        }
-        List<Player> participants = snapshotParticipants(leader, party);
+        List<UUID> participantIds = currentPartyParticipantIds(leader, party);
+        List<Player> participants = onlinePlayers(participantIds);
         String partyKey = partyKey(leader.getUniqueId(), party);
         if (sessionIdByPartyKey.containsKey(partyKey)) {
             return StartRequestResult.of(StartStatus.ALREADY_IN_PROGRESS);
@@ -468,13 +473,12 @@ public final class DungeonService {
                 !AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(player)))) {
             return StartRequestResult.of(StartStatus.NOT_GAMEPLAY);
         }
-        int participantCount = participants.size();
+        int participantCount = participantIds.size();
         DungeonDefinition.IntRange allowed = loaded.definition().partySize();
         if (participantCount < allowed.min() || participantCount > allowed.max()) {
             return new StartRequestResult(StartStatus.PARTY_SIZE, allowed.min(), allowed.max(), participantCount);
         }
-        if (participants.stream().anyMatch(player ->
-                sessionIdByBusyParticipant.containsKey(player.getUniqueId()))) {
+        if (participantIds.stream().anyMatch(sessionIdByBusyParticipant::containsKey)) {
             return StartRequestResult.of(StartStatus.PARTICIPANT_BUSY);
         }
 
@@ -483,12 +487,14 @@ public final class DungeonService {
                 ? requestedSeed.getAsLong()
                 : ThreadLocalRandom.current().nextLong();
         Map<UUID, Location> returnLocations = new LinkedHashMap<>();
-        LinkedHashSet<UUID> participantIds = new LinkedHashSet<>();
-        for (Player participant : participants) {
-            participantIds.add(participant.getUniqueId());
-            returnLocations.put(participant.getUniqueId(), participant.getLocation().clone());
-            sessionIdByParticipant.put(participant.getUniqueId(), sessionId);
-            sessionIdByBusyParticipant.put(participant.getUniqueId(), sessionId);
+        LinkedHashSet<UUID> participantIdSet = new LinkedHashSet<>(participantIds);
+        for (UUID participantId : participantIds) {
+            Player participant = Bukkit.getPlayer(participantId);
+            if (participant != null && participant.isOnline()) {
+                returnLocations.put(participantId, participant.getLocation().clone());
+            }
+            sessionIdByParticipant.put(participantId, sessionId);
+            sessionIdByBusyParticipant.put(participantId, sessionId);
         }
 
         Session session = new Session(
@@ -497,15 +503,15 @@ public final class DungeonService {
                 loaded,
                 partyKey,
                 leader.getUniqueId(),
-                participantIds,
+                participantIdSet,
                 returnLocations
         );
-        session.reservedCreationSlot = leaderAstPlayer.hasPermissionLevel(UserPermission.DONOR.getValue());
+        session.reservedCreationSlot = hasDonorPermission(party, leader.getUniqueId());
         sessionsById.put(sessionId, session);
         sessionIdByPartyKey.put(partyKey, sessionId);
         Logger.log(LogId.I_7001, sessionId.toString(), dungeonId, seed, participantCount);
         message(participants, PlayerMsgId.P_7008, loaded.definition().displayName());
-        transferToHubAndPrepare(session, participants, hubData);
+        transferToHubAndPrepare(session, leader, hubData);
         return StartRequestResult.of(StartStatus.ACCEPTED);
     }
 
@@ -566,35 +572,31 @@ public final class DungeonService {
      */
     private void transferToHubAndPrepare(
             @NotNull Session session,
-            @NotNull List<Player> participants,
+            @NotNull Player initiator,
             @NotNull WorldMasterData hubData
     ) {
         long transferGeneration = session.transferGeneration;
-        List<CompletableFuture<Boolean>> transfers = new ArrayList<>();
-        for (Player participant : participants) {
-            CompletableFuture<Boolean> transfer = trackEntryTransfer(
-                    session,
-                    participant.getUniqueId(),
-                    worldService.teleportToSpawnAsync(participant, hubData)
-            );
-            transfers.add(transfer);
-        }
-        CompletableFuture.allOf(transfers.toArray(CompletableFuture[]::new))
-                .whenComplete((ignored, failure) -> runMain(() -> {
-                    if (!isActiveTransferCallback(session, transferGeneration)) {
-                        return;
-                    }
-                    retainEligiblePreparingParticipants(session, hubData);
-                    if (session.participants.size() < session.loaded.definition().partySize().min()) {
-                        completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
-                        return;
-                    }
-                    enqueueInstanceCreation(session);
-                }));
+        CompletableFuture<Boolean> transfer = trackEntryTransfer(
+                session,
+                initiator.getUniqueId(),
+                worldService.teleportToSpawnAsync(initiator, hubData)
+        );
+        transfer.whenComplete((success, failure) -> runMain(() -> {
+            if (!isActiveTransferCallback(session, transferGeneration)) {
+                return;
+            }
+            if (failure == null && Boolean.TRUE.equals(success)) {
+                session.waitingAbsentParticipants.remove(initiator.getUniqueId());
+            }
+            tryEnqueueWaitingSession(session);
+        }));
     }
 
     /** Hub滞在確認後に作成枠を確保し、空き次第で生成を開始します。 */
     private void enqueueInstanceCreation(@NotNull Session session) {
+        if (session.creationQueueTicketId != null) {
+            return;
+        }
         InstanceCreationQueue.Ticket ticket = creationQueue.enqueue(
                 session.id,
                 List.copyOf(session.participants),
@@ -604,6 +606,64 @@ public final class DungeonService {
         );
         session.creationQueueTicketId = ticket.id();
         renderQueueStatus(session, ticket);
+    }
+
+    private @NotNull StartRequestResult acceptWaitingParticipant(
+            @NotNull Session session,
+            @NotNull Player player
+    ) {
+        Party party = currentParty(session);
+        if (session.partyKey.startsWith("party:")
+                && (party == null || !party.contains(player.getUniqueId()))) {
+            return StartRequestResult.of(StartStatus.ALREADY_IN_PROGRESS);
+        }
+        if (!session.participants.contains(player.getUniqueId())) {
+            addWaitingParticipant(session, player.getUniqueId(), player);
+        }
+        session.waitingAbsentParticipants.remove(player.getUniqueId());
+        if (isInHub(player)) {
+            tryEnqueueWaitingSession(session);
+            return StartRequestResult.of(StartStatus.ACCEPTED);
+        }
+        WorldMasterData hubData = worldService.getById(hubWorldId);
+        if (hubData == null || worldService.resolveLoadedWorld(hubData) == null) {
+            return StartRequestResult.of(StartStatus.HUB_UNAVAILABLE);
+        }
+        long transferGeneration = session.transferGeneration;
+        trackEntryTransfer(
+                session,
+                player.getUniqueId(),
+                worldService.teleportToSpawnAsync(player, hubData)
+        ).whenComplete((success, failure) -> runMain(() -> {
+            if (!isActiveTransferCallback(session, transferGeneration)) {
+                return;
+            }
+            if (failure == null && Boolean.TRUE.equals(success)) {
+                session.waitingAbsentParticipants.remove(player.getUniqueId());
+            }
+            tryEnqueueWaitingSession(session);
+        }));
+        return StartRequestResult.of(StartStatus.ACCEPTED);
+    }
+
+    private void tryEnqueueWaitingSession(@NotNull Session session) {
+        if (!isWaitingForPartyMembers(session) || stopping) {
+            return;
+        }
+        synchronizeWaitingParty(session);
+        if (!isWaitingForPartyMembers(session)) {
+            return;
+        }
+        if (!allParticipantsInHub(session)) {
+            return;
+        }
+        int count = session.participants.size();
+        DungeonDefinition.IntRange allowed = session.loaded.definition().partySize();
+        if (count < allowed.min() || count > allowed.max()) {
+            return;
+        }
+        session.reservedCreationSlot = currentReservedCreationSlot(session);
+        enqueueInstanceCreation(session);
     }
 
     private void beginQueuedInstanceCreation(@NotNull Session session) {
@@ -624,15 +684,22 @@ public final class DungeonService {
         prepareAsync(session);
     }
 
-    private @NotNull List<Player> snapshotParticipants(@NotNull Player leader, @Nullable Party party) {
+    private @NotNull List<UUID> currentPartyParticipantIds(
+            @NotNull Player leader,
+            @Nullable Party party
+    ) {
         if (party == null) {
-            return List.of(leader);
+            return List.of(leader.getUniqueId());
         }
+        return party.members();
+    }
+
+    private @NotNull List<Player> onlinePlayers(@NotNull Collection<UUID> playerIds) {
         List<Player> online = new ArrayList<>();
-        for (UUID memberId : party.members()) {
-            Player member = Bukkit.getPlayer(memberId);
-            if (member != null && member.isOnline()) {
-                online.add(member);
+        for (UUID playerId : playerIds) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null && player.isOnline()) {
+                online.add(player);
             }
         }
         return List.copyOf(online);
@@ -2104,10 +2171,12 @@ public final class DungeonService {
         UUID sessionId = sessionIdByParticipant.get(playerId);
         Session session = sessionId == null ? null : sessionsById.get(sessionId);
         if (session != null && !session.ending) {
-            if (session.creationQueueTicketId != null
-                    && creationQueue.cancelWaiting(session.creationQueueTicketId)) {
-                clearQueueTitles(session.participants);
+            if (isWaitingForPartyMembers(session) && session.partyKey.startsWith("solo:")) {
                 completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
+                return;
+            }
+            if (isWaitingForPartyMembers(session)) {
+                synchronizeWaitingParty(session);
                 return;
             }
             finalizeParticipantRemoval(session, playerId, false);
@@ -2118,6 +2187,79 @@ public final class DungeonService {
                 releaseBusyParticipantWhenTransfersSettle(active, playerId);
             }
         }
+    }
+
+    /**
+     * パーティー構成変更を待機中のダンジョンへ反映します。
+     *
+     * @param partyId 構成が変化したパーティー ID
+     */
+    public void handlePartyMembershipChanged(@NotNull UUID partyId) {
+        Runnable action = () -> {
+            UUID sessionId = sessionIdByPartyKey.get("party:" + partyId);
+            Session session = sessionId == null ? null : sessionsById.get(sessionId);
+            if (session == null || !isWaitingForPartyMembers(session)) {
+                return;
+            }
+            synchronizeWaitingParty(session);
+            if (!session.ending) {
+                tryEnqueueWaitingSession(session);
+            }
+        };
+        if (Bukkit.isPrimaryThread()) {
+            action.run();
+        } else {
+            runMain(action);
+        }
+    }
+
+    /**
+     * ハブ初期スポーンから挑戦待機離脱できるプレイヤーか判定します。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 待機離脱操作の対象なら {@code true}
+     */
+    public boolean isHubWaitingParticipant(@NotNull Player player) {
+        return findHubWaitingSession(player) != null;
+    }
+
+    /**
+     * ハブ初期スポーン離脱時に列の並び直し確認が必要か判定します。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 現在順番待ち列にいる場合は {@code true}
+     */
+    public boolean requiresHubWaitingLeaveConfirmation(@NotNull Player player) {
+        Session session = findHubWaitingSession(player);
+        return session != null
+                && session.partyKey.startsWith("party:")
+                && waitingTicket(session) != null;
+    }
+
+    /**
+     * ハブ初期スポーンから挑戦待機を離脱し、受付開始位置へ戻します。
+     *
+     * @param player 離脱プレイヤー
+     * @return 挑戦待機から離脱処理を開始した場合は {@code true}
+     */
+    public boolean leaveHubWaiting(@NotNull Player player) {
+        Session session = findHubWaitingSession(player);
+        if (session == null) {
+            return false;
+        }
+        InstanceCreationQueue.Ticket ticket = waitingTicket(session);
+        if (ticket != null) {
+            creationQueue.cancelWaiting(ticket.id());
+            session.creationQueueTicketId = null;
+            clearQueueTitles(ticket.participantIds());
+        }
+        if (session.partyKey.startsWith("solo:")) {
+            completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
+            return true;
+        }
+        session.waitingAbsentParticipants.add(player.getUniqueId());
+        teleportPreparingParticipantToEntry(session, player);
+        return true;
     }
 
     private void requestParticipantLeave(
@@ -2403,7 +2545,9 @@ public final class DungeonService {
             if (participant == null || !participant.isOnline()) {
                 continue;
             }
-            Location target = resolveReturnLocation(session.returnLocations.get(participantId), instance);
+            Location target = session.instanceWorld == null
+                    ? resolvePreparingEntryLocation(session)
+                    : resolveReturnLocation(session.returnLocations.get(participantId), instance);
             CompletableFuture<Boolean> transfer = target == null
                     ? CompletableFuture.completedFuture(false)
                     : worldService.teleportPlayerAsync(participant, target, null);
@@ -2425,6 +2569,13 @@ public final class DungeonService {
                                 }
                             }));
                 }));
+    }
+
+    private @Nullable Location resolvePreparingEntryLocation(@NotNull Session session) {
+        World entryWorld = worldService.resolveLoadedWorld(session.loaded.entryWorldData());
+        return entryWorld == null
+                ? null
+                : entryLocation(session.loaded.definition().entry(), entryWorld);
     }
 
     /** 帰還と一時 World 破棄が完了したセッションの reverse index を最後に解放します。 */
@@ -2675,6 +2826,215 @@ public final class DungeonService {
         return player.getLocation().distanceSquared(center) <= entry.radius() * entry.radius();
     }
 
+    private boolean isWaitingForPartyMembers(@NotNull Session session) {
+        UUID ticketId = session.creationQueueTicketId;
+        return !session.ending
+                && session.instanceWorld == null
+                && session.preparationLifecycle.isDone()
+                && (ticketId == null || !creationQueue.isActive(ticketId));
+    }
+
+    private @Nullable Party currentParty(@NotNull Session session) {
+        if (!session.partyKey.startsWith("party:")) {
+            return null;
+        }
+        try {
+            return partyService.findPartyById(UUID.fromString(session.partyKey.substring("party:".length())));
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
+    }
+
+    private void synchronizeWaitingParty(@NotNull Session session) {
+        if (!session.partyKey.startsWith("party:") || !isWaitingForPartyMembers(session)) {
+            return;
+        }
+        Party party = currentParty(session);
+        if (party == null || party.members().isEmpty()) {
+            for (UUID participantId : List.copyOf(session.participants)) {
+                Player participant = Bukkit.getPlayer(participantId);
+                if (participant == null || !participant.isOnline() || !isInHub(participant)) {
+                    removeWaitingParticipant(session, participantId);
+                }
+            }
+            completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
+            return;
+        }
+        List<UUID> previous = List.copyOf(session.participants);
+        List<UUID> current = party.members();
+        if (!previous.equals(current)) {
+            Set<UUID> previousSet = new HashSet<>(previous);
+            Set<UUID> currentSet = new HashSet<>(current);
+            List<UUID> removed = previous.stream().filter(id -> !currentSet.contains(id)).toList();
+            boolean added = current.stream().anyMatch(id -> !previousSet.contains(id));
+            InstanceCreationQueue.Ticket waitingTicket = waitingTicket(session);
+            if (waitingTicket != null && (added || !allParticipantsInHub(session, current))) {
+                creationQueue.cancelWaiting(waitingTicket.id());
+                session.creationQueueTicketId = null;
+                clearQueueTitles(waitingTicket.participantIds());
+            }
+            for (UUID participantId : removed) {
+                removeWaitingParticipant(session, participantId);
+            }
+            for (UUID participantId : current) {
+                if (!previousSet.contains(participantId)) {
+                    addWaitingParticipant(session, participantId, Bukkit.getPlayer(participantId));
+                }
+            }
+            session.waitingAbsentParticipants.retainAll(currentSet);
+            session.reservedCreationSlot = hasDonorPermission(party, session.initiatorId);
+            if (waitingTicket != null) {
+                clearQueueTitles(removed);
+            }
+            if (waitingTicket != null && !added && session.creationQueueTicketId != null
+                    && allParticipantsInHub(session, current)) {
+                InstanceCreationQueue.Ticket updated = creationQueue.updateWaiting(
+                        waitingTicket.id(), current, session.reservedCreationSlot);
+                if (updated != null) {
+                    renderQueueStatus(session, updated);
+                }
+            }
+            return;
+        }
+
+        boolean reserved = hasDonorPermission(party, session.initiatorId);
+        if (session.reservedCreationSlot != reserved) {
+            session.reservedCreationSlot = reserved;
+            InstanceCreationQueue.Ticket waitingTicket = waitingTicket(session);
+            if (waitingTicket != null) {
+                InstanceCreationQueue.Ticket updated = creationQueue.updateWaiting(
+                        waitingTicket.id(), current, reserved);
+                if (updated != null) {
+                    renderQueueStatus(session, updated);
+                }
+            }
+        }
+    }
+
+    private @Nullable InstanceCreationQueue.Ticket waitingTicket(@NotNull Session session) {
+        UUID ticketId = session.creationQueueTicketId;
+        if (ticketId == null || creationQueue.isActive(ticketId)) {
+            return null;
+        }
+        return creationQueue.waitingTickets().stream()
+                .filter(ticket -> ticket.id().equals(ticketId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private void addWaitingParticipant(
+            @NotNull Session session,
+            @NotNull UUID participantId,
+            @Nullable Player player
+    ) {
+        if (!session.participants.add(participantId)) {
+            return;
+        }
+        session.originalParticipants.add(participantId);
+        if (player != null && player.isOnline()) {
+            session.returnLocations.putIfAbsent(participantId, player.getLocation().clone());
+        }
+        sessionIdByParticipant.put(participantId, session.id);
+        sessionIdByBusyParticipant.put(participantId, session.id);
+    }
+
+    private void removeWaitingParticipant(@NotNull Session session, @NotNull UUID participantId) {
+        if (!session.participants.remove(participantId)) {
+            return;
+        }
+        sessionIdByParticipant.remove(participantId, session.id);
+        sessionIdByBusyParticipant.remove(participantId, session.id);
+        session.waitingAbsentParticipants.remove(participantId);
+        Player player = Bukkit.getPlayer(participantId);
+        if (player != null && player.isOnline() && isInHub(player)) {
+            World entryWorld = worldService.resolveLoadedWorld(session.loaded.entryWorldData());
+            Location target = entryWorld == null
+                    ? null
+                    : entryLocation(session.loaded.definition().entry(), entryWorld);
+            if (target != null) {
+                worldService.teleportPlayerAsync(player, target, null);
+            }
+        }
+        releaseBusyParticipantWhenTransfersSettle(session, participantId);
+    }
+
+    private boolean allParticipantsInHub(@NotNull Session session) {
+        return allParticipantsInHub(session, List.copyOf(session.participants));
+    }
+
+    private boolean allParticipantsInHub(
+            @NotNull Session session,
+            @NotNull Collection<UUID> participantIds
+    ) {
+        if (participantIds.isEmpty()) {
+            return false;
+        }
+        WorldMasterData hubData = worldService.getById(hubWorldId);
+        World hubWorld = hubData == null ? null : worldService.resolveLoadedWorld(hubData);
+        if (hubWorld == null) {
+            return false;
+        }
+        for (UUID participantId : participantIds) {
+            Player player = Bukkit.getPlayer(participantId);
+            if (player == null || !player.isOnline()
+                    || !AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(player))
+                    || session.waitingAbsentParticipants.contains(participantId)
+                    || !player.getWorld().getUID().equals(hubWorld.getUID())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean isInHub(@NotNull Player player) {
+        WorldMasterData hubData = worldService.getById(hubWorldId);
+        World hubWorld = hubData == null ? null : worldService.resolveLoadedWorld(hubData);
+        return hubWorld != null && player.isOnline()
+                && player.getWorld().getUID().equals(hubWorld.getUID());
+    }
+
+    private @Nullable Session findHubWaitingSession(@NotNull Player player) {
+        UUID sessionId = sessionIdByParticipant.get(player.getUniqueId());
+        Session session = sessionId == null ? null : sessionsById.get(sessionId);
+        return session != null
+                && isWaitingForPartyMembers(session)
+                && isInHub(player)
+                ? session : null;
+    }
+
+    private void teleportPreparingParticipantToEntry(
+            @NotNull Session session,
+            @NotNull Player player
+    ) {
+        World entryWorld = worldService.resolveLoadedWorld(session.loaded.entryWorldData());
+        Location target = entryWorld == null
+                ? null
+                : entryLocation(session.loaded.definition().entry(), entryWorld);
+        if (target != null) {
+            worldService.teleportPlayerAsync(player, target, null);
+        }
+    }
+
+    private boolean currentReservedCreationSlot(@NotNull Session session) {
+        return hasDonorPermission(currentParty(session), session.initiatorId);
+    }
+
+    private boolean hasDonorPermission(@Nullable Party party, @NotNull UUID soloPlayerId) {
+        if (party == null) {
+            Player player = Bukkit.getPlayer(soloPlayerId);
+            AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
+            return astPlayer != null && astPlayer.hasPermissionLevel(UserPermission.DONOR.getValue());
+        }
+        for (UUID memberId : party.members()) {
+            Player member = Bukkit.getPlayer(memberId);
+            AstPlayer astPlayer = member == null ? null : AstPlayerCache.get(member);
+            if (astPlayer != null && astPlayer.hasPermissionLevel(UserPermission.DONOR.getValue())) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     /**
      * 生成待機中の固定参加者から、オンライン・通常プレイ・ハブ滞在条件を満たさない者を除外します。
      * 除外したオンライン参加者には受付前 Location への非同期転送を試みます。
@@ -2716,6 +3076,7 @@ public final class DungeonService {
 
     /** ロード済み受付地点のうち、近隣プレイヤーがいる地点へダンジョン専用演出を表示します。 */
     private void tickEntryVisuals() {
+        refreshWaitingSessions();
         refreshCreationQueue();
         double pulse = 0.08D * Math.sin(entryVisualFrame * 0.35D);
         Set<String> activePromptIds = new HashSet<>();
@@ -2760,6 +3121,18 @@ public final class DungeonService {
     }
 
     /** 待機中DungeonのHub滞在を確認し、順番表示を更新します。 */
+    private void refreshWaitingSessions() {
+        for (Session session : List.copyOf(sessionsById.values())) {
+            if (!isWaitingForPartyMembers(session)) {
+                continue;
+            }
+            synchronizeWaitingParty(session);
+            if (!session.ending) {
+                tryEnqueueWaitingSession(session);
+            }
+        }
+    }
+
     private void refreshCreationQueue() {
         for (InstanceCreationQueue.Ticket ticket : creationQueue.waitingTickets()) {
             Session session = sessionsById.get(ticket.id());
@@ -2767,9 +3140,16 @@ public final class DungeonService {
                 creationQueue.cancelWaiting(ticket.id());
                 continue;
             }
+            synchronizeWaitingParty(session);
+            if (session.creationQueueTicketId == null
+                    || !session.creationQueueTicketId.equals(ticket.id())
+                    || !isWaitingForPartyMembers(session)) {
+                continue;
+            }
             if (!isQueuedParticipantPresent(session, ticket)) {
                 creationQueue.cancelWaiting(ticket.id());
-                completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
+                session.creationQueueTicketId = null;
+                clearQueueTitles(ticket.participantIds());
                 continue;
             }
             renderQueueStatus(session, ticket);
@@ -2790,7 +3170,8 @@ public final class DungeonService {
             if (player == null || !player.isOnline()
                     || !session.participants.contains(participantId)
                     || !AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(player))
-                    || !player.getWorld().getUID().equals(hubWorld.getUID())) {
+                    || !player.getWorld().getUID().equals(hubWorld.getUID())
+                    || session.waitingAbsentParticipants.contains(participantId)) {
                 return false;
             }
         }
@@ -2979,7 +3360,6 @@ public final class DungeonService {
         ALREADY_IN_PROGRESS,
         UNAVAILABLE,
         NOT_FOUND,
-        NOT_PARTY_LEADER,
         PARTY_SIZE,
         PARTICIPANT_BUSY,
         NOT_GAMEPLAY,
@@ -3027,6 +3407,7 @@ public final class DungeonService {
         private final LinkedHashSet<UUID> originalParticipants;
         private final LinkedHashSet<UUID> participants;
         private final Set<UUID> gateReturnEligible = new LinkedHashSet<>();
+        private final Set<UUID> waitingAbsentParticipants = new LinkedHashSet<>();
         private final Map<UUID, Location> returnLocations;
         private final Map<UUID, CompletableFuture<Boolean>> entryTransfers = new HashMap<>();
         private final Map<UUID, CompletableFuture<Boolean>> returnTransfers = new HashMap<>();

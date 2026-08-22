@@ -66,7 +66,6 @@ public final class DungeonCommand extends AstCommand {
             case ALREADY_IN_PROGRESS -> messages.send(astPlayer, PlayerMsgId.P_7024);
             case UNAVAILABLE -> messages.send(astPlayer, PlayerMsgId.P_7000);
             case NOT_FOUND -> messages.send(astPlayer, PlayerMsgId.P_7002, args[1]);
-            case NOT_PARTY_LEADER -> messages.send(astPlayer, PlayerMsgId.P_7003);
             case PARTY_SIZE -> messages.send(
                     astPlayer,
                     PlayerMsgId.P_7004,

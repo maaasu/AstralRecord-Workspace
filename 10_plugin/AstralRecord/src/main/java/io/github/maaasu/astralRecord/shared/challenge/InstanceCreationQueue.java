@@ -104,6 +104,48 @@ public final class InstanceCreationQueue {
     }
 
     /**
+     * 待機中チケットの参加者と予約枠要求を更新します。
+     * <p>
+     * 同じ枠のままなら現在の位置を維持します。通常枠・予約枠をまたぐ場合は、移動先の列の末尾へ移します。
+     * 開始済み、または存在しないチケットは更新しません。
+     *
+     * @param ticketId 更新対象チケット
+     * @param participantIds 更新後の参加予定者
+     * @param donor 更新後の予約枠要求
+     * @return 更新後チケット。対象が待機中でなければ {@code null}
+     */
+    public @Nullable Ticket updateWaiting(
+            @NotNull UUID ticketId,
+            @NotNull List<UUID> participantIds,
+            boolean donor
+    ) {
+        boolean reserved = donor && limits.reservedLimit() > 0;
+        for (Deque<Pending> lane : List.of(normalWaiting, reservedWaiting)) {
+            List<Pending> snapshot = new ArrayList<>(lane);
+            for (int index = 0; index < snapshot.size(); index++) {
+                Pending pending = snapshot.get(index);
+                if (!pending.ticket().id().equals(ticketId)) {
+                    continue;
+                }
+                Ticket updated = new Ticket(ticketId, reserved, participantIds, pending.ticket().displayName());
+                Pending replacement = new Pending(updated, pending.onGranted());
+                lane.clear();
+                if (pending.ticket().reserved() == reserved) {
+                    snapshot.set(index, replacement);
+                    lane.addAll(snapshot);
+                } else {
+                    snapshot.remove(index);
+                    lane.addAll(snapshot);
+                    waiting(reserved).addLast(replacement);
+                    rethrow(drain());
+                }
+                return updated;
+            }
+        }
+        return null;
+    }
+
+    /**
      * 作成完了後に占有枠を解放し、次の要求を開始します。
      *
      * @param ticketId 解放対象チケット

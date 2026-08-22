@@ -175,8 +175,6 @@ public final class DungeonInteractionEventHandler extends AbstractEventHandler
     private void notifyEntryResult(@NotNull Player player, @NotNull DungeonService.StartRequestResult result) {
         if (result.status() == DungeonService.StartStatus.ALREADY_IN_PROGRESS) {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7024);
-        } else if (result.status() == DungeonService.StartStatus.NOT_PARTY_LEADER) {
-            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7003);
         } else if (result.status() == DungeonService.StartStatus.PARTY_SIZE) {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7004,
                     result.min(), result.max(), result.current());

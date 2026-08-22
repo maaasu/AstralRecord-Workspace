@@ -317,20 +317,29 @@ public final class BossChallengeService {
         }
 
         Party party = partyService.findParty(player.getUniqueId());
-        if (party != null && !party.isLeader(player.getUniqueId())) {
-            messageService.send(player, PlayerMsgId.P_6503);
-            return;
-        }
-
-        List<UUID> participants = onlineParticipants(player, party);
+        List<UUID> participants = currentPartyParticipantIds(player, party);
         if (participants.size() < config.partyMin() || participants.size() > config.partyMax()) {
             messageService.send(player, PlayerMsgId.P_6504, config.partyMin(), config.partyMax(), participants.size());
             return;
         }
 
         String partyKey = party == null ? "solo:" + player.getUniqueId() : "party:" + party.getPartyId();
-        if (challengeIdByPartyKey.containsKey(partyKey)) {
-            messageService.send(player, PlayerMsgId.P_6505);
+        UUID existingChallengeId = challengeIdByPartyKey.get(partyKey);
+        BossChallengeInstance existingChallenge = existingChallengeId == null
+                ? null : challengesById.get(existingChallengeId);
+        if (existingChallenge != null) {
+            if (!existingChallenge.bossTemplate().id().equals(template.id())
+                    || !isWaitingForPartyMembers(existingChallenge)) {
+                messageService.send(player, PlayerMsgId.P_6505);
+                return;
+            }
+            WorldMasterData existingHubData = worldService.getById(hubWorldId);
+            if (existingHubData == null || worldService.resolveOrLoadWorld(existingHubData) == null) {
+                messageService.send(player, PlayerMsgId.P_6523, hubWorldId);
+                return;
+            }
+            synchronizeWaitingParty(existingChallenge);
+            acceptWaitingParticipant(existingChallenge, player, existingHubData);
             return;
         }
 
@@ -362,14 +371,15 @@ public final class BossChallengeService {
                 config,
                 participants
         );
-        challenge.reservedCreationSlot(astPlayer.hasPermissionLevel(UserPermission.DONOR.getValue()));
+        challenge.reservedCreationSlot(hasDonorPermission(party, player.getUniqueId()));
         challengesById.put(challenge.challengeId(), challenge);
         challengeIdByPartyKey.put(partyKey, challenge.challengeId());
         Logger.log(LogId.I_6500, challenge.challengeId(), template.id(), partyKey);
 
         notifyParticipants(challenge, PlayerMsgId.P_6508, template.displayName());
-        teleportParticipantsToHubAsync(challenge, hubData).whenComplete((results, throwable) ->
-                runSync(() -> finishHubTransfer(challenge.challengeId(), fieldData, results, throwable)));
+        teleportParticipantToHubAsync(player, hubData).whenComplete((result, throwable) ->
+                runSync(() -> finishHubTransfer(
+                        challenge.challengeId(), fieldData, player.getUniqueId(), result, throwable)));
     }
 
     /**
@@ -500,7 +510,90 @@ public final class BossChallengeService {
      * @param playerId quit player
      */
     public void handleQuit(@NotNull UUID playerId) {
+        for (BossChallengeInstance challenge : List.copyOf(challengesById.values())) {
+            if (!challenge.expectedParticipantIds().contains(playerId)
+                    || !isWaitingForPartyMembers(challenge)) {
+                continue;
+            }
+            if (challenge.partyKey().startsWith("solo:")) {
+                endChallenge(challenge, BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET);
+            }
+        }
         tick();
+    }
+
+    /**
+     * パーティー構成変更を待機中のボス挑戦へ反映します。
+     *
+     * @param partyId 構成が変化したパーティー ID
+     */
+    public void handlePartyMembershipChanged(@NotNull UUID partyId) {
+        Runnable action = () -> {
+            UUID challengeId = challengeIdByPartyKey.get("party:" + partyId);
+            BossChallengeInstance challenge = challengeId == null ? null : challengesById.get(challengeId);
+            if (challenge == null || !isWaitingForPartyMembers(challenge)) {
+                return;
+            }
+            synchronizeWaitingParty(challenge);
+            WorldMasterData fieldData = worldService.getById(challenge.config().fieldWorldId());
+            if (fieldData != null) {
+                tryEnqueueWaitingChallenge(challenge, fieldData);
+            }
+        };
+        if (Bukkit.isPrimaryThread()) {
+            action.run();
+        } else {
+            runSync(action);
+        }
+    }
+
+    /**
+     * ハブ初期スポーンから挑戦待機離脱できるプレイヤーか判定します。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 待機離脱操作の対象なら {@code true}
+     */
+    public boolean isHubWaitingParticipant(@NotNull Player player) {
+        return findHubWaitingChallenge(player) != null;
+    }
+
+    /**
+     * ハブ初期スポーン離脱時に列の並び直し確認が必要か判定します。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 現在順番待ち列にいる場合は {@code true}
+     */
+    public boolean requiresHubWaitingLeaveConfirmation(@NotNull Player player) {
+        BossChallengeInstance challenge = findHubWaitingChallenge(player);
+        return challenge != null
+                && challenge.partyKey().startsWith("party:")
+                && waitingTicket(challenge) != null;
+    }
+
+    /**
+     * ハブ初期スポーンから挑戦待機を離脱し、受付開始位置へ戻します。
+     *
+     * @param player 離脱プレイヤー
+     * @return 挑戦待機から離脱処理を開始した場合は {@code true}
+     */
+    public boolean leaveHubWaiting(@NotNull Player player) {
+        BossChallengeInstance challenge = findHubWaitingChallenge(player);
+        if (challenge == null) {
+            return false;
+        }
+        InstanceCreationQueue.Ticket ticket = waitingTicket(challenge);
+        if (ticket != null) {
+            creationQueue.cancelWaiting(ticket.id());
+            challenge.creationQueueTicketId(null);
+            clearQueueTitles(ticket.participantIds());
+        }
+        if (challenge.partyKey().startsWith("solo:")) {
+            endChallenge(challenge, BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET);
+            return true;
+        }
+        challenge.markWaitingAbsent(player.getUniqueId());
+        teleportParticipantOutAsync(challenge, player);
+        return true;
     }
 
     /**
@@ -705,32 +798,70 @@ public final class BossChallengeService {
     private void finishHubTransfer(
             @NotNull UUID challengeId,
             @NotNull WorldMasterData fieldData,
-            @Nullable List<Boolean> results,
+            @NotNull UUID participantId,
+            @Nullable Boolean result,
             @Nullable Throwable throwable
     ) {
         BossChallengeInstance challenge = challengesById.get(challengeId);
         if (challenge == null || challenge.state() != BossChallengeState.PREPARING) {
             return;
         }
+        if (throwable == null && Boolean.TRUE.equals(result)) {
+            challenge.clearWaitingAbsent(participantId);
+        }
+        tryEnqueueWaitingChallenge(challenge, fieldData);
+    }
+
+    private void acceptWaitingParticipant(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull Player player,
+            @NotNull WorldMasterData hubData
+    ) {
+        if (!challenge.expectedParticipantIds().contains(player.getUniqueId())) {
+            messageService.send(player, PlayerMsgId.P_6505);
+            return;
+        }
+        challenge.clearWaitingAbsent(player.getUniqueId());
+        WorldMasterData fieldData = worldService.getById(challenge.config().fieldWorldId());
+        if (fieldData == null) {
+            messageService.send(player, PlayerMsgId.P_6507, challenge.config().fieldWorldId());
+            return;
+        }
+        if (isInHub(player)) {
+            tryEnqueueWaitingChallenge(challenge, fieldData);
+            return;
+        }
+        teleportParticipantToHubAsync(player, hubData).whenComplete((result, throwable) ->
+                runSync(() -> finishHubTransfer(
+                        challenge.challengeId(), fieldData, player.getUniqueId(), result, throwable)));
+    }
+
+    private void tryEnqueueWaitingChallenge(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull WorldMasterData fieldData
+    ) {
+        if (!isWaitingForPartyMembers(challenge)) {
+            return;
+        }
+        synchronizeWaitingParty(challenge);
+        if (!isWaitingForPartyMembers(challenge)) {
+            return;
+        }
         List<Player> readyParticipants = eligibleParticipantsForEntry(challenge);
+        if (readyParticipants.size() != challenge.expectedParticipantIds().size()) {
+            return;
+        }
         int readyCount = readyParticipants.size();
-        if (readyCount < challenge.config().partyMin()) {
-            challenge.confirmParticipants(
-                    readyParticipants.stream().map(Player::getUniqueId).toList()
-            );
-            notifyExpectedParticipants(
-                    challenge,
-                    PlayerMsgId.P_6504,
-                    challenge.config().partyMin(),
-                    challenge.config().partyMax(),
-                    readyCount
-            );
-            endChallenge(challenge, BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET);
+        if (readyCount < challenge.config().partyMin() || readyCount > challenge.config().partyMax()) {
+            return;
+        }
+        challenge.reservedCreationSlot(currentReservedCreationSlot(challenge));
+        if (challenge.creationQueueTicketId() != null) {
             return;
         }
         InstanceCreationQueue.Ticket ticket = creationQueue.enqueue(
                 challenge.challengeId(),
-                readyParticipants.stream().map(Player::getUniqueId).toList(),
+                challenge.expectedParticipantIds(),
                 challenge.reservedCreationSlot(),
                 challenge.bossTemplate().displayName(),
                 ignored -> beginQueuedFieldPreparation(challenge, fieldData)
@@ -991,6 +1122,7 @@ public final class BossChallengeService {
     }
 
     private void tick() {
+        refreshWaitingChallenges();
         refreshCreationQueue();
         long now = System.currentTimeMillis();
         for (BossChallengeInstance challenge : List.copyOf(challengesById.values())) {
@@ -1010,6 +1142,22 @@ public final class BossChallengeService {
     }
 
     /** 待機中BossのHub滞在を確認し、順番表示を更新します。 */
+    private void refreshWaitingChallenges() {
+        for (BossChallengeInstance challenge : List.copyOf(challengesById.values())) {
+            if (!isWaitingForPartyMembers(challenge)) {
+                continue;
+            }
+            synchronizeWaitingParty(challenge);
+            if (challenge.state() != BossChallengeState.PREPARING) {
+                continue;
+            }
+            WorldMasterData fieldData = worldService.getById(challenge.config().fieldWorldId());
+            if (fieldData != null) {
+                tryEnqueueWaitingChallenge(challenge, fieldData);
+            }
+        }
+    }
+
     private void refreshCreationQueue() {
         for (InstanceCreationQueue.Ticket ticket : creationQueue.waitingTickets()) {
             BossChallengeInstance challenge = challengesById.get(ticket.id());
@@ -1017,9 +1165,16 @@ public final class BossChallengeService {
                 creationQueue.cancelWaiting(ticket.id());
                 continue;
             }
+            synchronizeWaitingParty(challenge);
+            if (challenge.creationQueueTicketId() == null
+                    || !challenge.creationQueueTicketId().equals(ticket.id())
+                    || !isWaitingForPartyMembers(challenge)) {
+                continue;
+            }
             if (!isQueuedParticipantPresent(challenge, ticket)) {
                 creationQueue.cancelWaiting(ticket.id());
-                endChallenge(challenge, BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET);
+                challenge.creationQueueTicketId(null);
+                clearQueueTitles(ticket.participantIds());
                 continue;
             }
             renderQueueStatus(challenge, ticket);
@@ -1040,7 +1195,8 @@ public final class BossChallengeService {
             if (player == null || !player.isOnline()
                     || !AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(player))
                     || !stillBelongsToAcceptedParty(challenge, participantId)
-                    || !player.getWorld().getUID().equals(hubWorld.getUID())) {
+                    || !player.getWorld().getUID().equals(hubWorld.getUID())
+                    || challenge.isWaitingAbsent(participantId)) {
                 return false;
             }
         }
@@ -1490,18 +1646,33 @@ public final class BossChallengeService {
         return Bukkit.getWorld(location.worldId());
     }
 
-    private @NotNull List<UUID> onlineParticipants(@NotNull Player initiator, @Nullable Party party) {
+    private @NotNull List<UUID> currentPartyParticipantIds(
+            @NotNull Player initiator,
+            @Nullable Party party
+    ) {
         if (party == null) {
             return List.of(initiator.getUniqueId());
         }
-        List<UUID> result = new ArrayList<>();
-        for (UUID memberId : party.members()) {
-            Player member = Bukkit.getPlayer(memberId);
-            if (member != null && member.isOnline()) {
-                result.add(memberId);
+        return party.members();
+    }
+
+    private @Nullable BossChallengeInstance findHubWaitingChallenge(@NotNull Player player) {
+        for (BossChallengeInstance challenge : challengesById.values()) {
+            if (!isWaitingForPartyMembers(challenge)
+                    || !challenge.expectedParticipantIds().contains(player.getUniqueId())
+                    || !isInHub(player)) {
+                continue;
             }
+            return challenge;
         }
-        return result;
+        return null;
+    }
+
+    private boolean isInHub(@NotNull Player player) {
+        WorldMasterData hubData = worldService.getById(hubWorldId);
+        World hubWorld = hubData == null ? null : worldService.resolveLoadedWorld(hubData);
+        return hubWorld != null && player.isOnline()
+                && player.getWorld().getUID().equals(hubWorld.getUID());
     }
 
     private @NotNull List<Player> eligibleParticipantsForEntry(@NotNull BossChallengeInstance challenge) {
@@ -1511,15 +1682,18 @@ public final class BossChallengeService {
             return List.of();
         }
         List<Player> entrants = new ArrayList<>();
+        boolean partyMembershipStillRequired = isWaitingForPartyMembers(challenge);
         for (UUID playerId : challenge.expectedParticipantIds()) {
             Player player = Bukkit.getPlayer(playerId);
-            if (player == null || !player.isOnline() || !stillBelongsToAcceptedParty(challenge, playerId)) {
+            if (player == null || !player.isOnline()
+                    || !AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(player))
+                    || (partyMembershipStillRequired && !stillBelongsToAcceptedParty(challenge, playerId))) {
                 continue;
             }
             boolean inHub = player.getWorld().getUID().equals(hubWorld.getUID());
             boolean inField = challenge.field() != null
                     && player.getWorld().getUID().equals(challenge.field().world().getUID());
-            if (!inHub && !inField) {
+            if (challenge.isWaitingAbsent(playerId) || (!inHub && !inField)) {
                 continue;
             }
             entrants.add(player);
@@ -1536,6 +1710,157 @@ public final class BossChallengeService {
         }
         Party currentParty = partyService.findParty(playerId);
         return currentParty != null && challenge.partyKey().equals("party:" + currentParty.getPartyId());
+    }
+
+    private boolean isWaitingForPartyMembers(@NotNull BossChallengeInstance challenge) {
+        UUID ticketId = challenge.creationQueueTicketId();
+        return challenge.state() == BossChallengeState.PREPARING
+                && challenge.field() == null
+                && !pendingFieldPreparationChallenges.contains(challenge.challengeId())
+                && (ticketId == null || !creationQueue.isActive(ticketId));
+    }
+
+    private void synchronizeWaitingParty(@NotNull BossChallengeInstance challenge) {
+        if (!challenge.partyKey().startsWith("party:") || !isWaitingForPartyMembers(challenge)) {
+            return;
+        }
+        UUID partyId;
+        try {
+            partyId = UUID.fromString(challenge.partyKey().substring("party:".length()));
+        } catch (IllegalArgumentException exception) {
+            endChallenge(challenge, BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET);
+            return;
+        }
+        Party party = partyService.findPartyById(partyId);
+        if (party == null || party.members().isEmpty()) {
+            challenge.updateExpectedParticipantIds(
+                    challenge.expectedParticipantIds().stream()
+                            .filter(participantId -> {
+                                Player participant = Bukkit.getPlayer(participantId);
+                                return participant != null && participant.isOnline() && isInHub(participant);
+                            })
+                            .toList()
+            );
+            endChallenge(challenge, BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET);
+            return;
+        }
+
+        List<UUID> previous = challenge.expectedParticipantIds();
+        List<UUID> current = party.members();
+        if (!previous.equals(current)) {
+            Set<UUID> previousSet = new HashSet<>(previous);
+            Set<UUID> currentSet = new HashSet<>(current);
+            List<UUID> removed = previous.stream().filter(id -> !currentSet.contains(id)).toList();
+            boolean added = current.stream().anyMatch(id -> !previousSet.contains(id));
+            InstanceCreationQueue.Ticket waitingTicket = waitingTicket(challenge);
+            if (waitingTicket != null && (added || !allParticipantsInHub(challenge, current))) {
+                creationQueue.cancelWaiting(waitingTicket.id());
+                challenge.creationQueueTicketId(null);
+                clearQueueTitles(waitingTicket.participantIds());
+            }
+            challenge.updateExpectedParticipantIds(current);
+            challenge.reservedCreationSlot(hasDonorPermission(party, challenge.initiatorId()));
+            if (waitingTicket != null) {
+                clearQueueTitles(removed);
+            }
+            for (UUID removedId : removed) {
+                Player removedPlayer = Bukkit.getPlayer(removedId);
+                if (removedPlayer != null && removedPlayer.isOnline() && isInHub(removedPlayer)) {
+                    teleportParticipantOutAsync(challenge, removedPlayer);
+                }
+            }
+            if (waitingTicket != null && !added && challenge.creationQueueTicketId() != null
+                    && allParticipantsInHub(challenge, current)) {
+                InstanceCreationQueue.Ticket updated = creationQueue.updateWaiting(
+                        waitingTicket.id(),
+                        current,
+                        challenge.reservedCreationSlot());
+                if (updated != null) {
+                    renderQueueStatus(challenge, updated);
+                }
+            }
+            return;
+        }
+
+        boolean reserved = hasDonorPermission(party, challenge.initiatorId());
+        if (challenge.reservedCreationSlot() != reserved) {
+            challenge.reservedCreationSlot(reserved);
+            InstanceCreationQueue.Ticket waitingTicket = waitingTicket(challenge);
+            if (waitingTicket != null) {
+                InstanceCreationQueue.Ticket updated = creationQueue.updateWaiting(
+                        waitingTicket.id(), current, reserved);
+                if (updated != null) {
+                    renderQueueStatus(challenge, updated);
+                }
+            }
+        }
+    }
+
+    private @Nullable InstanceCreationQueue.Ticket waitingTicket(
+            @NotNull BossChallengeInstance challenge
+    ) {
+        UUID ticketId = challenge.creationQueueTicketId();
+        if (ticketId == null || creationQueue.isActive(ticketId)) {
+            return null;
+        }
+        return creationQueue.waitingTickets().stream()
+                .filter(ticket -> ticket.id().equals(ticketId))
+                .findFirst()
+                .orElse(null);
+    }
+
+    private boolean allParticipantsInHub(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull List<UUID> participantIds
+    ) {
+        if (participantIds.isEmpty()) {
+            return false;
+        }
+        WorldMasterData hubData = worldService.getById(hubWorldId);
+        World hubWorld = hubData == null ? null : worldService.resolveLoadedWorld(hubData);
+        if (hubWorld == null) {
+            return false;
+        }
+        for (UUID participantId : participantIds) {
+            Player player = Bukkit.getPlayer(participantId);
+            if (player == null || !player.isOnline()
+                    || !AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(player))
+                    || challenge.isWaitingAbsent(participantId)
+                    || !player.getWorld().getUID().equals(hubWorld.getUID())) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    private boolean currentReservedCreationSlot(@NotNull BossChallengeInstance challenge) {
+        if (challenge.partyKey().startsWith("solo:")) {
+            Player initiator = Bukkit.getPlayer(challenge.initiatorId());
+            AstPlayer astPlayer = initiator == null ? null : AstPlayerCache.get(initiator);
+            return astPlayer != null && astPlayer.hasPermissionLevel(UserPermission.DONOR.getValue());
+        }
+        try {
+            UUID partyId = UUID.fromString(challenge.partyKey().substring("party:".length()));
+            return hasDonorPermission(partyService.findPartyById(partyId), challenge.initiatorId());
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
+    }
+
+    private boolean hasDonorPermission(@Nullable Party party, @NotNull UUID soloPlayerId) {
+        if (party == null) {
+            Player player = Bukkit.getPlayer(soloPlayerId);
+            AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
+            return astPlayer != null && astPlayer.hasPermissionLevel(UserPermission.DONOR.getValue());
+        }
+        for (UUID memberId : party.members()) {
+            Player member = Bukkit.getPlayer(memberId);
+            AstPlayer astPlayer = member == null ? null : AstPlayerCache.get(member);
+            if (astPlayer != null && astPlayer.hasPermissionLevel(UserPermission.DONOR.getValue())) {
+                return true;
+            }
+        }
+        return false;
     }
 
     private @NotNull List<Player> onlinePlayers(@NotNull Collection<UUID> playerIds) {
@@ -1784,23 +2109,11 @@ public final class BossChallengeService {
         challenge.state(BossChallengeState.ENDED);
     }
 
-    private @NotNull CompletableFuture<List<Boolean>> teleportParticipantsToHubAsync(
-            @NotNull BossChallengeInstance challenge,
+    private @NotNull CompletableFuture<Boolean> teleportParticipantToHubAsync(
+            @NotNull Player player,
             @NotNull WorldMasterData hubData
     ) {
-        List<Player> players = onlinePlayers(challenge.expectedParticipantIds());
-        if (players.isEmpty()) {
-            return CompletableFuture.completedFuture(List.of());
-        }
-
-        List<CompletableFuture<Boolean>> transfers = new ArrayList<>(players.size());
-        for (Player player : players) {
-            transfers.add(worldService.teleportToSpawnAsync(player, hubData));
-        }
-        return CompletableFuture.allOf(transfers.toArray(CompletableFuture[]::new))
-                .thenApply(ignored -> transfers.stream()
-                        .map(future -> Boolean.TRUE.equals(future.getNow(false)))
-                        .toList());
+        return worldService.teleportToSpawnAsync(player, hubData);
     }
 
     private void notifyParticipants(@NotNull BossChallengeInstance challenge, @NotNull PlayerMsgId msgId, Object... args) {

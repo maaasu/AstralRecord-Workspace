@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 /**
  * 一時パーティーの作成、招待、参加、離脱を管理します。
@@ -35,6 +36,8 @@ public final class PartyService {
     private final Map<UUID, Party> parties = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> partyIdByMember = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, PartyInvite>> invitesByTarget = new ConcurrentHashMap<>();
+    private final CopyOnWriteArrayList<PartyMembershipChangeListener> membershipChangeListeners =
+            new CopyOnWriteArrayList<>();
 
     /**
      * PartyService を作成します。
@@ -166,6 +169,7 @@ public final class PartyService {
         clearInvitesForTarget(playerId);
         notifyPartyExcept(party, playerId, PlayerMsgId.P_5913, player.getBukkit().getName());
         recordHistory(playerId, "PARTY_JOINED", "Party joined: " + party.getPartyId());
+        notifyMembershipChanged(party.getPartyId());
         return PartyActionResult.success(PlayerMsgId.P_5912, leader.getName());
     }
 
@@ -253,6 +257,7 @@ public final class PartyService {
             }
             recordHistory(memberId, "PARTY_DISBANDED", "Party disbanded: " + party.getPartyId());
         }
+        notifyMembershipChanged(party.getPartyId());
         return PartyActionResult.success(PlayerMsgId.P_5918);
     }
 
@@ -291,6 +296,7 @@ public final class PartyService {
         notifyPartyExcept(party, leaderId, PlayerMsgId.P_5917, target.getName());
         recordHistory(targetId, "PARTY_KICKED", "Kicked from party: " + party.getPartyId());
         recordHistory(leaderId, "PARTY_MEMBER_KICKED", "Kicked party member: " + target.getName());
+        notifyMembershipChanged(party.getPartyId());
         return PartyActionResult.success(PlayerMsgId.P_5921, target.getName());
     }
 
@@ -330,6 +336,34 @@ public final class PartyService {
         return partyId == null ? null : parties.get(partyId);
     }
 
+    /**
+     * パーティー ID から現在のパーティーを取得します。
+     *
+     * @param partyId パーティー ID
+     * @return 存在するパーティー。解散済みなら {@code null}
+     */
+    public synchronized @Nullable Party findPartyById(@NotNull UUID partyId) {
+        return parties.get(partyId);
+    }
+
+    /**
+     * パーティー構成変更 listener を登録します。
+     *
+     * @param listener 構成変更時に呼び出す listener
+     */
+    public void addMembershipChangeListener(@NotNull PartyMembershipChangeListener listener) {
+        membershipChangeListeners.addIfAbsent(listener);
+    }
+
+    /**
+     * パーティー構成変更 listener の登録を解除します。
+     *
+     * @param listener 登録済み listener
+     */
+    public void removeMembershipChangeListener(@NotNull PartyMembershipChangeListener listener) {
+        membershipChangeListeners.remove(listener);
+    }
+
     public @NotNull List<PartyInvite> getInvites(@NotNull UUID playerId) {
         return new ArrayList<>(invitesByTarget.getOrDefault(playerId, Map.of()).values());
     }
@@ -351,6 +385,7 @@ public final class PartyService {
         recordHistory(playerId, eventType, "Party left: " + party.getPartyId());
         if (party.isEmpty()) {
             parties.remove(party.getPartyId());
+            notifyMembershipChanged(party.getPartyId());
             return true;
         }
 
@@ -364,7 +399,18 @@ public final class PartyService {
         if (notify) {
             notifyParty(party, PlayerMsgId.P_5917, playerName);
         }
+        notifyMembershipChanged(party.getPartyId());
         return true;
+    }
+
+    private void notifyMembershipChanged(@NotNull UUID partyId) {
+        for (PartyMembershipChangeListener listener : membershipChangeListeners) {
+            try {
+                listener.onPartyMembershipChanged(partyId);
+            } catch (RuntimeException exception) {
+                Logger.log(LogId.E_6110, exception, partyId.toString());
+            }
+        }
     }
 
     private void notifyParty(@NotNull Party party, @NotNull PlayerMsgId messageId, Object... args) {
