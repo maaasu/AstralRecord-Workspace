@@ -212,6 +212,23 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             );
             return;
         }
+        if (rawSlot == PlayerDetailGui.EQUIPMENT_SLOT) {
+            UUID targetId = playerDetailGui.getTargetId(inventory);
+            Player targetPlayer = targetId == null ? null : Bukkit.getPlayer(targetId);
+            AstPlayer target = targetPlayer == null ? null : AstPlayerCache.get(targetPlayer);
+            if (target == null || targetPlayer == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            GuiSound.SELECT.play(player);
+            plugin.getMenuView().openEquipmentGui(
+                player,
+                targetPlayer,
+                inventoryService.getAccessorySnapshotItems(target),
+                !player.getUniqueId().equals(targetPlayer.getUniqueId())
+            );
+            return;
+        }
         if (rawSlot == PlayerDetailGui.BUFF_SLOT) {
             UUID targetId = playerDetailGui.getTargetId(inventory);
             Player targetPlayer = targetId == null ? null : Bukkit.getPlayer(targetId);

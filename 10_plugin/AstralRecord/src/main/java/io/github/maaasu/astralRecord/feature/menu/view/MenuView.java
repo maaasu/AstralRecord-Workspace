@@ -160,13 +160,45 @@ public class MenuView {
     }
 
     public void openEquipmentGui(@NotNull Player player) {
-        openEquipmentGui(player, new ItemStack[0]);
+        openEquipmentGui(player, player, new ItemStack[0], false);
     }
 
     public void openEquipmentGui(@NotNull Player player, @NotNull ItemStack[] accessories) {
-        Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.EQUIPMENT_GUI), SIZE, EQUIPMENT_TITLE);
-        equipmentMenuScreenView.render(inventory, player, accessories);
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+        openEquipmentGui(player, player, accessories, false);
+    }
+
+    /**
+     * 指定プレイヤーの装備を、閲覧者向けの装備画面へ描画します。
+     *
+     * @param viewer GUI を表示するプレイヤー
+     * @param target 装備を表示する対象プレイヤー
+     * @param accessories 対象プレイヤーのアクセサリスナップショット
+     * @param readOnly 対象が閲覧者以外の場合など、装備操作を禁止する場合は true
+     */
+    public void openEquipmentGui(
+        @NotNull Player viewer,
+        @NotNull Player target,
+        @NotNull ItemStack[] accessories,
+        boolean readOnly
+    ) {
+        boolean effectiveReadOnly = readOnly
+            || !viewer.getUniqueId().equals(target.getUniqueId());
+        Inventory inventory = Bukkit.createInventory(
+            new MenuInventoryHolder(
+                MenuScreen.EQUIPMENT_GUI,
+                -1,
+                0,
+                null,
+                target.getUniqueId(),
+                effectiveReadOnly
+            ),
+            SIZE,
+            effectiveReadOnly
+                ? Component.text("装備: " + target.getName(), NamedTextColor.GOLD)
+                : EQUIPMENT_TITLE
+        );
+        equipmentMenuScreenView.render(inventory, target, accessories);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
     }
 
     /**
@@ -423,6 +455,33 @@ public class MenuView {
             return holder.contentId();
         }
         return null;
+    }
+
+    /**
+     * 装備画面に表示している対象プレイヤー ID を返します。
+     *
+     * @param inventory 判定対象の inventory
+     * @return 装備対象プレイヤー ID。装備画面以外または未設定の場合は null
+     */
+    public @Nullable UUID getEquipmentTargetId(@Nullable Inventory inventory) {
+        if (inventory != null && inventory.getHolder() instanceof MenuInventoryHolder holder
+            && holder.screen() == MenuScreen.EQUIPMENT_GUI) {
+            return holder.equipmentTargetId();
+        }
+        return null;
+    }
+
+    /**
+     * 装備画面が参照専用か判定します。
+     *
+     * @param inventory 判定対象の inventory
+     * @return 他プレイヤー装備の参照専用画面なら true
+     */
+    public boolean isEquipmentReadOnly(@Nullable Inventory inventory) {
+        return inventory != null
+            && inventory.getHolder() instanceof MenuInventoryHolder holder
+            && holder.screen() == MenuScreen.EQUIPMENT_GUI
+            && holder.equipmentReadOnly();
     }
 
     public @Nullable EquipmentType getEquipmentTypeAtSlot(int rawSlot) {

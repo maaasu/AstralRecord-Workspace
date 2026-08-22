@@ -23,6 +23,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillGemLearnEventHandler;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -40,6 +41,8 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
+
+import java.util.UUID;
 
 public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
 
@@ -164,6 +167,9 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
             if (!isEquipmentMenu(topInventory)) {
                 return;
             }
+            if (menuView.isEquipmentReadOnly(topInventory)) {
+                return;
+            }
             menuView.updateEquipmentMainHandItem(
                 topInventory,
                 player.getInventory().getItem(event.getNewSlot())
@@ -174,18 +180,27 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     /** オーブ GUI 上のドラッグを、操作ロックを含めて専用サービスへ委譲します。 */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onInventoryDrag(@NotNull InventoryDragEvent event) {
+        Inventory topInventory = event.getView().getTopInventory();
         if (event.getWhoClicked() instanceof Player player && orbService.isLocked(player)) {
             event.setCancelled(true);
             return;
         }
-        if (orbService.isOrbInventory(event.getView().getTopInventory())) {
+        if (isEquipmentMenu(topInventory) && menuView.isEquipmentReadOnly(topInventory)) {
+            event.setCancelled(true);
+            return;
+        }
+        if (orbService.isOrbInventory(topInventory)) {
             orbService.handleGuiDrag(event);
         }
     }
 
-    /** 演出・更新待機中の Q ドロップによる state 逸脱を防ぎます。 */
+    /** 参照専用装備画面または演出・更新待機中の Q ドロップによる state 逸脱を防ぎます。 */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onPlayerDropItem(@NotNull PlayerDropItemEvent event) {
+        if (menuView.isEquipmentReadOnly(event.getPlayer().getOpenInventory().getTopInventory())) {
+            event.setCancelled(true);
+            return;
+        }
         if (orbService.isLocked(event.getPlayer())) {
             event.setCancelled(true);
         }
@@ -212,6 +227,11 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }
         event.setCancelled(true);
 
+        if (menuView.isEquipmentReadOnly(topInventory)) {
+            handleReadOnlyEquipmentMenuClick(event, player, topInventory);
+            return;
+        }
+
         if (event.getRawSlot() >= topInventory.getSize()) {
             handleEquipmentMenuPlayerInventoryClick(event, topInventory, player);
             return;
@@ -230,6 +250,31 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }
 
         handleEquipmentMenuSlotClick(event, topInventory, player);
+    }
+
+    private void handleReadOnlyEquipmentMenuClick(
+        @NotNull InventoryClickEvent event,
+        @NotNull Player player,
+        @NotNull Inventory topInventory
+    ) {
+        int rawSlot = event.getRawSlot();
+        if (rawSlot == MenuView.EQUIPMENT_BACK_SLOT) {
+            GuiSound.SELECT.play(player);
+            AstralRecord.getInstance().getGuiNavigationService().openPrevious(player);
+            return;
+        }
+        if (rawSlot == MenuView.EQUIPMENT_PLAYER_STATUS_SLOT) {
+            UUID targetId = menuView.getEquipmentTargetId(topInventory);
+            Player target = targetId == null ? player : Bukkit.getPlayer(targetId);
+            var handler = AstralRecord.getInstance().getPlayerBrowserGuiEventHandler();
+            if (target == null || handler == null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            handler.openDetailFromCommand(player, target);
+            return;
+        }
+        GuiSound.DENY.play(player);
     }
 
     private boolean handleEquipmentMenuNavigationClick(
@@ -420,6 +465,9 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     }
 
     private void saveEquipmentMenuSnapshot(@NotNull Player player, @NotNull Inventory inventory) {
+        if (menuView.isEquipmentReadOnly(inventory)) {
+            return;
+        }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
             return;

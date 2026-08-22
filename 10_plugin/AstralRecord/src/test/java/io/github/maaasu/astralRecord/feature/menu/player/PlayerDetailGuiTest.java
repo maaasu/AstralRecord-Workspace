@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
@@ -69,6 +70,7 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
         String conditionLore = plainLore(inventory.getItem(PlayerDetailGui.CONDITION_SLOT));
         String buffLore = plainLore(inventory.getItem(PlayerDetailGui.BUFF_SLOT));
         String classLore = plainLore(inventory.getItem(PlayerDetailGui.CLASS_SLOT));
+        String equipmentLore = plainLore(inventory.getItem(PlayerDetailGui.EQUIPMENT_SLOT));
 
         assertTrue(headLore.contains("Greenfall Fields"));
         assertFalse(headLore.contains("internal_greenfall"));
@@ -90,6 +92,8 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
         assertTrue(classLore.contains("Adventurer Lv.10"));
         assertTrue(classLore.contains("Mage Lv.4"));
         assertTrue(classLore.contains("CEXP"));
+        assertTrue(Material.NETHERITE_CHESTPLATE.equals(inventory.getItem(PlayerDetailGui.EQUIPMENT_SLOT).getType()));
+        assertTrue(equipmentLore.contains("クリックして装備画面を開く"));
         assertFalse(headLore.contains("Class Lv."));
         assertTrue(NamedTextColor.RED.equals(findTextComponent(inventory.getItem(PlayerDetailGui.ELEMENT_SLOT), "火属性ダメージ増加").color()));
         assertTrue(NamedTextColor.AQUA.equals(findTextComponent(inventory.getItem(PlayerDetailGui.ELEMENT_SLOT), "氷属性ダメージ増加").color()));

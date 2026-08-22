@@ -15,6 +15,8 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetServic
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.feature.menu.model.MenuIconDefinition;
+import io.github.maaasu.astralRecord.feature.menu.view.MenuIconFactory;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -54,6 +56,7 @@ import java.util.UUID;
  */
 public final class PlayerDetailGui extends BaseMenuScreenView {
     public static final int HEAD_SLOT = 4;
+    public static final int EQUIPMENT_SLOT = 22;
     public static final int RESOURCE_SLOT = 10;
     public static final int PRIMARY_SLOT = 11;
     public static final int OFFENSE_SLOT = 12;
@@ -445,6 +448,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             goldAmount,
             classDisplayName
         ));
+        inventory.setItem(EQUIPMENT_SLOT, equipmentItem(self));
         inventory.setItem(RESOURCE_SLOT, categoryItem(Material.GOLDEN_APPLE, "◆", StatusType.Category.RESOURCE, NamedTextColor.GOLD, snapshot));
         inventory.setItem(PRIMARY_SLOT, categoryItem(Material.DIAMOND, "◇", StatusType.Category.PRIMARY, NamedTextColor.YELLOW, snapshot));
         inventory.setItem(OFFENSE_SLOT, categoryItem(Material.NETHERITE_SWORD, "⚔", StatusType.Category.OFFENSE, NamedTextColor.RED, snapshot));
@@ -473,6 +477,16 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             "対象プレイヤーをパーティーへ招待します",
             "自分自身へは招待できません"
         ));
+    }
+
+    private @NotNull ItemStack equipmentItem(boolean self) {
+        return MenuIconFactory.create(
+            MenuIconDefinition.EQUIPMENT,
+            List.of(noItalic(Component.text(
+                self ? "クリックして装備画面を開く" : "クリックして装備品を参照",
+                NamedTextColor.YELLOW
+            )))
+        );
     }
 
     private @NotNull ItemStack skillInfoItem(@NotNull AstPlayer target) {

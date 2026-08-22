@@ -18,6 +18,8 @@ import java.util.stream.IntStream;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class MenuViewTest extends MockBukkitTestBase {
 
@@ -64,6 +66,31 @@ class MenuViewTest extends MockBukkitTestBase {
         Inventory pageTwoInventory = player.getOpenInventory().getTopInventory();
         assertEquals(1, menuView.getPageIndex(pageTwoInventory));
         assertEquals(Material.GRAY_STAINED_GLASS_PANE, pageTwoInventory.getItem(CurrencyGuiView.EXCHANGE_SLOT).getType());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
+     * 章・見出し: # 09_3-GUI・View > ## 4. プレイヤー一覧・詳細
+     * 検証契約: 他プレイヤーの装備画面は対象 UUIDを保持し、参照専用として開く。自分以外を編集可能にしない。
+     */
+    @Test
+    void opensOtherPlayerEquipmentAsReadOnly() {
+        MenuView menuView = createMenuView();
+        Player viewer = server().addPlayer();
+        Player target = server().addPlayer();
+
+        menuView.openEquipmentGui(viewer, target, new ItemStack[0], false);
+
+        Inventory inventory = viewer.getOpenInventory().getTopInventory();
+        assertEquals(MenuScreen.EQUIPMENT_GUI, menuView.getMenuScreen(inventory));
+        assertTrue(menuView.isEquipmentReadOnly(inventory));
+        assertEquals(target.getUniqueId(), menuView.getEquipmentTargetId(inventory));
+
+        viewer.closeInventory();
+        menuView.openEquipmentGui(viewer, viewer, new ItemStack[0], false);
+        Inventory selfInventory = viewer.getOpenInventory().getTopInventory();
+        assertFalse(menuView.isEquipmentReadOnly(selfInventory));
+        assertEquals(viewer.getUniqueId(), menuView.getEquipmentTargetId(selfInventory));
     }
 
     private MenuView createMenuView() {
