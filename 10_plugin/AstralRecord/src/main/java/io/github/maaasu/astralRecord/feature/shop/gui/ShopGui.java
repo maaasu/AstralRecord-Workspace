@@ -57,9 +57,17 @@ public final class ShopGui {
         @NotNull ShopService shopService,
         @NotNull ItemStackFactory itemStackFactory
     ) {
+        this(new NamespacedKey(plugin, "shop_entry_id"), shopService, itemStackFactory);
+    }
+
+    ShopGui(
+        @NotNull NamespacedKey entryIdKey,
+        @NotNull ShopService shopService,
+        @NotNull ItemStackFactory itemStackFactory
+    ) {
         this.shopService = shopService;
         this.itemStackFactory = itemStackFactory;
-        this.entryIdKey = new NamespacedKey(plugin, "shop_entry_id");
+        this.entryIdKey = entryIdKey;
     }
 
     /**
@@ -261,12 +269,14 @@ public final class ShopGui {
         lore.add(Component.text(exchange ? "受取数: " : "販売数: ", NamedTextColor.GRAY)
             .append(Component.text(quantityText(Math.max(1, entry.amount())), NamedTextColor.AQUA, TextDecoration.BOLD))
             .decoration(TextDecoration.ITALIC, false));
-        if (!exchange || shopService.resolveGoldCost(entry) > 0) {
-            lore.add(Component.text("価格: " + shopService.resolveGoldCost(entry) + " ゴールド", NamedTextColor.YELLOW)
+        int requiredGold = shopService.resolveGoldCost(entry);
+        List<ShopCostItem> requiredItems = shopService.resolveRequiredItems(entry);
+        if (requiredGold > 0) {
+            lore.add(Component.text("価格: " + requiredGold + " ゴールド", NamedTextColor.YELLOW)
                 .decoration(TextDecoration.ITALIC, false));
         }
-        lore.add(sectionHeader(exchange ? "交換元通貨" : "必要素材"));
-        appendMaterialList(lore, shopService.resolveRequiredItems(entry), "なし", NamedTextColor.AQUA);
+        lore.add(sectionHeader(costSectionTitle(exchange, requiredItems)));
+        appendMaterialList(lore, requiredItems, "なし", NamedTextColor.AQUA);
         lore.add(Component.empty());
         lore.add(Component.text(exchange ? "クリックで両替確認へ" : "クリックで購入確認へ", NamedTextColor.GREEN, TextDecoration.BOLD)
             .decoration(TextDecoration.ITALIC, false));
@@ -293,36 +303,35 @@ public final class ShopGui {
         lore.add(Component.text(exchange ? "両替口数: " : "購入数量: ", NamedTextColor.GRAY)
             .append(Component.text(String.valueOf(preview.quantity()), NamedTextColor.YELLOW))
             .decoration(TextDecoration.ITALIC, false));
-        if (!exchange || preview.requiredGold() > 0) {
+        if (preview.requiredGold() > 0) {
             lore.add(Component.text("ゴールド: ", NamedTextColor.GRAY)
                 .append(Component.text("必要 " + preview.requiredGold(), NamedTextColor.GOLD))
                 .append(Component.text(" / ", NamedTextColor.DARK_GRAY))
                 .append(Component.text("所持 " + preview.ownedGold(), NamedTextColor.YELLOW))
                 .decoration(TextDecoration.ITALIC, false));
         }
-        lore.add(sectionHeader(exchange ? "交換元通貨" : "必要素材"));
+        lore.add(sectionHeader(costSectionTitle(exchange, preview.requiredItems())));
         appendMaterialList(lore, preview.requiredItems(), "なし", NamedTextColor.AQUA);
         if (!preview.canPurchase()) {
-            lore.add(sectionHeader(exchange ? "不足通貨" : "不足素材"));
+            lore.add(sectionHeader(missingCostSectionTitle(exchange, preview)));
             appendMaterialList(lore, preview.missingItems(), "不足なし", NamedTextColor.RED);
         } else {
             lore.add(sectionHeader(exchange ? "両替可能" : "購入可能"));
             lore.add(Component.text(
-                    exchange ? "• 交換元通貨を消費して等価交換します" : "• 素材とゴールドを消費して購入します",
+                    purchaseReadyText(exchange, preview),
                     NamedTextColor.GREEN
                 )
                 .decoration(TextDecoration.ITALIC, false));
         }
+        String actionText = purchaseActionText(exchange, preview);
         lore.add(Component.empty());
-        lore.add(Component.text(preview.canPurchase()
-                ? exchange ? "◆ クリックして両替する ◆" : "◆ クリックして購入する ◆"
-                : exchange ? "◆ 通貨不足で両替できません ◆" : "◆ 素材不足で購入できません ◆",
+        lore.add(Component.text(actionText,
                 preview.canPurchase() ? NamedTextColor.GREEN : NamedTextColor.RED,
                 TextDecoration.BOLD)
             .decoration(TextDecoration.ITALIC, false));
         return actionItem(material, Component.text(preview.canPurchase()
                 ? exchange ? "両替する" : "購入する"
-                : exchange ? "通貨が不足しています" : "素材が不足しています",
+                : purchaseUnavailableLabel(exchange, preview),
                 preview.canPurchase() ? NamedTextColor.GREEN : NamedTextColor.RED,
                 TextDecoration.BOLD)
             .decoration(TextDecoration.ITALIC, false), lore);
@@ -486,6 +495,102 @@ public final class ShopGui {
                 .append(Component.text(" " + quantityText(material.amount()), accentColor))
                 .decoration(TextDecoration.ITALIC, false));
         }
+    }
+
+    private @NotNull String costSectionTitle(boolean exchange, @NotNull List<ShopCostItem> costs) {
+        if (exchange) {
+            return "交換元通貨";
+        }
+        if (costs.stream().allMatch(this::isCurrencyCost) && !costs.isEmpty()) {
+            return "必要な通貨";
+        }
+        if (costs.stream().noneMatch(this::isCurrencyCost) && !costs.isEmpty()) {
+            return "必要素材";
+        }
+        return "必要な対価";
+    }
+
+    private @NotNull String missingCostSectionTitle(
+        boolean exchange,
+        @NotNull ShopPurchasePreview preview
+    ) {
+        if (exchange) {
+            return "不足通貨";
+        }
+        if (preview.requiredGold() <= 0
+            && !preview.requiredItems().isEmpty()
+            && preview.requiredItems().stream().allMatch(this::isCurrencyCost)) {
+            return "不足している通貨";
+        }
+        if (preview.requiredGold() <= 0
+            && !preview.requiredItems().isEmpty()
+            && preview.requiredItems().stream().noneMatch(this::isCurrencyCost)) {
+            return "不足素材";
+        }
+        return "不足している対価";
+    }
+
+    private @NotNull String purchaseReadyText(
+        boolean exchange,
+        @NotNull ShopPurchasePreview preview
+    ) {
+        if (exchange) {
+            return "• 交換元通貨を消費して等価交換します";
+        }
+        boolean hasGold = preview.requiredGold() > 0;
+        boolean hasCurrency = preview.requiredItems().stream().anyMatch(this::isCurrencyCost);
+        boolean hasMaterials = preview.requiredItems().stream().anyMatch(cost -> !isCurrencyCost(cost));
+        if (hasGold && hasMaterials) {
+            return "• 素材とゴールドを消費して購入します";
+        }
+        if (hasGold && hasCurrency) {
+            return "• 必要な通貨とゴールドを消費して購入します";
+        }
+        if (hasGold) {
+            return "• ゴールドを消費して購入します";
+        }
+        if (hasCurrency && !hasMaterials) {
+            return "• 必要な通貨を消費して購入します";
+        }
+        if (hasMaterials) {
+            return "• 必要素材を消費して購入します";
+        }
+        return "• 対価なしで受け取ります";
+    }
+
+    private @NotNull String purchaseActionText(
+        boolean exchange,
+        @NotNull ShopPurchasePreview preview
+    ) {
+        if (preview.canPurchase()) {
+            return exchange ? "◆ クリックして両替する ◆" : "◆ クリックして購入する ◆";
+        }
+        if (exchange) {
+            return "◆ 通貨不足で両替できません ◆";
+        }
+        boolean onlyCurrency = preview.requiredGold() <= 0
+            && !preview.requiredItems().isEmpty()
+            && preview.requiredItems().stream().allMatch(this::isCurrencyCost);
+        return onlyCurrency
+            ? "◆ 必要な通貨が不足して購入できません ◆"
+            : "◆ 必要な対価が不足して購入できません ◆";
+    }
+
+    private @NotNull String purchaseUnavailableLabel(
+        boolean exchange,
+        @NotNull ShopPurchasePreview preview
+    ) {
+        if (exchange) {
+            return "通貨が不足しています";
+        }
+        boolean onlyCurrency = preview.requiredGold() <= 0
+            && !preview.requiredItems().isEmpty()
+            && preview.requiredItems().stream().allMatch(this::isCurrencyCost);
+        return onlyCurrency ? "通貨が不足しています" : "必要な対価が不足しています";
+    }
+
+    private boolean isCurrencyCost(@NotNull ShopCostItem cost) {
+        return "currency".equalsIgnoreCase(cost.category());
     }
 
     private boolean isExchange(@NotNull ShopDefinition shop) {

@@ -98,7 +98,8 @@ public class MarketRepository(
         var state = await EnsureAccountStateAsync(accountId, accountId);
         var activeCount = await CountActiveListingsAsync(accountId);
         var usedSlotCount = await CountUsedListingSlotsAsync(accountId);
-        return listingLimitService.BuildSummary(state, activeCount, usedSlotCount);
+        var expansionSlotCount = await CountExpansionListingSlotsAsync(accountId);
+        return listingLimitService.BuildSummary(state, activeCount, usedSlotCount, expansionSlotCount);
     }
 
     public async Task<MarketOperationResult<MarketListingResponse>> CreateListingAsync(MarketListingCreateRequest request)
@@ -153,8 +154,12 @@ public class MarketRepository(
 
             var state = await EnsureAccountStateAsync(request.SellerAccountId, request.CreatedBy);
             var usedSlotCount = await CountUsedListingSlotsAsync(request.SellerAccountId);
+            var expansionSlotCount = await CountExpansionListingSlotsAsync(request.SellerAccountId, forUpdate: true);
             var limit = listingLimitService.ResolveLimit(state.CompletedTradeCount);
-            if (usedSlotCount >= limit.MaxActiveListingCount)
+            var maxListingSlots = MarketListingExpansion.AddToBaseLimit(
+                limit.MaxActiveListingCount,
+                expansionSlotCount);
+            if (usedSlotCount >= maxListingSlots)
                 return await RollbackFailureAsync(
                     400,
                     "market.listing_slot_limit_exceeded",
@@ -1109,6 +1114,68 @@ public class MarketRepository(
                 || listing.Status == "SUSPENDED"
                 || listing.Status == "SOLD"));
     }
+
+    private async Task<int> CountExpansionListingSlotsAsync(Guid accountId, bool forUpdate = false)
+    {
+        var entries = dbContext.Database.IsSqlServer() && forUpdate
+            ? await FindExpansionEntriesForUpdateAsync(accountId)
+            : await FindExpansionEntriesAsync(accountId);
+
+        return MarketListingExpansion.ResolveSlotCount(entries);
+    }
+
+    private async Task<List<(string? ItemId, long Quantity)>> FindExpansionEntriesAsync(Guid accountId)
+    {
+        var tokenItemIds = MarketListingExpansion.TokenItemIds.ToArray();
+        var entries = await (
+            from entry in dbContext.InventoryEntries.AsNoTracking()
+            join inventory in dbContext.Inventories.AsNoTracking()
+                on entry.InventoryId equals inventory.InventoryId
+            where inventory.AccountId == accountId
+                  && !inventory.IsDeleted
+                  && inventory.IsEnabled
+                  && inventory.InventoryProfile == MarketListingExpansion.GameInventoryProfile
+                  && inventory.InventoryType == MarketListingExpansion.CurrencyInventoryType
+                  && !entry.IsDeleted
+                  && entry.ItemCategory == "currency"
+                  && entry.Quantity > 0
+                  && entry.ItemId != null
+                  && tokenItemIds.Contains(entry.ItemId)
+            select new { entry.ItemId, entry.Quantity }
+        ).ToListAsync();
+
+        return entries.Select(entry => ((string?)entry.ItemId, entry.Quantity)).ToList();
+    }
+
+    private async Task<List<(string? ItemId, long Quantity)>> FindExpansionEntriesForUpdateAsync(Guid accountId)
+    {
+        var entries = await dbContext.InventoryEntries
+            .FromSqlInterpolated(BuildExpansionEntriesForUpdateQuery(accountId))
+            .AsNoTracking()
+            .ToListAsync();
+
+        return entries.Select(entry => ((string?)entry.ItemId, entry.Quantity)).ToList();
+    }
+
+    internal static FormattableString BuildExpansionEntriesForUpdateQuery(Guid accountId) => $"""
+        SELECT entry.*
+        FROM [dbo].[inventory_entry] AS entry WITH (UPDLOCK, HOLDLOCK)
+        INNER JOIN [dbo].[inventory] AS inventory WITH (HOLDLOCK)
+            ON inventory.[inventory_id] = entry.[inventory_id]
+        WHERE inventory.[account_id] = {accountId}
+          AND inventory.[is_deleted] = 0
+          AND inventory.[is_enabled] = 1
+          AND inventory.[inventory_profile] = {MarketListingExpansion.GameInventoryProfile}
+          AND inventory.[inventory_type] = {MarketListingExpansion.CurrencyInventoryType}
+          AND entry.[is_deleted] = 0
+          AND entry.[item_category] = 'currency'
+          AND entry.[quantity] > 0
+          AND entry.[item_id] IN (
+              {MarketListingExpansion.AlphaTokenItemId},
+              {MarketListingExpansion.BetaTokenItemId},
+              {MarketListingExpansion.GammaTokenItemId},
+              {MarketListingExpansion.DeltaTokenItemId})
+        """;
 
     private static bool IsValidListingPayload(MarketListingCreateRequest request)
     {

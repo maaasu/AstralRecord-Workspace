@@ -16,6 +16,94 @@ namespace AstralRecordApi.Tests.Repositories;
 public class MarketRepositoryEquipmentListingTests
 {
     [Fact]
+    public async Task AccountSummary_IncludesOwnedExpansionTokensWithinPerTypeCaps()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false, maxListingSlots: 3);
+        await harness.AddMarketExpansionTokenAsync(MarketListingExpansion.AlphaTokenItemId, 100);
+        await harness.AddMarketExpansionTokenAsync(MarketListingExpansion.BetaTokenItemId, 2);
+
+        var summary = await harness.Repository.GetAccountSummaryAsync(harness.AccountId);
+
+        Assert.NotNull(summary);
+        Assert.Equal(11, summary!.MaxListingSlotCount);
+        Assert.Equal(summary.MaxListingSlotCount, summary.MaxActiveListingCount);
+    }
+
+    [Fact]
+    public async Task AccountSummary_IgnoresExpansionTokensOutsideEligibleInventoryEntries()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false, maxListingSlots: 3);
+        await harness.AddMarketExpansionTokenAsync(MarketListingExpansion.AlphaTokenItemId, 1);
+        await harness.AddInvalidMarketExpansionEntriesAsync();
+
+        var summary = await harness.Repository.GetAccountSummaryAsync(harness.AccountId);
+
+        Assert.NotNull(summary);
+        Assert.Equal(4, summary!.MaxListingSlotCount);
+    }
+
+    [Fact]
+    public async Task CreateListing_IgnoresExpansionTokensOutsideEligibleInventoryEntries()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: true, maxListingSlots: 1);
+        await harness.AddInvalidMarketExpansionEntriesAsync();
+
+        var first = await harness.Repository.CreateListingAsync(harness.CreateRequest());
+        Assert.True(first.Succeeded);
+
+        var secondEntryId = await harness.AddStackEntryAsync(quantity: 1);
+        var second = await harness.Repository.CreateListingAsync(
+            harness.CreateStackRequest(secondEntryId, quantity: 1));
+
+        Assert.False(second.Succeeded);
+        Assert.Equal("market.listing_slot_limit_exceeded", second.ErrorCode);
+    }
+
+    [Fact]
+    public async Task CreateListing_UsesOwnedExpansionTokenSlots()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: true, maxListingSlots: 1);
+        await harness.AddMarketExpansionTokenAsync(MarketListingExpansion.AlphaTokenItemId, 1);
+
+        var first = await harness.Repository.CreateListingAsync(harness.CreateRequest());
+        Assert.True(first.Succeeded);
+
+        var secondEntryId = await harness.AddStackEntryAsync(quantity: 1);
+        var second = await harness.Repository.CreateListingAsync(
+            harness.CreateStackRequest(secondEntryId, quantity: 1));
+
+        Assert.True(second.Succeeded);
+    }
+
+    [Fact]
+    public void SqlServerExpansionEntryQuery_UsesLockHintsAndEligibleFilters()
+    {
+        var accountId = Guid.NewGuid();
+        var query = MarketRepository.BuildExpansionEntriesForUpdateQuery(accountId);
+        var format = query.Format;
+        var arguments = query.GetArguments();
+
+        Assert.Contains("WITH (UPDLOCK, HOLDLOCK)", format);
+        Assert.Contains("WITH (HOLDLOCK)", format);
+        Assert.Contains("inventory.[account_id] =", format);
+        Assert.Contains("inventory.[is_deleted] = 0", format);
+        Assert.Contains("inventory.[is_enabled] = 1", format);
+        Assert.Contains("inventory.[inventory_profile] =", format);
+        Assert.Contains("inventory.[inventory_type] =", format);
+        Assert.Contains("entry.[is_deleted] = 0", format);
+        Assert.Contains("entry.[item_category] = 'currency'", format);
+        Assert.Contains("entry.[quantity] > 0", format);
+        Assert.Contains("entry.[item_id] IN (", format);
+        Assert.Contains(accountId, arguments);
+        Assert.Contains(MarketListingExpansion.GameInventoryProfile, arguments);
+        Assert.Contains(MarketListingExpansion.CurrencyInventoryType, arguments);
+        Assert.Contains(MarketListingExpansion.AlphaTokenItemId, arguments);
+        Assert.Contains(MarketListingExpansion.BetaTokenItemId, arguments);
+        Assert.Contains(MarketListingExpansion.GammaTokenItemId, arguments);
+        Assert.Contains(MarketListingExpansion.DeltaTokenItemId, arguments);
+    }
+
+    [Fact]
     public async Task MarketPriceQuote_RejectsUntradeableItems()
     {
         await using var harness = await MarketHarness.CreateAsync(addMembership: false);
@@ -800,6 +888,128 @@ public class MarketRepositoryEquipmentListingTests
             await DbContext.SaveChangesAsync();
         }
 
+        public async Task AddMarketExpansionTokenAsync(string itemId, long quantity)
+        {
+            var now = DateTime.UtcNow;
+            var inventory = await DbContext.Inventories.SingleOrDefaultAsync(existing =>
+                existing.AccountId == AccountId
+                && existing.InventoryType == MarketListingExpansion.CurrencyInventoryType
+                && existing.InventoryProfile == MarketListingExpansion.GameInventoryProfile
+                && existing.IsEnabled
+                && !existing.IsDeleted);
+            if (inventory is null)
+            {
+                inventory = new InventoryEntity
+                {
+                    InventoryId = Guid.NewGuid(),
+                    AccountId = AccountId,
+                    InventoryType = MarketListingExpansion.CurrencyInventoryType,
+                    InventoryProfile = MarketListingExpansion.GameInventoryProfile,
+                    IsEnabled = true,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    CreatedBy = AccountId,
+                    UpdatedBy = AccountId,
+                };
+                DbContext.Inventories.Add(inventory);
+                await DbContext.SaveChangesAsync();
+            }
+            DbContext.InventoryEntries.Add(new InventoryEntryEntity
+            {
+                InventoryEntryId = Guid.NewGuid(),
+                InventoryId = inventory.InventoryId,
+                ItemCategory = "currency",
+                ItemId = itemId,
+                Quantity = quantity,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = AccountId,
+                UpdatedBy = AccountId,
+            });
+            await DbContext.SaveChangesAsync();
+        }
+
+        public async Task AddExpansionEntryAsync(
+            string itemId,
+            long quantity,
+            string inventoryProfile = "GAME",
+            string inventoryType = "CURRENCY",
+            string itemCategory = "currency",
+            bool inventoryEnabled = true,
+            bool inventoryDeleted = false,
+            bool entryDeleted = false)
+        {
+            var now = DateTime.UtcNow;
+            var inventory = inventoryEnabled && !inventoryDeleted
+                ? await DbContext.Inventories.SingleOrDefaultAsync(existing =>
+                    existing.AccountId == AccountId
+                    && existing.InventoryType == inventoryType
+                    && existing.InventoryProfile == inventoryProfile
+                    && existing.IsEnabled
+                    && !existing.IsDeleted)
+                : null;
+            if (inventory is null)
+            {
+                inventory = new InventoryEntity
+                {
+                    InventoryId = Guid.NewGuid(),
+                    AccountId = AccountId,
+                    InventoryType = inventoryType,
+                    InventoryProfile = inventoryProfile,
+                    IsEnabled = inventoryEnabled,
+                    IsDeleted = inventoryDeleted,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    CreatedBy = AccountId,
+                    UpdatedBy = AccountId,
+                };
+                DbContext.Inventories.Add(inventory);
+                await DbContext.SaveChangesAsync();
+            }
+            DbContext.InventoryEntries.Add(new InventoryEntryEntity
+            {
+                InventoryEntryId = Guid.NewGuid(),
+                InventoryId = inventory.InventoryId,
+                ItemCategory = itemCategory,
+                ItemId = itemId,
+                Quantity = quantity,
+                IsDeleted = entryDeleted,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = AccountId,
+                UpdatedBy = AccountId,
+            });
+            await DbContext.SaveChangesAsync();
+        }
+
+        public async Task AddInvalidMarketExpansionEntriesAsync()
+        {
+            await AddExpansionEntryAsync(
+                MarketListingExpansion.BetaTokenItemId,
+                100,
+                inventoryProfile: "ACCOUNT");
+            await AddExpansionEntryAsync(
+                MarketListingExpansion.GammaTokenItemId,
+                100,
+                inventoryType: "BAG");
+            await AddExpansionEntryAsync(
+                MarketListingExpansion.DeltaTokenItemId,
+                100,
+                itemCategory: "material");
+            await AddExpansionEntryAsync(
+                MarketListingExpansion.AlphaTokenItemId,
+                100,
+                inventoryEnabled: false);
+            await AddExpansionEntryAsync(
+                MarketListingExpansion.AlphaTokenItemId,
+                100,
+                inventoryDeleted: true);
+            await AddExpansionEntryAsync(
+                MarketListingExpansion.BetaTokenItemId,
+                100,
+                entryDeleted: true);
+        }
+
         public async Task<BuyerSetup> AddBuyerWithGoldAsync(long gold)
         {
             var accountId = Guid.NewGuid();
@@ -924,13 +1134,14 @@ public class MarketRepositoryEquipmentListingTests
         public MarketAccountSummaryResponse BuildSummary(
             MarketAccountStateEntity state,
             int activeListingCount,
-            int usedListingSlotCount) => new()
+            int usedListingSlotCount,
+            int expansionListingSlotCount) => new()
         {
             AccountId = state.AccountId,
             ActiveListingCount = activeListingCount,
-            MaxActiveListingCount = maxListingSlots,
+            MaxActiveListingCount = MarketListingExpansion.AddToBaseLimit(maxListingSlots, expansionListingSlotCount),
             UsedListingSlotCount = usedListingSlotCount,
-            MaxListingSlotCount = maxListingSlots,
+            MaxListingSlotCount = MarketListingExpansion.AddToBaseLimit(maxListingSlots, expansionListingSlotCount),
             CompletedTradeCount = state.CompletedTradeCount,
             Tier = "T0",
             UpdatedAt = state.UpdatedAt,

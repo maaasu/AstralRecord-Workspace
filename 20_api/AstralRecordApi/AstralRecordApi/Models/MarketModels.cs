@@ -160,7 +160,7 @@ public class MarketAccountSummaryResponse
     public int MaxActiveListingCount { get; init; }
     /// <summary>ACTIVE / SUSPENDED / 売上未受取 SOLD を含む、消費済み出品枠数です。</summary>
     public int UsedListingSlotCount { get; init; }
-    /// <summary>出品中・売上未受取を通算して使える出品枠の上限です。</summary>
+    /// <summary>Tier の基本枠へ、所持するマーケット拡張トークンの有効枠を加えた上限です。</summary>
     public int MaxListingSlotCount { get; init; }
     public int CompletedTradeCount { get; init; }
     public string Tier { get; init; } = string.Empty;

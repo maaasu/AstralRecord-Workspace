@@ -472,8 +472,14 @@ public final class MarketGui {
             List.of(
                 "出品枠: " + summary.usedListingSlotCount() + " / " + summary.maxListingSlotCount(),
                 "出品中: " + summary.activeListingCount(),
+                "取引実績: " + format(summary.completedTradeCount()) + "件",
+                "現在Tier: " + summary.tier(),
                 "所持 Gold: " + format(goldAmount),
-                "売上未受取の売却済み出品も出品枠を使用します。"
+                "Tier基本枠 + 有効トークン枠 = 最大出品枠",
+                "トークン所持数を種類ごとの反映上限まで加算（1個につき +1枠）",
+                "α: +6 / β: +9 / γ: +9 / δ: +9",
+                "売上未受取の売却済み出品も出品枠を使用します。",
+                "トークンはアストラルドショップで購入できます。"
             )
         );
     }

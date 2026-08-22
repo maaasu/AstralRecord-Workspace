@@ -1,0 +1,21 @@
+# design:
+#   motif: "交易 / マーケット拡張許可証"
+#   progression: 0
+schemaVersion: 1
+id: market_expansion_token_delta
+category: currency
+name: "&5マーケット拡張トークンδ"
+icon: OXIDIZED_COPPER_CHEST
+rarity: EPIC
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7マーケットの出品枠を1枠拡張する許可証。"
+  - "&7所持数1個につき出品枠が1枠増えます。"
+  - "&eこのトークンの反映上限: &f+9枠"
+  - "&8購入数に制限はありません。"
+unTradeable: true
+unSellable: true
+currency:
+  type: MARKET_EXPANSION
+  group: market_listing

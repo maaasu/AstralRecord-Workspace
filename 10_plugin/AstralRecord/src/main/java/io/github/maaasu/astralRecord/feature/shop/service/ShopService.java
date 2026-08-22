@@ -25,6 +25,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 
 public final class ShopService {
@@ -36,6 +37,7 @@ public final class ShopService {
     private final InventoryService inventoryService;
     private final CurrencyService currencyService;
     private BiConsumer<AstPlayer, String> purchaseListener = (player, entryId) -> { };
+    private BiConsumer<AstPlayer, String> purchaseSavedListener = (player, entryId) -> { };
 
     public ShopService(
         @NotNull ShopRepository shopRepository,
@@ -62,6 +64,15 @@ public final class ShopService {
      */
     public void setPurchaseListener(@NotNull BiConsumer<AstPlayer, String> purchaseListener) {
         this.purchaseListener = purchaseListener;
+    }
+
+    /**
+     * インベントリ保存成功後の購入通知先を設定します。
+     *
+     * @param purchaseSavedListener 保存に成功した購入者とshop entry IDを受け取る通知先
+     */
+    public void setPurchaseSavedListener(@NotNull BiConsumer<AstPlayer, String> purchaseSavedListener) {
+        this.purchaseSavedListener = purchaseSavedListener;
     }
 
     /**
@@ -234,8 +245,15 @@ public final class ShopService {
         if (type != InventoryType.CURRENCY) {
             inventoryService.applyInventoryToGui(player, type);
         }
-        inventoryService.saveNow(accountId);
+        CompletableFuture<Boolean> saveFuture = inventoryService.saveNow(accountId);
         purchaseListener.accept(player, entry.id());
+        if (saveFuture != null) {
+            saveFuture.thenAccept(saved -> {
+                if (Boolean.TRUE.equals(saved)) {
+                    purchaseSavedListener.accept(player, entry.id());
+                }
+            });
+        }
         return true;
     }
 

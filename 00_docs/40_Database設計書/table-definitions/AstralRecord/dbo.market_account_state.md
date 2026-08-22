@@ -1,7 +1,7 @@
 ﻿# dbo.market_account_state テーブル定義
 
 マーケット利用状態と出品枠 Tier をアカウント単位で保持するテーブルです。
-成立取引数を元に最大出品枠数を算出し、Plugin/Web 共通の制限判定に使用します。
+成立取引数を元に Tier の基本枠を保持し、マーケット拡張トークンの有効枠は inventory から API が加算して Plugin/Web 共通の制限判定に使用します。
 
 ---
 
@@ -25,7 +25,7 @@
 | `account_id` | `UNIQUEIDENTIFIER` | ○ | ○ |  | アカウント UUID |
 | `completed_trade_count` | `INT` |  | ○ | `0` | Tier 算出対象の累計成立取引数 |
 | `tier` | `NVARCHAR(10)` |  | ○ | `N'T0'` | `T0` / `T1` / `T2` / `T3` / `T4` |
-| `max_active_listing_count` | `INT` |  | ○ | `3` | 互換名の最大出品枠数。API response では `maxListingSlotCount` として返す |
+| `max_active_listing_count` | `INT` |  | ○ | `3` | 互換名で保持する Tier 基本枠。API response の `maxListingSlotCount` はここへトークン有効枠を加算して返す |
 | `suspended_until` | `DATETIME2(3)` |  |  |  | マーケット利用停止期限 |
 | `created_at` | `DATETIME2(3)` |  | ○ |  | 作成日時 |
 | `updated_at` | `DATETIME2(3)` |  | ○ |  | 更新日時 |
@@ -94,4 +94,4 @@ GO
 
 ## 出品枠集計
 
-物理列 `max_active_listing_count` の名称は既存互換のため変更しない。新規出品時は `market_listing` の `ACTIVE` / `SUSPENDED` / 売上未受取の `SOLD` を使用済み枠として集計し、この上限と比較する。売上受取済み・取り下げ済み出品は論理削除され、枠を解放する。
+物理列 `max_active_listing_count` の名称は既存互換のため変更しない。この列は Tier 基本枠であり、新規出品時は `GAME` / `CURRENCY` inventory のマーケット拡張トークン有効枠を加算した値を上限とする。`market_listing` の `ACTIVE` / `SUSPENDED` / 売上未受取の `SOLD` を使用済み枠として集計し、この実効上限と比較する。売上受取済み・取り下げ済み出品は論理削除され、枠を解放する。

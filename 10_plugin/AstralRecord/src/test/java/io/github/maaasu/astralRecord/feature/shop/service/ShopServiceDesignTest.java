@@ -27,6 +27,7 @@ import org.mockito.Mockito;
 
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.CompletableFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -109,6 +110,37 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         order.verify(harness.inventoryService).addItemToNormalInventory(player, potion, 6, "shop");
         order.verify(harness.inventoryService).applyInventoryToGui(player, InventoryType.BAG);
         order.verify(harness.inventoryService).saveNow(player.getAccount().getUuid());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
+     * 章・見出し: # 20_3-メソッド仕様 > ## 購入
+     * 検証契約: 購入通知は即時に行い、保存成功通知はsaveNow完了後だけ行う。
+     */
+    @Test
+    void purchaseNotifiesImmediatelyAndNotifiesSavedListenerAfterSuccessfulSave() {
+        ShopHarness harness = shopHarness(null);
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        ItemModel potion = DesignTestFixtures.item("potion", ItemCategory.CONSUMABLE, 16);
+        ShopEntry entry = shopEntry("potion", 1, 4, List.of(), null);
+        CompletableFuture<Boolean> saveFuture = new CompletableFuture<>();
+        List<String> events = new java.util.ArrayList<>();
+        when(harness.itemService.findLoadedById("potion")).thenReturn(potion);
+        when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(10L);
+        when(harness.inventoryService.canAddItemToNormalInventory(player, potion, 1)).thenReturn(true);
+        when(harness.inventoryService.snapshotState(player.getAccount().getUuid())).thenReturn(snapshot(player));
+        when(harness.inventoryService.consumeGold(player.getAccount().getUuid(), 4L)).thenReturn(true);
+        when(harness.inventoryService.addItemToNormalInventory(player, potion, 1, "shop")).thenReturn(1);
+        when(harness.inventoryService.resolveInventoryType(potion)).thenReturn(InventoryType.BAG);
+        when(harness.inventoryService.saveNow(player.getAccount().getUuid())).thenReturn(saveFuture);
+        harness.service.setPurchaseListener((ignoredPlayer, ignoredEntryId) -> events.add("immediate"));
+        harness.service.setPurchaseSavedListener((ignoredPlayer, ignoredEntryId) -> events.add("saved"));
+
+        assertTrue(harness.service.purchase(player, entry, 1));
+        assertEquals(List.of("immediate"), events);
+
+        saveFuture.complete(true);
+        assertEquals(List.of("immediate", "saved"), events);
     }
 
     /**

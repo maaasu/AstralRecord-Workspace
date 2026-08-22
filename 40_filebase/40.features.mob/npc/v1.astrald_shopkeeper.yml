@@ -1,0 +1,45 @@
+# design:
+#   motif: "交易 / マーケット拡張許可証"
+#   progression: 0
+schemaVersion: 1
+id: astrald_shopkeeper
+type: MOB
+category: NPC
+name: "&bアストラルド商人リュミエ"
+title: "&7マーケット拡張許可証"
+level: 1
+entityType: VILLAGER
+variant:
+  profession: LIBRARIAN
+  villagerType: PLAINS
+  villagerLevel: 3
+nameVisible: true
+damageImmune: true
+icon: AMETHYST_SHARD
+lore:
+  - "&7アストラルドでマーケット拡張トークンを扱う商人。"
+  - "&7右クリックでアストラルドショップを開ける。"
+tags:
+  - npc
+  - shop
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&bアストラルド商人リュミエ&7: トークン1個で出品枠が1つ増えます。"
+  rightClick:
+    - id: gui
+      params:
+        type: SHOP
+        shopId: astrald_shop

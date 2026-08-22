@@ -8,16 +8,20 @@ public class MarketListingLimitService : IMarketListingLimitService
     public MarketAccountSummaryResponse BuildSummary(
         MarketAccountStateEntity state,
         int activeListingCount,
-        int usedListingSlotCount)
+        int usedListingSlotCount,
+        int expansionListingSlotCount)
     {
         var limit = ResolveLimit(state.CompletedTradeCount);
+        var maxListingSlots = MarketListingExpansion.AddToBaseLimit(
+            limit.MaxActiveListingCount,
+            expansionListingSlotCount);
         return new MarketAccountSummaryResponse
         {
             AccountId = state.AccountId,
             ActiveListingCount = activeListingCount,
-            MaxActiveListingCount = limit.MaxActiveListingCount,
+            MaxActiveListingCount = maxListingSlots,
             UsedListingSlotCount = usedListingSlotCount,
-            MaxListingSlotCount = limit.MaxActiveListingCount,
+            MaxListingSlotCount = maxListingSlots,
             CompletedTradeCount = state.CompletedTradeCount,
             Tier = limit.Tier,
             SuspendedUntil = state.SuspendedUntil,

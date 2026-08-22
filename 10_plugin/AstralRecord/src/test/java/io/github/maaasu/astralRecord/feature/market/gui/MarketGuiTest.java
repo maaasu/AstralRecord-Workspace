@@ -138,6 +138,11 @@ class MarketGuiTest extends MockBukkitTestBase {
         assertTrue(selectionLore.contains("バッグまたはホットバー"));
         assertTrue(selectionLore.contains("上下にスクロール"));
         assertTrue(loreText(inventory, MarketGui.SUMMARY_SLOT).contains("所持 Gold: 12,345"));
+        String summaryLore = loreText(inventory, MarketGui.SUMMARY_SLOT);
+        assertTrue(summaryLore.contains("取引実績: 0件"));
+        assertTrue(summaryLore.contains("現在Tier: NOVICE"));
+        assertTrue(summaryLore.contains("1個につき +1枠"));
+        assertTrue(summaryLore.contains("α: +6 / β: +9 / γ: +9 / δ: +9"));
     }
 
     /**

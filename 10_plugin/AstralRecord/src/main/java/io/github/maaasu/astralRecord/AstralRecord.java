@@ -1080,6 +1080,11 @@ public final class AstralRecord extends JavaPlugin {
         shopService.setPurchaseListener((player, entryId) ->
             guideService.recordCondition(player, GuideConditionType.SHOP_PURCHASED, entryId)
         );
+        shopService.setPurchaseSavedListener((player, entryId) -> {
+            if (marketService != null) {
+                marketService.clearCache();
+            }
+        });
         itemAdminGuiEventHandler = new ItemAdminGuiEventHandler(
             new ItemAdminGuiView(this, itemStackFactory),
             itemService,

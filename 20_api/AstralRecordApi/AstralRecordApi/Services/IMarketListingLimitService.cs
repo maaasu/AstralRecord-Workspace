@@ -8,7 +8,8 @@ public interface IMarketListingLimitService
     MarketAccountSummaryResponse BuildSummary(
         MarketAccountStateEntity state,
         int activeListingCount,
-        int usedListingSlotCount);
+        int usedListingSlotCount,
+        int expansionListingSlotCount);
 
     (string Tier, int MaxActiveListingCount) ResolveLimit(int completedTradeCount);
 }
