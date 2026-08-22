@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.inventory.event.InventoryEquipmentG
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.inventory.state.InventoryPersistence;
@@ -153,6 +154,132 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         harness.awaitOrbScreen(OrbGuiHolder.Screen.LIST);
         assertEquals(Material.DIAMOND_SWORD,
             harness.player.getOpenInventory().getTopInventory().getItem(0).getType());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 1.5. インベントリ内オーブ一覧
+     * 検証契約: 対象装備がないオーブを選んでも一覧へ戻り、次のオーブ選択を受け付ける。
+     */
+    @Test
+    void inventoryOrbWithoutEligibleTargetReturnsToListForNextSelection() {
+        Harness harness = new Harness(ItemOrbEffectType.REPAIR);
+        harness.handler.onInventoryClick(harness.normalInventoryClick(26));
+        Inventory firstList = harness.player.getOpenInventory().getTopInventory();
+        when(harness.itemService.findLoadedEquipmentInstanceById(anyString())).thenReturn(null);
+
+        InventoryClickEvent unavailableOrbClick = harness.guiClick(10);
+        harness.handler.onInventoryClick(unavailableOrbClick);
+        harness.awaitOrbScreenAfter(firstList, OrbGuiHolder.Screen.INVENTORY_ORB_LIST);
+        Inventory restoredList = harness.player.getOpenInventory().getTopInventory();
+
+        verify(unavailableOrbClick).setCancelled(true);
+        assertTrue(restoredList.getHolder() instanceof OrbGuiHolder holder
+            && holder.screen() == OrbGuiHolder.Screen.INVENTORY_ORB_LIST);
+
+        when(harness.itemService.findLoadedEquipmentInstanceById(harness.equippedInstanceId.toString()))
+            .thenReturn(harness.equippedInstance.get());
+        InventoryClickEvent retryClick = harness.guiClick(10);
+        harness.handler.onInventoryClick(retryClick);
+        harness.awaitOrbScreenAfter(restoredList, OrbGuiHolder.Screen.LIST);
+
+        verify(retryClick).setCancelled(true);
+        assertEquals(Material.DIAMOND_SWORD,
+            harness.player.getOpenInventory().getTopInventory().getItem(0).getType());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
+     * 検証契約: オーブの対象装備一覧画面では上段クリックを専用処理しつつ、下段のBAGスクロールクリックを共通ショートカットへ委譲する。
+     */
+    @Test
+    void operationOrbGuiDelegatesBagScrollClicksToSharedShortcutSupport() {
+        Harness harness = new Harness(ItemOrbEffectType.REPAIR);
+        harness.openOrbList();
+        when(harness.inventoryService.isHotbarShortcutMode(harness.astPlayer)).thenReturn(true);
+
+        for (int slot : List.of(17, 35)) {
+            when(harness.inventoryService.handleInventoryControlClick(harness.astPlayer, slot))
+                .thenReturn(true);
+            InventoryClickEvent scrollClick = harness.guiPlayerInventoryClick(slot);
+            harness.handler.onInventoryClick(scrollClick);
+
+            verify(scrollClick).setCancelled(true);
+            verify(harness.inventoryService).handleInventoryControlClick(harness.astPlayer, slot);
+        }
+        assertTrue(harness.service.isOrbInventory(
+            harness.player.getOpenInventory().getTopInventory()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
+     * 検証契約: オーブの対象装備一覧画面では、下段ホットバークリックを共通ショートカットへ委譲する。
+     */
+    @Test
+    void operationOrbGuiDelegatesHotbarClickToSharedShortcutSupport() {
+        Harness harness = new Harness(ItemOrbEffectType.REPAIR);
+        harness.openOrbList();
+        when(harness.inventoryService.isHotbarShortcutMode(harness.astPlayer)).thenReturn(true);
+        when(harness.inventoryService.getClickGuard()).thenReturn(new InventoryClickGuard());
+        when(harness.inventoryService.handleHotbarSlotClick(harness.astPlayer, 1))
+            .thenReturn(true);
+
+        InventoryClickEvent hotbarClick = harness.guiPlayerInventoryClick(0);
+        harness.handler.onInventoryClick(hotbarClick);
+
+        verify(hotbarClick).setCancelled(true);
+        verify(harness.inventoryService).handleHotbarSlotClick(harness.astPlayer, 1);
+        assertTrue(harness.service.isOrbInventory(
+            harness.player.getOpenInventory().getTopInventory()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
+     * 検証契約: インベントリ内オーブ一覧画面では、下段ホットバークリックを共通ショートカットへ委譲し、オーブ一覧の上段処理で握り潰さない。
+     */
+    @Test
+    void inventoryOrbListDelegatesHotbarClickToSharedShortcutSupport() {
+        Harness harness = new Harness(ItemOrbEffectType.REPAIR);
+        harness.handler.onInventoryClick(harness.normalInventoryClick(26));
+        when(harness.inventoryService.isHotbarShortcutMode(harness.astPlayer)).thenReturn(true);
+        when(harness.inventoryService.getClickGuard()).thenReturn(new InventoryClickGuard());
+        when(harness.inventoryService.handleHotbarSlotClick(harness.astPlayer, 1))
+            .thenReturn(true);
+
+        InventoryClickEvent hotbarClick = harness.guiPlayerInventoryClick(0);
+        harness.handler.onInventoryClick(hotbarClick);
+
+        verify(hotbarClick).setCancelled(true);
+        verify(harness.inventoryService).handleHotbarSlotClick(harness.astPlayer, 1);
+        assertEquals(OrbGuiHolder.Screen.INVENTORY_ORB_LIST,
+            ((OrbGuiHolder) harness.player.getOpenInventory().getTopInventory().getHolder()).screen());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
+     * 検証契約: インベントリ内オーブ一覧画面では、上下のBAGスクロールクリックを共通ショートカットへ委譲する。
+     */
+    @Test
+    void inventoryOrbListDelegatesBagScrollClicksToSharedShortcutSupport() {
+        Harness harness = new Harness(ItemOrbEffectType.REPAIR);
+        harness.handler.onInventoryClick(harness.normalInventoryClick(26));
+        when(harness.inventoryService.isHotbarShortcutMode(harness.astPlayer)).thenReturn(true);
+
+        for (int slot : List.of(17, 35)) {
+            when(harness.inventoryService.handleInventoryControlClick(harness.astPlayer, slot))
+                .thenReturn(true);
+            InventoryClickEvent scrollClick = harness.guiPlayerInventoryClick(slot);
+            harness.handler.onInventoryClick(scrollClick);
+
+            verify(scrollClick).setCancelled(true);
+            verify(harness.inventoryService).handleInventoryControlClick(harness.astPlayer, slot);
+        }
+        assertEquals(OrbGuiHolder.Screen.INVENTORY_ORB_LIST,
+            ((OrbGuiHolder) harness.player.getOpenInventory().getTopInventory().getHolder()).screen());
     }
 
     /**
@@ -1326,11 +1453,40 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 "Orb GUI did not reach expected screen within 2 seconds: " + expected);
         }
 
+        private void awaitOrbScreenAfter(Inventory previous, OrbGuiHolder.Screen expected) {
+            long deadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+            while (player.getOpenInventory().getTopInventory() == previous
+                || !(player.getOpenInventory().getTopInventory().getHolder() instanceof OrbGuiHolder holder)
+                || holder.screen() != expected) {
+                if (System.nanoTime() >= deadlineNanos) {
+                    break;
+                }
+                server().getScheduler().performOneTick();
+                LockSupport.parkNanos(TimeUnit.MILLISECONDS.toNanos(1));
+            }
+            assertTrue(player.getOpenInventory().getTopInventory() != previous
+                    && player.getOpenInventory().getTopInventory().getHolder() instanceof OrbGuiHolder holder
+                    && holder.screen() == expected,
+                "Orb GUI did not transition to expected screen within 2 seconds: " + expected);
+        }
+
         private InventoryClickEvent guiClick(int rawSlot) {
             InventoryClickEvent event = mock(InventoryClickEvent.class);
             when(event.getWhoClicked()).thenReturn(player);
             when(event.getView()).thenReturn(player.getOpenInventory());
             when(event.getRawSlot()).thenReturn(rawSlot);
+            when(event.getClick()).thenReturn(ClickType.LEFT);
+            return event;
+        }
+
+        private InventoryClickEvent guiPlayerInventoryClick(int slot) {
+            InventoryClickEvent event = mock(InventoryClickEvent.class);
+            when(event.getWhoClicked()).thenReturn(player);
+            when(event.getView()).thenReturn(player.getOpenInventory());
+            when(event.getClickedInventory()).thenReturn(player.getInventory());
+            when(event.getRawSlot()).thenReturn(
+                player.getOpenInventory().getTopInventory().getSize() + slot);
+            when(event.getSlot()).thenReturn(slot);
             when(event.getClick()).thenReturn(ClickType.LEFT);
             return event;
         }

@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.item.gui;
 
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.inventory.Inventory;
 import org.junit.jupiter.api.Test;
@@ -7,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertSame;
 
 class OrbGuiHolderTest extends MockBukkitTestBase {
@@ -33,5 +35,6 @@ class OrbGuiHolderTest extends MockBukkitTestBase {
         assertEquals(ownerId, holder.ownerId());
         assertEquals(token, holder.sessionToken());
         assertEquals(OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM, holder.screen());
+        assertInstanceOf(HotbarShortcutGuiHolder.class, holder);
     }
 }

@@ -27,6 +27,7 @@ import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -280,7 +281,7 @@ public final class OrbService {
         }
 
         event.setCancelled(true);
-        startOrbOperation(player, astPlayer, entry, orbModel);
+        startOrbOperation(player, astPlayer, entry, orbModel, false);
         return true;
     }
 
@@ -291,12 +292,14 @@ public final class OrbService {
      * @param astPlayer ログイン中のプレイヤー状態
      * @param entry 起点となるオーブ entry
      * @param orbModel 起点オーブのマスタ
+     * @param returnToInventoryOrbListOnFailure 対象装備がない場合に所持オーブ一覧へ戻すか
      */
     private void startOrbOperation(
         @NotNull Player player,
         @NotNull AstPlayer astPlayer,
         @NotNull InventoryEntryModel entry,
-        @NotNull ItemModel orbModel
+        @NotNull ItemModel orbModel,
+        boolean returnToInventoryOrbListOnFailure
     ) {
         OrbSession previous = sessions.get(player.getUniqueId());
         if (previous != null
@@ -312,7 +315,8 @@ public final class OrbService {
             astPlayer.getAccount().getUuid(),
             UUID.randomUUID(),
             entry.getInventoryEntryId(),
-            orbModel.getId()
+            orbModel.getId(),
+            returnToInventoryOrbListOnFailure
         );
         sessions.put(player.getUniqueId(), session);
         preloadAndOpenList(session, orbModel);
@@ -340,14 +344,14 @@ public final class OrbService {
             session.preloadFuture = null;
             session.interactionLock.release();
             if (throwable != null || result == ItemService.EquipmentPreloadResult.UNAVAILABLE) {
-                sessions.remove(session.player.getUniqueId(), session);
+                restoreInventoryOrbListOrRemoveSession(session);
                 PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5295);
                 GuiSound.DENY.play(session.player);
                 return;
             }
             ItemModel currentOrb = resolveCurrentOrb(session);
             if (currentOrb == null || !currentOrb.getId().equalsIgnoreCase(orbModel.getId())) {
-                sessions.remove(session.player.getUniqueId(), session);
+                restoreInventoryOrbListOrRemoveSession(session);
                 PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5289);
                 GuiSound.DENY.play(session.player);
                 return;
@@ -374,15 +378,24 @@ public final class OrbService {
     }
 
     /**
-     * オーブ GUI の全クリック方式を取り込み、許可した上段操作だけを実行します。
+     * オーブ GUI の上段操作を処理し、下段のプレイヤーインベントリ操作は共通処理へ委譲します。
      *
      * @param event オーブ GUI 上のクリックイベント
      */
     public void handleGuiClick(@NotNull InventoryClickEvent event) {
-        event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player)) {
+            event.setCancelled(true);
             return;
         }
+        if (event.getClickedInventory() instanceof PlayerInventory) {
+            if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
+                return;
+            }
+            event.setCancelled(true);
+            GuiSound.DENY.play(player);
+            return;
+        }
+        event.setCancelled(true);
         if (isInventoryOrbList(event.getView().getTopInventory())) {
             handleInventoryOrbListClick(event);
             return;
@@ -530,7 +543,7 @@ public final class OrbService {
     private void openList(@NotNull OrbSession session, @NotNull ItemModel orbModel) {
         List<OrbCandidate> candidates = collectCandidates(session, orbModel);
         if (candidates.isEmpty()) {
-            sessions.remove(session.player.getUniqueId(), session);
+            restoreInventoryOrbListOrRemoveSession(session);
             PlayerMessageService.getInstance().send(
                 session.player,
                 orbModel.getOrb().getEffect().getType() == ItemOrbEffectType.ENCHANT
@@ -550,6 +563,14 @@ public final class OrbService {
         renderList(session, orbModel, inventory, candidates);
         inventoryOpener.open(session.player, inventory, () -> GuiSound.OPEN.play(session.player), () ->
             sessions.remove(session.player.getUniqueId(), session));
+    }
+
+    private void restoreInventoryOrbListOrRemoveSession(@NotNull OrbSession session) {
+        if (session.returnToInventoryOrbListOnFailure) {
+            openInventoryOrbList(session.player, session.astPlayer, session);
+            return;
+        }
+        sessions.remove(session.player.getUniqueId(), session);
     }
 
     /**
@@ -663,7 +684,7 @@ public final class OrbService {
         }
 
         inventoryOrbListSessions.remove(player.getUniqueId(), session);
-        startOrbOperation(player, session.astPlayer, entry, orbModel);
+        startOrbOperation(player, session.astPlayer, entry, orbModel, true);
     }
 
     /**
@@ -2588,6 +2609,7 @@ public final class OrbService {
         private final UUID token;
         private UUID orbEntryId;
         private final String orbItemId;
+        private final boolean returnToInventoryOrbListOnFailure;
         private OrbGuiHolder.Screen screen = OrbGuiHolder.Screen.LIST;
         private Inventory inventory;
         private Map<Integer, String> displayedTargets = Map.of();
@@ -2616,6 +2638,7 @@ public final class OrbService {
          * @param token GUI世代token
          * @param orbEntryId 起点オーブentry ID
          * @param orbItemId 起点オーブitem ID
+         * @param returnToInventoryOrbListOnFailure 対象装備がない場合に所持オーブ一覧へ戻すか
          */
         private OrbSession(
             @NotNull Player player,
@@ -2623,7 +2646,8 @@ public final class OrbService {
             @NotNull UUID accountId,
             @NotNull UUID token,
             @NotNull UUID orbEntryId,
-            @NotNull String orbItemId
+            @NotNull String orbItemId,
+            boolean returnToInventoryOrbListOnFailure
         ) {
             this.player = player;
             this.astPlayer = astPlayer;
@@ -2631,6 +2655,7 @@ public final class OrbService {
             this.token = token;
             this.orbEntryId = orbEntryId;
             this.orbItemId = orbItemId;
+            this.returnToInventoryOrbListOnFailure = returnToInventoryOrbListOnFailure;
         }
     }
 }
