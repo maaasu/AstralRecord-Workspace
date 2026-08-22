@@ -17,6 +17,7 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -138,7 +139,11 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
         inventory.setItem(ACTION_RING_HOLD_SELECT_SLOT, createBooleanItem(
             Material.TRIDENT,
             PlayerSettingKey.ACTION_RING_HOLD_SELECT,
-            (Boolean) resolveValue(userId, PlayerSettingKey.ACTION_RING_HOLD_SELECT, draftValues)
+            (Boolean) resolveValue(userId, PlayerSettingKey.ACTION_RING_HOLD_SELECT, draftValues),
+            List.of(
+                Component.text("※有効にすると、構えている間は武器の見た目がトライデントに変化します。", NamedTextColor.RED),
+                Component.text("※動作が不安定になる可能性があります。", NamedTextColor.RED)
+            )
         ));
         inventory.setItem(BACK_TO_MENU_SLOT, backItem());
     }
@@ -157,16 +162,27 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     private @NotNull ItemStack createBooleanItem(
         @NotNull Material material,
         @NotNull PlayerSettingKey key,
-        boolean enabled
+        boolean enabled,
+        @NotNull List<Component> additionalLore
     ) {
+        List<Component> lore = new ArrayList<>(List.of(
+            Component.text("現在: " + key.formatValue(enabled), enabled ? NamedTextColor.GREEN : NamedTextColor.RED),
+            Component.text("クリックで切り替え", NamedTextColor.GRAY)
+        ));
+        lore.addAll(additionalLore);
         return createItem(
             material,
             Component.text(key.getDisplayNameJa(), NamedTextColor.GOLD),
-            List.of(
-                Component.text("現在: " + key.formatValue(enabled), enabled ? NamedTextColor.GREEN : NamedTextColor.RED),
-                Component.text("クリックで切り替え", NamedTextColor.GRAY)
-            )
+            lore
         );
+    }
+
+    private @NotNull ItemStack createBooleanItem(
+        @NotNull Material material,
+        @NotNull PlayerSettingKey key,
+        boolean enabled
+    ) {
+        return createBooleanItem(material, key, enabled, List.of());
     }
 
     private @NotNull ItemStack createParticleItem(@NotNull ParticleDensity density) {
