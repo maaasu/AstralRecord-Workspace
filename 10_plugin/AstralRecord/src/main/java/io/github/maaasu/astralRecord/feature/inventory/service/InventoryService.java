@@ -3771,6 +3771,16 @@ public class InventoryService {
         ensureInventory(state, InventoryType.HOTBAR, HotbarLayout.CAPACITY, state.getAccountId(), DEFAULT_PROFILE);
     }
 
+    /**
+     * ホットバースロットのクリックを処理します。
+     * <p>
+     * オフハンドに HOTBAR entry がない場合でも、実際に管理中の装備があれば
+     * 所有インベントリへ返却します。返却に失敗した場合は、実オフハンドを変更しません。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param hotbarSlotIndex HOTBAR の DB slot_index
+     * @return クリックを状態へ反映できた場合は true
+     */
     public boolean handleHotbarSlotClick(@NotNull AstPlayer astPlayer, int hotbarSlotIndex) {
         if (!HotbarLayout.isManagedSlot(hotbarSlotIndex)) {
             return false;
@@ -3785,10 +3795,38 @@ public class InventoryService {
         synchronized (state) {
             InventoryEntryModel entry = findHotbarEntryBySlot(state, hotbarSlotIndex);
             if (entry != null) {
-                state.setSelectedHotbarSlot(null);
                 boolean returned = returnHotbarEntryToInventory(astPlayer, state, entry);
+                if (returned) {
+                    state.setSelectedHotbarSlot(null);
+                    if (HotbarLayout.isOffhandSlot(hotbarSlotIndex)
+                        && clearReturnedOffhandItem(astPlayer, entry)) {
+                        if (isAuxiliaryEquipmentEntry(entry)) {
+                            syncCurrentEquipmentState(astPlayer);
+                        } else {
+                            applyActiveEquipmentLoadoutToGui(astPlayer);
+                        }
+                    }
+                }
                 renderHotbarInventory(astPlayer);
                 return returned;
+            }
+
+            if (HotbarLayout.isOffhandSlot(hotbarSlotIndex)) {
+                ItemStack currentOffhand = getEquipmentItem(
+                    astPlayer.getBukkit().getInventory(), EquipmentType.OFF_HAND);
+                if (currentOffhand != null) {
+                    if (!isAuxiliaryEquipmentItem(currentOffhand)) {
+                        return false;
+                    }
+                    if (returnItemToOwnedInventory(astPlayer, currentOffhand.clone()) == null) {
+                        return false;
+                    }
+                    state.setSelectedHotbarSlot(null);
+                    astPlayer.getBukkit().getInventory().setItemInOffHand(new ItemStack(Material.AIR));
+                    syncCurrentEquipmentState(astPlayer);
+                    renderHotbarInventory(astPlayer);
+                    return true;
+                }
             }
 
             Integer currentSelected = state.getSelectedHotbarSlot();
@@ -3808,12 +3846,23 @@ public class InventoryService {
         }
     }
 
+    /**
+     * inventory entry を指定した HOTBAR slot へ移動します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param entry 移動対象 entry
+     * @param hotbarSlotIndex 移動先 HOTBAR の DB slot_index
+     */
     public void moveToHotbar(
         @NotNull AstPlayer astPlayer,
         @NotNull InventoryEntryModel entry,
         int hotbarSlotIndex
     ) {
         if (!HotbarLayout.isManagedSlot(hotbarSlotIndex)) {
+            return;
+        }
+        if (HotbarLayout.isOffhandSlot(hotbarSlotIndex)) {
+            // オフハンドは装備ロードアウトと同時管理になるため、装備移動経路だけを使用します。
             return;
         }
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
@@ -3963,6 +4012,73 @@ public class InventoryService {
         return true;
     }
 
+    private boolean prepareOffhandHotbarEntryForEquipmentChange(
+        @NotNull AstPlayer astPlayer,
+        @NotNull PlayerInventoryState state,
+        @Nullable ItemStack previous
+    ) {
+        InventoryEntryModel offhandEntry = findHotbarEntryBySlot(state, HotbarLayout.DB_SLOT_OFFHAND);
+        if (offhandEntry == null) {
+            return true;
+        }
+        ItemReference previousReference = resolveItemReference(previous);
+        if (previousReference != null
+            && sameItemReference(previousReference, resolveItemReference(offhandEntry))) {
+            removeHotbarEntryAfterMove(state, offhandEntry);
+            return true;
+        }
+        return returnHotbarEntryToInventory(astPlayer, state, offhandEntry);
+    }
+
+    private boolean clearReturnedOffhandItem(
+        @NotNull AstPlayer astPlayer,
+        @NotNull InventoryEntryModel returnedEntry
+    ) {
+        ItemStack currentOffhand = getEquipmentItem(
+            astPlayer.getBukkit().getInventory(), EquipmentType.OFF_HAND);
+        if (currentOffhand == null
+            || !sameItemReference(resolveItemReference(returnedEntry), resolveItemReference(currentOffhand))) {
+            return false;
+        }
+        astPlayer.getBukkit().getInventory().setItemInOffHand(new ItemStack(Material.AIR));
+        return true;
+    }
+
+    private boolean isAuxiliaryEquipmentEntry(@NotNull InventoryEntryModel entry) {
+        return isAuxiliaryEquipmentModel(resolveItemModel(entry));
+    }
+
+    private boolean isAuxiliaryEquipmentItem(@NotNull ItemStack itemStack) {
+        return isAuxiliaryEquipmentModel(itemReferenceResolver.resolveItemModel(
+            resolveItemReference(itemStack)));
+    }
+
+    private boolean isAuxiliaryEquipmentModel(@Nullable ItemModel model) {
+        return model != null
+            && model.getEquipment() != null
+            && model.getEquipment().getSlot() == ItemEquipmentSlot.SUBWEAPON;
+    }
+
+    private boolean sameItemReference(
+        @Nullable ItemReference expected,
+        @Nullable ItemReference actual
+    ) {
+        if (expected == null || actual == null
+            || !expected.itemId().equalsIgnoreCase(actual.itemId())
+            || !expected.category().equalsIgnoreCase(actual.category())) {
+            return false;
+        }
+        return sameOptionalReferenceValue(expected.equipmentInstanceId(), actual.equipmentInstanceId())
+            && sameOptionalReferenceValue(expected.runeInstanceId(), actual.runeInstanceId());
+    }
+
+    private boolean sameOptionalReferenceValue(@Nullable String expected, @Nullable String actual) {
+        if (expected == null || actual == null) {
+            return expected == null && actual == null;
+        }
+        return expected.equalsIgnoreCase(actual);
+    }
+
     private int findNextHotbarSlot(@NotNull PlayerInventoryState state) {
         InventoryModel hotbarInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.HOTBAR);
         if (hotbarInventory == null) {
@@ -3982,9 +4098,6 @@ public class InventoryService {
             if (!used.contains(slot)) {
                 return slot;
             }
-        }
-        if (!used.contains(HotbarLayout.DB_SLOT_OFFHAND)) {
-            return HotbarLayout.DB_SLOT_OFFHAND;
         }
         return -1;
     }
@@ -4015,7 +4128,7 @@ public class InventoryService {
         @NotNull PlayerInventoryState state,
         @NotNull InventoryEntryModel sourceEntry
     ) {
-        for (int slot = HotbarLayout.DB_SLOT_START; slot <= HotbarLayout.DB_SLOT_OFFHAND; slot++) {
+        for (int slot = HotbarLayout.DB_SLOT_START; slot <= HotbarLayout.DB_SLOT_END; slot++) {
             InventoryEntryModel candidate = findHotbarEntryBySlot(state, slot);
             if (candidate != null && isSameStackableItem(candidate, sourceEntry)) {
                 return candidate;
@@ -4182,11 +4295,23 @@ public class InventoryService {
         if (!canReturnReplacedEquipment(state, sourceEntry, false, previous)) {
             return false;
         }
-        equipmentType.applyTo(inventory, clickedItem.clone());
-        inventory.setItem(sourceBukkitSlot, emptyToAir(previous));
-
+        InventoryStateSnapshot stateSnapshot = snapshotState(state.getAccountId());
+        if (stateSnapshot == null) {
+            return false;
+        }
+        Integer selectedHotbarSlotBefore = state.getSelectedHotbarSlot();
         removeDisplayedEntryAfterMove(state, sourceEntry);
-        returnReplacedItemToOwnedInventory(astPlayer, previous);
+        boolean offhandHotbarPrepared = equipmentType != EquipmentType.OFF_HAND
+            || prepareOffhandHotbarEntryForEquipmentChange(astPlayer, state, previous);
+        if (!offhandHotbarPrepared || !returnReplacedItemToOwnedInventory(astPlayer, previous)) {
+            restoreState(stateSnapshot);
+            state.setSelectedHotbarSlot(selectedHotbarSlotBefore);
+            requestManagedInventoryUiRefresh(astPlayer, false);
+            return false;
+        }
+        equipmentType.applyTo(inventory, clickedItem.clone());
+        inventory.setItem(sourceBukkitSlot, new ItemStack(Material.AIR));
+
         saveEquipSlotSnapshot(astPlayer);
         syncCurrentEquipmentState(astPlayer);
         requestManagedInventoryUiRefresh(astPlayer, false);
@@ -4226,7 +4351,10 @@ public class InventoryService {
         @NotNull ItemModel sourceModel
     ) {
         Integer selectedHotbarSlotIndex = state.getSelectedHotbarSlot();
-        state.setSelectedHotbarSlot(null);
+        if (selectedHotbarSlotIndex != null
+            && !canAssignToHotbarSlot(sourceModel, selectedHotbarSlotIndex)) {
+            return false;
+        }
 
         if (selectedHotbarSlotIndex == null) {
             InventoryEntryModel existingStack = findFirstMatchingHotbarStack(state, sourceEntry);
@@ -4252,13 +4380,23 @@ public class InventoryService {
         int targetDbSlot = selectedHotbarSlotIndex != null && HotbarLayout.isManagedSlot(selectedHotbarSlotIndex)
             ? selectedHotbarSlotIndex
             : findNextHotbarSlot(state);
-        if (!HotbarLayout.isManagedSlot(targetDbSlot)) {
+        if (!HotbarLayout.isManagedSlot(targetDbSlot)
+            || !canAssignToHotbarSlot(sourceModel, targetDbSlot)) {
             return false;
         }
+        state.setSelectedHotbarSlot(null);
         upsertHotbarEntry(state, sourceEntry, targetDbSlot);
         removeDisplayedEntryAfterMove(state, sourceEntry);
         requestManagedInventoryUiRefresh(astPlayer, true);
         return true;
+    }
+
+    private boolean canAssignToHotbarSlot(@NotNull ItemModel sourceModel, int targetDbSlot) {
+        if (!HotbarLayout.isOffhandSlot(targetDbSlot)) {
+            return true;
+        }
+        return sourceModel.getEquipment() != null
+            && sourceModel.getEquipment().getSlot() == ItemEquipmentSlot.SUBWEAPON;
     }
 
     /**
@@ -4524,14 +4662,14 @@ public class InventoryService {
         return findNextFreeSlot(bag, usedSlots) != null;
     }
 
-    private void returnReplacedItemToOwnedInventory(
+    private boolean returnReplacedItemToOwnedInventory(
         @NotNull AstPlayer astPlayer,
         @Nullable ItemStack replacedItem
     ) {
         if (replacedItem == null || replacedItem.getType() == Material.AIR) {
-            return;
+            return true;
         }
-        returnItemToOwnedInventory(astPlayer, replacedItem.clone());
+        return returnItemToOwnedInventory(astPlayer, replacedItem.clone()) != null;
     }
 
     /**
@@ -5286,7 +5424,9 @@ public class InventoryService {
                 default -> addStackedItems(state, targetInventory, model, amount) == amount;
             };
             if (!fullyAdded) {
-                state.replaceEntries(targetInventory.getInventoryId(), beforeEntries);
+                if (!beforeEntries.equals(state.snapshotEntries(targetInventory.getInventoryId()))) {
+                    state.replaceEntries(targetInventory.getInventoryId(), beforeEntries);
+                }
                 return null;
             }
             compactInventoryEntries(state, targetInventory.getInventoryId());
@@ -6271,10 +6411,6 @@ public class InventoryService {
             return new ItemStack(Material.AIR);
         }
         return itemStack;
-    }
-
-    private @NotNull ItemStack emptyToAir(@Nullable ItemStack itemStack) {
-        return itemOrAir(itemStack);
     }
 
     private @Nullable UUID readEquipmentInstanceId(@Nullable ItemStack itemStack) {

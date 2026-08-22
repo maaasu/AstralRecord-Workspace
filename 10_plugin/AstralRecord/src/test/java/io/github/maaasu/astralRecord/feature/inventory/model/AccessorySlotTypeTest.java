@@ -54,10 +54,11 @@ class AccessorySlotTypeTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
      * 章・見出し: # 08_1-モデル定義 > ## 5. アクセサリスロット種別
-     * 検証契約: 補助武器をオフハンドだけへ対応付け、種類別accessory slotから分離する。
+     * 検証契約: 補助装備をオフハンドだけへ対応付け、種類別accessory slotから分離する。
      */
     @Test
     void separatesAuxiliaryWeaponFromTypedAccessory() {
+        assertEquals("補助装備", ItemEquipmentSlot.SUBWEAPON.getDisplayName());
         assertSame(EquipmentType.OFF_HAND, EquipmentType.fromItemEquipmentSlot(ItemEquipmentSlot.SUBWEAPON));
         assertSame(EquipmentType.UNSUPPORTED, EquipmentType.fromItemEquipmentSlot(ItemEquipmentSlot.ACCESSORY));
         Arrays.stream(EquipmentType.values())

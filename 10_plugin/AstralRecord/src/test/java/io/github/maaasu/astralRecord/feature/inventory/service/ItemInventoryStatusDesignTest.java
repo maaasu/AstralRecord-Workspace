@@ -764,7 +764,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
      * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
-     * 検証契約: ホットバーに空きがない場合、クリック元とホットバーを変更しない。
+     * 検証契約: メインホットバー1〜9が満杯の場合、オフハンドを自動割当先にせず、クリック元とホットバーを変更しない。
      */
     @Test
     void assigningItemDoesNotChangeWhenHotbarIsFull() {
@@ -777,7 +777,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         when(harness.itemService.findLoadedById(consumable.getId())).thenReturn(consumable);
 
         assertEquals(12, harness.inventoryService.addItemToNormalInventory(astPlayer, consumable, 12, "test"));
-        state.replaceEntriesFromLoad(hotbar.getInventoryId(), java.util.stream.IntStream.rangeClosed(1, 10)
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), java.util.stream.IntStream.rangeClosed(1, 9)
             .mapToObj(slot -> inventoryEntry(state.getAccountId(), hotbar.getInventoryId(), slot,
                 ItemCategory.CONSUMABLE, consumable.getId(), 64L))
             .toList());
@@ -785,7 +785,8 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         assertFalse(harness.inventoryService.equipOrAssignClickedItem(astPlayer, 9));
 
         assertEquals(12L, state.snapshotEntries(bag.getInventoryId()).getFirst().getQuantity());
-        assertEquals(10, state.snapshotEntries(hotbar.getInventoryId()).size());
+        assertEquals(9, state.snapshotEntries(hotbar.getInventoryId()).size());
+        assertFalse(harness.inventoryService.hasHotbarEntry(astPlayer, HotbarLayout.DB_SLOT_OFFHAND));
     }
 
     /**
@@ -828,7 +829,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
      * 章・見出し: # 08_3-サービス > ## 11. 装備移動とアクセサリ移動
-     * 検証契約: オフハンド未選択でも、空を表すオフハンドダミーを補助武器の交換対象にせず装備する。
+     * 検証契約: オフハンド未選択でも、空を表すオフハンドダミーを補助装備の交換対象にせず装備する。
      */
     @Test
     void auxiliaryWeaponEquipsIntoEmptyOffhandWithoutSelectingOffhandHotbarSlot() {
@@ -837,7 +838,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
         PlayerInventoryState state = harness.registerState(astPlayer);
         InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
-        harness.addInventory(state, InventoryType.HOTBAR);
+        InventoryModel hotbar = harness.addInventory(state, InventoryType.HOTBAR);
         harness.addInventory(state, InventoryType.EQUIP_SLOT);
         ItemModel auxiliaryWeapon = auxiliaryWeapon("auxiliary_weapon_test");
         when(harness.itemService.findLoadedById(auxiliaryWeapon.getId())).thenReturn(auxiliaryWeapon);
@@ -874,6 +875,344 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
             ItemEquipmentSlot.fromApiValue(ItemStackFactory.getEquipmentSlot(
                 player.getInventory().getItemInOffHand())));
         assertTrue(state.snapshotEntries(bag.getInventoryId()).isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
+     * 検証契約: HOTBAR entry がないオフハンドクリックでも、装備中の補助装備個体を一度だけBAGへ戻し、オフハンドを空表示にする。
+     */
+    @Test
+    void clickingEmptyOffhandHotbarSlotReturnsEquippedAuxiliaryToBagOnce() {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel hotbar = harness.addInventory(state, InventoryType.HOTBAR);
+        ItemModel auxiliary = auxiliaryWeapon("offhand_return_test");
+        UUID instanceId = UUID.randomUUID();
+        EquipmentInstance instance = DesignTestFixtures.equipmentInstance(
+            instanceId, state.getAccountId(), auxiliary.getId(), "ATTACK", "1", "1");
+        when(harness.itemService.findLoadedById(auxiliary.getId())).thenReturn(auxiliary);
+        when(harness.itemService.findLoadedEquipmentInstanceById(instanceId.toString())).thenReturn(instance);
+        ItemStack equipped = new ItemStackFactory(mock(LootService.class), harness.itemService)
+            .create(auxiliary, instance, 1);
+        player.getInventory().setItemInOffHand(equipped);
+
+        assertTrue(harness.inventoryService.handleHotbarSlotClick(
+            astPlayer, HotbarLayout.DB_SLOT_OFFHAND));
+
+        assertTrue(HotbarRenderer.isHotbarDummy(player.getInventory().getItemInOffHand()));
+        assertTrue(state.snapshotEntries(hotbar.getInventoryId()).isEmpty());
+        List<InventoryEntryModel> returned = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(1, returned.size());
+        assertEquals(instanceId, returned.getFirst().getInstanceId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
+     * 検証契約: 補助装備をBAGへ返却できない場合、オフハンドと選択状態を変更しない。
+     */
+    @Test
+    void clickingEquippedOffhandWhenBagCannotReceiveLeavesStateUnchanged() {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel hotbar = harness.addInventory(state, InventoryType.HOTBAR);
+        state.setBagSlotCapacity(0);
+        ItemModel auxiliary = auxiliaryWeapon("offhand_return_full_bag_test");
+        UUID instanceId = UUID.randomUUID();
+        EquipmentInstance instance = DesignTestFixtures.equipmentInstance(
+            instanceId, state.getAccountId(), auxiliary.getId(), "ATTACK", "1", "1");
+        when(harness.itemService.findLoadedById(auxiliary.getId())).thenReturn(auxiliary);
+        when(harness.itemService.findLoadedEquipmentInstanceById(instanceId.toString())).thenReturn(instance);
+        ItemStack equipped = new ItemStackFactory(mock(LootService.class), harness.itemService)
+            .create(auxiliary, instance, 1);
+        player.getInventory().setItemInOffHand(equipped);
+
+        assertFalse(harness.inventoryService.handleHotbarSlotClick(
+            astPlayer, HotbarLayout.DB_SLOT_OFFHAND));
+
+        assertEquals(equipped, player.getInventory().getItemInOffHand());
+        assertNull(state.getSelectedHotbarSlot());
+        assertTrue(state.snapshotEntries(bag.getInventoryId()).isEmpty());
+        assertTrue(state.snapshotEntries(hotbar.getInventoryId()).isEmpty());
+        assertFalse(state.isDirty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
+     * 検証契約: オフハンドの equipment HOTBAR entry を返却すると、実オフハンドも消去し、BAGに同一個体を一件だけ残す。
+     */
+    @Test
+    void clickingAuxiliaryHotbarEntryReturnsEntryAndClearsMatchingOffhand() {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel hotbar = harness.addInventory(state, InventoryType.HOTBAR);
+        ItemModel auxiliary = auxiliaryWeapon("offhand_hotbar_return_test");
+        UUID instanceId = UUID.randomUUID();
+        EquipmentInstance instance = DesignTestFixtures.equipmentInstance(
+            instanceId, state.getAccountId(), auxiliary.getId(), "ATTACK", "1", "1");
+        when(harness.itemService.findLoadedById(auxiliary.getId())).thenReturn(auxiliary);
+        when(harness.itemService.findLoadedEquipmentInstanceById(instanceId.toString())).thenReturn(instance);
+        ItemStack equipped = new ItemStackFactory(mock(LootService.class), harness.itemService)
+            .create(auxiliary, instance, 1);
+        player.getInventory().setItemInOffHand(equipped);
+        InventoryEntryModel hotbarEntry = equipmentEntry(
+            state.getAccountId(), hotbar.getInventoryId(), HotbarLayout.DB_SLOT_OFFHAND,
+            auxiliary.getId(), instanceId);
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of(hotbarEntry));
+
+        assertTrue(harness.inventoryService.handleHotbarSlotClick(
+            astPlayer, HotbarLayout.DB_SLOT_OFFHAND));
+
+        assertTrue(HotbarRenderer.isHotbarDummy(player.getInventory().getItemInOffHand()));
+        assertTrue(state.snapshotEntries(hotbar.getInventoryId()).isEmpty());
+        List<InventoryEntryModel> returned = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(1, returned.size());
+        assertEquals(instanceId, returned.getFirst().getInstanceId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
+     * 検証契約: 旧不正状態の通常item slot 10を返却した場合も、物理オフハンドを残さず二重化を防ぐ。
+     */
+    @Test
+    void clickingLegacyNormalItemInOffhandHotbarEntryDoesNotDuplicateIt() {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel hotbar = harness.addInventory(state, InventoryType.HOTBAR);
+        ItemModel consumable = DesignTestFixtures.item(
+            "legacy_offhand_normal_item_test", ItemCategory.CONSUMABLE, 64);
+        when(harness.itemService.findLoadedById(consumable.getId())).thenReturn(consumable);
+        ItemStack equipped = new ItemStackFactory(mock(LootService.class), harness.itemService)
+            .create(consumable, 1);
+        player.getInventory().setItemInOffHand(equipped);
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of(
+            inventoryEntry(
+                state.getAccountId(), hotbar.getInventoryId(), HotbarLayout.DB_SLOT_OFFHAND,
+                ItemCategory.CONSUMABLE, consumable.getId(), 1L)
+        ));
+
+        assertTrue(harness.inventoryService.handleHotbarSlotClick(
+            astPlayer, HotbarLayout.DB_SLOT_OFFHAND));
+
+        assertTrue(HotbarRenderer.isHotbarDummy(player.getInventory().getItemInOffHand()));
+        assertTrue(state.snapshotEntries(hotbar.getInventoryId()).isEmpty());
+        List<InventoryEntryModel> returned = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(1, returned.size());
+        assertEquals(consumable.getId(), returned.getFirst().getItemId());
+        assertEquals(1L, returned.getFirst().getQuantity());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
+     * 検証契約: オフハンド選択中に補助装備以外の道具をクリックしても、旧オフハンド・BAG・選択状態を変更しない。
+     */
+    @Test
+    void selectingOffhandDoesNotAssignToolOrChangeExistingOffhand() {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel hotbar = harness.addInventory(state, InventoryType.HOTBAR);
+        ItemModel tool = toolEquipment("offhand_tool_rejection_test");
+        when(harness.itemService.findLoadedById(tool.getId())).thenReturn(tool);
+        InventoryEntryModel toolEntry = inventoryEntry(
+            state.getAccountId(), bag.getInventoryId(), 1,
+            ItemCategory.EQUIPMENT, tool.getId(), 1L);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(toolEntry));
+        state.setSelectedHotbarSlot(HotbarLayout.DB_SLOT_OFFHAND);
+        ItemStack existingOffhand = new ItemStack(Material.SHIELD);
+        player.getInventory().setItemInOffHand(existingOffhand);
+
+        assertFalse(harness.inventoryService.equipOrAssignClickedItem(astPlayer, 9));
+
+        assertEquals(existingOffhand, player.getInventory().getItemInOffHand());
+        assertEquals(HotbarLayout.DB_SLOT_OFFHAND, state.getSelectedHotbarSlot());
+        assertEquals(1, state.snapshotEntries(bag.getInventoryId()).size());
+        assertTrue(state.snapshotEntries(hotbar.getInventoryId()).isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 10. ホットバー操作
+     * 検証契約: 補助装備ではない武器と通常アイテムも、オフハンド選択中に割り当てず、既存状態を維持する。
+     */
+    @Test
+    void selectingOffhandRejectsWeaponAndNormalItemWithoutMutation() {
+        assertOffhandAssignmentRejected(
+            weaponEquipment("offhand_weapon_rejection_test"), ItemCategory.EQUIPMENT);
+        assertOffhandAssignmentRejected(
+            DesignTestFixtures.item("offhand_consumable_rejection_test", ItemCategory.CONSUMABLE, 64),
+            ItemCategory.CONSUMABLE);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 11. 装備移動とアクセサリ移動
+     * 検証契約: 補助装備交換では旧個体を先にBAGへ返却し、新個体だけをオフハンドへ置く。返却個体・新個体を重複させない。
+     */
+    @Test
+    void replacingAuxiliaryInOffhandReturnsPreviousInstanceBeforeEquippingNewOne() {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel hotbar = harness.addInventory(state, InventoryType.HOTBAR);
+        harness.addInventory(state, InventoryType.EQUIP_SLOT);
+        ItemModel previousAuxiliary = auxiliaryWeapon("offhand_previous_test");
+        ItemModel nextAuxiliary = auxiliaryWeapon("offhand_next_test");
+        UUID previousInstanceId = UUID.randomUUID();
+        UUID nextInstanceId = UUID.randomUUID();
+        EquipmentInstance previousInstance = DesignTestFixtures.equipmentInstance(
+            previousInstanceId, state.getAccountId(), previousAuxiliary.getId(), "ATTACK", "1", "1");
+        EquipmentInstance nextInstance = DesignTestFixtures.equipmentInstance(
+            nextInstanceId, state.getAccountId(), nextAuxiliary.getId(), "ATTACK", "1", "1");
+        when(harness.itemService.findLoadedById(previousAuxiliary.getId())).thenReturn(previousAuxiliary);
+        when(harness.itemService.findLoadedById(nextAuxiliary.getId())).thenReturn(nextAuxiliary);
+        when(harness.itemService.findLoadedEquipmentInstanceById(previousInstanceId.toString()))
+            .thenReturn(previousInstance);
+        when(harness.itemService.findLoadedEquipmentInstanceById(nextInstanceId.toString()))
+            .thenReturn(nextInstance);
+        ItemStack previousStack = new ItemStackFactory(mock(LootService.class), harness.itemService)
+            .create(previousAuxiliary, previousInstance, 1);
+        player.getInventory().setItemInOffHand(previousStack);
+        InventoryEntryModel nextEntry = equipmentEntry(
+            state.getAccountId(), bag.getInventoryId(), 1, nextAuxiliary.getId(), nextInstanceId);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(nextEntry));
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of(
+            equipmentEntry(
+                state.getAccountId(), hotbar.getInventoryId(), HotbarLayout.DB_SLOT_OFFHAND,
+                previousAuxiliary.getId(), previousInstanceId)
+        ));
+
+        assertTrue(harness.inventoryService.equipOrAssignClickedItem(astPlayer, 9));
+
+        assertEquals(nextInstanceId.toString(), ItemStackFactory.getEquipmentInstanceId(
+            player.getInventory().getItemInOffHand()));
+        List<InventoryEntryModel> bagEntries = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(1, bagEntries.size());
+        assertEquals(previousInstanceId, bagEntries.getFirst().getInstanceId());
+        assertTrue(bagEntries.stream().noneMatch(entry -> nextInstanceId.equals(entry.getInstanceId())));
+        assertTrue(state.snapshotEntries(hotbar.getInventoryId()).isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 11. 装備移動とアクセサリ移動
+     * 検証契約: BAGが満杯でも、交換元entryを先に解放して旧補助装備を同じslotへ戻し、交換を成功させる。
+     */
+    @Test
+    void replacingAuxiliaryUsesFreedBagSlotWhenBagIsFull() {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        harness.addInventory(state, InventoryType.HOTBAR);
+        harness.addInventory(state, InventoryType.EQUIP_SLOT);
+        state.setBagSlotCapacity(1);
+        ItemModel previousAuxiliary = auxiliaryWeapon("offhand_previous_full_bag_test");
+        ItemModel nextAuxiliary = auxiliaryWeapon("offhand_next_full_bag_test");
+        UUID previousInstanceId = UUID.randomUUID();
+        UUID nextInstanceId = UUID.randomUUID();
+        EquipmentInstance previousInstance = DesignTestFixtures.equipmentInstance(
+            previousInstanceId, state.getAccountId(), previousAuxiliary.getId(), "ATTACK", "1", "1");
+        EquipmentInstance nextInstance = DesignTestFixtures.equipmentInstance(
+            nextInstanceId, state.getAccountId(), nextAuxiliary.getId(), "ATTACK", "1", "1");
+        when(harness.itemService.findLoadedById(previousAuxiliary.getId())).thenReturn(previousAuxiliary);
+        when(harness.itemService.findLoadedById(nextAuxiliary.getId())).thenReturn(nextAuxiliary);
+        when(harness.itemService.findLoadedEquipmentInstanceById(previousInstanceId.toString()))
+            .thenReturn(previousInstance);
+        when(harness.itemService.findLoadedEquipmentInstanceById(nextInstanceId.toString()))
+            .thenReturn(nextInstance);
+        player.getInventory().setItemInOffHand(new ItemStackFactory(mock(LootService.class), harness.itemService)
+            .create(previousAuxiliary, previousInstance, 1));
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
+            equipmentEntry(state.getAccountId(), bag.getInventoryId(), 1, nextAuxiliary.getId(), nextInstanceId)
+        ));
+
+        assertTrue(harness.inventoryService.equipOrAssignClickedItem(astPlayer, 9));
+
+        assertEquals(nextInstanceId.toString(), ItemStackFactory.getEquipmentInstanceId(
+            player.getInventory().getItemInOffHand()));
+        List<InventoryEntryModel> bagEntries = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(1, bagEntries.size());
+        assertEquals(previousInstanceId, bagEntries.getFirst().getInstanceId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 11. 装備移動とアクセサリ移動
+     * 検証契約: 装備元entryを除去した後の旧オフハンド参照返却で失敗しても、交換前の全状態へロールバックする。
+     */
+    @Test
+    void replacingAuxiliaryRollsBackWhenStaleOffhandEntryConsumesFreedBagSlot() {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel hotbar = harness.addInventory(state, InventoryType.HOTBAR);
+        harness.addInventory(state, InventoryType.EQUIP_SLOT);
+        state.setBagSlotCapacity(1);
+        ItemModel previousAuxiliary = auxiliaryWeapon("offhand_previous_rollback_test");
+        ItemModel nextAuxiliary = auxiliaryWeapon("offhand_next_rollback_test");
+        ItemModel staleAuxiliary = auxiliaryWeapon("offhand_stale_rollback_test");
+        UUID previousInstanceId = UUID.randomUUID();
+        UUID nextInstanceId = UUID.randomUUID();
+        UUID staleInstanceId = UUID.randomUUID();
+        EquipmentInstance previousInstance = DesignTestFixtures.equipmentInstance(
+            previousInstanceId, state.getAccountId(), previousAuxiliary.getId(), "ATTACK", "1", "1");
+        EquipmentInstance nextInstance = DesignTestFixtures.equipmentInstance(
+            nextInstanceId, state.getAccountId(), nextAuxiliary.getId(), "ATTACK", "1", "1");
+        EquipmentInstance staleInstance = DesignTestFixtures.equipmentInstance(
+            staleInstanceId, state.getAccountId(), staleAuxiliary.getId(), "ATTACK", "1", "1");
+        when(harness.itemService.findLoadedById(previousAuxiliary.getId())).thenReturn(previousAuxiliary);
+        when(harness.itemService.findLoadedById(nextAuxiliary.getId())).thenReturn(nextAuxiliary);
+        when(harness.itemService.findLoadedById(staleAuxiliary.getId())).thenReturn(staleAuxiliary);
+        when(harness.itemService.findLoadedEquipmentInstanceById(previousInstanceId.toString()))
+            .thenReturn(previousInstance);
+        when(harness.itemService.findLoadedEquipmentInstanceById(nextInstanceId.toString()))
+            .thenReturn(nextInstance);
+        when(harness.itemService.findLoadedEquipmentInstanceById(staleInstanceId.toString()))
+            .thenReturn(staleInstance);
+        ItemStack previousStack = new ItemStackFactory(mock(LootService.class), harness.itemService)
+            .create(previousAuxiliary, previousInstance, 1);
+        player.getInventory().setItemInOffHand(previousStack);
+        InventoryEntryModel nextEntry = equipmentEntry(
+            state.getAccountId(), bag.getInventoryId(), 1, nextAuxiliary.getId(), nextInstanceId);
+        InventoryEntryModel staleOffhandEntry = equipmentEntry(
+            state.getAccountId(), hotbar.getInventoryId(), HotbarLayout.DB_SLOT_OFFHAND,
+            staleAuxiliary.getId(), staleInstanceId);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(nextEntry));
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of(staleOffhandEntry));
+        state.setSelectedHotbarSlot(3);
+        assertFalse(state.isDirty());
+
+        assertFalse(harness.inventoryService.equipOrAssignClickedItem(astPlayer, 9));
+
+        assertEquals(previousStack, player.getInventory().getItemInOffHand());
+        assertEquals(3, state.getSelectedHotbarSlot());
+        assertFalse(state.isDirty());
+        assertEquals(List.of(nextEntry), state.snapshotEntries(bag.getInventoryId()));
+        assertEquals(List.of(staleOffhandEntry), state.snapshotEntries(hotbar.getInventoryId()));
     }
 
     private static InventoryHarness inventoryHarness() {
@@ -917,8 +1256,20 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     }
 
     private static ItemModel auxiliaryWeapon(String id) {
+        return equipmentItem(id, ItemEquipmentSlot.SUBWEAPON, "TORCH");
+    }
+
+    private static ItemModel toolEquipment(String id) {
+        return equipmentItem(id, ItemEquipmentSlot.TOOL, "IRON_PICKAXE");
+    }
+
+    private static ItemModel weaponEquipment(String id) {
+        return equipmentItem(id, ItemEquipmentSlot.WEAPON, "IRON_SWORD");
+    }
+
+    private static ItemModel equipmentItem(String id, ItemEquipmentSlot slot, String material) {
         ItemEquipment equipment = new ItemEquipment(
-            ItemEquipmentSlot.SUBWEAPON,
+            slot,
             ItemEquipmentHandType.ONE,
             null,
             0,
@@ -936,7 +1287,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
             id,
             ItemCategory.EQUIPMENT.getApiValue(),
             id,
-            "TORCH",
+            material,
             "common",
             1,
             0,
@@ -953,6 +1304,55 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
             null,
             null,
             null
+        );
+    }
+
+    private void assertOffhandAssignmentRejected(ItemModel sourceModel, ItemCategory category) {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel hotbar = harness.addInventory(state, InventoryType.HOTBAR);
+        when(harness.itemService.findLoadedById(sourceModel.getId())).thenReturn(sourceModel);
+        InventoryEntryModel sourceEntry = inventoryEntry(
+            state.getAccountId(), bag.getInventoryId(), 1, category, sourceModel.getId(), 1L);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(sourceEntry));
+        state.setSelectedHotbarSlot(HotbarLayout.DB_SLOT_OFFHAND);
+        ItemStack existingOffhand = new ItemStack(Material.SHIELD);
+        player.getInventory().setItemInOffHand(existingOffhand);
+
+        assertFalse(harness.inventoryService.equipOrAssignClickedItem(astPlayer, 9));
+
+        assertEquals(existingOffhand, player.getInventory().getItemInOffHand());
+        assertEquals(HotbarLayout.DB_SLOT_OFFHAND, state.getSelectedHotbarSlot());
+        assertEquals(1, state.snapshotEntries(bag.getInventoryId()).size());
+        assertTrue(state.snapshotEntries(hotbar.getInventoryId()).isEmpty());
+    }
+
+    private static InventoryEntryModel equipmentEntry(
+        UUID accountId,
+        UUID inventoryId,
+        int slot,
+        String itemId,
+        UUID instanceId
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+        return new InventoryEntryModel(
+            UUID.randomUUID(),
+            inventoryId,
+            slot,
+            ItemCategory.EQUIPMENT.getApiValue(),
+            itemId,
+            InventoryInstanceType.EQUIPMENT.getCode(),
+            instanceId,
+            1L,
+            null,
+            now,
+            now,
+            accountId,
+            accountId,
+            false
         );
     }
 
