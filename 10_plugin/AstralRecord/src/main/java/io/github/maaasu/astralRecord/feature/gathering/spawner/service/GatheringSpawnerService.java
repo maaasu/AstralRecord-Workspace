@@ -46,7 +46,6 @@ public class GatheringSpawnerService {
     private static final long TICK_INTERVAL = 20L;
     private static final long SAVE_INTERVAL = 20L * 60L;
     private static final int MAX_PLAYER_SCALE = 6;
-    private static final int SPAWN_LOCATION_ATTEMPTS = 24;
 
     private final Plugin plugin;
     private final GatheringService gatheringService;
@@ -331,7 +330,7 @@ public class GatheringSpawnerService {
         }
 
         GatheringSpawnerEntry entry = choose(definition.spawnGatherings());
-        Location spawnLocation = randomSpawnLocation(origin, definition);
+        Location spawnLocation = findHighestSpawnLocation(origin, definition);
         if (entry == null || spawnLocation == null) {
             return;
         }
@@ -391,28 +390,85 @@ public class GatheringSpawnerService {
         return entries.get(entries.size() - 1);
     }
 
-    private @Nullable Location randomSpawnLocation(@NotNull Location origin, @NotNull GatheringSpawnerDefinition definition) {
+    /**
+     * スポナー座標を中心とした半径内から、洞窟層に限定した最上位のスポーン地点を探します。
+     * 水平方向は半径内の X/Z 列をすべて調査し、垂直方向は登録座標の Y 座標から半径分の範囲に限定します。
+     * 各列では足元ブロックの条件と、スポーンブロックの passable / non-liquid 条件を満たす最上位候補を選び、
+     * その中で最も高い候補を返します。
+     *
+     * @param origin     スポナーの登録座標
+     * @param definition スポナー定義
+     * @return 条件を満たす最上位のスポーン地点。候補がない場合は null
+     */
+    static @Nullable Location findHighestSpawnLocation(
+            @NotNull Location origin,
+            @NotNull GatheringSpawnerDefinition definition
+    ) {
         World world = origin.getWorld();
         if (world == null) {
             return null;
         }
-        ThreadLocalRandom random = ThreadLocalRandom.current();
-        for (int attempt = 0; attempt < SPAWN_LOCATION_ATTEMPTS; attempt++) {
-            double angle = random.nextDouble(0.0D, Math.PI * 2.0D);
-            double distance = Math.sqrt(random.nextDouble()) * definition.radiusMeters();
-            int x = origin.getBlockX() + (int) Math.round(Math.cos(angle) * distance);
-            int z = origin.getBlockZ() + (int) Math.round(Math.sin(angle) * distance);
-            int y = world.getHighestBlockYAt(x, z);
-            Block base = world.getBlockAt(x, y, z);
-            if (!definition.requiredBaseBlocks().isEmpty() && !definition.requiredBaseBlocks().contains(base.getType())) {
-                continue;
-            }
-            Location candidate = new Location(world, x + 0.5D, y + 1.0D, z + 0.5D);
-            if (candidate.getBlock().isPassable() && !candidate.getBlock().isLiquid()) {
-                return candidate;
+
+        double radius = definition.radiusMeters();
+        double radiusSq = radius * radius;
+        int horizontalRadius = (int) Math.ceil(radius);
+        int minCandidateY = Math.max(
+                world.getMinHeight() + 1,
+                (int) Math.ceil(origin.getY() - radius)
+        );
+        int maxCandidateY = Math.min(
+                world.getMaxHeight() - 1,
+                (int) Math.floor(origin.getY() + radius)
+        );
+        if (minCandidateY > maxCandidateY) {
+            return null;
+        }
+
+        int highestCandidateY = Integer.MIN_VALUE;
+        List<Location> highestCandidates = new ArrayList<>();
+        for (int x = origin.getBlockX() - horizontalRadius; x <= origin.getBlockX() + horizontalRadius; x++) {
+            double dx = x + 0.5D - origin.getX();
+            for (int z = origin.getBlockZ() - horizontalRadius; z <= origin.getBlockZ() + horizontalRadius; z++) {
+                double dz = z + 0.5D - origin.getZ();
+                double horizontalDistanceSq = dx * dx + dz * dz;
+                if (horizontalDistanceSq > radiusSq) {
+                    continue;
+                }
+
+                int highestBlockY = world.getHighestBlockYAt(x, z);
+                int startCandidateY = Math.min(maxCandidateY, highestBlockY + 1);
+                for (int candidateY = startCandidateY; candidateY >= minCandidateY; candidateY--) {
+                    double dy = candidateY - origin.getY();
+                    if (horizontalDistanceSq + dy * dy > radiusSq) {
+                        continue;
+                    }
+
+                    Block base = world.getBlockAt(x, candidateY - 1, z);
+                    if (!base.getType().isSolid()
+                            || (!definition.requiredBaseBlocks().isEmpty()
+                            && !definition.requiredBaseBlocks().contains(base.getType()))) {
+                        continue;
+                    }
+                    Location candidate = new Location(world, x + 0.5D, candidateY, z + 0.5D);
+                    Block spawnBlock = world.getBlockAt(x, candidateY, z);
+                    if (!spawnBlock.isPassable() || spawnBlock.isLiquid()) {
+                        continue;
+                    }
+                    if (candidateY > highestCandidateY) {
+                        highestCandidateY = candidateY;
+                        highestCandidates.clear();
+                    }
+                    if (candidateY == highestCandidateY) {
+                        highestCandidates.add(candidate);
+                    }
+                    break;
+                }
             }
         }
-        return null;
+        if (highestCandidates.isEmpty()) {
+            return null;
+        }
+        return highestCandidates.get(ThreadLocalRandom.current().nextInt(highestCandidates.size()));
     }
 
     private void saveIfDirty() {
