@@ -17,7 +17,7 @@ public enum MenuIconDefinition {
     TRASH(Material.LAVA_BUCKET, "ゴミ箱", NamedTextColor.RED, "アイテムを破棄する"),
     GUIDE(Material.KNOWLEDGE_BOOK, "ガイド", NamedTextColor.LIGHT_PURPLE, "ヘルプを開く"),
     RETURN_TO_BASE(Material.BEACON, "帰還", NamedTextColor.AQUA, "3秒間移動しなければ拠点へ帰還"),
-    ADVENTURE_RECORD(Material.SPYGLASS, "冒険記録", NamedTextColor.GOLD, "魔物録・厄災録・モブ検索を開く"),
+    ADVENTURE_RECORD(Material.SPYGLASS, "冒険記録", NamedTextColor.GOLD, "モブ情報一覧とモブ検索を開く"),
     MAIL(Material.CHEST, "メール", NamedTextColor.GOLD, "お知らせと報酬を確認"),
     SKILL_BIND(Material.ENCHANTING_TABLE, "スキルマネージャー", NamedTextColor.AQUA, "習得・強化・バインドを管理"),
     CURRENCY(Material.BUNDLE, "カレンシー", NamedTextColor.GOLD, "所持通貨を確認"),

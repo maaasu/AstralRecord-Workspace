@@ -8,6 +8,7 @@ import org.jetbrains.annotations.Nullable;
  * 冒険記録の Mob 一覧種別です。
  */
 public enum AdventureRecordListType {
+    ALL("冒険記録", null),
     ENEMY("魔物録", MobCategory.ENEMY),
     BOSS("厄災録", MobCategory.BOSS),
     SEARCH("モブ検索結果", null);

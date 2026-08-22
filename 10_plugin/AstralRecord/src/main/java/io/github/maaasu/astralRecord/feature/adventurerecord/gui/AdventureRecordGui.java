@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureReco
 import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropItem;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
@@ -38,10 +39,8 @@ import java.util.UUID;
  */
 public class AdventureRecordGui {
     public static final int SIZE = 54;
-    public static final int ENEMY_RECORD_SLOT = 20;
-    public static final int BOSS_RECORD_SLOT = 22;
-    public static final int MOB_SEARCH_SLOT = 24;
-    public static final int BOND_RECORD_SLOT = 31;
+    public static final int CATEGORY_FILTER_SLOT = 46;
+    public static final int MOB_SEARCH_SLOT = 47;
     public static final int SEARCH_BUTTON_SLOT = 53;
     public static final int SEARCH_BACK_SLOT = BaseMenuScreenView.BACK_SLOT;
     public static final int[] SEARCH_ITEM_SLOTS = {
@@ -59,42 +58,6 @@ public class AdventureRecordGui {
 
     public AdventureRecordGui(@NotNull ItemService itemService) {
         this.itemService = itemService;
-    }
-
-    /**
-     * 冒険記録トップ GUI を開きます。
-     *
-     * @param player 表示対象プレイヤー
-     */
-    public void openMain(@NotNull Player player) {
-        Inventory inventory = Bukkit.createInventory(
-            new Holder(Screen.MAIN, null, 0, Set.of(), List.of(), false),
-            SIZE,
-            Component.text("冒険記録", NamedTextColor.GOLD)
-        );
-        fill(inventory);
-        inventory.setItem(ENEMY_RECORD_SLOT, createItem(
-            Material.ZOMBIE_HEAD,
-            Component.text("魔物録", NamedTextColor.GREEN),
-            List.of(Component.text("討伐したエネミーの記録", NamedTextColor.GRAY))
-        ));
-        inventory.setItem(BOSS_RECORD_SLOT, createItem(
-            Material.DRAGON_HEAD,
-            Component.text("厄災録", NamedTextColor.RED),
-            List.of(Component.text("討伐したボスの記録", NamedTextColor.GRAY))
-        ));
-        inventory.setItem(MOB_SEARCH_SLOT, createItem(
-            Material.COMPASS,
-            Component.text("モブ検索", NamedTextColor.AQUA),
-            List.of(Component.text("指定アイテムをドロップするモブを検索", NamedTextColor.GRAY))
-        ));
-        inventory.setItem(BOND_RECORD_SLOT, createItem(
-            Material.AMETHYST_SHARD,
-            Component.text("絆記録", NamedTextColor.LIGHT_PURPLE),
-            List.of(Component.text("未実装", NamedTextColor.DARK_GRAY))
-        ));
-        inventory.setItem(BaseMenuScreenView.BACK_SLOT, backItem());
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     /**
@@ -133,6 +96,36 @@ public class AdventureRecordGui {
             Component.text(listType.getTitle() + " " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.GOLD)
         );
         pagedGuiView.render(inventory, icons, normalizedPage);
+        renderListControls(inventory, listType);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+    }
+
+    /**
+     * Mob 記録のカテゴリフィルター候補 GUI を開きます。
+     *
+     * @param player 表示対象プレイヤー
+     * @param selectedType 現在選択中の一覧種別
+     */
+    public void openFilter(@NotNull Player player, @NotNull AdventureRecordListType selectedType) {
+        Inventory inventory = Bukkit.createInventory(
+            new Holder(Screen.FILTER, selectedType, 0, Set.of(), List.of(), false),
+            SIZE,
+            Component.text("冒険記録のカテゴリ", NamedTextColor.AQUA)
+        );
+        fill(inventory);
+        List<AdventureRecordListType> options = filterOptions();
+        for (int index = 0; index < options.size(); index++) {
+            AdventureRecordListType option = options.get(index);
+            boolean selected = option == selectedType;
+            NamedTextColor color = optionColor(option);
+            List<Component> lore = selected
+                ? List.of(Component.text("現在選択中", NamedTextColor.GREEN))
+                : List.of(Component.text("クリックで適用", NamedTextColor.GRAY));
+            inventory.setItem(index, createItem(optionMaterial(option), Component.text(
+                optionFilterLabel(option),
+                color
+            ), lore));
+        }
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
@@ -202,6 +195,17 @@ public class AdventureRecordGui {
         return List.of();
     }
 
+    /**
+     * フィルター候補 GUI のクリック位置から一覧種別を解決します。
+     *
+     * @param rawSlot クリックされた raw slot
+     * @return 対応する一覧種別。候補外の場合は null
+     */
+    public @Nullable AdventureRecordListType getFilterTypeAtSlot(int rawSlot) {
+        List<AdventureRecordListType> options = filterOptions();
+        return rawSlot >= 0 && rawSlot < options.size() ? options.get(rawSlot) : null;
+    }
+
     public boolean isSuperMode(@Nullable Inventory inventory) {
         return inventory != null
             && inventory.getHolder() instanceof Holder holder
@@ -258,6 +262,7 @@ public class AdventureRecordGui {
     private @NotNull ItemStack createMobItem(@NotNull AdventureRecordService.Entry entry, boolean superMode) {
         MobTemplate template = entry.template();
         List<Component> lore = new ArrayList<>();
+        lore.add(Component.text("種類: " + categoryLabel(template.category()), NamedTextColor.AQUA));
         lore.add(Component.text("レベル: " + template.level(), NamedTextColor.YELLOW));
         if (superMode) {
             lore.add(Component.text("管理ID: " + template.id(), NamedTextColor.DARK_GRAY));
@@ -280,6 +285,70 @@ public class AdventureRecordGui {
             ColorCodeUtil.toPlainText(template.displayName(), template.id()),
             NamedTextColor.WHITE
         ), lore);
+    }
+
+    private void renderListControls(
+        @NotNull Inventory inventory,
+        @NotNull AdventureRecordListType listType
+    ) {
+        if (listType != AdventureRecordListType.SEARCH) {
+            inventory.setItem(CATEGORY_FILTER_SLOT, createItem(
+                Material.HOPPER,
+                Component.text("カテゴリフィルター", NamedTextColor.AQUA),
+                List.of(
+                    Component.text("現在: " + optionFilterLabel(listType), NamedTextColor.WHITE),
+                    Component.text("クリックで候補一覧を表示", NamedTextColor.GRAY)
+                )
+            ));
+        }
+        inventory.setItem(MOB_SEARCH_SLOT, createItem(
+            Material.COMPASS,
+            Component.text("モブ検索", NamedTextColor.AQUA),
+            List.of(Component.text("ドロップアイテムから全モブを検索", NamedTextColor.GRAY))
+        ));
+    }
+
+    private @NotNull List<AdventureRecordListType> filterOptions() {
+        return List.of(
+            AdventureRecordListType.ALL,
+            AdventureRecordListType.ENEMY,
+            AdventureRecordListType.BOSS
+        );
+    }
+
+    private @NotNull String optionFilterLabel(@NotNull AdventureRecordListType listType) {
+        return switch (listType) {
+            case ALL -> "すべて";
+            case ENEMY -> "エネミーのみ";
+            case BOSS -> "ボスのみ";
+            case SEARCH -> "検索結果";
+        };
+    }
+
+    private @NotNull NamedTextColor optionColor(@NotNull AdventureRecordListType listType) {
+        return switch (listType) {
+            case ALL -> NamedTextColor.WHITE;
+            case ENEMY -> NamedTextColor.GREEN;
+            case BOSS -> NamedTextColor.RED;
+            case SEARCH -> NamedTextColor.AQUA;
+        };
+    }
+
+    private @NotNull Material optionMaterial(@NotNull AdventureRecordListType listType) {
+        return switch (listType) {
+            case ALL -> Material.BARRIER;
+            case ENEMY -> Material.ZOMBIE_HEAD;
+            case BOSS -> Material.DRAGON_HEAD;
+            case SEARCH -> Material.COMPASS;
+        };
+    }
+
+    private @NotNull String categoryLabel(@NotNull MobCategory category) {
+        return switch (category) {
+            case ENEMY -> "エネミー";
+            case BOSS -> "ボス";
+            case NPC -> "NPC";
+        };
     }
 
     private void appendDrops(@NotNull List<Component> lore, @Nullable MobDropConfig drops) {
@@ -374,9 +443,9 @@ public class AdventureRecordGui {
     }
 
     public enum Screen {
-        MAIN,
         MOB_LIST,
-        SEARCH
+        SEARCH,
+        FILTER
     }
 
     private record Holder(
@@ -389,13 +458,16 @@ public class AdventureRecordGui {
     ) implements HotbarShortcutGuiHolder {
         @Override
         public @NotNull String getNavigationId() {
+            if (screen == Screen.FILTER || (screen == Screen.MOB_LIST && listType != AdventureRecordListType.SEARCH)) {
+                return "adventure-record:mob-list";
+            }
             String type = listType == null ? "" : ":" + listType.name();
             return "adventure-record:" + screen.name() + type;
         }
 
         @Override
         public int getBackSlot() {
-            return BaseMenuScreenView.BACK_SLOT;
+            return screen == Screen.FILTER ? -1 : BaseMenuScreenView.BACK_SLOT;
         }
 
         @Override

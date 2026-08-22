@@ -6,7 +6,6 @@ import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureReco
 import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
-import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -52,13 +51,13 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
     }
 
     /**
-     * 冒険記録トップ GUI を開きます。
+     * 冒険記録一覧 GUI を開きます。
      *
      * @param player 表示対象プレイヤー
      */
     public void open(@NotNull Player player) {
         setHotbarShortcutMode(player, true);
-        gui.openMain(player);
+        openList(player, AdventureRecordListType.ALL, 0, Set.of(), false);
     }
 
     public boolean isInventory(@Nullable Inventory inventory) {
@@ -80,16 +79,16 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             AdventureRecordGui.Screen screen = gui.getScreen(topInventory);
-            if (screen == AdventureRecordGui.Screen.MAIN) {
-                handleMainClick(player, event.getRawSlot());
-                return;
-            }
             if (screen == AdventureRecordGui.Screen.MOB_LIST) {
                 handleMobListClick(player, topInventory, event.getRawSlot());
                 return;
             }
             if (screen == AdventureRecordGui.Screen.SEARCH) {
                 handleSearchClick(player, topInventory, event.getRawSlot());
+                return;
+            }
+            if (screen == AdventureRecordGui.Screen.FILTER) {
+                handleFilterClick(player, event.getRawSlot());
             }
         }, LogId.E_5601, event.getWhoClicked().getName(), "adventure_record_gui_click");
     }
@@ -118,32 +117,6 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
                 setHotbarShortcutMode(player, false);
             }
         }, LogId.E_5601, event.getPlayer().getName(), "adventure_record_gui_close");
-    }
-
-    private void handleMainClick(@NotNull Player player, int rawSlot) {
-        if (rawSlot == BaseMenuScreenView.BACK_SLOT) {
-            GuiSound.SELECT.play(player);
-            io.github.maaasu.astralRecord.AstralRecord.getInstance().getGuiNavigationService().openPrevious(player);
-            return;
-        }
-        if (rawSlot == AdventureRecordGui.ENEMY_RECORD_SLOT) {
-            openList(player, AdventureRecordListType.ENEMY, 0, Set.of());
-            return;
-        }
-        if (rawSlot == AdventureRecordGui.BOSS_RECORD_SLOT) {
-            openList(player, AdventureRecordListType.BOSS, 0, Set.of());
-            return;
-        }
-        if (rawSlot == AdventureRecordGui.MOB_SEARCH_SLOT) {
-            GuiSound.SELECT.play(player);
-            gui.openSearch(player, List.of());
-            return;
-        }
-        if (rawSlot == AdventureRecordGui.BOND_RECORD_SLOT) {
-            GuiSound.DENY.play(player);
-            return;
-        }
-        GuiSound.DENY.play(player);
     }
 
     private void handleMobListClick(@NotNull Player player, @NotNull Inventory inventory, int rawSlot) {
@@ -186,7 +159,26 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
             );
             return;
         }
+        if (rawSlot == AdventureRecordGui.CATEGORY_FILTER_SLOT && listType != AdventureRecordListType.SEARCH) {
+            GuiSound.SELECT.play(player);
+            gui.openFilter(player, listType);
+            return;
+        }
+        if (rawSlot == AdventureRecordGui.MOB_SEARCH_SLOT) {
+            GuiSound.SELECT.play(player);
+            gui.openSearch(player, List.of());
+            return;
+        }
         GuiSound.DENY.play(player);
+    }
+
+    private void handleFilterClick(@NotNull Player player, int rawSlot) {
+        AdventureRecordListType selectedType = gui.getFilterTypeAtSlot(rawSlot);
+        if (selectedType == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        openList(player, selectedType, 0, Set.of());
     }
 
     private void handleSearchClick(@NotNull Player player, @NotNull Inventory inventory, int rawSlot) {
@@ -246,6 +238,16 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
         int pageIndex,
         @NotNull Set<String> searchItemIds
     ) {
+        openList(player, listType, pageIndex, searchItemIds, true);
+    }
+
+    private void openList(
+        @NotNull Player player,
+        @NotNull AdventureRecordListType listType,
+        int pageIndex,
+        @NotNull Set<String> searchItemIds,
+        boolean playSelectSound
+    ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
             GuiSound.DENY.play(player);
@@ -253,9 +255,12 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
         }
         UUID playerId = player.getUniqueId();
         UUID accountId = astPlayer.getAccount().getUuid();
+        Inventory sourceInventory = player.getOpenInventory().getTopInventory();
         UUID requestId = UUID.randomUUID();
         listRequestIds.put(playerId, requestId);
-        GuiSound.SELECT.play(player);
+        if (playSelectSound) {
+            GuiSound.SELECT.play(player);
+        }
         adventureRecordService.buildEntriesAsync(
             astPlayer,
             listType,
@@ -267,7 +272,8 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
                 Player online = org.bukkit.Bukkit.getPlayer(playerId);
                 AstPlayer current = online == null ? null : AstPlayerCache.get(online);
                 if (online == null || !online.isOnline() || current == null
-                    || !current.getAccount().getUuid().equals(accountId)) {
+                    || !current.getAccount().getUuid().equals(accountId)
+                    || online.getOpenInventory().getTopInventory() != sourceInventory) {
                     return;
                 }
                 gui.openMobList(

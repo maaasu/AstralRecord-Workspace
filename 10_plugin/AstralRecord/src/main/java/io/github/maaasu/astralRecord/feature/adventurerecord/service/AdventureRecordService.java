@@ -170,7 +170,7 @@ public class AdventureRecordService {
     }
 
     private boolean matchesListType(@NotNull MobTemplate template, @NotNull AdventureRecordListType listType) {
-        if (listType == AdventureRecordListType.SEARCH) {
+        if (listType == AdventureRecordListType.ALL || listType == AdventureRecordListType.SEARCH) {
             return template.category() == MobCategory.ENEMY || template.category() == MobCategory.BOSS;
         }
         return template.category() == listType.getCategory();
