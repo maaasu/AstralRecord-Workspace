@@ -22,17 +22,21 @@ import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.LivingEntity;
 import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -43,6 +47,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -136,6 +141,55 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         assertEquals(attacker.getBukkit().getUniqueId(), mob.targetId());
         assertEquals(attacker.getBukkit().getUniqueId(), mob.lastAttackerUuid());
         verify(harness.knockbackService).apply(any(AstEntity.class), any(AstEntity.class), eq(0.55D));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 9. result 反映（内部）
+     * 検証契約: Mobへの有効なHPダメージでは、対象エンティティの被ダメージ音と既存のプレイヤー被ダメージ音を両方再生する。
+     */
+    @Test
+    void mobDamagePlaysTargetAndPlayerHurtSounds() {
+        DamageHarness harness = damageHarness();
+        AstPlayer attacker = attacker();
+        MobInstance mob = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
+        when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
+
+        World world = mock(World.class);
+        Location location = new Location(world, 0.0D, 64.0D, 0.0D);
+        LivingEntity entity = mock(LivingEntity.class);
+        UUID entityId = UUID.randomUUID();
+        when(entity.getLocation()).thenReturn(location);
+        when(entity.getHeight()).thenReturn(2.0D);
+        mob.bindEntity(entityId, 1, location);
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(() -> Bukkit.getEntity(entityId)).thenReturn(entity);
+
+            DamageResult result = harness.service.applyDamage(
+                AstEntity.player(attacker),
+                AstEntity.mob(mob),
+                6.0D,
+                AttackType.MELEE
+            );
+
+            assertEquals(6.0D, result.finalDamage(), 0.0001D);
+        }
+
+        verify(world).playSound(
+            any(Location.class),
+            eq(Sound.ENTITY_PLAYER_HURT),
+            eq(SoundCategory.PLAYERS),
+            eq(0.75F),
+            eq(1.0F)
+        );
+        verify(world).playSound(
+            any(Location.class),
+            eq(Sound.ENTITY_GENERIC_HURT),
+            eq(SoundCategory.PLAYERS),
+            eq(0.75F),
+            eq(1.0F)
+        );
     }
 
     /**

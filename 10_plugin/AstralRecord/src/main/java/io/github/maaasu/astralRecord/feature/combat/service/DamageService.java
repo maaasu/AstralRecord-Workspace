@@ -1505,6 +1505,7 @@ public final class DamageService {
                         SharedParticleDefinitions.DAMAGE_HIT_INDICATOR
                 );
                 world.playSound(location, Sound.ENTITY_PLAYER_HURT, SoundCategory.PLAYERS, 0.75F, critical ? 1.55F : 1.0F);
+                world.playSound(location, Sound.ENTITY_GENERIC_HURT, SoundCategory.PLAYERS, 0.75F, critical ? 1.55F : 1.0F);
             }
         }
     }
