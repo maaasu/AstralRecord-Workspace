@@ -18,6 +18,9 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Server;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -32,10 +35,12 @@ import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
 import java.util.Map;
+import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -105,6 +110,11 @@ class SkillGemLearnEventHandlerTest extends MockBukkitTestBase {
         assertTrue(handler.handleInventoryItemClick(leftClick, astPlayer, 3));
         verify(leftClick).setCancelled(true);
         assertInstanceOf(SkillGemLearnConfirmHolder.class, bukkitPlayer.getOpenInventory().getTopInventory().getHolder());
+        assertEquals(
+            "スキル習得確認",
+            plainText(bukkitPlayer.getOpenInventory().title())
+        );
+        assertEquals(NamedTextColor.YELLOW, bukkitPlayer.getOpenInventory().title().color());
 
         bukkitPlayer.closeInventory();
         InventoryClickEvent rightClick = mock(InventoryClickEvent.class);
@@ -112,6 +122,62 @@ class SkillGemLearnEventHandlerTest extends MockBukkitTestBase {
         assertTrue(handler.handleInventoryItemClick(rightClick, astPlayer, 3));
         verify(rightClick).setCancelled(true);
         assertNull(bukkitPlayer.getOpenInventory().getTopInventory());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 2. スキルジェム習得
+     * 検証契約: すでに同じスキルを習得済みの場合、警告タイトル・習得済み表示・合成推奨の赤字を表示する。
+     */
+    @Test
+    void duplicateSkillOpensWarningConfirmationGui() {
+        var bukkitPlayer = server().addPlayer();
+        var astPlayer = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.PLAYER);
+        InventoryService inventoryService = mock(InventoryService.class);
+        LearnedSkillService learnedSkillService = mock(LearnedSkillService.class);
+        InventoryEntryModel entry = mock(InventoryEntryModel.class);
+        ItemModel item = mock(ItemModel.class);
+        UUID entryId = UUID.randomUUID();
+        when(entry.getInventoryEntryId()).thenReturn(entryId);
+        when(item.getSkillGem()).thenReturn(new ItemSkillGem("adventurer_smash"));
+        when(inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, 3)).thenReturn(entry);
+        when(inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, 3)).thenReturn(item);
+        when(learnedSkillService.ownsSkill(astPlayer.getAccount().getUuid(), "adventurer_smash"))
+            .thenReturn(true);
+        SkillGemLearnEventHandler handler = new SkillGemLearnEventHandler(
+            mock(AstralRecord.class),
+            inventoryService,
+            learnedSkillService,
+            new SkillService(mock(SkillRepository.class), new SkillRegistry(), null),
+            mock(PassiveSkillService.class)
+        );
+        InventoryClickEvent leftClick = mock(InventoryClickEvent.class);
+        when(leftClick.getClick()).thenReturn(ClickType.LEFT);
+
+        assertTrue(handler.handleInventoryItemClick(leftClick, astPlayer, 3));
+
+        Inventory confirmInventory = bukkitPlayer.getOpenInventory().getTopInventory();
+        Component title = bukkitPlayer.getOpenInventory().title();
+        assertEquals("スキル習得「このスキルの習得を推奨しません」", plainText(title));
+        assertEquals(NamedTextColor.RED, title.color());
+
+        var messageLore = Objects.requireNonNull(
+            Objects.requireNonNull(confirmInventory.getItem(ConfirmDialogView.MESSAGE_SLOT)).getItemMeta()
+        ).lore();
+        Component learnedNotice = Objects.requireNonNull(messageLore).stream()
+            .filter(line -> plainText(line).equals("このスキルはすでに習得済みです。"))
+            .findFirst()
+            .orElseThrow();
+        assertEquals(NamedTextColor.RED, learnedNotice.color());
+
+        var confirmLore = Objects.requireNonNull(
+            Objects.requireNonNull(confirmInventory.getItem(ConfirmDialogView.CONFIRM_SLOT)).getItemMeta()
+        ).lore();
+        assertTrue(Objects.requireNonNull(confirmLore).stream()
+            .filter(line -> plainText(line).contains("合成に使用することをお勧めします。"))
+            .peek(line -> assertEquals(NamedTextColor.RED, line.color()))
+            .findAny()
+            .isPresent());
     }
 
     /**
@@ -183,5 +249,9 @@ class SkillGemLearnEventHandlerTest extends MockBukkitTestBase {
         Field field = SkillGemLearnEventHandler.class.getDeclaredField("inFlight");
         field.setAccessible(true);
         return (Map<UUID, UUID>) field.get(handler);
+    }
+
+    private static String plainText(Component component) {
+        return PlainTextComponentSerializer.plainText().serialize(component);
     }
 }

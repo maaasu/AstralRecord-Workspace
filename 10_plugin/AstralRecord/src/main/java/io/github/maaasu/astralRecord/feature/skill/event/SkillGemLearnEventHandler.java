@@ -165,20 +165,37 @@ public final class SkillGemLearnEventHandler extends AbstractEventHandler {
         description.add(SkillPresentationUtil.skillNameComponent(definition, skillId, NamedTextColor.WHITE));
         description.add(Component.text("スキルジェムを1個消費して習得します。", NamedTextColor.GRAY));
         if (duplicate) {
-            description.add(Component.text("所持済みでも別個体として追加されます。", NamedTextColor.LIGHT_PURPLE));
+            description.add(Component.text("このスキルはすでに習得済みです。", NamedTextColor.RED));
         }
+        Component title = duplicate
+            ? Component.text("スキル習得「このスキルの習得を推奨しません」", NamedTextColor.RED)
+            : Component.text("スキル習得確認", NamedTextColor.YELLOW);
         Inventory inventory = Bukkit.createInventory(
             new SkillGemLearnConfirmHolder(entry.getInventoryEntryId(), skillId),
             ConfirmDialogView.SIZE,
-            Component.text("スキル習得確認", NamedTextColor.YELLOW)
+            title
         );
-        confirmDialogView.render(
-            inventory,
-            Component.text("スキル習得の確認", NamedTextColor.YELLOW),
-            description,
-            Component.text("習得する", NamedTextColor.GREEN),
-            Component.text("キャンセル", NamedTextColor.RED)
-        );
+        if (duplicate) {
+            confirmDialogView.render(
+                inventory,
+                Component.text("スキル習得の確認", NamedTextColor.YELLOW),
+                description,
+                Component.text("習得する", NamedTextColor.GREEN),
+                Component.text("キャンセル", NamedTextColor.RED),
+                List.of(
+                    Component.text("すでに習得済みのスキルなので、", NamedTextColor.RED),
+                    Component.text("習得ではなく合成に使用することをお勧めします。", NamedTextColor.RED)
+                )
+            );
+        } else {
+            confirmDialogView.render(
+                inventory,
+                Component.text("スキル習得の確認", NamedTextColor.YELLOW),
+                description,
+                Component.text("習得する", NamedTextColor.GREEN),
+                Component.text("キャンセル", NamedTextColor.RED)
+            );
+        }
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
         GuiSound.SKILL_CONFIRM.play(player);
     }
