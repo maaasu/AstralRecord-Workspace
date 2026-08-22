@@ -1504,8 +1504,11 @@ public final class DamageService {
                         location.clone().add(0.0D, Math.max(0.6D, livingEntity.getHeight() * 0.5D), 0.0D),
                         SharedParticleDefinitions.DAMAGE_HIT_INDICATOR
                 );
+                Sound hurtSound = livingEntity.getHurtSound();
+                if (hurtSound != null) {
+                    world.playSound(location, hurtSound, SoundCategory.PLAYERS, 0.75F, critical ? 1.55F : 1.0F);
+                }
                 world.playSound(location, Sound.ENTITY_PLAYER_HURT, SoundCategory.PLAYERS, 0.75F, critical ? 1.55F : 1.0F);
-                world.playSound(location, Sound.ENTITY_GENERIC_HURT, SoundCategory.PLAYERS, 0.75F, critical ? 1.55F : 1.0F);
             }
         }
     }

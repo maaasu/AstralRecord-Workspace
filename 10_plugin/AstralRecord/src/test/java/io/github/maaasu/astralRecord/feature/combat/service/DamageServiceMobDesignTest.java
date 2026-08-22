@@ -49,6 +49,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -149,7 +150,21 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
      * 検証契約: Mobへの有効なHPダメージでは、対象エンティティの被ダメージ音と既存のプレイヤー被ダメージ音を両方再生する。
      */
     @Test
-    void mobDamagePlaysTargetAndPlayerHurtSounds() {
+    void pigDamagePlaysPigAndPlayerHurtSounds() {
+        assertMobDamageSounds(Sound.ENTITY_PIG_HURT);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 9. result 反映（内部）
+     * 検証契約: スケルトン系Mobへの有効なHPダメージでは、スケルトンの被ダメージ音と既存のプレイヤー被ダメージ音を両方再生する。
+     */
+    @Test
+    void skeletonDamagePlaysSkeletonAndPlayerHurtSounds() {
+        assertMobDamageSounds(Sound.ENTITY_SKELETON_HURT);
+    }
+
+    private void assertMobDamageSounds(Sound targetHurtSound) {
         DamageHarness harness = damageHarness();
         AstPlayer attacker = attacker();
         MobInstance mob = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
@@ -161,6 +176,7 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         UUID entityId = UUID.randomUUID();
         when(entity.getLocation()).thenReturn(location);
         when(entity.getHeight()).thenReturn(2.0D);
+        when(entity.getHurtSound()).thenReturn(targetHurtSound);
         mob.bindEntity(entityId, 1, location);
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
@@ -178,12 +194,19 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
 
         verify(world).playSound(
             any(Location.class),
-            eq(Sound.ENTITY_PLAYER_HURT),
+            same(targetHurtSound),
             eq(SoundCategory.PLAYERS),
             eq(0.75F),
             eq(1.0F)
         );
         verify(world).playSound(
+            any(Location.class),
+            eq(Sound.ENTITY_PLAYER_HURT),
+            eq(SoundCategory.PLAYERS),
+            eq(0.75F),
+            eq(1.0F)
+        );
+        verify(world, never()).playSound(
             any(Location.class),
             eq(Sound.ENTITY_GENERIC_HURT),
             eq(SoundCategory.PLAYERS),
