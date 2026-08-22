@@ -71,6 +71,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 /**
  * インベントリ機能のビジネスロジックを担うサービス。
@@ -2224,6 +2225,15 @@ public class InventoryService {
         @NotNull Collection<UUID> affectedEntryIds,
         @NotNull InventoryPersistence.PersistedInventoryBaseline baseline
     ) {
+        reconcileExternalInventoryEntries(accountId, affectedEntryIds, baseline, null);
+    }
+
+    private void reconcileExternalInventoryEntries(
+        @NotNull UUID accountId,
+        @NotNull Collection<UUID> affectedEntryIds,
+        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline,
+        @Nullable Consumer<Map<UUID, Optional<InventoryEntryModel>>> beforePublish
+    ) {
         if (!baseline.accountId().equals(accountId)) {
             throw new IllegalArgumentException("Inventory baseline account mismatch: " + accountId);
         }
@@ -2253,6 +2263,10 @@ public class InventoryService {
                 authoritative = inventoryRepository.findEntryById(entryId);
             }
             authoritativeAffected.put(entryId, Optional.ofNullable(authoritative));
+        }
+
+        if (beforePublish != null) {
+            beforePublish.accept(authoritativeAffected);
         }
 
         synchronized (state) {
@@ -2317,8 +2331,91 @@ public class InventoryService {
         @NotNull Collection<UUID> affectedEntryIds,
         @NotNull InventoryPersistence.PersistedInventoryBaseline baseline
     ) {
-        reconcileExternalInventoryEntries(accountId, affectedEntryIds, baseline);
+        reconcileExternalInventoryEntries(
+            accountId,
+            affectedEntryIds,
+            baseline,
+            authoritativeAffected -> reloadTradeInstanceCaches(
+                accountId,
+                affectedEntryIds,
+                baseline,
+                authoritativeAffected
+            )
+        );
         splitTradeBagStackOverflow(accountId, affectedEntryIds);
+    }
+
+    /**
+     * トレードで所有権が変わった個体を API から再取得し、state を変更する前に cache を正本へ置換します。
+     * baseline は送信側で既に state から除去された個体を特定し、affected entry の再取得結果は受取側の
+     * 現在の所有者を特定するために使用します。再取得に失敗した場合は state を変更せず recovery へ返します。
+     */
+    private void reloadTradeInstanceCaches(
+        @NotNull UUID accountId,
+        @NotNull Collection<UUID> affectedEntryIds,
+        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline,
+        @NotNull Map<UUID, Optional<InventoryEntryModel>> authoritativeAffected
+    ) {
+        Set<String> equipmentInstanceIds = new LinkedHashSet<>();
+        Set<String> runeInstanceIds = new LinkedHashSet<>();
+        for (UUID entryId : new LinkedHashSet<>(affectedEntryIds)) {
+            addTradeInstanceId(equipmentInstanceIds, runeInstanceIds, baseline.findEntry(entryId));
+            addTradeInstanceId(
+                equipmentInstanceIds,
+                runeInstanceIds,
+                authoritativeAffected.getOrDefault(entryId, Optional.empty()).orElse(null)
+            );
+        }
+        if (!equipmentInstanceIds.isEmpty()) {
+            ItemService.EquipmentPreloadResult result = itemService.reloadEquipmentInstances(equipmentInstanceIds);
+            requireTradeInstanceReload(result, "equipment", accountId);
+        }
+        if (!runeInstanceIds.isEmpty()) {
+            ItemService.EquipmentPreloadResult result = itemService.reloadRuneInstances(runeInstanceIds);
+            requireTradeInstanceReload(result, "rune", accountId);
+        }
+    }
+
+    /** Trade affected entry から装備・ルーン個体 ID を抽出します。 */
+    private void addTradeInstanceId(
+        @NotNull Set<String> equipmentInstanceIds,
+        @NotNull Set<String> runeInstanceIds,
+        @Nullable InventoryEntryModel entry
+    ) {
+        if (entry == null || entry.getInstanceId() == null) {
+            return;
+        }
+        InventoryInstanceType instanceType = InventoryInstanceType.fromCode(entry.getInstanceType());
+        if (instanceType == null) {
+            ItemCategory category = ItemCategory.fromApiValue(entry.getItemCategory());
+            instanceType = category == ItemCategory.EQUIPMENT
+                ? InventoryInstanceType.EQUIPMENT
+                : category == ItemCategory.RUNE ? InventoryInstanceType.RUNE : null;
+        }
+        if (instanceType == InventoryInstanceType.EQUIPMENT) {
+            equipmentInstanceIds.add(entry.getInstanceId().toString());
+        } else if (instanceType == InventoryInstanceType.RUNE) {
+            runeInstanceIds.add(entry.getInstanceId().toString());
+        }
+    }
+
+    private void requireTradeInstanceReload(
+        @Nullable ItemService.EquipmentPreloadResult result,
+        @NotNull String instanceType,
+        @NotNull UUID accountId
+    ) {
+        if (result == ItemService.EquipmentPreloadResult.UNAVAILABLE) {
+            throw new IllegalStateException(
+                "Trade " + instanceType + " cache reload is unavailable for account " + accountId);
+        }
+        if (result == ItemService.EquipmentPreloadResult.MISSING) {
+            throw new IllegalStateException(
+                "Trade " + instanceType + " cache reload found a missing instance for account " + accountId);
+        }
+        if (result != ItemService.EquipmentPreloadResult.COMPLETE) {
+            throw new IllegalStateException(
+                "Trade " + instanceType + " cache reload returned no result for account " + accountId);
+        }
     }
 
     /** Trade で更新された BAG の通常 stack を最大 stack 数ごとの entry へ分割します。 */

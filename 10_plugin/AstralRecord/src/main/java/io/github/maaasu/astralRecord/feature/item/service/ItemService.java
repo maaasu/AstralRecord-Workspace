@@ -46,6 +46,7 @@ public class ItemService {
     private final Map<String, SetEffect> loadedSetEffects;
     private final Map<String, EquipmentInstance> loadedEquipmentInstances;
     private final Map<String, RuneInstance> loadedRuneInstances;
+    private final Map<String, Object> instanceReloadLocks;
     private final Map<String, PendingDurabilityUpdate> dirtyEquipmentDurability;
     private final Object equipmentStateMutex = new Object();
     private long durabilityRevision;
@@ -64,6 +65,7 @@ public class ItemService {
         this.loadedSetEffects = new ConcurrentHashMap<>();
         this.loadedEquipmentInstances = new ConcurrentHashMap<>();
         this.loadedRuneInstances = new ConcurrentHashMap<>();
+        this.instanceReloadLocks = new ConcurrentHashMap<>();
         this.dirtyEquipmentDurability = new ConcurrentHashMap<>();
     }
 
@@ -526,6 +528,162 @@ public class ItemService {
     }
 
     /**
+     * 指定された装備個体を API から強制再取得し、既存キャッシュを正本の内容で置換します。
+     * <p>
+     * トレードなどで API が装備個体の所有者を変更した直後に使用します。API 通信に失敗した場合は
+     * 既存キャッシュを保持し、404 が返った個体だけをキャッシュから除去します。
+     * </p>
+     *
+     * @param instanceIds 強制再取得する装備個体 ID
+     * @return 全件の再取得結果。通信失敗は {@link EquipmentPreloadResult#UNAVAILABLE}、
+     *         404 は {@link EquipmentPreloadResult#MISSING}
+     */
+    public @NotNull EquipmentPreloadResult reloadEquipmentInstances(@NotNull Collection<String> instanceIds) {
+        boolean missing = false;
+        boolean unavailable = false;
+        for (String instanceId : instanceIds.stream()
+            .filter(java.util.Objects::nonNull)
+            .map(String::trim)
+            .filter(id -> !id.isBlank())
+            .distinct()
+            .toList()) {
+            String key = normalize(instanceId);
+            synchronized (instanceReloadLock("equipment", key)) {
+                EquipmentInstance cachedBefore;
+                synchronized (equipmentStateMutex) {
+                    cachedBefore = loadedEquipmentInstances.get(key);
+                }
+                try {
+                    EquipmentInstance loaded = itemRepository.findEquipmentInstanceById(instanceId);
+                    synchronized (equipmentStateMutex) {
+                        if (loadedEquipmentInstances.get(key) != cachedBefore) {
+                            unavailable = true;
+                            continue;
+                        }
+                        if (loaded == null) {
+                            loadedEquipmentInstances.remove(key);
+                            dirtyEquipmentDurability.remove(key);
+                            missing = true;
+                        } else if (replaceEquipmentInstanceCacheLocked(key, loaded) == null) {
+                            unavailable = true;
+                        }
+                    }
+                } catch (Exception exception) {
+                    Logger.log(LogId.E_5202, exception, instanceId);
+                    unavailable = true;
+                }
+            }
+        }
+        return unavailable
+            ? EquipmentPreloadResult.UNAVAILABLE
+            : missing ? EquipmentPreloadResult.MISSING : EquipmentPreloadResult.COMPLETE;
+    }
+
+    /**
+     * 指定されたルーン個体を API から強制再取得し、所有者変更後の正本で cache を置換します。
+     * 通信失敗・404 は装備個体の再取得と同じ結果で返し、呼び出し側が外部操作を未解決のまま保持できるようにします。
+     *
+     * @param instanceIds 強制再取得するルーン個体 ID
+     * @return 全件の再取得結果
+     */
+    public @NotNull EquipmentPreloadResult reloadRuneInstances(@NotNull Collection<String> instanceIds) {
+        boolean missing = false;
+        boolean unavailable = false;
+        for (String instanceId : instanceIds.stream()
+            .filter(java.util.Objects::nonNull)
+            .map(String::trim)
+            .filter(id -> !id.isBlank())
+            .distinct()
+            .toList()) {
+            String key = normalize(instanceId);
+            synchronized (instanceReloadLock("rune", key)) {
+                RuneInstance cachedBefore;
+                synchronized (equipmentStateMutex) {
+                    cachedBefore = loadedRuneInstances.get(key);
+                }
+                try {
+                    RuneInstance loaded = itemRepository.findRuneInstanceById(instanceId);
+                    synchronized (equipmentStateMutex) {
+                        if (loadedRuneInstances.get(key) != cachedBefore) {
+                            unavailable = true;
+                            continue;
+                        }
+                        if (loaded == null) {
+                            loadedRuneInstances.remove(key);
+                            missing = true;
+                        } else {
+                            loadedRuneInstances.put(key, loaded);
+                        }
+                    }
+                } catch (Exception exception) {
+                    Logger.log(LogId.E_5202, exception, instanceId);
+                    unavailable = true;
+                }
+            }
+        }
+        return unavailable
+            ? EquipmentPreloadResult.UNAVAILABLE
+            : missing ? EquipmentPreloadResult.MISSING : EquipmentPreloadResult.COMPLETE;
+    }
+
+    /** API正本で個体本体を置換し、再取得中に発生した未保存耐久差分を保持します。 */
+    private @Nullable EquipmentInstance replaceEquipmentInstanceCacheLocked(
+        @NotNull String key,
+        @NotNull EquipmentInstance loaded
+    ) {
+        PendingDurabilityUpdate pending = dirtyEquipmentDurability.get(key);
+        if (pending == null) {
+            loadedEquipmentInstances.put(key, loaded);
+            return loaded;
+        }
+        int pendingDelta = 0;
+        if (loaded.getDurabilityValue() == pending.baseDurabilityValue()) {
+            if (pending.durabilityValue() != pending.baseDurabilityValue()) {
+                pendingDelta = pending.durabilityValue() - pending.baseDurabilityValue();
+            }
+        } else if (loaded.getDurabilityValue() != pending.durabilityValue()) {
+            // The API response is neither the pending base nor the already-applied local value.
+            // Do not guess whether the response includes the dirty update; leave the cache and
+            // dirty record untouched so the caller can retry through the recovery boundary.
+            return null;
+        }
+        int mergedDurabilityValue = Math.max(0, Math.min(
+            loaded.getDurabilityMax(),
+            loaded.getDurabilityValue() + pendingDelta
+        ));
+        EquipmentInstance merged = new EquipmentInstance(
+            loaded.getEquipmentInstanceId(),
+            loaded.getAccountId(),
+            loaded.getItemId(),
+            loaded.getEnhanceLevel(),
+            loaded.getRuneMaxSlots(),
+            loaded.getTranscendenceRank(),
+            loaded.getDurabilityMax(),
+            mergedDurabilityValue,
+            loaded.getCreatedAt(),
+            loaded.getUpdatedAt(),
+            loaded.getStatRolls(),
+            loaded.getEnchants(),
+            loaded.getRunes()
+        );
+        loadedEquipmentInstances.put(key, merged);
+        dirtyEquipmentDurability.put(key, new PendingDurabilityUpdate(
+            pending.instanceId(),
+            loaded.getAccountId(),
+            loaded.getDurabilityValue(),
+            mergedDurabilityValue,
+            loaded.getAccountId(),
+            ++durabilityRevision
+        ));
+        return merged;
+    }
+
+    /** 同一個体の強制 reload 同士を直列化し、同じ trade の二 account lane が競合しないようにします。 */
+    private @NotNull Object instanceReloadLock(@NotNull String instanceType, @NotNull String key) {
+        return instanceReloadLocks.computeIfAbsent(instanceType + ":" + key, ignored -> new Object());
+    }
+
+    /**
      * オーブ装備操作をAPIへ送信し、確定装備を耐久dirtyと原子的にマージします。
      *
      * @param operationId 冪等操作ID
@@ -859,7 +1017,9 @@ public class ItemService {
         try {
             RuneInstance instance = itemRepository.createRuneInstance(runeId, accountId, source, createdBy);
             if (instance != null) {
-                loadedRuneInstances.put(normalize(instance.getRuneInstanceId()), instance);
+                synchronized (equipmentStateMutex) {
+                    loadedRuneInstances.put(normalize(instance.getRuneInstanceId()), instance);
+                }
             }
             return instance;
         } catch (Exception e) {
@@ -876,7 +1036,9 @@ public class ItemService {
      * @param instanceId キャッシュから破棄するルーンインスタンス ID
      */
     public void evictRuneInstanceFromCache(@NotNull String instanceId) {
-        loadedRuneInstances.remove(normalize(instanceId));
+        synchronized (equipmentStateMutex) {
+            loadedRuneInstances.remove(normalize(instanceId));
+        }
     }
 
     public @Nullable RuneInstance findRuneInstanceById(@NotNull String instanceId) {
@@ -884,14 +1046,23 @@ public class ItemService {
         if (normalizedId.isBlank()) {
             return null;
         }
-        RuneInstance cached = loadedRuneInstances.get(normalizedId);
+        RuneInstance cached;
+        synchronized (equipmentStateMutex) {
+            cached = loadedRuneInstances.get(normalizedId);
+        }
         if (cached != null) {
             return cached;
         }
         try {
             RuneInstance loaded = itemRepository.findRuneInstanceById(instanceId);
             if (loaded != null) {
-                loadedRuneInstances.put(normalizedId, loaded);
+                synchronized (equipmentStateMutex) {
+                    RuneInstance newer = loadedRuneInstances.get(normalizedId);
+                    if (newer != null) {
+                        return newer;
+                    }
+                    loadedRuneInstances.put(normalizedId, loaded);
+                }
             }
             return loaded;
         } catch (Exception e) {
@@ -973,5 +1144,3 @@ public class ItemService {
         return value.trim().toLowerCase(Locale.ROOT);
     }
 }
-
-

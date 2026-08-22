@@ -26,6 +26,7 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -37,6 +38,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -476,6 +478,128 @@ class InventoryServiceOrbReconciliationTest {
             entry.getSlotIndex() != null && NormalInventoryLayout.isManagedSlot(entry.getSlotIndex(), 27)));
         assertEquals(NormalInventoryLayout.DB_SLOT_START, harness.service.findOwnedEntry(
             harness.accountId, retainedEntryId).getSlotIndex());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
+     * 章・見出し: # 22_4-統合フロー > ## 3. Commit
+     * 検証契約: トレード受取 entry の state 再同期後、UI更新より前に装備個体 cache を API 正本へ置換する。
+     */
+    @Test
+    void tradeReconciliationReloadsAffectedEquipmentBeforeCompletion() {
+        Harness harness = harness();
+        UUID entryId = UUID.randomUUID();
+        UUID instanceId = UUID.randomUUID();
+        InventoryEntryModel received = equipmentEntry(
+            entryId,
+            harness.bag.getInventoryId(),
+            harness.accountId,
+            instanceId,
+            NormalInventoryLayout.DB_SLOT_START + 1
+        );
+        when(harness.repository.findEntryById(entryId)).thenReturn(received);
+        when(harness.itemService.reloadEquipmentInstances(Set.of(instanceId.toString())))
+            .thenReturn(ItemService.EquipmentPreloadResult.COMPLETE);
+
+        harness.service.reconcileTradeInventoryEntries(
+            harness.accountId,
+            List.of(entryId),
+            baseline(harness.accountId, harness.bag.getInventoryId(),
+                harness.state.snapshotEntries(harness.bag.getInventoryId()))
+        );
+
+        verify(harness.itemService).reloadEquipmentInstances(Set.of(instanceId.toString()));
+        assertEquals(instanceId, harness.service.findOwnedEntry(harness.accountId, entryId).getInstanceId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
+     * 章・見出し: # 22_4-統合フロー > ## 3. Commit
+     * 検証契約: トレード受取ルーンも state 公開前に API 正本へ cache を再同期する。
+     */
+    @Test
+    void tradeReconciliationReloadsAffectedRuneBeforeCompletion() {
+        Harness harness = harness();
+        UUID entryId = UUID.randomUUID();
+        UUID instanceId = UUID.randomUUID();
+        InventoryEntryModel received = runeEntry(
+            entryId,
+            harness.bag.getInventoryId(),
+            harness.accountId,
+            instanceId,
+            NormalInventoryLayout.DB_SLOT_START + 1
+        );
+        when(harness.repository.findEntryById(entryId)).thenReturn(received);
+        when(harness.itemService.reloadRuneInstances(Set.of(instanceId.toString())))
+            .thenReturn(ItemService.EquipmentPreloadResult.COMPLETE);
+
+        harness.service.reconcileTradeInventoryEntries(
+            harness.accountId,
+            List.of(entryId),
+            baseline(harness.accountId, harness.bag.getInventoryId(),
+                harness.state.snapshotEntries(harness.bag.getInventoryId()))
+        );
+
+        verify(harness.itemService).reloadRuneInstances(Set.of(instanceId.toString()));
+        assertEquals(instanceId, harness.service.findOwnedEntry(harness.accountId, entryId).getInstanceId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
+     * 章・見出し: # 22_4-統合フロー > ## 3. Commit
+     * 検証契約: 装備個体の API 再取得が一時的に利用不能なら、trade 再同期を成功扱いにせず recovery 境界へ返す。
+     */
+    @Test
+    void tradeReconciliationFailsWhenEquipmentReloadIsUnavailable() {
+        Harness harness = harness();
+        UUID entryId = UUID.randomUUID();
+        UUID instanceId = UUID.randomUUID();
+        when(harness.repository.findEntryById(entryId)).thenReturn(equipmentEntry(
+            entryId,
+            harness.bag.getInventoryId(),
+            harness.accountId,
+            instanceId,
+            NormalInventoryLayout.DB_SLOT_START + 1
+        ));
+        when(harness.itemService.reloadEquipmentInstances(Set.of(instanceId.toString())))
+            .thenReturn(ItemService.EquipmentPreloadResult.UNAVAILABLE);
+
+        assertThrows(IllegalStateException.class, () -> harness.service.reconcileTradeInventoryEntries(
+            harness.accountId,
+            List.of(entryId),
+            baseline(harness.accountId, harness.bag.getInventoryId(),
+                harness.state.snapshotEntries(harness.bag.getInventoryId()))
+        ));
+        assertNull(harness.service.findOwnedEntry(harness.accountId, entryId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
+     * 章・見出し: # 22_4-統合フロー > ## 3. Commit
+     * 検証契約: 装備個体が API で見つからない場合も成功扱いにせず、未解決の commit 境界を保持する。
+     */
+    @Test
+    void tradeReconciliationKeepsCommitUnresolvedWhenEquipmentIsMissing() {
+        Harness harness = harness();
+        UUID entryId = UUID.randomUUID();
+        UUID instanceId = UUID.randomUUID();
+        when(harness.repository.findEntryById(entryId)).thenReturn(equipmentEntry(
+            entryId,
+            harness.bag.getInventoryId(),
+            harness.accountId,
+            instanceId,
+            NormalInventoryLayout.DB_SLOT_START + 1
+        ));
+        when(harness.itemService.reloadEquipmentInstances(Set.of(instanceId.toString())))
+            .thenReturn(ItemService.EquipmentPreloadResult.MISSING);
+
+        assertThrows(IllegalStateException.class, () -> harness.service.reconcileTradeInventoryEntries(
+            harness.accountId,
+            List.of(entryId),
+            baseline(harness.accountId, harness.bag.getInventoryId(),
+                harness.state.snapshotEntries(harness.bag.getInventoryId()))
+        ));
+        assertNull(harness.service.findOwnedEntry(harness.accountId, entryId));
     }
 
     /**
@@ -1417,17 +1541,18 @@ class InventoryServiceOrbReconciliationTest {
         )));
         registry.put(state);
         InventoryRepository repository = mock(InventoryRepository.class);
+        ItemService itemService = mock(ItemService.class);
         InventoryPersistence persistence = mock(InventoryPersistence.class);
         InventoryService service = new InventoryService(
             repository,
             mock(EquipmentLoadoutRepository.class),
-            mock(ItemService.class),
+            itemService,
             mock(ItemStackFactory.class),
             registry,
             persistence,
             mock(InventorySaveCoordinator.class)
         );
-        return new Harness(accountId, orbEntryId, bag, state, repository, persistence, service);
+        return new Harness(accountId, orbEntryId, bag, state, repository, itemService, persistence, service);
     }
 
     private static InventoryEntryModel entry(
@@ -1546,6 +1671,32 @@ class InventoryServiceOrbReconciliationTest {
         );
     }
 
+    private static InventoryEntryModel runeEntry(
+        UUID entryId,
+        UUID inventoryId,
+        UUID accountId,
+        UUID instanceId,
+        int slotIndex
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+        return new InventoryEntryModel(
+            entryId,
+            inventoryId,
+            slotIndex,
+            ItemCategory.RUNE.getApiValue(),
+            null,
+            "rune",
+            instanceId,
+            1L,
+            null,
+            now,
+            now,
+            accountId,
+            accountId,
+            false
+        );
+    }
+
     private static EquipmentLoadoutSlotModel loadoutSlot(
         UUID loadoutId,
         UUID accountId,
@@ -1573,6 +1724,7 @@ class InventoryServiceOrbReconciliationTest {
         InventoryModel bag,
         PlayerInventoryState state,
         InventoryRepository repository,
+        ItemService itemService,
         InventoryPersistence persistence,
         InventoryService service
     ) {
