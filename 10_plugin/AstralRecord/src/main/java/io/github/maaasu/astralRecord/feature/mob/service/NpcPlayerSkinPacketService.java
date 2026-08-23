@@ -8,6 +8,10 @@ import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.reflect.StructureModifier;
+import com.comphenix.protocol.reflect.accessors.Accessors;
+import com.comphenix.protocol.reflect.accessors.ConstructorAccessor;
+import com.comphenix.protocol.utility.MinecraftReflection;
+import com.comphenix.protocol.wrappers.BukkitConverters;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.PlayerInfoData;
 import com.comphenix.protocol.wrappers.WrappedDataValue;
@@ -27,6 +31,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -535,13 +540,71 @@ public final class NpcPlayerSkinPacketService {
     private @NotNull PacketContainer createEntityTeleportPacket(int fakeEntityId, @NotNull Location location) {
         PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.ENTITY_TELEPORT);
         packet.getIntegers().write(0, fakeEntityId);
-        packet.getDoubles().write(0, location.getX());
-        packet.getDoubles().write(1, location.getY());
-        packet.getDoubles().write(2, location.getZ());
-        packet.getBytes().write(0, angleToByte(location.getYaw()));
-        packet.getBytes().write(1, angleToByte(location.getPitch()));
-        packet.getBooleans().write(0, true);
+        writeEntityTeleportTransform(packet, location);
         return packet;
+    }
+
+    /**
+     * ENTITY_TELEPORT の位置・回転フィールドを、ProtocolLib の対応する構造へ書き込みます。
+     *
+     * <p>Minecraft 1.21.2 以降は位置・移動量・回転が PositionMoveRotation に統合されており、
+     * 旧形式の3つの Double フィールドは存在しません。旧形式も安全に扱えるため、
+     * 1.21.1 以前の構造が返された場合だけ従来の書き込みへフォールバックします。</p>
+     *
+     * @param packet   位置を更新する ENTITY_TELEPORT パケット
+     * @param location 位置と回転
+     * @throws IllegalStateException PositionMoveRotation または旧形式の位置フィールドを解決できない場合
+     */
+    private void writeEntityTeleportTransform(
+            @NotNull PacketContainer packet,
+            @NotNull Location location
+    ) {
+        if (packet.getDoubles().size() >= 3) {
+            packet.getDoubles().write(0, location.getX());
+            packet.getDoubles().write(1, location.getY());
+            packet.getDoubles().write(2, location.getZ());
+            packet.getBytes().writeSafely(0, angleToByte(location.getYaw()));
+            packet.getBytes().writeSafely(1, angleToByte(location.getPitch()));
+        } else {
+            Class<?> positionMoveRotationClass = MinecraftReflection.getMinecraftClass(
+                    "world.entity.PositionMoveRotation"
+            );
+            StructureModifier<Object> positionMoveRotationModifier = packet.getModifier()
+                    .withType(positionMoveRotationClass);
+            if (positionMoveRotationModifier.size() == 0) {
+                throw new IllegalStateException(
+                        "ProtocolLib の ENTITY_TELEPORT に PositionMoveRotation フィールドがありません"
+                );
+            }
+            positionMoveRotationModifier.write(0, createPositionMoveRotation(location, positionMoveRotationClass));
+            packet.getModifier().write(2, Set.of());
+        }
+        packet.getBooleans().writeSafely(0, true);
+    }
+
+    /**
+     * ProtocolLib の変換器を使って PositionMoveRotation の NMS 値を生成します。
+     *
+     * @param location 位置と回転
+     * @param positionMoveRotationClass 実行中サーバーの PositionMoveRotation クラス
+     * @return ENTITY_TELEPORT へ設定する NMS 値
+     */
+    private @NotNull Object createPositionMoveRotation(
+            @NotNull Location location,
+            @NotNull Class<?> positionMoveRotationClass
+    ) {
+        Class<?> vec3dClass = MinecraftReflection.getVec3DClass();
+        ConstructorAccessor constructor = Accessors.getConstructorAccessor(
+                positionMoveRotationClass,
+                vec3dClass,
+                vec3dClass,
+                float.class,
+                float.class
+        );
+        var vectorConverter = BukkitConverters.getVectorConverter();
+        Object position = vectorConverter.getGeneric(new Vector(location.getX(), location.getY(), location.getZ()));
+        Object deltaMovement = vectorConverter.getGeneric(new Vector());
+        return constructor.invoke(position, deltaMovement, location.getYaw(), location.getPitch());
     }
 
     private @NotNull PacketContainer createEntityHeadRotationPacket(int fakeEntityId, float yaw) {
