@@ -10,7 +10,7 @@ public class AdventureRecordRepository(AstralRecordDbContext dbContext) : IAdven
 {
     public async Task<IReadOnlyList<AccountMobRecordResponse>> GetMobRecordsByAccountIdAsync(Guid accountId, string? category)
     {
-        var normalizedCategory = NormalizeCategory(category);
+        var normalizedCategory = NormalizeCategoryFilter(category);
         var query = dbContext.AccountMobRecords
             .AsNoTracking()
             .Where(record => record.AccountId == accountId && !record.IsDeleted);
@@ -141,6 +141,13 @@ public class AdventureRecordRepository(AstralRecordDbContext dbContext) : IAdven
     {
         return string.IsNullOrWhiteSpace(category)
             ? "ENEMY"
+            : category.Trim().ToUpperInvariant();
+    }
+
+    private static string? NormalizeCategoryFilter(string? category)
+    {
+        return string.IsNullOrWhiteSpace(category)
+            ? null
             : category.Trim().ToUpperInvariant();
     }
 
