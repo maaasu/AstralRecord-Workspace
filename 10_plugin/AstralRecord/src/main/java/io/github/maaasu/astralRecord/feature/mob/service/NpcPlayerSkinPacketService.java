@@ -20,6 +20,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobSkin;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.display.PacketEntityIdAllocator;
+import io.github.maaasu.astralRecord.shared.display.OverheadDisplayService;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
@@ -151,6 +152,9 @@ public final class NpcPlayerSkinPacketService {
         SkinViewState state = states.computeIfAbsent(instance.instanceId(), ignored -> createState(instance));
         state.realEntityId(instance.entityId());
         Set<UUID> staleViewerIds = new HashSet<>(state.viewerIds());
+        Location location = instance.currentLocation();
+        float headYaw = instance.headYaw();
+        float headPitch = instance.headPitch();
         for (UUID viewerId : viewerIds) {
             Player viewer = Bukkit.getPlayer(viewerId);
             if (viewer == null || !viewer.isOnline()) {
@@ -158,10 +162,10 @@ public final class NpcPlayerSkinPacketService {
             }
             staleViewerIds.remove(viewerId);
             if (state.viewerIds().add(viewerId)) {
-                spawnForViewer(viewer, realEntity, state, instance.currentLocation());
+                spawnForViewer(viewer, realEntity, state, location, headYaw, headPitch);
                 continue;
             }
-            syncForViewer(viewer, state, instance.currentLocation());
+            syncForViewer(viewer, state, location, headYaw, headPitch);
         }
 
         for (UUID staleViewerId : staleViewerIds) {
@@ -296,6 +300,7 @@ public final class NpcPlayerSkinPacketService {
         SkinViewState state = new SkinViewState(
                 PacketEntityIdAllocator.nextEntityId(),
                 profileUuid,
+                profileName,
                 profile
         );
         return state;
@@ -318,16 +323,20 @@ public final class NpcPlayerSkinPacketService {
             @NotNull Player viewer,
             @NotNull Entity realEntity,
             @NotNull SkinViewState state,
-            @NotNull Location location
+            @NotNull Location location,
+            float headYaw,
+            float headPitch
     ) {
         viewer.hideEntity(plugin, realEntity);
+        OverheadDisplayService.hideNameTag(viewer, state.profileName());
         UUID viewerId = viewer.getUniqueId();
         state.hiddenRealEntity(viewerId, realEntity.getUniqueId());
-        long displayGeneration = state.beginViewerDisplay(viewerId, location);
+        long displayGeneration = state.beginViewerDisplay(viewerId, location, headYaw, headPitch);
         sendPacket(viewer, createPlayerInfoPacket(state));
-        sendPacket(viewer, createPlayerSpawnPacket(state, location));
+        sendPacket(viewer, createPlayerSpawnPacket(state, location, headYaw, headPitch));
         sendPacket(viewer, createEntityMetadataPacket(state));
-        sendPacket(viewer, createEntityHeadRotationPacket(state.fakeEntityId(), location.getYaw()));
+        sendPacket(viewer, createEntityLookPacket(state.fakeEntityId(), location.getYaw(), headPitch));
+        sendPacket(viewer, createEntityHeadRotationPacket(state.fakeEntityId(), headYaw));
         hideFromPlayerListNextTick(viewer, state, displayGeneration);
     }
 
@@ -336,10 +345,17 @@ public final class NpcPlayerSkinPacketService {
             @NotNull SkinViewState state,
             @NotNull Location location
     ) {
-        long displayGeneration = state.beginViewerDisplay(viewer.getUniqueId(), location);
+        OverheadDisplayService.hideNameTag(viewer, state.profileName());
+        long displayGeneration = state.beginViewerDisplay(
+                viewer.getUniqueId(),
+                location,
+                location.getYaw(),
+                location.getPitch()
+        );
         sendPacket(viewer, createPlayerInfoPacket(state));
-        sendPacket(viewer, createPlayerSpawnPacket(state, location));
+        sendPacket(viewer, createPlayerSpawnPacket(state, location, location.getYaw(), location.getPitch()));
         sendPacket(viewer, createEntityMetadataPacket(state));
+        sendPacket(viewer, createEntityLookPacket(state.fakeEntityId(), location.getYaw(), location.getPitch()));
         sendPacket(viewer, createEntityHeadRotationPacket(state.fakeEntityId(), location.getYaw()));
         hideFromPlayerListNextTick(viewer, state, displayGeneration);
     }
@@ -356,12 +372,20 @@ public final class NpcPlayerSkinPacketService {
         state.viewerIds().clear();
     }
 
-    private void syncForViewer(@NotNull Player viewer, @NotNull SkinViewState state, @NotNull Location location) {
-        if (!state.shouldSendTransform(viewer.getUniqueId(), location)) {
+    private void syncForViewer(
+            @NotNull Player viewer,
+            @NotNull SkinViewState state,
+            @NotNull Location location,
+            float headYaw,
+            float headPitch
+    ) {
+        OverheadDisplayService.hideNameTag(viewer, state.profileName());
+        if (!state.shouldSendTransform(viewer.getUniqueId(), location, headYaw, headPitch)) {
             return;
         }
         sendPacket(viewer, createEntityTeleportPacket(state.fakeEntityId(), location));
-        sendPacket(viewer, createEntityHeadRotationPacket(state.fakeEntityId(), location.getYaw()));
+        sendPacket(viewer, createEntityLookPacket(state.fakeEntityId(), location.getYaw(), headPitch));
+        sendPacket(viewer, createEntityHeadRotationPacket(state.fakeEntityId(), headYaw));
     }
 
     private void destroyForViewer(
@@ -372,6 +396,7 @@ public final class NpcPlayerSkinPacketService {
         UUID viewerId = viewer.getUniqueId();
         UUID hiddenRealEntityId = state.hiddenRealEntity(viewerId);
         state.invalidateViewer(viewerId);
+        OverheadDisplayService.showNameTag(viewer, state.profileName());
         sendPacket(viewer, createEntityDestroyPacket(state.fakeEntityId()));
         sendPacket(viewer, createPlayerInfoRemovePacket(state.profileUuid()));
         if (hiddenRealEntityId == null) {
@@ -473,7 +498,9 @@ public final class NpcPlayerSkinPacketService {
 
     private @NotNull PacketContainer createPlayerSpawnPacket(
             @NotNull SkinViewState state,
-            @NotNull Location location
+            @NotNull Location location,
+            float headYaw,
+            float headPitch
     ) {
         PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.SPAWN_ENTITY);
         packet.getIntegers().writeSafely(0, state.fakeEntityId());
@@ -482,9 +509,9 @@ public final class NpcPlayerSkinPacketService {
         packet.getDoubles().writeSafely(0, location.getX());
         packet.getDoubles().writeSafely(1, location.getY());
         packet.getDoubles().writeSafely(2, location.getZ());
-        packet.getBytes().writeSafely(0, angleToByte(location.getPitch()));
+        packet.getBytes().writeSafely(0, angleToByte(headPitch));
         packet.getBytes().writeSafely(1, angleToByte(location.getYaw()));
-        packet.getBytes().writeSafely(2, angleToByte(location.getYaw()));
+        packet.getBytes().writeSafely(2, angleToByte(headYaw));
         return packet;
     }
 
@@ -524,6 +551,15 @@ public final class NpcPlayerSkinPacketService {
         return packet;
     }
 
+    private @NotNull PacketContainer createEntityLookPacket(int fakeEntityId, float yaw, float pitch) {
+        PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.ENTITY_LOOK);
+        packet.getIntegers().write(0, fakeEntityId);
+        packet.getBytes().write(0, angleToByte(yaw));
+        packet.getBytes().write(1, angleToByte(pitch));
+        packet.getBooleans().write(0, true);
+        return packet;
+    }
+
     private @NotNull PacketContainer createEntityDestroyPacket(int fakeEntityId) {
         PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.ENTITY_DESTROY);
         packet.getIntLists().write(0, List.of(fakeEntityId));
@@ -554,6 +590,7 @@ public final class NpcPlayerSkinPacketService {
 
         private final int fakeEntityId;
         private final UUID profileUuid;
+        private final String profileName;
         private final WrappedGameProfile profile;
         private final Set<UUID> viewerIds = new HashSet<>();
         private final Map<UUID, Long> displayGenerations = new HashMap<>();
@@ -562,9 +599,15 @@ public final class NpcPlayerSkinPacketService {
         private long nextDisplayGeneration;
         private int realEntityId = -1;
 
-        private SkinViewState(int fakeEntityId, @NotNull UUID profileUuid, @NotNull WrappedGameProfile profile) {
+        private SkinViewState(
+                int fakeEntityId,
+                @NotNull UUID profileUuid,
+                @NotNull String profileName,
+                @NotNull WrappedGameProfile profile
+        ) {
             this.fakeEntityId = fakeEntityId;
             this.profileUuid = profileUuid;
+            this.profileName = profileName;
             this.profile = profile;
         }
 
@@ -574,6 +617,10 @@ public final class NpcPlayerSkinPacketService {
 
         private @NotNull UUID profileUuid() {
             return profileUuid;
+        }
+
+        private @NotNull String profileName() {
+            return profileName;
         }
 
         private @NotNull WrappedGameProfile profile() {
@@ -592,10 +639,15 @@ public final class NpcPlayerSkinPacketService {
             this.realEntityId = realEntityId;
         }
 
-        private long beginViewerDisplay(@NotNull UUID viewerId, @NotNull Location location) {
+        private long beginViewerDisplay(
+                @NotNull UUID viewerId,
+                @NotNull Location location,
+                float headYaw,
+                float headPitch
+        ) {
             long displayGeneration = ++nextDisplayGeneration;
             displayGenerations.put(viewerId, displayGeneration);
-            lastSentTransforms.put(viewerId, ViewerTransform.from(location));
+            lastSentTransforms.put(viewerId, ViewerTransform.from(location, headYaw, headPitch));
             return displayGeneration;
         }
 
@@ -604,8 +656,13 @@ public final class NpcPlayerSkinPacketService {
                     && Long.valueOf(displayGeneration).equals(displayGenerations.get(viewerId));
         }
 
-        private boolean shouldSendTransform(@NotNull UUID viewerId, @NotNull Location location) {
-            ViewerTransform current = ViewerTransform.from(location);
+        private boolean shouldSendTransform(
+                @NotNull UUID viewerId,
+                @NotNull Location location,
+                float headYaw,
+                float headPitch
+        ) {
+            ViewerTransform current = ViewerTransform.from(location, headYaw, headPitch);
             ViewerTransform previous = lastSentTransforms.put(viewerId, current);
             return !current.equals(previous);
         }
@@ -631,10 +688,16 @@ public final class NpcPlayerSkinPacketService {
             double y,
             double z,
             float yaw,
-            float pitch
+            float pitch,
+            float headYaw,
+            float headPitch
     ) {
 
-        private static @NotNull ViewerTransform from(@NotNull Location location) {
+        private static @NotNull ViewerTransform from(
+                @NotNull Location location,
+                float headYaw,
+                float headPitch
+        ) {
             UUID worldId = location.getWorld() == null ? null : location.getWorld().getUID();
             return new ViewerTransform(
                     worldId,
@@ -642,7 +705,9 @@ public final class NpcPlayerSkinPacketService {
                     location.getY(),
                     location.getZ(),
                     location.getYaw(),
-                    location.getPitch()
+                    location.getPitch(),
+                    headYaw,
+                    headPitch
             );
         }
     }

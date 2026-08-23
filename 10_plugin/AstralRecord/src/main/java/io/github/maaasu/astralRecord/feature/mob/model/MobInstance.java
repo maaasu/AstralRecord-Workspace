@@ -129,6 +129,8 @@ public final class MobInstance {
         this.bukkitEntityId = bukkitEntityId;
         this.entityId = entityId;
         this.currentLocation = location.clone();
+        this.headYaw = location.getYaw();
+        this.headPitch = location.getPitch();
     }
 
     /** BlockDisplay などの補助 Entity UUID を返します。未使用時は {@code null} です。 */

@@ -38,6 +38,8 @@ public class OverheadDisplayService {
 
     private static final long UPDATE_INTERVAL_TICKS = 5L;
     private static final double PLAYER_TEXT_OFFSET = -1.65D;
+    /** 疑似 Player NPC の足元から頭上 TextDisplay までの固定高さ。 */
+    private static final double PLAYER_NPC_TEXT_HEIGHT = 2.25D;
     private static final double MOB_PASSENGER_TEXT_OFFSET = 0.15D;
     private static final int BAR_LENGTH = 12;
     private static final String HIDDEN_NAME_TEAM = "ar_hidden_names";
@@ -116,6 +118,32 @@ public class OverheadDisplayService {
     @NotNull
     public Set<UUID> getSuspendedPlayerDisplays() {
         return Collections.unmodifiableSet(suspendedPlayerDisplays);
+    }
+
+    /**
+     * viewer 単位で指定された疑似 Player の名前タグを非表示にします。
+     *
+     * @param viewer 表示を受けるプレイヤー
+     * @param entry  Scoreboard team へ登録する名前
+     */
+    public static void hideNameTag(@NotNull Player viewer, @NotNull String entry) {
+        Team team = ensureHiddenNameTeam(viewer);
+        team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
+        team.addEntry(entry);
+    }
+
+    /**
+     * viewer 単位で指定された疑似 Player の名前タグ非表示を解除します。
+     *
+     * @param viewer 表示を受けていたプレイヤー
+     * @param entry  Scoreboard team から削除する名前
+     */
+    public static void showNameTag(@NotNull Player viewer, @NotNull String entry) {
+        Scoreboard scoreboard = viewer.getScoreboard();
+        Team team = scoreboard.getTeam(HIDDEN_NAME_TEAM);
+        if (team != null) {
+            team.removeEntry(entry);
+        }
     }
 
     private void tick() {
@@ -208,6 +236,9 @@ public class OverheadDisplayService {
     }
 
     private @NotNull DisplayAnchor mobDisplayAnchor(@NotNull MobInstance instance, @NotNull Entity entity) {
+        if (instance.template().usesPlayerSkinPacketView()) {
+            return DisplayAnchor.fixed(instance.currentLocation().add(0.0D, PLAYER_NPC_TEXT_HEIGHT, 0.0D));
+        }
         if (instance.template().blockMaterial() == null) {
             return DisplayAnchor.entity(entity, mobPassengerOverheadOffset());
         }
@@ -240,20 +271,11 @@ public class OverheadDisplayService {
         }
 
         for (Player viewer : onlinePlayers) {
-            Scoreboard scoreboard = viewer.getScoreboard();
-            if (scoreboard == Bukkit.getScoreboardManager().getMainScoreboard()) {
-                scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
-                viewer.setScoreboard(scoreboard);
-            }
-
-            Team team = scoreboard.getTeam(HIDDEN_NAME_TEAM);
-            if (team == null) {
-                team = scoreboard.registerNewTeam(HIDDEN_NAME_TEAM);
-            }
+            Team team = ensureHiddenNameTeam(viewer);
             team.setOption(Team.Option.NAME_TAG_VISIBILITY, Team.OptionStatus.NEVER);
 
             for (String entry : new HashSet<>(team.getEntries())) {
-                if (!activeNames.contains(entry)) {
+                if (!activeNames.contains(entry) && !isPacketProfileName(entry)) {
                     team.removeEntry(entry);
                 }
             }
@@ -272,6 +294,21 @@ public class OverheadDisplayService {
                 team.unregister();
             }
         }
+    }
+
+    private static @NotNull Team ensureHiddenNameTeam(@NotNull Player viewer) {
+        Scoreboard scoreboard = viewer.getScoreboard();
+        if (scoreboard == Bukkit.getScoreboardManager().getMainScoreboard()) {
+            scoreboard = Bukkit.getScoreboardManager().getNewScoreboard();
+            viewer.setScoreboard(scoreboard);
+        }
+
+        Team team = scoreboard.getTeam(HIDDEN_NAME_TEAM);
+        return team == null ? scoreboard.registerNewTeam(HIDDEN_NAME_TEAM) : team;
+    }
+
+    private static boolean isPacketProfileName(@NotNull String entry) {
+        return entry.startsWith("npc_") || entry.startsWith("test_");
     }
 
     @NotNull

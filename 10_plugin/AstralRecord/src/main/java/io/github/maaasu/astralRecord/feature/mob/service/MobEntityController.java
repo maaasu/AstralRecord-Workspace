@@ -842,6 +842,22 @@ public class MobEntityController {
             return;
         }
         mob.lookAt(target.getX(), target.getY(), target.getZ(), LookAnchor.EYES);
+        updateHeadRotation(instance, mob.getEyeLocation(), target);
+    }
+
+    private void updateHeadRotation(
+            @NotNull MobInstance instance,
+            @NotNull Location origin,
+            @NotNull Location target
+    ) {
+        double x = target.getX() - origin.getX();
+        double y = target.getY() - origin.getY();
+        double z = target.getZ() - origin.getZ();
+        double horizontalDistance = Math.hypot(x, z);
+        float yaw = (float) Math.toDegrees(Math.atan2(-x, z));
+        float pitch = (float) Math.toDegrees(Math.atan2(-y, horizontalDistance));
+        instance.headYaw(yaw);
+        instance.headPitch(pitch);
     }
 
     /**
