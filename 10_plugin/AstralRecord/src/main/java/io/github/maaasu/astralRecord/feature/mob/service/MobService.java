@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobSkin;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -651,6 +652,24 @@ public class MobService {
             long durationTicks
     ) {
         return playerSkinPacketService.showTemporaryPlayerSkin(viewer, skinSource, location, durationTicks);
+    }
+
+    /**
+     * 指定された署名付きプレイヤースキンを、指定位置へ一時表示します。
+     *
+     * @param viewer        仮想 Player を表示するプレイヤー
+     * @param skin          Base64 テクスチャ値と署名値を持つスキン
+     * @param location      仮想 Player の表示位置
+     * @param durationTicks 表示時間（tick）。正数で指定してください
+     * @return スキン情報の検証と表示パケットの送信を開始できた場合は {@code true}
+     */
+    public boolean showTemporaryPlayerSkin(
+            @NotNull Player viewer,
+            @NotNull MobSkin skin,
+            @NotNull Location location,
+            long durationTicks
+    ) {
+        return playerSkinPacketService.showTemporaryPlayerSkin(viewer, skin, location, durationTicks);
     }
 
     /**

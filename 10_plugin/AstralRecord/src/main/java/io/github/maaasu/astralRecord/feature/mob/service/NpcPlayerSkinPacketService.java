@@ -89,16 +89,34 @@ public final class NpcPlayerSkinPacketService {
             @NotNull Location location,
             long durationTicks
     ) {
-        if (ensureProtocolManager() == null
-                || durationTicks <= 0L
-                || !viewer.isOnline()
-                || !skinSource.isOnline()
-                || location.getWorld() == null) {
+        if (!skinSource.isOnline()) {
             return false;
         }
 
         MobSkin skin = resolveSignedSkin(skinSource);
-        if (skin == null) {
+        return skin != null && showTemporaryPlayerSkin(viewer, skin, location, durationTicks);
+    }
+
+    /**
+     * 指定された署名付きプレイヤースキンを、指定位置へ一時表示します。
+     *
+     * @param viewer        仮想 Player を表示するプレイヤー
+     * @param skin          Base64 テクスチャ値と署名値を持つスキン
+     * @param location      仮想 Player の表示位置
+     * @param durationTicks 表示時間（tick）。正数で指定してください
+     * @return 表示パケットの送信を開始できた場合は {@code true}、入力または表示環境が不正な場合は {@code false}
+     */
+    public boolean showTemporaryPlayerSkin(
+            @NotNull Player viewer,
+            @NotNull MobSkin skin,
+            @NotNull Location location,
+            long durationTicks
+    ) {
+        if (ensureProtocolManager() == null
+                || durationTicks <= 0L
+                || !viewer.isOnline()
+                || !skin.hasSignedTexture()
+                || location.getWorld() == null) {
             return false;
         }
 
