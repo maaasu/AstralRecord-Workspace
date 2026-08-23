@@ -593,7 +593,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         );
         joinAttempts.put(playerUuid, attempt);
         LoadingControl previous = loadingControls.remove(playerUuid);
-        restoreLoadingControl(player, previous);
+        restoreLoadingControl(player, previous, true);
         BukkitTask titleTask = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
             () -> showJoinLoadingTitle(attempt),
@@ -626,7 +626,9 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
 
         Player player = plugin.getServer().getPlayer(attempt.playerUuid());
         if (player == attempt.player() && player.isOnline()) {
-            restoreLoadingControl(player, loadingControl);
+            // 成功時は参加反映中の StatusService.refreshStatus が設定した MOVEMENT_SPEED を保持する。
+            // 失敗時だけログイン前の値へ戻し、ロード中の一時ロックが残らないようにする。
+            restoreLoadingControl(player, loadingControl, !notifyComplete);
             player.clearTitle();
             if (notifyComplete) {
                 PlayerMessageService.getInstance().send(
@@ -741,14 +743,20 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         }
     }
 
-    private void restoreLoadingControl(Player player, @Nullable LoadingControl loadingControl) {
+    private void restoreLoadingControl(
+        Player player,
+        @Nullable LoadingControl loadingControl,
+        boolean restoreMovementSpeed
+    ) {
         if (loadingControl == null) {
             return;
         }
         if (loadingControl.titleTask() != null) {
             loadingControl.titleTask().cancel();
         }
-        restoreAttributeBaseValue(player, Attribute.MOVEMENT_SPEED, loadingControl.movementSpeed());
+        if (restoreMovementSpeed) {
+            restoreAttributeBaseValue(player, Attribute.MOVEMENT_SPEED, loadingControl.movementSpeed());
+        }
         restoreAttributeBaseValue(player, Attribute.JUMP_STRENGTH, loadingControl.jumpStrength());
     }
 
