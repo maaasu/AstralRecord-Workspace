@@ -27,7 +27,7 @@ public enum PlayerMsgId {
 
     // region /test/TestCommand.java 5050-5059
     /**
-     * 指定したスキンを表示できない
+     * 固定スキンを表示できない
      */
     P_5050(5050),
     /**
