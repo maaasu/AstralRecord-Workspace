@@ -8,11 +8,7 @@ category: NPC
 name: "&6市場管理人セレス"
 title: "&7アストラル・マーケット"
 level: 1
-entityType: VILLAGER
-variant:
-  profession: LIBRARIAN
-  villagerType: PLAINS
-  villagerLevel: 3
+entityType: enderman
 nameVisible: true
 damageImmune: true
 icon: EMERALD
