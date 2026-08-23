@@ -1,4 +1,5 @@
 using System.Reflection;
+using System.Text.Json.Nodes;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Options;
@@ -12,6 +13,39 @@ namespace AstralRecordApi.Tests.Services;
 
 public class MasterDataSeederSkillSystemTests
 {
+    [Fact]
+    public void ParseYamlObject_PreservesYamlStructureAndAmpersandScalars()
+    {
+        const string rawText = """
+            schemaVersion: 1
+            id: market_expansion_token_alpha
+            category: currency
+            name: &aマーケット拡張トークンα
+            lore:
+              - "&eこのトークンの反映上限: &f+6枠"
+            description: |
+              key: &ablock
+              quote: "x # y"
+            "foo # key": &aquoted
+            flow: [ &aflow, "&gflow" ]
+            """;
+
+        var root = ParseYamlObject(rawText);
+        var lore = root["lore"]?.AsArray();
+        var flow = root["flow"]?.AsArray();
+
+        Assert.NotNull(lore);
+        Assert.NotNull(flow);
+        Assert.Equal("&aマーケット拡張トークンα", root["name"]?.GetValue<string>());
+        Assert.Equal(
+            "&eこのトークンの反映上限: &f+6枠",
+            lore[0]?.GetValue<string>());
+        Assert.Equal("key: &ablock\nquote: \"x # y\"\n", root["description"]?.GetValue<string>());
+        Assert.Equal("&aquoted", root["foo # key"]?.GetValue<string>());
+        Assert.Equal("&aflow", flow[0]?.GetValue<string>());
+        Assert.Equal("&gflow", flow[1]?.GetValue<string>());
+    }
+
     /// <summary>
     /// 設計入力: 00_docs/50_Filebase設計書/feature/30-skill.md
     /// 検証契約: 有効skillから自動生成される仮想gem IDは、loot/quest等のitem必須参照として解決できる。
@@ -136,6 +170,17 @@ public class MasterDataSeederSkillSystemTests
         ) ?? throw new MissingMethodException(target.GetType().FullName, methodName);
         await ((Task?)method.Invoke(target, arguments)
             ?? throw new InvalidOperationException($"{methodName} did not return Task"));
+    }
+
+    private static JsonObject ParseYamlObject(string rawText)
+    {
+        MethodInfo method = typeof(MasterDataSeeder).GetMethod(
+            "ParseYamlObject",
+            BindingFlags.Static | BindingFlags.NonPublic
+        ) ?? throw new MissingMethodException(typeof(MasterDataSeeder).FullName, "ParseYamlObject");
+
+        return (JsonObject)(method.Invoke(null, [rawText, "test.yml"])
+            ?? throw new InvalidOperationException("ParseYamlObject returned null"));
     }
 
     private sealed class Fixture : IAsyncDisposable

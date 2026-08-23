@@ -1,11 +1,8 @@
-using System.Globalization;
-using System.Text;
 using System.Text.Json.Nodes;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
+using AstralRecordApi.Utilities;
 using Microsoft.EntityFrameworkCore;
-using YamlDotNet.Core;
-using YamlDotNet.RepresentationModel;
 
 namespace AstralRecordApi.Tests.TestSupport;
 
@@ -85,99 +82,5 @@ internal static class MasterDataTestSeed
     }
 
     private static JsonObject ParseYamlObject(string rawText, string filePath)
-    {
-        var normalized = NormalizeAmpersandScalars(rawText.TrimStart('﻿'));
-        var yamlStream = new YamlStream();
-        yamlStream.Load(new StringReader(normalized));
-
-        if (yamlStream.Documents.Count == 0)
-            throw new InvalidOperationException($"YAML が空です: {filePath}");
-
-        if (ConvertYamlNode(yamlStream.Documents[0].RootNode) is not JsonObject root)
-            throw new InvalidOperationException($"YAML のルートがマッピングではありません: {filePath}");
-
-        return root;
-    }
-
-    private static JsonNode? ConvertYamlNode(YamlNode node)
-    {
-        switch (node)
-        {
-            case YamlMappingNode mapping:
-                var jsonObject = new JsonObject();
-                foreach (var pair in mapping.Children)
-                {
-                    var keyName = ((YamlScalarNode)pair.Key).Value ?? string.Empty;
-                    jsonObject[keyName] = ConvertYamlNode(pair.Value);
-                }
-                return jsonObject;
-
-            case YamlSequenceNode sequence:
-                var jsonArray = new JsonArray();
-                foreach (var item in sequence.Children)
-                    jsonArray.Add(ConvertYamlNode(item));
-                return jsonArray;
-
-            case YamlScalarNode scalar:
-                return ConvertYamlScalar(scalar);
-
-            default:
-                return null;
-        }
-    }
-
-    private static JsonNode? ConvertYamlScalar(YamlScalarNode scalar)
-    {
-        var value = scalar.Value ?? string.Empty;
-
-        if (scalar.Style is ScalarStyle.SingleQuoted or ScalarStyle.DoubleQuoted)
-            return JsonValue.Create(value);
-
-        if (value.Length == 0 || value is "~" or "null" or "Null" or "NULL")
-            return null;
-
-        if (value is "true" or "True" or "TRUE")
-            return JsonValue.Create(true);
-
-        if (value is "false" or "False" or "FALSE")
-            return JsonValue.Create(false);
-
-        if (long.TryParse(value, NumberStyles.Integer, CultureInfo.InvariantCulture, out var longValue))
-            return JsonValue.Create(longValue);
-
-        if (double.TryParse(value, NumberStyles.Float, CultureInfo.InvariantCulture, out var doubleValue))
-            return JsonValue.Create(doubleValue);
-
-        return JsonValue.Create(value);
-    }
-
-    private static string NormalizeAmpersandScalars(string rawText)
-    {
-        var builder = new StringBuilder();
-        foreach (var line in rawText.Split('\n'))
-            builder.Append(NormalizeAmpersandScalarLine(line.TrimEnd('\r'))).Append('\n');
-        return builder.ToString();
-    }
-
-    private static string NormalizeAmpersandScalarLine(string line)
-    {
-        var commentIndex = line.IndexOf(" #", StringComparison.Ordinal);
-        var content = commentIndex >= 0 ? line[..commentIndex] : line;
-        var comment = commentIndex >= 0 ? line[commentIndex..] : string.Empty;
-
-        var colonIndex = content.IndexOf(':');
-        if (colonIndex >= 0)
-        {
-            var valuePart = content[(colonIndex + 1)..];
-            var trimmedValue = valuePart.TrimStart();
-            if (trimmedValue.StartsWith('&') && !trimmedValue.StartsWith('"') && !trimmedValue.StartsWith('\''))
-            {
-                var leadingWhitespace = valuePart[..(valuePart.Length - trimmedValue.Length)];
-                var escaped = trimmedValue.Replace("\\", "\\\\").Replace("\"", "\\\"");
-                return $"{content[..(colonIndex + 1)]}{leadingWhitespace}\"{escaped}\"{comment}";
-            }
-        }
-
-        return line;
-    }
+        => MasterDataYamlParser.ParseObject(rawText, filePath);
 }
