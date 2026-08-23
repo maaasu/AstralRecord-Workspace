@@ -46,6 +46,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 public final class NpcPlayerSkinPacketService {
 
     private static final AtomicInteger NEXT_FAKE_ENTITY_ID = new AtomicInteger(-2_000_000_000);
+    private static final int PLAYER_SKIN_PARTS_METADATA_INDEX = 16;
     private static final byte PLAYER_SKIN_PARTS_ALL = (byte) 0x7F;
     /** クライアントがスキン付き GameProfile を解決するために tab list へ保持する時間。 */
     private static final long SKIN_PROFILE_RETENTION_TICKS = 20L;
@@ -440,7 +441,7 @@ public final class NpcPlayerSkinPacketService {
                 0,
                 List.of(
                         metadataValue(0, Byte.class, (byte) 0),
-                        metadataValue(17, Byte.class, PLAYER_SKIN_PARTS_ALL)
+                        metadataValue(PLAYER_SKIN_PARTS_METADATA_INDEX, Byte.class, PLAYER_SKIN_PARTS_ALL)
                 )
         );
         return packet;
