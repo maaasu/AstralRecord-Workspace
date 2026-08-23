@@ -7,6 +7,7 @@ import com.comphenix.protocol.events.ListenerPriority;
 import com.comphenix.protocol.events.PacketAdapter;
 import com.comphenix.protocol.events.PacketContainer;
 import com.comphenix.protocol.events.PacketEvent;
+import com.comphenix.protocol.reflect.StructureModifier;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.PlayerInfoData;
 import com.comphenix.protocol.wrappers.WrappedDataValue;
@@ -376,9 +377,14 @@ public final class NpcPlayerSkinPacketService {
             boolean listed
     ) {
         PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.PLAYER_INFO);
-        // ProtocolLib 5.4.1-SNAPSHOT の getPlayerInfoActions() は、NMS 側が要求する EnumSet を
-        // ArrayList へ変換してしまうため、ClientboundPlayerInfoUpdatePacket の actions へ直接設定します。
-        packet.getModifier()
+        // PacketContainer の共有 StructureModifier は、EnumSet 用の変換器を再利用して ArrayList を生成する
+        // ことがあるため、変換器を持たない modifier を新規作成して NMS EnumSet を直接設定します。
+        StructureModifier<Object> rawModifier = new StructureModifier<>(
+                packet.getHandle().getClass(),
+                Object.class,
+                false
+        ).withTarget(packet.getHandle());
+        rawModifier
                 .withType(EnumSet.class)
                 .write(0, toNativePlayerInfoActions(actions));
         packet.getPlayerInfoDataLists().write(
