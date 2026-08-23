@@ -1074,6 +1074,24 @@ public enum LogId {
 
     // region /feature/gathering/ 9010-9019
     W_9010(9010),
+    /** 採集スポナーのスポーン判定を開始しました: spawner=%s, world=%s, origin=(%d,%d,%d), worldTime=%d, canSpawnAt=%s, nearbyPlayers=%d, gameplayPlayers=%d */
+    D_9011(9011),
+    /** 採集スポナーを時間帯条件でスキップしました: spawner=%s, worldTime=%d */
+    D_9012(9012),
+    /** 採集スポナーをゲームプレイ対象プレイヤー不在でスキップしました: spawner=%s, nearbyPlayers=%d */
+    D_9013(9013),
+    /** 採集スポナーを上限条件でスキップしました: spawner=%s, alive=%d/%d, nearby=%d/%d */
+    D_9014(9014),
+    /** 採集スポナーのスポーン候補を選択しました: spawner=%s, gathering=%s, world=%s, location=(%.1f,%.1f,%.1f), radius=%.1f, horizontalDistance=%.2f, effectiveHorizontalRadius=%.2f, verticalDistance=%.2f, distance3d=%.2f, xRange=%d..%d, zRange=%d..%d, base=%s, spawnBlock=%s */
+    D_9015(9015),
+    /** 採集オブジェクトをスポーンしました: spawner=%s, gathering=%s, instance=%s, world=%s, location=(%.1f,%.1f,%.1f) */
+    D_9016(9016),
+    /** 採集スポナーにスポーン対象がありません: spawner=%s */
+    D_9017(9017),
+    /** 採集スポナーに有効なスポーン地点がありません: spawner=%s, world=%s, origin=(%d,%d,%d), radius=%.1f, xRange=%d..%d, zRange=%d..%d, yRange=%d..%d, columns=%d, baseMatches=%d, passableMatches=%d, highestY=%s */
+    D_9018(9018),
+    /** 採集オブジェクトの生成に失敗しました: spawner=%s, gathering=%s, world=%s, location=(%.1f,%.1f,%.1f) */
+    D_9019(9019),
     // endregion
 
     // region /feature/discord/ 7100-7109

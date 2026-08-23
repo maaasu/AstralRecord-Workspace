@@ -11,6 +11,8 @@ import io.github.maaasu.astralRecord.feature.gathering.spawner.repository.Gather
 import io.github.maaasu.astralRecord.feature.gathering.spawner.repository.GatheringSpawnerLocationRepository;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import net.kyori.adventure.text.Component;
@@ -312,48 +314,170 @@ public class GatheringSpawnerService {
         if (definition == null || origin == null || origin.getWorld() == null) {
             return;
         }
-        if (tick % definition.spawnIntervalTicks() != 0L || !definition.canSpawnAt(origin.getWorld().getTime())) {
+        if (tick % definition.spawnIntervalTicks() != 0L) {
             cleanupTracked(spawnerLocation.locationKey());
             return;
         }
 
-        int nearbyPlayers = countNearbyGameplayPlayers(origin, definition.radiusMeters());
+        long worldTime = origin.getWorld().getTime();
+        NearbyPlayerCounts playerCounts = countNearbyPlayers(origin, definition.radiusMeters());
+        if (playerCounts.playersInRange() <= 0) {
+            cleanupTracked(spawnerLocation.locationKey());
+            return;
+        }
+        Logger.debug(
+                LogId.D_9011,
+                definition.id(),
+                origin.getWorld().getName(),
+                origin.getBlockX(),
+                origin.getBlockY(),
+                origin.getBlockZ(),
+                worldTime,
+                definition.canSpawnAt(worldTime),
+                playerCounts.playersInRange(),
+                playerCounts.gameplayPlayers()
+        );
+        if (!definition.canSpawnAt(worldTime)) {
+            cleanupTracked(spawnerLocation.locationKey());
+            Logger.debug(LogId.D_9012, definition.id(), worldTime);
+            return;
+        }
+
+        int nearbyPlayers = playerCounts.gameplayPlayers();
         if (nearbyPlayers <= 0) {
             cleanupTracked(spawnerLocation.locationKey());
+            Logger.debug(LogId.D_9013, definition.id(), playerCounts.playersInRange());
             return;
         }
 
         int desired = definition.desiredAliveCount(Math.min(MAX_PLAYER_SCALE, nearbyPlayers));
         int alive = cleanupTracked(spawnerLocation.locationKey());
-        if (alive >= desired || countNearbyGatherings(origin, definition.radiusMeters()) >= definition.maxNearbyGatherings()) {
+        int nearbyGatherings = countNearbyGatherings(origin, definition.radiusMeters());
+        if (alive >= desired || nearbyGatherings >= definition.maxNearbyGatherings()) {
+            Logger.debug(
+                    LogId.D_9014,
+                    definition.id(),
+                    alive,
+                    desired,
+                    nearbyGatherings,
+                    definition.maxNearbyGatherings()
+            );
             return;
         }
 
         GatheringSpawnerEntry entry = choose(definition.spawnGatherings());
-        Location spawnLocation = findHighestSpawnLocation(origin, definition);
-        if (entry == null || spawnLocation == null) {
+        if (entry == null) {
+            Logger.debug(LogId.D_9017, definition.id());
             return;
         }
+
+        SpawnLocationSearchResult search = findHighestSpawnLocationResult(origin, definition);
+        Location spawnLocation = search.location();
+        if (spawnLocation == null) {
+            int horizontalRadius = (int) Math.ceil(definition.radiusMeters());
+            Logger.debug(
+                    LogId.D_9018,
+                    definition.id(),
+                    origin.getWorld().getName(),
+                    origin.getBlockX(),
+                    origin.getBlockY(),
+                    origin.getBlockZ(),
+                    definition.radiusMeters(),
+                    origin.getBlockX() - horizontalRadius,
+                    origin.getBlockX() + horizontalRadius,
+                    origin.getBlockZ() - horizontalRadius,
+                    origin.getBlockZ() + horizontalRadius,
+                    search.minCandidateY(),
+                    search.maxCandidateY(),
+                    search.columnsChecked(),
+                    search.baseMatches(),
+                    search.passableMatches(),
+                    search.highestCandidateY()
+            );
+            return;
+        }
+
+        Block base = origin.getWorld().getBlockAt(
+                spawnLocation.getBlockX(),
+                spawnLocation.getBlockY() - 1,
+                spawnLocation.getBlockZ()
+        );
+        Block spawnBlock = spawnLocation.getBlock();
+        int horizontalRadius = (int) Math.ceil(definition.radiusMeters());
+        double horizontalDistance = Math.sqrt(
+                Math.pow(spawnLocation.getX() - origin.getX(), 2.0D)
+                        + Math.pow(spawnLocation.getZ() - origin.getZ(), 2.0D)
+        );
+        double verticalDistance = Math.abs(spawnLocation.getY() - origin.getY());
+        double threeDimensionalDistance = Math.sqrt(
+                horizontalDistance * horizontalDistance + verticalDistance * verticalDistance
+        );
+        double effectiveHorizontalRadius = Math.sqrt(
+                Math.max(0.0D, definition.radiusMeters() * definition.radiusMeters()
+                        - verticalDistance * verticalDistance)
+        );
+        Logger.debug(
+                LogId.D_9015,
+                definition.id(),
+                entry.gatheringId(),
+                spawnLocation.getWorld().getName(),
+                spawnLocation.getX(),
+                spawnLocation.getY(),
+                spawnLocation.getZ(),
+                definition.radiusMeters(),
+                horizontalDistance,
+                effectiveHorizontalRadius,
+                verticalDistance,
+                threeDimensionalDistance,
+                origin.getBlockX() - horizontalRadius,
+                origin.getBlockX() + horizontalRadius,
+                origin.getBlockZ() - horizontalRadius,
+                origin.getBlockZ() + horizontalRadius,
+                base.getType().name(),
+                spawnBlock.getType().name()
+        );
         GatheringInstance instance = gatheringService.spawn(entry.gatheringId(), spawnLocation, definition.id());
         if (instance != null) {
             spawnedByLocation.computeIfAbsent(spawnerLocation.locationKey(), key -> new HashSet<>())
                     .add(instance.instanceId());
+            Logger.debug(
+                    LogId.D_9016,
+                    definition.id(),
+                    entry.gatheringId(),
+                    instance.instanceId(),
+                    spawnLocation.getWorld().getName(),
+                    spawnLocation.getX(),
+                    spawnLocation.getY(),
+                    spawnLocation.getZ()
+            );
+        } else {
+            Logger.debug(
+                    LogId.D_9019,
+                    definition.id(),
+                    entry.gatheringId(),
+                    spawnLocation.getWorld().getName(),
+                    spawnLocation.getX(),
+                    spawnLocation.getY(),
+                    spawnLocation.getZ()
+            );
         }
     }
 
-    private int countNearbyGameplayPlayers(@NotNull Location origin, double radius) {
+    private @NotNull NearbyPlayerCounts countNearbyPlayers(@NotNull Location origin, double radius) {
         double radiusSq = radius * radius;
-        int count = 0;
+        int playersInRange = 0;
+        int gameplayPlayers = 0;
         for (Player player : Bukkit.getOnlinePlayers()) {
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null || !astPlayer.getAccount().getMode().shouldProcessGameplay()) {
+            if (player.getWorld() != origin.getWorld() || player.getLocation().distanceSquared(origin) > radiusSq) {
                 continue;
             }
-            if (player.getWorld() == origin.getWorld() && player.getLocation().distanceSquared(origin) <= radiusSq) {
-                count++;
+            playersInRange++;
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null && astPlayer.getAccount().getMode().shouldProcessGameplay()) {
+                gameplayPlayers++;
             }
         }
-        return count;
+        return new NearbyPlayerCounts(playersInRange, gameplayPlayers);
     }
 
     private int countNearbyGatherings(@NotNull Location origin, double radius) {
@@ -404,9 +528,23 @@ public class GatheringSpawnerService {
             @NotNull Location origin,
             @NotNull GatheringSpawnerDefinition definition
     ) {
+        return findHighestSpawnLocationResult(origin, definition).location();
+    }
+
+    /**
+     * スポーン地点の検索結果と、候補が見つからない場合の切り分け情報を返します。
+     *
+     * @param origin     スポナーの登録座標
+     * @param definition スポナー定義
+     * @return スポーン地点と検索状況
+     */
+    static @NotNull SpawnLocationSearchResult findHighestSpawnLocationResult(
+            @NotNull Location origin,
+            @NotNull GatheringSpawnerDefinition definition
+    ) {
         World world = origin.getWorld();
         if (world == null) {
-            return null;
+            return SpawnLocationSearchResult.empty();
         }
 
         double radius = definition.radiusMeters();
@@ -421,11 +559,22 @@ public class GatheringSpawnerService {
                 (int) Math.floor(origin.getY() + radius)
         );
         if (minCandidateY > maxCandidateY) {
-            return null;
+            return new SpawnLocationSearchResult(
+                    null,
+                    0,
+                    0,
+                    0,
+                    minCandidateY,
+                    maxCandidateY,
+                    null
+            );
         }
 
         int highestCandidateY = Integer.MIN_VALUE;
         List<Location> highestCandidates = new ArrayList<>();
+        int columnsChecked = 0;
+        int baseMatches = 0;
+        int passableMatches = 0;
         for (int x = origin.getBlockX() - horizontalRadius; x <= origin.getBlockX() + horizontalRadius; x++) {
             double dx = x + 0.5D - origin.getX();
             for (int z = origin.getBlockZ() - horizontalRadius; z <= origin.getBlockZ() + horizontalRadius; z++) {
@@ -434,6 +583,7 @@ public class GatheringSpawnerService {
                 if (horizontalDistanceSq > radiusSq) {
                     continue;
                 }
+                columnsChecked++;
 
                 int highestBlockY = world.getHighestBlockYAt(x, z);
                 int startCandidateY = Math.min(maxCandidateY, highestBlockY + 1);
@@ -449,11 +599,13 @@ public class GatheringSpawnerService {
                             && !definition.requiredBaseBlocks().contains(base.getType()))) {
                         continue;
                     }
+                    baseMatches++;
                     Location candidate = new Location(world, x + 0.5D, candidateY, z + 0.5D);
                     Block spawnBlock = world.getBlockAt(x, candidateY, z);
                     if (!spawnBlock.isPassable() || spawnBlock.isLiquid()) {
                         continue;
                     }
+                    passableMatches++;
                     if (candidateY > highestCandidateY) {
                         highestCandidateY = candidateY;
                         highestCandidates.clear();
@@ -465,10 +617,35 @@ public class GatheringSpawnerService {
                 }
             }
         }
-        if (highestCandidates.isEmpty()) {
-            return null;
+        Location location = highestCandidates.isEmpty()
+                ? null
+                : highestCandidates.get(ThreadLocalRandom.current().nextInt(highestCandidates.size()));
+        return new SpawnLocationSearchResult(
+                location,
+                columnsChecked,
+                baseMatches,
+                passableMatches,
+                minCandidateY,
+                maxCandidateY,
+                highestCandidateY == Integer.MIN_VALUE ? null : highestCandidateY
+        );
+    }
+
+    private record NearbyPlayerCounts(int playersInRange, int gameplayPlayers) {
+    }
+
+    static record SpawnLocationSearchResult(
+            @Nullable Location location,
+            int columnsChecked,
+            int baseMatches,
+            int passableMatches,
+            int minCandidateY,
+            int maxCandidateY,
+            @Nullable Integer highestCandidateY
+    ) {
+        private static @NotNull SpawnLocationSearchResult empty() {
+            return new SpawnLocationSearchResult(null, 0, 0, 0, 0, 0, null);
         }
-        return highestCandidates.get(ThreadLocalRandom.current().nextInt(highestCandidates.size()));
     }
 
     private void saveIfDirty() {
