@@ -158,7 +158,7 @@ class SkillGemLearnEventHandlerTest extends MockBukkitTestBase {
 
         Inventory confirmInventory = bukkitPlayer.getOpenInventory().getTopInventory();
         Component title = bukkitPlayer.getOpenInventory().title();
-        assertEquals("スキル習得「このスキルの習得を推奨しません」", plainText(title));
+        assertEquals("このスキルの習得は非推奨です。", plainText(title));
         assertEquals(NamedTextColor.RED, title.color());
 
         var messageLore = Objects.requireNonNull(
