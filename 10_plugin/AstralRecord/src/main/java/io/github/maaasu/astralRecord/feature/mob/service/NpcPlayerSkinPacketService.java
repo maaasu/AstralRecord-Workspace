@@ -376,7 +376,11 @@ public final class NpcPlayerSkinPacketService {
             boolean listed
     ) {
         PacketContainer packet = protocolManager.createPacket(PacketType.Play.Server.PLAYER_INFO);
-        packet.getPlayerInfoActions().write(0, actions);
+        // ProtocolLib 5.4.1-SNAPSHOT の getPlayerInfoActions() は、NMS 側が要求する EnumSet を
+        // ArrayList へ変換してしまうため、ClientboundPlayerInfoUpdatePacket の actions へ直接設定します。
+        packet.getModifier()
+                .withType(EnumSet.class)
+                .write(0, toNativePlayerInfoActions(actions));
         packet.getPlayerInfoDataLists().write(
                 0,
                 List.of(new PlayerInfoData(
@@ -391,6 +395,19 @@ public final class NpcPlayerSkinPacketService {
                 ))
         );
         return packet;
+    }
+
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private @NotNull EnumSet<?> toNativePlayerInfoActions(
+            @NotNull EnumSet<EnumWrappers.PlayerInfoAction> actions
+    ) {
+        EnumSet nativeActions = EnumWrappers.createEmptyEnumSet(
+                EnumWrappers.getPlayerInfoActionClass()
+        );
+        for (EnumWrappers.PlayerInfoAction action : actions) {
+            nativeActions.add(EnumWrappers.getPlayerInfoActionConverter().getGeneric(action));
+        }
+        return nativeActions;
     }
 
     private @NotNull PacketContainer createPlayerSpawnPacket(
