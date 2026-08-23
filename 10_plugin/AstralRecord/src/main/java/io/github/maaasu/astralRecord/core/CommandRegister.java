@@ -214,7 +214,7 @@ public class CommandRegister {
         cm.registerCommand("web", new WebAuthCommand(new WebAuthService(new WebAuthRepository())));
         cm.registerCommand("textdisplay", new TextDisplayCommand(textDisplayPlacementService), new TextDisplayTabCompleter(textDisplayPlacementService));
         cm.registerCommand("teleporter", new TeleporterCommand(teleporterService), new TeleporterTabCompleter(teleporterService));
-        cm.registerCommand("test", new TestCommand(AstralRecord.getInstance()), new TestTabCompleter());
+        cm.registerCommand("test", new TestCommand(mobService), new TestTabCompleter());
         cm.registerCommand("testskilltree", new SkillTreeSpawnCheckCommand(), new SkillTreeSpawnCheckTabCompleter());
         cm.registerCommand("masterdata", new MasterDataCommand(AstralRecord.getInstance()));
     }

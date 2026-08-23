@@ -25,13 +25,13 @@ public enum PlayerMsgId {
      */
     // endregion
 
-    // region /temp/command/TestCommand.java 5050-5059
+    // region /test/TestCommand.java 5050-5059
     /**
-     * 表示したい Material を指定してください。例: /test diamond 5 Test
+     * 指定プレイヤーのスキン情報を取得できません: {0}
      */
     P_5050(5050),
     /**
-     * テスト表示を {0} 秒間表示します。
+     * プレイヤー {0} のスキンを10秒間表示します。
      */
     P_5051(5051),
     /**

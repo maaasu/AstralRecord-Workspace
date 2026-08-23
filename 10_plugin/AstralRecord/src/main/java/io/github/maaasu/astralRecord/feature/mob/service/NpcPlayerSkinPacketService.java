@@ -13,6 +13,7 @@ import com.comphenix.protocol.wrappers.WrappedDataValue;
 import com.comphenix.protocol.wrappers.WrappedDataWatcher;
 import com.comphenix.protocol.wrappers.WrappedGameProfile;
 import com.comphenix.protocol.wrappers.WrappedSignedProperty;
+import com.destroystokyo.paper.profile.ProfileProperty;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkin;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -60,21 +61,60 @@ public final class NpcPlayerSkinPacketService {
 
     private final Plugin plugin;
     private final MobEntityController entityController;
-    private final @Nullable ProtocolManager protocolManager;
+    private @Nullable ProtocolManager protocolManager;
+    private boolean useEntityRemapperRegistered;
     private final Map<UUID, SkinViewState> states = new LinkedHashMap<>();
+    private final Map<UUID, SkinViewState> temporaryStates = new LinkedHashMap<>();
     private final Map<Integer, UUID> instanceIdByFakeEntityId = new HashMap<>();
 
     public NpcPlayerSkinPacketService(@NotNull Plugin plugin, @NotNull MobEntityController entityController) {
         this.plugin = plugin;
         this.entityController = entityController;
-        this.protocolManager = resolveProtocolManager();
-        if (this.protocolManager != null) {
-            registerUseEntityRemapper(this.protocolManager);
+    }
+
+    /**
+     * オンラインプレイヤーの現在の署名付きスキンを、指定位置へ一時表示します。
+     *
+     * @param viewer        仮想 Player を表示するプレイヤー
+     * @param skinSource    スキンを取得するオンラインプレイヤー
+     * @param location      仮想 Player の表示位置
+     * @param durationTicks 表示時間（tick）。正数で指定してください
+     * @return 表示パケットの送信を開始できた場合は {@code true}、ProtocolLib またはスキン情報がない場合は {@code false}
+     */
+    public boolean showTemporaryPlayerSkin(
+            @NotNull Player viewer,
+            @NotNull Player skinSource,
+            @NotNull Location location,
+            long durationTicks
+    ) {
+        if (ensureProtocolManager() == null
+                || durationTicks <= 0L
+                || !viewer.isOnline()
+                || !skinSource.isOnline()
+                || location.getWorld() == null) {
+            return false;
         }
+
+        MobSkin skin = resolveSignedSkin(skinSource);
+        if (skin == null) {
+            return false;
+        }
+
+        UUID profileUuid = UUID.randomUUID();
+        SkinViewState state = createState(
+                profileUuid,
+                buildTemporaryProfileName(profileUuid),
+                skin
+        );
+        state.viewerIds().add(viewer.getUniqueId());
+        spawnTemporaryForViewer(viewer, state, location);
+        temporaryStates.put(state.profileUuid(), state);
+        Bukkit.getScheduler().runTaskLater(plugin, () -> removeTemporaryForViewer(viewer, state), durationTicks);
+        return true;
     }
 
     public void sync(@NotNull MobInstance instance, @NotNull Set<UUID> viewerIds) {
-        if (protocolManager == null) {
+        if (ensureProtocolManager() == null) {
             return;
         }
         if (!instance.template().usesPlayerSkinPacketView()) {
@@ -114,7 +154,7 @@ public final class NpcPlayerSkinPacketService {
     }
 
     public void remove(@NotNull MobInstance instance) {
-        if (protocolManager == null) {
+        if (ensureProtocolManager() == null) {
             return;
         }
         SkinViewState state = states.remove(instance.instanceId());
@@ -132,7 +172,7 @@ public final class NpcPlayerSkinPacketService {
     }
 
     public void removeAll() {
-        if (protocolManager == null) {
+        if (ensureProtocolManager() == null) {
             return;
         }
         for (SkinViewState state : List.copyOf(states.values())) {
@@ -145,6 +185,15 @@ public final class NpcPlayerSkinPacketService {
         }
         states.clear();
         instanceIdByFakeEntityId.clear();
+        for (SkinViewState state : List.copyOf(temporaryStates.values())) {
+            for (UUID viewerId : state.viewerIds()) {
+                Player viewer = Bukkit.getPlayer(viewerId);
+                if (viewer != null && viewer.isOnline()) {
+                    destroyForViewer(viewer, state);
+                }
+            }
+        }
+        temporaryStates.clear();
     }
 
     private @Nullable ProtocolManager resolveProtocolManager() {
@@ -156,6 +205,17 @@ public final class NpcPlayerSkinPacketService {
         } catch (RuntimeException ex) {
             return null;
         }
+    }
+
+    private @Nullable ProtocolManager ensureProtocolManager() {
+        if (protocolManager == null) {
+            protocolManager = resolveProtocolManager();
+        }
+        if (protocolManager != null && !useEntityRemapperRegistered) {
+            registerUseEntityRemapper(protocolManager);
+            useEntityRemapperRegistered = true;
+        }
+        return protocolManager;
     }
 
     private void registerUseEntityRemapper(@NotNull ProtocolManager manager) {
@@ -190,9 +250,18 @@ public final class NpcPlayerSkinPacketService {
         UUID profileUuid = UUID.nameUUIDFromBytes(
                 ("astralrecord:npc-player-skin:" + instance.instanceId()).getBytes(StandardCharsets.UTF_8)
         );
-        String profileName = buildProfileName(instance.instanceId());
+        SkinViewState state = createState(profileUuid, buildProfileName(instance.instanceId()), instance.template().skin());
+        state.realEntityId(instance.entityId());
+        instanceIdByFakeEntityId.put(state.fakeEntityId(), instance.instanceId());
+        return state;
+    }
+
+    private @NotNull SkinViewState createState(
+            @NotNull UUID profileUuid,
+            @NotNull String profileName,
+            @Nullable MobSkin skin
+    ) {
         WrappedGameProfile profile = new WrappedGameProfile(profileUuid, profileName);
-        MobSkin skin = instance.template().skin();
         if (skin != null && skin.hasSignedTexture()) {
             profile.getProperties().put(
                     "textures",
@@ -204,9 +273,20 @@ public final class NpcPlayerSkinPacketService {
                 profileUuid,
                 profile
         );
-        state.realEntityId(instance.entityId());
-        instanceIdByFakeEntityId.put(state.fakeEntityId(), instance.instanceId());
         return state;
+    }
+
+    private @Nullable MobSkin resolveSignedSkin(@NotNull Player player) {
+        for (ProfileProperty property : player.getPlayerProfile().getProperties()) {
+            if (!"textures".equals(property.getName())) {
+                continue;
+            }
+            MobSkin skin = new MobSkin(property.getValue(), property.getSignature());
+            if (skin.hasSignedTexture()) {
+                return skin;
+            }
+        }
+        return null;
     }
 
     private void spawnForViewer(
@@ -221,6 +301,28 @@ public final class NpcPlayerSkinPacketService {
         sendPacket(viewer, createEntityMetadataPacket(state));
         sendPacket(viewer, createEntityHeadRotationPacket(state.fakeEntityId(), location.getYaw()));
         hideFromPlayerListNextTick(viewer, state);
+    }
+
+    private void spawnTemporaryForViewer(
+            @NotNull Player viewer,
+            @NotNull SkinViewState state,
+            @NotNull Location location
+    ) {
+        sendPacket(viewer, createPlayerInfoPacket(state));
+        sendPacket(viewer, createPlayerSpawnPacket(state, location));
+        sendPacket(viewer, createEntityMetadataPacket(state));
+        sendPacket(viewer, createEntityHeadRotationPacket(state.fakeEntityId(), location.getYaw()));
+        hideFromPlayerListNextTick(viewer, state);
+    }
+
+    private void removeTemporaryForViewer(@NotNull Player viewer, @NotNull SkinViewState state) {
+        if (!temporaryStates.remove(state.profileUuid(), state)) {
+            return;
+        }
+        if (viewer.isOnline()) {
+            destroyForViewer(viewer, state);
+        }
+        state.viewerIds().clear();
     }
 
     private void syncForViewer(@NotNull Player viewer, @NotNull SkinViewState state, @NotNull Location location) {
@@ -363,6 +465,11 @@ public final class NpcPlayerSkinPacketService {
     private @NotNull String buildProfileName(@NotNull UUID instanceId) {
         String compact = instanceId.toString().replace("-", "");
         return "npc_" + compact.substring(0, 11);
+    }
+
+    private @NotNull String buildTemporaryProfileName(@NotNull UUID profileUuid) {
+        String compact = profileUuid.toString().replace("-", "");
+        return "test_" + compact.substring(0, 11);
     }
 
     private static final class SkinViewState {
