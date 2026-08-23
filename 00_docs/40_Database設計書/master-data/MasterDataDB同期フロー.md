@@ -14,7 +14,7 @@ API 起動時に MasterDataDB が空、または `AutoSeedOnStartup = true` の�
 6. 差分がある場合は `master_data_entry` を upsert する
 7. `ref:` を解析し、対象 entry の `master_data_reference` を入れ替える
 8. filebase から消えた YAML は `master_data_entry.is_deleted = 1` にする
-9. 必須参照の未解決を検証する
+9. 必須参照の未解決を検証する（Plugin 組み込み通貨 `item:astrald` は Filebase の item entry がなくても解決済みとして扱う）
 10. 成功時は `master_data_seed_run.status = SUCCEEDED`、失敗時は `FAILED` に更新する
 
 ## 2. Seeder API 同期

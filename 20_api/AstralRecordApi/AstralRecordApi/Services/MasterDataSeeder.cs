@@ -25,6 +25,7 @@ public class MasterDataSeeder(
     private const string StatusSucceeded = "SUCCEEDED";
     private const string StatusFailed = "FAILED";
     private const string GeneratedSkillGemIdPrefix = "00_skill_gem_";
+    private const string BuiltInAstraldCurrencyItemId = "astrald";
     private const int InventoryItemIdMaxLength = 100;
     private const int LearnedSkillSigilIdMaxLength = 128;
 
@@ -465,7 +466,8 @@ public class MasterDataSeeder(
                 string.Equals(masterType, reference.ReferenceType, StringComparison.OrdinalIgnoreCase)
                 || masterType.StartsWith(reference.ReferenceType + ".", StringComparison.OrdinalIgnoreCase))
                 || (KeyComparer.Equals(reference.ReferenceType, "item")
-                    && generatedSkillGemIds.Contains(reference.ReferenceIdValue));
+                    && (generatedSkillGemIds.Contains(reference.ReferenceIdValue)
+                        || KeyComparer.Equals(reference.ReferenceIdValue, BuiltInAstraldCurrencyItemId)));
 
             if (resolved)
                 continue;
