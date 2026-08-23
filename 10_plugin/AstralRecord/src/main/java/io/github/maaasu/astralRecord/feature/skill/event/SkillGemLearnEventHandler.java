@@ -168,7 +168,7 @@ public final class SkillGemLearnEventHandler extends AbstractEventHandler {
             description.add(Component.text("このスキルはすでに習得済みです。", NamedTextColor.RED));
         }
         Component title = duplicate
-            ? Component.text("スキル習得「このスキルの習得を推奨しません」", NamedTextColor.RED)
+            ? Component.text("このスキルの習得は非推奨です。", NamedTextColor.RED)
             : Component.text("スキル習得確認", NamedTextColor.YELLOW);
         Inventory inventory = Bukkit.createInventory(
             new SkillGemLearnConfirmHolder(entry.getInventoryEntryId(), skillId),
