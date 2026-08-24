@@ -2280,13 +2280,19 @@ public final class OrbService {
                         formatPercent(result.successRate)
                     );
                 } else if (result.failAction == ItemEquipmentEnhanceFailAction.NONE) {
-                    PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5258, displayName);
+                    PlayerMessageService.getInstance().send(
+                        player,
+                        PlayerMsgId.P_5258,
+                        displayName,
+                        formatPercent(result.successRate)
+                    );
                 } else {
                     PlayerMessageService.getInstance().send(
                         player,
                         PlayerMsgId.P_5259,
                         displayName,
-                        result.instance.getEnhanceLevel()
+                        result.instance.getEnhanceLevel(),
+                        formatPercent(result.successRate)
                     );
                 }
             }

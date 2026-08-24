@@ -49,6 +49,21 @@ class PlayerMsgResourceTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
+     * 検証契約: 強化の確定結果通知は成功時だけでなく、失敗時も使用した成功率を表示する。
+     */
+    @Test
+    void formatsEnhancementFailureMessagesWithSuccessRate() {
+        String intact = PlayerMsgResource.format(PlayerMsgId.P_5258.getId(), "テスト装備", "35");
+        String decreased = PlayerMsgResource.format(PlayerMsgId.P_5259.getId(), "テスト装備", 2, "35");
+
+        assertTrue(intact.contains("成功率 35%"));
+        assertTrue(decreased.contains("+2"));
+        assertTrue(decreased.contains("成功率 35%"));
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
      * 章・見出し: # 03_1-モデル定義 > ## 8. プレイヤーメッセージリソース
      * 検証契約: Component化後のplain textに&カラーコードを残さず色付き本文を保持する。
