@@ -6,6 +6,7 @@
   },
   "api": {
     "enabled": true,
+    "tokenFileName": "token.txt",
     "projectPath": "E:\\AstralRecord-Workspace\\20_api\\AstralRecordApi\\AstralRecordApi\\AstralRecordApi.csproj",
     "buildOutputPath": "E:\\AstralRecord-Workspace\\20_api\\AstralRecordApi\\AstralRecordApi\\bin\\Release\\net10.0\\publish",
     "deployPath": "\\\\192.168.0.88\\server\\AstralRecordApi",
@@ -19,7 +20,10 @@
     ],
     "backup": {
       "enabled": true,
-      "folderName": "bak"
+      "folderName": "bak",
+      "excludeFilePatterns": [
+        "token.txt"
+      ]
     }
   },
   "web": {

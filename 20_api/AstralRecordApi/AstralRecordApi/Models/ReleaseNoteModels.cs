@@ -14,7 +14,7 @@ public sealed class ReleaseNotePublishRequest
     public string Title { get; init; } = string.Empty;
 
     [StringLength(500)]
-    public string Summary { get; init; } = string.Empty;
+    public string? Summary { get; init; }
 
     [Required, StringLength(512)]
     public string ReleaseUrl { get; init; } = string.Empty;

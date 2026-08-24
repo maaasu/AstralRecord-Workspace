@@ -77,7 +77,7 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 
 `01-deploy-debug.bat` は従来どおり Plugin のテストを含めてビルドします。高速な配置確認用の `02-deploy-debug-plugin-only.bat` は Maven の `maven.test.skip` を有効にし、テストのコンパイルと実行を省略してから Plugin を配置します。
 
-`10-release-management-deploy.bat` は API と Web だけをデプロイします。Web の配置先 `appsettings.json` は保持されるため、初回だけ `AstralRecordApi:BaseUrl` と `AstralRecordApi:ApiKey` を本番値に設定してください。APIキーはAPI側の `ApiKey:Key` と同じ値を使用し、ソース管理には追加しません。
+`10-release-management-deploy.bat` は API と Web だけをデプロイします。初回実行前にAPI配置先へ既存DiscordSRV Botのトークンを `token.txt` として安全に配置してください。BATは配置前にtoken.txtの存在と非空だけを検証し、値は表示しません。バックアップにもtoken.txtを複製しません。Web の配置先 `appsettings.json` は保持されるため、初回だけ `AstralRecordApi:BaseUrl` と `AstralRecordApi:ApiKey` を本番値に設定してください。APIキーはAPI側の `ApiKey:Key` と同じ値を使用し、ソース管理には追加しません。
 
 `09-astralarchitect-build-deploy.bat`はAstralArchitectのMavenテストとビルドを行い、成功後に`AstralArchitect.jar`だけを配置します。`-BuildOnly`で配置を省略でき、`-PluginsDirectory "D:\minecraft\plugins"`で今回だけ配置先を上書きできます。既定値は`astralarchitect-deploy/astralarchitect-deploy.config.json`の`pluginsDirectory`で管理します。サーバーの停止・再起動や、既存チケットデータの変更は行いません。
 

@@ -1,6 +1,7 @@
 using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Options;
@@ -28,11 +29,11 @@ public sealed class DiscordReleaseNotificationSender(
         catch (Exception ex) when (ex is IOException or UnauthorizedAccessException)
         {
             logger.LogError(ex, "Discord release notification token file could not be read: {TokenPath}", tokenPath);
-            return new DiscordSendResult(false, true, null, "Discord Bot token file could not be read.");
+            return new DiscordSendResult(false, false, null, "Discord Bot token file could not be read.");
         }
 
         if (string.IsNullOrWhiteSpace(token))
-            return new DiscordSendResult(false, true, null, "Discord Bot token file is empty.");
+            return new DiscordSendResult(false, false, null, "Discord Bot token file is empty.");
 
         using var request = new HttpRequestMessage(
             HttpMethod.Post,
@@ -42,6 +43,8 @@ public sealed class DiscordReleaseNotificationSender(
         {
             content = $"📢 **{outbox.ReleaseNote.Title}** ({outbox.ReleaseNote.Version})\n{outbox.ReleaseNote.ReleaseUrl}",
             allowed_mentions = new { parse = Array.Empty<string>() },
+            nonce = CreateNonce(outbox.OutboxId),
+            enforce_nonce = true,
         });
 
         using var response = await httpClient.SendAsync(request, cancellationToken);
@@ -52,10 +55,9 @@ public sealed class DiscordReleaseNotificationSender(
         }
 
         var errorBody = await response.Content.ReadAsStringAsync(cancellationToken);
-        var retryAfter = GetRetryAfter(response);
+        var retryAfter = GetRetryAfter(response, errorBody);
         var retryable = response.StatusCode == (HttpStatusCode)429
-                        || (int)response.StatusCode >= 500
-                        || response.StatusCode is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden;
+                        || (int)response.StatusCode >= 500;
         var error = $"Discord API returned {(int)response.StatusCode}: {errorBody[..Math.Min(errorBody.Length, 500)]}";
         logger.LogWarning("Discord release notification failed. StatusCode={StatusCode}, Retryable={Retryable}",
             (int)response.StatusCode, retryable);
@@ -67,12 +69,38 @@ public sealed class DiscordReleaseNotificationSender(
             ? configuredPath
             : Path.Combine(AppContext.BaseDirectory, configuredPath);
 
-    private static TimeSpan? GetRetryAfter(HttpResponseMessage response)
-    {
-        if (response.Headers.RetryAfter?.Delta is { } retryAfter)
-            return retryAfter;
+    private static string CreateNonce(Guid outboxId)
+        => $"rn-{outboxId:N}"[..25];
 
-        return null;
+    private static TimeSpan? GetRetryAfter(HttpResponseMessage response, string errorBody)
+    {
+        var headerRetryAfter = response.Headers.RetryAfter?.Delta;
+        TimeSpan? bodyRetryAfter = null;
+        if (response.StatusCode == (HttpStatusCode)429)
+        {
+            try
+            {
+                using var document = JsonDocument.Parse(errorBody);
+                if (document.RootElement.TryGetProperty("retry_after", out var retryAfter)
+                    && retryAfter.ValueKind == JsonValueKind.Number
+                    && retryAfter.TryGetDouble(out var seconds)
+                    && double.IsFinite(seconds)
+                    && seconds >= 0)
+                {
+                    bodyRetryAfter = TimeSpan.FromSeconds(seconds);
+                }
+            }
+            catch (JsonException)
+            {
+                // Fall back to the header and repository exponential backoff.
+            }
+        }
+
+        if (headerRetryAfter is null)
+            return bodyRetryAfter;
+        if (bodyRetryAfter is null)
+            return headerRetryAfter;
+        return headerRetryAfter >= bodyRetryAfter ? headerRetryAfter : bodyRetryAfter;
     }
 
     private sealed class DiscordMessageResponse

@@ -133,8 +133,30 @@ function Backup-DeployTarget {
         New-Item -ItemType Directory -Path $backupPath | Out-Null
     }
 
+    $excludeFiles = @()
+    $excludeFileProperty = $Component.backup.PSObject.Properties['excludeFilePatterns']
+    if ($null -ne $excludeFileProperty -and $null -ne $excludeFileProperty.Value) {
+        $excludeFiles += @($excludeFileProperty.Value)
+    }
+
     Write-Step "Backing up $deployPath to $backupPath"
-    Invoke-RobocopyMirror -Source $deployPath -Destination $backupPath -ExcludeDirectories @($backupPath)
+    Invoke-RobocopyMirror -Source $deployPath -Destination $backupPath -ExcludeDirectories @($backupPath) -ExcludeFiles $excludeFiles
+}
+
+function Assert-TokenFileReady {
+    param($Component)
+
+    $tokenFileName = [string]$Component.tokenFileName
+    if ([string]::IsNullOrWhiteSpace($tokenFileName) -or [IO.Path]::IsPathRooted($tokenFileName) -or $tokenFileName.Contains("..")) {
+        throw "API tokenFileName must be a non-empty relative file name."
+    }
+
+    $tokenPath = Join-Path $Component.deployPath $tokenFileName
+    Assert-PathExists -Label "Discord token file" -Path $tokenPath
+    $token = Get-Content -LiteralPath $tokenPath -Raw -ErrorAction Stop
+    if ([string]::IsNullOrWhiteSpace($token)) {
+        throw "Discord token file is empty: $tokenFileName"
+    }
 }
 
 function Enter-AppOffline {
@@ -403,6 +425,7 @@ if ($PluginOnly) {
 if ($ReleaseManagementOnly) {
     $config.plugin.enabled = $false
     $config.fileDatabase.enabled = $false
+    Assert-TokenFileReady -Component $config.api
 }
 
 $script:iisResetCommand = Resolve-IisResetCommand -IisConfig $config.iis

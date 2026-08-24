@@ -58,6 +58,111 @@ public sealed class ReleaseNoteRepositoryTests
         }
     }
 
+    [Fact]
+    public async Task PublishAsync_NormalizesNullSummaryAndWaitsUntilFuturePublication()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var setupContext = new AstralRecordDbContext(options))
+            await CreateSchemaAsync(setupContext);
+
+        var publishedAt = DateTimeOffset.UtcNow.AddMinutes(5);
+        var request = CreateRequest(summary: null, publishedAt);
+
+        await using var context = new AstralRecordDbContext(options);
+        var repository = new ReleaseNoteRepository(context);
+        await repository.PublishAsync(request, "discord-release", CancellationToken.None);
+
+        var note = await context.ReleaseNotes.SingleAsync();
+        var outbox = await context.ReleaseNotificationOutboxes.SingleAsync();
+        Assert.Equal(string.Empty, note.Summary);
+        Assert.True(outbox.NextAttemptAtUtc >= publishedAt.UtcDateTime);
+        Assert.Null(await repository.ClaimNextNotificationAsync(
+            "discord-release",
+            publishedAt.UtcDateTime.AddMinutes(-1),
+            CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task RetryNotificationAsync_DoesNotMakeFuturePublicationImmediatelyDue()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var setupContext = new AstralRecordDbContext(options))
+            await CreateSchemaAsync(setupContext);
+
+        var publishedAt = DateTimeOffset.UtcNow.AddMinutes(5);
+        await using var context = new AstralRecordDbContext(options);
+        var repository = new ReleaseNoteRepository(context);
+        await repository.PublishAsync(CreateRequest(summary: "summary", publishedAt), "discord-release", CancellationToken.None);
+
+        Assert.True(await repository.RetryNotificationAsync(
+            "release-management",
+            "discord-release",
+            DateTime.UtcNow,
+            CancellationToken.None));
+
+        var outbox = await context.ReleaseNotificationOutboxes.SingleAsync();
+        Assert.True(outbox.NextAttemptAtUtc >= publishedAt.UtcDateTime);
+    }
+
+    [Fact]
+    public async Task ClaimNextNotificationAsync_AllowsOnlyOneLeaseOwner()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var setupContext = new AstralRecordDbContext(options))
+            await CreateSchemaAsync(setupContext);
+
+        await using (var publishContext = new AstralRecordDbContext(options))
+        {
+            var repository = new ReleaseNoteRepository(publishContext);
+            await repository.PublishAsync(
+                CreateRequest("summary", DateTimeOffset.UtcNow.AddMinutes(-1)),
+                "discord-release",
+                CancellationToken.None);
+        }
+
+        await using var firstContext = new AstralRecordDbContext(options);
+        await using var secondContext = new AstralRecordDbContext(options);
+        var first = await new ReleaseNoteRepository(firstContext).ClaimNextNotificationAsync(
+            "discord-release", DateTime.UtcNow, CancellationToken.None);
+        var second = await new ReleaseNoteRepository(secondContext).ClaimNextNotificationAsync(
+            "discord-release", DateTime.UtcNow, CancellationToken.None);
+
+        Assert.NotNull(first);
+        Assert.Null(second);
+    }
+
+    private static ReleaseNotePublishRequest CreateRequest(string? summary, DateTimeOffset publishedAt)
+        => new()
+        {
+            Slug = "release-management",
+            Version = "0.1.0",
+            Title = "Release management",
+            Summary = summary,
+            PublishedAt = publishedAt,
+            ReleaseUrl = "https://astralrecord.com/releases/release-management",
+            SourcePath = "00_docs/70_リリースノート/2026-08-24-v0.1.0.md",
+            ContentSha256 = new string('A', 64),
+            NotifyDiscord = true,
+        };
+
     private static async Task CreateSchemaAsync(AstralRecordDbContext dbContext)
     {
         await dbContext.Database.ExecuteSqlRawAsync(@"

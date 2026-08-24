@@ -1499,7 +1499,7 @@ CREATE TABLE [dbo].[release_note] (
     CONSTRAINT [PK_release_note] PRIMARY KEY CLUSTERED ([release_note_id]),
     CONSTRAINT [CK_release_note_slug_not_blank] CHECK (LEN(LTRIM(RTRIM([slug]))) > 0),
     CONSTRAINT [CK_release_note_url_not_blank] CHECK (LEN(LTRIM(RTRIM([release_url]))) > 0),
-    CONSTRAINT [CK_release_note_sha256] CHECK (LEN([content_sha256]) = 64)
+    CONSTRAINT [CK_release_note_sha256] CHECK ([content_sha256] LIKE N'[0-9A-Fa-f]' + REPLICATE(N'[0-9A-Fa-f]', 63))
 );
 GO
 

@@ -26,7 +26,7 @@ Web に公開するリリースノートのメタデータと、正本 Markdown 
 - `UX_release_note_slug`: `slug` の一意制約
 - `CK_release_note_slug_not_blank`: `slug` を空文字にしない。
 - `CK_release_note_url_not_blank`: `release_url` を空文字にしない。
-- `CK_release_note_sha256`: SHA-256 文字列を64文字にする。
+- `CK_release_note_sha256`: SHA-256を16進文字列（`0-9`, `A-F`, `a-f`）64文字にする。
 
 ## インデックス
 

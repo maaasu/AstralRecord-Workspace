@@ -1,7 +1,12 @@
 using System.Text.RegularExpressions;
+using System.Net;
+using AstralRecordWeb.Options;
+using AstralRecordWeb.Services;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Options;
 using Xunit;
 
 namespace AstralRecordWeb.Tests;
@@ -115,20 +120,27 @@ public sealed class PublicSiteRenderingTests
         await using var factory = new PublicSiteWebApplicationFactory("OpenAlpha");
         using var client = CreateClient(factory);
 
+        var catalog = factory.Services.GetRequiredService<ReleaseNoteCatalog>();
+        var configuredPath = factory.Services.GetRequiredService<IOptions<ReleaseNoteOptions>>().Value.ContentRootRelativePath;
+        Assert.True(Directory.Exists(configuredPath), configuredPath);
+        Assert.NotEmpty(await catalog.GetPublishedAsync(CancellationToken.None));
+
         var listResponse = await client.GetAsync("/releases");
         listResponse.EnsureSuccessStatusCode();
         var listBody = await listResponse.Content.ReadAsStringAsync();
+        var decodedListBody = WebUtility.HtmlDecode(listBody);
 
-        Assert.Contains("リリースノート公開機能を導入しました", listBody);
-        Assert.Contains("0.1.0", listBody);
-        Assert.Contains("/releases/release-management", listBody);
+        Assert.Contains("リリースノート公開機能を導入しました", decodedListBody);
+        Assert.Contains("0.1.0", decodedListBody);
+        Assert.Contains("/releases/release-management", decodedListBody);
 
         var detailResponse = await client.GetAsync("/releases/release-management");
         detailResponse.EnsureSuccessStatusCode();
         var detailBody = await detailResponse.Content.ReadAsStringAsync();
 
-        Assert.Contains("Markdownで管理するリリースノート", detailBody);
-        Assert.Contains("通知に失敗した場合は、APIがOutboxへ保持して再試行します", detailBody);
+        var decodedDetailBody = WebUtility.HtmlDecode(detailBody);
+        Assert.Contains("プロジェクト内のMarkdownファイルからWebサイトへ公開できるようになりました", decodedDetailBody);
+        Assert.Contains("通知に失敗した場合は、APIがOutboxへ保持して再試行します", decodedDetailBody);
     }
 
     private static HttpClient CreateClient(WebApplicationFactory<Program> factory) =>
@@ -157,6 +169,7 @@ public sealed class PublicSiteRenderingTests
                 configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["PublicSite:Phase"] = phase,
+                    ["ReleaseNotes:ContentRootRelativePath"] = Path.Combine(AppContext.BaseDirectory, "release-notes"),
                 });
             });
         }

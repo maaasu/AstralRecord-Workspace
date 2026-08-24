@@ -1,6 +1,7 @@
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
+using System.Data;
 using Microsoft.EntityFrameworkCore;
 
 namespace AstralRecordApi.Repositories;
@@ -12,61 +13,69 @@ public sealed class ReleaseNoteRepository(AstralRecordDbContext dbContext) : IRe
         string notificationChannel,
         CancellationToken cancellationToken)
     {
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(cancellationToken);
-
-        var slug = request.Slug.Trim().ToLowerInvariant();
-        var now = DateTime.UtcNow;
-        var releaseNote = await dbContext.ReleaseNotes
-            .SingleOrDefaultAsync(note => note.Slug == slug, cancellationToken);
-
-        var created = releaseNote is null;
-        if (releaseNote is null)
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+        return await executionStrategy.ExecuteAsync(async () =>
         {
-            releaseNote = new ReleaseNoteEntity
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable,
+                cancellationToken);
+
+            var slug = request.Slug.Trim().ToLowerInvariant();
+            var now = DateTime.UtcNow;
+            var releaseNote = await dbContext.ReleaseNotes
+                .SingleOrDefaultAsync(note => note.Slug == slug, cancellationToken);
+
+            var created = releaseNote is null;
+            if (releaseNote is null)
             {
-                ReleaseNoteId = Guid.NewGuid(),
-                Slug = slug,
-                CreatedAtUtc = now,
-            };
-            await dbContext.ReleaseNotes.AddAsync(releaseNote, cancellationToken);
-        }
+                releaseNote = new ReleaseNoteEntity
+                {
+                    ReleaseNoteId = Guid.NewGuid(),
+                    Slug = slug,
+                    CreatedAtUtc = now,
+                };
+                await dbContext.ReleaseNotes.AddAsync(releaseNote, cancellationToken);
+            }
 
-        releaseNote.Version = request.Version.Trim();
-        releaseNote.Title = request.Title.Trim();
-        releaseNote.Summary = request.Summary.Trim();
-        releaseNote.ReleaseUrl = request.ReleaseUrl.Trim();
-        releaseNote.SourcePath = request.SourcePath.Trim();
-        releaseNote.ContentSha256 = request.ContentSha256.Trim().ToUpperInvariant();
-        releaseNote.PublishedAtUtc = request.PublishedAt.UtcDateTime;
-        releaseNote.IsPublished = true;
-        releaseNote.NotifyDiscord = request.NotifyDiscord;
-        releaseNote.UpdatedAtUtc = now;
+            releaseNote.Version = request.Version.Trim();
+            releaseNote.Title = request.Title.Trim();
+            releaseNote.Summary = request.Summary?.Trim() ?? string.Empty;
+            releaseNote.ReleaseUrl = request.ReleaseUrl.Trim();
+            releaseNote.SourcePath = request.SourcePath.Trim();
+            releaseNote.ContentSha256 = request.ContentSha256.Trim().ToUpperInvariant();
+            releaseNote.PublishedAtUtc = request.PublishedAt.UtcDateTime;
+            releaseNote.IsPublished = true;
+            releaseNote.NotifyDiscord = request.NotifyDiscord;
+            releaseNote.UpdatedAtUtc = now;
 
-        var notificationQueued = false;
-        if (request.NotifyDiscord && !await dbContext.ReleaseNotificationOutboxes
-                .AnyAsync(outbox =>
-                    outbox.ReleaseNoteId == releaseNote.ReleaseNoteId
-                    && outbox.Channel == notificationChannel,
-                    cancellationToken))
-        {
-            await dbContext.ReleaseNotificationOutboxes.AddAsync(new ReleaseNotificationOutboxEntity
+            var notificationQueued = false;
+            if (request.NotifyDiscord && !await dbContext.ReleaseNotificationOutboxes
+                    .AnyAsync(outbox =>
+                        outbox.ReleaseNoteId == releaseNote.ReleaseNoteId
+                        && outbox.Channel == notificationChannel,
+                        cancellationToken))
             {
-                OutboxId = Guid.NewGuid(),
-                ReleaseNoteId = releaseNote.ReleaseNoteId,
-                Channel = notificationChannel,
-                Status = ReleaseNotificationStatus.Pending,
-                AttemptCount = 0,
-                NextAttemptAtUtc = now,
-                CreatedAtUtc = now,
-                UpdatedAtUtc = now,
-            }, cancellationToken);
-            notificationQueued = true;
-        }
+                await dbContext.ReleaseNotificationOutboxes.AddAsync(new ReleaseNotificationOutboxEntity
+                {
+                    OutboxId = Guid.NewGuid(),
+                    ReleaseNoteId = releaseNote.ReleaseNoteId,
+                    Channel = notificationChannel,
+                    Status = ReleaseNotificationStatus.Pending,
+                    AttemptCount = 0,
+                    NextAttemptAtUtc = releaseNote.PublishedAtUtc > now
+                        ? releaseNote.PublishedAtUtc
+                        : now,
+                    CreatedAtUtc = now,
+                    UpdatedAtUtc = now,
+                }, cancellationToken);
+                notificationQueued = true;
+            }
 
-        await dbContext.SaveChangesAsync(cancellationToken);
-        await transaction.CommitAsync(cancellationToken);
+            await dbContext.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
 
-        return new ReleaseNotePublicationResult(releaseNote, created, notificationQueued);
+            return new ReleaseNotePublicationResult(releaseNote, created, notificationQueued);
+        });
     }
 
     public async Task<ReleaseNotificationOutboxEntity?> ClaimNextNotificationAsync(
@@ -77,6 +86,8 @@ public sealed class ReleaseNoteRepository(AstralRecordDbContext dbContext) : IRe
         var candidateId = await dbContext.ReleaseNotificationOutboxes
             .Where(outbox =>
                 outbox.Channel == notificationChannel
+                && outbox.ReleaseNote.IsPublished
+                && outbox.ReleaseNote.PublishedAtUtc <= nowUtc
                 && (((outbox.Status == ReleaseNotificationStatus.Pending
                       || outbox.Status == ReleaseNotificationStatus.Failed)
                      && outbox.NextAttemptAtUtc <= nowUtc)
@@ -96,6 +107,8 @@ public sealed class ReleaseNoteRepository(AstralRecordDbContext dbContext) : IRe
             .Where(outbox =>
                 outbox.OutboxId == candidateId
                 && outbox.Channel == notificationChannel
+                && outbox.ReleaseNote.IsPublished
+                && outbox.ReleaseNote.PublishedAtUtc <= nowUtc
                 && (((outbox.Status == ReleaseNotificationStatus.Pending
                       || outbox.Status == ReleaseNotificationStatus.Failed)
                      && outbox.NextAttemptAtUtc <= nowUtc)
@@ -212,7 +225,9 @@ public sealed class ReleaseNoteRepository(AstralRecordDbContext dbContext) : IRe
         }
 
         outbox.Status = ReleaseNotificationStatus.Pending;
-        outbox.NextAttemptAtUtc = nowUtc;
+        outbox.NextAttemptAtUtc = releaseNote.PublishedAtUtc > nowUtc
+            ? releaseNote.PublishedAtUtc
+            : nowUtc;
         outbox.LeaseUntilUtc = null;
         outbox.LeaseToken = null;
         outbox.LastError = null;

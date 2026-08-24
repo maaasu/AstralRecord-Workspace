@@ -1,0 +1,52 @@
+@page
+@model AstralRecordWeb.Pages.Releases.IndexModel
+@{
+    ViewData["Title"] = "リリースノート";
+}
+
+<div class="ar-release-page">
+    <section class="ar-page-hero ar-page-hero--sky ar-release-hero" aria-labelledby="release-title">
+        <div class="ar-hero-overlay"></div>
+        <div class="container position-relative text-center py-5">
+            <p class="ar-home-kicker">Astral Record Updates</p>
+            <h1 class="ar-page-hero-title" id="release-title">リリースノート</h1>
+            <p class="ar-page-hero-sub">Release Notes</p>
+        </div>
+    </section>
+
+    <section class="ar-release-content">
+        <div class="container">
+            <div class="ar-release-heading">
+                <p class="ar-kicker">LATEST NEWS</p>
+                <h2 class="ar-section-title">更新情報</h2>
+                <p class="ar-section-lead">Astral Recordのアップデート内容と変更点をお知らせします。</p>
+            </div>
+
+            @if (Model.Releases.Count == 0)
+            {
+                <p class="ar-empty">公開済みのリリースノートはありません。</p>
+            }
+            else
+            {
+                <div class="ar-release-grid">
+                    @foreach (var release in Model.Releases)
+                    {
+                        <article class="ar-release-card">
+                            <div class="ar-release-card__meta">
+                                <span class="ar-release-version">@release.Version</span>
+                                <time datetime="@release.PublishedAt.ToString("yyyy-MM-ddTHH:mm:sszzz")">
+                                    @release.PublishedAt.ToLocalTime().ToString("yyyy年M月d日")
+                                </time>
+                            </div>
+                            <h2><a asp-page="/Releases/Details" asp-route-slug="@release.Slug">@release.Title</a></h2>
+                            <p>@release.Summary</p>
+                            <a class="ar-text-link" asp-page="/Releases/Details" asp-route-slug="@release.Slug">
+                                詳細を見る <span aria-hidden="true">→</span>
+                            </a>
+                        </article>
+                    }
+                </div>
+            }
+        </div>
+    </section>
+</div>

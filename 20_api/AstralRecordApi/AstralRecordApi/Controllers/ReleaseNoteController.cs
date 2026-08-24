@@ -14,6 +14,7 @@ public sealed partial class ReleaseNoteController(
     IReleaseNoteRepository repository,
     IOptions<ReleaseNoteOptions> options) : ControllerBase
 {
+    /// <summary>公開済みリリースノートを登録し、Discord通知をOutboxへ追加します。</summary>
     [HttpPost("publish")]
     [ProducesResponseType<ReleaseNotePublishResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<ReleaseNotePublishResponse>> Publish(
@@ -38,6 +39,7 @@ public sealed partial class ReleaseNoteController(
         });
     }
 
+    /// <summary>指定リリースノートのDiscord通知を手動再試行キューへ戻します。</summary>
     [HttpPost("{slug}/retry-notification")]
     [ProducesResponseType<ReleaseNotificationRetryResponse>(StatusCodes.Status200OK)]
     public async Task<ActionResult<ReleaseNotificationRetryResponse>> RetryNotification(
