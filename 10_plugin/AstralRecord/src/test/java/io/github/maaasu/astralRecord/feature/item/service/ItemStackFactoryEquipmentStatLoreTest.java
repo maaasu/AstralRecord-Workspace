@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscenden
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -58,6 +59,7 @@ class ItemStackFactoryEquipmentStatLoreTest {
 
         assertTrue(line.contains("+4～+6 [+2]"));
         assertTrue(findLine(lore, "└").contains("2-3～4-5"));
+        assertTrue(findRawStatLine(lore).contains(StatusType.MELEE_ATTACK.legacyColor()));
     }
 
     /**
