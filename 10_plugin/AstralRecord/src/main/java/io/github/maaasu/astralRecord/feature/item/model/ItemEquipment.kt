@@ -95,11 +95,15 @@ enum class ItemEquipmentStatType {
     }
 }
 
-data class ItemEquipmentStat(
+data class ItemEquipmentStat @JvmOverloads constructor(
     val status: String,
     val type: ItemEquipmentStatType,
     val min: Double,
     val max: Double,
+    /** マスタで指定された min の生値。表示用の乱数範囲を保持します。 */
+    val rawMin: String? = null,
+    /** マスタで指定された max の生値。表示用の乱数範囲を保持します。 */
+    val rawMax: String? = null,
 ) {
     /** 値が範囲指定かどうかを返します。 */
     val isRange: Boolean

@@ -645,6 +645,13 @@ class ItemRepository {
             val statObj = element.asJsonObject
             val status = parseStringOrNull(statObj, "status") ?: return@mapNotNull null
             val valueObj = parseObjectOrNull(statObj, "value")
+            val scalarValue = parseStringOrNull(statObj, "value")
+            val rawMinValue = valueObj?.let { parseStringOrNull(it, "min") }
+                ?: parseStringOrNull(statObj, "min")
+                ?: parseRawStatBound(scalarValue, false)
+            val rawMaxValue = valueObj?.let { parseStringOrNull(it, "max") }
+                ?: parseStringOrNull(statObj, "max")
+                ?: parseRawStatBound(scalarValue, true)
 
             val minValue = parseDoubleOrNull(statObj, "min")
                 ?: valueObj?.let { parseDoubleOrNull(it, "min") }
@@ -665,6 +672,8 @@ class ItemRepository {
                 type = ItemEquipmentStatType.fromApiValue(parseStringOrNull(statObj, "type")),
                 min = min(resolvedMin, resolvedMax),
                 max = max(resolvedMin, resolvedMax),
+                rawMin = rawMinValue,
+                rawMax = rawMaxValue,
             )
         }
 
@@ -897,6 +906,19 @@ class ItemRepository {
             return null
         }
         return element.asString
+    }
+
+    /** ステータス値のスカラ表現から、指定された側の生値を取得します。 */
+    private fun parseRawStatBound(value: String?, upper: Boolean): String? {
+        if (value == null) {
+            return null
+        }
+        val parts = value.trim().split(Regex("[~～]"), limit = 2)
+        return if (upper && parts.size == 2) {
+            parts[1].trim()
+        } else {
+            parts[0].trim()
+        }
     }
 
     private fun parseObjectOrNull(obj: JsonObject, key: String): JsonObject? {

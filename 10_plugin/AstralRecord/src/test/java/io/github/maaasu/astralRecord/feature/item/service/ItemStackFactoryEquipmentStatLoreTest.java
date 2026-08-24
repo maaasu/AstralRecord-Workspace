@@ -1,0 +1,192 @@
+package io.github.maaasu.astralRecord.feature.item.service;
+
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentStatRoll;
+import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhance;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceFailAction;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceLevel;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceStatIncrease;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStat;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.loot.service.LootService;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.junit.jupiter.api.Test;
+
+import java.lang.reflect.Method;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+
+class ItemStackFactoryEquipmentStatLoreTest {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 所有インスタンスItemStack生成
+     * 検証契約: 強化値注釈は `[+値]` 形式とし、元の min/max 乱数範囲を強化値加算前の灰色注釈として左側に表示する。
+     */
+    @Test
+    void randomRangeIsShownBeforeEnhancementNoteWithoutEnhancementAddition() throws ReflectiveOperationException {
+        ItemEquipmentStat stat = new ItemEquipmentStat(
+                "MELEE_ATTACK", ItemEquipmentStatType.FLAT, 2.0D, 4.0D, "2~3", "4~5");
+        ItemEquipmentEnhance enhance = new ItemEquipmentEnhance(
+                1,
+                List.of(new ItemEquipmentEnhanceLevel(
+                        1,
+                        List.of(new ItemEquipmentEnhanceStatIncrease(
+                                "MELEE_ATTACK", ItemEquipmentStatType.FLAT, 2.0D, 2.0D)),
+                        null,
+                        1.0D,
+                        ItemEquipmentEnhanceFailAction.NONE,
+                        null)));
+
+        List<String> lore = buildLore(stat, enhance, 1, "2", "4");
+        String line = findStatLine(lore);
+
+        assertTrue(line.contains("+4 ～ +6 (2-3～4-5) [+2]"));
+        assertFalse(line.contains("[強化:"));
+        assertTrue(findRawStatLine(lore).contains(ColorCodeUtil.GRAY + " (2-3～4-5)"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 所有インスタンスItemStack生成
+     * 検証契約: min/max の片側だけが乱数範囲でも、固定値側を維持した括弧注釈を表示する。
+     */
+    @Test
+    void randomRangeAnnotationSupportsSingleRandomEndpoint() throws ReflectiveOperationException {
+        ItemEquipmentStat stat = new ItemEquipmentStat(
+                "MELEE_ATTACK", ItemEquipmentStatType.FLAT, 3.0D, 4.0D, "3", "4~5");
+
+        String line = findStatLine(buildLore(stat, null, 0, "3", "4"));
+
+        assertTrue(line.contains("+3 ～ +4 (3～4-5)"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 所有インスタンスItemStack生成
+     * 検証契約: 単一の固定範囲は既存の主値表示だけを行い、個別乱数範囲の注釈を追加しない。
+     */
+    @Test
+    void scalarRangeDoesNotShowIndividualRandomRangeAnnotation() throws ReflectiveOperationException {
+        ItemEquipmentStat stat = new ItemEquipmentStat(
+                "MELEE_ATTACK", ItemEquipmentStatType.FLAT, 8.0D, 9.0D, "8", "9");
+
+        String line = findStatLine(buildLore(stat, null, 0, "8", "9"));
+
+        assertTrue(line.contains("+8 ～ +9"));
+        assertFalse(line.contains("(8"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 所有インスタンスItemStack生成
+     * 検証契約: 乱数指定がないステータスには元範囲注釈を追加しない。
+     */
+    @Test
+    void fixedStatDoesNotShowRandomRangeAnnotation() throws ReflectiveOperationException {
+        ItemEquipmentStat stat = new ItemEquipmentStat(
+                "MELEE_ATTACK", ItemEquipmentStatType.FLAT, 4.0D, 4.0D);
+
+        String line = findStatLine(buildLore(stat, null, 0, "4", "4"));
+
+        assertTrue(line.contains("+4"));
+        assertFalse(line.contains("(4"));
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> buildLore(
+            ItemEquipmentStat stat,
+            ItemEquipmentEnhance enhance,
+            int enhanceLevel,
+            String min,
+            String max
+    ) throws ReflectiveOperationException {
+        ItemModel model = model(stat, enhance);
+        EquipmentInstance instance = new EquipmentInstance(
+                "instance-id",
+                "account-id",
+                model.getId(),
+                enhanceLevel,
+                0,
+                0,
+                0,
+                0,
+                "",
+                "",
+                List.of(new EquipmentStatRoll("roll-id", stat.getStatus(), min, max, 0)),
+                List.of(),
+                List.of()
+        );
+        ItemStackFactory factory = new ItemStackFactory(mock(LootService.class), mock(ItemService.class));
+        Method method = ItemStackFactory.class.getDeclaredMethod(
+                "buildLoreForEquipmentInstance", ItemModel.class, EquipmentInstance.class);
+        method.setAccessible(true);
+        return (List<String>) method.invoke(factory, model, instance);
+    }
+
+    private ItemModel model(ItemEquipmentStat stat, ItemEquipmentEnhance enhance) {
+        ItemEquipment equipment = new ItemEquipment(
+                ItemEquipmentSlot.WEAPON,
+                ItemEquipmentHandType.ONE,
+                null,
+                0,
+                List.of(),
+                null,
+                List.of(stat),
+                null,
+                enhance,
+                null,
+                null,
+                List.of()
+        );
+        return new ItemModel(
+                1,
+                "equipment-stat-lore-test",
+                ItemCategory.EQUIPMENT.getApiValue(),
+                "テスト武器",
+                "IRON_SWORD",
+                "COMMON",
+                1,
+                0,
+                null,
+                null,
+                List.of(),
+                false,
+                false,
+                null,
+                null,
+                equipment,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+    }
+
+    private String findStatLine(List<String> lore) {
+        return lore.stream()
+                .map(line -> PlainTextComponentSerializer.plainText().serialize(
+                        LegacyComponentSerializer.legacySection().deserialize(line)))
+                .filter(line -> line.contains("▹") && line.contains(" : "))
+                .findFirst()
+                .orElseThrow();
+    }
+
+    private String findRawStatLine(List<String> lore) {
+        return lore.stream()
+                .filter(line -> line.contains("▹") && line.contains(" : "))
+                .findFirst()
+                .orElseThrow();
+    }
+}

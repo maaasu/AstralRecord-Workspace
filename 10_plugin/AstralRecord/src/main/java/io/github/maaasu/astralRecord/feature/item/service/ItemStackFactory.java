@@ -1112,8 +1112,10 @@ public class ItemStackFactory {
 
                 // ItemEquipmentStat の status → type マップ
                 Map<String, ItemEquipmentStatType> statTypeMap = new LinkedHashMap<>();
+                Map<String, ItemEquipmentStat> statDefinitionMap = new LinkedHashMap<>();
                 for (var stat : eq.getStats()) {
                     statTypeMap.put(stat.getStatus(), stat.getType());
+                    statDefinitionMap.put(stat.getStatus(), stat);
                 }
 
                 // enhance 累積計算 (status#type → [minAccum, maxAccum])
@@ -1132,13 +1134,15 @@ public class ItemStackFactory {
                     double totalMax = baseMax + enhAdd[1];
 
                     StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
+                    ItemEquipmentStat statDefinition = statDefinitionMap.get(roll.getStatus());
                     String displayValue = totalMin == totalMax
                             ? formatStatValueWithType(rollType, statusType, totalMin)
                             : formatStatRange(rollType, statusType, totalMin, totalMax);
+                    String randomRangeNote = formatRandomRangeNote(statDefinition, baseMin, baseMax);
 
                     // enhance 加算分の表示注釈
                     String enhanceNote = (enhAdd[0] != 0.0 || enhAdd[1] != 0.0)
-                            ? ColorCodeUtil.YELLOW + " [強化: " + formatStatValueWithType(rollType, statusType, enhAdd[0])
+                            ? ColorCodeUtil.YELLOW + " [" + formatStatValueWithType(rollType, statusType, enhAdd[0])
                                     + (enhAdd[0] != enhAdd[1] ? " ～ " + formatStatValueWithType(rollType, statusType, enhAdd[1]) : "") + "]"
                             : "";
 
@@ -1148,6 +1152,7 @@ public class ItemStackFactory {
                             + statColor + displayName
                             + ColorCodeUtil.DARK_GRAY + " : "
                             + displayValue
+                            + randomRangeNote
                             + enhanceNote);
                 }
 
@@ -1409,6 +1414,55 @@ public class ItemStackFactory {
         return formatStatValueWithType(type, statusType, min)
                 + ColorCodeUtil.DARK_GRAY + " ～ "
                 + formatStatValueWithType(type, statusType, max);
+    }
+
+    /**
+     * 装備マスタに指定された min/max の乱数範囲を Lore 用に整形します。
+     * 強化加算値は含めず、乱数指定がない場合は空文字列を返します。
+     *
+     * @param statDefinition 装備マスタのステータス定義
+     * @param baseMin        装備インスタンスに保存された下限値
+     * @param baseMax        装備インスタンスに保存された上限値
+     * @return 灰色の乱数範囲注釈、または空文字列
+     */
+    private @NotNull String formatRandomRangeNote(
+            @Nullable ItemEquipmentStat statDefinition, double baseMin, double baseMax) {
+        if (statDefinition == null
+                || (!isRandomRange(statDefinition.getRawMin()) && !isRandomRange(statDefinition.getRawMax()))) {
+            return "";
+        }
+
+        String min = formatRandomRangeBound(statDefinition.getRawMin(), baseMin);
+        String max = formatRandomRangeBound(statDefinition.getRawMax(), baseMax);
+        return ColorCodeUtil.GRAY + " (" + min + "～" + max + ")";
+    }
+
+    /** 指定値が min~max の乱数範囲表現か判定します。 */
+    private boolean isRandomRange(@Nullable String value) {
+        return value != null && (value.contains("~") || value.contains("～"));
+    }
+
+    /** 生値または装備インスタンスの値を、乱数範囲の片側として整形します。 */
+    private @NotNull String formatRandomRangeBound(@Nullable String rawValue, double fallback) {
+        if (rawValue == null || rawValue.isBlank()) {
+            return formatStatValue(fallback);
+        }
+
+        String[] parts = rawValue.trim().split("[~～]", 2);
+        if (parts.length == 1) {
+            return formatRandomRangeNumber(parts[0]);
+        }
+        return formatRandomRangeNumber(parts[0]) + "-" + formatRandomRangeNumber(parts[1]);
+    }
+
+    /** 乱数範囲表示の数値を末尾ゼロなしの表記へ整形します。 */
+    private @NotNull String formatRandomRangeNumber(@NotNull String value) {
+        String normalized = value.trim();
+        try {
+            return formatStatValue(Double.parseDouble(normalized));
+        } catch (NumberFormatException ignored) {
+            return normalized;
+        }
     }
 
     private @NotNull String formatDurabilityLore(@NotNull EquipmentInstance instance) {

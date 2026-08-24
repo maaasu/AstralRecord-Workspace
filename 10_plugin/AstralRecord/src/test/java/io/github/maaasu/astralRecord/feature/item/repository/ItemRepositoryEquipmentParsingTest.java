@@ -87,6 +87,40 @@ class ItemRepositoryEquipmentParsingTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
+     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.3 `ItemEquipment`
+     * 検証契約: min/max の個別乱数範囲を計算用の下限/上限とは別に表示用モデルへ保持する。
+     */
+    @Test
+    void equipmentStatRandomBoundsArePreservedForDisplay() throws Exception {
+        ItemModel item = parseItem("""
+            {
+              "schemaVersion":1,
+              "id":"random_sword",
+              "category":"equipment",
+              "name":"random sword",
+              "icon":"IRON_SWORD",
+              "rarity":"COMMON",
+              "maxStack":1,
+              "equipment":{
+                "slot":"WEAPON",
+                "stats":[
+                  {"status":"MELEE_ATTACK","type":"FLAT","value":{"min":"2~3","max":"4~5"}},
+                  {"status":"STRENGTH","type":"FLAT","value":{"min":"3","max":"4~5"}}
+                ]
+              }
+            }
+            """);
+
+        assertEquals(2.0D, item.getEquipment().getStats().get(0).getMin());
+        assertEquals(5.0D, item.getEquipment().getStats().get(0).getMax());
+        assertEquals("2~3", item.getEquipment().getStats().get(0).getRawMin());
+        assertEquals("4~5", item.getEquipment().getStats().get(0).getRawMax());
+        assertEquals("3", item.getEquipment().getStats().get(1).getRawMin());
+        assertEquals("4~5", item.getEquipment().getStats().get(1).getRawMax());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
      * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.8 `ItemOrb`
      * 検証契約: Seeder 用の enchant 参照prefixは Plugin内部のマスタIDから除く。
      */
