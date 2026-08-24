@@ -1,0 +1,19 @@
+# design:
+#   motif: "デバッグ / 防具セット効果検証"
+#   progression: 0
+id: debug_armor_set
+name: "&dデバッグ防具セット"
+pieces:
+  - count: 2
+    stats:
+      - status: DEFENSE
+        type: FLAT
+        value: 4
+  - count: 4
+    stats:
+      - status: MAX_HEALTH
+        type: FLAT
+        value: 20
+      - status: MOVEMENT_SPEED
+        type: FLAT
+        value: 5

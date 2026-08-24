@@ -1,0 +1,26 @@
+# design:
+#   motif: "デバッグ / 防具セット検証 / 脚"
+#   progression: 0
+schemaVersion: 1
+id: debug_armor_legs
+category: equipment
+name: "&dデバッググリーブ"
+icon: LEATHER_LEGGINGS
+rarity: COMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7セット効果の表示・耐久判定を確認するためのデバッグ防具。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: LEGS
+  setId: debug_armor_set
+  requiredLevel: 0
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 2
+  durability:
+    max: 100
+    consume: 1

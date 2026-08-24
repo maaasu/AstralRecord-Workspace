@@ -22,6 +22,9 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemRarity;
 import io.github.maaasu.astralRecord.feature.item.model.ItemSigil;
 import io.github.maaasu.astralRecord.feature.item.model.ItemSigilModifier;
 import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
+import io.github.maaasu.astralRecord.feature.item.model.SetEffect;
+import io.github.maaasu.astralRecord.feature.item.model.SetEffectPiece;
+import io.github.maaasu.astralRecord.feature.item.model.SetEffectStat;
 import io.github.maaasu.astralRecord.feature.loot.model.LootEntry;
 import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
@@ -804,7 +807,55 @@ public class ItemStackFactory {
             lore.add(formatDurabilityBarLore(durabilityMax, durabilityMax));
         }
 
+        appendSetEffectLore(lore, equipment);
         lore.add("");
+    }
+
+    /**
+     * 装備に紐づくセット効果の発動条件と効果値を Lore に追加します。
+     * セット効果を解決できない場合は、内部 ID をプレイヤーへ表示しません。
+     */
+    private void appendSetEffectLore(@NotNull List<String> lore, @NotNull ItemEquipment equipment) {
+        String setId = equipment.getSetId();
+        if (setId == null || setId.isBlank()) {
+            return;
+        }
+        SetEffect setEffect = itemService.findSetEffectById(setId.trim());
+        if (setEffect == null || setEffect.getPieces().isEmpty()) {
+            return;
+        }
+
+        List<SetEffectPiece> pieces = setEffect.getPieces().stream()
+                .filter(piece -> piece.getCount() > 0)
+                .toList();
+        if (pieces.isEmpty()) {
+            return;
+        }
+
+        String rawName = setEffect.getName();
+        String displayName = rawName == null || rawName.isBlank()
+                ? "セット効果"
+                : ColorCodeUtil.translateAlternateColorCodes(rawName);
+        lore.add("");
+        lore.add(ColorCodeUtil.LIGHT_PURPLE + "❖ セット効果: "
+                + ColorCodeUtil.WHITE + displayName);
+        for (SetEffectPiece piece : pieces) {
+            lore.add(ColorCodeUtil.GRAY + " ▸ " + ColorCodeUtil.YELLOW
+                    + piece.getCount() + "セット効果");
+            if (piece.getStats().isEmpty()) {
+                lore.add(ColorCodeUtil.DARK_GRAY + "   ─ 効果なし");
+                continue;
+            }
+            for (SetEffectStat stat : piece.getStats()) {
+                StatusType statusType = resolveStatusTypeOrNull(stat.getStatus());
+                String statColor = statusCategoryColor(stat.getStatus(), statusType);
+                String statusName = resolveStatusDisplayName(stat.getStatus(), statusType, stat.getType());
+                lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
+                        + statColor + statusName
+                        + ColorCodeUtil.DARK_GRAY + " : "
+                        + formatStatValueWithType(stat.getType(), statusType, stat.getValue()));
+            }
+        }
     }
 
     private void appendSaleValueLore(@NotNull List<String> lore, @NotNull ItemModel model) {
@@ -1176,6 +1227,7 @@ public class ItemStackFactory {
             if (instance.getDurabilityMax() > 0) {
                 lore.add(formatDurabilityLore(instance));
             }
+            appendSetEffectLore(lore, eq);
             lore.add("");
         }
 
