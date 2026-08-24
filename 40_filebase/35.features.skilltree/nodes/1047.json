@@ -4,9 +4,6 @@
   "nodeId": "1047",
   "name": "&d旅立ちの記録",
   "icon": "NETHER_STAR",
-  "lore": [
-    "&7序盤を戦い抜くための基礎を整える。"
-  ],
   "tags": [
     "root",
     "shared",

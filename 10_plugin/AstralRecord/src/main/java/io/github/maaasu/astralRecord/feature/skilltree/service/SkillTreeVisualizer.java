@@ -592,12 +592,16 @@ final class SkillTreeVisualizer {
             this.unlockedItem = packetItemDisplay(location, service.createNodeDisplayItem(node, true), NODE_ITEM_SCALE, NODE_ITEM_Y_OFFSET, true);
             registerLabel(location, node, SkillTreeService.NodePresentationState.BLOCKED, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.BLOCKED, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.CONDITION_BLOCKED, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.CONDITION_BLOCKED, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.AVAILABLE, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.AVAILABLE, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.UNLOCKED, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.UNLOCKED, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
             registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE_CONDITION, SkillTreeService.NodeLabelDetail.DETAILED, NODE_TEXT_SCALE);
+            registerLabel(location, node, SkillTreeService.NodePresentationState.INACTIVE_CONDITION, SkillTreeService.NodeLabelDetail.COMPACT, NODE_TEXT_COMPACT_SCALE);
             Logger.log(
                     LogId.I_9002,
                     "node",

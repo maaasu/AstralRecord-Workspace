@@ -59,6 +59,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -241,6 +242,57 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
 
         assertEquals("Test Node\nCost: CP[未登録のクラス] 1", label);
         assertFalse(label.contains("adventurer"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 10. skill tree 設定・master snapshot
+     * 検証契約: 条件付きPPノードは必要条件を表示し、条件成立時は白、未成立時は赤で表示する。
+     */
+    @Test
+    void passiveNodeConditionIsDisplayedWithWhiteOrRedColor() {
+        SkillTreeNodeDefinition node = new SkillTreeNodeDefinition(
+                "1000",
+                "Test Node",
+                Material.NETHER_STAR,
+                List.of(),
+                List.of(),
+                SkillTreePointType.PASSIVE_POINT,
+                0,
+                new SkillTreeUnlockCondition(null, 7),
+                List.of()
+        );
+        SkillTreeService service = newService(node);
+        service.replaceMasterDataSnapshot(new SkillTreeService.SkillTreeMasterDataSnapshot(
+                node.nodeId(),
+                List.of(node),
+                List.of(),
+                List.of()
+        ));
+
+        Component metLabel = service.nodeFieldLabel(
+                node,
+                SkillTreeService.NodePresentationState.AVAILABLE,
+                SkillTreeService.NodeLabelDetail.DETAILED
+        );
+        Component unmetLabel = service.nodeFieldLabel(
+                node,
+                SkillTreeService.NodePresentationState.CONDITION_BLOCKED,
+                SkillTreeService.NodeLabelDetail.DETAILED
+        );
+
+        assertEquals("Test Node\n必要レベル: 7", PlainTextComponentSerializer.plainText().serialize(metLabel));
+        assertEquals("Test Node\n必要レベル: 7", PlainTextComponentSerializer.plainText().serialize(unmetLabel));
+        assertTrue(hasTextColor(metLabel, "必要レベル: 7", NamedTextColor.WHITE));
+        assertTrue(hasTextColor(unmetLabel, "必要レベル: 7", NamedTextColor.RED));
+
+        Component compactLabel = service.nodeFieldLabel(
+                node,
+                SkillTreeService.NodePresentationState.CONDITION_BLOCKED,
+                SkillTreeService.NodeLabelDetail.COMPACT
+        );
+        assertEquals("Test Node\n必要レベル: 7", PlainTextComponentSerializer.plainText().serialize(compactLabel));
+        assertTrue(hasTextColor(compactLabel, "必要レベル: 7", NamedTextColor.RED));
     }
 
     /**
@@ -482,10 +534,10 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
-     * 検証契約: current class/player level条件不成立の解放済みnodeを非表示にしeffectを無効化する。
+     * 検証契約: 条件不成立の解放済みPP nodeは表示を維持し、effectを無効化する。
      */
     @Test
-    void unmetNodeConditionHidesUnlockedNodeAndDisablesItsEffects() {
+    void unmetPassiveNodeConditionKeepsNodeVisibleAndDisablesItsEffects() {
         UUID accountId = UUID.randomUUID();
         SkillTreeNodeDefinition conditionedNode = new SkillTreeNodeDefinition(
                 "1000",
@@ -509,20 +561,61 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
                 .thenAnswer(ignored -> classMatches.get());
         service.applyInitialPlayerState(new SkillTreePlayerState(accountId, Set.of("1000")));
 
-        assertFalse(service.isNodeVisible(player, conditionedNode));
+        assertTrue(service.isNodeVisible(player, conditionedNode));
+        assertEquals(
+                SkillTreeService.NodePresentationState.INACTIVE_CONDITION,
+                service.nodePresentationState(player, conditionedNode)
+        );
         assertEquals(0.0D, service.getStatusBonus(player, StatusType.ATTACK, 100.0D));
 
         classMatches.set(true);
         when(account.getLevel()).thenReturn(9);
         service.refreshProgressDerivedState(player);
-        assertFalse(service.isNodeVisible(player, conditionedNode));
+        assertTrue(service.isNodeVisible(player, conditionedNode));
+        assertEquals(
+                SkillTreeService.NodePresentationState.INACTIVE_CONDITION,
+                service.nodePresentationState(player, conditionedNode)
+        );
         assertEquals(0.0D, service.getStatusBonus(player, StatusType.ATTACK, 100.0D));
 
         when(account.getLevel()).thenReturn(12);
         service.refreshProgressDerivedState(player);
 
         assertTrue(service.isNodeVisible(player, conditionedNode));
+        assertEquals(
+                SkillTreeService.NodePresentationState.UNLOCKED,
+                service.nodePresentationState(player, conditionedNode)
+        );
         assertEquals(5.0D, service.getStatusBonus(player, StatusType.ATTACK, 100.0D));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: 条件不成立のCP nodeは従来どおり非表示とする。
+     */
+    @Test
+    void unmetClassPointNodeRemainsHidden() {
+        UUID accountId = UUID.randomUUID();
+        SkillTreeNodeDefinition conditionedNode = new SkillTreeNodeDefinition(
+                "1000",
+                "Hunter Class Status",
+                Material.NETHER_STAR,
+                List.of(),
+                List.of("root"),
+                SkillTreePointType.CLASS_POINT,
+                0,
+                new SkillTreeUnlockCondition("hunter", 10),
+                List.of()
+        );
+        SkillTreeService service = newService(conditionedNode);
+        PlayerClassService playerClassService = mock(PlayerClassService.class);
+        service.setPlayerClassService(playerClassService);
+        AstPlayer player = astPlayer(accountId);
+        when(player.getAccount().getLevel()).thenReturn(12);
+        when(playerClassService.matchesCurrentClassCondition(player, "hunter")).thenReturn(false);
+
+        assertFalse(service.isNodeVisible(player, conditionedNode));
     }
 
     /**
@@ -611,6 +704,62 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
 
         assertEquals("1000", hit.position().nodeId());
         assertTrue(hit.hitDistance() >= 0.0D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 12. skill tree 入力候補・node 実行
+     * 検証契約: 条件未達PP nodeは表示を維持するが、解放・解除の入力候補には含めない。
+     */
+    @Test
+    void unmetPassiveNodeRemainsVisibleButIsNotAnInputTarget() {
+        SkillTreeNodeDefinition conditionedNode = new SkillTreeNodeDefinition(
+                "1000",
+                "Conditional Passive",
+                Material.NETHER_STAR,
+                List.of(),
+                List.of(),
+                SkillTreePointType.PASSIVE_POINT,
+                0,
+                new SkillTreeUnlockCondition(null, 7),
+                List.of()
+        );
+        SkillTreeService service = newService(conditionedNode);
+        Player player = mock(Player.class);
+        org.bukkit.World world = mock(org.bukkit.World.class);
+        when(player.getWorld()).thenReturn(world);
+        when(world.getName()).thenReturn("skill_tree");
+        putPosition(service, new SkillTreePosition("1000", "skill_tree", 0, 64, 3));
+        Interaction interaction = mock(Interaction.class);
+        PersistentDataContainer data = mock(PersistentDataContainer.class);
+        when(interaction.getScoreboardTags()).thenReturn(Set.of(SkillTreeService.NODE_INTERACTION_TAG));
+        when(interaction.getPersistentDataContainer()).thenReturn(data);
+        when(interaction.isValid()).thenReturn(true);
+        when(data.get(any(NamespacedKey.class), eq(PersistentDataType.STRING))).thenReturn("1000");
+        PlayerInteractionSnapshot snapshot = new PlayerInteractionSnapshot(
+                player,
+                mock(Event.class),
+                EquipmentSlot.HAND,
+                null,
+                interaction,
+                null,
+                null,
+                false,
+                PlayerInteractionRayTrace.create(
+                        new Vector(0.0D, 65.62D, 0.0D),
+                        new Vector(0.0D, 0.0D, 1.0D),
+                        8.0D
+                ),
+                8.0D
+        );
+        AstPlayer astPlayer = astPlayer(UUID.randomUUID());
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+
+            assertTrue(service.isNodeVisible(astPlayer, conditionedNode));
+            assertTrue(service.findTargetedPositionHit(snapshot).isEmpty());
+        }
     }
 
     /**
@@ -790,11 +939,15 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
     }
 
     private boolean hasYellowText(Component component, String text) {
+        return hasTextColor(component, text, NamedTextColor.YELLOW);
+    }
+
+    private boolean hasTextColor(Component component, String text, NamedTextColor color) {
         if (component instanceof TextComponent textComponent
                 && textComponent.content().equals(text)
-                && NamedTextColor.YELLOW.equals(component.color())) {
+                && color.equals(component.color())) {
             return true;
         }
-        return component.children().stream().anyMatch(child -> hasYellowText(child, text));
+        return component.children().stream().anyMatch(child -> hasTextColor(child, text, color));
     }
 }

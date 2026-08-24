@@ -4,9 +4,6 @@
   "nodeId": "1071",
   "name": "&d蒼泉の星脈",
   "icon": "AMETHYST_SHARD",
-  "lore": [
-    "&7天の蒼泉から魔力を汲み、最大MPを高める。"
-  ],
   "tags": [
     "status",
     "resource",

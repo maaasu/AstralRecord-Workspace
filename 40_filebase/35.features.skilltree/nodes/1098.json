@@ -4,9 +4,6 @@
   "nodeId": "1098",
   "name": "&d銀矢の星脈",
   "icon": "ARROW",
-  "lore": [
-    "&7銀の軌跡を見極め、器用さを高める。"
-  ],
   "tags": [
     "status",
     "primary",

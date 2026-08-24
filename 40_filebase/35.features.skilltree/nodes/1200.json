@@ -4,9 +4,6 @@
   "nodeId": "1200",
   "name": "&8未定の星座",
   "icon": "GRAY_DYE",
-  "lore": [
-    "&8将来のスキル用に確保された予約枠。"
-  ],
   "tags": [],
   "pointType": "CP",
   "pointCost": 0,

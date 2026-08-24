@@ -4,9 +4,6 @@
   "nodeId": "1099",
   "name": "&d風渡りの星脈",
   "icon": "FEATHER",
-  "lore": [
-    "&7風の精気を身にまとい、敏捷性を高める。"
-  ],
   "tags": [
     "status",
     "primary",

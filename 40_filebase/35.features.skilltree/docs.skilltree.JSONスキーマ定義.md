@@ -48,14 +48,14 @@ SkillTree のノード定義と配置・接続構造は、`40_filebase/35.featur
 | `tags` | List\<String\> | 必須 | `76.shared.tag/v1.tags.yml`で`SKILLTREE_NODE`対象に定義されたタグID。各要素は重複不可 |
 | `pointType` | String | 必須 | `CP` または `PP` |
 | `pointCost` | Integer | 必須 | 0 以上、2147483647 以下の解放コスト（Java `int` 範囲） |
-| `unlockCondition` | Object | 任意 | ノードを表示・有効化する条件。省略時は条件なし |
+| `unlockCondition` | Object | 任意 | ノードを表示・有効化する条件。省略時は条件なし。CPは条件未達時に非表示、PPは条件表示のため表示を維持する |
 | `unlockCondition.classId` | String | 任意 | 現在クラスまたはその祖先として必要なクラス ID。1 職だけ指定可能 |
 | `unlockCondition.playerLevel` | Integer | 任意 | 必要プレイヤーレベル。1 以上 |
 | `effects` | List\<Effect\> | 必須 | 解放時に有効になる効果 |
 
 `nodeId` はエディターが `node-id-sequence.json` の `lastIssuedNodeId` の次から自動採番し、初回は `1000` から開始します。作成後は変更せず、ノードを削除しても `lastIssuedNodeId` を戻さないため、削除済み ID は再利用しません。採番の欠番は許容します。ファイル名は `<nodeId>.json` と一致させます。
 
-`unlockCondition` は `classId` と `playerLevel` の少なくとも一方を持ちます。職業レベルはノード条件として定義しません。`classId` は現在クラスそのものに加え、現在クラスから `unlockClassLevel[].class` を再帰的に辿ったいずれかの祖先であれば成立します。条件を満たさないノードはゲーム内で非表示となり、解放済みでも効果を発揮しません。
+`unlockCondition` は `classId` と `playerLevel` の少なくとも一方を持ちます。職業レベルはノード条件として定義しません。`classId` は現在クラスそのものに加え、現在クラスから `unlockClassLevel[].class` を再帰的に辿ったいずれかの祖先であれば成立します。条件を満たさないCPノードはゲーム内で非表示となり、PPノードは条件を表示するため表示を維持します。PPノードの条件は成立時に白、未成立時に赤で表示し、解放済みでも条件未達中は効果を発揮しません。
 
 ### nodeId 採番状態
 

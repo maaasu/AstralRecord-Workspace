@@ -4,9 +4,6 @@
   "nodeId": "1202",
   "name": "&f反照の剣星",
   "icon": "WHITE_STAINED_GLASS",
-  "lore": [
-    "&7攻めの直後に刃を返し、敵の一撃を反撃へ変える。"
-  ],
   "tags": [
     "defense"
   ],

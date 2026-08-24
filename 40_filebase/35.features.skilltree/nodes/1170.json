@@ -4,9 +4,6 @@
   "nodeId": "1170",
   "name": "&d星詠みの星脈",
   "icon": "ENCHANTED_BOOK",
-  "lore": [
-    "&7星々の理を読み解き、知力を高める。"
-  ],
   "tags": [
     "status",
     "primary",

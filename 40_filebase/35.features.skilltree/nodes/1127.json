@@ -4,9 +4,6 @@
   "nodeId": "1127",
   "name": "&d大樹の星脈",
   "icon": "OAK_SAPLING",
-  "lore": [
-    "&7大樹の息吹を身に宿し、体力を高める。"
-  ],
   "tags": [
     "status",
     "primary",

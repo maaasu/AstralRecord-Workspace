@@ -4,9 +4,6 @@
   "nodeId": "1135",
   "name": "&d玄岩の星脈",
   "icon": "OBSIDIAN",
-  "lore": [
-    "&7大地の星核を身に宿し、防御力を高める。"
-  ],
   "tags": [
     "status",
     "defense",

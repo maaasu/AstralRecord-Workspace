@@ -4,9 +4,6 @@
   "nodeId": "1192",
   "name": "&d星衣の星脈",
   "icon": "ENCHANTED_GOLDEN_APPLE",
-  "lore": [
-    "&7星光の衣をまとい、魔法防御力を高める。"
-  ],
   "tags": [
     "status",
     "defense",

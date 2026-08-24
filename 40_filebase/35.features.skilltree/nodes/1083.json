@@ -4,9 +4,6 @@
   "nodeId": "1083",
   "name": "&d蒼穹の星脈",
   "icon": "ENDER_PEARL",
-  "lore": [
-    "&7天駆ける蒼穹の息吹を宿し、最大ENを高める。"
-  ],
   "tags": [
     "status",
     "resource",

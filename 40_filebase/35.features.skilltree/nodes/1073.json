@@ -4,9 +4,6 @@
   "nodeId": "1073",
   "name": "&d迅風の星脈",
   "icon": "SUGAR",
-  "lore": [
-    "&7迅風の流れに乗り、移動速度を高める。"
-  ],
   "tags": [
     "status",
     "agility",

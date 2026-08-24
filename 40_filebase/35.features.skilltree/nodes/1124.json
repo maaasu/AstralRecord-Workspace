@@ -4,9 +4,6 @@
   "nodeId": "1124",
   "name": "&d暁刃の星脈",
   "icon": "IRON_SWORD",
-  "lore": [
-    "&7暁の刃気をまとい、攻撃力を高める。"
-  ],
   "tags": [
     "status",
     "offense"

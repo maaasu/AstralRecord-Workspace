@@ -4,9 +4,6 @@
   "nodeId": "1165",
   "name": "&d巡星の星脈",
   "icon": "EMERALD",
-  "lore": [
-    "&7巡る星の導きを受け、幸運を高める。"
-  ],
   "tags": [
     "status",
     "primary",

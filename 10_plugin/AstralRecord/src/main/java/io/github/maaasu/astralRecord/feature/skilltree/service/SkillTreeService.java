@@ -166,9 +166,11 @@ public class SkillTreeService {
     private final Map<String, ItemStack> lockedNodeDisplayItems = new LinkedHashMap<>();
     private final Map<String, ItemStack> unlockedNodeDisplayItems = new LinkedHashMap<>();
     private final Map<String, NodeLabelSet> blockedNodeFieldLabels = new LinkedHashMap<>();
+    private final Map<String, NodeLabelSet> conditionBlockedNodeFieldLabels = new LinkedHashMap<>();
     private final Map<String, NodeLabelSet> availableNodeFieldLabels = new LinkedHashMap<>();
     private final Map<String, NodeLabelSet> unlockedNodeFieldLabels = new LinkedHashMap<>();
     private final Map<String, NodeLabelSet> inactiveNodeFieldLabels = new LinkedHashMap<>();
+    private final Map<String, NodeLabelSet> inactiveConditionNodeFieldLabels = new LinkedHashMap<>();
     private final Map<UUID, SkillTreePlayerState> playerStates = new HashMap<>();
     private final Map<UUID, DerivedPlayerState> derivedPlayerStates = new HashMap<>();
     private final Set<UUID> dirtyPlayerStates = new LinkedHashSet<>();
@@ -293,9 +295,11 @@ public class SkillTreeService {
         lockedNodeDisplayItems.clear();
         unlockedNodeDisplayItems.clear();
         blockedNodeFieldLabels.clear();
+        conditionBlockedNodeFieldLabels.clear();
         availableNodeFieldLabels.clear();
         unlockedNodeFieldLabels.clear();
         inactiveNodeFieldLabels.clear();
+        inactiveConditionNodeFieldLabels.clear();
         for (SkillTreeNodeDefinition node : snapshot.nodes()) {
             nodesById.put(node.nodeId(), node);
             cacheNodePresentation(node);
@@ -1012,9 +1016,14 @@ public class SkillTreeService {
                 && playerClassService.matchesCurrentClassCondition(astPlayer, requiredClassId);
     }
 
-    /** 通常プレイヤーにノードを表示してよいかを返します。 */
+    /**
+     * 通常プレイヤーにノードを表示してよいかを返します。
+     *
+     * <p>CPノードは解放条件未達時に非表示とし、PPノードは条件表示のため表示を維持します。</p>
+     */
     public boolean isNodeVisible(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
-        return isNodeUnlockConditionMet(astPlayer, node);
+        return node.pointType() == SkillTreePointType.PASSIVE_POINT
+                || isNodeUnlockConditionMet(astPlayer, node);
     }
 
     private int compareNodeIdDescending(@NotNull String left, @NotNull String right) {
@@ -1317,6 +1326,7 @@ public class SkillTreeService {
             return true;
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
+        // PPノードは表示するが、条件未達中は解放・解除の入力対象にしない。
         return astPlayer != null && isNodeUnlockConditionMet(astPlayer, node);
     }
 
@@ -1434,9 +1444,15 @@ public class SkillTreeService {
     ) {
         return switch (presentationState) {
             case BLOCKED -> blockedNodeFieldLabels.getOrDefault(node.nodeId(), NodeLabelSet.EMPTY).component(labelDetail);
+            case CONDITION_BLOCKED -> conditionBlockedNodeFieldLabels
+                    .getOrDefault(node.nodeId(), NodeLabelSet.EMPTY)
+                    .component(labelDetail);
             case AVAILABLE -> availableNodeFieldLabels.getOrDefault(node.nodeId(), NodeLabelSet.EMPTY).component(labelDetail);
             case UNLOCKED -> unlockedNodeFieldLabels.getOrDefault(node.nodeId(), NodeLabelSet.EMPTY).component(labelDetail);
             case INACTIVE -> inactiveNodeFieldLabels.getOrDefault(node.nodeId(), NodeLabelSet.EMPTY).component(labelDetail);
+            case INACTIVE_CONDITION -> inactiveConditionNodeFieldLabels
+                    .getOrDefault(node.nodeId(), NodeLabelSet.EMPTY)
+                    .component(labelDetail);
         };
     }
 
@@ -1761,9 +1777,11 @@ public class SkillTreeService {
         lockedNodeDisplayItems.put(node.nodeId(), createCachedNodeDisplayItem(node, false));
         unlockedNodeDisplayItems.put(node.nodeId(), createCachedNodeDisplayItem(node, true));
         blockedNodeFieldLabels.put(node.nodeId(), createNodeLabelSet(node, NodePresentationState.BLOCKED));
+        conditionBlockedNodeFieldLabels.put(node.nodeId(), createNodeLabelSet(node, NodePresentationState.CONDITION_BLOCKED));
         availableNodeFieldLabels.put(node.nodeId(), createNodeLabelSet(node, NodePresentationState.AVAILABLE));
         unlockedNodeFieldLabels.put(node.nodeId(), createNodeLabelSet(node, NodePresentationState.UNLOCKED));
         inactiveNodeFieldLabels.put(node.nodeId(), createNodeLabelSet(node, NodePresentationState.INACTIVE));
+        inactiveConditionNodeFieldLabels.put(node.nodeId(), createNodeLabelSet(node, NodePresentationState.INACTIVE_CONDITION));
     }
 
     private @NotNull ItemStack createCachedNodeDisplayItem(@NotNull SkillTreeNodeDefinition node, boolean unlocked) {
@@ -1820,12 +1838,19 @@ public class SkillTreeService {
         List<String> lines = new ArrayList<>();
         boolean emphasized = presentationState == NodePresentationState.AVAILABLE || presentationState == NodePresentationState.UNLOCKED;
         lines.add(resolveNodeDisplayName(node, presentationState == NodePresentationState.UNLOCKED));
-        if (presentationState == NodePresentationState.INACTIVE && labelDetail == NodeLabelDetail.DETAILED) {
-            lines.add("&c効果停止中: CP/PP 不足");
+        if (labelDetail == NodeLabelDetail.DETAILED) {
+            if (presentationState == NodePresentationState.INACTIVE_CONDITION) {
+                lines.add("&c効果停止中: 解放条件未達");
+            } else if (presentationState == NodePresentationState.INACTIVE) {
+                lines.add("&c効果停止中: CP/PP 不足");
+            }
         }
         if (labelDetail == NodeLabelDetail.DETAILED
                 && (node.pointCost() > 0 || node.unlockCondition().hasClassCondition())) {
             lines.add("&8Cost: &f" + nodePointDisplayName(node) + " &e" + node.pointCost());
+        }
+        if (labelDetail != NodeLabelDetail.HIDDEN) {
+            appendNodeFieldConditionLines(lines, node, presentationState);
         }
         if (labelDetail == NodeLabelDetail.DETAILED) {
             appendNodeFieldStatusLines(lines, node, emphasized);
@@ -1835,6 +1860,40 @@ public class SkillTreeService {
             lines.add((emphasized ? "&7" : "&8") + stripLegacy(node.lore().getFirst()));
         }
         return component(String.join("\n", lines));
+    }
+
+    private void appendNodeFieldConditionLines(
+            @NotNull List<String> lines,
+            @NotNull SkillTreeNodeDefinition node,
+            @NotNull NodePresentationState presentationState
+    ) {
+        if (node.pointType() != SkillTreePointType.PASSIVE_POINT
+                || (!node.unlockCondition().hasClassCondition()
+                && !node.unlockCondition().hasPlayerLevelCondition())) {
+            return;
+        }
+        String color = presentationState == NodePresentationState.CONDITION_BLOCKED
+                || presentationState == NodePresentationState.INACTIVE_CONDITION
+                ? "&c"
+                : "&f";
+        if (node.unlockCondition().hasPlayerLevelCondition()) {
+            lines.add(color + "必要レベル: " + node.unlockCondition().playerLevel());
+        }
+        if (node.unlockCondition().hasClassCondition()) {
+            lines.add(color + "必要クラス: " + nodeConditionClassDisplayName(node));
+        }
+    }
+
+    private @NotNull String nodeConditionClassDisplayName(@NotNull SkillTreeNodeDefinition node) {
+        String classId = node.unlockCondition().classId();
+        if (classId == null || classId.isBlank()) {
+            return "未登録のクラス";
+        }
+        String className = playerClassService == null ? "" : playerClassService.getDisplayName(classId);
+        String plainClassName = ColorCodeUtil.toPlainText(className, "");
+        return plainClassName.isBlank() || plainClassName.equalsIgnoreCase(classId)
+                ? "未登録のクラス"
+                : plainClassName;
     }
 
     private boolean canUnlockWithoutState(@NotNull SkillTreeNodeDefinition node) {
@@ -1931,24 +1990,41 @@ public class SkillTreeService {
         return LegacyComponentSerializer.legacySection().deserialize(ColorCodeUtil.translateAlternateColorCodes(text));
     }
 
+    /**
+     * プレイヤー視点のノード表示状態を返します。
+     * 条件未達PPノードは、未解放なら {@link NodePresentationState#CONDITION_BLOCKED}、
+     * 解放済みなら {@link NodePresentationState#INACTIVE_CONDITION} になります。
+     *
+     * @param astPlayer 状態を判定するプレイヤー
+     * @param node 判定対象ノード
+     * @return ノード表示状態
+     */
     public @NotNull NodePresentationState nodePresentationState(
             @NotNull AstPlayer astPlayer,
             @NotNull SkillTreeNodeDefinition node
     ) {
         SkillTreePlayerState state = state(astPlayer);
         if (state.isUnlocked(node.nodeId())) {
+            if (!isNodeUnlockConditionMet(astPlayer, node)) {
+                return NodePresentationState.INACTIVE_CONDITION;
+            }
             return derivedState(astPlayer, state).inactiveUnlockedNodeIds().contains(node.nodeId())
                     ? NodePresentationState.INACTIVE
                     : NodePresentationState.UNLOCKED;
+        }
+        if (!isNodeUnlockConditionMet(astPlayer, node)) {
+            return NodePresentationState.CONDITION_BLOCKED;
         }
         return canUnlockNode(astPlayer, node) ? NodePresentationState.AVAILABLE : NodePresentationState.BLOCKED;
     }
 
     public enum NodePresentationState {
         BLOCKED,
+        CONDITION_BLOCKED,
         AVAILABLE,
         UNLOCKED,
-        INACTIVE
+        INACTIVE,
+        INACTIVE_CONDITION
     }
 
     public enum NodeLabelDetail {

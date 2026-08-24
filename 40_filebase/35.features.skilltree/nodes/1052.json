@@ -4,9 +4,6 @@
   "nodeId": "1052",
   "name": "&d灯火の星脈",
   "icon": "HEART_OF_THE_SEA",
-  "lore": [
-    "&7消えぬ星灯を胸に宿し、最大HPを高める。"
-  ],
   "tags": [
     "status",
     "resource",
