@@ -1,9 +1,0 @@
-# design:
-#   motif: "北欧神話 / ミズガルズの加護"
-#   progression: 1
-schemaVersion: 1
-id: midgard_grassland_orb_table
-type: LOOT_TABLE
-rolls: 1
-pools:
-  - ref: loot_pool:midgard_grassland_orb_pool

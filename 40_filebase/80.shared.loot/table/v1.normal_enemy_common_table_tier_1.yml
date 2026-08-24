@@ -1,0 +1,10 @@
+# design:
+#   motif: "冒険 / 初段の共通報酬"
+#   progression: 1
+schemaVersion: 1
+id: normal_enemy_common_table_tier_1
+type: LOOT_TABLE
+rolls: 1
+pools:
+  - ref: loot_pool:normal_enemy_enhancement_orb_pool_tier_1
+  - ref: loot_pool:normal_enemy_support_pool_tier_1
