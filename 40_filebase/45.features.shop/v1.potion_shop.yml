@@ -42,7 +42,7 @@ items:
     page: 1
     slot: 7
     priceGold: 20
-    - id: mana_potion_medium
+  - id: mana_potion_medium
     itemId:
       ref: item:mana_potion_medium
     category: consumable
