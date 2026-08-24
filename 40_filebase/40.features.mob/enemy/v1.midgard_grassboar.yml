@@ -67,7 +67,6 @@ ai:
     style: MELEE
     preferredRange: 2
     attackIntervalTicks: 30
-    skills: []
 
 drops:
   exp: 8

@@ -499,7 +499,8 @@ public class MobAiService {
         if (combat == null) {
             return;
         }
-        if (combat.skills().isEmpty()) {
+        List<String> skillIds = MobSkillCatalog.skillIdsFor(instance.template().id());
+        if (skillIds.isEmpty()) {
             mobCombatService.tickCombat(instance, internalTick);
             return;
         }
@@ -510,8 +511,8 @@ public class MobAiService {
             return;
         }
 
-        int index = Math.floorMod(instance.nextCombatSkillIndex(), combat.skills().size());
-        String skillId = combat.skills().get(index);
+        int index = Math.floorMod(instance.nextCombatSkillIndex(), skillIds.size());
+        String skillId = skillIds.get(index);
         SkillCastResult result = skillService.castSkill(
                 new MobSkillCaster(instance),
                 skillId,
@@ -741,12 +742,14 @@ public class MobAiService {
 
     private double resolveCurrentSkillActivationRange(@NotNull MobInstance instance, double fallbackRange) {
         MobCombatConfig combat = instance.template().combat();
-        if (combat == null || combat.skills().isEmpty()) {
+        if (combat == null) {
             return Math.max(0.0D, fallbackRange);
         }
 
-        int index = Math.floorMod(instance.nextCombatSkillIndex(), combat.skills().size());
-        SkillDefinition definition = resolveSkillDefinition(combat.skills().get(index));
+        List<String> skillIds = MobSkillCatalog.skillIdsFor(instance.template().id());
+        if (skillIds.isEmpty()) return Math.max(0.0D, fallbackRange);
+        int index = Math.floorMod(instance.nextCombatSkillIndex(), skillIds.size());
+        SkillDefinition definition = resolveSkillDefinition(skillIds.get(index));
         if (definition == null) {
             return Math.max(0.0D, fallbackRange);
         }

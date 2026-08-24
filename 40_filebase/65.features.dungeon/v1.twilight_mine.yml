@@ -94,13 +94,7 @@ theme:
         weight: 1
 encounter:
   normalMobPool:
-    - mobId: mob:midgard_twilight_marauder
-      weight: 4
-    - mobId: mob:midgard_twilight_shard_archer
-      weight: 3
-    - mobId: mob:midgard_twilight_gloom_wisp
-      weight: 3
-    - mobId: mob:midgard_twilight_ore_guard
+    - mobId: mob:debug_twilight_mine_enemy
       weight: 1
   firstCombatRoomMaxMobLevel: 11
   bossMobId: mob:twilight_colossus

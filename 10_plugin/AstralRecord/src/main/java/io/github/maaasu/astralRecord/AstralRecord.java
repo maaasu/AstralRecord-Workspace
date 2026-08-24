@@ -116,6 +116,10 @@ import io.github.maaasu.astralRecord.feature.mob.event.MobVanillaDamageBlockEven
 import io.github.maaasu.astralRecord.feature.mob.event.NpcPlacementWorldEventHandler;
 import io.github.maaasu.astralRecord.feature.mob.repository.NpcPlacementRepository;
 import io.github.maaasu.astralRecord.feature.mob.service.MobAiService;
+import io.github.maaasu.astralRecord.feature.mob.service.MobSkillCatalog;
+import io.github.maaasu.astralRecord.feature.mob.service.GrassboarTuskStrikeSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.service.TwilightColossusGateSlamSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.service.TwilightColossusRuneBoltSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
@@ -1167,6 +1171,9 @@ public final class AstralRecord extends JavaPlugin {
         skillService.registerExecutor(new IronWillSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());
         skillService.registerExecutor(new WeaponAttackSkillExecutor(particleDisplayService, damageService, conditionService));
+        skillService.registerExecutor(new GrassboarTuskStrikeSkillExecutor(damageService, particleDisplayService));
+        skillService.registerExecutor(new TwilightColossusGateSlamSkillExecutor(damageService, particleDisplayService));
+        skillService.registerExecutor(new TwilightColossusRuneBoltSkillExecutor(damageService, particleDisplayService));
         var activeSkillTargetingService = new SkillTargetingService(mobService);
         var activeSkillEffectService = new SkillEffectService(particleDisplayService);
         swordsmanBladeCounterRuntimeService = new SwordsmanBladeCounterRuntimeService(
@@ -1204,6 +1211,7 @@ public final class AstralRecord extends JavaPlugin {
         damageService.setTemporarySkillEffectService(temporarySkillEffectService);
         damageService.setDirectDamageModifier(swordsmanBladeCounterRuntimeService::modifyIncomingDirectDamage);
         skillService.registerBuiltInDefinitions(BuiltInWeaponAttackDefinitions.definitions());
+        skillService.registerBuiltInDefinitions(MobSkillCatalog.definitions());
         learnedSkillService = new LearnedSkillService(this, new LearnedSkillRepository(), inventoryService);
         skillOwnershipService = new SkillOwnershipService(learnedSkillService);
         skillPermissionService = new SkillPermissionService(playerClassService, skillTreeService);

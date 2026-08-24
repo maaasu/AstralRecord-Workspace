@@ -1,0 +1,44 @@
+# design:
+#   motif: "開発用 / 黄昏の坑道"
+#   progression: 10
+schemaVersion: 1
+id: debug_twilight_mine_enemy
+type: MOB
+category: ENEMY
+name: "&eデバッグ坑道モブ"
+level: 10
+entityType: ZOMBIE
+icon: ZOMBIE_HEAD
+nameVisible: true
+lore:
+  - "&7黄昏の坑道の生成と戦闘確認専用の Mob。"
+tags:
+  - debug
+  - dungeon
+baseStats:
+  - status: MAX_HEALTH
+    value: 800
+  - status: ATTACK
+    value: 120
+  - status: DEFENSE
+    value: 80
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 100
+ai:
+  idle:
+    behavior: STATIONARY
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 24
+    deaggroRange: 32
+    leashRange: 40
+  combat:
+    style: MELEE
+    preferredRange: 2
+    attackIntervalTicks: 30
+drops:
+  exp: 1

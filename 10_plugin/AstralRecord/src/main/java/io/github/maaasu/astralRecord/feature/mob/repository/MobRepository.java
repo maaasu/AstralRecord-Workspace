@@ -419,22 +419,10 @@ public class MobRepository {
     @Nullable
     private MobCombatConfig parseCombat(@Nullable JsonObject obj) {
         if (obj == null) return null;
-        List<String> skills = new ArrayList<>();
-        JsonArray skillsArray = obj.getAsJsonArray("skills");
-        if (skillsArray != null) {
-            for (JsonElement element : skillsArray) {
-                if (!element.isJsonPrimitive()) continue;
-                String stripped = stripPrefix(element.getAsString());
-                if (stripped != null) {
-                    skills.add(stripped);
-                }
-            }
-        }
         return new MobCombatConfig(
                 CombatStyle.from(optionalString(obj, "style")),
                 obj.has("preferredRange") ? obj.get("preferredRange").getAsDouble() : 1.0,
-                obj.has("attackIntervalTicks") ? obj.get("attackIntervalTicks").getAsLong() : 20L,
-                skills
+                obj.has("attackIntervalTicks") ? obj.get("attackIntervalTicks").getAsLong() : 20L
         );
     }
 

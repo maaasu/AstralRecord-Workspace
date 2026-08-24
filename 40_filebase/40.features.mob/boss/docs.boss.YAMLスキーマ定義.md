@@ -31,14 +31,13 @@ Enemy と同一仕様です。`drops` 自体は任意で、省略時は経験値
 
 ### ai.combat（戦闘行動）
 
-Enemy と同一仕様です。ボス固有のスキルローテーションやフェーズ遷移はプラグイン側で制御します。
+Enemy と同一仕様です。ボス固有のスキルローテーション、倍率、発動時演出、フェーズ遷移はプラグイン側の専用 executor とサービスで制御します。
 
 | キー                              | 型            | 必須 | デフォルト     | 説明                                                  |
 |:--------------------------------|:-------------|:--:|:----------|:----------------------------------------------------|
 | `ai.combat.style`               | String       | ○  | -         | 戦闘スタイル（後述 `CombatStyle`）                            |
 | `ai.combat.preferredRange`      | Double       | ×  | 1.0       | 戦闘時の理想距離（ブロック単位）。`MELEE` は接近、`RANGED`/`MAGIC` は距離確保 |
 | `ai.combat.attackIntervalTicks` | Long         | ×  | 20        | 通常攻撃の間隔（tick）。20 tick = 1 秒                         |
-| `ai.combat.skills`              | List<String> | ×  | emptyList | 使用するスキルのID一覧（※参照値。例: `ref: skill:dragon_breath`）    |
 
 #### CombatStyle
 - `MELEE` : 近接戦闘。ターゲットに接近して攻撃
@@ -69,7 +68,7 @@ Enemy と同一仕様です。
 
 - **フェーズ遷移** : HP 閾値によるフェーズ切り替えはプラグイン側で実装。本スキーマでは定義しない。
 - **専用ギミック** : 戦闘エリアの制限・特殊オブジェクト・QTEなどはプラグイン側で実装。
-- **スキルローテーション** : `ai.combat.skills` にスキルIDを列挙し、使用順序・条件分岐はプラグイン側で制御。
+- **スキルローテーション** : Mob master には列挙せず、プラグイン側の専用 executor が使用順序・条件分岐・効果を制御。
 
 ## challenge
 
@@ -99,7 +98,7 @@ Enemy と同一仕様です。
 
 ```yaml
 schemaVersion: 1
-id: dark_dragon
+id: twilight_colossus
 type: MOB
 category: BOSS
 name: "&0&l暗黒竜ヴァルザード"
@@ -143,10 +142,6 @@ ai:
     style: MAGIC
     preferredRange: 8
     attackIntervalTicks: 40
-    skills:
-      - ref: skill:dragon_breath
-      - ref: skill:dark_nova
-      - ref: skill:tail_sweep
 
 drops:
   exp: 5000
@@ -159,12 +154,6 @@ drops:
       rate: 100.0
       amount: 3~5
       luckAffected: false
-      hidden: false
-    - itemId:
-        ref: item:dark_dragon_fang
-      rate: 30.0
-      amount: 1
-      luckAffected: true
       hidden: false
     - itemId:
         ref: item:varzard_soul_fragment
