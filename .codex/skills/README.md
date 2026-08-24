@@ -15,6 +15,7 @@
 | 本番filebase作成 | `$astralrecord-master-data-author` |
 | 指定filebaseの高速直接作成 | `$astralrecord-master-data-create-direct` |
 | skill定義・参照・script更新 | `$skill-creator` |
+| 開始・終了コミットからリリースノートMDの下書きを作成 | `$astralrecord-release-note-author` |
 | 現在のtask差分だけcommit | `$astralrecord-commit-current-diff` |
 | コード・workspace skillレビュー | `$astralrecord-code-review` |
 | コードレビュー指摘の修正 | `$astralrecord-code-fix` |
