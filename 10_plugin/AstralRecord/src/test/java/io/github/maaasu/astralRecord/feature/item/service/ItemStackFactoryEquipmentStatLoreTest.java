@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStat;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscendence;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
@@ -55,7 +56,7 @@ class ItemStackFactoryEquipmentStatLoreTest {
         List<String> lore = buildLore(stat, enhance, 1, "2", "4");
         String line = findStatLine(lore);
 
-        assertTrue(line.contains("+4 ～ +6 (2-3～4-5) [+2]"));
+        assertTrue(line.contains("+4～+6 (2-3～4-5) [+2]"));
         assertFalse(line.contains("[強化:"));
         assertTrue(findRawStatLine(lore).contains(ColorCodeUtil.GRAY + " (2-3～4-5)"));
     }
@@ -72,7 +73,7 @@ class ItemStackFactoryEquipmentStatLoreTest {
 
         String line = findStatLine(buildLore(stat, null, 0, "3", "4"));
 
-        assertTrue(line.contains("+3 ～ +4 (3～4-5)"));
+        assertTrue(line.contains("+3～+4 (3～4-5)"));
     }
 
     /**
@@ -87,8 +88,65 @@ class ItemStackFactoryEquipmentStatLoreTest {
 
         String line = findStatLine(buildLore(stat, null, 0, "8", "9"));
 
-        assertTrue(line.contains("+8 ～ +9"));
+        assertTrue(line.contains("+8～+9"));
         assertFalse(line.contains("(8"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### マスタItemStack生成
+     * 検証契約: 強化値を持たないマスタ表示でも、個別乱数範囲を灰色注釈として表示する。
+     */
+    @Test
+    void masterLoreShowsRandomRangeWithoutEnhancement() throws ReflectiveOperationException {
+        ItemEquipmentStat stat = new ItemEquipmentStat(
+                "MELEE_ATTACK", ItemEquipmentStatType.FLAT, 2.0D, 4.0D, "2~3", "4~5");
+
+        List<String> lore = buildMasterLore(stat);
+        String line = findStatLine(lore);
+
+        assertTrue(line.contains("+2～+4 (2-3～4-5)"));
+        assertTrue(findRawStatLine(lore).contains(ColorCodeUtil.GRAY + " (2-3～4-5)"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 所有インスタンスItemStack生成
+     * 検証契約: 状態変化名とともに、ランク1以上の数値ランクを灰色で表示する。
+     */
+    @Test
+    void transcendenceLoreShowsNumericRankInGray() throws ReflectiveOperationException {
+        ItemEquipmentStat stat = new ItemEquipmentStat(
+                "MELEE_ATTACK", ItemEquipmentStatType.FLAT, 4.0D, 4.0D);
+        ItemEquipmentTranscendence transcendence = new ItemEquipmentTranscendence(
+                "進化", 1, 0, List.of(), 0, null, null, null);
+        ItemModel model = model(stat, null, List.of(transcendence));
+        EquipmentInstance instance = new EquipmentInstance(
+                "instance-id",
+                "account-id",
+                model.getId(),
+                0,
+                0,
+                1,
+                0,
+                0,
+                "",
+                "",
+                List.of(new EquipmentStatRoll("roll-id", stat.getStatus(), "4", "4", 0)),
+                List.of(),
+                List.of()
+        );
+
+        List<String> lore = buildInstanceLore(model, instance);
+        String rawLine = lore.stream()
+                .filter(line -> line.contains("状態変化"))
+                .findFirst()
+                .orElseThrow();
+        String plainLine = PlainTextComponentSerializer.plainText().serialize(
+                LegacyComponentSerializer.legacySection().deserialize(rawLine));
+
+        assertTrue(plainLine.contains("状態変化: 【進化】 (ランク1)"));
+        assertTrue(rawLine.contains(ColorCodeUtil.GRAY + " (ランク1)"));
     }
 
     /**
@@ -155,7 +213,7 @@ class ItemStackFactoryEquipmentStatLoreTest {
         List<String> lore = invokeBuildLore(factory, model, instance);
         List<String> statLines = findPlainStatLines(lore);
 
-        assertTrue(statLines.get(0).contains("近接攻撃力 : +30 ～ +40"));
+        assertTrue(statLines.get(0).contains("近接攻撃力 : +30～+40"));
         assertFalse(statLines.get(0).contains("×"));
         assertTrue(statLines.get(1).contains("最終近接攻撃力乗数 : ×110%"));
         assertFalse(statLines.get(1).contains("110.00000000000001"));
@@ -226,6 +284,20 @@ class ItemStackFactoryEquipmentStatLoreTest {
                 List.of(),
                 List.of()
         );
+        return buildInstanceLore(model, instance);
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> buildMasterLore(ItemEquipmentStat stat) throws ReflectiveOperationException {
+        ItemStackFactory factory = new ItemStackFactory(mock(LootService.class), mock(ItemService.class));
+        Method method = ItemStackFactory.class.getDeclaredMethod("buildLore", ItemModel.class);
+        method.setAccessible(true);
+        return (List<String>) method.invoke(factory, model(stat, null));
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<String> buildInstanceLore(ItemModel model, EquipmentInstance instance)
+            throws ReflectiveOperationException {
         ItemStackFactory factory = new ItemStackFactory(mock(LootService.class), mock(ItemService.class));
         Method method = ItemStackFactory.class.getDeclaredMethod(
                 "buildLoreForEquipmentInstance", ItemModel.class, EquipmentInstance.class);
@@ -244,6 +316,14 @@ class ItemStackFactoryEquipmentStatLoreTest {
     }
 
     private ItemModel model(ItemEquipmentStat stat, ItemEquipmentEnhance enhance) {
+        return model(stat, enhance, List.of());
+    }
+
+    private ItemModel model(
+            ItemEquipmentStat stat,
+            ItemEquipmentEnhance enhance,
+            List<ItemEquipmentTranscendence> transcendence
+    ) {
         ItemEquipment equipment = new ItemEquipment(
                 ItemEquipmentSlot.WEAPON,
                 ItemEquipmentHandType.ONE,
@@ -256,7 +336,7 @@ class ItemStackFactoryEquipmentStatLoreTest {
                 enhance,
                 null,
                 null,
-                List.of()
+                transcendence
         );
         return model(equipment);
     }

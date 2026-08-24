@@ -153,7 +153,7 @@ enum class StatusType(
      * @return 単一値または範囲文字列
      */
     fun formatRange(minValue: Double, maxValue: Double): String =
-        if (minValue == maxValue) formatValue(minValue) else "${formatValue(minValue)} ～ ${formatValue(maxValue)}"
+        if (minValue == maxValue) formatValue(minValue) else "${formatValue(minValue)}～${formatValue(maxValue)}"
 
     /**
      * 同値なら単一補正、それ以外なら符号付き範囲を表示します。
@@ -164,7 +164,7 @@ enum class StatusType(
      */
     fun formatSignedRange(minValue: Double, maxValue: Double): String =
         if (minValue == maxValue) formatSignedValue(minValue)
-        else "${formatSignedValue(minValue)} ～ ${formatSignedValue(maxValue)}"
+        else "${formatSignedValue(minValue)}～${formatSignedValue(maxValue)}"
 
     /**
      * Plugin UIで使う共通表示色を返します。

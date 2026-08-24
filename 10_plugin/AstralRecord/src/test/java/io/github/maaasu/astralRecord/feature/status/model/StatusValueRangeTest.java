@@ -46,7 +46,8 @@ class StatusValueRangeTest {
     @Test
     void statusFormattingCollapsesEqualRange() {
         assertEquals("26", StatusType.ATTACK.formatRange(26.0D, 26.0D));
-        assertEquals("20 ～ 30", StatusType.ATTACK.formatRange(20.0D, 30.0D));
+        assertEquals("20～30", StatusType.ATTACK.formatRange(20.0D, 30.0D));
+        assertEquals("+20～+30", StatusType.ATTACK.formatSignedRange(20.0D, 30.0D));
     }
 
     /**

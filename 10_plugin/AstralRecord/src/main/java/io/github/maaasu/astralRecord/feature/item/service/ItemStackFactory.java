@@ -198,7 +198,7 @@ public class ItemStackFactory {
      * {@link ItemModel} から指定個数の ItemStack を生成します。
      *
      * @param model  アイテム定義
-     * @param amount 個数（1 ～ maxStack）
+     * @param amount 個数（1～maxStack）
      * @return 生成された ItemStack（サーバ側は PAPER）
      */
     public @NotNull ItemStack create(@NotNull ItemModel model, int amount) {
@@ -810,7 +810,8 @@ public class ItemStackFactory {
                 lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
                         + statColor + displayName
                         + ColorCodeUtil.DARK_GRAY + " : "
-                        + formatStatValueWithType(stat.getType(), statusType, stat.displayValue()));
+                        + formatStatValueWithType(stat.getType(), statusType, stat.displayValue())
+                        + formatRandomRangeNote(stat, stat.getMin(), stat.getMax()));
             }
         }
 
@@ -1103,10 +1104,16 @@ public class ItemStackFactory {
                 ItemEquipmentTranscendence currentTrans = eq.getTranscendence().stream()
                         .filter(t -> t.getRank() == instance.getTranscendenceRank())
                         .findFirst().orElse(null);
-                String transName = currentTrans != null && currentTrans.getName() != null
+                boolean hasTranscendenceName = currentTrans != null
+                        && currentTrans.getName() != null
+                        && !currentTrans.getName().isBlank();
+                String transName = hasTranscendenceName
                         ? currentTrans.getName() : "ランク " + instance.getTranscendenceRank();
-                lore.add(ColorCodeUtil.LIGHT_PURPLE + " ▸ 状態変化: " + ColorCodeUtil.WHITE + "【" + transName
-                        + ColorCodeUtil.RESET + ColorCodeUtil.YELLOW + "】");
+                String rankNote = hasTranscendenceName
+                        ? ColorCodeUtil.GRAY + " (ランク" + instance.getTranscendenceRank() + ")"
+                        : "";
+                lore.add(ColorCodeUtil.LIGHT_PURPLE + " ▸ 状態変化: " + ColorCodeUtil.WHITE
+                        + "【" + transName + ColorCodeUtil.RESET + ColorCodeUtil.YELLOW + "】" + rankNote);
             }
 
             // --- 強化レベル表示 ---
@@ -1150,7 +1157,7 @@ public class ItemStackFactory {
                     // enhance 加算分の表示注釈
                     String enhanceNote = (enhAdd[0] != 0.0 || enhAdd[1] != 0.0)
                             ? ColorCodeUtil.YELLOW + " [" + formatStatValueWithType(rollType, statusType, enhAdd[0])
-                                    + (enhAdd[0] != enhAdd[1] ? " ～ " + formatStatValueWithType(rollType, statusType, enhAdd[1]) : "")
+                                    + (enhAdd[0] != enhAdd[1] ? "～" + formatStatValueWithType(rollType, statusType, enhAdd[1]) : "")
                                     + ColorCodeUtil.RESET + ColorCodeUtil.YELLOW + "]"
                             : "";
 
@@ -1429,7 +1436,7 @@ public class ItemStackFactory {
             String[] parts = normalized.split("[~～]", 2);
             if (parts.length == 2) {
                 return formatStatValueWithType(type, statusType, parseStatDouble(parts[0].trim()))
-                        + ColorCodeUtil.DARK_GRAY + " ～ "
+                        + ColorCodeUtil.DARK_GRAY + "～"
                         + formatStatValueWithType(type, statusType, parseStatDouble(parts[1].trim()));
             }
         }
@@ -1439,7 +1446,7 @@ public class ItemStackFactory {
     private @NotNull String formatStatRange(
             @NotNull ItemEquipmentStatType type, @Nullable StatusType statusType, double min, double max) {
         return formatStatValueWithType(type, statusType, min)
-                + ColorCodeUtil.DARK_GRAY + " ～ "
+                + ColorCodeUtil.DARK_GRAY + "～"
                 + formatStatValueWithType(type, statusType, max);
     }
 
