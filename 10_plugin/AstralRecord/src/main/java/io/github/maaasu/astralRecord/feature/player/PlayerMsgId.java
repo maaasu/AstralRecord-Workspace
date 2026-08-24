@@ -1405,6 +1405,11 @@ public enum PlayerMsgId {
     P_7094(7094),
     // endregion
 
+    // region /feature/player/command/UuidCommand.java 7100-7109
+    /** プレイヤー UUID 表示。{0}: プレイヤー名、{1}: UUID */
+    P_7100(7100),
+    // endregion
+
     ;
 
     private final String id;

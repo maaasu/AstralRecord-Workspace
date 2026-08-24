@@ -46,6 +46,8 @@ import io.github.maaasu.astralRecord.feature.playersetting.command.PlayerSetting
 import io.github.maaasu.astralRecord.feature.player.command.CreativeFlySpeedCommand;
 import io.github.maaasu.astralRecord.feature.player.command.DirectMessageCommand;
 import io.github.maaasu.astralRecord.feature.player.command.DirectMessageTabCompleter;
+import io.github.maaasu.astralRecord.feature.player.command.UuidCommand;
+import io.github.maaasu.astralRecord.feature.player.command.UuidTabCompleter;
 import io.github.maaasu.astralRecord.feature.playerclass.command.ClassCommand;
 import io.github.maaasu.astralRecord.feature.playerclass.command.ClassTabCompleter;
 import io.github.maaasu.astralRecord.feature.quest.command.QuestCommand;
@@ -195,6 +197,7 @@ public class CommandRegister {
         cm.registerCommand("am", new AccountModeCommand("am", "/am <mode> [<player|accountUuid>]"), new AccountModeTabCompleter());
         cm.registerCommand("setting", new PlayerSettingCommand(), new PlayerSettingTabCompleter());
         cm.registerCommand("message", new DirectMessageCommand(), new DirectMessageTabCompleter());
+        cm.registerCommand("uuid", new UuidCommand(), new UuidTabCompleter());
         AdminMessageCommand adminMessageCommand = new AdminMessageCommand(adminMessageBossBarService);
         cm.registerCommand("adminmessage", adminMessageCommand);
         cm.registerCommand("adminmsg", adminMessageCommand);
