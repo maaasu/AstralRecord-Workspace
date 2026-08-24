@@ -221,6 +221,10 @@ public final class DiscordSrvChatBridge implements GlobalChatBridge {
      */
     @Subscribe(priority = ListenerPriority.HIGHEST)
     public void onGameChatMessagePreProcess(@NotNull GameChatMessagePreProcessEvent event) {
+        if (maintenanceMode) {
+            event.setCancelled(true);
+            return;
+        }
         if (event.getTriggeringBukkitEvent() instanceof Cancellable cancellable && cancellable.isCancelled()) {
             event.setCancelled(true);
         }
