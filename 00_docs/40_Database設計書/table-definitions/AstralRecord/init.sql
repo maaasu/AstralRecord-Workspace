@@ -1133,7 +1133,6 @@ CREATE TABLE [dbo].[equipment_instance_rune] (
     [rune_id]                UNIQUEIDENTIFIER NOT NULL,
     [equipment_instance_id]  UNIQUEIDENTIFIER NOT NULL,
     [slot_index]             INT              NOT NULL,
-    [rune_instance_id]       UNIQUEIDENTIFIER     NULL,
     [item_id]                NVARCHAR(100)    NOT NULL,
     [created_at]             DATETIME2(3)     NOT NULL,
     [updated_at]             DATETIME2(3)     NOT NULL,
@@ -1146,50 +1145,6 @@ CREATE TABLE [dbo].[equipment_instance_rune] (
         ON DELETE CASCADE
         ON UPDATE NO ACTION,
     CONSTRAINT [UQ_equipment_instance_rune_slot_index] UNIQUE ([equipment_instance_id], [slot_index])
-);
-GO
-
--- ============================================================
--- AstralRecord\dbo.rune_instance.md
--- ============================================================
-
-CREATE TABLE [dbo].[rune_instance] (
-    [rune_instance_id] UNIQUEIDENTIFIER NOT NULL,
-    [account_id]        UNIQUEIDENTIFIER NOT NULL,
-    [item_id]           NVARCHAR(100)    NOT NULL,
-    [created_at]        DATETIME2(3)     NOT NULL,
-    [updated_at]        DATETIME2(3)     NOT NULL,
-    [created_by]        UNIQUEIDENTIFIER NOT NULL,
-    [updated_by]        UNIQUEIDENTIFIER NOT NULL,
-    [is_deleted]        BIT              NOT NULL CONSTRAINT [DF_rune_instance_is_deleted] DEFAULT (0),
-
-    CONSTRAINT [PK_rune_instance] PRIMARY KEY CLUSTERED ([rune_instance_id])
-);
-GO
-
--- ============================================================
--- AstralRecord\dbo.rune_instance_stat_roll.md
--- ============================================================
-
-CREATE TABLE [dbo].[rune_instance_stat_roll] (
-    [stat_roll_id]       UNIQUEIDENTIFIER NOT NULL,
-    [rune_instance_id]   UNIQUEIDENTIFIER NOT NULL,
-    [status]             NVARCHAR(50)     NOT NULL,
-    [type]               NVARCHAR(20)     NOT NULL,
-    [random_value]       NVARCHAR(20)     NOT NULL,
-    [sort_order]         INT              NOT NULL CONSTRAINT [DF_rune_instance_stat_roll_sort_order] DEFAULT (0),
-    [created_at]         DATETIME2(3)     NOT NULL,
-    [updated_at]         DATETIME2(3)     NOT NULL,
-    [created_by]         UNIQUEIDENTIFIER NOT NULL,
-    [updated_by]         UNIQUEIDENTIFIER NOT NULL,
-    [is_deleted]         BIT              NOT NULL CONSTRAINT [DF_rune_instance_stat_roll_is_deleted] DEFAULT (0),
-
-    CONSTRAINT [PK_rune_instance_stat_roll] PRIMARY KEY CLUSTERED ([stat_roll_id]),
-    CONSTRAINT [FK_rune_instance_stat_roll_rune_instance] FOREIGN KEY ([rune_instance_id])
-        REFERENCES [dbo].[rune_instance] ([rune_instance_id])
-        ON DELETE CASCADE
-        ON UPDATE NO ACTION,
-    CONSTRAINT [UQ_rune_instance_stat_roll_instance_status] UNIQUE ([rune_instance_id], [status], [sort_order])
 );
 GO
 

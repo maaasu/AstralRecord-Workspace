@@ -22,10 +22,9 @@
 
 | カラム名                  | データ型             | PK | NotNull | 説明             |
 |:----------------------|:-----------------|:--:|:-------:|:---------------|
-| rune_id               | UNIQUEIDENTIFIER | ○  |    ○    | ルーン装着レコード ID   |
+| rune_id               | UNIQUEIDENTIFIER | ○  |    ○    | ルーン装着レコード ID（ルーン itemId・個体IDではない） |
 | equipment_instance_id | UNIQUEIDENTIFIER |    |    ○    | 対象装備個体 ID      |
 | slot_index            | INT              |    |    ○    | ルーンスロット番号      |
-| rune_instance_id      | UNIQUEIDENTIFIER |    |         | 装着したルーン個体 ID   |
 | item_id               | NVARCHAR(100)    |    |    ○    | 装着したルーン itemId |
 | created_at            | DATETIME2(3)     |    |    ○    | 作成日時           |
 | updated_at            | DATETIME2(3)     |    |    ○    | 更新日時           |
@@ -63,7 +62,6 @@ CREATE TABLE [dbo].[equipment_instance_rune] (
     [rune_id]                UNIQUEIDENTIFIER NOT NULL,
     [equipment_instance_id]  UNIQUEIDENTIFIER NOT NULL,
     [slot_index]             INT              NOT NULL,
-    [rune_instance_id]       UNIQUEIDENTIFIER     NULL,
     [item_id]                NVARCHAR(100)    NOT NULL,
     [created_at]             DATETIME2(3)     NOT NULL,
     [updated_at]             DATETIME2(3)     NOT NULL,

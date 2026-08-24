@@ -2,7 +2,7 @@
 
 ## 役割
 
-プレイヤー間トレード確定の冪等台帳。item の inventory membership、装備／ルーン個体の所有 account、Gold 額面の更新と同じ `AstralRecord` transaction で terminal 行を保存する。
+プレイヤー間トレード確定の冪等台帳。item の inventory membership、装備個体の所有 account、Gold 額面の更新と同じ `AstralRecord` transaction で terminal 行を保存する。ルーンは通常スタック item として inventory entry の数量だけを更新する。
 
 ## カラム
 

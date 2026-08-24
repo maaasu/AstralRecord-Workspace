@@ -21,7 +21,7 @@
 ## 依存 feature
 
 - 13-inventory: GAME BAG/HOTBAR と CURRENCY inventory
-- 14-equipment / 15-rune: 個体 owner の移管
+- 14-equipment: 装備個体 owner の移管。ルーンは inventory の通常スタック数量として移管
 
 ## 更新ルール
 

@@ -29,7 +29,7 @@
 | `source_inventory_entry_id` | `UNIQUEIDENTIFIER` |  |  |  | 互換用の先頭 escrow 元 entry。全 source は `market_listing_source` |
 | `item_category` | `NVARCHAR(50)` |  | ○ |  | item カテゴリ |
 | `item_id` | `NVARCHAR(100)` |  | ○ |  | item マスタ ID |
-| `instance_type` | `NVARCHAR(30)` |  |  |  | `EQUIPMENT` / `RUNE` |
+| `instance_type` | `NVARCHAR(30)` |  |  |  | 個体出品時の種別。現行は `EQUIPMENT` |
 | `instance_id` | `UNIQUEIDENTIFIER` |  |  |  | 個体 UUID |
 | `quantity` | `INT` |  | ○ |  | 出品時の総数量 |
 | `remaining_quantity` | `INT` |  | ○ | `0` | 現在 escrow に残る購入可能数量。売却済み・取り下げ済みは `0` |

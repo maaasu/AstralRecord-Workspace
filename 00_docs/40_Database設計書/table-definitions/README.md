@@ -6,7 +6,7 @@
 
 | DB | 役割 | 定義 |
 |:--|:--|:--|
-| `AstralRecord` | プレイヤー、アカウント、インベントリ、装備/ルーン個体などの動的データ | `table-definitions/AstralRecord/` |
+| `AstralRecord` | プレイヤー、アカウント、インベントリ、装備個体などの動的データ | `table-definitions/AstralRecord/` |
 | `MasterDataDB` | filebase 由来の配信用マスタデータ | `table-definitions/MasterDataDB/` |
 | `HistoryDB` | ログイン/ログアウトなどの履歴データ | `table-definitions/HistoryDB/` |
 
@@ -57,8 +57,6 @@
 | `dbo.equipment_orb_operation` | `AstralRecord/dbo.equipment_orb_operation.md` |
 | `dbo.equipment_loadout` | `AstralRecord/dbo.equipment_loadout.md` |
 | `dbo.equipment_loadout_slot` | `AstralRecord/dbo.equipment_loadout_slot.md` |
-| `dbo.rune_instance` | `AstralRecord/dbo.rune_instance.md` |
-| `dbo.rune_instance_stat_roll` | `AstralRecord/dbo.rune_instance_stat_roll.md` |
 | `dbo.market_account_state` | `AstralRecord/dbo.market_account_state.md` |
 | `dbo.market_listing` | `AstralRecord/dbo.market_listing.md` |
 | `dbo.market_listing_source` | `AstralRecord/dbo.market_listing_source.md` |

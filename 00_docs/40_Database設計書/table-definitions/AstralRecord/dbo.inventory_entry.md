@@ -1,6 +1,6 @@
 補足: プロファイル分離（GAME/ADMIN）は親テーブル `dbo.inventory.inventory_profile` で管理します。
 各インベントリの中身を保持するテーブルです。
-連続アイテム・消耗のようなスタック型アイテムと、装備・ルーン・ペットのようなインスタンス生成型アイテムの両方を 1 テーブルで扱えるようにしています。
+連続アイテム・消耗・ルーンのようなスタック型アイテムと、装備・ペットのようなインスタンス生成型アイテムの両方を 1 テーブルで扱えるようにしています。
 どのインベントリ種別に属するかの判定は親テーブル `dbo.inventory.inventory_type` とプラグイン側コードで行います。
 
 ---
@@ -26,7 +26,7 @@
 | `slot_index` | `INT` |  |  |  | スロット番号。スロットレスの場合は `NULL` |
 | `item_category` | `NVARCHAR(30)` |  | ✓ |  | アイテムカテゴリ。例: `CONSUMABLE`, `MATERIAL`, `CURRENCY`, `EQUIPMENT`, `RUNE`, `PET` |
 | `item_id` | `NVARCHAR(100)` |  |  |  | YAML マスタのアイテム ID。スタック型で使用 |
-| `instance_type` | `NVARCHAR(30)` |  |  |  | インスタンス生成種別。例: `EQUIPMENT`, `RUNE`, `PET` |
+| `instance_type` | `NVARCHAR(30)` |  |  |  | インスタンス生成種別。例: `EQUIPMENT`, `PET` |
 | `instance_id` | `UNIQUEIDENTIFIER` |  |  |  | インスタンス生成先の ID |
 | `quantity` | `BIGINT` |  | ✓ | `1` | 所持数。スタック型は 1 以上、インスタンス生成型は常に 1 |
 | `metadata_json` | `NVARCHAR(MAX)` |  |  |  | 補足的な拡張用メタデータ |
@@ -55,7 +55,7 @@
 | 項目 | 説明 |
 |:---|:---|
 | スタック型 | `item_id` と `quantity` を使用。連続インベントリや消耗品向け |
-| インスタンス生成型 | `instance_type` と `instance_id` を使用。装備・ルーン・ペット向け |
+| インスタンス生成型 | `instance_type` と `instance_id` を使用。装備・ペット向け |
 | FK を絞らない理由 | 将来 `PET` などの新インスタンステーブルを追加しても本テーブルのスキーマ変更を抑えるため |
 
 ---
@@ -140,7 +140,7 @@ GO
 |:---|:---|
 | スタックインベントリ | `slot_index` と `item_id` でスタックアイテムを管理 |
 | 流動インベントリ | `slot_index = NULL`、`item_id` + `quantity` で無限定な管理 |
-| 統合所持品 | 通常アイテム・未装着装備・未装着ルーンを `BAG` に格納し、装備は `instance_type = 'EQUIPMENT'`、ルーンは `instance_type = 'RUNE'` と `instance_id` で実体を管理 |
+| 統合所持品 | 通常アイテム・未装着装備を `BAG` に格納する。ルーンは通常アイテムとして `item_id` と `quantity` で管理し、装備だけが `instance_type = 'EQUIPMENT'` と `instance_id` を使用する |
 | ストレージインベントリ | `STORAGE` 種別で収納アイテムを管理。`slot_index` は収納順を表す連番、`metadata_json.acquiredAt` は収納元 entry の作成日時で獲得順ソートに使用 |
 | 装備スロットインベントリ | `instance_type = 'EQUIPMENT'` と `instance_id` で装着中の装備スロット（`EQUIP_SLOT`）を管理。`slot_index` は装備部位（1=メインハンド, 2=頭, 3=胴, 4=脚, 5=足） |
 | ホットバーインベントリ | `HOTBAR` 種別で `slot_index` 1〜9 を Bukkit ホットバー 0〜8 に対応させて保存。`metadata_json` は互換用スナップショット |

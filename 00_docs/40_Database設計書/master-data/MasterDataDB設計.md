@@ -28,7 +28,7 @@
 
 | DB | 含めるデータ | 含めないデータ |
 |:--|:--|:--|
-| `AstralRecord` | user/account/inventory/equipment_instance/rune_instance など、プレイヤー単位で変化するデータ | item/class/skill/buff/loot/recipe などの静的マスタ |
+| `AstralRecord` | user/account/inventory/equipment_instance など、プレイヤー単位で変化するデータ | item/class/skill/buff/loot/recipe などの静的マスタ |
 | `MasterDataDB` | filebase から生成された静的マスタ、参照関係、投入履歴 | プレイヤー所持数、装備個体値、ログイン状態などの動的データ |
 
 ## 4. 採用方針
