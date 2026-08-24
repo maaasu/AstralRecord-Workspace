@@ -1,19 +1,27 @@
 [CmdletBinding()]
 param(
     [switch]$PluginOnly,
-    [switch]$ReleaseManagementOnly
+    [switch]$ReleaseManagementOnly,
+    [switch]$PreflightOnly,
+    [string]$ConfigPath
 )
 
 $ErrorActionPreference = "Stop"
 Set-StrictMode -Version Latest
 
 $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-$configPath = Join-Path $scriptDir "deploy-debug.config.json"
+if ([string]::IsNullOrWhiteSpace($ConfigPath)) {
+    $ConfigPath = Join-Path $scriptDir "deploy-debug.config.json"
+}
 $encodingNormalizerPath = Join-Path $scriptDir "normalize-source-encoding.ps1"
 $script:iisResetCommand = $null
 
 if ($PluginOnly -and $ReleaseManagementOnly) {
     throw "-PluginOnly and -ReleaseManagementOnly cannot be used together."
+}
+
+if ($PreflightOnly -and -not $ReleaseManagementOnly) {
+    throw "-PreflightOnly requires -ReleaseManagementOnly."
 }
 
 function Write-Step {
@@ -153,10 +161,112 @@ function Assert-TokenFileReady {
 
     $tokenPath = Join-Path $Component.deployPath $tokenFileName
     Assert-PathExists -Label "Discord token file" -Path $tokenPath
-    $token = Get-Content -LiteralPath $tokenPath -Raw -ErrorAction Stop
+    $token = Get-Content -LiteralPath $tokenPath -Raw -Encoding UTF8 -ErrorAction Stop
     if ([string]::IsNullOrWhiteSpace($token)) {
         throw "Discord token file is empty: $tokenFileName"
     }
+}
+
+function Get-RequiredPropertyValue {
+    param(
+        [object]$Object,
+        [string]$PropertyName,
+        [string]$Label
+    )
+
+    if ($null -eq $Object) {
+        throw "$Label is missing."
+    }
+
+    $property = $Object.PSObject.Properties[$PropertyName]
+    if ($null -eq $property -or $null -eq $property.Value) {
+        throw "$Label is missing."
+    }
+
+    return $property.Value
+}
+
+function Read-JsonFile {
+    param(
+        [string]$Label,
+        [string]$Path
+    )
+
+    Assert-PathExists -Label $Label -Path $Path
+
+    try {
+        return Get-Content -LiteralPath $Path -Raw -Encoding UTF8 -ErrorAction Stop | ConvertFrom-Json -ErrorAction Stop
+    }
+    catch {
+        throw "$Label is not valid JSON: $Path"
+    }
+}
+
+function ConvertTo-AbsoluteHttpsUri {
+    param(
+        [string]$Value,
+        [string]$Label
+    )
+
+    [Uri]$uri = $null
+    if ([string]::IsNullOrWhiteSpace($Value) -or
+        -not [Uri]::TryCreate($Value, [UriKind]::Absolute, [ref]$uri) -or
+        $uri.Scheme -ne [Uri]::UriSchemeHttps) {
+        throw "$Label must be an absolute HTTPS URL."
+    }
+
+    return $uri
+}
+
+function Assert-ReleaseManagementReady {
+    param(
+        [object]$ApiComponent,
+        [object]$WebComponent
+    )
+
+    Write-Step "Validating release management production settings"
+    Assert-TokenFileReady -Component $ApiComponent
+
+    $expectedBaseUrl = [string](Get-RequiredPropertyValue -Object $WebComponent -PropertyName "expectedApiBaseUrl" -Label "web.expectedApiBaseUrl")
+    $expectedBaseUri = ConvertTo-AbsoluteHttpsUri -Value $expectedBaseUrl -Label "web.expectedApiBaseUrl"
+
+    $apiSettingsPath = Join-Path $ApiComponent.deployPath "appsettings.json"
+    $webSettingsPath = Join-Path $WebComponent.deployPath "appsettings.json"
+    $apiSettings = Read-JsonFile -Label "API production appsettings.json" -Path $apiSettingsPath
+    $webSettings = Read-JsonFile -Label "WEB production appsettings.json" -Path $webSettingsPath
+
+    $apiKeySection = Get-RequiredPropertyValue -Object $apiSettings -PropertyName "ApiKey" -Label "API ApiKey section"
+    $apiKey = [string](Get-RequiredPropertyValue -Object $apiKeySection -PropertyName "Key" -Label "API ApiKey:Key")
+    if ([string]::IsNullOrWhiteSpace($apiKey)) {
+        throw "API ApiKey:Key must not be empty."
+    }
+
+    $webApiSection = Get-RequiredPropertyValue -Object $webSettings -PropertyName "AstralRecordApi" -Label "WEB AstralRecordApi section"
+    $actualBaseUrl = [string](Get-RequiredPropertyValue -Object $webApiSection -PropertyName "BaseUrl" -Label "WEB AstralRecordApi:BaseUrl")
+    $actualBaseUri = ConvertTo-AbsoluteHttpsUri -Value $actualBaseUrl -Label "WEB AstralRecordApi:BaseUrl"
+    if (-not [string]::Equals(
+            $actualBaseUri.AbsoluteUri.TrimEnd('/'),
+            $expectedBaseUri.AbsoluteUri.TrimEnd('/'),
+            [StringComparison]::OrdinalIgnoreCase)) {
+        throw "WEB AstralRecordApi:BaseUrl does not match the configured production API URL. Expected=$($expectedBaseUri.AbsoluteUri.TrimEnd('/')) Actual=$($actualBaseUri.AbsoluteUri.TrimEnd('/'))"
+    }
+
+    $webApiKey = [string](Get-RequiredPropertyValue -Object $webApiSection -PropertyName "ApiKey" -Label "WEB AstralRecordApi:ApiKey")
+    if ([string]::IsNullOrWhiteSpace($webApiKey)) {
+        throw "WEB AstralRecordApi:ApiKey must not be empty."
+    }
+
+    if ($apiKey -cne $webApiKey) {
+        throw "API ApiKey:Key and WEB AstralRecordApi:ApiKey do not match."
+    }
+
+    $releaseNotesSection = Get-RequiredPropertyValue -Object $webSettings -PropertyName "ReleaseNotes" -Label "WEB ReleaseNotes section"
+    $syncOnStartup = Get-RequiredPropertyValue -Object $releaseNotesSection -PropertyName "SyncOnStartup" -Label "WEB ReleaseNotes:SyncOnStartup"
+    if ($syncOnStartup -isnot [bool] -or -not $syncOnStartup) {
+        throw "WEB ReleaseNotes:SyncOnStartup must be true."
+    }
+
+    Write-Step "Release management production settings are ready"
 }
 
 function Enter-AppOffline {
@@ -398,8 +508,27 @@ function Invoke-IisReset {
     }
 }
 
-if (-not (Test-Path -LiteralPath $configPath)) {
-    throw "Config file not found: $configPath"
+if (-not (Test-Path -LiteralPath $ConfigPath)) {
+    throw "Config file not found: $ConfigPath"
+}
+
+$config = Get-Content -LiteralPath $ConfigPath -Raw -Encoding UTF8 | ConvertFrom-Json
+
+if ($PluginOnly) {
+    $config.api.enabled = $false
+    $config.web.enabled = $false
+    $config.fileDatabase.enabled = $false
+}
+
+if ($ReleaseManagementOnly) {
+    $config.plugin.enabled = $false
+    $config.fileDatabase.enabled = $false
+    Assert-ReleaseManagementReady -ApiComponent $config.api -WebComponent $config.web
+}
+
+if ($PreflightOnly) {
+    Write-Step "Release management preflight completed successfully"
+    return
 }
 
 if (-not (Test-CommandExists -Name "dotnet")) {
@@ -412,20 +541,6 @@ if (-not $ReleaseManagementOnly -and -not (Test-CommandExists -Name "mvn")) {
 
 if (-not (Test-CommandExists -Name "robocopy")) {
     throw "robocopy command was not found."
-}
-
-$config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
-
-if ($PluginOnly) {
-    $config.api.enabled = $false
-    $config.web.enabled = $false
-    $config.fileDatabase.enabled = $false
-}
-
-if ($ReleaseManagementOnly) {
-    $config.plugin.enabled = $false
-    $config.fileDatabase.enabled = $false
-    Assert-TokenFileReady -Component $config.api
 }
 
 $script:iisResetCommand = Resolve-IisResetCommand -IisConfig $config.iis

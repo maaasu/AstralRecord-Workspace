@@ -38,7 +38,9 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 ├─ deploy-debug/
 │  ├─ deploy-debug.ps1
 │  ├─ deploy-debug.config.json
-│  └─ normalize-source-encoding.ps1
+│  ├─ normalize-source-encoding.ps1
+│  └─ tests/
+│     └─ release-management-preflight.integration.ps1
 ├─ astralarchitect-deploy/
 │  ├─ astralarchitect-deploy.ps1
 │  ├─ astralarchitect-deploy.config.json
@@ -77,7 +79,19 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 
 `01-deploy-debug.bat` は従来どおり Plugin のテストを含めてビルドします。高速な配置確認用の `02-deploy-debug-plugin-only.bat` は Maven の `maven.test.skip` を有効にし、テストのコンパイルと実行を省略してから Plugin を配置します。
 
-`10-release-management-deploy.bat` は API と Web だけをデプロイします。初回実行前にAPI配置先へ既存DiscordSRV Botのトークンを `token.txt` として安全に配置してください。BATは配置前にtoken.txtの存在と非空だけを検証し、値は表示しません。バックアップにもtoken.txtを複製しません。Web の配置先 `appsettings.json` は保持されるため、初回だけ `AstralRecordApi:BaseUrl` と `AstralRecordApi:ApiKey` を本番値に設定してください。APIキーはAPI側の `ApiKey:Key` と同じ値を使用し、ソース管理には追加しません。
+`10-release-management-deploy.bat` は API と Web だけをデプロイします。初回実行前にAPI配置先へ既存DiscordSRV Botのトークンを `token.txt` として安全に配置してください。Web の配置先 `appsettings.json` は保持されるため、初回だけ `AstralRecordApi:BaseUrl` と `AstralRecordApi:ApiKey` を本番値に設定してください。現在の本番API接続先は `https://device_server:444` です。APIキーはAPI側の `ApiKey:Key` と同じ値を使用し、ソース管理には追加しません。
+
+デプロイ前には、`token.txt` の存在・非空、Webの本番API接続先、APIキーの一致、`ReleaseNotes:SyncOnStartup` が有効であることを検証します。トークンとAPIキーの値は表示せず、バックアップにも `token.txt` を複製しません。配置せず検証だけを行う場合は、次を実行します。
+
+```powershell
+.\10-release-management-deploy.bat -PreflightOnly
+```
+
+デプロイ前検証の正常系・異常系と、秘密情報が出力されないことを確認する統合テストは次を実行します。テスト用データはシステムの一時ディレクトリだけへ作成し、実サーバーへの書き込みやデプロイは行いません。
+
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\deploy-debug\tests\release-management-preflight.integration.ps1
+```
 
 `09-astralarchitect-build-deploy.bat`はAstralArchitectのMavenテストとビルドを行い、成功後に`AstralArchitect.jar`だけを配置します。`-BuildOnly`で配置を省略でき、`-PluginsDirectory "D:\minecraft\plugins"`で今回だけ配置先を上書きできます。既定値は`astralarchitect-deploy/astralarchitect-deploy.config.json`の`pluginsDirectory`で管理します。サーバーの停止・再起動や、既存チケットデータの変更は行いません。
 

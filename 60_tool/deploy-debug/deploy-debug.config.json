@@ -28,6 +28,7 @@
   },
   "web": {
     "enabled": true,
+    "expectedApiBaseUrl": "https://device_server:444",
     "projectPath": "E:\\AstralRecord-Workspace\\30_web\\AstralRecordWeb\\AstralRecordWeb\\AstralRecordWeb.csproj",
     "buildOutputPath": "E:\\AstralRecord-Workspace\\30_web\\AstralRecordWeb\\AstralRecordWeb\\bin\\Release\\net10.0\\publish",
     "deployPath": "\\\\192.168.0.88\\server\\AstralRecordWeb",
