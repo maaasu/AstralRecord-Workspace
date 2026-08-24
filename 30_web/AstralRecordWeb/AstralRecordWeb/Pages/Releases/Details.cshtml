@@ -6,13 +6,14 @@
 
 @if (Model.ReleaseNote is not null)
 {
+    var publishedAtJst = Model.ReleaseNote.PublishedAt.ToOffset(TimeSpan.FromHours(9));
     <div class="ar-release-page">
         <section class="ar-page-hero ar-page-hero--sky ar-release-hero" aria-labelledby="release-detail-title">
             <div class="ar-hero-overlay"></div>
             <div class="container position-relative text-center py-5">
                 <p class="ar-home-kicker">Release Note · @Model.ReleaseNote.Version</p>
                 <h1 class="ar-page-hero-title" id="release-detail-title">@Model.ReleaseNote.Title</h1>
-                <p class="ar-page-hero-sub">@Model.ReleaseNote.PublishedAt.ToLocalTime().ToString("yyyy年M月d日")</p>
+                <p class="ar-page-hero-sub">@publishedAtJst.ToString("yyyy年M月d日")</p>
             </div>
         </section>
 
@@ -21,8 +22,8 @@
                 <article class="ar-release-document ar-legal-shell">
                     <div class="ar-release-document__meta">
                         <span class="ar-release-version">@Model.ReleaseNote.Version</span>
-                        <time datetime="@Model.ReleaseNote.PublishedAt.ToString("yyyy-MM-ddTHH:mm:sszzz")">
-                            @Model.ReleaseNote.PublishedAt.ToLocalTime().ToString("yyyy年M月d日 HH:mm")
+                        <time datetime="@publishedAtJst.ToString("yyyy-MM-ddTHH:mm:sszzz")">
+                            @publishedAtJst.ToString("yyyy年M月d日 HH:mm")
                         </time>
                     </div>
                     <div class="ar-markdown-content">

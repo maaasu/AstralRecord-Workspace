@@ -133,14 +133,80 @@ public sealed class PublicSiteRenderingTests
         Assert.Contains("リリースノート公開機能を導入しました", decodedListBody);
         Assert.Contains("0.1.0", decodedListBody);
         Assert.Contains("/releases/release-management", decodedListBody);
+        Assert.Contains("Astral Recordのアップデート情報をWebサイトと公式Discordで確認できるようになりました", decodedListBody);
 
         var detailResponse = await client.GetAsync("/releases/release-management");
         detailResponse.EnsureSuccessStatusCode();
         var detailBody = await detailResponse.Content.ReadAsStringAsync();
 
         var decodedDetailBody = WebUtility.HtmlDecode(detailBody);
-        Assert.Contains("プロジェクト内のMarkdownファイルからWebサイトへ公開できるようになりました", decodedDetailBody);
-        Assert.Contains("通知に失敗した場合は、APIがOutboxへ保持して再試行します", decodedDetailBody);
+        Assert.Contains("2026年8月24日 21:00", decodedDetailBody);
+        Assert.Contains("datetime=\"2026-08-24T21:00:00+09:00\"", decodedDetailBody);
+        Assert.Contains("Astral Recordのアップデート情報を、Webサイトで確認できるようになりました", decodedDetailBody);
+        Assert.Contains("公式Discordでもお知らせします", decodedDetailBody);
+        var visibleDetailText = Regex.Replace(decodedDetailBody, "<[^>]+>", " ");
+
+        foreach (var internalTerm in new[]
+                 {
+                     "00_docs/",
+                     "front matter",
+                     "デプロイ",
+                     "Markdown",
+                     "Webコード",
+                     "API",
+                     "Outbox",
+                 })
+        {
+            Assert.DoesNotContain(internalTerm, visibleDetailText, StringComparison.OrdinalIgnoreCase);
+        }
+    }
+
+    [Fact]
+    public async Task ReleaseNotes_DisplayPublishedAtInJapanStandardTime()
+    {
+        var temporaryDirectory = Path.Combine(
+            Path.GetTempPath(),
+            $"astralrecord-release-note-jst-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(temporaryDirectory);
+
+        try
+        {
+            await File.WriteAllTextAsync(
+                Path.Combine(temporaryDirectory, "utc-release.md"),
+                """
+                ---
+                slug: utc-release
+                version: 1.0.0
+                title: 日本時間表示テスト
+                summary: 公開日時の表示確認
+                publishedAt: 2026-08-23T18:00:00+00:00
+                status: published
+                notifyDiscord: false
+                ---
+
+                公開日時を日本標準時で表示します。
+                """);
+
+            await using var factory = new PublicSiteWebApplicationFactory("OpenAlpha", temporaryDirectory);
+            using var client = CreateClient(factory);
+            var listResponse = await client.GetAsync("/releases");
+            listResponse.EnsureSuccessStatusCode();
+            var listBody = WebUtility.HtmlDecode(await listResponse.Content.ReadAsStringAsync());
+
+            Assert.Contains("2026年8月24日", listBody);
+            Assert.Contains("datetime=\"2026-08-24T03:00:00+09:00\"", listBody);
+
+            var detailResponse = await client.GetAsync("/releases/utc-release");
+            detailResponse.EnsureSuccessStatusCode();
+            var detailBody = WebUtility.HtmlDecode(await detailResponse.Content.ReadAsStringAsync());
+
+            Assert.Contains("2026年8月24日 03:00", detailBody);
+            Assert.Contains("datetime=\"2026-08-24T03:00:00+09:00\"", detailBody);
+        }
+        finally
+        {
+            Directory.Delete(temporaryDirectory, recursive: true);
+        }
     }
 
     private static HttpClient CreateClient(WebApplicationFactory<Program> factory) =>
@@ -160,7 +226,7 @@ public sealed class PublicSiteRenderingTests
         return html[start..(end + "</section>".Length)];
     }
 
-    private sealed class PublicSiteWebApplicationFactory(string phase) : WebApplicationFactory<Program>
+    private sealed class PublicSiteWebApplicationFactory(string phase, string? releaseNotesPath = null) : WebApplicationFactory<Program>
     {
         protected override void ConfigureWebHost(IWebHostBuilder builder)
         {
@@ -169,7 +235,8 @@ public sealed class PublicSiteRenderingTests
                 configurationBuilder.AddInMemoryCollection(new Dictionary<string, string?>
                 {
                     ["PublicSite:Phase"] = phase,
-                    ["ReleaseNotes:ContentRootRelativePath"] = Path.Combine(AppContext.BaseDirectory, "release-notes"),
+                    ["ReleaseNotes:ContentRootRelativePath"] = releaseNotesPath
+                        ?? Path.Combine(AppContext.BaseDirectory, "release-notes"),
                 });
             });
         }

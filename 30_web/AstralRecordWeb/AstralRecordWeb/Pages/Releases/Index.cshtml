@@ -31,11 +31,12 @@
                 <div class="ar-release-grid">
                     @foreach (var release in Model.Releases)
                     {
+                        var publishedAtJst = release.PublishedAt.ToOffset(TimeSpan.FromHours(9));
                         <article class="ar-release-card">
                             <div class="ar-release-card__meta">
                                 <span class="ar-release-version">@release.Version</span>
-                                <time datetime="@release.PublishedAt.ToString("yyyy-MM-ddTHH:mm:sszzz")">
-                                    @release.PublishedAt.ToLocalTime().ToString("yyyy年M月d日")
+                                <time datetime="@publishedAtJst.ToString("yyyy-MM-ddTHH:mm:sszzz")">
+                                    @publishedAtJst.ToString("yyyy年M月d日")
                                 </time>
                             </div>
                             <h2><a asp-page="/Releases/Details" asp-route-slug="@release.Slug">@release.Title</a></h2>
