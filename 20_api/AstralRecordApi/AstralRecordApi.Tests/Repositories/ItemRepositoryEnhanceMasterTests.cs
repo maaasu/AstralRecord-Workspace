@@ -42,7 +42,7 @@ public class ItemRepositoryEnhanceMasterTests
         Assert.DoesNotContain(allSummaries, item => item.Category == "enhancement_material");
 
         Assert.Contains(summaries, item => item.Id == "tyr_orb");
-        Assert.Contains(summaries, item => item.Id == "repair_orb");
+        Assert.Contains(summaries, item => item.Id == "sindri_orb");
         Assert.Contains(summaries, item => item.Id == "transcendence_orb");
         Assert.Contains(summaries, item => item.Id == "enchant_fill_all_orb");
 
@@ -84,10 +84,10 @@ public class ItemRepositoryEnhanceMasterTests
         Assert.Equal(5, highTransition!.Orb!.Effect.Rank);
         Assert.Equal("AT_MOST", highTransition.Orb.Effect.RankMode);
 
-        var fixedRepair = repository.GetById("repair_orb");
+        var sindriRepair = repository.GetById("sindri_orb");
         var fullRepair = repository.GetById("full_repair_orb");
-        Assert.Equal(50, fixedRepair!.Orb!.Effect.RepairAmount);
-        Assert.False(fixedRepair.Orb.Effect.RepairFull);
+        Assert.Equal(75, sindriRepair!.Orb!.Effect.RepairAmount);
+        Assert.False(sindriRepair.Orb.Effect.RepairFull);
         Assert.True(fullRepair!.Orb!.Effect.RepairFull);
     }
 

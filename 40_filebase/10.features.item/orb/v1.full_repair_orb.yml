@@ -1,11 +1,11 @@
 # design:
-#   motif: "装備修復 / 完全再生"
+#   motif: "ギリシャ神話 / ヘパイストス"
 #   progression: 1
 schemaVersion: 1
 id: full_repair_orb
 category: orb
-name: "&e完全修復のオーブ"
-icon: HONEYCOMB
+name: "&6ヘパイストスのオーブ"
+icon: ANVIL
 rarity: RARE
 maxStack: 64
 saleValue: 120

@@ -169,7 +169,7 @@ public class EquipmentControllerOrbOperationTests
         AccountId = Guid.NewGuid(),
         EquipmentInstanceId = Guid.NewGuid(),
         OrbInventoryEntryId = Guid.NewGuid(),
-        OrbItemId = "repair_orb",
+        OrbItemId = "sindri_orb",
     };
 
     private static EquipmentOrbOperationRequest InvalidRequest(Action<EquipmentOrbOperationRequest> mutate)

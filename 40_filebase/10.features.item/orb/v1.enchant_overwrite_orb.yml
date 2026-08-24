@@ -1,11 +1,11 @@
 # design:
-#   motif: "エンチャント / 星律の再抽選"
+#   motif: "ギリシャ神話 / モイライ"
 #   progression: 1
 schemaVersion: 1
 id: enchant_overwrite_orb
 category: orb
-name: "&c再抽選のオーブ"
-icon: MAGMA_CREAM
+name: "&5モイライのオーブ"
+icon: STRING
 rarity: RARE
 maxStack: 64
 saleValue: 100

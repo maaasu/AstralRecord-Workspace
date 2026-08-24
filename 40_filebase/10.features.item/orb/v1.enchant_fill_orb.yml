@@ -1,11 +1,11 @@
 # design:
-#   motif: "エンチャント / 空き枠への星印"
+#   motif: "ギリシャ神話 / アテナ"
 #   progression: 1
 schemaVersion: 1
 id: enchant_fill_orb
 category: orb
-name: "&3刻印のオーブ"
-icon: PRISMARINE_CRYSTALS
+name: "&bアテナのオーブ"
+icon: ENCHANTED_BOOK
 rarity: RARE
 maxStack: 64
 saleValue: 100

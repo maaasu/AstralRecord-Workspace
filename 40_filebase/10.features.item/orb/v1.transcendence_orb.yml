@@ -1,11 +1,11 @@
 # design:
-#   motif: "装備状態変化 / 星の昇華"
+#   motif: "ギリシャ神話 / プロメテウス"
 #   progression: 1
 schemaVersion: 1
 id: transcendence_orb
 category: orb
-name: "&5状態変化のオーブ"
-icon: AMETHYST_SHARD
+name: "&cプロメテウスのオーブ"
+icon: BLAZE_POWDER
 rarity: RARE
 maxStack: 64
 saleValue: 150

@@ -28,7 +28,7 @@ public class EquipmentServiceTests
             AccountId = Guid.NewGuid(),
             EquipmentInstanceId = Guid.NewGuid(),
             OrbInventoryEntryId = Guid.NewGuid(),
-            OrbItemId = "repair_orb",
+            OrbItemId = "sindri_orb",
         };
 
         var result = await service.ApplyOrbAsync(request);

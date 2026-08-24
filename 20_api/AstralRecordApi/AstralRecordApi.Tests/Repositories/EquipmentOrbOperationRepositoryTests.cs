@@ -69,13 +69,13 @@ public class EquipmentOrbOperationRepositoryTests
     {
         await using var harness = await OrbOperationHarness.CreateAsync();
         await harness.SetEquipmentStateAsync(instance => instance.DurabilityValue = 40);
-        var orb = await harness.AddOrbAsync("repair_orb", new ItemOrbEffectResponse
+        var orb = await harness.AddOrbAsync("sindri_orb", new ItemOrbEffectResponse
         {
             Type = "REPAIR",
             RepairAmount = 25,
         });
 
-        var result = await harness.ExecuteAsync("repair_orb", orb);
+        var result = await harness.ExecuteAsync("sindri_orb", orb);
 
         Assert.Equal("APPLIED", result.Result);
         Assert.True(result.PaymentConsumed);
