@@ -970,8 +970,8 @@ public final class OrbService {
             if (rune != null) selector = itemStackFactory.create(rune, 1);
         }
         session.inventory.setItem(RUNE_SELECTION_SLOT, selector);
-        boolean ready = session.selectedRuneItemId != null;
-        ItemStack result = ready ? itemStackFactory.create(target.model, target.instance, 1)
+        boolean ready = isRuneOperationReady(session, target);
+        ItemStack result = ready ? itemStackFactory.create(target.model, previewRuneInstance(session, target), 1)
             : GuiItems.create(Material.BARRIER, Component.text("ルーンを選択してください", NamedTextColor.RED), List.of());
         appendLore(result, List.of(Component.empty(), Component.text(ready ? "クリックして確定" : "操作できません", ready ? NamedTextColor.GREEN : NamedTextColor.RED)));
         session.inventory.setItem(RUNE_RESULT_SLOT, result);
@@ -1013,26 +1013,54 @@ public final class OrbService {
             session.selectedRuneItemId = rune.getItemId(); session.selectedRuneSlot = rune.getSlotIndex();
             session.screen = OrbGuiHolder.Screen.RUNE_DETACH; session.inventory = Bukkit.createInventory(
                 new OrbGuiHolder(session.player.getUniqueId(), session.token, session.screen), 27, Component.text("ルーン脱着", NamedTextColor.DARK_PURPLE));
-            renderRuneScreen(session, target); GuiOpenSupport.open(session.player, session.inventory, () -> GuiSound.SELECT.play(session.player), () -> { }); return;
+            renderRuneScreen(session, target); transitionInventory(session, session.inventory, session.screen); GuiSound.SELECT.play(session.player); return;
         }
         if (event.getRawSlot() != RUNE_RESULT_SLOT || session.selectedRuneItemId == null) { GuiSound.DENY.play(session.player); return; }
-        if (session.screen == OrbGuiHolder.Screen.RUNE_ATTACH) {
-            EquipmentInstance attached = itemService.attachRune(
-                target.instance.getEquipmentInstanceId(), session.selectedRuneItemId, session.accountId.toString());
-            if (attached == null || !inventoryService.consumeNormalItem(session.accountId, session.selectedRuneItemId, 1)) {
-                if (attached != null && !attached.getRunes().isEmpty()) {
-                    int slot = attached.getRunes().getLast().getSlotIndex();
-                    itemService.detachRune(attached.getEquipmentInstanceId(), slot, session.accountId.toString());
-                }
-                GuiSound.DENY.play(session.player); return;
-            }
-        } else {
-            ItemModel rune = itemService.findLoadedById(session.selectedRuneItemId);
-            if (rune == null || itemService.detachRune(target.instance.getEquipmentInstanceId(), session.selectedRuneSlot, session.accountId.toString()) == null
-                || inventoryService.addItemToNormalInventory(session.astPlayer, rune, 1, "rune_detach") != 1) { GuiSound.DENY.play(session.player); return; }
+        executeCandidate(session, orb, target);
+    }
+
+    /** 選択済みルーンが対象装備へ装着・脱着できるかをGUI表示用に再検証します。 */
+    private boolean isRuneOperationReady(@NotNull OrbSession session, @NotNull OrbCandidate target) {
+        if (session.selectedRuneItemId == null) return false;
+        if (session.screen == OrbGuiHolder.Screen.RUNE_DETACH) {
+            return target.instance.getRunes().stream().anyMatch(rune -> rune.getSlotIndex() == session.selectedRuneSlot
+                && rune.getItemId().equalsIgnoreCase(session.selectedRuneItemId));
         }
-        if (statusService != null) statusService.refreshStatus(session.astPlayer);
-        GuiSound.SELECT.play(session.player); closeAndRemove(session);
+        ItemModel rune = itemService.findLoadedById(session.selectedRuneItemId);
+        if (rune == null || rune.getRune() == null || target.model.getEquipment() == null
+            || target.model.getEquipment().getRune() == null
+            || target.instance.getRuneMaxSlots() <= target.instance.getRunes().size()
+            || target.instance.getEnhanceLevel() < rune.getRune().getRequiredEnhanceLevel()) return false;
+        if (!target.model.getEquipment().getRune().getAllowedRuneIds().isEmpty()
+            && target.model.getEquipment().getRune().getAllowedRuneIds().stream()
+                .noneMatch(id -> id.equalsIgnoreCase(rune.getId()))) return false;
+        String slot = target.model.getEquipment().getSlot() == null ? "" : target.model.getEquipment().getSlot().name();
+        return rune.getRune().getTargetSlots().stream()
+            .anyMatch(targetSlot -> "ANY".equalsIgnoreCase(targetSlot) || targetSlot.equalsIgnoreCase(slot));
+    }
+
+    /** 右側の完成形表示だけに使う、選択内容を反映した一時装備個体を作成します。 */
+    private @NotNull EquipmentInstance previewRuneInstance(@NotNull OrbSession session, @NotNull OrbCandidate target) {
+        List<EquipmentRune> runes = new ArrayList<>(target.instance.getRunes());
+        if (session.screen == OrbGuiHolder.Screen.RUNE_ATTACH) {
+            int slot = 0;
+            while (true) {
+                int candidate = slot;
+                if (runes.stream().noneMatch(rune -> rune.getSlotIndex() == candidate)) {
+                    break;
+                }
+                slot++;
+            }
+            runes.add(new EquipmentRune("preview", target.instance.getEquipmentInstanceId(), slot, session.selectedRuneItemId));
+        } else {
+            runes.removeIf(rune -> rune.getSlotIndex() == session.selectedRuneSlot);
+        }
+        return new EquipmentInstance(
+            target.instance.getEquipmentInstanceId(), target.instance.getAccountId(), target.instance.getItemId(),
+            target.instance.getEnhanceLevel(), target.instance.getRuneMaxSlots(), target.instance.getTranscendenceRank(),
+            target.instance.getDurabilityMax(), target.instance.getDurabilityValue(), target.instance.getCreatedAt(),
+            target.instance.getUpdatedAt(), target.instance.getStatRolls(), target.instance.getEnchants(), runes
+        );
     }
 
     /** 装備済みルーンを3行・18件単位で選択するページを描画します。 */
@@ -1912,6 +1940,11 @@ public final class OrbService {
             return;
         }
         ItemOrbEffect effect = currentOrb.getOrb().getEffect();
+        if ((effect.getType() == ItemOrbEffectType.RUNE_ATTACH || effect.getType() == ItemOrbEffectType.RUNE_DETACH)
+            && session.selectedRuneItemId == null) {
+            GuiSound.DENY.play(session.player);
+            return;
+        }
         OrbEligibility.TranscendencePlan transitionPlan = null;
         if (effect.getType() == ItemOrbEffectType.TRANSCENDENCE) {
             transitionPlan = OrbEligibility.resolveTranscendence(
@@ -1946,6 +1979,10 @@ public final class OrbService {
         Map<String, Long> normalItems = new LinkedHashMap<>();
         try {
             normalItems.put(orbModel.getId().trim().toLowerCase(Locale.ROOT), 1L);
+            if (orbModel.getOrb().getEffect().getType() == ItemOrbEffectType.RUNE_ATTACH
+                && session.selectedRuneItemId != null) {
+                normalItems.merge(session.selectedRuneItemId.trim().toLowerCase(Locale.ROOT), 1L, Math::addExact);
+            }
             if (transitionPlan != null) {
                 transitionPlan.definition().getRequiredMaterials().stream()
                     .filter(material -> material.getAmount() > 0 && !material.getItemId().isBlank())
@@ -2034,7 +2071,9 @@ public final class OrbService {
                 accountId,
                 target.instance.getEquipmentInstanceId(),
                 session.orbEntryId.toString(),
-                orbModel.getId()
+                orbModel.getId(),
+                session.selectedRuneItemId,
+                session.screen == OrbGuiHolder.Screen.RUNE_DETACH ? session.selectedRuneSlot : null
             );
             if (operation == null) {
                 operation = itemService.findEquipmentOrbOperation(operationIdText, accountId);
@@ -2161,6 +2200,7 @@ public final class OrbService {
                 Objects.requireNonNullElse(operation.getRepairedAmount(), 0)
             );
             case "ENCHANT" -> MutationResult.enchant(model, instance);
+            case "RUNE_ATTACH", "RUNE_DETACH" -> MutationResult.rune(model, instance);
             case "TRANSCENDENCE" -> {
                 String name = operation.getTransitionName();
                 if (name == null || name.isBlank()) {
@@ -2433,6 +2473,7 @@ public final class OrbService {
             );
             case ENCHANT -> PlayerMessageService.getInstance().send(
                 player, PlayerMsgId.P_5293, displayName);
+            case RUNE -> { }
             case TRANSCENDENCE -> PlayerMessageService.getInstance().send(
                 player, PlayerMsgId.P_5287, displayName, result.transitionName);
         }
@@ -2555,6 +2596,7 @@ public final class OrbService {
         ENHANCEMENT,
         REPAIR,
         ENCHANT,
+        RUNE,
         TRANSCENDENCE,
     }
 
@@ -2673,6 +2715,16 @@ public final class OrbService {
                 0.0D,
                 0,
                 null
+            );
+        }
+
+        private static @NotNull MutationResult rune(
+            @NotNull ItemModel model,
+            @NotNull EquipmentInstance instance
+        ) {
+            return new MutationResult(
+                MutationStatus.SUCCESS, MutationKind.RUNE, model, instance,
+                false, null, 0.0D, 0, null
             );
         }
 

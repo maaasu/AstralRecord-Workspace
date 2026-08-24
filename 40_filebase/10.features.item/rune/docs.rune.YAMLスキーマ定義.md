@@ -56,7 +56,7 @@ rarity: COMMON
 lore:
   - "&7装備に嵌め込むことで攻撃力を高める。"
 
-maxStack: 1
+maxStack: 64
 rune:
   targetSlots:
     - WEAPON
@@ -79,7 +79,7 @@ lore:
   - "&7防御力と魔法防御力を高める中級ルーン。"
   - "&e強化レベル3以上の装備にセット可能。"
 
-maxStack: 1
+maxStack: 64
 rune:
   targetSlots:
     - HEAD
@@ -109,7 +109,7 @@ lore:
   - "&7武器に炎の力を宿すルーン。"
   - "&e強化レベル5以上の武器にセット可能。"
 
-maxStack: 1
+maxStack: 64
 rune:
   targetSlots:
     - WEAPON
@@ -136,7 +136,7 @@ lore:
   - "&7どの装備にも嵌め込める汎用ルーン。"
   - "&7獲得経験値量が増加する。"
 
-maxStack: 1
+maxStack: 64
 rune:
   targetSlots:
     - ANY

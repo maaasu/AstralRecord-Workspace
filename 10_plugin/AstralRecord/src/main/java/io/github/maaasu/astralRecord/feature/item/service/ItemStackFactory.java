@@ -1289,7 +1289,10 @@ public class ItemStackFactory {
                 for (int slot = 0; slot < instance.getRuneMaxSlots(); slot++) {
                     EquipmentRune rune = runeBySlot.get(slot);
                     if (rune != null) {
-                        lore.add(ColorCodeUtil.GREEN + " ● " + ColorCodeUtil.WHITE + rune.getItemId());
+                        ItemModel runeModel = itemService.findLoadedById(rune.getItemId());
+                        String runeName = runeModel == null || runeModel.getName() == null || runeModel.getName().isBlank()
+                            ? "不明なルーン" : runeModel.getName();
+                        lore.add(ColorCodeUtil.GREEN + " ● " + ColorCodeUtil.WHITE + runeName);
                     } else {
                         lore.add(ColorCodeUtil.DARK_GRAY + " ○ 空きスロット");
                     }

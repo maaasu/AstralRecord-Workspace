@@ -630,7 +630,7 @@ public final class QuestService {
                     return PreparedRewards.failure(stackRewards, instanceRewards);
                 }
                 ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
-                if (category != ItemCategory.EQUIPMENT && category != ItemCategory.RUNE) {
+                if (category != ItemCategory.EQUIPMENT) {
                     stackRewards.add(new ResolvedItemReward(model, item.amount()));
                     continue;
                 }

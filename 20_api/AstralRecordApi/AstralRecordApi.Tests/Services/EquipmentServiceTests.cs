@@ -91,7 +91,6 @@ public class EquipmentServiceTests
             new TestItemRepository(item),
             equipment,
             new TestOrbOperationRepository(),
-            new TestRuneRepository(),
             new TestAccountRepository(accountId));
 
         var result = await service.CreateAsync(new EquipmentCreateRequest
@@ -120,7 +119,6 @@ public class EquipmentServiceTests
             new TestItemRepository(CreateEquipmentItem()),
             equipment,
             new TestOrbOperationRepository(),
-            new TestRuneRepository(),
             new TestAccountRepository(Guid.NewGuid()));
 
         var result = await service.CreateAsync(new EquipmentCreateRequest
@@ -174,7 +172,6 @@ public class EquipmentServiceTests
             new TestItemRepository(),
             equipment ?? new TestEquipmentRepository(),
             orbOperations,
-            new TestRuneRepository(),
             new TestAccountRepository(accountId));
     }
 
@@ -319,18 +316,6 @@ public class EquipmentServiceTests
         }
 
         public Task<bool> SoftDeleteInstanceAsync(Guid instanceId) => Task.FromResult(false);
-    }
-
-    private sealed class TestRuneRepository : IRuneRepository
-    {
-        public Task AddAsync(RuneInstanceEntity instance, IReadOnlyList<RuneInstanceStatRollEntity> statRolls) =>
-            Task.CompletedTask;
-
-        public Task<RuneInstanceEntity?> FindInstanceAsync(Guid instanceId) =>
-            Task.FromResult<RuneInstanceEntity?>(null);
-
-        public Task<IReadOnlyList<RuneInstanceStatRollEntity>> FindStatRollsAsync(Guid instanceId) =>
-            Task.FromResult<IReadOnlyList<RuneInstanceStatRollEntity>>([]);
     }
 
     private sealed class TestAccountRepository(Guid accountId) : IAccountRepository

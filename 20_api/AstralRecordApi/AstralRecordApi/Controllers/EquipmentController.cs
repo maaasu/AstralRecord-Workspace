@@ -127,33 +127,4 @@ public class EquipmentController(IEquipmentService equipmentService) : Controlle
         return NoContent();
     }
 
-    /// <summary>ルーン装着</summary>
-    /// <response code="200">ルーン装着成功</response>
-    /// <response code="404">対象装備または対象ルーンが存在しない、あるいは装着条件を満たさない</response>
-    [HttpPost("rune")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> AttachRune([FromBody] EquipmentRuneAttachRequest request)
-    {
-        var instance = await equipmentService.AttachRuneAsync(request);
-        if (instance is null)
-            return NotFound();
-
-        return Ok(instance);
-    }
-
-    /// <summary>ルーン脱着</summary>
-    /// <response code="200">ルーン脱着成功</response>
-    /// <response code="404">対象装備または対象スロットのルーンが存在しない</response>
-    [HttpDelete("rune")]
-    [ProducesResponseType(StatusCodes.Status200OK)]
-    [ProducesResponseType(StatusCodes.Status404NotFound)]
-    public async Task<IActionResult> DetachRune([FromBody] EquipmentRuneDetachRequest request)
-    {
-        var instance = await equipmentService.DetachRuneAsync(request);
-        if (instance is null)
-            return NotFound();
-
-        return Ok(instance);
-    }
 }

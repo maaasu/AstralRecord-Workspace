@@ -407,10 +407,9 @@ public final class MailService {
                 for (int index = 0; index < reward.amount(); index++) {
                     InventoryService.PreparedInventoryInstance prepared = switch (category) {
                         case EQUIPMENT -> prepareEquipmentInstance(model, accountId);
-                        case RUNE -> prepareRuneInstance(model, accountId);
                         default -> null;
                     };
-                    if ((category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE)
+                    if (category == ItemCategory.EQUIPMENT
                         && prepared == null) {
                         cleanupPreparedInstances(preparedInstances);
                         return null;

@@ -18,6 +18,10 @@ public class EquipmentOrbOperationRequest : IValidatableObject
     /// </summary>
     public Guid OrbInventoryEntryId { get; set; }
     public required string OrbItemId { get; set; }
+    /// <summary>RUNE_ATTACH で消費するルーンの itemId。RUNE_DETACH では null。</summary>
+    public string? RuneItemId { get; set; }
+    /// <summary>RUNE_DETACH で取り外すスロット番号。RUNE_ATTACH では null。</summary>
+    public int? RuneSlotIndex { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
@@ -27,6 +31,12 @@ public class EquipmentOrbOperationRequest : IValidatableObject
             yield return new ValidationResult(
                 $"OrbItemId must be 1 to {OrbItemIdMaxLength} UTF-16 code units after normalization.",
                 [nameof(OrbItemId)]);
+        }
+        if (RuneItemId?.Trim().Length > OrbItemIdMaxLength)
+        {
+            yield return new ValidationResult(
+                $"RuneItemId must be at most {OrbItemIdMaxLength} UTF-16 code units after normalization.",
+                [nameof(RuneItemId)]);
         }
     }
 }

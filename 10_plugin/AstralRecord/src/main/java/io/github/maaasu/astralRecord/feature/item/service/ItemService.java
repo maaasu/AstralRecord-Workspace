@@ -691,6 +691,8 @@ public class ItemService {
      * @param instanceId 対象装備個体ID
      * @param orbInventoryEntryId 共通消費順で直近に解決したオーブentry ID
      * @param orbItemId オーブitem ID
+     * @param runeItemId 装着するルーンitem ID。脱着・通常操作ではnull
+     * @param runeSlotIndex 脱着するルーンスロット。装着・通常操作ではnull
      * @return API確定結果。通信失敗時は {@code null}
      */
     public @Nullable EquipmentOrbOperationResult applyEquipmentOrbOperation(
@@ -698,11 +700,13 @@ public class ItemService {
         @NotNull String accountId,
         @NotNull String instanceId,
         @NotNull String orbInventoryEntryId,
-        @NotNull String orbItemId
+        @NotNull String orbItemId,
+        @Nullable String runeItemId,
+        @Nullable Integer runeSlotIndex
     ) {
         try {
             return mergeOrbOperationResult(itemRepository.applyEquipmentOrbOperation(
-                operationId, accountId, instanceId, orbInventoryEntryId, orbItemId));
+                operationId, accountId, instanceId, orbInventoryEntryId, orbItemId, runeItemId, runeSlotIndex));
         } catch (Exception exception) {
             Logger.log(LogId.E_5202, exception, instanceId);
             return null;
@@ -996,46 +1000,6 @@ public class ItemService {
         } catch (Exception e) {
             Logger.log(LogId.E_5202, e, instanceId);
             return false;
-        }
-    }
-
-    /** 通常itemのルーンを装備へ装着し、成功時は装備キャッシュを更新します。 */
-    public @Nullable EquipmentInstance attachRune(
-        @NotNull String equipmentInstanceId,
-        @NotNull String runeItemId,
-        @NotNull String updatedBy
-    ) {
-        try {
-            EquipmentInstance updated = itemRepository.attachRune(equipmentInstanceId, runeItemId, updatedBy);
-            if (updated != null) {
-                synchronized (equipmentStateMutex) {
-                    loadedEquipmentInstances.put(normalize(updated.getEquipmentInstanceId()), updated);
-                }
-            }
-            return updated;
-        } catch (Exception exception) {
-            Logger.log(LogId.E_5202, exception, equipmentInstanceId);
-            return null;
-        }
-    }
-
-    /** 指定スロットのルーンを外し、成功時は装備キャッシュを更新します。 */
-    public @Nullable EquipmentInstance detachRune(
-        @NotNull String equipmentInstanceId,
-        int slotIndex,
-        @NotNull String updatedBy
-    ) {
-        try {
-            EquipmentInstance updated = itemRepository.detachRune(equipmentInstanceId, slotIndex, updatedBy);
-            if (updated != null) {
-                synchronized (equipmentStateMutex) {
-                    loadedEquipmentInstances.put(normalize(updated.getEquipmentInstanceId()), updated);
-                }
-            }
-            return updated;
-        } catch (Exception exception) {
-            Logger.log(LogId.E_5202, exception, equipmentInstanceId);
-            return null;
         }
     }
 

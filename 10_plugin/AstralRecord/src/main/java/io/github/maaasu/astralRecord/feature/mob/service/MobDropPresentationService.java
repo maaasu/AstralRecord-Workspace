@@ -222,7 +222,7 @@ public final class MobDropPresentationService {
         List<ResolvedDropItem> expanded = new ArrayList<>();
         for (ResolvedDropItem item : items) {
             ItemCategory category = ItemCategory.fromApiValue(item.model().getCategory());
-            if (category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE) {
+            if (category == ItemCategory.EQUIPMENT) {
                 for (int index = 0; index < item.amount(); index++) {
                     expanded.add(new ResolvedDropItem(item.model(), 1, item.dropRate()));
                 }
@@ -492,7 +492,7 @@ public final class MobDropPresentationService {
      */
     private boolean requiresPreparedInstanceSlot(@NotNull ResolvedDropItem item) {
         ItemCategory category = ItemCategory.fromApiValue(item.model().getCategory());
-        return category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE;
+        return category == ItemCategory.EQUIPMENT;
     }
 
     /**
@@ -522,21 +522,6 @@ public final class MobDropPresentationService {
                     throw new IllegalStateException("Failed to create equipment instance for " + item.model().getId());
                 }
                 return PreparedDropGrant.equipment(item, instanceId, instance);
-            }, asyncExecutor);
-        }
-        if (category == ItemCategory.RUNE) {
-            return CompletableFuture.supplyAsync(() -> {
-                RuneInstance instance = itemService.createRuneInstance(
-                    item.model().getId(),
-                    recipient.getAccount().getUuid().toString(),
-                    dropSource,
-                    recipient.getAccount().getUuid().toString()
-                );
-                UUID instanceId = instance == null ? null : parseUuidOrNull(instance.getRuneInstanceId());
-                if (instance == null || instanceId == null) {
-                    throw new IllegalStateException("Failed to create rune instance for " + item.model().getId());
-                }
-                return PreparedDropGrant.rune(item, instanceId, instance);
             }, asyncExecutor);
         }
         return CompletableFuture.completedFuture(PreparedDropGrant.stacked(item));

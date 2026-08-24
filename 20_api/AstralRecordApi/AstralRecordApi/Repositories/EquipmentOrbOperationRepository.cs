@@ -26,6 +26,8 @@ public class EquipmentOrbOperationRepository(
     public async Task<EquipmentOrbOperationResponse> ExecuteAsync(EquipmentOrbOperationRequest request)
     {
         var normalizedOrbItemId = NormalizeId(request.OrbItemId);
+        var normalizedRuneItemId = string.IsNullOrWhiteSpace(request.RuneItemId)
+            ? null : NormalizeId(request.RuneItemId);
         var requestHash = ComputeRequestHash(request, normalizedOrbItemId);
         var strategy = dbContext.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
@@ -151,6 +153,7 @@ public class EquipmentOrbOperationRepository(
 
             var affectedEntryIds = new HashSet<Guid>();
             var requiredMaterials = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+            string? returnedRuneItemId = null;
             long requiredGold = 0L;
             var currentEnchants = await dbContext.EquipmentInstanceEnchants
                 .Where(enchant => enchant.EquipmentInstanceId == instance.EquipmentInstanceId)
@@ -254,6 +257,41 @@ public class EquipmentOrbOperationRepository(
                         return await CompleteAsync(enchantResult);
                     break;
                 }
+                case "RUNE_ATTACH":
+                {
+                    var runeItem = normalizedRuneItemId is null ? null : itemRepository.GetById(normalizedRuneItemId);
+                    var currentRunes = await dbContext.EquipmentInstanceRunes
+                        .Where(rune => rune.EquipmentInstanceId == instance.EquipmentInstanceId).ToListAsync();
+                    var runeSlot = NextRuneSlot(currentRunes, instance.RuneMaxSlots);
+                    if (runeItem?.Rune is null || !CanAttachRune(equipmentItem.Equipment, runeItem, instance)
+                        || runeSlot < 0)
+                        return await CompleteAsync("NOT_ELIGIBLE");
+                    if (!normalEntries.Any(entry => IsNormalStackEntry(entry) && entry.Quantity > 0
+                            && IdEquals(entry.ItemCategory, "RUNE") && IdEquals(entry.ItemId, normalizedRuneItemId)))
+                        return await CompleteAsync("PAYMENT_UNAVAILABLE");
+                    await dbContext.EquipmentInstanceRunes.AddAsync(new EquipmentInstanceRuneEntity
+                    {
+                        RuneId = Guid.NewGuid(), EquipmentInstanceId = instance.EquipmentInstanceId,
+                        SlotIndex = runeSlot, ItemId = normalizedRuneItemId!, CreatedAt = now, UpdatedAt = now,
+                        CreatedBy = request.AccountId, UpdatedBy = request.AccountId,
+                    });
+                    requiredMaterials[normalizedRuneItemId!] = 1L;
+                    break;
+                }
+                case "RUNE_DETACH":
+                {
+                    if (!request.RuneSlotIndex.HasValue)
+                        return await CompleteAsync("NOT_ELIGIBLE");
+                    var equippedRune = await dbContext.EquipmentInstanceRunes.FirstOrDefaultAsync(rune =>
+                        rune.EquipmentInstanceId == instance.EquipmentInstanceId && rune.SlotIndex == request.RuneSlotIndex.Value);
+                    if (equippedRune is null || string.IsNullOrWhiteSpace(equippedRune.ItemId))
+                        return await CompleteAsync("NO_CANDIDATE");
+                    returnedRuneItemId = NormalizeId(equippedRune.ItemId);
+                    if (!await CanReturnRuneAsync(request.AccountId, normalEntries, returnedRuneItemId))
+                        return await CompleteAsync("PAYMENT_UNAVAILABLE");
+                    dbContext.EquipmentInstanceRunes.Remove(equippedRune);
+                    break;
+                }
                 default:
                     return await CompleteAsync("NOT_ELIGIBLE");
             }
@@ -284,6 +322,10 @@ public class EquipmentOrbOperationRepository(
             }
             if (requiredGold > 0)
                 await RewriteGoldBalanceAsync(request.AccountId, requiredGold, request.AccountId, now, affectedEntryIds);
+            if (returnedRuneItemId is not null)
+            {
+                await ReturnRuneAsync(request.AccountId, normalEntries, returnedRuneItemId, now, affectedEntryIds);
+            }
 
             instance.UpdatedAt = now;
             instance.UpdatedBy = request.AccountId;
@@ -720,6 +762,73 @@ public class EquipmentOrbOperationRepository(
         && entry.InstanceId is null
         && string.IsNullOrWhiteSpace(entry.InstanceType);
 
+    private async Task<bool> CanReturnRuneAsync(Guid accountId, IReadOnlyCollection<InventoryEntryEntity> entries, string itemId)
+    {
+        var maxStack = Math.Max(1, itemRepository.GetById(itemId)?.MaxStack ?? 64);
+        if (entries.Any(entry => IsNormalStackEntry(entry) && entry.Quantity < maxStack
+                && IdEquals(entry.ItemCategory, "RUNE") && IdEquals(entry.ItemId, itemId)))
+            return true;
+        var inventories = await dbContext.Inventories.AsNoTracking().Where(inventory => inventory.AccountId == accountId
+            && !inventory.IsDeleted && inventory.IsEnabled && inventory.InventoryProfile == GameProfile
+            && (inventory.InventoryType == "BAG" || inventory.InventoryType == "HOTBAR")).ToListAsync();
+        return inventories.Any(inventory => entries.Count(entry => entry.InventoryId == inventory.InventoryId && entry.SlotIndex.HasValue) < inventory.SlotCapacity);
+    }
+
+    private async Task ReturnRuneAsync(Guid accountId, ICollection<InventoryEntryEntity> entries, string itemId,
+        DateTime now, ISet<Guid> affectedEntryIds)
+    {
+        var maxStack = Math.Max(1, itemRepository.GetById(itemId)?.MaxStack ?? 64);
+        var existing = entries.FirstOrDefault(entry => IsNormalStackEntry(entry)
+            && entry.Quantity < maxStack && IdEquals(entry.ItemCategory, "RUNE") && IdEquals(entry.ItemId, itemId));
+        if (existing is not null)
+        {
+            existing.Quantity++;
+            existing.UpdatedAt = now;
+            existing.UpdatedBy = accountId;
+            affectedEntryIds.Add(existing.InventoryEntryId);
+            return;
+        }
+        var inventory = (await dbContext.Inventories.Where(candidate => candidate.AccountId == accountId
+                && !candidate.IsDeleted && candidate.IsEnabled && candidate.InventoryProfile == GameProfile
+                && (candidate.InventoryType == "BAG" || candidate.InventoryType == "HOTBAR"))
+            .OrderBy(candidate => candidate.InventoryType == "HOTBAR" ? 0 : 1).ToListAsync())
+            .First(candidate => entries.Count(entry => entry.InventoryId == candidate.InventoryId && entry.SlotIndex.HasValue) < candidate.SlotCapacity);
+        var usedSlots = entries.Where(entry => entry.InventoryId == inventory.InventoryId && entry.SlotIndex.HasValue)
+            .Select(entry => entry.SlotIndex!.Value).ToHashSet();
+        var slot = Enumerable.Range(0, inventory.SlotCapacity ?? 0).First(index => !usedSlots.Contains(index));
+        var created = new InventoryEntryEntity
+        {
+            InventoryEntryId = Guid.NewGuid(), InventoryId = inventory.InventoryId, SlotIndex = slot,
+            ItemCategory = "rune", ItemId = itemId, Quantity = 1, CreatedAt = now, UpdatedAt = now,
+            CreatedBy = accountId, UpdatedBy = accountId,
+        };
+        await dbContext.InventoryEntries.AddAsync(created);
+        entries.Add(created);
+        affectedEntryIds.Add(created.InventoryEntryId);
+    }
+
+    private static int NextRuneSlot(IReadOnlyCollection<EquipmentInstanceRuneEntity> runes, int maxSlots)
+    {
+        var used = runes.Select(rune => rune.SlotIndex).ToHashSet();
+        for (var index = 0; index < Math.Max(0, maxSlots); index++)
+        {
+            if (!used.Contains(index))
+                return index;
+        }
+        return -1;
+    }
+
+    private static bool CanAttachRune(ItemEquipmentResponse equipment, ItemResponse runeItem, EquipmentInstanceEntity instance)
+    {
+        if (equipment.Rune is null || runeItem.Rune is null || instance.RuneMaxSlots <= 0
+            || instance.EnhanceLevel < runeItem.Rune.RequiredEnhanceLevel)
+            return false;
+        if (equipment.Rune.AllowedRuneIds.Count > 0
+            && !equipment.Rune.AllowedRuneIds.Any(id => IdEquals(id, runeItem.Id)))
+            return false;
+        return runeItem.Rune.TargetSlots.Any(slot => IdEquals(slot, "ANY") || IdEquals(slot, equipment.Slot));
+    }
+
     private static void ConsumeEntry(
         InventoryEntryEntity entry,
         long amount,
@@ -894,7 +1003,9 @@ public class EquipmentOrbOperationRepository(
             request.AccountId.ToString("D"),
             request.EquipmentInstanceId.ToString("D"),
             request.OrbInventoryEntryId.ToString("D"),
-            orbItemId);
+            orbItemId,
+            NormalizeId(request.RuneItemId),
+            request.RuneSlotIndex?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
     }
 

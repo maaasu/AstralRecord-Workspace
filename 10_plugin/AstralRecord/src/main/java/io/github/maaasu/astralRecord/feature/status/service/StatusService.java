@@ -1058,6 +1058,19 @@ public class StatusService {
             );
         }
 
+        for (var equippedRune : instance.getRunes()) {
+            ItemModel rune = resolveItemModel(equippedRune.getItemId());
+            if (rune == null || rune.getRune() == null) {
+                continue;
+            }
+            for (ItemEquipmentStat stat : rune.getRune().getStats()) {
+                StatusType statusType = resolveStatusTypeOrNull(stat.getStatus());
+                if (statusType != null) {
+                    addItemBonus(itemBonus, statusType, stat.getType(), stat.getMin(), stat.getMax());
+                }
+            }
+        }
+
         for (StatusType statusType : StatusType.values()) {
             StatusRange contribution = itemBonus.resolve(statusType);
             if (contribution != null) {

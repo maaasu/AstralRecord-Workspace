@@ -244,61 +244,6 @@ class ItemRepository {
         }
     }
 
-    /**
-     * 通常itemとして所持するルーンを装備へ装着します。
-     * POST /api/equipment/rune
-     */
-    fun attachRune(
-        equipmentInstanceId: String,
-        runeItemId: String,
-        updatedBy: String,
-    ): EquipmentInstance? {
-        val path = "/api/equipment/rune"
-        val body = ApiRequestUtil.buildJsonBody {
-            addProperty("equipmentInstanceId", equipmentInstanceId)
-            addProperty("runeItemId", runeItemId)
-            addProperty("updatedBy", updatedBy)
-        }
-        return sendEquipmentMutation(path, "POST", body)
-    }
-
-    /**
-     * 指定スロットのルーンを装備から取り外します。
-     * DELETE /api/equipment/rune
-     */
-    fun detachRune(
-        equipmentInstanceId: String,
-        slotIndex: Int,
-        updatedBy: String,
-    ): EquipmentInstance? {
-        val path = "/api/equipment/rune"
-        val body = ApiRequestUtil.buildJsonBody {
-            addProperty("equipmentInstanceId", equipmentInstanceId)
-            addProperty("slotIndex", slotIndex)
-            addProperty("updatedBy", updatedBy)
-        }
-        return sendEquipmentMutation(path, "DELETE", body)
-    }
-
-    private fun sendEquipmentMutation(path: String, method: String, body: String): EquipmentInstance? {
-        try {
-            ApiRequestUtil.buildClient().use { client ->
-                val request = ApiRequestUtil.buildRequestBuilder(path)
-                    .method(method, HttpRequest.BodyPublishers.ofString(body))
-                    .build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-                return when (response.statusCode()) {
-                    200 -> parseEquipmentInstance(response.body())
-                    404 -> null
-                    else -> throw IOException("Unexpected status ${response.statusCode()} for $method $path")
-                }
-            }
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-            throw RuntimeException(e)
-        }
-    }
-
     fun deleteEquipmentInstance(instanceId: String): Boolean {
         val path = "/api/equipment/instances/$instanceId"
         try {
@@ -517,6 +462,8 @@ class ItemRepository {
         instanceId: String,
         orbInventoryEntryId: String,
         orbItemId: String,
+        runeItemId: String? = null,
+        runeSlotIndex: Int? = null,
     ): EquipmentOrbOperationResult? {
         val path = "/api/equipment/orb-operations"
         val body = ApiRequestUtil.buildJsonBody {
@@ -525,6 +472,8 @@ class ItemRepository {
             addProperty("equipmentInstanceId", instanceId)
             addProperty("orbInventoryEntryId", orbInventoryEntryId)
             addProperty("orbItemId", orbItemId)
+            if (runeItemId != null) addProperty("runeItemId", runeItemId)
+            if (runeSlotIndex != null) addProperty("runeSlotIndex", runeSlotIndex)
         }
         try {
             ApiRequestUtil.buildClient().use { client ->
