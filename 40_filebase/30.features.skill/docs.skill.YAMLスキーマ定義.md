@@ -15,9 +15,9 @@
 | `type` | String | 必須 | - | `SKILL` |
 | `implementationId` | String | 必須 | - | plugin 側実装 ID |
 | `name` | String | 必須 | - | 表示名 |
-| `description` | String | 任意 | `null` | 説明文 |
+| `description` | String | 任意 | `null` | 主目的を伝える抽象的で簡潔な一文。原則として目安40文字以内とし、具体的な効果詳細や数値は `lore` に記載する |
 | `icon` | String | 任意 | `null` | Material 名 |
-| `lore` | List<String> | 任意 | `[]` | 詳細表示 lore |
+| `lore` | List<String> | 任意 | `[]` | 効果、条件、対象、数値などの詳細表示。1行1要素を基本とする |
 | `cooldownTicks` | Long | 任意 | `0` | クールダウン |
 | `cooldownId` | String | 任意 | `id` | 同一プレイヤー内で共有するクールダウン ID。発動スキル自身のクールダウン時間を共有グループへ設定する |
 | `resourceType` | String | 任意 | `MANA` | 消費リソース種別。`MANA` / `ENERGY` |
@@ -48,6 +48,8 @@
 
 ## 説明文プレースホルダー
 
+`description` はスキルの主目的を短く示すために使い、具体的な効果詳細、発動条件、対象数、持続時間、例外処理は `lore` に記載します。`lore` の各行は1つの効果または条件に分け、表示が横へ伸びないようにします。消費リソース、クールダウン、詠唱時間は top-level 項目と GUI の専用表示を使い、説明文へ重複させません。
+
 `description` と `lore` では、解決済み `params` の値を次の形式で参照できます。
 
 | 記法 | 内容 |
@@ -57,6 +59,7 @@
 | `{skill.damageRatios[0]:percent}` | 数値配列の指定要素を表示 |
 | `{skill.damageRatios:percent}` | 数値配列を ` / ` 区切りで表示 |
 | `{skill.durationTicks:seconds}` | tick値を20で割り、秒へ変換して表示 |
+| `{skill.<param>:seconds}` | 数値パラメータを20で割り、秒へ変換して表示 |
 | `{skill.level}` / `{skill.maxLevel}` | 習得レベル・最大レベル |
 | `{skill.skillDamageIncrease}` | レベル・シジル由来の `SKILL_DAMAGE_INCREASE` 合計 |
 | `{skill.effectiveDamageRatio:percent}` | `damageRatio × (1 + skillDamageIncrease / 100)` |

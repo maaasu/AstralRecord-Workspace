@@ -6,8 +6,13 @@ id: adventurer_meditation
 type: SKILL
 implementationId: adventurer_meditation
 name: "&dメディテーション"
-description: "&7安全な場所で5秒間スニークして精神を集中し、ENG / MP の自然回復を高速化する休息パッシブ。発動中は粒子と環境音で状態を知らせる。"
+description: "&7精神を集中し、MP / EN の自然回復を高める休息パッシブ。"
 icon: AMETHYST_SHARD
+lore:
+  - "&7スニークを{skill.chargeTicks:seconds}秒続けると発動する。"
+  - "&7発動中はMP / ENの自然回復量が{skill.regenMultiplier}倍になる。"
+  - "&7スニーク解除、被弾、通常攻撃、他スキル使用で集中が途切れる。"
+  - "&7準備中と発動中は粒子、発動中は環境音で状態を示す。"
 cooldownTicks: 0
 manaCost: 0
 castTimeTicks: 0

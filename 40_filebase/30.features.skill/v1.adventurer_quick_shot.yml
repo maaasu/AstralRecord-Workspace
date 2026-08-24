@@ -6,11 +6,10 @@ id: adventurer_quick_shot
 type: SKILL
 implementationId: adventurer_quick_shot
 name: "&fクイックショット"
-description: "&7照準方向へ素早く矢を放つ、冒険者の基礎的な単体射撃。"
+description: "&7素早く矢を放つ基礎射撃。"
 icon: BOW
 lore:
   - "&7射程{skill.range}mの矢で間接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。貫通しない。"
-  - "&8消費EN: 6 / クールダウン: 2.0秒"
 cooldownTicks: 40
 resourceType: ENERGY
 resourceCost: 6

@@ -6,13 +6,12 @@ id: adventurer_lightning_bolt
 type: SKILL
 implementationId: adventurer_lightning_bolt
 name: "&bライトニングボルト"
-description: "&7視線方向へ一直線の雷撃を放ち、感電した敵へだけ稲妻を連鎖させる雷属性魔法。"
+description: "&7感電の連鎖を操る雷属性魔法。"
 icon: LIGHTNING_ROD
 lore:
   - "&7射程{skill.range}mの雷属性魔法攻撃。主対象へ魔法攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
   - "&7命中対象から半径{skill.chainRadius}m以内の感電した敵へ最大{skill.maxChainTargets}体、{skill.effectiveChainDamageRatio:percent}%の追撃。"
   - "&7本スキルでは感電を付与せず、連鎖先からの再連鎖も発生しない。"
-  - "&8消費MP: 10 / クールダウン: 3.0秒 / 詠唱: 0.2秒"
 cooldownTicks: 60
 resourceType: MANA
 resourceCost: 10
