@@ -1001,7 +1001,7 @@ public class StatusService {
         if (instance == null) {
             return;
         }
-        if (instance.getDurabilityMax() > 0 && instance.getDurabilityValue() <= 0) {
+        if (isBrokenEquipment(instance)) {
             return;
         }
         ItemModel model = resolveItemModel(instance.getItemId());
@@ -1081,6 +1081,9 @@ public class StatusService {
         if (instance == null) {
             return;
         }
+        if (isBrokenEquipment(instance)) {
+            return;
+        }
         ItemModel model = resolveItemModel(instance.getItemId());
         if (model == null || model.getEquipment() == null) {
             return;
@@ -1094,6 +1097,13 @@ public class StatusService {
             return;
         }
         setCounts.merge(setId.trim(), 1, Integer::sum);
+    }
+
+    /**
+     * 耐久管理対象で現在値が0以下の装備は、ステータス・セット数の対象外です。
+     */
+    private boolean isBrokenEquipment(@NotNull EquipmentInstance instance) {
+        return instance.getDurabilityMax() > 0 && instance.getDurabilityValue() <= 0;
     }
 
     private @NotNull List<ItemStack> collectLegacyEquippedItems(@NotNull AstPlayer player) {
