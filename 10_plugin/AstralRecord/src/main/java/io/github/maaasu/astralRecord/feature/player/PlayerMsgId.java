@@ -217,6 +217,10 @@ public enum PlayerMsgId {
      * 管理者からステータスバフを得ました: {0} {1} / {2}秒
      */
     P_5113(5113),
+    /**
+     * NPCの回復アクションで現在のリソースを全回復した。
+     */
+    P_5114(5114),
     // endregion
 
     // region /feature/item/command/ItemCommand.java 5200-5249

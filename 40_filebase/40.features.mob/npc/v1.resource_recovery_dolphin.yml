@@ -1,0 +1,37 @@
+# design:
+#   motif: "動物 / イルカ"
+#   progression: 0
+schemaVersion: 1
+id: resource_recovery_dolphin
+type: MOB
+category: NPC
+name: "&b癒やしのイルカ"
+title: "&7リソース回復"
+level: 1
+entityType: DOLPHIN
+nameVisible: true
+damageImmune: true
+icon: HEART_OF_THE_SEA
+lore:
+  - "&7疲れた冒険者のリソースを回復するイルカ。"
+  - "&7右クリックで現在のHP・MP・EN・Shieldを全回復する。"
+tags:
+  - npc
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&b癒やしのイルカ&7: 右クリックでリソースを全回復します。"
+  rightClick:
+    - id: restore_status

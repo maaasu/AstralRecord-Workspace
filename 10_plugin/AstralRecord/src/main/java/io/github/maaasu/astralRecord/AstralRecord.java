@@ -1657,6 +1657,7 @@ public final class AstralRecord extends JavaPlugin {
         eventManager.registerHandler(skillTreeEventHandler, getServer().getPluginManager());
         var mobInteractionEventHandler = new MobInteractionEventHandler(
             mobService,
+            statusService,
             shopGuiEventHandler,
             menuView,
             playerClassService,
