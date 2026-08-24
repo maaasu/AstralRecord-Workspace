@@ -152,8 +152,73 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
 
         harness.handler.onInventoryClick(harness.guiClick(10));
         harness.awaitOrbScreen(OrbGuiHolder.Screen.LIST);
+        verify(harness.inventoryService).findOwnedNormalItemEntryForConsumption(
+            harness.accountId,
+            harness.orbModel.getId()
+        );
+        verify(harness.inventoryService).findOwnedEntry(harness.accountId, harness.additionalOrbEntryId);
         assertEquals(Material.DIAMOND_SWORD,
             harness.player.getOpenInventory().getTopInventory().getItem(0).getType());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 1.5. インベントリ内オーブ一覧
+     * 検証契約: 集約一覧からオーブ操作を開始した場合、後方slotのentry IDを支払い予約とAPI操作へ渡す。
+     */
+    @Test
+    void inventoryOrbListSelectionUsesBackmostEntryForOrbPayment() {
+        Harness harness = new Harness(ItemOrbEffectType.REPAIR);
+        harness.orbQuantity.set(64);
+        harness.additionalOrbQuantity = 32;
+
+        harness.handler.onInventoryClick(harness.normalInventoryClick(26));
+        harness.handler.onInventoryClick(harness.guiClick(10));
+        harness.awaitOrbScreen(OrbGuiHolder.Screen.LIST);
+        harness.handler.onInventoryClick(harness.guiClick(0));
+        harness.laneExecutor.runAll();
+
+        verify(harness.inventoryService).reserveOrbOperationPayment(
+            eq(harness.accountId),
+            any(UUID.class),
+            eq(harness.additionalOrbEntryId),
+            any(),
+            anyLong()
+        );
+        verify(harness.itemService, atLeastOnce()).applyEquipmentOrbOperation(
+            anyString(),
+            eq(harness.accountId.toString()),
+            anyString(),
+            eq(harness.additionalOrbEntryId.toString()),
+            eq(harness.orbModel.getId())
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
+     * 検証契約: 通常インベントリで明示クリックした起点entryが消えた場合、同種の別stackへ切り替えず操作を終了する。
+     */
+    @Test
+    void directInventoryOrbSelectionDoesNotSwitchToAnotherStackWhenOriginDisappears() {
+        Harness harness = new Harness(ItemOrbEffectType.REPAIR);
+        harness.additionalOrbQuantity = 32;
+
+        harness.openOrbList();
+        when(harness.inventoryService.findOwnedEntry(harness.accountId, harness.orbEntryId)).thenReturn(null);
+
+        InventoryClickEvent targetClick = harness.guiClick(0);
+        harness.handler.onInventoryClick(targetClick);
+
+        verify(targetClick).setCancelled(true);
+        verify(harness.inventoryService, never()).findOwnedNormalItemEntryForConsumption(
+            harness.accountId,
+            harness.orbModel.getId()
+        );
+        verify(harness.inventoryService, never()).reserveOrbOperationPayment(
+            eq(harness.accountId), any(UUID.class), any(UUID.class), any(), anyLong());
+        verify(harness.itemService, never()).applyEquipmentOrbOperation(
+            anyString(), anyString(), anyString(), anyString(), anyString());
     }
 
     /**
@@ -1263,11 +1328,17 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             });
             when(inventoryService.findOwnedEntry(accountId, orbEntryId))
                 .thenAnswer(invocation -> orbEntry());
+            when(inventoryService.findOwnedEntry(accountId, additionalOrbEntryId))
+                .thenAnswer(invocation -> additionalOrbEntry());
+            when(inventoryService.findOwnedNormalItemEntryForConsumption(
+                eq(accountId),
+                eq(orbModel.getId())
+            )).thenAnswer(invocation -> additionalOrbQuantity > 0 ? additionalOrbEntry() : orbEntry());
             when(inventoryService.isInventoryInfoSlot(26)).thenReturn(true);
             when(inventoryService.reserveOrbOperationPayment(
                 eq(accountId),
                 any(UUID.class),
-                eq(orbEntryId),
+                any(UUID.class),
                 any(),
                 anyLong()
             )).thenReturn(true);
@@ -1581,6 +1652,17 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 orbModel.getId(),
                 null,
                 orbQuantity.get()
+            );
+        }
+
+        private InventoryEntryModel additionalOrbEntry() {
+            return entry(
+                additionalOrbEntryId,
+                3,
+                ItemCategory.ORB,
+                orbModel.getId(),
+                null,
+                additionalOrbQuantity
             );
         }
 

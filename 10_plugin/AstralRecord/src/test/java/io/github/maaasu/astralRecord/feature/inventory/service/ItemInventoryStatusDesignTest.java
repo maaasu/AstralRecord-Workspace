@@ -350,6 +350,83 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加 > ### 通常アイテムの消費・支払い順
+     * 検証契約: itemIdから消費対象entryを再解決する場合も、BAG内の後方slotをHOTBARより先に選ぶ。
+     */
+    @Test
+    void normalItemConsumptionResolverUsesHighestBagSlotBeforeHotbar() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel hotbar = harness.addInventory(state, InventoryType.HOTBAR);
+        InventoryEntryModel bagFront = bagEntry(
+            state.getAccountId(), bag.getInventoryId(), 1, "consume_resolver_order_test", 64L);
+        InventoryEntryModel bagBack = bagEntry(
+            state.getAccountId(), bag.getInventoryId(), 2, "consume_resolver_order_test", 30L);
+        InventoryEntryModel hotbarBack = bagEntry(
+            state.getAccountId(), hotbar.getInventoryId(), 8, "consume_resolver_order_test", 30L);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(bagBack, bagFront));
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of(hotbarBack));
+
+        InventoryEntryModel selected = harness.inventoryService
+            .findOwnedNormalItemEntryForConsumption(state.getAccountId(), "consume_resolver_order_test");
+
+        assertNotNull(selected);
+        assertEquals(bagBack.getInventoryEntryId(), selected.getInventoryEntryId());
+        assertTrue(harness.inventoryService.consumeNormalItem(
+            state.getAccountId(), "consume_resolver_order_test", 1L));
+        List<InventoryEntryModel> remaining = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(64L, remaining.stream()
+            .filter(entry -> entry.getInventoryEntryId().equals(bagFront.getInventoryEntryId()))
+            .findFirst()
+            .orElseThrow()
+            .getQuantity());
+        assertEquals(29L, remaining.stream()
+            .filter(entry -> entry.getInventoryEntryId().equals(bagBack.getInventoryEntryId()))
+            .findFirst()
+            .orElseThrow()
+            .getQuantity());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加 > ### 通常アイテムの消費・支払い順
+     * 検証契約: 未指定slotは指定slotの後に扱い、同一slotはinventoryEntryId昇順で安定して選ぶ。
+     */
+    @Test
+    void normalItemConsumptionOrderPlacesUnspecifiedSlotsLastAndBreaksTiesByEntryId() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        String itemId = "consume_resolver_tie_break_test";
+        UUID lowerEntryId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID higherEntryId = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        InventoryEntryModel unspecifiedSlot = inventoryEntryWithId(
+            UUID.fromString("00000000-0000-0000-0000-000000000003"),
+            state.getAccountId(),
+            bag.getInventoryId(),
+            null,
+            itemId,
+            10L
+        );
+        InventoryEntryModel higherId = inventoryEntryWithId(
+            higherEntryId, state.getAccountId(), bag.getInventoryId(), 5, itemId, 10L);
+        InventoryEntryModel lowerId = inventoryEntryWithId(
+            lowerEntryId, state.getAccountId(), bag.getInventoryId(), 5, itemId, 10L);
+        state.replaceEntriesFromLoad(
+            bag.getInventoryId(), List.of(unspecifiedSlot, higherId, lowerId));
+
+        InventoryEntryModel selected = harness.inventoryService
+            .findOwnedNormalItemEntryForConsumption(state.getAccountId(), itemId);
+
+        assertNotNull(selected);
+        assertEquals(lowerEntryId, selected.getInventoryEntryId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
      * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
      * 検証契約: equipment/runeをinstance IDと対応itemId付きで統合BAGへ格納する。
      */
@@ -1370,6 +1447,33 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
             inventoryId,
             slot,
             category.getApiValue(),
+            itemId,
+            null,
+            null,
+            quantity,
+            null,
+            now,
+            now,
+            accountId,
+            accountId,
+            false
+        );
+    }
+
+    private static InventoryEntryModel inventoryEntryWithId(
+        UUID entryId,
+        UUID accountId,
+        UUID inventoryId,
+        Integer slot,
+        String itemId,
+        long quantity
+    ) {
+        LocalDateTime now = LocalDateTime.now();
+        return new InventoryEntryModel(
+            entryId,
+            inventoryId,
+            slot,
+            ItemCategory.MATERIAL.getApiValue(),
             itemId,
             null,
             null,

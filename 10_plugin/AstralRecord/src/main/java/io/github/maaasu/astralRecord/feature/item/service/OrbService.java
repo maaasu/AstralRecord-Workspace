@@ -950,12 +950,17 @@ public final class OrbService {
         if (exactModel != null && exactModel.getId().equalsIgnoreCase(session.orbItemId)) {
             return exactModel;
         }
-        for (InventoryEntryModel entry : ownedEntries(session.accountId)) {
-            ItemModel model = resolveOrbModel(entry);
-            if (model != null && model.getId().equalsIgnoreCase(session.orbItemId)) {
-                session.orbEntryId = entry.getInventoryEntryId();
-                return model;
-            }
+        if (!session.returnToInventoryOrbListOnFailure) {
+            return null;
+        }
+        InventoryEntryModel fallback = inventoryService.findOwnedNormalItemEntryForConsumption(
+            session.accountId,
+            session.orbItemId
+        );
+        ItemModel fallbackModel = resolveOrbModel(fallback);
+        if (fallbackModel != null && fallbackModel.getId().equalsIgnoreCase(session.orbItemId)) {
+            session.orbEntryId = fallback.getInventoryEntryId();
+            return fallbackModel;
         }
         return null;
     }
@@ -1017,13 +1022,8 @@ public final class OrbService {
         @NotNull UUID accountId,
         @NotNull String itemId
     ) {
-        for (InventoryEntryModel entry : ownedEntries(accountId)) {
-            ItemModel model = resolveOrbModel(entry);
-            if (model != null && model.getId().equalsIgnoreCase(itemId)) {
-                return entry;
-            }
-        }
-        return null;
+        InventoryEntryModel entry = inventoryService.findOwnedNormalItemEntryForConsumption(accountId, itemId);
+        return resolveOrbModel(entry) == null ? null : entry;
     }
 
     private long saturatingAdd(long left, long right) {

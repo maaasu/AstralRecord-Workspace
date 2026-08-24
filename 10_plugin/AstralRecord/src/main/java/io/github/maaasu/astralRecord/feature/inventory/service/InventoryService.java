@@ -89,9 +89,12 @@ public class InventoryService {
      */
     private static final Comparator<InventoryEntryModel> NORMAL_ITEM_CONSUMPTION_ENTRY_ORDER =
         Comparator.<InventoryEntryModel, Integer>comparing(
-            entry -> entry.getSlotIndex() == null ? Integer.MIN_VALUE : entry.getSlotIndex()
-        ).reversed()
-            .thenComparing(InventoryEntryModel::getInventoryEntryId);
+            entry -> entry.getSlotIndex() == null ? 1 : 0
+        ).thenComparing(
+            entry -> entry.getSlotIndex() == null ? Integer.MIN_VALUE : entry.getSlotIndex(),
+            Comparator.reverseOrder()
+        )
+        .thenComparing(InventoryEntryModel::getInventoryEntryId);
     private static final String DEFAULT_LOADOUT_NAME = "Default";
     private static final String SLOT_TYPE_HEAD = "HEAD";
     private static final String SLOT_TYPE_CHEST = "CHEST";
@@ -2126,6 +2129,50 @@ public class InventoryService {
         }
         return getItemAmount(state, InventoryType.BAG, normalizedItemId)
             + getItemAmount(state, InventoryType.HOTBAR, normalizedItemId);
+    }
+
+    /**
+     * 通常アイテム消費時と同じ順序で、所持中の対象 itemId の entry を1件返します。
+     * BAG を HOTBAR より優先し、各 inventory 内では slotIndex の大きい entry を優先します。
+     * slotIndex が同じ場合は inventoryEntryId 昇順で決定します。
+     * 明示された inventoryEntryId を直接操作する処理では、この解決を行いません。
+     *
+     * @param accountId 対象アカウントID
+     * @param itemId 対象 item ID
+     * @return 通常アイテム消費順の先頭 entry。未所持または state 未ロード時は {@code null}
+     */
+    public @Nullable InventoryEntryModel findOwnedNormalItemEntryForConsumption(
+        @NotNull UUID accountId,
+        @NotNull String itemId
+    ) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return null;
+        }
+        String normalizedItemId = itemId.trim();
+        if (normalizedItemId.isBlank()) {
+            return null;
+        }
+        synchronized (state) {
+            List<InventoryEntryModel> entries = new ArrayList<>();
+            List<UUID> inventoryOrder = new ArrayList<>();
+            for (InventoryType inventoryType : List.of(InventoryType.BAG, InventoryType.HOTBAR)) {
+                InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, inventoryType);
+                if (inventory == null || !inventory.isEnabled() || inventory.isDeleted()) {
+                    continue;
+                }
+                inventoryOrder.add(inventory.getInventoryId());
+                entries.addAll(state.snapshotEntries(inventory.getInventoryId()).stream()
+                    .filter(entry -> !entry.isDeleted()
+                        && entry.getQuantity() > 0L
+                        && isNormalItemEntry(entry)
+                        && entry.getItemId().equalsIgnoreCase(normalizedItemId))
+                    .toList());
+            }
+            return orderNormalItemConsumptionEntries(entries, inventoryOrder).stream()
+                .findFirst()
+                .orElse(null);
+        }
     }
 
     /**
