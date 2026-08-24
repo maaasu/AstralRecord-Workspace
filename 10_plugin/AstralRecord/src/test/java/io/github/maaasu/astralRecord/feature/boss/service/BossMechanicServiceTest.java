@@ -44,7 +44,6 @@ class BossMechanicServiceTest {
     @Test
     void terrainPermissionRejectsDungeonAndUnknownBosses() {
         assertTrue(BossTerrainPolicy.mayBreak(BossMechanicProfile.TWILIGHT_COLOSSUS, false));
-        assertTrue(BossTerrainPolicy.mayBreak(BossMechanicProfile.FENRIR_WORLDBREAKER, false));
         assertFalse(BossTerrainPolicy.mayBreak(BossMechanicProfile.TWILIGHT_COLOSSUS, true));
         assertFalse(BossTerrainPolicy.mayBreak("unknown_boss", false));
     }

@@ -66,13 +66,12 @@ notifyDiscord: false
 
 ## Required result
 
-成功時は、作成したMDの絶対パスと、対象範囲に含めたコミット名を必ず出力する。コミット名は時系列順に、短縮SHAとsubjectをすべて列挙する。
+成功時は、作成したMDの絶対パスと、作成したリリースノートMDだけを後でコミットするための**推奨コミットメッセージ**を必ず出力する。リリースノートMDの追加はドキュメント変更なので、`feat` ではなく `docs` を使う。
 
 ```text
 作成したリリースノート: <absolute path>
-対象コミット:
-- <short SHA> <commit subject>
-- <short SHA> <commit subject>
+推奨コミットメッセージ:
+docs: リリースノート v<version> を追加
 ```
 
 内容の要約を添えてよいが、commit・push・デプロイを実行したように示してはならない。
