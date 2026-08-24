@@ -10,7 +10,7 @@ rarity: RARE
 maxStack: 64
 saleValue: 120
 lore:
-  - "&7損傷した装備の耐久値を全回復する。"
+  - "&7装備の耐久値を全回復する。"
 unTradeable: false
 unSellable: false
 orb:
