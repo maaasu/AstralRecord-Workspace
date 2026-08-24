@@ -18,7 +18,7 @@ class WhitelistCommandTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-コマンド.md
-     * 章・見出し: # 03_3-コマンド > ## 5. whitelist メンテナンス切替
+     * 章・見出し: # 03_3-コマンド > ## 6. whitelist メンテナンス切替
      * 検証契約: コンソールの引数なし実行は現在値を反転し、falseをサービスへ保存する。
      */
     @Test
@@ -34,7 +34,7 @@ class WhitelistCommandTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-コマンド.md
-     * 章・見出し: # 03_3-コマンド > ## 5. whitelist メンテナンス切替
+     * 章・見出し: # 03_3-コマンド > ## 6. whitelist メンテナンス切替
      * 検証契約: true/false以外の引数は状態を変更せず、エラーとusageを実行者へ返す。
      */
     @Test
