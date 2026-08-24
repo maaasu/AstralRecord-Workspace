@@ -325,18 +325,6 @@ public class GatheringSpawnerService {
             cleanupTracked(spawnerLocation.locationKey());
             return;
         }
-        Logger.debug(
-                LogId.D_9011,
-                definition.id(),
-                origin.getWorld().getName(),
-                origin.getBlockX(),
-                origin.getBlockY(),
-                origin.getBlockZ(),
-                worldTime,
-                definition.canSpawnAt(worldTime),
-                playerCounts.playersInRange(),
-                playerCounts.gameplayPlayers()
-        );
         if (!definition.canSpawnAt(worldTime)) {
             cleanupTracked(spawnerLocation.locationKey());
             Logger.debug(LogId.D_9012, definition.id(), worldTime);

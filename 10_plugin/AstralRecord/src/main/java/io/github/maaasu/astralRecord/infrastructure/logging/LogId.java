@@ -1074,8 +1074,6 @@ public enum LogId {
 
     // region /feature/gathering/ 9010-9019
     W_9010(9010),
-    /** 採集スポナーのスポーン判定を開始しました: spawner=%s, world=%s, origin=(%d,%d,%d), worldTime=%d, canSpawnAt=%s, nearbyPlayers=%d, gameplayPlayers=%d */
-    D_9011(9011),
     /** 採集スポナーを時間帯条件でスキップしました: spawner=%s, worldTime=%d */
     D_9012(9012),
     /** 採集スポナーをゲームプレイ対象プレイヤー不在でスキップしました: spawner=%s, nearbyPlayers=%d */
