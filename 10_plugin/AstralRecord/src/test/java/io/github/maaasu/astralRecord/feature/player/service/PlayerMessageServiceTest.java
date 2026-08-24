@@ -1,10 +1,11 @@
 package io.github.maaasu.astralRecord.feature.player.service;
 
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.discord.service.GlobalChatBridge;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
-import io.github.maaasu.astralRecord.feature.discord.service.GlobalChatBridge;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -118,16 +119,19 @@ class PlayerMessageServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
      * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### 全体チャット配信
-     * 検証契約: 全体chatで3文字短縮class tagをplayer名より前に置く。
+     * 検証契約: 全体chatでプレイヤーLv.と3文字短縮class tagをplayer名より前に置く。
      */
     @Test
-    void globalChatPlacesShortClassNameBeforePlayerName() {
+    void globalChatPlacesLevelAndShortClassNameBeforePlayerName() {
         Player sender = onlinePlayer();
         when(sender.getName()).thenReturn("Alice");
         PlayerClassService classService = mock(PlayerClassService.class);
         when(classService.getShortDisplayName("mage")).thenReturn("§b魔術師");
+        AccountModel account = mock(AccountModel.class);
+        when(account.getLevel()).thenReturn(12);
         AstPlayer astPlayer = mock(AstPlayer.class);
         when(astPlayer.getClassId()).thenReturn("mage");
+        when(astPlayer.getAccount()).thenReturn(account);
         PlayerMessageService service = new PlayerMessageService(classService);
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
@@ -138,8 +142,87 @@ class PlayerMessageServiceTest {
             service.broadcastGlobalChat(sender, "hello");
 
             assertEquals(
-                "[全体] [魔術師] Alice: hello",
+                "[全体] [Lv.12] [魔術師] Alice: hello",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(sender))
+            );
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### パーティーチャット配信
+     * 検証契約: パーティーチャットでプレイヤーLv.と3文字短縮class tagをplayer名より前に置く。
+     */
+    @Test
+    void partyChatPlacesPlayerLevelBeforePlayerName() {
+        Player sender = onlinePlayer();
+        Player recipient = onlinePlayer();
+        when(sender.getName()).thenReturn("Alice");
+        PlayerClassService classService = mock(PlayerClassService.class);
+        when(classService.getShortDisplayName("mage")).thenReturn("§b魔術師");
+        AccountModel account = mock(AccountModel.class);
+        when(account.getLevel()).thenReturn(12);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        when(astPlayer.getClassId()).thenReturn("mage");
+        when(astPlayer.getAccount()).thenReturn(account);
+        PlayerMessageService service = new PlayerMessageService(classService);
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(sender)).thenReturn(astPlayer);
+
+            service.broadcastPartyChat(Set.of(recipient), sender, "party");
+
+            assertEquals(
+                "[パーティー] [Lv.12] [魔術師] Alice: party",
+                PlainTextComponentSerializer.plainText().serialize(captureMessage(recipient))
+            );
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### ダイレクトメッセージ配信
+     * 検証契約: DMの送受信者それぞれにプレイヤーLv.と3文字短縮class tagを表示する。
+     */
+    @Test
+    void directMessagePlacesEachPlayerLevelBeforePlayerName() {
+        Player sender = onlinePlayer();
+        Player target = onlinePlayer();
+        when(sender.getName()).thenReturn("Alice");
+        when(target.getName()).thenReturn("Bob");
+        PlayerClassService classService = mock(PlayerClassService.class);
+        when(classService.getShortDisplayName("mage")).thenReturn("§b魔術師");
+        when(classService.getShortDisplayName("knight")).thenReturn("§c騎士");
+
+        AccountModel senderAccount = mock(AccountModel.class);
+        when(senderAccount.getLevel()).thenReturn(12);
+        AstPlayer senderAstPlayer = mock(AstPlayer.class);
+        when(senderAstPlayer.getClassId()).thenReturn("mage");
+        when(senderAstPlayer.getAccount()).thenReturn(senderAccount);
+
+        AccountModel targetAccount = mock(AccountModel.class);
+        when(targetAccount.getLevel()).thenReturn(7);
+        AstPlayer targetAstPlayer = mock(AstPlayer.class);
+        when(targetAstPlayer.getClassId()).thenReturn("knight");
+        when(targetAstPlayer.getAccount()).thenReturn(targetAccount);
+
+        PlayerMessageService service = new PlayerMessageService(classService);
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(sender)).thenReturn(senderAstPlayer);
+            cache.when(() -> AstPlayerCache.get(target)).thenReturn(targetAstPlayer);
+
+            service.sendDirectMessage(sender, target, "direct");
+
+            assertEquals(
+                "[DM送信] [Lv.12] [魔術師] Alice -> [Lv.7] [騎士] Bob: direct",
+                PlainTextComponentSerializer.plainText().serialize(captureMessage(sender))
+            );
+            assertEquals(
+                "[DM受信] [Lv.12] [魔術師] Alice -> [Lv.7] [騎士] Bob: direct",
+                PlainTextComponentSerializer.plainText().serialize(captureMessage(target))
             );
         }
     }
@@ -163,7 +246,7 @@ class PlayerMessageServiceTest {
             service.broadcastGlobalChat(sender, "&chello");
 
             assertEquals(
-                "[全体] [---] Alice: &chello",
+                "[全体] [Lv.---] [---] Alice: &chello",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(sender))
             );
             verify(bridge).publishMinecraftGlobalChat(sender, "&chello");

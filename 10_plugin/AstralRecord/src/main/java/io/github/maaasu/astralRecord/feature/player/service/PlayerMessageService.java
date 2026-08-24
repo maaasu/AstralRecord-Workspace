@@ -183,6 +183,7 @@ public final class PlayerMessageService {
 
     /**
      * 全体チャットをオンラインプレイヤー全員へ配信する。
+     * 発言者のプレイヤーレベルと現在クラスの短縮名を表示する。
      *
      * @param sender 発言者
      * @param message チャット本文
@@ -191,6 +192,7 @@ public final class PlayerMessageService {
         String normalizedMessage = ChatMessageSanitizer.normalize(message);
         Component component = PlayerMsgResource.formatComponent(
             PlayerMsgId.P_5941.getId(),
+            resolvePlayerLevel(sender),
             resolveShortClassName(sender),
             sender.getName(),
             ""
@@ -231,6 +233,7 @@ public final class PlayerMessageService {
 
     /**
      * アイテム名をホバー・コピー操作付きで全体チャットへ配信する。
+     * 発言者のプレイヤーレベルと現在クラスの短縮名を表示する。
      *
      * @param sender 送信者
      * @param itemName チャットへ表示し、クリック時にコピーする装飾なしのアイテム名
@@ -243,6 +246,7 @@ public final class PlayerMessageService {
     ) {
         Component component = PlayerMsgResource.formatComponent(
             PlayerMsgId.P_5941.getId(),
+            resolvePlayerLevel(sender),
             resolveShortClassName(sender),
             sender.getName(),
             ""
@@ -260,6 +264,7 @@ public final class PlayerMessageService {
 
     /**
      * パーティーチャットを対象プレイヤーへ配信する。
+     * 発言者のプレイヤーレベルと現在クラスの短縮名を表示する。
      *
      * @param recipients 受信者一覧
      * @param sender 発言者
@@ -268,6 +273,7 @@ public final class PlayerMessageService {
     public void broadcastPartyChat(@NotNull Collection<Player> recipients, @NotNull Player sender, @NotNull String message) {
         Component component = PlayerMsgResource.formatComponent(
             PlayerMsgId.P_5942.getId(),
+            resolvePlayerLevel(sender),
             resolveShortClassName(sender),
             sender.getName(),
             message
@@ -281,6 +287,7 @@ public final class PlayerMessageService {
 
     /**
      * ダイレクトメッセージを送受信者へ配信する。
+     * 送受信者それぞれのプレイヤーレベルと現在クラスの短縮名を表示する。
      *
      * @param sender 送信者
      * @param target 受信者
@@ -289,16 +296,20 @@ public final class PlayerMessageService {
     public void sendDirectMessage(@NotNull Player sender, @NotNull Player target, @NotNull String message) {
         Component sent = PlayerMsgResource.formatComponent(
             PlayerMsgId.P_5943.getId(),
+            resolvePlayerLevel(sender),
             resolveShortClassName(sender),
             sender.getName(),
+            resolvePlayerLevel(target),
             resolveShortClassName(target),
             target.getName(),
             message
         );
         Component received = PlayerMsgResource.formatComponent(
             PlayerMsgId.P_5944.getId(),
+            resolvePlayerLevel(sender),
             resolveShortClassName(sender),
             sender.getName(),
+            resolvePlayerLevel(target),
             resolveShortClassName(target),
             target.getName(),
             message
@@ -321,5 +332,13 @@ public final class PlayerMessageService {
             return "&7---";
         }
         return playerClassService.getShortDisplayName(astPlayer.getClassId());
+    }
+
+    private @NotNull String resolvePlayerLevel(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            return "---";
+        }
+        return Integer.toString(Math.max(1, astPlayer.getAccount().getLevel()));
     }
 }
