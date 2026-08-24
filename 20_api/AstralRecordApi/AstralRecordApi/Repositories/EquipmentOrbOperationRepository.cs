@@ -53,6 +53,7 @@ public class EquipmentOrbOperationRepository(
             var orbItem = itemRepository.GetById(normalizedOrbItemId);
             var effect = orbItem?.Orb?.Effect;
             var operationType = effect?.Type?.Trim().ToUpperInvariant() ?? string.Empty;
+            var resolvedOrbEntryId = request.OrbInventoryEntryId;
 
             async Task<EquipmentOrbOperationResponse> CompleteAsync(
                 string result,
@@ -71,9 +72,8 @@ public class EquipmentOrbOperationRepository(
                     Result = result,
                     OperationType = operationType,
                     Equipment = equipment,
-                    // Failure responses also reconcile the origin entry: if it was removed by
-                    // another server, Plugin must close/refresh instead of retaining a ghost orb.
-                    AffectedInventoryEntryIds = (affected ?? [request.OrbInventoryEntryId])
+                    // 解決済みの通常消費順オーブentry、または解決前はPluginの直近候補を返す。
+                    AffectedInventoryEntryIds = (affected ?? [resolvedOrbEntryId])
                         .Distinct()
                         .Order()
                         .ToArray(),
@@ -90,7 +90,7 @@ public class EquipmentOrbOperationRepository(
                     OperationId = request.OperationId,
                     AccountId = request.AccountId,
                     EquipmentInstanceId = request.EquipmentInstanceId,
-                    OrbInventoryEntryId = request.OrbInventoryEntryId,
+                    OrbInventoryEntryId = resolvedOrbEntryId,
                     OrbItemId = normalizedOrbItemId,
                     OperationType = operationType,
                     RequestHash = requestHash,
@@ -140,14 +140,14 @@ public class EquipmentOrbOperationRepository(
                 return await CompleteAsync("NOT_ELIGIBLE");
 
             var orbEntry = normalEntries.FirstOrDefault(entry =>
-                entry.InventoryEntryId == request.OrbInventoryEntryId
-                && !entry.IsDeleted
+                !entry.IsDeleted
                 && entry.Quantity > 0
                 && IsNormalStackEntry(entry)
                 && IdEquals(entry.ItemCategory, "ORB")
                 && IdEquals(entry.ItemId, normalizedOrbItemId));
             if (orbEntry is null)
                 return await CompleteAsync("PAYMENT_UNAVAILABLE");
+            resolvedOrbEntryId = orbEntry.InventoryEntryId;
 
             var affectedEntryIds = new HashSet<Guid>();
             var requiredMaterials = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);

@@ -45,10 +45,10 @@ class InventoryServiceOrbPaymentReservationTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
      * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
-     * 検証契約: 起点オーブ1個を予約中に同itemの別stackが1個あればローカル消費は別stackだけを減らし、API tombstoneとの三者マージを負数にしない。
+     * 検証契約: 同itemのオーブstackを予約するときは後方slotを予約し、ローカル消費は予約外の前方stackだけを減らしてAPI tombstoneとの三者マージを負数にしない。
      */
     @Test
-    void originOrbReservationConsumesOnlyOtherStackAndTombstoneMergeStaysNonNegative() {
+    void orbReservationUsesTheHighestSlotAndTombstoneMergeStaysNonNegative() {
         Harness harness = harness(false);
         UUID originId = UUID.randomUUID();
         UUID otherStackId = UUID.randomUUID();
@@ -63,7 +63,7 @@ class InventoryServiceOrbPaymentReservationTest extends MockBukkitTestBase {
                 harness.accountId(), Map.of(harness.bag.getInventoryId(), List.of(origin, other)));
 
         assertTrue(harness.service.reserveOrbOperationPayment(
-            harness.accountId(), operationId, originId, Map.of("orb.weapon_tyr", 1L), 0L));
+            harness.accountId(), operationId, Map.of("orb.weapon_tyr", 1L), 0L));
         assertTrue(harness.service.finalizeOrbOperationPaymentReservation(
             harness.accountId(), operationId, baseline));
         assertTrue(harness.service.consumeNormalItem(
@@ -72,13 +72,13 @@ class InventoryServiceOrbPaymentReservationTest extends MockBukkitTestBase {
         List<InventoryEntryModel> afterLocalConsume = harness.state.snapshotEntries(
             harness.bag.getInventoryId());
         assertEquals(1, afterLocalConsume.size());
-        assertEquals(originId, afterLocalConsume.getFirst().getInventoryEntryId());
+        assertEquals(otherStackId, afterLocalConsume.getFirst().getInventoryEntryId());
         assertEquals(1L, afterLocalConsume.getFirst().getQuantity());
 
-        when(harness.repository.findEntryById(originId)).thenReturn(null);
+        when(harness.repository.findEntryById(otherStackId)).thenReturn(null);
         harness.service.reconcileOrbOperationEntries(
             harness.accountId(),
-            List.of(originId),
+            List.of(otherStackId),
             baseline
         );
         assertTrue(harness.state.snapshotEntries(harness.bag.getInventoryId()).isEmpty());
@@ -104,7 +104,7 @@ class InventoryServiceOrbPaymentReservationTest extends MockBukkitTestBase {
                 harness.accountId(), Map.of(harness.bag.getInventoryId(), List.of(origin)));
 
         assertTrue(harness.service.reserveOrbOperationPayment(
-            harness.accountId(), operationId, originId, Map.of("orb.weapon_tyr", 1L), 0L));
+            harness.accountId(), operationId, Map.of("orb.weapon_tyr", 1L), 0L));
         assertFalse(harness.service.consumeNormalItem(
             harness.accountId(), "orb.weapon_tyr", 1L));
         assertEquals(1, harness.service.addItemToNormalInventory(
@@ -163,7 +163,6 @@ class InventoryServiceOrbPaymentReservationTest extends MockBukkitTestBase {
         assertTrue(harness.service.reserveOrbOperationPayment(
             harness.accountId(),
             operationId,
-            originId,
             Map.of("orb.transition", 1L, "material.rune", 2L),
             0L
         ));
@@ -227,7 +226,7 @@ class InventoryServiceOrbPaymentReservationTest extends MockBukkitTestBase {
         UUID operationId = UUID.randomUUID();
 
         assertTrue(harness.service.reserveOrbOperationPayment(
-            harness.accountId(), operationId, originId, Map.of("orb.transition", 1L, "material.rune", 2L), 0L));
+            harness.accountId(), operationId, Map.of("orb.transition", 1L, "material.rune", 2L), 0L));
         assertTrue(harness.service.finalizeOrbOperationPaymentReservation(
             harness.accountId(),
             operationId,
@@ -263,7 +262,7 @@ class InventoryServiceOrbPaymentReservationTest extends MockBukkitTestBase {
         UUID operationId = UUID.randomUUID();
 
         assertTrue(harness.service.reserveOrbOperationPayment(
-            harness.accountId(), operationId, originId, Map.of("orb.weapon_tyr", 1L), 0L));
+            harness.accountId(), operationId, Map.of("orb.weapon_tyr", 1L), 0L));
         assertTrue(harness.service.finalizeOrbOperationPaymentReservation(
             harness.accountId(),
             operationId,
@@ -309,7 +308,7 @@ class InventoryServiceOrbPaymentReservationTest extends MockBukkitTestBase {
         UUID operationId = UUID.randomUUID();
 
         assertTrue(harness.service.reserveOrbOperationPayment(
-            harness.accountId(), operationId, originId, Map.of("orb.transition", 1L), 60L));
+            harness.accountId(), operationId, Map.of("orb.transition", 1L), 60L));
         assertTrue(harness.service.finalizeOrbOperationPaymentReservation(
             harness.accountId(),
             operationId,
@@ -485,7 +484,7 @@ class InventoryServiceOrbPaymentReservationTest extends MockBukkitTestBase {
         ItemModel orb = DesignTestFixtures.item("orb.weapon_tyr", ItemCategory.ORB, 1);
 
         assertTrue(service.reserveOrbOperationPayment(
-            accountId, operationId, originId, Map.of("orb.weapon_tyr", 1L), 0L));
+            accountId, operationId, Map.of("orb.weapon_tyr", 1L), 0L));
         try (MockedStatic<Logger> ignored = mockStatic(Logger.class)) {
             var operation = coordinator.executeExclusiveAfterSave(accountId, baseline -> {
                 assertTrue(service.finalizeOrbOperationPaymentReservation(
@@ -564,7 +563,6 @@ class InventoryServiceOrbPaymentReservationTest extends MockBukkitTestBase {
         assertTrue(harness.service.reserveOrbOperationPayment(
             harness.accountId(),
             operationId,
-            originId,
             Map.of("orb.transition", 1L),
             unitValue
         ));

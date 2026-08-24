@@ -247,11 +247,17 @@ public class InventoryService {
      * <p>
      * 予約はstateを減算しないため、報酬加算・移動・三者マージを妨げません。ローカル消費APIだけが
      * 予約量を利用可能残高から除外し、APIと同じ1個を二重支出することを防ぎます。
+     * 通常itemはオーブ自身を含め、共通の通常アイテム消費順で予約対象を決定します。
+     *
+     * @param accountId 所有アカウントID
+     * @param operationId オーブ操作の冪等ID
+     * @param normalItemAmounts オーブ自身を含む通常アイテムごとの予約数量
+     * @param goldAmount 予約するgold価値
+     * @return 必要な通常アイテムとgoldを予約できた場合 {@code true}
      */
     public boolean reserveOrbOperationPayment(
         @NotNull UUID accountId,
         @NotNull UUID operationId,
-        @NotNull UUID orbEntryId,
         @NotNull Map<String, Long> normalItemAmounts,
         long goldAmount
     ) {
@@ -279,12 +285,6 @@ public class InventoryService {
             if (current != null) {
                 orbPaymentReservationsByAccount.remove(accountId, current);
             }
-            InventoryEntryModel origin = findOwnedEntry(accountId, orbEntryId);
-            if (origin == null || !isNormalItemEntry(origin) || origin.getQuantity() <= 0L) {
-                return false;
-            }
-            String originItemId = origin.getItemId().trim().toLowerCase(Locale.ROOT);
-            normalized.compute(originItemId, (ignored, amount) -> amount == null ? 1L : Math.max(1L, amount));
             for (Map.Entry<String, Long> requirement : normalized.entrySet()) {
                 if (getNormalItemAmount(accountId, requirement.getKey()) < requirement.getValue()) {
                     return false;
@@ -298,7 +298,6 @@ public class InventoryService {
                 accountId,
                 new OrbPaymentReservation(
                     operationId,
-                    orbEntryId,
                     state,
                     Map.copyOf(normalized),
                     Map.of(),
@@ -365,7 +364,6 @@ public class InventoryService {
                 accountId,
                 new OrbPaymentReservation(
                     reservation.operationId(),
-                    reservation.orbEntryId(),
                     state,
                     reservation.normalItemAmounts(),
                     Map.copyOf(allocation),
@@ -386,15 +384,7 @@ public class InventoryService {
             persistedNormalEntries,
             inventoryOrder
         );
-        InventoryEntryModel origin = ordered.stream()
-            .filter(entry -> entry.getInventoryEntryId().equals(reservation.orbEntryId()))
-            .findFirst()
-            .orElse(null);
-        if (origin == null || !isNormalItemEntry(origin) || origin.getQuantity() <= 0L) {
-            return null;
-        }
         Map<UUID, Long> reservedByEntryId = new LinkedHashMap<>();
-        reservedByEntryId.put(origin.getInventoryEntryId(), 1L);
         for (Map.Entry<String, Long> requirement : reservation.normalItemAmounts().entrySet().stream()
             .sorted(Map.Entry.comparingByKey())
             .toList()) {
@@ -7116,7 +7106,6 @@ public class InventoryService {
 
     private record OrbPaymentReservation(
         @NotNull UUID operationId,
-        @NotNull UUID orbEntryId,
         @NotNull PlayerInventoryState stateGeneration,
         @NotNull Map<String, Long> normalItemAmounts,
         @NotNull Map<UUID, Long> normalEntryAmounts,

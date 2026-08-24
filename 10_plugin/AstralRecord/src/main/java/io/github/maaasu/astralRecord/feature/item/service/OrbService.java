@@ -260,7 +260,7 @@ public final class OrbService {
 
     /**
      * 通常プレイヤーインベントリのクリックをオーブ起動として処理します。
-     * 表示 ItemStack ではなく BAG/HOTBAR の entry ID と item ID を正本として保存します。
+     * 表示 ItemStack ではなく BAG/HOTBAR の正本entryからオーブ種別を解決します。
      *
      * @param event 通常インベントリのクリックイベント
      * @return オーブ起動としてイベントを消費した場合 {@code true}
@@ -282,7 +282,7 @@ public final class OrbService {
         }
 
         event.setCancelled(true);
-        startOrbOperation(player, astPlayer, entry, orbModel, false);
+        startOrbOperation(player, astPlayer, orbModel, false);
         return true;
     }
 
@@ -291,14 +291,12 @@ public final class OrbService {
      *
      * @param player 操作プレイヤー
      * @param astPlayer ログイン中のプレイヤー状態
-     * @param entry 起点となるオーブ entry
      * @param orbModel 起点オーブのマスタ
      * @param returnToInventoryOrbListOnFailure 対象装備がない場合に所持オーブ一覧へ戻すか
      */
     private void startOrbOperation(
         @NotNull Player player,
         @NotNull AstPlayer astPlayer,
-        @NotNull InventoryEntryModel entry,
         @NotNull ItemModel orbModel,
         boolean returnToInventoryOrbListOnFailure
     ) {
@@ -308,6 +306,14 @@ public final class OrbService {
             GuiSound.DENY.play(player);
             return;
         }
+        InventoryEntryModel consumable = inventoryService.findOwnedNormalItemEntryForConsumption(
+            astPlayer.getAccount().getUuid(),
+            orbModel.getId()
+        );
+        ItemModel consumableModel = resolveOrbModel(consumable);
+        if (consumableModel == null || !consumableModel.getId().equalsIgnoreCase(orbModel.getId())) {
+            return;
+        }
         removeSession(player.getUniqueId());
         inventoryOrbListSessions.remove(player.getUniqueId());
         OrbSession session = new OrbSession(
@@ -315,7 +321,7 @@ public final class OrbService {
             astPlayer,
             astPlayer.getAccount().getUuid(),
             UUID.randomUUID(),
-            entry.getInventoryEntryId(),
+            consumable.getInventoryEntryId(),
             orbModel.getId(),
             returnToInventoryOrbListOnFailure
         );
@@ -685,7 +691,7 @@ public final class OrbService {
         }
 
         inventoryOrbListSessions.remove(player.getUniqueId(), session);
-        startOrbOperation(player, session.astPlayer, entry, orbModel, true);
+        startOrbOperation(player, session.astPlayer, orbModel, true);
     }
 
     /**
@@ -935,7 +941,7 @@ public final class OrbService {
     }
 
     /**
-     * 保存したentry IDとitem IDを正本stateで照合し、同種の次スタックへの継続も解決します。
+     * item ID を正本stateの通常アイテム消費順で解決し、現在の消費対象entryを更新します。
      *
      * @param session 操作セッション
      * @return 現在消費できるオーブマスタ。全消費済みなら {@code null}
@@ -945,22 +951,14 @@ public final class OrbService {
             || AstPlayerCache.get(session.player) != session.astPlayer) {
             return null;
         }
-        InventoryEntryModel exact = inventoryService.findOwnedEntry(session.accountId, session.orbEntryId);
-        ItemModel exactModel = resolveOrbModel(exact);
-        if (exactModel != null && exactModel.getId().equalsIgnoreCase(session.orbItemId)) {
-            return exactModel;
-        }
-        if (!session.returnToInventoryOrbListOnFailure) {
-            return null;
-        }
-        InventoryEntryModel fallback = inventoryService.findOwnedNormalItemEntryForConsumption(
+        InventoryEntryModel consumable = inventoryService.findOwnedNormalItemEntryForConsumption(
             session.accountId,
             session.orbItemId
         );
-        ItemModel fallbackModel = resolveOrbModel(fallback);
-        if (fallbackModel != null && fallbackModel.getId().equalsIgnoreCase(session.orbItemId)) {
-            session.orbEntryId = fallback.getInventoryEntryId();
-            return fallbackModel;
+        ItemModel consumableModel = resolveOrbModel(consumable);
+        if (consumableModel != null && consumableModel.getId().equalsIgnoreCase(session.orbItemId)) {
+            session.orbEntryId = consumable.getInventoryEntryId();
+            return consumableModel;
         }
         return null;
     }
@@ -1835,7 +1833,6 @@ public final class OrbService {
         return inventoryService.reserveOrbOperationPayment(
             session.accountId,
             operationId,
-            session.orbEntryId,
             normalItems,
             gold
         );
@@ -2644,7 +2641,7 @@ public final class OrbService {
          * @param astPlayer 操作中ログイン世代
          * @param accountId アカウントID
          * @param token GUI世代token
-         * @param orbEntryId 起点オーブentry ID
+         * @param orbEntryId 共通消費順で直近に解決したオーブentry ID
          * @param orbItemId 起点オーブitem ID
          * @param returnToInventoryOrbListOnFailure 対象装備がない場合に所持オーブ一覧へ戻すか
          */

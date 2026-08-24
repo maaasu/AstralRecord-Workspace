@@ -152,11 +152,10 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
 
         harness.handler.onInventoryClick(harness.guiClick(10));
         harness.awaitOrbScreen(OrbGuiHolder.Screen.LIST);
-        verify(harness.inventoryService).findOwnedNormalItemEntryForConsumption(
+        verify(harness.inventoryService, atLeastOnce()).findOwnedNormalItemEntryForConsumption(
             harness.accountId,
             harness.orbModel.getId()
         );
-        verify(harness.inventoryService).findOwnedEntry(harness.accountId, harness.additionalOrbEntryId);
         assertEquals(Material.DIAMOND_SWORD,
             harness.player.getOpenInventory().getTopInventory().getItem(0).getType());
     }
@@ -164,7 +163,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
      * 章・見出し: # 08_2-ユースケース > ## 1.5. インベントリ内オーブ一覧
-     * 検証契約: 集約一覧からオーブ操作を開始した場合、後方slotのentry IDを支払い予約とAPI操作へ渡す。
+     * 検証契約: 集約一覧からオーブ操作を開始した場合、共通消費順で解決した後方slotのentry IDをAPI操作へ渡す。
      */
     @Test
     void inventoryOrbListSelectionUsesBackmostEntryForOrbPayment() {
@@ -181,7 +180,6 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         verify(harness.inventoryService).reserveOrbOperationPayment(
             eq(harness.accountId),
             any(UUID.class),
-            eq(harness.additionalOrbEntryId),
             any(),
             anyLong()
         );
@@ -197,28 +195,32 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
      * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
-     * 検証契約: 通常インベントリで明示クリックした起点entryが消えた場合、同種の別stackへ切り替えず操作を終了する。
+     * 検証契約: 通常インベントリでクリックしたentryが消えていても、同じitem IDの通常stackがあれば共通消費順で再解決して操作する。
      */
     @Test
-    void directInventoryOrbSelectionDoesNotSwitchToAnotherStackWhenOriginDisappears() {
+    void directInventoryOrbSelectionSwitchesToTheCommonConsumptionStack() {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         harness.additionalOrbQuantity = 32;
 
         harness.openOrbList();
-        when(harness.inventoryService.findOwnedEntry(harness.accountId, harness.orbEntryId)).thenReturn(null);
-
         InventoryClickEvent targetClick = harness.guiClick(0);
         harness.handler.onInventoryClick(targetClick);
+        harness.laneExecutor.runAll();
 
         verify(targetClick).setCancelled(true);
-        verify(harness.inventoryService, never()).findOwnedNormalItemEntryForConsumption(
+        verify(harness.inventoryService, atLeastOnce()).findOwnedNormalItemEntryForConsumption(
             harness.accountId,
             harness.orbModel.getId()
         );
-        verify(harness.inventoryService, never()).reserveOrbOperationPayment(
-            eq(harness.accountId), any(UUID.class), any(UUID.class), any(), anyLong());
-        verify(harness.itemService, never()).applyEquipmentOrbOperation(
-            anyString(), anyString(), anyString(), anyString(), anyString());
+        verify(harness.inventoryService).reserveOrbOperationPayment(
+            eq(harness.accountId), any(UUID.class), any(), anyLong());
+        verify(harness.itemService, atLeastOnce()).applyEquipmentOrbOperation(
+            anyString(),
+            eq(harness.accountId.toString()),
+            anyString(),
+            eq(harness.additionalOrbEntryId.toString()),
+            eq(harness.orbModel.getId())
+        );
     }
 
     /**
@@ -1337,7 +1339,6 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             when(inventoryService.isInventoryInfoSlot(26)).thenReturn(true);
             when(inventoryService.reserveOrbOperationPayment(
                 eq(accountId),
-                any(UUID.class),
                 any(UUID.class),
                 any(),
                 anyLong()

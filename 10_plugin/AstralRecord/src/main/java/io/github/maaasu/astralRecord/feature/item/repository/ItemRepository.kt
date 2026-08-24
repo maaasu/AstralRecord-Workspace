@@ -455,7 +455,7 @@ class ItemRepository {
         }
     }
 
-    /** オーブ支払いと装備更新を同一 operationId でAPIへ要求します。 */
+    /** オーブ支払いと装備更新を同一 operationId でAPIへ要求します。オーブ消費元はAPIが共通順で確定します。 */
     fun applyEquipmentOrbOperation(
         operationId: String,
         accountId: String,

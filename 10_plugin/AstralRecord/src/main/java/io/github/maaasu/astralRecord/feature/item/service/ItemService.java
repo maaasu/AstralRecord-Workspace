@@ -689,7 +689,7 @@ public class ItemService {
      * @param operationId 冪等操作ID
      * @param accountId 所有アカウントID
      * @param instanceId 対象装備個体ID
-     * @param orbInventoryEntryId 起点オーブentry ID
+     * @param orbInventoryEntryId 共通消費順で直近に解決したオーブentry ID
      * @param orbItemId オーブitem ID
      * @return API確定結果。通信失敗時は {@code null}
      */

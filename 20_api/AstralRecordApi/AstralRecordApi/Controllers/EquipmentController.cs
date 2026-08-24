@@ -48,7 +48,7 @@ public class EquipmentController(IEquipmentService equipmentService) : Controlle
     }
 
     /// <summary>オーブ支払いと装備更新を冪等かつ原子的に実施</summary>
-    /// <param name="request">operationId、所有者、オーブ entry、対象装備</param>
+    /// <param name="request">operationId、所有者、オーブitem、対象装備</param>
     /// <response code="200">確定済みの業務結果。同一 operationId は同じ結果を再生する</response>
     /// <response code="400">識別子が空、または orbItemId が128 UTF-16 code unitを超える</response>
     /// <response code="409">同じ operationId が異なる要求内容で使用済み</response>

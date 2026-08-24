@@ -12,6 +12,10 @@ public class EquipmentOrbOperationRequest : IValidatableObject
     public Guid OperationId { get; set; }
     public Guid AccountId { get; set; }
     public Guid EquipmentInstanceId { get; set; }
+    /// <summary>
+    /// Plugin が共通消費順で直近に解決したオーブentry。APIはこのIDを消費元の選択には使用せず、
+    /// transaction内で同じitem IDの通常stackを共通順から選ぶ。
+    /// </summary>
     public Guid OrbInventoryEntryId { get; set; }
     public required string OrbItemId { get; set; }
 

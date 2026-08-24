@@ -86,6 +86,30 @@ public class EquipmentOrbOperationRepositoryTests
     }
 
     [Fact]
+    public async Task Repair_ConsumesTheHighestSlotOrbRegardlessOfTheRequestedEntry()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        await harness.SetEquipmentStateAsync(instance => instance.DurabilityValue = 40);
+        var lowSlotOrb = await harness.AddOrbAsync("common_order_repair_orb", new ItemOrbEffectResponse
+        {
+            Type = "REPAIR",
+            RepairAmount = 25,
+        }, quantity: 1, slotIndex: 1);
+        var highSlotOrb = await harness.AddNormalEntryAsync(
+            "common_order_repair_orb", "orb", 1, slotIndex: 2);
+
+        var result = await harness.ExecuteAsync("common_order_repair_orb", lowSlotOrb);
+
+        Assert.Equal("APPLIED", result.Result);
+        Assert.True(result.PaymentConsumed);
+        Assert.Equal(1, await harness.GetEntryQuantityAsync(lowSlotOrb));
+        Assert.False((await harness.GetEntryAsync(lowSlotOrb)).IsDeleted);
+        Assert.True((await harness.GetEntryAsync(highSlotOrb)).IsDeleted);
+        var ledger = Assert.Single(await harness.GetLedgersAsync());
+        Assert.Equal(highSlotOrb, ledger.OrbInventoryEntryId);
+    }
+
+    [Fact]
     public async Task EnchantFillAll_AppliesEveryEmptySlotAndConsumesOneOrbForTheBatch()
     {
         await using var harness = await OrbOperationHarness.CreateAsync();
@@ -509,8 +533,11 @@ public class EquipmentOrbOperationRepositoryTests
         Assert.Equal("APPLIED", first.Result);
         Assert.Equal("OPERATION_CONFLICT", conflict.Result);
         Assert.False(conflict.PaymentConsumed);
-        Assert.True((await harness.GetEntryAsync(firstOrb)).IsDeleted);
-        Assert.Equal(1, await harness.GetEntryQuantityAsync(secondOrb));
+        var orbEntries = await Task.WhenAll(
+            harness.GetEntryAsync(firstOrb),
+            harness.GetEntryAsync(secondOrb));
+        Assert.Single(orbEntries, entry => entry.IsDeleted);
+        Assert.Single(orbEntries, entry => !entry.IsDeleted && entry.Quantity == 1);
         await harness.AssertSingleTerminalLedgerAsync(operationId, paymentConsumed: true);
     }
 
@@ -773,7 +800,8 @@ public class EquipmentOrbOperationRepositoryTests
         public async Task<Guid> AddOrbAsync(
             string itemId,
             ItemOrbEffectResponse effect,
-            long quantity = 2)
+            long quantity = 2,
+            int? slotIndex = null)
         {
             items.Add(new ItemResponse
             {
@@ -785,7 +813,7 @@ public class EquipmentOrbOperationRepositoryTests
                 Rarity = "COMMON",
                 Orb = new ItemOrbResponse { Effect = effect },
             });
-            return await AddNormalEntryAsync(itemId, "orb", quantity);
+            return await AddNormalEntryAsync(itemId, "orb", quantity, slotIndex);
         }
 
         public async Task<Guid> AddNormalEntryAsync(
