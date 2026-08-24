@@ -102,8 +102,8 @@ class ClassService {
         val classIdByShortName = LinkedHashMap<String, String>()
         for (model in snapshot.values) {
             val visibleShortName = ColorCodeUtil.toPlainText(model.shortName, "").trim()
-            require(visibleShortName.codePointCount(0, visibleShortName.length) == 3) {
-                "class '${model.id}' shortName must contain exactly 3 visible characters"
+            require(visibleShortName.length == 3 && visibleShortName.all { it in 'A'..'Z' }) {
+                "class '${model.id}' shortName must contain exactly 3 uppercase English letters"
             }
             val normalizedShortName = normalize(visibleShortName)
             val existingClassId = classIdByShortName.putIfAbsent(normalizedShortName, model.id)

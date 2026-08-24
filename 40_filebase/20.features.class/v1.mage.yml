@@ -3,7 +3,7 @@ id: mage
 type: CLASS
 name: "&bメイジ"
 order: 1.3
-shortName: "&b魔術師"
+shortName: "&bMAG"
 description: "&7属性魔術師。"
 icon: BLAZE_ROD
 role: DEALER

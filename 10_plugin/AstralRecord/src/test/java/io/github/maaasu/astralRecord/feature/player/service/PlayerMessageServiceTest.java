@@ -119,14 +119,14 @@ class PlayerMessageServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
      * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### 全体チャット配信
-     * 検証契約: 全体chatでプレイヤーLv.と3文字短縮class tagをplayer名より前に置く。
+     * 検証契約: 全体chatでプレイヤーLv.と英大文字3文字短縮class tagをplayer名より前に置く。
      */
     @Test
     void globalChatPlacesLevelAndShortClassNameBeforePlayerName() {
         Player sender = onlinePlayer();
         when(sender.getName()).thenReturn("Alice");
         PlayerClassService classService = mock(PlayerClassService.class);
-        when(classService.getShortDisplayName("mage")).thenReturn("§b魔術師");
+        when(classService.getShortDisplayName("mage")).thenReturn("§bMAG");
         AccountModel account = mock(AccountModel.class);
         when(account.getLevel()).thenReturn(12);
         AstPlayer astPlayer = mock(AstPlayer.class);
@@ -142,7 +142,7 @@ class PlayerMessageServiceTest {
             service.broadcastGlobalChat(sender, "hello");
 
             assertEquals(
-                "[全体] [Lv.12] [魔術師] Alice: hello",
+                "[全体] [Lv.12] [MAG] Alice: hello",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(sender))
             );
         }

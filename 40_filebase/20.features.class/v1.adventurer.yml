@@ -3,7 +3,7 @@ id: adventurer
 type: CLASS
 name: "&f冒険者"
 order: 0
-shortName: "&f冒険者"
+shortName: "&fADV"
 description: "&7基礎を学びながら進路を決める見習い冒険者。"
 icon: COMPASS
 role: DEALER

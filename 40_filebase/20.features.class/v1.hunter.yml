@@ -3,7 +3,7 @@ id: hunter
 type: CLASS
 name: "&aハンター"
 order: 1.2
-shortName: "&a狩猟士"
+shortName: "&aHNT"
 description: "&7機動遠距離射手。"
 icon: BOW
 role: DEALER

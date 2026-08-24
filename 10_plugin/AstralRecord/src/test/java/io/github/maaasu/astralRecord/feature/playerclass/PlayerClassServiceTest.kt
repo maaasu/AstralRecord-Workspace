@@ -14,6 +14,7 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assertions.assertThrows
+import java.util.Locale
 
 class PlayerClassServiceTest : MockBukkitTestBase() {
 
@@ -103,8 +104,8 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         val service = PlayerClassService()
         service.replaceSnapshot(
             mapOf(
-                "cycle_a" to classModel("cycle_a", "A", listOf("cycle_b")),
-                "cycle_b" to classModel("cycle_b", "B", listOf("cycle_a")),
+                "cycle_a" to classModel("cycle_a", "A", listOf("cycle_b"), shortName = "CYA"),
+                "cycle_b" to classModel("cycle_b", "B", listOf("cycle_a"), shortName = "CYB"),
             )
         )
 
@@ -115,14 +116,14 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
      * 章・見出し: # 03_3-サービス > ## 5. PlayerClassService
-     * 検証契約: class masterで設定した3文字短縮名を返す。
+     * 検証契約: class masterで設定した英大文字3文字短縮名を返す。
      */
     @Test
     fun returnsConfiguredThreeCharacterShortName() {
         val service = PlayerClassService()
-        service.replaceSnapshot(mapOf("mage" to classModel("mage", "&bメイジ", shortName = "&b魔術師")))
+        service.replaceSnapshot(mapOf("mage" to classModel("mage", "&bメイジ", shortName = "&bMAG")))
 
-        assertEquals("§b魔術師", service.getShortDisplayName("mage"))
+        assertEquals("§bMAG", service.getShortDisplayName("mage"))
     }
 
     /**
@@ -203,7 +204,7 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         val astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER)
         astPlayer.selectClass("mage")
         val service = PlayerClassService()
-        service.replaceSnapshot(mapOf("mage" to classModel("mage", "&bメイジ", shortName = "&b魔術師")))
+        service.replaceSnapshot(mapOf("mage" to classModel("mage", "&bメイジ", shortName = "&bMAG")))
 
         service.updatePlayerListName(astPlayer)
 
@@ -216,7 +217,7 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
      * 章・見出し: # 03_3-サービス > ## 5. PlayerClassService
-     * 検証契約: 可視class間で3文字短縮名が重複するmasterを拒否する。
+     * 検証契約: 可視class間で英大文字3文字短縮名が重複するmasterを拒否する。
      */
     @Test
     fun rejectsDuplicateVisibleShortNames() {
@@ -225,10 +226,24 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         assertThrows(IllegalArgumentException::class.java) {
             service.replaceSnapshot(
                 mapOf(
-                    "mage" to classModel("mage", "Mage", shortName = "&b魔術師"),
-                    "wizard" to classModel("wizard", "Wizard", shortName = "&d魔術師"),
+                    "mage" to classModel("mage", "Mage", shortName = "&bMAG"),
+                    "wizard" to classModel("wizard", "Wizard", shortName = "&dMAG"),
                 ),
             )
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 5. PlayerClassService
+     * 検証契約: shortNameへ英大文字3文字以外を指定したclass masterを拒否する。
+     */
+    @Test
+    fun rejectsNonUppercaseEnglishShortNames() {
+        val service = PlayerClassService()
+
+        assertThrows(IllegalArgumentException::class.java) {
+            service.replaceSnapshot(mapOf("mage" to classModel("mage", "Mage", shortName = "&bMag")))
         }
     }
 
@@ -236,7 +251,7 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         id: String,
         name: String,
         parentIds: List<String> = emptyList(),
-        shortName: String = id.takeLast(3).padStart(3, '_'),
+        shortName: String = id.takeLast(3).uppercase(Locale.ROOT).padStart(3, 'X'),
         order: Double = 0.0,
         baseStats: List<ClassStat> = emptyList(),
         growthPerLevel: List<ClassStat> = emptyList(),

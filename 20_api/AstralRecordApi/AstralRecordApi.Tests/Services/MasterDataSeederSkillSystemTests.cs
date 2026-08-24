@@ -47,6 +47,32 @@ public class MasterDataSeederSkillSystemTests
     }
 
     /// <summary>
+    /// 設計入力: 00_docs/50_Filebase設計書/feature/20-class.md
+    /// 検証契約: class の shortName は色・装飾コードを除いて ASCII 英大文字3文字だけを受け付ける。
+    /// </summary>
+    [Theory]
+    [InlineData("&aMAG")]
+    [InlineData("&bSWD")]
+    public void ValidateClassShortName_AcceptsUppercaseEnglishThreeLetters(string shortName)
+    {
+        InvokeValidateClassShortName(shortName);
+    }
+
+    /// <summary>
+    /// 設計入力: 00_docs/50_Filebase設計書/feature/20-class.md
+    /// 検証契約: class の shortName は小文字・数字・記号を含む値を拒否する。
+    /// </summary>
+    [Theory]
+    [InlineData("&aMag")]
+    [InlineData("&aMA1")]
+    public void ValidateClassShortName_RejectsNonUppercaseEnglishThreeLetters(string shortName)
+    {
+        var error = Assert.Throws<TargetInvocationException>(() => InvokeValidateClassShortName(shortName));
+
+        Assert.IsType<InvalidOperationException>(error.InnerException);
+    }
+
+    /// <summary>
     /// 設計入力: 00_docs/50_Filebase設計書/feature/30-skill.md
     /// 検証契約: 有効skillから自動生成される仮想gem IDは、loot/quest等のitem必須参照として解決できる。
     /// </summary>
@@ -210,6 +236,19 @@ public class MasterDataSeederSkillSystemTests
 
         return (JsonObject)(method.Invoke(null, [rawText, "test.yml"])
             ?? throw new InvalidOperationException("ParseYamlObject returned null"));
+    }
+
+    private static void InvokeValidateClassShortName(string shortName)
+    {
+        MethodInfo method = typeof(MasterDataSeeder).GetMethod(
+            "ValidateClassShortName",
+            BindingFlags.Static | BindingFlags.NonPublic
+        ) ?? throw new MissingMethodException(typeof(MasterDataSeeder).FullName, "ValidateClassShortName");
+
+        var root = ParseYamlObject($"shortName: \"{shortName}\"");
+        method.Invoke(
+            null,
+            [root, "test_class", "test.yml", new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)]);
     }
 
     private sealed class Fixture : IAsyncDisposable

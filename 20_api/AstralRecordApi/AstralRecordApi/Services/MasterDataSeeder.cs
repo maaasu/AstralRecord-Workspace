@@ -1,4 +1,3 @@
-using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
@@ -709,10 +708,10 @@ public class MasterDataSeeder(
     {
         var shortName = RequireScalar(root, "shortName", relativePath);
         var visibleShortName = StripLegacyColorCodes(shortName).Trim();
-        if (StringInfo.ParseCombiningCharacters(visibleShortName).Length != 3)
+        if (visibleShortName.Length != 3 || visibleShortName.Any(value => value < 'A' || value > 'Z'))
         {
             throw new InvalidOperationException(
-                $"class '{masterId}' の shortName は色コードを除いて3文字である必要があります: {relativePath}");
+                $"class '{masterId}' の shortName は色・装飾コードと前後空白を除いてASCII英大文字3文字である必要があります: {relativePath}");
         }
 
         if (classIdByShortName.TryGetValue(visibleShortName, out var existingClassId))

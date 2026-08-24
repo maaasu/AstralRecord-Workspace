@@ -36,9 +36,9 @@ public class ClassRepositoryTests
         var summary = Assert.Single(repository.GetAllSummaries());
         var detail = repository.GetById("mage");
 
-        Assert.Equal("&b魔術師", summary.ShortName);
+        Assert.Equal("&bMAG", summary.ShortName);
         Assert.NotNull(detail);
-        Assert.Equal("&b魔術師", detail!.ShortName);
+        Assert.Equal("&bMAG", detail!.ShortName);
     }
 
     private static string ResolveWorkspaceRoot([CallerFilePath] string currentFile = "")

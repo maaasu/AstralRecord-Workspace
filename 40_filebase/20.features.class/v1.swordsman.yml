@@ -3,7 +3,7 @@ id: swordsman
 type: CLASS
 name: "&fソードマン"
 order: 1.1
-shortName: "&f剣術士"
+shortName: "&fSWD"
 description: "&7前線近接戦士。"
 icon: IRON_SWORD
 role: TANK
