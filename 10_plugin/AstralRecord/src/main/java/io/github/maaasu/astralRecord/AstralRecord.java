@@ -777,6 +777,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         // class
         playerClassService = new PlayerClassService(accountService);
+        itemStackFactory.setPlayerClassService(playerClassService);
         playerClassService.setSkillTreeService(skillTreeService);
         skillTreeService.setPlayerClassService(playerClassService);
 

@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.status.service;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentStatRoll;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentDurability;
@@ -17,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.item.model.SetEffectPiece;
 import io.github.maaasu.astralRecord.feature.item.model.SetEffectStat;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.junit.jupiter.api.Test;
@@ -73,6 +75,47 @@ class StatusSetEffectDurabilityTest extends MockBukkitTestBase {
         assertEquals(List.of(2), active.getFirst().activePieceCounts());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### ステータス再計算
+     * 検証契約: 同じステータスに FLAT と SCALAR が混在しても、装備ロールの sortOrder に
+     * 対応する補正方式でステータスを計算する。
+     */
+    @Test
+    void equipmentBonusUsesDefinitionOrderForDuplicateStatuses() {
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer player = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.PLAYER);
+        UUID instanceId = UUID.randomUUID();
+        ItemService itemService = mock(ItemService.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        ItemReference reference = reference("duplicate-stat-equipment", instanceId);
+        EquipmentInstance instance = new EquipmentInstance(
+                instanceId.toString(),
+                player.getAccount().getUuid().toString(),
+                "duplicate-stat-equipment",
+                0,
+                0,
+                0,
+                0,
+                0,
+                LocalDateTime.now().toString(),
+                LocalDateTime.now().toString(),
+                List.of(
+                        new EquipmentStatRoll("flat-roll", "MELEE_ATTACK", "30", "30", 0),
+                        new EquipmentStatRoll("scalar-roll", "MELEE_ATTACK", "1.1", "1.1", 1)),
+                List.of(),
+                List.of());
+        ItemModel model = duplicateStatEquipmentModel();
+
+        when(inventoryService.getEquippedItemReferences(player)).thenReturn(List.of(reference));
+        when(itemService.findEquipmentInstanceById(instanceId.toString())).thenReturn(instance);
+        when(itemService.findLoadedById("duplicate-stat-equipment")).thenReturn(model);
+
+        StatusService statusService = new StatusService(itemService, inventoryService);
+        assertEquals(30.0D * 1.1D,
+                statusService.refreshStatus(player).getMaxValue(StatusType.MELEE_ATTACK), 0.0001D);
+    }
+
     private ItemReference reference(String itemId, UUID instanceId) {
         return new ItemReference(
                 itemId,
@@ -122,6 +165,48 @@ class StatusSetEffectDurabilityTest extends MockBukkitTestBase {
                 ItemCategory.EQUIPMENT.getApiValue(),
                 "デバッグヘルム",
                 "LEATHER_HELMET",
+                "common",
+                1,
+                0,
+                null,
+                null,
+                List.of(),
+                false,
+                false,
+                null,
+                null,
+                equipment,
+                null,
+                null,
+                null,
+                null,
+                null
+        );
+    }
+
+    private ItemModel duplicateStatEquipmentModel() {
+        ItemEquipment equipment = new ItemEquipment(
+                ItemEquipmentSlot.WEAPON,
+                ItemEquipmentHandType.ONE,
+                null,
+                0,
+                List.of(),
+                null,
+                List.of(
+                        new ItemEquipmentStat("MELEE_ATTACK", ItemEquipmentStatType.FLAT, 30.0D, 30.0D),
+                        new ItemEquipmentStat("MELEE_ATTACK", ItemEquipmentStatType.SCALAR, 1.1D, 1.1D)),
+                null,
+                null,
+                null,
+                null,
+                List.of()
+        );
+        return new ItemModel(
+                1,
+                "duplicate-stat-equipment",
+                ItemCategory.EQUIPMENT.getApiValue(),
+                "重複ステータス装備",
+                "IRON_SWORD",
                 "common",
                 1,
                 0,

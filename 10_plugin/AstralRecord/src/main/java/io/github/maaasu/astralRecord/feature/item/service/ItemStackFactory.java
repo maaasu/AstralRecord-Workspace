@@ -28,6 +28,7 @@ import io.github.maaasu.astralRecord.feature.item.model.SetEffectStat;
 import io.github.maaasu.astralRecord.feature.loot.model.LootEntry;
 import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -57,6 +58,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -155,6 +157,8 @@ public class ItemStackFactory {
 
     /** ルート内アイテム名の日本語表示解決に使用します。 */
     private final ItemService itemService;
+    /** 必要クラスの表示名解決に使用します。 */
+    private @Nullable PlayerClassService playerClassService;
     private final BuffRepository buffRepository = new BuffRepository();
     private final Map<String, String> buffDisplayNameCache = new ConcurrentHashMap<>();
 
@@ -167,6 +171,15 @@ public class ItemStackFactory {
     public ItemStackFactory(@NotNull LootService lootService, @NotNull ItemService itemService) {
         this.lootService = lootService;
         this.itemService = itemService;
+    }
+
+    /**
+     * 必要クラスの表示名解決に使用するサービスを設定します。
+     *
+     * @param playerClassService クラス表示名サービス。null の場合は未登録表示を使用します
+     */
+    public void setPlayerClassService(@Nullable PlayerClassService playerClassService) {
+        this.playerClassService = playerClassService;
     }
 
     // region --- public API ---
@@ -1111,20 +1124,14 @@ public class ItemStackFactory {
                 lore.add("");
                 lore.add(ColorCodeUtil.YELLOW + " ▸ ステータス補正");
 
-                // ItemEquipmentStat の status → type マップ
-                Map<String, ItemEquipmentStatType> statTypeMap = new LinkedHashMap<>();
-                Map<String, ItemEquipmentStat> statDefinitionMap = new LinkedHashMap<>();
-                for (var stat : eq.getStats()) {
-                    statTypeMap.put(stat.getStatus(), stat.getType());
-                    statDefinitionMap.put(stat.getStatus(), stat);
-                }
-
                 // enhance 累積計算 (status#type → [minAccum, maxAccum])
                 Map<String, double[]> enhanceAccum = calculateEnhanceStats(eq, instance.getEnhanceLevel());
 
                 for (var roll : instance.getStatRolls()) {
-                    ItemEquipmentStatType rollType = statTypeMap.getOrDefault(
-                            roll.getStatus(), ItemEquipmentStatType.FLAT);
+                    ItemEquipmentStat statDefinition = eq.findStatDefinition(roll);
+                    ItemEquipmentStatType rollType = statDefinition == null
+                            ? ItemEquipmentStatType.FLAT
+                            : statDefinition.getType();
                     double baseMin = parseStatDouble(roll.getMin());
                     double baseMax = parseStatDouble(roll.getMax());
 
@@ -1135,7 +1142,6 @@ public class ItemStackFactory {
                     double totalMax = baseMax + enhAdd[1];
 
                     StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
-                    ItemEquipmentStat statDefinition = statDefinitionMap.get(roll.getStatus());
                     String displayValue = totalMin == totalMax
                             ? formatStatValueWithType(rollType, statusType, totalMin)
                             : formatStatRange(rollType, statusType, totalMin, totalMax);
@@ -1376,16 +1382,35 @@ public class ItemStackFactory {
 
     /**
      * double をステータス表示用の文字列にフォーマットします。
-     * 末尾のゼロを除去した十進数表現を返します。
+     * 小数点以下2桁で切り捨て、末尾のゼロを除去した十進数表現を返します。
      */
     private @NotNull String formatStatValue(double value) {
-        return BigDecimal.valueOf(value).stripTrailingZeros().toPlainString();
+        return BigDecimal.valueOf(value)
+                .setScale(2, RoundingMode.DOWN)
+                .stripTrailingZeros()
+                .toPlainString();
     }
 
     private @NotNull String formatRequiredClasses(@NotNull ItemEquipment equipment) {
         return String.join(", ", equipment.getRequiredClasses().stream()
-            .map(requirement -> requirement.getClassId() + " Lv." + Math.max(1, requirement.getLevel()))
+            .map(requirement -> resolveRequiredClassDisplayName(requirement.getClassId())
+                    + ColorCodeUtil.GRAY + " Lv." + ColorCodeUtil.YELLOW
+                    + Math.max(1, requirement.getLevel()))
             .toList());
+    }
+
+    private @NotNull String resolveRequiredClassDisplayName(@Nullable String classId) {
+        if (classId == null || classId.isBlank() || playerClassService == null) {
+            return "未登録のクラス";
+        }
+        String displayName = playerClassService.getDisplayName(classId);
+        if (displayName == null || displayName.isBlank()) {
+            return "未登録のクラス";
+        }
+        String plainName = ColorCodeUtil.toPlainText(displayName, "").trim();
+        return plainName.isBlank() || plainName.equalsIgnoreCase(classId.trim())
+                ? "未登録のクラス"
+                : displayName;
     }
 
     private @NotNull String formatStatValueWithType(

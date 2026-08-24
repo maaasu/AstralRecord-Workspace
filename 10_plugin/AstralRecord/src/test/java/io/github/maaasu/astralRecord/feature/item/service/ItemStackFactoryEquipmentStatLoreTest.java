@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentStatRoll;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentClassRequirement;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceFailAction;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceLevel;
@@ -14,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStat;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -22,9 +24,11 @@ import org.junit.jupiter.api.Test;
 import java.lang.reflect.Method;
 import java.util.List;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class ItemStackFactoryEquipmentStatLoreTest {
 
@@ -103,6 +107,101 @@ class ItemStackFactoryEquipmentStatLoreTest {
         assertFalse(line.contains("(4"));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 所有インスタンスItemStack生成
+     * 検証契約: 同じステータスに FLAT と SCALAR が混在しても、statRoll の sortOrder
+     * に対応する補正方式で表示し、数値は小数点以下2桁で切り捨てる。
+     */
+    @Test
+    void duplicateStatusUsesDefinitionOrderAndTruncatesFloatingPointNoise()
+            throws ReflectiveOperationException {
+        ItemEquipmentStat flat = new ItemEquipmentStat(
+                "MELEE_ATTACK", ItemEquipmentStatType.FLAT, 30.0D, 40.0D);
+        ItemEquipmentStat scalar = new ItemEquipmentStat(
+                "MELEE_ATTACK", ItemEquipmentStatType.SCALAR, 1.10D, 1.10D);
+        ItemEquipment equipment = new ItemEquipment(
+                ItemEquipmentSlot.WEAPON,
+                ItemEquipmentHandType.ONE,
+                null,
+                0,
+                List.of(),
+                null,
+                List.of(flat, scalar),
+                null,
+                null,
+                null,
+                null,
+                List.of());
+        ItemModel model = model(equipment);
+        EquipmentInstance instance = new EquipmentInstance(
+                "instance-id",
+                "account-id",
+                model.getId(),
+                0,
+                0,
+                0,
+                0,
+                0,
+                "",
+                "",
+                List.of(
+                        new EquipmentStatRoll("flat-roll", "MELEE_ATTACK", "30", "40", 0),
+                        new EquipmentStatRoll("scalar-roll", "MELEE_ATTACK", "1.1", "1.1", 1)),
+                List.of(),
+                List.of());
+
+        ItemStackFactory factory = new ItemStackFactory(mock(LootService.class), mock(ItemService.class));
+        List<String> lore = invokeBuildLore(factory, model, instance);
+        List<String> statLines = findPlainStatLines(lore);
+
+        assertTrue(statLines.get(0).contains("近接攻撃力 : +30 ～ +40"));
+        assertFalse(statLines.get(0).contains("×"));
+        assertTrue(statLines.get(1).contains("最終近接攻撃力乗数 : ×110%"));
+        assertFalse(statLines.get(1).contains("110.00000000000001"));
+
+        Method formatMethod = ItemStackFactory.class.getDeclaredMethod("formatStatValue", double.class);
+        formatMethod.setAccessible(true);
+        assertEquals("1.23", formatMethod.invoke(factory, 1.239D));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 所有インスタンスItemStack生成
+     * 検証契約: 必要クラスはマスタ表示名を使い、クラス表示と同じ `Lv.` 形式で表示する。
+     */
+    @Test
+    void requiredClassesUseDisplayNamesAndExistingLevelStyle() throws ReflectiveOperationException {
+        ItemEquipment equipment = new ItemEquipment(
+                ItemEquipmentSlot.WEAPON,
+                ItemEquipmentHandType.ONE,
+                null,
+                5,
+                List.of(
+                        new ItemEquipmentClassRequirement("swordsman", 3),
+                        new ItemEquipmentClassRequirement("adventurer", 1)),
+                null,
+                List.of(),
+                null,
+                null,
+                null,
+                null,
+                List.of());
+        PlayerClassService playerClassService = mock(PlayerClassService.class);
+        when(playerClassService.getDisplayName("swordsman")).thenReturn(ColorCodeUtil.WHITE + "ソードマン");
+        when(playerClassService.getDisplayName("adventurer")).thenReturn(ColorCodeUtil.WHITE + "冒険者");
+
+        ItemStackFactory factory = new ItemStackFactory(mock(LootService.class), mock(ItemService.class));
+        factory.setPlayerClassService(playerClassService);
+        Method method = ItemStackFactory.class.getDeclaredMethod("formatRequiredClasses", ItemEquipment.class);
+        method.setAccessible(true);
+        String display = toPlain((String) method.invoke(factory, equipment));
+
+        assertTrue(display.contains("ソードマン Lv.3, 冒険者 Lv.1"));
+        assertFalse(display.contains("swordsman"));
+        assertFalse(display.contains("adventurer"));
+    }
+
     @SuppressWarnings("unchecked")
     private List<String> buildLore(
             ItemEquipmentStat stat,
@@ -134,6 +233,16 @@ class ItemStackFactoryEquipmentStatLoreTest {
         return (List<String>) method.invoke(factory, model, instance);
     }
 
+    @SuppressWarnings("unchecked")
+    private List<String> invokeBuildLore(
+            ItemStackFactory factory, ItemModel model, EquipmentInstance instance)
+            throws ReflectiveOperationException {
+        Method method = ItemStackFactory.class.getDeclaredMethod(
+                "buildLoreForEquipmentInstance", ItemModel.class, EquipmentInstance.class);
+        method.setAccessible(true);
+        return (List<String>) method.invoke(factory, model, instance);
+    }
+
     private ItemModel model(ItemEquipmentStat stat, ItemEquipmentEnhance enhance) {
         ItemEquipment equipment = new ItemEquipment(
                 ItemEquipmentSlot.WEAPON,
@@ -149,6 +258,10 @@ class ItemStackFactoryEquipmentStatLoreTest {
                 null,
                 List.of()
         );
+        return model(equipment);
+    }
+
+    private ItemModel model(ItemEquipment equipment) {
         return new ItemModel(
                 1,
                 "equipment-stat-lore-test",
@@ -188,5 +301,17 @@ class ItemStackFactoryEquipmentStatLoreTest {
                 .filter(line -> line.contains("▹") && line.contains(" : "))
                 .findFirst()
                 .orElseThrow();
+    }
+
+    private List<String> findPlainStatLines(List<String> lore) {
+        return lore.stream()
+                .map(this::toPlain)
+                .filter(line -> line.contains("▹") && line.contains(" : "))
+                .toList();
+    }
+
+    private String toPlain(String line) {
+        return PlainTextComponentSerializer.plainText().serialize(
+                LegacyComponentSerializer.legacySection().deserialize(line));
     }
 }

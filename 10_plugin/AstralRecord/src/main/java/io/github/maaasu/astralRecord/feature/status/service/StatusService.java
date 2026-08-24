@@ -1017,11 +1017,6 @@ public class StatusService {
         if (setId != null && !setId.isBlank()) {
             setCounts.merge(setId.trim(), 1, Integer::sum);
         }
-        Map<String, ItemEquipmentStatType> statTypes = new HashMap<>();
-        for (ItemEquipmentStat stat : equipment.getStats()) {
-            statTypes.put(normalizeStatusKey(stat.getStatus()), stat.getType());
-        }
-
         EquipmentItemBonus itemBonus = new EquipmentItemBonus();
 
         for (EquipmentStatRoll roll : instance.getStatRolls()) {
@@ -1029,10 +1024,10 @@ public class StatusService {
             if (statusType == null) {
                 continue;
             }
-            ItemEquipmentStatType statType = statTypes.getOrDefault(
-                normalizeStatusKey(roll.getStatus()),
-                ItemEquipmentStatType.FLAT
-            );
+            ItemEquipmentStat statDefinition = equipment.findStatDefinition(roll);
+            ItemEquipmentStatType statType = statDefinition == null
+                ? ItemEquipmentStatType.FLAT
+                : statDefinition.getType();
             addItemBonus(
                 itemBonus,
                 statusType,

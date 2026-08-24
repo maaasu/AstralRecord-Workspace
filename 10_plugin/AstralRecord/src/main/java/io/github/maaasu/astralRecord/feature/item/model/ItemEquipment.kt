@@ -26,7 +26,25 @@ data class ItemEquipment(
     val rune: ItemEquipmentRuneDef? = null,
     /** 状態変化定義リスト */
     val transcendence: List<ItemEquipmentTranscendence> = emptyList(),
-)
+) {
+    /**
+     * 装備インスタンスのステータスロールに対応するマスタ定義を返します。
+     *
+     * `sortOrder` は装備生成時の `stats` 配列位置を保持するため、同じステータスに
+     * `FLAT` と `SCALAR` が混在する場合でも補正方式を区別できます。古いデータや
+     * 不正な順序の場合は、同じステータスの先頭定義へ安全にフォールバックします。
+     *
+     * @param roll 解決対象の装備インスタンスロール
+     * @return 対応するマスタ定義。対応定義がない場合はnull
+     */
+    fun findStatDefinition(roll: EquipmentStatRoll): ItemEquipmentStat? {
+        val indexed = stats.getOrNull(roll.sortOrder)
+        if (indexed != null && indexed.status.trim().equals(roll.status.trim(), ignoreCase = true)) {
+            return indexed
+        }
+        return stats.firstOrNull { it.status.trim().equals(roll.status.trim(), ignoreCase = true) }
+    }
+}
 
 enum class ItemEquipmentSlot(val displayName: String) {
     WEAPON("武器"),
