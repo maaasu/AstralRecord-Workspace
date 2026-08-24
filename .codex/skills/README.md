@@ -1,262 +1,49 @@
-# AstralRecord Workspace Skills
-
-このディレクトリは、AstralRecord モノレポで使う workspace-local skill のカタログです。
-実行時の詳細ルールは各 skill の `SKILL.md` を唯一の実行正本として扱います。
-
-## 基本方針
-
-1. `.codex/skills/<skill-name>/SKILL.md` が存在するディレクトリを有効 skill として扱う。
-2. skill の判定は `SKILL.md` の frontmatter `name` / `description` を正とする。
-3. ユーザー向けの説明、`description`、`agents/openai.yaml` の表示文は日本語で書く。
-4. skill 本文、チェックリスト、スクリプト内部の実装説明は英語でもよい。
-5. skill 追加時にルート `AGENTS.md` へ個別追記しない。
-6. workspace 固有の判断基準は skill 本文か `references/` に置く。
-
-## Worktree First
-
-実装、設計書修正、レビュー記録の新規保存、レビュー修正のように差分が発生する作業は、原則として task ごとの branch / git worktree で行います。レビュー skill を main `develop` から開始した場合も、記録を書き込む前に review 用 worktree を作ります。
-
-標準の流れは次の通りです。
-
-1. `$astralrecord-git-worktree-develop` で task worktree を作る。
-2. 作成された worktree の中で、目的に合う作業 skill を使う。
-3. 作業が終わったら `$astralrecord-git-worktree-develop` で commit、rebase、develop への fast-forward merge、cleanup を行う。
-4. 複数 task を並列で進めた場合は、最後に 1 件ずつ finalize する。
-5. プラグインの版番号更新は並列作業中に行わず、finalize 時に最新 `develop` へ rebase した後だけ行う。
-6. worktree の作成・finalize・掃除のたびに `E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` を更新し、残った worktree が消し忘れか未完了か分かる状態にする。
-7. merged 済み `codex/*` branch や不要な task worktree が溜まったら、`$astralrecord-prune-codex-worktrees` で dry-run 監査してから掃除する。
-
-1 回の依頼で worktree 作成から develop への merge まで進めたい場合は、統合入口として `$astralrecord-code-version-commit-develop` を使います。
-
-## Filebase マスタの並列・直接作成
-
-`$astralrecord-master-data-create-direct` は、小規模な `40_filebase` 変更を現在の `develop` へ直接 commit するための例外ルートです。このルートは直列・単一ライター専用とし、複数 task が同じ main workspace の作業ツリー、Git index、HEAD を共有して同時に編集・stage・commit してはいけません。
-
-複数 task が実際に YAML を並列編集する場合は、YAML 1 ファイルごとではなく、独立した area / combat / economy などの coherent package ごとに task branch / worktree を作ります。各 package では、所有 path、予約 ID または ID prefix、共通ファイル担当、他 package への依存を作業前に明示し、並列実装後は依存順に 1 件ずつ finalize します。finalize では最新 `develop` へ rebase した後、filebase 全体の ID 重複と変更マスタの参照解決を再検証してから merge します。
-
-worktree を増やさずに案出しだけを並列化する場合、並列 task は読み取り専用で YAML 案と ID 一覧を返し、1 つの統合 task だけが `$astralrecord-master-data-create-direct` を使って順次反映・commit します。
-
-## 依頼文の書き方
-
-skill 名、作業内容、対象の絶対パスを指定します。
-
-```text
-$<skill-name> を使って、<absolute-path> に対して <task> を行い、結果を報告してください。
-```
-
-対象パスは `E:\AstralRecord-Workspace\...` から始まる絶対パスを推奨します。曖昧な「このへん」「docs」などの指定は避けてください。
-
-## 標準フロー
-
-| 目的 | 使う skill | 補足 |
-|:--|:--|:--|
-| task worktree を作る | `$astralrecord-git-worktree-develop` | prepare と finalize の両方を担当し、worktree 管理ファイルを更新する |
-| 新規実装・仕様反映 | `$astralrecord-code` | 実装と関連設計書の同期を扱う |
-| Minecraft 内スキルの新規追加・仕様変更 | `$astralrecord-skill-author` | 依頼不足を確認してから、skill / gem / shop / Plugin / 演出 / DPS / 設計書を一貫して扱う |
-| 実装から develop merge まで一気通貫 | `$astralrecord-code-version-commit-develop` | 実装後の独立レビュー・自動修正・再レビューを含む統合入口 |
-| コードレビュー | `$astralrecord-code-review` | ソースを編集せず、指摘がある場合のみ固定書式の記録を保存・検証する |
-| コードレビュー指摘の修正 | `$astralrecord-code-fix` | レビュー結果を入力にして最小修正する |
-| 設計書レビュー | `$astralrecord-docs-review` | ソースコードを読まず、指摘がある場合のみ固定書式の記録を保存・検証する |
-| 設計書レビュー指摘の修正 | `$astralrecord-docs-fix` | docs だけを編集する |
-| 現在の branch/worktree の差分だけ commit | `$astralrecord-commit-current-diff` | branch 作成や merge はしない |
-| 複数の `codex/*` branch をまとめて監査・merge | `$astralrecord-merge-codex-branches-develop` | 既定は dry-run、監査後に worktree 管理ファイルを更新 |
-| merged 済み `codex/*` branch / task worktree を掃除 | `$astralrecord-prune-codex-worktrees` | 既定は dry-run、管理ファイル作成、未登録ディレクトリは手動確認 |
-| 本番向け filebase マスタ追加 | `$astralrecord-master-data-author` | コンセプト・ステータス・命名方針と YAML スキーマに沿って追加 |
-| 指定 filebase マスタの高速作成・直接 commit | `$astralrecord-master-data-create-direct` | 単一ライターで develop の対象ファイルだけを作成・更新し、worktree を使わず直列 commit |
-| プラグインの設計追跡可能なテスト・検証基盤整備 | `$astralrecord-plugin-test` | 恒久テストは設計入力必須。一時診断は実行後に削除し、機能仕様変更は `$astralrecord-code` を使う |
-| プラグイン版番号更新 | `$astralrecord-plugin-version` | finalize 直前の rebased worktree で使う |
-| player/logger プロパティの未使用削除 | `$astralrecord-unused-properties-prune` | 専用スクリプトの結果を根拠にする |
-| AstralArchitectのAI建築候補作成 | `$astralarchitect-builder` | 専用CLIだけでチケットを調査し、`candidate.schem`を安全に編集する |
-
-## 作業 Skill
-
-### `$astralrecord-skill-author`
-
-Minecraft 内でプレイヤーが使う職業スキルを追加・変更します。対象・効果・バランス・演出・入手経路が不足している場合は、実装前に必要な項目だけを質問します。
-
-使う場面:
-
-- 職業に攻撃、回復、補助、移動などの新規スキルを追加したい。
-- スキルジェム、ショップ販売、管理者利用、粒子演出、DPS をスキルとまとめて整備したい。
-
-`$astralrecord-code` との使い分け:
-
-- Minecraft 内スキルの作成・変更は `$astralrecord-skill-author` を優先する。
-- スキル以外の一般的な Plugin 実装は `$astralrecord-code` を使う。
-
-### `$astralrecord-code`
-
-AstralRecord モノレポ全体の実装変更を行います。設計書パスが指定された場合は設計書を入力として実装し、実装後に関連する設計書へ反映します。
-
-使う場面:
-
-- `00_docs` 配下の設計書や feature 設計書に基づいて Plugin/API/Web などへ実装を移したい。
-- 既存規約に沿って、直接の実装指示を反映したい。
-- 対象プロジェクトを判定してから、最小範囲で実装したい。
-
-### `$astralrecord-code-review`
-
-AstralRecord モノレポのソースコード、実装データ、workspace skill をレビューします。設計書との整合、ルール、バグ、死コード、セキュリティ、テスト不足などを点検し、対象成果物は編集しません。指摘がある場合のみ、記録を共通固定書式で task worktree 内へ保存・検証し、指摘がなければ記録を残しません。未確認事項がある場合はレビュー結果の報告に記載します。review-only 依頼でも `develop` に未コミット差分を残しません。
-
-使う場面:
-
-- 実装済みコードがルールに沿っているか確認したい。
-- 設計書とコードの食い違いを洗い出したい。
-- 修正前提の指摘レポートだけを受け取りたい。
-
-### `$astralrecord-code-fix`
-
-`$astralrecord-code-review` のレビュー結果を入力にして、コード・実装データ・workspace skill 側の指摘を最小修正します。レビュー結果なしの新規実装は `$astralrecord-code`、skill 新規作成・更新は `$skill-creator` を使います。
-
-使う場面:
-
-- `AR-CODE-*` 指摘をコードへ反映したい。
-- `修正可否: 自動修正可` の指摘をまとめて直したい。
-- 指摘外の構造変更を避けて、既存パターンに沿って直したい。
-
-### `$astralrecord-docs-review`
-
-AstralRecord の設計書をレビューします。ソースコードは読まず、設計上の矛盾、不足、未決事項、フォーマット差分を確認します。指摘がある場合のみ、記録を共通固定書式で task worktree 内へ保存・検証し、指摘がなければ記録を残しません。未確認事項がある場合はレビュー結果の報告に記載します。
-
-使う場面:
-
-- `00_docs/10_Plugin設計書` 配下の feature 設計書をレビューしたい。
-- 実装ではなく、設計として破綻していないか確認したい。
-- 設計者判断が必要な点を未確認事項として整理したい。
-
-### `$astralrecord-docs-fix`
-
-`$astralrecord-docs-review` のレビュー結果を入力にして、設計書 Markdown だけを修正します。
-
-使う場面:
-
-- `AR-DOC-*` 指摘を設計書へ反映したい。
-- `修正可否: 自動修正可` の指摘だけを反映したい。
-- docs の記述、構成、命名だけを直したい。
-
-## Git 運用 Skill
-
-### `$astralrecord-git-worktree-develop`
-
-task ごとに branch と git worktree を作り、作業後の commit、rebase、develop への fast-forward merge、cleanup を管理します。
-
-使う場面:
-
-- `develop` 直作業を避けて task worktree を作りたい。
-- 完了済み task worktree を develop へ戻したい。
-- 並列作業した複数 task を 1 件ずつ finalize したい。
-
-### `$astralrecord-code-version-commit-develop`
-
-`$astralrecord-git-worktree-develop`、worker、review、fix skill をつなぐ統合入口です。実装や本番向け filebase マスタ作成後に、独立レビュー、自動修正、再検証、独立再レビューを完了してから develop merge へ進みます。並列作業で worktree を残す場合も管理ファイルを更新します。
-
-使う場面:
-
-- worktree 作成、実装、commit、develop merge、cleanup まで任せたい。
-- `40_filebase` の本番向けマスタ作成を task worktree 上で行い、そのまま develop へ反映したい。
-- プラグイン版番号更新を finalize 時まで遅らせたい。
-- 並列作業では prepare + 実装 + 品質ゲート + scoped commit で止め、後から finalize したい。
-
-### `$astralrecord-commit-current-diff`
-
-現在の branch / worktree にある未コミット差分から、今回の作業に関係するファイルだけを stage して commit します。branch 作成や merge は行いません。
-
-使う場面:
-
-- すでに task worktree があり、その場の差分整理と commit だけを行いたい。
-- 生成物、IDE 設定、ローカル設定を取り込まずに commit したい。
-- 複数の差分から今回分だけを選別したい。
-
-### `$astralrecord-merge-codex-branches-develop`
-
-local の `codex/*` branch を監査し、fast-forward 可能な branch だけを `develop` に順次 merge します。監査・merge 後に worktree 管理ファイルを更新します。
-
-使う場面:
-
-- 複数の Codex task branch をまとめて local `develop` へ取り込みたい。
-- まず dry-run で merge 可能性を確認したい。
-- fast-forward できない branch を個別 rebase / finalize 対象として残したい。
-
-### `$astralrecord-prune-codex-worktrees`
-
-local `develop` へ取り込み済みの `codex/*` branch、不要になった task worktree、stale worktree metadata を dry-run 既定で監査し、安全な候補だけを掃除します。`E:\AstralRecord-Worktrees\WORKTREE_MANAGEMENT.md` を作成・更新して、残った worktree の理由を分類します。
-
-使う場面:
-
-- 複数 task の finalize 後に、merged 済み branch / worktree の残骸を整理したい。
-- `git worktree list` に残っている欠損パスや stale metadata を prune したい。
-- 削除前に、dirty worktree や未 merge branch を保持したまま安全な削除候補だけ見たい。
-
-## 専用補助 Skill
-
-### `$astralarchitect-builder`
-
-AstralArchitectが保存した局所範囲を調査し、既存地形と基準ブロックに合わせたMinecraft建築候補を専用CLI経由で作成・修正します。
-
-使う場面:
-
-- `plugins/AstralArchitect/tickets/<ID>`の範囲へ橋、小規模建築、道などを設計したい。
-- `source.schem`を正本として周辺地形を読み、`candidate.schem`だけへAIの建築案を反映したい。
-- AI候補を差分確認し、Minecraft内での検証・適用前に再調整したい。
-
-ほかのskillとの使い分け:
-
-- AstralArchitectプラグイン自体の実装変更は`$astralrecord-code-version-commit-develop`を使う。
-- このskillはワールド適用、ロールバック、チケット削除を行わず、候補設計だけを担当する。
-
-### `$astralrecord-master-data-author`
-
-AstralRecord のゲームコンセプト、ステータス設計、命名方針、初期オーバーワールド制作ブリーフ、filebase YAML スキーマを読み、本番向けの filebase マスタを追加します。
-
-使う場面:
-
-- `40_filebase` に本番向け item / equipment / material / consumable / mob / spawner / loot / shop / world マスタを追加したい。
-- 最初のオーバーワールド向けに、敵・素材・初期装備・loot pool/table・spawner を一式作りたい。
-- 強制ストーリーではなく、軽い世界観と命名方針に沿ってマスタの統一感を出したい。
-
-`$astralrecord-code` との使い分け:
-
-- filebase マスタ追加だけなら `$astralrecord-master-data-author` を使う。
-- Plugin/API/Web/Resource Pack の実装変更も必要なら `$astralrecord-code` を使う。
-
-### `$astralrecord-plugin-test`
-
-`10_plugin/AstralRecord` 向けに、設計書のパス・見出し・検証契約を各 test method から追跡できる JUnit / MockBukkit テスト、一時診断テストの清掃手順、Purpur/Paper・integration 検証基盤を整備します。
-
-使う場面:
-
-- 手動サーバ起動の確認をテストへ寄せたい。
-- MockBukkit で確認できる範囲を増やしたい。
-- 恒久テストを採用済み設計へ対応付け、設計にない一時テストを残さず検証したい。
-- AI が追える再現手順や検証基盤を固定したい。
-
-### `$astralrecord-plugin-version`
-
-`10_plugin/AstralRecord/pom.xml` を正本としてプラグインの版番号を更新します。
-
-使う場面:
-
-- プラグイン実装後、rebase 済み finalize 直前に版番号を確定したい。
-- 開発版、リリース版、RC/alpha/beta の版番号へ更新したい。
-- `plugin.yml` を直接触らず Maven の `project.version` を更新したい。
-
-### `$astralrecord-unused-properties-prune`
-
-`player.properties` / `logger.properties` と対応 enum / Java・Kotlin 参照を照合し、未使用定義を洗い出して削除します。
-
-使う場面:
-
-- プロパティファイルのみにある定義を調べたい。
-- enum のみにある定義を調べたい。
-- enum と properties の両方にあるが、enum 以外から参照されていない定義を削除したい。
-
-## skill 追加時の更新方針
-
-新しい skill を追加したら、この README にはカタログとして次だけを追記します。
-
-- skill 名
-- 何をする skill か
-- 使う場面
-- ほかの skill との使い分け
-
-詳細な手順、チェックリスト、報告形式、スクリプトの使い方は、追加した skill の `SKILL.md` に書きます。
+# AstralRecord Workspace Skills Catalog
+
+このファイルはskillの選択用カタログです。実行時は対象skillの `SKILL.md` だけを読み、リンクされた参照は現在のtaskに必要な場合だけ読みます。詳細な手順、チェックリスト、報告形式は各skillに重複させません。
+
+`SKILL.md` があるディレクトリだけを有効skillとし、skill名・descriptionは各 `SKILL.md` のfrontmatterを正本とします。
+
+## 共通ルーティング
+
+| 目的 | skill |
+|:--|:--|
+| worktree作成・finalize・merge | `$astralrecord-git-worktree-develop` |
+| 実装から品質ゲート・develop反映 | `$astralrecord-code-version-commit-develop` |
+| 新規実装・仕様反映 | `$astralrecord-code` |
+| Minecraft内スキル | `$astralrecord-skill-author` |
+| 本番filebase作成 | `$astralrecord-master-data-author` |
+| 指定filebaseの高速直接作成 | `$astralrecord-master-data-create-direct` |
+| skill定義・参照・script更新 | `$skill-creator` |
+| 現在のtask差分だけcommit | `$astralrecord-commit-current-diff` |
+| コード・workspace skillレビュー | `$astralrecord-code-review` |
+| コードレビュー指摘の修正 | `$astralrecord-code-fix` |
+| 設計書レビュー | `$astralrecord-docs-review` |
+| 設計書レビュー指摘の修正 | `$astralrecord-docs-fix` |
+| 複数codex branchのmerge | `$astralrecord-merge-codex-branches-develop` |
+| merged worktreeの監査・掃除 | `$astralrecord-prune-codex-worktrees` |
+
+## 専用ルーティング
+
+| 対象・目的 | skill |
+|:--|:--|
+| AstralArchitectの建築候補 | `$astralarchitect-builder` |
+| Pluginの恒久・診断・integration test | `$astralrecord-plugin-test` |
+| Plugin版番号 | `$astralrecord-plugin-version` |
+| player/logger propertiesの未使用削除 | `$astralrecord-unused-properties-prune` |
+
+## 差分のないtask
+
+質問、説明、診断、読み取り専用レビューでは、変更が発生しない限りworktree、commit、build、品質ゲートを起動しません。必要な対象資料だけを読みます。
+
+## 差分のあるtask
+
+- 差分が発生する場合は、並列作業の有無にかかわらず、まず統合入口でtaskの種類とgateを分類します。
+- 並列作業では、YAML単位ではなく独立して検証できるpackage単位でworktreeを分けます。
+- filebaseの直接develop commitは、明示的な単一ライター作業に限ります。
+- Pluginの版番号更新は、rebase後のfinalizeで必要な場合だけ行います。
+- 対象外プロジェクトのguide、test policy、reference、plugin version手順は読みません。
+
+## 新しいskill
+
+新しいskillを追加した場合は、ここに「skill名・目的・使う場面」だけを1行追加します。詳細はskill内に置き、ルート `AGENTS.md` へ個別追記しません。
