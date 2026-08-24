@@ -1092,7 +1092,8 @@ public class ItemStackFactory {
                         .findFirst().orElse(null);
                 String transName = currentTrans != null && currentTrans.getName() != null
                         ? currentTrans.getName() : "ランク " + instance.getTranscendenceRank();
-                lore.add(ColorCodeUtil.LIGHT_PURPLE + " ▸ 状態変化: " + ColorCodeUtil.WHITE + "【" + transName + "】");
+                lore.add(ColorCodeUtil.LIGHT_PURPLE + " ▸ 状態変化: " + ColorCodeUtil.WHITE + "【" + transName
+                        + ColorCodeUtil.RESET + ColorCodeUtil.YELLOW + "】");
             }
 
             // --- 強化レベル表示 ---
@@ -1143,7 +1144,8 @@ public class ItemStackFactory {
                     // enhance 加算分の表示注釈
                     String enhanceNote = (enhAdd[0] != 0.0 || enhAdd[1] != 0.0)
                             ? ColorCodeUtil.YELLOW + " [" + formatStatValueWithType(rollType, statusType, enhAdd[0])
-                                    + (enhAdd[0] != enhAdd[1] ? " ～ " + formatStatValueWithType(rollType, statusType, enhAdd[1]) : "") + "]"
+                                    + (enhAdd[0] != enhAdd[1] ? " ～ " + formatStatValueWithType(rollType, statusType, enhAdd[1]) : "")
+                                    + ColorCodeUtil.RESET + ColorCodeUtil.YELLOW + "]"
                             : "";
 
                     String statColor = statusCategoryColor(roll.getStatus(), statusType);
