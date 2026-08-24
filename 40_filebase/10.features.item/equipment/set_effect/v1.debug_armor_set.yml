@@ -1,6 +1,7 @@
 # design:
 #   motif: "デバッグ / 防具セット効果検証"
 #   progression: 0
+schemaVersion: 1
 id: debug_armor_set
 name: "&dデバッグ防具セット"
 pieces:
