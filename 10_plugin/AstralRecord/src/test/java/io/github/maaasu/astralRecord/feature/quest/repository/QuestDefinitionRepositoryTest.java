@@ -31,6 +31,7 @@ class QuestDefinitionRepositoryTest {
                 type: KILL_MOB
                 targetId:
                   ref: mob:skyway_guard
+                level: 2
                 amount: 1
             """);
 
@@ -39,6 +40,7 @@ class QuestDefinitionRepositoryTest {
         assertNotNull(definition);
         assertEquals("village_elder", definition.turnInNpcId());
         assertEquals("skyway_guard", definition.objectives().getFirst().targetId());
+        assertEquals(2, definition.objectives().getFirst().targetLevel());
         assertEquals(Material.IRON_CHAIN, definition.icon());
     }
 }

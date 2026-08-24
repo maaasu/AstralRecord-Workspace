@@ -86,6 +86,38 @@ class GuideProgressEvaluatorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
      * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
+     * 検証契約: MOB_DEFEATED条件は対象Mob IDに加えて指定レベルまで一致させる。
+     */
+    @Test
+    void evaluate_AppliesOptionalMobLevel() {
+        GuideEntry guide = new GuideEntry(
+            3,
+            "specific_mob_level",
+            "beginner",
+            10,
+            "specific",
+            null,
+            null,
+            List.of(new GuideStep(
+                "kill_level_two",
+                "kill",
+                List.of(),
+                new GuideCondition(GuideConditionType.MOB_DEFEATED, "grassboar", 2),
+                null
+            ))
+        );
+
+        assertEquals(List.of(), GuideProgressEvaluator.evaluate(
+            guide, Set.of(), GuideConditionType.MOB_DEFEATED, "grassboar", 1
+        ));
+        assertEquals(List.of("kill_level_two"), ids(GuideProgressEvaluator.evaluate(
+            guide, Set.of(), GuideConditionType.MOB_DEFEATED, "grassboar", 2
+        )));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
      * 検証契約: 同一イベントに一致する未達成 step は、表示順に関係なくすべて達成対象にする。
      */
     @Test

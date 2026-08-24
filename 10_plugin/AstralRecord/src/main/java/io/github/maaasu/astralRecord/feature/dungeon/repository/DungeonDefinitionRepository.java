@@ -11,6 +11,7 @@ import org.bukkit.Material;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -127,7 +128,8 @@ public final class DungeonDefinitionRepository {
                         parseMobs(encounter),
                         parseRange(encounter.getConfigurationSection("mobsPerRoom"), "encounter.mobsPerRoom", 2, 4),
                         optionalInt(encounter, "firstCombatRoomMaxMobLevel", 10),
-                        stripPrefix(requireString(encounter, "bossMobId"))
+                        stripPrefix(requireString(encounter, "bossMobId")),
+                        optionalNullableInt(encounter, "bossMobLevel")
                 ),
                 parseClearRewards(clearRewards)
         );
@@ -234,10 +236,24 @@ public final class DungeonDefinitionRepository {
         for (Map<?, ?> entry : encounter.getMapList("normalMobPool")) {
             result.add(new DungeonDefinition.WeightedMob(
                     stripPrefix(requiredMapString(entry, "mobId", "encounter.normalMobPool")),
+                    optionalMapInt(entry, "level", -1) < 1
+                            ? null
+                            : optionalMapInt(entry, "level", -1),
                     optionalMapInt(entry, "weight", 1)
             ));
         }
         return List.copyOf(result);
+    }
+
+    private @Nullable Integer optionalNullableInt(
+            @Nullable ConfigurationSection section,
+            @NotNull String key
+    ) {
+        if (section == null || !section.contains(key)) {
+            return null;
+        }
+        int value = section.getInt(key, -1);
+        return value < 1 ? null : value;
     }
 
     /** min/max の部分省略を許可し、既定値で補完した範囲を返します。 */

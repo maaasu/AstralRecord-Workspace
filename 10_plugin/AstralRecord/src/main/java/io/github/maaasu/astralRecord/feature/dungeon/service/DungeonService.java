@@ -328,7 +328,9 @@ public final class DungeonService {
         Map<String, LoadedDefinition> loaded = new LinkedHashMap<>();
         for (DungeonDefinition definition : definitions) {
             List<LoadedMob> normalMobs = definition.encounter().normalMobPool().stream()
-                    .map(entry -> new LoadedMob(mobsById.get(entry.mobId()), entry.weight()))
+                    .map(entry -> new LoadedMob(
+                            mobsById.get(entry.mobId()).resolveLevel(entry.level()), entry.weight()
+                    ))
                     .toList();
             loaded.put(definition.id(), new LoadedDefinition(
                     definition,
@@ -336,6 +338,7 @@ public final class DungeonService {
                     createInstanceWorldData(definition),
                     normalMobs,
                     mobsById.get(definition.encounter().bossMobId())
+                            .resolveLevel(definition.encounter().bossMobLevel())
             ));
         }
         return new DefinitionSnapshot(Collections.unmodifiableMap(loaded));

@@ -51,6 +51,26 @@ class MobSpawnerRegionLevelTest {
         assertFalse(regionLevels.containsKey("regionless"));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_0-概要.md
+     * 章・見出し: # 12_0-概要 > ## 3. 構成要素（実装単位）
+     * 検証契約: spawnMobs.levelで指定したレベルを地域レベルの加重平均へ反映する。
+     */
+    @Test
+    void calculatesRegionLevelUsingEntryLevelProfile() {
+        var definitions = List.of(definition("profiled", "草原", List.of(
+                new MobSpawnerEntry("grassboar", 2, 1),
+                new MobSpawnerEntry("grassboar", 1, 1)
+        )));
+
+        Map<String, Integer> regionLevels = MobSpawnerService.calculateRegionLevels(
+                definitions,
+                (mobId, level) -> level == null ? 1 : level
+        );
+
+        assertEquals(2, regionLevels.get("草原"));
+    }
+
     private MobSpawnerDefinition definition(String id, String region, List<MobSpawnerEntry> entries) {
         return new MobSpawnerDefinition(
                 id,

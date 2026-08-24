@@ -155,13 +155,17 @@ public class GuideRepository {
             if (stepId.isBlank() || conditionType.isBlank()) {
                 continue;
             }
+            GuideConditionType parsedConditionType = GuideConditionType.parse(conditionType);
             values.add(new GuideStep(
                 stepId,
                 stringValue(step, "text", stepId),
                 strings(step, "details"),
                 new GuideCondition(
-                    GuideConditionType.parse(conditionType),
-                    nullableString(condition, "targetId")
+                    parsedConditionType,
+                    nullableString(condition, "targetId"),
+                    parsedConditionType == GuideConditionType.MOB_DEFEATED
+                        ? nullableInt(condition, "level")
+                        : null
                 ),
                 action(step)
             ));
@@ -222,6 +226,18 @@ public class GuideRepository {
         return element.isJsonPrimitive() && element.getAsJsonPrimitive().isNumber()
             ? element.getAsInt()
             : fallback;
+    }
+
+    private @Nullable Integer nullableInt(@NotNull JsonObject obj, @NotNull String key) {
+        if (!obj.has(key) || obj.get(key).isJsonNull()) {
+            return null;
+        }
+        JsonElement element = obj.get(key);
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
+            return null;
+        }
+        int value = element.getAsInt();
+        return value < 1 ? null : value;
     }
 
     private static @NotNull String failureReason(@NotNull Throwable failure) {

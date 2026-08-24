@@ -441,13 +441,30 @@ public class MobService {
      */
     @Nullable
     public MobInstance spawn(@NotNull String templateId, @NotNull Location location) {
+        return spawn(templateId, null, location);
+    }
+
+    /**
+     * 指定レベルの Mob を生成します。レベル未指定または未登録の場合は最小レベルを使用します。
+     *
+     * @param templateId テンプレート ID
+     * @param level      レベルプロファイル。未指定時は null
+     * @param location   スポーン位置
+     * @return 生成した Mob インスタンス。テンプレート未取得または実体生成不可なら null
+     */
+    @Nullable
+    public MobInstance spawn(
+            @NotNull String templateId,
+            @Nullable Integer level,
+            @NotNull Location location
+    ) {
         MobTemplate template = findTemplate(templateId);
         if (template == null) {
             Logger.log(LogId.W_5701, templateId);
             return null;
         }
 
-        return spawn(template, location);
+        return spawn(template.resolveLevel(level), location);
     }
 
     /**

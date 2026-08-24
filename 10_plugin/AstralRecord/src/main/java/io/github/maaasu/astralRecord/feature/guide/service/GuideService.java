@@ -150,7 +150,7 @@ public class GuideService {
                     List<GuideConditionEvent> pending = pendingConditionsByAccount.remove(accountId);
                     if (pending != null && !pending.isEmpty()) {
                         plugin.getServer().getScheduler().runTask(plugin, () -> pending.forEach(event ->
-                            recordCondition(event.player(), event.type(), event.targetId())
+                            recordCondition(event.player(), event.type(), event.targetId(), event.targetLevel())
                         ));
                     }
                 }
@@ -211,17 +211,29 @@ public class GuideService {
         @NotNull GuideConditionType eventType,
         @Nullable String targetId
     ) {
+        recordCondition(player, eventType, targetId, null);
+    }
+
+    /** Mob などレベルを持つイベントをガイド条件として評価します。 */
+    public void recordCondition(
+        @NotNull AstPlayer player,
+        @NotNull GuideConditionType eventType,
+        @Nullable String targetId,
+        @Nullable Integer targetLevel
+    ) {
         UUID accountId = player.getAccount().getUuid();
         Set<GuideStepKey> completed = completedStepsByAccount.get(accountId);
         if (completed == null) {
             pendingConditionsByAccount.computeIfAbsent(accountId, ignored -> new java.util.concurrent.CopyOnWriteArrayList<>())
-                .add(new GuideConditionEvent(player, eventType, targetId));
+                .add(new GuideConditionEvent(player, eventType, targetId, targetLevel));
             loadProgressAsync(accountId);
             return;
         }
 
         for (GuideEntry guide : getAll()) {
-            for (GuideStep step : GuideProgressEvaluator.evaluate(guide, completed, eventType, targetId)) {
+            for (GuideStep step : GuideProgressEvaluator.evaluate(
+                guide, completed, eventType, targetId, targetLevel
+            )) {
                 GuideStepKey key = new GuideStepKey(guide.id(), step.id());
                 if (!completed.add(key)) {
                     continue;
@@ -341,7 +353,8 @@ public class GuideService {
     private record GuideConditionEvent(
         @NotNull AstPlayer player,
         @NotNull GuideConditionType type,
-        @Nullable String targetId
+        @Nullable String targetId,
+        @Nullable Integer targetLevel
     ) {
     }
 }

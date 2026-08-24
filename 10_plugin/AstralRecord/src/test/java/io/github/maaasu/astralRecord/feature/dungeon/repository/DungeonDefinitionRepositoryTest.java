@@ -47,6 +47,8 @@ class DungeonDefinitionRepositoryTest {
         assertEquals(Material.STONE_BRICKS, definition.theme().floor().getFirst().material());
         assertTrue(!definition.theme().pillar().enabled());
         assertEquals("boss", definition.encounter().bossMobId());
+        assertEquals(3, definition.encounter().bossMobLevel());
+        assertEquals(2, definition.encounter().normalMobPool().getFirst().level());
         assertEquals(0, definition.challenge().deathLimit());
         assertEquals(7L, definition.challenge().reviveDelaySeconds());
         assertEquals("rare_fragment", definition.clearRewards().items().getFirst().itemId());
@@ -205,8 +207,10 @@ class DungeonDefinitionRepositoryTest {
                 encounter:
                   normalMobPool:
                     - mobId: mob:weak
+                      level: 2
                     - mobId: mob:strong
                   bossMobId: mob:boss
+                  bossMobLevel: 3
                 clearRewards:
                   items:
                     - itemId: item:rare_fragment

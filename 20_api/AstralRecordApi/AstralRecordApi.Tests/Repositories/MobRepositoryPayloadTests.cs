@@ -172,6 +172,32 @@ public class MobRepositoryPayloadTests
         Assert.Equal(3, mob.Variant.VillagerLevel);
     }
 
+    [Fact]
+    public void DeserializeLiteralJson_PreservesMobLevelProfiles()
+    {
+        var mob = JsonSerializer.Deserialize<MobResponse>("""
+            {
+              "schemaVersion": 1,
+              "id": "midgard_grassboar",
+              "type": "MOB",
+              "category": "ENEMY",
+              "name": "grassboar",
+              "level": 1,
+              "entityType": "PIG",
+              "baseStats": [],
+              "levels": [
+                { "level": 1, "baseStats": [{ "status": "ATTACK", "value": 18 }] },
+                { "level": 2, "baseStats": [{ "status": "ATTACK", "value": 28 }] }
+              ]
+            }
+            """, MasterDataJsonOptions());
+
+        Assert.NotNull(mob);
+        Assert.Equal(2, mob!.Levels.Count);
+        Assert.Equal(2, mob.Levels[1].GetProperty("level").GetInt32());
+        Assert.Equal(28, mob.Levels[1].GetProperty("baseStats")[0].GetProperty("value").GetInt32());
+    }
+
     private static JsonSerializerOptions MasterDataJsonOptions()
     {
         var payloadType = typeof(MobRepository)

@@ -212,18 +212,40 @@ public record DungeonDefinition(
             @NotNull List<WeightedMob> normalMobPool,
             @NotNull IntRange mobsPerRoom,
             int firstCombatRoomMaxMobLevel,
-            @NotNull String bossMobId
+            @NotNull String bossMobId,
+            Integer bossMobLevel
     ) {
+        /** 既存の bossMobId のみの定義を維持するコンストラクタです。 */
+        public Encounter(
+                @NotNull List<WeightedMob> normalMobPool,
+                @NotNull IntRange mobsPerRoom,
+                int firstCombatRoomMaxMobLevel,
+                @NotNull String bossMobId
+        ) {
+            this(normalMobPool, mobsPerRoom, firstCombatRoomMaxMobLevel, bossMobId, null);
+        }
+
         public Encounter {
             normalMobPool = List.copyOf(normalMobPool);
             bossMobId = bossMobId.trim();
+            if (bossMobLevel != null && bossMobLevel < 1) {
+                bossMobLevel = null;
+            }
         }
     }
 
-    /** Mob ID と相対抽選重みです。 */
-    public record WeightedMob(@NotNull String mobId, int weight) {
+    /** Mob ID、任意のレベルプロファイル、相対抽選重みです。 */
+    public record WeightedMob(@NotNull String mobId, Integer level, int weight) {
+        /** 既存の mobId/weight の定義を維持するコンストラクタです。 */
+        public WeightedMob(@NotNull String mobId, int weight) {
+            this(mobId, null, weight);
+        }
+
         public WeightedMob {
             mobId = mobId.trim();
+            if (level != null && level < 1) {
+                level = null;
+            }
         }
     }
 }

@@ -82,7 +82,8 @@ public final class QuestDefinitionRepository {
                 type,
                 targetId,
                 valueOrDefault(asString(map.get("label")), targetId),
-                parseInt(map.get("amount"), 1)
+                parseInt(map.get("amount"), 1),
+                type == QuestObjectiveType.KILL_MOB ? parseNullableInt(map.get("level")) : null
             ));
         }
         return result;
@@ -170,6 +171,20 @@ public final class QuestDefinitionRepository {
             return raw == null ? fallback : Integer.parseInt(raw.toString().trim());
         } catch (NumberFormatException ignored) {
             return fallback;
+        }
+    }
+
+    private Integer parseNullableInt(@Nullable Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        if (raw instanceof Number number) {
+            return number.intValue();
+        }
+        try {
+            return Integer.parseInt(raw.toString().trim());
+        } catch (NumberFormatException ignored) {
+            return null;
         }
     }
 }

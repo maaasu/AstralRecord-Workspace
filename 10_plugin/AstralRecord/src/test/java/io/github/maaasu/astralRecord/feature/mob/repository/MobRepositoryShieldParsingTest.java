@@ -48,6 +48,38 @@ class MobRepositoryShieldParsingTest {
         assertEquals(10.0D, template.shield().resolvedRechargeAmount(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
+     * 章・見出し: # 12_1-モデル定義 > ## 2. Mob テンプレート
+     * 検証契約: 同一 Mob マスタ内の levels を読み込み、未指定時は最小レベルを実効値にする。
+     */
+    @Test
+    void resolvesLowestLevelProfileWhenLevelIsNotSpecified() {
+        MobTemplate template = parseProfileTemplate();
+
+        assertNotNull(template);
+        assertEquals(1, template.level());
+        assertEquals(10.0D, template.statValue("MAX_HEALTH", 0.0D), 0.0001D);
+        assertEquals(2, template.levelProfiles().size());
+        assertEquals(1, template.resolveLevel(99).level());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
+     * 章・見出し: # 12_1-モデル定義 > ## 2. Mob テンプレート
+     * 検証契約: 指定レベルは同一マスタ内のプロファイルへ解決される。
+     */
+    @Test
+    void resolvesExplicitLevelProfile() {
+        MobTemplate template = parseProfileTemplate();
+
+        MobTemplate levelTwo = template.resolveLevel(2);
+
+        assertEquals(2, levelTwo.level());
+        assertEquals("Level Two", levelTwo.displayName());
+        assertEquals(20.0D, levelTwo.statValue("MAX_HEALTH", 0.0D), 0.0001D);
+    }
+
     private static MobTemplate parseTemplate(String rechargeAmountEntry) {
         String shield = rechargeAmountEntry == null
                 ? "\"enabled\": true, \"max\": 10, \"rechargeTimeSeconds\": 15"
@@ -64,6 +96,31 @@ class MobRepositoryShieldParsingTest {
                   "shield": { %s }
                 }
                 """.formatted(shield);
+        return new MobRepository().parseTemplate(JsonParser.parseString(json).getAsJsonObject());
+    }
+
+    private static MobTemplate parseProfileTemplate() {
+        String json = """
+                {
+                  "schemaVersion": 1,
+                  "id": "profile_test",
+                  "category": "ENEMY",
+                  "name": "Level One",
+                  "level": 1,
+                  "entityType": "ZOMBIE",
+                  "baseStats": [{ "status": "MAX_HEALTH", "value": 10 }],
+                  "levels": [
+                    {
+                      "level": 2,
+                      "name": "Level Two",
+                      "baseStats": [{ "status": "MAX_HEALTH", "value": 20 }]
+                    },
+                    {
+                      "level": 1
+                    }
+                  ]
+                }
+                """;
         return new MobRepository().parseTemplate(JsonParser.parseString(json).getAsJsonObject());
     }
 }

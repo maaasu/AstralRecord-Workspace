@@ -1117,8 +1117,10 @@ public final class AstralRecord extends JavaPlugin {
         questGui = new QuestGui(this, questService);
         questGuiEventHandler = new QuestGuiEventHandler(questGui, questService, inventoryService);
         mobCombatService.setQuestService(questService);
-        mobCombatService.setMobDefeatedListener((player, mobId) ->
-            guideService.recordCondition(player, GuideConditionType.MOB_DEFEATED, mobId)
+        mobCombatService.setMobDefeatedLevelListener((player, defeated) ->
+            guideService.recordCondition(
+                player, GuideConditionType.MOB_DEFEATED, defeated.mobId(), defeated.level()
+            )
         );
         gatheringService.setQuestService(questService);
         gatheringService.setGatheringCompleteListener((player, spawnerOrGatheringId) ->

@@ -17,6 +17,7 @@ Mob スポナーの静的マスタ定義です。
 | `radiusMeters` | Double | ○ | - | 登録座標から半径何 m を水平スポーン範囲にするか。上方向の高さ上限にも使う |
 | `spawnMobs[]` | List | ○ | - | スポーン対象 Mob と抽選重み |
 | `spawnMobs[].mobId` | String | ○ | - | スポーン対象 Mob ID（`mob:` 参照） |
+| `spawnMobs[].level` | Integer | × | Mobの最小レベル | 使用する Mob のレベルプロファイル。未指定時は同一Mobマスタ内の最小レベル |
 | `spawnMobs[].weight` | Integer | ○ | - | 抽選重み。全 weight の比率で抽選します |
 | `spawnTimes[]` | List | × | 終日 | スポーン可能な Minecraft ワールド時間帯 |
 | `spawnTimes[].startTick` | Long | ○ | - | 開始 tick（0-23999） |

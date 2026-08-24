@@ -33,12 +33,22 @@ final class GuideProgressEvaluator {
         @NotNull GuideConditionType eventType,
         @Nullable String targetId
     ) {
+        return evaluate(guide, completed, eventType, targetId, null);
+    }
+
+    static @NotNull List<GuideStep> evaluate(
+        @NotNull GuideEntry guide,
+        @NotNull Set<GuideStepKey> completed,
+        @NotNull GuideConditionType eventType,
+        @Nullable String targetId,
+        @Nullable Integer targetLevel
+    ) {
         List<GuideStep> matched = new ArrayList<>();
         for (GuideStep step : guide.steps()) {
             if (completed.contains(new GuideStepKey(guide.id(), step.id()))) {
                 continue;
             }
-            if (step.condition().matches(eventType, targetId)) {
+            if (step.condition().matches(eventType, targetId, targetLevel)) {
                 matched.add(step);
             }
         }

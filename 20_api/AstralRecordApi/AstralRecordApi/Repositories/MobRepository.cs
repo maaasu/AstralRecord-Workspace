@@ -1,6 +1,7 @@
 using AstralRecordApi.Data;
 using AstralRecordApi.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Text.Json;
 
 namespace AstralRecordApi.Repositories;
 
@@ -37,12 +38,24 @@ public class MobRepository(MasterDataDbContext dbContext) : IMobRepository
                 Id = mob!.Id,
                 Category = mob.Category,
                 Name = mob.Name,
-                Level = mob.Level,
+                Level = ResolveDefaultLevel(mob),
                 EntityType = mob.EntityType,
                 Icon = mob.Icon,
                 Tags = mob.Tags,
             })
             .ToArray();
+    }
+
+    private static int ResolveDefaultLevel(MobResponse mob)
+    {
+        var fallback = Math.Max(1, mob.Level);
+        return (mob.Levels ?? [])
+            .Select(level => level.TryGetProperty("level", out var value) && value.TryGetInt32(out var number)
+                ? number
+                : int.MaxValue)
+            .Where(level => level > 0 && level < int.MaxValue)
+            .DefaultIfEmpty(fallback)
+            .Min();
     }
 
     public MobResponse? GetById(string mobId)

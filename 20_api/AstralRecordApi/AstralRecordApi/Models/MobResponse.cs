@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.Json.Serialization;
 
 namespace AstralRecordApi.Models;
@@ -22,6 +23,12 @@ public class MobResponse
     public string? Title { get; init; }
 
     public int Level { get; init; }
+
+    /// <summary>
+    /// 同一 Mob マスタ内のレベルプロファイル。各要素は共通定義に対する部分上書きです。
+    /// JsonElement のまま保持し、未指定項目を API の再シリアライズで補完しないようにします。
+    /// </summary>
+    public IReadOnlyList<JsonElement> Levels { get; init; } = [];
 
     public required string EntityType { get; init; }
 

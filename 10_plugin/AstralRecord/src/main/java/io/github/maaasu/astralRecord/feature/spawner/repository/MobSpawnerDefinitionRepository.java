@@ -88,7 +88,8 @@ public class MobSpawnerDefinitionRepository {
                 continue;
             }
             int weight = parseInt(map.get("weight"), 1);
-            entries.add(new MobSpawnerEntry(mobId, weight));
+            Integer level = parseNullableInt(map.get("level"));
+            entries.add(new MobSpawnerEntry(mobId, level, weight));
         }
         return entries;
     }
@@ -131,6 +132,21 @@ public class MobSpawnerDefinitionRepository {
             return raw == null ? fallback : Integer.parseInt(raw.toString());
         } catch (NumberFormatException ignored) {
             return fallback;
+        }
+    }
+
+    @Nullable
+    private Integer parseNullableInt(@Nullable Object raw) {
+        if (raw == null) {
+            return null;
+        }
+        if (raw instanceof Number number) {
+            return number.intValue();
+        }
+        try {
+            return Integer.parseInt(raw.toString());
+        } catch (NumberFormatException ignored) {
+            return null;
         }
     }
 

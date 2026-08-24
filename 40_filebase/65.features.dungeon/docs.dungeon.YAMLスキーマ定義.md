@@ -13,7 +13,9 @@
 | `entry.x/y/z` | Double | 挑戦受付地点 |
 | `encounter.normalMobPool[]` | List | 一件以上の ENEMY Mob 参照 |
 | `encounter.normalMobPool[].mobId` | String | `mob:` 参照 |
+| `encounter.normalMobPool[].level` | Integer | 任意。使用する Mob レベル。未指定時は同一Mobマスタ内の最小レベル |
 | `encounter.bossMobId` | String | BOSS category の `mob:` 参照 |
+| `encounter.bossMobLevel` | Integer | 任意。ボスに使用する Mob レベル。未指定時は最小レベル |
 
 ## 省略可能な調整項目
 

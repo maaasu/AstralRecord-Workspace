@@ -125,10 +125,11 @@ public final class DungeonDefinitionValidator {
         validatePositiveWeights(definition, "encounter.normalMobPool", encounter.normalMobPool());
         boolean firstRoomCandidate = false;
         for (DungeonDefinition.WeightedMob mobEntry : encounter.normalMobPool()) {
-            MobTemplate mob = mobsById.get(mobEntry.mobId());
-            if (mob == null) {
+            MobTemplate baseMob = mobsById.get(mobEntry.mobId());
+            if (baseMob == null) {
                 fail(definition, "normal mob does not exist: " + mobEntry.mobId());
             }
+            MobTemplate mob = baseMob.resolveLevel(mobEntry.level());
             if (mob.category() != MobCategory.ENEMY) {
                 fail(definition, "normal mob must use ENEMY category: " + mobEntry.mobId());
             }
@@ -139,7 +140,8 @@ public final class DungeonDefinitionValidator {
         if (!firstRoomCandidate) {
             fail(definition, "normalMobPool has no candidate for firstCombatRoomMaxMobLevel");
         }
-        MobTemplate boss = mobsById.get(encounter.bossMobId());
+        MobTemplate bossBase = mobsById.get(encounter.bossMobId());
+        MobTemplate boss = bossBase == null ? null : bossBase.resolveLevel(encounter.bossMobLevel());
         if (boss == null || boss.category() != MobCategory.BOSS) {
             fail(definition, "bossMobId must reference a BOSS mob: " + encounter.bossMobId());
         }

@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionActionConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobLevelProfile;
 import io.github.maaasu.astralRecord.feature.mob.model.MobMoneyDrop;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkin;
@@ -42,6 +43,8 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.HashSet;
+import java.util.Set;
 
 /**
  * AstralRecord API を通じて Mob テンプレートを取得するリポジトリ。
@@ -50,6 +53,13 @@ import java.util.Map;
  * 本リポジトリで {@code :} 区切りの suffix のみを抽出して保持する。</p>
  */
 public class MobRepository {
+
+    /** レベルプロファイルで上書きを許可する共通 Mob 項目です。 */
+    private static final Set<String> LEVEL_PROFILE_FIELDS = Set.of(
+            "name", "title", "nameVisible", "icon", "lore", "tags", "skin", "variant",
+            "equipment", "baseStats", "shield", "ai", "damageImmune", "interactions",
+            "drops", "challenge"
+    );
 
     /**
      * Mob 一覧を取得します。
@@ -147,6 +157,21 @@ public class MobRepository {
         }
 
         Logger.log(LogId.D_5700, id);
+        MobTemplate base = parseTemplateFields(obj, id, category, entityType, entityTypeName, blockMaterial);
+        List<MobLevelProfile> profiles = parseLevelProfiles(
+                obj, id, category, entityType, entityTypeName, blockMaterial
+        );
+        return base.withLevelProfiles(profiles).resolveLevel(null);
+    }
+
+    private @NotNull MobTemplate parseTemplateFields(
+            @NotNull JsonObject obj,
+            @NotNull String id,
+            @NotNull MobCategory category,
+            @NotNull EntityType entityType,
+            @Nullable String entityTypeName,
+            @Nullable Material blockMaterial
+    ) {
         return new MobTemplate(
                 obj.has("schemaVersion") ? obj.get("schemaVersion").getAsInt() : 1,
                 id,
@@ -174,6 +199,80 @@ public class MobRepository {
                 category == MobCategory.NPC ? null : parseDrops(getObject(obj, "drops")),
                 category == MobCategory.BOSS ? parseChallenge(getObject(obj, "challenge")) : null
         );
+    }
+
+    private @NotNull List<MobLevelProfile> parseLevelProfiles(
+            @NotNull JsonObject root,
+            @NotNull String mobId,
+            @NotNull MobCategory category,
+            @NotNull EntityType entityType,
+            @Nullable String entityTypeName,
+            @Nullable Material blockMaterial
+    ) {
+        JsonElement levelsElement = root.get("levels");
+        if (levelsElement == null || !levelsElement.isJsonArray()) {
+            return List.of();
+        }
+
+        List<MobLevelProfile> profiles = new ArrayList<>();
+        Set<Integer> registeredLevels = new HashSet<>();
+        for (JsonElement element : levelsElement.getAsJsonArray()) {
+            if (!element.isJsonObject()) {
+                continue;
+            }
+            JsonObject profile = element.getAsJsonObject();
+            Integer level = integerValue(profile, "level");
+            if (level == null || level < 1 || !registeredLevels.add(level)) {
+                continue;
+            }
+
+            JsonObject merged = mergeLevelProfile(root, profile);
+            merged.addProperty("level", level);
+            MobTemplate effective = parseTemplateFields(
+                    merged, mobId, category, entityType, entityTypeName, blockMaterial
+            );
+            profiles.add(MobLevelProfile.from(effective));
+        }
+        return List.copyOf(profiles);
+    }
+
+    /** 共通定義へプロファイルの許可項目だけを再帰的に重ねます。 */
+    private @NotNull JsonObject mergeLevelProfile(
+            @NotNull JsonObject root,
+            @NotNull JsonObject profile
+    ) {
+        JsonObject merged = root.deepCopy();
+        merged.remove("levels");
+        for (Map.Entry<String, JsonElement> entry : profile.entrySet()) {
+            if (!LEVEL_PROFILE_FIELDS.contains(entry.getKey())) {
+                continue;
+            }
+            JsonElement current = merged.get(entry.getKey());
+            JsonElement override = entry.getValue();
+            if (current != null && current.isJsonObject() && override.isJsonObject()) {
+                merged.add(entry.getKey(), mergeJsonObjects(current.getAsJsonObject(), override.getAsJsonObject()));
+            } else {
+                merged.add(entry.getKey(), override.deepCopy());
+            }
+        }
+        return merged;
+    }
+
+    private @NotNull JsonObject mergeJsonObjects(
+            @NotNull JsonObject base,
+            @NotNull JsonObject override
+    ) {
+        JsonObject merged = base.deepCopy();
+        for (Map.Entry<String, JsonElement> entry : override.entrySet()) {
+            JsonElement current = merged.get(entry.getKey());
+            JsonElement value = entry.getValue();
+            if (current != null && current.isJsonObject() && value.isJsonObject()) {
+                merged.add(entry.getKey(), mergeJsonObjects(current.getAsJsonObject(), value.getAsJsonObject()));
+            } else {
+                merged.add(entry.getKey(), value.deepCopy());
+            }
+        }
+        return merged;
     }
 
     @Nullable
@@ -505,6 +604,22 @@ public class MobRepository {
         if (obj == null || !obj.has(key) || obj.get(key).isJsonNull()) return fallback;
         JsonElement element = obj.get(key);
         return element.isJsonPrimitive() ? element.getAsString() : fallback;
+    }
+
+    @Nullable
+    private static Integer integerValue(@Nullable JsonObject obj, @NotNull String key) {
+        if (obj == null || !obj.has(key) || obj.get(key).isJsonNull()) {
+            return null;
+        }
+        JsonElement element = obj.get(key);
+        if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isNumber()) {
+            return null;
+        }
+        try {
+            return element.getAsInt();
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
     }
 
     /**

@@ -29,6 +29,7 @@
 | `id` | string | yes | クエスト内の目標ID |
 | `type` | string | yes | `KILL_MOB` / `GATHERING` |
 | `targetId` | ref | yes | mob または gathering ID |
+| `level` | number | no | `KILL_MOB` の場合だけ使用する Mob レベル。未指定時は全レベルに一致 |
 | `label` | string | no | GUI表示名 |
 | `amount` | number | yes | 必要数 |
 

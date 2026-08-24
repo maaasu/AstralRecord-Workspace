@@ -24,6 +24,7 @@ steps:
     condition:
       type: ACTION_RING_OPENED
       targetId: string
+      level: 2
 ```
 
 | Key | Required | Description |
@@ -46,6 +47,7 @@ steps:
 | `steps[].action.description` | no | クリック時に実行される動作の説明。指定時は details の下へ灰色で表示する。 |
 | `steps[].condition.type` | yes | Plugin が解釈する達成条件種別。 |
 | `steps[].condition.targetId` | no | 条件対象 ID。未指定時は同じ type の全対象に一致する。 |
+| `steps[].condition.level` | no | `MOB_DEFEATED` の対象 Mob レベル。未指定時は全レベルに一致する。 |
 
 ## 達成条件の評価
 

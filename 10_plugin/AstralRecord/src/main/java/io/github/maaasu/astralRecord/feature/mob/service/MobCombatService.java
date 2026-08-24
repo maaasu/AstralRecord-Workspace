@@ -74,6 +74,7 @@ public class MobCombatService {
     private QuestService questService;
     private DamageService damageService;
     private BiConsumer<AstPlayer, String> mobDefeatedListener;
+    private BiConsumer<AstPlayer, MobDefeated> mobDefeatedLevelListener;
 
     /**
      * コンストラクタ。
@@ -137,6 +138,13 @@ public class MobCombatService {
     /** Mob 討伐を外部機能へ通知するリスナーを設定します。 */
     public void setMobDefeatedListener(@Nullable BiConsumer<AstPlayer, String> mobDefeatedListener) {
         this.mobDefeatedListener = mobDefeatedListener;
+    }
+
+    /** レベルを含む Mob 討伐イベントを外部機能へ通知するリスナーを設定します。 */
+    public void setMobDefeatedLevelListener(
+            @Nullable BiConsumer<AstPlayer, MobDefeated> mobDefeatedLevelListener
+    ) {
+        this.mobDefeatedLevelListener = mobDefeatedLevelListener;
     }
 
     /**
@@ -319,10 +327,13 @@ public class MobCombatService {
             }
             results.add(result);
             if (questService != null) {
-                questService.recordMobKill(recipient, template.id());
+                questService.recordMobKill(recipient, template.id(), template.level());
             }
             if (mobDefeatedListener != null) {
                 mobDefeatedListener.accept(recipient, template.id());
+            }
+            if (mobDefeatedLevelListener != null) {
+                mobDefeatedLevelListener.accept(recipient, new MobDefeated(template.id(), template.level()));
             }
             applyExperienceAndSkillPoints(recipient, result);
             adventureRecordService.recordDefeatAsync(recipient, template);
@@ -337,6 +348,10 @@ public class MobCombatService {
 
         mobService.destroy(instance.instanceId());
         return results;
+    }
+
+    /** Mob 討伐時点の ID と実効レベルです。 */
+    public record MobDefeated(@NotNull String mobId, int level) {
     }
 
     private @NotNull List<AstPlayer> resolveDropRecipients(@NotNull MobInstance instance, @Nullable Player killer) {

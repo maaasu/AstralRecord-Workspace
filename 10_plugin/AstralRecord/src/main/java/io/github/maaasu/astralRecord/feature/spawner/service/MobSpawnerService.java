@@ -139,9 +139,9 @@ public class MobSpawnerService {
         regionLevelByName.clear();
         regionLevelByName.putAll(calculateRegionLevels(
                 definitions.values(),
-                mobId -> {
+                (mobId, level) -> {
                     var template = mobService.findTemplate(mobId);
-                    return template == null ? null : template.level();
+                    return template == null ? null : template.resolveLevel(level).level();
                 }
         ));
 
@@ -248,7 +248,8 @@ public class MobSpawnerService {
             lore.add("&7 - なし");
         } else {
             for (MobSpawnerEntry entry : definition.spawnMobs()) {
-                lore.add("&7 - &f" + entry.mobId() + " &7(重み " + entry.weight() + ")");
+                String level = entry.level() == null ? "最低レベル" : "Lv." + entry.level();
+                lore.add("&7 - &f" + entry.mobId() + " &7(" + level + ", 重み " + entry.weight() + ")");
             }
         }
         lore.add("");
@@ -488,6 +489,24 @@ public class MobSpawnerService {
             @NotNull Collection<MobSpawnerDefinition> definitions,
             @NotNull Function<String, Integer> levelResolver
     ) {
+        return calculateRegionLevelsInternal(definitions, entry -> levelResolver.apply(entry.mobId()));
+    }
+
+    /** レベル指定付きスポナーを含む地域レベルを算出します。 */
+    static Map<String, Integer> calculateRegionLevels(
+            @NotNull Collection<MobSpawnerDefinition> definitions,
+            @NotNull java.util.function.BiFunction<String, Integer, Integer> levelResolver
+    ) {
+        return calculateRegionLevelsInternal(
+                definitions,
+                entry -> levelResolver.apply(entry.mobId(), entry.level())
+        );
+    }
+
+    private static Map<String, Integer> calculateRegionLevelsInternal(
+            @NotNull Collection<MobSpawnerDefinition> definitions,
+            @NotNull Function<MobSpawnerEntry, Integer> levelResolver
+    ) {
         Map<String, long[]> totalsByRegion = new HashMap<>();
         for (MobSpawnerDefinition definition : definitions) {
             if (definition.region() == null) {
@@ -495,7 +514,7 @@ public class MobSpawnerService {
             }
             long[] totals = totalsByRegion.computeIfAbsent(definition.region(), ignored -> new long[2]);
             for (MobSpawnerEntry entry : definition.spawnMobs()) {
-                Integer level = levelResolver.apply(entry.mobId());
+                Integer level = levelResolver.apply(entry);
                 if (level == null) {
                     continue;
                 }
@@ -544,7 +563,7 @@ public class MobSpawnerService {
         if (spawnLocation == null) {
             return;
         }
-        MobInstance instance = mobService.spawn(entry.mobId(), spawnLocation);
+        MobInstance instance = mobService.spawn(entry.mobId(), entry.level(), spawnLocation);
         if (instance != null) {
             spawnedByLocation.computeIfAbsent(spawnerLocation.locationKey(), key -> new HashSet<>())
                     .add(instance.instanceId());

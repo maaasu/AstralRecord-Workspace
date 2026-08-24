@@ -446,14 +446,28 @@ public final class QuestService {
     }
 
     public void recordMobKill(@NotNull AstPlayer player, @NotNull String mobId) {
-        recordObjective(player, QuestObjectiveType.KILL_MOB, mobId);
+        recordMobKill(player, mobId, null);
+    }
+
+    /** 指定された Mob レベルに一致するクエスト進行を記録します。 */
+    public void recordMobKill(
+        @NotNull AstPlayer player,
+        @NotNull String mobId,
+        @Nullable Integer mobLevel
+    ) {
+        recordObjective(player, QuestObjectiveType.KILL_MOB, mobId, mobLevel);
     }
 
     public void recordGathering(@NotNull AstPlayer player, @NotNull String gatheringId) {
-        recordObjective(player, QuestObjectiveType.GATHERING, gatheringId);
+        recordObjective(player, QuestObjectiveType.GATHERING, gatheringId, null);
     }
 
-    private void recordObjective(@NotNull AstPlayer player, @NotNull QuestObjectiveType type, @NotNull String targetId) {
+    private void recordObjective(
+        @NotNull AstPlayer player,
+        @NotNull QuestObjectiveType type,
+        @NotNull String targetId,
+        @Nullable Integer targetLevel
+    ) {
         QuestPlayerState state = state(player);
         boolean changed = false;
         for (QuestProgress progress : new ArrayList<>(state.activeQuests().values())) {
@@ -462,7 +476,9 @@ public final class QuestService {
                 continue;
             }
             for (QuestObjectiveDefinition objective : quest.objectives()) {
-                if (objective.type() != type || !objective.targetId().equalsIgnoreCase(stripPrefix(targetId))) {
+                if (objective.type() != type
+                    || !objective.targetId().equalsIgnoreCase(stripPrefix(targetId))
+                    || (objective.targetLevel() != null && !objective.targetLevel().equals(targetLevel))) {
                     continue;
                 }
                 int next = Math.min(objective.amount(), progress.progress(objective.id()) + 1);

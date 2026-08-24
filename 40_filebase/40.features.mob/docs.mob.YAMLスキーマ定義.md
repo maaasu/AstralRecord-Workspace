@@ -26,7 +26,8 @@ AI（行動ロジック）もプラグイン独自実装であり、本スキー
 | `category`      | String       | ○  | -         | カテゴリ（`ENEMY` / `BOSS` / `NPC`）。ファイルが適切なフォルダに配置されているかの確認 |
 | `name`          | String       | ○  | -         | ゲーム内に表示される名前（色コード利用可能）                                  |
 | `title`         | String       | ×  | Null      | 二つ名・称号（例: `"&0闇の支配者"`）                                  |
-| `level`         | Integer      | ○  | -         | Mobの固定戦闘レベル（1以上）。プレイヤーとのレベル差によるダメージ・撃破経験値補正と頭上表示に使用する |
+| `level`         | Integer      | ○  | -         | レベルプロファイル未指定時に使用する既定レベル。`levels` を定義する場合は最小レベルと一致させる |
+| `levels[]`      | List<Map>    | ×  | 空         | 同一 Mob マスタ内のレベル別プロファイル。各要素は共通定義への部分上書き |
 | `entityType`    | String       | ○  | -         | Bukkit EntityType（例: `ZOMBIE`）。NPC は Bukkit block Material（例: `BARREL`, `ANVIL`）も指定でき、その場合は配置座標を中心にした `Interaction + BlockDisplay` 構成で表示・クリック判定を行う。`CHEST` 系は `Interaction + ItemDisplay` 構成で、指定されたチェスト系 Material の見た目を維持する |
 | `skin`          | Map          | ×  | Null      | エンティティの外見設定（後述。entityType が `PLAYER` の場合に主に使用）          |
 | `variant`       | Map          | ×  | `age: ADULT` | 同一マスタから生まれる実体 Mob の見た目差分を固定する設定 |
@@ -35,6 +36,29 @@ AI（行動ロジック）もプラグイン独自実装であり、本スキー
 | `lore`          | List<String> | ×  | emptyList | 説明文（§ または & の色コード利用可能）                                  |
 | `tags`          | List<String> | ×  | emptyList | 共有タグカタログの`MOB`対象ID（例: `undead`, `humanoid`, `fire`）  |
 | `shield`        | Map          | ×  | Null      | シールド定義。未定義または `enabled: false` の場合は従来どおりシールドなし。      |
+
+### levels（レベルプロファイル）
+
+`levels` を使うと、Mob IDを増やさずに同一Mobのレベル別能力を定義できます。各要素の `level` は必須です。
+`name`、`baseStats`、`ai`、`drops` などの共通フィールドを必要な分だけ指定し、未指定項目は親の共通定義から継承します。
+`ai` の子Mapも再帰的にマージされます。`id`、`type`、`category`、`schemaVersion`、`entityType` は共通定義で固定です。
+
+スポナー・クエスト・ガイド・ダンジョンなどでレベルを指定した場合は一致するプロファイルを使用し、未指定または存在しないレベルの場合は `levels` の最小レベルを使用します。
+`levels` がない従来形式は、従来どおりトップレベルの `level` と各フィールドを使用します。
+
+| キー | 型 | 必須 | 説明 |
+|:--|:--|:--:|:--|
+| `levels[].level` | Integer | ○ | プロファイルのレベル（1以上）。同一Mob内で重複不可 |
+| `levels[].name` | String | × | レベル別表示名。未指定時は親の `name` |
+| `levels[].title` | String | × | レベル別称号 |
+| `levels[].nameVisible` | Boolean | × | レベル別ネームタグ表示 |
+| `levels[].icon` | String | × | レベル別アイコン |
+| `levels[].lore` / `tags` | List | × | レベル別説明・タグ |
+| `levels[].skin` / `variant` / `equipment` | Map | × | レベル別外見・装備 |
+| `levels[].baseStats` / `shield` | Map/List | × | レベル別ステータス・シールド |
+| `levels[].ai` | Map | × | レベル別行動設定。子Map単位で親から継承 |
+| `levels[].damageImmune` / `interactions` | Boolean/Map | × | レベル別ダメージ無効・NPCインタラクション |
+| `levels[].drops` / `challenge` | Map | × | レベル別ドロップ・ボス挑戦設定 |
 
 ### skin（外見設定）
 
