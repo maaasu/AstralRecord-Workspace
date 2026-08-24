@@ -11,10 +11,9 @@ Treat `E:\AstralRecord-Workspace\10_plugin\AstralRecord\pom.xml` as the only sou
 
 In the default task-branch workflow, run this skill only after the task branch has been rebased onto the latest local `develop` and immediately before the final merge or release commit. Do not pre-bump `pom.xml` inside multiple parallel task worktrees that still share the same old base commit.
 
-Use a SemVer-based scheme that stays stable before commit:
+Use a SemVer-based scheme:
 
-- Release: `MAJOR.MINOR.PATCH`
-- Development build: `MAJOR.MINOR.PATCH-dev.YYYYMMDD.N`
+- Normal and development builds: `MAJOR.MINOR.PATCH`
 - Pre-release candidates when explicitly requested: `MAJOR.MINOR.PATCH-alpha.N`, `...-beta.N`, `...-rc.N`
 
 Do not embed the future commit hash into `project.version` in the default workflow. That ordering is fragile because the version must be written before commit, while the final commit hash exists only after commit. If traceability is needed, report the resulting commit hash separately after the commit step instead of baking it into the plugin version.
@@ -40,12 +39,11 @@ Choose the base bump from the implemented change:
 
 Choose the version form:
 
-- If the user asks for a release version, write `MAJOR.MINOR.PATCH`.
-- If the user asks for a development version, or the request is part of an implementation workflow before commit, write `MAJOR.MINOR.PATCH-dev.YYYYMMDD.N`.
+- If the user asks for a release or development version, or the request is part of an implementation workflow before commit, write `MAJOR.MINOR.PATCH`.
 - If the request is part of the normal task workflow, assume the implementation commit and rebase are already complete and this is the last mutable step before the merge.
-- If the user explicitly asks for staged release testing, use `alpha`, `beta`, or `rc`.
+- If the user explicitly asks for staged release testing, use `alpha`, `beta`, or `rc` with a sequence number.
 
-Default assumption when the request is ambiguous: use a development version and bump `patch`.
+Default assumption when the request is ambiguous: use a normal version and bump `patch`.
 
 ## Workflow
 
@@ -55,7 +53,7 @@ Default assumption when the request is ambiguous: use a development version and 
 4. Run the bundled updater:
 
 ```text
-python E:\AstralRecord-Workspace\.codex\skills\astralrecord-plugin-version\scripts\update_plugin_version.py --pom E:\AstralRecord-Workspace\10_plugin\AstralRecord\pom.xml --kind dev --bump patch
+python E:\AstralRecord-Workspace\.codex\skills\astralrecord-plugin-version\scripts\update_plugin_version.py --pom E:\AstralRecord-Workspace\10_plugin\AstralRecord\pom.xml --kind release --bump patch
 ```
 
 5. Re-read `pom.xml` and verify the written version string.
@@ -70,7 +68,8 @@ python E:\AstralRecord-Workspace\.codex\skills\astralrecord-plugin-version\scrip
 
 ## Decision Notes
 
-- If the current version is legacy Maven style such as `1.0-SNAPSHOT`, first treat it as SemVer core `1.0.0`, then apply the requested bump and suffix. Example: `--bump none` gives `1.0.0-dev.YYYYMMDD.1`, while the default `--bump patch` gives `1.0.1-dev.YYYYMMDD.1`.
+- Legacy versions with development or Maven snapshot suffixes are normalized to their `MAJOR.MINOR.PATCH` core when the next normal version is written. Example: `--bump none` on `1.0-SNAPSHOT` or `1.0.0-dev.12` gives `1.0.0`, while the default `--bump patch` gives `1.0.1`.
+- Pre-release sequence numbers start at `1` and increment from the current matching `alpha`, `beta`, or `rc` version.
 - Do not decrement or rewrite unrelated metadata.
 - Do not edit artifactId, groupId, plugin name, or Minecraft `api-version`.
 - If the requested change touches only docs or non-plugin projects, do not use this skill.
@@ -84,7 +83,7 @@ Write the result in Japanese.
 ## バージョン更新結果
 - 旧バージョン: `<old>`
 - 新バージョン: `<new>`
-- 採番種別: `dev` / `release` / `alpha` / `beta` / `rc`
+- 採番種別: `release` / `alpha` / `beta` / `rc`
 - 変更理由: <major/minor/patch/none の判断理由>
 
 ## 変更ファイル

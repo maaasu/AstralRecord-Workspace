@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import argparse
-import datetime as dt
 import re
 import sys
 import xml.etree.ElementTree as ET
@@ -45,8 +44,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument("--pom", required=True, help="Absolute path to pom.xml")
     parser.add_argument(
         "--kind",
-        choices=["dev", "release", "alpha", "beta", "rc"],
-        default="dev",
+        choices=["release", "alpha", "beta", "rc"],
+        default="release",
         help="Target version kind",
     )
     parser.add_argument(
@@ -56,8 +55,7 @@ def parse_args() -> argparse.Namespace:
         help="How to bump the core version before applying kind suffix",
     )
     parser.add_argument("--set-version", help="Explicit version to write as-is")
-    parser.add_argument("--date", help="Override date for dev versions in YYYYMMDD format")
-    parser.add_argument("--seq", type=int, help="Explicit sequence number for dev/alpha/beta/rc")
+    parser.add_argument("--seq", type=int, help="Explicit sequence number for alpha/beta/rc")
     return parser.parse_args()
 
 
@@ -74,24 +72,7 @@ def parse_version_text(version_text: str) -> tuple[CoreVersion, str | None]:
     return core, match.group("prerelease")
 
 
-def determine_date(raw: str | None) -> str:
-    if raw:
-        if not re.fullmatch(r"\d{8}", raw):
-            raise ValueError("--date must be YYYYMMDD")
-        return raw
-    return dt.datetime.now().strftime("%Y%m%d")
-
-
-def infer_next_seq(current_version: str, kind: str, version_date: str | None) -> int:
-    if kind == "dev":
-        dev_match = re.fullmatch(
-            r"\d+\.\d+\.\d+-dev\.(?P<date>\d{8})\.(?P<seq>\d+)",
-            current_version,
-        )
-        if dev_match and dev_match.group("date") == version_date:
-            return int(dev_match.group("seq")) + 1
-        return 1
-
+def infer_next_seq(current_version: str, kind: str) -> int:
     prerelease_match = re.fullmatch(
         rf"\d+\.\d+\.\d+-{kind}\.(?P<seq>\d+)",
         current_version,
@@ -101,7 +82,7 @@ def infer_next_seq(current_version: str, kind: str, version_date: str | None) ->
     return 1
 
 
-def build_version(current_version: str, kind: str, bump: str, date_value: str | None, seq: int | None) -> str:
+def build_version(current_version: str, kind: str, bump: str, seq: int | None) -> str:
     core, _ = parse_version_text(current_version)
     bumped_core = core.bump(bump)
     base = bumped_core.text()
@@ -109,14 +90,9 @@ def build_version(current_version: str, kind: str, bump: str, date_value: str | 
     if kind == "release":
         return base
 
-    resolved_seq = seq if seq is not None else infer_next_seq(current_version, kind, date_value)
+    resolved_seq = seq if seq is not None else infer_next_seq(current_version, kind)
     if resolved_seq < 1:
         raise ValueError("Sequence number must be 1 or greater")
-
-    if kind == "dev":
-        if date_value is None:
-            raise ValueError("Development versions require a date")
-        return f"{base}-dev.{date_value}.{resolved_seq}"
 
     return f"{base}-{kind}.{resolved_seq}"
 
@@ -152,12 +128,10 @@ def main() -> int:
         parse_version_text(args.set_version)
         new_version = args.set_version
     else:
-        version_date = determine_date(args.date) if args.kind == "dev" else None
         new_version = build_version(
             current_version=current_version,
             kind=args.kind,
             bump=args.bump,
-            date_value=version_date,
             seq=args.seq,
         )
 
