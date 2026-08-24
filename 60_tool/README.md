@@ -15,6 +15,7 @@
 | 07 | `07-generate-status-types.bat` | 共有ステータスカタログからKotlin / C# / TypeScriptを生成 |
 | 08 | `08-generate-tag-types.bat` | 共有タグカタログからJava / C# / TypeScriptを生成し、filebaseのタグ参照を検証 |
 | 09 | `09-astralarchitect-build-deploy.bat` | AstralArchitectをテスト・ビルドし、指定したMinecraftサーバーへJARを配置 |
+| 10 | `10-release-management-deploy.bat` | Release Note 用の API / Web だけをビルド・デプロイ |
 
 PowerShellから直接実行する場合は`generate-status-types.ps1`または`generate-tag-types.ps1`を使用します。bat はどのカレントディレクトリから実行しても動作するよう、内部で同じディレクトリのスクリプトを絶対パス解決します。
 
@@ -31,6 +32,7 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 ├─ 07-generate-status-types.bat
 ├─ 08-generate-tag-types.bat
 ├─ 09-astralarchitect-build-deploy.bat
+├─ 10-release-management-deploy.bat
 ├─ generate-status-types.ps1
 ├─ generate-tag-types.ps1
 ├─ deploy-debug/
@@ -74,6 +76,8 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 3. DB 再構築は既存データを保持しないため、`04-db-rebuild.bat` は内容を確認してから実行してください。
 
 `01-deploy-debug.bat` は従来どおり Plugin のテストを含めてビルドします。高速な配置確認用の `02-deploy-debug-plugin-only.bat` は Maven の `maven.test.skip` を有効にし、テストのコンパイルと実行を省略してから Plugin を配置します。
+
+`10-release-management-deploy.bat` は API と Web だけをデプロイします。Web の配置先 `appsettings.json` は保持されるため、初回だけ `AstralRecordApi:BaseUrl` と `AstralRecordApi:ApiKey` を本番値に設定してください。APIキーはAPI側の `ApiKey:Key` と同じ値を使用し、ソース管理には追加しません。
 
 `09-astralarchitect-build-deploy.bat`はAstralArchitectのMavenテストとビルドを行い、成功後に`AstralArchitect.jar`だけを配置します。`-BuildOnly`で配置を省略でき、`-PluginsDirectory "D:\minecraft\plugins"`で今回だけ配置先を上書きできます。既定値は`astralarchitect-deploy/astralarchitect-deploy.config.json`の`pluginsDirectory`で管理します。サーバーの停止・再起動や、既存チケットデータの変更は行いません。
 

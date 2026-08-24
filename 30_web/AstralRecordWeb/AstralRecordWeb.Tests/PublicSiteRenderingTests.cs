@@ -109,6 +109,28 @@ public sealed class PublicSiteRenderingTests
         Assert.DoesNotContain("プレイ時間", privacy);
     }
 
+    [Fact]
+    public async Task ReleaseNotes_RenderInitialPublishedNote()
+    {
+        await using var factory = new PublicSiteWebApplicationFactory("OpenAlpha");
+        using var client = CreateClient(factory);
+
+        var listResponse = await client.GetAsync("/releases");
+        listResponse.EnsureSuccessStatusCode();
+        var listBody = await listResponse.Content.ReadAsStringAsync();
+
+        Assert.Contains("リリースノート公開機能を導入しました", listBody);
+        Assert.Contains("0.1.0", listBody);
+        Assert.Contains("/releases/release-management", listBody);
+
+        var detailResponse = await client.GetAsync("/releases/release-management");
+        detailResponse.EnsureSuccessStatusCode();
+        var detailBody = await detailResponse.Content.ReadAsStringAsync();
+
+        Assert.Contains("Markdownで管理するリリースノート", detailBody);
+        Assert.Contains("通知に失敗した場合は、APIがOutboxへ保持して再試行します", detailBody);
+    }
+
     private static HttpClient CreateClient(WebApplicationFactory<Program> factory) =>
         factory.CreateClient(new WebApplicationFactoryClientOptions
         {

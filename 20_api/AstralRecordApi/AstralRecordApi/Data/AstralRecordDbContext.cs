@@ -44,6 +44,8 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<MarketPriceSnapshotEntity> MarketPriceSnapshots => Set<MarketPriceSnapshotEntity>();
     public DbSet<TradeCommitEntity> TradeCommits => Set<TradeCommitEntity>();
     public DbSet<WebLoginChallengeEntity> WebLoginChallenges => Set<WebLoginChallengeEntity>();
+    public DbSet<ReleaseNoteEntity> ReleaseNotes => Set<ReleaseNoteEntity>();
+    public DbSet<ReleaseNotificationOutboxEntity> ReleaseNotificationOutboxes => Set<ReleaseNotificationOutboxEntity>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -132,6 +134,58 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
                 .HasDatabaseName("UX_web_login_challenge_login_code_hash");
             entity.HasIndex(challenge => new { challenge.UserId, challenge.ExpiresAt })
                 .HasDatabaseName("IX_web_login_challenge_user_expires");
+        });
+
+        modelBuilder.Entity<ReleaseNoteEntity>(entity =>
+        {
+            entity.ToTable("release_note", "dbo");
+            entity.HasKey(note => note.ReleaseNoteId);
+
+            entity.Property(note => note.ReleaseNoteId).HasColumnName("release_note_id");
+            entity.Property(note => note.Slug).HasColumnName("slug").HasMaxLength(80);
+            entity.Property(note => note.Version).HasColumnName("version").HasMaxLength(64);
+            entity.Property(note => note.Title).HasColumnName("title").HasMaxLength(200);
+            entity.Property(note => note.Summary).HasColumnName("summary").HasMaxLength(500);
+            entity.Property(note => note.ReleaseUrl).HasColumnName("release_url").HasMaxLength(512);
+            entity.Property(note => note.SourcePath).HasColumnName("source_path").HasMaxLength(260);
+            entity.Property(note => note.ContentSha256).HasColumnName("content_sha256").HasMaxLength(64);
+            entity.Property(note => note.PublishedAtUtc).HasColumnName("published_at_utc");
+            entity.Property(note => note.IsPublished).HasColumnName("is_published");
+            entity.Property(note => note.NotifyDiscord).HasColumnName("notify_discord");
+            entity.Property(note => note.CreatedAtUtc).HasColumnName("created_at_utc");
+            entity.Property(note => note.UpdatedAtUtc).HasColumnName("updated_at_utc");
+            entity.HasIndex(note => note.Slug).IsUnique().HasDatabaseName("UX_release_note_slug");
+            entity.HasIndex(note => new { note.IsPublished, note.PublishedAtUtc })
+                .HasDatabaseName("IX_release_note_published_at");
+        });
+
+        modelBuilder.Entity<ReleaseNotificationOutboxEntity>(entity =>
+        {
+            entity.ToTable("release_notification_outbox", "dbo");
+            entity.HasKey(outbox => outbox.OutboxId);
+
+            entity.Property(outbox => outbox.OutboxId).HasColumnName("outbox_id");
+            entity.Property(outbox => outbox.ReleaseNoteId).HasColumnName("release_note_id");
+            entity.Property(outbox => outbox.Channel).HasColumnName("channel").HasMaxLength(50);
+            entity.Property(outbox => outbox.Status).HasColumnName("status");
+            entity.Property(outbox => outbox.AttemptCount).HasColumnName("attempt_count");
+            entity.Property(outbox => outbox.NextAttemptAtUtc).HasColumnName("next_attempt_at_utc");
+            entity.Property(outbox => outbox.LeaseUntilUtc).HasColumnName("lease_until_utc");
+            entity.Property(outbox => outbox.LeaseToken).HasColumnName("lease_token");
+            entity.Property(outbox => outbox.SentAtUtc).HasColumnName("sent_at_utc");
+            entity.Property(outbox => outbox.DiscordMessageId).HasColumnName("discord_message_id").HasMaxLength(64);
+            entity.Property(outbox => outbox.LastError).HasColumnName("last_error").HasMaxLength(2000);
+            entity.Property(outbox => outbox.CreatedAtUtc).HasColumnName("created_at_utc");
+            entity.Property(outbox => outbox.UpdatedAtUtc).HasColumnName("updated_at_utc");
+            entity.HasOne(outbox => outbox.ReleaseNote)
+                .WithMany(note => note.Notifications)
+                .HasForeignKey(outbox => outbox.ReleaseNoteId)
+                .OnDelete(DeleteBehavior.Cascade);
+            entity.HasIndex(outbox => new { outbox.ReleaseNoteId, outbox.Channel })
+                .IsUnique()
+                .HasDatabaseName("UX_release_notification_outbox_note_channel");
+            entity.HasIndex(outbox => new { outbox.Channel, outbox.Status, outbox.NextAttemptAtUtc })
+                .HasDatabaseName("IX_release_notification_outbox_due");
         });
 
         modelBuilder.Entity<PlayerSettingEntity>(entity =>

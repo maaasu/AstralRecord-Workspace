@@ -14,7 +14,8 @@
     ],
     "preserveFilePatterns": [
       "appsettings*.json",
-      "web.config"
+      "web.config",
+      "token.txt"
     ],
     "backup": {
       "enabled": true,

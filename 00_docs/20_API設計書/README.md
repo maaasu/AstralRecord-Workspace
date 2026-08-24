@@ -6,6 +6,12 @@
 本ルールは [[../10_Plugin設計書/README]] と整合しつつ、API（REST）特有の表現を組み込んだものです。
 プラグイン設計書と差異のある箇所は本ファイルが優先します。
 
+## feature 一覧
+
+| feature | 内容 |
+|---|---|
+| `feature/28-release-note` | Markdownリリースノートの公開登録とDiscord通知Outbox |
+
 ## 0. 編集ツールと参照記法
 
 - 設計書の編集ツールは **Obsidian** を使用する。

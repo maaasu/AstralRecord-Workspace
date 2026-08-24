@@ -1,6 +1,7 @@
 [CmdletBinding()]
 param(
-    [switch]$PluginOnly
+    [switch]$PluginOnly,
+    [switch]$ReleaseManagementOnly
 )
 
 $ErrorActionPreference = "Stop"
@@ -10,6 +11,10 @@ $scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $configPath = Join-Path $scriptDir "deploy-debug.config.json"
 $encodingNormalizerPath = Join-Path $scriptDir "normalize-source-encoding.ps1"
 $script:iisResetCommand = $null
+
+if ($PluginOnly -and $ReleaseManagementOnly) {
+    throw "-PluginOnly and -ReleaseManagementOnly cannot be used together."
+}
 
 function Write-Step {
     param([string]$Message)
@@ -379,7 +384,7 @@ if (-not (Test-CommandExists -Name "dotnet")) {
     throw "dotnet command was not found."
 }
 
-if (-not (Test-CommandExists -Name "mvn")) {
+if (-not $ReleaseManagementOnly -and -not (Test-CommandExists -Name "mvn")) {
     throw "mvn command was not found."
 }
 
@@ -392,6 +397,11 @@ $config = Get-Content -LiteralPath $configPath -Raw | ConvertFrom-Json
 if ($PluginOnly) {
     $config.api.enabled = $false
     $config.web.enabled = $false
+    $config.fileDatabase.enabled = $false
+}
+
+if ($ReleaseManagementOnly) {
+    $config.plugin.enabled = $false
     $config.fileDatabase.enabled = $false
 }
 

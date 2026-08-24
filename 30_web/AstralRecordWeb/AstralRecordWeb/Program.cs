@@ -23,6 +23,19 @@ builder.Services
 builder.Services.Configure<AstralRecordApiOptions>(
     builder.Configuration.GetSection(AstralRecordApiOptions.SectionName));
 builder.Services
+    .AddOptions<ReleaseNoteOptions>()
+    .Bind(builder.Configuration.GetSection(ReleaseNoteOptions.SectionName))
+    .Validate(
+        options => Uri.TryCreate(options.PublicBaseUrl, UriKind.Absolute, out var uri)
+            && uri.Scheme == Uri.UriSchemeHttps,
+        $"{ReleaseNoteOptions.SectionName}:PublicBaseUrl must be an HTTPS URL.")
+    .ValidateOnStart();
+builder.Services.PostConfigure<ReleaseNoteOptions>(options =>
+{
+    if (builder.Environment.IsDevelopment())
+        options.SyncOnStartup = false;
+});
+builder.Services
     .AddAuthentication(CookieAuthenticationDefaults.AuthenticationScheme)
     .AddCookie(options =>
     {
@@ -61,6 +74,16 @@ builder.Services.AddHttpClient<ItemMasterApiClient>((serviceProvider, httpClient
     if (!string.IsNullOrWhiteSpace(options.ApiKey))
         httpClient.DefaultRequestHeaders.Add("X-Api-Key", options.ApiKey);
 });
+builder.Services.AddHttpClient<ReleaseNoteApiClient>((serviceProvider, httpClient) =>
+{
+    var options = serviceProvider.GetRequiredService<IOptions<AstralRecordApiOptions>>().Value;
+    httpClient.BaseAddress = new Uri(options.BaseUrl);
+
+    if (!string.IsNullOrWhiteSpace(options.ApiKey))
+        httpClient.DefaultRequestHeaders.Add("X-Api-Key", options.ApiKey);
+});
+builder.Services.AddSingleton<ReleaseNoteCatalog>();
+builder.Services.AddHostedService<ReleaseNotePublicationHostedService>();
 
 var app = builder.Build();
 

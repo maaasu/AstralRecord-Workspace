@@ -28,6 +28,12 @@ builder.Services.Configure<MasterDataOptions>(
 builder.Services.Configure<WebAuthOptions>(
     builder.Configuration.GetSection(WebAuthOptions.SectionName));
 
+builder.Services.Configure<ReleaseNoteOptions>(
+    builder.Configuration.GetSection(ReleaseNoteOptions.SectionName));
+
+builder.Services.Configure<DiscordReleaseNotificationOptions>(
+    builder.Configuration.GetSection(DiscordReleaseNotificationOptions.SectionName));
+
 builder.Services.AddDbContext<AstralRecordDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("SqlServer")
@@ -82,6 +88,7 @@ builder.Services.AddScoped<IRuneRepository, RuneRepository>();
 builder.Services.AddScoped<IMarketRepository, MarketRepository>();
 builder.Services.AddScoped<ITradeRepository, TradeRepository>();
 builder.Services.AddScoped<IWebAuthRepository, WebAuthRepository>();
+builder.Services.AddScoped<IReleaseNoteRepository, ReleaseNoteRepository>();
 builder.Services.AddScoped<IEquipmentService, EquipmentService>();
 builder.Services.AddScoped<IRuneService, RuneService>();
 builder.Services.AddScoped<IMarketPriceService, MarketPriceService>();
@@ -90,6 +97,11 @@ builder.Services.AddScoped<IMasterDataRepository, MasterDataRepository>();
 builder.Services.AddScoped<IMasterDataSeeder, MasterDataSeeder>();
 builder.Services.AddSingleton<IMasterDataFileService, MasterDataFileService>();
 builder.Services.AddHostedService<MasterDataSeedHostedService>();
+builder.Services.AddHttpClient<IDiscordReleaseNotificationSender, DiscordReleaseNotificationSender>(httpClient =>
+{
+    httpClient.BaseAddress = new Uri("https://discord.com/api/v10/");
+});
+builder.Services.AddHostedService<ReleaseNotificationHostedService>();
 
 builder.Services.AddAuthentication(ApiKeyAuthenticationHandler.SchemeName)
     .AddScheme<AuthenticationSchemeOptions, ApiKeyAuthenticationHandler>(
