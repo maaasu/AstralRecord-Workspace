@@ -1303,6 +1303,7 @@ public class ItemStackFactory {
 
             // --- 耐久値 ---
             if (instance.getDurabilityMax() > 0) {
+                lore.add("");
                 lore.add(formatDurabilityLore(instance));
             }
             appendSetEffectLore(lore, eq, equippedSetCounts);
