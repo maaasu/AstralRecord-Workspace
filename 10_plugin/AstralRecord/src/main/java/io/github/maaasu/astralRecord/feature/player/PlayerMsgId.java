@@ -1410,6 +1410,19 @@ public enum PlayerMsgId {
     P_7100(7100),
     // endregion
 
+    // region /feature/whitelist 7110-7119
+    /** whitelist を有効化した通知。 */
+    P_7110(7110),
+    /** whitelist を無効化した通知。 */
+    P_7111(7111),
+    /** whitelist による接続拒否。 */
+    P_7112(7112),
+    /** メンテナンス開始による既存接続の遮断。 */
+    P_7113(7113),
+    /** whitelist コマンドの不正な引数。 */
+    P_7114(7114),
+    // endregion
+
     ;
 
     private final String id;

@@ -16,6 +16,7 @@ public class ConfigProperties {
     // Plugin 関連
     private boolean pluginDebugMode;
     private Set<UUID> pluginDebugUsers = Collections.emptySet();
+    private volatile boolean pluginWhitelistEnabled;
 
     // SQL Server 関連
     private boolean sqlserverEnabled;
@@ -87,6 +88,10 @@ public class ConfigProperties {
         this.pluginDebugMode = configManager.getConfig().getBoolean(ConfigKeys.PLUGIN_DEBUG_MODE);
         this.pluginDebugUsers = parseDebugUsers(
                 configManager.getConfig().getStringList(ConfigKeys.PLUGIN_DEBUG_USERS)
+        );
+        this.pluginWhitelistEnabled = configManager.getConfig().getBoolean(
+                ConfigKeys.PLUGIN_WHITELIST_ENABLED,
+                false
         );
 
         // SQL Server 関連
@@ -170,6 +175,25 @@ public class ConfigProperties {
      */
     public boolean isDebugUser(UUID uuid) {
         return uuid != null && pluginDebugUsers.contains(uuid);
+    }
+
+    /**
+     * whitelist が有効かどうかを返します。
+     *
+     * @return whitelist が有効なら {@code true}
+     */
+    public boolean isPluginWhitelistEnabled() {
+        return pluginWhitelistEnabled;
+    }
+
+    /**
+     * 実行中の whitelist 状態を更新します。
+     * 設定ファイルへの保存は呼び出し側が担当します。
+     *
+     * @param enabled 更新後の whitelist 状態
+     */
+    public void setPluginWhitelistEnabled(boolean enabled) {
+        this.pluginWhitelistEnabled = enabled;
     }
 
     // SQL Server 関連のゲッター

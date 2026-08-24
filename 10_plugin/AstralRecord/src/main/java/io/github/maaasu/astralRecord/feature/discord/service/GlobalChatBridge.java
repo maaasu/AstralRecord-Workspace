@@ -17,6 +17,15 @@ public interface GlobalChatBridge extends AutoCloseable {
     void publishMinecraftGlobalChat(@NotNull Player sender, @NotNull String message);
 
     /**
+     * Minecraftから外部サービスへの送信を一時停止する状態を設定します。
+     *
+     * @param maintenanceMode メンテナンス中なら {@code true}
+     */
+    default void setMaintenanceMode(boolean maintenanceMode) {
+        // 外部中継実装ごとに必要な場合だけ上書きします。
+    }
+
+    /**
      * 中継を停止する。
      */
     @Override

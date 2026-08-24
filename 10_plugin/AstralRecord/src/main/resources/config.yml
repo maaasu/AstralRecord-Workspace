@@ -1,8 +1,9 @@
 # Plugin Settings
 plugin:
   debugMode: false
-  # UUIDs allowed to use only /user permission without permission 99.
+  # UUIDs allowed to use only /user permission without permission 99 and to join during whitelist maintenance.
   debugUsers: []
+  whitelistEnabled: false
   joinSpawn:
     world: "world"
 

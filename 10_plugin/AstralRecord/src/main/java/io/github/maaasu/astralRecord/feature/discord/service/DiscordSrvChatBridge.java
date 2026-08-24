@@ -25,11 +25,19 @@ import java.util.Objects;
  * DiscordSRVが未導入の場合は生成されず、AstralRecord単体の動作を維持する。
  */
 public final class DiscordSrvChatBridge implements GlobalChatBridge {
+    private static final String SERVER_STARTUP_MESSAGE_KEY = "DiscordChatChannelServerStartupMessage";
+    private static final String SERVER_SHUTDOWN_MESSAGE_KEY = "DiscordChatChannelServerShutdownMessage";
+
+    private static boolean lifecycleMessagesSuppressed;
+    private static String originalServerStartupMessage;
+    private static String originalServerShutdownMessage;
+
     private final AstralRecord plugin;
     private final PlayerMessageService playerMessageService;
     private final String globalChannelId;
     private final int maxMessageLength;
     private volatile boolean subscribed;
+    private volatile boolean maintenanceMode;
 
     private DiscordSrvChatBridge(
         @NotNull AstralRecord plugin,
@@ -78,9 +86,63 @@ public final class DiscordSrvChatBridge implements GlobalChatBridge {
         return bridge;
     }
 
+    /**
+     * DiscordSRVの起動・停止通知をwhitelist状態に合わせて抑制します。
+     * DiscordSRV 1.30.5 の messages.yml は実サーバーの設定ファイルを書き換えず、
+     * DynamicConfig のランタイム値だけを変更します。
+     *
+     * @param suppressed 抑制する場合は {@code true}
+     */
+    public static synchronized void setServerLifecycleMessagesSuppressed(boolean suppressed) {
+        if (!Bukkit.getPluginManager().isPluginEnabled("DiscordSRV")) {
+            return;
+        }
+
+        try {
+            if (suppressed) {
+                if (!lifecycleMessagesSuppressed) {
+                    originalServerStartupMessage = DiscordSRV.config().getString(SERVER_STARTUP_MESSAGE_KEY);
+                    originalServerShutdownMessage = DiscordSRV.config().getString(SERVER_SHUTDOWN_MESSAGE_KEY);
+                    lifecycleMessagesSuppressed = true;
+                }
+                DiscordSRV.config().setRuntimeValue(SERVER_STARTUP_MESSAGE_KEY, "");
+                DiscordSRV.config().setRuntimeValue(SERVER_SHUTDOWN_MESSAGE_KEY, "");
+                return;
+            }
+
+            if (lifecycleMessagesSuppressed) {
+                DiscordSRV.config().setRuntimeValue(
+                    SERVER_STARTUP_MESSAGE_KEY,
+                    Objects.requireNonNullElse(originalServerStartupMessage, "")
+                );
+                DiscordSRV.config().setRuntimeValue(
+                    SERVER_SHUTDOWN_MESSAGE_KEY,
+                    Objects.requireNonNullElse(originalServerShutdownMessage, "")
+                );
+                lifecycleMessagesSuppressed = false;
+                originalServerStartupMessage = null;
+                originalServerShutdownMessage = null;
+            }
+        } catch (LinkageError | RuntimeException exception) {
+            Logger.log(LogId.W_7110, exception, exception.getClass().getSimpleName());
+        }
+    }
+
+    /**
+     * whitelist有効時のDiscord連携状態を反映します。
+     * DiscordからMinecraftへの受信処理は維持します。
+     *
+     * @param maintenanceMode メンテナンス中なら {@code true}
+     */
+    @Override
+    public void setMaintenanceMode(boolean maintenanceMode) {
+        this.maintenanceMode = maintenanceMode;
+        setServerLifecycleMessagesSuppressed(maintenanceMode);
+    }
+
     @Override
     public void publishMinecraftGlobalChat(@NotNull Player sender, @NotNull String message) {
-        if (!subscribed || !DiscordSRV.isReady) {
+        if (maintenanceMode || !subscribed || !DiscordSRV.isReady) {
             return;
         }
 
@@ -90,7 +152,7 @@ public final class DiscordSrvChatBridge implements GlobalChatBridge {
         }
 
         Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            if (!subscribed || !DiscordSRV.isReady) {
+            if (maintenanceMode || !subscribed || !DiscordSRV.isReady) {
                 return;
             }
             try {

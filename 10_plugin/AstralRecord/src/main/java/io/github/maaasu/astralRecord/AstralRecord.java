@@ -26,6 +26,8 @@ import io.github.maaasu.astralRecord.feature.dungeon.repository.DungeonDefinitio
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.discord.service.DiscordSrvChatBridge;
 import io.github.maaasu.astralRecord.feature.discord.service.GlobalChatBridge;
+import io.github.maaasu.astralRecord.feature.whitelist.event.WhitelistConnectionEventHandler;
+import io.github.maaasu.astralRecord.feature.whitelist.service.WhitelistService;
 import io.github.maaasu.astralRecord.feature.condition.display.ConditionDisplayService;
 import io.github.maaasu.astralRecord.feature.condition.event.ConditionPlayerEventHandler;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
@@ -1303,12 +1305,18 @@ public final class AstralRecord extends JavaPlugin {
      * DiscordSRVが利用できる場合に全体チャット中継を初期化します。
      */
     private void setupDiscordChatBridge() {
+        WhitelistService whitelistService = WhitelistService.getInstance();
+        DiscordSrvChatBridge.setServerLifecycleMessagesSuppressed(
+            ConfigProperties.getInstance().isPluginWhitelistEnabled()
+        );
         if (!ConfigProperties.getInstance().isDiscordEnabled()) {
+            whitelistService.setGlobalChatBridge(null);
             return;
         }
         try {
             globalChatBridge = DiscordSrvChatBridge.create(this, playerMessageService);
             playerMessageService.setGlobalChatBridge(globalChatBridge);
+            whitelistService.setGlobalChatBridge(globalChatBridge);
         } catch (LinkageError | RuntimeException exception) {
             Logger.log(LogId.W_7102, exception, exception.getClass().getSimpleName());
         }
@@ -1336,6 +1344,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new UserLoginEventHandler(userService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new WhitelistConnectionEventHandler(WhitelistService.getInstance()),
             getServer().getPluginManager()
         );
         var menuToolJoinGrantService = new MenuToolJoinGrantService(itemService, inventoryService);
