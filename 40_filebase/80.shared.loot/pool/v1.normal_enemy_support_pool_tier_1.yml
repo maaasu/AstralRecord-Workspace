@@ -1,0 +1,16 @@
+# design:
+#   motif: "冒険 / 初段の進行支援"
+#   progression: 1
+schemaVersion: 1
+id: normal_enemy_support_pool_tier_1
+type: LOOT_POOL
+pick: 1
+contents:
+  - itemId:
+      ref: item:skill_gem_raw
+    rate: 13.0
+    amount: 1
+  - itemId:
+      ref: item:sindri_orb
+    rate: 8.0
+    amount: 1
