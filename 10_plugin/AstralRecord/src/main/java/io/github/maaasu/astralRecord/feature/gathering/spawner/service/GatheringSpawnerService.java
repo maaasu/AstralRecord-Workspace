@@ -11,8 +11,6 @@ import io.github.maaasu.astralRecord.feature.gathering.spawner.repository.Gather
 import io.github.maaasu.astralRecord.feature.gathering.spawner.repository.GatheringSpawnerLocationRepository;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
-import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
-import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import net.kyori.adventure.text.Component;
@@ -327,14 +325,12 @@ public class GatheringSpawnerService {
         }
         if (!definition.canSpawnAt(worldTime)) {
             cleanupTracked(spawnerLocation.locationKey());
-            Logger.debug(LogId.D_9012, definition.id(), worldTime);
             return;
         }
 
         int nearbyPlayers = playerCounts.gameplayPlayers();
         if (nearbyPlayers <= 0) {
             cleanupTracked(spawnerLocation.locationKey());
-            Logger.debug(LogId.D_9013, definition.id(), playerCounts.playersInRange());
             return;
         }
 
@@ -342,112 +338,24 @@ public class GatheringSpawnerService {
         int alive = cleanupTracked(spawnerLocation.locationKey());
         int nearbyGatherings = countNearbyGatherings(origin, definition.radiusMeters());
         if (alive >= desired || nearbyGatherings >= definition.maxNearbyGatherings()) {
-            Logger.debug(
-                    LogId.D_9014,
-                    definition.id(),
-                    alive,
-                    desired,
-                    nearbyGatherings,
-                    definition.maxNearbyGatherings()
-            );
             return;
         }
 
         GatheringSpawnerEntry entry = choose(definition.spawnGatherings());
         if (entry == null) {
-            Logger.debug(LogId.D_9017, definition.id());
             return;
         }
 
         SpawnLocationSearchResult search = findHighestSpawnLocationResult(origin, definition);
         Location spawnLocation = search.location();
         if (spawnLocation == null) {
-            int horizontalRadius = (int) Math.ceil(definition.radiusMeters());
-            Logger.debug(
-                    LogId.D_9018,
-                    definition.id(),
-                    origin.getWorld().getName(),
-                    origin.getBlockX(),
-                    origin.getBlockY(),
-                    origin.getBlockZ(),
-                    definition.radiusMeters(),
-                    origin.getBlockX() - horizontalRadius,
-                    origin.getBlockX() + horizontalRadius,
-                    origin.getBlockZ() - horizontalRadius,
-                    origin.getBlockZ() + horizontalRadius,
-                    search.minCandidateY(),
-                    search.maxCandidateY(),
-                    search.columnsChecked(),
-                    search.baseMatches(),
-                    search.passableMatches(),
-                    search.highestCandidateY()
-            );
             return;
         }
 
-        Block base = origin.getWorld().getBlockAt(
-                spawnLocation.getBlockX(),
-                spawnLocation.getBlockY() - 1,
-                spawnLocation.getBlockZ()
-        );
-        Block spawnBlock = spawnLocation.getBlock();
-        int horizontalRadius = (int) Math.ceil(definition.radiusMeters());
-        double horizontalDistance = Math.sqrt(
-                Math.pow(spawnLocation.getX() - origin.getX(), 2.0D)
-                        + Math.pow(spawnLocation.getZ() - origin.getZ(), 2.0D)
-        );
-        double verticalDistance = Math.abs(spawnLocation.getY() - origin.getY());
-        double threeDimensionalDistance = Math.sqrt(
-                horizontalDistance * horizontalDistance + verticalDistance * verticalDistance
-        );
-        double effectiveHorizontalRadius = Math.sqrt(
-                Math.max(0.0D, definition.radiusMeters() * definition.radiusMeters()
-                        - verticalDistance * verticalDistance)
-        );
-        Logger.debug(
-                LogId.D_9015,
-                definition.id(),
-                entry.gatheringId(),
-                spawnLocation.getWorld().getName(),
-                spawnLocation.getX(),
-                spawnLocation.getY(),
-                spawnLocation.getZ(),
-                definition.radiusMeters(),
-                horizontalDistance,
-                effectiveHorizontalRadius,
-                verticalDistance,
-                threeDimensionalDistance,
-                origin.getBlockX() - horizontalRadius,
-                origin.getBlockX() + horizontalRadius,
-                origin.getBlockZ() - horizontalRadius,
-                origin.getBlockZ() + horizontalRadius,
-                base.getType().name(),
-                spawnBlock.getType().name()
-        );
         GatheringInstance instance = gatheringService.spawn(entry.gatheringId(), spawnLocation, definition.id());
         if (instance != null) {
             spawnedByLocation.computeIfAbsent(spawnerLocation.locationKey(), key -> new HashSet<>())
                     .add(instance.instanceId());
-            Logger.debug(
-                    LogId.D_9016,
-                    definition.id(),
-                    entry.gatheringId(),
-                    instance.instanceId(),
-                    spawnLocation.getWorld().getName(),
-                    spawnLocation.getX(),
-                    spawnLocation.getY(),
-                    spawnLocation.getZ()
-            );
-        } else {
-            Logger.debug(
-                    LogId.D_9019,
-                    definition.id(),
-                    entry.gatheringId(),
-                    spawnLocation.getWorld().getName(),
-                    spawnLocation.getX(),
-                    spawnLocation.getY(),
-                    spawnLocation.getZ()
-            );
         }
     }
 
