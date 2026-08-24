@@ -19,6 +19,7 @@ tags:
   - melee
 
 levels:
+  - level: 1
   - level: 2
     name: "&aミズガルズ・グラスボア Lv.2"
     baseStats:
