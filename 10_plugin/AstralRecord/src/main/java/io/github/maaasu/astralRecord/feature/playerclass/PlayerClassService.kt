@@ -59,7 +59,7 @@ class PlayerClassService @JvmOverloads constructor(
     }
 
     /**
-     * チャット表示用の3文字クラス短縮名を返します。
+     * クラスの3文字短縮名を返します。
      *
      * @param classId クラス ID
      * @return 色コードを反映した短縮名。未ロードの場合はクラス ID

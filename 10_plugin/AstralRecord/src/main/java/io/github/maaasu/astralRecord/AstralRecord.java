@@ -781,7 +781,7 @@ public final class AstralRecord extends JavaPlugin {
         playerClassService.setSkillTreeService(skillTreeService);
         skillTreeService.setPlayerClassService(playerClassService);
 
-        playerMessageService = new PlayerMessageService(playerClassService);
+        playerMessageService = new PlayerMessageService();
         inventoryAutoSaveTask = new InventoryAutoSaveTask(
             inventoryService,
             inventorySaveCoordinator,

@@ -6,7 +6,6 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
-import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.event.ClickEvent;
 import org.bukkit.Bukkit;
@@ -26,23 +25,12 @@ import java.util.Collection;
  */
 public final class PlayerMessageService {
     private static final PlayerMessageService FALLBACK_INSTANCE = new PlayerMessageService();
-    private final @Nullable PlayerClassService playerClassService;
     private @Nullable GlobalChatBridge globalChatBridge;
 
     /**
      * PlayerMessageService を初期化する。
      */
     public PlayerMessageService() {
-        this(null);
-    }
-
-    /**
-     * クラス表示情報を利用するプレイヤーメッセージサービスを初期化する。
-     *
-     * @param playerClassService クラス表示名サービス
-     */
-    public PlayerMessageService(@Nullable PlayerClassService playerClassService) {
-        this.playerClassService = playerClassService;
     }
 
     /**
@@ -183,7 +171,7 @@ public final class PlayerMessageService {
 
     /**
      * 全体チャットをオンラインプレイヤー全員へ配信する。
-     * 発言者のプレイヤーレベルと現在クラスの短縮名を表示する。
+     * 発言者のプレイヤーレベルを表示する。
      *
      * @param sender 発言者
      * @param message チャット本文
@@ -193,7 +181,6 @@ public final class PlayerMessageService {
         Component component = PlayerMsgResource.formatComponent(
             PlayerMsgId.P_5941.getId(),
             resolvePlayerLevel(sender),
-            resolveShortClassName(sender),
             sender.getName(),
             ""
         ).append(Component.text(normalizedMessage));
@@ -233,7 +220,7 @@ public final class PlayerMessageService {
 
     /**
      * アイテム名をホバー・コピー操作付きで全体チャットへ配信する。
-     * 発言者のプレイヤーレベルと現在クラスの短縮名を表示する。
+     * 発言者のプレイヤーレベルを表示する。
      *
      * @param sender 送信者
      * @param itemName チャットへ表示し、クリック時にコピーする装飾なしのアイテム名
@@ -247,7 +234,6 @@ public final class PlayerMessageService {
         Component component = PlayerMsgResource.formatComponent(
             PlayerMsgId.P_5941.getId(),
             resolvePlayerLevel(sender),
-            resolveShortClassName(sender),
             sender.getName(),
             ""
         ).append(
@@ -264,7 +250,7 @@ public final class PlayerMessageService {
 
     /**
      * パーティーチャットを対象プレイヤーへ配信する。
-     * 発言者のプレイヤーレベルと現在クラスの短縮名を表示する。
+     * 発言者のプレイヤーレベルを表示する。
      *
      * @param recipients 受信者一覧
      * @param sender 発言者
@@ -274,7 +260,6 @@ public final class PlayerMessageService {
         Component component = PlayerMsgResource.formatComponent(
             PlayerMsgId.P_5942.getId(),
             resolvePlayerLevel(sender),
-            resolveShortClassName(sender),
             sender.getName(),
             message
         );
@@ -287,7 +272,7 @@ public final class PlayerMessageService {
 
     /**
      * ダイレクトメッセージを送受信者へ配信する。
-     * 送受信者それぞれのプレイヤーレベルと現在クラスの短縮名を表示する。
+     * 送受信者それぞれのプレイヤーレベルを表示する。
      *
      * @param sender 送信者
      * @param target 受信者
@@ -297,20 +282,16 @@ public final class PlayerMessageService {
         Component sent = PlayerMsgResource.formatComponent(
             PlayerMsgId.P_5943.getId(),
             resolvePlayerLevel(sender),
-            resolveShortClassName(sender),
             sender.getName(),
             resolvePlayerLevel(target),
-            resolveShortClassName(target),
             target.getName(),
             message
         );
         Component received = PlayerMsgResource.formatComponent(
             PlayerMsgId.P_5944.getId(),
             resolvePlayerLevel(sender),
-            resolveShortClassName(sender),
             sender.getName(),
             resolvePlayerLevel(target),
-            resolveShortClassName(target),
             target.getName(),
             message
         );
@@ -324,14 +305,6 @@ public final class PlayerMessageService {
 
     private @NotNull Component systemPrefix() {
         return PlayerMsgResource.getComponent(PlayerMsgId.P_5940.getId()).append(Component.space());
-    }
-
-    private @NotNull String resolveShortClassName(@NotNull Player player) {
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (playerClassService == null || astPlayer == null) {
-            return "&7---";
-        }
-        return playerClassService.getShortDisplayName(astPlayer.getClassId());
     }
 
     private @NotNull String resolvePlayerLevel(@NotNull Player player) {
