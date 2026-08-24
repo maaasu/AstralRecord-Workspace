@@ -1526,12 +1526,11 @@ public class ItemStackFactory {
             @Nullable String randomRange,
             @Nullable String enhanceValue) {
         lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ " + ColorCodeUtil.WHITE + displayName
-                + ColorCodeUtil.DARK_GRAY + " : " + displayValue);
+                + ColorCodeUtil.DARK_GRAY + " : " + displayValue
+                + (enhanceValue == null ? "" : ColorCodeUtil.YELLOW + " [" + enhanceValue
+                        + ColorCodeUtil.RESET + ColorCodeUtil.YELLOW + "]"));
         if (randomRange != null) {
-            lore.add(ColorCodeUtil.GRAY + "   ・乱数幅: " + randomRange);
-        }
-        if (enhanceValue != null) {
-            lore.add(ColorCodeUtil.YELLOW + "   ・強化値: " + enhanceValue);
+            lore.add(ColorCodeUtil.GRAY + "   └" + randomRange);
         }
     }
 

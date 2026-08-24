@@ -36,7 +36,7 @@ class ItemStackFactoryEquipmentStatLoreTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 所有インスタンスItemStack生成
-     * 検証契約: 主値の下に乱数幅と強化値を補足行として表示する。
+     * 検証契約: 強化値は主値の右側、乱数幅は次行の `└` 表記で表示する。
      */
     @Test
     void randomRangeIsShownBeforeEnhancementNoteWithoutEnhancementAddition() throws ReflectiveOperationException {
@@ -56,9 +56,8 @@ class ItemStackFactoryEquipmentStatLoreTest {
         List<String> lore = buildLore(stat, enhance, 1, "2", "4");
         String line = findStatLine(lore);
 
-        assertTrue(line.contains("+4～+6"));
-        assertTrue(findLine(lore, "乱数幅").contains("2-3～4-5"));
-        assertTrue(findLine(lore, "強化値").contains("+2"));
+        assertTrue(line.contains("+4～+6 [+2]"));
+        assertTrue(findLine(lore, "└").contains("2-3～4-5"));
     }
 
     /**
@@ -74,7 +73,7 @@ class ItemStackFactoryEquipmentStatLoreTest {
         String line = findStatLine(buildLore(stat, null, 0, "3", "4"));
 
         assertTrue(line.contains("+3～+4"));
-        assertTrue(findLine(buildLore(stat, null, 0, "3", "4"), "乱数幅").contains("3～4-5"));
+        assertTrue(findLine(buildLore(stat, null, 0, "3", "4"), "└").contains("3～4-5"));
     }
 
     /**
@@ -107,7 +106,7 @@ class ItemStackFactoryEquipmentStatLoreTest {
         String line = findStatLine(lore);
 
         assertTrue(line.contains("+2～+4"));
-        assertTrue(findLine(lore, "乱数幅").contains("2-3～4-5"));
+        assertTrue(findLine(lore, "└").contains("2-3～4-5"));
     }
 
     /**
