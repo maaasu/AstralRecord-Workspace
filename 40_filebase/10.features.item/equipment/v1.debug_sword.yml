@@ -25,7 +25,6 @@ equipment:
       level: 3
     - classId: adventurer
       level: 1
-  setId: debug_weapon_set
   stats:
     - status: MELEE_ATTACK
       type: FLAT
