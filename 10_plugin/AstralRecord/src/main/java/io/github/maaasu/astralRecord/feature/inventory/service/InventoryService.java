@@ -115,6 +115,8 @@ public class InventoryService {
     private final PlayerInventoryStateRegistry stateRegistry;
     private final InventoryPersistence persistence;
     private final InventorySaveCoordinator saveCoordinator;
+    private final Map<UUID, Map<String, Integer>> equippedSetCountsByAccount = new ConcurrentHashMap<>();
+    private final Map<UUID, Integer> equippedMainHandSlotByAccount = new ConcurrentHashMap<>();
     private final InventoryClickGuard clickGuard = new InventoryClickGuard();
     /**
      * 合成などで消費確定までプレイヤー GUI だけから予約する inventory entry 数です。
@@ -1490,6 +1492,54 @@ public class InventoryService {
             applyAccessorySlotInventoryToGui(astPlayer);
         }
         applyHotbarInventoryToGui(astPlayer);
+    }
+
+    /**
+     * StatusService が算出した現在のセット数を装備表示へ反映します。
+     * 装備欄・アクセサリ・現在保持中の主手 HOTBAR だけを再描画し、BAG と他の HOTBAR は静的表示を維持します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param equippedSetCounts セット ID ごとの有効装備数
+     */
+    public void updateEquippedSetEffectDisplayCounts(
+        @NotNull AstPlayer astPlayer,
+        @NotNull Map<String, Integer> equippedSetCounts
+    ) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        Map<String, Integer> normalized = Map.copyOf(equippedSetCounts);
+        Map<String, Integer> previousCounts = equippedSetCountsByAccount.put(accountId, normalized);
+        int heldDbSlot = HotbarLayout.toDbSlot(astPlayer.getBukkit().getInventory().getHeldItemSlot());
+        Integer previousHeldDbSlot = equippedMainHandSlotByAccount.put(accountId, heldDbSlot);
+        boolean countsChanged = !normalized.equals(previousCounts);
+        boolean heldSlotChanged = !Objects.equals(heldDbSlot, previousHeldDbSlot);
+        if (!countsChanged && !heldSlotChanged) {
+            return;
+        }
+        if (!astPlayer.getAccount().getMode().shouldReflectInventoryToGui()) {
+            return;
+        }
+        if (countsChanged) {
+            if (!applyActiveEquipmentLoadoutToGui(astPlayer)) {
+                applyEquipSlotInventoryToGui(astPlayer);
+                applyAccessorySlotInventoryToGui(astPlayer);
+            }
+        }
+        renderHotbarInventory(astPlayer);
+        astPlayer.getBukkit().updateInventory();
+    }
+
+    private @NotNull Map<String, Integer> equippedSetCounts(@NotNull UUID accountId) {
+        return equippedSetCountsByAccount.getOrDefault(accountId, Map.of());
+    }
+
+    /**
+     * プレイヤー退出時に装備表示用の一時セット数を破棄します。
+     *
+     * @param accountId 対象アカウント ID
+     */
+    public void clearEquippedSetEffectDisplayCounts(@NotNull UUID accountId) {
+        equippedSetCountsByAccount.remove(accountId);
+        equippedMainHandSlotByAccount.remove(accountId);
     }
 
     /**
@@ -3624,9 +3674,10 @@ public class InventoryService {
             if (slot.isDeleted()) {
                 continue;
             }
-            ItemStack itemStack = itemStackResolver.resolve(
+            ItemStack itemStack = itemStackResolver.resolveForEquippedDisplay(
                 toInventoryEntry(slot),
-                astPlayer.getAccount().getUuid());
+                astPlayer.getAccount().getUuid(),
+                equippedSetCounts(astPlayer.getAccount().getUuid()));
             if (itemStack == null) {
                 continue;
             }
@@ -3846,7 +3897,7 @@ public class InventoryService {
         if (!canPlaceInEquipmentGuiSlot(entry, equipmentType, null)) {
             return null;
         }
-        return itemStackResolver.resolve(entry, accountId);
+        return itemStackResolver.resolveForEquippedDisplay(entry, accountId, equippedSetCounts(accountId));
     }
 
     public void saveEquipSlotSnapshot(@NotNull AstPlayer astPlayer) {
@@ -3887,7 +3938,8 @@ public class InventoryService {
         state.replaceEntries(equipInventory.getInventoryId(), entries);
         equipmentType.applyTo(
             astPlayer.getBukkit().getInventory(),
-            itemStackResolver.resolve(entry, state.getAccountId()));
+            itemStackResolver.resolveForEquippedDisplay(
+                entry, state.getAccountId(), equippedSetCounts(state.getAccountId())));
         astPlayer.getBukkit().updateInventory();
     }
 
@@ -4333,7 +4385,8 @@ public class InventoryService {
         hotbarRenderer.renderHotbarInventory(
             astPlayer,
             bySlot,
-            state.getSelectedHotbarSlot()
+            state.getSelectedHotbarSlot(),
+            equippedSetCounts(state.getAccountId())
         );
     }
 
@@ -5071,9 +5124,10 @@ public class InventoryService {
             if (slot.getEquipmentInstanceId() == null) {
                 continue;
             }
-            ItemStack item = itemStackResolver.resolve(
+            ItemStack item = itemStackResolver.resolveForEquippedDisplay(
                 toInventoryEntry(slot),
-                astPlayer.getAccount().getUuid());
+                astPlayer.getAccount().getUuid(),
+                equippedSetCounts(astPlayer.getAccount().getUuid()));
             if (item == null || item.getType() == Material.AIR) {
                 continue;
             }
@@ -5115,33 +5169,46 @@ public class InventoryService {
         if (model == null) {
             return;
         }
+        UUID accountId = astPlayer.getAccount().getUuid();
+        String metadataJson = findEquipmentMetadata(accountId, instance.getEquipmentInstanceId());
         ItemStack updated = itemStackFactory.create(
             model,
             instance,
             1,
-            findEquipmentMetadata(astPlayer.getAccount().getUuid(), instance.getEquipmentInstanceId())
+            metadataJson
         );
+        ItemStack equippedUpdated = itemStackFactory.create(
+            model,
+            instance,
+            1,
+            metadataJson,
+            equippedSetCounts(accountId)
+        );
+        if (equippedUpdated == null) {
+            equippedUpdated = updated;
+        }
         String instanceId = instance.getEquipmentInstanceId();
         PlayerInventory inventory = astPlayer.getBukkit().getInventory();
+        int heldSlot = inventory.getHeldItemSlot();
         for (int slot = 0; slot < inventory.getSize(); slot++) {
             if (isSameEquipmentInstance(inventory.getItem(slot), instanceId)) {
-                inventory.setItem(slot, updated.clone());
+                inventory.setItem(slot, slot == heldSlot ? equippedUpdated.clone() : updated.clone());
             }
         }
         if (isSameEquipmentInstance(inventory.getHelmet(), instanceId)) {
-            inventory.setHelmet(updated.clone());
+            inventory.setHelmet(equippedUpdated.clone());
         }
         if (isSameEquipmentInstance(inventory.getChestplate(), instanceId)) {
-            inventory.setChestplate(updated.clone());
+            inventory.setChestplate(equippedUpdated.clone());
         }
         if (isSameEquipmentInstance(inventory.getLeggings(), instanceId)) {
-            inventory.setLeggings(updated.clone());
+            inventory.setLeggings(equippedUpdated.clone());
         }
         if (isSameEquipmentInstance(inventory.getBoots(), instanceId)) {
-            inventory.setBoots(updated.clone());
+            inventory.setBoots(equippedUpdated.clone());
         }
         if (isSameEquipmentInstance(inventory.getItemInOffHand(), instanceId)) {
-            inventory.setItemInOffHand(updated.clone());
+            inventory.setItemInOffHand(equippedUpdated.clone());
         }
         astPlayer.getBukkit().updateInventory();
     }
@@ -5251,7 +5318,8 @@ public class InventoryService {
         EquipmentType.fromAccessorySlotIndex(slotIndex)
             .applyTo(
                 astPlayer.getBukkit().getInventory(),
-                itemStackResolver.resolve(entry, state.getAccountId()));
+                itemStackResolver.resolveForEquippedDisplay(
+                    entry, state.getAccountId(), equippedSetCounts(state.getAccountId())));
         astPlayer.getBukkit().updateInventory();
     }
 

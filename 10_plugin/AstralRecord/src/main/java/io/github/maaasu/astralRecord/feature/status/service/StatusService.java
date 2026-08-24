@@ -174,6 +174,8 @@ public class StatusService {
         }
         if (inventoryService != null) {
             inventoryService.applyBagSlotCapacity(player, merged.getMaxValue(StatusType.INVENTORY_SLOTS));
+            inventoryService.updateEquippedSetEffectDisplayCounts(
+                player, collectEquippedSetCounts(player));
         }
         applyMovementSpeed(player, merged);
         return merged;

@@ -333,6 +333,7 @@ public class PlayerService {
                 () -> playerSaveCoordinator.save(astPlayer, PlayerSaveTrigger.LOGOUT)
             );
             inventoryService.clearClickGuard(accountId);
+            inventoryService.clearEquippedSetEffectDisplayCounts(accountId);
         }
         statusService.clearShieldRuntimeState(player.getUniqueId());
         AstPlayerCache.remove(player.getUniqueId());

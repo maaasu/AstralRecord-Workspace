@@ -16,10 +16,12 @@ import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -59,6 +61,40 @@ class ItemStackFactorySetEffectLoreTest extends MockBukkitTestBase {
                 List.of()
         );
         assertSetEffectLore(factory.create(model, instance, 1));
+    }
+
+    /**
+     * 装備中コンテキストでは発動状態記号を付け、未発動効果を灰色で表示する。
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成
+     * 検証契約: 装備中表示だけセット効果の発動状態を可変表示し、未発動行を灰色で表示する。
+     */
+    @Test
+    void equippedEquipmentLoreShowsActiveAndInactiveSetEffects() {
+        ItemService itemService = mock(ItemService.class);
+        when(itemService.findSetEffectById("debug_armor_set")).thenReturn(setEffect());
+        ItemStackFactory factory = new ItemStackFactory(mock(LootService.class), itemService);
+        ItemModel model = equipmentModel();
+        String now = LocalDateTime.now().toString();
+        EquipmentInstance instance = new EquipmentInstance(
+                "debug-armor-instance", "debug-account", model.getId(), 0, 0, 0,
+                100, 100, now, now, List.of(), List.of(), List.of());
+
+        ItemStack item = factory.create(model, instance, 1, null, Map.of("debug_armor_set", 2));
+
+        ItemMeta meta = item.getItemMeta();
+        assertNotNull(meta);
+        List<String> lore = meta.lore().stream()
+                .map(LegacyComponentSerializer.legacySection()::serialize)
+                .toList();
+        assertTrue(lore.stream().anyMatch(line ->
+                line.contains("2セット効果") && line.contains("§a+")));
+        assertTrue(lore.stream().anyMatch(line -> line.contains("4セット効果 -")));
+        String inactiveEffect = lore.stream()
+                .filter(line -> line.contains("+20"))
+                .findFirst()
+                .orElseThrow();
+        assertTrue(inactiveEffect.startsWith("§7"));
     }
 
     private void assertSetEffectLore(ItemStack item) {

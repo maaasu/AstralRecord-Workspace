@@ -44,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -883,6 +884,42 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         assertEquals(Material.GRAY_STAINED_GLASS_PANE, player.getInventory().getItem(4).getType());
         assertEquals(Material.GRAY_STAINED_GLASS_PANE, player.getInventory().getItem(8).getType());
         assertTrue(HotbarRenderer.isHotbarDummy(player.getInventory().getItemInOffHand()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成
+     * 検証契約: 現在保持中の主手だけセット効果の動的表示を解決し、GUI選択中でも非保持HOTBARは静的表示にする。
+     */
+    @Test
+    void hotbarRenderingUsesDynamicSetEffectLoreOnlyForHeldSlot() {
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        InventoryItemStackResolver resolver = mock(InventoryItemStackResolver.class);
+        HotbarRenderer renderer = new HotbarRenderer(resolver);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        UUID inventoryId = UUID.randomUUID();
+        InventoryEntryModel heldEntry = inventoryEntry(
+            accountId, inventoryId, HotbarLayout.DB_SLOT_START, ItemCategory.EQUIPMENT, "held_equipment", 1L);
+        InventoryEntryModel selectedEntry = inventoryEntry(
+            accountId, inventoryId, HotbarLayout.DB_SLOT_START + 1, ItemCategory.EQUIPMENT,
+            "selected_equipment", 1L);
+        Map<String, Integer> equippedSetCounts = Map.of("debug_armor_set", 2);
+        when(resolver.resolveForEquippedDisplay(heldEntry, accountId, equippedSetCounts))
+            .thenReturn(new ItemStack(Material.DIAMOND_SWORD));
+        when(resolver.resolve(selectedEntry, accountId))
+            .thenReturn(new ItemStack(Material.IRON_SWORD));
+
+        renderer.renderHotbarInventory(
+            astPlayer,
+            Map.of(HotbarLayout.DB_SLOT_START, heldEntry, HotbarLayout.DB_SLOT_START + 1, selectedEntry),
+            HotbarLayout.DB_SLOT_START + 1,
+            equippedSetCounts
+        );
+
+        verify(resolver).resolveForEquippedDisplay(heldEntry, accountId, equippedSetCounts);
+        verify(resolver).resolve(selectedEntry, accountId);
+        verify(resolver, never()).resolveForEquippedDisplay(selectedEntry, accountId, equippedSetCounts);
     }
 
     /**

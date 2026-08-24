@@ -22,6 +22,7 @@ import java.text.NumberFormat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -93,10 +94,28 @@ final class InventoryItemStackResolver {
         return resolve(entry, expectedAccountId, false);
     }
 
+    /** 装備欄表示専用に、現在のセット数を Lore へ反映して解決します。 */
+    @Nullable ItemStack resolveForEquippedDisplay(
+        @NotNull InventoryEntryModel entry,
+        @Nullable UUID expectedAccountId,
+        @NotNull Map<String, Integer> equippedSetCounts
+    ) {
+        return resolve(entry, expectedAccountId, false, equippedSetCounts);
+    }
+
     private @Nullable ItemStack resolve(
         @NotNull InventoryEntryModel entry,
         @Nullable UUID expectedAccountId,
         boolean appendBagActionLore
+    ) {
+        return resolve(entry, expectedAccountId, appendBagActionLore, null);
+    }
+
+    private @Nullable ItemStack resolve(
+        @NotNull InventoryEntryModel entry,
+        @Nullable UUID expectedAccountId,
+        boolean appendBagActionLore,
+        @Nullable Map<String, Integer> equippedSetCounts
     ) {
         boolean hasInstanceType = entry.getInstanceType() != null && !entry.getInstanceType().isBlank();
         boolean hasInstanceId = entry.getInstanceId() != null;
@@ -109,7 +128,8 @@ final class InventoryItemStackResolver {
                 return null;
             }
             return switch (instanceType) {
-                case EQUIPMENT -> resolveEquipment(entry, expectedAccountId, appendBagActionLore);
+                case EQUIPMENT -> resolveEquipment(
+                    entry, expectedAccountId, appendBagActionLore, equippedSetCounts);
                 case RUNE -> resolveRune(entry);
             };
         }
@@ -179,7 +199,8 @@ final class InventoryItemStackResolver {
     private @Nullable ItemStack resolveEquipment(
         @NotNull InventoryEntryModel entry,
         @Nullable UUID expectedAccountId,
-        boolean appendBagActionLore
+        boolean appendBagActionLore,
+        @Nullable Map<String, Integer> equippedSetCounts
     ) {
         EquipmentInstance instance = expectedAccountId == null
             ? itemService.findEquipmentInstanceById(entry.getInstanceId().toString())
@@ -195,7 +216,10 @@ final class InventoryItemStackResolver {
         if (itemModel == null) {
             return null;
         }
-        ItemStack itemStack = itemStackFactory.create(itemModel, instance, 1, entry.getMetadataJson());
+        ItemStack itemStack = equippedSetCounts == null
+            ? itemStackFactory.create(itemModel, instance, 1, entry.getMetadataJson())
+            : itemStackFactory.create(
+                itemModel, instance, 1, entry.getMetadataJson(), equippedSetCounts);
         return appendBagActionLore
             ? appendBagActionLore(itemStack, entry, itemModel)
             : itemStack;

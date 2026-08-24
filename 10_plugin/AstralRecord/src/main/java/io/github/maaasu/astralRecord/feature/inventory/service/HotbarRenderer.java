@@ -36,18 +36,32 @@ final class HotbarRenderer {
         @NotNull Map<Integer, InventoryEntryModel> entries,
         @Nullable Integer selectedSlot
     ) {
+        renderHotbarInventory(astPlayer, entries, selectedSlot, Map.of());
+    }
+
+    void renderHotbarInventory(
+        @NotNull AstPlayer astPlayer,
+        @NotNull Map<Integer, InventoryEntryModel> entries,
+        @Nullable Integer selectedSlot,
+        @NotNull Map<String, Integer> equippedSetCounts
+    ) {
         PlayerInventory inventory = astPlayer.getBukkit().getInventory();
         var accountId = astPlayer.getAccount().getUuid();
+        int heldDbSlot = HotbarLayout.toDbSlot(inventory.getHeldItemSlot());
         boolean changed = false;
         for (int dbSlot = HotbarLayout.DB_SLOT_START; dbSlot <= HotbarLayout.DB_SLOT_END; dbSlot++) {
             InventoryEntryModel entry = entries.get(dbSlot);
+            boolean selected = selectedSlot != null && selectedSlot == dbSlot;
+            boolean equipped = heldDbSlot == dbSlot;
             ItemStack itemStack = entry == null
                 ? createHotbarDummyItem(dbSlot)
-                : itemStackResolver.resolve(entry, accountId);
+                : equipped
+                    ? itemStackResolver.resolveForEquippedDisplay(entry, accountId, equippedSetCounts)
+                    : itemStackResolver.resolve(entry, accountId);
             if (itemStack == null || itemStack.getType() == Material.AIR) {
                 itemStack = createHotbarDummyItem(dbSlot);
             }
-            if (selectedSlot != null && selectedSlot == dbSlot) {
+            if (selected) {
                 itemStack = withSelectionGlow(itemStack);
             }
             changed |= setStorageItemIfChanged(inventory, HotbarLayout.toBukkitSlot(dbSlot), itemStack);
@@ -58,7 +72,7 @@ final class HotbarRenderer {
             ? isEmptyOrDummy(currentOffhand)
                 ? createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND)
                 : currentOffhand
-            : itemStackResolver.resolve(offhandEntry, accountId);
+            : itemStackResolver.resolveForEquippedDisplay(offhandEntry, accountId, equippedSetCounts);
         if (offhandStack == null || offhandStack.getType() == Material.AIR) {
             offhandStack = createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND);
         }

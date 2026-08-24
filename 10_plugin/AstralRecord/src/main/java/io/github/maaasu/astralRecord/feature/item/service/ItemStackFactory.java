@@ -329,6 +329,26 @@ public class ItemStackFactory {
             int amount,
             @Nullable String metadataJson
     ) {
+        return create(model, instance, amount, metadataJson, null);
+    }
+
+    /**
+     * 装備インスタンスを生成し、装備中表示時のセット効果状態を Lore に反映します。
+     *
+     * @param model アイテムマスタ定義
+     * @param instance 装備インスタンス
+     * @param amount 個数
+     * @param metadataJson inventory entry の metadata
+     * @param equippedSetCounts 装備中セット数。null は従来の静的表示
+     * @return 生成された ItemStack
+     */
+    public @NotNull ItemStack create(
+            @NotNull ItemModel model,
+            @NotNull EquipmentInstance instance,
+            int amount,
+            @Nullable String metadataJson,
+            @Nullable Map<String, Integer> equippedSetCounts
+    ) {
         var item = new ItemStack(BASE_MATERIAL, 1);
         var meta = item.getItemMeta();
         if (meta == null) {
@@ -352,7 +372,8 @@ public class ItemStackFactory {
         meta.displayName(LEGACY_SERIALIZER.deserialize(
                 visibleName + enhanceSuffix + ColorCodeUtil.RESET));
 
-        var loreStrings = buildLoreForEquipmentInstance(model, instance, hookshotLoaded);
+        var loreStrings = buildLoreForEquipmentInstance(
+                model, instance, hookshotLoaded, equippedSetCounts);
         meta.lore(loreStrings.stream()
                 .map(ColorCodeUtil::translateAlternateColorCodes)
                 .map(LEGACY_SERIALIZER::deserialize)
@@ -830,6 +851,14 @@ public class ItemStackFactory {
      * セット効果を解決できない場合は、内部 ID をプレイヤーへ表示しません。
      */
     private void appendSetEffectLore(@NotNull List<String> lore, @NotNull ItemEquipment equipment) {
+        appendSetEffectLore(lore, equipment, null);
+    }
+
+    private void appendSetEffectLore(
+            @NotNull List<String> lore,
+            @NotNull ItemEquipment equipment,
+            @Nullable Map<String, Integer> equippedSetCounts
+    ) {
         String setId = equipment.getSetId();
         if (setId == null || setId.isBlank()) {
             return;
@@ -854,20 +883,40 @@ public class ItemStackFactory {
         lore.add(ColorCodeUtil.LIGHT_PURPLE + "❖ セット効果: "
                 + ColorCodeUtil.WHITE + displayName);
         for (SetEffectPiece piece : pieces) {
-            lore.add(ColorCodeUtil.GRAY + " ▸ " + ColorCodeUtil.YELLOW
-                    + piece.getCount() + "セット効果");
+            boolean dynamicDisplay = equippedSetCounts != null;
+            int equippedCount = dynamicDisplay
+                    ? equippedSetCounts.getOrDefault(setId.trim(), 0)
+                    : 0;
+            boolean active = !dynamicDisplay || equippedCount >= piece.getCount();
+            if (!dynamicDisplay) {
+                lore.add(ColorCodeUtil.GRAY + " ▸ " + ColorCodeUtil.YELLOW
+                        + piece.getCount() + "セット効果");
+            } else if (active) {
+                lore.add(ColorCodeUtil.GRAY + " ▸ " + ColorCodeUtil.YELLOW
+                        + piece.getCount() + "セット効果 " + ColorCodeUtil.GREEN + "+");
+            } else {
+                lore.add(ColorCodeUtil.GRAY + " ▸ " + piece.getCount() + "セット効果 -");
+            }
             if (piece.getStats().isEmpty()) {
-                lore.add(ColorCodeUtil.DARK_GRAY + "   ─ 効果なし");
+                lore.add((active ? ColorCodeUtil.DARK_GRAY : ColorCodeUtil.GRAY) + "   ─ 効果なし");
                 continue;
             }
             for (SetEffectStat stat : piece.getStats()) {
                 StatusType statusType = resolveStatusTypeOrNull(stat.getStatus());
                 String statColor = statusCategoryColor(stat.getStatus(), statusType);
                 String statusName = resolveStatusDisplayName(stat.getStatus(), statusType, stat.getType());
-                lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
-                        + statColor + statusName
-                        + ColorCodeUtil.DARK_GRAY + " : "
-                        + formatStatValueWithType(stat.getType(), statusType, stat.getValue()));
+                if (!dynamicDisplay || active) {
+                    lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
+                            + statColor + statusName
+                            + ColorCodeUtil.DARK_GRAY + " : "
+                            + formatStatValueWithType(stat.getType(), statusType, stat.getValue()));
+                } else {
+                    lore.add(ColorCodeUtil.GRAY + "   ▹ "
+                            + ColorCodeUtil.toPlainText(statusName, "効果")
+                            + ColorCodeUtil.GRAY + " : "
+                            + ColorCodeUtil.toPlainText(
+                                    formatStatValueWithType(stat.getType(), statusType, stat.getValue()), "-"));
+                }
             }
         }
     }
@@ -1054,6 +1103,15 @@ public class ItemStackFactory {
             @NotNull ItemModel model,
             @NotNull EquipmentInstance instance,
             boolean hookshotLoaded
+    ) {
+        return buildLoreForEquipmentInstance(model, instance, hookshotLoaded, null);
+    }
+
+    private @NotNull List<String> buildLoreForEquipmentInstance(
+            @NotNull ItemModel model,
+            @NotNull EquipmentInstance instance,
+            boolean hookshotLoaded,
+            @Nullable Map<String, Integer> equippedSetCounts
     ) {
         List<String> lore = new ArrayList<>();
 
@@ -1247,7 +1305,7 @@ public class ItemStackFactory {
             if (instance.getDurabilityMax() > 0) {
                 lore.add(formatDurabilityLore(instance));
             }
-            appendSetEffectLore(lore, eq);
+            appendSetEffectLore(lore, eq, equippedSetCounts);
             lore.add("");
         }
 
