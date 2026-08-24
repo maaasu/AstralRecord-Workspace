@@ -9,7 +9,6 @@ public class EquipmentService(
     IItemRepository itemRepository,
     IEquipmentRepository equipmentRepository,
     IEquipmentOrbOperationRepository equipmentOrbOperationRepository,
-    IRuneRepository runeRepository,
     IAccountRepository accountRepository) : IEquipmentService
 {
     public async Task<EquipmentInstanceResponse?> CreateAsync(EquipmentCreateRequest request)
@@ -103,19 +102,8 @@ public class EquipmentService(
 
         var equipmentItem = itemRepository.GetById(instance.ItemId);
 
-        RuneInstanceEntity? runeInstance = null;
-        var runeItemId = request.RuneItemId;
-
-        if (request.RuneInstanceId.HasValue)
-        {
-            runeInstance = await runeRepository.FindInstanceAsync(request.RuneInstanceId.Value);
-            if (runeInstance is null)
-                return null;
-
-            runeItemId = runeInstance.ItemId;
-        }
-
-        var runeItem = string.IsNullOrWhiteSpace(runeItemId) ? null : itemRepository.GetById(runeItemId);
+        var runeItemId = request.RuneItemId.Trim();
+        var runeItem = itemRepository.GetById(runeItemId);
         if (equipmentItem?.Equipment?.Rune is null || runeItem?.Rune is null)
             return null;
 
@@ -137,9 +125,9 @@ public class EquipmentService(
         {
             RuneId = existing?.RuneId ?? Guid.NewGuid(),
             EquipmentInstanceId = instance.EquipmentInstanceId,
-            RuneInstanceId = runeInstance?.RuneInstanceId,
+            RuneInstanceId = null,
             SlotIndex = slotIndex,
-            ItemId = runeItemId ?? string.Empty,
+            ItemId = runeItemId,
             CreatedAt = existing?.CreatedAt ?? now,
             UpdatedAt = now,
             CreatedBy = existing?.CreatedBy ?? request.UpdatedBy,
@@ -158,7 +146,7 @@ public class EquipmentService(
     public async Task<EquipmentInstanceResponse?> DetachRuneAsync(EquipmentRuneDetachRequest request)
     {
         var instance = await equipmentRepository.FindInstanceAsync(request.EquipmentInstanceId);
-        if (instance is null)
+        if (instance is null || instance.AccountId != request.UpdatedBy)
             return null;
 
         var deleted = await equipmentRepository.DeleteRuneBySlotIndexAsync(request.EquipmentInstanceId, request.SlotIndex);

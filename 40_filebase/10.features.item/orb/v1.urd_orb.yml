@@ -1,0 +1,15 @@
+# design:
+#   motif: "北欧神話 / ウルズの過去をほどく泉"
+#   progression: 0
+schemaVersion: 1
+id: urd_orb
+category: orb
+name: "&bウルズのオーブ"
+icon: item_frame
+rarity: uncommon
+lore:
+  - "&7装備からルーンを一つ取り外して返却する。"
+maxStack: 64
+orb:
+  effect:
+    type: RUNE_DETACH

@@ -1,0 +1,15 @@
+# design:
+#   motif: "北欧神話 / ヴェルザンディの未来を紡ぐ糸"
+#   progression: 0
+schemaVersion: 1
+id: verdandi_orb
+category: orb
+name: "&aヴェルザンディのオーブ"
+icon: glow_item_frame
+rarity: uncommon
+lore:
+  - "&7装備を選択し、所持ルーンを一つ装着する。"
+maxStack: 64
+orb:
+  effect:
+    type: RUNE_ATTACH

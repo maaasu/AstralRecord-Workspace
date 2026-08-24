@@ -999,6 +999,46 @@ public class ItemService {
         }
     }
 
+    /** 通常itemのルーンを装備へ装着し、成功時は装備キャッシュを更新します。 */
+    public @Nullable EquipmentInstance attachRune(
+        @NotNull String equipmentInstanceId,
+        @NotNull String runeItemId,
+        @NotNull String updatedBy
+    ) {
+        try {
+            EquipmentInstance updated = itemRepository.attachRune(equipmentInstanceId, runeItemId, updatedBy);
+            if (updated != null) {
+                synchronized (equipmentStateMutex) {
+                    loadedEquipmentInstances.put(normalize(updated.getEquipmentInstanceId()), updated);
+                }
+            }
+            return updated;
+        } catch (Exception exception) {
+            Logger.log(LogId.E_5202, exception, equipmentInstanceId);
+            return null;
+        }
+    }
+
+    /** 指定スロットのルーンを外し、成功時は装備キャッシュを更新します。 */
+    public @Nullable EquipmentInstance detachRune(
+        @NotNull String equipmentInstanceId,
+        int slotIndex,
+        @NotNull String updatedBy
+    ) {
+        try {
+            EquipmentInstance updated = itemRepository.detachRune(equipmentInstanceId, slotIndex, updatedBy);
+            if (updated != null) {
+                synchronized (equipmentStateMutex) {
+                    loadedEquipmentInstances.put(normalize(updated.getEquipmentInstanceId()), updated);
+                }
+            }
+            return updated;
+        } catch (Exception exception) {
+            Logger.log(LogId.E_5202, exception, equipmentInstanceId);
+            return null;
+        }
+    }
+
     /**
      * ルーンインスタンスを API 経由で新規作成します。
      *

@@ -799,9 +799,9 @@ public class InventoryService {
                 case EQUIPMENT -> addInstanceItems(
                     state, targetInventory, model, safeAmount,
                     InventoryInstanceType.EQUIPMENT, source);
-                case RUNE -> addInstanceItems(
-                    state, targetInventory, model, safeAmount,
-                    InventoryInstanceType.RUNE, source);
+                // ルーンはマスタ定義だけで効果が確定するスタックアイテムです。
+                // 旧 RUNE instance entry は読取互換だけを維持し、新規付与は通常itemとして保存します。
+                case RUNE -> addStackedItems(state, targetInventory, model, safeAmount);
                 default -> addStackedItems(state, targetInventory, model, safeAmount);
             };
             if (inventoryType == InventoryType.BAG) {

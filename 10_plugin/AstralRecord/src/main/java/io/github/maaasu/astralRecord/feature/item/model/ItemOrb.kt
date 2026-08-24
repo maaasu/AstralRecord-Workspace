@@ -27,6 +27,8 @@ enum class ItemOrbEffectType {
     REPAIR,
     TRANSCENDENCE,
     ENCHANT,
+    RUNE_ATTACH,
+    RUNE_DETACH,
     ;
 
     companion object {

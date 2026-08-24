@@ -54,5 +54,8 @@ public record OrbGuiHolder(
         INVENTORY_ORB_LIST,
         TRANSCENDENCE_CONFIRM,
         TRANSCENDENCE_MATERIAL_LIST,
+        RUNE_ATTACH,
+        RUNE_DETACH,
+        RUNE_DETACH_SELECT,
     }
 }

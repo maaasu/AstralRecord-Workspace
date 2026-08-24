@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStat
 import io.github.maaasu.astralRecord.feature.item.gui.OrbGuiHolder;
 import io.github.maaasu.astralRecord.feature.item.model.EnchantMaster;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentRune;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationResult;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationResultType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
@@ -81,6 +82,10 @@ public final class OrbService {
     private static final int CONFIRM_GOLD_SLOT = 4;
     private static final int CONFIRM_EXECUTE_SLOT = 15;
     private static final int CONFIRM_BACK_SLOT = 22;
+    private static final int RUNE_TARGET_SLOT = 10;
+    private static final int RUNE_SELECTION_SLOT = 13;
+    private static final int RUNE_RESULT_SLOT = 16;
+    private static final int RUNE_RETURN_SLOT = 25;
     private static final int MATERIAL_LIST_PREVIOUS_PAGE_SLOT = 45;
     private static final int MATERIAL_LIST_PAGE_INFO_SLOT = 46;
     private static final int MATERIAL_LIST_GOLD_SLOT = 47;
@@ -842,6 +847,12 @@ public final class OrbService {
             handleMaterialListClick(event.getRawSlot(), session);
             return;
         }
+        if (session.screen == OrbGuiHolder.Screen.RUNE_ATTACH
+            || session.screen == OrbGuiHolder.Screen.RUNE_DETACH
+            || session.screen == OrbGuiHolder.Screen.RUNE_DETACH_SELECT) {
+            handleRuneGuiClick(event, session);
+            return;
+        }
 
         if (event.getRawSlot() == INFO_SLOT) {
             openInventoryOrbList(session.player, session.astPlayer, session);
@@ -897,6 +908,11 @@ public final class OrbService {
             openTranscendenceConfirmation(session, orbModel, target);
             return;
         }
+        if (orbModel.getOrb().getEffect().getType() == ItemOrbEffectType.RUNE_ATTACH
+            || orbModel.getOrb().getEffect().getType() == ItemOrbEffectType.RUNE_DETACH) {
+            openRuneScreen(session, target, orbModel.getOrb().getEffect().getType());
+            return;
+        }
         executeCandidate(session, orbModel, target);
     }
 
@@ -921,6 +937,117 @@ public final class OrbService {
             && model.getOrb().getEffect() != null
             ? model
             : null;
+    }
+
+    /** ルーン装着・脱着用の3行確認画面を開きます。 */
+    private void openRuneScreen(@NotNull OrbSession session, @NotNull OrbCandidate target,
+        @NotNull ItemOrbEffectType type) {
+        session.selectedTargetId = target.instance.getEquipmentInstanceId();
+        session.selectedRuneItemId = null;
+        session.selectedRuneSlot = -1;
+        session.screen = type == ItemOrbEffectType.RUNE_ATTACH
+            ? OrbGuiHolder.Screen.RUNE_ATTACH : OrbGuiHolder.Screen.RUNE_DETACH;
+        session.inventory = Bukkit.createInventory(
+            new OrbGuiHolder(session.player.getUniqueId(), session.token, session.screen), 27,
+            Component.text(type == ItemOrbEffectType.RUNE_ATTACH ? "ルーン装着" : "ルーン脱着", NamedTextColor.DARK_PURPLE));
+        renderRuneScreen(session, target);
+        GuiOpenSupport.open(session.player, session.inventory, () -> GuiSound.SELECT.play(session.player), () -> { });
+    }
+
+    /** 現在選択中の対象・ルーンから3行の完成プレビューを描画します。 */
+    private void renderRuneScreen(@NotNull OrbSession session, @NotNull OrbCandidate target) {
+        fillInventory(session.inventory);
+        session.inventory.setItem(RUNE_TARGET_SLOT, itemStackFactory.create(target.model, target.instance, 1));
+        ItemStack selector = new ItemStack(Material.CHEST);
+        ItemMeta selectorMeta = selector.getItemMeta();
+        selectorMeta.displayName(Component.text(session.screen == OrbGuiHolder.Screen.RUNE_ATTACH
+            ? "インベントリ内のルーンを選択" : "脱着するルーンを選択", NamedTextColor.YELLOW));
+        selectorMeta.lore(List.of(Component.text(session.screen == OrbGuiHolder.Screen.RUNE_ATTACH
+            ? "下段の所持ルーンをクリック" : "クリックして装着済みルーンを選択", NamedTextColor.GRAY)));
+        selector.setItemMeta(selectorMeta);
+        if (session.selectedRuneItemId != null) {
+            ItemModel rune = itemService.findLoadedById(session.selectedRuneItemId);
+            if (rune != null) selector = itemStackFactory.create(rune, 1);
+        }
+        session.inventory.setItem(RUNE_SELECTION_SLOT, selector);
+        boolean ready = session.selectedRuneItemId != null;
+        ItemStack result = ready ? itemStackFactory.create(target.model, target.instance, 1)
+            : GuiItems.create(Material.BARRIER, Component.text("ルーンを選択してください", NamedTextColor.RED), List.of());
+        appendLore(result, List.of(Component.empty(), Component.text(ready ? "クリックして確定" : "操作できません", ready ? NamedTextColor.GREEN : NamedTextColor.RED)));
+        session.inventory.setItem(RUNE_RESULT_SLOT, result);
+        if (session.screen == OrbGuiHolder.Screen.RUNE_DETACH && ready) {
+            ItemModel rune = itemService.findLoadedById(session.selectedRuneItemId);
+            if (rune != null) {
+                ItemStack returned = itemStackFactory.create(rune, 1);
+                appendLore(returned, List.of(Component.text("取り外し後に返却されます", NamedTextColor.GREEN)));
+                session.inventory.setItem(RUNE_RETURN_SLOT, returned);
+            }
+        }
+    }
+
+    private void handleRuneGuiClick(@NotNull InventoryClickEvent event, @NotNull OrbSession session) {
+        if (event.getClick() != ClickType.LEFT) { GuiSound.DENY.play(session.player); return; }
+        ItemModel orb = resolveCurrentOrb(session);
+        if (orb == null || session.selectedTargetId == null) { closeAndRemove(session); return; }
+        OrbCandidate target = collectCandidates(session, orb).stream().filter(c ->
+            c.instance.getEquipmentInstanceId().equalsIgnoreCase(session.selectedTargetId)).findFirst().orElse(null);
+        if (target == null) { closeAndRemove(session); return; }
+        int topSize = event.getView().getTopInventory().getSize();
+        if (session.screen == OrbGuiHolder.Screen.RUNE_ATTACH && event.getRawSlot() >= topSize) {
+            InventoryEntryModel entry = inventoryService.getOwnedEntryAtBukkitSlot(session.astPlayer, event.getSlot());
+            ItemModel rune = entry == null || entry.getItemId() == null ? null : itemService.findLoadedById(entry.getItemId());
+            if (rune == null || ItemCategory.fromApiValue(rune.getCategory()) != ItemCategory.RUNE) { GuiSound.DENY.play(session.player); return; }
+            session.selectedRuneItemId = rune.getId(); renderRuneScreen(session, target); GuiSound.SELECT.play(session.player); return;
+        }
+        if (session.screen == OrbGuiHolder.Screen.RUNE_DETACH && event.getRawSlot() == RUNE_SELECTION_SLOT) {
+            session.screen = OrbGuiHolder.Screen.RUNE_DETACH_SELECT;
+            session.runePage = 0;
+            openRuneDetachSelection(session, target); return;
+        }
+        if (session.screen == OrbGuiHolder.Screen.RUNE_DETACH_SELECT && event.getRawSlot() < 27) {
+            if (event.getRawSlot() == 18 && session.runePage > 0) { session.runePage--; openRuneDetachSelection(session, target); return; }
+            if (event.getRawSlot() == 26 && (session.runePage + 1) * 18 < target.instance.getRunes().size()) { session.runePage++; openRuneDetachSelection(session, target); return; }
+            int index = session.runePage * 18 + event.getRawSlot();
+            if (index >= target.instance.getRunes().size()) { GuiSound.DENY.play(session.player); return; }
+            EquipmentRune rune = target.instance.getRunes().get(index);
+            session.selectedRuneItemId = rune.getItemId(); session.selectedRuneSlot = rune.getSlotIndex();
+            session.screen = OrbGuiHolder.Screen.RUNE_DETACH; session.inventory = Bukkit.createInventory(
+                new OrbGuiHolder(session.player.getUniqueId(), session.token, session.screen), 27, Component.text("ルーン脱着", NamedTextColor.DARK_PURPLE));
+            renderRuneScreen(session, target); GuiOpenSupport.open(session.player, session.inventory, () -> GuiSound.SELECT.play(session.player), () -> { }); return;
+        }
+        if (event.getRawSlot() != RUNE_RESULT_SLOT || session.selectedRuneItemId == null) { GuiSound.DENY.play(session.player); return; }
+        if (session.screen == OrbGuiHolder.Screen.RUNE_ATTACH) {
+            EquipmentInstance attached = itemService.attachRune(
+                target.instance.getEquipmentInstanceId(), session.selectedRuneItemId, session.accountId.toString());
+            if (attached == null || !inventoryService.consumeNormalItem(session.accountId, session.selectedRuneItemId, 1)) {
+                if (attached != null && !attached.getRunes().isEmpty()) {
+                    int slot = attached.getRunes().getLast().getSlotIndex();
+                    itemService.detachRune(attached.getEquipmentInstanceId(), slot, session.accountId.toString());
+                }
+                GuiSound.DENY.play(session.player); return;
+            }
+        } else {
+            ItemModel rune = itemService.findLoadedById(session.selectedRuneItemId);
+            if (rune == null || itemService.detachRune(target.instance.getEquipmentInstanceId(), session.selectedRuneSlot, session.accountId.toString()) == null
+                || inventoryService.addItemToNormalInventory(session.astPlayer, rune, 1, "rune_detach") != 1) { GuiSound.DENY.play(session.player); return; }
+        }
+        if (statusService != null) statusService.refreshStatus(session.astPlayer);
+        GuiSound.SELECT.play(session.player); closeAndRemove(session);
+    }
+
+    /** 装備済みルーンを3行・18件単位で選択するページを描画します。 */
+    private void openRuneDetachSelection(@NotNull OrbSession session, @NotNull OrbCandidate target) {
+        session.inventory = Bukkit.createInventory(new OrbGuiHolder(session.player.getUniqueId(), session.token,
+            OrbGuiHolder.Screen.RUNE_DETACH_SELECT), 27, Component.text("脱着ルーン選択", NamedTextColor.DARK_PURPLE));
+        fillInventory(session.inventory);
+        int from = session.runePage * 18;
+        for (int index = from; index < Math.min(from + 18, target.instance.getRunes().size()); index++) {
+            ItemModel rune = itemService.findLoadedById(target.instance.getRunes().get(index).getItemId());
+            if (rune != null) session.inventory.setItem(index - from, itemStackFactory.create(rune, 1));
+        }
+        session.inventory.setItem(18, pageButton(false, session.runePage > 0));
+        session.inventory.setItem(26, pageButton(true, from + 18 < target.instance.getRunes().size()));
+        GuiOpenSupport.open(session.player, session.inventory, () -> GuiSound.SELECT.play(session.player), () -> { });
     }
 
     private @Nullable OrbInventoryListSession currentInventoryOrbListSession(
@@ -1127,6 +1254,8 @@ public final class OrbService {
             case REPAIR -> OrbEligibility.canRepair(effect, model, instance);
             case TRANSCENDENCE -> OrbEligibility.resolveTranscendence(effect, model, instance) != null;
             case ENCHANT -> OrbEligibility.canEnchant(effect, model, instance, enchantMaster);
+            case RUNE_ATTACH -> instance.getRuneMaxSlots() > instance.getRunes().size();
+            case RUNE_DETACH -> !instance.getRunes().isEmpty();
         };
     }
 
@@ -1183,6 +1312,8 @@ public final class OrbService {
                 ));
                 lore.add(Component.text("クリックして必要素材を確認", NamedTextColor.YELLOW));
             }
+            case RUNE_ATTACH -> lore.add(Component.text("クリックしてルーンを装着", NamedTextColor.GREEN));
+            case RUNE_DETACH -> lore.add(Component.text("クリックしてルーンを取り外し", NamedTextColor.AQUA));
             case ENCHANT -> {
                 int maxSlots = OrbEligibility.effectiveEnchantMaxSlots(
                     candidate.model.getEquipment(), candidate.instance.getTranscendenceRank());
@@ -2621,6 +2752,9 @@ public final class OrbService {
         private int page;
         private int materialPage;
         private String selectedTargetId;
+        private String selectedRuneItemId;
+        private int selectedRuneSlot = -1;
+        private int runePage;
         private final OrbInteractionLock interactionLock = new OrbInteractionLock();
         private boolean transitioning;
         private boolean uiClosed;

@@ -14,9 +14,7 @@
 | `rune.stats[]`                 | List         | ×  | -     | ルーン装着中に装備へ付与されるステータス補正のリスト。                                                     |
 | `rune.stats[].status`          | String       | ×  | -     | 対象ステータス（`StatusType`）。例: `ATTACK` / `DEFENSE` / `CRITICAL_RATE`。                |
 | `rune.stats[].type`            | String       | ×  | -     | 補正方式（`FLAT` / `SCALAR`）。`FLAT` は加算、`SCALAR` は乗算係数。                              |
-| `rune.stats[].value`           | String       | ×  | -     | 補正値。固定値または範囲（例: `5` / `3~8`）。`SCALAR` の場合は `0.10 = +10%`。                       |
-| `rune.stats[].random[].min`    | String       | ×  | -     | 固定値（例: `-10`） -10%。「`equipment.stats.random: -10~10`」も可能。装備作成時にステータスをランダムに設定する。 |
-| `rune.stats[].random[].max`    | String       | ×  | -     | 固定値（例: `10`）  +10%。「`equipment.stats.random: -10~10`」も可能。装備作成時にステータスをランダムに設定する。 |
+| `rune.stats[].value`           | String       | ×  | -     | 補正値。固定値のみ（例: `5`）。`SCALAR` の場合は `0.10 = +10%`。                                      |
 
 ### rune.targetSlots[]
 以下のいずれかの値を指定します（複数指定可）。
@@ -39,6 +37,10 @@
 
 装備側の `enhance` レベルが `requiredEnhanceLevel` 以上でなければ、このルーンをセットできません。
 `0` または未指定の場合は強化レベルに関係なくセット可能です。
+
+### スタックと固定値
+
+ルーンは `itemId` で管理する通常のスタックアイテムです。個別 instance ID、作成時の乱数ロール、および値範囲は使用しません。`maxStack` は他の通常アイテムと同様に指定し、`rune.stats[].value` は必ず固定値にします。
 
 ## YAML 例
 

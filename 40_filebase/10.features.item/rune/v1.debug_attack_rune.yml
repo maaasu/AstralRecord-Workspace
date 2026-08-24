@@ -1,0 +1,19 @@
+# design:
+#   motif: "開発検証 / 赤い魔力の刻印"
+#   progression: 0
+schemaVersion: 1
+id: debug_attack_rune
+category: rune
+name: "&cデバッグ攻撃のルーン"
+icon: redstone
+rarity: common
+lore:
+  - "&7武器へ固定の攻撃力補正を付与する検証用ルーン。"
+maxStack: 64
+rune:
+  targetSlots:
+    - WEAPON
+  stats:
+    - status: MELEE_ATTACK
+      type: FLAT
+      value: 5

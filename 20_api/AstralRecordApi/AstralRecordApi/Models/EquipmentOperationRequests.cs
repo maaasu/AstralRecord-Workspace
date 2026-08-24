@@ -17,8 +17,7 @@ public class EquipmentDurabilityUpdateRequest
 public class EquipmentRuneAttachRequest
 {
     public Guid EquipmentInstanceId { get; set; }
-    public Guid? RuneInstanceId { get; set; }
-    public string? RuneItemId { get; set; }
+    public required string RuneItemId { get; set; }
     public int? SlotIndex { get; set; }
     public Guid UpdatedBy { get; set; }
 }
@@ -27,4 +26,5 @@ public class EquipmentRuneDetachRequest
 {
     public Guid EquipmentInstanceId { get; set; }
     public int SlotIndex { get; set; }
+    public Guid UpdatedBy { get; set; }
 }
