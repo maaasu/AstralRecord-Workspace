@@ -36,7 +36,7 @@ interactions:
   leftClick:
     - id: message
       params:
-        message: "&bアストラルド商人リュミエ&7: トークン1個で出品枠が1つ増えます。"
+        message: "&bアストラルド商人リュミエ&7: アストラルドで購入できるアイテムを取り揃えています。"
   rightClick:
     - id: gui
       params:
