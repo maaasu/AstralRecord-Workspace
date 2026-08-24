@@ -951,7 +951,7 @@ public final class OrbService {
             new OrbGuiHolder(session.player.getUniqueId(), session.token, session.screen), 27,
             Component.text(type == ItemOrbEffectType.RUNE_ATTACH ? "ルーン装着" : "ルーン脱着", NamedTextColor.DARK_PURPLE));
         renderRuneScreen(session, target);
-        GuiOpenSupport.open(session.player, session.inventory, () -> GuiSound.SELECT.play(session.player), () -> { });
+        transitionInventory(session, session.inventory, session.screen);
     }
 
     /** 現在選択中の対象・ルーンから3行の完成プレビューを描画します。 */
@@ -1047,7 +1047,7 @@ public final class OrbService {
         }
         session.inventory.setItem(18, pageButton(false, session.runePage > 0));
         session.inventory.setItem(26, pageButton(true, from + 18 < target.instance.getRunes().size()));
-        GuiOpenSupport.open(session.player, session.inventory, () -> GuiSound.SELECT.play(session.player), () -> { });
+        transitionInventory(session, session.inventory, OrbGuiHolder.Screen.RUNE_DETACH_SELECT);
     }
 
     private @Nullable OrbInventoryListSession currentInventoryOrbListSession(
