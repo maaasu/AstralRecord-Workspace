@@ -1514,6 +1514,9 @@ public final class AstralRecord extends JavaPlugin {
             skillService,
             passiveSkillService
         );
+        skillGemLearnEventHandler.setSkillLearnedListener(
+            (player, skillId) -> guideService.recordCondition(player, GuideConditionType.SKILL_LEARNED, skillId)
+        );
         eventManager.registerHandler(skillGemLearnEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
             new InventoryEquipmentGuiEventHandler(

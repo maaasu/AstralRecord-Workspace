@@ -37,6 +37,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 /** インベントリ左クリックによるスキルジェムの新規個体習得を処理します。 */
 public final class SkillGemLearnEventHandler extends AbstractEventHandler {
@@ -47,6 +48,7 @@ public final class SkillGemLearnEventHandler extends AbstractEventHandler {
     private final PassiveSkillService passiveSkillService;
     private final ConfirmDialogView confirmDialogView = new ConfirmDialogView();
     private final Map<UUID, UUID> inFlight = new ConcurrentHashMap<>();
+    private BiConsumer<AstPlayer, String> skillLearnedListener = (player, skillId) -> { };
 
     public SkillGemLearnEventHandler(
         @NotNull AstralRecord plugin,
@@ -60,6 +62,15 @@ public final class SkillGemLearnEventHandler extends AbstractEventHandler {
         this.learnedSkillService = learnedSkillService;
         this.skillService = skillService;
         this.passiveSkillService = passiveSkillService;
+    }
+
+    /**
+     * スキルジェムによる習得成功を外部機能へ通知する listener を設定します。
+     *
+     * @param listener 習得したプレイヤーとスキル ID を受け取る通知先
+     */
+    public void setSkillLearnedListener(@NotNull BiConsumer<AstPlayer, String> listener) {
+        this.skillLearnedListener = listener;
     }
 
     /**
@@ -121,6 +132,7 @@ public final class SkillGemLearnEventHandler extends AbstractEventHandler {
                     if (current == null) return;
                     inventoryService.applyInventoriesToGui(current);
                     passiveSkillService.markDirty(current);
+                    skillLearnedListener.accept(current, learned.getSkillId());
                     player.closeInventory();
                     restoreInventory(player);
                     GuiSound.SKILL_LEARN.play(player);

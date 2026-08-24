@@ -4,7 +4,7 @@
 schemaVersion: 1
 id: healing_potion_medium
 category: consumable
-name: "&a回復ポーション（中）"
+name: "&a回復ポーション【中】"
 icon: POTION
 rarity: UNCOMMON
 maxStack: 64
@@ -27,6 +27,6 @@ consumable:
   effects:
     - type: RECOVER
       status: HP
-      value: 60
+      value: 95
       isPercent: false
       rate: 100

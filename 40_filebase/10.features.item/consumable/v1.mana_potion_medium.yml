@@ -4,7 +4,7 @@
 schemaVersion: 1
 id: mana_potion_medium
 category: consumable
-name: "&9マナポーション（中）"
+name: "&9マナポーション【中】"
 icon: POTION
 rarity: RARE
 maxStack: 64
@@ -27,6 +27,6 @@ consumable:
   effects:
     - type: RECOVER
       status: MP
-      value: 40
+      value: 80
       isPercent: false
       rate: 100

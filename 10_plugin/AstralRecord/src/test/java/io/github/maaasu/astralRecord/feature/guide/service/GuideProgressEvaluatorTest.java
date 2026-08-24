@@ -86,6 +86,44 @@ class GuideProgressEvaluatorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
      * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
+     * 検証契約: スキル習得イベントは対象 skill ID が一致した手順だけを達成対象にする。
+     */
+    @Test
+    void evaluate_AcceptsSkillLearnedTarget() {
+        GuideEntry guide = new GuideEntry(
+            3,
+            "skill_learning",
+            "beginner",
+            10,
+            "skill",
+            null,
+            null,
+            List.of(new GuideStep(
+                "learn_astral_edge",
+                "learn",
+                List.of(),
+                new GuideCondition(GuideConditionType.SKILL_LEARNED, "adventurer_astral_edge"),
+                null
+            ))
+        );
+
+        assertEquals(List.of(), ids(GuideProgressEvaluator.evaluate(
+            guide,
+            Set.of(),
+            GuideConditionType.SKILL_LEARNED,
+            "adventurer_smash"
+        )));
+        assertEquals(List.of("learn_astral_edge"), ids(GuideProgressEvaluator.evaluate(
+            guide,
+            Set.of(),
+            GuideConditionType.SKILL_LEARNED,
+            "adventurer_astral_edge"
+        )));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
      * 検証契約: MOB_DEFEATED条件は対象Mob IDに加えて指定レベルまで一致させる。
      */
     @Test

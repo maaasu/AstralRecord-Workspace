@@ -13,6 +13,7 @@ steps:
     text: "&fゲームへログインする"
     details:
       - "&7サーバーへ接続し、プレイヤーデータの読み込みが完了するまで待つ。"
+      - "&7これを見れているということはすでに達成済みですね！おめでとうございます。"
     condition:
       type: PLAYER_LOGGED_IN
   - id: claim_login_bonus
@@ -23,150 +24,165 @@ steps:
     action:
       type: NAVIGATE_NPC
       npcId: login_bonus_clerk
-      description: "&7クリックでログインボーナス案内人の場所を表示し、発光させる。"
+      description: "&dクリックでログインボーナス案内人の場所を表示します。"
     condition:
       type: LOGIN_BONUS_CLAIMED
   - id: receive_welcome_mail
-    text: "&fメールから初ログイン記念の贈り物を受け取る"
+    text: "&fメールから&e初ログイン記念の贈り物&fを受け取る"
     details:
-      - "&7メールGUIを開く。"
-      - "&7初ログイン記念の贈り物をクリックして受け取る。"
+      - "&7メールGUIを開き、&e初ログイン記念の贈り物&7をクリックして受け取る。"
     action:
       type: OPEN_MENU
       menuId: mail
-      description: "&7クリックでメールGUIを開く。"
+      description: "&dクリックでメールGUIを開く。"
     condition:
       type: MAIL_RECEIVED
       targetId: welcome_mail
   - id: open_initial_bundle
-    text: "&f初ログインバンドルを開封する"
+    text: "&e初ログインバンドル&fを開封する"
     details:
-      - "&7メールの報酬から初ログインバンドルを受け取る。"
-      - "&7インベントリで初ログインバンドルをクリックして開封する。"
+      - "&7メールの報酬から&e初ログインバンドル&7を受け取る。"
+      - "&7インベントリで&e初ログインバンドル&7をクリックして開封する。"
     condition:
       type: BUNDLE_OPENED
       targetId: initial_login_bundle
   - id: buy_starter_weapon
-    text: "&f雑貨商で簡素な武器を購入する"
+    text: "&f雑貨商で&e簡素な武器&fを購入する"
     details:
-      - "&7雑貨商に話しかけ、ショップGUIで簡素な武器を選択して購入する。"
+      - "&7雑貨商に話しかけ、ショップGUIで&e簡素な武器&7を選択して購入する。"
     action:
       type: NAVIGATE_NPC
       npcId: general_goods_merchant
-      description: "&7クリックで雑貨商の場所を表示し、発光させる。"
+      description: "&dクリックで雑貨商の場所を表示し、発光させる。"
     condition:
       type: SHOP_PURCHASED
       targetId: nox_weapon
   - id: buy_starter_armor_helmet
-    text: "&f雑貨商でノクスヘルムを購入する"
+    text: "&f雑貨商で&eノクスヘルム&fを購入する"
     details:
-      - "&7雑貨商に話しかけ、ショップGUIでノクスヘルムを選択して購入する。"
+      - "&7雑貨商に話しかけ、ショップGUIで&eノクスヘルム&7を選択して購入する。"
     action:
       type: NAVIGATE_NPC
       npcId: general_goods_merchant
-      description: "&7クリックで雑貨商の場所を表示し、発光させる。"
+      description: "&dクリックで雑貨商の場所を表示し、発光させる。"
     condition:
       type: SHOP_PURCHASED
       targetId: nox_armor_helmet
   - id: buy_starter_armor_chest
-    text: "&f雑貨商でノクスメイルを購入する"
+    text: "&f雑貨商で&eノクスメイル&fを購入する"
     details:
-      - "&7雑貨商に話しかけ、ショップGUIでノクスメイルを選択して購入する。"
+      - "&7雑貨商に話しかけ、ショップGUIで&eノクスメイル&7を選択して購入する。"
     action:
       type: NAVIGATE_NPC
       npcId: general_goods_merchant
-      description: "&7クリックで雑貨商の場所を表示し、発光させる。"
+      description: "&dクリックで雑貨商の場所を表示し、発光させる。"
     condition:
       type: SHOP_PURCHASED
       targetId: nox_armor_chest
   - id: buy_starter_armor_legs
-    text: "&f雑貨商でノクスグリーブを購入する"
+    text: "&f雑貨商で&eノクスグリーブ&fを購入する"
     details:
-      - "&7雑貨商に話しかけ、ショップGUIでノクスグリーブを選択して購入する。"
+      - "&7雑貨商に話しかけ、ショップGUIで&eノクスグリーブ&7を選択して購入する。"
     action:
       type: NAVIGATE_NPC
       npcId: general_goods_merchant
-      description: "&7クリックで雑貨商の場所を表示し、発光させる。"
+      description: "&dクリックで雑貨商の場所を表示し、発光させる。"
     condition:
       type: SHOP_PURCHASED
       targetId: nox_armor_legs
   - id: buy_starter_armor_boots
-    text: "&f雑貨商でノクスブーツを購入する"
+    text: "&f雑貨商で&eノクスブーツ&fを購入する"
     details:
-      - "&7雑貨商に話しかけ、ショップGUIでノクスブーツを選択して購入する。"
+      - "&7雑貨商に話しかけ、ショップGUIで&eノクスブーツ&7を選択して購入する。"
     action:
       type: NAVIGATE_NPC
       npcId: general_goods_merchant
-      description: "&7クリックで雑貨商の場所を表示し、発光させる。"
+      description: "&dクリックで雑貨商の場所を表示し、発光させる。"
     condition:
       type: SHOP_PURCHASED
       targetId: nox_armor_boots
   - id: unlock_free_node
-    text: "&fスキルツリーの無料ルートノードを解放する"
+    text: "&fスキルツリーの&e無料ルートノード&fを解放する"
     details:
-      - "&7スキルツリーへ移動し、無料表示のルートノードをクリックする。"
+      - "&7スキルツリーへ移動し、&e無料表示のルートノード&7をクリックする。"
       - "&7確認画面でノードの解放を確定する。"
     action:
       type: NAVIGATE_NPC
       npcId: skilltree_entry_guide
-      description: "&7クリックでスキルツリー案内人の場所を表示し、発光させる。"
+      description: "&dクリックでスキルツリー案内人の場所を表示し、発光させる。"
     condition:
       type: SKILLTREE_NODE_UNLOCKED
       targetId: "1047"
   - id: buy_astral_edge
-    text: "&fスキルジェム交換でアストラルエッジを入手する"
+    text: "&fスキルジェム交換で&eアストラルエッジ&fを入手する"
     details:
       - "&7星晶錬成師に話しかけ、スキルジェム交換GUIを開く。"
-      - "&7アストラルエッジを選択し、必要な原石を消費して交換する。"
+      - "&7&eアストラルエッジ&7を選択し、必要な&e原石&7を消費して交換する。"
     action:
       type: NAVIGATE_NPC
       npcId: skill_gem_alchemist
-      description: "&7クリックで星晶錬成師の場所を表示し、発光させる。"
+      description: "&dクリックで星晶錬成師の場所を表示し、発光させる。"
     condition:
       type: SHOP_PURCHASED
       targetId: astral_edge_from_raw
+  - id: learn_astral_edge
+    text: "&f&eアストラルエッジ&fを習得する"
+    details:
+      - "&7インベントリで&eアストラルエッジ&7のスキルジェムを左クリックする。"
+      - "&7確認画面で習得を確定する。"
+    condition:
+      type: SKILL_LEARNED
+      targetId: adventurer_astral_edge
   - id: buy_smash
-    text: "&fスキルジェム交換でスマッシュを入手する"
+    text: "&fスキルジェム交換で&eスマッシュ&fを入手する"
     details:
       - "&7星晶錬成師に話しかけ、スキルジェム交換GUIを開く。"
-      - "&7スマッシュを選択し、必要な原石を消費して交換する。"
+      - "&7&eスマッシュ&7を選択し、必要な&e原石&7を消費して交換する。"
     action:
       type: NAVIGATE_NPC
       npcId: skill_gem_alchemist
-      description: "&7クリックで星晶錬成師の場所を表示し、発光させる。"
+      description: "&dクリックで星晶錬成師の場所を表示し、発光させる。"
     condition:
       type: SHOP_PURCHASED
       targetId: smash_from_raw
+  - id: learn_smash
+    text: "&f&eスマッシュ&fを習得する"
+    details:
+      - "&7インベントリで&eスマッシュ&7のスキルジェムを左クリックする。"
+      - "&7確認画面で習得を確定する。"
+    condition:
+      type: SKILL_LEARNED
+      targetId: adventurer_smash
   - id: enhance_skill
     text: "&fスキルを合成して強化する"
     details:
-      - "&7所持しているスキルジェムを使い、強化対象のスキルを選択する。"
+      - "&7所持している&eスキルジェム&7を使い、強化対象のスキルを選択する。"
       - "&7必要な素材を確認し、合成を確定する。"
     condition:
       type: SKILL_ENHANCED
   - id: cast_astral_edge
-    text: "&fアストラルエッジを発動する"
+    text: "&f&eアストラルエッジ&fを発動する"
     details:
-      - "&7アクションリングを開き、アストラルエッジを選択する。"
+      - "&7アクションリングを&e右クリック&7で開き、&eアストラルエッジ&7を選択する。"
       - "&7選択したスキルの発動操作を行う。"
     condition:
       type: SKILL_CAST
       targetId: adventurer_astral_edge
   - id: defeat_grassboar
-    text: "&fグラスボアを討伐する"
+    text: "&f&eグラスボア&fを討伐する"
     details:
-      - "&7アストラルエッジなどのスキルを使い、グラスボアのHPを0にする。"
+      - "&7&eアストラルエッジ&7などのスキルを使い、&eグラスボア&7のHPを0にする。"
     condition:
       type: MOB_DEFEATED
       targetId: midgard_grassboar
   - id: buy_hoe
-    text: "&f雑貨商でノクスクワを購入する"
+    text: "&f雑貨商で&eノクスクワ&fを購入する"
     details:
-      - "&7雑貨商に話しかけ、ショップGUIでノクスクワを選択して購入する。"
+      - "&7雑貨商に話しかけ、ショップGUIで&eノクスクワ&7を選択して購入する。"
     action:
       type: NAVIGATE_NPC
       npcId: general_goods_merchant
-      description: "&7クリックで雑貨商の場所を表示し、発光させる。"
+      description: "&dクリックで雑貨商の場所を表示し、発光させる。"
     condition:
       type: SHOP_PURCHASED
       targetId: nox_hoe

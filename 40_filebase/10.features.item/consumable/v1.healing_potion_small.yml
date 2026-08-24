@@ -5,7 +5,7 @@
 schemaVersion: 1
 id: healing_potion_small
 category: consumable
-name: "&a回復ポーション（小）"
+name: "&a回復ポーション【小】"
 icon: POTION
 rarity: COMMON
 maxStack: 64
@@ -28,6 +28,6 @@ consumable:
   effects:
     - type: RECOVER
       status: HP
-      value: 15
+      value: 35
       isPercent: false
       rate: 100

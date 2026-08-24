@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemSkillGem;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillGemLearnConfirmHolder;
 import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
@@ -241,6 +242,78 @@ class SkillGemLearnEventHandlerTest extends MockBukkitTestBase {
 
         verify(inventoryService).applyInventoriesToGui(astPlayer);
         verify(player).updateInventory();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 2. スキルジェム習得
+     * 検証契約: 習得API成功時に、習得したAstPlayerとskill IDを外部listenerへ通知する。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void successfulLearningNotifiesSkillLearnedListener() {
+        AstralRecord plugin = mock(AstralRecord.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        LearnedSkillService learnedSkillService = mock(LearnedSkillService.class);
+        PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
+        SkillGemLearnEventHandler handler = new SkillGemLearnEventHandler(
+            plugin,
+            inventoryService,
+            learnedSkillService,
+            new SkillService(mock(SkillRepository.class), new SkillRegistry(), null),
+            passiveSkillService
+        );
+        var player = mock(org.bukkit.entity.Player.class);
+        var astPlayer = mock(AstPlayer.class);
+        var account = mock(AccountModel.class);
+        var event = mock(InventoryClickEvent.class);
+        var view = mock(InventoryView.class);
+        var topInventory = mock(Inventory.class);
+        var server = mock(Server.class);
+        var scheduler = mock(BukkitScheduler.class);
+        UUID accountId = UUID.randomUUID();
+        UUID entryId = UUID.randomUUID();
+        AtomicReference<Consumer<LearnedSkillInstance>> success = new AtomicReference<>();
+        AtomicReference<AstPlayer> notifiedPlayer = new AtomicReference<>();
+        AtomicReference<String> notifiedSkillId = new AtomicReference<>();
+
+        handler.setSkillLearnedListener((notified, skillId) -> {
+            notifiedPlayer.set(notified);
+            notifiedSkillId.set(skillId);
+        });
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getName()).thenReturn("tester");
+        when(event.getWhoClicked()).thenReturn(player);
+        when(event.getView()).thenReturn(view);
+        when(event.getRawSlot()).thenReturn(ConfirmDialogView.CONFIRM_SLOT);
+        when(view.getTopInventory()).thenReturn(topInventory);
+        when(topInventory.getSize()).thenReturn(27);
+        when(topInventory.getHolder()).thenReturn(new SkillGemLearnConfirmHolder(entryId, "adventurer_astral_edge"));
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        doAnswer(invocation -> {
+            ((Runnable) invocation.getArgument(1)).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
+        when(learnedSkillService.learnAsync(
+            eq(accountId), eq("adventurer_astral_edge"), eq(entryId), eq(accountId), any(Consumer.class), any(Consumer.class)
+        )).thenAnswer(invocation -> {
+            success.set(invocation.getArgument(4));
+            return true;
+        });
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            handler.onConfirmClick(event);
+            success.get().accept(new LearnedSkillInstance(
+                UUID.randomUUID(), accountId, "adventurer_astral_edge", 1, java.util.List.of(), 0, null, null
+            ));
+        }
+
+        assertEquals(astPlayer, notifiedPlayer.get());
+        assertEquals("adventurer_astral_edge", notifiedSkillId.get());
     }
 
     @SuppressWarnings("unchecked")
