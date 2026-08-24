@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.discord.service;
 
+import github.scarsz.configuralize.DynamicConfig;
 import github.scarsz.discordsrv.DiscordSRV;
 import github.scarsz.discordsrv.api.ListenerPriority;
 import github.scarsz.discordsrv.api.Subscribe;
@@ -18,6 +19,9 @@ import org.bukkit.event.Cancellable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 
 /**
@@ -27,10 +31,16 @@ import java.util.Objects;
 public final class DiscordSrvChatBridge implements GlobalChatBridge {
     private static final String SERVER_STARTUP_MESSAGE_KEY = "DiscordChatChannelServerStartupMessage";
     private static final String SERVER_SHUTDOWN_MESSAGE_KEY = "DiscordChatChannelServerShutdownMessage";
+    private static final List<String> PLAYER_LIFECYCLE_MESSAGE_ENABLED_KEYS = List.of(
+        "MinecraftPlayerJoinMessage.Enabled",
+        "MinecraftPlayerFirstJoinMessage.Enabled",
+        "MinecraftPlayerLeaveMessage.Enabled"
+    );
 
     private static boolean lifecycleMessagesSuppressed;
     private static String originalServerStartupMessage;
     private static String originalServerShutdownMessage;
+    private static final Map<String, Boolean> originalPlayerLifecycleMessageEnabled = new LinkedHashMap<>();
 
     private final AstralRecord plugin;
     private final PlayerMessageService playerMessageService;
@@ -87,7 +97,7 @@ public final class DiscordSrvChatBridge implements GlobalChatBridge {
     }
 
     /**
-     * DiscordSRVの起動・停止通知をwhitelist状態に合わせて抑制します。
+     * DiscordSRVの起動・停止・プレイヤー参加・初回参加・退出通知をwhitelist状態に合わせて抑制します。
      * DiscordSRV 1.30.5 の messages.yml は実サーバーの設定ファイルを書き換えず、
      * DynamicConfig のランタイム値だけを変更します。
      *
@@ -99,32 +109,59 @@ public final class DiscordSrvChatBridge implements GlobalChatBridge {
         }
 
         try {
-            if (suppressed) {
-                if (!lifecycleMessagesSuppressed) {
-                    originalServerStartupMessage = DiscordSRV.config().getString(SERVER_STARTUP_MESSAGE_KEY);
-                    originalServerShutdownMessage = DiscordSRV.config().getString(SERVER_SHUTDOWN_MESSAGE_KEY);
-                    lifecycleMessagesSuppressed = true;
-                }
-                DiscordSRV.config().setRuntimeValue(SERVER_STARTUP_MESSAGE_KEY, "");
-                DiscordSRV.config().setRuntimeValue(SERVER_SHUTDOWN_MESSAGE_KEY, "");
-                return;
-            }
-
-            if (lifecycleMessagesSuppressed) {
-                DiscordSRV.config().setRuntimeValue(
-                    SERVER_STARTUP_MESSAGE_KEY,
-                    Objects.requireNonNullElse(originalServerStartupMessage, "")
-                );
-                DiscordSRV.config().setRuntimeValue(
-                    SERVER_SHUTDOWN_MESSAGE_KEY,
-                    Objects.requireNonNullElse(originalServerShutdownMessage, "")
-                );
-                lifecycleMessagesSuppressed = false;
-                originalServerStartupMessage = null;
-                originalServerShutdownMessage = null;
-            }
+            setServerLifecycleMessagesSuppressed(DiscordSRV.config(), suppressed);
         } catch (LinkageError | RuntimeException exception) {
             Logger.log(LogId.W_7110, exception, exception.getClass().getSimpleName());
+        }
+    }
+
+    /**
+     * DiscordSRVの自動通知設定をランタイム値へ反映します。
+     *
+     * @param config DiscordSRVの動的設定
+     * @param suppressed 抑制する場合は {@code true}
+     */
+    static synchronized void setServerLifecycleMessagesSuppressed(
+        @NotNull DynamicConfig config,
+        boolean suppressed
+    ) {
+        if (suppressed) {
+            if (!lifecycleMessagesSuppressed) {
+                originalServerStartupMessage = config.getString(SERVER_STARTUP_MESSAGE_KEY);
+                originalServerShutdownMessage = config.getString(SERVER_SHUTDOWN_MESSAGE_KEY);
+                originalPlayerLifecycleMessageEnabled.clear();
+                for (String key : PLAYER_LIFECYCLE_MESSAGE_ENABLED_KEYS) {
+                    originalPlayerLifecycleMessageEnabled.put(
+                        key,
+                        config.getOptionalBoolean(key).orElse(true)
+                    );
+                }
+                lifecycleMessagesSuppressed = true;
+            }
+            config.setRuntimeValue(SERVER_STARTUP_MESSAGE_KEY, "");
+            config.setRuntimeValue(SERVER_SHUTDOWN_MESSAGE_KEY, "");
+            for (String key : PLAYER_LIFECYCLE_MESSAGE_ENABLED_KEYS) {
+                config.setRuntimeValue(key, false);
+            }
+            return;
+        }
+
+        if (lifecycleMessagesSuppressed) {
+            config.setRuntimeValue(
+                SERVER_STARTUP_MESSAGE_KEY,
+                Objects.requireNonNullElse(originalServerStartupMessage, "")
+            );
+            config.setRuntimeValue(
+                SERVER_SHUTDOWN_MESSAGE_KEY,
+                Objects.requireNonNullElse(originalServerShutdownMessage, "")
+            );
+            for (Map.Entry<String, Boolean> entry : originalPlayerLifecycleMessageEnabled.entrySet()) {
+                config.setRuntimeValue(entry.getKey(), entry.getValue());
+            }
+            lifecycleMessagesSuppressed = false;
+            originalServerStartupMessage = null;
+            originalServerShutdownMessage = null;
+            originalPlayerLifecycleMessageEnabled.clear();
         }
     }
 

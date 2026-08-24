@@ -1108,7 +1108,7 @@ public enum LogId {
     // endregion
 
     // region /feature/whitelist 7110-7119
-    /** DiscordSRVの起動・停止通知のランタイム抑制に失敗しました: %s */
+    /** DiscordSRVの自動通知のランタイム抑制に失敗しました: %s */
     W_7110(7110),
     // endregion
 
