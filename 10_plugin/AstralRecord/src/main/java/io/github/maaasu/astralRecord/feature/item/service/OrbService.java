@@ -49,6 +49,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
@@ -1309,14 +1310,15 @@ public final class OrbService {
     }
 
     /**
-     * 0から1の割合を末尾ゼロなしの百分率数値へ変換します。
+     * 0から1の割合を小数第一位で四捨五入した整数百分率へ変換します。
      *
      * @param rate 割合
-     * @return パーセント記号を含まない数値文字列
+     * @return パーセント記号を含まない整数の数値文字列
      */
-    private @NotNull String formatPercent(double rate) {
-        return BigDecimal.valueOf(Math.clamp(rate, 0.0D, 1.0D) * 100.0D)
-            .stripTrailingZeros()
+    static @NotNull String formatPercent(double rate) {
+        return BigDecimal.valueOf(Math.clamp(rate, 0.0D, 1.0D))
+            .movePointRight(2)
+            .setScale(0, RoundingMode.HALF_UP)
             .toPlainString();
     }
 
