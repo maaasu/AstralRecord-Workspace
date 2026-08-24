@@ -8,7 +8,7 @@ description: "&7属性魔術師。"
 icon: BLAZE_ROD
 role: DEALER
 maxLevel: 100
-unlockLevel: 1
+unlockLevel: 3
 unlockClassLevel:
   - class: adventurer
     level: 10

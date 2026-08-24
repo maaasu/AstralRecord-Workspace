@@ -8,7 +8,7 @@ description: "&7機動遠距離射手。"
 icon: BOW
 role: DEALER
 maxLevel: 100
-unlockLevel: 1
+unlockLevel: 3
 unlockClassLevel:
   - class: adventurer
     level: 10
