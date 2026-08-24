@@ -6,12 +6,11 @@ id: adventurer_smash
 type: SKILL
 implementationId: adventurer_smash
 name: "&bスマッシュ"
-description: "&7敵を上空から地面へ叩き落とし、周囲の敵を吹き飛ばす近接技。"
+description: "&7敵を叩き伏せる重撃。"
 icon: IRON_AXE
 lore:
   - "&7前方の敵1体へ近接攻撃力{skill.effectiveDamageRatio:percent}%の落下打撃。"
-  - "&7着地点の半径{skill.impactRadius}m以内にいる別の敵へ主対象の20%ダメージとノックバック。"
-  - "&8消費EN: 16 / クールダウン: 7.5秒"
+  - "&7着地点の半径{skill.impactRadius}m以内にいる別の敵へ主対象の{skill.secondaryRatio:percent}%ダメージとノックバック。"
 cooldownTicks: 150
 resourceType: ENERGY
 resourceCost: 16

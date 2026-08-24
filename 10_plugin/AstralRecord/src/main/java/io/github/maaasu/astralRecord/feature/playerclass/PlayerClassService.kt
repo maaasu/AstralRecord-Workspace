@@ -343,7 +343,7 @@ class PlayerClassService @JvmOverloads constructor(
             blockedReasons += PlayerMsgResource.getMessage(PlayerMsgId.P_5851.id)
         }
         if (model.unlockLevel > 1 && astPlayer.account.level < model.unlockLevel) {
-            blockedReasons += "&e\u30d7\u30ec\u30a4\u30e4\u30fcLv.${model.unlockLevel}&7 \u304c\u5fc5\u8981\u3067\u3059"
+            blockedReasons += "&e\u30d7\u30ec\u30a4\u30e4\u30fc &7Lv.${model.unlockLevel} \u304c\u5fc5\u8981\u3067\u3059"
         }
 
         for (requirement in model.unlockClassLevel) {
@@ -360,7 +360,7 @@ class PlayerClassService @JvmOverloads constructor(
     private fun buildUnlockConditionLines(astPlayer: AstPlayer, model: ClassModel): List<String> {
         val lines = mutableListOf<String>()
         if (model.unlockLevel > 1) {
-            lines += "&e\u30d7\u30ec\u30a4\u30e4\u30fcLv.${model.unlockLevel}"
+            lines += "&e\u30d7\u30ec\u30a4\u30e4\u30fc &7Lv.${model.unlockLevel}"
         }
         for (requirement in model.unlockClassLevel) {
             val enoughLevel = astPlayer.getClassProgress(requirement.classId).level >= requirement.level

@@ -36,7 +36,6 @@ Enemy（通常エネミー）の固有フィールド定義。
 | `ai.combat.style`               | String       | ○  | -         | 戦闘スタイル（後述 `CombatStyle`）                            |
 | `ai.combat.preferredRange`      | Double       | ×  | 1.0       | 戦闘時の理想距離（ブロック単位）。`MELEE` は接近、`RANGED`/`MAGIC` は距離確保 |
 | `ai.combat.attackIntervalTicks` | Long         | ×  | 20        | 通常攻撃の間隔（tick）。20 tick = 1 秒                         |
-| `ai.combat.skills`              | List<String> | ×  | emptyList | 使用するスキルのID一覧（※参照値。例: `ref: skill:fire_bolt`）        |
 
 #### CombatStyle
 - `MELEE` : 近接戦闘。ターゲットに接近して攻撃
@@ -112,8 +111,6 @@ ai:
     style: MELEE
     preferredRange: 2.2
     attackIntervalTicks: 24
-    skills:
-      - ref: skill:mob_goblin_slash
 
 drops:
   exp: 16
@@ -180,9 +177,6 @@ ai:
     style: MAGIC
     preferredRange: 12
     attackIntervalTicks: 40
-    skills:
-      - ref: skill:dark_bolt
-      - ref: skill:shadow_curse
 
 drops:
   exp: 60

@@ -826,8 +826,10 @@ public class ItemStackFactory {
             lore.add(ColorCodeUtil.YELLOW + " ▸ ステータス補正");
             for (ItemEquipmentStat stat : equipment.getStats()) {
                 StatusType statusType = resolveStatusTypeOrNull(stat.getStatus());
+                String statColor = statusCategoryColor(stat.getStatus(), statusType);
                 String displayName = resolveStatusDisplayName(stat.getStatus(), statusType, stat.getType());
                 appendStatLore(lore,
+                        statColor,
                         displayName,
                         formatStatValueWithType(stat.getType(), statusType, stat.displayValue()),
                         formatRandomRangeLabel(stat, stat.getMin(), stat.getMax()),
@@ -902,10 +904,11 @@ public class ItemStackFactory {
             }
             for (SetEffectStat stat : piece.getStats()) {
                 StatusType statusType = resolveStatusTypeOrNull(stat.getStatus());
+                String statColor = statusCategoryColor(stat.getStatus(), statusType);
                 String statusName = resolveStatusDisplayName(stat.getStatus(), statusType, stat.getType());
                 if (!dynamicDisplay || active) {
                     lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
-                            + ColorCodeUtil.WHITE + statusName
+                            + statColor + statusName
                             + ColorCodeUtil.DARK_GRAY + " : "
                             + formatStatValueWithType(stat.getType(), statusType, stat.getValue()));
                 } else {
@@ -1205,6 +1208,7 @@ public class ItemStackFactory {
                     double totalMax = baseMax + enhAdd[1];
 
                     StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
+                    String statColor = statusCategoryColor(roll.getStatus(), statusType);
                     String displayValue = totalMin == totalMax
                             ? formatStatValueWithType(rollType, statusType, totalMin)
                             : formatStatRange(rollType, statusType, totalMin, totalMax);
@@ -1217,7 +1221,7 @@ public class ItemStackFactory {
                             : null;
 
                     String displayName = resolveStatusDisplayName(roll.getStatus(), statusType, rollType);
-                    appendStatLore(lore, displayName, displayValue, randomRangeLabel, enhanceLabel);
+                    appendStatLore(lore, statColor, displayName, displayValue, randomRangeLabel, enhanceLabel);
                 }
 
                 // enhance の statIncrease に含まれるが statRolls にないステータス（SCALAR など追加分）を別表示
@@ -1234,12 +1238,13 @@ public class ItemStackFactory {
 
                     double[] enhAdd = entry.getValue();
                     StatusType statusType = resolveStatusTypeOrNull(status);
+                    String statColor = statusCategoryColor(status, statusType);
                     String displayValue = enhAdd[0] == enhAdd[1]
                             ? formatStatValueWithType(type, statusType, enhAdd[0])
                             : formatStatRange(type, statusType, enhAdd[0], enhAdd[1]);
                     String displayName = resolveStatusDisplayName(status, statusType, type);
                     lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
-                            + ColorCodeUtil.WHITE + displayName
+                            + statColor + displayName
                             + ColorCodeUtil.DARK_GRAY + " : "
                             + displayValue
                             + ColorCodeUtil.YELLOW + " [強化]");
@@ -1260,9 +1265,10 @@ public class ItemStackFactory {
                         ItemEquipmentStatType enchantType = "SCALAR".equals(enchant.getType())
                                 ? ItemEquipmentStatType.SCALAR : ItemEquipmentStatType.FLAT;
                         StatusType statusType = resolveStatusTypeOrNull(enchant.getStatus());
+                        String statColor = statusCategoryColor(enchant.getStatus(), statusType);
                         String displayName = resolveStatusDisplayName(enchant.getStatus(), statusType, enchantType);
                         lore.add(ColorCodeUtil.DARK_GRAY + " [" + (enchant.getSlotIndex() + 1) + "] "
-                                + ColorCodeUtil.WHITE + displayName
+                                + statColor + displayName
                                 + ColorCodeUtil.DARK_GRAY + " : "
                                 + formatStatValueWithType(enchantType, statusType, enchant.getValue()));
                     }
@@ -1335,9 +1341,10 @@ public class ItemStackFactory {
                 ItemEquipmentStatType rollType = "SCALAR".equals(roll.getType())
                         ? ItemEquipmentStatType.SCALAR : ItemEquipmentStatType.FLAT;
                 StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
+                String statColor = statusCategoryColor(roll.getStatus(), statusType);
                 String displayName = resolveStatusDisplayName(roll.getStatus(), statusType, rollType);
                 lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
-                        + ColorCodeUtil.WHITE + displayName
+                        + statColor + displayName
                         + ColorCodeUtil.DARK_GRAY + " : "
                         + formatStatValueWithType(rollType, statusType, roll.getValue()));
             }
@@ -1521,11 +1528,12 @@ public class ItemStackFactory {
     /** ステータスの主値と補足情報を、読みやすい複数行の Lore として追加します。 */
     private void appendStatLore(
             @NotNull List<String> lore,
+            @NotNull String statColor,
             @NotNull String displayName,
             @NotNull String displayValue,
             @Nullable String randomRange,
             @Nullable String enhanceValue) {
-        lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ " + ColorCodeUtil.WHITE + displayName
+        lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ " + statColor + displayName
                 + ColorCodeUtil.DARK_GRAY + " : " + displayValue
                 + (enhanceValue == null ? "" : ColorCodeUtil.YELLOW + " [" + enhanceValue
                         + ColorCodeUtil.RESET + ColorCodeUtil.YELLOW + "]"));
@@ -1537,6 +1545,17 @@ public class ItemStackFactory {
     /** 指定値が min~max の乱数範囲表現か判定します。 */
     private boolean isRandomRange(@Nullable String value) {
         return value != null && (value.contains("~") || value.contains("～"));
+    }
+
+    /** StatusTypeカテゴリに応じた既存のステータス名称カラーを返します。 */
+    private @NotNull String statusCategoryColor(@NotNull String rawStatus, @Nullable StatusType type) {
+        if (type == null) {
+            if ("MINING_SPEED".equals(normalizeStatusKey(rawStatus))) {
+                return ColorCodeUtil.YELLOW;
+            }
+            return ColorCodeUtil.AQUA;
+        }
+        return type.legacyColor();
     }
 
     /** 生値または装備インスタンスの値を、乱数範囲の片側として整形します。 */

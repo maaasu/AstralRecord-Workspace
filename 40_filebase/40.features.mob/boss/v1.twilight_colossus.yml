@@ -52,9 +52,6 @@ ai:
     style: MELEE
     preferredRange: 4
     attackIntervalTicks: 40
-    skills:
-      - ref: skill:boss_twilight_gate_slam
-      - ref: skill:boss_twilight_rune_bolt
 
 drops:
   exp: 2500

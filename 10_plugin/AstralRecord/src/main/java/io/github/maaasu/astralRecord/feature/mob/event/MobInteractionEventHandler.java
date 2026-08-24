@@ -9,12 +9,14 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionActionConfi
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.quest.event.QuestGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.shop.event.ShopGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillForgetGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -42,6 +44,7 @@ public final class MobInteractionEventHandler
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
 
     private final MobService mobService;
+    private final StatusService statusService;
     private final ShopGuiEventHandler shopGuiEventHandler;
     private final MenuView menuView;
     private final PlayerClassService playerClassService;
@@ -56,6 +59,7 @@ public final class MobInteractionEventHandler
      * ハンドラを生成します。
      *
      * @param mobService          Mob 管理サービス
+     * @param statusService       プレイヤーの現在リソース回復サービス
      * @param shopGuiEventHandler ショップ GUI ハンドラ
      * @param menuView            メニュー GUI ビュー
      * @param playerClassService  職業表示用サービス
@@ -68,6 +72,7 @@ public final class MobInteractionEventHandler
      */
     public MobInteractionEventHandler(
             @NotNull MobService mobService,
+            @NotNull StatusService statusService,
             @NotNull ShopGuiEventHandler shopGuiEventHandler,
             @NotNull MenuView menuView,
             @NotNull PlayerClassService playerClassService,
@@ -78,6 +83,7 @@ public final class MobInteractionEventHandler
             @NotNull SkillForgetGuiEventHandler skillForgetGuiEventHandler,
             @NotNull MarketGuiEventHandler marketGuiEventHandler) {
         this.mobService = mobService;
+        this.statusService = statusService;
         this.shopGuiEventHandler = shopGuiEventHandler;
         this.menuView = menuView;
         this.playerClassService = playerClassService;
@@ -166,8 +172,25 @@ public final class MobInteractionEventHandler
             case "message" -> sendMessage(player, action);
             case "gui" -> openGui(player, instance, action);
             case "command" -> executeCommand(player, action);
+            case "restore_status" -> restoreStatus(player);
             default -> GuiSound.DENY.play(player);
         }
+    }
+
+    /**
+     * NPC のアクションとしてプレイヤーの現在リソースを全回復します。
+     *
+     * @param player 対象プレイヤー
+     */
+    private void restoreStatus(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        statusService.restoreAll(astPlayer);
+        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5114);
+        GuiSound.SUCCESS.play(player);
     }
 
     private void sendMessage(@NotNull Player player, @NotNull MobInteractionActionConfig action) {

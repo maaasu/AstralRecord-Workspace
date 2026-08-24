@@ -12,8 +12,6 @@ import java.util.Map;
 final class BossMechanicProfile {
 
     static final String TWILIGHT_COLOSSUS = "twilight_colossus";
-    static final String DARK_DRAGON = "dark_dragon";
-    static final String FENRIR_WORLDBREAKER = "fenrir_worldbreaker";
 
     private static final Map<String, BossMechanicProfile> PROFILES = Map.of(
         TWILIGHT_COLOSSUS,
@@ -24,24 +22,6 @@ final class BossMechanicProfile {
                 List.of(Mechanic.COLOSSUS_COLLAPSE, Mechanic.COLOSSUS_QUAKE, Mechanic.COLOSSUS_RUNE_LANES)
             ),
             List.of(105L, 90L, 75L)
-        ),
-        DARK_DRAGON,
-        new BossMechanicProfile(
-            List.of(
-                List.of(Mechanic.DRAGON_SHADOW_BREATH, Mechanic.DRAGON_METEOR),
-                List.of(Mechanic.DRAGON_WING_GUST, Mechanic.DRAGON_METEOR, Mechanic.DRAGON_SHADOW_BREATH),
-                List.of(Mechanic.DRAGON_WORLD_BREAK, Mechanic.DRAGON_METEOR, Mechanic.DRAGON_SHADOW_BREATH)
-            ),
-            List.of(110L, 90L, 70L)
-        ),
-        FENRIR_WORLDBREAKER,
-        new BossMechanicProfile(
-            List.of(
-                List.of(Mechanic.FENRIR_CHARGE, Mechanic.FENRIR_RIFT_HOWL),
-                List.of(Mechanic.FENRIR_FALLING_RUIN, Mechanic.FENRIR_CHARGE, Mechanic.FENRIR_RIFT_HOWL),
-                List.of(Mechanic.FENRIR_LAST_HUNT, Mechanic.FENRIR_FALLING_RUIN, Mechanic.FENRIR_CHARGE)
-            ),
-            List.of(100L, 82L, 64L)
         )
     );
 
@@ -86,14 +66,6 @@ final class BossMechanicProfile {
     enum Mechanic {
         COLOSSUS_QUAKE,
         COLOSSUS_RUNE_LANES,
-        COLOSSUS_COLLAPSE,
-        DRAGON_SHADOW_BREATH,
-        DRAGON_METEOR,
-        DRAGON_WING_GUST,
-        DRAGON_WORLD_BREAK,
-        FENRIR_CHARGE,
-        FENRIR_RIFT_HOWL,
-        FENRIR_FALLING_RUIN,
-        FENRIR_LAST_HUNT
+        COLOSSUS_COLLAPSE
     }
 }

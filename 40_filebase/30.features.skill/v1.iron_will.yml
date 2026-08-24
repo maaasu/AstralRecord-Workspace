@@ -3,8 +3,10 @@ id: iron_will
 type: SKILL
 implementationId: iron_will
 name: "&7アイアンウィル"
-description: "&7防御力と魔法防御力を高め、被ダメージを抑えるパッシブスキル。"
+description: "&7鋼の意志で防御力を高めるパッシブスキル。"
 icon: IRON_INGOT
+lore:
+  - "&7防御力を{skill.defenseFlat}、魔法防御力を{skill.magicDefenseFlat}高める。"
 cooldownTicks: 0
 manaCost: 0
 castTimeTicks: 0

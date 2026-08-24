@@ -150,6 +150,8 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("boss_mechanic_smoke", Particle.LARGE_SMOKE, 1, 0.02D, 0.02D, 0.02D, 0.0D);
     public static final SharedParticleDefinition BOSS_MECHANIC_PORTAL =
         new SharedParticleDefinition("boss_mechanic_portal", Particle.PORTAL, 1, 0.02D, 0.02D, 0.02D, 0.0D);
+    public static final SharedParticleDefinition BOSS_MECHANIC_EXPLOSION =
+        new SharedParticleDefinition("boss_mechanic_explosion", Particle.EXPLOSION, 2, 0.18D, 0.18D, 0.18D, 0.0D);
     public static final SharedParticleDefinition DUNGEON_ENTRY_FRAME_DUST =
         new SharedParticleDefinition(
             "dungeon_entry_frame_dust",

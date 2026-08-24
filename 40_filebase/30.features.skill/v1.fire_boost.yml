@@ -3,8 +3,12 @@ id: fire_boost
 type: SKILL
 implementationId: fire_boost
 name: "&cファイアブースト"
-description: "&7火属性ダメージを上昇させるパッシブスキル。"
+description: "&7炎の力をまとい、攻撃と耐火性を高める自己強化スキル。"
 icon: BLAZE_POWDER
+lore:
+  - "&7発動時、自身に筋力効果を{skill.strengthDurationTicks:seconds}秒付与する。"
+  - "&7自身に火炎耐性を{skill.fireResistanceDurationTicks:seconds}秒付与する。"
+  - "&7炎と溶岩の粒子を伴って効果を示す。"
 cooldownTicks: 0
 manaCost: 0
 castTimeTicks: 0

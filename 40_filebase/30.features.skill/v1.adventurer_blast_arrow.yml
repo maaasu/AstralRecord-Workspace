@@ -6,12 +6,11 @@ id: adventurer_blast_arrow
 type: SKILL
 implementationId: adventurer_blast_arrow
 name: "&fブラストアロー"
-description: "&7着弾地点へ衝撃を炸裂させ、密集した敵をまとめて射抜く範囲射撃。"
+description: "&7着弾の衝撃で敵を巻き込む範囲射撃。"
 icon: SPECTRAL_ARROW
 lore:
   - "&7射程{skill.range}m、半径{skill.radius}mへ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。最大{skill.maxTargets}体。"
   - "&7敵または地形への着弾時だけ衝撃波が発生する。"
-  - "&8消費EN: 12 / クールダウン: 5.0秒"
 cooldownTicks: 100
 resourceType: ENERGY
 resourceCost: 12

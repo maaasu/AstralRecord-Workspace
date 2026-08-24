@@ -181,11 +181,6 @@ public final class BossMechanicService {
             return;
         }
         runtime.summonsTriggered = true;
-        if (BossMechanicProfile.DARK_DRAGON.equals(boss.template().id())) {
-            spawnAdds(entity.getLocation(), "midgard_twilight_gloom_wisp", 2, runtime);
-        } else if (BossMechanicProfile.FENRIR_WORLDBREAKER.equals(boss.template().id())) {
-            spawnAdds(entity.getLocation(), "midgard_worldroot_reaver", 2, runtime);
-        }
     }
 
     private void spawnAdds(
@@ -228,28 +223,7 @@ public final class BossMechanicService {
         Vector direction = horizontalDirection(bossLocation, targetLocation, entity.getFacing().getDirection());
         long telegraphTicks = telegraphTicks(mechanic);
 
-        if (mechanic == BossMechanicProfile.Mechanic.FENRIR_FALLING_RUIN && !targets.isEmpty()) {
-            targets.stream().limit(3).forEach(target -> addPending(
-                boss,
-                mechanic,
-                target.getLocation(),
-                direction,
-                telegraphTicks
-            ));
-            return true;
-        }
-        if (mechanic == BossMechanicProfile.Mechanic.FENRIR_LAST_HUNT) {
-            addPending(boss, mechanic, bossLocation, direction.clone().rotateAroundY(Math.toRadians(-24.0D)), telegraphTicks);
-            addPending(boss, mechanic, bossLocation, direction, telegraphTicks + 10L);
-            addPending(boss, mechanic, bossLocation, direction.clone().rotateAroundY(Math.toRadians(24.0D)), telegraphTicks + 20L);
-            return true;
-        }
-
-        Location anchor = switch (mechanic) {
-            case DRAGON_METEOR, DRAGON_WORLD_BREAK, FENRIR_FALLING_RUIN -> targetLocation;
-            default -> bossLocation;
-        };
-        addPending(boss, mechanic, anchor, direction, telegraphTicks);
+        addPending(boss, mechanic, bossLocation, direction, telegraphTicks);
         return true;
     }
 
@@ -276,12 +250,7 @@ public final class BossMechanicService {
     }
 
     private long telegraphTicks(@NotNull BossMechanicProfile.Mechanic mechanic) {
-        return switch (mechanic) {
-            case COLOSSUS_QUAKE, DRAGON_WING_GUST, FENRIR_RIFT_HOWL -> 25L;
-            case COLOSSUS_RUNE_LANES, DRAGON_SHADOW_BREATH, FENRIR_CHARGE, FENRIR_LAST_HUNT -> 30L;
-            case COLOSSUS_COLLAPSE, DRAGON_METEOR, FENRIR_FALLING_RUIN -> 35L;
-            case DRAGON_WORLD_BREAK -> 45L;
-        };
+        return switch (mechanic) { case COLOSSUS_QUAKE -> 25L; case COLOSSUS_RUNE_LANES -> 30L; case COLOSSUS_COLLAPSE -> 35L; };
     }
 
     /**
@@ -301,29 +270,6 @@ public final class BossMechanicService {
                 renderCircle(pending.anchor(), 2.8D, SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE, 20);
                 renderCircle(pending.anchor(), 7.0D, SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE, 36);
             }
-            case DRAGON_SHADOW_BREATH -> renderCone(
-                pending.anchor(), pending.direction(), 10.0D, SharedParticleDefinitions.BOSS_MECHANIC_FLAME
-            );
-            case DRAGON_METEOR -> renderCircle(
-                pending.anchor(), 3.0D, SharedParticleDefinitions.BOSS_MECHANIC_FLAME, 28
-            );
-            case DRAGON_WING_GUST -> renderCircle(
-                pending.anchor(), 7.0D, SharedParticleDefinitions.BOSS_MECHANIC_CLOUD, 36
-            );
-            case DRAGON_WORLD_BREAK -> {
-                renderCircle(pending.anchor(), 3.0D, SharedParticleDefinitions.BOSS_MECHANIC_FLAME, 24);
-                renderCircle(pending.anchor(), 6.0D, SharedParticleDefinitions.BOSS_MECHANIC_SMOKE, 36);
-            }
-            case FENRIR_CHARGE, FENRIR_LAST_HUNT -> renderLane(
-                pending.anchor(), pending.direction(), 12.0D, 1.5D, SharedParticleDefinitions.BOSS_MECHANIC_CRIT
-            );
-            case FENRIR_RIFT_HOWL -> {
-                renderCircle(pending.anchor(), 3.0D, SharedParticleDefinitions.BOSS_MECHANIC_PORTAL, 20);
-                renderCircle(pending.anchor(), 8.0D, SharedParticleDefinitions.BOSS_MECHANIC_PORTAL, 40);
-            }
-            case FENRIR_FALLING_RUIN -> renderCircle(
-                pending.anchor(), 2.6D, SharedParticleDefinitions.BOSS_MECHANIC_SPARK, 26
-            );
         }
     }
 
@@ -352,36 +298,6 @@ public final class BossMechanicService {
             case COLOSSUS_COLLAPSE -> {
                 damageCircle(boss, pending.anchor(), 2.8D, 7.0D, AttackType.MAGIC, DamageElement.NONE, 0.95D, 0.7D);
                 breakRing(boss, pending.anchor(), 3.0D, 6.0D);
-            }
-            case DRAGON_SHADOW_BREATH -> damageCone(
-                boss, pending.anchor(), pending.direction(), 10.0D, 52.0D,
-                AttackType.MAGIC, DamageElement.FIRE, 0.82D
-            );
-            case DRAGON_METEOR -> {
-                damageCircle(boss, pending.anchor(), 0.0D, 3.0D, AttackType.MAGIC, DamageElement.FIRE, 1.05D, 0.65D);
-                breakCrater(boss, pending.anchor(), 2.8D);
-            }
-            case DRAGON_WING_GUST -> damageCircle(
-                boss, pending.anchor(), 0.0D, 7.0D, AttackType.MELEE, DamageElement.NONE, 0.58D, 1.1D
-            );
-            case DRAGON_WORLD_BREAK -> {
-                damageCircle(boss, pending.anchor(), 0.0D, 6.0D, AttackType.MAGIC, DamageElement.FIRE, 1.22D, 1.0D);
-                breakCrater(boss, pending.anchor(), 4.0D);
-            }
-            case FENRIR_CHARGE -> {
-                damageLine(boss, pending.anchor(), pending.direction(), 12.0D, 1.5D, AttackType.MELEE, DamageElement.NONE, 0.92D, 0.85D);
-                breakFissure(boss, pending.anchor(), pending.direction(), 12.0D);
-            }
-            case FENRIR_RIFT_HOWL -> damageCircle(
-                boss, pending.anchor(), 3.0D, 8.0D, AttackType.MAGIC, DamageElement.NONE, 0.68D, 0.9D
-            );
-            case FENRIR_FALLING_RUIN -> {
-                damageCircle(boss, pending.anchor(), 0.0D, 2.6D, AttackType.MAGIC, DamageElement.LIGHTNING, 0.88D, 0.6D);
-                breakCrater(boss, pending.anchor(), 2.4D);
-            }
-            case FENRIR_LAST_HUNT -> {
-                damageLine(boss, pending.anchor(), pending.direction(), 12.0D, 1.35D, AttackType.MELEE, DamageElement.NONE, 0.72D, 0.8D);
-                breakFissure(boss, pending.anchor(), pending.direction(), 12.0D);
             }
         }
         world.playSound(pending.anchor(), "entity.generic.explode", 1.0F, 0.85F);
@@ -745,6 +661,19 @@ public final class BossMechanicService {
      */
     private void renderImpact(@NotNull PendingMechanic pending) {
         renderTelegraph(pending);
+        switch (pending.mechanic()) {
+            case COLOSSUS_QUAKE -> renderCircle(
+                pending.anchor(), 4.5D, SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION, 28
+            );
+            case COLOSSUS_RUNE_LANES -> renderCross(
+                pending.anchor(), pending.direction(), COLOSSUS_RUNE_LANES_MAX_LENGTH,
+                COLOSSUS_RUNE_LANES_HALF_WIDTH, SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION
+            );
+            case COLOSSUS_COLLAPSE -> {
+                renderCircle(pending.anchor(), 2.8D, SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION, 20);
+                renderCircle(pending.anchor(), 7.0D, SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION, 36);
+            }
+        }
     }
 
     /**
