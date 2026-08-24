@@ -125,11 +125,11 @@ public class ItemRepositoryEnhanceMasterTests
 
         var expectations = new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["traveler_sword"] = "WEAPON",
-            ["traveler_melee_chest"] = "CHEST",
-            ["traveler_melee_boots"] = "FEET",
-            ["traveler_hunter_cap"] = "HEAD",
-            ["traveler_melee_legs"] = "LEGS",
+            ["nox_sword"] = "WEAPON",
+            ["nox_armor_chest"] = "CHEST",
+            ["nox_armor_boots"] = "FEET",
+            ["nox_armor_helmet"] = "HEAD",
+            ["nox_armor_legs"] = "LEGS",
         };
 
         foreach (var expectation in expectations)
