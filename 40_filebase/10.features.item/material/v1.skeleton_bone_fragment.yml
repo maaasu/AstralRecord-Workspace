@@ -1,0 +1,16 @@
+# design:
+#   motif: "北欧神話 / 骸骨の狩人"
+#   progression: 2
+schemaVersion: 1
+id: skeleton_bone_fragment
+category: material
+name: "&fスケルトンの骨片"
+icon: BONE
+rarity: COMMON
+maxStack: 64
+saleValue: 3
+lore:
+  - "&7スケルトンの身体からこぼれ落ちた骨の欠片。"
+  - "&7加工素材として扱いやすく、店でも買い取られる。"
+unTradeable: false
+unSellable: false

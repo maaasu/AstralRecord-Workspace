@@ -1,0 +1,16 @@
+# design:
+#   motif: "工芸 / 弓弦"
+#   progression: 2
+schemaVersion: 1
+id: skeleton_bowstring
+category: material
+name: "&fスケルトンの弓弦"
+icon: STRING
+rarity: COMMON
+maxStack: 64
+saleValue: 5
+lore:
+  - "&7骸の狩人が使っていた乾いた弓弦。"
+  - "&7弓や軽装備の補修に使える丈夫な繊維。"
+unTradeable: false
+unSellable: false

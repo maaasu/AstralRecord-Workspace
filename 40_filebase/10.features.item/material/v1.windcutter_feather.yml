@@ -1,0 +1,16 @@
+# design:
+#   motif: "気象 / 風切り羽根"
+#   progression: 2
+schemaVersion: 1
+id: windcutter_feather
+category: material
+name: "&e風切り羽根"
+icon: FEATHER
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 10
+lore:
+  - "&7矢羽根に使われる、風をよく受け流す羽根。"
+  - "&7軽く扱いやすいため、射手用の加工素材になる。"
+unTradeable: false
+unSellable: false

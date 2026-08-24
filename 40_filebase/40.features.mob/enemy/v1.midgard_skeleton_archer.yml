@@ -1,0 +1,83 @@
+# design:
+#   motif: "北欧神話 / 骸骨の狩人"
+#   progression: 2
+schemaVersion: 1
+id: midgard_skeleton_archer
+type: MOB
+category: ENEMY
+name: "&fスケルトン・アーチャー"
+level: 2
+entityType: SKELETON
+icon: SKELETON_SKULL
+lore:
+  - "&7乾いた弦音とともに矢を放つ骸の狩人。"
+  - "&7距離を取りながら、近づく者を正確に狙い撃つ。"
+tags:
+  - midgard
+  - grassland
+  - undead
+  - skeleton
+  - ranged
+
+equipment:
+  mainHand: BOW
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 85
+  - status: ATTACK
+    value: 12
+  - status: RANGED_ATTACK
+    value: 6
+  - status: DEXTERITY
+    value: 5
+  - status: DEFENSE
+    value: 9
+  - status: ACCURACY
+    value: 93
+  - status: EVASION
+    value: 2
+  - status: MOVEMENT_SPEED
+    value: 98
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.9
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 24
+    deaggroRange: 30
+    leashRange: 32
+  combat:
+    style: RANGED
+    preferredRange: 12
+    attackIntervalTicks: 36
+
+drops:
+  exp: 16
+  money:
+    min: 2
+    max: 6
+  items:
+    - itemId:
+        ref: item:skeleton_bone_fragment
+      rate: 75.0
+      amount: 1~2
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:skeleton_bowstring
+      rate: 35.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:windcutter_feather
+      rate: 12.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_1
