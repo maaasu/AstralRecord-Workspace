@@ -1,0 +1,142 @@
+# design:
+#   motif: "開発検証 / 武器スキーマ"
+#   progression: 0
+schemaVersion: 1
+id: debug_sword
+category: equipment
+name: "&dデバッグ・スキーマソード"
+icon: IRON_SWORD
+rarity: MYTHIC
+customModelData: 990001
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7武器マスタのスキーマ検証用。"
+  - "&7装備・強化・エンチャント・ルーン・状態変化を確認する。"
+unTradeable: true
+unSellable: true
+equipment:
+  slot: WEAPON
+  handType: ONE
+  tag: SWORD
+  requiredLevel: 5
+  requiredClasses:
+    - classId: swordsman
+      level: 3
+    - classId: adventurer
+      level: 1
+  setId: debug_weapon_set
+  stats:
+    - status: MELEE_ATTACK
+      type: FLAT
+      value:
+        min: 30~35
+        max: 40~45
+    - status: MELEE_ATTACK
+      type: SCALAR
+      value: 1.10
+    - status: STRENGTH
+      type: FLAT
+      value: 5
+    - status: CRITICAL_RATE
+      type: FLAT
+      value: 5~10
+  durability:
+    max: 240
+    consume: 2
+  enchant:
+    maxSlots: 3
+  enhance:
+    maxLevel: 5
+    levels:
+      - level: 1
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 2
+        durabilityBonus: 10
+        successRate: 1.0
+        failAction: NONE
+      - level: 2
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 2~4
+          - status: CRITICAL_RATE
+            type: SCALAR
+            value: 0.05
+        durabilityBonus: 15
+        successRate: 0.85
+        failAction: SET_LEVEL
+        failTargetLevel: 0
+      - level: 3
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 3
+        durabilityBonus: 20
+        successRate: 0.70
+        failAction: DECREASE_ONE
+      - level: 4
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 3~5
+          - status: STRENGTH
+            type: FLAT
+            value: 1
+        durabilityBonus: 25
+        successRate: 0.55
+        failAction: NONE
+      - level: 5
+        statIncrease:
+          - status: MELEE_ATTACK
+            type: FLAT
+            value: 5
+          - status: CRITICAL_RATE
+            type: FLAT
+            value: 1
+        durabilityBonus: 30
+        successRate: 0.40
+        failAction: SET_LEVEL
+        failTargetLevel: 2
+  rune:
+    maxSlots:
+      random: 2~4
+    allowedRuneIds:
+      - rune_attack_small
+      - rune_fire_blade
+  transcendence:
+    - name: "&a進化"
+      rank: 1
+      requiredEnhanceLevel: 5
+      requiredMaterials:
+        - itemId: box_cave_stone
+          amount: 10
+        - itemId: glowstone_shard
+          amount: 5
+      requiredCurrency: 5000
+      overrides:
+        name: "&a進化したデバッグ・スキーマソード"
+        enhance:
+          maxLevel: 7
+        enchant:
+          maxSlots: 4
+        rune:
+          maxSlots: 5
+    - name: "&b覚醒"
+      rank: 2
+      requiredEnhanceLevel: 7
+      requiredMaterials:
+        - itemId: nox_shadowgrass_fiber
+          amount: 8
+      requiredCurrency: 10000
+      overrides:
+        name: "&b覚醒したデバッグ・スキーマソード"
+        enhance:
+          maxLevel: 9
+        enchant:
+          maxSlots: 5
+        rune:
+          maxSlots:
+            random: 4~6

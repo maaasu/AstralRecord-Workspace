@@ -18,6 +18,20 @@ equipment:
   slot: SUBWEAPON
   requiredLevel: 0
   stats:
+    - status: ATTACK
+      type: FLAT
+      value: 2
     - status: DEFENSE
       type: FLAT
       value: 2
+  enhance:
+    maxLevel: 1
+    levels:
+      - level: 1
+        statIncrease:
+          - status: ATTACK
+            type: FLAT
+            value: 1
+          - status: DEFENSE
+            type: FLAT
+            value: 1
