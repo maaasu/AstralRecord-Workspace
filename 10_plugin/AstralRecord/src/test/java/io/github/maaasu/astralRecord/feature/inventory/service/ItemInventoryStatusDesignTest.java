@@ -429,7 +429,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
      * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
-     * 検証契約: equipment/runeをinstance IDと対応itemId付きで統合BAGへ格納する。
+     * 検証契約: equipmentはinstance ID付き、runeはinstanceを持たない通常stack entryとして統合BAGへ格納する。
      */
     @Test
     void itemGetFlowStoresEquipmentAndRuneTogetherInBag() {
@@ -439,7 +439,6 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         PlayerInventoryState state = harness.registerState(astPlayer);
         InventoryModel bagInventory = harness.addInventory(state, InventoryType.BAG);
         UUID equipmentInstanceId = UUID.randomUUID();
-        UUID runeInstanceId = UUID.randomUUID();
         when(harness.itemService.createEquipmentInstance("bronze_sword", astPlayer.getAccount().getUuid().toString(), "command", astPlayer.getAccount().getUuid().toString()))
             .thenReturn(DesignTestFixtures.equipmentInstance(
                 equipmentInstanceId,
@@ -449,13 +448,6 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
                 "1",
                 "1"
             ));
-        when(harness.itemService.createRuneInstance("minor_rune", astPlayer.getAccount().getUuid().toString(), "command", astPlayer.getAccount().getUuid().toString()))
-            .thenReturn(DesignTestFixtures.runeInstance(
-                runeInstanceId,
-                astPlayer.getAccount().getUuid(),
-                "minor_rune"
-            ));
-
         int grantedEquipment = harness.inventoryService.addItemToNormalInventory(
             astPlayer,
             DesignTestFixtures.item("bronze_sword", ItemCategory.EQUIPMENT, 1),
@@ -478,8 +470,9 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         assertEquals(equipmentInstanceId, equipmentEntry.getInstanceId());
         assertEquals(1, grantedRune);
         assertEquals("minor_rune", runeEntry.getItemId());
-        assertEquals(InventoryInstanceType.RUNE.getCode(), runeEntry.getInstanceType());
-        assertEquals(runeInstanceId, runeEntry.getInstanceId());
+        assertEquals(1L, runeEntry.getQuantity());
+        assertNull(runeEntry.getInstanceType());
+        assertNull(runeEntry.getInstanceId());
     }
 
     /**
