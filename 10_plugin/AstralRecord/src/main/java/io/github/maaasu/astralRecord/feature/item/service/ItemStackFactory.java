@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscenden
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemRarity;
+import io.github.maaasu.astralRecord.feature.item.model.ItemRune;
 import io.github.maaasu.astralRecord.feature.item.model.ItemSigil;
 import io.github.maaasu.astralRecord.feature.item.model.ItemSigilModifier;
 import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
@@ -731,9 +732,12 @@ public class ItemStackFactory {
             lore.add("");
         }
 
-        // equipment ステータス（APIデータをそのまま表示）
+        // equipment / rune のカテゴリ固有情報
         if (model.getEquipment() != null) {
             appendEquipmentLore(lore, model.getEquipment());
+        }
+        if (model.getRune() != null) {
+            appendRuneLore(lore, model.getRune());
         }
         if (model.getConsumable() != null) {
             appendConsumableLore(lore, model.getConsumable());
@@ -845,6 +849,78 @@ public class ItemStackFactory {
 
         appendSetEffectLore(lore, equipment);
         lore.add("");
+    }
+
+    /**
+     * ルーンの装着条件と固定ステータスを Lore に追加します。
+     * ステータスの表示名・補正方式・数値書式は装備と共通化し、内部スロット ID は表示しません。
+     *
+     * @param lore 追加先の Lore 行
+     * @param rune ルーン定義
+     */
+    private void appendRuneLore(@NotNull List<String> lore, @NotNull ItemRune rune) {
+        lore.add(ColorCodeUtil.GOLD + "❖ ルーン効果");
+        lore.add(ColorCodeUtil.GRAY + " ▸ 対象スロット: " + ColorCodeUtil.WHITE
+                + formatRuneTargetSlots(rune));
+        if (rune.getRequiredEnhanceLevel() > 0) {
+            lore.add(ColorCodeUtil.GRAY + " ▸ 必要強化: " + ColorCodeUtil.YELLOW
+                    + "+" + rune.getRequiredEnhanceLevel());
+        }
+
+        if (!rune.getStats().isEmpty()) {
+            lore.add("");
+            lore.add(ColorCodeUtil.YELLOW + " ▸ ステータス補正");
+            for (ItemEquipmentStat stat : rune.getStats()) {
+                StatusType statusType = resolveStatusTypeOrNull(stat.getStatus());
+                String statColor = statusCategoryColor(stat.getStatus(), statusType);
+                String displayName = resolveStatusDisplayName(stat.getStatus(), statusType, stat.getType());
+                appendStatLore(
+                        lore,
+                        statColor,
+                        displayName,
+                        formatStatValueWithType(stat.getType(), statusType, stat.displayValue()),
+                        null,
+                        null);
+            }
+        }
+        lore.add("");
+    }
+
+    /**
+     * ルーンの対象スロットをプレイヤー向け名称へ変換します。
+     *
+     * @param rune ルーン定義
+     * @return 対象スロットの表示文字列
+     */
+    private @NotNull String formatRuneTargetSlots(@NotNull ItemRune rune) {
+        if (rune.getTargetSlots().isEmpty()) {
+            return "不明な装備枠";
+        }
+        if (rune.getTargetSlots().stream()
+                .anyMatch(slot -> slot != null && "ANY".equalsIgnoreCase(slot.trim()))) {
+            return "全スロット";
+        }
+        return rune.getTargetSlots().stream()
+                .map(this::toRuneTargetSlotLabel)
+                .distinct()
+                .collect(java.util.stream.Collectors.joining(" / "));
+    }
+
+    /**
+     * ルーンの対象スロット1件をプレイヤー向け名称へ変換します。
+     *
+     * @param rawSlot filebase/API由来の対象スロット値
+     * @return 対象スロットの表示名
+     */
+    private @NotNull String toRuneTargetSlotLabel(@Nullable String rawSlot) {
+        if (rawSlot == null || rawSlot.isBlank()) {
+            return "不明な装備枠";
+        }
+        if ("ANY".equalsIgnoreCase(rawSlot.trim())) {
+            return "全スロット";
+        }
+        ItemEquipmentSlot slot = ItemEquipmentSlot.fromApiValue(rawSlot);
+        return slot == ItemEquipmentSlot.UNKNOWN ? "不明な装備枠" : slot.getDisplayName();
     }
 
     /**
@@ -1337,8 +1413,22 @@ public class ItemStackFactory {
             lore.add("");
         }
 
-        if (!instance.getStatRolls().isEmpty()) {
+        ItemRune rune = model.getRune();
+        if (rune != null) {
             lore.add(ColorCodeUtil.GOLD + "❖ ルーン効果");
+            lore.add(ColorCodeUtil.GRAY + " ▸ 対象スロット: " + ColorCodeUtil.WHITE
+                    + formatRuneTargetSlots(rune));
+            if (rune.getRequiredEnhanceLevel() > 0) {
+                lore.add(ColorCodeUtil.GRAY + " ▸ 必要強化: " + ColorCodeUtil.YELLOW
+                        + "+" + rune.getRequiredEnhanceLevel());
+            }
+        }
+
+        if (!instance.getStatRolls().isEmpty()) {
+            if (rune == null) {
+                lore.add(ColorCodeUtil.GOLD + "❖ ルーン効果");
+            }
+            lore.add("");
             lore.add(ColorCodeUtil.YELLOW + " ▸ ステータス補正");
             for (var roll : instance.getStatRolls()) {
                 ItemEquipmentStatType rollType = "SCALAR".equals(roll.getType())
@@ -1346,11 +1436,16 @@ public class ItemStackFactory {
                 StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
                 String statColor = statusCategoryColor(roll.getStatus(), statusType);
                 String displayName = resolveStatusDisplayName(roll.getStatus(), statusType, rollType);
-                lore.add(ColorCodeUtil.DARK_GRAY + "   ▹ "
-                        + statColor + displayName
-                        + ColorCodeUtil.DARK_GRAY + " : "
-                        + formatStatValueWithType(rollType, statusType, roll.getValue()));
+                appendStatLore(
+                        lore,
+                        statColor,
+                        displayName,
+                        formatStatValueWithType(rollType, statusType, roll.getValue()),
+                        null,
+                        null);
             }
+            lore.add("");
+        } else if (rune != null) {
             lore.add("");
         }
 
@@ -1650,12 +1745,12 @@ public class ItemStackFactory {
 
         String normalized = normalizeStatusKey(rawStatus);
         if (normalized.isEmpty()) {
-            return rawStatus;
+            return "未登録のステータス";
         }
         if ("MINING_SPEED".equals(normalized)) {
             return "採集速度";
         }
-        return normalized;
+        return "未登録のステータス";
     }
 
     /**
