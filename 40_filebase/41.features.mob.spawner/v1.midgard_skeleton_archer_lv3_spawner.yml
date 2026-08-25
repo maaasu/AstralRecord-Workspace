@@ -1,0 +1,25 @@
+# design:
+#   motif: "北欧神話 / 骸骨の狩人"
+#   progression: 2
+schemaVersion: 1
+id: midgard_skeleton_archer_lv3_spawner
+type: MOB_SPAWNER
+region: "ミズガルズ草原"
+radiusMeters: 18
+
+spawnMobs:
+  - mobId: mob:midgard_skeleton_archer
+    level: 3
+    weight: 100
+
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+
+itemMaterial: SPAWNER
+spawnIntervalTicks: 100
+
+spawnLimit:
+  maxAlivePerSpawner: 8
+  maxNearbyMobs: 18
+  spawnPerPlayer: 1

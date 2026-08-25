@@ -19,6 +19,28 @@ tags:
   - skeleton
   - ranged
 
+levels:
+  - level: 2
+  - level: 3
+    name: "&fスケルトン・アーチャー Lv.3"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 240
+      - status: ATTACK
+        value: 48
+      - status: RANGED_ATTACK
+        value: 24
+      - status: DEXTERITY
+        value: 5
+      - status: DEFENSE
+        value: 42
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 98
+
 equipment:
   mainHand: BOW
 
