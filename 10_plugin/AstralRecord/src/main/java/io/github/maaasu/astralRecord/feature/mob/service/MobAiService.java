@@ -236,6 +236,7 @@ public class MobAiService {
                 mobService.updateViewers();
                 mobService.destroyEnemiesOutsideViewDistance();
             }
+            mobService.syncPlayerSkinPacketViews();
         } catch (RuntimeException ex) {
             Logger.error(LogId.E_5702, ex);
         }

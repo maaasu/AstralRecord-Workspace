@@ -589,6 +589,22 @@ public class MobService {
     }
 
     /**
+     * 表示中の PLAYER 型 NPC について、位置・体の向き・頭部回転を viewer へ同期します。
+     *
+     * <p>viewer 集合の探索とは分離し、AI の毎 tick ループから呼び出すことで移動表示を滑らかに保ちます。</p>
+     */
+    public void syncPlayerSkinPacketViews() {
+        for (MobInstance instance : instances.values()) {
+            Set<UUID> currentViewers = viewers.get(instance.instanceId());
+            if (instance.template().usesPlayerSkinPacketView()
+                    && currentViewers != null
+                    && !currentViewers.isEmpty()) {
+                playerSkinPacketService.syncTransforms(instance);
+            }
+        }
+    }
+
+    /**
      * 指定プレイヤーが Mob の頭上表示を視認できる距離内か判定します。
      *
      * @param player プレイヤー

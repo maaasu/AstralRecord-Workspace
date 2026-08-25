@@ -547,7 +547,7 @@ public class MobEntityController {
     }
 
     /**
-     * 実体 Mob の現在位置を {@link MobInstance} へ反映します。
+     * 実体 Mob の現在位置と頭部回転を {@link MobInstance} へ反映します。
      *
      * @param instance 同期対象インスタンス
      * @return 実体が有効なら {@code true}
@@ -557,7 +557,10 @@ public class MobEntityController {
         if (entity == null) {
             return false;
         }
-        instance.currentLocation(entity.getLocation());
+        Location current = entity.getLocation();
+        instance.currentLocation(current);
+        instance.headYaw(current.getYaw());
+        instance.headPitch(current.getPitch());
         return true;
     }
 

@@ -184,6 +184,30 @@ public final class NpcPlayerSkinPacketService {
         }
     }
 
+    /**
+     * 表示開始済みの疑似 Player へ、現在位置と回転の差分だけを同期します。
+     *
+     * <p>viewer 集合の更新、実体 Entity の表示切替、名前タグ team の更新は行いません。</p>
+     *
+     * @param instance 同期対象の PLAYER 型 NPC インスタンス
+     */
+    public void syncTransforms(@NotNull MobInstance instance) {
+        SkinViewState state = states.get(instance.instanceId());
+        if (protocolManager == null || state == null) {
+            return;
+        }
+
+        Location location = instance.currentLocation();
+        float headYaw = instance.headYaw();
+        float headPitch = instance.headPitch();
+        for (UUID viewerId : state.viewerIds()) {
+            Player viewer = Bukkit.getPlayer(viewerId);
+            if (viewer != null && viewer.isOnline()) {
+                syncTransformForViewer(viewer, state, location, headYaw, headPitch);
+            }
+        }
+    }
+
     public void remove(@NotNull MobInstance instance) {
         SkinViewState state = states.remove(instance.instanceId());
         if (state == null) {
@@ -384,7 +408,16 @@ public final class NpcPlayerSkinPacketService {
             float headYaw,
             float headPitch
     ) {
-        OverheadDisplayService.hideNameTag(viewer, state.profileName());
+        syncTransformForViewer(viewer, state, location, headYaw, headPitch);
+    }
+
+    private void syncTransformForViewer(
+            @NotNull Player viewer,
+            @NotNull SkinViewState state,
+            @NotNull Location location,
+            float headYaw,
+            float headPitch
+    ) {
         if (!state.shouldSendTransform(viewer.getUniqueId(), location, headYaw, headPitch)) {
             return;
         }

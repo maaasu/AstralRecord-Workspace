@@ -34,6 +34,27 @@ class MobAiServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
      * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
+     * 検証契約: 表示中の疑似 Player NPC の transform は viewer 探索間隔に依存せず毎 tick 同期する。
+     */
+    @Test
+    void playerSkinPacketTransformsAreSynchronizedEveryTick() {
+        MobService mobService = mock(MobService.class);
+        when(mobService.getInstances()).thenReturn(List.of());
+        MobAiService aiService = new MobAiService(
+                mobService,
+                mock(MobCombatService.class),
+                mock(MobSkillService.class)
+        );
+
+        aiService.tick();
+
+        verify(mobService).syncPlayerSkinPacketViews();
+        verify(mobService, never()).updateViewers();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
      * 検証契約: NPCのWANDERが30秒周期で配置アンカーへの経路を設定し、テレポートを実行しない。
      */
     @Test

@@ -480,6 +480,32 @@ class MobEntityControllerTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
+     * 章・見出し: # 12_3-実体Mob制御 > ## 3. 実体 Mob 取得・同期
+     * 検証契約: 実体の現在位置を同期すると、疑似 Player 表示用の頭部 yaw / pitch も現在角度へ更新する。
+     */
+    @Test
+    void syncLocationUpdatesPlayerViewHeadRotation() {
+        World world = server().addSimpleWorld("npc_head_rotation_world");
+        PluginMock plugin = PluginMock.builder().withPluginName("AstralRecordTest").build();
+        Location initial = new Location(world, 1.5D, 64.0D, 2.5D, 10.0F, 0.0F);
+        MobInstance instance = new MobInstance(
+                UUID.randomUUID(),
+                templateWithVariant(MobVariantConfig.DEFAULT, EntityType.ARMOR_STAND),
+                initial
+        );
+        MobEntityController controller = new MobEntityController(plugin);
+        Entity entity = controller.spawn(instance, initial);
+        Location rotated = new Location(world, 2.5D, 64.0D, 3.5D, 135.0F, 22.5F);
+        assertTrue(entity.teleport(rotated));
+
+        assertTrue(controller.syncLocation(instance));
+
+        assertEquals(rotated.getYaw(), instance.headYaw());
+        assertEquals(rotated.getPitch(), instance.headPitch());
+    }
+
+    /**
      * 外見差分テスト用の NPC テンプレートを生成します。
      *
      * @param variant 検証対象の外見差分

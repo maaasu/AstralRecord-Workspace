@@ -16,6 +16,7 @@ import org.bukkit.entity.ComplexLivingEntity;
 import org.bukkit.entity.EntityType;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.plugin.PluginMock;
+import org.mockito.MockedConstruction;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -26,9 +27,40 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockConstruction;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class MobServiceLifecycleTest extends MockBukkitTestBase {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 1. MobService メソッド仕様 > ### NPC プレイヤースキン表示同期
+     * 検証契約: 5 tick 側の viewer 更新は、疑似 Player の表示開始・解除を担う lifecycle 同期へ現在集合を渡す。
+     */
+    @Test
+    void viewerUpdateInvokesPlayerSkinLifecycleSync() {
+        PluginMock plugin = PluginMock.builder().withPluginName("AstralRecordTest").build();
+        World world = server().addSimpleWorld("npc_player_view_lifecycle_world");
+        server().addPlayer().teleport(new Location(world, 1.5D, 64.0D, 1.5D));
+
+        try (MockedConstruction<NpcPlayerSkinPacketService> constructed =
+                     mockConstruction(NpcPlayerSkinPacketService.class)) {
+            MobService service = new MobService(plugin, mock(MobRepository.class));
+            MobInstance instance = service.spawn(template(), new Location(world, 0.5D, 64.0D, 0.5D));
+            assertNotNull(instance);
+            NpcPlayerSkinPacketService packetService = constructed.constructed().getFirst();
+            clearInvocations(packetService);
+
+            service.updateViewers();
+
+            verify(packetService).sync(
+                    org.mockito.ArgumentMatchers.same(instance),
+                    org.mockito.ArgumentMatchers.argThat(viewers -> viewers.size() == 1)
+            );
+        }
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
@@ -140,4 +172,5 @@ class MobServiceLifecycleTest extends MockBukkitTestBase {
                 null
         );
     }
+
 }
