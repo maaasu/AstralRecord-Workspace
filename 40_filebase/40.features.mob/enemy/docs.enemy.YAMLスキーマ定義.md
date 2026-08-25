@@ -35,7 +35,21 @@ Enemy（通常エネミー）の固有フィールド定義。
 |:--------------------------------|:-------------|:--:|:----------|:----------------------------------------------------|
 | `ai.combat.style`               | String       | ○  | -         | 戦闘スタイル（後述 `CombatStyle`）                            |
 | `ai.combat.preferredRange`      | Double       | ×  | 1.0       | 戦闘時の理想距離（ブロック単位）。`MELEE` は接近、`RANGED`/`MAGIC` は距離確保 |
-| `ai.combat.attackIntervalTicks` | Long         | ×  | 20        | 通常攻撃の間隔（tick）。20 tick = 1 秒                         |
+| `ai.combat.normalAttack` | Map | × | - | 通常攻撃を持つ Mob だけが定義する。省略時は通常攻撃なし |
+| `ai.combat.normalAttack.range` | Double | ○ | - | 通常攻撃が届く距離（ブロック単位） |
+| `ai.combat.normalAttack.intervalTicks` | Long | ○ | - | 通常攻撃の間隔。20 tick = 1 秒 |
+| `ai.combat.skills[]` | List | × | empty | Mob 専用スキルの発動順。ID ごとに Java の executor が存在する |
+| `ai.combat.skills[].id` | String | ○ | - | `mob_` 接頭辞の Mob 専用スキル ID。player の skill master / skill gem には登録しない |
+| `ai.combat.skills[].activationRange` | Double | × | executor 既定値 | 発動を試みる距離 |
+| `ai.combat.skills[].cooldownTicks` | Long | × | executor 既定値 | 同じスキルを次に開始できるまでの tick |
+| `ai.combat.skills[].castTimeTicks` | Long | × | executor 既定値 | 詠唱時間。0 は即時発動、1 以上は頭上の詠唱表示を行う |
+| `ai.combat.skills[].params` | Map<String, Double> | × | empty | executor 固有の数値パラメーター。キー・必須性・範囲は executor の JavaDoc を正とする。10 個まで |
+
+`attackIntervalTicks` を直接置く旧形式は読み込み互換のためだけに残ります。新規・更新マスターでは
+`normalAttack.range` と `normalAttack.intervalTicks` を使用してください。
+
+`normalAttack` と `skills` は併用できます。例えば、近接の通常攻撃を行いつつ、個別クールダウンの
+詠唱スキルをローテーションできます。スキルだけで攻撃する Mob は `normalAttack` を定義しません。
 
 #### CombatStyle
 - `MELEE` : 近接戦闘。ターゲットに接近して攻撃
@@ -110,7 +124,9 @@ ai:
   combat:
     style: MELEE
     preferredRange: 2.2
-    attackIntervalTicks: 24
+    normalAttack:
+      range: 2.2
+      intervalTicks: 24
 
 drops:
   exp: 16
@@ -176,7 +192,13 @@ ai:
   combat:
     style: MAGIC
     preferredRange: 12
-    attackIntervalTicks: 40
+    skills:
+      - id: mob_skeleton_arcane_bolt
+        activationRange: 14
+        cooldownTicks: 40
+        castTimeTicks: 16
+        params:
+          damageRatio: 0.8
 
 drops:
   exp: 60

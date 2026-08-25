@@ -10,7 +10,6 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.model.MobVariantConfig;
-import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import org.bukkit.Location;
 import org.bukkit.entity.EntityType;
 import org.junit.jupiter.api.Test;
@@ -52,7 +51,7 @@ class MobAiServiceTest {
         MobAiService aiService = new MobAiService(
                 mobService,
                 mock(MobCombatService.class),
-                mock(SkillService.class)
+                mock(MobSkillService.class)
         );
         long routeTick = Math.floorMod(-(long) instance.instanceId().hashCode(), 20L * 30L);
         if (routeTick == 0L) {
@@ -95,7 +94,7 @@ class MobAiServiceTest {
         MobAiService aiService = new MobAiService(
                 mobService,
                 mock(MobCombatService.class),
-                mock(SkillService.class)
+                mock(MobSkillService.class)
         );
         long firstDecisionTick = Math.floorMod(-(long) instance.instanceId().hashCode(), 10L);
         if (firstDecisionTick == 0L) {
@@ -148,7 +147,7 @@ class MobAiServiceTest {
         MobAiService aiService = new MobAiService(
                 mobService,
                 mock(MobCombatService.class),
-                mock(SkillService.class)
+                mock(MobSkillService.class)
         );
         long decisionTick = 20L * 10L;
         while (Math.floorMod(instance.instanceId().hashCode() + decisionTick, 10L) != 0L) {

@@ -53,7 +53,15 @@ ai:
   combat:
     style: RANGED
     preferredRange: 12
-    attackIntervalTicks: 36
+    skills:
+      - id: mob_skeleton_bow_shot
+        activationRange: 16
+        cooldownTicks: 36
+        castTimeTicks: 12
+        params:
+          damageRatio: 0.85
+          projectileSpeed: 1.25
+          projectileHitRadius: 0.20
 
 drops:
   exp: 16

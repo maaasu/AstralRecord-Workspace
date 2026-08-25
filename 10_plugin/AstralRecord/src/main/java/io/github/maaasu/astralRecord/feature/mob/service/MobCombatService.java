@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCombatConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobNormalAttackConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
@@ -229,9 +230,13 @@ public class MobCombatService {
             instance.state(MobState.IDLE);
             return;
         }
+        MobNormalAttackConfig normalAttack = combat.normalAttack();
+        if (normalAttack == null) {
+            return;
+        }
 
         long attackIntervalTicks = CombatTimingCalculator.resolveAttackIntervalTicks(
-                combat.attackIntervalTicks(),
+                normalAttack.intervalTicks(),
                 AstEntity.mob(instance).statValue(StatusType.ATTACK_SPEED)
         );
         if (serverTick - instance.lastAttackTick() < attackIntervalTicks) {
@@ -239,8 +244,8 @@ public class MobCombatService {
         }
 
         // ターゲット距離チェック
-        double preferredSq = combat.preferredRange() * combat.preferredRange();
-        if (target.getLocation().distanceSquared(instance.currentLocation()) > preferredSq + 4.0) {
+        double normalAttackRangeSq = normalAttack.range() * normalAttack.range();
+        if (target.getLocation().distanceSquared(instance.currentLocation()) > normalAttackRangeSq + 4.0) {
             // 範囲外。AGGRO に戻る
             instance.state(MobState.AGGRO);
             return;

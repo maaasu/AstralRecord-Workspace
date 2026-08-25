@@ -31,13 +31,14 @@ Enemy と同一仕様です。`drops` 自体は任意で、省略時は経験値
 
 ### ai.combat（戦闘行動）
 
-Enemy と同一仕様です。ボス固有のスキルローテーション、倍率、発動時演出、フェーズ遷移はプラグイン側の専用 executor とサービスで制御します。
+Enemy と同一仕様です。ボス固有のスキルローテーション、倍率、発動時演出、フェーズ遷移は Mob 専用 executor とサービスで制御します。
 
 | キー                              | 型            | 必須 | デフォルト     | 説明                                                  |
 |:--------------------------------|:-------------|:--:|:----------|:----------------------------------------------------|
 | `ai.combat.style`               | String       | ○  | -         | 戦闘スタイル（後述 `CombatStyle`）                            |
 | `ai.combat.preferredRange`      | Double       | ×  | 1.0       | 戦闘時の理想距離（ブロック単位）。`MELEE` は接近、`RANGED`/`MAGIC` は距離確保 |
-| `ai.combat.attackIntervalTicks` | Long         | ×  | 20        | 通常攻撃の間隔（tick）。20 tick = 1 秒                         |
+| `ai.combat.normalAttack` | Map | × | - | 通常攻撃を持つ場合の距離・間隔。省略時は直接通常攻撃なし |
+| `ai.combat.skills[]` | List | × | empty | `mob_` ID の Mob 専用スキル。詳細は Enemy schema を参照 |
 
 #### CombatStyle
 - `MELEE` : 近接戦闘。ターゲットに接近して攻撃
@@ -141,7 +142,9 @@ ai:
   combat:
     style: MAGIC
     preferredRange: 8
-    attackIntervalTicks: 40
+    normalAttack:
+      range: 4
+      intervalTicks: 40
 
 drops:
   exp: 5000

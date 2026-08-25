@@ -7,15 +7,11 @@ import io.github.maaasu.astralRecord.feature.mob.model.IdleBehavior;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCombatConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
-import io.github.maaasu.astralRecord.feature.skill.model.MobSkillCaster;
-import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
-import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
-import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
-import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -87,12 +83,10 @@ public class MobAiService {
     private static final double DIRECT_STRAFE_VELOCITY = 0.16D;
     private static final long STRAFE_DIRECTION_INTERVAL_TICKS = 40L;
     private static final double STATIONARY_LOOK_RANGE_SQ = 64.0D * 64.0D;
-    private static final String PARAM_ACTIVATION_RANGE = "activationRange";
-    private static final String PARAM_HIT_RANGE = "hitRange";
 
     private final MobService mobService;
     private final MobCombatService mobCombatService;
-    private final SkillService skillService;
+    private final MobSkillService mobSkillService;
     private final PlayerDeathService playerDeathService;
     private final ParticleDisplayService particleDisplayService;
     private final ConditionService conditionService;
@@ -105,13 +99,13 @@ public class MobAiService {
      *
      * @param mobService       Mob サービス
      * @param mobCombatService Mob 戦闘サービス
-     * @param skillService     スキルサービス
+     * @param mobSkillService  Mob専用スキルサービス
      */
     public MobAiService(
             @NotNull MobService mobService,
             @NotNull MobCombatService mobCombatService,
-            @NotNull SkillService skillService) {
-        this(mobService, mobCombatService, skillService, null, null);
+            @NotNull MobSkillService mobSkillService) {
+        this(mobService, mobCombatService, mobSkillService, null, null);
     }
 
     /**
@@ -119,36 +113,36 @@ public class MobAiService {
      *
      * @param mobService         Mob サービス
      * @param mobCombatService   Mob 戦闘サービス
-     * @param skillService       スキルサービス
+     * @param mobSkillService    Mob専用スキルサービス
      * @param playerDeathService プレイヤー死亡状態管理サービス。未設定時は Bukkit 死亡状態だけで判定します
      */
     public MobAiService(
             @NotNull MobService mobService,
             @NotNull MobCombatService mobCombatService,
-            @NotNull SkillService skillService,
+            @NotNull MobSkillService mobSkillService,
             @Nullable PlayerDeathService playerDeathService) {
-        this(mobService, mobCombatService, skillService, playerDeathService, null);
+        this(mobService, mobCombatService, mobSkillService, playerDeathService, null);
     }
 
     public MobAiService(
             @NotNull MobService mobService,
             @NotNull MobCombatService mobCombatService,
-            @NotNull SkillService skillService,
+            @NotNull MobSkillService mobSkillService,
             @Nullable PlayerDeathService playerDeathService,
             @Nullable ParticleDisplayService particleDisplayService) {
-        this(mobService, mobCombatService, skillService, playerDeathService, particleDisplayService, null);
+        this(mobService, mobCombatService, mobSkillService, playerDeathService, particleDisplayService, null);
     }
 
     public MobAiService(
             @NotNull MobService mobService,
             @NotNull MobCombatService mobCombatService,
-            @NotNull SkillService skillService,
+            @NotNull MobSkillService mobSkillService,
             @Nullable PlayerDeathService playerDeathService,
             @Nullable ParticleDisplayService particleDisplayService,
             @Nullable ConditionService conditionService) {
         this.mobService = mobService;
         this.mobCombatService = mobCombatService;
-        this.skillService = skillService;
+        this.mobSkillService = mobSkillService;
         this.playerDeathService = playerDeathService;
         this.particleDisplayService = particleDisplayService;
         this.conditionService = conditionService;
@@ -499,32 +493,24 @@ public class MobAiService {
         if (combat == null) {
             return;
         }
-        List<String> skillIds = MobSkillCatalog.skillIdsFor(instance.template().id());
-        if (skillIds.isEmpty()) {
+        List<MobSkillBinding> skills = combat.skills();
+        if (skills.isEmpty()) {
             mobCombatService.tickCombat(instance, internalTick);
             return;
         }
         if (instance.isSkillCasting()) {
             return;
         }
-        if (internalTick - instance.lastAttackTick() < combat.attackIntervalTicks()) {
-            return;
+        int start = Math.floorMod(instance.nextCombatSkillIndex(), skills.size());
+        for (int offset = 0; offset < skills.size(); offset++) {
+            int index = (start + offset) % skills.size();
+            MobSkillBinding binding = skills.get(index);
+            if (mobSkillService.tryCast(instance, binding, target, internalTick)) {
+                instance.nextCombatSkillIndex(index + 1);
+                return;
+            }
         }
-
-        int index = Math.floorMod(instance.nextCombatSkillIndex(), skillIds.size());
-        String skillId = skillIds.get(index);
-        SkillCastResult result = skillService.castSkill(
-                new MobSkillCaster(instance),
-                skillId,
-                SkillCastTrigger.MOB_AI,
-                castOrigin(instance, target),
-                target,
-                List.of(target)
-        );
-        if (result.success()) {
-            instance.lastAttackTick(internalTick);
-            instance.nextCombatSkillIndex(index + 1);
-        }
+        mobCombatService.tickCombat(instance, internalTick);
     }
 
     /**
@@ -746,35 +732,12 @@ public class MobAiService {
             return Math.max(0.0D, fallbackRange);
         }
 
-        List<String> skillIds = MobSkillCatalog.skillIdsFor(instance.template().id());
-        if (skillIds.isEmpty()) return Math.max(0.0D, fallbackRange);
-        int index = Math.floorMod(instance.nextCombatSkillIndex(), skillIds.size());
-        SkillDefinition definition = resolveSkillDefinition(skillIds.get(index));
-        if (definition == null) {
+        List<MobSkillBinding> skills = combat.skills();
+        if (skills.isEmpty()) {
             return Math.max(0.0D, fallbackRange);
         }
-
-        Double activationRange = numberParam(definition, PARAM_ACTIVATION_RANGE);
-        if (activationRange != null && activationRange >= 0.0D) {
-            return activationRange;
-        }
-        Double hitRange = numberParam(definition, PARAM_HIT_RANGE);
-        if (hitRange != null && hitRange >= 0.0D) {
-            return hitRange;
-        }
-        return Math.max(0.0D, fallbackRange);
-    }
-
-    @Nullable
-    private SkillDefinition resolveSkillDefinition(@NotNull String skillId) {
-        var registry = skillService.registry();
-        return registry == null ? null : registry.getDefinition(skillId);
-    }
-
-    @Nullable
-    private Double numberParam(@NotNull SkillDefinition definition, @NotNull String key) {
-        Object raw = definition.getParams().get(key);
-        return raw instanceof Number number ? number.doubleValue() : null;
+        int index = Math.floorMod(instance.nextCombatSkillIndex(), skills.size());
+        return mobSkillService.activationRange(skills.get(index), fallbackRange);
     }
 
     private boolean isRangedStyle(@Nullable MobCombatConfig combat) {
@@ -815,19 +778,6 @@ public class MobAiService {
         double dx = a.getX() - b.getX();
         double dz = a.getZ() - b.getZ();
         return dx * dx + dz * dz;
-    }
-
-    private @NotNull Location castOrigin(@NotNull MobInstance instance, @NotNull Player target) {
-        Location origin = instance.currentLocation().add(0.0D, 1.0D, 0.0D);
-        Vector direction = target.getEyeLocation().toVector().subtract(origin.toVector());
-        if (direction.lengthSquared() <= 1.0E-6D) {
-            direction = origin.getDirection();
-        }
-        if (direction.lengthSquared() <= 1.0E-6D) {
-            direction = new Vector(0.0D, 0.0D, 1.0D);
-        }
-        origin.setDirection(direction.normalize());
-        return origin;
     }
 
     @Nullable

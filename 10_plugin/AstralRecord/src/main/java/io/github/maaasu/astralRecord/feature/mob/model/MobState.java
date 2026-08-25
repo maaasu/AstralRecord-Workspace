@@ -11,7 +11,7 @@ public enum MobState {
     /** 接敵。{@link TargetStrategy} に基づきターゲットを追跡 */
     AGGRO,
 
-    /** 戦闘中。{@code preferredRange} を維持しつつ {@code attackIntervalTicks} ごとに攻撃 */
+    /** 戦闘中。{@code preferredRange} を維持しつつ Mob スキルまたは通常攻撃を行う */
     COMBAT,
 
     /** leashRange を超過したためスポーン地点へ帰還中 */

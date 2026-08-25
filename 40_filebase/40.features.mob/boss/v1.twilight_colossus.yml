@@ -51,7 +51,9 @@ ai:
   combat:
     style: MELEE
     preferredRange: 4
-    attackIntervalTicks: 40
+    skills:
+      - id: mob_twilight_colossus_gate_slam
+      - id: mob_twilight_colossus_rune_bolt
 
 drops:
   exp: 2500

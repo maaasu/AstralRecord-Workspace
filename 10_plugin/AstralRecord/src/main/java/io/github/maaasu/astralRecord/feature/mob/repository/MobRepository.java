@@ -20,8 +20,10 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionActionConfi
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobLevelProfile;
 import io.github.maaasu.astralRecord.feature.mob.model.MobMoneyDrop;
+import io.github.maaasu.astralRecord.feature.mob.model.MobNormalAttackConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkin;
+import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.model.MobVariantConfig;
@@ -419,11 +421,82 @@ public class MobRepository {
     @Nullable
     private MobCombatConfig parseCombat(@Nullable JsonObject obj) {
         if (obj == null) return null;
+        double preferredRange = obj.has("preferredRange") ? obj.get("preferredRange").getAsDouble() : 1.0D;
+        JsonObject normalAttackObj = getObject(obj, "normalAttack");
+        MobNormalAttackConfig normalAttack = normalAttackObj == null
+                ? legacyNormalAttack(obj, preferredRange)
+                : new MobNormalAttackConfig(
+                        normalAttackObj.has("range") ? normalAttackObj.get("range").getAsDouble() : preferredRange,
+                        normalAttackObj.has("intervalTicks") ? normalAttackObj.get("intervalTicks").getAsLong() : 20L
+                );
         return new MobCombatConfig(
                 CombatStyle.from(optionalString(obj, "style")),
-                obj.has("preferredRange") ? obj.get("preferredRange").getAsDouble() : 1.0,
-                obj.has("attackIntervalTicks") ? obj.get("attackIntervalTicks").getAsLong() : 20L
+                preferredRange,
+                normalAttack,
+                parseSkillBindings(getArray(obj, "skills"))
         );
+    }
+
+    @Nullable
+    private MobNormalAttackConfig legacyNormalAttack(@NotNull JsonObject combat, double preferredRange) {
+        if (!combat.has("attackIntervalTicks")) {
+            return null;
+        }
+        return new MobNormalAttackConfig(preferredRange, combat.get("attackIntervalTicks").getAsLong());
+    }
+
+    @NotNull
+    private List<MobSkillBinding> parseSkillBindings(@Nullable JsonArray array) {
+        if (array == null) {
+            return List.of();
+        }
+        List<MobSkillBinding> bindings = new ArrayList<>();
+        for (JsonElement element : array) {
+            if (!element.isJsonObject()) {
+                throw new IllegalArgumentException("ai.combat.skills の各要素はobjectで指定してください");
+            }
+            JsonObject object = element.getAsJsonObject();
+            String id = optionalString(object, "id");
+            if (id == null || id.isBlank()) {
+                throw new IllegalArgumentException("ai.combat.skills[].id は必須です");
+            }
+            Map<String, Double> params = new LinkedHashMap<>();
+            JsonObject paramsObject = getObject(object, "params");
+            if (paramsObject != null) {
+                for (Map.Entry<String, JsonElement> entry : paramsObject.entrySet()) {
+                    if (!entry.getValue().isJsonPrimitive() || !entry.getValue().getAsJsonPrimitive().isNumber()) {
+                        throw new IllegalArgumentException("Mob skill params は数値で指定してください: " + id + "." + entry.getKey());
+                    }
+                    params.put(entry.getKey(), entry.getValue().getAsDouble());
+                }
+            }
+            bindings.add(new MobSkillBinding(
+                    id,
+                    optionalDouble(object, "activationRange"),
+                    optionalLong(object, "cooldownTicks"),
+                    optionalLong(object, "castTimeTicks"),
+                    params
+            ));
+        }
+        return List.copyOf(bindings);
+    }
+
+    @Nullable
+    private Double optionalDouble(@NotNull JsonObject object, @NotNull String key) {
+        return object.has(key) && !object.get(key).isJsonNull() ? object.get(key).getAsDouble() : null;
+    }
+
+    @Nullable
+    private Long optionalLong(@NotNull JsonObject object, @NotNull String key) {
+        return object.has(key) && !object.get(key).isJsonNull() ? object.get(key).getAsLong() : null;
+    }
+
+    @Nullable
+    private JsonArray getArray(@Nullable JsonObject object, @NotNull String key) {
+        if (object == null || !object.has(key) || object.get(key).isJsonNull() || !object.get(key).isJsonArray()) {
+            return null;
+        }
+        return object.getAsJsonArray(key);
     }
 
     @Nullable

@@ -66,7 +66,9 @@ ai:
   combat:
     style: MELEE
     preferredRange: 2
-    attackIntervalTicks: 30
+    normalAttack:
+      range: 2
+      intervalTicks: 30
 
 drops:
   exp: 8

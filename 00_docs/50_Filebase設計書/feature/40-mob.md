@@ -8,6 +8,9 @@ Mob は、戦闘対象、案内役、商業・機能提供者など、ワール�
 
 - 戦闘・非戦闘の役割を明確にし、不要な能力を持たせません。
 - stats、skill、AI、装備、loot の組み合わせで役割を表現します。
+- 通常攻撃は `ai.combat.normalAttack`、固有行動は `ai.combat.skills` として別に定義します。`normalAttack` を省略した Mob は通常攻撃をしません。
+- Mob スキル ID は `mob_` 接頭辞とし、Mob マスターから参照します。player 用 skill master、skill gem、習得・装備スロットとは混在させません。
+- Mob スキルの詳細ロジックは ID ごとの Java executor に置き、マスターには発動距離・クールダウン・詠唱時間と少数の数値パラメーターだけを置きます。固有パラメーターの必須性と範囲は executor の JavaDoc を正とします。
 - HP、攻撃、防御、行動阻害を同時に高くして、役割のない長期戦にしません。
 - 使用可能なステータスは `StatusType.kt` を正とします。
 
