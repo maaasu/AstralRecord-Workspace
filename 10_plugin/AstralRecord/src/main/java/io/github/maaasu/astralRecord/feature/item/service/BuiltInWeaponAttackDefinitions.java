@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.item.service;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -26,7 +27,7 @@ public final class BuiltInWeaponAttackDefinitions {
                 new SkillDefinition(
                         NORMAL_ATTACK_MELEE,
                         IMPLEMENTATION_ID,
-                        "通常攻撃 近接",
+                        ColorCodeUtil.translateAlternateColorCodes("&l通常攻撃 &r&c近接"),
                         "equipment 左クリックで発動する近接通常攻撃です。",
                         null,
                         List.of(),
@@ -62,7 +63,7 @@ public final class BuiltInWeaponAttackDefinitions {
                 new SkillDefinition(
                         NORMAL_ATTACK_BOW,
                         IMPLEMENTATION_ID,
-                        "通常攻撃 弓",
+                        ColorCodeUtil.translateAlternateColorCodes("&l通常攻撃 &r&2間接"),
                         "equipment 左クリックで発動する弓通常攻撃です。",
                         null,
                         List.of(),
@@ -108,7 +109,7 @@ public final class BuiltInWeaponAttackDefinitions {
                 new SkillDefinition(
                         NORMAL_ATTACK_MAGIC,
                         IMPLEMENTATION_ID,
-                        "通常攻撃 魔法",
+                        ColorCodeUtil.translateAlternateColorCodes("&l通常攻撃 &r&d魔法"),
                         "equipment 左クリックで発動する魔法通常攻撃です。",
                         null,
                         List.of(),
