@@ -1,7 +1,8 @@
-package io.github.maaasu.astralRecord.feature.mob.service;
+package io.github.maaasu.astralRecord.feature.mob.skill.skeletonarcher;
 
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
+import io.github.maaasu.astralRecord.feature.mob.service.MobProjectileService;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;

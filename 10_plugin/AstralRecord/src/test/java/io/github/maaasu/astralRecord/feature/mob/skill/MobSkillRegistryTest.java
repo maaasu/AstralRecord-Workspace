@@ -1,4 +1,4 @@
-package io.github.maaasu.astralRecord.feature.mob.service;
+package io.github.maaasu.astralRecord.feature.mob.skill;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillTiming;

@@ -117,11 +117,11 @@ import io.github.maaasu.astralRecord.feature.mob.event.NpcPlacementWorldEventHan
 import io.github.maaasu.astralRecord.feature.mob.repository.NpcPlacementRepository;
 import io.github.maaasu.astralRecord.feature.mob.service.MobAiService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobProjectileService;
-import io.github.maaasu.astralRecord.feature.mob.service.MobSkillRegistry;
+import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillRegistry;
+import io.github.maaasu.astralRecord.feature.mob.skill.skeletonarcher.SkeletonArcherBowShotMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.twilightcolossus.TwilightColossusGateSlamSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.twilightcolossus.TwilightColossusRuneBoltSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.service.MobSkillService;
-import io.github.maaasu.astralRecord.feature.mob.service.SkeletonArcherBowShotMobSkillExecutor;
-import io.github.maaasu.astralRecord.feature.mob.service.TwilightColossusGateSlamSkillExecutor;
-import io.github.maaasu.astralRecord.feature.mob.service.TwilightColossusRuneBoltSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;

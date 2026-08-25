@@ -1,4 +1,4 @@
-package io.github.maaasu.astralRecord.feature.mob.service;
+package io.github.maaasu.astralRecord.feature.mob.skill;
 
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;

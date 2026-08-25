@@ -1,4 +1,4 @@
-package io.github.maaasu.astralRecord.feature.mob.service;
+package io.github.maaasu.astralRecord.feature.mob.skill.twilightcolossus;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
@@ -6,6 +6,8 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillTiming;
+import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillContext;
+import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillExecutor;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
