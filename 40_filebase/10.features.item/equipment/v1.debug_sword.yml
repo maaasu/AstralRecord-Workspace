@@ -103,8 +103,7 @@ equipment:
     maxSlots:
       random: 2~4
     allowedRuneIds:
-      - rune_attack_small
-      - rune_fire_blade
+      - debug_attack_rune
   transcendence:
     - name: "&a進化"
       rank: 1
