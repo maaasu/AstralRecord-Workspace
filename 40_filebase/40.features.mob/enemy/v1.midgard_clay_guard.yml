@@ -1,0 +1,78 @@
+# design:
+#   motif: "粘土 / 守護像"
+#   progression: 3
+schemaVersion: 1
+id: midgard_clay_guard
+type: MOB
+category: ENEMY
+name: "&6クレイガード"
+level: 3
+entityType: HUSK
+icon: CLAY_BALL
+lore:
+  - "&7粘土と石片で組み上げられた小さな守護像。"
+  - "&7高く跳び、狙った地面へ重い一撃を落とす。"
+tags:
+  - midgard
+  - grassland
+  - golem
+  - humanoid
+  - melee
+  - stone
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 300
+  - status: ATTACK
+    value: 55
+  - status: DEFENSE
+    value: 52
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 75
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.7
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 20
+    deaggroRange: 28
+    leashRange: 30
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 30
+    skills:
+      - id: mob_clay_guard_leap
+        activationRange: 7
+        cooldownTicks: 120
+        castTimeTicks: 20
+        params:
+          radius: 2.0
+          damageRatio: 0.85
+
+drops:
+  exp: 28
+  items:
+    - itemId:
+        ref: item:clay_guard_fragment
+      rate: 70.0
+      amount: 1~2
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:ancient_clay_rune
+      rate: 8.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_1

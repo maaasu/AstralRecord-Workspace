@@ -1,0 +1,16 @@
+# design:
+#   motif: "粘土 / 古代ルーン"
+#   progression: 4
+schemaVersion: 1
+id: ancient_clay_rune
+category: material
+name: "&d古代粘土のルーン"
+icon: AMETHYST_SHARD
+rarity: RARE
+maxStack: 64
+saleValue: 28
+lore:
+  - "&7硬化した粘土の奥から見つかる小さな刻印。"
+  - "&7希少素材として高く買い取られる。"
+unTradeable: false
+unSellable: false

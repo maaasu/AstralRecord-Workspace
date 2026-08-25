@@ -152,6 +152,17 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("boss_mechanic_portal", Particle.PORTAL, 1, 0.02D, 0.02D, 0.02D, 0.0D);
     public static final SharedParticleDefinition BOSS_MECHANIC_EXPLOSION =
         new SharedParticleDefinition("boss_mechanic_explosion", Particle.EXPLOSION, 2, 0.18D, 0.18D, 0.18D, 0.0D);
+    public static final SharedParticleDefinition MOB_CLAY_GUARD_LANDING_RING =
+        new SharedParticleDefinition(
+            "mob_clay_guard_landing_ring",
+            Particle.DUST,
+            1,
+            0.01D,
+            0.01D,
+            0.01D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(176, 122, 82), 0.9F)
+        );
     public static final SharedParticleDefinition DUNGEON_ENTRY_FRAME_DUST =
         new SharedParticleDefinition(
             "dungeon_entry_frame_dust",
@@ -448,6 +459,25 @@ public final class SharedParticleDefinitions {
             0.42D,
             0.32D,
             0.04D,
+            blockData
+        );
+    }
+
+    /**
+     * Mob が地面へ衝撃を与えた際に、地面材質の破片として表示する定義を返します。
+     *
+     * @param blockData 着地地点の地面ブロック材質
+     * @return 地面材質を反映した破片パーティクル定義
+     */
+    public static @NotNull SharedParticleDefinition mobImpactBlock(@NotNull BlockData blockData) {
+        return new SharedParticleDefinition(
+            "mob_impact_block",
+            Particle.BLOCK,
+            24,
+            0.42D,
+            0.26D,
+            0.42D,
+            0.05D,
             blockData
         );
     }

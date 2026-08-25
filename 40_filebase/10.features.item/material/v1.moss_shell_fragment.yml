@@ -1,0 +1,16 @@
+# design:
+#   motif: "苔 / 甲殻"
+#   progression: 2
+schemaVersion: 1
+id: moss_shell_fragment
+category: material
+name: "&2苔甲羅の欠片"
+icon: MOSS_BLOCK
+rarity: COMMON
+maxStack: 64
+saleValue: 4
+lore:
+  - "&7苔をまとった甲羅から剥がれた硬い欠片。"
+  - "&7序盤の素材として店で買い取られる。"
+unTradeable: false
+unSellable: false

@@ -1,0 +1,16 @@
+# design:
+#   motif: "粘土 / 守護像"
+#   progression: 3
+schemaVersion: 1
+id: clay_guard_fragment
+category: material
+name: "&6クレイガードの土塊"
+icon: CLAY_BALL
+rarity: COMMON
+maxStack: 64
+saleValue: 6
+lore:
+  - "&7クレイガードの身体を形作っていた粘土の塊。"
+  - "&7加工しやすく、店でも買い取られる。"
+unTradeable: false
+unSellable: false
