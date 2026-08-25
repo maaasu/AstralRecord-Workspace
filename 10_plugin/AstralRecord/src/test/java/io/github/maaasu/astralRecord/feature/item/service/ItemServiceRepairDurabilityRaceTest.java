@@ -64,14 +64,14 @@ class ItemServiceRepairDurabilityRaceTest {
         String fullOperationId = UUID.randomUUID().toString();
         String fixedOperationId = UUID.randomUUID().toString();
         when(repository.applyEquipmentOrbOperation(
-            fullOperationId, accountId, fullInstanceId, "full-orb-entry", "orb.repair_full"
+            fullOperationId, accountId, fullInstanceId, "full-orb-entry", "orb.repair_full", null, null
         )).thenReturn(repairResult(
             fullOperationId,
             instance(fullInstanceId, accountId, 100, 100),
             60
         ));
         when(repository.applyEquipmentOrbOperation(
-            fixedOperationId, accountId, fixedInstanceId, "fixed-orb-entry", "orb.repair_fixed"
+            fixedOperationId, accountId, fixedInstanceId, "fixed-orb-entry", "orb.repair_fixed", null, null
         )).thenReturn(repairResult(
             fixedOperationId,
             instance(fixedInstanceId, accountId, 100, 70),
@@ -79,9 +79,9 @@ class ItemServiceRepairDurabilityRaceTest {
         ));
 
         EquipmentOrbOperationResult full = service.applyEquipmentOrbOperation(
-            fullOperationId, accountId, fullInstanceId, "full-orb-entry", "orb.repair_full");
+            fullOperationId, accountId, fullInstanceId, "full-orb-entry", "orb.repair_full", null, null);
         EquipmentOrbOperationResult fixed = service.applyEquipmentOrbOperation(
-            fixedOperationId, accountId, fixedInstanceId, "fixed-orb-entry", "orb.repair_fixed");
+            fixedOperationId, accountId, fixedInstanceId, "fixed-orb-entry", "orb.repair_fixed", null, null);
 
         assertNotNull(full);
         assertNotNull(fixed);
@@ -118,7 +118,7 @@ class ItemServiceRepairDurabilityRaceTest {
         CountDownLatch releaseApi = new CountDownLatch(1);
         String operationId = UUID.randomUUID().toString();
         when(repository.applyEquipmentOrbOperation(
-            operationId, accountId, instanceId, "orb-entry", "orb.repair_full"
+            operationId, accountId, instanceId, "orb-entry", "orb.repair_full", null, null
         )).thenAnswer(invocation -> {
             apiStarted.countDown();
             assertTrue(releaseApi.await(2, TimeUnit.SECONDS));
@@ -129,7 +129,7 @@ class ItemServiceRepairDurabilityRaceTest {
         try {
             Future<EquipmentOrbOperationResult> repair = executor.submit(() ->
                 service.applyEquipmentOrbOperation(
-                    operationId, accountId, instanceId, "orb-entry", "orb.repair_full"));
+                    operationId, accountId, instanceId, "orb-entry", "orb.repair_full", null, null));
             assertTrue(apiStarted.await(2, TimeUnit.SECONDS));
 
             assertNotNull(service.updateEquipmentDurability(instanceId, 30, accountId));
@@ -180,7 +180,7 @@ class ItemServiceRepairDurabilityRaceTest {
         String operationId = UUID.randomUUID().toString();
         AtomicBoolean repairApiCalled = new AtomicBoolean();
         when(repository.applyEquipmentOrbOperation(
-            operationId, accountIdText, instanceId, "orb-entry", "orb.repair_full"
+            operationId, accountIdText, instanceId, "orb-entry", "orb.repair_full", null, null
         )).thenAnswer(invocation -> {
             repairApiCalled.set(true);
             return repairResult(operationId, instance(instanceId, accountIdText, 100, 100), 60);
@@ -198,7 +198,7 @@ class ItemServiceRepairDurabilityRaceTest {
         try {
             var repair = coordinator.executeExclusiveAfterSave(accountId, () ->
                 service.applyEquipmentOrbOperation(
-                    operationId, accountIdText, instanceId, "orb-entry", "orb.repair_full"));
+                    operationId, accountIdText, instanceId, "orb-entry", "orb.repair_full", null, null));
             assertTrue(flushStarted.await(2, TimeUnit.SECONDS));
             assertFalse(repairApiCalled.get());
 

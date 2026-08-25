@@ -117,7 +117,7 @@ class OrbServicePaymentFailureCompatibilityTest extends MockBukkitTestBase {
             .thenReturn(ItemService.EquipmentPreloadResult.COMPLETE);
         when(itemService.applyEquipmentOrbOperation(
             anyString(), eq(accountId.toString()), eq(equipmentInstanceId.toString()),
-            eq(orbEntryId.toString()), eq(orbModel.getId())
+            eq(orbEntryId.toString()), eq(orbModel.getId()), any(), any()
         )).thenAnswer(invocation -> new EquipmentOrbOperationResult(
             invocation.getArgument(0, String.class),
             EquipmentOrbOperationResultType.PAYMENT_UNAVAILABLE,

@@ -59,7 +59,9 @@ class ItemServiceDurabilityMergeTest {
             accountId,
             instanceId,
             "orb-entry",
-            "orb.weapon_tyr"
+            "orb.weapon_tyr",
+            null,
+            null
         )).thenReturn(notEligible);
 
         EquipmentOrbOperationResult result = service.applyEquipmentOrbOperation(
@@ -67,7 +69,9 @@ class ItemServiceDurabilityMergeTest {
             accountId,
             instanceId,
             "orb-entry",
-            "orb.weapon_tyr"
+            "orb.weapon_tyr",
+            null,
+            null
         );
 
         assertNotNull(result);
@@ -103,7 +107,9 @@ class ItemServiceDurabilityMergeTest {
             accountId,
             instanceId,
             "orb-entry",
-            "orb.weapon_tyr"
+            "orb.weapon_tyr",
+            null,
+            null
         )).thenReturn(applied(operationId, apiResult));
 
         EquipmentOrbOperationResult result = service.applyEquipmentOrbOperation(
@@ -111,7 +117,9 @@ class ItemServiceDurabilityMergeTest {
             accountId,
             instanceId,
             "orb-entry",
-            "orb.weapon_tyr"
+            "orb.weapon_tyr",
+            null,
+            null
         );
 
         assertNotNull(result);
@@ -205,7 +213,9 @@ class ItemServiceDurabilityMergeTest {
             accountId,
             instanceId,
             "orb-entry",
-            "orb.weapon_tyr"
+            "orb.weapon_tyr",
+            null,
+            null
         )).thenReturn(applied(
             operationId,
             instance(instanceId, accountId, 1, 0, 120, 120)
@@ -222,7 +232,9 @@ class ItemServiceDurabilityMergeTest {
                 accountId,
                 instanceId,
                 "orb-entry",
-                "orb.weapon_tyr"
+                "orb.weapon_tyr",
+                null,
+                null
             );
             assertNotNull(mutation);
             assertEquals(60, mutation.getEquipment().getDurabilityValue());

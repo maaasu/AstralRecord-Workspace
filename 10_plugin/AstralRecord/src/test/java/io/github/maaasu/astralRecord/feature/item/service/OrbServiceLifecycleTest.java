@@ -188,7 +188,9 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             eq(harness.accountId.toString()),
             anyString(),
             eq(harness.additionalOrbEntryId.toString()),
-            eq(harness.orbModel.getId())
+            eq(harness.orbModel.getId()),
+            any(),
+            any()
         );
     }
 
@@ -219,7 +221,9 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             eq(harness.accountId.toString()),
             anyString(),
             eq(harness.additionalOrbEntryId.toString()),
-            eq(harness.orbModel.getId())
+            eq(harness.orbModel.getId()),
+            any(),
+            any()
         );
     }
 
@@ -498,7 +502,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         verify(targetClick).setCancelled(true);
         assertEquals(0, harness.laneExecutor.pendingCount());
         verify(harness.itemService, never()).applyEquipmentOrbOperation(
-            anyString(), anyString(), anyString(), anyString(), anyString());
+            anyString(), anyString(), anyString(), anyString(), anyString(), any(), any());
         assertEquals(Material.IRON_SWORD,
             harness.player.getOpenInventory().getTopInventory().getItem(0).getType());
     }
@@ -1050,7 +1054,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         verify(harness.inventoryService).releaseOrbOperationPayment(
             eq(harness.accountId), any(UUID.class));
         verify(harness.itemService, never()).applyEquipmentOrbOperation(
-            anyString(), anyString(), anyString(), anyString(), anyString());
+            anyString(), anyString(), anyString(), anyString(), anyString(), any(), any());
         assertFalse(harness.coordinator.hasUnresolvedExternalOperation(harness.accountId));
     }
 
@@ -1076,7 +1080,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             any(InventoryPersistence.PersistedInventoryBaseline.class)
         );
         verify(harness.itemService, never()).applyEquipmentOrbOperation(
-            anyString(), anyString(), anyString(), anyString(), anyString());
+            anyString(), anyString(), anyString(), anyString(), anyString(), any(), any());
         assertFalse(harness.coordinator.hasUnresolvedExternalOperation(harness.accountId));
     }
 
@@ -1412,7 +1416,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 return null;
             }).when(inventoryService).discardUnavailableEquipmentInstance(accountId, equippedInstanceId);
             when(itemService.applyEquipmentOrbOperation(
-                anyString(), anyString(), anyString(), anyString(), anyString()
+                anyString(), anyString(), anyString(), anyString(), anyString(), any(), any()
             )).thenAnswer(invocation -> {
                 String operationId = invocation.getArgument(0, String.class);
                 operationIds.add(operationId);
