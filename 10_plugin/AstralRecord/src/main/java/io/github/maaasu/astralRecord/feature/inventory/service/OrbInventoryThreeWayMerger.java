@@ -57,6 +57,7 @@ final class OrbInventoryThreeWayMerger {
         Map<UUID, InventoryEntryModel> currentById = indexEntries(currentEntries);
         Set<UUID> changedInventoryIds = new LinkedHashSet<>();
         Set<UUID> inventoryIdsNeedingCompaction = new LinkedHashSet<>();
+        Set<UUID> apiAddedEntryIds = new LinkedHashSet<>();
 
         for (Map.Entry<UUID, Optional<InventoryEntryModel>> affected
             : authoritativeAffectedEntries.entrySet()) {
@@ -89,7 +90,8 @@ final class OrbInventoryThreeWayMerger {
                     accountId,
                     ownedInventories,
                     changedInventoryIds,
-                    inventoryIdsNeedingCompaction
+                    inventoryIdsNeedingCompaction,
+                    apiAddedEntryIds
                 );
                 reconcileAffectedEntryIdentity(
                     merged,
@@ -105,6 +107,7 @@ final class OrbInventoryThreeWayMerger {
                 && !sameLogicalItem(current, authoritative)) {
                 removeEntry(merged, entryId, changedInventoryIds);
                 addEntry(merged, authoritative, ownedInventories, changedInventoryIds);
+                apiAddedEntryIds.add(authoritative.getInventoryEntryId());
                 addEntry(
                     merged,
                     asNewEntry(current, current.getQuantity(), accountId),
@@ -155,6 +158,9 @@ final class OrbInventoryThreeWayMerger {
                     : asNewEntry(local, mergedQuantity, accountId);
             }
             addEntry(merged, result, ownedInventories, changedInventoryIds);
+            if (baseline == null && authoritative != null) {
+                apiAddedEntryIds.add(result.getInventoryEntryId());
+            }
         }
 
         if (currencyInventoryId != null) {
@@ -175,7 +181,8 @@ final class OrbInventoryThreeWayMerger {
         return new MergeResult(
             Map.copyOf(immutable),
             Set.copyOf(changedInventoryIds),
-            Set.copyOf(inventoryIdsNeedingCompaction)
+            Set.copyOf(inventoryIdsNeedingCompaction),
+            Set.copyOf(apiAddedEntryIds)
         );
     }
 
@@ -266,7 +273,8 @@ final class OrbInventoryThreeWayMerger {
         @NotNull UUID accountId,
         @NotNull Map<UUID, InventoryModel> ownedInventories,
         @NotNull Set<UUID> changedInventoryIds,
-        @NotNull Set<UUID> inventoryIdsNeedingCompaction
+        @NotNull Set<UUID> inventoryIdsNeedingCompaction,
+        @NotNull Set<UUID> apiAddedEntryIds
     ) {
         if (apiDelta == 0L) {
             return;
@@ -275,6 +283,7 @@ final class OrbInventoryThreeWayMerger {
             InventoryEntryModel source = authoritative == null ? baseline : authoritative;
             InventoryEntryModel added = asNewEntry(source, apiDelta, accountId);
             addEntry(entriesByInventory, added, ownedInventories, changedInventoryIds);
+            apiAddedEntryIds.add(added.getInventoryEntryId());
             return;
         }
 
@@ -610,7 +619,8 @@ final class OrbInventoryThreeWayMerger {
     record MergeResult(
         @NotNull Map<UUID, List<InventoryEntryModel>> entriesByInventoryId,
         @NotNull Set<UUID> changedInventoryIds,
-        @NotNull Set<UUID> inventoryIdsNeedingCompaction
+        @NotNull Set<UUID> inventoryIdsNeedingCompaction,
+        @NotNull Set<UUID> apiAddedEntryIds
     ) {
     }
 

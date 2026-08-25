@@ -146,6 +146,40 @@ public class EquipmentOrbOperationRepositoryTests
         await harness.AssertSingleTerminalLedgerAsync(result.OperationId, paymentConsumed: true);
     }
 
+    /**
+     * 設計入力: 00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.02-登録系.md
+     * 章・見出し: # 14_3.02 登録系 > #### 支払い entry の消費順
+     * 検証契約: RUNE_ATTACHで選択に使った表示slotに依存せず、同一itemIdのBAG後方slotからルーンを1個消費する。
+     */
+    [Fact]
+    public async Task RuneAttach_ConsumesRuneFromHighestBagSlotByCommonItemOrder()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync(
+            equipment: CreateEquipment(
+                tag: "SWORD",
+                rune: new ItemEquipmentRuneResponse { MaxSlots = "2" }));
+        await harness.SetEquipmentStateAsync(instance => instance.RuneMaxSlots = 2);
+        var orb = await harness.AddOrbAsync("ordered_rune_attach_orb", new ItemOrbEffectResponse
+        {
+            Type = "RUNE_ATTACH",
+        }, slotIndex: 1);
+        harness.RegisterRune("ordered_sword_rune", ["WEAPON"], ["SWORD"]);
+        var clickedLowSlotRune = await harness.AddNormalEntryAsync(
+            "ordered_sword_rune", "rune", 5, slotIndex: 2);
+        var highestSlotRune = await harness.AddNormalEntryAsync(
+            "ordered_sword_rune", "rune", 5, slotIndex: 8);
+        var request = harness.CreateRequest(Guid.NewGuid(), "ordered_rune_attach_orb", orb);
+        request.RuneItemId = "ordered_sword_rune";
+
+        var result = await harness.ExecuteAsync(request);
+
+        Assert.Equal("APPLIED", result.Result);
+        Assert.Equal(5, await harness.GetEntryQuantityAsync(clickedLowSlotRune));
+        Assert.Equal(4, await harness.GetEntryQuantityAsync(highestSlotRune));
+        Assert.Contains(highestSlotRune, result.AffectedInventoryEntryIds);
+        Assert.DoesNotContain(clickedLowSlotRune, result.AffectedInventoryEntryIds);
+    }
+
     [Fact]
     public async Task RuneDetach_CreatesUnslottedBagStackForPluginPlacement()
     {

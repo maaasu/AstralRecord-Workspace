@@ -71,6 +71,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 
 /**
  * インベントリ機能のビジネスロジックを担うサービス。
@@ -2313,20 +2314,22 @@ public class InventoryService {
         @NotNull Collection<UUID> affectedEntryIds,
         @NotNull InventoryPersistence.PersistedInventoryBaseline baseline
     ) {
-        reconcileExternalInventoryEntries(accountId, affectedEntryIds, baseline, null);
+        reconcileExternalInventoryEntries(accountId, affectedEntryIds, baseline, null, null);
     }
 
-    private void reconcileExternalInventoryEntries(
+    private @NotNull Set<UUID> reconcileExternalInventoryEntries(
         @NotNull UUID accountId,
         @NotNull Collection<UUID> affectedEntryIds,
         @NotNull InventoryPersistence.PersistedInventoryBaseline baseline,
-        @Nullable Consumer<Map<UUID, Optional<InventoryEntryModel>>> beforePublish
+        @Nullable Consumer<Map<UUID, Optional<InventoryEntryModel>>> beforePublish,
+        @Nullable ExternalReturnNormalization returnNormalization
     ) {
         if (!baseline.accountId().equals(accountId)) {
             throw new IllegalArgumentException("Inventory baseline account mismatch: " + accountId);
         }
         PlayerInventoryState state = requireState(accountId);
         UUID currencyInventoryId;
+        Set<UUID> bagInventoryIds;
         synchronized (state) {
             if (getState(accountId) != state) {
                 throw new IllegalStateException("Inventory state generation changed for account " + accountId);
@@ -2335,6 +2338,11 @@ public class InventoryService {
             currencyInventoryId = currency == null || !currency.isEnabled() || currency.isDeleted()
                 ? null
                 : currency.getInventoryId();
+            bagInventoryIds = state.snapshotInventories().stream()
+                .filter(inventory -> inventory.isEnabled() && !inventory.isDeleted())
+                .filter(inventory -> inventory.getInventoryType() == InventoryType.BAG)
+                .map(InventoryModel::getInventoryId)
+                .collect(Collectors.toUnmodifiableSet());
         }
 
         List<InventoryEntryModel> authoritativeCurrency = currencyInventoryId == null
@@ -2356,6 +2364,14 @@ public class InventoryService {
         if (beforePublish != null) {
             beforePublish.accept(authoritativeAffected);
         }
+        PreparedExternalReturns preparedReturns = returnNormalization == null
+            ? PreparedExternalReturns.empty()
+            : prepareExternalReturns(
+                authoritativeAffected,
+                baseline,
+                bagInventoryIds,
+                returnNormalization.runeOnly()
+            );
 
         synchronized (state) {
             if (getState(accountId) != state) {
@@ -2395,11 +2411,32 @@ public class InventoryService {
                         : List.copyOf(entries)
                 );
             }
-            // All calculations above operate on detached lists and may fail without mutating state.
-            // Once this loop starts, replacement is an in-memory, non-I/O publication only, so a
-            // reconciliation retry cannot apply the API delta twice after a partial publish.
-            for (Map.Entry<UUID, List<InventoryEntryModel>> finalized : finalizedEntries.entrySet()) {
-                state.replaceEntries(finalized.getKey(), finalized.getValue());
+            InventoryStateSnapshot prePublish = new InventoryStateSnapshot(
+                accountId,
+                currentEntries,
+                state.getDisplayedType(),
+                state.isDirty()
+            );
+            try {
+                // Publish and returned-item normalization form one in-memory transaction. If common
+                // addition fails, restore the exact state observed after API I/O and before merge so
+                // retrying the same baseline cannot apply the authoritative delta twice.
+                for (Map.Entry<UUID, List<InventoryEntryModel>> finalized : finalizedEntries.entrySet()) {
+                    state.replaceEntries(finalized.getKey(), finalized.getValue());
+                }
+                if (returnNormalization != null) {
+                    normalizeExternallyReturnedOwnedEntries(
+                        accountId,
+                        result.apiAddedEntryIds(),
+                        returnNormalization.runeOnly(),
+                        returnNormalization.allowBagOverflow(),
+                        preparedReturns
+                    );
+                }
+                return result.apiAddedEntryIds();
+            } catch (RuntimeException exception) {
+                restoreState(prePublish);
+                throw exception;
             }
         }
     }
@@ -2428,9 +2465,9 @@ public class InventoryService {
                 affectedEntryIds,
                 baseline,
                 authoritativeAffected
-            )
+            ),
+            new ExternalReturnNormalization(false, true)
         );
-        normalizeExternallyReturnedOwnedEntries(accountId, affectedEntryIds, false, true);
     }
 
     /**
@@ -2533,8 +2570,8 @@ public class InventoryService {
      * 外部原子操作の正本を三者マージした後、受け取った通常アイテムを共通の所有インベントリ返却処理へ
      * 正規化します。
      * <p>
-     * BAG に返された stack entry は API が返した affected ID を正本として同一 BAG 内の重複 stack を
-     * 統合します。HOTBAR に復元された entry と BAG 以外へ返された個体品は、一度取り除いて
+     * BAG に未配置または最大 stack 超過で返された stack entry は、その返却分だけを一度取り除き、
+     * 既存 stack を保持したまま共通追加処理へ通します。HOTBAR に復元された entry と BAG 以外へ返された個体品は、一度取り除いて
      * {@link #returnItemToOwnedInventory(AstPlayer, InventoryEntryModel)} と同じ state 更新処理で BAG へ戻します。
      * 通貨 entry は額面正規化を含む三者マージ結果をそのまま維持します。
      *
@@ -2550,65 +2587,134 @@ public class InventoryService {
         @NotNull InventoryPersistence.PersistedInventoryBaseline baseline
     ) {
         UUID accountId = astPlayer.getAccount().getUuid();
-        reconcileExternalInventoryEntries(accountId, affectedEntryIds, baseline);
-        normalizeExternallyReturnedOwnedEntries(astPlayer, affectedEntryIds);
+        reconcileExternalInventoryEntries(
+            accountId,
+            affectedEntryIds,
+            baseline,
+            null,
+            new ExternalReturnNormalization(false, false)
+        );
     }
 
-    /** affected entry の通常品を、共通返却規則に従う所有インベントリ状態へ正規化します。 */
-    private void normalizeExternallyReturnedOwnedEntries(
-        @NotNull AstPlayer astPlayer,
-        @NotNull Collection<UUID> affectedEntryIds
+    /** API I/Oをstate lock外で完了し、返却正規化が参照するitem情報を固定します。 */
+    private @NotNull PreparedExternalReturns prepareExternalReturns(
+        @NotNull Map<UUID, Optional<InventoryEntryModel>> authoritativeAffected,
+        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline,
+        @NotNull Set<UUID> bagInventoryIds,
+        boolean runeOnly
     ) {
-        normalizeExternallyReturnedOwnedEntries(astPlayer.getAccount().getUuid(), affectedEntryIds, false, false);
+        Map<String, ItemModel> modelsByItemId = new LinkedHashMap<>();
+        Map<UUID, ItemReference> referencesByInstanceId = new LinkedHashMap<>();
+        for (Map.Entry<UUID, Optional<InventoryEntryModel>> affected : authoritativeAffected.entrySet()) {
+            InventoryEntryModel entry = affected.getValue().orElse(null);
+            if (entry == null
+                || ItemCategory.fromApiValue(entry.getItemCategory()) == ItemCategory.CURRENCY) {
+                continue;
+            }
+            InventoryEntryModel baselineEntry = baseline.findEntry(affected.getKey());
+            if (baselineEntry != null && entry.getQuantity() <= baselineEntry.getQuantity()) {
+                continue;
+            }
+            if (runeOnly && ItemCategory.fromApiValue(entry.getItemCategory()) != ItemCategory.RUNE) {
+                continue;
+            }
+            if (!isNormalItemEntry(entry) && bagInventoryIds.contains(entry.getInventoryId())) {
+                continue;
+            }
+            ItemReference reference = resolveReturnItemReference(entry);
+            ItemModel model = reference == null ? null : itemReferenceResolver.resolveItemModel(reference);
+            if (reference == null || model == null) {
+                throw new IllegalStateException(
+                    "Externally returned inventory item could not be resolved: "
+                        + entry.getInventoryEntryId());
+            }
+            modelsByItemId.put(reference.itemId(), model);
+            if (entry.getInstanceId() != null) {
+                referencesByInstanceId.put(entry.getInstanceId(), reference);
+            }
+        }
+        return new PreparedExternalReturns(
+            Map.copyOf(modelsByItemId), Map.copyOf(referencesByInstanceId));
     }
 
-    /** affected entry の通常品を、account ID を正本として共通返却規則へ通します。 */
+    /** APIが今回追加したentryの通常品を、account ID を正本として共通返却規則へ通します。 */
     private void normalizeExternallyReturnedOwnedEntries(
         @NotNull UUID accountId,
-        @NotNull Collection<UUID> affectedEntryIds,
+        @NotNull Collection<UUID> apiAddedEntryIds,
         boolean runeOnly,
-        boolean allowBagOverflow
+        boolean allowBagOverflow,
+        @NotNull PreparedExternalReturns preparedReturns
     ) {
         PlayerInventoryState state = requireState(accountId);
         synchronized (state) {
             if (getState(accountId) != state) {
                 throw new IllegalStateException("Inventory state generation changed for account " + accountId);
             }
-            InventoryStateSnapshot snapshot = snapshotState(accountId);
-            try {
-                for (UUID entryId : new LinkedHashSet<>(affectedEntryIds)) {
-                    InventoryEntryModel affected = findOwnedEntry(accountId, entryId);
-                    if (affected == null
-                        || ItemCategory.fromApiValue(affected.getItemCategory()) == ItemCategory.CURRENCY) {
-                        continue;
-                    }
-                    if (runeOnly
-                        && ItemCategory.fromApiValue(affected.getItemCategory()) != ItemCategory.RUNE) {
-                        continue;
-                    }
-                    InventoryModel currentInventory = state.findInventoryById(affected.getInventoryId());
-                    if (currentInventory == null || !currentInventory.isEnabled() || currentInventory.isDeleted()) {
-                        continue;
-                    }
-                    if (currentInventory.getInventoryType() != InventoryType.BAG) {
-                        relocateReturnedEntryThroughOwnedInventory(state, affected);
-                        continue;
-                    }
-                    if (isStackableByItemId(affected)) {
-                        mergeReturnedBagStack(state, currentInventory, affected, allowBagOverflow);
-                    }
+            for (UUID entryId : new LinkedHashSet<>(apiAddedEntryIds)) {
+                InventoryEntryModel affected = findOwnedEntry(accountId, entryId);
+                if (affected == null
+                    || ItemCategory.fromApiValue(affected.getItemCategory()) == ItemCategory.CURRENCY) {
+                    continue;
                 }
-            } catch (RuntimeException exception) {
-                restoreState(snapshot);
-                throw exception;
+                if (runeOnly
+                    && ItemCategory.fromApiValue(affected.getItemCategory()) != ItemCategory.RUNE) {
+                    continue;
+                }
+                InventoryModel currentInventory = state.findInventoryById(affected.getInventoryId());
+                if (currentInventory == null || !currentInventory.isEnabled() || currentInventory.isDeleted()) {
+                    continue;
+                }
+                if (currentInventory.getInventoryType() != InventoryType.BAG) {
+                    relocateReturnedEntryThroughOwnedInventory(state, affected, preparedReturns);
+                    continue;
+                }
+                if (isStackableByItemId(affected)) {
+                    mergeReturnedBagStack(
+                        state, currentInventory, affected, allowBagOverflow, preparedReturns);
+                }
             }
+        }
+    }
+
+    private record ExternalReturnNormalization(boolean runeOnly, boolean allowBagOverflow) {
+    }
+
+    /** state lock内でAPIやmaster cacheへ問い合わせず返却itemを解決するための固定値です。 */
+    private record PreparedExternalReturns(
+        @NotNull Map<String, ItemModel> modelsByItemId,
+        @NotNull Map<UUID, ItemReference> referencesByInstanceId
+    ) {
+        private static @NotNull PreparedExternalReturns empty() {
+            return new PreparedExternalReturns(Map.of(), Map.of());
+        }
+
+        private @Nullable ItemModel resolveModel(@NotNull InventoryEntryModel entry) {
+            if (entry.getItemId() != null && !entry.getItemId().isBlank()) {
+                ItemModel direct = modelsByItemId.get(entry.getItemId());
+                if (direct != null) {
+                    return direct;
+                }
+            }
+            ItemReference reference = entry.getInstanceId() == null
+                ? null
+                : referencesByInstanceId.get(entry.getInstanceId());
+            return reference == null ? null : modelsByItemId.get(reference.itemId());
+        }
+
+        private @Nullable ItemReference resolveReference(@NotNull InventoryEntryModel entry) {
+            if (entry.getInstanceId() != null) {
+                return referencesByInstanceId.get(entry.getInstanceId());
+            }
+            ItemModel model = resolveModel(entry);
+            return model == null ? null : new ItemReference(model.getId(), model.getCategory(), null);
         }
     }
 
     /** BAG 以外へ返された entry を元 inventory から除去し、共通返却処理で BAG へ移します。 */
     private void relocateReturnedEntryThroughOwnedInventory(
         @NotNull PlayerInventoryState state,
-        @NotNull InventoryEntryModel affected
+        @NotNull InventoryEntryModel affected,
+        @NotNull PreparedExternalReturns preparedReturns
     ) {
         if (affected.getQuantity() < 1L || affected.getQuantity() > Integer.MAX_VALUE) {
             throw new IllegalStateException(
@@ -2617,23 +2723,26 @@ public class InventoryService {
         removeEntryFromInventory(state, affected);
         if (returnResolvedItemToOwnedInventoryState(
             state,
-            resolveReturnItemReference(affected),
+            preparedReturns.resolveReference(affected),
+            preparedReturns.resolveModel(affected),
             Math.toIntExact(affected.getQuantity()),
-            affected.getMetadataJson()
+            affected.getMetadataJson(),
+            false
         ) == null) {
             throw new IllegalStateException(
                 "Externally returned inventory entry could not be placed: " + affected.getInventoryEntryId());
         }
     }
 
-    /** API affected entry を正本として、同じ BAG に残る同一 stack entry を統合します。 */
+    /** 未配置または最大数超過の API 返却 stack だけを、既存 stack を壊さず共通追加処理へ通します。 */
     private void mergeReturnedBagStack(
         @NotNull PlayerInventoryState state,
         @NotNull InventoryModel bagInventory,
         @NotNull InventoryEntryModel affected,
-        boolean allowBagOverflow
+        boolean allowBagOverflow,
+        @NotNull PreparedExternalReturns preparedReturns
     ) {
-        ItemModel model = resolveItemModel(affected);
+        ItemModel model = preparedReturns.resolveModel(affected);
         if (model == null) {
             throw new IllegalStateException(
                 "Externally returned inventory item could not be resolved: " + affected.getInventoryEntryId());
@@ -2642,67 +2751,22 @@ public class InventoryService {
         if (maxStack <= 1) {
             return;
         }
-        List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(bagInventory.getInventoryId()).stream()
-            .filter(entry -> !entry.isDeleted())
-            .toList());
-        int capacity = inventoryCapacity(bagInventory);
-        InventoryEntryModel canonicalAffected = affected;
-        if (!isManagedNormalInventoryEntry(affected, capacity)) {
-            Integer canonicalSlot = entries.stream()
-                .filter(entry -> !entry.getInventoryEntryId().equals(affected.getInventoryEntryId()))
-                .filter(entry -> isSameStackableItem(entry, affected))
-                .filter(entry -> isManagedNormalInventoryEntry(entry, capacity))
-                .map(InventoryEntryModel::getSlotIndex)
-                .min(Integer::compareTo)
-                .orElse(null);
-            if (canonicalSlot != null) {
-                canonicalAffected = withSlot(affected, canonicalSlot, state.getAccountId());
-            }
+        if (affected.getQuantity() < 1L || affected.getQuantity() > Integer.MAX_VALUE) {
+            throw new IllegalStateException(
+                "Externally returned inventory entry has invalid quantity: " + affected.getInventoryEntryId());
         }
-        boolean affectedExceedsMaxStack = canonicalAffected.getQuantity() > maxStack;
-        long amountToMerge = Math.max(0L, canonicalAffected.getQuantity() - maxStack);
-        boolean changed = affectedExceedsMaxStack
-            || !Objects.equals(affected.getSlotIndex(), canonicalAffected.getSlotIndex());
-        List<InventoryEntryModel> retained = new ArrayList<>();
-        for (InventoryEntryModel entry : entries) {
-            if (entry.getInventoryEntryId().equals(affected.getInventoryEntryId())) {
-                retained.add(affectedExceedsMaxStack
-                    ? withQuantity(canonicalAffected, maxStack, state.getAccountId())
-                    : canonicalAffected);
-                continue;
-            }
-            if (isSameStackableItem(entry, canonicalAffected)) {
-                amountToMerge = Math.addExact(amountToMerge, entry.getQuantity());
-                changed = true;
-                continue;
-            }
-            retained.add(entry);
-        }
-        if (!changed) {
+        removeEntryFromInventory(state, affected);
+        int returnedAmount = Math.toIntExact(affected.getQuantity());
+        int addedAmount = addStackedItems(state, bagInventory, model, returnedAmount);
+        int overflowAmount = returnedAmount - addedAmount;
+        if (overflowAmount <= 0) {
             return;
         }
-        state.replaceEntries(bagInventory.getInventoryId(), retained);
-        int mergeAmount = Math.toIntExact(amountToMerge);
-        if (mergeAmount > 0) {
-            if (allowBagOverflow) {
-                int mergedAmount = addStackedItems(state, bagInventory, model, mergeAmount);
-                appendBagOverflowStack(
-                    state,
-                    bagInventory,
-                    canonicalAffected,
-                    mergeAmount - mergedAmount,
-                    maxStack
-                );
-            } else if (returnResolvedItemToOwnedInventoryState(
-                state,
-                resolveItemReference(canonicalAffected),
-                mergeAmount,
-                canonicalAffected.getMetadataJson()
-            ) != InventoryType.BAG) {
-                throw new IllegalStateException(
-                    "Externally returned inventory stack could not be merged: " + affected.getInventoryEntryId());
-            }
+        if (!allowBagOverflow) {
+            throw new IllegalStateException(
+                "Externally returned inventory stack could not be merged: " + affected.getInventoryEntryId());
         }
+        appendBagOverflowStack(state, bagInventory, affected, overflowAmount, maxStack);
     }
 
     /** API確定後にBAG容量を超えた通常stackを、保存可能な容量外slotへ退避します。 */
@@ -2818,8 +2882,13 @@ public class InventoryService {
         @NotNull Collection<UUID> affectedEntryIds,
         @NotNull InventoryPersistence.PersistedInventoryBaseline baseline
     ) {
-        reconcileExternalInventoryEntries(accountId, affectedEntryIds, baseline);
-        normalizeExternallyReturnedOwnedEntries(accountId, affectedEntryIds, true, true);
+        reconcileExternalInventoryEntries(
+            accountId,
+            affectedEntryIds,
+            baseline,
+            null,
+            new ExternalReturnNormalization(true, true)
+        );
     }
 
     private @NotNull List<InventoryEntryModel> compactMergedEntriesAfterRemoval(
@@ -5570,14 +5639,33 @@ public class InventoryService {
             return null;
         }
         ItemModel model = itemReferenceResolver.resolveItemModel(reference);
-        if (model == null) {
+        return returnResolvedItemToOwnedInventoryState(
+            state, reference, model, amount, metadataJson, true);
+    }
+
+    /** 解決済みmodelを使い、必要に応じて未作成inventoryへのAPI I/Oを禁止して共通付与します。 */
+    private @Nullable InventoryType returnResolvedItemToOwnedInventoryState(
+        @NotNull PlayerInventoryState state,
+        @Nullable ItemReference reference,
+        @Nullable ItemModel model,
+        int amount,
+        @Nullable String metadataJson,
+        boolean createMissingInventory
+    ) {
+        if (reference == null || model == null || amount < 1) {
             return null;
         }
         ItemCategory category = ItemCategory.fromApiValue(reference.category());
         InventoryType targetType = resolveTargetInventoryType(model);
         synchronized (state) {
-            InventoryModel targetInventory = ensureInventory(state, targetType,
-                resolveSlotCapacity(targetType), state.getAccountId(), DEFAULT_PROFILE);
+            InventoryModel targetInventory = state.findInventory(DEFAULT_PROFILE, targetType);
+            if (targetInventory == null && createMissingInventory) {
+                targetInventory = ensureInventory(state, targetType,
+                    resolveSlotCapacity(targetType), state.getAccountId(), DEFAULT_PROFILE);
+            }
+            if (targetInventory == null) {
+                return null;
+            }
             List<InventoryEntryModel> beforeEntries = state.snapshotEntries(targetInventory.getInventoryId());
 
             boolean fullyAdded = switch (category) {

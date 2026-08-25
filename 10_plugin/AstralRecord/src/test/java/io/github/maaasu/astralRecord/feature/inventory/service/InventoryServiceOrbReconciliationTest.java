@@ -790,10 +790,10 @@ class InventoryServiceOrbReconciliationTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
      * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
-     * 検証契約: 取り下げでBAGへ復元されたaffected stackは同一BAGの既存stackを共通付与処理で統合し、affected IDを正本として保持する。
+     * 検証契約: 取り下げでBAGへ復元された数量だけを共通付与処理で既存stackへ加算し、既存stackのIDと配置を保持する。
      */
     @Test
-    void marketCancellationMergesRestoredBagStackIntoAffectedCanonicalEntry() {
+    void marketCancellationAddsRestoredAmountToExistingBagStack() {
         UUID accountId = UUID.randomUUID();
         UUID existingEntryId = UUID.randomUUID();
         UUID restoredEntryId = UUID.randomUUID();
@@ -845,18 +845,18 @@ class InventoryServiceOrbReconciliationTest {
 
         List<InventoryEntryModel> entries = state.snapshotEntries(bag.getInventoryId());
         assertEquals(1, entries.size(), entries.toString());
-        assertEquals(restoredEntryId, entries.getFirst().getInventoryEntryId());
+        assertEquals(existingEntryId, entries.getFirst().getInventoryEntryId());
         assertEquals(15L, entries.getFirst().getQuantity());
-        assertNull(service.findOwnedEntry(accountId, existingEntryId));
+        assertNull(service.findOwnedEntry(accountId, restoredEntryId));
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
      * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
-     * 検証契約: 容量外へ返されたaffected stackは同一itemの管理slotをaffected IDへ引き継ぎ、共通stack処理で一行へ統合する。
+     * 検証契約: 容量外へ返された数量だけを同一itemの管理slot内stackへ加算し、既存stackのIDを保持する。
      */
     @Test
-    void marketCancellationMovesOverflowAffectedStackIntoManagedCanonicalSlot() {
+    void marketCancellationAddsOverflowReturnToExistingManagedStack() {
         UUID accountId = UUID.randomUUID();
         UUID existingEntryId = UUID.randomUUID();
         UUID restoredEntryId = UUID.randomUUID();
@@ -908,7 +908,7 @@ class InventoryServiceOrbReconciliationTest {
 
         List<InventoryEntryModel> entries = state.snapshotEntries(bag.getInventoryId());
         assertEquals(1, entries.size(), entries.toString());
-        assertEquals(restoredEntryId, entries.getFirst().getInventoryEntryId());
+        assertEquals(existingEntryId, entries.getFirst().getInventoryEntryId());
         assertEquals(NormalInventoryLayout.DB_SLOT_START, entries.getFirst().getSlotIndex());
         assertEquals(64L, entries.getFirst().getQuantity());
     }
@@ -989,10 +989,10 @@ class InventoryServiceOrbReconciliationTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
      * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
-     * 検証契約: 購入APIが加算したaffected BAG entryをcanonicalとして、操作前から残る同一itemの別entryを共通付与処理で統合する。
+     * 検証契約: 購入APIが追加した数量だけを共通付与処理へ渡し、操作前から残る同一itemの各stackとIDを維持する。
      */
     @Test
-    void marketPurchaseKeepsAffectedApiEntryAndMergesExistingDuplicateStack() {
+    void marketPurchaseAddsOnlyApiDeltaWithoutRebuildingExistingStacks() {
         UUID accountId = UUID.randomUUID();
         UUID affectedEntryId = UUID.randomUUID();
         UUID duplicateEntryId = UUID.randomUUID();
@@ -1055,10 +1055,9 @@ class InventoryServiceOrbReconciliationTest {
         );
 
         List<InventoryEntryModel> entries = state.snapshotEntries(bag.getInventoryId());
-        assertEquals(1, entries.size());
-        assertEquals(affectedEntryId, entries.getFirst().getInventoryEntryId());
-        assertEquals(18L, entries.getFirst().getQuantity());
-        assertNull(service.findOwnedEntry(accountId, duplicateEntryId));
+        assertEquals(2, entries.size());
+        assertEquals(15L, service.findOwnedEntry(accountId, affectedEntryId).getQuantity());
+        assertEquals(3L, service.findOwnedEntry(accountId, duplicateEntryId).getQuantity());
     }
 
     /**
@@ -1341,6 +1340,11 @@ class InventoryServiceOrbReconciliationTest {
         assertEquals(6L, entries.getFirst().getQuantity());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 検証契約: ルーン脱着の新規未配置返却entryは、共通追加処理により有効なBAG slotへ配置する。
+     */
     @Test
     void runeDetachReturnAssignsUnslottedNewStackToVisibleBagSlot() {
         Harness harness = harness();
@@ -1366,11 +1370,119 @@ class InventoryServiceOrbReconciliationTest {
             baseline(harness.accountId, harness.bag.getInventoryId(), baselineEntries)
         );
 
-        InventoryEntryModel visible = harness.service.findOwnedEntry(harness.accountId, runeEntryId);
-        assertNotNull(visible);
+        InventoryEntryModel visible = harness.state.snapshotEntries(harness.bag.getInventoryId()).stream()
+            .filter(entry -> runeItemId.equals(entry.getItemId()))
+            .findFirst()
+            .orElseThrow();
+        assertFalse(runeEntryId.equals(visible.getInventoryEntryId()));
         assertEquals(NormalInventoryLayout.DB_SLOT_START + 1, visible.getSlotIndex());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 検証契約: API返却分の共通追加に失敗して同じbaselineで再試行しても、返却数量を重複適用しない。
+     */
+    @Test
+    void runeDetachRetryAfterReturnNormalizationFailureDoesNotDuplicateRune() {
+        Harness harness = harness();
+        String runeItemId = "retry_detached_rune";
+        UUID returnedEntryId = UUID.randomUUID();
+        List<InventoryEntryModel> baselineEntries = harness.state.snapshotEntries(harness.bag.getInventoryId());
+        InventoryEntryModel returnedRune = categoryEntry(
+            returnedEntryId,
+            harness.accountId,
+            harness.bag.getInventoryId(),
+            null,
+            ItemCategory.RUNE,
+            runeItemId,
+            1L
+        );
+        when(harness.repository.findEntryById(returnedEntryId)).thenReturn(returnedRune);
+        when(harness.itemService.findLoadedById(runeItemId))
+            .thenReturn(null, DesignTestFixtures.item(runeItemId, ItemCategory.RUNE, 64));
+        when(harness.itemService.loadItem(runeItemId, ItemCategory.RUNE.getApiValue()))
+            .thenAnswer(invocation -> {
+                assertFalse(Thread.holdsLock(harness.state));
+                return null;
+            });
+        InventoryPersistence.PersistedInventoryBaseline baseline = baseline(
+            harness.accountId, harness.bag.getInventoryId(), baselineEntries);
+
+        assertThrows(IllegalStateException.class, () -> harness.service.reconcileOrbOperationEntries(
+            harness.accountId,
+            List.of(returnedEntryId),
+            baseline
+        ));
+        assertTrue(harness.state.snapshotEntries(harness.bag.getInventoryId()).stream()
+            .noneMatch(entry -> runeItemId.equals(entry.getItemId())));
+
+        harness.service.reconcileOrbOperationEntries(
+            harness.accountId,
+            List.of(returnedEntryId),
+            baseline
+        );
+
+        List<InventoryEntryModel> returnedRunes = harness.state.snapshotEntries(harness.bag.getInventoryId()).stream()
+            .filter(entry -> runeItemId.equals(entry.getItemId()))
+            .toList();
+        assertEquals(1, returnedRunes.size(), returnedRunes.toString());
+        assertEquals(1L, returnedRunes.getFirst().getQuantity());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 検証契約: ルーン脱着で未配置の1個が返却されたとき、既存の同一ルーンfull stackを再構築せず、共通追加処理で次の空きslotへ1個だけ追加する。
+     */
+    @Test
+    void runeDetachReturnKeepsTwoFullStacksAndAddsOnlyReturnedRuneToNextFreeSlot() {
+        Harness harness = harness();
+        String runeItemId = "two_full_stack_detached_rune";
+        UUID firstFullId = UUID.randomUUID();
+        UUID secondFullId = UUID.randomUUID();
+        UUID returnedEntryId = UUID.randomUUID();
+        InventoryEntryModel orb = harness.state.snapshotEntries(harness.bag.getInventoryId()).getFirst();
+        InventoryEntryModel firstFull = categoryEntry(
+            firstFullId, harness.accountId, harness.bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START + 1, ItemCategory.RUNE, runeItemId, 64L);
+        InventoryEntryModel secondFull = categoryEntry(
+            secondFullId, harness.accountId, harness.bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START + 2, ItemCategory.RUNE, runeItemId, 64L);
+        List<InventoryEntryModel> baselineEntries = List.of(orb, firstFull, secondFull);
+        harness.state.replaceEntriesFromLoad(harness.bag.getInventoryId(), baselineEntries);
+        when(harness.repository.findEntryById(returnedEntryId)).thenReturn(categoryEntry(
+            returnedEntryId, harness.accountId, harness.bag.getInventoryId(), null,
+            ItemCategory.RUNE, runeItemId, 1L));
+        when(harness.itemService.findLoadedById(runeItemId))
+            .thenReturn(DesignTestFixtures.item(runeItemId, ItemCategory.RUNE, 64));
+
+        harness.service.reconcileOrbOperationEntries(
+            harness.accountId,
+            List.of(returnedEntryId),
+            baseline(harness.accountId, harness.bag.getInventoryId(), baselineEntries)
+        );
+
+        List<InventoryEntryModel> runes = harness.state.snapshotEntries(harness.bag.getInventoryId()).stream()
+            .filter(entry -> runeItemId.equals(entry.getItemId()))
+            .toList();
+        assertEquals(3, runes.size(), runes.toString());
+        assertEquals(64L, harness.service.findOwnedEntry(harness.accountId, firstFullId).getQuantity());
+        assertEquals(64L, harness.service.findOwnedEntry(harness.accountId, secondFullId).getQuantity());
+        InventoryEntryModel returned = runes.stream()
+            .filter(entry -> !entry.getInventoryEntryId().equals(firstFullId)
+                && !entry.getInventoryEntryId().equals(secondFullId))
+            .findFirst()
+            .orElseThrow();
+        assertEquals(1L, returned.getQuantity());
+        assertEquals(NormalInventoryLayout.DB_SLOT_START + 3, returned.getSlotIndex());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 検証契約: BAG通常容量が満杯でも、API確定済みのルーン返却分は容量外slotへ保持する。
+     */
     @Test
     void runeDetachReturnUsesOverflowSlotWhenBagIsFull() {
         Harness harness = harness();
@@ -1397,13 +1509,21 @@ class InventoryServiceOrbReconciliationTest {
             baseline(harness.accountId, harness.bag.getInventoryId(), baselineEntries)
         );
 
-        InventoryEntryModel overflow = harness.service.findOwnedEntry(harness.accountId, runeEntryId);
-        assertNotNull(overflow);
+        InventoryEntryModel overflow = harness.state.snapshotEntries(harness.bag.getInventoryId()).stream()
+            .filter(entry -> runeItemId.equals(entry.getItemId()))
+            .findFirst()
+            .orElseThrow();
+        assertFalse(runeEntryId.equals(overflow.getInventoryEntryId()));
         assertEquals(NormalInventoryLayout.DB_SLOT_START + 1, overflow.getSlotIndex());
         assertEquals(2, NormalInventoryLayout.displayCapacity(
             harness.state.snapshotEntries(harness.bag.getInventoryId()), 1));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 検証契約: ルーン脱着の返却分はHOTBARだけにある同一stackへ統合せず、BAGへ追加する。
+     */
     @Test
     void runeDetachReturnDoesNotMergeWithHotbarOnlyStack() {
         Harness harness = harness();
@@ -1443,8 +1563,11 @@ class InventoryServiceOrbReconciliationTest {
         );
 
         assertEquals(2L, harness.service.findOwnedEntry(harness.accountId, hotbarEntryId).getQuantity());
-        InventoryEntryModel bagRune = harness.service.findOwnedEntry(harness.accountId, returnedEntryId);
-        assertNotNull(bagRune);
+        InventoryEntryModel bagRune = harness.state.snapshotEntries(harness.bag.getInventoryId()).stream()
+            .filter(entry -> runeItemId.equals(entry.getItemId()))
+            .findFirst()
+            .orElseThrow();
+        assertFalse(returnedEntryId.equals(bagRune.getInventoryEntryId()));
         assertEquals(harness.bag.getInventoryId(), bagRune.getInventoryId());
         assertEquals(1L, bagRune.getQuantity());
     }
