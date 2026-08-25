@@ -287,7 +287,7 @@ public class EquipmentOrbOperationRepository(
                     if (equippedRune is null || string.IsNullOrWhiteSpace(equippedRune.ItemId))
                         return await CompleteAsync("NO_CANDIDATE");
                     returnedRuneItemId = NormalizeId(equippedRune.ItemId);
-                    if (!await CanReturnRuneAsync(request.AccountId, normalEntries, returnedRuneItemId))
+                    if (!await CanReturnRuneAsync(request.AccountId))
                         return await CompleteAsync("PAYMENT_UNAVAILABLE");
                     dbContext.EquipmentInstanceRunes.Remove(equippedRune);
                     break;
@@ -585,7 +585,6 @@ public class EquipmentOrbOperationRepository(
             Runes = runes.Select(rune => new EquipmentInstanceRuneResponse
             {
                 RuneId = rune.RuneId,
-                RuneInstanceId = rune.RuneInstanceId,
                 EquipmentInstanceId = rune.EquipmentInstanceId,
                 SlotIndex = rune.SlotIndex,
                 ItemId = rune.ItemId,
@@ -762,23 +761,23 @@ public class EquipmentOrbOperationRepository(
         && entry.InstanceId is null
         && string.IsNullOrWhiteSpace(entry.InstanceType);
 
-    private async Task<bool> CanReturnRuneAsync(Guid accountId, IReadOnlyCollection<InventoryEntryEntity> entries, string itemId)
-    {
-        var maxStack = Math.Max(1, itemRepository.GetById(itemId)?.MaxStack ?? 64);
-        if (entries.Any(entry => IsNormalStackEntry(entry) && entry.Quantity < maxStack
-                && IdEquals(entry.ItemCategory, "RUNE") && IdEquals(entry.ItemId, itemId)))
-            return true;
-        var inventories = await dbContext.Inventories.AsNoTracking().Where(inventory => inventory.AccountId == accountId
-            && !inventory.IsDeleted && inventory.IsEnabled && inventory.InventoryProfile == GameProfile
-            && (inventory.InventoryType == "BAG" || inventory.InventoryType == "HOTBAR")).ToListAsync();
-        return inventories.Any(inventory => entries.Count(entry => entry.InventoryId == inventory.InventoryId && entry.SlotIndex.HasValue) < inventory.SlotCapacity);
-    }
+    private Task<bool> CanReturnRuneAsync(Guid accountId) =>
+        dbContext.Inventories.AsNoTracking().AnyAsync(inventory =>
+            inventory.AccountId == accountId
+            && !inventory.IsDeleted
+            && inventory.IsEnabled
+            && inventory.InventoryProfile == GameProfile
+            && inventory.InventoryType == "BAG");
 
     private async Task ReturnRuneAsync(Guid accountId, ICollection<InventoryEntryEntity> entries, string itemId,
         DateTime now, ISet<Guid> affectedEntryIds)
     {
         var maxStack = Math.Max(1, itemRepository.GetById(itemId)?.MaxStack ?? 64);
-        var existing = entries.FirstOrDefault(entry => IsNormalStackEntry(entry)
+        var inventory = await dbContext.Inventories.FirstAsync(candidate => candidate.AccountId == accountId
+            && !candidate.IsDeleted && candidate.IsEnabled && candidate.InventoryProfile == GameProfile
+            && candidate.InventoryType == "BAG");
+        var existing = entries.FirstOrDefault(entry => entry.InventoryId == inventory.InventoryId
+            && IsNormalStackEntry(entry)
             && entry.Quantity < maxStack && IdEquals(entry.ItemCategory, "RUNE") && IdEquals(entry.ItemId, itemId));
         if (existing is not null)
         {
@@ -788,17 +787,9 @@ public class EquipmentOrbOperationRepository(
             affectedEntryIds.Add(existing.InventoryEntryId);
             return;
         }
-        var inventory = (await dbContext.Inventories.Where(candidate => candidate.AccountId == accountId
-                && !candidate.IsDeleted && candidate.IsEnabled && candidate.InventoryProfile == GameProfile
-                && (candidate.InventoryType == "BAG" || candidate.InventoryType == "HOTBAR"))
-            .OrderBy(candidate => candidate.InventoryType == "HOTBAR" ? 0 : 1).ToListAsync())
-            .First(candidate => entries.Count(entry => entry.InventoryId == candidate.InventoryId && entry.SlotIndex.HasValue) < candidate.SlotCapacity);
-        var usedSlots = entries.Where(entry => entry.InventoryId == inventory.InventoryId && entry.SlotIndex.HasValue)
-            .Select(entry => entry.SlotIndex!.Value).ToHashSet();
-        var slot = Enumerable.Range(0, inventory.SlotCapacity ?? 0).First(index => !usedSlots.Contains(index));
         var created = new InventoryEntryEntity
         {
-            InventoryEntryId = Guid.NewGuid(), InventoryId = inventory.InventoryId, SlotIndex = slot,
+            InventoryEntryId = Guid.NewGuid(), InventoryId = inventory.InventoryId, SlotIndex = null,
             ItemCategory = "rune", ItemId = itemId, Quantity = 1, CreatedAt = now, UpdatedAt = now,
             CreatedBy = accountId, UpdatedBy = accountId,
         };

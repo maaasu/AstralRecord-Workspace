@@ -44,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -74,6 +75,54 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         assertEquals(ItemCategory.MATERIAL.getApiValue(), entries.get(0).getItemCategory());
         assertEquals(3L, entries.get(0).getQuantity());
         assertTrue(state.isDirty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
+     * 検証契約: ルーン付与は個体IDを生成せず、materialと同じitemIdの既存stackへ数量を加算する。
+     */
+    @Test
+    void runeGrantUsesSharedItemIdStackPathWithoutInstanceId() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        ItemModel rune = DesignTestFixtures.item("debug_attack_rune", ItemCategory.RUNE, 64);
+
+        assertEquals(2, harness.inventoryService.addItemToNormalInventory(astPlayer, rune, 2, "test"));
+        assertEquals(3, harness.inventoryService.addItemToNormalInventory(astPlayer, rune, 3, "test"));
+
+        List<InventoryEntryModel> entries = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(1, entries.size());
+        assertEquals(5L, entries.getFirst().getQuantity());
+        assertEquals(rune.getId(), entries.getFirst().getItemId());
+        assertNull(entries.getFirst().getInstanceType());
+        assertNull(entries.getFirst().getInstanceId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
+     * 検証契約: メール・クエストの準備済み報酬でも、ルーンは個体一覧を要求せず共通stackへ追加する。
+     */
+    @Test
+    void preparedRuneRewardUsesSharedStackPath() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        ItemModel rune = DesignTestFixtures.item("prepared_rune", ItemCategory.RUNE, 64);
+        InventoryService.PreparedInventoryReward reward =
+            new InventoryService.PreparedInventoryReward(rune, 4, List.of());
+
+        assertNotNull(harness.inventoryService.addPreparedRewardsToNormalInventory(
+            astPlayer, List.of(reward)));
+
+        List<InventoryEntryModel> entries = state.snapshotEntries(bag.getInventoryId());
+        assertEquals(1, entries.size());
+        assertEquals(4L, entries.getFirst().getQuantity());
+        assertNull(entries.getFirst().getInstanceId());
     }
 
     /**
@@ -115,7 +164,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         PlayerInventoryState state = harness.registerState(astPlayer);
         state.setBagSlotCapacity(1);
         InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
-        ItemModel rune = DesignTestFixtures.item("reservation_rune", ItemCategory.RUNE, 1);
+        ItemModel rune = DesignTestFixtures.item("reservation_equipment", ItemCategory.EQUIPMENT, 1);
 
         InventoryService.PreparedInstanceSlotReservationResult first =
             harness.inventoryService.reserveBagSlotForPreparedInstance(astPlayer, rune);
@@ -133,7 +182,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
             harness.inventoryService.completePreparedInstanceReservation(
             astPlayer,
             rune,
-            InventoryInstanceType.RUNE,
+            InventoryInstanceType.EQUIPMENT,
             instanceId,
             first.reservation()
         );
@@ -161,7 +210,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         ItemModel first = DesignTestFixtures.item("reservation_compact_first", ItemCategory.MATERIAL, 64);
         ItemModel middle = DesignTestFixtures.item("reservation_compact_middle", ItemCategory.MATERIAL, 64);
         ItemModel last = DesignTestFixtures.item("reservation_compact_last", ItemCategory.MATERIAL, 64);
-        ItemModel rune = DesignTestFixtures.item("reservation_compact_rune", ItemCategory.RUNE, 1);
+        ItemModel rune = DesignTestFixtures.item("reservation_compact_equipment", ItemCategory.EQUIPMENT, 1);
         when(harness.itemService.findLoadedById(last.getId())).thenReturn(last);
         state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
             bagEntry(state.getAccountId(), bag.getInventoryId(), 1, first.getId(), 1L),
@@ -192,7 +241,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
             .completePreparedInstanceReservation(
                 astPlayer,
                 rune,
-                InventoryInstanceType.RUNE,
+                InventoryInstanceType.EQUIPMENT,
                 instanceId,
                 reservation
             );
@@ -215,7 +264,8 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         PlayerInventoryState state = harness.registerState(astPlayer);
         state.setBagSlotCapacity(2);
         InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
-        ItemModel rune = DesignTestFixtures.item("reservation_capacity_reduction_rune", ItemCategory.RUNE, 1);
+        ItemModel rune = DesignTestFixtures.item(
+            "reservation_capacity_reduction_equipment", ItemCategory.EQUIPMENT, 1);
 
         InventoryService.PreparedInstanceSlotReservation reservation = harness.inventoryService
             .reserveBagSlotForPreparedInstance(astPlayer, rune)
@@ -228,7 +278,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
             .completePreparedInstanceReservation(
                 astPlayer,
                 rune,
-                InventoryInstanceType.RUNE,
+                InventoryInstanceType.EQUIPMENT,
                 instanceId,
                 reservation
             );
@@ -255,7 +305,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         ItemModel first = DesignTestFixtures.item("reservation_reduce_first", ItemCategory.MATERIAL, 64);
         ItemModel second = DesignTestFixtures.item("reservation_reduce_second", ItemCategory.MATERIAL, 64);
         ItemModel third = DesignTestFixtures.item("reservation_reduce_third", ItemCategory.MATERIAL, 64);
-        ItemModel rune = DesignTestFixtures.item("reservation_reduce_rune", ItemCategory.RUNE, 1);
+        ItemModel rune = DesignTestFixtures.item("reservation_reduce_equipment", ItemCategory.EQUIPMENT, 1);
         when(harness.itemService.findLoadedById(first.getId())).thenReturn(first);
         state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
             bagEntry(state.getAccountId(), bag.getInventoryId(), 1, first.getId(), 1L),
@@ -727,7 +777,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
             "6"
         );
         when(inventoryService.getEquippedItemReferences(astPlayer)).thenReturn(List.of(
-            new ItemReference("bronze_sword", ItemCategory.EQUIPMENT.getApiValue(), equipmentInstanceId.toString(), null)
+            new ItemReference("bronze_sword", ItemCategory.EQUIPMENT.getApiValue(), equipmentInstanceId.toString())
         ));
         when(itemService.findEquipmentInstanceById(equipmentInstanceId.toString())).thenReturn(equipmentInstance);
         when(itemService.findLoadedById("bronze_sword")).thenReturn(

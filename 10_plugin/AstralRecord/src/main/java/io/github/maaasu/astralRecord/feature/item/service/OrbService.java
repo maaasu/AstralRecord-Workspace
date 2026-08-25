@@ -86,6 +86,7 @@ public final class OrbService {
     private static final int RUNE_SELECTION_SLOT = 13;
     private static final int RUNE_RESULT_SLOT = 16;
     private static final int RUNE_RETURN_SLOT = 25;
+    private static final int RUNE_DETACH_SELECT_BACK_SLOT = 22;
     private static final int MATERIAL_LIST_PREVIOUS_PAGE_SLOT = 45;
     private static final int MATERIAL_LIST_PAGE_INFO_SLOT = 46;
     private static final int MATERIAL_LIST_GOLD_SLOT = 47;
@@ -411,6 +412,10 @@ public final class OrbService {
                     return;
                 }
                 if (session.screen == OrbGuiHolder.Screen.RUNE_ATTACH) {
+                    if (event.getSlot() >= 0 && event.getSlot() <= 8
+                        && HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
+                        return;
+                    }
                     event.setCancelled(true);
                     handleRuneGuiClick(event, session);
                     return;
@@ -992,8 +997,9 @@ public final class OrbService {
             if (rune != null) selector = itemStackFactory.create(rune, 1);
         }
         session.inventory.setItem(RUNE_SELECTION_SLOT, selector);
+        session.inventory.setItem(CONFIRM_BACK_SLOT, GuiItems.backButton());
         boolean ready = isRuneOperationReady(session, target);
-        ItemStack result = ready ? itemStackFactory.create(target.model, previewRuneInstance(session, target), 1)
+        ItemStack result = ready ? itemStackFactory.create(target.model, previewRuneEquipment(session, target), 1)
             : GuiItems.create(Material.BARRIER, Component.text("ルーンを選択してください", NamedTextColor.RED), List.of());
         appendLore(result, List.of(Component.empty(), Component.text(ready ? "クリックして確定" : "操作できません", ready ? NamedTextColor.GREEN : NamedTextColor.RED)));
         session.inventory.setItem(RUNE_RESULT_SLOT, result);
@@ -1015,6 +1021,20 @@ public final class OrbService {
             c.instance.getEquipmentInstanceId().equalsIgnoreCase(session.selectedTargetId)).findFirst().orElse(null);
         if (target == null) { closeAndRemove(session); return; }
         int topSize = event.getView().getTopInventory().getSize();
+        if ((session.screen == OrbGuiHolder.Screen.RUNE_ATTACH
+            || session.screen == OrbGuiHolder.Screen.RUNE_DETACH)
+            && event.getRawSlot() == CONFIRM_BACK_SLOT) {
+            returnToOrbTargetList(session, orb);
+            return;
+        }
+        if (session.screen == OrbGuiHolder.Screen.RUNE_ATTACH
+            && event.getRawSlot() == RUNE_SELECTION_SLOT
+            && session.selectedRuneItemId != null) {
+            session.selectedRuneItemId = null;
+            renderRuneScreen(session, target);
+            GuiSound.SELECT.play(session.player);
+            return;
+        }
         if (session.screen == OrbGuiHolder.Screen.RUNE_ATTACH && event.getRawSlot() >= topSize) {
             InventoryEntryModel entry = inventoryService.getOwnedEntryAtBukkitSlot(session.astPlayer, event.getSlot());
             ItemModel rune = entry == null || entry.getItemId() == null ? null : itemService.findLoadedById(entry.getItemId());
@@ -1028,6 +1048,17 @@ public final class OrbService {
         }
         if (session.screen == OrbGuiHolder.Screen.RUNE_DETACH_SELECT) {
             int rawSlot = event.getRawSlot();
+            if (rawSlot == RUNE_DETACH_SELECT_BACK_SLOT) {
+                session.screen = OrbGuiHolder.Screen.RUNE_DETACH;
+                session.inventory = Bukkit.createInventory(
+                    new OrbGuiHolder(session.player.getUniqueId(), session.token, session.screen),
+                    OrbGuiHolder.sizeFor(session.screen),
+                    Component.text("ルーン脱着", NamedTextColor.DARK_PURPLE));
+                renderRuneScreen(session, target);
+                transitionInventory(session, session.inventory, session.screen);
+                GuiSound.SELECT.play(session.player);
+                return;
+            }
             if (rawSlot == 18) {
                 if (session.runePage > 0) { session.runePage--; openRuneDetachSelection(session, target); }
                 else { GuiSound.DENY.play(session.player); }
@@ -1073,7 +1104,7 @@ public final class OrbService {
     }
 
     /** 右側の完成形表示だけに使う、選択内容を反映した一時装備個体を作成します。 */
-    private @NotNull EquipmentInstance previewRuneInstance(@NotNull OrbSession session, @NotNull OrbCandidate target) {
+    private @NotNull EquipmentInstance previewRuneEquipment(@NotNull OrbSession session, @NotNull OrbCandidate target) {
         List<EquipmentRune> runes = new ArrayList<>(target.instance.getRunes());
         if (session.screen == OrbGuiHolder.Screen.RUNE_ATTACH) {
             int slot = 0;
@@ -1108,6 +1139,7 @@ public final class OrbService {
             if (rune != null) session.inventory.setItem(index - from, itemStackFactory.create(rune, 1));
         }
         session.inventory.setItem(18, pageButton(false, session.runePage > 0));
+        session.inventory.setItem(RUNE_DETACH_SELECT_BACK_SLOT, GuiItems.backButton());
         session.inventory.setItem(26, pageButton(true, from + 18 < target.instance.getRunes().size()));
         transitionInventory(session, session.inventory, OrbGuiHolder.Screen.RUNE_DETACH_SELECT);
     }
@@ -1805,13 +1837,7 @@ public final class OrbService {
             return;
         }
         if (rawSlot == CONFIRM_BACK_SLOT) {
-            Inventory list = Bukkit.createInventory(
-                new OrbGuiHolder(session.player.getUniqueId(), session.token, OrbGuiHolder.Screen.LIST),
-                OrbGuiHolder.sizeFor(OrbGuiHolder.Screen.LIST),
-                Component.text("オーブ対象装備", NamedTextColor.DARK_PURPLE)
-            );
-            renderList(session, orbModel, list, collectCandidates(session, orbModel));
-            transitionInventory(session, list, OrbGuiHolder.Screen.LIST);
+            returnToOrbTargetList(session, orbModel);
             return;
         }
         if (rawSlot == CONFIRM_MATERIAL_LIST_SLOT) {
@@ -1881,6 +1907,20 @@ public final class OrbService {
         }
         session.animationSlot = CONFIRM_TARGET_SLOT;
         executeCandidate(session, orbModel, target);
+    }
+
+    /** 装備操作の確認画面から、同じオーブの対象装備一覧へ戻します。 */
+    private void returnToOrbTargetList(@NotNull OrbSession session, @NotNull ItemModel orbModel) {
+        session.selectedTargetId = null;
+        session.selectedRuneItemId = null;
+        session.selectedRuneSlot = -1;
+        Inventory list = Bukkit.createInventory(
+            new OrbGuiHolder(session.player.getUniqueId(), session.token, OrbGuiHolder.Screen.LIST),
+            OrbGuiHolder.sizeFor(OrbGuiHolder.Screen.LIST),
+            Component.text("オーブ対象装備", NamedTextColor.DARK_PURPLE)
+        );
+        renderList(session, orbModel, list, collectCandidates(session, orbModel));
+        transitionInventory(session, list, OrbGuiHolder.Screen.LIST);
     }
 
     /**

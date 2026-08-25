@@ -5,7 +5,6 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
-import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.mail.model.MailEntry;
 import io.github.maaasu.astralRecord.feature.mail.model.MailFilter;
@@ -453,25 +452,6 @@ public final class MailService {
             return null;
         }
         return new InventoryService.PreparedInventoryInstance(InventoryInstanceType.EQUIPMENT, instanceId);
-    }
-
-    private @Nullable InventoryService.PreparedInventoryInstance prepareRuneInstance(
-        @NotNull ItemModel model,
-        @NotNull UUID accountId
-    ) {
-        RuneInstance instance = itemService.createRuneInstance(
-            model.getId(),
-            accountId.toString(),
-            REWARD_SOURCE,
-            accountId.toString()
-        );
-        if (instance == null) {
-            return null;
-        }
-        UUID instanceId = parseUuidOrNull(instance.getRuneInstanceId());
-        return instanceId == null
-            ? null
-            : new InventoryService.PreparedInventoryInstance(InventoryInstanceType.RUNE, instanceId);
     }
 
     private @Nullable ItemModel resolveRewardModel(@NotNull MailReward reward) {

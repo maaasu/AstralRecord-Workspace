@@ -7,7 +7,6 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
-import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import net.kyori.adventure.text.Component;
@@ -127,11 +126,7 @@ final class InventoryItemStackResolver {
             if (instanceType == null) {
                 return null;
             }
-            return switch (instanceType) {
-                case EQUIPMENT -> resolveEquipment(
-                    entry, expectedAccountId, appendBagActionLore, equippedSetCounts);
-                case RUNE -> resolveRune(entry);
-            };
+            return resolveEquipment(entry, expectedAccountId, appendBagActionLore, equippedSetCounts);
         }
 
         if (entry.getItemId() == null || entry.getItemId().isBlank()) {
@@ -223,19 +218,6 @@ final class InventoryItemStackResolver {
         return appendBagActionLore
             ? appendBagActionLore(itemStack, entry, itemModel)
             : itemStack;
-    }
-
-    private @Nullable ItemStack resolveRune(@NotNull InventoryEntryModel entry) {
-        RuneInstance instance = itemService.findRuneInstanceById(entry.getInstanceId().toString());
-        if (instance == null) {
-            return null;
-        }
-
-        ItemModel itemModel = resolveItemModel(instance.getItemId());
-        if (itemModel == null) {
-            return null;
-        }
-        return itemStackFactory.create(itemModel, instance, 1);
     }
 
     private @Nullable ItemModel resolveItemModel(@NotNull String itemId) {

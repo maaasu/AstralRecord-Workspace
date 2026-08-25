@@ -93,29 +93,6 @@ public class MarketPriceService(
             return new MarketValuation(signature, quality, bucket);
         }
 
-        if (KeyComparer.Equals(request.InstanceType, "RUNE"))
-        {
-            var rune = await dbContext.RuneInstances
-                .AsNoTracking()
-                .FirstOrDefaultAsync(r => r.RuneInstanceId == request.InstanceId.Value && !r.IsDeleted);
-            if (rune is null)
-                return new MarketValuation($"{request.ItemCategory}|{request.ItemId}|RUNE|missing", null, null);
-
-            var rolls = await dbContext.RuneInstanceStatRolls
-                .AsNoTracking()
-                .Where(roll => roll.RuneInstanceId == rune.RuneInstanceId && !roll.IsDeleted)
-                .ToListAsync();
-            var quality = CalculateRuneRollQuality(rolls);
-            var bucket = ToBucket(quality);
-            var signature = string.Join('|',
-                request.ItemCategory,
-                request.ItemId,
-                "RUNE",
-                bucket);
-
-            return new MarketValuation(signature, quality, bucket);
-        }
-
         return new MarketValuation(
             $"{request.ItemCategory}|{request.ItemId}|{request.InstanceType}",
             null,
@@ -184,23 +161,6 @@ public class MarketPriceService(
         }
 
         return normalized.Count == 0 ? null : Math.Round(normalized.Average(), 4);
-    }
-
-    private static decimal? CalculateRuneRollQuality(IEnumerable<Data.Entities.RuneInstanceStatRollEntity> rolls)
-    {
-        var values = rolls
-            .Select(roll => ParseDecimal(roll.RandomValue))
-            .Where(value => value.HasValue)
-            .Select(value => Math.Abs(value!.Value))
-            .ToList();
-        if (values.Count == 0)
-            return null;
-
-        var max = values.Max();
-        if (max <= 0)
-            return null;
-
-        return Math.Round(values.Select(value => Clamp(value / max * 100m, 0m, 100m)).Average(), 4);
     }
 
     private static long ApplyValuationFactor(long sellPrice, decimal? rollQualityScore)

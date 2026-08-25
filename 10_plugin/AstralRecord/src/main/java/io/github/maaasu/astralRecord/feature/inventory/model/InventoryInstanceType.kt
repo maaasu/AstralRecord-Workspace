@@ -4,7 +4,6 @@ enum class InventoryInstanceType(
     val code: String,
 ) {
     EQUIPMENT("EQUIPMENT"),
-    RUNE("RUNE"),
     ;
 
     companion object {

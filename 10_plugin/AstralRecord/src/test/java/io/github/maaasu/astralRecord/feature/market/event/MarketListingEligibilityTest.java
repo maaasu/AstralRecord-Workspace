@@ -27,7 +27,8 @@ class MarketListingEligibilityTest {
             ItemCategory.ORB,
             ItemCategory.CONSUMABLE,
             ItemCategory.SKILL_GEM,
-            ItemCategory.SIGIL
+            ItemCategory.SIGIL,
+            ItemCategory.RUNE
         )) {
             assertTrue(MarketListingEligibility.isEligible(stackEntry(category, null), item(false)), category.name());
         }
@@ -54,7 +55,7 @@ class MarketListingEligibilityTest {
         assertFalse(MarketListingEligibility.isEligible(stackEntry(ItemCategory.MATERIAL, null), item(true)));
         assertFalse(MarketListingEligibility.isEligible(stackEntry(ItemCategory.UNKNOWN, null), item(false)));
         assertFalse(MarketListingEligibility.isEligible(
-            instanceEntry(ItemCategory.SIGIL, InventoryInstanceType.RUNE),
+            instanceEntry(ItemCategory.SIGIL, InventoryInstanceType.EQUIPMENT),
             item(false)
         ));
     }
@@ -75,16 +76,16 @@ class MarketListingEligibilityTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
      * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入
-     * 検証契約: EQUIPMENTとRUNEの個体entryは数量1かつ対応カテゴリであれば出品候補にできる。
+     * 検証契約: EQUIPMENT個体は出品候補にできるが、廃止済みのRUNE個体entryは拒否する。
      */
     @Test
-    void acceptsSupportedInstanceEntriesWithMatchingCategories() {
+    void acceptsEquipmentInstanceAndRejectsLegacyRuneInstance() {
         assertTrue(MarketListingEligibility.isEligible(
             instanceEntry(ItemCategory.EQUIPMENT, InventoryInstanceType.EQUIPMENT),
             item(false)
         ));
-        assertTrue(MarketListingEligibility.isEligible(
-            instanceEntry(ItemCategory.RUNE, InventoryInstanceType.RUNE),
+        assertFalse(MarketListingEligibility.isEligible(
+            entry(ItemCategory.RUNE, "RUNE", UUID.randomUUID(), 1L),
             item(false)
         ));
     }

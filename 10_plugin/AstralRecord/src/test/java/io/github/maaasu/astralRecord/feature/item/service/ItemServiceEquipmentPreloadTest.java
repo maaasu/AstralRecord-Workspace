@@ -1,7 +1,6 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
-import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.item.repository.ItemRepository;
 import io.github.maaasu.astralRecord.feature.item.repository.SetEffectRepository;
 import org.junit.jupiter.api.Test;
@@ -225,40 +224,6 @@ class ItemServiceEquipmentPreloadTest {
         assertEquals(70, current.getDurabilityValue());
     }
 
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
-     * 章・見出し: # 22_4-統合フロー > ## 3. Commit
-     * 検証契約: トレード後のルーン所有者変更も、既存 cache を API 正本で置換する。
-     */
-    @Test
-    void forcedReloadReplacesTransferredRuneOwnerInCache() {
-        ItemRepository repository = mock(ItemRepository.class);
-        ItemService service = new ItemService(repository, mock(SetEffectRepository.class));
-        String instanceId = UUID.randomUUID().toString();
-        RuneInstance senderOwned = rune(instanceId);
-        UUID recipientAccountId = UUID.randomUUID();
-        RuneInstance recipientOwned = new RuneInstance(
-            instanceId,
-            recipientAccountId.toString(),
-            senderOwned.getItemId(),
-            senderOwned.getCreatedAt(),
-            senderOwned.getUpdatedAt(),
-            senderOwned.getStatRolls()
-        );
-
-        when(repository.findRuneInstanceById(instanceId))
-            .thenReturn(senderOwned)
-            .thenReturn(recipientOwned);
-        service.findRuneInstanceById(instanceId);
-
-        assertEquals(ItemService.EquipmentPreloadResult.COMPLETE,
-            service.reloadRuneInstances(List.of(instanceId)));
-
-        assertEquals(recipientAccountId, UUID.fromString(
-            service.findRuneInstanceById(instanceId).getAccountId()));
-        verify(repository, times(2)).findRuneInstanceById(instanceId);
-    }
-
     private static EquipmentInstance instance(String instanceId) {
         return new EquipmentInstance(
             instanceId,
@@ -277,14 +242,4 @@ class ItemServiceEquipmentPreloadTest {
         );
     }
 
-    private static RuneInstance rune(String instanceId) {
-        return new RuneInstance(
-            instanceId,
-            UUID.randomUUID().toString(),
-            "minor_rune",
-            "2026-08-10T00:00:00",
-            "2026-08-10T00:00:00",
-            List.of()
-        );
-    }
 }

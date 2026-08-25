@@ -9,8 +9,6 @@ import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationRes
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationResultType
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentRune
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentStatRoll
-import io.github.maaasu.astralRecord.feature.item.model.RuneInstance
-import io.github.maaasu.astralRecord.feature.item.model.RuneStatRoll
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundle
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundleReward
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundleOnUse
@@ -258,87 +256,6 @@ class ItemRepository {
                     else -> {
                         Logger.log(LogId.E_5200, "HTTP ${response.statusCode()} for DELETE $path")
                         throw IOException("Unexpected status ${response.statusCode()} for DELETE $path")
-                    }
-                }
-            }
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
-            throw RuntimeException(e)
-        } catch (e: IOException) {
-            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
-            throw e
-        }
-    }
-
-    /**
-     * ルーンインスタンスを新規作成します。
-     * ステータス乱数ロールは API 側で解決され、確定値として返されます。
-     * POST /api/rune/instances
-     *
-     * @param runeId    アイテムテンプレート ID
-     * @param accountId 所有アカウント ID（UUID 文字列）
-     * @param source    取得元（例: "loot_drop"）
-     * @param createdBy 作成者アカウント ID（UUID 文字列）
-     */
-    fun createRuneInstance(
-        runeId: String,
-        accountId: String,
-        source: String,
-        createdBy: String,
-    ): RuneInstance? {
-        val path = "/api/rune/instances"
-        val body = ApiRequestUtil.buildJsonBody {
-            addProperty("runeId", runeId)
-            addProperty("accountId", accountId)
-            addProperty("source", source)
-            addProperty("createdBy", createdBy)
-        }
-        try {
-            ApiRequestUtil.buildClient().use { client ->
-                val request = ApiRequestUtil.buildRequestBuilder(path)
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-                return when (response.statusCode()) {
-                    200, 201 -> parseRuneInstance(response.body())
-                    else -> {
-                        Logger.log(LogId.E_5200, "HTTP ${response.statusCode()} for POST $path")
-                        throw IOException("Unexpected status ${response.statusCode()} for POST $path")
-                    }
-                }
-            }
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
-            throw RuntimeException(e)
-        } catch (e: IOException) {
-            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
-            throw e
-        }
-    }
-
-    /**
-     * 指定したルーンインスタンスを取得します。
-     * GET /api/rune/instances/{instanceId}
-     *
-     * @param instanceId ルーンインスタンス ID（UUID 文字列）
-     */
-    fun findRuneInstanceById(instanceId: String): RuneInstance? {
-        val path = "/api/rune/instances/$instanceId"
-        try {
-            ApiRequestUtil.buildClient().use { client ->
-                val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-                return when (response.statusCode()) {
-                    200 -> parseRuneInstance(response.body())
-                    404 -> {
-                        Logger.log(LogId.W_5200, "rune", instanceId)
-                        null
-                    }
-                    else -> {
-                        Logger.log(LogId.E_5200, "HTTP ${response.statusCode()} for GET $path")
-                        throw IOException("Unexpected status ${response.statusCode()} for GET $path")
                     }
                 }
             }
@@ -1127,34 +1044,4 @@ class ItemRepository {
         }
     }
 
-    // -------------------------------------------------------
-    // RuneInstance パーサ
-    // -------------------------------------------------------
-
-    private fun parseRuneInstance(json: String): RuneInstance {
-        val obj = JsonParser.parseString(json).asJsonObject
-        return RuneInstance(
-            runeInstanceId = obj.get("runeInstanceId").asString,
-            accountId = obj.get("accountId").asString,
-            itemId = obj.get("itemId").asString,
-            createdAt = parseStringOrNull(obj, "createdAt") ?: "",
-            updatedAt = parseStringOrNull(obj, "updatedAt") ?: "",
-            statRolls = parseRuneStatRolls(parseArrayOrNull(obj, "statRolls")),
-        )
-    }
-
-    private fun parseRuneStatRolls(array: JsonArray?): List<RuneStatRoll> {
-        if (array == null) return emptyList()
-        return array.mapNotNull { element ->
-            if (!element.isJsonObject) return@mapNotNull null
-            val obj = element.asJsonObject
-            RuneStatRoll(
-                statRollId = parseStringOrNull(obj, "statRollId") ?: return@mapNotNull null,
-                status = parseStringOrNull(obj, "status") ?: return@mapNotNull null,
-                type = parseStringOrNull(obj, "type") ?: return@mapNotNull null,
-                value = obj.get("value")?.takeIf { !it.isJsonNull }?.asString ?: return@mapNotNull null,
-                sortOrder = parseIntOrNull(obj, "sortOrder") ?: 0,
-            )
-        }
-    }
 }

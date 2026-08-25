@@ -120,8 +120,7 @@ class StatusSetEffectDurabilityTest extends MockBukkitTestBase {
         return new ItemReference(
                 itemId,
                 ItemCategory.EQUIPMENT.getApiValue(),
-                instanceId.toString(),
-                null
+                instanceId.toString()
         );
     }
 

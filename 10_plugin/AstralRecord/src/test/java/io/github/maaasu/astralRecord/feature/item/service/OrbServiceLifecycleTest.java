@@ -533,15 +533,29 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         verify(scrollClick).setCancelled(true);
         verify(harness.inventoryService).handleInventoryControlClick(harness.astPlayer, 17);
 
-        InventoryClickEvent runeClick = harness.guiPlayerInventoryClick(4);
+        when(harness.inventoryService.handleHotbarSlotClick(harness.astPlayer, 5)).thenReturn(true);
+        when(harness.inventoryService.getClickGuard()).thenReturn(new InventoryClickGuard());
+        InventoryClickEvent hotbarClick = harness.guiPlayerInventoryClick(4);
+        harness.handler.onInventoryClick(hotbarClick);
+        verify(hotbarClick).setCancelled(true);
+        verify(harness.inventoryService).handleHotbarSlotClick(harness.astPlayer, 5);
+
+        InventoryClickEvent runeClick = harness.guiPlayerInventoryClick(10);
         harness.handler.onInventoryClick(runeClick);
         verify(runeClick).setCancelled(true);
-        verify(harness.inventoryService).getOwnedEntryAtBukkitSlot(eq(harness.astPlayer), eq(4));
+        verify(harness.inventoryService).getOwnedEntryAtBukkitSlot(eq(harness.astPlayer), eq(10));
         verify(harness.itemService, atLeastOnce()).findLoadedById(harness.runeModel.getId());
         assertEquals(Material.AMETHYST_SHARD,
             harness.player.getOpenInventory().getTopInventory().getItem(13).getType());
         assertNotEquals(Material.BARRIER,
             harness.player.getOpenInventory().getTopInventory().getItem(16).getType());
+
+        harness.handler.onInventoryClick(harness.guiClick(13));
+        assertEquals(Material.CHEST,
+            harness.player.getOpenInventory().getTopInventory().getItem(13).getType());
+        assertEquals(Material.BARRIER,
+            harness.player.getOpenInventory().getTopInventory().getItem(16).getType());
+        harness.handler.onInventoryClick(harness.guiPlayerInventoryClick(10));
 
         harness.handler.onInventoryClick(harness.guiClick(16));
         harness.laneExecutor.runAll();
@@ -595,6 +609,13 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         harness.openOrbList();
         harness.handler.onInventoryClick(harness.guiClick(0));
         harness.awaitOrbScreen(OrbGuiHolder.Screen.RUNE_DETACH);
+        assertEquals(Material.SPECTRAL_ARROW,
+            harness.player.getOpenInventory().getTopInventory().getItem(22).getType());
+
+        harness.handler.onInventoryClick(harness.guiClick(22));
+        harness.awaitOrbScreen(OrbGuiHolder.Screen.LIST);
+        harness.handler.onInventoryClick(harness.guiClick(0));
+        harness.awaitOrbScreen(OrbGuiHolder.Screen.RUNE_DETACH);
 
         InventoryClickEvent scrollClick = harness.guiPlayerInventoryClick(17);
         harness.handler.onInventoryClick(scrollClick);
@@ -605,6 +626,13 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         harness.awaitOrbScreen(OrbGuiHolder.Screen.RUNE_DETACH_SELECT);
         assertEquals(OrbGuiHolder.RUNE_SIZE,
             harness.player.getOpenInventory().getTopInventory().getSize());
+        assertEquals(Material.SPECTRAL_ARROW,
+            harness.player.getOpenInventory().getTopInventory().getItem(22).getType());
+
+        harness.handler.onInventoryClick(harness.guiClick(22));
+        harness.awaitOrbScreen(OrbGuiHolder.Screen.RUNE_DETACH);
+        harness.handler.onInventoryClick(harness.guiClick(13));
+        harness.awaitOrbScreen(OrbGuiHolder.Screen.RUNE_DETACH_SELECT);
 
         harness.handler.onInventoryClick(harness.guiClick(18));
         assertTrue(harness.player.getOpenInventory().getTopInventory().getHolder() instanceof OrbGuiHolder previousHolder
@@ -1477,15 +1505,14 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             when(inventoryService.getOwnedEntryAtBukkitSlot(eq(astPlayer), anyInt()))
                 .thenAnswer(invocation -> switch (invocation.getArgument(1, Integer.class)) {
                     case 9 -> orbEntry();
-                    case 4 -> runeEntry();
+                    case 10 -> runeEntry();
                     default -> null;
                 });
             when(inventoryService.getEquippedItemReferences(astPlayer)).thenReturn(List.of(
                 new ItemReference(
                     equippedModel.getId(),
                     ItemCategory.EQUIPMENT.getApiValue(),
-                    equippedInstanceId.toString(),
-                    null
+                    equippedInstanceId.toString()
                 )
             ));
             when(inventoryService.getInventories(accountId)).thenReturn(List.of(bag));

@@ -234,18 +234,6 @@ public sealed class TradeRepository(AstralRecordDbContext dbContext) : ITradeRep
             equipment.UpdatedAt = now;
             equipment.UpdatedBy = updatedBy;
         }
-        else if (string.Equals(source.InstanceType, "RUNE", StringComparison.OrdinalIgnoreCase))
-        {
-            var rune = await dbContext.RuneInstances.FirstOrDefaultAsync(instance =>
-                instance.RuneInstanceId == source.InstanceId.Value && !instance.IsDeleted);
-            if (rune is null)
-                return TradeOperationResult<bool>.Failure(404, "trade.instance_not_found", "Rune instance was not found.");
-            if (rune.AccountId != sourceAccountId)
-                return TradeOperationResult<bool>.Failure(409, "trade.instance_owner_changed", "Rune owner changed.");
-            rune.AccountId = destinationBag.AccountId;
-            rune.UpdatedAt = now;
-            rune.UpdatedBy = updatedBy;
-        }
         else
         {
             return TradeOperationResult<bool>.Failure(400, "trade.instance_type_invalid", "Trade instance type is invalid.");

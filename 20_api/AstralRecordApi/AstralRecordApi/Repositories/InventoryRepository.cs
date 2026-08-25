@@ -410,12 +410,6 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
                     && !instance.IsDeleted)
                 .Select(instance => instance.ItemId)
                 .FirstOrDefaultAsync(),
-            "RUNE" => await dbContext.RuneInstances
-                .Where(instance => instance.RuneInstanceId == instanceId.Value
-                    && instance.AccountId == ownerAccountId
-                    && !instance.IsDeleted)
-                .Select(instance => instance.ItemId)
-                .FirstOrDefaultAsync(),
             _ => null,
         };
         if (string.IsNullOrWhiteSpace(authoritativeItemId))

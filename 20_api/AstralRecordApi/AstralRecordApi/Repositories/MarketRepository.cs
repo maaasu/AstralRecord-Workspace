@@ -645,19 +645,6 @@ public class MarketRepository(
             return MarketOperationResult<bool>.Success(true);
         }
 
-        if (KeyComparer.Equals(instanceType, "RUNE"))
-        {
-            var rune = await dbContext.RuneInstances
-                .FirstOrDefaultAsync(x => x.RuneInstanceId == instanceId && !x.IsDeleted);
-            if (hasActiveListing)
-                return MarketOperationResult<bool>.Failure(409, "market.instance_already_listed", "Instance is already listed.");
-            if (rune is null)
-                return MarketOperationResult<bool>.Failure(404, "market.instance_not_found", "Rune instance was not found.");
-            if (rune.AccountId != request.SellerAccountId)
-                return MarketOperationResult<bool>.Failure(409, "market.instance_owner_mismatch", "Rune owner mismatch.");
-            return MarketOperationResult<bool>.Success(true);
-        }
-
         return MarketOperationResult<bool>.Failure(400, "market.unsupported_instance_type", "Unsupported instance type.");
     }
 
@@ -826,16 +813,6 @@ public class MarketRepository(
                 equipment.AccountId = buyerAccountId;
                 equipment.UpdatedAt = DateTime.UtcNow;
                 equipment.UpdatedBy = updatedBy;
-            }
-            else if (KeyComparer.Equals(listing.InstanceType, "RUNE"))
-            {
-                var rune = await dbContext.RuneInstances
-                    .FirstOrDefaultAsync(x => x.RuneInstanceId == listing.InstanceId && !x.IsDeleted);
-                if (rune is null)
-                    return MarketOperationResult<IReadOnlyList<Guid>>.Failure(404, "market.instance_not_found", "Rune instance was not found.");
-                rune.AccountId = buyerAccountId;
-                rune.UpdatedAt = DateTime.UtcNow;
-                rune.UpdatedBy = updatedBy;
             }
             else
             {

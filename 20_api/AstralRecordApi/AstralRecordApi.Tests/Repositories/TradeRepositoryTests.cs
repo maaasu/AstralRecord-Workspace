@@ -54,22 +54,27 @@ public sealed class TradeRepositoryTests
     }
 
     [Fact]
-    public async Task CommitAsync_TransfersRuneOwnershipAndMembershipAtomically()
+    public async Task CommitAsync_TransfersStackableRuneByItemIdAtomically()
     {
         await using var harness = await TradeHarness.CreateAsync();
 
         var result = await harness.Repository.CommitAsync(harness.Request(includeRune: true));
 
         Assert.True(result.Succeeded);
-        var entry = await harness.DbContext.InventoryEntries.AsNoTracking()
+        var source = await harness.DbContext.InventoryEntries.AsNoTracking()
             .SingleAsync(candidate => candidate.InventoryEntryId == harness.RuneEntryId);
-        Assert.Equal(harness.PlayerBBagId, entry.InventoryId);
-        var rune = await harness.DbContext.RuneInstances.AsNoTracking()
-            .SingleAsync(candidate => candidate.RuneInstanceId == harness.RuneInstanceId);
-        Assert.Equal(harness.PlayerBAccountId, rune.AccountId);
+        var destination = await harness.DbContext.InventoryEntries.AsNoTracking()
+            .SingleAsync(candidate => candidate.InventoryId == harness.PlayerBBagId
+                && candidate.ItemCategory == "rune"
+                && candidate.ItemId == "trade_rune"
+                && !candidate.IsDeleted);
+        Assert.Equal(1, source.Quantity);
+        Assert.Equal(1, destination.Quantity);
+        Assert.Null(source.InstanceType);
+        Assert.Null(source.InstanceId);
         Assert.Contains(harness.RuneEntryId, result.Value!.PlayerAAffectedInventoryEntryIds);
-        Assert.Contains(harness.RuneEntryId, result.Value.PlayerBAffectedInventoryEntryIds);
-        Assert.Null(entry.SlotIndex);
+        Assert.Contains(destination.InventoryEntryId, result.Value.PlayerBAffectedInventoryEntryIds);
+        Assert.Null(destination.SlotIndex);
     }
 
     [Fact]
@@ -127,7 +132,6 @@ public sealed class TradeRepositoryTests
         public Guid EquipmentEntryId { get; private init; }
         public Guid EquipmentInstanceId { get; private init; }
         public Guid RuneEntryId { get; private init; }
-        public Guid RuneInstanceId { get; private init; }
         public Guid MaterialEntryId { get; private init; }
 
         public static async Task<TradeHarness> CreateAsync()
@@ -146,7 +150,6 @@ public sealed class TradeRepositoryTests
                 EquipmentEntryId = Guid.NewGuid(),
                 EquipmentInstanceId = Guid.NewGuid(),
                 RuneEntryId = Guid.NewGuid(),
-                RuneInstanceId = Guid.NewGuid(),
                 MaterialEntryId = Guid.NewGuid(),
             };
             await harness.SeedAsync();
@@ -242,9 +245,8 @@ public sealed class TradeRepositoryTests
                     InventoryId = PlayerABagId,
                     SlotIndex = 2,
                     ItemCategory = "rune",
-                    InstanceType = "RUNE",
-                    InstanceId = RuneInstanceId,
-                    Quantity = 1,
+                    ItemId = "trade_rune",
+                    Quantity = 2,
                     CreatedAt = now,
                     UpdatedAt = now,
                     CreatedBy = PlayerAAccountId,
@@ -268,16 +270,6 @@ public sealed class TradeRepositoryTests
                 EquipmentInstanceId = EquipmentInstanceId,
                 AccountId = PlayerAAccountId,
                 ItemId = "trade_equipment",
-                CreatedAt = now,
-                UpdatedAt = now,
-                CreatedBy = PlayerAAccountId,
-                UpdatedBy = PlayerAAccountId,
-            });
-            DbContext.RuneInstances.Add(new RuneInstanceEntity
-            {
-                RuneInstanceId = RuneInstanceId,
-                AccountId = PlayerAAccountId,
-                ItemId = "trade_rune",
                 CreatedAt = now,
                 UpdatedAt = now,
                 CreatedBy = PlayerAAccountId,

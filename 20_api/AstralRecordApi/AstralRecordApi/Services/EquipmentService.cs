@@ -125,7 +125,6 @@ public class EquipmentService(
         {
             RuneId = existing?.RuneId ?? Guid.NewGuid(),
             EquipmentInstanceId = instance.EquipmentInstanceId,
-            RuneInstanceId = null,
             SlotIndex = slotIndex,
             ItemId = runeItemId,
             CreatedAt = existing?.CreatedAt ?? now,
@@ -270,7 +269,6 @@ public class EquipmentService(
         Runes = runes.Select(r => new EquipmentInstanceRuneResponse
         {
             RuneId = r.RuneId,
-            RuneInstanceId = r.RuneInstanceId,
             EquipmentInstanceId = r.EquipmentInstanceId,
             SlotIndex = r.SlotIndex,
             ItemId = r.ItemId,

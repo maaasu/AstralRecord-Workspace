@@ -394,9 +394,7 @@ public final class ItemTransferSupport {
             return false;
         }
         if (existingReference.hasEquipmentInstanceId()
-            || candidateReference.hasEquipmentInstanceId()
-            || existingReference.hasRuneInstanceId()
-            || candidateReference.hasRuneInstanceId()) {
+            || candidateReference.hasEquipmentInstanceId()) {
             return false;
         }
         return existingReference.itemId().equals(candidateReference.itemId())

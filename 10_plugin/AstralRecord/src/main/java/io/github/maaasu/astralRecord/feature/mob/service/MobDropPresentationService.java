@@ -5,7 +5,6 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
-import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.item.service.ItemDropAnimationService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
@@ -213,7 +212,7 @@ public final class MobDropPresentationService {
     }
 
     /**
-     * 装備・ルーンの複数個ドロップを、インスタンス生成単位の 1 個ずつに展開します。
+     * 装備の複数個ドロップを、インスタンス生成単位の 1 個ずつに展開します。
      *
      * @param items 解決済みドロップ一覧
      * @return 付与単位へ展開した一覧
@@ -371,7 +370,7 @@ public final class MobDropPresentationService {
     }
 
     /**
-     * 回収演出付きドロップを開始します。装備・ルーンは演出開始前に BAG slot を予約します。
+     * 回収演出付きドロップを開始します。装備は演出開始前に BAG slot を予約します。
      *
      * @param recipient 受取プレイヤー
      * @param deathLocation ドロップ発生位置
@@ -462,11 +461,11 @@ public final class MobDropPresentationService {
     }
 
     /**
-     * 装備・ルーンの API 個体生成前に BAG slot を予約し、空き不足時は取得拒否を通知します。
+     * 装備の API 個体生成前に BAG slot を予約し、空き不足時は取得拒否を通知します。
      *
      * @param recipient 受取プレイヤー
      * @param item 付与対象アイテム
-     * @return 装備・ルーンで予約できた場合の予約。通常スタック品または予約不能時は {@code null}
+     * @return 装備で予約できた場合の予約。通常スタック品または予約不能時は {@code null}
      */
     private @Nullable InventoryService.PreparedInstanceSlotReservation reserveInstanceSlotOrNotify(
         @NotNull AstPlayer recipient,
@@ -534,7 +533,7 @@ public final class MobDropPresentationService {
      * @param dropLocation 非容量系の取消・退出時に使用するドロップ位置
      * @param future 準備済みドロップ future
      * @param dropSource 通常スタック品の付与元
-     * @param reservation 装備・ルーン用の事前予約。通常スタック品では {@code null}
+     * @param reservation 装備用の事前予約。通常スタック品では {@code null}
      */
     private void grantPreparedItem(
         @NotNull AstPlayer recipient,
@@ -556,7 +555,7 @@ public final class MobDropPresentationService {
 
         switch (prepared.kind()) {
             case STACKED -> grantStackedItem(recipient, prepared, dropSource);
-            case EQUIPMENT, RUNE -> grantPreparedInstance(recipient, dropLocation, prepared, reservation);
+            case EQUIPMENT -> grantPreparedInstance(recipient, dropLocation, prepared, reservation);
         }
     }
 
@@ -607,7 +606,7 @@ public final class MobDropPresentationService {
     }
 
     /**
-     * 予約済み slot へ装備・ルーン個体を確定追加します。
+     * 予約済み slot へ装備個体を確定追加します。
      * <p>
      * 通常の容量不足は API 個体生成前に予約で拒否されるため、ここでの失敗は state 入れ替わりなど
      * 非容量系の既存 world-drop fallback として扱います。
@@ -654,7 +653,7 @@ public final class MobDropPresentationService {
      *
      * @param dropLocation world-drop fallback の位置
      * @param future 準備済みドロップ future
-     * @param reservation 装備・ルーン用の事前予約。通常スタック品では {@code null}
+     * @param reservation 装備用の事前予約。通常スタック品では {@code null}
      */
     private void handleCancelledPreparedItem(
         @NotNull Location dropLocation,
@@ -754,7 +753,6 @@ public final class MobDropPresentationService {
         return switch (prepared.kind()) {
             case STACKED -> dropStackedItem(location, prepared.item().model(), prepared.item().amount());
             case EQUIPMENT -> dropEquipmentInstance(location, prepared.item().model(), prepared.equipmentInstance());
-            case RUNE -> dropRuneInstance(location, prepared.item().model(), prepared.runeInstance());
         };
     }
 
@@ -781,21 +779,6 @@ public final class MobDropPresentationService {
         @NotNull Location location,
         @NotNull ItemModel model,
         @Nullable EquipmentInstance instance
-    ) {
-        World world = location.getWorld();
-        if (world == null || instance == null) {
-            return 0;
-        }
-
-        ItemStack stack = itemStackFactory.create(model, instance, 1);
-        world.dropItemNaturally(location, itemStackFactory.asDisplayStack(stack));
-        return 1;
-    }
-
-    private int dropRuneInstance(
-        @NotNull Location location,
-        @NotNull ItemModel model,
-        @Nullable RuneInstance instance
     ) {
         World world = location.getWorld();
         if (world == null || instance == null) {
@@ -844,8 +827,7 @@ public final class MobDropPresentationService {
 
     private enum PreparedDropKind {
         STACKED,
-        EQUIPMENT,
-        RUNE
+        EQUIPMENT
     }
 
     /**
@@ -867,11 +849,10 @@ public final class MobDropPresentationService {
         @NotNull ResolvedDropItem item,
         @Nullable InventoryInstanceType instanceType,
         @Nullable UUID instanceId,
-        @Nullable EquipmentInstance equipmentInstance,
-        @Nullable RuneInstance runeInstance
+        @Nullable EquipmentInstance equipmentInstance
     ) {
         private static @NotNull PreparedDropGrant stacked(@NotNull ResolvedDropItem item) {
-            return new PreparedDropGrant(PreparedDropKind.STACKED, item, null, null, null, null);
+            return new PreparedDropGrant(PreparedDropKind.STACKED, item, null, null, null);
         }
 
         private static @NotNull PreparedDropGrant equipment(
@@ -884,22 +865,6 @@ public final class MobDropPresentationService {
                 item,
                 InventoryInstanceType.EQUIPMENT,
                 instanceId,
-                instance,
-                null
-            );
-        }
-
-        private static @NotNull PreparedDropGrant rune(
-            @NotNull ResolvedDropItem item,
-            @NotNull UUID instanceId,
-            @NotNull RuneInstance instance
-        ) {
-            return new PreparedDropGrant(
-                PreparedDropKind.RUNE,
-                item,
-                InventoryInstanceType.RUNE,
-                instanceId,
-                null,
                 instance
             );
         }

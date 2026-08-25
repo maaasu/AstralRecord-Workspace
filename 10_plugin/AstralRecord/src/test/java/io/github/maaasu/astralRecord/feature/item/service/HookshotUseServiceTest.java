@@ -418,7 +418,7 @@ class HookshotUseServiceTest {
         ItemModel model = mock(ItemModel.class);
         ItemEquipment equipment = mock(ItemEquipment.class);
         ItemEquipmentDurability durability = mock(ItemEquipmentDurability.class);
-        ItemReference reference = new ItemReference("hookshot", "EQUIPMENT", instanceId, null);
+        ItemReference reference = new ItemReference("hookshot", "EQUIPMENT", instanceId);
         EquipmentInstance current = equipmentInstance(instanceId, accountId, 200);
         InventoryEntryModel entry = inventoryEntry(instanceUuid, metadataJson, accountId);
 

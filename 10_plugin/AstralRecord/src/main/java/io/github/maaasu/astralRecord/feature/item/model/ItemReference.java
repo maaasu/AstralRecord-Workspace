@@ -13,13 +13,11 @@ import org.jetbrains.annotations.Nullable;
  * @param itemId アイテム ID
  * @param category アイテムカテゴリ
  * @param equipmentInstanceId 装備インスタンス ID。装備以外は null
- * @param runeInstanceId ルーンインスタンス ID。ルーン以外は null
  */
 public record ItemReference(
     @NotNull String itemId,
     @NotNull String category,
-    @Nullable String equipmentInstanceId,
-    @Nullable String runeInstanceId
+    @Nullable String equipmentInstanceId
 ) {
 
     /**
@@ -28,13 +26,11 @@ public record ItemReference(
      * @param itemId アイテム ID
      * @param category アイテムカテゴリ
      * @param equipmentInstanceId 装備インスタンス ID
-     * @param runeInstanceId ルーンインスタンス ID
      */
     public ItemReference {
         itemId = requireNonBlank(itemId, "itemId");
         category = requireNonBlank(category, "category");
         equipmentInstanceId = normalizeOptional(equipmentInstanceId);
-        runeInstanceId = normalizeOptional(runeInstanceId);
     }
 
     /**
@@ -44,15 +40,6 @@ public record ItemReference(
      */
     public boolean hasEquipmentInstanceId() {
         return equipmentInstanceId != null;
-    }
-
-    /**
-     * ルーンインスタンス ID を保持しているか判定します。
-     *
-     * @return 保持している場合 true
-     */
-    public boolean hasRuneInstanceId() {
-        return runeInstanceId != null;
     }
 
     private static @NotNull String requireNonBlank(@Nullable String value, @NotNull String fieldName) {

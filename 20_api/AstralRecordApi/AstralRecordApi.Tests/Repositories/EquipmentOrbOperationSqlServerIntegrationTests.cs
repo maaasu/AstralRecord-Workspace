@@ -902,7 +902,6 @@ public class EquipmentOrbOperationSqlServerIntegrationTests
             CREATE TABLE dbo.equipment_instance_rune (
                 rune_id uniqueidentifier NOT NULL PRIMARY KEY,
                 equipment_instance_id uniqueidentifier NOT NULL,
-                rune_instance_id uniqueidentifier NULL,
                 slot_index int NOT NULL,
                 item_id nvarchar(128) NOT NULL,
                 created_at datetime2 NOT NULL,

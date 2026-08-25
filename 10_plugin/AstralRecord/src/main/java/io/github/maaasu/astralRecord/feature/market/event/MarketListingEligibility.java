@@ -42,9 +42,8 @@ final class MarketListingEligibility {
 
         InventoryInstanceType instanceType = InventoryInstanceType.fromCode(entry.getInstanceType());
         return entry.getQuantity() == 1L
-            && instanceType != null
-            && ((instanceType == InventoryInstanceType.EQUIPMENT && category == ItemCategory.EQUIPMENT)
-                || (instanceType == InventoryInstanceType.RUNE && category == ItemCategory.RUNE));
+            && instanceType == InventoryInstanceType.EQUIPMENT
+            && category == ItemCategory.EQUIPMENT;
     }
 
     /**

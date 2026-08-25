@@ -137,8 +137,7 @@ class HookshotCostServiceTest {
         private final ItemReference reference = new ItemReference(
             "hookshot",
             "EQUIPMENT",
-            instanceId,
-            null
+            instanceId
         );
         private final HookshotCostService service = new HookshotCostService(inventoryService, itemService);
 

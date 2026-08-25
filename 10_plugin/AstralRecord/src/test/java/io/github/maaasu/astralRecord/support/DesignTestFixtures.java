@@ -13,7 +13,6 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStat;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
-import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobBaseStat;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
@@ -208,18 +207,6 @@ public final class DesignTestFixtures {
             now,
             List.of(new EquipmentStatRoll(UUID.randomUUID().toString(), status, min, max, 0)),
             List.of(),
-            List.of()
-        );
-    }
-
-    public static RuneInstance runeInstance(UUID instanceId, UUID accountId, String itemId) {
-        String now = LocalDateTime.now().toString();
-        return new RuneInstance(
-            instanceId.toString(),
-            accountId.toString(),
-            itemId,
-            now,
-            now,
             List.of()
         );
     }

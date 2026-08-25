@@ -88,7 +88,7 @@ class CartographDurabilityServiceTest {
         private final UUID accountId = UUID.randomUUID();
         private final String instanceId = UUID.randomUUID().toString();
         private final ItemReference reference = new ItemReference(
-                "cartograph", "EQUIPMENT", instanceId, null);
+                "cartograph", "EQUIPMENT", instanceId);
         private final CartographDurabilityService service =
                 new CartographDurabilityService(inventoryService, itemService);
 

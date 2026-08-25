@@ -3,7 +3,6 @@ package io.github.maaasu.astralRecord.feature.item.service;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
-import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
@@ -57,8 +56,7 @@ public final class ItemReferenceResolver {
         return new ItemReference(
             itemId,
             category,
-            ItemStackFactory.getEquipmentInstanceId(itemStack),
-            ItemStackFactory.getRuneInstanceId(itemStack)
+            ItemStackFactory.getEquipmentInstanceId(itemStack)
         );
     }
 
@@ -106,19 +104,6 @@ public final class ItemReferenceResolver {
             return null;
         }
         return itemService.findEquipmentInstanceById(reference.equipmentInstanceId());
-    }
-
-    /**
-     * 参照情報からルーンインスタンスを解決します。
-     *
-     * @param reference 参照情報
-     * @return 解決できたルーンインスタンス。ルーン参照でない場合や見つからない場合は null
-     */
-    public @Nullable RuneInstance resolveRuneInstance(@Nullable ItemReference reference) {
-        if (reference == null || !reference.hasRuneInstanceId()) {
-            return null;
-        }
-        return itemService.findRuneInstanceById(reference.runeInstanceId());
     }
 
     private @Nullable ItemModel resolveItemModel(@NotNull String itemId, @Nullable String category) {

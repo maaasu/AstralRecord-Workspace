@@ -147,6 +147,80 @@ public class EquipmentOrbOperationRepositoryTests
     }
 
     [Fact]
+    public async Task RuneDetach_CreatesUnslottedBagStackForPluginPlacement()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        harness.RegisterRune("detached_rune", ["WEAPON"], []);
+        await harness.EquipRuneAsync("detached_rune", 0);
+        var orb = await harness.AddOrbAsync("rune_detach_orb", new ItemOrbEffectResponse
+        {
+            Type = "RUNE_DETACH",
+        });
+        var request = harness.CreateRequest(Guid.NewGuid(), "rune_detach_orb", orb);
+        request.RuneSlotIndex = 0;
+
+        var result = await harness.ExecuteAsync(request);
+
+        Assert.Equal("APPLIED", result.Result);
+        var returned = Assert.Single(await harness.GetRuneEntriesAsync("detached_rune"));
+        Assert.Equal(harness.BagInventoryId, returned.InventoryId);
+        Assert.Null(returned.SlotIndex);
+        Assert.Null(returned.InstanceType);
+        Assert.Null(returned.InstanceId);
+        Assert.Equal(1, returned.Quantity);
+        Assert.Contains(returned.InventoryEntryId, result.AffectedInventoryEntryIds);
+    }
+
+    [Fact]
+    public async Task RuneDetach_IncrementsExistingBagStackWithoutCreatingAnotherEntry()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        var existingEntryId = await harness.AddRuneAsync("stacked_detached_rune", ["WEAPON"], [], 2);
+        await harness.EquipRuneAsync("stacked_detached_rune", 0);
+        var orb = await harness.AddOrbAsync("stacked_rune_detach_orb", new ItemOrbEffectResponse
+        {
+            Type = "RUNE_DETACH",
+        });
+        var request = harness.CreateRequest(Guid.NewGuid(), "stacked_rune_detach_orb", orb);
+        request.RuneSlotIndex = 0;
+
+        var result = await harness.ExecuteAsync(request);
+
+        Assert.Equal("APPLIED", result.Result);
+        var returned = Assert.Single(await harness.GetRuneEntriesAsync("stacked_detached_rune"));
+        Assert.Equal(existingEntryId, returned.InventoryEntryId);
+        Assert.Equal(3, returned.Quantity);
+        Assert.Contains(existingEntryId, result.AffectedInventoryEntryIds);
+    }
+
+    [Fact]
+    public async Task RuneDetach_DoesNotMergeIntoHotbarStackAndReturnsToBag()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        harness.RegisterRune("hotbar_detached_rune", ["WEAPON"], []);
+        await harness.EquipRuneAsync("hotbar_detached_rune", 0);
+        var hotbarId = await harness.AddInventoryAsync("HOTBAR", 9);
+        var hotbarRuneId = await harness.AddNormalEntryToInventoryAsync(
+            hotbarId, "hotbar_detached_rune", "rune", 2, 1);
+        var orb = await harness.AddOrbAsync("hotbar_rune_detach_orb", new ItemOrbEffectResponse
+        {
+            Type = "RUNE_DETACH",
+        });
+        var request = harness.CreateRequest(Guid.NewGuid(), "hotbar_rune_detach_orb", orb);
+        request.RuneSlotIndex = 0;
+
+        var result = await harness.ExecuteAsync(request);
+
+        Assert.Equal("APPLIED", result.Result);
+        Assert.Equal(2, await harness.GetEntryQuantityAsync(hotbarRuneId));
+        var bagRune = Assert.Single(
+            await harness.GetRuneEntriesAsync("hotbar_detached_rune"),
+            entry => entry.InventoryId == harness.BagInventoryId);
+        Assert.Null(bagRune.SlotIndex);
+        Assert.Equal(1, bagRune.Quantity);
+    }
+
+    [Fact]
     public async Task EnchantFillAll_AppliesEveryEmptySlotAndConsumesOneOrbForTheBatch()
     {
         await using var harness = await OrbOperationHarness.CreateAsync();
@@ -863,6 +937,15 @@ public class EquipmentOrbOperationRepositoryTests
             IReadOnlyList<string> targetTags,
             long quantity = 2)
         {
+            RegisterRune(itemId, targetSlots, targetTags);
+            return await AddNormalEntryAsync(itemId, "rune", quantity);
+        }
+
+        public void RegisterRune(
+            string itemId,
+            IReadOnlyList<string> targetSlots,
+            IReadOnlyList<string> targetTags)
+        {
             items.Add(new ItemResponse
             {
                 SchemaVersion = 1,
@@ -877,7 +960,47 @@ public class EquipmentOrbOperationRepositoryTests
                     TargetTags = targetTags,
                 },
             });
-            return await AddNormalEntryAsync(itemId, "rune", quantity);
+        }
+
+        public async Task EquipRuneAsync(string itemId, int slotIndex)
+        {
+            var now = DateTime.UtcNow;
+            dbContext.EquipmentInstanceRunes.Add(new EquipmentInstanceRuneEntity
+            {
+                RuneId = Guid.NewGuid(),
+                EquipmentInstanceId = EquipmentInstanceId,
+                SlotIndex = slotIndex,
+                ItemId = itemId,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = AccountId,
+                UpdatedBy = AccountId,
+            });
+            await dbContext.SaveChangesAsync();
+        }
+
+        public async Task<Guid> AddInventoryAsync(string type, int slotCapacity)
+        {
+            var inventoryId = Guid.NewGuid();
+            var inventory = CreateInventory(inventoryId, AccountId, type, DateTime.UtcNow);
+            inventory.SlotCapacity = slotCapacity;
+            dbContext.Inventories.Add(inventory);
+            await dbContext.SaveChangesAsync();
+            return inventoryId;
+        }
+
+        public async Task<Guid> AddNormalEntryToInventoryAsync(
+            Guid inventoryId,
+            string itemId,
+            string category,
+            long quantity,
+            int? slotIndex = null)
+        {
+            var id = Guid.NewGuid();
+            dbContext.InventoryEntries.Add(CreateEntry(
+                id, inventoryId, AccountId, itemId, category, quantity, DateTime.UtcNow, slotIndex));
+            await dbContext.SaveChangesAsync();
+            return id;
         }
 
         public async Task<Guid> AddNormalEntryAsync(
@@ -1036,6 +1159,17 @@ public class EquipmentOrbOperationRepositoryTests
 
         public async Task<long> GetEntryQuantityAsync(Guid entryId) =>
             (await GetEntryAsync(entryId)).Quantity;
+
+        public async Task<IReadOnlyList<InventoryEntryEntity>> GetRuneEntriesAsync(string itemId)
+        {
+            dbContext.ChangeTracker.Clear();
+            return await dbContext.InventoryEntries.AsNoTracking()
+                .Where(entry => !entry.IsDeleted
+                    && entry.ItemCategory == "rune"
+                    && entry.ItemId == itemId)
+                .OrderBy(entry => entry.CreatedAt)
+                .ToListAsync();
+        }
 
         public async Task<EquipmentInstanceEntity> GetEquipmentAsync()
         {

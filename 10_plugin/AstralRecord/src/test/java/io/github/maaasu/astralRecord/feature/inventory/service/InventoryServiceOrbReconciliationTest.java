@@ -441,12 +441,14 @@ class InventoryServiceOrbReconciliationTest {
             ItemCategory.EQUIPMENT,
             "EQUIPMENT"
         );
-        InventoryEntryModel rune = instanceEntry(
+        InventoryEntryModel rune = categoryEntry(
             runeEntryId,
             harness.accountId,
             harness.bag.getInventoryId(),
+            null,
             ItemCategory.RUNE,
-            "RUNE"
+            "trade_rune",
+            1L
         );
         harness.state.replaceEntriesFromLoad(harness.bag.getInventoryId(), List.of(retained));
         when(harness.repository.findEntryById(materialEntryId)).thenReturn(material);
@@ -509,38 +511,6 @@ class InventoryServiceOrbReconciliationTest {
         );
 
         verify(harness.itemService).reloadEquipmentInstances(Set.of(instanceId.toString()));
-        assertEquals(instanceId, harness.service.findOwnedEntry(harness.accountId, entryId).getInstanceId());
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
-     * 章・見出し: # 22_4-統合フロー > ## 3. Commit
-     * 検証契約: トレード受取ルーンも state 公開前に API 正本へ cache を再同期する。
-     */
-    @Test
-    void tradeReconciliationReloadsAffectedRuneBeforeCompletion() {
-        Harness harness = harness();
-        UUID entryId = UUID.randomUUID();
-        UUID instanceId = UUID.randomUUID();
-        InventoryEntryModel received = runeEntry(
-            entryId,
-            harness.bag.getInventoryId(),
-            harness.accountId,
-            instanceId,
-            NormalInventoryLayout.DB_SLOT_START + 1
-        );
-        when(harness.repository.findEntryById(entryId)).thenReturn(received);
-        when(harness.itemService.reloadRuneInstances(Set.of(instanceId.toString())))
-            .thenReturn(ItemService.EquipmentPreloadResult.COMPLETE);
-
-        harness.service.reconcileTradeInventoryEntries(
-            harness.accountId,
-            List.of(entryId),
-            baseline(harness.accountId, harness.bag.getInventoryId(),
-                harness.state.snapshotEntries(harness.bag.getInventoryId()))
-        );
-
-        verify(harness.itemService).reloadRuneInstances(Set.of(instanceId.toString()));
         assertEquals(instanceId, harness.service.findOwnedEntry(harness.accountId, entryId).getInstanceId());
     }
 
@@ -1246,7 +1216,6 @@ class InventoryServiceOrbReconciliationTest {
             new ItemReference(
                 "market_material",
                 ItemCategory.MATERIAL.getApiValue(),
-                null,
                 null
             ),
             65
@@ -1325,6 +1294,159 @@ class InventoryServiceOrbReconciliationTest {
         assertNull(harness.service.findOwnedEntry(harness.accountId, harness.orbEntryId));
         assertEquals(unrelated.getSlotIndex(), harness.service.findOwnedEntry(
             harness.accountId, unrelatedEntryId).getSlotIndex());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 検証契約: ルーン脱着でAPIが既存stackへ1個返却した場合、三者マージ後も共通返却処理を通して同じitemIdを一つのstackへ統合する。
+     */
+    @Test
+    void runeDetachReturnMergesIntoExistingStackThroughSharedReturnPath() {
+        Harness harness = harness();
+        String runeItemId = "debug_attack_rune";
+        UUID runeEntryId = UUID.randomUUID();
+        InventoryEntryModel baselineRune = categoryEntry(
+            runeEntryId,
+            harness.accountId,
+            harness.bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START + 1,
+            ItemCategory.RUNE,
+            runeItemId,
+            5L
+        );
+        harness.state.replaceEntriesFromLoad(harness.bag.getInventoryId(), List.of(baselineRune));
+        InventoryEntryModel authoritativeRune = categoryEntry(
+            runeEntryId,
+            harness.accountId,
+            harness.bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START + 1,
+            ItemCategory.RUNE,
+            runeItemId,
+            6L
+        );
+        when(harness.repository.findEntryById(runeEntryId)).thenReturn(authoritativeRune);
+        when(harness.itemService.findLoadedById(runeItemId))
+            .thenReturn(DesignTestFixtures.item(runeItemId, ItemCategory.RUNE, 64));
+
+        harness.service.reconcileOrbOperationEntries(
+            harness.accountId,
+            List.of(runeEntryId),
+            baseline(harness.accountId, harness.bag.getInventoryId(), List.of(baselineRune))
+        );
+
+        List<InventoryEntryModel> entries = harness.state.snapshotEntries(harness.bag.getInventoryId());
+        assertEquals(1, entries.size(), entries.toString());
+        assertEquals(runeEntryId, entries.getFirst().getInventoryEntryId());
+        assertEquals(6L, entries.getFirst().getQuantity());
+    }
+
+    @Test
+    void runeDetachReturnAssignsUnslottedNewStackToVisibleBagSlot() {
+        Harness harness = harness();
+        String runeItemId = "new_detached_rune";
+        UUID runeEntryId = UUID.randomUUID();
+        List<InventoryEntryModel> baselineEntries = harness.state.snapshotEntries(harness.bag.getInventoryId());
+        InventoryEntryModel returnedRune = categoryEntry(
+            runeEntryId,
+            harness.accountId,
+            harness.bag.getInventoryId(),
+            null,
+            ItemCategory.RUNE,
+            runeItemId,
+            1L
+        );
+        when(harness.repository.findEntryById(runeEntryId)).thenReturn(returnedRune);
+        when(harness.itemService.findLoadedById(runeItemId))
+            .thenReturn(DesignTestFixtures.item(runeItemId, ItemCategory.RUNE, 64));
+
+        harness.service.reconcileOrbOperationEntries(
+            harness.accountId,
+            List.of(runeEntryId),
+            baseline(harness.accountId, harness.bag.getInventoryId(), baselineEntries)
+        );
+
+        InventoryEntryModel visible = harness.service.findOwnedEntry(harness.accountId, runeEntryId);
+        assertNotNull(visible);
+        assertEquals(NormalInventoryLayout.DB_SLOT_START + 1, visible.getSlotIndex());
+    }
+
+    @Test
+    void runeDetachReturnUsesOverflowSlotWhenBagIsFull() {
+        Harness harness = harness();
+        harness.state.setBagSlotCapacity(1);
+        String runeItemId = "overflow_detached_rune";
+        UUID runeEntryId = UUID.randomUUID();
+        List<InventoryEntryModel> baselineEntries = harness.state.snapshotEntries(harness.bag.getInventoryId());
+        InventoryEntryModel returnedRune = categoryEntry(
+            runeEntryId,
+            harness.accountId,
+            harness.bag.getInventoryId(),
+            null,
+            ItemCategory.RUNE,
+            runeItemId,
+            1L
+        );
+        when(harness.repository.findEntryById(runeEntryId)).thenReturn(returnedRune);
+        when(harness.itemService.findLoadedById(runeItemId))
+            .thenReturn(DesignTestFixtures.item(runeItemId, ItemCategory.RUNE, 64));
+
+        harness.service.reconcileOrbOperationEntries(
+            harness.accountId,
+            List.of(runeEntryId),
+            baseline(harness.accountId, harness.bag.getInventoryId(), baselineEntries)
+        );
+
+        InventoryEntryModel overflow = harness.service.findOwnedEntry(harness.accountId, runeEntryId);
+        assertNotNull(overflow);
+        assertEquals(NormalInventoryLayout.DB_SLOT_START + 1, overflow.getSlotIndex());
+        assertEquals(2, NormalInventoryLayout.displayCapacity(
+            harness.state.snapshotEntries(harness.bag.getInventoryId()), 1));
+    }
+
+    @Test
+    void runeDetachReturnDoesNotMergeWithHotbarOnlyStack() {
+        Harness harness = harness();
+        String runeItemId = "hotbar_only_detached_rune";
+        UUID hotbarEntryId = UUID.randomUUID();
+        UUID returnedEntryId = UUID.randomUUID();
+        InventoryModel hotbar = DesignTestFixtures.inventory(harness.accountId, InventoryType.HOTBAR, 9);
+        harness.state.putInventory(hotbar);
+        InventoryEntryModel hotbarRune = categoryEntry(
+            hotbarEntryId,
+            harness.accountId,
+            hotbar.getInventoryId(),
+            1,
+            ItemCategory.RUNE,
+            runeItemId,
+            2L
+        );
+        harness.state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of(hotbarRune));
+        List<InventoryEntryModel> baselineEntries = harness.state.snapshotEntries(harness.bag.getInventoryId());
+        InventoryEntryModel returnedRune = categoryEntry(
+            returnedEntryId,
+            harness.accountId,
+            harness.bag.getInventoryId(),
+            null,
+            ItemCategory.RUNE,
+            runeItemId,
+            1L
+        );
+        when(harness.repository.findEntryById(returnedEntryId)).thenReturn(returnedRune);
+        when(harness.itemService.findLoadedById(runeItemId))
+            .thenReturn(DesignTestFixtures.item(runeItemId, ItemCategory.RUNE, 64));
+
+        harness.service.reconcileOrbOperationEntries(
+            harness.accountId,
+            List.of(returnedEntryId),
+            baseline(harness.accountId, harness.bag.getInventoryId(), baselineEntries)
+        );
+
+        assertEquals(2L, harness.service.findOwnedEntry(harness.accountId, hotbarEntryId).getQuantity());
+        InventoryEntryModel bagRune = harness.service.findOwnedEntry(harness.accountId, returnedEntryId);
+        assertNotNull(bagRune);
+        assertEquals(harness.bag.getInventoryId(), bagRune.getInventoryId());
+        assertEquals(1L, bagRune.getQuantity());
     }
 
     /**
@@ -1660,32 +1782,6 @@ class InventoryServiceOrbReconciliationTest {
             ItemCategory.EQUIPMENT.getApiValue(),
             null,
             "equipment",
-            instanceId,
-            1L,
-            null,
-            now,
-            now,
-            accountId,
-            accountId,
-            false
-        );
-    }
-
-    private static InventoryEntryModel runeEntry(
-        UUID entryId,
-        UUID inventoryId,
-        UUID accountId,
-        UUID instanceId,
-        int slotIndex
-    ) {
-        LocalDateTime now = LocalDateTime.now();
-        return new InventoryEntryModel(
-            entryId,
-            inventoryId,
-            slotIndex,
-            ItemCategory.RUNE.getApiValue(),
-            null,
-            "rune",
             instanceId,
             1L,
             null,

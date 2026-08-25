@@ -21,8 +21,6 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<EquipmentInstanceEnchantEntity> EquipmentInstanceEnchants => Set<EquipmentInstanceEnchantEntity>();
     public DbSet<EquipmentOrbOperationEntity> EquipmentOrbOperations => Set<EquipmentOrbOperationEntity>();
     public DbSet<EquipmentInstanceRuneEntity> EquipmentInstanceRunes => Set<EquipmentInstanceRuneEntity>();
-    public DbSet<RuneInstanceEntity> RuneInstances => Set<RuneInstanceEntity>();
-    public DbSet<RuneInstanceStatRollEntity> RuneInstanceStatRolls => Set<RuneInstanceStatRollEntity>();
     public DbSet<PlayerMailStateEntity> PlayerMailStates => Set<PlayerMailStateEntity>();
     public DbSet<PlayerMailDeliveryEntity> PlayerMailDeliveries => Set<PlayerMailDeliveryEntity>();
     public DbSet<AccountMobRecordEntity> AccountMobRecords => Set<AccountMobRecordEntity>();
@@ -743,46 +741,12 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
 
             entity.Property(e => e.RuneId).HasColumnName("rune_id");
             entity.Property(e => e.EquipmentInstanceId).HasColumnName("equipment_instance_id");
-            entity.Property(e => e.RuneInstanceId).HasColumnName("rune_instance_id");
             entity.Property(e => e.SlotIndex).HasColumnName("slot_index");
             entity.Property(e => e.ItemId).HasColumnName("item_id");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
-        });
-
-        modelBuilder.Entity<RuneInstanceEntity>(entity =>
-        {
-            entity.ToTable("rune_instance", "dbo");
-            entity.HasKey(e => e.RuneInstanceId);
-
-            entity.Property(e => e.RuneInstanceId).HasColumnName("rune_instance_id");
-            entity.Property(e => e.AccountId).HasColumnName("account_id");
-            entity.Property(e => e.ItemId).HasColumnName("item_id");
-            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
-            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
-            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
-            entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
-            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
-        });
-
-        modelBuilder.Entity<RuneInstanceStatRollEntity>(entity =>
-        {
-            entity.ToTable("rune_instance_stat_roll", "dbo");
-            entity.HasKey(e => e.StatRollId);
-
-            entity.Property(e => e.StatRollId).HasColumnName("stat_roll_id");
-            entity.Property(e => e.RuneInstanceId).HasColumnName("rune_instance_id");
-            entity.Property(e => e.Status).HasColumnName("status");
-            entity.Property(e => e.Type).HasColumnName("type");
-            entity.Property(e => e.RandomValue).HasColumnName("random_value");
-            entity.Property(e => e.SortOrder).HasColumnName("sort_order");
-            entity.Property(e => e.CreatedAt).HasColumnName("created_at");
-            entity.Property(e => e.UpdatedAt).HasColumnName("updated_at");
-            entity.Property(e => e.CreatedBy).HasColumnName("created_by");
-            entity.Property(e => e.UpdatedBy).HasColumnName("updated_by");
-            entity.Property(e => e.IsDeleted).HasColumnName("is_deleted");
         });
 
         modelBuilder.Entity<MarketAccountStateEntity>(entity =>

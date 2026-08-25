@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentRune;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentStatRoll;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
@@ -15,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStat;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscendence;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.item.model.ItemRune;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -33,6 +35,40 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ItemStackFactoryEquipmentStatLoreTest {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### 所有インスタンスItemStack生成
+     * 検証契約: 装備Loreは装着済みルーン名だけでなく、マスタで確定した各ステータス補正も表示する。
+     */
+    @Test
+    void equippedRuneShowsItsFixedStatsInEquipmentLore() throws ReflectiveOperationException {
+        ItemEquipmentStat baseStat = new ItemEquipmentStat(
+                "MELEE_ATTACK", ItemEquipmentStatType.FLAT, 1.0D, 1.0D);
+        ItemEquipmentStat runeStat = new ItemEquipmentStat(
+                "CRITICAL_RATE", ItemEquipmentStatType.FLAT, 0.05D, 0.05D);
+        ItemModel equipment = model(baseStat, null);
+        ItemModel rune = new ItemModel(
+                2, "rune.lore-test", ItemCategory.RUNE.getApiValue(), "会心のルーン",
+                "AMETHYST_SHARD", "COMMON", 64, 0, null, null, List.of(), false, false,
+                null, null, null, new ItemRune(List.of("WEAPON"), 0, List.of(runeStat)),
+                null, null, null, null);
+        EquipmentInstance instance = new EquipmentInstance(
+                "equipment-instance", "account", equipment.getId(), 0, 1, 0,
+                100, 100, "", "", List.of(), List.of(),
+                List.of(new EquipmentRune("equipment-rune", "equipment-instance", 0, rune.getId())));
+        ItemService itemService = mock(ItemService.class);
+        when(itemService.findLoadedById(rune.getId())).thenReturn(rune);
+        ItemStackFactory factory = new ItemStackFactory(mock(LootService.class), itemService);
+
+        List<String> plainLore = invokeBuildLore(factory, equipment, instance).stream()
+                .map(line -> PlainTextComponentSerializer.plainText().serialize(
+                        LegacyComponentSerializer.legacySection().deserialize(line)))
+                .toList();
+
+        assertTrue(plainLore.stream().anyMatch(line -> line.contains("会心のルーン")));
+        assertTrue(plainLore.stream().anyMatch(line -> line.contains("会心率 : +0.05%")));
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md

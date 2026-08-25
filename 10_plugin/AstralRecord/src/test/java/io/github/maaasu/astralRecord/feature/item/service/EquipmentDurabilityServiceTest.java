@@ -63,8 +63,7 @@ class EquipmentDurabilityServiceTest {
         private final ItemReference reference = new ItemReference(
             "hoe",
             "EQUIPMENT",
-            instanceId,
-            null
+            instanceId
         );
         private final EquipmentDurabilityService service = new EquipmentDurabilityService(
             inventoryService,

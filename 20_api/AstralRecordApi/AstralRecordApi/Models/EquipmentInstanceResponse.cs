@@ -45,7 +45,6 @@ public class EquipmentInstanceEnchantResponse
 public class EquipmentInstanceRuneResponse
 {
     public Guid RuneId { get; init; }
-    public Guid? RuneInstanceId { get; init; }
     public Guid EquipmentInstanceId { get; init; }
     public int SlotIndex { get; init; }
     public string ItemId { get; init; } = string.Empty;

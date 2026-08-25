@@ -22,7 +22,6 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemRarity;
 import io.github.maaasu.astralRecord.feature.item.model.ItemRune;
 import io.github.maaasu.astralRecord.feature.item.model.ItemSigil;
 import io.github.maaasu.astralRecord.feature.item.model.ItemSigilModifier;
-import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.item.model.SetEffect;
 import io.github.maaasu.astralRecord.feature.item.model.SetEffectPiece;
 import io.github.maaasu.astralRecord.feature.item.model.SetEffectStat;
@@ -128,10 +127,6 @@ public class ItemStackFactory {
     /** PDC キー: フックショットのフック装填済み表示状態 */
     private static final NamespacedKey KEY_HOOKSHOT_LOADED =
             new NamespacedKey("astralrecord", "hookshot_loaded");
-
-    /** PDC キー: ルーンインスタンス ID */
-    private static final NamespacedKey KEY_RUNE_INSTANCE_ID =
-            new NamespacedKey("astralrecord", "rune_instance_id");
 
     /** テンプレートキャッシュ (category:id → プロトタイプ ItemStack) */
     private final Map<String, ItemStack> templateCache = new ConcurrentHashMap<>();
@@ -407,49 +402,6 @@ public class ItemStackFactory {
     }
 
     /**
-     * {@link ItemModel} と {@link RuneInstance} から ItemStack を生成します。
-     * インスタンス固有のステータス確定値を Lore に反映します。キャッシュは使用しません。
-     *
-     * @param model    アイテムマスタ定義
-     * @param instance ルーンインスタンス
-     * @param amount   個数
-     * @return 生成された ItemStack
-     */
-    public @NotNull ItemStack create(@NotNull ItemModel model, @NotNull RuneInstance instance, int amount) {
-        var item = new ItemStack(BASE_MATERIAL, 1);
-        var meta = item.getItemMeta();
-        if (meta == null) {
-            return item;
-        }
-
-        var rarityColor = rarityToColor(model.getRarity());
-        var decoratedName = ColorCodeUtil.toLegacyText(model.getName(), model.getId());
-        meta.displayName(LEGACY_SERIALIZER.deserialize(
-                rarityColor + "◆ " + decoratedName + ColorCodeUtil.RESET));
-
-        var loreStrings = buildLoreForRuneInstance(model, instance);
-        meta.lore(loreStrings.stream()
-                .map(ColorCodeUtil::translateAlternateColorCodes)
-                .map(LEGACY_SERIALIZER::deserialize)
-                .map(c -> (Component) c)
-                .toList());
-
-        if (model.getCustomModelData() != null) {
-            applyCustomModelData(meta, model.getCustomModelData());
-        }
-        applyVanillaHideFlags(meta);
-
-        writeCommonPersistentData(meta.getPersistentDataContainer(), model);
-        PersistentDataContainer pdc = meta.getPersistentDataContainer();
-        pdc.set(KEY_RUNE_INSTANCE_ID, PersistentDataType.STRING, instance.getRuneInstanceId());
-
-        item.setItemMeta(meta);
-        item.setAmount(Math.clamp(amount, 1, model.getMaxStack()));
-        //Logger.log(LogId.D_5211, model.getCategory(), model.getId());
-        return item;
-    }
-
-    /**
      * テンプレートキャッシュをクリアします。
      * アイテム定義のリロード時に呼び出してください。
      */
@@ -645,20 +597,6 @@ public class ItemStackFactory {
      */
     public static boolean isWeapon(@NotNull ItemStack item) {
         return ItemEquipmentSlot.WEAPON.name().equals(getEquipmentSlot(item));
-    }
-
-    /**
-     * ItemStack に埋め込まれたルーンインスタンス ID を取得します。
-     *
-     * @param item 判定対象
-     * @return ルーンインスタンス ID。ルーンインスタンスでなければ {@code null}
-     */
-    public static @Nullable String getRuneInstanceId(@NotNull ItemStack item) {
-        if (!item.hasItemMeta()) {
-            return null;
-        }
-        return item.getItemMeta().getPersistentDataContainer()
-                .get(KEY_RUNE_INSTANCE_ID, PersistentDataType.STRING);
     }
 
     // endregion
@@ -1404,6 +1342,17 @@ public class ItemStackFactory {
                         String runeName = runeModel == null || runeModel.getName() == null || runeModel.getName().isBlank()
                             ? "不明なルーン" : runeModel.getName();
                         lore.add(ColorCodeUtil.GREEN + " ● " + ColorCodeUtil.WHITE + runeName);
+                        if (runeModel != null && runeModel.getRune() != null) {
+                            for (ItemEquipmentStat stat : runeModel.getRune().getStats()) {
+                                ItemEquipmentStatType statType = stat.getType();
+                                StatusType statusType = resolveStatusTypeOrNull(stat.getStatus());
+                                lore.add(ColorCodeUtil.DARK_GRAY + "    ▹ "
+                                    + statusCategoryColor(stat.getStatus(), statusType)
+                                    + resolveStatusDisplayName(stat.getStatus(), statusType, statType)
+                                    + ColorCodeUtil.DARK_GRAY + " : "
+                                    + formatStatValueWithType(statType, statusType, stat.displayValue()));
+                            }
+                        }
                     } else {
                         lore.add(ColorCodeUtil.DARK_GRAY + " ○ 空きスロット");
                     }
@@ -1416,75 +1365,6 @@ public class ItemStackFactory {
                 lore.add(formatDurabilityLore(instance));
             }
             appendSetEffectLore(lore, eq, equippedSetCounts);
-            lore.add("");
-        }
-
-        appendSaleValueLore(lore, model);
-        lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
-        if (model.getUnTradeable()) lore.add(ColorCodeUtil.RED + "✖ 取引不可");
-        if (shouldShowUnSellable(model)) lore.add(ColorCodeUtil.RED + "✖ 売却不可");
-        return lore;
-    }
-
-    /**
-     * ルーンインスタンス向けの Lore 行リストを構築します。
-     * ステータスロールはインスタンスの確定値（value）を使用します。
-     */
-    private @NotNull List<String> buildLoreForRuneInstance(
-            @NotNull ItemModel model, @NotNull RuneInstance instance) {
-        List<String> lore = new ArrayList<>();
-
-        lore.add(ColorCodeUtil.DARK_GRAY + DisplaySeparators.SECTION);
-        lore.add(rarityStars(model.getRarity())
-                + ColorCodeUtil.DARK_GRAY + "  " + rarityDisplayName(model.getRarity())
-                + ColorCodeUtil.DARK_GRAY + " │ " + ColorCodeUtil.GRAY + displayCategoryName(model.getCategory()));
-        lore.add("");
-
-        if (!model.getLore().isEmpty()) {
-            for (String line : model.getLore()) {
-                lore.add(ColorCodeUtil.GRAY + ColorCodeUtil.ITALIC
-                        + ColorCodeUtil.translateAlternateColorCodes(line));
-            }
-            lore.add("");
-        }
-
-        ItemRune rune = model.getRune();
-        if (rune != null) {
-            lore.add(ColorCodeUtil.GOLD + "❖ ルーン効果");
-            lore.add(ColorCodeUtil.GRAY + " ▸ 対象スロット: " + ColorCodeUtil.WHITE
-                    + formatRuneTargetSlots(rune));
-            if (!rune.getTargetTags().isEmpty()) {
-                lore.add(ColorCodeUtil.GRAY + " ▸ 対象種別: " + ColorCodeUtil.WHITE
-                        + formatRuneTargetTags(rune));
-            }
-            if (rune.getRequiredEnhanceLevel() > 0) {
-                lore.add(ColorCodeUtil.GRAY + " ▸ 必要強化: " + ColorCodeUtil.YELLOW
-                        + "+" + rune.getRequiredEnhanceLevel());
-            }
-        }
-
-        if (!instance.getStatRolls().isEmpty()) {
-            if (rune == null) {
-                lore.add(ColorCodeUtil.GOLD + "❖ ルーン効果");
-            }
-            lore.add("");
-            lore.add(ColorCodeUtil.YELLOW + " ▸ ステータス補正");
-            for (var roll : instance.getStatRolls()) {
-                ItemEquipmentStatType rollType = "SCALAR".equals(roll.getType())
-                        ? ItemEquipmentStatType.SCALAR : ItemEquipmentStatType.FLAT;
-                StatusType statusType = resolveStatusTypeOrNull(roll.getStatus());
-                String statColor = statusCategoryColor(roll.getStatus(), statusType);
-                String displayName = resolveStatusDisplayName(roll.getStatus(), statusType, rollType);
-                appendStatLore(
-                        lore,
-                        statColor,
-                        displayName,
-                        formatStatValueWithType(rollType, statusType, roll.getValue()),
-                        null,
-                        null);
-            }
-            lore.add("");
-        } else if (rune != null) {
             lore.add("");
         }
 

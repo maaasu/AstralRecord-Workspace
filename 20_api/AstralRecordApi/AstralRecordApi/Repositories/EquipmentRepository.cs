@@ -94,7 +94,6 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
             }
             else
             {
-                existing.RuneInstanceId = rune.RuneInstanceId;
                 existing.ItemId = rune.ItemId;
                 existing.UpdatedAt = rune.UpdatedAt;
                 existing.UpdatedBy = rune.UpdatedBy;

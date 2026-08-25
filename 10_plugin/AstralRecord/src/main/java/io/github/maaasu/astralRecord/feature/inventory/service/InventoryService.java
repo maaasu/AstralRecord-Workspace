@@ -28,7 +28,6 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
 import io.github.maaasu.astralRecord.feature.item.model.ItemRarity;
-import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.item.service.ItemReferenceResolver;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentRequirementService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
@@ -128,7 +127,7 @@ public class InventoryService {
     /** API原子操作が支払うまで、同じ資産をローカル消費へ二重使用させないaccount単位予約。 */
     private final Map<UUID, OrbPaymentReservation> orbPaymentReservationsByAccount = new ConcurrentHashMap<>();
     /**
-     * 非同期の装備・ルーン個体生成が完了するまで、他の付与処理へ使用させない BAG slot 予約です。
+     * 非同期の装備個体生成が完了するまで、他の付与処理へ使用させない BAG slot 予約です。
      *
      * <p>予約は {@link PlayerInventoryState} の entry へ仮データを書き込まないため、保存対象になりません。
      * すべての通常 slot 解決へ合成し、個体生成成功時だけ予約 slot を実 entry へ置き換えます。</p>
@@ -726,7 +725,8 @@ public class InventoryService {
      * 通常インベントリへアイテムを追加します。
      * <p>
      * 追加先は model のカテゴリに応じて自動判定し、対応するインベントリ種別へ entry を追加します。
-     * EQUIPMENT / RUNE は API でインスタンスを生成（同期）した後、entry を state に追加します。
+     * EQUIPMENT は API でインスタンスを生成（同期）した後、entry を state に追加します。
+     * RUNE は通常itemと同じく itemId / quantity でstackへ追加します。
      * 永続化は次回オートセーブで行われます。
      *
      * @param astPlayer 追加対象プレイヤー
@@ -765,7 +765,7 @@ public class InventoryService {
      * <p>
      * 通貨は BAG slot を消費しないため、{@link NormalInventoryGrantResult#remainingBagSlots()} は
      * {@code -1} になります。state 未登録時も同じく {@code -1} を返します。
-     * 装備・ルーンの API 個体生成は従来どおりこのメソッド内で実行するため、
+     * 装備の API 個体生成はこのメソッド内で実行するため、
      * 非同期ドロップ演出で個体を先に生成する場合は
      * {@link #reserveBagSlotForPreparedInstance(AstPlayer, ItemModel)} を使用してください。
      *
@@ -797,10 +797,8 @@ public class InventoryService {
             }
             granted = switch (ItemCategory.fromApiValue(model.getCategory())) {
                 case EQUIPMENT -> addInstanceItems(
-                    state, targetInventory, model, safeAmount,
-                    InventoryInstanceType.EQUIPMENT, source);
+                    state, targetInventory, model, safeAmount, source);
                 // ルーンはマスタ定義だけで効果が確定するスタックアイテムです。
-                // 旧 RUNE instance entry は読取互換だけを維持し、新規付与は通常itemとして保存します。
                 case RUNE -> addStackedItems(state, targetInventory, model, safeAmount);
                 default -> addStackedItems(state, targetInventory, model, safeAmount);
             };
@@ -865,7 +863,7 @@ public class InventoryService {
     }
 
     /**
-     * 非同期で生成する装備・ルーン個体のために、BAG の空き slot を予約します。
+     * 非同期で生成する装備個体のために、BAG の空き slot を予約します。
      * <p>
      * 予約済み slot は通常のアイテム付与・移動処理からも使用済みとして扱われます。
      * 呼び出し元は API 個体生成に成功した場合
@@ -873,7 +871,7 @@ public class InventoryService {
      * 失敗または取消時は {@link #releasePreparedInstanceReservation(PreparedInstanceSlotReservation)} を必ず呼び出してください。
      *
      * @param astPlayer 予約対象プレイヤー
-     * @param model     装備またはルーンのアイテム定義
+     * @param model     装備のアイテム定義
      * @return 予約結果。空きがない場合は reservation が {@code null}、state 未登録または対象外カテゴリでは空き枠数が {@code -1}
      */
     public @NotNull PreparedInstanceSlotReservationResult reserveBagSlotForPreparedInstance(
@@ -881,7 +879,7 @@ public class InventoryService {
         @NotNull ItemModel model
     ) {
         ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
-        if (category != ItemCategory.EQUIPMENT && category != ItemCategory.RUNE) {
+        if (category != ItemCategory.EQUIPMENT) {
             return new PreparedInstanceSlotReservationResult(null, -1);
         }
 
@@ -925,7 +923,7 @@ public class InventoryService {
     }
 
     /**
-     * 予約済み BAG slot へ API 生成済みの装備またはルーン個体を確定追加します。
+     * 予約済み BAG slot へ API 生成済みの装備個体を確定追加します。
      * <p>
      * 予約時と同じ player state が有効である場合だけ、予約 slot を instance entry へ原子的に置き換えます。
      * state が入れ替わった場合は entry を追加せず成功フラグ {@code false} を返すため、呼び出し元は既存の取消・退場時処理へ委譲します。
@@ -946,6 +944,11 @@ public class InventoryService {
     ) {
         UUID accountId = astPlayer.getAccount().getUuid();
         if (!accountId.equals(reservation.accountId())) {
+            return new PreparedInstanceReservationCompletion(false, -1);
+        }
+        if (ItemCategory.fromApiValue(model.getCategory()) != ItemCategory.EQUIPMENT
+            || instanceType != InventoryInstanceType.EQUIPMENT) {
+            removePendingBagSlotReservation(reservation);
             return new PreparedInstanceReservationCompletion(false, -1);
         }
         PlayerInventoryState state = getState(accountId);
@@ -1000,7 +1003,7 @@ public class InventoryService {
     }
 
     /**
-     * 未使用の装備・ルーン用 BAG slot 予約を解除します。
+     * 未使用の装備用 BAG slot 予約を解除します。
      * <p>
      * API 個体生成失敗、回収演出の取消、プレイヤー退出時の既存フォールバックへ移る前に呼び出します。
      * 既に確定または解除済みの予約を指定しても何もしません。
@@ -1020,7 +1023,8 @@ public class InventoryService {
 
     /**
      * API I/O 済みのインスタンスを含む報酬を、1 回のローカル変更として通常インベントリへ追加します。
-     * 装備品とルーンについて、このメソッド内ではインスタンス生成 API を呼び出しません。
+     * 装備品について、このメソッド内ではインスタンス生成 API を呼び出しません。
+     * ルーンは通常itemと同じ itemId / quantity のstackとして追加します。
      *
      * @param astPlayer 追加対象プレイヤー
      * @param rewards 事前解決済みの報酬
@@ -1068,10 +1072,8 @@ public class InventoryService {
                 InventoryModel targetInventory = ensureInventory(state, inventoryType);
                 changedTypes.add(inventoryType);
 
-                if (category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE) {
-                    InventoryInstanceType expectedType = category == ItemCategory.EQUIPMENT
-                        ? InventoryInstanceType.EQUIPMENT
-                        : InventoryInstanceType.RUNE;
+                if (category == ItemCategory.EQUIPMENT) {
+                    InventoryInstanceType expectedType = InventoryInstanceType.EQUIPMENT;
                     if (reward.instances().size() != reward.amount()
                         || reward.instances().stream().anyMatch(instance -> instance.instanceType() != expectedType)) {
                         succeeded = false;
@@ -1275,7 +1277,6 @@ public class InventoryService {
         @NotNull InventoryModel inventory,
         @NotNull ItemModel model,
         int amount,
-        @NotNull InventoryInstanceType instanceType,
         @NotNull String source
     ) {
         synchronized (state) {
@@ -1292,12 +1293,12 @@ public class InventoryService {
                 if (slot == null) {
                     break;
                 }
-                UUID instanceId = createInstanceId(model, accountId, instanceType, source);
+                UUID instanceId = createEquipmentInstanceId(model, accountId, source);
                 if (instanceId == null) {
                     break;
                 }
                 entries.add(newEntry(inventory.getInventoryId(), slot, model.getCategory(), model.getId(),
-                    instanceType.getCode(), instanceId, 1L, null, accountId));
+                    InventoryInstanceType.EQUIPMENT.getCode(), instanceId, 1L, null, accountId));
                 currentUsedSlots.add(slot);
                 granted++;
             }
@@ -1891,7 +1892,7 @@ public class InventoryService {
 
     /**
      * 指定スロットと同一の通常アイテムを BAG・ホットバー全体からストレージへ収納します。
-     * 装備・ルーンなど個体 ID を持つアイテムは、指定スロットの1個だけを移動します。
+     * 装備など個体 ID を持つアイテムは、指定スロットの1個だけを移動します。
      *
      * @param astPlayer 対象プレイヤー
      * @param sourceBukkitSlot 基準にする Bukkit PlayerInventory のスロット番号
@@ -2429,7 +2430,7 @@ public class InventoryService {
                 authoritativeAffected
             )
         );
-        splitTradeBagStackOverflow(accountId, affectedEntryIds);
+        normalizeExternallyReturnedOwnedEntries(accountId, affectedEntryIds, false, true);
     }
 
     /**
@@ -2444,12 +2445,10 @@ public class InventoryService {
         @NotNull Map<UUID, Optional<InventoryEntryModel>> authoritativeAffected
     ) {
         Set<String> equipmentInstanceIds = new LinkedHashSet<>();
-        Set<String> runeInstanceIds = new LinkedHashSet<>();
         for (UUID entryId : new LinkedHashSet<>(affectedEntryIds)) {
-            addTradeInstanceId(equipmentInstanceIds, runeInstanceIds, baseline.findEntry(entryId));
-            addTradeInstanceId(
+            addTradeEquipmentInstanceId(equipmentInstanceIds, baseline.findEntry(entryId));
+            addTradeEquipmentInstanceId(
                 equipmentInstanceIds,
-                runeInstanceIds,
                 authoritativeAffected.getOrDefault(entryId, Optional.empty()).orElse(null)
             );
         }
@@ -2457,16 +2456,11 @@ public class InventoryService {
             ItemService.EquipmentPreloadResult result = itemService.reloadEquipmentInstances(equipmentInstanceIds);
             requireTradeInstanceReload(result, "equipment", accountId);
         }
-        if (!runeInstanceIds.isEmpty()) {
-            ItemService.EquipmentPreloadResult result = itemService.reloadRuneInstances(runeInstanceIds);
-            requireTradeInstanceReload(result, "rune", accountId);
-        }
     }
 
-    /** Trade affected entry から装備・ルーン個体 ID を抽出します。 */
-    private void addTradeInstanceId(
+    /** Trade affected entry から装備個体 ID を抽出します。 */
+    private void addTradeEquipmentInstanceId(
         @NotNull Set<String> equipmentInstanceIds,
-        @NotNull Set<String> runeInstanceIds,
         @Nullable InventoryEntryModel entry
     ) {
         if (entry == null || entry.getInstanceId() == null) {
@@ -2475,14 +2469,10 @@ public class InventoryService {
         InventoryInstanceType instanceType = InventoryInstanceType.fromCode(entry.getInstanceType());
         if (instanceType == null) {
             ItemCategory category = ItemCategory.fromApiValue(entry.getItemCategory());
-            instanceType = category == ItemCategory.EQUIPMENT
-                ? InventoryInstanceType.EQUIPMENT
-                : category == ItemCategory.RUNE ? InventoryInstanceType.RUNE : null;
+            instanceType = category == ItemCategory.EQUIPMENT ? InventoryInstanceType.EQUIPMENT : null;
         }
         if (instanceType == InventoryInstanceType.EQUIPMENT) {
             equipmentInstanceIds.add(entry.getInstanceId().toString());
-        } else if (instanceType == InventoryInstanceType.RUNE) {
-            runeInstanceIds.add(entry.getInstanceId().toString());
         }
     }
 
@@ -2505,101 +2495,8 @@ public class InventoryService {
         }
     }
 
-    /** Trade で更新された BAG の通常 stack を最大 stack 数ごとの entry へ分割します。 */
-    private void splitTradeBagStackOverflow(
-        @NotNull UUID accountId,
-        @NotNull Collection<UUID> affectedEntryIds
-    ) {
-        PlayerInventoryState state = requireState(accountId);
-        Set<UUID> affectedIds = new HashSet<>(affectedEntryIds);
-        synchronized (state) {
-            if (getState(accountId) != state) {
-                throw new IllegalStateException("Inventory state generation changed for account " + accountId);
-            }
-            InventoryModel bag = state.findInventory(DEFAULT_PROFILE, InventoryType.BAG);
-            if (bag == null || !bag.isEnabled() || bag.isDeleted()) {
-                return;
-            }
-            List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(bag.getInventoryId()).stream()
-                .filter(entry -> !entry.isDeleted())
-                .toList());
-            List<InventoryEntryModel> affectedNormalStacks = entries.stream()
-                .filter(entry -> affectedIds.contains(entry.getInventoryEntryId()))
-                .filter(this::isNormalItemEntry)
-                .filter(entry -> ItemCategory.fromApiValue(entry.getItemCategory()) != ItemCategory.CURRENCY)
-                .toList();
-            if (affectedNormalStacks.isEmpty()) {
-                return;
-            }
-            Set<Integer> usedManagedSlots = collectUsedSlots(state, bag);
-            Set<Integer> occupiedSlots = entries.stream()
-                .map(InventoryEntryModel::getSlotIndex)
-                .filter(java.util.Objects::nonNull)
-                .filter(slot -> slot > 0)
-                .collect(java.util.stream.Collectors.toCollection(HashSet::new));
-            Set<Integer> seenSlots = new HashSet<>();
-            boolean changed = false;
-            List<InventoryEntryModel> splitEntries = new ArrayList<>();
-            for (InventoryEntryModel entry : entries) {
-                boolean belongsToAffectedStack = affectedNormalStacks.stream()
-                    .anyMatch(affected -> isSameStackableItem(entry, affected));
-                if (!belongsToAffectedStack) {
-                    splitEntries.add(entry);
-                    if (entry.getSlotIndex() != null && entry.getSlotIndex() > 0) {
-                        seenSlots.add(entry.getSlotIndex());
-                    }
-                    continue;
-                }
-                ItemModel model = resolveItemModel(entry);
-                int maxStack = model == null ? 0 : Math.max(1, model.getMaxStack());
-                if (maxStack <= 0) {
-                    splitEntries.add(entry);
-                    if (entry.getSlotIndex() != null && entry.getSlotIndex() > 0) {
-                        seenSlots.add(entry.getSlotIndex());
-                    }
-                    continue;
-                }
-                long remaining = entry.getQuantity();
-                boolean firstChunk = true;
-                while (remaining > 0L) {
-                    int slot = resolveTradeBagSlot(
-                        firstChunk ? entry.getSlotIndex() : null,
-                        seenSlots,
-                        occupiedSlots,
-                        usedManagedSlots,
-                        bag
-                    );
-                    long amount = Math.min(remaining, (long) maxStack);
-                    InventoryEntryModel split = firstChunk
-                        ? withSlot(withQuantity(entry, amount, accountId), slot, accountId)
-                        : newEntry(
-                            bag.getInventoryId(),
-                            slot,
-                            entry.getItemCategory(),
-                            entry.getItemId(),
-                            null,
-                            null,
-                            amount,
-                            entry.getMetadataJson(),
-                            accountId
-                        );
-                    changed |= amount != entry.getQuantity()
-                        || !java.util.Objects.equals(entry.getSlotIndex(), slot);
-                    splitEntries.add(split);
-                    seenSlots.add(slot);
-                    occupiedSlots.add(slot);
-                    remaining -= amount;
-                    firstChunk = false;
-                }
-            }
-            if (changed) {
-                state.replaceEntries(bag.getInventoryId(), splitEntries);
-            }
-        }
-    }
-
     /** 既存 slot の重複を避けて、通常容量内または Trade 専用の容量外 slot を解決します。 */
-    private int resolveTradeBagSlot(
+    private int resolveOverflowCapableBagSlot(
         @Nullable Integer preferredSlot,
         @NotNull Set<Integer> seenSlots,
         @NotNull Set<Integer> occupiedSlots,
@@ -2614,11 +2511,11 @@ public class InventoryService {
             usedManagedSlots.add(managedSlot);
             return managedSlot;
         }
-        return findNextTradeOverflowSlot(occupiedSlots, inventoryCapacity(bag));
+        return findNextBagOverflowSlot(occupiedSlots, inventoryCapacity(bag));
     }
 
-    /** 既存の容量外 entry を上書きしない、次の Trade 用容量外 slot を返します。 */
-    private int findNextTradeOverflowSlot(@NotNull Set<Integer> occupiedSlots, int capacity) {
+    /** 既存の容量外 entry を上書きしない、次の容量外 slot を返します。 */
+    private int findNextBagOverflowSlot(@NotNull Set<Integer> occupiedSlots, int capacity) {
         int candidate = Math.max(0, capacity);
         for (int slot : occupiedSlots) {
             candidate = Math.max(candidate, slot);
@@ -2629,7 +2526,7 @@ public class InventoryService {
                 return candidate;
             }
         }
-        throw new IllegalStateException("Trade BAG overflow slot limit reached");
+        throw new IllegalStateException("BAG overflow slot limit reached");
     }
 
     /**
@@ -2662,7 +2559,16 @@ public class InventoryService {
         @NotNull AstPlayer astPlayer,
         @NotNull Collection<UUID> affectedEntryIds
     ) {
-        UUID accountId = astPlayer.getAccount().getUuid();
+        normalizeExternallyReturnedOwnedEntries(astPlayer.getAccount().getUuid(), affectedEntryIds, false, false);
+    }
+
+    /** affected entry の通常品を、account ID を正本として共通返却規則へ通します。 */
+    private void normalizeExternallyReturnedOwnedEntries(
+        @NotNull UUID accountId,
+        @NotNull Collection<UUID> affectedEntryIds,
+        boolean runeOnly,
+        boolean allowBagOverflow
+    ) {
         PlayerInventoryState state = requireState(accountId);
         synchronized (state) {
             if (getState(accountId) != state) {
@@ -2676,6 +2582,10 @@ public class InventoryService {
                         || ItemCategory.fromApiValue(affected.getItemCategory()) == ItemCategory.CURRENCY) {
                         continue;
                     }
+                    if (runeOnly
+                        && ItemCategory.fromApiValue(affected.getItemCategory()) != ItemCategory.RUNE) {
+                        continue;
+                    }
                     InventoryModel currentInventory = state.findInventoryById(affected.getInventoryId());
                     if (currentInventory == null || !currentInventory.isEnabled() || currentInventory.isDeleted()) {
                         continue;
@@ -2685,7 +2595,7 @@ public class InventoryService {
                         continue;
                     }
                     if (isStackableByItemId(affected)) {
-                        mergeReturnedBagStack(state, currentInventory, affected);
+                        mergeReturnedBagStack(state, currentInventory, affected, allowBagOverflow);
                     }
                 }
             } catch (RuntimeException exception) {
@@ -2720,7 +2630,8 @@ public class InventoryService {
     private void mergeReturnedBagStack(
         @NotNull PlayerInventoryState state,
         @NotNull InventoryModel bagInventory,
-        @NotNull InventoryEntryModel affected
+        @NotNull InventoryEntryModel affected,
+        boolean allowBagOverflow
     ) {
         ItemModel model = resolveItemModel(affected);
         if (model == null) {
@@ -2772,15 +2683,66 @@ public class InventoryService {
         }
         state.replaceEntries(bagInventory.getInventoryId(), retained);
         int mergeAmount = Math.toIntExact(amountToMerge);
-        if (mergeAmount > 0 && returnResolvedItemToOwnedInventoryState(
-            state,
-            resolveItemReference(canonicalAffected),
-            mergeAmount,
-            canonicalAffected.getMetadataJson()
-        ) != InventoryType.BAG) {
-            throw new IllegalStateException(
-                "Externally returned inventory stack could not be merged: " + affected.getInventoryEntryId());
+        if (mergeAmount > 0) {
+            if (allowBagOverflow) {
+                int mergedAmount = addStackedItems(state, bagInventory, model, mergeAmount);
+                appendBagOverflowStack(
+                    state,
+                    bagInventory,
+                    canonicalAffected,
+                    mergeAmount - mergedAmount,
+                    maxStack
+                );
+            } else if (returnResolvedItemToOwnedInventoryState(
+                state,
+                resolveItemReference(canonicalAffected),
+                mergeAmount,
+                canonicalAffected.getMetadataJson()
+            ) != InventoryType.BAG) {
+                throw new IllegalStateException(
+                    "Externally returned inventory stack could not be merged: " + affected.getInventoryEntryId());
+            }
         }
+    }
+
+    /** API確定後にBAG容量を超えた通常stackを、保存可能な容量外slotへ退避します。 */
+    private void appendBagOverflowStack(
+        @NotNull PlayerInventoryState state,
+        @NotNull InventoryModel bagInventory,
+        @NotNull InventoryEntryModel source,
+        int amount,
+        int maxStack
+    ) {
+        if (amount <= 0) {
+            return;
+        }
+        List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(bagInventory.getInventoryId()));
+        Set<Integer> occupiedSlots = entries.stream()
+            .map(InventoryEntryModel::getSlotIndex)
+            .filter(Objects::nonNull)
+            .filter(slot -> slot > 0)
+            .collect(java.util.stream.Collectors.toCollection(HashSet::new));
+        Set<Integer> usedManagedSlots = collectUsedSlots(state, bagInventory);
+        int remaining = amount;
+        while (remaining > 0) {
+            int slot = resolveOverflowCapableBagSlot(
+                null, occupiedSlots, occupiedSlots, usedManagedSlots, bagInventory);
+            int quantity = Math.min(remaining, maxStack);
+            entries.add(newEntry(
+                bagInventory.getInventoryId(),
+                slot,
+                source.getItemCategory(),
+                source.getItemId(),
+                null,
+                null,
+                quantity,
+                source.getMetadataJson(),
+                state.getAccountId()
+            ));
+            occupiedSlots.add(slot);
+            remaining -= quantity;
+        }
+        state.replaceEntries(bagInventory.getInventoryId(), entries);
     }
 
     /** 指定 entry を所有 inventory state から除去します。 */
@@ -2857,6 +2819,7 @@ public class InventoryService {
         @NotNull InventoryPersistence.PersistedInventoryBaseline baseline
     ) {
         reconcileExternalInventoryEntries(accountId, affectedEntryIds, baseline);
+        normalizeExternallyReturnedOwnedEntries(accountId, affectedEntryIds, true, true);
     }
 
     private @NotNull List<InventoryEntryModel> compactMergedEntriesAfterRemoval(
@@ -4254,8 +4217,7 @@ public class InventoryService {
             || !expected.category().equalsIgnoreCase(actual.category())) {
             return false;
         }
-        return sameOptionalReferenceValue(expected.equipmentInstanceId(), actual.equipmentInstanceId())
-            && sameOptionalReferenceValue(expected.runeInstanceId(), actual.runeInstanceId());
+        return sameOptionalReferenceValue(expected.equipmentInstanceId(), actual.equipmentInstanceId());
     }
 
     private boolean sameOptionalReferenceValue(@Nullable String expected, @Nullable String actual) {
@@ -4718,7 +4680,7 @@ public class InventoryService {
      * @param astPlayer 対象プレイヤー
      * @param sourceBukkitSlot 表示中インベントリ上の Bukkit スロット
      * @param amount 取り出す数量。0 以下、または entry の数量を超える場合は entry 全量を取り出す。
-     *               entry がインスタンス系（装備・ルーン）の場合は常に全量を取り出す。
+     *               entry がインスタンス系（装備）の場合は常に全量を取り出す。
      * @return 取り出した ItemStack（指定数量分）。対象が存在しない場合は null。
      */
     public @Nullable ItemStack takeDisplayedItemAmount(
@@ -5621,8 +5583,8 @@ public class InventoryService {
             boolean fullyAdded = switch (category) {
                 case EQUIPMENT -> addExistingInstanceEntry(state, targetInventory, model,
                     InventoryInstanceType.EQUIPMENT, reference.equipmentInstanceId(), metadataJson) && amount == 1;
-                case RUNE -> addExistingInstanceEntry(state, targetInventory, model,
-                    InventoryInstanceType.RUNE, reference.runeInstanceId(), metadataJson) && amount == 1;
+                // ルーンは itemId / quantity で管理する通常stack itemです。
+                case RUNE -> addStackedItems(state, targetInventory, model, amount) == amount;
                 default -> addStackedItems(state, targetInventory, model, amount) == amount;
             };
             if (!fullyAdded) {
@@ -6492,24 +6454,14 @@ public class InventoryService {
         return List.of(itemStackResolver.resolveCurrencyDisplay(gold, amount));
     }
 
-    private @Nullable UUID createInstanceId(
+    private @Nullable UUID createEquipmentInstanceId(
         @NotNull ItemModel model,
         @NotNull UUID accountId,
-        @NotNull InventoryInstanceType instanceType,
         @NotNull String source
     ) {
-        String instanceId = switch (instanceType) {
-            case EQUIPMENT -> {
-                EquipmentInstance instance = itemService.createEquipmentInstance(
-                    model.getId(), accountId.toString(), source, accountId.toString());
-                yield instance == null ? null : instance.getEquipmentInstanceId();
-            }
-            case RUNE -> {
-                RuneInstance instance = itemService.createRuneInstance(
-                    model.getId(), accountId.toString(), source, accountId.toString());
-                yield instance == null ? null : instance.getRuneInstanceId();
-            }
-        };
+        EquipmentInstance instance = itemService.createEquipmentInstance(
+            model.getId(), accountId.toString(), source, accountId.toString());
+        String instanceId = instance == null ? null : instance.getEquipmentInstanceId();
         return instanceId == null ? null : parseUuidOrNull(instanceId);
     }
 
@@ -6662,36 +6614,17 @@ public class InventoryService {
             ItemModel entryModel = entryItemId == null || entryItemId.isBlank()
                 ? null
                 : resolveItemModel(entryItemId);
-            return switch (instanceType) {
-                case EQUIPMENT -> {
-                    EquipmentInstance instance = entryModel == null
-                        ? itemService.findEquipmentInstanceById(entry.getInstanceId().toString())
-                        : null;
-                    ItemModel model = entryModel != null
-                        ? entryModel
-                        : instance == null ? null : resolveItemModel(instance.getItemId());
-                    yield model == null ? null : new ItemReference(
-                        model.getId(),
-                        model.getCategory(),
-                        entry.getInstanceId().toString(),
-                        null
-                    );
-                }
-                case RUNE -> {
-                    RuneInstance instance = entryModel == null
-                        ? itemService.findRuneInstanceById(entry.getInstanceId().toString())
-                        : null;
-                    ItemModel model = entryModel != null
-                        ? entryModel
-                        : instance == null ? null : resolveItemModel(instance.getItemId());
-                    yield model == null ? null : new ItemReference(
-                        model.getId(),
-                        model.getCategory(),
-                        null,
-                        entry.getInstanceId().toString()
-                    );
-                }
-            };
+            EquipmentInstance instance = entryModel == null
+                ? itemService.findEquipmentInstanceById(entry.getInstanceId().toString())
+                : null;
+            ItemModel model = entryModel != null
+                ? entryModel
+                : instance == null ? null : resolveItemModel(instance.getItemId());
+            return model == null ? null : new ItemReference(
+                model.getId(),
+                model.getCategory(),
+                entry.getInstanceId().toString()
+            );
         }
         if (entry.getItemId() != null && !entry.getItemId().isBlank()) {
             String category = entry.getItemCategory();
@@ -6702,7 +6635,7 @@ public class InventoryService {
                 }
                 category = model.getCategory();
             }
-            return new ItemReference(entry.getItemId(), category, null, null);
+            return new ItemReference(entry.getItemId(), category, null);
         }
         return null;
     }
@@ -6720,36 +6653,17 @@ public class InventoryService {
         ItemModel entryModel = entryItemId == null || entryItemId.isBlank()
             ? null
             : resolveItemModel(entryItemId);
-        return switch (instanceType) {
-            case EQUIPMENT -> {
-                EquipmentInstance instance = entryModel == null
-                    ? itemService.findEquipmentInstanceById(entry.getInstanceId().toString())
-                    : null;
-                ItemModel model = entryModel != null
-                    ? entryModel
-                    : instance == null ? null : resolveItemModel(instance.getItemId());
-                yield model == null ? null : new ItemReference(
-                    model.getId(),
-                    model.getCategory(),
-                    entry.getInstanceId().toString(),
-                    null
-                );
-            }
-            case RUNE -> {
-                RuneInstance instance = entryModel == null
-                    ? itemService.findRuneInstanceById(entry.getInstanceId().toString())
-                    : null;
-                ItemModel model = entryModel != null
-                    ? entryModel
-                    : instance == null ? null : resolveItemModel(instance.getItemId());
-                yield model == null ? null : new ItemReference(
-                    model.getId(),
-                    model.getCategory(),
-                    null,
-                    entry.getInstanceId().toString()
-                );
-            }
-        };
+        EquipmentInstance instance = entryModel == null
+            ? itemService.findEquipmentInstanceById(entry.getInstanceId().toString())
+            : null;
+        ItemModel model = entryModel != null
+            ? entryModel
+            : instance == null ? null : resolveItemModel(instance.getItemId());
+        return model == null ? null : new ItemReference(
+            model.getId(),
+            model.getCategory(),
+            entry.getInstanceId().toString()
+        );
     }
 
     private int toHotbarDbSlot(@NotNull AstPlayer astPlayer, @NotNull EquipmentSlot hand) {

@@ -489,17 +489,6 @@ public class InventoryRepositoryTests
                 created_by TEXT NOT NULL,
                 updated_by TEXT NOT NULL,
                 is_deleted INTEGER NOT NULL
-            );
-
-            CREATE TABLE rune_instance (
-                rune_instance_id TEXT NOT NULL PRIMARY KEY,
-                account_id TEXT NOT NULL,
-                item_id TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                created_by TEXT NOT NULL,
-                updated_by TEXT NOT NULL,
-                is_deleted INTEGER NOT NULL
             );");
     }
 }

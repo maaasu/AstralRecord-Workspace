@@ -8,7 +8,6 @@ import io.github.maaasu.astralRecord.feature.inventory.model.InventoryInstanceTy
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
-import io.github.maaasu.astralRecord.feature.item.model.RuneInstance;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -634,15 +633,13 @@ public final class QuestService {
                     stackRewards.add(new ResolvedItemReward(model, item.amount()));
                     continue;
                 }
-                InventoryInstanceType instanceType = category == ItemCategory.EQUIPMENT
-                    ? InventoryInstanceType.EQUIPMENT
-                    : InventoryInstanceType.RUNE;
                 for (int index = 0; index < item.amount(); index++) {
-                    UUID instanceId = prepareInstance(model, accountId, instanceType);
+                    UUID instanceId = prepareEquipmentInstance(model, accountId);
                     if (instanceId == null) {
                         return PreparedRewards.failure(stackRewards, instanceRewards);
                     }
-                    instanceRewards.add(new PreparedInstanceReward(model, instanceType, instanceId));
+                    instanceRewards.add(new PreparedInstanceReward(
+                        model, InventoryInstanceType.EQUIPMENT, instanceId));
                 }
             }
             return PreparedRewards.success(stackRewards, instanceRewards);
@@ -652,30 +649,20 @@ public final class QuestService {
         }
     }
 
-    private @Nullable UUID prepareInstance(
+    private @Nullable UUID prepareEquipmentInstance(
         @NotNull ItemModel model,
-        @NotNull UUID accountId,
-        @NotNull InventoryInstanceType instanceType
+        @NotNull UUID accountId
     ) {
-        String instanceId;
-        if (instanceType == InventoryInstanceType.EQUIPMENT) {
-            EquipmentInstance instance = itemService.createEquipmentInstance(
-                model.getId(), accountId.toString(), REWARD_SOURCE, accountId.toString());
-            instanceId = instance == null ? null : instance.getEquipmentInstanceId();
-        } else {
-            RuneInstance instance = itemService.createRuneInstance(
-                model.getId(), accountId.toString(), REWARD_SOURCE, accountId.toString());
-            instanceId = instance == null ? null : instance.getRuneInstanceId();
-        }
+        EquipmentInstance instance = itemService.createEquipmentInstance(
+            model.getId(), accountId.toString(), REWARD_SOURCE, accountId.toString());
+        String instanceId = instance == null ? null : instance.getEquipmentInstanceId();
         if (instanceId == null) {
             return null;
         }
         try {
             return UUID.fromString(instanceId);
         } catch (IllegalArgumentException exception) {
-            if (instanceType == InventoryInstanceType.EQUIPMENT) {
-                itemService.deleteEquipmentInstance(instanceId);
-            }
+            itemService.deleteEquipmentInstance(instanceId);
             return null;
         }
     }
@@ -1220,11 +1207,6 @@ public final class QuestService {
             .filter(reward -> reward.instanceType() == InventoryInstanceType.EQUIPMENT)
             .map(PreparedInstanceReward::instanceId)
             .toList();
-        prepared.instanceRewards().stream()
-            .filter(reward -> reward.instanceType() == InventoryInstanceType.RUNE)
-            .map(PreparedInstanceReward::instanceId)
-            .map(UUID::toString)
-            .forEach(itemService::evictRuneInstanceFromCache);
         if (equipmentInstanceIds.isEmpty()) {
             return;
         }
