@@ -452,8 +452,16 @@ public class MobRepository {
         }
         List<MobSkillBinding> bindings = new ArrayList<>();
         for (JsonElement element : array) {
+            if (element.isJsonPrimitive() && element.getAsJsonPrimitive().isString()) {
+                String id = element.getAsString();
+                if (id.isBlank()) {
+                    throw new IllegalArgumentException("ai.combat.skills の文字列IDは空にできません");
+                }
+                bindings.add(new MobSkillBinding(id, null, null, null, Map.of()));
+                continue;
+            }
             if (!element.isJsonObject()) {
-                throw new IllegalArgumentException("ai.combat.skills の各要素はobjectで指定してください");
+                throw new IllegalArgumentException("ai.combat.skills の各要素は文字列IDまたはobjectで指定してください");
             }
             JsonObject object = element.getAsJsonObject();
             String id = optionalString(object, "id");

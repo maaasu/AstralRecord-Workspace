@@ -48,6 +48,9 @@ Enemy（通常エネミー）の固有フィールド定義。
 `attackIntervalTicks` を直接置く旧形式は読み込み互換のためだけに残ります。新規・更新マスターでは
 `normalAttack.range` と `normalAttack.intervalTicks` を使用してください。
 
+`skills` の文字列 ID 配列（例: `skills: [mob_example]`）も既存データ互換のため読み込みますが、
+新規・更新マスターでは timing と `params` を表現できる object 形式だけを使用してください。
+
 `normalAttack` と `skills` は併用できます。例えば、近接の通常攻撃を行いつつ、個別クールダウンの
 詠唱スキルをローテーションできます。スキルだけで攻撃する Mob は `normalAttack` を定義しません。
 
