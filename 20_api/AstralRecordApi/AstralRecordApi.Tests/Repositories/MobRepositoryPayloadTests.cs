@@ -51,6 +51,95 @@ public class MobRepositoryPayloadTests
     }
 
     [Fact]
+    public async Task GetById_FromSkeletonArcherYaml_DoesNotAddNormalAttack_AndPreservesSkillBinding()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MasterDataDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var setupContext = new MasterDataDbContext(options))
+        {
+            await MasterDataTestSeed.CreateSchemaAsync(setupContext);
+            await MasterDataTestSeed.SeedEntryAsync(
+                setupContext,
+                Path.Combine(
+                    ResolveWorkspaceRoot(),
+                    "40_filebase",
+                    "40.features.mob",
+                    "enemy",
+                    "v1.midgard_skeleton_archer.yml"),
+                "mob.enemy",
+                "ENEMY");
+        }
+
+        await using var dbContext = new MasterDataDbContext(options);
+        var repository = new MobRepository(dbContext);
+
+        var mob = repository.GetById("midgard_skeleton_archer");
+
+        var combat = Assert.IsType<MobCombatResponse>(mob?.Ai?.Combat);
+        Assert.Null(combat.NormalAttack);
+        Assert.Null(combat.AttackIntervalTicks);
+        var skill = Assert.Single(combat.Skills);
+        Assert.Equal("mob_skeleton_bow_shot", skill.Id);
+        Assert.Equal(16D, skill.ActivationRange);
+        Assert.Equal(36L, skill.CooldownTicks);
+        Assert.Equal(12L, skill.CastTimeTicks);
+        Assert.Equal(0.85D, skill.Params["damageRatio"]);
+
+        using var responseJson = JsonDocument.Parse(JsonSerializer.Serialize(
+            mob,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        var responseCombat = responseJson.RootElement.GetProperty("ai").GetProperty("combat");
+        Assert.False(responseCombat.TryGetProperty("normalAttack", out _));
+        Assert.False(responseCombat.TryGetProperty("attackIntervalTicks", out _));
+        Assert.Equal("mob_skeleton_bow_shot", responseCombat.GetProperty("skills")[0].GetProperty("id").GetString());
+    }
+
+    [Fact]
+    public void DeserializeLiteralJson_PreservesExplicitNormalAttack_AndLegacySkillId()
+    {
+        var mob = JsonSerializer.Deserialize<MobResponse>("""
+            {
+              "schemaVersion": 1,
+              "id": "legacy_combat_mob",
+              "type": "MOB",
+              "category": "ENEMY",
+              "name": "legacy combat mob",
+              "level": 1,
+              "entityType": "ZOMBIE",
+              "baseStats": [],
+              "ai": {
+                "combat": {
+                  "style": "MELEE",
+                  "normalAttack": { "range": 2.5, "intervalTicks": 24 },
+                  "attackIntervalTicks": 30,
+                  "skills": ["mob_legacy_attack"]
+                }
+              }
+            }
+            """, MasterDataJsonOptions());
+
+        var combat = Assert.IsType<MobCombatResponse>(mob?.Ai?.Combat);
+        Assert.Equal(2.5D, combat.NormalAttack?.Range);
+        Assert.Equal(24L, combat.NormalAttack?.IntervalTicks);
+        Assert.Equal(30L, combat.AttackIntervalTicks);
+        Assert.Equal("mob_legacy_attack", Assert.Single(combat.Skills).Id);
+
+        using var responseJson = JsonDocument.Parse(JsonSerializer.Serialize(
+            mob,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web)));
+        var responseCombat = responseJson.RootElement.GetProperty("ai").GetProperty("combat");
+        Assert.Equal(2.5D, responseCombat.GetProperty("normalAttack").GetProperty("range").GetDouble());
+        Assert.Equal(24L, responseCombat.GetProperty("normalAttack").GetProperty("intervalTicks").GetInt64());
+        Assert.Equal(30L, responseCombat.GetProperty("attackIntervalTicks").GetInt64());
+        Assert.Equal("mob_legacy_attack", responseCombat.GetProperty("skills")[0].GetProperty("id").GetString());
+    }
+
+    [Fact]
     public void DeserializeLiteralJson_PopulatesShield()
     {
         var json = """

@@ -196,9 +196,44 @@ public class MobCombatResponse
 
     public double PreferredRange { get; init; } = 1.0;
 
-    public long AttackIntervalTicks { get; init; } = 20;
+    /// <summary>
+    /// 通常攻撃設定。マスタに定義された Mob だけが通常攻撃を持つ。
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public MobNormalAttackResponse? NormalAttack { get; init; }
 
-    public IReadOnlyList<string> Skills { get; init; } = [];
+    /// <summary>
+    /// 旧マスタの直接指定形式。未定義時に既定値を補完せず、通常攻撃を追加しない。
+    /// </summary>
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? AttackIntervalTicks { get; init; }
+
+    public IReadOnlyList<MobSkillBindingResponse> Skills { get; init; } = [];
+}
+
+/// <summary>Mob の通常攻撃設定。</summary>
+public class MobNormalAttackResponse
+{
+    public required double Range { get; init; }
+
+    public required long IntervalTicks { get; init; }
+}
+
+/// <summary>Mob 専用スキルの発動設定。</summary>
+public class MobSkillBindingResponse
+{
+    public required string Id { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public double? ActivationRange { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? CooldownTicks { get; init; }
+
+    [JsonIgnore(Condition = JsonIgnoreCondition.WhenWritingNull)]
+    public long? CastTimeTicks { get; init; }
+
+    public IReadOnlyDictionary<string, double> Params { get; init; } = new Dictionary<string, double>();
 }
 
 /// <summary>NPC のクリックインタラクション設定。</summary>

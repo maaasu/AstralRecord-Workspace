@@ -27,8 +27,116 @@ internal static class MasterDataPayloadJson
 
         options.Converters.Add(new ItemEquipmentStatValueConverter());
         options.Converters.Add(new ItemEquipmentRequiredClassConverter());
+        options.Converters.Add(new MobSkillBindingResponseConverter());
         options.Converters.Add(new FlexibleStringConverter());
         return options;
+    }
+
+    /// <summary>
+    /// Mob スキルの旧文字列ID形式と現行オブジェクト形式を読み取る。
+    /// API の返却は常に <see cref="MobSkillBindingResponse"/> のオブジェクト形式に正規化する。
+    /// </summary>
+    private sealed class MobSkillBindingResponseConverter : JsonConverter<MobSkillBindingResponse>
+    {
+        public override MobSkillBindingResponse Read(
+            ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
+        {
+            if (reader.TokenType == JsonTokenType.String)
+            {
+                var stringSkillId = reader.GetString();
+                if (string.IsNullOrWhiteSpace(stringSkillId))
+                    throw new JsonException("Mob skill ID cannot be blank.");
+                return new MobSkillBindingResponse { Id = stringSkillId };
+            }
+
+            if (reader.TokenType != JsonTokenType.StartObject)
+                throw new JsonException($"Unexpected token for mob skill: {reader.TokenType}");
+
+            string? id = null;
+            double? activationRange = null;
+            long? cooldownTicks = null;
+            long? castTimeTicks = null;
+            IReadOnlyDictionary<string, double> parameters = new Dictionary<string, double>();
+
+            while (reader.Read())
+            {
+                if (reader.TokenType == JsonTokenType.EndObject)
+                    break;
+                if (reader.TokenType != JsonTokenType.PropertyName)
+                    continue;
+
+                var propertyName = reader.GetString();
+                reader.Read();
+                if (string.Equals(propertyName, "id", StringComparison.OrdinalIgnoreCase))
+                {
+                    id = reader.TokenType == JsonTokenType.String ? reader.GetString() : null;
+                }
+                else if (string.Equals(propertyName, "activationRange", StringComparison.OrdinalIgnoreCase))
+                {
+                    activationRange = ReadNullableDouble(ref reader);
+                }
+                else if (string.Equals(propertyName, "cooldownTicks", StringComparison.OrdinalIgnoreCase))
+                {
+                    cooldownTicks = ReadNullableLong(ref reader);
+                }
+                else if (string.Equals(propertyName, "castTimeTicks", StringComparison.OrdinalIgnoreCase))
+                {
+                    castTimeTicks = ReadNullableLong(ref reader);
+                }
+                else if (string.Equals(propertyName, "params", StringComparison.OrdinalIgnoreCase))
+                {
+                    parameters = JsonSerializer.Deserialize<Dictionary<string, double>>(ref reader, options)
+                        ?? new Dictionary<string, double>();
+                }
+                else
+                {
+                    reader.Skip();
+                }
+            }
+
+            if (string.IsNullOrWhiteSpace(id))
+                throw new JsonException("Mob skill id is required.");
+
+            return new MobSkillBindingResponse
+            {
+                Id = id,
+                ActivationRange = activationRange,
+                CooldownTicks = cooldownTicks,
+                CastTimeTicks = castTimeTicks,
+                Params = parameters,
+            };
+        }
+
+        public override void Write(Utf8JsonWriter writer, MobSkillBindingResponse value, JsonSerializerOptions options)
+        {
+            writer.WriteStartObject();
+            writer.WriteString("id", value.Id);
+            if (value.ActivationRange is { } activationRange)
+                writer.WriteNumber("activationRange", activationRange);
+            if (value.CooldownTicks is { } cooldownTicks)
+                writer.WriteNumber("cooldownTicks", cooldownTicks);
+            if (value.CastTimeTicks is { } castTimeTicks)
+                writer.WriteNumber("castTimeTicks", castTimeTicks);
+            writer.WritePropertyName("params");
+            JsonSerializer.Serialize(writer, value.Params, options);
+            writer.WriteEndObject();
+        }
+
+        private static double? ReadNullableDouble(ref Utf8JsonReader reader) => reader.TokenType switch
+        {
+            JsonTokenType.Null => null,
+            JsonTokenType.Number => reader.GetDouble(),
+            JsonTokenType.String when double.TryParse(reader.GetString(), out var value) => value,
+            _ => throw new JsonException($"Expected a number or null, but got {reader.TokenType}.")
+        };
+
+        private static long? ReadNullableLong(ref Utf8JsonReader reader) => reader.TokenType switch
+        {
+            JsonTokenType.Null => null,
+            JsonTokenType.Number => reader.GetInt64(),
+            JsonTokenType.String when long.TryParse(reader.GetString(), out var value) => value,
+            _ => throw new JsonException($"Expected an integer or null, but got {reader.TokenType}.")
+        };
     }
 
     /// <summary>
