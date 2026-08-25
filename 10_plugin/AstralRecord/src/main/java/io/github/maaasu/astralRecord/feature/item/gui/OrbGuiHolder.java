@@ -26,6 +26,9 @@ public record OrbGuiHolder(
     /** 状態変化確認 GUI のサイズです。 */
     public static final int TRANSCENDENCE_CONFIRM_SIZE = 27;
 
+    /** ルーン装着・脱着 GUI のサイズです。 */
+    public static final int RUNE_SIZE = 27;
+
     /**
      * 画面種別に対応する GUI サイズを返します。
      *
@@ -33,9 +36,11 @@ public record OrbGuiHolder(
      * @return 画面に必要なスロット数
      */
     public static int sizeFor(@NotNull Screen screen) {
-        return screen == Screen.TRANSCENDENCE_CONFIRM
-            ? TRANSCENDENCE_CONFIRM_SIZE
-            : SIZE;
+        return switch (screen) {
+            case TRANSCENDENCE_CONFIRM -> TRANSCENDENCE_CONFIRM_SIZE;
+            case RUNE_ATTACH, RUNE_DETACH, RUNE_DETACH_SELECT -> RUNE_SIZE;
+            default -> SIZE;
+        };
     }
 
     /**

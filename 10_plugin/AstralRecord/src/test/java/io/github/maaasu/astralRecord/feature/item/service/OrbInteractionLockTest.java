@@ -58,12 +58,14 @@ class OrbInteractionLockTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 状態変化は残オーブの有無を問わず閉じ、それ以外は同種オーブが0個の場合だけ閉じる。
+     * 検証契約: 状態変化とルーン操作は残オーブの有無を問わず閉じ、それ以外は同種オーブが0個の場合だけ閉じる。
      */
     @Test
     void refreshClosesForTranscendenceOrWhenNoSameOrbRemains() {
         assertTrue(OrbService.shouldCloseAfterRefresh(
             OrbService.MutationKind.TRANSCENDENCE, true));
+        assertTrue(OrbService.shouldCloseAfterRefresh(
+            OrbService.MutationKind.RUNE, true));
         assertTrue(OrbService.shouldCloseAfterRefresh(
             OrbService.MutationKind.ENCHANT, false));
         assertFalse(OrbService.shouldCloseAfterRefresh(

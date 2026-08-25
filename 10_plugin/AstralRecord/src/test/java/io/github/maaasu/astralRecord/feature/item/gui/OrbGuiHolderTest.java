@@ -36,5 +36,14 @@ class OrbGuiHolderTest extends MockBukkitTestBase {
         assertEquals(token, holder.sessionToken());
         assertEquals(OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM, holder.screen());
         assertInstanceOf(HotbarShortcutGuiHolder.class, holder);
+
+        for (OrbGuiHolder.Screen runeScreen : new OrbGuiHolder.Screen[] {
+            OrbGuiHolder.Screen.RUNE_ATTACH,
+            OrbGuiHolder.Screen.RUNE_DETACH,
+            OrbGuiHolder.Screen.RUNE_DETACH_SELECT
+        }) {
+            OrbGuiHolder runeHolder = new OrbGuiHolder(ownerId, token, runeScreen);
+            assertEquals(OrbGuiHolder.RUNE_SIZE, runeHolder.getInventory().getSize());
+        }
     }
 }

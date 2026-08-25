@@ -401,14 +401,20 @@ public final class OrbService {
         }
         if (event.getClickedInventory() instanceof PlayerInventory) {
             OrbSession session = currentSession(player, event.getView().getTopInventory());
-            if (session != null && session.screen == OrbGuiHolder.Screen.RUNE_ATTACH) {
-                event.setCancelled(true);
+            if (session != null) {
                 if (session.interactionLock.isLocked() || session.transitioning) {
+                    event.setCancelled(true);
                     GuiSound.DENY.play(player);
                     return;
                 }
-                handleRuneGuiClick(event, session);
-                return;
+                if (HotbarShortcutClickSupport.handleInventoryControlClick(event, player, inventoryService)) {
+                    return;
+                }
+                if (session.screen == OrbGuiHolder.Screen.RUNE_ATTACH) {
+                    event.setCancelled(true);
+                    handleRuneGuiClick(event, session);
+                    return;
+                }
             }
             if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
                 return;
@@ -957,8 +963,14 @@ public final class OrbService {
         session.selectedRuneSlot = -1;
         session.screen = type == ItemOrbEffectType.RUNE_ATTACH
             ? OrbGuiHolder.Screen.RUNE_ATTACH : OrbGuiHolder.Screen.RUNE_DETACH;
+        if (type == ItemOrbEffectType.RUNE_DETACH && target.instance.getRunes().size() == 1) {
+            EquipmentRune rune = target.instance.getRunes().getFirst();
+            session.selectedRuneItemId = rune.getItemId();
+            session.selectedRuneSlot = rune.getSlotIndex();
+        }
         session.inventory = Bukkit.createInventory(
-            new OrbGuiHolder(session.player.getUniqueId(), session.token, session.screen), 27,
+            new OrbGuiHolder(session.player.getUniqueId(), session.token, session.screen),
+            OrbGuiHolder.sizeFor(session.screen),
             Component.text(type == ItemOrbEffectType.RUNE_ATTACH ? "ルーン装着" : "ルーン脱着", NamedTextColor.DARK_PURPLE));
         renderRuneScreen(session, target);
         transitionInventory(session, session.inventory, session.screen);
@@ -1014,18 +1026,34 @@ public final class OrbService {
             session.runePage = 0;
             openRuneDetachSelection(session, target); return;
         }
-        if (session.screen == OrbGuiHolder.Screen.RUNE_DETACH_SELECT && event.getRawSlot() < 27) {
-            if (event.getRawSlot() == 18 && session.runePage > 0) { session.runePage--; openRuneDetachSelection(session, target); return; }
-            if (event.getRawSlot() == 26 && (session.runePage + 1) * 18 < target.instance.getRunes().size()) { session.runePage++; openRuneDetachSelection(session, target); return; }
-            int index = session.runePage * 18 + event.getRawSlot();
+        if (session.screen == OrbGuiHolder.Screen.RUNE_DETACH_SELECT) {
+            int rawSlot = event.getRawSlot();
+            if (rawSlot == 18) {
+                if (session.runePage > 0) { session.runePage--; openRuneDetachSelection(session, target); }
+                else { GuiSound.DENY.play(session.player); }
+                return;
+            }
+            if (rawSlot == 26) {
+                if ((session.runePage + 1) * 18 < target.instance.getRunes().size()) {
+                    session.runePage++;
+                    openRuneDetachSelection(session, target);
+                } else {
+                    GuiSound.DENY.play(session.player);
+                }
+                return;
+            }
+            if (rawSlot < 0 || rawSlot >= 18) { GuiSound.DENY.play(session.player); return; }
+            int index = session.runePage * 18 + rawSlot;
             if (index >= target.instance.getRunes().size()) { GuiSound.DENY.play(session.player); return; }
             EquipmentRune rune = target.instance.getRunes().get(index);
             session.selectedRuneItemId = rune.getItemId(); session.selectedRuneSlot = rune.getSlotIndex();
             session.screen = OrbGuiHolder.Screen.RUNE_DETACH; session.inventory = Bukkit.createInventory(
-                new OrbGuiHolder(session.player.getUniqueId(), session.token, session.screen), 27, Component.text("ルーン脱着", NamedTextColor.DARK_PURPLE));
+                new OrbGuiHolder(session.player.getUniqueId(), session.token, session.screen),
+                OrbGuiHolder.sizeFor(session.screen), Component.text("ルーン脱着", NamedTextColor.DARK_PURPLE));
             renderRuneScreen(session, target); transitionInventory(session, session.inventory, session.screen); GuiSound.SELECT.play(session.player); return;
         }
         if (event.getRawSlot() != RUNE_RESULT_SLOT || session.selectedRuneItemId == null) { GuiSound.DENY.play(session.player); return; }
+        session.animationSlot = RUNE_RESULT_SLOT;
         executeCandidate(session, orb, target);
     }
 
@@ -1071,7 +1099,8 @@ public final class OrbService {
     /** 装備済みルーンを3行・18件単位で選択するページを描画します。 */
     private void openRuneDetachSelection(@NotNull OrbSession session, @NotNull OrbCandidate target) {
         session.inventory = Bukkit.createInventory(new OrbGuiHolder(session.player.getUniqueId(), session.token,
-            OrbGuiHolder.Screen.RUNE_DETACH_SELECT), 27, Component.text("脱着ルーン選択", NamedTextColor.DARK_PURPLE));
+            OrbGuiHolder.Screen.RUNE_DETACH_SELECT), OrbGuiHolder.sizeFor(OrbGuiHolder.Screen.RUNE_DETACH_SELECT),
+            Component.text("脱着ルーン選択", NamedTextColor.DARK_PURPLE));
         fillInventory(session.inventory);
         int from = session.runePage * 18;
         for (int index = from; index < Math.min(from + 18, target.instance.getRunes().size()); index++) {
@@ -2582,10 +2611,10 @@ public final class OrbService {
      *
      * @param kind 実行したオーブ効果
      * @param hasRemainingOrb 同じオーブをまだ所持している場合 {@code true}
-     * @return 状態変化または残オーブなしなら {@code true}
+     * @return 状態変化・ルーン操作、または残オーブなしなら {@code true}
      */
     static boolean shouldCloseAfterRefresh(@NotNull MutationKind kind, boolean hasRemainingOrb) {
-        return kind == MutationKind.TRANSCENDENCE || !hasRemainingOrb;
+        return kind == MutationKind.TRANSCENDENCE || kind == MutationKind.RUNE || !hasRemainingOrb;
     }
 
     enum MutationStatus {

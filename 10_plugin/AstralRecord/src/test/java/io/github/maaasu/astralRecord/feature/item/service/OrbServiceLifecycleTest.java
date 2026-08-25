@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.item.gui.OrbGuiHolder;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationResult;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationResultType;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentRune;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentDurability;
@@ -98,6 +99,7 @@ import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -520,9 +522,16 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
     void runeAttachGuiAcceptsRuneMatchingEquipmentSlotAndTag() {
         Harness harness = new Harness(ItemOrbEffectType.RUNE_ATTACH);
         harness.terminalApplyCall.set(1);
+        when(harness.inventoryService.isHotbarShortcutMode(harness.astPlayer)).thenReturn(true);
+        when(harness.inventoryService.handleInventoryControlClick(harness.astPlayer, 17)).thenReturn(true);
         harness.openOrbList();
         harness.handler.onInventoryClick(harness.guiClick(0));
         harness.awaitOrbScreen(OrbGuiHolder.Screen.RUNE_ATTACH);
+
+        InventoryClickEvent scrollClick = harness.guiPlayerInventoryClick(17);
+        harness.handler.onInventoryClick(scrollClick);
+        verify(scrollClick).setCancelled(true);
+        verify(harness.inventoryService).handleInventoryControlClick(harness.astPlayer, 17);
 
         InventoryClickEvent runeClick = harness.guiPlayerInventoryClick(4);
         harness.handler.onInventoryClick(runeClick);
@@ -537,6 +546,13 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         harness.handler.onInventoryClick(harness.guiClick(16));
         harness.laneExecutor.runAll();
 
+        server().getScheduler().performOneTick();
+        assertEquals(Material.AMETHYST_BLOCK,
+            harness.player.getOpenInventory().getTopInventory().getItem(16).getType());
+        server().getScheduler().performTicks(20L);
+        assertFalse(harness.service.isOrbInventory(
+            harness.player.getOpenInventory().getTopInventory()));
+
         verify(harness.itemService).applyEquipmentOrbOperation(
             anyString(),
             eq(harness.accountId.toString()),
@@ -546,6 +562,118 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             eq(harness.runeModel.getId()),
             isNull()
         );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
+     * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
+     * 検証契約: 複数ルーンの脱着GUIはルーン選択とBAGスクロールを受け付け、完成形slot 16で演出した後に自動で閉じる。
+     */
+    @Test
+    void runeDetachGuiSelectsRuneDelegatesScrollAndClosesAfterResultAnimation() {
+        Harness harness = new Harness(ItemOrbEffectType.RUNE_DETACH);
+        harness.terminalApplyCall.set(1);
+        List<EquipmentRune> attachedRunes = new ArrayList<>();
+        for (int index = 0; index < 27; index++) {
+            attachedRunes.add(new EquipmentRune(
+                "rune-" + index,
+                harness.equippedInstanceId.toString(),
+                index,
+                harness.runeModel.getId()
+            ));
+        }
+        harness.equippedInstance.set(harness.instance(
+            harness.equippedInstanceId,
+            harness.equippedModel.getId(),
+            0,
+            100,
+            attachedRunes
+        ));
+        when(harness.inventoryService.isHotbarShortcutMode(harness.astPlayer)).thenReturn(true);
+        when(harness.inventoryService.handleInventoryControlClick(harness.astPlayer, 17)).thenReturn(true);
+
+        harness.openOrbList();
+        harness.handler.onInventoryClick(harness.guiClick(0));
+        harness.awaitOrbScreen(OrbGuiHolder.Screen.RUNE_DETACH);
+
+        InventoryClickEvent scrollClick = harness.guiPlayerInventoryClick(17);
+        harness.handler.onInventoryClick(scrollClick);
+        verify(scrollClick).setCancelled(true);
+        verify(harness.inventoryService).handleInventoryControlClick(harness.astPlayer, 17);
+
+        harness.handler.onInventoryClick(harness.guiClick(13));
+        harness.awaitOrbScreen(OrbGuiHolder.Screen.RUNE_DETACH_SELECT);
+        assertEquals(OrbGuiHolder.RUNE_SIZE,
+            harness.player.getOpenInventory().getTopInventory().getSize());
+
+        harness.handler.onInventoryClick(harness.guiClick(18));
+        assertTrue(harness.player.getOpenInventory().getTopInventory().getHolder() instanceof OrbGuiHolder previousHolder
+            && previousHolder.screen() == OrbGuiHolder.Screen.RUNE_DETACH_SELECT);
+        harness.handler.onInventoryClick(harness.guiClick(19));
+        assertTrue(harness.player.getOpenInventory().getTopInventory().getHolder() instanceof OrbGuiHolder fillerHolder
+            && fillerHolder.screen() == OrbGuiHolder.Screen.RUNE_DETACH_SELECT);
+
+        harness.handler.onInventoryClick(harness.guiClick(0));
+        harness.awaitOrbScreen(OrbGuiHolder.Screen.RUNE_DETACH);
+        assertEquals(Material.AMETHYST_SHARD,
+            harness.player.getOpenInventory().getTopInventory().getItem(13).getType());
+        assertNotEquals(Material.BARRIER,
+            harness.player.getOpenInventory().getTopInventory().getItem(16).getType());
+
+        harness.handler.onInventoryClick(harness.guiClick(16));
+        harness.laneExecutor.runAll();
+        server().getScheduler().performOneTick();
+
+        assertEquals(Material.AMETHYST_BLOCK,
+            harness.player.getOpenInventory().getTopInventory().getItem(16).getType());
+        InventoryClickEvent lockedScrollClick = harness.guiPlayerInventoryClick(17);
+        harness.handler.onInventoryClick(lockedScrollClick);
+        verify(lockedScrollClick).setCancelled(true);
+        verify(harness.inventoryService, times(1)).handleInventoryControlClick(harness.astPlayer, 17);
+        verify(harness.itemService).applyEquipmentOrbOperation(
+            anyString(),
+            eq(harness.accountId.toString()),
+            eq(harness.equippedInstanceId.toString()),
+            eq(harness.orbEntryId.toString()),
+            eq(harness.orbModel.getId()),
+            eq(harness.runeModel.getId()),
+            eq(0)
+        );
+
+        server().getScheduler().performTicks(20L);
+        assertFalse(harness.service.isOrbInventory(
+            harness.player.getOpenInventory().getTopInventory()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
+     * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
+     * 検証契約: 装着済みルーンが1件だけなら脱着確認GUIでそのルーンを自動選択し、追加の選択画面を要求しない。
+     */
+    @Test
+    void runeDetachGuiAutomaticallySelectsTheOnlyAttachedRune() {
+        Harness harness = new Harness(ItemOrbEffectType.RUNE_DETACH);
+        harness.equippedInstance.set(harness.instance(
+            harness.equippedInstanceId,
+            harness.equippedModel.getId(),
+            0,
+            70,
+            List.of(new EquipmentRune(
+                "rune-0",
+                harness.equippedInstanceId.toString(),
+                0,
+                harness.runeModel.getId()
+            ))
+        ));
+
+        harness.openOrbList();
+        harness.handler.onInventoryClick(harness.guiClick(0));
+        harness.awaitOrbScreen(OrbGuiHolder.Screen.RUNE_DETACH);
+
+        assertEquals(Material.AMETHYST_SHARD,
+            harness.player.getOpenInventory().getTopInventory().getItem(13).getType());
+        assertNotEquals(Material.BARRIER,
+            harness.player.getOpenInventory().getTopInventory().getItem(16).getType());
     }
 
     /**
@@ -1670,7 +1798,9 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             }
             EquipmentInstance updated = effectType == ItemOrbEffectType.TRANSCENDENCE
                 ? instance(equippedInstanceId, equippedModel.getId(), 1, 70)
-                : instance(equippedInstanceId, equippedModel.getId(), 0, 100);
+                : effectType == ItemOrbEffectType.RUNE_DETACH
+                    ? instance(equippedInstanceId, equippedModel.getId(), 0, 100, List.of())
+                    : instance(equippedInstanceId, equippedModel.getId(), 0, 100);
             equippedInstance.set(updated);
             return operationResult(operationId, EquipmentOrbOperationResultType.APPLIED, updated);
         }
@@ -1683,6 +1813,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             String operationType = switch (effectType) {
                 case TRANSCENDENCE -> "TRANSCENDENCE";
                 case RUNE_ATTACH -> "RUNE_ATTACH";
+                case RUNE_DETACH -> "RUNE_DETACH";
                 default -> "REPAIR";
             };
             return new EquipmentOrbOperationResult(
@@ -1775,6 +1906,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 switch (type) {
                     case TRANSCENDENCE -> "orb.transcendence_test";
                     case RUNE_ATTACH -> "orb.rune_attach_test";
+                    case RUNE_DETACH -> "orb.rune_detach_test";
                     default -> "orb.repair_test";
                 },
                 type
@@ -1785,7 +1917,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             ItemOrbEffect effect = switch (type) {
                 case TRANSCENDENCE -> new ItemOrbEffect(
                     type, List.of(), 1, ItemOrbRankMode.EXACT, null, false, null, null);
-                case RUNE_ATTACH -> new ItemOrbEffect(
+                case RUNE_ATTACH, RUNE_DETACH -> new ItemOrbEffect(
                     type, List.of(), null, ItemOrbRankMode.EXACT, null, false, null, null);
                 default -> new ItemOrbEffect(
                     type, List.of(), null, ItemOrbRankMode.EXACT, null, true, null, null);
@@ -1859,7 +1991,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             ItemEquipment equipment = new ItemEquipment(
                 ItemEquipmentSlot.WEAPON,
                 ItemEquipmentHandType.ONE,
-                type == ItemOrbEffectType.RUNE_ATTACH ? "SWORD" : null,
+                type == ItemOrbEffectType.RUNE_ATTACH || type == ItemOrbEffectType.RUNE_DETACH ? "SWORD" : null,
                 0,
                 List.of(),
                 null,
@@ -1867,7 +1999,8 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 new ItemEquipmentDurability(100, 1),
                 null,
                 null,
-                type == ItemOrbEffectType.RUNE_ATTACH ? new ItemEquipmentRuneDef("2") : null,
+                type == ItemOrbEffectType.RUNE_ATTACH || type == ItemOrbEffectType.RUNE_DETACH
+                    ? new ItemEquipmentRuneDef("2") : null,
                 transitions
             );
             return new ItemModel(
@@ -1901,12 +2034,28 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             int rank,
             int durability
         ) {
+            List<EquipmentRune> runes = effectType == ItemOrbEffectType.RUNE_DETACH
+                ? List.of(
+                    new EquipmentRune("rune-0", instanceId.toString(), 0, runeModel.getId()),
+                    new EquipmentRune("rune-1", instanceId.toString(), 1, runeModel.getId())
+                )
+                : List.of();
+            return instance(instanceId, itemId, rank, durability, runes);
+        }
+
+        private EquipmentInstance instance(
+            UUID instanceId,
+            String itemId,
+            int rank,
+            int durability,
+            List<EquipmentRune> runes
+        ) {
             return new EquipmentInstance(
                 instanceId.toString(),
                 accountId.toString(),
                 itemId,
                 0,
-                effectType == ItemOrbEffectType.RUNE_ATTACH ? 2 : 0,
+                effectType == ItemOrbEffectType.RUNE_ATTACH || effectType == ItemOrbEffectType.RUNE_DETACH ? 2 : 0,
                 rank,
                 100,
                 durability,
@@ -1914,7 +2063,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 "2026-08-10T00:00:00",
                 List.of(),
                 List.of(),
-                List.of()
+                runes
             );
         }
     }
