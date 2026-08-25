@@ -134,6 +134,58 @@ public class EquipmentServiceTests
     }
 
     [Fact]
+    public async Task AttachRune_AcceptsRuneWhenEquipmentSlotAndTagMatch()
+    {
+        var accountId = Guid.NewGuid();
+        var equipment = new TestEquipmentRepository
+        {
+            Instance = CreateInstance(accountId),
+        };
+        equipment.Instance!.RuneMaxSlots = 2;
+        var service = new EquipmentService(
+            new TestItemRepository(CreateRuneEquipmentItem(), CreateRuneItem("SWORD")),
+            equipment,
+            new TestOrbOperationRepository(),
+            new TestAccountRepository(accountId));
+
+        var result = await service.AttachRuneAsync(new EquipmentRuneAttachRequest
+        {
+            EquipmentInstanceId = equipment.Instance.EquipmentInstanceId,
+            RuneItemId = "sword_rune",
+            UpdatedBy = accountId,
+        });
+
+        Assert.NotNull(result);
+        Assert.Equal("sword_rune", equipment.UpsertedRune?.ItemId);
+    }
+
+    [Fact]
+    public async Task AttachRune_RejectsRuneWhenEquipmentTagDoesNotMatch()
+    {
+        var accountId = Guid.NewGuid();
+        var equipment = new TestEquipmentRepository
+        {
+            Instance = CreateInstance(accountId),
+        };
+        equipment.Instance!.RuneMaxSlots = 2;
+        var service = new EquipmentService(
+            new TestItemRepository(CreateRuneEquipmentItem(), CreateRuneItem("BOW")),
+            equipment,
+            new TestOrbOperationRepository(),
+            new TestAccountRepository(accountId));
+
+        var result = await service.AttachRuneAsync(new EquipmentRuneAttachRequest
+        {
+            EquipmentInstanceId = equipment.Instance.EquipmentInstanceId,
+            RuneItemId = "sword_rune",
+            UpdatedBy = accountId,
+        });
+
+        Assert.Null(result);
+        Assert.Null(equipment.UpsertedRune);
+    }
+
+    [Fact]
     public async Task UpdateDurability_ClampsValueAndEnforcesOwnership()
     {
         var accountId = Guid.NewGuid();
@@ -216,6 +268,37 @@ public class EquipmentServiceTests
         },
     };
 
+    private static ItemResponse CreateRuneEquipmentItem() => new()
+    {
+        SchemaVersion = 1,
+        Id = "test_equipment",
+        Category = "equipment",
+        Name = "test equipment",
+        Icon = "IRON_SWORD",
+        Rarity = "COMMON",
+        Equipment = new ItemEquipmentResponse
+        {
+            Slot = "WEAPON",
+            Tag = "SWORD",
+            Rune = new ItemEquipmentRuneResponse { MaxSlots = "2" },
+        },
+    };
+
+    private static ItemResponse CreateRuneItem(string targetTag) => new()
+    {
+        SchemaVersion = 1,
+        Id = "sword_rune",
+        Category = "rune",
+        Name = "sword rune",
+        Icon = "REDSTONE",
+        Rarity = "COMMON",
+        Rune = new ItemRuneResponse
+        {
+            TargetSlots = ["WEAPON"],
+            TargetTags = [targetTag],
+        },
+    };
+
     private sealed class TestOrbOperationRepository : IEquipmentOrbOperationRepository
     {
         public EquipmentOrbOperationResponse ExecuteResult { get; init; } = new()
@@ -244,16 +327,20 @@ public class EquipmentServiceTests
         }
     }
 
-    private sealed class TestItemRepository(ItemResponse? item = null) : IItemRepository
+    private sealed class TestItemRepository : IItemRepository
     {
-        public IReadOnlyList<ItemSummaryResponse> GetAllSummaries() => item is null
-            ? []
-            : [new ItemSummaryResponse { Id = item.Id, Category = item.Category }];
+        private readonly IReadOnlyList<ItemResponse> items;
 
-        public ItemResponse? GetById(string itemId) =>
-            item is not null && string.Equals(item.Id, itemId, StringComparison.OrdinalIgnoreCase)
-                ? item
-                : null;
+        public TestItemRepository(params ItemResponse?[] items)
+        {
+            this.items = items.Where(item => item is not null).Select(item => item!).ToArray();
+        }
+
+        public IReadOnlyList<ItemSummaryResponse> GetAllSummaries() =>
+            items.Select(item => new ItemSummaryResponse { Id = item.Id, Category = item.Category }).ToArray();
+
+        public ItemResponse? GetById(string itemId) => items.FirstOrDefault(item =>
+            string.Equals(item.Id, itemId, StringComparison.OrdinalIgnoreCase));
     }
 
     private sealed class TestEquipmentRepository : IEquipmentRepository
@@ -263,6 +350,8 @@ public class EquipmentServiceTests
         public IReadOnlyList<EquipmentInstanceStatRollEntity> AddedStatRolls { get; private set; } = [];
 
         public bool DeleteEnchantCalled { get; private set; }
+
+        public EquipmentInstanceRuneEntity? UpsertedRune { get; private set; }
 
         public int UpdateInstanceCount { get; private set; }
 
@@ -293,8 +382,11 @@ public class EquipmentServiceTests
             return Task.FromResult(true);
         }
 
-        public Task<bool> UpsertRuneAsync(Guid instanceId, Guid accountId, EquipmentInstanceRuneEntity rune) =>
-            Task.FromResult(true);
+        public Task<bool> UpsertRuneAsync(Guid instanceId, Guid accountId, EquipmentInstanceRuneEntity rune)
+        {
+            UpsertedRune = rune;
+            return Task.FromResult(true);
+        }
 
         public Task<bool> DeleteRuneBySlotIndexAsync(Guid instanceId, int slotIndex) =>
             Task.FromResult(false);

@@ -109,6 +109,43 @@ public class EquipmentOrbOperationRepositoryTests
         Assert.Equal(highSlotOrb, ledger.OrbInventoryEntryId);
     }
 
+    /**
+     * 設計入力: 00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.02-登録系.md
+     * 章・見出し: # 14_3.02 登録系 > ### ルーン装着
+     * 検証契約: RUNE_ATTACH の実トランザクション経路で、ルーンのslot/tag条件が一致するとルーンとオーブを各1個消費して空きスロットへ装着する。
+     */
+    [Fact]
+    public async Task RuneAttach_AppliesMatchingSlotAndTagAndConsumesPayments()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync(
+            equipment: CreateEquipment(
+                tag: "SWORD",
+                rune: new ItemEquipmentRuneResponse { MaxSlots = "2" }));
+        await harness.SetEquipmentStateAsync(instance => instance.RuneMaxSlots = 2);
+        var orb = await harness.AddOrbAsync("rune_attach_orb", new ItemOrbEffectResponse
+        {
+            Type = "RUNE_ATTACH",
+        });
+        var rune = await harness.AddRuneAsync(
+            "sword_rune",
+            ["WEAPON"],
+            ["SWORD"]);
+        var request = harness.CreateRequest(Guid.NewGuid(), "rune_attach_orb", orb);
+        request.RuneItemId = "sword_rune";
+
+        var result = await harness.ExecuteAsync(request);
+
+        Assert.Equal("APPLIED", result.Result);
+        Assert.Equal("RUNE_ATTACH", result.OperationType);
+        Assert.True(result.PaymentConsumed);
+        Assert.Equal(1, await harness.GetEntryQuantityAsync(orb));
+        Assert.Equal(1, await harness.GetEntryQuantityAsync(rune));
+        var attachedRune = Assert.Single(result.Equipment!.Runes);
+        Assert.Equal("sword_rune", attachedRune.ItemId);
+        Assert.Equal(0, attachedRune.SlotIndex);
+        await harness.AssertSingleTerminalLedgerAsync(result.OperationId, paymentConsumed: true);
+    }
+
     [Fact]
     public async Task EnchantFillAll_AppliesEveryEmptySlotAndConsumesOneOrbForTheBatch()
     {
@@ -617,11 +654,15 @@ public class EquipmentOrbOperationRepositoryTests
     private static ItemEquipmentResponse CreateEquipment(
         IReadOnlyList<ItemEquipmentEnhanceLevelResponse>? enhanceLevels = null,
         int maxEnhanceLevel = 3,
-        IReadOnlyList<ItemEquipmentTranscendenceResponse>? transcendence = null) => new()
+        IReadOnlyList<ItemEquipmentTranscendenceResponse>? transcendence = null,
+        string? tag = null,
+        ItemEquipmentRuneResponse? rune = null) => new()
     {
         Slot = "WEAPON",
+        Tag = tag,
         Durability = new ItemEquipmentDurabilityResponse { Max = 100 },
         Enchant = new ItemEquipmentEnchantResponse { MaxSlots = 2 },
+        Rune = rune,
         Enhance = new ItemEquipmentEnhanceResponse
         {
             MaxLevel = maxEnhanceLevel,
@@ -814,6 +855,29 @@ public class EquipmentOrbOperationRepositoryTests
                 Orb = new ItemOrbResponse { Effect = effect },
             });
             return await AddNormalEntryAsync(itemId, "orb", quantity, slotIndex);
+        }
+
+        public async Task<Guid> AddRuneAsync(
+            string itemId,
+            IReadOnlyList<string> targetSlots,
+            IReadOnlyList<string> targetTags,
+            long quantity = 2)
+        {
+            items.Add(new ItemResponse
+            {
+                SchemaVersion = 1,
+                Id = itemId,
+                Category = "rune",
+                Name = itemId,
+                Icon = "REDSTONE",
+                Rarity = "COMMON",
+                Rune = new ItemRuneResponse
+                {
+                    TargetSlots = targetSlots,
+                    TargetTags = targetTags,
+                },
+            });
+            return await AddNormalEntryAsync(itemId, "rune", quantity);
         }
 
         public async Task<Guid> AddNormalEntryAsync(

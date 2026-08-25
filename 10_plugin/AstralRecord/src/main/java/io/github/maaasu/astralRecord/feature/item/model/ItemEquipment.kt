@@ -248,8 +248,6 @@ data class ItemEquipmentEnchantDef(
 data class ItemEquipmentRuneDef(
     /** 最大スロット数（固定値 or "1~3" 形式のランダム表現） */
     val maxSlotsRaw: String,
-    /** 装着を許可するルーン ID リスト（空なら全許可） */
-    val allowedRuneIds: List<String> = emptyList(),
 )
 
 /**

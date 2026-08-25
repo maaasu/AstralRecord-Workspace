@@ -35,4 +35,5 @@
 - 削除済み ID は別の意味で再利用しない。
 - Plugin の処理分岐に使用するタグは生成定数を利用し、文字列を直接記述しない。
 - `EQUIPMENT` と `GATHERING_REQUIRED_TOOL` は同じ `equipment.tag` を介して照合される。
+- Rune の `rune.targetTags[]` は `EQUIPMENT` 対象タグを `equipment.tag` と照合する。
 - スキルツリーエディターは `SKILLTREE_NODE` 対象の定義だけを候補表示し、保存時は日本語名ではなく `id` を JSON に保持する。

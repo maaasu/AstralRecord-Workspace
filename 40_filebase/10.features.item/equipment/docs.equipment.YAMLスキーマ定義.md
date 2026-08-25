@@ -42,7 +42,6 @@
 | `equipment[].rune.maxSlots`                               | Integer       | ×  | 0     | 装備に装着できるルーンの最大スロット数。`0` で装着不可。固定値。                                                                                                             |
 | `equipment[].rune.maxSlots.random[].min`                  | Integer       | ×  | -     | 固定値（例: `1`）。装備作成時にスロット数をランダムに決定する最小値。「`rune.maxSlots.random: 1~3`」も可能。指定時maxSlotsの指定は必要なし。                                                     |
 | `equipment[].rune.maxSlots.random[].max`                  | Integer       | ×  | -     | 固定値（例: `3`）。装備作成時にスロット数をランダムに決定する最大値。「`rune.maxSlots.random: 1~3`」も可能。指定時maxSlotsの指定は必要なし。                                                     |
-| `equipment[].rune.allowedRuneIds[]`                       | List<String>  | ×  | -     | 装着を許可するルーンIDのリスト。未指定時はスロット種別が合致するルーンをすべて許可。                                                                                                    |
 | `equipment[].transcendence[]`                             | List          | ×  | -     | 状態変化（進化・覚醒・超越など）の定義リスト。指定した素材を消費することでアイテムの各種パラメータを上書きする。                                                                                       |
 | `equipment[].transcendence[].name`                        | String        | ×  | -     | 状態変化の名称（例: `進化` / `覚醒` / `超越`）。ゲーム内UIに表示される。                                                                                                   |
 | `equipment[].transcendence[].rank`                        | Integer       | ×  | -     | 状態変化の強さ指標。数値が大きいほど上位の状態変化。同一装備内で一意である必要がある。プラグインはこの値を使い、現在の状態変化より `rank` が低い状態変化への遷移を禁止する。                                                     |
@@ -178,7 +177,8 @@
 - `maxSlots` で装備に同時に装着できるルーン数の上限を設定します。固定値のほか、`random` を使用して装備作成時にスロット数をランダムに決定することもできます（例: `random: 1~3`）。
 - ルーン側の `requiredEnhanceLevel` が装備の現在の強化レベル以下でなければ装着できません。
 - ルーン側の `targetSlots` に装備の `slot` 種別（または `ANY`）が含まれている場合のみ装着可能です。
-- `allowedRuneIds` を指定した場合、リストに含まれるルーンIDのみ装着を許可します。
+- ルーン側の `targetTags` が指定されている場合、装備の `tag` がいずれかに一致する場合のみ装着可能です。`targetSlots` と `targetTags` の両方を指定した場合は AND 条件です。
+- 装備側ではルーン ID による個別許可リストを定義しません。ルーンの適合条件はルーン側へ集約します。
 
 ### 参照（ref）
 Equipment の追加効果で Buff を参照する場合は `buff:` prefix を使用します（aliases: `bf`）。
@@ -434,7 +434,7 @@ equipment:
       random: 1~3
 ```
 
-### 例7: ルーンスロット対応装備（装着ルーン制限あり）
+### 例7: ルーンスロット対応装備（強化対応）
 
 ```yaml
 schemaVersion: 1
@@ -444,8 +444,8 @@ name: "&6聖なる胸当て"
 icon: GOLDEN_CHESTPLATE
 rarity: RARE
 lore:
-  - "&7特定のルーンのみ受け付ける神聖な胸当て。"
-  - "&e強化レベル3以上のルーンを装着可能。"
+  - "&7ルーンを複数装着できる神聖な胸当て。"
+  - "&e強化することで上位ルーンにも対応する。"
 
 maxStack: 1
 equipment:
@@ -467,9 +467,6 @@ equipment:
         failAction: NONE
   rune:
     maxSlots: 3
-    allowedRuneIds:
-      - ref: rune:rune_defense_medium
-      - ref: rune:rune_fire_blade
 ```
 
 ### 例8: 状態変化対応装備（進化・覚醒）

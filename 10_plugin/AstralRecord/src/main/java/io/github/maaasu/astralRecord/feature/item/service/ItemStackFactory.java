@@ -862,6 +862,10 @@ public class ItemStackFactory {
         lore.add(ColorCodeUtil.GOLD + "❖ ルーン効果");
         lore.add(ColorCodeUtil.GRAY + " ▸ 対象スロット: " + ColorCodeUtil.WHITE
                 + formatRuneTargetSlots(rune));
+        if (!rune.getTargetTags().isEmpty()) {
+            lore.add(ColorCodeUtil.GRAY + " ▸ 対象種別: " + ColorCodeUtil.WHITE
+                    + formatRuneTargetTags(rune));
+        }
         if (rune.getRequiredEnhanceLevel() > 0) {
             lore.add(ColorCodeUtil.GRAY + " ▸ 必要強化: " + ColorCodeUtil.YELLOW
                     + "+" + rune.getRequiredEnhanceLevel());
@@ -904,6 +908,37 @@ public class ItemStackFactory {
                 .map(this::toRuneTargetSlotLabel)
                 .distinct()
                 .collect(java.util.stream.Collectors.joining(" / "));
+    }
+
+    /**
+     * ルーンの対象装備タグをプレイヤー向け名称へ変換します。
+     *
+     * @param rune ルーン定義
+     * @return 対象装備タグの表示文字列
+     */
+    private @NotNull String formatRuneTargetTags(@NotNull ItemRune rune) {
+        return rune.getTargetTags().stream()
+                .map(this::toRuneTargetTagLabel)
+                .distinct()
+                .collect(java.util.stream.Collectors.joining(" / "));
+    }
+
+    /**
+     * ルーンの対象装備タグ1件をプレイヤー向け名称へ変換します。
+     *
+     * @param rawTag filebase/API由来の対象装備タグ値
+     * @return 対象装備タグの表示名
+     */
+    private @NotNull String toRuneTargetTagLabel(@Nullable String rawTag) {
+        if (rawTag == null || rawTag.isBlank()) {
+            return "不明な装備種別";
+        }
+        String normalizedTag = rawTag.trim();
+        MasterTagIds.Definition definition = MasterTagIds.find(normalizedTag);
+        if (definition == null) {
+            definition = MasterTagIds.find(normalizedTag.toUpperCase(Locale.ROOT));
+        }
+        return definition == null ? "不明な装備種別" : definition.displayName();
     }
 
     /**
@@ -1418,6 +1453,10 @@ public class ItemStackFactory {
             lore.add(ColorCodeUtil.GOLD + "❖ ルーン効果");
             lore.add(ColorCodeUtil.GRAY + " ▸ 対象スロット: " + ColorCodeUtil.WHITE
                     + formatRuneTargetSlots(rune));
+            if (!rune.getTargetTags().isEmpty()) {
+                lore.add(ColorCodeUtil.GRAY + " ▸ 対象種別: " + ColorCodeUtil.WHITE
+                        + formatRuneTargetTags(rune));
+            }
             if (rune.getRequiredEnhanceLevel() > 0) {
                 lore.add(ColorCodeUtil.GRAY + " ▸ 必要強化: " + ColorCodeUtil.YELLOW
                         + "+" + rune.getRequiredEnhanceLevel());

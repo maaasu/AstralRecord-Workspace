@@ -400,6 +400,16 @@ public final class OrbService {
             return;
         }
         if (event.getClickedInventory() instanceof PlayerInventory) {
+            OrbSession session = currentSession(player, event.getView().getTopInventory());
+            if (session != null && session.screen == OrbGuiHolder.Screen.RUNE_ATTACH) {
+                event.setCancelled(true);
+                if (session.interactionLock.isLocked() || session.transitioning) {
+                    GuiSound.DENY.play(player);
+                    return;
+                }
+                handleRuneGuiClick(event, session);
+                return;
+            }
             if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) {
                 return;
             }
@@ -1031,12 +1041,7 @@ public final class OrbService {
             || target.model.getEquipment().getRune() == null
             || target.instance.getRuneMaxSlots() <= target.instance.getRunes().size()
             || target.instance.getEnhanceLevel() < rune.getRune().getRequiredEnhanceLevel()) return false;
-        if (!target.model.getEquipment().getRune().getAllowedRuneIds().isEmpty()
-            && target.model.getEquipment().getRune().getAllowedRuneIds().stream()
-                .noneMatch(id -> id.equalsIgnoreCase(rune.getId()))) return false;
-        String slot = target.model.getEquipment().getSlot() == null ? "" : target.model.getEquipment().getSlot().name();
-        return rune.getRune().getTargetSlots().stream()
-            .anyMatch(targetSlot -> "ANY".equalsIgnoreCase(targetSlot) || targetSlot.equalsIgnoreCase(slot));
+        return RuneTargetMatcher.matches(rune.getRune(), target.model.getEquipment());
     }
 
     /** 右側の完成形表示だけに使う、選択内容を反映した一時装備個体を作成します。 */

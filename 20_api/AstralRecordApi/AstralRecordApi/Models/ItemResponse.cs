@@ -199,8 +199,6 @@ public class ItemEquipmentEnchantResponse
 public class ItemEquipmentRuneResponse
 {
     public string MaxSlots { get; init; } = "0";
-
-    public IReadOnlyList<string> AllowedRuneIds { get; init; } = [];
 }
 
 public class ItemEquipmentTranscendenceResponse
@@ -247,6 +245,8 @@ public class ItemEquipmentTranscendenceOverridesRuneResponse
 public class ItemRuneResponse
 {
     public IReadOnlyList<string> TargetSlots { get; init; } = [];
+
+    public IReadOnlyList<string> TargetTags { get; init; } = [];
 
     public int RequiredEnhanceLevel { get; init; }
 

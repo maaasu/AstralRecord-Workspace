@@ -159,6 +159,33 @@ public class MasterDataPayloadContractTests
         Assert.Equal("GATHERING_SPAWNER", spawner.Type);
     }
 
+    [Fact]
+    public void Rune_PreservesTargetTags_ThroughApiModelRoundTrip()
+    {
+        var item = Deserialize<ItemResponse>("""
+            {
+              "schemaVersion": 1,
+              "id": "sword_rune",
+              "category": "rune",
+              "name": "sword rune",
+              "icon": "REDSTONE",
+              "rarity": "COMMON",
+              "rune": {
+                "targetSlots": ["WEAPON"],
+                "targetTags": ["SWORD"],
+                "stats": []
+              }
+            }
+            """);
+
+        Assert.Equal(["WEAPON"], item.Rune!.TargetSlots);
+        Assert.Equal(["SWORD"], item.Rune.TargetTags);
+
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(item, MasterDataJsonOptions()));
+        var rune = document.RootElement.GetProperty("rune");
+        Assert.Equal("SWORD", rune.GetProperty("targetTags")[0].GetString());
+    }
+
     private static T Deserialize<T>(string json)
         => JsonSerializer.Deserialize<T>(json, MasterDataJsonOptions())
             ?? throw new InvalidOperationException($"Failed to deserialize {typeof(T).Name}.");

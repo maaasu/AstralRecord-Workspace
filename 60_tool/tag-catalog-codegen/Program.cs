@@ -332,7 +332,8 @@ internal static class FilebaseTagAudit
     private static bool IsTagField(string name) =>
         name.Equals("tag", StringComparison.OrdinalIgnoreCase)
         || name.Equals("tags", StringComparison.OrdinalIgnoreCase)
-        || name.Equals("requiredToolTags", StringComparison.OrdinalIgnoreCase);
+        || name.Equals("requiredToolTags", StringComparison.OrdinalIgnoreCase)
+        || name.Equals("targetTags", StringComparison.OrdinalIgnoreCase);
 }
 
 internal static class CodeTemplates

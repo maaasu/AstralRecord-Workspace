@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Method;
+import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -146,6 +147,33 @@ class ItemRepositoryEquipmentParsingTest {
             """);
 
         assertEquals("enchant001", item.getOrb().getEffect().getEnchantMasterId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_1-モデル定義.md
+     * 章・見出し: # 04_1-モデル定義 > ## 4. カテゴリ固有定義 > ### 4.5 `ItemRune`
+     * 検証契約: ルーンの対象slotと任意の対象装備tagをAPI payloadから別々に保持する。
+     */
+    @Test
+    void runeTargetTagsAreParsedSeparatelyFromTargetSlots() throws Exception {
+        ItemModel item = parseItem("""
+            {
+              "schemaVersion":1,
+              "id":"sword_rune",
+              "category":"rune",
+              "name":"sword rune",
+              "icon":"REDSTONE",
+              "rarity":"COMMON",
+              "rune":{
+                "targetSlots":["WEAPON"],
+                "targetTags":["SWORD"],
+                "stats":[]
+              }
+            }
+            """);
+
+        assertEquals(List.of("WEAPON"), item.getRune().getTargetSlots());
+        assertEquals(List.of("SWORD"), item.getRune().getTargetTags());
     }
 
     /**

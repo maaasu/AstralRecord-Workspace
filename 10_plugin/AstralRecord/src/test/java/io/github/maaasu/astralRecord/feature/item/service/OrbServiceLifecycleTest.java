@@ -21,6 +21,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentDurability;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceMaterial;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentRuneDef;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscendence;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
@@ -29,6 +30,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffect;
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffectType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbRankMode;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
+import io.github.maaasu.astralRecord.feature.item.model.ItemRune;
 import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
@@ -82,6 +84,7 @@ import java.util.concurrent.locks.LockSupport;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -90,6 +93,7 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.atLeastOnce;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
@@ -505,6 +509,43 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             anyString(), anyString(), anyString(), anyString(), anyString(), any(), any());
         assertEquals(Material.IRON_SWORD,
             harness.player.getOpenInventory().getTopInventory().getItem(0).getType());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
+     * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
+     * 検証契約: ルーン装着GUIで装備のslotとtagに一致する所持ルーンを選択すると、完成プレビューが有効になり、RUNE_ATTACH API要求へルーンIDを渡す。
+     */
+    @Test
+    void runeAttachGuiAcceptsRuneMatchingEquipmentSlotAndTag() {
+        Harness harness = new Harness(ItemOrbEffectType.RUNE_ATTACH);
+        harness.terminalApplyCall.set(1);
+        harness.openOrbList();
+        harness.handler.onInventoryClick(harness.guiClick(0));
+        harness.awaitOrbScreen(OrbGuiHolder.Screen.RUNE_ATTACH);
+
+        InventoryClickEvent runeClick = harness.guiPlayerInventoryClick(4);
+        harness.handler.onInventoryClick(runeClick);
+        verify(runeClick).setCancelled(true);
+        verify(harness.inventoryService).getOwnedEntryAtBukkitSlot(eq(harness.astPlayer), eq(4));
+        verify(harness.itemService, atLeastOnce()).findLoadedById(harness.runeModel.getId());
+        assertEquals(Material.AMETHYST_SHARD,
+            harness.player.getOpenInventory().getTopInventory().getItem(13).getType());
+        assertNotEquals(Material.BARRIER,
+            harness.player.getOpenInventory().getTopInventory().getItem(16).getType());
+
+        harness.handler.onInventoryClick(harness.guiClick(16));
+        harness.laneExecutor.runAll();
+
+        verify(harness.itemService).applyEquipmentOrbOperation(
+            anyString(),
+            eq(harness.accountId.toString()),
+            eq(harness.equippedInstanceId.toString()),
+            eq(harness.orbEntryId.toString()),
+            eq(harness.orbModel.getId()),
+            eq(harness.runeModel.getId()),
+            isNull()
+        );
     }
 
     /**
@@ -1201,6 +1242,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         private final AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
         private final UUID accountId = astPlayer.getAccount().getUuid();
         private final UUID orbEntryId = UUID.randomUUID();
+        private final UUID runeEntryId = UUID.randomUUID();
         private final UUID additionalOrbEntryId = UUID.randomUUID();
         private final UUID equippedEntryId = UUID.randomUUID();
         private final UUID bagEntryId = UUID.randomUUID();
@@ -1220,6 +1262,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         private final InventoryEquipmentGuiEventHandler handler;
         private final ItemOrbEffectType effectType;
         private final ItemModel orbModel;
+        private final ItemModel runeModel;
         private final Map<String, ItemModel> loadedOrbModels = new LinkedHashMap<>();
         private final List<InventoryEntryModel> pagingOrbEntries = new ArrayList<>();
         private final ItemModel equippedModel;
@@ -1255,7 +1298,9 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         ) {
             this.effectType = effectType;
             this.orbModel = orbModel(effectType);
+            this.runeModel = runeModel();
             loadedOrbModels.put(orbModel.getId(), orbModel);
+            loadedOrbModels.put(runeModel.getId(), runeModel);
             this.equippedModel = equipmentModel(
                 "equipped_sword", effectType, transcendenceMaterials, transcendenceCurrency);
             this.bagModel = equipmentModel(
@@ -1301,8 +1346,12 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         }
 
         private void configureMocks() {
-            when(inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, 9))
-                .thenAnswer(invocation -> orbEntry());
+            when(inventoryService.getOwnedEntryAtBukkitSlot(eq(astPlayer), anyInt()))
+                .thenAnswer(invocation -> switch (invocation.getArgument(1, Integer.class)) {
+                    case 9 -> orbEntry();
+                    case 4 -> runeEntry();
+                    default -> null;
+                });
             when(inventoryService.getEquippedItemReferences(astPlayer)).thenReturn(List.of(
                 new ItemReference(
                     equippedModel.getId(),
@@ -1315,6 +1364,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             when(inventoryService.getEntries(bag.getInventoryId())).thenAnswer(invocation -> {
                 List<InventoryEntryModel> entries = new ArrayList<>(List.of(
                     orbEntry(),
+                    runeEntry(),
                     equipmentEntry(
                         equippedEntryId, equippedInstanceId, equippedModel.getId(), 1),
                     equipmentEntry(bagEntryId, bagInstanceId, bagModel.getId(), 2)
@@ -1630,9 +1680,11 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             EquipmentOrbOperationResultType resultType,
             EquipmentInstance equipment
         ) {
-            String operationType = effectType == ItemOrbEffectType.TRANSCENDENCE
-                ? "TRANSCENDENCE"
-                : "REPAIR";
+            String operationType = switch (effectType) {
+                case TRANSCENDENCE -> "TRANSCENDENCE";
+                case RUNE_ATTACH -> "RUNE_ATTACH";
+                default -> "REPAIR";
+            };
             return new EquipmentOrbOperationResult(
                 operationId,
                 resultType,
@@ -1657,6 +1709,17 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 orbModel.getId(),
                 null,
                 orbQuantity.get()
+            );
+        }
+
+        private InventoryEntryModel runeEntry() {
+            return entry(
+                runeEntryId,
+                4,
+                ItemCategory.RUNE,
+                runeModel.getId(),
+                null,
+                1L
             );
         }
 
@@ -1709,19 +1772,24 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
 
         private ItemModel orbModel(ItemOrbEffectType type) {
             return orbModel(
-                type == ItemOrbEffectType.TRANSCENDENCE
-                    ? "orb.transcendence_test"
-                    : "orb.repair_test",
+                switch (type) {
+                    case TRANSCENDENCE -> "orb.transcendence_test";
+                    case RUNE_ATTACH -> "orb.rune_attach_test";
+                    default -> "orb.repair_test";
+                },
                 type
             );
         }
 
         private ItemModel orbModel(String itemId, ItemOrbEffectType type) {
-            ItemOrbEffect effect = type == ItemOrbEffectType.TRANSCENDENCE
-                ? new ItemOrbEffect(
-                    type, List.of(), 1, ItemOrbRankMode.EXACT, null, false, null, null)
-                : new ItemOrbEffect(
+            ItemOrbEffect effect = switch (type) {
+                case TRANSCENDENCE -> new ItemOrbEffect(
+                    type, List.of(), 1, ItemOrbRankMode.EXACT, null, false, null, null);
+                case RUNE_ATTACH -> new ItemOrbEffect(
+                    type, List.of(), null, ItemOrbRankMode.EXACT, null, false, null, null);
+                default -> new ItemOrbEffect(
                     type, List.of(), null, ItemOrbRankMode.EXACT, null, true, null, null);
+            };
             return new ItemModel(
                 1,
                 itemId,
@@ -1747,6 +1815,32 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             );
         }
 
+        private ItemModel runeModel() {
+            return new ItemModel(
+                1,
+                "debug_attack_rune",
+                ItemCategory.RUNE.getApiValue(),
+                "デバッグ攻撃ルーン",
+                "REDSTONE",
+                "common",
+                64,
+                0,
+                null,
+                null,
+                List.of(),
+                false,
+                false,
+                null,
+                null,
+                null,
+                new ItemRune(List.of("WEAPON"), 0, List.of(), List.of("SWORD")),
+                null,
+                null,
+                null,
+                null
+            );
+        }
+
         private ItemModel equipmentModel(String itemId, ItemOrbEffectType type) {
             return equipmentModel(itemId, type, List.of(), 0);
         }
@@ -1765,7 +1859,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             ItemEquipment equipment = new ItemEquipment(
                 ItemEquipmentSlot.WEAPON,
                 ItemEquipmentHandType.ONE,
-                null,
+                type == ItemOrbEffectType.RUNE_ATTACH ? "SWORD" : null,
                 0,
                 List.of(),
                 null,
@@ -1773,7 +1867,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 new ItemEquipmentDurability(100, 1),
                 null,
                 null,
-                null,
+                type == ItemOrbEffectType.RUNE_ATTACH ? new ItemEquipmentRuneDef("2") : null,
                 transitions
             );
             return new ItemModel(
@@ -1812,7 +1906,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 accountId.toString(),
                 itemId,
                 0,
-                0,
+                effectType == ItemOrbEffectType.RUNE_ATTACH ? 2 : 0,
                 rank,
                 100,
                 durability,

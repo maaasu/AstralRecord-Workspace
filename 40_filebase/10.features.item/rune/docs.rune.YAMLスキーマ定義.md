@@ -10,6 +10,7 @@
 | キー                             | 型            | 必須 | デフォルト | 説明                                                                              |
 |:-------------------------------|:-------------|:--:|:------|:--------------------------------------------------------------------------------|
 | `rune.targetSlots[]`           | List<String> | ○  | -     | このルーンを装備できる装備スロット種別のリスト（`WEAPON` / `HEAD` / `CHEST` など）。`ANY` を指定すると全スロット対応。    |
+| `rune.targetTags[]`            | List<String> | ×  | 空リスト | 装備の `equipment.tag` による追加条件。共有タグカタログの `EQUIPMENT` 対象 ID を指定し、未指定時はタグ制限なし。          |
 | `rune.requiredEnhanceLevel`    | Integer      | ×  | 0     | このルーンをセットするために必要な装備の強化（`enhance`）レベルの最小値。`0` で制限なし。                             |
 | `rune.stats[]`                 | List         | ×  | -     | ルーン装着中に装備へ付与されるステータス補正のリスト。                                                     |
 | `rune.stats[].status`          | String       | ×  | -     | 対象ステータス（`StatusType`）。例: `ATTACK` / `DEFENSE` / `CRITICAL_RATE`。                |
@@ -28,6 +29,20 @@
 - `FEET`
 - `ACCESSORY`
 - `TOOL`
+
+### rune.targetTags[]
+
+`40_filebase/76.shared.tag/v1.tags.yml` の `EQUIPMENT` 対象タグ ID を指定します。複数指定時は OR 条件です。
+`targetSlots[]` と `targetTags[]` の両方を指定した場合は、スロット条件とタグ条件の AND 条件になります。
+未指定または空リストの場合は、スロット条件だけで判定します。
+
+例: 剣専用ルーンは次のように指定します。
+
+```yaml
+rune:
+  targetSlots: [WEAPON]
+  targetTags: [SWORD]
+```
 
 ### rune.stats[].type
 - `FLAT` : 定数加算

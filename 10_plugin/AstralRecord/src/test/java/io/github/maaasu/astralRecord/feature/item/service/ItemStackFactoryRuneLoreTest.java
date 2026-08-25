@@ -23,7 +23,7 @@ class ItemStackFactoryRuneLoreTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### マスタItemStack生成
-     * 検証契約: ルーンは対象スロット・必要強化・equipmentと同じ形式の固定ステータスをプレイヤー向け名称で表示する。
+     * 検証契約: ルーンは対象スロット・対象装備タグ・必要強化・equipmentと同じ形式の固定ステータスをプレイヤー向け名称で表示する。
      */
     @Test
     void runeMasterLoreShowsEquipmentStyleConditionsAndStats() throws ReflectiveOperationException {
@@ -32,13 +32,15 @@ class ItemStackFactoryRuneLoreTest {
                 3,
                 List.of(
                         new ItemEquipmentStat("MELEE_ATTACK", ItemEquipmentStatType.FLAT, 5.0D, 5.0D),
-                        new ItemEquipmentStat("CRITICAL_RATE", ItemEquipmentStatType.FLAT, 0.05D, 0.05D)));
+                        new ItemEquipmentStat("CRITICAL_RATE", ItemEquipmentStatType.FLAT, 0.05D, 0.05D)),
+                List.of("SWORD"));
 
         List<String> lore = invokeBuildLore(model(rune));
         List<String> plainLore = lore.stream().map(this::toPlain).toList();
 
         assertTrue(plainLore.contains("❖ ルーン効果"));
         assertTrue(plainLore.contains(" ▸ 対象スロット: 武器 / 胴"));
+        assertTrue(plainLore.contains(" ▸ 対象種別: 剣"));
         assertTrue(plainLore.contains(" ▸ 必要強化: +3"));
         assertTrue(plainLore.contains(" ▸ ステータス補正"));
         assertTrue(plainLore.stream().anyMatch(line -> line.contains("近接攻撃力 : +5")));

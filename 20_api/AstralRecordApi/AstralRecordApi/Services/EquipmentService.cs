@@ -225,12 +225,7 @@ public class EquipmentService(
         if (instance.EnhanceLevel < runeItem.Rune.RequiredEnhanceLevel)
             return false;
 
-        if (equipment.Rune.AllowedRuneIds.Count > 0
-            && !equipment.Rune.AllowedRuneIds.Any(id => string.Equals(id, runeItem.Id, StringComparison.OrdinalIgnoreCase)))
-            return false;
-
-        return runeItem.Rune.TargetSlots.Any(slot => string.Equals(slot, "ANY", StringComparison.OrdinalIgnoreCase)
-            || string.Equals(slot, equipment.Slot, StringComparison.OrdinalIgnoreCase));
+        return RuneTargetMatcher.Matches(equipment, runeItem.Rune);
     }
 
     private static EquipmentInstanceResponse MapToResponse(

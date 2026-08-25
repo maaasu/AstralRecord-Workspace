@@ -823,10 +823,7 @@ public class EquipmentOrbOperationRepository(
         if (equipment.Rune is null || runeItem.Rune is null || instance.RuneMaxSlots <= 0
             || instance.EnhanceLevel < runeItem.Rune.RequiredEnhanceLevel)
             return false;
-        if (equipment.Rune.AllowedRuneIds.Count > 0
-            && !equipment.Rune.AllowedRuneIds.Any(id => IdEquals(id, runeItem.Id)))
-            return false;
-        return runeItem.Rune.TargetSlots.Any(slot => IdEquals(slot, "ANY") || IdEquals(slot, equipment.Slot));
+        return RuneTargetMatcher.Matches(equipment, runeItem.Rune);
     }
 
     private static void ConsumeEntry(

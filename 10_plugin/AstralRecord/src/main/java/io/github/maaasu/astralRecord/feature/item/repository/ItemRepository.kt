@@ -713,6 +713,7 @@ class ItemRepository {
             targetSlots = parseStringList(runeObj.getAsJsonArray("targetSlots")),
             requiredEnhanceLevel = runeObj.get("requiredEnhanceLevel")?.takeIf { !it.isJsonNull }?.asInt ?: 0,
             stats = parseRuneDefinitionStats(runeObj.getAsJsonArray("stats")),
+            targetTags = parseStringList(runeObj.getAsJsonArray("targetTags")),
         )
     }
 
@@ -814,10 +815,7 @@ class ItemRepository {
     private fun parseEquipmentRuneDef(equipmentObj: JsonObject): ItemEquipmentRuneDef? {
         val runeObj = parseObjectOrNull(equipmentObj, "rune") ?: return null
         val maxSlotsRaw = runeObj.get("maxSlots")?.takeIf { !it.isJsonNull }?.asString ?: "0"
-        return ItemEquipmentRuneDef(
-            maxSlotsRaw = maxSlotsRaw,
-            allowedRuneIds = parseStringList(runeObj.getAsJsonArray("allowedRuneIds")),
-        )
+        return ItemEquipmentRuneDef(maxSlotsRaw = maxSlotsRaw)
     }
 
     private fun parseEquipmentTranscendence(equipmentObj: JsonObject): List<ItemEquipmentTranscendence> {

@@ -13,6 +13,8 @@ maxStack: 64
 rune:
   targetSlots:
     - WEAPON
+  targetTags:
+    - SWORD
   stats:
     - status: MELEE_ATTACK
       type: FLAT
