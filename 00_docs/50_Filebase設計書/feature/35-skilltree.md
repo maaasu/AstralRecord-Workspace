@@ -117,6 +117,7 @@ AI または作成者がスキルツリーノードを追加・変更すると�
 
 ## 正本参照
 
+- 戦闘・ゲームバランス: ステータス効果、skill解放、pointCostなど性能配分に関わる値を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - JSON 契約: `E:\AstralRecord-Workspace\40_filebase\35.features.skilltree\docs.skilltree.JSONスキーマ定義.md`
 - JSON Schema: `E:\AstralRecord-Workspace\40_filebase\35.features.skilltree\schemas\`
 - タグカタログ: `E:\AstralRecord-Workspace\40_filebase\76.shared.tag\v1.tags.yml`

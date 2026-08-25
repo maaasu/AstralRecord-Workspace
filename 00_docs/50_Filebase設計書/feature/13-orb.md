@@ -21,6 +21,7 @@ Orb は、通常プレイヤーインベントリからクリックして装備�
 
 ## 正本参照
 
+- 戦闘・ゲームバランス: 効果量、装備更新に関わる値を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\orb\docs.orb.YAMLスキーマ定義.md`
 - 共通 enchant: `E:\AstralRecord-Workspace\40_filebase\12.features.enchant\docs.enchant.YAMLスキーマ定義.md`
 - equipment: `E:\AstralRecord-Workspace\40_filebase\10.features.item\equipment\docs.equipment.YAMLスキーマ定義.md`

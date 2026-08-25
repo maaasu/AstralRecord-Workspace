@@ -41,5 +41,6 @@ class status bonus = baseStats + growthPerLevel × (classLevel - 1)
 
 ## 正本参照
 
+- 戦闘・ゲームバランス: ステータス成長、職業間の性能配分、skill・equipmentとの役割分担を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - YAML: `E:\AstralRecord-Workspace\40_filebase\20.features.class\docs.class.YAMLスキーマ定義.md`
 - status: `E:\AstralRecord-Workspace\40_filebase\75.shared.status\v1.status_types.yml`

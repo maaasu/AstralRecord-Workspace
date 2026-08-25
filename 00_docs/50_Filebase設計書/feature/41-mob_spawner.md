@@ -19,4 +19,5 @@ Mob Spawner は、mob をワールド内の指定条件で出現・再出現さ�
 
 ## 正本参照
 
+- 戦闘・ゲームバランス: 出現対象、密度、上限、間隔など実質難度に関わる値を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - mob spawner YAML: `E:\AstralRecord-Workspace\40_filebase\41.features.mob.spawner\docs.spawner.YAMLスキーマ定義.md`

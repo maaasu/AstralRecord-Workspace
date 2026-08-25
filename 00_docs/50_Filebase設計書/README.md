@@ -15,6 +15,7 @@
 | タグID・日本語名・説明・適用対象 | `E:\AstralRecord-Workspace\40_filebase\76.shared.tag\v1.tags.yml` |
 | Plugin が解釈する列挙値や動作 | `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main` 配下のソースコード |
 | Plugin の機能仕様 | `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書` |
+| 戦闘ステータス、効果量、敵強度、装備更新、報酬量の数値根拠 | `E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` |
 | マスタカテゴリの設計方針 | 本設計書の `feature` 配下 |
 | 個別マスタの定義 | `E:\AstralRecord-Workspace\40_filebase` 配下の各 YAML / JSON |
 | 個別マスタのモチーフと進行度 | YAML の先頭コメント、または対象 JSON Schema が定義する設計メタデータ |
@@ -117,7 +118,8 @@ feature 設計書の先頭番号は、原則として `40_filebase` のディレ
 1. 本 README
 2. 対象カテゴリの `feature/<number>-<category>.md`
 3. 対象カテゴリの `docs.<項目名>.YAMLスキーマ定義.md` または `schemas/*.schema.json`
-4. feature 文書に記載された Plugin ソースまたは Plugin 設計書
-5. `モチーフ選定ガイド.md`
-6. 近い既存 YAML / JSON
-7. `作成時チェックリスト.md`
+4. ステータス、効果量、敵強度、出現密度、報酬量、装備更新などの数値を扱う場合は `00_docs/60_戦闘バランス設計書/README.md` と該当資料
+5. feature 文書に記載された Plugin ソースまたは Plugin 設計書
+6. `モチーフ選定ガイド.md`
+7. 近い既存 YAML / JSON
+8. `作成時チェックリスト.md`

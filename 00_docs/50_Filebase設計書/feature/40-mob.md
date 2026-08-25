@@ -24,5 +24,6 @@ Mob は、戦闘対象、案内役、商業・機能提供者など、ワール�
 
 ## 正本参照
 
+- 戦闘・ゲームバランス: ステータス、skill、AI、装備、lootなど戦闘性能に関わる値を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\docs.mob.YAMLスキーマ定義.md`
 - status: `E:\AstralRecord-Workspace\40_filebase\75.shared.status\v1.status_types.yml`

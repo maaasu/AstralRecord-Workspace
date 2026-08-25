@@ -17,4 +17,5 @@ Recipe は、material などの入力を equipment、consumable、別素材へ�
 
 ## 正本参照
 
+- 戦闘・ゲームバランス: 装備・消耗品の更新時期、入手量、制作コストに関わる値を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - YAML: `E:\AstralRecord-Workspace\40_filebase\85.shared.recipe\docs.recipe.YAMLスキーマ定義.md`

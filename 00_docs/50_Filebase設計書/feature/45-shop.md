@@ -18,4 +18,5 @@ shop を最初に利用可能になる段階を記載します。商品ごとの
 
 ## 正本参照
 
+- 戦闘・ゲームバランス: 装備・skill・消耗品などの供給量、価格、更新時期に関わる値を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - YAML: `E:\AstralRecord-Workspace\40_filebase\45.features.shop\docs.shop.YAMLスキーマ定義.md`

@@ -55,5 +55,6 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 
 ## 正本参照
 
+- 戦闘・ゲームバランス: ダメージ、回復、防御、状態異常、コスト、クールダウンなど性能に関わる値を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - YAML: `E:\AstralRecord-Workspace\40_filebase\30.features.skill\docs.skill.YAMLスキーマ定義.md`
 - Plugin 設計: `E:\AstralRecord-Workspace\00_docs\10_Plugin設計書\feature\13-skill`

@@ -18,5 +18,6 @@ buff 自体ではなく、最も早い標準付与元の段階を基準にしま
 
 ## 正本参照
 
+- 戦闘・ゲームバランス: ステータス補正、効果量、持続時間、stackGroupに関わる値を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - YAML: `E:\AstralRecord-Workspace\40_filebase\70.shared.buff\docs.buff.YAMLスキーマ定義.md`
 - status: `E:\AstralRecord-Workspace\40_filebase\75.shared.status\v1.status_types.yml`

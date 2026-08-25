@@ -18,4 +18,5 @@ Consumable は、使用時に回復、補助、移動などの即時または一
 
 ## 正本参照
 
+- 戦闘・ゲームバランス: 回復・補助の効果量や入手段階を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\consumable\docs.consumable.YAMLスキーマ定義.md`

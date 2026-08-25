@@ -18,5 +18,6 @@ Boss は、準備、戦闘理解、協力、周回などを確認する節目の
 
 ## 正本参照
 
+- 戦闘・ゲームバランス: HP、攻撃、防御、ギミック、想定人数、報酬に関わる値を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - 共通 YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\docs.mob.YAMLスキーマ定義.md`
 - boss YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\boss\docs.boss.YAMLスキーマ定義.md`

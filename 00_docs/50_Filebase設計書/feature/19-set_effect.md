@@ -17,5 +17,6 @@ Set Effect は、同じ set ID の equipment を一定数装備したときに�
 
 ## 正本参照
 
+- 戦闘・ゲームバランス: ステータス補正やセット成立時の合計性能を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\equipment\set_effect\docs.set_effect.YAMLスキーマ定義.md`
 - status: `E:\AstralRecord-Workspace\40_filebase\75.shared.status\v1.status_types.yml`

@@ -19,5 +19,6 @@ Loot は、mob、gathering、boss、quest などから得られる報酬候補�
 
 ## 正本参照
 
+- 戦闘・ゲームバランス: 報酬量、確率、装備更新の供給時期に関わる値を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - pool YAML: `E:\AstralRecord-Workspace\40_filebase\80.shared.loot\pool\docs.pool.YAMLスキーマ定義.md`
 - table YAML: `E:\AstralRecord-Workspace\40_filebase\80.shared.loot\table\docs.table.YAMLスキーマ定義.md`

@@ -25,6 +25,7 @@ Dungeon は、入場条件、道中、節目、boss、報酬、退出条件を�
 
 ## 正本参照
 
+- 戦闘・ゲームバランス: Mob構成、難度、想定人数、攻略時間、報酬に関わる値を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - database 登録先: `40_filebase/config.yml` の `dungeon`
 - YAML スキーマ: `40_filebase/65.features.dungeon/docs.dungeon.YAMLスキーマ定義.md`
 - Plugin の生成・進行契約: `00_docs/10_Plugin設計書/feature/32-dungeon/32_0-概要.md`

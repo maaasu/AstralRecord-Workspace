@@ -17,5 +17,6 @@ Enemy は、通常の探索・移動・採集に戦闘上の判断と報酬を�
 
 ## 正本参照
 
+- 戦闘・ゲームバランス: レベル別ステータス、攻撃、耐久、skill、報酬に関わる値を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - 共通 YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\docs.mob.YAMLスキーマ定義.md`
 - enemy YAML: `E:\AstralRecord-Workspace\40_filebase\40.features.mob\enemy\docs.enemy.YAMLスキーマ定義.md`

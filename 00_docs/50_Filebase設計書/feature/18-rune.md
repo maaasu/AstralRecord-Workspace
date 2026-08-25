@@ -19,5 +19,6 @@ Rune は、対応する equipment へステータス補正を追加する拡張 
 
 ## 正本参照
 
+- 戦闘・ゲームバランス: ステータス補正や装備更新に関わる値を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\rune\docs.rune.YAMLスキーマ定義.md`
 - status: `E:\AstralRecord-Workspace\40_filebase\75.shared.status\v1.status_types.yml`
