@@ -11,6 +11,11 @@ Loot は、mob、gathering、boss、quest などから得られる報酬候補�
 - 低確率だけで進行必須品を供給しません。
 - 参照元が存在しない pool/table を作りません。
 
+## 装備報酬の梱包
+
+- 武器の Mob ドロップ、および Boss ドロップの防具・アクセサリは、装備ごとの専用 Bundle に梱包します。
+- 装備種別ごとの入手元とランダムステータスは `16-equipment.md`、ドロップ専用 Bundle の開封時間は `11-bundle.md` の方針に従います。
+
 ## progression
 
 - table は主な参照元の progression を基準にします。
