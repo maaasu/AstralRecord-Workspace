@@ -357,6 +357,7 @@ public final class AstralRecord extends JavaPlugin {
     private MobVanillaEffectProtectionService mobVanillaEffectProtectionService;
     private MobDropPresentationService mobDropPresentationService;
     private EventManager eventManager;
+    private CommandRegister commandRegister;
     private ParticleDisplayService particleDisplayService;
     private DisplayTextService displayTextService;
     private AdminMessageBossBarService adminMessageBossBarService;
@@ -490,7 +491,7 @@ public final class AstralRecord extends JavaPlugin {
         joinSpawnWorldId = PluginJoinSpawnWorldConfig.load(this);
         // CommandManager は Paper Lifecycle API の制約に合わせて
         // onLoad() で初期化し、コマンド登録クラスを先に生成する。
-        new CommandRegister(
+        commandRegister = new CommandRegister(
                 itemService,
                 itemStackFactory,
                 mobService,
@@ -1388,6 +1389,10 @@ public final class AstralRecord extends JavaPlugin {
      * イベントやコマンドなどの機能を登録します。
      */
     private void registerPluginFeatures() {
+        eventManager.registerHandler(
+            commandRegister.getAccountDeleteCommand(),
+            getServer().getPluginManager()
+        );
         eventManager.registerHandler(
             new GuiClickCooldownEventHandler(inventoryService),
             getServer().getPluginManager()

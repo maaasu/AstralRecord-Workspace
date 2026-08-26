@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.core;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.command.MasterDataCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountCommand;
+import io.github.maaasu.astralRecord.feature.account.command.AccountDeleteCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountModeCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountModeTabCompleter;
 import io.github.maaasu.astralRecord.feature.account.command.AccountTabCompleter;
@@ -116,6 +117,7 @@ public class CommandRegister {
     private final TrainingDummyGui trainingDummyGui;
     private final AdminMessageBossBarService adminMessageBossBarService;
     private final Supplier<ParticleDisplayService> particleDisplayServiceSupplier;
+    private final AccountCommand accountCommand;
 
     public CommandRegister(
             ItemService itemService,
@@ -149,7 +151,17 @@ public class CommandRegister {
         this.trainingDummyGui = trainingDummyGui;
         this.adminMessageBossBarService = adminMessageBossBarService;
         this.particleDisplayServiceSupplier = particleDisplayServiceSupplier;
+        this.accountCommand = new AccountCommand();
         registerCommand();
+    }
+
+    /**
+     * アカウント削除コマンドのイベントハンドラを取得します。
+     *
+     * @return コマンド登録時に生成したアカウント削除コマンド
+     */
+    public AccountDeleteCommand getAccountDeleteCommand() {
+        return accountCommand.getDeleteCommand();
     }
 
     public final void registerCommand() {
@@ -193,7 +205,7 @@ public class CommandRegister {
         cm.registerCommand("dungeon", new DungeonCommand());
         cm.registerCommand("user", new UserCommand(), new UserTabCompleter());
         cm.registerCommand("uperm", new UserPermissionCommand("uperm", "/uperm <permission> [<player|uuid>]"), new UserPermissionTabCompleter());
-        cm.registerCommand("account", new AccountCommand(), new AccountTabCompleter());
+        cm.registerCommand("account", accountCommand, new AccountTabCompleter());
         cm.registerCommand("level", new LevelCommand(), new LevelTabCompleter());
         cm.registerCommand("flyspeed", new CreativeFlySpeedCommand());
         cm.registerCommand("am", new AccountModeCommand("am", "/am <mode> [<player|accountUuid>]"), new AccountModeTabCompleter());

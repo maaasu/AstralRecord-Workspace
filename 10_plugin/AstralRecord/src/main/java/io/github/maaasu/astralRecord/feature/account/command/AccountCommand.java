@@ -22,6 +22,15 @@ public class AccountCommand extends AstCommand {
     }
 
     /**
+     * アカウント削除コマンドのイベントハンドラを取得します。
+     *
+     * @return アカウント削除コマンド
+     */
+    public AccountDeleteCommand getDeleteCommand() {
+        return deleteCommand;
+    }
+
+    /**
      * /account の第一引数に応じて対象サブコマンドへ委譲します。
      *
      * @param sender コマンド送信者

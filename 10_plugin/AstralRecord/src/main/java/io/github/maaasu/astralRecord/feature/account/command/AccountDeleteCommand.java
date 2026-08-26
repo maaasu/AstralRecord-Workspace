@@ -23,7 +23,6 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.Listener;
 import org.bukkit.event.entity.EntityPickupItemEvent;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -42,14 +41,13 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** /account delete の実行と、オンライン対象の安全な再ロードを扱います。 */
-public final class AccountDeleteCommand extends AstCommand implements Listener {
+public final class AccountDeleteCommand extends AstCommand implements io.github.maaasu.astralRecord.core.event.EventHandler {
     private final Set<UUID> pendingAccountIds = ConcurrentHashMap.newKeySet();
     private final Set<UUID> frozenPlayers = ConcurrentHashMap.newKeySet();
 
     public AccountDeleteCommand() {
         super("accountdelete", "アカウントを削除します。", "/account delete (<player> <slot>|<accountUuid>)", false,
             UserPermission.ADMIN.getValue());
-        Bukkit.getPluginManager().registerEvents(this, AstralRecord.getInstance());
     }
 
     @Override
