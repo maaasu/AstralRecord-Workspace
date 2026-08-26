@@ -29,5 +29,5 @@ drops:
     - itemId: item:box_cave_stone
       rate: 100.0
       amount: "2~4"
-      luckAffected: false
+      luckAffected: true
       hidden: false

@@ -93,6 +93,6 @@ drops:
     - itemId: item:iron_ingot
       rate: 100.0
       amount: "1~2"
-      luckAffected: false
+      luckAffected: true
       hidden: false
 ```

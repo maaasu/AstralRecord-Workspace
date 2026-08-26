@@ -29,5 +29,5 @@ drops:
     - itemId: item:box_cave_coal
       rate: 100.0
       amount: "1~3"
-      luckAffected: false
+      luckAffected: true
       hidden: false

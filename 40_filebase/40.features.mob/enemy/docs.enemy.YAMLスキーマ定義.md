@@ -147,7 +147,7 @@ drops:
         ref: item:rune_bone
       rate: 4.5
       amount: 1
-      luckAffected: false
+      luckAffected: true
       hidden: false
   lootTable:
     ref: loot_table:windwait_field_table

@@ -156,13 +156,13 @@ drops:
         ref: item:dragon_scale
       rate: 100.0
       amount: 3~5
-      luckAffected: false
+      luckAffected: true
       hidden: false
     - itemId:
         ref: item:varzard_soul_fragment
       rate: 1.00
       amount: 1
-      luckAffected: false
+      luckAffected: true
       hidden: true
   lootTable:
     ref: loot_table:boss_common_drop
