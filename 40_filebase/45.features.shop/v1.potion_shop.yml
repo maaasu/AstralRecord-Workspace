@@ -25,9 +25,6 @@ items:
     priceGold: 35
     requiredItems:
       - itemId:
-          ref: item:windleaf_sprig
-        amount: 2
-      - itemId:
           ref: item:glimmercap_spore
         amount: 1
       - itemId:
@@ -52,8 +49,8 @@ items:
     priceGold: 60
     requiredItems:
       - itemId:
-          ref: item:nox_moonshadowgrass_leaf
+          ref: item:windleaf_sprig
         amount: 1
       - itemId:
           ref: item:nox_dewgrass_leaf
-        amount: 2
+        amount: 3

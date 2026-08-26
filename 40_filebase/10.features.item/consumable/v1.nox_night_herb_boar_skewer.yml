@@ -21,11 +21,11 @@ consumable:
     sound: block.note_block.chime
     effect: electric_spark
     amount: 1
-    useTimeTicks: 24
-    cooldownTicks: 24
+    useTimeTicks: 26
+    cooldownTicks: 4
   effects:
     - type: RECOVER
       status: ENERGY
-      value: 15
+      value: 35
       isPercent: false
       rate: 100
