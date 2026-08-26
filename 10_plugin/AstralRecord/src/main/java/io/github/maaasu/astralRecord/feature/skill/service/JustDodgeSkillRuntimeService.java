@@ -154,11 +154,13 @@ public final class JustDodgeSkillRuntimeService {
             return false;
         }
 
+        boolean energyRecovered = false;
         if (!state.energyRecovered()) {
             state.markEnergyRecovered();
             statusService.recoverEnergy(victim.player(), state.energyRecoveryAmount());
+            energyRecovered = true;
         }
-        renderNegation(victim.player().getBukkit());
+        renderNegation(victim.player().getBukkit(), energyRecovered);
         return true;
     }
 
@@ -179,7 +181,7 @@ public final class JustDodgeSkillRuntimeService {
                 .orElse(null);
     }
 
-    private void renderNegation(@NotNull Player player) {
+    private void renderNegation(@NotNull Player player, boolean energyRecovered) {
         Location location = player.getLocation();
         World world = location.getWorld();
         if (world == null) return;
@@ -194,6 +196,19 @@ public final class JustDodgeSkillRuntimeService {
                 location.clone().add(0.0D, 0.2D, 0.0D),
                 SharedParticleDefinitions.DODGE_CLOUD.withCount(PARTICLE_COUNT)
         );
+        if (energyRecovered) {
+            world.playSound(
+                    location,
+                    Sound.ENTITY_EXPERIENCE_ORB_PICKUP,
+                    SoundCategory.PLAYERS,
+                    0.75F,
+                    1.15F
+            );
+            particleDisplayService.spawnForNearbyViewers(
+                    location.clone().add(0.0D, 1.0D, 0.0D),
+                    SharedParticleDefinitions.JUST_DODGE_ENERGY_ABSORB_END_ROD
+            );
+        }
     }
 
     private boolean isDirectDamage(@NotNull DamageSource source) {

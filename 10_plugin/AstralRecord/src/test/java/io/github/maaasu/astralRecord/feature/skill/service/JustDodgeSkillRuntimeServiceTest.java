@@ -67,10 +67,18 @@ class JustDodgeSkillRuntimeServiceTest extends MockBukkitTestBase {
                 any(Location.class),
                 eq(SharedParticleDefinitions.DODGE_CLOUD.withCount(6))
         );
+        verify(particleDisplayService).spawnForNearbyViewers(
+                any(Location.class),
+                eq(SharedParticleDefinitions.JUST_DODGE_ENERGY_ABSORB_END_ROD)
+        );
 
         runtime.onDodge(player);
         assertTrue(runtime.tryNegateDirectDamage(victim, DamageSource.NORMAL_ATTACK, hit));
         verify(statusService, times(2)).recoverEnergy(player, 10.0D);
+        verify(particleDisplayService, times(2)).spawnForNearbyViewers(
+                any(Location.class),
+                eq(SharedParticleDefinitions.JUST_DODGE_ENERGY_ABSORB_END_ROD)
+        );
     }
 
     /**
