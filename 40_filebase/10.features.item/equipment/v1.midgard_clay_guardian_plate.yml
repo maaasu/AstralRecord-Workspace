@@ -1,0 +1,85 @@
+# design:
+#   motif: "粘土 / 守護像"
+#   progression: 4
+schemaVersion: 1
+id: midgard_clay_guardian_plate
+category: equipment
+name: "&6クレイガーディアンプレート"
+icon: IRON_CHESTPLATE
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 300
+lore:
+  - "&7クレイガードの土塊を固めて作った、堅牢な胸当て。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: CHEST
+  requiredLevel: 3
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 12
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 30
+    - status: HP_REGEN
+      type: FLAT
+      value: 2
+    - status: KNOCKBACK_RESISTANCE
+      type: FLAT
+      value: 5
+  durability:
+    max: 180
+    consume: 1
+  enhance:
+    maxLevel: 12
+    levels:
+      - level: 1
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 2
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 3
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 4
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 5
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 6
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 0.75
+        failAction: NONE
+      - level: 7
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 0.75
+        failAction: NONE
+      - level: 8
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 0.75
+        failAction: NONE
+      - level: 9
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 0.75
+        failAction: NONE
+      - level: 10
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 0.75
+        failAction: NONE
+      - level: 11
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 0.5
+        failAction: NONE
+      - level: 12
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 0.5
+        failAction: NONE

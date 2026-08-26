@@ -1,0 +1,260 @@
+# design:
+#   motif: "交易 / 防具交換"
+#   progression: 4
+schemaVersion: 1
+id: equipment_shop
+type: SHOP
+name: "&6防具ショップ"
+mode: EXCHANGE
+access: NPC_ONLY
+items:
+  - id: midgard_clay_guardian_plate
+    itemId:
+      ref: item:midgard_clay_guardian_plate
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 0
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:ancient_clay_rune
+        category: material
+        amount: 2
+      - itemId:
+          ref: item:clay_guard_fragment
+        category: material
+        amount: 16
+      - itemId:
+          ref: item:box_cave_compressed_stone
+        category: material
+        amount: 4
+      - itemId:
+          ref: item:box_cave_copper_ingot
+        category: material
+        amount: 2
+  - id: midgard_kuinya_helm
+    itemId:
+      ref: item:midgard_kuinya_helm
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 1
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:grassboar_pelt
+        category: material
+        amount: 8
+      - itemId:
+          ref: item:moss_shell_fragment
+        category: material
+        amount: 6
+      - itemId:
+          ref: item:box_cave_compressed_stone
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:box_cave_copper_ingot
+        category: material
+        amount: 1
+  - id: midgard_kuinya_greaves
+    itemId:
+      ref: item:midgard_kuinya_greaves
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 2
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:moss_shell_fragment
+        category: material
+        amount: 8
+      - itemId:
+          ref: item:skeleton_bone_fragment
+        category: material
+        amount: 6
+      - itemId:
+          ref: item:box_cave_compressed_stone
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:box_cave_copper_ingot
+        category: material
+        amount: 1
+  - id: midgard_kuinya_sabaton
+    itemId:
+      ref: item:midgard_kuinya_sabaton
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 3
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:grassboar_pelt
+        category: material
+        amount: 6
+      - itemId:
+          ref: item:skeleton_bone_fragment
+        category: material
+        amount: 8
+      - itemId:
+          ref: item:box_cave_compressed_stone
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:box_cave_copper_ingot
+        category: material
+        amount: 1
+  - id: midgard_kuinya_hood
+    itemId:
+      ref: item:midgard_kuinya_hood
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 4
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:grassboar_pelt
+        category: material
+        amount: 6
+      - itemId:
+          ref: item:windcutter_feather
+        category: material
+        amount: 8
+      - itemId:
+          ref: item:box_cave_compressed_stone
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:box_cave_copper_ingot
+        category: material
+        amount: 1
+  - id: midgard_kuinya_leggings
+    itemId:
+      ref: item:midgard_kuinya_leggings
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 5
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:skeleton_bone_fragment
+        category: material
+        amount: 6
+      - itemId:
+          ref: item:windcutter_feather
+        category: material
+        amount: 8
+      - itemId:
+          ref: item:box_cave_compressed_stone
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:box_cave_copper_ingot
+        category: material
+        amount: 1
+  - id: midgard_kuinya_boots
+    itemId:
+      ref: item:midgard_kuinya_boots
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 6
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:grassboar_pelt
+        category: material
+        amount: 4
+      - itemId:
+          ref: item:windcutter_feather
+        category: material
+        amount: 6
+      - itemId:
+          ref: item:box_cave_compressed_stone
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:box_cave_copper_ingot
+        category: material
+        amount: 1
+  - id: midgard_kuinya_circlet
+    itemId:
+      ref: item:midgard_kuinya_circlet
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 7
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:skeleton_bone_fragment
+        category: material
+        amount: 6
+      - itemId:
+          ref: item:skeleton_bowstring
+        category: material
+        amount: 4
+      - itemId:
+          ref: item:box_cave_compressed_stone
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:box_cave_copper_ingot
+        category: material
+        amount: 1
+  - id: midgard_kuinya_trousers
+    itemId:
+      ref: item:midgard_kuinya_trousers
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 8
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:moss_shell_fragment
+        category: material
+        amount: 6
+      - itemId:
+          ref: item:skeleton_bowstring
+        category: material
+        amount: 6
+      - itemId:
+          ref: item:box_cave_compressed_stone
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:box_cave_copper_ingot
+        category: material
+        amount: 1
+  - id: midgard_kuinya_sandals
+    itemId:
+      ref: item:midgard_kuinya_sandals
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 9
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:skeleton_bowstring
+        category: material
+        amount: 4
+      - itemId:
+          ref: item:windcutter_feather
+        category: material
+        amount: 6
+      - itemId:
+          ref: item:box_cave_compressed_stone
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:box_cave_copper_ingot
+        category: material
+        amount: 1

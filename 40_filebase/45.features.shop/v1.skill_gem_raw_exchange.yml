@@ -38,18 +38,18 @@ items:
       - itemId: { ref: "item:skill_gem_raw_advanced" }
         category: material
         amount: 1
-  - id: advanced_raw_from_emperor_raw
+  - id: advanced_raw_from_saint_raw
     itemId: { ref: "item:skill_gem_raw_advanced" }
     category: material
     amount: 3
     page: 1
     slot: 3
     requiredItems:
-      - itemId: { ref: "item:skill_gem_raw_emperor" }
+      - itemId: { ref: "item:skill_gem_raw_saint" }
         category: material
         amount: 1
-  - id: emperor_raw_from_king_raw
-    itemId: { ref: "item:skill_gem_raw_emperor" }
+  - id: saint_raw_from_king_raw
+    itemId: { ref: "item:skill_gem_raw_saint" }
     category: material
     amount: 3
     page: 1
@@ -58,18 +58,18 @@ items:
       - itemId: { ref: "item:skill_gem_raw_king" }
         category: material
         amount: 1
-  - id: king_raw_from_saint_raw
+  - id: king_raw_from_emperor_raw
     itemId: { ref: "item:skill_gem_raw_king" }
     category: material
     amount: 3
     page: 1
     slot: 5
     requiredItems:
-      - itemId: { ref: "item:skill_gem_raw_saint" }
+      - itemId: { ref: "item:skill_gem_raw_emperor" }
         category: material
         amount: 1
-  - id: saint_raw_from_god_raw
-    itemId: { ref: "item:skill_gem_raw_saint" }
+  - id: emperor_raw_from_god_raw
+    itemId: { ref: "item:skill_gem_raw_emperor" }
     category: material
     amount: 3
     page: 1

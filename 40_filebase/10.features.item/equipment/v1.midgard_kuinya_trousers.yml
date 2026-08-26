@@ -1,0 +1,80 @@
+# design:
+#   motif: "クウィンヤ / 防具"
+#   progression: 4
+schemaVersion: 1
+id: midgard_kuinya_trousers
+category: equipment
+name: "&6クウィンヤトラウザーズ"
+icon: IRON_LEGGINGS
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 240
+lore:
+  - "&7クウィンヤの装備として作られた、魔力を帯びた脚衣。"
+  - "&7MP回復を高める魔法向けの脚防具。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: LEGS
+  requiredLevel: 3
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 12
+    - status: MP_REGEN
+      type: FLAT
+      value: 1
+  durability:
+    max: 165
+    consume: 1
+  enhance:
+    maxLevel: 12
+    levels:
+      - level: 1
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 2
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 3
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 4
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 5
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 6
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 0.75
+        failAction: NONE
+      - level: 7
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 0.75
+        failAction: NONE
+      - level: 8
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 0.75
+        failAction: NONE
+      - level: 9
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 0.75
+        failAction: NONE
+      - level: 10
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 0.75
+        failAction: NONE
+      - level: 11
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 0.5
+        failAction: NONE
+      - level: 12
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        successRate: 0.5
+        failAction: NONE

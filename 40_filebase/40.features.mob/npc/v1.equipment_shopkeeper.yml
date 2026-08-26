@@ -1,0 +1,44 @@
+# design:
+#   motif: "交易 / 装備店"
+#   progression: 0
+schemaVersion: 1
+id: equipment_shopkeeper
+type: MOB
+category: NPC
+name: "&6装備商人カイル"
+title: "&7装備ショップ"
+level: 1
+entityType: PLAYER
+skin:
+  texture: "ewogICJ0aW1lc3RhbXAiIDogMTY2NDI0NjAyOTU2MywKICAicHJvZmlsZUlkIiA6ICIyMWUzNjdkNzI1Y2Y0ZTNiYjI2OTJjNGEzMDBhNGRlYiIsCiAgInByb2ZpbGVOYW1lIiA6ICJHZXlzZXJNQyIsCiAgInNpZ25hdHVyZVJlcXVpcmVkIiA6IHRydWUsCiAgInRleHR1cmVzIiA6IHsKICAgICJTS0lOIiA6IHsKICAgICAgInVybCIgOiAiaHR0cDovL3RleHR1cmVzLm1pbmVjcmFmdC5uZXQvdGV4dHVyZS8zZTJmYzE1ODk3OWY0MDg2MTQwODVkNDM2M2IxNDNmZWZiMzNiNDNlMzAyMzQ1MDk4NzJhNzMzNWQzY2ZiZjdjIgogICAgfQogIH0KfQ=="
+  signature: "np3Gwf6TbvYU503n8QBTCcPjZapyLyrPI1xBAQFW4VBQLA2kMEN3R3r9uTCmQ29NchayOp4271kWXU8TL5kzBwC2Iv8MIxFXtai9GjMSaW8O6SnGYVh+TzU2w/4VGOZPSJoKhHcKIyrnEgbqoj5VBcWW0ZlsxBcqgnKR3/wB+oJYSqHwacHtJoruivB9SsktfRWHrgLoKE9HsdGl6CBt9LOxCqAKMJpnF0BU+wRAJ01DwU62C7VMtOZD9ypkbLQjp6UfIlRkZpn4iqZZD2Hk3rBlCjNjTjo2a3nNhqY5/0OGyhGro2sGHiy8B7bvziKxuj01ZmsR+IdZWkDO5EM4G60cAvH2OKX3gg6LJCrB1ScaI6XoWI1OWVBMXN5zQlYqErY6i5J9c5k/SPqDKf1mbAqwkinfjtLq1RGGZZ2WWgsptvAKFXoJMlnqxu2jh7bxGg6IKTfuWgEUQz0HZo8tm8w5r96Olq1uiMuAHlgixuqZLEtcJp131vZhNW044e9cUH5XkBTy4scGGtR/fzhZJcAtjlBm8SSEixIWuap0wV93V+H0eYsAehJC5V2XAxCXV7NX5IAx23WHHiX3vT/RjNMe4BNUARu0d54aC9bFR4OJBGHOJum1l/8pOtsRkIKOHClTn1Xw+1o3JcmVoreIF4GGtBSAiLVRSoIzAUH+Ros="
+nameVisible: true
+damageImmune: true
+icon: IRON_CHESTPLATE
+lore:
+  - "&7冒険に必要な武器や防具を扱う商人。"
+  - "&7右クリックで装備ショップを開ける。"
+tags:
+  - npc
+  - shop
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&6装備商人カイル&7: 武器や防具を取り揃えています。"
+  rightClick:
+    - id: gui
+      params:
+        type: SHOP
+        shopId: equipment_shop
