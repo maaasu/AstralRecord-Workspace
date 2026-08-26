@@ -72,5 +72,37 @@ public class GuideResponseContractTests
         var step = Assert.Single(response.Steps);
         Assert.Empty(step.Details);
         Assert.Null(step.Action);
+        Assert.Empty(step.Condition.TargetIds);
+    }
+
+    [Fact]
+    public void GuideCondition_DeserializesAlternativeTargetIds()
+    {
+        const string json = """
+            {
+              "schemaVersion": 3,
+              "id": "weapon_upgrade",
+              "category": "equipment",
+              "title": "武器更新",
+              "steps": [
+                {
+                  "id": "buy_weapon",
+                  "text": "武器を購入する",
+                  "condition": {
+                    "type": "SHOP_PURCHASED",
+                    "targetIds": ["nox_sword", "nox_bow", "nox_staff"]
+                  }
+                }
+              ]
+            }
+            """;
+
+        var response = JsonSerializer.Deserialize<GuideResponse>(
+            json,
+            new JsonSerializerOptions(JsonSerializerDefaults.Web));
+
+        Assert.NotNull(response);
+        var step = Assert.Single(response.Steps);
+        Assert.Equal(new[] { "nox_sword", "nox_bow", "nox_staff" }, step.Condition.TargetIds);
     }
 }

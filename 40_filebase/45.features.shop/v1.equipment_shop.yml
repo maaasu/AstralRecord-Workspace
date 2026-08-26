@@ -1,13 +1,64 @@
 # design:
-#   motif: "交易 / 防具交換"
-#   progression: 4
+#   motif: "交易 / 装備交換"
+#   progression: 1
 schemaVersion: 1
 id: equipment_shop
 type: SHOP
-name: "&6防具ショップ"
+name: "&6装備ショップ"
 mode: EXCHANGE
 access: NPC_ONLY
 items:
+  - id: nox_sword
+    itemId:
+      ref: item:nox_sword
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 7
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:nox_starshine_stone
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:nox_moonshadow_stone
+        category: material
+        amount: 1
+  - id: nox_bow
+    itemId:
+      ref: item:nox_bow
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 9
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:nox_starshine_stone
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:nox_moonshadow_stone
+        category: material
+        amount: 1
+  - id: nox_staff
+    itemId:
+      ref: item:nox_staff
+    category: equipment
+    amount: 1
+    page: 1
+    slot: 11
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:nox_starshine_stone
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:nox_moonshadow_stone
+        category: material
+        amount: 1
   - id: midgard_clay_guardian_plate
     itemId:
       ref: item:midgard_clay_guardian_plate

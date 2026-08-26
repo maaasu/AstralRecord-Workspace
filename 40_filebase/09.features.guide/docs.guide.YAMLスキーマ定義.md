@@ -24,6 +24,8 @@ steps:
     condition:
       type: ACTION_RING_OPENED
       targetId: string
+      targetIds:
+        - string
       level: 2
 ```
 
@@ -46,18 +48,19 @@ steps:
 | `steps[].action.menuId` | yes for `OPEN_MENU` | 起動するメニュー ID。現状は `mail` を使用する。 |
 | `steps[].action.description` | no | クリック時に実行される動作の説明。指定時は details の下へ灰色で表示する。 |
 | `steps[].condition.type` | yes | Plugin が解釈する達成条件種別。 |
-| `steps[].condition.targetId` | no | 条件対象 ID。未指定時は同じ type の全対象に一致する。 |
+| `steps[].condition.targetId` | no | 条件対象 ID。`targetIds` 未指定時に使用し、未指定時は同じ type の全対象に一致する。 |
+| `steps[].condition.targetIds` | no | 条件対象 ID の候補配列。いずれか1つに一致したとき達成する。`targetId` と併記した場合はどちらかに一致すればよい。 |
 | `steps[].condition.level` | no | `MOB_DEFEATED` の対象 Mob レベル。未指定時は全レベルに一致する。 |
 
 ## 達成条件の評価
 
-Plugin は各 guide の全未達成 step をイベントごとに評価します。条件種別と対象 ID が一致した step は、配列内の位置や他 step の達成状態に関係なく達成済みとして記録します。同一イベントで複数 step が一致する場合は、該当するすべての step を達成します。
+Plugin は各 guide の全未達成 step をイベントごとに評価します。条件種別が一致し、`targetId` または `targetIds` の対象 ID に一致した step は、配列内の位置や他 step の達成状態に関係なく達成済みとして記録します。`targetIds` は候補のいずれか1つに一致すればよく、同一イベントで複数 step が一致する場合は、該当するすべての step を達成します。
 
 達成状態はアカウント単位で `account_guide_step_progress` に保存します。新規 DB ではこの定義に基づく状態だけを作成し、旧スキーマからの移行・既存状態の遡及再判定は行いません。
 
 ## 達成条件種別
 
-| type | targetId | 達成タイミング |
+| type | targetId / targetIds | 達成タイミング |
 |:--|:--|:--|
 | `PLAYER_LOGGED_IN` | 使用しない | ゲームプレイ状態でログインしたとき |
 | `LOGIN_BONUS_CLAIMED` | 使用しない | ログインボーナスを受け取ったとき |
@@ -71,6 +74,7 @@ Plugin は各 guide の全未達成 step をイベントごとに評価します
 | `SKILL_CAST` | 任意の skill ID | プレイヤーのスキル実行が成功したとき。未指定なら任意のスキル |
 | `MOB_DEFEATED` | mob master ID | 敵 Mob を討伐したとき |
 | `GATHERING_COMPLETED` | gathering spawner ID | 指定スポナーに属する採集を完了したとき |
+| `WAYSTONE_TELEPORTED` | waystone ID | 指定ウェイストーンへのテレポートが成功したとき |
 | `QUEST_ACCEPTED` | quest ID | クエストの受注が成功したとき |
 | `QUEST_COMPLETED` | quest ID | クエスト報酬と関連状態の保存が成功したとき。NPC方式では報告完了時 |
 

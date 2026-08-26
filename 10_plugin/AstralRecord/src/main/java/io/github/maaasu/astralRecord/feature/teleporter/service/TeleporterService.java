@@ -41,6 +41,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 /**
  * ウェイストーンのマスタ、解除状態、GUI、テレポート処理を統括します。
@@ -63,6 +64,7 @@ public final class TeleporterService {
     private @Nullable TeleporterGui gui;
     private @Nullable io.github.maaasu.astralRecord.feature.teleporter.event.TeleporterGuiEventHandler guiEventHandler;
     private @Nullable ParticleDisplayService particleDisplayService;
+    private @Nullable BiConsumer<AstPlayer, String> teleportSuccessListener;
 
     public TeleporterService(
             @NotNull Plugin plugin,
@@ -98,6 +100,15 @@ public final class TeleporterService {
         this.gui = gui;
         this.guiEventHandler = guiEventHandler;
         this.particleDisplayService = particleDisplayService;
+    }
+
+    /**
+     * ウェイストーン間のテレポート成功通知先を設定します。
+     *
+     * @param listener 成功したウェイストーン ID を受け取る通知先。不要な場合は null
+     */
+    public void setTeleportSuccessListener(@Nullable BiConsumer<AstPlayer, String> listener) {
+        this.teleportSuccessListener = listener;
     }
 
     /**
@@ -363,6 +374,12 @@ public final class TeleporterService {
 
     /**
      * GUI 上の対象ウェイストーンへテレポートします。
+     * テレポート成功時は、設定済みの成功通知先へ対象ウェイストーン ID を通知します。
+     *
+     * @param player Bukkit の転送対象プレイヤー
+     * @param astPlayer アプリケーション上の転送対象プレイヤー
+     * @param source GUI を開いた起点ウェイストーン
+     * @param target クリックされた転送先ウェイストーン
      */
     public void teleportToWaystone(
             @NotNull Player player,
@@ -381,8 +398,14 @@ public final class TeleporterService {
             return;
         }
         player.closeInventory();
-        world.teleportPlayerAsync(player, location, () -> PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5953, target.name()))
-                .thenAccept(success -> Bukkit.getScheduler().runTaskLater(plugin, () -> syncView(player), 5L));
+        world.teleportPlayerAsync(player, location, () -> {
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5953, target.name());
+            BiConsumer<AstPlayer, String> listener = teleportSuccessListener;
+            if (listener != null) {
+                listener.accept(astPlayer, target.id());
+            }
+        })
+            .thenAccept(success -> Bukkit.getScheduler().runTaskLater(plugin, () -> syncView(player), 5L));
     }
 
     /**

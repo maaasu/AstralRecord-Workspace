@@ -86,6 +86,49 @@ class GuideProgressEvaluatorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
      * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
+     * 検証契約: targetIdsを指定した手順は、候補のいずれかと一致したイベントだけを達成対象にする。
+     */
+    @Test
+    void evaluate_AcceptsAnyAlternativeTargetId() {
+        GuideEntry guide = new GuideEntry(
+            3,
+            "alternative_shop_targets",
+            "equipment",
+            10,
+            "weapon",
+            null,
+            null,
+            List.of(new GuideStep(
+                "buy_weapon",
+                "buy",
+                List.of(),
+                new GuideCondition(
+                    GuideConditionType.SHOP_PURCHASED,
+                    null,
+                    List.of("nox_sword", "nox_bow", "nox_staff"),
+                    null
+                ),
+                null
+            ))
+        );
+
+        assertEquals(List.of(), GuideProgressEvaluator.evaluate(
+            guide,
+            Set.of(),
+            GuideConditionType.SHOP_PURCHASED,
+            "simple_weapon"
+        ));
+        assertEquals(List.of("buy_weapon"), ids(GuideProgressEvaluator.evaluate(
+            guide,
+            Set.of(),
+            GuideConditionType.SHOP_PURCHASED,
+            "nox_bow"
+        )));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
      * 検証契約: スキル習得イベントは対象 skill ID が一致した手順だけを達成対象にする。
      */
     @Test

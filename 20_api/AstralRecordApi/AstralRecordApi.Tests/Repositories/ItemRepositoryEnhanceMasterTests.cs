@@ -151,24 +151,37 @@ public class ItemRepositoryEnhanceMasterTests
         }
     }
 
-    [Fact]
-    public async Task GetById_ReturnsEnhanceData_ForNoxSword()
+    [Theory]
+    [InlineData("nox_sword", "MELEE_ATTACK")]
+    [InlineData("nox_bow", "RANGED_ATTACK")]
+    [InlineData("nox_staff", "MAGIC_ATTACK")]
+    public async Task GetById_ReturnsDeterministicTenLevelEnhanceData_ForNoxWeapons(
+        string itemId,
+        string expectedStatus
+    )
     {
         await using var dbContext = await CreateSeededMasterDataDbContextAsync();
         var repository = new ItemRepository(dbContext);
 
-        var payloadJson = dbContext.Entries.Single(entry => entry.MasterId == "nox_sword").PayloadJson;
+        var payloadJson = dbContext.Entries.Single(entry => entry.MasterId == itemId).PayloadJson;
         Assert.Contains("\"enhance\":", payloadJson, StringComparison.OrdinalIgnoreCase);
 
-        var item = repository.GetById("nox_sword");
+        var item = repository.GetById(itemId);
 
         Assert.NotNull(item);
+        Assert.Equal("17", item!.Equipment!.Stats.Single(stat => stat.Status == expectedStatus).Value!.Min);
         var levels = item!.Equipment!.Enhance!.Levels;
-        Assert.Equal(5, levels.Count);
+        Assert.Equal(10, item.Equipment.Enhance.MaxLevel);
+        Assert.Equal(10, levels.Count);
+        Assert.Equal(Enumerable.Range(1, 10), levels.Select(level => level.Level));
         Assert.All(levels, level =>
         {
             Assert.Equal(1.0f, level.SuccessRate);
             Assert.Equal("NONE", level.FailAction);
+            var stat = Assert.Single(level.StatIncrease);
+            Assert.Equal(expectedStatus, stat.Status);
+            Assert.Equal("FLAT", stat.Type);
+            Assert.Equal("1", stat.Value);
         });
     }
 

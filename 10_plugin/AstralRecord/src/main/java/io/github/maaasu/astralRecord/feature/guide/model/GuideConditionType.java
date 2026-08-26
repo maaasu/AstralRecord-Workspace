@@ -32,6 +32,8 @@ public enum GuideConditionType {
     MOB_DEFEATED,
     /** 採集オブジェクトを完了まで採集した。 */
     GATHERING_COMPLETED,
+    /** ウェイストーンへのテレポートに成功した。 */
+    WAYSTONE_TELEPORTED,
     /** クエストの受領に成功した。 */
     QUEST_ACCEPTED,
     /** クエストの報酬・状態確定に成功した。 */

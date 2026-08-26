@@ -1,6 +1,6 @@
 # design:
 #   motif: "星影の街ノクス / 魔法攻撃 / ノクス"
-#   progression: 0
+#   progression: 1
 schemaVersion: 1
 id: nox_staff
 category: equipment
@@ -21,7 +21,7 @@ equipment:
   stats:
     - status: MAGIC_ATTACK
       type: FLAT
-      value: 5~7
+      value: 17
     - status: INTELLIGENCE
       type: FLAT
       value: 3
@@ -32,7 +32,7 @@ equipment:
     max: 80
     consume: 1
   enhance:
-    maxLevel: 5
+    maxLevel: 10
     levels:
       - level: 1
         statIncrease:
@@ -59,13 +59,48 @@ equipment:
         statIncrease:
           - status: MAGIC_ATTACK
             type: FLAT
-            value: 2
+            value: 1
         successRate: 1.0
         failAction: NONE
       - level: 5
         statIncrease:
           - status: MAGIC_ATTACK
             type: FLAT
-            value: 2
+            value: 1
+        successRate: 1.0
+        failAction: NONE
+      - level: 6
+        statIncrease:
+          - status: MAGIC_ATTACK
+            type: FLAT
+            value: 1
+        successRate: 1.0
+        failAction: NONE
+      - level: 7
+        statIncrease:
+          - status: MAGIC_ATTACK
+            type: FLAT
+            value: 1
+        successRate: 1.0
+        failAction: NONE
+      - level: 8
+        statIncrease:
+          - status: MAGIC_ATTACK
+            type: FLAT
+            value: 1
+        successRate: 1.0
+        failAction: NONE
+      - level: 9
+        statIncrease:
+          - status: MAGIC_ATTACK
+            type: FLAT
+            value: 1
+        successRate: 1.0
+        failAction: NONE
+      - level: 10
+        statIncrease:
+          - status: MAGIC_ATTACK
+            type: FLAT
+            value: 1
         successRate: 1.0
         failAction: NONE

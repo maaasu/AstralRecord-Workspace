@@ -1,0 +1,72 @@
+# design:
+#   motif: "星影の街ノクス / 初の武器更新"
+#   progression: 1
+schemaVersion: 3
+id: first_weapon_upgrade
+category: equipment
+displayOrder: 10
+title: "&6初の武器更新"
+iconMaterial: IRON_SWORD
+summary: "&7ノクスの素材を集めて、最初の武器を更新する。"
+steps:
+  - id: buy_nox_pickaxe
+    text: "&f雑貨商ミナから&eノクスツルハシ&fを購入する"
+    details:
+      - "&7雑貨商ミナに話しかけ、&eノクスツルハシ&7を購入する。"
+    action:
+      type: NAVIGATE_NPC
+      npcId: general_goods_merchant
+      description: "&dクリックで雑貨商ミナの場所を表示し、発光させる。"
+    condition:
+      type: SHOP_PURCHASED
+      targetId: nox_pickaxe
+  - id: teleport_to_nox_cave
+    text: "&f近くのテレポーターから&eノクス洞窟採掘場&fへ移動する"
+    details:
+      - "&7近くのテレポーターを使い、ノクス洞窟採掘場へ移動する。"
+    condition:
+      type: WAYSTONE_TELEPORTED
+      targetId: ws-20260822103547-7-7-waystone-8-3-8
+  - id: mine_stone_outcrop
+    text: "&f石ころの露頭を採掘する"
+    details:
+      - "&7ノクス洞窟採掘場で、&eノクスツルハシ&7を使って石ころの露頭を最後まで採掘する。"
+    condition:
+      type: GATHERING_COMPLETED
+      targetId: box_cave_mining_spawner
+  - id: buy_starshine_stone
+    text: "&f錬金術師リゼットから&e星映石&fを購入する"
+    details:
+      - "&7錬金術師リゼットに話しかけ、素材を交換して&e星映石&7を購入する。"
+    action:
+      type: NAVIGATE_NPC
+      npcId: alchemy_merchant
+      description: "&dクリックで錬金術師リゼットの場所を表示し、発光させる。"
+    condition:
+      type: SHOP_PURCHASED
+      targetId: nox_starshine_stone_from_materials
+  - id: buy_moonshadow_stone
+    text: "&f錬金術師リゼットから&e月影石&fを購入する"
+    details:
+      - "&7錬金術師リゼットに話しかけ、素材を交換して&e月影石&7を購入する。"
+    action:
+      type: NAVIGATE_NPC
+      npcId: alchemy_merchant
+      description: "&dクリックで錬金術師リゼットの場所を表示し、発光させる。"
+    condition:
+      type: SHOP_PURCHASED
+      targetId: nox_moonshadow_stone_from_materials
+  - id: buy_nox_weapon
+    text: "&f装備商人カイルから&eノクス武器&fを購入する"
+    details:
+      - "&7装備商人カイルに話しかけ、&eノクスソード&7・&eノクスボウ&7・&eノクススタッフ&7のいずれかを購入する。"
+    action:
+      type: NAVIGATE_NPC
+      npcId: equipment_shopkeeper
+      description: "&dクリックで装備商人カイルの場所を表示し、発光させる。"
+    condition:
+      type: SHOP_PURCHASED
+      targetIds:
+        - nox_sword
+        - nox_bow
+        - nox_staff

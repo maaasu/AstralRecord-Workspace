@@ -163,6 +163,7 @@ public class GuideRepository {
                 new GuideCondition(
                     parsedConditionType,
                     nullableString(condition, "targetId"),
+                    strings(condition, "targetIds"),
                     parsedConditionType == GuideConditionType.MOB_DEFEATED
                         ? nullableInt(condition, "level")
                         : null

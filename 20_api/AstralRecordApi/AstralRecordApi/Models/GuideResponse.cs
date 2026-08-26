@@ -52,4 +52,6 @@ public class GuideConditionResponse
     public required string Type { get; init; }
 
     public string? TargetId { get; init; }
+
+    public IReadOnlyList<string> TargetIds { get; init; } = [];
 }
