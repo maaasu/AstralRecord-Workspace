@@ -46,6 +46,8 @@ public final class MobInstance {
     private long castingStartedAtMs;
     private long castingDurationTicks;
     private long castingRemainingTicks;
+    /** 専用スキルが移動・停止を直接制御している間は true。 */
+    private boolean scriptedAction;
 
     // ナビゲーション状態
     /** 現在の経路ウェイポイントリスト。null の場合は未計算。 */
@@ -377,6 +379,20 @@ public final class MobInstance {
      */
     public void state(@NotNull MobState state) {
         this.state = state;
+    }
+
+    /** 専用スキルが移動・停止を直接制御している間は {@code true} を返します。 */
+    public boolean scriptedAction() {
+        return scriptedAction;
+    }
+
+    /**
+     * 専用スキルによる移動・停止制御の有効状態を設定します。
+     *
+     * @param value 有効にする場合は {@code true}
+     */
+    public void scriptedAction(boolean value) {
+        this.scriptedAction = value;
     }
 
     /** 現ターゲットのプレイヤー UUID を返します。 */

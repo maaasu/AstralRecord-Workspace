@@ -1,0 +1,26 @@
+# design:
+#   motif: "中つ国 / 遺跡アクセサリ / アミュレット"
+#   progression: 5
+schemaVersion: 1
+id: middle_earth_amulet
+category: equipment
+name: "&b緑野のアミュレット"
+icon: EMERALD
+rarity: RARE
+maxStack: 1
+saleValue: 320
+lore:
+  - "&7緑野の風を宿し、身のこなしを軽くする首飾り。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: AMULET
+  requiredLevel: 5
+  stats:
+    - status: MOVEMENT_SPEED
+      type: FLAT
+      value: 4~6
+    - status: EVASION
+      type: FLAT
+      value: 3~5

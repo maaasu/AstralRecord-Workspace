@@ -1,0 +1,59 @@
+# design:
+#   motif: "中つ国 / 遺跡武器 / ハンマー"
+#   progression: 5
+schemaVersion: 1
+id: middle_earth_hammer
+category: equipment
+name: "&bミドルアース・ハンマー"
+icon: MACE
+rarity: RARE
+maxStack: 1
+saleValue: 420
+lore:
+  - "&7遺跡の石壁を砕くために鍛えられた重槌。"
+  - "&7主攻撃力は個体ごとにランダム。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: TWO
+  tag: HAMMER
+  requiredLevel: 5
+  stats:
+    - status: MELEE_ATTACK
+      type: FLAT
+      value: 22~28
+    - status: STRENGTH
+      type: FLAT
+      value: 2~3
+  durability:
+    max: 160
+    consume: 1
+  enhance:
+    maxLevel: 10
+    levels:
+      - level: 1
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 2 }]
+      - level: 2
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 2 }]
+      - level: 3
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 2 }]
+      - level: 4
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 2 }]
+      - level: 5
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 2 }]
+      - level: 6
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75
+      - level: 7
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75
+      - level: 8
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75
+      - level: 9
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75
+      - level: 10
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75

@@ -1,0 +1,53 @@
+# design:
+#   motif: "中つ国 / 遺跡の白骨兵"
+#   progression: 5
+schemaVersion: 1
+id: middle_earth_ruins_skeleton
+type: MOB
+category: ENEMY
+name: "&f遺跡のスケルトン"
+level: 5
+entityType: SKELETON
+icon: SKELETON_SKULL
+lore:
+  - "&7崩れた石室を徘徊する、剣を携えた白骨兵。"
+tags:
+  - midgard
+  - undead
+  - skeleton
+  - melee
+baseStats:
+  - status: MAX_HEALTH
+    value: 500
+  - status: ATTACK
+    value: 87
+  - status: DEFENSE
+    value: 91
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 92
+equipment:
+  mainHand: IRON_SWORD
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.8
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 20
+    deaggroRange: 28
+    leashRange: 30
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 30
+drops:
+  exp: 45
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_1

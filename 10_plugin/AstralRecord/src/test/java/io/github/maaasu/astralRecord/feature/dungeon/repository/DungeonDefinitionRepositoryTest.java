@@ -59,7 +59,7 @@ class DungeonDefinitionRepositoryTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
      * 章・見出し: # 32_1-モデル定義 > ## 1. DungeonDefinition
-     * 検証契約: 本番向け最小構成マスタが追加のWorldマスタなしでDungeonDefinitionへ読み込める。
+     * 検証契約: 本番ダンジョンマスタが追加のWorldマスタなしでDungeonDefinitionへ読み込める。
      */
     @Test
     void parsesProductionMinimalDungeonMaster() {
@@ -71,8 +71,9 @@ class DungeonDefinitionRepositoryTest {
                 () -> new DungeonDefinitionRepository().findAll()
         );
 
-        assertEquals(1, definitions.size());
-        assertEquals("twilight_mine", definitions.getFirst().id());
+        List<String> ids = definitions.stream().map(DungeonDefinition::id).toList();
+        assertTrue(ids.contains("twilight_mine"));
+        assertTrue(ids.contains("middle_earth_ruins"));
     }
 
     /**

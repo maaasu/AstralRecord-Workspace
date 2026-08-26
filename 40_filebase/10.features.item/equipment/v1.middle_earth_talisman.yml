@@ -1,0 +1,26 @@
+# design:
+#   motif: "中つ国 / 遺跡アクセサリ / タリスマン"
+#   progression: 5
+schemaVersion: 1
+id: middle_earth_talisman
+category: equipment
+name: "&b凍気のタリスマン"
+icon: PRISMARINE_CRYSTALS
+rarity: RARE
+maxStack: 1
+saleValue: 320
+lore:
+  - "&7冷気を束ね、放つ者の手を助ける護符。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: TALISMAN
+  requiredLevel: 5
+  stats:
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 5~8
+    - status: ICE_DAMAGE_INCREASE
+      type: FLAT
+      value: 2~4

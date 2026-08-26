@@ -1,0 +1,104 @@
+# design:
+#   motif: "中つ国 / 緑野に眠る古代遺跡"
+#   progression: 5
+schemaVersion: 1
+id: middle_earth_ruins
+displayName: "ミドルアースの遺跡"
+entry:
+  worldRef: world:midgard_greenfields
+  x: -327.3
+  y: 25.0
+  z: -517.4
+  yaw: 0.0
+  pitch: 0.0
+challenge:
+  deathLimit: 5
+  reviveDelaySeconds: 5
+generation:
+  area:
+    width: 112
+    depth: 112
+  baseY: 64
+  roomCount:
+    min: 7
+    max: 9
+  roomSize:
+    min: 11
+    max: 21
+  roomHeight: 8
+  corridorWidth: 3
+  corridorHeight: 4
+  splitRatio:
+    min: 0.35
+    max: 0.50
+  roomShapes:
+    - type: RECTANGLE
+      weight: 3
+    - type: CYLINDER
+      weight: 1
+  roomTypes:
+    - type: STANDARD
+      weight: 4
+    - type: SUPPORT_HALL
+      weight: 3
+    - type: COLLAPSED
+      weight: 2
+theme:
+  floor:
+    - material: STONE_BRICKS
+      weight: 3
+    - material: MOSSY_STONE_BRICKS
+      weight: 2
+    - material: CRACKED_STONE_BRICKS
+      weight: 1
+  wall:
+    - material: STONE_BRICKS
+      weight: 3
+    - material: MOSSY_STONE_BRICKS
+      weight: 2
+    - material: CRACKED_STONE_BRICKS
+      weight: 1
+  ceiling:
+    - material: STONE_BRICKS
+      weight: 3
+    - material: COBBLESTONE
+      weight: 1
+  corridor:
+    - material: COBBLESTONE
+      weight: 3
+    - material: MOSSY_COBBLESTONE
+      weight: 1
+  gateMaterial: IRON_BARS
+  lightMaterial: SOUL_LANTERN
+  pillar:
+    enabled: true
+    chance: 0.25
+    material: CHISELED_STONE_BRICKS
+    stairMaterial: STONE_BRICK_STAIRS
+  decorations:
+    supportMaterial: OAK_LOG
+    beamMaterial: STRIPPED_OAK_LOG
+    rubble:
+      - material: COBBLESTONE
+        weight: 3
+      - material: MOSSY_COBBLESTONE
+        weight: 2
+      - material: GRAVEL
+        weight: 1
+    accent:
+      - material: MOSSY_STONE_BRICKS
+        weight: 2
+      - material: CHISELED_STONE_BRICKS
+        weight: 2
+      - material: CRACKED_STONE_BRICKS
+        weight: 1
+encounter:
+  normalMobPool:
+    - mobId: mob:middle_earth_ruins_skeleton
+      weight: 5
+    - mobId: mob:middle_earth_ruins_skeleton_archer
+      weight: 3
+    - mobId: mob:middle_earth_ruins_piglin_charger
+      weight: 2
+  firstCombatRoomMaxMobLevel: 5
+  bossMobId: mob:all_things_el

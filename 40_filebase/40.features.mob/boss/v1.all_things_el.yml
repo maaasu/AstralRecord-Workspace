@@ -1,0 +1,68 @@
+# design:
+#   motif: "中つ国 / 万物を凍てつかせる遺跡の主"
+#   progression: 5
+schemaVersion: 1
+id: all_things_el
+type: MOB
+category: BOSS
+name: "&b&l万物のエル"
+title: "&8-- ミドルアースの遺跡主 --"
+level: 5
+entityType: BREEZE
+icon: SNOWBALL
+nameVisible: true
+lore:
+  - "&7氷球を壁で反射させ、凍てつく突進を繰り返す遺跡の主。"
+tags:
+  - boss
+  - magic
+  - shield
+baseStats:
+  - status: MAX_HEALTH
+    value: 4000
+  - status: ATTACK
+    value: 104
+  - status: DEFENSE
+    value: 105
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 88
+shield:
+  enabled: true
+  max: 2
+ai:
+  idle:
+    behavior: STATIONARY
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 30
+    deaggroRange: 42
+    leashRange: 48
+  combat:
+    style: RANGED
+    preferredRange: 12
+    skills:
+      - id: mob_all_things_el_ice_sphere
+        activationRange: 20
+        cooldownTicks: 100
+        castTimeTicks: 20
+        params:
+          speed: 0.75
+          damageRatio: 0.70
+          hitRadius: 0.20
+          frozenDurationTicks: 20
+          spreadDegrees: 24
+      - id: mob_all_things_el_charge
+        activationRange: 14
+        cooldownTicks: 160
+        params:
+          speed: 1.40
+          damageRatio: 1.00
+          holdTicks: 20
+drops:
+  exp: 600
+  lootTable:
+    ref: loot_table:middle_earth_ruins_boss_table

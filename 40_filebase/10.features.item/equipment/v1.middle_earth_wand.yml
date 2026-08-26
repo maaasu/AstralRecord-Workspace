@@ -1,0 +1,59 @@
+# design:
+#   motif: "中つ国 / 遺跡武器 / ワンド"
+#   progression: 5
+schemaVersion: 1
+id: middle_earth_wand
+category: equipment
+name: "&bミドルアース・ワンド"
+icon: BLAZE_ROD
+rarity: RARE
+maxStack: 1
+saleValue: 420
+lore:
+  - "&7冷たい魔力を留めた、遺跡の短杖。"
+  - "&7主攻撃力は個体ごとにランダム。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: ONE
+  tag: WAND
+  requiredLevel: 5
+  stats:
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 22~28
+    - status: INTELLIGENCE
+      type: FLAT
+      value: 2~3
+  durability:
+    max: 160
+    consume: 1
+  enhance:
+    maxLevel: 10
+    levels:
+      - level: 1
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 2 }]
+      - level: 2
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 2 }]
+      - level: 3
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 2 }]
+      - level: 4
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 2 }]
+      - level: 5
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 2 }]
+      - level: 6
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75
+      - level: 7
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75
+      - level: 8
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75
+      - level: 9
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75
+      - level: 10
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75

@@ -1,0 +1,26 @@
+# design:
+#   motif: "中つ国 / 遺跡アクセサリ / レリック"
+#   progression: 5
+schemaVersion: 1
+id: middle_earth_relic
+category: equipment
+name: "&b遺跡のレリック"
+icon: HEART_OF_THE_SEA
+rarity: RARE
+maxStack: 1
+saleValue: 320
+lore:
+  - "&7遺跡の守りを閉じ込めた、冷たい遺物。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: RELIC
+  requiredLevel: 5
+  stats:
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 20~35
+    - status: DEFENSE
+      type: FLAT
+      value: 4~6

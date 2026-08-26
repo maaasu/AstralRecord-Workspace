@@ -1,0 +1,20 @@
+# design:
+#   motif: "中つ国 / 遺跡主のアクセサリ報酬"
+#   progression: 5
+schemaVersion: 1
+id: middle_earth_ruins_accessory_pool
+type: LOOT_POOL
+pick: 1
+contents:
+  - itemId:
+      ref: item:middle_earth_relic
+    rate: 100.0
+    amount: 1
+  - itemId:
+      ref: item:middle_earth_talisman
+    rate: 100.0
+    amount: 1
+  - itemId:
+      ref: item:middle_earth_amulet
+    rate: 100.0
+    amount: 1

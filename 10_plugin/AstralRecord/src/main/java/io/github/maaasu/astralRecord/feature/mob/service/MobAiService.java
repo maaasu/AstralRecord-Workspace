@@ -202,6 +202,11 @@ public class MobAiService {
                         instance.state(MobState.LEASHED);
                     }
 
+                    if (instance.scriptedAction()) {
+                        mobService.stopPathfinding(instance);
+                        continue;
+                    }
+
                     switch (instance.state()) {
                         case IDLE -> {
                             if (shouldProcess(instance, IDLE_DECISION_INTERVAL_TICKS)) {
