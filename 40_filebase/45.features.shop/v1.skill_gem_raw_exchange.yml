@@ -1,0 +1,80 @@
+# design:
+#   motif: "星術 / 星晶原石の段階交換"
+#   progression: 1
+schemaVersion: 1
+id: skill_gem_raw_exchange
+type: SHOP
+name: "&d星晶原石交換"
+mode: EXCHANGE
+access: NPC_ONLY
+items:
+  - id: raw_from_beginner_raw
+    itemId: { ref: "item:skill_gem_raw" }
+    category: material
+    amount: 3
+    page: 1
+    slot: 0
+    requiredItems:
+      - itemId: { ref: "item:skill_gem_raw_beginner" }
+        category: material
+        amount: 1
+  - id: beginner_raw_from_intermediate_raw
+    itemId: { ref: "item:skill_gem_raw_beginner" }
+    category: material
+    amount: 3
+    page: 1
+    slot: 1
+    requiredItems:
+      - itemId: { ref: "item:skill_gem_raw_intermediate" }
+        category: material
+        amount: 1
+  - id: intermediate_raw_from_advanced_raw
+    itemId: { ref: "item:skill_gem_raw_intermediate" }
+    category: material
+    amount: 3
+    page: 1
+    slot: 2
+    requiredItems:
+      - itemId: { ref: "item:skill_gem_raw_advanced" }
+        category: material
+        amount: 1
+  - id: advanced_raw_from_emperor_raw
+    itemId: { ref: "item:skill_gem_raw_advanced" }
+    category: material
+    amount: 3
+    page: 1
+    slot: 3
+    requiredItems:
+      - itemId: { ref: "item:skill_gem_raw_emperor" }
+        category: material
+        amount: 1
+  - id: emperor_raw_from_king_raw
+    itemId: { ref: "item:skill_gem_raw_emperor" }
+    category: material
+    amount: 3
+    page: 1
+    slot: 4
+    requiredItems:
+      - itemId: { ref: "item:skill_gem_raw_king" }
+        category: material
+        amount: 1
+  - id: king_raw_from_saint_raw
+    itemId: { ref: "item:skill_gem_raw_king" }
+    category: material
+    amount: 3
+    page: 1
+    slot: 5
+    requiredItems:
+      - itemId: { ref: "item:skill_gem_raw_saint" }
+        category: material
+        amount: 1
+  - id: saint_raw_from_god_raw
+    itemId: { ref: "item:skill_gem_raw_saint" }
+    category: material
+    amount: 3
+    page: 1
+    slot: 6
+    requiredItems:
+      - itemId: { ref: "item:skill_gem_raw_god" }
+        category: material
+        amount: 1

@@ -8,82 +8,11 @@ name: "&d星晶錬成"
 mode: EXCHANGE
 access: NPC_ONLY
 items:
-  - id: raw_from_beginner_raw
-    itemId: { ref: "item:skill_gem_raw" }
-    category: material
-    amount: 3
-    page: 1
-    slot: 0
-    requiredItems:
-      - itemId: { ref: "item:skill_gem_raw_beginner" }
-        category: material
-        amount: 1
-  - id: beginner_raw_from_intermediate_raw
-    itemId: { ref: "item:skill_gem_raw_beginner" }
-    category: material
-    amount: 3
-    page: 1
-    slot: 1
-    requiredItems:
-      - itemId: { ref: "item:skill_gem_raw_intermediate" }
-        category: material
-        amount: 1
-  - id: intermediate_raw_from_advanced_raw
-    itemId: { ref: "item:skill_gem_raw_intermediate" }
-    category: material
-    amount: 3
-    page: 1
-    slot: 2
-    requiredItems:
-      - itemId: { ref: "item:skill_gem_raw_advanced" }
-        category: material
-        amount: 1
-  - id: advanced_raw_from_emperor_raw
-    itemId: { ref: "item:skill_gem_raw_advanced" }
-    category: material
-    amount: 3
-    page: 1
-    slot: 3
-    requiredItems:
-      - itemId: { ref: "item:skill_gem_raw_emperor" }
-        category: material
-        amount: 1
-  - id: emperor_raw_from_king_raw
-    itemId: { ref: "item:skill_gem_raw_emperor" }
-    category: material
-    amount: 3
-    page: 1
-    slot: 4
-    requiredItems:
-      - itemId: { ref: "item:skill_gem_raw_king" }
-        category: material
-        amount: 1
-  - id: king_raw_from_saint_raw
-    itemId: { ref: "item:skill_gem_raw_king" }
-    category: material
-    amount: 3
-    page: 1
-    slot: 5
-    requiredItems:
-      - itemId: { ref: "item:skill_gem_raw_saint" }
-        category: material
-        amount: 1
-  - id: saint_raw_from_god_raw
-    itemId: { ref: "item:skill_gem_raw_saint" }
-    category: material
-    amount: 3
-    page: 1
-    slot: 6
-    requiredItems:
-      - itemId: { ref: "item:skill_gem_raw_god" }
-        category: material
-        amount: 1
-
   - id: astral_edge_from_raw
     itemId: { ref: item:00_skill_gem_adventurer_astral_edge }
     category: skill_gem
     amount: 1
-    page: 2
+    page: 1
     slot: 0
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
@@ -93,7 +22,7 @@ items:
     itemId: { ref: item:00_skill_gem_adventurer_smash }
     category: skill_gem
     amount: 1
-    page: 2
+    page: 1
     slot: 1
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
@@ -103,7 +32,7 @@ items:
     itemId: { ref: item:00_skill_gem_adventurer_blast_arrow }
     category: skill_gem
     amount: 1
-    page: 2
+    page: 1
     slot: 2
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
@@ -113,7 +42,7 @@ items:
     itemId: { ref: item:00_skill_gem_adventurer_quick_shot }
     category: skill_gem
     amount: 1
-    page: 2
+    page: 1
     slot: 3
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
@@ -123,7 +52,7 @@ items:
     itemId: { ref: item:00_skill_gem_adventurer_lightning_bolt }
     category: skill_gem
     amount: 1
-    page: 2
+    page: 1
     slot: 4
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
@@ -133,7 +62,7 @@ items:
     itemId: { ref: item:00_skill_gem_adventurer_mana_burst }
     category: skill_gem
     amount: 1
-    page: 2
+    page: 1
     slot: 5
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
@@ -143,7 +72,7 @@ items:
     itemId: { ref: item:00_skill_gem_adventurer_meditation }
     category: skill_gem
     amount: 1
-    page: 2
+    page: 1
     slot: 6
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
@@ -153,7 +82,7 @@ items:
     itemId: { ref: item:00_skill_gem_swordsman_blade_counter }
     category: skill_gem
     amount: 1
-    page: 2
+    page: 1
     slot: 7
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
@@ -163,7 +92,7 @@ items:
     itemId: { ref: item:00_skill_gem_administrator_shield_recharge }
     category: skill_gem
     amount: 1
-    page: 2
+    page: 1
     slot: 8
     requiredItems:
       - itemId: { ref: item:skill_gem_raw_advanced }
@@ -173,7 +102,7 @@ items:
     itemId: { ref: item:00_skill_gem_swordsman_shield_drain }
     category: skill_gem
     amount: 1
-    page: 2
+    page: 1
     slot: 9
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
