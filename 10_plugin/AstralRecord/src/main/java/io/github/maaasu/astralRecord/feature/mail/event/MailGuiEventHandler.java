@@ -230,7 +230,7 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        (rewardReceived ? GuiSound.REWARD : GuiSound.SUCCESS).play(player);
+        (rewardReceived ? GuiSound.ITEM_RECEIVE : GuiSound.SELECT).play(player);
         open(player, filter, pageIndex);
     }
 
