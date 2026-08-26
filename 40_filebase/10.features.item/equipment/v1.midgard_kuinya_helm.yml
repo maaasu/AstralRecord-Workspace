@@ -22,7 +22,7 @@ equipment:
   stats:
     - status: DEFENSE
       type: FLAT
-      value: 12
+      value: 8
     - status: MAX_HEALTH
       type: FLAT
       value: 25
@@ -53,22 +53,22 @@ equipment:
         successRate: 1.0
         failAction: NONE
       - level: 6
-        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }]
         successRate: 0.75
         failAction: NONE
       - level: 7
-        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }]
         successRate: 0.75
         failAction: NONE
       - level: 8
-        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }]
         successRate: 0.75
         failAction: NONE
       - level: 9
-        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }]
         successRate: 0.75
         failAction: NONE
       - level: 10
-        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
+        statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }]
         successRate: 0.75
         failAction: NONE
