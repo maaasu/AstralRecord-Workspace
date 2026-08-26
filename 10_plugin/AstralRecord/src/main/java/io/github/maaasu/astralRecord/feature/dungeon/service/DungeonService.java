@@ -40,6 +40,7 @@ import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -144,6 +145,7 @@ public final class DungeonService {
     private final DungeonArchiveGui archiveGui;
     private final InstanceCreationQueue creationQueue;
     private final String hubWorldId;
+    private AfkService afkService;
 
     private volatile Map<String, LoadedDefinition> loadedDefinitions = Map.of();
     private final Map<UUID, Session> sessionsById = new LinkedHashMap<>();
@@ -289,6 +291,15 @@ public final class DungeonService {
         this.archiveGui = new DungeonArchiveGui(itemService, itemStackFactory);
         this.creationQueue = creationQueue;
         this.hubWorldId = hubWorldId;
+    }
+
+    /**
+     * AFK状態中のクリア報酬を抑止するサービスを設定します。
+     *
+     * @param afkService AFK状態サービス
+     */
+    public void setAfkService(@NotNull AfkService afkService) {
+        this.afkService = afkService;
     }
 
     /** 現在ロード済みの Mob/World を参照して初回ロードします。 */
@@ -1285,8 +1296,7 @@ public final class DungeonService {
         for (Player player : activePlayersInWorld(session)) {
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (astPlayer == null) continue;
-            MobDropResult result = mobDropService.roll(session.loaded.definition().clearRewards(), astPlayer);
-            List<DungeonRewardEntry> rewards = createRewardEntries(result.items());
+            List<DungeonRewardEntry> rewards = rollClearRewards(astPlayer, session.loaded.definition());
             session.rewardsByPlayer.put(player.getUniqueId(), new ArrayList<>(rewards));
             recordDungeonClearAsync(astPlayer, session.loaded.definition());
         }
@@ -1974,10 +1984,13 @@ public final class DungeonService {
         int index = findRewardIndex(rewards, expectedClaimId);
         if (index < 0) return;
         DungeonRewardEntry reward = rewards.get(index);
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || (afkService != null && afkService.isAfk(astPlayer))) {
+            return;
+        }
         ItemModel model = itemService.findLoadedById(reward.itemId());
         if (model == null) model = itemService.loadItem(reward.itemId());
-        AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (model == null || astPlayer == null) {
+        if (model == null) {
             messageService.send(player, PlayerMsgId.P_7032);
             return;
         }
@@ -2008,6 +2021,24 @@ public final class DungeonService {
                 .map(item -> new DungeonRewardEntry(
                         UUID.randomUUID(), item.itemId(), item.amount(), item.dropRate()))
                 .toList();
+    }
+
+    /**
+     * AFK中でなければダンジョンクリア報酬を抽選して受取用エントリへ変換します。
+     *
+     * @param recipient 報酬受取候補者
+     * @param definition クリア済みダンジョン定義
+     * @return AFK中なら空、それ以外は抽選済み報酬エントリ
+     */
+    @NotNull List<DungeonRewardEntry> rollClearRewards(
+            @NotNull AstPlayer recipient,
+            @NotNull DungeonDefinition definition
+    ) {
+        if (afkService != null && afkService.isAfk(recipient)) {
+            return List.of();
+        }
+        MobDropResult result = mobDropService.roll(definition.clearRewards(), recipient);
+        return createRewardEntries(result.items());
     }
 
     static int findRewardIndex(

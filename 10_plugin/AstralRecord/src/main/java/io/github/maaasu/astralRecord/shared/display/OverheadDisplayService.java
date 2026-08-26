@@ -3,6 +3,8 @@ package io.github.maaasu.astralRecord.shared.display;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
@@ -49,6 +51,7 @@ public class OverheadDisplayService {
     private final MobService mobService;
     private final PlayerClassService playerClassService;
     private final Predicate<World> suppressPlayerDisplayInWorld;
+    private Predicate<Player> afkStateProvider = ignored -> false;
     private final Map<UUID, DisplayTextService.ManagedTextDisplay> playerDisplays = new HashMap<>();
     private final Map<UUID, DisplayTextService.ManagedTextDisplay> mobDisplays = new HashMap<>();
     private final Set<UUID> suspendedPlayerDisplays = ConcurrentHashMap.newKeySet();
@@ -118,6 +121,15 @@ public class OverheadDisplayService {
     @NotNull
     public Set<UUID> getSuspendedPlayerDisplays() {
         return Collections.unmodifiableSet(suspendedPlayerDisplays);
+    }
+
+    /**
+     * プレイヤー頭上表示へAFK接頭辞を反映するための状態参照先を設定します。
+     *
+     * @param afkStateProvider 指定プレイヤーがAFK中なら {@code true} を返す判定
+     */
+    public void setAfkStateProvider(@NotNull Predicate<Player> afkStateProvider) {
+        this.afkStateProvider = afkStateProvider;
     }
 
     /**
@@ -324,11 +336,14 @@ public class OverheadDisplayService {
         String shield = recharge == null
                 ? shieldIconLine(snapshot.getCurrentShield(), statusService.getShieldDisplayCapacity(astPlayer))
                 : "\n" + rechargeBar(recharge, System.currentTimeMillis());
+        String playerName = afkStateProvider.test(player)
+                ? PlayerMsgResource.format(PlayerMsgId.P_7121.getId()) + " " + player.getName()
+                : player.getName();
         return String.format(
                 Locale.ROOT,
                 "&7[%s&7] &f%s\n%s\n%s%s",
                 className,
-                player.getName(),
+                playerName,
                 bar("HP", snapshot.getCurrentHp(), snapshot.getMaxValue(StatusType.MAX_HEALTH), "&c"),
                 bar("MP", snapshot.getCurrentMp(), snapshot.getMaxValue(StatusType.MAX_MANA), "&9"),
                 shield

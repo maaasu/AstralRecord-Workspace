@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResultItem;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
@@ -66,6 +67,7 @@ public final class MobDropPresentationService {
     private final ItemDropAnimationService itemDropAnimationService;
     private final PlayerSettingService playerSettingService;
     private final Executor asyncExecutor;
+    private AfkService afkService;
 
     /**
      * Mob ドロップの表示・付与サービスを構築します。
@@ -92,6 +94,15 @@ public final class MobDropPresentationService {
         this.itemDropAnimationService = itemDropAnimationService;
         this.playerSettingService = playerSettingService;
         this.asyncExecutor = command -> plugin.getServer().getScheduler().runTaskAsynchronously(plugin, command);
+    }
+
+    /**
+     * AFK中の自動ドロップ付与を抑止する状態サービスを設定します。
+     *
+     * @param afkService AFK状態サービス
+     */
+    public void setAfkService(@NotNull AfkService afkService) {
+        this.afkService = afkService;
     }
 
     /**
@@ -168,7 +179,7 @@ public final class MobDropPresentationService {
         @Nullable MobCategory mobCategory
     ) {
         Player player = recipient.getBukkit();
-        if (!player.isOnline()) {
+        if (!player.isOnline() || (afkService != null && afkService.isAfk(recipient))) {
             return;
         }
 

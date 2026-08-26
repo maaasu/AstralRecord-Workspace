@@ -1437,6 +1437,13 @@ public enum PlayerMsgId {
     P_7114(7114),
     // endregion
 
+    // region /feature/player/afk 7120-7129
+    /** AFK状態タイトル。 */
+    P_7120(7120),
+    /** AFK状態のプレイヤー名接頭辞。 */
+    P_7121(7121),
+    // endregion
+
     ;
 
     private final String id;

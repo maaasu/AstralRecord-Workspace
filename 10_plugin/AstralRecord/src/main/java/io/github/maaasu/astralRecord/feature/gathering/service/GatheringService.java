@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationServ
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
@@ -89,6 +90,7 @@ public class GatheringService {
     private SkillTreeService skillTreeService;
     private ParticleDisplayService particleDisplayService;
     private QuestService questService;
+    private AfkService afkService;
     private BiConsumer<AstPlayer, String> gatheringCompleteListener;
     private final Map<String, GatheringDefinition> definitions = new LinkedHashMap<>();
     private final Map<UUID, GatheringInstance> instances = new LinkedHashMap<>();
@@ -144,6 +146,15 @@ public class GatheringService {
 
     public void setQuestService(@NotNull QuestService questService) {
         this.questService = questService;
+    }
+
+    /**
+     * AFK中の採集経験値付与を抑止する状態サービスを設定します。
+     *
+     * @param afkService AFK状態サービス
+     */
+    public void setAfkService(@NotNull AfkService afkService) {
+        this.afkService = afkService;
     }
 
     /** 採集完了を外部機能へ通知するリスナーを設定します。 */
@@ -544,7 +555,8 @@ public class GatheringService {
     }
 
     private void applyExperienceAndSkillPoints(@NotNull AstPlayer recipient, @NotNull MobDropResult result) {
-        if (result.exp() <= 0 || accountService == null || playerClassService == null) {
+        if (result.exp() <= 0 || accountService == null || playerClassService == null
+                || (afkService != null && afkService.isAfk(recipient))) {
             return;
         }
         try {

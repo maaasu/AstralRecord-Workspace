@@ -21,6 +21,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -226,9 +227,30 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
                 .count());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 6. クリア報酬と30秒回収
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
+     * 章・見出し: # 03_1-モデル定義 > ## 10. AFK判定状態
+     * 検証契約: AFK中のプレイヤーにはダンジョンクリア報酬を抽選しない。
+     */
+    @Test
+    void doesNotRollClearRewardsForAfkPlayer() {
+        MobDropService mobDropService = mock(MobDropService.class);
+        DungeonService service = service(mock(MobService.class), mock(DisplayTextService.class), mobDropService);
+        AfkService afkService = mock(AfkService.class);
+        AstPlayer recipient = mock(AstPlayer.class);
+        service.setAfkService(afkService);
+        when(afkService.isAfk(recipient)).thenReturn(true);
+
+        assertTrue(service.rollClearRewards(recipient, DungeonTestFixtures.definition()).isEmpty());
+
+        verifyNoInteractions(mobDropService);
+    }
+
     /** テスト対象サービスを最小依存で構成します。 */
     private DungeonService service(MobService mobService, DisplayTextService displayTextService) {
-        return service(mobService, displayTextService, mock(WorldService.class));
+        return service(mobService, displayTextService, mock(WorldService.class), mock(MobDropService.class));
     }
 
     /** テスト対象サービスをWorldServiceの検証可能な依存で構成します。 */
@@ -236,6 +258,25 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
             MobService mobService,
             DisplayTextService displayTextService,
             WorldService worldService
+    ) {
+        return service(mobService, displayTextService, worldService, mock(MobDropService.class));
+    }
+
+    /** テスト対象サービスをMobドロップ抽選サービスの検証可能な依存で構成します。 */
+    private DungeonService service(
+            MobService mobService,
+            DisplayTextService displayTextService,
+            MobDropService mobDropService
+    ) {
+        return service(mobService, displayTextService, mock(WorldService.class), mobDropService);
+    }
+
+    /** テスト対象サービスをWorldとMobドロップ抽選サービスの検証可能な依存で構成します。 */
+    private DungeonService service(
+            MobService mobService,
+            DisplayTextService displayTextService,
+            WorldService worldService,
+            MobDropService mobDropService
     ) {
         AstralRecord plugin = mock(AstralRecord.class);
         when(plugin.isEnabled()).thenReturn(true);
@@ -250,7 +291,7 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
                 mock(ParticleDisplayService.class),
                 displayTextService,
                 mock(PlayerDeathService.class),
-                mock(MobDropService.class),
+                mobDropService,
                 mock(InventoryService.class),
                 mock(ItemService.class),
                 mock(ItemStackFactory.class),
