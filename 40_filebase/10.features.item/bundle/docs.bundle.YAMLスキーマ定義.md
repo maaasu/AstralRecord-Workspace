@@ -23,6 +23,7 @@ Bundle の中身の指定方法は 2 系統あります。
 | `bundle.lootTableId` | String | × | Null | LootTableId の参照先 ID |
 | `bundle.items[]` | List | × | Null | 報酬アイテムの直接定義 |
 | `bundle.gold` | Integer | × | `0` | 開封時に加算するGold |
+| `bundle.openTimeTicks` | Long | × | `20` | 開封完了まで静止する必要がある時間（tick 単位。20 tick = 1 秒。1 以上） |
 | `bundle.onUse.sound` | Map | × | 既定値 | bundle 内に Sound 実体を定義 |
 | `bundle.onUse.particle` | Map | × | 既定値 | bundle 内に Particle 実体を定義 |
 
@@ -30,6 +31,7 @@ Bundle の中身の指定方法は 2 系統あります。
 
 ```yaml
 bundle:
+  openTimeTicks: 20
   lootTableId:
     ref: loot_table:example_table
   onUse:

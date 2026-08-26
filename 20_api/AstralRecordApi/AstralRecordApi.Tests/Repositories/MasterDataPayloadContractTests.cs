@@ -60,6 +60,7 @@ public class MasterDataPayloadContractTests
               "icon": "CHEST",
               "rarity": "COMMON",
               "bundle": {
+                "openTimeTicks": 10,
                 "onUse": {
                   "sound": {
                     "sound": "block.chest.open",
@@ -79,13 +80,37 @@ public class MasterDataPayloadContractTests
             }
             """);
 
-        Assert.Equal("block.chest.open", item.Bundle!.OnUse!.Sound!.Sound);
+        Assert.Equal(10, item.Bundle!.OpenTimeTicks);
+        Assert.Equal("block.chest.open", item.Bundle.OnUse!.Sound!.Sound);
         Assert.Equal(0.6, item.Bundle.OnUse.Sound.Volume);
         Assert.Equal(1.28, item.Bundle.OnUse.Sound.Pitch);
         Assert.Equal("TOTEM_OF_UNDYING", item.Bundle.OnUse.Particle!.Particle);
         Assert.Equal(24, item.Bundle.OnUse.Particle.Count);
         Assert.Equal(1.0, item.Bundle.OnUse.Particle.OriginOffsetY);
         Assert.Equal(0.4, item.Bundle.OnUse.Particle.OffsetX);
+    }
+
+    [Fact]
+    public void ItemBundle_DefaultsOpenTimeTicksToTwenty()
+    {
+        var item = Deserialize<ItemResponse>("""
+            {
+              "schemaVersion": 1,
+              "id": "default_bundle",
+              "category": "bundle",
+              "name": "bundle",
+              "icon": "CHEST",
+              "rarity": "COMMON",
+              "bundle": {}
+            }
+            """);
+
+        Assert.Equal(20, item.Bundle!.OpenTimeTicks);
+
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(item, MasterDataJsonOptions()));
+        Assert.Equal(
+            20,
+            document.RootElement.GetProperty("bundle").GetProperty("openTimeTicks").GetInt64());
     }
 
     [Fact]

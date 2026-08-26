@@ -505,6 +505,7 @@ class ItemRepository {
                 ItemBundleReward(itemId, amount.coerceAtLeast(1))
             }.orEmpty(),
             gold = parseDoubleOrNull(bundleObj, "gold")?.toLong()?.coerceAtLeast(0L) ?: 0L,
+            openTimeTicks = parseLongOrNull(bundleObj, "openTimeTicks") ?: 20L,
             onUse = if (onUseObj != null) {
                 ItemBundleOnUse(
                     sound = parseBundleSound(onUseObj),
@@ -862,6 +863,17 @@ class ItemRepository {
             return null
         }
         return runCatching { element.asInt }.getOrNull()
+    }
+
+    private fun parseLongOrNull(obj: JsonObject, key: String): Long? {
+        if (!obj.has(key)) {
+            return null
+        }
+        val element = obj.get(key)
+        if (element == null || element.isJsonNull || !element.isJsonPrimitive) {
+            return null
+        }
+        return runCatching { element.asLong }.getOrNull()
     }
 
     private fun parseArrayOrNull(obj: JsonObject, key: String): JsonArray? {

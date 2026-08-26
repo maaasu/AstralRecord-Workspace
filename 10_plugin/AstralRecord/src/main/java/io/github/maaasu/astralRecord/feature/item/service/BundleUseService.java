@@ -47,7 +47,7 @@ import java.util.function.BiConsumer;
 public class BundleUseService {
 
     private static final String SOURCE_BUNDLE_USE = "bundle_use";
-    private static final long OPEN_DURATION_TICKS = 60L;
+    private static final long DEFAULT_OPEN_TIME_TICKS = 20L;
 
     private final MovementCancelableWaitService movementCancelableWaitService;
     private final ItemService itemService;
@@ -94,7 +94,8 @@ public class BundleUseService {
     }
 
     /**
-     * bundle の開封を開始します。開封完了までは約 3 秒の待機時間を設けます。
+     * bundle の開封を開始します。開封時間はマスタの openTimeTicks を使用し、
+     * 未指定または不正な値の場合は 20 tick とします。
      *
      * @param astPlayer 使用プレイヤー
      * @param hand 使用した手
@@ -147,7 +148,7 @@ public class BundleUseService {
         pendingUses.put(player.getUniqueId(), pending);
         pending.setWait(movementCancelableWaitService.begin(
             player,
-            OPEN_DURATION_TICKS,
+            resolveOpenTimeTicks(bundle),
             new MovementCancelableWaitCallbacks() {
                 @Override
                 public void onTick(long elapsedTicks, double progress) {
@@ -167,6 +168,12 @@ public class BundleUseService {
         ));
         PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5246, displayName);
         return true;
+    }
+
+    static long resolveOpenTimeTicks(@NotNull ItemBundle bundle) {
+        return bundle.getOpenTimeTicks() > 0L
+            ? bundle.getOpenTimeTicks()
+            : DEFAULT_OPEN_TIME_TICKS;
     }
 
     /**

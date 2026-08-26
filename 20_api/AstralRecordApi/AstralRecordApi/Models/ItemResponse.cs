@@ -319,6 +319,8 @@ public class ItemCurrencyResponse
 
 public class ItemBundleResponse
 {
+    public long OpenTimeTicks { get; init; } = 20;
+
     public string? LootTableId { get; init; }
 
     public IReadOnlyList<ItemBundleItemResponse> Items { get; init; } = [];

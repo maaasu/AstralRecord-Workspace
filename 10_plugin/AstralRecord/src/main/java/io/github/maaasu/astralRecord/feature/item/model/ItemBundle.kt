@@ -7,6 +7,8 @@ data class ItemBundle(
     val lootTableId: String?,
     val items: List<ItemBundleReward> = emptyList(),
     val gold: Long = 0L,
+    /** 開封完了までの待機時間（tick）。 */
+    val openTimeTicks: Long = 20L,
     val onUse: ItemBundleOnUse?,
 )
 

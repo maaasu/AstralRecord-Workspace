@@ -11,9 +11,11 @@ Bundle は、複数の item または loot table を1回の開封単位として
 - 進行必須品を低確率の bundle だけに依存させません。
 - 開封演出は報酬価値を誤認させない範囲にします。
 
-## ドロップ専用Bundle
+## 開封時間
 
-Mob/Bossドロップ専用の Bundle は、開封時間を `0.5秒（10 tick）` とします。その他の Bundle には適用しません。
+開封時間は `bundle.openTimeTicks` で tick 単位に指定します。省略時は `20 tick（1秒）` とします。
+
+Mob/Bossドロップ専用の Bundle は `10 tick（0.5秒）` を指定します。その他の Bundle は、原則として省略時の `20 tick` を使用します。
 
 ## progression
 
@@ -29,6 +31,7 @@ Bundle の使用時演出は、Bundle 本体の `bundle.onUse` 内に直接定�
 
 ```yaml
 bundle:
+  openTimeTicks: 20
   lootTableId:
     ref: loot_table:example_table
   onUse:
