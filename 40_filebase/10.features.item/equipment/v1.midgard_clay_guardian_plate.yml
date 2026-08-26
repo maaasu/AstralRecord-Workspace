@@ -5,7 +5,9 @@ schemaVersion: 1
 id: midgard_clay_guardian_plate
 category: equipment
 name: "&6クレイガーディアンプレート"
-icon: IRON_CHESTPLATE
+icon: LEATHER_CHESTPLATE
+appearance:
+  color: "#8C6A4A"
 rarity: UNCOMMON
 maxStack: 1
 saleValue: 300

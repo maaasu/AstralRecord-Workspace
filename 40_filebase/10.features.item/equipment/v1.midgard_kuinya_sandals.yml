@@ -5,7 +5,9 @@ schemaVersion: 1
 id: midgard_kuinya_sandals
 category: equipment
 name: "&6クウィンヤサンダル"
-icon: IRON_BOOTS
+icon: LEATHER_BOOTS
+appearance:
+  color: "#6A4DB3"
 rarity: UNCOMMON
 maxStack: 1
 saleValue: 220
@@ -72,12 +74,4 @@ equipment:
       - level: 10
         statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
         successRate: 0.75
-        failAction: NONE
-      - level: 11
-        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
-        successRate: 0.5
-        failAction: NONE
-      - level: 12
-        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
-        successRate: 0.5
         failAction: NONE

@@ -5,7 +5,9 @@ schemaVersion: 1
 id: midgard_kuinya_leggings
 category: equipment
 name: "&6クウィンヤレギンス"
-icon: IRON_LEGGINGS
+icon: LEATHER_LEGGINGS
+appearance:
+  color: "#3A8F5C"
 rarity: UNCOMMON
 maxStack: 1
 saleValue: 240
@@ -20,7 +22,7 @@ equipment:
   stats:
     - status: DEFENSE
       type: FLAT
-      value: 12
+      value: 10
     - status: MOVEMENT_SPEED
       type: FLAT
       value: 2
@@ -72,12 +74,4 @@ equipment:
       - level: 10
         statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
         successRate: 0.75
-        failAction: NONE
-      - level: 11
-        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
-        successRate: 0.5
-        failAction: NONE
-      - level: 12
-        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
-        successRate: 0.5
         failAction: NONE

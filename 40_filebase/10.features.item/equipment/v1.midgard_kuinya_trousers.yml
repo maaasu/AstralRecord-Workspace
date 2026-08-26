@@ -5,7 +5,9 @@ schemaVersion: 1
 id: midgard_kuinya_trousers
 category: equipment
 name: "&6クウィンヤトラウザーズ"
-icon: IRON_LEGGINGS
+icon: LEATHER_LEGGINGS
+appearance:
+  color: "#6A4DB3"
 rarity: UNCOMMON
 maxStack: 1
 saleValue: 240
@@ -28,7 +30,7 @@ equipment:
     max: 165
     consume: 1
   enhance:
-    maxLevel: 12
+    maxLevel: 10
     levels:
       - level: 1
         statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
@@ -69,12 +71,4 @@ equipment:
       - level: 10
         statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
         successRate: 0.75
-        failAction: NONE
-      - level: 11
-        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
-        successRate: 0.5
-        failAction: NONE
-      - level: 12
-        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
-        successRate: 0.5
         failAction: NONE

@@ -14,7 +14,8 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 0
+    row: 1
+    column: 4
     priceGold: 0
     requiredItems:
       - itemId:
@@ -39,7 +40,8 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 1
+    row: 2
+    column: 2
     priceGold: 0
     requiredItems:
       - itemId:
@@ -64,7 +66,8 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 2
+    row: 3
+    column: 2
     priceGold: 0
     requiredItems:
       - itemId:
@@ -89,7 +92,8 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 3
+    row: 4
+    column: 2
     priceGold: 0
     requiredItems:
       - itemId:
@@ -114,7 +118,8 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 4
+    row: 2
+    column: 4
     priceGold: 0
     requiredItems:
       - itemId:
@@ -139,7 +144,8 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 5
+    row: 3
+    column: 4
     priceGold: 0
     requiredItems:
       - itemId:
@@ -164,7 +170,8 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 6
+    row: 4
+    column: 4
     priceGold: 0
     requiredItems:
       - itemId:
@@ -189,7 +196,8 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 7
+    row: 2
+    column: 6
     priceGold: 0
     requiredItems:
       - itemId:
@@ -214,7 +222,8 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 8
+    row: 3
+    column: 6
     priceGold: 0
     requiredItems:
       - itemId:
@@ -239,7 +248,8 @@ items:
     category: equipment
     amount: 1
     page: 1
-    slot: 9
+    row: 4
+    column: 6
     priceGold: 0
     requiredItems:
       - itemId:

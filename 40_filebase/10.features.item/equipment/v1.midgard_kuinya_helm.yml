@@ -5,7 +5,9 @@ schemaVersion: 1
 id: midgard_kuinya_helm
 category: equipment
 name: "&6クウィンヤヘルム"
-icon: IRON_HELMET
+icon: LEATHER_HELMET
+appearance:
+  color: "#A33A3A"
 rarity: UNCOMMON
 maxStack: 1
 saleValue: 220
@@ -28,7 +30,7 @@ equipment:
     max: 150
     consume: 1
   enhance:
-    maxLevel: 12
+    maxLevel: 10
     levels:
       - level: 1
         statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
@@ -69,12 +71,4 @@ equipment:
       - level: 10
         statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
         successRate: 0.75
-        failAction: NONE
-      - level: 11
-        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
-        successRate: 0.5
-        failAction: NONE
-      - level: 12
-        statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
-        successRate: 0.5
         failAction: NONE
