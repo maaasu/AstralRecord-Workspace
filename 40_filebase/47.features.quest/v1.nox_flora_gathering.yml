@@ -4,32 +4,72 @@
 schemaVersion: 1
 id: nox_flora_gathering
 type: QUEST
-name: "&a影草の採集依頼"
+name: "&aノクス草花の採集依頼"
 description:
-  - "&7ノクスの草地に生える影草を10回採集する依頼。"
+  - "&7ノクスの草地に生える7種類の草花を採集する依頼。"
+  - "&7必要数をすべて採集した後、村長へ報告する。"
 icon: FERN
 repeat:
-  mode: REPEATABLE
+  mode: COOLDOWN
+  cooldownSeconds: 3600
 completion:
-  mode: AUTO
+  mode: NPC
+  turnInNpcId:
+    ref: mob:village_elder
 objectives:
   - id: gather_nox_shadowgrass
     type: GATHERING
     targetId:
       ref: gathering:nox_shadowgrass_patch
     label: "影草の茂み"
-    amount: 10
+    amount: 6
+  - id: gather_nox_starrygrass
+    type: GATHERING
+    targetId:
+      ref: gathering:nox_starrygrass_patch
+    label: "星映え草の茂み"
+    amount: 5
+  - id: gather_nox_dewgrass
+    type: GATHERING
+    targetId:
+      ref: gathering:nox_dewgrass_patch
+    label: "夜露草の茂み"
+    amount: 4
+  - id: gather_nox_moonshadowgrass
+    type: GATHERING
+    targetId:
+      ref: gathering:nox_moonshadowgrass_patch
+    label: "月影草の茂み"
+    amount: 1
+  - id: gather_nox_duskbell
+    type: GATHERING
+    targetId:
+      ref: gathering:nox_duskbell_patch
+    label: "宵鐘花の群生"
+    amount: 5
+  - id: gather_nox_moonpetal
+    type: GATHERING
+    targetId:
+      ref: gathering:nox_moonpetal_patch
+    label: "月片花の群生"
+    amount: 4
+  - id: gather_nox_starlight_blossom
+    type: GATHERING
+    targetId:
+      ref: gathering:nox_starlight_blossom_patch
+    label: "星灯花の群生"
+    amount: 1
 acceptRequirements:
   items: []
 rewards:
-  exp: 60
-  gold: 30
+  exp: 90
+  gold: 45
   items:
     - itemId:
-        ref: item:healing_potion_small
+        ref: item:healing_potion_medium
       category: consumable
       amount: 3
     - itemId:
-        ref: item:mana_potion_small
+        ref: item:mana_potion_medium
       category: consumable
       amount: 3

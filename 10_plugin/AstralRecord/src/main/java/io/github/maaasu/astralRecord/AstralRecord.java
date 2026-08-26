@@ -1148,6 +1148,12 @@ public final class AstralRecord extends JavaPlugin {
             statusService,
             particleDisplayService
         );
+        questService.setQuestAcceptedListener((player, questId) ->
+            guideService.recordCondition(player, GuideConditionType.QUEST_ACCEPTED, questId)
+        );
+        questService.setQuestCompletedListener((player, questId) ->
+            guideService.recordCondition(player, GuideConditionType.QUEST_COMPLETED, questId)
+        );
         questService.setSkillTreeService(skillTreeService);
         gatheringService.setProgressionServices(
             accountService,

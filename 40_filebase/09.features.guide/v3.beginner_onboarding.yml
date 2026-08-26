@@ -186,15 +186,26 @@ steps:
     condition:
       type: SHOP_PURCHASED
       targetId: nox_hoe
-  - id: complete_gathering_quest
-    text: "&f村長マルクスから&e採集依頼&fを受注して達成する"
+  - id: accept_gathering_quest
+    text: "&f村長マルクスから&e採集依頼&fを受注する"
     details:
-      - "&7村長マルクスに話しかけ、&e影草の採集依頼&7を受注する。"
-      - "&7ノクスの草地にある採集スポナーで&e影草の茂み&7を10回採集する。"
+      - "&7村長マルクスに話しかけ、&eノクス草花の採集依頼&7を受注する。"
     action:
       type: NAVIGATE_NPC
       npcId: village_elder
       description: "&dクリックで村長マルクスの場所を表示し、発光させる。"
     condition:
-      type: GATHERING_COMPLETED
-      targetId: nox_flora_spawner
+      type: QUEST_ACCEPTED
+      targetId: nox_flora_gathering
+  - id: report_gathering_quest
+    text: "&f採集依頼を達成して村長マルクスに報告する"
+    details:
+      - "&7ノクスの草地に出現する7種類の採集オブジェクトを、表示された必要数ずつ最後まで採集する。"
+      - "&7目標をすべて達成したら、村長マルクスに話しかけて依頼を報告する。"
+    action:
+      type: NAVIGATE_NPC
+      npcId: village_elder
+      description: "&dクリックで村長マルクスの場所を表示し、発光させる。"
+    condition:
+      type: QUEST_COMPLETED
+      targetId: nox_flora_gathering

@@ -31,7 +31,11 @@ public enum GuideConditionType {
     /** 敵Mobを討伐した。 */
     MOB_DEFEATED,
     /** 採集オブジェクトを完了まで採集した。 */
-    GATHERING_COMPLETED;
+    GATHERING_COMPLETED,
+    /** クエストの受領に成功した。 */
+    QUEST_ACCEPTED,
+    /** クエストの報酬・状態確定に成功した。 */
+    QUEST_COMPLETED;
 
     /**
      * マスターデータ上の文字列から条件種別を解決します。

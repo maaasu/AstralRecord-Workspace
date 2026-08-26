@@ -50,6 +50,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -58,6 +59,7 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -74,7 +76,7 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
      * 章・見出し: # 29_3-メソッド仕様 > ## 7. クエスト受領
-     * 検証契約: 受領条件itemを消費し、prefix除去済みNPC ID付きprogressをactiveへ追加してquest/inventory保存を予約する。
+     * 検証契約: 受領条件itemを消費し、prefix除去済みNPC ID付きprogressをactiveへ追加してquest/inventory保存を予約し、受領成功listenerへquest IDを通知する。
      */
     @Test
     void acceptConsumesRequiredItemsAndStoresNpcBoundProgress() {
@@ -87,6 +89,8 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         );
         QuestHarness harness = questHarness(quest);
         AstPlayer player = playerWithQuestLimit(2.0D);
+        AtomicReference<String> acceptedQuestId = new AtomicReference<>();
+        harness.service.setQuestAcceptedListener((ignored, questId) -> acceptedQuestId.set(questId));
         when(harness.statusService.getStatus(player)).thenReturn(player.getStatusSnapshot());
         QuestPlayerState state = new QuestPlayerState(player.getAccount().getUuid(), Map.of(), Map.of(), Map.of());
         when(harness.stateRepository.load(player.getAccount().getUuid())).thenReturn(state);
@@ -97,6 +101,7 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         boolean accepted = harness.service.accept(player, quest, "npc:guild_master");
 
         assertTrue(accepted);
+        assertEquals(quest.id(), acceptedQuestId.get());
         assertEquals(QuestDisplayState.IN_PROGRESS, harness.service.displayState(player, quest));
         assertNotNull(harness.service.progress(player, quest.id()));
         assertEquals("guild_master", harness.service.progress(player, quest.id()).acceptedNpcId());
@@ -233,7 +238,7 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
      * 章・見出し: # 29_3-メソッド仕様 > ## 9. NPC報告・重複受取guard
-     * 検証契約: NPC quest達成をREADY_TO_TURN_INとし、受領元以外を拒否して正しいNPCからだけ報酬を付与する。
+     * 検証契約: NPC quest達成をREADY_TO_TURN_INとし、報告前は完了listenerを通知せず、受領元以外を拒否して正しいNPCからだけ報酬を付与し、報告・保存成功後に完了listenerへquest IDを通知する。
      */
     @Test
     void npcQuestBecomesReadyAndRequiresExpectedTurnInNpcBeforeRewards() {
@@ -247,6 +252,8 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         );
         QuestHarness harness = questHarness(quest);
         AstPlayer player = playerWithQuestLimit(2.0D);
+        AtomicReference<String> completedQuestId = new AtomicReference<>();
+        harness.service.setQuestCompletedListener((ignored, questId) -> completedQuestId.set(questId));
         when(harness.statusService.getStatus(player)).thenReturn(player.getStatusSnapshot());
         QuestPlayerState state = new QuestPlayerState(player.getAccount().getUuid(), Map.of(), Map.of(), Map.of());
         when(harness.stateRepository.load(player.getAccount().getUuid())).thenReturn(state);
@@ -261,8 +268,10 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         harness.service.recordMobKill(player, "bandit");
 
         assertEquals(QuestDisplayState.READY_TO_TURN_IN, harness.service.displayState(player, quest));
+        assertNull(completedQuestId.get());
         assertFalse(harness.service.turnIn(player, quest, "wrong_npc"));
         assertTrue(harness.service.turnIn(player, quest, "captain"));
+        assertEquals(quest.id(), completedQuestId.get());
         assertFalse(state.activeQuests().containsKey(quest.id()));
         verify(harness.inventoryService).addGold(player, 5L);
         verify(harness.inventoryService).addItemToNormalInventory(player, rewardItem, 1, "quest_reward");

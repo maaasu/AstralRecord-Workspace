@@ -57,6 +57,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.BiConsumer;
 
 public final class QuestService {
     private static final int DEFAULT_MAX_ACTIVE_QUESTS = 3;
@@ -85,6 +86,8 @@ public final class QuestService {
     private final Map<UUID, Long> saveDueAtMillis = new ConcurrentHashMap<>();
     private final Map<RewardClaimKey, UUID> pendingRewardClaims = new ConcurrentHashMap<>();
     private final Map<UUID, CompletableFuture<Void>> rewardProcessingTails = new ConcurrentHashMap<>();
+    private BiConsumer<AstPlayer, String> questAcceptedListener = (player, questId) -> { };
+    private BiConsumer<AstPlayer, String> questCompletedListener = (player, questId) -> { };
     private BukkitTask saveTask;
     private volatile boolean stopping;
 
@@ -119,6 +122,25 @@ public final class QuestService {
     /** クエスト報酬によるレベル変化をスキルツリーへ反映するサービスを設定します。 */
     public void setSkillTreeService(@NotNull SkillTreeService skillTreeService) {
         this.skillTreeService = skillTreeService;
+    }
+
+    /**
+     * クエスト受領成功時の通知先を設定します。
+     *
+     * @param questAcceptedListener 受領したプレイヤーとクエスト ID を受け取る通知先
+     */
+    public void setQuestAcceptedListener(@NotNull BiConsumer<AstPlayer, String> questAcceptedListener) {
+        this.questAcceptedListener = questAcceptedListener;
+    }
+
+    /**
+     * クエスト完了成功時の通知先を設定します。
+     * 報酬と関連状態の保存が成功した後、プレイヤーとクエスト IDを通知します。
+     *
+     * @param questCompletedListener 完了したプレイヤーとクエスト ID を受け取る通知先
+     */
+    public void setQuestCompletedListener(@NotNull BiConsumer<AstPlayer, String> questCompletedListener) {
+        this.questCompletedListener = questCompletedListener;
     }
 
     QuestService(
@@ -411,6 +433,7 @@ public final class QuestService {
         }
         state.activeQuests().put(quest.id(), QuestProgress.start(quest, stripNullablePrefix(npcId)));
         save(state);
+        questAcceptedListener.accept(player, quest.id());
         send(player, PlayerMsgId.P_6603, quest.name());
         player.getBukkit().playSound(player.getBukkit().getLocation(), Sound.UI_TOAST_IN, SoundCategory.PLAYERS, 0.7F, 1.1F);
         return true;
@@ -1426,6 +1449,7 @@ public final class QuestService {
     private void notifyComplete(@NotNull AstPlayer player, @NotNull QuestDefinition quest) {
         send(player, PlayerMsgId.P_6608, quest.name());
         playQuestEffect(player.getBukkit());
+        questCompletedListener.accept(player, quest.id());
     }
 
     private void playQuestEffect(@NotNull Player player) {

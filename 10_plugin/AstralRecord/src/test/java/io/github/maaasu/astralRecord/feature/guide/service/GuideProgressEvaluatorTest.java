@@ -244,6 +244,65 @@ class GuideProgressEvaluatorTest {
         )));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
+     * 検証契約: クエスト受領・完了条件は種別と対象quest IDが一致する成功イベントだけを対応する手順へ反映し、採集イベントでは反映しない。
+     */
+    @Test
+    void evaluate_AcceptsQuestLifecycleConditionsWithQuestTarget() {
+        GuideEntry guide = new GuideEntry(
+            3,
+            "quest_lifecycle",
+            "beginner",
+            10,
+            "quest",
+            null,
+            null,
+            List.of(
+                new GuideStep(
+                    "accept_quest",
+                    "accept",
+                    List.of(),
+                    new GuideCondition(GuideConditionType.QUEST_ACCEPTED, "nox_flora_gathering"),
+                    null
+                ),
+                new GuideStep(
+                    "report_quest",
+                    "report",
+                    List.of(),
+                    new GuideCondition(GuideConditionType.QUEST_COMPLETED, "nox_flora_gathering"),
+                    null
+                )
+            )
+        );
+
+        assertEquals(List.of(), GuideProgressEvaluator.evaluate(
+            guide,
+            Set.of(),
+            GuideConditionType.GATHERING_COMPLETED,
+            "nox_flora_spawner"
+        ));
+        assertEquals(List.of(), ids(GuideProgressEvaluator.evaluate(
+            guide,
+            Set.of(),
+            GuideConditionType.QUEST_ACCEPTED,
+            "other_quest"
+        )));
+        assertEquals(List.of("accept_quest"), ids(GuideProgressEvaluator.evaluate(
+            guide,
+            Set.of(),
+            GuideConditionType.QUEST_ACCEPTED,
+            "nox_flora_gathering"
+        )));
+        assertEquals(List.of("report_quest"), ids(GuideProgressEvaluator.evaluate(
+            guide,
+            Set.of(new GuideStepKey(guide.id(), "accept_quest")),
+            GuideConditionType.QUEST_COMPLETED,
+            "nox_flora_gathering"
+        )));
+    }
+
     private GuideEntry guide() {
         return new GuideEntry(
             3,

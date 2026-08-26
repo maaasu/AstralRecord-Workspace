@@ -71,6 +71,8 @@ Plugin は各 guide の全未達成 step をイベントごとに評価します
 | `SKILL_CAST` | 任意の skill ID | プレイヤーのスキル実行が成功したとき。未指定なら任意のスキル |
 | `MOB_DEFEATED` | mob master ID | 敵 Mob を討伐したとき |
 | `GATHERING_COMPLETED` | gathering spawner ID | 指定スポナーに属する採集を完了したとき |
+| `QUEST_ACCEPTED` | quest ID | クエストの受注が成功したとき |
+| `QUEST_COMPLETED` | quest ID | クエスト報酬と関連状態の保存が成功したとき。NPC方式では報告完了時 |
 
 ## クリック時アクション
 
