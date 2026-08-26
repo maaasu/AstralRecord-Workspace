@@ -38,6 +38,7 @@ import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.scheduler.BukkitTask;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
@@ -47,6 +48,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 /**
  * プレイヤーのログイン・ログアウト処理を行うイベントハンドラー。
@@ -78,6 +80,8 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private final Map<UUID, LoadingControl> loadingControls = new ConcurrentHashMap<>();
     private final AtomicLong joinAttemptSequence = new AtomicLong();
     private final AtomicLong nextJoinStartNanos = new AtomicLong();
+    private Consumer<AstPlayer> playerLoadedListener = ignored -> { };
+    private Consumer<AstPlayer> playerQuitListener = ignored -> { };
 
     /**
      * ガイド進行連携を使用しないテスト・互換用途のコンストラクタです。
@@ -151,6 +155,24 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         this.menuToolJoinGrantService = menuToolJoinGrantService;
     }
 
+    /**
+     * プレイヤーデータ反映後の通知先を設定します。
+     *
+     * @param listener プレイヤーデータ反映後に呼び出す通知先
+     */
+    public void setPlayerLoadedListener(@NotNull Consumer<AstPlayer> listener) {
+        this.playerLoadedListener = listener;
+    }
+
+    /**
+     * プレイヤー退出時、キャッシュ削除前の通知先を設定します。
+     *
+     * @param listener キャッシュ削除前に呼び出す通知先
+     */
+    public void setPlayerQuitListener(@NotNull Consumer<AstPlayer> listener) {
+        this.playerQuitListener = listener;
+    }
+
     @EventHandler(priority = EventPriority.NORMAL)
     public void onPlayerJoin(PlayerJoinEvent event) {
         var player = event.getPlayer();
@@ -222,6 +244,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
 
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer != null) {
+            runSafely(() -> playerQuitListener.accept(astPlayer), LogId.E_5070, playerName);
             UUID accountId = astPlayer.getAccount().getUuid();
             questService.releaseState(accountId);
             skillBindPresetService.invalidate(accountId);
@@ -462,6 +485,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             loginBonusService.openAfterDataLoaded(player);
             playerService.commitPlayerJoin(playerJoinApplication);
             if (appliedPlayer != null) {
+                runSafely(() -> playerLoadedListener.accept(appliedPlayer), LogId.E_5070, playerName);
                 plugin.getPlayerClassService().updatePlayerListName(appliedPlayer);
             }
             if (guideService != null) {

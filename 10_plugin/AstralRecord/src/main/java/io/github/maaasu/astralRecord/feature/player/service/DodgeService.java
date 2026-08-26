@@ -14,6 +14,8 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.function.Consumer;
+
 /**
  * プレイヤーのドッジ（短距離ダッシュ回避）アクションを制御するサービス。
  * <p>
@@ -21,7 +23,7 @@ import org.jetbrains.annotations.NotNull;
  * 発動条件・スタミナ消費・演出（効果音/パーティクル）・
  * {@link AstPlayer#isDodging} フラグの ON/OFF を一元管理します。
  * <p>
- * 攻撃処理側では {@link AstPlayer#isDodging} を参照してジャスト回避判定を行ってください。
+ * 成功したドッジは登録済みの listener へ通知し、スキルなどのドッジ連動処理へ渡します。
  */
 public class DodgeService {
 
@@ -50,6 +52,7 @@ public class DodgeService {
     private final StatusService statusService;
     private final PlayerHudService playerHudService;
     private final ParticleDisplayService particleDisplayService;
+    private Consumer<AstPlayer> successfulDodgeListener = ignored -> { };
 
     public DodgeService(
         @NotNull AstralRecord plugin,
@@ -61,6 +64,15 @@ public class DodgeService {
         this.statusService = statusService;
         this.playerHudService = playerHudService;
         this.particleDisplayService = particleDisplayService;
+    }
+
+    /**
+     * 成功したドッジの通知先を設定します。
+     *
+     * @param listener ドッジ成功時に呼び出す listener
+     */
+    public void setSuccessfulDodgeListener(@NotNull Consumer<AstPlayer> listener) {
+        this.successfulDodgeListener = listener;
     }
 
     /**
@@ -155,6 +167,7 @@ public class DodgeService {
         player.setVelocity(direction);
 
         astPlayer.setDodging(true);
+        successfulDodgeListener.accept(astPlayer);
 
         playDodgeEffects(astPlayer);
 

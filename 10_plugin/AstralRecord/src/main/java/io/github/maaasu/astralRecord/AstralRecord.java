@@ -183,15 +183,16 @@ import io.github.maaasu.astralRecord.feature.skill.active.service.SkillProjectil
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTargetingService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTaskService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
-import io.github.maaasu.astralRecord.feature.skill.event.SkillActionRingEventHandler;
+import io.github.maaasu.astralRecord.feature.skill.event.JustDodgeSkillEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.MeditationSkillEventHandler;
-import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.feature.skill.event.SkillActionRingEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillGemLearnEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillForgetGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorJustDodgeSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorShieldRechargeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.FireBoostSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.IronWillSkillExecutor;
-import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorShieldRechargeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.MeditationSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
@@ -204,6 +205,7 @@ import io.github.maaasu.astralRecord.feature.skill.repository.LearnedSkillReposi
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillResolver;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.JustDodgeSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.MeditationSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingHoldService;
@@ -212,6 +214,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetServic
 import io.github.maaasu.astralRecord.feature.skill.service.SkillCooldownBossBarService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skilltree.event.SkillTreeEventHandler;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeNodeRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreePlayerStateRepository;
@@ -371,6 +374,7 @@ public final class AstralRecord extends JavaPlugin {
     private WeaponAttackSkillExecutor weaponAttackSkillExecutor;
     private PassiveSkillService passiveSkillService;
     private MeditationSkillRuntimeService meditationSkillRuntimeService;
+    private JustDodgeSkillRuntimeService justDodgeSkillRuntimeService;
     private SkillTreeService skillTreeService;
     private SkillBindPresetService skillBindPresetService;
     private LearnedSkillService learnedSkillService;
@@ -698,6 +702,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (meditationSkillRuntimeService != null) {
             meditationSkillRuntimeService.clearAll();
+        }
+        if (justDodgeSkillRuntimeService != null) {
+            justDodgeSkillRuntimeService.clearAll();
         }
         if (skillTreeService != null) {
             skillTreeService.stop();
@@ -1180,7 +1187,11 @@ public final class AstralRecord extends JavaPlugin {
         skillService.setConditionService(conditionService);
         skillService.setPlayerHudService(playerHudService);
         meditationSkillRuntimeService = new MeditationSkillRuntimeService(particleDisplayService);
+        justDodgeSkillRuntimeService = new JustDodgeSkillRuntimeService(statusService, particleDisplayService);
+        dodgeService.setSuccessfulDodgeListener(justDodgeSkillRuntimeService::onDodge);
+        damageService.setJustDodgeSkillRuntimeService(justDodgeSkillRuntimeService);
         skillService.registerExecutor(new MeditationSkillExecutor(meditationSkillRuntimeService));
+        skillService.registerExecutor(new AdministratorJustDodgeSkillExecutor(justDodgeSkillRuntimeService));
         skillService.registerExecutor(new AdministratorShieldRechargeSkillExecutor(statusService, particleDisplayService));
         skillService.registerExecutor(new FireBoostSkillExecutor(particleDisplayService));
         skillService.registerExecutor(new IronWillSkillExecutor());
@@ -1401,6 +1412,8 @@ public final class AstralRecord extends JavaPlugin {
             guideService,
             menuToolJoinGrantService
         );
+        playerJoinEventHandler.setPlayerLoadedListener(player -> passiveSkillService.reconcileNow(player));
+        playerJoinEventHandler.setPlayerQuitListener(passiveSkillService::onPlayerQuit);
         eventManager.registerHandler(playerJoinEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
             new AdminMessageBossBarEventHandler(adminMessageBossBarService),
@@ -1651,6 +1664,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new MeditationSkillEventHandler(meditationSkillRuntimeService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new JustDodgeSkillEventHandler(justDodgeSkillRuntimeService),
             getServer().getPluginManager()
         );
         var playerModeEventHandler = new PlayerModeEventHandler(accountModeApplicationService);
