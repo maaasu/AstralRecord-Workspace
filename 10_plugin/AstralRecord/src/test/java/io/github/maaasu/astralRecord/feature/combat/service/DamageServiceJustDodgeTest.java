@@ -23,6 +23,8 @@ import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import org.bukkit.Registry;
+import org.bukkit.Sound;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
@@ -144,5 +146,13 @@ class DamageServiceJustDodgeTest extends MockBukkitTestBase {
                 org.mockito.ArgumentMatchers.any(org.bukkit.Location.class),
                 org.mockito.ArgumentMatchers.eq(SharedParticleDefinitions.DODGE_CLOUD.withCount(6))
         );
+        verify(particleDisplayService, times(2)).spawnForNearbyViewers(
+                org.mockito.ArgumentMatchers.any(org.bukkit.Location.class),
+                org.mockito.ArgumentMatchers.eq(SharedParticleDefinitions.JUST_DODGE_ENERGY_ABSORB_END_ROD)
+        );
+        String recoverySoundKey = Registry.SOUND_EVENT.getKeyOrThrow(Sound.ENTITY_EXPERIENCE_ORB_PICKUP).getKey();
+        assertEquals(2L, victimBukkitPlayer.getHeardSounds().stream()
+                .filter(heardSound -> recoverySoundKey.equals(heardSound.getSound()))
+                .count());
     }
 }

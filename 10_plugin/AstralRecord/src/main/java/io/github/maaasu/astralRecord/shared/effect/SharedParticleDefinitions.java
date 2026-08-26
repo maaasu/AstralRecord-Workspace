@@ -21,6 +21,8 @@ public final class SharedParticleDefinitions {
 
     public static final SharedParticleDefinition DODGE_CLOUD =
         new SharedParticleDefinition("dodge_cloud", Particle.CLOUD, 6, 0.2D, 0.05D, 0.2D, 0.0D);
+    public static final SharedParticleDefinition JUST_DODGE_ENERGY_ABSORB_END_ROD =
+        new SharedParticleDefinition("just_dodge_energy_absorb_end_rod", Particle.END_ROD, 8, 0.16D, 0.22D, 0.16D, 0.01D);
     public static final SharedParticleDefinition AIR_ACTION_CLOUD =
         new SharedParticleDefinition("air_action_cloud", Particle.CLOUD, 8, 0.18D, 0.05D, 0.18D, 0.0D);
     public static final SharedParticleDefinition FIRE_BOOST_FLAME =
