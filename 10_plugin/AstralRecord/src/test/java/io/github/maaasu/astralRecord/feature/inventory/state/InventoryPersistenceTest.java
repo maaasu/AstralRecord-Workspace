@@ -7,6 +7,8 @@ import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryProfile;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import org.junit.jupiter.api.Test;
 
@@ -20,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -206,5 +209,138 @@ class InventoryPersistenceTest {
 
         assertFalse(replaced);
         assertEquals(List.of(localChange), state.snapshotEntries(inventoryId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 5. 永続化制御
+     * 検証契約: 削除済みアイテムマスタを参照する通常 entry はログインロード時に破棄し、
+     * API の置換保存へ未解決 entry を送らない。
+     */
+    @Test
+    void loadDiscardsEntriesForDeletedItemMastersAndPersistsTheCleanup() {
+        UUID accountId = UUID.randomUUID();
+        UUID inventoryId = UUID.randomUUID();
+        LocalDateTime now = LocalDateTime.of(2026, 8, 26, 19, 0);
+        InventoryModel inventory = new InventoryModel(
+            inventoryId, accountId, InventoryType.BAG, InventoryProfile.GAME.getCode(), 9,
+            true, null, now, now, accountId, accountId, false
+        );
+        InventoryEntryModel deletedMasterEntry = new InventoryEntryModel(
+            UUID.randomUUID(), inventoryId, 1, "MATERIAL", "skygrass_fiber", null, null,
+            3L, null, now, now, accountId, accountId, false
+        );
+        InventoryEntryModel validEntry = new InventoryEntryModel(
+            UUID.randomUUID(), inventoryId, 2, "MATERIAL", "still_valid", null, null,
+            1L, null, now, now, accountId, accountId, false
+        );
+        InventoryRepository inventoryRepository = mock(InventoryRepository.class);
+        EquipmentLoadoutRepository loadoutRepository = mock(EquipmentLoadoutRepository.class);
+        ItemService itemService = mock(ItemService.class);
+        ItemModel validItem = mock(ItemModel.class);
+        when(inventoryRepository.findByAccountId(accountId)).thenReturn(List.of(inventory));
+        when(inventoryRepository.findEntries(inventoryId)).thenReturn(List.of(deletedMasterEntry, validEntry));
+        when(loadoutRepository.findByAccountId(accountId, InventoryProfile.GAME)).thenReturn(List.of());
+        when(itemService.isMasterDataLoaded()).thenReturn(true);
+        when(itemService.findLoadedById("still_valid")).thenReturn(validItem);
+        when(itemService.hasDirtyEquipmentDurability(accountId)).thenReturn(false);
+        when(inventoryRepository.replaceEntries(eq(inventoryId), anyList(), eq(accountId)))
+            .thenReturn(List.of(validEntry));
+        InventoryPersistence persistence = new InventoryPersistence(
+            inventoryRepository, loadoutRepository, itemService
+        );
+
+        PlayerInventoryState loaded = persistence.load(accountId);
+
+        assertEquals(List.of(validEntry), loaded.snapshotEntries(inventoryId));
+        verify(inventoryRepository).replaceEntries(
+            eq(inventoryId),
+            org.mockito.ArgumentMatchers.argThat(entries -> entries.size() == 1
+                && "still_valid".equals(entries.getFirst().getItemId())),
+            eq(accountId)
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 5. 永続化制御
+     * 検証契約: 全カテゴリのアイテムマスタが未公開の間は、部分キャッシュだけを根拠に entry を破棄しない。
+     */
+    @Test
+    void loadRetainsEntriesUntilTheCompleteItemMasterSnapshotIsPublished() {
+        UUID accountId = UUID.randomUUID();
+        UUID inventoryId = UUID.randomUUID();
+        LocalDateTime now = LocalDateTime.of(2026, 8, 26, 19, 0);
+        InventoryModel inventory = new InventoryModel(
+            inventoryId, accountId, InventoryType.BAG, InventoryProfile.GAME.getCode(), 9,
+            true, null, now, now, accountId, accountId, false
+        );
+        InventoryEntryModel entry = new InventoryEntryModel(
+            UUID.randomUUID(), inventoryId, 1, "MATERIAL", "partially_cached_item", null, null,
+            1L, null, now, now, accountId, accountId, false
+        );
+        InventoryRepository inventoryRepository = mock(InventoryRepository.class);
+        EquipmentLoadoutRepository loadoutRepository = mock(EquipmentLoadoutRepository.class);
+        ItemService itemService = mock(ItemService.class);
+        when(inventoryRepository.findByAccountId(accountId)).thenReturn(List.of(inventory));
+        when(inventoryRepository.findEntries(inventoryId)).thenReturn(List.of(entry));
+        when(loadoutRepository.findByAccountId(accountId, InventoryProfile.GAME)).thenReturn(List.of());
+        when(itemService.isMasterDataLoaded()).thenReturn(false);
+        InventoryPersistence persistence = new InventoryPersistence(
+            inventoryRepository, loadoutRepository, itemService
+        );
+
+        PlayerInventoryState loaded = persistence.load(accountId);
+
+        assertEquals(List.of(entry), loaded.snapshotEntries(inventoryId));
+        verify(inventoryRepository, never()).replaceEntries(eq(inventoryId), anyList(), eq(accountId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 5. 永続化制御
+     * 検証契約: 削除済み装備マスタと通常 item master が同時に存在しても、両方の entry を同一ロードで破棄する。
+     */
+    @Test
+    void loadDiscardsDeletedEquipmentAndNormalItemMastersTogether() {
+        UUID accountId = UUID.randomUUID();
+        UUID inventoryId = UUID.randomUUID();
+        UUID equipmentInstanceId = UUID.randomUUID();
+        LocalDateTime now = LocalDateTime.of(2026, 8, 26, 19, 0);
+        InventoryModel inventory = new InventoryModel(
+            inventoryId, accountId, InventoryType.BAG, InventoryProfile.GAME.getCode(), 9,
+            true, null, now, now, accountId, accountId, false
+        );
+        InventoryEntryModel equipmentEntry = new InventoryEntryModel(
+            UUID.randomUUID(), inventoryId, 1, "EQUIPMENT", "deleted_equipment", "EQUIPMENT",
+            equipmentInstanceId, 1L, null, now, now, accountId, accountId, false
+        );
+        InventoryEntryModel normalEntry = new InventoryEntryModel(
+            UUID.randomUUID(), inventoryId, 2, "MATERIAL", "deleted_material", null, null,
+            1L, null, now, now, accountId, accountId, false
+        );
+        InventoryRepository inventoryRepository = mock(InventoryRepository.class);
+        EquipmentLoadoutRepository loadoutRepository = mock(EquipmentLoadoutRepository.class);
+        ItemService itemService = mock(ItemService.class);
+        EquipmentInstance equipmentInstance = mock(EquipmentInstance.class);
+        when(inventoryRepository.findByAccountId(accountId)).thenReturn(List.of(inventory));
+        when(inventoryRepository.findEntries(inventoryId)).thenReturn(List.of(equipmentEntry, normalEntry));
+        when(loadoutRepository.findByAccountId(accountId, InventoryProfile.GAME)).thenReturn(List.of());
+        when(itemService.isMasterDataLoaded()).thenReturn(true);
+        when(itemService.preloadEquipmentInstances(org.mockito.ArgumentMatchers.anyCollection()))
+            .thenReturn(ItemService.EquipmentPreloadResult.COMPLETE);
+        when(itemService.findLoadedEquipmentInstanceById(equipmentInstanceId.toString())).thenReturn(equipmentInstance);
+        when(equipmentInstance.getAccountId()).thenReturn(accountId.toString());
+        when(equipmentInstance.getItemId()).thenReturn("deleted_equipment");
+        when(itemService.hasDirtyEquipmentDurability(accountId)).thenReturn(false);
+        when(inventoryRepository.replaceEntries(eq(inventoryId), anyList(), eq(accountId))).thenReturn(List.of());
+        InventoryPersistence persistence = new InventoryPersistence(
+            inventoryRepository, loadoutRepository, itemService
+        );
+
+        PlayerInventoryState loaded = persistence.load(accountId);
+
+        assertEquals(List.of(), loaded.snapshotEntries(inventoryId));
+        verify(inventoryRepository).replaceEntries(eq(inventoryId), eq(List.of()), eq(accountId));
     }
 }

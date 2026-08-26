@@ -19,6 +19,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -123,16 +124,53 @@ public final class InventoryPersistence {
                     && !loaded.getAccountId().equalsIgnoreCase(accountId.toString());
                 boolean confirmedMissing = loaded == null
                     && preloadResult != ItemService.EquipmentPreloadResult.UNAVAILABLE;
-                if (unavailableOwner || confirmedMissing) {
+                boolean unavailableMaster = loaded != null
+                    && itemService.isMasterDataLoaded()
+                    && itemService.findLoadedById(loaded.getItemId()) == null;
+                if (unavailableOwner || confirmedMissing || unavailableMaster) {
                     state.discardUnavailableEquipmentInstance(UUID.fromString(instanceId));
                     itemService.evictEquipmentInstanceFromCache(instanceId);
                 }
             }
             lastPersistedLoadoutSlots.put(accountId, persistedLoadoutSlots);
+            boolean discardedUnavailableEquipment = state.isDirty();
+            boolean discardedUnavailableNormalItems = discardUnavailableNormalItemEntries(state);
+            if (discardedUnavailableEquipment || discardedUnavailableNormalItems) {
+                save(state, SaveTrigger.IMMEDIATE);
+            }
         } catch (RuntimeException e) {
             Logger.warn(LogId.W_5252, accountId, e.getMessage());
         }
         return state;
+    }
+
+    /**
+     * 現在のアイテムマスタに存在しない通常 entry を削除します。
+     * <p>
+     * マスタキャッシュが未ロードの場合は、外部障害で全 entry を誤削除しないため何もしません。
+     *
+     * @param state 読み込み済みインベントリ state
+     * @return entry を削除した場合は {@code true}
+     */
+    private boolean discardUnavailableNormalItemEntries(@NotNull PlayerInventoryState state) {
+        if (!itemService.isMasterDataLoaded()) {
+            return false;
+        }
+        Set<String> unavailableItemIds = new HashSet<>();
+        for (InventoryModel inventory : state.snapshotInventories()) {
+            for (InventoryEntryModel entry : state.snapshotEntries(inventory.getInventoryId())) {
+                if (entry.isDeleted()
+                    || entry.getInstanceId() != null
+                    || entry.getItemId() == null
+                    || entry.getItemId().isBlank()) {
+                    continue;
+                }
+                if (itemService.findLoadedById(entry.getItemId()) == null) {
+                    unavailableItemIds.add(entry.getItemId().trim().toLowerCase(Locale.ROOT));
+                }
+            }
+        }
+        return state.discardUnavailableItemMasterEntries(unavailableItemIds);
     }
 
     // ---------------------------------------------------------------

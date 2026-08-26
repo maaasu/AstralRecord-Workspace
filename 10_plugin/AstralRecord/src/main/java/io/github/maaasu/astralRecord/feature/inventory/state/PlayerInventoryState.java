@@ -510,6 +510,33 @@ public final class PlayerInventoryState {
     }
 
     /**
+     * 削除済みアイテムマスタを参照する通常 entry を state から破棄します。
+     * <p>
+     * 装備個体 entry は {@link #discardUnavailableEquipmentInstance(UUID)} で処理します。
+     * このメソッドはロード時のマスタ整合処理専用であり、削除した entry は次回保存で API 正本からも除去されます。
+     *
+     * @param unavailableItemIds 現在のアイテムマスタに存在しない item ID
+     * @return entry を破棄した場合は {@code true}
+     */
+    public synchronized boolean discardUnavailableItemMasterEntries(
+        @NotNull Set<String> unavailableItemIds
+    ) {
+        if (unavailableItemIds.isEmpty()) {
+            return false;
+        }
+        boolean changed = false;
+        for (List<InventoryEntryModel> entries : entriesByInventoryId.values()) {
+            changed |= entries.removeIf(entry -> entry.getInstanceId() == null
+                && entry.getItemId() != null
+                && unavailableItemIds.contains(entry.getItemId().trim().toLowerCase(java.util.Locale.ROOT)));
+        }
+        if (changed) {
+            markDirty();
+        }
+        return changed;
+    }
+
+    /**
      * inventoryId の entry リストエントリを削除します。
      *
      * @param inventoryId 対象UUID

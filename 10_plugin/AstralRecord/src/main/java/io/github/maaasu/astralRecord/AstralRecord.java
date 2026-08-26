@@ -1304,6 +1304,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getScheduler().runTask(this, () -> {
                 skillService.replaceDefinitions(skillDefinitions);
                 skillTreeService.replaceMasterDataSnapshot(skillTreeSnapshot);
+                inventoryService.reconcileUnavailableItemMasterEntries();
             });
         });
 
@@ -2198,6 +2199,7 @@ public final class AstralRecord extends JavaPlugin {
             for (Runnable publication : plan.publications()) {
                 publication.run();
             }
+            inventoryService.reconcileUnavailableItemMasterEntries();
             FileDatabaseManager.getInstance().replaceReloadSnapshot(plan.fileDatabaseSnapshot());
             YamlDbConfigUtil.INSTANCE.replaceSnapshot(plan.yamlDbConfig());
             for (MasterDataActivation activation : plan.activations()) {

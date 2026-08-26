@@ -207,6 +207,52 @@ public class InventoryService {
     }
 
     /**
+     * 公開済みのアイテムマスタに存在しない通常 entry を、オンライン state から破棄して保存します。
+     *
+     * @return cleanup 対象になった account 数
+     */
+    public int reconcileUnavailableItemMasterEntries() {
+        if (!itemService.isMasterDataLoaded()) {
+            return 0;
+        }
+        int affected = 0;
+        for (PlayerInventoryState state : stateRegistry.all()) {
+            Set<String> unavailableItemIds = new HashSet<>();
+            for (InventoryModel inventory : state.snapshotInventories()) {
+                for (InventoryEntryModel entry : state.snapshotEntries(inventory.getInventoryId())) {
+                    if (entry.isDeleted() || entry.getInstanceId() != null
+                        || entry.getItemId() == null || entry.getItemId().isBlank()) {
+                        continue;
+                    }
+                    if (itemService.findLoadedById(entry.getItemId()) == null) {
+                        unavailableItemIds.add(entry.getItemId().trim().toLowerCase(Locale.ROOT));
+                    }
+                }
+            }
+            boolean discardedNormalItems = state.discardUnavailableItemMasterEntries(unavailableItemIds);
+            Set<UUID> unavailableEquipmentInstances = new HashSet<>();
+            for (InventoryModel inventory : state.snapshotInventories()) {
+                for (InventoryEntryModel entry : state.snapshotEntries(inventory.getInventoryId())) {
+                    if (entry.getInstanceId() == null) {
+                        continue;
+                    }
+                    var instance = itemService.findLoadedEquipmentInstanceById(entry.getInstanceId().toString());
+                    if (instance != null && itemService.findLoadedById(instance.getItemId()) == null) {
+                        unavailableEquipmentInstances.add(entry.getInstanceId());
+                    }
+                }
+            }
+            unavailableEquipmentInstances.forEach(state::discardUnavailableEquipmentInstance);
+            if (!discardedNormalItems && unavailableEquipmentInstances.isEmpty()) {
+                continue;
+            }
+            affected++;
+            saveCoordinator.saveNow(state.getAccountId());
+        }
+        return affected;
+    }
+
+    /**
      * ステータス再計算後の BAG 利用可能スロット数を反映します。
      * 容量外 entry は削除せずに表示し続けますが、新規追加先にはしません。
      *

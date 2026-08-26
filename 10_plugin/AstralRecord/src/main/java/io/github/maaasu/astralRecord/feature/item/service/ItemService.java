@@ -42,6 +42,7 @@ public class ItemService {
     private final ItemRepository itemRepository;
     private final SetEffectRepository setEffectRepository;
     private volatile MasterDataSnapshot loadedMasterData;
+    private volatile boolean masterDataSnapshotPublished;
     private final Map<String, SetEffect> loadedSetEffects;
     private final Map<String, EquipmentInstance> loadedEquipmentInstances;
     private final Map<String, Object> instanceReloadLocks;
@@ -60,6 +61,7 @@ public class ItemService {
         this.itemRepository = itemRepository;
         this.setEffectRepository = setEffectRepository;
         this.loadedMasterData = new MasterDataSnapshot(Map.of(), Map.of());
+        this.masterDataSnapshotPublished = false;
         this.loadedSetEffects = new ConcurrentHashMap<>();
         this.loadedEquipmentInstances = new ConcurrentHashMap<>();
         this.instanceReloadLocks = new ConcurrentHashMap<>();
@@ -148,6 +150,7 @@ public class ItemService {
      */
     public void replaceMasterDataSnapshot(@NotNull MasterDataSnapshot snapshot) {
         loadedMasterData = snapshot;
+        masterDataSnapshotPublished = true;
         loadedSetEffects.clear();
         snapshot.items().values().forEach(item -> Logger.log(LogId.D_5203, item));
     }
@@ -155,7 +158,17 @@ public class ItemService {
     /** Reloads only filebase/API-backed item caches; runtime equipment state is preserved. */
     public void clearMasterDataCache() {
         loadedMasterData = new MasterDataSnapshot(Map.of(), Map.of());
+        masterDataSnapshotPublished = false;
         loadedSetEffects.clear();
+    }
+
+    /**
+     * アイテムマスタの完全スナップショットが公開済みかを返します。
+     *
+     * @return 全カテゴリのアイテムマスタスナップショットが公開済みの場合は {@code true}
+     */
+    public boolean isMasterDataLoaded() {
+        return masterDataSnapshotPublished;
     }
 
     /**
