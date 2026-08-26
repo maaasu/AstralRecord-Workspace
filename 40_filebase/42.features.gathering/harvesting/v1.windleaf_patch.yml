@@ -28,8 +28,3 @@ drops:
       amount: "1~2"
       luckAffected: false
       hidden: false
-    - itemId: item:skygrass_fiber
-      rate: 25.0
-      amount: "1"
-      luckAffected: true
-      hidden: false

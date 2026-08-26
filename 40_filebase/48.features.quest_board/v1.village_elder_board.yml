@@ -4,22 +4,14 @@ type: QUEST_BOARD
 name: "&2村長の依頼"
 quests:
   - questId:
-      ref: quest:windwait_field_patrol
+      ref: quest:midgard_grassboar_hunt
     page: 1
     slot: 10
   - questId:
-      ref: quest:windleaf_gathering
+      ref: quest:midgard_moss_shell_hunt
     page: 1
     slot: 12
   - questId:
-      ref: quest:midgard_moss_shell_hunt
+      ref: quest:midgard_clay_guard_skeleton_archer_hunt
     page: 1
     slot: 14
-  - questId:
-      ref: quest:midgard_skeleton_archer_hunt
-    page: 1
-    slot: 16
-  - questId:
-      ref: quest:midgard_clay_guard_hunt
-    page: 1
-    slot: 18
