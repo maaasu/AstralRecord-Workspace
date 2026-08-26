@@ -1,0 +1,41 @@
+# design:
+#   motif: "錬金術 / 植物調合"
+#   progression: 1
+schemaVersion: 1
+id: alchemy_merchant
+type: MOB
+category: NPC
+name: "&d錬金術師リゼット"
+title: "&7植物調合"
+level: 1
+entityType: PLAYER
+nameVisible: true
+damageImmune: true
+icon: BREWING_STAND
+lore:
+  - "&7草花と鉱物を組み合わせた素材を調合する錬金術師。"
+  - "&7右クリックで植物調合を開ける。"
+tags:
+  - npc
+  - shop
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&d錬金術師リゼット&7: 草花の性質を見極め、次の素材へと紡ぎます。"
+  rightClick:
+    - id: gui
+      params:
+        type: SHOP
+        shopId: alchemy_shop

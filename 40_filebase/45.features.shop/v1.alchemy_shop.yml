@@ -1,0 +1,52 @@
+# design:
+#   motif: "錬金術 / 植物調合"
+#   progression: 1
+schemaVersion: 1
+id: alchemy_shop
+type: SHOP
+name: "&d植物調合"
+mode: EXCHANGE
+access: NPC_ONLY
+items:
+  - id: nox_starrygrass_fiber_from_materials
+    itemId:
+      ref: item:nox_starrygrass_fiber
+    category: material
+    amount: 1
+    page: 1
+    slot: 0
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:nox_starrygrass_seed
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:nox_duskbell_petal
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:box_cave_stone
+        category: material
+        amount: 2
+  - id: nox_starmoon_grass_fiber_from_materials
+    itemId:
+      ref: item:nox_starmoon_grass_fiber
+    category: material
+    amount: 1
+    page: 1
+    slot: 1
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:nox_starrygrass_fiber
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:nox_moonpetal_petal
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:box_cave_stone
+        category: material
+        amount: 2
