@@ -21,7 +21,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * スキルクールダウンをプレイヤーごとに1本のボスバーで表示します。
  */
 public final class SkillCooldownBossBarService {
-    private static final long UPDATE_INTERVAL_TICKS = 4L;
+    private static final long UPDATE_INTERVAL_TICKS = 1L;
 
     private final SkillService skillService;
     private final Map<UUID, BossBar> bossBars = new ConcurrentHashMap<>();
