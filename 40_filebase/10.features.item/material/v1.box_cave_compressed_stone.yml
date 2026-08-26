@@ -1,0 +1,16 @@
+# design:
+#   motif: "鉱物 / 岩石"
+#   progression: 1
+schemaVersion: 1
+id: box_cave_compressed_stone
+category: material
+name: "&7洞窟の圧縮石"
+icon: STONE_BRICKS
+rarity: COMMON
+maxStack: 64
+saleValue: 4
+lore:
+  - "&7洞窟の石ころを圧し固めた丈夫な石材。"
+  - "&7建材や加工素材として扱われる。"
+unTradeable: false
+unSellable: false

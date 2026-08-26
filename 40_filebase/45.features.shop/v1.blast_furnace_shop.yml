@@ -1,0 +1,40 @@
+# design:
+#   motif: "工芸 / 鋳造"
+#   progression: 1
+schemaVersion: 1
+id: blast_furnace_shop
+type: SHOP
+name: "&6溶鉱炉"
+mode: EXCHANGE
+access: NPC_ONLY
+items:
+  - id: box_cave_copper_ingot_from_materials
+    itemId:
+      ref: item:box_cave_copper_ingot
+    category: material
+    amount: 1
+    page: 1
+    slot: 0
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:box_cave_copper
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:box_cave_coal
+        category: material
+        amount: 1
+  - id: box_cave_compressed_stone_from_stone
+    itemId:
+      ref: item:box_cave_compressed_stone
+    category: material
+    amount: 1
+    page: 1
+    slot: 1
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:box_cave_stone
+        category: material
+        amount: 4

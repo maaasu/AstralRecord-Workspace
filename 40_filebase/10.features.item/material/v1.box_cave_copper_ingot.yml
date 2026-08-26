@@ -1,0 +1,16 @@
+# design:
+#   motif: "鉱物 / 銅"
+#   progression: 1
+schemaVersion: 1
+id: box_cave_copper_ingot
+category: material
+name: "&6洞窟の銅インゴット"
+icon: COPPER_INGOT
+rarity: COMMON
+maxStack: 64
+saleValue: 10
+lore:
+  - "&7洞窟の粗銅を溶かして鋳造した銅の塊。"
+  - "&7金属加工の中間素材として扱われる。"
+unTradeable: false
+unSellable: false

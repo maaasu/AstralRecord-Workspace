@@ -1,0 +1,42 @@
+# design:
+#   motif: "工芸 / 鋳造"
+#   progression: 1
+schemaVersion: 1
+id: blast_furnace
+type: MOB
+category: NPC
+name: "&6溶鉱炉"
+title: "&7鉱石加工"
+level: 1
+entityType: BLAST_FURNACE
+nameVisible: true
+damageImmune: true
+icon: BLAST_FURNACE
+lore:
+  - "&7洞窟で集めた鉱石と石を加工できる。"
+  - "&7右クリックで溶鉱炉の交換所を開ける。"
+tags:
+  - npc
+  - shop
+  - blast_furnace
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 100
+  - status: MOVEMENT_SPEED
+    value: 0
+
+ai:
+  idle:
+    behavior: STATIONARY
+
+interactions:
+  leftClick:
+    - id: message
+      params:
+        message: "&6溶鉱炉&7: 鉱石と石を持ってきたら、ここで加工できる。"
+  rightClick:
+    - id: gui
+      params:
+        type: SHOP
+        shopId: blast_furnace_shop
