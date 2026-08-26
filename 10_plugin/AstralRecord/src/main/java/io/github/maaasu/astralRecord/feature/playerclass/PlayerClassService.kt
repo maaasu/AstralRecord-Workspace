@@ -17,9 +17,11 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService
 import io.github.maaasu.astralRecord.feature.status.model.StatusType
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil
+import net.kyori.adventure.text.Component
 import java.util.LinkedHashSet
 import java.util.Locale
 import java.util.function.Consumer
+import java.util.function.Predicate
 import kotlin.math.roundToLong
 
 class PlayerClassService @JvmOverloads constructor(
@@ -28,6 +30,7 @@ class PlayerClassService @JvmOverloads constructor(
     private val classService = ClassService()
     private var skillTreeService: SkillTreeService? = null
     private var classChangeListener: Consumer<AstPlayer>? = null
+    private var afkStateProvider: Predicate<AstPlayer> = Predicate { false }
 
     fun setSkillTreeService(service: SkillTreeService) {
         skillTreeService = service
@@ -40,6 +43,15 @@ class PlayerClassService @JvmOverloads constructor(
      */
     fun setClassChangeListener(listener: Consumer<AstPlayer>) {
         classChangeListener = listener
+    }
+
+    /**
+     * Tab表示へAFK接頭辞を反映するための状態参照先を設定します。
+     *
+     * @param provider 指定プレイヤーがAFK中なら {@code true} を返す判定
+     */
+    fun setAfkStateProvider(provider: Predicate<AstPlayer>) {
+        afkStateProvider = provider
     }
 
     fun loadAll(): Int = classService.loadAll()
@@ -75,12 +87,18 @@ class PlayerClassService @JvmOverloads constructor(
      * @param astPlayer 更新対象プレイヤー
      */
     fun updatePlayerListName(astPlayer: AstPlayer) {
-        astPlayer.bukkit.playerListName(
+        val standardName =
             PlayerMsgResource.formatComponent(
                 PlayerMsgId.P_5948.id,
                 getDisplayName(astPlayer.classId),
                 astPlayer.bukkit.name,
-            ),
+            )
+        astPlayer.bukkit.playerListName(
+            if (afkStateProvider.test(astPlayer)) {
+                PlayerMsgResource.getComponent(PlayerMsgId.P_7121.id).append(Component.space()).append(standardName)
+            } else {
+                standardName
+            },
         )
     }
 

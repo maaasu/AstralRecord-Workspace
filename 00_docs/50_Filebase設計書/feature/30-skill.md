@@ -39,6 +39,12 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 
 `swordsman_shield_drain` は敵Shieldへの3倍ブレイクと実減少量50%の自己Shield吸収を行い、発動時に自身のShieldが最大ならダメージ倍率を追加100%します。
 
+## Administrator専用のドッジ連動パッシブ
+
+`administrator_just_dodge` は `passive.bindRequired: true` のAdministrator専用パッシブです。成功したドッジから `params.invulnerabilityTicks` tick の間、`NORMAL_ATTACK` / `SKILL` の直接攻撃を無効化します。無効化回数に上限は設けず、状態異常DoTは `DamageService.applyConditionDamage` の専用経路であるため対象外です。
+
+無効化時は既存のドッジパーティクルとシールドブロック音を表示し、同じドッジ中の最初の無効化時だけ `params.energyRecoveryAmount` のENを回復します。Lv.1・最大Lv.1の設定は無効化時間8 tick、EN回復量10です。ダメージを与えないためDPS算出対象外で、入手用ショップ商品やスキルツリーへの追加は行わず、使用許可だけをAdministrator classへ与えます。
+
 `adventurer_lightning_bolt` は、通常時は単体へ `MAGIC` / `LIGHTNING` を適用し、命中対象から半径5m以内にいる別の `SHOCKED` 状態の Mob へだけ最大2体を連鎖させる。連鎖は距離順・UUID順、視線遮蔽なしの対象を選び、連鎖先からの再連鎖と本スキルによる `SHOCKED` 付与は行わない。
 
 `adventurer_mana_burst` は前方扇形へ無属性の `MAGIC` ダメージを瞬間放出する基礎範囲魔法です。

@@ -125,6 +125,25 @@ public final class PassiveSkillService {
         if (dirtyAccounts.add(accountId)) dirtyQueue.offer(accountId);
     }
 
+    /**
+     * プレイヤー退出時にパッシブの実行状態を破棄します。
+     * <p>
+     * 退出後の再接続で古い実行状態を再利用しないよう、次回ログイン時の明示的な再同期を許可します。
+     *
+     * @param player 退出するプレイヤー
+     */
+    public void onPlayerQuit(@NotNull AstPlayer player) {
+        UUID accountId = player.getAccount().getUuid();
+        PlayerPassiveState state = activeStates.remove(accountId);
+        if (state != null) {
+            decrementTickingPassiveCount(state);
+            deactivateAll(player, state);
+        }
+        reconciledAccounts.remove(accountId);
+        dirtyAccounts.remove(accountId);
+        dirtyQueue.remove(accountId);
+    }
+
     /** スキルツリー許可の変更後は個体一覧を再評価します。 */
     public void reconcileSkillPermissionDelta(
         @NotNull AstPlayer player,

@@ -146,6 +146,8 @@ import io.github.maaasu.astralRecord.feature.player.event.PlayerModeEventHandler
 import io.github.maaasu.astralRecord.feature.player.event.PlayerInputEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerSneakEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerVanillaDamageBlockEventHandler;
+import io.github.maaasu.astralRecord.feature.player.afk.event.AfkPlayerEventHandler;
+import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathEventHandler;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.save.PlayerSaveCoordinator;
@@ -183,15 +185,16 @@ import io.github.maaasu.astralRecord.feature.skill.active.service.SkillProjectil
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTargetingService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTaskService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
-import io.github.maaasu.astralRecord.feature.skill.event.SkillActionRingEventHandler;
+import io.github.maaasu.astralRecord.feature.skill.event.JustDodgeSkillEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.MeditationSkillEventHandler;
-import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.feature.skill.event.SkillActionRingEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillGemLearnEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillForgetGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorJustDodgeSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorShieldRechargeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.FireBoostSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.IronWillSkillExecutor;
-import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorShieldRechargeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.MeditationSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
@@ -204,6 +207,7 @@ import io.github.maaasu.astralRecord.feature.skill.repository.LearnedSkillReposi
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillResolver;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.JustDodgeSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.MeditationSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingHoldService;
@@ -212,6 +216,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetServic
 import io.github.maaasu.astralRecord.feature.skill.service.SkillCooldownBossBarService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skilltree.event.SkillTreeEventHandler;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeNodeRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreePlayerStateRepository;
@@ -308,6 +313,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerMessageService playerMessageService;
     private GlobalChatBridge globalChatBridge;
     private PlayerRegionService playerRegionService;
+    private AfkService afkService;
     private InventoryService inventoryService;
     private InventorySaveCoordinator inventorySaveCoordinator;
     private InventoryPersistence inventoryPersistence;
@@ -371,6 +377,7 @@ public final class AstralRecord extends JavaPlugin {
     private WeaponAttackSkillExecutor weaponAttackSkillExecutor;
     private PassiveSkillService passiveSkillService;
     private MeditationSkillRuntimeService meditationSkillRuntimeService;
+    private JustDodgeSkillRuntimeService justDodgeSkillRuntimeService;
     private SkillTreeService skillTreeService;
     private SkillBindPresetService skillBindPresetService;
     private LearnedSkillService learnedSkillService;
@@ -590,6 +597,9 @@ public final class AstralRecord extends JavaPlugin {
         if (playerHudService != null) {
             playerHudService.stop();
         }
+        if (afkService != null) {
+            afkService.stop();
+        }
         if (skillCooldownBossBarService != null) {
             skillCooldownBossBarService.stop();
         }
@@ -699,6 +709,9 @@ public final class AstralRecord extends JavaPlugin {
         if (meditationSkillRuntimeService != null) {
             meditationSkillRuntimeService.clearAll();
         }
+        if (justDodgeSkillRuntimeService != null) {
+            justDodgeSkillRuntimeService.clearAll();
+        }
         if (skillTreeService != null) {
             skillTreeService.stop();
         }
@@ -797,6 +810,8 @@ public final class AstralRecord extends JavaPlugin {
         );
         // class
         playerClassService = new PlayerClassService(accountService);
+        afkService = new AfkService(playerClassService);
+        playerClassService.setAfkStateProvider(afkService::isAfk);
         itemStackFactory.setPlayerClassService(playerClassService);
         playerClassService.setSkillTreeService(skillTreeService);
         skillTreeService.setPlayerClassService(playerClassService);
@@ -866,6 +881,7 @@ public final class AstralRecord extends JavaPlugin {
                 playerClassService,
                 skillTreeService::isSkillTreeWorld
         );
+        overheadDisplayService.setAfkStateProvider(afkService::isAfk);
 
         // combat
         mobDropPresentationService = new MobDropPresentationService(
@@ -876,7 +892,9 @@ public final class AstralRecord extends JavaPlugin {
                 itemDropAnimationService,
                 playerSettingService
         );
+        mobDropPresentationService.setAfkService(afkService);
         gatheringService.setDropPresentationService(mobDropPresentationService);
+        gatheringService.setAfkService(afkService);
         var mobKnockbackService = new MobKnockbackService(mobService);
         mobVanillaEffectProtectionService = new MobVanillaEffectProtectionService();
         mobCombatService = new MobCombatService(
@@ -891,6 +909,7 @@ public final class AstralRecord extends JavaPlugin {
                 skillTreeService,
                 particleDisplayService
         );
+        mobCombatService.setAfkService(afkService);
         playerDeathService = new PlayerDeathService(
             this,
             accountService,
@@ -984,6 +1003,7 @@ public final class AstralRecord extends JavaPlugin {
             bossHubWorldId,
             new InstanceCreationQueue(instanceCreationQueueConfig.dungeon())
         );
+        dungeonService.setAfkService(afkService);
         partyService.addMembershipChangeListener(bossChallengeService::handlePartyMembershipChanged);
         partyService.addMembershipChangeListener(dungeonService::handlePartyMembershipChanged);
         damageService.setDungeonService(dungeonService);
@@ -1180,7 +1200,11 @@ public final class AstralRecord extends JavaPlugin {
         skillService.setConditionService(conditionService);
         skillService.setPlayerHudService(playerHudService);
         meditationSkillRuntimeService = new MeditationSkillRuntimeService(particleDisplayService);
+        justDodgeSkillRuntimeService = new JustDodgeSkillRuntimeService(statusService, particleDisplayService);
+        dodgeService.setSuccessfulDodgeListener(justDodgeSkillRuntimeService::onDodge);
+        damageService.setJustDodgeSkillRuntimeService(justDodgeSkillRuntimeService);
         skillService.registerExecutor(new MeditationSkillExecutor(meditationSkillRuntimeService));
+        skillService.registerExecutor(new AdministratorJustDodgeSkillExecutor(justDodgeSkillRuntimeService));
         skillService.registerExecutor(new AdministratorShieldRechargeSkillExecutor(statusService, particleDisplayService));
         skillService.registerExecutor(new FireBoostSkillExecutor(particleDisplayService));
         skillService.registerExecutor(new IronWillSkillExecutor());
@@ -1401,7 +1425,13 @@ public final class AstralRecord extends JavaPlugin {
             guideService,
             menuToolJoinGrantService
         );
+        playerJoinEventHandler.setPlayerLoadedListener(player -> passiveSkillService.reconcileNow(player));
+        playerJoinEventHandler.setPlayerQuitListener(passiveSkillService::onPlayerQuit);
         eventManager.registerHandler(playerJoinEventHandler, getServer().getPluginManager());
+        eventManager.registerHandler(
+            new AfkPlayerEventHandler(afkService),
+            getServer().getPluginManager()
+        );
         eventManager.registerHandler(
             new AdminMessageBossBarEventHandler(adminMessageBossBarService),
             getServer().getPluginManager()
@@ -1653,6 +1683,10 @@ public final class AstralRecord extends JavaPlugin {
             new MeditationSkillEventHandler(meditationSkillRuntimeService),
             getServer().getPluginManager()
         );
+        eventManager.registerHandler(
+            new JustDodgeSkillEventHandler(justDodgeSkillRuntimeService),
+            getServer().getPluginManager()
+        );
         var playerModeEventHandler = new PlayerModeEventHandler(accountModeApplicationService);
         eventManager.registerHandler(playerModeEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
@@ -1755,6 +1789,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         playerHudService.start(this);
+        afkService.start(this);
         skillCooldownBossBarService.start(this);
         statusRegenTask.start(this);
         displayTextService.start(this);

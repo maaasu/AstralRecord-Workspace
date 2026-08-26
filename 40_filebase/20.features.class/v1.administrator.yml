@@ -70,6 +70,7 @@ usableSkills:
   - skill:fire_boost
   - skill:iron_will
   - skill:administrator_shield_recharge
+  - skill:administrator_just_dodge
   - skill:adventurer_astral_edge
   - skill:adventurer_blast_arrow
   - skill:adventurer_mana_burst

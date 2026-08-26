@@ -29,6 +29,7 @@ import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
+import io.github.maaasu.astralRecord.feature.skill.service.JustDodgeSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -83,6 +84,7 @@ public final class DamageService {
     private EquipmentDurabilityService equipmentDurabilityService;
     private TemporarySkillEffectService temporarySkillEffectService;
     private CombatDpsTrackerService combatDpsTrackerService;
+    private JustDodgeSkillRuntimeService justDodgeSkillRuntimeService;
     private DirectDamageModifier directDamageModifier;
     private Consumer<AstPlayer> playerDamageListener = player -> { };
     private Consumer<UUID> mobDeathListener = mobInstanceId -> { };
@@ -258,6 +260,17 @@ public final class DamageService {
      */
     public void setDirectDamageModifier(@Nullable DirectDamageModifier directDamageModifier) {
         this.directDamageModifier = directDamageModifier;
+    }
+
+    /**
+     * ドッジ成功後の直接攻撃無効化を行う runtime を設定します。
+     *
+     * @param runtimeService ジャスト回避 runtime。null の場合は無効化しない
+     */
+    public void setJustDodgeSkillRuntimeService(
+            @Nullable JustDodgeSkillRuntimeService runtimeService
+    ) {
+        this.justDodgeSkillRuntimeService = runtimeService;
     }
 
     /**
@@ -641,6 +654,25 @@ public final class DamageService {
                         * conditionService.damageDealtMultiplier(attacker);
             }
             calculated = calculated.withFinalDamage(calculated.finalDamage() * multiplier);
+        }
+        DamageResult justDodgeDamage = calculated;
+        if (!calculated.evaded()
+                && calculated.finalDamage() <= 0.0D
+                && isDirectDamage(source)
+                && !hasActiveShield(victim)) {
+            double fixedHealthDamage = fixedHealthDamage(attacker);
+            if (fixedHealthDamage > 0.0D) {
+                justDodgeDamage = calculated.withAddedFixedHealthDamage(fixedHealthDamage);
+            }
+        }
+        if (justDodgeSkillRuntimeService != null
+                && isDirectDamage(source)
+                && justDodgeSkillRuntimeService.tryNegateDirectDamage(
+                        victim,
+                        source,
+                        justDodgeDamage
+                )) {
+            return new DamageResult(0.0D);
         }
         DirectDamageModification directDamageModification = resolveDirectDamageModification(
                 attacker,

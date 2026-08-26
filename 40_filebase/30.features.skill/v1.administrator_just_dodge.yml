@@ -1,0 +1,35 @@
+# design:
+#   motif: "運営管理 / 瞬間回避"
+#   progression: 0
+schemaVersion: 1
+id: administrator_just_dodge
+type: SKILL
+implementationId: administrator_just_dodge
+name: "&eジャスト回避"
+description: "&7ドッジの瞬間に攻撃を見切る防御パッシブ。"
+icon: FEATHER
+lore:
+  - "&7ドッジ後、{skill.invulnerabilityTicks:seconds}秒間、直接攻撃を無効化する。"
+  - "&7無効化回数に制限はない。"
+  - "&7無効化時、ENを{skill.energyRecoveryAmount}回復する。1回のドッジにつき1回まで。"
+  - "&7状態異常DoTは無効化しない。"
+cooldownTicks: 0
+resourceType: MANA
+resourceCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 1
+sigilSlotsByLevel: []
+allowedSigilIds: []
+gem:
+  rarity: RARE
+  tradeable: false
+  sellable: false
+passive:
+  bindRequired: true
+params:
+  invulnerabilityTicks: 8
+  energyRecoveryAmount: 10
+tags:
+  - passive
+  - defense

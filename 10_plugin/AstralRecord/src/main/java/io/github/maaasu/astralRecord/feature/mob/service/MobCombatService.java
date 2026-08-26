@@ -23,6 +23,7 @@ import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -74,6 +75,7 @@ public class MobCombatService {
     private PlayerDeathService playerDeathService;
     private QuestService questService;
     private DamageService damageService;
+    private AfkService afkService;
     private BiConsumer<AstPlayer, String> mobDefeatedListener;
     private BiConsumer<AstPlayer, MobDefeated> mobDefeatedLevelListener;
 
@@ -134,6 +136,15 @@ public class MobCombatService {
 
     public void setQuestService(@Nullable QuestService questService) {
         this.questService = questService;
+    }
+
+    /**
+     * AFK中のMob経験値付与を抑止する状態サービスを設定します。
+     *
+     * @param afkService AFK状態サービス
+     */
+    public void setAfkService(@NotNull AfkService afkService) {
+        this.afkService = afkService;
     }
 
     /** Mob 討伐を外部機能へ通知するリスナーを設定します。 */
@@ -408,7 +419,7 @@ public class MobCombatService {
     }
 
     private void applyExperienceAndSkillPoints(@NotNull AstPlayer recipient, @NotNull MobDropResult result) {
-        if (result.exp() <= 0) {
+        if (result.exp() <= 0 || (afkService != null && afkService.isAfk(recipient))) {
             return;
         }
         try {

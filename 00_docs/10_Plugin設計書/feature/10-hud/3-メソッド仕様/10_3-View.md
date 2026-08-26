@@ -41,4 +41,4 @@ plugin 専用 objective `astral_info` を player scoreboard に作成・再描�
 
 header に `ASTRAL RECORD` を表示し、performance 表示が有効な場合だけ MSPT と ping を色分けして追加する。
 
-各プレイヤーのリスト名は、ログインデータ反映時・クラス変更時・クラスマスター再読込時に `PlayerClassService.updatePlayerListName` が更新し、正式クラス名 `name` のタグをプレイヤー名の左へ表示する。
+各プレイヤーのリスト名は、ログインデータ反映時・クラス変更時・クラスマスター再読込時・AFK状態遷移時に `PlayerClassService.updatePlayerListName` が更新し、正式クラス名 `name` のタグをプレイヤー名の左へ表示する。AFK中は、その左に赤い`[AFK]`接頭辞を付与する。
