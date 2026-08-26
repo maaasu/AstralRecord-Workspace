@@ -29,7 +29,7 @@ passive:
   bindRequired: true
 params:
   invulnerabilityTicks: 8
-  energyRecoveryAmount: 10
+  energyRecoveryAmount: 30
 tags:
   - passive
   - defense
