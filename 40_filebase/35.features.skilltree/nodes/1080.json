@@ -2,11 +2,15 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1080",
-  "name": "&d暁刃の星脈",
-  "icon": "IRON_SWORD",
+  "name": "&d破軍の連星",
+  "icon": "FIRE_CHARGE",
   "tags": [
     "status",
-    "offense"
+    "offense",
+    "primary",
+    "strength",
+    "luck",
+    "ember"
   ],
   "pointType": "PP",
   "pointCost": 1,
@@ -15,10 +19,19 @@
       "type": "status",
       "status": "ATTACK",
       "modifierType": "FLAT",
-      "value": 1
+      "value": 4
+    },
+    {
+      "type": "status",
+      "status": "STRENGTH",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "CRITICAL_RATE",
+      "modifierType": "FLAT",
+      "value": 0.5
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 26
-  }
+  ]
 }

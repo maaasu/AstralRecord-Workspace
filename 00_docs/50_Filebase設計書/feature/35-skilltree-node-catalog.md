@@ -22,7 +22,7 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 
 | カタログ ID | 効果 | 表示名 | アイコン | タグ |
 |---|---|---|---|---|
-| `status-starter-foundation` | `MAX_HEALTH / FLAT / 5` + `MAX_MANA / FLAT / 5` + `MAX_ENERGY / FLAT / 5` | `&d旅立ちの記録` | `NETHER_STAR` | `root`, `shared`, `core`, `early` |
+| `status-starter-foundation` | `MAX_HEALTH / FLAT / 10` + `MAX_MANA / FLAT / 10` + `MAX_ENERGY / FLAT / 10` | `&d旅立ちの記録` | `NETHER_STAR` | `root`, `shared`, `core`, `early` |
 | `status-strength-flat-1` | `STRENGTH` / `FLAT` / `1` | `&d紅蓮の星脈` | `BLAZE_POWDER` | `status`, `primary`, `strength`, `ember` |
 | `status-dexterity-flat-1` | `DEXTERITY` / `FLAT` / `1` | `&d銀矢の星脈` | `ARROW` | `status`, `primary`, `dexterity` |
 | `status-intelligence-flat-1` | `INTELLIGENCE` / `FLAT` / `1` | `&d星詠みの星脈` | `ENCHANTED_BOOK` | `status`, `primary`, `intelligence`, `astral` |
@@ -40,6 +40,35 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `skill-swordsman-blade-counter` | `skill` / `swordsman_blade_counter` | `&f反照の剣星` | `WHITE_STAINED_GLASS` | `defense` |
 
 表の表示名には JSON に保存する Legacy color code を含めます。同じ能力を追加するときは、表の表示名、`icon`、タグをすべて同一にします。各配置済みノードには、従来どおり一意の `nodeId` を割り当てます。
+
+## PPステータスパッケージ
+
+PPノードは、1PPあたりの選択価値を確保するため、次の複数statusを一組として定義します。表の効果はすべて `FLAT` です。同じパッケージを複数の配置へ置く場合は、表示名・アイコン・タグを完全に一致させます。
+
+| カタログ ID | nodeId | 効果 | 表示名 | アイコン | タグ |
+|---|---|---|---|---|---|
+| `status-pp-foundation-offense` | `1048` | `ATTACK / FLAT / 2` + `STRENGTH / FLAT / 2` | `&d刃の起点` | `IRON_SWORD` | `status`, `offense`, `primary`, `strength`, `ember` |
+| `status-pp-foundation-brutality` | `1049` | `ATTACK / FLAT / 2` + `VITALITY / FLAT / 1` | `&d剛刃の起点` | `SHIELD` | `status`, `offense`, `primary`, `durability`, `ember` |
+| `status-pp-foundation-precision` | `1050` | `DEXTERITY / FLAT / 2` + `AGILITY / FLAT / 2` | `&d銀矢の起点` | `ARROW` | `status`, `primary`, `dexterity`, `agility`, `wind` |
+| `status-pp-foundation-swiftness` | `1051` | `AGILITY / FLAT / 2` + `ACCURACY / FLAT / 1` | `&d疾走の起点` | `FEATHER` | `status`, `offense`, `agility`, `accuracy`, `wind` |
+| `status-pp-foundation-vigor` | `1052` | `MAX_HEALTH / FLAT / 25` + `VITALITY / FLAT / 2` | `&d灯火の起点` | `HEART_OF_THE_SEA` | `status`, `primary`, `resource`, `health`, `durability` |
+| `status-pp-foundation-guard` | `1053` | `DEFENSE / FLAT / 2` + `MAX_HEALTH / FLAT / 15` | `&d玄岩の起点` | `OBSIDIAN` | `status`, `defense`, `durability`, `health`, `stone` |
+| `status-pp-foundation-arcana` | `1054` | `INTELLIGENCE / FLAT / 2` + `MAX_MANA / FLAT / 20` | `&d星詠みの起点` | `ENCHANTED_BOOK` | `status`, `primary`, `resource`, `intelligence`, `mana`, `astral` |
+| `status-pp-foundation-flow` | `1055` | `INTELLIGENCE / FLAT / 2` + `MAX_MANA / FLAT / 10` + `MP_REGEN / FLAT / 0.2` | `&d還流の起点` | `AMETHYST_SHARD` | `status`, `primary`, `resource`, `intelligence`, `mana`, `azure` |
+| `status-pp-north-ember` | `1056`, `1060`, `1064`, `1068` | `ATTACK / FLAT / 3` + `STRENGTH / FLAT / 2` | `&d紅蓮の連星` | `BLAZE_POWDER` | `status`, `offense`, `primary`, `strength`, `ember` |
+| `status-pp-north-war` | `1072`, `1076`, `1080` | `ATTACK / FLAT / 4` + `STRENGTH / FLAT / 3` + `CRITICAL_RATE / FLAT / 0.5` | `&d破軍の連星` | `FIRE_CHARGE` | `status`, `offense`, `primary`, `strength`, `luck`, `ember` |
+| `status-pp-north-capstone` | `1084` | `ATTACK / FLAT / 6` + `STRENGTH / FLAT / 5` + `CRITICAL_RATE / FLAT / 1` + `CRITICAL_DAMAGE / FLAT / 5` | `&d紅蓮の極星` | `NETHERITE_SWORD` | `status`, `offense`, `primary`, `strength`, `luck`, `ember` |
+| `status-pp-east-arrow` | `1057`, `1061`, `1065`, `1069` | `DEXTERITY / FLAT / 3` + `AGILITY / FLAT / 2` | `&d銀矢の連星` | `ARROW` | `status`, `primary`, `dexterity`, `agility`, `wind` |
+| `status-pp-east-wind` | `1073`, `1077` | `DEXTERITY / FLAT / 4` + `AGILITY / FLAT / 3` + `ACCURACY / FLAT / 1` | `&d疾風の連星` | `FEATHER` | `status`, `offense`, `primary`, `dexterity`, `agility`, `accuracy`, `wind` |
+| `status-pp-east-capstone` | `1081` | `DEXTERITY / FLAT / 6` + `AGILITY / FLAT / 5` + `ACCURACY / FLAT / 2` + `EVASION / FLAT / 1` | `&d天翔の極星` | `PHANTOM_MEMBRANE` | `status`, `offense`, `primary`, `dexterity`, `agility`, `accuracy`, `wind` |
+| `status-pp-south-grove` | `1058`, `1062`, `1066`, `1070` | `VITALITY / FLAT / 3` + `MAX_HEALTH / FLAT / 25` | `&d大樹の連星` | `OAK_SAPLING` | `status`, `primary`, `resource`, `health`, `durability` |
+| `status-pp-south-stone` | `1074`, `1078` | `VITALITY / FLAT / 3` + `DEFENSE / FLAT / 3` + `MAX_HEALTH / FLAT / 20` | `&d玄岩の連星` | `OBSIDIAN` | `status`, `primary`, `durability`, `defense`, `health`, `stone` |
+| `status-pp-south-capstone` | `1082` | `VITALITY / FLAT / 6` + `MAX_HEALTH / FLAT / 50` + `DEFENSE / FLAT / 5` + `MAGIC_DEFENSE / FLAT / 3` | `&d不壊の極星` | `ENCHANTED_GOLDEN_APPLE` | `status`, `primary`, `durability`, `defense`, `health`, `stone` |
+| `status-pp-west-astral` | `1059`, `1063`, `1067`, `1071` | `INTELLIGENCE / FLAT / 3` + `MAX_MANA / FLAT / 25` | `&d星詠みの連星` | `ENCHANTED_BOOK` | `status`, `primary`, `intelligence`, `resource`, `mana`, `astral` |
+| `status-pp-west-azure` | `1075`, `1079` | `INTELLIGENCE / FLAT / 4` + `MAX_MANA / FLAT / 30` + `MP_REGEN / FLAT / 0.2` | `&d蒼泉の連星` | `AMETHYST_SHARD` | `status`, `primary`, `intelligence`, `resource`, `mana`, `azure` |
+| `status-pp-west-capstone` | `1083` | `INTELLIGENCE / FLAT / 6` + `MAX_MANA / FLAT / 60` + `MP_REGEN / FLAT / 0.5` + `MAX_ENERGY / FLAT / 10` | `&d天穹の極星` | `END_CRYSTAL` | `status`, `primary`, `intelligence`, `resource`, `mana`, `energy`, `azure` |
+
+PPの通常パッケージはレベル条件なし、各方向のcapstoneだけは強力な複合statusとして `playerLevel` 条件を持ちます。ノード固有の `lore` は定義しません。
 
 ## 将来skill予約枠の暫定表現
 

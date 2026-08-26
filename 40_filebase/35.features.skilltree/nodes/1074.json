@@ -2,12 +2,14 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1074",
-  "name": "&d玄岩の星脈",
+  "name": "&d玄岩の連星",
   "icon": "OBSIDIAN",
   "tags": [
     "status",
-    "defense",
+    "primary",
     "durability",
+    "defense",
+    "health",
     "stone"
   ],
   "pointType": "PP",
@@ -15,12 +17,21 @@
   "effects": [
     {
       "type": "status",
+      "status": "VITALITY",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
       "status": "DEFENSE",
       "modifierType": "FLAT",
-      "value": 1
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 20
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 20
-  }
+  ]
 }

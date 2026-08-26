@@ -2,12 +2,15 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1078",
-  "name": "&d大樹の星脈",
-  "icon": "OAK_SAPLING",
+  "name": "&d玄岩の連星",
+  "icon": "OBSIDIAN",
   "tags": [
     "status",
     "primary",
-    "durability"
+    "durability",
+    "defense",
+    "health",
+    "stone"
   ],
   "pointType": "PP",
   "pointCost": 1,
@@ -16,10 +19,19 @@
       "type": "status",
       "status": "VITALITY",
       "modifierType": "FLAT",
-      "value": 1
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "DEFENSE",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 20
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 24
-  }
+  ]
 }

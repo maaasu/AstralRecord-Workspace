@@ -2,10 +2,11 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1060",
-  "name": "&d紅蓮の星脈",
+  "name": "&d紅蓮の連星",
   "icon": "BLAZE_POWDER",
   "tags": [
     "status",
+    "offense",
     "primary",
     "strength",
     "ember"
@@ -15,12 +16,15 @@
   "effects": [
     {
       "type": "status",
+      "status": "ATTACK",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
       "status": "STRENGTH",
       "modifierType": "FLAT",
-      "value": 1
+      "value": 2
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 6
-  }
+  ]
 }

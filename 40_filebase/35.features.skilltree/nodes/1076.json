@@ -2,12 +2,14 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1076",
-  "name": "&d紅蓮の星脈",
-  "icon": "BLAZE_POWDER",
+  "name": "&d破軍の連星",
+  "icon": "FIRE_CHARGE",
   "tags": [
     "status",
+    "offense",
     "primary",
     "strength",
+    "luck",
     "ember"
   ],
   "pointType": "PP",
@@ -15,12 +17,21 @@
   "effects": [
     {
       "type": "status",
+      "status": "ATTACK",
+      "modifierType": "FLAT",
+      "value": 4
+    },
+    {
+      "type": "status",
       "status": "STRENGTH",
       "modifierType": "FLAT",
-      "value": 1
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "CRITICAL_RATE",
+      "modifierType": "FLAT",
+      "value": 0.5
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 22
-  }
+  ]
 }

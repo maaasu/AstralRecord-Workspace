@@ -17,19 +17,19 @@
       "type": "status",
       "status": "MAX_HEALTH",
       "modifierType": "FLAT",
-      "value": 5
+      "value": 10
     },
     {
       "type": "status",
       "status": "MAX_MANA",
       "modifierType": "FLAT",
-      "value": 5
+      "value": 10
     },
     {
       "type": "status",
       "status": "MAX_ENERGY",
       "modifierType": "FLAT",
-      "value": 5
+      "value": 10
     }
   ]
 }

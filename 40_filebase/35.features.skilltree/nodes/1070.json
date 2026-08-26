@@ -2,25 +2,29 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1070",
-  "name": "&d灯火の星脈",
-  "icon": "HEART_OF_THE_SEA",
+  "name": "&d大樹の連星",
+  "icon": "OAK_SAPLING",
   "tags": [
     "status",
+    "primary",
     "resource",
     "health",
-    "starlight"
+    "durability"
   ],
   "pointType": "PP",
   "pointCost": 1,
   "effects": [
     {
       "type": "status",
+      "status": "VITALITY",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
       "status": "MAX_HEALTH",
       "modifierType": "FLAT",
-      "value": 10
+      "value": 25
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 16
-  }
+  ]
 }

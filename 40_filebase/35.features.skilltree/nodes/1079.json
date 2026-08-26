@@ -2,13 +2,15 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1079",
-  "name": "&d星詠みの星脈",
-  "icon": "ENCHANTED_BOOK",
+  "name": "&d蒼泉の連星",
+  "icon": "AMETHYST_SHARD",
   "tags": [
     "status",
     "primary",
     "intelligence",
-    "astral"
+    "resource",
+    "mana",
+    "azure"
   ],
   "pointType": "PP",
   "pointCost": 1,
@@ -17,10 +19,19 @@
       "type": "status",
       "status": "INTELLIGENCE",
       "modifierType": "FLAT",
-      "value": 1
+      "value": 4
+    },
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 30
+    },
+    {
+      "type": "status",
+      "status": "MP_REGEN",
+      "modifierType": "FLAT",
+      "value": 0.2
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 25
-  }
+  ]
 }

@@ -2,12 +2,14 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1054",
-  "name": "&d星詠みの星脈",
+  "name": "&d星詠みの起点",
   "icon": "ENCHANTED_BOOK",
   "tags": [
     "status",
     "primary",
+    "resource",
     "intelligence",
+    "mana",
     "astral"
   ],
   "pointType": "PP",
@@ -17,7 +19,13 @@
       "type": "status",
       "status": "INTELLIGENCE",
       "modifierType": "FLAT",
-      "value": 1
+      "value": 2
+    },
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 20
     }
   ]
 }

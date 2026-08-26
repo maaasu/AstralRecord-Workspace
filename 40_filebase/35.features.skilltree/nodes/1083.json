@@ -2,24 +2,46 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1083",
-  "name": "&d蒼穹の星脈",
-  "icon": "ENDER_PEARL",
+  "name": "&d天穹の極星",
+  "icon": "END_CRYSTAL",
   "tags": [
     "status",
+    "primary",
+    "intelligence",
     "resource",
-    "energy"
+    "mana",
+    "energy",
+    "azure"
   ],
   "pointType": "PP",
   "pointCost": 1,
   "effects": [
     {
       "type": "status",
+      "status": "INTELLIGENCE",
+      "modifierType": "FLAT",
+      "value": 6
+    },
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 60
+    },
+    {
+      "type": "status",
+      "status": "MP_REGEN",
+      "modifierType": "FLAT",
+      "value": 0.5
+    },
+    {
+      "type": "status",
       "status": "MAX_ENERGY",
       "modifierType": "FLAT",
-      "value": 5
+      "value": 10
     }
   ],
   "unlockCondition": {
-    "playerLevel": 29
+    "playerLevel": 28
   }
 }

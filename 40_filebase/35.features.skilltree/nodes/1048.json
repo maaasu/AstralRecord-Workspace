@@ -2,11 +2,14 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1048",
-  "name": "&d暁刃の星脈",
+  "name": "&d刃の起点",
   "icon": "IRON_SWORD",
   "tags": [
     "status",
-    "offense"
+    "offense",
+    "primary",
+    "strength",
+    "ember"
   ],
   "pointType": "PP",
   "pointCost": 0,
@@ -15,7 +18,13 @@
       "type": "status",
       "status": "ATTACK",
       "modifierType": "FLAT",
-      "value": 1
+      "value": 2
+    },
+    {
+      "type": "status",
+      "status": "STRENGTH",
+      "modifierType": "FLAT",
+      "value": 2
     }
   ]
 }

@@ -2,11 +2,14 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1056",
-  "name": "&d暁刃の星脈",
-  "icon": "IRON_SWORD",
+  "name": "&d紅蓮の連星",
+  "icon": "BLAZE_POWDER",
   "tags": [
     "status",
-    "offense"
+    "offense",
+    "primary",
+    "strength",
+    "ember"
   ],
   "pointType": "PP",
   "pointCost": 1,
@@ -15,10 +18,13 @@
       "type": "status",
       "status": "ATTACK",
       "modifierType": "FLAT",
-      "value": 1
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "STRENGTH",
+      "modifierType": "FLAT",
+      "value": 2
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 2
-  }
+  ]
 }

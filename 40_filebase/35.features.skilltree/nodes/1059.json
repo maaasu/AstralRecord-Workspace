@@ -2,12 +2,14 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1059",
-  "name": "&d星詠みの星脈",
+  "name": "&d星詠みの連星",
   "icon": "ENCHANTED_BOOK",
   "tags": [
     "status",
     "primary",
     "intelligence",
+    "resource",
+    "mana",
     "astral"
   ],
   "pointType": "PP",
@@ -17,10 +19,13 @@
       "type": "status",
       "status": "INTELLIGENCE",
       "modifierType": "FLAT",
-      "value": 1
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 25
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 5
-  }
+  ]
 }

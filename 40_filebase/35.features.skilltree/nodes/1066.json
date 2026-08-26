@@ -2,11 +2,13 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1066",
-  "name": "&d大樹の星脈",
+  "name": "&d大樹の連星",
   "icon": "OAK_SAPLING",
   "tags": [
     "status",
     "primary",
+    "resource",
+    "health",
     "durability"
   ],
   "pointType": "PP",
@@ -16,10 +18,13 @@
       "type": "status",
       "status": "VITALITY",
       "modifierType": "FLAT",
-      "value": 1
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 25
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 12
-  }
+  ]
 }

@@ -2,12 +2,15 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1081",
-  "name": "&d風渡りの星脈",
-  "icon": "FEATHER",
+  "name": "&d天翔の極星",
+  "icon": "PHANTOM_MEMBRANE",
   "tags": [
     "status",
+    "offense",
     "primary",
+    "dexterity",
     "agility",
+    "accuracy",
     "wind"
   ],
   "pointType": "PP",
@@ -15,12 +18,30 @@
   "effects": [
     {
       "type": "status",
+      "status": "DEXTERITY",
+      "modifierType": "FLAT",
+      "value": 6
+    },
+    {
+      "type": "status",
       "status": "AGILITY",
+      "modifierType": "FLAT",
+      "value": 5
+    },
+    {
+      "type": "status",
+      "status": "ACCURACY",
+      "modifierType": "FLAT",
+      "value": 2
+    },
+    {
+      "type": "status",
+      "status": "EVASION",
       "modifierType": "FLAT",
       "value": 1
     }
   ],
   "unlockCondition": {
-    "playerLevel": 27
+    "playerLevel": 24
   }
 }

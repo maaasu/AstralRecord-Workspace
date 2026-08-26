@@ -2,12 +2,13 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1049",
-  "name": "&d紅蓮の星脈",
-  "icon": "BLAZE_POWDER",
+  "name": "&d剛刃の起点",
+  "icon": "SHIELD",
   "tags": [
     "status",
+    "offense",
     "primary",
-    "strength",
+    "durability",
     "ember"
   ],
   "pointType": "PP",
@@ -15,7 +16,13 @@
   "effects": [
     {
       "type": "status",
-      "status": "STRENGTH",
+      "status": "ATTACK",
+      "modifierType": "FLAT",
+      "value": 2
+    },
+    {
+      "type": "status",
+      "status": "VITALITY",
       "modifierType": "FLAT",
       "value": 1
     }

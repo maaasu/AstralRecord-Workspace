@@ -2,11 +2,15 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1073",
-  "name": "&d迅風の星脈",
-  "icon": "SUGAR",
+  "name": "&d疾風の連星",
+  "icon": "FEATHER",
   "tags": [
     "status",
+    "offense",
+    "primary",
+    "dexterity",
     "agility",
+    "accuracy",
     "wind"
   ],
   "pointType": "PP",
@@ -14,12 +18,21 @@
   "effects": [
     {
       "type": "status",
-      "status": "MOVEMENT_SPEED",
+      "status": "DEXTERITY",
+      "modifierType": "FLAT",
+      "value": 4
+    },
+    {
+      "type": "status",
+      "status": "AGILITY",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "ACCURACY",
       "modifierType": "FLAT",
       "value": 1
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 19
-  }
+  ]
 }

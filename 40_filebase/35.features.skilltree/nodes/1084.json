@@ -2,12 +2,14 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1084",
-  "name": "&d紅蓮の星脈",
-  "icon": "BLAZE_POWDER",
+  "name": "&d紅蓮の極星",
+  "icon": "NETHERITE_SWORD",
   "tags": [
     "status",
+    "offense",
     "primary",
     "strength",
+    "luck",
     "ember"
   ],
   "pointType": "PP",
@@ -15,12 +17,30 @@
   "effects": [
     {
       "type": "status",
+      "status": "ATTACK",
+      "modifierType": "FLAT",
+      "value": 6
+    },
+    {
+      "type": "status",
       "status": "STRENGTH",
       "modifierType": "FLAT",
+      "value": 5
+    },
+    {
+      "type": "status",
+      "status": "CRITICAL_RATE",
+      "modifierType": "FLAT",
       "value": 1
+    },
+    {
+      "type": "status",
+      "status": "CRITICAL_DAMAGE",
+      "modifierType": "FLAT",
+      "value": 5
     }
   ],
   "unlockCondition": {
-    "playerLevel": 30
+    "playerLevel": 20
   }
 }

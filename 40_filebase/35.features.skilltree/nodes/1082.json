@@ -2,24 +2,45 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1082",
-  "name": "&d星衣の星脈",
+  "name": "&d不壊の極星",
   "icon": "ENCHANTED_GOLDEN_APPLE",
   "tags": [
     "status",
+    "primary",
+    "durability",
     "defense",
-    "astral"
+    "health",
+    "stone"
   ],
   "pointType": "PP",
   "pointCost": 1,
   "effects": [
     {
       "type": "status",
+      "status": "VITALITY",
+      "modifierType": "FLAT",
+      "value": 6
+    },
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 50
+    },
+    {
+      "type": "status",
+      "status": "DEFENSE",
+      "modifierType": "FLAT",
+      "value": 5
+    },
+    {
+      "type": "status",
       "status": "MAGIC_DEFENSE",
       "modifierType": "FLAT",
-      "value": 1
+      "value": 3
     }
   ],
   "unlockCondition": {
-    "playerLevel": 28
+    "playerLevel": 26
   }
 }

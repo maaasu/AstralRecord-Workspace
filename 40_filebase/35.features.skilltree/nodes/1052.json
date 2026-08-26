@@ -2,13 +2,14 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1052",
-  "name": "&d灯火の星脈",
+  "name": "&d灯火の起点",
   "icon": "HEART_OF_THE_SEA",
   "tags": [
     "status",
+    "primary",
     "resource",
     "health",
-    "starlight"
+    "durability"
   ],
   "pointType": "PP",
   "pointCost": 0,
@@ -17,7 +18,13 @@
       "type": "status",
       "status": "MAX_HEALTH",
       "modifierType": "FLAT",
-      "value": 10
+      "value": 25
+    },
+    {
+      "type": "status",
+      "status": "VITALITY",
+      "modifierType": "FLAT",
+      "value": 2
     }
   ]
 }

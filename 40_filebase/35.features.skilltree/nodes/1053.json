@@ -2,12 +2,13 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1053",
-  "name": "&d玄岩の星脈",
+  "name": "&d玄岩の起点",
   "icon": "OBSIDIAN",
   "tags": [
     "status",
     "defense",
     "durability",
+    "health",
     "stone"
   ],
   "pointType": "PP",
@@ -17,7 +18,13 @@
       "type": "status",
       "status": "DEFENSE",
       "modifierType": "FLAT",
-      "value": 1
+      "value": 2
+    },
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 15
     }
   ]
 }

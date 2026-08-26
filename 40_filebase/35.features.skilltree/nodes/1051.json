@@ -2,12 +2,13 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1051",
-  "name": "&d風渡りの星脈",
+  "name": "&d疾走の起点",
   "icon": "FEATHER",
   "tags": [
     "status",
-    "primary",
+    "offense",
     "agility",
+    "accuracy",
     "wind"
   ],
   "pointType": "PP",
@@ -16,6 +17,12 @@
     {
       "type": "status",
       "status": "AGILITY",
+      "modifierType": "FLAT",
+      "value": 2
+    },
+    {
+      "type": "status",
+      "status": "ACCURACY",
       "modifierType": "FLAT",
       "value": 1
     }

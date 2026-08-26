@@ -2,11 +2,12 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1061",
-  "name": "&d風渡りの星脈",
-  "icon": "FEATHER",
+  "name": "&d銀矢の連星",
+  "icon": "ARROW",
   "tags": [
     "status",
     "primary",
+    "dexterity",
     "agility",
     "wind"
   ],
@@ -15,12 +16,15 @@
   "effects": [
     {
       "type": "status",
+      "status": "DEXTERITY",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
       "status": "AGILITY",
       "modifierType": "FLAT",
-      "value": 1
+      "value": 2
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 7
-  }
+  ]
 }

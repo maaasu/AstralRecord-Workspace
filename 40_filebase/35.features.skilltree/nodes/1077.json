@@ -2,12 +2,16 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1077",
-  "name": "&d銀矢の星脈",
-  "icon": "ARROW",
+  "name": "&d疾風の連星",
+  "icon": "FEATHER",
   "tags": [
     "status",
+    "offense",
     "primary",
-    "dexterity"
+    "dexterity",
+    "agility",
+    "accuracy",
+    "wind"
   ],
   "pointType": "PP",
   "pointCost": 1,
@@ -16,10 +20,19 @@
       "type": "status",
       "status": "DEXTERITY",
       "modifierType": "FLAT",
+      "value": 4
+    },
+    {
+      "type": "status",
+      "status": "AGILITY",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "ACCURACY",
+      "modifierType": "FLAT",
       "value": 1
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 23
-  }
+  ]
 }

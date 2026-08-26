@@ -2,12 +2,14 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1065",
-  "name": "&d銀矢の星脈",
+  "name": "&d銀矢の連星",
   "icon": "ARROW",
   "tags": [
     "status",
     "primary",
-    "dexterity"
+    "dexterity",
+    "agility",
+    "wind"
   ],
   "pointType": "PP",
   "pointCost": 1,
@@ -16,10 +18,13 @@
       "type": "status",
       "status": "DEXTERITY",
       "modifierType": "FLAT",
-      "value": 1
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "AGILITY",
+      "modifierType": "FLAT",
+      "value": 2
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 11
-  }
+  ]
 }
