@@ -1,0 +1,35 @@
+# design:
+#   motif: "植物 / 夜の草花"
+#   progression: 2
+schemaVersion: 1
+id: nox_flora_gathering
+type: QUEST
+name: "&a影草の採集依頼"
+description:
+  - "&7ノクスの草地に生える影草を10回採集する依頼。"
+icon: FERN
+repeat:
+  mode: REPEATABLE
+completion:
+  mode: AUTO
+objectives:
+  - id: gather_nox_shadowgrass
+    type: GATHERING
+    targetId:
+      ref: gathering:nox_shadowgrass_patch
+    label: "影草の茂み"
+    amount: 10
+acceptRequirements:
+  items: []
+rewards:
+  exp: 60
+  gold: 30
+  items:
+    - itemId:
+        ref: item:healing_potion_small
+      category: consumable
+      amount: 3
+    - itemId:
+        ref: item:mana_potion_small
+      category: consumable
+      amount: 3

@@ -4,14 +4,18 @@ type: QUEST_BOARD
 name: "&2村長の依頼"
 quests:
   - questId:
+      ref: quest:nox_flora_gathering
+    page: 1
+    slot: 0
+  - questId:
       ref: quest:midgard_grassboar_hunt
     page: 1
-    slot: 10
+    slot: 14
   - questId:
       ref: quest:midgard_moss_shell_hunt
     page: 1
-    slot: 12
+    slot: 15
   - questId:
       ref: quest:midgard_clay_guard_skeleton_archer_hunt
     page: 1
-    slot: 14
+    slot: 16

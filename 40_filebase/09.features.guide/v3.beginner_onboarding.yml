@@ -7,7 +7,7 @@ category: beginner
 displayOrder: 10
 title: "&b冒険を始めよう"
 iconMaterial: NETHER_STAR
-summary: "&7ノクスで必要な準備と最初の戦闘を体験する。"
+summary: "&7ノクスで必要な準備、最初の戦闘、採集を体験する。"
 steps:
   - id: login
     text: "&fゲームへログインする"
@@ -186,3 +186,15 @@ steps:
     condition:
       type: SHOP_PURCHASED
       targetId: nox_hoe
+  - id: complete_gathering_quest
+    text: "&f村長マルクスから&e採集依頼&fを受注して達成する"
+    details:
+      - "&7村長マルクスに話しかけ、&e影草の採集依頼&7を受注する。"
+      - "&7ノクスの草地にある採集スポナーで&e影草の茂み&7を10回採集する。"
+    action:
+      type: NAVIGATE_NPC
+      npcId: village_elder
+      description: "&dクリックで村長マルクスの場所を表示し、発光させる。"
+    condition:
+      type: GATHERING_COMPLETED
+      targetId: nox_flora_spawner
