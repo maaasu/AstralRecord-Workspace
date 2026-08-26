@@ -423,5 +423,8 @@ public class EquipmentServiceTests
 
         public Task<AccountResponse?> UpdateAsync(Guid uuid, AccountUpdateRequest request) =>
             throw new NotSupportedException();
+
+        public Task<AccountDeleteResponse?> DeleteAsync(Guid uuid, AccountDeleteRequest request) =>
+            throw new NotSupportedException();
     }
 }

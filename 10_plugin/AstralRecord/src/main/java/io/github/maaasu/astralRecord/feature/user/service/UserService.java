@@ -120,6 +120,22 @@ public class UserService {
         }
     }
 
+    /**
+     * Minecraft ID でユーザーを取得します。
+     * 管理コマンドのオフライン対象解決では、Bukkit のキャッシュではなく API の登録情報を正とします。
+     *
+     * @param mcid Minecraft ID
+     * @return ユーザーモデル。存在しないか API 取得に失敗した場合は null
+     */
+    public UserModel getUserByMcid(String mcid) {
+        try {
+            return userRepository.findByMcid(mcid);
+        } catch (Exception e) {
+            Logger.log(LogId.W_5052, mcid, e.getMessage());
+            return null;
+        }
+    }
+
     public UserModel setPermission(UUID uuid, int permission, UUID updatedBy) {
         userRepository.updatePermission(uuid, permission, updatedBy);
         return getUser(uuid);

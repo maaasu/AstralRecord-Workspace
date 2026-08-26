@@ -1807,6 +1807,15 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     /**
+     * オンラインプレイヤーの参加・退出・再ロードを管理するサービスを取得します。
+     *
+     * @return プレイヤーサービス。プラグイン有効化完了後に利用可能
+     */
+    public PlayerService getPlayerService() {
+        return playerService;
+    }
+
+    /**
      * 通貨サービスを取得します。
      *
      * @return 通貨サービス

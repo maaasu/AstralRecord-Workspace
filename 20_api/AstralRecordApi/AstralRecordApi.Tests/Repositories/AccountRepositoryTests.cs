@@ -11,6 +11,74 @@ namespace AstralRecordApi.Tests.Repositories;
 public class AccountRepositoryTests
 {
     [Fact]
+    public async Task DeleteAsync_SelectsLowestRemainingAccountAndSoftDeletesTheTarget()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(connection).Options;
+
+        var userId = Guid.NewGuid();
+        var deletedAccountId = Guid.NewGuid();
+        var selectedAccountId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        await using (var setupContext = new AstralRecordDbContext(options))
+        {
+            await setupContext.Database.EnsureCreatedAsync();
+            setupContext.Users.Add(CreateUser(userId, deletedAccountId, now));
+            setupContext.Accounts.AddRange(
+                CreateAccount(deletedAccountId, userId, 4, true, now),
+                CreateAccount(selectedAccountId, userId, 1, false, now));
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var repository = new AccountRepository(dbContext);
+        var result = await repository.DeleteAsync(deletedAccountId, new AccountDeleteRequest { DeletedBy = userId });
+
+        Assert.NotNull(result);
+        Assert.False(result!.CreatedReplacement);
+        Assert.Equal(selectedAccountId, result.SelectedAccountId);
+        var deleted = await dbContext.Accounts.SingleAsync(account => account.Uuid == deletedAccountId);
+        var selected = await dbContext.Accounts.SingleAsync(account => account.Uuid == selectedAccountId);
+        var user = await dbContext.Users.SingleAsync(user => user.Uuid == userId);
+        Assert.True(deleted.IsDeleted);
+        Assert.False(deleted.IsActive);
+        Assert.True(selected.IsActive);
+        Assert.Equal(selectedAccountId, user.AccountId);
+    }
+
+    [Fact]
+    public async Task DeleteAsync_CreatesReplacementInDeletedSlotWhenNoAccountRemains()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(connection).Options;
+
+        var userId = Guid.NewGuid();
+        var deletedAccountId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        await using (var setupContext = new AstralRecordDbContext(options))
+        {
+            await setupContext.Database.EnsureCreatedAsync();
+            setupContext.Users.Add(CreateUser(userId, deletedAccountId, now));
+            setupContext.Accounts.Add(CreateAccount(deletedAccountId, userId, 3, true, now));
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var repository = new AccountRepository(dbContext);
+        var result = await repository.DeleteAsync(deletedAccountId, new AccountDeleteRequest { DeletedBy = userId });
+
+        Assert.NotNull(result);
+        Assert.True(result!.CreatedReplacement);
+        var replacement = await dbContext.Accounts.SingleAsync(account => account.Uuid == result.SelectedAccountId);
+        Assert.NotEqual(deletedAccountId, replacement.Uuid);
+        Assert.Equal(3, replacement.SlotIndex);
+        Assert.True(replacement.IsActive);
+        Assert.False(replacement.IsDeleted);
+    }
+
+    [Fact]
     public async Task UpdateAsync_UpdatesLevelAndTotalExperienceTogether()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
@@ -287,4 +355,39 @@ public class AccountRepositoryTests
             UpdatedBy = userId
         }));
     }
+
+    private static UserEntity CreateUser(Guid userId, Guid accountId, DateTime now) => new()
+    {
+        Uuid = userId,
+        Mcid = "tester",
+        JoinDate = now,
+        LastJoinDate = now,
+        GlobalIp = "127.0.0.1",
+        AccountId = accountId,
+        CreatedAt = now,
+        UpdatedAt = now,
+        CreatedBy = userId,
+        UpdatedBy = userId,
+    };
+
+    private static AccountEntity CreateAccount(Guid accountId, Guid userId, int slotIndex, bool isActive, DateTime now) => new()
+    {
+        Uuid = accountId,
+        UserId = userId,
+        AccountName = "tester",
+        SlotIndex = slotIndex,
+        IsActive = isActive,
+        Mode = 0,
+        MenuShortcutsJson = "{}",
+        Level = 1,
+        TotalExperience = 0,
+        ClassId = "adventurer",
+        ClassLevel = 1,
+        ClassExperience = 0,
+        CreatedAt = now,
+        UpdatedAt = now,
+        CreatedBy = userId,
+        UpdatedBy = userId,
+        IsDeleted = false,
+    };
 }

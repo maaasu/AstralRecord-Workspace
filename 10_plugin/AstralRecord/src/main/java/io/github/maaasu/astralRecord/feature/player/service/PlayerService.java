@@ -340,6 +340,39 @@ public class PlayerService {
     }
 
     /**
+     * アカウント削除前に、対象アカウントのオンライン実行状態を保存せず破棄します。
+     * 削除処理が完了するまで当該 state を保存キューへ渡さないため、削除後に古いデータを再保存しません。
+     *
+     * @param player 削除対象アカウントを使用中のオンラインプレイヤー
+     */
+    public void discardOnlineSessionForAccountDeletion(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            return;
+        }
+        UUID accountId = astPlayer.getAccount().getUuid();
+        player.closeInventory();
+        playerRegionService.clearPlayer(player.getUniqueId());
+        inventoryStateRegistry.remove(accountId);
+        inventoryService.clearClickGuard(accountId);
+        inventoryService.clearHiddenEntriesFromGui(accountId);
+        inventoryService.clearEquippedSetEffectDisplayCounts(accountId);
+        statusService.clearShieldRuntimeState(player.getUniqueId());
+        AstPlayerCache.remove(player.getUniqueId(), astPlayer);
+        player.updateCommands();
+    }
+
+    /**
+     * アカウント削除の直前に、そのアカウントに対して既に受け付けたインベントリ保存を完了させます。
+     * 呼び出し元は Bukkit メインスレッド外で待機し、以後は削除前に runtime state を破棄して新しい保存を投入しません。
+     *
+     * @param accountId 削除するアカウント UUID
+     */
+    public void awaitQueuedSavesForAccountDeletion(@NotNull UUID accountId) {
+        inventorySaveCoordinator.awaitQueuedSaves(accountId).join();
+    }
+
+    /**
      * プレイヤーログイン履歴を API へ登録します。
      *
      * @param playerUuid プレイヤー UUID

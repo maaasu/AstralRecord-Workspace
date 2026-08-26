@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.account.service;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountExperienceResult;
+import io.github.maaasu.astralRecord.feature.account.model.AccountDeleteResult;
 import io.github.maaasu.astralRecord.feature.account.model.AccountLevelSetResult;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
@@ -162,6 +163,23 @@ public class AccountService {
         AccountModel updated = accountRepository.updateMode(accountUuid, mode, updatedBy);
         Logger.log(LogId.I_5102, accountUuid, mode.getValue(), updatedBy);
         return updated;
+    }
+
+    /**
+     * 指定アカウントを削除し、削除済みアカウントの保留中進行度を破棄します。
+     *
+     * @param accountUuid 削除対象アカウント UUID
+     * @param deletedBy 削除実行者 UUID
+     * @return 削除結果。対象が存在しない場合は {@code null}
+     */
+    public @Nullable AccountDeleteResult deleteAccount(@NotNull UUID accountUuid, @NotNull UUID deletedBy) {
+        pendingExperienceUpdates.remove(accountUuid);
+        pendingClassProgressUpdates.remove(accountUuid);
+        AccountDeleteResult result = accountRepository.delete(accountUuid, deletedBy);
+        if (result != null) {
+            Logger.log(LogId.I_5104, accountUuid, result.getDeletedSlotIndex(), deletedBy);
+        }
+        return result;
     }
 
     /**

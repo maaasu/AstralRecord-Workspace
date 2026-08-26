@@ -66,7 +66,7 @@
 
 | 制約名                        | カラム                        | 説明                                 |
 |:---------------------------|:---------------------------|:-----------------------------------|
-| `UQ_account_user_slot`     | `user_id`, `slot_index`    | 同一プレイヤーのスロット番号の重複を防ぐ               |
+| `UX_account_user_slot_active` | `user_id`, `slot_index` | `is_deleted = 0` のアカウントだけでスロット番号の重複を防ぐ |
 
 ### CHECK 制約
 
@@ -103,6 +103,7 @@
 | `PK_account`               | `uuid`       | CLUSTERED（主キー） | 主キー検索                 |
 | `IX_account_user_id`       | `user_id`    | NONCLUSTERED   | プレイヤー所有アカウント一覧取得      |
 | `IX_account_is_deleted`    | `is_deleted` | NONCLUSTERED   | 論理削除フィルタリング           |
+| `UX_account_user_slot_active` | `user_id`, `slot_index` | UNIQUE NONCLUSTERED（フィルター） | 未削除アカウントのスロット重複防止 |
 
 ---
 
@@ -133,7 +134,6 @@ CREATE TABLE [dbo].[account] (
         REFERENCES [dbo].[user] ([uuid])
         ON DELETE NO ACTION
         ON UPDATE NO ACTION,
-    CONSTRAINT [UQ_account_user_slot] UNIQUE ([user_id], [slot_index]),
     CONSTRAINT [CK_account_mode] CHECK ([mode] IN (0, 2)),
     CONSTRAINT [CK_account_menu_shortcuts_json] CHECK (ISJSON([menu_shortcuts_json]) = 1),
     CONSTRAINT [CK_account_level] CHECK ([level] >= 1),
@@ -151,6 +151,11 @@ GO
 CREATE NONCLUSTERED INDEX [IX_account_is_deleted]
     ON [dbo].[account] ([is_deleted]);
 GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_account_user_slot_active]
+    ON [dbo].[account] ([user_id], [slot_index])
+    WHERE [is_deleted] = 0;
+GO
 ```
 
 ---
@@ -166,6 +171,13 @@ GO
 | プレイヤーレベル管理  | `level` と `total_experience` により、アカウント単位の進行度を永続化する     |
 | クラス進行度管理 | `class_id` で現在クラスを保持し、クラス別レベル・経験値の正本は `dbo.account_class_progress` に永続化する。`class_level` / `class_experience` は現在クラスの互換ミラーとする |
 | 論理削除         | `is_deleted` フラグにより、キャラクターの削除を物理削除せず論理削除として管理する   |
+
+## アカウント削除の整合性規則
+
+- アカウント削除は API の単一トランザクションで行い、アカウント専用の進行度・インベントリ・装備・クエスト・スキルなども同時に削除する。`is_deleted` を持つ行は論理削除し、履歴共有ではなく `is_deleted` を持たない従属行は子→親の順に物理削除する。
+- マーケット取引、取引コミット、装備操作台帳などの履歴または他アカウントと共有する記録は削除せず、`is_deleted = 1` の `dbo.account` を参照したまま保持する。
+- 最後の未削除アカウントを削除する場合は、同一スロットへ初期状態のアカウントを作成し、`dbo.user.account_id` をそのアカウントへ切り替える。
+- `dbo.account` を参照するテーブル・外部キー・アカウント専用データを追加または変更するDB設計変更では、この削除処理の削除対象・履歴保持区分・トランザクション処理を必ず見直し、必要な修正を同じ変更に含める。
 
 ---
 

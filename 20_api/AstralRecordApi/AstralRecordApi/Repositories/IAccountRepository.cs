@@ -8,4 +8,5 @@ public interface IAccountRepository
     Task<AccountResponse?> GetByUuidAsync(Guid uuid);
     Task<AccountResponse> CreateAsync(AccountCreateRequest request);
     Task<AccountResponse?> UpdateAsync(Guid uuid, AccountUpdateRequest request);
+    Task<AccountDeleteResponse?> DeleteAsync(Guid uuid, AccountDeleteRequest request);
 }

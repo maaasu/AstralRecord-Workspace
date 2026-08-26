@@ -92,6 +92,28 @@ class UserRepository {
         }
     }
 
+    /**
+     * Minecraft ID でユーザーを取得します（論理削除除外）。
+     * GET /api/user/mcid/{mcid}
+     */
+    fun findByMcid(mcid: String): UserModel? {
+        val path = "/api/user/mcid/$mcid"
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                return when (response.statusCode()) {
+                    200 -> parseUserModel(response.body())
+                    404 -> null
+                    else -> throw IOException("Unexpected status ${response.statusCode()} for GET $path")
+                }
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw RuntimeException(e)
+        }
+    }
+
     // -------------------------------------------------------
     // INSERT
     // -------------------------------------------------------

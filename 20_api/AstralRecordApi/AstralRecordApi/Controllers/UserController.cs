@@ -25,6 +25,22 @@ public class UserController(IUserRepository userRepository) : ControllerBase
         return Ok(user);
     }
 
+    /// <summary>Minecraft ID でユーザー情報を取得します。</summary>
+    /// <param name="mcid">Minecraft ID</param>
+    /// <response code="200">ユーザー取得成功</response>
+    /// <response code="404">指定 Minecraft ID のユーザーが存在しない、または論理削除済み</response>
+    [HttpGet("mcid/{mcid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> GetByMcid(string mcid)
+    {
+        var user = await userRepository.GetByMcidAsync(mcid);
+        if (user is null)
+            return NotFound();
+
+        return Ok(user);
+    }
+
     /// <summary>ユーザー登録</summary>
     /// <param name="request">登録するユーザー情報</param>
     /// <response code="201">ユーザー登録成功</response>

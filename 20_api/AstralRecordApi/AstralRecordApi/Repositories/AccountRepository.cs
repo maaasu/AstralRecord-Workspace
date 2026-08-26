@@ -2,6 +2,7 @@ using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace AstralRecordApi.Repositories;
 
@@ -166,6 +167,263 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
 
         return MapToResponse(account);
     }
+
+    /// <summary>
+    /// アカウント専用の実行データを論理削除し、ユーザーの選択先を残存アカウントまたは同一スロットの新規アカウントへ切り替えます。
+    /// マーケット・取引などの履歴行は保持し、削除済みアカウントを参照し続けます。
+    /// </summary>
+    public async Task<AccountDeleteResponse?> DeleteAsync(Guid uuid, AccountDeleteRequest request)
+    {
+        await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var now = DateTime.UtcNow;
+        var account = await dbContext.Accounts
+            .FirstOrDefaultAsync(candidate => candidate.Uuid == uuid && !candidate.IsDeleted);
+        if (account is null)
+            return null;
+
+        var user = await dbContext.Users
+            .FirstOrDefaultAsync(candidate => candidate.Uuid == account.UserId && !candidate.IsDeleted);
+        if (user is null)
+            throw new InvalidOperationException($"User {account.UserId} was not found for account {uuid}.");
+
+        await DeleteOwnedDataAsync(account.Uuid, now, request.DeletedBy);
+
+        account.IsDeleted = true;
+        account.IsActive = false;
+        account.UpdatedAt = now;
+        account.UpdatedBy = request.DeletedBy;
+
+        var remainingAccounts = await dbContext.Accounts
+            .Where(candidate => candidate.UserId == account.UserId
+                && candidate.Uuid != account.Uuid
+                && !candidate.IsDeleted)
+            .OrderBy(candidate => candidate.SlotIndex)
+            .ToListAsync();
+
+        foreach (var remaining in remainingAccounts)
+            remaining.IsActive = false;
+
+        var selected = remainingAccounts.FirstOrDefault();
+        var createdReplacement = selected is null;
+        if (selected is null)
+        {
+            selected = CreateReplacementAccount(account, now, request.DeletedBy);
+            await dbContext.Accounts.AddAsync(selected);
+            await dbContext.AccountClassProgresses.AddAsync(new AccountClassProgressEntity
+            {
+                AccountId = selected.Uuid,
+                ClassId = selected.ClassId,
+                Level = selected.ClassLevel,
+                Experience = selected.ClassExperience,
+                UpdatedAt = now,
+                UpdatedBy = request.DeletedBy,
+            });
+        }
+        selected.IsActive = true;
+        user.AccountId = selected.Uuid;
+        user.UpdatedAt = now;
+        user.UpdatedBy = request.DeletedBy;
+
+        await dbContext.SaveChangesAsync();
+        await transaction.CommitAsync();
+
+        return new AccountDeleteResponse
+        {
+            DeletedAccountId = account.Uuid,
+            UserId = account.UserId,
+            DeletedSlotIndex = account.SlotIndex,
+            SelectedAccountId = selected.Uuid,
+            CreatedReplacement = createdReplacement,
+        };
+    }
+
+    private async Task DeleteOwnedDataAsync(Guid accountId, DateTime deletedAt, Guid deletedBy)
+    {
+        await dbContext.AccountClassProgresses
+            .Where(entity => entity.AccountId == accountId)
+            .ExecuteDeleteAsync();
+        await dbContext.AccountLearnedSkillSigils
+            .Where(entity => dbContext.AccountLearnedSkills
+                .Where(learnedSkill => learnedSkill.AccountId == accountId)
+                .Select(learnedSkill => learnedSkill.LearnedSkillId)
+                .Contains(entity.LearnedSkillId) && !entity.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(entity => entity.IsDeleted, true)
+                .SetProperty(entity => entity.UpdatedAt, deletedAt)
+                .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        await dbContext.AccountLearnedSkills
+            .Where(entity => entity.AccountId == accountId && !entity.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(entity => entity.IsDeleted, true)
+                .SetProperty(entity => entity.UpdatedAt, deletedAt)
+                .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        await dbContext.SkillBindPresets
+            .Where(entity => entity.AccountId == accountId && !entity.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(entity => entity.IsDeleted, true)
+                .SetProperty(entity => entity.UpdatedAt, deletedAt)
+                .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        await dbContext.AccountSkillTreeUnlockedNodes
+            .Where(entity => dbContext.AccountSkillTreeStates
+                .Where(state => state.AccountId == accountId)
+                .Select(state => state.AccountSkillTreeStateId)
+                .Contains(entity.AccountSkillTreeStateId))
+            .ExecuteDeleteAsync();
+        await dbContext.AccountSkillTreeStates
+            .Where(entity => entity.AccountId == accountId && !entity.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(entity => entity.IsDeleted, true)
+                .SetProperty(entity => entity.UpdatedAt, deletedAt)
+                .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        await dbContext.AccountWaystoneUnlocks
+            .Where(entity => entity.AccountId == accountId && !entity.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(entity => entity.IsDeleted, true)
+                .SetProperty(entity => entity.UpdatedAt, deletedAt)
+                .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        await dbContext.AccountGuideStepProgresses
+            .Where(entity => entity.AccountId == accountId)
+            .ExecuteDeleteAsync();
+        await dbContext.AccountQuestObjectiveProgresses
+            .Where(entity => dbContext.AccountQuestActives
+                .Where(active => dbContext.AccountQuestStates
+                    .Where(state => state.AccountId == accountId)
+                    .Select(state => state.AccountQuestStateId)
+                    .Contains(active.AccountQuestStateId))
+                .Select(active => active.AccountQuestActiveId)
+                .Contains(entity.AccountQuestActiveId))
+            .ExecuteDeleteAsync();
+        await dbContext.AccountQuestActives
+            .Where(entity => dbContext.AccountQuestStates
+                .Where(state => state.AccountId == accountId)
+                .Select(state => state.AccountQuestStateId)
+                .Contains(entity.AccountQuestStateId))
+            .ExecuteDeleteAsync();
+        await dbContext.AccountQuestCompletions
+            .Where(entity => dbContext.AccountQuestStates
+                .Where(state => state.AccountId == accountId)
+                .Select(state => state.AccountQuestStateId)
+                .Contains(entity.AccountQuestStateId))
+            .ExecuteDeleteAsync();
+        await dbContext.AccountQuestCooldowns
+            .Where(entity => dbContext.AccountQuestStates
+                .Where(state => state.AccountId == accountId)
+                .Select(state => state.AccountQuestStateId)
+                .Contains(entity.AccountQuestStateId))
+            .ExecuteDeleteAsync();
+        await dbContext.AccountQuestStates
+            .Where(entity => entity.AccountId == accountId && !entity.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(entity => entity.IsDeleted, true)
+                .SetProperty(entity => entity.UpdatedAt, deletedAt)
+                .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        await dbContext.LoginBonusClaims
+            .Where(entity => entity.AccountId == accountId && !entity.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(entity => entity.IsDeleted, true)
+                .SetProperty(entity => entity.UpdatedAt, deletedAt)
+                .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        await dbContext.InventoryEntries
+            .Where(entity => dbContext.Inventories
+                .Where(inventory => inventory.AccountId == accountId)
+                .Select(inventory => inventory.InventoryId)
+                .Contains(entity.InventoryId) && !entity.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(entity => entity.IsDeleted, true)
+                .SetProperty(entity => entity.UpdatedAt, deletedAt)
+                .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        await dbContext.Inventories
+            .Where(entity => entity.AccountId == accountId && !entity.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(entity => entity.IsDeleted, true)
+                .SetProperty(entity => entity.UpdatedAt, deletedAt)
+                .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        await dbContext.EquipmentLoadoutSlots
+            .Where(entity => dbContext.EquipmentLoadouts
+                .Where(loadout => loadout.AccountId == accountId)
+                .Select(loadout => loadout.EquipmentLoadoutId)
+                .Contains(entity.EquipmentLoadoutId) && !entity.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(entity => entity.IsDeleted, true)
+                .SetProperty(entity => entity.UpdatedAt, deletedAt)
+                .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        await dbContext.EquipmentInstanceStatRolls
+            .Where(entity => dbContext.EquipmentInstances
+                .Where(instance => instance.AccountId == accountId)
+                .Select(instance => instance.EquipmentInstanceId)
+                .Contains(entity.EquipmentInstanceId))
+            .ExecuteDeleteAsync();
+        await dbContext.EquipmentInstanceEnchants
+            .Where(entity => dbContext.EquipmentInstances
+                .Where(instance => instance.AccountId == accountId)
+                .Select(instance => instance.EquipmentInstanceId)
+                .Contains(entity.EquipmentInstanceId))
+            .ExecuteDeleteAsync();
+        await dbContext.EquipmentInstanceRunes
+            .Where(entity => dbContext.EquipmentInstances
+                .Where(instance => instance.AccountId == accountId)
+                .Select(instance => instance.EquipmentInstanceId)
+                .Contains(entity.EquipmentInstanceId))
+            .ExecuteDeleteAsync();
+        await dbContext.EquipmentInstances
+            .Where(entity => entity.AccountId == accountId && !entity.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(entity => entity.IsDeleted, true)
+                .SetProperty(entity => entity.UpdatedAt, deletedAt)
+                .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        await dbContext.EquipmentLoadouts
+            .Where(entity => entity.AccountId == accountId && !entity.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(entity => entity.IsDeleted, true)
+                .SetProperty(entity => entity.UpdatedAt, deletedAt)
+                .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        await dbContext.AccountMobRecords
+            .Where(entity => entity.AccountId == accountId && !entity.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(entity => entity.IsDeleted, true)
+                .SetProperty(entity => entity.UpdatedAt, deletedAt)
+                .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        await dbContext.AccountDungeonRecords
+            .Where(entity => entity.AccountId == accountId && !entity.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(entity => entity.IsDeleted, true)
+                .SetProperty(entity => entity.UpdatedAt, deletedAt)
+                .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        await dbContext.MarketAccountStates
+            .Where(entity => entity.AccountId == accountId && !entity.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(entity => entity.IsDeleted, true)
+                .SetProperty(entity => entity.UpdatedAt, deletedAt)
+                .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        await dbContext.MarketListings
+            .Where(entity => entity.SellerAccountId == accountId && entity.Status == "ACTIVE" && !entity.IsDeleted)
+            .ExecuteUpdateAsync(setters => setters
+                .SetProperty(entity => entity.Status, "CANCELED")
+                .SetProperty(entity => entity.StatusReason, "ACCOUNT_DELETED")
+                .SetProperty(entity => entity.CanceledAt, deletedAt)
+                .SetProperty(entity => entity.UpdatedAt, deletedAt)
+                .SetProperty(entity => entity.UpdatedBy, deletedBy));
+    }
+
+    private static AccountEntity CreateReplacementAccount(AccountEntity deleted, DateTime now, Guid createdBy) => new()
+    {
+        Uuid = Guid.NewGuid(),
+        UserId = deleted.UserId,
+        AccountName = deleted.AccountName,
+        SlotIndex = deleted.SlotIndex,
+        IsActive = true,
+        Mode = 0,
+        Level = 1,
+        TotalExperience = 0,
+        ClassId = "adventurer",
+        ClassLevel = 1,
+        ClassExperience = 0,
+        CreatedAt = now,
+        UpdatedAt = now,
+        CreatedBy = createdBy,
+        UpdatedBy = createdBy,
+        IsDeleted = false,
+    };
 
     private static AccountClassProgressEntity? FindClassProgress(AccountEntity account, string classId) =>
         account.ClassProgresses.FirstOrDefault(progress =>

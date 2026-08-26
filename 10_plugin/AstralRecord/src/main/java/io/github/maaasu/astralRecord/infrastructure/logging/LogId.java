@@ -389,6 +389,8 @@ public enum LogId {
      */
     I_5102(5102),
     I_5103(5103),
+    /** アカウントを削除しました: %s (slot=%d, deletedBy=%s) */
+    I_5104(5104),
     // endregion
 
     // region /feature/account/repository/AccountRepository.kt

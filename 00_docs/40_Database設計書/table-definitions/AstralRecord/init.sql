@@ -204,7 +204,6 @@ CREATE TABLE [dbo].[account] (
         REFERENCES [dbo].[user] ([uuid])
         ON DELETE NO ACTION
         ON UPDATE NO ACTION,
-    CONSTRAINT [UQ_account_user_slot] UNIQUE ([user_id], [slot_index]),
     CONSTRAINT [CK_account_mode] CHECK ([mode] IN (0, 2)),
     CONSTRAINT [CK_account_menu_shortcuts_json] CHECK (ISJSON([menu_shortcuts_json]) = 1),
     CONSTRAINT [CK_account_level] CHECK ([level] >= 1),
@@ -221,6 +220,11 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_account_is_deleted]
     ON [dbo].[account] ([is_deleted]);
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_account_user_slot_active]
+    ON [dbo].[account] ([user_id], [slot_index])
+    WHERE [is_deleted] = 0;
 GO
 
 -- ============================================================

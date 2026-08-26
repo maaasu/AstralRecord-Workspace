@@ -12,12 +12,13 @@ import java.util.Locale;
  */
 public class AccountCommand extends AstCommand {
     private final AccountModeCommand modeCommand = new AccountModeCommand();
+    private final AccountDeleteCommand deleteCommand = new AccountDeleteCommand();
 
     /**
      * アカウント管理コマンドを初期化します。
      */
     public AccountCommand() {
-        super("account", "アカウントを管理します。", "/account mode <mode> [<player|accountUuid>]", false, 99);
+        super("account", "アカウントを管理します。", "/account <mode|delete> ...", false, 99);
     }
 
     /**
@@ -36,6 +37,10 @@ public class AccountCommand extends AstCommand {
         String action = args[0].toLowerCase(Locale.ROOT);
         if (action.equals("mode")) {
             modeCommand.executeCommand(sender, Arrays.copyOfRange(args, 1, args.length));
+            return;
+        }
+        if (action.equals("delete")) {
+            deleteCommand.executeCommand(sender, Arrays.copyOfRange(args, 1, args.length));
             return;
         }
 

@@ -78,4 +78,20 @@ public class AccountController(IAccountRepository accountRepository) : Controlle
 
         return Ok(account);
     }
+
+    /// <summary>アカウントとアカウント専用データを論理削除する</summary>
+    /// <param name="uuid">削除対象のアカウント UUID</param>
+    /// <param name="request">削除実行者</param>
+    /// <response code="200">削除成功</response>
+    /// <response code="404">指定 UUID のアカウントが存在しない、または論理削除済み</response>
+    [HttpDelete("{uuid:guid}")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Delete(Guid uuid, [FromBody] AccountDeleteRequest request)
+    {
+        if (request.DeletedBy == Guid.Empty)
+            return Problem(statusCode: StatusCodes.Status400BadRequest, title: "Validation failed", detail: "deletedBy is required.");
+        var deleted = await accountRepository.DeleteAsync(uuid, request);
+        return deleted is null ? NotFound() : Ok(deleted);
+    }
 }

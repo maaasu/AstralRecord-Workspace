@@ -31,3 +31,4 @@
 - DB / テーブルを追加・変更した場合は `table-definitions/<DB>/` と `<DB>/init.sql` を更新する。
 - API の DTO / Entity / Repository を変更した場合は `00_docs/20_API設計書/` の対象 feature を更新する。
 - filebase YAML スキーマを変更した場合は `40_filebase/` 配下の `docs.*.YAMLスキーマ定義.md` と Seeder の変換仕様を更新する。
+- `dbo.account` を参照するテーブル、外部キー、またはアカウント専用データを追加・変更した場合は、アカウント削除 API の削除対象・履歴保持区分・トランザクション処理を同時に見直し、必要な修正を入れる。履歴または他アカウントと共有する記録は削除済みアカウントを参照したまま保持する。

@@ -18,6 +18,19 @@ public class UserRepository(
         return user is null ? null : MapToResponse(user);
     }
 
+    public async Task<UserResponse?> GetByMcidAsync(string mcid)
+    {
+        var normalizedMcid = mcid.Trim();
+        if (normalizedMcid.Length == 0)
+            return null;
+
+        var user = await dbContext.Users
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.Mcid == normalizedMcid && !x.IsDeleted);
+
+        return user is null ? null : MapToResponse(user);
+    }
+
     public async Task<UserResponse> CreateAsync(UserCreateRequest request)
     {
         var now = DateTime.UtcNow;

@@ -6,6 +6,7 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel
+import io.github.maaasu.astralRecord.feature.account.model.AccountDeleteResult
 import io.github.maaasu.astralRecord.feature.account.model.ClassProgressModel
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
@@ -279,6 +280,31 @@ class AccountRepository {
         }
     }
 
+    /**
+     * アカウントとアカウント専用データを論理削除します。
+     * DELETE /api/account/{targetUuid}
+     */
+    fun delete(targetUuid: UUID, deletedBy: UUID): AccountDeleteResult? {
+        val path = "/api/account/$targetUuid"
+        val body = ApiRequestUtil.buildJsonBody { addProperty("deletedBy", deletedBy.toString()) }
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .method("DELETE", HttpRequest.BodyPublishers.ofString(body))
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                return when (response.statusCode()) {
+                    200 -> parseAccountDeleteResult(response.body())
+                    404 -> null
+                    else -> throw IOException("Unexpected status ${response.statusCode()} for DELETE $path")
+                }
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw RuntimeException(e)
+        }
+    }
+
     // -------------------------------------------------------
     // JSON マッピング
     // -------------------------------------------------------
@@ -371,6 +397,17 @@ class AccountRepository {
     private fun parseAccountList(json: String): List<AccountModel> {
         val arr: JsonArray = JsonParser.parseString(json).asJsonArray
         return arr.map { it.asJsonObject.toAccountModel() }
+    }
+
+    private fun parseAccountDeleteResult(json: String): AccountDeleteResult {
+        val obj = JsonParser.parseString(json).asJsonObject
+        return AccountDeleteResult(
+            deletedAccountId = UUID.fromString(obj.get("deletedAccountId").asString),
+            userId = UUID.fromString(obj.get("userId").asString),
+            deletedSlotIndex = obj.get("deletedSlotIndex").asInt,
+            selectedAccountId = UUID.fromString(obj.get("selectedAccountId").asString),
+            createdReplacement = obj.get("createdReplacement").asBoolean,
+        )
     }
 
     private fun parseApiDateTime(value: String): LocalDateTime {

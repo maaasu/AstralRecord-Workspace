@@ -12,6 +12,7 @@ import java.util.List;
  */
 public class AccountTabCompleter extends AstTabCompleter {
     private final AccountModeTabCompleter modeTabCompleter = new AccountModeTabCompleter();
+    private final AccountDeleteTabCompleter deleteTabCompleter = new AccountDeleteTabCompleter();
 
     /**
      * /account の入力位置に応じて補完候補を返します。
@@ -23,10 +24,13 @@ public class AccountTabCompleter extends AstTabCompleter {
     @Override
     protected List<String> getCompletions(@NotNull CommandSender sender, @NotNull String[] args) {
         if (args.length == 1) {
-            return List.of("mode");
+            return List.of("mode", "delete");
         }
         if (args.length > 1 && args[0].equalsIgnoreCase("mode")) {
             return modeTabCompleter.onTabComplete(sender, null, "account", Arrays.copyOfRange(args, 1, args.length));
+        }
+        if (args.length > 1 && args[0].equalsIgnoreCase("delete")) {
+            return deleteTabCompleter.onTabComplete(sender, null, "account", Arrays.copyOfRange(args, 1, args.length));
         }
         return List.of();
     }
