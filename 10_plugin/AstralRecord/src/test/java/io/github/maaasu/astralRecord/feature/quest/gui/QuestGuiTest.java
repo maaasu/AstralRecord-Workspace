@@ -1,6 +1,13 @@
 package io.github.maaasu.astralRecord.feature.quest.gui;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.quest.model.QuestBoardDefinition;
+import io.github.maaasu.astralRecord.feature.quest.model.QuestBoardEntry;
+import io.github.maaasu.astralRecord.feature.quest.model.QuestCompletionMode;
+import io.github.maaasu.astralRecord.feature.quest.model.QuestDefinition;
+import io.github.maaasu.astralRecord.feature.quest.model.QuestDisplayState;
+import io.github.maaasu.astralRecord.feature.quest.model.QuestRepeatMode;
+import io.github.maaasu.astralRecord.feature.quest.model.QuestRewardDefinition;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationHolder;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
@@ -13,10 +20,64 @@ import org.mockbukkit.mockbukkit.plugin.PluginMock;
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class QuestGuiTest extends MockBukkitTestBase {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 13. NPC interaction・GUI
+     * 検証契約: 同一ボードを表示中にクエスト状態を更新して再描画すると、表示中インベントリを維持したまま最新の状態表示へ更新する。
+     */
+    @Test
+    void refreshesTheCurrentBoardWithoutReplacingItsInventory() {
+        PluginMock plugin = PluginMock.builder().withPluginName("astralrecord").build();
+        QuestService questService = mock(QuestService.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        QuestDefinition quest = new QuestDefinition(
+            "quest-test",
+            "テストクエスト",
+            List.of(),
+            Material.PAPER,
+            QuestRepeatMode.ONCE,
+            0L,
+            QuestCompletionMode.NPC,
+            null,
+            List.of(),
+            List.of(),
+            new QuestRewardDefinition(0, 0L, List.of())
+        );
+        QuestBoardDefinition board = new QuestBoardDefinition(
+            "board-test",
+            "テストボード",
+            List.of(new QuestBoardEntry("quest-test", 1, 0, null, null))
+        );
+        when(questService.findQuest("quest-test")).thenReturn(quest);
+        when(questService.findBoard("board-test")).thenReturn(board);
+        when(questService.displayState(astPlayer, quest))
+            .thenReturn(QuestDisplayState.AVAILABLE)
+            .thenReturn(QuestDisplayState.READY_TO_TURN_IN);
+        QuestGui questGui = new QuestGui(plugin, questService);
+        var player = server().addPlayer();
+
+        questGui.openBoard(player, astPlayer, board, "npc-test");
+        Inventory inventory = player.getOpenInventory().getTopInventory();
+        assertEquals(
+            "状態: 受領可能",
+            PlainTextComponentSerializer.plainText().serialize(inventory.getItem(10).getItemMeta().lore().getFirst())
+        );
+
+        assertTrue(questGui.refreshBoard(player, astPlayer, board.id()));
+
+        assertSame(inventory, player.getOpenInventory().getTopInventory());
+        assertEquals(
+            "状態: 報告可能",
+            PlainTextComponentSerializer.plainText().serialize(inventory.getItem(10).getItemMeta().lore().getFirst())
+        );
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md

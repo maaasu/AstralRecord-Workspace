@@ -68,6 +68,42 @@ public final class QuestGui {
             SIZE,
             LEGACY.deserialize(ColorCodeUtil.toLegacyText(board.name(), board.id()) + pageSuffix(totalBoardPages(board), page))
         );
+        renderBoard(inventory, astPlayer, board, page);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+    }
+
+    /**
+     * 現在表示中の同一クエストボードを最新状態で再描画します。
+     *
+     * @param player 再描画対象のプレイヤー
+     * @param astPlayer クエスト状態を参照するプレイヤー
+     * @param expectedBoardId 報告処理を開始したボード ID。別のボードへ移動済みなら再描画しない
+     * @return 同一ボードを再描画できた場合は{@code true}、対象GUIが表示されていない場合は{@code false}
+     */
+    public boolean refreshBoard(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
+        @NotNull String expectedBoardId
+    ) {
+        Inventory inventory = player.getOpenInventory().getTopInventory();
+        if (!(inventory.getHolder() instanceof BoardHolder holder)
+            || !expectedBoardId.equals(holder.boardId())) {
+            return false;
+        }
+        QuestBoardDefinition board = questService.findBoard(holder.boardId());
+        if (board == null) {
+            return false;
+        }
+        renderBoard(inventory, astPlayer, board, normalizeBoardPage(board, holder.pageIndex()));
+        return true;
+    }
+
+    private void renderBoard(
+        @NotNull Inventory inventory,
+        @NotNull AstPlayer astPlayer,
+        @NotNull QuestBoardDefinition board,
+        int page
+    ) {
         fillFrame(inventory);
         board.entries().stream()
             .filter(entry -> toPageIndex(entry.page()) == page)
@@ -80,7 +116,6 @@ public final class QuestGui {
                 }
             });
         renderPagination(inventory, page, totalBoardPages(board));
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     public void openList(@NotNull Player player, @NotNull AstPlayer astPlayer) {
@@ -89,6 +124,27 @@ public final class QuestGui {
             SIZE,
             Component.text("クエスト一覧", NamedTextColor.DARK_GREEN, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false)
         );
+        renderList(inventory, astPlayer);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
+    }
+
+    /**
+     * 現在表示中のクエスト一覧を最新状態で再描画します。
+     *
+     * @param player 再描画対象のプレイヤー
+     * @param astPlayer クエスト状態を参照するプレイヤー
+     * @return クエスト一覧が表示中で再描画できた場合は{@code true}
+     */
+    public boolean refreshList(@NotNull Player player, @NotNull AstPlayer astPlayer) {
+        Inventory inventory = player.getOpenInventory().getTopInventory();
+        if (!(inventory.getHolder() instanceof ListHolder)) {
+            return false;
+        }
+        renderList(inventory, astPlayer);
+        return true;
+    }
+
+    private void renderList(@NotNull Inventory inventory, @NotNull AstPlayer astPlayer) {
         fillFrame(inventory);
         inventory.setItem(BACK_SLOT, GuiItems.backButton());
         List<QuestDefinition> active = questService.activeQuests(astPlayer);
@@ -99,7 +155,6 @@ public final class QuestGui {
         for (int index = firstUnavailableSlot; index <= MAX_LOGICAL_SLOT; index++) {
             inventory.setItem(listSlot(index), questLimitGuideItem(astPlayer));
         }
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
     private @NotNull ItemStack questLimitGuideItem(@NotNull AstPlayer astPlayer) {

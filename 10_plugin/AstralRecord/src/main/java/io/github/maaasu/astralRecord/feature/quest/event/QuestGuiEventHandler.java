@@ -19,6 +19,7 @@ import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -108,19 +109,23 @@ public final class QuestGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
+        String npcId = questGui.getNpcId(event.getView().getTopInventory());
         QuestDisplayState state = questService.displayState(astPlayer, quest);
         boolean changed = switch (state) {
-            case AVAILABLE -> questService.accept(astPlayer, quest, questGui.getNpcId(event.getView().getTopInventory()));
-            case READY_TO_TURN_IN -> questService.turnIn(astPlayer, quest, questGui.getNpcId(event.getView().getTopInventory()));
+            case AVAILABLE -> questService.accept(astPlayer, quest, npcId);
+            case READY_TO_TURN_IN -> questService.turnIn(
+                astPlayer,
+                quest,
+                npcId,
+                () -> refreshBoardIfCurrent(player, astPlayer, board.id())
+            );
             default -> false;
         };
-        questGui.openBoard(player, astPlayer, board, questGui.getNpcId(event.getView().getTopInventory()), pageIndex);
+        refreshBoardIfCurrent(player, astPlayer, board.id());
         if (!changed) {
             GuiSound.DENY.play(player);
-        } else if (state == QuestDisplayState.READY_TO_TURN_IN) {
-            GuiSound.REWARD.play(player);
         } else {
-            GuiSound.SUCCESS.play(player);
+            GuiSound.SELECT.play(player);
         }
     }
 
@@ -137,8 +142,24 @@ public final class QuestGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        questGui.openList(player, astPlayer);
+        questGui.refreshList(player, astPlayer);
         GuiSound.SELECT.play(player);
+    }
+
+    private void refreshBoardIfCurrent(
+        @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
+        @NotNull String expectedBoardId
+    ) {
+        if (!player.isOnline()) {
+            return;
+        }
+        Inventory inventory = player.getOpenInventory().getTopInventory();
+        if (!questGui.isBoardInventory(inventory)
+            || !expectedBoardId.equals(questGui.getBoardId(inventory))) {
+            return;
+        }
+        questGui.refreshBoard(player, astPlayer, expectedBoardId);
     }
 
     /**

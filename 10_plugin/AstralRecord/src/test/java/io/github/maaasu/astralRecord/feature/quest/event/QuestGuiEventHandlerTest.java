@@ -3,9 +3,16 @@ package io.github.maaasu.astralRecord.feature.quest.event;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.quest.model.QuestBoardDefinition;
+import io.github.maaasu.astralRecord.feature.quest.model.QuestCompletionMode;
+import io.github.maaasu.astralRecord.feature.quest.model.QuestDefinition;
+import io.github.maaasu.astralRecord.feature.quest.model.QuestDisplayState;
+import io.github.maaasu.astralRecord.feature.quest.model.QuestRepeatMode;
+import io.github.maaasu.astralRecord.feature.quest.model.QuestRewardDefinition;
 import io.github.maaasu.astralRecord.feature.quest.gui.QuestGui;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
 import org.bukkit.entity.Player;
+import org.bukkit.Material;
 import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.Inventory;
@@ -13,16 +20,47 @@ import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+import org.mockito.ArgumentCaptor;
 
 import java.util.UUID;
+import java.util.List;
 
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 
 class QuestGuiEventHandlerTest {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 13. NPC interaction・GUI
+     * 検証契約: ボード操作直後に同一ボードを再描画し、非同期の報告完了callback後にも表示中ボードを再描画する。
+     */
+    @Test
+    void refreshesBoardImmediatelyAndAfterDeferredTurnInCompletion() {
+        TestContext context = new TestContext(ClickType.LEFT);
+        context.configureReadyToTurnInBoard();
+
+        context.invokeClick();
+
+        ArgumentCaptor<Runnable> completed = ArgumentCaptor.forClass(Runnable.class);
+        verify(context.questGui).refreshBoard(context.player, context.astPlayer, context.board.id());
+        verify(context.questService).turnIn(
+            eq(context.astPlayer),
+            eq(context.quest),
+            eq(context.npcId),
+            completed.capture()
+        );
+
+        completed.getValue().run();
+
+        verify(context.questGui, times(2)).refreshBoard(context.player, context.astPlayer, context.board.id());
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
@@ -51,7 +89,7 @@ class QuestGuiEventHandlerTest {
         context.invokeClick();
 
         verify(context.questService).abandon(context.astPlayer, context.questId);
-        verify(context.questGui).openList(context.player, context.astPlayer);
+        verify(context.questGui).refreshList(context.player, context.astPlayer);
     }
 
     /**
@@ -66,7 +104,7 @@ class QuestGuiEventHandlerTest {
         context.invokeClick();
 
         verify(context.questService).abandon(context.astPlayer, context.questId);
-        verify(context.questGui).openList(context.player, context.astPlayer);
+        verify(context.questGui).refreshList(context.player, context.astPlayer);
     }
 
     private static final class TestContext {
@@ -81,6 +119,21 @@ class QuestGuiEventHandlerTest {
         private final InventoryClickEvent event = mock(InventoryClickEvent.class);
         private final QuestGuiEventHandler handler = new QuestGuiEventHandler(questGui, questService, inventoryService);
         private final String questId = "quest-test";
+        private final String npcId = "npc-test";
+        private final QuestDefinition quest = new QuestDefinition(
+            questId,
+            "テストクエスト",
+            List.of(),
+            Material.PAPER,
+            QuestRepeatMode.ONCE,
+            0L,
+            QuestCompletionMode.NPC,
+            null,
+            List.of(),
+            List.of(),
+            new QuestRewardDefinition(0, 0L, List.of())
+        );
+        private final QuestBoardDefinition board = new QuestBoardDefinition("board-test", "テストボード", List.of());
 
         private TestContext(ClickType click) {
             when(view.getTopInventory()).thenReturn(topInventory);
@@ -94,6 +147,19 @@ class QuestGuiEventHandlerTest {
             when(questGui.isListInventory(topInventory)).thenReturn(true);
             when(questGui.getQuestId(questItem)).thenReturn(questId);
             when(questService.abandon(astPlayer, questId)).thenReturn(true);
+        }
+
+        private void configureReadyToTurnInBoard() {
+            when(player.isOnline()).thenReturn(true);
+            when(questGui.isListInventory(topInventory)).thenReturn(false);
+            when(questGui.isBoardInventory(topInventory)).thenReturn(true);
+            when(questGui.getBoardId(topInventory)).thenReturn(board.id());
+            when(questGui.getNpcId(topInventory)).thenReturn(npcId);
+            when(questGui.getQuestId(questItem)).thenReturn(questId);
+            when(questService.findBoard(board.id())).thenReturn(board);
+            when(questService.findQuest(questId)).thenReturn(quest);
+            when(questService.displayState(astPlayer, quest)).thenReturn(QuestDisplayState.READY_TO_TURN_IN);
+            when(questService.turnIn(eq(astPlayer), eq(quest), eq(npcId), any())).thenReturn(true);
         }
 
         private void invokeClick() {

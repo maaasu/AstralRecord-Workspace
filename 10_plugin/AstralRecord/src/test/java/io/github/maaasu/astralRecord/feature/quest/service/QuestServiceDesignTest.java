@@ -35,9 +35,12 @@ import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import org.bukkit.Registry;
+import org.bukkit.Sound;
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
 import org.mockito.InOrder;
+import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
 import java.util.List;
 import java.util.Map;
@@ -46,6 +49,7 @@ import java.util.Queue;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -460,7 +464,7 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
      * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
-     * 検証契約: quest保存後もinventory保存完了までclaimと演出を保留し、両保存成功後だけclaim解除・完了state・particleを公開する。
+     * 検証契約: quest保存後もinventory保存完了までclaim・演出・完了callbackを保留し、両保存成功後だけclaim解除・完了state・confirm音・particle・callbackを公開する。
      */
     @Test
     void completionKeepsClaimAndPresentationPendingUntilBothStoresAreSaved() {
@@ -474,7 +478,8 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         ManualExecutor asyncExecutor = new ManualExecutor();
         ManualExecutor mainExecutor = new ManualExecutor();
         QuestHarness harness = questHarness(quest, asyncExecutor, mainExecutor);
-        AstPlayer player = playerWithQuestLimit(2.0D);
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer player = playerWithQuestLimit(bukkitPlayer, 2.0D);
         QuestPlayerState state = readyState(player, quest);
         harness.service.applyInitialState(state);
         InventoryService.InventoryStateSnapshot inventorySnapshot = inventorySnapshot(player);
@@ -483,11 +488,13 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         CompletableFuture<Boolean> inventorySave = new CompletableFuture<>();
         when(harness.inventoryService.saveNow(player.getAccount().getUuid())).thenReturn(inventorySave);
 
-        assertTrue(harness.service.turnIn(player, quest, null));
+        AtomicBoolean refreshed = new AtomicBoolean();
+        assertTrue(harness.service.turnIn(player, quest, null, () -> refreshed.set(true)));
         asyncExecutor.runAll();
         mainExecutor.runAll();
 
         assertTrue(harness.service.hasPendingRewardClaim(player.getAccount().getUuid(), quest.id()));
+        assertFalse(refreshed.get());
         verify(harness.stateRepository, never()).save(any(QuestPlayerState.class));
         verify(harness.inventoryService, never()).saveNow(player.getAccount().getUuid());
         verify(harness.particleDisplayService, never()).spawnForNearbyViewers(
@@ -500,6 +507,7 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         verify(harness.stateRepository).save(any(QuestPlayerState.class));
         verify(harness.inventoryService).saveNow(player.getAccount().getUuid());
         assertTrue(harness.service.hasPendingRewardClaim(player.getAccount().getUuid(), quest.id()));
+        assertFalse(refreshed.get());
         verify(harness.particleDisplayService, never()).spawnForNearbyViewers(
             any(),
             eq(SharedParticleDefinitions.PLAYER_LEVEL_UP_TOTEM)
@@ -510,6 +518,7 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         mainExecutor.runAll();
 
         assertFalse(harness.service.hasPendingRewardClaim(player.getAccount().getUuid(), quest.id()));
+        assertTrue(refreshed.get());
         assertFalse(state.activeQuests().containsKey(quest.id()));
         assertTrue(state.completedAt().containsKey(quest.id()));
         verify(harness.particleDisplayService).spawnForNearbyViewers(
@@ -520,6 +529,9 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
             any(),
             eq(SharedParticleDefinitions.PLAYER_LEVEL_UP_END_ROD)
         );
+        assertEquals(1L, heardSoundCount(bukkitPlayer, Sound.BLOCK_NOTE_BLOCK_PLING));
+        assertEquals(0L, heardSoundCount(bukkitPlayer, Sound.UI_TOAST_CHALLENGE_COMPLETE));
+        assertEquals(0L, heardSoundCount(bukkitPlayer, Sound.ENTITY_PLAYER_LEVELUP));
     }
 
     /**
@@ -865,11 +877,22 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
     }
 
     private AstPlayer playerWithQuestLimit(double questLimit) {
-        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        return playerWithQuestLimit(server().addPlayer(), questLimit);
+    }
+
+    private AstPlayer playerWithQuestLimit(PlayerMock bukkitPlayer, double questLimit) {
+        AstPlayer player = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.PLAYER);
         player.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
             StatusType.QUEST_LIMIT, questLimit
         ), 100.0D, 0.0D, 0.0D));
         return player;
+    }
+
+    private static long heardSoundCount(PlayerMock player, Sound sound) {
+        String soundKey = Registry.SOUND_EVENT.getKeyOrThrow(sound).getKey();
+        return player.getHeardSounds().stream()
+            .filter(heardSound -> soundKey.equals(heardSound.getSound()))
+            .count();
     }
 
     private QuestDefinition quest(

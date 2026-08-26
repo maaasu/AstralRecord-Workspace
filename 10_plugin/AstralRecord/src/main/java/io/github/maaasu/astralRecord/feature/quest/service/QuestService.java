@@ -37,6 +37,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
@@ -428,7 +429,34 @@ public final class QuestService {
         return true;
     }
 
+    /**
+     * クエストを報告し、報酬処理を開始します。
+     *
+     * @param player 報告する gameplay account のプレイヤー
+     * @param quest 報告するクエスト定義
+     * @param npcId 報告元NPC ID。NPC完了以外では未指定でもよい
+     * @return 報告条件を満たして報酬処理を開始できた場合は{@code true}
+     */
     public boolean turnIn(@NotNull AstPlayer player, @NotNull QuestDefinition quest, @Nullable String npcId) {
+        return turnIn(player, quest, npcId, () -> {
+        });
+    }
+
+    /**
+     * クエストを報告し、報酬とクエスト状態の永続化成功後に完了通知を呼び出します。
+     *
+     * @param player 報告する gameplay account のプレイヤー
+     * @param quest 報告するクエスト定義
+     * @param npcId 報告元NPC ID。NPC完了以外では未指定でもよい
+     * @param onCompleted 報酬処理と関連する永続化が成功した後にメインスレッドで呼び出す処理
+     * @return 報告条件を満たして報酬処理を開始できた場合は{@code true}
+     */
+    public boolean turnIn(
+        @NotNull AstPlayer player,
+        @NotNull QuestDefinition quest,
+        @Nullable String npcId,
+        @NotNull Runnable onCompleted
+    ) {
         QuestPlayerState state = state(player);
         QuestProgress progress = state.activeQuests().get(quest.id());
         if (progress == null || !progress.readyToTurnIn()) {
@@ -441,7 +469,7 @@ public final class QuestService {
             send(player, PlayerMsgId.P_6605);
             return false;
         }
-        return complete(player, state, quest);
+        return complete(player, state, quest, onCompleted);
     }
 
     public void recordMobKill(@NotNull AstPlayer player, @NotNull String mobId) {
@@ -511,6 +539,16 @@ public final class QuestService {
     }
 
     private boolean complete(@NotNull AstPlayer player, @NotNull QuestPlayerState state, @NotNull QuestDefinition quest) {
+        return complete(player, state, quest, () -> {
+        });
+    }
+
+    private boolean complete(
+        @NotNull AstPlayer player,
+        @NotNull QuestPlayerState state,
+        @NotNull QuestDefinition quest,
+        @NotNull Runnable onCompleted
+    ) {
         if (stopping) {
             return false;
         }
@@ -557,7 +595,8 @@ public final class QuestService {
                     claimKey,
                     claimId,
                     completedPreparation,
-                    immediateResult
+                    immediateResult,
+                    onCompleted
                 );
             } catch (RuntimeException exception) {
                 pendingRewardClaims.remove(claimKey, claimId);
@@ -578,6 +617,7 @@ public final class QuestService {
      * @param claimId 今回の受取要求 ID
      * @param prepared 準備済み報酬
      * @param immediateResult 同期executorでの即時結果格納先
+     * @param onCompleted 報酬処理と関連する永続化が成功した後に呼び出す処理
      */
     private void enqueuePreparedRewards(
         @NotNull AstPlayer player,
@@ -586,7 +626,8 @@ public final class QuestService {
         @NotNull RewardClaimKey claimKey,
         @NotNull UUID claimId,
         @NotNull PreparedRewards prepared,
-        @NotNull AtomicReference<Boolean> immediateResult
+        @NotNull AtomicReference<Boolean> immediateResult,
+        @NotNull Runnable onCompleted
     ) {
         UUID accountId = expectedState.accountId();
         CompletableFuture<Void> rewardProcessing = new CompletableFuture<>();
@@ -604,7 +645,8 @@ public final class QuestService {
                     claimKey,
                     claimId,
                     prepared,
-                    rewardProcessing
+                    rewardProcessing,
+                    onCompleted
                 )));
             } catch (RuntimeException exception) {
                 pendingRewardClaims.remove(claimKey, claimId);
@@ -677,6 +719,7 @@ public final class QuestService {
      * @param claimId 今回の受取要求 ID
      * @param prepared 準備済み報酬
      * @param rewardProcessing account単位報酬処理の完了 Future
+     * @param onCompleted 報酬処理と関連する永続化が成功した後に呼び出す処理
      * @return 報酬反映と保存処理を開始できた場合は {@code true}
      */
     private boolean finishPreparedRewards(
@@ -686,7 +729,8 @@ public final class QuestService {
         @NotNull RewardClaimKey claimKey,
         @NotNull UUID claimId,
         @NotNull PreparedRewards prepared,
-        @NotNull CompletableFuture<Void> rewardProcessing
+        @NotNull CompletableFuture<Void> rewardProcessing,
+        @NotNull Runnable onCompleted
     ) {
         if (!claimId.equals(pendingRewardClaims.get(claimKey))) {
             cleanupPreparedInstances(prepared);
@@ -738,7 +782,8 @@ public final class QuestService {
                 prepared,
                 applied,
                 questSave,
-                rewardProcessing
+                rewardProcessing,
+                onCompleted
             );
             return true;
         } catch (RuntimeException exception) {
@@ -767,6 +812,7 @@ public final class QuestService {
      * @param applied 反映済み報酬の補償情報
      * @param questSave クエスト状態の保存 Future
      * @param rewardProcessing account単位報酬処理の完了 Future
+     * @param onCompleted 報酬処理と関連する永続化が成功した後に呼び出す処理
      */
     private void continueRewardPersistence(
         @NotNull AstPlayer player,
@@ -778,7 +824,8 @@ public final class QuestService {
         @NotNull PreparedRewards prepared,
         @NotNull AppliedRewards applied,
         @NotNull CompletableFuture<Void> questSave,
-        @NotNull CompletableFuture<Void> rewardProcessing
+        @NotNull CompletableFuture<Void> rewardProcessing,
+        @NotNull Runnable onCompleted
     ) {
         CompletableFuture<Boolean> persistence = questSave.thenCompose(ignored -> {
             if (applied.inventorySnapshot() == null) {
@@ -791,7 +838,15 @@ public final class QuestService {
             try {
                 mainExecutor.execute(() -> {
                     if (succeeded) {
-                        finishRewardPersistence(player, currentState, quest, claimKey, claimId, rewardProcessing);
+                        finishRewardPersistence(
+                            player,
+                            currentState,
+                            quest,
+                            claimKey,
+                            claimId,
+                            rewardProcessing,
+                            onCompleted
+                        );
                         return;
                     }
                     compensateRewardPersistence(
@@ -828,6 +883,7 @@ public final class QuestService {
      * @param claimKey 多重受取防止キー
      * @param claimId 今回の受取要求 ID
      * @param rewardProcessing account単位報酬処理の完了 Future
+     * @param onCompleted 報酬処理と関連する永続化が成功した後に呼び出す処理
      */
     private void finishRewardPersistence(
         @NotNull AstPlayer player,
@@ -835,14 +891,16 @@ public final class QuestService {
         @NotNull QuestDefinition quest,
         @NotNull RewardClaimKey claimKey,
         @NotNull UUID claimId,
-        @NotNull CompletableFuture<Void> rewardProcessing
+        @NotNull CompletableFuture<Void> rewardProcessing,
+        @NotNull Runnable onCompleted
     ) {
         if (!claimId.equals(pendingRewardClaims.get(claimKey))) {
             completeRewardProcessing(expectedState.accountId(), rewardProcessing);
             return;
         }
+        boolean completed = !stopping && states.get(expectedState.accountId()) == expectedState;
         try {
-            if (!stopping && states.get(expectedState.accountId()) == expectedState) {
+            if (completed) {
                 notifyComplete(player, quest);
             }
         } catch (RuntimeException exception) {
@@ -850,6 +908,13 @@ public final class QuestService {
         } finally {
             pendingRewardClaims.remove(claimKey, claimId);
             completeRewardProcessing(expectedState.accountId(), rewardProcessing);
+        }
+        if (completed) {
+            try {
+                onCompleted.run();
+            } catch (RuntimeException exception) {
+                Logger.log(LogId.W_6605, exception, expectedState.accountId(), quest.id());
+            }
         }
     }
 
@@ -1365,8 +1430,7 @@ public final class QuestService {
 
     private void playQuestEffect(@NotNull Player player) {
         Location location = player.getLocation().add(0.0D, 1.0D, 0.0D);
-        player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.75F, 1.0F);
-        player.playSound(player.getLocation(), Sound.ENTITY_PLAYER_LEVELUP, SoundCategory.PLAYERS, 0.35F, 1.35F);
+        GuiSound.CONFIRM.play(player);
         particleDisplayService.spawnForNearbyViewers(location, SharedParticleDefinitions.PLAYER_LEVEL_UP_TOTEM);
         particleDisplayService.spawnForNearbyViewers(location, SharedParticleDefinitions.PLAYER_LEVEL_UP_END_ROD);
     }
