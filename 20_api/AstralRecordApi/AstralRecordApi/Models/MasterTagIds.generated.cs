@@ -30,6 +30,16 @@ public static class MasterTagIds
         public const string STAFF = "STAFF";
         /// <summary>弓。</summary>
         public const string BOW = "BOW";
+        /// <summary>ハンマー。</summary>
+        public const string HAMMER = "HAMMER";
+        /// <summary>スピア。</summary>
+        public const string SPEAR = "SPEAR";
+        /// <summary>ショートボウ。</summary>
+        public const string SHORTBOW = "SHORTBOW";
+        /// <summary>ロングボウ。</summary>
+        public const string LONGBOW = "LONGBOW";
+        /// <summary>ワンド。</summary>
+        public const string WAND = "WAND";
         /// <summary>ツルハシ。</summary>
         public const string PICKAXE = "PICKAXE";
         /// <summary>斧。</summary>
@@ -310,6 +320,11 @@ public static class MasterTags
                 ["SWORD"] = new("SWORD", "剣", "剣として扱う装備。", "EQUIPMENT", ["EQUIPMENT", "GATHERING_REQUIRED_TOOL"]),
                 ["STAFF"] = new("STAFF", "杖", "杖として扱う装備。", "EQUIPMENT", ["EQUIPMENT", "GATHERING_REQUIRED_TOOL"]),
                 ["BOW"] = new("BOW", "弓", "弓として扱う装備。", "EQUIPMENT", ["EQUIPMENT", "GATHERING_REQUIRED_TOOL"]),
+                ["HAMMER"] = new("HAMMER", "ハンマー", "ハンマーとして扱う装備。", "EQUIPMENT", ["EQUIPMENT", "GATHERING_REQUIRED_TOOL"]),
+                ["SPEAR"] = new("SPEAR", "スピア", "スピアとして扱う装備。", "EQUIPMENT", ["EQUIPMENT", "GATHERING_REQUIRED_TOOL"]),
+                ["SHORTBOW"] = new("SHORTBOW", "ショートボウ", "ショートボウとして扱う装備。", "EQUIPMENT", ["EQUIPMENT", "GATHERING_REQUIRED_TOOL"]),
+                ["LONGBOW"] = new("LONGBOW", "ロングボウ", "ロングボウとして扱う装備。", "EQUIPMENT", ["EQUIPMENT", "GATHERING_REQUIRED_TOOL"]),
+                ["WAND"] = new("WAND", "ワンド", "ワンドとして扱う装備。", "EQUIPMENT", ["EQUIPMENT", "GATHERING_REQUIRED_TOOL"]),
                 ["PICKAXE"] = new("PICKAXE", "ツルハシ", "採掘用のツルハシとして扱う装備。", "EQUIPMENT", ["EQUIPMENT", "GATHERING_REQUIRED_TOOL"]),
                 ["AXE"] = new("AXE", "斧", "伐採用の斧として扱う装備。", "EQUIPMENT", ["EQUIPMENT", "GATHERING_REQUIRED_TOOL"]),
                 ["HOE"] = new("HOE", "クワ", "採取用のクワとして扱う装備。", "EQUIPMENT", ["EQUIPMENT", "GATHERING_REQUIRED_TOOL"]),

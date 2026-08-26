@@ -72,18 +72,19 @@ public final class SkillCooldownBossBarService {
             BossBar bossBar = bossBars.computeIfAbsent(player.getUniqueId(), ignored -> createBossBar(player));
             bossBar.addPlayer(player);
             bossBar.setTitle(buildBossBarTitle(latest, activeCooldowns.size() - 1));
-            bossBar.setColor(BarColor.GREEN);
+            bossBar.setColor(BarColor.WHITE);
+            bossBar.setStyle(BarStyle.SEGMENTED_10);
             long totalTicks = Math.max(1L, latest.totalTicks());
             long remainingTicks = Math.max(0L, latest.remainingTicks());
             bossBar.setProgress(Math.max(0.0D, Math.min(1.0D, (double) remainingTicks / (double) totalTicks)));
         }
     }
 
-    private @NotNull BossBar createBossBar(@NotNull Player player) {
+    @NotNull BossBar createBossBar(@NotNull Player player) {
         BossBar bossBar = Bukkit.createBossBar(
                 "",
-                BarColor.GREEN,
-                BarStyle.SOLID
+                BarColor.WHITE,
+                BarStyle.SEGMENTED_10
         );
         bossBar.setVisible(true);
         bossBar.addPlayer(player);
@@ -109,7 +110,10 @@ public final class SkillCooldownBossBarService {
 
     private @NotNull String buildBossBarTitle(@NotNull SkillService.ActiveCooldown cooldown, int hiddenCount) {
         String remainingSeconds = String.format(Locale.ROOT, "%.1fs", cooldown.remainingTicks() / 20.0D);
-        String base = cooldown.skillName()
+        String displayName = SkillService.WEAPON_NORMAL_ATTACK_COOLDOWN_ID.equals(cooldown.cooldownKey())
+                ? ColorCodeUtil.WHITE + "通常攻撃"
+                : cooldown.skillName();
+        String base = displayName
                 + ColorCodeUtil.GRAY + " "
                 + ColorCodeUtil.WHITE + remainingSeconds;
         if (hiddenCount > 0) {

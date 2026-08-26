@@ -260,6 +260,63 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("weapon_attack_default", Particle.CRIT, 10, 0.15D, 0.15D, 0.15D, 0.0D);
     public static final SharedParticleDefinition WEAPON_MAGIC_PROJECTILE_DEFAULT =
         new SharedParticleDefinition("weapon_magic_projectile_default", Particle.ENCHANT, 10, 0.05D, 0.05D, 0.05D, 0.0D);
+    public static final SharedParticleDefinition WEAPON_SWORD_DUST =
+        new SharedParticleDefinition(
+            "weapon_sword_dust",
+            Particle.DUST,
+            3,
+            0.08D,
+            0.08D,
+            0.08D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(185, 195, 205), 0.85F)
+        );
+    public static final SharedParticleDefinition WEAPON_HAMMER_DUST =
+        new SharedParticleDefinition(
+            "weapon_hammer_dust",
+            Particle.DUST,
+            5,
+            0.18D,
+            0.14D,
+            0.18D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(205, 145, 70), 1.1F)
+        );
+    public static final SharedParticleDefinition WEAPON_SPEAR_CRIT =
+        new SharedParticleDefinition("weapon_spear_crit", Particle.CRIT, 2, 0.025D, 0.025D, 0.025D, 0.02D);
+    public static final SharedParticleDefinition WEAPON_LONG_BOW_DUST =
+        new SharedParticleDefinition(
+            "weapon_long_bow_dust",
+            Particle.DUST,
+            2,
+            0.025D,
+            0.025D,
+            0.025D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(215, 190, 115), 0.85F)
+        );
+    public static final SharedParticleDefinition WEAPON_WAND_DUST =
+        new SharedParticleDefinition(
+            "weapon_wand_dust",
+            Particle.DUST,
+            2,
+            0.018D,
+            0.018D,
+            0.018D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 225, 75), 0.7F)
+        );
+    public static final SharedParticleDefinition WEAPON_STAFF_DUST =
+        new SharedParticleDefinition(
+            "weapon_staff_dust",
+            Particle.DUST,
+            2,
+            0.018D,
+            0.018D,
+            0.018D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(175, 85, 245), 0.75F)
+        );
     public static final SharedParticleDefinition SKILL_SWORD_SWEEP =
         new SharedParticleDefinition("skill_sword_sweep", Particle.SWEEP_ATTACK, 1, 0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition SKILL_SWORD_EDGE =

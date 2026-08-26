@@ -1,0 +1,28 @@
+# design:
+#   motif: "開発検証 / ワンド通常攻撃"
+#   progression: 0
+schemaVersion: 1
+id: debug_wand
+category: equipment
+name: "&dデバッグ・ワンド"
+icon: BLAZE_ROD
+rarity: MYTHIC
+customModelData: 990007
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7ワンド通常攻撃の検証用。"
+unTradeable: true
+unSellable: true
+equipment:
+  slot: WEAPON
+  handType: ONE
+  tag: WAND
+  requiredLevel: 0
+  stats:
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 30~45
+  durability:
+    max: 240
+    consume: 2

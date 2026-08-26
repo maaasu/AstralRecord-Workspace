@@ -198,6 +198,26 @@ class SkillServiceDesignTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 5. cooldown・cast lifecycle
+     * 検証契約: 武器通常攻撃は武器別skill IDではなく共通cooldown keyで管理し、実行した武器の基本tickを表示情報へ保持する。
+     */
+    @Test
+    void weaponNormalAttackUsesSharedCooldownKeyAndExecutedWeaponsDuration() {
+        SkillService service = new SkillService(mock(SkillRepository.class), new SkillRegistry(), null);
+        TestCaster caster = new TestCaster(10, 20.0D, 20.0D);
+
+        service.startAttackCooldown(caster, "normal_attack_longbow", 17L);
+
+        assertTrue(service.isOnCooldown(caster, SkillService.WEAPON_NORMAL_ATTACK_COOLDOWN_ID));
+        assertFalse(service.isOnCooldown(caster, "normal_attack_longbow"));
+        assertEquals(17L, service.getCooldownDurationTicks(caster, SkillService.WEAPON_NORMAL_ATTACK_COOLDOWN_ID));
+        SkillService.ActiveCooldown activeCooldown = service.getActiveCooldowns(caster).getFirst();
+        assertEquals(SkillService.WEAPON_NORMAL_ATTACK_COOLDOWN_ID, activeCooldown.cooldownKey());
+        assertEquals("normal_attack_longbow", activeCooldown.displaySkillId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 1. definition load / reload
      * 検証契約: legacy mana項目をresourceへ正規化しmalformed definitionだけを除外して他を公開する。
      */

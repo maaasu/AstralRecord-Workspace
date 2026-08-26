@@ -1,0 +1,28 @@
+# design:
+#   motif: "開発検証 / ショートボウ通常攻撃"
+#   progression: 0
+schemaVersion: 1
+id: debug_shortbow
+category: equipment
+name: "&dデバッグ・ショートボウ"
+icon: BOW
+rarity: MYTHIC
+customModelData: 990005
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7ショートボウ通常攻撃の検証用。"
+unTradeable: true
+unSellable: true
+equipment:
+  slot: WEAPON
+  handType: TWO
+  tag: SHORTBOW
+  requiredLevel: 0
+  stats:
+    - status: RANGED_ATTACK
+      type: FLAT
+      value: 30~45
+  durability:
+    max: 240
+    consume: 2

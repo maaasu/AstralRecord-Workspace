@@ -368,6 +368,7 @@ public final class AstralRecord extends JavaPlugin {
     private SkillActionRingService skillActionRingService;
     private SkillActionRingHoldService skillActionRingHoldService;
     private SkillCooldownBossBarService skillCooldownBossBarService;
+    private WeaponAttackSkillExecutor weaponAttackSkillExecutor;
     private PassiveSkillService passiveSkillService;
     private MeditationSkillRuntimeService meditationSkillRuntimeService;
     private SkillTreeService skillTreeService;
@@ -591,6 +592,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (skillCooldownBossBarService != null) {
             skillCooldownBossBarService.stop();
+        }
+        if (weaponAttackSkillExecutor != null) {
+            weaponAttackSkillExecutor.stop();
         }
         if (adminMessageBossBarService != null) {
             adminMessageBossBarService.stop();
@@ -1181,7 +1185,8 @@ public final class AstralRecord extends JavaPlugin {
         skillService.registerExecutor(new FireBoostSkillExecutor(particleDisplayService));
         skillService.registerExecutor(new IronWillSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());
-        skillService.registerExecutor(new WeaponAttackSkillExecutor(particleDisplayService, damageService, conditionService));
+        weaponAttackSkillExecutor = new WeaponAttackSkillExecutor(particleDisplayService, damageService, conditionService);
+        skillService.registerExecutor(weaponAttackSkillExecutor);
         mobProjectileService = new MobProjectileService(mobService, particleDisplayService);
         var mobSkillRegistry = new MobSkillRegistry();
         mobSkillRegistry.register(new SkeletonArcherBowShotMobSkillExecutor(damageService, mobProjectileService));

@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import org.bukkit.Location;
 import org.bukkit.inventory.EquipmentSlot;
 import org.jetbrains.annotations.NotNull;
@@ -90,7 +91,7 @@ public final class ItemWeaponAttackService {
     }
 
     /**
-     * 現在主手に装備している武器のタグから通常攻撃スキル ID を自動解決します。
+     * 現在主手に装備している武器のタグから8種類の通常攻撃スキル ID を自動解決します。
      *
      * @param player 対象プレイヤー
      * @return 武器通常攻撃のスキル ID。武器アクションがない場合は {@code null}
@@ -115,12 +116,11 @@ public final class ItemWeaponAttackService {
      * @return 残りクールダウン（tick）。スキルが未設定、または非クールダウン時は {@code 0}
      */
     public long getRemainingAttackCooldownTicks(@NotNull AstPlayer player) {
-        String skillId = currentLeftClickSkillId(player);
-        if (skillId == null) {
+        if (currentLeftClickSkillId(player) == null) {
             return 0L;
         }
         SkillCaster caster = new PlayerSkillCaster(player);
-        return skillService.getRemainingCooldownTicks(caster, skillId);
+        return skillService.getRemainingCooldownTicks(caster, SkillService.WEAPON_NORMAL_ATTACK_COOLDOWN_ID);
     }
 
     private void handleAttack(
@@ -148,7 +148,7 @@ public final class ItemWeaponAttackService {
         String skillId = attack.skillId();
         long cooldownTicks = attack.cooldownTicks();
         var caster = new PlayerSkillCaster(player);
-        if (cooldownTicks > 0 && skillService.isOnCooldown(caster, skillId)) {
+        if (cooldownTicks > 0 && skillService.isOnCooldown(caster, SkillService.WEAPON_NORMAL_ATTACK_COOLDOWN_ID)) {
             return;
         }
 
@@ -169,9 +169,14 @@ public final class ItemWeaponAttackService {
     private @Nullable WeaponAttackDefinition resolveAttack(@Nullable String rawTag) {
         if (rawTag == null || rawTag.isBlank()) return null;
         return switch (rawTag.trim().toUpperCase(Locale.ROOT)) {
-            case "SWORD" -> new WeaponAttackDefinition(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MELEE, 10L);
-            case "BOW" -> new WeaponAttackDefinition(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_BOW, 12L);
-            case "STAFF" -> new WeaponAttackDefinition(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MAGIC, 10L);
+            case MasterTagIds.Equipment.SWORD -> new WeaponAttackDefinition(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MELEE, 10L);
+            case MasterTagIds.Equipment.HAMMER -> new WeaponAttackDefinition(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_HAMMER, 22L);
+            case MasterTagIds.Equipment.SPEAR -> new WeaponAttackDefinition(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_SPEAR, 14L);
+            case MasterTagIds.Equipment.BOW -> new WeaponAttackDefinition(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_BOW, 12L);
+            case MasterTagIds.Equipment.SHORTBOW -> new WeaponAttackDefinition(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_SHORTBOW, 7L);
+            case MasterTagIds.Equipment.LONGBOW -> new WeaponAttackDefinition(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_LONGBOW, 17L);
+            case MasterTagIds.Equipment.WAND -> new WeaponAttackDefinition(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_WAND, 9L);
+            case MasterTagIds.Equipment.STAFF -> new WeaponAttackDefinition(BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MAGIC, 14L);
             default -> null;
         };
     }

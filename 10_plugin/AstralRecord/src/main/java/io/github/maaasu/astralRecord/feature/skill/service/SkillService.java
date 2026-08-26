@@ -69,6 +69,8 @@ import java.util.function.LongSupplier;
  */
 public class SkillService {
 
+    /** 全武器種の通常攻撃が共有するクールダウンIDです。 */
+    public static final String WEAPON_NORMAL_ATTACK_COOLDOWN_ID = "weapon_normal_attack";
     /** Minecraft 1 tick あたりのミリ秒（20 tick = 1 秒）。 */
     private static final long MS_PER_TICK = 50L;
     /** 詠唱中の移動速度補正を識別する属性 modifier のキーです。 */
@@ -1115,7 +1117,7 @@ public class SkillService {
      * 装備の通常攻撃・攻撃行動に、CD短縮率と攻撃速度を適用して cooldown を開始します。
      *
      * @param caster 発動者
-     * @param skillId 攻撃に対応するスキル ID
+     * @param skillId 攻撃に対応する表示用スキル ID
      * @param baseCooldownTicks 装備定義上の基本攻撃間隔 tick
      */
     public void startAttackCooldown(
@@ -1128,7 +1130,7 @@ public class SkillService {
                 cooldownTicks,
                 caster.statusSnapshot().rollValue(StatusType.ATTACK_SPEED)
         );
-        startCooldown(caster, skillId, cooldownTicks);
+        startCooldown(caster, WEAPON_NORMAL_ATTACK_COOLDOWN_ID, skillId, cooldownTicks);
     }
 
     private long resolveCooldownTicks(@NotNull SkillCaster caster, long baseCooldownTicks) {

@@ -67,7 +67,7 @@
 
 `SUBWEAPON` は表示名「補助装備」の装備種別で、オフハンドにだけ装備できます。補助装備ではない武器・道具・通常アイテムをオフハンドへ割り当てることはできません。
 
-`slot: WEAPON` の主攻撃力は、`tag: SWORD` なら `MELEE_ATTACK`、`tag: BOW` なら `RANGED_ATTACK`、`tag: STAFF` なら `MAGIC_ATTACK` のように、攻撃種別に対応するステータスを指定します。`ATTACK` は全攻撃種別へ影響する共通攻撃力として、追加で指定する場合に使用します。
+`slot: WEAPON` の主攻撃力は、`tag: SWORD` / `HAMMER` / `SPEAR` なら `MELEE_ATTACK`、`tag: BOW` / `SHORTBOW` / `LONGBOW` なら `RANGED_ATTACK`、`tag: WAND` / `STAFF` なら `MAGIC_ATTACK` のように、攻撃種別に対応するステータスを指定します。`ATTACK` は全攻撃種別へ影響する共通攻撃力として、追加で指定する場合に使用します。
 
 ### equipment[].handType
 `slot=WEAPON` または `slot=TOOL` のときに指定します。

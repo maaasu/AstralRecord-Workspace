@@ -1,0 +1,28 @@
+# design:
+#   motif: "開発検証 / ロングボウ通常攻撃"
+#   progression: 0
+schemaVersion: 1
+id: debug_longbow
+category: equipment
+name: "&dデバッグ・ロングボウ"
+icon: BOW
+rarity: MYTHIC
+customModelData: 990006
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7ロングボウ通常攻撃の検証用。"
+unTradeable: true
+unSellable: true
+equipment:
+  slot: WEAPON
+  handType: TWO
+  tag: LONGBOW
+  requiredLevel: 0
+  stats:
+    - status: RANGED_ATTACK
+      type: FLAT
+      value: 30~45
+  durability:
+    max: 240
+    consume: 2

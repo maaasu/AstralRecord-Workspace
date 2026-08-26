@@ -1,0 +1,28 @@
+# design:
+#   motif: "開発検証 / スピア通常攻撃"
+#   progression: 0
+schemaVersion: 1
+id: debug_spear
+category: equipment
+name: "&dデバッグ・スピア"
+icon: TRIDENT
+rarity: MYTHIC
+customModelData: 990003
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7スピア通常攻撃の検証用。"
+unTradeable: true
+unSellable: true
+equipment:
+  slot: WEAPON
+  handType: TWO
+  tag: SPEAR
+  requiredLevel: 0
+  stats:
+    - status: MELEE_ATTACK
+      type: FLAT
+      value: 30~45
+  durability:
+    max: 240
+    consume: 2

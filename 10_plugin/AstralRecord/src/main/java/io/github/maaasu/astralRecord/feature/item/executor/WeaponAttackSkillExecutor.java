@@ -18,26 +18,37 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.SoundCategory;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
+import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.ItemStack;
 import org.bukkit.scheduler.BukkitTask;
+import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -51,6 +62,8 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     private final ParticleDisplayService particleDisplayService;
     private final DamageService damageService;
     private final ConditionService conditionService;
+    private final Set<BukkitTask> activeProjectileTasks = new HashSet<>();
+    private final Set<ItemDisplay> activeProjectileDisplays = new HashSet<>();
 
     /**
      * executor を構築します。
@@ -112,6 +125,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 spreadZ,
                 extra
         );
+        spawnSecondaryParticle(context.skill(), "secondaryCastParticle", effectLocation);
 
         String soundKey = readStringParam(context.skill(), "sound");
         if (!soundKey.isBlank() && effectLocation.getWorld() != null) {
@@ -160,6 +174,26 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         requireNonNegativeDouble(skill, "impactRadius");
         requireNonNegativeDouble(skill, "hitStepDistance");
         requireNonNegativeInt(skill, "maxTargets");
+        requirePositiveInt(skill, "hitCount");
+        requireNonNegativeInt(skill, "hitIntervalTicks");
+        requireParticleDefinition(skill, "secondaryCastParticle");
+        requireParticleDefinition(skill, "secondaryTrailParticle");
+        requireDisplayMaterial(skill, "displayMaterial");
+        requireNonNegativeDouble(skill, "displayScale");
+        requireNonNegativeDouble(skill, "displayForwardOffset");
+        requireNonNegativeDouble(skill, "displaySpinDegrees");
+        requireNonNegativeDouble(skill, "displayModelPitchDegrees");
+    }
+
+    /**
+     * 実行中の通常攻撃飛翔体タスクと表示Entityをすべて破棄します。
+     * Plugin停止時に呼び出し、非永続表示がワールドへ残ることを防ぎます。
+     */
+    public void stop() {
+        activeProjectileTasks.forEach(BukkitTask::cancel);
+        activeProjectileTasks.clear();
+        activeProjectileDisplays.forEach(this::removeDisplay);
+        activeProjectileDisplays.clear();
     }
 
     private void applyAttackDamage(
@@ -208,8 +242,35 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             }
         }
 
-        for (AstEntity victim : victims.values()) {
-            DamageResult result = damageService.attack(attacker, victim, AttackType.MELEE, readDamageComponents(skill));
+        List<AstEntity> selectedVictims = List.copyOf(victims.values());
+        List<DamageComponent> damageComponents = readDamageComponents(skill);
+        int hitCount = Math.max(1, readIntParam(skill, "hitCount", 1));
+        int hitIntervalTicks = Math.max(0, readIntParam(skill, "hitIntervalTicks", 0));
+        for (int hitIndex = 0; hitIndex < hitCount; hitIndex++) {
+            long delayTicks = (long) hitIndex * hitIntervalTicks;
+            if (delayTicks == 0L) {
+                applyMeleeHit(skill, attacker, selectedVictims, damageComponents);
+                continue;
+            }
+            Bukkit.getScheduler().runTaskLater(
+                AstralRecord.getInstance(),
+                () -> applyMeleeHit(skill, attacker, selectedVictims, damageComponents),
+                delayTicks
+            );
+        }
+    }
+
+    private void applyMeleeHit(
+        @NotNull SkillDefinition skill,
+        @NotNull AstEntity attacker,
+        @NotNull List<AstEntity> victims,
+        @NotNull List<DamageComponent> damageComponents
+    ) {
+        for (AstEntity victim : victims) {
+            if (!isAttackableTarget(attacker, victim)) {
+                continue;
+            }
+            DamageResult result = damageService.attack(attacker, victim, AttackType.MELEE, damageComponents);
             applyConditions(skill, attacker, victim, AttackType.MELEE, result);
         }
     }
@@ -252,6 +313,18 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         Location currentLocation = startLocation.clone();
         Vector velocity = direction.clone().normalize().multiply(projectileSpeed);
         Entity sourceEntity = resolveBukkitEntity(attacker);
+        SharedParticleDefinition secondaryTrailParticle = readParticleDefinition(skill, "secondaryTrailParticle");
+        float displayScale = (float) readDoubleParam(skill, "displayScale", 1.0D);
+        double displayForwardOffset = readDoubleParam(skill, "displayForwardOffset", 0.0D);
+        double displaySpinDegrees = readDoubleParam(skill, "displaySpinDegrees", 0.0D);
+        double displayModelPitchDegrees = readDoubleParam(skill, "displayModelPitchDegrees", 0.0D);
+        ItemDisplay projectileDisplay = spawnProjectileDisplay(
+            skill,
+            startLocation,
+            velocity,
+            displayScale,
+            displayModelPitchDegrees
+        );
 
         final BukkitTask[] taskHolder = new BukkitTask[1];
         taskHolder[0] = Bukkit.getScheduler().runTaskTimer(AstralRecord.getInstance(), new Runnable() {
@@ -289,7 +362,17 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 }
 
                 spawnProjectileTrail(currentLocation, particle, trailParticleCount,
-                        trailSpreadX, trailSpreadY, trailSpreadZ, trailExtra, attackType);
+                        trailSpreadX, trailSpreadY, trailSpreadZ, trailExtra, attackType, secondaryTrailParticle);
+                updateProjectileDisplay(
+                    projectileDisplay,
+                    currentLocation,
+                    velocity,
+                    displayScale,
+                    displayForwardOffset,
+                    displaySpinDegrees,
+                    displayModelPitchDegrees,
+                    tick
+                );
 
                 AstEntity victim = findClosestTarget(currentLocation, hitRadius, attacker);
                 if (victim != null) {
@@ -317,9 +400,12 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 BukkitTask task = taskHolder[0];
                 if (task != null) {
                     task.cancel();
+                    activeProjectileTasks.remove(task);
                 }
+                removeProjectileDisplay(projectileDisplay);
             }
         }, 0L, 1L);
+        activeProjectileTasks.add(taskHolder[0]);
     }
 
     private @NotNull Particle readParticle(
@@ -379,6 +465,19 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         }
     }
 
+    private void requirePositiveInt(@NotNull SkillDefinition skill, @NotNull String key) {
+        Object raw = skill.getParams().get(key);
+        if (raw == null) {
+            return;
+        }
+        if (!(raw instanceof Number number)) {
+            throw new SkillParameterException(key, "number を設定してください");
+        }
+        if (number.intValue() <= 0) {
+            throw new SkillParameterException(key, "1 以上を設定してください");
+        }
+    }
+
     private void requireNonNegativeDouble(@NotNull SkillDefinition skill, @NotNull String key) {
         Object raw = skill.getParams().get(key);
         if (raw == null) {
@@ -389,6 +488,49 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         }
         if (number.doubleValue() < 0.0D) {
             throw new SkillParameterException(key, "0 以上を設定してください");
+        }
+    }
+
+    private void requireParticleDefinition(@NotNull SkillDefinition skill, @NotNull String key) {
+        Object raw = skill.getParams().get(key);
+        if (raw == null) {
+            return;
+        }
+        if (!(raw instanceof String value) || SharedParticleDefinitions.resolveDefinition(value) == null) {
+            throw new SkillParameterException(key, "有効な共有パーティクル定義 ID を設定してください");
+        }
+    }
+
+    private void requireDisplayMaterial(@NotNull SkillDefinition skill, @NotNull String key) {
+        Object raw = skill.getParams().get(key);
+        if (raw == null) {
+            return;
+        }
+        if (!(raw instanceof String value)) {
+            throw new SkillParameterException(key, "Material 名を設定してください");
+        }
+        Material material = MaterialNameResolver.match(value);
+        if (material == null || !material.isItem()) {
+            throw new SkillParameterException(key, "ItemDisplay に使用できる Material 名を設定してください");
+        }
+    }
+
+    private @Nullable SharedParticleDefinition readParticleDefinition(
+        @NotNull SkillDefinition skill,
+        @NotNull String key
+    ) {
+        Object raw = skill.getParams().get(key);
+        return raw instanceof String value ? SharedParticleDefinitions.resolveDefinition(value) : null;
+    }
+
+    private void spawnSecondaryParticle(
+        @NotNull SkillDefinition skill,
+        @NotNull String key,
+        @NotNull Location location
+    ) {
+        SharedParticleDefinition definition = readParticleDefinition(skill, key);
+        if (definition != null) {
+            particleDisplayService.spawnForNearbyViewers(location, definition);
         }
     }
 
@@ -419,6 +561,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         double trailSpreadY = readDoubleParam(skill, "trailSpreadY", Math.min(spreadY, 0.08D));
         double trailSpreadZ = readDoubleParam(skill, "trailSpreadZ", Math.min(spreadZ, 0.08D));
         double trailExtra = readDoubleParam(skill, "trailExtra", extra);
+        SharedParticleDefinition secondaryTrailParticle = readParticleDefinition(skill, "secondaryTrailParticle");
         Location baseLocation = startLocation.clone();
         Vector normalizedDirection = direction.clone().normalize();
 
@@ -438,6 +581,9 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                         trailSpreadZ,
                         trailExtra
                 );
+                if (secondaryTrailParticle != null) {
+                    particleDisplayService.spawnForNearbyViewers(trailLocation, secondaryTrailParticle);
+                }
             }, delayTicks);
         }
     }
@@ -478,7 +624,8 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             double spreadY,
             double spreadZ,
             double extra,
-            @NotNull AttackType attackType
+            @NotNull AttackType attackType,
+            @Nullable SharedParticleDefinition secondaryTrailParticle
     ) {
         particleDisplayService.spawnForNearbyViewers(
                 location,
@@ -489,11 +636,102 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 spreadZ,
                 extra
         );
-        if (attackType == AttackType.MAGIC) {
+        if (secondaryTrailParticle != null) {
             particleDisplayService.spawnForNearbyViewers(
                     location,
-                    SharedParticleDefinitions.MAGIC_PROJECTILE_CORE_DUST
+                    secondaryTrailParticle
             );
+        } else if (attackType == AttackType.MAGIC) {
+            particleDisplayService.spawnForNearbyViewers(location, SharedParticleDefinitions.MAGIC_PROJECTILE_CORE_DUST);
+        }
+    }
+
+    private @Nullable ItemDisplay spawnProjectileDisplay(
+        @NotNull SkillDefinition skill,
+        @NotNull Location location,
+        @NotNull Vector velocity,
+        float scale,
+        double modelPitchDegrees
+    ) {
+        Object rawMaterial = skill.getParams().get("displayMaterial");
+        Material material = rawMaterial instanceof String value ? MaterialNameResolver.match(value) : null;
+        if (material == null || !material.isItem() || location.getWorld() == null) {
+            return null;
+        }
+
+        Location spawnLocation = location.clone();
+        if (velocity.lengthSquared() > 1.0E-6D) {
+            spawnLocation.setDirection(velocity);
+        }
+        ItemDisplay display = location.getWorld().spawn(spawnLocation, ItemDisplay.class, entity -> {
+            entity.setItemStack(new ItemStack(material));
+            entity.setItemDisplayTransform(ItemDisplay.ItemDisplayTransform.FIXED);
+            entity.setBillboard(Display.Billboard.FIXED);
+            entity.setGravity(false);
+            entity.setInvulnerable(true);
+            entity.setPersistent(false);
+            entity.setShadowRadius(0.0F);
+            entity.setShadowStrength(0.0F);
+            entity.setTeleportDuration(1);
+            entity.setInterpolationDuration(1);
+            entity.setTransformation(displayTransformation(scale, Math.toRadians(modelPitchDegrees), 0.0D));
+        });
+        activeProjectileDisplays.add(display);
+        return display;
+    }
+
+    private void updateProjectileDisplay(
+        @Nullable ItemDisplay display,
+        @NotNull Location currentLocation,
+        @NotNull Vector velocity,
+        float scale,
+        double forwardOffset,
+        double spinDegrees,
+        double modelPitchDegrees,
+        int tick
+    ) {
+        if (display == null || !display.isValid()) {
+            return;
+        }
+        Location displayLocation = currentLocation.clone();
+        if (velocity.lengthSquared() > 1.0E-6D) {
+            Vector direction = velocity.clone().normalize();
+            displayLocation.add(direction.multiply(forwardOffset));
+            displayLocation.setDirection(velocity);
+        }
+        display.teleport(displayLocation);
+        if (spinDegrees != 0.0D) {
+            display.setTransformation(displayTransformation(
+                scale,
+                Math.toRadians(modelPitchDegrees),
+                Math.toRadians(spinDegrees * tick)
+            ));
+        }
+    }
+
+    private @NotNull Transformation displayTransformation(float scale, double pitchRadians, double rollRadians) {
+        float resolvedScale = Math.max(0.01F, scale);
+        return new Transformation(
+            new Vector3f(),
+            new Quaternionf()
+                .rotationZ((float) rollRadians)
+                .rotateX((float) pitchRadians),
+            new Vector3f(resolvedScale, resolvedScale, resolvedScale),
+            new Quaternionf()
+        );
+    }
+
+    private void removeProjectileDisplay(@Nullable ItemDisplay display) {
+        if (display == null) {
+            return;
+        }
+        activeProjectileDisplays.remove(display);
+        removeDisplay(display);
+    }
+
+    private void removeDisplay(@NotNull ItemDisplay display) {
+        if (display.isValid()) {
+            display.remove();
         }
     }
 

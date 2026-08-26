@@ -41,6 +41,21 @@ public final class MasterTagIds {
         /** 弓: 弓として扱う装備。 */
         public static final String BOW = "BOW";
 
+        /** ハンマー: ハンマーとして扱う装備。 */
+        public static final String HAMMER = "HAMMER";
+
+        /** スピア: スピアとして扱う装備。 */
+        public static final String SPEAR = "SPEAR";
+
+        /** ショートボウ: ショートボウとして扱う装備。 */
+        public static final String SHORTBOW = "SHORTBOW";
+
+        /** ロングボウ: ロングボウとして扱う装備。 */
+        public static final String LONGBOW = "LONGBOW";
+
+        /** ワンド: ワンドとして扱う装備。 */
+        public static final String WAND = "WAND";
+
         /** ツルハシ: 採掘用のツルハシとして扱う装備。 */
         public static final String PICKAXE = "PICKAXE";
 
@@ -442,6 +457,11 @@ public final class MasterTagIds {
         Map.entry("SWORD", new Definition("SWORD", "剣", "剣として扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
         Map.entry("STAFF", new Definition("STAFF", "杖", "杖として扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
         Map.entry("BOW", new Definition("BOW", "弓", "弓として扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
+        Map.entry("HAMMER", new Definition("HAMMER", "ハンマー", "ハンマーとして扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
+        Map.entry("SPEAR", new Definition("SPEAR", "スピア", "スピアとして扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
+        Map.entry("SHORTBOW", new Definition("SHORTBOW", "ショートボウ", "ショートボウとして扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
+        Map.entry("LONGBOW", new Definition("LONGBOW", "ロングボウ", "ロングボウとして扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
+        Map.entry("WAND", new Definition("WAND", "ワンド", "ワンドとして扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
         Map.entry("PICKAXE", new Definition("PICKAXE", "ツルハシ", "採掘用のツルハシとして扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
         Map.entry("AXE", new Definition("AXE", "斧", "伐採用の斧として扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),
         Map.entry("HOE", new Definition("HOE", "クワ", "採取用のクワとして扱う装備。", "EQUIPMENT", List.of("EQUIPMENT", "GATHERING_REQUIRED_TOOL"))),

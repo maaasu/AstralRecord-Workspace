@@ -102,6 +102,31 @@ tags:
     description: 弓として扱う装備。
     category: EQUIPMENT
     appliesTo: [EQUIPMENT, GATHERING_REQUIRED_TOOL]
+  - id: HAMMER
+    displayName: ハンマー
+    description: ハンマーとして扱う装備。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT, GATHERING_REQUIRED_TOOL]
+  - id: SPEAR
+    displayName: スピア
+    description: スピアとして扱う装備。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT, GATHERING_REQUIRED_TOOL]
+  - id: SHORTBOW
+    displayName: ショートボウ
+    description: ショートボウとして扱う装備。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT, GATHERING_REQUIRED_TOOL]
+  - id: LONGBOW
+    displayName: ロングボウ
+    description: ロングボウとして扱う装備。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT, GATHERING_REQUIRED_TOOL]
+  - id: WAND
+    displayName: ワンド
+    description: ワンドとして扱う装備。
+    category: EQUIPMENT
+    appliesTo: [EQUIPMENT, GATHERING_REQUIRED_TOOL]
   - id: PICKAXE
     displayName: ツルハシ
     description: 採掘用のツルハシとして扱う装備。

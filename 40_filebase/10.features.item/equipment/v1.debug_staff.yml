@@ -1,0 +1,28 @@
+# design:
+#   motif: "開発検証 / スタッフ通常攻撃"
+#   progression: 0
+schemaVersion: 1
+id: debug_staff
+category: equipment
+name: "&dデバッグ・スタッフ"
+icon: WOODEN_SHOVEL
+rarity: MYTHIC
+customModelData: 990008
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7スタッフ通常攻撃の検証用。"
+unTradeable: true
+unSellable: true
+equipment:
+  slot: WEAPON
+  handType: TWO
+  tag: STAFF
+  requiredLevel: 0
+  stats:
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 30~45
+  durability:
+    max: 240
+    consume: 2
