@@ -13,11 +13,13 @@ import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationHolder;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
+import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.Inventory;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.plugin.PluginMock;
 
 import java.util.List;
+import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -114,6 +116,50 @@ class QuestGuiTest extends MockBukkitTestBase {
         assertEquals(
             QuestGui.BACK_SLOT,
             ((GuiNavigationHolder) inventory.getHolder()).getBackSlot()
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 13. NPC interaction・GUI
+     * 検証契約: クエストGUIの防具アイコンは、クエスト固有の表示を維持したままバニラの装備時ツールチップを表示しない。
+     */
+    @Test
+    void hidesVanillaTooltipForArmorQuestIcons() {
+        PluginMock plugin = PluginMock.builder().withPluginName("astralrecord").build();
+        QuestService questService = mock(QuestService.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        QuestDefinition quest = new QuestDefinition(
+            "quest-armor",
+            "防具クエスト",
+            List.of("クエスト説明"),
+            Material.TURTLE_HELMET,
+            QuestRepeatMode.ONCE,
+            0L,
+            QuestCompletionMode.NPC,
+            null,
+            List.of(),
+            List.of(),
+            new QuestRewardDefinition(0, 0L, List.of())
+        );
+        QuestBoardDefinition board = new QuestBoardDefinition(
+            "board-armor",
+            "防具ボード",
+            List.of(new QuestBoardEntry("quest-armor", 1, 0, null, null))
+        );
+        when(questService.findQuest("quest-armor")).thenReturn(quest);
+        when(questService.displayState(astPlayer, quest)).thenReturn(QuestDisplayState.AVAILABLE);
+
+        QuestGui questGui = new QuestGui(plugin, questService);
+        var player = server().addPlayer();
+        questGui.openBoard(player, astPlayer, board, "npc-armor");
+
+        var item = player.getOpenInventory().getTopInventory().getItem(10);
+        assertEquals(Material.TURTLE_HELMET, item.getType());
+        assertTrue(item.getItemMeta().getItemFlags().containsAll(Set.of(ItemFlag.values())));
+        assertEquals(
+            "状態: 受領可能",
+            PlainTextComponentSerializer.plainText().serialize(item.getItemMeta().lore().getFirst())
         );
     }
 }

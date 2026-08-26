@@ -206,12 +206,6 @@ public final class QuestGui {
 
     private @NotNull ItemStack questItem(@NotNull AstPlayer player, @NotNull QuestDefinition quest, boolean listMode) {
         QuestDisplayState state = questService.displayState(player, quest);
-        ItemStack item = new ItemStack(quest.icon());
-        ItemMeta meta = item.getItemMeta();
-        if (meta == null) {
-            return item;
-        }
-        meta.displayName(questDisplayName(quest, state));
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("状態: " + stateLabel(state), color(state)).decoration(TextDecoration.ITALIC, false));
         for (String line : quest.description()) {
@@ -229,6 +223,11 @@ public final class QuestGui {
             if (state == QuestDisplayState.COOLDOWN) {
                 lore.add(Component.text("残り " + questService.cooldownRemainingSeconds(player, quest) + " 秒", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
             }
+        }
+        ItemStack item = GuiItems.create(quest.icon(), questDisplayName(quest, state), lore);
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return item;
         }
         meta.lore(lore);
         meta.getPersistentDataContainer().set(questIdKey, PersistentDataType.STRING, quest.id());
