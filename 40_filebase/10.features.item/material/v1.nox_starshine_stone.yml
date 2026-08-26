@@ -1,16 +1,16 @@
 # design:
-#   motif: "植物 / 星明かり"
+#   motif: "鉱物 / 星明かり"
 #   progression: 1
 schemaVersion: 1
-id: nox_starrygrass_fiber
+id: nox_starshine_stone
 category: material
-name: "&f星草の繊維"
-icon: STONE
+name: "&f星映石"
+icon: AMETHYST_SHARD
 rarity: COMMON
 maxStack: 64
 saleValue: 11
 lore:
-  - "&7星映え草の種と宵鐘花から紡いだ淡い繊維。"
+  - "&7星映え草と宵鐘花の性質を閉じ込めた石。"
   - "&7植物素材の調合や細工に使われる。"
 unTradeable: false
 unSellable: false

@@ -8,9 +8,9 @@ name: "&d植物調合"
 mode: EXCHANGE
 access: NPC_ONLY
 items:
-  - id: nox_starrygrass_fiber_from_materials
+  - id: nox_starshine_stone_from_materials
     itemId:
-      ref: item:nox_starrygrass_fiber
+      ref: item:nox_starshine_stone
     category: material
     amount: 1
     page: 1
@@ -29,9 +29,9 @@ items:
           ref: item:box_cave_stone
         category: material
         amount: 2
-  - id: nox_starmoon_grass_fiber_from_materials
+  - id: nox_moonshadow_stone_from_materials
     itemId:
-      ref: item:nox_starmoon_grass_fiber
+      ref: item:nox_moonshadow_stone
     category: material
     amount: 1
     page: 1
@@ -39,7 +39,7 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:nox_starrygrass_fiber
+          ref: item:nox_shadowgrass_fiber
         category: material
         amount: 1
       - itemId:

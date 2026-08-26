@@ -1,0 +1,16 @@
+# design:
+#   motif: "鉱物 / 月影"
+#   progression: 1
+schemaVersion: 1
+id: nox_moonshadow_stone
+category: material
+name: "&f月影石"
+icon: BLACKSTONE
+rarity: COMMON
+maxStack: 64
+saleValue: 11
+lore:
+  - "&7影草の繊維と月片花の性質を重ねた石。"
+  - "&7夜の調合を支える植物由来の鉱物。"
+unTradeable: false
+unSellable: false
