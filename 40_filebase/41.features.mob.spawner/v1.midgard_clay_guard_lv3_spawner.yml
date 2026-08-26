@@ -1,0 +1,25 @@
+# design:
+#   motif: "粘土 / 守護像"
+#   progression: 3
+schemaVersion: 1
+id: midgard_clay_guard_lv3_spawner
+type: MOB_SPAWNER
+region: "ミズガルズ草原"
+radiusMeters: 18
+
+spawnMobs:
+  - mobId: mob:midgard_clay_guard
+    level: 3
+    weight: 100
+
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+
+itemMaterial: SPAWNER
+spawnIntervalTicks: 100
+
+spawnLimit:
+  maxAlivePerSpawner: 8
+  maxNearbyMobs: 18
+  spawnPerPlayer: 1
