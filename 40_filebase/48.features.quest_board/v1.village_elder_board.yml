@@ -11,3 +11,15 @@ quests:
       ref: quest:windleaf_gathering
     page: 1
     slot: 12
+  - questId:
+      ref: quest:midgard_moss_shell_hunt
+    page: 1
+    slot: 14
+  - questId:
+      ref: quest:midgard_skeleton_archer_hunt
+    page: 1
+    slot: 16
+  - questId:
+      ref: quest:midgard_clay_guard_hunt
+    page: 1
+    slot: 18

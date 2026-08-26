@@ -1,13 +1,13 @@
 # design:
-#   motif: "北欧神話 / ミッドガルズの草原"
-#   progression: 1
+#   motif: "苔 / 小型の甲殻獣"
+#   progression: 2
 schemaVersion: 1
-id: windwait_field_patrol
+id: midgard_moss_shell_hunt
 type: QUEST
-name: "&aグラスボア討伐依頼"
+name: "&2苔甲羅の討伐依頼"
 description:
-  - "&7ミズガルズ・グラスボアを10体討伐する依頼。"
-icon: COMPASS
+  - "&7ミッドガルズ・モスシェルを10体討伐する依頼。"
+icon: TURTLE_HELMET
 repeat:
   mode: COOLDOWN
   cooldownSeconds: 3600
@@ -16,11 +16,11 @@ completion:
   turnInNpcId:
     ref: mob:village_elder
 objectives:
-  - id: defeat_midgard_grassboar
+  - id: defeat_midgard_moss_shell
     type: KILL_MOB
     targetId:
-      ref: mob:midgard_grassboar
-    label: "ミズガルズ・グラスボア"
+      ref: mob:midgard_moss_shell
+    label: "ミッドガルズ・モスシェル"
     amount: 10
 acceptRequirements:
   items: []
@@ -31,7 +31,7 @@ rewards:
     - itemId:
         ref: item:healing_potion_small
       category: consumable
-      amount: 2
+      amount: 1
     - itemId:
         ref: item:mana_potion_small
       category: consumable
