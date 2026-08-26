@@ -5,7 +5,7 @@ schemaVersion: 1
 id: nox_starshine_stone
 category: material
 name: "&f星映石"
-icon: AMETHYST_SHARD
+icon: mossy_cobblestone
 rarity: COMMON
 maxStack: 64
 saleValue: 11
