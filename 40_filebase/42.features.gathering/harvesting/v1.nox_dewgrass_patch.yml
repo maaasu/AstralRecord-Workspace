@@ -29,10 +29,10 @@ drops:
     - itemId: item:nox_night_herb
       rate: 100.0
       amount: "1"
-      luckAffected: false
+      luckAffected: true
       hidden: false
     - itemId: item:nox_dewgrass_leaf
       rate: 100.0
       amount: "1~2"
-      luckAffected: false
+      luckAffected: true
       hidden: false

@@ -26,5 +26,5 @@ drops:
     - itemId: item:windleaf_sprig
       rate: 100.0
       amount: "1~2"
-      luckAffected: false
+      luckAffected: true
       hidden: false

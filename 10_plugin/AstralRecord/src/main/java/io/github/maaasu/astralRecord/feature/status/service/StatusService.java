@@ -12,6 +12,8 @@ import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentStatRoll;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceStatIncrease;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStat;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
@@ -972,21 +974,64 @@ public class StatusService {
     }
 
     private @NotNull List<ItemReference> collectEquippedReferences(@NotNull AstPlayer player) {
+        List<ItemReference> references;
         if (inventoryService != null) {
-            return inventoryService.getEquippedItemReferences(player);
-        }
-
-        List<ItemReference> references = new ArrayList<>();
-        if (itemReferenceResolver == null) {
-            return references;
-        }
-        for (ItemStack itemStack : collectLegacyEquippedItems(player)) {
-            ItemReference reference = itemReferenceResolver.resolve(itemStack);
-            if (reference != null) {
-                references.add(reference);
+            references = inventoryService.getEquippedItemReferences(player);
+        } else {
+            references = new ArrayList<>();
+            if (itemReferenceResolver == null) {
+                return references;
+            }
+            for (ItemStack itemStack : collectLegacyEquippedItems(player)) {
+                ItemReference reference = itemReferenceResolver.resolve(itemStack);
+                if (reference != null) {
+                    references.add(reference);
+                }
             }
         }
-        return references;
+        return suppressOffhandEffectsForTwoHandedWeapon(references);
+    }
+
+    private @NotNull List<ItemReference> suppressOffhandEffectsForTwoHandedWeapon(
+        @NotNull List<ItemReference> references
+    ) {
+        if (references.isEmpty() || itemReferenceResolver == null) {
+            return references;
+        }
+
+        Map<ItemReference, ItemModel> models = new LinkedHashMap<>();
+        boolean twoHandedWeaponEquipped = false;
+        for (ItemReference reference : references) {
+            ItemModel model = resolveEquippedItemModel(reference);
+            models.put(reference, model);
+            twoHandedWeaponEquipped |= isTwoHandedWeapon(model);
+        }
+        if (!twoHandedWeaponEquipped) {
+            return references;
+        }
+
+        return references.stream()
+            .filter(reference -> !isOffhandEquipment(models.get(reference)))
+            .toList();
+    }
+
+    private @Nullable ItemModel resolveEquippedItemModel(@Nullable ItemReference reference) {
+        return reference == null ? null : itemReferenceResolver.resolveItemModel(reference);
+    }
+
+    private boolean isTwoHandedWeapon(@Nullable ItemModel model) {
+        if (model == null || model.getEquipment() == null) {
+            return false;
+        }
+        ItemEquipment equipment = model.getEquipment();
+        return equipment.getSlot() == ItemEquipmentSlot.WEAPON
+            && equipment.getHandType() == ItemEquipmentHandType.TWO;
+    }
+
+    private boolean isOffhandEquipment(@Nullable ItemModel model) {
+        return model != null
+            && model.getEquipment() != null
+            && model.getEquipment().getSlot() == ItemEquipmentSlot.SUBWEAPON;
     }
 
     private void applyEquipmentItemBonus(

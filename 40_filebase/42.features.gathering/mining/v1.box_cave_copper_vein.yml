@@ -29,5 +29,5 @@ drops:
     - itemId: item:box_cave_copper
       rate: 100.0
       amount: "1~2"
-      luckAffected: false
+      luckAffected: true
       hidden: false

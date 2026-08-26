@@ -78,6 +78,67 @@ class StatusSetEffectDurabilityTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
      * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### ステータス再計算
+     * 検証契約: 主手が両手武器の場合、オフハンド装備の個別ステータス補正を除外し、
+     * セット効果も除外する。片手武器へ戻すとオフハンド補正を再び集計する。
+     */
+    @Test
+    void twoHandedMainHandSuppressesOffhandEquipmentBonus() {
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer player = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.PLAYER);
+        UUID mainHandId = UUID.randomUUID();
+        UUID offhandId = UUID.randomUUID();
+        String mainHandItemId = "two-handed-main";
+        String offhandItemId = "offhand-shield";
+
+        ItemService itemService = mock(ItemService.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        ItemReference mainHand = reference(mainHandItemId, mainHandId);
+        ItemReference offhand = reference(offhandItemId, offhandId);
+        when(inventoryService.getEquippedItemReferences(player)).thenReturn(List.of(mainHand, offhand));
+
+        Map<String, EquipmentInstance> instances = Map.of(
+                mainHandId.toString(), statInstance(mainHandId, player, mainHandItemId, "ATTACK", "4"),
+                offhandId.toString(), statInstance(offhandId, player, offhandItemId, "DEFENSE", "7")
+        );
+        when(itemService.findEquipmentInstanceById(anyString()))
+                .thenAnswer(invocation -> instances.get(invocation.getArgument(0, String.class)));
+
+        ItemModel twoHandedModel = equipmentModel(
+                mainHandItemId, ItemEquipmentSlot.WEAPON, ItemEquipmentHandType.TWO, "ATTACK");
+        ItemModel oneHandedModel = equipmentModel(
+                mainHandItemId, ItemEquipmentSlot.WEAPON, ItemEquipmentHandType.ONE, "ATTACK");
+        ItemModel offhandModel = equipmentModel(
+                offhandItemId, ItemEquipmentSlot.SUBWEAPON, ItemEquipmentHandType.ONE, "DEFENSE", "offhand-set");
+        Map<String, ItemModel> models = new java.util.HashMap<>();
+        models.put(mainHandItemId, twoHandedModel);
+        models.put(offhandItemId, offhandModel);
+        when(itemService.findLoadedById(anyString()))
+                .thenAnswer(invocation -> models.get(invocation.getArgument(0, String.class)));
+        when(itemService.findSetEffectById("offhand-set")).thenReturn(new SetEffect(
+                "offhand-set",
+                "オフハンドセット",
+                List.of(new SetEffectPiece(
+                        1,
+                        List.of(new SetEffectStat("DEFENSE", ItemEquipmentStatType.FLAT, "3"))
+                ))
+        ));
+
+        StatusService statusService = new StatusService(itemService, inventoryService);
+        var twoHandedSnapshot = statusService.refreshStatus(player);
+
+        assertEquals(12.0D, twoHandedSnapshot.getMaxValue(StatusType.ATTACK), 0.0001D);
+        assertEquals(10.0D, twoHandedSnapshot.getMaxValue(StatusType.DEFENSE), 0.0001D);
+
+        models.put(mainHandItemId, oneHandedModel);
+        var oneHandedSnapshot = statusService.refreshStatus(player);
+
+        assertEquals(12.0D, oneHandedSnapshot.getMaxValue(StatusType.ATTACK), 0.0001D);
+        assertEquals(20.0D, oneHandedSnapshot.getMaxValue(StatusType.DEFENSE), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### ステータス再計算
      * 検証契約: 同じステータスに FLAT と SCALAR が混在しても、装備ロールの sortOrder に
      * 対応する補正方式でステータスを計算する。
      */
@@ -140,6 +201,86 @@ class StatusSetEffectDurabilityTest extends MockBukkitTestBase {
                 List.of(),
                 List.of(),
                 List.of()
+        );
+    }
+
+    private EquipmentInstance statInstance(
+            UUID instanceId,
+            AstPlayer player,
+            String itemId,
+            String status,
+            String value
+    ) {
+        String now = LocalDateTime.now().toString();
+        return new EquipmentInstance(
+                instanceId.toString(),
+                player.getAccount().getUuid().toString(),
+                itemId,
+                0,
+                0,
+                0,
+                0,
+                0,
+                now,
+                now,
+                List.of(new EquipmentStatRoll(UUID.randomUUID().toString(), status, value, value, 0)),
+                List.of(),
+                List.of()
+        );
+    }
+
+    private ItemModel equipmentModel(
+            String itemId,
+            ItemEquipmentSlot slot,
+            ItemEquipmentHandType handType,
+            String status
+    ) {
+        return equipmentModel(itemId, slot, handType, status, null);
+    }
+
+    private ItemModel equipmentModel(
+            String itemId,
+            ItemEquipmentSlot slot,
+            ItemEquipmentHandType handType,
+            String status,
+            String setId
+    ) {
+        ItemEquipment equipment = new ItemEquipment(
+                slot,
+                handType,
+                null,
+                0,
+                List.of(),
+                setId,
+                List.of(new ItemEquipmentStat(status, ItemEquipmentStatType.FLAT, 0.0D, 0.0D)),
+                null,
+                null,
+                null,
+                null,
+                List.of()
+        );
+        return new ItemModel(
+                1,
+                itemId,
+                ItemCategory.EQUIPMENT.getApiValue(),
+                itemId,
+                "IRON_SWORD",
+                "common",
+                1,
+                0,
+                null,
+                null,
+                List.of(),
+                false,
+                false,
+                null,
+                null,
+                equipment,
+                null,
+                null,
+                null,
+                null,
+                null
         );
     }
 
