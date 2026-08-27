@@ -1,0 +1,16 @@
+# design:
+#   motif: "紋章 / 緑野の風"
+#   progression: 5
+schemaVersion: 1
+id: middle_earth_ruins_greenfield_crest
+category: material
+name: "&a緑野の紋章片"
+icon: EMERALD
+rarity: RARE
+maxStack: 64
+saleValue: 48
+lore:
+  - "&7遺跡の石壁に刻まれていた、風を呼ぶ紋章の欠片。"
+  - "&7遺跡の武器やアクセサリとの交換に使われる。"
+unTradeable: false
+unSellable: false

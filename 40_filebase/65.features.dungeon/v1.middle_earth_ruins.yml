@@ -14,6 +14,8 @@ entry:
 challenge:
   deathLimit: 5
   reviveDelaySeconds: 5
+clearRewards:
+  lootTable: loot_table:middle_earth_ruins_boss_table
 generation:
   area:
     width: 112

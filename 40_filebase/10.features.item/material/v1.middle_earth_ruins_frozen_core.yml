@@ -1,0 +1,16 @@
+# design:
+#   motif: "氷 / 凍てつく核"
+#   progression: 5
+schemaVersion: 1
+id: middle_earth_ruins_frozen_core
+category: material
+name: "&b凍てつく核片"
+icon: PRISMARINE_SHARD
+rarity: RARE
+maxStack: 64
+saleValue: 48
+lore:
+  - "&7万物のエルが残した、冷気を帯びる核の欠片。"
+  - "&7遺跡の武器やアクセサリとの交換に使われる。"
+unTradeable: false
+unSellable: false

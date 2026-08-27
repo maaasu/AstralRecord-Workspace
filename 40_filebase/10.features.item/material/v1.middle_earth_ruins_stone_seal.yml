@@ -1,0 +1,16 @@
+# design:
+#   motif: "遺跡 / 石の封印"
+#   progression: 5
+schemaVersion: 1
+id: middle_earth_ruins_stone_seal
+category: material
+name: "&d遺跡の石封"
+icon: ECHO_SHARD
+rarity: RARE
+maxStack: 64
+saleValue: 48
+lore:
+  - "&7石室の奥で見つかる、古い封印の欠片。"
+  - "&7遺跡の武器やアクセサリとの交換に使われる。"
+unTradeable: false
+unSellable: false

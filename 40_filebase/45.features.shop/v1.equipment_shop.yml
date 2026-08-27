@@ -319,3 +319,111 @@ items:
           ref: item:box_cave_copper_ingot
         category: material
         amount: 1
+  - id: middle_earth_hammer
+    itemId:
+      ref: item:middle_earth_hammer
+    category: equipment
+    amount: 1
+    page: 2
+    row: 1
+    column: 2
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:middle_earth_ruins_stone_seal
+        category: material
+        amount: 2
+      - itemId:
+          ref: item:middle_earth_ruins_frozen_core
+        category: material
+        amount: 1
+  - id: middle_earth_longbow
+    itemId:
+      ref: item:middle_earth_longbow
+    category: equipment
+    amount: 1
+    page: 2
+    row: 1
+    column: 4
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:middle_earth_ruins_greenfield_crest
+        category: material
+        amount: 2
+      - itemId:
+          ref: item:middle_earth_ruins_stone_seal
+        category: material
+        amount: 1
+  - id: middle_earth_wand
+    itemId:
+      ref: item:middle_earth_wand
+    category: equipment
+    amount: 1
+    page: 2
+    row: 1
+    column: 6
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:middle_earth_ruins_frozen_core
+        category: material
+        amount: 2
+      - itemId:
+          ref: item:middle_earth_ruins_greenfield_crest
+        category: material
+        amount: 1
+  - id: middle_earth_relic
+    itemId:
+      ref: item:middle_earth_relic
+    category: equipment
+    amount: 1
+    page: 2
+    row: 3
+    column: 2
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:middle_earth_ruins_stone_seal
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:middle_earth_ruins_greenfield_crest
+        category: material
+        amount: 1
+  - id: middle_earth_talisman
+    itemId:
+      ref: item:middle_earth_talisman
+    category: equipment
+    amount: 1
+    page: 2
+    row: 3
+    column: 4
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:middle_earth_ruins_frozen_core
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:middle_earth_ruins_stone_seal
+        category: material
+        amount: 1
+  - id: middle_earth_amulet
+    itemId:
+      ref: item:middle_earth_amulet
+    category: equipment
+    amount: 1
+    page: 2
+    row: 3
+    column: 6
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:middle_earth_ruins_greenfield_crest
+        category: material
+        amount: 1
+      - itemId:
+          ref: item:middle_earth_ruins_frozen_core
+        category: material
+        amount: 1
