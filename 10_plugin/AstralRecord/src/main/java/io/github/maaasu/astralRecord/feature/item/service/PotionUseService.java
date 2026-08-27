@@ -217,8 +217,14 @@ public final class PotionUseService {
         }
         cleanupPending(pending);
         if (notify && pending.astPlayer().getBukkit().isOnline()) {
-            PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5263);
-            showResultTitle(pending.astPlayer().getBukkit(), PlayerMsgId.P_5270, PlayerMsgId.P_5263);
+            String displayName = displayItemName(pending.model());
+            PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5263, displayName);
+            showResultTitle(
+                pending.astPlayer().getBukkit(),
+                PlayerMsgId.P_5270,
+                PlayerMsgId.P_5263,
+                displayName
+            );
             pending.astPlayer().getBukkit().playSound(
                 pending.astPlayer().getBukkit().getLocation(),
                 Sound.BLOCK_BEACON_DEACTIVATE,
@@ -286,7 +292,7 @@ public final class PotionUseService {
         pending.setLastDisplayedSeconds(remainingSeconds);
         Player player = pending.astPlayer().getBukkit();
         player.showTitle(Title.title(
-            PlayerMsgResource.getComponent(PlayerMsgId.P_5265.getId()),
+            PlayerMsgResource.formatComponent(PlayerMsgId.P_5265.getId(), displayItemName(pending.model())),
             PlayerMsgResource.formatComponent(PlayerMsgId.P_5266.getId(), displayItemName(pending.model()), remainingSeconds),
             COUNTDOWN_TITLE_TIMES
         ));
