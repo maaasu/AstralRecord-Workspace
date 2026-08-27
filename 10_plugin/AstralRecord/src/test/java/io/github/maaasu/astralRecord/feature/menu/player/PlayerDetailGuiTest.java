@@ -49,6 +49,10 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
         values.put(StatusType.ICE_DAMAGE_INCREASE, new StatusValue(30.0D, 0.0D));
         values.put(StatusType.ICE_RESISTANCE, new StatusValue(40.0D, 0.0D));
         values.put(StatusType.BURNING_RESISTANCE, new StatusValue(15.0D, 3.0D));
+        values.put(StatusType.MAX_SHIELD, new StatusValue(0.0D, 0.0D));
+        values.put(StatusType.LIGHTNING_DAMAGE_INCREASE, new StatusValue(0.0D, 0.0D));
+        StatusType.byCategory(StatusType.Category.OFFENSE).forEach(type ->
+            values.put(type, new StatusValue(0.0D, 0.0D)));
         StatusSnapshot snapshot = new StatusSnapshot(values, 100.0D, 0.0D, 0.0D, 0.0D, 0L, LocalDateTime.now());
 
         new PlayerDetailGui(worldService).open(
@@ -66,6 +70,7 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
         Inventory inventory = player.getOpenInventory().getTopInventory();
         String headLore = plainLore(inventory.getItem(PlayerDetailGui.HEAD_SLOT));
         String statusLore = plainLore(inventory.getItem(PlayerDetailGui.RESOURCE_SLOT));
+        String offenseLore = plainLore(inventory.getItem(PlayerDetailGui.OFFENSE_SLOT));
         String elementLore = plainLore(inventory.getItem(PlayerDetailGui.ELEMENT_SLOT));
         String conditionLore = plainLore(inventory.getItem(PlayerDetailGui.CONDITION_SLOT));
         String buffLore = plainLore(inventory.getItem(PlayerDetailGui.BUFF_SLOT));
@@ -79,13 +84,17 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
         assertTrue(statusLore.contains("100"));
         assertTrue(statusLore.contains("+5"));
         assertTrue(statusLore.contains("105  (100 +5)"));
+        assertFalse(statusLore.contains("最大シールド"));
         assertFalse(statusLore.contains("基礎"));
         assertFalse(statusLore.contains("補正"));
+        assertTrue(offenseLore.contains("ステータス情報はありません"));
+        assertTrue(NamedTextColor.GRAY.equals(findLoreLine(inventory.getItem(PlayerDetailGui.OFFENSE_SLOT), "ステータス情報はありません").color()));
         assertTrue(elementLore.contains("火属性耐性"));
         assertTrue(elementLore.contains("12.0%  (10.0% +2.0%)"));
         assertTrue(elementLore.indexOf("火属性ダメージ増加") < elementLore.indexOf("氷属性ダメージ増加"));
         assertTrue(elementLore.indexOf("氷属性ダメージ増加") < elementLore.indexOf("火属性耐性"));
         assertTrue(elementLore.indexOf("火属性耐性") < elementLore.indexOf("氷属性耐性"));
+        assertFalse(elementLore.contains("雷属性ダメージ増加"));
         assertTrue(conditionLore.contains("燃焼付与耐性"));
         assertTrue(conditionLore.contains("18.0%  (15.0% +3.0%)"));
         assertTrue(buffLore.contains("クリックで詳細を表示"));
@@ -112,6 +121,7 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
         EnumMap<StatusType, StatusValue> values = new EnumMap<>(StatusType.class);
         values.put(StatusType.MAX_HEALTH, new StatusValue(20.0D, 15.0D));
         values.put(StatusType.MAX_MANA, new StatusValue(10.0D, 2.0D));
+        values.put(StatusType.MAX_ENERGY, new StatusValue(0.0D, 0.0D));
         StatusSnapshot snapshot = new StatusSnapshot(values, 35.0D, 12.0D, 0.0D, 0.0D, 0L, LocalDateTime.now());
 
         PlayerDetailGui gui = new PlayerDetailGui(worldService);
@@ -130,6 +140,8 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
         assertTrue(lore.contains("現在値: 35"));
         assertTrue(lore.contains("基礎値: 20"));
         assertTrue(lore.contains("合計補正: +15"));
+        assertTrue(Material.AIR.equals(inventory.getItem(2).getType()));
+        assertTrue(gui.getStatusDetailItemCount(StatusType.Category.RESOURCE, snapshot) == 2);
     }
 
     private static String plainLore(ItemStack itemStack) {
@@ -145,6 +157,13 @@ class PlayerDetailGuiTest extends MockBukkitTestBase {
     private static Component findTextComponent(ItemStack itemStack, String text) {
         return itemStack.getItemMeta().lore().stream()
             .flatMap(component -> component.children().stream())
+            .filter(component -> text.equals(PlainTextComponentSerializer.plainText().serialize(component)))
+            .findFirst()
+            .orElseThrow();
+    }
+
+    private static Component findLoreLine(ItemStack itemStack, String text) {
+        return itemStack.getItemMeta().lore().stream()
             .filter(component -> text.equals(PlainTextComponentSerializer.plainText().serialize(component)))
             .findFirst()
             .orElseThrow();

@@ -354,13 +354,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             StatusSnapshot snapshot = statusService.refreshStatus(target);
             int currentPage = playerDetailGui.getStatusDetailPageIndex(inventory);
             int nextPage = rawSlot == PagedGuiView.PREVIOUS_SLOT ? currentPage - 1 : currentPage + 1;
-            int totalItems = StatusType.byCategory(category).stream()
-                .filter(type -> snapshot.getValue(type) != null)
-                .count() > Integer.MAX_VALUE
-                ? Integer.MAX_VALUE
-                : (int) StatusType.byCategory(category).stream()
-                    .filter(type -> snapshot.getValue(type) != null)
-                    .count();
+            int totalItems = playerDetailGui.getStatusDetailItemCount(category, snapshot);
             if (rawSlot == PagedGuiView.PREVIOUS_SLOT
                 ? !new PagedGuiView().hasPreviousPage(currentPage)
                 : !new PagedGuiView().hasNextPage(currentPage, totalItems)) {

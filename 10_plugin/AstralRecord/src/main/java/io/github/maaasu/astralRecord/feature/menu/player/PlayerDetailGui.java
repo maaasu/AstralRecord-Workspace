@@ -379,6 +379,20 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     }
 
     /**
+     * ステータス詳細 GUI に表示するカテゴリ内の項目数を返します。
+     *
+     * @param category 表示カテゴリ
+     * @param snapshot 表示用ステータススナップショット
+     * @return 0 ではないステータスの項目数
+     */
+    public int getStatusDetailItemCount(
+        @NotNull StatusType.Category category,
+        @NotNull StatusSnapshot snapshot
+    ) {
+        return statusesInCategory(category, snapshot).size();
+    }
+
+    /**
      * 指定カテゴリのステータス詳細 GUI を開きます。
      *
      * @param viewer 閲覧者
@@ -670,9 +684,13 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         @NotNull StatusSnapshot snapshot
     ) {
         return StatusType.byCategory(category).stream()
-            .filter(type -> snapshot.getValue(type) != null)
+            .filter(type -> isVisibleStatus(snapshot.getValue(type)))
             .sorted(Comparator.comparingInt(PlayerDetailGui::statusGroupOrder))
             .toList();
+    }
+
+    private boolean isVisibleStatus(@Nullable StatusValue value) {
+        return value != null && (value.getMinValue() != 0.0D || value.getMaxValue() != 0.0D);
     }
 
     private @NotNull ItemStack statusDetailItem(
@@ -752,16 +770,13 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
 
         List<Component> lore = new ArrayList<>();
         lore.add(separatorLine());
-        for (StatusType type : StatusType.byCategory(category).stream()
-            .sorted(Comparator.comparingInt(PlayerDetailGui::statusGroupOrder))
-            .toList()) {
+        List<StatusType> statuses = statusesInCategory(category, snapshot);
+        for (StatusType type : statuses) {
             StatusValue value = snapshot.getValue(type);
-            if (value != null) {
-                lore.add(statLine(type, value, color));
-            }
+            lore.add(statLine(type, value, color));
         }
-        if (lore.size() == 1) {
-            lore.add(noItalic(Component.text("算出済みステータスがありません", NamedTextColor.DARK_GRAY)));
+        if (statuses.isEmpty()) {
+            lore.add(noItalic(Component.text("ステータス情報はありません", NamedTextColor.GRAY)));
         }
         lore.add(separatorLine());
         return createItem(material, name, lore);
