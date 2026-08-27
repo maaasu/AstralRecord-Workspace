@@ -30,6 +30,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
 import io.github.maaasu.astralRecord.feature.skill.service.JustDodgeSkillRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.LastShieldSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -85,6 +86,7 @@ public final class DamageService {
     private TemporarySkillEffectService temporarySkillEffectService;
     private CombatDpsTrackerService combatDpsTrackerService;
     private JustDodgeSkillRuntimeService justDodgeSkillRuntimeService;
+    private LastShieldSkillRuntimeService lastShieldSkillRuntimeService;
     private Consumer<AstPlayer> playerDamageListener = player -> { };
     private Consumer<UUID> mobDeathListener = mobInstanceId -> { };
 
@@ -261,6 +263,17 @@ public final class DamageService {
             @Nullable JustDodgeSkillRuntimeService runtimeService
     ) {
         this.justDodgeSkillRuntimeService = runtimeService;
+    }
+
+    /**
+     * シールド破壊時の攻撃無効化を行う runtime を設定します。
+     *
+     * @param runtimeService ラストシールド runtime。null の場合は無効化しない
+     */
+    public void setLastShieldSkillRuntimeService(
+            @Nullable LastShieldSkillRuntimeService runtimeService
+    ) {
+        this.lastShieldSkillRuntimeService = runtimeService;
     }
 
     /**
@@ -670,6 +683,11 @@ public final class DamageService {
         long rechargeEventAtMs = System.currentTimeMillis();
         completeShieldRechargeIfReady(victim, rechargeEventAtMs);
         boolean shieldWasActive = hasActiveShield(victim);
+        if (lastShieldSkillRuntimeService != null
+                && shieldWouldBreak(attacker, victim, calculated, shieldBreakMultiplier)
+                && lastShieldSkillRuntimeService.tryNegateShieldBreakingDirectDamage(victim, source)) {
+            return new DamageResult(0.0D);
+        }
         DamageResult result = applyShieldDamage(attacker, victim, calculated, shieldBreakMultiplier);
         if (!shieldWasActive && isDirectDamage(source) && !result.evaded()) {
             result = result.withAddedFixedHealthDamage(fixedHealthDamage(attacker));
@@ -897,6 +915,27 @@ public final class DamageService {
         boolean shieldBroken = currentShield > 0.0D && currentShield - shieldDamage <= 0.0D;
         consumeShield(victim, shieldDamage);
         return DamageResult.shield(shieldDamage, shieldBroken, result);
+    }
+
+    private boolean shieldWouldBreak(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull DamageResult result,
+            double shieldBreakMultiplier
+    ) {
+        if (result.finalDamage() <= 0.0D || !hasActiveShield(victim)) {
+            return false;
+        }
+        double currentShield = currentShield(victim);
+        double shieldBreak = attacker == null ? 0.0D : Math.max(0.0D, attacker.statValue(StatusType.SHIELD_BREAK));
+        double shieldDamage = calculateShieldDamage(
+                result.finalDamage(),
+                victim.maxHealth(),
+                shieldBreak,
+                shieldBreakMultiplier,
+                currentShield
+        );
+        return currentShield > 0.0D && currentShield - shieldDamage <= 0.0D;
     }
 
     /**

@@ -33,13 +33,15 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 |:--|:--|:--|:--|
 | `adventurer` | 近接・間接・魔法の基礎操作を試す見習い | `ENERGY` / `MANA` | 扇形、単体飛翔体、単体対象 |
 
-現行定義は冒険者の6skillとソードマンの `swordsman_shield_drain` / `swordsman_bastion_strike` / `swordsman_flame_rush` / `swordsman_challenging_roar` を含みます。前3者はソードマンの `usableSkills` へ追加せず、それぞれskilltree node `1202` / `1203` / `1204` のskill effectとAdministratorの `usableSkills` から使用許可を与えます。`swordsman_challenging_roar` はソードマンとAdministratorの `usableSkills` から使用許可を与えます。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
+現行定義は冒険者の6skillと、ソードマンの `swordsman_shield_drain` / `swordsman_bastion_strike` / `swordsman_flame_rush` / `swordsman_challenging_roar` / `swordsman_last_shield` を含みます。シールドドレイン、バスティオンストライク、フレイムラッシュはソードマンの `usableSkills` へ追加せず、それぞれskilltree node `1202` / `1203` / `1204` とAdministratorの `usableSkills` から使用許可を与えます。ラストシールドはソードマンの `usableSkills` へ追加せず、skilltree node `1211` から使用許可を与えます。チャレンジングロアはソードマンとAdministratorの `usableSkills` から使用許可を与えます。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
 
 `swordsman_shield_drain` は敵Shieldへの3倍ブレイクと実減少量50%の自己Shield吸収を行い、発動時に自身のShieldが最大ならダメージ倍率を追加100%します。
 
 `swordsman_bastion_strike` は前方単体を攻撃し、発動時に自身の現在Shieldを最大Shieldまで即時回復します。発動時の現在MPは全量消費し、固定MPコストは重ねません。
 
 `swordsman_flame_rush` は前方最大5体へ火属性の二連撃を行い、Lv.8以降の二撃目だけに炎上判定を持ちます。`swordsman_challenging_roar` は周囲のMobを一時的に挑発する非攻撃スキルです。
+
+`swordsman_last_shield` は、シールドを破壊する `NORMAL_ATTACK` / `SKILL` の直接攻撃を1回だけ無効化するバインド必須パッシブです。クールダウンは120秒で、無効化時はシールドを消費せず、HPダメージ・ノックバック・耐久消費も発生しません。状態異常DoTと環境ダメージは対象外です。
 
 ## Administrator専用のドッジ連動パッシブ
 
