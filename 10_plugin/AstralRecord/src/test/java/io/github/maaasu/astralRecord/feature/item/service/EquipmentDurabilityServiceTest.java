@@ -67,7 +67,8 @@ class EquipmentDurabilityServiceTest {
         );
         private final EquipmentDurabilityService service = new EquipmentDurabilityService(
             inventoryService,
-            itemService
+            itemService,
+            () -> 0.0D
         );
 
         private TestContext(int currentDurability, int durabilityCost) {

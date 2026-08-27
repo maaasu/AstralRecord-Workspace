@@ -26,17 +26,19 @@ import org.jetbrains.annotations.Nullable;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.DoubleSupplier;
 import java.util.function.Predicate;
 
 public final class EquipmentDurabilityService {
-    private static final double WEAPON_HIT_CONSUME_CHANCE = 0.50D;
-    private static final double ARMOR_DAMAGE_TAKEN_CONSUME_CHANCE = 0.80D;
-    private static final double ACCESSORY_HIT_CONSUME_CHANCE = 0.20D;
-    private static final double ACCESSORY_DAMAGE_TAKEN_CONSUME_CHANCE = 1.00D;
+    private static final double WEAPON_HIT_CONSUME_CHANCE = 0.10D;
+    private static final double ARMOR_DAMAGE_TAKEN_CONSUME_CHANCE = 0.20D;
+    private static final double ACCESSORY_HIT_CONSUME_CHANCE = 0.06D;
+    private static final double ACCESSORY_DAMAGE_TAKEN_CONSUME_CHANCE = 0.10D;
 
     private final InventoryService inventoryService;
     private final ItemService itemService;
     private final ItemReferenceResolver itemReferenceResolver;
+    private final DoubleSupplier randomValueSupplier;
     private StatusService statusService;
 
     /**
@@ -49,9 +51,18 @@ public final class EquipmentDurabilityService {
         @NotNull InventoryService inventoryService,
         @NotNull ItemService itemService
     ) {
+        this(inventoryService, itemService, () -> ThreadLocalRandom.current().nextDouble());
+    }
+
+    EquipmentDurabilityService(
+        @NotNull InventoryService inventoryService,
+        @NotNull ItemService itemService,
+        @NotNull DoubleSupplier randomValueSupplier
+    ) {
         this.inventoryService = inventoryService;
         this.itemService = itemService;
         this.itemReferenceResolver = new ItemReferenceResolver(itemService);
+        this.randomValueSupplier = randomValueSupplier;
     }
 
     /**
@@ -160,7 +171,7 @@ public final class EquipmentDurabilityService {
             player,
             inventoryService.getItemReferenceInHand(player, EquipmentSlot.HAND),
             equipment -> equipment.getSlot() == ItemEquipmentSlot.TOOL,
-            1.0D,
+            0.50D,
             new HashSet<>()
         );
     }
@@ -233,7 +244,7 @@ public final class EquipmentDurabilityService {
         if (instance.getDurabilityMax() <= 0 || instance.getDurabilityValue() <= 0) {
             return;
         }
-        if (chance < 1.0D && ThreadLocalRandom.current().nextDouble() >= chance) {
+        if (chance < 1.0D && randomValueSupplier.getAsDouble() >= chance) {
             return;
         }
         int consumeAmount = model.getEquipment() == null || model.getEquipment().getDurability() == null
