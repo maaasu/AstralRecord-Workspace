@@ -8,7 +8,7 @@ name: "&f風化した遺跡貨"
 icon: GOLD_NUGGET
 rarity: COMMON
 maxStack: 64
-saleValue: 12
+saleValue: 45
 lore:
   - "&7遺跡の瓦礫から見つかる、摩耗した古い貨幣。"
   - "&7店で売却するとゴールドになる。"

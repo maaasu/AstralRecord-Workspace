@@ -8,7 +8,7 @@ name: "&b古代遺跡の銀章"
 icon: IRON_INGOT
 rarity: UNCOMMON
 maxStack: 64
-saleValue: 36
+saleValue: 90
 lore:
   - "&7古い紋章が刻まれた、保存状態のよい銀章。"
   - "&7店で売却するとゴールドになる。"

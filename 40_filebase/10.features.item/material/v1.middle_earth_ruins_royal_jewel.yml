@@ -8,7 +8,7 @@ name: "&d遺跡主の王石"
 icon: DIAMOND
 rarity: RARE
 maxStack: 64
-saleValue: 96
+saleValue: 300
 lore:
   - "&7遺跡主の玉座に埋め込まれていた、希少な宝石。"
   - "&7店で売却するとゴールドになる。"

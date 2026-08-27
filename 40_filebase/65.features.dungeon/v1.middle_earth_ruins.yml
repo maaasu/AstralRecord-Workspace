@@ -57,14 +57,14 @@ clearRewards:
       rate: 12.0
       amount: "1"
     - itemId: item:middle_earth_ruins_weathered_coin
-      rate: 25.0
-      amount: "1~2"
+      rate: 100.0
+      amount: "1~32"
     - itemId: item:middle_earth_ruins_ancient_medallion
-      rate: 10.0
-      amount: "1"
+      rate: 80.0
+      amount: "1~12"
     - itemId: item:middle_earth_ruins_royal_jewel
-      rate: 3.0
-      amount: "1"
+      rate: 25.0
+      amount: "1~6"
 generation:
   area:
     width: 112
