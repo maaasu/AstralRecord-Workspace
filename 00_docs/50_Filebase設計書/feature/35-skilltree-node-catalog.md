@@ -38,6 +38,7 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `status-movement-speed-flat-1` | `MOVEMENT_SPEED` / `FLAT` / `1` | `&d迅風の星脈` | `SUGAR` | `status`, `agility`, `wind` |
 | `status-mp-regen-flat-0.2` | `MP_REGEN` / `FLAT` / `0.2` | `&d還流の星脈` | `PRISMARINE_CRYSTALS` | `status`, `resource`, `mana`, `azure` |
 | `skill-swordsman-shield-drain` | `skill` / `swordsman_shield_drain` | `&bシールドドレイン` | `HEART_OF_THE_SEA` | `defense` |
+| `skill-swordsman-last-shield` | `skill` / `swordsman_last_shield` | `&bラストシールド` | `SHIELD` | `defense` |
 | `skill-swordsman-flame-rush` | `skill` / `swordsman_flame_rush` | `&6フレイムラッシュ` | `BLAZE_POWDER` | `melee`, `fire` |
 | `skill-swordsman-bastion-strike` | `skill` / `swordsman_bastion_strike` | `&bバスティオンストライク` | `SHIELD` | `defense` |
 
