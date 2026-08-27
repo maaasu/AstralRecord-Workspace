@@ -347,6 +347,10 @@ public class PlayerHudView {
                 + ColorCodeUtil.WHITE + info.deathCount() + "/" + info.deathLimit());
         lines.add(ColorCodeUtil.GOLD + "部屋" + ColorCodeUtil.GRAY + ": "
                 + ColorCodeUtil.WHITE + info.clearedRooms() + "/" + info.totalRooms());
+        if (info.timeLimitSeconds() != null) {
+            lines.add(ColorCodeUtil.GOLD + "時間" + ColorCodeUtil.GRAY + ": "
+                    + ColorCodeUtil.WHITE + info.elapsedSeconds() + "/" + info.timeLimitSeconds() + "s");
+        }
         lines.add(ColorCodeUtil.LIGHT_PURPLE + "参加者" + ColorCodeUtil.GRAY + ": "
                 + formatParticipantNames(info.participantNames(), info.waitingParticipantNames()));
         lines.add(info.returnRemainingSeconds() >= 0L

@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.dungeon.model;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
 import org.bukkit.Material;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 
@@ -90,8 +91,16 @@ public record DungeonDefinition(
     public record IntRange(int min, int max) {
     }
 
-    /** パーティー共有の死亡許容回数と死亡後の復帰待機時間です。 */
-    public record Challenge(int deathLimit, long reviveDelaySeconds) {
+    /** パーティー共有の死亡許容回数、死亡後の復帰待機時間、挑戦制限時間です。 */
+    public record Challenge(
+            int deathLimit,
+            long reviveDelaySeconds,
+            @Nullable Long timeLimitSeconds
+    ) {
+        /** 従来定義では制限時間を既定の10分として扱います。 */
+        public Challenge(int deathLimit, long reviveDelaySeconds) {
+            this(deathLimit, reviveDelaySeconds, 600L);
+        }
     }
 
     /** BSP と部屋・通路の寸法設定です。 */

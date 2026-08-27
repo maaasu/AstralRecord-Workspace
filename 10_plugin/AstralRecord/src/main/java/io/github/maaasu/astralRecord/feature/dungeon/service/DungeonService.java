@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonSidebarInfo;
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonCancelGui;
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonArchiveGui;
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonMapGui;
+import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonEmergencyTeleportGui;
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonRewardGui;
 import io.github.maaasu.astralRecord.feature.dungeon.repository.DungeonDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.dungeon.view.DungeonCancelController;
@@ -114,6 +115,7 @@ public final class DungeonService {
     private static final int ENTRY_FRAME_POINTS = 20;
     private static final double ENTRY_VIEW_DISTANCE_SQUARED = 48.0D * 48.0D;
     private static final long CLEAR_RETURN_DELAY_TICKS = 30L * 20L;
+    private static final long DEFAULT_CHALLENGE_TIME_LIMIT_SECONDS = 600L;
     private static final double RETURN_GATE_RADIUS_SQUARED = 2.25D * 2.25D;
     private static final Material ACTIVE_ROOM_GATE_MATERIAL = Material.GLASS;
     private static final String REWARD_SOURCE = "dungeon_clear";
@@ -144,6 +146,7 @@ public final class DungeonService {
     private final DungeonCancelGui cancelGui;
     private final DungeonRewardGui rewardGui;
     private final DungeonMapGui mapGui;
+    private final DungeonEmergencyTeleportGui emergencyTeleportGui;
     private final DungeonArchiveGui archiveGui;
     private final InstanceCreationQueue creationQueue;
     private final String hubWorldId;
@@ -290,6 +293,7 @@ public final class DungeonService {
         this.cancelGui = new DungeonCancelGui();
         this.rewardGui = new DungeonRewardGui(itemService, itemStackFactory);
         this.mapGui = new DungeonMapGui();
+        this.emergencyTeleportGui = new DungeonEmergencyTeleportGui();
         this.archiveGui = new DungeonArchiveGui(itemService, itemStackFactory);
         this.creationQueue = creationQueue;
         this.hubWorldId = hubWorldId;
@@ -981,6 +985,8 @@ public final class DungeonService {
                 session.startCountdownTask = null;
                 showDungeonStart(inWorld, session.loaded.definition().displayName());
                 session.combatStarted = true;
+                session.startedAtMs = System.currentTimeMillis();
+                startChallengeTimeLimit(session);
                 completeSafeStartRoom(session);
             } catch (RuntimeException failure) {
                 if (taskRef[0] != null) taskRef[0].cancel();
@@ -1012,6 +1018,31 @@ public final class DungeonService {
             ));
             player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.9F, 1.0F);
         }
+    }
+
+    /** 制限時間が設定されたダンジョンの終了監視を開始します。 */
+    private void startChallengeTimeLimit(@NotNull Session session) {
+        Long timeLimitSeconds = session.loaded.definition().challenge().timeLimitSeconds();
+        if (timeLimitSeconds == null) {
+            return;
+        }
+        BukkitTask[] taskRef = new BukkitTask[1];
+        taskRef[0] = Bukkit.getScheduler().runTaskTimer(plugin, () -> {
+            if (session.ending || sessionsById.get(session.id) != session || !session.combatStarted) {
+                taskRef[0].cancel();
+                session.challengeTimeLimitTask = null;
+                return;
+            }
+            long elapsedSeconds = Math.max(0L, (System.currentTimeMillis() - session.startedAtMs) / 1_000L);
+            if (elapsedSeconds >= timeLimitSeconds) {
+                taskRef[0].cancel();
+                session.challengeTimeLimitTask = null;
+                message(session.participants, PlayerMsgId.P_7103,
+                        session.loaded.definition().displayName());
+                completeSession(session, EndReason.TIME_LIMIT, false);
+            }
+        }, 20L, 20L);
+        session.challengeTimeLimitTask = taskRef[0];
     }
 
     private @NotNull List<Player> activePlayersInWorld(@NotNull Session session) {
@@ -1607,6 +1638,9 @@ public final class DungeonService {
     /** @return カルトグラフ現在地図 GUI view */
     public @NotNull DungeonMapGui mapGui() { return mapGui; }
 
+    /** @return 緊急時の未踏査区画選択 GUI view */
+    public @NotNull DungeonEmergencyTeleportGui emergencyTeleportGui() { return emergencyTeleportGui; }
+
     /** @return カルトグラフ踏破記録 GUI view */
     public @NotNull DungeonArchiveGui archiveGui() { return archiveGui; }
 
@@ -1701,6 +1735,209 @@ public final class DungeonService {
             return;
         }
         mapGui.open(player, snapshot, page);
+    }
+
+    /**
+     * カルトグラフの緊急移動ボタンを処理します。
+     * 未踏査区画が一つなら直ちに移動し、複数なら選択 GUI を開きます。
+     *
+     * @param player 操作プレイヤー
+     * @param sessionId カルトグラフが表示するセッション ID
+     * @return 受理結果
+     */
+    public @NotNull EmergencyTeleportResult handleEmergencyTeleportButton(
+            @NotNull Player player,
+            @NotNull UUID sessionId
+    ) {
+        MapSnapshot snapshot = mapSnapshot(player, sessionId);
+        Session session = sessionsById.get(sessionId);
+        if (snapshot == null || session == null) {
+            return EmergencyTeleportResult.INVALID;
+        }
+        if (isEmergencyTeleportCoolingDown(session)) {
+            return EmergencyTeleportResult.COOLDOWN;
+        }
+        List<DungeonEmergencyTeleportGui.RoomOption> options = emergencyRoomOptions(session);
+        if (options.isEmpty()) {
+            return EmergencyTeleportResult.NO_TARGET;
+        }
+        if (options.size() > 1) {
+            emergencyTeleportGui.open(player, session.id, options, 0);
+            return EmergencyTeleportResult.SELECTION_OPENED;
+        }
+        return startEmergencyTeleport(session, player, options.getFirst().roomId())
+                ? EmergencyTeleportResult.TELEPORTING
+                : EmergencyTeleportResult.INVALID;
+    }
+
+    /** 緊急未踏査区画の選択 GUI を指定ページで再表示します。 */
+    public void openEmergencyTeleportSelectionPage(
+            @NotNull Player player,
+            @NotNull UUID sessionId,
+            int page
+    ) {
+        Session session = sessionsById.get(sessionId);
+        if (session == null || mapSnapshot(player, sessionId) == null || isEmergencyTeleportCoolingDown(session)) {
+            messageService.send(player, PlayerMsgId.P_7102);
+            player.closeInventory();
+            return;
+        }
+        emergencyTeleportGui.open(player, sessionId, emergencyRoomOptions(session), page);
+    }
+
+    /**
+     * 緊急区画選択 GUI で指定された未踏査区画への移動を開始します。
+     *
+     * @param player 操作プレイヤー
+     * @param sessionId セッション ID
+     * @param roomId 移動先部屋 ID
+     * @return 移動開始の可否
+     */
+    public boolean selectEmergencyTeleportRoom(
+            @NotNull Player player,
+            @NotNull UUID sessionId,
+            int roomId
+    ) {
+        Session session = sessionsById.get(sessionId);
+        return session != null && !session.ending
+                && session.participants.contains(player.getUniqueId())
+                && !isEmergencyTeleportCoolingDown(session)
+                && isEmergencyRoom(session, roomId)
+                && startEmergencyTeleport(session, player, roomId);
+    }
+
+    /**
+     * 緊急移動通知のクリック操作を処理します。
+     * 操作元と同じダンジョンの参加者だけを、現在有効な同一移動先へ転送します。
+     *
+     * @param player 通知をクリックした参加者
+     * @param sessionId セッション ID
+     * @param roomId 通知に固定した移動先部屋 ID
+     * @return 転送を開始した場合は {@code true}
+     */
+    public boolean joinEmergencyTeleport(
+            @NotNull Player player,
+            @NotNull UUID sessionId,
+            int roomId
+    ) {
+        Session session = sessionsById.get(sessionId);
+        if (session == null || session.ending
+                || !session.participants.contains(player.getUniqueId())
+                || session.emergencyTargetRoomId == null
+                || session.emergencyTargetRoomId != roomId
+                || !isEmergencyRoom(session, roomId)) {
+            return false;
+        }
+        return teleportToEmergencyRoom(session, player, roomId, false);
+    }
+
+    private boolean startEmergencyTeleport(
+            @NotNull Session session,
+            @NotNull Player initiator,
+            int roomId
+    ) {
+        if (session.emergencyTeleportInProgress || !isEmergencyRoom(session, roomId)) {
+            return false;
+        }
+        session.emergencyTeleportInProgress = true;
+        session.emergencyTargetRoomId = roomId;
+        boolean started = teleportToEmergencyRoom(session, initiator, roomId, true);
+        if (!started) {
+            session.emergencyTeleportInProgress = false;
+            session.emergencyTargetRoomId = null;
+            return false;
+        }
+        for (UUID participantId : session.participants) {
+            if (participantId.equals(initiator.getUniqueId())) {
+                continue;
+            }
+            Player participant = Bukkit.getPlayer(participantId);
+            if (participant != null && participant.isOnline()) {
+                messageService.sendClickable(
+                        participant,
+                        PlayerMsgId.P_7101,
+                        "/dungeon emergency join " + session.id + " " + roomId,
+                        initiator.getName()
+                );
+            }
+        }
+        return true;
+    }
+
+    private boolean teleportToEmergencyRoom(
+            @NotNull Session session,
+            @NotNull Player player,
+            int roomId,
+            boolean initiator
+    ) {
+        DungeonLayout.Room room = session.layout == null ? null : session.layout.rooms().stream()
+                .filter(candidate -> candidate.id() == roomId)
+                .findFirst()
+                .orElse(null);
+        if (room == null || session.blockPlan == null || session.instanceWorld == null) {
+            return false;
+        }
+        long transferGeneration = session.transferGeneration;
+        trackEntryTransfer(session, player.getUniqueId(),
+                worldService.teleportPlayerAsync(player, roomTeleportLocation(session, room), null))
+                .whenComplete((success, failure) -> runMain(() -> {
+                    if (!isActiveTransferCallback(session, transferGeneration)) {
+                        return;
+                    }
+                    if (failure != null || !Boolean.TRUE.equals(success)) {
+                        if (player.isOnline()) {
+                            messageService.send(player, PlayerMsgId.P_7102);
+                        }
+                        if (initiator && session.emergencyTargetRoomId != null
+                                && session.emergencyTargetRoomId == roomId) {
+                            session.emergencyTeleportInProgress = false;
+                            session.emergencyTargetRoomId = null;
+                        }
+                        return;
+                    }
+                    if (initiator && sessionsById.get(session.id) == session && !session.ending) {
+                        session.emergencyTeleportInProgress = false;
+                        session.emergencyCooldownEndsAtMs = System.currentTimeMillis()
+                                + emergencyCooldownSeconds(session) * 1_000L;
+                        Logger.log(LogId.I_7005, session.id.toString(),
+                                session.loaded.definition().id(), player.getName(), roomId);
+                        refreshOpenMaps(session);
+                    }
+                }));
+        return true;
+    }
+
+    private @NotNull List<DungeonEmergencyTeleportGui.RoomOption> emergencyRoomOptions(
+            @NotNull Session session
+    ) {
+        if (session.layout == null) {
+            return List.of();
+        }
+        List<DungeonEmergencyTeleportGui.RoomOption> options = new ArrayList<>();
+        for (int index = 0; index < session.layout.rooms().size(); index++) {
+            DungeonLayout.Room room = session.layout.rooms().get(index);
+            DungeonMapRoomState state = session.roomStates.get(room.id());
+            if (state == DungeonMapRoomState.AVAILABLE || state == DungeonMapRoomState.ACTIVE) {
+                options.add(new DungeonEmergencyTeleportGui.RoomOption(room.id(), index + 1, state));
+            }
+        }
+        return List.copyOf(options);
+    }
+
+    private boolean isEmergencyRoom(@NotNull Session session, int roomId) {
+        DungeonMapRoomState state = session.roomStates.get(roomId);
+        return state == DungeonMapRoomState.AVAILABLE || state == DungeonMapRoomState.ACTIVE;
+    }
+
+    private boolean isEmergencyTeleportCoolingDown(@NotNull Session session) {
+        return System.currentTimeMillis() < session.emergencyCooldownEndsAtMs;
+    }
+
+    private long emergencyCooldownSeconds(@NotNull Session session) {
+        int roomCount = session.layout == null ? 1 : Math.max(1, session.layout.rooms().size());
+        Long configuredLimit = session.loaded.definition().challenge().timeLimitSeconds();
+        long baseSeconds = configuredLimit == null ? DEFAULT_CHALLENGE_TIME_LIMIT_SECONDS : configuredLimit;
+        return Math.max(1L, baseSeconds / roomCount);
     }
 
     /** 指定アカウントのキャッシュ済み踏破記録一覧を開きます。 */
@@ -1880,7 +2117,8 @@ public final class DungeonService {
                 session.layout,
                 states,
                 currentRoomId(session, player.getLocation()),
-                player.getLocation().getYaw()
+                player.getLocation().getYaw(),
+                Math.max(0L, (session.emergencyCooldownEndsAtMs - System.currentTimeMillis() + 999L) / 1_000L)
         );
     }
 
@@ -2096,7 +2334,8 @@ public final class DungeonService {
             @NotNull DungeonLayout layout,
             @NotNull Map<Integer, DungeonMapRoomState> roomStates,
             @Nullable Integer currentRoomId,
-            float playerYaw
+            float playerYaw,
+            long emergencyCooldownRemainingSeconds
     ) {
         public MapSnapshot(
                 @NotNull UUID sessionId,
@@ -2106,7 +2345,19 @@ public final class DungeonService {
                 @NotNull Map<Integer, DungeonMapRoomState> roomStates,
                 @Nullable Integer currentRoomId
         ) {
-            this(sessionId, dungeonId, displayName, layout, roomStates, currentRoomId, 0.0F);
+            this(sessionId, dungeonId, displayName, layout, roomStates, currentRoomId, 0.0F, 0L);
+        }
+
+        public MapSnapshot(
+                @NotNull UUID sessionId,
+                @NotNull String dungeonId,
+                @NotNull String displayName,
+                @NotNull DungeonLayout layout,
+                @NotNull Map<Integer, DungeonMapRoomState> roomStates,
+                @Nullable Integer currentRoomId,
+                float playerYaw
+        ) {
+            this(sessionId, dungeonId, displayName, layout, roomStates, currentRoomId, playerYaw, 0L);
         }
 
         public MapSnapshot { roomStates = Map.copyOf(roomStates); }
@@ -2342,10 +2593,14 @@ public final class DungeonService {
         long remaining = session.cleared
                 ? Math.max(0L, (session.clearReturnEndsAtMs - System.currentTimeMillis() + 999L) / 1_000L)
                 : -1L;
+        long elapsed = session.startedAtMs == 0L
+                ? 0L
+                : Math.max(0L, (System.currentTimeMillis() - session.startedAtMs) / 1_000L);
         return new DungeonSidebarInfo(
                 session.loaded.definition().displayName(), session.deathCount,
                 session.loaded.definition().challenge().deathLimit(), clearedRooms,
-                session.layout == null ? 0 : session.layout.rooms().size(), names, remaining,
+                session.layout == null ? 0 : session.layout.rooms().size(), elapsed,
+                session.loaded.definition().challenge().timeLimitSeconds(), names, remaining,
                 waitingStatus,
                 waitingParticipantNames(sidebarParticipantIds, waitingStatus)
         );
@@ -2751,7 +3006,8 @@ public final class DungeonService {
             roomMobs.clear();
         }
         Logger.log(LogId.I_7004, session.id.toString(), session.loaded.definition().id(), reason.name());
-        if (!success && reason != EndReason.PREPARATION_FAILED && reason != EndReason.DEATH_LIMIT) {
+        if (!success && reason != EndReason.PREPARATION_FAILED
+                && reason != EndReason.DEATH_LIMIT && reason != EndReason.TIME_LIMIT) {
             message(session.participants, PlayerMsgId.P_7013, session.loaded.definition().displayName());
         }
 
@@ -2844,6 +3100,11 @@ public final class DungeonService {
             BukkitTask task = session.clearReturnTask;
             session.clearReturnTask = null;
             cleanupSafely(session, "clear_return_task", task::cancel);
+        }
+        if (session.challengeTimeLimitTask != null) {
+            BukkitTask task = session.challengeTimeLimitTask;
+            session.challengeTimeLimitTask = null;
+            cleanupSafely(session, "challenge_time_limit_task", task::cancel);
         }
     }
 
@@ -3681,11 +3942,21 @@ public final class DungeonService {
         NOT_LEADER
     }
 
+    /** カルトグラフの緊急転送操作の結果です。 */
+    public enum EmergencyTeleportResult {
+        TELEPORTING,
+        SELECTION_OPENED,
+        COOLDOWN,
+        NO_TARGET,
+        INVALID
+    }
+
     private enum EndReason {
         CLEARED,
         EMPTY,
         DEATH_LIMIT,
         CANCELLED,
+        TIME_LIMIT,
         PREPARATION_FAILED,
         PARTICIPANT_REQUIREMENT_NOT_MET,
         TRANSFER_FAILED,
@@ -3723,7 +3994,12 @@ public final class DungeonService {
         private DisplayTextService.ManagedTextDisplay rewardDisplay;
         private BukkitTask startCountdownTask;
         private BukkitTask clearReturnTask;
+        private BukkitTask challengeTimeLimitTask;
         private long clearReturnEndsAtMs;
+        private long startedAtMs;
+        private long emergencyCooldownEndsAtMs;
+        private Integer emergencyTargetRoomId;
+        private boolean emergencyTeleportInProgress;
         private final Map<UUID, Integer> deathsByPlayer = new HashMap<>();
         private final Set<UUID> dungeonDeathParticipants = new LinkedHashSet<>();
         private final Map<UUID, List<DungeonRewardEntry>> rewardsByPlayer = new HashMap<>();

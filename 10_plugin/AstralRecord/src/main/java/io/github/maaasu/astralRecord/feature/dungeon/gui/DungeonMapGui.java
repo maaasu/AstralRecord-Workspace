@@ -32,7 +32,8 @@ public final class DungeonMapGui {
     public static final int PREVIOUS_SLOT = 45;
     public static final int DIRECTION_SLOT = 47;
     public static final int CLOSE_SLOT = 49;
-    public static final int NEXT_SLOT = 53;
+    public static final int NEXT_SLOT = 51;
+    public static final int EMERGENCY_TELEPORT_SLOT = 53;
     private final DungeonMapLayoutPlanner layoutPlanner = new DungeonMapLayoutPlanner();
 
     /** 現在スナップショットを指定ページで表示します。 */
@@ -84,7 +85,11 @@ public final class DungeonMapGui {
             boolean current = snapshot.currentRoomId() != null
                     && snapshot.currentRoomId() == room.id();
             inventory.setItem(placement.slot(), roomItem(
-                    room, state, current, state == DungeonMapRoomState.CLEARED));
+                    room,
+                    sectionNumber(snapshot.layout(), room.id()),
+                    state,
+                    current,
+                    state == DungeonMapRoomState.CLEARED));
         }
         inventory.setItem(DIRECTION_SLOT, directionItem(snapshot.playerYaw()));
         if (page > 0) {
@@ -100,6 +105,7 @@ public final class DungeonMapGui {
                     PlayerMsgResource.getComponent(PlayerMsgId.P_7042.getId()),
                     List.of()));
         }
+        inventory.setItem(EMERGENCY_TELEPORT_SLOT, emergencyTeleportItem(snapshot));
         GuiOpenSupport.open(player, inventory);
     }
 
@@ -130,17 +136,22 @@ public final class DungeonMapGui {
 
     private @NotNull ItemStack roomItem(
             @NotNull DungeonLayout.Room room,
+            int sectionNumber,
             @NotNull DungeonMapRoomState state,
             boolean current,
             boolean teleportable
     ) {
         if (state == DungeonMapRoomState.LOCKED) {
             return GuiItems.create(
-                    Material.BLACK_STAINED_GLASS_PANE,
+                    room.role() == DungeonLayout.RoomRole.START
+                            ? Material.EMERALD_BLOCK
+                            : Material.BLACK_STAINED_GLASS_PANE,
                     PlayerMsgResource.getComponent(PlayerMsgId.P_7049.getId()),
-                    List.of());
+                    List.of(PlayerMsgResource.formatComponent(PlayerMsgId.P_7099.getId(), sectionNumber)));
         }
-        Material material = current
+        Material material = room.role() == DungeonLayout.RoomRole.START
+                ? Material.EMERALD_BLOCK
+                : current
                 ? Material.RECOVERY_COMPASS
                 : switch (state) {
                     case AVAILABLE -> Material.YELLOW_STAINED_GLASS_PANE;
@@ -157,6 +168,7 @@ public final class DungeonMapGui {
                     case LOCKED -> PlayerMsgId.P_7049.getId();
                 });
         List<Component> lore = new ArrayList<>();
+        lore.add(PlayerMsgResource.formatComponent(PlayerMsgId.P_7099.getId(), sectionNumber));
         lore.add(PlayerMsgResource.getComponent(switch (room.role()) {
             case START -> PlayerMsgId.P_7054.getId();
             case NORMAL -> PlayerMsgId.P_7055.getId();
@@ -170,6 +182,30 @@ public final class DungeonMapGui {
             lore.add(PlayerMsgResource.getComponent(PlayerMsgId.P_7089.getId()));
         }
         return GuiItems.create(material, name, lore);
+    }
+
+    private int sectionNumber(@NotNull DungeonLayout layout, int roomId) {
+        for (int index = 0; index < layout.rooms().size(); index++) {
+            if (layout.rooms().get(index).id() == roomId) {
+                return index + 1;
+            }
+        }
+        return 0;
+    }
+
+    private @NotNull ItemStack emergencyTeleportItem(@NotNull DungeonService.MapSnapshot snapshot) {
+        List<Component> lore = new ArrayList<>();
+        lore.add(PlayerMsgResource.getComponent(PlayerMsgId.P_7096.getId()));
+        lore.add(PlayerMsgResource.getComponent(PlayerMsgId.P_7097.getId()));
+        if (snapshot.emergencyCooldownRemainingSeconds() > 0L) {
+            lore.add(PlayerMsgResource.getComponent(PlayerMsgId.P_7095.getId()));
+        } else {
+            lore.add(PlayerMsgResource.getComponent(PlayerMsgId.P_7098.getId()));
+        }
+        return GuiItems.create(
+                Material.ENDER_PEARL,
+                PlayerMsgResource.getComponent(PlayerMsgId.P_7092.getId()),
+                lore);
     }
 
     private @NotNull PlayerMsgId roomTypeMessage(@NotNull DungeonRoomType type) {

@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.Locale;
+import java.util.UUID;
 
 /** プレイヤー向けダンジョン開始・離脱コマンドです。 */
 public final class DungeonCommand extends AstCommand {
@@ -16,7 +17,7 @@ public final class DungeonCommand extends AstCommand {
         super(
                 "dungeon",
                 "自動生成ダンジョンを開始・離脱します。",
-                "/dungeon <start <dungeonId>|leave>",
+                "/dungeon <start <dungeonId>|leave|emergency join <sessionId> <roomId>>",
                 true
         );
     }
@@ -38,6 +39,7 @@ public final class DungeonCommand extends AstCommand {
         switch (args[0].toLowerCase(Locale.ROOT)) {
             case "start" -> start(astPlayer, service, args);
             case "leave" -> leave(astPlayer, service);
+            case "emergency" -> joinEmergencyTeleport(astPlayer, service, args);
             default -> sendUsage(astPlayer.getBukkit());
         }
     }
@@ -84,6 +86,27 @@ public final class DungeonCommand extends AstCommand {
         DungeonService.LeaveResult result = service.leave(astPlayer.getBukkit());
         if (result == DungeonService.LeaveResult.NO_SESSION) {
             PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_7014);
+        }
+    }
+
+    /** 緊急転送通知のクリック操作を、固定されたセッションと区画だけへ委譲します。 */
+    private void joinEmergencyTeleport(
+            @NotNull AstPlayer astPlayer,
+            @NotNull DungeonService service,
+            @NotNull String[] args
+    ) {
+        if (args.length != 4 || !args[1].equalsIgnoreCase("join")) {
+            sendUsage(astPlayer.getBukkit());
+            return;
+        }
+        try {
+            UUID sessionId = UUID.fromString(args[2]);
+            int roomId = Integer.parseInt(args[3]);
+            if (!service.joinEmergencyTeleport(astPlayer.getBukkit(), sessionId, roomId)) {
+                PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_7102);
+            }
+        } catch (IllegalArgumentException exception) {
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_7102);
         }
     }
 }

@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.dungeon.model;
 
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Set;
@@ -14,6 +15,8 @@ import java.util.Set;
  * @param deathLimit 死亡許容回数
  * @param clearedRooms クリア済み部屋数
  * @param totalRooms 全部屋数
+ * @param elapsedSeconds 攻略開始後の経過秒数
+ * @param timeLimitSeconds 挑戦制限時間。{@code null} は無制限
  * @param participantNames 攻略中は現在インスタンス内、待機中は予定参加者の表示名
  * @param returnRemainingSeconds クリア後の強制帰還までの秒数。進行中は {@code -1}
  * @param waitingStatus 準備中の待機状態
@@ -25,6 +28,8 @@ public record DungeonSidebarInfo(
         int deathLimit,
         int clearedRooms,
         int totalRooms,
+        long elapsedSeconds,
+        @Nullable Long timeLimitSeconds,
         @NotNull List<String> participantNames,
         long returnRemainingSeconds,
         @NotNull ChallengeWaitingStatus waitingStatus,
@@ -56,6 +61,8 @@ public record DungeonSidebarInfo(
                 deathLimit,
                 clearedRooms,
                 totalRooms,
+                0L,
+                null,
                 participantNames,
                 returnRemainingSeconds,
                 ChallengeWaitingStatus.NONE,
@@ -75,6 +82,6 @@ public record DungeonSidebarInfo(
      * @return ダンジョン情報の表示行数
      */
     public int sidebarLineCount() {
-        return 6 + (waitingStatus.isVisible() ? 1 : 0);
+        return 6 + (timeLimitSeconds != null ? 1 : 0) + (waitingStatus.isVisible() ? 1 : 0);
     }
 }

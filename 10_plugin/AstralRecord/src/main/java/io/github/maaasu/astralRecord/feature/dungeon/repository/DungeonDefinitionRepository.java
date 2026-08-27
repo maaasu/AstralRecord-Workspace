@@ -14,15 +14,21 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.regex.Pattern;
 
 /** filebase の {@code 65.features.dungeon} からダンジョン定義を読み込みます。 */
 public final class DungeonDefinitionRepository {
     private static final String RELATIVE_PATH = "65.features.dungeon";
+    private static final Pattern NULL_TIME_LIMIT = Pattern.compile(
+            "(?m)^\\s*timeLimitSeconds\\s*:\\s*(?:null|~)\\s*(?:#.*)?$");
 
     /**
      * すべてのダンジョン定義をファイル名順に読み込みます。
@@ -46,8 +52,10 @@ public final class DungeonDefinitionRepository {
         List<DungeonDefinition> definitions = new ArrayList<>(files.length);
         for (File file : files) {
             try {
-                definitions.add(parse(YamlConfiguration.loadConfiguration(file)));
-            } catch (RuntimeException ex) {
+                definitions.add(parse(
+                        YamlConfiguration.loadConfiguration(file),
+                        hasExplicitNullTimeLimit(file)));
+            } catch (RuntimeException | IOException ex) {
                 throw new IllegalArgumentException("Invalid dungeon master: " + file.getPath(), ex);
             }
         }
@@ -55,7 +63,10 @@ public final class DungeonDefinitionRepository {
     }
 
     /** 最小構成を既定値で補完し、一つの YAML を実行時定義へ変換します。 */
-    private @NotNull DungeonDefinition parse(@NotNull YamlConfiguration yaml) {
+    private @NotNull DungeonDefinition parse(
+            @NotNull YamlConfiguration yaml,
+            boolean explicitNullTimeLimit
+    ) {
         int schemaVersion = yaml.getInt("schemaVersion", -1);
         if (schemaVersion != 1) {
             throw new IllegalArgumentException("schemaVersion must be 1");
@@ -89,7 +100,8 @@ public final class DungeonDefinitionRepository {
                 parseRange(yaml.getConfigurationSection("party"), "party", 1, 4),
                 new DungeonDefinition.Challenge(
                         optionalInt(challenge, "deathLimit", 5),
-                        optionalInt(challenge, "reviveDelaySeconds", 5)
+                        optionalInt(challenge, "reviveDelaySeconds", 5),
+                        optionalNullableLong(challenge, "timeLimitSeconds", 600L, explicitNullTimeLimit)
                 ),
                 new DungeonDefinition.Generation(
                         optionalInt(area, "width", 128),
@@ -250,7 +262,7 @@ public final class DungeonDefinitionRepository {
             @Nullable ConfigurationSection section,
             @NotNull String key
     ) {
-        if (section == null || !section.contains(key)) {
+        if (section == null || !section.getKeys(false).contains(key)) {
             return null;
         }
         int value = section.getInt(key, -1);
@@ -284,6 +296,46 @@ public final class DungeonDefinitionRepository {
             return fallback;
         }
         return requireInt(section, key);
+    }
+
+    /**
+     * 省略時は既定値、明示した {@code null} は無制限を表す秒数設定を読み込みます。
+     *
+     * @param section 読み込み元の節
+     * @param key キー
+     * @param fallback キー省略時の既定値
+     * @return 秒数。明示 {@code null} なら {@code null}
+     */
+    private @Nullable Long optionalNullableLong(
+            ConfigurationSection section,
+            @NotNull String key,
+            long fallback,
+            boolean explicitNull
+    ) {
+        if (explicitNull) {
+            return null;
+        }
+        if (section == null || !section.contains(key)) {
+            return fallback;
+        }
+        Object value = section.get(key);
+        if (value == null) {
+            return null;
+        }
+        if (!(value instanceof Number number)) {
+            throw new IllegalArgumentException("Missing integer: " + key);
+        }
+        double numeric = number.doubleValue();
+        if (!Double.isFinite(numeric) || numeric != Math.rint(numeric)
+                || numeric < Long.MIN_VALUE || numeric > Long.MAX_VALUE) {
+            throw new IllegalArgumentException("Invalid integer: " + key);
+        }
+        return (long) numeric;
+    }
+
+    /** YAML Configuration が保持しない明示 {@code null} の秒数設定を検出します。 */
+    private boolean hasExplicitNullTimeLimit(@NotNull File file) throws IOException {
+        return NULL_TIME_LIMIT.matcher(Files.readString(file.toPath(), StandardCharsets.UTF_8)).find();
     }
 
     /** 省略可能な数値を読み、未定義なら既定値を返します。 */

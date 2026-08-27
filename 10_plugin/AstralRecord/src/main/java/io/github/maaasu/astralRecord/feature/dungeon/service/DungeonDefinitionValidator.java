@@ -55,6 +55,10 @@ public final class DungeonDefinitionValidator {
         if (definition.challenge().reviveDelaySeconds() < 1L) {
             fail(definition, "challenge.reviveDelaySeconds must be positive");
         }
+        Long timeLimitSeconds = definition.challenge().timeLimitSeconds();
+        if (timeLimitSeconds != null && timeLimitSeconds < 30L) {
+            fail(definition, "challenge.timeLimitSeconds must be null or at least 30");
+        }
         definition.clearRewards().items().forEach(item -> {
             if (item.itemId() == null || item.itemId().isBlank()
                     || !Double.isFinite(item.rate()) || item.rate() < 0.0D || item.rate() > 100.0D

@@ -59,11 +59,13 @@ class DungeonMapGuiTest extends MockBukkitTestBase {
         Map<Integer, DungeonMapLayoutPlanner.Placement> placementByRoom = new LinkedHashMap<>();
         new DungeonMapLayoutPlanner().plan(layout).forEach(placement ->
                 placementByRoom.put(placement.roomId(), placement));
-        assertItem(inventory, placementByRoom.get(101).slot(), Material.BLACK_STAINED_GLASS_PANE, "?");
+        assertItem(inventory, placementByRoom.get(101).slot(), Material.EMERALD_BLOCK, "?");
         assertItem(inventory, placementByRoom.get(202).slot(), Material.YELLOW_STAINED_GLASS_PANE, "未踏査の部屋");
         assertItem(inventory, placementByRoom.get(303).slot(), Material.RECOVERY_COMPASS, "現在地");
         assertItem(inventory, placementByRoom.get(404).slot(), Material.LIME_STAINED_GLASS_PANE, "攻略済みの部屋");
         assertItem(inventory, DungeonMapGui.DIRECTION_SLOT, Material.ARROW, "↓ 南");
+        assertItem(inventory, DungeonMapGui.EMERGENCY_TELEPORT_SLOT, Material.ENDER_PEARL,
+                "緊急時の未踏査区画への移動");
         assertEquals(404, new DungeonMapGui().holder(inventory)
                 .roomIdAt(placementByRoom.get(404).slot()));
         for (ItemStack item : inventory.getContents()) {
@@ -106,6 +108,33 @@ class DungeonMapGuiTest extends MockBukkitTestBase {
 
         assertItem(player.getOpenInventory().getTopInventory(), DungeonMapGui.DIRECTION_SLOT,
                 Material.ARROW, "← 西");
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ > ### 8.2 現在ダンジョンマップ
+     * 検証契約: 各部屋 icon の lore はプレイヤー向け区間番号を表示する。
+     */
+    @Test
+    void rendersPlayerFacingSectionNumberInEachRoomLore() {
+        DungeonLayout layout = new DungeonLayout(
+                123L, 128, 128, 64, 8,
+                List.of(room(101, 0, 0), room(202, 50, 0)),
+                List.of(), 101, 202);
+        var player = server().addPlayer();
+        new DungeonMapGui().open(player, new DungeonService.MapSnapshot(
+                UUID.randomUUID(), "dungeon", "表示名", layout,
+                Map.of(101, DungeonMapRoomState.CLEARED, 202, DungeonMapRoomState.AVAILABLE), 101), 0);
+
+        Map<Integer, DungeonMapLayoutPlanner.Placement> placementByRoom = new LinkedHashMap<>();
+        new DungeonMapLayoutPlanner().plan(layout).forEach(placement ->
+                placementByRoom.put(placement.roomId(), placement));
+        assertEquals("区間 1", PlainTextComponentSerializer.plainText().serialize(
+                player.getOpenInventory().getTopInventory().getItem(placementByRoom.get(101).slot())
+                        .getItemMeta().lore().getFirst()));
+        assertEquals("区間 2", PlainTextComponentSerializer.plainText().serialize(
+                player.getOpenInventory().getTopInventory().getItem(placementByRoom.get(202).slot())
+                        .getItemMeta().lore().getFirst()));
     }
 
     private void assertItem(Inventory inventory, int slot, Material material, String displayName) {

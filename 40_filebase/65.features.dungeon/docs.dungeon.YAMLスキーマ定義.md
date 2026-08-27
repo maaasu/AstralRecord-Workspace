@@ -27,6 +27,7 @@
 | `party.min/max` | Integer | `1/4`、`1..6`、min <= max |
 | `challenge.deathLimit` | Integer | `5`、`0` 以上。設定回数までは死亡可能で、次の死亡時にセッション終了 |
 | `challenge.reviveDelaySeconds` | Integer | `5`、`1` 以上。許容回数内の死亡後に開始地点へ復帰するまでの秒数 |
+| `challenge.timeLimitSeconds` | Integer / null | `600`、`30` 以上。明示した `null` は時間制限なし。開始カウントダウン完了後に計測する |
 | `generation.area.width/depth` | Integer | `128/128`。各 `32..256`、積 65,536 以下 |
 | `generation.baseY` | Integer | `64`。天井を含め `-60..316` 内 |
 | `generation.roomCount.min/max` | Integer | `7/11`、`3..64`。seed 抽選 |
@@ -86,6 +87,7 @@ encounter:
 challenge:
   deathLimit: 5
   reviveDelaySeconds: 5
+  timeLimitSeconds: 600
 clearRewards:
   items:
     - itemId: item:example_ruins_fragment

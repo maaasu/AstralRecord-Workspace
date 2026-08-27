@@ -239,6 +239,18 @@ public final class DungeonInteractionEventHandler extends AbstractEventHandler
                 service.openMapPage(player, mapHolder.sessionId(), mapHolder.pageIndex() - 1);
             } else if (event.getRawSlot() == DungeonMapGui.NEXT_SLOT) {
                 service.openMapPage(player, mapHolder.sessionId(), mapHolder.pageIndex() + 1);
+            } else if (event.getRawSlot() == DungeonMapGui.EMERGENCY_TELEPORT_SLOT) {
+                DungeonService.EmergencyTeleportResult result = service.handleEmergencyTeleportButton(
+                        player, mapHolder.sessionId());
+                if (result == DungeonService.EmergencyTeleportResult.TELEPORTING) {
+                    player.closeInventory();
+                } else if (result != DungeonService.EmergencyTeleportResult.SELECTION_OPENED) {
+                    PlayerMessageService.getInstance().send(player, result
+                            == DungeonService.EmergencyTeleportResult.COOLDOWN
+                            ? PlayerMsgId.P_7095
+                            : PlayerMsgId.P_7102);
+                    GuiSound.DENY.play(player);
+                }
             } else {
                 Integer roomId = mapHolder.roomIdAt(event.getRawSlot());
                 if (roomId != null) {
@@ -248,6 +260,35 @@ public final class DungeonInteractionEventHandler extends AbstractEventHandler
                         PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7090);
                         GuiSound.DENY.play(player);
                     }
+                }
+            }
+            return;
+        }
+        io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonEmergencyTeleportGui.Holder emergencyHolder =
+                service.emergencyTeleportGui().holder(event.getView().getTopInventory());
+        if (emergencyHolder != null) {
+            event.setCancelled(true);
+            if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) return;
+            if (!emergencyHolder.playerId().equals(player.getUniqueId())) return;
+            if (event.getRawSlot() == io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonEmergencyTeleportGui.CLOSE_SLOT) {
+                player.closeInventory();
+                return;
+            }
+            if (event.getRawSlot() == io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonEmergencyTeleportGui.PREVIOUS_SLOT) {
+                service.openEmergencyTeleportSelectionPage(player, emergencyHolder.sessionId(), emergencyHolder.pageIndex() - 1);
+                return;
+            }
+            if (event.getRawSlot() == io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonEmergencyTeleportGui.NEXT_SLOT) {
+                service.openEmergencyTeleportSelectionPage(player, emergencyHolder.sessionId(), emergencyHolder.pageIndex() + 1);
+                return;
+            }
+            Integer roomId = emergencyHolder.roomIdAt(event.getRawSlot());
+            if (roomId != null) {
+                if (service.selectEmergencyTeleportRoom(player, emergencyHolder.sessionId(), roomId)) {
+                    player.closeInventory();
+                } else {
+                    PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7102);
+                    GuiSound.DENY.play(player);
                 }
             }
             return;

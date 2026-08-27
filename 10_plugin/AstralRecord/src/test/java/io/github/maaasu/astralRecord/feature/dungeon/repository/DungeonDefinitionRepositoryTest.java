@@ -16,6 +16,7 @@ import java.util.List;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class DungeonDefinitionRepositoryTest {
     @TempDir
@@ -52,6 +53,7 @@ class DungeonDefinitionRepositoryTest {
         assertEquals(2, definition.encounter().normalMobPool().getFirst().level());
         assertEquals(0, definition.challenge().deathLimit());
         assertEquals(7L, definition.challenge().reviveDelaySeconds());
+        assertEquals(120L, definition.challenge().timeLimitSeconds());
         assertEquals("rare_fragment", definition.clearRewards().items().getFirst().itemId());
         assertEquals(5.0D, definition.clearRewards().items().getFirst().rate());
         assertEquals("1~2", definition.clearRewards().items().getFirst().amount());
@@ -94,6 +96,7 @@ class DungeonDefinitionRepositoryTest {
         String source = yaml()
                 .replace("  deathLimit: 0\n", "")
                 .replace("  reviveDelaySeconds: 7\n", "")
+                .replace("  timeLimitSeconds: 120\n", "")
                 .replace("      rate: 5.0\n", "")
                 .replace("      amount: \"1~2\"\n", "");
 
@@ -101,8 +104,21 @@ class DungeonDefinitionRepositoryTest {
 
         assertEquals(5, definition.challenge().deathLimit());
         assertEquals(5L, definition.challenge().reviveDelaySeconds());
+        assertEquals(600L, definition.challenge().timeLimitSeconds());
         assertEquals(100.0D, definition.clearRewards().items().getFirst().rate());
         assertEquals("1", definition.clearRewards().items().getFirst().amount());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
+     * 章・見出し: # 32_1-モデル定義 > ## 1. DungeonDefinition
+     * 検証契約: 明示したnullの挑戦時間は無制限として保持する。
+     */
+    @Test
+    void acceptsNullChallengeTimeLimitAsUnlimited() throws IOException {
+        DungeonDefinition definition = load(yaml().replace("timeLimitSeconds: 120", "timeLimitSeconds: null"));
+
+        assertNull(definition.challenge().timeLimitSeconds());
     }
 
     /**
@@ -214,6 +230,7 @@ class DungeonDefinitionRepositoryTest {
                 challenge:
                   deathLimit: 0
                   reviveDelaySeconds: 7
+                  timeLimitSeconds: 120
                 encounter:
                   normalMobPool:
                     - mobId: mob:weak

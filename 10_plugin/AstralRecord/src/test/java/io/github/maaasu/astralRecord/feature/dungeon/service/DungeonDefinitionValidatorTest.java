@@ -135,6 +135,8 @@ class DungeonDefinitionValidatorTest {
                 List.of(withChallenge(source, new DungeonDefinition.Challenge(-1, 5L))), Map.of(), Map.of()));
         assertThrows(IllegalArgumentException.class, () -> validator.validateAll(
                 List.of(withChallenge(source, new DungeonDefinition.Challenge(0, 0L))), Map.of(), Map.of()));
+        assertThrows(IllegalArgumentException.class, () -> validator.validateAll(
+                List.of(withChallenge(source, new DungeonDefinition.Challenge(0, 5L, 29L))), Map.of(), Map.of()));
     }
 
     /**
