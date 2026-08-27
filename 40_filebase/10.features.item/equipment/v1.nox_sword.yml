@@ -5,7 +5,7 @@ schemaVersion: 1
 id: nox_sword
 category: equipment
 name: "&fノクスソード"
-icon: IRON_SWORD
+icon: wooden_sword
 rarity: COMMON
 maxStack: 1
 saleValue: 1
