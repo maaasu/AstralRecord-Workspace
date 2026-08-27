@@ -189,6 +189,7 @@ class TeleporterServicePersistenceTest {
         WaystoneDefinition source = definition("source", "Source");
         WaystoneDefinition target = definition("target-waystone", "Target");
         World world = mock(World.class);
+        @SuppressWarnings("unchecked")
         BiConsumer<AstPlayer, String> listener = mock(BiConsumer.class);
         CompletableFuture<Boolean> teleportResult = new CompletableFuture<>();
 
