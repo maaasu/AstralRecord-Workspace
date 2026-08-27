@@ -23,6 +23,7 @@ public final class DungeonTestFixtures {
                 1,
                 "test_dungeon",
                 "Test Dungeon",
+                5,
                 new DungeonDefinition.Entry("test_entry_world", 1.5D, 64.0D, 2.5D, 0.0F, 0.0F, 2.0D),
                 new DungeonDefinition.IntRange(1, 4),
                 new DungeonDefinition.Generation(

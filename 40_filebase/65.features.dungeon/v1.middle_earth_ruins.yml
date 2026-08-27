@@ -4,6 +4,7 @@
 schemaVersion: 1
 id: middle_earth_ruins
 displayName: "ミドルアースの遺跡"
+recommendedLevel: 5
 entry:
   worldRef: world:midgard_greenfields
   x: -327.3

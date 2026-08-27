@@ -40,6 +40,7 @@ class DungeonDefinitionRepositoryTest {
         assertEquals(1, definitions.size());
         DungeonDefinition definition = definitions.getFirst();
         assertEquals("test_dungeon", definition.id());
+        assertEquals(7, definition.recommendedLevel());
         assertEquals("test_world", definition.entry().worldId());
         assertEquals(2.0D, definition.entry().radius());
         assertEquals(new DungeonDefinition.IntRange(7, 11), definition.generation().roomCount());
@@ -71,9 +72,16 @@ class DungeonDefinitionRepositoryTest {
                 () -> new DungeonDefinitionRepository().findAll()
         );
 
-        List<String> ids = definitions.stream().map(DungeonDefinition::id).toList();
-        assertTrue(ids.contains("twilight_mine"));
-        assertTrue(ids.contains("middle_earth_ruins"));
+        DungeonDefinition twilightMine = definitions.stream()
+                .filter(definition -> definition.id().equals("twilight_mine"))
+                .findFirst()
+                .orElseThrow();
+        DungeonDefinition middleEarthRuins = definitions.stream()
+                .filter(definition -> definition.id().equals("middle_earth_ruins"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(10, twilightMine.recommendedLevel());
+        assertEquals(5, middleEarthRuins.recommendedLevel());
     }
 
     /**
@@ -197,6 +205,7 @@ class DungeonDefinitionRepositoryTest {
                 schemaVersion: 1
                 id: test_dungeon
                 displayName: Test Dungeon
+                recommendedLevel: 7
                 entry:
                   worldRef: world:test_world
                   x: 1.5

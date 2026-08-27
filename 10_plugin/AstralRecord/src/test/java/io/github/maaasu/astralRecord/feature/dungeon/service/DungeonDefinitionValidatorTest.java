@@ -41,6 +41,23 @@ class DungeonDefinitionValidatorTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
+     * 章・見出し: # 32_1-モデル定義 > ## 1. DungeonDefinition
+     * 検証契約: プレイヤー向け推奨レベルは1以上の整数だけを公開可能とする。
+     */
+    @Test
+    void rejectsNonPositiveRecommendedLevel() {
+        DungeonDefinition source = DungeonTestFixtures.definition();
+        DungeonDefinition invalid = new DungeonDefinition(
+                source.schemaVersion(), source.id(), source.displayName(), -1,
+                source.entry(), source.partySize(), source.challenge(), source.generation(),
+                source.theme(), source.encounter(), source.clearRewards());
+
+        assertThrows(IllegalArgumentException.class, () -> validator.validateAll(
+                List.of(invalid), Map.of(), Map.of()));
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_0-概要.md
      * 章・見出し: # 32_0-概要 > ## 4. 主要境界と不変条件
      * 検証契約: normalMobPoolに最初の戦闘部屋レベル上限内の候補が一体もなければ定義公開を拒否する。
@@ -49,7 +66,8 @@ class DungeonDefinitionValidatorTest {
     void rejectsDefinitionWithoutAnyEligibleFirstRoomEnemy() {
         DungeonDefinition source = DungeonTestFixtures.definition();
         DungeonDefinition invalid = new DungeonDefinition(
-                source.schemaVersion(), source.id(), source.displayName(), source.entry(), source.partySize(),
+                source.schemaVersion(), source.id(), source.displayName(), source.recommendedLevel(),
+                source.entry(), source.partySize(),
                 source.generation(), source.theme(),
                 new DungeonDefinition.Encounter(
                         List.of(new DungeonDefinition.WeightedMob("strong", 1)),
@@ -79,6 +97,7 @@ class DungeonDefinitionValidatorTest {
                 source.schemaVersion(),
                 source.id(),
                 source.displayName(),
+                source.recommendedLevel(),
                 new DungeonDefinition.Entry(
                         source.entry().worldId(),
                         source.entry().x(),
@@ -149,7 +168,8 @@ class DungeonDefinitionValidatorTest {
         DungeonDefinition source = DungeonTestFixtures.definition();
         DungeonDefinition.Generation generation = source.generation();
         DungeonDefinition invalidRoomType = new DungeonDefinition(
-                source.schemaVersion(), source.id(), source.displayName(), source.entry(), source.partySize(),
+                source.schemaVersion(), source.id(), source.displayName(), source.recommendedLevel(),
+                source.entry(), source.partySize(),
                 source.challenge(),
                 new DungeonDefinition.Generation(
                         generation.areaWidth(), generation.areaDepth(), generation.baseY(),
@@ -162,7 +182,8 @@ class DungeonDefinitionValidatorTest {
         );
         DungeonDefinition.Theme theme = source.theme();
         DungeonDefinition invalidDecoration = new DungeonDefinition(
-                source.schemaVersion(), source.id(), source.displayName(), source.entry(), source.partySize(),
+                source.schemaVersion(), source.id(), source.displayName(), source.recommendedLevel(),
+                source.entry(), source.partySize(),
                 source.challenge(), source.generation(),
                 new DungeonDefinition.Theme(
                         theme.floor(), theme.wall(), theme.ceiling(), theme.corridor(),
@@ -198,13 +219,15 @@ class DungeonDefinitionValidatorTest {
             DungeonDefinition.Challenge challenge
     ) {
         return new DungeonDefinition(
-                source.schemaVersion(), source.id(), source.displayName(), source.entry(), source.partySize(),
+                source.schemaVersion(), source.id(), source.displayName(), source.recommendedLevel(),
+                source.entry(), source.partySize(),
                 challenge, source.generation(), source.theme(), source.encounter(), source.clearRewards());
     }
 
     private DungeonDefinition withRewards(DungeonDefinition source, MobDropItem item) {
         return new DungeonDefinition(
-                source.schemaVersion(), source.id(), source.displayName(), source.entry(), source.partySize(),
+                source.schemaVersion(), source.id(), source.displayName(), source.recommendedLevel(),
+                source.entry(), source.partySize(),
                 source.challenge(), source.generation(), source.theme(), source.encounter(),
                 new MobDropConfig(0, null, List.of(item), null));
     }

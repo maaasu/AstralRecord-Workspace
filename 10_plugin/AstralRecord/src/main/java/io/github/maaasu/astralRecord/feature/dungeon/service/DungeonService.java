@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonMapGui;
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonRewardGui;
 import io.github.maaasu.astralRecord.feature.dungeon.repository.DungeonDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.dungeon.view.DungeonCancelController;
+import io.github.maaasu.astralRecord.feature.dungeon.view.DungeonEntryText;
 import io.github.maaasu.astralRecord.feature.dungeon.view.DungeonRoomStatusText;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
@@ -3278,7 +3279,7 @@ public final class DungeonService {
 
     private void updateEntryPrompt(@NotNull LoadedDefinition loaded, @NotNull Location center) {
         String id = loaded.definition().id();
-        String text = PlayerMsgResource.format(PlayerMsgId.P_7035.getId(), loaded.definition().displayName());
+        String text = DungeonEntryText.render(loaded.definition());
         if (entryPromptDisplays.containsKey(id)) return;
         entryPromptDisplays.put(id, displayTextService.create(
                 DisplayAnchor.fixed(center.clone().add(0.0D, 2.8D, 0.0D)),

@@ -190,7 +190,8 @@ class DungeonLayoutPlannerTest {
         DungeonDefinition source = DungeonTestFixtures.definition();
         DungeonDefinition.Generation generation = source.generation();
         DungeonDefinition definition = new DungeonDefinition(
-                source.schemaVersion(), source.id(), source.displayName(), source.entry(), source.partySize(),
+                source.schemaVersion(), source.id(), source.displayName(), source.recommendedLevel(),
+                source.entry(), source.partySize(),
                 source.challenge(),
                 new DungeonDefinition.Generation(
                         generation.areaWidth(), generation.areaDepth(), generation.baseY(),

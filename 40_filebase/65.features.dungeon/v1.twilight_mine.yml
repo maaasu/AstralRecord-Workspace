@@ -4,6 +4,7 @@
 schemaVersion: 1
 id: twilight_mine
 displayName: "黄昏の坑道"
+recommendedLevel: 10
 entry:
   worldRef: world:midgard_greenfields
   x: -418.5

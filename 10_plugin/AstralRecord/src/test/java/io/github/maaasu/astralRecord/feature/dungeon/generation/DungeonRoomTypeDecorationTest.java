@@ -28,7 +28,8 @@ class DungeonRoomTypeDecorationTest {
         DungeonDefinition source = DungeonTestFixtures.definition();
         DungeonDefinition.Theme theme = source.theme();
         DungeonDefinition definition = new DungeonDefinition(
-                source.schemaVersion(), source.id(), source.displayName(), source.entry(), source.partySize(),
+                source.schemaVersion(), source.id(), source.displayName(), source.recommendedLevel(),
+                source.entry(), source.partySize(),
                 source.challenge(), source.generation(),
                 new DungeonDefinition.Theme(
                         theme.floor(), theme.wall(), theme.ceiling(), theme.corridor(),

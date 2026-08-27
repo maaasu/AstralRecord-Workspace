@@ -45,6 +45,9 @@ public final class DungeonDefinitionValidator {
         if (definition.schemaVersion() != 1 || definition.id().isBlank() || definition.displayName().isBlank()) {
             fail(definition, "schemaVersion, id and displayName are required");
         }
+        if (definition.recommendedLevel() < 1) {
+            fail(definition, "recommendedLevel must be positive");
+        }
         validateRange(definition, "party", definition.partySize(), 1, 6);
         if (definition.challenge().deathLimit() < 0) {
             fail(definition, "challenge.deathLimit must be zero or greater");

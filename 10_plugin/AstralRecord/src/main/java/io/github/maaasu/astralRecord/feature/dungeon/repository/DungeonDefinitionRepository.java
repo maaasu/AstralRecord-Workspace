@@ -76,6 +76,7 @@ public final class DungeonDefinitionRepository {
                 schemaVersion,
                 requireString(yaml, "id"),
                 requireString(yaml, "displayName"),
+                requireInt(yaml, "recommendedLevel"),
                 new DungeonDefinition.Entry(
                         stripPrefix(requireString(entry, "worldRef")),
                         requireDouble(entry, "x"),
