@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.quest.model.QuestProgress;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestRequirementDefinition;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestRewardDefinition;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
@@ -36,6 +37,9 @@ import java.util.List;
 
 public final class QuestGui {
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacySection();
+    private static final long SECONDS_PER_MINUTE = 60L;
+    private static final long SECONDS_PER_HOUR = 60L * SECONDS_PER_MINUTE;
+    private static final long SECONDS_PER_DAY = 24L * SECONDS_PER_HOUR;
     public static final int SIZE = 54;
     public static final int MAX_LOGICAL_SLOT = 27;
     public static final int PREVIOUS_PAGE_SLOT = 45;
@@ -122,7 +126,7 @@ public final class QuestGui {
         Inventory inventory = Bukkit.createInventory(
             new ListHolder(),
             SIZE,
-            Component.text("クエスト一覧", NamedTextColor.DARK_GREEN, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false)
+            Component.text("受領中のクエスト", NamedTextColor.DARK_GREEN, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false)
         );
         renderList(inventory, astPlayer);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
@@ -160,11 +164,11 @@ public final class QuestGui {
     private @NotNull ItemStack questLimitGuideItem(@NotNull AstPlayer astPlayer) {
         return GuiItems.create(
             Material.BOOK,
-            Component.text("受領枠を増やすには", NamedTextColor.YELLOW, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false),
+            Component.text("クエスト受領枠を増やすには", NamedTextColor.YELLOW, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false),
             List.of(
-                Component.text("現在の受領枠: " + questService.maxActiveQuests(astPlayer), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
-                Component.text("QUEST_LIMITを増やすと", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
-                Component.text("受領できるクエスト数が増えます", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)
+                Component.text("現在の受領枠: " + questService.maxActiveQuests(astPlayer) + "件", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text(StatusType.QUEST_LIMIT.getDisplayName() + "を増やすと", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false),
+                Component.text("同時に受けられるクエスト数が増えます", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)
             )
         );
     }
@@ -207,21 +211,25 @@ public final class QuestGui {
     private @NotNull ItemStack questItem(@NotNull AstPlayer player, @NotNull QuestDefinition quest, boolean listMode) {
         QuestDisplayState state = questService.displayState(player, quest);
         List<Component> lore = new ArrayList<>();
-        lore.add(Component.text("状態: " + stateLabel(state), color(state)).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("状態: " + stateLabel(state, quest), color(state)).decoration(TextDecoration.ITALIC, false));
         for (String line : quest.description()) {
             lore.add(ColorCodeUtil.toComponent(line, "", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         }
         lore.add(Component.empty());
+        appendQuestInfo(lore, quest);
         appendObjectives(lore, player, quest);
         appendRequirements(lore, quest);
         appendRewards(lore, quest.rewards());
         lore.add(Component.empty());
         if (listMode) {
-            lore.add(Component.text("ドロップで破棄します", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.text("操作: ドロップで破棄します（確認なし）", NamedTextColor.RED).decoration(TextDecoration.ITALIC, false));
         } else {
-            lore.add(Component.text(boardActionLabel(state, quest), NamedTextColor.GREEN).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.text("操作: " + boardActionLabel(state, quest), color(state)).decoration(TextDecoration.ITALIC, false));
             if (state == QuestDisplayState.COOLDOWN) {
-                lore.add(Component.text("残り " + questService.cooldownRemainingSeconds(player, quest) + " 秒", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+                lore.add(Component.text(
+                    "再受領まで: " + formatDuration(questService.cooldownRemainingSeconds(player, quest)),
+                    NamedTextColor.YELLOW
+                ).decoration(TextDecoration.ITALIC, false));
             }
         }
         ItemStack item = GuiItems.create(quest.icon(), questDisplayName(quest, state), lore);
@@ -235,17 +243,29 @@ public final class QuestGui {
         return item;
     }
 
+    private void appendQuestInfo(@NotNull List<Component> lore, @NotNull QuestDefinition quest) {
+        lore.add(Component.text("クエスト情報", NamedTextColor.AQUA, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("完了方法: " + completionLabel(quest), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text("再受領: " + repeatLabel(quest), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.empty());
+    }
+
     private void appendObjectives(@NotNull List<Component> lore, @NotNull AstPlayer player, @NotNull QuestDefinition quest) {
         QuestProgress progress = questService.progress(player, quest.id());
         lore.add(Component.text("目標", NamedTextColor.GOLD, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false));
         for (QuestObjectiveDefinition objective : quest.objectives()) {
-            int current = progress == null ? 0 : progress.progress(objective.id());
-            lore.add(ColorCodeUtil.toComponent(
-                "- " + objective.type().displayName() + ": " + objective.label() + " " + current + " / " + objective.amount(),
+            int current = Math.min(objective.amount(), progress == null ? 0 : progress.progress(objective.id()));
+            boolean completed = current >= objective.amount();
+            String targetLevel = objective.targetLevel() == null ? "" : " (Lv." + objective.targetLevel() + ")";
+            Component line = ColorCodeUtil.toComponent(
+                "- " + objective.type().displayName() + ": " + objective.label() + targetLevel,
                 "",
                 NamedTextColor.WHITE
-            )
-                .decoration(TextDecoration.ITALIC, false));
+            ).append(Component.text(
+                "  " + current + " / " + objective.amount() + (completed ? "  達成" : "  未達成"),
+                completed ? NamedTextColor.GREEN : NamedTextColor.YELLOW
+            ));
+            lore.add(line.decoration(TextDecoration.ITALIC, false));
         }
     }
 
@@ -256,8 +276,8 @@ public final class QuestGui {
         lore.add(Component.empty());
         lore.add(Component.text("受領条件", NamedTextColor.AQUA, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false));
         for (QuestRequirementDefinition requirement : quest.requirements()) {
-            lore.add(Component.text("- " + questService.resolveItemDisplayName(requirement.item()) + " x" + requirement.item().amount()
-                + (requirement.consume() ? " (消費)" : " (所持)"), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+            lore.add(Component.text("- " + questService.resolveItemDisplayName(requirement.item()) + " ×" + requirement.item().amount()
+                + (requirement.consume() ? "（受領時に消費）" : "（受領時に必要・消費なし）"), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         }
     }
 
@@ -282,23 +302,78 @@ public final class QuestGui {
     private @NotNull String boardActionLabel(@NotNull QuestDisplayState state, @NotNull QuestDefinition quest) {
         return switch (state) {
             case AVAILABLE -> "クリックで受領します";
-            case READY_TO_TURN_IN -> quest.completionMode() == QuestCompletionMode.NPC ? "クリックで報告します" : "報酬受取待ち";
-            case IN_PROGRESS -> "進行中です";
-            case COMPLETED -> "完了済みです";
+            case READY_TO_TURN_IN -> quest.completionMode() == QuestCompletionMode.NPC ? "クリックで報告します" : "報酬を処理中です";
+            case IN_PROGRESS -> quest.completionMode() == QuestCompletionMode.NPC
+                ? "目標達成後にNPCへ報告します"
+                : "目標達成で自動完了します";
+            case COMPLETED -> "このクエストは1回のみ受領できます";
             case COOLDOWN -> "再受領まで待機中です";
-            case LOCKED -> "受領条件を満たしていません";
+            case LOCKED -> "受領条件を確認してください";
         };
     }
 
-    private @NotNull String stateLabel(@NotNull QuestDisplayState state) {
+    private @NotNull String stateLabel(@NotNull QuestDisplayState state, @NotNull QuestDefinition quest) {
         return switch (state) {
             case AVAILABLE -> "受領可能";
             case IN_PROGRESS -> "進行中";
-            case READY_TO_TURN_IN -> "報告可能";
+            case READY_TO_TURN_IN -> quest.completionMode() == QuestCompletionMode.NPC ? "報告可能" : "報酬処理中";
             case COMPLETED -> "完了済み";
-            case COOLDOWN -> "クールタイム中";
-            case LOCKED -> "条件未達成";
+            case COOLDOWN -> "再受領待ち";
+            case LOCKED -> "受領条件不足";
         };
+    }
+
+    private @NotNull String completionLabel(@NotNull QuestDefinition quest) {
+        return quest.completionMode() == QuestCompletionMode.AUTO
+            ? "目標達成で自動完了"
+            : quest.turnInNpcId() == null ? "受領したNPCへ報告" : "指定NPCへ報告";
+    }
+
+    private @NotNull String repeatLabel(@NotNull QuestDefinition quest) {
+        return switch (quest.repeatMode()) {
+            case ONCE -> "1回のみ";
+            case REPEATABLE -> "条件を満たせば再受領可能";
+            case COOLDOWN -> quest.cooldownSeconds() > 0L
+                ? "完了後に" + formatDuration(quest.cooldownSeconds()) + "待機"
+                : "条件を満たせば再受領可能";
+        };
+    }
+
+    /**
+     * 秒数をプレイヤーが読みやすい日本語の期間へ変換します。
+     *
+     * @param seconds 変換する秒数。負数は0秒として扱う
+     * @return 日・時間・分・秒を組み合わせた期間表示
+     */
+    static @NotNull String formatDuration(long seconds) {
+        long remaining = Math.max(0L, seconds);
+        if (remaining < SECONDS_PER_MINUTE) {
+            return remaining + "秒";
+        }
+        if (remaining < SECONDS_PER_HOUR) {
+            return remaining / SECONDS_PER_MINUTE + "分" + formatRemainderSeconds(remaining % SECONDS_PER_MINUTE);
+        }
+        if (remaining < SECONDS_PER_DAY) {
+            return remaining / SECONDS_PER_HOUR + "時間"
+                + formatRemainderMinutes(remaining % SECONDS_PER_HOUR);
+        }
+        return remaining / SECONDS_PER_DAY + "日" + formatRemainderHours(remaining % SECONDS_PER_DAY);
+    }
+
+    private static @NotNull String formatRemainderSeconds(long seconds) {
+        return seconds == 0L ? "" : seconds + "秒";
+    }
+
+    private static @NotNull String formatRemainderMinutes(long seconds) {
+        long minutes = seconds / SECONDS_PER_MINUTE;
+        long remainderSeconds = seconds % SECONDS_PER_MINUTE;
+        return (minutes == 0L ? "" : minutes + "分") + formatRemainderSeconds(remainderSeconds);
+    }
+
+    private static @NotNull String formatRemainderHours(long seconds) {
+        long hours = seconds / SECONDS_PER_HOUR;
+        long remainderSeconds = seconds % SECONDS_PER_HOUR;
+        return (hours == 0L ? "" : hours + "時間") + formatRemainderMinutes(remainderSeconds);
     }
 
     private @NotNull NamedTextColor color(@NotNull QuestDisplayState state) {

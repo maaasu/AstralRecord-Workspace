@@ -61,6 +61,7 @@ import java.util.function.BiConsumer;
 
 public final class QuestService {
     private static final int DEFAULT_MAX_ACTIVE_QUESTS = 3;
+    private static final String UNREGISTERED_ITEM_DISPLAY_NAME = "未登録のアイテム";
     private static final String REWARD_SOURCE = "quest_reward";
     private static final long SAVE_INTERVAL_TICKS = 20L;
     private static final long SAVE_DEBOUNCE_MILLIS = 1_000L;
@@ -1355,13 +1356,20 @@ public final class QuestService {
         asyncExecutor.execute(() -> inventoryService.saveNow(accountId));
     }
 
+    /**
+     * クエストGUI向けにitemの表示名を解決します。
+     * 未ロードのitemはitemServiceのロード経路から取得し、解決できない場合は内部IDを表示しません。
+     *
+     * @param item 表示するitem定義。item IDとカテゴリを持つ必要があり、{@code null}は不可
+     * @return 色コードを除去したitem表示名。解決できない場合は汎用の未登録表示
+     */
     public @NotNull String resolveItemDisplayName(@NotNull QuestItemStackDefinition item) {
         ItemModel model = resolveItem(item);
         if (model == null || model.getName() == null || model.getName().isBlank()) {
-            return item.itemId();
+            return UNREGISTERED_ITEM_DISPLAY_NAME;
         }
         String displayName = ColorCodeUtil.stripColor(ColorCodeUtil.translateAlternateColorCodes(model.getName()));
-        return displayName == null || displayName.isBlank() ? item.itemId() : displayName;
+        return displayName == null || displayName.isBlank() ? UNREGISTERED_ITEM_DISPLAY_NAME : displayName;
     }
 
     private @Nullable ItemModel resolveItem(@NotNull QuestItemStackDefinition item) {
