@@ -80,7 +80,7 @@ SkillTree のノード定義と配置・接続構造は、`40_filebase/35.featur
 ```json
 {
   "type": "skill",
-  "skillId": "iron_will"
+  "skillId": "adventurer_astral_edge"
 }
 ```
 

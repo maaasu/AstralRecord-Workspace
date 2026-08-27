@@ -25,10 +25,6 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("just_dodge_energy_absorb_end_rod", Particle.END_ROD, 8, 0.16D, 0.22D, 0.16D, 0.01D);
     public static final SharedParticleDefinition AIR_ACTION_CLOUD =
         new SharedParticleDefinition("air_action_cloud", Particle.CLOUD, 8, 0.18D, 0.05D, 0.18D, 0.0D);
-    public static final SharedParticleDefinition FIRE_BOOST_FLAME =
-        new SharedParticleDefinition("fire_boost_flame", Particle.FLAME, 40, 0.4D, 0.6D, 0.4D, 0.03D);
-    public static final SharedParticleDefinition FIRE_BOOST_LAVA =
-        new SharedParticleDefinition("fire_boost_lava", Particle.LAVA, 8, 0.2D, 0.4D, 0.2D, 0.01D);
     public static final SharedParticleDefinition MOB_DEATH_POOF =
         new SharedParticleDefinition("mob_death_poof", Particle.POOF, 28, 0.45D, 0.35D, 0.45D, 0.02D);
     public static final SharedParticleDefinition MOB_DEATH_CRIT =

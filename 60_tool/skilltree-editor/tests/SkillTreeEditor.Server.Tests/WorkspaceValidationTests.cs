@@ -58,10 +58,10 @@ public sealed class WorkspaceValidationTests
         var root = WorkspacePaths.ResolveWorkspaceRoot(null, AppContext.BaseDirectory);
         var skills = await new SkillMasterCatalog(new WorkspacePaths(root)).ReadAllAsync(CancellationToken.None);
 
-        var ironWill = Assert.Single(skills, value => value.Id == "iron_will");
-        Assert.Contains("アイアンウィル", ironWill.Name);
-        Assert.Contains("被ダメージ", ironWill.Description);
-        Assert.Equal("SKILL", ironWill.Type);
+        var meditation = Assert.Single(skills, value => value.Id == "adventurer_meditation");
+        Assert.Contains("メディテーション", meditation.Name);
+        Assert.Contains("MP / EN", meditation.Description);
+        Assert.Equal("SKILL", meditation.Type);
     }
 
     [Fact]

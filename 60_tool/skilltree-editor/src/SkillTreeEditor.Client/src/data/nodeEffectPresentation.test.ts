@@ -15,14 +15,14 @@ const node: NodeMaster = {
   effects: [
     { type: 'status', status: 'CRITICAL_RATE', modifierType: 'FLAT', value: 5 },
     { type: 'status', status: 'MAX_HEALTH', modifierType: 'SCALAR', value: 0.1 },
-    { type: 'skill', skillId: 'iron_will' },
+    { type: 'skill', skillId: 'adventurer_astral_edge' },
   ],
 }
 
 const skills: SkillMasterSummary[] = [{
-  id: 'iron_will',
-  name: '&7アイアンウィル',
-  description: '&7被ダメージを軽減する。',
+  id: 'adventurer_astral_edge',
+  name: '&bアストラルエッジ',
+  description: '&7流れるような二段攻撃を繰り出す近接技。',
   type: 'SKILL',
 }]
 
@@ -39,8 +39,8 @@ describe('nodeEffectPresentation', () => {
     expect(effects[0].title).toBe('会心率 +5.0%')
     expect(effects[0].detail).toContain('CRITICAL_RATE')
     expect(effects[1].title).toBe('最大HP +10%')
-    expect(effects[2].title).toBe('アイアンウィル')
-    expect(effects[2].detail).toContain('被ダメージを軽減する。')
+    expect(effects[2].title).toBe('アストラルエッジ')
+    expect(effects[2].detail).toContain('流れるような二段攻撃を繰り出す近接技。')
     expect(describeNodeCost(node)).toEqual({
       kind: 'pp',
       title: 'PP 1',

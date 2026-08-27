@@ -27,7 +27,7 @@ public class SkillRepositoryTests
             await MasterDataTestSeed.CreateSchemaAsync(setupContext);
             await MasterDataTestSeed.SeedEntryAsync(
                 setupContext,
-                Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "30.features.skill", "v1.fire_boost.yml"),
+                Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "30.features.skill", "v1.adventurer_smash.yml"),
                 "skill",
                 null);
         }
@@ -38,9 +38,9 @@ public class SkillRepositoryTests
         var summaries = repository.GetAllSummaries();
 
         var summary = Assert.Single(summaries);
-        Assert.Equal("fire_boost", summary.Id);
-        Assert.Equal("BLAZE_POWDER", summary.Icon);
-        Assert.Equal(["active", "fire"], summary.Tags);
+        Assert.Equal("adventurer_smash", summary.Id);
+        Assert.Equal("IRON_AXE", summary.Icon);
+        Assert.Equal(["active", "melee", "adventurer"], summary.Tags);
     }
 
     [Fact]
@@ -58,7 +58,7 @@ public class SkillRepositoryTests
             await MasterDataTestSeed.CreateSchemaAsync(setupContext);
             await MasterDataTestSeed.SeedEntryAsync(
                 setupContext,
-                Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "30.features.skill", "v1.iron_will.yml"),
+                Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "30.features.skill", "v1.adventurer_meditation.yml"),
                 "skill",
                 null);
         }
@@ -66,14 +66,14 @@ public class SkillRepositoryTests
         await using var dbContext = new MasterDataDbContext(options);
         var repository = new SkillRepository(dbContext);
 
-        var skill = repository.GetById("iron_will");
+        var skill = repository.GetById("adventurer_meditation");
 
         Assert.NotNull(skill);
-        Assert.Equal("iron_will", skill.Id);
-        Assert.Equal("IRON_INGOT", skill.Icon);
+        Assert.Equal("adventurer_meditation", skill.Id);
+        Assert.Equal("AMETHYST_SHARD", skill.Icon);
         Assert.NotNull(skill.Passive);
         Assert.True(skill.Passive!.BindRequired);
-        Assert.True(skill.Params.ContainsKey("defenseFlat"));
+        Assert.True(skill.Params.ContainsKey("regenMultiplier"));
     }
 
     /// <summary>
@@ -107,8 +107,8 @@ public class SkillRepositoryTests
         Assert.Equal("skill_gem", summary.Category);
         Assert.NotNull(gem);
         Assert.Equal("skill_gem", gem.Category);
-        Assert.Equal("&c火焔弾ジェム", gem.Name);
-        Assert.Equal("FIRE_CHARGE", gem.Icon);
+        Assert.Equal("&bスマッシュジェム", gem.Name);
+        Assert.Equal("IRON_AXE", gem.Icon);
         Assert.Equal("COMMON", gem.Rarity);
         Assert.Equal(0, gem.MaxStack);
         Assert.True(gem.UnTradeable);

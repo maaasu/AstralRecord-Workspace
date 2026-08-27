@@ -209,7 +209,7 @@ public class SkillBindPresetRepositoryTests
         {
             LearnedSkillId = Guid.NewGuid(),
             AccountId = accountId,
-            SkillId = "iron_will",
+            SkillId = "adventurer_meditation",
             Level = 1,
             Version = 1,
             CreatedAt = now,

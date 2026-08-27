@@ -64,7 +64,7 @@ class GuideProgressEvaluatorTest {
                 "cast",
                 "cast",
                 List.of(),
-                new GuideCondition(GuideConditionType.SKILL_CAST, "fire_boost"),
+                new GuideCondition(GuideConditionType.SKILL_CAST, "target_skill"),
                 null
             ))
         );
@@ -79,7 +79,7 @@ class GuideProgressEvaluatorTest {
             guide,
             Set.of(),
             GuideConditionType.SKILL_CAST,
-            "fire_boost"
+            "target_skill"
         )));
     }
 

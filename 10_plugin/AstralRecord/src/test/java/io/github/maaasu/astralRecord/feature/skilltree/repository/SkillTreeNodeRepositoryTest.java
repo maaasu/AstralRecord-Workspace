@@ -125,7 +125,7 @@ class SkillTreeNodeRepositoryTest {
      */
     @Test
     void rejectsDuplicateSkillPermissionsWithSameClassCondition() throws IOException {
-        String skillEffect = "[{\"type\": \"skill\", \"skillId\": \"iron_will\"}]";
+        String skillEffect = "[{\"type\": \"skill\", \"skillId\": \"adventurer_astral_edge\"}]";
         writeNode("1000.json", nodeJson("1000", skillEffect));
         writeNode("1001.json", nodeJson("1001", skillEffect));
 
@@ -134,7 +134,7 @@ class SkillTreeNodeRepositoryTest {
                 () -> repository().findAll()
         );
 
-        assertTrue(error.getMessage().contains("duplicate skill permission 'iron_will'"));
+        assertTrue(error.getMessage().contains("duplicate skill permission 'adventurer_astral_edge'"));
         assertTrue(error.getMessage().contains("nodes '1000' and '1001'"));
     }
 
@@ -145,7 +145,7 @@ class SkillTreeNodeRepositoryTest {
      */
     @Test
     void allowsSameSkillPermissionForDifferentClassConditions() throws IOException {
-        String skillEffect = "[{\"type\": \"skill\", \"skillId\": \"iron_will\"}]";
+        String skillEffect = "[{\"type\": \"skill\", \"skillId\": \"adventurer_astral_edge\"}]";
         writeNode("1000.json", nodeJson("1000", skillEffect).replace(
                 "\"effects\":",
                 "\"unlockCondition\": {\"classId\": \"hunter\"},\n  \"effects\":"
