@@ -1,0 +1,16 @@
+# design:
+#   motif: "遺跡 / 風化した古貨"
+#   progression: 5
+schemaVersion: 1
+id: middle_earth_ruins_weathered_coin
+category: material
+name: "&f風化した遺跡貨"
+icon: GOLD_NUGGET
+rarity: COMMON
+maxStack: 64
+saleValue: 12
+lore:
+  - "&7遺跡の瓦礫から見つかる、摩耗した古い貨幣。"
+  - "&7店で売却するとゴールドになる。"
+unTradeable: false
+unSellable: false

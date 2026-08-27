@@ -1,0 +1,16 @@
+# design:
+#   motif: "遺跡 / 古代のメダリオン"
+#   progression: 5
+schemaVersion: 1
+id: middle_earth_ruins_ancient_medallion
+category: material
+name: "&b古代遺跡の銀章"
+icon: IRON_INGOT
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 36
+lore:
+  - "&7古い紋章が刻まれた、保存状態のよい銀章。"
+  - "&7店で売却するとゴールドになる。"
+unTradeable: false
+unSellable: false

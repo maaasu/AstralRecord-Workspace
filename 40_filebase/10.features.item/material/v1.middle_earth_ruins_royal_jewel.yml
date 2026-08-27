@@ -1,0 +1,16 @@
+# design:
+#   motif: "宝石 / 遺跡主の王石"
+#   progression: 5
+schemaVersion: 1
+id: middle_earth_ruins_royal_jewel
+category: material
+name: "&d遺跡主の王石"
+icon: DIAMOND
+rarity: RARE
+maxStack: 64
+saleValue: 96
+lore:
+  - "&7遺跡主の玉座に埋め込まれていた、希少な宝石。"
+  - "&7店で売却するとゴールドになる。"
+unTradeable: false
+unSellable: false
