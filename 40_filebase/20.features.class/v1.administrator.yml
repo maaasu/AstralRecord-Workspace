@@ -76,6 +76,7 @@ usableSkills:
   - skill:adventurer_meditation
   - skill:adventurer_quick_shot
   - skill:adventurer_lightning_bolt
+  - skill:swordsman_bastion_strike
   - skill:swordsman_shield_drain
   - skill:swordsman_flame_rush
   - skill:swordsman_challenging_roar

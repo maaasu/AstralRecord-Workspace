@@ -460,7 +460,9 @@ public final class SkillBindGui {
             ? SkillResourceType.MANA
             : skill.getResourceType();
         String resourceName = resourceType == SkillResourceType.ENERGY ? "EN" : "MP";
-        String cost = BigDecimal.valueOf(resourceCost).stripTrailingZeros().toPlainString();
+        String cost = Boolean.TRUE.equals(skill.getParams().get("consumeAllCurrentMana"))
+            ? "現在値すべて"
+            : BigDecimal.valueOf(resourceCost).stripTrailingZeros().toPlainString();
         lore.add(Component.text("消費リソース: " + resourceName + " " + cost, NamedTextColor.AQUA));
         if (!skill.getKind().isPassive()) {
             double reduction = resolved.statusBonuses().getOrDefault(StatusType.COOLDOWN_REDUCTION, 0.0D);

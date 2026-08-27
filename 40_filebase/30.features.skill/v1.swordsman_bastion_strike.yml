@@ -1,0 +1,48 @@
+# design:
+#   motif: "城塞 / 守勢反撃"
+#   progression: 2
+schemaVersion: 1
+id: swordsman_bastion_strike
+type: SKILL
+implementationId: swordsman_bastion_strike
+name: "&bバスティオンストライク"
+description: "&7守りを立て直す近接反撃。"
+icon: SHIELD
+lore:
+  - "&7前方{skill.range}mの敵1体へ近接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&7発動時、自身のシールドを最大まで即時回復する。"
+  - "&7発動時の現在MPをすべて消費する。"
+cooldownTicks: 100
+resourceType: MANA
+resourceCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 3
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 4
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 5
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+params:
+  range: 6.0
+  targetAngle: 40.0
+  damageRatio: 1.25
+  consumeAllCurrentMana: true
+tags:
+  - active
+  - melee

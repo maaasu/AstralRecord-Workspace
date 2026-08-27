@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.Ad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerBlastArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerLightningBoltExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerManaBurstExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanBastionStrikeExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanShieldDrainExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanFlameRushExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanChallengingRoarExecutor;
@@ -46,13 +47,14 @@ class ActiveSkillExecutorDesignTest {
         "adventurer_lightning_bolt",
         "swordsman_shield_drain",
         "swordsman_flame_rush",
-        "swordsman_challenging_roar"
+        "swordsman_challenging_roar",
+        "swordsman_bastion_strike"
     );
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載9 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載10 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {
@@ -286,6 +288,34 @@ class ActiveSkillExecutorDesignTest {
         assertEquals("tauntIntervalTicks", exception.key());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 13. バスティオンストライクの実装契約 > ### 13.1 数値・対象・演出
+     * 検証契約: バスティオンストライクは正の射程・対象角・ダメージと現在MP全消費指定を必須とする。
+     */
+    @Test
+    void bastionStrikeValidatesCombatParams() {
+        SwordsmanBastionStrikeExecutor executor = new SwordsmanBastionStrikeExecutor(activeSkillServices());
+
+        assertDoesNotThrow(() -> executor.validateParams(bastionStrikeDefinition(Map.of(
+                "range", 6.0D,
+                "targetAngle", 40.0D,
+                "damageRatio", 1.25D,
+                "consumeAllCurrentMana", true
+        ))));
+
+        SkillParameterException exception = assertThrows(
+                SkillParameterException.class,
+                () -> executor.validateParams(bastionStrikeDefinition(Map.of(
+                        "range", 6.0D,
+                        "targetAngle", 40.0D,
+                        "damageRatio", 1.25D,
+                        "consumeAllCurrentMana", false
+                )))
+        );
+        assertEquals("consumeAllCurrentMana", exception.key());
+    }
+
     private static SkillDefinition astralEdgeDefinition(Map<String, Object> params) {
         return new SkillDefinition(
                 "adventurer_astral_edge",
@@ -439,6 +469,28 @@ class ActiveSkillExecutorDesignTest {
                 true,
                 SkillResourceType.ENERGY,
                 25.0D
+        );
+    }
+
+    private static SkillDefinition bastionStrikeDefinition(Map<String, Object> params) {
+        return new SkillDefinition(
+                "swordsman_bastion_strike",
+                "swordsman_bastion_strike",
+                "バスティオンストライク",
+                null,
+                "SHIELD",
+                List.of(),
+                100L,
+                0.0D,
+                0L,
+                1,
+                null,
+                params,
+                List.of("active", "melee"),
+                SkillKind.ACTIVE,
+                true,
+                SkillResourceType.MANA,
+                0.0D
         );
     }
 

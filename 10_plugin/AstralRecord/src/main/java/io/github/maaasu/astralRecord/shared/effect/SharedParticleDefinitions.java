@@ -90,6 +90,28 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition CHALLENGING_ROAR_WARPED_SPORE =
         new SharedParticleDefinition("challenging_roar_warped_spore", Particle.WARPED_SPORE, 32, 0.70D, 0.90D, 0.70D, 0.015D);
+    public static final SharedParticleDefinition BASTION_STRIKE_SLASH_DUST =
+        new SharedParticleDefinition(
+            "bastion_strike_slash_dust",
+            Particle.DUST,
+            2,
+            0.025D,
+            0.025D,
+            0.025D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(175, 225, 255), 1.2F)
+        );
+    public static final SharedParticleDefinition BASTION_STRIKE_SHIELD_RING_DUST =
+        new SharedParticleDefinition(
+            "bastion_strike_shield_ring_dust",
+            Particle.DUST,
+            1,
+            0.02D,
+            0.02D,
+            0.02D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(95, 220, 255), 1.1F)
+        );
     public static final SharedParticleDefinition DAMAGE_HIT_INDICATOR =
         new SharedParticleDefinition("damage_hit_indicator", Particle.DAMAGE_INDICATOR, 6, 0.18D, 0.25D, 0.18D, 0.0D);
     public static final SharedParticleDefinition CRITICAL_HIT_CRIT =

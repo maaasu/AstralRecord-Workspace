@@ -46,6 +46,8 @@
 | `params` | Map<String, Any> | 任意 | `{}` | Executorと説明文で共有する実効値。共通項目は定義しない |
 | `tags` | List<String> | 任意 | `[]` | `76.shared.tag/v1.tags.yml`の`SKILL`対象タグID |
 
+`swordsman_bastion_strike` の `params.consumeAllCurrentMana: true` は、このスキルだけが現在MPを固定値ではなく全量消費することを表すexecutor固有の指定です。`resourceType: MANA` と `resourceCost: 0` は共通の固定コストを重複適用しないために維持し、Plugin executor が発動成功時に現在MPを0へ設定します。
+
 ## 説明文プレースホルダー
 
 `description` はスキルの主目的を短く示すために使い、具体的な効果詳細、発動条件、対象数、持続時間、例外処理は `lore` に記載します。`lore` の各行は1つの効果または条件に分け、表示が横へ伸びないようにします。消費リソース、クールダウン、詠唱時間は top-level 項目と GUI の専用表示を使い、説明文へ重複させません。
