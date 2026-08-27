@@ -16,8 +16,6 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.Ad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerManaBurstExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanShieldDrainExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanBladeCounterExecutor;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanBladeCounterRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
@@ -44,20 +42,18 @@ class ActiveSkillExecutorDesignTest {
         "adventurer_smash",
         "adventurer_quick_shot",
         "adventurer_lightning_bolt",
-        "swordsman_blade_counter",
         "swordsman_shield_drain"
     );
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載8 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載7 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {
         List<SkillExecutor> executors = ActiveSkillExecutorCatalog.create(
-            activeSkillServices(),
-            mock(SwordsmanBladeCounterRuntimeService.class)
+            activeSkillServices()
         );
         Set<String> implementationIds = executors.stream()
             .map(SkillExecutor::implementationId)
@@ -191,54 +187,7 @@ class ActiveSkillExecutorDesignTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 10. ソードマン・ブレードカウンターの実装契約
-     * 検証契約: 固定受付10tick・持続400tick・反撃100%・軽減50%・初期3回を要求する。
-     */
-    @Test
-    void bladeCounterValidatesFixedRuntimeParams() {
-        SwordsmanBladeCounterExecutor executor = new SwordsmanBladeCounterExecutor(
-            activeSkillServices(),
-            mock(SwordsmanBladeCounterRuntimeService.class)
-        );
-
-        assertDoesNotThrow(() -> executor.validateParams(bladeCounterDefinition(Map.of(
-            "buffDurationTicks", 400,
-            "receptionTicks", 10,
-            "maximumCounters", 3,
-            "counterDamageRatio", 1.0D,
-            "damageReductionRate", 0.5D
-        ))));
-
-        SkillParameterException exception = assertThrows(
-            SkillParameterException.class,
-            () -> executor.validateParams(bladeCounterDefinition(Map.of(
-                "buffDurationTicks", 400,
-                "receptionTicks", 20,
-                "maximumCounters", 3,
-                "counterDamageRatio", 1.0D,
-                "damageReductionRate", 0.5D
-            )))
-        );
-        assertEquals("receptionTicks", exception.key());
-
-        for (int maximumCounters : List.of(1, 2, 4)) {
-            SkillParameterException maximumCountersException = assertThrows(
-                SkillParameterException.class,
-                () -> executor.validateParams(bladeCounterDefinition(Map.of(
-                    "buffDurationTicks", 400,
-                    "receptionTicks", 10,
-                    "maximumCounters", maximumCounters,
-                    "counterDamageRatio", 1.0D,
-                    "damageReductionRate", 0.5D
-                )))
-            );
-            assertEquals("maximumCounters", maximumCountersException.key());
-        }
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 11. シールドドレインの実装契約 > ### 11.1 数値・対象・演出
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 10. シールドドレインの実装契約 > ### 10.1 数値・対象・演出
      * 検証契約: シールドドレインは正の射程・対象角・ダメージ・Shield倍率と、0より大きく1以下の吸収率を必須とする。
      */
     @Test
@@ -353,28 +302,6 @@ class ActiveSkillExecutorDesignTest {
                 true,
                 SkillResourceType.MANA,
                 13.0D
-        );
-    }
-
-    private static SkillDefinition bladeCounterDefinition(Map<String, Object> params) {
-        return new SkillDefinition(
-            "swordsman_blade_counter",
-            "swordsman_blade_counter",
-            "ブレードカウンター",
-            null,
-            "WHITE_STAINED_GLASS",
-            List.of(),
-            600L,
-            20.0D,
-            20L,
-            1,
-            null,
-            params,
-            List.of("active", "melee", "defense"),
-            SkillKind.ACTIVE,
-            true,
-            SkillResourceType.ENERGY,
-            20.0D
         );
     }
 

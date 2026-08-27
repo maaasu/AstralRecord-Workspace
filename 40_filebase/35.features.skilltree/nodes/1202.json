@@ -2,8 +2,8 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1202",
-  "name": "&f反照の剣星",
-  "icon": "WHITE_STAINED_GLASS",
+  "name": "&bシールドドレイン",
+  "icon": "HEART_OF_THE_SEA",
   "tags": [
     "defense"
   ],
@@ -12,7 +12,7 @@
   "effects": [
     {
       "type": "skill",
-      "skillId": "swordsman_blade_counter"
+      "skillId": "swordsman_shield_drain"
     }
   ],
   "unlockCondition": {

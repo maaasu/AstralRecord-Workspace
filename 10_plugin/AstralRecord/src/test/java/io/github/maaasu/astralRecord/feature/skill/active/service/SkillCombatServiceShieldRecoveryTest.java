@@ -24,7 +24,7 @@ class SkillCombatServiceShieldRecoveryTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 11. シールドドレインの実装契約 > ### 11.1 数値・対象・演出
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 10. シールドドレインの実装契約 > ### 10.1 数値・対象・演出
      * 検証契約: Shield吸収要求が上限を超える場合、実StatusService経路はMAX_SHIELDまで加算し実増加差分だけを返す。
      */
     @Test
@@ -41,7 +41,7 @@ class SkillCombatServiceShieldRecoveryTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 11. シールドドレインの実装契約 > ### 11.1 数値・対象・演出
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 10. シールドドレインの実装契約 > ### 10.1 数値・対象・演出
      * 検証契約: 回復阻害中のShield吸収は実StatusService経路で現在値を変更せず実増加量0を返す。
      */
     @Test

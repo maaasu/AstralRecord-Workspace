@@ -78,7 +78,6 @@ usableSkills:
   - skill:adventurer_meditation
   - skill:adventurer_quick_shot
   - skill:adventurer_lightning_bolt
-  - skill:swordsman_blade_counter
   - skill:swordsman_shield_drain
 tags:
   - administrator

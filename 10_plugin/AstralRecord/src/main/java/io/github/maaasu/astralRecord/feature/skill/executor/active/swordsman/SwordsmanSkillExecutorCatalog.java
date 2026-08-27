@@ -16,15 +16,10 @@ public final class SwordsmanSkillExecutorCatalog {
      * 実装済みのソードマン用executorを生成します。
      *
      * @param services 共通発動サービス
-     * @param bladeCounterRuntime ブレードカウンターruntime
      * @return ソードマン用executor
      */
-    public static @NotNull List<SkillExecutor> create(
-            @NotNull ActiveSkillServices services,
-            @NotNull SwordsmanBladeCounterRuntimeService bladeCounterRuntime
-    ) {
+    public static @NotNull List<SkillExecutor> create(@NotNull ActiveSkillServices services) {
         return List.of(
-            new SwordsmanBladeCounterExecutor(services, bladeCounterRuntime),
             new SwordsmanShieldDrainExecutor(services)
         );
     }

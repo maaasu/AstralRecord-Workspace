@@ -4,7 +4,6 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.UUID;
-import java.util.function.Consumer;
 
 /**
  * プレイヤー lifecycle に応じた詠唱・継続スキル・一時効果の破棄を一元化します。
@@ -14,7 +13,6 @@ public final class ActiveSkillLifecycleService {
     private final SkillService skillService;
     private final SkillTaskService taskService;
     private final TemporarySkillEffectService temporaryEffectService;
-    private Consumer<UUID> additionalClearer = playerId -> { };
 
     /** lifecycle に追従する runtime サービスで初期化します。 */
     public ActiveSkillLifecycleService(
@@ -28,15 +26,6 @@ public final class ActiveSkillLifecycleService {
     }
 
     /**
-     * 共通一時効果以外のplayer runtimeを破棄する追加処理を設定します。
-     *
-     * @param additionalClearer player UUID単位の破棄処理
-     */
-    public void setAdditionalClearer(@NotNull Consumer<UUID> additionalClearer) {
-        this.additionalClearer = additionalClearer;
-    }
-
-    /**
      * world 移動時に cooldown を保持し、進行中の効果だけを破棄します。
      *
      * @param playerId 対象プレイヤー UUID
@@ -45,7 +34,6 @@ public final class ActiveSkillLifecycleService {
         skillService.cancelCasting(playerId);
         taskService.clearCaster(playerId);
         temporaryEffectService.clear(playerId);
-        additionalClearer.accept(playerId);
     }
 
     /**
@@ -57,6 +45,5 @@ public final class ActiveSkillLifecycleService {
         skillService.clearCasterState(playerId);
         taskService.clearCaster(playerId);
         temporaryEffectService.clear(playerId);
-        additionalClearer.accept(playerId);
     }
 }

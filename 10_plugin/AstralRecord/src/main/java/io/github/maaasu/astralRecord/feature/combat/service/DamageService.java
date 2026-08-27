@@ -85,7 +85,6 @@ public final class DamageService {
     private TemporarySkillEffectService temporarySkillEffectService;
     private CombatDpsTrackerService combatDpsTrackerService;
     private JustDodgeSkillRuntimeService justDodgeSkillRuntimeService;
-    private DirectDamageModifier directDamageModifier;
     private Consumer<AstPlayer> playerDamageListener = player -> { };
     private Consumer<UUID> mobDeathListener = mobInstanceId -> { };
 
@@ -251,15 +250,6 @@ public final class DamageService {
      */
     public void setCombatDpsTrackerService(@Nullable CombatDpsTrackerService combatDpsTrackerService) {
         this.combatDpsTrackerService = combatDpsTrackerService;
-    }
-
-    /**
-     * 直接攻撃へスキル固有の被ダメージ倍率を適用する拡張点を設定します。
-     *
-     * @param directDamageModifier 倍率解決処理。未設定へ戻す場合は {@code null}
-     */
-    public void setDirectDamageModifier(@Nullable DirectDamageModifier directDamageModifier) {
-        this.directDamageModifier = directDamageModifier;
     }
 
     /**
@@ -674,17 +664,6 @@ public final class DamageService {
                 )) {
             return new DamageResult(0.0D);
         }
-        DirectDamageModification directDamageModification = resolveDirectDamageModification(
-                attacker,
-                victim,
-                attackType,
-                source,
-                calculated
-        );
-        double directDamageMultiplier = directDamageModification.damageMultiplier();
-        if (directDamageMultiplier != 1.0D && !calculated.evaded()) {
-            calculated = calculated.withFinalDamage(calculated.finalDamage() * directDamageMultiplier);
-        }
         Location superStarOrigin = shouldSpawnSuperStarCriticalProjectiles(attacker, victim, calculated, superStarCriticalMode)
                 ? damageOrigin(victim)
                 : null;
@@ -693,7 +672,7 @@ public final class DamageService {
         boolean shieldWasActive = hasActiveShield(victim);
         DamageResult result = applyShieldDamage(attacker, victim, calculated, shieldBreakMultiplier);
         if (!shieldWasActive && isDirectDamage(source) && !result.evaded()) {
-            result = result.withAddedFixedHealthDamage(fixedHealthDamage(attacker) * directDamageMultiplier);
+            result = result.withAddedFixedHealthDamage(fixedHealthDamage(attacker));
         }
         boolean configuredPlayerRecharge = victim.isPlayer()
             && victim.player() != null
@@ -719,7 +698,6 @@ public final class DamageService {
         }
         spawnDamageDisplay(attacker, victim, result);
         sendDamageLog(attacker, victim, result, context, victimCurrentHealthBefore, victimMaxHealth, victimCurrentHealthAfter);
-        directDamageModification.afterDamageApplied().run();
         if (superStarOrigin != null && attacker != null) {
             spawnSuperStarCriticalProjectiles(
                     attacker,
@@ -1359,25 +1337,6 @@ public final class DamageService {
 
     private boolean isDirectDamage(@NotNull DamageSource source) {
         return source == DamageSource.NORMAL_ATTACK || source == DamageSource.SKILL;
-    }
-
-    private @NotNull DirectDamageModification resolveDirectDamageModification(
-            @Nullable AstEntity attacker,
-            @NotNull AstEntity victim,
-            @NotNull AttackType attackType,
-            @NotNull DamageSource source,
-            @NotNull DamageResult calculated
-    ) {
-        if (!isDirectDamage(source) || directDamageModifier == null) {
-            return DirectDamageModification.none();
-        }
-        return directDamageModifier.modify(
-                attacker,
-                victim,
-                attackType,
-                source,
-                calculated
-        );
     }
 
     private double fixedHealthDamage(@Nullable AstEntity attacker) {

@@ -78,22 +78,12 @@ items:
       - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1
-  - id: blade_counter_from_raw
-    itemId: { ref: item:00_skill_gem_swordsman_blade_counter }
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 7
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 1
   - id: administrator_shield_recharge_from_advanced_raw
     itemId: { ref: item:00_skill_gem_administrator_shield_recharge }
     category: skill_gem
     amount: 1
     page: 1
-    slot: 8
+    slot: 7
     requiredItems:
       - itemId: { ref: item:skill_gem_raw_advanced }
         category: material
@@ -103,7 +93,7 @@ items:
     category: skill_gem
     amount: 1
     page: 1
-    slot: 9
+    slot: 8
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
