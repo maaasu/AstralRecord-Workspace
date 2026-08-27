@@ -832,7 +832,8 @@ public final class AstralRecord extends JavaPlugin {
             this,
             new AdventureRecordRepository(),
             mobService,
-            playerSettingService
+            playerSettingService,
+            lootService
         );
         particleDisplayService = new ParticleDisplayService(playerSettingService);
         hookshotUseService = new HookshotUseService(this, inventoryService, itemService, particleDisplayService);
@@ -1101,7 +1102,7 @@ public final class AstralRecord extends JavaPlugin {
         playerDetailGui = new PlayerDetailGui(worldService);
         playerSettingGui = new PlayerSettingGui(playerSettingService);
         adventureRecordGuiEventHandler = new AdventureRecordGuiEventHandler(
-            new AdventureRecordGui(itemService),
+            new AdventureRecordGui(itemService, lootService),
             adventureRecordService,
             inventoryService
         );

@@ -4,6 +4,9 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureMobRecord;
 import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureRecordListType;
 import io.github.maaasu.astralRecord.feature.adventurerecord.repository.AdventureRecordRepository;
+import io.github.maaasu.astralRecord.feature.loot.model.LootEntry;
+import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
+import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropItem;
@@ -35,17 +38,29 @@ public class AdventureRecordService {
     private final AdventureRecordRepository repository;
     private final MobService mobService;
     private final PlayerSettingService playerSettingService;
+    private final LootService lootService;
 
+    /**
+     * 冒険記録サービスを構築します。
+     *
+     * @param plugin プラグイン本体
+     * @param repository 冒険記録 API リポジトリ
+     * @param mobService Mob テンプレートサービス
+     * @param playerSettingService プレイヤー設定サービス
+     * @param lootService ロード済み LootTable の参照サービス
+     */
     public AdventureRecordService(
         @NotNull AstralRecord plugin,
         @NotNull AdventureRecordRepository repository,
         @NotNull MobService mobService,
-        @NotNull PlayerSettingService playerSettingService
+        @NotNull PlayerSettingService playerSettingService,
+        @NotNull LootService lootService
     ) {
         this.plugin = plugin;
         this.repository = repository;
         this.mobService = mobService;
         this.playerSettingService = playerSettingService;
+        this.lootService = lootService;
     }
 
     /**
@@ -186,6 +201,19 @@ public class AdventureRecordService {
         }
         for (MobDropItem item : drops.items()) {
             if (!item.hidden() && searchItemIds.contains(item.itemId())) {
+                return true;
+            }
+        }
+        String lootTableId = drops.lootTable();
+        if (lootTableId == null || lootTableId.isBlank()) {
+            return false;
+        }
+        LootModel loot = lootService.getLoaded(lootTableId);
+        if (loot == null) {
+            return false;
+        }
+        for (LootEntry entry : loot.flattenedEntries()) {
+            if (searchItemIds.contains(entry.getItemId())) {
                 return true;
             }
         }

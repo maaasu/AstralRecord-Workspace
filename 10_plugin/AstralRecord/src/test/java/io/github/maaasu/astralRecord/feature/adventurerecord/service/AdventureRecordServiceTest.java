@@ -6,7 +6,13 @@ import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureMobR
 import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureRecordListType;
 import io.github.maaasu.astralRecord.feature.adventurerecord.repository.AdventureRecordRepository;
 import io.github.maaasu.astralRecord.feature.dungeon.DungeonTestFixtures;
+import io.github.maaasu.astralRecord.feature.loot.model.LootContent;
+import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
+import io.github.maaasu.astralRecord.feature.loot.model.LootPoolModel;
+import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
+import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -14,6 +20,7 @@ import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKe
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import org.bukkit.Server;
+import org.bukkit.entity.EntityType;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
@@ -54,6 +61,7 @@ class AdventureRecordServiceTest {
         AdventureRecordRepository repository = mock(AdventureRecordRepository.class);
         MobService mobService = mock(MobService.class);
         PlayerSettingService playerSettingService = mock(PlayerSettingService.class);
+        LootService lootService = mock(LootService.class);
         AstPlayer player = mock(AstPlayer.class);
         AccountModel account = mock(AccountModel.class);
         UserModel user = mock(UserModel.class);
@@ -80,7 +88,8 @@ class AdventureRecordServiceTest {
             plugin,
             repository,
             mobService,
-            playerSettingService
+            playerSettingService,
+            lootService
         );
         AtomicReference<AdventureRecordService.EntryResult> result = new AtomicReference<>();
         AtomicBoolean failed = new AtomicBoolean();
@@ -115,6 +124,7 @@ class AdventureRecordServiceTest {
         AdventureRecordRepository repository = mock(AdventureRecordRepository.class);
         MobService mobService = mock(MobService.class);
         PlayerSettingService playerSettingService = mock(PlayerSettingService.class);
+        LootService lootService = mock(LootService.class);
         AstPlayer player = mock(AstPlayer.class);
         AccountModel account = mock(AccountModel.class);
         UserModel user = mock(UserModel.class);
@@ -146,7 +156,8 @@ class AdventureRecordServiceTest {
             plugin,
             repository,
             mobService,
-            playerSettingService
+            playerSettingService,
+            lootService
         );
 
         List<AdventureRecordService.Entry> all = service.buildEntries(
@@ -171,5 +182,96 @@ class AdventureRecordServiceTest {
             enemies.stream().map(entry -> entry.template().category()).toList());
         assertEquals(List.of(MobCategory.BOSS),
             bosses.stream().map(entry -> entry.template().category()).toList());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/21-adventurerecord/21_3-メソッド仕様.md
+     * 章・見出し: # 21_3-メソッド仕様 > ## 表示 entry 生成
+     * 検証契約: SEARCH はロード済み lootTable の平坦化候補も visible drop として照合する。
+     */
+    @Test
+    void searchMatchesLoadedLootTableItems() {
+        UUID accountId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        AstralRecord plugin = mock(AstralRecord.class);
+        AdventureRecordRepository repository = mock(AdventureRecordRepository.class);
+        MobService mobService = mock(MobService.class);
+        PlayerSettingService playerSettingService = mock(PlayerSettingService.class);
+        LootService lootService = mock(LootService.class);
+        AstPlayer player = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        UserModel user = mock(UserModel.class);
+        MobTemplate template = mobWithDrops(
+            "loot_mob",
+            new MobDropConfig(0, null, List.of(), "loot_table")
+        );
+        AdventureMobRecord record = new AdventureMobRecord(
+            UUID.randomUUID(), accountId, "loot_mob", MobCategory.ENEMY, 1,
+            Instant.parse("2026-08-22T00:00:00Z"), Instant.parse("2026-08-22T00:00:00Z")
+        );
+        LootModel loot = new LootModel(
+            1,
+            "loot_table",
+            "loot_table",
+            1,
+            List.of(new LootPoolModel(
+                "loot_pool",
+                1,
+                List.of(new LootContent("table_reward", 2, 3, 100.0D))
+            ))
+        );
+        when(player.getAccount()).thenReturn(account);
+        when(player.getUser()).thenReturn(user);
+        when(account.getUuid()).thenReturn(accountId);
+        when(user.getUuid()).thenReturn(userId);
+        when(playerSettingService.getPlayerSetting(
+            userId,
+            PlayerSettingKey.ADVENTURE_RECORD_SUPER_MODE
+        )).thenReturn(false);
+        when(repository.findMobRecords(accountId, null)).thenReturn(List.of(record));
+        when(mobService.findTemplate("loot_mob")).thenReturn(template);
+        when(lootService.getLoaded("loot_table")).thenReturn(loot);
+
+        AdventureRecordService service = new AdventureRecordService(
+            plugin,
+            repository,
+            mobService,
+            playerSettingService,
+            lootService
+        );
+
+        List<AdventureRecordService.Entry> result = service.buildEntries(
+            player,
+            AdventureRecordListType.SEARCH,
+            Set.of("table_reward")
+        );
+
+        assertEquals(List.of("loot_mob"), result.stream().map(entry -> entry.template().id()).toList());
+    }
+
+    private MobTemplate mobWithDrops(String id, MobDropConfig drops) {
+        return new MobTemplate(
+            1,
+            id,
+            MobCategory.ENEMY,
+            id,
+            null,
+            1,
+            EntityType.ZOMBIE,
+            false,
+            null,
+            List.of(),
+            List.of(),
+            null,
+            MobEquipmentConfig.EMPTY,
+            List.of(),
+            io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig.EMPTY,
+            io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig.defaults(),
+            false,
+            io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig.EMPTY,
+            null,
+            null,
+            drops
+        );
     }
 }

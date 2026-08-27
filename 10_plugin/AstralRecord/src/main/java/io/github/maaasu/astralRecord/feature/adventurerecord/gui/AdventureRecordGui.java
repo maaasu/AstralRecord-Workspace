@@ -4,6 +4,9 @@ import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureReco
 import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.loot.model.LootEntry;
+import io.github.maaasu.astralRecord.feature.loot.model.LootModel;
+import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropItem;
@@ -55,9 +58,17 @@ public class AdventureRecordGui {
 
     private final PagedGuiView pagedGuiView = new PagedGuiView();
     private final ItemService itemService;
+    private final LootService lootService;
 
-    public AdventureRecordGui(@NotNull ItemService itemService) {
+    /**
+     * 冒険記録 GUI を構築します。
+     *
+     * @param itemService ロード済みアイテムの表示名解決サービス
+     * @param lootService ロード済み LootTable の表示候補解決サービス
+     */
+    public AdventureRecordGui(@NotNull ItemService itemService, @NotNull LootService lootService) {
         this.itemService = itemService;
+        this.lootService = lootService;
     }
 
     /**
@@ -375,14 +386,39 @@ public class AdventureRecordGui {
             visible++;
             lore.add(Component.text("- " + itemName(item.itemId()) + " x" + item.amount() + " (" + item.rate() + "%)", NamedTextColor.WHITE));
         }
+        LootModel loot = resolveLootTable(drops.lootTable());
+        if (loot != null) {
+            for (LootEntry entry : loot.flattenedEntries()) {
+                if (visible == 0 && hasFixedRewards) {
+                    lore.add(Component.text(DisplaySeparators.SECTION, NamedTextColor.DARK_GRAY));
+                }
+                visible++;
+                String amount = entry.getMinAmount() == entry.getMaxAmount()
+                    ? Integer.toString(entry.getMinAmount())
+                    : entry.getMinAmount() + "~" + entry.getMaxAmount();
+                lore.add(Component.text(
+                    "- " + itemName(entry.getItemId()) + " x" + amount + " (" + entry.getWeight() + "%)",
+                    NamedTextColor.WHITE
+                ));
+            }
+        }
         if (visible == 0 && drops.exp() <= 0 && drops.money() == null) {
             lore.add(Component.text("- なし", NamedTextColor.DARK_GRAY));
         }
     }
 
+    private @Nullable LootModel resolveLootTable(@Nullable String lootTableId) {
+        if (lootTableId == null || lootTableId.isBlank()) {
+            return null;
+        }
+        return lootService.getLoaded(lootTableId);
+    }
+
     private @NotNull String itemName(@NotNull String itemId) {
         ItemModel item = itemService.findLoadedById(itemId);
-        return item == null ? itemId : ColorCodeUtil.toPlainText(item.getName(), itemId);
+        return item == null
+            ? "未登録のアイテム"
+            : ColorCodeUtil.toPlainText(item.getName(), "未登録のアイテム");
     }
 
     private @NotNull Set<String> selectedItemIds(@NotNull List<ItemStack> items) {
