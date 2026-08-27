@@ -115,6 +115,7 @@ public final class DungeonService {
     private static final double ENTRY_VIEW_DISTANCE_SQUARED = 48.0D * 48.0D;
     private static final long CLEAR_RETURN_DELAY_TICKS = 30L * 20L;
     private static final double RETURN_GATE_RADIUS_SQUARED = 2.25D * 2.25D;
+    private static final Material ACTIVE_ROOM_GATE_MATERIAL = Material.GLASS;
     private static final String REWARD_SOURCE = "dungeon_clear";
     private static final Title.Times COUNTDOWN_TITLE_TIMES = Title.Times.times(
             Duration.ofMillis(100L), Duration.ofMillis(900L), Duration.ofMillis(100L));
@@ -1024,7 +1025,7 @@ public final class DungeonService {
         return result;
     }
 
-    /** プレイヤーが解放済みの部屋へ入ったとき、その部屋の戦闘を開始します。 */
+    /** プレイヤー移動から ACTIVE 入口の後続入室、現在部屋、AVAILABLE 部屋の戦闘開始を処理します。 */
     public void handleMove(@NotNull Player player, @NotNull Location destination) {
         UUID sessionId = sessionIdByParticipant.get(player.getUniqueId());
         Session session = sessionId == null ? null : sessionsById.get(sessionId);
@@ -1034,7 +1035,11 @@ public final class DungeonService {
             return;
         }
         int x = destination.getBlockX();
+        int y = destination.getBlockY();
         int z = destination.getBlockZ();
+        if (tryEnterActiveRoomFromCorridor(session, player, x, y, z)) {
+            return;
+        }
         Integer currentRoomId = session.layout.rooms().stream()
                 .filter(room -> contains(room, x, z))
                 .map(DungeonLayout.Room::id)
@@ -1068,9 +1073,10 @@ public final class DungeonService {
             return;
         }
         session.roomStates.put(roomId, DungeonMapRoomState.ACTIVE);
-        refreshRoomStatusDisplays(session);
-        refreshOpenMaps(session);
         try {
+            closeActiveRoomEntrance(session, roomId);
+            refreshRoomStatusDisplays(session);
+            refreshOpenMaps(session);
             activateRoomContent(session, roomId);
         } catch (RuntimeException failure) {
             Logger.log(LogId.E_7000, failure, session.id.toString(), session.loaded.definition().id());
@@ -1172,6 +1178,7 @@ public final class DungeonService {
      */
     private void clearRoom(@NotNull Session session, int roomId) {
         session.roomStates.put(roomId, DungeonMapRoomState.CLEARED);
+        openActiveRoomEntrance(session, roomId);
         DungeonLayout.Room cleared = room(session, roomId);
         Logger.log(LogId.I_7003, session.id.toString(), roomId, cleared.role().name());
         if (cleared.role() == DungeonLayout.RoomRole.BOSS) {
@@ -1237,6 +1244,118 @@ public final class DungeonService {
             return;
         }
         gateReleaseService.release(session.instanceWorld.world(), visualBlocks, barrierBlocks);
+    }
+
+    /** ACTIVE へ遷移した子部屋の入口面へガラスを配置します。 */
+    private void closeActiveRoomEntrance(@NotNull Session session, int roomId) {
+        if (session.instanceWorld == null) {
+            throw new IllegalStateException("Dungeon world is unavailable");
+        }
+        DungeonBlockPlan.RoomEntrance entrance = session.blockPlan.roomEntrancesByRoom().get(roomId);
+        if (entrance == null) {
+            throw new IllegalStateException("Room entrance is missing: " + roomId);
+        }
+        World world = session.instanceWorld.world();
+        for (DungeonBlockPlan.Position position : entrance.gateBlocks()) {
+            world.getBlockAt(position.x(), position.y(), position.z())
+                    .setType(ACTIVE_ROOM_GATE_MATERIAL, false);
+        }
+        session.closedActiveRoomEntrances.add(roomId);
+    }
+
+    /** CLEARED へ遷移した部屋の一時ガラスを除去し、通常移動へ戻します。 */
+    private void openActiveRoomEntrance(@NotNull Session session, int roomId) {
+        if (session.instanceWorld == null || !session.closedActiveRoomEntrances.remove(roomId)) {
+            return;
+        }
+        DungeonBlockPlan.RoomEntrance entrance = session.blockPlan.roomEntrancesByRoom().get(roomId);
+        if (entrance == null) {
+            return;
+        }
+        World world = session.instanceWorld.world();
+        for (DungeonBlockPlan.Position position : entrance.gateBlocks()) {
+            world.getBlockAt(position.x(), position.y(), position.z()).setType(Material.AIR, false);
+        }
+    }
+
+    /**
+     * ACTIVE 入口の通路側へ来た同セッション参加者を、部屋側へ一度だけ非同期転送します。
+     *
+     * @return 入口転送を開始済み、または同プレイヤーの転送が保留中なら {@code true}
+     */
+    private boolean tryEnterActiveRoomFromCorridor(
+            @NotNull Session session,
+            @NotNull Player player,
+            int x,
+            int y,
+            int z
+    ) {
+        UUID playerId = player.getUniqueId();
+        if (session.pendingRoomEntryByParticipant.containsKey(playerId)) {
+            return true;
+        }
+        for (Map.Entry<Integer, DungeonBlockPlan.RoomEntrance> entry
+                : session.blockPlan.roomEntrancesByRoom().entrySet()) {
+            int roomId = entry.getKey();
+            if (session.roomStates.get(roomId) != DungeonMapRoomState.ACTIVE
+                    || !entry.getValue().corridorApproachBlocks().contains(
+                    new DungeonBlockPlan.Position(x, y, z))) {
+                continue;
+            }
+            if (!canRunActiveRoomEntry(session, player, roomId)) {
+                return false;
+            }
+            session.pendingRoomEntryByParticipant.put(playerId, roomId);
+            DungeonBlockPlan.Position destination = entry.getValue().roomDestination();
+            Location target = new Location(
+                    session.instanceWorld.world(),
+                    destination.x() + 0.5D,
+                    destination.y(),
+                    destination.z() + 0.5D
+            );
+            CompletableFuture<Boolean> transfer;
+            try {
+                if (!canRunActiveRoomEntry(session, player, roomId)) {
+                    session.pendingRoomEntryByParticipant.remove(playerId, roomId);
+                    return false;
+                }
+                transfer = trackEntryTransfer(
+                        session,
+                        playerId,
+                        PlayerTeleportService.teleportAsync(player, target)
+                );
+            } catch (RuntimeException failure) {
+                session.pendingRoomEntryByParticipant.remove(playerId, roomId);
+                throw failure;
+            }
+            transfer.whenComplete((success, failure) -> runMain(() -> {
+                session.pendingRoomEntryByParticipant.remove(playerId, roomId);
+                if (failure == null && Boolean.TRUE.equals(success)
+                        && canRunActiveRoomEntry(session, player, roomId)) {
+                    session.currentRoomByParticipant.put(playerId, roomId);
+                    refreshOpenMaps(session);
+                }
+            }));
+            return true;
+        }
+        return false;
+    }
+
+    /** @return ACTIVE 入口転送の session・参加者・world・部屋状態がすべて現在も有効なら {@code true} */
+    private boolean canRunActiveRoomEntry(
+            @NotNull Session session,
+            @NotNull Player player,
+            int roomId
+    ) {
+        return !session.ending
+                && sessionsById.get(session.id) == session
+                && session.id.equals(sessionIdByParticipant.get(player.getUniqueId()))
+                && session.participants.contains(player.getUniqueId())
+                && player.isOnline()
+                && session.instanceWorld != null
+                && player.getWorld().getUID().equals(session.instanceWorld.world().getUID())
+                && session.roomStates.get(roomId) == DungeonMapRoomState.ACTIVE
+                && session.closedActiveRoomEntrances.contains(roomId);
     }
 
     /** コマンドによる自主離脱です。 */
@@ -1777,7 +1896,8 @@ public final class DungeonService {
 
     /**
      * カルトグラフから指定された攻略済み部屋へプレイヤーを移動します。
-     * 現在のセッション、参加者、地図 binding、部屋状態を再検証してから転送します。
+     * 現在のセッション、参加者、地図 binding、現在地、部屋状態を再検証し、
+     * 操作本人が ACTIVE 部屋内にいる場合は転送しません。
      *
      * @param player 操作プレイヤー
      * @param sessionId 地図を開いているセッション ID
@@ -1791,12 +1911,24 @@ public final class DungeonService {
     ) {
         MapSnapshot snapshot = mapSnapshot(player, sessionId);
         if (snapshot == null
+                || (snapshot.currentRoomId() != null
+                && snapshot.roomStates().getOrDefault(
+                snapshot.currentRoomId(), DungeonMapRoomState.LOCKED) == DungeonMapRoomState.ACTIVE)
                 || snapshot.roomStates().getOrDefault(roomId, DungeonMapRoomState.LOCKED)
                 != DungeonMapRoomState.CLEARED) {
             return false;
         }
         Session session = sessionsById.get(sessionId);
         if (session == null || session.blockPlan == null || session.instanceWorld == null) {
+            return false;
+        }
+        UUID playerId = player.getUniqueId();
+        String equipmentInstanceId = cartographBindings.findForPlayerSession(playerId, sessionId);
+        long transferGeneration = session.transferGeneration;
+        if (equipmentInstanceId == null
+                || session.cartographTransfers.containsKey(playerId)
+                || !canRunCartographTeleport(
+                session, player, equipmentInstanceId, roomId, transferGeneration)) {
             return false;
         }
         DungeonLayout.Room room = session.layout.rooms().stream()
@@ -1807,17 +1939,54 @@ public final class DungeonService {
             return false;
         }
         Location target = roomTeleportLocation(session, room);
-        worldService.teleportPlayerAsync(player, target, null)
+        trackCartographTransfer(
+                session,
+                playerId,
+                worldService.teleportPlayerAsync(
+                        player,
+                        target,
+                        null,
+                        () -> canRunCartographTeleport(
+                                session, player, equipmentInstanceId, roomId, transferGeneration)
+                ))
                 .whenComplete((success, failure) -> {
                     if (failure != null || !Boolean.TRUE.equals(success)) {
                         runMain(() -> {
-                            if (player.isOnline()) {
+                            if (player.isOnline()
+                                    && isActiveTransferCallback(session, transferGeneration)
+                                    && isCurrentParticipant(session, playerId)) {
                                 messageService.send(player, PlayerMsgId.P_7091);
                             }
                         });
                     }
                 });
         return true;
+    }
+
+    /** チャンク準備後の実転送直前にも、カルトグラフ転送の全所有権と部屋状態を検証します。 */
+    private boolean canRunCartographTeleport(
+            @NotNull Session session,
+            @NotNull Player player,
+            @NotNull String equipmentInstanceId,
+            int targetRoomId,
+            long transferGeneration
+    ) {
+        UUID playerId = player.getUniqueId();
+        if (!isActiveTransferCallback(session, transferGeneration)
+                || !session.id.equals(sessionIdByParticipant.get(playerId))
+                || !session.participants.contains(playerId)
+                || !player.isOnline()
+                || session.instanceWorld == null
+                || !player.getWorld().getUID().equals(session.instanceWorld.world().getUID())
+                || !cartographBindings.isBound(equipmentInstanceId, playerId, session.id)
+                || session.roomStates.getOrDefault(
+                targetRoomId, DungeonMapRoomState.LOCKED) != DungeonMapRoomState.CLEARED) {
+            return false;
+        }
+        Integer currentRoomId = currentRoomId(session, player.getLocation());
+        return currentRoomId == null
+                || session.roomStates.getOrDefault(
+                currentRoomId, DungeonMapRoomState.LOCKED) != DungeonMapRoomState.ACTIVE;
     }
 
     private @NotNull Location roomTeleportLocation(
@@ -2316,11 +2485,15 @@ public final class DungeonService {
             return;
         }
         CompletableFuture<Boolean> entryTransfer = session.entryTransfers.get(playerId);
-        if (entryTransfer == null) {
+        CompletableFuture<Boolean> cartographTransfer = session.cartographTransfers.get(playerId);
+        if (entryTransfer == null && cartographTransfer == null) {
             beginParticipantDeparture(session, player, rejoinEligible);
             return;
         }
-        entryTransfer.whenComplete((ignored, failure) -> runMain(() ->
+        CompletableFuture.allOf(
+                        entryTransfer == null ? CompletableFuture.completedFuture(null) : entryTransfer,
+                        cartographTransfer == null ? CompletableFuture.completedFuture(null) : cartographTransfer)
+                .whenComplete((ignored, failure) -> runMain(() ->
                 beginParticipantDeparture(session, player, rejoinEligible)));
     }
 
@@ -2437,6 +2610,17 @@ public final class DungeonService {
         return transfer;
     }
 
+    private @NotNull CompletableFuture<Boolean> trackCartographTransfer(
+            @NotNull Session session,
+            @NotNull UUID playerId,
+            @NotNull CompletableFuture<Boolean> transfer
+    ) {
+        session.cartographTransfers.put(playerId, transfer);
+        transfer.whenComplete((ignored, failure) -> runMain(() ->
+                session.cartographTransfers.remove(playerId, transfer)));
+        return transfer;
+    }
+
     private boolean isActiveTransferCallback(@NotNull Session session, long transferGeneration) {
         Session indexed = sessionsById.get(session.id);
         return isTransferCallbackCurrent(
@@ -2478,11 +2662,13 @@ public final class DungeonService {
             @NotNull Session session,
             @NotNull UUID playerId
     ) {
-        List<CompletableFuture<Boolean>> transfers = new ArrayList<>(2);
+        List<CompletableFuture<Boolean>> transfers = new ArrayList<>(3);
         CompletableFuture<Boolean> entryTransfer = session.entryTransfers.get(playerId);
         if (entryTransfer != null) transfers.add(entryTransfer);
         CompletableFuture<Boolean> returnTransfer = session.returnTransfers.get(playerId);
         if (returnTransfer != null) transfers.add(returnTransfer);
+        CompletableFuture<Boolean> cartographTransfer = session.cartographTransfers.get(playerId);
+        if (cartographTransfer != null) transfers.add(cartographTransfer);
         CompletableFuture.allOf(transfers.toArray(CompletableFuture[]::new))
                 .whenComplete((ignored, failure) -> runMain(() -> {
                     if (!session.ending
@@ -2572,6 +2758,7 @@ public final class DungeonService {
         List<CompletableFuture<?>> pendingTransfers = new ArrayList<>();
         pendingTransfers.addAll(session.entryTransfers.values());
         pendingTransfers.addAll(session.returnTransfers.values());
+        pendingTransfers.addAll(session.cartographTransfers.values());
         pendingTransfers.add(session.preparationLifecycle);
         CompletableFuture.allOf(pendingTransfers.toArray(CompletableFuture[]::new))
                 .whenComplete((ignored, failure) -> runMain(() -> {
@@ -2642,6 +2829,9 @@ public final class DungeonService {
         }
         session.entryTransfers.clear();
         session.returnTransfers.clear();
+        session.cartographTransfers.clear();
+        session.pendingRoomEntryByParticipant.clear();
+        session.closedActiveRoomEntrances.clear();
     }
 
     private void cancelSessionTasks(@NotNull Session session) {
@@ -2758,6 +2948,10 @@ public final class DungeonService {
         creationQueue.clear();
         for (Session session : List.copyOf(sessionsById.values())) {
             session.ending = true;
+            session.transferGeneration++;
+            session.cartographTransfers.clear();
+            session.pendingRoomEntryByParticipant.clear();
+            session.closedActiveRoomEntrances.clear();
             closeSessionGuis(session);
             cancelSessionTasks(session);
             destroySessionControls(session);
@@ -3511,12 +3705,15 @@ public final class DungeonService {
         private final Map<UUID, Location> returnLocations;
         private final Map<UUID, CompletableFuture<Boolean>> entryTransfers = new HashMap<>();
         private final Map<UUID, CompletableFuture<Boolean>> returnTransfers = new HashMap<>();
+        private final Map<UUID, CompletableFuture<Boolean>> cartographTransfers = new HashMap<>();
         private CompletableFuture<Void> preparationLifecycle = CompletableFuture.completedFuture(null);
         private final Set<UUID> departingParticipants = new LinkedHashSet<>();
         private final Map<Integer, DungeonMapRoomState> roomStates = new LinkedHashMap<>();
         private final Map<Integer, Set<UUID>> liveMobsByRoom = new LinkedHashMap<>();
         private final Map<Integer, DisplayTextService.ManagedTextDisplay> roomStatusDisplays = new LinkedHashMap<>();
         private final Map<UUID, Integer> currentRoomByParticipant = new HashMap<>();
+        private final Map<UUID, Integer> pendingRoomEntryByParticipant = new HashMap<>();
+        private final Set<Integer> closedActiveRoomEntrances = new LinkedHashSet<>();
         private DungeonLayout layout;
         private DungeonBlockPlan blockPlan;
         private DungeonInstanceWorldService.InstanceWorld instanceWorld;

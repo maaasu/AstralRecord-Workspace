@@ -7,16 +7,20 @@ import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.GameRules;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.junit.jupiter.api.Test;
+import org.mockbukkit.mockbukkit.entity.PlayerMock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import java.io.File;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntSupplier;
 import java.util.logging.Logger;
 
@@ -385,6 +389,38 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
         service.registerRuntimeWorld(runtimeWorld, fieldData);
 
         assertEquals("ボスフィールド", service.resolveDisplayName(runtimeWorld));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ
+     * 検証契約: 非同期チャンク準備後の実転送直前条件が失効した場合、共通World転送はPlayerTeleportServiceを呼ばずfalseで完了する。
+     */
+    @Test
+    void rejectsTeleportWhenFinalPreconditionExpiresBeforeScheduledTransfer() {
+        WorldService service = new WorldService(
+                mock(WorldRepository.class), () -> new File("target/test-world-container"));
+        World world = server().addSimpleWorld("world-teleport-precondition");
+        world.getChunkAt(0, 0).load();
+        PlayerMock player = server().addPlayer();
+        Location target = new Location(world, 2.5D, 65.0D, 2.5D);
+        AtomicBoolean allowed = new AtomicBoolean(true);
+        AstralRecord plugin = mock(AstralRecord.class);
+        when(plugin.isEnabled()).thenReturn(true);
+        when(plugin.getName()).thenReturn("WorldServiceDesignTest");
+
+        try (MockedStatic<AstralRecord> astralRecord = Mockito.mockStatic(AstralRecord.class);
+             MockedStatic<PlayerTeleportService> teleports = Mockito.mockStatic(PlayerTeleportService.class)) {
+            astralRecord.when(AstralRecord::getInstance).thenReturn(plugin);
+            CompletableFuture<Boolean> result = service.teleportPlayerAsync(
+                    player, target, null, allowed::get);
+            allowed.set(false);
+
+            server().getScheduler().performTicks(3L);
+
+            assertFalse(result.join());
+            teleports.verifyNoInteractions();
+        }
     }
 
     private int withPluginLogger(IntSupplier action) {

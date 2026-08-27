@@ -12,6 +12,7 @@ public record DungeonBlockPlan(
         @NotNull List<Placement> placements,
         @NotNull Map<Integer, List<Position>> gateBlocksByConnection,
         @NotNull Map<Integer, List<Position>> gateBarrierBlocksByConnection,
+        @NotNull Map<Integer, RoomEntrance> roomEntrancesByRoom,
         @NotNull Map<Integer, List<Position>> spawnPointsByRoom,
         @NotNull Position playerSpawn
 ) {
@@ -19,7 +20,20 @@ public record DungeonBlockPlan(
         placements = List.copyOf(placements);
         gateBlocksByConnection = Map.copyOf(gateBlocksByConnection);
         gateBarrierBlocksByConnection = Map.copyOf(gateBarrierBlocksByConnection);
+        roomEntrancesByRoom = Map.copyOf(roomEntrancesByRoom);
         spawnPointsByRoom = Map.copyOf(spawnPointsByRoom);
+    }
+
+    /** ACTIVE 中だけ閉鎖する子部屋境界と、通路側からの後続入室に使う座標です。 */
+    public record RoomEntrance(
+            @NotNull List<Position> gateBlocks,
+            @NotNull List<Position> corridorApproachBlocks,
+            @NotNull Position roomDestination
+    ) {
+        public RoomEntrance {
+            gateBlocks = List.copyOf(gateBlocks);
+            corridorApproachBlocks = List.copyOf(corridorApproachBlocks);
+        }
     }
 
     /** ワールド内の整数ブロック座標です。 */

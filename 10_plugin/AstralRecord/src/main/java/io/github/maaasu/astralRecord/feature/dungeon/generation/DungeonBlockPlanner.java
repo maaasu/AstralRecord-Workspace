@@ -11,6 +11,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -54,15 +55,40 @@ public final class DungeonBlockPlanner {
         Map<Integer, List<DungeonBlockPlan.Position>> gateBarriers = new LinkedHashMap<>();
         for (DungeonLayout.Connection connection : layout.connections()) {
             DungeonLayout.Room parent = roomById.get(connection.fromRoomId());
+            Set<DungeonLayout.Point> ownCorridorFootprint = createCorridorFootprint(
+                    List.of(connection), definition.generation().corridorWidth());
+            Set<DungeonLayout.Point> otherCorridorFootprint = createCorridorFootprint(
+                    layout.connections().stream()
+                            .filter(candidate -> candidate.id() != connection.id())
+                            .toList(),
+                    definition.generation().corridorWidth()
+            );
             GateBlocks gate = buildGate(
                     blocks,
                     parent,
                     connection,
+                    ownCorridorFootprint,
+                    otherCorridorFootprint,
                     definition,
                     layout
             );
             gates.put(connection.id(), gate.visualBlocks());
             gateBarriers.put(connection.id(), gate.barrierBlocks());
+        }
+
+        Map<Integer, DungeonBlockPlan.RoomEntrance> roomEntrances = new LinkedHashMap<>();
+        for (DungeonLayout.Connection connection : layout.connections()) {
+            DungeonLayout.Room child = roomById.get(connection.toRoomId());
+            roomEntrances.put(child.id(), buildRoomEntrance(
+                    blocks,
+                    child,
+                    connection,
+                    corridorFootprint,
+                    gates.get(connection.id()),
+                    gateBarriers.get(connection.id()),
+                    definition,
+                    layout
+            ));
         }
 
         for (DungeonLayout.Room room : layout.rooms()) {
@@ -72,7 +98,8 @@ public final class DungeonBlockPlanner {
         }
         buildRoomLighting(blocks, layout.rooms(), layout, definition.theme().lightMaterial());
         buildCorridorLighting(
-                blocks, layout.connections(), gates, layout, definition.theme().lightMaterial());
+                blocks, layout.connections(), gates, roomEntrances,
+                layout, definition.theme().lightMaterial());
 
         Map<Integer, List<DungeonBlockPlan.Position>> spawnPoints = new LinkedHashMap<>();
         for (DungeonLayout.Room room : layout.rooms()) {
@@ -91,6 +118,7 @@ public final class DungeonBlockPlanner {
                 List.copyOf(blocks.values()),
                 immutableLists(gates),
                 immutableLists(gateBarriers),
+                Map.copyOf(roomEntrances),
                 immutableLists(spawnPoints),
                 playerSpawn
         );
@@ -280,6 +308,8 @@ public final class DungeonBlockPlanner {
      * @param blocks 確定途中のブロック配置
      * @param parent 接続元の親部屋
      * @param connection 親子部屋の接続
+     * @param ownCorridorFootprint 対象接続の通路 footprint
+     * @param otherCorridorFootprint 他接続の通路 footprint
      * @param definition ダンジョン定義
      * @param layout ダンジョン配置
      * @return 表示ゲートと通行遮断バリアの座標
@@ -288,45 +318,230 @@ public final class DungeonBlockPlanner {
             @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
             @NotNull DungeonLayout.Room parent,
             @NotNull DungeonLayout.Connection connection,
+            @NotNull Set<DungeonLayout.Point> ownCorridorFootprint,
+            @NotNull Set<DungeonLayout.Point> otherCorridorFootprint,
             @NotNull DungeonDefinition definition,
             @NotNull DungeonLayout layout
     ) {
         List<DungeonLayout.Point> line = connection.centerLine();
-        DungeonLayout.Point gateCenter = null;
-        DungeonLayout.Point previous = line.getFirst();
+        int exitIndex = -1;
         for (int index = 1; index < line.size(); index++) {
+            DungeonLayout.Point previous = line.get(index - 1);
             DungeonLayout.Point current = line.get(index);
             if (contains(parent, previous.x(), previous.z()) && !contains(parent, current.x(), current.z())) {
-                gateCenter = current;
+                exitIndex = index;
                 break;
             }
-            previous = current;
         }
-        if (gateCenter == null) {
+        if (exitIndex < 0) {
             throw new IllegalStateException("Could not resolve gate for connection " + connection.id());
         }
 
-        int dx = Integer.compare(gateCenter.x(), previous.x());
-        int dz = Integer.compare(gateCenter.z(), previous.z());
-        int negative = (definition.generation().corridorWidth() - 1) / 2;
-        int positive = definition.generation().corridorWidth() / 2;
+        GatePlane gatePlane = null;
+        for (int index = exitIndex; index < line.size(); index++) {
+            DungeonLayout.Point previous = line.get(index - 1);
+            DungeonLayout.Point current = line.get(index);
+            int dx = Integer.compare(current.x(), previous.x());
+            int dz = Integer.compare(current.z(), previous.z());
+            List<DungeonLayout.Point> visual = gatePlane(current, dx, dz,
+                    definition.generation().corridorWidth());
+            List<DungeonLayout.Point> barrier = visual.stream()
+                    .map(point -> new DungeonLayout.Point(point.x() + dx, point.z() + dz))
+                    .toList();
+            boolean insideRoom = java.util.stream.Stream.concat(visual.stream(), barrier.stream())
+                    .anyMatch(point -> isInsideAnyRoom(
+                            layout.rooms(), point.x(), point.z()));
+            boolean outsideOwnCorridor = java.util.stream.Stream.concat(
+                            visual.stream(), barrier.stream())
+                    .anyMatch(point -> !ownCorridorFootprint.contains(point));
+            boolean overlapsOtherCorridor = java.util.stream.Stream.concat(
+                            visual.stream(), barrier.stream())
+                    .anyMatch(otherCorridorFootprint::contains);
+            if (!insideRoom && !outsideOwnCorridor && !overlapsOtherCorridor) {
+                gatePlane = new GatePlane(visual, barrier);
+                break;
+            }
+        }
+        if (gatePlane == null) {
+            throw new IllegalStateException("Could not resolve isolated gate for connection "
+                    + connection.id());
+        }
+
         List<DungeonBlockPlan.Position> gateBlocks = new ArrayList<>();
         List<DungeonBlockPlan.Position> barrierBlocks = new ArrayList<>();
-        for (int offset = -negative; offset <= positive; offset++) {
-            int x = gateCenter.x() + (dz == 0 ? 0 : offset);
-            int z = gateCenter.z() + (dx == 0 ? 0 : offset);
+        for (int index = 0; index < gatePlane.visual().size(); index++) {
+            DungeonLayout.Point visualPoint = gatePlane.visual().get(index);
+            DungeonLayout.Point barrierPoint = gatePlane.barrier().get(index);
             for (int y = layout.baseY() + 1;
                  y <= layout.baseY() + definition.generation().corridorHeight();
                  y++) {
-                DungeonBlockPlan.Position position = new DungeonBlockPlan.Position(x, y, z);
+                DungeonBlockPlan.Position position = new DungeonBlockPlan.Position(
+                        visualPoint.x(), y, visualPoint.z());
                 put(blocks, position, definition.theme().gateMaterial(), null);
                 gateBlocks.add(position);
-                DungeonBlockPlan.Position barrierPosition = new DungeonBlockPlan.Position(x + dx, y, z + dz);
+                DungeonBlockPlan.Position barrierPosition = new DungeonBlockPlan.Position(
+                        barrierPoint.x(), y, barrierPoint.z());
                 put(blocks, barrierPosition, Material.BARRIER, null);
                 barrierBlocks.add(barrierPosition);
             }
         }
         return new GateBlocks(List.copyOf(gateBlocks), List.copyOf(barrierBlocks));
+    }
+
+    private @NotNull List<DungeonLayout.Point> gatePlane(
+            @NotNull DungeonLayout.Point center,
+            int dx,
+            int dz,
+            int corridorWidth
+    ) {
+        int negative = (corridorWidth - 1) / 2;
+        int positive = corridorWidth / 2;
+        List<DungeonLayout.Point> plane = new ArrayList<>(corridorWidth);
+        for (int offset = -negative; offset <= positive; offset++) {
+            plane.add(new DungeonLayout.Point(
+                    center.x() + (dz == 0 ? 0 : offset),
+                    center.z() + (dx == 0 ? 0 : offset)
+            ));
+        }
+        return List.copyOf(plane);
+    }
+
+    /**
+     * 全接続の実通路 footprint と子部屋形状の歩行可能境界から、ACTIVE 中の入口閉鎖面を求めます。
+     * 初期ブロック配置には含めず、部屋の ACTIVE 遷移時だけガラスとして配置します。
+     *
+     * @param blocks 確定途中のブロック配置
+     * @param child 接続先の子部屋
+     * @param connection 親部屋から子部屋へ向かう接続
+     * @param corridorFootprint 全接続が実際に開削した通路 footprint
+     * @param incomingGateBlocks 対象接続自身の進行ゲート座標
+     * @param incomingBarrierBlocks 対象接続自身の進行バリア座標
+     * @param definition 通路幅・高さを持つダンジョン定義
+     * @param layout 基準Yを持つ配置
+     * @return 子部屋境界、通路側接近面、部屋側着地点
+     */
+    private @NotNull DungeonBlockPlan.RoomEntrance buildRoomEntrance(
+            @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
+            @NotNull DungeonLayout.Room child,
+            @NotNull DungeonLayout.Connection connection,
+            @NotNull Set<DungeonLayout.Point> corridorFootprint,
+            @NotNull List<DungeonBlockPlan.Position> incomingGateBlocks,
+            @NotNull List<DungeonBlockPlan.Position> incomingBarrierBlocks,
+            @NotNull DungeonDefinition definition,
+            @NotNull DungeonLayout layout
+    ) {
+        List<DungeonLayout.Point> line = connection.centerLine();
+        DungeonLayout.Point roomCenter = null;
+        DungeonLayout.Point corridorCenter = line.getFirst();
+        for (int index = 1; index < line.size(); index++) {
+            DungeonLayout.Point current = line.get(index);
+            if (!contains(child, corridorCenter.x(), corridorCenter.z())
+                    && contains(child, current.x(), current.z())) {
+                roomCenter = current;
+                break;
+            }
+            corridorCenter = current;
+        }
+        if (roomCenter == null) {
+            throw new IllegalStateException("Could not resolve room entrance for connection " + connection.id());
+        }
+
+        int walkY = layout.baseY() + 1;
+        Set<DungeonBlockPlan.Position> releasedIncomingBlocks = new HashSet<>();
+        incomingGateBlocks.stream()
+                .filter(position -> position.y() == walkY)
+                .forEach(releasedIncomingBlocks::add);
+        incomingBarrierBlocks.stream()
+                .filter(position -> position.y() == walkY)
+                .forEach(releasedIncomingBlocks::add);
+        Set<DungeonLayout.Point> gateFootprint = new LinkedHashSet<>();
+        int[][] directions = {{1, 0}, {-1, 0}, {0, 1}, {0, -1}};
+        for (DungeonLayout.Point point : corridorFootprint) {
+            if (contains(child, point.x(), point.z())
+                    || !isWalkable(
+                    blocks, point.x(), walkY, point.z(), releasedIncomingBlocks)) {
+                continue;
+            }
+            for (int[] direction : directions) {
+                int neighborX = point.x() + direction[0];
+                int neighborZ = point.z() + direction[1];
+                if (contains(child, neighborX, neighborZ)
+                        && isWalkable(
+                        blocks, neighborX, walkY, neighborZ, releasedIncomingBlocks)) {
+                    gateFootprint.add(point);
+                    break;
+                }
+            }
+        }
+        if (gateFootprint.isEmpty()) {
+            throw new IllegalStateException("Could not resolve open room entrance for connection "
+                    + connection.id());
+        }
+
+        List<DungeonBlockPlan.Position> gateBlocks = new ArrayList<>();
+        for (DungeonLayout.Point point : gateFootprint) {
+            for (int y = layout.baseY() + 1;
+                 y <= layout.baseY() + definition.generation().corridorHeight();
+                 y++) {
+                gateBlocks.add(new DungeonBlockPlan.Position(point.x(), y, point.z()));
+            }
+        }
+
+        Set<DungeonBlockPlan.Position> corridorApproachBlocks = new LinkedHashSet<>();
+        List<DungeonLayout.Point> roomSideCandidates = new ArrayList<>();
+        for (DungeonLayout.Point gatePoint : gateFootprint) {
+            for (int[] direction : directions) {
+                int neighborX = gatePoint.x() + direction[0];
+                int neighborZ = gatePoint.z() + direction[1];
+                DungeonLayout.Point neighbor = new DungeonLayout.Point(neighborX, neighborZ);
+                if (!isWalkable(
+                        blocks, neighborX, walkY, neighborZ, releasedIncomingBlocks)) {
+                    continue;
+                }
+                if (contains(child, neighborX, neighborZ)) {
+                    roomSideCandidates.add(neighbor);
+                } else if (!gateFootprint.contains(neighbor)) {
+                    corridorApproachBlocks.add(new DungeonBlockPlan.Position(
+                            neighborX, walkY, neighborZ));
+                }
+            }
+        }
+        if (corridorApproachBlocks.isEmpty() || roomSideCandidates.isEmpty()) {
+            throw new IllegalStateException("Could not resolve both sides of room entrance for connection "
+                    + connection.id());
+        }
+        DungeonLayout.Point resolvedRoomCenter = roomCenter;
+        DungeonLayout.Point destination = roomSideCandidates.stream()
+                .min(Comparator
+                        .comparingInt((DungeonLayout.Point point) ->
+                                Math.abs(point.x() - resolvedRoomCenter.x())
+                                        + Math.abs(point.z() - resolvedRoomCenter.z()))
+                        .thenComparingInt(DungeonLayout.Point::x)
+                        .thenComparingInt(DungeonLayout.Point::z))
+                .orElseThrow();
+        return new DungeonBlockPlan.RoomEntrance(
+                gateBlocks,
+                List.copyOf(corridorApproachBlocks),
+                new DungeonBlockPlan.Position(
+                        destination.x(),
+                        walkY,
+                        destination.z())
+        );
+    }
+
+    private boolean isWalkable(
+            @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
+            int x,
+            int y,
+            int z,
+            @NotNull Set<DungeonBlockPlan.Position> releasedIncomingBlocks
+    ) {
+        DungeonBlockPlan.Position position = new DungeonBlockPlan.Position(x, y, z);
+        if (releasedIncomingBlocks.contains(position)) {
+            return true;
+        }
+        DungeonBlockPlan.Placement placement = blocks.get(position);
+        return placement != null && placement.material().isAir();
     }
 
     private boolean shouldBuildPillar(
@@ -445,17 +660,22 @@ public final class DungeonBlockPlanner {
      * @param blocks 確定途中のブロック配置
      * @param connections 通路接続一覧
      * @param gates 接続ごとの閉鎖ゲート座標
+     * @param roomEntrances ACTIVE中に閉鎖する子部屋入口
      * @param layout ダンジョン配置
      */
     private void buildCorridorLighting(
             @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
             @NotNull List<DungeonLayout.Connection> connections,
             @NotNull Map<Integer, List<DungeonBlockPlan.Position>> gates,
+            @NotNull Map<Integer, DungeonBlockPlan.RoomEntrance> roomEntrances,
             @NotNull DungeonLayout layout,
             @NotNull Material lightMaterial
     ) {
         Set<DungeonBlockPlan.Position> gatePositions = new LinkedHashSet<>();
         gates.values().forEach(gatePositions::addAll);
+        roomEntrances.values().stream()
+                .map(DungeonBlockPlan.RoomEntrance::gateBlocks)
+                .forEach(gatePositions::addAll);
         for (DungeonLayout.Connection connection : connections) {
             List<DungeonLayout.Point> line = connection.centerLine();
             boolean placed = false;
@@ -652,6 +872,13 @@ public final class DungeonBlockPlanner {
         Map<K, List<DungeonBlockPlan.Position>> result = new LinkedHashMap<>();
         source.forEach((key, value) -> result.put(key, List.copyOf(value)));
         return Map.copyOf(result);
+    }
+
+    /** 他接続の通路と重ならない表示ゲート面とバリア面です。 */
+    private record GatePlane(
+            @NotNull List<DungeonLayout.Point> visual,
+            @NotNull List<DungeonLayout.Point> barrier
+    ) {
     }
 
     /** 閉鎖中に表示するゲート面と、通行を確実に遮断する不可視バリア面です。 */

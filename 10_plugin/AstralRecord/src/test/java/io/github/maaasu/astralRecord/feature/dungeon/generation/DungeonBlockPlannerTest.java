@@ -69,6 +69,123 @@ class DungeonBlockPlannerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 2. ブロック生成
+     * 検証契約: 各子部屋について、境界入口面とその両側に通路側接近面・部屋側着地点を生成する。
+     */
+    @Test
+    void createsAnActiveRoomEntranceAtEveryChildBoundary() {
+        DungeonDefinition definition = DungeonTestFixtures.definition();
+        DungeonLayout layout = new DungeonLayoutPlanner().plan(definition, 112233L);
+        DungeonBlockPlan plan = new DungeonBlockPlanner().plan(definition, layout);
+
+        assertEquals(layout.rooms().size() - 1, plan.roomEntrancesByRoom().size());
+        assertFalse(plan.roomEntrancesByRoom().containsKey(layout.startRoomId()));
+        for (DungeonLayout.Connection connection : layout.connections()) {
+            DungeonBlockPlan.RoomEntrance entrance = plan.roomEntrancesByRoom().get(connection.toRoomId());
+            assertNotNull(entrance);
+            assertFalse(entrance.gateBlocks().isEmpty());
+            assertEquals(0, entrance.gateBlocks().size() % definition.generation().corridorHeight());
+            assertFalse(entrance.corridorApproachBlocks().isEmpty());
+
+            DungeonLayout.Room child = layout.rooms().stream()
+                    .filter(room -> room.id() == connection.toRoomId())
+                    .findFirst()
+                    .orElseThrow();
+            DungeonBlockPlan.Position destination = entrance.roomDestination();
+            assertTrue(contains(child, destination.x(), destination.z()));
+            assertTrue(entrance.gateBlocks().stream()
+                    .filter(position -> position.y() == layout.baseY() + 1)
+                    .anyMatch(position -> Math.abs(position.x() - destination.x())
+                            + Math.abs(position.z() - destination.z()) == 1));
+            assertTrue(entrance.corridorApproachBlocks().stream().allMatch(approach ->
+                    entrance.gateBlocks().stream()
+                            .filter(position -> position.y() == layout.baseY() + 1)
+                            .anyMatch(position -> Math.abs(position.x() - approach.x())
+                                    + Math.abs(position.z() - approach.z()) == 1)));
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 2. ブロック生成
+     * 検証契約: 指定再現seedを含む幅1/3/5/7、矩形/円形、直線/屈曲通路でも、incoming進行ゲート解放後のACTIVE入口は全開削境界を遮断し、他接続の閉鎖ゲートを含めない。
+     */
+    @Test
+    void activeEntranceBlocksEveryActualOpeningForWideAndTurningCorridors() {
+        boolean coveredStraight = false;
+        boolean coveredTurn = false;
+        for (DungeonRoomShape shape : List.of(DungeonRoomShape.RECTANGLE, DungeonRoomShape.CYLINDER)) {
+            for (int width : List.of(1, 3, 5, 7)) {
+                for (long seed : regressionSeeds(shape)) {
+                    DungeonDefinition definition = definitionWithCorridor(width, shape);
+                    DungeonLayout layout = new DungeonLayoutPlanner().plan(definition, seed);
+                    DungeonBlockPlan plan = new DungeonBlockPlanner().plan(definition, layout);
+                    int walkY = layout.baseY() + 1;
+                    Map<Cell, DungeonBlockPlan.Placement> walkLayer = walkLayer(plan, walkY);
+                    for (DungeonLayout.Connection connection : layout.connections()) {
+                        boolean turns = hasTurnNearChildEntrance(connection.centerLine(), width);
+                        coveredTurn |= turns;
+                        coveredStraight |= !turns;
+                        DungeonBlockPlan.RoomEntrance entrance = plan.roomEntrancesByRoom()
+                                .get(connection.toRoomId());
+                        Set<Cell> closedEntrance = new HashSet<>();
+                        for (DungeonBlockPlan.Position position : entrance.gateBlocks()) {
+                            if (position.y() == walkY) {
+                                closedEntrance.add(new Cell(position.x(), position.z()));
+                            }
+                        }
+                        assertTrue(java.util.Collections.disjoint(
+                                        closedEntrance,
+                                        progressionGateFootprintExcept(
+                                                plan, walkY, connection.id())),
+                                "ACTIVE glass must not replace another connection's closed gate");
+                        DungeonBlockPlan.Position childSpawn = plan.spawnPointsByRoom()
+                                .get(connection.toRoomId()).getFirst();
+                        DungeonBlockPlan.Position parentSpawn = plan.spawnPointsByRoom()
+                                .get(connection.fromRoomId()).getFirst();
+                        Set<Cell> openedProgressionGate = progressionGateFootprint(
+                                plan, walkY, connection.id());
+
+                        boolean reachableAfterIncomingGateOpens = canReach(
+                                walkLayer,
+                                childSpawn,
+                                parentSpawn,
+                                openedProgressionGate,
+                                Set.of());
+                        assertTrue(reachableAfterIncomingGateOpens,
+                                "AVAILABLE child must be reachable after its incoming gate opens: seed="
+                                        + seed + ", width=" + width + ", shape=" + shape
+                                        + ", connection=" + connection.id());
+                        assertFalse(closedEntrance.isEmpty(),
+                                "every reachable opening must have an ACTIVE cut set");
+                        assertTrue(canReach(
+                                        walkLayer,
+                                        childSpawn,
+                                        entrance.roomDestination(),
+                                        Set.of(),
+                                        Set.of()),
+                                "room-side destination must be reachable from the child room spawn");
+
+                        assertFalse(canReach(
+                                        walkLayer,
+                                        childSpawn,
+                                        parentSpawn,
+                                        openedProgressionGate,
+                                        closedEntrance),
+                                "ACTIVE entrance leaked: seed=" + seed
+                                        + ", width=" + width
+                                        + ", shape=" + shape
+                                        + ", connection=" + connection.id());
+                    }
+                }
+            }
+        }
+        assertTrue(coveredStraight, "regression matrix must include a straight connection");
+        assertTrue(coveredTurn, "regression seed 2 must include a turning connection");
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 2. ブロック生成
      * 検証契約: 全ゲート閉鎖時は接続親子間を通れず、対象ゲートだけを開くと通行できる。
      */
     @Test
@@ -170,6 +287,9 @@ class DungeonBlockPlannerTest {
         Set<DungeonBlockPlan.Position> gatePositions = plan.gateBlocksByConnection().values().stream()
                 .flatMap(List::stream)
                 .collect(java.util.stream.Collectors.toSet());
+        plan.roomEntrancesByRoom().values().stream()
+                .map(DungeonBlockPlan.RoomEntrance::gateBlocks)
+                .forEach(gatePositions::addAll);
         assertTrue(torchPositions.stream().noneMatch(spawnPositions::contains));
         assertTrue(torchPositions.stream().noneMatch(gatePositions::contains));
     }
@@ -221,11 +341,23 @@ class DungeonBlockPlannerTest {
             DungeonBlockPlan.Position to,
             Set<Cell> openedGate
     ) {
+        return canReach(walkLayer, from, to, openedGate, Set.of());
+    }
+
+    private boolean canReach(
+            Map<Cell, DungeonBlockPlan.Placement> walkLayer,
+            DungeonBlockPlan.Position from,
+            DungeonBlockPlan.Position to,
+            Set<Cell> openedGate,
+            Set<Cell> blocked
+    ) {
         Set<Cell> passable = new HashSet<>();
         for (Map.Entry<Cell, DungeonBlockPlan.Placement> entry : walkLayer.entrySet()) {
             DungeonBlockPlan.Placement placement = entry.getValue();
-            if (placement.material().isAir() || placement.stair() != null
-                    || openedGate.contains(entry.getKey())) {
+            if (!blocked.contains(entry.getKey())
+                    && (placement.material().isAir() || !placement.material().isSolid()
+                    || placement.stair() != null
+                    || openedGate.contains(entry.getKey()))) {
                 passable.add(entry.getKey());
             }
         }
@@ -256,6 +388,113 @@ class DungeonBlockPlannerTest {
             }
         }
         return false;
+    }
+
+    private Map<Cell, DungeonBlockPlan.Placement> walkLayer(DungeonBlockPlan plan, int walkY) {
+        Map<Cell, DungeonBlockPlan.Placement> walkLayer = new HashMap<>();
+        for (DungeonBlockPlan.Placement placement : plan.placements()) {
+            if (placement.position().y() == walkY) {
+                walkLayer.put(new Cell(placement.position().x(), placement.position().z()), placement);
+            }
+        }
+        return walkLayer;
+    }
+
+    private Set<Cell> progressionGateFootprint(
+            DungeonBlockPlan plan,
+            int walkY,
+            int connectionId
+    ) {
+        Set<Cell> opened = new HashSet<>();
+        plan.gateBlocksByConnection().get(connectionId).stream()
+                .filter(position -> position.y() == walkY)
+                .map(position -> new Cell(position.x(), position.z()))
+                .forEach(opened::add);
+        plan.gateBarrierBlocksByConnection().get(connectionId).stream()
+                .filter(position -> position.y() == walkY)
+                .map(position -> new Cell(position.x(), position.z()))
+                .forEach(opened::add);
+        return opened;
+    }
+
+    private Set<Cell> progressionGateFootprintExcept(
+            DungeonBlockPlan plan,
+            int walkY,
+            int excludedConnectionId
+    ) {
+        Set<Cell> protectedGate = new HashSet<>();
+        plan.gateBlocksByConnection().forEach((connectionId, positions) -> {
+            if (connectionId != excludedConnectionId) {
+                positions.stream()
+                        .filter(position -> position.y() == walkY)
+                        .map(position -> new Cell(position.x(), position.z()))
+                        .forEach(protectedGate::add);
+            }
+        });
+        plan.gateBarrierBlocksByConnection().forEach((connectionId, positions) -> {
+            if (connectionId != excludedConnectionId) {
+                positions.stream()
+                        .filter(position -> position.y() == walkY)
+                        .map(position -> new Cell(position.x(), position.z()))
+                        .forEach(protectedGate::add);
+            }
+        });
+        return protectedGate;
+    }
+
+    private List<Long> regressionSeeds(DungeonRoomShape shape) {
+        if (shape == DungeonRoomShape.RECTANGLE) {
+            return List.of(2L, 4L, 112233L);
+        }
+        return List.of(2L, 54L, 68L, 74L, 95L, 112233L);
+    }
+
+    private boolean hasTurnNearChildEntrance(List<DungeonLayout.Point> line, int corridorWidth) {
+        int firstIndex = Math.max(2, line.size() - corridorWidth - 2);
+        for (int index = firstIndex; index < line.size(); index++) {
+            DungeonLayout.Point first = line.get(index - 2);
+            DungeonLayout.Point middle = line.get(index - 1);
+            DungeonLayout.Point last = line.get(index);
+            int firstDx = Integer.compare(middle.x(), first.x());
+            int firstDz = Integer.compare(middle.z(), first.z());
+            int nextDx = Integer.compare(last.x(), middle.x());
+            int nextDz = Integer.compare(last.z(), middle.z());
+            if (firstDx != nextDx || firstDz != nextDz) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean contains(DungeonLayout.Room room, int x, int z) {
+        if (!room.bounds().contains(x, z)) {
+            return false;
+        }
+        if (room.shape() == DungeonRoomShape.RECTANGLE) {
+            return true;
+        }
+        double radiusX = Math.max(1.0D, room.bounds().width() / 2.0D);
+        double radiusZ = Math.max(1.0D, room.bounds().depth() / 2.0D);
+        double normalizedX = (x - room.bounds().centerX()) / radiusX;
+        double normalizedZ = (z - room.bounds().centerZ()) / radiusZ;
+        return normalizedX * normalizedX + normalizedZ * normalizedZ <= 1.0D;
+    }
+
+    private DungeonDefinition definitionWithCorridor(int width, DungeonRoomShape shape) {
+        DungeonDefinition source = DungeonTestFixtures.definition();
+        DungeonDefinition.Generation generation = source.generation();
+        return new DungeonDefinition(
+                source.schemaVersion(), source.id(), source.displayName(), source.recommendedLevel(),
+                source.entry(), source.partySize(),
+                new DungeonDefinition.Generation(
+                        generation.areaWidth(), generation.areaDepth(), generation.baseY(),
+                        generation.roomCount(), generation.roomSize(), generation.roomHeight(),
+                        width, generation.corridorHeight(), generation.splitRatioMin(),
+                        generation.splitRatioMax(),
+                        List.of(new DungeonDefinition.WeightedShape(shape, 1)),
+                        generation.roomTypes()),
+                source.theme(), source.encounter()
+        );
     }
 
     private record Cell(int x, int z) {

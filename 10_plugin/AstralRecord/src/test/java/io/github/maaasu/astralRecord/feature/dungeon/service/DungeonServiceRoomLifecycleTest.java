@@ -34,9 +34,14 @@ import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
+import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 import org.mockito.ArgumentCaptor;
@@ -54,11 +59,18 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.function.BooleanSupplier;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -66,6 +78,206 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 3. 遭遇 Mob と部屋進行
+     * 検証契約: ACTIVE入口閉鎖処理は子部屋境界をガラス封鎖し、CLEARED時の解除処理はAIRへ戻す。
+     */
+    @Test
+    void closesActiveRoomEntranceAndReopensItWhenCleared() throws Exception {
+        DungeonService service = service(mock(MobService.class), mock(DisplayTextService.class));
+        World world = server().addSimpleWorld("dungeon-active-room-gate");
+        PlayerMock player = server().addPlayer();
+        player.teleport(new Location(world, 13.5D, 65.0D, 4.5D));
+        Object session = session(player.getUniqueId());
+        configureRunningSession(service, session, player, world);
+        Map<Integer, DungeonMapRoomState> states = mapField(session, "roomStates");
+        states.put(0, DungeonMapRoomState.CLEARED);
+        states.put(1, DungeonMapRoomState.ACTIVE);
+        states.put(2, DungeonMapRoomState.LOCKED);
+
+        invoke(service, "closeActiveRoomEntrance", session, 1);
+        for (DungeonBlockPlan.Position position : entrance(11).gateBlocks()) {
+            assertEquals(Material.GLASS, world.getBlockAt(position.x(), position.y(), position.z()).getType());
+        }
+
+        states.put(1, DungeonMapRoomState.CLEARED);
+        invoke(service, "openActiveRoomEntrance", session, 1);
+        for (DungeonBlockPlan.Position position : entrance(11).gateBlocks()) {
+            assertEquals(Material.AIR, world.getBlockAt(position.x(), position.y(), position.z()).getType());
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ
+     * 検証契約: 操作本人がACTIVE部屋内にいる場合、CLEARED部屋へのカルトグラフ転送を開始しない。
+     */
+    @Test
+    void rejectsCartographTeleportFromAnActiveRoom() throws Exception {
+        WorldService worldService = mock(WorldService.class);
+        DungeonService service = service(mock(MobService.class), mock(DisplayTextService.class), worldService);
+        World world = server().addSimpleWorld("dungeon-active-cartograph-lock");
+        PlayerMock player = server().addPlayer();
+        player.teleport(new Location(world, 16.5D, 65.0D, 4.5D));
+        Object session = session(player.getUniqueId());
+        configureRunningSession(service, session, player, world);
+        Map<Integer, DungeonMapRoomState> states = mapField(session, "roomStates");
+        states.put(0, DungeonMapRoomState.CLEARED);
+        states.put(1, DungeonMapRoomState.ACTIVE);
+        states.put(2, DungeonMapRoomState.LOCKED);
+        UUID sessionId = field(session, "id", UUID.class);
+        CartographSessionRegistry bindings = field(
+                service, "cartographBindings", CartographSessionRegistry.class);
+        bindings.bind("cartograph-instance", player.getUniqueId(), sessionId);
+
+        assertFalse(service.teleportToClearedRoom(player, sessionId, 0));
+
+        verifyNoInteractions(worldService);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ
+     * 検証契約: チャンク準備中に操作本人がACTIVE部屋へ入った場合、実転送直前条件は失効し、保留転送は多重開始しない。
+     */
+    @Test
+    void revalidatesActiveRoomImmediatelyBeforeCartographTeleport() throws Exception {
+        WorldService worldService = mock(WorldService.class);
+        CompletableFuture<Boolean> pending = new CompletableFuture<>();
+        when(worldService.teleportPlayerAsync(
+                any(Player.class), any(Location.class), isNull(), any(BooleanSupplier.class)))
+                .thenReturn(pending);
+        DungeonService service = service(mock(MobService.class), mock(DisplayTextService.class), worldService);
+        World world = mockSafeWorld("dungeon-cartograph-active-race");
+        Player player = mock(Player.class);
+        UUID playerId = UUID.randomUUID();
+        AtomicReference<Location> location = new AtomicReference<>(
+                new Location(world, 4.5D, 65.0D, 4.5D));
+        when(player.getUniqueId()).thenReturn(playerId);
+        when(player.getWorld()).thenReturn(world);
+        when(player.getLocation()).thenAnswer(ignored -> location.get().clone());
+        when(player.isOnline()).thenReturn(true);
+        Object session = session(player.getUniqueId());
+        configureRunningSession(service, session, player, world);
+        Map<Integer, DungeonMapRoomState> states = mapField(session, "roomStates");
+        states.put(0, DungeonMapRoomState.CLEARED);
+        states.put(1, DungeonMapRoomState.AVAILABLE);
+        UUID sessionId = field(session, "id", UUID.class);
+        field(service, "cartographBindings", CartographSessionRegistry.class)
+                .bind("cartograph-race", player.getUniqueId(), sessionId);
+
+        assertTrue(service.teleportToClearedRoom(player, sessionId, 0));
+        assertFalse(service.teleportToClearedRoom(player, sessionId, 0));
+        ArgumentCaptor<BooleanSupplier> guard = ArgumentCaptor.forClass(BooleanSupplier.class);
+        verify(worldService).teleportPlayerAsync(
+                eq(player), any(Location.class), isNull(), guard.capture());
+        assertTrue(guard.getValue().getAsBoolean());
+
+        states.put(1, DungeonMapRoomState.ACTIVE);
+        location.set(new Location(world, 16.5D, 65.0D, 4.5D));
+
+        assertFalse(guard.getValue().getAsBoolean());
+        assertTrue(mapField(session, "cartographTransfers").containsKey(player.getUniqueId()));
+        pending.complete(false);
+        server().getScheduler().performTicks(1L);
+        assertTrue(mapField(session, "cartographTransfers").isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 7. 終了と回収
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ
+     * 検証契約: セッション終了は保留中のカルトグラフ転送を終了待機へ含め、実転送直前条件を失効させる。
+     */
+    @Test
+    void endingSessionInvalidatesAndWaitsForPendingCartographTeleport() throws Exception {
+        WorldService worldService = mock(WorldService.class);
+        CompletableFuture<Boolean> pending = new CompletableFuture<>();
+        when(worldService.teleportPlayerAsync(
+                any(Player.class), any(Location.class), isNull(), any(BooleanSupplier.class)))
+                .thenReturn(pending);
+        DungeonService service = service(mock(MobService.class), mock(DisplayTextService.class), worldService);
+        World world = mockSafeWorld("dungeon-cartograph-ending-race");
+        Player player = mock(Player.class);
+        UUID playerId = UUID.randomUUID();
+        when(player.getUniqueId()).thenReturn(playerId);
+        when(player.getWorld()).thenReturn(world);
+        when(player.getLocation()).thenReturn(new Location(world, 4.5D, 65.0D, 4.5D));
+        when(player.isOnline()).thenReturn(true);
+        Object session = session(player.getUniqueId());
+        configureRunningSession(service, session, player, world);
+        mapField(session, "roomStates").put(0, DungeonMapRoomState.CLEARED);
+        UUID sessionId = field(session, "id", UUID.class);
+        field(service, "cartographBindings", CartographSessionRegistry.class)
+                .bind("cartograph-ending", player.getUniqueId(), sessionId);
+        assertTrue(service.teleportToClearedRoom(player, sessionId, 0));
+        ArgumentCaptor<BooleanSupplier> guard = ArgumentCaptor.forClass(BooleanSupplier.class);
+        verify(worldService).teleportPlayerAsync(
+                eq(player), any(Location.class), isNull(), guard.capture());
+
+        try (MockedStatic<Logger> ignored = Mockito.mockStatic(Logger.class)) {
+            invokeCompleteSession(service, session, "CANCELLED");
+        }
+
+        assertFalse(guard.getValue().getAsBoolean());
+        assertTrue(mapField(service, "sessionsById").containsKey(sessionId),
+                "session index must remain until the pending cartograph transfer settles");
+        assertFalse(pending.isDone());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 3. 遭遇 Mob と部屋進行
+     * 検証契約: ACTIVE入口の通路側では向き保持共通転送を一度だけ開始し、失敗完了時にpendingを解除し、成功完了時にもACTIVE状態を再検証する。
+     */
+    @Test
+    void transfersCorridorParticipantOnceAndClearsPendingOnFailure() throws Exception {
+        DungeonService service = service(mock(MobService.class), mock(DisplayTextService.class));
+        World world = server().addSimpleWorld("dungeon-active-room-entry");
+        PlayerMock player = server().addPlayer();
+        Location approach = new Location(world, 10.5D, 65.0D, 4.5D, 123.0F, -20.0F);
+        player.teleport(approach);
+        Object session = session(player.getUniqueId());
+        configureRunningSession(service, session, player, world);
+        mapField(session, "roomStates").put(1, DungeonMapRoomState.ACTIVE);
+        @SuppressWarnings("unchecked")
+        Set<Integer> closedEntrances = field(session, "closedActiveRoomEntrances", Set.class);
+        closedEntrances.add(1);
+        CompletableFuture<Boolean> pending = new CompletableFuture<>();
+        CompletableFuture<Boolean> staleSuccess = new CompletableFuture<>();
+
+        try (MockedStatic<PlayerTeleportService> teleports = Mockito.mockStatic(PlayerTeleportService.class)) {
+            teleports.when(() -> PlayerTeleportService.teleportAsync(any(PlayerMock.class), any(Location.class)))
+                    .thenReturn(pending, staleSuccess);
+
+            service.handleMove(player, approach);
+            service.handleMove(player, approach);
+
+            teleports.verify(() -> PlayerTeleportService.teleportAsync(
+                    any(PlayerMock.class),
+                    argThat(target -> target.getWorld() == world
+                            && target.getBlockX() == 12
+                            && target.getBlockY() == 65
+                            && target.getBlockZ() == 4)
+            ), times(1));
+            pending.complete(false);
+            server().getScheduler().performTicks(1L);
+
+            service.handleMove(player, approach);
+            mapField(session, "roomStates").put(1, DungeonMapRoomState.CLEARED);
+            staleSuccess.complete(true);
+            server().getScheduler().performTicks(1L);
+            teleports.verify(() -> PlayerTeleportService.teleportAsync(
+                    any(PlayerMock.class), any(Location.class)), times(2));
+        }
+
+        assertTrue(mapField(session, "pendingRoomEntryByParticipant").isEmpty());
+        assertTrue(mapField(session, "entryTransfers").isEmpty());
+        assertTrue(mapField(session, "currentRoomByParticipant").isEmpty());
+    }
+
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 3. 遭遇 Mob と部屋進行
@@ -128,6 +340,10 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         verify(normalDisplay).setText(argThat(text -> text.contains("進入可能")));
         verify(bossDisplay).setText(argThat(text -> text.contains("未開放")));
 
+        mapField(session, "pendingRoomEntryByParticipant").put(player.getUniqueId(), 1);
+        @SuppressWarnings("unchecked")
+        Set<Integer> closedEntrances = field(session, "closedActiveRoomEntrances", Set.class);
+        closedEntrances.add(1);
         service.stop();
         service.stop();
 
@@ -135,6 +351,8 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         verify(normalDisplay, times(1)).destroy();
         verify(bossDisplay, times(1)).destroy();
         assertTrue(mapField(session, "roomStatusDisplays").isEmpty());
+        assertTrue(mapField(session, "pendingRoomEntryByParticipant").isEmpty());
+        assertTrue(closedEntrances.isEmpty());
     }
 
     /**
@@ -349,9 +567,64 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
                 List.of(),
                 emptyGates,
                 emptyGates,
+                Map.of(
+                        1, entrance(11),
+                        2, entrance(23)
+                ),
                 spawnPoints,
                 spawnPoints.get(0).getFirst()
         );
+    }
+
+    /** X正方向から入るテスト用子部屋入口を返します。 */
+    private DungeonBlockPlan.RoomEntrance entrance(int gateX) {
+        return new DungeonBlockPlan.RoomEntrance(
+                List.of(
+                        new DungeonBlockPlan.Position(gateX, 65, 4),
+                        new DungeonBlockPlan.Position(gateX, 66, 4),
+                        new DungeonBlockPlan.Position(gateX, 67, 4)
+                ),
+                List.of(new DungeonBlockPlan.Position(gateX - 1, 65, 4)),
+                new DungeonBlockPlan.Position(gateX + 1, 65, 4)
+        );
+    }
+
+    /** 稼働中セッションに必要な配置・World・reverse indexを設定します。 */
+    private void configureRunningSession(
+            DungeonService service,
+            Object session,
+            Player player,
+            World world
+    ) throws ReflectiveOperationException {
+        setField(session, "layout", layout());
+        setField(session, "blockPlan", blockPlan());
+        setField(session, "instanceWorld", new DungeonInstanceWorldService.InstanceWorld(
+                world,
+                Path.of("target", world.getName()),
+                Set.of()
+        ));
+        setField(session, "combatStarted", true);
+        UUID sessionId = field(session, "id", UUID.class);
+        mapField(service, "sessionsById").put(sessionId, session);
+        mapField(service, "sessionIdByParticipant").put(player.getUniqueId(), sessionId);
+    }
+
+    /** 安全な転送候補ブロックを返す最小World mockを構築します。 */
+    private World mockSafeWorld(String name) {
+        World world = mock(World.class);
+        Block feet = mock(Block.class);
+        Block head = mock(Block.class);
+        Block floor = mock(Block.class);
+        when(world.getUID()).thenReturn(UUID.randomUUID());
+        when(world.getName()).thenReturn(name);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt()))
+                .thenReturn(feet);
+        when(feet.isPassable()).thenReturn(true);
+        when(feet.getRelative(BlockFace.UP)).thenReturn(head);
+        when(feet.getRelative(BlockFace.DOWN)).thenReturn(floor);
+        when(head.isPassable()).thenReturn(true);
+        when(floor.isPassable()).thenReturn(false);
+        return world;
     }
 
     /** DungeonServiceのprivate Sessionをテスト用に最小構成します。 */
@@ -442,6 +715,20 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         Method method = DungeonService.class.getDeclaredMethod(name, sessionType(), int.class);
         method.setAccessible(true);
         method.invoke(service, session, roomId);
+    }
+
+    /** private completeSession を終了理由名で呼び出します。 */
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    private void invokeCompleteSession(DungeonService service, Object session, String reason)
+            throws ReflectiveOperationException {
+        Class<?> reasonType = List.of(DungeonService.class.getDeclaredClasses()).stream()
+                .filter(type -> type.getSimpleName().equals("EndReason"))
+                .findFirst()
+                .orElseThrow();
+        Method method = DungeonService.class.getDeclaredMethod(
+                "completeSession", sessionType(), reasonType, boolean.class);
+        method.setAccessible(true);
+        method.invoke(service, session, Enum.valueOf((Class<Enum>) reasonType, reason), false);
     }
 
     /** DungeonService内のprivate Session型を解決します。 */

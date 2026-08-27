@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.BooleanSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -540,6 +541,26 @@ public class WorldService {
             @NotNull Location targetLocation,
             @Nullable Runnable onSuccess
     ) {
+        return teleportPlayerAsync(player, targetLocation, onSuccess, () -> true);
+    }
+
+    /**
+     * 指定 Location へプレイヤーを非同期転送し、チャンク準備完了後の実転送直前に条件を再検証します。
+     * 条件が失効している場合は転送せず {@code false} を返します。
+     *
+     * @param player 転送対象プレイヤー
+     * @param targetLocation 転送先
+     * @param onSuccess 転送成功後に実行する処理。不要な場合は {@code null}
+     * @param beforeTeleport 実転送直前にメインスレッドで評価する条件
+     * @return 転送結果を返す Future
+     */
+    @NotNull
+    public CompletableFuture<Boolean> teleportPlayerAsync(
+            @NotNull org.bukkit.entity.Player player,
+            @NotNull Location targetLocation,
+            @Nullable Runnable onSuccess,
+            @NotNull BooleanSupplier beforeTeleport
+    ) {
         if (targetLocation.getWorld() == null) {
             return CompletableFuture.completedFuture(false);
         }
@@ -568,7 +589,13 @@ public class WorldService {
             }
 
             Bukkit.getScheduler().runTaskLater(plugin, () -> {
-                if (!player.isOnline()) {
+                boolean allowed;
+                try {
+                    allowed = beforeTeleport.getAsBoolean();
+                } catch (RuntimeException failure) {
+                    allowed = false;
+                }
+                if (!player.isOnline() || !allowed) {
                     scheduleOverheadResume(plugin, overheadDisplayService, player);
                     result.complete(false);
                     return;
