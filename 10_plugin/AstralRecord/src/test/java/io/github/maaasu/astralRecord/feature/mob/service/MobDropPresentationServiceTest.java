@@ -87,6 +87,38 @@ class MobDropPresentationServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
      * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### ドロップ配布対象と演出
+     * 検証契約: 経験値・ゴールドが1未満の固定報酬行は個別に非表示にし、アイテム欄は維持する。
+     */
+    @Test
+    void resultTextOmitsFixedRewardsBelowOneIndividually() {
+        String noExperience = MobDropPresentationService.formatResultText(
+            "スライム",
+            new MobDropResult(java.util.List.of(), 0, 34),
+            java.util.List.of()
+        );
+        String noGold = MobDropPresentationService.formatResultText(
+            "スライム",
+            new MobDropResult(java.util.List.of(), 12, 0),
+            java.util.List.of()
+        );
+        String noFixedRewards = MobDropPresentationService.formatResultText(
+            "スライム",
+            new MobDropResult(java.util.List.of(), 0, 0),
+            java.util.List.of()
+        );
+
+        assertFalse(noExperience.contains("経験値"));
+        assertTrue(noExperience.contains("&6ゴールド &f+34"));
+        assertTrue(noGold.contains("&e経験値 &f+12"));
+        assertFalse(noGold.contains("ゴールド"));
+        assertFalse(noFixedRewards.contains("経験値"));
+        assertFalse(noFixedRewards.contains("ゴールド"));
+        assertTrue(noFixedRewards.contains("\n&a獲得アイテム\n&7・なし"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### ドロップ配布対象と演出
      * 検証契約: inventoryに入らなかった通常アイテムの残数をworld dropへfallbackせず破棄する。
      */
     @Test

@@ -290,7 +290,7 @@ public final class MobDropPresentationService {
      * ドロップ結果を、日本語の縦並びで TextDisplay 用文字列へ整形します。
      *
      * @param mobName Mob または取得元の表示名
-     * @param result 経験値・金銭を含む抽選結果
+     * @param result 経験値・金銭を含む抽選結果。1 未満の固定報酬は表示しない
      * @param items 解決済み当選アイテム
      * @return legacy color code を含むリザルト文字列
      */
@@ -301,8 +301,12 @@ public final class MobDropPresentationService {
     ) {
         StringBuilder text = new StringBuilder("&6&l◆ 討伐報酬 ◆");
         text.append("\n&f").append(mobName);
-        text.append("\n&e経験値 &f+").append(result.exp());
-        text.append("\n&6ゴールド &f+").append(result.money());
+        if (result.exp() >= 1) {
+            text.append("\n&e経験値 &f+").append(result.exp());
+        }
+        if (result.money() >= 1) {
+            text.append("\n&6ゴールド &f+").append(result.money());
+        }
         text.append("\n&8").append(DisplaySeparators.SECTION);
         text.append("\n&a獲得アイテム");
         if (items.isEmpty()) {
