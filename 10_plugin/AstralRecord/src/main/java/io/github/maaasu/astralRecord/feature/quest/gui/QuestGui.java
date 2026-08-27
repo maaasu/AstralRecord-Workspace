@@ -217,7 +217,7 @@ public final class QuestGui {
         }
         lore.add(Component.empty());
         appendQuestInfo(lore, quest);
-        appendObjectives(lore, player, quest);
+        appendObjectives(lore, player, quest, listMode);
         appendRequirements(lore, quest);
         appendRewards(lore, quest.rewards());
         lore.add(Component.empty());
@@ -250,19 +250,28 @@ public final class QuestGui {
         lore.add(Component.empty());
     }
 
-    private void appendObjectives(@NotNull List<Component> lore, @NotNull AstPlayer player, @NotNull QuestDefinition quest) {
+    private void appendObjectives(
+        @NotNull List<Component> lore,
+        @NotNull AstPlayer player,
+        @NotNull QuestDefinition quest,
+        boolean showCompletionStatus
+    ) {
         QuestProgress progress = questService.progress(player, quest.id());
         lore.add(Component.text("目標", NamedTextColor.GOLD, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false));
         for (QuestObjectiveDefinition objective : quest.objectives()) {
             int current = Math.min(objective.amount(), progress == null ? 0 : progress.progress(objective.id()));
             boolean completed = current >= objective.amount();
             String targetLevel = objective.targetLevel() == null ? "" : " (Lv." + objective.targetLevel() + ")";
+            String progressText = "  " + current + " / " + objective.amount();
+            if (showCompletionStatus) {
+                progressText += completed ? "  達成" : "  未達成";
+            }
             Component line = ColorCodeUtil.toComponent(
                 "- " + objective.type().displayName() + ": " + objective.label() + targetLevel,
                 "",
                 NamedTextColor.WHITE
             ).append(Component.text(
-                "  " + current + " / " + objective.amount() + (completed ? "  達成" : "  未達成"),
+                progressText,
                 completed ? NamedTextColor.GREEN : NamedTextColor.YELLOW
             ));
             lore.add(line.decoration(TextDecoration.ITALIC, false));

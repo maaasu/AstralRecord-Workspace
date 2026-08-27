@@ -28,6 +28,7 @@ import java.util.Map;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
@@ -244,7 +245,7 @@ class QuestGuiTest extends MockBukkitTestBase {
      * 検証契約: 各目標の進行数は、達成済みなら緑、未達成なら黄色で表示し、文言でも達成状態を示す。
      */
     @Test
-    void colorsObjectiveProgressByCompletionState() {
+    void colorsObjectiveProgressByCompletionStateInActiveQuestList() {
         PluginMock plugin = PluginMock.builder().withPluginName("astralrecord").build();
         QuestService questService = mock(QuestService.class);
         AstPlayer astPlayer = mock(AstPlayer.class);
@@ -264,11 +265,6 @@ class QuestGuiTest extends MockBukkitTestBase {
             List.of(),
             new QuestRewardDefinition(0, 0L, List.of())
         );
-        QuestBoardDefinition board = new QuestBoardDefinition(
-            "board-progress",
-            "進行ボード",
-            List.of(new QuestBoardEntry("quest-progress", 1, 0, null, null))
-        );
         QuestProgress progress = new QuestProgress(
             quest.id(),
             0L,
@@ -276,13 +272,14 @@ class QuestGuiTest extends MockBukkitTestBase {
             Map.of("defeat-wolf", 1, "gather-herb", 1),
             false
         );
-        when(questService.findQuest(quest.id())).thenReturn(quest);
+        when(questService.activeQuests(astPlayer)).thenReturn(List.of(quest));
+        when(questService.maxActiveQuests(astPlayer)).thenReturn(3);
         when(questService.displayState(astPlayer, quest)).thenReturn(QuestDisplayState.IN_PROGRESS);
         when(questService.progress(astPlayer, quest.id())).thenReturn(progress);
 
         QuestGui questGui = new QuestGui(plugin, questService);
         var player = server().addPlayer();
-        questGui.openBoard(player, astPlayer, board, null);
+        questGui.openList(player, astPlayer);
 
         List<Component> lore = player.getOpenInventory().getTopInventory().getItem(10).getItemMeta().lore();
         Component completed = lore.stream()
@@ -297,5 +294,59 @@ class QuestGuiTest extends MockBukkitTestBase {
         assertEquals("- 採取: 薬草  1 / 3  未達成", PlainTextComponentSerializer.plainText().serialize(incomplete));
         assertEquals(NamedTextColor.GREEN, completed.children().getFirst().color());
         assertEquals(NamedTextColor.YELLOW, incomplete.children().getFirst().color());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 13. NPC interaction・GUI
+     * 検証契約: 受注画面では目標の必要数と色だけを表示し、未受注状態を示す「未達成」は表示しない。
+     */
+    @Test
+    void omitsUnachievedLabelOnQuestAcceptanceScreen() {
+        PluginMock plugin = PluginMock.builder().withPluginName("astralrecord").build();
+        QuestService questService = mock(QuestService.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        QuestDefinition quest = new QuestDefinition(
+            "quest-available-progress",
+            "受注前クエスト",
+            List.of(),
+            Material.PAPER,
+            QuestRepeatMode.ONCE,
+            0L,
+            QuestCompletionMode.NPC,
+            null,
+            List.of(new QuestObjectiveDefinition(
+                "defeat-wolf",
+                QuestObjectiveType.KILL_MOB,
+                "wolf",
+                "オオカミ",
+                1
+            )),
+            List.of(),
+            new QuestRewardDefinition(0, 0L, List.of())
+        );
+        QuestBoardDefinition board = new QuestBoardDefinition(
+            "board-available-progress",
+            "受注前ボード",
+            List.of(new QuestBoardEntry(quest.id(), 1, 0, null, null))
+        );
+        when(questService.findQuest(quest.id())).thenReturn(quest);
+        when(questService.displayState(astPlayer, quest)).thenReturn(QuestDisplayState.AVAILABLE);
+
+        QuestGui questGui = new QuestGui(plugin, questService);
+        var player = server().addPlayer();
+        questGui.openBoard(player, astPlayer, board, null);
+
+        List<Component> components = player.getOpenInventory().getTopInventory().getItem(10).getItemMeta().lore();
+        List<String> lore = components.stream()
+            .map(PlainTextComponentSerializer.plainText()::serialize)
+            .toList();
+        Component objective = components.stream()
+            .filter(line -> PlainTextComponentSerializer.plainText().serialize(line).contains("オオカミ"))
+            .findFirst()
+            .orElseThrow();
+        assertTrue(lore.contains("- 討伐: オオカミ  0 / 1"));
+        assertFalse(lore.stream().anyMatch(line -> line.contains("未達成")));
+        assertEquals(NamedTextColor.YELLOW, objective.children().getFirst().color());
     }
 }
