@@ -29,7 +29,7 @@ equipment:
       type: FLAT
       value: 1 
   durability:
-    max: 80
+    max: 150
     consume: 1
   enhance:
     maxLevel: 10

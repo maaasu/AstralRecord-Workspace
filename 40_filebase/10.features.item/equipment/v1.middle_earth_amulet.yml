@@ -18,6 +18,9 @@ equipment:
   tag: AMULET
   requiredLevel: 5
   stats:
+    - status: ATTACK
+      type: FLAT
+      value: 4~7
     - status: MOVEMENT_SPEED
       type: FLAT
       value: 4~6

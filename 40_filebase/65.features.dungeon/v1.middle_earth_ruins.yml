@@ -27,22 +27,22 @@ clearRewards:
       rate: 8.0
       amount: "1"
     - itemId: item:middle_earth_hammer
-      rate: 3.0
+      rate: 12.0
       amount: "1"
     - itemId: item:middle_earth_longbow
-      rate: 3.0
+      rate: 12.0
       amount: "1"
     - itemId: item:middle_earth_wand
-      rate: 3.0
+      rate: 12.0
       amount: "1"
     - itemId: item:middle_earth_relic
-      rate: 3.0
+      rate: 16.0
       amount: "1"
     - itemId: item:middle_earth_talisman
-      rate: 3.0
+      rate: 16.0
       amount: "1"
     - itemId: item:middle_earth_amulet
-      rate: 3.0
+      rate: 12.0
       amount: "1"
     - itemId: item:tyr_orb
       rate: 8.0
