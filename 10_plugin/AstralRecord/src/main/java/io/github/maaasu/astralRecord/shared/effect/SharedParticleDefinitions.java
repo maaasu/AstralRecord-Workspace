@@ -319,6 +319,28 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("skill_sword_sweep", Particle.SWEEP_ATTACK, 1, 0.0D, 0.0D, 0.0D, 0.0D);
     public static final SharedParticleDefinition SKILL_SWORD_EDGE =
         new SharedParticleDefinition("skill_sword_edge", Particle.CRIT, 2, 0.04D, 0.04D, 0.04D, 0.02D);
+    public static final SharedParticleDefinition SWORDSMAN_FLAME_RUSH_HORIZONTAL_DUST =
+        new SharedParticleDefinition(
+            "swordsman_flame_rush_horizontal_dust",
+            Particle.DUST,
+            3,
+            0.05D,
+            0.05D,
+            0.05D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 130, 25), 1.15F)
+        );
+    public static final SharedParticleDefinition SWORDSMAN_FLAME_RUSH_VERTICAL_DUST =
+        new SharedParticleDefinition(
+            "swordsman_flame_rush_vertical_dust",
+            Particle.DUST,
+            4,
+            0.05D,
+            0.07D,
+            0.05D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 55, 20), 1.25F)
+        );
     public static final SharedParticleDefinition ADVENTURER_ASTRAL_EDGE_CRIT =
         new SharedParticleDefinition("adventurer_astral_edge_crit", Particle.CRIT, 3, 0.04D, 0.04D, 0.04D, 0.08D);
     public static final SharedParticleDefinition ADVENTURER_ASTRAL_EDGE_SPARK =

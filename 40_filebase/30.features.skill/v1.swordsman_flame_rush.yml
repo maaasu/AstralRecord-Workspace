@@ -1,0 +1,64 @@
+# design:
+#   motif: "炎剣技 / 十字斬り"
+#   progression: 2
+schemaVersion: 1
+id: swordsman_flame_rush
+type: SKILL
+implementationId: swordsman_flame_rush
+name: "&6フレイムラッシュ"
+description: "&7炎をまとった十字の二連斬り。"
+icon: BLAZE_POWDER
+lore:
+  - "&7前方{skill.range}mの敵最大{skill.maxTargets}体へ、火属性の近接2連撃。"
+  - "&7横薙ぎ{skill.effectiveDamageRatios[0]:percent}% → 縦斬り{skill.effectiveDamageRatios[1]:percent}%。"
+  - "&7Lv.{skill.burningUnlockLevel}から、2撃目で{skill.burningChance}%の確率で{skill.burningDurationTicks:seconds}秒間炎上。"
+cooldownTicks: 80
+resourceType: ENERGY
+resourceCost: 14
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 10
+levels:
+  - level: 2
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 3
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 4
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 5
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 6
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 7
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 8
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 9
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 10
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 4, slots: 2 }
+  - { level: 7, slots: 3 }
+  - { level: 10, slots: 4 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: RARE
+  tradeable: false
+  sellable: false
+params:
+  range: 6.0
+  targetAngle: 60.0
+  maxTargets: 5
+  damageRatios: [0.65, 0.75]
+  secondHitDelayTicks: 4
+  burningUnlockLevel: 8
+  burningChance: 35.0
+  burningDurationTicks: 100
+tags:
+  - active
+  - melee
+  - fire

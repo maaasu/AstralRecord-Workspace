@@ -2,14 +2,21 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1204",
-  "name": "&8未定の星座",
-  "icon": "GRAY_DYE",
-  "tags": [],
+  "name": "&6フレイムラッシュ",
+  "icon": "BLAZE_POWDER",
+  "tags": [
+    "melee",
+    "fire"
+  ],
   "pointType": "CP",
-  "pointCost": 0,
-  "effects": [],
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordsman_flame_rush"
+    }
+  ],
   "unlockCondition": {
-    "classId": "swordsman",
-    "playerLevel": 2147483647
+    "classId": "swordsman"
   }
 }

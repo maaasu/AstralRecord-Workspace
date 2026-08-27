@@ -20,7 +20,8 @@ public final class SwordsmanSkillExecutorCatalog {
      */
     public static @NotNull List<SkillExecutor> create(@NotNull ActiveSkillServices services) {
         return List.of(
-            new SwordsmanShieldDrainExecutor(services)
+            new SwordsmanShieldDrainExecutor(services),
+            new SwordsmanFlameRushExecutor(services)
         );
     }
 }
