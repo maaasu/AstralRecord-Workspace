@@ -17,6 +17,8 @@ equipment:
   slot: ACCESSORY
   tag: TALISMAN
   requiredLevel: 5
+  durability:
+    max: 160
   stats:
     - status: MAGIC_ATTACK
       type: FLAT
