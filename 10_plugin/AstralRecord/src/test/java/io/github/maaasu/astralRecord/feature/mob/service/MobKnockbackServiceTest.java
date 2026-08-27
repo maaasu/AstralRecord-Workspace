@@ -9,6 +9,9 @@ import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
+import java.util.UUID;
+import java.util.concurrent.atomic.AtomicLong;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -34,6 +37,7 @@ class MobKnockbackServiceTest {
         when(target.statValue(StatusType.KNOCKBACK_RESISTANCE)).thenReturn(50.0D);
         when(target.isMob()).thenReturn(true);
         when(target.mob()).thenReturn(mob);
+        when(target.id()).thenReturn(UUID.randomUUID());
 
         new MobKnockbackService(mobService).applyWithStrength(
                 target,
@@ -94,6 +98,7 @@ class MobKnockbackServiceTest {
         when(mob.currentLocation()).thenReturn(new Location(world, 0.0D, 0.0D, 2.0D));
         when(target.isMob()).thenReturn(true);
         when(target.mob()).thenReturn(mob);
+        when(target.id()).thenReturn(UUID.randomUUID());
 
         MobKnockbackService service = new MobKnockbackService(mobService);
         service.setAdditionalKnockbackMultiplier(ignored -> 0.5D);
@@ -104,5 +109,49 @@ class MobKnockbackServiceTest {
         assertEquals(0.0D, velocity.getValue().getX(), 1.0E-9D);
         assertEquals(0.2D, velocity.getValue().getY(), 1.0E-9D);
         assertEquals(0.2D, velocity.getValue().getZ(), 1.0E-9D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 2. MobKnockbackService メソッド仕様 > ### ノックバック適用
+     * 検証契約: 同一対象へのノックバックは4 tickの受付クールダウンで抑制し、通常攻撃と指定強度の経路で共有する。
+     */
+    @Test
+    void sameTargetKnockbackIsSuppressedForCooldownTicks() {
+        MobService mobService = mock(MobService.class);
+        MobEntityController controller = mock(MobEntityController.class);
+        MobInstance mob = mock(MobInstance.class);
+        AstEntity source = mock(AstEntity.class);
+        AstEntity target = mock(AstEntity.class);
+        World world = mock(World.class);
+        AtomicLong currentTick = new AtomicLong(100L);
+        UUID targetId = UUID.randomUUID();
+        when(mobService.entityController()).thenReturn(controller);
+        when(source.location()).thenReturn(new Location(world, 0.0D, 0.0D, 0.0D));
+        when(target.location()).thenReturn(new Location(world, 0.0D, 0.0D, 2.0D));
+        when(mob.currentLocation()).thenReturn(new Location(world, 0.0D, 0.0D, 2.0D));
+        when(target.id()).thenReturn(targetId);
+        when(target.statValue(StatusType.KNOCKBACK_RESISTANCE)).thenReturn(0.0D);
+        when(target.isMob()).thenReturn(true);
+        when(target.mob()).thenReturn(mob);
+
+        MobKnockbackService service = new MobKnockbackService(mobService, currentTick::get);
+        service.apply(source, target, 1.0D);
+        service.applyWithStrength(target, new Location(world, 0.0D, 0.0D, 0.0D), 1.0D, 0.5D);
+        verify(controller, org.mockito.Mockito.times(1)).addVelocity(
+                org.mockito.ArgumentMatchers.same(mob), org.mockito.ArgumentMatchers.any(Vector.class)
+        );
+
+        currentTick.addAndGet(MobKnockbackService.KNOCKBACK_COOLDOWN_TICKS - 1L);
+        service.applyWithStrength(target, new Location(world, 0.0D, 0.0D, 0.0D), 1.0D, 0.5D);
+        verify(controller, org.mockito.Mockito.times(1)).addVelocity(
+                org.mockito.ArgumentMatchers.same(mob), org.mockito.ArgumentMatchers.any(Vector.class)
+        );
+
+        currentTick.incrementAndGet();
+        service.applyWithStrength(target, new Location(world, 0.0D, 0.0D, 0.0D), 1.0D, 0.5D);
+        verify(controller, org.mockito.Mockito.times(2)).addVelocity(
+                org.mockito.ArgumentMatchers.same(mob), org.mockito.ArgumentMatchers.any(Vector.class)
+        );
     }
 }

@@ -900,7 +900,7 @@ public final class AstralRecord extends JavaPlugin {
         mobDropPresentationService.setAfkService(afkService);
         gatheringService.setDropPresentationService(mobDropPresentationService);
         gatheringService.setAfkService(afkService);
-        var mobKnockbackService = new MobKnockbackService(mobService);
+        var mobKnockbackService = new MobKnockbackService(mobService, () -> getServer().getCurrentTick());
         mobVanillaEffectProtectionService = new MobVanillaEffectProtectionService();
         mobCombatService = new MobCombatService(
                 mobService,

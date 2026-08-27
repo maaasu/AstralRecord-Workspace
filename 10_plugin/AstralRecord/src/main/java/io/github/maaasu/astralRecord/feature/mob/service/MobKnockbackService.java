@@ -8,13 +8,18 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
+import java.util.UUID;
+import java.util.function.LongSupplier;
 import java.util.function.ToDoubleFunction;
 
 /**
  * 攻撃方向に対するノックバックベクトルを算出し、対象（プレイヤー / Mob）へ送出する。
  *
  * <p>ノックバック量は {@code StatusType.KNOCKBACK_RESISTANCE} で軽減し、
- * ダメージ処理後の共通経路から適用する。</p>
+ * ダメージ処理後の共通経路から適用する。同一対象への連続適用には短い受付間隔を設ける。</p>
  */
 public class MobKnockbackService {
 
@@ -24,7 +29,16 @@ public class MobKnockbackService {
     /** 垂直ノックバックの基本量。 */
     private static final double DEFAULT_VERTICAL = 0.4;
 
+    /** 同一対象へ再度ノックバックを適用できるまでのtick数。 */
+    static final long KNOCKBACK_COOLDOWN_TICKS = 4L;
+
+    /** 期限切れ状態を掃除する間隔。 */
+    private static final long COOLDOWN_CLEANUP_INTERVAL_TICKS = 20L;
+
     private final MobService mobService;
+    private final LongSupplier currentTick;
+    private final Map<UUID, Long> nextAvailableTickByTarget = new HashMap<>();
+    private long lastCooldownCleanupTick = Long.MIN_VALUE;
     private ToDoubleFunction<AstEntity> additionalKnockbackMultiplier = ignored -> 1.0D;
 
     /**
@@ -33,7 +47,21 @@ public class MobKnockbackService {
      * @param mobService 実体 Mob への速度反映に使用する Mob サービス
      */
     public MobKnockbackService(@NotNull MobService mobService) {
-        this.mobService = mobService;
+        this(mobService, () -> System.currentTimeMillis() / 50L);
+    }
+
+    /**
+     * ノックバックサービスを、サーバーtickを返す時計付きで初期化します。
+     *
+     * @param mobService  実体 Mob への速度反映に使用する Mob サービス
+     * @param currentTick 現在のサーバーtickを返す時計
+     */
+    public MobKnockbackService(
+            @NotNull MobService mobService,
+            @NotNull LongSupplier currentTick
+    ) {
+        this.mobService = Objects.requireNonNull(mobService, "mobService");
+        this.currentTick = Objects.requireNonNull(currentTick, "currentTick");
     }
 
     /**
@@ -60,11 +88,17 @@ public class MobKnockbackService {
             return;
         }
         if (target.isPlayer() && target.player() != null) {
-            applyToPlayer(source.location(), target.player().getBukkit(), effectiveMultiplier);
+            if (!tryAcquire(target.id())) {
+                return;
+            }
+            applyToPlayerWithoutCooldown(source.location(), target.player().getBukkit(), effectiveMultiplier);
             return;
         }
         if (target.isMob() && target.mob() != null) {
-            applyToMob(source.location(), target.mob(), effectiveMultiplier);
+            if (!tryAcquire(target.id())) {
+                return;
+            }
+            applyToMobWithoutCooldown(source.location(), target.mob(), effectiveMultiplier);
         }
     }
 
@@ -93,11 +127,17 @@ public class MobKnockbackService {
                 Math.max(0.0D, verticalStrength) * scale
         );
         if (target.isPlayer() && target.player() != null) {
+            if (!tryAcquire(target.id())) {
+                return;
+            }
             Player player = target.player().getBukkit();
             player.setVelocity(player.getVelocity().add(velocity));
             return;
         }
         if (target.isMob() && target.mob() != null) {
+            if (!tryAcquire(target.id())) {
+                return;
+            }
             mobService.entityController().addVelocity(target.mob(), velocity);
         }
     }
@@ -110,6 +150,17 @@ public class MobKnockbackService {
      * @param multiplier     ノックバック倍率（既定 1.0）
      */
     public void applyToPlayer(@NotNull Location sourceLocation, @NotNull Player target, double multiplier) {
+        if (!tryAcquire(target.getUniqueId())) {
+            return;
+        }
+        applyToPlayerWithoutCooldown(sourceLocation, target, multiplier);
+    }
+
+    private void applyToPlayerWithoutCooldown(
+            @NotNull Location sourceLocation,
+            @NotNull Player target,
+            double multiplier
+    ) {
         Vector velocity = computeVelocity(sourceLocation, target.getLocation(), multiplier);
         target.setVelocity(target.getVelocity().add(velocity));
     }
@@ -122,8 +173,39 @@ public class MobKnockbackService {
      * @param multiplier     ノックバック倍率
      */
     public void applyToMob(@NotNull Location sourceLocation, @NotNull MobInstance target, double multiplier) {
+        if (!tryAcquire(target.instanceId())) {
+            return;
+        }
+        applyToMobWithoutCooldown(sourceLocation, target, multiplier);
+    }
+
+    private void applyToMobWithoutCooldown(
+            @NotNull Location sourceLocation,
+            @NotNull MobInstance target,
+            double multiplier
+    ) {
         Vector velocity = computeVelocity(sourceLocation, target.currentLocation(), multiplier);
         mobService.entityController().addVelocity(target, velocity);
+    }
+
+    private boolean tryAcquire(@NotNull UUID targetId) {
+        long tick = currentTick.getAsLong();
+        cleanupExpiredCooldowns(tick);
+        Long nextAvailableTick = nextAvailableTickByTarget.get(targetId);
+        if (nextAvailableTick != null && tick < nextAvailableTick) {
+            return false;
+        }
+        nextAvailableTickByTarget.put(targetId, tick + KNOCKBACK_COOLDOWN_TICKS);
+        return true;
+    }
+
+    private void cleanupExpiredCooldowns(long currentTick) {
+        if (lastCooldownCleanupTick != Long.MIN_VALUE
+                && currentTick - lastCooldownCleanupTick < COOLDOWN_CLEANUP_INTERVAL_TICKS) {
+            return;
+        }
+        lastCooldownCleanupTick = currentTick;
+        nextAvailableTickByTarget.entrySet().removeIf(entry -> entry.getValue() <= currentTick);
     }
 
     /**
