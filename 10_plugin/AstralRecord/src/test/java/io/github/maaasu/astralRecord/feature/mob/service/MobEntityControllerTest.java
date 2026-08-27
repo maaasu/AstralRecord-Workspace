@@ -19,6 +19,7 @@ import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Piglin;
 import org.bukkit.entity.Sheep;
 import org.bukkit.entity.Vex;
 import org.bukkit.entity.Villager;
@@ -203,6 +204,20 @@ class MobEntityControllerTest extends MockBukkitTestBase {
         assertTrue(MobEntityController.isManagedEntityUsable(armorStand));
 
         verify(armorStand, never()).isValid();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 2. MobEntityController メソッド仕様 > ### 実体 Mob 設定
+     * 検証契約: 管理対象 Piglin はワールド環境による Zombified Piglin への変換を抑止する。
+     */
+    @Test
+    void managedPiglinIsImmuneToZombification() {
+        Piglin piglin = mock(Piglin.class);
+
+        MobEntityController.disablePiglinZombification(piglin);
+
+        verify(piglin).setImmuneToZombification(true);
     }
 
     /**

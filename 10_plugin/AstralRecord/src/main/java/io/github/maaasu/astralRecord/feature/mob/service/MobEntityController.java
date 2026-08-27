@@ -26,6 +26,7 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Interaction;
 import org.bukkit.entity.ItemDisplay;
 import org.bukkit.entity.Mob;
+import org.bukkit.entity.PiglinAbstract;
 import org.bukkit.entity.Vex;
 import org.bukkit.inventory.EntityEquipment;
 import org.bukkit.inventory.EquipmentSlot;
@@ -364,6 +365,7 @@ public class MobEntityController {
 
         mob.setAI(true);
         mob.setAware(true);
+        disablePiglinZombification(mob);
         mob.setInvulnerable(template.damageImmune());
         mob.setPersistent(false);
         mob.setRemoveWhenFarAway(false);
@@ -382,6 +384,17 @@ public class MobEntityController {
         mob.getPathfinder().setCanPassDoors(true);
         mob.getPathfinder().setCanFloat(true);
         applyStationaryNpcAttributes(template, mob);
+    }
+
+    /**
+     * 管理対象の Piglin 系実体がワールド環境によってゾンビ化しないようにします。
+     *
+     * @param mob ゾンビ化抑止対象の実体 Mob
+     */
+    static void disablePiglinZombification(@NotNull Mob mob) {
+        if (mob instanceof PiglinAbstract piglin) {
+            piglin.setImmuneToZombification(true);
+        }
     }
 
     /**
