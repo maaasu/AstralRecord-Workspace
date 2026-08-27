@@ -98,3 +98,13 @@ items:
       - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1
+  - id: challenging_roar_from_raw
+    itemId: { ref: item:00_skill_gem_swordsman_challenging_roar }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 9
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 1

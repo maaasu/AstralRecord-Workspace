@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skill.active.service;
 
+import io.github.maaasu.astralRecord.feature.mob.service.MobTauntService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import org.junit.jupiter.api.Test;
 
@@ -21,10 +22,12 @@ class ActiveSkillLifecycleServiceTest {
         SkillService skillService = mock(SkillService.class);
         SkillTaskService taskService = mock(SkillTaskService.class);
         TemporarySkillEffectService temporaryEffectService = mock(TemporarySkillEffectService.class);
+        MobTauntService tauntService = mock(MobTauntService.class);
         ActiveSkillLifecycleService lifecycleService = new ActiveSkillLifecycleService(
                 skillService,
                 taskService,
-                temporaryEffectService
+                temporaryEffectService,
+                tauntService
         );
         UUID playerId = UUID.randomUUID();
 
@@ -34,6 +37,7 @@ class ActiveSkillLifecycleServiceTest {
         verify(skillService, never()).clearCasterState(playerId);
         verify(taskService).clearCaster(playerId);
         verify(temporaryEffectService).clear(playerId);
+        verify(tauntService).clearByTaunter(playerId);
     }
 
     /**
@@ -46,10 +50,12 @@ class ActiveSkillLifecycleServiceTest {
         SkillService skillService = mock(SkillService.class);
         SkillTaskService taskService = mock(SkillTaskService.class);
         TemporarySkillEffectService temporaryEffectService = mock(TemporarySkillEffectService.class);
+        MobTauntService tauntService = mock(MobTauntService.class);
         ActiveSkillLifecycleService lifecycleService = new ActiveSkillLifecycleService(
                 skillService,
                 taskService,
-                temporaryEffectService
+                temporaryEffectService,
+                tauntService
         );
         UUID playerId = UUID.randomUUID();
 
@@ -59,5 +65,6 @@ class ActiveSkillLifecycleServiceTest {
         verify(skillService, never()).cancelCasting(playerId);
         verify(taskService).clearCaster(playerId);
         verify(temporaryEffectService).clear(playerId);
+        verify(tauntService).clearByTaunter(playerId);
     }
 }

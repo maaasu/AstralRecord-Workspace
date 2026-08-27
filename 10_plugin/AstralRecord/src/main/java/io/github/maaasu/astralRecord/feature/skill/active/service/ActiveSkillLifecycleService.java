@@ -1,7 +1,9 @@
 package io.github.maaasu.astralRecord.feature.skill.active.service;
 
+import io.github.maaasu.astralRecord.feature.mob.service.MobTauntService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.UUID;
 
@@ -13,6 +15,7 @@ public final class ActiveSkillLifecycleService {
     private final SkillService skillService;
     private final SkillTaskService taskService;
     private final TemporarySkillEffectService temporaryEffectService;
+    private final MobTauntService tauntService;
 
     /** lifecycle に追従する runtime サービスで初期化します。 */
     public ActiveSkillLifecycleService(
@@ -20,9 +23,20 @@ public final class ActiveSkillLifecycleService {
             @NotNull SkillTaskService taskService,
             @NotNull TemporarySkillEffectService temporaryEffectService
     ) {
+        this(skillService, taskService, temporaryEffectService, null);
+    }
+
+    /** lifecycle に追従する runtime サービスで初期化します。 */
+    public ActiveSkillLifecycleService(
+            @NotNull SkillService skillService,
+            @NotNull SkillTaskService taskService,
+            @NotNull TemporarySkillEffectService temporaryEffectService,
+            @Nullable MobTauntService tauntService
+    ) {
         this.skillService = skillService;
         this.taskService = taskService;
         this.temporaryEffectService = temporaryEffectService;
+        this.tauntService = tauntService;
     }
 
     /**
@@ -34,6 +48,9 @@ public final class ActiveSkillLifecycleService {
         skillService.cancelCasting(playerId);
         taskService.clearCaster(playerId);
         temporaryEffectService.clear(playerId);
+        if (tauntService != null) {
+            tauntService.clearByTaunter(playerId);
+        }
     }
 
     /**
@@ -45,5 +62,8 @@ public final class ActiveSkillLifecycleService {
         skillService.clearCasterState(playerId);
         taskService.clearCaster(playerId);
         temporaryEffectService.clear(playerId);
+        if (tauntService != null) {
+            tauntService.clearByTaunter(playerId);
+        }
     }
 }

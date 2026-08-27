@@ -60,6 +60,7 @@ expRate: 100
 usableSkills:
   - skill:adventurer_astral_edge
   - skill:adventurer_smash
+  - skill:swordsman_challenging_roar
 tags:
   - tier1
   - melee

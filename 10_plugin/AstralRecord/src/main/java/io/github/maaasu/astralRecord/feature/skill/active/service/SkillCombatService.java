@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
+import io.github.maaasu.astralRecord.feature.mob.service.MobTauntService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
 import org.bukkit.Location;
@@ -30,6 +31,7 @@ public final class SkillCombatService {
     private final ConditionService conditionService;
     private final MobKnockbackService knockbackService;
     private final StatusService statusService;
+    private final MobTauntService tauntService;
 
     /**
      * 戦闘サービスで初期化します。
@@ -45,10 +47,22 @@ public final class SkillCombatService {
             @NotNull MobKnockbackService knockbackService,
             @NotNull StatusService statusService
     ) {
+        this(damageService, conditionService, knockbackService, statusService, null);
+    }
+
+    /** 一時挑発サービスを含む戦闘サービスで初期化します。 */
+    public SkillCombatService(
+            @NotNull DamageService damageService,
+            @NotNull ConditionService conditionService,
+            @NotNull MobKnockbackService knockbackService,
+            @NotNull StatusService statusService,
+            MobTauntService tauntService
+    ) {
         this.damageService = damageService;
         this.conditionService = conditionService;
         this.knockbackService = knockbackService;
         this.statusService = statusService;
+        this.tauntService = tauntService;
     }
 
     /**
@@ -157,6 +171,14 @@ public final class SkillCombatService {
         if (target.mob().state() == MobState.IDLE) {
             target.mob().state(MobState.AGGRO);
         }
+    }
+
+    /** 脅威値を変更せず、対象 Mob の攻撃対象を発動者へ一時固定します。 */
+    public void taunt(@NotNull AstEntity attacker, @NotNull AstEntity target, long durationTicks) {
+        if (tauntService == null || !attacker.isPlayer() || target.mob() == null) {
+            return;
+        }
+        tauntService.apply(target.mob(), attacker.id(), durationTicks);
     }
 
     /** 対象 Mob を指定地点から押し出します。 */

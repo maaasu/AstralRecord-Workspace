@@ -88,6 +88,8 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(115, 210, 255), 0.95F)
         );
+    public static final SharedParticleDefinition CHALLENGING_ROAR_WARPED_SPORE =
+        new SharedParticleDefinition("challenging_roar_warped_spore", Particle.WARPED_SPORE, 32, 0.70D, 0.90D, 0.70D, 0.015D);
     public static final SharedParticleDefinition DAMAGE_HIT_INDICATOR =
         new SharedParticleDefinition("damage_hit_indicator", Particle.DAMAGE_INDICATOR, 6, 0.18D, 0.25D, 0.18D, 0.0D);
     public static final SharedParticleDefinition CRITICAL_HIT_CRIT =

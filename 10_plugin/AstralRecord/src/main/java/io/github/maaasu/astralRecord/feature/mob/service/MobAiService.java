@@ -90,6 +90,7 @@ public class MobAiService {
     private final PlayerDeathService playerDeathService;
     private final ParticleDisplayService particleDisplayService;
     private final ConditionService conditionService;
+    private final MobTauntService tauntService;
 
     private BukkitTask task;
     private long internalTick;
@@ -130,7 +131,7 @@ public class MobAiService {
             @NotNull MobSkillService mobSkillService,
             @Nullable PlayerDeathService playerDeathService,
             @Nullable ParticleDisplayService particleDisplayService) {
-        this(mobService, mobCombatService, mobSkillService, playerDeathService, particleDisplayService, null);
+        this(mobService, mobCombatService, mobSkillService, playerDeathService, particleDisplayService, null, null);
     }
 
     public MobAiService(
@@ -140,12 +141,24 @@ public class MobAiService {
             @Nullable PlayerDeathService playerDeathService,
             @Nullable ParticleDisplayService particleDisplayService,
             @Nullable ConditionService conditionService) {
+        this(mobService, mobCombatService, mobSkillService, playerDeathService, particleDisplayService, conditionService, null);
+    }
+
+    public MobAiService(
+            @NotNull MobService mobService,
+            @NotNull MobCombatService mobCombatService,
+            @NotNull MobSkillService mobSkillService,
+            @Nullable PlayerDeathService playerDeathService,
+            @Nullable ParticleDisplayService particleDisplayService,
+            @Nullable ConditionService conditionService,
+            @Nullable MobTauntService tauntService) {
         this.mobService = mobService;
         this.mobCombatService = mobCombatService;
         this.mobSkillService = mobSkillService;
         this.playerDeathService = playerDeathService;
         this.particleDisplayService = particleDisplayService;
         this.conditionService = conditionService;
+        this.tauntService = tauntService;
     }
 
     /**
@@ -417,7 +430,9 @@ public class MobAiService {
 
         double deaggroSq = targeting.deaggroRange() * targeting.deaggroRange();
         double distSq = target.getLocation().distanceSquared(instance.currentLocation());
-        if (distSq > deaggroSq) {
+        boolean tauntedTarget = tauntService != null
+                && target.getUniqueId().equals(tauntService.activeTaunter(instance));
+        if (!tauntedTarget && distSq > deaggroSq) {
             instance.targetId(null);
             instance.state(MobState.IDLE);
             mobService.stopPathfinding(instance);
@@ -606,6 +621,17 @@ public class MobAiService {
      */
     @Nullable
     private Player resolveChaseTarget(@NotNull MobInstance instance) {
+        UUID taunterId = tauntService == null ? null : tauntService.activeTaunter(instance);
+        if (taunterId != null) {
+            Player taunter = Bukkit.getPlayer(taunterId);
+            if (taunter != null
+                    && isActiveTargetPlayer(taunter)
+                    && taunter.getWorld() == instance.currentLocation().getWorld()) {
+                instance.targetId(taunterId);
+                return taunter;
+            }
+            tauntService.clear(instance);
+        }
         MobTargetingConfig targeting = instance.template().targeting();
         UUID targetId = instance.targetId();
         if (targeting != null && targetId != null) {

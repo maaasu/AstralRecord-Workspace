@@ -1,0 +1,57 @@
+# design:
+#   motif: "戦場の咆哮 / 一時挑発"
+#   progression: 1
+schemaVersion: 1
+id: swordsman_challenging_roar
+type: SKILL
+implementationId: swordsman_challenging_roar
+name: "&3チャレンジングロア"
+description: "&7咆哮を上げ、周囲の敵を一時的に引き付ける。"
+icon: GOAT_HORN
+lore:
+  - "&7発動中、半径{skill.radius}mの敵を1秒ごとに最大{skill.maxTargets}体挑発する。"
+  - "&7挑発した敵は脅威値に関係なく自身を攻撃対象にする。"
+  - "&7持続時間: Lv.1で4秒 / Lv.5で8秒"
+cooldownTicks: 400
+resourceType: ENERGY
+resourceCost: 25
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    paramDeltas: { durationTicks: 20 }
+  - level: 3
+    paramDeltas: { durationTicks: 20 }
+  - level: 4
+    paramDeltas: { durationTicks: 20 }
+  - level: 5
+    paramDeltas: { durationTicks: 20 }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+# behavior:
+#   pulse: "発動直後から20tickごとに、発動者を中心とする水平半径8m・上下8m・遮蔽なしのMobを距離順で最大24体挑発する。"
+#   taunt: "挑発は脅威値を変更せず対象を発動者へ固定する。同じMobへ複数の挑発が届いた場合は後発を優先し、終了時は通常のAIターゲット選定へ戻す。"
+#   targets: "ENEMY/BOSSのみ。NPC、死亡済みMob、別world、PvP対象は含めない。"
+# visuals:
+#   aura: "発動中は5tickごとに発動者の周囲へWARPED_SPOREを大量表示する。"
+#   sound: "発動時に発動者の位置からRavagerの咆哮音を1回鳴らす。"
+params:
+  radius: 8.0
+  height: 8.0
+  maxTargets: 24
+  durationTicks: 80
+  visualIntervalTicks: 5
+  tauntIntervalTicks: 20
+  tauntHoldTicks: 21
+tags:
+  - active

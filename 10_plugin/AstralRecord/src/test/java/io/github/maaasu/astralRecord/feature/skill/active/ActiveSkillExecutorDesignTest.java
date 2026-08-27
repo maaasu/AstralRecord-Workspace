@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.Ad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerManaBurstExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanShieldDrainExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanFlameRushExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanChallengingRoarExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
@@ -44,13 +45,14 @@ class ActiveSkillExecutorDesignTest {
         "adventurer_quick_shot",
         "adventurer_lightning_bolt",
         "swordsman_shield_drain",
-        "swordsman_flame_rush"
+        "swordsman_flame_rush",
+        "swordsman_challenging_roar"
     );
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載7 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載9 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {
@@ -255,6 +257,35 @@ class ActiveSkillExecutorDesignTest {
         assertEquals("burningUnlockLevel", exception.key());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 12. チャレンジングロアの実装契約
+     * 検証契約: 挑発の範囲・上限・期間・各間隔は正数で、挑発間隔は演出間隔の倍数を必須とする。
+     */
+    @Test
+    void challengingRoarValidatesAuraParams() {
+        SwordsmanChallengingRoarExecutor executor = new SwordsmanChallengingRoarExecutor(activeSkillServices());
+        Map<String, Object> valid = Map.of(
+                "radius", 8.0D,
+                "height", 8.0D,
+                "maxTargets", 24,
+                "durationTicks", 80,
+                "visualIntervalTicks", 5,
+                "tauntIntervalTicks", 20,
+                "tauntHoldTicks", 21
+        );
+
+        assertDoesNotThrow(() -> executor.validateParams(challengingRoarDefinition(valid)));
+
+        Map<String, Object> invalid = new java.util.LinkedHashMap<>(valid);
+        invalid.put("tauntIntervalTicks", 22);
+        SkillParameterException exception = assertThrows(
+                SkillParameterException.class,
+                () -> executor.validateParams(challengingRoarDefinition(invalid))
+        );
+        assertEquals("tauntIntervalTicks", exception.key());
+    }
+
     private static SkillDefinition astralEdgeDefinition(Map<String, Object> params) {
         return new SkillDefinition(
                 "adventurer_astral_edge",
@@ -386,6 +417,28 @@ class ActiveSkillExecutorDesignTest {
                 14.0D,
                 null,
                 10
+        );
+    }
+
+    private static SkillDefinition challengingRoarDefinition(Map<String, Object> params) {
+        return new SkillDefinition(
+                "swordsman_challenging_roar",
+                "swordsman_challenging_roar",
+                "チャレンジングロア",
+                null,
+                "GOAT_HORN",
+                List.of(),
+                400L,
+                0.0D,
+                0L,
+                1,
+                null,
+                params,
+                List.of("active"),
+                SkillKind.ACTIVE,
+                true,
+                SkillResourceType.ENERGY,
+                25.0D
         );
     }
 
