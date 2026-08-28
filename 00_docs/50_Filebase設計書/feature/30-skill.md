@@ -32,11 +32,11 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 | 職業 | コンセプト | 主リソース | 主な当たり判定 |
 |:--|:--|:--|:--|
 | `adventurer` | 近接・間接・魔法の基礎操作を試す見習い | `ENERGY` / `MANA` | 扇形、単体飛翔体、単体対象 |
-| `hunter` | 散弾・移動・着弾地点制圧・シールド破壊を扱う遠距離職 | `ENERGY` + `MANA` | 複数短射程飛翔体、単体飛翔体、発射後移動、重力弾道範囲 |
+| `hunter` | 散弾・移動・着弾地点制圧・シールド破壊・回復支援を扱う遠距離職 | `ENERGY` + `MANA` | 複数短射程飛翔体、単体飛翔体、発射後移動、重力弾道範囲、着弾回復エリア |
 
-現行定義は冒険者の6skill、ハンターの `hunter_fade_shot` / `hunter_arrow_rain` / `hunter_crash_arrow`、ソードマンの `swordsman_shield_drain` / `swordsman_bastion_strike` / `swordsman_flame_rush` / `swordsman_challenging_roar` / `swordsman_last_shield`、シールドリチャージ用の `administrator_shield_recharge` を含みます。フェイドショットとアローレインはハンターの `usableSkills` から初期使用許可を与え、クラッシュアローはskilltree node `1212` から使用許可を与えます。シールドドレインとチャレンジングロアはソードマンの `usableSkills` から初期使用許可を与えます。バスティオンストライク、シールドリチャージ、フレイムラッシュ、ラストシールドは、それぞれskilltree node `1203` / `1202` / `1204` / `1211` からソードマンへ使用許可を与えます。Administratorの `usableSkills` には検証用の使用許可を残します。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
+現行定義は冒険者の6skill、ハンターの `hunter_fade_shot` / `hunter_arrow_rain` / `hunter_crash_arrow` / `hunter_heal_arrow`、ソードマンの `swordsman_shield_drain` / `swordsman_bastion_strike` / `swordsman_flame_rush` / `swordsman_challenging_roar` / `swordsman_last_shield`、シールドリチャージ用の `administrator_shield_recharge` を含みます。フェイドショットとアローレインはハンターの `usableSkills` から初期使用許可を与え、クラッシュアローはskilltree node `1212`、ヒールアローはskilltree node `1213` から使用許可を与えます。シールドドレインとチャレンジングロアはソードマンの `usableSkills` から初期使用許可を与えます。バスティオンストライク、シールドリチャージ、フレイムラッシュ、ラストシールドは、それぞれskilltree node `1203` / `1202` / `1204` / `1211` からソードマンへ使用許可を与えます。Administratorの `usableSkills` には検証用の使用許可を残します。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
 
-ハンターの `hunter_fade_shot` は、5本の短射程飛翔体と安全確認付きバックステップを同時に扱う機動射撃です。ハンターの `usableSkills` から直接使用許可を配布し、習得用ジェムは `skill_gem_exchange` で無印原石から交換します。
+ハンターの `hunter_fade_shot` は、5本の短射程飛翔体と安全確認付きバックステップを同時に扱う機動射撃です。ハンターの `usableSkills` から直接使用許可を配布し、習得用ジェムは `skill_gem_exchange` で無印原石から交換します。`hunter_arrow_rain` はハンターの `usableSkills` から初期使用許可を与え、`hunter_heal_arrow` は skilltree node `1213` からハンターへ使用許可を与え、ハンターの `usableSkills` には追加しません。
 
 `swordsman_shield_drain` は敵Shieldへの3倍ブレイクと実減少量50%の自己Shield吸収を行います。実際に自身のShieldが回復した場合だけ、対象から発動者へ向かう吸収演出を表示します。
 
@@ -47,6 +47,7 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 `swordsman_flame_rush` は前方最大5体へ火属性の二連撃を行い、二撃目の炎上率はLv.1〜7が0%、Lv.8/9/10が35%/40%/45%です。`swordsman_challenging_roar` は周囲のMobを一時的に挑発する非攻撃スキルです。
 
 `hunter_crash_arrow` は、HPへの基礎倍率を30%に抑えた単体遠距離攻撃です。計算シールドダメージ全体へ一撃限定のシールドブレイク倍率を適用し、Lv.1の3.0倍からレベルごとに0.5ずつ増加します。ハンターのskilltree node `1212` で使用許可を与え、ジェムは無印原石1個との交換で入手します。
+`hunter_heal_arrow` は、強い重力を受けてMobを貫通し、Blockへ到達する矢です。敵Mobへの命中ごとに30%の無属性間接ダメージとその地点の半径2m・3秒の回復エリアを作り、Block命中時にも同じ回復エリアを作ります。各エリアへ入ったプレイヤーは1エリアにつき1回だけ、Lv.1の12からLv.5の28まで回復します。
 
 `swordsman_last_shield` は、シールドを破壊する `NORMAL_ATTACK` / `SKILL` の直接攻撃を1回だけ無効化するバインド必須パッシブです。クールダウンは120秒で、表示アイコンは `BEACON` とします。無効化時はシールドを消費せず、HPダメージ・ノックバック・耐久消費も発生しません。状態異常DoTと環境ダメージは対象外です。
 

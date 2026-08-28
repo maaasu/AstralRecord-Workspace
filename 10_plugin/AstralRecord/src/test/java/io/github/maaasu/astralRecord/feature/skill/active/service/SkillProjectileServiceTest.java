@@ -5,12 +5,19 @@ import io.github.maaasu.astralRecord.feature.skill.active.model.SkillBallisticPr
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillBallisticProjectileSpec;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillEffectLineSegment;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillLineTargetHit;
+import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobState;
+import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
+import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileSpec;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileTermination;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import io.github.maaasu.astralRecord.support.DesignTestFixtures;
+import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -328,6 +335,91 @@ class SkillProjectileServiceTest {
         verify(effects).line(any(), eq(intersection), eq(0.45D), eq(SharedParticleDefinitions.SKILL_HUNTER_ARROW));
         verify(tasks).cancel(eq(playerId), anyString());
         assertTrue(termination.get().type() == SkillProjectileTermination.Type.ENTITY);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 19. ヒールアローの実装契約 > ### 19.2 演出・入手・テスト契約
+     * 検証契約: 実SkillTargetingServiceを通した弾道は、Block面より手前のMobへ命中しながら飛翔を継続し、Block面より後ろのMobを除外して正確なBlock地点でBLOCK終端とする。
+     */
+    @Test
+    void ballisticProjectileUsesActualMobAndBlockCollisionOrdering() {
+        World world = mock(World.class);
+        Player player = mock(Player.class);
+        MobService mobService = mock(MobService.class);
+        MobTemplate template = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D).template();
+        RayTraceResult blockHit = mock(RayTraceResult.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getWorld()).thenReturn(world);
+        when(blockHit.getHitPosition()).thenReturn(new Vector(1.0D, 1.0D, 0.0D));
+        when(world.rayTraceBlocks(
+                any(Location.class), any(Vector.class), anyDouble(), eq(FluidCollisionMode.NEVER), eq(true)
+        )).thenReturn(blockHit);
+
+        MobInstance mobBeforeBlock = actualTarget(template, world, 0.8D);
+        when(mobService.getInstances()).thenReturn(List.of(mobBeforeBlock));
+        SkillTargetingService targeting = new SkillTargetingService(mobService);
+        SkillEffectService effects = mock(SkillEffectService.class);
+        SkillTaskService tasks = mock(SkillTaskService.class);
+        runOneTick(tasks);
+        SkillProjectileService service = new SkillProjectileService(targeting, effects, tasks);
+        SkillBallisticProjectileSpec projectile = ballisticSpec();
+        AtomicReference<SkillProjectileTermination> mobTermination = new AtomicReference<>();
+        AtomicReference<AstEntity> mobHit = new AtomicReference<>();
+
+        service.launchBallisticWithTermination(
+                player,
+                new Location(world, 0.0D, 1.0D, 0.0D),
+                projectile,
+                (target, ignored) -> mobHit.set(target),
+                mobTermination::set
+        );
+
+        assertEquals(mobBeforeBlock, mobHit.get().mob());
+        assertEquals(SkillProjectileTermination.Type.BLOCK, mobTermination.get().type());
+        assertEquals(1.0D, mobTermination.get().location().getX(), 0.0001D);
+
+        MobInstance mobBehindBlock = actualTarget(template, world, 2.0D);
+        when(mobService.getInstances()).thenReturn(List.of(mobBehindBlock));
+        AtomicReference<SkillProjectileTermination> blockTermination = new AtomicReference<>();
+
+        service.launchBallisticWithTermination(
+                player,
+                new Location(world, 0.0D, 1.0D, 0.0D),
+                projectile,
+                (target, ignored) -> { },
+                blockTermination::set
+        );
+
+        assertEquals(SkillProjectileTermination.Type.BLOCK, blockTermination.get().type());
+        assertEquals(1.0D, blockTermination.get().location().getX(), 0.0001D);
+    }
+
+    private static MobInstance actualTarget(MobTemplate template, World world, double x) {
+        MobInstance target = mock(MobInstance.class);
+        when(target.instanceId()).thenReturn(UUID.randomUUID());
+        when(target.template()).thenReturn(template);
+        when(target.state()).thenReturn(MobState.IDLE);
+        when(target.bukkitEntityId()).thenReturn(null);
+        when(target.currentLocation()).thenReturn(new Location(world, x, 0.0D, 0.0D));
+        return target;
+    }
+
+    private static void runOneTick(SkillTaskService tasks) {
+        doAnswer(invocation -> {
+            IntConsumer action = invocation.getArgument(5, IntConsumer.class);
+            action.accept(0);
+            return null;
+        }).when(tasks).repeat(any(UUID.class), anyString(), anyLong(), anyLong(), anyInt(), any(IntConsumer.class));
+    }
+
+    private static SkillBallisticProjectileSpec ballisticSpec() {
+        return new SkillBallisticProjectileSpec(
+                new Vector(1.0D, 0.0D, 0.0D),
+                0.14D, 4, 10.0D, 0.45D, true, Integer.MAX_VALUE,
+                SharedParticleDefinitions.HUNTER_HEAL_ARROW_TRAIL,
+                SharedParticleDefinitions.HUNTER_HEAL_ARROW_IMPACT
+        );
     }
 
     private static Fixture fixture() {

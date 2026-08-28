@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1213",
+  "name": "&aヒールアロー",
+  "icon": "SPECTRAL_ARROW",
+  "tags": [
+    "light"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "hunter_heal_arrow"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "hunter"
+  }
+}

@@ -50,6 +50,7 @@ class ActiveSkillExecutorDesignTest {
         "adventurer_lightning_bolt",
         "hunter_fade_shot",
         "hunter_crash_arrow",
+        "hunter_heal_arrow",
         "swordsman_shield_drain",
         "swordsman_flame_rush",
         "swordsman_challenging_roar",
@@ -60,7 +61,7 @@ class ActiveSkillExecutorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載13 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載14 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {

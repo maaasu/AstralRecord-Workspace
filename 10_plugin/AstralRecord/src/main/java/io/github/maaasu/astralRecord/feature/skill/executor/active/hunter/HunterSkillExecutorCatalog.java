@@ -22,7 +22,8 @@ public final class HunterSkillExecutorCatalog {
         return List.of(
                 new HunterFadeShotExecutor(services),
                 new HunterArrowRainExecutor(services),
-                new HunterCrashArrowExecutor(services)
+                new HunterCrashArrowExecutor(services),
+                new HunterHealArrowExecutor(services)
         );
     }
 }

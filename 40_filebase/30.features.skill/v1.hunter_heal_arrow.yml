@@ -1,0 +1,57 @@
+# design:
+#   motif: "弓術 / 癒しの矢"
+#   progression: 2
+schemaVersion: 1
+id: hunter_heal_arrow
+type: SKILL
+implementationId: hunter_heal_arrow
+name: "&aヒールアロー"
+description: "&7敵を貫通し、着弾地点に味方を癒す回復エリアを作る矢。"
+icon: SPECTRAL_ARROW
+lore:
+  - "&7半径{skill.radius}mの回復エリアを{skill.areaDurationTicks:seconds}秒展開し、入ったプレイヤーを即座に{skill.healAmount}回復する。"
+  - "&7各プレイヤーへの回復は1エリアにつき1回。敵Mobに命中すると間接攻撃力{skill.damageRatio:percent}%の無属性ダメージを与える。"
+  - "&7重力の影響を強く受け、敵Mobを貫通し、命中地点とブロックへの着弾地点にエリアを作成する。"
+cooldownTicks: 200
+resourceType: ENERGY
+resourceCost: 14
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    cooldownTicksDelta: -10
+    paramDeltas: { healAmount: 4 }
+  - level: 3
+    cooldownTicksDelta: -10
+    paramDeltas: { healAmount: 4 }
+  - level: 4
+    cooldownTicksDelta: -10
+    paramDeltas: { healAmount: 4 }
+  - level: 5
+    cooldownTicksDelta: -10
+    paramDeltas: { healAmount: 4 }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+onCast:
+  sound: entity.arrow.shoot
+params:
+  radius: 2.0
+  healAmount: 12.0
+  damageRatio: 0.30
+  projectileSpeed: 1.25
+  projectileHitRadius: 0.45
+  areaDurationTicks: 60
+tags:
+  - active
+  - ranged
+  - bow

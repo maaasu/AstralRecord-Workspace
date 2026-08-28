@@ -59,6 +59,51 @@ class SkillCombatServiceShieldRecoveryTest extends MockBukkitTestBase {
         assertEquals(40.0D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 19. ヒールアローの実装契約 > ### 19.1 数値・対象・終端
+     * 検証契約: ヒールアローのHP回復はStatusService経路を通り、最大HPを超えた要求では実増加量だけを返す。
+     */
+    @Test
+    void returnsActualHpIncreaseAfterMaximumCap() {
+        StatusService statusService = new StatusService();
+        SkillCombatService combat = combat(statusService, mock(ConditionService.class));
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        StatusSnapshot snapshot = DesignTestFixtures.statusSnapshot(Map.of(
+                StatusType.MAX_HEALTH, 100.0D
+        ), 100.0D, 0.0D, 0.0D).withCurrentValues(80.0D, 0.0D);
+        player.setStatusSnapshot(snapshot);
+
+        double recovered = combat.recoverHp(player, 50.0D);
+
+        assertEquals(20.0D, recovered, 0.0001D);
+        assertEquals(100.0D, player.getStatusSnapshot().getCurrentHp(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 19. ヒールアローの実装契約 > ### 19.1 数値・対象・終端
+     * 検証契約: ヒールアローのHP回復は回復阻害中にStatusServiceが現在HPを変更せず、実増加量0を返す。
+     */
+    @Test
+    void returnsZeroWhenHpHealingIsBlocked() {
+        ConditionService conditionService = mock(ConditionService.class);
+        when(conditionService.isHealingBlocked(any(AstEntity.class))).thenReturn(true);
+        StatusService statusService = new StatusService();
+        statusService.setConditionService(conditionService);
+        SkillCombatService combat = combat(statusService, conditionService);
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        StatusSnapshot snapshot = DesignTestFixtures.statusSnapshot(Map.of(
+                StatusType.MAX_HEALTH, 100.0D
+        ), 100.0D, 0.0D, 0.0D).withCurrentValues(60.0D, 0.0D);
+        player.setStatusSnapshot(snapshot);
+
+        double recovered = combat.recoverHp(player, 20.0D);
+
+        assertEquals(0.0D, recovered, 0.0001D);
+        assertEquals(60.0D, player.getStatusSnapshot().getCurrentHp(), 0.0001D);
+    }
+
     private AstPlayer playerWithShield(double currentShield, double maximumShield) {
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
         StatusSnapshot snapshot = DesignTestFixtures.statusSnapshot(Map.of(

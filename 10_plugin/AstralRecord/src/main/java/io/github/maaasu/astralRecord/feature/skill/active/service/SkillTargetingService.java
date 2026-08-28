@@ -6,6 +6,9 @@ import io.github.maaasu.astralRecord.feature.skill.active.model.SkillLineTargetH
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
@@ -320,6 +323,46 @@ public final class SkillTargetingService {
                         .thenComparing(mob -> mob.instanceId().toString()))
                 .limit(Math.max(0, maxTargets))
                 .map(AstEntity::mob)
+                .toList();
+    }
+
+    /**
+     * 指定地点の円柱範囲へ入っているゲームプレイ中のプレイヤーを返します。
+     * <p>
+     * Mob用の {@link #inRadius(Player, Location, double, double, int, boolean)} と異なり、
+     * Bukkitのオンラインプレイヤーをキャッシュ済みの {@link AstPlayer} へ解決します。
+     * 水平方向は半径、上下方向は中心からの許容差で判定します。
+     *
+     * @param center 中心
+     * @param radius 水平半径
+     * @param height 上下の許容差
+     * @return 範囲内のゲームプレイ中プレイヤー
+     */
+    public @NotNull List<AstPlayer> playersInRadius(
+            @NotNull Location center,
+            double radius,
+            double height
+    ) {
+        World world = center.getWorld();
+        double safeRadius = Math.max(0.0D, radius);
+        double safeHeight = Math.max(0.0D, height);
+        if (world == null) {
+            return List.of();
+        }
+        double radiusSquared = safeRadius * safeRadius;
+        return Bukkit.getOnlinePlayers().stream()
+                .filter(player -> player.isOnline() && !player.isDead() && player.getWorld() == world)
+                .filter(player -> {
+                    Location location = player.getLocation();
+                    double dx = location.getX() - center.getX();
+                    double dz = location.getZ() - center.getZ();
+                    return dx * dx + dz * dz <= radiusSquared
+                            && location.getY() >= center.getY() - safeHeight
+                            && location.getY() <= center.getY() + safeHeight;
+                })
+                .map(AstPlayerCache::get)
+                .filter(AccountModeGuard::isGameplayPlayer)
+                .sorted(Comparator.comparing(player -> player.getBukkit().getUniqueId().toString()))
                 .toList();
     }
 

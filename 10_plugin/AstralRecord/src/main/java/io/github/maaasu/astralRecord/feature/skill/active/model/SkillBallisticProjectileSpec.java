@@ -32,7 +32,11 @@ public record SkillBallisticProjectileSpec(
 
     /** 入力値を検証し、可変なVectorを防御的に複製します。 */
     public SkillBallisticProjectileSpec {
-        if (initialVelocity.lengthSquared() <= 1.0E-8D) {
+        if (initialVelocity == null
+                || !Double.isFinite(initialVelocity.getX())
+                || !Double.isFinite(initialVelocity.getY())
+                || !Double.isFinite(initialVelocity.getZ())
+                || initialVelocity.lengthSquared() <= 1.0E-8D) {
             throw new IllegalArgumentException("initialVelocity は0ベクトル以外を指定してください");
         }
         if (!Double.isFinite(gravityPerTick) || gravityPerTick < 0.0D) {

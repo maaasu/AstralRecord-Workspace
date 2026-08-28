@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobTauntService;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
 import org.bukkit.Location;
@@ -139,6 +140,22 @@ public final class SkillCombatService {
         }
         double before = statusService.getStatus(target.player()).getCurrentShield();
         double after = statusService.recoverShield(target.player(), amount).getCurrentShield();
+        return Math.max(0.0D, after - before);
+    }
+
+    /**
+     * プレイヤーの現在HPを既存回復規則で回復し、実際の増加量を返します。
+     *
+     * @param target 回復対象プレイヤー
+     * @param amount 回復要求量
+     * @return 上限・回復阻害を反映した実増加量
+     */
+    public double recoverHp(@NotNull AstPlayer target, double amount) {
+        if (amount <= 0.0D) {
+            return 0.0D;
+        }
+        double before = statusService.getStatus(target).getCurrentHp();
+        double after = statusService.recoverHp(target, amount).getCurrentHp();
         return Math.max(0.0D, after - before);
     }
 

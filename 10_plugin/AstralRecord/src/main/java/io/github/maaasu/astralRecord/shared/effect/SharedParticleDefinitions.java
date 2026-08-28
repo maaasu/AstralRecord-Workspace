@@ -472,6 +472,49 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(120, 175, 80), 0.9F)
         );
+    public static final SharedParticleDefinition HUNTER_HEAL_ARROW_TRAIL =
+        new SharedParticleDefinition(
+            "hunter_heal_arrow_trail",
+            Particle.DUST,
+            2,
+            0.025D,
+            0.025D,
+            0.025D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(80, 255, 120), 1.15F)
+        );
+    public static final SharedParticleDefinition HUNTER_HEAL_ARROW_IMPACT =
+        new SharedParticleDefinition(
+            "hunter_heal_arrow_impact",
+            Particle.DUST,
+            10,
+            0.16D,
+            0.20D,
+            0.16D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(70, 245, 105), 1.35F)
+        );
+    public static final SharedParticleDefinition HUNTER_HEAL_ARROW_AREA =
+        new SharedParticleDefinition(
+            "hunter_heal_arrow_area",
+            Particle.DUST,
+            2,
+            0.02D,
+            0.02D,
+            0.02D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(105, 255, 135), 1.0F)
+        );
+    public static final SharedParticleDefinition HUNTER_HEAL_ARROW_HEAL =
+        new SharedParticleDefinition(
+            "hunter_heal_arrow_heal",
+            Particle.HAPPY_VILLAGER,
+            8,
+            0.24D,
+            0.42D,
+            0.24D,
+            0.02D
+        );
     public static final SharedParticleDefinition SKILL_MAGE_FIRE =
         new SharedParticleDefinition("skill_mage_fire", Particle.FLAME, 2, 0.06D, 0.06D, 0.06D, 0.01D);
     public static final SharedParticleDefinition SKILL_MAGE_ICE =
