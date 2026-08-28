@@ -33,9 +33,11 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 |:--|:--|:--|:--|
 | `adventurer` | 近接・間接・魔法の基礎操作を試す見習い | `ENERGY` / `MANA` | 扇形、単体飛翔体、単体対象 |
 
-現行定義は冒険者の6skillと、ソードマンの `swordsman_shield_drain` / `swordsman_bastion_strike` / `swordsman_flame_rush` / `swordsman_challenging_roar` / `swordsman_last_shield` を含みます。シールドドレイン、バスティオンストライク、フレイムラッシュはソードマンの `usableSkills` へ追加せず、それぞれskilltree node `1202` / `1203` / `1204` とAdministratorの `usableSkills` から使用許可を与えます。ラストシールドはソードマンの `usableSkills` へ追加せず、skilltree node `1211` とAdministratorの `usableSkills` から使用許可を与えます。チャレンジングロアはソードマンとAdministratorの `usableSkills` から使用許可を与えます。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
+現行定義は冒険者の6skillと、ソードマンの `swordsman_shield_drain` / `swordsman_bastion_strike` / `swordsman_flame_rush` / `swordsman_challenging_roar` / `swordsman_last_shield`、シールドリチャージ用の `administrator_shield_recharge` を含みます。シールドドレインとチャレンジングロアはソードマンの `usableSkills` から初期使用許可を与えます。バスティオンストライク、シールドリチャージ、フレイムラッシュ、ラストシールドは、それぞれskilltree node `1203` / `1202` / `1204` / `1211` からソードマンへ使用許可を与えます。Administratorの `usableSkills` には検証用の使用許可を残します。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
 
 `swordsman_shield_drain` は敵Shieldへの3倍ブレイクと実減少量50%の自己Shield吸収を行います。実際に自身のShieldが回復した場合だけ、対象から発動者へ向かう吸収演出を表示します。
+
+`administrator_shield_recharge` は最大Shieldを30増加し、シールド残存時の被弾後8秒から最大Shieldの毎秒2%を再充填するバインド必須パッシブです。再充填中に被弾すると待機をやり直し、シールド破壊時は通常の回復仕様に従います。ソードマンではskilltree node `1202`、Administratorではclassの `usableSkills` から使用を許可します。
 
 `swordsman_bastion_strike` は前方単体を攻撃し、発動時に自身の現在Shieldを最大Shieldまで即時回復します。Lv.1〜4はMP最大時だけ、Lv.5は最大MPの80%以上で発動でき、成功時は現在MPを全量消費します。Lv.1の150秒からレベルごとに10秒ずつ短縮され、シジル枠は全レベル0です。
 

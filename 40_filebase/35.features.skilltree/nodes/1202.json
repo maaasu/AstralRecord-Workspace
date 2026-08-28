@@ -2,8 +2,8 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1202",
-  "name": "&bシールドドレイン",
-  "icon": "TUBE_CORAL",
+  "name": "&bシールドリチャージ",
+  "icon": "SHIELD",
   "tags": [
     "defense"
   ],
@@ -12,7 +12,7 @@
   "effects": [
     {
       "type": "skill",
-      "skillId": "swordsman_shield_drain"
+      "skillId": "administrator_shield_recharge"
     }
   ],
   "unlockCondition": {

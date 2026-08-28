@@ -296,7 +296,7 @@ public class StatusService {
     /**
      * シールド破壊後の通常再充填を開始します。
      * <p>
-     * この経路は管理者向け再充填パッシブの有無にかかわらず、基礎30秒後に最大値まで
+     * この経路は再充填パッシブの有無にかかわらず、基礎30秒後に最大値まで
      * 一括回復します。パッシブの段階回復は {@link #startShieldRechargeWhileRetained(AstPlayer, long)}
      * から開始します。
      *

@@ -20,7 +20,7 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-/** implementationId {@code administrator_shield_recharge} の管理者専用シールド再充填パッシブです。 */
+/** implementationId {@code administrator_shield_recharge} のシールド再充填パッシブです。 */
 public final class AdministratorShieldRechargeSkillExecutor implements SkillExecutor {
     public static final String ID = "administrator_shield_recharge";
     private final StatusService statusService;

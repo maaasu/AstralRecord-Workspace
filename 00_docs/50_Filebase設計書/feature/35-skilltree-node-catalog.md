@@ -37,7 +37,7 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `status-max-energy-flat-5` | `MAX_ENERGY` / `FLAT` / `5` | `&d蒼穹の星脈` | `ENDER_PEARL` | `status`, `resource`, `energy` |
 | `status-movement-speed-flat-1` | `MOVEMENT_SPEED` / `FLAT` / `1` | `&d迅風の星脈` | `SUGAR` | `status`, `agility`, `wind` |
 | `status-mp-regen-flat-0.2` | `MP_REGEN` / `FLAT` / `0.2` | `&d還流の星脈` | `PRISMARINE_CRYSTALS` | `status`, `resource`, `mana`, `azure` |
-| `skill-swordsman-shield-drain` | `skill` / `swordsman_shield_drain` | `&bシールドドレイン` | `TUBE_CORAL` | `defense` |
+| `skill-administrator-shield-recharge` | `skill` / `administrator_shield_recharge` | `&bシールドリチャージ` | `SHIELD` | `defense` |
 | `skill-swordsman-last-shield` | `skill` / `swordsman_last_shield` | `&bラストシールド` | `BEACON` | `defense` |
 | `skill-swordsman-flame-rush` | `skill` / `swordsman_flame_rush` | `&6フレイムラッシュ` | `CRIMSON_ROOTS` | `melee`, `fire` |
 | `skill-swordsman-bastion-strike` | `skill` / `swordsman_bastion_strike` | `&bバスティオンストライク` | `SHIELD` | `defense` |

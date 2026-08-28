@@ -374,7 +374,7 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_0-概要.md
      * 章・見出し: # 14_0-概要 > ## 5. 固定HPダメージとShield
-     * 検証契約: 管理者向け再充填パッシブがあっても、シールド破壊時は通常の全回復経路だけを開始する。
+     * 検証契約: 再充填パッシブがあっても、シールド破壊時は通常の全回復経路だけを開始する。
      */
     @Test
     void configuredPlayerBreakStartsFullRecoveryInsteadOfRetainedRecharge() {
