@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.hud.view.PlayerHudView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
+import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeSidebarInfo;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonSidebarInfo;
@@ -36,6 +37,7 @@ public class PlayerHudService {
     private final StatusService statusService;
     private final PlayerClassService playerClassService;
     private final AccountService accountService;
+    private final CurrencyService currencyService;
     private final PlayerSettingService playerSettingService;
     private final ConditionService conditionService;
     private final BossChallengeService bossChallengeService;
@@ -63,6 +65,7 @@ public class PlayerHudService {
         StatusService statusService,
         PlayerClassService playerClassService,
         AccountService accountService,
+        CurrencyService currencyService,
         PlayerSettingService playerSettingService,
         ConditionService conditionService,
         BossChallengeService bossChallengeService,
@@ -71,6 +74,7 @@ public class PlayerHudService {
         this.statusService = statusService;
         this.playerClassService = playerClassService;
         this.accountService = accountService;
+        this.currencyService = currencyService;
         this.playerSettingService = playerSettingService;
         this.conditionService = conditionService;
         this.bossChallengeService = bossChallengeService;
@@ -229,6 +233,7 @@ public class PlayerHudService {
                     classExperienceProgress,
                     astPlayer.getClassLevel(),
                     className,
+                    currencyService.getGoldAmount(astPlayer.getAccount().getUuid()),
                     worldService.resolveDisplayName(player.getWorld()),
                     regionName,
                     resolveRegionLevel(astPlayer, worldType, bossInfo),

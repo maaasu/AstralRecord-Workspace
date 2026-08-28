@@ -69,7 +69,7 @@ class PlayerHudViewTest extends MockBukkitTestBase {
         );
 
         ArgumentCaptor<String> entries = ArgumentCaptor.forClass(String.class);
-        verify(objective, org.mockito.Mockito.times(14)).getScore(entries.capture());
+        verify(objective, org.mockito.Mockito.times(15)).getScore(entries.capture());
         List<String> rendered = entries.getAllValues();
         assertTrue(rendered.stream().anyMatch(entry -> entry.contains("パーティーメンバー待機中")));
         assertTrue(rendered.stream().anyMatch(entry -> entry.contains(ColorCodeUtil.GRAY + "Absent")));
@@ -100,7 +100,7 @@ class PlayerHudViewTest extends MockBukkitTestBase {
                 false, null, dungeonInfo, false, List.of());
 
         ArgumentCaptor<String> entries = ArgumentCaptor.forClass(String.class);
-        verify(objective, org.mockito.Mockito.times(14)).getScore(entries.capture());
+        verify(objective, org.mockito.Mockito.times(15)).getScore(entries.capture());
         List<String> rendered = entries.getAllValues().stream().map(ColorCodeUtil::stripColor).toList();
         assertTrue(rendered.stream().anyMatch(entry -> entry.contains("黄昏の坑道")));
         assertTrue(rendered.stream().anyMatch(entry -> entry.contains("デス") && entry.contains("1/3")));
@@ -140,7 +140,7 @@ class PlayerHudViewTest extends MockBukkitTestBase {
                 false, null, dungeonInfo, true, List.of(buff));
 
         ArgumentCaptor<String> entries = ArgumentCaptor.forClass(String.class);
-        verify(objective, org.mockito.Mockito.times(14)).getScore(entries.capture());
+        verify(objective, org.mockito.Mockito.times(15)).getScore(entries.capture());
         List<String> rendered = entries.getAllValues().stream().map(ColorCodeUtil::stripColor).toList();
         assertTrue(rendered.stream().anyMatch(entry -> entry.contains("帰還まで") && entry.contains("9s")));
         assertTrue(rendered.size() <= 15);
@@ -189,11 +189,11 @@ class PlayerHudViewTest extends MockBukkitTestBase {
         );
 
         ArgumentCaptor<String> entries = ArgumentCaptor.forClass(String.class);
-        verify(objective, org.mockito.Mockito.times(15)).getScore(entries.capture());
-        assertEquals(15, entries.getAllValues().size());
+        verify(objective, org.mockito.Mockito.times(14)).getScore(entries.capture());
+        assertEquals(14, entries.getAllValues().size());
         assertTrue(entries.getAllValues().stream().anyMatch(entry -> entry.contains("ワールド") && entry.contains("試練の大地")));
-        assertTrue(entries.getAllValues().stream().anyMatch(entry -> entry.contains("地域") && entry.contains("風待ち草原")));
-        assertTrue(entries.getAllValues().stream().anyMatch(entry -> entry.contains("地域レベル") && entry.contains("Lv.") && entry.contains("42")));
+        assertTrue(entries.getAllValues().stream().anyMatch(entry -> entry.contains("エリア") && entry.contains("風待ち草原")));
+        assertTrue(entries.getAllValues().stream().anyMatch(entry -> entry.contains("エリアレベル") && entry.contains("Lv.") && entry.contains("42")));
     }
 
     /**
@@ -221,15 +221,19 @@ class PlayerHudViewTest extends MockBukkitTestBase {
                 0.75D,
                 5,
                 "剣士",
+                1_234L,
                 "試練の大地",
                 "風待ち草原",
                 42,
+                true,
+                null,
+                null,
                 false,
-                null
+                List.of()
         );
 
         ArgumentCaptor<String> entries = ArgumentCaptor.forClass(String.class);
-        verify(objective, org.mockito.Mockito.times(8)).getScore(entries.capture());
+        verify(objective, org.mockito.Mockito.times(11)).getScore(entries.capture());
         List<String> rendered = entries.getAllValues().stream().map(ColorCodeUtil::stripColor).toList();
         String classLine = rendered.stream()
                 .filter(entry -> entry.contains("クラス") && entry.contains("剣士") && entry.contains("Lv.5"))
@@ -242,6 +246,8 @@ class PlayerHudViewTest extends MockBukkitTestBase {
         assertEquals(rendered.indexOf(classLine) + 1, rendered.indexOf(experienceLine));
         assertEquals(1L, rendered.stream().filter(entry -> entry.contains("EXP")).count());
         assertEquals(10L, experienceLine.chars().filter(character -> character == '▰').count());
+        assertTrue(rendered.stream().anyMatch(entry -> entry.contains("Gold: 1234G")));
+        assertTrue(rendered.stream().anyMatch(entry -> entry.contains("PING: 25ms")));
         assertTrue(rendered.stream().noneMatch(entry -> entry.contains("経験値")));
     }
 
@@ -409,7 +415,7 @@ class PlayerHudViewTest extends MockBukkitTestBase {
         );
 
         ArgumentCaptor<String> entries = ArgumentCaptor.forClass(String.class);
-        verify(objective, org.mockito.Mockito.times(14)).getScore(entries.capture());
+        verify(objective, org.mockito.Mockito.times(15)).getScore(entries.capture());
         List<String> rendered = entries.getAllValues().stream().map(ColorCodeUtil::stripColor).toList();
         assertTrue(rendered.stream().anyMatch(entry -> entry.contains("バフ1")));
         assertTrue(rendered.stream().anyMatch(entry -> entry.contains("バフ5") && entry.contains("ほか2件")));

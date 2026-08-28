@@ -1039,6 +1039,7 @@ public final class AstralRecord extends JavaPlugin {
             statusService,
             playerClassService,
             accountService,
+            currencyService,
             playerSettingService,
             conditionService,
             bossChallengeService,

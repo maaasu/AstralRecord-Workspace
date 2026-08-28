@@ -156,6 +156,7 @@ public class PlayerHudView {
      * @param classExperienceProgress 現在クラスレベル内の経験値進捗（0.0-1.0）
      * @param classLevel 現在のクラスレベル
      * @param className 現在のクラス表示名
+     * @param goldAmount 現在のゴールド所持量
      * @param worldName 現在のワールド表示名
      * @param regionName 現在の地域表示名
      * @param regionLevel 現在の地域レベル
@@ -178,8 +179,44 @@ public class PlayerHudView {
         List<ActiveBuff> activeBuffs
     ) {
         renderSidebar(player, mspt, playerLevel, classExperienceProgress, classLevel, className,
-                worldName, regionName, regionLevel, showPerformanceInfo, bossInfo, null,
+                0L, worldName, regionName, regionLevel, showPerformanceInfo, bossInfo, null,
                 showBuffInfo, activeBuffs);
+    }
+
+    /** Gold 所持量を指定しない互換用サイドバー描画です。 */
+    public void renderSidebar(
+        Player player,
+        double mspt,
+        int playerLevel,
+        double classExperienceProgress,
+        int classLevel,
+        String className,
+        String worldName,
+        String regionName,
+        int regionLevel,
+        boolean showPerformanceInfo,
+        BossChallengeSidebarInfo bossInfo,
+        DungeonSidebarInfo dungeonInfo,
+        boolean showBuffInfo,
+        List<ActiveBuff> activeBuffs
+    ) {
+        renderSidebar(
+            player,
+            mspt,
+            playerLevel,
+            classExperienceProgress,
+            classLevel,
+            className,
+            0L,
+            worldName,
+            regionName,
+            regionLevel,
+            showPerformanceInfo,
+            bossInfo,
+            dungeonInfo,
+            showBuffInfo,
+            activeBuffs
+        );
     }
 
     /** Dungeon 情報を含めてサイドバーを描画します。 */
@@ -203,6 +240,7 @@ public class PlayerHudView {
             classExperienceProgress,
             classLevel,
             className,
+            0L,
             worldName,
             regionName,
             regionLevel,
@@ -239,6 +277,7 @@ public class PlayerHudView {
         double classExperienceProgress,
         int classLevel,
         String className,
+        long goldAmount,
         String worldName,
         String regionName,
         int regionLevel,
@@ -270,7 +309,7 @@ public class PlayerHudView {
                 ? bossInfo.sidebarLineCount()
                 : dungeonInfo != null ? dungeonInfo.sidebarLineCount() : 0;
         List<String> buffLines = buildBuffLines(activeBuffs, showBuffInfo, challengeLineCount);
-        int fixedLineCount = 8 + challengeLineCount + buffLines.size();
+        int fixedLineCount = 9 + challengeLineCount + buffLines.size();
         boolean renderPerformance = showPerformanceInfo && SIDEBAR_LINE_LIMIT - fixedLineCount >= 2;
 
         List<String> lines = new ArrayList<>(SIDEBAR_LINE_LIMIT);
@@ -278,19 +317,21 @@ public class PlayerHudView {
                 + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers());
         if (renderPerformance) {
             lines.add(msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", mspt));
-            lines.add(pingLegacyColor(ping) + "通信遅延" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms");
+            lines.add(pingLegacyColor(ping) + "PING" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms");
         }
         lines.add(ColorCodeUtil.BLUE + "ワールド" + ColorCodeUtil.GRAY + ": "
                 + ColorCodeUtil.toLegacyText(worldName, "不明"));
-        lines.add(ColorCodeUtil.GREEN + "地域" + ColorCodeUtil.GRAY + ": "
+        lines.add(ColorCodeUtil.GREEN + "エリア" + ColorCodeUtil.GRAY + ": "
                 + ColorCodeUtil.toLegacyText(regionName, "不明"));
-        lines.add(ColorCodeUtil.GOLD + "地域レベル" + ColorCodeUtil.GRAY + ": "
+        lines.add(ColorCodeUtil.GOLD + "エリアレベル" + ColorCodeUtil.GRAY + ": "
                 + "Lv." + ColorCodeUtil.YELLOW + Math.max(0, regionLevel));
         lines.add(buildSeparator("player"));
         lines.add(ColorCodeUtil.GOLD + "レベル" + ColorCodeUtil.GRAY + ": " + "Lv." + ColorCodeUtil.YELLOW + playerLevel);
         lines.add(ColorCodeUtil.DARK_AQUA + "クラス" + ColorCodeUtil.GRAY + ": " + className
                 + ColorCodeUtil.GRAY + " Lv." + ColorCodeUtil.YELLOW + classLevel);
         lines.add(buildExperienceBar("EXP", classExperienceProgress, ColorCodeUtil.AQUA));
+        lines.add(ColorCodeUtil.GOLD + "Gold" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
+                + Math.max(0L, goldAmount) + "G");
         lines.addAll(buffLines);
         if (bossInfo != null) {
             appendBossInfo(lines, bossInfo);
@@ -384,7 +425,7 @@ public class PlayerHudView {
             return List.of();
         }
 
-        int availableEntries = Math.max(0, SIDEBAR_LINE_LIMIT - 8 - challengeLineCount - 1);
+        int availableEntries = Math.max(0, SIDEBAR_LINE_LIMIT - 9 - challengeLineCount - 1);
         int displayCount = Math.min(Math.min(BUFF_DISPLAY_LIMIT, activeBuffs.size()), availableEntries);
         if (displayCount == 0) {
             return List.of();
