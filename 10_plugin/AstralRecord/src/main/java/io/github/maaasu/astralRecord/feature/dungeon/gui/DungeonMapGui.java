@@ -33,7 +33,6 @@ public final class DungeonMapGui {
     public static final int DIRECTION_SLOT = 47;
     public static final int CLOSE_SLOT = 49;
     public static final int NEXT_SLOT = 51;
-    public static final int EMERGENCY_TELEPORT_SLOT = 53;
     private final DungeonMapLayoutPlanner layoutPlanner = new DungeonMapLayoutPlanner();
 
     /** 現在スナップショットを指定ページで表示します。 */
@@ -105,7 +104,6 @@ public final class DungeonMapGui {
                     PlayerMsgResource.getComponent(PlayerMsgId.P_7042.getId()),
                     List.of()));
         }
-        inventory.setItem(EMERGENCY_TELEPORT_SLOT, emergencyTeleportItem(snapshot));
         GuiOpenSupport.open(player, inventory);
     }
 
@@ -191,21 +189,6 @@ public final class DungeonMapGui {
             }
         }
         return 0;
-    }
-
-    private @NotNull ItemStack emergencyTeleportItem(@NotNull DungeonService.MapSnapshot snapshot) {
-        List<Component> lore = new ArrayList<>();
-        lore.add(PlayerMsgResource.getComponent(PlayerMsgId.P_7096.getId()));
-        lore.add(PlayerMsgResource.getComponent(PlayerMsgId.P_7097.getId()));
-        if (snapshot.emergencyCooldownRemainingSeconds() > 0L) {
-            lore.add(PlayerMsgResource.getComponent(PlayerMsgId.P_7095.getId()));
-        } else {
-            lore.add(PlayerMsgResource.getComponent(PlayerMsgId.P_7098.getId()));
-        }
-        return GuiItems.create(
-                Material.ENDER_PEARL,
-                PlayerMsgResource.getComponent(PlayerMsgId.P_7092.getId()),
-                lore);
     }
 
     private @NotNull PlayerMsgId roomTypeMessage(@NotNull DungeonRoomType type) {

@@ -355,6 +355,30 @@ class DungeonInteractionEventHandlerTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 5. 離脱・再参加・中止
+     * 検証契約: 中止確認GUI右下の緊急転送ボタンは緊急転送処理へ委譲する。
+     */
+    @Test
+    void delegatesCancelGuiEmergencyTeleportClick() {
+        TestContext context = new TestContext();
+        InventoryClickEvent event = mock(InventoryClickEvent.class);
+        UUID sessionId = UUID.randomUUID();
+        when(event.getView()).thenReturn(context.view);
+        when(event.getWhoClicked()).thenReturn(context.player);
+        when(event.getRawSlot()).thenReturn(DungeonCancelGui.EMERGENCY_TELEPORT_SLOT);
+        when(context.cancelGui.isInventory(context.top)).thenReturn(true);
+        when(context.cancelGui.sessionId(context.top)).thenReturn(sessionId);
+        when(context.service.handleEmergencyTeleportButton(context.player, sessionId))
+                .thenReturn(DungeonService.EmergencyTeleportResult.SELECTION_OPENED);
+
+        context.handler.onInventoryClick(event);
+
+        verify(event).setCancelled(true);
+        verify(context.service).handleEmergencyTeleportButton(context.player, sessionId);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 6. クリア報酬と30秒回収
      * 検証契約: 報酬GUI表示中のplayer inventory clickを共通HotbarShortcut契約へ委譲する。
      */

@@ -19,6 +19,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
 class DungeonMapGuiTest extends MockBukkitTestBase {
     /**
@@ -64,8 +65,7 @@ class DungeonMapGuiTest extends MockBukkitTestBase {
         assertItem(inventory, placementByRoom.get(303).slot(), Material.RECOVERY_COMPASS, "現在地");
         assertItem(inventory, placementByRoom.get(404).slot(), Material.LIME_STAINED_GLASS_PANE, "攻略済みの部屋");
         assertItem(inventory, DungeonMapGui.DIRECTION_SLOT, Material.ARROW, "↓ 南");
-        assertItem(inventory, DungeonMapGui.EMERGENCY_TELEPORT_SLOT, Material.ENDER_PEARL,
-                "緊急時の未踏査区画への移動");
+        assertNull(inventory.getItem(53));
         assertEquals(404, new DungeonMapGui().holder(inventory)
                 .roomIdAt(placementByRoom.get(404).slot()));
         for (ItemStack item : inventory.getContents()) {

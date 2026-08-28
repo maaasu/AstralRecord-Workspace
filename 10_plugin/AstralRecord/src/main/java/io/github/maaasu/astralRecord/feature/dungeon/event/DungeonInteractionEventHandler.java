@@ -192,7 +192,8 @@ public final class DungeonInteractionEventHandler extends AbstractEventHandler
             return;
         }
         GuiSound.OPEN.play(player);
-        service.cancelGui().open(player, sessionId);
+        service.cancelGui().open(
+                player, sessionId, service.emergencyCooldownRemainingSeconds(sessionId));
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
@@ -202,9 +203,14 @@ public final class DungeonInteractionEventHandler extends AbstractEventHandler
         if (service.cancelGui().isInventory(event.getView().getTopInventory())) {
             event.setCancelled(true);
             if (HotbarShortcutClickSupport.handle(event, player, inventoryService)) return;
-            if (event.getRawSlot() != io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonCancelGui.CANCEL_SLOT) return;
             UUID sessionId = service.cancelGui().sessionId(event.getView().getTopInventory());
             if (sessionId == null) return;
+            if (event.getRawSlot()
+                    == io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonCancelGui.EMERGENCY_TELEPORT_SLOT) {
+                handleEmergencyTeleportButton(player, sessionId);
+                return;
+            }
+            if (event.getRawSlot() != io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonCancelGui.CANCEL_SLOT) return;
             DungeonService.CancelResult result = service.cancelForLeader(player.getUniqueId(), sessionId);
             switch (result) {
                 case CANCELLED -> PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7030);
@@ -239,18 +245,6 @@ public final class DungeonInteractionEventHandler extends AbstractEventHandler
                 service.openMapPage(player, mapHolder.sessionId(), mapHolder.pageIndex() - 1);
             } else if (event.getRawSlot() == DungeonMapGui.NEXT_SLOT) {
                 service.openMapPage(player, mapHolder.sessionId(), mapHolder.pageIndex() + 1);
-            } else if (event.getRawSlot() == DungeonMapGui.EMERGENCY_TELEPORT_SLOT) {
-                DungeonService.EmergencyTeleportResult result = service.handleEmergencyTeleportButton(
-                        player, mapHolder.sessionId());
-                if (result == DungeonService.EmergencyTeleportResult.TELEPORTING) {
-                    player.closeInventory();
-                } else if (result != DungeonService.EmergencyTeleportResult.SELECTION_OPENED) {
-                    PlayerMessageService.getInstance().send(player, result
-                            == DungeonService.EmergencyTeleportResult.COOLDOWN
-                            ? PlayerMsgId.P_7095
-                            : PlayerMsgId.P_7102);
-                    GuiSound.DENY.play(player);
-                }
             } else {
                 Integer roomId = mapHolder.roomIdAt(event.getRawSlot());
                 if (roomId != null) {
@@ -331,6 +325,19 @@ public final class DungeonInteractionEventHandler extends AbstractEventHandler
             service.openArchiveDetails(
                     player, detailHolder.accountId(), detailHolder.dungeonId(),
                     detailHolder.listPageIndex(), detailHolder.pageIndex() + 1);
+        }
+    }
+
+    private void handleEmergencyTeleportButton(@NotNull Player player, @NotNull UUID sessionId) {
+        DungeonService.EmergencyTeleportResult result = service.handleEmergencyTeleportButton(player, sessionId);
+        if (result == DungeonService.EmergencyTeleportResult.TELEPORTING) {
+            player.closeInventory();
+        } else if (result != DungeonService.EmergencyTeleportResult.SELECTION_OPENED) {
+            PlayerMessageService.getInstance().send(player, result
+                    == DungeonService.EmergencyTeleportResult.COOLDOWN
+                    ? PlayerMsgId.P_7095
+                    : PlayerMsgId.P_7102);
+            GuiSound.DENY.play(player);
         }
     }
 

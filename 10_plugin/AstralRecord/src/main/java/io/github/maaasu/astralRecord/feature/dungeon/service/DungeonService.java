@@ -1738,20 +1738,22 @@ public final class DungeonService {
     }
 
     /**
-     * カルトグラフの緊急移動ボタンを処理します。
+     * 緊急移動ボタンを処理します。
      * 未踏査区画が一つなら直ちに移動し、複数なら選択 GUI を開きます。
      *
      * @param player 操作プレイヤー
-     * @param sessionId カルトグラフが表示するセッション ID
+     * @param sessionId 緊急移動対象のセッション ID
      * @return 受理結果
      */
     public @NotNull EmergencyTeleportResult handleEmergencyTeleportButton(
             @NotNull Player player,
             @NotNull UUID sessionId
     ) {
-        MapSnapshot snapshot = mapSnapshot(player, sessionId);
         Session session = sessionsById.get(sessionId);
-        if (snapshot == null || session == null) {
+        if (session == null || session.ending || session.layout == null || session.instanceWorld == null
+                || !session.id.equals(sessionIdByParticipant.get(player.getUniqueId()))
+                || !session.participants.contains(player.getUniqueId())
+                || !player.getWorld().getUID().equals(session.instanceWorld.world().getUID())) {
             return EmergencyTeleportResult.INVALID;
         }
         if (isEmergencyTeleportCoolingDown(session)) {
@@ -1768,6 +1770,18 @@ public final class DungeonService {
         return startEmergencyTeleport(session, player, options.getFirst().roomId())
                 ? EmergencyTeleportResult.TELEPORTING
                 : EmergencyTeleportResult.INVALID;
+    }
+
+    /**
+     * 指定ダンジョンの緊急転送クールダウン残秒を返します。
+     *
+     * @param sessionId 対象セッション ID
+     * @return 残り秒数。不明なセッションなら {@code 0}
+     */
+    public long emergencyCooldownRemainingSeconds(@NotNull UUID sessionId) {
+        Session session = sessionsById.get(sessionId);
+        if (session == null) return 0L;
+        return Math.max(0L, (session.emergencyCooldownEndsAtMs - System.currentTimeMillis() + 999L) / 1_000L);
     }
 
     /** 緊急未踏査区画の選択 GUI を指定ページで再表示します。 */
