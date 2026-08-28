@@ -61,6 +61,7 @@ usableSkills:
   - skill:adventurer_mana_burst
   - skill:adventurer_lightning_bolt
   - skill:mage_fireball
+  - skill:mage_heal_aura
 tags:
   - tier1
   - magic

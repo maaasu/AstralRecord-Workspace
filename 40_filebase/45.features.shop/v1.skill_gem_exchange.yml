@@ -188,3 +188,13 @@ items:
       - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1
+  - id: heal_aura_from_raw
+    itemId: { ref: item:00_skill_gem_mage_heal_aura }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 18
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 1

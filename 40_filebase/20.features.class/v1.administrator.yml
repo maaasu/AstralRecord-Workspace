@@ -84,6 +84,7 @@ usableSkills:
   - skill:swordsman_last_shield
   - skill:hunter_arrow_rain
   - skill:hunter_heal_arrow
+  - skill:mage_heal_aura
 tags:
   - administrator
   - command-only

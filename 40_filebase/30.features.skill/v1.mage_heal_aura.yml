@@ -1,0 +1,53 @@
+# design:
+#   motif: "魔術 / 癒しの輪"
+#   progression: 2
+schemaVersion: 1
+id: mage_heal_aura
+type: SKILL
+implementationId: mage_heal_aura
+name: "&dヒールオーラ"
+description: "&7周囲を即時回復する短周期の支援魔法。"
+icon: AMETHYST_CLUSTER
+lore:
+  - "&7自身を中心とした半径{skill.radius}mのプレイヤー全員を即時に{skill.healAmount}回復する。"
+  - "&7範囲は紫色の魔法陣で表示される。"
+cooldownTicks: 40
+resourceType: MANA
+resourceCost: 6
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    cooldownTicksDelta: -2
+    paramDeltas: { healAmount: 1 }
+  - level: 3
+    cooldownTicksDelta: -2
+    paramDeltas: { healAmount: 1 }
+  - level: 4
+    cooldownTicksDelta: -2
+    paramDeltas: { healAmount: 1 }
+  - level: 5
+    cooldownTicksDelta: -2
+    paramDeltas: { healAmount: 1 }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+onCast:
+  sound: block.beacon.power_select
+params:
+  radius: 4.0
+  height: 3.0
+  healAmount: 5.0
+tags:
+  - active
+  - magic
+  - support

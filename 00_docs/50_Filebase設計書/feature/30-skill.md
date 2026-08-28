@@ -33,8 +33,9 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 |:--|:--|:--|:--|
 | `adventurer` | 近接・間接・魔法の基礎操作を試す見習い | `ENERGY` / `MANA` | 扇形、単体飛翔体、単体対象 |
 | `hunter` | 散弾・移動・着弾地点制圧・シールド破壊・回復支援を扱う遠距離職 | `ENERGY` + `MANA` | 複数短射程飛翔体、単体飛翔体、発射後移動、重力弾道範囲、着弾回復エリア |
+| `mage` | 魔法攻撃と短周期の範囲回復を扱う遠距離職 | `MANA` | 前方魔法、条件付き連鎖、着弾範囲、発動者中心の即時回復範囲 |
 
-現行定義は冒険者の6skill、ハンターの `hunter_fade_shot` / `hunter_arrow_rain` / `hunter_crash_arrow` / `hunter_heal_arrow`、ソードマンの `swordsman_shield_drain` / `swordsman_bastion_strike` / `swordsman_flame_rush` / `swordsman_challenging_roar` / `swordsman_last_shield`、シールドリチャージ用の `administrator_shield_recharge` を含みます。フェイドショットとアローレインはハンターの `usableSkills` から初期使用許可を与え、クラッシュアローはskilltree node `1212`、ヒールアローはskilltree node `1213` から使用許可を与えます。シールドドレインとチャレンジングロアはソードマンの `usableSkills` から初期使用許可を与えます。バスティオンストライク、シールドリチャージ、フレイムラッシュ、ラストシールドは、それぞれskilltree node `1203` / `1202` / `1204` / `1211` からソードマンへ使用許可を与えます。Administratorの `usableSkills` には検証用の使用許可を残します。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
+現行定義は冒険者の6skill、ハンターの `hunter_fade_shot` / `hunter_arrow_rain` / `hunter_crash_arrow` / `hunter_heal_arrow`、メイジの `mage_fireball` / `mage_heal_aura`、ソードマンの `swordsman_shield_drain` / `swordsman_bastion_strike` / `swordsman_flame_rush` / `swordsman_challenging_roar` / `swordsman_last_shield`、シールドリチャージ用の `administrator_shield_recharge` を含みます。フェイドショットとアローレインはハンターの `usableSkills` から初期使用許可を与え、クラッシュアローはskilltree node `1212`、ヒールアローはskilltree node `1213` から使用許可を与えます。メイジのファイアーボールとヒールオーラ、ソードマンのシールドドレインとチャレンジングロアは、それぞれの `usableSkills` から初期使用許可を与えます。バスティオンストライク、シールドリチャージ、フレイムラッシュ、ラストシールドは、それぞれskilltree node `1203` / `1202` / `1204` / `1211` からソードマンへ使用許可を与えます。Administratorの `usableSkills` には検証用の使用許可を残します。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
 
 ハンターの `hunter_fade_shot` は、5本の短射程飛翔体と安全確認付きバックステップを同時に扱う機動射撃です。ハンターの `usableSkills` から直接使用許可を配布し、習得用ジェムは `skill_gem_exchange` で無印原石から交換します。`hunter_arrow_rain` はハンターの `usableSkills` から初期使用許可を与え、`hunter_heal_arrow` は skilltree node `1213` からハンターへ使用許可を与え、ハンターの `usableSkills` には追加しません。
 
@@ -52,6 +53,8 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 `swordsman_last_shield` は、シールドを破壊する `NORMAL_ATTACK` / `SKILL` の直接攻撃を1回だけ無効化するバインド必須パッシブです。クールダウンは120秒で、表示アイコンは `BEACON` とします。無効化時はシールドを消費せず、HPダメージ・ノックバック・耐久消費も発生しません。状態異常DoTと環境ダメージは対象外です。
 
 `hunter_arrow_rain` は2秒詠唱後に重力のある初弾を放ち、Mobまたはblockへの着弾地点を中心にLv.1で半径3m・45本、Lv.5で半径5m・81本の雨矢を3本/tickで降らせます。雨矢は初弾の正確な着弾Y以上にあるblockを貫通し、着弾Yより低い位置では従来どおり最初のblockで消滅します。初弾と雨矢は `RANGED` / `NONE` で、Lv.1基礎倍率は70% / 30%です。主ENG 16と副MP 8を同時消費し、クールダウンは12秒です。ハンターclassで初期使用許可を与え、習得個体は交換ジェムから作成します。
+`mage_fireball` は、射程16mの火球を最初のMobまたはBlockへ着弾させ、半径2.25m・最大4体へ火属性の範囲攻撃を行うメイジの初期魔法です。MP 12、4秒のクールダウン、0.2秒詠唱で、最大Lv.5では基礎倍率110%へレベル補正を加えます。メイジclassとAdministratorで使用許可を与え、習得個体は `skill_gem_exchange` の無印原石1個交換から作成します。
+`mage_heal_aura` は、発動者を中心に水平半径4m・上下3m以内のゲームプレイ中プレイヤー全員を即時回復するメイジの短周期支援魔法です。回復量はLv.1の5からLv.5の9まで、消費MPは6、クールダウンはLv.1の2秒からLv.5の1.6秒まで短縮します。範囲輪郭は紫色の粒子リングで示し、実際に回復したプレイヤーへ追加の回復粒子を表示します。メイジclassとAdministratorで使用許可を与え、習得個体は `skill_gem_exchange` の無印原石1個交換から作成します。攻撃を行わないためDPS算出対象外です。
 `hunter_spell_step` は、`ranged` タグ付きスキルの成功後20tick以内に行う次のドッジを1回だけEN消費0にするバインド必須パッシブです。無料化成立時は `block.beacon.power_select` を再生し、通常のドッジ移動・成功通知・演出は維持します。ハンターではskilltree node `1207`、ジェムは `skill_gem_exchange` の無印原石1個交換から使用を許可します。攻撃を行わないためDPS算出対象外です。
 
 ## Administrator専用のドッジ連動パッシブ

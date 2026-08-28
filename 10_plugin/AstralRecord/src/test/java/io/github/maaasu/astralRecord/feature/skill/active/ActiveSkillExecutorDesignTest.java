@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.Hunter
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterArrowRainExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterCrashArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageFireballExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageHealAuraExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanBastionStrikeExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanShieldDrainExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanFlameRushExecutor;
@@ -53,6 +54,7 @@ class ActiveSkillExecutorDesignTest {
         "hunter_crash_arrow",
         "hunter_heal_arrow",
         "mage_fireball",
+        "mage_heal_aura",
         "swordsman_shield_drain",
         "swordsman_flame_rush",
         "swordsman_challenging_roar",
@@ -63,7 +65,7 @@ class ActiveSkillExecutorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載15 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載16 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {
@@ -453,6 +455,32 @@ class ActiveSkillExecutorDesignTest {
         assertEquals("damageRatios", exception.key());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 22. メイジ ヒールオーラの実装契約
+     * 検証契約: ヒールオーラは正の範囲・高さ・回復量を必須とする。
+     */
+    @Test
+    void healAuraValidatesImmediateHealParams() {
+        MageHealAuraExecutor executor = new MageHealAuraExecutor(activeSkillServices());
+
+        assertDoesNotThrow(() -> executor.validateParams(healAuraDefinition(Map.of(
+                "radius", 4.0D,
+                "height", 3.0D,
+                "healAmount", 5.0D
+        ))));
+
+        SkillParameterException exception = assertThrows(
+                SkillParameterException.class,
+                () -> executor.validateParams(healAuraDefinition(Map.of(
+                        "radius", 4.0D,
+                        "height", 0.0D,
+                        "healAmount", 5.0D
+                )))
+        );
+        assertEquals("height", exception.key());
+    }
+
     private static SkillDefinition astralEdgeDefinition(Map<String, Object> params) {
         return new SkillDefinition(
                 "adventurer_astral_edge",
@@ -718,6 +746,30 @@ class ActiveSkillExecutorDesignTest {
                 true,
                 SkillResourceType.ENERGY,
                 16.0D
+        );
+    }
+
+    private static SkillDefinition healAuraDefinition(Map<String, Object> params) {
+        return new SkillDefinition(
+                "mage_heal_aura",
+                "mage_heal_aura",
+                "ヒールオーラ",
+                null,
+                "AMETHYST_CLUSTER",
+                List.of(),
+                40L,
+                0.0D,
+                0L,
+                1,
+                null,
+                params,
+                List.of("active", "magic", "support"),
+                SkillKind.ACTIVE,
+                true,
+                SkillResourceType.MANA,
+                6.0D,
+                null,
+                5
         );
     }
 

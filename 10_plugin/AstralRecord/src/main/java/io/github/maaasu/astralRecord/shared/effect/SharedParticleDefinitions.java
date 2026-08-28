@@ -515,6 +515,37 @@ public final class SharedParticleDefinitions {
             0.24D,
             0.02D
         );
+    public static final SharedParticleDefinition MAGE_HEAL_AURA_RING =
+        new SharedParticleDefinition(
+            "mage_heal_aura_ring",
+            Particle.DUST,
+            2,
+            0.02D,
+            0.02D,
+            0.02D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(220, 130, 255), 1.1F)
+        );
+    public static final SharedParticleDefinition MAGE_HEAL_AURA_PULSE =
+        new SharedParticleDefinition(
+            "mage_heal_aura_pulse",
+            Particle.ENCHANT,
+            18,
+            0.45D,
+            0.65D,
+            0.45D,
+            0.05D
+        );
+    public static final SharedParticleDefinition MAGE_HEAL_AURA_HEAL =
+        new SharedParticleDefinition(
+            "mage_heal_aura_heal",
+            Particle.HAPPY_VILLAGER,
+            6,
+            0.20D,
+            0.35D,
+            0.20D,
+            0.02D
+        );
     public static final SharedParticleDefinition SKILL_MAGE_FIRE =
         new SharedParticleDefinition("skill_mage_fire", Particle.FLAME, 2, 0.06D, 0.06D, 0.06D, 0.01D);
     public static final SharedParticleDefinition MAGE_FIREBALL_TRAIL =
