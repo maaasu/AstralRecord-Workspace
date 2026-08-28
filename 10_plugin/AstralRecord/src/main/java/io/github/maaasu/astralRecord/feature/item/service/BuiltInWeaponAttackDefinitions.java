@@ -154,6 +154,7 @@ public final class BuiltInWeaponAttackDefinitions {
         params.put("displayScale", displayScale);
         params.put("displayForwardOffset", 0.15D);
         params.put("displayModelPitchDegrees", 90.0D);
+        params.put("displayModelRollDegrees", 45.0D);
         if (secondaryTrailParticle != null) {
             params.put("secondaryTrailParticle", secondaryTrailParticle);
         }

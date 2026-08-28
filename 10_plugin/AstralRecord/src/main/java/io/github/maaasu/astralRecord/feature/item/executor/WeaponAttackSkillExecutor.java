@@ -183,6 +183,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         requireNonNegativeDouble(skill, "displayForwardOffset");
         requireNonNegativeDouble(skill, "displaySpinDegrees");
         requireNonNegativeDouble(skill, "displayModelPitchDegrees");
+        requireNonNegativeDouble(skill, "displayModelRollDegrees");
     }
 
     /**
@@ -318,12 +319,14 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         double displayForwardOffset = readDoubleParam(skill, "displayForwardOffset", 0.0D);
         double displaySpinDegrees = readDoubleParam(skill, "displaySpinDegrees", 0.0D);
         double displayModelPitchDegrees = readDoubleParam(skill, "displayModelPitchDegrees", 0.0D);
+        double displayModelRollDegrees = readDoubleParam(skill, "displayModelRollDegrees", 0.0D);
         ItemDisplay projectileDisplay = spawnProjectileDisplay(
             skill,
             startLocation,
             velocity,
             displayScale,
-            displayModelPitchDegrees
+            displayModelPitchDegrees,
+            displayModelRollDegrees
         );
 
         final BukkitTask[] taskHolder = new BukkitTask[1];
@@ -371,6 +374,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                     displayForwardOffset,
                     displaySpinDegrees,
                     displayModelPitchDegrees,
+                    displayModelRollDegrees,
                     tick
                 );
 
@@ -651,7 +655,8 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         @NotNull Location location,
         @NotNull Vector velocity,
         float scale,
-        double modelPitchDegrees
+        double modelPitchDegrees,
+        double modelRollDegrees
     ) {
         Object rawMaterial = skill.getParams().get("displayMaterial");
         Material material = rawMaterial instanceof String value ? MaterialNameResolver.match(value) : null;
@@ -674,7 +679,11 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             entity.setShadowStrength(0.0F);
             entity.setTeleportDuration(1);
             entity.setInterpolationDuration(1);
-            entity.setTransformation(displayTransformation(scale, Math.toRadians(modelPitchDegrees), 0.0D));
+            entity.setTransformation(displayTransformation(
+                scale,
+                Math.toRadians(modelPitchDegrees),
+                Math.toRadians(modelRollDegrees)
+            ));
         });
         activeProjectileDisplays.add(display);
         return display;
@@ -688,6 +697,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         double forwardOffset,
         double spinDegrees,
         double modelPitchDegrees,
+        double modelRollDegrees,
         int tick
     ) {
         if (display == null || !display.isValid()) {
@@ -704,7 +714,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             display.setTransformation(displayTransformation(
                 scale,
                 Math.toRadians(modelPitchDegrees),
-                Math.toRadians(spinDegrees * tick)
+                Math.toRadians(modelRollDegrees + spinDegrees * tick)
             ));
         }
     }
