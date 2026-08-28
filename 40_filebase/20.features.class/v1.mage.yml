@@ -60,6 +60,7 @@ expRate: 100
 usableSkills:
   - skill:adventurer_mana_burst
   - skill:adventurer_lightning_bolt
+  - skill:mage_fireball
 tags:
   - tier1
   - magic

@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.Ad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterFadeShotExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterArrowRainExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterCrashArrowExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageFireballExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanBastionStrikeExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanShieldDrainExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanFlameRushExecutor;
@@ -51,6 +52,7 @@ class ActiveSkillExecutorDesignTest {
         "hunter_fade_shot",
         "hunter_crash_arrow",
         "hunter_heal_arrow",
+        "mage_fireball",
         "swordsman_shield_drain",
         "swordsman_flame_rush",
         "swordsman_challenging_roar",
@@ -61,7 +63,7 @@ class ActiveSkillExecutorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載14 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載15 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {
@@ -324,6 +326,38 @@ class ActiveSkillExecutorDesignTest {
                 )))
         );
         assertEquals("burningChance", exception.key());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 21. メイジファイアーボールの実装契約 > ### 21.1 数値・対象・終端
+     * 検証契約: ファイアーボールは正の射程・爆発半径・火属性倍率・飛翔体値と、1体以上の範囲上限を要求する。
+     */
+    @Test
+    void fireballValidatesProjectileAndImpactParams() {
+        MageFireballExecutor executor = new MageFireballExecutor(activeSkillServices());
+
+        assertDoesNotThrow(() -> executor.validateParams(fireballDefinition(Map.of(
+                "range", 16.0D,
+                "radius", 2.25D,
+                "damageRatio", 1.10D,
+                "maxTargets", 4,
+                "projectileSpeed", 1.45D,
+                "projectileHitRadius", 0.45D
+        ))));
+
+        SkillParameterException exception = assertThrows(
+                SkillParameterException.class,
+                () -> executor.validateParams(fireballDefinition(Map.of(
+                        "range", 16.0D,
+                        "radius", 2.25D,
+                        "damageRatio", 1.10D,
+                        "maxTargets", 0,
+                        "projectileSpeed", 1.45D,
+                        "projectileHitRadius", 0.45D
+                )))
+        );
+        assertEquals("maxTargets", exception.key());
     }
 
     /**
@@ -594,6 +628,30 @@ class ActiveSkillExecutorDesignTest {
                 14.0D,
                 null,
                 10
+        );
+    }
+
+    private static SkillDefinition fireballDefinition(Map<String, Object> params) {
+        return new SkillDefinition(
+                "mage_fireball",
+                "mage_fireball",
+                "ファイアーボール",
+                null,
+                "FIRE_CHARGE",
+                List.of(),
+                80L,
+                4.0D,
+                4L,
+                1,
+                null,
+                params,
+                List.of("active", "magic", "mage", "fire"),
+                SkillKind.ACTIVE,
+                true,
+                SkillResourceType.MANA,
+                12.0D,
+                null,
+                5
         );
     }
 

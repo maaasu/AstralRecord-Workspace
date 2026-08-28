@@ -74,6 +74,7 @@ usableSkills:
   - skill:adventurer_meditation
   - skill:adventurer_quick_shot
   - skill:adventurer_lightning_bolt
+  - skill:mage_fireball
   - skill:hunter_fade_shot
   - skill:hunter_crash_arrow
   - skill:swordsman_bastion_strike

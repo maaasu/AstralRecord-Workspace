@@ -517,6 +517,28 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition SKILL_MAGE_FIRE =
         new SharedParticleDefinition("skill_mage_fire", Particle.FLAME, 2, 0.06D, 0.06D, 0.06D, 0.01D);
+    public static final SharedParticleDefinition MAGE_FIREBALL_TRAIL =
+        new SharedParticleDefinition(
+            "mage_fireball_trail",
+            Particle.DUST,
+            12,
+            0.14D,
+            0.14D,
+            0.14D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 125, 12), 1.35F)
+        );
+    public static final SharedParticleDefinition MAGE_FIREBALL_IMPACT =
+        new SharedParticleDefinition(
+            "mage_fireball_impact",
+            Particle.DUST,
+            18,
+            0.22D,
+            0.22D,
+            0.22D,
+            0.03D,
+            new Particle.DustOptions(Color.fromRGB(255, 58, 10), 1.65F)
+        );
     public static final SharedParticleDefinition SKILL_MAGE_ICE =
         new SharedParticleDefinition("skill_mage_ice", Particle.SNOWFLAKE, 2, 0.06D, 0.06D, 0.06D, 0.01D);
     public static final SharedParticleDefinition SKILL_MAGE_LIGHTNING =

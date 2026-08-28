@@ -1,0 +1,58 @@
+# design:
+#   motif: "炎魔術 / 火球"
+#   progression: 1
+schemaVersion: 1
+id: mage_fireball
+type: SKILL
+implementationId: mage_fireball
+name: "&6ファイアーボール"
+description: "&7火球を放ち、着弾地点を小爆発で焼く魔法。"
+icon: FIRE_CHARGE
+lore:
+  - "&7射程{skill.range}mへ火球を放つ。"
+  - "&7着弾地点の半径{skill.radius}mへ、魔法攻撃力{skill.effectiveDamageRatio:percent}%の火属性ダメージ。"
+  - "&7最大{skill.maxTargets}体。敵または地形への着弾時だけ小爆発する。"
+cooldownTicks: 80
+resourceType: MANA
+resourceCost: 12
+castTimeTicks: 4
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 3
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 4
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 5
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+onCast:
+  sound: entity.blaze.shoot
+tags:
+  - active
+  - magic
+  - mage
+  - fire
+# behavior:
+#   projectile: "発動時の照準方向へ射程16mを飛翔する、重力なし・非貫通の火球。最初の敵または地形ブロックへ衝突すると消滅し、最大射程へ無衝突で到達した場合は爆発せず消滅する。"
+#   impact: "衝突地点を中心に半径radius、上下radiusの範囲から最大maxTargets体へ、中心・外周で差のないFIRE属性の魔法攻撃を1回与える。持続エリア、状態異常、ノックバックは発生しない。"
+#   targets: "Mobのみを対象にし、NPCとPvP対象を含めない。Bossは通常Mobと同じく対象になる。中心から対象へのブロック遮蔽がある敵は命中しない。"
+params:
+  range: 16.0
+  radius: 2.25
+  damageRatio: 1.10
+  maxTargets: 4
+  projectileSpeed: 1.45
+  projectileHitRadius: 0.45
