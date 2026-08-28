@@ -7,9 +7,10 @@ type: SKILL
 implementationId: swordsman_last_shield
 name: "&bラストシールド"
 description: "&7シールド破壊を防ぐ防御パッシブ。"
-icon: SHIELD
+icon: BEACON
 lore:
   - "&7シールドを破壊する直接攻撃を1回だけ無効化する。"
+  - "&7クールタイムは120秒。"
   - "&7状態異常DoT、環境ダメージは無効化しない。"
 cooldownTicks: 2400
 resourceType: MANA

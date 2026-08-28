@@ -78,6 +78,7 @@ usableSkills:
   - skill:swordsman_shield_drain
   - skill:swordsman_flame_rush
   - skill:swordsman_challenging_roar
+  - skill:swordsman_last_shield
 tags:
   - administrator
   - command-only
