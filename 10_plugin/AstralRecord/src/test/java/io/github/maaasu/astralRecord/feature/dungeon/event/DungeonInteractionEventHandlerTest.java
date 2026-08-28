@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.dungeon.event;
 
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonCancelGui;
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonArchiveGui;
+import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonEmergencyTeleportGui;
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonMapGui;
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonRewardGui;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
@@ -461,6 +462,7 @@ class DungeonInteractionEventHandlerTest {
         private final DungeonCancelGui cancelGui = mock(DungeonCancelGui.class);
         private final DungeonRewardGui rewardGui = mock(DungeonRewardGui.class);
         private final DungeonMapGui mapGui = mock(DungeonMapGui.class);
+        private final DungeonEmergencyTeleportGui emergencyTeleportGui = mock(DungeonEmergencyTeleportGui.class);
         private final DungeonArchiveGui archiveGui = mock(DungeonArchiveGui.class);
         private final InventoryService inventoryService = mock(InventoryService.class);
         private final Player player = mock(Player.class);
@@ -480,6 +482,7 @@ class DungeonInteractionEventHandlerTest {
             when(service.cancelGui()).thenReturn(cancelGui);
             when(service.rewardGui()).thenReturn(rewardGui);
             when(service.mapGui()).thenReturn(mapGui);
+            when(service.emergencyTeleportGui()).thenReturn(emergencyTeleportGui);
             when(service.archiveGui()).thenReturn(archiveGui);
         }
     }
