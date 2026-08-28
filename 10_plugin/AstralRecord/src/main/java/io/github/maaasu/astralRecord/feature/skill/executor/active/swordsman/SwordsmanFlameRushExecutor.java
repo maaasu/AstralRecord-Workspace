@@ -8,7 +8,6 @@ import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondi
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
-import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
@@ -27,14 +26,18 @@ import java.util.List;
 public final class SwordsmanFlameRushExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "swordsman_flame_rush";
+    private static final String HORIZONTAL_SCOPE = ID + ":horizontal";
     private static final double DEFAULT_RANGE = 6.0D;
     private static final double DEFAULT_TARGET_ANGLE = 60.0D;
     private static final int DEFAULT_MAX_TARGETS = 5;
     private static final List<Double> DEFAULT_DAMAGE_RATIOS = List.of(0.65D, 0.75D);
     private static final int DEFAULT_SECOND_HIT_DELAY_TICKS = 4;
-    private static final int DEFAULT_BURNING_UNLOCK_LEVEL = 8;
-    private static final double DEFAULT_BURNING_CHANCE = 35.0D;
+    private static final double DEFAULT_BURNING_CHANCE = 0.0D;
     private static final long DEFAULT_BURNING_DURATION_TICKS = 100L;
+    private static final double[] HORIZONTAL_SWEEP_RADIUS_BASES = {1.6D, 2.7D, 3.8D};
+    private static final double HORIZONTAL_SWEEP_START_ANGLE = 55.0D;
+    private static final double HORIZONTAL_SWEEP_END_ANGLE = -55.0D;
+    private static final int HORIZONTAL_SWEEP_FRAMES = 6;
 
     /** 共有発動スキルサービスで初期化します。 */
     public SwordsmanFlameRushExecutor(@NotNull ActiveSkillServices services) {
@@ -61,13 +64,9 @@ public final class SwordsmanFlameRushExecutor extends PlayerActiveSkillExecutor 
         if (params.getInt("secondHitDelayTicks", -1) < 0) {
             throw new SkillParameterException("secondHitDelayTicks", "フレイムラッシュの2撃目遅延は0以上が必要です");
         }
-        int burningUnlockLevel = params.getInt("burningUnlockLevel", 0);
-        if (burningUnlockLevel < 1 || burningUnlockLevel > skill.getMaxLevel()) {
-            throw new SkillParameterException("burningUnlockLevel", "炎上解放レベルはスキルレベルの範囲内で指定してください");
-        }
         double burningChance = params.getDouble("burningChance", 0.0D);
-        if (!(burningChance > 0.0D && burningChance <= 100.0D)) {
-            throw new SkillParameterException("burningChance", "炎上付与確率は0より大きく100以下が必要です");
+        if (!(burningChance >= 0.0D && burningChance <= 100.0D)) {
+            throw new SkillParameterException("burningChance", "炎上付与確率は0以上100以下が必要です");
         }
         if (params.getInt("burningDurationTicks", 0) < 1) {
             throw new SkillParameterException("burningDurationTicks", "炎上時間は1 tick以上が必要です");
@@ -90,7 +89,7 @@ public final class SwordsmanFlameRushExecutor extends PlayerActiveSkillExecutor 
         List<AstEntity> targets = context.services().targeting()
                 .inCone(player, range, targetAngle, maxTargets, true);
 
-        renderHorizontalSlash(context, origin, range, targetAngle);
+        renderHorizontalSlash(context, player, castWorld, origin, range);
         AstEntity attacker = context.attacker();
         for (AstEntity target : targets) {
             // 初撃は対象位置を保って縦斬りへつなぐため、ノックバックを適用しません。
@@ -137,15 +136,13 @@ public final class SwordsmanFlameRushExecutor extends PlayerActiveSkillExecutor 
             @NotNull PlayerActiveSkillContext context,
             @NotNull SkillParamReader params
     ) {
-        LearnedSkillInstance learnedSkill = context.source().learnedSkill();
-        int learnedLevel = learnedSkill == null ? 1 : learnedSkill.getLevel();
-        int unlockLevel = params.getInt("burningUnlockLevel", DEFAULT_BURNING_UNLOCK_LEVEL);
-        if (learnedLevel < unlockLevel) {
+        double chance = params.getDouble("burningChance", DEFAULT_BURNING_CHANCE);
+        if (chance <= 0.0D) {
             return null;
         }
         return new ActiveSkillCondition(
                 ConditionType.BURNING,
-                params.getDouble("burningChance", DEFAULT_BURNING_CHANCE),
+                chance,
                 params.getInt("burningDurationTicks", (int) DEFAULT_BURNING_DURATION_TICKS),
                 1.0D
         );
@@ -153,18 +150,49 @@ public final class SwordsmanFlameRushExecutor extends PlayerActiveSkillExecutor 
 
     private void renderHorizontalSlash(
             @NotNull PlayerActiveSkillContext context,
+            @NotNull Player player,
+            @NotNull World castWorld,
             @NotNull Location origin,
-            double range,
-            double targetAngle
+            double range
     ) {
-        context.services().effects().viewArcSegment(
-                origin,
-                context.direction(),
-                range,
-                targetAngle / 2.0D,
-                -targetAngle / 2.0D,
-                24,
-                SharedParticleDefinitions.SWORDSMAN_FLAME_RUSH_HORIZONTAL_DUST
+        double[] sweepRadii = scaledSweepRadii(range);
+        var direction = context.direction();
+        context.services().tasks().repeat(
+                player.getUniqueId(),
+                HORIZONTAL_SCOPE,
+                0L,
+                1L,
+                HORIZONTAL_SWEEP_FRAMES,
+                frame -> {
+                    if (!player.isOnline() || player.getWorld() != castWorld) {
+                        context.services().tasks().cancel(player.getUniqueId(), HORIZONTAL_SCOPE);
+                        return;
+                    }
+                    double headStart = HORIZONTAL_SWEEP_START_ANGLE
+                            + (HORIZONTAL_SWEEP_END_ANGLE - HORIZONTAL_SWEEP_START_ANGLE) * frame / HORIZONTAL_SWEEP_FRAMES;
+                    double headEnd = HORIZONTAL_SWEEP_START_ANGLE
+                            + (HORIZONTAL_SWEEP_END_ANGLE - HORIZONTAL_SWEEP_START_ANGLE) * (frame + 1) / HORIZONTAL_SWEEP_FRAMES;
+                    for (double radius : sweepRadii) {
+                        context.services().effects().viewArcSegment(
+                                origin,
+                                direction,
+                                radius,
+                                headStart,
+                                headEnd,
+                                8,
+                                SharedParticleDefinitions.SWORDSMAN_FLAME_RUSH_HORIZONTAL_DUST
+                        );
+                        context.services().effects().viewArcSegment(
+                                origin,
+                                direction,
+                                radius,
+                                headStart,
+                                headEnd,
+                                6,
+                                SharedParticleDefinitions.SWORDSMAN_FLAME_RUSH_HORIZONTAL_FLAME
+                        );
+                    }
+                }
         );
         context.services().effects().sound(origin, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.1F, 1.2F);
     }
@@ -176,8 +204,24 @@ public final class SwordsmanFlameRushExecutor extends PlayerActiveSkillExecutor 
                 0.12D,
                 SharedParticleDefinitions.SWORDSMAN_FLAME_RUSH_VERTICAL_DUST
         );
+        context.services().effects().line(
+                impact.clone().subtract(0.0D, 1.2D, 0.0D),
+                impact.clone().add(0.0D, 1.8D, 0.0D),
+                0.12D,
+                SharedParticleDefinitions.SWORDSMAN_FLAME_RUSH_VERTICAL_FLAME
+        );
+        context.services().effects().point(impact, SharedParticleDefinitions.SWORDSMAN_FLAME_RUSH_VERTICAL_FLAME);
         context.services().effects().point(impact, SharedParticleDefinitions.SKILL_MAGE_FIRE);
         context.services().effects().sound(impact, Sound.ENTITY_PLAYER_ATTACK_STRONG, 1.0F, 1.35F);
+    }
+
+    private static double[] scaledSweepRadii(double range) {
+        double scale = Math.min(range, DEFAULT_RANGE) / DEFAULT_RANGE;
+        double[] radii = new double[HORIZONTAL_SWEEP_RADIUS_BASES.length];
+        for (int i = 0; i < HORIZONTAL_SWEEP_RADIUS_BASES.length; i++) {
+            radii[i] = HORIZONTAL_SWEEP_RADIUS_BASES[i] * scale;
+        }
+        return radii;
     }
 
     private static void requirePositive(@NotNull SkillParamReader params, @NotNull String key) {

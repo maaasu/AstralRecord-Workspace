@@ -7,11 +7,11 @@ type: SKILL
 implementationId: swordsman_flame_rush
 name: "&6フレイムラッシュ"
 description: "&7炎をまとった十字の二連斬り。"
-icon: BLAZE_POWDER
+icon: CRIMSON_ROOTS
 lore:
   - "&7前方{skill.range}mの敵最大{skill.maxTargets}体へ、火属性の近接2連撃。"
   - "&7横薙ぎ{skill.effectiveDamageRatios[0]:percent}% → 縦斬り{skill.effectiveDamageRatios[1]:percent}%。"
-  - "&7Lv.{skill.burningUnlockLevel}から、2撃目で{skill.burningChance}%の確率で{skill.burningDurationTicks:seconds}秒間炎上。"
+  - "&72撃目で{skill.burningChance}%の確率で{skill.burningDurationTicks:seconds}秒間炎上。"
 cooldownTicks: 80
 resourceType: ENERGY
 resourceCost: 14
@@ -33,10 +33,13 @@ levels:
     statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
   - level: 8
     statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+    paramDeltas: { burningChance: 35 }
   - level: 9
     statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+    paramDeltas: { burningChance: 5 }
   - level: 10
     statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+    paramDeltas: { burningChance: 5 }
 sigilSlotsByLevel:
   - { level: 1, slots: 1 }
   - { level: 4, slots: 2 }
@@ -55,8 +58,7 @@ params:
   maxTargets: 5
   damageRatios: [0.65, 0.75]
   secondHitDelayTicks: 4
-  burningUnlockLevel: 8
-  burningChance: 35.0
+  burningChance: 0.0
   burningDurationTicks: 100
 tags:
   - active

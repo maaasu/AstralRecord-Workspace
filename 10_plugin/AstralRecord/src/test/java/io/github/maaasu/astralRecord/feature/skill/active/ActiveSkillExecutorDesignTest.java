@@ -226,7 +226,7 @@ class ActiveSkillExecutorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 11. フレイムラッシュの実装契約
-     * 検証契約: フレイムラッシュは正しい前方範囲・2撃倍率・炎上条件を要求し、範囲外の炎上解放レベルを拒否する。
+     * 検証契約: フレイムラッシュは正しい前方範囲・2撃倍率・炎上条件を要求し、炎上率0%をLv.1〜7の有効値として許可し、負値を拒否する。
      */
     @Test
     void flameRushValidatesTwoHitAndBurningParams() {
@@ -238,8 +238,7 @@ class ActiveSkillExecutorDesignTest {
                 "maxTargets", 5,
                 "damageRatios", List.of(0.65D, 0.75D),
                 "secondHitDelayTicks", 4,
-                "burningUnlockLevel", 8,
-                "burningChance", 35.0D,
+                "burningChance", 0.0D,
                 "burningDurationTicks", 100L
         ))));
 
@@ -251,12 +250,11 @@ class ActiveSkillExecutorDesignTest {
                         "maxTargets", 5,
                         "damageRatios", List.of(0.65D, 0.75D),
                         "secondHitDelayTicks", 4,
-                        "burningUnlockLevel", 11,
-                        "burningChance", 35.0D,
+                        "burningChance", -1.0D,
                         "burningDurationTicks", 100L
                 )))
         );
-        assertEquals("burningUnlockLevel", exception.key());
+        assertEquals("burningChance", exception.key());
     }
 
     /**
@@ -432,7 +430,7 @@ class ActiveSkillExecutorDesignTest {
                 "swordsman_flame_rush",
                 "フレイムラッシュ",
                 null,
-                "BLAZE_POWDER",
+                "CRIMSON_ROOTS",
                 List.of(),
                 80L,
                 0.0D,

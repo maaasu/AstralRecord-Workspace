@@ -350,24 +350,28 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition(
             "swordsman_flame_rush_horizontal_dust",
             Particle.DUST,
-            3,
-            0.05D,
-            0.05D,
-            0.05D,
+            12,
+            0.08D,
+            0.08D,
+            0.08D,
             0.0D,
-            new Particle.DustOptions(Color.fromRGB(255, 130, 25), 1.15F)
+            new Particle.DustOptions(Color.fromRGB(255, 125, 12), 1.8F)
         );
+    public static final SharedParticleDefinition SWORDSMAN_FLAME_RUSH_HORIZONTAL_FLAME =
+        new SharedParticleDefinition("swordsman_flame_rush_horizontal_flame", Particle.FLAME, 8, 0.08D, 0.08D, 0.08D, 0.025D);
     public static final SharedParticleDefinition SWORDSMAN_FLAME_RUSH_VERTICAL_DUST =
         new SharedParticleDefinition(
             "swordsman_flame_rush_vertical_dust",
             Particle.DUST,
-            4,
-            0.05D,
-            0.07D,
-            0.05D,
+            16,
+            0.10D,
+            0.14D,
+            0.10D,
             0.0D,
-            new Particle.DustOptions(Color.fromRGB(255, 55, 20), 1.25F)
+            new Particle.DustOptions(Color.fromRGB(255, 42, 8), 1.95F)
         );
+    public static final SharedParticleDefinition SWORDSMAN_FLAME_RUSH_VERTICAL_FLAME =
+        new SharedParticleDefinition("swordsman_flame_rush_vertical_flame", Particle.FLAME, 14, 0.12D, 0.18D, 0.12D, 0.04D);
     public static final SharedParticleDefinition ADVENTURER_ASTRAL_EDGE_CRIT =
         new SharedParticleDefinition("adventurer_astral_edge_crit", Particle.CRIT, 3, 0.04D, 0.04D, 0.04D, 0.08D);
     public static final SharedParticleDefinition ADVENTURER_ASTRAL_EDGE_SPARK =
