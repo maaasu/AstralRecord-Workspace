@@ -26,6 +26,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillSynthesisMaterialEligibility;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillSynthesisMaterialEligibility.MaterialKind;
@@ -756,9 +757,27 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             session,
             visible,
             allById,
+            permittedSkillDefinitions(astPlayer),
             passiveSkillService.activePassiveSlotCount(astPlayer),
             page
         );
+    }
+
+    /**
+     * 現在のクラスとスキルツリーで使用を許可された定義を GUI 表示順へ整えます。
+     *
+     * @param player 対象プレイヤー
+     * @return 表示可能な使用許可スキル定義
+     */
+    private @NotNull List<SkillDefinition> permittedSkillDefinitions(@NotNull AstPlayer player) {
+        return permissionService.permittedSkillIds(player).stream()
+            .map(skillService.registry()::getDefinition)
+            .filter(Objects::nonNull)
+            .sorted(Comparator
+                .comparing((SkillDefinition definition) ->
+                    SkillPresentationUtil.plainName(definition, "未登録のスキル"))
+                .thenComparing(SkillDefinition::getId))
+            .toList();
     }
 
     private void openSynthesis(

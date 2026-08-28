@@ -1,6 +1,5 @@
 package io.github.maaasu.astralRecord.feature.skill.gui;
 
-import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemSigilModifier;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
@@ -13,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillBindScreen;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindSession;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillSigilSlotDefinition;
@@ -40,6 +40,7 @@ import org.bukkit.inventory.ItemFlag;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
+import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -70,14 +71,22 @@ public final class SkillBindGui {
     public static final int SYNTHESIS_RESULT_SLOT = 24;
 
     private static final Material DEFAULT_SKILL_ICON = Material.AMETHYST_SHARD;
+    private static final int PERMITTED_SKILL_LORE_LIMIT = 6;
     private final NamespacedKey learnedSkillIdKey;
     private final NamespacedKey dummyKey;
     private final ItemService itemService;
     private final SkillService skillService;
     private final ConfirmDialogView confirmDialogView = new ConfirmDialogView();
 
+    /**
+     * Plugin の namespace を利用してスキルマネージャー GUI を構築します。
+     *
+     * @param plugin PDC キーの namespace を提供する Plugin
+     * @param itemService アイテム表示・検索サービス
+     * @param skillService スキル定義・解決サービス
+     */
     public SkillBindGui(
-        @NotNull AstralRecord plugin,
+        @NotNull Plugin plugin,
         @NotNull ItemService itemService,
         @NotNull SkillService skillService
     ) {
@@ -94,6 +103,7 @@ public final class SkillBindGui {
      * @param session 編集中セッション
      * @param entries 表示対象の習得スキル
      * @param entryByBindingId バインド ID ごとの表示対象
+     * @param permittedSkillDefinitions 現在の使用許可スキル定義
      * @param activePassiveSlots 現在有効な passive 枠数
      * @param pageIndex 表示するページ番号
      */
@@ -102,12 +112,20 @@ public final class SkillBindGui {
         @NotNull SkillBindSession session,
         @NotNull List<SkillManagerEntry> entries,
         @NotNull Map<String, SkillManagerEntry> entryByBindingId,
+        @NotNull List<SkillDefinition> permittedSkillDefinitions,
         int activePassiveSlots,
         int pageIndex
     ) {
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(
             player,
-            createMainInventory(session, entries, entryByBindingId, activePassiveSlots, pageIndex)
+            createMainInventory(
+                session,
+                entries,
+                entryByBindingId,
+                permittedSkillDefinitions,
+                activePassiveSlots,
+                pageIndex
+            )
         );
     }
 
@@ -117,6 +135,7 @@ public final class SkillBindGui {
      * @param session 編集中セッション
      * @param entries 表示対象の習得スキル
      * @param entryByBindingId バインド ID ごとの表示対象
+     * @param permittedSkillDefinitions 現在の使用許可スキル定義
      * @param activePassiveSlots 現在有効な passive 枠数
      * @param pageIndex 表示するページ番号
      * @return 表示用の一覧画面 inventory
@@ -125,6 +144,7 @@ public final class SkillBindGui {
         @NotNull SkillBindSession session,
         @NotNull List<SkillManagerEntry> entries,
         @NotNull Map<String, SkillManagerEntry> entryByBindingId,
+        @NotNull List<SkillDefinition> permittedSkillDefinitions,
         int activePassiveSlots,
         int pageIndex
     ) {
@@ -153,6 +173,7 @@ public final class SkillBindGui {
                     index,
                     session.passiveDraft().get(index),
                     entryByBindingId,
+                    permittedSkillDefinitions,
                     session.isSelectedBindSlot(SkillBindType.PASSIVE, index),
                     index < activePassiveSlots
                 )
@@ -164,7 +185,7 @@ public final class SkillBindGui {
         inventory.setItem(
             LEFT_CLICK_BIND_SLOT,
             createBindSlot(
-                SkillBindType.LEFT_CLICK, 0, session.leftClickDraft(), entryByBindingId,
+                SkillBindType.LEFT_CLICK, 0, session.leftClickDraft(), entryByBindingId, permittedSkillDefinitions,
                 session.isSelectedBindSlot(SkillBindType.LEFT_CLICK, 0), true
             )
         );
@@ -173,6 +194,7 @@ public final class SkillBindGui {
                 ACTION_RING_BIND_SLOT_START + index,
                 createBindSlot(
                     SkillBindType.ACTIVE, index, session.activeDraft().get(index), entryByBindingId,
+                    permittedSkillDefinitions,
                     session.isSelectedBindSlot(SkillBindType.ACTIVE, index), true
                 )
             );
@@ -585,6 +607,7 @@ public final class SkillBindGui {
      * @param index 種別内の枠番号
      * @param bindingId バインドされた個体IDまたは通常攻撃予約ID
      * @param entries 表示対象の習得個体一覧
+     * @param permittedSkillDefinitions 現在の使用許可スキル定義
      * @param selected 選択中の枠かどうか
      * @param enabled 現在設定可能な枠かどうか
      * @return バインド枠の表示アイテム
@@ -594,6 +617,7 @@ public final class SkillBindGui {
         int index,
         String bindingId,
         Map<String, SkillManagerEntry> entries,
+        List<SkillDefinition> permittedSkillDefinitions,
         boolean selected,
         boolean enabled
     ) {
@@ -610,6 +634,7 @@ public final class SkillBindGui {
             lore.add(Component.text("設定は保持されますが機能しません。解除のみ可能です。", NamedTextColor.RED));
         } else if (bindingId == null) {
             lore.add(Component.text(enabled ? "クリックして設定先に選択" : "枠数を増やすまで設定不可", NamedTextColor.GRAY));
+            appendPermittedSkillLore(lore, type, permittedSkillDefinitions);
         } else {
             lore.add(Component.text("クリックで解除", NamedTextColor.YELLOW));
         }
@@ -638,6 +663,56 @@ public final class SkillBindGui {
             item.setAmount(index + 1);
         }
         return selected ? glow(item) : item;
+    }
+
+    /**
+     * 空のバインド枠へ、現在の枠種別に対応する使用許可スキルを表示します。
+     *
+     * @param lore 追記対象の lore
+     * @param type バインド種別
+     * @param permittedSkillDefinitions 現在の使用許可スキル定義
+     */
+    private void appendPermittedSkillLore(
+        @NotNull List<Component> lore,
+        @NotNull SkillBindType type,
+        @NotNull List<SkillDefinition> permittedSkillDefinitions
+    ) {
+        List<SkillDefinition> compatible = permittedSkillDefinitions.stream()
+            .filter(definition -> isCompatibleSkill(type, definition))
+            .toList();
+        NamedTextColor headingColor = type == SkillBindType.PASSIVE
+            ? NamedTextColor.LIGHT_PURPLE
+            : NamedTextColor.AQUA;
+        lore.add(separator());
+        lore.add(Component.text("現在の使用許可スキル", headingColor, TextDecoration.BOLD));
+        if (compatible.isEmpty()) {
+            lore.add(Component.text("  なし", NamedTextColor.DARK_GRAY));
+            return;
+        }
+        int displayedCount = Math.min(compatible.size(), PERMITTED_SKILL_LORE_LIMIT);
+        for (int index = 0; index < displayedCount; index++) {
+            SkillDefinition definition = compatible.get(index);
+            lore.add(Component.text("  ▸ ", NamedTextColor.GRAY).append(
+                SkillPresentationUtil.skillNameComponent(definition, "未登録のスキル", NamedTextColor.WHITE)
+            ));
+        }
+        if (compatible.size() > displayedCount) {
+            lore.add(Component.text("  ... +" + (compatible.size() - displayedCount), NamedTextColor.DARK_GRAY));
+        }
+    }
+
+    /**
+     * スキル定義が指定バインド枠へ設定できる種別か判定します。
+     *
+     * @param type バインド種別
+     * @param definition 判定対象スキル定義
+     * @return 指定枠へ設定できる場合は {@code true}
+     */
+    private boolean isCompatibleSkill(@NotNull SkillBindType type, @NotNull SkillDefinition definition) {
+        if (type == SkillBindType.PASSIVE) {
+            return definition.getKind() == SkillKind.PASSIVE && definition.getPassiveBindRequired();
+        }
+        return definition.getKind() != SkillKind.PASSIVE;
     }
 
     /**

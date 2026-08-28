@@ -24,6 +24,8 @@
 
 選択中バインド枠がない場合は常時発動passiveを除く全習得個体を表示する。active / left-click枠を選択した場合はactiveだけ、passive枠なら `passiveBindRequired=true` のpassiveだけを表示する。常時発動passiveは設定候補へ表示しない。空の action / passive 枠は枠番号を item amount で示し、無効な passive 枠は鉄格子で表示する。無効枠の既存設定は解除だけを許可する。
 
+空の action / left-click / passive バインド枠は、枠の種別に対応する現在の使用許可スキルを lore に表示する。使用許可は習得状態とは別に `SkillPermissionService` から解決し、未習得の許可スキルも名称一覧へ含める。active 枠は active、passive 枠は `passiveBindRequired=true` の passive だけを対象とし、一覧は既存の箇条書き表示と同じく最大6件まで表示して超過分を残数で示す。許可定義を解決できない項目は表示しない。
+
 設定済みのアクション・左クリック・パッシブ枠も、枠の状態と解除操作に加えて、一覧と同じ説明、消費リソース、クールダウン、タグ、種別、使用可否、シジル合成枠を表示する。使用不可の場合は一覧と同じ薄灰色の羊毛アイコンを表示する。
 
 ## 2. 合成画面

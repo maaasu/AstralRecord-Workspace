@@ -1,0 +1,108 @@
+package io.github.maaasu.astralRecord.feature.skill.gui;
+
+import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillBindSession;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.ItemStack;
+import org.junit.jupiter.api.Test;
+import org.mockbukkit.mockbukkit.MockBukkit;
+import org.mockbukkit.mockbukkit.plugin.PluginMock;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.mock;
+
+class SkillBindGuiTest extends MockBukkitTestBase {
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 1. スキルマネージャー
+     * 検証契約: 習得個体がなくても、空の active 枠には現在の使用許可 active スキルだけを表示する。
+     */
+    @Test
+    void emptyActiveSlotShowsPermittedActiveSkills() {
+        PluginMock plugin = MockBukkit.createMockPlugin("SkillBindGuiTest");
+        SkillBindGui gui = new SkillBindGui(plugin, mock(ItemService.class), mock(SkillService.class));
+        SkillBindSession session = new SkillBindSession(presets());
+        SkillDefinition active = definition("active_skill", "アクティブスキル", SkillKind.ACTIVE, true);
+        SkillDefinition passive = definition("passive_skill", "パッシブスキル", SkillKind.PASSIVE, true);
+
+        Inventory inventory = gui.createMainInventory(
+            session, List.of(), Map.of(), List.of(active, passive), 5, 0
+        );
+        List<String> lore = lore(inventory.getItem(SkillBindGui.ACTION_RING_BIND_SLOT_START));
+
+        assertTrue(lore.contains("現在の使用許可スキル"));
+        assertTrue(lore.contains("  ▸ アクティブスキル"));
+        assertFalse(lore.contains("  ▸ パッシブスキル"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 1. スキルマネージャー
+     * 検証契約: 空の passive 枠には bind-required の使用許可 passive だけを表示する。
+     */
+    @Test
+    void emptyPassiveSlotShowsOnlyBindRequiredPermittedPassives() {
+        PluginMock plugin = MockBukkit.createMockPlugin("SkillBindGuiTest");
+        SkillBindGui gui = new SkillBindGui(plugin, mock(ItemService.class), mock(SkillService.class));
+        SkillBindSession session = new SkillBindSession(presets());
+        SkillDefinition bindRequired = definition("bind_required", "設定必須パッシブ", SkillKind.PASSIVE, true);
+        SkillDefinition alwaysActive = definition("always_active", "常時発動パッシブ", SkillKind.PASSIVE, false);
+        SkillDefinition active = definition("active_skill", "アクティブスキル", SkillKind.ACTIVE, true);
+
+        Inventory inventory = gui.createMainInventory(
+            session, List.of(), Map.of(), List.of(bindRequired, alwaysActive, active), 5, 0
+        );
+        List<String> lore = lore(inventory.getItem(SkillBindGui.PASSIVE_BIND_SLOT_START));
+
+        assertTrue(lore.contains("現在の使用許可スキル"));
+        assertTrue(lore.contains("  ▸ 設定必須パッシブ"));
+        assertFalse(lore.contains("  ▸ 常時発動パッシブ"));
+        assertFalse(lore.contains("  ▸ アクティブスキル"));
+    }
+
+    private static List<SkillBindPreset> presets() {
+        List<SkillBindPreset> presets = new ArrayList<>();
+        for (int index = 1; index <= SkillBindGui.PRESET_COUNT; index++) {
+            presets.add(unlockedPreset(index));
+        }
+        return presets;
+    }
+
+    private static SkillBindPreset unlockedPreset(int presetIndex) {
+        UUID accountId = UUID.randomUUID();
+        return new SkillBindPreset(
+            null, accountId, presetIndex, List.of(), null, List.of(), true, true, 1
+        );
+    }
+
+    private static SkillDefinition definition(
+        String id,
+        String name,
+        SkillKind kind,
+        boolean passiveBindRequired
+    ) {
+        return new SkillDefinition(
+            id, id, name, null, "BOOK", List.of(), 0L, 0.0D, 0L, 1, null,
+            Map.of(), List.of(), kind, passiveBindRequired, null, null, id, 1,
+            List.of(), List.of(), List.of()
+        );
+    }
+
+    private static List<String> lore(ItemStack item) {
+        return item.getItemMeta().lore().stream()
+            .map(PlainTextComponentSerializer.plainText()::serialize)
+            .toList();
+    }
+}

@@ -56,6 +56,7 @@ import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -307,7 +308,7 @@ class SkillBindGuiEventHandlerTest {
 
         assertFalse(mapValue(handler, "sessions").containsKey(playerId));
         assertFalse(mapValue(handler, "savingSessions").containsKey(playerId));
-        verify(gui, never()).open(any(), any(), any(), any(), anyInt(), anyInt());
+        verify(gui, never()).open(any(), any(), any(), any(), any(), anyInt(), anyInt());
     }
 
     /**
@@ -442,7 +443,7 @@ class SkillBindGuiEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
      * 章・見出し: # 13_3-GUI・View > ## 5. 識別とページング
-     * 検証契約: 一覧のバインド枠選択で再描画しても、表示可能な範囲で現在ページを引き継ぐ。
+     * 検証契約: 一覧のバインド枠選択で再描画しても、表示可能な範囲で現在ページを引き継ぎ、現在の使用許可スキル定義を GUI へ渡す。
      */
     @Test
     void bindSlotSelectionKeepsCurrentPage() throws ReflectiveOperationException {
@@ -450,19 +451,24 @@ class SkillBindGuiEventHandlerTest {
         SkillService skillService = mock(SkillService.class);
         SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
         PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
+        SkillPermissionService permissionService = mock(SkillPermissionService.class);
         SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
             mock(AstralRecord.class), gui, skillService, mock(SkillBindPresetService.class), ownershipService,
-            mock(SkillPermissionService.class), mock(LearnedSkillService.class), passiveSkillService, mock(InventoryService.class)
+            permissionService, mock(LearnedSkillService.class), passiveSkillService, mock(InventoryService.class)
         );
         Player player = mock(Player.class);
         InventoryView view = mock(InventoryView.class);
         AstPlayer astPlayer = mock(AstPlayer.class);
         SkillBindSession session = new SkillBindSession(presets(UUID.randomUUID()));
+        SkillDefinition permittedDefinition = skillDefinition();
+        SkillRegistry registry = new SkillRegistry();
+        registry.replaceDefinitions(Map.of(permittedDefinition.getId(), permittedDefinition));
         when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(player.getOpenInventory()).thenReturn(view);
         when(view.getTopInventory()).thenReturn(mock(Inventory.class));
         when(gui.isInventory(any())).thenReturn(false);
-        when(skillService.registry()).thenReturn(new SkillRegistry());
+        when(skillService.registry()).thenReturn(registry);
+        when(permissionService.permittedSkillIds(astPlayer)).thenReturn(Set.of(permittedDefinition.getId()));
         when(ownershipService.learnedSkills(astPlayer)).thenReturn(List.of());
         when(passiveSkillService.activePassiveSlotCount(astPlayer)).thenReturn(0);
 
@@ -474,7 +480,9 @@ class SkillBindGuiEventHandlerTest {
         }
 
         ArgumentCaptor<Integer> page = ArgumentCaptor.forClass(Integer.class);
-        verify(gui).createMainInventory(any(), any(), any(), anyInt(), page.capture());
+        verify(gui).createMainInventory(
+            any(), any(), any(), eq(List.of(permittedDefinition)), anyInt(), page.capture()
+        );
         assertEquals(1, page.getValue());
     }
 
@@ -641,7 +649,7 @@ class SkillBindGuiEventHandlerTest {
             assertFalse(handler.open(player));
         }
 
-        verify(gui, never()).open(any(), any(), any(), any(), anyInt(), anyInt());
+        verify(gui, never()).open(any(), any(), any(), any(), any(), anyInt(), anyInt());
         verifySound(player, location, Sound.BLOCK_NOTE_BLOCK_BASS);
     }
 
