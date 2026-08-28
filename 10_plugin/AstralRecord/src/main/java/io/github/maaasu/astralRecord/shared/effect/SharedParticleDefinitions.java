@@ -40,6 +40,27 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(80, 190, 255), 1.2F)
         );
+    public static final SharedParticleDefinition LAST_SHIELD_ACTIVATION_TOTEM =
+        new SharedParticleDefinition("last_shield_activation_totem", Particle.TOTEM_OF_UNDYING, 32, 0.42D, 0.78D, 0.42D, 0.0D);
+    public static final SharedParticleDefinition LAST_SHIELD_ACTIVATION_SOUL_FIRE =
+        new SharedParticleDefinition("last_shield_activation_soul_fire", Particle.SOUL_FIRE_FLAME, 8, 0.16D, 0.42D, 0.16D, 0.02D);
+    public static final SharedParticleDefinition LAST_SHIELD_ACTIVATION_DUST =
+        new SharedParticleDefinition(
+            "last_shield_activation_dust",
+            Particle.DUST,
+            2,
+            0.02D,
+            0.02D,
+            0.02D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(80, 220, 255), 1.45F)
+        );
+    public static final SharedParticleDefinition LAST_SHIELD_ACTIVATION_END_ROD =
+        new SharedParticleDefinition("last_shield_activation_end_rod", Particle.END_ROD, 2, 0.05D, 0.10D, 0.05D, 0.02D);
+    public static final SharedParticleDefinition LAST_SHIELD_ACTIVATION_SPARK =
+        new SharedParticleDefinition("last_shield_activation_spark", Particle.ELECTRIC_SPARK, 8, 0.28D, 0.44D, 0.28D, 0.04D);
+    public static final SharedParticleDefinition LAST_SHIELD_ACTIVATION_FLASH =
+        new SharedParticleDefinition("last_shield_activation_flash", Particle.FLASH, 1, 0.0D, 0.0D, 0.0D, 0.0D, Color.WHITE);
     public static final SharedParticleDefinition SHIELD_BREAK_DUST =
         new SharedParticleDefinition(
             "shield_break_dust",

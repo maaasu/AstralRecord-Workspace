@@ -10,7 +10,9 @@ import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.mob.service.MobCombatService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
@@ -21,9 +23,11 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
 import java.time.Instant;
@@ -33,10 +37,14 @@ import java.util.Map;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyFloat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
+import static org.mockito.Mockito.verify;
 
 class DamageServiceLastShieldTest extends MockBukkitTestBase {
 
@@ -57,13 +65,27 @@ class DamageServiceLastShieldTest extends MockBukkitTestBase {
         AstPlayer victim = shieldedVictim();
         runtime.activate(passiveContext(victim, 2400L));
 
-        DamageResult negated = attack(damageService, attacker, victim, DamageSource.NORMAL_ATTACK);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+        DamageResult negated;
+        try (MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+            negated = attack(damageService, attacker, victim, DamageSource.NORMAL_ATTACK);
+            verify(messageService).send(victim.getBukkit(), PlayerMsgId.P_5880);
+        }
 
         assertEquals(0.0D, negated.finalDamage(), 0.0001D);
         assertEquals(0.0D, negated.shieldDamage(), 0.0001D);
         assertFalse(negated.shieldBroken());
         assertEquals(1.0D, victim.getStatusSnapshot().getCurrentShield(), 0.0001D);
         assertEquals(100.0D, victim.getStatusSnapshot().getCurrentHp(), 0.0001D);
+        verify(particleDisplayService).spawnForNearbyViewers(
+                any(org.bukkit.Location.class),
+                eq(SharedParticleDefinitions.LAST_SHIELD_ACTIVATION_TOTEM)
+        );
+        verify(particleDisplayService).spawnForNearbyViewers(
+                any(org.bukkit.Location.class),
+                eq(SharedParticleDefinitions.LAST_SHIELD_ACTIVATION_FLASH)
+        );
 
         DamageResult cooldownHit = attack(damageService, attacker, victim, DamageSource.SKILL);
 

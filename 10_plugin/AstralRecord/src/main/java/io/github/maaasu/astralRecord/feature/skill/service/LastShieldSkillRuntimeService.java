@@ -2,15 +2,16 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
-import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
+import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
-import org.bukkit.SoundCategory;
-import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
@@ -21,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /** ラストシールドの有効設定とプレイヤー別クールダウンを管理します。 */
 public final class LastShieldSkillRuntimeService {
-    private final ParticleDisplayService particleDisplayService;
+    private final SkillEffectService effects;
     private final Map<UUID, Map<String, Configuration>> configurations = new ConcurrentHashMap<>();
     private final Map<UUID, Long> cooldownEndsAtTick = new ConcurrentHashMap<>();
 
@@ -31,7 +32,7 @@ public final class LastShieldSkillRuntimeService {
      * @param particleDisplayService シールド防御演出サービス
      */
     public LastShieldSkillRuntimeService(@NotNull ParticleDisplayService particleDisplayService) {
-        this.particleDisplayService = particleDisplayService;
+        this.effects = new SkillEffectService(particleDisplayService);
     }
 
     /**
@@ -125,21 +126,33 @@ public final class LastShieldSkillRuntimeService {
     }
 
     private void renderNegation(@NotNull Player player) {
+        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5880);
         Location location = player.getLocation();
-        World world = location.getWorld();
-        if (world == null) {
-            return;
-        }
-        world.playSound(
-                location,
-                Sound.ITEM_SHIELD_BLOCK,
-                SoundCategory.PLAYERS,
-                0.9F,
-                0.85F
+        Location center = location.clone().add(0.0D, 0.9D, 0.0D);
+        effects.sound(location, Sound.ITEM_SHIELD_BLOCK, 0.9F, 0.85F);
+        effects.sound(location, Sound.BLOCK_BEACON_ACTIVATE, 0.9F, 1.15F);
+        effects.sound(location, Sound.ITEM_TRIDENT_THUNDER, 0.7F, 1.30F);
+        effects.point(center, SharedParticleDefinitions.LAST_SHIELD_ACTIVATION_TOTEM);
+        effects.point(center, SharedParticleDefinitions.LAST_SHIELD_ACTIVATION_SOUL_FIRE);
+        effects.point(center, SharedParticleDefinitions.LAST_SHIELD_ACTIVATION_SPARK);
+        effects.point(center, SharedParticleDefinitions.LAST_SHIELD_ACTIVATION_FLASH);
+        effects.ring(
+                center.clone().add(0.0D, -0.45D, 0.0D),
+                0.85D,
+                28,
+                SharedParticleDefinitions.LAST_SHIELD_ACTIVATION_DUST
         );
-        particleDisplayService.spawnForNearbyViewers(
-                location.clone().add(0.0D, 0.7D, 0.0D),
-                SharedParticleDefinitions.SHIELD_HIT_DUST
+        effects.ring(
+                center.clone().add(0.0D, 0.05D, 0.0D),
+                0.64D,
+                24,
+                SharedParticleDefinitions.LAST_SHIELD_ACTIVATION_END_ROD
+        );
+        effects.ring(
+                center.clone().add(0.0D, 0.48D, 0.0D),
+                0.46D,
+                20,
+                SharedParticleDefinitions.LAST_SHIELD_ACTIVATION_SPARK
         );
     }
 
