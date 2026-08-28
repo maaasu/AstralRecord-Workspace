@@ -297,7 +297,8 @@ class ActiveSkillExecutorDesignTest {
                 "range", 6.0D,
                 "targetAngle", 40.0D,
                 "damageRatio", 1.25D,
-                "consumeAllCurrentMana", true
+                "consumeAllCurrentMana", true,
+                "levelFiveRequiredManaRatio", 0.80D
         ))));
 
         SkillParameterException exception = assertThrows(
@@ -306,7 +307,8 @@ class ActiveSkillExecutorDesignTest {
                         "range", 6.0D,
                         "targetAngle", 40.0D,
                         "damageRatio", 1.25D,
-                        "consumeAllCurrentMana", false
+                        "consumeAllCurrentMana", false,
+                        "levelFiveRequiredManaRatio", 0.80D
                 )))
         );
         assertEquals("consumeAllCurrentMana", exception.key());

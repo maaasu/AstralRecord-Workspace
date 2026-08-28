@@ -182,7 +182,7 @@ class SwordsmanBastionStrikeExecutorTest {
         when(snapshot.getCurrentMp()).thenReturn(currentMana);
         when(snapshot.getMaxValue(StatusType.MAX_MANA)).thenReturn(100.0D);
         when(snapshot.getCurrentHp()).thenReturn(120.0D);
-        when(snapshot.withCurrentValues(120.0D, 100.0D - currentMana)).thenReturn(afterManaSnapshot);
+        when(snapshot.withCurrentValues(120.0D, 0.0D)).thenReturn(afterManaSnapshot);
         AstPlayer astPlayer = mock(AstPlayer.class);
         when(astPlayer.getBukkit()).thenReturn(player);
         when(astPlayer.getStatusSnapshot()).thenReturn(snapshot);
