@@ -15,6 +15,7 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.function.Consumer;
+import java.util.function.ToDoubleFunction;
 
 /**
  * プレイヤーのドッジ（短距離ダッシュ回避）アクションを制御するサービス。
@@ -34,7 +35,7 @@ public class DodgeService {
     private static final long DODGE_FLAG_DURATION_TICKS = 8L;
 
     /** ドッジ発動時に消費するエネルギー量 */
-    private static final double ENERGY_COST = 15.0D;
+    public static final double DEFAULT_ENERGY_COST = 15.0D;
 
     /** ドッジの加速ベクトルの強さ（水平方向） */
     private static final double DODGE_HORIZONTAL_STRENGTH = 1.0D;
@@ -53,6 +54,7 @@ public class DodgeService {
     private final PlayerHudService playerHudService;
     private final ParticleDisplayService particleDisplayService;
     private Consumer<AstPlayer> successfulDodgeListener = ignored -> { };
+    private ToDoubleFunction<AstPlayer> energyCostResolver = ignored -> DEFAULT_ENERGY_COST;
 
     public DodgeService(
         @NotNull AstralRecord plugin,
@@ -73,6 +75,18 @@ public class DodgeService {
      */
     public void setSuccessfulDodgeListener(@NotNull Consumer<AstPlayer> listener) {
         this.successfulDodgeListener = listener;
+    }
+
+    /**
+     * ドッジごとのエネルギー消費量を解決する処理を設定します。
+     * <p>
+     * resolver は受付条件の最終確認後、消費量不足を判定する直前に一度だけ呼び出されます。
+     * 解決値は同じドッジの実消費へ使用されるため、条件付きの無償化を原子的に処理できます。
+     *
+     * @param resolver 対象プレイヤーから消費量を返す resolver
+     */
+    public void setEnergyCostResolver(@NotNull ToDoubleFunction<AstPlayer> resolver) {
+        this.energyCostResolver = resolver;
     }
 
     /**
@@ -143,13 +157,14 @@ public class DodgeService {
             return;
         }
 
+        double energyCost = resolveEnergyCost(astPlayer);
         StatusSnapshot snapshot = statusService.getStatus(astPlayer);
-        if (snapshot.getCurrentEnergy() < ENERGY_COST) {
+        if (snapshot.getCurrentEnergy() < energyCost) {
             playDenied(player);
             return;
         }
 
-        executeDodge(astPlayer, sneakStartedAtLocation);
+        executeDodge(astPlayer, sneakStartedAtLocation, energyCost);
     }
 
     /**
@@ -157,11 +172,16 @@ public class DodgeService {
      *
      * @param astPlayer            対象プレイヤー
      * @param sneakStartedAtLocation しゃがみ開始時の座標（null の場合は視線方向にフォールバック）
+     * @param energyCost           このドッジで消費するエネルギー量
      */
-    private void executeDodge(@NotNull AstPlayer astPlayer, Location sneakStartedAtLocation) {
+    private void executeDodge(
+        @NotNull AstPlayer astPlayer,
+        Location sneakStartedAtLocation,
+        double energyCost
+    ) {
         Player player = astPlayer.getBukkit();
 
-        statusService.consumeEnergy(astPlayer, ENERGY_COST);
+        statusService.consumeEnergy(astPlayer, energyCost);
 
         Vector direction = computeDodgeDirection(player, sneakStartedAtLocation);
         player.setVelocity(direction);
@@ -245,6 +265,11 @@ public class DodgeService {
         astPlayer.setSneakStartedAtMs(0L);
         astPlayer.setSneakStartedAtLocation(null);
         astPlayer.setSneakDodgeWindowExpiresAtMs(0L);
+    }
+
+    private double resolveEnergyCost(@NotNull AstPlayer astPlayer) {
+        double resolved = energyCostResolver.applyAsDouble(astPlayer);
+        return Double.isFinite(resolved) && resolved >= 0.0D ? resolved : DEFAULT_ENERGY_COST;
     }
 
     private boolean isGrounded(@NotNull Player player) {

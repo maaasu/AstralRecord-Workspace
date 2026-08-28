@@ -2,14 +2,21 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1207",
-  "name": "&8未定の星座",
-  "icon": "GRAY_DYE",
-  "tags": [],
+  "name": "&eスペルステップ",
+  "icon": "FEATHER",
+  "tags": [
+    "agility",
+    "wind"
+  ],
   "pointType": "CP",
-  "pointCost": 0,
-  "effects": [],
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "hunter_spell_step"
+    }
+  ],
   "unlockCondition": {
-    "classId": "hunter",
-    "playerLevel": 2147483647
+    "classId": "hunter"
   }
 }

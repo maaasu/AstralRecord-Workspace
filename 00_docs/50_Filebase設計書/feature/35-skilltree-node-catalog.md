@@ -43,6 +43,7 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `skill-swordsman-bastion-strike` | `skill` / `swordsman_bastion_strike` | `&bバスティオンストライク` | `SHIELD` | `defense` |
 | `skill-hunter-crash-arrow` | `skill` / `hunter_crash_arrow` | `&bクラッシュアロー` | `SPECTRAL_ARROW` | `offense` |
 | `skill-hunter-heal-arrow` | `skill` / `hunter_heal_arrow` | `&aヒールアロー` | `SPECTRAL_ARROW` | `light` |
+| `skill-hunter-spell-step` | `skill` / `hunter_spell_step` | `&eスペルステップ` | `FEATHER` | `agility`, `wind` |
 
 表の表示名には JSON に保存する Legacy color code を含めます。同じ能力を追加するときは、表の表示名、`icon`、タグをすべて同一にします。各配置済みノードには、従来どおり一意の `nodeId` を割り当てます。
 

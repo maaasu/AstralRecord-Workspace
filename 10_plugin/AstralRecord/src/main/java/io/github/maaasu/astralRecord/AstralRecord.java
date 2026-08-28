@@ -195,8 +195,10 @@ import io.github.maaasu.astralRecord.feature.skill.event.SkillActionRingEventHan
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillGemLearnEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillForgetGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.skill.event.SpellStepSkillEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorJustDodgeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorShieldRechargeSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.HunterSpellStepSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanLastShieldSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.MeditationSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
@@ -220,6 +222,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillCooldownBossBarS
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.SpellStepSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skilltree.event.SkillTreeEventHandler;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeNodeRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreePlayerStateRepository;
@@ -383,6 +386,7 @@ public final class AstralRecord extends JavaPlugin {
     private PassiveSkillService passiveSkillService;
     private MeditationSkillRuntimeService meditationSkillRuntimeService;
     private JustDodgeSkillRuntimeService justDodgeSkillRuntimeService;
+    private SpellStepSkillRuntimeService spellStepSkillRuntimeService;
     private LastShieldSkillRuntimeService lastShieldSkillRuntimeService;
     private SkillTreeService skillTreeService;
     private SkillBindPresetService skillBindPresetService;
@@ -717,6 +721,9 @@ public final class AstralRecord extends JavaPlugin {
         if (justDodgeSkillRuntimeService != null) {
             justDodgeSkillRuntimeService.clearAll();
         }
+        if (spellStepSkillRuntimeService != null) {
+            spellStepSkillRuntimeService.clearAll();
+        }
         if (lastShieldSkillRuntimeService != null) {
             lastShieldSkillRuntimeService.clearAll();
         }
@@ -772,6 +779,31 @@ public final class AstralRecord extends JavaPlugin {
             Logger.log(LogId.E_900, e);
             return false;
         }
+    }
+
+    /**
+     * スペルステップが参照するスキル成功通知とドッジ消費を接続します。
+     * 本番初期化と機能間テストで同じ配線を使用します。
+     */
+    static void configureSpellStepIntegration(
+        SkillService skillService,
+        DodgeService dodgeService,
+        SpellStepSkillRuntimeService spellStepSkillRuntimeService,
+        GuideService guideService
+    ) {
+        dodgeService.setEnergyCostResolver(player ->
+            spellStepSkillRuntimeService.consumeFreeDodge(player)
+                ? 0.0D
+                : DodgeService.DEFAULT_ENERGY_COST
+        );
+        skillService.registerExecutor(new HunterSpellStepSkillExecutor(spellStepSkillRuntimeService));
+        skillService.setPlayerCastSuccessListener((player, skillId) -> {
+            spellStepSkillRuntimeService.onSkillCast(
+                player,
+                skillService.registry().getDefinition(skillId)
+            );
+            guideService.recordCondition(player, GuideConditionType.SKILL_CAST, skillId);
+        });
     }
 
     /**
@@ -1220,8 +1252,15 @@ public final class AstralRecord extends JavaPlugin {
         skillService.setPlayerHudService(playerHudService);
         meditationSkillRuntimeService = new MeditationSkillRuntimeService(particleDisplayService);
         justDodgeSkillRuntimeService = new JustDodgeSkillRuntimeService(statusService, particleDisplayService);
+        spellStepSkillRuntimeService = new SpellStepSkillRuntimeService();
         lastShieldSkillRuntimeService = new LastShieldSkillRuntimeService(particleDisplayService);
         dodgeService.setSuccessfulDodgeListener(justDodgeSkillRuntimeService::onDodge);
+        configureSpellStepIntegration(
+            skillService,
+            dodgeService,
+            spellStepSkillRuntimeService,
+            guideService
+        );
         damageService.setJustDodgeSkillRuntimeService(justDodgeSkillRuntimeService);
         damageService.setLastShieldSkillRuntimeService(lastShieldSkillRuntimeService);
         skillService.registerExecutor(new MeditationSkillExecutor(meditationSkillRuntimeService));
@@ -1322,9 +1361,6 @@ public final class AstralRecord extends JavaPlugin {
         );
         skillActionRingService.setOpenListener(player ->
             guideService.recordCondition(player, GuideConditionType.ACTION_RING_OPENED, null)
-        );
-        skillService.setPlayerCastSuccessListener((player, skillId) ->
-            guideService.recordCondition(player, GuideConditionType.SKILL_CAST, skillId)
         );
         skillBindGui = new SkillBindGui(this, itemService, skillService);
         itemWeaponAttackService = new ItemWeaponAttackService(inventoryService, skillService);
@@ -1713,6 +1749,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new JustDodgeSkillEventHandler(justDodgeSkillRuntimeService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new SpellStepSkillEventHandler(spellStepSkillRuntimeService),
             getServer().getPluginManager()
         );
         var playerModeEventHandler = new PlayerModeEventHandler(accountModeApplicationService);
