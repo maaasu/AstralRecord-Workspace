@@ -77,6 +77,55 @@ public class SkillRepositoryTests
     }
 
     /// <summary>
+    /// 設計入力: 00_docs/50_Filebase設計書/feature/30-skill.md、00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+    /// 検証契約: 実際のクラッシュアローマスターをseed経路で読み込み、シールドブレイク倍率がLv.1の3.0倍から各レベル0.5ずつ増加してLv.5の5.0倍になる。
+    /// </summary>
+    [Fact]
+    public async Task CrashArrowMaster_ResolvesShieldBreakMultiplierAcrossLevels()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MasterDataDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var setupContext = new MasterDataDbContext(options))
+        {
+            await MasterDataTestSeed.CreateSchemaAsync(setupContext);
+            await MasterDataTestSeed.SeedEntryAsync(
+                setupContext,
+                Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "30.features.skill", "v1.hunter_crash_arrow.yml"),
+                "skill",
+                null);
+        }
+
+        await using var dbContext = new MasterDataDbContext(options);
+        var payload = await dbContext.Entries
+            .Where(entry => !entry.IsDeleted && entry.MasterId == "hunter_crash_arrow")
+            .Select(entry => entry.PayloadJson)
+            .SingleAsync();
+
+        using var document = JsonDocument.Parse(payload);
+        var root = document.RootElement;
+        var multiplier = root.GetProperty("params")
+            .GetProperty("shieldBreakMultiplier")
+            .GetDouble();
+        var resolvedValues = new List<double> { multiplier };
+
+        foreach (var level in root.GetProperty("levels").EnumerateArray())
+        {
+            Assert.Equal(resolvedValues.Count + 1, level.GetProperty("level").GetInt32());
+            multiplier += level.GetProperty("paramDeltas")
+                .GetProperty("shieldBreakMultiplier")
+                .GetDouble();
+            resolvedValues.Add(multiplier);
+        }
+
+        Assert.Equal([3.0D, 3.5D, 4.0D, 4.5D, 5.0D], resolvedValues);
+    }
+
+    /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
     /// 検証契約: skill masterから決定的IDの非スタックgemを仮想生成し、未指定取引設定を禁止側へ倒す。
     /// </summary>
