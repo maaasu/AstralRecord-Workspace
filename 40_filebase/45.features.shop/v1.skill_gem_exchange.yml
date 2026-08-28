@@ -198,3 +198,13 @@ items:
       - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1
+  - id: sparking_from_raw
+    itemId: { ref: item:00_skill_gem_mage_sparking }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 19
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 1

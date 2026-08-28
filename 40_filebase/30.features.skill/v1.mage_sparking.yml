@@ -1,0 +1,58 @@
+# design:
+#   motif: "Path of Exile 2 / Spark"
+#   progression: 2
+schemaVersion: 1
+id: mage_sparking
+type: SKILL
+implementationId: mage_sparking
+name: "&eスパーキング"
+description: "&7跳ね回る雷弾を周囲へまき散らす雷属性魔法。"
+icon: LIGHTNING_ROD
+lore:
+  - "&7周囲へ{skill.projectileCount}個の雷弾を放ち、触れた敵へ魔法攻撃力{skill.effectiveDamageRatio:percent}%の雷属性ダメージ。"
+  - "&7同じ発動では敵1体につき1回だけ命中し、{skill.shockChance}%の確率で{skill.shockDurationTicks:seconds}秒感電させる。"
+  - "&7雷弾は壁で反射し、{skill.durationTicks:seconds}秒後に消滅する。"
+cooldownTicks: 160
+resourceType: MANA
+resourceCost: 14
+castTimeTicks: 4
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    paramDeltas: { projectileCount: 2 }
+  - level: 3
+    paramDeltas: { projectileCount: 2 }
+  - level: 4
+    paramDeltas: { projectileCount: 2 }
+  - level: 5
+    paramDeltas: { projectileCount: 2 }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+onCast:
+  sound: entity.lightning_bolt.thunder
+tags:
+  - active
+  - magic
+  - lightning
+# behavior:
+#   projectile: "足元付近から水平360度へ等間隔に雷弾を放つ。各弾は速度0.65m/tick・命中半径0.45mで50tick進み、Block面の法線で反射する。"
+#   hit: "管理対象Mobだけを対象にMAGIC/LIGHTNINGの100%を適用し、25%でSHOCKEDを100tick付与する。同一発動では対象ごとに1回だけ命中する。"
+#   lifecycle: "雷弾はMob命中時に消滅し、Block反射または寿命まで残る。PvP、NPC、別world、死亡Mobは対象外。"
+params:
+  damageRatio: 1.0
+  projectileCount: 5
+  projectileSpeed: 0.65
+  projectileHitRadius: 0.45
+  durationTicks: 50
+  shockChance: 25.0
+  shockDurationTicks: 100

@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.World;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
 import org.bukkit.util.BoundingBox;
 import org.bukkit.util.RayTraceResult;
@@ -260,6 +261,29 @@ class SkillTargetingServiceTest {
                 eq(FluidCollisionMode.NEVER), eq(true)
         );
         assertTrue(traceOrigin.getValue().getY() < 2.0D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
+     * 検証契約: blockHitはray traceの正確な衝突位置とBlockFaceの外向き法線を返す。
+     */
+    @Test
+    void blockHitReturnsExactImpactAndBlockFaceNormal() {
+        World world = mock(World.class);
+        RayTraceResult rayHit = mock(RayTraceResult.class);
+        when(rayHit.getHitPosition()).thenReturn(new Vector(1.25D, 2.5D, 3.75D));
+        when(rayHit.getHitBlockFace()).thenReturn(BlockFace.EAST);
+        when(world.rayTraceBlocks(
+                any(Location.class), any(Vector.class), eq(4.0D), eq(FluidCollisionMode.NEVER), eq(true)
+        )).thenReturn(rayHit);
+
+        SkillTargetingService.BlockHit hit = new SkillTargetingService(mock(MobService.class)).blockHit(
+                new Location(world, 0.0D, 2.5D, 3.75D), new Vector(2.0D, 0.0D, 0.0D), 4.0D
+        );
+
+        assertEquals(1.25D, hit.location().getX(), 1.0E-9D);
+        assertEquals(new Vector(1.0D, 0.0D, 0.0D), hit.normal());
     }
 
     /**

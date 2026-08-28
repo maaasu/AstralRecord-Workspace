@@ -16,12 +16,13 @@ public final class MageSkillExecutorCatalog {
      * メイジ用 executor をスキル表示順で生成します。
      *
      * @param services 共有発動スキルサービス
-     * @return 2個の executor
+     * @return 3個の executor
      */
     public static @NotNull List<SkillExecutor> create(@NotNull ActiveSkillServices services) {
         return List.of(
             new MageFireballExecutor(services),
-            new MageHealAuraExecutor(services)
+            new MageHealAuraExecutor(services),
+            new MageSparkingExecutor(services)
         );
     }
 }

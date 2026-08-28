@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.Hunter
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterCrashArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageFireballExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageHealAuraExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageSparkingExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanBastionStrikeExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanShieldDrainExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanFlameRushExecutor;
@@ -55,6 +56,7 @@ class ActiveSkillExecutorDesignTest {
         "hunter_heal_arrow",
         "mage_fireball",
         "mage_heal_aura",
+        "mage_sparking",
         "swordsman_shield_drain",
         "swordsman_flame_rush",
         "swordsman_challenging_roar",
@@ -65,7 +67,7 @@ class ActiveSkillExecutorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載16 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載17 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {
@@ -202,6 +204,35 @@ class ActiveSkillExecutorDesignTest {
                 )))
         );
         assertEquals("maxChainTargets", exception.key());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 23. メイジ スパーキングの実装契約
+     * 検証契約: スパーキングは正の弾数・速度・半径・寿命・感電時間と、0〜100%の感電率を要求する。
+     */
+    @Test
+    void sparkingValidatesBouncingProjectileParams() {
+        MageSparkingExecutor executor = new MageSparkingExecutor(activeSkillServices());
+        Map<String, Object> valid = Map.of(
+                "damageRatio", 1.0D,
+                "projectileCount", 5,
+                "projectileSpeed", 0.65D,
+                "projectileHitRadius", 0.45D,
+                "durationTicks", 50,
+                "shockChance", 25.0D,
+                "shockDurationTicks", 100
+        );
+
+        assertDoesNotThrow(() -> executor.validateParams(sparkingDefinition(valid)));
+
+        Map<String, Object> invalid = new java.util.LinkedHashMap<>(valid);
+        invalid.put("shockChance", 101.0D);
+        SkillParameterException exception = assertThrows(
+                SkillParameterException.class,
+                () -> executor.validateParams(sparkingDefinition(invalid))
+        );
+        assertEquals("shockChance", exception.key());
     }
 
     /**
@@ -588,6 +619,28 @@ class ActiveSkillExecutorDesignTest {
                 true,
                 SkillResourceType.MANA,
                 13.0D
+        );
+    }
+
+    private static SkillDefinition sparkingDefinition(Map<String, Object> params) {
+        return new SkillDefinition(
+                "mage_sparking",
+                "mage_sparking",
+                "スパーキング",
+                null,
+                "LIGHTNING_ROD",
+                List.of(),
+                160L,
+                0.0D,
+                4L,
+                1,
+                null,
+                params,
+                List.of("active", "magic", "lightning"),
+                SkillKind.ACTIVE,
+                true,
+                SkillResourceType.MANA,
+                14.0D
         );
     }
 

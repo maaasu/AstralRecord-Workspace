@@ -14,6 +14,7 @@ import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.util.BoundingBox;
@@ -502,6 +503,23 @@ public final class SkillTargetingService {
             @NotNull Vector direction,
             double range
     ) {
+        BlockHit hit = blockHit(origin, direction, range);
+        return hit == null ? null : hit.location();
+    }
+
+    /**
+     * 指定線分で最初に衝突するブロックの地点と面法線を返します。
+     *
+     * @param origin 始点
+     * @param direction 進行方向
+     * @param range 最大距離
+     * @return ブロック衝突情報。衝突しない場合はnull
+     */
+    public @Nullable BlockHit blockHit(
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            double range
+    ) {
         World world = origin.getWorld();
         double safeRange = Math.max(0.0D, range);
         if (world == null || safeRange <= 0.0D) {
@@ -518,7 +536,11 @@ public final class SkillTargetingService {
         if (hit == null || hit.getHitPosition() == null) {
             return null;
         }
-        return hit.getHitPosition().toLocation(world);
+        BlockFace face = hit.getHitBlockFace();
+        Vector normal = face == null
+                ? normalizedDirection.clone().multiply(-1.0D)
+                : face.getDirection();
+        return new BlockHit(hit.getHitPosition().toLocation(world), normal);
     }
 
     /**
@@ -710,6 +732,22 @@ public final class SkillTargetingService {
     }
 
     private record MobLineIntersection(@NotNull MobInstance mob, double distance) {
+    }
+
+    /** ブロック衝突地点と外向き面法線です。 */
+    public record BlockHit(@NotNull Location location, @NotNull Vector normal) {
+
+        /** 可変なBukkit値を防御的に複製します。 */
+        public BlockHit {
+            location = location.clone();
+            normal = normal.clone();
+        }
+
+        /** {@inheritDoc} */
+        @Override public @NotNull Location location() { return location.clone(); }
+
+        /** {@inheritDoc} */
+        @Override public @NotNull Vector normal() { return normal.clone(); }
     }
 
     static boolean intersectsLine(
