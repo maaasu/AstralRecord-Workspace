@@ -331,7 +331,7 @@ public class PlayerHudView {
                 + ColorCodeUtil.GRAY + " Lv." + ColorCodeUtil.YELLOW + classLevel);
         lines.add(buildExperienceBar("EXP", classExperienceProgress, ColorCodeUtil.AQUA));
         lines.add(ColorCodeUtil.GOLD + "Gold" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
-                + Math.max(0L, goldAmount) + "G");
+                + Math.max(0L, goldAmount) + ColorCodeUtil.YELLOW + ColorCodeUtil.BOLD + " G");
         lines.addAll(buffLines);
         if (bossInfo != null) {
             appendBossInfo(lines, bossInfo);
