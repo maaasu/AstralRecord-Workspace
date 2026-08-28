@@ -640,8 +640,6 @@ public class SkillService {
             return guard;
         }
 
-        playOnCastSound(castLocation, definition.getOnCastSound());
-
         SkillExecutor executor = registry.getExecutor(definition.getImplementationId());
         if (executor == null) {
             SkillCastResult failure = SkillCastResult.failure(PlayerMsgId.P_5804);
@@ -673,6 +671,7 @@ public class SkillService {
         }
 
         if (result.success()) {
+            playOnCastSound(castLocation, definition.getOnCastSound());
             consumeResource(caster, resolveResourceType(definition), resolveResourceCost(effectiveStatus, definition));
             if (definition.getCooldownTicks() > 0L) {
                 startCooldown(

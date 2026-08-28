@@ -23,6 +23,7 @@ import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
 import org.bukkit.NamespacedKey;
+import org.bukkit.World;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.attribute.AttributeModifier;
@@ -45,6 +46,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -160,6 +162,33 @@ class SkillServiceDesignTest extends MockBukkitTestBase {
         assertFalse(result.success());
         assertEquals(20.0D, caster.currentMana(), 0.0001D);
         assertFalse(service.isOnCooldown(caster, definition.getId()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 4. skill 発動
+     * 検証契約: onCast.sound はexecutorが成功した発動だけで再生され、executor失敗時には再生しない。
+     */
+    @Test
+    void playsOnCastSoundOnlyAfterExecutorSuccess() {
+        SkillRegistry registry = new SkillRegistry();
+        SkillService service = new SkillService(mock(SkillRepository.class), registry, null);
+        SkillDefinition successDefinition = skillWithOnCastSound("sound_success", "sound_success_impl");
+        SkillDefinition failureDefinition = skillWithOnCastSound("sound_failure", "sound_failure_impl");
+        registry.registerExecutor(new TestExecutor("sound_success_impl"));
+        registry.registerExecutor(new FailingExecutor("sound_failure_impl"));
+        registry.replaceDefinitions(Map.of(
+                successDefinition.getId(), successDefinition,
+                failureDefinition.getId(), failureDefinition
+        ));
+        World world = mock(World.class);
+        Location location = new Location(world, 2.0D, 64.0D, 3.0D);
+        TestCaster caster = new TestCaster(3, 20.0D, 0.0D);
+
+        assertTrue(service.castSkill(caster, successDefinition.getId(), SkillCastTrigger.SYSTEM, location, null, List.of()).success());
+        assertFalse(service.castSkill(caster, failureDefinition.getId(), SkillCastTrigger.SYSTEM, location, null, List.of()).success());
+
+        verify(world, times(1)).playSound(location, "block.beacon.power_select", 1.0F, 1.0F);
     }
 
     /**
@@ -554,6 +583,28 @@ class SkillServiceDesignTest extends MockBukkitTestBase {
             List.of(),
             List.of(),
             List.of()
+        );
+    }
+
+    private SkillDefinition skillWithOnCastSound(String id, String implementationId) {
+        return new SkillDefinition(
+            id,
+            implementationId,
+            id,
+            null,
+            null,
+            List.of(),
+            0L,
+            0.0D,
+            0L,
+            1,
+            "block.beacon.power_select",
+            Map.of(),
+            List.of(),
+            SkillKind.ACTIVE,
+            true,
+            SkillResourceType.MANA,
+            0.0D
         );
     }
 

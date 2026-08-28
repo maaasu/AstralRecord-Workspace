@@ -90,28 +90,31 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition CHALLENGING_ROAR_WARPED_SPORE =
         new SharedParticleDefinition("challenging_roar_warped_spore", Particle.WARPED_SPORE, 32, 0.70D, 0.90D, 0.70D, 0.015D);
-    public static final SharedParticleDefinition BASTION_STRIKE_SLASH_DUST =
+    public static final SharedParticleDefinition BASTION_STRIKE_SOUL_FIRE =
         new SharedParticleDefinition(
-            "bastion_strike_slash_dust",
+            "bastion_strike_soul_fire",
+            Particle.SOUL_FIRE_FLAME,
+            4,
+            0.10D,
+            0.16D,
+            0.10D,
+            0.015D
+        );
+    public static final SharedParticleDefinition BASTION_STRIKE_RUNE_DUST =
+        new SharedParticleDefinition(
+            "bastion_strike_rune_dust",
             Particle.DUST,
             2,
-            0.025D,
-            0.025D,
-            0.025D,
+            0.035D,
+            0.035D,
+            0.035D,
             0.0D,
-            new Particle.DustOptions(Color.fromRGB(175, 225, 255), 1.2F)
+            new Particle.DustOptions(Color.fromRGB(72, 104, 255), 1.55F)
         );
-    public static final SharedParticleDefinition BASTION_STRIKE_SHIELD_RING_DUST =
-        new SharedParticleDefinition(
-            "bastion_strike_shield_ring_dust",
-            Particle.DUST,
-            1,
-            0.02D,
-            0.02D,
-            0.02D,
-            0.0D,
-            new Particle.DustOptions(Color.fromRGB(95, 220, 255), 1.1F)
-        );
+    public static final SharedParticleDefinition BASTION_STRIKE_IMPACT_SPARK =
+        new SharedParticleDefinition("bastion_strike_impact_spark", Particle.ELECTRIC_SPARK, 10, 0.28D, 0.42D, 0.28D, 0.04D);
+    public static final SharedParticleDefinition BASTION_STRIKE_IMPACT_FLASH =
+        new SharedParticleDefinition("bastion_strike_impact_flash", Particle.FLASH, 1, 0.0D, 0.0D, 0.0D, 0.0D, Color.WHITE);
     public static final SharedParticleDefinition DAMAGE_HIT_INDICATOR =
         new SharedParticleDefinition("damage_hit_indicator", Particle.DAMAGE_INDICATOR, 6, 0.18D, 0.25D, 0.18D, 0.0D);
     public static final SharedParticleDefinition CRITICAL_HIT_CRIT =

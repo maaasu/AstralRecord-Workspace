@@ -37,7 +37,7 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 
 `swordsman_shield_drain` は敵Shieldへの3倍ブレイクと実減少量50%の自己Shield吸収を行い、発動時に自身のShieldが最大ならダメージ倍率を追加100%します。
 
-`swordsman_bastion_strike` は前方単体を攻撃し、発動時に自身の現在Shieldを最大Shieldまで即時回復します。発動時の現在MPは全量消費し、固定MPコストは重ねません。
+`swordsman_bastion_strike` は前方単体を攻撃し、発動時に自身の現在Shieldを最大Shieldまで即時回復します。Lv.1〜4はMP最大時だけ、Lv.5は最大MPの80%以上で発動でき、成功時は現在MPを全量消費します。Lv.1の150秒からレベルごとに10秒ずつ短縮され、シジル枠は全レベル0です。
 
 `swordsman_flame_rush` は前方最大5体へ火属性の二連撃を行い、Lv.8以降の二撃目だけに炎上判定を持ちます。`swordsman_challenging_roar` は周囲のMobを一時的に挑発する非攻撃スキルです。
 

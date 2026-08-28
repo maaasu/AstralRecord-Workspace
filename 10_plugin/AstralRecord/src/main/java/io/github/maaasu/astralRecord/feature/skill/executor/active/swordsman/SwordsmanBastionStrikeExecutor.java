@@ -6,10 +6,12 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
@@ -18,10 +20,13 @@ import org.bukkit.Sound;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-/** 現在MPを使い切り、命中時に自身のシールドを立て直すソードマン用近接スキルです。 */
+/** 現在MPを使い切り、自己シールドを立て直して放つソードマン用近接スキルです。 */
 public final class SwordsmanBastionStrikeExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "swordsman_bastion_strike";
+    private static final int LEVEL_FIVE = 5;
+    private static final int BASTION_PULSE_COUNT = 4;
+    private static final long BASTION_PULSE_PERIOD_TICKS = 2L;
 
     /** 共有発動スキルサービスで初期化します。 */
     public SwordsmanBastionStrikeExecutor(@NotNull ActiveSkillServices services) {
@@ -39,6 +44,13 @@ public final class SwordsmanBastionStrikeExecutor extends PlayerActiveSkillExecu
         if (!Boolean.TRUE.equals(skill.getParams().get("consumeAllCurrentMana"))) {
             throw new SkillParameterException("consumeAllCurrentMana", "バスティオンストライクは現在MP全消費を指定してください");
         }
+        double levelFiveRequiredManaRatio = params.getDouble("levelFiveRequiredManaRatio", 0.0D);
+        if (!(levelFiveRequiredManaRatio > 0.0D && levelFiveRequiredManaRatio <= 1.0D)) {
+            throw new SkillParameterException(
+                    "levelFiveRequiredManaRatio",
+                    "バスティオンストライクのLv.5必要MP比率は0より大きく1以下で指定してください"
+            );
+        }
     }
 
     /** {@inheritDoc} */
@@ -48,25 +60,24 @@ public final class SwordsmanBastionStrikeExecutor extends PlayerActiveSkillExecu
         double range = params.getDouble("range", 6.0D);
         double targetAngle = params.getDouble("targetAngle", 40.0D);
         double damageRatio = params.getDouble("damageRatio", 1.25D);
+        if (!hasRequiredMana(context, params)) {
+            return SkillCastResult.failure(PlayerMsgId.P_5801);
+        }
         Player player = context.player();
-        Location origin = slashOrigin(context);
         AstEntity target = context.services().targeting()
                 .inCone(player, range, targetAngle, 1, true)
                 .stream()
                 .findFirst()
                 .orElse(null);
         Location end = target == null
-                ? origin.clone().add(context.direction().multiply(range))
+                ? context.eyeLocation().add(context.direction().multiply(range))
                 : target.location().clone().add(0.0D, 0.9D, 0.0D);
-        renderStrike(context, origin, end);
+        renderBastionAwakening(context, player, end);
         consumeAllCurrentMana(context);
-        double recovered = context.services().combat().recoverShield(
+        context.services().combat().recoverShield(
                 context.attacker(),
                 missingShield(context.source().statusSnapshot())
         );
-        if (recovered > 0.0D) {
-            renderShieldRecovery(context, player);
-        }
         if (target == null) {
             return context.success();
         }
@@ -75,6 +86,22 @@ public final class SwordsmanBastionStrikeExecutor extends PlayerActiveSkillExecu
                 context.attacker(), target, AttackType.MELEE, DamageElement.NONE, damageRatio
         );
         return context.success();
+    }
+
+    /** 習得レベルごとの必要MP条件を満たすか判定します。 */
+    private static boolean hasRequiredMana(@NotNull PlayerActiveSkillContext context, @NotNull SkillParamReader params) {
+        StatusSnapshot snapshot = context.source().statusSnapshot();
+        double maxMana = snapshot.getMaxValue(StatusType.MAX_MANA);
+        double currentMana = context.caster().currentMana();
+        if (!(Double.isFinite(maxMana) && maxMana > 0.0D && Double.isFinite(currentMana))) {
+            return false;
+        }
+        LearnedSkillInstance learnedSkill = context.source().learnedSkill();
+        int learnedLevel = learnedSkill == null ? 1 : learnedSkill.getLevel();
+        if (learnedLevel < LEVEL_FIVE) {
+            return Math.abs(currentMana - maxMana) <= 1.0E-6D;
+        }
+        return currentMana + 1.0E-6D >= maxMana * params.getDouble("levelFiveRequiredManaRatio", 0.80D);
     }
 
     /** 現在のステータスから最大シールドまでに不足している量を求めます。 */
@@ -90,35 +117,63 @@ public final class SwordsmanBastionStrikeExecutor extends PlayerActiveSkillExecu
         }
     }
 
-    /** 斬撃エフェクトの始点をプレイヤーの視線方向から算出します。 */
-    private @NotNull Location slashOrigin(@NotNull PlayerActiveSkillContext context) {
-        return context.eyeLocation().add(context.direction().multiply(0.35D)).subtract(0.0D, 0.25D, 0.0D);
-    }
-
-    /** 前方単体攻撃の斬撃エフェクトと効果音を再生します。 */
-    private void renderStrike(
+    /** ソウルファイアの防壁を四段展開し、着弾地点へ閃光を重ねます。 */
+    private void renderBastionAwakening(
             @NotNull PlayerActiveSkillContext context,
-            @NotNull Location origin,
+            @NotNull Player player,
             @NotNull Location end
     ) {
-        context.services().effects().line(origin, end, 0.20D, SharedParticleDefinitions.BASTION_STRIKE_SLASH_DUST);
-        context.services().effects().viewArcSegment(
-                origin,
-                context.direction(),
-                1.15D,
-                -35.0D,
-                35.0D,
-                11,
-                SharedParticleDefinitions.BASTION_STRIKE_SLASH_DUST
+        Location center = player.getLocation().clone().add(0.0D, 0.95D, 0.0D);
+        context.services().effects().line(
+                center.clone().subtract(0.0D, 0.85D, 0.0D),
+                center.clone().add(0.0D, 1.35D, 0.0D),
+                0.14D,
+                SharedParticleDefinitions.BASTION_STRIKE_SOUL_FIRE
         );
-        context.services().effects().sound(origin, Sound.ENTITY_PLAYER_ATTACK_STRONG, 1.0F, 0.9F);
+        context.services().effects().point(center, SharedParticleDefinitions.BASTION_STRIKE_RUNE_DUST);
+        context.services().effects().sound(center, Sound.BLOCK_RESPAWN_ANCHOR_CHARGE, 1.1F, 0.85F);
+
+        var castWorld = player.getWorld();
+        context.services().tasks().repeat(
+                player.getUniqueId(),
+                ID + ":soul-bastion",
+                0L,
+                BASTION_PULSE_PERIOD_TICKS,
+                BASTION_PULSE_COUNT,
+                frame -> renderBastionPulse(context, player, castWorld, center, end, frame)
+        );
     }
 
-    /** シールド回復が成立したときの防壁エフェクトと効果音を再生します。 */
-    private void renderShieldRecovery(@NotNull PlayerActiveSkillContext context, @NotNull Player player) {
-        Location center = player.getLocation().clone().add(0.0D, 0.95D, 0.0D);
-        context.services().effects().ring(center, 0.90D, 20, SharedParticleDefinitions.BASTION_STRIKE_SHIELD_RING_DUST);
-        context.services().effects().sound(center, Sound.ITEM_ARMOR_EQUIP_DIAMOND, 0.9F, 1.15F);
+    /** 一段の拡張ルーンと最終着弾の火花を表示します。 */
+    private void renderBastionPulse(
+            @NotNull PlayerActiveSkillContext context,
+            @NotNull Player player,
+            @NotNull org.bukkit.World castWorld,
+            @NotNull Location center,
+            @NotNull Location end,
+            int frame
+    ) {
+        if (!player.isOnline() || player.getWorld() != castWorld) {
+            return;
+        }
+        Location pulseCenter = center.clone().add(0.0D, frame * 0.18D, 0.0D);
+        context.services().effects().ring(
+                pulseCenter,
+                0.65D + frame * 0.28D,
+                24,
+                SharedParticleDefinitions.BASTION_STRIKE_SOUL_FIRE
+        );
+        context.services().effects().ring(
+                pulseCenter,
+                0.42D + frame * 0.20D,
+                16,
+                SharedParticleDefinitions.BASTION_STRIKE_RUNE_DUST
+        );
+        if (frame == BASTION_PULSE_COUNT - 1) {
+            context.services().effects().point(end, SharedParticleDefinitions.BASTION_STRIKE_IMPACT_FLASH);
+            context.services().effects().point(end, SharedParticleDefinitions.BASTION_STRIKE_IMPACT_SPARK);
+            context.services().effects().sound(end, Sound.ITEM_TRIDENT_THUNDER, 1.0F, 1.25F);
+        }
     }
 
     /** 指定パラメータが正数であることを検証します。 */
