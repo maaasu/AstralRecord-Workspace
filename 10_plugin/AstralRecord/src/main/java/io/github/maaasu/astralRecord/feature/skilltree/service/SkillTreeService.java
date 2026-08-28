@@ -1622,7 +1622,7 @@ public class SkillTreeService {
         if (!lore.isEmpty()) {
             lore.add(component(""));
         }
-        lore.add(component("&8--- &bパッシブ &8---"));
+        lore.add(component("&8--- &bスキル &8---"));
         appendNodePassiveSkillLines(lore, node);
     }
 
@@ -1668,7 +1668,7 @@ public class SkillTreeService {
         if (node.skillEffects().isEmpty()) {
             return;
         }
-        lines.add(unlocked ? "&8--- &bパッシブ &8---" : "&8--- パッシブ ---");
+        lines.add(unlocked ? "&8--- &bスキル &8---" : "&8--- スキル ---");
         for (SkillTreeSkillEffect effect : node.skillEffects()) {
             String skillId = effect.skillId();
             var definition = skillService == null ? null : skillService.registry().getDefinition(skillId);
