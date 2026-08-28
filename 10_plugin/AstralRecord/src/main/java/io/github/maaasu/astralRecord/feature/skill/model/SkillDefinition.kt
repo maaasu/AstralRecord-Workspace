@@ -12,7 +12,7 @@ package io.github.maaasu.astralRecord.feature.skill.model
  * @property icon            表示アイコン（未指定可）
  * @property lore            説明行配列
  * @property cooldownTicks   共通クールダウン（tick）
- * @property manaCost        旧定義との互換用 MP 消費量。新規定義では [resourceCost] を使用する
+ * @property manaCost        通常は旧定義との互換用MP消費量。ENERGY主消費と併記した正数は副MP消費
  * @property castTimeTicks   共通詠唱時間（tick）
  * @property requiredLevel   共通要求レベル
  * @property onCastSound     共通発動サウンド。未指定時は `null`

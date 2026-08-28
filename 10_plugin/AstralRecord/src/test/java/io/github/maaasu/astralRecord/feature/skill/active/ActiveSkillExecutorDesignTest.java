@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.Ad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerLightningBoltExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerManaBurstExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterFadeShotExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterArrowRainExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanBastionStrikeExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanShieldDrainExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanFlameRushExecutor;
@@ -50,13 +51,14 @@ class ActiveSkillExecutorDesignTest {
         "swordsman_shield_drain",
         "swordsman_flame_rush",
         "swordsman_challenging_roar",
-        "swordsman_bastion_strike"
+        "swordsman_bastion_strike",
+        "hunter_arrow_rain"
     );
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載11 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載12 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {
@@ -350,6 +352,40 @@ class ActiveSkillExecutorDesignTest {
         assertEquals("consumeAllCurrentMana", exception.key());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 17. ハンター アローレインの実装契約
+     * 検証契約: アローレインは射程・範囲・矢数・2撃倍率・初弾と雨矢の飛翔体仕様をmasterから要求する。
+     */
+    @Test
+    void arrowRainValidatesBallisticVolleyParams() {
+        HunterArrowRainExecutor executor = new HunterArrowRainExecutor(activeSkillServices());
+
+        assertDoesNotThrow(() -> executor.validateParams(arrowRainDefinition(Map.of(
+                "range", 18.0D,
+                "radius", 3.0D,
+                "arrowCount", 15,
+                "damageRatios", List.of(0.70D, 0.30D),
+                "openingSpeed", 1.60D,
+                "openingHitRadius", 0.45D,
+                "rainHitRadius", 0.75D
+        ))));
+
+        SkillParameterException exception = assertThrows(
+                SkillParameterException.class,
+                () -> executor.validateParams(arrowRainDefinition(Map.of(
+                        "range", 18.0D,
+                        "radius", 3.0D,
+                        "arrowCount", 15,
+                        "damageRatios", List.of(0.70D),
+                        "openingSpeed", 1.60D,
+                        "openingHitRadius", 0.45D,
+                        "rainHitRadius", 0.75D
+                )))
+        );
+        assertEquals("damageRatios", exception.key());
+    }
+
     private static SkillDefinition astralEdgeDefinition(Map<String, Object> params) {
         return new SkillDefinition(
                 "adventurer_astral_edge",
@@ -547,6 +583,28 @@ class ActiveSkillExecutorDesignTest {
                 true,
                 SkillResourceType.MANA,
                 0.0D
+        );
+    }
+
+    private static SkillDefinition arrowRainDefinition(Map<String, Object> params) {
+        return new SkillDefinition(
+                "hunter_arrow_rain",
+                "hunter_arrow_rain",
+                "アローレイン",
+                null,
+                "SPECTRAL_ARROW",
+                List.of(),
+                240L,
+                8.0D,
+                40L,
+                1,
+                null,
+                params,
+                List.of("active", "ranged", "hunter"),
+                SkillKind.ACTIVE,
+                true,
+                SkillResourceType.ENERGY,
+                16.0D
         );
     }
 

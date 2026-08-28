@@ -1,28 +1,38 @@
 package io.github.maaasu.astralRecord.feature.skill.active.service;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.skill.active.model.SkillBallisticProjectileLaunch;
+import io.github.maaasu.astralRecord.feature.skill.active.model.SkillBallisticProjectileSpec;
+import io.github.maaasu.astralRecord.feature.skill.active.model.SkillEffectLineSegment;
+import io.github.maaasu.astralRecord.feature.skill.active.model.SkillLineTargetHit;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileSpec;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileTermination;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
+import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.IntConsumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -128,6 +138,196 @@ class SkillProjectileServiceTest {
 
         assertEquals(SkillProjectileTermination.Type.RANGE, termination.get().type());
         assertEquals(end, termination.get().location());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 17. ハンター アローレインの実装契約 > ### 17.2 弾道
+     * 検証契約: 重力飛翔体群は指定本数ずつ毎tick開始し、全弾を単一task内で進行・終了させる。
+    */
+    @Test
+    @SuppressWarnings("unchecked")
+    void ballisticVolleyEmitsConfiguredBatchSizeWithinOneTask() {
+        SkillTargetingService targeting = mock(SkillTargetingService.class);
+        SkillEffectService effects = mock(SkillEffectService.class);
+        SkillTaskService tasks = mock(SkillTaskService.class);
+        Player player = mock(Player.class);
+        World world = mock(World.class);
+        UUID playerId = UUID.randomUUID();
+        when(player.getUniqueId()).thenReturn(playerId);
+        when(player.getLocation()).thenReturn(new Location(world, 0.0D, 0.0D, 0.0D));
+        when(targeting.clippedEnd(any(), any(), anyDouble())).thenAnswer(invocation -> {
+            Location origin = invocation.getArgument(0, Location.class);
+            Vector direction = invocation.getArgument(1, Vector.class);
+            double range = invocation.getArgument(2, Double.class);
+            return origin.clone().add(direction.clone().multiply(range));
+        });
+        when(targeting.inLine(any(), any(), any(), anyDouble(), anyDouble(), anyInt())).thenReturn(List.of());
+        doAnswer(invocation -> {
+            int executions = invocation.getArgument(4, Integer.class);
+            IntConsumer consumer = invocation.getArgument(5, IntConsumer.class);
+            for (int tick = 0; tick < executions; tick++) {
+                consumer.accept(tick);
+            }
+            return null;
+        }).when(tasks).repeat(any(UUID.class), anyString(), anyLong(), anyLong(), anyInt(), any(IntConsumer.class));
+        SkillProjectileService service = new SkillProjectileService(targeting, effects, tasks);
+        SkillBallisticProjectileSpec spec = new SkillBallisticProjectileSpec(
+                new Vector(0.0D, -1.0D, 0.0D), 0.14D, 1, 4.0D, 0.75D, false, 1,
+                SharedParticleDefinitions.SKILL_HUNTER_ARROW,
+                SharedParticleDefinitions.SKILL_HUNTER_IMPACT
+        );
+        List<SkillBallisticProjectileLaunch> launches = List.of(
+                new SkillBallisticProjectileLaunch(new Location(world, 0.0D, 5.0D, 0.0D), spec),
+                new SkillBallisticProjectileLaunch(new Location(world, 1.0D, 5.0D, 0.0D), spec),
+                new SkillBallisticProjectileLaunch(new Location(world, 2.0D, 5.0D, 0.0D), spec),
+                new SkillBallisticProjectileLaunch(new Location(world, 3.0D, 5.0D, 0.0D), spec),
+                new SkillBallisticProjectileLaunch(new Location(world, 4.0D, 5.0D, 0.0D), spec),
+                new SkillBallisticProjectileLaunch(new Location(world, 5.0D, 5.0D, 0.0D), spec),
+                new SkillBallisticProjectileLaunch(new Location(world, 6.0D, 5.0D, 0.0D), spec)
+        );
+        AtomicInteger terminated = new AtomicInteger();
+
+        service.launchBallisticVolley(player, launches, 3, (target, impact) -> { }, ignored -> terminated.incrementAndGet());
+
+        assertEquals(7, terminated.get());
+        verify(tasks, times(1)).repeat(eq(playerId), anyString(), eq(0L), eq(1L), eq(4), any(IntConsumer.class));
+        ArgumentCaptor<List<SkillEffectLineSegment>> segments = ArgumentCaptor.forClass(List.class);
+        verify(effects, times(3)).lines(
+                any(), segments.capture(), eq(0.45D), eq(SharedParticleDefinitions.SKILL_HUNTER_ARROW)
+        );
+        assertEquals(List.of(3, 3, 1), segments.getAllValues().stream().map(List::size).toList());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 17. ハンター アローレインの実装契約 > ### 17.2 弾道
+     * 検証契約: 単発重力飛翔体は複数tickで移動後に重力を適用し、寿命終端をRANGEとして正確な位置で通知する。
+     */
+    @Test
+    void ballisticProjectileAppliesGravityAcrossTicksAndEndsAtLifetime() {
+        SkillTargetingService targeting = mock(SkillTargetingService.class);
+        SkillEffectService effects = mock(SkillEffectService.class);
+        SkillTaskService tasks = mock(SkillTaskService.class);
+        Player player = mock(Player.class);
+        World world = mock(World.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(targeting.lineTargetHits(any(), any(), any(), anyDouble(), anyDouble(), anyInt(), eq(true)))
+                .thenReturn(List.of());
+        doAnswer(invocation -> {
+            int executions = invocation.getArgument(4, Integer.class);
+            IntConsumer consumer = invocation.getArgument(5, IntConsumer.class);
+            for (int tick = 0; tick < executions; tick++) {
+                consumer.accept(tick);
+            }
+            return null;
+        }).when(tasks).repeat(any(UUID.class), anyString(), anyLong(), anyLong(), anyInt(), any(IntConsumer.class));
+        SkillProjectileService service = new SkillProjectileService(targeting, effects, tasks);
+        SkillBallisticProjectileSpec spec = new SkillBallisticProjectileSpec(
+                new Vector(1.0D, 1.0D, 0.0D), 0.5D, 3, 100.0D, 0.45D, false, 1,
+                SharedParticleDefinitions.SKILL_HUNTER_ARROW,
+                SharedParticleDefinitions.SKILL_HUNTER_IMPACT
+        );
+        AtomicReference<SkillProjectileTermination> termination = new AtomicReference<>();
+
+        service.launchBallisticWithTermination(
+                player, new Location(world, 0.0D, 0.0D, 0.0D), spec,
+                (target, impact) -> { }, termination::set
+        );
+
+        assertEquals(SkillProjectileTermination.Type.RANGE, termination.get().type());
+        assertEquals(3.0D, termination.get().location().getX(), 1.0E-9D);
+        assertEquals(1.5D, termination.get().location().getY(), 1.0E-9D);
+        verify(targeting, times(3)).blockImpact(any(), any(), anyDouble());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 17. ハンター アローレインの実装契約 > ### 17.2 弾道
+     * 検証契約: 単発重力飛翔体のBLOCK終端は正確なBlock面と0.1m手前の効果中心を分けて通知する。
+     */
+    @Test
+    void ballisticProjectileSeparatesBlockFaceFromEffectLocation() {
+        SkillTargetingService targeting = mock(SkillTargetingService.class);
+        SkillEffectService effects = mock(SkillEffectService.class);
+        SkillTaskService tasks = mock(SkillTaskService.class);
+        Player player = mock(Player.class);
+        World world = mock(World.class);
+        UUID playerId = UUID.randomUUID();
+        when(player.getUniqueId()).thenReturn(playerId);
+        Location blockFace = new Location(world, 0.8D, 0.0D, 0.0D);
+        when(targeting.blockImpact(any(), any(), anyDouble())).thenReturn(blockFace);
+        when(targeting.lineTargetHits(any(), any(), any(), anyDouble(), anyDouble(), anyInt(), eq(false)))
+                .thenReturn(List.of());
+        doAnswer(invocation -> {
+            invocation.getArgument(5, IntConsumer.class).accept(0);
+            return null;
+        }).when(tasks).repeat(any(UUID.class), anyString(), anyLong(), anyLong(), anyInt(), any(IntConsumer.class));
+        SkillProjectileService service = new SkillProjectileService(targeting, effects, tasks);
+        SkillBallisticProjectileSpec spec = new SkillBallisticProjectileSpec(
+                new Vector(1.0D, 0.0D, 0.0D), 0.1D, 4, 10.0D, 0.45D, false, 1,
+                SharedParticleDefinitions.SKILL_HUNTER_ARROW,
+                SharedParticleDefinitions.SKILL_HUNTER_IMPACT
+        );
+        AtomicReference<SkillProjectileTermination> termination = new AtomicReference<>();
+
+        service.launchBallisticWithTermination(
+                player, new Location(world, 0.0D, 0.0D, 0.0D), spec,
+                (target, impact) -> { }, termination::set
+        );
+
+        assertEquals(SkillProjectileTermination.Type.BLOCK, termination.get().type());
+        assertEquals(blockFace, termination.get().location());
+        assertEquals(0.7D, termination.get().effectLocation().getX(), 1.0E-9D);
+        assertEquals(0.0D, termination.get().effectLocation().getY(), 1.0E-9D);
+        assertEquals(0.0D, termination.get().effectLocation().getZ(), 1.0E-9D);
+        verify(effects).line(any(), eq(termination.get().effectLocation()), eq(0.45D),
+                eq(SharedParticleDefinitions.SKILL_HUNTER_ARROW));
+        verify(tasks).cancel(eq(playerId), anyString());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 17. ハンター アローレインの実装契約 > ### 17.2 弾道
+     * 検証契約: 単発重力飛翔体のENTITY終端・軌跡終端・callbackは同じ正確な線分交点を使用する。
+     */
+    @Test
+    void ballisticProjectileTerminatesAndDrawsAtExactEntityIntersection() {
+        SkillTargetingService targeting = mock(SkillTargetingService.class);
+        SkillEffectService effects = mock(SkillEffectService.class);
+        SkillTaskService tasks = mock(SkillTaskService.class);
+        Player player = mock(Player.class);
+        World world = mock(World.class);
+        UUID playerId = UUID.randomUUID();
+        when(player.getUniqueId()).thenReturn(playerId);
+        AstEntity target = mock(AstEntity.class);
+        when(target.id()).thenReturn(UUID.randomUUID());
+        Location intersection = new Location(world, 0.4D, 0.2D, 0.0D);
+        when(targeting.lineTargetHits(any(), any(), any(), anyDouble(), anyDouble(), anyInt(), eq(true)))
+                .thenReturn(List.of(new SkillLineTargetHit(target, intersection, Math.sqrt(0.2D))));
+        doAnswer(invocation -> {
+            invocation.getArgument(5, IntConsumer.class).accept(0);
+            return null;
+        }).when(tasks).repeat(any(UUID.class), anyString(), anyLong(), anyLong(), anyInt(), any(IntConsumer.class));
+        SkillProjectileService service = new SkillProjectileService(targeting, effects, tasks);
+        SkillBallisticProjectileSpec spec = new SkillBallisticProjectileSpec(
+                new Vector(1.0D, 0.5D, 0.0D), 0.1D, 4, 10.0D, 0.45D, false, 1,
+                SharedParticleDefinitions.SKILL_HUNTER_ARROW,
+                SharedParticleDefinitions.SKILL_HUNTER_IMPACT
+        );
+        AtomicReference<Location> callbackImpact = new AtomicReference<>();
+        AtomicReference<SkillProjectileTermination> termination = new AtomicReference<>();
+
+        service.launchBallisticWithTermination(
+                player, new Location(world, 0.0D, 0.0D, 0.0D), spec,
+                (hit, impact) -> callbackImpact.set(impact), termination::set
+        );
+
+        assertEquals(intersection, callbackImpact.get());
+        assertEquals(intersection, termination.get().location());
+        verify(effects).line(any(), eq(intersection), eq(0.45D), eq(SharedParticleDefinitions.SKILL_HUNTER_ARROW));
+        verify(tasks).cancel(eq(playerId), anyString());
+        assertTrue(termination.get().type() == SkillProjectileTermination.Type.ENTITY);
     }
 
     private static Fixture fixture() {

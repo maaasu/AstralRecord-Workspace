@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skill.active.service;
 
+import io.github.maaasu.astralRecord.feature.skill.active.model.SkillEffectLineSegment;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
@@ -75,6 +76,39 @@ public final class SkillEffectService {
             locations.add(start.clone().add(offset.clone().multiply((double) index / points)));
         }
         particleDisplayService.spawnForNearbyViewers(start, locations, definition);
+    }
+
+    /**
+     * 複数の線分を一度のviewer探索でまとめて描画します。
+     *
+     * @param viewerCenter viewer探索の中心
+     * @param segments 描画する線分
+     * @param interval particle間隔
+     * @param definition particle定義
+     */
+    public void lines(
+            @NotNull Location viewerCenter,
+            @NotNull List<SkillEffectLineSegment> segments,
+            double interval,
+            @NotNull SharedParticleDefinition definition
+    ) {
+        List<Location> locations = new ArrayList<>();
+        for (SkillEffectLineSegment segment : segments) {
+            Location start = segment.start();
+            Location end = segment.end();
+            if (start.getWorld() == null || start.getWorld() != end.getWorld()) {
+                continue;
+            }
+            Vector offset = end.toVector().subtract(start.toVector());
+            double distance = offset.length();
+            int points = Math.max(1, (int) Math.ceil(distance / Math.max(0.15D, interval)));
+            for (int index = 0; index <= points; index++) {
+                locations.add(start.clone().add(offset.clone().multiply((double) index / points)));
+            }
+        }
+        if (!locations.isEmpty()) {
+            particleDisplayService.spawnForNearbyViewers(viewerCenter, locations, definition);
+        }
     }
 
     /** 水平リングを表示します。 */

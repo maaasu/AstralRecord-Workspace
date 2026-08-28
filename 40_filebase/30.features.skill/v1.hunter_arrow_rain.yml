@@ -1,0 +1,63 @@
+# design:
+#   motif: "弓術 / 矢の雨"
+#   progression: 2
+schemaVersion: 1
+id: hunter_arrow_rain
+type: SKILL
+implementationId: hunter_arrow_rain
+name: "&aアローレイン"
+description: "&7着弾地点へ頭上から矢の雨を降らせる範囲射撃。"
+icon: SPECTRAL_ARROW
+lore:
+  - "&7射程{skill.range}mの重力矢。敵命中時は間接攻撃力{skill.effectiveDamageRatios[0]:percent}%のダメージ。"
+  - "&7敵または地形への着弾時、半径{skill.radius}mへ{skill.arrowCount}本を1tickに3本ずつ降らせる。"
+  - "&7雨矢は1本につき最初の敵へ間接攻撃力{skill.effectiveDamageRatios[1]:percent}%のダメージ。"
+cooldownTicks: 240
+resourceType: ENERGY
+resourceCost: 16
+manaCost: 8
+castTimeTicks: 40
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+    paramDeltas: { radius: 0.5, arrowCount: 3 }
+  - level: 3
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+    paramDeltas: { radius: 0.5, arrowCount: 3 }
+  - level: 4
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+    paramDeltas: { radius: 0.5, arrowCount: 3 }
+  - level: 5
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+    paramDeltas: { radius: 0.5, arrowCount: 3 }
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+onCast:
+  sound: entity.arrow.shoot
+tags:
+  - active
+  - ranged
+  - bow
+# behavior:
+#   opening: "照準方向へ重力を受ける非貫通矢を1本放ち、最初のMobにはdamageRatios[0]を適用する。BlockまたはMobへの着弾時だけ雨を開始し、射程上限では開始しない。"
+#   rain: "雨開始時のプレイヤー頭上を始点に、着弾中心の円内から面積一様に選んだ地表へ弧を描く。1tickに3本、各矢は最初のMobまたはBlockで終了する。"
+#   targets: "管理対象MobとBossのみ。NPC、PvP対象、死亡Mob、別worldは対象外。"
+params:
+  range: 18.0
+  radius: 3.0
+  arrowCount: 15
+  damageRatios: [0.70, 0.30]
+  openingSpeed: 1.60
+  openingHitRadius: 0.45
+  rainHitRadius: 0.75

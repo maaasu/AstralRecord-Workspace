@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.skill.active.model.SkillLineTargetHit;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
@@ -139,6 +140,36 @@ class SkillTargetingServiceTest {
 
         assertEquals(1, beforeBlock.size());
         assertTrue(atBlock.isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 17. ハンター アローレインの実装契約 > ### 17.2 弾道
+     * 検証契約: 解決済み線分はMob基準位置ではなく、拡張body前面との正確な最初の交点を返す。
+     */
+    @Test
+    void lineTargetHitReturnsExactExpandedBodyIntersection() {
+        World world = mock(World.class);
+        Player player = mock(Player.class);
+        MobService mobService = mock(MobService.class);
+        MobTemplate template = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D).template();
+        MobInstance mob = mockMob(template, world, 0.0D, 5.0D);
+        when(player.getWorld()).thenReturn(world);
+        when(mobService.getInstances()).thenReturn(List.of(mob));
+
+        List<SkillLineTargetHit> hits = new SkillTargetingService(mobService).lineTargetHits(
+                player,
+                new Location(world, 0.0D, 1.0D, 0.0D),
+                new Vector(0.0D, 0.0D, 1.0D),
+                10.0D,
+                0.25D,
+                1,
+                true
+        );
+
+        assertEquals(1, hits.size());
+        assertEquals(4.3D, hits.getFirst().distance(), 1.0E-9D);
+        assertEquals(4.3D, hits.getFirst().location().getZ(), 1.0E-9D);
     }
 
     /**

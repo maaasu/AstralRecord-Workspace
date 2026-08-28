@@ -137,6 +137,61 @@ class SkillServiceDesignTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 4. skill 発動 > ### 4.2 複合リソース消費
+     * 検証契約: ENERGY主消費かつ正のmanaCostを持つdefinitionは、成功時だけENGとMPを同時に消費する。
+     */
+    @Test
+    void castSkillConsumesEnergyAndSecondaryManaTogetherAfterSuccess() {
+        SkillRegistry registry = new SkillRegistry();
+        SkillService service = new SkillService(mock(SkillRepository.class), registry, null);
+        SkillDefinition definition = skill(
+            "hunter_arrow_rain", "arrow_rain_impl", 8.0D, 240L, Map.of(),
+            SkillKind.ACTIVE, 0L, 1, SkillResourceType.ENERGY, 16.0D
+        );
+        registry.registerExecutor(new TestExecutor("arrow_rain_impl"));
+        registry.replaceDefinitions(Map.of(definition.getId(), definition));
+        TestCaster caster = new TestCaster(1, 58.0D, 160.0D);
+
+        SkillCastResult result = service.castSkill(
+            caster, definition.getId(), SkillCastTrigger.SYSTEM,
+            new Location(null, 0.0D, 0.0D, 0.0D), null, List.of()
+        );
+
+        assertTrue(result.success());
+        assertEquals(50.0D, caster.currentMana(), 0.0001D);
+        assertEquals(144.0D, caster.currentEnergy(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 4. skill 発動 > ### 4.2 複合リソース消費
+     * 検証契約: 複合消費の片方でも不足する場合は発動前に拒否し、どちらのresourceも消費しない。
+     */
+    @Test
+    void castSkillRejectsDualResourceCostAtomicallyWhenManaIsInsufficient() {
+        SkillRegistry registry = new SkillRegistry();
+        SkillService service = new SkillService(mock(SkillRepository.class), registry, null);
+        SkillDefinition definition = skill(
+            "hunter_arrow_rain", "arrow_rain_impl", 8.0D, 240L, Map.of(),
+            SkillKind.ACTIVE, 0L, 1, SkillResourceType.ENERGY, 16.0D
+        );
+        registry.registerExecutor(new TestExecutor("arrow_rain_impl"));
+        registry.replaceDefinitions(Map.of(definition.getId(), definition));
+        TestCaster caster = new TestCaster(1, 7.0D, 160.0D);
+
+        SkillCastResult result = service.castSkill(
+            caster, definition.getId(), SkillCastTrigger.SYSTEM,
+            new Location(null, 0.0D, 0.0D, 0.0D), null, List.of()
+        );
+
+        assertFalse(result.success());
+        assertEquals(PlayerMsgId.P_5801, result.messageId());
+        assertEquals(7.0D, caster.currentMana(), 0.0001D);
+        assertEquals(160.0D, caster.currentEnergy(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 4. skill 発動
      * 検証契約: executor失敗時はresourceを消費せずcooldownも開始しない。
      */

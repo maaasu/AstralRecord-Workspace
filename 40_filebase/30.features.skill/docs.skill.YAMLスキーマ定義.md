@@ -4,7 +4,7 @@
 
 スキル種別は plugin 側の `SkillExecutor.kind()` が正本です。filebase 側ではパッシブスキルの場合に `passive.bindRequired` でバインド必要可否を定義します。
 
-発動スキルのリソース種別と消費量は、共通項目 `resourceType` / `resourceCost` へ定義します。`params` は実装固有の拡張値だけに使用し、リソース、クールダウン、詠唱時間などの共通項目を重複して定義しません。
+発動スキルの主リソース種別と消費量は、共通項目 `resourceType` / `resourceCost` へ定義します。`params` は実装固有の拡張値だけに使用し、リソース、クールダウン、詠唱時間などの共通項目を重複して定義しません。ENGとMPを同時消費する例外だけは `resourceType: ENERGY` / `resourceCost` に加えて正の `manaCost` を副MP消費として定義します。
 
 ## 共通定義
 
@@ -22,7 +22,7 @@
 | `cooldownId` | String | 任意 | `id` | 同一プレイヤー内で共有するクールダウン ID。発動スキル自身のクールダウン時間を共有グループへ設定する |
 | `resourceType` | String | 任意 | `MANA` | 消費リソース種別。`MANA` / `ENERGY` |
 | `resourceCost` | Double | 任意 | `0` | `resourceType` で指定したリソースの消費量。0以上を指定する |
-| `manaCost` | Double | 任意 | `0` | 旧定義との互換用 MP 消費量。新規定義では使用せず `resourceCost` を使う |
+| `manaCost` | Double | 任意 | `0` | 通常は旧定義との互換用MP消費量。`resourceType: ENERGY` と正数を併記した場合だけ、副MP消費として主ENGと同時に検証・消費する |
 | `castTimeTicks` | Long | 任意 | `0` | 詠唱時間。冷気中は最終値が2倍 |
 | `requiredLevel` | Integer | 任意 | `1` | 必要レベル |
 | `onCast` | Map | 任意 | `null` | 発動時演出設定 |
@@ -47,6 +47,8 @@
 | `tags` | List<String> | 任意 | `[]` | `76.shared.tag/v1.tags.yml`の`SKILL`対象タグID |
 
 `swordsman_bastion_strike` の `params.consumeAllCurrentMana: true` は、このスキルだけが現在MPを固定値ではなく全量消費することを表すexecutor固有の指定です。`params.levelFiveRequiredManaRatio: 0.80` はLv.5の必要MP比率で、Lv.1〜4は最大MP一致、Lv.5は最大MPの80%以上を発動条件とします。`resourceType: MANA` と `resourceCost: 0` は共通の固定コストを重複適用しないために維持し、Plugin executor が発動成功時に現在MPを0へ設定します。
+
+複合消費では `ENERGY_COST_REDUCTION` と `MANA_COST_REDUCTION` を各消費へ個別に適用します。片方でも残量不足なら発動前に全消費を拒否し、executor成功時だけ両方を消費します。GUIも主ENGと副MPを別行で表示します。
 
 ## 説明文プレースホルダー
 

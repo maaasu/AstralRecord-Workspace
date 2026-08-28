@@ -507,6 +507,10 @@ public final class SkillBindGui {
             ? "現在値すべて"
             : BigDecimal.valueOf(resourceCost).stripTrailingZeros().toPlainString();
         lore.add(Component.text("消費リソース: " + resourceName + " " + cost, NamedTextColor.AQUA));
+        if (resourceType == SkillResourceType.ENERGY && skill.getManaCost() > 0.0D) {
+            String manaCost = BigDecimal.valueOf(skill.getManaCost()).stripTrailingZeros().toPlainString();
+            lore.add(Component.text("消費リソース: MP " + manaCost, NamedTextColor.AQUA));
+        }
         if (!skill.getKind().isPassive()) {
             double reduction = resolved.statusBonuses().getOrDefault(StatusType.COOLDOWN_REDUCTION, 0.0D);
             long cooldownTicks = io.github.maaasu.astralRecord.feature.combat.service.CombatTimingCalculator

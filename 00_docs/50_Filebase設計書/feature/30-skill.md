@@ -32,9 +32,9 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 | 職業 | コンセプト | 主リソース | 主な当たり判定 |
 |:--|:--|:--|:--|
 | `adventurer` | 近接・間接・魔法の基礎操作を試す見習い | `ENERGY` / `MANA` | 扇形、単体飛翔体、単体対象 |
-| `hunter` | 散弾と移動を組み合わせて間合いを管理する遠距離職 | `ENERGY` | 複数の短射程飛翔体、発射後移動 |
+| `hunter` | 散弾・移動・着弾地点制圧を扱う遠距離職 | `ENERGY` + `MANA` | 複数短射程飛翔体、発射後移動、重力弾道範囲 |
 
-現行定義は冒険者の6skillと、ソードマンの `swordsman_shield_drain` / `swordsman_bastion_strike` / `swordsman_flame_rush` / `swordsman_challenging_roar` / `swordsman_last_shield`、シールドリチャージ用の `administrator_shield_recharge` を含みます。シールドドレインとチャレンジングロアはソードマンの `usableSkills` から初期使用許可を与えます。バスティオンストライク、シールドリチャージ、フレイムラッシュ、ラストシールドは、それぞれskilltree node `1203` / `1202` / `1204` / `1211` からソードマンへ使用許可を与えます。Administratorの `usableSkills` には検証用の使用許可を残します。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
+現行定義は冒険者の6skillと、ハンターの `hunter_fade_shot` / `hunter_arrow_rain`、ソードマンの `swordsman_shield_drain` / `swordsman_bastion_strike` / `swordsman_flame_rush` / `swordsman_challenging_roar` / `swordsman_last_shield`、シールドリチャージ用の `administrator_shield_recharge` を含みます。フェイドショットとアローレインはハンター、シールドドレインとチャレンジングロアはソードマンの `usableSkills` から初期使用許可を与えます。バスティオンストライク、シールドリチャージ、フレイムラッシュ、ラストシールドは、それぞれskilltree node `1203` / `1202` / `1204` / `1211` からソードマンへ使用許可を与えます。Administratorの `usableSkills` には検証用の使用許可を残します。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
 
 ハンターの `hunter_fade_shot` は、5本の短射程飛翔体と安全確認付きバックステップを同時に扱う機動射撃です。ハンターの `usableSkills` から直接使用許可を配布し、習得用ジェムは `skill_gem_exchange` で無印原石から交換します。
 
@@ -47,6 +47,8 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 `swordsman_flame_rush` は前方最大5体へ火属性の二連撃を行い、二撃目の炎上率はLv.1〜7が0%、Lv.8/9/10が35%/40%/45%です。`swordsman_challenging_roar` は周囲のMobを一時的に挑発する非攻撃スキルです。
 
 `swordsman_last_shield` は、シールドを破壊する `NORMAL_ATTACK` / `SKILL` の直接攻撃を1回だけ無効化するバインド必須パッシブです。クールダウンは120秒で、表示アイコンは `BEACON` とします。無効化時はシールドを消費せず、HPダメージ・ノックバック・耐久消費も発生しません。状態異常DoTと環境ダメージは対象外です。
+
+`hunter_arrow_rain` は2秒詠唱後に重力のある初弾を放ち、Mobまたはblockへの着弾地点を中心にLv.1で半径3m・15本、Lv.5で半径5m・27本の雨矢を3本/tickで降らせます。初弾と雨矢は `RANGED` / `NONE` で、Lv.1基礎倍率は70% / 30%です。主ENG 16と副MP 8を同時消費し、クールダウンは12秒です。ハンターclassで初期使用許可を与え、習得個体は交換ジェムから作成します。
 
 ## Administrator専用のドッジ連動パッシブ
 

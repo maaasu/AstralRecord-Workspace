@@ -45,6 +45,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Comparator;
+import java.util.EnumMap;
 import java.util.LinkedHashMap;
 import java.util.HashSet;
 import java.util.Collections;
@@ -470,10 +471,10 @@ public class SkillService {
         if (caster.level() < skill.getRequiredLevel()) {
             return SkillCastResult.failure(PlayerMsgId.P_5800);
         }
-        SkillResourceType resourceType = resolveResourceType(skill);
-        double requiredCost = resolveResourceCost(statusSnapshot, skill);
-        if (currentResource(caster, resourceType) < requiredCost) {
-            return SkillCastResult.failure(resourceType.insufficientMessageId());
+        for (Map.Entry<SkillResourceType, Double> cost : resolveResourceCosts(statusSnapshot, skill).entrySet()) {
+            if (currentResource(caster, cost.getKey()) + 1.0E-6D < cost.getValue()) {
+                return SkillCastResult.failure(cost.getKey().insufficientMessageId());
+            }
         }
         if (isOnCooldown(caster, cooldownKey(skill))) {
             return SkillCastResult.failure(PlayerMsgId.P_5802);
@@ -672,7 +673,8 @@ public class SkillService {
 
         if (result.success()) {
             playOnCastSound(castLocation, definition.getOnCastSound());
-            consumeResource(caster, resolveResourceType(definition), resolveResourceCost(effectiveStatus, definition));
+            resolveResourceCosts(effectiveStatus, definition)
+                    .forEach((resourceType, amount) -> consumeResource(caster, resourceType, amount));
             if (definition.getCooldownTicks() > 0L) {
                 startCooldown(
                     caster,
@@ -1338,16 +1340,30 @@ public class SkillService {
         throw new SkillParameterException("resourceCost", "number を指定してください");
     }
 
-    /**
-     * 発動者の消費軽減率を反映したスキルの実消費量を返します。
-     *
-     * @param caster 発動者
-     * @param skill  スキル定義
-     * @return 0 以上の実消費量
-     */
-    private double resolveResourceCost(@NotNull StatusSnapshot statusSnapshot, @NotNull SkillDefinition skill) {
-        double baseCost = resolveResourceCost(skill);
-        StatusType reductionType = resolveResourceType(skill) == SkillResourceType.MANA
+    /** 発動時に同時検証・同時消費する全リソースの実消費量を返します。 */
+    private @NotNull Map<SkillResourceType, Double> resolveResourceCosts(
+            @NotNull StatusSnapshot statusSnapshot,
+            @NotNull SkillDefinition skill
+    ) {
+        SkillResourceType primaryType = resolveResourceType(skill);
+        EnumMap<SkillResourceType, Double> costs = new EnumMap<>(SkillResourceType.class);
+        costs.put(primaryType, resolveResourceCost(statusSnapshot, primaryType, resolveResourceCost(skill)));
+        if (primaryType == SkillResourceType.ENERGY && skill.getManaCost() > 0.0D) {
+            costs.put(
+                    SkillResourceType.MANA,
+                    resolveResourceCost(statusSnapshot, SkillResourceType.MANA, skill.getManaCost())
+            );
+        }
+        return Collections.unmodifiableMap(costs);
+    }
+
+    /** 指定リソースの消費軽減率を基礎消費量へ適用します。 */
+    private double resolveResourceCost(
+            @NotNull StatusSnapshot statusSnapshot,
+            @NotNull SkillResourceType resourceType,
+            double baseCost
+    ) {
+        StatusType reductionType = resourceType == SkillResourceType.MANA
                 ? StatusType.MANA_COST_REDUCTION
                 : StatusType.ENERGY_COST_REDUCTION;
         double reduction = Math.max(0.0D, statusSnapshot.rollValue(reductionType));

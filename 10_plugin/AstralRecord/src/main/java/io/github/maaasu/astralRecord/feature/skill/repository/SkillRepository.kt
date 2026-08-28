@@ -96,8 +96,8 @@ class SkillRepository {
      * API レスポンスオブジェクトを [SkillDefinition] へ変換します。
      * `onCast.sound` は `onCastSound` へ射影します。
      * `resourceType` / `resourceCost` は top-level に指定された値だけを読み取り、
-     * 旧 `params` / `manaCost` からの互換解決は [io.github.maaasu.astralRecord.feature.skill.service.SkillService]
-     * に委ねます。
+     * 旧 `params` / `manaCost` からの互換解決と、ENERGY主消費に併記した副MP消費の解決は
+     * [io.github.maaasu.astralRecord.feature.skill.service.SkillService] に委ねます。
      */
     private fun toDefinition(obj: JsonObject): SkillDefinition {
         val onCastObj = parseObjectOrNull(obj, "onCast")

@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.active.service;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
+import io.github.maaasu.astralRecord.feature.skill.active.model.SkillLineTargetHit;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
@@ -234,6 +235,52 @@ public final class SkillTargetingService {
     }
 
     /**
+     * 既にBlock衝突範囲が解決された線分から、Mobと最初に交差する正確な地点を返します。
+     *
+     * @param player 発動者
+     * @param origin 線分始点
+     * @param direction 線分方向
+     * @param range 判定距離
+     * @param radius 飛翔体半径
+     * @param maxTargets 最大対象数
+     * @param includeRangeEnd 線分終端と同距離の交差を含めるか。Block面ではfalse
+     * @return 交差距離順の対象と交点
+     */
+    public @NotNull List<SkillLineTargetHit> lineTargetHits(
+            @NotNull Player player,
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            double range,
+            double radius,
+            int maxTargets,
+            boolean includeRangeEnd
+    ) {
+        if (origin.getWorld() != player.getWorld() || range <= 0.0D || maxTargets <= 0) {
+            return List.of();
+        }
+        Vector normalizedDirection = normalized(direction);
+        return targets(player, mob -> true).stream()
+                .map(mob -> new MobLineIntersection(
+                        mob,
+                        lineIntersectionDistance(
+                                targetBounds(mob), origin.toVector(), normalizedDirection, range, radius
+                        )
+                ))
+                .filter(hit -> Double.isFinite(hit.distance()))
+                .filter(hit -> includeRangeEnd || hit.distance() + 1.0E-6D < range)
+                .sorted(Comparator
+                        .comparingDouble(MobLineIntersection::distance)
+                        .thenComparing(hit -> hit.mob().instanceId().toString()))
+                .limit(maxTargets)
+                .map(hit -> new SkillLineTargetHit(
+                        AstEntity.mob(hit.mob()),
+                        origin.clone().add(normalizedDirection.clone().multiply(hit.distance())),
+                        hit.distance()
+                ))
+                .toList();
+    }
+
+    /**
      * 円柱範囲内の対象を中心から近い順で返します。
      *
      * @param player 発動者
@@ -365,20 +412,37 @@ public final class SkillTargetingService {
     public @NotNull Location groundTarget(@NotNull Player player, double range) {
         Location eye = player.getEyeLocation();
         Location end = clippedEnd(eye, eye.getDirection(), range);
-        World world = end.getWorld();
+        return groundAt(end, 3, 32);
+    }
+
+    /**
+     * 指定した水平位置の周囲から、矢や範囲演出が到達できる地表を探します。
+     *
+     * @param probe 水平位置と探索基準Y
+     * @param searchUp 基準Yより上へ探す最大block数
+     * @param searchDown 基準Yより下へ探す最大block数
+     * @return 足元が固体で足位置が通過可能な地表。見つからない場合は入力位置の複製
+     */
+    public @NotNull Location groundAt(
+            @NotNull Location probe,
+            int searchUp,
+            int searchDown
+    ) {
+        Location fallback = probe.clone();
+        World world = probe.getWorld();
         if (world == null) {
-            return end;
+            return fallback;
         }
-        int startY = Math.min(world.getMaxHeight() - 2, end.getBlockY() + 3);
-        int minY = Math.max(world.getMinHeight() + 1, end.getBlockY() - 32);
+        int startY = Math.min(world.getMaxHeight() - 2, probe.getBlockY() + Math.max(0, searchUp));
+        int minY = Math.max(world.getMinHeight() + 1, probe.getBlockY() - Math.max(0, searchDown));
         for (int y = startY; y >= minY; y--) {
-            Block floor = world.getBlockAt(end.getBlockX(), y - 1, end.getBlockZ());
-            Block feet = world.getBlockAt(end.getBlockX(), y, end.getBlockZ());
+            Block floor = world.getBlockAt(probe.getBlockX(), y - 1, probe.getBlockZ());
+            Block feet = world.getBlockAt(probe.getBlockX(), y, probe.getBlockZ());
             if (!floor.isPassable() && feet.isPassable()) {
-                return new Location(world, end.getX(), y + 0.05D, end.getZ());
+                return new Location(world, probe.getX(), y + 0.05D, probe.getZ());
             }
         }
-        return end;
+        return fallback;
     }
 
     /**
@@ -462,6 +526,9 @@ public final class SkillTargetingService {
         double dx = first.getX() - second.getX();
         double dz = first.getZ() - second.getZ();
         return dx * dx + dz * dz;
+    }
+
+    private record MobLineIntersection(@NotNull MobInstance mob, double distance) {
     }
 
     static boolean intersectsLine(
