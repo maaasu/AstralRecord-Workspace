@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.Ad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerBlastArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerLightningBoltExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerManaBurstExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterFadeShotExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanBastionStrikeExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanShieldDrainExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanFlameRushExecutor;
@@ -45,6 +46,7 @@ class ActiveSkillExecutorDesignTest {
         "adventurer_smash",
         "adventurer_quick_shot",
         "adventurer_lightning_bolt",
+        "hunter_fade_shot",
         "swordsman_shield_drain",
         "swordsman_flame_rush",
         "swordsman_challenging_roar",
@@ -54,7 +56,7 @@ class ActiveSkillExecutorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載10 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載11 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {
@@ -189,6 +191,40 @@ class ActiveSkillExecutorDesignTest {
                 )))
         );
         assertEquals("angle", exception.key());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 16. ハンターフェイドショットの実装契約 > ### 16.1 散弾・移動・演出
+     * 検証契約: フェイドショットは正の射程・倍率・飛翔体値・後退距離、3〜9の奇数弾数、60度以下の正の散弾全角を必須とする。
+     */
+    @Test
+    void fadeShotValidatesScatterAndBackstepParams() {
+        HunterFadeShotExecutor executor = new HunterFadeShotExecutor(activeSkillServices());
+
+        assertDoesNotThrow(() -> executor.validateParams(fadeShotDefinition(Map.of(
+                "range", 9.0D,
+                "damageRatio", 0.32D,
+                "pelletCount", 5,
+                "spreadAngle", 30.0D,
+                "projectileSpeed", 1.8D,
+                "projectileHitRadius", 0.30D,
+                "backstepDistance", 3.5D
+        ))));
+
+        SkillParameterException exception = assertThrows(
+                SkillParameterException.class,
+                () -> executor.validateParams(fadeShotDefinition(Map.of(
+                        "range", 9.0D,
+                        "damageRatio", 0.32D,
+                        "pelletCount", 4,
+                        "spreadAngle", 30.0D,
+                        "projectileSpeed", 1.8D,
+                        "projectileHitRadius", 0.30D,
+                        "backstepDistance", 3.5D
+                )))
+        );
+        assertEquals("pelletCount", exception.key());
     }
 
     /**
@@ -421,6 +457,28 @@ class ActiveSkillExecutorDesignTest {
                 true,
                 SkillResourceType.ENERGY,
                 10.0D
+        );
+    }
+
+    private static SkillDefinition fadeShotDefinition(Map<String, Object> params) {
+        return new SkillDefinition(
+                "hunter_fade_shot",
+                "hunter_fade_shot",
+                "フェイドショット",
+                null,
+                "CROSSBOW",
+                List.of(),
+                80L,
+                0.0D,
+                0L,
+                1,
+                null,
+                params,
+                List.of("active", "ranged"),
+                SkillKind.ACTIVE,
+                true,
+                SkillResourceType.ENERGY,
+                14.0D
         );
     }
 

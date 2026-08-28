@@ -437,6 +437,8 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("skill_hunter_arrow", Particle.CRIT, 1, 0.02D, 0.02D, 0.02D, 0.01D);
     public static final SharedParticleDefinition SKILL_HUNTER_IMPACT =
         new SharedParticleDefinition("skill_hunter_impact", Particle.END_ROD, 3, 0.08D, 0.08D, 0.08D, 0.01D);
+    public static final SharedParticleDefinition HUNTER_FADE_SHOT_STEP =
+        new SharedParticleDefinition("hunter_fade_shot_step", Particle.CLOUD, 1, 0.04D, 0.02D, 0.04D, 0.01D);
     public static final SharedParticleDefinition SKILL_HUNTER_TRAP_DUST =
         new SharedParticleDefinition(
             "skill_hunter_trap_dust",

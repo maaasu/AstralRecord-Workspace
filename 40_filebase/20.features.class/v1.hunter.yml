@@ -60,6 +60,7 @@ expRate: 100
 usableSkills:
   - skill:adventurer_blast_arrow
   - skill:adventurer_quick_shot
+  - skill:hunter_fade_shot
 tags:
   - tier1
   - ranged

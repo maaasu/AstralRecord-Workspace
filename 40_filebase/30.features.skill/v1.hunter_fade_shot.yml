@@ -1,0 +1,55 @@
+# design:
+#   motif: "狩猟術 / 牽制射撃"
+#   progression: 2
+schemaVersion: 1
+id: hunter_fade_shot
+type: SKILL
+implementationId: hunter_fade_shot
+name: "&fフェイドショット"
+description: "&7散弾を放ち、間合いを切る後退射撃。"
+icon: CROSSBOW
+lore:
+  - "&7全角{skill.spreadAngle}度へ矢を{skill.pelletCount}本放ち、1本ごとに間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
+  - "&7各矢は射程{skill.range}m、同じ敵へ複数本命中する。"
+  - "&7発射後、安全な足場へ最大{skill.backstepDistance}m後退する。"
+cooldownTicks: 80
+resourceType: ENERGY
+resourceCost: 14
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 3
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 4
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 5
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+tags:
+  - active
+  - ranged
+# behavior:
+#   projectiles: "発動時の照準方向を中心とする全角spreadAngleへpelletCount本を等間隔に発射する。各矢は非貫通で、最初に命中したMob 1体へdamageRatioを1回適用する。同じMobへの複数矢命中を許可する。"
+#   targets: "Mobのみを対象にし、NPCとPvP対象を含めない。地形Blockで停止し、最大射程へ無衝突で到達した場合は消滅する。"
+#   movement: "矢を発射した後、移動不能状態・経路遮蔽・足場・頭上空間を確認し、視線と反対方向の安全な地点へ最大backstepDistanceだけ移動する。移動できない場合も射撃は成立する。"
+params:
+  range: 9.0
+  damageRatio: 0.32
+  pelletCount: 5
+  spreadAngle: 30.0
+  projectileSpeed: 1.8
+  projectileHitRadius: 0.30
+  backstepDistance: 3.5
