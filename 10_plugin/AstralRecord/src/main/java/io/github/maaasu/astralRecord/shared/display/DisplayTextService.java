@@ -19,6 +19,7 @@ import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -100,7 +101,7 @@ public final class DisplayTextService {
      */
     public @NotNull ManagedTextDisplay spawnDamageNumber(@NotNull Location origin, double amount, boolean critical) {
         pruneDamageDisplays();
-        return spawnFloatingDamageNumber(origin, amount, critical ? "&e✦ " : "&c");
+        return spawnFloatingNumber(origin, amount, critical ? "&e✦ " : "&c");
     }
 
     /**
@@ -112,7 +113,19 @@ public final class DisplayTextService {
      */
     public @NotNull ManagedTextDisplay spawnShieldDamageNumber(@NotNull Location origin, double amount) {
         pruneDamageDisplays();
-        return spawnFloatingDamageNumber(origin, amount, "&b");
+        return spawnFloatingNumber(origin, amount, "&b");
+    }
+
+    /**
+     * HP 回復向けの黄緑色の浮遊数値を表示します。
+     *
+     * @param origin 表示起点
+     * @param amount 表示する実回復量
+     * @return 管理ハンドル
+     */
+    public @NotNull ManagedTextDisplay spawnHealingNumber(@NotNull Location origin, double amount) {
+        pruneDamageDisplays();
+        return spawnFloatingNumber(origin, amount, "&a+");
     }
 
     /**
@@ -126,9 +139,14 @@ public final class DisplayTextService {
         return spawnFloatingText(origin, "&7Miss");
     }
 
-    private @NotNull ManagedTextDisplay spawnFloatingDamageNumber(@NotNull Location origin, double amount, @NotNull String prefix) {
-        String text = prefix + String.format(java.util.Locale.ROOT, "%.0f", Math.max(0.0D, amount));
+    private @NotNull ManagedTextDisplay spawnFloatingNumber(@NotNull Location origin, double amount, @NotNull String prefix) {
+        String text = floatingNumberText(prefix, amount);
         return spawnFloatingText(origin, text);
+    }
+
+    /** 浮遊数値の色コード・符号・整数丸めを共通化します。 */
+    static @NotNull String floatingNumberText(@NotNull String prefix, double amount) {
+        return prefix + String.format(Locale.ROOT, "%.0f", Math.max(0.0D, amount));
     }
 
     /**

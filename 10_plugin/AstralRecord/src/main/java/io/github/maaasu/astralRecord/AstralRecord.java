@@ -972,6 +972,8 @@ public final class AstralRecord extends JavaPlugin {
             playerDeathService,
             this
         );
+        statusService.setHpRecoveryListener(damageService::presentPlayerHealthRecovery);
+        mobService.setHealthRecoveryListener(damageService::presentMobHealthRecovery);
         mobCombatService.setDamageService(damageService);
         combatDpsTrackerService = new CombatDpsTrackerService();
         damageService.setCombatDpsTrackerService(combatDpsTrackerService);

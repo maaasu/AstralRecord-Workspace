@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
+import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -25,6 +26,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
@@ -80,6 +82,27 @@ class MobServiceLifecycleTest extends MockBukkitTestBase {
 
         assertTrue(service.destroy(first.instanceId()));
         assertEquals(List.of(first.instanceId()), destroyed);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 1. MobService メソッド仕様 > ### Mob HP回復
+     * 検証契約: Mob HP回復は上限適用後の実回復量だけを通知する。
+     */
+    @Test
+    void recoverHealthNotifiesActualAmount() {
+        PluginMock plugin = PluginMock.builder().withPluginName("AstralRecordTest").build();
+        MobService service = new MobService(plugin, mock(MobRepository.class));
+        MobInstance instance = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
+        instance.currentHealth(35.0D);
+        List<Double> notifiedAmounts = new ArrayList<>();
+        service.setHealthRecoveryListener((notifiedInstance, amount) -> {
+            assertSame(instance, notifiedInstance);
+            notifiedAmounts.add(amount);
+        });
+
+        assertEquals(65.0D, service.recoverHealth(instance, 80.0D), 0.0001D);
+        assertEquals(List.of(65.0D), notifiedAmounts);
     }
 
     /**

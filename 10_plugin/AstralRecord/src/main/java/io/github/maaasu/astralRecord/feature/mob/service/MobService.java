@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 /**
@@ -75,6 +76,7 @@ public class MobService {
     private final NpcPlayerSkinPacketService playerSkinPacketService;
     private ConditionService conditionService;
     private Consumer<UUID> destroyListener = ignored -> { };
+    private BiConsumer<MobInstance, Double> healthRecoveryListener = (instance, amount) -> { };
 
     private final Map<String, MobTemplate> templates = new LinkedHashMap<>();
     private final Map<UUID, MobInstance> instances = new LinkedHashMap<>();
@@ -111,6 +113,32 @@ public class MobService {
      */
     public void setDestroyListener(@NotNull Consumer<UUID> destroyListener) {
         this.destroyListener = destroyListener;
+    }
+
+    /**
+     * Mob HP 回復時の実回復量 listener を設定します。
+     *
+     * @param healthRecoveryListener 回復した Mob と実回復量を受け取る listener。null で無効化
+     */
+    public void setHealthRecoveryListener(@Nullable BiConsumer<MobInstance, Double> healthRecoveryListener) {
+        this.healthRecoveryListener = healthRecoveryListener == null
+                ? (instance, amount) -> { }
+                : healthRecoveryListener;
+    }
+
+    /**
+     * Mob の HP を上限まで回復し、実際に増加した量を listener へ通知します。
+     *
+     * @param instance 回復対象の Mob インスタンス
+     * @param amount 回復量
+     * @return 実際に増加した HP
+     */
+    public double recoverHealth(@NotNull MobInstance instance, double amount) {
+        double recoveredAmount = instance.recoverHealth(amount);
+        if (recoveredAmount > 0.0D) {
+            healthRecoveryListener.accept(instance, recoveredAmount);
+        }
+        return recoveredAmount;
     }
 
     /**

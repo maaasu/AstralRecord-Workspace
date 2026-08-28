@@ -114,6 +114,18 @@ class PlayerMsgResourceTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_5-例外・ログ・運用.md
+     * 章・見出し: # 14_5-例外・ログ・運用 > ## 2. player message
+     * 検証契約: HP回復メッセージを黄緑色のプラス付き回復量として整形する。
+     */
+    @Test
+    void hpRecoveryMessageFormatsLimePlusAmount() {
+        String formatted = PlayerMsgResource.format(PlayerMsgId.P_5354.getId(), "12.5");
+
+        assertEquals("§a+12.5", formatted);
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
      * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md

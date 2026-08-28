@@ -286,6 +286,48 @@ public final class DamageService {
     }
 
     /**
+     * プレイヤーに適用された HP 回復の実量を、設定に応じて表示とメッセージへ反映します。
+     *
+     * @param target 回復したプレイヤー
+     * @param amount 実際に増加した HP
+     */
+    public void presentPlayerHealthRecovery(@NotNull AstPlayer target, double amount) {
+        if (!Double.isFinite(amount) || amount <= 0.0D) {
+            return;
+        }
+        UUID playerId = target.getUser().getUuid();
+        if (playerSettingService.isDamageLogDisplayEnabled(playerId)) {
+            displayTextService.spawnHealingNumber(
+                    target.getBukkit().getLocation().clone().add(0.0D, 1.2D, 0.0D),
+                    amount
+            );
+        }
+        if (playerSettingService.isDamageLogMessageEnabled(playerId)) {
+            PlayerMessageService.getInstance().send(
+                    target,
+                    PlayerMsgId.P_5354,
+                    formatCompactNumber(amount)
+            );
+        }
+    }
+
+    /**
+     * Mob に適用された HP 回復の実量を、黄緑色の浮遊数値として表示します。
+     *
+     * @param target 回復した Mob
+     * @param amount 実際に増加した HP
+     */
+    public void presentMobHealthRecovery(@NotNull MobInstance target, double amount) {
+        if (!Double.isFinite(amount) || amount <= 0.0D) {
+            return;
+        }
+        displayTextService.spawnHealingNumber(
+                target.currentLocation().clone().add(0.0D, 1.2D, 0.0D),
+                amount
+        );
+    }
+
+    /**
      * Bukkit の近接ダメージイベントを custom combat へ変換します。
      *
      * @param event Bukkit ダメージイベント

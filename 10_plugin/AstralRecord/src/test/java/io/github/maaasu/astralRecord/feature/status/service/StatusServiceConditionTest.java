@@ -43,6 +43,8 @@ class StatusServiceConditionTest {
         when(conditionService.isHealingBlocked(any(AstEntity.class))).thenReturn(true);
         StatusService statusService = new StatusService();
         statusService.setConditionService(conditionService);
+        double[] notifiedAmount = {-1.0D};
+        statusService.setHpRecoveryListener((ignored, amount) -> notifiedAmount[0] = amount);
 
         assertEquals(5.0D, statusService.recoverHp(player, 10.0D).getCurrentHp(), 0.0001D);
         assertEquals(2.0D, statusService.recoverMp(player, 10.0D).getCurrentMp(), 0.0001D);
@@ -53,6 +55,32 @@ class StatusServiceConditionTest {
         assertEquals(100.0D, restored.getCurrentHp(), 0.0001D);
         assertEquals(50.0D, restored.getCurrentMp(), 0.0001D);
         assertEquals(30.0D, restored.getCurrentEnergy(), 0.0001D);
+        assertEquals(95.0D, notifiedAmount[0], 0.0001D);
         verify(player).setStatusSnapshot(restored);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### HP回復
+     * 検証契約: HP回復通知は上限適用後に実際に増加した量だけを受け取る。
+     */
+    @Test
+    void hpRecoveryListenerReceivesActualClampedAmount() {
+        AstPlayer player = mock(AstPlayer.class);
+        StatusSnapshot snapshot = DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D,
+            StatusType.MAX_MANA, 50.0D,
+            StatusType.MAX_ENERGY, 30.0D
+        ), 95.0D, 2.0D, 3.0D);
+        when(player.getStatusSnapshot()).thenReturn(snapshot);
+
+        double[] notifiedAmount = {-1.0D};
+        StatusService statusService = new StatusService();
+        statusService.setHpRecoveryListener((ignored, amount) -> notifiedAmount[0] = amount);
+
+        StatusSnapshot updated = statusService.recoverHp(player, 20.0D);
+
+        assertEquals(100.0D, updated.getCurrentHp(), 0.0001D);
+        assertEquals(5.0D, notifiedAmount[0], 0.0001D);
     }
 }

@@ -146,7 +146,7 @@ public final class TrainingDummyService {
             Location anchor = definition.toLocation();
             if (anchor != null) mobService.holdPosition(instance, anchor);
             if (tick % definition.recoveryIntervalTicks() == 0L) {
-                instance.currentHealth(instance.maxHealth());
+                mobService.recoverHealth(instance, instance.maxHealth() - instance.currentHealth());
                 if (definition.shieldEnabled()) instance.currentShield(definition.shieldMax(), System.currentTimeMillis());
             }
         }

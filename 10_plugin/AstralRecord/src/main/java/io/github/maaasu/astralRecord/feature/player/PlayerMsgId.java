@@ -486,6 +486,8 @@ public enum PlayerMsgId {
     P_5352(5352),
     /** 被ダメージ回避。{0}:命中率 {1}:命中 {2}:回避 */
     P_5353(5353),
+    /** HP回復量。{0}:実回復量 */
+    P_5354(5354),
     // endregion
 
     // region /feature/inventory/command/InventoryCommand.java 5250-5269

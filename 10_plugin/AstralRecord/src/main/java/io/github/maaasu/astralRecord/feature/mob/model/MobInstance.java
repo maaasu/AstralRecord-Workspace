@@ -195,6 +195,23 @@ public final class MobInstance {
         return currentHealth;
     }
 
+    /**
+     * 指定量の HP を上限まで回復します。
+     *
+     * @param amount 回復量。正の有限値以外は無視
+     * @return 実際に増加した HP
+     */
+    public double recoverHealth(double amount) {
+        if (!Double.isFinite(amount) || amount <= 0.0D || state == MobState.DEAD || !Double.isFinite(currentHealth)) {
+            return 0.0D;
+        }
+        double before = Math.max(0.0D, Math.min(currentHealth, maxHealth));
+        double after = Math.min(maxHealth, before + amount);
+        double recovered = after - before;
+        currentHealth = after;
+        return recovered;
+    }
+
     /** この個体に適用済みの実効最大 HP を返します。 */
     public double maxHealth() {
         return maxHealth;

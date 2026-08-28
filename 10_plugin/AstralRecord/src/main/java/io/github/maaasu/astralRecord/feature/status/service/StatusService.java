@@ -51,6 +51,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
+import java.util.function.BiConsumer;
 
 /**
  * ステータス機能のビジネスロジックを担うサービスクラスです。
@@ -82,6 +83,7 @@ public class StatusService {
     private PassiveSkillService passiveSkillService;
     private PlayerClassService playerClassService;
     private ConditionService conditionService;
+    private BiConsumer<AstPlayer, Double> hpRecoveryListener = (player, amount) -> { };
     private final Map<UUID, ShieldRechargeState> shieldRechargeStates = new HashMap<>();
     private final Map<UUID, ShieldRechargeConfiguration> shieldRechargeConfigurations = new HashMap<>();
     private final Map<UUID, Double> shieldDisplayCapacities = new HashMap<>();
@@ -118,6 +120,15 @@ public class StatusService {
 
     public void setConditionService(@Nullable ConditionService conditionService) {
         this.conditionService = conditionService;
+    }
+
+    /**
+     * HP の実回復量を通知する listener を設定します。通常回復と全回復の両方が対象です。
+     *
+     * @param listener 更新後に対象プレイヤーと実回復量を受け取る listener。null で無効化
+     */
+    public void setHpRecoveryListener(@Nullable BiConsumer<AstPlayer, Double> listener) {
+        this.hpRecoveryListener = listener == null ? (player, amount) -> { } : listener;
     }
 
     /**
@@ -553,6 +564,10 @@ public class StatusService {
             snapshot.getCurrentMp()
         );
         player.setStatusSnapshot(updated);
+        double recoveredAmount = updated.getCurrentHp() - snapshot.getCurrentHp();
+        if (recoveredAmount > 0.0D) {
+            hpRecoveryListener.accept(player, recoveredAmount);
+        }
         return updated;
     }
 
@@ -637,15 +652,21 @@ public class StatusService {
      *
      * @param player 対象プレイヤー
      * @return 更新後のステータススナップショット
+     * @apiNote HP が実際に増加した場合は、上限適用後の実回復量を HP 回復 listener へ通知します。
      */
     public @NotNull StatusSnapshot restoreAll(@NotNull AstPlayer player) {
-        StatusSnapshot snapshot = restoreAllInternal(getStatus(player));
+        StatusSnapshot previous = getStatus(player);
+        StatusSnapshot snapshot = restoreAllInternal(previous);
         player.setStatusSnapshot(snapshot);
         clearShieldRecharge(player);
         shieldDisplayCapacities.put(
             player.getBukkit().getUniqueId(),
             snapshot.getMaxValue(StatusType.MAX_SHIELD)
         );
+        double recoveredAmount = snapshot.getCurrentHp() - previous.getCurrentHp();
+        if (recoveredAmount > 0.0D) {
+            hpRecoveryListener.accept(player, recoveredAmount);
+        }
         return snapshot;
     }
 

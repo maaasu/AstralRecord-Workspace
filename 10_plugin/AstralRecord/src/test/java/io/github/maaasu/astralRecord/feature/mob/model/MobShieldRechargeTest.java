@@ -50,4 +50,18 @@ class MobShieldRechargeTest {
         mob.currentShield(450.0D, 1_001L);
         assertEquals(450.0D, mob.currentShield(), 0.0001D);
     }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
+     * 章・見出し: # 12_1-モデル定義 > ## 18. Mob インスタンス
+     * 検証契約: Mob HP回復は最大HPを超えず、実際の増加量を返す。
+     */
+    @Test
+    void healthRecoveryIsCappedAtMaxHealthAndReturnsActualAmount() {
+        MobInstance mob = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
+        mob.currentHealth(35.0D);
+
+        assertEquals(65.0D, mob.recoverHealth(80.0D), 0.0001D);
+        assertEquals(100.0D, mob.currentHealth(), 0.0001D);
+    }
 }
