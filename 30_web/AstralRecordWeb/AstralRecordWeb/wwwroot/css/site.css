@@ -78,6 +78,19 @@ img {
     background: rgba(201, 168, 76, 0.08);
 }
 
+.ar-nav-discord {
+    background: rgba(88, 101, 242, 0.16);
+    border: 1px solid rgba(118, 129, 246, 0.58);
+    color: #dfe2ff !important;
+    font-weight: 700;
+}
+
+.ar-nav-discord:hover {
+    background: #5865f2;
+    border-color: #7681f6;
+    color: #fff !important;
+}
+
 .ar-toggler {
     border-color: var(--ar-border);
 }
@@ -1868,6 +1881,9 @@ img {
 .ar-feature-card {
     background:
         linear-gradient(145deg, rgba(23, 28, 37, 0.96), rgba(10, 13, 19, 0.98));
+    background-position: center;
+    background-repeat: no-repeat;
+    background-size: cover;
     border: 1px solid rgba(255, 255, 255, 0.1);
     border-radius: 3px;
     box-shadow: 0 26px 70px rgba(0, 0, 0, 0.22);
@@ -1898,16 +1914,37 @@ img {
 
 .ar-feature-card--combat {
     --feature-glow: #d16d4f;
+    background-image:
+        linear-gradient(145deg, rgba(7, 10, 15, 0.64), rgba(7, 10, 15, 0.94)),
+        image-set(
+            url('/images/feature-combat-800.webp') 1x,
+            url('/images/feature-combat-1600.webp') 2x
+        );
+    background-position: center;
     grid-column: span 5;
 }
 
 .ar-feature-card--adventure {
     --feature-glow: #5fb7a7;
+    background-image:
+        linear-gradient(145deg, rgba(7, 10, 15, 0.58), rgba(7, 10, 15, 0.94)),
+        image-set(
+            url('/images/feature-adventure-800.webp') 1x,
+            url('/images/feature-adventure-1600.webp') 2x
+        );
+    background-position: center 44%;
     grid-column: span 7;
 }
 
 .ar-feature-card--community {
     --feature-glow: #c99a3b;
+    background-image:
+        linear-gradient(145deg, rgba(7, 10, 15, 0.62), rgba(7, 10, 15, 0.93)),
+        image-set(
+            url('/images/feature-community-800.webp') 1x,
+            url('/images/feature-community-1600.webp') 2x
+        );
+    background-position: center 54%;
     grid-column: 3 / span 8;
     min-height: 300px;
 }
@@ -2028,6 +2065,134 @@ img {
 
 .ar-world-copy .ar-text-link {
     margin-top: 1.5rem;
+}
+
+.ar-discord-section {
+    background:
+        radial-gradient(circle at 12% 30%, rgba(88, 101, 242, 0.16), transparent 34%),
+        #07090e;
+    padding: clamp(4rem, 8vw, 7rem) 0;
+    scroll-margin-top: var(--ar-navbar-h);
+}
+
+.ar-discord-panel {
+    align-items: center;
+    background:
+        linear-gradient(125deg, rgba(88, 101, 242, 0.3), rgba(17, 21, 35, 0.94) 48%, rgba(9, 12, 20, 0.98));
+    border: 1px solid rgba(118, 129, 246, 0.54);
+    border-radius: 4px;
+    box-shadow: 0 35px 90px rgba(0, 0, 0, 0.38), inset 0 1px rgba(255, 255, 255, 0.08);
+    display: grid;
+    gap: clamp(1.5rem, 4vw, 2.6rem);
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    isolation: isolate;
+    overflow: hidden;
+    padding: clamp(1.7rem, 5vw, 3.2rem);
+    position: relative;
+}
+
+.ar-discord-panel::before {
+    background: radial-gradient(circle, rgba(118, 129, 246, 0.34), transparent 68%);
+    content: '';
+    height: 430px;
+    left: -180px;
+    position: absolute;
+    top: -210px;
+    width: 430px;
+    z-index: -1;
+}
+
+.ar-discord-panel::after {
+    background: linear-gradient(90deg, #5865f2, #9ba4ff, transparent 78%);
+    content: '';
+    height: 3px;
+    left: 0;
+    position: absolute;
+    right: 0;
+    top: 0;
+}
+
+.ar-discord-panel__mark {
+    align-items: center;
+    background: #5865f2;
+    border: 1px solid rgba(255, 255, 255, 0.34);
+    border-radius: 22px;
+    box-shadow: 0 16px 40px rgba(88, 101, 242, 0.34);
+    display: flex;
+    gap: 7px;
+    height: 78px;
+    justify-content: center;
+    transform: rotate(-3deg);
+    width: 78px;
+}
+
+.ar-discord-panel__mark span {
+    background: #fff;
+    border-radius: 50%;
+    height: 7px;
+    opacity: 0.92;
+    width: 7px;
+}
+
+.ar-discord-panel__eyebrow {
+    color: #b9c0ff;
+    font-family: 'Cinzel', serif;
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    margin: 0 0 0.55rem;
+}
+
+.ar-discord-panel__copy h2 {
+    color: #fff;
+    font-size: clamp(1.65rem, 4vw, 2.65rem);
+    font-weight: 700;
+    letter-spacing: -0.035em;
+    margin: 0;
+}
+
+.ar-discord-panel__copy > p:not(.ar-discord-panel__eyebrow) {
+    color: #c8cfdd;
+    line-height: 1.85;
+    margin: 0.9rem 0 0;
+    max-width: 700px;
+}
+
+.ar-discord-panel__copy ul {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    list-style: none;
+    margin: 1.15rem 0 0;
+    padding: 0;
+}
+
+.ar-discord-panel__copy li {
+    background: rgba(255, 255, 255, 0.07);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 999px;
+    color: #e2e5ef;
+    font-size: 0.76rem;
+    padding: 0.32rem 0.72rem;
+}
+
+.ar-discord-panel__button {
+    background: #fff;
+    border: 1px solid #fff;
+    border-radius: 3px;
+    box-shadow: 0 14px 34px rgba(0, 0, 0, 0.25);
+    color: #30399b;
+    flex: 0 0 auto;
+    font-weight: 700;
+    padding: 0.95rem 1.35rem;
+    white-space: nowrap;
+}
+
+.ar-discord-panel__button:hover {
+    background: #eef0ff;
+    border-color: #eef0ff;
+    color: #222a7c;
+    transform: translateY(-2px);
 }
 
 .ar-join-section {
@@ -2203,21 +2368,6 @@ img {
 
 .ar-edition-card--planned {
     background: linear-gradient(145deg, rgba(20, 23, 31, 0.88), rgba(11, 14, 20, 0.96));
-}
-
-.ar-home-button--discord {
-    background: #5865f2;
-    border: 1px solid #7681f6;
-    color: #fff;
-    margin-top: 0.55rem;
-    width: 100%;
-}
-
-.ar-home-button--discord:hover {
-    background: #6975f5;
-    box-shadow: 0 12px 34px rgba(88, 101, 242, 0.25);
-    color: #fff;
-    transform: translateY(-2px);
 }
 
 .ar-alpha-notice {
@@ -2442,6 +2592,15 @@ img {
         min-height: auto;
     }
 
+    .ar-discord-panel {
+        grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .ar-discord-panel__button {
+        grid-column: 1 / -1;
+        justify-self: start;
+    }
+
     .ar-world-section {
         min-height: 600px;
     }
@@ -2541,6 +2700,24 @@ img {
 
     .ar-home-actions,
     .ar-home-button {
+        width: 100%;
+    }
+
+    .ar-discord-panel {
+        align-items: start;
+        grid-template-columns: 1fr;
+    }
+
+    .ar-discord-panel__mark {
+        border-radius: 17px;
+        height: 60px;
+        width: 60px;
+    }
+
+    .ar-discord-panel__button {
+        grid-column: auto;
+        text-align: center;
+        white-space: normal;
         width: 100%;
     }
 

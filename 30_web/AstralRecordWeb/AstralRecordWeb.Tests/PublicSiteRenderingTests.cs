@@ -23,7 +23,12 @@ public sealed class PublicSiteRenderingTests
         response.EnsureSuccessStatusCode();
         var body = await response.Content.ReadAsStringAsync();
         var hero = ExtractSection(body, "<section class=\"ar-home-hero\"");
+        var discord = ExtractSection(body, "<section class=\"ar-discord-section\" id=\"discord\"");
         var join = ExtractSection(body, "<section class=\"ar-home-section ar-join-section\" id=\"join\"");
+
+        var cssResponse = await client.GetAsync("/css/site.css");
+        cssResponse.EnsureSuccessStatusCode();
+        var css = await cssResponse.Content.ReadAsStringAsync();
 
         Assert.Contains("data-public-phase=\"open-alpha\"", body);
         Assert.Contains("href=\"#join\"", hero);
@@ -40,6 +45,23 @@ public sealed class PublicSiteRenderingTests
         Assert.Contains("個別の復旧や補償の対象外", join);
         Assert.Contains("正式リリース時に引き継がれません", join);
         Assert.Contains("予告なく変更されることがあります", join);
+        Assert.Contains("Minecraft Bedrock Edition", join);
+        Assert.Contains("対応予定", join);
+        Assert.Contains("現在はMinecraft Bedrock Editionからの参加に対応していませんが、今後参加できるよう対応を予定しています。", join);
+        Assert.DoesNotContain("discord.gg", join, StringComparison.OrdinalIgnoreCase);
+
+        Assert.Contains("冒険の続きは、公式Discordで。", discord);
+        Assert.Contains("公式Discordに参加する", discord);
+        Assert.Contains("https://discord.gg/Fja6zmpjGX", discord);
+        Assert.Matches(
+            "<a[^>]*class=\"nav-link ar-nav-link ar-nav-discord\"[^>]*href=\"https://discord\\.gg/Fja6zmpjGX\"[^>]*>公式Discord</a>",
+            body);
+
+        foreach (var featureImage in new[] { "combat", "adventure", "community" })
+        {
+            Assert.Contains($"/images/feature-{featureImage}-800.webp", css);
+            Assert.Contains($"/images/feature-{featureImage}-1600.webp", css);
+        }
 
         foreach (var forbiddenPhrase in new[]
                  {
