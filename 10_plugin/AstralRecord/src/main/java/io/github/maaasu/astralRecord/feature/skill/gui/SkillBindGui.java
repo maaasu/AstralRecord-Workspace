@@ -28,6 +28,7 @@ import io.github.maaasu.astralRecord.shared.display.DisplaySeparators;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -400,6 +401,26 @@ public final class SkillBindGui {
         return shouldShowNormalAttack(pageIndex, selectedBindType) ? 1 : 0;
     }
 
+    /**
+     * スキル名に続くレベル表示を生成します。
+     *
+     * @param level 現在のレベル
+     * @param maxLevel 最大レベル
+     * @param normalColor 最大レベル未満のレベル表示に使う色。null は不可
+     * @return 最大レベルなら赤色太字の {@code max}、それ以外は {@code Lv.現在/最大}
+     */
+    static @NotNull Component skillLevelDisplay(
+        int level,
+        int maxLevel,
+        @NotNull NamedTextColor normalColor
+    ) {
+        if (level == maxLevel) {
+            return Component.text(" ", normalColor)
+                .append(Component.text("max", NamedTextColor.RED, TextDecoration.BOLD));
+        }
+        return Component.text(" Lv." + level + "/" + maxLevel, normalColor);
+    }
+
     private ItemStack createLearnedSkillItem(SkillManagerEntry entry, boolean listDisplay) {
         List<Component> lore = new ArrayList<>();
         appendLearnedSkillDetails(lore, entry);
@@ -414,7 +435,7 @@ public final class SkillBindGui {
                 ? Material.LIGHT_GRAY_WOOL
                 : parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON),
             SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE)
-                .append(Component.text(" Lv." + entry.learnedSkill().getLevel() + "/" + skill.getMaxLevel(), NamedTextColor.GOLD)),
+                .append(skillLevelDisplay(entry.learnedSkill().getLevel(), skill.getMaxLevel(), NamedTextColor.GOLD)),
             lore
         );
         return withBindingId(item, entry.bindingId());
@@ -785,8 +806,7 @@ public final class SkillBindGui {
         return createItem(
             parseMaterial(preview.definition().getIcon(), DEFAULT_SKILL_ICON),
                 SkillPresentationUtil.skillNameComponent(preview.definition(), skill.getId(), NamedTextColor.WHITE)
-                    .append(Component.text(" Lv." + resultingLevel + "/" + skill.getMaxLevel(),
-                    NamedTextColor.GREEN)),
+                    .append(skillLevelDisplay(resultingLevel, skill.getMaxLevel(), NamedTextColor.GREEN)),
             lore
         );
     }

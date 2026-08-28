@@ -7,6 +7,10 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
 
@@ -73,6 +77,35 @@ class SkillBindGuiLayoutTest {
         assertEquals(0, SkillBindGui.contentSlotOffset(0, SkillBindType.PASSIVE));
         assertEquals(0, SkillBindGui.contentSlotOffset(1, SkillBindType.ACTIVE));
         assertEquals(1, SkillBindGui.contentSlotOffset(0, SkillBindType.ACTIVE));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 1. スキルマネージャー
+     * 検証契約: 現在レベルと最大レベルが同じスキルは比率表示を赤色太字の max 表示へ置き換える。
+     */
+    @Test
+    void displaysMaxLabelWhenSkillReachesMaxLevel() {
+        Component display = SkillBindGui.skillLevelDisplay(3, 3, NamedTextColor.GOLD);
+
+        assertEquals(" max", PlainTextComponentSerializer.plainText().serialize(display));
+        Component max = display.children().get(0);
+        assertEquals("max", PlainTextComponentSerializer.plainText().serialize(max));
+        assertEquals(NamedTextColor.RED, max.color());
+        assertEquals(TextDecoration.State.TRUE, max.decoration(TextDecoration.BOLD));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 1. スキルマネージャー
+     * 検証契約: 最大レベル未満のスキルは従来どおり Lv.現在/最大 で表示する。
+     */
+    @Test
+    void keepsLevelRatioBelowMaxLevel() {
+        Component display = SkillBindGui.skillLevelDisplay(2, 3, NamedTextColor.GOLD);
+
+        assertEquals(" Lv.2/3", PlainTextComponentSerializer.plainText().serialize(display));
+        assertEquals(NamedTextColor.GOLD, display.color());
     }
 
     /**
