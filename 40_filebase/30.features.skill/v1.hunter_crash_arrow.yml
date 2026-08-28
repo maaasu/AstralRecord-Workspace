@@ -1,0 +1,58 @@
+# design:
+#   motif: "盾砕き / 水色の無重力矢"
+#   progression: 2
+schemaVersion: 1
+id: hunter_crash_arrow
+type: SKILL
+implementationId: hunter_crash_arrow
+name: "&bクラッシュアロー"
+description: "&7シールド破壊に特化した水色の矢。"
+icon: SPECTRAL_ARROW
+lore:
+  - "&7射程{skill.range}mへ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
+  - "&7シールドへのダメージ倍率は{skill.shieldBreakMultiplier}倍。"
+  - "&7重力の影響を受けない水色の矢を放つ。"
+cooldownTicks: 120
+resourceType: ENERGY
+resourceCost: 14
+castTimeTicks: 20
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    paramDeltas: { shieldBreakMultiplier: 0.5 }
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 3
+    paramDeltas: { shieldBreakMultiplier: 0.5 }
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 4
+    paramDeltas: { shieldBreakMultiplier: 0.5 }
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 5
+    paramDeltas: { shieldBreakMultiplier: 0.5 }
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+# behavior:
+#   projectile: "発動者の視線方向へ射程14mを毎tick1.35mで直進する非貫通の仮想飛翔体を1本だけ放つ。重力による落下はなく、最初のMobまたは地形ブロックに到達する。"
+#   damage: "最初に命中したMob 1体へRANGED/NONEの基礎倍率30%を1回適用し、skill damage補正を共通経路で加算する。同じ対象への再命中、状態異常、ノックバックは発生しない。"
+#   shield: "命中時の一撃だけ、計算シールドダメージへクラッシュアローのshieldBreakMultiplierを適用する。Lv.1は3.0倍、レベルごとに0.5ずつ増加し、Lv.5は5.0倍。"
+#   targets: "SkillProjectileServiceの既存Mob専用規則を使用し、NPC、PvP対象、別world、死亡済みMobは対象外とする。"
+params:
+  range: 14.0
+  damageRatio: 0.30
+  shieldBreakMultiplier: 3.0
+  projectileSpeed: 1.35
+  projectileHitRadius: 0.45
+tags:
+  - active
+  - ranged

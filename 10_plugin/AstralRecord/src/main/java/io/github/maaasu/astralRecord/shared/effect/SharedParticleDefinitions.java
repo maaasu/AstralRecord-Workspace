@@ -439,6 +439,28 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("skill_hunter_impact", Particle.END_ROD, 3, 0.08D, 0.08D, 0.08D, 0.01D);
     public static final SharedParticleDefinition HUNTER_FADE_SHOT_STEP =
         new SharedParticleDefinition("hunter_fade_shot_step", Particle.CLOUD, 1, 0.04D, 0.02D, 0.04D, 0.01D);
+    public static final SharedParticleDefinition SKILL_HUNTER_CRASH_ARROW_TRAIL =
+        new SharedParticleDefinition(
+            "skill_hunter_crash_arrow_trail",
+            Particle.DUST,
+            2,
+            0.025D,
+            0.025D,
+            0.025D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(80, 220, 255), 1.1F)
+        );
+    public static final SharedParticleDefinition SKILL_HUNTER_CRASH_ARROW_IMPACT =
+        new SharedParticleDefinition(
+            "skill_hunter_crash_arrow_impact",
+            Particle.DUST,
+            8,
+            0.12D,
+            0.12D,
+            0.12D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(150, 235, 255), 1.35F)
+        );
     public static final SharedParticleDefinition SKILL_HUNTER_TRAP_DUST =
         new SharedParticleDefinition(
             "skill_hunter_trap_dust",

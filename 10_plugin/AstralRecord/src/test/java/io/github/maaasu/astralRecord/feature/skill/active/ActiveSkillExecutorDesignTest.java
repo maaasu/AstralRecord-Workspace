@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.Ad
 import io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer.AdventurerManaBurstExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterFadeShotExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterArrowRainExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterCrashArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanBastionStrikeExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanShieldDrainExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanFlameRushExecutor;
@@ -48,6 +49,7 @@ class ActiveSkillExecutorDesignTest {
         "adventurer_quick_shot",
         "adventurer_lightning_bolt",
         "hunter_fade_shot",
+        "hunter_crash_arrow",
         "swordsman_shield_drain",
         "swordsman_flame_rush",
         "swordsman_challenging_roar",
@@ -58,7 +60,7 @@ class ActiveSkillExecutorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載12 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載13 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {
@@ -131,6 +133,36 @@ class ActiveSkillExecutorDesignTest {
                 )))
         );
         assertEquals("maxTargets", exception.key());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 18. ハンタークラッシュアローの実装契約
+     * 検証契約: クラッシュアローは射程・低いHP倍率・シールドブレイク倍率・飛翔体値を正数として要求する。
+     */
+    @Test
+    void crashArrowValidatesDataDrivenParams() {
+        HunterCrashArrowExecutor executor = new HunterCrashArrowExecutor(activeSkillServices());
+
+        assertDoesNotThrow(() -> executor.validateParams(crashArrowDefinition(Map.of(
+                "range", 14.0D,
+                "damageRatio", 0.30D,
+                "shieldBreakMultiplier", 3.0D,
+                "projectileSpeed", 1.35D,
+                "projectileHitRadius", 0.45D
+        ))));
+
+        SkillParameterException exception = assertThrows(
+                SkillParameterException.class,
+                () -> executor.validateParams(crashArrowDefinition(Map.of(
+                        "range", 14.0D,
+                        "damageRatio", 0.30D,
+                        "shieldBreakMultiplier", 0.0D,
+                        "projectileSpeed", 1.35D,
+                        "projectileHitRadius", 0.45D
+                )))
+        );
+        assertEquals("shieldBreakMultiplier", exception.key());
     }
 
     /**
@@ -427,6 +459,28 @@ class ActiveSkillExecutorDesignTest {
                 true,
                 SkillResourceType.ENERGY,
                 12.0D
+        );
+    }
+
+    private static SkillDefinition crashArrowDefinition(Map<String, Object> params) {
+        return new SkillDefinition(
+                "hunter_crash_arrow",
+                "hunter_crash_arrow",
+                "クラッシュアロー",
+                null,
+                "SPECTRAL_ARROW",
+                List.of(),
+                120L,
+                14.0D,
+                20L,
+                1,
+                null,
+                params,
+                List.of("active", "ranged"),
+                SkillKind.ACTIVE,
+                true,
+                SkillResourceType.ENERGY,
+                14.0D
         );
     }
 

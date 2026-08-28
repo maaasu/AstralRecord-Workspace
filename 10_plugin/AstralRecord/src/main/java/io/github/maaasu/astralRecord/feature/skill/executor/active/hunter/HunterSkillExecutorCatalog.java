@@ -21,7 +21,8 @@ public final class HunterSkillExecutorCatalog {
     public static @NotNull List<SkillExecutor> create(@NotNull ActiveSkillServices services) {
         return List.of(
                 new HunterFadeShotExecutor(services),
-                new HunterArrowRainExecutor(services)
+                new HunterArrowRainExecutor(services),
+                new HunterCrashArrowExecutor(services)
         );
     }
 }
