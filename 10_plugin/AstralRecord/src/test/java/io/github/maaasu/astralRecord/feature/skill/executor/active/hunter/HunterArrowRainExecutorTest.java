@@ -44,6 +44,7 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
@@ -57,7 +58,7 @@ class HunterArrowRainExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 17. ハンター アローレインの実装契約
-     * 検証契約: 初弾は重力弾道で70%RANGEDを与え、entity/block着弾時だけ15本を3本/tickで降らせ各30%RANGEDを与える。
+     * 検証契約: 初弾は重力弾道で70%RANGEDを与え、entity/block着弾時だけ45本を3本/tickで降らせ、初弾着弾Y以上のBlockを貫通して各30%RANGEDを与える。
      */
     @Test
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -126,7 +127,7 @@ class HunterArrowRainExecutorTest {
                 SkillProjectileTermination.Type.RANGE, impact, impact
         ));
         verify(projectiles, never()).launchBallisticVolley(
-                any(), any(), anyInt(), any(), any()
+                any(), any(), anyInt(), anyDouble(), any(), any()
         );
 
         openingTermination.getValue().accept(new SkillProjectileTermination(
@@ -135,9 +136,9 @@ class HunterArrowRainExecutorTest {
         ArgumentCaptor<List<SkillBallisticProjectileLaunch>> volley = ArgumentCaptor.forClass(List.class);
         ArgumentCaptor<BiConsumer<AstEntity, Location>> rainHit = ArgumentCaptor.forClass(BiConsumer.class);
         verify(projectiles).launchBallisticVolley(
-                same(player), volley.capture(), eq(3), rainHit.capture(), any()
+                same(player), volley.capture(), eq(3), eq(impact.getY()), rainHit.capture(), any()
         );
-        assertEquals(15, volley.getValue().size());
+        assertEquals(45, volley.getValue().size());
         assertTrue(volley.getValue().stream().allMatch(launch -> launch.spec().gravityPerTick() > 0.0D));
 
         rainHit.getValue().accept(target, impact);
@@ -146,12 +147,15 @@ class HunterArrowRainExecutorTest {
         );
 
         Location blockFace = new Location(world, 12.0D, 66.0D, 8.0D);
-        Location blockEffectCenter = new Location(world, 11.9D, 66.0D, 8.0D);
+        Location blockEffectCenter = new Location(world, 11.9D, 65.9D, 8.0D);
         openingTermination.getValue().accept(new SkillProjectileTermination(
                 SkillProjectileTermination.Type.BLOCK, blockFace, blockEffectCenter
         ));
         verify(projectiles, org.mockito.Mockito.times(2)).launchBallisticVolley(
-                same(player), any(), eq(3), any(), any()
+                same(player), any(), eq(3), anyDouble(), any(), any()
+        );
+        verify(projectiles).launchBallisticVolley(
+                same(player), any(), eq(3), eq(blockFace.getY()), any(), any()
         );
         verify(effects).sound(same(blockEffectCenter), eq(org.bukkit.Sound.ITEM_CROSSBOW_SHOOT), eq(1.25F), eq(0.65F));
     }
@@ -244,7 +248,7 @@ class HunterArrowRainExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 17. ハンター アローレインの実装契約 > ### 17.3 バランス・テスト契約
-     * 検証契約: 頭上から収束する実弾道の全線分を用い、中心静止Mobへの距離別期待命中を倍率調整の2.5〜5.1本帯へ固定する。
+     * 検証契約: 頭上から収束する実弾道の全線分を用い、3倍化後も中心静止Mobへの距離別期待命中が想定帯に収まる。
      */
     @Test
     void deterministicRainTrajectoriesMatchBalancedSingleTargetHitBand() {
@@ -283,14 +287,14 @@ class HunterArrowRainExecutorTest {
         );
 
         List<Double> levelOne = expectedHitsByDistance(
-                new HunterArrowRainExecutor(services, new Random(20260828L)), context, 3.0D, 15
+                new HunterArrowRainExecutor(services, new Random(20260828L)), context, 3.0D, 45
         );
         List<Double> levelFive = expectedHitsByDistance(
-                new HunterArrowRainExecutor(services, new Random(20260828L)), context, 5.0D, 27
+                new HunterArrowRainExecutor(services, new Random(20260828L)), context, 5.0D, 81
         );
 
-        assertTrue(levelOne.stream().allMatch(value -> value >= 3.5D && value <= 5.8D), levelOne.toString());
-        assertTrue(levelFive.stream().allMatch(value -> value >= 2.0D && value <= 5.2D), levelFive.toString());
+        assertTrue(levelOne.stream().allMatch(value -> value >= 10.5D && value <= 17.4D), levelOne.toString());
+        assertTrue(levelFive.stream().allMatch(value -> value >= 6.0D && value <= 15.6D), levelFive.toString());
     }
 
     private static List<Double> expectedHitsByDistance(
@@ -357,7 +361,7 @@ class HunterArrowRainExecutorTest {
                 Map.of(
                         "range", 18.0D,
                         "radius", 3.0D,
-                        "arrowCount", 15,
+                        "arrowCount", 45,
                         "damageRatios", List.of(0.70D, 0.30D),
                         "openingSpeed", 1.60D,
                         "openingHitRadius", 0.45D,

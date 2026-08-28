@@ -22,6 +22,8 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Set;
@@ -38,6 +40,7 @@ public final class SkillTargetingService {
 
     private static final double FALLBACK_TARGET_HALF_WIDTH = 0.45D;
     private static final double FALLBACK_TARGET_HEIGHT = 1.8D;
+    private static final double HEIGHT_BOUNDARY_EPSILON = 1.0E-6D;
     private final MobService mobService;
 
     /**
@@ -258,29 +261,102 @@ public final class SkillTargetingService {
             int maxTargets,
             boolean includeRangeEnd
     ) {
+        return lineTargetHits(
+                player,
+                captureLineTargetSnapshot(player),
+                origin,
+                direction,
+                range,
+                radius,
+                maxTargets,
+                includeRangeEnd
+        );
+    }
+
+    /**
+     * 同一tick内の複数線分判定で共有するMob候補とbody boundsを取得します。
+     *
+     * @param player 発動者
+     * @return 取得時点の同一world内にいる有効Mob候補
+     */
+    public @NotNull LineTargetSnapshot captureLineTargetSnapshot(@NotNull Player player) {
+        World world = player.getWorld();
+        List<LineTargetCandidate> candidates = mobService.getInstances().stream()
+                .filter(mob -> mob.state() != MobState.DEAD)
+                .filter(mob -> mob.template().category() != MobCategory.NPC)
+                .filter(mob -> mob.currentLocation().getWorld() == world)
+                .map(mob -> new LineTargetCandidate(mob, targetBounds(mob)))
+                .toList();
+        return new LineTargetSnapshot(world, candidates);
+    }
+
+    /**
+     * 共有snapshotを使い、Block衝突範囲が解決された線分と交差するMobを返します。
+     *
+     * @param player 発動者
+     * @param snapshot 同一tick内に取得したMob候補snapshot
+     * @param origin 線分始点
+     * @param direction 線分方向
+     * @param range 判定距離
+     * @param radius 飛翔体半径
+     * @param maxTargets 最大対象数
+     * @param includeRangeEnd 線分終端と同距離の交差を含めるか。Block面ではfalse
+     * @return 交差距離順の対象と交点
+     */
+    public @NotNull List<SkillLineTargetHit> lineTargetHits(
+            @NotNull Player player,
+            @NotNull LineTargetSnapshot snapshot,
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            double range,
+            double radius,
+            int maxTargets,
+            boolean includeRangeEnd
+    ) {
         if (origin.getWorld() != player.getWorld() || range <= 0.0D || maxTargets <= 0) {
             return List.of();
         }
+        if (snapshot.world != player.getWorld()) {
+            return List.of();
+        }
         Vector normalizedDirection = normalized(direction);
-        return targets(player, mob -> true).stream()
-                .map(mob -> new MobLineIntersection(
-                        mob,
-                        lineIntersectionDistance(
-                                targetBounds(mob), origin.toVector(), normalizedDirection, range, radius
-                        )
-                ))
-                .filter(hit -> Double.isFinite(hit.distance()))
-                .filter(hit -> includeRangeEnd || hit.distance() + 1.0E-6D < range)
-                .sorted(Comparator
-                        .comparingDouble(MobLineIntersection::distance)
-                        .thenComparing(hit -> hit.mob().instanceId().toString()))
-                .limit(maxTargets)
-                .map(hit -> new SkillLineTargetHit(
-                        AstEntity.mob(hit.mob()),
-                        origin.clone().add(normalizedDirection.clone().multiply(hit.distance())),
-                        hit.distance()
-                ))
-                .toList();
+        Vector originVector = origin.toVector();
+        List<MobLineIntersection> nearest = new ArrayList<>(Math.min(maxTargets, snapshot.candidates.size()));
+        for (LineTargetCandidate candidate : snapshot.candidates) {
+            MobInstance mob = candidate.mob();
+            if (mobService.getInstance(mob.instanceId()) != mob
+                    || mob.state() == MobState.DEAD
+                    || mob.template().category() == MobCategory.NPC
+                    || mob.currentLocation().getWorld() != player.getWorld()) {
+                continue;
+            }
+            double distance = lineIntersectionDistance(
+                    candidate.bounds(), originVector, normalizedDirection, range, radius
+            );
+            if (!Double.isFinite(distance) || (!includeRangeEnd && distance + 1.0E-6D >= range)) {
+                continue;
+            }
+            MobLineIntersection hit = new MobLineIntersection(mob, distance);
+            int insertionIndex = Collections.binarySearch(nearest, hit, MOB_LINE_INTERSECTION_ORDER);
+            insertionIndex = insertionIndex < 0 ? -insertionIndex - 1 : insertionIndex;
+            if (insertionIndex >= maxTargets) {
+                continue;
+            }
+            nearest.add(insertionIndex, hit);
+            if (nearest.size() > maxTargets) {
+                nearest.removeLast();
+            }
+        }
+
+        List<SkillLineTargetHit> hits = new ArrayList<>(nearest.size());
+        for (MobLineIntersection hit : nearest) {
+            hits.add(new SkillLineTargetHit(
+                    AstEntity.mob(hit.mob()),
+                    origin.clone().add(normalizedDirection.clone().multiply(hit.distance())),
+                    hit.distance()
+            ));
+        }
+        return List.copyOf(hits);
     }
 
     /**
@@ -446,6 +522,50 @@ public final class SkillTargetingService {
     }
 
     /**
+     * 指定高度より低い線分区間だけで最初に衝突するブロックの正確な地点を返します。
+     *
+     * @param origin 始点
+     * @param direction 進行方向
+     * @param range 最大距離
+     * @param exclusiveMaximumY 衝突判定を有効にするY座標の排他的上限
+     * @return 上限より低い位置でブロックへ衝突する地点。衝突しない場合はnull
+     */
+    public @Nullable Location blockImpactBelowY(
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            double range,
+            double exclusiveMaximumY
+    ) {
+        double safeRange = Math.max(0.0D, range);
+        if (origin.getWorld() == null || safeRange <= 0.0D || !Double.isFinite(exclusiveMaximumY)) {
+            return null;
+        }
+        Vector normalizedDirection = normalized(direction);
+        double directionY = normalizedDirection.getY();
+        double originY = origin.getY();
+        double endY = originY + directionY * safeRange;
+
+        if (originY < exclusiveMaximumY) {
+            if (directionY <= 0.0D || endY < exclusiveMaximumY) {
+                return blockImpact(origin, normalizedDirection, safeRange);
+            }
+            double boundaryDistance = (exclusiveMaximumY - originY) / directionY;
+            return blockImpact(origin, normalizedDirection, Math.nextDown(boundaryDistance));
+        }
+        if (directionY >= 0.0D || endY >= exclusiveMaximumY) {
+            return null;
+        }
+
+        double boundaryDistance = (exclusiveMaximumY - originY) / directionY;
+        double startDistance = boundaryDistance + HEIGHT_BOUNDARY_EPSILON / -directionY;
+        if (startDistance >= safeRange) {
+            return null;
+        }
+        Location clippedOrigin = origin.clone().add(normalizedDirection.clone().multiply(startDistance));
+        return blockImpact(clippedOrigin, normalizedDirection, safeRange - startDistance);
+    }
+
+    /**
      * 視線先の地面位置を返します。
      *
      * @param player 発動者
@@ -569,6 +689,24 @@ public final class SkillTargetingService {
         double dx = first.getX() - second.getX();
         double dz = first.getZ() - second.getZ();
         return dx * dx + dz * dz;
+    }
+
+    private static final Comparator<MobLineIntersection> MOB_LINE_INTERSECTION_ORDER = Comparator
+            .comparingDouble(MobLineIntersection::distance)
+            .thenComparing(hit -> hit.mob().instanceId().toString());
+
+    /** 同一tick内の線分判定で共有するMob候補snapshotです。 */
+    public static final class LineTargetSnapshot {
+        private final World world;
+        private final List<LineTargetCandidate> candidates;
+
+        private LineTargetSnapshot(@NotNull World world, @NotNull List<LineTargetCandidate> candidates) {
+            this.world = world;
+            this.candidates = candidates;
+        }
+    }
+
+    private record LineTargetCandidate(@NotNull MobInstance mob, @NotNull BoundingBox bounds) {
     }
 
     private record MobLineIntersection(@NotNull MobInstance mob, double distance) {

@@ -187,6 +187,42 @@ public final class SkillProjectileService {
             @NotNull BiConsumer<AstEntity, Location> onEntityHit,
             @NotNull Consumer<SkillProjectileTermination> onTerminate
     ) {
+        launchBallisticVolleyInternal(
+                player, launches, launchesPerTick, null, onEntityHit, onTerminate
+        );
+    }
+
+    /**
+     * 指定Y座標以上のブロックを貫通する重力付き飛翔体群を、指定本数ずつ毎tick追加します。
+     *
+     * @param player 発動者
+     * @param launches 全飛翔体の発射位置と仕様
+     * @param launchesPerTick 1 tickに追加する本数
+     * @param blockCollisionBelowY ブロック衝突を有効にするY座標の排他的上限
+     * @param onEntityHit Mob命中処理
+     * @param onTerminate 各飛翔体の終了通知
+     */
+    public void launchBallisticVolley(
+            @NotNull Player player,
+            @NotNull List<SkillBallisticProjectileLaunch> launches,
+            int launchesPerTick,
+            double blockCollisionBelowY,
+            @NotNull BiConsumer<AstEntity, Location> onEntityHit,
+            @NotNull Consumer<SkillProjectileTermination> onTerminate
+    ) {
+        launchBallisticVolleyInternal(
+                player, launches, launchesPerTick, blockCollisionBelowY, onEntityHit, onTerminate
+        );
+    }
+
+    private void launchBallisticVolleyInternal(
+            @NotNull Player player,
+            @NotNull List<SkillBallisticProjectileLaunch> launches,
+            int launchesPerTick,
+            @Nullable Double blockCollisionBelowY,
+            @NotNull BiConsumer<AstEntity, Location> onEntityHit,
+            @NotNull Consumer<SkillProjectileTermination> onTerminate
+    ) {
         if (launches.isEmpty()) {
             return;
         }
@@ -203,13 +239,21 @@ public final class SkillProjectileService {
             for (int index = first; index < Math.min(first + safePerTick, queued.size()); index++) {
                 active.add(new BallisticState(queued.get(index)));
             }
+            if (active.isEmpty()) {
+                if (first >= queued.size()) {
+                    taskService.cancel(player.getUniqueId(), scope);
+                }
+                return;
+            }
 
             List<SkillEffectLineSegment> trailSegments = new ArrayList<>();
+            SkillTargetingService.LineTargetSnapshot targetSnapshot =
+                    targetingService.captureLineTargetSnapshot(player);
             Iterator<BallisticState> iterator = active.iterator();
             while (iterator.hasNext()) {
                 BallisticState state = iterator.next();
                 SkillProjectileTermination termination = advanceBallistic(
-                        player, state, trailSegments, onEntityHit
+                        player, targetSnapshot, state, blockCollisionBelowY, trailSegments, onEntityHit
                 );
                 if (termination != null) {
                     iterator.remove();
@@ -229,7 +273,9 @@ public final class SkillProjectileService {
 
     private @Nullable SkillProjectileTermination advanceBallistic(
             @NotNull Player player,
+            @NotNull SkillTargetingService.LineTargetSnapshot targetSnapshot,
             @NotNull BallisticState state,
+            @Nullable Double blockCollisionBelowY,
             @NotNull List<SkillEffectLineSegment> trailSegments,
             @NotNull BiConsumer<AstEntity, Location> onEntityHit
     ) {
@@ -242,13 +288,17 @@ public final class SkillProjectileService {
 
         double stepDistance = Math.min(intendedDistance, remainingDistance);
         Vector direction = state.velocity.clone().normalize();
-        Location blockImpact = targetingService.blockImpact(state.current, direction, stepDistance);
+        Location blockImpact = blockCollisionBelowY == null
+                ? targetingService.blockImpact(state.current, direction, stepDistance)
+                : targetingService.blockImpactBelowY(
+                        state.current, direction, stepDistance, blockCollisionBelowY
+                );
         double collisionRange = blockImpact == null ? stepDistance : state.current.distance(blockImpact);
         double visibleRange = blockImpact == null ? stepDistance : Math.max(0.0D, collisionRange - 0.1D);
         Location next = state.current.clone().add(direction.clone().multiply(visibleRange));
         double actualDistance = state.current.distance(next);
         List<SkillLineTargetHit> candidates = targetingService.lineTargetHits(
-                player, state.current, direction, collisionRange,
+                player, targetSnapshot, state.current, direction, collisionRange,
                 spec.hitRadius(), spec.maxHits(), blockImpact == null
         );
         for (SkillLineTargetHit candidate : candidates) {

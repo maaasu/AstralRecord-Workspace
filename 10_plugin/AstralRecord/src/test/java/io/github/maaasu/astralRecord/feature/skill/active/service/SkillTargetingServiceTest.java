@@ -15,17 +15,21 @@ import org.bukkit.util.BoundingBox;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class SkillTargetingServiceTest {
@@ -156,6 +160,7 @@ class SkillTargetingServiceTest {
         MobInstance mob = mockMob(template, world, 0.0D, 5.0D);
         when(player.getWorld()).thenReturn(world);
         when(mobService.getInstances()).thenReturn(List.of(mob));
+        when(mobService.getInstance(mob.instanceId())).thenReturn(mob);
 
         List<SkillLineTargetHit> hits = new SkillTargetingService(mobService).lineTargetHits(
                 player,
@@ -170,6 +175,91 @@ class SkillTargetingServiceTest {
         assertEquals(1, hits.size());
         assertEquals(4.3D, hits.getFirst().distance(), 1.0E-9D);
         assertEquals(4.3D, hits.getFirst().location().getZ(), 1.0E-9D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
+     * 検証契約: 同一tickの複数線分はMob一覧とbody boundsのsnapshotを共有しつつ、登録解除済みMobを後続線分から除外する。
+     */
+    @Test
+    void lineTargetSnapshotReusesMobCandidatesAcrossSegments() {
+        World world = mock(World.class);
+        Player player = mock(Player.class);
+        MobService mobService = mock(MobService.class);
+        MobTemplate template = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D).template();
+        MobInstance mob = mockMob(template, world, 0.0D, 5.0D);
+        when(player.getWorld()).thenReturn(world);
+        when(mobService.getInstances()).thenReturn(List.of(mob));
+        when(mobService.getInstance(mob.instanceId())).thenReturn(mob);
+        SkillTargetingService service = new SkillTargetingService(mobService);
+
+        SkillTargetingService.LineTargetSnapshot snapshot = service.captureLineTargetSnapshot(player);
+        for (int index = 0; index < 2; index++) {
+            List<SkillLineTargetHit> hits = service.lineTargetHits(
+                    player,
+                    snapshot,
+                    new Location(world, 0.0D, 1.0D, 0.0D),
+                    new Vector(0.0D, 0.0D, 1.0D),
+                    10.0D,
+                    0.25D,
+                    1,
+                    true
+            );
+            assertEquals(1, hits.size());
+            assertEquals(4.3D, hits.getFirst().distance(), 1.0E-9D);
+        }
+
+        when(mobService.getInstance(mob.instanceId())).thenReturn(null);
+        assertTrue(service.lineTargetHits(
+                player,
+                snapshot,
+                new Location(world, 0.0D, 1.0D, 0.0D),
+                new Vector(0.0D, 0.0D, 1.0D),
+                10.0D,
+                0.25D,
+                1,
+                true
+        ).isEmpty());
+        verify(mobService, times(1)).getInstances();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 17. ハンター アローレインの実装契約 > ### 17.2 弾道
+     * 検証契約: 初弾着弾Y以上の線分ではBlock判定を行わず、下降してY未満へ入った区間だけを通常のBlock ray traceへ渡す。
+     */
+    @Test
+    void blockImpactBelowYTracesOnlyTheSegmentBelowTheOpeningImpactHeight() {
+        World world = mock(World.class);
+        MobService mobService = mock(MobService.class);
+        RayTraceResult floorHit = mock(RayTraceResult.class);
+        when(floorHit.getHitPosition()).thenReturn(new Vector(0.0D, 0.0D, 0.0D));
+        when(world.rayTraceBlocks(
+                any(Location.class), any(Vector.class), anyDouble(), eq(FluidCollisionMode.NEVER), eq(true)
+        )).thenReturn(floorHit);
+        SkillTargetingService service = new SkillTargetingService(mobService);
+
+        assertNull(service.blockImpactBelowY(
+                new Location(world, 0.0D, 5.0D, 0.0D),
+                new Vector(1.0D, 0.0D, 0.0D),
+                3.0D,
+                2.0D
+        ));
+        Location impact = service.blockImpactBelowY(
+                new Location(world, 0.0D, 5.0D, 0.0D),
+                new Vector(0.0D, -1.0D, 0.0D),
+                10.0D,
+                2.0D
+        );
+
+        assertEquals(0.0D, impact.getY(), 1.0E-9D);
+        ArgumentCaptor<Location> traceOrigin = ArgumentCaptor.forClass(Location.class);
+        verify(world, times(1)).rayTraceBlocks(
+                traceOrigin.capture(), any(Vector.class), anyDouble(),
+                eq(FluidCollisionMode.NEVER), eq(true)
+        );
+        assertTrue(traceOrigin.getValue().getY() < 2.0D);
     }
 
     /**

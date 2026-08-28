@@ -99,7 +99,7 @@ public final class HunterArrowRainExecutor extends PlayerActiveSkillExecutor {
                         Location rainCenter = termination.type() == SkillProjectileTermination.Type.BLOCK
                                 ? termination.effectLocation()
                                 : termination.location();
-                        beginRain(context, rainCenter, params);
+                        beginRain(context, rainCenter, termination.location().getY(), params);
                     }
                 }
         );
@@ -107,10 +107,18 @@ public final class HunterArrowRainExecutor extends PlayerActiveSkillExecutor {
         return context.success();
     }
 
-    /** 初弾の着弾地点を中心に、3本ずつ進行する一斉射撃を開始します。 */
+    /**
+     * 初弾の着弾地点を中心に、着弾高度以上のBlockを貫通する一斉射撃を3本ずつ開始します。
+     *
+     * @param context 発動context
+     * @param center 雨矢の着弾中心
+     * @param openingImpactY 初弾の正確な着弾Y座標
+     * @param params 解決済みスキルparameter
+     */
     private void beginRain(
             @NotNull PlayerActiveSkillContext context,
             @NotNull Location center,
+            double openingImpactY,
             @NotNull SkillParamReader params
     ) {
         Player player = context.player();
@@ -118,7 +126,7 @@ public final class HunterArrowRainExecutor extends PlayerActiveSkillExecutor {
             return;
         }
         double radius = params.getDouble("radius", 3.0D);
-        int arrowCount = params.getInt("arrowCount", 15);
+        int arrowCount = params.getInt("arrowCount", 45);
         double rainDamageRatio = params.getDoubleList("damageRatios", List.of(0.70D, 0.30D)).get(1);
         double rainHitRadius = params.getDouble("rainHitRadius", 0.75D);
         List<SkillBallisticProjectileLaunch> volley = createRainVolley(
@@ -135,6 +143,7 @@ public final class HunterArrowRainExecutor extends PlayerActiveSkillExecutor {
                 player,
                 volley,
                 ARROWS_PER_TICK,
+                openingImpactY,
                 (target, impact) -> context.services().combat().hit(
                         context.attacker(), target, AttackType.RANGED, DamageElement.NONE, rainDamageRatio
                 ),

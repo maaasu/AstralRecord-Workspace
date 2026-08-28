@@ -12,6 +12,7 @@ lore:
   - "&7射程{skill.range}mの重力矢。敵命中時は間接攻撃力{skill.effectiveDamageRatios[0]:percent}%のダメージ。"
   - "&7敵または地形への着弾時、半径{skill.radius}mへ{skill.arrowCount}本を1tickに3本ずつ降らせる。"
   - "&7雨矢は1本につき最初の敵へ間接攻撃力{skill.effectiveDamageRatios[1]:percent}%のダメージ。"
+  - "&7雨矢は初弾の着弾高度以上の地形を貫通し、それより低い地形で消滅する。"
 cooldownTicks: 240
 resourceType: ENERGY
 resourceCost: 16
@@ -22,16 +23,16 @@ maxLevel: 5
 levels:
   - level: 2
     statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
-    paramDeltas: { radius: 0.5, arrowCount: 3 }
+    paramDeltas: { radius: 0.5, arrowCount: 9 }
   - level: 3
     statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
-    paramDeltas: { radius: 0.5, arrowCount: 3 }
+    paramDeltas: { radius: 0.5, arrowCount: 9 }
   - level: 4
     statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
-    paramDeltas: { radius: 0.5, arrowCount: 3 }
+    paramDeltas: { radius: 0.5, arrowCount: 9 }
   - level: 5
     statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
-    paramDeltas: { radius: 0.5, arrowCount: 3 }
+    paramDeltas: { radius: 0.5, arrowCount: 9 }
 sigilSlotsByLevel:
   - { level: 1, slots: 1 }
   - { level: 3, slots: 2 }
@@ -51,12 +52,12 @@ tags:
   - bow
 # behavior:
 #   opening: "照準方向へ重力を受ける非貫通矢を1本放ち、最初のMobにはdamageRatios[0]を適用する。BlockまたはMobへの着弾時だけ雨を開始し、射程上限では開始しない。"
-#   rain: "雨開始時のプレイヤー頭上を始点に、着弾中心の円内から面積一様に選んだ地表へ弧を描く。1tickに3本、各矢は最初のMobまたはBlockで終了する。"
+#   rain: "雨開始時のプレイヤー頭上を始点に、着弾中心の円内から面積一様に選んだ地表へ弧を描く。1tickに3本、初弾着弾Y以上のBlockは貫通し、それより低い位置では最初のMobまたはBlockで終了する。"
 #   targets: "管理対象MobとBossのみ。NPC、PvP対象、死亡Mob、別worldは対象外。"
 params:
   range: 18.0
   radius: 3.0
-  arrowCount: 15
+  arrowCount: 45
   damageRatios: [0.70, 0.30]
   openingSpeed: 1.60
   openingHitRadius: 0.45

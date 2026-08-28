@@ -24,9 +24,11 @@ import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.IntConsumer;
+import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -39,6 +41,7 @@ import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -150,7 +153,7 @@ class SkillProjectileServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 17. ハンター アローレインの実装契約 > ### 17.2 弾道
-     * 検証契約: 重力飛翔体群は指定本数ずつ毎tick開始し、全弾を単一task内で進行・終了させる。
+     * 検証契約: Lv.5相当81本を3本ずつ毎tick開始し、寿命14tickの重複中も同一tickのMob候補snapshotを共有して全弾を終了・task cancelする。
     */
     @Test
     @SuppressWarnings("unchecked")
@@ -161,6 +164,8 @@ class SkillProjectileServiceTest {
         Player player = mock(Player.class);
         World world = mock(World.class);
         UUID playerId = UUID.randomUUID();
+        SkillTargetingService.LineTargetSnapshot targetSnapshot =
+                mock(SkillTargetingService.LineTargetSnapshot.class);
         when(player.getUniqueId()).thenReturn(playerId);
         when(player.getLocation()).thenReturn(new Location(world, 0.0D, 0.0D, 0.0D));
         when(targeting.clippedEnd(any(), any(), anyDouble())).thenAnswer(invocation -> {
@@ -170,40 +175,55 @@ class SkillProjectileServiceTest {
             return origin.clone().add(direction.clone().multiply(range));
         });
         when(targeting.inLine(any(), any(), any(), anyDouble(), anyDouble(), anyInt())).thenReturn(List.of());
+        when(targeting.captureLineTargetSnapshot(player)).thenReturn(targetSnapshot);
+        AtomicBoolean cancelled = new AtomicBoolean();
+        doAnswer(invocation -> {
+            cancelled.set(true);
+            return null;
+        }).when(tasks).cancel(eq(playerId), anyString());
         doAnswer(invocation -> {
             int executions = invocation.getArgument(4, Integer.class);
             IntConsumer consumer = invocation.getArgument(5, IntConsumer.class);
-            for (int tick = 0; tick < executions; tick++) {
+            for (int tick = 0; tick < executions && !cancelled.get(); tick++) {
                 consumer.accept(tick);
             }
             return null;
         }).when(tasks).repeat(any(UUID.class), anyString(), anyLong(), anyLong(), anyInt(), any(IntConsumer.class));
         SkillProjectileService service = new SkillProjectileService(targeting, effects, tasks);
         SkillBallisticProjectileSpec spec = new SkillBallisticProjectileSpec(
-                new Vector(0.0D, -1.0D, 0.0D), 0.14D, 1, 4.0D, 0.75D, false, 1,
+                new Vector(0.0D, -1.0D, 0.0D), 0.14D, 14, 1000.0D, 0.75D, false, 1,
                 SharedParticleDefinitions.SKILL_HUNTER_ARROW,
                 SharedParticleDefinitions.SKILL_HUNTER_IMPACT
         );
-        List<SkillBallisticProjectileLaunch> launches = List.of(
-                new SkillBallisticProjectileLaunch(new Location(world, 0.0D, 5.0D, 0.0D), spec),
-                new SkillBallisticProjectileLaunch(new Location(world, 1.0D, 5.0D, 0.0D), spec),
-                new SkillBallisticProjectileLaunch(new Location(world, 2.0D, 5.0D, 0.0D), spec),
-                new SkillBallisticProjectileLaunch(new Location(world, 3.0D, 5.0D, 0.0D), spec),
-                new SkillBallisticProjectileLaunch(new Location(world, 4.0D, 5.0D, 0.0D), spec),
-                new SkillBallisticProjectileLaunch(new Location(world, 5.0D, 5.0D, 0.0D), spec),
-                new SkillBallisticProjectileLaunch(new Location(world, 6.0D, 5.0D, 0.0D), spec)
-        );
+        List<SkillBallisticProjectileLaunch> launches = IntStream.range(0, 81)
+                .mapToObj(index -> new SkillBallisticProjectileLaunch(
+                        new Location(world, index, 5.0D, 0.0D), spec
+                ))
+                .toList();
         AtomicInteger terminated = new AtomicInteger();
 
-        service.launchBallisticVolley(player, launches, 3, (target, impact) -> { }, ignored -> terminated.incrementAndGet());
+        service.launchBallisticVolley(
+                player, launches, 3, 2.0D,
+                (target, impact) -> { }, ignored -> terminated.incrementAndGet()
+        );
 
-        assertEquals(7, terminated.get());
-        verify(tasks, times(1)).repeat(eq(playerId), anyString(), eq(0L), eq(1L), eq(4), any(IntConsumer.class));
+        assertEquals(81, terminated.get());
+        verify(targeting, times(40)).captureLineTargetSnapshot(player);
+        verify(targeting, times(1134)).lineTargetHits(
+                same(player), same(targetSnapshot), any(), any(), anyDouble(), anyDouble(), anyInt(), eq(true)
+        );
+        verify(targeting, times(1134)).blockImpactBelowY(any(), any(), anyDouble(), eq(2.0D));
+        verify(tasks, times(1)).repeat(eq(playerId), anyString(), eq(0L), eq(1L), eq(41), any(IntConsumer.class));
+        verify(tasks, times(1)).cancel(eq(playerId), anyString());
         ArgumentCaptor<List<SkillEffectLineSegment>> segments = ArgumentCaptor.forClass(List.class);
-        verify(effects, times(3)).lines(
+        verify(effects, times(40)).lines(
                 any(), segments.capture(), eq(0.45D), eq(SharedParticleDefinitions.SKILL_HUNTER_ARROW)
         );
-        assertEquals(List.of(3, 3, 1), segments.getAllValues().stream().map(List::size).toList());
+        List<Integer> segmentCounts = segments.getAllValues().stream().map(List::size).toList();
+        assertEquals(3, segmentCounts.getFirst());
+        assertEquals(42, segmentCounts.stream().mapToInt(Integer::intValue).max().orElseThrow());
+        assertEquals(3, segmentCounts.getLast());
+        assertEquals(1134, segmentCounts.stream().mapToInt(Integer::intValue).sum());
     }
 
     /**
@@ -358,6 +378,7 @@ class SkillProjectileServiceTest {
 
         MobInstance mobBeforeBlock = actualTarget(template, world, 0.8D);
         when(mobService.getInstances()).thenReturn(List.of(mobBeforeBlock));
+        when(mobService.getInstance(mobBeforeBlock.instanceId())).thenReturn(mobBeforeBlock);
         SkillTargetingService targeting = new SkillTargetingService(mobService);
         SkillEffectService effects = mock(SkillEffectService.class);
         SkillTaskService tasks = mock(SkillTaskService.class);
@@ -381,6 +402,7 @@ class SkillProjectileServiceTest {
 
         MobInstance mobBehindBlock = actualTarget(template, world, 2.0D);
         when(mobService.getInstances()).thenReturn(List.of(mobBehindBlock));
+        when(mobService.getInstance(mobBehindBlock.instanceId())).thenReturn(mobBehindBlock);
         AtomicReference<SkillProjectileTermination> blockTermination = new AtomicReference<>();
 
         service.launchBallisticWithTermination(
