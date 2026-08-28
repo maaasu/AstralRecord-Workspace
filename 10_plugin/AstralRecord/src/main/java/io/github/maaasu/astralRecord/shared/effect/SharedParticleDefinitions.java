@@ -73,8 +73,6 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(185, 240, 255), 1.15F)
         );
-    public static final SharedParticleDefinition SHIELD_DRAIN_FOCUS_SPARK =
-        new SharedParticleDefinition("shield_drain_focus_spark", Particle.ELECTRIC_SPARK, 2, 0.04D, 0.04D, 0.04D, 0.025D);
     public static final SharedParticleDefinition SHIELD_DRAIN_ABSORB_END_ROD =
         new SharedParticleDefinition("shield_drain_absorb_end_rod", Particle.END_ROD, 1, 0.03D, 0.03D, 0.03D, 0.015D);
     public static final SharedParticleDefinition SHIELD_DRAIN_RING_DUST =

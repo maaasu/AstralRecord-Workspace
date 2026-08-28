@@ -35,7 +35,7 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 
 現行定義は冒険者の6skillと、ソードマンの `swordsman_shield_drain` / `swordsman_bastion_strike` / `swordsman_flame_rush` / `swordsman_challenging_roar` / `swordsman_last_shield` を含みます。シールドドレイン、バスティオンストライク、フレイムラッシュはソードマンの `usableSkills` へ追加せず、それぞれskilltree node `1202` / `1203` / `1204` とAdministratorの `usableSkills` から使用許可を与えます。ラストシールドはソードマンの `usableSkills` へ追加せず、skilltree node `1211` とAdministratorの `usableSkills` から使用許可を与えます。チャレンジングロアはソードマンとAdministratorの `usableSkills` から使用許可を与えます。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
 
-`swordsman_shield_drain` は敵Shieldへの3倍ブレイクと実減少量50%の自己Shield吸収を行い、発動時に自身のShieldが最大ならダメージ倍率を追加100%します。
+`swordsman_shield_drain` は敵Shieldへの3倍ブレイクと実減少量50%の自己Shield吸収を行います。実際に自身のShieldが回復した場合だけ、対象から発動者へ向かう吸収演出を表示します。
 
 `swordsman_bastion_strike` は前方単体を攻撃し、発動時に自身の現在Shieldを最大Shieldまで即時回復します。Lv.1〜4はMP最大時だけ、Lv.5は最大MPの80%以上で発動でき、成功時は現在MPを全量消費します。Lv.1の150秒からレベルごとに10秒ずつ短縮され、シジル枠は全レベル0です。
 

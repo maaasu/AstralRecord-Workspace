@@ -11,7 +11,6 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
-import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -23,8 +22,6 @@ import org.jetbrains.annotations.NotNull;
 public final class SwordsmanShieldDrainExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "swordsman_shield_drain";
-    private static final double FULL_SHIELD_EPSILON = 1.0E-6D;
-
     /** 共有発動スキルサービスで初期化します。 */
     public SwordsmanShieldDrainExecutor(@NotNull ActiveSkillServices services) {
         super(ID, services);
@@ -40,12 +37,8 @@ public final class SwordsmanShieldDrainExecutor extends PlayerActiveSkillExecuto
         requirePositive(params, "damageRatio");
         requirePositive(params, "shieldBreakMultiplier");
         double absorbRatio = params.getDouble("shieldAbsorbRatio", 0.0D);
-        double fullBonus = params.getDouble("fullShieldDamageBonus", 0.0D);
         if (!(absorbRatio > 0.0D && absorbRatio <= 1.0D)) {
             throw new SkillParameterException("shieldAbsorbRatio", "シールド吸収率は0より大きく1以下が必要です");
-        }
-        if (!(fullBonus >= 0.0D)) {
-            throw new SkillParameterException("fullShieldDamageBonus", "最大時ダメージ加算率は0以上が必要です");
         }
     }
 
@@ -58,9 +51,6 @@ public final class SwordsmanShieldDrainExecutor extends PlayerActiveSkillExecuto
         double damageRatio = params.getDouble("damageRatio", 0.65D);
         double shieldBreakMultiplier = params.getDouble("shieldBreakMultiplier", 3.0D);
         double absorbRatio = params.getDouble("shieldAbsorbRatio", 0.50D);
-        double fullBonus = params.getDouble("fullShieldDamageBonus", 1.0D);
-        boolean fullShieldAtCast = isFullShieldAtCast(context);
-        double effectiveRatio = damageRatio * (1.0D + (fullShieldAtCast ? fullBonus : 0.0D));
 
         Player player = context.player();
         AstEntity target = context.services().targeting()
@@ -72,7 +62,7 @@ public final class SwordsmanShieldDrainExecutor extends PlayerActiveSkillExecuto
         Location end = target == null
                 ? origin.clone().add(context.direction().multiply(range))
                 : target.location().clone().add(0.0D, 0.9D, 0.0D);
-        renderSlash(context, origin, end, fullShieldAtCast);
+        renderSlash(context, origin, end);
         if (target == null) {
             return context.success();
         }
@@ -83,17 +73,13 @@ public final class SwordsmanShieldDrainExecutor extends PlayerActiveSkillExecuto
                 target,
                 AttackType.MELEE,
                 DamageElement.NONE,
-                effectiveRatio,
+                damageRatio,
                 shieldBreakMultiplier
         );
         if (result.shieldDamage() <= 0.0D) {
             return context.success();
         }
         context.services().effects().point(end, SharedParticleDefinitions.SHIELD_BREAK_DUST);
-        if (fullShieldAtCast) {
-            return context.success();
-        }
-
         double recovered = context.services().combat().recoverShield(attacker, result.shieldDamage() * absorbRatio);
         if (recovered > 0.0D) {
             renderAbsorption(context, player, end);
@@ -101,48 +87,38 @@ public final class SwordsmanShieldDrainExecutor extends PlayerActiveSkillExecuto
         return context.success();
     }
 
-    private boolean isFullShieldAtCast(@NotNull PlayerActiveSkillContext context) {
-        double maximum = context.source().statusSnapshot().getMaxValue(StatusType.MAX_SHIELD);
-        double current = context.source().statusSnapshot().getCurrentShield();
-        return maximum > 0.0D && current + FULL_SHIELD_EPSILON >= maximum;
-    }
-
     private @NotNull Location slashOrigin(@NotNull PlayerActiveSkillContext context) {
         return context.eyeLocation().add(context.direction().multiply(0.35D)).subtract(0.0D, 0.25D, 0.0D);
     }
 
+    /**
+     * 発動者から攻撃終点へシールドドレインの斬撃演出を表示します。
+     *
+     * @param context 発動者と演出サービスを保持するコンテキスト
+     * @param origin 斬撃の開始位置
+     * @param end 斬撃の終了位置
+     */
     private void renderSlash(
             @NotNull PlayerActiveSkillContext context,
             @NotNull Location origin,
-            @NotNull Location end,
-            boolean emphasized
+            @NotNull Location end
     ) {
         context.services().effects().line(
                 origin,
                 end,
-                emphasized ? 0.16D : 0.24D,
+                0.24D,
                 SharedParticleDefinitions.SHIELD_DRAIN_SLASH_DUST
         );
         context.services().effects().viewArcSegment(
                 origin,
                 context.direction(),
-                emphasized ? 1.35D : 1.0D,
+                1.0D,
                 35.0D,
                 -35.0D,
-                emphasized ? 13 : 9,
-                emphasized
-                        ? SharedParticleDefinitions.SHIELD_DRAIN_FOCUS_SPARK
-                        : SharedParticleDefinitions.SHIELD_DRAIN_SLASH_DUST
+                9,
+                SharedParticleDefinitions.SHIELD_DRAIN_SLASH_DUST
         );
-        if (emphasized) {
-            context.services().effects().ring(
-                    origin.clone().subtract(0.0D, 0.25D, 0.0D),
-                    0.65D,
-                    14,
-                    SharedParticleDefinitions.SHIELD_DRAIN_FOCUS_SPARK
-            );
-        }
-        context.services().effects().sound(origin, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.0F, emphasized ? 1.35F : 1.1F);
+        context.services().effects().sound(origin, Sound.ENTITY_PLAYER_ATTACK_SWEEP, 1.0F, 1.1F);
     }
 
     private void renderAbsorption(

@@ -205,8 +205,7 @@ class ActiveSkillExecutorDesignTest {
                 "targetAngle", 40.0D,
                 "damageRatio", 0.65D,
                 "shieldBreakMultiplier", 3.0D,
-                "shieldAbsorbRatio", 0.50D,
-                "fullShieldDamageBonus", 1.0D
+                "shieldAbsorbRatio", 0.50D
         ))));
 
         SkillParameterException exception = assertThrows(
@@ -216,8 +215,7 @@ class ActiveSkillExecutorDesignTest {
                         "targetAngle", 40.0D,
                         "damageRatio", 0.65D,
                         "shieldBreakMultiplier", 3.0D,
-                        "shieldAbsorbRatio", 1.5D,
-                        "fullShieldDamageBonus", 1.0D
+                        "shieldAbsorbRatio", 1.5D
                 )))
         );
         assertEquals("shieldAbsorbRatio", exception.key());
@@ -408,7 +406,7 @@ class ActiveSkillExecutorDesignTest {
                 "swordsman_shield_drain",
                 "シールドドレイン",
                 null,
-                "HEART_OF_THE_SEA",
+                "TUBE_CORAL",
                 List.of(),
                 60L,
                 0.0D,

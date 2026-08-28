@@ -146,18 +146,18 @@ class SwordsmanShieldDrainExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 10. シールドドレインの実装契約 > ### 10.1 数値・対象・演出
-     * 検証契約: 発動時Shield最大なら当該発動の倍率を65%から130%へ固定し、Shieldを削っても吸収処理と吸収到達タスクを使わない。
+     * 検証契約: 発動時Shieldが最大でも基礎65%を維持し、実回復量0なら吸収到達タスクを使わない。
      */
     @Test
-    void doublesDamageAndSkipsAbsorptionWhenFullAtCast() {
+    void keepsBaseDamageAndSkipsAbsorptionWhenNoShieldIsRecovered() {
         Fixture fixture = fixture(100.0D, 100.0D, DamageResult.shield(40.0D, false));
 
         assertTrue(fixture.executor.cast(fixture.context).success());
 
         verify(fixture.combat).hit(
-                any(AstEntity.class), same(fixture.target), eq(AttackType.MELEE), eq(DamageElement.NONE), eq(1.30D), eq(3.0D)
+                any(AstEntity.class), same(fixture.target), eq(AttackType.MELEE), eq(DamageElement.NONE), eq(0.65D), eq(3.0D)
         );
-        verify(fixture.combat, never()).recoverShield(any(AstEntity.class), anyDouble());
+        verify(fixture.combat).recoverShield(any(AstEntity.class), eq(20.0D));
         verify(fixture.tasks, never()).repeat(any(), any(), anyLong(), anyLong(), anyInt(), any(IntConsumer.class));
     }
 
@@ -232,7 +232,7 @@ class SwordsmanShieldDrainExecutorTest {
                 SwordsmanShieldDrainExecutor.ID,
                 "シールドドレイン",
                 null,
-                "HEART_OF_THE_SEA",
+                "TUBE_CORAL",
                 List.of(),
                 60L,
                 0.0D,
@@ -244,8 +244,7 @@ class SwordsmanShieldDrainExecutorTest {
                         "targetAngle", 40.0D,
                         "damageRatio", 0.65D,
                         "shieldBreakMultiplier", 3.0D,
-                        "shieldAbsorbRatio", 0.50D,
-                        "fullShieldDamageBonus", 1.0D
+                        "shieldAbsorbRatio", 0.50D
                 ),
                 List.of("active", "melee"),
                 SkillKind.ACTIVE,
