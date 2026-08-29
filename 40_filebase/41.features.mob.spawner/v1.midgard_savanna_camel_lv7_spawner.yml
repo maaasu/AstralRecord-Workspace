@@ -1,0 +1,21 @@
+# design:
+#   motif: "動物 / ラクダ"
+#   progression: 7
+schemaVersion: 1
+id: midgard_savanna_camel_lv7_spawner
+type: MOB_SPAWNER
+region: "ミズガルズ・サバナ"
+radiusMeters: 20
+spawnMobs:
+  - mobId: mob:midgard_savanna_camel
+    level: 7
+    weight: 100
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+itemMaterial: SPAWNER
+spawnIntervalTicks: 120
+spawnLimit:
+  maxAlivePerSpawner: 4
+  maxNearbyMobs: 10
+  spawnPerPlayer: 1

@@ -124,6 +124,7 @@ import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.AllThingsElIc
 import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.MiddleEarthPiglinRushMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.mossshell.MossShellShellBashMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.skeletonarcher.SkeletonArcherBowShotMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.savannawitch.SavannaWitchEmberBoltMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.twilightcolossus.TwilightColossusGateSlamSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.twilightcolossus.TwilightColossusRuneBoltSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.service.MobSkillService;
@@ -1279,6 +1280,7 @@ public final class AstralRecord extends JavaPlugin {
         mobSkillRegistry.register(new ClayGuardLeapMobSkillExecutor(mobService, damageService, particleDisplayService));
         mobSkillRegistry.register(new MiddleEarthPiglinRushMobSkillExecutor(mobService, damageService));
         mobSkillRegistry.register(new AllThingsElIceSphereMobSkillExecutor(damageService, conditionService, mobProjectileService));
+        mobSkillRegistry.register(new SavannaWitchEmberBoltMobSkillExecutor(damageService, conditionService, mobProjectileService));
         mobSkillRegistry.register(new AllThingsElChargeMobSkillExecutor(mobService, damageService));
         mobSkillRegistry.register(new TwilightColossusGateSlamSkillExecutor(damageService, particleDisplayService));
         mobSkillRegistry.register(new TwilightColossusRuneBoltSkillExecutor(damageService, particleDisplayService));

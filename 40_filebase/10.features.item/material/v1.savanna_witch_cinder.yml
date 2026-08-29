@@ -1,0 +1,16 @@
+# design:
+#   motif: "魔術 / 焦熱の残り火"
+#   progression: 8
+schemaVersion: 1
+id: savanna_witch_cinder
+category: material
+name: "&c灼氷の残り火"
+icon: BROWN_DYE
+rarity: RARE
+maxStack: 64
+saleValue: 72
+lore:
+  - "&7砂漠の魔女が残した熱と冷気を秘める灰。"
+  - "&7魔術触媒として扱われる希少素材。"
+unTradeable: false
+unSellable: false

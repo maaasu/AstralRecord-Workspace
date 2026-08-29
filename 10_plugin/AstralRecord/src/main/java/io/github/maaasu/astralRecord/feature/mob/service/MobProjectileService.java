@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
+import org.bukkit.Bukkit;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.bukkit.block.BlockFace;
@@ -199,6 +200,100 @@ public final class MobProjectileService {
         tasksByCaster.computeIfAbsent(caster.instanceId(), ignored -> new ArrayList<>()).add(task);
     }
 
+    /**
+     * 指定プレイヤーへ緩く軌道補正する魔法弾を発射します。
+     *
+     * <p>弾は壁またはプレイヤーに命中すると消滅します。凍結と燃焼は、命中ダメージが有効だった場合に
+     * それぞれ独立した確率で判定します。</p>
+     *
+     * @param caster 発射元 Mob
+     * @param origin 発射開始位置
+     * @param direction 初速の方向
+     * @param targetId 軌道補正の対象プレイヤーID
+     * @param speed 1 tick あたりの移動距離
+     * @param hitRadius プレイヤー hitbox に加える半径
+     * @param homingStrength 1 tick ごとの軌道補正率
+     * @param damageRatio 攻撃力に掛けるダメージ倍率
+     * @param frozenDurationTicks 凍結時間
+     * @param frozenChance 凍結付与確率
+     * @param burningDurationTicks 燃焼時間
+     * @param burningChance 燃焼付与確率
+     * @param damageService 命中ダメージの適用先
+     * @param conditionService 状態異常の適用先
+     */
+    public void launchHomingElementalBolt(
+            @NotNull MobInstance caster,
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            @NotNull UUID targetId,
+            double speed,
+            double hitRadius,
+            double homingStrength,
+            double damageRatio,
+            long frozenDurationTicks,
+            double frozenChance,
+            long burningDurationTicks,
+            double burningChance,
+            @NotNull DamageService damageService,
+            @NotNull ConditionService conditionService
+    ) {
+        if (origin.getWorld() == null || direction.lengthSquared() <= 1.0E-6D) {
+            return;
+        }
+        double projectileSpeed = Math.max(0.05D, speed);
+        double steering = Math.max(0.0D, Math.min(1.0D, homingStrength));
+        BukkitRunnable runnable = new BukkitRunnable() {
+            private Location position = origin.clone();
+            private Vector velocity = direction.clone().normalize().multiply(projectileSpeed);
+            private long elapsedTicks;
+
+            @Override
+            public void run() {
+                MobInstance activeCaster = mobService.getInstance(caster.instanceId());
+                if (activeCaster != caster || elapsedTicks++ >= MAX_LIFETIME_TICKS) {
+                    finish();
+                    return;
+                }
+                Player target = Bukkit.getPlayer(targetId);
+                if (target != null && target.isOnline() && !target.isDead()) {
+                    Vector desired = target.getEyeLocation().toVector().subtract(position.toVector());
+                    if (desired.lengthSquared() > 1.0E-6D) {
+                        velocity = velocity.normalize().multiply(1.0D - steering)
+                                .add(desired.normalize().multiply(steering))
+                                .normalize().multiply(projectileSpeed);
+                    }
+                }
+                Location next = position.clone().add(velocity);
+                ProjectileImpact impact = firstImpact(position, next, Math.max(0.0D, hitRadius));
+                if (impact != null) {
+                    particleDisplayService.spawnForNearbyViewers(impact.location(), SharedParticleDefinitions.SKILL_MAGE_FIRE);
+                    if (impact.player() != null) {
+                        var victim = damageService.resolveEntity(impact.player());
+                        var result = damageService.attack(
+                                AstEntity.mob(caster), victim, AttackType.MAGIC,
+                                List.of(new DamageComponent(DamageElement.FIRE, damageRatio)), DamageSource.SKILL
+                        );
+                        if (!result.evaded() && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)) {
+                            applyCondition(victim, caster, ConditionType.FROZEN, frozenDurationTicks, frozenChance, conditionService);
+                            applyCondition(victim, caster, ConditionType.BURNING, burningDurationTicks, burningChance, conditionService);
+                        }
+                    }
+                    finish();
+                    return;
+                }
+                position = next;
+                particleDisplayService.spawnForNearbyViewers(position, SharedParticleDefinitions.SKILL_MAGE_FIRE);
+            }
+
+            private void finish() {
+                cancel();
+                removeTask(caster.instanceId(), getTaskId());
+            }
+        };
+        BukkitTask task = runnable.runTaskTimer(mobService.plugin(), 0L, 1L);
+        tasksByCaster.computeIfAbsent(caster.instanceId(), ignored -> new ArrayList<>()).add(task);
+    }
+
     /** 指定 Mob が発射した未着弾の飛び道具を破棄します。 */
     public void clearCasterState(@NotNull UUID casterId) {
         List<BukkitTask> tasks = tasksByCaster.remove(casterId);
@@ -265,5 +360,20 @@ public final class MobProjectileService {
         if (tasks.isEmpty()) {
             tasksByCaster.remove(casterId);
         }
+    }
+
+    private void applyCondition(
+            @NotNull AstEntity victim,
+            @NotNull MobInstance caster,
+            @NotNull ConditionType type,
+            long durationTicks,
+            double chance,
+            @NotNull ConditionService conditionService
+    ) {
+        conditionService.applyCondition(new ConditionApplyRequest(
+                victim, AstEntity.mob(caster), type, AttackType.MAGIC,
+                durationTicks, chance, 1.0D, null, null, null, null,
+                ConditionApplyReason.SKILL
+        ));
     }
 }

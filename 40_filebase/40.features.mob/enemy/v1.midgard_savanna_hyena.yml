@@ -1,0 +1,105 @@
+# design:
+#   motif: "動物 / ハイエナ"
+#   progression: 7
+schemaVersion: 1
+id: midgard_savanna_hyena
+type: MOB
+category: ENEMY
+name: "&6サバナハイエナ"
+level: 7
+entityType: WOLF
+icon: WOLF_SPAWN_EGG
+lore:
+  - "&7ミズガルズ・サバナを単独で徘徊する獰猛な獣。"
+  - "&7近づく獲物へ素早く噛みつく。"
+tags:
+  - midgard
+  - savanna
+  - beast
+  - melee
+
+levels:
+  - level: 7
+    name: "&6サバナハイエナ Lv.7"
+  - level: 8
+    name: "&6サバナハイエナ Lv.8"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 1400
+      - status: ATTACK
+        value: 254
+      - status: DEFENSE
+        value: 244
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 112
+    drops:
+      exp: 65
+      items:
+        - itemId:
+            ref: item:savanna_hide_scrap
+          rate: 50.0
+          amount: 1~2
+          luckAffected: true
+          hidden: false
+        - itemId:
+            ref: item:savanna_hyena_fang
+          rate: 3.0
+          amount: 1
+          luckAffected: true
+          hidden: false
+      lootTable:
+        ref: loot_table:normal_enemy_common_table_tier_1
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 1100
+  - status: ATTACK
+    value: 199
+  - status: DEFENSE
+    value: 191
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 108
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 0.95
+  targeting:
+    strategy: NEAREST
+    aggroRange: 22
+    deaggroRange: 30
+    leashRange: 32
+    retaliateOnly: false
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 30
+
+drops:
+  exp: 55
+  items:
+    - itemId:
+        ref: item:savanna_hide_scrap
+      rate: 45.0
+      amount: 1~2
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:savanna_hyena_fang
+      rate: 2.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_1

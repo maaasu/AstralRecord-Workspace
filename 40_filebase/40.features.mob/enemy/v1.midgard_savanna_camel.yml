@@ -1,0 +1,124 @@
+# design:
+#   motif: "動物 / ラクダ"
+#   progression: 7
+schemaVersion: 1
+id: midgard_savanna_camel
+type: MOB
+category: ENEMY
+name: "&eサバナガードキャメル"
+level: 7
+entityType: CAMEL
+icon: CAMEL_SPAWN_EGG
+lore:
+  - "&7普段は穏やかに歩く、厚い外殻を持つラクダ。"
+  - "&7攻撃を受けると大きく跳び、周囲を巻き込んで反撃する。"
+tags:
+  - midgard
+  - savanna
+  - beast
+  - melee
+
+levels:
+  - level: 7
+    name: "&eサバナガードキャメル Lv.7"
+  - level: 8
+    name: "&eサバナガードキャメル Lv.8"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 2100
+      - status: ATTACK
+        value: 203
+      - status: DEFENSE
+        value: 305
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 72
+    shield:
+      enabled: true
+      max: 5
+      rechargeTimeSeconds: 24
+      rechargeAmount: 5
+    drops:
+      exp: 82
+      items:
+        - itemId:
+            ref: item:savanna_hide_scrap
+          rate: 50.0
+          amount: 1~2
+          luckAffected: true
+          hidden: false
+        - itemId:
+            ref: item:savanna_camel_guard_scute
+          rate: 3.0
+          amount: 1
+          luckAffected: true
+          hidden: false
+      lootTable:
+        ref: loot_table:normal_enemy_common_table_tier_1
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 1650
+  - status: ATTACK
+    value: 160
+  - status: DEFENSE
+    value: 239
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 70
+
+shield:
+  enabled: true
+  max: 5
+  rechargeTimeSeconds: 24
+  rechargeAmount: 5
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 9
+    speed: 0.55
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 18
+    deaggroRange: 28
+    leashRange: 30
+    retaliateOnly: true
+  combat:
+    style: MELEE
+    preferredRange: 2.5
+    normalAttack:
+      range: 2.5
+      intervalTicks: 34
+    skills:
+      - id: mob_clay_guard_leap
+        activationRange: 7
+        cooldownTicks: 150
+        castTimeTicks: 24
+        params:
+          radius: 3.0
+          damageRatio: 0.45
+
+drops:
+  exp: 70
+  items:
+    - itemId:
+        ref: item:savanna_hide_scrap
+      rate: 45.0
+      amount: 1~2
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:savanna_camel_guard_scute
+      rate: 2.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_1

@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / ハイエナの牙"
+#   progression: 8
+schemaVersion: 1
+id: savanna_hyena_fang
+category: material
+name: "&eハイエナの湾曲牙"
+icon: RABBIT_FOOT
+rarity: RARE
+maxStack: 64
+saleValue: 68
+lore:
+  - "&7サバナハイエナから採れた頑丈な牙。"
+  - "&7武具の装飾や加工に用いられる希少素材。"
+unTradeable: false
+unSellable: false

@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / 乾いた獣皮"
+#   progression: 7
+schemaVersion: 1
+id: savanna_hide_scrap
+category: material
+name: "&6サバナの獣皮片"
+icon: HONEYCOMB
+rarity: COMMON
+maxStack: 64
+saleValue: 14
+lore:
+  - "&7乾いた熱風にさらされた獣皮の切れ端。"
+  - "&7革細工や防具の補修に使われる。"
+unTradeable: false
+unSellable: false

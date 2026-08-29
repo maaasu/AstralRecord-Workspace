@@ -1,0 +1,124 @@
+# design:
+#   motif: "魔術 / 砂漠の魔女"
+#   progression: 7
+schemaVersion: 1
+id: midgard_savanna_witch
+type: MOB
+category: ENEMY
+name: "&5サバナウィッチ"
+level: 7
+entityType: WITCH
+icon: WITCH_SPAWN_EGG
+lore:
+  - "&7熱砂に住み、灼熱と冷気を混ぜた術を放つ魔女。"
+  - "&7距離を保ちながら緩く追尾する魔弾を撃ち出す。"
+tags:
+  - midgard
+  - savanna
+  - magic
+  - ranged
+
+levels:
+  - level: 7
+    name: "&5サバナウィッチ Lv.7"
+  - level: 8
+    name: "&5サバナウィッチ Lv.8"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 1120
+      - status: ATTACK
+        value: 230
+      - status: MAGIC_ATTACK
+        value: 60
+      - status: INTELLIGENCE
+        value: 5
+      - status: DEFENSE
+        value: 195
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 96
+    drops:
+      exp: 68
+      items:
+        - itemId:
+            ref: item:savanna_hide_scrap
+          rate: 50.0
+          amount: 1~2
+          luckAffected: true
+          hidden: false
+        - itemId:
+            ref: item:savanna_witch_cinder
+          rate: 3.0
+          amount: 1
+          luckAffected: true
+          hidden: false
+      lootTable:
+        ref: loot_table:normal_enemy_common_table_tier_1
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 880
+  - status: ATTACK
+    value: 181
+  - status: MAGIC_ATTACK
+    value: 47
+  - status: INTELLIGENCE
+    value: 5
+  - status: DEFENSE
+    value: 153
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 94
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.85
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 24
+    deaggroRange: 32
+    leashRange: 34
+    retaliateOnly: false
+  combat:
+    style: MAGIC
+    preferredRange: 12
+    skills:
+      - id: mob_savanna_witch_ember_bolt
+        activationRange: 16
+        cooldownTicks: 48
+        castTimeTicks: 12
+        params:
+          damageRatio: 0.75
+          projectileSpeed: 0.85
+          projectileHitRadius: 0.25
+          homingStrength: 0.12
+          frozenDurationTicks: 20
+          frozenChance: 18
+          burningDurationTicks: 60
+          burningChance: 24
+
+drops:
+  exp: 58
+  items:
+    - itemId:
+        ref: item:savanna_hide_scrap
+      rate: 45.0
+      amount: 1~2
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:savanna_witch_cinder
+      rate: 2.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_1

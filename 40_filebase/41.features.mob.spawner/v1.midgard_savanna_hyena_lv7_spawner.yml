@@ -1,0 +1,21 @@
+# design:
+#   motif: "動物 / ハイエナ"
+#   progression: 7
+schemaVersion: 1
+id: midgard_savanna_hyena_lv7_spawner
+type: MOB_SPAWNER
+region: "ミズガルズ・サバナ"
+radiusMeters: 18
+spawnMobs:
+  - mobId: mob:midgard_savanna_hyena
+    level: 7
+    weight: 100
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+itemMaterial: SPAWNER
+spawnIntervalTicks: 100
+spawnLimit:
+  maxAlivePerSpawner: 8
+  maxNearbyMobs: 18
+  spawnPerPlayer: 1

@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / ラクダの防護板"
+#   progression: 8
+schemaVersion: 1
+id: savanna_camel_guard_scute
+category: material
+name: "&bラクダ守りの甲片"
+icon: ARMADILLO_SCUTE
+rarity: RARE
+maxStack: 64
+saleValue: 76
+lore:
+  - "&7攻撃を受けたラクダの外殻から剥がれた甲片。"
+  - "&7防護具の補強に使われる希少素材。"
+unTradeable: false
+unSellable: false
