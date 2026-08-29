@@ -28,14 +28,15 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-/** 周囲へ雷弾を放ち、地形で反射させるメイジの範囲制圧魔法です。 */
+/** 周囲へ渦巻く雷弾を放ち、地形で反射させるメイジの範囲制圧魔法です。 */
 public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "mage_sparking";
     static final double DEFAULT_DAMAGE_RATIO = 1.0D;
     static final int DEFAULT_PROJECTILE_COUNT = 5;
-    static final double DEFAULT_PROJECTILE_SPEED = 0.65D;
-    static final double DEFAULT_PROJECTILE_HIT_RADIUS = 0.45D;
+    static final double DEFAULT_SPIRAL_RADIUS_GROWTH = 0.10D;
+    static final double DEFAULT_SPIRAL_DEGREES_PER_TICK = 14.4D;
+    static final double DEFAULT_PROJECTILE_HIT_RADIUS = 0.60D;
     static final int DEFAULT_DURATION_TICKS = 50;
     static final double DEFAULT_SHOCK_CHANCE = 25.0D;
     static final int DEFAULT_SHOCK_DURATION_TICKS = 100;
@@ -54,7 +55,8 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
         super.validateParams(skill);
         SkillParamReader params = new SkillParamReader(skill.getId(), skill.getParams());
         requirePositive(params, "damageRatio");
-        requirePositive(params, "projectileSpeed");
+        requirePositive(params, "spiralRadiusGrowth");
+        requirePositive(params, "spiralDegreesPerTick");
         requirePositive(params, "projectileHitRadius");
         requirePositiveInt(params, "projectileCount");
         requirePositiveInt(params, "durationTicks");
@@ -73,13 +75,18 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
         SkillParamReader params = context.params();
         double damageRatio = params.getDouble("damageRatio", DEFAULT_DAMAGE_RATIO);
         int projectileCount = params.getInt("projectileCount", DEFAULT_PROJECTILE_COUNT);
-        double speed = params.getDouble("projectileSpeed", DEFAULT_PROJECTILE_SPEED);
+        double spiralRadiusGrowth = params.getDouble(
+                "spiralRadiusGrowth", DEFAULT_SPIRAL_RADIUS_GROWTH
+        );
+        double spiralRadiansPerTick = Math.toRadians(params.getDouble(
+                "spiralDegreesPerTick", DEFAULT_SPIRAL_DEGREES_PER_TICK
+        ));
         double hitRadius = params.getDouble("projectileHitRadius", DEFAULT_PROJECTILE_HIT_RADIUS);
         int durationTicks = params.getInt("durationTicks", DEFAULT_DURATION_TICKS);
         double shockChance = params.getDouble("shockChance", DEFAULT_SHOCK_CHANCE);
         int shockDurationTicks = params.getInt("shockDurationTicks", DEFAULT_SHOCK_DURATION_TICKS);
         Location origin = context.player().getLocation().clone().add(0.0D, 0.75D, 0.0D);
-        List<SparkState> sparks = radialStates(origin, projectileCount, context.player().getYaw());
+        List<SparkState> sparks = spiralStates(origin, projectileCount, context.player().getYaw());
         Set<UUID> hitTargetIds = new HashSet<>();
         ActiveSkillCondition shocked = new ActiveSkillCondition(
                 ConditionType.SHOCKED, shockChance, shockDurationTicks, 1.0D
@@ -90,7 +97,10 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
         context.services().effects().sound(origin, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.35F, 1.75F);
         context.services().tasks().repeat(
                 context.player().getUniqueId(), scope, 0L, 1L, durationTicks,
-                ignored -> advanceSparks(context, scope, sparks, hitTargetIds, speed, hitRadius, damageRatio, shocked)
+                ignored -> advanceSparks(
+                        context, scope, sparks, hitTargetIds, spiralRadiusGrowth,
+                        spiralRadiansPerTick, hitRadius, damageRatio, shocked
+                )
         );
         return context.success();
     }
@@ -100,7 +110,8 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
             @NotNull String scope,
             @NotNull List<SparkState> sparks,
             @NotNull Set<UUID> hitTargetIds,
-            double speed,
+            double spiralRadiusGrowth,
+            double spiralRadiansPerTick,
             double hitRadius,
             double damageRatio,
             @NotNull ActiveSkillCondition shocked
@@ -115,7 +126,9 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
         Iterator<SparkState> iterator = sparks.iterator();
         while (iterator.hasNext()) {
             SparkState spark = iterator.next();
-            double remainingDistance = speed;
+            double remainingDistance = spark.advanceSpiral(
+                    spiralRadiusGrowth, spiralRadiansPerTick
+            ).length();
             int reflectionCount = 0;
             boolean removed = false;
             while (remainingDistance > MOVEMENT_EPSILON && reflectionCount < MAX_REFLECTIONS_PER_TICK) {
@@ -152,7 +165,7 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
                 Location visibleEnd = spark.location.clone()
                         .add(spark.direction.clone().multiply(visibleDistance));
                 trails.add(new SkillEffectLineSegment(spark.location, visibleEnd));
-                spark.direction = reflect(spark.direction, blockHit.normal());
+                spark.reflectTrajectory(blockHit.normal());
                 double offsetDistance = Math.min(
                         WALL_OFFSET, Math.max(0.0D, remainingDistance - collisionRange)
                 );
@@ -183,8 +196,8 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
         context.services().effects().sound(impact, Sound.ENTITY_LIGHTNING_BOLT_IMPACT, 0.55F, 1.45F);
     }
 
-    /** 指定数を水平方向360度へ等間隔に分散した雷弾状態を作ります。 */
-    static @NotNull List<SparkState> radialStates(
+    /** 指定数を水平360度へ等間隔に配置した渦巻き雷弾状態を作ります。 */
+    static @NotNull List<SparkState> spiralStates(
             @NotNull Location origin,
             int projectileCount,
             float yawDegrees
@@ -195,7 +208,9 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
         for (int index = 0; index < count; index++) {
             double angle = yaw + Math.PI * 2.0D * index / count;
             states.add(new SparkState(
-                    origin.clone(), new Vector(-Math.sin(angle), 0.0D, Math.cos(angle)).normalize()
+                    origin.clone(),
+                    new Vector(-Math.sin(angle), 0.0D, Math.cos(angle)).normalize(),
+                    new Vector(-Math.cos(angle), 0.0D, -Math.sin(angle)).normalize()
             ));
         }
         return states;
@@ -222,14 +237,47 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
         }
     }
 
-    /** 反復処理中の雷弾位置と進行方向です。 */
+    /** 反復処理中の雷弾位置、進行方向、渦巻き座標軸です。 */
     static final class SparkState {
         private Location location;
         private Vector direction;
+        private Vector radialBasis;
+        private Vector tangentBasis;
+        private double radius;
+        private double angle;
 
-        private SparkState(@NotNull Location location, @NotNull Vector direction) {
+        private SparkState(
+                @NotNull Location location,
+                @NotNull Vector radialBasis,
+                @NotNull Vector tangentBasis
+        ) {
             this.location = location;
-            this.direction = direction;
+            this.direction = radialBasis.clone();
+            this.radialBasis = radialBasis;
+            this.tangentBasis = tangentBasis;
+        }
+
+        /** 次tickの螺旋差分を計算し、半径・角度・進行方向を更新します。 */
+        @NotNull Vector advanceSpiral(double radiusGrowth, double radiansPerTick) {
+            double previousRadial = radius * Math.cos(angle);
+            double previousTangential = radius * Math.sin(angle);
+            radius += radiusGrowth;
+            angle += radiansPerTick;
+            double radialDelta = radius * Math.cos(angle) - previousRadial;
+            double tangentialDelta = radius * Math.sin(angle) - previousTangential;
+            Vector movement = radialBasis.clone().multiply(radialDelta)
+                    .add(tangentBasis.clone().multiply(tangentialDelta));
+            if (movement.lengthSquared() > MOVEMENT_EPSILON * MOVEMENT_EPSILON) {
+                direction = movement.clone().normalize();
+            }
+            return movement;
+        }
+
+        /** 壁面法線に対して現在の進行方向と以後の螺旋座標軸を反射します。 */
+        void reflectTrajectory(@NotNull Vector normal) {
+            direction = reflect(direction, normal);
+            radialBasis = reflect(radialBasis, normal);
+            tangentBasis = reflect(tangentBasis, normal);
         }
 
         @NotNull Location location() {
