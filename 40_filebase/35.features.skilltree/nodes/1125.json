@@ -15,7 +15,7 @@
   "effects": [
     {
       "type": "status",
-      "status": "STRENGTH",
+      "status": "DEFENSE",
       "modifierType": "FLAT",
       "value": 1
     }

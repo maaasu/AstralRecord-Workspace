@@ -15,9 +15,9 @@
   "effects": [
     {
       "type": "status",
-      "status": "MAX_HEALTH",
+      "status": "ATTACK",
       "modifierType": "FLAT",
-      "value": 10
+      "value": 1
     }
   ],
   "unlockCondition": {
