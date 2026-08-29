@@ -12,7 +12,9 @@ import org.junit.jupiter.api.Test;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class SkillMovementServiceTest {
@@ -28,6 +30,29 @@ class SkillMovementServiceTest {
 
         assertEquals(-1.0D, west.getX(), 1.0E-9D);
         assertEquals(0.0D, west.getZ(), 1.0E-9D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 16. ハンターフェイドショットの実装契約
+     * 検証契約: velocity後退はテレポートせず、視線と反対方向の水平velocityを設定する。
+     */
+    @Test
+    void appliesHorizontalBackstepVelocityWithoutTeleport() {
+        ConditionService conditionService = mock(ConditionService.class);
+        Player player = mock(Player.class);
+        AstEntity mover = mock(AstEntity.class);
+        Location playerLocation = new Location(null, 0.0D, 10.0D, 0.0D, 0.0F, 0.0F);
+        Location eye = new Location(null, 0.0D, 11.62D, 0.0D, 0.0F, 0.0F);
+        when(player.getLocation()).thenReturn(playerLocation);
+        when(player.getEyeLocation()).thenReturn(eye);
+        when(conditionService.canMove(mover)).thenReturn(true);
+
+        Vector velocity = new SkillMovementService(conditionService)
+                .backstepVelocity(player, mover, 0.35D);
+
+        assertEquals(new Vector(0.0D, 0.0D, -0.35D), velocity);
+        verify(player).setVelocity(eq(new Vector(0.0D, 0.0D, -0.35D)));
     }
 
     /**

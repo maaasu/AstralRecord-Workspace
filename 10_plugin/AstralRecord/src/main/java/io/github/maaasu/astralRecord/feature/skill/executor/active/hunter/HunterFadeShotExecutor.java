@@ -28,6 +28,7 @@ public final class HunterFadeShotExecutor extends PlayerActiveSkillExecutor {
     private static final int MIN_PELLET_COUNT = 3;
     private static final int MAX_PELLET_COUNT = 9;
     private static final double MAX_SPREAD_ANGLE = 60.0D;
+    private static final double DEFAULT_BACKSTEP_VELOCITY = 0.35D;
 
     /** 共有発動スキルサービスで初期化します。 */
     public HunterFadeShotExecutor(@NotNull ActiveSkillServices services) {
@@ -43,7 +44,7 @@ public final class HunterFadeShotExecutor extends PlayerActiveSkillExecutor {
         requirePositive(params, "damageRatio");
         requirePositive(params, "projectileSpeed");
         requirePositive(params, "projectileHitRadius");
-        requirePositive(params, "backstepDistance");
+        requirePositive(params, "backstepVelocity");
         int pelletCount = params.getInt("pelletCount", 0);
         if (pelletCount < MIN_PELLET_COUNT || pelletCount > MAX_PELLET_COUNT || pelletCount % 2 == 0) {
             throw new SkillParameterException(
@@ -70,7 +71,7 @@ public final class HunterFadeShotExecutor extends PlayerActiveSkillExecutor {
         double spreadAngle = params.getDouble("spreadAngle", 30.0D);
         double projectileSpeed = params.getDouble("projectileSpeed", 1.8D);
         double projectileHitRadius = params.getDouble("projectileHitRadius", 0.30D);
-        double backstepDistance = params.getDouble("backstepDistance", 3.5D);
+        double backstepVelocity = params.getDouble("backstepVelocity", DEFAULT_BACKSTEP_VELOCITY);
         AstEntity attacker = context.attacker();
         Location origin = context.eyeLocation();
         SkillProjectileSpec projectile = new SkillProjectileSpec(
@@ -89,12 +90,12 @@ public final class HunterFadeShotExecutor extends PlayerActiveSkillExecutor {
                 )
         );
 
-        SkillMovementService.MovementResult movement = context.services().movement()
-                .backstep(context.player(), attacker, backstepDistance);
-        if (movement.moved()) {
+        Vector movementVelocity = context.services().movement()
+                .backstepVelocity(context.player(), attacker, backstepVelocity);
+        if (movementVelocity != null) {
             context.services().effects().line(
-                    movement.start().clone().add(0.0D, 0.15D, 0.0D),
-                    movement.end().clone().add(0.0D, 0.15D, 0.0D),
+                    origin.clone().add(0.0D, -1.47D, 0.0D),
+                    origin.clone().add(movementVelocity).add(0.0D, -1.47D, 0.0D),
                     0.35D,
                     SharedParticleDefinitions.HUNTER_FADE_SHOT_STEP
             );

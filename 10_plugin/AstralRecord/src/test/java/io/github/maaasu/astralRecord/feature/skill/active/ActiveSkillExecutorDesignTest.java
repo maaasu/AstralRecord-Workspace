@@ -299,7 +299,7 @@ class ActiveSkillExecutorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 16. ハンターフェイドショットの実装契約 > ### 16.1 散弾・移動・演出
-     * 検証契約: フェイドショットは正の射程・倍率・飛翔体値・後退距離、3〜9の奇数弾数、60度以下の正の散弾全角を必須とする。
+     * 検証契約: フェイドショットは正の射程・倍率・飛翔体値・後退velocity、3〜9の奇数弾数、60度以下の正の散弾全角を必須とする。
      */
     @Test
     void fadeShotValidatesScatterAndBackstepParams() {
@@ -312,7 +312,7 @@ class ActiveSkillExecutorDesignTest {
                 "spreadAngle", 30.0D,
                 "projectileSpeed", 1.8D,
                 "projectileHitRadius", 0.30D,
-                "backstepDistance", 3.5D
+                "backstepVelocity", 0.35D
         ))));
 
         SkillParameterException exception = assertThrows(
@@ -324,7 +324,7 @@ class ActiveSkillExecutorDesignTest {
                         "spreadAngle", 30.0D,
                         "projectileSpeed", 1.8D,
                         "projectileHitRadius", 0.30D,
-                        "backstepDistance", 3.5D
+                        "backstepVelocity", 0.35D
                 )))
         );
         assertEquals("pelletCount", exception.key());

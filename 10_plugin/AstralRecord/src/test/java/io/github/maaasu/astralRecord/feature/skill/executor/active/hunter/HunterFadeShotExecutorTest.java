@@ -76,7 +76,7 @@ class HunterFadeShotExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 16. ハンターフェイドショットの実装契約 > ### 16.1 散弾・移動・演出
-     * 検証契約: 発動時は5本を個別の非貫通飛翔体として放ち、同じMobへの各命中へRANGED/NONEの32%を適用した後、安全確認付き3.5m後退を1回要求する。
+     * 検証契約: 発動時は5本を個別の非貫通飛翔体として放ち、同じMobへの各命中へRANGED/NONEの32%を適用した後、後方velocityを1回要求する。
      */
     @Test
     void launchesFiveIndependentPelletsThenBacksteps() {
@@ -93,10 +93,8 @@ class HunterFadeShotExecutorTest {
         when(player.getEyeLocation()).thenReturn(eyeLocation);
         AstPlayer astPlayer = mock(AstPlayer.class);
         when(astPlayer.getBukkit()).thenReturn(player);
-        Location start = new Location(null, 2.0D, 64.0D, 3.0D);
-        Location end = new Location(null, 2.0D, 64.0D, -0.5D);
-        when(movement.backstep(same(player), any(AstEntity.class), eq(3.5D)))
-                .thenReturn(new SkillMovementService.MovementResult(start, end, true));
+        when(movement.backstepVelocity(same(player), any(AstEntity.class), eq(0.35D)))
+                .thenReturn(new Vector(0.0D, 0.0D, -0.35D));
         HunterFadeShotExecutor executor = new HunterFadeShotExecutor(services);
 
         SkillCastResult result = executor.cast(new SkillCastContext(
@@ -111,7 +109,7 @@ class HunterFadeShotExecutorTest {
         executionOrder.verify(projectiles, times(5)).launch(
                 same(player), any(Location.class), directionCaptor.capture(), specCaptor.capture(), hitCaptor.capture(), any()
         );
-        executionOrder.verify(movement).backstep(same(player), any(AstEntity.class), eq(3.5D));
+        executionOrder.verify(movement).backstepVelocity(same(player), any(AstEntity.class), eq(0.35D));
         assertEquals(
                 HunterFadeShotExecutor.pelletDirections(new Vector(0.0D, 0.0D, 1.0D), 5, 30.0D),
                 directionCaptor.getAllValues()
@@ -139,7 +137,7 @@ class HunterFadeShotExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 16. ハンターフェイドショットの実装契約 > ### 16.1 散弾・移動・演出
-     * 検証契約: 安全な後退先がない場合も5本の射撃は成功し、後退経路の演出だけを表示しない。
+     * 検証契約: 移動禁止状態でも5本の射撃は成功し、後方velocityと後退演出だけを適用しない。
      */
     @Test
     void succeedsWithoutMovementTrailWhenBackstepIsBlocked() {
@@ -155,9 +153,8 @@ class HunterFadeShotExecutorTest {
         when(player.getEyeLocation()).thenReturn(eyeLocation);
         AstPlayer astPlayer = mock(AstPlayer.class);
         when(astPlayer.getBukkit()).thenReturn(player);
-        Location start = new Location(null, 2.0D, 64.0D, 3.0D);
-        when(movement.backstep(same(player), any(AstEntity.class), eq(3.5D)))
-                .thenReturn(new SkillMovementService.MovementResult(start, start.clone(), false));
+        when(movement.backstepVelocity(same(player), any(AstEntity.class), eq(0.35D)))
+                .thenReturn(null);
         HunterFadeShotExecutor executor = new HunterFadeShotExecutor(services);
 
         SkillCastResult result = executor.cast(new SkillCastContext(
@@ -168,7 +165,7 @@ class HunterFadeShotExecutorTest {
         verify(projectiles, times(5)).launch(
                 same(player), any(Location.class), any(Vector.class), any(SkillProjectileSpec.class), any(), any()
         );
-        verify(movement).backstep(same(player), any(AstEntity.class), eq(3.5D));
+        verify(movement).backstepVelocity(same(player), any(AstEntity.class), eq(0.35D));
         verify(effects, never()).line(any(), any(), anyDouble(), any());
         assertTrue(result.success());
     }
@@ -193,7 +190,7 @@ class HunterFadeShotExecutorTest {
                         "spreadAngle", 30.0D,
                         "projectileSpeed", 1.8D,
                         "projectileHitRadius", 0.30D,
-                        "backstepDistance", 3.5D
+                        "backstepVelocity", 0.35D
                 ),
                 List.of("active", "ranged"),
                 SkillKind.ACTIVE,

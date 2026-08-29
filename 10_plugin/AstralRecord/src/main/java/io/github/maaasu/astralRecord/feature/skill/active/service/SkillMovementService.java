@@ -10,6 +10,7 @@ import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * 発動スキルの短距離移動を、移動可否・全身の経路遮蔽・足場・頭上空間を確認して適用します。
@@ -56,6 +57,28 @@ public final class SkillMovementService {
             double maxDistance
     ) {
         return move(player, mover, facingDirection(player).multiply(-1.0D), maxDistance);
+    }
+
+    /**
+     * 視線と反対方向へ水平 velocity を設定します。
+     * 移動禁止状態では velocity を設定せず、適用した場合は設定値を返します。
+     *
+     * @param player          velocity を設定するプレイヤー
+     * @param mover           移動可否を確認する主体
+     * @param velocityStrength 後退 velocity の水平強度
+     * @return 設定した velocity。移動禁止または強度が不正なら {@code null}
+     */
+    public @Nullable Vector backstepVelocity(
+            @NotNull Player player,
+            @NotNull AstEntity mover,
+            double velocityStrength
+    ) {
+        if (!conditionService.canMove(mover) || !(velocityStrength > 0.0D)) {
+            return null;
+        }
+        Vector velocity = facingDirection(player).multiply(-velocityStrength);
+        player.setVelocity(velocity);
+        return velocity;
     }
 
     /** 視線方向へ安全に瞬間移動します。 */

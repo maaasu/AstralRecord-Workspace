@@ -37,7 +37,7 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 
 現行定義は冒険者の6skill、ハンターの `hunter_fade_shot` / `hunter_arrow_rain` / `hunter_crash_arrow` / `hunter_heal_arrow`、メイジの `mage_fireball` / `mage_heal_aura` / `mage_sparking` / `mage_frost_blizzard`、ソードマンの `swordsman_shield_drain` / `swordsman_bastion_strike` / `swordsman_flame_rush` / `swordsman_challenging_roar` / `swordsman_last_shield`、シールドリチャージ用の `administrator_shield_recharge` を含みます。フェイドショットとアローレインはハンターの `usableSkills` から初期使用許可を与え、クラッシュアローはskilltree node `1212`、ヒールアローはskilltree node `1213` から使用許可を与えます。メイジのファイアーボールとヒールオーラ、ソードマンのシールドドレインとチャレンジングロアは、それぞれの `usableSkills` から初期使用許可を与えます。バスティオンストライク、シールドリチャージ、フレイムラッシュ、ラストシールドは、それぞれskilltree node `1203` / `1202` / `1204` / `1211` からソードマンへ使用許可を与えます。スパーキングはskilltree node `1208`、フロストブリザードはnode `1214` からメイジへ使用許可を与えます。Administratorの `usableSkills` には検証用の使用許可を残します。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
 
-ハンターの `hunter_fade_shot` は、5本の短射程飛翔体と安全確認付きバックステップを同時に扱う機動射撃です。ハンターの `usableSkills` から直接使用許可を配布し、習得用ジェムは `skill_gem_exchange` で無印原石から交換します。`hunter_arrow_rain` はハンターの `usableSkills` から初期使用許可を与え、`hunter_heal_arrow` は skilltree node `1213` からハンターへ使用許可を与え、ハンターの `usableSkills` には追加しません。
+ハンターの `hunter_fade_shot` は、5本の短射程飛翔体と水平velocityによるバックステップを同時に扱う機動射撃です。ハンターの `usableSkills` から直接使用許可を配布し、習得用ジェムは `skill_gem_exchange` で無印原石から交換します。`hunter_arrow_rain` はハンターの `usableSkills` から初期使用許可を与え、`hunter_heal_arrow` は skilltree node `1213` からハンターへ使用許可を与え、ハンターの `usableSkills` には追加しません。
 
 `swordsman_shield_drain` は敵Shieldへの3倍ブレイクと実減少量50%の自己Shield吸収を行います。実際に自身のShieldが回復した場合だけ、対象から発動者へ向かう吸収演出を表示します。
 

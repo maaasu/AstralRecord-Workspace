@@ -11,7 +11,7 @@ icon: CROSSBOW
 lore:
   - "&7全角{skill.spreadAngle}度へ矢を{skill.pelletCount}本放ち、1本ごとに間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
   - "&7各矢は射程{skill.range}m、同じ敵へ複数本命中する。"
-  - "&7発射後、安全な足場へ最大{skill.backstepDistance}m後退する。"
+  - "&7発射後、視線と反対方向へ水平velocity {skill.backstepVelocity}を設定する。"
 cooldownTicks: 80
 resourceType: ENERGY
 resourceCost: 14
@@ -44,7 +44,7 @@ tags:
 # behavior:
 #   projectiles: "発動時の照準方向を中心とする全角spreadAngleへpelletCount本を等間隔に発射する。各矢は非貫通で、最初に命中したMob 1体へdamageRatioを1回適用する。同じMobへの複数矢命中を許可する。"
 #   targets: "Mobのみを対象にし、NPCとPvP対象を含めない。地形Blockで停止し、最大射程へ無衝突で到達した場合は消滅する。"
-#   movement: "矢を発射した後、移動不能状態・経路遮蔽・足場・頭上空間を確認し、視線と反対方向の安全な地点へ最大backstepDistanceだけ移動する。移動できない場合も射撃は成立する。"
+#   movement: "矢を発射した後、移動禁止状態でなければ視線と反対方向へ水平backstepVelocityを設定する。velocityを設定できない場合も射撃は成立する。"
 params:
   range: 9.0
   damageRatio: 0.32
@@ -52,4 +52,4 @@ params:
   spreadAngle: 30.0
   projectileSpeed: 1.8
   projectileHitRadius: 0.30
-  backstepDistance: 3.5
+  backstepVelocity: 0.35
