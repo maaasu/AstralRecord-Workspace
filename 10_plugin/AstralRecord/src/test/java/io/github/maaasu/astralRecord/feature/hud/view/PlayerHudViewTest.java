@@ -246,7 +246,7 @@ class PlayerHudViewTest extends MockBukkitTestBase {
         assertEquals(rendered.indexOf(classLine) + 1, rendered.indexOf(experienceLine));
         assertEquals(1L, rendered.stream().filter(entry -> entry.contains("EXP")).count());
         assertEquals(10L, experienceLine.chars().filter(character -> character == '▰').count());
-        assertTrue(rendered.stream().anyMatch(entry -> entry.contains("Gold: 1234G")));
+        assertTrue(rendered.stream().anyMatch(entry -> entry.contains("Gold: 1234 G")));
         assertTrue(rendered.stream().anyMatch(entry -> entry.contains("PING: 25ms")));
         assertTrue(rendered.stream().noneMatch(entry -> entry.contains("経験値")));
     }
