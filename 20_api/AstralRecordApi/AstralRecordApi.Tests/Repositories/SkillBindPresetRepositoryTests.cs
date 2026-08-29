@@ -4,6 +4,7 @@ using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage;
 using Xunit;
 
 namespace AstralRecordApi.Tests.Repositories;
@@ -66,7 +67,8 @@ public class SkillBindPresetRepositoryTests
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
         var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
-            .UseSqlite(connection)
+            .UseSqlite(connection, sqlite => sqlite.ExecutionStrategy(
+                dependencies => new RetryingTestExecutionStrategy(dependencies)))
             .Options;
         await using var dbContext = new AstralRecordDbContext(options);
         await CreateSchemaAsync(dbContext);
@@ -311,5 +313,11 @@ public class SkillBindPresetRepositoryTests
                 updated_by TEXT NOT NULL,
                 is_deleted INTEGER NOT NULL
             );");
+    }
+
+    private sealed class RetryingTestExecutionStrategy(ExecutionStrategyDependencies dependencies)
+        : ExecutionStrategy(dependencies, maxRetryCount: 1, maxRetryDelay: TimeSpan.Zero)
+    {
+        protected override bool ShouldRetryOn(Exception exception) => false;
     }
 }

@@ -116,51 +116,57 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
         if (!accountExists)
             return false;
 
-        await using var transaction = await dbContext.Database.BeginTransactionAsync();
-        var presets = await dbContext.SkillBindPresets
-            .Where(preset => preset.AccountId == accountId && !preset.IsDeleted)
-            .ToListAsync();
-        var selected = presets.FirstOrDefault(preset => preset.PresetIndex == presetIndex);
-        if (selected is null && presetIndex > DefaultUnlockedPresetCount)
-            return false;
-        if (selected is not null && !selected.IsUnlocked && presetIndex > DefaultUnlockedPresetCount)
-            return false;
-
-        var now = DateTime.UtcNow;
-        foreach (var preset in presets)
-            preset.IsSelected = preset == selected;
-
-        if (selected is null)
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
         {
-            selected = new SkillBindPresetEntity
+            dbContext.ChangeTracker.Clear();
+
+            await using var transaction = await dbContext.Database.BeginTransactionAsync();
+            var presets = await dbContext.SkillBindPresets
+                .Where(preset => preset.AccountId == accountId && !preset.IsDeleted)
+                .ToListAsync();
+            var selected = presets.FirstOrDefault(preset => preset.PresetIndex == presetIndex);
+            if (selected is null && presetIndex > DefaultUnlockedPresetCount)
+                return false;
+            if (selected is not null && !selected.IsUnlocked && presetIndex > DefaultUnlockedPresetCount)
+                return false;
+
+            var now = DateTime.UtcNow;
+            foreach (var preset in presets)
+                preset.IsSelected = preset == selected;
+
+            if (selected is null)
             {
-                SkillBindPresetId = Guid.NewGuid(),
-                AccountId = accountId,
-                PresetIndex = presetIndex,
-                ActiveSkillSlotsJson = JsonSerializer.Serialize(EmptySlots(ActionRingSlotCount)),
-                LeftClickSkillId = WeaponNormalAttackBindingId,
-                PassiveSkillSlotsJson = JsonSerializer.Serialize(EmptySlots(PassiveSlotCount)),
-                IsUnlocked = presetIndex <= DefaultUnlockedPresetCount,
-                IsSelected = true,
-                Version = 1,
-                CreatedAt = now,
-                UpdatedAt = now,
-                CreatedBy = request.UpdatedBy,
-                UpdatedBy = request.UpdatedBy,
-                IsDeleted = false,
-            };
-            await dbContext.SkillBindPresets.AddAsync(selected);
-        }
-        else
-        {
-            selected.IsSelected = true;
-            selected.UpdatedAt = now;
-            selected.UpdatedBy = request.UpdatedBy;
-        }
+                selected = new SkillBindPresetEntity
+                {
+                    SkillBindPresetId = Guid.NewGuid(),
+                    AccountId = accountId,
+                    PresetIndex = presetIndex,
+                    ActiveSkillSlotsJson = JsonSerializer.Serialize(EmptySlots(ActionRingSlotCount)),
+                    LeftClickSkillId = WeaponNormalAttackBindingId,
+                    PassiveSkillSlotsJson = JsonSerializer.Serialize(EmptySlots(PassiveSlotCount)),
+                    IsUnlocked = presetIndex <= DefaultUnlockedPresetCount,
+                    IsSelected = true,
+                    Version = 1,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    CreatedBy = request.UpdatedBy,
+                    UpdatedBy = request.UpdatedBy,
+                    IsDeleted = false,
+                };
+                await dbContext.SkillBindPresets.AddAsync(selected);
+            }
+            else
+            {
+                selected.IsSelected = true;
+                selected.UpdatedAt = now;
+                selected.UpdatedBy = request.UpdatedBy;
+            }
 
-        await dbContext.SaveChangesAsync();
-        await transaction.CommitAsync();
-        return true;
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return true;
+        });
     }
 
     private static SkillBindPresetResponse Empty(Guid accountId, int presetIndex) => new()
