@@ -98,8 +98,9 @@ Mob に HP より先に消費されるシールドを持たせる場合だけ定
 | `variant.patternColor` | String | × | Null | TropicalFish などの模様色。Bukkit `DyeColor` 名 |
 | `variant.mainGene` | String | × | Null | Panda の主遺伝子。Bukkit `Panda.Gene` 名 |
 | `variant.hiddenGene` | String | × | Null | Panda の隠し遺伝子。Bukkit `Panda.Gene` 名 |
+| `variant.scale` | Double | × | `1.0` | Paper の scale 属性へ適用する外見・当たり判定倍率。`0.0625` - `16.0` |
 
-未対応の `entityType` に指定された variant キーは無視されます。enum 名は大文字・小文字、ハイフン、空白の揺れを吸収して扱います。
+未対応の `entityType` に指定された名前付き variant キーは無視されます。enum 名は大文字・小文字、ハイフン、空白の揺れを吸収して扱います。`scale` は対応する実体 Mob の Paper scale 属性へ適用し、範囲外は上下限へ補正します。
 
 ### equipment（装備設定）
 

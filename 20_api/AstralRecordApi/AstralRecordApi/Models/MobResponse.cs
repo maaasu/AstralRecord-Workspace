@@ -117,6 +117,9 @@ public class MobVariantResponse
     public string? MainGene { get; init; }
 
     public string? HiddenGene { get; init; }
+
+    /// <summary>実体 Mob の表示と当たり判定へ適用する Paper scale 倍率。</summary>
+    public double? Scale { get; init; }
 }
 
 /// <summary>Mob 装備設定（表示のみ。ダメージ計算には影響しない）。</summary>

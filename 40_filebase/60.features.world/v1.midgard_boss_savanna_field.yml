@@ -1,0 +1,23 @@
+# design:
+#   motif: "サバナ / 太陽の祭壇"
+#   progression: 10
+schemaVersion: 1
+id: midgard_boss_savanna_field
+displayName: "ミズガルズ・サバナボスフィールド"
+worldType: BOSS_FIELD
+baseWorldPath: "plugins/AstralRecord/worlds/boss_field/midgard_boss_savanna_field"
+instanceRootPath: "plugins/AstralRecord/_world_instances/boss_field/midgard_boss_savanna_field"
+autoLoad: false
+instanceEnabled: true
+maxPlayers: 6
+allowBlockBreak: false
+allowBlockPlace: false
+allowMobSpawn: false
+showSpawnParticle: false
+spawnLocation:
+  x: -10.5
+  y: 118.0
+  z: 17.5
+  yaw: 0.0
+  pitch: 0.0
+description: "陽冠のサンバードと戦うインスタンス式のボスフィールド。"

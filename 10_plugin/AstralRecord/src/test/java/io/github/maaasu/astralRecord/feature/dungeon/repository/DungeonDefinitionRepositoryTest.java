@@ -65,7 +65,7 @@ class DungeonDefinitionRepositoryTest {
      * 検証契約: 本番ダンジョンマスタが追加のWorldマスタなしでDungeonDefinitionへ読み込める。
      */
     @Test
-    void parsesProductionMinimalDungeonMaster() {
+    void parsesRemainingProductionDungeonMaster() {
         Path repositoryRoot = findRepositoryRoot();
         Path filebase = repositoryRoot.resolve("40_filebase");
 
@@ -74,15 +74,10 @@ class DungeonDefinitionRepositoryTest {
                 () -> new DungeonDefinitionRepository().findAll()
         );
 
-        DungeonDefinition twilightMine = definitions.stream()
-                .filter(definition -> definition.id().equals("twilight_mine"))
-                .findFirst()
-                .orElseThrow();
         DungeonDefinition middleEarthRuins = definitions.stream()
                 .filter(definition -> definition.id().equals("middle_earth_ruins"))
                 .findFirst()
                 .orElseThrow();
-        assertEquals(10, twilightMine.recommendedLevel());
         assertEquals(5, middleEarthRuins.recommendedLevel());
     }
 

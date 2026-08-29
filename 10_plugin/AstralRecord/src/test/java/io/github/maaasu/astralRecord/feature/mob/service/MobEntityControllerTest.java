@@ -14,11 +14,14 @@ import org.bukkit.DyeColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
+import org.bukkit.attribute.Attribute;
+import org.bukkit.attribute.AttributeInstance;
 import org.bukkit.block.Block;
 import org.bukkit.entity.ArmorStand;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.ItemDisplay;
+import org.bukkit.entity.Mob;
 import org.bukkit.entity.Piglin;
 import org.bukkit.entity.Sheep;
 import org.bukkit.entity.Vex;
@@ -336,6 +339,38 @@ class MobEntityControllerTest extends MockBukkitTestBase {
         verify(villager).setProfession(Villager.Profession.FARMER);
         verify(villager).setVillagerType(Villager.Type.TAIGA);
         verify(villager).setVillagerLevel(4);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-実体Mob制御.md
+     * 章・見出し: # 12_3-実体Mob制御 > ## 2. 実体 Mob 初期化
+     * 検証契約: variant.scaleをPaper scale属性の基礎値へ適用する。
+     */
+    @Test
+    void variantScaleIsAppliedToPaperScaleAttribute() {
+        Mob mob = mock(Mob.class);
+        AttributeInstance scaleAttribute = mock(AttributeInstance.class);
+        when(mob.getAttribute(Attribute.SCALE)).thenReturn(scaleAttribute);
+        MobVariantConfig variant = new MobVariantConfig(
+                MobVariantConfig.Age.ADULT,
+                "red",
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                null,
+                4.0D
+        );
+
+        new MobEntityController(PluginMock.builder().withPluginName("AstralRecordTest").build())
+                .applyScale(templateWithVariant(variant), mob);
+
+        verify(scaleAttribute).setBaseValue(4.0D);
     }
 
     /**

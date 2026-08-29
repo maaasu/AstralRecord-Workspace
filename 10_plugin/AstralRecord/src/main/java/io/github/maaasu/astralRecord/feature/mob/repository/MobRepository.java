@@ -322,6 +322,9 @@ public class MobRepository {
         if (obj.has("villagerLevel") && !obj.get("villagerLevel").isJsonNull() && obj.get("villagerLevel").isJsonPrimitive()) {
             villagerLevel = obj.get("villagerLevel").getAsInt();
         }
+        double scale = obj.has("scale") && !obj.get("scale").isJsonNull() && obj.get("scale").isJsonPrimitive()
+                ? obj.get("scale").getAsDouble()
+                : 1.0D;
         return new MobVariantConfig(
                 MobVariantConfig.Age.fromRaw(optionalString(obj, "age")),
                 optionalString(obj, "kind"),
@@ -334,7 +337,8 @@ public class MobRepository {
                 optionalString(obj, "bodyColor"),
                 optionalString(obj, "patternColor"),
                 optionalString(obj, "mainGene"),
-                optionalString(obj, "hiddenGene")
+                optionalString(obj, "hiddenGene"),
+                scale
         );
     }
 

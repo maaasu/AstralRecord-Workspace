@@ -12,18 +12,24 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
 import org.bukkit.util.RayTraceResult;
+import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -45,6 +51,13 @@ public final class BossMechanicService {
     private static final double COLOSSUS_RUNE_LANES_MAX_LENGTH = TARGET_RANGE;
     private static final double COLOSSUS_RUNE_LANES_HALF_WIDTH = 1.0D;
     private static final double LINE_PARTICLE_INTERVAL = 0.5D;
+    private static final double SUNBIRD_FLARE_RADIUS = 5.0D;
+    private static final double SUNBIRD_SUNSTRIKE_RADIUS = 3.0D;
+    private static final double SUNBIRD_BEAM_LENGTH = 24.0D;
+    private static final double SUNBIRD_BEAM_HALF_WIDTH = 1.25D;
+    private static final double SUNBIRD_NOVA_RADIUS = 12.0D;
+    private static final long SUNBIRD_NOVA_TELEGRAPH_TICKS = 60L;
+    private static final int SUNBIRD_RITUAL_DISPLAY_COUNT = 8;
 
     private final JavaPlugin plugin;
     private final MobService mobService;
@@ -86,6 +99,10 @@ public final class BossMechanicService {
             tickTask.cancel();
             tickTask = null;
         }
+        for (PendingMechanic pending : pendingMechanics) {
+            removePendingVisuals(pending);
+            releaseScriptedAction(pending);
+        }
         pendingMechanics.clear();
         for (BossRuntime runtime : runtimes.values()) {
             destroySummons(runtime);
@@ -111,14 +128,14 @@ public final class BossMechanicService {
             activeBosses.add(boss.instanceId());
             BossRuntime runtime = runtimes.computeIfAbsent(
                 boss.instanceId(),
-                ignored -> new BossRuntime(BossMechanicProfile.phaseFor(boss.currentHealth(), boss.maxHealth()), clockTicks + 40L)
+                ignored -> new BossRuntime(1, clockTicks + 40L)
             );
-            int observedPhase = BossMechanicProfile.phaseFor(boss.currentHealth(), boss.maxHealth());
+            int observedPhase = profile.phaseForHealth(boss.currentHealth(), boss.maxHealth());
             if (observedPhase > runtime.phase) {
                 runtime.phase = observedPhase;
-                handlePhaseTransition(boss, entity, runtime);
+                handlePhaseTransition(profile, boss, entity, runtime);
             }
-            if (clockTicks < runtime.nextActionTick) {
+            if (boss.scriptedAction() || clockTicks < runtime.nextActionTick) {
                 continue;
             }
 
@@ -138,7 +155,7 @@ public final class BossMechanicService {
                 continue;
             }
             destroySummons(entry.getValue());
-            pendingMechanics.removeIf(pending -> pending.bossInstanceId().equals(entry.getKey()));
+            removePendingForBoss(entry.getKey());
             iterator.remove();
         }
     }
@@ -152,6 +169,8 @@ public final class BossMechanicService {
             if (boss == null || entity == null || !entity.isValid() || entity.isDead() || boss.currentHealth() <= 0.0D
                 || entity.getWorld() != pending.anchor().getWorld()
                 || nearbyManagedPlayers(entity.getLocation(), TARGET_RANGE).isEmpty()) {
+                removePendingVisuals(pending);
+                releaseScriptedAction(pending);
                 iterator.remove();
                 continue;
             }
@@ -160,15 +179,35 @@ public final class BossMechanicService {
                 continue;
             }
             executeMechanic(boss, pending);
+            removePendingVisuals(pending);
+            releaseScriptedAction(pending);
             iterator.remove();
         }
     }
 
     private void handlePhaseTransition(
+        @NotNull BossMechanicProfile profile,
         @NotNull MobInstance boss,
         @NotNull Entity entity,
         @NotNull BossRuntime runtime
     ) {
+        if (BossMechanicProfile.MIDGARD_SAVANNA_SUNBIRD.equals(boss.template().id())
+            && runtime.phase >= 2
+            && !runtime.ultimateTriggered) {
+            runtime.ultimateTriggered = true;
+            boss.scriptedAction(true);
+            mobService.resetPosition(boss, boss.spawnLocation());
+            Entity resetEntity = mobService.entityController().getEntity(boss);
+            Location anchor = boss.spawnLocation();
+            Vector direction = resetEntity == null
+                ? new Vector(0.0D, 0.0D, 1.0D)
+                : resetEntity.getFacing().getDirection();
+            addPending(boss, BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA, anchor, direction,
+                SUNBIRD_NOVA_TELEGRAPH_TICKS);
+            runtime.nextActionTick = clockTicks + SUNBIRD_NOVA_TELEGRAPH_TICKS + 20L;
+            return;
+        }
+
         if (boss.template().shield().active()) {
             boss.currentShield(boss.template().shield().max(), System.currentTimeMillis());
         }
@@ -222,8 +261,11 @@ public final class BossMechanicService {
         Location targetLocation = primaryTarget.getLocation();
         Vector direction = horizontalDirection(bossLocation, targetLocation, entity.getFacing().getDirection());
         long telegraphTicks = telegraphTicks(mechanic);
+        Location anchor = mechanic == BossMechanicProfile.Mechanic.SUNBIRD_SUNSTRIKE
+            ? targetLocation
+            : bossLocation;
 
-        addPending(boss, mechanic, bossLocation, direction, telegraphTicks);
+        addPending(boss, mechanic, anchor, direction, telegraphTicks);
         return true;
     }
 
@@ -234,12 +276,16 @@ public final class BossMechanicService {
         @NotNull Vector direction,
         long delayTicks
     ) {
+        List<UUID> displayEntityIds = mechanic == BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA
+            ? spawnSunbirdRitualDisplays(anchor)
+            : List.of();
         PendingMechanic pending = new PendingMechanic(
             boss.instanceId(),
             mechanic,
             anchor,
             direction,
-            clockTicks + delayTicks
+            clockTicks + delayTicks,
+            displayEntityIds
         );
         pendingMechanics.add(pending);
         renderTelegraph(pending);
@@ -250,7 +296,14 @@ public final class BossMechanicService {
     }
 
     private long telegraphTicks(@NotNull BossMechanicProfile.Mechanic mechanic) {
-        return switch (mechanic) { case COLOSSUS_QUAKE -> 25L; case COLOSSUS_RUNE_LANES -> 30L; case COLOSSUS_COLLAPSE -> 35L; };
+        return switch (mechanic) {
+            case COLOSSUS_QUAKE -> 25L;
+            case COLOSSUS_RUNE_LANES, SUNBIRD_SOLAR_BEAM -> 30L;
+            case COLOSSUS_COLLAPSE -> 35L;
+            case SUNBIRD_SOLAR_FLARE -> 20L;
+            case SUNBIRD_SUNSTRIKE -> 25L;
+            case SUNBIRD_SOLAR_NOVA -> SUNBIRD_NOVA_TELEGRAPH_TICKS;
+        };
     }
 
     /**
@@ -269,6 +322,22 @@ public final class BossMechanicService {
             case COLOSSUS_COLLAPSE -> {
                 renderCircle(pending.anchor(), 2.8D, SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE, 20);
                 renderCircle(pending.anchor(), 7.0D, SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE, 36);
+            }
+            case SUNBIRD_SOLAR_FLARE -> renderCircle(
+                pending.anchor(), SUNBIRD_FLARE_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_FLAME, 32
+            );
+            case SUNBIRD_SUNSTRIKE -> renderCircle(
+                pending.anchor(), SUNBIRD_SUNSTRIKE_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_DUST, 24
+            );
+            case SUNBIRD_SOLAR_BEAM -> renderLane(
+                pending.anchor(), pending.direction(), SUNBIRD_BEAM_LENGTH, SUNBIRD_BEAM_HALF_WIDTH,
+                SharedParticleDefinitions.SUNBIRD_SOLAR_DUST
+            );
+            case SUNBIRD_SOLAR_NOVA -> {
+                renderCircle(pending.anchor(), 4.0D, SharedParticleDefinitions.SUNBIRD_SOLAR_FLAME, 28);
+                renderCircle(pending.anchor(), 8.0D, SharedParticleDefinitions.SUNBIRD_SOLAR_DUST, 40);
+                renderCircle(pending.anchor(), SUNBIRD_NOVA_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_DUST, 52);
+                animateSunbirdRitualDisplays(pending);
             }
         }
     }
@@ -299,6 +368,22 @@ public final class BossMechanicService {
                 damageCircle(boss, pending.anchor(), 2.8D, 7.0D, AttackType.MAGIC, DamageElement.NONE, 0.95D, 0.7D);
                 breakRing(boss, pending.anchor(), 3.0D, 6.0D);
             }
+            case SUNBIRD_SOLAR_FLARE -> damageCircle(
+                boss, pending.anchor(), 0.0D, SUNBIRD_FLARE_RADIUS,
+                AttackType.MAGIC, DamageElement.FIRE, 0.65D, 0.75D
+            );
+            case SUNBIRD_SUNSTRIKE -> damageCircle(
+                boss, pending.anchor(), 0.0D, SUNBIRD_SUNSTRIKE_RADIUS,
+                AttackType.MAGIC, DamageElement.FIRE, 0.75D, 0.25D
+            );
+            case SUNBIRD_SOLAR_BEAM -> damageLine(
+                boss, pending.anchor(), pending.direction(), SUNBIRD_BEAM_LENGTH, SUNBIRD_BEAM_HALF_WIDTH,
+                AttackType.MAGIC, DamageElement.FIRE, 0.85D, 0.35D
+            );
+            case SUNBIRD_SOLAR_NOVA -> damageCircle(
+                boss, pending.anchor(), 0.0D, SUNBIRD_NOVA_RADIUS,
+                AttackType.MAGIC, DamageElement.FIRE, 1.45D, 1.1D
+            );
         }
         world.playSound(pending.anchor(), "entity.generic.explode", 1.0F, 0.85F);
     }
@@ -673,6 +758,121 @@ public final class BossMechanicService {
                 renderCircle(pending.anchor(), 2.8D, SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION, 20);
                 renderCircle(pending.anchor(), 7.0D, SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION, 36);
             }
+            case SUNBIRD_SOLAR_FLARE -> renderCircle(
+                pending.anchor(), SUNBIRD_FLARE_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_IMPACT, 32
+            );
+            case SUNBIRD_SUNSTRIKE -> {
+                renderCircle(pending.anchor(), SUNBIRD_SUNSTRIKE_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_IMPACT, 24);
+                renderRange(
+                    pending.anchor(),
+                    List.of(pending.anchor().clone().add(0.0D, 1.0D, 0.0D)),
+                    SharedParticleDefinitions.SUNBIRD_SOLAR_FLASH
+                );
+            }
+            case SUNBIRD_SOLAR_BEAM -> renderLane(
+                pending.anchor(), pending.direction(), SUNBIRD_BEAM_LENGTH, SUNBIRD_BEAM_HALF_WIDTH,
+                SharedParticleDefinitions.SUNBIRD_SOLAR_IMPACT
+            );
+            case SUNBIRD_SOLAR_NOVA -> {
+                renderCircle(pending.anchor(), SUNBIRD_NOVA_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_IMPACT, 52);
+                renderRange(
+                    pending.anchor(),
+                    List.of(pending.anchor().clone().add(0.0D, 2.0D, 0.0D)),
+                    SharedParticleDefinitions.SUNBIRD_SOLAR_FLASH
+                );
+            }
+        }
+    }
+
+    /**
+     * 必殺技の詠唱中だけ、太陽儀式を表す BlockDisplay を生成します。
+     *
+     * @param center 儀式中心
+     * @return 生成した表示 Entity の UUID
+     */
+    private @NotNull List<UUID> spawnSunbirdRitualDisplays(@NotNull Location center) {
+        World world = center.getWorld();
+        if (world == null) {
+            return List.of();
+        }
+        List<UUID> displayIds = new ArrayList<>(SUNBIRD_RITUAL_DISPLAY_COUNT);
+        for (int index = 0; index < SUNBIRD_RITUAL_DISPLAY_COUNT; index++) {
+            double angle = Math.PI * 2.0D * index / SUNBIRD_RITUAL_DISPLAY_COUNT;
+            Location spawn = center.clone().add(Math.cos(angle) * 6.0D, 0.8D, Math.sin(angle) * 6.0D);
+            BlockDisplay display = world.spawn(spawn, BlockDisplay.class, entity -> {
+                entity.setPersistent(false);
+                entity.setInvulnerable(true);
+                entity.setGravity(false);
+                entity.setBlock(Material.GOLD_BLOCK.createBlockData());
+                entity.setBrightness(new Display.Brightness(15, 15));
+                entity.setViewRange(48.0F);
+                entity.setDisplayWidth(1.0F);
+                entity.setDisplayHeight(1.0F);
+                entity.setTeleportDuration((int) TICK_PERIOD);
+                entity.setTransformation(new Transformation(
+                    new Vector3f(-0.4F, -0.4F, -0.4F),
+                    new Quaternionf(),
+                    new Vector3f(0.8F, 0.8F, 0.8F),
+                    new Quaternionf()
+                ));
+            });
+            displayIds.add(display.getUniqueId());
+        }
+        return List.copyOf(displayIds);
+    }
+
+    private void animateSunbirdRitualDisplays(@NotNull PendingMechanic pending) {
+        long remainingTicks = Math.max(0L, pending.executeAtTick() - clockTicks);
+        double progress = 1.0D - Math.clamp(
+            (double) remainingTicks / SUNBIRD_NOVA_TELEGRAPH_TICKS,
+            0.0D,
+            1.0D
+        );
+        double radius = 6.0D - progress * 2.5D;
+        for (int index = 0; index < pending.displayEntityIds().size(); index++) {
+            Entity entity = Bukkit.getEntity(pending.displayEntityIds().get(index));
+            if (!(entity instanceof BlockDisplay display) || !display.isValid()) {
+                continue;
+            }
+            double angle = Math.PI * 2.0D * index / SUNBIRD_RITUAL_DISPLAY_COUNT + progress * Math.PI * 2.0D;
+            Location target = pending.anchor().clone().add(
+                Math.cos(angle) * radius,
+                0.8D + progress * 2.2D,
+                Math.sin(angle) * radius
+            );
+            display.teleport(target);
+        }
+    }
+
+    private void removePendingVisuals(@NotNull PendingMechanic pending) {
+        for (UUID entityId : pending.displayEntityIds()) {
+            Entity entity = Bukkit.getEntity(entityId);
+            if (entity != null) {
+                entity.remove();
+            }
+        }
+    }
+
+    private void releaseScriptedAction(@NotNull PendingMechanic pending) {
+        if (pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA) {
+            return;
+        }
+        MobInstance boss = mobService.getInstance(pending.bossInstanceId());
+        if (boss != null) {
+            boss.scriptedAction(false);
+        }
+    }
+
+    private void removePendingForBoss(@NotNull UUID bossInstanceId) {
+        Iterator<PendingMechanic> iterator = pendingMechanics.iterator();
+        while (iterator.hasNext()) {
+            PendingMechanic pending = iterator.next();
+            if (!pending.bossInstanceId().equals(bossInstanceId)) {
+                continue;
+            }
+            removePendingVisuals(pending);
+            releaseScriptedAction(pending);
+            iterator.remove();
         }
     }
 
@@ -846,6 +1046,7 @@ public final class BossMechanicService {
         private int actionIndex;
         private long nextActionTick;
         private boolean summonsTriggered;
+        private boolean ultimateTriggered;
         private final Set<UUID> summonedMobIds = new LinkedHashSet<>();
 
         private BossRuntime(int phase, long nextActionTick) {
@@ -859,11 +1060,13 @@ public final class BossMechanicService {
         @NotNull BossMechanicProfile.Mechanic mechanic,
         @NotNull Location anchor,
         @NotNull Vector direction,
-        long executeAtTick
+        long executeAtTick,
+        @NotNull List<UUID> displayEntityIds
     ) {
         private PendingMechanic {
             anchor = anchor.clone();
             direction = direction.clone().setY(0.0D).normalize();
+            displayEntityIds = List.copyOf(displayEntityIds);
         }
     }
 }

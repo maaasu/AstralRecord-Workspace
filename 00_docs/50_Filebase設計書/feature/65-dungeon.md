@@ -19,7 +19,6 @@ Dungeon は、入場条件、道中、節目、boss、報酬、退出条件を�
 - `clearRewards` はクリア時点で Dungeon world 内にいる参加者ごとに独立抽選されます。直接 item と loot table を利用でき、内部では設定確率の低い当選からsortします。実報酬GUIは確率を表示せず、設定数量・確率の確認はカルトグラフarchiveだけに限定します。
 - 省略可能値の既定値はキーを省略した場合だけ使い、明示した型違い・境界外の死亡設定・確率・数量は補正せず load／公開を拒否します。
 - クリア報酬は30秒以内に受け取らなければ破棄されるため、必須進行品を未受取のまま失う構成にしないでください。
-- `twilight_mine` は deepslate／tuffを基調に、spruce支柱、soul-light、rubble、deepslate ore accentと4種のroom typeを設定します。
 
 ## progression
 

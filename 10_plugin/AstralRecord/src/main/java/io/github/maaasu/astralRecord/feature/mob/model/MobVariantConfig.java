@@ -19,6 +19,7 @@ import java.util.Locale;
  * @param patternColor  TropicalFish などの模様色に使用します。
  * @param mainGene      Panda の主遺伝子に使用します。
  * @param hiddenGene    Panda の隠し遺伝子に使用します。
+ * @param scale         実体 Mob の表示と当たり判定へ適用する Paper scale 倍率です。
  */
 public record MobVariantConfig(
         @NotNull Age age,
@@ -32,8 +33,12 @@ public record MobVariantConfig(
         String bodyColor,
         String patternColor,
         String mainGene,
-        String hiddenGene
+        String hiddenGene,
+        double scale
 ) {
+
+    private static final double MIN_SCALE = 0.0625D;
+    private static final double MAX_SCALE = 16.0D;
 
     public static final MobVariantConfig DEFAULT = new MobVariantConfig(
             Age.ADULT,
@@ -47,11 +52,33 @@ public record MobVariantConfig(
             null,
             null,
             null,
-            null
+            null,
+            1.0D
     );
 
     public MobVariantConfig(@NotNull Age age) {
-        this(age, null, null, null, null, null, null, null, null, null, null, null);
+        this(age, null, null, null, null, null, null, null, null, null, null, null, 1.0D);
+    }
+
+    /** scale 導入前の呼び出し元を既定倍率 1.0 で維持します。 */
+    public MobVariantConfig(
+            @NotNull Age age,
+            String kind,
+            String color,
+            String style,
+            String profession,
+            String villagerType,
+            Integer villagerLevel,
+            String pattern,
+            String bodyColor,
+            String patternColor,
+            String mainGene,
+            String hiddenGene
+    ) {
+        this(
+                age, kind, color, style, profession, villagerType, villagerLevel,
+                pattern, bodyColor, patternColor, mainGene, hiddenGene, 1.0D
+        );
     }
 
     public MobVariantConfig {
@@ -68,6 +95,7 @@ public record MobVariantConfig(
         patternColor = normalize(patternColor);
         mainGene = normalize(mainGene);
         hiddenGene = normalize(hiddenGene);
+        scale = Double.isFinite(scale) ? Math.clamp(scale, MIN_SCALE, MAX_SCALE) : 1.0D;
     }
 
     /**

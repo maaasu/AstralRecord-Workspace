@@ -198,6 +198,23 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("boss_mechanic_portal", Particle.PORTAL, 1, 0.02D, 0.02D, 0.02D, 0.0D);
     public static final SharedParticleDefinition BOSS_MECHANIC_EXPLOSION =
         new SharedParticleDefinition("boss_mechanic_explosion", Particle.EXPLOSION, 2, 0.18D, 0.18D, 0.18D, 0.0D);
+    public static final SharedParticleDefinition SUNBIRD_SOLAR_DUST =
+        new SharedParticleDefinition(
+            "sunbird_solar_dust",
+            Particle.DUST,
+            1,
+            0.02D,
+            0.02D,
+            0.02D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 205, 55), 1.2F)
+        );
+    public static final SharedParticleDefinition SUNBIRD_SOLAR_FLAME =
+        new SharedParticleDefinition("sunbird_solar_flame", Particle.FLAME, 1, 0.03D, 0.03D, 0.03D, 0.01D);
+    public static final SharedParticleDefinition SUNBIRD_SOLAR_IMPACT =
+        new SharedParticleDefinition("sunbird_solar_impact", Particle.EXPLOSION, 3, 0.20D, 0.20D, 0.20D, 0.0D);
+    public static final SharedParticleDefinition SUNBIRD_SOLAR_FLASH =
+        new SharedParticleDefinition("sunbird_solar_flash", Particle.FLASH, 1, 0.0D, 0.0D, 0.0D, 0.0D, Color.WHITE);
     public static final SharedParticleDefinition MOB_CLAY_GUARD_LANDING_RING =
         new SharedParticleDefinition(
             "mob_clay_guard_landing_ring",

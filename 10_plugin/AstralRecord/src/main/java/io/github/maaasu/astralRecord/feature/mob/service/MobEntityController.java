@@ -375,6 +375,7 @@ public class MobEntityController {
         mob.customName(null);
         mob.setCustomNameVisible(false);
         applyVariant(template, mob);
+        applyScale(template, mob);
         clearEquipment(mob.getEquipment());
         applyEquipment(mob.getEquipment(), template.equipment());
 
@@ -384,6 +385,19 @@ public class MobEntityController {
         mob.getPathfinder().setCanPassDoors(true);
         mob.getPathfinder().setCanFloat(true);
         applyStationaryNpcAttributes(template, mob);
+    }
+
+    /**
+     * マスターで指定された倍率を Paper の scale 属性へ反映します。
+     *
+     * @param template scale 倍率を保持する Mob テンプレート
+     * @param mob      反映対象の Bukkit Mob
+     */
+    void applyScale(@NotNull MobTemplate template, @NotNull Mob mob) {
+        AttributeInstance scaleAttribute = mob.getAttribute(Attribute.SCALE);
+        if (scaleAttribute != null) {
+            scaleAttribute.setBaseValue(template.variant().scale());
+        }
     }
 
     /**

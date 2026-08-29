@@ -99,7 +99,7 @@ Enemy と同一仕様です。
 
 ```yaml
 schemaVersion: 1
-id: twilight_colossus
+id: example_boss
 type: MOB
 category: BOSS
 name: "&0&l暗黒竜ヴァルザード"

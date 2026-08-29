@@ -245,7 +245,8 @@ public class MobRepositoryPayloadTests
                 "age": "ADULT",
                 "villagerType": "PLAINS",
                 "profession": "LIBRARIAN",
-                "villagerLevel": 3
+                "villagerLevel": 3,
+                "scale": 4.0
               },
               "baseStats": []
             }
@@ -259,6 +260,7 @@ public class MobRepositoryPayloadTests
         Assert.Equal("PLAINS", mob.Variant.VillagerType);
         Assert.Equal("LIBRARIAN", mob.Variant.Profession);
         Assert.Equal(3, mob.Variant.VillagerLevel);
+        Assert.Equal(4.0D, mob.Variant.Scale);
     }
 
     [Fact]

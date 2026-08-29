@@ -1,44 +1,44 @@
 # design:
-#   motif: "北欧神話 / 黄昏門の守護巨像"
-#   progression: 5
+#   motif: "鳥類 / 太陽鳥"
+#   progression: 10
 schemaVersion: 1
-id: twilight_colossus
+id: midgard_savanna_sunbird
 type: MOB
 category: BOSS
-name: "&5&l黄昏の巨像"
-title: "&8-- 崩れた門の守護者 --"
-level: 15
-entityType: IRON_GOLEM
-icon: CRYING_OBSIDIAN
+name: "&6&l陽冠のサンバード"
+title: "&e-- サバナを照らす大翼 --"
+level: 10
+entityType: PARROT
+variant:
+  age: ADULT
+  kind: RED
+  scale: 4.0
+icon: PARROT_SPAWN_EGG
 nameVisible: true
 lore:
-  - "&7黄昏門を守る三段階の構造体。"
-  - "&7地響き、交差ルーン、内外輪の安全地帯を見極める。"
+  - "&7灼光を翼に宿し、太陽の儀式を操る巨大な鳥。"
+  - "&7残りHP30%で祭壇へ帰還し、天陽崩落を解き放つ。"
 tags:
+  - midgard
+  - savanna
   - boss
-  - golem
-  - guardian
-  - twilight
-  - melee
-  - shield
+  - beast
+  - fire
+  - magic
 
 baseStats:
   - status: MAX_HEALTH
-    value: 35200
+    value: 16000
   - status: ATTACK
-    value: 956
+    value: 434
   - status: DEFENSE
-    value: 882
+    value: 400
   - status: ACCURACY
     value: 95
   - status: EVASION
     value: 3
   - status: MOVEMENT_SPEED
-    value: 78
-
-shield:
-  enabled: true
-  max: 10
+    value: 92
 
 ai:
   idle:
@@ -49,17 +49,11 @@ ai:
     deaggroRange: 60
     leashRange: 80
   combat:
-    style: MELEE
-    preferredRange: 4
-    skills:
-      - id: mob_twilight_colossus_gate_slam
-      - id: mob_twilight_colossus_rune_bolt
-
-drops:
-  exp: 2500
+    style: MAGIC
+    preferredRange: 10
 
 challenge:
-  fieldWorldId: twilight_colossus_field
+  fieldWorldId: midgard_boss_savanna_field
   entryLocation:
     worldId: midgard_greenfields
     x: -410.5
