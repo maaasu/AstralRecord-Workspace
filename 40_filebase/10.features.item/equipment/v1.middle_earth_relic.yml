@@ -5,7 +5,7 @@ schemaVersion: 1
 id: middle_earth_relic
 category: equipment
 name: "&bアース遺跡のレリック"
-icon: HEART_OF_THE_SEA
+icon: stone_brick_wall
 rarity: RARE
 maxStack: 1
 saleValue: 320

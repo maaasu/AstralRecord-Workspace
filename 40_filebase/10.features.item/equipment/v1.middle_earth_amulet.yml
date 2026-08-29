@@ -5,7 +5,7 @@ schemaVersion: 1
 id: middle_earth_amulet
 category: equipment
 name: "&bミドルアースのアミュレット"
-icon: EMERALD
+icon: warped_hanging_sign
 rarity: RARE
 maxStack: 1
 saleValue: 320
