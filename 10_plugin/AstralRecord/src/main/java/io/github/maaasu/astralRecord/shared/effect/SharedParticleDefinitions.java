@@ -1,8 +1,10 @@
 package io.github.maaasu.astralRecord.shared.effect;
 
 import org.bukkit.Color;
+import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.block.data.BlockData;
+import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -437,6 +439,28 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("skill_hunter_arrow", Particle.CRIT, 1, 0.02D, 0.02D, 0.02D, 0.01D);
     public static final SharedParticleDefinition SKILL_HUNTER_IMPACT =
         new SharedParticleDefinition("skill_hunter_impact", Particle.END_ROD, 3, 0.08D, 0.08D, 0.08D, 0.01D);
+    public static final SharedParticleDefinition MOB_FOREST_SPIDER_WEB_TRAIL =
+        new SharedParticleDefinition(
+            "mob_forest_spider_web_trail",
+            Particle.ITEM,
+            1,
+            0.0D,
+            0.0D,
+            0.0D,
+            0.0D,
+            new ItemStack(Material.COBWEB)
+        );
+    public static final SharedParticleDefinition MOB_FOREST_SPIDER_WEB_IMPACT =
+        new SharedParticleDefinition(
+            "mob_forest_spider_web_impact",
+            Particle.ITEM,
+            8,
+            0.16D,
+            0.16D,
+            0.16D,
+            0.0D,
+            new ItemStack(Material.COBWEB)
+        );
     public static final SharedParticleDefinition HUNTER_FADE_SHOT_STEP =
         new SharedParticleDefinition("hunter_fade_shot_step", Particle.CLOUD, 1, 0.04D, 0.02D, 0.04D, 0.01D);
     public static final SharedParticleDefinition SKILL_HUNTER_CRASH_ARROW_TRAIL =

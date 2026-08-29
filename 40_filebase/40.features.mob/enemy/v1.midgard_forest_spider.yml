@@ -1,0 +1,114 @@
+# design:
+#   motif: "動物 / 毒グモ"
+#   progression: 7
+schemaVersion: 1
+id: midgard_forest_spider
+type: MOB
+category: ENEMY
+name: "&2フォレストスパイダー"
+level: 7
+entityType: SPIDER
+icon: SPIDER_SPAWN_EGG
+lore:
+  - "&7森林の木陰に潜む毒を持ったクモ。"
+  - "&7近くのプレイヤーへクモ糸を飛ばし、距離を保ちながら襲い掛かる。"
+tags:
+  - midgard
+  - forest
+  - beast
+  - spider
+  - ranged
+
+levels:
+  - level: 7
+    name: "&2フォレストスパイダー Lv.7"
+  - level: 8
+    name: "&2フォレストスパイダー Lv.8"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 1400
+      - status: RANGED_ATTACK
+        value: 254
+      - status: DEFENSE
+        value: 244
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 110
+    drops:
+      exp: 65
+      items:
+        - itemId:
+            ref: item:forest_spider_venom_sack
+          rate: 50.0
+          amount: 1
+          luckAffected: true
+          hidden: false
+        - itemId:
+            ref: item:forest_spider_poisoned_eye
+          rate: 1.0
+          amount: 1
+          luckAffected: true
+          hidden: false
+      lootTable:
+        ref: loot_table:normal_enemy_common_table_tier_1
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 1100
+  - status: RANGED_ATTACK
+    value: 199
+  - status: DEFENSE
+    value: 191
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 105
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 1.0
+  targeting:
+    strategy: NEAREST
+    aggroRange: 24
+    deaggroRange: 30
+    leashRange: 32
+    retaliateOnly: false
+  combat:
+    style: RANGED
+    preferredRange: 7
+    skills:
+      - id: mob_forest_spider_web_shot
+        activationRange: 9
+        cooldownTicks: 40
+        castTimeTicks: 10
+        params:
+          damageRatio: 0.75
+          projectileSpeed: 0.90
+          projectileHitRadius: 0.25
+          weaknessChance: 25.0
+          weaknessDurationTicks: 100.0
+
+drops:
+  exp: 55
+  items:
+    - itemId:
+        ref: item:forest_spider_venom_sack
+      rate: 45.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:forest_spider_poisoned_eye
+      rate: 1.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_1

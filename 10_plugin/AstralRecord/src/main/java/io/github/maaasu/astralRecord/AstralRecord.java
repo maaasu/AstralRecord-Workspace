@@ -119,6 +119,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobAiService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobProjectileService;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillRegistry;
 import io.github.maaasu.astralRecord.feature.mob.skill.clayguard.ClayGuardLeapMobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.mob.skill.forestspider.ForestSpiderWebShotMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.AllThingsElChargeMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.AllThingsElIceSphereMobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.middleearth.MiddleEarthPiglinRushMobSkillExecutor;
@@ -1276,6 +1277,7 @@ public final class AstralRecord extends JavaPlugin {
         mobProjectileService = new MobProjectileService(mobService, particleDisplayService);
         var mobSkillRegistry = new MobSkillRegistry();
         mobSkillRegistry.register(new SkeletonArcherBowShotMobSkillExecutor(damageService, mobProjectileService));
+        mobSkillRegistry.register(new ForestSpiderWebShotMobSkillExecutor(damageService, conditionService, mobProjectileService));
         mobSkillRegistry.register(new MossShellShellBashMobSkillExecutor(damageService));
         mobSkillRegistry.register(new ClayGuardLeapMobSkillExecutor(mobService, damageService, particleDisplayService));
         mobSkillRegistry.register(new MiddleEarthPiglinRushMobSkillExecutor(mobService, damageService));

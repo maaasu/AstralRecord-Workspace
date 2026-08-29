@@ -118,6 +118,86 @@ public final class MobProjectileService {
     }
 
     /**
+     * クモ糸の見える飛び道具を発射し、命中時に遠隔ダメージと確率付き衰弱を適用します。
+     *
+     * @param caster 発射元 Mob
+     * @param origin 発射開始位置
+     * @param direction 発射方向
+     * @param speed 1 tick あたりの移動距離
+     * @param hitRadius プレイヤー hitbox に加える半径
+     * @param damageRatio 攻撃力に掛けるダメージ倍率
+     * @param weaknessDurationTicks 命中時の衰弱持続時間
+     * @param weaknessChance 命中時の衰弱基礎付与確率（%）
+     * @param damageService 命中時のダメージ適用先
+     * @param conditionService 命中時の状態異常適用先
+     */
+    public void launchWeb(
+            @NotNull MobInstance caster,
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            double speed,
+            double hitRadius,
+            double damageRatio,
+            long weaknessDurationTicks,
+            double weaknessChance,
+            @NotNull DamageService damageService,
+            @NotNull ConditionService conditionService
+    ) {
+        if (origin.getWorld() == null || direction.lengthSquared() <= 1.0E-6D) {
+            return;
+        }
+        Vector velocity = direction.clone().normalize().multiply(Math.max(0.05D, speed));
+        BukkitRunnable runnable = new BukkitRunnable() {
+            private Location position = origin.clone();
+            private long elapsedTicks;
+
+            @Override
+            public void run() {
+                MobInstance activeCaster = mobService.getInstance(caster.instanceId());
+                if (activeCaster != caster || elapsedTicks++ >= MAX_LIFETIME_TICKS) {
+                    finish();
+                    return;
+                }
+                Location next = position.clone().add(velocity);
+                ProjectileImpact impact = firstImpact(position, next, Math.max(0.0D, hitRadius));
+                if (impact != null) {
+                    particleDisplayService.spawnForNearbyViewers(
+                            impact.location(), SharedParticleDefinitions.MOB_FOREST_SPIDER_WEB_IMPACT
+                    );
+                    if (impact.player() != null) {
+                        var target = damageService.resolveEntity(impact.player());
+                        var result = damageService.attack(
+                                AstEntity.mob(caster), target, AttackType.RANGED,
+                                List.of(new DamageComponent(DamageElement.NONE, damageRatio)), DamageSource.SKILL
+                        );
+                        if (!result.evaded()
+                                && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)) {
+                            conditionService.applyCondition(new ConditionApplyRequest(
+                                    target, AstEntity.mob(caster), ConditionType.WEAKNESS, AttackType.RANGED,
+                                    Math.max(1L, weaknessDurationTicks), weaknessChance, 1.0D,
+                                    null, null, null, null, ConditionApplyReason.SKILL
+                            ));
+                        }
+                    }
+                    finish();
+                    return;
+                }
+                position = next;
+                particleDisplayService.spawnForNearbyViewers(
+                        position, SharedParticleDefinitions.MOB_FOREST_SPIDER_WEB_TRAIL
+                );
+            }
+
+            private void finish() {
+                cancel();
+                removeTask(caster.instanceId(), getTaskId());
+            }
+        };
+        BukkitTask task = runnable.runTaskTimer(mobService.plugin(), 0L, 1L);
+        tasksByCaster.computeIfAbsent(caster.instanceId(), ignored -> new ArrayList<>()).add(task);
+    }
+
+    /**
      * 壁で反射する氷球を発射します。
      *
      * <p>プレイヤーに命中すると氷属性ダメージと凍結を与え、壁に当たると面法線で反射します。

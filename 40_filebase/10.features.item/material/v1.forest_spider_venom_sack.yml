@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / 毒グモ"
+#   progression: 7
+schemaVersion: 1
+id: forest_spider_venom_sack
+category: material
+name: "&fヴェノムサック"
+icon: BEETROOT
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 10
+lore:
+  - "&7フォレストスパイダーから採取した毒袋。"
+  - "&7毒の調合や薬品の加工に使われる。"
+unTradeable: false
+unSellable: false

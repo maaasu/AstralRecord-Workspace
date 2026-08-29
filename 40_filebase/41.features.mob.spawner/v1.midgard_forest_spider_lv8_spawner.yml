@@ -1,0 +1,25 @@
+# design:
+#   motif: "動物 / 毒グモ"
+#   progression: 8
+schemaVersion: 1
+id: midgard_forest_spider_lv8_spawner
+type: MOB_SPAWNER
+region: "ミズガルズ森林"
+radiusMeters: 18
+
+spawnMobs:
+  - mobId: mob:midgard_forest_spider
+    level: 8
+    weight: 100
+
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+
+itemMaterial: SPAWNER
+spawnIntervalTicks: 100
+
+spawnLimit:
+  maxAlivePerSpawner: 8
+  maxNearbyMobs: 18
+  spawnPerPlayer: 1

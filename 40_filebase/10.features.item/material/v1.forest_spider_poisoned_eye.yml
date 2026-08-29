@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / 毒グモ"
+#   progression: 7
+schemaVersion: 1
+id: forest_spider_poisoned_eye
+category: material
+name: "&d毒した瞳"
+icon: FERMENTED_SPIDER_EYE
+rarity: RARE
+maxStack: 64
+saleValue: 28
+lore:
+  - "&7フォレストスパイダーの毒に染まった瞳。"
+  - "&7強い毒性を持つ希少な調合素材。"
+unTradeable: false
+unSellable: false
