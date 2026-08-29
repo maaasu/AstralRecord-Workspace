@@ -183,7 +183,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         requireNonNegativeDouble(skill, "displayForwardOffset");
         requireNonNegativeDouble(skill, "displaySpinDegrees");
         requireNonNegativeDouble(skill, "displayModelPitchDegrees");
-        requireNonNegativeDouble(skill, "displayModelRollDegrees");
+        requireNonNegativeDouble(skill, "displayModelYawDegrees");
     }
 
     /**
@@ -319,14 +319,14 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         double displayForwardOffset = readDoubleParam(skill, "displayForwardOffset", 0.0D);
         double displaySpinDegrees = readDoubleParam(skill, "displaySpinDegrees", 0.0D);
         double displayModelPitchDegrees = readDoubleParam(skill, "displayModelPitchDegrees", 0.0D);
-        double displayModelRollDegrees = readDoubleParam(skill, "displayModelRollDegrees", 0.0D);
+        double displayModelYawDegrees = readDoubleParam(skill, "displayModelYawDegrees", 0.0D);
         ItemDisplay projectileDisplay = spawnProjectileDisplay(
             skill,
             startLocation,
             velocity,
             displayScale,
             displayModelPitchDegrees,
-            displayModelRollDegrees
+            displayModelYawDegrees
         );
 
         final BukkitTask[] taskHolder = new BukkitTask[1];
@@ -374,7 +374,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                     displayForwardOffset,
                     displaySpinDegrees,
                     displayModelPitchDegrees,
-                    displayModelRollDegrees,
+                    displayModelYawDegrees,
                     tick
                 );
 
@@ -656,7 +656,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         @NotNull Vector velocity,
         float scale,
         double modelPitchDegrees,
-        double modelRollDegrees
+        double modelYawDegrees
     ) {
         Object rawMaterial = skill.getParams().get("displayMaterial");
         Material material = rawMaterial instanceof String value ? MaterialNameResolver.match(value) : null;
@@ -682,7 +682,8 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             entity.setTransformation(displayTransformation(
                 scale,
                 Math.toRadians(modelPitchDegrees),
-                Math.toRadians(modelRollDegrees)
+                Math.toRadians(modelYawDegrees),
+                0.0D
             ));
         });
         activeProjectileDisplays.add(display);
@@ -697,7 +698,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         double forwardOffset,
         double spinDegrees,
         double modelPitchDegrees,
-        double modelRollDegrees,
+        double modelYawDegrees,
         int tick
     ) {
         if (display == null || !display.isValid()) {
@@ -714,17 +715,24 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             display.setTransformation(displayTransformation(
                 scale,
                 Math.toRadians(modelPitchDegrees),
-                Math.toRadians(modelRollDegrees + spinDegrees * tick)
+                Math.toRadians(modelYawDegrees),
+                Math.toRadians(spinDegrees * tick)
             ));
         }
     }
 
-    private @NotNull Transformation displayTransformation(float scale, double pitchRadians, double rollRadians) {
+    private @NotNull Transformation displayTransformation(
+        float scale,
+        double pitchRadians,
+        double yawRadians,
+        double rollRadians
+    ) {
         float resolvedScale = Math.max(0.01F, scale);
         return new Transformation(
             new Vector3f(),
             new Quaternionf()
-                .rotationZ((float) rollRadians)
+                .rotationY((float) yawRadians)
+                .rotateZ((float) rollRadians)
                 .rotateX((float) pitchRadians),
             new Vector3f(resolvedScale, resolvedScale, resolvedScale),
             new Quaternionf()
