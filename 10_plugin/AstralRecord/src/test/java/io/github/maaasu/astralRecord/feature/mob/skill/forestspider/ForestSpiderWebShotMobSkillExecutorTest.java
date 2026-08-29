@@ -13,17 +13,18 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillTiming;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobProjectileService;
+import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillContext;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
+import org.bukkit.util.BoundingBox;
+import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.plugin.PluginMock;
 import org.mockito.ArgumentCaptor;
-import org.bukkit.util.BoundingBox;
-import org.bukkit.util.Vector;
 
 import java.util.Map;
 import java.util.UUID;
@@ -88,7 +89,7 @@ class ForestSpiderWebShotMobSkillExecutorTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_6-Mobスキル追加ガイド.md
      * 章・見出し: # 12_6-Mobスキル追加ガイド > ## 5. フォレストスパイダーのクモ糸
-     * 検証契約: クモ糸は tick 飛翔体としてプレイヤー hitbox に命中し、RANGED ダメージ後に有効な衰弱付与要求を発行する。
+     * 検証契約: executor 起点のクモ糸は tick 飛翔体としてプレイヤー hitbox に命中し、RANGED ダメージ後に有効な衰弱付与要求を発行する。
      */
     @Test
     void launchesWebAndAppliesWeaknessAfterSuccessfulHit() {
@@ -120,19 +121,25 @@ class ForestSpiderWebShotMobSkillExecutorTest extends MockBukkitTestBase {
         ConditionService conditionService = mock(ConditionService.class);
         ParticleDisplayService particleDisplayService = mock(ParticleDisplayService.class);
         MobProjectileService projectileService = new MobProjectileService(mobService, particleDisplayService);
-
-        projectileService.launchWeb(
-                caster,
-                new Location(world, 0.0D, 0.0D, 0.0D),
-                new Vector(1.0D, 0.0D, 0.0D),
-                1.0D,
-                0.0D,
-                0.75D,
-                100L,
-                25.0D,
-                damageService,
-                conditionService
+        ForestSpiderWebShotMobSkillExecutor executor = new ForestSpiderWebShotMobSkillExecutor(
+                damageService, conditionService, projectileService
         );
+        MobSkillBinding binding = new MobSkillBinding(
+                ForestSpiderWebShotMobSkillExecutor.SKILL_ID,
+                null, null, null,
+                Map.of(
+                        "damageRatio", 0.75D,
+                        "projectileSpeed", 1.0D,
+                        "projectileHitRadius", 0.0D,
+                        "weaknessChance", 25.0D,
+                        "weaknessDurationTicks", 100.0D
+                )
+        );
+        Location origin = new Location(world, 0.0D, 0.0D, 0.0D);
+
+        assertTrue(executor.cast(new MobSkillContext(
+                caster, player, binding, executor.defaultTiming(), origin, new Vector(1.0D, 0.0D, 0.0D)
+        )));
         server().getScheduler().performTicks(2L);
 
         verify(damageService).attack(
