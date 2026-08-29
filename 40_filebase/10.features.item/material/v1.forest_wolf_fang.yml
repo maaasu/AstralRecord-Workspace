@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / オオカミ"
+#   progression: 6
+schemaVersion: 1
+id: forest_wolf_fang
+category: material
+name: "&fウルフファング"
+icon: RABBIT_HIDE
+rarity: COMMON
+maxStack: 64
+saleValue: 8
+lore:
+  - "&7フォレストウルフから採取した鋭い牙。"
+  - "&7武具や狩猟道具の加工素材になる。"
+unTradeable: false
+unSellable: false

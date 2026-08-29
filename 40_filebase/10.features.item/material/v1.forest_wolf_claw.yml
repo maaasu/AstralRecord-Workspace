@@ -1,0 +1,16 @@
+# design:
+#   motif: "動物 / オオカミ"
+#   progression: 6
+schemaVersion: 1
+id: forest_wolf_claw
+category: material
+name: "&fフォレストウルフの爪"
+icon: FLINT
+rarity: COMMON
+maxStack: 64
+saleValue: 6
+lore:
+  - "&7フォレストウルフの前脚から採取した爪。"
+  - "&7刃物の研磨や細工に使われる。"
+unTradeable: false
+unSellable: false

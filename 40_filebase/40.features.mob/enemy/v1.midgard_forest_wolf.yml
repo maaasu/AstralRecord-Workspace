@@ -1,0 +1,138 @@
+# design:
+#   motif: "動物 / オオカミ"
+#   progression: 6
+schemaVersion: 1
+id: midgard_forest_wolf
+type: MOB
+category: ENEMY
+name: "&aフォレストウルフ"
+level: 6
+entityType: WOLF
+icon: WOLF_SPAWN_EGG
+lore:
+  - "&7森林を駆ける俊敏な野生のオオカミ。"
+  - "&7近くのプレイヤーを見つけると群れずに襲い掛かる。"
+tags:
+  - midgard
+  - forest
+  - beast
+  - wolf
+  - melee
+
+levels:
+  - level: 6
+    name: "&aフォレストウルフ Lv.6"
+  - level: 7
+    name: "&aフォレストウルフ Lv.7"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 1100
+      - status: ATTACK
+        value: 199
+      - status: DEFENSE
+        value: 191
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 120
+    drops:
+      exp: 55
+      items:
+        - itemId:
+            ref: item:forest_wolf_fang
+          rate: 50.0
+          amount: 1
+          luckAffected: true
+          hidden: false
+        - itemId:
+            ref: item:forest_wolf_claw
+          rate: 4.0
+          amount: 1
+          luckAffected: true
+          hidden: false
+      lootTable:
+        ref: loot_table:normal_enemy_common_table_tier_1
+  - level: 8
+    name: "&aフォレストウルフ Lv.8"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 1400
+      - status: ATTACK
+        value: 254
+      - status: DEFENSE
+        value: 244
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 125
+    drops:
+      exp: 65
+      items:
+        - itemId:
+            ref: item:forest_wolf_fang
+          rate: 55.0
+          amount: 1
+          luckAffected: true
+          hidden: false
+        - itemId:
+            ref: item:forest_wolf_claw
+          rate: 5.0
+          amount: 1
+          luckAffected: true
+          hidden: false
+      lootTable:
+        ref: loot_table:normal_enemy_common_table_tier_1
+
+baseStats:
+  - status: MAX_HEALTH
+    value: 800
+  - status: ATTACK
+    value: 145
+  - status: DEFENSE
+    value: 139
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 115
+
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 12
+    speed: 1.0
+  targeting:
+    strategy: NEAREST
+    aggroRange: 24
+    deaggroRange: 30
+    leashRange: 32
+    retaliateOnly: false
+  combat:
+    style: MELEE
+    preferredRange: 2
+    normalAttack:
+      range: 2
+      intervalTicks: 30
+
+drops:
+  exp: 45
+  items:
+    - itemId:
+        ref: item:forest_wolf_fang
+      rate: 45.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:forest_wolf_claw
+      rate: 3.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_1
