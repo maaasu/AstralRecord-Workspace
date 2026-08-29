@@ -20,15 +20,15 @@ spawnLocation:
   z: -597.5
   yaw: 0.0
   pitch: 0.0
-description: "海に囲まれた緑の大地と、北東の岩山が連なる探索ワールド。世界樹の枝葉を思わせる森と草原、陽の強いサバンナを巡り、ミズガルズの辺境を開拓する。"
+description: "海に囲まれた緑の大地と、北東の岩山が連なる探索ワールド。\n始まりの地として基本的な冒険術を学ぶことができる。"
 guiIconMaterial: GRASS_BLOCK
 adventureGuide:
   recommendedLevelMin: 1
-  recommendedLevelMax: 10
+  recommendedLevelMax: 15
   recommendedPartySizeMin: 1
-  recommendedPartySizeMax: 4
+  recommendedPartySizeMax: 6
   notes:
     - "草原・森林・岩山・サバンナが一つの島に連なる、序盤の探索拠点"
     - "海岸線を起点に島を巡り、地形の変化と景観を楽しめる"
 overworldTeleportGui:
-  slot: 20
+  slot: 0

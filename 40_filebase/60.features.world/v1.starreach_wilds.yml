@@ -20,14 +20,14 @@ spawnLocation:
   z: 1480.5
   yaw: 0.0
   pitch: 0.0
-description: "広大な探索域を備え、冒険の中心となる大規模オープンワールド「ヴァナヘイム超大陸（Vanaheim Supercontinent）」。"
+description: "広大な探索域を備え、冒険の中心となる大規模オープンワールド"
 guiIconMaterial: FILLED_MAP
 adventureGuide:
-  recommendedLevelMin: 1
+  recommendedLevelMin: 15
   recommendedPartySizeMin: 1
-  recommendedPartySizeMax: 4
+  recommendedPartySizeMax: 6
   notes:
     - "長期的な探索と攻略の中心となる広域フィールド"
     - "遠征前に帰還手段と補給品の準備を推奨"
 overworldTeleportGui:
-  slot: 22
+  slot: 40
