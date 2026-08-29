@@ -51,6 +51,11 @@ public final class SkeletonArcherBowShotMobSkillExecutor implements MobSkillExec
     }
 
     @Override
+    public boolean allowsVerticalTargeting() {
+        return true;
+    }
+
+    @Override
     public void validate(@NotNull MobSkillBinding binding) {
         Map<String, Double> params = binding.params();
         if (!PARAMETER_KEYS.containsAll(params.keySet())) {

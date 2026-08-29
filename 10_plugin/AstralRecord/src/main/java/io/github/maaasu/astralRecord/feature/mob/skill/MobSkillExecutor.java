@@ -22,6 +22,18 @@ public interface MobSkillExecutor {
     @NotNull MobSkillTiming defaultTiming();
 
     /**
+     * 高低差がある対象へ三次元射程で発動できるスキルかを返します。
+     *
+     * <p>{@code false} の場合は地上戦スキルとして扱い、通常の高低差制限と水平射程を適用します。
+     * 矢や光弾のように発射方向へ上下成分を持てるスキルだけが {@code true} を返します。</p>
+     *
+     * @return 高低差を含む三次元射程で発動できる場合は {@code true}
+     */
+    default boolean allowsVerticalTargeting() {
+        return false;
+    }
+
+    /**
      * 紐付けの上書きを反映した実効タイミングを返します。
      *
      * @param binding Mob マスター上のスキル紐付け

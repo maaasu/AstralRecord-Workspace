@@ -25,6 +25,9 @@ import java.util.UUID;
 /** Mob 専用スキルの詠唱、クールダウン、Executor呼び出しを管理します。 */
 public final class MobSkillService {
 
+    /** 上下照準を持たない地上戦スキルに許容する高低差。 */
+    public static final double GROUND_TARGET_VERTICAL_TOLERANCE = 1.25D;
+
     private final MobService mobService;
     private final MobSkillRegistry registry;
     private final Map<UUID, Map<String, Long>> cooldownUntilByMob = new HashMap<>();
@@ -55,6 +58,36 @@ public final class MobSkillService {
     }
 
     /**
+     * Mob が現在位置から指定スキルの発動距離内にいるかを判定します。
+     *
+     * <p>上下照準を許可するExecutorは三次元距離、それ以外は地上戦用の高低差制限と水平距離で判定します。
+     * 未登録のスキルは、通常攻撃へフォールバックできるよう指定された距離と地上戦判定で扱います。</p>
+     *
+     * @param instance      発動するMob
+     * @param binding       Mobマスター上のスキル紐付け
+     * @param target        発動候補の対象
+     * @param fallbackRange Executor未登録時に使用する発動距離
+     * @return 現在位置から発動距離内の場合は {@code true}
+     */
+    public boolean isWithinActivationRange(
+            @NotNull MobInstance instance,
+            @NotNull MobSkillBinding binding,
+            @NotNull Player target,
+            double fallbackRange
+    ) {
+        MobSkillExecutor executor = registry.find(binding.id());
+        double activationRange = executor == null
+                ? Math.max(0.0D, fallbackRange)
+                : executor.resolveTiming(binding).activationRange();
+        return isWithinActivationRange(
+                instance,
+                target,
+                activationRange,
+                executor != null && executor.allowsVerticalTargeting()
+        );
+    }
+
+    /**
      * Mob スキルの詠唱または即時発動を試みます。
      *
      * @param instance   発動するMob
@@ -79,7 +112,12 @@ public final class MobSkillService {
             if (isOnCooldown(instance.instanceId(), binding.id(), serverTick)) {
                 return false;
             }
-            if (!isWithinActivationRange(instance, target, timing.activationRange())) {
+            if (!isWithinActivationRange(
+                    instance,
+                    target,
+                    timing.activationRange(),
+                    executor.allowsVerticalTargeting()
+            )) {
                 return false;
             }
             Location origin = instance.currentLocation().add(0.0D, 1.35D, 0.0D);
@@ -184,7 +222,8 @@ public final class MobSkillService {
     private boolean isWithinActivationRange(
             @NotNull MobInstance instance,
             @NotNull Player target,
-            double activationRange
+            double activationRange,
+            boolean allowsVerticalTargeting
     ) {
         Location mobLocation = instance.currentLocation();
         Location targetLocation = target.getLocation();
@@ -192,7 +231,14 @@ public final class MobSkillService {
             return false;
         }
         double x = mobLocation.getX() - targetLocation.getX();
+        double y = mobLocation.getY() - targetLocation.getY();
         double z = mobLocation.getZ() - targetLocation.getZ();
+        if (allowsVerticalTargeting) {
+            return x * x + y * y + z * z <= activationRange * activationRange;
+        }
+        if (Math.abs(y) > GROUND_TARGET_VERTICAL_TOLERANCE) {
+            return false;
+        }
         return x * x + z * z <= activationRange * activationRange;
     }
 }

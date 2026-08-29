@@ -1,13 +1,16 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
 import io.github.maaasu.astralRecord.feature.mob.model.IdleBehavior;
+import io.github.maaasu.astralRecord.feature.mob.model.CombatStyle;
 import io.github.maaasu.astralRecord.feature.mob.model.MobBaseStat;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
+import io.github.maaasu.astralRecord.feature.mob.model.MobCombatConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
@@ -24,12 +27,15 @@ import org.mockito.MockedStatic;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyDouble;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.mock;
@@ -249,6 +255,80 @@ class MobAiServiceTest {
         assertEquals(0.0D, instance.wanderTarget().getZ());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
+     * 検証契約: 上下照準可能な次スキルが三次元射程内で高低差だけが1.25 blockを超える場合、COMBATのAIは追跡せず現在地でスキル発動を試みる。
+     */
+    @Test
+    void verticalTargetingSkillCastsFromCurrentPositionInsteadOfChasing() throws ReflectiveOperationException {
+        World world = mock(World.class);
+        UUID targetId = UUID.randomUUID();
+        MobSkillBinding binding = new MobSkillBinding("mob_vertical_test", 16.0D, null, null, Map.of());
+        MobInstance instance = new MobInstance(
+                UUID.randomUUID(),
+                verticalTargetingEnemyTemplate(binding),
+                new Location(world, 0.0D, 64.0D, 0.0D)
+        );
+        instance.state(MobState.COMBAT);
+        instance.targetId(targetId);
+        Player target = activePlayer(world, 10.0D, 68.0D);
+        when(target.getUniqueId()).thenReturn(targetId);
+
+        MobService mobService = mock(MobService.class);
+        MobSkillService mobSkillService = mock(MobSkillService.class);
+        when(mobSkillService.isWithinActivationRange(instance, binding, target, 12.25D)).thenReturn(true);
+        when(mobSkillService.tryCast(instance, binding, target, 0L)).thenReturn(true);
+        MobAiService aiService = new MobAiService(mobService, mock(MobCombatService.class), mobSkillService);
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(() -> Bukkit.getPlayer(targetId)).thenReturn(target);
+
+            invokeTickCombatHold(aiService, instance);
+        }
+
+        assertEquals(MobState.COMBAT, instance.state());
+        verify(mobService).stopPathfinding(instance);
+        verify(mobSkillService).tryCast(instance, binding, target, 0L);
+        verify(mobService, never()).moveToward(any(MobInstance.class), any(Location.class), anyDouble(), anyLong());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
+     * 検証契約: 上下照準可能な次スキルが三次元射程内で高低差だけが1.25 blockを超える場合、AGGROのAIは追跡せずCOMBATへ遷移してPathfinderを停止する。
+     */
+    @Test
+    void verticalTargetingSkillEntersCombatInsteadOfChasing() throws ReflectiveOperationException {
+        World world = mock(World.class);
+        UUID targetId = UUID.randomUUID();
+        MobSkillBinding binding = new MobSkillBinding("mob_vertical_test", 16.0D, null, null, Map.of());
+        MobInstance instance = new MobInstance(
+                UUID.randomUUID(),
+                verticalTargetingEnemyTemplate(binding),
+                new Location(world, 0.0D, 64.0D, 0.0D)
+        );
+        instance.state(MobState.AGGRO);
+        instance.targetId(targetId);
+        Player target = activePlayer(world, 10.0D, 68.0D);
+        when(target.getUniqueId()).thenReturn(targetId);
+
+        MobService mobService = mock(MobService.class);
+        MobSkillService mobSkillService = mock(MobSkillService.class);
+        when(mobSkillService.isWithinActivationRange(instance, binding, target, 12.25D)).thenReturn(true);
+        MobAiService aiService = new MobAiService(mobService, mock(MobCombatService.class), mobSkillService);
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(() -> Bukkit.getPlayer(targetId)).thenReturn(target);
+
+            invokeTickAggro(aiService, instance);
+        }
+
+        assertEquals(MobState.COMBAT, instance.state());
+        verify(mobService).stopPathfinding(instance);
+        verify(mobService, never()).moveToward(any(MobInstance.class), any(Location.class), anyDouble(), anyLong());
+    }
+
     private static MobTemplate wanderingNpcTemplate() {
         return new MobTemplate(
                 1,
@@ -277,13 +357,43 @@ class MobAiServiceTest {
     }
 
     private static Player activePlayer(World world, double x) {
+        return activePlayer(world, x, 64.0D);
+    }
+
+    private static Player activePlayer(World world, double x, double y) {
         Player player = mock(Player.class);
         when(player.isOnline()).thenReturn(true);
         when(player.isDead()).thenReturn(false);
         when(player.getWorld()).thenReturn(world);
-        when(player.getLocation()).thenReturn(new Location(world, x, 64.0D, 0.0D));
-        when(player.getEyeLocation()).thenReturn(new Location(world, x, 65.6D, 0.0D));
+        when(player.getLocation()).thenReturn(new Location(world, x, y, 0.0D));
+        when(player.getEyeLocation()).thenReturn(new Location(world, x, y + 1.6D, 0.0D));
         return player;
+    }
+
+    private static MobTemplate verticalTargetingEnemyTemplate(MobSkillBinding binding) {
+        return new MobTemplate(
+                1,
+                "enemy:vertical_targeting_test",
+                MobCategory.ENEMY,
+                "Vertical Targeting Test",
+                null,
+                1,
+                EntityType.SKELETON,
+                true,
+                null,
+                List.of(),
+                List.of(),
+                null,
+                MobEquipmentConfig.EMPTY,
+                List.of(new MobBaseStat("MAX_HEALTH", 100.0D)),
+                MobShieldConfig.EMPTY,
+                MobIdleConfig.defaults(),
+                false,
+                MobInteractionsConfig.EMPTY,
+                new MobTargetingConfig(TargetStrategy.HIGHEST_THREAT, 100.0D, 100.0D, 100.0D, false),
+                new MobCombatConfig(CombatStyle.RANGED, 12.0D, null, List.of(binding)),
+                null
+        );
     }
 
     private static MobTemplate enemyTemplate() {
@@ -314,6 +424,12 @@ class MobAiServiceTest {
 
     private static void invokeTickAggro(MobAiService aiService, MobInstance instance) throws ReflectiveOperationException {
         Method method = MobAiService.class.getDeclaredMethod("tickAggro", MobInstance.class);
+        method.setAccessible(true);
+        method.invoke(aiService, instance);
+    }
+
+    private static void invokeTickCombatHold(MobAiService aiService, MobInstance instance) throws ReflectiveOperationException {
+        Method method = MobAiService.class.getDeclaredMethod("tickCombatHold", MobInstance.class);
         method.setAccessible(true);
         method.invoke(aiService, instance);
     }

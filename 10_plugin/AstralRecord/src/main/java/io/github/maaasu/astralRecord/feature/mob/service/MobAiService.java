@@ -75,7 +75,6 @@ public class MobAiService {
     private static final int WANDER_PAUSE_MIN_TICKS = 20;
     private static final int WANDER_PAUSE_MAX_TICKS = 60;
 
-    private static final double COMBAT_VERTICAL_TOLERANCE = 1.25D;
     private static final double COMBAT_RANGE_BUFFER = 0.25D;
     private static final double RANGED_RETREAT_BUFFER = 1.0D;
     private static final double MIN_RETREAT_DISTANCE = 1.5D;
@@ -442,19 +441,26 @@ public class MobAiService {
         double preferredRange = instance.template().combat() == null
                 ? 1.0D
                 : instance.template().combat().preferredRange();
-        double activationRange = resolveCurrentSkillActivationRange(instance, preferredRange + COMBAT_RANGE_BUFFER);
         Location targetLoc = target.getLocation();
         Location currentLoc = instance.currentLocation();
         double horizontalSq = horizontalDistanceSquared(currentLoc, targetLoc);
         double verticalDiff = Math.abs(targetLoc.getY() - currentLoc.getY());
-        if (verticalDiff <= COMBAT_VERTICAL_TOLERANCE
+        boolean canCastFromCurrentRange = isWithinCurrentSkillActivationRange(
+                instance,
+                target,
+                preferredRange + COMBAT_RANGE_BUFFER
+        );
+        if (verticalDiff <= MobSkillService.GROUND_TARGET_VERTICAL_TOLERANCE
                 && shouldRetreat(instance, horizontalSq, preferredRange)) {
             instance.state(MobState.COMBAT);
             moveAway(instance, targetLoc, preferredRange);
-        } else if (isWithinActivationRange(horizontalSq, activationRange)
-                && verticalDiff <= COMBAT_VERTICAL_TOLERANCE) {
+        } else if (canCastFromCurrentRange) {
             instance.state(MobState.COMBAT);
-            strafeOrStop(instance, currentLoc, targetLoc, horizontalSq, preferredRange);
+            if (verticalDiff > MobSkillService.GROUND_TARGET_VERTICAL_TOLERANCE) {
+                mobService.stopPathfinding(instance);
+            } else {
+                strafeOrStop(instance, currentLoc, targetLoc, horizontalSq, preferredRange);
+            }
         } else {
             moveToward(instance, targetLoc, instance.template().idle().speed());
         }
@@ -478,14 +484,16 @@ public class MobAiService {
         double preferredRange = instance.template().combat() == null
                 ? 1.0D
                 : instance.template().combat().preferredRange();
-        double activationRange = resolveCurrentSkillActivationRange(instance, preferredRange + COMBAT_RANGE_BUFFER);
         Location targetLoc = target.getLocation();
         Location currentLoc = instance.currentLocation();
         double horizontalSq = horizontalDistanceSquared(currentLoc, targetLoc);
         double verticalDiff = Math.abs(targetLoc.getY() - currentLoc.getY());
-        boolean canCastFromCurrentRange = verticalDiff <= COMBAT_VERTICAL_TOLERANCE
-                && isWithinActivationRange(horizontalSq, activationRange);
-        if (verticalDiff <= COMBAT_VERTICAL_TOLERANCE
+        boolean canCastFromCurrentRange = isWithinCurrentSkillActivationRange(
+                instance,
+                target,
+                preferredRange + COMBAT_RANGE_BUFFER
+        );
+        if (verticalDiff <= MobSkillService.GROUND_TARGET_VERTICAL_TOLERANCE
                 && shouldRetreat(instance, horizontalSq, preferredRange)) {
             if (canCastFromCurrentRange) {
                 castCombatSkill(instance, target);
@@ -493,10 +501,14 @@ public class MobAiService {
             moveAway(instance, targetLoc, preferredRange);
             return;
         }
-        if (!canCastFromCurrentRange
-                || verticalDiff > COMBAT_VERTICAL_TOLERANCE) {
+        if (!canCastFromCurrentRange) {
             mobService.stopPathfinding(instance);
             instance.state(MobState.AGGRO);
+            return;
+        }
+        if (verticalDiff > MobSkillService.GROUND_TARGET_VERTICAL_TOLERANCE) {
+            mobService.stopPathfinding(instance);
+            castCombatSkill(instance, target);
             return;
         }
         strafeOrStop(instance, currentLoc, targetLoc, horizontalSq, preferredRange);
@@ -754,22 +766,34 @@ public class MobAiService {
                 : conditionService.movementSpeedMultiplier(AstEntity.mob(instance));
     }
 
-    private boolean isWithinActivationRange(double horizontalSq, double activationRange) {
-        return horizontalSq <= activationRange * activationRange;
-    }
-
-    private double resolveCurrentSkillActivationRange(@NotNull MobInstance instance, double fallbackRange) {
+    private boolean isWithinCurrentSkillActivationRange(
+            @NotNull MobInstance instance,
+            @NotNull Player target,
+            double fallbackRange
+    ) {
         MobCombatConfig combat = instance.template().combat();
         if (combat == null) {
-            return Math.max(0.0D, fallbackRange);
+            return isWithinGroundActivationRange(instance.currentLocation(), target.getLocation(), fallbackRange);
         }
 
         List<MobSkillBinding> skills = combat.skills();
         if (skills.isEmpty()) {
-            return Math.max(0.0D, fallbackRange);
+            return isWithinGroundActivationRange(instance.currentLocation(), target.getLocation(), fallbackRange);
         }
         int index = Math.floorMod(instance.nextCombatSkillIndex(), skills.size());
-        return mobSkillService.activationRange(skills.get(index), fallbackRange);
+        return mobSkillService.isWithinActivationRange(instance, skills.get(index), target, fallbackRange);
+    }
+
+    private boolean isWithinGroundActivationRange(
+            @NotNull Location current,
+            @NotNull Location target,
+            double activationRange
+    ) {
+        if (current.getWorld() != target.getWorld()
+                || Math.abs(current.getY() - target.getY()) > MobSkillService.GROUND_TARGET_VERTICAL_TOLERANCE) {
+            return false;
+        }
+        return horizontalDistanceSquared(current, target) <= activationRange * activationRange;
     }
 
     private boolean isRangedStyle(@Nullable MobCombatConfig combat) {
