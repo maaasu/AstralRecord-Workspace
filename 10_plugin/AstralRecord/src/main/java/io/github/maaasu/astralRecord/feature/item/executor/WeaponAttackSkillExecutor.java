@@ -183,7 +183,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         requireNonNegativeDouble(skill, "displayForwardOffset");
         requireNonNegativeDouble(skill, "displaySpinDegrees");
         requireNonNegativeDouble(skill, "displayModelPitchDegrees");
-        requireNonNegativeDouble(skill, "displayModelYawDegrees");
+        requireFiniteDouble(skill, "displayModelYawDegrees");
     }
 
     /**
@@ -492,6 +492,19 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         }
         if (number.doubleValue() < 0.0D) {
             throw new SkillParameterException(key, "0 以上を設定してください");
+        }
+    }
+
+    private void requireFiniteDouble(@NotNull SkillDefinition skill, @NotNull String key) {
+        Object raw = skill.getParams().get(key);
+        if (raw == null) {
+            return;
+        }
+        if (!(raw instanceof Number number)) {
+            throw new SkillParameterException(key, "number を設定してください");
+        }
+        if (!Double.isFinite(number.doubleValue())) {
+            throw new SkillParameterException(key, "有限の数値を設定してください");
         }
     }
 

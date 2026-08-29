@@ -53,9 +53,9 @@ class WeaponAttackSkillExecutorTest extends MockBukkitTestBase {
         assertEquals(23.1D, doubleParam(definitions, BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_LONGBOW, "hitRange"));
         assertEquals("ARROW", param(definitions, BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_BOW, "displayMaterial"));
         assertEquals(90.0D, doubleParam(definitions, BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_BOW, "displayModelPitchDegrees"));
-        assertEquals(45.0D, doubleParam(definitions, BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_BOW, "displayModelYawDegrees"));
-        assertEquals(45.0D, doubleParam(definitions, BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_SHORTBOW, "displayModelYawDegrees"));
-        assertEquals(45.0D, doubleParam(definitions, BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_LONGBOW, "displayModelYawDegrees"));
+        assertEquals(-45.0D, doubleParam(definitions, BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_BOW, "displayModelYawDegrees"));
+        assertEquals(-45.0D, doubleParam(definitions, BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_SHORTBOW, "displayModelYawDegrees"));
+        assertEquals(-45.0D, doubleParam(definitions, BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_LONGBOW, "displayModelYawDegrees"));
         assertEquals("HORN_CORAL_BLOCK", param(definitions, BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_WAND, "displayMaterial"));
         assertEquals("TUBE_CORAL_BLOCK", param(definitions, BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MAGIC, "displayMaterial"));
     }
