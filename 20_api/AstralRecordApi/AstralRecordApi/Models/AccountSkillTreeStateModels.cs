@@ -19,6 +19,21 @@ public class AccountSkillTreeStateUpsertRequest
     public Guid UpdatedBy { get; init; }
 }
 
+/// <summary>
+/// Plugin が検出したスキルツリー構造不整合を補修する要求です。
+/// </summary>
+public class AccountSkillTreeInvalidStateRepairRequest
+{
+    /// <summary>補償メールを配信するユーザー UUID。</summary>
+    public Guid UserId { get; init; }
+
+    /// <summary>同一構造に対する再試行を一意にする SHA-256 形式のキー。</summary>
+    public required string RepairKey { get; init; }
+
+    /// <summary>監査用の更新者 UUID。</summary>
+    public Guid UpdatedBy { get; init; }
+}
+
 public class AccountSkillTreeUnlockedNodeModel
 {
     public required string NodeId { get; init; }

@@ -2,8 +2,11 @@ using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
+using AstralRecordApi.Tests.TestSupport;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using System.Runtime.CompilerServices;
+using System.Text.Json;
 using Xunit;
 
 namespace AstralRecordApi.Tests.Repositories;
@@ -48,7 +51,8 @@ public class AccountSkillTreeStateRepositoryTests
         }
 
         await using var dbContext = new AstralRecordDbContext(options);
-        var repository = new AccountSkillTreeStateRepository(dbContext);
+        await using var masterDataDbContext = CreateUnusedMasterDataDbContext();
+        var repository = new AccountSkillTreeStateRepository(dbContext, masterDataDbContext);
 
         var state = await repository.GetByAccountIdAsync(accountId);
 
@@ -98,7 +102,8 @@ public class AccountSkillTreeStateRepositoryTests
 
         await using (var dbContext = new AstralRecordDbContext(options))
         {
-            var repository = new AccountSkillTreeStateRepository(dbContext);
+            await using var masterDataDbContext = CreateUnusedMasterDataDbContext();
+            var repository = new AccountSkillTreeStateRepository(dbContext, masterDataDbContext);
 
             var created = await repository.UpsertAsync(accountId, new AccountSkillTreeStateUpsertRequest
             {
@@ -130,7 +135,8 @@ public class AccountSkillTreeStateRepositoryTests
 
         await using (var dbContext = new AstralRecordDbContext(options))
         {
-            var repository = new AccountSkillTreeStateRepository(dbContext);
+            await using var masterDataDbContext = CreateUnusedMasterDataDbContext();
+            var repository = new AccountSkillTreeStateRepository(dbContext, masterDataDbContext);
 
             var updated = await repository.UpsertAsync(accountId, new AccountSkillTreeStateUpsertRequest
             {
@@ -144,6 +150,107 @@ public class AccountSkillTreeStateRepositoryTests
             Assert.Equal("hybrid_guard", node.NodeId);
             Assert.Equal("hunter", node.ConsumedClassId);
         }
+    }
+
+    [Fact]
+    public async Task RepairInvalidStateAsync_ResetsNodesAndDeliversTemplateMailOnlyOncePerRepairKey()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        var accountId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        await using (var setupContext = new AstralRecordDbContext(options))
+        {
+            await CreateSchemaAsync(setupContext);
+            setupContext.Accounts.Add(new AccountEntity
+            {
+                Uuid = accountId,
+                UserId = userId,
+                AccountName = "tester",
+                SlotIndex = 0,
+                IsActive = true,
+                Mode = 0,
+                MenuShortcutsJson = "{}",
+                Level = 1,
+                TotalExperience = 0,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = userId,
+                UpdatedBy = userId,
+                IsDeleted = false,
+            });
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var masterConnection = new SqliteConnection("Data Source=:memory:");
+        await masterConnection.OpenAsync();
+        var masterOptions = new DbContextOptionsBuilder<MasterDataDbContext>()
+            .UseSqlite(masterConnection)
+            .Options;
+        await using var masterDataDbContext = new MasterDataDbContext(masterOptions);
+        await MasterDataTestSeed.CreateSchemaAsync(masterDataDbContext);
+        await MasterDataTestSeed.SeedEntryAsync(
+            masterDataDbContext,
+            Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "05.features.mail",
+                "v1.skilltree_structure_reset_compensation.yml"),
+            "mail",
+            null);
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var repository = new AccountSkillTreeStateRepository(dbContext, masterDataDbContext);
+        await repository.UpsertAsync(accountId, new AccountSkillTreeStateUpsertRequest
+        {
+            UnlockedNodes = [new() { NodeId = "1000" }, new() { NodeId = "1001" }],
+            UpdatedBy = accountId,
+        });
+
+        const string repairKey = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        var repaired = await repository.RepairInvalidStateAsync(accountId,
+            new AccountSkillTreeInvalidStateRepairRequest
+            {
+                UserId = userId,
+                RepairKey = repairKey,
+                UpdatedBy = accountId,
+            });
+        var retried = await repository.RepairInvalidStateAsync(accountId,
+            new AccountSkillTreeInvalidStateRepairRequest
+            {
+                UserId = userId,
+                RepairKey = repairKey,
+                UpdatedBy = accountId,
+            });
+
+        Assert.Empty(repaired.UnlockedNodes);
+        Assert.Empty(retried.UnlockedNodes);
+        Assert.Equal(repaired.Version, retried.Version);
+        await repository.UpsertAsync(accountId, new AccountSkillTreeStateUpsertRequest
+        {
+            UnlockedNodes = [new() { NodeId = "9999" }],
+            UpdatedBy = accountId,
+        });
+        var repairedAgain = await repository.RepairInvalidStateAsync(accountId,
+            new AccountSkillTreeInvalidStateRepairRequest
+            {
+                UserId = userId,
+                RepairKey = repairKey,
+                UpdatedBy = accountId,
+            });
+
+        Assert.Empty(repairedAgain.UnlockedNodes);
+        Assert.True(repairedAgain.Version > retried.Version);
+        var delivery = await dbContext.PlayerMailDeliveries.AsNoTracking().SingleAsync();
+        Assert.Equal(userId, delivery.UserId);
+        Assert.Equal("skilltree-structure-reset-" + repairKey, delivery.MailId);
+        var deliveredMail = JsonSerializer.Deserialize<MailResponse>(delivery.PayloadJson,
+            new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+        Assert.NotNull(deliveredMail);
+        Assert.Equal(delivery.MailId, deliveredMail.Id);
+        Assert.Equal("スキルツリー選択状態のリセットについて", deliveredMail.Title);
     }
 
     private static async Task CreateSchemaAsync(AstralRecordDbContext dbContext)
@@ -196,6 +303,40 @@ public class AccountSkillTreeStateRepositoryTests
 
             CREATE UNIQUE INDEX UX_account_skilltree_unlocked_node_state_node
                 ON account_skilltree_unlocked_node (account_skilltree_state_id, node_id);
+
+            CREATE TABLE player_mail_delivery (
+                player_mail_delivery_id TEXT NOT NULL PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                mail_id TEXT NOT NULL,
+                payload_json TEXT NOT NULL,
+                version INTEGER NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                created_by TEXT NOT NULL,
+                updated_by TEXT NOT NULL,
+                is_deleted INTEGER NOT NULL
+            );
+
+            CREATE UNIQUE INDEX UX_player_mail_delivery_user_mail
+                ON player_mail_delivery (user_id, mail_id);
         ");
+    }
+
+    private static MasterDataDbContext CreateUnusedMasterDataDbContext()
+        => new(new DbContextOptionsBuilder<MasterDataDbContext>()
+            .UseSqlite("Data Source=:memory:")
+            .Options);
+
+    private static string ResolveWorkspaceRoot([CallerFilePath] string currentFile = "")
+    {
+        var current = new FileInfo(currentFile).Directory;
+        while (current is not null)
+        {
+            if (Directory.Exists(Path.Combine(current.FullName, "40_filebase"))
+                && Directory.Exists(Path.Combine(current.FullName, "20_api")))
+                return current.FullName;
+            current = current.Parent;
+        }
+        throw new InvalidOperationException("workspace root could not be resolved from the test source path.");
     }
 }

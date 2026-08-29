@@ -63,6 +63,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -148,6 +151,115 @@ public class SkillTreeService {
         }
     }
 
+    /**
+     * 非同期のプレイヤー状態ロードで参照する、不変の構造検証スナップショットです。
+     *
+     * @param ready マスタ公開後なら {@code true}
+     * @param rootNodeId 現在構造のrootノードID
+     * @param definedNodeIds 現在のノード定義に存在するID
+     * @param placedNodeIds 現在の構造へ配置されているID
+     * @param adjacentNodeIdsByNodeId 現在構造における無向隣接ノード
+     * @param repairKey 同一構造に対する補修・補償メールの冪等キー
+     */
+    private record PlayerStateValidationSnapshot(
+            boolean ready,
+            @NotNull String rootNodeId,
+            @NotNull Set<String> definedNodeIds,
+            @NotNull Set<String> placedNodeIds,
+            @NotNull Map<String, Set<String>> adjacentNodeIdsByNodeId,
+            @NotNull String repairKey
+    ) {
+        private static @NotNull PlayerStateValidationSnapshot unavailable() {
+            return new PlayerStateValidationSnapshot(false, "", Set.of(), Set.of(), Map.of(), "");
+        }
+
+        private static @NotNull PlayerStateValidationSnapshot from(
+                @NotNull SkillTreeMasterDataSnapshot snapshot
+        ) {
+            Set<String> definedNodeIds = snapshot.nodes().stream()
+                    .map(SkillTreeNodeDefinition::nodeId)
+                    .collect(java.util.stream.Collectors.toUnmodifiableSet());
+            Set<String> placedNodeIds = snapshot.positions().stream()
+                    .map(SkillTreePosition::nodeId)
+                    .collect(java.util.stream.Collectors.toUnmodifiableSet());
+            Map<String, Set<String>> adjacentNodeIdsByNodeId = new LinkedHashMap<>();
+            for (String nodeId : placedNodeIds) {
+                adjacentNodeIdsByNodeId.put(nodeId, new LinkedHashSet<>());
+            }
+            for (SkillTreeEdge edge : snapshot.edges()) {
+                adjacentNodeIdsByNodeId.computeIfAbsent(edge.sourceNodeId(), ignored -> new LinkedHashSet<>())
+                        .add(edge.targetNodeId());
+                adjacentNodeIdsByNodeId.computeIfAbsent(edge.targetNodeId(), ignored -> new LinkedHashSet<>())
+                        .add(edge.sourceNodeId());
+            }
+            Map<String, Set<String>> immutableAdjacency = new LinkedHashMap<>();
+            for (Map.Entry<String, Set<String>> entry : adjacentNodeIdsByNodeId.entrySet()) {
+                immutableAdjacency.put(entry.getKey(), Set.copyOf(entry.getValue()));
+            }
+            return new PlayerStateValidationSnapshot(
+                    true,
+                    snapshot.rootNodeId(),
+                    definedNodeIds,
+                    placedNodeIds,
+                    Map.copyOf(immutableAdjacency),
+                    createRepairKey(snapshot.rootNodeId(), placedNodeIds, snapshot.edges())
+            );
+        }
+
+        private boolean isStructurallyValid(@NotNull SkillTreePlayerState state) {
+            if (!ready || state.unlockedNodeIds().isEmpty()) {
+                return true;
+            }
+            Set<String> unlockedNodeIds = state.unlockedNodeIds();
+            if (!definedNodeIds.containsAll(unlockedNodeIds)
+                    || !placedNodeIds.containsAll(unlockedNodeIds)
+                    || !unlockedNodeIds.contains(rootNodeId)) {
+                return false;
+            }
+
+            Set<String> reachableNodeIds = new LinkedHashSet<>();
+            java.util.ArrayDeque<String> queue = new java.util.ArrayDeque<>(List.of(rootNodeId));
+            while (!queue.isEmpty()) {
+                String nodeId = queue.removeFirst();
+                if (!unlockedNodeIds.contains(nodeId) || !reachableNodeIds.add(nodeId)) {
+                    continue;
+                }
+                for (String adjacentNodeId : adjacentNodeIdsByNodeId.getOrDefault(nodeId, Set.of())) {
+                    if (unlockedNodeIds.contains(adjacentNodeId)) {
+                        queue.addLast(adjacentNodeId);
+                    }
+                }
+            }
+            return reachableNodeIds.containsAll(unlockedNodeIds);
+        }
+    }
+
+    private static @NotNull String createRepairKey(
+            @NotNull String rootNodeId,
+            @NotNull Set<String> placedNodeIds,
+            @NotNull List<SkillTreeEdge> edges
+    ) {
+        StringBuilder canonicalStructure = new StringBuilder("root:").append(rootNodeId).append('\n');
+        placedNodeIds.stream()
+                .sorted()
+                .forEach(nodeId -> canonicalStructure.append("node:").append(nodeId).append('\n'));
+        edges.stream()
+                .map(SkillTreeEdge::key)
+                .sorted()
+                .forEach(edgeKey -> canonicalStructure.append("edge:").append(edgeKey).append('\n'));
+        try {
+            byte[] digest = MessageDigest.getInstance("SHA-256")
+                    .digest(canonicalStructure.toString().getBytes(StandardCharsets.UTF_8));
+            StringBuilder hexadecimal = new StringBuilder(digest.length * 2);
+            for (byte value : digest) {
+                hexadecimal.append(String.format(java.util.Locale.ROOT, "%02x", value));
+            }
+            return hexadecimal.toString();
+        } catch (NoSuchAlgorithmException e) {
+            throw new IllegalStateException("SHA-256 is unavailable", e);
+        }
+    }
+
     private final Plugin plugin;
     private final WorldService worldService;
     private InventoryService inventoryService;
@@ -186,6 +298,7 @@ public class SkillTreeService {
     private SkillTreeVisualizer visualizer;
     private boolean playerStateSaveInProgress;
     private BiConsumer<AstPlayer, String> nodeUnlockListener = (player, nodeId) -> { };
+    private volatile PlayerStateValidationSnapshot playerStateValidationSnapshot = PlayerStateValidationSnapshot.unavailable();
     private String rootNodeId = "";
 
     public SkillTreeService(
@@ -314,6 +427,7 @@ public class SkillTreeService {
             edgesByKey.put(edge.key(), edge);
         }
         rootNodeId = snapshot.rootNodeId();
+        playerStateValidationSnapshot = PlayerStateValidationSnapshot.from(snapshot);
         derivedPlayerStates.clear();
         refreshLoadedOnlinePlayerDerivedStates();
         if (visualizer != null) {
@@ -697,6 +811,30 @@ public class SkillTreeService {
      */
     public @NotNull SkillTreePlayerState loadInitialPlayerState(@NotNull UUID accountId) {
         return playerStateRepository.load(accountId);
+    }
+
+    /**
+     * 初回ログイン処理でスキルツリー状態を読み込み、現在構造と不整合なら空状態へ補修します。
+     * <p>
+     * 補修は API 側で状態置換と対象ユーザー限定メール配信を同時に確定します。マスタ未公開時は
+     * 誤ったリセットを避けるため検証を行いません。
+     * 呼び出し元は Bukkit メインスレッド外で実行してください。
+     *
+     * @param accountId 読み込み対象アカウント UUID
+     * @param userId 補償メール配信対象ユーザー UUID
+     * @return 検証済み、または補修済みのスキルツリー状態
+     * @throws RuntimeException API 通信または補修処理に失敗した場合
+     */
+    public @NotNull SkillTreePlayerState loadInitialPlayerState(
+            @NotNull UUID accountId,
+            @NotNull UUID userId
+    ) {
+        SkillTreePlayerState loadedState = playerStateRepository.load(accountId);
+        PlayerStateValidationSnapshot validationSnapshot = playerStateValidationSnapshot;
+        if (validationSnapshot.isStructurallyValid(loadedState)) {
+            return loadedState;
+        }
+        return playerStateRepository.repairInvalidState(accountId, userId, validationSnapshot.repairKey());
     }
 
     /**

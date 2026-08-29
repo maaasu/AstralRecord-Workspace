@@ -324,7 +324,8 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 SkillTreePlayerState skillTreeState = loadInitialSkillTreeState(
                     attempt,
                     playerName,
-                    account.getUuid()
+                    account.getUuid(),
+                    user.getUuid()
                 );
                 if (!isJoinLoading(attempt)) {
                     return;
@@ -670,12 +671,13 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private SkillTreePlayerState loadInitialSkillTreeState(
         JoinAttempt attempt,
         String playerName,
-        UUID accountId
+        UUID accountId,
+        UUID userId
     ) {
         boolean loggedFailure = false;
         while (isJoinLoading(attempt)) {
             try {
-                return skillTreeService.loadInitialPlayerState(accountId);
+                return skillTreeService.loadInitialPlayerState(accountId, userId);
             } catch (RuntimeException e) {
                 if (!loggedFailure) {
                     Logger.log(LogId.W_9002, accountId, e.getMessage());

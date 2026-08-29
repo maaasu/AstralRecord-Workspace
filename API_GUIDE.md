@@ -50,6 +50,7 @@
 | POST `/api/adventure-record/dungeon/clear` | ダンジョン踏破記録の冪等upsert・回数加算 | `00_docs/20_API設計書/feature/19-adventure-record/3-エンドポイント仕様/19_3.00-索引.md` |
 | GET `/api/account-skilltree/{accountId}` | アカウント単位のスキルツリー進行取得 | `00_docs/20_API設計書/feature/20-skilltree/3-エンドポイント仕様/20_3.00-索引.md` |
 | PUT `/api/account-skilltree/{accountId}` | アカウント単位のスキルツリー進行保存 | `00_docs/20_API設計書/feature/20-skilltree/3-エンドポイント仕様/20_3.00-索引.md` |
+| POST `/api/account-skilltree/{accountId}/repair-invalid-state` | 構造不整合の全解除・対象ユーザー限定補償メール配信 | `00_docs/20_API設計書/feature/20-skilltree/3-エンドポイント仕様/20_3.00-索引.md` |
 | GET `/api/account-waystone/{accountId}` | アカウント単位のウェイストーン開放状態取得 | `00_docs/20_API設計書/feature/25-waystone/3-エンドポイント仕様/25_3.00-索引.md` |
 | POST `/api/account-waystone/{accountId}/unlock` | ウェイストーン開放登録 | `00_docs/20_API設計書/feature/25-waystone/3-エンドポイント仕様/25_3.00-索引.md` |
 | GET `/api/account-quest/{accountId}` | アカウント単位のクエスト進行取得 | `00_docs/20_API設計書/feature/27-quest/3-エンドポイント仕様/27_3.00-索引.md` |

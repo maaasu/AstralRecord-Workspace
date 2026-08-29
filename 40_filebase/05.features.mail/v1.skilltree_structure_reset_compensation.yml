@@ -1,0 +1,11 @@
+# design:
+#   motif: "運用補償 / スキルツリー再選択"
+#   progression: 0
+schemaVersion: 1
+id: skilltree_structure_reset_compensation
+icon: WRITABLE_BOOK
+title: "スキルツリー選択状態のリセットについて"
+body: "スキルツリー構造の更新に伴い、選択状態をリセットしました。\nお手数ですが、現在のスキルツリーから再度選択してください。"
+publishFrom: "2026-01-01T00:00:00"
+publishTo: null
+receiveOnRead: false

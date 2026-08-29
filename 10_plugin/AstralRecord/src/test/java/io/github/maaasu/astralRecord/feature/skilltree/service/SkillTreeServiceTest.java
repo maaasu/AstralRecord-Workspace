@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeNodeDefinition;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeEdge;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeSkillEffect;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeStatusEffect;
@@ -61,10 +62,107 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.inOrder;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class SkillTreeServiceTest extends MockBukkitTestBase {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: 現在構造にない解放済みnodeを含むログイン状態は、API補修で全解除へ置換する。
+     */
+    @Test
+    void initialLoadRepairsStateContainingDeletedNode() {
+        UUID accountId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        SkillTreeNodeDefinition root = node("1000");
+        SkillTreePlayerState invalidState = new SkillTreePlayerState(accountId, Set.of("1000", "9999"));
+        SkillTreePlayerState repairedState = new SkillTreePlayerState(accountId, Set.of());
+        SkillTreePlayerStateRepository stateRepository = mock(SkillTreePlayerStateRepository.class);
+        SkillTreeService service = newService(root, stateRepository);
+        service.replaceMasterDataSnapshot(new SkillTreeService.SkillTreeMasterDataSnapshot(
+                "1000",
+                List.of(root),
+                List.of(new SkillTreePosition("1000", "skill_tree", 0, 64, 0)),
+                List.of()
+        ));
+        when(stateRepository.load(accountId)).thenReturn(invalidState);
+        when(stateRepository.repairInvalidState(eq(accountId), eq(userId), any(String.class)))
+                .thenReturn(repairedState);
+
+        SkillTreePlayerState result = service.loadInitialPlayerState(accountId, userId);
+
+        assertTrue(result.unlockedNodeIds().isEmpty());
+        verify(stateRepository).repairInvalidState(eq(accountId), eq(userId), any(String.class));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: rootから到達できない解放済みnodeを含むログイン状態は、全解除へ補修する。
+     */
+    @Test
+    void initialLoadRepairsDisconnectedUnlockedNodes() {
+        UUID accountId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        SkillTreeNodeDefinition root = node("1000");
+        SkillTreeNodeDefinition disconnected = node("1001");
+        SkillTreePlayerState invalidState = new SkillTreePlayerState(accountId, Set.of("1000", "1001"));
+        SkillTreePlayerState repairedState = new SkillTreePlayerState(accountId, Set.of());
+        SkillTreePlayerStateRepository stateRepository = mock(SkillTreePlayerStateRepository.class);
+        SkillTreeService service = newService(root, stateRepository);
+        service.replaceMasterDataSnapshot(new SkillTreeService.SkillTreeMasterDataSnapshot(
+                "1000",
+                List.of(root, disconnected),
+                List.of(
+                        new SkillTreePosition("1000", "skill_tree", 0, 64, 0),
+                        new SkillTreePosition("1001", "skill_tree", 3, 64, 0)
+                ),
+                List.of()
+        ));
+        when(stateRepository.load(accountId)).thenReturn(invalidState);
+        when(stateRepository.repairInvalidState(eq(accountId), eq(userId), any(String.class)))
+                .thenReturn(repairedState);
+
+        SkillTreePlayerState result = service.loadInitialPlayerState(accountId, userId);
+
+        assertTrue(result.unlockedNodeIds().isEmpty());
+        verify(stateRepository).repairInvalidState(eq(accountId), eq(userId), any(String.class));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: 同じnode IDの定義変更や未選択node追加で到達可能性が維持される状態は補修しない。
+     */
+    @Test
+    void initialLoadKeepsStructurallyValidState() {
+        UUID accountId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        SkillTreeNodeDefinition root = node("1000");
+        SkillTreeNodeDefinition child = node("1001");
+        SkillTreePlayerState validState = new SkillTreePlayerState(accountId, Set.of("1000", "1001"));
+        SkillTreePlayerStateRepository stateRepository = mock(SkillTreePlayerStateRepository.class);
+        SkillTreeService service = newService(root, stateRepository);
+        service.replaceMasterDataSnapshot(new SkillTreeService.SkillTreeMasterDataSnapshot(
+                "1000",
+                List.of(root, child, node("1002")),
+                List.of(
+                        new SkillTreePosition("1000", "skill_tree", 0, 64, 0),
+                        new SkillTreePosition("1001", "skill_tree", 3, 64, 0),
+                        new SkillTreePosition("1002", "skill_tree", 6, 64, 0)
+                ),
+                List.of(new SkillTreeEdge("1000", "1001"))
+        ));
+        when(stateRepository.load(accountId)).thenReturn(validState);
+
+        SkillTreePlayerState result = service.loadInitialPlayerState(accountId, userId);
+
+        assertEquals(Set.of("1000", "1001"), result.unlockedNodeIds());
+        verify(stateRepository, never()).repairInvalidState(any(), any(), any());
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
@@ -829,9 +927,15 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
     }
 
     private SkillTreeService newService(SkillTreeNodeDefinition node) {
+        return newService(node, mock(SkillTreePlayerStateRepository.class));
+    }
+
+    private SkillTreeService newService(
+            SkillTreeNodeDefinition node,
+            SkillTreePlayerStateRepository stateRepository
+    ) {
         SkillTreeNodeRepository nodeRepository = mock(SkillTreeNodeRepository.class);
         SkillTreeStructureRepository structureRepository = mock(SkillTreeStructureRepository.class);
-        SkillTreePlayerStateRepository stateRepository = mock(SkillTreePlayerStateRepository.class);
 
         Plugin plugin = mock(Plugin.class);
         when(plugin.getName()).thenReturn("AstralRecord");

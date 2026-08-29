@@ -82,6 +82,44 @@ public class SkillTreePlayerStateRepository {
         }
     }
 
+    /**
+     * 現行スキルツリー構造と整合しない進行状態を空状態へ置換し、対象ユーザーへ補償メールを配信します。
+     *
+     * @param accountId リセット対象アカウント UUID
+     * @param userId メール配信対象ユーザー UUID
+     * @param repairKey 同一構造に対する再試行を重複配信しないための構造識別キー
+     * @return API が確定した空のスキルツリー状態
+     * @throws RuntimeException API 通信または補修処理に失敗した場合
+     */
+    public @NotNull SkillTreePlayerState repairInvalidState(
+            @NotNull UUID accountId,
+            @NotNull UUID userId,
+            @NotNull String repairKey
+    ) {
+        String path = "/api/account-skilltree/" + accountId + "/repair-invalid-state";
+        JsonObject body = new JsonObject();
+        body.addProperty("userId", userId.toString());
+        body.addProperty("repairKey", repairKey);
+        body.addProperty("updatedBy", accountId.toString());
+        try {
+            try (var client = ApiRequestUtil.buildClient()) {
+                HttpRequest request = ApiRequestUtil.buildRequestBuilder(path)
+                        .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
+                        .build();
+                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() == 200) {
+                    return parse(accountId, JsonParser.parseString(response.body()).getAsJsonObject());
+                }
+                throw new IOException("Unexpected status " + response.statusCode() + " for POST " + path);
+            }
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            throw new RuntimeException(e);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     @NotNull
     private SkillTreePlayerState parse(@NotNull UUID fallbackAccountId, @NotNull JsonObject obj) {
         UUID accountId = obj.has("accountId") && !obj.get("accountId").isJsonNull()
