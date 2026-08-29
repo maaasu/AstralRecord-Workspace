@@ -518,6 +518,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(preset => preset.LeftClickSkillId).HasColumnName("left_click_skill_id");
             entity.Property(preset => preset.PassiveSkillSlotsJson).HasColumnName("passive_skill_slots_json");
             entity.Property(preset => preset.IsUnlocked).HasColumnName("is_unlocked");
+            entity.Property(preset => preset.IsSelected).HasColumnName("is_selected");
             entity.Property(preset => preset.Version).HasColumnName("version");
             entity.Property(preset => preset.CreatedAt).HasColumnName("created_at");
             entity.Property(preset => preset.UpdatedAt).HasColumnName("updated_at");
@@ -527,6 +528,10 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.HasIndex(preset => new { preset.AccountId, preset.PresetIndex })
                 .IsUnique()
                 .HasDatabaseName("UX_skill_bind_preset_account_preset");
+            entity.HasIndex(preset => preset.AccountId)
+                .IsUnique()
+                .HasFilter("[is_deleted] = 0 AND [is_selected] = 1")
+                .HasDatabaseName("UX_skill_bind_preset_account_selected");
         });
 
         modelBuilder.Entity<AccountLearnedSkillEntity>(entity =>

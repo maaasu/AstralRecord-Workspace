@@ -409,6 +409,7 @@ CREATE TABLE [dbo].[skill_bind_preset] (
     [left_click_skill_id]      NVARCHAR(128)     NULL      CONSTRAINT [DF_skill_bind_preset_left_click_skill_id] DEFAULT (N'__weapon_normal_attack__'),
     [passive_skill_slots_json] NVARCHAR(MAX)     NOT NULL  CONSTRAINT [DF_skill_bind_preset_passive_slots_json] DEFAULT (N'[]'),
     [is_unlocked]             BIT               NOT NULL  CONSTRAINT [DF_skill_bind_preset_is_unlocked] DEFAULT (0),
+    [is_selected]             BIT               NOT NULL  CONSTRAINT [DF_skill_bind_preset_is_selected] DEFAULT (0),
     [version]                 INT               NOT NULL  CONSTRAINT [DF_skill_bind_preset_version]     DEFAULT (1),
     [created_at]              DATETIME2(3)      NOT NULL,
     [updated_at]              DATETIME2(3)      NOT NULL,
@@ -431,6 +432,11 @@ GO
 CREATE UNIQUE NONCLUSTERED INDEX [UX_skill_bind_preset_account_preset]
     ON [dbo].[skill_bind_preset] ([account_id], [preset_index])
     WHERE [is_deleted] = 0;
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_skill_bind_preset_account_selected]
+    ON [dbo].[skill_bind_preset] ([account_id])
+    WHERE [is_deleted] = 0 AND [is_selected] = 1;
 GO
 
 CREATE NONCLUSTERED INDEX [IX_skill_bind_preset_account_id]

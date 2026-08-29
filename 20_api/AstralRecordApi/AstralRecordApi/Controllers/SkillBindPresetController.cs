@@ -33,4 +33,19 @@ public class SkillBindPresetController(ISkillBindPresetRepository repository) : 
 
         return Ok(updated);
     }
+
+    /// <summary>現在選択中のスキルバインドプリセットを保存します。</summary>
+    [HttpPut("{accountId:guid}/selected")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Select(
+        Guid accountId,
+        [FromBody] SkillBindPresetSelectionRequest request)
+    {
+        var selected = await repository.SelectAsync(accountId, request.PresetIndex, request);
+        return selected ? NoContent() : Problem(
+            statusCode: StatusCodes.Status400BadRequest,
+            title: "Validation failed",
+            detail: "Preset index or account is invalid.");
+    }
 }

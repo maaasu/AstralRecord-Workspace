@@ -26,6 +26,7 @@ public final class SkillBindPresetService {
     private final Map<UUID, Integer> selectedPresetIndexes = new ConcurrentHashMap<>();
     private final Map<UUID, List<SkillBindPreset>> presetsByAccount = new ConcurrentHashMap<>();
     private final Map<UUID, AccountSessionState> sessionStates = new ConcurrentHashMap<>();
+    private final Map<UUID, SelectionWriteState> selectionWrites = new ConcurrentHashMap<>();
 
     public SkillBindPresetService(@NotNull Plugin plugin, @NotNull SkillBindPresetRepository repository) {
         this.plugin = plugin;
@@ -71,11 +72,26 @@ public final class SkillBindPresetService {
         return fallbackPresets(accountId);
     }
 
+    /**
+     * ログイン時に取得したプリセットをキャッシュへ公開し、選択中番号を復元します。
+     *
+     * @param accountId アカウント ID
+     * @param presets APIから取得したプリセット一覧
+     */
     public void applyInitialPresets(
         @NotNull UUID accountId,
         @NotNull List<SkillBindPreset> presets
     ) {
-        presetsByAccount.put(accountId, normalizePresets(accountId, presets));
+        List<SkillBindPreset> normalized = normalizePresets(accountId, presets);
+        presetsByAccount.put(accountId, normalized);
+        selectedPresetIndexes.put(
+            accountId,
+            normalized.stream()
+                .filter(SkillBindPreset::isSelected)
+                .mapToInt(SkillBindPreset::getPresetIndex)
+                .findFirst()
+                .orElse(1)
+        );
     }
 
     private @NotNull List<SkillBindPreset> fallbackPresets(@NotNull UUID accountId) {
@@ -111,9 +127,46 @@ public final class SkillBindPresetService {
      *
      * @param accountId アカウント ID
      * @param presetIndex プリセット番号
+     * @apiNote メモリ上の選択状態は即時更新し、永続化は非同期で行います。
      */
     public void selectPreset(@NotNull UUID accountId, int presetIndex) {
-        selectedPresetIndexes.put(accountId, Math.max(1, Math.min(PRESET_COUNT, presetIndex)));
+        int normalizedPresetIndex = Math.max(1, Math.min(PRESET_COUNT, presetIndex));
+        selectedPresetIndexes.put(accountId, normalizedPresetIndex);
+        SelectionWriteState state = selectionWrites.computeIfAbsent(accountId, ignored -> new SelectionWriteState());
+        boolean startWrite;
+        synchronized (state) {
+            state.pendingPresetIndex = normalizedPresetIndex;
+            startWrite = !state.inProgress;
+            state.inProgress = true;
+        }
+        if (startWrite) {
+            persistNextSelection(accountId, state);
+        }
+    }
+
+    private void persistNextSelection(@NotNull UUID accountId, @NotNull SelectionWriteState state) {
+        int presetIndex;
+        synchronized (state) {
+            presetIndex = state.pendingPresetIndex;
+            state.pendingPresetIndex = -1;
+        }
+        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            try {
+                repository.select(accountId, presetIndex, accountId);
+            } catch (Exception exception) {
+                Logger.log(LogId.E_5804, exception, accountId + ":" + presetIndex);
+            }
+            boolean continueWrite;
+            synchronized (state) {
+                continueWrite = state.pendingPresetIndex > 0;
+                if (!continueWrite) {
+                    state.inProgress = false;
+                }
+            }
+            if (continueWrite) {
+                persistNextSelection(accountId, state);
+            }
+        });
     }
 
     /**
@@ -239,6 +292,11 @@ public final class SkillBindPresetService {
     private static final class AccountSessionState {
         private long generation;
         private SaveAttempt inProgress;
+    }
+
+    private static final class SelectionWriteState {
+        private int pendingPresetIndex = -1;
+        private boolean inProgress;
     }
 
     private record SaveAttempt(long generation) {

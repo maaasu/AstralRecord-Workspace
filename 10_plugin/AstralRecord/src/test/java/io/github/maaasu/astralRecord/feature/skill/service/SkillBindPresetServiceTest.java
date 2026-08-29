@@ -57,6 +57,87 @@ class SkillBindPresetServiceTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
+     * 章・見出し: # 13_1-モデル定義 > ## 5. バインドプリセット
+     * 検証契約: APIが返した選択中プリセットをログイン後のサービスキャッシュへ復元する。
+     */
+    @Test
+    void applyInitialPresetsRestoresSelectedPreset() {
+        Plugin plugin = mock(Plugin.class);
+        SkillBindPresetRepository repository = mock(SkillBindPresetRepository.class);
+        UUID accountId = UUID.randomUUID();
+        SkillBindPresetService service = new SkillBindPresetService(plugin, repository);
+
+        service.applyInitialPresets(accountId, selectedPresets(accountId, 4));
+
+        assertEquals(4, service.selectedPresetIndex(accountId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
+     * 検証契約: プリセット切替時の選択番号をバインド内容と独立して非同期保存する。
+     */
+    @Test
+    void selectPresetPersistsSelectionAsynchronously() {
+        Plugin plugin = mock(Plugin.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        SkillBindPresetRepository repository = mock(SkillBindPresetRepository.class);
+        List<Runnable> asyncTasks = new ArrayList<>();
+        UUID accountId = UUID.randomUUID();
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        doAnswer(invocation -> {
+            asyncTasks.add(invocation.getArgument(1));
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTaskAsynchronously(eq(plugin), org.mockito.ArgumentMatchers.any(Runnable.class));
+        when(repository.select(accountId, 4, accountId)).thenReturn(true);
+        SkillBindPresetService service = new SkillBindPresetService(plugin, repository);
+
+        service.selectPreset(accountId, 4);
+
+        assertEquals(4, service.selectedPresetIndex(accountId));
+        asyncTasks.getFirst().run();
+
+        verify(repository).select(accountId, 4, accountId);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
+     * 検証契約: 連続したプリセット切替要求を API へ発生順で保存する。
+     */
+    @Test
+    void selectPresetWritesRapidChangesInOrder() {
+        Plugin plugin = mock(Plugin.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        SkillBindPresetRepository repository = mock(SkillBindPresetRepository.class);
+        List<Runnable> asyncTasks = new ArrayList<>();
+        UUID accountId = UUID.randomUUID();
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        doAnswer(invocation -> {
+            asyncTasks.add(invocation.getArgument(1));
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTaskAsynchronously(eq(plugin), org.mockito.ArgumentMatchers.any(Runnable.class));
+        when(repository.select(any(), anyInt(), any())).thenReturn(true);
+        SkillBindPresetService service = new SkillBindPresetService(plugin, repository);
+
+        service.selectPreset(accountId, 4);
+        service.selectPreset(accountId, 5);
+
+        assertEquals(1, asyncTasks.size());
+        asyncTasks.getFirst().run();
+        assertEquals(2, asyncTasks.size());
+        asyncTasks.get(1).run();
+
+        verify(repository).select(accountId, 4, accountId);
+        verify(repository).select(accountId, 5, accountId);
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
      * 検証契約: session invalidate後の旧save callbackがcacheを再生成しない。
@@ -208,6 +289,18 @@ class SkillBindPresetServiceTest {
                 true,
                 true,
                 index
+            ));
+        }
+        return presets;
+    }
+
+    private List<SkillBindPreset> selectedPresets(UUID accountId, int selectedIndex) {
+        List<SkillBindPreset> presets = new ArrayList<>();
+        for (int index = 1; index <= 6; index++) {
+            presets.add(new SkillBindPreset(
+                UUID.randomUUID(), accountId, index,
+                List.of(), SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID, List.of(),
+                true, true, index, index == selectedIndex
             ));
         }
         return presets;

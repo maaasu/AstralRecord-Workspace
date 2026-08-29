@@ -107,6 +107,7 @@
 | GET `/api/skill/{skillId}` | スキル取得 | `00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.00-索引.md` |
 | GET `/api/skill-bind-presets?account_id={account_id}` | スキルバインドプリセット一覧取得 | `00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.02-バインドプリセット.md` |
 | PUT `/api/skill-bind-presets/{accountId}/{presetIndex}` | スキルバインドプリセット保存 | `00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.02-バインドプリセット.md` |
+| PUT `/api/skill-bind-presets/{accountId}/selected` | 選択中スキルバインドプリセット保存 | `00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.02-バインドプリセット.md` |
 | POST `/api/account-skills/{accountId}/{learnedSkillId}/forget` | 習得済みスキル個体の忘却 | `00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md` |
 | GET `/api/buff` | バフ一覧取得 | `00_docs/20_API設計書/feature/05-buff/3-エンドポイント仕様/05_3.00-索引.md` |
 | GET `/api/buff/{buffId}` | バフ取得 | `00_docs/20_API設計書/feature/05-buff/3-エンドポイント仕様/05_3.00-索引.md` |

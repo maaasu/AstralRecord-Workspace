@@ -9,6 +9,7 @@ public class SkillBindPresetResponse
     public string? LeftClickSkillId { get; init; }
     public IReadOnlyList<string?> PassiveSkillSlots { get; init; } = [];
     public bool IsUnlocked { get; init; }
+    public bool IsSelected { get; init; }
     public bool IsSaved { get; init; }
     public int Version { get; init; }
     public DateTime? CreatedAt { get; init; }
@@ -23,5 +24,11 @@ public class SkillBindPresetUpsertRequest
     public string? LeftClickSkillId { get; init; }
     public IReadOnlyList<string?> PassiveSkillSlots { get; init; } = [];
     public bool? IsUnlocked { get; init; }
+    public Guid UpdatedBy { get; init; }
+}
+
+public class SkillBindPresetSelectionRequest
+{
+    public int PresetIndex { get; init; }
     public Guid UpdatedBy { get; init; }
 }

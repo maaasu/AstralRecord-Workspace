@@ -96,6 +96,45 @@ class SkillBindPresetRepository {
         updatedBy,
     )
 
+    /**
+     * アカウントの選択中プリセット番号だけを API へ保存します。
+     *
+     * @param accountId アカウント ID
+     * @param presetIndex 保存するプリセット番号
+     * @param updatedBy 更新者 ID
+     * @return API 保存に成功した場合は true
+     */
+    fun select(accountId: UUID, presetIndex: Int, updatedBy: UUID): Boolean {
+        val path = "/api/skill-bind-presets/$accountId/selected"
+        val body = ApiRequestUtil.buildJsonBody {
+            addProperty("presetIndex", presetIndex)
+            addProperty("updatedBy", updatedBy.toString())
+        }
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .PUT(HttpRequest.BodyPublishers.ofString(body))
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                return when (response.statusCode()) {
+                    204 -> true
+                    else -> {
+                        val message = "HTTP ${response.statusCode()} for PUT $path"
+                        Logger.log(LogId.E_5804, message)
+                        false
+                    }
+                }
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Logger.error(LogId.E_5804, e, e.message ?: e.javaClass.simpleName)
+            return false
+        } catch (e: IOException) {
+            Logger.log(LogId.E_5804, e, accountId.toString())
+            return false
+        }
+    }
+
     private fun parsePreset(obj: JsonObject, fallbackAccountId: UUID): SkillBindPreset {
         val presetIdElement = obj.get("skillBindPresetId")
         val presetId = if (presetIdElement == null || presetIdElement.isJsonNull) null else UUID.fromString(presetIdElement.asString)
@@ -111,6 +150,7 @@ class SkillBindPresetRepository {
             obj.get("isUnlocked")?.asBoolean ?: false,
             obj.get("isSaved")?.asBoolean ?: false,
             obj.get("version")?.asInt ?: 0,
+            obj.get("isSelected")?.asBoolean ?: false,
         )
     }
 

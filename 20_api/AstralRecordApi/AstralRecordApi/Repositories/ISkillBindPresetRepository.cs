@@ -10,4 +10,9 @@ public interface ISkillBindPresetRepository
         Guid accountId,
         int presetIndex,
         SkillBindPresetUpsertRequest request);
+
+    Task<bool> SelectAsync(
+        Guid accountId,
+        int presetIndex,
+        SkillBindPresetSelectionRequest request);
 }

@@ -9,6 +9,7 @@ public class SkillBindPresetEntity
     public string? LeftClickSkillId { get; set; }
     public string PassiveSkillSlotsJson { get; set; } = "[]";
     public bool IsUnlocked { get; set; }
+    public bool IsSelected { get; set; }
     public int Version { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

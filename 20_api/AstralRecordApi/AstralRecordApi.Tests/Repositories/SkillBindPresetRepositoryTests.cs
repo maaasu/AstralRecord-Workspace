@@ -61,6 +61,40 @@ public class SkillBindPresetRepositoryTests
     }
 
     [Fact]
+    public async Task SelectAsync_PersistsSelectedPresetAcrossReloads()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var dbContext = new AstralRecordDbContext(options);
+        await CreateSchemaAsync(dbContext);
+        var accountId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        await dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"INSERT INTO account (uuid, is_deleted) VALUES ({accountId}, {false})");
+
+        var repository = new SkillBindPresetRepository(dbContext);
+
+        Assert.True(await repository.SelectAsync(accountId, 2, new SkillBindPresetSelectionRequest
+        {
+            PresetIndex = 2,
+            UpdatedBy = userId,
+        }));
+        Assert.True(await repository.SelectAsync(accountId, 2, new SkillBindPresetSelectionRequest
+        {
+            PresetIndex = 2,
+            UpdatedBy = userId,
+        }));
+
+        var reloaded = await new SkillBindPresetRepository(dbContext).GetByAccountIdAsync(accountId);
+
+        Assert.Equal(2, reloaded.Single(preset => preset.IsSelected).PresetIndex);
+        Assert.All(reloaded.Where(preset => preset.PresetIndex != 2), preset => Assert.False(preset.IsSelected));
+    }
+
+    [Fact]
     public async Task GetByAccountIdAsync_NormalizesLegacySkillIdsToTheOldestOwnedLearnedSkill()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
@@ -256,6 +290,7 @@ public class SkillBindPresetRepositoryTests
                 left_click_skill_id TEXT NULL,
                 passive_skill_slots_json TEXT NOT NULL,
                 is_unlocked INTEGER NOT NULL,
+                is_selected INTEGER NOT NULL,
                 version INTEGER NOT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,

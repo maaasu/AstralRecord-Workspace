@@ -24,6 +24,7 @@ public final class SkillBindPreset {
     private final boolean unlocked;
     private final boolean saved;
     private final int version;
+    private final boolean selected;
 
     public SkillBindPreset(
         @Nullable UUID presetId,
@@ -36,6 +37,36 @@ public final class SkillBindPreset {
         boolean saved,
         int version
     ) {
+        this(presetId, accountId, presetIndex, activeSkillSlots, leftClickSkillId, passiveSkillSlots,
+            unlocked, saved, version, false);
+    }
+
+    /**
+     * APIから取得したスキルバインドプリセットを生成します。
+     *
+     * @param presetId プリセット行 ID。未保存の場合は {@code null}
+     * @param accountId アカウント ID
+     * @param presetIndex プリセット番号
+     * @param activeSkillSlots アクションリングのバインド
+     * @param leftClickSkillId 左クリックバインド
+     * @param passiveSkillSlots パッシブのバインド
+     * @param unlocked 解放済みかどうか
+     * @param saved APIへ保存済みかどうか
+     * @param version 保存バージョン
+     * @param selected 現在選択中かどうか
+     */
+    public SkillBindPreset(
+        @Nullable UUID presetId,
+        @NotNull UUID accountId,
+        int presetIndex,
+        @NotNull List<String> activeSkillSlots,
+        @Nullable String leftClickSkillId,
+        @NotNull List<String> passiveSkillSlots,
+        boolean unlocked,
+        boolean saved,
+        int version,
+        boolean selected
+    ) {
         this.presetId = presetId;
         this.accountId = accountId;
         this.presetIndex = presetIndex;
@@ -45,6 +76,7 @@ public final class SkillBindPreset {
         this.unlocked = unlocked;
         this.saved = saved;
         this.version = version;
+        this.selected = selected;
     }
 
     /**
@@ -104,6 +136,15 @@ public final class SkillBindPreset {
 
     public int getVersion() {
         return version;
+    }
+
+    /**
+     * 現在選択中のプリセットかどうかを返します。
+     *
+     * @return 選択中の場合は {@code true}
+     */
+    public boolean isSelected() {
+        return selected;
     }
 
     public static @NotNull List<String> normalizeActionRingSlots(@NotNull List<String> slots) {
