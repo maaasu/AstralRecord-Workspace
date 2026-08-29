@@ -17,6 +17,7 @@ icon: PARROT_SPAWN_EGG
 nameVisible: true
 lore:
   - "&7灼光を翼に宿し、太陽の儀式を操る巨大な鳥。"
+  - "&7陽炎とともに祭壇の周囲を渡り歩く。"
   - "&7残りHP30%で祭壇へ帰還し、天陽崩落を解き放つ。"
 tags:
   - midgard

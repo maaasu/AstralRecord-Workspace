@@ -46,6 +46,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -137,6 +138,119 @@ class BossMechanicServiceTest {
         );
         assertFalse(harness.boss().scriptedAction());
         harness.displays().forEach(display -> verify(display).remove());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
+     * 章・見出し: # 26_3-サービス > ## 18. ボス固有ギミック
+     * 検証契約: サンバードは専用行動中の転移を延期し、解除後は12秒周期でスポーン地点から水平7mの6地点を巡回する。
+     */
+    @Test
+    void sunbirdPeriodicTeleportPausesDuringScriptedActionAndCyclesAroundSpawn() throws Exception {
+        SunbirdHarness harness = sunbirdHarness(10000.0D);
+        harness.boss().scriptedAction(true);
+
+        for (int index = 0; index < 49; index++) {
+            invokeTick(harness.service());
+        }
+        verify(harness.mobService(), never()).resetPosition(eq(harness.boss()), any(Location.class));
+
+        harness.boss().scriptedAction(false);
+        for (int index = 0; index < 4; index++) {
+            invokeTick(harness.service());
+        }
+        for (int index = 0; index < 48; index++) {
+            invokeTick(harness.service());
+        }
+
+        ArgumentCaptor<Location> destinationCaptor = ArgumentCaptor.forClass(Location.class);
+        verify(harness.mobService(), times(2)).resetPosition(eq(harness.boss()), destinationCaptor.capture());
+        List<Location> destinations = destinationCaptor.getAllValues();
+        destinations.forEach(destination -> assertEquals(
+            7.0D,
+            horizontalDistance(destination, harness.spawnLocation()),
+            0.0001D
+        ));
+        assertFalse(destinations.get(0).equals(destinations.get(1)));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
+     * 章・見出し: # 26_3-サービス > ## 18. ボス固有ギミック
+     * 検証契約: 周囲32ブロックに管理対象Playerがいない間は転移を延期し、復帰後に1回だけ実行する。
+     */
+    @Test
+    void sunbirdPeriodicTeleportWaitsForManagedPlayerToReturn() throws Exception {
+        SunbirdHarness harness = sunbirdHarness(10000.0D);
+        when(harness.world().getPlayers()).thenReturn(List.of());
+
+        for (int index = 0; index < 49; index++) {
+            invokeTick(harness.service());
+        }
+        verify(harness.mobService(), never()).resetPosition(eq(harness.boss()), any(Location.class));
+
+        when(harness.world().getPlayers()).thenReturn(List.of(harness.player()));
+        for (int index = 0; index < 4; index++) {
+            invokeTick(harness.service());
+        }
+
+        verify(harness.mobService(), times(1)).resetPosition(eq(harness.boss()), any(Location.class));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
+     * 章・見出し: # 26_3-サービス > ## 18. ボス固有ギミック
+     * 検証契約: HP30%必殺技と転移期限が重なる場合は必殺技を優先し、予兆完了まで転移を延期する。
+     */
+    @Test
+    void sunbirdUltimateWinsTeleportDueTickAndTeleportWaitsForTelegraph() throws Exception {
+        SunbirdHarness harness = sunbirdHarness(10000.0D);
+        harness.boss().scriptedAction(true);
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            for (BlockDisplay display : harness.displays()) {
+                UUID displayId = display.getUniqueId();
+                bukkit.when(() -> Bukkit.getEntity(displayId)).thenReturn(display);
+            }
+            for (int index = 0; index < 48; index++) {
+                invokeTick(harness.service());
+            }
+
+            harness.boss().scriptedAction(false);
+            harness.boss().currentHealth(3000.0D);
+            invokeTick(harness.service());
+            verify(harness.mobService(), times(1)).resetPosition(harness.boss(), harness.spawnLocation());
+            assertTrue(harness.boss().scriptedAction());
+
+            for (int index = 0; index < 11; index++) {
+                invokeTick(harness.service());
+            }
+            verify(harness.mobService(), times(1)).resetPosition(eq(harness.boss()), any(Location.class));
+
+            invokeTick(harness.service());
+        }
+
+        verify(harness.mobService(), times(2)).resetPosition(eq(harness.boss()), any(Location.class));
+        assertFalse(harness.boss().scriptedAction());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
+     * 章・見出し: # 26_3-サービス > ## 18. ボス固有ギミック
+     * 検証契約: 転移候補はスポーン地点の向きと高さを保ち、6回で同じ地点へ循環する。
+     */
+    @Test
+    void sunbirdTeleportDestinationsPreserveSpawnPoseAndCycleEverySixUses() {
+        Location spawn = new Location(null, 12.0D, 80.0D, -4.0D, 135.0F, -10.0F);
+
+        Location first = BossMechanicService.sunbirdTeleportDestination(spawn, 0);
+        Location seventh = BossMechanicService.sunbirdTeleportDestination(spawn, 6);
+
+        assertEquals(first, seventh);
+        assertEquals(80.0D, first.getY(), 0.0001D);
+        assertEquals(135.0F, first.getYaw(), 0.0001F);
+        assertEquals(-10.0F, first.getPitch(), 0.0001F);
+        assertEquals(7.0D, horizontalDistance(first, spawn), 0.0001D);
     }
 
     /**
@@ -257,6 +371,10 @@ class BossMechanicServiceTest {
     }
 
     private static SunbirdHarness sunbirdHarness() {
+        return sunbirdHarness(3000.0D);
+    }
+
+    private static SunbirdHarness sunbirdHarness(double currentHealth) {
         JavaPlugin plugin = mock(JavaPlugin.class);
         MobService mobService = mock(MobService.class);
         MobEntityController entityController = mock(MobEntityController.class);
@@ -295,7 +413,7 @@ class BossMechanicServiceTest {
         );
         MobInstance boss = new MobInstance(bossId, template, spawnLocation);
         boss.maxHealth(10000.0D);
-        boss.currentHealth(3000.0D);
+        boss.currentHealth(currentHealth);
 
         when(mobService.getInstances()).thenReturn(List.of(boss));
         when(mobService.getInstance(bossId)).thenReturn(boss);
@@ -342,9 +460,16 @@ class BossMechanicServiceTest {
             boss,
             world,
             spawnLocation,
+            player,
             playerEntity,
             List.copyOf(displays)
         );
+    }
+
+    private static double horizontalDistance(Location left, Location right) {
+        double x = left.getX() - right.getX();
+        double z = left.getZ() - right.getZ();
+        return Math.sqrt(x * x + z * z);
     }
 
     private static void invokeTick(BossMechanicService service) throws Exception {
@@ -360,6 +485,7 @@ class BossMechanicServiceTest {
         MobInstance boss,
         World world,
         Location spawnLocation,
+        Player player,
         AstEntity playerEntity,
         List<BlockDisplay> displays
     ) {

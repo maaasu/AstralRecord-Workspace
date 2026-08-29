@@ -58,6 +58,9 @@ public final class BossMechanicService {
     private static final double SUNBIRD_NOVA_RADIUS = 12.0D;
     private static final long SUNBIRD_NOVA_TELEGRAPH_TICKS = 60L;
     private static final int SUNBIRD_RITUAL_DISPLAY_COUNT = 8;
+    private static final long SUNBIRD_TELEPORT_INTERVAL_TICKS = 240L;
+    private static final double SUNBIRD_TELEPORT_RADIUS = 7.0D;
+    private static final int SUNBIRD_TELEPORT_POINT_COUNT = 6;
 
     private final JavaPlugin plugin;
     private final MobService mobService;
@@ -128,13 +131,18 @@ public final class BossMechanicService {
             activeBosses.add(boss.instanceId());
             BossRuntime runtime = runtimes.computeIfAbsent(
                 boss.instanceId(),
-                ignored -> new BossRuntime(1, clockTicks + 40L)
+                ignored -> new BossRuntime(
+                    1,
+                    clockTicks + 40L,
+                    clockTicks + SUNBIRD_TELEPORT_INTERVAL_TICKS
+                )
             );
             int observedPhase = profile.phaseForHealth(boss.currentHealth(), boss.maxHealth());
             if (observedPhase > runtime.phase) {
                 runtime.phase = observedPhase;
                 handlePhaseTransition(profile, boss, entity, runtime);
             }
+            processSunbirdTeleport(boss, entity, runtime);
             if (boss.scriptedAction() || clockTicks < runtime.nextActionTick) {
                 continue;
             }
@@ -158,6 +166,74 @@ public final class BossMechanicService {
             removePendingForBoss(entry.getKey());
             iterator.remove();
         }
+    }
+
+    /**
+     * サンバードを一定間隔でスポーン地点周辺へ転移させます。
+     *
+     * <p>必殺技などの専用行動中と、周囲に管理対象プレイヤーがいない間は実行せず、
+     * 条件が整うまで短い間隔で再判定します。</p>
+     *
+     * @param boss 転移対象のボス
+     * @param entity 転移前のBukkit Entity
+     * @param runtime ボス固有の実行状態
+     */
+    private void processSunbirdTeleport(
+        @NotNull MobInstance boss,
+        @NotNull Entity entity,
+        @NotNull BossRuntime runtime
+    ) {
+        if (!BossMechanicProfile.MIDGARD_SAVANNA_SUNBIRD.equals(boss.template().id())
+            || clockTicks < runtime.nextTeleportTick) {
+            return;
+        }
+        if (boss.scriptedAction() || nearbyManagedPlayers(entity.getLocation(), TARGET_RANGE).isEmpty()) {
+            runtime.nextTeleportTick = clockTicks + 20L;
+            return;
+        }
+
+        Location origin = entity.getLocation();
+        Location destination = sunbirdTeleportDestination(boss.spawnLocation(), runtime.teleportIndex);
+        runtime.teleportIndex++;
+        renderSunbirdTeleport(origin);
+        mobService.resetPosition(boss, destination);
+        renderSunbirdTeleport(destination);
+        runtime.nextTeleportTick = clockTicks + SUNBIRD_TELEPORT_INTERVAL_TICKS;
+        runtime.nextActionTick = Math.max(runtime.nextActionTick, clockTicks + 20L);
+    }
+
+    /**
+     * スポーン地点を中心とする6地点から、転移回数に対応する移動先を返します。
+     *
+     * @param spawnLocation スポーン地点
+     * @param teleportIndex 0始まりの転移回数
+     * @return スポーン地点から水平7ブロック離れた転移先
+     */
+    static @NotNull Location sunbirdTeleportDestination(
+        @NotNull Location spawnLocation,
+        int teleportIndex
+    ) {
+        double angle = Math.PI * 2.0D * Math.floorMod(teleportIndex, SUNBIRD_TELEPORT_POINT_COUNT)
+            / SUNBIRD_TELEPORT_POINT_COUNT;
+        return spawnLocation.clone().add(
+            Math.cos(angle) * SUNBIRD_TELEPORT_RADIUS,
+            0.0D,
+            Math.sin(angle) * SUNBIRD_TELEPORT_RADIUS
+        );
+    }
+
+    /**
+     * 転移前後の地点へ太陽色の円と閃光を表示します。
+     *
+     * @param center 演出中心
+     */
+    private void renderSunbirdTeleport(@NotNull Location center) {
+        renderCircle(center, 1.8D, SharedParticleDefinitions.SUNBIRD_SOLAR_FLAME, 20);
+        renderRange(
+            center,
+            List.of(center.clone().add(0.0D, 1.0D, 0.0D)),
+            SharedParticleDefinitions.SUNBIRD_SOLAR_FLASH
+        );
     }
 
     private void processPendingMechanics() {
@@ -1045,13 +1121,16 @@ public final class BossMechanicService {
         private int phase;
         private int actionIndex;
         private long nextActionTick;
+        private long nextTeleportTick;
+        private int teleportIndex;
         private boolean summonsTriggered;
         private boolean ultimateTriggered;
         private final Set<UUID> summonedMobIds = new LinkedHashSet<>();
 
-        private BossRuntime(int phase, long nextActionTick) {
+        private BossRuntime(int phase, long nextActionTick, long nextTeleportTick) {
             this.phase = phase;
             this.nextActionTick = nextActionTick;
+            this.nextTeleportTick = nextTeleportTick;
         }
     }
 
