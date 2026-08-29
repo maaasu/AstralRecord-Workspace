@@ -1,31 +1,35 @@
 # design:
-#   motif: "中つ国 / 遺跡アクセサリ / タリスマン"
-#   progression: 5
+#   motif: "魔術 / 焦熱の残り火"
+#   progression: 8
 schemaVersion: 1
-id: middle_earth_talisman
+id: cinder_grimoire
 category: equipment
-name: "&b凍気のタリスマン"
-icon: PRISMARINE_CRYSTALS
+name: "&cシンダーの魔導書"
+icon: FLOWER_BANNER_PATTERN
 rarity: RARE
 maxStack: 1
-saleValue: 320
+saleValue: 800
 lore:
-  - "&7冷気を束ね、放つ者の手を助ける護符。"
+  - "&7灼氷の残り火を綴じ込めた魔導書。"
+  - "&7魔法攻撃と火属性ダメージを高める補助装備。"
 unTradeable: false
 unSellable: false
 equipment:
-  slot: ACCESSORY
-  tag: TALISMAN
-  requiredLevel: 5
-  durability:
-    max: 160
+  slot: SUBWEAPON
+  requiredLevel: 8
   stats:
     - status: MAGIC_ATTACK
       type: FLAT
-      value: 5~8
+      value: 4~6
+    - status: FIRE_DAMAGE_INCREASE
+      type: FLAT
+      value: 2~3
     - status: ICE_DAMAGE_INCREASE
       type: FLAT
-      value: 2~4
+      value: 2~3
+  durability:
+    max: 160
+    consume: 1
   enhance:
     maxLevel: 10
     levels:

@@ -1,0 +1,70 @@
+# design:
+#   motif: "動物 / 牙と甲"
+#   progression: 8
+schemaVersion: 1
+id: fang_shield
+category: equipment
+name: "&eファングの盾"
+icon: SHIELD
+rarity: RARE
+maxStack: 1
+saleValue: 760
+lore:
+  - "&7ラクダ守りの甲片を芯に、狼の牙を飾った盾。"
+  - "&7最大シールドと防御力を高める補助装備。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: SUBWEAPON
+  requiredLevel: 8
+  stats:
+    - status: MAX_SHIELD
+      type: FLAT
+      value: 15
+    - status: DEFENSE
+      type: FLAT
+      value: 4~6
+    - status: ATTACK_SPEED
+      type: FLAT
+      value: 2~3
+  durability:
+    max: 180
+    consume: 1
+  enhance:
+    maxLevel: 10
+    levels:
+      - level: 1
+        statIncrease: [{ status: MAX_SHIELD, type: FLAT, value: 2 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 2
+        statIncrease: [{ status: MAX_SHIELD, type: FLAT, value: 2 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 3
+        statIncrease: [{ status: MAX_SHIELD, type: FLAT, value: 2 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 4
+        statIncrease: [{ status: MAX_SHIELD, type: FLAT, value: 2 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 5
+        statIncrease: [{ status: MAX_SHIELD, type: FLAT, value: 2 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 6
+        statIncrease: [{ status: MAX_SHIELD, type: FLAT, value: 2 }]
+        successRate: 0.75
+      - level: 7
+        statIncrease: [{ status: MAX_SHIELD, type: FLAT, value: 2 }]
+        successRate: 0.75
+      - level: 8
+        statIncrease: [{ status: MAX_SHIELD, type: FLAT, value: 2 }]
+        successRate: 0.75
+      - level: 9
+        statIncrease: [{ status: MAX_SHIELD, type: FLAT, value: 2 }]
+        successRate: 0.75
+      - level: 10
+        statIncrease: [{ status: MAX_SHIELD, type: FLAT, value: 2 }]
+        successRate: 0.75

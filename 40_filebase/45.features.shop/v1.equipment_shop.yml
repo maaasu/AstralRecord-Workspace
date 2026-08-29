@@ -324,10 +324,10 @@ items:
       ref: item:middle_earth_hammer
     category: equipment
     amount: 1
-    page: 2
-    row: 1
-    column: 2
-    priceGold: 0
+    page: 1
+    row: 3
+    column: 1
+    priceGold: 150
     requiredItems:
       - itemId:
           ref: item:middle_earth_ruins_stone_seal
@@ -342,10 +342,10 @@ items:
       ref: item:middle_earth_longbow
     category: equipment
     amount: 1
-    page: 2
-    row: 1
-    column: 4
-    priceGold: 0
+    page: 1
+    row: 3
+    column: 3
+    priceGold: 150
     requiredItems:
       - itemId:
           ref: item:middle_earth_ruins_greenfield_crest
@@ -360,10 +360,10 @@ items:
       ref: item:middle_earth_wand
     category: equipment
     amount: 1
-    page: 2
-    row: 1
-    column: 6
-    priceGold: 0
+    page: 1
+    row: 3
+    column: 5
+    priceGold: 150
     requiredItems:
       - itemId:
           ref: item:middle_earth_ruins_frozen_core
@@ -373,57 +373,69 @@ items:
           ref: item:middle_earth_ruins_greenfield_crest
         category: material
         amount: 1
-  - id: middle_earth_relic
+  - id: fang_shield
     itemId:
-      ref: item:middle_earth_relic
+      ref: item:fang_shield
     category: equipment
     amount: 1
-    page: 2
-    row: 3
-    column: 2
+    page: 1
+    row: 1
+    column: 7
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:middle_earth_ruins_stone_seal
+          ref: item:savanna_camel_guard_scute
         category: material
         amount: 1
       - itemId:
-          ref: item:middle_earth_ruins_greenfield_crest
+          ref: item:savanna_hide_scrap
         category: material
-        amount: 1
-  - id: middle_earth_talisman
+        amount: 12
+      - itemId:
+          ref: item:forest_wolf_fang
+        category: material
+        amount: 6
+  - id: venom_quiver
     itemId:
-      ref: item:middle_earth_talisman
+      ref: item:venom_quiver
     category: equipment
     amount: 1
-    page: 2
-    row: 3
-    column: 4
+    page: 1
+    row: 2
+    column: 7
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:middle_earth_ruins_frozen_core
+          ref: item:forest_spider_venom_sack
         category: material
-        amount: 1
+        amount: 4
       - itemId:
-          ref: item:middle_earth_ruins_stone_seal
+          ref: item:windcutter_feather
         category: material
-        amount: 1
-  - id: middle_earth_amulet
+        amount: 12
+      - itemId:
+          ref: item:forest_spider_poisoned_eye
+        category: material
+        amount: 2
+  - id: cinder_grimoire
     itemId:
-      ref: item:middle_earth_amulet
+      ref: item:cinder_grimoire
     category: equipment
     amount: 1
-    page: 2
+    page: 1
     row: 3
-    column: 6
+    column: 7
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:middle_earth_ruins_greenfield_crest
+          ref: item:savanna_witch_cinder
         category: material
-        amount: 1
+        amount: 5
       - itemId:
-          ref: item:middle_earth_ruins_frozen_core
+          ref: item:forest_spider_poisoned_eye
         category: material
-        amount: 1
+        amount: 3
+      - itemId:
+          ref: item:savanna_hide_scrap
+        category: material
+        amount: 8

@@ -4,7 +4,7 @@
 schemaVersion: 1
 id: middle_earth_amulet
 category: equipment
-name: "&b緑野のアミュレット"
+name: "&bミドルアースのアミュレット"
 icon: EMERALD
 rarity: RARE
 maxStack: 1
@@ -29,3 +29,41 @@ equipment:
     - status: EVASION
       type: FLAT
       value: 3~5
+  enhance:
+    maxLevel: 10
+    levels:
+      - level: 1
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 2
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 3
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 4
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 5
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 6
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75
+      - level: 7
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75
+      - level: 8
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75
+      - level: 9
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75
+      - level: 10
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75

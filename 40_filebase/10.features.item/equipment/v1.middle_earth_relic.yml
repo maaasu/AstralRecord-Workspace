@@ -4,7 +4,7 @@
 schemaVersion: 1
 id: middle_earth_relic
 category: equipment
-name: "&b遺跡のレリック"
+name: "&bアース遺跡のレリック"
 icon: HEART_OF_THE_SEA
 rarity: RARE
 maxStack: 1
@@ -26,3 +26,41 @@ equipment:
     - status: DEFENSE
       type: FLAT
       value: 4~6
+  enhance:
+    maxLevel: 10
+    levels:
+      - level: 1
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 2
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 3
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 4
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 5
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 6
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 0.75
+      - level: 7
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 0.75
+      - level: 8
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 0.75
+      - level: 9
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 0.75
+      - level: 10
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 0.75
