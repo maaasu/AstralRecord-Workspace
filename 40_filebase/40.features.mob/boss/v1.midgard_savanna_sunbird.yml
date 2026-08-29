@@ -61,9 +61,9 @@ challenge:
   fieldWorldId: midgard_boss_savanna_field
   entryLocation:
     worldId: midgard_greenfields
-    x: -410.5
-    y: 17.0
-    z: -366.5
+    x: -390.5
+    y: 8.0
+    z: -746.5
     yaw: 0.0
     pitch: 0.0
   entryRadius: 2
@@ -74,7 +74,7 @@ challenge:
     yaw: 0.0
     pitch: 0.0
   bossSpawnLocation:
-    x: -11.5
+    x: -10.5
     y: 121.0
     z: 7.5
     yaw: 180.0
