@@ -22,6 +22,7 @@ public enum PlayerSettingKey {
     AUTO_SAVE_MESSAGE("AUTO_SAVE_MESSAGE", "オートセーブメッセージ", false),
     BUFF_SIDEBAR_DISPLAY("BUFF_SIDEBAR_DISPLAY", "バフ情報のサイドバー表示", false),
     ARMOR_DISPLAY("ARMOR_DISPLAY", "防具表示", true),
+    OFF_HAND_DISPLAY("OFF_HAND_DISPLAY", "オフハンド表示", true),
     ACTION_RING_HOLD_SELECT("ACTION_RING_HOLD_SELECT", "アクションリング長押し選択", false),
     ADVENTURE_RECORD_SUPER_MODE("ADVENTURE_RECORD_SUPER_MODE", "冒険記録スーパーモード", false);
 

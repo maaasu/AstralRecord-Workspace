@@ -132,6 +132,44 @@ class PlayerSettingServiceDropLogTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
      * 章・見出し: # 11_3-サービス > ## 4. 型別参照
+     * 検証契約: OFF_HAND_DISPLAYをAPIなしでcache済みplayer選択値から返す。
+     */
+    @Test
+    void offHandDisplayUsesCachedPlayerChoice() {
+        UUID userId = UUID.randomUUID();
+        PlayerSettingCache cache = new PlayerSettingCache();
+        cache.put(new PlayerSettingSnapshot(userId, Map.of(
+            PlayerSettingKey.OFF_HAND_DISPLAY,
+            new PlayerSettingEntry(null, PlayerSettingKey.OFF_HAND_DISPLAY, false, null)
+        )));
+        PlayerSettingService service = new PlayerSettingService(
+            new PlayerSettingRepository(),
+            new PlayerSettingDefaults(),
+            cache
+        );
+
+        assertFalse(service.isOffHandDisplayEnabled(userId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
+     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
+     * 検証契約: cache miss時のOFF_HAND_DISPLAYをAPIなしで既定trueにする。
+     */
+    @Test
+    void offHandDisplayDefaultsToEnabledWithoutCachedSnapshot() {
+        PlayerSettingService service = new PlayerSettingService(
+            new PlayerSettingRepository(),
+            new PlayerSettingDefaults(),
+            new PlayerSettingCache()
+        );
+
+        assertTrue(service.isOffHandDisplayEnabled(UUID.randomUUID()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
+     * 章・見出し: # 11_3-サービス > ## 4. 型別参照
      * 検証契約: ACTION_RING_HOLD_SELECTをAPIなしでcache済みplayer選択値から返す。
      */
     @Test

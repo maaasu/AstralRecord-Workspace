@@ -55,7 +55,7 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
      * @param gui プレイヤー設定 GUI
      * @param playerSettingService プレイヤー設定サービス
      * @param inventoryService hotbar shortcut 用 inventory サービス
-     * @param itemStackPacketAdapter 防具表示を再同期するパケットアダプタ
+     * @param itemStackPacketAdapter 装備表示を再同期するパケットアダプタ
      */
     public PlayerSettingGuiEventHandler(
         @NotNull PlayerSettingGui gui,
@@ -245,11 +245,12 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
                         persisted.key().formatValue(persisted.value())
                     ));
                 }
-                boolean armorSettingSynchronized = results.stream().anyMatch(persisted ->
-                    persisted.key() == PlayerSettingKey.ARMOR_DISPLAY
+                boolean equipmentSettingSynchronized = results.stream().anyMatch(persisted ->
+                    (persisted.key() == PlayerSettingKey.ARMOR_DISPLAY
+                        || persisted.key() == PlayerSettingKey.OFF_HAND_DISPLAY)
                         && !persisted.result().staleSession()
                 );
-                if (armorSettingSynchronized) {
+                if (equipmentSettingSynchronized) {
                     itemStackPacketAdapter.refreshEquipmentView(player);
                 }
                 boolean actionRingHoldSelectSynchronized = results.stream().anyMatch(persisted ->

@@ -100,7 +100,8 @@ public final class PlayerSettingCommand extends AstCommand {
                 if (result.staleSession()) {
                     return;
                 }
-                if (key == PlayerSettingKey.ARMOR_DISPLAY) {
+                if (key == PlayerSettingKey.ARMOR_DISPLAY
+                    || key == PlayerSettingKey.OFF_HAND_DISPLAY) {
                     plugin.getItemStackPacketAdapter().refreshEquipmentView(player.getBukkit());
                 }
                 if (key == PlayerSettingKey.ACTION_RING_HOLD_SELECT) {
