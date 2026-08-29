@@ -248,7 +248,7 @@ internal static class CodeTemplates
         builder.AppendLine("     * @return 単一値または範囲文字列");
         builder.AppendLine("     */");
         builder.AppendLine("    fun formatRange(minValue: Double, maxValue: Double): String =");
-        builder.AppendLine("        if (minValue == maxValue) formatValue(minValue) else \"${formatValue(minValue)} ～ ${formatValue(maxValue)}\"");
+        builder.AppendLine("        if (minValue == maxValue) formatValue(minValue) else \"${formatValue(minValue)}～${formatValue(maxValue)}\"");
         builder.AppendLine();
         builder.AppendLine("    /**");
         builder.AppendLine("     * 同値なら単一補正、それ以外なら符号付き範囲を表示します。");
@@ -259,7 +259,7 @@ internal static class CodeTemplates
         builder.AppendLine("     */");
         builder.AppendLine("    fun formatSignedRange(minValue: Double, maxValue: Double): String =");
         builder.AppendLine("        if (minValue == maxValue) formatSignedValue(minValue)");
-        builder.AppendLine("        else \"${formatSignedValue(minValue)} ～ ${formatSignedValue(maxValue)}\"");
+        builder.AppendLine("        else \"${formatSignedValue(minValue)}～${formatSignedValue(maxValue)}\"");
         builder.AppendLine();
         builder.AppendLine("    /**");
         builder.AppendLine("     * Plugin UIで使う共通表示色を返します。");
