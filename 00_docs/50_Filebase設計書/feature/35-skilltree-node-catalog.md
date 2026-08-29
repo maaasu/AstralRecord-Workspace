@@ -32,6 +32,7 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `status-attack-flat-1` | `ATTACK` / `FLAT` / `1` | `&d暁刃の星脈` | `IRON_SWORD` | `status`, `offense` |
 | `status-defense-flat-1` | `DEFENSE` / `FLAT` / `1` | `&d玄岩の星脈` | `OBSIDIAN` | `status`, `defense`, `durability`, `stone` |
 | `status-magic-defense-flat-1` | `MAGIC_DEFENSE` / `FLAT` / `1` | `&d星衣の星脈` | `ENCHANTED_GOLDEN_APPLE` | `status`, `defense`, `astral` |
+| `status-magic-defense-energy-regen-flat-1` | `MAGIC_DEFENSE` / `FLAT` / `1` + `ENERGY_REGEN` / `FLAT` / `1` | `&d星衣の星脈` | `ENCHANTED_GOLDEN_APPLE` | `status`, `defense`, `resource`, `energy`, `astral` |
 | `status-max-health-flat-10` | `MAX_HEALTH` / `FLAT` / `10` | `&d灯火の星脈` | `HEART_OF_THE_SEA` | `status`, `resource`, `health`, `starlight` |
 | `status-max-mana-flat-10` | `MAX_MANA` / `FLAT` / `10` | `&d蒼泉の星脈` | `AMETHYST_SHARD` | `status`, `resource`, `mana`, `azure` |
 | `status-max-energy-flat-5` | `MAX_ENERGY` / `FLAT` / `5` | `&d蒼穹の星脈` | `ENDER_PEARL` | `status`, `resource`, `energy` |

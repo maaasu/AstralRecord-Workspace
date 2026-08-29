@@ -17,6 +17,12 @@
       "status": "MAGIC_DEFENSE",
       "modifierType": "FLAT",
       "value": 1
+    },
+    {
+      "type": "status",
+      "status": "ENERGY_REGEN",
+      "modifierType": "FLAT",
+      "value": 1
     }
   ],
   "unlockCondition": {
