@@ -41,6 +41,7 @@ final class SkillTreeVisualizer {
     private static final float EDGE_THICKNESS = 0.045F;
     private static final double EDGE_Y_OFFSET = 0.02D;
     private static final double TEXT_Y_OFFSET = 1.2D;
+    private static final double NODE_TEXT_Y_OFFSET = 1.65D;
     private static final float NODE_ITEM_SCALE = 0.72F;
     private static final float NODE_TEXT_SCALE = 0.85F;
     private static final float NODE_TEXT_COMPACT_SCALE = 0.72F;
@@ -413,6 +414,10 @@ final class SkillTreeVisualizer {
         return location.clone().add(0.0D, TEXT_Y_OFFSET, 0.0D);
     }
 
+    private @NotNull Location nodeTextLocation(@NotNull Location location) {
+        return location.clone().add(0.0D, NODE_TEXT_Y_OFFSET, 0.0D);
+    }
+
     private @NotNull Location interpolate(@NotNull Location left, @NotNull Location right, double t) {
         Vector vector = left.toVector().multiply(1.0D - t).add(right.toVector().multiply(t));
         return vector.toLocation(left.getWorld()).add(0.0D, EDGE_Y_OFFSET, 0.0D);
@@ -438,6 +443,14 @@ final class SkillTreeVisualizer {
             float scale
     ) {
         return packetDisplay.text(textLocation(location), text, scale);
+    }
+
+    private @NotNull SkillTreePacketDisplay.PacketEntity packetNodeTextDisplay(
+            @NotNull Location location,
+            @NotNull Component text,
+            float scale
+    ) {
+        return packetDisplay.text(nodeTextLocation(location), text, scale);
     }
 
     private @NotNull SkillTreePacketDisplay.PacketEntity packetEdgeDisplay(
@@ -632,10 +645,10 @@ final class SkillTreeVisualizer {
             baseLocation.setZ(location.getZ());
             interaction.teleport(location);
             Location itemLocation = itemLocation(location, NODE_ITEM_Y_OFFSET);
-            Location textLocation = textLocation(location);
+            Location nodeTextLocation = nodeTextLocation(location);
             lockedItem.move(itemLocation);
             unlockedItem.move(itemLocation);
-            labels.values().forEach(label -> label.move(textLocation));
+            labels.values().forEach(label -> label.move(nodeTextLocation));
             showCurrentViewers();
         }
 
@@ -674,7 +687,7 @@ final class SkillTreeVisualizer {
         ) {
             labels.put(
                     new NodeLabelKey(presentationState, labelDetail),
-                    packetTextDisplay(location, service.nodeFieldLabel(node, presentationState, labelDetail), scale)
+                    packetNodeTextDisplay(location, service.nodeFieldLabel(node, presentationState, labelDetail), scale)
             );
         }
 
