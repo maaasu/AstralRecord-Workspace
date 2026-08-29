@@ -2,12 +2,14 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1155",
-  "name": "&d蒼穹の星脈",
+  "name": "&d蒼穹の還流",
   "icon": "ENDER_PEARL",
   "tags": [
     "status",
     "resource",
-    "energy"
+    "energy",
+    "mana",
+    "azure"
   ],
   "pointType": "CP",
   "pointCost": 1,
@@ -17,6 +19,12 @@
       "status": "MAX_ENERGY",
       "modifierType": "FLAT",
       "value": 5
+    },
+    {
+      "type": "status",
+      "status": "MP_REGEN",
+      "modifierType": "FLAT",
+      "value": 0.2
     }
   ],
   "unlockCondition": {

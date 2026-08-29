@@ -38,6 +38,10 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `status-max-energy-flat-5` | `MAX_ENERGY` / `FLAT` / `5` | `&d蒼穹の星脈` | `ENDER_PEARL` | `status`, `resource`, `energy` |
 | `status-movement-speed-flat-1` | `MOVEMENT_SPEED` / `FLAT` / `1` | `&d迅風の星脈` | `SUGAR` | `status`, `agility`, `wind` |
 | `status-mp-regen-flat-0.2` | `MP_REGEN` / `FLAT` / `0.2` | `&d還流の星脈` | `PRISMARINE_CRYSTALS` | `status`, `resource`, `mana`, `azure` |
+| `status-max-energy-mp-regen-flat` | `MAX_ENERGY` / `FLAT` / `5` + `MP_REGEN` / `FLAT` / `0.2` | `&d蒼穹の還流` | `ENDER_PEARL` | `status`, `resource`, `energy`, `mana`, `azure` |
+| `status-max-energy-energy-regen-flat` | `MAX_ENERGY` / `FLAT` / `5` + `ENERGY_REGEN` / `FLAT` / `1` | `&d蒼穹の循環` | `ENDER_PEARL` | `status`, `resource`, `energy`, `wind` |
+| `status-max-energy-dual-regen-flat` | `MAX_ENERGY` / `FLAT` / `5` + `MP_REGEN` / `FLAT` / `0.2` + `ENERGY_REGEN` / `FLAT` / `1` | `&d双環の星脈` | `END_CRYSTAL` | `status`, `resource`, `energy`, `mana`, `azure` |
+| `status-max-mana-mp-regen-flat` | `MAX_MANA` / `FLAT` / `10` + `MP_REGEN` / `FLAT` / `0.2` | `&d蒼泉の還流` | `AMETHYST_SHARD` | `status`, `resource`, `mana`, `azure` |
 | `skill-administrator-shield-recharge` | `skill` / `administrator_shield_recharge` | `&bシールドリチャージ` | `SHIELD` | `defense` |
 | `skill-swordsman-last-shield` | `skill` / `swordsman_last_shield` | `&bラストシールド` | `BEACON` | `defense` |
 | `skill-swordsman-flame-rush` | `skill` / `swordsman_flame_rush` | `&6フレイムラッシュ` | `CRIMSON_ROOTS` | `fire` |

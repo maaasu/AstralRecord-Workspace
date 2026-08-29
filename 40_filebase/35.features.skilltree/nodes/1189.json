@@ -2,7 +2,7 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1189",
-  "name": "&d蒼泉の星脈",
+  "name": "&d蒼泉の還流",
   "icon": "AMETHYST_SHARD",
   "tags": [
     "status",
@@ -18,6 +18,12 @@
       "status": "MAX_MANA",
       "modifierType": "FLAT",
       "value": 10
+    },
+    {
+      "type": "status",
+      "status": "MP_REGEN",
+      "modifierType": "FLAT",
+      "value": 0.2
     }
   ],
   "unlockCondition": {

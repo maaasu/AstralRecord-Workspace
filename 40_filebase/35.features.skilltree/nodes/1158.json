@@ -2,12 +2,13 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1158",
-  "name": "&d蒼穹の星脈",
+  "name": "&d蒼穹の循環",
   "icon": "ENDER_PEARL",
   "tags": [
     "status",
     "resource",
-    "energy"
+    "energy",
+    "wind"
   ],
   "pointType": "CP",
   "pointCost": 1,
@@ -17,6 +18,12 @@
       "status": "MAX_ENERGY",
       "modifierType": "FLAT",
       "value": 5
+    },
+    {
+      "type": "status",
+      "status": "ENERGY_REGEN",
+      "modifierType": "FLAT",
+      "value": 1
     }
   ],
   "unlockCondition": {
