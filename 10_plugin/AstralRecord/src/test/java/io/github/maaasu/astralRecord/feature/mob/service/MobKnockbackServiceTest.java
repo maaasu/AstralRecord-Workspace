@@ -80,6 +80,63 @@ class MobKnockbackServiceTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 24. メイジ フロストブリザードの実装契約 > ### 24.1 数値・移動・対象
+     * 検証契約: 任意方向velocityはノックバック耐性50で全成分が半減し、耐性100では適用されない。
+     */
+    @Test
+    void arbitraryVelocityIsLinearlyReducedByKnockbackResistance() {
+        MobService mobService = mock(MobService.class);
+        MobEntityController controller = mock(MobEntityController.class);
+        when(mobService.entityController()).thenReturn(controller);
+        MobKnockbackService service = new MobKnockbackService(mobService);
+
+        MobInstance zeroMob = mock(MobInstance.class);
+        AstEntity zeroTarget = mock(AstEntity.class);
+        when(zeroTarget.id()).thenReturn(UUID.randomUUID());
+        when(zeroTarget.statValue(StatusType.KNOCKBACK_RESISTANCE)).thenReturn(0.0D);
+        when(zeroTarget.isMob()).thenReturn(true);
+        when(zeroTarget.mob()).thenReturn(zeroMob);
+
+        service.applyVelocityWithResistance(zeroTarget, new Vector(0.16D, 0.04D, -0.08D));
+
+        ArgumentCaptor<Vector> zeroVelocity = ArgumentCaptor.forClass(Vector.class);
+        verify(controller).addVelocity(org.mockito.ArgumentMatchers.same(zeroMob), zeroVelocity.capture());
+        assertEquals(0.16D, zeroVelocity.getValue().getX(), 1.0E-9D);
+        assertEquals(0.04D, zeroVelocity.getValue().getY(), 1.0E-9D);
+        assertEquals(-0.08D, zeroVelocity.getValue().getZ(), 1.0E-9D);
+
+        MobInstance halfMob = mock(MobInstance.class);
+        AstEntity halfTarget = mock(AstEntity.class);
+        when(halfTarget.id()).thenReturn(UUID.randomUUID());
+        when(halfTarget.statValue(StatusType.KNOCKBACK_RESISTANCE)).thenReturn(50.0D);
+        when(halfTarget.isMob()).thenReturn(true);
+        when(halfTarget.mob()).thenReturn(halfMob);
+
+        service.applyVelocityWithResistance(halfTarget, new Vector(0.16D, 0.04D, -0.08D));
+
+        ArgumentCaptor<Vector> velocity = ArgumentCaptor.forClass(Vector.class);
+        verify(controller).addVelocity(org.mockito.ArgumentMatchers.same(halfMob), velocity.capture());
+        assertEquals(0.08D, velocity.getValue().getX(), 1.0E-9D);
+        assertEquals(0.02D, velocity.getValue().getY(), 1.0E-9D);
+        assertEquals(-0.04D, velocity.getValue().getZ(), 1.0E-9D);
+
+        MobInstance immuneMob = mock(MobInstance.class);
+        AstEntity immuneTarget = mock(AstEntity.class);
+        when(immuneTarget.id()).thenReturn(UUID.randomUUID());
+        when(immuneTarget.statValue(StatusType.KNOCKBACK_RESISTANCE)).thenReturn(100.0D);
+        when(immuneTarget.isMob()).thenReturn(true);
+        when(immuneTarget.mob()).thenReturn(immuneMob);
+
+        service.applyVelocityWithResistance(immuneTarget, new Vector(0.16D, 0.04D, -0.08D));
+
+        verify(controller, never()).addVelocity(
+                org.mockito.ArgumentMatchers.same(immuneMob),
+                org.mockito.ArgumentMatchers.any(Vector.class)
+        );
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
      * 章・見出し: # 12_3-戦闘 > ## 2. MobKnockbackService メソッド仕様 > ### ノックバック適用
      * 検証契約: 追加multiplierでbase knockbackを比例scaleする。

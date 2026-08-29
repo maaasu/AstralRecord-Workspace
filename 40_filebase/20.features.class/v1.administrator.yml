@@ -76,6 +76,7 @@ usableSkills:
   - skill:adventurer_lightning_bolt
   - skill:mage_fireball
   - skill:mage_sparking
+  - skill:mage_frost_blizzard
   - skill:hunter_fade_shot
   - skill:hunter_crash_arrow
   - skill:swordsman_bastion_strike

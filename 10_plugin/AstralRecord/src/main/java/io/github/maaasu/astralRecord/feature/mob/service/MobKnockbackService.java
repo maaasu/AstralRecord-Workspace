@@ -143,6 +143,31 @@ public class MobKnockbackService {
     }
 
     /**
+     * 任意方向の速度へノックバック耐性を適用して対象へ加算します。
+     *
+     * @param target 対象
+     * @param velocity 耐性100%で0になる基礎速度
+     */
+    public void applyVelocityWithResistance(
+            @NotNull AstEntity target,
+            @NotNull Vector velocity
+    ) {
+        double scale = resistanceScale(target);
+        if (scale <= 0.0D || velocity.lengthSquared() <= 1.0E-12D || !tryAcquire(target.id())) {
+            return;
+        }
+        Vector scaledVelocity = velocity.clone().multiply(scale);
+        if (target.isPlayer() && target.player() != null) {
+            Player player = target.player().getBukkit();
+            player.setVelocity(player.getVelocity().add(scaledVelocity));
+            return;
+        }
+        if (target.isMob() && target.mob() != null) {
+            mobService.entityController().addVelocity(target.mob(), scaledVelocity);
+        }
+    }
+
+    /**
      * 攻撃元 -> 対象プレイヤーへのノックバックを適用します。
      *
      * @param sourceLocation 攻撃元の位置

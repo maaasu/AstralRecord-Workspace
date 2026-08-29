@@ -36,6 +36,17 @@ public final class SkillEffectService {
         particleDisplayService.spawnForNearbyViewers(location, definition);
     }
 
+    /** 複数地点のparticleを一度のviewer探索でまとめて表示します。 */
+    public void points(
+            @NotNull Location viewerCenter,
+            @NotNull List<Location> locations,
+            @NotNull SharedParticleDefinition definition
+    ) {
+        if (!locations.isEmpty()) {
+            particleDisplayService.spawnForNearbyViewers(viewerCenter, locations, definition);
+        }
+    }
+
     /** 指定地点の地面ブロックを使った粉塵を表示します。 */
     public void blockDust(@NotNull Location location, @NotNull BlockData blockData) {
         var blockParticle = SharedParticleDefinitions.resolveParticle("BLOCK");

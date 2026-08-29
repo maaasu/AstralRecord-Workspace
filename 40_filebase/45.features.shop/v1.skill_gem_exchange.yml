@@ -208,3 +208,13 @@ items:
       - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1
+  - id: frost_blizzard_from_raw
+    itemId: { ref: item:00_skill_gem_mage_frost_blizzard }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 20
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 1

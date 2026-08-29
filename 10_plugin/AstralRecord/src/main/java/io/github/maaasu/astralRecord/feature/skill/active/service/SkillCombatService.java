@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
 import org.bukkit.Location;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -224,6 +225,11 @@ public final class SkillCombatService {
             double verticalStrength
     ) {
         knockbackService.applyWithStrength(target, source, horizontalStrength, verticalStrength);
+    }
+
+    /** ノックバック耐性で減衰する任意方向の速度を対象へ加算します。 */
+    public void velocity(@NotNull AstEntity target, @NotNull Vector velocity) {
+        knockbackService.applyVelocityWithResistance(target, velocity);
     }
 
     private void applyCondition(

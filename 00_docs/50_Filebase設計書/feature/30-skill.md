@@ -33,9 +33,9 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 |:--|:--|:--|:--|
 | `adventurer` | 近接・間接・魔法の基礎操作を試す見習い | `ENERGY` / `MANA` | 扇形、単体飛翔体、単体対象 |
 | `hunter` | 散弾・移動・着弾地点制圧・シールド破壊・回復支援を扱う遠距離職 | `ENERGY` + `MANA` | 複数短射程飛翔体、単体飛翔体、発射後移動、重力弾道範囲、着弾回復エリア |
-| `mage` | 魔法攻撃、壁面反射弾、短周期の範囲回復を扱う遠距離職 | `MANA` | 前方魔法、条件付き連鎖、着弾範囲、周囲反射弾、発動者中心の即時回復範囲 |
+| `mage` | 魔法攻撃、壁面反射弾、移動する範囲制圧、短周期の範囲回復を扱う遠距離職 | `MANA` | 前方魔法、条件付き連鎖、着弾範囲、周囲反射弾、移動する持続範囲、発動者中心の即時回復範囲 |
 
-現行定義は冒険者の6skill、ハンターの `hunter_fade_shot` / `hunter_arrow_rain` / `hunter_crash_arrow` / `hunter_heal_arrow`、メイジの `mage_fireball` / `mage_heal_aura` / `mage_sparking`、ソードマンの `swordsman_shield_drain` / `swordsman_bastion_strike` / `swordsman_flame_rush` / `swordsman_challenging_roar` / `swordsman_last_shield`、シールドリチャージ用の `administrator_shield_recharge` を含みます。フェイドショットとアローレインはハンターの `usableSkills` から初期使用許可を与え、クラッシュアローはskilltree node `1212`、ヒールアローはskilltree node `1213` から使用許可を与えます。メイジのファイアーボールとヒールオーラ、ソードマンのシールドドレインとチャレンジングロアは、それぞれの `usableSkills` から初期使用許可を与えます。バスティオンストライク、シールドリチャージ、フレイムラッシュ、ラストシールドは、それぞれskilltree node `1203` / `1202` / `1204` / `1211` からソードマンへ使用許可を与えます。スパーキングはskilltree node `1208` からメイジへ使用許可を与えます。Administratorの `usableSkills` には検証用の使用許可を残します。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
+現行定義は冒険者の6skill、ハンターの `hunter_fade_shot` / `hunter_arrow_rain` / `hunter_crash_arrow` / `hunter_heal_arrow`、メイジの `mage_fireball` / `mage_heal_aura` / `mage_sparking` / `mage_frost_blizzard`、ソードマンの `swordsman_shield_drain` / `swordsman_bastion_strike` / `swordsman_flame_rush` / `swordsman_challenging_roar` / `swordsman_last_shield`、シールドリチャージ用の `administrator_shield_recharge` を含みます。フェイドショットとアローレインはハンターの `usableSkills` から初期使用許可を与え、クラッシュアローはskilltree node `1212`、ヒールアローはskilltree node `1213` から使用許可を与えます。メイジのファイアーボールとヒールオーラ、ソードマンのシールドドレインとチャレンジングロアは、それぞれの `usableSkills` から初期使用許可を与えます。バスティオンストライク、シールドリチャージ、フレイムラッシュ、ラストシールドは、それぞれskilltree node `1203` / `1202` / `1204` / `1211` からソードマンへ使用許可を与えます。スパーキングはskilltree node `1208`、フロストブリザードはnode `1214` からメイジへ使用許可を与えます。Administratorの `usableSkills` には検証用の使用許可を残します。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
 
 ハンターの `hunter_fade_shot` は、5本の短射程飛翔体と安全確認付きバックステップを同時に扱う機動射撃です。ハンターの `usableSkills` から直接使用許可を配布し、習得用ジェムは `skill_gem_exchange` で無印原石から交換します。`hunter_arrow_rain` はハンターの `usableSkills` から初期使用許可を与え、`hunter_heal_arrow` は skilltree node `1213` からハンターへ使用許可を与え、ハンターの `usableSkills` には追加しません。
 
@@ -58,6 +58,8 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 `hunter_spell_step` は、`ranged` タグ付きスキルの成功後20tick以内に行う次のドッジを1回だけEN消費0にするバインド必須パッシブです。無料化成立時は `block.beacon.power_select` を再生し、通常のドッジ移動・成功通知・演出は維持します。ハンターではskilltree node `1207`、ジェムは `skill_gem_exchange` の無印原石1個交換から使用を許可します。攻撃を行わないためDPS算出対象外です。
 
 `mage_sparking` は、足元付近から水平360度へLv.1で5個、Lv.5で13個の雷弾を放つメイジ用の範囲制圧魔法です。雷弾は2.5秒で半径5mまで2周する渦を描き、壁面では螺旋軌道ごと反射します。命中半径は0.60mで、各弾は最初に触れたMobへ `MAGIC` / `LIGHTNING` 100%と25%の `SHOCKED` を適用しますが、同じ発動では1体につき1回だけ命中します。使用許可はメイジskilltree node `1208` とAdministratorから与え、メイジclassの `usableSkills` には追加しません。交換ジェムは1ページ目・slot19へ配置します。
+
+`mage_frost_blizzard` は、視点方向へ前進して地形の手前で停止する、10秒持続の氷竜巻です。半径2.75m・最大8体へ0.5秒ごとに20%の `MAGIC` / `ICE` ダメージを与え、対象へ接線・中心・上方向のvelocityを合成して適用します。velocityはノックバック耐性で線形減衰し、耐性100では0になります。MP40、20秒クールダウン、1秒詠唱とし、使用許可はメイジskilltree node `1214` とAdministratorから与えます。交換ジェムは1ページ目・slot20へ配置します。
 
 ## Administrator専用のドッジ連動パッシブ
 

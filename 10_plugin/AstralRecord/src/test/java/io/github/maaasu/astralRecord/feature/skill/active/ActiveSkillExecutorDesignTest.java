@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.Hunter
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterArrowRainExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.hunter.HunterCrashArrowExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageFireballExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageFrostBlizzardExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageHealAuraExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageSparkingExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanBastionStrikeExecutor;
@@ -57,6 +58,7 @@ class ActiveSkillExecutorDesignTest {
         "mage_fireball",
         "mage_heal_aura",
         "mage_sparking",
+        "mage_frost_blizzard",
         "swordsman_shield_drain",
         "swordsman_flame_rush",
         "swordsman_challenging_roar",
@@ -67,7 +69,7 @@ class ActiveSkillExecutorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載17 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載18 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {
@@ -234,6 +236,36 @@ class ActiveSkillExecutorDesignTest {
                 () -> executor.validateParams(sparkingDefinition(invalid))
         );
         assertEquals("shockChance", exception.key());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 24. メイジ フロストブリザードの実装契約 > ### 24.1 数値・移動・対象
+     * 検証契約: フロストブリザードは正の範囲・速度・持続・攻撃間隔・対象数と、0以上の中心・上方向velocityを要求する。
+     */
+    @Test
+    void frostBlizzardValidatesPersistentVortexParams() {
+        MageFrostBlizzardExecutor executor = new MageFrostBlizzardExecutor(activeSkillServices());
+        Map<String, Object> valid = new java.util.LinkedHashMap<>();
+        valid.put("damageRatio", 0.20D);
+        valid.put("radius", 2.75D);
+        valid.put("height", 2.5D);
+        valid.put("movementSpeed", 0.18D);
+        valid.put("durationTicks", 200);
+        valid.put("damageIntervalTicks", 10);
+        valid.put("maxTargets", 8);
+        valid.put("orbitVelocity", 0.16D);
+        valid.put("inwardVelocity", 0.08D);
+        valid.put("verticalVelocity", 0.04D);
+
+        assertDoesNotThrow(() -> executor.validateParams(frostBlizzardDefinition(valid)));
+
+        valid.put("damageIntervalTicks", 0);
+        SkillParameterException exception = assertThrows(
+                SkillParameterException.class,
+                () -> executor.validateParams(frostBlizzardDefinition(valid))
+        );
+        assertEquals("damageIntervalTicks", exception.key());
     }
 
     /**
@@ -642,6 +674,28 @@ class ActiveSkillExecutorDesignTest {
                 true,
                 SkillResourceType.MANA,
                 14.0D
+        );
+    }
+
+    private static SkillDefinition frostBlizzardDefinition(Map<String, Object> params) {
+        return new SkillDefinition(
+                "mage_frost_blizzard",
+                "mage_frost_blizzard",
+                "フロストブリザード",
+                null,
+                "DIAMOND_NAUTILUS_ARMOR",
+                List.of(),
+                400L,
+                0.0D,
+                20L,
+                1,
+                null,
+                params,
+                List.of("active", "magic"),
+                SkillKind.ACTIVE,
+                true,
+                SkillResourceType.MANA,
+                40.0D
         );
     }
 

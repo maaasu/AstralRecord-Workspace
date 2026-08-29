@@ -1,0 +1,62 @@
+# design:
+#   motif: "氷雪魔術 / 前進する氷竜巻"
+#   progression: 3
+schemaVersion: 1
+id: mage_frost_blizzard
+type: SKILL
+implementationId: mage_frost_blizzard
+name: "&bフロストブリザード"
+description: "&7前進する氷の竜巻で敵群を巻き込む魔法。"
+icon: DIAMOND_NAUTILUS_ARMOR
+lore:
+  - "&7視点方向へ進む氷の竜巻を{skill.durationTicks:seconds}秒間発生させる。"
+  - "&7半径{skill.radius}mの最大{skill.maxTargets}体を巻き込み、{skill.damageIntervalTicks:seconds}秒ごとに魔法攻撃力{skill.effectiveDamageRatio:percent}%の氷属性ダメージ。"
+  - "&7敵を竜巻の周囲へ引き寄せて回転させる。ノックバック耐性に応じて移動量が低下する。"
+  - "&7竜巻は進行方向の地形へ到達すると、その場で停止する。"
+cooldownTicks: 400
+resourceType: MANA
+resourceCost: 40
+castTimeTicks: 20
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 3
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 4
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+  - level: 5
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+onCast:
+  sound: entity.player.hurt_freeze
+tags:
+  - active
+  - magic
+# behavior:
+#   movement: "発動時の視点方向へ2m前方に生成し、0.18m/tickで進む。中心から0.55m以内にBlock面を検出すると手前で停止し、残り時間はその位置を維持する。"
+#   hit: "中心から水平半径2.75m・上下2.5mの管理対象Mobを距離順で最大8体選び、10tickごとにMAGIC/ICEの20%を適用する。NPC、PvP、別world、死亡Mobは対象外。"
+#   velocity: "対象へ接線0.16・中心方向0.08・上方向0.04の基礎velocityを与え、KNOCKBACK_RESISTANCEを0〜100%として線形減衰する。耐性100%では全成分0。"
+#   visual: "水色DUSTの上昇螺旋と、7個の小型PACKED_ICE BlockDisplayを中心の周囲へ回転表示する。"
+params:
+  damageRatio: 0.20
+  radius: 2.75
+  height: 2.5
+  movementSpeed: 0.18
+  durationTicks: 200
+  damageIntervalTicks: 10
+  maxTargets: 8
+  orbitVelocity: 0.16
+  inwardVelocity: 0.08
+  verticalVelocity: 0.04

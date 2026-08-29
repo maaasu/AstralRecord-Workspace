@@ -572,6 +572,17 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition SKILL_MAGE_ICE =
         new SharedParticleDefinition("skill_mage_ice", Particle.SNOWFLAKE, 2, 0.06D, 0.06D, 0.06D, 0.01D);
+    public static final SharedParticleDefinition MAGE_FROST_BLIZZARD =
+        new SharedParticleDefinition(
+            "mage_frost_blizzard",
+            Particle.DUST,
+            1,
+            0.03D,
+            0.03D,
+            0.03D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(90, 215, 255), 1.15F)
+        );
     public static final SharedParticleDefinition SKILL_MAGE_LIGHTNING =
         new SharedParticleDefinition("skill_mage_lightning", Particle.ELECTRIC_SPARK, 2, 0.06D, 0.06D, 0.06D, 0.02D);
     public static final SharedParticleDefinition SKILL_MAGE_ARCANE_DUST =
