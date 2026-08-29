@@ -2,14 +2,22 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1209",
-  "name": "&8未定の星座",
-  "icon": "GRAY_DYE",
-  "tags": [],
+  "name": "&dアーケインフロー",
+  "icon": "AMETHYST_SHARD",
+  "tags": [
+    "core",
+    "mana",
+    "astral"
+  ],
   "pointType": "CP",
-  "pointCost": 0,
-  "effects": [],
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "mage_arcane_flow"
+    }
+  ],
   "unlockCondition": {
-    "classId": "mage",
-    "playerLevel": 2147483647
+    "classId": "mage"
   }
 }

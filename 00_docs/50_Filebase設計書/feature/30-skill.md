@@ -61,6 +61,8 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 
 `mage_frost_blizzard` は、視点方向へ前進して地形の手前で停止する、10秒持続の氷竜巻です。半径2.75m・最大8体へ0.5秒ごとに20%の `MAGIC` / `ICE` ダメージを与え、対象へ接線・中心・上方向のvelocityを合成して適用します。velocityはノックバック耐性で線形減衰し、耐性100では0になります。MP40、20秒クールダウン、1秒詠唱とし、使用許可はメイジskilltree node `1214` とAdministratorから与えます。交換ジェムは1ページ目・slot20へ配置します。
 
+`mage_arcane_flow` は、魔法タグ付きスキルの成功履歴をプレイヤーごとに保持し、前回と異なる魔法スキルの詠唱時間を追加で短縮するバインド必須パッシブです。最大Lv.5で、Lv.1の5%からレベルごとに1.25%加算し、Lv.5で10%とします。初回、同じスキル、非魔法スキルでは短縮せず、詠唱に成功したスキルだけを履歴へ記録します。条件成立時は紫色の16点リング粒子を表示し、ダメージ、状態異常、リソース消費、クールダウンは追加しません。メイジskilltree node `1209` とAdministratorから使用許可を与え、メイジclassの `usableSkills` には追加しません。交換ジェムは1ページ目・slot21へ配置します。
+
 ## Administrator専用のドッジ連動パッシブ
 
 `administrator_just_dodge` は `passive.bindRequired: true` のAdministrator専用パッシブです。成功したドッジから `params.invulnerabilityTicks` tick の間、`NORMAL_ATTACK` / `SKILL` の直接攻撃を無効化します。無効化回数に上限は設けず、状態異常DoTは `DamageService.applyConditionDamage` の専用経路であるため対象外です。

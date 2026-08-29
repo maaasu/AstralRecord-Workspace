@@ -88,6 +88,7 @@ usableSkills:
   - skill:hunter_heal_arrow
   - skill:hunter_spell_step
   - skill:mage_heal_aura
+  - skill:mage_arcane_flow
 tags:
   - administrator
   - command-only

@@ -1,0 +1,42 @@
+# design:
+#   motif: "アーケイン / 魔術の連環"
+#   progression: 2
+schemaVersion: 1
+id: mage_arcane_flow
+type: SKILL
+implementationId: mage_arcane_flow
+name: "&dアーケインフロー"
+description: "&7異なる魔法を連ね、詠唱の流れを高めるパッシブ。"
+icon: AMETHYST_SHARD
+lore:
+  - "&7魔法タグ付きスキルを、前回と異なるスキルとして発動すると詠唱時間を{skill.castTimeReductionPercent}%短縮する。"
+  - "&7Lv.1は5%、Lv.5は10%。成功したスキルの発動履歴を基準にする。"
+  - "&7短縮が発生したとき、紫色の魔力粒子を表示する。"
+cooldownTicks: 0
+resourceType: MANA
+resourceCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    paramDeltas: { castTimeReductionPercent: 1.25 }
+  - level: 3
+    paramDeltas: { castTimeReductionPercent: 1.25 }
+  - level: 4
+    paramDeltas: { castTimeReductionPercent: 1.25 }
+  - level: 5
+    paramDeltas: { castTimeReductionPercent: 1.25 }
+sigilSlotsByLevel: []
+allowedSigilIds: []
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+passive:
+  bindRequired: true
+params:
+  castTimeReductionPercent: 5.0
+tags:
+  - passive
+  - magic

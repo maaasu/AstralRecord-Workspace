@@ -55,8 +55,10 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.LongSupplier;
 
 /**
@@ -88,8 +90,10 @@ public class SkillService {
     private LearnedSkillResolver learnedSkillResolver;
     private ConditionService conditionService;
     private PlayerHudService playerHudService;
-    private BiConsumer<AstPlayer, String> playerCastSuccessListener = (player, skillId) -> { };
+    private final List<BiConsumer<AstPlayer, String>> playerCastSuccessListeners = new CopyOnWriteArrayList<>();
     private BiConsumer<AstPlayer, String> playerSkillUseListener = (player, skillId) -> { };
+    private BiFunction<AstPlayer, SkillDefinition, Double> playerCastTimeReductionResolver =
+            (player, skill) -> 0.0D;
     private final SkillCastFeedback castFeedback = new SkillCastFeedback();
     private final Map<String, SkillDefinition> builtInDefinitions = new ConcurrentHashMap<>();
 
@@ -103,7 +107,17 @@ public class SkillService {
      * @param listener プレイヤーとスキル ID を受け取る listener
      */
     public void setPlayerCastSuccessListener(@NotNull BiConsumer<AstPlayer, String> listener) {
-        this.playerCastSuccessListener = listener;
+        playerCastSuccessListeners.clear();
+        playerCastSuccessListeners.add(listener);
+    }
+
+    /**
+     * プレイヤーのスキル実行成功へ追加の listener を登録します。
+     *
+     * @param listener プレイヤーとスキル ID を受け取る listener
+     */
+    public void addPlayerCastSuccessListener(@NotNull BiConsumer<AstPlayer, String> listener) {
+        playerCastSuccessListeners.add(listener);
     }
 
     /**
@@ -114,6 +128,20 @@ public class SkillService {
      */
     public void setPlayerSkillUseListener(@NotNull BiConsumer<AstPlayer, String> listener) {
         this.playerSkillUseListener = listener;
+    }
+
+    /**
+     * プレイヤーの詠唱時間へ追加の条件付き短縮率を設定します。
+     * <p>
+     * resolver は詠唱時間の解決時に呼ばれるため、状態を変更せず現在の定義から値を返します。
+     * 返す値はパーセントとして扱い、負数は 0%、100% 以上は詠唱時間 0 tick として扱います。
+     *
+     * @param resolver プレイヤーと発動対象スキルから追加短縮率を返す resolver
+     */
+    public void setPlayerCastTimeReductionResolver(
+            @NotNull BiFunction<AstPlayer, SkillDefinition, Double> resolver
+    ) {
+        this.playerCastTimeReductionResolver = resolver;
     }
 
     /**
@@ -684,7 +712,9 @@ public class SkillService {
                 );
             }
             if (caster instanceof PlayerSkillCaster playerCaster) {
-                playerCastSuccessListener.accept(playerCaster.player(), definition.getId());
+                for (BiConsumer<AstPlayer, String> listener : playerCastSuccessListeners) {
+                    listener.accept(playerCaster.player(), definition.getId());
+                }
             }
         } else {
             notifyIfFailed(caster, result, definition.getId());
@@ -867,6 +897,12 @@ public class SkillService {
         double multiplier = 1.0D;
         double reduction = Math.max(0.0D, statusSnapshot.rollValue(StatusType.CAST_TIME_REDUCTION));
         multiplier *= Math.max(0.0D, 1.0D - reduction / 100.0D);
+        if (caster instanceof PlayerSkillCaster playerCaster) {
+            Double additionalReduction = playerCastTimeReductionResolver.apply(playerCaster.player(), definition);
+            if (additionalReduction != null && Double.isFinite(additionalReduction)) {
+                multiplier *= Math.max(0.0D, 1.0D - Math.max(0.0D, additionalReduction) / 100.0D);
+            }
+        }
         if (conditionService != null) {
             if (caster instanceof PlayerSkillCaster playerCaster) {
                 multiplier *= conditionService.castTimeMultiplier(AstEntity.player(playerCaster.player()));
