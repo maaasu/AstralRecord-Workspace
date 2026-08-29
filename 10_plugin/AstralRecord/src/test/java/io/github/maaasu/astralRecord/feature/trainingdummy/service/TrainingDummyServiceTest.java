@@ -20,6 +20,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -107,6 +108,45 @@ class TrainingDummyServiceTest extends MockBukkitTestBase {
         service.tick();
 
         verify(mobService, times(1)).spawn(any(MobTemplate.class), any());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/31-training-dummy/31_3-処理契約.md
+     * 章・見出し: # 31_3-処理契約 > ## 1. 初期化と停止
+     * 検証契約: カカシの定期HPリセットは常時回復として扱い、HP回復通知を発生させない。
+     */
+    @Test
+    void periodicHealthResetDoesNotNotifyRecoveryDisplay() {
+        World world = server().addSimpleWorld("recovery_world");
+        TrainingDummyDefinition definition = definition("recovery", world.getName());
+        MobTemplate template = TrainingDummyService.template(definition);
+        MobInstance instance = new MobInstance(
+                UUID.randomUUID(),
+                template,
+                new Location(world, definition.x(), definition.y(), definition.z())
+        );
+        instance.currentHealth(10.0D);
+        MobService mobService = mock(MobService.class);
+        TrainingDummyRepository repository = mock(TrainingDummyRepository.class);
+        when(repository.loadAll()).thenReturn(List.of(definition));
+        when(mobService.spawn(any(MobTemplate.class), any())).thenReturn(instance);
+        when(mobService.getInstance(instance.instanceId())).thenReturn(instance);
+        TrainingDummyService service = new TrainingDummyService(
+                PluginMock.builder().withPluginName("AstralRecordTest").build(),
+                mobService,
+                repository,
+                noOpChunkTicketGateway()
+        );
+        service.loadAll();
+
+        service.tick();
+        service.tick();
+
+        verify(mobService).recoverHealth(
+                eq(instance),
+                eq(instance.maxHealth() - 10.0D),
+                eq(false)
+        );
     }
 
     /**

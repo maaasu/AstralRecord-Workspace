@@ -15,10 +15,12 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobTauntService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
 import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
 import java.util.List;
@@ -151,11 +153,27 @@ public final class SkillCombatService {
      * @return 上限・回復阻害を反映した実増加量
      */
     public double recoverHp(@NotNull AstPlayer target, double amount) {
+        return recoverHp(target, amount, HealthRecoveryContext.self("HP回復"));
+    }
+
+    /**
+     * プレイヤーの現在HPを回復し、回復元を StatusService へ引き渡します。
+     *
+     * @param target 回復対象プレイヤー
+     * @param amount 回復要求量
+     * @param context 回復元と回復手段。{@code null} の場合は回復通知を抑止
+     * @return 上限・回復阻害を反映した実増加量
+     */
+    public double recoverHp(
+            @NotNull AstPlayer target,
+            double amount,
+            @Nullable HealthRecoveryContext context
+    ) {
         if (amount <= 0.0D) {
             return 0.0D;
         }
         double before = statusService.getStatus(target).getCurrentHp();
-        double after = statusService.recoverHp(target, amount).getCurrentHp();
+        double after = statusService.recoverHp(target, amount, context).getCurrentHp();
         return Math.max(0.0D, after - before);
     }
 

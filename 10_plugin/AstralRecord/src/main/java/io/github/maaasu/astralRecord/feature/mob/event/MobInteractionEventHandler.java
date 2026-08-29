@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.quest.event.QuestGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.shop.event.ShopGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillForgetGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -172,7 +173,7 @@ public final class MobInteractionEventHandler
             case "message" -> sendMessage(player, action);
             case "gui" -> openGui(player, instance, action);
             case "command" -> executeCommand(player, action);
-            case "restore_status" -> restoreStatus(player);
+            case "restore_status" -> restoreStatus(player, instance);
             default -> GuiSound.DENY.play(player);
         }
     }
@@ -182,13 +183,16 @@ public final class MobInteractionEventHandler
      *
      * @param player 対象プレイヤー
      */
-    private void restoreStatus(@NotNull Player player) {
+    private void restoreStatus(@NotNull Player player, @NotNull MobInstance source) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
             GuiSound.DENY.play(player);
             return;
         }
-        statusService.restoreAll(astPlayer);
+        statusService.restoreAll(
+            astPlayer,
+            HealthRecoveryContext.self(ColorCodeUtil.toPlainText(source.template().displayName(), "NPC"))
+        );
         PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5114);
         GuiSound.SUCCESS.play(player);
     }

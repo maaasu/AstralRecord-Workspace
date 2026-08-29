@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
@@ -289,7 +290,7 @@ public final class PlayerDeathService {
         }
         destroyVisuals(state);
         player.setInvulnerable(false);
-        statusService.restoreAll(astPlayer);
+        statusService.restoreAll(astPlayer, HealthRecoveryContext.self("死亡復帰"));
         showToOtherPlayers(player);
         player.resetTitle();
         if (!runRecovery) {

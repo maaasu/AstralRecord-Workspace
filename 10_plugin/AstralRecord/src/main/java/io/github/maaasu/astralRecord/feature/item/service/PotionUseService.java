@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -364,11 +365,12 @@ public final class PotionUseService {
 
     private boolean applyAndConsume(@NotNull PendingPotionUse pending) {
         boolean applied = false;
+        String recoverySource = plainDisplayItemName(pending.model());
         for (ItemConsumableEffect effect : pending.consumable().getEffects()) {
             if (!passesRate(effect.getRate())) {
                 continue;
             }
-            applied |= applyEffect(pending.astPlayer(), effect);
+            applied |= applyEffect(pending.astPlayer(), effect, recoverySource);
         }
 
         if (!applied) {
@@ -430,12 +432,16 @@ public final class PotionUseService {
         return Math.max(1L, (remainingMillis + MILLIS_PER_TICK - 1L) / MILLIS_PER_TICK);
     }
 
-    private boolean applyEffect(@NotNull AstPlayer astPlayer, @NotNull ItemConsumableEffect effect) {
+    private boolean applyEffect(
+        @NotNull AstPlayer astPlayer,
+        @NotNull ItemConsumableEffect effect,
+        @NotNull String recoverySource
+    ) {
         if (effect.getType() == ItemConsumableEffectType.BUFF) {
             return applyBuff(astPlayer, effect.getBuffId());
         }
         if (effect.getType() == ItemConsumableEffectType.RECOVER) {
-            return applyRecover(astPlayer, effect);
+            return applyRecover(astPlayer, effect, recoverySource);
         }
         return false;
     }
@@ -457,7 +463,11 @@ public final class PotionUseService {
         return true;
     }
 
-    private boolean applyRecover(@NotNull AstPlayer astPlayer, @NotNull ItemConsumableEffect effect) {
+    private boolean applyRecover(
+        @NotNull AstPlayer astPlayer,
+        @NotNull ItemConsumableEffect effect,
+        @NotNull String recoverySource
+    ) {
         double value = effect.getValue() == null ? 0.0D : effect.getValue();
         if (value <= 0.0D) {
             return false;
@@ -466,7 +476,11 @@ public final class PotionUseService {
         String status = normalizeStatus(effect.getStatus());
         StatusSnapshot snapshot = statusService.getStatus(astPlayer);
         if (STATUS_HP.equals(status) || STATUS_HEALTH.equals(status) || STATUS_MAX_HEALTH.equals(status)) {
-            statusService.recoverHp(astPlayer, resolveRecoverAmount(value, effect.isPercent(), snapshot, StatusType.MAX_HEALTH));
+            statusService.recoverHp(
+                astPlayer,
+                resolveRecoverAmount(value, effect.isPercent(), snapshot, StatusType.MAX_HEALTH),
+                HealthRecoveryContext.self(recoverySource)
+            );
             return true;
         }
         if (STATUS_MP.equals(status) || STATUS_MANA.equals(status) || STATUS_MAX_MANA.equals(status)) {
@@ -555,6 +569,10 @@ public final class PotionUseService {
 
     private static @NotNull String displayItemName(@NotNull ItemModel model) {
         return ColorCodeUtil.toLegacyText(model.getName(), model.getId());
+    }
+
+    private static @NotNull String plainDisplayItemName(@NotNull ItemModel model) {
+        return ColorCodeUtil.toPlainText(model.getName(), "ポーション");
     }
 
     private static @NotNull String formatTicksAsSeconds(long ticks) {

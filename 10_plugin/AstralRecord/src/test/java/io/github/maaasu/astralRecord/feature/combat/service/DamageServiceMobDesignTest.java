@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
+import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
@@ -259,7 +260,7 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
 
         harness.service.applyDamage(AstEntity.player(attacker), AstEntity.mob(mob), 6.0D, AttackType.MELEE);
 
-        verify(harness.statusService).recoverHp(attacker, 1.5D);
+        verify(harness.statusService).recoverHp(same(attacker), eq(1.5D), any(HealthRecoveryContext.class));
     }
 
     /**
@@ -429,7 +430,7 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         assertEquals(17.0D, result.finalDamage(), 0.0001D);
         assertEquals(7.0D, result.fixedHealthDamage(), 0.0001D);
         assertEquals(83.0D, mob.currentHealth(), 0.0001D);
-        verify(harness.statusService).recoverHp(attacker, 5.0D);
+        verify(harness.statusService).recoverHp(same(attacker), eq(5.0D), any(HealthRecoveryContext.class));
     }
 
     /**

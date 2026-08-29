@@ -22,6 +22,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
+import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
@@ -161,7 +162,9 @@ class HunterHealArrowExecutorTest {
         when(healedBukkit.getLocation()).thenReturn(new Location(fixture.world, 4.0D, 64.0D, 0.0D));
         when(fixture.targeting.playersInRadius(any(Location.class), eq(2.0D), eq(2.0D)))
                 .thenReturn(List.of(healedPlayer));
-        when(fixture.combat.recoverHp(same(healedPlayer), eq(12.0D))).thenReturn(12.0D);
+        when(fixture.combat.recoverHp(
+                same(healedPlayer), eq(12.0D), any(HealthRecoveryContext.class)
+        )).thenReturn(12.0D);
 
         hitCaptor.getValue().accept(target, new Location(fixture.world, 4.0D, 65.0D, 0.0D));
 
@@ -184,7 +187,9 @@ class HunterHealArrowExecutorTest {
                 eq(DamageElement.NONE),
                 eq(0.30D)
         );
-        verify(fixture.combat, times(1)).recoverHp(same(healedPlayer), eq(12.0D));
+        verify(fixture.combat, times(1)).recoverHp(
+                same(healedPlayer), eq(12.0D), any(HealthRecoveryContext.class)
+        );
         verify(fixture.effects, times(2)).ring(
                 any(Location.class), eq(2.0D), eq(20), eq(SharedParticleDefinitions.HUNTER_HEAL_ARROW_AREA)
         );

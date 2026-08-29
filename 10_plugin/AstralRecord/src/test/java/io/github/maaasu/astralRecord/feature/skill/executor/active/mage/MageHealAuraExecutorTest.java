@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
+import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
@@ -36,6 +37,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -103,14 +105,16 @@ class MageHealAuraExecutorTest {
         AstPlayer secondTarget = target(fixture.world, 2.0D);
         when(fixture.targeting.playersInRadius(any(Location.class), eq(4.0D), eq(3.0D)))
                 .thenReturn(List.of(firstTarget, secondTarget));
-        when(fixture.combat.recoverHp(firstTarget, 5.0D)).thenReturn(5.0D);
-        when(fixture.combat.recoverHp(secondTarget, 5.0D)).thenReturn(2.0D);
+        when(fixture.combat.recoverHp(same(firstTarget), eq(5.0D), any(HealthRecoveryContext.class)))
+                .thenReturn(5.0D);
+        when(fixture.combat.recoverHp(same(secondTarget), eq(5.0D), any(HealthRecoveryContext.class)))
+                .thenReturn(2.0D);
 
         assertTrue(fixture.executor.cast(fixture.context).success());
 
         verify(fixture.targeting).playersInRadius(any(Location.class), eq(4.0D), eq(3.0D));
-        verify(fixture.combat).recoverHp(firstTarget, 5.0D);
-        verify(fixture.combat).recoverHp(secondTarget, 5.0D);
+        verify(fixture.combat).recoverHp(same(firstTarget), eq(5.0D), any(HealthRecoveryContext.class));
+        verify(fixture.combat).recoverHp(same(secondTarget), eq(5.0D), any(HealthRecoveryContext.class));
         verify(fixture.effects).ring(any(Location.class), eq(4.0D), eq(24),
                 eq(SharedParticleDefinitions.MAGE_HEAL_AURA_RING));
         verify(fixture.effects).point(any(Location.class), eq(SharedParticleDefinitions.MAGE_HEAL_AURA_PULSE));

@@ -3,6 +3,8 @@ package io.github.maaasu.astralRecord.feature.status.service;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
+import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryNotification;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
@@ -44,7 +46,7 @@ class StatusServiceConditionTest {
         StatusService statusService = new StatusService();
         statusService.setConditionService(conditionService);
         double[] notifiedAmount = {-1.0D};
-        statusService.setHpRecoveryListener((ignored, amount) -> notifiedAmount[0] = amount);
+        statusService.setHpRecoveryListener(notification -> notifiedAmount[0] = notification.amount());
 
         assertEquals(5.0D, statusService.recoverHp(player, 10.0D).getCurrentHp(), 0.0001D);
         assertEquals(2.0D, statusService.recoverMp(player, 10.0D).getCurrentMp(), 0.0001D);
@@ -76,11 +78,63 @@ class StatusServiceConditionTest {
 
         double[] notifiedAmount = {-1.0D};
         StatusService statusService = new StatusService();
-        statusService.setHpRecoveryListener((ignored, amount) -> notifiedAmount[0] = amount);
+        statusService.setHpRecoveryListener(notification -> notifiedAmount[0] = notification.amount());
 
         StatusSnapshot updated = statusService.recoverHp(player, 20.0D);
 
         assertEquals(100.0D, updated.getCurrentHp(), 0.0001D);
         assertEquals(5.0D, notifiedAmount[0], 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### HP回復
+     * 検証契約: 回復コンテキストがないHP自然回復は実回復しても通知しない。
+     */
+    @Test
+    void naturalHpRecoveryDoesNotNotify() {
+        AstPlayer player = mock(AstPlayer.class);
+        StatusSnapshot snapshot = DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D
+        ), 50.0D, 0.0D, 0.0D);
+        when(player.getStatusSnapshot()).thenReturn(snapshot);
+
+        int[] notificationCount = {0};
+        StatusService statusService = new StatusService();
+        statusService.setHpRecoveryListener(notification -> notificationCount[0]++);
+
+        statusService.recoverHp(player, 10.0D, null);
+
+        assertEquals(0, notificationCount[0]);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### HP回復
+     * 検証契約: HP回復通知は実回復量と回復元プレイヤーと回復手段を保持する。
+     */
+    @Test
+    void hpRecoveryNotificationKeepsHealerAndSource() {
+        AstPlayer target = mock(AstPlayer.class);
+        StatusSnapshot snapshot = DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D
+        ), 80.0D, 0.0D, 0.0D);
+        when(target.getStatusSnapshot()).thenReturn(snapshot);
+        AstPlayer healer = mock(AstPlayer.class);
+
+        HealthRecoveryNotification[] notification = {null};
+        StatusService statusService = new StatusService();
+        statusService.setHpRecoveryListener(value -> notification[0] = value);
+
+        statusService.recoverHp(
+            target,
+            10.0D,
+            HealthRecoveryContext.by(healer, "ヒールオーラ")
+        );
+
+        assertEquals(target, notification[0].target());
+        assertEquals(healer, notification[0].healer());
+        assertEquals("ヒールオーラ", notification[0].sourceName());
+        assertEquals(10.0D, notification[0].amount(), 0.0001D);
     }
 }

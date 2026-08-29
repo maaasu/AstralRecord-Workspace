@@ -30,6 +30,8 @@ import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusDefaults;
+import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
+import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryNotification;
 import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -51,7 +53,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
 import java.util.UUID;
-import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 /**
  * ステータス機能のビジネスロジックを担うサービスクラスです。
@@ -83,7 +85,7 @@ public class StatusService {
     private PassiveSkillService passiveSkillService;
     private PlayerClassService playerClassService;
     private ConditionService conditionService;
-    private BiConsumer<AstPlayer, Double> hpRecoveryListener = (player, amount) -> { };
+    private Consumer<HealthRecoveryNotification> hpRecoveryListener = notification -> { };
     private final Map<UUID, ShieldRechargeState> shieldRechargeStates = new HashMap<>();
     private final Map<UUID, ShieldRechargeConfiguration> shieldRechargeConfigurations = new HashMap<>();
     private final Map<UUID, Double> shieldDisplayCapacities = new HashMap<>();
@@ -125,10 +127,10 @@ public class StatusService {
     /**
      * HP の実回復量を通知する listener を設定します。通常回復と全回復の両方が対象です。
      *
-     * @param listener 更新後に対象プレイヤーと実回復量を受け取る listener。null で無効化
+     * @param listener 更新後の対象・実回復量・回復元・回復手段を受け取る listener。null で無効化
      */
-    public void setHpRecoveryListener(@Nullable BiConsumer<AstPlayer, Double> listener) {
-        this.hpRecoveryListener = listener == null ? (player, amount) -> { } : listener;
+    public void setHpRecoveryListener(@Nullable Consumer<HealthRecoveryNotification> listener) {
+        this.hpRecoveryListener = listener == null ? notification -> { } : listener;
     }
 
     /**
@@ -553,6 +555,23 @@ public class StatusService {
      * @return 更新後のステータススナップショット
      */
     public @NotNull StatusSnapshot recoverHp(@NotNull AstPlayer player, double amount) {
+        return recoverHp(player, amount, HealthRecoveryContext.self("HP回復"));
+    }
+
+    /**
+     * 現在HPを回復し、指定された発生元がある場合だけ実回復通知を行います。
+     * 発生元を {@code null} にすると、自然回復などの常時回復を表示対象から除外できます。
+     *
+     * @param player 対象プレイヤー
+     * @param amount 回復量（0以下は無視）
+     * @param context 回復元と回復手段。{@code null} の場合は通知しない
+     * @return 更新後のステータススナップショット
+     */
+    public @NotNull StatusSnapshot recoverHp(
+        @NotNull AstPlayer player,
+        double amount,
+        @Nullable HealthRecoveryContext context
+    ) {
         StatusSnapshot snapshot = getStatus(player);
         if (amount <= 0.0D || isHealingBlocked(player)) {
             return snapshot;
@@ -565,8 +584,13 @@ public class StatusService {
         );
         player.setStatusSnapshot(updated);
         double recoveredAmount = updated.getCurrentHp() - snapshot.getCurrentHp();
-        if (recoveredAmount > 0.0D) {
-            hpRecoveryListener.accept(player, recoveredAmount);
+        if (recoveredAmount > 0.0D && context != null) {
+            hpRecoveryListener.accept(new HealthRecoveryNotification(
+                player,
+                recoveredAmount,
+                context.healer(),
+                context.sourceName()
+            ));
         }
         return updated;
     }
@@ -655,6 +679,20 @@ public class StatusService {
      * @apiNote HP が実際に増加した場合は、上限適用後の実回復量を HP 回復 listener へ通知します。
      */
     public @NotNull StatusSnapshot restoreAll(@NotNull AstPlayer player) {
+        return restoreAll(player, HealthRecoveryContext.self("全回復"));
+    }
+
+    /**
+     * 現在HP/MP/エネルギーを最大値まで回復し、指定された発生元がある場合だけHP通知を行います。
+     *
+     * @param player 対象プレイヤー
+     * @param context 回復元と回復手段。{@code null} の場合はHP通知しない
+     * @return 更新後のステータススナップショット
+     */
+    public @NotNull StatusSnapshot restoreAll(
+        @NotNull AstPlayer player,
+        @Nullable HealthRecoveryContext context
+    ) {
         StatusSnapshot previous = getStatus(player);
         StatusSnapshot snapshot = restoreAllInternal(previous);
         player.setStatusSnapshot(snapshot);
@@ -664,8 +702,13 @@ public class StatusService {
             snapshot.getMaxValue(StatusType.MAX_SHIELD)
         );
         double recoveredAmount = snapshot.getCurrentHp() - previous.getCurrentHp();
-        if (recoveredAmount > 0.0D) {
-            hpRecoveryListener.accept(player, recoveredAmount);
+        if (recoveredAmount > 0.0D && context != null) {
+            hpRecoveryListener.accept(new HealthRecoveryNotification(
+                player,
+                recoveredAmount,
+                context.healer(),
+                context.sourceName()
+            ));
         }
         return snapshot;
     }

@@ -25,6 +25,7 @@ import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.quest.event.QuestGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.shop.event.ShopGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillForgetGuiEventHandler;
+import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.storage.service.StorageService;
 import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
@@ -53,6 +54,8 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 
 class MobInteractionEventHandlerTest {
 
@@ -152,7 +155,7 @@ class MobInteractionEventHandlerTest {
             PlayerInputCandidate candidate = handler.resolve(context).stream().findFirst().orElseThrow();
             candidate.executor().run();
 
-            verify(statusService).restoreAll(astPlayer);
+            verify(statusService).restoreAll(eq(astPlayer), any(HealthRecoveryContext.class));
             verify(messages).send(player, PlayerMsgId.P_5114);
         }
     }

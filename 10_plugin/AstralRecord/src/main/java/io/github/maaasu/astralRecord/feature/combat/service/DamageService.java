@@ -32,11 +32,14 @@ import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkill
 import io.github.maaasu.astralRecord.feature.skill.service.JustDodgeSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.LastShieldSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
+import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryNotification;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -68,6 +71,7 @@ public final class DamageService {
     private static final double MELEE_KNOCKBACK_MULTIPLIER = 0.55D;
     private static final double RANGED_KNOCKBACK_MULTIPLIER = 0.55D;
     private static final double MAGIC_KNOCKBACK_MULTIPLIER = 0.4D;
+    private static final int RECOVERY_LOG_LABEL_MAX_CODE_POINTS = 12;
 
     private final StatusService statusService;
     private final MobService mobService;
@@ -292,6 +296,18 @@ public final class DamageService {
      * @param amount 実際に増加した HP
      */
     public void presentPlayerHealthRecovery(@NotNull AstPlayer target, double amount) {
+        presentPlayerHealthRecovery(new HealthRecoveryNotification(target, amount, null, "HP回復"));
+    }
+
+    /**
+     * プレイヤーに適用された HP 回復を、回復元と回復手段を含めて表示します。
+     * 回復したプレイヤーの数値表示設定を参照し、詳細メッセージは回復者と対象者へそれぞれ送ります。
+     *
+     * @param recovery HP回復の対象・実量・回復元・回復手段
+     */
+    public void presentPlayerHealthRecovery(@NotNull HealthRecoveryNotification recovery) {
+        AstPlayer target = recovery.target();
+        double amount = recovery.amount();
         if (!Double.isFinite(amount) || amount <= 0.0D) {
             return;
         }
@@ -302,11 +318,37 @@ public final class DamageService {
                     amount
             );
         }
+        String sourceName = compactRecoveryLogLabel(recovery.sourceName(), "HP回復");
+        AstPlayer healer = recovery.healer();
+        UUID healerId = healer == null ? null : healer.getUser().getUuid();
+        if (healerId == null || healerId.equals(playerId)) {
+            if (playerSettingService.isDamageLogMessageEnabled(playerId)) {
+                PlayerMessageService.getInstance().send(
+                        target,
+                        PlayerMsgId.P_5356,
+                        formatCompactNumber(amount),
+                        sourceName
+                );
+            }
+            return;
+        }
+
+        if (playerSettingService.isDamageLogMessageEnabled(healerId)) {
+            PlayerMessageService.getInstance().send(
+                    healer,
+                    PlayerMsgId.P_5354,
+                    formatCompactNumber(amount),
+                    compactRecoveryLogLabel(target.getBukkit().getName(), "プレイヤー"),
+                    sourceName
+            );
+        }
         if (playerSettingService.isDamageLogMessageEnabled(playerId)) {
             PlayerMessageService.getInstance().send(
                     target,
-                    PlayerMsgId.P_5354,
-                    formatCompactNumber(amount)
+                    PlayerMsgId.P_5355,
+                    formatCompactNumber(amount),
+                    compactRecoveryLogLabel(healer.getBukkit().getName(), "プレイヤー"),
+                    sourceName
             );
         }
     }
@@ -1125,7 +1167,11 @@ public final class DamageService {
             return;
         }
         double rate = Math.max(0.0D, attacker.statValue(StatusType.LIFE_STEAL));
-        statusService.recoverHp(attacker.player(), effectiveHealthDamage * rate / 100.0D);
+        statusService.recoverHp(
+                attacker.player(),
+                effectiveHealthDamage * rate / 100.0D,
+                HealthRecoveryContext.by(attacker.player(), "ライフスティール")
+        );
     }
 
     private void applyShieldThreat(@Nullable AstEntity attacker, @NotNull AstEntity victim, double shieldDamage) {
@@ -1410,6 +1456,27 @@ public final class DamageService {
     static @NotNull String formatCompactNumber(double value) {
         String formatted = String.format(Locale.ROOT, "%.1f", value);
         return formatted.endsWith(".0") ? formatted.substring(0, formatted.length() - 2) : formatted;
+    }
+
+    /**
+     * HP 回復ログの相手名・回復手段を1行用に正規化し、一定長へ短縮します。
+     *
+     * @param value 元の表示文字列
+     * @param fallback 空値時の代替文字列
+     * @return 色コードと改行を除いた短縮表示
+     */
+    static @NotNull String compactRecoveryLogLabel(@Nullable String value, @NotNull String fallback) {
+        String normalized = ColorCodeUtil.stripColor(ColorCodeUtil.translateAlternateColorCodes(value));
+        if (normalized == null || normalized.isBlank()) {
+            normalized = fallback;
+        }
+        normalized = normalized.replace('\n', ' ').replace('\r', ' ').trim();
+        int codePointCount = normalized.codePointCount(0, normalized.length());
+        if (codePointCount <= RECOVERY_LOG_LABEL_MAX_CODE_POINTS) {
+            return normalized;
+        }
+        int endIndex = normalized.offsetByCodePoints(0, RECOVERY_LOG_LABEL_MAX_CODE_POINTS - 1);
+        return normalized.substring(0, endIndex) + "…";
     }
 
     private boolean hasActiveShield(@NotNull AstEntity victim) {

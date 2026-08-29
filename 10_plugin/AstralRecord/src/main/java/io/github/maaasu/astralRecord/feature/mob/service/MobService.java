@@ -134,8 +134,20 @@ public class MobService {
      * @return 実際に増加した HP
      */
     public double recoverHealth(@NotNull MobInstance instance, double amount) {
+        return recoverHealth(instance, amount, true);
+    }
+
+    /**
+     * Mob の HP を上限まで回復し、必要な場合だけ実際の増加量を listener へ通知します。
+     *
+     * @param instance 回復対象の Mob インスタンス
+     * @param amount 回復量
+     * @param notify 回復数値を通知する場合は {@code true}。定期回復などは {@code false}
+     * @return 実際に増加した HP
+     */
+    public double recoverHealth(@NotNull MobInstance instance, double amount, boolean notify) {
         double recoveredAmount = instance.recoverHealth(amount);
-        if (recoveredAmount > 0.0D) {
+        if (notify && recoveredAmount > 0.0D) {
             healthRecoveryListener.accept(instance, recoveredAmount);
         }
         return recoveredAmount;

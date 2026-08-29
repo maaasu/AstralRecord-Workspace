@@ -116,13 +116,37 @@ class PlayerMsgResourceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_5-例外・ログ・運用.md
      * 章・見出し: # 14_5-例外・ログ・運用 > ## 2. player message
-     * 検証契約: HP回復メッセージを黄緑色のプラス付き回復量として整形する。
+     * 検証契約: 与えたHP回復メッセージを方向・対象・回復手段付きの黄緑色1行形式へ整形する。
      */
     @Test
     void hpRecoveryMessageFormatsLimePlusAmount() {
-        String formatted = PlayerMsgResource.format(PlayerMsgId.P_5354.getId(), "12.5");
+        String formatted = PlayerMsgResource.format(PlayerMsgId.P_5354.getId(), "12.5", "対象者", "ヒールオーラ");
 
-        assertEquals("§a+12.5", formatted);
+        assertEquals("§a→+12.5 §f対象者 §8| §7ヒールオーラ", formatted);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_5-例外・ログ・運用.md
+     * 章・見出し: # 14_5-例外・ログ・運用 > ## 2. player message
+     * 検証契約: 被ったHP回復メッセージを回復元プレイヤー付きの黄緑色1行形式へ整形する。
+     */
+    @Test
+    void receivedHpRecoveryMessageFormatsHealerAndSource() {
+        String formatted = PlayerMsgResource.format(PlayerMsgId.P_5355.getId(), "12.5", "回復者", "ヒールアロー");
+
+        assertEquals("§a←+12.5 §f回復者 §8| §7ヒールアロー", formatted);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_5-例外・ログ・運用.md
+     * 章・見出し: # 14_5-例外・ログ・運用 > ## 2. player message
+     * 検証契約: 自己HP回復メッセージを回復手段付きの黄緑色1行形式へ整形する。
+     */
+    @Test
+    void selfHpRecoveryMessageFormatsSource() {
+        String formatted = PlayerMsgResource.format(PlayerMsgId.P_5356.getId(), "12.5", "回復ポーション");
+
+        assertEquals("§a+12.5 §8| §7回復ポーション", formatted);
     }
 
     /**

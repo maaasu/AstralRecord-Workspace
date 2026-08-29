@@ -8,6 +8,8 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
+import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.jetbrains.annotations.NotNull;
@@ -52,8 +54,12 @@ public final class MageHealAuraExecutor extends PlayerActiveSkillExecutor {
                 center.clone().add(0.0D, 1.0D, 0.0D),
                 SharedParticleDefinitions.MAGE_HEAL_AURA_PULSE
         );
+        HealthRecoveryContext recoveryContext = HealthRecoveryContext.by(
+                context.caster().player(),
+                SkillPresentationUtil.plainName(context.source().skill(), "スキル")
+        );
         for (AstPlayer target : context.services().targeting().playersInRadius(center, radius, height)) {
-            double recovered = context.services().combat().recoverHp(target, healAmount);
+            double recovered = context.services().combat().recoverHp(target, healAmount, recoveryContext);
             if (recovered > 0.0D) {
                 context.services().effects().point(
                         target.getBukkit().getLocation().add(0.0D, 1.0D, 0.0D),

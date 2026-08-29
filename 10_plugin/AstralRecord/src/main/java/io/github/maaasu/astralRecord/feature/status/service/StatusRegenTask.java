@@ -80,7 +80,8 @@ public class StatusRegenTask {
             * statusService.getNaturalRegenMultiplier(astPlayer, StatusType.ENERGY_REGEN);
 
         if (hpRegenPerSecond > 0.0D && snapshot.getCurrentHp() < snapshot.getMaxValue(StatusType.MAX_HEALTH)) {
-            statusService.recoverHp(astPlayer, hpRegenPerSecond);
+            // HP 自然回復は常時回復のため、回復数値・チャット通知を発生させない。
+            statusService.recoverHp(astPlayer, hpRegenPerSecond, null);
         }
         if (mpRegenPerSecond > 0.0D && snapshot.getCurrentMp() < snapshot.getMaxValue(StatusType.MAX_MANA)) {
             statusService.recoverMp(astPlayer, mpRegenPerSecond);

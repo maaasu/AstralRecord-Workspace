@@ -13,6 +13,8 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
+import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -145,15 +147,19 @@ public final class HunterHealArrowExecutor extends PlayerActiveSkillExecutor {
                     center,
                     radius,
                     AREA_RING_POINTS,
-                    SharedParticleDefinitions.HUNTER_HEAL_ARROW_AREA
+                SharedParticleDefinitions.HUNTER_HEAL_ARROW_AREA
             );
         }
+        HealthRecoveryContext recoveryContext = HealthRecoveryContext.by(
+                context.caster().player(),
+                SkillPresentationUtil.plainName(context.source().skill(), "スキル")
+        );
         for (AstPlayer target : context.services().targeting().playersInRadius(center, radius, radius)) {
             UUID targetId = target.getBukkit().getUniqueId();
             if (!healedPlayers.add(targetId)) {
                 continue;
             }
-            double recovered = context.services().combat().recoverHp(target, healAmount);
+            double recovered = context.services().combat().recoverHp(target, healAmount, recoveryContext);
             if (recovered > 0.0D) {
                 context.services().effects().point(
                         target.getBukkit().getLocation().add(0.0D, 1.0D, 0.0D),
