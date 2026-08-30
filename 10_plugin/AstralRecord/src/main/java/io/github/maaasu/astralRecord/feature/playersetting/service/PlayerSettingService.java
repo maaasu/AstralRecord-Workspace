@@ -273,26 +273,6 @@ public final class PlayerSettingService {
     }
 
     /**
-     * 指定プレイヤーで自身の三人称視点のオフハンドを通常表示するかを、API 通信を行わずキャッシュから返します。
-     *
-     * <p>パケット送信スレッドから呼ばれるため、cache miss 時は既定値へ直ちに fallback します。</p>
-     *
-     * @param userId 判定対象ユーザー ID
-     * @return オフハンドを通常表示する場合は {@code true}
-     */
-    public boolean isOffHandDisplayEnabled(@NotNull UUID userId) {
-        PlayerSettingSnapshot snapshot = cache.find(userId);
-        if (snapshot == null) {
-            return (Boolean) PlayerSettingKey.OFF_HAND_DISPLAY.getDefaultValue();
-        }
-        PlayerSettingEntry entry = snapshot.getEntry(PlayerSettingKey.OFF_HAND_DISPLAY);
-        Object value = entry == null ? null : entry.getValue();
-        return value instanceof Boolean enabled
-            ? enabled
-            : (Boolean) PlayerSettingKey.OFF_HAND_DISPLAY.getDefaultValue();
-    }
-
-    /**
      * 指定プレイヤーでアクションリング長押し選択が有効かを、API 通信を行わずキャッシュから返します。
      *
      * <p>クリック入力の処理中に呼ばれるため、cache miss 時は従来操作を維持する既定値 {@code false} へ

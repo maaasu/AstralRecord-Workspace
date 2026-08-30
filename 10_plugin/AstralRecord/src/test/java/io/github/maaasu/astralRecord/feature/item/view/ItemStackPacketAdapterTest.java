@@ -21,7 +21,6 @@ import io.papermc.paper.datacomponent.DataComponentTypes;
 import io.papermc.paper.datacomponent.item.Equippable;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
-import org.bukkit.Server;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.inventory.EquipmentSlot;
@@ -29,7 +28,6 @@ import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.InventoryView;
-import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.CrossbowMeta;
 import org.bukkit.persistence.PersistentDataType;
@@ -47,7 +45,6 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -185,85 +182,7 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
      * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### ENTITY_EQUIPMENT書き換え
-     * 検証契約: オフハンド表示設定が無効でも、本人のENTITY_EQUIPMENTのOFFHANDだけを表示用置換対象とし、他プレイヤー向けや他slotは対象外にする。
-     */
-    @Test
-    void ownOffHandReplacementRequiresDisabledSettingViewerEntityAndOffHandSlot() {
-        assertTrue(ItemStackPacketAdapter.shouldHideOwnOffHand(
-            false,
-            42,
-            42,
-            EnumWrappers.ItemSlot.OFFHAND
-        ));
-        assertFalse(ItemStackPacketAdapter.shouldHideOwnOffHand(
-            true,
-            42,
-            42,
-            EnumWrappers.ItemSlot.OFFHAND
-        ));
-        assertFalse(ItemStackPacketAdapter.shouldHideOwnOffHand(
-            false,
-            42,
-            43,
-            EnumWrappers.ItemSlot.OFFHAND
-        ));
-        assertFalse(ItemStackPacketAdapter.shouldHideOwnOffHand(
-            false,
-            42,
-            42,
-            EnumWrappers.ItemSlot.MAINHAND
-        ));
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
-     * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### ENTITY_EQUIPMENT書き換え
-     * 検証契約: オフハンドの表示用置換は送信コピーだけをSTONE_BUTTONへ変換し、空手は置換しない。
-     */
-    @Test
-    void ownOffHandDisplayUsesCompactCopyAndKeepsServerItemUntouched() {
-        ItemStack serverShield = new ItemStack(Material.SHIELD);
-        ItemStack customItem = new ItemStack(Material.PAPER);
-
-        ItemStack clientDisplay = ItemStackPacketAdapter.replaceOwnOffHandDisplay(serverShield);
-
-        assertEquals(Material.SHIELD, serverShield.getType());
-        assertEquals(Material.STONE_BUTTON, clientDisplay.getType());
-        assertEquals(Material.STONE_BUTTON, ItemStackPacketAdapter.replaceOwnOffHandDisplay(customItem).getType());
-        assertNull(ItemStackPacketAdapter.replaceOwnOffHandDisplay(new ItemStack(Material.AIR)));
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
-     * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### ENTITY_EQUIPMENT書き換え
-     * 検証契約: 本人向けENTITY_EQUIPMENTのOFFHANDは、Paper API再送時にSTONE_BUTTONへ置換し、元のサーバーItemStackを変更しない。
-     */
-    @Test
-    void entityEquipmentReplacesOwnOffHandAtPaperBoundary() throws ReflectiveOperationException {
-        Plugin plugin = mock(Plugin.class);
-        PlayerSettingService settings = mock(PlayerSettingService.class);
-        SkillActionRingService actionRingService = mock(SkillActionRingService.class);
-        Player viewer = mock(Player.class);
-        UUID viewerId = UUID.randomUUID();
-        ItemStack serverShield = new ItemStack(Material.SHIELD);
-
-        when(viewer.getUniqueId()).thenReturn(viewerId);
-        when(viewer.isOnline()).thenReturn(true);
-        when(settings.isArmorDisplayEnabled(viewerId)).thenReturn(true);
-        ItemStackPacketAdapter adapter = new ItemStackPacketAdapter(plugin, settings, actionRingService);
-
-        invokeSendEquipmentOverride(adapter, viewer, viewer, serverShield, true);
-
-        ArgumentCaptor<Map<EquipmentSlot, ItemStack>> equipmentCaptor = ArgumentCaptor.captor();
-        verify(viewer).sendEquipmentChange(eq(viewer), equipmentCaptor.capture());
-        assertEquals(Material.STONE_BUTTON, equipmentCaptor.getValue().get(EquipmentSlot.OFF_HAND).getType());
-        assertEquals(Material.SHIELD, serverShield.getType());
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
-     * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### ENTITY_EQUIPMENT書き換え
-     * 検証契約: 他プレイヤーのENTITY_EQUIPMENTでは受信者のオフハンド非表示設定を適用せず、custom itemの通常iconだけを送信する。
+     * 検証契約: 他プレイヤーのENTITY_EQUIPMENTではcustom itemの通常iconだけを送信する。
      */
     @Test
     void entityEquipmentKeepsOtherEntityOffHandIconAtPaperBoundary() throws ReflectiveOperationException {
@@ -281,7 +200,7 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
         when(settings.isArmorDisplayEnabled(viewerId)).thenReturn(true);
         ItemStackPacketAdapter adapter = new ItemStackPacketAdapter(plugin, settings, actionRingService);
 
-        invokeSendEquipmentOverride(adapter, viewer, target, customItem, false);
+        invokeSendEquipmentOverride(adapter, viewer, target, customItem);
 
         ArgumentCaptor<Map<EquipmentSlot, ItemStack>> equipmentCaptor = ArgumentCaptor.captor();
         verify(viewer).sendEquipmentChange(eq(target), equipmentCaptor.capture());
@@ -291,38 +210,29 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
-     * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### 装備表示再同期
-     * 検証契約: OFF_HAND_DISPLAY=falseの設定変更後、refreshEquipmentViewは本人のオフハンドだけを即時STONE_BUTTONへ再送する。
+     * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### ENTITY_EQUIPMENT書き換え
+     * 検証契約: 受信者本人のENTITY_EQUIPMENTでも、オフハンドはSTONE_BUTTONへ置換せず通常iconを送信する。
      */
     @Test
-    void equipmentRefreshImmediatelyReplacesOwnOffHand() {
+    void entityEquipmentKeepsViewerOwnOffHandIconAtPaperBoundary() throws ReflectiveOperationException {
         Plugin plugin = mock(Plugin.class);
-        Server server = mock(Server.class);
         PlayerSettingService settings = mock(PlayerSettingService.class);
         SkillActionRingService actionRingService = mock(SkillActionRingService.class);
         Player viewer = mock(Player.class);
-        PlayerInventory inventory = mock(PlayerInventory.class);
         UUID viewerId = UUID.randomUUID();
-        ItemStack serverShield = new ItemStack(Material.SHIELD);
+        ItemStack customItem = itemWithIcon(Material.PAPER, "SHIELD");
 
-        when(plugin.getServer()).thenReturn(server);
-        doReturn(List.of(viewer)).when(server).getOnlinePlayers();
         when(viewer.getUniqueId()).thenReturn(viewerId);
-        when(viewer.getEntityId()).thenReturn(42);
         when(viewer.isOnline()).thenReturn(true);
-        when(viewer.getInventory()).thenReturn(inventory);
-        when(inventory.getHeldItemSlot()).thenReturn(0);
-        when(inventory.getItemInOffHand()).thenReturn(serverShield);
-        when(settings.isOffHandDisplayEnabled(viewerId)).thenReturn(false);
         when(settings.isArmorDisplayEnabled(viewerId)).thenReturn(true);
         ItemStackPacketAdapter adapter = new ItemStackPacketAdapter(plugin, settings, actionRingService);
 
-        adapter.refreshEquipmentView(viewer);
+        invokeSendEquipmentOverride(adapter, viewer, viewer, customItem);
 
-        verify(viewer).updateInventory();
         ArgumentCaptor<Map<EquipmentSlot, ItemStack>> equipmentCaptor = ArgumentCaptor.captor();
         verify(viewer).sendEquipmentChange(eq(viewer), equipmentCaptor.capture());
-        assertEquals(Material.STONE_BUTTON, equipmentCaptor.getValue().get(EquipmentSlot.OFF_HAND).getType());
+        assertEquals(Material.SHIELD, equipmentCaptor.getValue().get(EquipmentSlot.OFF_HAND).getType());
+        assertEquals(Material.PAPER, customItem.getType());
     }
 
     /**
@@ -461,8 +371,7 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
         ItemStackPacketAdapter adapter,
         Player viewer,
         org.bukkit.entity.LivingEntity target,
-        ItemStack item,
-        boolean hideOwnOffHand
+        ItemStack item
     ) throws ReflectiveOperationException {
         Class<?> equipmentUpdateClass = Class.forName(
             ItemStackPacketAdapter.class.getName() + "$EquipmentUpdate"
@@ -479,7 +388,6 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
             Player.class,
             org.bukkit.entity.LivingEntity.class,
             List.class,
-            boolean.class,
             boolean.class
         );
         sendEquipmentOverride.setAccessible(true);
@@ -488,8 +396,7 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
             viewer,
             target,
             List.of(equipmentUpdate),
-            false,
-            hideOwnOffHand
+            false
         );
     }
 

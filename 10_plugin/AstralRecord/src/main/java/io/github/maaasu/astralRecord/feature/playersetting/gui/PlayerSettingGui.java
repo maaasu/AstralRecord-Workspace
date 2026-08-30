@@ -36,7 +36,6 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
     public static final int BUFF_SIDEBAR_DISPLAY_SLOT = 30;
     public static final int ARMOR_DISPLAY_SLOT = 31;
     public static final int ACTION_RING_HOLD_SELECT_SLOT = 32;
-    public static final int OFF_HAND_DISPLAY_SLOT = 33;
     public static final int SUPER_MODE_SECRET_SLOT = 53;
     public static final int BACK_TO_MENU_SLOT = BaseMenuScreenView.BACK_SLOT;
 
@@ -81,7 +80,6 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             case BUFF_SIDEBAR_DISPLAY_SLOT -> PlayerSettingKey.BUFF_SIDEBAR_DISPLAY;
             case ARMOR_DISPLAY_SLOT -> PlayerSettingKey.ARMOR_DISPLAY;
             case ACTION_RING_HOLD_SELECT_SLOT -> PlayerSettingKey.ACTION_RING_HOLD_SELECT;
-            case OFF_HAND_DISPLAY_SLOT -> PlayerSettingKey.OFF_HAND_DISPLAY;
             default -> null;
         };
     }
@@ -145,15 +143,6 @@ public final class PlayerSettingGui extends BaseMenuScreenView {
             List.of(
                 Component.text("※有効にすると、構えている間は武器の見た目がトライデントに変化します。", NamedTextColor.RED),
                 Component.text("※動作が不安定になる可能性があります。", NamedTextColor.RED)
-            )
-        ));
-        inventory.setItem(OFF_HAND_DISPLAY_SLOT, createBooleanItem(
-            Material.STONE_BUTTON,
-            PlayerSettingKey.OFF_HAND_DISPLAY,
-            (Boolean) resolveValue(userId, PlayerSettingKey.OFF_HAND_DISPLAY, draftValues),
-            List.of(
-                Component.text("※無効にすると、自分の三人称視点で小さく表示します。", NamedTextColor.RED),
-                Component.text("※他プレイヤーから見た表示には影響しません。", NamedTextColor.RED)
             )
         ));
         inventory.setItem(BACK_TO_MENU_SLOT, backItem());

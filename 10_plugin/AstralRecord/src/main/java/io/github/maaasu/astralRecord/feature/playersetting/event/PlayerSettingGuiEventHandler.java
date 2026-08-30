@@ -245,12 +245,11 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
                         persisted.key().formatValue(persisted.value())
                     ));
                 }
-                boolean equipmentSettingSynchronized = results.stream().anyMatch(persisted ->
-                    (persisted.key() == PlayerSettingKey.ARMOR_DISPLAY
-                        || persisted.key() == PlayerSettingKey.OFF_HAND_DISPLAY)
+                boolean armorSettingSynchronized = results.stream().anyMatch(persisted ->
+                    persisted.key() == PlayerSettingKey.ARMOR_DISPLAY
                         && !persisted.result().staleSession()
                 );
-                if (equipmentSettingSynchronized) {
+                if (armorSettingSynchronized) {
                     itemStackPacketAdapter.refreshEquipmentView(player);
                 }
                 boolean actionRingHoldSelectSynchronized = results.stream().anyMatch(persisted ->

@@ -86,7 +86,7 @@ public class ItemStackPacketAdapter {
      * アダプタを初期化します。
      *
      * @param plugin プラグインインスタンス
-     * @param playerSettingService 受信者ごとの防具・オフハンド表示設定を参照するサービス
+     * @param playerSettingService 受信者ごとの防具表示設定を参照するサービス
      * @param actionRingService 受信者のアクションリング表示状態を参照するサービス
      */
     public ItemStackPacketAdapter(
@@ -133,9 +133,6 @@ public class ItemStackPacketAdapter {
                 boolean armorDisplayEnabled = playerSettingService.isArmorDisplayEnabled(
                     viewer.getUniqueId()
                 );
-                boolean offHandDisplayEnabled = playerSettingService.isOffHandDisplayEnabled(
-                    viewer.getUniqueId()
-                );
                 boolean actionRingHoldSelectEnabled = playerSettingService.isActionRingHoldSelectEnabled(
                     viewer.getUniqueId()
                 );
@@ -165,7 +162,6 @@ public class ItemStackPacketAdapter {
                     handleEntityEquipment(
                         event,
                         armorDisplayEnabled,
-                        offHandDisplayEnabled,
                         actionRingHoldSelectEnabled,
                         selectedHotbarSlot
                     );
@@ -293,14 +289,12 @@ public class ItemStackPacketAdapter {
      *
      * @param event 中止対象のパケットイベント
      * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
-     * @param offHandDisplayEnabled 受信者が自身のオフハンドを通常表示する場合は {@code true}
      * @param actionRingHoldSelectEnabled 長押し選択設定が有効な場合は {@code true}
      * @param selectedHotbarSlot 受信者が選択中の hotbar slot
      */
     private void handleEntityEquipment(
         @NotNull PacketEvent event,
         boolean armorDisplayEnabled,
-        boolean offHandDisplayEnabled,
         boolean actionRingHoldSelectEnabled,
         int selectedHotbarSlot
     ) {
@@ -325,17 +319,10 @@ public class ItemStackPacketAdapter {
         boolean requiresOverride = false;
         for (Pair<EnumWrappers.ItemSlot, ItemStack> pair : equipment) {
             ItemStack original = pair.getSecond();
-            boolean hideOwnOffHand = shouldHideOwnOffHand(
-                offHandDisplayEnabled,
-                entityId,
-                viewer.getEntityId(),
-                pair.getFirst()
-            );
             boolean virtualTrident = virtualizeSelectedMainHand
                 && pair.getFirst() == EnumWrappers.ItemSlot.MAINHAND;
             if (original != null && original.getType() != Material.AIR
-                && (hideOwnOffHand
-                    || replaceIcon(original, armorDisplayEnabled, virtualTrident) != null)) {
+                && replaceIcon(original, armorDisplayEnabled, virtualTrident) != null) {
                 requiresOverride = true;
             }
             updates.add(new EquipmentUpdate(
@@ -357,8 +344,7 @@ public class ItemStackPacketAdapter {
                 entityId,
                 updates,
                 originalPacket,
-                virtualizeSelectedMainHand,
-                entityId == viewer.getEntityId() && !offHandDisplayEnabled
+                virtualizeSelectedMainHand
             )
         );
     }
@@ -548,39 +534,6 @@ public class ItemStackPacketAdapter {
     }
 
     /**
-     * 本人向け ENTITY_EQUIPMENT のオフハンドを表示用アイテムへ置換する条件を判定します。
-     *
-     * @param offHandDisplayEnabled オフハンドを通常表示する設定
-     * @param entityId 装備更新対象のエンティティ ID
-     * @param viewerEntityId パケット受信者のエンティティ ID
-     * @param slot 判定対象の ProtocolLib 装備スロット
-     * @return 本人のオフハンドを置換する場合は {@code true}
-     */
-    static boolean shouldHideOwnOffHand(
-        boolean offHandDisplayEnabled,
-        int entityId,
-        int viewerEntityId,
-        @NotNull EnumWrappers.ItemSlot slot
-    ) {
-        return !offHandDisplayEnabled
-            && entityId == viewerEntityId
-            && slot == EnumWrappers.ItemSlot.OFFHAND;
-    }
-
-    /**
-     * オフハンドの表示用コピーを作成します。
-     *
-     * @param original サーバー側のオフハンド ItemStack
-     * @return 表示用コピー。空手の場合は {@code null}
-     */
-    static @Nullable ItemStack replaceOwnOffHandDisplay(@NotNull ItemStack original) {
-        if (original.getType() == Material.AIR) {
-            return null;
-        }
-        return new ItemStack(Material.STONE_BUTTON);
-    }
-
-    /**
      * プレイヤーインベントリだけが表示されている状態かを判定します。
      *
      * <p>GUI セッション終了後の再同期に使います。プラグイン管理 GUI の遷移中や、
@@ -599,7 +552,7 @@ public class ItemStackPacketAdapter {
      * 指定プレイヤーの inventory と、そのプレイヤーが追跡中の全プレイヤーの防具表示を再送します。
      *
      * <p>Bukkit メインスレッドから呼び出してください。設定変更時とログイン設定ロード完了時に、
-     * 次の通常装備更新を待たず、現在選択中 hotbar slot の仮想表示と本人のオフハンド表示を含む
+     * 次の通常装備更新を待たず、現在選択中 hotbar slot の仮想表示と装備表示を含む
      * 表示状態を即時反映します。</p>
      *
      * @param viewer 表示設定を反映する受信プレイヤー
@@ -630,8 +583,7 @@ public class ItemStackPacketAdapter {
                 viewer,
                 target,
                 updates,
-                false,
-                viewerTarget && !playerSettingService.isOffHandDisplayEnabled(viewer.getUniqueId())
+                false
             );
         }
     }
@@ -644,15 +596,13 @@ public class ItemStackPacketAdapter {
      * @param updates 元パケットから退避した装備更新
      * @param originalPacket 解決失敗時にフィルタを通さず再送する元パケット
      * @param virtualizeSelectedMainHand 本人のメインハンドを仮想トライデント化する場合は {@code true}
-     * @param hideOwnOffHand 本人のオフハンドを表示用アイテムへ置換する場合は {@code true}
      */
     private void sendEquipmentOverride(
         @NotNull Player viewer,
         int entityId,
         @NotNull List<EquipmentUpdate> updates,
         @NotNull PacketContainer originalPacket,
-        boolean virtualizeSelectedMainHand,
-        boolean hideOwnOffHand
+        boolean virtualizeSelectedMainHand
     ) {
         if (!viewer.isOnline()) {
             return;
@@ -669,7 +619,7 @@ public class ItemStackPacketAdapter {
             return;
         }
 
-        sendEquipmentOverride(viewer, target, updates, virtualizeSelectedMainHand, hideOwnOffHand);
+        sendEquipmentOverride(viewer, target, updates, virtualizeSelectedMainHand);
     }
 
     /**
@@ -701,33 +651,11 @@ public class ItemStackPacketAdapter {
         @NotNull List<EquipmentUpdate> updates,
         boolean virtualizeSelectedMainHand
     ) {
-        sendEquipmentOverride(viewer, target, updates, virtualizeSelectedMainHand, false);
-    }
-
-    /**
-     * Paper API 経由で装備更新を送信し、受信者本人の表示だけを必要に応じて仮想化します。
-     *
-     * @param viewer 装備表示を受信するプレイヤー
-     * @param target 装備を表示する対象エンティティ
-     * @param updates 送信する装備更新
-     * @param virtualizeSelectedMainHand 本人のメインハンドを仮想トライデント化する場合は {@code true}
-     * @param hideOwnOffHand 本人のオフハンドを表示用アイテムへ置換する場合は {@code true}
-     */
-    private void sendEquipmentOverride(
-        @NotNull Player viewer,
-        @NotNull org.bukkit.entity.LivingEntity target,
-        @NotNull List<EquipmentUpdate> updates,
-        boolean virtualizeSelectedMainHand,
-        boolean hideOwnOffHand
-    ) {
-
         boolean armorDisplayEnabled = playerSettingService.isArmorDisplayEnabled(viewer.getUniqueId());
         Map<EquipmentSlot, ItemStack> equipment = new EnumMap<>(EquipmentSlot.class);
         for (EquipmentUpdate update : updates) {
             boolean virtualTrident = virtualizeSelectedMainHand && update.slot() == EquipmentSlot.HAND;
-            ItemStack replaced = hideOwnOffHand && update.slot() == EquipmentSlot.OFF_HAND
-                ? replaceOwnOffHandDisplay(update.item())
-                : replaceIcon(update.item(), armorDisplayEnabled, virtualTrident);
+            ItemStack replaced = replaceIcon(update.item(), armorDisplayEnabled, virtualTrident);
             equipment.put(update.slot(), replaced != null ? replaced : update.item());
         }
         if (equipment.isEmpty()) {
