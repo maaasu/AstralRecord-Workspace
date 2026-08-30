@@ -19,6 +19,8 @@ public class MarketTransactionEntity
     public string? ValuationSignature { get; set; }
     public string? ValuationSnapshotJson { get; set; }
     public string IdempotencyKey { get; set; } = string.Empty;
+    /// <summary>購入応答を再送するための、更新済み inventory entry ID の JSON 配列です。</summary>
+    public string? AffectedInventoryEntryIdsJson { get; set; }
     public DateTime CompletedAt { get; set; }
     public DateTime CreatedAt { get; set; }
     public Guid CreatedBy { get; set; }

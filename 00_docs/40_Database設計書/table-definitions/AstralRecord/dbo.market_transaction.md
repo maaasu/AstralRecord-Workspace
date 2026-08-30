@@ -39,6 +39,7 @@
 | `valuation_signature` | `NVARCHAR(300)` |  |  |  | 個体評価シグネチャ |
 | `valuation_snapshot_json` | `NVARCHAR(MAX)` |  |  |  | 成立時評価 JSON |
 | `idempotency_key` | `NVARCHAR(100)` |  | ○ |  | 二重購入防止キー |
+| `affected_inventory_entry_ids_json` | `NVARCHAR(MAX)` |  |  |  | 購入応答再生用の更新済み inventory entry ID 配列 |
 | `completed_at` | `DATETIME2(3)` |  | ○ |  | 成立日時 |
 | `created_at` | `DATETIME2(3)` |  | ○ |  | 作成日時 |
 | `created_by` | `UNIQUEIDENTIFIER` |  | ○ |  | 作成者 UUID |
@@ -58,6 +59,7 @@
 | `CK_market_transaction_quantity` | `[quantity] >= 1` | 数量 |
 | `CK_market_transaction_price` | `[unit_price] >= 1 AND [total_price] = [unit_price] * [quantity] AND [fee_amount] >= 0 AND [seller_proceeds] = [total_price] - [fee_amount]` | 価格 |
 | `CK_market_transaction_valuation_json` | `[valuation_snapshot_json] IS NULL OR ISJSON([valuation_snapshot_json]) = 1` | 評価 JSON |
+| `CK_market_transaction_affected_entries_json` | `[affected_inventory_entry_ids_json] IS NULL OR ISJSON([affected_inventory_entry_ids_json]) = 1` | 購入 receipt の再同期 entry JSON |
 
 ---
 
@@ -96,6 +98,7 @@ CREATE TABLE [dbo].[market_transaction] (
     [valuation_signature]     NVARCHAR(300)        NULL,
     [valuation_snapshot_json] NVARCHAR(MAX)        NULL,
     [idempotency_key]         NVARCHAR(100)    NOT NULL,
+    [affected_inventory_entry_ids_json] NVARCHAR(MAX) NULL,
     [completed_at]            DATETIME2(3)     NOT NULL,
     [created_at]              DATETIME2(3)     NOT NULL,
     [created_by]              UNIQUEIDENTIFIER NOT NULL,
@@ -110,7 +113,8 @@ CREATE TABLE [dbo].[market_transaction] (
     CONSTRAINT [UQ_market_transaction_idempotency] UNIQUE ([buyer_account_id], [idempotency_key]),
     CONSTRAINT [CK_market_transaction_quantity] CHECK ([quantity] >= 1),
     CONSTRAINT [CK_market_transaction_price] CHECK ([unit_price] >= 1 AND [total_price] = [unit_price] * [quantity] AND [fee_amount] >= 0 AND [seller_proceeds] = [total_price] - [fee_amount]),
-    CONSTRAINT [CK_market_transaction_valuation_json] CHECK ([valuation_snapshot_json] IS NULL OR ISJSON([valuation_snapshot_json]) = 1)
+    CONSTRAINT [CK_market_transaction_valuation_json] CHECK ([valuation_snapshot_json] IS NULL OR ISJSON([valuation_snapshot_json]) = 1),
+    CONSTRAINT [CK_market_transaction_affected_entries_json] CHECK ([affected_inventory_entry_ids_json] IS NULL OR ISJSON([affected_inventory_entry_ids_json]) = 1)
 );
 GO
 

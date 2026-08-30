@@ -22,6 +22,7 @@ import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaim;
 import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaimRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketPurchaseRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketTransaction;
+import io.github.maaasu.astralRecord.feature.market.repository.MarketTransportException;
 import io.github.maaasu.astralRecord.feature.market.service.MarketService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -642,12 +643,13 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             if (preflightRejection != null) {
                 return PurchaseListingResult.rejected(preflightRejection);
             }
-            MarketTransaction transaction = marketService.purchase(listing.listingId(), new MarketPurchaseRequest(
+            MarketPurchaseRequest request = new MarketPurchaseRequest(
                 accountId,
                 purchaseQuantity,
                 UUID.randomUUID().toString(),
                 accountId
-            ));
+            );
+            MarketTransaction transaction = purchaseWithReplay(listing.listingId(), request);
             inventoryService.reconcileExternalInventoryEntriesToOwnedInventory(
                 astPlayer,
                 transaction.affectedInventoryEntryIds(),
@@ -1006,9 +1008,35 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
     ) {
         try {
             return marketService.claimProceeds(listingId, request);
-        } catch (RuntimeException firstFailure) {
+        } catch (MarketTransportException firstFailure) {
             try {
                 return marketService.claimProceeds(listingId, request);
+            } catch (RuntimeException retryFailure) {
+                retryFailure.addSuppressed(firstFailure);
+                throw retryFailure;
+            }
+        }
+    }
+
+    /**
+     * 応答喪失の可能性がある購入確定を、同じ冪等キーで一度だけ再送します。
+     * <p>
+     * API は確定済み取引の receipt を同じキーで再生するため、二重購入せず
+     * Gold と購入品の再同期対象を取得できます。
+     *
+     * @param listingId 購入対象の出品 ID
+     * @param request 再送時にも同じキーを使う購入リクエスト
+     * @return API が確定した購入結果
+     */
+    private @NotNull MarketTransaction purchaseWithReplay(
+        @NotNull UUID listingId,
+        @NotNull MarketPurchaseRequest request
+    ) {
+        try {
+            return marketService.purchase(listingId, request);
+        } catch (MarketTransportException firstFailure) {
+            try {
+                return marketService.purchase(listingId, request);
             } catch (RuntimeException retryFailure) {
                 retryFailure.addSuppressed(firstFailure);
                 throw retryFailure;

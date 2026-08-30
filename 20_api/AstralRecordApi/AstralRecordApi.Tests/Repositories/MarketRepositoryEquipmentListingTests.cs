@@ -512,12 +512,13 @@ public class MarketRepositoryEquipmentListingTests
         await harness.AddGoldInventoryAsync(harness.AccountId, 0);
         var buyer = await harness.AddBuyerWithGoldAsync(500);
 
-        var result = await harness.Repository.PurchaseListingAsync(listing.Value!.ListingId, new MarketPurchaseRequest
+        var purchaseRequest = new MarketPurchaseRequest
         {
             BuyerAccountId = buyer.AccountId,
             IdempotencyKey = Guid.NewGuid().ToString(),
             UpdatedBy = buyer.AccountId,
-        });
+        };
+        var result = await harness.Repository.PurchaseListingAsync(listing.Value!.ListingId, purchaseRequest);
 
         Assert.True(result.Succeeded);
         Assert.Equal(100, result.Value!.TotalPrice);
@@ -531,6 +532,25 @@ public class MarketRepositoryEquipmentListingTests
         var equipment = await harness.DbContext.EquipmentInstances.AsNoTracking()
             .SingleAsync(instance => instance.EquipmentInstanceId == harness.EquipmentInstanceId);
         Assert.Equal(buyer.AccountId, equipment.AccountId);
+
+        // commit 応答喪失後の同一要求再送でも、Plugin が Gold と購入品を再同期できる receipt を返す。
+        var purchaseReplay = await harness.Repository.PurchaseListingAsync(listing.Value.ListingId, purchaseRequest);
+        Assert.True(purchaseReplay.Succeeded);
+        Assert.Equal(result.Value.TransactionId, purchaseReplay.Value!.TransactionId);
+        Assert.Equal(result.Value.AffectedInventoryEntryIds, purchaseReplay.Value.AffectedInventoryEntryIds);
+        Assert.Equal(400, await harness.TotalGoldAsync(buyer.AccountId));
+
+        var conflictingReplay = await harness.Repository.PurchaseListingAsync(
+            listing.Value.ListingId,
+            new MarketPurchaseRequest
+            {
+                BuyerAccountId = buyer.AccountId,
+                Quantity = 2,
+                IdempotencyKey = purchaseRequest.IdempotencyKey,
+                UpdatedBy = buyer.AccountId,
+            });
+        Assert.False(conflictingReplay.Succeeded);
+        Assert.Equal("market.idempotency_conflict", conflictingReplay.ErrorCode);
 
         var claimRequest = new MarketProceedsClaimRequest
         {
@@ -559,6 +579,60 @@ public class MarketRepositoryEquipmentListingTests
             });
         Assert.False(duplicateWithAnotherKey.Succeeded);
         Assert.Equal("market.claim_already_completed", duplicateWithAnotherKey.ErrorCode);
+    }
+
+    [Fact]
+    public async Task PurchaseListing_CommitResultUnknown_ReplaysCommittedReceiptWithoutDoublePayment()
+    {
+        var interceptor = new CommitResultUnknownInterceptor();
+        await using var harness = await MarketHarness.CreateAsync(
+            addMembership: true,
+            commitInterceptor: interceptor);
+        var listing = await harness.Repository.CreateListingAsync(harness.CreateRequest());
+        Assert.True(listing.Succeeded);
+        var buyer = await harness.AddBuyerWithGoldAsync(500);
+        interceptor.Rearm();
+
+        var result = await harness.Repository.PurchaseListingAsync(
+            listing.Value!.ListingId,
+            new MarketPurchaseRequest
+            {
+                BuyerAccountId = buyer.AccountId,
+                IdempotencyKey = Guid.NewGuid().ToString(),
+                UpdatedBy = buyer.AccountId,
+            });
+
+        Assert.True(result.Succeeded);
+        Assert.True(interceptor.WasThrown);
+        Assert.NotEmpty(result.Value!.AffectedInventoryEntryIds);
+        Assert.Equal(1, await harness.DbContext.MarketTransactions.CountAsync());
+        Assert.Equal(400, await harness.TotalGoldAsync(buyer.AccountId));
+    }
+
+    [Fact]
+    public async Task PurchaseListing_ReplayRejectsMissingPersistedReceipt()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: true);
+        var listing = await harness.Repository.CreateListingAsync(harness.CreateRequest());
+        Assert.True(listing.Succeeded);
+        var buyer = await harness.AddBuyerWithGoldAsync(500);
+        var request = new MarketPurchaseRequest
+        {
+            BuyerAccountId = buyer.AccountId,
+            IdempotencyKey = Guid.NewGuid().ToString(),
+            UpdatedBy = buyer.AccountId,
+        };
+        var purchased = await harness.Repository.PurchaseListingAsync(listing.Value!.ListingId, request);
+        Assert.True(purchased.Succeeded);
+        var transaction = await harness.DbContext.MarketTransactions.SingleAsync();
+        transaction.AffectedInventoryEntryIdsJson = null;
+        await harness.DbContext.SaveChangesAsync();
+
+        var replay = await harness.Repository.PurchaseListingAsync(listing.Value.ListingId, request);
+
+        Assert.False(replay.Succeeded);
+        Assert.Equal("market.purchase_receipt_invalid", replay.ErrorCode);
+        Assert.Equal(400, await harness.TotalGoldAsync(buyer.AccountId));
     }
 
     [Fact]
@@ -630,6 +704,86 @@ public class MarketRepositoryEquipmentListingTests
         var retry = await harness.Repository.CreateListingAsync(
             harness.CreateStackRequest(sourceEntryId, quantity: 1));
         Assert.True(retry.Succeeded);
+    }
+
+    [Fact]
+    public async Task PurchaseListing_RejectsDestinationQuantityOverflowWithoutChangingBalances()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: false);
+        var sourceEntryId = await harness.AddStackEntryAsync(quantity: 1);
+        var created = await harness.Repository.CreateListingAsync(
+            harness.CreateStackRequest(sourceEntryId, quantity: 1));
+        Assert.True(created.Succeeded);
+        var buyer = await harness.AddBuyerWithGoldAsync(500);
+        var now = DateTime.UtcNow;
+        harness.DbContext.InventoryEntries.Add(new InventoryEntryEntity
+        {
+            InventoryEntryId = Guid.NewGuid(),
+            InventoryId = buyer.BagInventoryId,
+            ItemCategory = "material",
+            ItemId = "market_material",
+            Quantity = long.MaxValue,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = buyer.AccountId,
+            UpdatedBy = buyer.AccountId,
+        });
+        await harness.DbContext.SaveChangesAsync();
+
+        var result = await harness.Repository.PurchaseListingAsync(
+            created.Value!.ListingId,
+            new MarketPurchaseRequest
+            {
+                BuyerAccountId = buyer.AccountId,
+                Quantity = 1,
+                IdempotencyKey = Guid.NewGuid().ToString(),
+                UpdatedBy = buyer.AccountId,
+            });
+
+        Assert.False(result.Succeeded);
+        Assert.Equal("market.destination_quantity_overflow", result.ErrorCode);
+        Assert.Equal(500, await harness.TotalGoldAsync(buyer.AccountId));
+        var listing = await harness.Repository.GetListingAsync(created.Value.ListingId);
+        Assert.NotNull(listing);
+        Assert.Equal("ACTIVE", listing!.Status);
+        Assert.Equal(1, listing.RemainingQuantity);
+    }
+
+    [Fact]
+    public async Task ClaimProceeds_RejectsEmptyPersistedReceiptOnReplay()
+    {
+        await using var harness = await MarketHarness.CreateAsync(addMembership: true);
+        var created = await harness.Repository.CreateListingAsync(harness.CreateRequest());
+        Assert.True(created.Succeeded);
+        await harness.AddGoldInventoryAsync(harness.AccountId, 0);
+        var buyer = await harness.AddBuyerWithGoldAsync(500);
+        var purchased = await harness.Repository.PurchaseListingAsync(
+            created.Value!.ListingId,
+            new MarketPurchaseRequest
+            {
+                BuyerAccountId = buyer.AccountId,
+                IdempotencyKey = Guid.NewGuid().ToString(),
+                UpdatedBy = buyer.AccountId,
+            });
+        Assert.True(purchased.Succeeded);
+        var claimRequest = new MarketProceedsClaimRequest
+        {
+            SellerAccountId = harness.AccountId,
+            IdempotencyKey = Guid.NewGuid().ToString(),
+            UpdatedBy = harness.AccountId,
+        };
+        var claimed = await harness.Repository.ClaimProceedsAsync(created.Value.ListingId, claimRequest);
+        Assert.True(claimed.Succeeded);
+        var listing = await harness.DbContext.MarketListings
+            .SingleAsync(candidate => candidate.ListingId == created.Value.ListingId);
+        listing.ProceedsClaimAffectedInventoryEntryIdsJson = "[]";
+        await harness.DbContext.SaveChangesAsync();
+
+        var replay = await harness.Repository.ClaimProceedsAsync(created.Value.ListingId, claimRequest);
+
+        Assert.False(replay.Succeeded);
+        Assert.Equal("market.claim_receipt_invalid", replay.ErrorCode);
+        Assert.Equal(100, await harness.TotalGoldAsync(harness.AccountId));
     }
 
     private sealed class MarketHarness : IAsyncDisposable
@@ -1166,6 +1320,12 @@ public class MarketRepositoryEquipmentListingTests
         public bool WasThrown { get; private set; }
 
         public void Arm() => armed = true;
+
+        public void Rearm()
+        {
+            WasThrown = false;
+            armed = true;
+        }
 
         public override Task TransactionCommittedAsync(
             DbTransaction transaction,

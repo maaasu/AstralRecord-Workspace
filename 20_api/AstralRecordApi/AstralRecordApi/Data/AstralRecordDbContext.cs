@@ -861,6 +861,8 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(e => e.ValuationSignature).HasColumnName("valuation_signature");
             entity.Property(e => e.ValuationSnapshotJson).HasColumnName("valuation_snapshot_json");
             entity.Property(e => e.IdempotencyKey).HasColumnName("idempotency_key");
+            entity.Property(e => e.AffectedInventoryEntryIdsJson)
+                .HasColumnName("affected_inventory_entry_ids_json");
             entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");

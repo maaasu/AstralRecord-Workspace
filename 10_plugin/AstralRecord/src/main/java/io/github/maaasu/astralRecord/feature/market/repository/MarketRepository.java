@@ -30,6 +30,7 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -272,7 +273,7 @@ public class MarketRepository {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
         } catch (IOException e) {
-            throw new RuntimeException("Failed to request " + path, e);
+            throw new MarketTransportException("Failed to request " + path, e);
         }
     }
 
@@ -430,7 +431,7 @@ public class MarketRepository {
         );
     }
 
-    private MarketTransaction parseTransaction(@NotNull JsonObject obj) {
+    MarketTransaction parseTransaction(@NotNull JsonObject obj) {
         return new MarketTransaction(
             uuid(obj, "transactionId"),
             uuid(obj, "listingId"),
@@ -446,7 +447,7 @@ public class MarketRepository {
             longValue(obj, "totalPrice", 0),
             longValue(obj, "feeAmount", 0),
             longValue(obj, "sellerProceeds", 0),
-            uuidList(obj, "affectedInventoryEntryIds"),
+            requiredUuidList(obj, "affectedInventoryEntryIds"),
             instant(obj, "completedAt")
         );
     }
@@ -509,6 +510,39 @@ public class MarketRepository {
             }
         }
         return List.copyOf(result);
+    }
+
+    /**
+     * mutation 成功応答に必須の inventory entry ID 配列を厳密に読み取ります。
+     *
+     * @param obj API 応答 JSON
+     * @param key 必須配列のキー
+     * @return 1 件以上の有効な UUID
+     * @throws IllegalStateException 配列が欠落、空、または不正 UUID を含む場合
+     */
+    private @NotNull List<UUID> requiredUuidList(@NotNull JsonObject obj, @NotNull String key) {
+        if (!obj.has(key) || obj.get(key).isJsonNull() || !obj.get(key).isJsonArray()) {
+            throw new IllegalStateException("Market response is missing required UUID array: " + key);
+        }
+        List<UUID> result = new ArrayList<>();
+        for (var element : obj.getAsJsonArray(key)) {
+            if (element.isJsonNull()) {
+                throw new IllegalStateException("Market response contains null UUID: " + key);
+            }
+            try {
+                UUID value = UUID.fromString(element.getAsString());
+                if (value.equals(new UUID(0L, 0L))) {
+                    throw new IllegalArgumentException("zero UUID");
+                }
+                result.add(value);
+            } catch (RuntimeException exception) {
+                throw new IllegalStateException("Market response contains invalid UUID: " + key, exception);
+            }
+        }
+        if (result.isEmpty()) {
+            throw new IllegalStateException("Market response contains empty UUID array: " + key);
+        }
+        return List.copyOf(new LinkedHashSet<>(result));
     }
 
     private Instant instant(@NotNull JsonObject obj, @NotNull String key) {

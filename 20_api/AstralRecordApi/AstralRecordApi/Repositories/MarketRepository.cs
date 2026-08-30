@@ -251,7 +251,10 @@ public class MarketRepository(
 
     public async Task<MarketOperationResult<MarketTransactionResponse>> PurchaseListingAsync(Guid listingId, MarketPurchaseRequest request)
     {
-        if (request.Quantity < 1L || request.Quantity > int.MaxValue || string.IsNullOrWhiteSpace(request.IdempotencyKey))
+        if (request.Quantity < 1L
+            || request.Quantity > int.MaxValue
+            || string.IsNullOrWhiteSpace(request.IdempotencyKey)
+            || request.IdempotencyKey.Length > 100)
             return MarketOperationResult<MarketTransactionResponse>.Failure(
                 400,
                 "market.invalid_purchase_request",
@@ -281,8 +284,25 @@ public class MarketRepository(
                     && transaction.IdempotencyKey == request.IdempotencyKey);
             if (existingTransaction is not null)
             {
+                if (existingTransaction.ListingId != listingId || existingTransaction.Quantity != request.Quantity)
+                    return await RollbackFailureAsync(
+                        409,
+                        "market.idempotency_conflict",
+                        "Idempotency key was already used for another purchase request.");
+                MarketTransactionResponse response;
+                try
+                {
+                    response = MapTransaction(existingTransaction);
+                }
+                catch (InvalidOperationException)
+                {
+                    return await RollbackFailureAsync(
+                        409,
+                        "market.purchase_receipt_invalid",
+                        "Purchase receipt is invalid.");
+                }
                 await transactionScope.CommitAsync();
-                return MarketOperationResult<MarketTransactionResponse>.Success(MapTransaction(existingTransaction));
+                return MarketOperationResult<MarketTransactionResponse>.Success(response);
             }
 
             var listing = await FindListingForUpdateAsync(listingId);
@@ -331,6 +351,10 @@ public class MarketRepository(
             if (!transfer.Succeeded)
                 return await RollbackFailureAsync(transfer.StatusCode, transfer.ErrorCode!, transfer.Detail!);
 
+            var affectedInventoryEntryIds = payment.Value!
+                .Concat(transfer.Value!)
+                .Distinct()
+                .ToArray();
             var transaction = new MarketTransactionEntity
             {
                 TransactionId = Guid.NewGuid(),
@@ -350,6 +374,7 @@ public class MarketRepository(
                 ValuationSignature = listing.ValuationSignature,
                 ValuationSnapshotJson = listing.ValuationSnapshotJson,
                 IdempotencyKey = request.IdempotencyKey,
+                AffectedInventoryEntryIdsJson = JsonSerializer.Serialize(affectedInventoryEntryIds),
                 CompletedAt = now,
                 CreatedAt = now,
                 CreatedBy = request.UpdatedBy,
@@ -374,7 +399,7 @@ public class MarketRepository(
 
             return MarketOperationResult<MarketTransactionResponse>.Success(MapTransaction(
                 transaction,
-                payment.Value!.Concat(transfer.Value!).Distinct().ToArray()));
+                affectedInventoryEntryIds));
         });
     }
 
@@ -493,6 +518,12 @@ public class MarketRepository(
                     {
                         affectedInventoryEntryIds = JsonSerializer.Deserialize<List<Guid>>(
                             listing.ProceedsClaimAffectedInventoryEntryIdsJson) ?? [];
+                        if (affectedInventoryEntryIds.Count == 0
+                            || affectedInventoryEntryIds.Any(entryId => entryId == Guid.Empty))
+                        {
+                            throw new JsonException("Affected inventory entry IDs are empty or invalid.");
+                        }
+                        affectedInventoryEntryIds = affectedInventoryEntryIds.Distinct().ToArray();
                     }
                     catch (JsonException)
                     {
@@ -840,7 +871,17 @@ public class MarketRepository(
             && !entry.IsDeleted);
         if (existing is not null)
         {
-            existing.Quantity += quantity;
+            try
+            {
+                existing.Quantity = checked(existing.Quantity + quantity);
+            }
+            catch (OverflowException)
+            {
+                return MarketOperationResult<IReadOnlyList<Guid>>.Failure(
+                    409,
+                    "market.destination_quantity_overflow",
+                    "Market destination quantity overflowed.");
+            }
             existing.UpdatedAt = now;
             existing.UpdatedBy = updatedBy;
             return MarketOperationResult<IReadOnlyList<Guid>>.Success([existing.InventoryEntryId]);
@@ -1289,7 +1330,33 @@ public class MarketRepository(
         TotalPrice = entity.TotalPrice,
         FeeAmount = entity.FeeAmount,
         SellerProceeds = entity.SellerProceeds,
-        AffectedInventoryEntryIds = affectedInventoryEntryIds ?? Array.Empty<Guid>(),
+        AffectedInventoryEntryIds = affectedInventoryEntryIds ?? ParsePurchaseAffectedInventoryEntryIds(entity),
         CompletedAt = entity.CompletedAt,
     };
+
+    /// <summary>
+    /// 確定済み購入 receipt から Plugin 再同期対象を復元します。
+    /// </summary>
+    /// <param name="entity">再送対象の取引</param>
+    /// <returns>Gold と購入品を含む更新 entry ID</returns>
+    /// <exception cref="InvalidOperationException">receipt が欠損または破損している場合</exception>
+    private static IReadOnlyList<Guid> ParsePurchaseAffectedInventoryEntryIds(MarketTransactionEntity entity)
+    {
+        if (string.IsNullOrWhiteSpace(entity.AffectedInventoryEntryIdsJson))
+            throw new InvalidOperationException(
+                $"Market purchase receipt is missing affected inventory entries: {entity.TransactionId}");
+        try
+        {
+            var entryIds = JsonSerializer.Deserialize<Guid[]>(entity.AffectedInventoryEntryIdsJson);
+            if (entryIds is null || entryIds.Length == 0 || entryIds.Any(entryId => entryId == Guid.Empty))
+                throw new JsonException("Affected inventory entry IDs are empty or invalid.");
+            return entryIds.Distinct().ToArray();
+        }
+        catch (JsonException exception)
+        {
+            throw new InvalidOperationException(
+                $"Market purchase receipt has invalid affected inventory entries: {entity.TransactionId}",
+                exception);
+        }
+    }
 }

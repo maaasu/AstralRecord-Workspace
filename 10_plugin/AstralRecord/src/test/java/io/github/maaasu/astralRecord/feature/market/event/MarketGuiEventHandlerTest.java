@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.market.model.MarketListingDraft;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingSource;
 import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaim;
 import io.github.maaasu.astralRecord.feature.market.model.MarketTransaction;
+import io.github.maaasu.astralRecord.feature.market.repository.MarketTransportException;
 import io.github.maaasu.astralRecord.feature.market.service.MarketService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -42,9 +43,11 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -195,6 +198,122 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
             List.of(ownListing.sourceInventoryEntryId()),
             baseline
         );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 4. 購入
+     * 検証契約: 購入応答を受信できなかった場合は同じ冪等キーで一度再送し、再生 receipt の affected IDs を再同期する。
+     */
+    @Test
+    void purchaseReplaysSameRequestAfterResponseFailureAndReconcilesReceipt() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        InventorySaveCoordinator coordinator = mock(InventorySaveCoordinator.class);
+        MarketService marketService = mock(MarketService.class);
+        ItemService itemService = mock(ItemService.class);
+        MarketGuiEventHandler handler = new MarketGuiEventHandler(
+            mock(AstralRecord.class),
+            itemService,
+            mock(MarketGui.class),
+            marketService,
+            inventoryService,
+            coordinator,
+            mock(CurrencyService.class),
+            mock(PlayerMessageService.class),
+            mock(GoldAmountSettingGui.class)
+        );
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        AstPlayerCache.put(astPlayer);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        UUID affectedEntryId = UUID.randomUUID();
+        MarketListing listing = listing(UUID.randomUUID(), "ACTIVE", 0L);
+        MarketTransaction transaction = new MarketTransaction(
+            UUID.randomUUID(), listing.listingId(), listing.sellerAccountId(), accountId,
+            ItemCategory.MATERIAL.getApiValue(), listing.itemId(), null, null,
+            1L, "gold", 1L, 1L, 0L, 1L, List.of(affectedEntryId),
+            Instant.parse("2026-08-17T00:00:00Z")
+        );
+        ItemModel marketItem = item();
+        when(itemService.findLoadedById(listing.itemId())).thenReturn(marketItem);
+        when(inventoryService.canAddItemToNormalInventory(astPlayer, marketItem, 1)).thenReturn(true);
+        when(marketService.purchase(eq(listing.listingId()), any()))
+            .thenThrow(new MarketTransportException("response lost", new java.io.IOException("connection reset")))
+            .thenReturn(transaction);
+        InventoryPersistence.PersistedInventoryBaseline baseline =
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of());
+        executeMarketMutation(coordinator, baseline);
+
+        invoke(handler, "purchaseListing",
+            new Class<?>[] { Player.class, newMarketSession().getClass(), MarketListing.class, long.class },
+            player, newMarketSession(), listing, 1L);
+
+        var requestCaptor = org.mockito.ArgumentCaptor.forClass(
+            io.github.maaasu.astralRecord.feature.market.model.MarketPurchaseRequest.class);
+        verify(marketService, times(2)).purchase(eq(listing.listingId()), requestCaptor.capture());
+        assertEquals(
+            requestCaptor.getAllValues().get(0).idempotencyKey(),
+            requestCaptor.getAllValues().get(1).idempotencyKey());
+        verify(inventoryService).reconcileExternalInventoryEntriesToOwnedInventory(
+            astPlayer, List.of(affectedEntryId), baseline);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 4. 購入
+     * 検証契約: API が返した決定的な購入エラーは再送しない。
+     */
+    @Test
+    void purchaseDoesNotReplayDeterministicApiFailure() {
+        MarketService marketService = mock(MarketService.class);
+        MarketGuiEventHandler handler = handler(mock(InventoryService.class), marketService);
+        UUID listingId = UUID.randomUUID();
+        var request = new io.github.maaasu.astralRecord.feature.market.model.MarketPurchaseRequest(
+            UUID.randomUUID(), 1L, UUID.randomUUID().toString(), UUID.randomUUID());
+        when(marketService.purchase(listingId, request))
+            .thenThrow(new IllegalStateException("HTTP 409"));
+
+        assertThrows(IllegalStateException.class, () -> invoke(
+            handler,
+            "purchaseWithReplay",
+            new Class<?>[] {
+                UUID.class,
+                io.github.maaasu.astralRecord.feature.market.model.MarketPurchaseRequest.class,
+            },
+            listingId,
+            request
+        ));
+
+        verify(marketService).purchase(listingId, request);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 3. 出品作成・cancel・売上受取
+     * 検証契約: API が返した決定的な売上受取エラーは再送しない。
+     */
+    @Test
+    void proceedsClaimDoesNotReplayDeterministicApiFailure() {
+        MarketService marketService = mock(MarketService.class);
+        MarketGuiEventHandler handler = handler(mock(InventoryService.class), marketService);
+        UUID listingId = UUID.randomUUID();
+        var request = new io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaimRequest(
+            UUID.randomUUID(), UUID.randomUUID().toString(), UUID.randomUUID());
+        when(marketService.claimProceeds(listingId, request))
+            .thenThrow(new IllegalStateException("HTTP 409"));
+
+        assertThrows(IllegalStateException.class, () -> invoke(
+            handler,
+            "claimProceedsWithReplay",
+            new Class<?>[] {
+                UUID.class,
+                io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaimRequest.class,
+            },
+            listingId,
+            request
+        ));
+
+        verify(marketService).claimProceeds(listingId, request);
     }
 
     /**

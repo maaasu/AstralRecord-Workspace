@@ -1317,6 +1317,7 @@ CREATE TABLE [dbo].[market_transaction] (
     [valuation_signature]     NVARCHAR(300)        NULL,
     [valuation_snapshot_json] NVARCHAR(MAX)        NULL,
     [idempotency_key]         NVARCHAR(100)    NOT NULL,
+    [affected_inventory_entry_ids_json] NVARCHAR(MAX) NULL,
     [completed_at]            DATETIME2(3)     NOT NULL,
     [created_at]              DATETIME2(3)     NOT NULL,
     [created_by]              UNIQUEIDENTIFIER NOT NULL,
@@ -1331,7 +1332,8 @@ CREATE TABLE [dbo].[market_transaction] (
     CONSTRAINT [UQ_market_transaction_idempotency] UNIQUE ([buyer_account_id], [idempotency_key]),
     CONSTRAINT [CK_market_transaction_quantity] CHECK ([quantity] >= 1),
     CONSTRAINT [CK_market_transaction_price] CHECK ([unit_price] >= 1 AND [total_price] = [unit_price] * [quantity] AND [fee_amount] >= 0 AND [seller_proceeds] = [total_price] - [fee_amount]),
-    CONSTRAINT [CK_market_transaction_valuation_json] CHECK ([valuation_snapshot_json] IS NULL OR ISJSON([valuation_snapshot_json]) = 1)
+    CONSTRAINT [CK_market_transaction_valuation_json] CHECK ([valuation_snapshot_json] IS NULL OR ISJSON([valuation_snapshot_json]) = 1),
+    CONSTRAINT [CK_market_transaction_affected_entries_json] CHECK ([affected_inventory_entry_ids_json] IS NULL OR ISJSON([affected_inventory_entry_ids_json]) = 1)
 );
 GO
 
