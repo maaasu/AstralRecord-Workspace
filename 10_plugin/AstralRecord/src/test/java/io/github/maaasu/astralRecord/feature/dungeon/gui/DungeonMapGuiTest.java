@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.dungeon.gui;
 
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.LodestoneTracker;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLayout;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonMapRoomState;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomShape;
@@ -7,9 +9,11 @@ import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomType;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
 
 import java.util.LinkedHashMap;
@@ -19,6 +23,7 @@ import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 
 class DungeonMapGuiTest extends MockBukkitTestBase {
@@ -108,6 +113,34 @@ class DungeonMapGuiTest extends MockBukkitTestBase {
 
         assertItem(player.getOpenInventory().getTopInventory(), DungeonMapGui.DIRECTION_SLOT,
                 Material.ARROW, "← 西");
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ > ### 8.2 現在ダンジョンマップ
+     * 検証契約: 現在地に表示するRECOVERY_COMPASSは、本人のyawへ向く仮想lodestoneを持つ。
+     *
+     * <p>MockBukkit 4.110.0のInventoryMockはItemStackのclone時にPaperのdata componentを
+     * 複製しないため、GUIから取得したItemStackではtargetを検証できない。GUI上の素材は
+     * {@link #visuallySeparatesRoomStatesWithoutExposingInternalIds()}で検証し、ここではopenが
+     * 使用する適用処理へ設定されるdata componentを、inventoryへのclone前のItemStackで検証する。
+     */
+    @Test
+    void pointsRecoveryCompassAlongPlayerYaw() {
+        var player = server().addPlayer();
+
+        Location target = DungeonMapGui.compassTarget(player.getLocation(), 90.0F);
+        ItemStack compass = DungeonMapGui.applyCompassTarget(
+                new ItemStack(Material.RECOVERY_COMPASS), target);
+        LodestoneTracker tracker = compass.getData(DataComponentTypes.LODESTONE_TRACKER);
+        assertNotNull(tracker);
+        assertFalse(tracker.tracked());
+        Location appliedTarget = tracker.location();
+        assertNotNull(appliedTarget);
+        Vector direction = appliedTarget.toVector().subtract(player.getLocation().toVector())
+                .setY(0.0D).normalize();
+        assertEquals(-1.0D, direction.getX(), 0.0001D);
+        assertEquals(0.0D, direction.getZ(), 0.0001D);
     }
 
     /**

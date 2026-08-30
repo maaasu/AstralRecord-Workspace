@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.dungeon.gui;
 
+import io.papermc.paper.datacomponent.DataComponentTypes;
+import io.papermc.paper.datacomponent.item.LodestoneTracker;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLayout;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonMapRoomState;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomType;
@@ -11,10 +13,12 @@ import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
+import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -33,6 +37,7 @@ public final class DungeonMapGui {
     public static final int DIRECTION_SLOT = 47;
     public static final int CLOSE_SLOT = 49;
     public static final int NEXT_SLOT = 51;
+    private static final double COMPASS_TARGET_DISTANCE = 100.0D;
     private final DungeonMapLayoutPlanner layoutPlanner = new DungeonMapLayoutPlanner();
 
     /** 現在スナップショットを指定ページで表示します。 */
@@ -59,6 +64,7 @@ public final class DungeonMapGui {
                 SIZE,
                 PlayerMsgResource.formatComponent(PlayerMsgId.P_7048.getId(), snapshot.displayName())
         );
+        Location compassTarget = compassTarget(player.getLocation(), snapshot.playerYaw());
         Map<Integer, DungeonLayout.Connection> connectionsById = new HashMap<>();
         snapshot.layout().connections().forEach(connection ->
                 connectionsById.put(connection.id(), connection));
@@ -88,7 +94,8 @@ public final class DungeonMapGui {
                     sectionNumber(snapshot.layout(), room.id()),
                     state,
                     current,
-                    state == DungeonMapRoomState.CLEARED));
+                    state == DungeonMapRoomState.CLEARED,
+                    compassTarget));
         }
         inventory.setItem(DIRECTION_SLOT, directionItem(snapshot.playerYaw()));
         if (page > 0) {
@@ -137,7 +144,8 @@ public final class DungeonMapGui {
             int sectionNumber,
             @NotNull DungeonMapRoomState state,
             boolean current,
-            boolean teleportable
+            boolean teleportable,
+            @NotNull Location compassTarget
     ) {
         if (state == DungeonMapRoomState.LOCKED) {
             return GuiItems.create(
@@ -179,7 +187,44 @@ public final class DungeonMapGui {
         if (teleportable) {
             lore.add(PlayerMsgResource.getComponent(PlayerMsgId.P_7089.getId()));
         }
-        return GuiItems.create(material, name, lore);
+        ItemStack item = GuiItems.create(material, name, lore);
+        if (current && material == Material.RECOVERY_COMPASS) {
+            applyCompassTarget(item, compassTarget);
+        }
+        return item;
+    }
+
+    /**
+     * 表示用コンパスへ、実在する Lodestone を要求しない目標を設定します。
+     *
+     * @param item 対象のコンパス ItemStack
+     * @param target コンパスが指す目標地点
+     * @return 目標を設定した ItemStack
+     */
+    static @NotNull ItemStack applyCompassTarget(
+            @NotNull ItemStack item,
+            @NotNull Location target
+    ) {
+        item.setData(
+                DataComponentTypes.LODESTONE_TRACKER,
+                LodestoneTracker.lodestoneTracker(target, false));
+        return item;
+    }
+
+    /**
+     * 現在地から本人の水平視線方向へ仮想的なコンパス目標を作成します。
+     * 実在する Lodestone の設置を要求しない表示用の目標です。
+     *
+     * @param playerLocation 現在地
+     * @param yaw 本人の現在の yaw
+     * @return コンパスが指す仮想目標地点
+     */
+    static @NotNull Location compassTarget(@NotNull Location playerLocation, float yaw) {
+        Location horizontalFacing = playerLocation.clone();
+        horizontalFacing.setYaw(yaw);
+        horizontalFacing.setPitch(0.0F);
+        Vector direction = horizontalFacing.getDirection().normalize();
+        return playerLocation.clone().add(direction.multiply(COMPASS_TARGET_DISTANCE));
     }
 
     private int sectionNumber(@NotNull DungeonLayout layout, int roomId) {
