@@ -48,21 +48,19 @@ public class WorldJoinSpawnEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            var location = worldService.resolveSpawnLocation(worldData);
-            if (location == null) {
-                Logger.log(LogId.W_5751, joinSpawnWorldId);
-                return;
-            }
-
             worldService.teleportToSpawnAsync(joinedPlayer, worldData).thenAccept(success -> {
                 if (!success) {
+                    var targetWorld = worldService.resolveLoadedWorld(worldData);
+                    if (targetWorld == null) {
+                        return;
+                    }
                     Logger.log(
                             LogId.W_5753,
                             worldData.id(),
-                            location.getWorld() == null ? "null" : location.getWorld().getName(),
-                            location.getX(),
-                            location.getY(),
-                            location.getZ()
+                            targetWorld.getName(),
+                            worldData.spawnLocation().x(),
+                            worldData.spawnLocation().y(),
+                            worldData.spawnLocation().z()
                     );
                 }
             });
