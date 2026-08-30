@@ -92,7 +92,7 @@ items:
     amount: 1
     page: 2
     row: 1
-    column: 1
+    column: 4
     priceGold: 0
     requiredItems:
       - itemId: { ref: item:melkor_sanctum_ash }
@@ -472,9 +472,9 @@ items:
       ref: item:melkor_helm
     category: equipment
     amount: 1
-    page: 1
-    row: 1
-    column: 1
+    page: 2
+    row: 2
+    column: 2
     priceGold: 0
     requiredItems:
       - itemId: { ref: item:melkor_sanctum_ash }
@@ -500,9 +500,9 @@ items:
       ref: item:melkor_greaves
     category: equipment
     amount: 1
-    page: 1
-    row: 2
-    column: 1
+    page: 2
+    row: 3
+    column: 2
     priceGold: 0
     requiredItems:
       - itemId: { ref: item:melkor_sanctum_ash }
@@ -528,9 +528,9 @@ items:
       ref: item:melkor_sabaton
     category: equipment
     amount: 1
-    page: 1
+    page: 2
     row: 4
-    column: 1
+    column: 2
     priceGold: 0
     requiredItems:
       - itemId: { ref: item:melkor_sanctum_ash }
@@ -556,9 +556,9 @@ items:
       ref: item:melkor_hood
     category: equipment
     amount: 1
-    page: 1
-    row: 1
-    column: 3
+    page: 2
+    row: 2
+    column: 4
     priceGold: 0
     requiredItems:
       - itemId: { ref: item:melkor_sanctum_ash }
@@ -584,9 +584,9 @@ items:
       ref: item:melkor_leggings
     category: equipment
     amount: 1
-    page: 1
-    row: 2
-    column: 3
+    page: 2
+    row: 3
+    column: 4
     priceGold: 0
     requiredItems:
       - itemId: { ref: item:melkor_sanctum_ash }
@@ -612,9 +612,9 @@ items:
       ref: item:melkor_boots
     category: equipment
     amount: 1
-    page: 1
+    page: 2
     row: 4
-    column: 3
+    column: 4
     priceGold: 0
     requiredItems:
       - itemId: { ref: item:melkor_sanctum_ash }
@@ -640,9 +640,9 @@ items:
       ref: item:melkor_circlet
     category: equipment
     amount: 1
-    page: 1
-    row: 1
-    column: 5
+    page: 2
+    row: 2
+    column: 6
     priceGold: 0
     requiredItems:
       - itemId: { ref: item:melkor_sanctum_ash }
@@ -668,9 +668,9 @@ items:
       ref: item:melkor_trousers
     category: equipment
     amount: 1
-    page: 1
-    row: 2
-    column: 5
+    page: 2
+    row: 3
+    column: 6
     priceGold: 0
     requiredItems:
       - itemId: { ref: item:melkor_sanctum_ash }
@@ -696,9 +696,9 @@ items:
       ref: item:melkor_sandals
     category: equipment
     amount: 1
-    page: 1
+    page: 2
     row: 4
-    column: 5
+    column: 6
     priceGold: 0
     requiredItems:
       - itemId: { ref: item:melkor_sanctum_ash }
