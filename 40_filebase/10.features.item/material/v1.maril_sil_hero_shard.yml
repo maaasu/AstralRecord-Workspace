@@ -1,0 +1,16 @@
+# design:
+#   motif: "マリルシル / 死英雄"
+#   progression: 10
+schemaVersion: 1
+id: maril_sil_hero_shard
+category: material
+name: "&cマリルシルの英雄片"
+icon: WITHER_SKELETON_SKULL
+rarity: RARE
+maxStack: 64
+saleValue: 260
+lore:
+  - "&7マリルシルの死英雄が身に宿す、砕けた英雄の証。"
+  - "&7メルコール装備の強度を高める希少素材。"
+unTradeable: false
+unSellable: false

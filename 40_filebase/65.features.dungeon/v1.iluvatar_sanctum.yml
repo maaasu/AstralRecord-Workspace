@@ -21,6 +21,18 @@ challenge:
   timeLimitSeconds: 720
 clearRewards:
   items:
+    - itemId: item:melkor_sanctum_ash
+      rate: 100.0
+      amount: "1~32"
+    - itemId: item:melkor_sanctum_alloy
+      rate: 80.0
+      amount: "1~12"
+    - itemId: item:melkor_sanctum_shadow_crystal
+      rate: 25.0
+      amount: "1~6"
+    - itemId: item:melkor_sanctum_black_crown
+      rate: 8.0
+      amount: "1"
     - itemId: item:iluvatar_sanctum_gilded_token
       rate: 100.0
       amount: "1~32"

@@ -1,0 +1,16 @@
+# design:
+#   motif: "メルコール / 黒王の冠片"
+#   progression: 9
+schemaVersion: 1
+id: melkor_sanctum_black_crown
+category: material
+name: "&4黒王の冠片"
+icon: ECHO_SHARD
+rarity: EPIC
+maxStack: 64
+saleValue: 500
+lore:
+  - "&7万象聖域の奥に残された、黒王の冠の欠片。"
+  - "&7メルコール装備の最終調整に用いられる。"
+unTradeable: false
+unSellable: false

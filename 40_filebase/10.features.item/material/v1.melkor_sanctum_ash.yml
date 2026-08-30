@@ -1,0 +1,16 @@
+# design:
+#   motif: "メルコール / 聖域の黒灰"
+#   progression: 8
+schemaVersion: 1
+id: melkor_sanctum_ash
+category: material
+name: "&8聖域の黒灰"
+icon: GUNPOWDER
+rarity: COMMON
+maxStack: 64
+saleValue: 60
+lore:
+  - "&7万象聖域の遺跡に積もる、燃え残った黒い灰。"
+  - "&7メルコール装備の基礎素材。"
+unTradeable: false
+unSellable: false

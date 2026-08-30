@@ -1,0 +1,78 @@
+# design:
+#   motif: "シルマリルシル / 核"
+#   progression: 10
+schemaVersion: 1
+id: silmarilsil_core
+category: equipment
+name: "&dシルマリルシルコア"
+icon: NETHER_STAR
+rarity: EPIC
+maxStack: 1
+saleValue: 1200
+lore:
+  - "&7シルマリルの光と死英雄の残響が凝縮した核。"
+  - "&7わずかな攻撃力と、HP・MP・ENの上限を高める。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: CORE
+  requiredLevel: 9
+  durability:
+    max: 220
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value: 4
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 25
+    - status: MAX_MANA
+      type: FLAT
+      value: 10
+    - status: MAX_ENERGY
+      type: FLAT
+      value: 10
+  enhance:
+    maxLevel: 10
+    levels:
+      - level: 1
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 2
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 3
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 4
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 5
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 6
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75
+        failAction: NONE
+      - level: 7
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75
+        failAction: NONE
+      - level: 8
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75
+        failAction: NONE
+      - level: 9
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75
+        failAction: NONE
+      - level: 10
+        statIncrease: [{ status: ATTACK, type: FLAT, value: 1 }]
+        successRate: 0.75
+        failAction: NONE

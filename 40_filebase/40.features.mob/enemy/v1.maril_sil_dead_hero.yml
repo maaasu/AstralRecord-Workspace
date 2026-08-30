@@ -1,0 +1,74 @@
+# design:
+#   motif: "マリルシル / 死英雄"
+#   progression: 10
+schemaVersion: 1
+id: maril_sil_dead_hero
+type: MOB
+category: ENEMY
+name: "&8マリルシルの死英雄"
+level: 10
+entityType: WITHER_SKELETON
+icon: WITHER_SKELETON_SKULL
+lore:
+  - "&7かつての英雄の骸を黒王の力が動かしている。"
+  - "&7高いシールドをまとい、剣で侵入者を斬り伏せる。"
+tags:
+  - midgard
+  - undead
+  - skeleton
+  - melee
+  - shield
+baseStats:
+  - status: MAX_HEALTH
+    value: 2000
+  - status: ATTACK
+    value: 362
+  - status: DEFENSE
+    value: 348
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 98
+equipment:
+  mainHand: IRON_SWORD
+  offHand: SHIELD
+shield:
+  enabled: true
+  max: 6
+  rechargeTimeSeconds: 28
+  rechargeAmount: 6
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.8
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 22
+    deaggroRange: 32
+    leashRange: 36
+  combat:
+    style: MELEE
+    preferredRange: 2.2
+    normalAttack:
+      range: 2.2
+      intervalTicks: 30
+drops:
+  exp: 135
+  items:
+    - itemId:
+        ref: item:maril_sil_hero_shard
+      rate: 50.0
+      amount: 1~2
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:silmarilsil_core
+      rate: 0.1
+      amount: 1
+      luckAffected: true
+      hidden: false
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_1

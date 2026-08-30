@@ -1,0 +1,84 @@
+# design:
+#   motif: "シルマリル / パーチドスケルトン"
+#   progression: 9
+schemaVersion: 1
+id: silmaril_skeleton
+type: MOB
+category: ENEMY
+name: "&fシルマリルのスケルトン"
+level: 9
+entityType: PARCHED
+icon: SKELETON_SKULL
+lore:
+  - "&7シルマリルの輝きを守る、乾ききった白骨の射手。"
+  - "&7盾を構えながら、回避可能な矢を放つ。"
+tags:
+  - midgard
+  - undead
+  - skeleton
+  - ranged
+  - shield
+baseStats:
+  - status: MAX_HEALTH
+    value: 1360
+  - status: ATTACK
+    value: 260
+  - status: RANGED_ATTACK
+    value: 150
+  - status: DEXTERITY
+    value: 5
+  - status: DEFENSE
+    value: 237
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 100
+equipment:
+  mainHand: BOW
+  offHand: SHIELD
+shield:
+  enabled: true
+  max: 2
+  rechargeTimeSeconds: 20
+  rechargeAmount: 2
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.85
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 24
+    deaggroRange: 32
+    leashRange: 36
+  combat:
+    style: RANGED
+    preferredRange: 12
+    skills:
+      - id: mob_skeleton_bow_shot
+        activationRange: 16
+        cooldownTicks: 36
+        castTimeTicks: 12
+        params:
+          damageRatio: 0.85
+          projectileSpeed: 1.25
+          projectileHitRadius: 0.20
+drops:
+  exp: 115
+  items:
+    - itemId:
+        ref: item:silmaril_bone_fragment
+      rate: 50.0
+      amount: 1~2
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:silmarilsil_core
+      rate: 0.1
+      amount: 1
+      luckAffected: true
+      hidden: false
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_1

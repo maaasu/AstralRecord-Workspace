@@ -1,0 +1,16 @@
+# design:
+#   motif: "シルマリル / 白骨兵"
+#   progression: 9
+schemaVersion: 1
+id: silmaril_bone_fragment
+category: material
+name: "&fシルマリルの骨片"
+icon: BONE
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 95
+lore:
+  - "&7シルマリルのスケルトンからこぼれ落ちた、乾いた骨片。"
+  - "&7メルコール装備の芯材として使われる。"
+unTradeable: false
+unSellable: false

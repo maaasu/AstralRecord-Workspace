@@ -1,0 +1,25 @@
+# design:
+#   motif: "マリルシル / 死英雄"
+#   progression: 10
+schemaVersion: 1
+id: maril_sil_dead_hero_lv10_spawner
+type: MOB_SPAWNER
+region: "万象聖域外縁"
+radiusMeters: 18
+
+spawnMobs:
+  - mobId: mob:maril_sil_dead_hero
+    level: 10
+    weight: 100
+
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+
+itemMaterial: SPAWNER
+spawnIntervalTicks: 100
+
+spawnLimit:
+  maxAlivePerSpawner: 8
+  maxNearbyMobs: 18
+  spawnPerPlayer: 1

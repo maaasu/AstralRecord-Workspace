@@ -439,3 +439,255 @@ items:
           ref: item:savanna_hide_scrap
         category: material
         amount: 8
+  - id: melkor_helm
+    itemId:
+      ref: item:melkor_helm
+    category: equipment
+    amount: 1
+    page: 2
+    row: 1
+    column: 1
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:melkor_sanctum_ash }
+        category: material
+        amount: 16
+      - itemId: { ref: item:melkor_sanctum_alloy }
+        category: material
+        amount: 6
+      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+        category: material
+        amount: 1
+      - itemId: { ref: item:melkor_sanctum_black_crown }
+        category: material
+        amount: 1
+      - itemId: { ref: item:silmaril_bone_fragment }
+        category: material
+        amount: 8
+      - itemId: { ref: item:maril_sil_hero_shard }
+        category: material
+        amount: 2
+  - id: melkor_greaves
+    itemId:
+      ref: item:melkor_greaves
+    category: equipment
+    amount: 1
+    page: 2
+    row: 2
+    column: 1
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:melkor_sanctum_ash }
+        category: material
+        amount: 20
+      - itemId: { ref: item:melkor_sanctum_alloy }
+        category: material
+        amount: 8
+      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+        category: material
+        amount: 2
+      - itemId: { ref: item:melkor_sanctum_black_crown }
+        category: material
+        amount: 1
+      - itemId: { ref: item:silmaril_bone_fragment }
+        category: material
+        amount: 10
+      - itemId: { ref: item:maril_sil_hero_shard }
+        category: material
+        amount: 3
+  - id: melkor_sabaton
+    itemId:
+      ref: item:melkor_sabaton
+    category: equipment
+    amount: 1
+    page: 2
+    row: 3
+    column: 1
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:melkor_sanctum_ash }
+        category: material
+        amount: 16
+      - itemId: { ref: item:melkor_sanctum_alloy }
+        category: material
+        amount: 6
+      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+        category: material
+        amount: 1
+      - itemId: { ref: item:melkor_sanctum_black_crown }
+        category: material
+        amount: 1
+      - itemId: { ref: item:silmaril_bone_fragment }
+        category: material
+        amount: 10
+      - itemId: { ref: item:maril_sil_hero_shard }
+        category: material
+        amount: 3
+  - id: melkor_hood
+    itemId:
+      ref: item:melkor_hood
+    category: equipment
+    amount: 1
+    page: 2
+    row: 1
+    column: 3
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:melkor_sanctum_ash }
+        category: material
+        amount: 16
+      - itemId: { ref: item:melkor_sanctum_alloy }
+        category: material
+        amount: 6
+      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+        category: material
+        amount: 2
+      - itemId: { ref: item:melkor_sanctum_black_crown }
+        category: material
+        amount: 1
+      - itemId: { ref: item:silmaril_bone_fragment }
+        category: material
+        amount: 8
+      - itemId: { ref: item:maril_sil_hero_shard }
+        category: material
+        amount: 2
+  - id: melkor_leggings
+    itemId:
+      ref: item:melkor_leggings
+    category: equipment
+    amount: 1
+    page: 2
+    row: 2
+    column: 3
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:melkor_sanctum_ash }
+        category: material
+        amount: 20
+      - itemId: { ref: item:melkor_sanctum_alloy }
+        category: material
+        amount: 8
+      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+        category: material
+        amount: 2
+      - itemId: { ref: item:melkor_sanctum_black_crown }
+        category: material
+        amount: 1
+      - itemId: { ref: item:silmaril_bone_fragment }
+        category: material
+        amount: 10
+      - itemId: { ref: item:maril_sil_hero_shard }
+        category: material
+        amount: 3
+  - id: melkor_boots
+    itemId:
+      ref: item:melkor_boots
+    category: equipment
+    amount: 1
+    page: 2
+    row: 3
+    column: 3
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:melkor_sanctum_ash }
+        category: material
+        amount: 16
+      - itemId: { ref: item:melkor_sanctum_alloy }
+        category: material
+        amount: 6
+      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+        category: material
+        amount: 1
+      - itemId: { ref: item:melkor_sanctum_black_crown }
+        category: material
+        amount: 1
+      - itemId: { ref: item:silmaril_bone_fragment }
+        category: material
+        amount: 6
+      - itemId: { ref: item:maril_sil_hero_shard }
+        category: material
+        amount: 2
+  - id: melkor_circlet
+    itemId:
+      ref: item:melkor_circlet
+    category: equipment
+    amount: 1
+    page: 2
+    row: 1
+    column: 5
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:melkor_sanctum_ash }
+        category: material
+        amount: 16
+      - itemId: { ref: item:melkor_sanctum_alloy }
+        category: material
+        amount: 6
+      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+        category: material
+        amount: 2
+      - itemId: { ref: item:melkor_sanctum_black_crown }
+        category: material
+        amount: 1
+      - itemId: { ref: item:silmaril_bone_fragment }
+        category: material
+        amount: 6
+      - itemId: { ref: item:maril_sil_hero_shard }
+        category: material
+        amount: 2
+  - id: melkor_trousers
+    itemId:
+      ref: item:melkor_trousers
+    category: equipment
+    amount: 1
+    page: 2
+    row: 2
+    column: 5
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:melkor_sanctum_ash }
+        category: material
+        amount: 20
+      - itemId: { ref: item:melkor_sanctum_alloy }
+        category: material
+        amount: 8
+      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+        category: material
+        amount: 2
+      - itemId: { ref: item:melkor_sanctum_black_crown }
+        category: material
+        amount: 1
+      - itemId: { ref: item:silmaril_bone_fragment }
+        category: material
+        amount: 8
+      - itemId: { ref: item:maril_sil_hero_shard }
+        category: material
+        amount: 3
+  - id: melkor_sandals
+    itemId:
+      ref: item:melkor_sandals
+    category: equipment
+    amount: 1
+    page: 2
+    row: 3
+    column: 5
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:melkor_sanctum_ash }
+        category: material
+        amount: 16
+      - itemId: { ref: item:melkor_sanctum_alloy }
+        category: material
+        amount: 6
+      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+        category: material
+        amount: 1
+      - itemId: { ref: item:melkor_sanctum_black_crown }
+        category: material
+        amount: 1
+      - itemId: { ref: item:silmaril_bone_fragment }
+        category: material
+        amount: 6
+      - itemId: { ref: item:maril_sil_hero_shard }
+        category: material
+        amount: 2

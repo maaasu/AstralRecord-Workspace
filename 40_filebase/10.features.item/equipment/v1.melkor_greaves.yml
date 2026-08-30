@@ -1,0 +1,47 @@
+# design:
+#   motif: "メルコール / 防具"
+#   progression: 10
+schemaVersion: 1
+id: melkor_greaves
+category: equipment
+name: "&4メルコールグリーブ"
+icon: LEATHER_LEGGINGS
+appearance:
+  color: "#4A1F2D"
+rarity: RARE
+maxStack: 1
+saleValue: 900
+lore:
+  - "&7黒鋼を重ねて鍛えた、揺るがぬ脚甲。"
+  - "&7近接防御とノックバック耐性を高める近接向けの脚防具。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: LEGS
+  requiredLevel: 10
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 20
+    - status: KNOCKBACK_RESISTANCE
+      type: FLAT
+      value: 4
+    - status: MELEE_DEFENSE
+      type: FLAT
+      value: 8
+  durability:
+    max: 330
+    consume: 1
+  enhance:
+    maxLevel: 10
+    levels:
+      - { level: 1, statIncrease: [{ status: DEFENSE, type: FLAT, value: 4 }], successRate: 1.0, failAction: NONE }
+      - { level: 2, statIncrease: [{ status: DEFENSE, type: FLAT, value: 4 }], successRate: 1.0, failAction: NONE }
+      - { level: 3, statIncrease: [{ status: DEFENSE, type: FLAT, value: 4 }], successRate: 1.0, failAction: NONE }
+      - { level: 4, statIncrease: [{ status: DEFENSE, type: FLAT, value: 4 }], successRate: 1.0, failAction: NONE }
+      - { level: 5, statIncrease: [{ status: DEFENSE, type: FLAT, value: 4 }], successRate: 1.0, failAction: NONE }
+      - { level: 6, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 0.75, failAction: NONE }
+      - { level: 7, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 0.75, failAction: NONE }
+      - { level: 8, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 0.75, failAction: NONE }
+      - { level: 9, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 0.75, failAction: NONE }
+      - { level: 10, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 0.75, failAction: NONE }

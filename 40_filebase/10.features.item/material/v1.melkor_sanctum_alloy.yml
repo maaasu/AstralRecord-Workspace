@@ -1,0 +1,16 @@
+# design:
+#   motif: "メルコール / 黒鋼"
+#   progression: 8
+schemaVersion: 1
+id: melkor_sanctum_alloy
+category: material
+name: "&7メルコール黒鋼片"
+icon: NETHERITE_SCRAP
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 110
+lore:
+  - "&7遺跡の炉跡から回収された、光を返さない黒鋼の欠片。"
+  - "&7メルコール装備の鍛造に使われる。"
+unTradeable: false
+unSellable: false

@@ -1,0 +1,16 @@
+# design:
+#   motif: "メルコール / 影の晶核"
+#   progression: 9
+schemaVersion: 1
+id: melkor_sanctum_shadow_crystal
+category: material
+name: "&5影の晶核"
+icon: AMETHYST_SHARD
+rarity: RARE
+maxStack: 64
+saleValue: 220
+lore:
+  - "&7遺跡の深部でのみ見つかる、黒い光を宿した晶核。"
+  - "&7メルコール装備の性能を引き出す希少素材。"
+unTradeable: false
+unSellable: false

@@ -1,0 +1,25 @@
+# design:
+#   motif: "シルマリル / 白骨の射手"
+#   progression: 9
+schemaVersion: 1
+id: silmaril_skeleton_lv9_spawner
+type: MOB_SPAWNER
+region: "万象聖域外縁"
+radiusMeters: 18
+
+spawnMobs:
+  - mobId: mob:silmaril_skeleton
+    level: 9
+    weight: 100
+
+spawnTimes:
+  - startTick: 0
+    endTick: 23999
+
+itemMaterial: SPAWNER
+spawnIntervalTicks: 100
+
+spawnLimit:
+  maxAlivePerSpawner: 8
+  maxNearbyMobs: 18
+  spawnPerPlayer: 1
