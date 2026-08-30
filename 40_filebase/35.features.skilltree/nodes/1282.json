@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1282",
+  "name": "&bクラッシュアロー",
+  "icon": "SPECTRAL_ARROW",
+  "tags": [
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "hunter_crash_arrow"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "hunter"
+  }
+}

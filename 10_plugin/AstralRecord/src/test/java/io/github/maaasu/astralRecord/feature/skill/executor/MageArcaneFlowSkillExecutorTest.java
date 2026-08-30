@@ -21,7 +21,7 @@ class MageArcaneFlowSkillExecutorTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 24. アーケインフローの実装契約
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 25. メイジ アーケインフローの実装契約
      * 検証契約: executorはPASSIVEかつ最大Lv.5、Lv.1 5%と各レベル+1.25%の固定定義だけを受け付ける。
      */
     @Test

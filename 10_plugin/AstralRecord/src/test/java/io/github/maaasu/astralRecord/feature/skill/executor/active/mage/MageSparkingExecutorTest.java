@@ -354,7 +354,7 @@ class MageSparkingExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 23. メイジ スパーキングの実装契約 > ### 23.2 バランス・入手・演出・テスト契約
-     * 検証契約: 本番マスタはLv.1〜5の弾数、半径成長0.10m/tick、回転14.4度/tick、命中半径0.60mを定義し、node 1208と交換ショップが同じskillを参照する。
+     * 検証契約: 本番マスタはLv.1〜5の弾数、半径成長0.10m/tick、回転14.4度/tick、命中半径0.60mを定義し、交換ショップが同じskillの仮想ジェムを参照する。
      */
     @Test
     void filebaseDefinesLevelGrowthAndAcquisitionReferences() throws Exception {
@@ -374,9 +374,6 @@ class MageSparkingExecutorTest {
         assertEquals(14.4D, skill.getDouble("params.spiralDegreesPerTick"), 1.0E-9D);
         assertEquals(0.60D, skill.getDouble("params.projectileHitRadius"), 1.0E-9D);
 
-        String node = Files.readString(root.resolve("40_filebase/35.features.skilltree/nodes/1208.json"));
-        assertTrue(node.contains("\"skillId\": \"mage_sparking\""));
-        assertTrue(node.contains("\"classId\": \"mage\""));
         YamlConfiguration shop = YamlConfiguration.loadConfiguration(
                 root.resolve("40_filebase/45.features.shop/v1.skill_gem_exchange.yml").toFile()
         );

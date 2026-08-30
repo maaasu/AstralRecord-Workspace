@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1346",
+  "name": "&6白嵐の極星",
+  "icon": "DIAMOND_NAUTILUS_ARMOR",
+  "tags": [
+    "status",
+    "offense",
+    "ice",
+    "azure"
+  ],
+  "pointType": "CP",
+  "pointCost": 2,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ICE_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 8.0
+    },
+    {
+      "type": "status",
+      "status": "COOLDOWN_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 6.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "mage"
+  }
+}

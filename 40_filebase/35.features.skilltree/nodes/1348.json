@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1348",
+  "name": "&eスパーキング",
+  "icon": "LIGHTNING_ROD",
+  "tags": [
+    "lightning",
+    "shocked"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "mage_sparking"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "mage"
+  }
+}

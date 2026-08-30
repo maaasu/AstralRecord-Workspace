@@ -2,45 +2,43 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1084",
-  "name": "&d紅蓮の極星",
+  "name": "&d征戦の極星",
   "icon": "NETHERITE_SWORD",
   "tags": [
     "status",
     "offense",
     "primary",
     "strength",
-    "luck",
+    "dexterity",
+    "intelligence",
     "ember"
   ],
   "pointType": "PP",
-  "pointCost": 1,
+  "pointCost": 2,
   "effects": [
     {
       "type": "status",
       "status": "ATTACK",
       "modifierType": "FLAT",
-      "value": 6
+      "value": 10
     },
     {
       "type": "status",
       "status": "STRENGTH",
       "modifierType": "FLAT",
-      "value": 5
+      "value": 4
     },
     {
       "type": "status",
-      "status": "CRITICAL_RATE",
+      "status": "DEXTERITY",
       "modifierType": "FLAT",
-      "value": 1
+      "value": 4
     },
     {
       "type": "status",
-      "status": "CRITICAL_DAMAGE",
+      "status": "INTELLIGENCE",
       "modifierType": "FLAT",
-      "value": 5
+      "value": 4
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 20
-  }
+  ]
 }

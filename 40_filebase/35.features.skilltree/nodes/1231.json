@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1231",
+  "name": "&b再生障壁の星環",
+  "icon": "PRISMARINE_CRYSTALS",
+  "tags": [
+    "status",
+    "defense",
+    "shield",
+    "resource"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "SHIELD_RECHARGE_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 2.5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1281",
+  "name": "&6蒼穹の極星",
+  "icon": "NETHER_STAR",
+  "tags": [
+    "status",
+    "resource",
+    "energy",
+    "azure"
+  ],
+  "pointType": "CP",
+  "pointCost": 2,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ENERGY_COST_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 4.0
+    },
+    {
+      "type": "status",
+      "status": "ENERGY_REGEN",
+      "modifierType": "FLAT",
+      "value": 2.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "hunter"
+  }
+}

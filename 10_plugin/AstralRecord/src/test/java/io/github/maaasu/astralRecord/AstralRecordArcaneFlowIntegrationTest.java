@@ -55,7 +55,7 @@ class AstralRecordArcaneFlowIntegrationTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 24. アーケインフローの実装契約
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 25. メイジ アーケインフローの実装契約
      * 検証契約: 本番と同じ統合配線で、成功した異なる魔法スキルへ短縮条件と紫色粒子が到達する。
      */
     @Test
@@ -105,7 +105,7 @@ class AstralRecordArcaneFlowIntegrationTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 24. アーケインフローの実装契約
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 25. メイジ アーケインフローの実装契約
      * 検証契約: setupFeatureがテスト済みのアーケインフロー統合配線を本番初期化で呼び出す。
      */
     @Test

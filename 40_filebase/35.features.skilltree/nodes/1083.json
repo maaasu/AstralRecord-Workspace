@@ -2,25 +2,24 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1083",
-  "name": "&d天穹の極星",
+  "name": "&d循環の極星",
   "icon": "END_CRYSTAL",
   "tags": [
     "status",
-    "primary",
-    "intelligence",
     "resource",
+    "health",
     "mana",
     "energy",
     "azure"
   ],
   "pointType": "PP",
-  "pointCost": 1,
+  "pointCost": 2,
   "effects": [
     {
       "type": "status",
-      "status": "INTELLIGENCE",
+      "status": "MAX_HEALTH",
       "modifierType": "FLAT",
-      "value": 6
+      "value": 40
     },
     {
       "type": "status",
@@ -32,16 +31,25 @@
       "type": "status",
       "status": "MP_REGEN",
       "modifierType": "FLAT",
-      "value": 0.5
+      "value": 0.8
     },
     {
       "type": "status",
       "status": "MAX_ENERGY",
       "modifierType": "FLAT",
-      "value": 10
+      "value": 20
+    },
+    {
+      "type": "status",
+      "status": "HP_REGEN",
+      "modifierType": "FLAT",
+      "value": 0.5
+    },
+    {
+      "type": "status",
+      "status": "ENERGY_REGEN",
+      "modifierType": "FLAT",
+      "value": 2
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 28
-  }
+  ]
 }

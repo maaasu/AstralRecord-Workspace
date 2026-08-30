@@ -2,13 +2,13 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1125",
-  "name": "&d紅蓮の星脈",
-  "icon": "BLAZE_POWDER",
+  "name": "&d玄岩の星脈",
+  "icon": "OBSIDIAN",
   "tags": [
     "status",
-    "primary",
-    "strength",
-    "ember"
+    "defense",
+    "durability",
+    "stone"
   ],
   "pointType": "CP",
   "pointCost": 1,

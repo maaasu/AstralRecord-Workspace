@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1343",
+  "name": "&b氷紋の星環",
+  "icon": "BLUE_ICE",
+  "tags": [
+    "status",
+    "offense",
+    "ice",
+    "azure"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ICE_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 2.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "mage"
+  }
+}

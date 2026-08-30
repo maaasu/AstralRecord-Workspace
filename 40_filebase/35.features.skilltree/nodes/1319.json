@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1319",
+  "name": "&d大樹の星脈",
+  "icon": "OAK_SAPLING",
+  "tags": [
+    "status",
+    "primary",
+    "durability"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "VITALITY",
+      "modifierType": "FLAT",
+      "value": 1.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "mage"
+  }
+}

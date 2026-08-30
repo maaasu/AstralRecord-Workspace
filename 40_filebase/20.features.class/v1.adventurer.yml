@@ -65,7 +65,6 @@ usableSkills:
   - skill:adventurer_blast_arrow
   - skill:adventurer_mana_burst
   - skill:adventurer_smash
-  - skill:adventurer_meditation
   - skill:adventurer_quick_shot
   - skill:adventurer_lightning_bolt
 tags:

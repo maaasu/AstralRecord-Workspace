@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1267",
+  "name": "&b砕盾の星環",
+  "icon": "PRISMARINE_CRYSTALS",
+  "tags": [
+    "status",
+    "offense",
+    "shield"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "SHIELD_BREAK",
+      "modifierType": "FLAT",
+      "value": 0.5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "hunter"
+  }
+}

@@ -2,14 +2,15 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1076",
-  "name": "&d破軍の連星",
+  "name": "&d闘志の連星",
   "icon": "FIRE_CHARGE",
   "tags": [
     "status",
     "offense",
     "primary",
     "strength",
-    "luck",
+    "dexterity",
+    "intelligence",
     "ember"
   ],
   "pointType": "PP",
@@ -19,19 +20,25 @@
       "type": "status",
       "status": "ATTACK",
       "modifierType": "FLAT",
-      "value": 4
+      "value": 5
     },
     {
       "type": "status",
       "status": "STRENGTH",
       "modifierType": "FLAT",
-      "value": 3
+      "value": 2
     },
     {
       "type": "status",
-      "status": "CRITICAL_RATE",
+      "status": "DEXTERITY",
       "modifierType": "FLAT",
-      "value": 0.5
+      "value": 2
+    },
+    {
+      "type": "status",
+      "status": "INTELLIGENCE",
+      "modifierType": "FLAT",
+      "value": 2
     }
   ]
 }

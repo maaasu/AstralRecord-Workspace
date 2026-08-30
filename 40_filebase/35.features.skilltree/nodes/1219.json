@@ -1,0 +1,30 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1219",
+  "name": "&6会心剣の極星",
+  "icon": "NETHERITE_SWORD",
+  "tags": [
+    "status",
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 2,
+  "effects": [
+    {
+      "type": "status",
+      "status": "CRITICAL_RATE",
+      "modifierType": "FLAT",
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "CRITICAL_DAMAGE",
+      "modifierType": "FLAT",
+      "value": 10
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}

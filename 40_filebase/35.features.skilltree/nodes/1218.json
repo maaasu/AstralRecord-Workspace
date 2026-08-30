@@ -1,0 +1,24 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1218",
+  "name": "&d会心の星環",
+  "icon": "QUARTZ",
+  "tags": [
+    "status",
+    "offense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "CRITICAL_RATE",
+      "modifierType": "FLAT",
+      "value": 0.5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}

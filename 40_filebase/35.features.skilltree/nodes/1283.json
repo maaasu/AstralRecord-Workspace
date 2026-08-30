@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1283",
+  "name": "&eスペルステップ",
+  "icon": "FEATHER",
+  "tags": [
+    "agility",
+    "wind"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "hunter_spell_step"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "hunter"
+  }
+}

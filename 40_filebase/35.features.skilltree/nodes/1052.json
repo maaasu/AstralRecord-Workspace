@@ -2,29 +2,56 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1052",
-  "name": "&d灯火の起点",
+  "name": "&d命脈の起点",
   "icon": "HEART_OF_THE_SEA",
   "tags": [
     "status",
     "primary",
     "resource",
+    "intelligence",
+    "mana",
     "health",
-    "durability"
+    "durability",
+    "azure"
   ],
   "pointType": "PP",
   "pointCost": 0,
   "effects": [
     {
       "type": "status",
-      "status": "MAX_HEALTH",
+      "status": "INTELLIGENCE",
       "modifierType": "FLAT",
-      "value": 25
+      "value": 2
     },
     {
       "type": "status",
       "status": "VITALITY",
       "modifierType": "FLAT",
       "value": 2
+    },
+    {
+      "type": "status",
+      "status": "MAX_HEALTH",
+      "modifierType": "FLAT",
+      "value": 45
+    },
+    {
+      "type": "status",
+      "status": "MAX_MANA",
+      "modifierType": "FLAT",
+      "value": 35
+    },
+    {
+      "type": "status",
+      "status": "MP_REGEN",
+      "modifierType": "FLAT",
+      "value": 0.3
+    },
+    {
+      "type": "status",
+      "status": "HP_REGEN",
+      "modifierType": "FLAT",
+      "value": 0.3
     }
   ]
 }

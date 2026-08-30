@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1311",
+  "name": "&d還流の星脈",
+  "icon": "PRISMARINE_CRYSTALS",
+  "tags": [
+    "status",
+    "resource",
+    "mana",
+    "azure"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MP_REGEN",
+      "modifierType": "FLAT",
+      "value": 0.2
+    }
+  ],
+  "unlockCondition": {
+    "classId": "mage"
+  }
+}

@@ -35,9 +35,9 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 | `hunter` | 散弾・移動・着弾地点制圧・シールド破壊・回復支援を扱う遠距離職 | `ENERGY` + `MANA` | 複数短射程飛翔体、単体飛翔体、発射後移動、重力弾道範囲、着弾回復エリア |
 | `mage` | 魔法攻撃、壁面反射弾、移動する範囲制圧、短周期の範囲回復を扱う遠距離職 | `MANA` | 前方魔法、条件付き連鎖、着弾範囲、周囲反射弾、移動する持続範囲、発動者中心の即時回復範囲 |
 
-現行定義は冒険者の6skill、ハンターの `hunter_fade_shot` / `hunter_arrow_rain` / `hunter_crash_arrow` / `hunter_heal_arrow`、メイジの `mage_fireball` / `mage_heal_aura` / `mage_sparking` / `mage_frost_blizzard`、ソードマンの `swordsman_shield_drain` / `swordsman_bastion_strike` / `swordsman_flame_rush` / `swordsman_challenging_roar` / `swordsman_last_shield`、シールドリチャージ用の `administrator_shield_recharge` を含みます。フェイドショットとアローレインはハンターの `usableSkills` から初期使用許可を与え、クラッシュアローはskilltree node `1212`、ヒールアローはskilltree node `1213` から使用許可を与えます。メイジのファイアーボールとヒールオーラ、ソードマンのシールドドレインとチャレンジングロアは、それぞれの `usableSkills` から初期使用許可を与えます。バスティオンストライク、シールドリチャージ、フレイムラッシュ、ラストシールドは、それぞれskilltree node `1203` / `1202` / `1204` / `1211` からソードマンへ使用許可を与えます。スパーキングはskilltree node `1208`、フロストブリザードはnode `1214` からメイジへ使用許可を与えます。Administratorの `usableSkills` には検証用の使用許可を残します。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
+現行定義は冒険者、ソードマン、ハンター、メイジ、Administrator向けのskillを含みます。フェイドショットとアローレインはハンター、ファイアーボールとヒールオーラはメイジ、シールドドレインとチャレンジングロアはソードマンの `usableSkills` から初期使用許可を与えます。追加skillは `starter` skilltreeから使用許可を与え、ソードマンはnode `1202` / `1203` / `1204` / `1211`、ハンターは `1282`～`1284`、メイジは `1347`～`1349`、メディテーションは共通root `1047`、ジャスト回避は冒険者node `1350` を使用します。Administratorの `usableSkills` には検証用の使用許可を残します。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
 
-ハンターの `hunter_fade_shot` は、5本の短射程飛翔体と水平velocityによるバックステップを同時に扱う機動射撃です。ハンターの `usableSkills` から直接使用許可を配布し、習得用ジェムは `skill_gem_exchange` で無印原石から交換します。`hunter_arrow_rain` はハンターの `usableSkills` から初期使用許可を与え、`hunter_heal_arrow` は skilltree node `1213` からハンターへ使用許可を与え、ハンターの `usableSkills` には追加しません。
+ハンターの `hunter_fade_shot` は、5本の短射程飛翔体と水平velocityによるバックステップを同時に扱う機動射撃です。ハンターの `usableSkills` から直接使用許可を配布し、習得用ジェムは `skill_gem_exchange` で無印原石から交換します。`hunter_arrow_rain` はハンターの `usableSkills` から初期使用許可を与えます。`hunter_heal_arrow` はハンターの `usableSkills` へ追加せず、`starter` node `1284` から使用許可を与えます。
 
 `swordsman_shield_drain` は敵Shieldへの3倍ブレイクと実減少量50%の自己Shield吸収を行います。実際に自身のShieldが回復した場合だけ、対象から発動者へ向かう吸収演出を表示します。
 
@@ -47,7 +47,7 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 
 `swordsman_flame_rush` は前方最大5体へ火属性の二連撃を行い、二撃目の炎上率はLv.1〜7が0%、Lv.8/9/10が35%/40%/45%です。`swordsman_challenging_roar` は周囲のMobを一時的に挑発する非攻撃スキルです。
 
-`hunter_crash_arrow` は、HPへの基礎倍率を30%に抑えた単体遠距離攻撃です。計算シールドダメージ全体へ一撃限定のシールドブレイク倍率を適用し、Lv.1の3.0倍からレベルごとに0.5ずつ増加します。ハンターのskilltree node `1212` で使用許可を与え、ジェムは無印原石1個との交換で入手します。
+`hunter_crash_arrow` は、HPへの基礎倍率を30%に抑えた単体遠距離攻撃です。計算シールドダメージ全体へ一撃限定のシールドブレイク倍率を適用し、Lv.1の3.0倍からレベルごとに0.5ずつ増加します。`starter` node `1282` から使用許可を与え、ジェムは無印原石1個との交換で入手します。
 `hunter_heal_arrow` は、強い重力を受けてMobを貫通し、Blockへ到達する矢です。敵Mobへの命中ごとに30%の無属性間接ダメージとその地点の半径2m・3秒の回復エリアを作り、Block命中時にも同じ回復エリアを作ります。各エリアへ入ったプレイヤーは1エリアにつき1回だけ、Lv.1の12からLv.5の28まで回復します。
 
 `swordsman_last_shield` は、シールドを破壊する `NORMAL_ATTACK` / `SKILL` の直接攻撃を1回だけ無効化するバインド必須パッシブです。クールダウンは120秒で、表示アイコンは `BEACON` とします。無効化時はシールドを消費せず、HPダメージ・ノックバック・耐久消費も発生しません。状態異常DoTと環境ダメージは対象外です。
@@ -55,19 +55,19 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 `hunter_arrow_rain` は2秒詠唱後に重力のある初弾を放ち、Mobまたはblockへの着弾地点を中心にLv.1で半径3m・45本、Lv.5で半径5m・81本の雨矢を3本/tickで降らせます。雨矢は初弾の正確な着弾Y以上にあるblockを貫通し、着弾Yより低い位置では従来どおり最初のblockで消滅します。初弾と雨矢は `RANGED` / `NONE` で、Lv.1基礎倍率は70% / 30%です。主ENG 16と副MP 8を同時消費し、クールダウンは12秒です。ハンターclassで初期使用許可を与え、習得個体は交換ジェムから作成します。
 `mage_fireball` は、射程16mの火球を最初のMobまたはBlockへ着弾させ、半径2.25m・最大4体へ火属性の範囲攻撃を行うメイジの初期魔法です。MP 12、4秒のクールダウン、0.2秒詠唱で、最大Lv.5では基礎倍率110%へレベル補正を加えます。メイジclassとAdministratorで使用許可を与え、習得個体は `skill_gem_exchange` の無印原石1個交換から作成します。
 `mage_heal_aura` は、発動者を中心に水平半径4m・上下3m以内のゲームプレイ中プレイヤー全員を即時回復するメイジの短周期支援魔法です。回復量はLv.1の5からLv.5の9まで、消費MPは6、クールダウンはLv.1の2秒からLv.5の1.6秒まで短縮します。範囲輪郭は紫色の粒子リングで示し、実際に回復したプレイヤーへ追加の回復粒子を表示します。メイジclassとAdministratorで使用許可を与え、習得個体は `skill_gem_exchange` の無印原石1個交換から作成します。攻撃を行わないためDPS算出対象外です。
-`hunter_spell_step` は、`ranged` タグ付きスキルの成功後20tick以内に行う次のドッジを1回だけEN消費0にするバインド必須パッシブです。無料化成立時は `block.beacon.power_select` を再生し、通常のドッジ移動・成功通知・演出は維持します。ハンターではskilltree node `1207`、ジェムは `skill_gem_exchange` の無印原石1個交換から使用を許可します。攻撃を行わないためDPS算出対象外です。
+`hunter_spell_step` は、`ranged` タグ付きスキルの成功後20tick以内に行う次のドッジを1回だけEN消費0にするバインド必須パッシブです。無料化成立時は `block.beacon.power_select` を再生し、通常のドッジ移動・成功通知・演出は維持します。`starter` node `1283` から使用許可を与え、ジェムは `skill_gem_exchange` の無印原石1個交換で入手します。攻撃を行わないためDPS算出対象外です。
 
-`mage_sparking` は、足元付近から水平360度へLv.1で5個、Lv.5で13個の雷弾を放つメイジ用の範囲制圧魔法です。雷弾は2.5秒で半径5mまで2周する渦を描き、壁面では螺旋軌道ごと反射します。命中半径は0.60mで、各弾は最初に触れたMobへ `MAGIC` / `LIGHTNING` 100%と25%の `SHOCKED` を適用しますが、同じ発動では1体につき1回だけ命中します。使用許可はメイジskilltree node `1208` とAdministratorから与え、メイジclassの `usableSkills` には追加しません。交換ジェムは1ページ目・slot19へ配置します。
+`mage_sparking` は、足元付近から水平360度へLv.1で5個、Lv.5で13個の雷弾を放つメイジ用の範囲制圧魔法です。雷弾は2.5秒で半径5mまで2周する渦を描き、壁面では螺旋軌道ごと反射します。命中半径は0.60mで、各弾は最初に触れたMobへ `MAGIC` / `LIGHTNING` 100%と25%の `SHOCKED` を適用しますが、同じ発動では1体につき1回だけ命中します。メイジへの使用許可は `starter` node `1348` から与え、Administratorの検証用 `usableSkills` も維持します。交換ジェムは1ページ目・slot19へ配置します。
 
-`mage_frost_blizzard` は、視点方向へ前進して地形の手前で停止する、10秒持続の氷竜巻です。半径2.75m・最大8体へ0.5秒ごとに20%の `MAGIC` / `ICE` ダメージを与え、対象へ接線・中心・上方向のvelocityを合成して適用します。velocityはノックバック耐性で線形減衰し、耐性100では0になります。MP40、20秒クールダウン、1秒詠唱とし、使用許可はメイジskilltree node `1214` とAdministratorから与えます。交換ジェムは1ページ目・slot20へ配置します。
+`mage_frost_blizzard` は、視点方向へ前進して地形の手前で停止する、10秒持続の氷竜巻です。半径2.75m・最大8体へ0.5秒ごとに20%の `MAGIC` / `ICE` ダメージを与え、対象へ接線・中心・上方向のvelocityを合成して適用します。velocityはノックバック耐性で線形減衰し、耐性100では0になります。MP40、20秒クールダウン、1秒詠唱とし、メイジへの使用許可は `starter` node `1349` から与えます。Administratorの検証用 `usableSkills` も維持し、交換ジェムは1ページ目・slot20へ配置します。
 
-`mage_arcane_flow` は、魔法タグ付きスキルの成功履歴をプレイヤーごとに保持し、前回と異なる魔法スキルの詠唱時間を追加で短縮するバインド必須パッシブです。最大Lv.5で、Lv.1の5%からレベルごとに1.25%加算し、Lv.5で10%とします。初回、同じスキル、非魔法スキルでは短縮せず、詠唱に成功したスキルだけを履歴へ記録します。条件成立時は紫色の16点リング粒子を表示し、ダメージ、状態異常、リソース消費、クールダウンは追加しません。メイジskilltree node `1209` とAdministratorから使用許可を与え、メイジclassの `usableSkills` には追加しません。交換ジェムは1ページ目・slot21へ配置します。
+`mage_arcane_flow` は、魔法タグ付きスキルの成功履歴をプレイヤーごとに保持し、前回と異なる魔法スキルの詠唱時間を追加で短縮するバインド必須パッシブです。最大Lv.5で、Lv.1の5%からレベルごとに1.25%加算し、Lv.5で10%とします。初回、同じスキル、非魔法スキルでは短縮せず、詠唱に成功したスキルだけを履歴へ記録します。条件成立時は紫色の16点リング粒子を表示し、ダメージ、状態異常、リソース消費、クールダウンは追加しません。メイジへの使用許可は `starter` node `1347` から与え、Administratorの検証用 `usableSkills` も維持します。交換ジェムは1ページ目・slot21へ配置します。
 
-## Administrator専用のドッジ連動パッシブ
+## ドッジ連動パッシブ
 
-`administrator_just_dodge` は `passive.bindRequired: true` のAdministrator専用パッシブです。成功したドッジから `params.invulnerabilityTicks` tick の間、`NORMAL_ATTACK` / `SKILL` の直接攻撃を無効化します。無効化回数に上限は設けず、状態異常DoTは `DamageService.applyConditionDamage` の専用経路であるため対象外です。
+`administrator_just_dodge` は `passive.bindRequired: true` のドッジ連動パッシブです。成功したドッジから `params.invulnerabilityTicks` tick の間、`NORMAL_ATTACK` / `SKILL` の直接攻撃を無効化します。無効化回数に上限は設けず、状態異常DoTは `DamageService.applyConditionDamage` の専用経路であるため対象外です。
 
-無効化時は既存のドッジパーティクルとシールドブロック音を表示し、同じドッジ中の最初の無効化時だけ `params.energyRecoveryAmount` のENを回復します。Lv.1・最大Lv.1の設定は無効化時間8 tick、EN回復量10です。ダメージを与えないためDPS算出対象外で、入手用ショップ商品やスキルツリーへの追加は行わず、使用許可だけをAdministrator classへ与えます。
+無効化時は既存のドッジパーティクルとシールドブロック音を表示し、同じドッジ中の最初の無効化時だけ `params.energyRecoveryAmount` のENを回復します。Lv.1・最大Lv.1の設定は無効化時間8 tick、EN回復量30です。ダメージを与えないためDPS算出対象外です。冒険者への使用許可は `starter` node `1350` から、Administratorへの検証用許可はclassから与えます。
 
 `adventurer_lightning_bolt` は、通常時は単体へ `MAGIC` / `LIGHTNING` を適用し、命中対象から半径5m以内にいる別の `SHOCKED` 状態の Mob へだけ最大2体を連鎖させる。連鎖は距離順・UUID順、視線遮蔽なしの対象を選び、連鎖先からの再連鎖と本スキルによる `SHOCKED` 付与は行わない。
 
@@ -75,7 +75,7 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 
 ## 条件付きリソース回復パッシブ
 
-冒険者の `adventurer_meditation` は、`passive.bindRequired: true` のバインド必須パッシブです。YAML の `params.chargeTicks: 100` と `params.regenMultiplier: 3` は Plugin executor が固定値として検証し、スキルレベルでは変更しません。`chargeParticleIntervalTicks` / `activeParticleIntervalTicks` は控えめな予兆・維持演出の間隔、`activeSoundIntervalTicks` は発動中の環境音の間隔だけを指定します。環境音は `World#playSound` / `SoundCategory.PLAYERS` で音源位置の周囲へ再生し、効果対象の自然回復倍率は自身のみです。
+`adventurer_meditation` は、`passive.bindRequired: true` のバインド必須パッシブです。全職共通root node `1047` から使用許可を与え、冒険者classの直接許可からは除外します。YAML の `params.chargeTicks: 100` と `params.regenMultiplier: 3` は Plugin executor が固定値として検証し、スキルレベルでは変更しません。`chargeParticleIntervalTicks` / `activeParticleIntervalTicks` は控えめな予兆・維持演出の間隔、`activeSoundIntervalTicks` は発動中の環境音の間隔だけを指定します。環境音は `World#playSound` / `SoundCategory.PLAYERS` で音源位置の周囲へ再生し、効果対象の自然回復倍率は自身のみです。
 
 このスキルは最大値や固定回復量を持たず、Plugin の自然回復処理が持つ MP / EN の既存回復量へ条件付き倍率を適用します。スニーク解除、被弾、通常攻撃、他スキル使用で runtime 状態を破棄し、再発動には再度100 tickの継続が必要です。
 

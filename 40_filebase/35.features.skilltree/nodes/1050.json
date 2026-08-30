@@ -2,29 +2,34 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1050",
-  "name": "&d銀矢の起点",
-  "icon": "ARROW",
+  "name": "&d守護の起点",
+  "icon": "SHIELD",
   "tags": [
     "status",
-    "primary",
-    "dexterity",
-    "agility",
-    "wind"
+    "defense",
+    "durability",
+    "astral"
   ],
   "pointType": "PP",
   "pointCost": 0,
   "effects": [
     {
       "type": "status",
-      "status": "DEXTERITY",
+      "status": "VITALITY",
       "modifierType": "FLAT",
       "value": 2
     },
     {
       "type": "status",
-      "status": "AGILITY",
+      "status": "DEFENSE",
       "modifierType": "FLAT",
-      "value": 2
+      "value": 3
+    },
+    {
+      "type": "status",
+      "status": "MAGIC_DEFENSE",
+      "modifierType": "FLAT",
+      "value": 3
     }
   ]
 }

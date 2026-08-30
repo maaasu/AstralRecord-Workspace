@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1331",
+  "name": "&6大魔導の極星",
+  "icon": "ENCHANTED_BOOK",
+  "tags": [
+    "status",
+    "offense",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 2,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAGIC_ATTACK",
+      "modifierType": "FLAT",
+      "value": 4.0
+    },
+    {
+      "type": "status",
+      "status": "MAGIC_DEFENSE_PENETRATION_RATE",
+      "modifierType": "FLAT",
+      "value": 6.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "mage"
+  }
+}

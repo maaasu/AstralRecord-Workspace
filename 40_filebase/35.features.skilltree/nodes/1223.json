@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1223",
+  "name": "&d超星の星環",
+  "icon": "AMETHYST_SHARD",
+  "tags": [
+    "status",
+    "offense",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "SUPER_CRITICAL_RATE",
+      "modifierType": "FLAT",
+      "value": 0.1
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}

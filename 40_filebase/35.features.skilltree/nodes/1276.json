@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1276",
+  "name": "&6風歩の極星",
+  "icon": "ELYTRA",
+  "tags": [
+    "status",
+    "agility",
+    "defense",
+    "wind"
+  ],
+  "pointType": "CP",
+  "pointCost": 2,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MOVEMENT_SPEED",
+      "modifierType": "FLAT",
+      "value": 5.0
+    },
+    {
+      "type": "status",
+      "status": "EVASION",
+      "modifierType": "FLAT",
+      "value": 2.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "hunter"
+  }
+}

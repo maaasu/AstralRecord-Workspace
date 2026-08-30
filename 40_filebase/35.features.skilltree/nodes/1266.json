@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1266",
+  "name": "&6天穹射の極星",
+  "icon": "CROSSBOW",
+  "tags": [
+    "status",
+    "offense",
+    "accuracy",
+    "wind"
+  ],
+  "pointType": "CP",
+  "pointCost": 2,
+  "effects": [
+    {
+      "type": "status",
+      "status": "RANGED_ATTACK",
+      "modifierType": "FLAT",
+      "value": 5.0
+    },
+    {
+      "type": "status",
+      "status": "ACCURACY",
+      "modifierType": "FLAT",
+      "value": 3.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "hunter"
+  }
+}

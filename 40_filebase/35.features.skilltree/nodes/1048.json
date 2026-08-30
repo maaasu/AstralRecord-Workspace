@@ -2,29 +2,56 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1048",
-  "name": "&d刃の起点",
-  "icon": "IRON_SWORD",
+  "name": "&d六環の起点",
+  "icon": "NETHER_STAR",
   "tags": [
     "status",
-    "offense",
     "primary",
     "strength",
-    "ember"
+    "dexterity",
+    "intelligence",
+    "durability",
+    "agility",
+    "luck"
   ],
   "pointType": "PP",
   "pointCost": 0,
   "effects": [
     {
       "type": "status",
-      "status": "ATTACK",
+      "status": "STRENGTH",
       "modifierType": "FLAT",
-      "value": 2
+      "value": 1
     },
     {
       "type": "status",
-      "status": "STRENGTH",
+      "status": "DEXTERITY",
       "modifierType": "FLAT",
-      "value": 2
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "INTELLIGENCE",
+      "modifierType": "FLAT",
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "VITALITY",
+      "modifierType": "FLAT",
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "AGILITY",
+      "modifierType": "FLAT",
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "LUCK",
+      "modifierType": "FLAT",
+      "value": 1
     }
   ]
 }

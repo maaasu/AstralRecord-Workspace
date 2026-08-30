@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1224",
+  "name": "&6超星剣の極星",
+  "icon": "NETHER_STAR",
+  "tags": [
+    "status",
+    "offense",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 2,
+  "effects": [
+    {
+      "type": "status",
+      "status": "SUPER_CRITICAL_RATE",
+      "modifierType": "FLAT",
+      "value": 0.5
+    },
+    {
+      "type": "status",
+      "status": "SUPER_CRITICAL_DAMAGE",
+      "modifierType": "FLAT",
+      "value": 10
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}

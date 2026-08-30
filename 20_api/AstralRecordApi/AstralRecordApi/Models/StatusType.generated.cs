@@ -218,7 +218,7 @@ public static class StatusTypes
                 ["SUPPORT_POWER"] = new(StatusType.SUPPORT_POWER, "SUPPORT_POWER", "支援力", "回復や支援系状態異常の基礎効果を高める能力。", StatusCategory.UTILITY, "", 0, true),
                 ["HEALING_INCREASE"] = new(StatusType.HEALING_INCREASE, "HEALING_INCREASE", "回復量増加", "自身のHP回復量を増加させる補正。", StatusCategory.UTILITY, "%", 1, true),
                 ["CONDITION_DURATION_INCREASE"] = new(StatusType.CONDITION_DURATION_INCREASE, "CONDITION_DURATION_INCREASE", "状態異常持続時間増加", "自身が付与する状態異常の持続時間を増加させる補正。", StatusCategory.UTILITY, "%", 1, true),
-                ["SHIELD_RECHARGE_REDUCTION"] = new(StatusType.SHIELD_RECHARGE_REDUCTION, "SHIELD_RECHARGE_REDUCTION", "シールドリチャージ短縮", "シールド破壊後のリチャージ時間と攻撃による追加時間を割合で短縮する補正。", StatusCategory.UTILITY, "%", 1, true),
+                ["SHIELD_RECHARGE_REDUCTION"] = new(StatusType.SHIELD_RECHARGE_REDUCTION, "SHIELD_RECHARGE_REDUCTION", "シールドリチャージ短縮", "シールド破壊後のリチャージ時間、再充填パッシブの待機時間、攻撃による追加時間を割合で短縮する補正。", StatusCategory.UTILITY, "%", 1, true),
                 ["MINING_SPEED"] = new(StatusType.MINING_SPEED, "MINING_SPEED", "採集速度", "採掘や採取などの採集行動を行う速さ。", StatusCategory.UTILITY, "", 0, true),
                 ["INVENTORY_SLOTS"] = new(StatusType.INVENTORY_SLOTS, "INVENTORY_SLOTS", "インベントリスロット", "アイテムを保持できるインベントリの枠数。", StatusCategory.UTILITY, "", 0, false),
                 ["PASSIVE_SKILL_SLOTS"] = new(StatusType.PASSIVE_SKILL_SLOTS, "PASSIVE_SKILL_SLOTS", "パッシブスキルスロット", "基礎5枠へ加算されるパッシブスキルの有効枠数。1ポイントごとに1枠増加し、合計9枠を上限とする。", StatusCategory.UTILITY, "", 0, false),

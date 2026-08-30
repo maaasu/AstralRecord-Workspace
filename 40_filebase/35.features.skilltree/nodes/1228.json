@@ -1,0 +1,25 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1228",
+  "name": "&b堅盾の星環",
+  "icon": "IRON_INGOT",
+  "tags": [
+    "status",
+    "defense",
+    "shield"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_SHIELD",
+      "modifierType": "FLAT",
+      "value": 2
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}

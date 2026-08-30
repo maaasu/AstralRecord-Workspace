@@ -13,34 +13,37 @@
     "stone"
   ],
   "pointType": "PP",
-  "pointCost": 1,
+  "pointCost": 2,
   "effects": [
     {
       "type": "status",
       "status": "VITALITY",
       "modifierType": "FLAT",
-      "value": 6
+      "value": 8
     },
     {
       "type": "status",
       "status": "MAX_HEALTH",
       "modifierType": "FLAT",
-      "value": 50
+      "value": 75
     },
     {
       "type": "status",
       "status": "DEFENSE",
       "modifierType": "FLAT",
-      "value": 5
+      "value": 7
     },
     {
       "type": "status",
       "status": "MAGIC_DEFENSE",
       "modifierType": "FLAT",
-      "value": 3
+      "value": 7
+    },
+    {
+      "type": "status",
+      "status": "HP_REGEN",
+      "modifierType": "FLAT",
+      "value": 1
     }
-  ],
-  "unlockCondition": {
-    "playerLevel": 26
-  }
+  ]
 }

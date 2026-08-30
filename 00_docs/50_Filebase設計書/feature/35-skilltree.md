@@ -49,49 +49,40 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 
 ### 現行の基礎ステータスパッケージ
 
-`starter` 構造は、全職共通・冒険者・一次職の基礎ステータス幹と、実skill解放を定義します。status 効果を持つノードは148個、将来のskill予約枠は9個、実際の `skill` effectは10件、合計167個です。
+`starter` 構造は、全職共通のPP基礎領域、冒険者CP基礎幹、ソードマン・ハンター・メイジのCP基礎幹・専門円環とskill解放を定義します。現行は216nodeで構成し、職業条件が異なるnodeも含めて同一座標へ重ねません。
 
-| 地域 | status node | 消費 | 解放条件 |
+| 地域 | node | 消費 | 解放条件 |
 |:--|--:|:--|:--|
 | root | 1 | PP 0 | なし |
-| root直近の無料PP | 8 | PP 0 | なし |
-| 有料PP | 29 | PP 29 | 通常ノードはなし。各方向の最終ノードのみPlayer Lv.20～28 |
+| root直近の無料PP環 | 6 | PP 0 | なし |
+| 有料PP | 28 | PP 32 | なし |
 | 冒険者基礎幹 | 29 | 冒険者CP 29 | `classId: adventurer` |
+| 冒険者skill解放 | 1 | 冒険者CP 1 | `classId: adventurer` |
 | ソードマン基礎幹 | 27 | ソードマンCP 27 | `classId: swordsman` |
+| ソードマン専門円環 | 20 | ソードマンCP 24 | `classId: swordsman` |
+| ソードマンskill解放 | 4 | ソードマンCP 4 | `classId: swordsman` |
 | ハンター基礎幹 | 27 | ハンターCP 27 | `classId: hunter` |
+| ハンター専門円環 | 20 | ハンターCP 24 | `classId: hunter` |
+| ハンターskill解放 | 3 | ハンターCP 3 | `classId: hunter` |
 | メイジ基礎幹 | 27 | メイジCP 27 | `classId: mage` |
+| メイジ専門円環 | 20 | メイジCP 24 | `classId: mage` |
+| メイジskill解放 | 3 | メイジCP 3 | `classId: mage` |
 
-- root は中心 `(0, 0, 0)` に置き、上下左右の各方向へ3ブロック間隔で2個ずつ、合計8個の無料PP status nodeを置きます。rootは `MAX_HEALTH / MAX_MANA / MAX_ENERGY` を各10、無料ノードはすべて複数statusの基礎パッケージとします。
-- 有料PPは十字の4方向へ北8、東7、南7、西7の順で置き、すべて1PPとします。通常の有料PP status nodeに `unlockCondition.playerLevel` は設定しません。各方向の最終ノードだけを強力なstatus nodeとしてレベル制限付きにし、Player Lv.30までのPP取得量と接続順で進行を制御します。
-
-有料PPのstatus効果はすべて `FLAT` で、同じパッケージを同じ表示定義で再利用します。通常パッケージ、強化パッケージ、最終パッケージの順に効果量を上げ、最終ノードだけに次のPlayer Lv.条件を付けます。
-
-| 方角 | 通常パッケージ | 強化パッケージ | 最終パッケージ（条件） |
-|:--|:--|:--|:--|
-| 北・攻撃 | `1056, 1060, 1064, 1068`: `ATTACK +3` / `STRENGTH +2` | `1072, 1076, 1080`: `ATTACK +4` / `STRENGTH +3` / `CRITICAL_RATE +0.5` | `1084`: `ATTACK +6` / `STRENGTH +5` / `CRITICAL_RATE +1` / `CRITICAL_DAMAGE +5`（Player Lv.20） |
-| 東・命中 | `1057, 1061, 1065, 1069`: `DEXTERITY +3` / `AGILITY +2` | `1073, 1077`: `DEXTERITY +4` / `AGILITY +3` / `ACCURACY +1` | `1081`: `DEXTERITY +6` / `AGILITY +5` / `ACCURACY +2` / `EVASION +1`（Player Lv.24） |
-| 南・耐久 | `1058, 1062, 1066, 1070`: `VITALITY +3` / `MAX_HEALTH +25` | `1074, 1078`: `VITALITY +3` / `DEFENSE +3` / `MAX_HEALTH +20` | `1082`: `VITALITY +6` / `MAX_HEALTH +50` / `DEFENSE +5` / `MAGIC_DEFENSE +3`（Player Lv.26） |
-| 西・魔力 | `1059, 1063, 1067, 1071`: `INTELLIGENCE +3` / `MAX_MANA +25` | `1075, 1079`: `INTELLIGENCE +4` / `MAX_MANA +30` / `MP_REGEN +0.2` | `1083`: `INTELLIGENCE +6` / `MAX_MANA +60` / `MP_REGEN +0.5` / `MAX_ENERGY +10`（Player Lv.28） |
-
-通常パッケージにはレベル条件を付けず、無料ノードと接続済みの次ノードをPP残高で選べるようにします。最終パッケージは複数の基本能力・派生ステータスをまとめた高効率ノードのため、レベル条件を残します。
-
-- 冒険者CP幹は各方向の2個目の無料PP nodeから始まる隣接レーンへ北8、東7、南7、西7で置き、各nodeを1CPとします。`classId: adventurer` は派生職でも祖先条件として成立し、消費元は冒険者CPのまま維持します。
-- 各方向の冒険者CP幹の内側2node目を、3一次職それぞれの独立した入口anchorとします。転職条件となる冒険者Lv.10では9CPを得ているため、4方向を2nodeずつ開く8CPで全入口へ到達できます。残りの冒険者nodeは隣接する別レーンで継続し、一次職の基礎幹をPlayer Lv.30や冒険者幹の完走でゲートしません。
-- 一次職は各方向のanchorから、他職の非表示nodeを中継せずに4本の基礎幹を直接伸ばします。各職27nodeはすべて1CPで、Class Lv.28の27CPで全取得できます。今回の27nodeはほぼ全員が取得する基礎配分であり、一次職CP幹のプレイヤーごとの差を作るビルド用status nodeは未実装です。ソードマン地域では `1202` / `1203` / `1204` / `1211` を、ハンター地域では `1207` / `1212` / `1213` を、メイジ地域では `1208` / `1209` を実skill解放として使用します。`1202` はシールドリチャージ、`1203` はバスティオンストライク、`1204` はフレイムラッシュ、`1211` はラストシールド、`1207` はスペルステップ、`1212` はクラッシュアロー、`1213` はヒールアロー、`1208` はスパーキング、`1209` はアーケインフローを参照します。シールドドレインはソードマンの初期配布へ移し、skilltreeには配置しません。PP側の共通ビルド差分は上記の4方向statusパッケージで担います。
-
-### 将来skill予約枠
-
-将来のskill用に、status nodeとは別に9個の予約枠を置きます。内訳はPP地域4、冒険者地域3、ハンター地域1、メイジ地域1です。ソードマン地域の予約枠はすべて実skill解放へ置換済みであり、`1211` は既存予約枠を再利用せずに追加した実skill nodeです。ハンターでは予約枠 `1205` を新規の `1212` へ置換してクラッシュアローを配置し、`1205` は再利用しません。ヒールアローは予約枠を再利用せず、新規の `1213` として追加します。残りのハンター予約枠 `1207` は `hunter_spell_step` へ置換済みです。メイジでは予約枠 `1208` を `mage_sparking`、予約枠 `1209` を `mage_arcane_flow` の使用許可へ置換し、予約枠 `1210` を残します。
-
-- 予約枠は `effects: []`、`pointCost: 0` とし、地域に対応する `pointType` と `classId` を使用します。
-- 現行schemaには絶対ロック専用項目がないため、`unlockCondition.playerLevel: 2147483647` で通常プレイヤーから非表示にする暫定表現です。将来のレベル仕様変更まで含めた絶対ロックではありません。
-- 予約枠はstatus幹から分かれる後続なしのleafとし、基礎幹の途中へ挟まず、解放進行を妨げません。
-- 実skill IDは参照しません。実skill追加時は予約枠を削除または新しいnodeへ置換し、削除したnode IDを再利用しません。
-
-予約枠 `1202` / `1203` / `1204` はソードマンの `administrator_shield_recharge` / `swordsman_bastion_strike` / `swordsman_flame_rush` 使用許可nodeへ置換済みです。`1211` は `swordsman_last_shield` の使用許可nodeとして `1127` から追加します。`1205` は `1212` へ置換済みで、クラッシュアローを参照します。これらはすべて対応職業CP 1、対応する `classId` とします。
-
-ハンターでは、予約枠 `1205` の座標（`-6, 0, -36`）と `1147` からの接続を維持したまま、node `1212` を `hunter_crash_arrow` の使用許可nodeへ置換します。`1212` はハンターCP 1、`classId: hunter` とし、残りのハンター予約枠 `1206` は将来用に残します。`1207` は `hunter_spell_step` の使用許可nodeへ置換済みです。
-`1213` は `hunter_heal_arrow` の使用許可nodeとして `1212` の後段（座標 `-6, 0, -39`）へ新規追加します。`1213` はハンターCP 1、`classId: hunter` とします。
+- root は中心 `(0, 0, 0)` に置き、その周囲に合計6個の無料PP status nodeを環状に置きます。rootから環の6nodeすべてへ接続し、環の外側から既存の後続枝へ接続します。rootは `adventurer_meditation` の使用許可を付与します。旧rootの `MAX_HEALTH / MAX_MANA / MAX_ENERGY` 各10は、テーマに沿って命脈・循環・活風の無料nodeへ移し、無料領域全体のstatus総量を維持します。
+- 無料環の6nodeは、全基本能力、全職共通攻撃、物理・魔法防御、HPとMP、三資源、ENと機動の6テーマに分けます。単一職でのみ価値が高い能力に偏らせず、各nodeは直後の通常有料PP nodeより多面的な基礎パッケージとします。割合系statusは職業や装備の特徴とし、無料環では直接付与しません。
+- 有料PPは十字の4方向へ小円を1個ずつ置きます。各小円は無料環から2経路へ分岐し、各経路に1PP nodeを3個置き、外端の2PP notableで再合流します。各方向は6個の1PP nodeと1個の2PP notableからなり、4方向合計28node・32PPとします。
+- 二つの経路は攻撃、基本能力、耐久、HP、MP、EN、回復を混在させます。同じ能力パッケージを一本道へ連続配置せず、一方向だけを進んでも単一statusだけが伸びない構成とします。
+- 1PP nodeは既存の通常・強化パッケージを再利用し、2PP notableは全職で利用できる攻撃、機動、耐久、三資源の4テーマとします。割合系statusは職業や装備の特徴としてPP nodeから外し、すべて `FLAT` の実数系statusで構成します。
+- `unlockCondition.playerLevel` は設定せず、接続経路とPP残高で進行を制御します。Player Level 100以上まで拡張する前提で、今回の4小円は内周の基本領域とし、将来はnotableの先から追加クラスタへ伸ばします。
+- 冒険者CP基礎幹は、PP小円の間にある北西・北東・南東・南西の斜め4方向へ、北西8node、ほか各7nodeで配置します。中央無料環から直接接続し、PP小円を中継しません。各nodeは1冒険者CPで、`classId: adventurer` を設定します。
+- ソードマンCP基礎幹は、冒険者幹の4つの中継nodeから分岐する4枝に27nodeを配置します。各status nodeは1ソードマンCPで、`classId: swordsman` を設定します。
+- ソードマン基礎幹の中間から、通常会心、超星会心、Shield容量、Shield再充填の4専門円環を分岐します。各円環は1CPの小nodeを2個ずつ並べた2経路に分かれ、両経路が2CPのnotableへ再合流します。小node4個とnotable1個で1円環6CP、4円環合計20node・24CPです。
+- 通常会心円環は小nodeで `CRITICAL_RATE +0.5` を4個、notableで `CRITICAL_RATE +3 / CRITICAL_DAMAGE +10` を与えます。超星会心円環は小nodeで `SUPER_CRITICAL_RATE +0.5` を4個、notableで `SUPER_CRITICAL_RATE +2 / SUPER_CRITICAL_DAMAGE +10` を与えます。
+- Shield容量円環は小nodeで `MAX_SHIELD +2` を4個、notableで `MAX_SHIELD +12 / DEFENSE +2` を与えます。Shield再充填円環は小nodeで `SHIELD_RECHARGE_REDUCTION +2.5` を4個、notableで `SHIELD_RECHARGE_REDUCTION +10 / MAX_SHIELD +5` を与えます。再充填短縮はShield破壊後の通常30秒待機、再充填パッシブの8秒待機、敵から受ける追加待機を同じ比率で短縮します。
+- ソードマンskill解放nodeは専門円環のnotable先端へ置かず、関連する小nodeから独立したleafとして分岐します。通常会心円環から `swordsman_flame_rush`、Shield容量円環の別経路から `swordsman_bastion_strike` と `swordsman_last_shield`、Shield再充填円環から `administrator_shield_recharge` を分岐し、各nodeは1ソードマンCPで使用許可を与えます。
+- ハンターは27nodeの汎用幹から、間接攻撃・Shield破壊・機動・EN効率の4専門円環へ分岐します。各円環はソードマンと同じ2経路・1notable構造で、全取得は54ハンターCPです。`hunter_crash_arrow`、`hunter_heal_arrow`、`hunter_spell_step` は関連する小nodeから独立したleafとして分岐します。
+- メイジは27nodeの汎用幹から、魔導・炎・雷・氷の4専門円環へ分岐します。各円環は2経路・1notable構造で、全取得は54メイジCPです。`mage_arcane_flow`、`mage_sparking`、`mage_frost_blizzard` は関連する小nodeから独立したleafとして分岐します。
+- 冒険者の敏捷幹から `administrator_just_dodge` を独立した1CP leafとして分岐します。skill nodeはstatus nodeへ混載せず、関連する基礎幹・専門円環の途中から独立接続します。
 
 ### ノード能力・表示の再利用
 

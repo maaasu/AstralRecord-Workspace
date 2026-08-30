@@ -2,13 +2,12 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1118",
-  "name": "&d紅蓮の星脈",
-  "icon": "BLAZE_POWDER",
+  "name": "&d大樹の星脈",
+  "icon": "OAK_SAPLING",
   "tags": [
     "status",
     "primary",
-    "strength",
-    "ember"
+    "durability"
   ],
   "pointType": "CP",
   "pointCost": 1,

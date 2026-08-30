@@ -2,8 +2,8 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1047",
-  "name": "&d旅立ちの記録",
-  "icon": "NETHER_STAR",
+  "name": "&dメディテーション",
+  "icon": "AMETHYST_SHARD",
   "tags": [
     "root",
     "shared",
@@ -14,22 +14,8 @@
   "pointCost": 0,
   "effects": [
     {
-      "type": "status",
-      "status": "MAX_HEALTH",
-      "modifierType": "FLAT",
-      "value": 10
-    },
-    {
-      "type": "status",
-      "status": "MAX_MANA",
-      "modifierType": "FLAT",
-      "value": 10
-    },
-    {
-      "type": "status",
-      "status": "MAX_ENERGY",
-      "modifierType": "FLAT",
-      "value": 10
+      "type": "skill",
+      "skillId": "adventurer_meditation"
     }
   ]
 }

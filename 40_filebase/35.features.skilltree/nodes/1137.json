@@ -2,13 +2,13 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1137",
-  "name": "&d灯火の星脈",
-  "icon": "HEART_OF_THE_SEA",
+  "name": "&d紅蓮の星脈",
+  "icon": "BLAZE_POWDER",
   "tags": [
     "status",
-    "resource",
-    "health",
-    "starlight"
+    "primary",
+    "strength",
+    "ember"
   ],
   "pointType": "CP",
   "pointCost": 1,

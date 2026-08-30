@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1313",
+  "name": "&d節魔の星脈",
+  "icon": "LAPIS_LAZULI",
+  "tags": [
+    "status",
+    "resource",
+    "mana",
+    "azure"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MANA_COST_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 2.5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "mage"
+  }
+}

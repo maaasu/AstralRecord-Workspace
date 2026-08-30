@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1341",
+  "name": "&6轟雷の極星",
+  "icon": "LIGHTNING_ROD",
+  "tags": [
+    "status",
+    "offense",
+    "lightning",
+    "shocked"
+  ],
+  "pointType": "CP",
+  "pointCost": 2,
+  "effects": [
+    {
+      "type": "status",
+      "status": "LIGHTNING_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 8.0
+    },
+    {
+      "type": "status",
+      "status": "SHOCKED_APPLY_CHANCE",
+      "modifierType": "FLAT",
+      "value": 20.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "mage"
+  }
+}

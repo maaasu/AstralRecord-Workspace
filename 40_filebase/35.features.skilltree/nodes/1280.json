@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1280",
+  "name": "&b節気の星環",
+  "icon": "HONEY_BOTTLE",
+  "tags": [
+    "status",
+    "resource",
+    "energy",
+    "azure"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "ENERGY_COST_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 1.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "hunter"
+  }
+}

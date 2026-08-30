@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1234",
+  "name": "&6瞬復城塞の極星",
+  "icon": "RECOVERY_COMPASS",
+  "tags": [
+    "status",
+    "defense",
+    "shield",
+    "resource"
+  ],
+  "pointType": "CP",
+  "pointCost": 2,
+  "effects": [
+    {
+      "type": "status",
+      "status": "SHIELD_RECHARGE_REDUCTION",
+      "modifierType": "FLAT",
+      "value": 10
+    },
+    {
+      "type": "status",
+      "status": "MAX_SHIELD",
+      "modifierType": "FLAT",
+      "value": 5
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}

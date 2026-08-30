@@ -2,13 +2,15 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1049",
-  "name": "&d剛刃の起点",
-  "icon": "SHIELD",
+  "name": "&d闘志の起点",
+  "icon": "IRON_SWORD",
   "tags": [
     "status",
     "offense",
     "primary",
-    "durability",
+    "strength",
+    "dexterity",
+    "intelligence",
     "ember"
   ],
   "pointType": "PP",
@@ -18,11 +20,23 @@
       "type": "status",
       "status": "ATTACK",
       "modifierType": "FLAT",
-      "value": 2
+      "value": 4
     },
     {
       "type": "status",
-      "status": "VITALITY",
+      "status": "STRENGTH",
+      "modifierType": "FLAT",
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "DEXTERITY",
+      "modifierType": "FLAT",
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "INTELLIGENCE",
       "modifierType": "FLAT",
       "value": 1
     }

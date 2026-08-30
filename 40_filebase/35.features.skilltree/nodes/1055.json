@@ -2,36 +2,48 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1055",
-  "name": "&d還流の起点",
-  "icon": "AMETHYST_SHARD",
+  "name": "&d活風の起点",
+  "icon": "ENDER_PEARL",
   "tags": [
     "status",
     "primary",
     "resource",
-    "intelligence",
-    "mana",
-    "azure"
+    "energy",
+    "agility",
+    "wind"
   ],
   "pointType": "PP",
   "pointCost": 0,
   "effects": [
     {
       "type": "status",
-      "status": "INTELLIGENCE",
+      "status": "AGILITY",
+      "modifierType": "FLAT",
+      "value": 4
+    },
+    {
+      "type": "status",
+      "status": "MAX_ENERGY",
+      "modifierType": "FLAT",
+      "value": 20
+    },
+    {
+      "type": "status",
+      "status": "ENERGY_REGEN",
+      "modifierType": "FLAT",
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "ATTACK_SPEED",
       "modifierType": "FLAT",
       "value": 2
     },
     {
       "type": "status",
-      "status": "MAX_MANA",
+      "status": "MOVEMENT_SPEED",
       "modifierType": "FLAT",
-      "value": 10
-    },
-    {
-      "type": "status",
-      "status": "MP_REGEN",
-      "modifierType": "FLAT",
-      "value": 0.2
+      "value": 2
     }
   ]
 }

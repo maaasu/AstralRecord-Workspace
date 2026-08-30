@@ -1,0 +1,31 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1271",
+  "name": "&6砕盾の極星",
+  "icon": "SPECTRAL_ARROW",
+  "tags": [
+    "status",
+    "offense",
+    "shield"
+  ],
+  "pointType": "CP",
+  "pointCost": 2,
+  "effects": [
+    {
+      "type": "status",
+      "status": "SHIELD_BREAK",
+      "modifierType": "FLAT",
+      "value": 3.0
+    },
+    {
+      "type": "status",
+      "status": "RANGED_DEFENSE_PENETRATION_RATE",
+      "modifierType": "FLAT",
+      "value": 5.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "hunter"
+  }
+}

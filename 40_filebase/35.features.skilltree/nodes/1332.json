@@ -1,0 +1,26 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1332",
+  "name": "&c紅炎の星環",
+  "icon": "FIRE_CHARGE",
+  "tags": [
+    "status",
+    "offense",
+    "fire",
+    "ember"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "status",
+      "status": "FIRE_DAMAGE_INCREASE",
+      "modifierType": "FLAT",
+      "value": 2.0
+    }
+  ],
+  "unlockCondition": {
+    "classId": "mage"
+  }
+}

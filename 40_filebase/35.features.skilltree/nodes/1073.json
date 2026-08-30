@@ -2,26 +2,19 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1073",
-  "name": "&d疾風の連星",
-  "icon": "FEATHER",
+  "name": "&d蒼穹の連星",
+  "icon": "ENDER_PEARL",
   "tags": [
     "status",
-    "offense",
     "primary",
-    "dexterity",
+    "resource",
+    "energy",
     "agility",
-    "accuracy",
     "wind"
   ],
   "pointType": "PP",
   "pointCost": 1,
   "effects": [
-    {
-      "type": "status",
-      "status": "DEXTERITY",
-      "modifierType": "FLAT",
-      "value": 4
-    },
     {
       "type": "status",
       "status": "AGILITY",
@@ -30,7 +23,13 @@
     },
     {
       "type": "status",
-      "status": "ACCURACY",
+      "status": "MAX_ENERGY",
+      "modifierType": "FLAT",
+      "value": 10
+    },
+    {
+      "type": "status",
+      "status": "ENERGY_REGEN",
       "modifierType": "FLAT",
       "value": 1
     }

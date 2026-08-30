@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1349",
+  "name": "&bフロストブリザード",
+  "icon": "DIAMOND_NAUTILUS_ARMOR",
+  "tags": [
+    "ice",
+    "azure"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "mage_frost_blizzard"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "mage"
+  }
+}

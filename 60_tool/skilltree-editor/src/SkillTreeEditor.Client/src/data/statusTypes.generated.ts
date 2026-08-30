@@ -197,7 +197,7 @@ export const STATUS_TYPES: readonly StatusTypeDefinition[] = [
   { id: "SUPPORT_POWER", displayName: "支援力", description: "回復や支援系状態異常の基礎効果を高める能力。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: true },
   { id: "HEALING_INCREASE", displayName: "回復量増加", description: "自身のHP回復量を増加させる補正。", category: "UTILITY", suffix: "%", decimalPlaces: 1, supportsRange: true },
   { id: "CONDITION_DURATION_INCREASE", displayName: "状態異常持続時間増加", description: "自身が付与する状態異常の持続時間を増加させる補正。", category: "UTILITY", suffix: "%", decimalPlaces: 1, supportsRange: true },
-  { id: "SHIELD_RECHARGE_REDUCTION", displayName: "シールドリチャージ短縮", description: "シールド破壊後のリチャージ時間と攻撃による追加時間を割合で短縮する補正。", category: "UTILITY", suffix: "%", decimalPlaces: 1, supportsRange: true },
+  { id: "SHIELD_RECHARGE_REDUCTION", displayName: "シールドリチャージ短縮", description: "シールド破壊後のリチャージ時間、再充填パッシブの待機時間、攻撃による追加時間を割合で短縮する補正。", category: "UTILITY", suffix: "%", decimalPlaces: 1, supportsRange: true },
   { id: "MINING_SPEED", displayName: "採集速度", description: "採掘や採取などの採集行動を行う速さ。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: true },
   { id: "INVENTORY_SLOTS", displayName: "インベントリスロット", description: "アイテムを保持できるインベントリの枠数。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: false },
   { id: "PASSIVE_SKILL_SLOTS", displayName: "パッシブスキルスロット", description: "基礎5枠へ加算されるパッシブスキルの有効枠数。1ポイントごとに1枠増加し、合計9枠を上限とする。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: false },

@@ -2,30 +2,54 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1054",
-  "name": "&d星詠みの起点",
-  "icon": "ENCHANTED_BOOK",
+  "name": "&d循環の起点",
+  "icon": "END_CRYSTAL",
   "tags": [
     "status",
-    "primary",
     "resource",
-    "intelligence",
+    "health",
     "mana",
-    "astral"
+    "energy",
+    "azure"
   ],
   "pointType": "PP",
   "pointCost": 0,
   "effects": [
     {
       "type": "status",
-      "status": "INTELLIGENCE",
+      "status": "MAX_HEALTH",
       "modifierType": "FLAT",
-      "value": 2
+      "value": 20
     },
     {
       "type": "status",
       "status": "MAX_MANA",
       "modifierType": "FLAT",
-      "value": 20
+      "value": 30
+    },
+    {
+      "type": "status",
+      "status": "MAX_ENERGY",
+      "modifierType": "FLAT",
+      "value": 5
+    },
+    {
+      "type": "status",
+      "status": "HP_REGEN",
+      "modifierType": "FLAT",
+      "value": 0.2
+    },
+    {
+      "type": "status",
+      "status": "MP_REGEN",
+      "modifierType": "FLAT",
+      "value": 0.2
+    },
+    {
+      "type": "status",
+      "status": "ENERGY_REGEN",
+      "modifierType": "FLAT",
+      "value": 1
     }
   ]
 }

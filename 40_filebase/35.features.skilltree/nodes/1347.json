@@ -1,0 +1,23 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1347",
+  "name": "&dアーケインフロー",
+  "icon": "AMETHYST_SHARD",
+  "tags": [
+    "core",
+    "mana",
+    "astral"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "mage_arcane_flow"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "mage"
+  }
+}

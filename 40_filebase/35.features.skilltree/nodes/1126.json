@@ -2,11 +2,13 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1126",
-  "name": "&d星衣の星脈",
-  "icon": "ENCHANTED_GOLDEN_APPLE",
+  "name": "&d星衣の循環",
+  "icon": "BEACON",
   "tags": [
     "status",
     "defense",
+    "resource",
+    "energy",
     "astral"
   ],
   "pointType": "CP",

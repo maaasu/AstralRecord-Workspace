@@ -1,0 +1,32 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1229",
+  "name": "&6不落の極星",
+  "icon": "SHIELD",
+  "tags": [
+    "status",
+    "defense",
+    "shield",
+    "durability"
+  ],
+  "pointType": "CP",
+  "pointCost": 2,
+  "effects": [
+    {
+      "type": "status",
+      "status": "MAX_SHIELD",
+      "modifierType": "FLAT",
+      "value": 12
+    },
+    {
+      "type": "status",
+      "status": "DEFENSE",
+      "modifierType": "FLAT",
+      "value": 2
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}
