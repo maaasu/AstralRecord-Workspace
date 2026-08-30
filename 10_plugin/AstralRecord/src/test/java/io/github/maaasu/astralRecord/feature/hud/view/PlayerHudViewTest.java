@@ -349,6 +349,41 @@ class PlayerHudViewTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
      * 章・見出し: # 10_3-View > ## 4. sidebar 描画・解除
+     * 検証契約: スキルツリーワールド用の CP / PP を1行へ表示し、性能情報と併記できる。
+     */
+    @Test
+    void rendersSkillTreePointsOnSidebar() {
+        Player player = mock(Player.class);
+        Objective objective = prepareSidebar(player);
+
+        new PlayerHudView().renderSidebar(
+                player,
+                20.0D,
+                10,
+                0.75D,
+                5,
+                "剣士",
+                1_234L,
+                "CP[剣士]",
+                7,
+                8,
+                "スキルツリー",
+                "スキルツリー",
+                0,
+                true,
+                null,
+                null,
+                false,
+                List.of()
+        );
+
+        List<String> rendered = collectRenderedEntries(objective, 12);
+        assertTrue(rendered.stream().anyMatch(entry -> entry.contains("CP[剣士]: 7 / PP: 8")));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
+     * 章・見出し: # 10_3-View > ## 4. sidebar 描画・解除
      * 検証契約: 解除時にplugin専用astral_info objectiveだけをunregisterする。
      */
     @Test
@@ -532,8 +567,12 @@ class PlayerHudViewTest extends MockBukkitTestBase {
     }
 
     private List<String> collectRenderedEntries(Objective objective) {
+        return collectRenderedEntries(objective, 15);
+    }
+
+    private List<String> collectRenderedEntries(Objective objective, int expectedCallCount) {
         ArgumentCaptor<String> entries = ArgumentCaptor.forClass(String.class);
-        verify(objective, org.mockito.Mockito.times(15)).getScore(entries.capture());
+        verify(objective, org.mockito.Mockito.times(expectedCallCount)).getScore(entries.capture());
         return entries.getAllValues().stream().map(ColorCodeUtil::stripColor).toList();
     }
 

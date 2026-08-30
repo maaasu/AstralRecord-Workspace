@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.combat.service.CombatDpsTrackerService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
+import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
@@ -42,6 +43,7 @@ public class PlayerHudService {
     private final ConditionService conditionService;
     private final BossChallengeService bossChallengeService;
     private final WorldService worldService;
+    private final SkillTreeService skillTreeService;
     private final PlayerHudView playerHudView;
     private CombatDpsTrackerService combatDpsTrackerService;
     private DungeonService dungeonService;
@@ -60,6 +62,7 @@ public class PlayerHudService {
      * @param conditionService 状態異常サービス
      * @param bossChallengeService ボス挑戦サービス
      * @param worldService ワールド表示名・種別の解決サービス
+     * @param skillTreeService スキルツリーワールド判定と CP / PP 残高の解決サービス
      */
     public PlayerHudService(
         StatusService statusService,
@@ -69,7 +72,8 @@ public class PlayerHudService {
         PlayerSettingService playerSettingService,
         ConditionService conditionService,
         BossChallengeService bossChallengeService,
-        WorldService worldService
+        WorldService worldService,
+        SkillTreeService skillTreeService
     ) {
         this.statusService = statusService;
         this.playerClassService = playerClassService;
@@ -79,6 +83,7 @@ public class PlayerHudService {
         this.conditionService = conditionService;
         this.bossChallengeService = bossChallengeService;
         this.worldService = worldService;
+        this.skillTreeService = skillTreeService;
         this.playerHudView = new PlayerHudView();
     }
 
@@ -220,6 +225,16 @@ public class PlayerHudService {
                 DungeonSidebarInfo dungeonInfo = dungeonService == null
                         ? null : dungeonService.findSidebarInfo(player.getUniqueId());
                 WorldType worldType = worldService.resolveWorldType(player.getWorld());
+                boolean isSkillTreeWorld = skillTreeService.isSkillTreeWorld(player.getWorld());
+                String skillTreeClassPointLabel = isSkillTreeWorld
+                        ? skillTreeService.currentClassPointLabel(astPlayer)
+                        : null;
+                int availableClassPoints = isSkillTreeWorld
+                        ? skillTreeService.availableClassPoints(astPlayer)
+                        : 0;
+                int availablePassivePoints = isSkillTreeWorld
+                        ? skillTreeService.availablePassivePoints(astPlayer)
+                        : 0;
                 String regionName = astPlayer.getCurrentRegion();
                 if (regionName == null || regionName.isBlank()) {
                     regionName = worldType == null
@@ -234,6 +249,9 @@ public class PlayerHudService {
                     astPlayer.getClassLevel(),
                     className,
                     currencyService.getGoldAmount(astPlayer.getAccount().getUuid()),
+                    skillTreeClassPointLabel,
+                    availableClassPoints,
+                    availablePassivePoints,
                     worldService.resolveDisplayName(player.getWorld()),
                     regionName,
                     resolveRegionLevel(astPlayer, worldType, bossInfo),

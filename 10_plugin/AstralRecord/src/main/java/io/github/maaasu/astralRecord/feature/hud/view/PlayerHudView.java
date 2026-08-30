@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.condition.model.ActiveCondition;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -22,6 +23,7 @@ import org.bukkit.scoreboard.Criteria;
 import org.bukkit.scoreboard.DisplaySlot;
 import org.bukkit.scoreboard.Objective;
 import org.bukkit.scoreboard.Scoreboard;
+import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
 import java.time.LocalDateTime;
@@ -38,6 +40,7 @@ public class PlayerHudView {
     private static final int SIDEBAR_BAR_LENGTH = 10;
     private static final int SIDEBAR_LINE_LIMIT = 15;
     private static final int SIDEBAR_BASE_LINE_COUNT = 9;
+    private static final int SKILL_TREE_POINT_LINE_COUNT = 1;
     private static final int PERFORMANCE_LINE_COUNT = 2;
     private static final int BUFF_DISPLAY_LIMIT = 5;
     private static final String PARTICIPANT_CONTINUATION_PREFIX = "     ";
@@ -160,7 +163,6 @@ public class PlayerHudView {
      * @param classExperienceProgress 現在クラスレベル内の経験値進捗（0.0-1.0）
      * @param classLevel 現在のクラスレベル
      * @param className 現在のクラス表示名
-     * @param goldAmount 現在のゴールド所持量
      * @param worldName 現在のワールド表示名
      * @param regionName 現在の地域表示名
      * @param regionLevel 現在の地域レベル
@@ -183,11 +185,11 @@ public class PlayerHudView {
         List<ActiveBuff> activeBuffs
     ) {
         renderSidebar(player, mspt, playerLevel, classExperienceProgress, classLevel, className,
-                0L, worldName, regionName, regionLevel, showPerformanceInfo, bossInfo, null,
-                showBuffInfo, activeBuffs);
+                0L, null, 0, 0, worldName, regionName, regionLevel, showPerformanceInfo,
+                bossInfo, null, showBuffInfo, activeBuffs);
     }
 
-    /** Gold 所持量を指定しない互換用サイドバー描画です。 */
+    /** Gold 所持量とスキルツリーの CP / PP を指定しない互換用サイドバー描画です。 */
     public void renderSidebar(
         Player player,
         double mspt,
@@ -212,6 +214,49 @@ public class PlayerHudView {
             classLevel,
             className,
             0L,
+            null,
+            0,
+            0,
+            worldName,
+            regionName,
+            regionLevel,
+            showPerformanceInfo,
+            bossInfo,
+            dungeonInfo,
+            showBuffInfo,
+            activeBuffs
+        );
+    }
+
+    /** Gold 所持量を指定し、スキルツリーの CP / PP を指定しない互換用サイドバー描画です。 */
+    public void renderSidebar(
+        Player player,
+        double mspt,
+        int playerLevel,
+        double classExperienceProgress,
+        int classLevel,
+        String className,
+        long goldAmount,
+        String worldName,
+        String regionName,
+        int regionLevel,
+        boolean showPerformanceInfo,
+        BossChallengeSidebarInfo bossInfo,
+        DungeonSidebarInfo dungeonInfo,
+        boolean showBuffInfo,
+        List<ActiveBuff> activeBuffs
+    ) {
+        renderSidebar(
+            player,
+            mspt,
+            playerLevel,
+            classExperienceProgress,
+            classLevel,
+            className,
+            goldAmount,
+            null,
+            0,
+            0,
             worldName,
             regionName,
             regionLevel,
@@ -245,6 +290,9 @@ public class PlayerHudView {
             classLevel,
             className,
             0L,
+            null,
+            0,
+            0,
             worldName,
             regionName,
             regionLevel,
@@ -266,6 +314,10 @@ public class PlayerHudView {
      * @param classExperienceProgress 現在クラスレベル内の経験値進捗（0.0-1.0）
      * @param classLevel 現在のクラスレベル
      * @param className 現在のクラス表示名
+     * @param goldAmount 現在のゴールド所持量
+     * @param skillTreeClassPointLabel スキルツリーワールドで表示する現在クラスの CP 表示名。通常は null
+     * @param availableClassPoints スキルツリーワールドで表示する現在クラスの未使用 CP
+     * @param availablePassivePoints スキルツリーワールドで表示する未使用 PP
      * @param worldName 現在のワールド表示名
      * @param regionName 現在の地域表示名
      * @param regionLevel 現在の地域レベル
@@ -282,6 +334,9 @@ public class PlayerHudView {
         int classLevel,
         String className,
         long goldAmount,
+        @Nullable String skillTreeClassPointLabel,
+        int availableClassPoints,
+        int availablePassivePoints,
         String worldName,
         String regionName,
         int regionLevel,
@@ -312,7 +367,15 @@ public class PlayerHudView {
         int requiredChallengeLineCount = bossInfo != null
                 ? bossInfo.requiredSidebarLineCount()
                 : dungeonInfo != null ? dungeonInfo.requiredSidebarLineCount() : 0;
-        List<String> buffLines = buildBuffLines(activeBuffs, showBuffInfo, requiredChallengeLineCount);
+        boolean showSkillTreePoints = skillTreeClassPointLabel != null;
+        int baseLineCount = SIDEBAR_BASE_LINE_COUNT
+                + (showSkillTreePoints ? SKILL_TREE_POINT_LINE_COUNT : 0);
+        List<String> buffLines = buildBuffLines(
+                activeBuffs,
+                showBuffInfo,
+                requiredChallengeLineCount,
+                baseLineCount
+        );
 
         List<String> lines = new ArrayList<>(SIDEBAR_LINE_LIMIT);
         lines.add(ColorCodeUtil.AQUA + "オンライン" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
@@ -330,6 +393,13 @@ public class PlayerHudView {
         lines.add(buildExperienceBar("EXP", classExperienceProgress, ColorCodeUtil.AQUA));
         lines.add(ColorCodeUtil.GOLD + "Gold" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
                 + Math.max(0L, goldAmount) + ColorCodeUtil.YELLOW + ColorCodeUtil.BOLD + " G");
+        if (showSkillTreePoints) {
+            lines.add(ColorCodeUtil.AQUA + skillTreeClassPointLabel + ColorCodeUtil.GRAY + ": "
+                    + ColorCodeUtil.WHITE + Math.max(0, availableClassPoints)
+                    + ColorCodeUtil.GRAY + " / " + ColorCodeUtil.LIGHT_PURPLE
+                    + SkillTreePointType.PASSIVE_POINT.displayName() + ColorCodeUtil.GRAY + ": "
+                    + ColorCodeUtil.WHITE + Math.max(0, availablePassivePoints));
+        }
         lines.addAll(buffLines);
         if (bossInfo != null) {
             appendBossInfo(lines, bossInfo);
@@ -530,7 +600,8 @@ public class PlayerHudView {
     private List<String> buildBuffLines(
             List<ActiveBuff> activeBuffs,
             boolean showBuffInfo,
-            int challengeLineCount
+            int challengeLineCount,
+            int baseLineCount
     ) {
         if (!showBuffInfo || activeBuffs.isEmpty()) {
             return List.of();
@@ -538,7 +609,7 @@ public class PlayerHudView {
 
         int availableEntries = Math.max(
                 0,
-                SIDEBAR_LINE_LIMIT - SIDEBAR_BASE_LINE_COUNT - challengeLineCount - 1
+                SIDEBAR_LINE_LIMIT - baseLineCount - challengeLineCount - 1
         );
         int displayCount = Math.min(Math.min(BUFF_DISPLAY_LIMIT, activeBuffs.size()), availableEntries);
         if (displayCount == 0) {
