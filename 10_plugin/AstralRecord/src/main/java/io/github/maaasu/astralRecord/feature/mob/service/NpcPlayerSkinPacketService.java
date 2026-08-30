@@ -51,6 +51,8 @@ import java.util.UUID;
  */
 public final class NpcPlayerSkinPacketService {
 
+    private static final int ENTITY_FLAGS_METADATA_INDEX = 0;
+    private static final byte ENTITY_FLAG_GLOWING = (byte) 0x40;
     private static final int PLAYER_SKIN_PARTS_METADATA_INDEX = 16;
     private static final byte PLAYER_SKIN_PARTS_ALL = (byte) 0x7F;
     /** クライアントがスキン付き GameProfile を解決するために tab list へ保持する時間。 */
@@ -185,6 +187,29 @@ public final class NpcPlayerSkinPacketService {
     }
 
     /**
+     * 表示中の疑似 Player の発光状態を viewer へ反映します。
+     *
+     * <p>MobService が MobInstance の状態を先に更新するため、まだ表示 state がない場合も
+     * 次回の表示開始時に state へ引き継がれます。</p>
+     *
+     * @param instance 対象の player-skin NPC
+     * @param glowing 発光させる場合は {@code true}
+     */
+    public void setGlowing(@NotNull MobInstance instance, boolean glowing) {
+        SkinViewState state = states.get(instance.instanceId());
+        if (state == null) {
+            return;
+        }
+        state.glowing(glowing);
+        for (UUID viewerId : List.copyOf(state.viewerIds())) {
+            Player viewer = Bukkit.getPlayer(viewerId);
+            if (viewer != null && viewer.isOnline()) {
+                sendPacket(viewer, createEntityMetadataPacket(state));
+            }
+        }
+    }
+
+    /**
      * 表示開始済みの疑似 Player へ、現在位置と回転の差分だけを同期します。
      *
      * <p>viewer 集合の更新、実体 Entity の表示切替、名前タグ team の更新は行いません。</p>
@@ -309,6 +334,7 @@ public final class NpcPlayerSkinPacketService {
                 ("astralrecord:npc-player-skin:" + instance.instanceId()).getBytes(StandardCharsets.UTF_8)
         );
         SkinViewState state = createState(profileUuid, buildProfileName(instance.instanceId()), instance.template().skin());
+        state.glowing(instance.glowing());
         state.realEntityId(instance.entityId());
         instanceIdByFakeEntityId.put(state.fakeEntityId(), instance.instanceId());
         return state;
@@ -559,11 +585,15 @@ public final class NpcPlayerSkinPacketService {
         packet.getDataValueCollectionModifier().write(
                 0,
                 List.of(
-                        metadataValue(0, Byte.class, (byte) 0),
+                        metadataValue(ENTITY_FLAGS_METADATA_INDEX, Byte.class, entityFlags(state.glowing())),
                         metadataValue(PLAYER_SKIN_PARTS_METADATA_INDEX, Byte.class, PLAYER_SKIN_PARTS_ALL)
                 )
         );
         return packet;
+    }
+
+    static byte entityFlags(boolean glowing) {
+        return glowing ? ENTITY_FLAG_GLOWING : (byte) 0;
     }
 
     private @NotNull WrappedDataValue metadataValue(int index, @NotNull Type type, @Nullable Object value) {
@@ -692,6 +722,7 @@ public final class NpcPlayerSkinPacketService {
         private final Map<UUID, Long> displayGenerations = new HashMap<>();
         private final Map<UUID, ViewerTransform> lastSentTransforms = new HashMap<>();
         private final Map<UUID, UUID> hiddenRealEntityIds = new HashMap<>();
+        private boolean glowing;
         private long nextDisplayGeneration;
         private int realEntityId = -1;
 
@@ -725,6 +756,14 @@ public final class NpcPlayerSkinPacketService {
 
         private @NotNull Set<UUID> viewerIds() {
             return viewerIds;
+        }
+
+        private boolean glowing() {
+            return glowing;
+        }
+
+        private void glowing(boolean glowing) {
+            this.glowing = glowing;
         }
 
         private int realEntityId() {

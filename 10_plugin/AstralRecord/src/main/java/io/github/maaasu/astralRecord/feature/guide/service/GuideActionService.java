@@ -179,12 +179,21 @@ public final class GuideActionService {
         }
         UUID token = UUID.randomUUID();
         highlightTokens.put(entityId, token);
-        entity.setGlowing(true);
+        MobInstance instance = mobService.getInstanceByEntity(entityId);
+        if (instance != null) {
+            mobService.setGlowing(instance, true);
+        } else {
+            entity.setGlowing(true);
+        }
         plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
             if (!token.equals(highlightTokens.get(entityId))) {
                 return;
             }
             highlightTokens.remove(entityId, token);
+            if (instance != null) {
+                mobService.setGlowing(instance, false);
+                return;
+            }
             Entity current = Bukkit.getEntity(entityId);
             if (current != null && current.isValid()) {
                 current.setGlowing(false);

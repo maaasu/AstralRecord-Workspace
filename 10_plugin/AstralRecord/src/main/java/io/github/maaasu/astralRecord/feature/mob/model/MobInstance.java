@@ -37,6 +37,8 @@ public final class MobInstance {
     private boolean nonLethal;
     /** 描画範囲にプレイヤーがいなくても破棄しない実行時フラグ。 */
     private boolean keepWhenUnobserved;
+    /** ガイド等の一時表示で発光させる実行時フラグ。 */
+    private boolean glowing;
     private MobState state = MobState.IDLE;
     private UUID targetId;
     private UUID lastAttackerUuid;
@@ -288,6 +290,20 @@ public final class MobInstance {
      */
     public void keepWhenUnobserved(boolean value) {
         this.keepWhenUnobserved = value;
+    }
+
+    /** この個体を発光表示するか返します。 */
+    public boolean glowing() {
+        return glowing;
+    }
+
+    /**
+     * この個体の発光表示を設定します。
+     *
+     * @param value 発光させる場合は {@code true}
+     */
+    public void glowing(boolean value) {
+        this.glowing = value;
     }
 
     /** 現在シールド値を返します。 */

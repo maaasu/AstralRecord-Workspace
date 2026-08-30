@@ -154,6 +154,26 @@ public class MobService {
     }
 
     /**
+     * Mob の発光状態を更新します。
+     *
+     * <p>通常の Mob は実体 Entity の発光状態を更新し、player-skin NPC は隠された
+     * 実体に加えて表示中の疑似 Player の metadata へも状態を反映します。</p>
+     *
+     * @param instance 発光対象の Mob インスタンス
+     * @param glowing 発光させる場合は {@code true}
+     */
+    public void setGlowing(@NotNull MobInstance instance, boolean glowing) {
+        instance.glowing(glowing);
+        Entity entity = entityController.getEntity(instance);
+        if (entity != null) {
+            entity.setGlowing(glowing);
+        }
+        if (instance.template().usesPlayerSkinPacketView()) {
+            playerSkinPacketService.setGlowing(instance, glowing);
+        }
+    }
+
+    /**
      * AstralRecord API から Mob テンプレートを一括ロードし、キャッシュを置換します。
      *
      * @return ロードしたテンプレート数

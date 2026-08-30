@@ -6,7 +6,9 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobSkin;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
+import io.github.maaasu.astralRecord.feature.mob.model.MobVariantConfig;
 import io.github.maaasu.astralRecord.feature.mob.repository.MobRepository;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
@@ -14,6 +16,7 @@ import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.ComplexEntityPart;
 import org.bukkit.entity.ComplexLivingEntity;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.plugin.PluginMock;
@@ -28,6 +31,8 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockConstruction;
 import static org.mockito.Mockito.clearInvocations;
@@ -62,6 +67,58 @@ class MobServiceLifecycleTest extends MockBukkitTestBase {
                     org.mockito.ArgumentMatchers.argThat(viewers -> viewers.size() == 1)
             );
         }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 1. MobService メソッド仕様 > ### Mob 発光状態更新
+     * 検証契約: player-skin NPC の発光は実体 Entity と表示中の疑似 Player の両方へ委譲する。
+     */
+    @Test
+    void playerSkinNpcGlowUpdatesRealEntityAndPacketView() {
+        PluginMock plugin = PluginMock.builder().withPluginName("AstralRecordTest").build();
+        World world = server().addSimpleWorld("npc_player_glow_world");
+        Location location = new Location(world, 0.5D, 64.0D, 0.5D);
+        UUID entityId = UUID.randomUUID();
+        Entity realEntity = mock(Entity.class);
+        when(realEntity.getUniqueId()).thenReturn(entityId);
+        when(realEntity.getEntityId()).thenReturn(42);
+
+        try (MockedConstruction<MobEntityController> controllers = mockConstruction(
+                     MobEntityController.class,
+                     (controller, context) -> {
+                         doAnswer(invocation -> {
+                             MobInstance spawned = invocation.getArgument(0);
+                             spawned.bindEntity(entityId, 42, location);
+                             return realEntity;
+                         }).when(controller).spawn(any(MobInstance.class), any(Location.class));
+                         when(controller.getEntity(any(MobInstance.class))).thenReturn(realEntity);
+                     });
+             MockedConstruction<NpcPlayerSkinPacketService> constructed =
+                     mockConstruction(NpcPlayerSkinPacketService.class)) {
+            MobService service = new MobService(plugin, mock(MobRepository.class));
+            MobInstance instance = service.spawn(playerSkinTemplate(), location);
+            assertNotNull(instance);
+            NpcPlayerSkinPacketService packetService = constructed.constructed().getFirst();
+            clearInvocations(packetService);
+
+            service.setGlowing(instance, true);
+
+            assertTrue(instance.glowing());
+            verify(realEntity).setGlowing(true);
+            verify(packetService).setGlowing(instance, true);
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 1. MobService メソッド仕様 > ### NPC プレイヤースキン表示同期
+     * 検証契約: 疑似 Player の Entity flags metadata は発光時だけ 0x40 を持つ。
+     */
+    @Test
+    void playerSkinEntityFlagsReflectGlowState() {
+        assertEquals((byte) 0x40, NpcPlayerSkinPacketService.entityFlags(true));
+        assertEquals((byte) 0, NpcPlayerSkinPacketService.entityFlags(false));
     }
 
     /**
@@ -193,6 +250,37 @@ class MobServiceLifecycleTest extends MockBukkitTestBase {
                 null,
                 null,
                 null
+        );
+    }
+
+    private static MobTemplate playerSkinTemplate() {
+        return new MobTemplate(
+                1,
+                "npc:player_skin_lifecycle_test",
+                MobCategory.NPC,
+                "Player Skin Lifecycle Test",
+                null,
+                1,
+                EntityType.VILLAGER,
+                "PLAYER",
+                null,
+                false,
+                null,
+                List.of(),
+                List.of(),
+                new MobSkin("texture", "signature"),
+                MobVariantConfig.DEFAULT,
+                MobEquipmentConfig.EMPTY,
+                List.of(),
+                MobShieldConfig.EMPTY,
+                MobIdleConfig.defaults(),
+                true,
+                MobInteractionsConfig.EMPTY,
+                null,
+                null,
+                null,
+                null,
+                List.of()
         );
     }
 
