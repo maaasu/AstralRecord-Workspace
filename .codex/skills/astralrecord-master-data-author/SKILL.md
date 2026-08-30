@@ -22,6 +22,12 @@ Create production-oriented filebase master data from the design sources, not fro
 5. Read each target YAML schema before editing or adding a master file.
 6. Inspect nearby existing YAML files for local formatting, reference style, ID style, rarity naming, and value scale.
 
+## Icon Selection Rule
+
+- 新規の item または skill を定義するときは、既存コンテンツで使用済みの `icon` を確認し、原則として再利用しない。
+- ただし、モチーフや用途から特定の `icon` が明らかに適切で、別の `icon` に置き換える方が不自然な場合は、既存コンテンツで使用済みでも再利用してよい。ノクスリンゴに `apple` を使うケースが該当する。
+- 単なる見た目の近さや実装都合だけでは例外にしない。例外を適用した場合は、採用理由を作業報告へ記載する。
+
 ## Parallel Package Rule
 
 When multiple workers create filebase masters in parallel, divide the work by the smallest coherent playable package, not by individual YAML files or by technical layers that depend on each other.
