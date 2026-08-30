@@ -26,7 +26,8 @@ public final class DungeonBlockPlanner {
     private static final int LIGHT_SPACING = 6;
 
     /**
-     * ブロック計画を生成します。Bukkit ワールドには触れないため非同期実行できます。
+     * ブロック計画を生成します。各部屋・通路の床直下に支持層を含めます。
+     * Bukkit ワールドには触れないため非同期実行できます。
      *
      * @param definition ダンジョン定義
      * @param layout BSP 配置
@@ -147,7 +148,9 @@ public final class DungeonBlockPlanner {
                 if (!contains(room, x, z)) {
                     continue;
                 }
-                put(blocks, x, floorY, z, choose(definition.theme().floor(), random));
+                Material floorMaterial = choose(definition.theme().floor(), random);
+                put(blocks, x, floorY - 1, z, floorMaterial);
+                put(blocks, x, floorY, z, floorMaterial);
                 put(blocks, x, ceilingY, z, choose(definition.theme().ceiling(), random));
                 boolean boundary = isBoundary(room, x, z);
                 for (int y = floorY + 1; y < ceilingY; y++) {
@@ -288,7 +291,9 @@ public final class DungeonBlockPlanner {
             if (isDeepRoomInterior(rooms, point.x(), point.z())) {
                 continue;
             }
-            put(blocks, point.x(), floorY, point.z(), choose(definition.theme().corridor(), random));
+            Material floorMaterial = choose(definition.theme().corridor(), random);
+            put(blocks, point.x(), floorY - 1, point.z(), floorMaterial);
+            put(blocks, point.x(), floorY, point.z(), floorMaterial);
             put(blocks, point.x(), ceilingY, point.z(), choose(definition.theme().corridor(), random));
             for (int y = floorY + 1; y < ceilingY; y++) {
                 put(blocks, point.x(), y, point.z(), Material.AIR);

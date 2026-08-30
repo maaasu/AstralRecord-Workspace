@@ -337,6 +337,39 @@ class DungeonBlockPlannerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 2. ブロック生成
+     * 検証契約: 部屋・通路の最下層の直下へ、対応する床 Material の支持層を1段生成する。
+     */
+    @Test
+    void placesSupportLayerBelowEveryLowestDungeonBlock() {
+        DungeonDefinition torchDefinition = withLightMaterialAndPalettes(Material.TORCH);
+        DungeonDefinition lanternDefinition = withLightMaterialAndPalettes(Material.LANTERN);
+        DungeonLayout layout = new DungeonLayoutPlanner().plan(torchDefinition, 778899L);
+        DungeonBlockPlan torchPlan = new DungeonBlockPlanner().plan(torchDefinition, layout);
+        DungeonBlockPlan lanternPlan = new DungeonBlockPlanner().plan(lanternDefinition, layout);
+        Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> lanternPlacements = new HashMap<>();
+        lanternPlan.placements().forEach(placement -> lanternPlacements.put(placement.position(), placement));
+        List<DungeonBlockPlan.Placement> lowestPlacements = torchPlan.placements().stream()
+                .filter(placement -> placement.position().y() == layout.baseY())
+                .toList();
+
+        assertFalse(lowestPlacements.isEmpty());
+        assertTrue(lanternPlan.placements().stream()
+                .anyMatch(placement -> placement.material() == Material.LANTERN
+                        && placement.position().y() == layout.baseY()));
+        for (DungeonBlockPlan.Placement lowest : lowestPlacements) {
+            DungeonBlockPlan.Position position = lowest.position();
+            DungeonBlockPlan.Placement support = lanternPlacements.get(new DungeonBlockPlan.Position(
+                    position.x(), layout.baseY() - 1, position.z()));
+            assertNotNull(support, "Missing support below " + position);
+            assertEquals(lowest.material(), support.material(),
+                    "Support must match the corresponding floor below " + position);
+            assertTrue(support.material().isSolid(), "Support must be solid below " + position);
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 2. ブロック生成
      * 検証契約: 床埋め照明が唯一の Mob 出現候補を占有する生成結果は採用しない。
      */
     @Test
@@ -422,6 +455,30 @@ class DungeonBlockPlannerTest {
                 source.entry(), source.partySize(), source.generation(),
                 new DungeonDefinition.Theme(
                         theme.floor(), theme.wall(), theme.ceiling(), theme.corridor(),
+                        theme.gateMaterial(), theme.pillar(), lightMaterial, theme.decorations()),
+                source.encounter());
+    }
+
+    /**
+     * 床・通路 Material を複数候補にしたテスト用ダンジョン定義を作成します。
+     *
+     * @param lightMaterial 差し替える床置き照明 Material
+     * @return 複数候補の床・通路 Material を持つテスト用ダンジョン定義
+     */
+    private DungeonDefinition withLightMaterialAndPalettes(Material lightMaterial) {
+        DungeonDefinition source = DungeonTestFixtures.definition();
+        DungeonDefinition.Theme theme = source.theme();
+        return new DungeonDefinition(
+                source.schemaVersion(), source.id(), source.displayName(), source.recommendedLevel(),
+                source.entry(), source.partySize(), source.generation(),
+                new DungeonDefinition.Theme(
+                        List.of(
+                                new DungeonDefinition.WeightedMaterial(Material.STONE_BRICKS, 1),
+                                new DungeonDefinition.WeightedMaterial(Material.MOSSY_STONE_BRICKS, 1)),
+                        theme.wall(), theme.ceiling(),
+                        List.of(
+                                new DungeonDefinition.WeightedMaterial(Material.COBBLESTONE, 1),
+                                new DungeonDefinition.WeightedMaterial(Material.MOSSY_COBBLESTONE, 1)),
                         theme.gateMaterial(), theme.pillar(), lightMaterial, theme.decorations()),
                 source.encounter());
     }
