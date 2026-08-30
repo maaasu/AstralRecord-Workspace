@@ -28,12 +28,32 @@ items:
       - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1
+  - id: shield_drain_from_raw
+    itemId: { ref: item:00_skill_gem_swordsman_shield_drain }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 2
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 2
+  - id: bastion_strike_from_raw
+    itemId: { ref: item:00_skill_gem_swordsman_bastion_strike }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 3
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 3
   - id: blast_arrow_from_raw
     itemId: { ref: item:00_skill_gem_adventurer_blast_arrow }
     category: skill_gem
     amount: 1
     page: 1
-    slot: 2
+    slot: 4
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
@@ -43,87 +63,7 @@ items:
     category: skill_gem
     amount: 1
     page: 1
-    slot: 3
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 1
-  - id: lightning_bolt_from_raw
-    itemId: { ref: item:00_skill_gem_adventurer_lightning_bolt }
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 4
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 1
-  - id: mana_burst_from_raw
-    itemId: { ref: item:00_skill_gem_adventurer_mana_burst }
-    category: skill_gem
-    amount: 1
-    page: 1
     slot: 5
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 1
-  - id: meditation_from_raw
-    itemId: { ref: item:00_skill_gem_adventurer_meditation }
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 6
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 1
-  - id: administrator_shield_recharge_from_advanced_raw
-    itemId: { ref: item:00_skill_gem_administrator_shield_recharge }
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 7
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw_advanced }
-        category: material
-        amount: 1
-  - id: shield_drain_from_raw
-    itemId: { ref: item:00_skill_gem_swordsman_shield_drain }
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 8
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 1
-  - id: challenging_roar_from_raw
-    itemId: { ref: item:00_skill_gem_swordsman_challenging_roar }
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 9
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 1
-  - id: bastion_strike_from_raw
-    itemId: { ref: item:00_skill_gem_swordsman_bastion_strike }
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 10
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 1
-  - id: last_shield_from_raw
-    itemId: { ref: item:00_skill_gem_swordsman_last_shield }
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 11
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
@@ -133,47 +73,57 @@ items:
     category: skill_gem
     amount: 1
     page: 1
-    slot: 12
+    slot: 6
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
-        amount: 1
+        amount: 2
   - id: arrow_rain_from_raw
     itemId: { ref: item:00_skill_gem_hunter_arrow_rain }
     category: skill_gem
     amount: 1
     page: 1
-    slot: 13
+    slot: 7
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
-        amount: 1
+        amount: 2
   - id: crash_arrow_from_raw
     itemId: { ref: item:00_skill_gem_hunter_crash_arrow }
     category: skill_gem
     amount: 1
     page: 1
-    slot: 14
+    slot: 8
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
-        amount: 1
+        amount: 3
   - id: heal_arrow_from_raw
     itemId: { ref: item:00_skill_gem_hunter_heal_arrow }
     category: skill_gem
     amount: 1
     page: 1
-    slot: 15
+    slot: 9
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 3
+  - id: mana_burst_from_raw
+    itemId: { ref: item:00_skill_gem_adventurer_mana_burst }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 10
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1
-  - id: spell_step_from_raw
-    itemId: { ref: item:00_skill_gem_hunter_spell_step }
+  - id: lightning_bolt_from_raw
+    itemId: { ref: item:00_skill_gem_adventurer_lightning_bolt }
     category: skill_gem
     amount: 1
     page: 1
-    slot: 16
+    slot: 11
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
@@ -183,13 +133,63 @@ items:
     category: skill_gem
     amount: 1
     page: 1
+    slot: 12
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 2
+  - id: heal_aura_from_raw
+    itemId: { ref: item:00_skill_gem_mage_heal_aura }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 13
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 2
+  - id: sparking_from_raw
+    itemId: { ref: item:00_skill_gem_mage_sparking }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 14
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 3
+  - id: frost_blizzard_from_raw
+    itemId: { ref: item:00_skill_gem_mage_frost_blizzard }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 15
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 3
+  - id: arcane_flow_from_raw
+    itemId: { ref: item:00_skill_gem_mage_arcane_flow }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 16
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 3
+  - id: challenging_roar_from_raw
+    itemId: { ref: item:00_skill_gem_swordsman_challenging_roar }
+    category: skill_gem
+    amount: 1
+    page: 1
     slot: 17
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
-        amount: 1
-  - id: heal_aura_from_raw
-    itemId: { ref: item:00_skill_gem_mage_heal_aura }
+        amount: 2
+  - id: last_shield_from_raw
+    itemId: { ref: item:00_skill_gem_swordsman_last_shield }
     category: skill_gem
     amount: 1
     page: 1
@@ -197,9 +197,9 @@ items:
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
-        amount: 1
-  - id: sparking_from_raw
-    itemId: { ref: item:00_skill_gem_mage_sparking }
+        amount: 3
+  - id: spell_step_from_raw
+    itemId: { ref: item:00_skill_gem_hunter_spell_step }
     category: skill_gem
     amount: 1
     page: 1
@@ -207,9 +207,9 @@ items:
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
-        amount: 1
-  - id: frost_blizzard_from_raw
-    itemId: { ref: item:00_skill_gem_mage_frost_blizzard }
+        amount: 3
+  - id: meditation_from_raw
+    itemId: { ref: item:00_skill_gem_adventurer_meditation }
     category: skill_gem
     amount: 1
     page: 1
@@ -218,13 +218,13 @@ items:
       - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1
-  - id: arcane_flow_from_raw
-    itemId: { ref: item:00_skill_gem_mage_arcane_flow }
+  - id: administrator_shield_recharge_from_advanced_raw
+    itemId: { ref: item:00_skill_gem_administrator_shield_recharge }
     category: skill_gem
     amount: 1
     page: 1
     slot: 21
     requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
+      - itemId: { ref: item:skill_gem_raw_advanced }
         category: material
         amount: 1
