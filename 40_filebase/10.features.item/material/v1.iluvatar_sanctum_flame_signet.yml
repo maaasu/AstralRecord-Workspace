@@ -1,0 +1,16 @@
+# design:
+#   motif: "中つ国 / 炎の聖域の封印"
+#   progression: 8
+schemaVersion: 1
+id: iluvatar_sanctum_flame_signet
+category: material
+name: "&c炎紋の聖印"
+icon: NETHER_BRICK
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 160
+lore:
+  - "&7聖域の炉火で焼き固められた、古い封印。"
+  - "&7店で売却するとゴールドになる。"
+unTradeable: false
+unSellable: false

@@ -1,0 +1,16 @@
+# design:
+#   motif: "中つ国 / 炎の聖域の金印"
+#   progression: 8
+schemaVersion: 1
+id: iluvatar_sanctum_gilded_token
+category: material
+name: "&6万象聖域の金印"
+icon: GILDED_BLACKSTONE
+rarity: COMMON
+maxStack: 64
+saleValue: 80
+lore:
+  - "&7万象の聖域で見つかる、炎紋の刻まれた金印。"
+  - "&7店で売却するとゴールドになる。"
+unTradeable: false
+unSellable: false

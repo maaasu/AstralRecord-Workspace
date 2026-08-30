@@ -19,6 +19,17 @@ challenge:
   deathLimit: 4
   reviveDelaySeconds: 5
   timeLimitSeconds: 720
+clearRewards:
+  items:
+    - itemId: item:iluvatar_sanctum_gilded_token
+      rate: 100.0
+      amount: "1~32"
+    - itemId: item:iluvatar_sanctum_flame_signet
+      rate: 80.0
+      amount: "1~12"
+    - itemId: item:iluvatar_sanctum_primal_crystal
+      rate: 25.0
+      amount: "1~6"
 generation:
   area:
     width: 120

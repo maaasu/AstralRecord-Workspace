@@ -1,0 +1,16 @@
+# design:
+#   motif: "中つ国 / 万象を映す炎晶"
+#   progression: 8
+schemaVersion: 1
+id: iluvatar_sanctum_primal_crystal
+category: material
+name: "&d万象の炎晶"
+icon: GLOWSTONE
+rarity: RARE
+maxStack: 64
+saleValue: 500
+lore:
+  - "&7揺らめく炎の奥に万象を映す、希少な結晶。"
+  - "&7店で売却するとゴールドになる。"
+unTradeable: false
+unSellable: false
