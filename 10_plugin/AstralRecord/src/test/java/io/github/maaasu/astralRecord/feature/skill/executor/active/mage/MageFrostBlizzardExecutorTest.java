@@ -131,7 +131,7 @@ class MageFrostBlizzardExecutorTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 24. メイジ フロストブリザードの実装契約 > ### 24.1 数値・移動・対象
-     * 検証契約: 200tick中、4tickのvelocity更新と10tickのdamage更新の和集合だけで最大8体を探索し、20回の20% ICE hitを行う。
+     * 検証契約: 200tick中、4tickのvelocity更新と10tickのdamage更新の和集合だけで最大8体を探索し、20回の30% ICE hitを行う。
      */
     @Test
     void advancesCombatForConfiguredDurationCadenceAndTargetLimit() {
@@ -170,7 +170,7 @@ class MageFrostBlizzardExecutorTest extends MockBukkitTestBase {
 
         for (int tick = 0; tick < 200; tick++) {
             executor.advance(context, state, tick, 0.18D, 2.75D, 2.5D, 8,
-                    0.20D, 10, 0.16D, 0.08D, 0.04D);
+                    0.30D, 10, 0.16D, 0.08D, 0.04D);
         }
 
         verify(targeting, times(60)).inRadius(
@@ -179,7 +179,7 @@ class MageFrostBlizzardExecutorTest extends MockBukkitTestBase {
         verify(combat, times(480)).velocity(any(AstEntity.class), any(Vector.class));
         verify(combat, times(160)).hit(
                 any(AstEntity.class), any(AstEntity.class), eq(AttackType.MAGIC), eq(DamageElement.ICE),
-                eq(0.20D), any(ActiveSkillCondition[].class)
+                eq(0.30D), any(ActiveSkillCondition[].class)
         );
     }
 
@@ -370,7 +370,7 @@ class MageFrostBlizzardExecutorTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 24. メイジ フロストブリザードの実装契約 > ### 24.2 バランス・入手・演出・テスト契約
-     * 検証契約: 本番マスタはMP40・200tick・10tick間隔・20%・最大8体と指定iconを定義し、交換ショップが同じskillの仮想ジェムを参照する。
+     * 検証契約: 本番マスタはMP40・200tick・10tick間隔・30%・最大8体と指定iconを定義し、交換ショップが同じskillの仮想ジェムを参照する。
      */
     @Test
     void filebaseDefinesBalanceIconAndAcquisitionReferences() throws Exception {
@@ -384,7 +384,7 @@ class MageFrostBlizzardExecutorTest extends MockBukkitTestBase {
         assertEquals(40.0D, skill.getDouble("resourceCost"), 1.0E-9D);
         assertEquals(200, skill.getInt("params.durationTicks"));
         assertEquals(10, skill.getInt("params.damageIntervalTicks"));
-        assertEquals(0.20D, skill.getDouble("params.damageRatio"), 1.0E-9D);
+        assertEquals(0.30D, skill.getDouble("params.damageRatio"), 1.0E-9D);
         assertEquals(8, skill.getInt("params.maxTargets"));
 
         YamlConfiguration shop = YamlConfiguration.loadConfiguration(

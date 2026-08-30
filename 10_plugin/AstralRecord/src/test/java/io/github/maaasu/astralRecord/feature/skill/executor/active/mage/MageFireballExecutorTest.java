@@ -102,7 +102,7 @@ class MageFireballExecutorTest {
         assertDoesNotThrow(() -> new MageFireballExecutor(activeSkillServices()).validateParams(definition(params)));
         assertEquals(16.0D, ((Number) params.get("range")).doubleValue(), 0.0001D);
         assertEquals(2.25D, ((Number) params.get("radius")).doubleValue(), 0.0001D);
-        assertEquals(1.10D, ((Number) params.get("damageRatio")).doubleValue(), 0.0001D);
+        assertEquals(1.65D, ((Number) params.get("damageRatio")).doubleValue(), 0.0001D);
         assertEquals(4, ((Number) params.get("maxTargets")).intValue());
     }
 
@@ -132,8 +132,8 @@ class MageFireballExecutorTest {
         verify(fixture.effects).point(same(impact), eq(SharedParticleDefinitions.MAGE_FIREBALL_IMPACT));
         verify(fixture.effects).point(same(impact), eq(SharedParticleDefinitions.SKILL_MAGE_FIRE));
         verify(fixture.effects).sound(same(impact), eq(Sound.ENTITY_GENERIC_EXPLODE), eq(0.50F), eq(1.55F));
-        verify(fixture.combat).hit(any(AstEntity.class), same(impactedTarget), eq(AttackType.MAGIC), eq(DamageElement.FIRE), eq(1.10D));
-        verify(fixture.combat).hit(any(AstEntity.class), same(nearbyTarget), eq(AttackType.MAGIC), eq(DamageElement.FIRE), eq(1.10D));
+        verify(fixture.combat).hit(any(AstEntity.class), same(impactedTarget), eq(AttackType.MAGIC), eq(DamageElement.FIRE), eq(1.65D));
+        verify(fixture.combat).hit(any(AstEntity.class), same(nearbyTarget), eq(AttackType.MAGIC), eq(DamageElement.FIRE), eq(1.65D));
     }
 
     /**
@@ -166,7 +166,7 @@ class MageFireballExecutorTest {
 
         verify(fixture.effects).point(same(blockImpact), eq(SharedParticleDefinitions.MAGE_FIREBALL_IMPACT));
         verify(fixture.effects, times(1)).sound(same(blockImpact), eq(Sound.ENTITY_GENERIC_EXPLODE), eq(0.50F), eq(1.55F));
-        verify(fixture.combat).hit(any(AstEntity.class), same(blockTarget), eq(AttackType.MAGIC), eq(DamageElement.FIRE), eq(1.10D));
+        verify(fixture.combat).hit(any(AstEntity.class), same(blockTarget), eq(AttackType.MAGIC), eq(DamageElement.FIRE), eq(1.65D));
     }
 
     private static Fixture fixture() {
@@ -229,7 +229,7 @@ class MageFireballExecutorTest {
         return Map.of(
                 "range", 16.0D,
                 "radius", 2.25D,
-                "damageRatio", 1.10D,
+                "damageRatio", 1.65D,
                 "maxTargets", 4,
                 "projectileSpeed", 1.45D,
                 "projectileHitRadius", 0.45D

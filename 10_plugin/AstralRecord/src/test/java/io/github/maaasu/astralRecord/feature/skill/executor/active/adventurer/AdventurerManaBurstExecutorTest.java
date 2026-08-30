@@ -108,7 +108,7 @@ class AdventurerManaBurstExecutorTest {
         ));
 
         assertTrue(result.success());
-        verify(combat, times(2)).hit(any(AstEntity.class), any(AstEntity.class), eq(AttackType.MAGIC), eq(DamageElement.NONE), eq(1.10D));
+        verify(combat, times(2)).hit(any(AstEntity.class), any(AstEntity.class), eq(AttackType.MAGIC), eq(DamageElement.NONE), eq(1.65D));
         ArgumentCaptor<Location> waveOriginCaptor = ArgumentCaptor.forClass(Location.class);
         verify(effects, times(3)).viewArcSegment(
                 waveOriginCaptor.capture(), any(Vector.class), anyDouble(), anyDouble(), anyDouble(),
@@ -155,7 +155,7 @@ class AdventurerManaBurstExecutorTest {
                 2L,
                 1,
                 null,
-                Map.of("range", 7.0D, "angle", 60.0D, "damageRatio", 1.10D, "maxTargets", 6),
+                Map.of("range", 7.0D, "angle", 60.0D, "damageRatio", 1.65D, "maxTargets", 6),
                 List.of("active", "magic", "adventurer"),
                 SkillKind.ACTIVE,
                 true,

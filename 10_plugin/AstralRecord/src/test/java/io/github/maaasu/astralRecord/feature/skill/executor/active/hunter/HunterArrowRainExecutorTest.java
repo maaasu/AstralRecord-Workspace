@@ -58,7 +58,7 @@ class HunterArrowRainExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 17. ハンター アローレインの実装契約
-     * 検証契約: 初弾は重力弾道で70%RANGEDを与え、entity/block着弾時だけ45本を3本/tickで降らせ、初弾着弾Y以上のBlockを貫通して各30%RANGEDを与える。
+     * 検証契約: 初弾は重力弾道で105%RANGEDを与え、entity/block着弾時だけ45本を3本/tickで降らせ、初弾着弾Y以上のBlockを貫通して各45%RANGEDを与える。
      */
     @Test
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -120,7 +120,7 @@ class HunterArrowRainExecutorTest {
         Location impact = new Location(world, 7.0D, 64.0D, 8.0D);
         openingHit.getValue().accept(target, impact);
         verify(combat).hit(
-                any(AstEntity.class), same(target), eq(AttackType.RANGED), eq(DamageElement.NONE), eq(0.70D)
+                any(AstEntity.class), same(target), eq(AttackType.RANGED), eq(DamageElement.NONE), eq(1.05D)
         );
 
         openingTermination.getValue().accept(new SkillProjectileTermination(
@@ -143,7 +143,7 @@ class HunterArrowRainExecutorTest {
 
         rainHit.getValue().accept(target, impact);
         verify(combat).hit(
-                any(AstEntity.class), same(target), eq(AttackType.RANGED), eq(DamageElement.NONE), eq(0.30D)
+                any(AstEntity.class), same(target), eq(AttackType.RANGED), eq(DamageElement.NONE), eq(0.45D)
         );
 
         Location blockFace = new Location(world, 12.0D, 66.0D, 8.0D);
@@ -362,7 +362,7 @@ class HunterArrowRainExecutorTest {
                         "range", 18.0D,
                         "radius", 3.0D,
                         "arrowCount", 45,
-                        "damageRatios", List.of(0.70D, 0.30D),
+                        "damageRatios", List.of(1.05D, 0.45D),
                         "openingSpeed", 1.60D,
                         "openingHitRadius", 0.45D,
                         "rainHitRadius", 0.75D

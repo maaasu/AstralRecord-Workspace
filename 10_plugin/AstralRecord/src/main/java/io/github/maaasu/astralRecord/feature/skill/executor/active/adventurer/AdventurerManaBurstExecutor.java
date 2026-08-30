@@ -61,7 +61,7 @@ public final class AdventurerManaBurstExecutor extends PlayerActiveSkillExecutor
         SkillParamReader params = context.params();
         double range = params.getDouble("range", 7.0D);
         double angle = params.getDouble("angle", 60.0D);
-        double damageRatio = params.getDouble("damageRatio", 1.10D);
+        double damageRatio = params.getDouble("damageRatio", 1.65D);
         int maxTargets = params.getInt("maxTargets", 6);
 
         Location visibleEnd = context.services().targeting().clippedEnd(eyeLocation, direction, range);

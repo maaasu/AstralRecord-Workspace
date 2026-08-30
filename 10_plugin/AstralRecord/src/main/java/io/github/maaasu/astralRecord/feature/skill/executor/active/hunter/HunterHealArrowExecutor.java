@@ -54,10 +54,10 @@ public final class HunterHealArrowExecutor extends PlayerActiveSkillExecutor {
         requirePositive(params, "projectileHitRadius");
         requirePositiveInt(params, "areaDurationTicks");
         double damageRatio = params.getDouble("damageRatio", 0.0D);
-        if (Math.abs(damageRatio - 0.30D) > 1.0E-9D) {
+        if (Math.abs(damageRatio - 0.45D) > 1.0E-9D) {
             throw new SkillParameterException(
                     "damageRatio",
-                    "ヒールアローの敵Mobへのダメージ倍率は30%で固定です"
+                    "ヒールアローの敵Mobへのダメージ倍率は45%で固定です"
             );
         }
     }
@@ -88,7 +88,7 @@ public final class HunterHealArrowExecutor extends PlayerActiveSkillExecutor {
                             target,
                             AttackType.RANGED,
                             DamageElement.NONE,
-                            params.getDouble("damageRatio", 0.30D)
+                            params.getDouble("damageRatio", 0.45D)
                     );
                     createHealingArea(context, impact, params);
                 },

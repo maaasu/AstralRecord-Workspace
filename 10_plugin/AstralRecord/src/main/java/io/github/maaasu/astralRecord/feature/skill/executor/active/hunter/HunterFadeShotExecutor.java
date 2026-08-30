@@ -66,7 +66,7 @@ public final class HunterFadeShotExecutor extends PlayerActiveSkillExecutor {
     protected @NotNull SkillCastResult castPlayer(@NotNull PlayerActiveSkillContext context) {
         SkillParamReader params = context.params();
         double range = params.getDouble("range", 9.0D);
-        double damageRatio = params.getDouble("damageRatio", 0.32D);
+        double damageRatio = params.getDouble("damageRatio", 0.48D);
         int pelletCount = params.getInt("pelletCount", 5);
         double spreadAngle = params.getDouble("spreadAngle", 30.0D);
         double projectileSpeed = params.getDouble("projectileSpeed", 1.8D);

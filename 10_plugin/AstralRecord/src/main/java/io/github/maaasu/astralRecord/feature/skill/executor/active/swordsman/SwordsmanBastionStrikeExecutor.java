@@ -59,7 +59,7 @@ public final class SwordsmanBastionStrikeExecutor extends PlayerActiveSkillExecu
         SkillParamReader params = context.params();
         double range = params.getDouble("range", 6.0D);
         double targetAngle = params.getDouble("targetAngle", 40.0D);
-        double damageRatio = params.getDouble("damageRatio", 1.25D);
+        double damageRatio = params.getDouble("damageRatio", 2.50D);
         if (!hasRequiredMana(context, params)) {
             return SkillCastResult.failure(PlayerMsgId.P_5801);
         }

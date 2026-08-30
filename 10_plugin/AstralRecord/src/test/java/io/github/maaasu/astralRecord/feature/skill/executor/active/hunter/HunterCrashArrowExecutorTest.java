@@ -106,7 +106,7 @@ class HunterCrashArrowExecutorTest {
 
         ArgumentCaptor<AstEntity> attackerCaptor = ArgumentCaptor.forClass(AstEntity.class);
         verify(combat).hit(
-                attackerCaptor.capture(), same(target), eq(AttackType.RANGED), eq(DamageElement.NONE), eq(0.30D), eq(3.0D)
+                attackerCaptor.capture(), same(target), eq(AttackType.RANGED), eq(DamageElement.NONE), eq(0.60D), eq(3.0D)
         );
         assertSame(astPlayer, attackerCaptor.getValue().player());
     }
@@ -126,7 +126,7 @@ class HunterCrashArrowExecutorTest {
                 null,
                 Map.of(
                         "range", 14.0D,
-                        "damageRatio", 0.30D,
+                        "damageRatio", 0.60D,
                         "shieldBreakMultiplier", 3.0D,
                         "projectileSpeed", 1.35D,
                         "projectileHitRadius", 0.45D

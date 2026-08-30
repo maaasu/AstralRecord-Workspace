@@ -64,7 +64,7 @@ class SwordsmanFlameRushExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 11. フレイムラッシュの実装契約
-     * 検証契約: 初撃は火属性65%だけを即時適用し、近距離の横薙ぎ粒子を右から左へ6 frameで流す。ノックバックを使わず4 tick後の縦斬りで75%を適用する。
+     * 検証契約: 初撃は火属性97.5%だけを即時適用し、近距離の横薙ぎ粒子を右から左へ6 frameで流す。ノックバックを使わず4 tick後の縦斬りで112.5%を適用する。
      */
     @Test
     void firstHitHasNoKnockbackAndSecondHitFollowsAfterFourTicks() {
@@ -75,7 +75,7 @@ class SwordsmanFlameRushExecutorTest {
         assertTrue(fixture.executor.cast(fixture.context).success());
 
         verify(fixture.combat).hit(
-                any(AstEntity.class), same(fixture.target), eq(AttackType.MELEE), eq(DamageElement.FIRE), eq(0.65D)
+                any(AstEntity.class), same(fixture.target), eq(AttackType.MELEE), eq(DamageElement.FIRE), eq(0.975D)
         );
         verify(fixture.combat, never()).knockback(any(AstEntity.class), any(Location.class), anyDouble(), anyDouble());
         verify(fixture.tasks).later(
@@ -116,7 +116,7 @@ class SwordsmanFlameRushExecutorTest {
         verticalCaptor.getValue().run();
 
         verify(fixture.combat).hit(
-                any(AstEntity.class), same(fixture.target), eq(AttackType.MELEE), eq(DamageElement.FIRE), eq(0.75D)
+                any(AstEntity.class), same(fixture.target), eq(AttackType.MELEE), eq(DamageElement.FIRE), eq(1.125D)
         );
     }
 
@@ -147,7 +147,7 @@ class SwordsmanFlameRushExecutorTest {
                 same(fixture.target),
                 eq(AttackType.MELEE),
                 eq(DamageElement.FIRE),
-                eq(0.75D),
+                eq(1.125D),
                 conditionCaptor.capture()
         );
         ActiveSkillCondition burning = conditionCaptor.getValue();
@@ -184,16 +184,16 @@ class SwordsmanFlameRushExecutorTest {
         AstEntity target = mock(AstEntity.class);
         when(target.location()).thenReturn(new Location(world, 0.0D, 64.0D, 4.0D));
         when(targeting.inCone(same(player), eq(6.0D), eq(60.0D), eq(5), eq(true))).thenReturn(List.of(target));
-        when(combat.hit(any(AstEntity.class), same(target), eq(AttackType.MELEE), eq(DamageElement.FIRE), eq(0.65D)))
+        when(combat.hit(any(AstEntity.class), same(target), eq(AttackType.MELEE), eq(DamageElement.FIRE), eq(0.975D)))
                 .thenReturn(new DamageResult(20.0D));
-        when(combat.hit(any(AstEntity.class), same(target), eq(AttackType.MELEE), eq(DamageElement.FIRE), eq(0.75D)))
+        when(combat.hit(any(AstEntity.class), same(target), eq(AttackType.MELEE), eq(DamageElement.FIRE), eq(1.125D)))
                 .thenReturn(new DamageResult(20.0D));
         when(combat.hit(
                 any(AstEntity.class),
                 same(target),
                 eq(AttackType.MELEE),
                 eq(DamageElement.FIRE),
-                eq(0.75D),
+                eq(1.125D),
                 any(ActiveSkillCondition.class)
         )).thenReturn(new DamageResult(20.0D));
         StatusSnapshot snapshot = mock(StatusSnapshot.class);
@@ -231,7 +231,7 @@ class SwordsmanFlameRushExecutorTest {
                         "range", 6.0D,
                         "targetAngle", 60.0D,
                         "maxTargets", 5,
-                        "damageRatios", List.of(0.65D, 0.75D),
+                        "damageRatios", List.of(0.975D, 1.125D),
                         "secondHitDelayTicks", 4,
                         "burningChance", burningChance,
                         "burningDurationTicks", 100L

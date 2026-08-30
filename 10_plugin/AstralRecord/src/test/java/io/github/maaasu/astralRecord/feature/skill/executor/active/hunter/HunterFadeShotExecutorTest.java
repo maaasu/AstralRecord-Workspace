@@ -76,7 +76,7 @@ class HunterFadeShotExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 16. ハンターフェイドショットの実装契約 > ### 16.1 散弾・移動・演出
-     * 検証契約: 発動時は5本を個別の非貫通飛翔体として放ち、同じMobへの各命中へRANGED/NONEの32%を適用した後、後方velocityを1回要求する。
+     * 検証契約: 発動時は5本を個別の非貫通飛翔体として放ち、同じMobへの各命中へRANGED/NONEの48%を適用した後、後方velocityを1回要求する。
      */
     @Test
     void launchesFiveIndependentPelletsThenBacksteps() {
@@ -125,7 +125,7 @@ class HunterFadeShotExecutorTest {
         AstEntity target = mock(AstEntity.class);
         hitCaptor.getAllValues().forEach(hit -> hit.accept(target, eyeLocation));
         verify(combat, times(5)).hit(
-                any(AstEntity.class), same(target), eq(AttackType.RANGED), eq(DamageElement.NONE), eq(0.32D)
+                any(AstEntity.class), same(target), eq(AttackType.RANGED), eq(DamageElement.NONE), eq(0.48D)
         );
         verify(effects).line(
                 any(Location.class), any(Location.class), eq(0.35D), eq(SharedParticleDefinitions.HUNTER_FADE_SHOT_STEP)
@@ -185,7 +185,7 @@ class HunterFadeShotExecutorTest {
                 null,
                 Map.of(
                         "range", 9.0D,
-                        "damageRatio", 0.32D,
+                        "damageRatio", 0.48D,
                         "pelletCount", 5,
                         "spreadAngle", 30.0D,
                         "projectileSpeed", 1.8D,

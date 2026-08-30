@@ -48,7 +48,7 @@ public final class SwordsmanShieldDrainExecutor extends PlayerActiveSkillExecuto
         SkillParamReader params = context.params();
         double range = params.getDouble("range", 6.0D);
         double targetAngle = params.getDouble("targetAngle", 40.0D);
-        double damageRatio = params.getDouble("damageRatio", 0.65D);
+        double damageRatio = params.getDouble("damageRatio", 0.975D);
         double shieldBreakMultiplier = params.getDouble("shieldBreakMultiplier", 3.0D);
         double absorbRatio = params.getDouble("shieldAbsorbRatio", 0.50D);
 

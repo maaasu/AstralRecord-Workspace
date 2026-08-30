@@ -71,7 +71,7 @@ class AdventurerLightningBoltExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 8. 冒険者ライトニングボルトの実装契約
-     * 検証契約: 主対象へ雷属性145%を適用し、非感電対象を飛ばして近い感電対象だけ最大2体へ40%を1段連鎖する。主対象の状態確認、再連鎖、感電付与は行わない。
+     * 検証契約: 主対象へ雷属性217.5%を適用し、非感電対象を飛ばして近い感電対象だけ最大2体へ60%を1段連鎖する。主対象の状態確認、再連鎖、感電付与は行わない。
      */
     @Test
     void appliesPrimaryAndOnlyShockedChainTargets() {
@@ -120,11 +120,11 @@ class AdventurerLightningBoltExecutorTest {
 
         hitCaptor.getValue().accept(primary, primaryImpact);
 
-        verify(combat).hit(any(AstEntity.class), same(primary), eq(AttackType.MAGIC), eq(DamageElement.LIGHTNING), eq(1.45D));
-        verify(combat).hit(any(AstEntity.class), same(shockedNear), eq(AttackType.MAGIC), eq(DamageElement.LIGHTNING), eq(0.40D));
-        verify(combat).hit(any(AstEntity.class), same(shockedFar), eq(AttackType.MAGIC), eq(DamageElement.LIGHTNING), eq(0.40D));
-        verify(combat, never()).hit(any(AstEntity.class), same(nonShocked), eq(AttackType.MAGIC), eq(DamageElement.LIGHTNING), eq(0.40D));
-        verify(combat, never()).hit(any(AstEntity.class), same(shockedOverLimit), eq(AttackType.MAGIC), eq(DamageElement.LIGHTNING), eq(0.40D));
+        verify(combat).hit(any(AstEntity.class), same(primary), eq(AttackType.MAGIC), eq(DamageElement.LIGHTNING), eq(2.175D));
+        verify(combat).hit(any(AstEntity.class), same(shockedNear), eq(AttackType.MAGIC), eq(DamageElement.LIGHTNING), eq(0.60D));
+        verify(combat).hit(any(AstEntity.class), same(shockedFar), eq(AttackType.MAGIC), eq(DamageElement.LIGHTNING), eq(0.60D));
+        verify(combat, never()).hit(any(AstEntity.class), same(nonShocked), eq(AttackType.MAGIC), eq(DamageElement.LIGHTNING), eq(0.60D));
+        verify(combat, never()).hit(any(AstEntity.class), same(shockedOverLimit), eq(AttackType.MAGIC), eq(DamageElement.LIGHTNING), eq(0.60D));
         ArgumentCaptor<AstEntity> attackerCaptor = ArgumentCaptor.forClass(AstEntity.class);
         verify(combat, times(3)).hit(
                 attackerCaptor.capture(), any(AstEntity.class), eq(AttackType.MAGIC), eq(DamageElement.LIGHTNING), anyDouble()
@@ -158,9 +158,9 @@ class AdventurerLightningBoltExecutorTest {
                 null,
                 Map.of(
                         "range", 14.0D,
-                        "damageRatio", 1.45D,
+                        "damageRatio", 2.175D,
                         "chainRadius", 5.0D,
-                        "chainDamageRatio", 0.40D,
+                        "chainDamageRatio", 0.60D,
                         "maxChainTargets", 2,
                         "projectileSpeed", 2.8D,
                         "projectileHitRadius", 0.45D

@@ -54,11 +54,14 @@ public final class AdventurerSmashExecutor extends PlayerActiveSkillExecutor {
         double reach = params.getDouble("reach", 6.0D);
         double targetAngle = params.getDouble("targetAngle", 35.0D);
         double impactRadius = params.getDouble("impactRadius", 2.0D);
-        double damageRatio = params.getDouble("damageRatio", 2.40D);
-        double secondaryRatio = params.getDouble("secondaryRatio", 0.48D);
+        double damageRatio = params.getDouble("damageRatio", 4.80D);
+        double secondaryRatio = params.getDouble("secondaryRatio", 0.72D);
         double secondaryKnockback = params.getDouble("secondaryKnockback", 1.0D);
         int impactDelayTicks = params.getInt("impactDelayTicks", 8);
         int maxSecondaryTargets = params.getInt("maxSecondaryTargets", 8);
+        int radiusCandidateLimit = maxSecondaryTargets == Integer.MAX_VALUE
+                ? Integer.MAX_VALUE
+                : maxSecondaryTargets + 1;
         AstEntity primary = context.services().targeting()
                 .inCone(player, reach, targetAngle, 1, true)
                 .stream()
@@ -101,9 +104,10 @@ public final class AdventurerSmashExecutor extends PlayerActiveSkillExecutor {
                     damageRatio
             );
             context.services().targeting()
-                    .inRadius(player, impact, impactRadius, impactRadius, maxSecondaryTargets, true)
+                    .inRadius(player, impact, impactRadius, impactRadius, radiusCandidateLimit, true)
                     .stream()
                     .filter(target -> !target.id().equals(primary.id()))
+                    .limit(maxSecondaryTargets)
                     .forEach(target -> hitSecondary(context, attacker, target, impact, secondaryRatio, secondaryKnockback));
             Location floor = impact.clone().subtract(0.0D, 0.15D, 0.0D);
             context.services().effects().blockDust(floor, floor.getBlock().getBlockData());

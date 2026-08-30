@@ -55,7 +55,7 @@ class SwordsmanShieldDrainExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 10. シールドドレインの実装契約 > ### 10.1 数値・対象・演出
-     * 検証契約: Shield非最大で実Shieldを40削ったhitは基礎65%・Shield3倍を使い、その50%に当たる20だけ自身へ回復要求する。
+     * 検証契約: Shield非最大で実Shieldを40削ったhitは基礎97.5%・Shield3倍を使い、その50%に当たる20だけ自身へ回復要求する。
      */
     @Test
     void drainsHalfOfActualShieldDamageWhenNotFullAtCast() {
@@ -65,7 +65,7 @@ class SwordsmanShieldDrainExecutorTest {
         assertTrue(fixture.executor.cast(fixture.context).success());
 
         verify(fixture.combat).hit(
-                any(AstEntity.class), same(fixture.target), eq(AttackType.MELEE), eq(DamageElement.NONE), eq(0.65D), eq(3.0D)
+                any(AstEntity.class), same(fixture.target), eq(AttackType.MELEE), eq(DamageElement.NONE), eq(0.975D), eq(3.0D)
         );
         verify(fixture.combat).recoverShield(any(AstEntity.class), eq(20.0D));
         verify(fixture.tasks).repeat(
@@ -146,7 +146,7 @@ class SwordsmanShieldDrainExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 10. シールドドレインの実装契約 > ### 10.1 数値・対象・演出
-     * 検証契約: 発動時Shieldが最大でも基礎65%を維持し、実回復量0なら吸収到達タスクを使わない。
+     * 検証契約: 発動時Shieldが最大でも基礎97.5%を維持し、実回復量0なら吸収到達タスクを使わない。
      */
     @Test
     void keepsBaseDamageAndSkipsAbsorptionWhenNoShieldIsRecovered() {
@@ -155,7 +155,7 @@ class SwordsmanShieldDrainExecutorTest {
         assertTrue(fixture.executor.cast(fixture.context).success());
 
         verify(fixture.combat).hit(
-                any(AstEntity.class), same(fixture.target), eq(AttackType.MELEE), eq(DamageElement.NONE), eq(0.65D), eq(3.0D)
+                any(AstEntity.class), same(fixture.target), eq(AttackType.MELEE), eq(DamageElement.NONE), eq(0.975D), eq(3.0D)
         );
         verify(fixture.combat).recoverShield(any(AstEntity.class), eq(20.0D));
         verify(fixture.tasks, never()).repeat(any(), any(), anyLong(), anyLong(), anyInt(), any(IntConsumer.class));
@@ -242,7 +242,7 @@ class SwordsmanShieldDrainExecutorTest {
                 Map.of(
                         "range", 6.0D,
                         "targetAngle", 40.0D,
-                        "damageRatio", 0.65D,
+                        "damageRatio", 0.975D,
                         "shieldBreakMultiplier", 3.0D,
                         "shieldAbsorbRatio", 0.50D
                 ),

@@ -32,7 +32,7 @@ import java.util.UUID;
 public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "mage_sparking";
-    static final double DEFAULT_DAMAGE_RATIO = 1.0D;
+    static final double DEFAULT_DAMAGE_RATIO = 1.5D;
     static final int DEFAULT_PROJECTILE_COUNT = 5;
     static final double DEFAULT_SPIRAL_RADIUS_GROWTH = 0.10D;
     static final double DEFAULT_SPIRAL_DEGREES_PER_TICK = 14.4D;

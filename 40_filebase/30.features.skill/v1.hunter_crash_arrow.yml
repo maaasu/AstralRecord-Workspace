@@ -44,12 +44,12 @@ gem:
   sellable: false
 # behavior:
 #   projectile: "発動者の視線方向へ射程14mを毎tick1.35mで直進する非貫通の仮想飛翔体を1本だけ放つ。重力による落下はなく、最初のMobまたは地形ブロックに到達する。"
-#   damage: "最初に命中したMob 1体へRANGED/NONEの基礎倍率30%を1回適用し、skill damage補正を共通経路で加算する。同じ対象への再命中、状態異常、ノックバックは発生しない。"
+#   damage: "最初に命中したMob 1体へRANGED/NONEの基礎倍率60%を1回適用し、skill damage補正を共通経路で加算する。同じ対象への再命中、状態異常、ノックバックは発生しない。"
 #   shield: "命中時の一撃だけ、計算シールドダメージへクラッシュアローのshieldBreakMultiplierを適用する。Lv.1は3.0倍、レベルごとに0.5ずつ増加し、Lv.5は5.0倍。"
 #   targets: "SkillProjectileServiceの既存Mob専用規則を使用し、NPC、PvP対象、別world、死亡済みMobは対象外とする。"
 params:
   range: 14.0
-  damageRatio: 0.30
+  damageRatio: 0.60
   shieldBreakMultiplier: 3.0
   projectileSpeed: 1.35
   projectileHitRadius: 0.45

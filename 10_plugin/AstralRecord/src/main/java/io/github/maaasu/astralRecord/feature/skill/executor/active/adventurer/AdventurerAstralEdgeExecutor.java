@@ -30,7 +30,7 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
     private static final String THRUST_SCOPE = ID + ":thrust";
     private static final double DEFAULT_REACH = 5.5D;
     private static final int DEFAULT_MAX_TARGETS = 5;
-    private static final List<Double> DEFAULT_DAMAGE_RATIOS = List.of(1.0D, 0.5D);
+    private static final List<Double> DEFAULT_DAMAGE_RATIOS = List.of(1.5D, 0.75D);
     private static final double[] SWEEP_RADIUS_BASES = {2.4D, 3.9D, 5.4D};
     private static final double SWEEP_START_ANGLE = 55.0D;
     private static final double SWEEP_END_ANGLE = -55.0D;

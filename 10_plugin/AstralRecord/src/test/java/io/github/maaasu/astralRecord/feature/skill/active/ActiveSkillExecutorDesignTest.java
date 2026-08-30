@@ -98,7 +98,7 @@ class ActiveSkillExecutorDesignTest {
         assertDoesNotThrow(() -> executor.validateParams(astralEdgeDefinition(Map.of(
                 "reach", 5.5D,
                 "maxTargets", 5,
-                "damageRatios", List.of(1.0D, 0.5D)
+                "damageRatios", List.of(1.5D, 0.75D)
         ))));
 
         SkillParameterException exception = assertThrows(
@@ -106,7 +106,7 @@ class ActiveSkillExecutorDesignTest {
                 () -> executor.validateParams(astralEdgeDefinition(Map.of(
                         "reach", 5.5D,
                         "maxTargets", 5,
-                        "damageRatios", List.of(1.0D)
+                        "damageRatios", List.of(1.5D)
                 )))
         );
         assertEquals("damageRatios", exception.key());
@@ -124,7 +124,7 @@ class ActiveSkillExecutorDesignTest {
         assertDoesNotThrow(() -> executor.validateParams(blastArrowDefinition(Map.of(
                 "range", 14.0D,
                 "radius", 2.25D,
-                "damageRatio", 1.20D,
+                "damageRatio", 1.80D,
                 "maxTargets", 6,
                 "projectileSpeed", 1.35D,
                 "projectileHitRadius", 0.45D
@@ -135,7 +135,7 @@ class ActiveSkillExecutorDesignTest {
                 () -> executor.validateParams(blastArrowDefinition(Map.of(
                         "range", 14.0D,
                         "radius", 2.25D,
-                        "damageRatio", 1.20D,
+                        "damageRatio", 1.80D,
                         "maxTargets", 0,
                         "projectileSpeed", 1.35D,
                         "projectileHitRadius", 0.45D
@@ -155,7 +155,7 @@ class ActiveSkillExecutorDesignTest {
 
         assertDoesNotThrow(() -> executor.validateParams(crashArrowDefinition(Map.of(
                 "range", 14.0D,
-                "damageRatio", 0.30D,
+                "damageRatio", 0.60D,
                 "shieldBreakMultiplier", 3.0D,
                 "projectileSpeed", 1.35D,
                 "projectileHitRadius", 0.45D
@@ -165,7 +165,7 @@ class ActiveSkillExecutorDesignTest {
                 SkillParameterException.class,
                 () -> executor.validateParams(crashArrowDefinition(Map.of(
                         "range", 14.0D,
-                        "damageRatio", 0.30D,
+                        "damageRatio", 0.60D,
                         "shieldBreakMultiplier", 0.0D,
                         "projectileSpeed", 1.35D,
                         "projectileHitRadius", 0.45D
@@ -185,9 +185,9 @@ class ActiveSkillExecutorDesignTest {
 
         assertDoesNotThrow(() -> executor.validateParams(lightningBoltDefinition(Map.of(
                 "range", 14.0D,
-                "damageRatio", 1.45D,
+                "damageRatio", 2.175D,
                 "chainRadius", 5.0D,
-                "chainDamageRatio", 0.40D,
+                "chainDamageRatio", 0.60D,
                 "maxChainTargets", 2,
                 "projectileSpeed", 2.8D,
                 "projectileHitRadius", 0.45D
@@ -197,9 +197,9 @@ class ActiveSkillExecutorDesignTest {
                 SkillParameterException.class,
                 () -> executor.validateParams(lightningBoltDefinition(Map.of(
                         "range", 14.0D,
-                        "damageRatio", 1.45D,
+                        "damageRatio", 2.175D,
                         "chainRadius", 5.0D,
-                        "chainDamageRatio", 0.40D,
+                        "chainDamageRatio", 0.60D,
                         "maxChainTargets", 0,
                         "projectileSpeed", 2.8D,
                         "projectileHitRadius", 0.45D
@@ -217,7 +217,7 @@ class ActiveSkillExecutorDesignTest {
     void sparkingValidatesBouncingProjectileParams() {
         MageSparkingExecutor executor = new MageSparkingExecutor(activeSkillServices());
         Map<String, Object> valid = Map.of(
-                "damageRatio", 1.0D,
+                "damageRatio", 1.5D,
                 "projectileCount", 5,
                 "spiralRadiusGrowth", 0.10D,
                 "spiralDegreesPerTick", 14.4D,
@@ -247,7 +247,7 @@ class ActiveSkillExecutorDesignTest {
     void frostBlizzardValidatesPersistentVortexParams() {
         MageFrostBlizzardExecutor executor = new MageFrostBlizzardExecutor(activeSkillServices());
         Map<String, Object> valid = new java.util.LinkedHashMap<>();
-        valid.put("damageRatio", 0.20D);
+        valid.put("damageRatio", 0.30D);
         valid.put("radius", 2.75D);
         valid.put("height", 2.5D);
         valid.put("movementSpeed", 0.18D);
@@ -280,7 +280,7 @@ class ActiveSkillExecutorDesignTest {
         assertDoesNotThrow(() -> executor.validateParams(manaBurstDefinition(Map.of(
                 "range", 7.0D,
                 "angle", 60.0D,
-                "damageRatio", 1.10D,
+                "damageRatio", 1.65D,
                 "maxTargets", 6
         ))));
 
@@ -289,7 +289,7 @@ class ActiveSkillExecutorDesignTest {
                 () -> executor.validateParams(manaBurstDefinition(Map.of(
                         "range", 7.0D,
                         "angle", 360.0D,
-                        "damageRatio", 1.10D,
+                        "damageRatio", 1.65D,
                         "maxTargets", 6
                 )))
         );
@@ -307,7 +307,7 @@ class ActiveSkillExecutorDesignTest {
 
         assertDoesNotThrow(() -> executor.validateParams(fadeShotDefinition(Map.of(
                 "range", 9.0D,
-                "damageRatio", 0.32D,
+                "damageRatio", 0.48D,
                 "pelletCount", 5,
                 "spreadAngle", 30.0D,
                 "projectileSpeed", 1.8D,
@@ -319,7 +319,7 @@ class ActiveSkillExecutorDesignTest {
                 SkillParameterException.class,
                 () -> executor.validateParams(fadeShotDefinition(Map.of(
                         "range", 9.0D,
-                        "damageRatio", 0.32D,
+                        "damageRatio", 0.48D,
                         "pelletCount", 4,
                         "spreadAngle", 30.0D,
                         "projectileSpeed", 1.8D,
@@ -342,7 +342,7 @@ class ActiveSkillExecutorDesignTest {
         assertDoesNotThrow(() -> executor.validateParams(shieldDrainDefinition(Map.of(
                 "range", 6.0D,
                 "targetAngle", 40.0D,
-                "damageRatio", 0.65D,
+                "damageRatio", 0.975D,
                 "shieldBreakMultiplier", 3.0D,
                 "shieldAbsorbRatio", 0.50D
         ))));
@@ -352,7 +352,7 @@ class ActiveSkillExecutorDesignTest {
                 () -> executor.validateParams(shieldDrainDefinition(Map.of(
                         "range", 6.0D,
                         "targetAngle", 40.0D,
-                        "damageRatio", 0.65D,
+                        "damageRatio", 0.975D,
                         "shieldBreakMultiplier", 3.0D,
                         "shieldAbsorbRatio", 1.5D
                 )))
@@ -373,7 +373,7 @@ class ActiveSkillExecutorDesignTest {
                 "range", 6.0D,
                 "targetAngle", 60.0D,
                 "maxTargets", 5,
-                "damageRatios", List.of(0.65D, 0.75D),
+                "damageRatios", List.of(0.975D, 1.125D),
                 "secondHitDelayTicks", 4,
                 "burningChance", 0.0D,
                 "burningDurationTicks", 100L
@@ -385,7 +385,7 @@ class ActiveSkillExecutorDesignTest {
                         "range", 6.0D,
                         "targetAngle", 60.0D,
                         "maxTargets", 5,
-                        "damageRatios", List.of(0.65D, 0.75D),
+                        "damageRatios", List.of(0.975D, 1.125D),
                         "secondHitDelayTicks", 4,
                         "burningChance", -1.0D,
                         "burningDurationTicks", 100L
@@ -406,7 +406,7 @@ class ActiveSkillExecutorDesignTest {
         assertDoesNotThrow(() -> executor.validateParams(fireballDefinition(Map.of(
                 "range", 16.0D,
                 "radius", 2.25D,
-                "damageRatio", 1.10D,
+                "damageRatio", 1.65D,
                 "maxTargets", 4,
                 "projectileSpeed", 1.45D,
                 "projectileHitRadius", 0.45D
@@ -417,7 +417,7 @@ class ActiveSkillExecutorDesignTest {
                 () -> executor.validateParams(fireballDefinition(Map.of(
                         "range", 16.0D,
                         "radius", 2.25D,
-                        "damageRatio", 1.10D,
+                        "damageRatio", 1.65D,
                         "maxTargets", 0,
                         "projectileSpeed", 1.45D,
                         "projectileHitRadius", 0.45D
@@ -467,7 +467,7 @@ class ActiveSkillExecutorDesignTest {
         assertDoesNotThrow(() -> executor.validateParams(bastionStrikeDefinition(Map.of(
                 "range", 6.0D,
                 "targetAngle", 40.0D,
-                "damageRatio", 1.25D,
+                "damageRatio", 2.50D,
                 "consumeAllCurrentMana", true,
                 "levelFiveRequiredManaRatio", 0.80D
         ))));
@@ -477,7 +477,7 @@ class ActiveSkillExecutorDesignTest {
                 () -> executor.validateParams(bastionStrikeDefinition(Map.of(
                         "range", 6.0D,
                         "targetAngle", 40.0D,
-                        "damageRatio", 1.25D,
+                        "damageRatio", 2.50D,
                         "consumeAllCurrentMana", false,
                         "levelFiveRequiredManaRatio", 0.80D
                 )))
@@ -498,7 +498,7 @@ class ActiveSkillExecutorDesignTest {
                 "range", 18.0D,
                 "radius", 3.0D,
                 "arrowCount", 15,
-                "damageRatios", List.of(0.70D, 0.30D),
+                "damageRatios", List.of(1.05D, 0.45D),
                 "openingSpeed", 1.60D,
                 "openingHitRadius", 0.45D,
                 "rainHitRadius", 0.75D
@@ -510,7 +510,7 @@ class ActiveSkillExecutorDesignTest {
                         "range", 18.0D,
                         "radius", 3.0D,
                         "arrowCount", 15,
-                        "damageRatios", List.of(0.70D),
+                        "damageRatios", List.of(1.05D),
                         "openingSpeed", 1.60D,
                         "openingHitRadius", 0.45D,
                         "rainHitRadius", 0.75D

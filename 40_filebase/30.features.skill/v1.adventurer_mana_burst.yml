@@ -50,5 +50,5 @@ tags:
 params:
   range: 7.0
   angle: 60.0
-  damageRatio: 1.10
+  damageRatio: 1.65
   maxTargets: 6

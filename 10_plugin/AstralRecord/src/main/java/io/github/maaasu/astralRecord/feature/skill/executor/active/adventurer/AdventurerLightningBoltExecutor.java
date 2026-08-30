@@ -22,9 +22,9 @@ public final class AdventurerLightningBoltExecutor extends PlayerActiveSkillExec
 
     public static final String ID = "adventurer_lightning_bolt";
     static final double DEFAULT_RANGE = 14.0D;
-    static final double DEFAULT_DAMAGE_RATIO = 1.45D;
+    static final double DEFAULT_DAMAGE_RATIO = 2.175D;
     static final double DEFAULT_CHAIN_RADIUS = 5.0D;
-    static final double DEFAULT_CHAIN_DAMAGE_RATIO = 0.40D;
+    static final double DEFAULT_CHAIN_DAMAGE_RATIO = 0.60D;
     static final int DEFAULT_MAX_CHAIN_TARGETS = 2;
     static final double DEFAULT_PROJECTILE_SPEED = 2.8D;
     static final double DEFAULT_PROJECTILE_HIT_RADIUS = 0.45D;
