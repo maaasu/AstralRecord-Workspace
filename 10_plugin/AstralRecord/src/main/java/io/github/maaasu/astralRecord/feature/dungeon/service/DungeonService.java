@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.dungeon.service;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureDungeonRecord;
 import io.github.maaasu.astralRecord.feature.adventurerecord.repository.AdventureRecordRepository;
+import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.dungeon.generation.DungeonBlockPlanner;
 import io.github.maaasu.astralRecord.feature.dungeon.generation.DungeonEncounterPlanner;
 import io.github.maaasu.astralRecord.feature.dungeon.generation.DungeonLayoutPlanner;
@@ -2496,6 +2497,52 @@ public final class DungeonService {
     }
 
     /**
+     * ダンジョン Mob が関与するダメージを、その Mob の攻略中の部屋内にいる参加者だけへ制限します。
+     * <p>
+     * 通常攻撃、スキル、投射物、状態異常を問わず {@code DamageService} から呼び出します。
+     * ダンジョン Mob が関与しないダメージは許可し、ダンジョン Mob 同士のダメージは同一の攻略中部屋内に限ります。
+     * </p>
+     *
+     * @param attacker 攻撃元。環境ダメージの場合は {@code null}
+     * @param victim 被ダメージ対象
+     * @return ダメージを適用できる場合は {@code true}
+     */
+    public boolean canApplyCombatDamage(@Nullable AstEntity attacker, @NotNull AstEntity victim) {
+        MobBinding attackerBinding = dungeonMobBinding(attacker);
+        MobBinding victimBinding = dungeonMobBinding(victim);
+        if (attackerBinding == null && victimBinding == null) {
+            return true;
+        }
+        if (attackerBinding != null && victimBinding != null) {
+            return attackerBinding.sessionId().equals(victimBinding.sessionId())
+                    && attackerBinding.roomId() == victimBinding.roomId()
+                    && isActiveDungeonMobRoom(attackerBinding);
+        }
+
+        MobBinding dungeonMobBinding = attackerBinding == null ? victimBinding : attackerBinding;
+        AstEntity playerEntity = attackerBinding == null ? attacker : victim;
+        if (dungeonMobBinding == null
+                || playerEntity == null
+                || !playerEntity.isPlayer()
+                || playerEntity.player() == null) {
+            return false;
+        }
+
+        Session session = sessionsById.get(dungeonMobBinding.sessionId());
+        if (!isActiveDungeonMobRoom(session, dungeonMobBinding)
+                || !session.participants.contains(playerEntity.id())
+                || !dungeonMobBinding.sessionId().equals(sessionIdByParticipant.get(playerEntity.id()))) {
+            return false;
+        }
+        Location playerLocation = playerEntity.location();
+        Integer playerRoomId = currentRoomId(session, playerLocation);
+        return playerLocation.getWorld() != null
+                && session.instanceWorld.world().getUID().equals(playerLocation.getWorld().getUID())
+                && playerRoomId != null
+                && dungeonMobBinding.roomId() == playerRoomId;
+    }
+
+    /**
      * Mob 死亡確定時に同一インスタンス内へいる現在参加者だけを固定受取人として返します。
      *
      * @param mobInstanceId ダンジョン Mob UUID
@@ -3833,6 +3880,26 @@ public final class DungeonService {
                 .filter(room -> room.id() == roomId)
                 .findFirst()
                 .orElseThrow();
+    }
+
+    private @Nullable MobBinding dungeonMobBinding(@Nullable AstEntity entity) {
+        if (entity == null || !entity.isMob() || entity.mob() == null) {
+            return null;
+        }
+        return mobBindings.get(entity.mob().instanceId());
+    }
+
+    private boolean isActiveDungeonMobRoom(@NotNull MobBinding binding) {
+        return isActiveDungeonMobRoom(sessionsById.get(binding.sessionId()), binding);
+    }
+
+    private boolean isActiveDungeonMobRoom(@Nullable Session session, @NotNull MobBinding binding) {
+        return session != null
+                && !session.ending
+                && session.combatStarted
+                && session.layout != null
+                && session.instanceWorld != null
+                && session.roomStates.get(binding.roomId()) == DungeonMapRoomState.ACTIVE;
     }
 
     private boolean contains(@NotNull DungeonLayout.Room room, int x, int z) {

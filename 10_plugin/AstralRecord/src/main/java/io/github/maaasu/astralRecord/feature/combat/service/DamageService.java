@@ -567,6 +567,9 @@ public final class DamageService {
             double baseDamage,
             @NotNull ConditionType conditionType
     ) {
+        if (dungeonService != null && !dungeonService.canApplyCombatDamage(attacker, victim)) {
+            return new DamageResult(0.0D);
+        }
         if (attacker != null && attacker.isPlayer() && isPlayerDead(attacker.id())) {
             return new DamageResult(0.0D);
         }
@@ -706,6 +709,9 @@ public final class DamageService {
             double shieldBreakMultiplier,
             @NotNull SuperStarCriticalMode superStarCriticalMode
     ) {
+        if (dungeonService != null && !dungeonService.canApplyCombatDamage(attacker, victim)) {
+            return new DamageResult(0.0D);
+        }
         if (attacker != null && attacker.isPlayer() && isPlayerDead(attacker.id())) {
             return new DamageResult(0.0D);
         }

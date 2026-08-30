@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.dungeon.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.adventurerecord.repository.AdventureRecordRepository;
+import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.dungeon.DungeonTestFixtures;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonBlockPlan;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLayout;
@@ -182,6 +183,42 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         for (DungeonBlockPlan.Position position : entrance(11).gateBlocks()) {
             assertEquals(Material.AIR, world.getBlockAt(position.x(), position.y(), position.z()).getType());
         }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 3. 遭遇 Mob と部屋進行
+     * 検証契約: Dungeon Mob と参加者のダメージは、同一ACTIVE部屋内にいるときだけ許可する。
+     */
+    @Test
+    void allowsDungeonCombatOnlyForParticipantInsideTheActiveMobRoom() throws Exception {
+        DungeonService service = service(mock(MobService.class), mock(DisplayTextService.class));
+        World world = server().addSimpleWorld("dungeon-combat-room-boundary");
+        PlayerMock player = server().addPlayer();
+        player.teleport(new Location(world, 16.5D, 65.0D, 4.5D));
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        when(astPlayer.getBukkit()).thenReturn(player);
+        Object session = session(player.getUniqueId());
+        configureRunningSession(service, session, player, world);
+        mapField(session, "roomStates").put(1, DungeonMapRoomState.ACTIVE);
+        UUID sessionId = field(session, "id", UUID.class);
+        MobInstance mob = new MobInstance(
+                UUID.randomUUID(),
+                DungeonTestFixtures.mob("room_guard", 1, MobCategory.ENEMY),
+                new Location(world, 16.5D, 65.0D, 4.5D)
+        );
+        mapField(service, "mobBindings").put(mob.instanceId(), mobBinding(sessionId, 1));
+
+        assertTrue(service.canApplyCombatDamage(AstEntity.player(astPlayer), AstEntity.mob(mob)));
+        assertTrue(service.canApplyCombatDamage(AstEntity.mob(mob), AstEntity.player(astPlayer)));
+
+        player.teleport(new Location(world, 10.5D, 65.0D, 4.5D));
+        assertFalse(service.canApplyCombatDamage(AstEntity.player(astPlayer), AstEntity.mob(mob)));
+        assertFalse(service.canApplyCombatDamage(AstEntity.mob(mob), AstEntity.player(astPlayer)));
+
+        player.teleport(new Location(world, 16.5D, 65.0D, 4.5D));
+        mapField(session, "roomStates").put(1, DungeonMapRoomState.CLEARED);
+        assertFalse(service.canApplyCombatDamage(AstEntity.player(astPlayer), AstEntity.mob(mob)));
     }
 
     /**
@@ -842,5 +879,16 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
                 .filter(type -> type.getSimpleName().equals("Session"))
                 .findFirst()
                 .orElseThrow();
+    }
+
+    /** DungeonService内のprivate MobBindingをテスト用に構築します。 */
+    private Object mobBinding(UUID sessionId, int roomId) throws ReflectiveOperationException {
+        Class<?> bindingType = List.of(DungeonService.class.getDeclaredClasses()).stream()
+                .filter(type -> type.getSimpleName().equals("MobBinding"))
+                .findFirst()
+                .orElseThrow();
+        Constructor<?> constructor = bindingType.getDeclaredConstructors()[0];
+        constructor.setAccessible(true);
+        return constructor.newInstance(sessionId, roomId);
     }
 }

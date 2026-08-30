@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
+import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
@@ -52,9 +53,65 @@ import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.same;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class DamageServiceMobDesignTest extends MockBukkitTestBase {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 3. 遭遇 Mob と部屋進行
+     * 検証契約: 部屋境界で拒否された通常ダメージはMobのHP・戦闘状態へ副作用を残さない。
+     */
+    @Test
+    void rejectsNormalDamageWhenDungeonRoomCombatIsNotAllowed() {
+        DamageHarness harness = damageHarness();
+        DungeonService dungeonService = mock(DungeonService.class);
+        harness.service.setDungeonService(dungeonService);
+        AstPlayer attacker = attacker();
+        MobInstance mob = DesignTestFixtures.mobInstance(10.0D, 0.0D, 0.0D);
+        when(dungeonService.canApplyCombatDamage(any(AstEntity.class), any(AstEntity.class))).thenReturn(false);
+
+        DamageResult result = harness.service.applyDamage(
+                AstEntity.player(attacker),
+                AstEntity.mob(mob),
+                6.0D,
+                AttackType.MELEE
+        );
+
+        assertEquals(0.0D, result.finalDamage(), 0.0001D);
+        assertEquals(10.0D, mob.currentHealth(), 0.0001D);
+        assertEquals(MobState.IDLE, mob.state());
+        verify(dungeonService).canApplyCombatDamage(any(AstEntity.class), any(AstEntity.class));
+        verifyNoInteractions(harness.mobCombatService, harness.knockbackService, harness.displayTextService);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 3. 遭遇 Mob と部屋進行
+     * 検証契約: 部屋境界で拒否された状態異常ダメージはMobのHP・戦闘状態へ副作用を残さない。
+     */
+    @Test
+    void rejectsConditionDamageWhenDungeonRoomCombatIsNotAllowed() {
+        DamageHarness harness = damageHarness();
+        DungeonService dungeonService = mock(DungeonService.class);
+        harness.service.setDungeonService(dungeonService);
+        MobInstance mob = DesignTestFixtures.mobInstance(10.0D, 0.0D, 0.0D);
+        when(dungeonService.canApplyCombatDamage(any(), any(AstEntity.class))).thenReturn(false);
+
+        DamageResult result = harness.service.applyConditionDamage(
+                null,
+                AstEntity.mob(mob),
+                6.0D,
+                ConditionType.POISON
+        );
+
+        assertEquals(0.0D, result.finalDamage(), 0.0001D);
+        assertEquals(10.0D, mob.currentHealth(), 0.0001D);
+        assertEquals(MobState.IDLE, mob.state());
+        verify(dungeonService).canApplyCombatDamage(any(), any(AstEntity.class));
+        verifyNoInteractions(harness.mobCombatService, harness.knockbackService, harness.displayTextService);
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
@@ -800,6 +857,7 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
             mobService,
             mobCombatService,
             knockbackService,
+            displayTextService,
             particleDisplayService,
             service
         );
@@ -810,6 +868,7 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         MobService mobService,
         MobCombatService mobCombatService,
         MobKnockbackService knockbackService,
+        DisplayTextService displayTextService,
         ParticleDisplayService particleDisplayService,
         DamageService service
     ) {
