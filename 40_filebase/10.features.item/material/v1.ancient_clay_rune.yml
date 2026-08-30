@@ -5,7 +5,7 @@ schemaVersion: 1
 id: ancient_clay_rune
 category: material
 name: "&d古代粘土のルーン"
-icon: AMETHYST_SHARD
+icon: bolt_armor_trim_smithing_template
 rarity: RARE
 maxStack: 64
 saleValue: 28
