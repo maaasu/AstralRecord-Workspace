@@ -1,3 +1,4 @@
+using System.Data;
 using System.Text.Json;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
@@ -110,18 +111,16 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
         if (presetIndex is < 1 or > PresetCount)
             return false;
 
-        var accountExists = await dbContext.Accounts
-            .AsNoTracking()
-            .AnyAsync(account => account.Uuid == accountId && !account.IsDeleted);
-        if (!accountExists)
-            return false;
-
         var strategy = dbContext.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
         {
             dbContext.ChangeTracker.Clear();
 
-            await using var transaction = await dbContext.Database.BeginTransactionAsync();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable);
+            if (!await AccountExistsForSelectionAsync(accountId))
+                return false;
+
             var presets = await dbContext.SkillBindPresets
                 .Where(preset => preset.AccountId == accountId && !preset.IsDeleted)
                 .ToListAsync();
@@ -132,8 +131,13 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
                 return false;
 
             var now = DateTime.UtcNow;
-            foreach (var preset in presets)
-                preset.IsSelected = preset == selected;
+            var previouslySelected = presets
+                .Where(preset => preset.IsSelected && preset != selected)
+                .ToList();
+            foreach (var preset in previouslySelected)
+                preset.IsSelected = false;
+            if (previouslySelected.Count > 0)
+                await dbContext.SaveChangesAsync();
 
             if (selected is null)
             {
@@ -167,6 +171,26 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
             await transaction.CommitAsync();
             return true;
         });
+    }
+
+    private async Task<bool> AccountExistsForSelectionAsync(Guid accountId)
+    {
+        if (dbContext.Database.IsSqlServer())
+        {
+            var account = await dbContext.Accounts
+                .FromSqlInterpolated($"""
+                    SELECT *
+                    FROM [dbo].[account] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE [uuid] = {accountId} AND [is_deleted] = 0
+                    """)
+                .AsNoTracking()
+                .SingleOrDefaultAsync();
+            return account is not null;
+        }
+
+        return await dbContext.Accounts
+            .AsNoTracking()
+            .AnyAsync(account => account.Uuid == accountId && !account.IsDeleted);
     }
 
     private static SkillBindPresetResponse Empty(Guid accountId, int presetIndex) => new()

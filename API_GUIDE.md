@@ -137,13 +137,13 @@
 
 ## SQL Server 統合テスト
 
-オーブ操作の本番用 `UPDLOCK` / `HOLDLOCK` 分岐は、`localhost\SQLEXPRESS` 上に
-`AstralRecordOrbIntegration_<random UUID>` の一時 DB を作成する opt-in テストで検証します。
+オーブ操作とスキルバインドプリセット選択の本番用 `UPDLOCK` / `HOLDLOCK` 分岐は、
+`localhost\SQLEXPRESS` 上に専用prefixとrandom UUIDを持つ一時 DB を作成する opt-in テストで検証します。
 通常の `dotnet test` では環境変数未指定を検知して実DB処理を行わず終了します。専用テストを実行する場合は次を使用してください。
 
 ```powershell
 $env:ASTRALRECORD_RUN_SQLSERVER_INTEGRATION = '1'
-dotnet test 20_api/AstralRecordApi/AstralRecordApi.Tests/AstralRecordApi.Tests.csproj --filter 'FullyQualifiedName~EquipmentOrbOperationSqlServerIntegrationTests'
+dotnet test 20_api/AstralRecordApi/AstralRecordApi.Tests/AstralRecordApi.Tests.csproj --filter 'Category=SqlServerIntegration'
 Remove-Item Env:ASTRALRECORD_RUN_SQLSERVER_INTEGRATION
 ```
 

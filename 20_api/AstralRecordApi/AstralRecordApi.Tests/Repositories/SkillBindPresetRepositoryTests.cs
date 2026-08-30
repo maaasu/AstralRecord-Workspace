@@ -4,6 +4,7 @@ using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage;
 using Xunit;
 
@@ -62,13 +63,15 @@ public class SkillBindPresetRepositoryTests
     }
 
     [Fact]
-    public async Task SelectAsync_PersistsSelectedPresetAcrossReloads()
+    public async Task SelectAsync_SwitchesExistingPresetsUnderSelectedUniqueIndex()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
+        var saveChangesCounter = new SaveChangesCounterInterceptor();
         var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
             .UseSqlite(connection, sqlite => sqlite.ExecutionStrategy(
                 dependencies => new RetryingTestExecutionStrategy(dependencies)))
+            .AddInterceptors(saveChangesCounter)
             .Options;
         await using var dbContext = new AstralRecordDbContext(options);
         await CreateSchemaAsync(dbContext);
@@ -79,21 +82,28 @@ public class SkillBindPresetRepositoryTests
 
         var repository = new SkillBindPresetRepository(dbContext);
 
-        Assert.True(await repository.SelectAsync(accountId, 2, new SkillBindPresetSelectionRequest
+        Assert.True(await repository.SelectAsync(accountId, 1, new SkillBindPresetSelectionRequest
         {
-            PresetIndex = 2,
+            PresetIndex = 1,
             UpdatedBy = userId,
         }));
         Assert.True(await repository.SelectAsync(accountId, 2, new SkillBindPresetSelectionRequest
         {
             PresetIndex = 2,
+            UpdatedBy = userId,
+        }));
+        saveChangesCounter.Reset();
+        Assert.True(await repository.SelectAsync(accountId, 1, new SkillBindPresetSelectionRequest
+        {
+            PresetIndex = 1,
             UpdatedBy = userId,
         }));
 
         var reloaded = await new SkillBindPresetRepository(dbContext).GetByAccountIdAsync(accountId);
 
-        Assert.Equal(2, reloaded.Single(preset => preset.IsSelected).PresetIndex);
-        Assert.All(reloaded.Where(preset => preset.PresetIndex != 2), preset => Assert.False(preset.IsSelected));
+        Assert.Equal(1, reloaded.Single(preset => preset.IsSelected).PresetIndex);
+        Assert.All(reloaded.Where(preset => preset.PresetIndex != 1), preset => Assert.False(preset.IsSelected));
+        Assert.Equal(2, saveChangesCounter.SavingChangesAsyncCount);
     }
 
     [Fact]
@@ -301,6 +311,10 @@ public class SkillBindPresetRepositoryTests
                 is_deleted INTEGER NOT NULL
             );
 
+            CREATE UNIQUE INDEX UX_skill_bind_preset_account_selected
+                ON skill_bind_preset (account_id)
+                WHERE is_deleted = 0 AND is_selected = 1;
+
             CREATE TABLE account_learned_skill (
                 learned_skill_id TEXT NOT NULL PRIMARY KEY,
                 account_id TEXT NOT NULL,
@@ -319,5 +333,21 @@ public class SkillBindPresetRepositoryTests
         : ExecutionStrategy(dependencies, maxRetryCount: 1, maxRetryDelay: TimeSpan.Zero)
     {
         protected override bool ShouldRetryOn(Exception exception) => false;
+    }
+
+    private sealed class SaveChangesCounterInterceptor : SaveChangesInterceptor
+    {
+        public int SavingChangesAsyncCount { get; private set; }
+
+        public override ValueTask<InterceptionResult<int>> SavingChangesAsync(
+            DbContextEventData eventData,
+            InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            SavingChangesAsyncCount++;
+            return base.SavingChangesAsync(eventData, result, cancellationToken);
+        }
+
+        public void Reset() => SavingChangesAsyncCount = 0;
     }
 }
