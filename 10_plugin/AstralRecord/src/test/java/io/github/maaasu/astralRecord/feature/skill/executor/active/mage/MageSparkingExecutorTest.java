@@ -354,7 +354,7 @@ class MageSparkingExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 23. メイジ スパーキングの実装契約 > ### 23.2 バランス・入手・演出・テスト契約
-     * 検証契約: 本番マスタはLv.1〜5の弾数、半径成長0.10m/tick、回転14.4度/tick、命中半径0.60mを定義し、交換ショップが同じskillの仮想ジェムを参照する。
+     * 検証契約: 本番マスタはLv.1〜5の弾数、半径成長0.10m/tick、回転14.4度/tick、命中半径0.60mを定義し、交換ショップが同じskillの仮想ジェムをslot23へ無印原石3個で配置する。
      */
     @Test
     void filebaseDefinesLevelGrowthAndAcquisitionReferences() throws Exception {
@@ -379,10 +379,17 @@ class MageSparkingExecutorTest {
         );
         assertTrue(shop.getMapList("items").stream().anyMatch(item -> {
             Object itemId = item.get("itemId");
-            return itemId instanceof Map<?, ?> ref
+             Object requiredItems = item.get("requiredItems");
+             return itemId instanceof Map<?, ?> ref
                     && "item:00_skill_gem_mage_sparking".equals(ref.get("ref"))
                     && Integer.valueOf(1).equals(item.get("page"))
-                    && Integer.valueOf(14).equals(item.get("slot"));
+                    && Integer.valueOf(23).equals(item.get("slot"))
+                    && requiredItems instanceof List<?> costs
+                    && costs.size() == 1
+                    && costs.get(0) instanceof Map<?, ?> cost
+                    && cost.get("itemId") instanceof Map<?, ?> costItem
+                    && "item:skill_gem_raw".equals(costItem.get("ref"))
+                    && Integer.valueOf(3).equals(cost.get("amount"));
         }));
     }
 

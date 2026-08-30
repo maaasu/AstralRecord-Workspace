@@ -8,12 +8,22 @@ name: "&d星晶錬成"
 mode: EXCHANGE
 access: NPC_ONLY
 items:
+  - id: meditation_from_raw
+    itemId: { ref: item:00_skill_gem_adventurer_meditation }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 0
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 1
   - id: astral_edge_from_raw
     itemId: { ref: item:00_skill_gem_adventurer_astral_edge }
     category: skill_gem
     amount: 1
     page: 1
-    slot: 0
+    slot: 1
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
@@ -23,37 +33,17 @@ items:
     category: skill_gem
     amount: 1
     page: 1
-    slot: 1
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 1
-  - id: shield_drain_from_raw
-    itemId: { ref: item:00_skill_gem_swordsman_shield_drain }
-    category: skill_gem
-    amount: 1
-    page: 1
     slot: 2
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
-        amount: 2
-  - id: bastion_strike_from_raw
-    itemId: { ref: item:00_skill_gem_swordsman_bastion_strike }
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 3
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 3
+        amount: 1
   - id: blast_arrow_from_raw
     itemId: { ref: item:00_skill_gem_adventurer_blast_arrow }
     category: skill_gem
     amount: 1
     page: 1
-    slot: 4
+    slot: 3
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
@@ -63,57 +53,7 @@ items:
     category: skill_gem
     amount: 1
     page: 1
-    slot: 5
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 1
-  - id: fade_shot_from_raw
-    itemId: { ref: item:00_skill_gem_hunter_fade_shot }
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 6
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 2
-  - id: arrow_rain_from_raw
-    itemId: { ref: item:00_skill_gem_hunter_arrow_rain }
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 7
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 2
-  - id: crash_arrow_from_raw
-    itemId: { ref: item:00_skill_gem_hunter_crash_arrow }
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 8
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 3
-  - id: heal_arrow_from_raw
-    itemId: { ref: item:00_skill_gem_hunter_heal_arrow }
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 9
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 3
-  - id: mana_burst_from_raw
-    itemId: { ref: item:00_skill_gem_adventurer_mana_burst }
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 10
+    slot: 4
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
@@ -123,13 +63,73 @@ items:
     category: skill_gem
     amount: 1
     page: 1
-    slot: 11
+    slot: 5
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 1
-  - id: fireball_from_raw
-    itemId: { ref: item:00_skill_gem_mage_fireball }
+  - id: mana_burst_from_raw
+    itemId: { ref: item:00_skill_gem_adventurer_mana_burst }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 6
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 1
+  - id: shield_drain_from_raw
+    itemId: { ref: item:00_skill_gem_swordsman_shield_drain }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 7
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 2
+  - id: challenging_roar_from_raw
+    itemId: { ref: item:00_skill_gem_swordsman_challenging_roar }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 8
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 2
+  - id: swordsman_flame_rush_from_raw
+    itemId: { ref: item:00_skill_gem_swordsman_flame_rush }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 9
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 3
+  - id: bastion_strike_from_raw
+    itemId: { ref: item:00_skill_gem_swordsman_bastion_strike }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 10
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 3
+  - id: administrator_shield_recharge_from_raw
+    itemId: { ref: item:00_skill_gem_administrator_shield_recharge }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 11
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 3
+  - id: last_shield_from_raw
+    itemId: { ref: item:00_skill_gem_swordsman_last_shield }
     category: skill_gem
     amount: 1
     page: 1
@@ -137,19 +137,9 @@ items:
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
-        amount: 2
-  - id: heal_aura_from_raw
-    itemId: { ref: item:00_skill_gem_mage_heal_aura }
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 13
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 2
-  - id: sparking_from_raw
-    itemId: { ref: item:00_skill_gem_mage_sparking }
+        amount: 3
+  - id: arrow_rain_from_raw
+    itemId: { ref: item:00_skill_gem_hunter_arrow_rain }
     category: skill_gem
     amount: 1
     page: 1
@@ -157,9 +147,9 @@ items:
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
-        amount: 3
-  - id: frost_blizzard_from_raw
-    itemId: { ref: item:00_skill_gem_mage_frost_blizzard }
+        amount: 2
+  - id: fade_shot_from_raw
+    itemId: { ref: item:00_skill_gem_hunter_fade_shot }
     category: skill_gem
     amount: 1
     page: 1
@@ -167,9 +157,9 @@ items:
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
-        amount: 3
-  - id: arcane_flow_from_raw
-    itemId: { ref: item:00_skill_gem_mage_arcane_flow }
+        amount: 2
+  - id: heal_arrow_from_raw
+    itemId: { ref: item:00_skill_gem_hunter_heal_arrow }
     category: skill_gem
     amount: 1
     page: 1
@@ -178,22 +168,12 @@ items:
       - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 3
-  - id: challenging_roar_from_raw
-    itemId: { ref: item:00_skill_gem_swordsman_challenging_roar }
+  - id: crash_arrow_from_raw
+    itemId: { ref: item:00_skill_gem_hunter_crash_arrow }
     category: skill_gem
     amount: 1
     page: 1
     slot: 17
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 2
-  - id: last_shield_from_raw
-    itemId: { ref: item:00_skill_gem_swordsman_last_shield }
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 18
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
@@ -203,28 +183,58 @@ items:
     category: skill_gem
     amount: 1
     page: 1
-    slot: 19
+    slot: 18
     requiredItems:
       - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 3
-  - id: meditation_from_raw
-    itemId: { ref: item:00_skill_gem_adventurer_meditation }
-    category: skill_gem
-    amount: 1
-    page: 1
-    slot: 20
-    requiredItems:
-      - itemId: { ref: item:skill_gem_raw }
-        category: material
-        amount: 1
-  - id: administrator_shield_recharge_from_advanced_raw
-    itemId: { ref: item:00_skill_gem_administrator_shield_recharge }
+  - id: fireball_from_raw
+    itemId: { ref: item:00_skill_gem_mage_fireball }
     category: skill_gem
     amount: 1
     page: 1
     slot: 21
     requiredItems:
-      - itemId: { ref: item:skill_gem_raw_advanced }
+      - itemId: { ref: item:skill_gem_raw }
         category: material
-        amount: 1
+        amount: 2
+  - id: heal_aura_from_raw
+    itemId: { ref: item:00_skill_gem_mage_heal_aura }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 22
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 2
+  - id: sparking_from_raw
+    itemId: { ref: item:00_skill_gem_mage_sparking }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 23
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 3
+  - id: frost_blizzard_from_raw
+    itemId: { ref: item:00_skill_gem_mage_frost_blizzard }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 24
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 3
+  - id: arcane_flow_from_raw
+    itemId: { ref: item:00_skill_gem_mage_arcane_flow }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 25
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 3
