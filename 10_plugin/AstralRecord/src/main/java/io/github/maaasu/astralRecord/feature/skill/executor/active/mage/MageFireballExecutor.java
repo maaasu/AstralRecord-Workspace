@@ -48,7 +48,7 @@ public final class MageFireballExecutor extends PlayerActiveSkillExecutor {
         SkillParamReader params = context.params();
         double range = params.getDouble("range", 16.0D);
         double radius = params.getDouble("radius", 2.25D);
-        double damageRatio = params.getDouble("damageRatio", 1.65D);
+        double damageRatio = params.getDouble("damageRatio", 1.32D);
         int maxTargets = params.getInt("maxTargets", 4);
         double projectileSpeed = params.getDouble("projectileSpeed", 1.45D);
         double projectileHitRadius = params.getDouble("projectileHitRadius", 0.45D);

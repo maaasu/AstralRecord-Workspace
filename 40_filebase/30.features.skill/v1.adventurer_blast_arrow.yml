@@ -50,7 +50,7 @@ tags:
 params:
   range: 14.0
   radius: 2.25
-  damageRatio: 1.80
+  damageRatio: 1.44
   maxTargets: 6
   projectileSpeed: 1.35
   projectileHitRadius: 0.45

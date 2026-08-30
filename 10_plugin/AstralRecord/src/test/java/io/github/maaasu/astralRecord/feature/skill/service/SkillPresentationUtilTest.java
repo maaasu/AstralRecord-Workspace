@@ -146,7 +146,7 @@ class SkillPresentationUtilTest {
             "&7威力{skill.effectiveDamageRatio:percent}%。",
             "LIGHTNING_ROD", List.of("連鎖威力: {skill.effectiveChainDamageRatio:percent}%"),
             60L, 10.0D, 4L, 1, null,
-            Map.of("damageRatio", 2.175D, "chainDamageRatio", 0.60D),
+            Map.of("damageRatio", 1.74D, "chainDamageRatio", 0.48D),
             List.of(), SkillKind.ACTIVE, true, SkillResourceType.MANA, 10.0D,
             "adventurer_lightning_bolt", 5, List.of(), List.of(), List.of()
         );
@@ -155,9 +155,9 @@ class SkillPresentationUtilTest {
             .map(PlainTextComponentSerializer.plainText()::serialize)
             .toList();
 
-        assertEquals(List.of("威力217.5%。", "連鎖威力: 60%"), rendered);
+        assertEquals(List.of("威力174%。", "連鎖威力: 48%"), rendered);
         assertEquals(
-            "威力217.5% / 連鎖威力60%",
+            "威力174% / 連鎖威力48%",
             SkillPresentationUtil.renderSkillTemplate(
                 definition,
                 "威力{skill.effectiveDamageRatio:percent}% / 連鎖威力{skill.effectiveChainDamageRatio:percent}%"

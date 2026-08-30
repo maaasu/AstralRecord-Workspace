@@ -54,8 +54,8 @@ public final class AdventurerSmashExecutor extends PlayerActiveSkillExecutor {
         double reach = params.getDouble("reach", 6.0D);
         double targetAngle = params.getDouble("targetAngle", 35.0D);
         double impactRadius = params.getDouble("impactRadius", 2.0D);
-        double damageRatio = params.getDouble("damageRatio", 4.80D);
-        double secondaryRatio = params.getDouble("secondaryRatio", 0.72D);
+        double damageRatio = params.getDouble("damageRatio", 3.60D);
+        double secondaryRatio = params.getDouble("secondaryRatio", 0.576D);
         double secondaryKnockback = params.getDouble("secondaryKnockback", 1.0D);
         int impactDelayTicks = params.getInt("impactDelayTicks", 8);
         int maxSecondaryTargets = params.getInt("maxSecondaryTargets", 8);

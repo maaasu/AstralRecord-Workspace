@@ -48,7 +48,7 @@ public final class AdventurerBlastArrowExecutor extends PlayerActiveSkillExecuto
         SkillParamReader params = context.params();
         double range = params.getDouble("range", 14.0D);
         double radius = params.getDouble("radius", 2.25D);
-        double damageRatio = params.getDouble("damageRatio", 1.80D);
+        double damageRatio = params.getDouble("damageRatio", 1.44D);
         int maxTargets = params.getInt("maxTargets", 6);
         double projectileSpeed = params.getDouble("projectileSpeed", 1.35D);
         double projectileHitRadius = params.getDouble("projectileHitRadius", 0.45D);

@@ -46,11 +46,11 @@ tags:
   - magic
 # behavior:
 #   movement: "発動時の視点方向へ2m前方に生成し、0.18m/tickで進む。中心から0.55m以内にBlock面を検出すると手前で停止し、残り時間はその位置を維持する。"
-#   hit: "中心から水平半径2.75m・上下2.5mの管理対象Mobを距離順で最大8体選び、10tickごとにMAGIC/ICEの30%を適用する。NPC、PvP、別world、死亡Mobは対象外。"
+#   hit: "中心から水平半径2.75m・上下2.5mの管理対象Mobを距離順で最大8体選び、10tickごとにMAGIC/ICEの24%を適用する。NPC、PvP、別world、死亡Mobは対象外。"
 #   velocity: "対象へ接線0.16・中心方向0.08・上方向0.04の基礎velocityを与え、KNOCKBACK_RESISTANCEを0〜100%として線形減衰する。耐性100%では全成分0。"
 #   visual: "水色DUSTの上昇螺旋と、7個の小型PACKED_ICE BlockDisplayを中心の周囲へ回転表示する。"
 params:
-  damageRatio: 0.30
+  damageRatio: 0.24
   radius: 2.75
   height: 2.5
   movementSpeed: 0.18

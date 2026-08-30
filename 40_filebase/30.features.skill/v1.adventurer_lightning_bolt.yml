@@ -52,9 +52,9 @@ tags:
 #   condition: "ライトニングボルト自身はSHOCKEDを付与しない。連鎖対象からの再連鎖、同一発動内の再命中、PvP/NPC対象はない。"
 params:
   range: 14.0
-  damageRatio: 2.175
+  damageRatio: 1.74
   chainRadius: 5.0
-  chainDamageRatio: 0.60
+  chainDamageRatio: 0.48
   maxChainTargets: 2
   projectileSpeed: 2.8
   projectileHitRadius: 0.45

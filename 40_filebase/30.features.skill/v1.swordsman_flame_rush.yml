@@ -56,7 +56,7 @@ params:
   range: 6.0
   targetAngle: 60.0
   maxTargets: 5
-  damageRatios: [0.975, 1.125]
+  damageRatios: [0.78, 0.90]
   secondHitDelayTicks: 4
   burningChance: 0.0
   burningDurationTicks: 100

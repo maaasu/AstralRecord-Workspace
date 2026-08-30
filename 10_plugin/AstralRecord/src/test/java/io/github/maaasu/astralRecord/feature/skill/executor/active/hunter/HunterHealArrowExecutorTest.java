@@ -66,7 +66,7 @@ class HunterHealArrowExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 19. ヒールアローの実装契約 > ### 19.1 数値・対象・終端
-     * 検証契約: ヒールアローは必須paramsを要求し、敵Mobへのダメージ倍率を45%から変更できない。
+     * 検証契約: ヒールアローは必須paramsを要求し、敵Mobへのダメージ倍率を36%から変更できない。
      */
     @Test
     void validatesRequiredParamsAndFixedDamageRatio() {
@@ -115,7 +115,7 @@ class HunterHealArrowExecutorTest {
         new HunterHealArrowExecutor(activeSkillServices()).validateParams(definition(params));
         assertEquals(2.0D, ((Number) params.get("radius")).doubleValue(), 0.0001D);
         assertEquals(12.0D, ((Number) params.get("healAmount")).doubleValue(), 0.0001D);
-        assertEquals(0.45D, ((Number) params.get("damageRatio")).doubleValue(), 0.0001D);
+        assertEquals(0.36D, ((Number) params.get("damageRatio")).doubleValue(), 0.0001D);
         assertEquals(1.25D, ((Number) params.get("projectileSpeed")).doubleValue(), 0.0001D);
         assertEquals(0.45D, ((Number) params.get("projectileHitRadius")).doubleValue(), 0.0001D);
         assertEquals(60, ((Number) params.get("areaDurationTicks")).intValue());
@@ -124,7 +124,7 @@ class HunterHealArrowExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 19. ヒールアローの実装契約 > ### 19.1 数値・対象・終端
-     * 検証契約: 発動時は初速1.25、重力0.14、Blockまで継続する貫通弾道を発射し、Mob命中へRANGED/NONEの45%を適用して回復エリアを作る。
+     * 検証契約: 発動時は初速1.25、重力0.14、Blockまで継続する貫通弾道を発射し、Mob命中へRANGED/NONEの36%を適用して回復エリアを作る。
      */
     @Test
     void launchesStrongGravityProjectileAndHealsEachPlayerOnlyOnce() {
@@ -185,7 +185,7 @@ class HunterHealArrowExecutorTest {
                 same(target),
                 eq(AttackType.RANGED),
                 eq(DamageElement.NONE),
-                eq(0.45D)
+                eq(0.36D)
         );
         verify(fixture.combat, times(1)).recoverHp(
                 same(healedPlayer), eq(12.0D), any(HealthRecoveryContext.class)
@@ -217,8 +217,8 @@ class HunterHealArrowExecutorTest {
         hitCaptor.getValue().accept(firstTarget, new Location(fixture.world, 2.0D, 65.0D, 0.0D));
         hitCaptor.getValue().accept(secondTarget, new Location(fixture.world, 4.0D, 65.0D, 0.0D));
 
-        verify(fixture.combat).hit(any(AstEntity.class), same(firstTarget), eq(AttackType.RANGED), eq(DamageElement.NONE), eq(0.45D));
-        verify(fixture.combat).hit(any(AstEntity.class), same(secondTarget), eq(AttackType.RANGED), eq(DamageElement.NONE), eq(0.45D));
+        verify(fixture.combat).hit(any(AstEntity.class), same(firstTarget), eq(AttackType.RANGED), eq(DamageElement.NONE), eq(0.36D));
+        verify(fixture.combat).hit(any(AstEntity.class), same(secondTarget), eq(AttackType.RANGED), eq(DamageElement.NONE), eq(0.36D));
         verify(fixture.tasks, times(2)).repeat(
                 eq(fixture.player.getUniqueId()), anyString(), eq(0L), eq(1L), eq(60), any(IntConsumer.class)
         );
@@ -321,7 +321,7 @@ class HunterHealArrowExecutorTest {
         return Map.of(
                 "radius", 2.0D,
                 "healAmount", 12.0D,
-                "damageRatio", 0.45D,
+                "damageRatio", 0.36D,
                 "projectileSpeed", 1.25D,
                 "projectileHitRadius", 0.45D,
                 "areaDurationTicks", 60

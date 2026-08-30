@@ -30,7 +30,7 @@ public final class SwordsmanFlameRushExecutor extends PlayerActiveSkillExecutor 
     private static final double DEFAULT_RANGE = 6.0D;
     private static final double DEFAULT_TARGET_ANGLE = 60.0D;
     private static final int DEFAULT_MAX_TARGETS = 5;
-    private static final List<Double> DEFAULT_DAMAGE_RATIOS = List.of(0.975D, 1.125D);
+    private static final List<Double> DEFAULT_DAMAGE_RATIOS = List.of(0.78D, 0.90D);
     private static final int DEFAULT_SECOND_HIT_DELAY_TICKS = 4;
     private static final double DEFAULT_BURNING_CHANCE = 0.0D;
     private static final long DEFAULT_BURNING_DURATION_TICKS = 100L;

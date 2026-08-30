@@ -42,7 +42,7 @@ public final class HunterCrashArrowExecutor extends PlayerActiveSkillExecutor {
     protected @NotNull SkillCastResult castPlayer(@NotNull PlayerActiveSkillContext context) {
         SkillParamReader params = context.params();
         double range = params.getDouble("range", 14.0D);
-        double damageRatio = params.getDouble("damageRatio", 0.60D);
+        double damageRatio = params.getDouble("damageRatio", 0.45D);
         double shieldBreakMultiplier = params.getDouble("shieldBreakMultiplier", 3.0D);
         double projectileSpeed = params.getDouble("projectileSpeed", 1.35D);
         double projectileHitRadius = params.getDouble("projectileHitRadius", 0.45D);

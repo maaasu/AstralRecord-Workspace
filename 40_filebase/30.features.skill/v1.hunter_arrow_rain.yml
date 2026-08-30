@@ -58,7 +58,7 @@ params:
   range: 18.0
   radius: 3.0
   arrowCount: 45
-  damageRatios: [1.05, 0.45]
+  damageRatios: [0.84, 0.36]
   openingSpeed: 1.60
   openingHitRadius: 0.45
   rainHitRadius: 0.75

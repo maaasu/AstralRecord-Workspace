@@ -56,8 +56,8 @@ params:
   reach: 6.0
   targetAngle: 35.0
   impactRadius: 2.0
-  damageRatio: 4.80
-  secondaryRatio: 0.72
+  damageRatio: 3.60
+  secondaryRatio: 0.576
   secondaryKnockback: 1.0
   impactDelayTicks: 8
   maxSecondaryTargets: 8

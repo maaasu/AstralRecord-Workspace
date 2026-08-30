@@ -74,7 +74,7 @@ public final class HunterArrowRainExecutor extends PlayerActiveSkillExecutor {
     protected @NotNull SkillCastResult castPlayer(@NotNull PlayerActiveSkillContext context) {
         SkillParamReader params = context.params();
         double range = params.getDouble("range", 18.0D);
-        double openingDamageRatio = params.getDoubleList("damageRatios", List.of(1.05D, 0.45D)).getFirst();
+        double openingDamageRatio = params.getDoubleList("damageRatios", List.of(0.84D, 0.36D)).getFirst();
         double openingSpeed = params.getDouble("openingSpeed", 1.60D);
         double openingHitRadius = params.getDouble("openingHitRadius", 0.45D);
         SkillBallisticProjectileSpec opening = new SkillBallisticProjectileSpec(
@@ -127,7 +127,7 @@ public final class HunterArrowRainExecutor extends PlayerActiveSkillExecutor {
         }
         double radius = params.getDouble("radius", 3.0D);
         int arrowCount = params.getInt("arrowCount", 45);
-        double rainDamageRatio = params.getDoubleList("damageRatios", List.of(1.05D, 0.45D)).get(1);
+        double rainDamageRatio = params.getDoubleList("damageRatios", List.of(0.84D, 0.36D)).get(1);
         double rainHitRadius = params.getDouble("rainHitRadius", 0.75D);
         List<SkillBallisticProjectileLaunch> volley = createRainVolley(
                 context, center, radius, arrowCount, rainHitRadius

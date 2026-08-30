@@ -47,7 +47,7 @@ tags:
 #   movement: "矢を発射した後、移動禁止状態でなければ視線と反対方向へ水平backstepVelocityを設定する。velocityを設定できない場合も射撃は成立する。"
 params:
   range: 9.0
-  damageRatio: 0.48
+  damageRatio: 0.384
   pelletCount: 5
   spreadAngle: 30.0
   projectileSpeed: 1.8

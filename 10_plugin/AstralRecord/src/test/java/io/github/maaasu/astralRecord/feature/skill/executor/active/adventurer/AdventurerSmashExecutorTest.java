@@ -51,7 +51,7 @@ class AdventurerSmashExecutorTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: スマッシュは遅延後に主対象へ4.80倍、主対象を除く半径内の最大8体へ0.72倍の近接攻撃を適用する。
+     * 検証契約: スマッシュは遅延後に主対象へ3.60倍、主対象を除く半径内の最大8体へ0.576倍の近接攻撃を適用する。
      */
     @Test
     void appliesPrimaryAndIndependentSecondaryDamageAfterImpactDelay() {
@@ -97,9 +97,9 @@ class AdventurerSmashExecutorTest extends MockBukkitTestBase {
                 same(player), any(Location.class), eq(2.0D), eq(2.0D), eq(9), eq(true)
         )).thenReturn(radiusTargets);
         when(combat.hit(any(AstEntity.class), any(AstEntity.class), eq(AttackType.MELEE),
-                eq(DamageElement.NONE), eq(4.80D))).thenReturn(new DamageResult(20.0D));
+                eq(DamageElement.NONE), eq(3.60D))).thenReturn(new DamageResult(20.0D));
         when(combat.hit(any(AstEntity.class), any(AstEntity.class), eq(AttackType.MELEE),
-                eq(DamageElement.NONE), eq(0.72D))).thenReturn(new DamageResult(20.0D));
+                eq(DamageElement.NONE), eq(0.576D))).thenReturn(new DamageResult(20.0D));
 
         SkillCastContext context = new SkillCastContext(
                 definition(),
@@ -119,18 +119,18 @@ class AdventurerSmashExecutorTest extends MockBukkitTestBase {
         impactCaptor.getValue().run();
 
         verify(combat).hit(any(AstEntity.class), same(primary), eq(AttackType.MELEE),
-                eq(DamageElement.NONE), eq(4.80D));
+                eq(DamageElement.NONE), eq(3.60D));
         for (AstEntity secondary : secondaries.subList(0, 8)) {
             verify(combat).hit(any(AstEntity.class), same(secondary), eq(AttackType.MELEE),
-                    eq(DamageElement.NONE), eq(0.72D));
+                    eq(DamageElement.NONE), eq(0.576D));
             verify(combat).knockback(same(secondary), any(Location.class), eq(1.0D), eq(0.25D));
         }
         AstEntity overLimit = secondaries.get(8);
         verify(combat, never()).hit(any(AstEntity.class), same(overLimit), eq(AttackType.MELEE),
-                eq(DamageElement.NONE), eq(0.72D));
+                eq(DamageElement.NONE), eq(0.576D));
         verify(combat, never()).knockback(same(overLimit), any(Location.class), eq(1.0D), eq(0.25D));
         verify(combat, never()).hit(any(AstEntity.class), same(primary), eq(AttackType.MELEE),
-                eq(DamageElement.NONE), eq(0.72D));
+                eq(DamageElement.NONE), eq(0.576D));
         verify(targeting).inRadius(same(player), any(Location.class), eq(2.0D), eq(2.0D), eq(9), eq(true));
     }
 
@@ -158,8 +158,8 @@ class AdventurerSmashExecutorTest extends MockBukkitTestBase {
                         "reach", 6.0D,
                         "targetAngle", 35.0D,
                         "impactRadius", 2.0D,
-                        "damageRatio", 4.80D,
-                        "secondaryRatio", 0.72D,
+                        "damageRatio", 3.60D,
+                        "secondaryRatio", 0.576D,
                         "secondaryKnockback", 1.0D,
                         "impactDelayTicks", 8,
                         "maxSecondaryTargets", 8

@@ -31,7 +31,7 @@ import java.util.UUID;
 public final class MageFrostBlizzardExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "mage_frost_blizzard";
-    static final double DEFAULT_DAMAGE_RATIO = 0.30D;
+    static final double DEFAULT_DAMAGE_RATIO = 0.24D;
     static final double DEFAULT_RADIUS = 2.75D;
     static final double DEFAULT_HEIGHT = 2.5D;
     static final double DEFAULT_MOVEMENT_SPEED = 0.18D;

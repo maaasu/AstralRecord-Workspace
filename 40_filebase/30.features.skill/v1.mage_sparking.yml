@@ -46,10 +46,10 @@ tags:
   - lightning
 # behavior:
 #   projectile: "足元付近から水平360度へ等間隔に雷弾を放つ。各弾は半径を0.10m/tick、角度を14.4度/tick増やして50tickで半径5m・2周の渦を描き、命中半径0.60mでBlock面の法線に沿って軌道ごと反射する。"
-#   hit: "管理対象Mobだけを対象にMAGIC/LIGHTNINGの150%を適用し、25%でSHOCKEDを100tick付与する。同一発動では対象ごとに1回だけ命中する。"
+#   hit: "管理対象Mobだけを対象にMAGIC/LIGHTNINGの120%を適用し、25%でSHOCKEDを100tick付与する。同一発動では対象ごとに1回だけ命中する。"
 #   lifecycle: "雷弾はMob命中時に消滅し、Block反射または寿命まで残る。PvP、NPC、別world、死亡Mobは対象外。"
 params:
-  damageRatio: 1.5
+  damageRatio: 1.2
   projectileCount: 5
   spiralRadiusGrowth: 0.10
   spiralDegreesPerTick: 14.4

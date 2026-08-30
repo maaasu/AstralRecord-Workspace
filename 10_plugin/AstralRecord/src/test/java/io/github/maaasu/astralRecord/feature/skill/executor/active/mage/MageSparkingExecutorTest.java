@@ -118,7 +118,7 @@ class MageSparkingExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 23. メイジ スパーキングの実装契約
-     * 検証契約: 同じ発動で命中済みの手前Mobへ再接触した雷弾は、奥のMobへ貫通せず消滅し、150%雷魔法と25%・100tick感電を1回だけ適用する。
+     * 検証契約: 同じ発動で命中済みの手前Mobへ再接触した雷弾は、奥のMobへ貫通せず消滅し、120%雷魔法と25%・100tick感電を1回だけ適用する。
      */
     @Test
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -174,7 +174,7 @@ class MageSparkingExecutorTest {
         ArgumentCaptor<ActiveSkillCondition[]> conditions = ArgumentCaptor.forClass(ActiveSkillCondition[].class);
         verify(combat, times(1)).hit(
                 any(AstEntity.class), same(target), eq(AttackType.MAGIC), eq(DamageElement.LIGHTNING),
-                eq(1.5D), conditions.capture()
+                eq(1.2D), conditions.capture()
         );
         assertEquals(1, conditions.getValue().length);
         assertEquals(ConditionType.SHOCKED, conditions.getValue()[0].type());
@@ -344,7 +344,7 @@ class MageSparkingExecutorTest {
         assertEquals(List.of(false, false), includeEnds.getAllValues());
         verify(combat, times(1)).hit(
                 any(AstEntity.class), same(frontTarget), eq(AttackType.MAGIC), eq(DamageElement.LIGHTNING),
-                eq(1.5D), any(ActiveSkillCondition[].class)
+                eq(1.2D), any(ActiveSkillCondition[].class)
         );
         verify(combat, never()).hit(
                 any(AstEntity.class), same(blockedTarget), any(), any(), anyDouble(), any(ActiveSkillCondition[].class)
@@ -408,7 +408,7 @@ class MageSparkingExecutorTest {
                 1,
                 null,
                 Map.of(
-                        "damageRatio", 1.5D,
+                        "damageRatio", 1.2D,
                         "projectileCount", projectileCount,
                         "spiralRadiusGrowth", spiralRadiusGrowth,
                         "spiralDegreesPerTick", 14.4D,

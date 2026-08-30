@@ -69,7 +69,7 @@ class AdventurerQuickShotExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 7. 冒険者クイックショットの実装契約
-     * 検証契約: 発動時に指定の仮想飛翔体を1本だけ発射し、最初の命中へRANGED/NONEの300%を適用して高pitchの発射音を1回だけ鳴らす。
+     * 検証契約: 発動時に指定の仮想飛翔体を1本だけ発射し、最初の命中へRANGED/NONEの225%を適用して高pitchの発射音を1回だけ鳴らす。
      */
     @Test
     void launchesQuickShotAndAppliesSpecifiedRangedDamage() {
@@ -106,7 +106,7 @@ class AdventurerQuickShotExecutorTest {
 
         ArgumentCaptor<AstEntity> attackerCaptor = ArgumentCaptor.forClass(AstEntity.class);
         verify(combat).hit(
-                attackerCaptor.capture(), same(target), eq(AttackType.RANGED), eq(DamageElement.NONE), eq(3.00D)
+                attackerCaptor.capture(), same(target), eq(AttackType.RANGED), eq(DamageElement.NONE), eq(2.25D)
         );
         assertSame(astPlayer, attackerCaptor.getValue().player());
     }

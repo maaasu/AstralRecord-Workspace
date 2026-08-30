@@ -47,7 +47,7 @@ class SwordsmanBastionStrikeExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 13. バスティオンストライクの実装契約 > ### 13.1 数値・対象・演出
-     * 検証契約: 発動時に現在MP45を使い切り、不足Shield75を即時回復してから前方対象へ250%の近接hitを適用する。
+     * 検証契約: 発動時に現在MP45を使い切り、不足Shield75を即時回復してから前方対象へ187.5%の近接hitを適用する。
      */
     @Test
     void consumesAllCurrentManaAndRestoresOnlyMissingShieldBeforeTargetHit() {
@@ -57,7 +57,7 @@ class SwordsmanBastionStrikeExecutorTest {
         assertTrue(fixture.executor.cast(fixture.context).success());
 
         verify(fixture.combat).hit(
-                any(AstEntity.class), same(fixture.target), eq(AttackType.MELEE), eq(DamageElement.NONE), eq(2.50D)
+                any(AstEntity.class), same(fixture.target), eq(AttackType.MELEE), eq(DamageElement.NONE), eq(1.875D)
         );
         verify(fixture.combat).recoverShield(any(AstEntity.class), eq(75.0D));
         verify(fixture.astPlayer).setStatusSnapshot(same(fixture.afterManaSnapshot));
@@ -109,7 +109,7 @@ class SwordsmanBastionStrikeExecutorTest {
 
         verify(fixture.combat, never()).recoverShield(any(AstEntity.class), any(Double.class));
         verify(fixture.combat, never()).hit(
-                any(AstEntity.class), any(AstEntity.class), eq(AttackType.MELEE), eq(DamageElement.NONE), eq(2.50D)
+                any(AstEntity.class), any(AstEntity.class), eq(AttackType.MELEE), eq(DamageElement.NONE), eq(1.875D)
         );
         verify(fixture.astPlayer, never()).setStatusSnapshot(any(StatusSnapshot.class));
     }
@@ -190,7 +190,7 @@ class SwordsmanBastionStrikeExecutorTest {
         AstEntity target = mock(AstEntity.class);
         when(target.location()).thenReturn(new Location(world, 0.0D, 64.0D, 4.0D));
         when(targeting.inCone(same(player), eq(6.0D), eq(40.0D), eq(1), eq(true))).thenReturn(List.of(target));
-        when(combat.hit(any(AstEntity.class), same(target), eq(AttackType.MELEE), eq(DamageElement.NONE), eq(2.50D)))
+        when(combat.hit(any(AstEntity.class), same(target), eq(AttackType.MELEE), eq(DamageElement.NONE), eq(1.875D)))
                 .thenReturn(result);
 
         SkillCastContext context = new SkillCastContext(
@@ -226,7 +226,7 @@ class SwordsmanBastionStrikeExecutorTest {
                 Map.of(
                         "range", 6.0D,
                         "targetAngle", 40.0D,
-                        "damageRatio", 2.50D,
+                        "damageRatio", 1.875D,
                         "consumeAllCurrentMana", true,
                         "levelFiveRequiredManaRatio", 0.80D
                 ),
