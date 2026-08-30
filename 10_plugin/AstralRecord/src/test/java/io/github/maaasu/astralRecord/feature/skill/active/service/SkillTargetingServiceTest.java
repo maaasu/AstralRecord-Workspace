@@ -264,6 +264,37 @@ class SkillTargetingServiceTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 17. ハンター アローレインの実装契約 > ### 17.2 弾道
+     * 検証契約: Block ray traceが排他的上限Y以上の衝突地点を返しても、雨矢のBlock衝突として採用しない。
+     */
+    @Test
+    void blockImpactBelowYRejectsImpactAtOrAboveTheOpeningImpactHeight() {
+        World world = mock(World.class);
+        RayTraceResult boundaryHit = mock(RayTraceResult.class);
+        RayTraceResult aboveHit = mock(RayTraceResult.class);
+        when(boundaryHit.getHitPosition()).thenReturn(new Vector(0.0D, 2.0D, 0.0D));
+        when(aboveHit.getHitPosition()).thenReturn(new Vector(0.0D, 2.5D, 0.0D));
+        when(world.rayTraceBlocks(
+                any(Location.class), any(Vector.class), anyDouble(), eq(FluidCollisionMode.NEVER), eq(true)
+        )).thenReturn(boundaryHit, aboveHit);
+        SkillTargetingService service = new SkillTargetingService(mock(MobService.class));
+
+        assertNull(service.blockImpactBelowY(
+                new Location(world, 0.0D, 1.0D, 0.0D),
+                new Vector(0.0D, 1.0D, 0.0D),
+                3.0D,
+                2.0D
+        ));
+        assertNull(service.blockImpactBelowY(
+                new Location(world, 0.0D, 1.0D, 0.0D),
+                new Vector(0.0D, 1.0D, 0.0D),
+                3.0D,
+                2.0D
+        ));
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
      * 検証契約: blockHitはray traceの正確な衝突位置とBlockFaceの外向き法線を返す。

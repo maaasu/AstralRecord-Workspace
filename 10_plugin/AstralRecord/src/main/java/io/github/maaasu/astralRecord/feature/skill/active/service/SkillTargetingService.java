@@ -569,10 +569,14 @@ public final class SkillTargetingService {
 
         if (originY < exclusiveMaximumY) {
             if (directionY <= 0.0D || endY < exclusiveMaximumY) {
-                return blockImpact(origin, normalizedDirection, safeRange);
+                return impactBelowExclusiveY(
+                        blockImpact(origin, normalizedDirection, safeRange), exclusiveMaximumY
+                );
             }
             double boundaryDistance = (exclusiveMaximumY - originY) / directionY;
-            return blockImpact(origin, normalizedDirection, Math.nextDown(boundaryDistance));
+            return impactBelowExclusiveY(
+                    blockImpact(origin, normalizedDirection, Math.nextDown(boundaryDistance)), exclusiveMaximumY
+            );
         }
         if (directionY >= 0.0D || endY >= exclusiveMaximumY) {
             return null;
@@ -584,7 +588,23 @@ public final class SkillTargetingService {
             return null;
         }
         Location clippedOrigin = origin.clone().add(normalizedDirection.clone().multiply(startDistance));
-        return blockImpact(clippedOrigin, normalizedDirection, safeRange - startDistance);
+        return impactBelowExclusiveY(
+                blockImpact(clippedOrigin, normalizedDirection, safeRange - startDistance), exclusiveMaximumY
+        );
+    }
+
+    /**
+     * Block衝突地点が排他的上限Yより低い場合だけ返します。
+     *
+     * @param impact Block ray traceの衝突地点。衝突しなかった場合はnull
+     * @param exclusiveMaximumY 衝突判定を有効にするY座標の排他的上限
+     * @return 上限より低い衝突地点。上限以上または衝突なしの場合はnull
+     */
+    private static @Nullable Location impactBelowExclusiveY(
+            @Nullable Location impact,
+            double exclusiveMaximumY
+    ) {
+        return impact != null && impact.getY() < exclusiveMaximumY ? impact : null;
     }
 
     /**
