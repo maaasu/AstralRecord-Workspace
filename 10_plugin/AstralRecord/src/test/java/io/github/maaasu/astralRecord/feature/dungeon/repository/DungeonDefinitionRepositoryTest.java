@@ -65,7 +65,7 @@ class DungeonDefinitionRepositoryTest {
      * 検証契約: 本番ダンジョンマスタが追加のWorldマスタなしでDungeonDefinitionへ読み込める。
      */
     @Test
-    void parsesRemainingProductionDungeonMaster() {
+    void parsesProductionDungeonMasters() {
         Path repositoryRoot = findRepositoryRoot();
         Path filebase = repositoryRoot.resolve("40_filebase");
 
@@ -79,6 +79,14 @@ class DungeonDefinitionRepositoryTest {
                 .findFirst()
                 .orElseThrow();
         assertEquals(5, middleEarthRuins.recommendedLevel());
+
+        DungeonDefinition iluvatarSanctum = definitions.stream()
+                .filter(definition -> definition.id().equals("iluvatar_sanctum"))
+                .findFirst()
+                .orElseThrow();
+        assertEquals(8, iluvatarSanctum.recommendedLevel());
+        assertEquals("all_manifestations_iluvatar", iluvatarSanctum.encounter().bossMobId());
+        assertEquals(3, iluvatarSanctum.encounter().normalMobPool().size());
     }
 
     /**

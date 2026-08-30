@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.mob.skill.middleearth;
 
+import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
@@ -16,32 +17,41 @@ import org.jetbrains.annotations.NotNull;
 import java.util.Map;
 import java.util.Set;
 
-/** {@code mob_all_things_el_charge}: HP帯に応じて、停止して狙った位置へ連続突進します。 */
-public final class AllThingsElChargeMobSkillExecutor implements MobSkillExecutor {
+/**
+ * {@code mob_iluvatar_flame_charge}: 残HP帯に応じて停止と炎突進を繰り返します。
+ *
+ * <p>任意パラメーターは {@code speed}（既定1.45）、{@code damageRatio}（既定0.85）、
+ * {@code holdTicks}（既定16）です。回数は万物のエルと同じ残HP帯の式で決定します。</p>
+ */
+public final class IluvatarFlameChargeMobSkillExecutor implements MobSkillExecutor {
 
-    public static final String SKILL_ID = "mob_all_things_el_charge";
+    public static final String SKILL_ID = "mob_iluvatar_flame_charge";
     private static final Set<String> PARAMETER_KEYS = Set.of("speed", "damageRatio", "holdTicks");
     private final MobService mobService;
     private final DamageService damageService;
 
-    /** 実体移動と突進ダメージの依存先を指定して構築します。 */
-    public AllThingsElChargeMobSkillExecutor(@NotNull MobService mobService, @NotNull DamageService damageService) {
+    /** 実体移動と炎突進ダメージの依存先を指定して構築します。 */
+    public IluvatarFlameChargeMobSkillExecutor(
+            @NotNull MobService mobService,
+            @NotNull DamageService damageService
+    ) {
         this.mobService = mobService;
         this.damageService = damageService;
     }
 
     @Override public @NotNull String id() { return SKILL_ID; }
-    @Override public @NotNull String displayName() { return "万象突貫"; }
-    @Override public @NotNull MobSkillTiming defaultTiming() { return new MobSkillTiming(14.0D, 160L, 0L); }
+    @Override public @NotNull String displayName() { return "炎界突貫"; }
+    @Override public @NotNull MobSkillTiming defaultTiming() { return new MobSkillTiming(14.0D, 145L, 0L); }
 
     @Override
     public void validate(@NotNull MobSkillBinding binding) {
-        if (!PARAMETER_KEYS.containsAll(binding.params().keySet())) {
+        Map<String, Double> params = binding.params();
+        if (!PARAMETER_KEYS.containsAll(params.keySet())) {
             throw new IllegalArgumentException("Unsupported parameter for " + SKILL_ID);
         }
-        positive(binding.params().getOrDefault("speed", 1.40D), "speed");
-        positive(binding.params().getOrDefault("damageRatio", 1.00D), "damageRatio");
-        bounded(binding.params().getOrDefault("holdTicks", 20.0D), "holdTicks", 1.0D, 100.0D);
+        bounded(params.getOrDefault("speed", 1.45D), "speed", 0.05D, 3.0D);
+        bounded(params.getOrDefault("damageRatio", 0.85D), "damageRatio", 0.01D, 2.0D);
+        bounded(params.getOrDefault("holdTicks", 16.0D), "holdTicks", 1.0D, 100.0D);
     }
 
     @Override
@@ -52,21 +62,12 @@ public final class AllThingsElChargeMobSkillExecutor implements MobSkillExecutor
         }
         Map<String, Double> params = context.binding().params();
         context.mob().scriptedAction(true);
-        startNextCharge(context.mob(), context, resolveChargeCount(context.mob()),
-                params.getOrDefault("speed", 1.40D), params.getOrDefault("damageRatio", 1.00D),
-                Math.round(params.getOrDefault("holdTicks", 20.0D)));
+        startNextCharge(
+                context.mob(), context, AllThingsElChargeMobSkillExecutor.resolveChargeCount(context.mob()),
+                params.getOrDefault("speed", 1.45D), params.getOrDefault("damageRatio", 0.85D),
+                Math.round(params.getOrDefault("holdTicks", 16.0D))
+        );
         return true;
-    }
-
-    /** HP割合の一の位を切り捨て、{@code 10 - floor(HP% / 10)} 回へ変換します。 */
-    public static int resolveChargeCount(@NotNull MobInstance mob) {
-        return resolveChargeCount(mob.currentHealth(), mob.maxHealth());
-    }
-
-    /** HP割合の一の位を切り捨て、突進回数へ変換します。 */
-    public static int resolveChargeCount(double currentHealth, double maxHealth) {
-        double percent = 100.0D * currentHealth / Math.max(1.0D, maxHealth);
-        return Math.clamp(10 - (int) Math.floor(percent / 10.0D), 1, 10);
     }
 
     private void startNextCharge(
@@ -85,7 +86,7 @@ public final class AllThingsElChargeMobSkillExecutor implements MobSkillExecutor
         }
         Location targetSnapshot = context.target().getLocation();
         entity.setVelocity(entity.getVelocity().zero());
-        entity.getWorld().playSound(entity.getLocation(), Sound.ENTITY_BREEZE_IDLE_GROUND, 0.8F, 0.7F);
+        entity.getWorld().playSound(entity.getLocation(), Sound.ENTITY_BLAZE_AMBIENT, 0.8F, 0.7F);
         new BukkitRunnable() {
             private long elapsedTicks;
 
@@ -103,16 +104,16 @@ public final class AllThingsElChargeMobSkillExecutor implements MobSkillExecutor
                     return;
                 }
                 cancel();
-                activeEntity.getWorld().playSound(activeEntity.getLocation(), Sound.ENTITY_BREEZE_SHOOT, 0.9F, 1.0F);
+                activeEntity.getWorld().playSound(activeEntity.getLocation(), Sound.ENTITY_BLAZE_SHOOT, 0.95F, 0.8F);
                 MiddleEarthRushMotion.start(
-                        mobService, damageService, caster, activeEntity, targetSnapshot, context.target(), speed, damageRatio,
+                        mobService, damageService, caster, activeEntity, targetSnapshot, context.target(), speed,
+                        damageRatio, DamageElement.FIRE,
                         () -> startNextCharge(caster, context, remainingCharges - 1, speed, damageRatio, holdTicks)
                 );
             }
         }.runTaskTimer(mobService.plugin(), 0L, 1L);
     }
 
-    private void positive(double value, @NotNull String key) { bounded(value, key, Double.MIN_VALUE, Double.MAX_VALUE); }
     private void bounded(double value, @NotNull String key, double minimum, double maximum) {
         if (!Double.isFinite(value) || value < minimum || value > maximum) {
             throw new IllegalArgumentException(key + " must be between " + minimum + " and " + maximum);

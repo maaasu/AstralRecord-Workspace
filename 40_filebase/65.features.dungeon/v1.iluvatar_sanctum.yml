@@ -1,0 +1,116 @@
+# design:
+#   motif: "中つ国 / 万象と炎の聖域"
+#   progression: 8
+schemaVersion: 1
+id: iluvatar_sanctum
+displayName: "万象の聖域"
+recommendedLevel: 8
+entry:
+  worldRef: world:midgard_greenfields
+  x: -315.3
+  y: 25.0
+  z: -517.4
+  yaw: 0.0
+  pitch: 0.0
+party:
+  min: 1
+  max: 4
+challenge:
+  deathLimit: 4
+  reviveDelaySeconds: 5
+  timeLimitSeconds: 720
+generation:
+  area:
+    width: 120
+    depth: 120
+  baseY: 64
+  roomCount:
+    min: 8
+    max: 10
+  roomSize:
+    min: 13
+    max: 23
+  roomHeight: 9
+  corridorWidth: 3
+  corridorHeight: 5
+  splitRatio:
+    min: 0.35
+    max: 0.50
+  roomShapes:
+    - type: RECTANGLE
+      weight: 3
+    - type: CYLINDER
+      weight: 2
+  roomTypes:
+    - type: STANDARD
+      weight: 4
+    - type: SUPPORT_HALL
+      weight: 2
+    - type: COLLAPSED
+      weight: 2
+    - type: ORE_CHAMBER
+      weight: 1
+theme:
+  floor:
+    - material: POLISHED_BLACKSTONE_BRICKS
+      weight: 3
+    - material: CRACKED_POLISHED_BLACKSTONE_BRICKS
+      weight: 1
+    - material: BASALT
+      weight: 1
+  wall:
+    - material: NETHER_BRICKS
+      weight: 3
+    - material: RED_NETHER_BRICKS
+      weight: 2
+    - material: POLISHED_BLACKSTONE_BRICKS
+      weight: 1
+  ceiling:
+    - material: POLISHED_BLACKSTONE_BRICKS
+      weight: 3
+    - material: BLACKSTONE
+      weight: 1
+  corridor:
+    - material: POLISHED_BASALT
+      weight: 2
+    - material: BLACKSTONE
+      weight: 1
+  gateMaterial: IRON_BARS
+  lightMaterial: SHROOMLIGHT
+  pillar:
+    enabled: true
+    chance: 0.35
+    material: CHISELED_POLISHED_BLACKSTONE
+    stairMaterial: POLISHED_BLACKSTONE_BRICK_STAIRS
+  decorations:
+    supportMaterial: CRIMSON_STEM
+    beamMaterial: STRIPPED_CRIMSON_STEM
+    rubble:
+      - material: BLACKSTONE
+        weight: 3
+      - material: BASALT
+        weight: 2
+      - material: MAGMA_BLOCK
+        weight: 1
+    accent:
+      - material: MAGMA_BLOCK
+        weight: 3
+      - material: GILDED_BLACKSTONE
+        weight: 1
+encounter:
+  normalMobPool:
+    - mobId: mob:vatar_skeleton
+      level: 8
+      weight: 5
+    - mobId: mob:ainua
+      level: 8
+      weight: 3
+    - mobId: mob:ainurindale
+      level: 8
+      weight: 2
+  mobsPerRoom:
+    min: 2
+    max: 4
+  firstCombatRoomMaxMobLevel: 8
+  bossMobId: mob:all_manifestations_iluvatar
+  bossMobLevel: 8

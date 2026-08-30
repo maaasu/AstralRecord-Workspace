@@ -1,0 +1,60 @@
+# design:
+#   motif: "中つ国 / アイヌアの獣"
+#   progression: 8
+schemaVersion: 1
+id: ainua
+type: MOB
+category: ENEMY
+name: "&eアイヌア"
+level: 8
+entityType: SHEEP
+variant:
+  age: ADULT
+  color: WHITE
+icon: WHITE_WOOL
+lore:
+  - "&7噛みつくたびに間合いを詰める、聖域の獣。"
+tags:
+  - midgard
+  - beast
+  - melee
+baseStats:
+  - status: MAX_HEALTH
+    value: 1400
+  - status: ATTACK
+    value: 254
+  - status: DEFENSE
+    value: 244
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 112
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.9
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 20
+    deaggroRange: 28
+    leashRange: 32
+  combat:
+    style: MELEE
+    preferredRange: 2.2
+    skills:
+      - id: mob_ainua_bite_rush
+        activationRange: 4
+        cooldownTicks: 100
+        castTimeTicks: 10
+        params:
+          damageRatio: 0.28
+          biteRange: 2.2
+          stepDistance: 0.9
+          biteIntervalTicks: 6
+drops:
+  exp: 72
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_1

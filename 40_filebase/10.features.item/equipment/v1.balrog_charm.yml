@@ -1,0 +1,26 @@
+# design:
+#   motif: "中つ国 / バルログの射線"
+#   progression: 8
+schemaVersion: 1
+id: balrog_charm
+category: equipment
+name: "&5バルログのチャーム"
+icon: SPECTRAL_ARROW
+rarity: EPIC
+maxStack: 1
+saleValue: 800
+lore:
+  - "&7鋭い射線と器用さを宿すチャーム。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: CHARM
+  requiredLevel: 8
+  stats:
+    - status: RANGED_ATTACK
+      type: FLAT
+      value: 10
+    - status: DEXTERITY
+      type: FLAT
+      value: 2

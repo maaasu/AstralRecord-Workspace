@@ -35,6 +35,42 @@ final class MiddleEarthRushMotion {
             double damageRatio,
             @NotNull Runnable onComplete
     ) {
+        start(
+                mobService, damageService, caster, entity, targetLocation, target,
+                speed, damageRatio, DamageElement.NONE, onComplete
+        );
+    }
+
+    /**
+     * 指定した属性で壁停止・対象命中を備えた直進移動を開始します。
+     *
+     * @param mobService Mobの存続確認と位置更新先
+     * @param damageService 命中ダメージの適用先
+     * @param caster 発動元Mob
+     * @param entity 発動開始時の実体
+     * @param targetLocation 突進先として固定した位置
+     * @param target 命中判定対象
+     * @param speed 1tickあたりの移動距離
+     * @param damageRatio 攻撃力倍率
+     * @param damageElement ダメージ属性
+     * @param onComplete 正常終了・中断時の後続処理
+     */
+    static void start(
+            @NotNull MobService mobService,
+            @NotNull DamageService damageService,
+            @NotNull MobInstance caster,
+            @NotNull Entity entity,
+            @NotNull Location targetLocation,
+            @NotNull Player target,
+            double speed,
+            double damageRatio,
+            @NotNull DamageElement damageElement,
+            @NotNull Runnable onComplete
+    ) {
+        if (!isTargetAvailable(entity, target, targetLocation)) {
+            onComplete.run();
+            return;
+        }
         Location start = entity.getLocation();
         Vector remaining = targetLocation.toVector().subtract(start.toVector());
         if (remaining.lengthSquared() <= 0.01D) {
@@ -50,7 +86,8 @@ final class MiddleEarthRushMotion {
             public void run() {
                 MobInstance active = mobService.getInstance(caster.instanceId());
                 Entity activeEntity = active == caster ? mobService.entityController().getEntity(active) : null;
-                if (activeEntity == null || activeEntity.isDead() || activeEntity.getWorld() != targetLocation.getWorld()) {
+                if (activeEntity == null || activeEntity.isDead()
+                        || !isTargetAvailable(activeEntity, target, targetLocation)) {
                     complete();
                     return;
                 }
@@ -69,7 +106,7 @@ final class MiddleEarthRushMotion {
                     active.currentLocation(hit);
                     damageService.attack(
                             AstEntity.mob(caster), damageService.resolveEntity(target), AttackType.MELEE,
-                            List.of(new DamageComponent(DamageElement.NONE, damageRatio)), DamageSource.SKILL
+                            List.of(new DamageComponent(damageElement, damageRatio)), DamageSource.SKILL
                     );
                     complete();
                     return;
@@ -95,5 +132,15 @@ final class MiddleEarthRushMotion {
                 onComplete.run();
             }
         }.runTaskTimer(mobService.plugin(), 0L, 1L);
+    }
+
+    static boolean isTargetAvailable(
+            @NotNull Entity entity,
+            @NotNull Player target,
+            @NotNull Location targetLocation
+    ) {
+        return target.isOnline() && !target.isDead()
+                && entity.getWorld() == target.getWorld()
+                && entity.getWorld() == targetLocation.getWorld();
     }
 }

@@ -14,6 +14,51 @@ namespace AstralRecordApi.Tests.Repositories;
 public class MobRepositoryPayloadTests
 {
     [Fact]
+    public async Task GetById_FromAinurindaleYaml_PreservesFangWaveAndRareCharms()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<MasterDataDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await using (var setupContext = new MasterDataDbContext(options))
+        {
+            await MasterDataTestSeed.CreateSchemaAsync(setupContext);
+            await MasterDataTestSeed.SeedEntryAsync(
+                setupContext,
+                Path.Combine(
+                    ResolveWorkspaceRoot(),
+                    "40_filebase",
+                    "40.features.mob",
+                    "enemy",
+                    "v1.ainurindale.yml"),
+                "mob.enemy",
+                "ENEMY");
+        }
+
+        await using var dbContext = new MasterDataDbContext(options);
+        var repository = new MobRepository(dbContext);
+
+        var mob = repository.GetById("ainurindale");
+
+        Assert.Equal(8, mob?.Level);
+        var combat = Assert.IsType<MobCombatResponse>(mob?.Ai?.Combat);
+        var skill = Assert.Single(combat.Skills);
+        Assert.Equal("mob_ainurindale_fang_wave", skill.Id);
+        Assert.Equal(0.45D, skill.Params["damageRatio"]);
+        Assert.Equal(8D, skill.Params["waveIntervalTicks"]);
+
+        Assert.Equal("loot_table:normal_enemy_common_table_tier_1", mob?.Drops?.LootTable);
+        Assert.Collection(
+            mob!.Drops!.Items,
+            item => AssertRareCharm(item, "merian_charm"),
+            item => AssertRareCharm(item, "balrog_charm"),
+            item => AssertRareCharm(item, "sauron_charm"));
+    }
+
+    [Fact]
     public async Task GetById_FromShieldGuardYaml_PreservesMissingRechargeAmount()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
@@ -298,6 +343,15 @@ public class MobRepositoryPayloadTests
         return (JsonSerializerOptions)payloadType
             .GetField("Options", BindingFlags.Public | BindingFlags.Static)!
             .GetValue(null)!;
+    }
+
+    private static void AssertRareCharm(MobDropItemResponse item, string expectedItemId)
+    {
+        Assert.Equal($"item:{expectedItemId}", item.ItemId);
+        Assert.Equal(0.1D, item.Rate);
+        Assert.Equal("1", item.Amount);
+        Assert.True(item.LuckAffected);
+        Assert.False(item.Hidden);
     }
 
     private static string ResolveWorkspaceRoot([CallerFilePath] string currentFile = "")

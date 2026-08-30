@@ -1,0 +1,69 @@
+# design:
+#   motif: "中つ国 / 万象を炎で形づくる聖域の主"
+#   progression: 8
+schemaVersion: 1
+id: all_manifestations_iluvatar
+type: MOB
+category: BOSS
+name: "&6&l万象のイルーヴァタール"
+title: "&c-- 万象の聖域主 --"
+level: 8
+entityType: BLAZE
+variant:
+  scale: 1.8
+icon: BLAZE_ROD
+nameVisible: true
+lore:
+  - "&7反射する火球と炎の連続突進で聖域を満たす主。"
+tags:
+  - boss
+  - magic
+  - fire
+  - shield
+baseStats:
+  - status: MAX_HEALTH
+    value: 11200
+  - status: ATTACK
+    value: 305
+  - status: DEFENSE
+    value: 281
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 92
+  - status: KNOCKBACK_RESISTANCE
+    value: 100
+shield:
+  enabled: true
+  max: 3
+ai:
+  idle:
+    behavior: STATIONARY
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 32
+    deaggroRange: 46
+    leashRange: 52
+  combat:
+    style: MAGIC
+    preferredRange: 11
+    skills:
+      - id: mob_iluvatar_fire_sphere
+        activationRange: 20
+        cooldownTicks: 90
+        castTimeTicks: 18
+        params:
+          speed: 0.8
+          damageRatio: 0.65
+          hitRadius: 0.2
+          burningDurationTicks: 60
+          spreadDegrees: 22
+      - id: mob_iluvatar_flame_charge
+        activationRange: 14
+        cooldownTicks: 145
+        params:
+          speed: 1.45
+          damageRatio: 0.85
+          holdTicks: 16

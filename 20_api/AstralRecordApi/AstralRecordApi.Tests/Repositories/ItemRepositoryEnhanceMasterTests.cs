@@ -14,6 +14,44 @@ namespace AstralRecordApi.Tests.Repositories;
 
 public class ItemRepositoryEnhanceMasterTests
 {
+    [Theory]
+    [InlineData("merian_charm", "MAGIC_ATTACK", "INTELLIGENCE")]
+    [InlineData("balrog_charm", "RANGED_ATTACK", "DEXTERITY")]
+    [InlineData("sauron_charm", "MELEE_ATTACK", "STRENGTH")]
+    public async Task IluvatarSanctumCharms_PreserveFixedLevelEightStats(
+        string itemId,
+        string attackStatus,
+        string secondaryStatus
+    )
+    {
+        await using var dbContext = await CreateSeededMasterDataDbContextAsync();
+        var repository = new ItemRepository(dbContext);
+
+        var item = repository.GetById(itemId);
+
+        Assert.NotNull(item?.Equipment);
+        Assert.Equal("EPIC", item!.Rarity);
+        Assert.Equal("ACCESSORY", item.Equipment!.Slot);
+        Assert.Equal("CHARM", item.Equipment.Tag);
+        Assert.Equal(8, item.Equipment.RequiredLevel);
+        Assert.Collection(
+            item.Equipment.Stats,
+            stat =>
+            {
+                Assert.Equal(attackStatus, stat.Status);
+                Assert.Equal("FLAT", stat.Type);
+                Assert.Equal("10", stat.Value?.Min);
+                Assert.Equal("10", stat.Value?.Max);
+            },
+            stat =>
+            {
+                Assert.Equal(secondaryStatus, stat.Status);
+                Assert.Equal("FLAT", stat.Type);
+                Assert.Equal("2", stat.Value?.Min);
+                Assert.Equal("2", stat.Value?.Max);
+            });
+    }
+
     [Fact]
     public async Task GetById_FromEnergyBakedYaml_PreservesConsumableUseTiming()
     {

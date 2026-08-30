@@ -1,0 +1,26 @@
+# design:
+#   motif: "中つ国 / サウロンの剛力"
+#   progression: 8
+schemaVersion: 1
+id: sauron_charm
+category: equipment
+name: "&5サウロンのチャーム"
+icon: ECHO_SHARD
+rarity: EPIC
+maxStack: 1
+saleValue: 800
+lore:
+  - "&7近接攻撃と筋力を宿すチャーム。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: CHARM
+  requiredLevel: 8
+  stats:
+    - status: MELEE_ATTACK
+      type: FLAT
+      value: 10
+    - status: STRENGTH
+      type: FLAT
+      value: 2

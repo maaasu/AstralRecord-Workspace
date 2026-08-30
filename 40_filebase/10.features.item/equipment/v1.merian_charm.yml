@@ -1,0 +1,26 @@
+# design:
+#   motif: "中つ国 / メリアンの魔力"
+#   progression: 8
+schemaVersion: 1
+id: merian_charm
+category: equipment
+name: "&5メリアンのチャーム"
+icon: AMETHYST_SHARD
+rarity: EPIC
+maxStack: 1
+saleValue: 800
+lore:
+  - "&7静かな魔力と知力を宿すチャーム。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: CHARM
+  requiredLevel: 8
+  stats:
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 10
+    - status: INTELLIGENCE
+      type: FLAT
+      value: 2

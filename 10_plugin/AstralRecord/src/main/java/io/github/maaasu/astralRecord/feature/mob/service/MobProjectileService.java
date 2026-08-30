@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Bukkit;
@@ -214,6 +215,66 @@ public final class MobProjectileService {
             @NotNull DamageService damageService,
             @NotNull ConditionService conditionService
     ) {
+        launchBouncingElementalSphere(
+                caster, origin, direction, speed, hitRadius, damageRatio,
+                DamageElement.ICE, ConditionType.FROZEN, frozenDurationTicks,
+                SharedParticleDefinitions.SKILL_MAGE_ICE,
+                SharedParticleDefinitions.CONDITION_ICE_DUST,
+                damageService, conditionService
+        );
+    }
+
+    /**
+     * 壁で反射する火球を発射します。
+     *
+     * <p>プレイヤーに命中すると炎属性ダメージと燃焼を与え、壁に当たると面法線で反射します。
+     * 反射回数に上限は設けず、発射から5秒で必ず消滅します。</p>
+     *
+     * @param caster 発射元Mob
+     * @param origin 発射開始位置
+     * @param direction 発射方向
+     * @param speed 1tickあたりの移動距離
+     * @param hitRadius プレイヤーhitboxへ加える半径
+     * @param damageRatio 攻撃力倍率
+     * @param burningDurationTicks 燃焼時間
+     * @param damageService 命中ダメージの適用先
+     * @param conditionService 燃焼の適用先
+     */
+    public void launchBouncingFireSphere(
+            @NotNull MobInstance caster,
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            double speed,
+            double hitRadius,
+            double damageRatio,
+            long burningDurationTicks,
+            @NotNull DamageService damageService,
+            @NotNull ConditionService conditionService
+    ) {
+        launchBouncingElementalSphere(
+                caster, origin, direction, speed, hitRadius, damageRatio,
+                DamageElement.FIRE, ConditionType.BURNING, burningDurationTicks,
+                SharedParticleDefinitions.SKILL_MAGE_FIRE,
+                SharedParticleDefinitions.SKILL_MAGE_FIRE,
+                damageService, conditionService
+        );
+    }
+
+    private void launchBouncingElementalSphere(
+            @NotNull MobInstance caster,
+            @NotNull Location origin,
+            @NotNull Vector direction,
+            double speed,
+            double hitRadius,
+            double damageRatio,
+            @NotNull DamageElement damageElement,
+            @NotNull ConditionType conditionType,
+            long conditionDurationTicks,
+            @NotNull SharedParticleDefinition trailParticle,
+            @NotNull SharedParticleDefinition impactParticle,
+            @NotNull DamageService damageService,
+            @NotNull ConditionService conditionService
+    ) {
         if (origin.getWorld() == null || direction.lengthSquared() <= 1.0E-6D) {
             return;
         }
@@ -232,16 +293,16 @@ public final class MobProjectileService {
                 Location next = position.clone().add(velocity);
                 ProjectileImpact impact = firstImpact(position, next, Math.max(0.0D, hitRadius));
                 if (impact != null && impact.player() != null) {
-                    particleDisplayService.spawnForNearbyViewers(impact.location(), SharedParticleDefinitions.CONDITION_ICE_DUST);
+                    particleDisplayService.spawnForNearbyViewers(impact.location(), impactParticle);
                     var target = damageService.resolveEntity(impact.player());
                     var result = damageService.attack(
                             AstEntity.mob(caster), target, AttackType.MAGIC,
-                            List.of(new DamageComponent(DamageElement.ICE, damageRatio)), DamageSource.SKILL
+                            List.of(new DamageComponent(damageElement, damageRatio)), DamageSource.SKILL
                     );
                     if (!result.evaded() && (result.finalDamage() > 0.0D || result.shieldDamage() > 0.0D)) {
                         conditionService.applyCondition(new ConditionApplyRequest(
-                                target, AstEntity.mob(caster), ConditionType.FROZEN, AttackType.MAGIC,
-                                frozenDurationTicks, 100.0D, 1.0D, null, null, null, null,
+                                target, AstEntity.mob(caster), conditionType, AttackType.MAGIC,
+                                conditionDurationTicks, 100.0D, 1.0D, null, null, null, null,
                                 ConditionApplyReason.SKILL
                         ));
                     }
@@ -268,7 +329,7 @@ public final class MobProjectileService {
                 } else {
                     position = next;
                 }
-                particleDisplayService.spawnForNearbyViewers(position, SharedParticleDefinitions.SKILL_MAGE_ICE);
+                particleDisplayService.spawnForNearbyViewers(position, trailParticle);
             }
 
             private void finish() {

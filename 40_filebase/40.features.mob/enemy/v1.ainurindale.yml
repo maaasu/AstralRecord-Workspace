@@ -1,0 +1,79 @@
+# design:
+#   motif: "中つ国 / アイヌリンダレの魔術"
+#   progression: 8
+schemaVersion: 1
+id: ainurindale
+type: MOB
+category: ENEMY
+name: "&5アイヌリンダレ"
+level: 8
+entityType: EVOKER
+icon: EVOKER_SPAWN_EGG
+lore:
+  - "&7三方向へ広がる地走りの魔法で侵入者を追い詰める。"
+tags:
+  - midgard
+  - humanoid
+  - magic
+  - ranged
+baseStats:
+  - status: MAX_HEALTH
+    value: 1120
+  - status: ATTACK
+    value: 290
+  - status: MAGIC_ATTACK
+    value: 15
+  - status: DEFENSE
+    value: 195
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 96
+ai:
+  idle:
+    behavior: WANDER
+    wanderRadius: 10
+    speed: 0.8
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 24
+    deaggroRange: 34
+    leashRange: 36
+  combat:
+    style: MAGIC
+    preferredRange: 10
+    skills:
+      - id: mob_ainurindale_fang_wave
+        activationRange: 14
+        cooldownTicks: 100
+        castTimeTicks: 20
+        params:
+          damageRatio: 0.45
+          hitRadius: 1.25
+          laneSpacing: 1.8
+          waveIntervalTicks: 8
+drops:
+  exp: 90
+  items:
+    - itemId:
+        ref: item:merian_charm
+      rate: 0.1
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:balrog_charm
+      rate: 0.1
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:sauron_charm
+      rate: 0.1
+      amount: 1
+      luckAffected: true
+      hidden: false
+  lootTable:
+    ref: loot_table:normal_enemy_common_table_tier_1
