@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.trade.gui;
 
 import io.github.maaasu.astralRecord.feature.trade.model.TradeSession;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -130,7 +131,10 @@ public final class TradeGui {
         return GuiItems.create(material, name, lore);
     }
 
-    public record TradeHolder(@NotNull UUID sessionId, @NotNull UUID viewerUuid) implements InventoryHolder {
+    public record TradeHolder(
+        @NotNull UUID sessionId,
+        @NotNull UUID viewerUuid
+    ) implements InventoryHolder, HotbarShortcutGuiHolder {
         @Override
         public @NotNull Inventory getInventory() {
             return Bukkit.createInventory(this, TradeGuiLayout.SIZE);

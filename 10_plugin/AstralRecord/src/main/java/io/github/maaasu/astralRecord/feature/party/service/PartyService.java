@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.trade.service.TradeService;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -74,6 +75,7 @@ public final class PartyService {
 
     /**
      * 指定プレイヤーをパーティーへ招待します。招待者が未所属なら自動でパーティーを作成します。
+     * トレード参加中の対象へは、inventory close と競合しない非クリック式の通知を送ります。
      *
      * @param inviter 招待者
      * @param target 招待対象
@@ -113,12 +115,18 @@ public final class PartyService {
         invitesByTarget.computeIfAbsent(targetId, ignored -> new LinkedHashMap<>())
             .put(inviterId, new PartyInvite(party.getPartyId(), inviterId, targetId, java.time.Instant.now()));
         String inviterName = inviter.getBukkit().getName();
-        PlayerMessageService.getInstance().sendClickable(
-            target,
-            PlayerMsgId.P_5908,
-            "/party accept " + inviterName,
-            inviterName
-        );
+        PlayerMessageService messageService = PlayerMessageService.getInstance();
+        TradeService tradeService = plugin.getTradeService();
+        if (tradeService != null && tradeService.getOpenSession(targetId) != null) {
+            messageService.send(target, PlayerMsgId.P_5908, inviterName);
+        } else {
+            messageService.sendClickable(
+                target,
+                PlayerMsgId.P_5908,
+                "/party accept " + inviterName,
+                inviterName
+            );
+        }
         recordHistory(inviterId, "PARTY_INVITED", "Party invite sent to " + target.getName());
         recordHistory(targetId, "PARTY_INVITE_RECEIVED", "Party invite received from " + inviter.getBukkit().getName());
         return PartyActionResult.success(PlayerMsgId.P_5907, target.getName());

@@ -4,12 +4,17 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeCancelConfirmGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeSession;
 import io.github.maaasu.astralRecord.feature.trade.service.TradeService;
+import io.github.maaasu.astralRecord.shared.gui.event.GuiClickCooldownEventHandler;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
+import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
@@ -24,17 +29,95 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
+import org.mockbukkit.mockbukkit.MockBukkit;
+import org.mockbukkit.mockbukkit.plugin.PluginMock;
 
 import java.time.Instant;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicBoolean;
 
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
+import static org.mockito.Mockito.clearInvocations;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class TradeGuiEventHandlerTest {
+class TradeGuiEventHandlerTest extends MockBukkitTestBase {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
+     * 章・見出し: # 22_3-メソッド仕様 > ## GUI event
+     * 検証契約: Trade GUI holderは共通ホットバー／inventoryスクロール対象である。
+     */
+    @Test
+    void tradeHolderUsesSharedHotbarShortcutContract() {
+        assertInstanceOf(
+            HotbarShortcutGuiHolder.class,
+            new TradeGui.TradeHolder(UUID.randomUUID(), UUID.randomUUID())
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
+     * 章・見出し: # 22_3-メソッド仕様 > ## GUI event
+     * 検証契約: プレイヤーinventoryの上下スクロールは共通処理へ委譲し、提示item処理へ流さない。
+     */
+    @Test
+    void sharedHandlerConsumesInventoryScrollBeforeTradeHandler() {
+        TestContext context = new TestContext();
+        PluginMock registrationPlugin = MockBukkit.createMockPlugin("TradeScrollEventOrderTest");
+        server().getPluginManager().registerEvents(
+            new GuiClickCooldownEventHandler(context.inventoryService),
+            registrationPlugin
+        );
+        server().getPluginManager().registerEvents(context.handler, registrationPlugin);
+
+        for (int slot : new int[]{17, 35}) {
+            InventoryClickEvent event = mock(InventoryClickEvent.class);
+            PlayerInventory playerInventory = mock(PlayerInventory.class);
+            AstPlayer astPlayer = mock(AstPlayer.class);
+            AtomicBoolean cancelled = new AtomicBoolean();
+            when(event.getView()).thenReturn(context.view);
+            when(event.getWhoClicked()).thenReturn(context.player);
+            when(event.getClickedInventory()).thenReturn(playerInventory);
+            when(event.getRawSlot()).thenReturn(54 + slot);
+            when(event.getSlot()).thenReturn(slot);
+            when(event.getHandlers()).thenReturn(InventoryClickEvent.getHandlerList());
+            when(event.isCancelled()).thenAnswer(ignored -> cancelled.get());
+            doAnswer(invocation -> {
+                cancelled.set(invocation.getArgument(0));
+                return null;
+            }).when(event).setCancelled(anyBoolean());
+            when(context.top.getHolder()).thenReturn(new TradeGui.TradeHolder(context.sessionId, context.playerId));
+            when(context.inventoryService.isHotbarShortcutMode(astPlayer)).thenReturn(true);
+            when(context.inventoryService.handleInventoryControlClick(astPlayer, slot)).thenReturn(true);
+            clearInvocations(context.tradeGui, context.tradeService);
+
+            try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+                cache.when(() -> AstPlayerCache.get(context.player)).thenReturn(astPlayer);
+
+                server().getPluginManager().callEvent(event);
+            }
+
+            assertTrue(cancelled.get());
+            verify(context.inventoryService).handleInventoryControlClick(astPlayer, slot);
+            verify(context.tradeGui, never()).isTradeInventory(context.top);
+            verify(context.tradeService, never()).offerOwnedItem(
+                eq(context.player),
+                anyInt(),
+                nullable(ClickType.class),
+                nullable(ItemStack.class)
+            );
+        }
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md

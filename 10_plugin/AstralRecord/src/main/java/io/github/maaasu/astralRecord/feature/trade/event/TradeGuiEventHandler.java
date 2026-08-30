@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.trade.model.TradeSession;
 import io.github.maaasu.astralRecord.feature.trade.service.TradeService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
+import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -61,7 +62,12 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
         this.messageService = messageService;
     }
 
-    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    /**
+     * トレード関連 GUI のクリックを処理します。
+     *
+     * @param event Bukkit の inventory click event
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)
     public void onInventoryClick(@NotNull InventoryClickEvent event) {
         runSafely(() -> {
             Inventory top = event.getView().getTopInventory();
@@ -186,9 +192,17 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
         }
     }
 
+    /**
+     * トレード GUI の操作を処理し、プレイヤー inventory のスクロールは共通処理へ委譲します。
+     *
+     * @param event トレード GUI 上の click event
+     */
     private void handleTradeClick(@NotNull InventoryClickEvent event) {
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player)) {
+            return;
+        }
+        if (HotbarShortcutClickSupport.handleInventoryControlClick(event, player, inventoryService)) {
             return;
         }
         if (handleHotbarShortcutClick(event, player)) {
