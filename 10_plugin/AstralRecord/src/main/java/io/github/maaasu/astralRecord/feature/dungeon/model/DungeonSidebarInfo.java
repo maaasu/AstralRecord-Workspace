@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.dungeon.model;
 
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
+import io.github.maaasu.astralRecord.shared.challenge.ParticipantNameLineFormatter;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -82,6 +83,18 @@ public record DungeonSidebarInfo(
      * @return ダンジョン情報の表示行数
      */
     public int sidebarLineCount() {
-        return 6 + (timeLimitSeconds != null ? 1 : 0) + (waitingStatus.isVisible() ? 1 : 0);
+        return 5
+                + (timeLimitSeconds != null ? 1 : 0)
+                + (waitingStatus.isVisible() ? 1 : 0)
+                + ParticipantNameLineFormatter.sidebarLineCount(participantNames);
+    }
+
+    /**
+     * 任意の進行情報を除き、参加者表示を維持するために必要な行数を返します。
+     *
+     * @return ダンジョン名と参加者の表示行数
+     */
+    public int requiredSidebarLineCount() {
+        return 1 + ParticipantNameLineFormatter.sidebarLineCount(participantNames);
     }
 }

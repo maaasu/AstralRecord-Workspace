@@ -76,6 +76,101 @@ class PlayerHudViewTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
+     * 章・見出し: # 10_3-View > ## 4. sidebar 描画・解除
+     * 検証契約: bossとdungeonの参加者名を名前単位で一定幅ごとに折り返し、継続行を参加者ラベル位置へ揃えて表示する。
+     */
+    @Test
+    void wrapsParticipantNamesForBossAndDungeonSidebars() {
+        List<String> participantNames = List.of("PlayerOne", "AllyTwo", "MageThree");
+        PlayerHudView view = new PlayerHudView();
+
+        Player bossPlayer = mock(Player.class);
+        Objective bossObjective = prepareSidebar(bossPlayer);
+        view.renderSidebar(
+                bossPlayer, 20.0D, 10, 0.5D, 5, "剣士", "坑道", "入口", 10,
+                false,
+                new BossChallengeSidebarInfo("星喰らい", 42, 0, 3, 30L, 180L, participantNames)
+        );
+
+        Player dungeonPlayer = mock(Player.class);
+        Objective dungeonObjective = prepareSidebar(dungeonPlayer);
+        view.renderSidebar(
+                dungeonPlayer, 20.0D, 10, 0.5D, 5, "剣士", "坑道", "最終室", 10,
+                false,
+                null,
+                new DungeonSidebarInfo("黄昏の坑道", 1, 3, 4, 7, participantNames, -1L),
+                false,
+                List.of()
+        );
+
+        assertParticipantLines(collectRenderedEntries(bossObjective));
+        assertParticipantLines(collectRenderedEntries(dungeonObjective));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
+     * 章・見出し: # 10_3-View > ## 4. sidebar 描画・解除
+     * 検証契約: 参加者行が15行枠を超える場合も、参加者名を無言で切り捨てず省略人数を表示する。
+     */
+    @Test
+    void keepsOverflowParticipantIndicatorInsideSidebarLimit() {
+        List<String> participantNames = List.of(
+                "12345678901234567890",
+                "ABCDEFGHIJKLMNOPQRST",
+                "abcdefghijklmnopqrst",
+                "あいうえおかきくけこさしすせそたちつてと",
+                "PlayerFives",
+                "PlayerSix"
+        );
+        Player player = mock(Player.class);
+        Objective objective = prepareSidebar(player);
+
+        new PlayerHudView().renderSidebar(
+                player, 20.0D, 10, 0.5D, 5, "剣士", "坑道", "入口", 10,
+                false,
+                new BossChallengeSidebarInfo("星喰らい", 42, 0, 3, 30L, 180L, participantNames)
+        );
+
+        List<String> rendered = collectRenderedEntries(objective);
+        assertTrue(rendered.stream().anyMatch(entry -> entry.contains("参加者: 12345678901234567890")));
+        assertTrue(rendered.stream().anyMatch(entry -> entry.contains("…ほか2人")));
+        assertTrue(rendered.size() <= 15);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
+     * 章・見出し: # 10_3-View > ## 4. sidebar 描画・解除
+     * 検証契約: 挑戦任意情報を省略した空き行へbuffを再配置し、参加者の折返しも維持する。
+     */
+    @Test
+    void reallocatesOmittedChallengeRowsToBuffDisplay() {
+        Player player = mock(Player.class);
+        Objective objective = prepareSidebar(player);
+        ActiveBuff buff = new ActiveBuff(
+                new BuffType("reallocation_buff", "TEST", "再配置バフ", 1_200, false, null, List.of()),
+                LocalDateTime.now(),
+                LocalDateTime.now().plusMinutes(1)
+        );
+
+        new PlayerHudView().renderSidebar(
+                player, 20.0D, 10, 0.5D, 5, "剣士", "坑道", "入口", 10,
+                false,
+                new BossChallengeSidebarInfo(
+                        "星喰らい", 42, 0, 3, 30L, 180L,
+                        List.of("PlayerOne", "AllyTwo", "MageThree")
+                ),
+                true,
+                List.of(buff)
+        );
+
+        List<String> rendered = collectRenderedEntries(objective);
+        assertTrue(rendered.stream().anyMatch(entry -> entry.contains("再配置バフ")));
+        assertTrue(rendered.stream().anyMatch(entry -> entry.contains("参加者: PlayerOne、AllyTwo")));
+        assertTrue(rendered.stream().anyMatch(entry -> entry.contains("     MageThree")));
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
      * 章・見出し: # 32_1-モデル定義 > ## 5. Dungeon Sidebar表示モデル
      * 検証契約: Dungeon sidebarへ名称、共有死亡数、部屋進捗、参加者、clear後の強制帰還残秒を15行以内で描画する。
@@ -113,7 +208,7 @@ class PlayerHudViewTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
      * 章・見出し: # 32_1-モデル定義 > ## 5. Dungeon Sidebar表示モデル
-     * 検証契約: buff表示が有効でもDungeonの6行を先に予約し、clear後の強制帰還残秒を15行以内へ残す。
+     * 検証契約: buff表示が有効でも参加者表示を維持し、clear後の強制帰還残秒を15行以内へ残す。
      */
     @Test
     void keepsDungeonReturnCountdownVisibleWhenBuffDisplayIsEnabled() {
@@ -420,6 +515,31 @@ class PlayerHudViewTest extends MockBukkitTestBase {
         assertTrue(rendered.stream().anyMatch(entry -> entry.contains("バフ1")));
         assertTrue(rendered.stream().anyMatch(entry -> entry.contains("バフ5") && entry.contains("ほか2件")));
         assertTrue(rendered.stream().noneMatch(entry -> entry.contains("バフ6")));
+        assertTrue(rendered.size() <= 15);
+    }
+
+    private Objective prepareSidebar(Player player) {
+        Scoreboard scoreboard = mock(Scoreboard.class);
+        Objective objective = mock(Objective.class);
+        Score score = mock(Score.class);
+        when(player.getScoreboard()).thenReturn(scoreboard);
+        when(player.getPing()).thenReturn(25);
+        when(scoreboard.getObjective("astral_info")).thenReturn(objective);
+        when(scoreboard.getEntries()).thenReturn(Collections.emptySet());
+        when(objective.getScoreboard()).thenReturn(scoreboard);
+        when(objective.getScore(anyString())).thenReturn(score);
+        return objective;
+    }
+
+    private List<String> collectRenderedEntries(Objective objective) {
+        ArgumentCaptor<String> entries = ArgumentCaptor.forClass(String.class);
+        verify(objective, org.mockito.Mockito.times(15)).getScore(entries.capture());
+        return entries.getAllValues().stream().map(ColorCodeUtil::stripColor).toList();
+    }
+
+    private void assertParticipantLines(List<String> rendered) {
+        assertTrue(rendered.stream().anyMatch(entry -> entry.contains("参加者: PlayerOne、AllyTwo")));
+        assertTrue(rendered.stream().anyMatch(entry -> entry.contains("     MageThree")));
         assertTrue(rendered.size() <= 15);
     }
 

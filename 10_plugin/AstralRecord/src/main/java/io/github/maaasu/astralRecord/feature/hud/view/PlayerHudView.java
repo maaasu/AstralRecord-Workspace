@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
+import io.github.maaasu.astralRecord.shared.challenge.ParticipantNameLineFormatter;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -36,7 +37,10 @@ public class PlayerHudView {
     private static final int TRANSIENT_BAR_LENGTH = 28;
     private static final int SIDEBAR_BAR_LENGTH = 10;
     private static final int SIDEBAR_LINE_LIMIT = 15;
+    private static final int SIDEBAR_BASE_LINE_COUNT = 9;
+    private static final int PERFORMANCE_LINE_COUNT = 2;
     private static final int BUFF_DISPLAY_LIMIT = 5;
+    private static final String PARTICIPANT_CONTINUATION_PREFIX = "     ";
     private static final String SIDEBAR_BAR_CHAR = "▰";
 
     public void renderActionBar(Player player, StatusSnapshot snapshot) {
@@ -254,7 +258,7 @@ public class PlayerHudView {
 
     /**
      * サイドバーを描画し、設定が有効な場合は獲得順のバフを最大5件表示します。
-     * 表示行数が15行を超えないよう、バフを優先して性能情報の表示を調整します。
+     * 表示行数が15行を超えないよう、挑戦名と参加者を優先して任意情報・バフ・性能情報を調整します。
      *
      * @param player 対象プレイヤー
      * @param mspt 現在のMSPT
@@ -305,20 +309,14 @@ public class PlayerHudView {
 
         int ping = player.getPing();
         clearSidebar(objective);
-        int challengeLineCount = bossInfo != null
-                ? bossInfo.sidebarLineCount()
-                : dungeonInfo != null ? dungeonInfo.sidebarLineCount() : 0;
-        List<String> buffLines = buildBuffLines(activeBuffs, showBuffInfo, challengeLineCount);
-        int fixedLineCount = 9 + challengeLineCount + buffLines.size();
-        boolean renderPerformance = showPerformanceInfo && SIDEBAR_LINE_LIMIT - fixedLineCount >= 2;
+        int requiredChallengeLineCount = bossInfo != null
+                ? bossInfo.requiredSidebarLineCount()
+                : dungeonInfo != null ? dungeonInfo.requiredSidebarLineCount() : 0;
+        List<String> buffLines = buildBuffLines(activeBuffs, showBuffInfo, requiredChallengeLineCount);
 
         List<String> lines = new ArrayList<>(SIDEBAR_LINE_LIMIT);
         lines.add(ColorCodeUtil.AQUA + "オンライン" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE
                 + Bukkit.getOnlinePlayers().size() + "/" + Bukkit.getMaxPlayers());
-        if (renderPerformance) {
-            lines.add(msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + String.format("%.1f", mspt));
-            lines.add(pingLegacyColor(ping) + "PING" + ColorCodeUtil.GRAY + ": " + ColorCodeUtil.WHITE + ping + "ms");
-        }
         lines.add(ColorCodeUtil.BLUE + "ワールド" + ColorCodeUtil.GRAY + ": "
                 + ColorCodeUtil.toLegacyText(worldName, "不明"));
         lines.add(ColorCodeUtil.GREEN + "エリア" + ColorCodeUtil.GRAY + ": "
@@ -337,6 +335,13 @@ public class PlayerHudView {
             appendBossInfo(lines, bossInfo);
         } else if (dungeonInfo != null) {
             appendDungeonInfo(lines, dungeonInfo);
+        }
+
+        if (showPerformanceInfo && SIDEBAR_LINE_LIMIT - lines.size() >= PERFORMANCE_LINE_COUNT) {
+            lines.add(1, msptLegacyColor(mspt) + "MSPT" + ColorCodeUtil.GRAY + ": "
+                    + ColorCodeUtil.WHITE + String.format("%.1f", mspt));
+            lines.add(2, pingLegacyColor(ping) + "PING" + ColorCodeUtil.GRAY + ": "
+                    + ColorCodeUtil.WHITE + ping + "ms");
         }
 
         for (int index = 0; index < Math.min(lines.size(), SIDEBAR_LINE_LIMIT); index++) {
@@ -367,53 +372,159 @@ public class PlayerHudView {
     }
 
     private void appendBossInfo(List<String> lines, BossChallengeSidebarInfo info) {
-        lines.add(buildSeparator("boss"));
-        lines.add(ColorCodeUtil.RED + "ボス" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.toLegacyText(info.bossDisplayName(), "ボス"));
-        appendWaitingStatus(lines, info.waitingStatus());
-        lines.add(ColorCodeUtil.RED + "デス" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.WHITE + info.deathCount() + "/" + info.deathLimit());
-        lines.add(ColorCodeUtil.GOLD + "時間" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.WHITE + info.elapsedSeconds() + "/" + info.timeLimitSeconds() + "s");
-        lines.add(ColorCodeUtil.LIGHT_PURPLE + "参加者" + ColorCodeUtil.GRAY + ": "
-                + formatParticipantNames(info.participantNames(), info.waitingParticipantNames()));
+        List<SidebarLineCandidate> candidates = new ArrayList<>();
+        addOptionalCandidate(candidates, buildSeparator("boss"), 0, 100);
+        addRequiredCandidate(candidates,
+                ColorCodeUtil.RED + "ボス" + ColorCodeUtil.GRAY + ": "
+                        + ColorCodeUtil.toLegacyText(info.bossDisplayName(), "ボス"),
+                10);
+        addWaitingStatusCandidate(candidates, info.waitingStatus(), 20);
+        addOptionalCandidate(candidates,
+                ColorCodeUtil.RED + "デス" + ColorCodeUtil.GRAY + ": "
+                        + ColorCodeUtil.WHITE + info.deathCount() + "/" + info.deathLimit(),
+                30, 20);
+        addOptionalCandidate(candidates,
+                ColorCodeUtil.GOLD + "時間" + ColorCodeUtil.GRAY + ": "
+                        + ColorCodeUtil.WHITE + info.elapsedSeconds() + "/" + info.timeLimitSeconds() + "s",
+                40, 30);
+        addRequiredParticipantCandidates(
+                candidates,
+                formatParticipantInfoLines(info.participantNames(), info.waitingParticipantNames()),
+                50
+        );
+        appendFittingChallengeLines(lines, candidates);
     }
 
     private void appendDungeonInfo(List<String> lines, DungeonSidebarInfo info) {
-        lines.add(buildSeparator("dungeon"));
-        lines.add(ColorCodeUtil.AQUA + "ダンジョン" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.toLegacyText(info.dungeonDisplayName(), "ダンジョン"));
-        appendWaitingStatus(lines, info.waitingStatus());
-        lines.add(ColorCodeUtil.RED + "デス" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.WHITE + info.deathCount() + "/" + info.deathLimit());
-        lines.add(ColorCodeUtil.GOLD + "部屋" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.WHITE + info.clearedRooms() + "/" + info.totalRooms());
+        List<SidebarLineCandidate> candidates = new ArrayList<>();
+        addOptionalCandidate(candidates, buildSeparator("dungeon"), 0, 100);
+        addRequiredCandidate(candidates,
+                ColorCodeUtil.AQUA + "ダンジョン" + ColorCodeUtil.GRAY + ": "
+                        + ColorCodeUtil.toLegacyText(info.dungeonDisplayName(), "ダンジョン"),
+                10);
+        addWaitingStatusCandidate(candidates, info.waitingStatus(), 20);
+        addOptionalCandidate(candidates,
+                ColorCodeUtil.RED + "デス" + ColorCodeUtil.GRAY + ": "
+                        + ColorCodeUtil.WHITE + info.deathCount() + "/" + info.deathLimit(),
+                30, 20);
+        addOptionalCandidate(candidates,
+                ColorCodeUtil.GOLD + "部屋" + ColorCodeUtil.GRAY + ": "
+                        + ColorCodeUtil.WHITE + info.clearedRooms() + "/" + info.totalRooms(),
+                35, 25);
         if (info.timeLimitSeconds() != null) {
-            lines.add(ColorCodeUtil.GOLD + "時間" + ColorCodeUtil.GRAY + ": "
-                    + ColorCodeUtil.WHITE + info.elapsedSeconds() + "/" + info.timeLimitSeconds() + "s");
+            addOptionalCandidate(candidates,
+                    ColorCodeUtil.GOLD + "時間" + ColorCodeUtil.GRAY + ": "
+                            + ColorCodeUtil.WHITE + info.elapsedSeconds() + "/" + info.timeLimitSeconds() + "s",
+                    40, 30);
         }
-        lines.add(ColorCodeUtil.LIGHT_PURPLE + "参加者" + ColorCodeUtil.GRAY + ": "
-                + formatParticipantNames(info.participantNames(), info.waitingParticipantNames()));
-        lines.add(info.returnRemainingSeconds() >= 0L
+        addRequiredParticipantCandidates(
+                candidates,
+                formatParticipantInfoLines(info.participantNames(), info.waitingParticipantNames()),
+                50
+        );
+        addOptionalCandidate(candidates, info.returnRemainingSeconds() >= 0L
                 ? ColorCodeUtil.YELLOW + "帰還まで" + ColorCodeUtil.GRAY + ": "
-                    + ColorCodeUtil.WHITE + info.returnRemainingSeconds() + "s"
-                : ColorCodeUtil.GRAY + "攻略進行中");
+                        + ColorCodeUtil.WHITE + info.returnRemainingSeconds() + "s"
+                : ColorCodeUtil.GRAY + "攻略進行中", 60,
+                info.returnRemainingSeconds() >= 0L ? 15 : 40);
+        appendFittingChallengeLines(lines, candidates);
     }
 
-    private void appendWaitingStatus(List<String> lines, ChallengeWaitingStatus status) {
+    private void addWaitingStatusCandidate(
+            List<SidebarLineCandidate> candidates,
+            ChallengeWaitingStatus status,
+            int order
+    ) {
         if (!status.isVisible() || status.messageId() == null) {
             return;
         }
-        lines.add(ColorCodeUtil.YELLOW + "状態" + ColorCodeUtil.GRAY + ": "
-                + ColorCodeUtil.WHITE + PlayerMsgResource.getMessage(status.messageId().getId()));
+        addOptionalCandidate(candidates,
+                ColorCodeUtil.YELLOW + "状態" + ColorCodeUtil.GRAY + ": "
+                        + ColorCodeUtil.WHITE + PlayerMsgResource.getMessage(status.messageId().getId()),
+                order,
+                10);
     }
 
-    private String formatParticipantNames(List<String> participantNames, Set<String> waitingParticipantNames) {
-        return ColorCodeUtil.WHITE + String.join("、", participantNames.stream()
-                .map(name -> waitingParticipantNames.contains(name)
-                        ? ColorCodeUtil.GRAY + name + ColorCodeUtil.WHITE
-                        : name)
-                .toList());
+    private List<String> formatParticipantInfoLines(
+            List<String> participantNames,
+            Set<String> waitingParticipantNames
+    ) {
+        List<String> formattedLines = formatParticipantNames(participantNames, waitingParticipantNames);
+        List<String> result = new ArrayList<>(formattedLines.size());
+        for (int index = 0; index < formattedLines.size(); index++) {
+            String prefix = index == 0
+                    ? ColorCodeUtil.LIGHT_PURPLE + "参加者" + ColorCodeUtil.GRAY + ": "
+                    : ColorCodeUtil.GRAY + PARTICIPANT_CONTINUATION_PREFIX + ColorCodeUtil.WHITE;
+            result.add(prefix + formattedLines.get(index));
+        }
+        return result;
+    }
+
+    private List<String> formatParticipantNames(List<String> participantNames, Set<String> waitingParticipantNames) {
+        return ParticipantNameLineFormatter.wrap(
+                        participantNames,
+                        ParticipantNameLineFormatter.MAX_SIDEBAR_PARTICIPANT_LINES
+                ).stream()
+                .map(line -> ColorCodeUtil.WHITE + String.join("、", line.stream()
+                        .map(name -> waitingParticipantNames.contains(name)
+                                ? ColorCodeUtil.GRAY + name + ColorCodeUtil.WHITE
+                                : name)
+                        .toList()))
+                .toList();
+    }
+
+    private void addRequiredCandidate(
+            List<SidebarLineCandidate> candidates,
+            String text,
+            int order
+    ) {
+        candidates.add(new SidebarLineCandidate(text, order, 0, true));
+    }
+
+    private void addRequiredParticipantCandidates(
+            List<SidebarLineCandidate> candidates,
+            List<String> lines,
+            int firstOrder
+    ) {
+        for (int index = 0; index < lines.size(); index++) {
+            addRequiredCandidate(candidates, lines.get(index), firstOrder + index);
+        }
+    }
+
+    private void addOptionalCandidate(
+            List<SidebarLineCandidate> candidates,
+            String text,
+            int order,
+            int priority
+    ) {
+        candidates.add(new SidebarLineCandidate(text, order, priority, false));
+    }
+
+    private void appendFittingChallengeLines(
+            List<String> lines,
+            List<SidebarLineCandidate> candidates
+    ) {
+        int availableLines = Math.max(0, SIDEBAR_LINE_LIMIT - lines.size());
+        List<SidebarLineCandidate> selected = candidates.stream()
+                .filter(SidebarLineCandidate::required)
+                .collect(java.util.stream.Collectors.toCollection(ArrayList::new));
+        int optionalLineCount = Math.max(0, availableLines - selected.size());
+        candidates.stream()
+                .filter(candidate -> !candidate.required())
+                .sorted(Comparator.comparingInt(SidebarLineCandidate::priority)
+                        .thenComparingInt(SidebarLineCandidate::order))
+                .limit(optionalLineCount)
+                .forEach(selected::add);
+        selected.sort(Comparator.comparingInt(SidebarLineCandidate::order));
+        for (SidebarLineCandidate candidate : selected) {
+            if (lines.size() >= SIDEBAR_LINE_LIMIT) {
+                break;
+            }
+            lines.add(candidate.text());
+        }
+    }
+
+    private record SidebarLineCandidate(String text, int order, int priority, boolean required) {
     }
 
     private List<String> buildBuffLines(
@@ -425,7 +536,10 @@ public class PlayerHudView {
             return List.of();
         }
 
-        int availableEntries = Math.max(0, SIDEBAR_LINE_LIMIT - 9 - challengeLineCount - 1);
+        int availableEntries = Math.max(
+                0,
+                SIDEBAR_LINE_LIMIT - SIDEBAR_BASE_LINE_COUNT - challengeLineCount - 1
+        );
         int displayCount = Math.min(Math.min(BUFF_DISPLAY_LIMIT, activeBuffs.size()), availableEntries);
         if (displayCount == 0) {
             return List.of();

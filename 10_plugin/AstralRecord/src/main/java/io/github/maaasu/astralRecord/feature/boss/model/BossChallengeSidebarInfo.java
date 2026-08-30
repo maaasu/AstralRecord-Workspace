@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.boss.model;
 
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
+import io.github.maaasu.astralRecord.shared.challenge.ParticipantNameLineFormatter;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
@@ -76,6 +77,17 @@ public record BossChallengeSidebarInfo(
      * @return ボス情報の表示行数
      */
     public int sidebarLineCount() {
-        return 5 + (waitingStatus.isVisible() ? 1 : 0);
+        return 4
+                + (waitingStatus.isVisible() ? 1 : 0)
+                + ParticipantNameLineFormatter.sidebarLineCount(participantNames);
+    }
+
+    /**
+     * 任意の進行情報を除き、参加者表示を維持するために必要な行数を返します。
+     *
+     * @return ボス名と参加者の表示行数
+     */
+    public int requiredSidebarLineCount() {
+        return 1 + ParticipantNameLineFormatter.sidebarLineCount(participantNames);
     }
 }
