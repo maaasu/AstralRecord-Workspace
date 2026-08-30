@@ -44,7 +44,6 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitRunnable;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
@@ -65,7 +64,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * 通常インベントリ上のオーブクリックから装備選択・実行・固定演出までを管理します。
+ * 通常インベントリ上のオーブクリックから装備選択・実行・結果反映までを管理します。
  */
 public final class OrbService {
 
@@ -92,35 +91,9 @@ public final class OrbService {
     private static final int MATERIAL_LIST_GOLD_SLOT = 47;
     private static final int MATERIAL_LIST_BACK_SLOT = 49;
     private static final int MATERIAL_LIST_NEXT_PAGE_SLOT = 53;
-    private static final Material[] ANIMATION_FRAMES = {
-        Material.AMETHYST_BLOCK,
-        Material.BUDDING_AMETHYST,
-        Material.CRYING_OBSIDIAN,
-        Material.END_CRYSTAL,
-        Material.NETHER_STAR,
-    };
-    private static final long FRAME_TICKS = 2L;
-    private static final long REFRESH_WAIT_TICKS = 10L;
+    private static final Material PROCESSING_ICON = Material.CLOCK;
     private static final long OPERATION_RETRY_INITIAL_MILLIS = 250L;
     private static final long OPERATION_RETRY_MAX_MILLIS = 2_000L;
-
-    /**
-     * 固定5フレーム演出の長さを返します。
-     *
-     * @return 演出時間（tick）
-     */
-    static long animationDurationTicks() {
-        return ANIMATION_FRAMES.length * FRAME_TICKS;
-    }
-
-    /**
-     * 装備更新確定後から一覧再描画まで操作を遮断する総時間を返します。
-     *
-     * @return 演出と更新待機を合わせた時間（tick）
-     */
-    static long postMutationLockDurationTicks() {
-        return animationDurationTicks() + REFRESH_WAIT_TICKS;
-    }
 
     private final Plugin plugin;
     private final InventoryService inventoryService;
@@ -231,10 +204,10 @@ public final class OrbService {
     }
 
     /**
-     * プレイヤーがオーブ操作の通信・演出・更新待機中か判定します。
+     * プレイヤーがオーブ装備更新中か判定します。
      *
      * @param player 判定対象プレイヤー
-     * @return 同一プレイヤーのセッションが通信・演出・更新待機中なら {@code true}
+     * @return 同一プレイヤーのセッションがAPI操作・正本照合中なら {@code true}
      */
     public boolean isLocked(@NotNull Player player) {
         OrbSession session = sessions.get(player.getUniqueId());
@@ -442,7 +415,7 @@ public final class OrbService {
     }
 
     /**
-     * オーブ GUI へのドラッグを常に拒否し、演出中を含む複数スロット変更を防ぎます。
+     * オーブ GUI へのドラッグを常に拒否し、更新中を含む複数スロット変更を防ぎます。
      *
      * @param event ドラッグイベント
      */
@@ -453,7 +426,7 @@ public final class OrbService {
     }
 
     /**
-     * 演出・更新待機中のホットバー選択変更を拒否します。
+     * 装備更新中のホットバー選択変更を拒否します。
      *
      * @param event ホットバー選択変更イベント
      * @return ロック中として拒否した場合 {@code true}
@@ -467,8 +440,8 @@ public final class OrbService {
     }
 
     /**
-     * GUI を閉じたプレイヤーを処理します。操作確定・演出・更新待機中は同じ GUI を次 tick に
-     * 再表示して固定演出とクリックロックを最後まで維持します。
+     * GUI を閉じたプレイヤーを処理します。装備更新中は同じ GUI を次 tick に再表示して
+     * クリックロックを更新完了まで維持します。
      *
      * @param player GUI を閉じたプレイヤー
      */
@@ -506,7 +479,6 @@ public final class OrbService {
         }
         session.uiClosed = true;
         session.interactionLock.close();
-        cancelScheduledTask(session);
         if (session.operationFuture == null) {
             sessions.remove(player.getUniqueId(), session);
         }
@@ -536,7 +508,6 @@ public final class OrbService {
             if (!isCurrentInventory(session.player, session)) {
                 sessions.remove(session.player.getUniqueId(), session);
                 session.interactionLock.close();
-                cancelScheduledTask(session);
             }
         });
     }
@@ -924,7 +895,7 @@ public final class OrbService {
             GuiSound.DENY.play(session.player);
             return;
         }
-        session.animationSlot = event.getRawSlot();
+        session.processingSlot = event.getRawSlot();
         if (orbModel.getOrb().getEffect().getType() == ItemOrbEffectType.TRANSCENDENCE) {
             openTranscendenceConfirmation(session, orbModel, target);
             return;
@@ -1084,7 +1055,7 @@ public final class OrbService {
             renderRuneScreen(session, target); transitionInventory(session, session.inventory, session.screen); GuiSound.SELECT.play(session.player); return;
         }
         if (event.getRawSlot() != RUNE_RESULT_SLOT || session.selectedRuneItemId == null) { GuiSound.DENY.play(session.player); return; }
-        session.animationSlot = RUNE_RESULT_SLOT;
+        session.processingSlot = RUNE_RESULT_SLOT;
         executeCandidate(session, orb, target);
     }
 
@@ -1905,7 +1876,7 @@ public final class OrbService {
             GuiSound.DENY.play(session.player);
             return;
         }
-        session.animationSlot = CONFIRM_TARGET_SLOT;
+        session.processingSlot = CONFIRM_TARGET_SLOT;
         executeCandidate(session, orbModel, target);
     }
 
@@ -2039,7 +2010,7 @@ public final class OrbService {
         session.interactionLock.beginMutation();
         session.operationId = operationId;
         session.externalOperationStarted = false;
-        showAnimationFrame(session, 0);
+        showProcessingIcon(session);
         startAsyncMutation(session, target, currentOrb);
     }
 
@@ -2226,7 +2197,7 @@ public final class OrbService {
         }
     }
 
-    /** API 台帳結果を GUI 演出用の結果へ変換します。 */
+    /** API 台帳結果を GUI 反映用の結果へ変換します。 */
     private @NotNull MutationResult toMutationResult(
         @NotNull EquipmentOrbOperationResult operation,
         @NotNull OrbCandidate target,
@@ -2288,7 +2259,7 @@ public final class OrbService {
         };
     }
 
-    /** 装備処理結果を業務失敗表示または演出開始へ収束させます。 */
+    /** 装備処理結果を業務失敗表示または即時の結果反映へ収束させます。 */
     private void completeMutation(@NotNull OrbSession session, @NotNull MutationResult result) {
         session.operationFuture = null;
         session.operationId = null;
@@ -2347,99 +2318,16 @@ public final class OrbService {
             sessions.remove(session.player.getUniqueId(), session);
             return;
         }
-        startAnimation(session, result);
+        finishSuccessfulMutation(session, result);
     }
 
     /**
-     * 2tick間隔の固定5フレーム演出を開始し、完了後も10tickロックします。
+     * API と正本照合が完了した成功結果を同じ tick で表示へ反映します。
      *
      * @param session 操作セッション
      * @param result 成功した装備処理結果
      */
-    private void startAnimation(@NotNull OrbSession session, @NotNull MutationResult result) {
-        cancelScheduledTask(session);
-        session.interactionLock.beginAnimation();
-        // The first frame is rendered immediately so that five 2-tick frames occupy
-        // exactly 10 ticks.  The timer then advances four frames and completes the
-        // animation on tick 10; using an initial-delay-zero timer required a sixth
-        // invocation and kept the GUI locked for an extra tick.
-        showAnimationFrame(session, 0);
-        session.scheduledTask = new BukkitRunnable() {
-            private int frameIndex = 1;
-
-            @Override
-            public void run() {
-                if (session.detached
-                    || sessions.get(session.player.getUniqueId()) != session
-                    || !session.reopening && !isCurrentInventory(session.player, session)) {
-                    cancel();
-                    session.scheduledTask = null;
-                    sessions.remove(session.player.getUniqueId(), session);
-                    return;
-                }
-                if (frameIndex < ANIMATION_FRAMES.length) {
-                    showAnimationFrame(session, frameIndex++);
-                    return;
-                }
-                cancel();
-                session.scheduledTask = null;
-                if (result.instance != null && result.model != null) {
-                    session.inventory.setItem(
-                        session.animationSlot,
-                        itemStackFactory.create(result.model, result.instance, 1)
-                    );
-                }
-                sendMutationResult(session.player, result);
-                if (result.kind == MutationKind.ENHANCEMENT && !result.enhancementSucceeded) {
-                    GuiSound.DENY.play(session.player);
-                } else {
-                    GuiSound.SUCCESS.play(session.player);
-                }
-                session.interactionLock.beginRefreshWait();
-                session.scheduledTask = plugin.getServer().getScheduler().runTaskLater(
-                    plugin,
-                    () -> finishAnimationWait(session, result),
-                    REFRESH_WAIT_TICKS
-                );
-            }
-        }.runTaskTimer(plugin, FRAME_TICKS, FRAME_TICKS);
-    }
-
-    /**
-     * 選択スロットのアイコンとpitchを指定フレームへ更新します。
-     *
-     * @param session 操作セッション
-     * @param frameIndex 0始まりのフレーム番号
-     */
-    private void showAnimationFrame(@NotNull OrbSession session, int frameIndex) {
-        if (session.inventory == null
-            || session.animationSlot < 0
-            || session.animationSlot >= session.inventory.getSize()) {
-            return;
-        }
-        Material material = ANIMATION_FRAMES[Math.clamp(frameIndex, 0, ANIMATION_FRAMES.length - 1)];
-        session.inventory.setItem(session.animationSlot, GuiItems.create(
-            material,
-            Component.text("装備を更新しています", NamedTextColor.LIGHT_PURPLE),
-            List.of(Component.text("操作が完了するまでお待ちください。", NamedTextColor.GRAY))
-        ));
-        session.player.playSound(
-            session.player.getLocation(),
-            org.bukkit.Sound.BLOCK_AMETHYST_BLOCK_CHIME,
-            org.bukkit.SoundCategory.PLAYERS,
-            0.55F,
-            0.8F + frameIndex * 0.18F
-        );
-    }
-
-    /**
-     * 更新待機を終え、状態変化は閉じ、それ以外は残オーブ確認後に全一覧を更新します。
-     *
-     * @param session 操作セッション
-     * @param result 演出した装備処理結果
-     */
-    private void finishAnimationWait(@NotNull OrbSession session, @NotNull MutationResult result) {
-        session.scheduledTask = null;
+    private void finishSuccessfulMutation(@NotNull OrbSession session, @NotNull MutationResult result) {
         if (session.detached
             || sessions.get(session.player.getUniqueId()) != session
             || !session.player.isOnline()) {
@@ -2448,15 +2336,22 @@ public final class OrbService {
         }
         if (!isCurrentInventory(session.player, session)) {
             if (session.reopening) {
-                session.scheduledTask = plugin.getServer().getScheduler().runTask(
+                plugin.getServer().getScheduler().runTask(
                     plugin,
-                    () -> finishAnimationWait(session, result)
+                    () -> finishSuccessfulMutation(session, result)
                 );
                 return;
             }
             sessions.remove(session.player.getUniqueId(), session);
             return;
         }
+        sendMutationResult(session.player, result);
+        if (result.kind == MutationKind.ENHANCEMENT && !result.enhancementSucceeded) {
+            GuiSound.DENY.play(session.player);
+        } else {
+            GuiSound.SUCCESS.play(session.player);
+        }
+
         ItemModel orbModel = result.kind == MutationKind.TRANSCENDENCE ? null : resolveCurrentOrb(session);
         if (shouldCloseAfterRefresh(result.kind, orbModel != null)) {
             closeAndRemove(session);
@@ -2464,10 +2359,26 @@ public final class OrbService {
         }
         session.interactionLock.release();
         session.page = 0;
-        inventoryService.refreshManagedInventoryUi(session.astPlayer);
         ItemModel remainingOrb = Objects.requireNonNull(orbModel);
         renderList(session, remainingOrb, session.inventory, collectCandidates(session, remainingOrb));
-        GuiSound.SELECT.play(session.player);
+    }
+
+    /**
+     * API 操作中であることを選択スロットの時計アイコンで一度だけ表示します。
+     *
+     * @param session 操作セッション
+     */
+    private void showProcessingIcon(@NotNull OrbSession session) {
+        if (session.inventory == null
+            || session.processingSlot < 0
+            || session.processingSlot >= session.inventory.getSize()) {
+            return;
+        }
+        session.inventory.setItem(session.processingSlot, GuiItems.create(
+            PROCESSING_ICON,
+            Component.text("装備を更新しています", NamedTextColor.LIGHT_PURPLE),
+            List.of(Component.text("操作が完了するまでお待ちください。", NamedTextColor.GRAY))
+        ));
     }
 
     /**
@@ -2562,7 +2473,6 @@ public final class OrbService {
         boolean shouldClose = isCurrentInventory(session.player, session);
         sessions.remove(session.player.getUniqueId(), session);
         cancelReopenTask(session);
-        cancelScheduledTask(session);
         session.interactionLock.close();
         if (shouldClose) {
             session.player.closeInventory();
@@ -2605,7 +2515,6 @@ public final class OrbService {
         session.uiClosed = true;
         cancelReopenTask(session);
         session.interactionLock.close();
-        cancelScheduledTask(session);
     }
 
     /**
@@ -2619,20 +2528,6 @@ public final class OrbService {
             previous.detached = true;
             cancelReopenTask(previous);
             previous.interactionLock.close();
-            cancelScheduledTask(previous);
-        }
-    }
-
-    /**
-     * セッションが保持する演出または更新待機taskを一度だけ取消します。
-     *
-     * @param session 操作セッション
-     */
-    private void cancelScheduledTask(@NotNull OrbSession session) {
-        BukkitTask task = session.scheduledTask;
-        session.scheduledTask = null;
-        if (task != null) {
-            task.cancel();
         }
     }
 
@@ -2647,7 +2542,7 @@ public final class OrbService {
     }
 
     /**
-     * 演出後にGUIを閉じるべきか判定します。
+     * 結果反映時にGUIを閉じるべきか判定します。
      *
      * @param kind 実行したオーブ効果
      * @param hasRemainingOrb 同じオーブをまだ所持している場合 {@code true}
@@ -2888,10 +2783,9 @@ public final class OrbService {
         private boolean detached;
         private UUID operationId;
         private volatile boolean externalOperationStarted;
-        private int animationSlot = -1;
+        private int processingSlot = -1;
         private CompletableFuture<ItemService.EquipmentPreloadResult> preloadFuture;
         private CompletableFuture<MutationResult> operationFuture;
-        private BukkitTask scheduledTask;
         private BukkitTask reopenTask;
 
         /**

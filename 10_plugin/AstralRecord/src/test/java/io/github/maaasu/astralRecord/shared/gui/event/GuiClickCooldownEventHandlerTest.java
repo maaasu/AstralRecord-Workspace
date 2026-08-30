@@ -20,7 +20,7 @@ class GuiClickCooldownEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: Orb GUI は専用20tickロックだけで制御し、共通hotbar shortcut/cooldown処理へ渡さない。
+     * 検証契約: Orb GUI はAPI操作・正本照合中の専用ロックだけで制御し、共通hotbar shortcut/cooldown処理へ渡さない。
      */
     @Test
     void orbGuiBypassesSharedHotbarShortcutAndCooldown() {

@@ -558,12 +558,10 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         harness.handler.onInventoryClick(harness.guiPlayerInventoryClick(10));
 
         harness.handler.onInventoryClick(harness.guiClick(16));
-        harness.laneExecutor.runAll();
-
-        server().getScheduler().performOneTick();
-        assertEquals(Material.AMETHYST_BLOCK,
+        assertEquals(Material.CLOCK,
             harness.player.getOpenInventory().getTopInventory().getItem(16).getType());
-        server().getScheduler().performTicks(20L);
+        harness.laneExecutor.runAll();
+        server().getScheduler().performOneTick();
         assertFalse(harness.service.isOrbInventory(
             harness.player.getOpenInventory().getTopInventory()));
 
@@ -581,10 +579,10 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
      * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
-     * 検証契約: 複数ルーンの脱着GUIはルーン選択とBAGスクロールを受け付け、完成形slot 16で演出した後に自動で閉じる。
+     * 検証契約: 複数ルーンの脱着GUIはルーン選択とBAGスクロールを受け付け、完成形slot 16へ時計を表示し、正本照合完了時に自動で閉じる。
      */
     @Test
-    void runeDetachGuiSelectsRuneDelegatesScrollAndClosesAfterResultAnimation() {
+    void runeDetachGuiSelectsRuneDelegatesScrollAndClosesAfterReconciliation() {
         Harness harness = new Harness(ItemOrbEffectType.RUNE_DETACH);
         harness.terminalApplyCall.set(1);
         List<EquipmentRune> attachedRunes = new ArrayList<>();
@@ -649,15 +647,14 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             harness.player.getOpenInventory().getTopInventory().getItem(16).getType());
 
         harness.handler.onInventoryClick(harness.guiClick(16));
-        harness.laneExecutor.runAll();
-        server().getScheduler().performOneTick();
-
-        assertEquals(Material.AMETHYST_BLOCK,
+        assertEquals(Material.CLOCK,
             harness.player.getOpenInventory().getTopInventory().getItem(16).getType());
         InventoryClickEvent lockedScrollClick = harness.guiPlayerInventoryClick(17);
         harness.handler.onInventoryClick(lockedScrollClick);
         verify(lockedScrollClick).setCancelled(true);
         verify(harness.inventoryService, times(1)).handleInventoryControlClick(harness.astPlayer, 17);
+        harness.laneExecutor.runAll();
+        server().getScheduler().performOneTick();
         verify(harness.itemService).applyEquipmentOrbOperation(
             anyString(),
             eq(harness.accountId.toString()),
@@ -668,7 +665,6 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             eq(0)
         );
 
-        server().getScheduler().performTicks(20L);
         assertFalse(harness.service.isOrbInventory(
             harness.player.getOpenInventory().getTopInventory()));
     }
@@ -709,10 +705,10 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: 修理はローカル先行消費なしでpre-save後に同一operationIdのPOST・GET・再送・affected entry照合を行い、1個消費結果の演出20tick中を全入力ロックして候補を更新する。
+     * 検証契約: 修理は処理中に時計を一度表示して全入力をロックし、pre-save後の同一operationIdによるPOST・GET・再送・affected entry照合完了と同じtickで候補を更新する。
      */
     @Test
-    void appliedRepairUsesOneIdOneOrbAndLocksEveryInputUntilFullRefresh() {
+    void appliedRepairShowsClockAndRefreshesImmediatelyAfterReconciliation() {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         harness.openOrbList();
         assertEquals(Material.DIAMOND_SWORD,
@@ -723,6 +719,8 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         assertEquals(2, harness.orbQuantity.get());
         assertTrue(harness.service.isLocked(harness.player));
         harness.assertAllInputsLocked();
+        assertEquals(Material.CLOCK,
+            harness.player.getOpenInventory().getTopInventory().getItem(0).getType());
         harness.laneExecutor.runAll();
 
         assertEquals(List.of("pre-save", "post", "get", "retry", "reconcile"), harness.order);
@@ -730,16 +728,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         assertEquals(3, harness.operationIds.size());
         assertEquals(1, harness.operationIds.stream().distinct().count());
         server().getScheduler().performOneTick();
-        assertTrue(harness.service.isLocked(harness.player));
-        harness.assertAllInputsLocked();
         verify(harness.statusService).refreshStatus(harness.astPlayer);
-
-        server().getScheduler().performTicks(10L);
-        assertTrue(harness.service.isLocked(harness.player));
-        harness.assertAllInputsLocked();
-        server().getScheduler().performTicks(9L);
-        assertTrue(harness.service.isLocked(harness.player));
-        server().getScheduler().performOneTick();
 
         assertFalse(harness.service.isLocked(harness.player));
         assertTrue(harness.service.isOrbInventory(
@@ -751,7 +740,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
      * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
-     * 検証契約: APIがNO_CANDIDATEを確定した場合はpaymentConsumed=falseのままオーブ数量と装備を変更せず、演出を始めず一覧操作を再開する。
+     * 検証契約: APIがNO_CANDIDATEを確定した場合はpaymentConsumed=falseのままオーブ数量と装備を変更せず、時計表示を戻して一覧操作を再開する。
      */
     @Test
     void noCandidateResultDoesNotConsumeOrbOrMutateEquipment() {
@@ -988,7 +977,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
      * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
-     * 検証契約: 成功結果の20tick待機後に同種オーブが0個ならGUIを閉じ、1個だけだった起点オーブを再利用可能な一覧として残さない。
+     * 検証契約: 成功結果の反映時に同種オーブが0個なら即座にGUIを閉じ、1個だけだった起点オーブを再利用可能な一覧として残さない。
      */
     @Test
     void refreshClosesGuiWhenTheSingleOrbWasConsumed() {
@@ -999,7 +988,6 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         harness.handler.onInventoryClick(harness.guiClick(0));
         harness.laneExecutor.runAll();
         server().getScheduler().performOneTick();
-        server().getScheduler().performTicks(20L);
 
         assertEquals(0, harness.orbQuantity.get());
         assertFalse(harness.service.isOrbInventory(
@@ -1009,10 +997,10 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
      * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
-     * 検証契約: 状態変化は一覧から専用確認画面を経て実行し、成功演出と更新待機後はオーブ残数にかかわらずGUIを閉じる。
+     * 検証契約: 状態変化は一覧から専用確認画面を経て実行し、正本照合完了時にオーブ残数にかかわらずGUIを即座に閉じる。
      */
     @Test
-    void transcendenceConfirmationAlwaysClosesAfterSuccessfulAnimation() {
+    void transcendenceConfirmationAlwaysClosesImmediatelyAfterSuccess() {
         Harness harness = new Harness(ItemOrbEffectType.TRANSCENDENCE);
         harness.openOrbList();
 
@@ -1028,9 +1016,10 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         assertEquals(Material.ARROW, confirmation.getItem(22).getType());
 
         harness.handler.onInventoryClick(harness.guiClick(15));
+        assertEquals(Material.CLOCK,
+            harness.player.getOpenInventory().getTopInventory().getItem(11).getType());
         harness.laneExecutor.runAll();
         server().getScheduler().performOneTick();
-        server().getScheduler().performTicks(20L);
 
         assertEquals(1, harness.orbQuantity.get());
         assertFalse(harness.service.isOrbInventory(
@@ -1077,44 +1066,13 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 通信・演出・更新待機中のEscape closeは次tickまでplayer単位入力lockを維持して同じtokenのGUIを再表示し、taskを取消さず演出と一覧更新を完走する。
+     * 検証契約: API操作・正本照合中のEscape closeは次tickまでplayer単位入力lockを維持して同じtokenのGUIを再表示し、更新結果を反映する。
      */
     @Test
     void escapeDuringMutationReopensSameGuiAndCompletesLifecycle() {
-        assertEscapeDuringLockedPhase(EscapePhase.MUTATION);
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 演出中のEscape closeは次tickまでplayer単位入力lockを維持して同じtokenのGUIを再表示し、taskを取消さず演出と一覧更新を完走する。
-     */
-    @Test
-    void escapeDuringAnimationReopensSameGuiAndCompletesLifecycle() {
-        assertEscapeDuringLockedPhase(EscapePhase.ANIMATION);
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 更新待機中のEscape closeは次tickまでplayer単位入力lockを維持して同じtokenのGUIを再表示し、taskを取消さず一覧更新を完走する。
-     */
-    @Test
-    void escapeDuringRefreshWaitReopensSameGuiAndCompletesLifecycle() {
-        assertEscapeDuringLockedPhase(EscapePhase.REFRESH_WAIT);
-    }
-
-    private void assertEscapeDuringLockedPhase(EscapePhase phase) {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         harness.openOrbList();
         harness.handler.onInventoryClick(harness.guiClick(0));
-        if (phase != EscapePhase.MUTATION) {
-            harness.laneExecutor.runAll();
-            server().getScheduler().performOneTick();
-        }
-        if (phase == EscapePhase.REFRESH_WAIT) {
-            server().getScheduler().performTicks(12L);
-        }
         Inventory closing = harness.player.getOpenInventory().getTopInventory();
 
         harness.player.closeInventory();
@@ -1129,11 +1087,8 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         assertSame(closing, harness.player.getOpenInventory().getTopInventory());
         assertTrue(harness.service.isLocked(harness.player));
 
-        if (phase == EscapePhase.MUTATION) {
-            harness.laneExecutor.runAll();
-            server().getScheduler().performOneTick();
-        }
-        server().getScheduler().performTicks(30L);
+        harness.laneExecutor.runAll();
+        server().getScheduler().performOneTick();
 
         assertEquals(1, harness.orbQuantity.get());
         assertFalse(harness.service.isLocked(harness.player));
@@ -1360,7 +1315,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: shutdownは全UI sessionを切り離して新規演出を止める一方、closing前に受理したオーブ操作とaffected entry照合をlane drainまで完了する。
+     * 検証契約: shutdownは全UI sessionを切り離して処理中表示を止める一方、closing前に受理したオーブ操作とaffected entry照合をlane drainまで完了する。
      */
     @Test
     void shutdownDetachesUiButDrainsAcceptedMutation() {
@@ -2113,12 +2068,6 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 task.run();
             }
         }
-    }
-
-    private enum EscapePhase {
-        MUTATION,
-        ANIMATION,
-        REFRESH_WAIT,
     }
 
     private enum TransportRecovery {

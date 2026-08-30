@@ -11,10 +11,10 @@ class OrbInteractionLockTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 通信中・固定演出中・更新待機中はロックし、一覧更新完了後だけREADYへ戻して解除する。
+     * 検証契約: API操作と正本照合中だけロックし、結果反映時にREADYへ戻して解除する。
      */
     @Test
-    void mutationAnimationAndRefreshWaitStayLockedUntilRefreshCompletes() {
+    void mutationStaysLockedUntilResultIsApplied() {
         OrbInteractionLock lock = new OrbInteractionLock();
         assertFalse(lock.isLocked());
         assertEquals(OrbInteractionLock.Phase.READY, lock.phase());
@@ -22,14 +22,6 @@ class OrbInteractionLockTest {
         lock.beginMutation();
         assertTrue(lock.isLocked());
         assertEquals(OrbInteractionLock.Phase.MUTATING, lock.phase());
-
-        lock.beginAnimation();
-        assertTrue(lock.isLocked());
-        assertEquals(OrbInteractionLock.Phase.ANIMATING, lock.phase());
-
-        lock.beginRefreshWait();
-        assertTrue(lock.isLocked());
-        assertEquals(OrbInteractionLock.Phase.REFRESH_WAIT, lock.phase());
 
         lock.release();
         assertFalse(lock.isLocked());
@@ -39,7 +31,7 @@ class OrbInteractionLockTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: close済みセッションは遅延した演出・更新・解除通知を受けてもCLOSEDを維持して再開しない。
+     * 検証契約: close済みセッションは遅延した更新完了通知を受けてもCLOSEDを維持して再開しない。
      */
     @Test
     void closedSessionCannotBeReactivatedByLateCompletion() {
@@ -47,8 +39,6 @@ class OrbInteractionLockTest {
         lock.beginMutation();
         lock.close();
 
-        lock.beginAnimation();
-        lock.beginRefreshWait();
         lock.release();
 
         assertFalse(lock.isLocked());

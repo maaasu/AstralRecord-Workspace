@@ -35,17 +35,6 @@ class OrbEligibilityTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
-     * 検証契約: 固定5フレームを2tickずつ表示して10tick演出し、さらに10tick後まで操作ロックを維持する。
-     */
-    @Test
-    void fixedAnimationAndRefreshWaitLockForTwentyTicks() {
-        assertEquals(10L, OrbService.animationDurationTicks());
-        assertEquals(20L, OrbService.postMutationLockDurationTicks());
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
      * 検証契約: 成功率は10進数の小数第一位を四捨五入した整数百分率として表示し、0.5%境界を正しく扱う。
      */
     @Test

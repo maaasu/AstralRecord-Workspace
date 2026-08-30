@@ -3,7 +3,7 @@ package io.github.maaasu.astralRecord.feature.item.service;
 import org.jetbrains.annotations.NotNull;
 
 /**
- * オーブ操作の通信・演出・更新待機を明示的な段階として保持する小さな状態機械です。
+ * オーブ装備更新中の排他状態を保持する小さな状態機械です。
  */
 final class OrbInteractionLock {
 
@@ -15,24 +15,6 @@ final class OrbInteractionLock {
     void beginMutation() {
         if (phase != Phase.CLOSED) {
             phase = Phase.MUTATING;
-        }
-    }
-
-    /**
-     * 装備更新確定後の固定アイコン演出へ進めます。
-     */
-    void beginAnimation() {
-        if (phase != Phase.CLOSED) {
-            phase = Phase.ANIMATING;
-        }
-    }
-
-    /**
-     * 固定演出後の一覧更新待機へ進めます。
-     */
-    void beginRefreshWait() {
-        if (phase != Phase.CLOSED) {
-            phase = Phase.REFRESH_WAIT;
         }
     }
 
@@ -55,10 +37,10 @@ final class OrbInteractionLock {
     /**
      * 現在段階でクリック系操作を拒否すべきか判定します。
      *
-     * @return 通信・演出・更新待機中なら {@code true}
+     * @return 装備更新中なら {@code true}
      */
     boolean isLocked() {
-        return phase == Phase.MUTATING || phase == Phase.ANIMATING || phase == Phase.REFRESH_WAIT;
+        return phase == Phase.MUTATING;
     }
 
     /**
@@ -74,8 +56,6 @@ final class OrbInteractionLock {
     enum Phase {
         READY,
         MUTATING,
-        ANIMATING,
-        REFRESH_WAIT,
         CLOSED,
     }
 }

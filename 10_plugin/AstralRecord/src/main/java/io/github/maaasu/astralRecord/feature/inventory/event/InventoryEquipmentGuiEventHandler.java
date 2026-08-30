@@ -194,7 +194,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }
     }
 
-    /** 参照専用装備画面または演出・更新待機中の Q ドロップによる state 逸脱を防ぎます。 */
+    /** 参照専用装備画面またはオーブのAPI操作・正本照合中の Q ドロップによる state 逸脱を防ぎます。 */
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
     public void onPlayerDropItem(@NotNull PlayerDropItemEvent event) {
         if (menuView.isEquipmentReadOnly(event.getPlayer().getOpenInventory().getTopInventory())) {
