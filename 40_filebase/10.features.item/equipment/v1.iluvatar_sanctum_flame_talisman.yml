@@ -20,7 +20,7 @@ equipment:
   durability:
     max: 160
   stats:
-    - status: MAGIC_ATTACK
+    - status: MELEE_ATTACK
       type: FLAT
       value: 8~11
     - status: FIRE_DAMAGE_INCREASE
