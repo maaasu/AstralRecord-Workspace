@@ -1692,6 +1692,16 @@ public final class DungeonService {
             messageService.send(player, PlayerMsgId.P_7063);
             return;
         }
+        ItemReference reference = inventoryService.getItemReferenceInHand(
+                astPlayer, org.bukkit.inventory.EquipmentSlot.HAND);
+        if (reference == null || !reference.hasEquipmentInstanceId()) {
+            messageService.send(player, PlayerMsgId.P_7063);
+            return;
+        }
+        if (!cartographDurabilityService.hasRemainingDurability(reference)) {
+            messageService.send(player, PlayerMsgId.P_7104);
+            return;
+        }
         UUID sessionId = sessionIdByParticipant.get(player.getUniqueId());
         Session session = sessionId == null ? null : sessionsById.get(sessionId);
         if (session == null || session.ending || session.layout == null
@@ -1703,12 +1713,6 @@ public final class DungeonService {
 
         if (!cartographBindings.isBound(
                 target.equipmentInstanceId(), player.getUniqueId(), session.id)) {
-            ItemReference reference = inventoryService.getItemReferenceInHand(
-                    astPlayer, org.bukkit.inventory.EquipmentSlot.HAND);
-            if (reference == null) {
-                messageService.send(player, PlayerMsgId.P_7063);
-                return;
-            }
             CartographDurabilityService.Result consumed =
                     cartographDurabilityService.consumeForNewRegistration(astPlayer, reference);
             if (consumed == CartographDurabilityService.Result.INSUFFICIENT) {

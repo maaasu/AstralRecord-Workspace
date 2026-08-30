@@ -1448,6 +1448,8 @@ public enum PlayerMsgId {
     P_7102(7102),
     /** ダンジョン挑戦時間超過。{0}: ダンジョン表示名 */
     P_7103(7103),
+    /** カルトグラフ耐久切れ。 */
+    P_7104(7104),
     // endregion
 
     // region /feature/whitelist 7110-7119

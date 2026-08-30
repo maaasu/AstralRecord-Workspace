@@ -12,12 +12,38 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class CartographDurabilityServiceTest {
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ
+     * 検証契約: 残耐久0のカルトグラフは、登録済み地図の再表示を含めて使用できない。
+     */
+    @Test
+    void rejectsUseWhenDurabilityIsZero() {
+        TestContext context = new TestContext(0);
+
+        assertFalse(context.service.hasRemainingDurability(context.reference));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ
+     * 検証契約: 残耐久1以上のカルトグラフは使用可能と判定する。
+     */
+    @Test
+    void allowsUseWhenDurabilityRemains() {
+        TestContext context = new TestContext(1);
+
+        assertTrue(context.service.hasRemainingDurability(context.reference));
+    }
+
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 8. カルトグラフ

@@ -25,6 +25,17 @@ public final class CartographDurabilityService {
     }
 
     /**
+     * カルトグラフを使用できる残耐久があるか判定します。
+     *
+     * @param reference カルトグラフ装備参照
+     * @return 装備個体が存在し、残耐久が1以上の場合は {@code true}
+     */
+    public boolean hasRemainingDurability(@NotNull ItemReference reference) {
+        EquipmentInstance current = resolver.resolveEquipmentInstance(reference);
+        return current != null && current.getDurabilityValue() > 0;
+    }
+
+    /**
      * 新規登録分の耐久を固定75消費します。
      *
      * @param player 所有プレイヤー
