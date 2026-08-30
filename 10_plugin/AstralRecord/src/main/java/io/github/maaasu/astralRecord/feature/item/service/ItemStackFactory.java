@@ -239,10 +239,32 @@ public class ItemStackFactory {
         Material iconMaterial = resolveIconMaterial(iconName);
         ItemStack replaced = iconMaterial == null || iconMaterial == item.getType()
                 ? item.clone()
-                : item.withType(iconMaterial);
+                : applyDisplayIcon(item, iconMaterial);
         hideBundleContentsTooltip(replaced);
         applyAppearance(replaced);
         applyDurabilityVisual(replaced);
+        return replaced;
+    }
+
+    /**
+     * 表示用 ItemStack へ icon の見た目を適用します。
+     * 鍛冶型は Material 自体を変更するとクライアントが固有説明を無条件で追加するため、
+     * 元 Material を維持して item model component だけを差し替えます。
+     *
+     * @param item 変換元 ItemStack
+     * @param iconMaterial 表示する icon Material
+     * @return icon の見た目を適用した clone
+     */
+    public static @NotNull ItemStack applyDisplayIcon(
+            @NotNull ItemStack item,
+            @NotNull Material iconMaterial
+    ) {
+        if (!isSmithingTemplate(iconMaterial)) {
+            return item.withType(iconMaterial);
+        }
+
+        ItemStack replaced = item.clone();
+        replaced.setData(DataComponentTypes.ITEM_MODEL, iconMaterial.getKey());
         return replaced;
     }
 
@@ -1788,6 +1810,10 @@ public class ItemStackFactory {
             return null;
         }
         return material;
+    }
+
+    private static boolean isSmithingTemplate(@NotNull Material material) {
+        return material.name().endsWith("_SMITHING_TEMPLATE");
     }
 
     /**

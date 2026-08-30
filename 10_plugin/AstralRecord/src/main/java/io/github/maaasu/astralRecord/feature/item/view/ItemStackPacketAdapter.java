@@ -402,7 +402,7 @@ public class ItemStackPacketAdapter {
         } else if (iconName != null) {
             var iconMaterial = resolveMaterial(iconName);
             if (iconMaterial != null && iconMaterial != original.getType()) {
-                replaced = original.withType(iconMaterial);
+                replaced = ItemStackFactory.applyDisplayIcon(original, iconMaterial);
                 modified = true;
             }
         }

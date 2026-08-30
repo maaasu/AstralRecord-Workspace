@@ -9,6 +9,7 @@ import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNotSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -51,5 +52,28 @@ class ItemStackFactoryBundleTooltipTest extends MockBukkitTestBase {
         assertNotNull(tooltipDisplay);
         assertTrue(tooltipDisplay.hiddenComponents().contains(DataComponentTypes.BUNDLE_CONTENTS));
         assertFalse(source.hasData(DataComponentTypes.TOOLTIP_DISPLAY));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 5. ItemStack生成 > ### display・shop ItemStack生成
+     * 検証契約: 鍛冶型 icon は元Materialを維持してITEM_MODELだけを差し替え、固有のバニラ説明を発生させない。
+     */
+    @Test
+    void smithingTemplateDisplayUsesItemModelWithoutChangingMaterial() {
+        ItemStack source = new ItemStack(Material.PAPER);
+
+        ItemStack display = ItemStackFactory.applyDisplayIcon(
+            source,
+            Material.BOLT_ARMOR_TRIM_SMITHING_TEMPLATE
+        );
+
+        assertNotSame(source, display);
+        assertEquals(Material.PAPER, display.getType());
+        assertEquals(
+            Material.BOLT_ARMOR_TRIM_SMITHING_TEMPLATE.getKey(),
+            display.getData(DataComponentTypes.ITEM_MODEL)
+        );
+        assertFalse(source.hasData(DataComponentTypes.ITEM_MODEL));
     }
 }

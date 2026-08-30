@@ -321,6 +321,33 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
+     * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### アイコン書き換え判定
+     * 検証契約: 鍛冶型 icon は送信コピーのMaterialを変えずITEM_MODELだけを差し替え、鍛冶型固有のバニラ説明を発生させない。
+     */
+    @Test
+    void smithingTemplateIconUsesItemModelAtPacketBoundary() throws ReflectiveOperationException {
+        ItemStack serverItem = itemWithIcon(Material.PAPER, "BOLT_ARMOR_TRIM_SMITHING_TEMPLATE");
+        ItemStackPacketAdapter adapter = new ItemStackPacketAdapter(
+            mock(Plugin.class), mock(PlayerSettingService.class), mock(SkillActionRingService.class)
+        );
+        Method replaceIcon = ItemStackPacketAdapter.class.getDeclaredMethod(
+            "replaceIcon", ItemStack.class, boolean.class, boolean.class
+        );
+        replaceIcon.setAccessible(true);
+
+        ItemStack clientItem = (ItemStack) replaceIcon.invoke(adapter, serverItem, true, false);
+
+        assertEquals(Material.PAPER, serverItem.getType());
+        assertFalse(serverItem.hasData(DataComponentTypes.ITEM_MODEL));
+        assertEquals(Material.PAPER, clientItem.getType());
+        assertEquals(
+            Material.BOLT_ARMOR_TRIM_SMITHING_TEMPLATE.getKey(),
+            clientItem.getData(DataComponentTypes.ITEM_MODEL)
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
      * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### パケットアダプタ登録
       * 検証契約: GUIセッション終了後の再同期はプレイヤーインベントリだけが表示中の場合に限り、別GUI表示中は実行しない。
       */
