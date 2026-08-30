@@ -48,6 +48,15 @@ clearRewards:
     - itemId: item:iluvatar_sanctum_flame_talisman
       rate: 16.0
       amount: "1"
+    - itemId: item:balrog_charm
+      rate: 10.0
+      amount: "1"
+    - itemId: item:merian_charm
+      rate: 10.0
+      amount: "1"
+    - itemId: item:sauron_charm
+      rate: 10.0
+      amount: "1"
 generation:
   area:
     width: 120
