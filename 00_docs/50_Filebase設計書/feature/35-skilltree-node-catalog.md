@@ -22,7 +22,7 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 
 | カタログ ID | 効果 | 表示名 | アイコン | タグ |
 |---|---|---|---|---|
-| `skill-adventurer-meditation` | `skill` / `adventurer_meditation` | `&dメディテーション` | `AMETHYST_SHARD` | `root`, `shared`, `core`, `early` |
+| `skill-adventurer-meditation` | `skill` / `adventurer_meditation` | `&dメディテーション` | `CAMPFIRE` | `root`, `shared`, `core`, `early` |
 | `status-strength-flat-1` | `STRENGTH` / `FLAT` / `1` | `&d紅蓮の星脈` | `BLAZE_POWDER` | `status`, `primary`, `strength`, `ember` |
 | `status-dexterity-flat-1` | `DEXTERITY` / `FLAT` / `1` | `&d銀矢の星脈` | `ARROW` | `status`, `primary`, `dexterity` |
 | `status-intelligence-flat-1` | `INTELLIGENCE` / `FLAT` / `1` | `&d星詠みの星脈` | `ENCHANTED_BOOK` | `status`, `primary`, `intelligence`, `astral` |
@@ -46,13 +46,13 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `skill-swordsman-last-shield` | `skill` / `swordsman_last_shield` | `&bラストシールド` | `BEACON` | `defense` |
 | `skill-swordsman-flame-rush` | `skill` / `swordsman_flame_rush` | `&6フレイムラッシュ` | `CRIMSON_ROOTS` | `fire` |
 | `skill-swordsman-bastion-strike` | `skill` / `swordsman_bastion_strike` | `&bバスティオンストライク` | `SOUL_CAMPFIRE` | `defense` |
-| `skill-hunter-crash-arrow` | `skill` / `hunter_crash_arrow` | `&bクラッシュアロー` | `SPECTRAL_ARROW` | `offense` |
-| `skill-hunter-heal-arrow` | `skill` / `hunter_heal_arrow` | `&aヒールアロー` | `SPECTRAL_ARROW` | `light` |
-| `skill-hunter-spell-step` | `skill` / `hunter_spell_step` | `&eスペルステップ` | `FEATHER` | `agility`, `wind` |
-| `skill-mage-arcane-flow` | `skill` / `mage_arcane_flow` | `&dアーケインフロー` | `AMETHYST_SHARD` | `core`, `mana`, `astral` |
-| `skill-mage-sparking` | `skill` / `mage_sparking` | `&eスパーキング` | `LIGHTNING_ROD` | `lightning`, `shocked` |
+| `skill-hunter-crash-arrow` | `skill` / `hunter_crash_arrow` | `&bクラッシュアロー` | `TARGET` | `offense` |
+| `skill-hunter-heal-arrow` | `skill` / `hunter_heal_arrow` | `&aヒールアロー` | `GLOW_BERRIES` | `light` |
+| `skill-hunter-spell-step` | `skill` / `hunter_spell_step` | `&eスペルステップ` | `ENDER_PEARL` | `agility`, `wind` |
+| `skill-mage-arcane-flow` | `skill` / `mage_arcane_flow` | `&dアーケインフロー` | `ENCHANTED_BOOK` | `core`, `mana`, `astral` |
+| `skill-mage-sparking` | `skill` / `mage_sparking` | `&eスパーキング` | `GLOWSTONE_DUST` | `lightning`, `shocked` |
 | `skill-mage-frost-blizzard` | `skill` / `mage_frost_blizzard` | `&bフロストブリザード` | `DIAMOND_NAUTILUS_ARMOR` | `ice`, `azure` |
-| `skill-administrator-just-dodge` | `skill` / `administrator_just_dodge` | `&eジャスト回避` | `FEATHER` | `defense`, `agility`, `wind` |
+| `skill-administrator-just-dodge` | `skill` / `administrator_just_dodge` | `&eジャスト回避` | `RABBIT_FOOT` | `defense`, `agility`, `wind` |
 
 表の表示名には JSON に保存する Legacy color code を含めます。同じ能力を追加するときは、表の表示名、`icon`、タグをすべて同一にします。各配置済みノードには、従来どおり一意の `nodeId` を割り当てます。
 

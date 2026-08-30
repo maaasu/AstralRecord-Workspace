@@ -3,7 +3,7 @@
   "schemaVersion": 1,
   "nodeId": "1348",
   "name": "&eスパーキング",
-  "icon": "LIGHTNING_ROD",
+  "icon": "GLOWSTONE_DUST",
   "tags": [
     "lightning",
     "shocked"

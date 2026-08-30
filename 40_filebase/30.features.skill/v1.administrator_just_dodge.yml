@@ -7,7 +7,7 @@ type: SKILL
 implementationId: administrator_just_dodge
 name: "&eジャスト回避"
 description: "&7ドッジの瞬間に攻撃を見切る防御パッシブ。"
-icon: FEATHER
+icon: RABBIT_FOOT
 lore:
   - "&7ドッジ後、{skill.invulnerabilityTicks:seconds}秒間、直接攻撃を無効化する。"
   - "&7無効化回数に制限はない。"

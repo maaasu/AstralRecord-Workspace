@@ -7,7 +7,7 @@ type: SKILL
 implementationId: adventurer_blast_arrow
 name: "&fブラストアロー"
 description: "&7着弾の衝撃で敵を巻き込む範囲射撃。"
-icon: SPECTRAL_ARROW
+icon: FIREWORK_ROCKET
 lore:
   - "&7射程{skill.range}m、半径{skill.radius}mへ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。最大{skill.maxTargets}体。"
   - "&7敵または地形への着弾時だけ衝撃波が発生する。"

@@ -7,7 +7,7 @@ type: SKILL
 implementationId: hunter_arrow_rain
 name: "&aアローレイン"
 description: "&7着弾地点へ頭上から矢の雨を降らせる範囲射撃。"
-icon: SPECTRAL_ARROW
+icon: ARROW
 lore:
   - "&7射程{skill.range}mの重力矢。敵命中時は間接攻撃力{skill.effectiveDamageRatios[0]:percent}%のダメージ。"
   - "&7敵または地形への着弾時、半径{skill.radius}mへ{skill.arrowCount}本を1tickに3本ずつ降らせる。"

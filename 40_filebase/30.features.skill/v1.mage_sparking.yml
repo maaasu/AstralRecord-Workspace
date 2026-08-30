@@ -7,7 +7,7 @@ type: SKILL
 implementationId: mage_sparking
 name: "&eスパーキング"
 description: "&7雷の渦を周囲へ広げる雷属性魔法。"
-icon: LIGHTNING_ROD
+icon: GLOWSTONE_DUST
 lore:
   - "&7周囲へ{skill.projectileCount}個の雷弾を放ち、触れた敵へ魔法攻撃力{skill.effectiveDamageRatio:percent}%の雷属性ダメージ。"
   - "&7同じ発動では敵1体につき1回だけ命中し、{skill.shockChance}%の確率で{skill.shockDurationTicks:seconds}秒感電させる。"

@@ -7,7 +7,7 @@ type: SKILL
 implementationId: mage_arcane_flow
 name: "&dアーケインフロー"
 description: "&7異なる魔法を連ね、詠唱の流れを高めるパッシブ。"
-icon: AMETHYST_SHARD
+icon: ENCHANTED_BOOK
 lore:
   - "&7魔法タグ付きスキルを、前回と異なるスキルとして発動すると詠唱時間を{skill.castTimeReductionPercent}%短縮する。"
   - "&7Lv.1は5%、Lv.5は10%。成功したスキルの発動履歴を基準にする。"

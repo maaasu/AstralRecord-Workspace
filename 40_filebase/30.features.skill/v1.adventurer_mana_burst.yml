@@ -7,7 +7,7 @@ type: SKILL
 implementationId: adventurer_mana_burst
 name: "&fマナバースト"
 description: "&7凝縮した魔力を放つ範囲魔法。"
-icon: AMETHYST_SHARD
+icon: NETHER_STAR
 lore:
   - "&7前方{skill.range}m・全角{skill.angle}度へ魔法攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
   - "&7最大{skill.maxTargets}体。状態異常と属性効果は発生しない。"

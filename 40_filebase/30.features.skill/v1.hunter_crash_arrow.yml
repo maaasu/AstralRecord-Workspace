@@ -7,7 +7,7 @@ type: SKILL
 implementationId: hunter_crash_arrow
 name: "&bクラッシュアロー"
 description: "&7シールド破壊に特化した水色の矢。"
-icon: SPECTRAL_ARROW
+icon: TARGET
 lore:
   - "&7射程{skill.range}mへ間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
   - "&7シールドへのダメージ倍率は{skill.shieldBreakMultiplier}倍。"

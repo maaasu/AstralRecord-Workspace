@@ -7,7 +7,7 @@ type: SKILL
 implementationId: adventurer_meditation
 name: "&dメディテーション"
 description: "&7精神を集中し、MP / EN の自然回復を高める休息パッシブ。"
-icon: AMETHYST_SHARD
+icon: CAMPFIRE
 lore:
   - "&7スニークを{skill.chargeTicks:seconds}秒続けると発動する。"
   - "&7発動中はMP / ENの自然回復量が{skill.regenMultiplier}倍になる。"

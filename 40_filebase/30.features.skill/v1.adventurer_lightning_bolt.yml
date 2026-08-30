@@ -7,7 +7,7 @@ type: SKILL
 implementationId: adventurer_lightning_bolt
 name: "&bライトニングボルト"
 description: "&7感電の連鎖を操る雷属性魔法。"
-icon: LIGHTNING_ROD
+icon: TRIDENT
 lore:
   - "&7射程{skill.range}mの雷属性魔法攻撃。主対象へ魔法攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
   - "&7命中対象から半径{skill.chainRadius}m以内の感電した敵へ最大{skill.maxChainTargets}体、{skill.effectiveChainDamageRatio:percent}%の追撃。"

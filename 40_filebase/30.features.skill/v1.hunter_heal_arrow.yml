@@ -7,7 +7,7 @@ type: SKILL
 implementationId: hunter_heal_arrow
 name: "&aヒールアロー"
 description: "&7敵を貫通し、着弾地点に味方を癒す回復エリアを作る矢。"
-icon: SPECTRAL_ARROW
+icon: GLOW_BERRIES
 lore:
   - "&7半径{skill.radius}mの回復エリアを{skill.areaDurationTicks:seconds}秒展開し、入ったプレイヤーを即座に{skill.healAmount}回復する。"
   - "&7各プレイヤーへの回復は1エリアにつき1回。敵Mobに命中すると間接攻撃力{skill.damageRatio:percent}%の無属性ダメージを与える。"
