@@ -175,6 +175,29 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_4-統合フロー.md
+     * 章・見出し: # 20_4-統合フロー > ## 3. Preview・購入 > ### 処理要点
+     * 検証契約: 所持品容量不足時は支払い・商品付与・保存を行わず、購入を拒否する。
+     */
+    @Test
+    void purchaseDoesNotConsumeWhenInventoryIsFull() {
+        ShopHarness harness = shopHarness(null);
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        ItemModel potion = DesignTestFixtures.item("potion", ItemCategory.CONSUMABLE, 16);
+        ShopEntry entry = shopEntry("potion", 1, 4, List.of(), null);
+        when(harness.itemService.findLoadedById("potion")).thenReturn(potion);
+        when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(10L);
+        when(harness.inventoryService.canAddItemToNormalInventory(player, potion, 1)).thenReturn(false);
+
+        assertFalse(harness.service.purchase(player, entry, 1));
+
+        verify(harness.inventoryService, never()).snapshotState(player.getAccount().getUuid());
+        verify(harness.inventoryService, never()).consumeGold(player.getAccount().getUuid(), 4L);
+        verify(harness.inventoryService, never()).addItemToNormalInventory(player, potion, 1, "shop");
+        verify(harness.inventoryService, never()).saveNow(player.getAccount().getUuid());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
      * 章・見出し: # 20_3-メソッド仕様 > ## 購入
      * 検証契約: 商品付与数が要求量未満なら支払前snapshotへ復元し保存しない。

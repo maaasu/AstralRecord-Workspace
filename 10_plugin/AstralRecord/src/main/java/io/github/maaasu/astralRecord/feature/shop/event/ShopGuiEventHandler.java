@@ -5,6 +5,9 @@ import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.shop.gui.ShopGui;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopDefinition;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopEntry;
@@ -195,6 +198,12 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
+        if (isInventoryFull(astPlayer, entry, quantity)) {
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5241);
+            shopGui.openConfirm(player, shop, entry, quantity, shopService.preview(astPlayer, entry, quantity), pageIndex);
+            GuiSound.DENY.play(player);
+            return;
+        }
         if (!shopService.purchase(astPlayer, entry, quantity)) {
             shopGui.openConfirm(player, shop, entry, quantity, shopService.preview(astPlayer, entry, quantity), pageIndex);
             GuiSound.DENY.play(player);
@@ -202,6 +211,19 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
         }
         shopGui.openConfirm(player, shop, entry, quantity, shopService.preview(astPlayer, entry, quantity), pageIndex);
         GuiSound.PURCHASE.play(player);
+    }
+
+    private boolean isInventoryFull(
+        @NotNull AstPlayer astPlayer,
+        @NotNull ShopEntry entry,
+        int quantity
+    ) {
+        var model = shopService.resolveItem(entry);
+        if (model == null) {
+            return false;
+        }
+        int amount = Math.max(1, entry.amount()) * Math.max(1, quantity);
+        return !inventoryService.canAddItemToNormalInventory(astPlayer, model, amount);
     }
 
     private boolean handleHotbarShortcutClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
