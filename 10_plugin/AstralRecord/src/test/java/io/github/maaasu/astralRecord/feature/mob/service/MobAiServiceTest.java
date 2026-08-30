@@ -31,7 +31,9 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
@@ -256,6 +258,91 @@ class MobAiServiceTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
+     * 章・見出し: # 12_1-モデル定義 > ## 9. Mob ターゲット設定
+     * 検証契約: スポーン地点から上下に8ブロックを超えたMobは、水平距離がleashRange以内でもLEASHEDになる。
+     */
+    @Test
+    void verticalSpawnDistanceTriggersLeash() throws ReflectiveOperationException {
+        MobInstance instance = new MobInstance(
+                UUID.randomUUID(),
+                enemyTemplate(),
+                new Location(null, 0.0D, 64.0D, 0.0D)
+        );
+        instance.currentLocation(new Location(null, 0.0D, 73.0D, 0.0D));
+
+        MobAiService aiService = new MobAiService(
+                mock(MobService.class),
+                mock(MobCombatService.class),
+                mock(MobSkillService.class)
+        );
+
+        assertTrue(invokeIsLeashed(aiService, instance));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_1-モデル定義.md
+     * 章・見出し: # 12_1-モデル定義 > ## 9. Mob ターゲット設定
+     * 検証契約: 上下差8ブロックは許容し、9ブロックからLEASHEDとする。水平距離による従来のleash判定も維持する。
+     */
+    @Test
+    void verticalLeashBoundaryAndHorizontalLeashRemainStable() throws ReflectiveOperationException {
+        World world = mock(World.class);
+        MobAiService aiService = new MobAiService(
+                mock(MobService.class),
+                mock(MobCombatService.class),
+                mock(MobSkillService.class)
+        );
+        MobInstance boundary = new MobInstance(
+                UUID.randomUUID(),
+                enemyTemplate(),
+                new Location(world, 0.0D, 64.0D, 0.0D)
+        );
+        boundary.currentLocation(new Location(world, 0.0D, 72.0D, 0.0D));
+        MobInstance horizontal = new MobInstance(
+                UUID.randomUUID(),
+                enemyTemplate(),
+                new Location(world, 0.0D, 64.0D, 0.0D)
+        );
+        horizontal.currentLocation(new Location(world, 101.0D, 64.0D, 0.0D));
+
+        assertFalse(invokeIsLeashed(aiService, boundary));
+        assertTrue(invokeIsLeashed(aiService, horizontal));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
+     * 検証契約: 上下に大きく外れたLEASHEDのMobは、経路探索ではなくスポーン地点へ直接リセットする。
+     */
+    @Test
+    void verticallyLeashedMobIsResetToSpawn() throws ReflectiveOperationException {
+        MobService mobService = mock(MobService.class);
+        MobInstance instance = new MobInstance(
+                UUID.randomUUID(),
+                enemyTemplate(),
+                new Location(null, 0.0D, 64.0D, 0.0D)
+        );
+        instance.currentLocation(new Location(null, 0.0D, 73.0D, 0.0D));
+        instance.state(MobState.LEASHED);
+        MobAiService aiService = new MobAiService(
+                mobService,
+                mock(MobCombatService.class),
+                mock(MobSkillService.class)
+        );
+
+        invokeTickLeashed(aiService, instance);
+
+        verify(mobService).resetPosition(
+                same(instance),
+                argThat(spawn -> spawn.getX() == 0.0D
+                        && spawn.getY() == 64.0D
+                        && spawn.getZ() == 0.0D)
+        );
+        verify(mobService, never()).moveToward(any(MobInstance.class), any(Location.class), anyDouble(), anyLong());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
      * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
      * 検証契約: 上下照準可能な次スキルが三次元射程内で高低差だけが1.25 blockを超える場合、COMBATのAIは追跡せず現在地でスキル発動を試みる。
@@ -432,6 +519,18 @@ class MobAiServiceTest {
         Method method = MobAiService.class.getDeclaredMethod("tickCombatHold", MobInstance.class);
         method.setAccessible(true);
         method.invoke(aiService, instance);
+    }
+
+    private static void invokeTickLeashed(MobAiService aiService, MobInstance instance) throws ReflectiveOperationException {
+        Method method = MobAiService.class.getDeclaredMethod("tickLeashed", MobInstance.class);
+        method.setAccessible(true);
+        method.invoke(aiService, instance);
+    }
+
+    private static boolean invokeIsLeashed(MobAiService aiService, MobInstance instance) throws ReflectiveOperationException {
+        Method method = MobAiService.class.getDeclaredMethod("isLeashed", MobInstance.class);
+        method.setAccessible(true);
+        return (boolean) method.invoke(aiService, instance);
     }
 
     private static void setInternalTick(MobAiService aiService, long tick) throws ReflectiveOperationException {

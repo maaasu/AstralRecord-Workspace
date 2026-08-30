@@ -57,6 +57,9 @@ public class MobAiService {
     private static final long VIEWER_UPDATE_INTERVAL_TICKS = 5L;
     private static final long BLOCK_NPC_PARTICLE_INTERVAL_TICKS = 20L;
 
+    /** スポーン地点から許容する上下方向の距離。超過時は直接スポーン地点へ戻す。 */
+    private static final double MAX_SPAWN_VERTICAL_DISTANCE = 8.0D;
+
     /** WANDER 行動で同一ターゲットを追い続ける最大 tick 数（スタック防止）。 */
     private static final long WANDER_TARGET_MAX_TICKS = 100L;
 
@@ -554,6 +557,10 @@ public class MobAiService {
     private void tickLeashed(@NotNull MobInstance instance) {
         Location spawn = instance.spawnLocation();
         Location current = instance.currentLocation();
+        if (isVerticallyTooFarFromSpawn(current, spawn)) {
+            mobService.resetPosition(instance, spawn);
+            return;
+        }
         if (current.distanceSquared(spawn) <= 1.0D) {
             mobService.stopPathfinding(instance);
             instance.state(MobState.IDLE);
@@ -667,8 +674,20 @@ public class MobAiService {
     private boolean isLeashed(@NotNull MobInstance instance) {
         MobTargetingConfig targeting = instance.template().targeting();
         if (targeting == null) return false;
+        Location current = instance.currentLocation();
+        Location spawn = instance.spawnLocation();
+        if (isVerticallyTooFarFromSpawn(current, spawn)) {
+            return true;
+        }
         double leashSq = targeting.leashRange() * targeting.leashRange();
-        return instance.currentLocation().distanceSquared(instance.spawnLocation()) > leashSq;
+        return current.distanceSquared(spawn) > leashSq;
+    }
+
+    private boolean isVerticallyTooFarFromSpawn(
+            @NotNull Location current,
+            @NotNull Location spawn
+    ) {
+        return Math.abs(current.getY() - spawn.getY()) > MAX_SPAWN_VERTICAL_DISTANCE;
     }
 
     /**
