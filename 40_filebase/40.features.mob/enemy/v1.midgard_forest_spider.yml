@@ -26,11 +26,11 @@ levels:
     name: "&2フォレストスパイダー Lv.8"
     baseStats:
       - status: MAX_HEALTH
-        value: 1400
+        value: 600
       - status: RANGED_ATTACK
-        value: 254
+        value: 110
       - status: DEFENSE
-        value: 244
+        value: 60
       - status: ACCURACY
         value: 95
       - status: EVASION
@@ -57,11 +57,11 @@ levels:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 1100
+    value: 550
   - status: RANGED_ATTACK
-    value: 199
+    value: 100
   - status: DEFENSE
-    value: 191
+    value: 55
   - status: ACCURACY
     value: 95
   - status: EVASION

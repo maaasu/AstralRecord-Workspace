@@ -25,11 +25,11 @@ levels:
     name: "&6サバナハイエナ Lv.8"
     baseStats:
       - status: MAX_HEALTH
-        value: 1400
+        value: 700
       - status: ATTACK
-        value: 254
+        value: 80
       - status: DEFENSE
-        value: 244
+        value: 70
       - status: ACCURACY
         value: 95
       - status: EVASION
@@ -56,11 +56,11 @@ levels:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 1100
+    value: 650
   - status: ATTACK
-    value: 199
+    value: 75
   - status: DEFENSE
-    value: 191
+    value: 65
   - status: ACCURACY
     value: 95
   - status: EVASION

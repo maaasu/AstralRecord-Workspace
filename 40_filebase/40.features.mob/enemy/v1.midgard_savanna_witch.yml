@@ -25,15 +25,15 @@ levels:
     name: "&5サバナウィッチ Lv.8"
     baseStats:
       - status: MAX_HEALTH
-        value: 1120
+        value: 550
       - status: ATTACK
-        value: 230
+        value: 113
       - status: MAGIC_ATTACK
-        value: 60
+        value: 30
       - status: INTELLIGENCE
         value: 5
       - status: DEFENSE
-        value: 195
+        value: 55
       - status: ACCURACY
         value: 95
       - status: EVASION
@@ -60,15 +60,15 @@ levels:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 880
+    value: 500
   - status: ATTACK
-    value: 181
+    value: 110
   - status: MAGIC_ATTACK
-    value: 47
+    value: 28
   - status: INTELLIGENCE
     value: 5
   - status: DEFENSE
-    value: 153
+    value: 50
   - status: ACCURACY
     value: 95
   - status: EVASION

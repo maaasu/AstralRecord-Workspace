@@ -25,11 +25,11 @@ levels:
     name: "&eサバナガードキャメル Lv.8"
     baseStats:
       - status: MAX_HEALTH
-        value: 2100
+        value: 850
       - status: ATTACK
-        value: 203
+        value: 70
       - status: DEFENSE
-        value: 305
+        value: 85
       - status: ACCURACY
         value: 95
       - status: EVASION
@@ -61,11 +61,11 @@ levels:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 1650
+    value: 750
   - status: ATTACK
-    value: 160
+    value: 65
   - status: DEFENSE
-    value: 239
+    value: 80
   - status: ACCURACY
     value: 95
   - status: EVASION
