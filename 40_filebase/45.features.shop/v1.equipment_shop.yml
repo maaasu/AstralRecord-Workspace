@@ -85,6 +85,34 @@ items:
           ref: item:box_cave_copper_ingot
         category: material
         amount: 2
+  - id: melkor_plate
+    itemId:
+      ref: item:melkor_plate
+    category: equipment
+    amount: 1
+    page: 1
+    row: 1
+    column: 6
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:melkor_sanctum_ash }
+        category: material
+        amount: 156
+      - itemId: { ref: item:melkor_sanctum_alloy }
+        category: material
+        amount: 60
+      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+        category: material
+        amount: 14
+      - itemId: { ref: item:melkor_sanctum_black_crown }
+        category: material
+        amount: 9
+      - itemId: { ref: item:silmaril_bone_fragment }
+        category: material
+        amount: 72
+      - itemId: { ref: item:maril_sil_hero_shard }
+        category: material
+        amount: 22
   - id: midgard_kuinya_helm
     itemId:
       ref: item:midgard_kuinya_helm
