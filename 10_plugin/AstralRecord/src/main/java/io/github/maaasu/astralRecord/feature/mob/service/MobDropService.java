@@ -87,11 +87,11 @@ public class MobDropService {
         }
 
         ThreadLocalRandom rng = ThreadLocalRandom.current();
-        double luckBonus = killer == null ? 0.0 : resolveLuck(killer) * 0.05;
+        double luck = killer == null ? 0.0D : resolveLuck(killer);
 
         List<MobDropResultItem> items = new ArrayList<>();
         for (MobDropItem item : drops.items()) {
-            double effectiveRate = clampRate(item.rate() + (item.luckAffected() ? luckBonus : 0.0D));
+            double effectiveRate = calculateEffectiveRate(item.rate(), luck, item.luckAffected());
             if (rng.nextDouble(0.0, 100.0) >= effectiveRate) continue;
 
             int amount = parseAmount(item.amount(), rng);
@@ -143,7 +143,26 @@ public class MobDropService {
         return snapshot == null ? 0.0D : Math.max(0.0D, snapshot.rollValue(StatusType.LUCK));
     }
 
-    private double clampRate(double rate) {
+    /**
+     * 幸運補正を適用した直接ドロップの実効率を計算します。
+     *
+     * <p>幸運値は設定率に対する相対的なパーセント倍率として扱います。
+     * {@code luckAffected} が {@code true} の場合、設定率へ
+     * {@code (1 + luck / 100)} 倍を適用し、結果を 0〜100% に収めます。</p>
+     *
+     * @param rate         設定上のドロップ確率（%）
+     * @param luck         幸運値
+     * @param luckAffected 幸運補正を適用するか
+     * @return 抽選に使用する実効ドロップ確率（%）
+     */
+    static double calculateEffectiveRate(double rate, double luck, boolean luckAffected) {
+        double multiplier = luckAffected
+                ? 1.0D + Math.max(0.0D, luck) / 100.0D
+                : 1.0D;
+        return clampRate(rate * multiplier);
+    }
+
+    private static double clampRate(double rate) {
         return Math.max(0.0D, Math.min(100.0D, rate));
     }
 

@@ -109,13 +109,26 @@ class MobDropServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
      * 章・見出し: # 12_3-戦闘 > ## 4. MobDropService メソッド仕様 > ### ドロップ確定
-     * 検証契約: LUCK補正をluckAffected=trueの直接dropだけへ適用する。
+     * 検証契約: LUCKを設定率への相対パーセント倍率として、luckAffected=trueの直接dropだけへ適用する。
      */
     @Test
-    void rollAppliesLuckOnlyToAffectedDirectDrops() {
+    void calculateEffectiveRateUsesLuckAsPercentageMultiplier() {
+        assertEquals(60.0D, MobDropService.calculateEffectiveRate(50.0D, 20.0D, true), 0.0001D);
+        assertEquals(0.2D, MobDropService.calculateEffectiveRate(0.1D, 100.0D, true), 0.0001D);
+        assertEquals(0.1D, MobDropService.calculateEffectiveRate(0.1D, 100.0D, false), 0.0001D);
+        assertEquals(100.0D, MobDropService.calculateEffectiveRate(60.0D, 100.0D, true), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 4. MobDropService メソッド仕様 > ### ドロップ確定
+     * 検証契約: rollが取得したLUCKをluckAffected=trueの直接dropへ適用し、falseには適用しない。
+     */
+    @Test
+    void rollAppliesLuckToAffectedDirectDrops() {
         AstPlayer killer = mock(AstPlayer.class);
         when(killer.getStatusSnapshot()).thenReturn(new StatusSnapshot(
-            Map.of(StatusType.LUCK, new StatusValue(0.0D, 2000.0D)),
+            Map.of(StatusType.LUCK, new StatusValue(100.0D, 100.0D)),
             0.0D,
             0.0D,
             0.0D,
@@ -127,7 +140,7 @@ class MobDropServiceTest {
             0,
             null,
             List.of(
-                new MobDropItem("affected", 0.0D, "1", true, false),
+                new MobDropItem("affected", 50.0D, "1", true, false),
                 new MobDropItem("unaffected", 0.0D, "1", false, false)
             ),
             null
