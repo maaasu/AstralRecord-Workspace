@@ -5,7 +5,7 @@ schemaVersion: 1
 id: sauron_charm
 category: equipment
 name: "&5サウロンのチャーム"
-icon: ECHO_SHARD
+icon: powered_rail
 rarity: EPIC
 maxStack: 1
 saleValue: 800

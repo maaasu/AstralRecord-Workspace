@@ -5,7 +5,7 @@ schemaVersion: 1
 id: balrog_charm
 category: equipment
 name: "&5バルログのチャーム"
-icon: SPECTRAL_ARROW
+icon: detector_rail
 rarity: EPIC
 maxStack: 1
 saleValue: 800
