@@ -5,7 +5,7 @@ schemaVersion: 1
 id: merian_charm
 category: equipment
 name: "&5メリアンのチャーム"
-icon: activtor_rail
+icon: activator_rail
 rarity: EPIC
 maxStack: 1
 saleValue: 800
