@@ -395,7 +395,7 @@ class MageFrostBlizzardExecutorTest extends MockBukkitTestBase {
             return itemId instanceof Map<?, ?> ref
                     && "item:00_skill_gem_mage_frost_blizzard".equals(ref.get("ref"))
                     && Integer.valueOf(1).equals(item.get("page"))
-                    && Integer.valueOf(20).equals(item.get("slot"));
+                    && Integer.valueOf(15).equals(item.get("slot"));
         }));
     }
 

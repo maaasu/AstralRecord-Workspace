@@ -382,7 +382,7 @@ class MageSparkingExecutorTest {
             return itemId instanceof Map<?, ?> ref
                     && "item:00_skill_gem_mage_sparking".equals(ref.get("ref"))
                     && Integer.valueOf(1).equals(item.get("page"))
-                    && Integer.valueOf(19).equals(item.get("slot"));
+                    && Integer.valueOf(14).equals(item.get("slot"));
         }));
     }
 
