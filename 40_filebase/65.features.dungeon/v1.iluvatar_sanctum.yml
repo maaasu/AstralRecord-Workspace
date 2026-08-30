@@ -30,6 +30,12 @@ clearRewards:
     - itemId: item:iluvatar_sanctum_primal_crystal
       rate: 25.0
       amount: "1~6"
+    - itemId: item:iluvatar_sanctum_ember_talisman
+      rate: 16.0
+      amount: "1"
+    - itemId: item:iluvatar_sanctum_flame_talisman
+      rate: 16.0
+      amount: "1"
 generation:
   area:
     width: 120
