@@ -31,6 +31,7 @@ public final class DungeonBlockPlanner {
      * @param definition ダンジョン定義
      * @param layout BSP 配置
      * @return ブロック計画
+     * @throws IllegalStateException 照明や装飾を避けた安全な出現候補を確保できない部屋がある場合
      */
     public @NotNull DungeonBlockPlan plan(
             @NotNull DungeonDefinition definition,
@@ -96,15 +97,22 @@ public final class DungeonBlockPlanner {
                 buildPillar(blocks, room, definition, layout);
             }
         }
-        buildRoomLighting(blocks, layout.rooms(), layout, definition.theme().lightMaterial());
+        Set<DungeonBlockPlan.Position> lightPositions = new LinkedHashSet<>();
+        buildRoomLighting(
+                blocks, layout.rooms(), layout, definition.theme().lightMaterial(), lightPositions);
         buildCorridorLighting(
                 blocks, layout.connections(), gates, roomEntrances,
-                layout, definition.theme().lightMaterial());
+                layout, definition.theme().lightMaterial(), lightPositions);
 
         Map<Integer, List<DungeonBlockPlan.Position>> spawnPoints = new LinkedHashMap<>();
         for (DungeonLayout.Room room : layout.rooms()) {
             boolean pillar = shouldBuildPillar(definition.theme().pillar(), layout.seed(), room.id());
-            spawnPoints.put(room.id(), createSpawnPoints(blocks, room, layout.baseY() + 1, pillar));
+            List<DungeonBlockPlan.Position> roomSpawnPoints = createSpawnPoints(
+                    blocks, room, layout.baseY() + 1, pillar, lightPositions);
+            if (roomSpawnPoints.isEmpty()) {
+                throw new IllegalStateException("No safe spawn position for dungeon room: " + room.id());
+            }
+            spawnPoints.put(room.id(), roomSpawnPoints);
         }
 
         DungeonLayout.Room startRoom = roomById.get(layout.startRoomId());
@@ -581,17 +589,20 @@ public final class DungeonBlockPlanner {
     }
 
     /**
-     * 各部屋の中央を基準に一定間隔で床置きのたいまつを配置します。
+     * 各部屋の中央を基準に一定間隔で床置きの照明を配置します。
      *
      * @param blocks 確定途中のブロック配置
      * @param rooms 部屋一覧
      * @param layout ダンジョン配置
+     * @param lightMaterial 配置する照明 Material
+     * @param lightPositions 配置済み照明座標の格納先
      */
     private void buildRoomLighting(
             @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
             @NotNull List<DungeonLayout.Room> rooms,
             @NotNull DungeonLayout layout,
-            @NotNull Material lightMaterial
+            @NotNull Material lightMaterial,
+            @NotNull Set<DungeonBlockPlan.Position> lightPositions
     ) {
         for (DungeonLayout.Room room : rooms) {
             int centerX = room.bounds().centerX();
@@ -606,30 +617,34 @@ public final class DungeonBlockPlanner {
                         placed |= placeFloorLight(
                                 blocks,
                                 new DungeonBlockPlan.Position(x, layout.baseY() + 1, z),
-                                lightMaterial);
+                                lightMaterial,
+                                lightPositions);
                     }
                 }
             }
             if (!placed) {
-                placeNearestRoomLight(blocks, room, layout, lightMaterial);
+                placeNearestRoomLight(blocks, room, layout, lightMaterial, lightPositions);
             }
         }
     }
 
     /**
-     * 中央基準の候補へ配置できなかった部屋で、中心に近い歩行可能な床から順にたいまつを配置します。
+     * 中央基準の候補へ配置できなかった部屋で、中心に近い歩行可能な床から順に照明を配置します。
      *
      * @param blocks 確定途中のブロック配置
      * @param room 照明を補完する部屋
      * @param layout ダンジョン配置。部屋の床上座標を解決できることが前提です
-     * @return たいまつを配置できた場合は {@code true}、配置可能な床がない場合は {@code false}
-     * @implNote 配置に成功した座標をたいまつへ置き換え、以後の Mob 出現候補から除外される副作用があります。
+     * @param lightMaterial 配置する照明 Material
+     * @param lightPositions 配置済み照明座標の格納先
+     * @return 照明を配置できた場合は {@code true}、配置可能な床がない場合は {@code false}
+     * @implNote 当たり判定のない照明は床上、当たり判定のある照明は床と同じ高さへ配置します。
      */
     private boolean placeNearestRoomLight(
             @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
             @NotNull DungeonLayout.Room room,
             @NotNull DungeonLayout layout,
-            @NotNull Material lightMaterial
+            @NotNull Material lightMaterial,
+            @NotNull Set<DungeonBlockPlan.Position> lightPositions
     ) {
         int centerX = room.bounds().centerX();
         int centerZ = room.bounds().centerZ();
@@ -647,7 +662,7 @@ public final class DungeonBlockPlanner {
                 .thenComparingInt(DungeonBlockPlan.Position::x)
                 .thenComparingInt(DungeonBlockPlan.Position::z));
         for (DungeonBlockPlan.Position candidate : candidates) {
-            if (placeFloorLight(blocks, candidate, lightMaterial)) {
+            if (placeFloorLight(blocks, candidate, lightMaterial, lightPositions)) {
                 return true;
             }
         }
@@ -655,13 +670,15 @@ public final class DungeonBlockPlanner {
     }
 
     /**
-     * 各通路の中心線へ一定間隔で床置きのたいまつを配置します。
+     * 各通路の中心線へ一定間隔で床置きの照明を配置します。
      *
      * @param blocks 確定途中のブロック配置
      * @param connections 通路接続一覧
      * @param gates 接続ごとの閉鎖ゲート座標
      * @param roomEntrances ACTIVE中に閉鎖する子部屋入口
      * @param layout ダンジョン配置
+     * @param lightMaterial 配置する照明 Material
+     * @param lightPositions 配置済み照明座標の格納先
      */
     private void buildCorridorLighting(
             @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
@@ -669,7 +686,8 @@ public final class DungeonBlockPlanner {
             @NotNull Map<Integer, List<DungeonBlockPlan.Position>> gates,
             @NotNull Map<Integer, DungeonBlockPlan.RoomEntrance> roomEntrances,
             @NotNull DungeonLayout layout,
-            @NotNull Material lightMaterial
+            @NotNull Material lightMaterial,
+            @NotNull Set<DungeonBlockPlan.Position> lightPositions
     ) {
         Set<DungeonBlockPlan.Position> gatePositions = new LinkedHashSet<>();
         gates.values().forEach(gatePositions::addAll);
@@ -681,56 +699,65 @@ public final class DungeonBlockPlanner {
             boolean placed = false;
             for (int index = LIGHT_SPACING / 2; index < line.size(); index += LIGHT_SPACING) {
                 DungeonLayout.Point point = line.get(index);
-                placed |= placeCorridorLight(blocks, gatePositions, layout, point, lightMaterial);
+                placed |= placeCorridorLight(
+                        blocks, gatePositions, layout, point, lightMaterial, lightPositions);
             }
             if (!placed) {
                 placeCorridorLight(
-                        blocks, gatePositions, layout, line.get(line.size() / 2), lightMaterial);
+                        blocks, gatePositions, layout, line.get(line.size() / 2),
+                        lightMaterial, lightPositions);
             }
         }
     }
 
     /**
-     * 通路の中心線候補へ、閉鎖ゲートを避けて床置きのたいまつを配置します。
+     * 通路の中心線候補へ、閉鎖ゲートを避けて床置きの照明を配置します。
      *
      * @param blocks 確定途中のブロック配置
      * @param gatePositions 閉鎖ゲートの座標集合
      * @param layout ダンジョン配置。通路点の床上座標を解決できることが前提です
      * @param point 照明候補となる通路中心線上の座標
-     * @return ゲート以外の配置可能な床へたいまつを置けた場合は {@code true}、それ以外は {@code false}
-     * @implNote 配置に成功した座標をたいまつへ置き換えます。
+     * @param lightMaterial 配置する照明 Material
+     * @param lightPositions 配置済み照明座標の格納先
+     * @return ゲート以外の配置可能な床へ照明を置けた場合は {@code true}、それ以外は {@code false}
+     * @implNote 当たり判定のない照明は床上、当たり判定のある照明は床と同じ高さへ配置します。
      */
     private boolean placeCorridorLight(
             @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
             @NotNull Set<DungeonBlockPlan.Position> gatePositions,
             @NotNull DungeonLayout layout,
             @NotNull DungeonLayout.Point point,
-            @NotNull Material lightMaterial
+            @NotNull Material lightMaterial,
+            @NotNull Set<DungeonBlockPlan.Position> lightPositions
     ) {
         DungeonBlockPlan.Position position = new DungeonBlockPlan.Position(
                 point.x(), layout.baseY() + 1, point.z());
         if (gatePositions.contains(position)) {
             return false;
         }
-        return placeFloorLight(blocks, position, lightMaterial);
+        return placeFloorLight(blocks, position, lightMaterial, lightPositions);
     }
 
     /**
-     * 床と上方空間が確保された候補座標へ床置きのたいまつを配置します。
+     * 床と上方空間が確保された候補座標へ床置きの照明を配置します。
      *
      * @param blocks 確定途中のブロック配置
-     * @param position たいまつを置く床上座標。対象・支持床・上方空間が配置済みであることが前提です
-     * @return 対象と上方が空気かつ支持床が空気以外で、たいまつを置けた場合は {@code true}、それ以外は {@code false}
-     * @implNote 配置に成功した場合だけ対象座標のブロックをたいまつへ置き換えます。
+     * @param position 照明候補の床上座標。対象・支持床・上方空間が配置済みであることが前提です
+     * @param lightMaterial 配置する照明 Material
+     * @param lightPositions 配置済み照明座標の格納先
+     * @return 対象と上方が空気かつ支持床が空気以外で、照明を置けた場合は {@code true}、それ以外は {@code false}
+     * @implNote 当たり判定のある照明は支持床を置き換え、当たり判定のない照明は床上へ配置します。
      */
     private boolean placeFloorLight(
             @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
             @NotNull DungeonBlockPlan.Position position,
-            @NotNull Material lightMaterial
+            @NotNull Material lightMaterial,
+            @NotNull Set<DungeonBlockPlan.Position> lightPositions
     ) {
+        DungeonBlockPlan.Position supportPosition = new DungeonBlockPlan.Position(
+                position.x(), position.y() - 1, position.z());
         DungeonBlockPlan.Placement target = blocks.get(position);
-        DungeonBlockPlan.Placement support = blocks.get(new DungeonBlockPlan.Position(
-                position.x(), position.y() - 1, position.z()));
+        DungeonBlockPlan.Placement support = blocks.get(supportPosition);
         DungeonBlockPlan.Placement above = blocks.get(new DungeonBlockPlan.Position(
                 position.x(), position.y() + 1, position.z()));
         if (target == null || !target.material().isAir()
@@ -738,7 +765,11 @@ public final class DungeonBlockPlanner {
                 || above == null || !above.material().isAir()) {
             return false;
         }
-        put(blocks, position, lightMaterial, null);
+        DungeonBlockPlan.Position lightPosition = lightMaterial.isCollidable()
+                ? supportPosition
+                : position;
+        put(blocks, lightPosition, lightMaterial, null);
+        lightPositions.add(lightPosition);
         return true;
     }
 
@@ -756,11 +787,22 @@ public final class DungeonBlockPlanner {
                 new DungeonBlockPlan.Stair(facing, topHalf));
     }
 
+    /**
+     * 部屋内の空気座標から、柱と床置き照明を避けて Mob 出現候補を作成します。
+     *
+     * @param blocks 確定済みのブロック配置
+     * @param room 出現候補を作る部屋
+     * @param y 出現候補の Y 座標
+     * @param pillar 中央柱を避ける場合は {@code true}
+     * @param lightPositions 配置済み照明座標
+     * @return 中心距離順に並べた Mob 出現候補。安全な候補がない場合は空リスト
+     */
     private @NotNull List<DungeonBlockPlan.Position> createSpawnPoints(
             @NotNull Map<DungeonBlockPlan.Position, DungeonBlockPlan.Placement> blocks,
             @NotNull DungeonLayout.Room room,
             int y,
-            boolean pillar
+            boolean pillar,
+            @NotNull Set<DungeonBlockPlan.Position> lightPositions
     ) {
         int centerX = room.bounds().centerX();
         int centerZ = room.bounds().centerZ();
@@ -775,8 +817,10 @@ public final class DungeonBlockPlanner {
                     continue;
                 }
                 DungeonBlockPlan.Position position = new DungeonBlockPlan.Position(x, y, z);
+                DungeonBlockPlan.Position floorPosition = new DungeonBlockPlan.Position(x, y - 1, z);
                 DungeonBlockPlan.Placement placement = blocks.get(position);
-                if (placement != null && placement.material().isAir()) {
+                if (placement != null && placement.material().isAir()
+                        && !lightPositions.contains(floorPosition)) {
                     candidates.add(position);
                 }
             }
@@ -786,9 +830,6 @@ public final class DungeonBlockPlanner {
                         Math.abs(position.x() - centerX) + Math.abs(position.z() - centerZ))
                 .thenComparingInt(DungeonBlockPlan.Position::x)
                 .thenComparingInt(DungeonBlockPlan.Position::z));
-        if (candidates.isEmpty()) {
-            candidates.add(new DungeonBlockPlan.Position(centerX, y, centerZ));
-        }
         return List.copyOf(candidates);
     }
 

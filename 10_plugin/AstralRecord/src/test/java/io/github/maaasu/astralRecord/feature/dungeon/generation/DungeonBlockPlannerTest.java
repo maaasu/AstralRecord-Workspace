@@ -18,6 +18,7 @@ import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class DungeonBlockPlannerTest {
@@ -281,6 +282,7 @@ class DungeonBlockPlannerTest {
         assertTrue(layout.connections().stream().allMatch(connection -> connection.centerLine().stream()
                 .map(point -> new DungeonBlockPlan.Position(point.x(), layout.baseY() + 1, point.z()))
                 .anyMatch(torchPositions::contains)));
+        assertTrue(torchPositions.stream().allMatch(position -> position.y() == layout.baseY() + 1));
         Set<DungeonBlockPlan.Position> spawnPositions = plan.spawnPointsByRoom().values().stream()
                 .flatMap(List::stream)
                 .collect(java.util.stream.Collectors.toSet());
@@ -292,6 +294,77 @@ class DungeonBlockPlannerTest {
                 .forEach(gatePositions::addAll);
         assertTrue(torchPositions.stream().noneMatch(spawnPositions::contains));
         assertTrue(torchPositions.stream().noneMatch(gatePositions::contains));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 2. ブロック生成
+     * 検証契約: 当たり判定のある床置き照明は、部屋と通路の床ブロックと同じ高さへ生成する。
+     */
+    @Test
+    void placesCollidableLightsAtFloorHeightInRoomsAndCorridors() {
+        for (Material lightMaterial : List.of(
+                Material.LANTERN, Material.SEA_LANTERN, Material.JACK_O_LANTERN)) {
+            DungeonDefinition definition = withLightMaterial(lightMaterial);
+            DungeonLayout layout = new DungeonLayoutPlanner().plan(definition, 778899L);
+            DungeonBlockPlan plan = new DungeonBlockPlanner().plan(definition, layout);
+            Set<DungeonBlockPlan.Position> lightPositions = plan.placements().stream()
+                    .filter(placement -> placement.material() == lightMaterial)
+                    .map(DungeonBlockPlan.Placement::position)
+                    .collect(java.util.stream.Collectors.toSet());
+
+            assertTrue(lightMaterial.isCollidable(), lightMaterial + " must be collidable");
+            assertFalse(lightPositions.isEmpty(), lightMaterial + " must be placed");
+            assertTrue(lightPositions.stream().allMatch(position -> position.y() == layout.baseY()),
+                    lightMaterial + " must be placed at floor height");
+            assertTrue(layout.rooms().stream().allMatch(room -> lightPositions.stream()
+                    .anyMatch(position -> room.bounds().contains(position.x(), position.z()))));
+            assertTrue(layout.connections().stream().allMatch(connection -> connection.centerLine().stream()
+                    .map(point -> new DungeonBlockPlan.Position(point.x(), layout.baseY(), point.z()))
+                    .anyMatch(lightPositions::contains)));
+            Set<Cell> lightCells = lightPositions.stream()
+                    .map(position -> new Cell(position.x(), position.z()))
+                    .collect(java.util.stream.Collectors.toSet());
+            Set<Cell> spawnCells = plan.spawnPointsByRoom().values().stream()
+                    .flatMap(List::stream)
+                    .map(position -> new Cell(position.x(), position.z()))
+                    .collect(java.util.stream.Collectors.toSet());
+            assertTrue(lightCells.stream().noneMatch(spawnCells::contains),
+                    lightMaterial + " must not overlap mob spawn candidates");
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 2. ブロック生成
+     * 検証契約: 床埋め照明が唯一の Mob 出現候補を占有する生成結果は採用しない。
+     */
+    @Test
+    void rejectsPlanWhenCollidableLightOccupiesOnlySpawnCandidate() {
+        DungeonDefinition source = withLightMaterial(Material.SEA_LANTERN);
+        DungeonDefinition.Theme theme = source.theme();
+        DungeonDefinition definition = new DungeonDefinition(
+                source.schemaVersion(), source.id(), source.displayName(), source.recommendedLevel(),
+                source.entry(), source.partySize(), source.generation(),
+                new DungeonDefinition.Theme(
+                        theme.floor(), theme.wall(), theme.ceiling(), theme.corridor(),
+                        theme.gateMaterial(),
+                        new DungeonDefinition.Pillar(
+                                false, theme.pillar().chance(), theme.pillar().material(),
+                                theme.pillar().stairMaterial()),
+                        theme.lightMaterial(), theme.decorations()),
+                source.encounter());
+        DungeonLayout layout = new DungeonLayout(
+                445566L, 5, 5, definition.generation().baseY(), definition.generation().roomHeight(),
+                List.of(new DungeonLayout.Room(
+                        0, new DungeonLayout.Rect(0, 0, 4, 4),
+                        DungeonRoomShape.RECTANGLE, DungeonLayout.RoomRole.START, 0
+                )),
+                List.of(), 0, 0
+        );
+
+        assertThrows(IllegalStateException.class,
+                () -> new DungeonBlockPlanner().plan(definition, layout));
     }
 
     /**
@@ -333,6 +406,24 @@ class DungeonBlockPlannerTest {
         assertEquals(1, torchPositions.size());
         assertFalse(torchPositions.contains(new DungeonBlockPlan.Position(
                 3, definition.generation().baseY() + 1, 3)));
+    }
+
+    /**
+     * テスト用ダンジョン定義の照明 Material だけを差し替えます。
+     *
+     * @param lightMaterial 差し替える床置き照明 Material
+     * @return 指定した照明 Material を持つテスト用ダンジョン定義
+     */
+    private DungeonDefinition withLightMaterial(Material lightMaterial) {
+        DungeonDefinition source = DungeonTestFixtures.definition();
+        DungeonDefinition.Theme theme = source.theme();
+        return new DungeonDefinition(
+                source.schemaVersion(), source.id(), source.displayName(), source.recommendedLevel(),
+                source.entry(), source.partySize(), source.generation(),
+                new DungeonDefinition.Theme(
+                        theme.floor(), theme.wall(), theme.ceiling(), theme.corridor(),
+                        theme.gateMaterial(), theme.pillar(), lightMaterial, theme.decorations()),
+                source.encounter());
     }
 
     private boolean canReach(
