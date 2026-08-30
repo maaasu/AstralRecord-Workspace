@@ -59,19 +59,19 @@ drops:
   items:
     - itemId:
         ref: item:merian_charm
-      rate: 15.0
+      rate: 0.1
       amount: 1
       luckAffected: true
       hidden: false
     - itemId:
         ref: item:balrog_charm
-      rate: 15.0
+      rate: 0.1
       amount: 1
       luckAffected: true
       hidden: false
     - itemId:
         ref: item:sauron_charm
-      rate: 15.0
+      rate: 0.1
       amount: 1
       luckAffected: true
       hidden: false
