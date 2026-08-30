@@ -106,6 +106,10 @@ public class ItemStackFactory {
     private static final NamespacedKey KEY_CATEGORY =
             new NamespacedKey("astralrecord", "category");
 
+    /** PDC キー: スキルジェムが習得するスキル ID */
+    private static final NamespacedKey KEY_SKILL_GEM_ID =
+            new NamespacedKey("astralrecord", "skill_gem_id");
+
     /** PDC キー: レアリティ */
     private static final NamespacedKey KEY_RARITY =
             new NamespacedKey("astralrecord", "rarity");
@@ -566,6 +570,20 @@ public class ItemStackFactory {
         }
         return item.getItemMeta().getPersistentDataContainer()
                 .get(KEY_CATEGORY, PersistentDataType.STRING);
+    }
+
+    /**
+     * ItemStack に埋め込まれたスキルジェムの対象スキル ID を取得します。
+     *
+     * @param item 判定対象
+     * @return 対象スキル ID。スキルジェムでなければ {@code null}
+     */
+    public static @Nullable String getSkillGemId(@NotNull ItemStack item) {
+        if (!item.hasItemMeta()) {
+            return null;
+        }
+        return item.getItemMeta().getPersistentDataContainer()
+                .get(KEY_SKILL_GEM_ID, PersistentDataType.STRING);
     }
 
     /**
@@ -1860,6 +1878,11 @@ public class ItemStackFactory {
         }
         pdc.set(KEY_CATEGORY, PersistentDataType.STRING, model.getCategory());
         pdc.set(KEY_RARITY, PersistentDataType.STRING, model.getRarity());
+        if (model.getSkillGem() != null
+                && model.getSkillGem().getSkillId() != null
+                && !model.getSkillGem().getSkillId().isBlank()) {
+            pdc.set(KEY_SKILL_GEM_ID, PersistentDataType.STRING, model.getSkillGem().getSkillId());
+        }
         if (model.getEquipment() != null && model.getEquipment().getSlot() != null) {
             pdc.set(KEY_EQUIPMENT_SLOT, PersistentDataType.STRING, model.getEquipment().getSlot().name());
         }

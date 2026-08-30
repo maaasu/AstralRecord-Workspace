@@ -1461,7 +1461,12 @@ public final class AstralRecord extends JavaPlugin {
         stoneButtonReachService = new StoneButtonReachService(this, worldService);
 
         // item: ProtocolLib パケットアダプター（icon 差し替え）登録
-        itemStackPacketAdapter = new ItemStackPacketAdapter(this, playerSettingService, skillActionRingService);
+        itemStackPacketAdapter = new ItemStackPacketAdapter(
+            this,
+            playerSettingService,
+            skillActionRingService,
+            skillPermissionService
+        );
         itemStackPacketAdapter.register();
 
     }

@@ -10,8 +10,11 @@ import com.comphenix.protocol.events.PacketEvent;
 import com.comphenix.protocol.wrappers.EnumWrappers;
 import com.comphenix.protocol.wrappers.Pair;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -20,6 +23,9 @@ import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndEvent;
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndReason;
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionTransitionService;
 import io.papermc.paper.datacomponent.DataComponentTypes;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
@@ -37,10 +43,12 @@ import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.EnumMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -78,6 +86,8 @@ public class ItemStackPacketAdapter {
     private final Plugin plugin;
     private final PlayerSettingService playerSettingService;
     private final SkillActionRingService actionRingService;
+    private final @Nullable SkillPermissionService skillPermissionService;
+    private final Map<UUID, Set<String>> permittedSkillSnapshots = new ConcurrentHashMap<>();
     private final EquipmentOverrideRegistry equipmentOverrideRegistry = new EquipmentOverrideRegistry();
     private final Map<UUID, Integer> selectedHotbarSlots = new ConcurrentHashMap<>();
     private boolean registered = false;
@@ -94,9 +104,27 @@ public class ItemStackPacketAdapter {
         @NotNull PlayerSettingService playerSettingService,
         @NotNull SkillActionRingService actionRingService
     ) {
+        this(plugin, playerSettingService, actionRingService, null);
+    }
+
+    /**
+     * 受信者ごとのスキルジェム使用可否表示を含めてアダプタを初期化します。
+     *
+     * @param plugin プラグインインスタンス
+     * @param playerSettingService 受信者ごとの防具表示設定を参照するサービス
+     * @param actionRingService 受信者のアクションリング表示状態を参照するサービス
+     * @param skillPermissionService 受信者のスキル使用可否を判定するサービス
+     */
+    public ItemStackPacketAdapter(
+        @NotNull Plugin plugin,
+        @NotNull PlayerSettingService playerSettingService,
+        @NotNull SkillActionRingService actionRingService,
+        @Nullable SkillPermissionService skillPermissionService
+    ) {
         this.plugin = plugin;
         this.playerSettingService = playerSettingService;
         this.actionRingService = actionRingService;
+        this.skillPermissionService = skillPermissionService;
     }
 
     /**
@@ -126,6 +154,10 @@ public class ItemStackPacketAdapter {
                 PacketContainer packet = event.getPacket();
                 PacketType type = packet.getType();
                 Player viewer = event.getPlayer();
+                Set<String> permittedSkillIds = permittedSkillSnapshots.getOrDefault(
+                    viewer.getUniqueId(),
+                    Set.of()
+                );
                 if (type == PacketType.Play.Server.ENTITY_EQUIPMENT
                     && equipmentOverrideRegistry.consume(packet, viewer.getUniqueId(), System.currentTimeMillis())) {
                     return;
@@ -149,21 +181,24 @@ public class ItemStackPacketAdapter {
                             actionRingHoldSelectEnabled,
                             hotbarSlotForSetSlot(packet),
                             selectedHotbarSlot
-                        )
+                        ),
+                        permittedSkillIds
                     );
                 } else if (type == PacketType.Play.Server.WINDOW_ITEMS) {
                     handleWindowItems(
                         packet,
                         armorDisplayEnabled,
                         actionRingHoldSelectEnabled,
-                        selectedHotbarSlot
+                        selectedHotbarSlot,
+                        permittedSkillIds
                     );
                 } else if (type == PacketType.Play.Server.ENTITY_EQUIPMENT) {
                     handleEntityEquipment(
                         event,
                         armorDisplayEnabled,
                         actionRingHoldSelectEnabled,
-                        selectedHotbarSlot
+                        selectedHotbarSlot,
+                        permittedSkillIds
                     );
                 }
             }
@@ -207,12 +242,47 @@ public class ItemStackPacketAdapter {
             @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = false)
             public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
                 selectedHotbarSlots.remove(event.getPlayer().getUniqueId());
+                permittedSkillSnapshots.remove(event.getPlayer().getUniqueId());
                 equipmentOverrideRegistry.discardViewer(event.getPlayer().getUniqueId());
             }
         }, plugin);
 
+        if (skillPermissionService != null) {
+            plugin.getServer().getScheduler().runTaskTimer(
+                plugin,
+                this::refreshSkillPermissionSnapshots,
+                1L,
+                1L
+            );
+        }
+
         registered = true;
         Logger.log(LogId.I_5210);
+    }
+
+    /**
+     * 使用許可サービスの状態をメインスレッドで受信者別にスナップショット化します。
+     * パケット送信側ではこの不変集合だけを参照し、スキルツリー本体へアクセスしません。
+     */
+    private void refreshSkillPermissionSnapshots() {
+        if (skillPermissionService == null) {
+            return;
+        }
+        for (Player player : plugin.getServer().getOnlinePlayers()) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null) {
+                permittedSkillSnapshots.remove(player.getUniqueId());
+                continue;
+            }
+            Set<String> nextPermittedSkillIds = Set.copyOf(skillPermissionService.permittedSkillIds(astPlayer));
+            Set<String> previousPermittedSkillIds = permittedSkillSnapshots.put(
+                player.getUniqueId(),
+                nextPermittedSkillIds
+            );
+            if (previousPermittedSkillIds == null || !previousPermittedSkillIds.equals(nextPermittedSkillIds)) {
+                player.updateInventory();
+            }
+        }
     }
 
     // region --- パケットハンドラ ---
@@ -227,14 +297,15 @@ public class ItemStackPacketAdapter {
     private void handleSetSlot(
         @NotNull PacketContainer packet,
         boolean armorDisplayEnabled,
-        boolean virtualTrident
+        boolean virtualTrident,
+        @Nullable Set<String> permittedSkillIds
     ) {
         var original = packet.getItemModifier().readSafely(0);
         if (original == null || original.getType() == Material.AIR) {
             return;
         }
 
-        var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident);
+        var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds);
         if (replaced != null) {
             packet.getItemModifier().writeSafely(0, replaced);
         }
@@ -252,7 +323,8 @@ public class ItemStackPacketAdapter {
         @NotNull PacketContainer packet,
         boolean armorDisplayEnabled,
         boolean actionRingHoldSelectEnabled,
-        int selectedHotbarSlot
+        int selectedHotbarSlot,
+        @Nullable Set<String> permittedSkillIds
     ) {
         var items = packet.getItemListModifier().readSafely(0);
         if (items == null || items.isEmpty()) {
@@ -271,7 +343,7 @@ public class ItemStackPacketAdapter {
                 playerInventoryHotbarSlot(packet, i),
                 selectedHotbarSlot
             );
-            var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident);
+            var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds);
             if (replaced != null) {
                 items.set(i, replaced);
                 modified = true;
@@ -296,7 +368,8 @@ public class ItemStackPacketAdapter {
         @NotNull PacketEvent event,
         boolean armorDisplayEnabled,
         boolean actionRingHoldSelectEnabled,
-        int selectedHotbarSlot
+        int selectedHotbarSlot,
+        @Nullable Set<String> permittedSkillIds
     ) {
         PacketContainer packet = event.getPacket();
         List<Pair<EnumWrappers.ItemSlot, ItemStack>> equipment = packet.getSlotStackPairLists().readSafely(0);
@@ -322,7 +395,7 @@ public class ItemStackPacketAdapter {
             boolean virtualTrident = virtualizeSelectedMainHand
                 && pair.getFirst() == EnumWrappers.ItemSlot.MAINHAND;
             if (original != null && original.getType() != Material.AIR
-                && replaceIcon(original, armorDisplayEnabled, virtualTrident) != null) {
+                && replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds) != null) {
                 requiresOverride = true;
             }
             updates.add(new EquipmentUpdate(
@@ -378,10 +451,29 @@ public class ItemStackPacketAdapter {
         boolean armorDisplayEnabled,
         boolean virtualTrident
     ) {
+        return replaceIcon(original, armorDisplayEnabled, virtualTrident, null);
+    }
+
+    /**
+     * AstralRecord アイテムを、受信者の状態を反映したクライアント表示用へ変換します。
+     *
+     * @param original サーバー側 ItemStack
+     * @param armorDisplayEnabled 防具の身体描画を表示する場合は {@code true}
+     * @param virtualTrident hotbar 内の武器を長押し入力用トライデントとして表示する場合は {@code true}
+     * @param permittedSkillIds 受信者が現在使用可能なスキル ID。未指定の場合は可否表示を追加しません
+     * @return 変換済み ItemStack。変換不要の場合は {@code null}
+     */
+    private ItemStack replaceIcon(
+        @NotNull ItemStack original,
+        boolean armorDisplayEnabled,
+        boolean virtualTrident,
+        @Nullable Set<String> permittedSkillIds
+    ) {
         var iconName = ItemStackFactory.getIconName(original);
         var customModelData = ItemStackFactory.getCustomModelData(original);
         var appearanceColor = ItemStackFactory.getAppearanceColor(original);
         var potionType = ItemStackFactory.getPotionType(original);
+        var skillGemId = ItemStackFactory.getSkillGemId(original);
         boolean hookshotLoaded = ItemStackFactory.isHookshotLoaded(original);
         boolean virtualWeapon = virtualTrident && ItemStackFactory.isWeapon(original);
 
@@ -389,7 +481,8 @@ public class ItemStackPacketAdapter {
             && iconName == null
             && customModelData == null
             && appearanceColor == null
-            && potionType == null) {
+            && potionType == null
+            && skillGemId == null) {
             return null;
         }
 
@@ -425,6 +518,12 @@ public class ItemStackPacketAdapter {
         if (ItemStackFactory.applyAppearance(replaced)) {
             modified = true;
         }
+        if (skillGemId != null && permittedSkillIds != null) {
+            modified |= appendSkillGemAvailabilityLore(
+                replaced,
+                permittedSkillIds.contains(skillGemId)
+            );
+        }
         if (ItemStackFactory.applyDurabilityVisual(replaced)) {
             modified = true;
         }
@@ -436,6 +535,38 @@ public class ItemStackPacketAdapter {
         }
 
         return modified ? replaced : null;
+    }
+
+    /**
+     * スキルジェムの送信コピーへ、使用可否を示す Lore 行を追加します。
+     *
+     * @param item 送信コピー
+     * @param permitted 現在使用可能な場合は {@code true}
+     * @return Lore 行を追加した場合は {@code true}
+     */
+    static boolean appendSkillGemAvailabilityLore(@NotNull ItemStack item, boolean permitted) {
+        ItemMeta meta = item.getItemMeta();
+        if (meta == null) {
+            return false;
+        }
+
+        List<Component> lore = meta.lore() == null
+            ? new ArrayList<>()
+            : new ArrayList<>(meta.lore());
+        boolean alreadyAdded = lore.stream()
+            .map(Component::toString)
+            .anyMatch(line -> line.contains("現在使用可能:"));
+        if (alreadyAdded) {
+            return false;
+        }
+
+        lore.add(Component.text(
+            "現在使用可能: " + (permitted ? "はい" : "いいえ"),
+            permitted ? NamedTextColor.GREEN : NamedTextColor.RED
+        ).decoration(TextDecoration.ITALIC, false));
+        meta.lore(lore);
+        item.setItemMeta(meta);
+        return true;
     }
 
     /**
@@ -655,7 +786,12 @@ public class ItemStackPacketAdapter {
         Map<EquipmentSlot, ItemStack> equipment = new EnumMap<>(EquipmentSlot.class);
         for (EquipmentUpdate update : updates) {
             boolean virtualTrident = virtualizeSelectedMainHand && update.slot() == EquipmentSlot.HAND;
-            ItemStack replaced = replaceIcon(update.item(), armorDisplayEnabled, virtualTrident);
+            ItemStack replaced = replaceIcon(
+                update.item(),
+                armorDisplayEnabled,
+                virtualTrident,
+                permittedSkillSnapshots.getOrDefault(viewer.getUniqueId(), Set.of())
+            );
             equipment.put(update.slot(), replaced != null ? replaced : update.item());
         }
         if (equipment.isEmpty()) {
