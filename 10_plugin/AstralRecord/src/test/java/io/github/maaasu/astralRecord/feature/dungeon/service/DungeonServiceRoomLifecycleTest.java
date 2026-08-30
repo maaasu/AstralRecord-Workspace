@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
@@ -78,6 +79,81 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 4. 開始・生成・転送
+     * 検証契約: 待機中の現在パーティーメンバーが一人もHubにいなくなった場合は挑戦を終了する。
+     */
+    @Test
+    void endsWaitingPartySessionWhenNoCurrentMemberRemainsInHub() throws Exception {
+        WorldService worldService = mock(WorldService.class);
+        PartyService partyService = mock(PartyService.class);
+        DungeonService service = service(
+                mock(MobService.class),
+                mock(DisplayTextService.class),
+                worldService,
+                mock(MobDropService.class),
+                partyService
+        );
+        World hubWorld = server().addSimpleWorld("dungeon-waiting-hub-empty");
+        World outsideWorld = server().addSimpleWorld("dungeon-waiting-hub-outside");
+        PlayerMock player = server().addPlayer();
+        player.teleport(new Location(outsideWorld, 0.5D, 65.0D, 0.5D));
+        UUID partyId = UUID.randomUUID();
+        Party party = new Party(partyId, player.getUniqueId());
+        when(partyService.findPartyById(partyId)).thenReturn(party);
+        WorldMasterData hubData = worldData("hub", WorldType.BASE);
+        when(worldService.getById("hub")).thenReturn(hubData);
+        when(worldService.resolveLoadedWorld(hubData)).thenReturn(hubWorld);
+        Object session = session(player.getUniqueId(), List.of(), "party:" + partyId);
+
+        try (MockedStatic<Logger> ignored = Mockito.mockStatic(Logger.class)) {
+            invoke(service, "synchronizeWaitingParty", session);
+        }
+
+        assertTrue(field(session, "ending", Boolean.class));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 4. 開始・生成・転送
+     * 検証契約: 待機中の現在パーティーメンバーが一人でもHubに残る場合は挑戦を継続する。
+     */
+    @Test
+    void keepsWaitingPartySessionWhileCurrentMemberRemainsInHub() throws Exception {
+        WorldService worldService = mock(WorldService.class);
+        PartyService partyService = mock(PartyService.class);
+        DungeonService service = service(
+                mock(MobService.class),
+                mock(DisplayTextService.class),
+                worldService,
+                mock(MobDropService.class),
+                partyService
+        );
+        World hubWorld = server().addSimpleWorld("dungeon-waiting-hub-occupied");
+        World outsideWorld = server().addSimpleWorld("dungeon-waiting-hub-partially-outside");
+        PlayerMock remainingPlayer = server().addPlayer();
+        remainingPlayer.teleport(new Location(hubWorld, 0.5D, 65.0D, 0.5D));
+        PlayerMock outsidePlayer = server().addPlayer();
+        outsidePlayer.teleport(new Location(outsideWorld, 0.5D, 65.0D, 0.5D));
+        UUID partyId = UUID.randomUUID();
+        Party party = new Party(partyId, remainingPlayer.getUniqueId());
+        party.addMember(outsidePlayer.getUniqueId());
+        when(partyService.findPartyById(partyId)).thenReturn(party);
+        WorldMasterData hubData = worldData("hub", WorldType.BASE);
+        when(worldService.getById("hub")).thenReturn(hubData);
+        when(worldService.resolveLoadedWorld(hubData)).thenReturn(hubWorld);
+        Object session = session(
+                List.of(remainingPlayer.getUniqueId(), outsidePlayer.getUniqueId()),
+                List.of(),
+                "party:" + partyId
+        );
+
+        invoke(service, "synchronizeWaitingParty", session);
+
+        assertFalse(field(session, "ending", Boolean.class));
+    }
+
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 3. 遭遇 Mob と部屋進行
@@ -496,6 +572,17 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
             WorldService worldService,
             MobDropService mobDropService
     ) {
+        return service(mobService, displayTextService, worldService, mobDropService, mock(PartyService.class));
+    }
+
+    /** テスト対象サービスをPartyServiceまで検証可能な依存で構成します。 */
+    private DungeonService service(
+            MobService mobService,
+            DisplayTextService displayTextService,
+            WorldService worldService,
+            MobDropService mobDropService,
+            PartyService partyService
+    ) {
         AstralRecord plugin = mock(AstralRecord.class);
         when(plugin.isEnabled()).thenReturn(true);
         when(plugin.getName()).thenReturn("DungeonServiceRoomLifecycleTest");
@@ -503,7 +590,7 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
                 plugin,
                 mock(DungeonDefinitionRepository.class),
                 worldService,
-                mock(PartyService.class),
+                partyService,
                 mobService,
                 mock(PlayerMessageService.class),
                 mock(ParticleDisplayService.class),
@@ -635,6 +722,24 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
     /** 通常 Mob のスナップショットを指定して DungeonService の private Session を構築します。 */
     private Object session(UUID participantId, List<DungeonService.LoadedMob> normalMobs)
             throws ReflectiveOperationException {
+        return session(participantId, normalMobs, "party");
+    }
+
+    /** パーティーキーと通常 Mob のスナップショットを指定して private Session を構築します。 */
+    private Object session(
+            UUID participantId,
+            List<DungeonService.LoadedMob> normalMobs,
+            String partyKey
+    ) throws ReflectiveOperationException {
+        return session(List.of(participantId), normalMobs, partyKey);
+    }
+
+    /** パーティーキー、参加者、通常 Mob のスナップショットを指定して private Session を構築します。 */
+    private Object session(
+            List<UUID> participantIds,
+            List<DungeonService.LoadedMob> normalMobs,
+            String partyKey
+    ) throws ReflectiveOperationException {
         Class<?> sessionType = sessionType();
         Constructor<?> constructor = sessionType.getDeclaredConstructors()[0];
         constructor.setAccessible(true);
@@ -649,9 +754,9 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
                 UUID.randomUUID(),
                 1L,
                 loaded,
-                "party",
+                partyKey,
                 UUID.randomUUID(),
-                new LinkedHashSet<>(List.of(participantId)),
+                new LinkedHashSet<>(participantIds),
                 new HashMap<UUID, Location>()
         );
     }

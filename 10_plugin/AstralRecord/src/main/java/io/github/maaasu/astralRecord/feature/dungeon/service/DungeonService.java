@@ -3358,6 +3358,14 @@ public final class DungeonService {
         }
     }
 
+    /**
+     * 待機中のパーティーセッションを現在のパーティー構成と Hub 滞在状態へ同期します。
+     * <p>
+     * 現在のパーティーメンバーが全員 Hub 外の場合は、参加条件未達として既存の
+     * セッション終了処理へ委譲します。パーティー待機中でないセッションは変更しません。
+     *
+     * @param session 同期対象の Dungeon セッション
+     */
     private void synchronizeWaitingParty(@NotNull Session session) {
         if (!session.partyKey.startsWith("party:") || !isWaitingForPartyMembers(session)) {
             return;
@@ -3375,6 +3383,10 @@ public final class DungeonService {
         }
         List<UUID> previous = List.copyOf(session.participants);
         List<UUID> current = party.members();
+        if (current.stream().noneMatch(this::isInHub)) {
+            completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
+            return;
+        }
         if (!previous.equals(current)) {
             Set<UUID> previousSet = new HashSet<>(previous);
             Set<UUID> currentSet = new HashSet<>(current);
