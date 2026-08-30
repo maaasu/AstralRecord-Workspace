@@ -57,6 +57,9 @@ clearRewards:
     - itemId: item:sauron_charm
       rate: 10.0
       amount: "1"
+    - itemId: item:melkor_plate
+      rate: 5.0
+      amount: "1"
 generation:
   area:
     width: 120

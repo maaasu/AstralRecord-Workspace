@@ -1,0 +1,58 @@
+# design:
+#   motif: "メルコール / 黄金の胸甲"
+#   progression: 9
+schemaVersion: 1
+id: melkor_plate
+category: equipment
+name: "&6メルコールプレート"
+icon: GOLDEN_CHESTPLATE
+rarity: RARE
+maxStack: 1
+saleValue: 1100
+lore:
+  - "&7黒王の意匠を黄金の装甲へ刻んだ、重厚な胸当て。"
+  - "&7高い防御力と生命力を備えた防御向けの胸防具。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: CHEST
+  requiredLevel: 10
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value:
+        min: 12~29
+        max: 30~55
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 100
+    - status: HP_REGEN
+      type: FLAT
+      value: 4
+    - status: KNOCKBACK_RESISTANCE
+      type: FLAT
+      value: 8
+    - status: MELEE_DEFENSE
+      type: FLAT
+      value: 10
+  durability:
+    max: 360
+    consume: 1
+  enhance:
+    maxLevel: 15
+    levels:
+      - { level: 1, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 1.0, failAction: NONE }
+      - { level: 2, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 1.0, failAction: NONE }
+      - { level: 3, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 1.0, failAction: NONE }
+      - { level: 4, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 1.0, failAction: NONE }
+      - { level: 5, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 1.0, failAction: NONE }
+      - { level: 6, statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }], successRate: 0.75, failAction: NONE }
+      - { level: 7, statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }], successRate: 0.75, failAction: NONE }
+      - { level: 8, statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }], successRate: 0.75, failAction: NONE }
+      - { level: 9, statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }], successRate: 0.75, failAction: NONE }
+      - { level: 10, statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }], successRate: 0.75, failAction: NONE }
+      - { level: 11, statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }], successRate: 0.5, failAction: NONE }
+      - { level: 12, statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }], successRate: 0.5, failAction: NONE }
+      - { level: 13, statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }], successRate: 0.5, failAction: NONE }
+      - { level: 14, statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }], successRate: 0.5, failAction: NONE }
+      - { level: 15, statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }], successRate: 0.5, failAction: NONE }
