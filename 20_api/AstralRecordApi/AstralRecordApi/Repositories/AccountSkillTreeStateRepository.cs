@@ -1,3 +1,4 @@
+using System.Data;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
@@ -72,38 +73,46 @@ public class AccountSkillTreeStateRepository(
             throw new KeyNotFoundException($"Mail master not found: {CompensationMailMasterId}");
 
         var now = DateTime.UtcNow;
-        await using var transaction = await dbContext.Database.BeginTransactionAsync();
-        var deliveryExistsInTransaction = await DeliveryExistsAsync(request.UserId, deliveryMailId);
-        var hasUnlockedNodes = await HasUnlockedNodesAsync(accountId);
-        if (deliveryExistsInTransaction && !hasUnlockedNodes)
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        await strategy.ExecuteAsync(async () =>
         {
-            await transaction.CommitAsync();
-            return await GetByAccountIdAsync(accountId);
-        }
-
-        if (hasUnlockedNodes || !deliveryExistsInTransaction)
-        {
-            await ReplaceUnlockedNodesAsync(accountId, [], request.UpdatedBy, now);
-        }
-        if (!deliveryExistsInTransaction)
-        {
-            var deliveryMail = CreateCompensationMail(master!, deliveryMailId, now);
-            await dbContext.PlayerMailDeliveries.AddAsync(new PlayerMailDeliveryEntity
+            // EnableRetryOnFailure が有効なため、ユーザー開始トランザクションは
+            // 実行戦略の再実行範囲内で開始する。
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(
+                IsolationLevel.Serializable);
+            var deliveryExistsInTransaction = await DeliveryExistsForRepairAsync(request.UserId, deliveryMailId);
+            var hasUnlockedNodes = await HasUnlockedNodesAsync(accountId);
+            if (deliveryExistsInTransaction && !hasUnlockedNodes)
             {
-                PlayerMailDeliveryId = Guid.NewGuid(),
-                UserId = request.UserId,
-                MailId = deliveryMailId,
-                PayloadJson = JsonSerializer.Serialize(deliveryMail, MasterDataPayloadJson.Options),
-                Version = 1,
-                CreatedAt = now,
-                UpdatedAt = now,
-                CreatedBy = request.UpdatedBy,
-                UpdatedBy = request.UpdatedBy,
-                IsDeleted = false,
-            });
-        }
-        await dbContext.SaveChangesAsync();
-        await transaction.CommitAsync();
+                await transaction.CommitAsync();
+                return;
+            }
+
+            if (hasUnlockedNodes || !deliveryExistsInTransaction)
+            {
+                await ReplaceUnlockedNodesAsync(accountId, [], request.UpdatedBy, now);
+            }
+            if (!deliveryExistsInTransaction)
+            {
+                var deliveryMail = CreateCompensationMail(master!, deliveryMailId, now);
+                await dbContext.PlayerMailDeliveries.AddAsync(new PlayerMailDeliveryEntity
+                {
+                    PlayerMailDeliveryId = Guid.NewGuid(),
+                    UserId = request.UserId,
+                    MailId = deliveryMailId,
+                    PayloadJson = JsonSerializer.Serialize(deliveryMail, MasterDataPayloadJson.Options),
+                    Version = 1,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    CreatedBy = request.UpdatedBy,
+                    UpdatedBy = request.UpdatedBy,
+                    IsDeleted = false,
+                });
+            }
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+        });
         return await GetByAccountIdAsync(accountId);
     }
 
@@ -201,6 +210,22 @@ public class AccountSkillTreeStateRepository(
         => await dbContext.PlayerMailDeliveries
             .AsNoTracking()
             .AnyAsync(delivery => delivery.UserId == userId && delivery.MailId == mailId);
+
+    private async Task<bool> DeliveryExistsForRepairAsync(Guid userId, string mailId)
+    {
+        if (!dbContext.Database.IsSqlServer())
+            return await DeliveryExistsAsync(userId, mailId);
+
+        // 未登録の配信キーにも範囲ロックを取得し、同一repairKeyの補修を直列化する。
+        return await dbContext.PlayerMailDeliveries
+            .FromSqlInterpolated($"""
+                SELECT TOP (1) *
+                FROM dbo.player_mail_delivery WITH (UPDLOCK, HOLDLOCK)
+                WHERE user_id = {userId} AND mail_id = {mailId}
+                """)
+            .AsNoTracking()
+            .AnyAsync();
+    }
 
     private async Task<bool> HasUnlockedNodesAsync(Guid accountId)
     {

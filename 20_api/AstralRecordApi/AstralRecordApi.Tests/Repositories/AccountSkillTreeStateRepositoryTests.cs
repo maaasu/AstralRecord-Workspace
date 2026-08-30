@@ -5,6 +5,9 @@ using AstralRecordApi.Repositories;
 using AstralRecordApi.Tests.TestSupport;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Storage;
+using System.Data.Common;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Xunit;
@@ -153,12 +156,15 @@ public class AccountSkillTreeStateRepositoryTests
     }
 
     [Fact]
-    public async Task RepairInvalidStateAsync_ResetsNodesAndDeliversTemplateMailOnlyOncePerRepairKey()
+    public async Task RepairInvalidStateAsync_RetriesTransactionAndDeliversTemplateMailOnlyOncePerRepairKey()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
+        var transientInterceptor = new ThrowOnceOnMailInsertInterceptor();
         var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
-            .UseSqlite(connection)
+            .UseSqlite(connection, sqlite => sqlite.ExecutionStrategy(
+                dependencies => new RetryingTestExecutionStrategy(dependencies)))
+            .AddInterceptors(transientInterceptor)
             .Options;
         var accountId = Guid.NewGuid();
         var userId = Guid.NewGuid();
@@ -210,6 +216,7 @@ public class AccountSkillTreeStateRepositoryTests
         });
 
         const string repairKey = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+        transientInterceptor.Arm();
         var repaired = await repository.RepairInvalidStateAsync(accountId,
             new AccountSkillTreeInvalidStateRepairRequest
             {
@@ -217,6 +224,7 @@ public class AccountSkillTreeStateRepositoryTests
                 RepairKey = repairKey,
                 UpdatedBy = accountId,
             });
+        Assert.Equal(1, transientInterceptor.TriggerCount);
         var retried = await repository.RepairInvalidStateAsync(accountId,
             new AccountSkillTreeInvalidStateRepairRequest
             {
@@ -338,5 +346,68 @@ public class AccountSkillTreeStateRepositoryTests
             current = current.Parent;
         }
         throw new InvalidOperationException("workspace root could not be resolved from the test source path.");
+    }
+
+    private sealed class RetryingTestExecutionStrategy(ExecutionStrategyDependencies dependencies)
+        : ExecutionStrategy(dependencies, maxRetryCount: 1, maxRetryDelay: TimeSpan.Zero)
+    {
+        protected override bool ShouldRetryOn(Exception exception)
+            => exception is TransientTestException;
+    }
+
+    private sealed class ThrowOnceOnMailInsertInterceptor : DbCommandInterceptor
+    {
+        private int isArmed;
+        private int triggerCount;
+
+        public int TriggerCount => Volatile.Read(ref triggerCount);
+
+        public void Arm() => Interlocked.Exchange(ref isArmed, 1);
+
+        public override ValueTask<InterceptionResult<int>> NonQueryExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<int> result,
+            CancellationToken cancellationToken = default)
+        {
+            if (ShouldThrow(command))
+            {
+                throw new TransientTestException();
+            }
+
+            return base.NonQueryExecutingAsync(command, eventData, result, cancellationToken);
+        }
+
+        public override ValueTask<InterceptionResult<DbDataReader>> ReaderExecutingAsync(
+            DbCommand command,
+            CommandEventData eventData,
+            InterceptionResult<DbDataReader> result,
+            CancellationToken cancellationToken = default)
+        {
+            if (ShouldThrow(command))
+            {
+                throw new TransientTestException();
+            }
+
+            return base.ReaderExecutingAsync(command, eventData, result, cancellationToken);
+        }
+
+        private bool ShouldThrow(DbCommand command)
+        {
+            if (Volatile.Read(ref isArmed) != 1
+                || !command.CommandText.Contains("INSERT INTO", StringComparison.OrdinalIgnoreCase)
+                || !command.CommandText.Contains("player_mail_delivery", StringComparison.OrdinalIgnoreCase)
+                || Interlocked.Exchange(ref isArmed, 0) != 1)
+            {
+                return false;
+            }
+
+            Interlocked.Increment(ref triggerCount);
+            return true;
+        }
+    }
+
+    private sealed class TransientTestException : Exception
+    {
     }
 }
