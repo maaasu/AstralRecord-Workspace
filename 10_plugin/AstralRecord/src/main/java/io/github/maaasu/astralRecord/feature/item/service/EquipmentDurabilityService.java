@@ -34,6 +34,8 @@ public final class EquipmentDurabilityService {
     private static final double ARMOR_DAMAGE_TAKEN_CONSUME_CHANCE = 0.20D;
     private static final double ACCESSORY_HIT_CONSUME_CHANCE = 0.06D;
     private static final double ACCESSORY_DAMAGE_TAKEN_CONSUME_CHANCE = 0.10D;
+    private static final int LOW_DURABILITY_WARNING_MAX_PERCENT = 5;
+    private static final int LOW_DURABILITY_WARNING_MIN_PERCENT = 1;
 
     private final InventoryService inventoryService;
     private final ItemService itemService;
@@ -263,10 +265,61 @@ public final class EquipmentDurabilityService {
             return;
         }
         inventoryService.refreshEquipmentInstanceDisplay(player, updated);
-        if (nextValue <= 0) {
+        int updatedValue = updated.getDurabilityValue();
+        if (updatedValue <= 0) {
             notifyEquipmentBroken(player, model);
             if (statusService != null) {
                 statusService.refreshStatus(player);
+            }
+        } else {
+            notifyLowDurabilityWarnings(
+                player,
+                model,
+                instance.getDurabilityValue(),
+                updatedValue,
+                updated.getDurabilityMax()
+            );
+        }
+    }
+
+    /**
+     * 武器の耐久値が低耐久警告の閾値を跨いだ場合に、閾値ごとの警告を送信します。
+     * 1回の消費で複数の閾値を跨いだ場合は、5%から1%の順に該当する警告を送信します。
+     *
+     * @param player 警告の送信先プレイヤー
+     * @param model 消費対象のアイテムマスタ
+     * @param previousValue 消費前の耐久値
+     * @param updatedValue 消費後の耐久値
+     * @param durabilityMax 最大耐久値
+     */
+    private void notifyLowDurabilityWarnings(
+        @NotNull AstPlayer player,
+        @NotNull ItemModel model,
+        int previousValue,
+        int updatedValue,
+        int durabilityMax
+    ) {
+        ItemEquipment equipment = model.getEquipment();
+        if (equipment == null
+            || equipment.getSlot() != ItemEquipmentSlot.WEAPON
+            || durabilityMax <= 0
+            || updatedValue <= 0
+            || previousValue <= updatedValue) {
+            return;
+        }
+
+        String displayName = ColorCodeUtil.toLegacyText(model.getName(), model.getId());
+        for (int percent = LOW_DURABILITY_WARNING_MAX_PERCENT;
+             percent >= LOW_DURABILITY_WARNING_MIN_PERCENT;
+             percent--) {
+            double thresholdValue = (double) durabilityMax * percent / 100.0D;
+            if ((double) previousValue > thresholdValue && (double) updatedValue <= thresholdValue) {
+                PlayerMessageService.getInstance().send(
+                    player,
+                    PlayerMsgId.P_5282,
+                    displayName,
+                    percent
+                );
             }
         }
     }
