@@ -3,13 +3,13 @@
 #   progression: 8
 schemaVersion: 1
 id: iluvatar_sanctum
-displayName: "万象の聖域"
+displayName: "万象聖域の遺跡"
 recommendedLevel: 8
 entry:
   worldRef: world:midgard_greenfields
-  x: -315.3
-  y: 25.0
-  z: -517.4
+  x: -449.5
+  y: 4.0
+  z: -604.5
   yaw: 0.0
   pitch: 0.0
 party:
