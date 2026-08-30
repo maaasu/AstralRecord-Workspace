@@ -20,7 +20,9 @@ spawnLocation:
   z: -597.5
   yaw: 0.0
   pitch: 0.0
-description: "海に囲まれた緑の大地と、北東の岩山が連なる探索ワールド。\n始まりの地として基本的な冒険術を学ぶことができる。"
+description: |-
+  海に囲まれた緑の大地と、北東の岩山が連なる探索ワールド。
+  始まりの地として基本的な冒険術を学ぶことができる。
 guiIconMaterial: GRASS_BLOCK
 adventureGuide:
   recommendedLevelMin: 1

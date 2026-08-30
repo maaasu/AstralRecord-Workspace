@@ -53,7 +53,7 @@ overworldTeleportGui:
 | `allowMobSpawn` | yes | 互換用フィールド。Plugin は RPG マップ保護を優先し、管理ワールドでは値にかかわらずバニラ Mob スポーンを抑止し、AstralRecord が生成した Mob 以外の Bukkit `Mob` を削除する。 |
 | `showSpawnParticle` | yes | ワールドスポーン地点の常時リングパーティクルとスニーク導線 TextDisplay を表示するか。`false` の場合も `spawnLocation` 自体は維持し、演出のみ非表示にする。 |
 | `spawnLocation` | yes | ワールド既定スポーン地点。`x` `y` `z` `yaw` `pitch` を持つ。 |
-| `description` | yes | 説明。 |
+| `description` | yes | 説明。複数行は YAML のブロック形式（`|-` など）で記述でき、オーバーワールド転送 GUI では改行ごとに lore の別行として表示する。 |
 | `guiIconMaterial` | no | オーバーワールド転送 GUI に表示する `Material` 名。未指定または不正な場合は `GRASS_BLOCK` を使う。 |
 | `adventureGuide.recommendedLevelMin` | no | 推奨レベル下限。 |
 | `adventureGuide.recommendedLevelMax` | no | 推奨レベル上限。 |

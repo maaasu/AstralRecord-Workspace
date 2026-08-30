@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.junit.jupiter.api.Test;
@@ -36,7 +37,29 @@ class OverworldTeleportGuiTest extends MockBukkitTestBase {
         assertEquals("open_world", holder.worldIdsBySlot().get(22));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_1-モデル定義.md
+     * 章・見出し: # 17_1-モデル定義 > ## WorldMasterData
+     * 検証契約: World description の改行ごとに GUI lore の行を分けて表示する。
+     */
+    @Test
+    void descriptionNewlinesBecomeSeparateLoreEntries() {
+        var player = server().addPlayer();
+        var gui = new OverworldTeleportGui();
+
+        gui.open(player, List.of(world("wild_overworld", 10, "第一行\n第二行")));
+
+        List<String> lore = player.getOpenInventory().getTopInventory().getItem(10).getItemMeta().lore().stream()
+            .map(PlainTextComponentSerializer.plainText()::serialize)
+            .toList();
+        assertEquals(List.of("第一行", "第二行", "クリックで移動"), lore);
+    }
+
     private WorldMasterData world(String id, int slot) {
+        return world(id, slot, id);
+    }
+
+    private WorldMasterData world(String id, int slot, String description) {
         return new WorldMasterData(
             1,
             id,
@@ -52,7 +75,7 @@ class OverworldTeleportGuiTest extends MockBukkitTestBase {
             false,
             true,
             WorldSpawnLocation.defaultLocation(),
-            id,
+            description,
             null,
             null,
             new OverworldTeleportGuiSetting(slot)

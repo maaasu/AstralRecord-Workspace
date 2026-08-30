@@ -117,7 +117,9 @@ public final class OverworldTeleportGui {
     private @NotNull ItemStack destinationItem(@NotNull WorldMasterData world) {
         List<Component> lore = new ArrayList<>();
         if (!world.description().isBlank()) {
-            lore.add(legacy(world.description(), world.id()));
+            for (String line : world.description().split("\\R", -1)) {
+                lore.add(legacy(line, ""));
+            }
         }
 
         WorldAdventureGuide guide = world.adventureGuide();
