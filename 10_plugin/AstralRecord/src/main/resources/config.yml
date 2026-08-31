@@ -5,7 +5,8 @@ plugin:
   debugUsers: []
   whitelistEnabled: false
   joinSpawn:
-    world: "world"
+    # WorldMasterData ID. The vanilla server world is not a join-spawn master.
+    world: "starlit_nox"
 
 skilltree:
   worldName: "plugins/AstralRecord/worlds/hub/skill_tree"
