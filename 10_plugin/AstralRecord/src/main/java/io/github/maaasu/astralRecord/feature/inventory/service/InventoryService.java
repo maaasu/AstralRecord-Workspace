@@ -531,16 +531,23 @@ public class InventoryService {
         if (itemId == null || itemId.isBlank()) {
             return false;
         }
+        return getSpendableNormalItemAmount(accountId, itemId) >= amount;
+    }
+
+    private long getSpendableNormalItemAmount(
+        @NotNull UUID accountId,
+        @NotNull String itemId
+    ) {
         OrbPaymentReservation reservation = currentOrbPaymentReservation(accountId);
         String normalizedItemId = itemId.trim().toLowerCase(Locale.ROOT);
         if (reservation != null
             && !reservation.baselineAllocated()
             && reservation.normalItemAmounts().containsKey(normalizedItemId)) {
-            return false;
+            return 0L;
         }
         long owned = getNormalItemAmount(accountId, itemId);
         long reserved = reservedNormalItemAmount(accountId, normalizedItemId);
-        return owned >= reserved && owned - reserved >= amount;
+        return owned >= reserved ? owned - reserved : 0L;
     }
 
     private @Nullable OrbPaymentReservation currentOrbPaymentReservation(@NotNull UUID accountId) {
@@ -2088,12 +2095,16 @@ public class InventoryService {
         if (normalizedItemId.isBlank()) {
             return 0L;
         }
-        return normalizeCurrencyEntries(state, inventory).stream()
-            .filter(entry -> !entry.isDeleted())
-            .filter(this::isNormalItemEntry)
-            .filter(entry -> entry.getItemId().equalsIgnoreCase(normalizedItemId))
-            .mapToLong(InventoryEntryModel::getQuantity)
-            .sum();
+        long totalAmount = 0L;
+        for (InventoryEntryModel entry : normalizeCurrencyEntries(state, inventory)) {
+            if (entry.isDeleted()
+                || !isNormalItemEntry(entry)
+                || !entry.getItemId().equalsIgnoreCase(normalizedItemId)) {
+                continue;
+            }
+            totalAmount = addAmountsSaturated(totalAmount, entry.getQuantity());
+        }
+        return totalAmount;
     }
 
     /**
@@ -2215,8 +2226,64 @@ public class InventoryService {
         if (normalizedItemId.isBlank()) {
             return 0L;
         }
-        return getItemAmount(state, InventoryType.BAG, normalizedItemId)
-            + getItemAmount(state, InventoryType.HOTBAR, normalizedItemId);
+        return addAmountsSaturated(
+            getItemAmount(state, InventoryType.BAG, normalizedItemId),
+            getItemAmount(state, InventoryType.HOTBAR, normalizedItemId)
+        );
+    }
+
+    /**
+     * ショップ決済に使用できる通常アイテムを、BAG・HOTBAR・STORAGEから合算します。
+     * オーブ操作で予約済みのBAG・HOTBAR数量は合算せず、STORAGEは予約対象外として扱います。
+     *
+     * @param accountId 対象アカウントID
+     * @param itemId 対象アイテムID
+     * @return 決済に使用できる数量。未ロードまたは未所持の場合は0
+     */
+    public long getSpendableNormalItemAmountIncludingStorage(
+        @NotNull UUID accountId,
+        @NotNull String itemId
+    ) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return 0L;
+        }
+        String normalizedItemId = itemId.trim();
+        if (normalizedItemId.isBlank()) {
+            return 0L;
+        }
+        synchronized (state) {
+            long ownedAmount = getSpendableNormalItemAmount(accountId, normalizedItemId);
+            long storageAmount = getItemAmount(state, InventoryType.STORAGE, normalizedItemId);
+            return addAmountsSaturated(ownedAmount, storageAmount);
+        }
+    }
+
+    /**
+     * ショップ決済に使用できる指定通貨を、CURRENCY・STORAGEから合算します。
+     * goldの額面換算は行わず、指定されたitemIdと一致する数量だけを対象にします。
+     *
+     * @param accountId 対象アカウントID
+     * @param itemId 対象通貨アイテムID
+     * @return 決済に使用できる数量。未ロードまたは未所持の場合は0
+     */
+    public long getSpendableCurrencyAmountIncludingStorage(
+        @NotNull UUID accountId,
+        @NotNull String itemId
+    ) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return 0L;
+        }
+        String normalizedItemId = itemId.trim();
+        if (normalizedItemId.isBlank()) {
+            return 0L;
+        }
+        synchronized (state) {
+            long currencyAmount = getCurrencyAmount(accountId, normalizedItemId);
+            long storageAmount = getItemAmount(state, InventoryType.STORAGE, normalizedItemId);
+            return addAmountsSaturated(currencyAmount, storageAmount);
+        }
     }
 
     /**
@@ -3361,6 +3428,125 @@ public class InventoryService {
     }
 
     /**
+     * ショップ決済用の通常アイテムをBAG・HOTBAR・STORAGEの順で消費します。
+     * オーブ操作で予約済みのBAG・HOTBAR数量は消費しません。
+     *
+     * @param accountId 対象アカウントID
+     * @param itemId 対象アイテムID
+     * @param amount 消費数量
+     * @return 全量を消費できた場合はtrue
+     */
+    public boolean consumeNormalItemIncludingStorage(
+        @NotNull UUID accountId,
+        @NotNull String itemId,
+        long amount
+    ) {
+        if (amount <= 0L) {
+            return true;
+        }
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return false;
+        }
+        String normalizedItemId = itemId.trim();
+        if (normalizedItemId.isBlank()) {
+            return false;
+        }
+        synchronized (state) {
+            long ownedAmount = getSpendableNormalItemAmount(accountId, normalizedItemId);
+            long storageAmount = getItemAmount(state, InventoryType.STORAGE, normalizedItemId);
+            if (addAmountsSaturated(ownedAmount, storageAmount) < amount) {
+                return false;
+            }
+
+            long remaining = amount;
+            long ownedRemaining = Math.min(remaining, ownedAmount);
+            for (InventoryType inventoryType : List.of(InventoryType.BAG, InventoryType.HOTBAR)) {
+                if (ownedRemaining <= 0L) {
+                    break;
+                }
+                InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, inventoryType);
+                if (inventory == null || !inventory.isEnabled()) {
+                    continue;
+                }
+                long consumed = consumeItemAmountFromInventory(
+                    state,
+                    inventory,
+                    normalizedItemId,
+                    ownedRemaining
+                );
+                ownedRemaining -= consumed;
+                remaining -= consumed;
+            }
+
+            InventoryModel storage = state.findInventory(DEFAULT_PROFILE, InventoryType.STORAGE);
+            if (remaining > 0L && storage != null && storage.isEnabled()) {
+                remaining -= consumeItemAmountFromInventory(
+                    state,
+                    storage,
+                    normalizedItemId,
+                    remaining
+                );
+            }
+            return remaining <= 0L;
+        }
+    }
+
+    /**
+     * ショップ決済用の通貨をCURRENCY・STORAGEの順で消費します。
+     * goldの額面換算は既存のgold決済へ委譲し、このAPIでは指定itemIdの数量を対象にします。
+     *
+     * @param accountId 対象アカウントID
+     * @param itemId 対象通貨アイテムID
+     * @param amount 消費数量
+     * @return 全量を消費できた場合はtrue
+     */
+    public boolean consumeCurrencyIncludingStorage(
+        @NotNull UUID accountId,
+        @NotNull String itemId,
+        long amount
+    ) {
+        if (amount <= 0L) {
+            return true;
+        }
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return false;
+        }
+        String normalizedItemId = itemId.trim();
+        if (normalizedItemId.isBlank()) {
+            return false;
+        }
+        synchronized (state) {
+            long currencyAmount = getCurrencyAmount(accountId, normalizedItemId);
+            long storageAmount = getItemAmount(state, InventoryType.STORAGE, normalizedItemId);
+            if (addAmountsSaturated(currencyAmount, storageAmount) < amount) {
+                return false;
+            }
+
+            long remaining = amount;
+            long currencyConsumption = Math.min(remaining, currencyAmount);
+            if (currencyConsumption > 0L) {
+                if (!consumeCurrency(accountId, normalizedItemId, currencyConsumption)) {
+                    return false;
+                }
+                remaining -= currencyConsumption;
+            }
+
+            InventoryModel storage = state.findInventory(DEFAULT_PROFILE, InventoryType.STORAGE);
+            if (remaining > 0L && storage != null && storage.isEnabled()) {
+                remaining -= consumeItemAmountFromInventory(
+                    state,
+                    storage,
+                    normalizedItemId,
+                    remaining
+                );
+            }
+            return remaining <= 0L;
+        }
+    }
+
+    /**
      * 指定アカウントの即時保存をアカウント別キューへ登録します。
      * <p>
      * API I/O は保存コーディネーターの非同期 executor 上で実行されます。
@@ -3497,12 +3683,24 @@ public class InventoryService {
         if (inventory == null || !inventory.isEnabled()) {
             return 0L;
         }
-        return state.snapshotEntries(inventory.getInventoryId()).stream()
-            .filter(entry -> !entry.isDeleted())
-            .filter(this::isNormalItemEntry)
-            .filter(entry -> entry.getItemId().equalsIgnoreCase(itemId))
-            .mapToLong(InventoryEntryModel::getQuantity)
-            .sum();
+        long totalAmount = 0L;
+        for (InventoryEntryModel entry : state.snapshotEntries(inventory.getInventoryId())) {
+            if (entry.isDeleted()
+                || !isNormalItemEntry(entry)
+                || !entry.getItemId().equalsIgnoreCase(itemId)) {
+                continue;
+            }
+            totalAmount = addAmountsSaturated(totalAmount, entry.getQuantity());
+        }
+        return totalAmount;
+    }
+
+    private long addAmountsSaturated(long first, long second) {
+        long safeFirst = Math.max(0L, first);
+        long safeSecond = Math.max(0L, second);
+        return safeFirst > Long.MAX_VALUE - safeSecond
+            ? Long.MAX_VALUE
+            : safeFirst + safeSecond;
     }
 
     // ---------------------------------------------------------------
@@ -6467,7 +6665,11 @@ public class InventoryService {
 
             mergedByItemId.put(
                 itemId,
-                withQuantity(existing, existing.getQuantity() + entry.getQuantity(), state.getAccountId())
+                withQuantity(
+                    existing,
+                    addAmountsSaturated(existing.getQuantity(), entry.getQuantity()),
+                    state.getAccountId()
+                )
             );
             changed = true;
         }

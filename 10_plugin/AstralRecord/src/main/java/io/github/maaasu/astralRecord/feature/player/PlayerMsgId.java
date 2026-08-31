@@ -510,6 +510,8 @@ public enum PlayerMsgId {
      * InventoryService が初期化されていません。
      */
     P_5252(5252),
+    /** ストレージからのアイテム取得通知。{0}: アイテム表示名、{1}: 取得数量 */
+    P_5253(5253),
     // endregion
 
     // region /feature/inventory/service/InventoryAutoSaveTask.java 5280-5289

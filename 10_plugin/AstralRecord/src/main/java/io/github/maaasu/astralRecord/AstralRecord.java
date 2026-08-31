@@ -1156,7 +1156,8 @@ public final class AstralRecord extends JavaPlugin {
             menuView,
             inventoryService,
             inventorySaveCoordinator,
-            menuGuiTransitionService
+            menuGuiTransitionService,
+            playerMessageService
         );
         orbService = new OrbService(
             this,

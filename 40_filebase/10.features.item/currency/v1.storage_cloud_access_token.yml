@@ -1,0 +1,18 @@
+# design:
+#   motif: "保管 / クラウドアクセス認証"
+#   progression: 0
+schemaVersion: 1
+id: storage_cloud_access_token
+category: currency
+name: "&5ストレージクラウドアクセストークン"
+icon: ENDER_CHEST
+rarity: EPIC
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7クラウドストレージへアクセスするためのトークン。"
+unTradeable: true
+unSellable: true
+currency:
+  type: STORAGE_CLOUD_ACCESS
+  group: storage_access

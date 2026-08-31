@@ -714,6 +714,147 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 14. ストレージ操作
+     * 検証契約: ショップ決済用通常itemはBAGを先に消費し、不足分をSTORAGEの同一item IDから消費する。
+     */
+    @Test
+    void shopNormalItemPaymentConsumesOwnedInventoryBeforeStorage() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        harness.addInventory(state, InventoryType.HOTBAR);
+        InventoryModel storage = harness.addInventory(state, InventoryType.STORAGE);
+        String itemId = "shop_storage_material";
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
+            inventoryEntry(state.getAccountId(), bag.getInventoryId(), 1, ItemCategory.MATERIAL, itemId, 2L)
+        ));
+        state.replaceEntriesFromLoad(storage.getInventoryId(), List.of(
+            inventoryEntry(state.getAccountId(), storage.getInventoryId(), 1, ItemCategory.MATERIAL, itemId, 4L)
+        ));
+
+        assertEquals(6L, harness.inventoryService.getSpendableNormalItemAmountIncludingStorage(
+            state.getAccountId(), itemId));
+        assertTrue(harness.inventoryService.consumeNormalItemIncludingStorage(
+            state.getAccountId(), itemId, 5L));
+
+        assertTrue(state.snapshotEntries(bag.getInventoryId()).isEmpty());
+        assertEquals(1L, state.snapshotEntries(storage.getInventoryId()).getFirst().getQuantity());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 14. ストレージ操作
+     * 検証契約: ショップ決済用currencyはCURRENCYを先に消費し、不足分をSTORAGEの同一currency IDから消費する。
+     */
+    @Test
+    void shopCurrencyPaymentConsumesCurrencyInventoryBeforeStorage() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel currency = harness.addInventory(state, InventoryType.CURRENCY);
+        InventoryModel storage = harness.addInventory(state, InventoryType.STORAGE);
+        String itemId = "shop_storage_currency";
+        state.replaceEntriesFromLoad(currency.getInventoryId(), List.of(
+            inventoryEntry(state.getAccountId(), currency.getInventoryId(), 1, ItemCategory.CURRENCY, itemId, 2L)
+        ));
+        state.replaceEntriesFromLoad(storage.getInventoryId(), List.of(
+            inventoryEntry(state.getAccountId(), storage.getInventoryId(), 1, ItemCategory.CURRENCY, itemId, 4L)
+        ));
+
+        assertEquals(6L, harness.inventoryService.getSpendableCurrencyAmountIncludingStorage(
+            state.getAccountId(), itemId));
+        assertTrue(harness.inventoryService.consumeCurrencyIncludingStorage(
+            state.getAccountId(), itemId, 5L));
+
+        assertTrue(state.snapshotEntries(currency.getInventoryId()).isEmpty());
+        assertEquals(1L, state.snapshotEntries(storage.getInventoryId()).getFirst().getQuantity());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 14. ストレージ操作
+     * 検証契約: オーブ操作でBAG数量を全予約中でも、ショップ決済は予約済みentryを避けてSTORAGEから消費する。
+     */
+    @Test
+    void shopNormalItemPaymentFallsBackToStorageWhenOwnedQuantityIsReserved() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel storage = harness.addInventory(state, InventoryType.STORAGE);
+        String itemId = "shop_reserved_material";
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
+            inventoryEntry(state.getAccountId(), bag.getInventoryId(), 1, ItemCategory.MATERIAL, itemId, 2L)
+        ));
+        state.replaceEntriesFromLoad(storage.getInventoryId(), List.of(
+            inventoryEntry(state.getAccountId(), storage.getInventoryId(), 1, ItemCategory.MATERIAL, itemId, 3L)
+        ));
+        UUID operationId = UUID.randomUUID();
+
+        assertTrue(harness.inventoryService.reserveOrbOperationPayment(
+            state.getAccountId(), operationId, Map.of(itemId, 2L), 0L));
+        assertEquals(3L, harness.inventoryService.getSpendableNormalItemAmountIncludingStorage(
+            state.getAccountId(), itemId));
+        assertTrue(harness.inventoryService.consumeNormalItemIncludingStorage(
+            state.getAccountId(), itemId, 2L));
+
+        assertEquals(2L, state.snapshotEntries(bag.getInventoryId()).getFirst().getQuantity());
+        assertEquals(1L, state.snapshotEntries(storage.getInventoryId()).getFirst().getQuantity());
+        harness.inventoryService.releaseOrbOperationPayment(state.getAccountId(), operationId);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 14. ストレージ操作
+     * 検証契約: ショップ決済用の通常item・currency数量合算はlong上限を超えて負数化せずLong.MAX_VALUEへ飽和する。
+     */
+    @Test
+    void shopPaymentAmountAggregationSaturatesAtLongMaxValue() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel hotbar = harness.addInventory(state, InventoryType.HOTBAR);
+        InventoryModel currency = harness.addInventory(state, InventoryType.CURRENCY);
+        InventoryModel storage = harness.addInventory(state, InventoryType.STORAGE);
+        String materialId = "shop_saturated_material";
+        String currencyId = "shop_saturated_currency";
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
+            inventoryEntry(state.getAccountId(), bag.getInventoryId(), 1,
+                ItemCategory.MATERIAL, materialId, Long.MAX_VALUE),
+            inventoryEntry(state.getAccountId(), bag.getInventoryId(), 2,
+                ItemCategory.MATERIAL, materialId, 1L)
+        ));
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of(
+            inventoryEntry(state.getAccountId(), hotbar.getInventoryId(), 1,
+                ItemCategory.MATERIAL, materialId, 1L)
+        ));
+        state.replaceEntriesFromLoad(currency.getInventoryId(), List.of(
+            inventoryEntry(state.getAccountId(), currency.getInventoryId(), 1,
+                ItemCategory.CURRENCY, currencyId, Long.MAX_VALUE),
+            inventoryEntry(state.getAccountId(), currency.getInventoryId(), 2,
+                ItemCategory.CURRENCY, currencyId, 1L)
+        ));
+        state.replaceEntriesFromLoad(storage.getInventoryId(), List.of(
+            inventoryEntry(state.getAccountId(), storage.getInventoryId(), 1,
+                ItemCategory.MATERIAL, materialId, 1L),
+            inventoryEntry(state.getAccountId(), storage.getInventoryId(), 2,
+                ItemCategory.CURRENCY, currencyId, 1L)
+        ));
+
+        assertEquals(Long.MAX_VALUE, harness.inventoryService.getNormalItemAmount(
+            state.getAccountId(), materialId));
+        assertEquals(Long.MAX_VALUE, harness.inventoryService.getSpendableNormalItemAmountIncludingStorage(
+            state.getAccountId(), materialId));
+        assertEquals(Long.MAX_VALUE, harness.inventoryService.getCurrencyAmount(
+            state.getAccountId(), currencyId));
+        assertEquals(Long.MAX_VALUE, harness.inventoryService.getSpendableCurrencyAmountIncludingStorage(
+            state.getAccountId(), currencyId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
      * 章・見出し: # 08_3-サービス > ## 17. feature 境界
      * 検証契約: legacy BAG内currency stackをCURRENCY inventoryへ一括移動する。
      */

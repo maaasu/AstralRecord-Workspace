@@ -10,7 +10,9 @@ import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionServi
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageSortDirection;
@@ -40,6 +42,7 @@ public final class StorageService {
     private final InventoryService inventoryService;
     private final InventorySaveCoordinator inventorySaveCoordinator;
     private final MenuGuiTransitionService menuGuiTransitionService;
+    private final PlayerMessageService playerMessageService;
     private final ConcurrentHashMap<UUID, StorageViewOptions> storageOptionsByPlayer = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, List<StorageViewEntry>> storageEntriesByPlayer = new ConcurrentHashMap<>();
     private final ConcurrentHashMap<UUID, Integer> storagePageByPlayer = new ConcurrentHashMap<>();
@@ -52,17 +55,20 @@ public final class StorageService {
      * @param inventoryService インベントリサービス
      * @param inventorySaveCoordinator インベントリ保存コーディネーター
      * @param menuGuiTransitionService GUI 切替サービス
+     * @param playerMessageService プレイヤーメッセージサービス
      */
     public StorageService(
         @NotNull MenuView menuView,
         @NotNull InventoryService inventoryService,
         @NotNull InventorySaveCoordinator inventorySaveCoordinator,
-        @NotNull MenuGuiTransitionService menuGuiTransitionService
+        @NotNull MenuGuiTransitionService menuGuiTransitionService,
+        @NotNull PlayerMessageService playerMessageService
     ) {
         this.menuView = menuView;
         this.inventoryService = inventoryService;
         this.inventorySaveCoordinator = inventorySaveCoordinator;
         this.menuGuiTransitionService = menuGuiTransitionService;
+        this.playerMessageService = playerMessageService;
     }
 
     /**
@@ -345,6 +351,14 @@ public final class StorageService {
             GuiSound.DENY.play(player);
             player.updateInventory();
             return;
+        }
+        if (sourceEntry != null) {
+            playerMessageService.send(
+                player,
+                PlayerMsgId.P_5253,
+                sourceEntry.itemModel().getName(),
+                moved
+            );
         }
         markStorageDirty(player.getUniqueId());
         refreshStorageEntries(player, storageOptions(player));

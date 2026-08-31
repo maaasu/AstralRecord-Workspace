@@ -1,5 +1,5 @@
 # design:
-#   motif: "交易 / 出品枠拡張許可証"
+#   motif: "交易 / サービス拡張許可証"
 #   progression: 0
 schemaVersion: 1
 id: astrald_shop
@@ -59,3 +59,16 @@ items:
           ref: item:astrald
         category: currency
         amount: 200
+  - id: storage_cloud_access_token
+    itemId:
+      ref: item:storage_cloud_access_token
+    category: currency
+    amount: 1
+    page: 1
+    slot: 4
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:astrald
+        category: currency
+        amount: 300

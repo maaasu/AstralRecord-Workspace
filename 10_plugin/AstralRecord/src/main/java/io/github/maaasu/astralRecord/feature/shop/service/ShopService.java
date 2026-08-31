@@ -334,16 +334,19 @@ public final class ShopService {
             if (ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(cost.itemId())) {
                 return currencyService.getGoldAmount(accountId);
             }
-            return currencyService.getCurrencyAmount(accountId, cost.itemId());
+            return inventoryService.getSpendableCurrencyAmountIncludingStorage(accountId, cost.itemId());
         }
-        return inventoryService.getNormalItemAmount(accountId, cost.itemId());
+        return inventoryService.getSpendableNormalItemAmountIncludingStorage(accountId, cost.itemId());
     }
 
     private boolean consumeCost(@NotNull UUID accountId, @NotNull ShopCostItem cost) {
         if (isCurrencyCost(cost)) {
-            return inventoryService.consumeCurrency(accountId, cost.itemId(), cost.amount());
+            if (ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(cost.itemId())) {
+                return inventoryService.consumeCurrency(accountId, cost.itemId(), cost.amount());
+            }
+            return inventoryService.consumeCurrencyIncludingStorage(accountId, cost.itemId(), cost.amount());
         }
-        return inventoryService.consumeNormalItem(accountId, cost.itemId(), cost.amount());
+        return inventoryService.consumeNormalItemIncludingStorage(accountId, cost.itemId(), cost.amount());
     }
 
     private boolean isCurrencyCost(@NotNull ShopCostItem cost) {

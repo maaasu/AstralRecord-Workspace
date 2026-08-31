@@ -59,8 +59,10 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
         ShopEntry entry = shopEntry("potion", 1, 5, List.of(new ShopCostItem("herb", "material", 2)), "starter_recipe");
         when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(20L);
-        when(harness.inventoryService.getNormalItemAmount(player.getAccount().getUuid(), "herb")).thenReturn(6L);
-        when(harness.inventoryService.getNormalItemAmount(player.getAccount().getUuid(), "crystal")).thenReturn(7L);
+        when(harness.inventoryService.getSpendableNormalItemAmountIncludingStorage(
+            player.getAccount().getUuid(), "herb")).thenReturn(6L);
+        when(harness.inventoryService.getSpendableNormalItemAmountIncludingStorage(
+            player.getAccount().getUuid(), "crystal")).thenReturn(7L);
 
         ShopPurchasePreview preview = harness.service.preview(player, entry, 2);
 
@@ -92,11 +94,13 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         ShopEntry entry = shopEntry("potion", 2, 4, List.of(), "starter_recipe");
         when(harness.itemService.findLoadedById("potion")).thenReturn(potion);
         when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(20L);
-        when(harness.inventoryService.getNormalItemAmount(player.getAccount().getUuid(), "herb")).thenReturn(6L);
+        when(harness.inventoryService.getSpendableNormalItemAmountIncludingStorage(
+            player.getAccount().getUuid(), "herb")).thenReturn(6L);
         when(harness.inventoryService.canAddItemToNormalInventory(player, potion, 6)).thenReturn(true);
         when(harness.inventoryService.snapshotState(player.getAccount().getUuid())).thenReturn(snapshot(player));
         when(harness.inventoryService.consumeGold(player.getAccount().getUuid(), 15L)).thenReturn(true);
-        when(harness.inventoryService.consumeNormalItem(player.getAccount().getUuid(), "herb", 6)).thenReturn(true);
+        when(harness.inventoryService.consumeNormalItemIncludingStorage(
+            player.getAccount().getUuid(), "herb", 6)).thenReturn(true);
         when(harness.inventoryService.addItemToNormalInventory(player, potion, 6, "shop")).thenReturn(6);
         when(harness.inventoryService.resolveInventoryType(potion)).thenReturn(InventoryType.BAG);
 
@@ -106,7 +110,8 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         InOrder order = inOrder(harness.inventoryService);
         order.verify(harness.inventoryService).canAddItemToNormalInventory(player, potion, 6);
         order.verify(harness.inventoryService).consumeGold(player.getAccount().getUuid(), 15L);
-        order.verify(harness.inventoryService).consumeNormalItem(player.getAccount().getUuid(), "herb", 6);
+        order.verify(harness.inventoryService).consumeNormalItemIncludingStorage(
+            player.getAccount().getUuid(), "herb", 6);
         order.verify(harness.inventoryService).addItemToNormalInventory(player, potion, 6, "shop");
         order.verify(harness.inventoryService).applyInventoryToGui(player, InventoryType.BAG);
         order.verify(harness.inventoryService).saveNow(player.getAccount().getUuid());
@@ -200,20 +205,29 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
      * 章・見出し: # 20_3-メソッド仕様 > ## 購入
-     * 検証契約: 商品付与数が要求量未満なら支払前snapshotへ復元し保存しない。
+     * 検証契約: STORAGEを含む素材決済後に商品付与数が要求量未満なら支払前snapshotへ復元し保存しない。
      */
     @Test
     void purchaseRestoresPaymentWhenItemGrantIsPartial() {
         ShopHarness harness = shopHarness(null);
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
         ItemModel potion = DesignTestFixtures.item("potion", ItemCategory.CONSUMABLE, 16);
-        ShopEntry entry = shopEntry("potion", 2, 4, List.of(), null);
+        ShopEntry entry = shopEntry(
+            "potion",
+            2,
+            0,
+            List.of(new ShopCostItem("storage_material", "material", 4)),
+            null
+        );
         InventoryService.InventoryStateSnapshot snapshot = snapshot(player);
         when(harness.itemService.findLoadedById("potion")).thenReturn(potion);
         when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(10L);
+        when(harness.inventoryService.getSpendableNormalItemAmountIncludingStorage(
+            player.getAccount().getUuid(), "storage_material")).thenReturn(4L);
         when(harness.inventoryService.canAddItemToNormalInventory(player, potion, 2)).thenReturn(true);
         when(harness.inventoryService.snapshotState(player.getAccount().getUuid())).thenReturn(snapshot);
-        when(harness.inventoryService.consumeGold(player.getAccount().getUuid(), 4L)).thenReturn(true);
+        when(harness.inventoryService.consumeNormalItemIncludingStorage(
+            player.getAccount().getUuid(), "storage_material", 4L)).thenReturn(true);
         when(harness.inventoryService.addItemToNormalInventory(player, potion, 2, "shop")).thenReturn(1);
         when(harness.inventoryService.restoreState(snapshot)).thenReturn(true);
 
@@ -221,8 +235,32 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
             assertFalse(harness.service.purchase(player, entry, 1));
         }
 
+        verify(harness.inventoryService).consumeNormalItemIncludingStorage(
+            player.getAccount().getUuid(), "storage_material", 4L);
         verify(harness.inventoryService).restoreState(snapshot);
         verify(harness.inventoryService, never()).saveNow(player.getAccount().getUuid());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
+     * 章・見出し: # 20_3-メソッド仕様 > ## 購入 preview
+     * 検証契約: priceGoldはCURRENCY内の額面換算残高だけを使用し、STORAGE内のgold itemを合算しない。
+     */
+    @Test
+    void previewDoesNotUseStorageItemsForPriceGold() {
+        ShopHarness harness = shopHarness(null);
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        ShopEntry entry = shopEntry("potion", 1, 10, List.of(), null);
+        when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(9L);
+        when(harness.inventoryService.getSpendableCurrencyAmountIncludingStorage(
+            player.getAccount().getUuid(), "gold")).thenReturn(Long.MAX_VALUE);
+
+        ShopPurchasePreview preview = harness.service.preview(player, entry, 1);
+
+        assertFalse(preview.canPurchase());
+        assertEquals(1, preview.missingItems().size());
+        verify(harness.inventoryService, never()).getSpendableCurrencyAmountIncludingStorage(
+            player.getAccount().getUuid(), "gold");
     }
 
     /**
@@ -255,12 +293,14 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         assertEquals(20, preview.requiredItems().get(0).amount());
         verify(harness.currencyService, never()).getCurrencyAmount(player.getAccount().getUuid(), "gold");
         verify(harness.inventoryService, never()).getNormalItemAmount(player.getAccount().getUuid(), "gold");
+        verify(harness.inventoryService, never()).getSpendableCurrencyAmountIncludingStorage(
+            player.getAccount().getUuid(), "gold");
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
      * 章・見出し: # 20_3-メソッド仕様 > ## 購入 preview
-     * 検証契約: gold以外のcurrency costはNORMAL item量でなく同一currency IDの残高で不足量を判定する。
+     * 検証契約: gold以外のcurrency costはCURRENCYとSTORAGEの同一currency IDを合算して不足量を判定する。
      */
     @Test
     void previewChecksNonGoldCurrencyCostAgainstExactCurrencyBalance() {
@@ -280,7 +320,8 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
             null
         );
         when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(1_000L);
-        when(harness.currencyService.getCurrencyAmount(player.getAccount().getUuid(), "silver_token")).thenReturn(19L);
+        when(harness.inventoryService.getSpendableCurrencyAmountIncludingStorage(
+            player.getAccount().getUuid(), "silver_token")).thenReturn(19L);
 
         ShopPurchasePreview preview = harness.service.preview(player, entry, 2);
 
@@ -288,7 +329,8 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         assertEquals(20, preview.requiredItems().get(0).amount());
         assertEquals("silver_token", preview.missingItems().get(0).itemId());
         assertEquals(1, preview.missingItems().get(0).amount());
-        verify(harness.currencyService).getCurrencyAmount(player.getAccount().getUuid(), "silver_token");
+        verify(harness.inventoryService).getSpendableCurrencyAmountIncludingStorage(
+            player.getAccount().getUuid(), "silver_token");
         verify(harness.inventoryService, never()).getNormalItemAmount(player.getAccount().getUuid(), "silver_token");
     }
 
