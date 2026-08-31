@@ -464,7 +464,40 @@ public class AccountService {
         PendingExperienceUpdate pending = pendingExperienceUpdates.get(account.getUuid());
         AccountModel overlaid = pending == null ? account : pending.account();
         PendingClassProgressUpdate classPending = pendingClassProgressUpdates.get(account.getUuid());
-        return classPending == null ? overlaid : classPending.account();
+        return classPending == null ? overlaid : withPendingClassProgress(overlaid, classPending.account());
+    }
+
+    /**
+     * 最新のプレイヤー進行へ、独立して保留中のクラス進行だけを重ねます。
+     *
+     * @param playerProgress 最新のプレイヤーレベル・経験値を持つ状態
+     * @param classProgress 最新のクラス進行を持つ状態
+     * @return 両方の pending を合成したアカウント状態
+     */
+    private @NotNull AccountModel withPendingClassProgress(
+        @NotNull AccountModel playerProgress,
+        @NotNull AccountModel classProgress
+    ) {
+        return new AccountModel(
+            playerProgress.getUuid(),
+            playerProgress.getUserId(),
+            playerProgress.getAccountName(),
+            playerProgress.getSlotIndex(),
+            playerProgress.isActive(),
+            playerProgress.getMode(),
+            playerProgress.getMenuShortcutsJson(),
+            playerProgress.getCreatedAt(),
+            classProgress.getUpdatedAt(),
+            playerProgress.getCreatedBy(),
+            classProgress.getUpdatedBy(),
+            playerProgress.isDeleted(),
+            playerProgress.getLevel(),
+            playerProgress.getTotalExperience(),
+            classProgress.getClassId(),
+            classProgress.getClassLevel(),
+            classProgress.getClassExperience(),
+            classProgress.getClassProgresses()
+        );
     }
 
     private @NotNull AccountModel withProgress(
