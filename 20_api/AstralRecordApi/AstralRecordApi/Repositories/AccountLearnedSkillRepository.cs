@@ -16,7 +16,10 @@ public class AccountLearnedSkillRepository(
     private const string ItemMasterType = "item";
     private const string SkillGemCategory = "skill_gem";
     private const string SigilCategory = "sigil";
+    private const string OrbCategory = "orb";
     private const string SkillGemIdPrefix = "00_skill_gem_";
+    private const string SigilAttachOrbEffectType = "SIGIL_ATTACH";
+    private const string SigilDetachOrbEffectType = "SIGIL_DETACH";
 
     public async Task<IReadOnlyList<AccountLearnedSkillResponse>> GetByAccountIdAsync(Guid accountId)
     {
@@ -143,6 +146,10 @@ public class AccountLearnedSkillRepository(
             var material = await FindOwnedMaterialAsync(accountId, request.SigilInventoryEntryId);
             if (!IsExpectedMaterial(material, SigilCategory, requestedSigilId))
                 return Failure(AccountLearnedSkillMutationFailure.InvalidMaterial);
+            var orb = await FindOwnedMaterialAsync(accountId, request.OrbInventoryEntryId);
+            var orbItem = await GetOrbItemAsync(orb?.ItemId);
+            if (!IsExpectedOrb(orb, orbItem, SigilAttachOrbEffectType))
+                return Failure(AccountLearnedSkillMutationFailure.InvalidMaterial);
 
             var occupiedSlots = activeSigils.Select(attached => attached.SlotIndex).ToHashSet();
             var slotIndex = Enumerable.Range(0, slotCount).First(index => !occupiedSlots.Contains(index));
@@ -166,6 +173,7 @@ public class AccountLearnedSkillRepository(
             entity.UpdatedAt = now;
             entity.UpdatedBy = request.UpdatedBy;
             ConsumeMaterial(material!, request.UpdatedBy, now);
+            ConsumeMaterial(orb!, request.UpdatedBy, now);
             await dbContext.SaveChangesAsync();
             return Success(Map(entity));
         });
@@ -191,6 +199,10 @@ public class AccountLearnedSkillRepository(
             var sigilItem = await GetSigilItemAsync(attached.SigilId);
             if (sigilItem?.Sigil is null)
                 return Failure(AccountLearnedSkillMutationFailure.SigilNotFound);
+            var orb = await FindOwnedMaterialAsync(accountId, request.OrbInventoryEntryId);
+            var orbItem = await GetOrbItemAsync(orb?.ItemId);
+            if (!IsExpectedOrb(orb, orbItem, SigilDetachOrbEffectType))
+                return Failure(AccountLearnedSkillMutationFailure.InvalidMaterial);
 
             var bag = await dbContext.Inventories.FirstOrDefaultAsync(inventory =>
                 inventory.AccountId == accountId
@@ -246,6 +258,7 @@ public class AccountLearnedSkillRepository(
             entity.Version += 1;
             entity.UpdatedAt = now;
             entity.UpdatedBy = request.UpdatedBy;
+            ConsumeMaterial(orb!, request.UpdatedBy, now);
             await dbContext.SaveChangesAsync();
             return Success(Map(entity), returnedEntry.InventoryEntryId);
         });
@@ -325,6 +338,18 @@ public class AccountLearnedSkillRepository(
             && entry.Quantity > 0
             && (!IdEquals(category, SkillGemCategory) || entry.Quantity == 1);
 
+    private static bool IsExpectedOrb(
+        InventoryEntryEntity? entry,
+        ItemResponse? item,
+        string expectedEffectType)
+        => entry is not null
+            && item?.Orb?.Effect is not null
+            && IdEquals(entry.ItemCategory, OrbCategory)
+            && entry.Quantity > 0
+            && entry.InstanceId is null
+            && string.IsNullOrWhiteSpace(entry.InstanceType)
+            && string.Equals(item.Orb.Effect.Type, expectedEffectType, StringComparison.OrdinalIgnoreCase);
+
     private static void ConsumeMaterial(InventoryEntryEntity entry, Guid updatedBy, DateTime now)
     {
         if (entry.Quantity > 1)
@@ -400,6 +425,27 @@ public class AccountLearnedSkillRepository(
         if (node is null)
             return null;
         node["category"] = SigilCategory;
+        return MasterDataPayloadJson.Deserialize<ItemResponse>(node.ToJsonString());
+    }
+
+    private async Task<ItemResponse?> GetOrbItemAsync(string? orbId)
+    {
+        var normalizedOrbId = NormalizeId(orbId);
+        if (string.IsNullOrWhiteSpace(normalizedOrbId))
+            return null;
+        var entry = await masterDataDbContext.Entries.AsNoTracking()
+            .Where(candidate => !candidate.IsDeleted
+                && candidate.MasterType == ItemMasterType
+                && candidate.Category == OrbCategory
+                && candidate.MasterId == normalizedOrbId)
+            .Select(candidate => candidate.PayloadJson)
+            .FirstOrDefaultAsync();
+        if (entry is null)
+            return null;
+        var node = JsonNode.Parse(entry)?.AsObject();
+        if (node is null)
+            return null;
+        node["category"] = OrbCategory;
         return MasterDataPayloadJson.Deserialize<ItemResponse>(node.ToJsonString());
     }
 

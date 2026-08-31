@@ -34,7 +34,7 @@ public class AccountLearnedSkillController(IAccountLearnedSkillRepository reposi
         [FromBody] AccountLearnedSkillLevelUpRequest request)
         => ToActionResult(await repository.LevelUpAsync(accountId, learnedSkillId, request));
 
-    /// <summary>指定した習得済みスキル個体へシジルを1個消費装着します。</summary>
+    /// <summary>指定した習得済みスキル個体へ対応するオーブとシジルを各1個消費して装着します。</summary>
     [HttpPost("{learnedSkillId:guid}/sigils")]
     public async Task<IActionResult> AttachSigil(
         Guid accountId,
@@ -42,7 +42,7 @@ public class AccountLearnedSkillController(IAccountLearnedSkillRepository reposi
         [FromBody] AccountLearnedSkillAttachSigilRequest request)
         => ToActionResult(await repository.AttachSigilAsync(accountId, learnedSkillId, request));
 
-    /// <summary>指定した装着済みシジルを取り外し、アカウントの BAG へ1個返却します。</summary>
+    /// <summary>指定した装着済みシジルを対応するオーブ1個を消費して取り外し、アカウントの BAG へシジルを1個返却します。</summary>
     [HttpPost("{learnedSkillId:guid}/sigils/{learnedSkillSigilId:guid}/detach")]
     public async Task<IActionResult> DetachSigil(
         Guid accountId,

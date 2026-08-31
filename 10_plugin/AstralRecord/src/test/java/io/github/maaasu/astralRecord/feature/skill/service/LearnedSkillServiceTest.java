@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationFailure;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigilDetachResult;
 import io.github.maaasu.astralRecord.feature.skill.repository.LearnedSkillRepository;
 import org.bukkit.Server;
 import org.bukkit.plugin.Plugin;
@@ -74,6 +75,104 @@ class LearnedSkillServiceTest {
         assertEquals(learned, service.findInstance(accountId, learned.getLearnedSkillId()));
         verify(repository).learn(accountId, "adventurer_smash", gemEntryId, accountId);
         verify(inventoryService).reconcileAuthoritativeEntry(accountId, gemEntryId);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: シジル装着成功後は、APIへ送った起点オーブentryとシジルentryの両方を正本へ再同期する。
+     */
+    @Test
+    void attachSigilReconcilesTheOrbAndSigilEntriesAfterSuccess() {
+        Plugin plugin = mock(Plugin.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        LearnedSkillRepository repository = mock(LearnedSkillRepository.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        UUID accountId = UUID.randomUUID();
+        UUID learnedSkillId = UUID.randomUUID();
+        UUID orbEntryId = UUID.randomUUID();
+        UUID sigilEntryId = UUID.randomUUID();
+        LearnedSkillInstance learned = learned(accountId, 1);
+        AtomicReference<LearnedSkillInstance> success = new AtomicReference<>();
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTaskAsynchronously(eq(plugin), any(Runnable.class));
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
+        when(inventoryService.saveNow(accountId)).thenReturn(CompletableFuture.completedFuture(true));
+        when(repository.attachSigil(
+            accountId, learnedSkillId, orbEntryId, "cooldown_sigil", sigilEntryId, accountId
+        )).thenReturn(learned);
+
+        LearnedSkillService service = new LearnedSkillService(plugin, repository, inventoryService);
+        service.applyInitialSkills(accountId, List.of());
+
+        assertTrue(service.attachSigilAsync(
+            accountId, learnedSkillId, orbEntryId, "cooldown_sigil", sigilEntryId, accountId,
+            success::set, ignored -> { throw new AssertionError("attachment should succeed"); }
+        ));
+
+        assertEquals(learned, success.get());
+        verify(repository).attachSigil(
+            accountId, learnedSkillId, orbEntryId, "cooldown_sigil", sigilEntryId, accountId
+        );
+        verify(inventoryService).reconcileAuthoritativeEntry(accountId, orbEntryId);
+        verify(inventoryService).reconcileAuthoritativeEntry(accountId, sigilEntryId);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: シジル脱着成功後は、消費した起点オーブentryとAPIが返したシジルentryを正本へ再同期する。
+     */
+    @Test
+    void detachSigilReconcilesTheOrbAndReturnedEntryAfterSuccess() {
+        Plugin plugin = mock(Plugin.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        LearnedSkillRepository repository = mock(LearnedSkillRepository.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        UUID accountId = UUID.randomUUID();
+        UUID learnedSkillId = UUID.randomUUID();
+        UUID orbEntryId = UUID.randomUUID();
+        UUID attachmentId = UUID.randomUUID();
+        UUID returnedEntryId = UUID.randomUUID();
+        LearnedSkillInstance learned = learned(accountId, 1);
+        AtomicReference<LearnedSkillInstance> success = new AtomicReference<>();
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTaskAsynchronously(eq(plugin), any(Runnable.class));
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
+        when(inventoryService.saveNow(accountId)).thenReturn(CompletableFuture.completedFuture(true));
+        when(repository.detachSigil(accountId, learnedSkillId, orbEntryId, attachmentId, accountId))
+            .thenReturn(new LearnedSkillSigilDetachResult(learned, returnedEntryId));
+
+        LearnedSkillService service = new LearnedSkillService(plugin, repository, inventoryService);
+        service.applyInitialSkills(accountId, List.of());
+
+        assertTrue(service.detachSigilAsync(
+            accountId, learnedSkillId, orbEntryId, attachmentId, accountId,
+            success::set, ignored -> { throw new AssertionError("detachment should succeed"); }
+        ));
+
+        assertEquals(learned, success.get());
+        verify(repository).detachSigil(accountId, learnedSkillId, orbEntryId, attachmentId, accountId);
+        verify(inventoryService).reconcileAuthoritativeEntry(accountId, orbEntryId);
+        verify(inventoryService).reconcileAuthoritativeEntry(accountId, returnedEntryId);
     }
 
     /**

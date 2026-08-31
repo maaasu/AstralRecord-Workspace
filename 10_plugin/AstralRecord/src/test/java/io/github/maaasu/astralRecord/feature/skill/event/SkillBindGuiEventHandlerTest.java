@@ -159,7 +159,9 @@ class SkillBindGuiEventHandlerTest {
 
         verify(inventoryService, never()).hideOwnedEntryFromGui(any(), any());
         verify(learnedSkillService, never()).levelUpAsync(any(), any(), any(), any(), any(), any());
-        verify(learnedSkillService, never()).attachSigilAsync(any(), any(), any(), any(), any(), any(), any());
+        verify(learnedSkillService, never()).attachSigilAsync(
+            any(), any(), any(), any(), any(), any(), any(), any()
+        );
         assertFalse(mapValue(handler, "synthesisSelections").containsKey(player.getUniqueId()));
         assertTrue(mapValue(handler, "synthesisPreviews").containsKey(player.getUniqueId()));
     }

@@ -4,7 +4,8 @@ package io.github.maaasu.astralRecord.feature.item.model
  * オーブ固有定義。
  *
  * 1個のオーブは1種類の装備または習得済みスキル操作だけを持ちます。
- * 強化系は成立した試行開始時に消費し、ルーン・シジル操作系は消費しません。
+ * 強化系は成立した試行開始時に消費し、ルーン操作系は消費しません。
+ * シジル操作系は成立時にオーブを1個消費します。
  */
 data class ItemOrb(
     val effect: ItemOrbEffect,

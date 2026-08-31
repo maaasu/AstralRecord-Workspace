@@ -37,11 +37,13 @@ public class AccountLearnedSkillAttachSigilRequest
 {
     public required string SigilId { get; init; }
     public Guid SigilInventoryEntryId { get; init; }
+    public Guid OrbInventoryEntryId { get; init; }
     public Guid UpdatedBy { get; init; }
 }
 
 public class AccountLearnedSkillDetachSigilRequest
 {
+    public Guid OrbInventoryEntryId { get; init; }
     public Guid UpdatedBy { get; init; }
 }
 

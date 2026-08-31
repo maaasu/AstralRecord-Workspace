@@ -106,6 +106,32 @@ internal static class MasterDataTestFixtures
         }
         """;
 
+    public const string BragiOrb = """
+        {
+          "schemaVersion": 1,
+          "id": "bragi_orb",
+          "category": "orb",
+          "name": "&aブラギのオーブ",
+          "icon": "AMETHYST_SHARD",
+          "rarity": "UNCOMMON",
+          "maxStack": 64,
+          "orb": { "effect": { "type": "SIGIL_ATTACH" } }
+        }
+        """;
+
+    public const string MimirOrb = """
+        {
+          "schemaVersion": 1,
+          "id": "mimir_orb",
+          "category": "orb",
+          "name": "&9ミーミルのオーブ",
+          "icon": "ECHO_SHARD",
+          "rarity": "RARE",
+          "maxStack": 64,
+          "orb": { "effect": { "type": "SIGIL_DETACH" } }
+        }
+        """;
+
     public const string MageClass = """
         {
           "schemaVersion": 1,
@@ -220,6 +246,8 @@ internal static class MasterDataTestFixtures
         "cooldown_sigil" => CooldownSigil,
         "cooldown_sigil_ii" => CooldownSigilIi,
         "homing_fireball_sigil" => HomingFireballSigil,
+        "bragi_orb" => BragiOrb,
+        "mimir_orb" => MimirOrb,
         _ => throw new ArgumentOutOfRangeException(nameof(masterId), masterId, "No inline test fixture exists."),
     };
 

@@ -98,9 +98,10 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         when(itemStackFactory.create(eq(sigil), eq(1))).thenReturn(new ItemStack(Material.AMETHYST_SHARD));
         AtomicReference<Consumer<LearnedSkillInstance>> success = new AtomicReference<>();
         when(learnedSkillService.attachSigilAsync(
-            eq(accountId), eq(learnedSkillId), eq(sigil.getId()), eq(sigilEntryId), eq(accountId), any(), any()
+            eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq(sigil.getId()),
+            eq(sigilEntryId), eq(accountId), any(), any()
         )).thenAnswer(invocation -> {
-            success.set(invocation.getArgument(5));
+            success.set(invocation.getArgument(6));
             return true;
         });
 
@@ -135,7 +136,8 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         service.handleGuiClick(click(player, player.getOpenInventory().getTopInventory(), 16, true));
 
         verify(learnedSkillService).attachSigilAsync(
-            eq(accountId), eq(learnedSkillId), eq(sigil.getId()), eq(sigilEntryId), eq(accountId), any(), any()
+            eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq(sigil.getId()),
+            eq(sigilEntryId), eq(accountId), any(), any()
         );
         verify(inventoryService, atLeastOnce()).findOwnedEntry(accountId, orbEntryId);
 
@@ -192,9 +194,9 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         when(itemStackFactory.create(eq(sigil), eq(1))).thenReturn(new ItemStack(Material.AMETHYST_SHARD));
         AtomicReference<Consumer<LearnedSkillInstance>> success = new AtomicReference<>();
         when(learnedSkillService.detachSigilAsync(
-            eq(accountId), eq(learnedSkillId), eq(attachmentId), eq(accountId), any(), any()
+            eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq(attachmentId), eq(accountId), any(), any()
         )).thenAnswer(invocation -> {
-            success.set(invocation.getArgument(4));
+            success.set(invocation.getArgument(5));
             return true;
         });
 
@@ -222,7 +224,7 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         service.handleGuiClick(click(player, player.getOpenInventory().getTopInventory(), 16, true));
 
         verify(learnedSkillService).detachSigilAsync(
-            eq(accountId), eq(learnedSkillId), eq(attachmentId), eq(accountId), any(), any()
+            eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq(attachmentId), eq(accountId), any(), any()
         );
 
         success.get().accept(learned);

@@ -29,7 +29,8 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 - `GET /api/gathering-spawner`
 - `GET /api/gathering-spawner/{spawnerId}`
 - `POST /api/equipment/durability`
-- `POST /api/account-skills/{accountId}/{learnedSkillId}/sigils/{learnedSkillSigilId}/detach`（[習得済みスキル API 設計](00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md)）
+- `POST /api/account-skills/{accountId}/{learnedSkillId}/sigils`（シジル・SIGIL_ATTACHオーブ消費、[習得済みスキル API 設計](00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md)）
+- `POST /api/account-skills/{accountId}/{learnedSkillId}/sigils/{learnedSkillSigilId}/detach`（SIGIL_DETACHオーブ消費・シジル返却、[習得済みスキル API 設計](00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md)）
 - `POST /api/trade/commit`（[Trade API 設計](00_docs/20_API設計書/feature/22-trade/22_README.md)）
 - `POST /api/market/listings/{listingId}/claim-proceeds`（[Market API 設計](00_docs/20_API設計書/feature/23-market/23_README.md)）
 - `POST /api/inventory/accounts/{accountId}/repair-equipment-entry-item-ids`（[Inventory API 設計](00_docs/20_API設計書/feature/13-inventory/13_README.md)）

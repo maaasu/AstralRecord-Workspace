@@ -54,11 +54,13 @@ class LearnedSkillRepository {
     fun attachSigil(
         accountId: UUID,
         learnedSkillId: UUID,
+        orbInventoryEntryId: UUID,
         sigilId: String,
         sigilInventoryEntryId: UUID,
         updatedBy: UUID,
     ): LearnedSkillInstance {
         val body = ApiRequestUtil.buildJsonBody {
+            addProperty("orbInventoryEntryId", orbInventoryEntryId.toString())
             addProperty("sigilId", sigilId)
             addProperty("sigilInventoryEntryId", sigilInventoryEntryId.toString())
             addProperty("updatedBy", updatedBy.toString())
@@ -69,11 +71,13 @@ class LearnedSkillRepository {
     fun detachSigil(
         accountId: UUID,
         learnedSkillId: UUID,
+        orbInventoryEntryId: UUID,
         learnedSkillSigilId: UUID,
         updatedBy: UUID,
     ): LearnedSkillSigilDetachResult {
         val path = "/api/account-skills/$accountId/$learnedSkillId/sigils/$learnedSkillSigilId/detach"
         val body = ApiRequestUtil.buildJsonBody {
+            addProperty("orbInventoryEntryId", orbInventoryEntryId.toString())
             addProperty("updatedBy", updatedBy.toString())
         }
         try {

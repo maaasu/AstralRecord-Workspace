@@ -52,7 +52,7 @@ import java.util.concurrent.ConcurrentHashMap;
 /**
  * シジル用オーブから、習得済みスキル一覧・装着・脱着 GUI を提供します。
  *
- * <p>オーブは操作権限を表す非消費アイテムです。装着時は選択した SIGIL entry を API が消費し、
+ * <p>装着・脱着の成立時は、起点オーブを1個消費します。装着時は選択した SIGIL entry も API が消費し、
  * 脱着時は API が返却した entry を {@link LearnedSkillService} がローカル所持品へ同期します。</p>
  */
 public final class SkillSigilOrbService {
@@ -443,6 +443,7 @@ public final class SkillSigilOrbService {
             scheduled = learnedSkillService.attachSigilAsync(
                 session.accountId,
                 target.learnedSkill.getLearnedSkillId(),
+                session.orbInventoryEntryId,
                 session.selectedSigilItemId,
                 session.selectedInventoryEntryId,
                 session.accountId,
@@ -453,6 +454,7 @@ public final class SkillSigilOrbService {
             scheduled = learnedSkillService.detachSigilAsync(
                 session.accountId,
                 target.learnedSkill.getLearnedSkillId(),
+                session.orbInventoryEntryId,
                 session.selectedLearnedSkillSigilId,
                 session.accountId,
                 updated -> complete(session),
@@ -606,7 +608,8 @@ public final class SkillSigilOrbService {
             Component.text(ready ? "クリックして確定" : "シジルを選択してください",
                 ready ? NamedTextColor.GREEN : NamedTextColor.RED),
             List.of(Component.text(session.type == ItemOrbEffectType.SIGIL_ATTACH
-                ? "選択したシジルを1個消費して装着します" : "選択したシジルを所持品へ返却します",
+                ? "シジル用オーブと選択したシジルを各1個消費して装着します"
+                : "シジル用オーブを1個消費し、選択したシジルを所持品へ返却します",
                 NamedTextColor.GRAY))
         ));
         if (session.screen == SkillSigilOrbGuiHolder.Screen.DETACH && ready && selected != null) {

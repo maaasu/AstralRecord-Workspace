@@ -476,17 +476,14 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        UUID accountId = astPlayer.getAccount().getUuid();
-        boolean scheduled = learnedSkillService.attachSigilAsync(
-            accountId,
-            entry.learnedSkill().getLearnedSkillId(),
-            selection.item().getId(),
-            selection.inventoryEntryId(),
-            accountId,
-            updated -> completeSynthesis(player, session, holder.pageIndex(), updated, operationToken),
-            error -> failSynthesis(player, session, entry.bindingId(), holder.pageIndex(), operationToken, error)
+        failSynthesis(
+            player,
+            session,
+            entry.bindingId(),
+            holder.pageIndex(),
+            operationToken,
+            new IllegalStateException("Sigil attachment requires a SIGIL_ATTACH orb")
         );
-        if (!scheduled) failSynthesis(player, session, entry.bindingId(), holder.pageIndex(), operationToken, null);
     }
 
     private void completeSynthesis(

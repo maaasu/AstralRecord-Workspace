@@ -66,6 +66,7 @@ public class AccountLearnedSkillRepositoryTests
         await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
         await fixture.SeedMasterAsync("cooldown_sigil", "item", "sigil");
         await fixture.SeedMasterAsync("cooldown_sigil_ii", "item", "sigil");
+        await fixture.SeedMasterAsync("bragi_orb", "item", "orb");
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
         var learnGem = await fixture.AddInventoryEntryAsync(
@@ -74,6 +75,7 @@ public class AccountLearnedSkillRepositoryTests
             accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
         var firstSigil = await fixture.AddInventoryEntryAsync(accountId, "sigil", "cooldown_sigil", 2);
         var secondSigil = await fixture.AddInventoryEntryAsync(accountId, "sigil", "cooldown_sigil_ii", 1);
+        var bragiOrb = await fixture.AddInventoryEntryAsync(accountId, "orb", "bragi_orb", 2);
         AccountLearnedSkillResponse learned;
         await using (var requestDb = fixture.CreatePlayerDb())
         {
@@ -104,6 +106,7 @@ public class AccountLearnedSkillRepositoryTests
                 {
                     SigilId = "cooldown_sigil",
                     SigilInventoryEntryId = firstSigil,
+                    OrbInventoryEntryId = bragiOrb,
                     UpdatedBy = accountId,
                 });
         }
@@ -116,6 +119,7 @@ public class AccountLearnedSkillRepositoryTests
                 {
                     SigilId = "cooldown_sigil_ii",
                     SigilInventoryEntryId = secondSigil,
+                    OrbInventoryEntryId = bragiOrb,
                     UpdatedBy = accountId,
                 });
         }
@@ -129,6 +133,8 @@ public class AccountLearnedSkillRepositoryTests
             .SingleAsync(entry => entry.InventoryEntryId == firstSigil)).Quantity);
         Assert.False((await fixture.PlayerDb.InventoryEntries.AsNoTracking()
             .SingleAsync(entry => entry.InventoryEntryId == secondSigil)).IsDeleted);
+        Assert.Equal(1, (await fixture.PlayerDb.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == bragiOrb)).Quantity);
     }
 
     /// <summary>
@@ -141,11 +147,15 @@ public class AccountLearnedSkillRepositoryTests
         await using var fixture = await TestDatabase.CreateAsync();
         await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
         await fixture.SeedMasterAsync("cooldown_sigil", "item", "sigil");
+        await fixture.SeedMasterAsync("bragi_orb", "item", "orb");
+        await fixture.SeedMasterAsync("mimir_orb", "item", "orb");
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
         var gemEntryId = await fixture.AddInventoryEntryAsync(
             accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
         var sigilEntryId = await fixture.AddInventoryEntryAsync(accountId, "sigil", "cooldown_sigil", 1);
+        var bragiOrb = await fixture.AddInventoryEntryAsync(accountId, "orb", "bragi_orb", 2);
+        var mimirOrb = await fixture.AddInventoryEntryAsync(accountId, "orb", "mimir_orb", 2);
 
         AccountLearnedSkillResponse learned;
         await using (var requestDb = fixture.CreatePlayerDb())
@@ -166,6 +176,7 @@ public class AccountLearnedSkillRepositoryTests
                 {
                     SigilId = "cooldown_sigil",
                     SigilInventoryEntryId = sigilEntryId,
+                    OrbInventoryEntryId = bragiOrb,
                     UpdatedBy = accountId,
                 })).Skill!;
         }
@@ -178,7 +189,11 @@ public class AccountLearnedSkillRepositoryTests
                     accountId,
                     learned.LearnedSkillId,
                     attached.Sigils.Single().LearnedSkillSigilId,
-                    new AccountLearnedSkillDetachSigilRequest { UpdatedBy = accountId });
+                    new AccountLearnedSkillDetachSigilRequest
+                    {
+                        OrbInventoryEntryId = mimirOrb,
+                        UpdatedBy = accountId,
+                    });
         }
 
         Assert.True(detached.Succeeded);
@@ -192,6 +207,10 @@ public class AccountLearnedSkillRepositoryTests
         Assert.Equal("sigil", returned.ItemCategory);
         Assert.Equal("cooldown_sigil", returned.ItemId);
         Assert.Equal(1, returned.Quantity);
+        Assert.Equal(1, (await fixture.PlayerDb.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == bragiOrb)).Quantity);
+        Assert.Equal(1, (await fixture.PlayerDb.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == mimirOrb)).Quantity);
     }
 
     /// <summary>
@@ -204,12 +223,14 @@ public class AccountLearnedSkillRepositoryTests
         await using var fixture = await TestDatabase.CreateAsync();
         await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
         await fixture.SeedMasterAsync("homing_fireball_sigil", "item", "sigil");
+        await fixture.SeedMasterAsync("bragi_orb", "item", "orb");
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
         var gemEntryId = await fixture.AddInventoryEntryAsync(
             accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
         var sigilEntryId = await fixture.AddInventoryEntryAsync(
             accountId, "sigil", "homing_fireball_sigil", 1);
+        var bragiOrb = await fixture.AddInventoryEntryAsync(accountId, "orb", "bragi_orb", 1);
 
         AccountLearnedSkillResponse learned;
         await using (var requestDb = fixture.CreatePlayerDb())
@@ -230,6 +251,7 @@ public class AccountLearnedSkillRepositoryTests
                 {
                     SigilId = "homing_fireball_sigil",
                     SigilInventoryEntryId = sigilEntryId,
+                    OrbInventoryEntryId = bragiOrb,
                     UpdatedBy = accountId,
                 });
         }
@@ -240,6 +262,65 @@ public class AccountLearnedSkillRepositoryTests
             .SingleAsync(entry => entry.InventoryEntryId == sigilEntryId);
         Assert.Equal(1, sigilEntry.Quantity);
         Assert.False(sigilEntry.IsDeleted);
+        var orbEntry = await fixture.PlayerDb.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == bragiOrb);
+        Assert.Equal(1, orbEntry.Quantity);
+        Assert.False(orbEntry.IsDeleted);
+    }
+
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
+    /// 検証契約: シジル装着では SIGIL_ATTACH 以外のオーブを受け付けず、シジルとオーブを消費しない。
+    /// </summary>
+    [Fact]
+    public async Task AttachSigilAsync_RejectsWrongOrbWithoutConsumingMaterials()
+    {
+        await using var fixture = await TestDatabase.CreateAsync();
+        await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
+        await fixture.SeedMasterAsync("cooldown_sigil", "item", "sigil");
+        await fixture.SeedMasterAsync("mimir_orb", "item", "orb");
+        var accountId = Guid.NewGuid();
+        await fixture.AddAccountAsync(accountId);
+        var gemEntryId = await fixture.AddInventoryEntryAsync(
+            accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
+        var sigilEntryId = await fixture.AddInventoryEntryAsync(accountId, "sigil", "cooldown_sigil", 1);
+        var mimirOrb = await fixture.AddInventoryEntryAsync(accountId, "orb", "mimir_orb", 1);
+
+        AccountLearnedSkillResponse learned;
+        await using (var requestDb = fixture.CreatePlayerDb())
+        {
+            learned = (await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
+                .LearnAsync(accountId, new AccountLearnedSkillLearnRequest
+                {
+                    SkillId = "adventurer_smash",
+                    GemInventoryEntryId = gemEntryId,
+                    UpdatedBy = accountId,
+                })).Skill!;
+        }
+
+        AccountLearnedSkillMutationResult rejected;
+        await using (var requestDb = fixture.CreatePlayerDb())
+        {
+            rejected = await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
+                .AttachSigilAsync(accountId, learned.LearnedSkillId, new AccountLearnedSkillAttachSigilRequest
+                {
+                    SigilId = "cooldown_sigil",
+                    SigilInventoryEntryId = sigilEntryId,
+                    OrbInventoryEntryId = mimirOrb,
+                    UpdatedBy = accountId,
+                });
+        }
+
+        Assert.False(rejected.Succeeded);
+        Assert.Equal(AccountLearnedSkillMutationFailure.InvalidMaterial, rejected.Failure);
+        var sigilEntry = await fixture.PlayerDb.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == sigilEntryId);
+        Assert.Equal(1, sigilEntry.Quantity);
+        Assert.False(sigilEntry.IsDeleted);
+        var orbEntry = await fixture.PlayerDb.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == mimirOrb);
+        Assert.Equal(1, orbEntry.Quantity);
+        Assert.False(orbEntry.IsDeleted);
     }
 
     /// <summary>

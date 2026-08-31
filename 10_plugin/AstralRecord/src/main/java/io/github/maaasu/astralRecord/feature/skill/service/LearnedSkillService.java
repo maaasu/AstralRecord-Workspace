@@ -210,9 +210,23 @@ public final class LearnedSkillService {
         }));
     }
 
+    /**
+     * シジルを指定した習得済みスキル個体へ装着し、装着シジルと起点オーブを正本へ同期します。
+     *
+     * @param accountId アカウント ID
+     * @param learnedSkillId 対象の習得済みスキル個体 ID
+     * @param orbInventoryEntryId 消費する SIGIL_ATTACH オーブの inventory entry ID
+     * @param sigilId 装着するシジル item ID
+     * @param sigilInventoryEntryId 消費するシジルの inventory entry ID
+     * @param updatedBy 更新者 ID
+     * @param onSuccess API 更新と素材entry同期の成功時処理
+     * @param onFailure API 更新または正本同期の失敗時処理
+     * @return 処理を受け付けた場合は {@code true}、別の習得スキル mutation 実行中は {@code false}
+     */
     public boolean attachSigilAsync(
         @NotNull UUID accountId,
         @NotNull UUID learnedSkillId,
+        @NotNull UUID orbInventoryEntryId,
         @NotNull String sigilId,
         @NotNull UUID sigilInventoryEntryId,
         @NotNull UUID updatedBy,
@@ -221,10 +235,11 @@ public final class LearnedSkillService {
     ) {
         return mutateAsync(
             accountId,
-            sigilInventoryEntryId,
+            List.of(orbInventoryEntryId, sigilInventoryEntryId),
             () -> repository.attachSigil(
                 accountId,
                 learnedSkillId,
+                orbInventoryEntryId,
                 sigilId,
                 sigilInventoryEntryId,
                 updatedBy
@@ -239,6 +254,7 @@ public final class LearnedSkillService {
      *
      * @param accountId アカウント ID
      * @param learnedSkillId 対象の習得済みスキル個体 ID
+     * @param orbInventoryEntryId 消費する SIGIL_DETACH オーブの inventory entry ID
      * @param learnedSkillSigilId 取り外す装着シジル行 ID
      * @param updatedBy 更新者 ID
      * @param onSuccess API 更新と返却 entry 同期の成功時処理
@@ -248,6 +264,7 @@ public final class LearnedSkillService {
     public boolean detachSigilAsync(
         @NotNull UUID accountId,
         @NotNull UUID learnedSkillId,
+        @NotNull UUID orbInventoryEntryId,
         @NotNull UUID learnedSkillSigilId,
         @NotNull UUID updatedBy,
         @NotNull Consumer<LearnedSkillInstance> onSuccess,
@@ -271,12 +288,28 @@ public final class LearnedSkillService {
                     LearnedSkillSigilDetachResult result = repository.detachSigil(
                         accountId,
                         learnedSkillId,
+                        orbInventoryEntryId,
                         learnedSkillSigilId,
                         updatedBy
                     );
                     if (!isCurrentSession(accountId, sessionToken)) {
                         lock.set(false);
                         return;
+                    }
+                    try {
+                        inventoryService.reconcileAuthoritativeEntry(accountId, orbInventoryEntryId);
+                    } catch (Throwable reconciliationError) {
+                        // mutation は API 正本で成功している。オーブを復元すると二重消費に見えるため、
+                        // 成功結果を維持し、次回ロードで回復できるようローカルでも1個だけ消費する。
+                        inventoryService.consumeOwnedEntryAfterAuthoritativeMutation(
+                            accountId,
+                            orbInventoryEntryId
+                        );
+                        Logger.log(
+                            LogId.W_5252,
+                            "skill_sigil_detach_orb_reconcile",
+                            reconciliationError.getMessage()
+                        );
                     }
                     try {
                         inventoryService.reconcileAuthoritativeEntry(
@@ -300,7 +333,7 @@ public final class LearnedSkillService {
                         onSuccess.accept(result.getSkill());
                     });
                 } catch (Throwable error) {
-                    reconcileSkillsAfterFailure(accountId, sessionToken);
+                    reconcileAfterFailure(accountId, sessionToken, List.of(orbInventoryEntryId));
                     completeFailure(accountId, sessionToken, lock, onFailure, error);
                 }
             });
@@ -363,6 +396,22 @@ public final class LearnedSkillService {
         Consumer<LearnedSkillInstance> onSuccess,
         Consumer<Throwable> onFailure
     ) {
+        return mutateAsync(
+            accountId,
+            List.of(materialInventoryEntryId),
+            mutation,
+            onSuccess,
+            onFailure
+        );
+    }
+
+    private boolean mutateAsync(
+        UUID accountId,
+        List<UUID> materialInventoryEntryIds,
+        Mutation mutation,
+        Consumer<LearnedSkillInstance> onSuccess,
+        Consumer<Throwable> onFailure
+    ) {
         AtomicBoolean lock = mutationLocks.computeIfAbsent(accountId, ignored -> new AtomicBoolean());
         if (!lock.compareAndSet(false, true)) return false;
         UUID sessionToken = sessionTokens.get(accountId);
@@ -387,13 +436,18 @@ public final class LearnedSkillService {
                         lock.set(false);
                         return;
                     }
-                    try {
-                        inventoryService.reconcileAuthoritativeEntry(accountId, materialInventoryEntryId);
-                    } catch (Throwable reconciliationError) {
-                        // mutation は API 正本で成功している。再同期失敗で素材を復元すると二重消費に見えるため、
-                        // 成功結果を維持し、次回ロードで回復できるよう警告だけを残す。
-                        inventoryService.consumeOwnedEntryAfterAuthoritativeMutation(accountId, materialInventoryEntryId);
-                        Logger.log(LogId.W_5252, "skill_mutation_reconcile", reconciliationError.getMessage());
+                    for (UUID materialInventoryEntryId : materialInventoryEntryIds) {
+                        try {
+                            inventoryService.reconcileAuthoritativeEntry(accountId, materialInventoryEntryId);
+                        } catch (Throwable reconciliationError) {
+                            // mutation は API 正本で成功している。再同期失敗で素材を復元すると二重消費に見えるため、
+                            // 成功結果を維持し、次回ロードで回復できるよう警告だけを残す。
+                            inventoryService.consumeOwnedEntryAfterAuthoritativeMutation(
+                                accountId,
+                                materialInventoryEntryId
+                            );
+                            Logger.log(LogId.W_5252, "skill_mutation_reconcile", reconciliationError.getMessage());
+                        }
                     }
                     plugin.getServer().getScheduler().runTask(plugin, () -> {
                         if (!isCurrentSession(accountId, sessionToken)) {
@@ -405,7 +459,7 @@ public final class LearnedSkillService {
                         onSuccess.accept(result);
                     });
                 } catch (Throwable error) {
-                    reconcileAfterFailure(accountId, sessionToken, materialInventoryEntryId);
+                    reconcileAfterFailure(accountId, sessionToken, materialInventoryEntryIds);
                     completeFailure(accountId, sessionToken, lock, onFailure, error);
                 }
             });
@@ -514,10 +568,16 @@ public final class LearnedSkillService {
     }
 
     private void reconcileAfterFailure(UUID accountId, UUID sessionToken, UUID materialInventoryEntryId) {
+        reconcileAfterFailure(accountId, sessionToken, List.of(materialInventoryEntryId));
+    }
+
+    private void reconcileAfterFailure(UUID accountId, UUID sessionToken, List<UUID> materialInventoryEntryIds) {
         if (!isCurrentSession(accountId, sessionToken)) return;
         try {
             List<LearnedSkillInstance> refreshed = normalize(repository.findByAccountId(accountId));
-            inventoryService.reconcileAuthoritativeEntry(accountId, materialInventoryEntryId);
+            for (UUID materialInventoryEntryId : materialInventoryEntryIds) {
+                inventoryService.reconcileAuthoritativeEntry(accountId, materialInventoryEntryId);
+            }
             if (isCurrentSession(accountId, sessionToken)) {
                 skillsByAccount.put(accountId, refreshed);
             }
