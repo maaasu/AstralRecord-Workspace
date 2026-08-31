@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.paging.PagedGuiView;
@@ -81,6 +82,14 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
             AdventureRecordGui.Screen screen = gui.getScreen(topInventory);
             if (screen == AdventureRecordGui.Screen.MOB_LIST) {
                 handleMobListClick(player, topInventory, event.getRawSlot());
+                return;
+            }
+            if (screen == AdventureRecordGui.Screen.MOB_DETAIL) {
+                handleMobDetailClick(player, topInventory, event.getRawSlot());
+                return;
+            }
+            if (screen == AdventureRecordGui.Screen.MOB_STATUS_DETAIL) {
+                handleMobStatusDetailClick(player, topInventory, event.getRawSlot());
                 return;
             }
             if (screen == AdventureRecordGui.Screen.SEARCH) {
@@ -167,6 +176,59 @@ public class AdventureRecordGuiEventHandler extends AbstractEventHandler {
         if (rawSlot == AdventureRecordGui.MOB_SEARCH_SLOT) {
             GuiSound.SELECT.play(player);
             gui.openSearch(player, List.of());
+            return;
+        }
+        AdventureRecordService.Entry entry = gui.getEntryAtSlot(inventory, rawSlot);
+        if (entry != null) {
+            GuiSound.SELECT.play(player);
+            gui.openMobDetail(player, entry);
+            return;
+        }
+        GuiSound.DENY.play(player);
+    }
+
+    private void handleMobDetailClick(@NotNull Player player, @NotNull Inventory inventory, int rawSlot) {
+        if (rawSlot == PagedGuiView.BACK_SLOT) {
+            GuiSound.SELECT.play(player);
+            io.github.maaasu.astralRecord.AstralRecord.getInstance().getGuiNavigationService().openPrevious(player);
+            return;
+        }
+        AdventureRecordService.Entry entry = gui.getMobEntry(inventory);
+        StatusType.Category category = gui.getMobStatusCategoryAtSlot(rawSlot);
+        if (entry != null && category != null) {
+            GuiSound.SELECT.play(player);
+            gui.openMobStatusDetail(player, entry, category, 0);
+            return;
+        }
+        GuiSound.DENY.play(player);
+    }
+
+    private void handleMobStatusDetailClick(
+        @NotNull Player player,
+        @NotNull Inventory inventory,
+        int rawSlot
+    ) {
+        if (rawSlot == PagedGuiView.BACK_SLOT) {
+            GuiSound.SELECT.play(player);
+            io.github.maaasu.astralRecord.AstralRecord.getInstance().getGuiNavigationService().openPrevious(player);
+            return;
+        }
+        AdventureRecordService.Entry entry = gui.getMobEntry(inventory);
+        StatusType.Category category = gui.getMobStatusCategory(inventory);
+        if (entry == null || category == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        int pageIndex = gui.getPageIndex(inventory);
+        int itemCount = gui.getMobStatusDetailItemCount(inventory);
+        if (rawSlot == PagedGuiView.PREVIOUS_SLOT && gui.hasPreviousPage(pageIndex)) {
+            GuiSound.PAGE.play(player);
+            gui.openMobStatusDetail(player, entry, category, pageIndex - 1);
+            return;
+        }
+        if (rawSlot == PagedGuiView.NEXT_SLOT && gui.hasNextPage(pageIndex, itemCount)) {
+            GuiSound.PAGE.play(player);
+            gui.openMobStatusDetail(player, entry, category, pageIndex + 1);
             return;
         }
         GuiSound.DENY.play(player);
