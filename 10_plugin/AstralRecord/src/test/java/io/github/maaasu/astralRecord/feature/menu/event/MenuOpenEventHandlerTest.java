@@ -49,9 +49,11 @@ import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.MockBukkit;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 import org.mockbukkit.mockbukkit.plugin.PluginMock;
+import org.mockito.ArgumentCaptor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -213,6 +215,48 @@ class MenuOpenEventHandlerTest extends MockBukkitTestBase {
         verify(player, never()).updateInventory();
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
+     * 章・見出し: # 09_3-GUI・View > ## 6. クラフトショートカット描画
+     * 検証契約: BE版の再描画では、クラフト欄だけでなくプレイヤー所持品とカーソル上の shortcut も除去し、変更時だけ同期する。
+     */
+    @Test
+    void bedrockCraftShortcutRefreshRemovesAllShortcutLocations() {
+        MenuView menuView = mock(MenuView.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        MenuOpenEventHandler menuHandler = newMenuHandler(
+            menuView,
+            scheduler,
+            mock(TrashService.class),
+            mock(SellService.class),
+            mock(StorageService.class),
+            mock(MenuGuiTransitionService.class),
+            inventoryService
+        );
+        Player player = mock(Player.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getMode()).thenReturn(AccountMode.PLAYER);
+        when(astPlayer.isBedrock()).thenReturn(true);
+        when(menuView.clearCraftShortcuts(player)).thenReturn(false);
+        when(menuView.removeCraftShortcutItems(player)).thenReturn(true);
+
+        ArgumentCaptor<Runnable> taskCaptor = ArgumentCaptor.forClass(Runnable.class);
+        try (var cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            menuHandler.refreshCraftShortcuts(player);
+            verify(scheduler).runTask(any(AstralRecord.class), taskCaptor.capture());
+            taskCaptor.getValue().run();
+        }
+
+        verify(menuView).clearCraftShortcuts(player);
+        verify(menuView).removeCraftShortcutItems(player);
+        verify(player).updateInventory();
+    }
+
     private MenuOpenEventHandler newMenuHandler(
         @NotNull TrashService trashService,
         @NotNull SellService sellService,
@@ -222,6 +266,7 @@ class MenuOpenEventHandlerTest extends MockBukkitTestBase {
     ) {
         return newMenuHandler(
             mock(MenuView.class),
+            mock(BukkitScheduler.class),
             trashService,
             sellService,
             storageService,
@@ -238,9 +283,28 @@ class MenuOpenEventHandlerTest extends MockBukkitTestBase {
         @NotNull MenuGuiTransitionService menuGuiTransitionService,
         @NotNull InventoryService inventoryService
     ) {
+        return newMenuHandler(
+            menuView,
+            mock(BukkitScheduler.class),
+            trashService,
+            sellService,
+            storageService,
+            menuGuiTransitionService,
+            inventoryService
+        );
+    }
+
+    private MenuOpenEventHandler newMenuHandler(
+        @NotNull MenuView menuView,
+        @NotNull BukkitScheduler menuScheduler,
+        @NotNull TrashService trashService,
+        @NotNull SellService sellService,
+        @NotNull StorageService storageService,
+        @NotNull MenuGuiTransitionService menuGuiTransitionService,
+        @NotNull InventoryService inventoryService
+    ) {
         AstralRecord menuPlugin = mock(AstralRecord.class);
         Server menuServer = mock(Server.class);
-        BukkitScheduler menuScheduler = mock(BukkitScheduler.class);
         when(menuPlugin.getServer()).thenReturn(menuServer);
         when(menuServer.getScheduler()).thenReturn(menuScheduler);
         return new MenuOpenEventHandler(

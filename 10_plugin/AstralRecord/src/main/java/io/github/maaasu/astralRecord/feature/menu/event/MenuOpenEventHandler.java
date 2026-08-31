@@ -1003,7 +1003,9 @@ public class MenuOpenEventHandler extends AbstractEventHandler
             return;
         }
         if (astPlayer.isBedrock()) {
-            if (menuView.clearCraftShortcuts(player)) {
+            boolean shortcutRemoved = menuView.clearCraftShortcuts(player);
+            shortcutRemoved |= menuView.removeCraftShortcutItems(player);
+            if (shortcutRemoved) {
                 player.updateInventory();
             }
             return;
