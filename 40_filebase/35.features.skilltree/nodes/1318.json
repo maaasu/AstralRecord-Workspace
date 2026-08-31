@@ -17,13 +17,13 @@
       "type": "status",
       "status": "MAX_MANA",
       "modifierType": "FLAT",
-      "value": 10.0
+      "value": 6
     },
     {
       "type": "status",
       "status": "MP_REGEN",
       "modifierType": "FLAT",
-      "value": 0.2
+      "value": 1
     }
   ],
   "unlockCondition": {

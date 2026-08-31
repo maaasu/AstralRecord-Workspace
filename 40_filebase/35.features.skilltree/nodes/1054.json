@@ -19,13 +19,13 @@
       "type": "status",
       "status": "MAX_HEALTH",
       "modifierType": "FLAT",
-      "value": 20
+      "value": 19
     },
     {
       "type": "status",
       "status": "MAX_MANA",
       "modifierType": "FLAT",
-      "value": 30
+      "value": 29
     },
     {
       "type": "status",
@@ -37,13 +37,13 @@
       "type": "status",
       "status": "HP_REGEN",
       "modifierType": "FLAT",
-      "value": 0.2
+      "value": 1
     },
     {
       "type": "status",
       "status": "MP_REGEN",
       "modifierType": "FLAT",
-      "value": 0.2
+      "value": 1
     },
     {
       "type": "status",

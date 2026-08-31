@@ -17,7 +17,7 @@
       "type": "status",
       "status": "MP_REGEN",
       "modifierType": "FLAT",
-      "value": 0.2
+      "value": 1
     }
   ],
   "unlockCondition": {

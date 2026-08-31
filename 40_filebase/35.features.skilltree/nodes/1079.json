@@ -25,13 +25,13 @@
       "type": "status",
       "status": "MAX_MANA",
       "modifierType": "FLAT",
-      "value": 30
+      "value": 29
     },
     {
       "type": "status",
       "status": "MP_REGEN",
       "modifierType": "FLAT",
-      "value": 0.2
+      "value": 1
     }
   ]
 }

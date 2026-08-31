@@ -37,11 +37,11 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `status-max-mana-flat-10` | `MAX_MANA` / `FLAT` / `10` | `&d蒼泉の星脈` | `AMETHYST_SHARD` | `status`, `resource`, `mana`, `azure` |
 | `status-max-energy-flat-5` | `MAX_ENERGY` / `FLAT` / `5` | `&d蒼穹の星脈` | `ENDER_PEARL` | `status`, `resource`, `energy` |
 | `status-movement-speed-flat-1` | `MOVEMENT_SPEED` / `FLAT` / `1` | `&d迅風の星脈` | `SUGAR` | `status`, `agility`, `wind` |
-| `status-mp-regen-flat-0.2` | `MP_REGEN` / `FLAT` / `0.2` | `&d還流の星脈` | `PRISMARINE_CRYSTALS` | `status`, `resource`, `mana`, `azure` |
-| `status-max-energy-mp-regen-flat` | `MAX_ENERGY` / `FLAT` / `5` + `MP_REGEN` / `FLAT` / `0.2` | `&d蒼穹の還流` | `ENDER_PEARL` | `status`, `resource`, `energy`, `mana`, `azure` |
+| `status-mp-regen-flat-1` | `MP_REGEN` / `FLAT` / `1` | `&d還流の星脈` | `PRISMARINE_CRYSTALS` | `status`, `resource`, `mana`, `azure` |
+| `status-max-energy-mp-regen-flat` | `MAX_ENERGY` / `FLAT` / `5` + `MP_REGEN` / `FLAT` / `1` | `&d蒼穹の還流` | `ENDER_PEARL` | `status`, `resource`, `energy`, `mana`, `azure` |
 | `status-max-energy-energy-regen-flat` | `MAX_ENERGY` / `FLAT` / `5` + `ENERGY_REGEN` / `FLAT` / `1` | `&d蒼穹の循環` | `ENDER_PEARL` | `status`, `resource`, `energy`, `wind` |
-| `status-max-energy-dual-regen-flat` | `MAX_ENERGY` / `FLAT` / `5` + `MP_REGEN` / `FLAT` / `0.2` + `ENERGY_REGEN` / `FLAT` / `1` | `&d双環の星脈` | `END_CRYSTAL` | `status`, `resource`, `energy`, `mana`, `azure` |
-| `status-max-mana-mp-regen-flat` | `MAX_MANA` / `FLAT` / `10` + `MP_REGEN` / `FLAT` / `0.2` | `&d蒼泉の還流` | `AMETHYST_SHARD` | `status`, `resource`, `mana`, `azure` |
+| `status-max-energy-dual-regen-flat` | `MAX_ENERGY` / `FLAT` / `5` + `MP_REGEN` / `FLAT` / `1` + `ENERGY_REGEN` / `FLAT` / `1` | `&d双環の星脈` | `END_CRYSTAL` | `status`, `resource`, `energy`, `mana`, `azure` |
+| `status-max-mana-mp-regen-flat` | `MAX_MANA` / `FLAT` / `6` + `MP_REGEN` / `FLAT` / `1` | `&d蒼泉の還流` | `AMETHYST_SHARD` | `status`, `resource`, `mana`, `azure` |
 | `skill-administrator-shield-recharge` | `skill` / `administrator_shield_recharge` | `&bシールドリチャージ` | `SHIELD` | `defense` |
 | `skill-swordsman-last-shield` | `skill` / `swordsman_last_shield` | `&bラストシールド` | `BEACON` | `defense` |
 | `skill-swordsman-flame-rush` | `skill` / `swordsman_flame_rush` | `&6フレイムラッシュ` | `CRIMSON_ROOTS` | `fire` |
@@ -65,8 +65,8 @@ PPノードは、1PPあたりの選択価値を確保するため、次の複数
 | `status-pp-foundation-attributes` | `1048` | `STRENGTH / DEXTERITY / INTELLIGENCE / VITALITY / AGILITY / LUCK` を各 `FLAT / 1` | `&d六環の起点` | `NETHER_STAR` | `status`, `primary`, `strength`, `dexterity`, `intelligence`, `durability`, `agility`, `luck` |
 | `status-pp-foundation-offense` | `1049` | `ATTACK / FLAT / 4` + `STRENGTH / DEXTERITY / INTELLIGENCE` を各 `FLAT / 1` | `&d闘志の起点` | `IRON_SWORD` | `status`, `offense`, `primary`, `strength`, `dexterity`, `intelligence`, `ember` |
 | `status-pp-foundation-defense` | `1050` | `VITALITY / FLAT / 2` + `DEFENSE / FLAT / 3` + `MAGIC_DEFENSE / FLAT / 3` | `&d守護の起点` | `SHIELD` | `status`, `primary`, `defense`, `durability`, `astral` |
-| `status-pp-foundation-life-mana` | `1052` | `INTELLIGENCE / FLAT / 2` + `VITALITY / FLAT / 2` + `MAX_HEALTH / FLAT / 45` + `MAX_MANA / FLAT / 35` + `MP_REGEN / FLAT / 0.3` + `HP_REGEN / FLAT / 0.3` | `&d命脈の起点` | `HEART_OF_THE_SEA` | `status`, `primary`, `resource`, `intelligence`, `mana`, `health`, `durability`, `azure` |
-| `status-pp-foundation-resources` | `1054` | `MAX_HEALTH / FLAT / 20` + `MAX_MANA / FLAT / 30` + `MAX_ENERGY / FLAT / 5` + `HP_REGEN / FLAT / 0.2` + `MP_REGEN / FLAT / 0.2` + `ENERGY_REGEN / FLAT / 1` | `&d循環の起点` | `END_CRYSTAL` | `status`, `resource`, `health`, `mana`, `energy`, `azure` |
+| `status-pp-foundation-life-mana` | `1052` | `INTELLIGENCE / FLAT / 2` + `VITALITY / FLAT / 2` + `MAX_HEALTH / FLAT / 44` + `MAX_MANA / FLAT / 34` + `MP_REGEN / FLAT / 1` + `HP_REGEN / FLAT / 1` | `&d命脈の起点` | `HEART_OF_THE_SEA` | `status`, `primary`, `resource`, `intelligence`, `mana`, `health`, `durability`, `azure` |
+| `status-pp-foundation-resources` | `1054` | `MAX_HEALTH / FLAT / 19` + `MAX_MANA / FLAT / 29` + `MAX_ENERGY / FLAT / 5` + `HP_REGEN / FLAT / 1` + `MP_REGEN / FLAT / 1` + `ENERGY_REGEN / FLAT / 1` | `&d循環の起点` | `END_CRYSTAL` | `status`, `resource`, `health`, `mana`, `energy`, `azure` |
 | `status-pp-foundation-energy-mobility` | `1055` | `AGILITY / FLAT / 4` + `MAX_ENERGY / FLAT / 20` + `ENERGY_REGEN / FLAT / 1` + `ATTACK_SPEED / FLAT / 2` + `MOVEMENT_SPEED / FLAT / 2` | `&d活風の起点` | `ENDER_PEARL` | `status`, `primary`, `resource`, `energy`, `agility`, `wind` |
 | `status-pp-north-ember` | `1056`, `1060`, `1064`, `1068` | `ATTACK / FLAT / 3` + `STRENGTH / FLAT / 2` | `&d紅蓮の連星` | `BLAZE_POWDER` | `status`, `offense`, `primary`, `strength`, `ember` |
 | `status-pp-combat-major` | `1072`, `1076` | `ATTACK / FLAT / 5` + `STRENGTH / DEXTERITY / INTELLIGENCE` を各 `FLAT / 2` | `&d闘志の連星` | `FIRE_CHARGE` | `status`, `offense`, `primary`, `strength`, `dexterity`, `intelligence`, `ember` |
@@ -78,7 +78,7 @@ PPノードは、1PPあたりの選択価値を確保するため、次の複数
 | `status-pp-south-stone` | `1074`, `1078` | `VITALITY / FLAT / 3` + `DEFENSE / FLAT / 3` + `MAX_HEALTH / FLAT / 20` | `&d玄岩の連星` | `OBSIDIAN` | `status`, `primary`, `durability`, `defense`, `health`, `stone` |
 | `status-pp-defense-notable` | `1082` | `VITALITY / FLAT / 8` + `MAX_HEALTH / FLAT / 75` + `DEFENSE / FLAT / 7` + `MAGIC_DEFENSE / FLAT / 7` + `HP_REGEN / FLAT / 1` | `&d不壊の極星` | `ENCHANTED_GOLDEN_APPLE` | `status`, `primary`, `durability`, `defense`, `health`, `stone` |
 | `status-pp-west-astral` | `1059`, `1063`, `1067`, `1071` | `INTELLIGENCE / FLAT / 3` + `MAX_MANA / FLAT / 25` | `&d星詠みの連星` | `ENCHANTED_BOOK` | `status`, `primary`, `intelligence`, `resource`, `mana`, `astral` |
-| `status-pp-west-azure` | `1075`, `1079` | `INTELLIGENCE / FLAT / 4` + `MAX_MANA / FLAT / 30` + `MP_REGEN / FLAT / 0.2` | `&d蒼泉の連星` | `AMETHYST_SHARD` | `status`, `primary`, `intelligence`, `resource`, `mana`, `azure` |
+| `status-pp-west-azure` | `1075`, `1079` | `INTELLIGENCE / FLAT / 4` + `MAX_MANA / FLAT / 29` + `MP_REGEN / FLAT / 1` | `&d蒼泉の連星` | `AMETHYST_SHARD` | `status`, `primary`, `intelligence`, `resource`, `mana`, `azure` |
 | `status-pp-resource-notable` | `1083` | `MAX_HEALTH / FLAT / 40` + `MAX_MANA / FLAT / 60` + `MAX_ENERGY / FLAT / 20` + `HP_REGEN / FLAT / 0.5` + `MP_REGEN / FLAT / 0.8` + `ENERGY_REGEN / FLAT / 2` | `&d循環の極星` | `END_CRYSTAL` | `status`, `resource`, `health`, `mana`, `energy`, `azure` |
 
 PPの通常・強化パッケージは1PP、各方向のnotableは2PPとします。通常・強化・notableに `playerLevel` 条件は設定せず、接続経路とPP残高で進行を制御します。ノード固有の `lore` は定義しません。
