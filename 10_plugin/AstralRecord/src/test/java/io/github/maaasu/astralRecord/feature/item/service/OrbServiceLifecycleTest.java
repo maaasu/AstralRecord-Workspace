@@ -705,7 +705,9 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
-     * 検証契約: 修理は処理中に時計を一度表示して全入力をロックし、pre-save後の同一operationIdによるPOST・GET・再送・affected entry照合完了と同じtickで候補を更新する。
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
+     * 検証契約: 修理は処理中に時計を一度表示して全入力をロックし、pre-save後の同一operationIdによるPOST・GET・再送・affected entry照合完了と同じtickで候補を更新し、オーブitem IDをガイド進捗へ通知する。
      */
     @Test
     void appliedRepairShowsClockAndRefreshesImmediatelyAfterReconciliation() {
@@ -735,12 +737,15 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             harness.player.getOpenInventory().getTopInventory()));
         assertEquals(Material.IRON_SWORD,
             harness.player.getOpenInventory().getTopInventory().getItem(0).getType());
+        assertEquals(List.of(harness.orbModel.getId()), harness.usedOrbIds);
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
      * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
-     * 検証契約: APIがNO_CANDIDATEを確定した場合はpaymentConsumed=falseのままオーブ数量と装備を変更せず、時計表示を戻して一覧操作を再開する。
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
+     * 検証契約: APIがNO_CANDIDATEを確定した場合はpaymentConsumed=falseのままオーブ数量と装備を変更せず、時計表示を戻して一覧操作を再開し、ガイド進捗へ通知しない。
      */
     @Test
     void noCandidateResultDoesNotConsumeOrbOrMutateEquipment() {
@@ -763,6 +768,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             org.mockito.ArgumentMatchers.argThat(ids -> ids.contains(harness.orbEntryId)),
             any(InventoryPersistence.PersistedInventoryBaseline.class)
         );
+        assertEquals(List.of(), harness.usedOrbIds);
     }
 
     /**
@@ -1397,6 +1403,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             });
         private final List<String> order = new ArrayList<>();
         private final List<String> operationIds = new ArrayList<>();
+        private final List<String> usedOrbIds = new ArrayList<>();
 
         private Harness(ItemOrbEffectType effectType) {
             this(effectType, List.of(), 0);
@@ -1443,6 +1450,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 (operationId, delayMillis) -> retryBehavior.get().await(operationId, delayMillis)
             );
             service.setStatusService(statusService);
+            service.setUseSuccessListener((player, orbItemId) -> usedOrbIds.add(orbItemId));
             handler = new InventoryEquipmentGuiEventHandler(
                 mock(MenuView.class),
                 inventoryService,

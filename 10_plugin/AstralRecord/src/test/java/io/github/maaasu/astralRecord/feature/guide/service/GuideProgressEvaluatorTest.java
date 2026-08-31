@@ -346,6 +346,50 @@ class GuideProgressEvaluatorTest {
         )));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
+     * 検証契約: オーブ使用とダンジョンクリアは条件種別と対象IDが一致する手順だけを達成する。
+     */
+    @Test
+    void evaluate_MatchesOrbUseAndDungeonClearTargets() {
+        GuideEntry guide = new GuideEntry(
+            3,
+            "equipment_and_dungeon",
+            "equipment",
+            10,
+            "guide",
+            null,
+            null,
+            List.of(
+                new GuideStep(
+                    "use_orb",
+                    "orb",
+                    List.of(),
+                    new GuideCondition(GuideConditionType.ORB_USED, null),
+                    null
+                ),
+                new GuideStep(
+                    "clear_ruins",
+                    "dungeon",
+                    List.of(),
+                    new GuideCondition(GuideConditionType.DUNGEON_CLEARED, "middle_earth_ruins"),
+                    null
+                )
+            )
+        );
+
+        assertEquals(List.of("use_orb"), ids(GuideProgressEvaluator.evaluate(
+            guide, Set.of(), GuideConditionType.ORB_USED, "tyr_orb"
+        )));
+        assertEquals(List.of(), ids(GuideProgressEvaluator.evaluate(
+            guide, Set.of(), GuideConditionType.DUNGEON_CLEARED, "other_dungeon"
+        )));
+        assertEquals(List.of("clear_ruins"), ids(GuideProgressEvaluator.evaluate(
+            guide, Set.of(), GuideConditionType.DUNGEON_CLEARED, "middle_earth_ruins"
+        )));
+    }
+
     private GuideEntry guide() {
         return new GuideEntry(
             3,

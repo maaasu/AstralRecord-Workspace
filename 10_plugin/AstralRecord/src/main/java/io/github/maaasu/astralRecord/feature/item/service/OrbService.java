@@ -62,6 +62,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 /**
  * 通常インベントリ上のオーブクリックから装備選択・実行・結果反映までを管理します。
@@ -106,6 +107,7 @@ public final class OrbService {
     private final Map<UUID, OrbSession> sessions = new ConcurrentHashMap<>();
     private final Map<UUID, OrbInventoryListSession> inventoryOrbListSessions = new ConcurrentHashMap<>();
     private @Nullable StatusService statusService;
+    private @NotNull BiConsumer<AstPlayer, String> useSuccessListener = (player, orbItemId) -> { };
 
     /**
      * オーブ GUI サービスを初期化します。
@@ -185,6 +187,15 @@ public final class OrbService {
      */
     public void setStatusService(@Nullable StatusService statusService) {
         this.statusService = statusService;
+    }
+
+    /**
+     * オーブによる装備更新が確定した後の通知先を設定します。
+     *
+     * @param listener 使用プレイヤーと消費したオーブ item ID を受け取る通知先
+     */
+    public void setUseSuccessListener(@NotNull BiConsumer<AstPlayer, String> listener) {
+        this.useSuccessListener = listener;
     }
 
     /**
@@ -2301,6 +2312,8 @@ public final class OrbService {
             refreshCurrentScreen(session);
             return;
         }
+
+        useSuccessListener.accept(session.astPlayer, session.orbItemId);
 
         if (result.instance != null && session.player.isOnline()) {
             inventoryService.refreshManagedInventoryUi(session.astPlayer);

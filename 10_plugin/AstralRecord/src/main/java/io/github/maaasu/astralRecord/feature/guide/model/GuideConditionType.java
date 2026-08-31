@@ -24,6 +24,8 @@ public enum GuideConditionType {
     SKILLTREE_NODE_UNLOCKED,
     /** スキルを強化した。 */
     SKILL_ENHANCED,
+    /** オーブによる装備更新が確定した。 */
+    ORB_USED,
     /** アクションリングを表示した。 */
     ACTION_RING_OPENED,
     /** プレイヤーによるスキル発動が成功した。 */
@@ -37,7 +39,9 @@ public enum GuideConditionType {
     /** クエストの受領に成功した。 */
     QUEST_ACCEPTED,
     /** クエストの報酬・状態確定に成功した。 */
-    QUEST_COMPLETED;
+    QUEST_COMPLETED,
+    /** ダンジョンのボス部屋を攻略してクリアが確定した。 */
+    DUNGEON_CLEARED;
 
     /**
      * マスターデータ上の文字列から条件種別を解決します。

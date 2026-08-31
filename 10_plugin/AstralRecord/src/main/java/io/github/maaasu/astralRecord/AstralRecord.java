@@ -1080,6 +1080,9 @@ public final class AstralRecord extends JavaPlugin {
             new InstanceCreationQueue(instanceCreationQueueConfig.dungeon())
         );
         dungeonService.setAfkService(afkService);
+        dungeonService.setClearListener((player, dungeonId) ->
+            guideService.recordCondition(player, GuideConditionType.DUNGEON_CLEARED, dungeonId)
+        );
         partyService.addMembershipChangeListener(bossChallengeService::handlePartyMembershipChanged);
         partyService.addMembershipChangeListener(dungeonService::handlePartyMembershipChanged);
         damageService.setDungeonService(dungeonService);
@@ -1168,6 +1171,9 @@ public final class AstralRecord extends JavaPlugin {
             itemStackFactory
         );
         orbService.setStatusService(statusService);
+        orbService.setUseSuccessListener((player, orbItemId) ->
+            guideService.recordCondition(player, GuideConditionType.ORB_USED, orbItemId)
+        );
         equipmentDurabilityService = new EquipmentDurabilityService(inventoryService, itemService);
         equipmentDurabilityService.setStatusService(statusService);
         damageService.setEquipmentDurabilityService(equipmentDurabilityService);

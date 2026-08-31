@@ -70,6 +70,7 @@ Plugin は各 guide の全未達成 step をイベントごとに評価します
 | `SKILL_LEARNED` | skill ID | スキルジェムからスキル個体の習得が成功したとき |
 | `SKILLTREE_NODE_UNLOCKED` | node ID | スキルツリーのノード解放が成功したとき |
 | `SKILL_ENHANCED` | skill ID | スキルの強化が成功したとき |
+| `ORB_USED` | orb item ID | オーブによる装備更新の API／正本反映が成功したとき。強化抽選が失敗してもオーブが消費された操作は達成する |
 | `ACTION_RING_OPENED` | 使用しない | アクションリングの表示に成功したとき |
 | `SKILL_CAST` | 任意の skill ID | プレイヤーのスキル実行が成功したとき。未指定なら任意のスキル |
 | `MOB_DEFEATED` | mob master ID | 敵 Mob を討伐したとき |
@@ -77,6 +78,7 @@ Plugin は各 guide の全未達成 step をイベントごとに評価します
 | `WAYSTONE_TELEPORTED` | waystone ID | 指定ウェイストーンへのテレポートが成功したとき |
 | `QUEST_ACCEPTED` | quest ID | クエストの受注が成功したとき |
 | `QUEST_COMPLETED` | quest ID | クエスト報酬と関連状態の保存が成功したとき。NPC方式では報告完了時 |
+| `DUNGEON_CLEARED` | dungeon ID | ボス部屋を攻略し、クリア参加者として踏破記録を開始したとき |
 
 ## クリック時アクション
 

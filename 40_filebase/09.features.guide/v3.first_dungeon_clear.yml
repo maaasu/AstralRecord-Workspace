@@ -1,0 +1,21 @@
+# design:
+#   motif: "中つ国 / 緑野に眠る古代遺跡"
+#   progression: 5
+schemaVersion: 3
+id: first_dungeon_clear
+category: world
+displayOrder: 10
+title: "&6初めてのダンジョン"
+iconMaterial: MOSSY_STONE_BRICKS
+summary: "&7ミドルアースの遺跡を攻略する流れを確認する。"
+steps:
+  - id: clear_middle_earth_ruins
+    text: "&eミドルアースの遺跡&fを攻略する"
+    details:
+      - "&7推奨レベルは5。一人またはパーティーで受付ゲートから挑戦する。"
+      - "&7制限時間は10分。道中の部屋で敵をすべて倒し、開いたゲートの先へ進む。"
+      - "&7ダンジョン内では5回まで死亡しても復帰できる。6回目の死亡で挑戦失敗になる。"
+      - "&7最後にボスを倒し、クリア報酬を30秒以内に宝箱から受け取る。"
+    condition:
+      type: DUNGEON_CLEARED
+      targetId: middle_earth_ruins

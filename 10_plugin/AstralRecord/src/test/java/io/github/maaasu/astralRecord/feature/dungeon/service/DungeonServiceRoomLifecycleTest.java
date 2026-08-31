@@ -1,7 +1,9 @@
 package io.github.maaasu.astralRecord.feature.dungeon.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.adventurerecord.repository.AdventureRecordRepository;
+import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureDungeonRecord;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.dungeon.DungeonTestFixtures;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonBlockPlan;
@@ -17,6 +19,8 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
+import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
@@ -37,6 +41,7 @@ import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
+import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -44,7 +49,9 @@ import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
 import org.bukkit.entity.Player;
+import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.AfterEach;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
@@ -54,6 +61,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -80,6 +88,11 @@ import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
+    @AfterEach
+    void clearPlayerCache() {
+        AstPlayerCache.clear();
+    }
+
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 4. 開始・生成・転送
@@ -470,6 +483,54 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 6. クリア報酬と30秒回収
+     * 検証契約: ボス部屋クリアは確定時にDungeon world内にいる現在参加者だけをdungeon ID付きでガイド進捗へ通知する。
+     */
+    @Test
+    void bossClearNotifiesOnlyEligibleParticipantsInDungeonWorld() throws Exception {
+        MobDropService mobDropService = mock(MobDropService.class);
+        when(mobDropService.roll(any(MobDropConfig.class), any(AstPlayer.class)))
+                .thenReturn(new MobDropResult(List.of(), 0, 0));
+        DisplayTextService displayTextService = mock(DisplayTextService.class);
+        when(displayTextService.create(any(DisplayAnchor.class), any(DisplayTextOptions.class)))
+                .thenReturn(mock(DisplayTextService.ManagedTextDisplay.class));
+        AdventureRecordRepository adventureRecordRepository = mock(AdventureRecordRepository.class);
+        when(adventureRecordRepository.recordDungeonClear(
+                any(UUID.class), eq("test_dungeon"), any(UUID.class)))
+                .thenAnswer(invocation -> new AdventureDungeonRecord(
+                        UUID.randomUUID(), invocation.getArgument(0), "test_dungeon", 1L,
+                        Instant.now(), Instant.now()));
+        DungeonService service = service(
+                mock(MobService.class), displayTextService, mobDropService,
+                adventureRecordRepository);
+        World dungeonWorld = server().addSimpleWorld("dungeon-clear-guide");
+        World outsideWorld = server().addSimpleWorld("dungeon-clear-guide-outside");
+        PlayerMock eligible = server().addPlayer();
+        eligible.teleport(new Location(dungeonWorld, 28.5D, 65.0D, 4.5D));
+        PlayerMock outside = server().addPlayer();
+        outside.teleport(new Location(outsideWorld, 0.5D, 65.0D, 0.5D));
+        AstPlayer eligibleAstPlayer = DesignTestFixtures.astPlayer(eligible, AccountMode.PLAYER);
+        AstPlayer outsideAstPlayer = DesignTestFixtures.astPlayer(outside, AccountMode.PLAYER);
+        AstPlayerCache.put(eligibleAstPlayer);
+        AstPlayerCache.put(outsideAstPlayer);
+        Object session = session(
+                List.of(eligible.getUniqueId(), outside.getUniqueId()), List.of(), "party");
+        configureRunningSession(service, session, eligible, dungeonWorld);
+        mapField(session, "roomStates").put(2, DungeonMapRoomState.ACTIVE);
+        List<String> notifications = new ArrayList<>();
+        service.setClearListener((player, dungeonId) ->
+                notifications.add(player.getBukkit().getUniqueId() + ":" + dungeonId));
+
+        try (MockedStatic<Logger> ignored = Mockito.mockStatic(Logger.class)) {
+            invoke(service, "clearRoom", session, 2);
+        }
+
+        assertEquals(List.of(eligible.getUniqueId() + ":test_dungeon"), notifications);
+        field(session, "clearReturnTask", BukkitTask.class).cancel();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 3. 遭遇 Mob と部屋進行
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 7. 終了と回収
@@ -602,6 +663,18 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         return service(mobService, displayTextService, mock(WorldService.class), mobDropService);
     }
 
+    /** 踏破記録リポジトリまで検証可能な依存でサービスを構成します。 */
+    private DungeonService service(
+            MobService mobService,
+            DisplayTextService displayTextService,
+            MobDropService mobDropService,
+            AdventureRecordRepository adventureRecordRepository
+    ) {
+        return service(
+                mobService, displayTextService, mock(WorldService.class), mobDropService,
+                mock(PartyService.class), adventureRecordRepository);
+    }
+
     /** テスト対象サービスをWorldとMobドロップ抽選サービスの検証可能な依存で構成します。 */
     private DungeonService service(
             MobService mobService,
@@ -619,6 +692,20 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
             WorldService worldService,
             MobDropService mobDropService,
             PartyService partyService
+    ) {
+        return service(
+                mobService, displayTextService, worldService, mobDropService, partyService,
+                mock(AdventureRecordRepository.class));
+    }
+
+    /** すべての可変依存を指定してテスト対象サービスを構成します。 */
+    private DungeonService service(
+            MobService mobService,
+            DisplayTextService displayTextService,
+            WorldService worldService,
+            MobDropService mobDropService,
+            PartyService partyService,
+            AdventureRecordRepository adventureRecordRepository
     ) {
         AstralRecord plugin = mock(AstralRecord.class);
         when(plugin.isEnabled()).thenReturn(true);
@@ -638,7 +725,7 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
                 mock(ItemService.class),
                 mock(ItemStackFactory.class),
                 mock(LootService.class),
-                mock(AdventureRecordRepository.class),
+                adventureRecordRepository,
                 "hub"
         );
     }

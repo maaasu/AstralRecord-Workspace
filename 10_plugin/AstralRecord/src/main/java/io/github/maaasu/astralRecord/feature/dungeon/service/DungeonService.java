@@ -99,6 +99,7 @@ import java.util.SplittableRandom;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.time.Duration;
 import java.time.Instant;
@@ -152,6 +153,7 @@ public final class DungeonService {
     private final InstanceCreationQueue creationQueue;
     private final String hubWorldId;
     private AfkService afkService;
+    private @NotNull BiConsumer<AstPlayer, String> clearListener = (player, dungeonId) -> { };
 
     private volatile Map<String, LoadedDefinition> loadedDefinitions = Map.of();
     private final Map<UUID, Session> sessionsById = new LinkedHashMap<>();
@@ -307,6 +309,15 @@ public final class DungeonService {
      */
     public void setAfkService(@NotNull AfkService afkService) {
         this.afkService = afkService;
+    }
+
+    /**
+     * ボス部屋攻略によるダンジョンクリア確定後の通知先を設定します。
+     *
+     * @param listener クリア参加者とダンジョン ID を受け取る通知先
+     */
+    public void setClearListener(@NotNull BiConsumer<AstPlayer, String> listener) {
+        this.clearListener = listener;
     }
 
     /** 現在ロード済みの Mob/World を参照して初回ロードします。 */
@@ -1451,6 +1462,7 @@ public final class DungeonService {
             List<DungeonRewardEntry> rewards = rollClearRewards(astPlayer, session.loaded.definition());
             session.rewardsByPlayer.put(player.getUniqueId(), new ArrayList<>(rewards));
             recordDungeonClearAsync(astPlayer, session.loaded.definition());
+            clearListener.accept(astPlayer, session.loaded.definition().id());
         }
         Location chestLocation = findRewardChestLocation(session, bossRoom);
         Block chest = chestLocation.getBlock();
