@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skill.event;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.shop.service.ShopService;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillForgetGui;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillForgetInventoryHolder;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillForgetScreen;
@@ -81,7 +82,8 @@ class SkillForgetGuiEventHandlerTest {
             mock(LearnedSkillService.class),
             mock(PassiveSkillService.class),
             mock(InventoryService.class),
-            mock(ItemService.class)
+            mock(ItemService.class),
+            mock(ShopService.class)
         );
     }
 }

@@ -29,10 +29,7 @@ public final class SkillSynthesisMaterialEligibility {
      */
     public static @NotNull MaterialKind resolve(@NotNull SkillManagerEntry entry, @NotNull ItemModel item) {
         if (item.getSkillGem() != null) {
-            return sameId(item.getSkillGem().getSkillId(), entry.learnedSkill().getSkillId())
-                && entry.learnedSkill().getLevel() < entry.definition().getMaxLevel()
-                ? MaterialKind.GEM
-                : MaterialKind.INVALID_GEM;
+            return MaterialKind.GEM_PURCHASE_ONLY;
         }
         return resolve(entry.learnedSkill(), entry.definition(), item);
     }
@@ -97,15 +94,14 @@ public final class SkillSynthesisMaterialEligibility {
     /**
      * 合成画面を開く余地があるかを返します。
      *
-     * <p>同スキルジェムでのレベルアップ余地、またはシジル枠の空きのどちらかがあれば true です。
-     * 個別素材の可否は {@link #resolve(SkillManagerEntry, ItemModel)} で判定します。</p>
+     * <p>シジル枠の空きがあれば true です。スキルレベルはジェム購入時に上昇するため、
+     * ジェム所持や最大レベルは合成画面の可否へ含めません。</p>
      *
      * @param entry 合成対象の習得済みスキル
      * @return 合成画面を開ける場合 true
      */
     public static boolean canOpenSynthesis(@NotNull SkillManagerEntry entry) {
-        return entry.learnedSkill().getLevel() < entry.definition().getMaxLevel()
-            || entry.learnedSkill().getSigils().size() < sigilSlotCount(entry);
+        return entry.learnedSkill().getSigils().size() < sigilSlotCount(entry);
     }
 
     private static boolean sameId(@NotNull String left, @NotNull String right) {
@@ -115,8 +111,7 @@ public final class SkillSynthesisMaterialEligibility {
     /** 合成素材としての分類と、選択を許可するかを表します。 */
     public enum MaterialKind {
         NONE(false),
-        INVALID_GEM(false),
-        GEM(true),
+        GEM_PURCHASE_ONLY(false),
         SIGIL(true),
         SIGIL_NOT_ALLOWED(false),
         NO_SIGIL_SLOT(false),

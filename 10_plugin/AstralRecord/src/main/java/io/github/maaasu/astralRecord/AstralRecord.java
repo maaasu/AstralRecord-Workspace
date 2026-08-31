@@ -200,7 +200,6 @@ import io.github.maaasu.astralRecord.feature.skill.event.JustDodgeSkillEventHand
 import io.github.maaasu.astralRecord.feature.skill.event.MeditationSkillEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillActionRingEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
-import io.github.maaasu.astralRecord.feature.skill.event.SkillGemLearnEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillForgetGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.event.SpellStepSkillEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorJustDodgeSkillExecutor;
@@ -228,6 +227,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingHoldSe
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillCooldownBossBarService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillGemPurchaseService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
@@ -402,6 +402,7 @@ public final class AstralRecord extends JavaPlugin {
     private SkillTreeService skillTreeService;
     private SkillBindPresetService skillBindPresetService;
     private LearnedSkillService learnedSkillService;
+    private SkillGemPurchaseService skillGemPurchaseService;
     private SkillOwnershipService skillOwnershipService;
     private SkillPermissionService skillPermissionService;
     private SkillBindGui skillBindGui;
@@ -1404,6 +1405,23 @@ public final class AstralRecord extends JavaPlugin {
             learnedSkillService,
             passiveSkillService
         ));
+        skillGemPurchaseService = new SkillGemPurchaseService(
+            learnedSkillService,
+            skillService,
+            inventoryService,
+            passiveSkillService
+        );
+        skillGemPurchaseService.setSkillLearnedListener(
+            (player, skillId) -> guideService.recordConditionSilently(
+                player, GuideConditionType.SKILL_LEARNED, skillId
+            )
+        );
+        skillGemPurchaseService.setSkillEnhancedListener(
+            (player, skillId) -> guideService.recordConditionSilently(
+                player, GuideConditionType.SKILL_ENHANCED, skillId
+            )
+        );
+        shopService.setSpecialPurchaseHandler(skillGemPurchaseService);
         skillService.setPlayerSkillUseListener(
             (player, skillId) -> meditationSkillRuntimeService.interrupt(player.getBukkit().getUniqueId())
         );
@@ -1556,7 +1574,9 @@ public final class AstralRecord extends JavaPlugin {
             menuToolJoinGrantService
         );
         playerJoinEventHandler.setPlayerLoadedListener(player -> passiveSkillService.reconcileNow(player));
-        playerJoinEventHandler.setPlayerQuitListener(passiveSkillService::onPlayerQuit);
+        playerJoinEventHandler.setPlayerQuitListener(player -> {
+            passiveSkillService.onPlayerQuit(player);
+        });
         eventManager.registerHandler(playerJoinEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
             new AfkPlayerEventHandler(afkService),
@@ -1702,17 +1722,6 @@ public final class AstralRecord extends JavaPlugin {
             playerBrowserGuiEventHandler,
             getServer().getPluginManager()
         );
-        var skillGemLearnEventHandler = new SkillGemLearnEventHandler(
-            this,
-            inventoryService,
-            learnedSkillService,
-            skillService,
-            passiveSkillService
-        );
-        skillGemLearnEventHandler.setSkillLearnedListener(
-            (player, skillId) -> guideService.recordCondition(player, GuideConditionType.SKILL_LEARNED, skillId)
-        );
-        eventManager.registerHandler(skillGemLearnEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
             new InventoryEquipmentGuiEventHandler(
                 menuView,
@@ -1722,8 +1731,7 @@ public final class AstralRecord extends JavaPlugin {
                 passiveSkillService,
                 orbService,
                 menuGuiTransitionService,
-                menuOpenEventHandler,
-                skillGemLearnEventHandler
+                menuOpenEventHandler
             ),
             getServer().getPluginManager()
         );
@@ -1775,9 +1783,6 @@ public final class AstralRecord extends JavaPlugin {
             passiveSkillService,
             inventoryService
         );
-        skillBindGuiEventHandler.setSkillEnhancedListener((player, skillId) ->
-            guideService.recordCondition(player, GuideConditionType.SKILL_ENHANCED, skillId)
-        );
         eventManager.registerHandler(
             skillBindGuiEventHandler,
             getServer().getPluginManager()
@@ -1791,7 +1796,8 @@ public final class AstralRecord extends JavaPlugin {
             learnedSkillService,
             passiveSkillService,
             inventoryService,
-            itemService
+            itemService,
+            shopService
         );
         eventManager.registerHandler(
             skillForgetGuiEventHandler,

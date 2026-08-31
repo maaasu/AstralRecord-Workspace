@@ -114,7 +114,11 @@ public class ItemRepository(MasterDataDbContext dbContext) : IItemRepository
             Rarity = skill.Gem.Rarity,
             SaleValue = 0,
             MaxStack = 0,
-            Lore = ["&7左クリックで習得", "&8習得時にジェムを1個消費します。"],
+            Lore =
+            [
+                "&7スキルジェム交換所で購入すると即時反映されます。",
+                "&7未習得なら習得し、習得済みならレベルアップします。",
+            ],
             UnTradeable = !skill.Gem.Tradeable,
             UnSellable = !skill.Gem.Sellable,
             SkillGem = new ItemSkillGemResponse { SkillId = skill.Id },

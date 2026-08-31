@@ -153,6 +153,17 @@ steps:
     condition:
       type: SKILL_LEARNED
       targetId: adventurer_smash
+  - id: enhance_skill
+    text: "&f同じスキルジェムを再購入して強化する"
+    details:
+      - "&7星晶錬成師のスキルジェム交換GUIで、習得済みスキルのジェムを選択する。"
+      - "&7次の購入で上がるレベルを確認し、同じジェムをもう一度購入する。"
+      - "&7購入するとスキルジェムが即時消費され、対象スキルのレベルが1上がる。"
+    condition:
+      type: SKILL_ENHANCED
+      targetIds:
+        - adventurer_astral_edge
+        - adventurer_smash
   - id: cast_astral_edge
     text: "&f&eアストラルエッジ&fを発動する"
     details:

@@ -720,11 +720,6 @@ public class ItemStackFactory {
         if (model.getConsumable() != null) {
             appendConsumableLore(lore, model.getConsumable());
         }
-        if (model.getSkillGem() != null) {
-            lore.add(ColorCodeUtil.GREEN + "左クリックで習得");
-            lore.add(ColorCodeUtil.RED + "習得時にジェムを1個消費します");
-            lore.add("");
-        }
         if (model.getSigil() != null) {
             appendSigilLore(lore, model.getSigil());
             lore.add(ColorCodeUtil.LIGHT_PURPLE + "スキルマネージャーで合成");

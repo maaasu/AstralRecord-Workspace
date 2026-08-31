@@ -71,6 +71,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
@@ -581,7 +582,7 @@ public class InventoryService {
     }
 
     /** スキルmutation後または通信結果が不明な場合に、対象entryだけをAPI正本へ合わせます。 */
-    public void reconcileAuthoritativeEntry(
+    public boolean reconcileAuthoritativeEntry(
         @NotNull UUID accountId,
         @NotNull UUID inventoryEntryId
     ) {
@@ -609,7 +610,159 @@ public class InventoryService {
             if (compactInventoryId != null) {
                 compactInventoryEntriesAfterRemoval(state, compactInventoryId);
             }
+            return authoritative != null;
         }
+    }
+
+    /**
+     * 外部 API 操作を、購入内容の事前保存と操作後 state の再保存を含む account 専用 lane で実行します。
+     * 操作受付直後から完了まで logout / auto-save を先行させません。
+     *
+     * @param accountId 対象アカウント ID
+     * @param operation API 操作、正本照合、または失敗補償を一続きで行う処理
+     * @param <T> 操作結果型
+     * @return 操作と操作後保存の完了 future
+     */
+    public <T> @NotNull CompletableFuture<T> executeExternalMutationAfterSave(
+        @NotNull UUID accountId,
+        @NotNull Supplier<T> operation
+    ) {
+        CompletableFuture<T> result = new CompletableFuture<>();
+        saveCoordinator.prepareExternalOperationAfterSave(accountId).whenComplete((prepared, prepareError) -> {
+            if (prepareError != null || prepared == null) {
+                result.completeExceptionally(prepareError == null
+                    ? new IllegalStateException("External operation preparation returned no handle")
+                    : prepareError);
+                return;
+            }
+            saveCoordinator.completePreparedExternalOperation(prepared, ignored -> operation.get())
+                .whenComplete((value, operationError) -> {
+                    if (operationError != null) {
+                        // 呼び出し側へ失敗を返す前に未解決境界を明示的に破棄し、
+                        // logout / auto-save と次回の再試行を恒久的に塞がない。
+                        saveCoordinator.abandonPreparedExternalOperation(prepared);
+                        result.completeExceptionally(operationError);
+                        return;
+                    }
+                    result.complete(value);
+                });
+        });
+        return result;
+    }
+
+    /**
+     * 外部 API で確実に不成立となったショップ購入を、現在 state の無関係な差分を維持したまま補償します。
+     * 購入時に新規採番された entry だけを除去し、支払った gold・通貨・通常素材を同じ state lock 内で返却します。
+     *
+     * @param accountId 購入者アカウント ID
+     * @param purchasedEntryId 除去する購入品 entry ID
+     * @param purchasedItemId 購入品 item ID
+     * @param goldAmount 返却する gold 価値
+     * @param refundItems 返却する通貨・通常素材
+     * @return 全補償を適用できた場合は {@code true}
+     */
+    public boolean compensateFailedShopPurchase(
+        @NotNull UUID accountId,
+        @NotNull UUID purchasedEntryId,
+        @NotNull String purchasedItemId,
+        long goldAmount,
+        @NotNull List<InventoryRefundItem> refundItems
+    ) {
+        if (goldAmount < 0L) {
+            return false;
+        }
+        Map<InventoryRefundItem, ItemModel> refundModels = new LinkedHashMap<>();
+        for (InventoryRefundItem refund : refundItems) {
+            if (refund.amount() <= 0) {
+                return false;
+            }
+            if (refund.currency()
+                && ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(refund.itemId())) {
+                continue;
+            }
+            ItemModel model = itemService.findLoadedById(refund.itemId());
+            if (model == null) {
+                model = itemService.loadItem(refund.itemId(), refund.category());
+            }
+            if (model == null) {
+                return false;
+            }
+            refundModels.put(refund, model);
+        }
+
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return false;
+        }
+        synchronized (state) {
+            InventoryStateSnapshot compensationStart = snapshotState(accountId);
+            if (compensationStart == null
+                || !removeExactPurchasedEntry(state, purchasedEntryId, purchasedItemId)) {
+                return false;
+            }
+            InventoryModel currencyInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.CURRENCY);
+            if (goldAmount > 0L && (currencyInventory == null
+                || !currencyInventory.isEnabled()
+                || !addGoldValue(state, currencyInventory, goldAmount))) {
+                restoreState(compensationStart);
+                return false;
+            }
+            for (InventoryRefundItem refund : refundItems) {
+                ItemModel model = refundModels.get(refund);
+                if (refund.currency()) {
+                    if (currencyInventory == null || !currencyInventory.isEnabled()) {
+                        restoreState(compensationStart);
+                        return false;
+                    }
+                    boolean refunded = ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(refund.itemId())
+                        ? addGoldValue(state, currencyInventory, refund.amount())
+                        : addCurrencyAmountToInventory(state, currencyInventory, refund.itemId(), refund.amount());
+                    if (!refunded) {
+                        restoreState(compensationStart);
+                        return false;
+                    }
+                    continue;
+                }
+                InventoryModel targetInventory = ensureInventory(state, resolveTargetInventoryType(model));
+                if (addStackedItems(state, targetInventory, model, refund.amount()) != refund.amount()) {
+                    restoreState(compensationStart);
+                    return false;
+                }
+            }
+            if (currencyInventory != null) {
+                compactInventoryEntries(state, currencyInventory.getInventoryId());
+            }
+            return true;
+        }
+    }
+
+    private boolean removeExactPurchasedEntry(
+        @NotNull PlayerInventoryState state,
+        @NotNull UUID purchasedEntryId,
+        @NotNull String purchasedItemId
+    ) {
+        for (InventoryType type : List.of(InventoryType.BAG, InventoryType.HOTBAR)) {
+            InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, type);
+            if (inventory == null || !inventory.isEnabled() || inventory.isDeleted()) {
+                continue;
+            }
+            List<InventoryEntryModel> entries = new ArrayList<>(state.snapshotEntries(inventory.getInventoryId()));
+            for (int index = 0; index < entries.size(); index++) {
+                InventoryEntryModel entry = entries.get(index);
+                if (entry.isDeleted()
+                    || !entry.getInventoryEntryId().equals(purchasedEntryId)
+                    || entry.getItemId() == null
+                    || !entry.getItemId().equalsIgnoreCase(purchasedItemId)
+                    || entry.getQuantity() != 1L) {
+                    continue;
+                }
+                entries.remove(index);
+                state.replaceEntries(inventory.getInventoryId(), entries);
+                compactInventoryEntriesAfterRemoval(state, inventory.getInventoryId());
+                return true;
+            }
+        }
+        return false;
     }
 
     /**
@@ -7347,6 +7500,18 @@ public class InventoryService {
                 immutableEntries.put(inventoryId, List.copyOf(entries))
             );
             entriesByInventoryId = Map.copyOf(immutableEntries);
+        }
+    }
+
+    /** ショップ購入失敗時に返却する itemId・category・数量です。 */
+    public record InventoryRefundItem(
+        @NotNull String itemId,
+        @NotNull String category,
+        int amount
+    ) {
+        /** @return 通貨インベントリへ返却する項目である場合は {@code true} */
+        public boolean currency() {
+            return ItemCategory.CURRENCY.getApiValue().equalsIgnoreCase(category);
         }
     }
 

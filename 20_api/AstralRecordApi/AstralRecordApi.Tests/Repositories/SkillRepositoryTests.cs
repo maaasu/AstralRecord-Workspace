@@ -163,7 +163,8 @@ public class SkillRepositoryTests
         Assert.True(gem.UnTradeable);
         Assert.True(gem.UnSellable);
         Assert.Equal("adventurer_smash", gem.SkillGem!.SkillId);
-        Assert.Contains(gem.Lore, line => line.Contains("左クリック", StringComparison.Ordinal));
+        Assert.Contains(gem.Lore, line => line.Contains("購入すると即時反映", StringComparison.Ordinal));
+        Assert.Contains(gem.Lore, line => line.Contains("習得済みならレベルアップ", StringComparison.Ordinal));
     }
 
     [Fact]

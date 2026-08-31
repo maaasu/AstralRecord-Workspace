@@ -282,7 +282,7 @@ public final class SkillBindGui {
             SYNTHESIS_MATERIAL_SLOT,
             material == null
                 ? createItem(Material.LIGHT_GRAY_STAINED_GLASS_PANE, "素材を選択", NamedTextColor.GRAY,
-                    List.of(Component.text("下のインベントリから同スキルのジェム、または対応シジルをクリック", NamedTextColor.YELLOW)))
+                    List.of(Component.text("下のインベントリから対応シジルをクリック", NamedTextColor.YELLOW)))
                 : materialSelected ? createMaterialItem(material) : createRejectedMaterialItem(material, materialKind)
         );
         inventory.setItem(
@@ -854,9 +854,8 @@ public final class SkillBindGui {
         }
         SkillDefinition skill = entry.definition();
         int currentLevel = entry.learnedSkill().getLevel();
-        boolean levelUp = materialKind == MaterialKind.GEM;
-        ItemModel pendingSigil = materialKind == MaterialKind.SIGIL ? material : null;
-        int resultingLevel = levelUp ? Math.min(skill.getMaxLevel(), currentLevel + 1) : currentLevel;
+        ItemModel pendingSigil = material;
+        int resultingLevel = currentLevel;
         ResolvedLearnedSkill preview = resolvedPreview(entry, resultingLevel, pendingSigil);
         List<Component> lore = new ArrayList<>();
         lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(preview, NamedTextColor.GRAY));
@@ -869,16 +868,12 @@ public final class SkillBindGui {
             "種別: " + (skill.getKind().isPassive() ? "パッシブ" : "アクティブ"),
             NamedTextColor.GRAY
         ));
-        if (materialKind == MaterialKind.GEM) {
-            lore.add(Component.text("レベル: Lv." + currentLevel + " → Lv." + resultingLevel, NamedTextColor.GREEN));
-        } else if (materialKind == MaterialKind.SIGIL) {
-            lore.add(Component.text("シジルを装着します（取り外し不可）", NamedTextColor.LIGHT_PURPLE));
-        }
+        lore.add(Component.text("シジルを装着します（取り外し不可）", NamedTextColor.LIGHT_PURPLE));
         lore.add(separator());
         appendSigilSlotLore(lore, entry, resultingLevel, pendingSigil);
         lore.add(separator());
         lore.add(Component.text(
-            levelUp ? "クリックでジェムを消費してレベルアップ" : "クリックでシジルを消費して装着",
+            "クリックでシジルを消費して装着",
             NamedTextColor.YELLOW
         ));
         return createItem(
@@ -931,9 +926,9 @@ public final class SkillBindGui {
             case SIGIL_NOT_ALLOWED -> "このシジルはこのスキルに装着できません。";
             case NO_SIGIL_SLOT -> "シジル合成枠が空いていません。";
             case DUPLICATE_SIGIL_GROUP -> "同系統のシジルは重ねて装着できません。";
-            case INVALID_GEM -> "このジェムではレベルアップできません。";
+            case GEM_PURCHASE_ONLY -> "スキルレベルはスキルジェム購入時に上がります。";
             case NONE -> "このアイテムは合成素材にできません。";
-            case GEM, SIGIL -> "";
+            case SIGIL -> "";
         };
     }
 

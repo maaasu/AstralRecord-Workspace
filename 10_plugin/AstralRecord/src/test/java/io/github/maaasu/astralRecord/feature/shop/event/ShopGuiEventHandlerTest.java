@@ -12,6 +12,8 @@ import io.github.maaasu.astralRecord.feature.shop.model.ShopAccess;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopDefinition;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopEntry;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopMode;
+import io.github.maaasu.astralRecord.feature.shop.model.ShopPurchasePreview;
+import io.github.maaasu.astralRecord.feature.shop.model.ShopSpecialPurchaseState;
 import io.github.maaasu.astralRecord.feature.shop.service.ShopService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.event.inventory.InventoryClickEvent;
@@ -83,6 +85,9 @@ class ShopGuiEventHandlerTest extends MockBukkitTestBase {
         when(shopGui.getPageIndex(topInventory)).thenReturn(0);
         when(shopService.findById(shop.id())).thenReturn(shop);
         when(shopService.resolveItem(entry)).thenReturn(item);
+        when(shopService.preview(astPlayer, entry, 1)).thenReturn(new ShopPurchasePreview(
+            1, 4, 10, List.of(), List.of(), true
+        ));
         when(inventoryService.canAddItemToNormalInventory(astPlayer, item, 1)).thenReturn(false);
 
         PlayerMessageService messages = mock(PlayerMessageService.class);
@@ -97,5 +102,74 @@ class ShopGuiEventHandlerTest extends MockBukkitTestBase {
         verify(event).setCancelled(true);
         verify(messages).send(astPlayer, PlayerMsgId.P_5241);
         verify(shopService, never()).purchase(astPlayer, entry, 1);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_4-統合フロー.md
+     * 章・見出し: # 20_4-統合フロー > ## 3. Preview・購入 > ### 例外・終了条件
+     * 検証契約: 最大レベルのスキルジェム購入確定はcancelし、容量確認・購入処理へ進めない。
+     */
+    @Test
+    void maxLevelSkillGemPurchaseIsCancelledBeforeMutation() {
+        ShopGui shopGui = mock(ShopGui.class);
+        ShopService shopService = mock(ShopService.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        ShopGuiEventHandler handler = new ShopGuiEventHandler(shopGui, shopService, inventoryService);
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = io.github.maaasu.astralRecord.support.DesignTestFixtures.astPlayer(
+            player,
+            AccountMode.PLAYER
+        );
+        Inventory topInventory = mock(Inventory.class);
+        InventoryView view = mock(InventoryView.class);
+        InventoryClickEvent event = mock(InventoryClickEvent.class);
+        ShopEntry entry = new ShopEntry(
+            "smash_from_raw",
+            "00_skill_gem_adventurer_smash",
+            "skill_gem",
+            1,
+            1,
+            null,
+            null,
+            null,
+            0,
+            List.of(),
+            null
+        );
+        ShopDefinition shop = new ShopDefinition(
+            "skill_gem_exchange",
+            "スキルジェム交換",
+            ShopMode.EXCHANGE,
+            ShopAccess.NPC_ONLY,
+            List.of(entry)
+        );
+        ShopPurchasePreview maxPreview = new ShopPurchasePreview(
+            1, 0, 0, List.of(), List.of(), false, ShopSpecialPurchaseState.maxLevel(5)
+        );
+        when(event.getView()).thenReturn(view);
+        when(view.getTopInventory()).thenReturn(topInventory);
+        when(event.getWhoClicked()).thenReturn(player);
+        when(event.getRawSlot()).thenReturn(ShopGui.BUY_SLOT);
+        when(shopGui.isConfirmInventory(topInventory)).thenReturn(true);
+        when(shopGui.getShopId(topInventory)).thenReturn(shop.id());
+        when(shopGui.getEntryId(topInventory)).thenReturn(entry.id());
+        when(shopGui.getQuantity(topInventory)).thenReturn(1);
+        when(shopGui.getPageIndex(topInventory)).thenReturn(0);
+        when(shopService.findById(shop.id())).thenReturn(shop);
+        when(shopService.preview(astPlayer, entry, 1)).thenReturn(maxPreview);
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            handler.onInventoryClick(event);
+        }
+
+        verify(event).setCancelled(true);
+        verify(shopGui).openConfirm(player, shop, entry, 1, maxPreview, 0);
+        verify(shopService, never()).purchase(astPlayer, entry, 1);
+        verify(inventoryService, never()).canAddItemToNormalInventory(
+            org.mockito.ArgumentMatchers.eq(astPlayer),
+            org.mockito.ArgumentMatchers.any(ItemModel.class),
+            org.mockito.ArgumentMatchers.anyInt()
+        );
     }
 }

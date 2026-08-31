@@ -150,7 +150,13 @@ public class GuideService {
                     List<GuideConditionEvent> pending = pendingConditionsByAccount.remove(accountId);
                     if (pending != null && !pending.isEmpty()) {
                         plugin.getServer().getScheduler().runTask(plugin, () -> pending.forEach(event ->
-                            recordCondition(event.player(), event.type(), event.targetId(), event.targetLevel())
+                            recordCondition(
+                                event.player(),
+                                event.type(),
+                                event.targetId(),
+                                event.targetLevel(),
+                                event.notifyPlayer()
+                            )
                         ));
                     }
                 }
@@ -221,11 +227,30 @@ public class GuideService {
         @Nullable String targetId,
         @Nullable Integer targetLevel
     ) {
+        recordCondition(player, eventType, targetId, targetLevel, true);
+    }
+
+    /** オフライン完了を含む状態変更を、効果音・チャット通知なしでガイドへ記録します。 */
+    public void recordConditionSilently(
+        @NotNull AstPlayer player,
+        @NotNull GuideConditionType eventType,
+        @Nullable String targetId
+    ) {
+        recordCondition(player, eventType, targetId, null, false);
+    }
+
+    private void recordCondition(
+        @NotNull AstPlayer player,
+        @NotNull GuideConditionType eventType,
+        @Nullable String targetId,
+        @Nullable Integer targetLevel,
+        boolean notifyPlayer
+    ) {
         UUID accountId = player.getAccount().getUuid();
         Set<GuideStepKey> completed = completedStepsByAccount.get(accountId);
         if (completed == null) {
             pendingConditionsByAccount.computeIfAbsent(accountId, ignored -> new java.util.concurrent.CopyOnWriteArrayList<>())
-                .add(new GuideConditionEvent(player, eventType, targetId, targetLevel));
+                .add(new GuideConditionEvent(player, eventType, targetId, targetLevel, notifyPlayer));
             loadProgressAsync(accountId);
             return;
         }
@@ -239,7 +264,9 @@ public class GuideService {
                     continue;
                 }
 
-                notifyStepCompleted(player, guide, step);
+                if (notifyPlayer) {
+                    notifyStepCompleted(player, guide, step);
+                }
                 persistStepAsync(player, guide, key);
             }
         }
@@ -354,7 +381,8 @@ public class GuideService {
         @NotNull AstPlayer player,
         @NotNull GuideConditionType type,
         @Nullable String targetId,
-        @Nullable Integer targetLevel
+        @Nullable Integer targetLevel,
+        boolean notifyPlayer
     ) {
     }
 }

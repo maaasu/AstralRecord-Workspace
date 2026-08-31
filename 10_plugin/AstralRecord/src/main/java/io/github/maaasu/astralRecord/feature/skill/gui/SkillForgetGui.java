@@ -109,10 +109,10 @@ public final class SkillForgetGui {
                 Component.text("忘却の代償を払う", NamedTextColor.GOLD),
                 List.of(
                     Component.text("100アストラルドを消費", NamedTextColor.YELLOW),
-                    Component.text("忘却するスキルのジェムを1個獲得", NamedTextColor.GREEN),
+                    Component.text("忘却するスキルの購入素材を1口分返却", NamedTextColor.GREEN),
                     Component.text("シジルは返却されません", NamedTextColor.RED),
-                    Component.text("高レベル分のジェムは返却されません", NamedTextColor.RED),
-                    Component.text("返却されるジェムは1個のみです", NamedTextColor.GRAY)
+                    Component.text("高レベル分の購入素材は返却されません", NamedTextColor.RED),
+                    Component.text("返却は初回購入1口分のみです", NamedTextColor.GRAY)
                 )
             )
         );

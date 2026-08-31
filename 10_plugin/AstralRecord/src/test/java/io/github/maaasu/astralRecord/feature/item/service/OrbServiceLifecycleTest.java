@@ -37,7 +37,6 @@ import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionServi
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
-import io.github.maaasu.astralRecord.feature.skill.event.SkillGemLearnEventHandler;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
@@ -1459,8 +1458,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 mock(PassiveSkillService.class),
                 service,
                 mock(MenuGuiTransitionService.class),
-                mock(MenuOpenEventHandler.class),
-                mock(SkillGemLearnEventHandler.class)
+                mock(MenuOpenEventHandler.class)
             );
         }
 

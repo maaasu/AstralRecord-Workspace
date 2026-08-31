@@ -20,7 +20,6 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
-import io.github.maaasu.astralRecord.feature.skill.event.SkillGemLearnEventHandler;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import org.bukkit.Bukkit;
@@ -54,7 +53,6 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
     private final OrbService orbService;
     private final MenuGuiTransitionService menuGuiTransitionService;
     private final MenuOpenEventHandler menuOpenEventHandler;
-    private final SkillGemLearnEventHandler skillGemLearnEventHandler;
 
     /**
      * 装備 GUI とプレイヤーインベントリ上の装備操作を処理するイベントハンドラーを生成します。
@@ -74,8 +72,7 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         @NotNull PassiveSkillService passiveSkillService,
         @NotNull OrbService orbService,
         @NotNull MenuGuiTransitionService menuGuiTransitionService,
-        @NotNull MenuOpenEventHandler menuOpenEventHandler,
-        @NotNull SkillGemLearnEventHandler skillGemLearnEventHandler
+        @NotNull MenuOpenEventHandler menuOpenEventHandler
     ) {
         this.menuView = menuView;
         this.inventoryService = inventoryService;
@@ -85,7 +82,6 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         this.orbService = orbService;
         this.menuGuiTransitionService = menuGuiTransitionService;
         this.menuOpenEventHandler = menuOpenEventHandler;
-        this.skillGemLearnEventHandler = skillGemLearnEventHandler;
     }
 
     /**
@@ -513,9 +509,6 @@ public class InventoryEquipmentGuiEventHandler extends AbstractEventHandler {
         }
 
         int slot = event.getSlot();
-        if (skillGemLearnEventHandler.handleInventoryItemClick(event, astPlayer, slot)) {
-            return;
-        }
         if (inventoryService.handleInventoryControlClick(astPlayer, slot)) {
             event.setCancelled(true);
             GuiSound.SELECT.play(player);

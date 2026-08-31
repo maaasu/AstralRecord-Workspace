@@ -22,13 +22,13 @@ class SkillSynthesisMaterialEligibilityTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
      * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
-     * 検証契約: 同スキルジェムはレベル上限前のみ、許可シジルは空き枠と重複groupなしの場合だけ選択・合成できる。
+     * 検証契約: スキルジェムは購入時反映のため合成素材にせず、許可シジルだけを空き枠と重複groupなしで選択できる。
      */
     @Test
-    void classifiesNormalGemAndSigilSynthesisPaths() {
+    void acceptsSigilsButRoutesSkillGemsToPurchaseOnly() {
         SkillManagerEntry entry = entry(1, List.of(), List.of("allowed_sigil"));
 
-        assertEquals(SkillSynthesisMaterialEligibility.MaterialKind.GEM,
+        assertEquals(SkillSynthesisMaterialEligibility.MaterialKind.GEM_PURCHASE_ONLY,
             SkillSynthesisMaterialEligibility.resolve(entry, gem("ADVENTURER_SMASH")));
         assertEquals(SkillSynthesisMaterialEligibility.MaterialKind.SIGIL,
             SkillSynthesisMaterialEligibility.resolve(entry, sigil("ALLOWED_SIGIL", "cooldown")));
@@ -50,14 +50,14 @@ class SkillSynthesisMaterialEligibilityTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
      * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
-     * 検証契約: 同系統シジルと上限到達ジェムは、選択不可理由を失わずに分類する。
+     * 検証契約: 同系統シジルと購入時反映対象のジェムは、選択不可理由を失わずに分類する。
      */
     @Test
-    void preservesDuplicateGroupAndMaxLevelRejectionReasons() {
+    void preservesDuplicateGroupAndPurchaseOnlyGemRejectionReasons() {
         LearnedSkillSigil attached = new LearnedSkillSigil(UUID.randomUUID(), "allowed_sigil", "cooldown", 0);
         SkillManagerEntry fullEntry = entry(3, List.of(attached), List.of("allowed_sigil"));
 
-        assertEquals(SkillSynthesisMaterialEligibility.MaterialKind.INVALID_GEM,
+        assertEquals(SkillSynthesisMaterialEligibility.MaterialKind.GEM_PURCHASE_ONLY,
             SkillSynthesisMaterialEligibility.resolve(fullEntry, gem("adventurer_smash")));
         assertEquals(SkillSynthesisMaterialEligibility.MaterialKind.DUPLICATE_SIGIL_GROUP,
             SkillSynthesisMaterialEligibility.resolve(fullEntry, sigil("allowed_sigil", "COOLDOWN")));

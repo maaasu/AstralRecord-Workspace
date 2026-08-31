@@ -7,7 +7,6 @@ import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
 import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
 import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
-import io.github.maaasu.astralRecord.feature.skill.event.SkillGemLearnEventHandler;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import org.bukkit.entity.Player;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
@@ -38,8 +37,7 @@ class InventoryEquipmentGuiEventHandlerTest {
             mock(PassiveSkillService.class),
             mock(OrbService.class),
             mock(MenuGuiTransitionService.class),
-            mock(MenuOpenEventHandler.class),
-            mock(SkillGemLearnEventHandler.class)
+            mock(MenuOpenEventHandler.class)
         );
 
         handler.onPlayerSwapHandItems(event);
@@ -65,8 +63,7 @@ class InventoryEquipmentGuiEventHandlerTest {
             mock(PassiveSkillService.class),
             orbService,
             mock(MenuGuiTransitionService.class),
-            mock(MenuOpenEventHandler.class),
-            mock(SkillGemLearnEventHandler.class)
+            mock(MenuOpenEventHandler.class)
         );
         Player player = mock(Player.class);
         InventoryView view = mock(InventoryView.class);

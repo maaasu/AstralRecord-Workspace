@@ -35,6 +35,7 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
         this.shopGui = shopGui;
         this.shopService = shopService;
         this.inventoryService = inventoryService;
+        this.shopService.setPurchaseStateChangedListener(this::refreshPurchaseState);
     }
 
     /**
@@ -177,9 +178,14 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
         }
         int quantity = shopGui.getQuantity(event.getView().getTopInventory());
         int pageIndex = shopGui.getPageIndex(event.getView().getTopInventory());
+        var preview = shopService.preview(astPlayer, entry, quantity);
         if (event.getRawSlot() == ShopGui.CONFIRM_BACK_SLOT) {
             AstralRecord.getInstance().getGuiNavigationService().openPrevious(player);
             GuiSound.SELECT.play(player);
+            return;
+        }
+        if (preview.specialPurchase().singleQuantity() && isQuantitySlot(event.getRawSlot())) {
+            GuiSound.DENY.play(player);
             return;
         }
         int nextQuantity = switch (event.getRawSlot()) {
@@ -198,7 +204,12 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        if (isInventoryFull(astPlayer, entry, quantity)) {
+        if (!preview.canPurchase()) {
+            shopGui.openConfirm(player, shop, entry, quantity, preview, pageIndex);
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (isInventoryFull(astPlayer, entry, preview)) {
             PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5241);
             shopGui.openConfirm(player, shop, entry, quantity, shopService.preview(astPlayer, entry, quantity), pageIndex);
             GuiSound.DENY.play(player);
@@ -216,14 +227,62 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
     private boolean isInventoryFull(
         @NotNull AstPlayer astPlayer,
         @NotNull ShopEntry entry,
-        int quantity
+        @NotNull io.github.maaasu.astralRecord.feature.shop.model.ShopPurchasePreview preview
     ) {
         var model = shopService.resolveItem(entry);
         if (model == null) {
             return false;
         }
-        int amount = Math.max(1, entry.amount()) * Math.max(1, quantity);
+        int amount = preview.specialPurchase().singleQuantity()
+            ? 1
+            : Math.max(1, entry.amount()) * Math.max(1, preview.quantity());
         return !inventoryService.canAddItemToNormalInventory(astPlayer, model, amount);
+    }
+
+    private boolean isQuantitySlot(int rawSlot) {
+        return rawSlot == ShopGui.QUANTITY_MINUS_10_SLOT
+            || rawSlot == ShopGui.QUANTITY_MINUS_1_SLOT
+            || rawSlot == ShopGui.QUANTITY_PLUS_1_SLOT
+            || rawSlot == ShopGui.QUANTITY_PLUS_10_SLOT;
+    }
+
+    private void refreshPurchaseState(@NotNull AstPlayer astPlayer, @NotNull ShopEntry entry) {
+        Runnable refresh = () -> {
+            Player player = astPlayer.getBukkit();
+            AstPlayer current = player.isOnline() ? AstPlayerCache.get(player) : null;
+            if (current == null
+                || !current.getAccount().getUuid().equals(astPlayer.getAccount().getUuid())) {
+                return;
+            }
+            var topInventory = player.getOpenInventory().getTopInventory();
+            String openShopId = shopGui.getShopId(topInventory);
+            ShopDefinition shop = openShopId == null ? null : shopService.findById(openShopId);
+            if (shop == null || shop.findEntry(entry.id()) == null) {
+                return;
+            }
+            int pageIndex = shopGui.getPageIndex(topInventory);
+            String openEntryId = shopGui.getEntryId(topInventory);
+            if (openEntryId != null && openEntryId.equals(entry.id())) {
+                int quantity = shopGui.getQuantity(topInventory);
+                shopGui.openConfirm(
+                    player,
+                    shop,
+                    entry,
+                    quantity,
+                    shopService.preview(current, entry, quantity),
+                    pageIndex
+                );
+                return;
+            }
+            if (shopGui.isListInventory(topInventory)) {
+                shopGui.openList(player, shop, pageIndex);
+            }
+        };
+        if (org.bukkit.Bukkit.isPrimaryThread()) {
+            refresh.run();
+        } else {
+            AstralRecord.getInstance().getServer().getScheduler().runTask(AstralRecord.getInstance(), refresh);
+        }
     }
 
     private boolean handleHotbarShortcutClick(@NotNull InventoryClickEvent event, @NotNull Player player) {

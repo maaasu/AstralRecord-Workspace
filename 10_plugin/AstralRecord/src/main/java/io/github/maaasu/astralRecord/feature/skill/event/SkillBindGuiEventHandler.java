@@ -59,7 +59,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.function.BiConsumer;
 
 /** スキルマネージャーの一覧・バインド・合成操作を処理します。 */
 public final class SkillBindGuiEventHandler extends AbstractEventHandler {
@@ -81,7 +80,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     /** 選択不可素材の理由を、消費せず合成画面のバリア表示へ渡す一時プレビューです。 */
     private final Map<UUID, SynthesisPreview> synthesisPreviews = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> savingSessions = new ConcurrentHashMap<>();
-    private BiConsumer<AstPlayer, String> skillEnhancedListener;
 
     public SkillBindGuiEventHandler(
         @NotNull AstralRecord plugin,
@@ -103,11 +101,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         this.learnedSkillService = learnedSkillService;
         this.passiveSkillService = passiveSkillService;
         this.inventoryService = inventoryService;
-    }
-
-    /** スキル合成による強化完了を外部機能へ通知するリスナーを設定します。 */
-    public void setSkillEnhancedListener(@Nullable BiConsumer<AstPlayer, String> skillEnhancedListener) {
-        this.skillEnhancedListener = skillEnhancedListener;
     }
 
     /**
@@ -484,27 +477,15 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return;
         }
         UUID accountId = astPlayer.getAccount().getUuid();
-        boolean scheduled;
-        if (kind == MaterialKind.GEM) {
-            scheduled = learnedSkillService.levelUpAsync(
-                accountId,
-                entry.learnedSkill().getLearnedSkillId(),
-                selection.inventoryEntryId(),
-                accountId,
-                updated -> completeSynthesis(player, session, holder.pageIndex(), updated, operationToken),
-                error -> failSynthesis(player, session, entry.bindingId(), holder.pageIndex(), operationToken, error)
-            );
-        } else {
-            scheduled = learnedSkillService.attachSigilAsync(
-                accountId,
-                entry.learnedSkill().getLearnedSkillId(),
-                selection.item().getId(),
-                selection.inventoryEntryId(),
-                accountId,
-                updated -> completeSynthesis(player, session, holder.pageIndex(), updated, operationToken),
-                error -> failSynthesis(player, session, entry.bindingId(), holder.pageIndex(), operationToken, error)
-            );
-        }
+        boolean scheduled = learnedSkillService.attachSigilAsync(
+            accountId,
+            entry.learnedSkill().getLearnedSkillId(),
+            selection.item().getId(),
+            selection.inventoryEntryId(),
+            accountId,
+            updated -> completeSynthesis(player, session, holder.pageIndex(), updated, operationToken),
+            error -> failSynthesis(player, session, entry.bindingId(), holder.pageIndex(), operationToken, error)
+        );
         if (!scheduled) failSynthesis(player, session, entry.bindingId(), holder.pageIndex(), operationToken, null);
     }
 
@@ -521,9 +502,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         synthesisPreviews.remove(playerId);
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || sessions.get(playerId) != session) return;
-        if (skillEnhancedListener != null) {
-            skillEnhancedListener.accept(astPlayer, updated.getSkillId());
-        }
         inventoryService.applyInventoriesToGui(astPlayer);
         passiveSkillService.markDirty(astPlayer);
         SkillManagerEntry updatedEntry = entry(astPlayer, updated.getLearnedSkillId().toString());
@@ -904,8 +882,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             case SIGIL_NOT_ALLOWED -> PlayerMsgId.P_5859;
             case NO_SIGIL_SLOT -> PlayerMsgId.P_5860;
             case DUPLICATE_SIGIL_GROUP -> PlayerMsgId.P_5861;
-            case NONE, INVALID_GEM -> PlayerMsgId.P_5862;
-            case GEM, SIGIL -> null;
+            case NONE, GEM_PURCHASE_ONLY -> PlayerMsgId.P_5862;
+            case SIGIL -> null;
         };
         if (messageId != null) {
             PlayerMessageService.getInstance().send(player, messageId);
