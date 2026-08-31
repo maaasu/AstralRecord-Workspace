@@ -39,26 +39,31 @@ equipment:
     levels:
       - level: 1
         statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 4 }]
+        successRate: 1.0
       - level: 2
         statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 4 }]
+        successRate: 0.75
       - level: 3
         statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 4 }]
+        successRate: 0.75
       - level: 4
         statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 4 }]
+        successRate: 0.75
       - level: 5
         statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 4 }]
+        successRate: 0.50
       - level: 6
         statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 3 }]
-        successRate: 0.75
+        successRate: 0.50
       - level: 7
         statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 3 }]
-        successRate: 0.75
+        successRate: 0.35
       - level: 8
         statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 3 }]
-        successRate: 0.75
+        successRate: 0.35
       - level: 9
         statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 3 }]
-        successRate: 0.75
+        successRate: 0.20
       - level: 10
         statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 3 }]
-        successRate: 0.75
+        successRate: 0.05

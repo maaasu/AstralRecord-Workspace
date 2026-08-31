@@ -65,7 +65,7 @@ equipment:
             type: SCALAR
             value: 0.05
         durabilityBonus: 15
-        successRate: 0.85
+        successRate: 0.75
         failAction: SET_LEVEL
         failTargetLevel: 0
       - level: 3
@@ -74,7 +74,7 @@ equipment:
             type: FLAT
             value: 3
         durabilityBonus: 20
-        successRate: 0.70
+        successRate: 0.75
         failAction: DECREASE_ONE
       - level: 4
         statIncrease:
@@ -85,7 +85,7 @@ equipment:
             type: FLAT
             value: 1
         durabilityBonus: 25
-        successRate: 0.55
+        successRate: 0.75
         failAction: NONE
       - level: 5
         statIncrease:
@@ -96,7 +96,7 @@ equipment:
             type: FLAT
             value: 1
         durabilityBonus: 30
-        successRate: 0.40
+        successRate: 0.50
         failAction: SET_LEVEL
         failTargetLevel: 2
   rune:

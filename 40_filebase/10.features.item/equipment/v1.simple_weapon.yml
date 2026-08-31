@@ -34,3 +34,4 @@ equipment:
           - status: ATTACK
             type: FLAT
             value: 1
+        successRate: 1.0

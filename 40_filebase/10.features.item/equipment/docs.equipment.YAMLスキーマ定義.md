@@ -35,7 +35,7 @@
 | `equipment[].enhance.levels[].statIncrease[].type`        | String        | ×  | -     | 補正方式（`FLAT` / `SCALAR`）。                                                                                                                       |
 | `equipment[].enhance.levels[].statIncrease[].value`       | String        | ×  | -     | 上昇幅。固定値または範囲（例: `3` / `2~5`）。                                                                                                                  |
 | `equipment[].enhance.levels[].durabilityBonus`            | Integer       | ×  | -     | この強化レベルで加算される最大耐久値。                                                                                                                            |
-| `equipment[].enhance.levels[].successRate`                | Float         | ×  | 1.0   | 強化成功率（`0.0` 〜 `1.0`）。`1.0` で必ず成功。                                                                                                                   |
+| `equipment[].enhance.levels[].successRate`                | Float         | ×  | 1.0   | 強化成功率（`0.0` 〜 `1.0`）。`1.0` で必ず成功。武器・防具の状態変化前（rank 0）の標準値は `00_docs/50_Filebase設計書/feature/16-equipment.md` に従う。 |
 | `equipment[].enhance.levels[].failAction`                 | String        | ×  | NONE  | 強化失敗時の挙動（`NONE` / `SET_LEVEL` / `DECREASE_ONE`）。                                                                                                       |
 | `equipment[].enhance.levels[].failTargetLevel`            | Integer       | ×  | -     | `failAction: SET_LEVEL` の失敗時に設定する強化値。                                                                                                                |
 | `equipment[].rune`                                        | Object        | ×  | -     | ルーンスロットシステム設定。指定しない場合はルーン装着不可。                                                                                                                 |
@@ -157,6 +157,8 @@
 
 装備マスタには各レベルの `successRate`、`failAction`、必要に応じて `failTargetLevel` を定義します。
 対象ランク・装備種別はオーブ側で定義し、強化時の消費は使用したオーブ 1 個だけです。
+
+ノクス装備を除く武器・防具を新規追加する場合、状態変化前（rank 0）の各強化レベルには、装備設計書で定めた標準成功率（`+1: 1.0`、`+2`～`+4: 0.75`、`+5`～`+6: 0.50`、`+7`～`+8: 0.35`、`+9: 0.20`、`+10`以上: 0.05）を明記します。状態変化後に追加される強化レベルは、状態変化後の個別設計として定義します。
 
 ### equipment[].transcendence について
 
@@ -319,7 +321,7 @@ equipment:
             type: FLAT
             value: 2
         durabilityBonus: 10
-        successRate: 0.9
+        successRate: 0.75
         failAction: NONE
       - level: 3
         statIncrease:

@@ -34,26 +34,31 @@ equipment:
     levels:
       - level: 1
         statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 2 }]
+        successRate: 1.0
       - level: 2
         statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 2 }]
+        successRate: 0.75
       - level: 3
         statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 2 }]
+        successRate: 0.75
       - level: 4
         statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 2 }]
+        successRate: 0.75
       - level: 5
         statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 2 }]
+        successRate: 0.50
       - level: 6
         statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
-        successRate: 0.75
+        successRate: 0.50
       - level: 7
         statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
-        successRate: 0.75
+        successRate: 0.35
       - level: 8
         statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
-        successRate: 0.75
+        successRate: 0.35
       - level: 9
         statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
-        successRate: 0.75
+        successRate: 0.20
       - level: 10
         statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
-        successRate: 0.75
+        successRate: 0.05

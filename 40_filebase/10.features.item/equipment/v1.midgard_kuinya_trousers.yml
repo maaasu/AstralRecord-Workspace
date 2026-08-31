@@ -38,37 +38,37 @@ equipment:
         failAction: NONE
       - level: 2
         statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
-        successRate: 1.0
+        successRate: 0.75
         failAction: NONE
       - level: 3
         statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
-        successRate: 1.0
+        successRate: 0.75
         failAction: NONE
       - level: 4
         statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
-        successRate: 1.0
+        successRate: 0.75
         failAction: NONE
       - level: 5
         statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }]
-        successRate: 1.0
+        successRate: 0.50
         failAction: NONE
       - level: 6
         statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }]
-        successRate: 0.75
+        successRate: 0.50
         failAction: NONE
       - level: 7
         statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }]
-        successRate: 0.75
+        successRate: 0.35
         failAction: NONE
       - level: 8
         statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }]
-        successRate: 0.75
+        successRate: 0.35
         failAction: NONE
       - level: 9
         statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }]
-        successRate: 0.75
+        successRate: 0.20
         failAction: NONE
       - level: 10
         statIncrease: [{ status: DEFENSE, type: FLAT, value: 1 }]
-        successRate: 0.75
+        successRate: 0.05
         failAction: NONE
