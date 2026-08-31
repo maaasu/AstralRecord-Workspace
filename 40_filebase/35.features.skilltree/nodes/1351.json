@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1351",
+  "name": "&bフロストボール",
+  "icon": "SNOWBALL",
+  "tags": [
+    "ice",
+    "azure"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "mage_frost_ball"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "mage"
+  }
+}

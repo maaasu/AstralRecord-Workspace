@@ -52,6 +52,7 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `skill-mage-arcane-flow` | `skill` / `mage_arcane_flow` | `&dアーケインフロー` | `ENCHANTED_BOOK` | `core`, `mana`, `astral` |
 | `skill-mage-sparking` | `skill` / `mage_sparking` | `&eスパーキング` | `GLOWSTONE_DUST` | `lightning`, `shocked` |
 | `skill-mage-frost-blizzard` | `skill` / `mage_frost_blizzard` | `&bフロストブリザード` | `DIAMOND_NAUTILUS_ARMOR` | `ice`, `azure` |
+| `skill-mage-frost-ball` | `skill` / `mage_frost_ball` | `&bフロストボール` | `SNOWBALL` | `ice`, `azure` |
 | `skill-administrator-just-dodge` | `skill` / `administrator_just_dodge` | `&eジャスト回避` | `RABBIT_FOOT` | `defense`, `agility`, `wind` |
 
 表の表示名には JSON に保存する Legacy color code を含めます。同じ能力を追加するときは、表の表示名、`icon`、タグをすべて同一にします。各配置済みノードには、従来どおり一意の `nodeId` を割り当てます。
@@ -131,7 +132,7 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 | `status-mage-ice-ring` | `1342`～`1345` | `ICE_DAMAGE_INCREASE / FLAT / 2` | `&b氷紋の星環` | `BLUE_ICE` | `status`, `offense`, `ice`, `azure` |
 | `status-mage-ice-notable` | `1346` | `ICE_DAMAGE_INCREASE / FLAT / 8` + `COOLDOWN_REDUCTION / FLAT / 6` | `&6白嵐の極星` | `DIAMOND_NAUTILUS_ARMOR` | `status`, `offense`, `ice`, `azure` |
 
-4円環を含むメイジ地域の全取得は54メイジCPです。全取得時は `MAGIC_ATTACK +13`、`MAGIC_DEFENSE_PENETRATION_RATE +6`、火・雷・氷の各ダメージ増加 `+16`、`FIRE_PENETRATION +6`、`SHOCKED_APPLY_CHANCE +20`、`COOLDOWN_REDUCTION +6` を得ます。skill解放3nodeは関連する小nodeから独立分岐します。
+4円環を含むメイジ地域の全取得は55メイジCPです。全取得時は `MAGIC_ATTACK +13`、`MAGIC_DEFENSE_PENETRATION_RATE +6`、火・雷・氷の各ダメージ増加 `+16`、`FIRE_PENETRATION +6`、`SHOCKED_APPLY_CHANCE +20`、`COOLDOWN_REDUCTION +6` を得ます。skill解放4nodeは関連する小nodeから独立分岐します。
 
 ## 将来skill予約枠の暫定表現
 

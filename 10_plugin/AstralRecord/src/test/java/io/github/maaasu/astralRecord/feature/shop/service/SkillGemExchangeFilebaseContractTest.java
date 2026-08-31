@@ -40,13 +40,14 @@ class SkillGemExchangeFilebaseContractTest {
             entry(22, "item:00_skill_gem_mage_heal_aura", 2),
             entry(23, "item:00_skill_gem_mage_sparking", 3),
             entry(24, "item:00_skill_gem_mage_frost_blizzard", 3),
-            entry(25, "item:00_skill_gem_mage_arcane_flow", 3)
+            entry(25, "item:00_skill_gem_mage_arcane_flow", 3),
+            entry(26, "item:00_skill_gem_mage_frost_ball", 3)
     );
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_2-ユースケース.md
      * 章・見出し: # 20_2-ユースケース > ## UC-20-06 星晶錬成を利用する > ### skill_gem_exchange の職業別配置
-     * 検証契約: skill_gem_exchangeは指定された23個のスキルジェムをslot 0〜27の4行へ配置し、空きslotと各交換素材・数量を固定する。
+     * 検証契約: skill_gem_exchangeは指定された24個のスキルジェムをslot 0〜27の4行へ配置し、空きslotと各交換素材・数量を固定する。
      */
     @Test
     void skillGemExchangeUsesCareerRowsAndRawGemCosts() {
@@ -84,7 +85,7 @@ class SkillGemExchangeFilebaseContractTest {
         assertEquals(EXPECTED_ENTRIES.keySet(), itemsBySlot.keySet());
         Set<Integer> emptySlots = new HashSet<>(IntStream.rangeClosed(0, 27).boxed().toList());
         emptySlots.removeAll(itemsBySlot.keySet());
-        assertEquals(Set.of(13, 19, 20, 26, 27), emptySlots);
+        assertEquals(Set.of(13, 19, 20, 27), emptySlots);
     }
 
     private static Map.Entry<Integer, ExpectedEntry> entry(int slot, String itemRef, int costAmount) {

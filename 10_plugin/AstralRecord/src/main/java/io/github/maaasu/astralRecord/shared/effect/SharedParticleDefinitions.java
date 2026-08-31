@@ -611,6 +611,28 @@ public final class SharedParticleDefinitions {
             0.03D,
             new Particle.DustOptions(Color.fromRGB(255, 58, 10), 1.65F)
         );
+    public static final SharedParticleDefinition MAGE_FROST_BALL_TRAIL =
+        new SharedParticleDefinition(
+            "mage_frost_ball_trail",
+            Particle.DUST,
+            12,
+            0.14D,
+            0.14D,
+            0.14D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(105, 205, 255), 1.35F)
+        );
+    public static final SharedParticleDefinition MAGE_FROST_BALL_IMPACT =
+        new SharedParticleDefinition(
+            "mage_frost_ball_impact",
+            Particle.DUST,
+            18,
+            0.22D,
+            0.22D,
+            0.22D,
+            0.03D,
+            new Particle.DustOptions(Color.fromRGB(190, 240, 255), 1.65F)
+        );
     public static final SharedParticleDefinition SKILL_MAGE_ICE =
         new SharedParticleDefinition("skill_mage_ice", Particle.SNOWFLAKE, 2, 0.06D, 0.06D, 0.06D, 0.01D);
     public static final SharedParticleDefinition MAGE_FROST_BLIZZARD =

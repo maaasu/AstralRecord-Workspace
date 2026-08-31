@@ -21,10 +21,10 @@ public final class ActiveSkillExecutorCatalog {
      * 実装済みのプレイヤー用 executor を職業横断で生成します。
      *
      * @param services 共有発動スキルサービス
-     * @return 17個の executor
+     * @return 19個の executor
      */
     public static @NotNull List<SkillExecutor> create(@NotNull ActiveSkillServices services) {
-        List<SkillExecutor> executors = new ArrayList<>(17);
+        List<SkillExecutor> executors = new ArrayList<>(19);
         executors.addAll(AdventurerSkillExecutorCatalog.create(services));
         executors.addAll(HunterSkillExecutorCatalog.create(services));
         executors.addAll(MageSkillExecutorCatalog.create(services));
