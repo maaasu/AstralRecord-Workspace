@@ -76,6 +76,8 @@ public class StatusService {
     private static final double LUCK_CRITICAL_RATE_PER_POINT = 0.1D;
     /** プレイヤーシールドの既定再充填開始待機秒数です。 */
     public static final double PLAYER_SHIELD_RECHARGE_SECONDS = 30.0D;
+    /** プレイヤーがシールドを獲得するために有効化が必要なパッシブスキル ID です。 */
+    public static final String SHIELD_ACTIVATE_SKILL_ID = "swordsman_shield_activate";
 
     private final BuffService buffService;
     private final ItemService itemService;
@@ -89,6 +91,7 @@ public class StatusService {
     private final Map<UUID, ShieldRechargeState> shieldRechargeStates = new HashMap<>();
     private final Map<UUID, ShieldRechargeConfiguration> shieldRechargeConfigurations = new HashMap<>();
     private final Map<UUID, Double> shieldDisplayCapacities = new HashMap<>();
+    private final Map<UUID, Boolean> shieldActivationStates = new HashMap<>();
 
     public StatusService() {
         this(null, null);
@@ -136,19 +139,28 @@ public class StatusService {
     /**
      * プレイヤーの現在ステータスを取得します。
      * 未計算の場合は初回計算を行い、その結果を返します。
+     * シールドアクティベートが有効でない場合、現在Shieldは0へ正規化します。
      *
      * @param player 対象プレイヤー
      * @return 現在のステータススナップショット
      */
     public @NotNull StatusSnapshot getStatus(@NotNull AstPlayer player) {
+        StatusSnapshot snapshot;
         if (player.getStatusSnapshot().getValues().isEmpty() || buffService.purgeExpired(player) > 0) {
-            return refreshStatus(player);
+            snapshot = refreshStatus(player);
+        } else {
+            snapshot = player.getStatusSnapshot();
         }
-        return player.getStatusSnapshot();
+        if (!isShieldActivationEnabled(player)) {
+            discardCurrentShieldIfInactive(player);
+            return player.getStatusSnapshot();
+        }
+        return snapshot;
     }
 
     /**
      * プレイヤーのステータスを再計算し、{@link AstPlayer} に反映します。
+     * シールドアクティベートが有効な場合だけShieldの現在値を初期化・維持し、
      * セッション中に最大シールドが 0 から正数へ変化した場合は、即時回復せずリチャージを開始します。
      *
      * @param player 対象プレイヤー
@@ -159,34 +171,39 @@ public class StatusService {
 
         StatusSnapshot previous = player.getStatusSnapshot();
         StatusSnapshot refreshed = createSnapshot(player);
+        UUID playerId = player.getBukkit().getUniqueId();
+        boolean shieldActivationEnabled = isShieldActivationEnabled(player);
+        boolean wasShieldActivationEnabled = shieldActivationStates.getOrDefault(playerId, false);
 
         StatusSnapshot merged;
         if (previous.getValues().isEmpty()) {
             // 初回は全快状態で開始
-            merged = restoreAllInternal(refreshed);
+            merged = restoreAllInternal(refreshed, shieldActivationEnabled);
         } else {
             // 再計算時は現在値を維持しつつ、新しい最大値へクランプ
             merged = refreshed.withCurrentValues(
                 previous.getCurrentHp(),
                 previous.getCurrentMp(),
                 previous.getCurrentEnergy(),
-                previous.getCurrentShield()
+                shieldActivationEnabled ? previous.getCurrentShield() : 0.0D
             );
         }
 
         player.setStatusSnapshot(merged);
-        UUID playerId = player.getBukkit().getUniqueId();
         double maxShield = merged.getMaxValue(StatusType.MAX_SHIELD);
-        if (previous.getValues().isEmpty()) {
+        if (!shieldActivationEnabled) {
+            clearShieldAcquisitionRuntime(playerId);
+        } else if (previous.getValues().isEmpty()) {
             clearShieldRecharge(player);
             shieldDisplayCapacities.put(playerId, maxShield);
         } else if (maxShield <= 0.0D) {
             clearShieldRuntimeState(playerId);
-        } else if (previous.getMaxValue(StatusType.MAX_SHIELD) <= 0.0D) {
-            clearShieldRuntimeState(playerId);
+        } else if (!wasShieldActivationEnabled || previous.getMaxValue(StatusType.MAX_SHIELD) <= 0.0D) {
+            clearShieldAcquisitionRuntime(playerId);
             shieldDisplayCapacities.put(playerId, maxShield);
             startShieldRecharge(player, merged, System.currentTimeMillis());
         }
+        shieldActivationStates.put(playerId, shieldActivationEnabled);
         if (inventoryService != null) {
             inventoryService.applyBagSlotCapacity(player, merged.getMaxValue(StatusType.INVENTORY_SLOTS));
             inventoryService.updateEquippedSetEffectDisplayCounts(
@@ -315,7 +332,7 @@ public class StatusService {
      *
      * @param player 対象プレイヤー
      * @param nowMs 破壊時刻（epoch milliseconds）
-     * @return 開始後の状態。最大Shieldがない、またはShieldが残っている場合は {@code null}
+     * @return 開始後の状態。シールドアクティベートが無効、最大Shieldがない、またはShieldが残っている場合は {@code null}
      */
     public @Nullable ShieldRechargeState startShieldRecharge(@NotNull AstPlayer player, long nowMs) {
         return startShieldRecharge(player, getStatus(player), nowMs);
@@ -326,11 +343,15 @@ public class StatusService {
             @NotNull StatusSnapshot snapshot,
             long nowMs
     ) {
+        UUID playerId = player.getBukkit().getUniqueId();
+        if (!isShieldActivationEnabled(player)) {
+            clearShieldAcquisitionRuntime(playerId);
+            return null;
+        }
         double maxShield = snapshot.getMaxValue(StatusType.MAX_SHIELD);
         if (maxShield <= 0.0D || snapshot.getCurrentShield() > 0.0D) {
             return null;
         }
-        UUID playerId = player.getBukkit().getUniqueId();
         ShieldRechargeState existing = shieldRechargeStates.get(playerId);
         if (existing != null && !existing.incrementalRecovery()) {
             return existing;
@@ -354,7 +375,7 @@ public class StatusService {
      *
      * @param player 対象プレイヤー
      * @param nowMs 被ダメージ時刻（epoch milliseconds）
-     * @return 開始後の状態。パッシブ未設定、Shieldが0以下、または満タンの場合は {@code null}
+     * @return 開始後の状態。シールドアクティベートが無効、パッシブ未設定、Shieldが0以下、または満タンの場合は {@code null}
      */
     public @Nullable ShieldRechargeState startShieldRechargeWhileRetained(@NotNull AstPlayer player, long nowMs) {
         return startShieldRechargeWhileRetained(player, getStatus(player), nowMs);
@@ -365,12 +386,16 @@ public class StatusService {
         @NotNull StatusSnapshot snapshot,
         long nowMs
     ) {
+        UUID playerId = player.getBukkit().getUniqueId();
+        if (!isShieldActivationEnabled(player)) {
+            clearShieldAcquisitionRuntime(playerId);
+            return null;
+        }
         double maxShield = snapshot.getMaxValue(StatusType.MAX_SHIELD);
         double currentShield = snapshot.getCurrentShield();
         if (maxShield <= 0.0D || currentShield <= 0.0D || currentShield >= maxShield) {
             return null;
         }
-        UUID playerId = player.getBukkit().getUniqueId();
         ShieldRechargeConfiguration configuration = shieldRechargeConfigurations.get(playerId);
         if (configuration == null) {
             return null;
@@ -402,6 +427,10 @@ public class StatusService {
         if (state == null || rawSeconds <= 0.0D) {
             return false;
         }
+        if (!isShieldActivationEnabled(player)) {
+            clearShieldAcquisitionRuntime(playerId);
+            return false;
+        }
         StatusSnapshot snapshot = getStatus(player);
         long additionalMs = reducedDurationMs(
             rawSeconds * 1000.0D,
@@ -416,6 +445,7 @@ public class StatusService {
 
     /**
      * 待機時間を過ぎていれば、状態の種別に応じてシールドを回復します。
+     * シールドアクティベートが無効になった場合は回復せず、進行中の状態を破棄します。
      *
      * @param player 対象プレイヤー
      * @param nowMs 判定時刻（epoch milliseconds）
@@ -424,7 +454,14 @@ public class StatusService {
     public boolean completeShieldRechargeIfReady(@NotNull AstPlayer player, long nowMs) {
         UUID playerId = player.getBukkit().getUniqueId();
         ShieldRechargeState state = shieldRechargeStates.get(playerId);
-        if (state == null || state.remainingMs(nowMs) > 0L) {
+        if (state == null) {
+            return false;
+        }
+        if (!isShieldActivationEnabled(player)) {
+            discardCurrentShieldIfInactive(player);
+            return false;
+        }
+        if (state.remainingMs(nowMs) > 0L) {
             return false;
         }
         StatusSnapshot snapshot = getStatus(player);
@@ -495,6 +532,7 @@ public class StatusService {
         shieldRechargeStates.remove(playerId);
         shieldRechargeConfigurations.remove(playerId);
         shieldDisplayCapacities.remove(playerId);
+        shieldActivationStates.remove(playerId);
     }
 
     /**
@@ -597,6 +635,7 @@ public class StatusService {
 
     /**
      * 現在シールド値を回復します。
+     * シールドアクティベートが有効でない場合は回復しません。
      *
      * @param player 対象プレイヤー
      * @param amount 回復量
@@ -604,7 +643,10 @@ public class StatusService {
      */
     public @NotNull StatusSnapshot recoverShield(@NotNull AstPlayer player, double amount) {
         StatusSnapshot snapshot = getStatus(player);
-        if (amount <= 0.0D || snapshot.getMaxValue(StatusType.MAX_SHIELD) <= 0.0D || isHealingBlocked(player)) {
+        if (amount <= 0.0D
+            || !isShieldActivationEnabled(player)
+            || snapshot.getMaxValue(StatusType.MAX_SHIELD) <= 0.0D
+            || isHealingBlocked(player)) {
             return snapshot;
         }
 
@@ -672,7 +714,7 @@ public class StatusService {
     }
 
     /**
-     * 現在HP/MP/エネルギーを最大値まで回復します。
+     * 現在HP/MP/エネルギーを最大値まで回復します。Shieldはシールドアクティベートが有効な場合だけ最大値まで回復します。
      *
      * @param player 対象プレイヤー
      * @return 更新後のステータススナップショット
@@ -683,7 +725,8 @@ public class StatusService {
     }
 
     /**
-     * 現在HP/MP/エネルギーを最大値まで回復し、指定された発生元がある場合だけHP通知を行います。
+     * 現在HP/MP/エネルギーを最大値まで回復し、シールドアクティベートが有効な場合だけShieldも最大値まで回復します。
+     * 指定された発生元がある場合だけHP通知を行います。
      *
      * @param player 対象プレイヤー
      * @param context 回復元と回復手段。{@code null} の場合はHP通知しない
@@ -694,13 +737,17 @@ public class StatusService {
         @Nullable HealthRecoveryContext context
     ) {
         StatusSnapshot previous = getStatus(player);
-        StatusSnapshot snapshot = restoreAllInternal(previous);
+        boolean shieldActivationEnabled = isShieldActivationEnabled(player);
+        StatusSnapshot snapshot = restoreAllInternal(previous, shieldActivationEnabled);
         player.setStatusSnapshot(snapshot);
         clearShieldRecharge(player);
-        shieldDisplayCapacities.put(
-            player.getBukkit().getUniqueId(),
-            snapshot.getMaxValue(StatusType.MAX_SHIELD)
-        );
+        UUID playerId = player.getBukkit().getUniqueId();
+        if (shieldActivationEnabled) {
+            shieldDisplayCapacities.put(playerId, snapshot.getMaxValue(StatusType.MAX_SHIELD));
+        } else {
+            shieldDisplayCapacities.remove(playerId);
+        }
+        shieldActivationStates.put(playerId, shieldActivationEnabled);
         double recoveredAmount = snapshot.getCurrentHp() - previous.getCurrentHp();
         if (recoveredAmount > 0.0D && context != null) {
             hpRecoveryListener.accept(new HealthRecoveryNotification(
@@ -833,12 +880,42 @@ public class StatusService {
         ));
     }
 
-    private @NotNull StatusSnapshot restoreAllInternal(@NotNull StatusSnapshot snapshot) {
+    private @NotNull StatusSnapshot restoreAllInternal(
+        @NotNull StatusSnapshot snapshot,
+        boolean shieldActivationEnabled
+    ) {
         double maxHp = snapshot.getMaxValue(StatusType.MAX_HEALTH);
         double maxMp = snapshot.getMaxValue(StatusType.MAX_MANA);
         double maxEnergy = snapshot.getMaxValue(StatusType.MAX_ENERGY);
-        double maxShield = snapshot.getMaxValue(StatusType.MAX_SHIELD);
+        double maxShield = shieldActivationEnabled
+            ? snapshot.getMaxValue(StatusType.MAX_SHIELD)
+            : 0.0D;
         return snapshot.withCurrentValues(maxHp, maxMp, maxEnergy, maxShield);
+    }
+
+    private boolean isShieldActivationEnabled(@NotNull AstPlayer player) {
+        return passiveSkillService != null
+            && passiveSkillService.isPassiveSkillActive(player, SHIELD_ACTIVATE_SKILL_ID);
+    }
+
+    private void discardCurrentShieldIfInactive(@NotNull AstPlayer player) {
+        StatusSnapshot snapshot = player.getStatusSnapshot();
+        if (snapshot.getCurrentShield() > 0.0D) {
+            player.setStatusSnapshot(snapshot.withCurrentShield(0.0D));
+        }
+        // AstPlayer の実装上は Bukkit Player が必ず存在するが、Bukkit 非依存の
+        // HP/MP/energy 単体テスト用モックでは未設定の場合がある。
+        if (player.getBukkit() == null) {
+            return;
+        }
+        UUID playerId = player.getBukkit().getUniqueId();
+        clearShieldAcquisitionRuntime(playerId);
+        shieldActivationStates.put(playerId, false);
+    }
+
+    private void clearShieldAcquisitionRuntime(@NotNull UUID playerId) {
+        shieldRechargeStates.remove(playerId);
+        shieldDisplayCapacities.remove(playerId);
     }
 
     private double getBaseValue(@NotNull StatusType type) {

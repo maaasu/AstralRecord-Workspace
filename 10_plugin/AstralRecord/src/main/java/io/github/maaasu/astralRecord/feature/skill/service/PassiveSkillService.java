@@ -178,6 +178,21 @@ public final class PassiveSkillService {
     }
 
     /**
+     * 指定したパッシブスキルが、使用許可と現在のパッシブ設定を満たして有効かを返します。
+     *
+     * @param player 対象プレイヤー
+     * @param skillId 判定するスキル ID
+     * @return 対象スキルが現在有効なら {@code true}
+     */
+    public boolean isPassiveSkillActive(@NotNull AstPlayer player, @NotNull String skillId) {
+        reconcileIfNeeded(player);
+        PlayerPassiveState state = activeStates.get(player.getAccount().getUuid());
+        if (state == null) return false;
+        return state.skillsByInstanceId.values().stream()
+            .anyMatch(active -> skillId.equals(active.definition().getId()));
+    }
+
+    /**
      * 有効なパッシブが自然回復へ適用する倍率を返します。
      * <p>
      * 同一スキル個体を複数バインドしても倍率が過剰に積み上がらないよう、各 executor の

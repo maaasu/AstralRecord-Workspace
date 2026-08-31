@@ -65,6 +65,7 @@ growthPerLevel:
     value: 0.5
 expRate: 100
 usableSkills:
+  - skill:swordsman_shield_activate
   - skill:administrator_shield_recharge
   - skill:administrator_just_dodge
   - skill:adventurer_astral_edge

@@ -138,6 +138,16 @@ items:
       - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 3
+  - id: shield_activate_from_raw
+    itemId: { ref: item:00_skill_gem_swordsman_shield_activate }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 13
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 3
   - id: arrow_rain_from_raw
     itemId: { ref: item:00_skill_gem_hunter_arrow_rain }
     category: skill_gem

@@ -135,7 +135,7 @@ public static class StatusTypes
                 ["MAX_HEALTH"] = new(StatusType.MAX_HEALTH, "MAX_HEALTH", "最大HP", "戦闘不能になるまでに耐えられるダメージ量の上限。", StatusCategory.RESOURCE, "", 0, false),
                 ["MAX_MANA"] = new(StatusType.MAX_MANA, "MAX_MANA", "最大MP", "スキルや魔法の使用に充てられるMPの上限。", StatusCategory.RESOURCE, "", 0, false),
                 ["MAX_ENERGY"] = new(StatusType.MAX_ENERGY, "MAX_ENERGY", "最大EN", "特殊行動やスキルの使用に充てられるENの上限。", StatusCategory.RESOURCE, "", 0, false),
-                ["MAX_SHIELD"] = new(StatusType.MAX_SHIELD, "MAX_SHIELD", "最大シールド", "HPとは別にダメージを受け止めるシールド量の上限。", StatusCategory.RESOURCE, "", 0, false),
+                ["MAX_SHIELD"] = new(StatusType.MAX_SHIELD, "MAX_SHIELD", "最大シールド", "HPとは別にダメージを受け止めるシールド量の上限。最大シールドの獲得にはシールドアクティベートスキルの使用許可とパッシブ設定が必要。", StatusCategory.RESOURCE, "", 0, false),
                 ["STRENGTH"] = new(StatusType.STRENGTH, "STRENGTH", "筋力", "物理的な攻撃能力を表す基本能力値。", StatusCategory.PRIMARY, "", 0, true),
                 ["DEXTERITY"] = new(StatusType.DEXTERITY, "DEXTERITY", "器用さ", "攻撃や行動を正確に扱う技量を表す基本能力値。", StatusCategory.PRIMARY, "", 0, true),
                 ["INTELLIGENCE"] = new(StatusType.INTELLIGENCE, "INTELLIGENCE", "知力", "魔法や知識を扱う能力を表す基本能力値。", StatusCategory.PRIMARY, "", 0, true),

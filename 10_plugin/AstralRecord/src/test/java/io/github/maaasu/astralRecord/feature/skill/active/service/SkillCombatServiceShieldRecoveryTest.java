@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -29,7 +30,7 @@ class SkillCombatServiceShieldRecoveryTest extends MockBukkitTestBase {
      */
     @Test
     void returnsActualShieldIncreaseAfterMaximumCap() {
-        StatusService statusService = new StatusService();
+        StatusService statusService = activatedStatusService();
         SkillCombatService combat = combat(statusService, mock(ConditionService.class));
         AstPlayer player = playerWithShield(80.0D, 100.0D);
 
@@ -48,7 +49,7 @@ class SkillCombatServiceShieldRecoveryTest extends MockBukkitTestBase {
     void returnsZeroWhenHealingIsBlocked() {
         ConditionService conditionService = mock(ConditionService.class);
         when(conditionService.isHealingBlocked(any(AstEntity.class))).thenReturn(true);
-        StatusService statusService = new StatusService();
+        StatusService statusService = activatedStatusService();
         statusService.setConditionService(conditionService);
         SkillCombatService combat = combat(statusService, conditionService);
         AstPlayer player = playerWithShield(40.0D, 100.0D);
@@ -121,5 +122,16 @@ class SkillCombatServiceShieldRecoveryTest extends MockBukkitTestBase {
                 mock(MobKnockbackService.class),
                 statusService
         );
+    }
+
+    private StatusService activatedStatusService() {
+        StatusService statusService = new StatusService();
+        PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
+        when(passiveSkillService.isPassiveSkillActive(
+                any(AstPlayer.class),
+                org.mockito.ArgumentMatchers.eq(StatusService.SHIELD_ACTIVATE_SKILL_ID)
+        )).thenReturn(true);
+        statusService.setPassiveSkillService(passiveSkillService);
+        return statusService;
     }
 }

@@ -1,0 +1,31 @@
+# design:
+#   motif: "盾戦技 / 防御機構起動"
+#   progression: 2
+schemaVersion: 1
+id: swordsman_shield_activate
+type: SKILL
+implementationId: swordsman_shield_activate
+name: "&bシールドアクティベート"
+description: "&7シールドを獲得するための防御パッシブ。"
+icon: SHIELD
+lore:
+  - "&7シールドの獲得を許可する。"
+  - "&7使用許可があり、パッシブ設定中の場合だけ有効。"
+cooldownTicks: 0
+resourceType: MANA
+resourceCost: 0
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 1
+sigilSlotsByLevel: []
+allowedSigilIds: []
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+passive:
+  bindRequired: true
+params: {}
+tags:
+  - passive
+  - defense

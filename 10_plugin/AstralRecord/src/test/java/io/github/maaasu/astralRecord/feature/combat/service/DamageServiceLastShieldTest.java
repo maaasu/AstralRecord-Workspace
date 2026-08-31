@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skill.service.LastShieldSkillRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
@@ -45,6 +46,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class DamageServiceLastShieldTest extends MockBukkitTestBase {
 
@@ -55,7 +57,7 @@ class DamageServiceLastShieldTest extends MockBukkitTestBase {
      */
     @Test
     void shieldBreakingDirectDamageIsNegatedOnceThenRespectsCooldown() {
-        StatusService statusService = new StatusService();
+        StatusService statusService = activatedStatusService();
         ParticleDisplayService particleDisplayService = mock(ParticleDisplayService.class);
         DamageService damageService = damageService(statusService, particleDisplayService);
         LastShieldSkillRuntimeService runtime = new LastShieldSkillRuntimeService(particleDisplayService);
@@ -102,7 +104,7 @@ class DamageServiceLastShieldTest extends MockBukkitTestBase {
      */
     @Test
     void conditionDotIsNotNegated() {
-        StatusService statusService = new StatusService();
+        StatusService statusService = activatedStatusService();
         ParticleDisplayService particleDisplayService = mock(ParticleDisplayService.class);
         DamageService damageService = damageService(statusService, particleDisplayService);
         LastShieldSkillRuntimeService runtime = new LastShieldSkillRuntimeService(particleDisplayService);
@@ -135,6 +137,17 @@ class DamageServiceLastShieldTest extends MockBukkitTestBase {
                 mock(PlayerSettingService.class),
                 particleDisplayService
         );
+    }
+
+    private StatusService activatedStatusService() {
+        StatusService statusService = new StatusService();
+        PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
+        when(passiveSkillService.isPassiveSkillActive(
+                any(AstPlayer.class),
+                eq(StatusService.SHIELD_ACTIVATE_SKILL_ID)
+        )).thenReturn(true);
+        statusService.setPassiveSkillService(passiveSkillService);
+        return statusService;
     }
 
     private AstPlayer attacker() {

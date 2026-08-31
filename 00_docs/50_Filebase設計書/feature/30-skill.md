@@ -35,15 +35,17 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 | `hunter` | 散弾・移動・着弾地点制圧・シールド破壊・回復支援を扱う遠距離職 | `ENERGY` + `MANA` | 複数短射程飛翔体、単体飛翔体、発射後移動、重力弾道範囲、着弾回復エリア |
 | `mage` | 魔法攻撃、壁面反射弾、移動する範囲制圧、短周期の範囲回復を扱う遠距離職 | `MANA` | 前方魔法、条件付き連鎖、着弾範囲、周囲反射弾、移動する持続範囲、発動者中心の即時回復範囲 |
 
-現行定義は冒険者、ソードマン、ハンター、メイジ、Administrator向けのskillを含みます。フェイドショットとアローレインはハンター、ファイアーボールとヒールオーラはメイジ、シールドドレインとチャレンジングロアはソードマンの `usableSkills` から初期使用許可を与えます。追加skillは `starter` skilltreeから使用許可を与え、ソードマンはnode `1202` / `1203` / `1204` / `1211`、ハンターは `1282`～`1284`、メイジは `1347`～`1349` / `1351`、メディテーションは共通root `1047`、ジャスト回避は冒険者node `1350` を使用します。Administratorの `usableSkills` には検証用の使用許可を残します。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
+現行定義は冒険者、ソードマン、ハンター、メイジ、Administrator向けのskillを含みます。フェイドショットとアローレインはハンター、ファイアーボールとヒールオーラはメイジ、シールドドレインとチャレンジングロアはソードマンの `usableSkills` から初期使用許可を与えます。追加skillは `starter` skilltreeから使用許可を与え、ソードマンはnode `1202` / `1203` / `1204` / `1211` / `1352`、ハンターは `1282`～`1284`、メイジは `1347`～`1349` / `1351`、メディテーションは共通root `1047`、ジャスト回避は冒険者node `1350` を使用します。Administratorの `usableSkills` には検証用の使用許可を残します。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
 
 ハンターの `hunter_fade_shot` は、5本の短射程飛翔体と水平velocityによるバックステップを同時に扱う機動射撃です。ハンターの `usableSkills` から直接使用許可を配布し、習得用ジェムは `skill_gem_exchange` で無印原石2個から交換します。`hunter_arrow_rain` はハンターの `usableSkills` から初期使用許可を与えます。`hunter_heal_arrow` はハンターの `usableSkills` へ追加せず、`starter` node `1284` から使用許可を与えます。
 
 `swordsman_shield_drain` は97.5%の単体攻撃、敵Shieldへの3倍ブレイク、実減少量50%の自己Shield吸収を行います。実際に自身のShieldが回復した場合だけ、対象から発動者へ向かう吸収演出を表示します。
 
-`administrator_shield_recharge` は最大Shieldを30増加し、シールド残存時の被弾後8秒から最大Shieldの毎秒2%を再充填するバインド必須パッシブです。再充填中に被弾すると待機をやり直し、シールド破壊時は通常の回復仕様に従います。ソードマンではskilltree node `1202`、Administratorではclassの `usableSkills` から使用を許可します。
+`administrator_shield_recharge` は最大Shieldを30増加し、シールド残存時の被弾後8秒から最大Shieldの毎秒2%を再充填するバインド必須パッシブです。ただし `swordsman_shield_activate` が有効でない限り、最大Shield補正があってもShieldの獲得・再充填は行いません。再充填中に被弾すると待機をやり直し、シールド破壊時は通常の回復仕様に従います。ソードマンではskilltree node `1202`、Administratorではclassの `usableSkills` から使用を許可します。
 
-`swordsman_bastion_strike` は前方単体へLv.1で187.5%、Lv.5で225%の攻撃を行い、発動時に自身の現在Shieldを最大Shieldまで即時回復します。Lv.1〜4はMP最大時だけ、Lv.5は最大MPの80%以上で発動でき、成功時は現在MPを全量消費します。Lv.1の150秒からレベルごとに10秒ずつ短縮され、シジル枠は全レベル0です。
+`swordsman_shield_activate` は、使用許可と `passive.bindRequired: true` のパッシブ設定がそろった場合だけ、プレイヤーのShield獲得・回復・再充填を有効化するソードマン用パッシブです。使用許可はskilltree node `1352` とAdministratorのclassから与え、無効時の現在Shieldは0として扱います。
+
+`swordsman_bastion_strike` は前方単体へLv.1で187.5%、Lv.5で225%の攻撃を行い、シールドアクティベートが有効な場合だけ発動時に自身の現在Shieldを最大Shieldまで即時回復します。Lv.1〜4はMP最大時だけ、Lv.5は最大MPの80%以上で発動でき、成功時は現在MPを全量消費します。Lv.1の150秒からレベルごとに10秒ずつ短縮され、シジル枠は全レベル0です。
 
 `swordsman_flame_rush` は前方最大5体へLv.1で78% / 90%の火属性二連撃を行い、二撃目の炎上率はLv.1〜7が0%、Lv.8/9/10が35%/40%/45%です。`swordsman_challenging_roar` は周囲のMobを一時的に挑発する非攻撃スキルです。
 

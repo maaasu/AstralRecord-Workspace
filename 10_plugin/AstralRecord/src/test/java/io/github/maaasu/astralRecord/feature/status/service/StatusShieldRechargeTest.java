@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.status.service;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
+import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -28,7 +29,7 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
      */
     @Test
     void playerRechargeUsesReductionForBaseAndEachDelayExtension() {
-        StatusService service = new StatusService();
+        StatusService service = activatedService();
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
         player.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
             StatusType.MAX_HEALTH, 100.0D,
@@ -57,7 +58,7 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
      */
     @Test
     void zeroToPositiveMaxShieldStartsRechargeWithCurrentReduction() {
-        StatusService service = new StatusService();
+        StatusService service = activatedService();
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
         player.setStatusSnapshot(shieldSnapshot(0.0D));
         PlayerClassService playerClassService = mock(PlayerClassService.class);
@@ -81,7 +82,7 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
      */
     @Test
     void positiveToZeroMaxShieldCancelsRechargeAndCapacity() {
-        StatusService service = new StatusService();
+        StatusService service = activatedService();
         AstPlayer player = rechargingPlayer(service, 100.0D);
         service.setPlayerClassService(mock(PlayerClassService.class));
 
@@ -100,7 +101,7 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
      */
     @Test
     void reequippingMaxShieldDoesNotRestoreShieldImmediately() {
-        StatusService service = new StatusService();
+        StatusService service = activatedService();
         AstPlayer player = rechargingPlayer(service, 100.0D);
         PlayerClassService playerClassService = mock(PlayerClassService.class);
         service.setPlayerClassService(playerClassService);
@@ -123,7 +124,7 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
      */
     @Test
     void rechargeCompletionUsesIncreasedCurrentMaxShield() {
-        StatusService service = new StatusService();
+        StatusService service = activatedService();
         AstPlayer player = rechargingPlayer(service, 100.0D);
         ShieldRechargeState state = service.getShieldRechargeState(player);
         player.setStatusSnapshot(shieldSnapshot(200.0D));
@@ -140,7 +141,7 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
      */
     @Test
     void rechargeCompletionUsesDecreasedCurrentMaxShield() {
-        StatusService service = new StatusService();
+        StatusService service = activatedService();
         AstPlayer player = rechargingPlayer(service, 100.0D);
         ShieldRechargeState state = service.getShieldRechargeState(player);
         player.setStatusSnapshot(shieldSnapshot(50.0D));
@@ -157,7 +158,7 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
      */
     @Test
     void rechargeCompletionClearsRuntimeStateWhenCurrentMaxShieldBecomesZero() {
-        StatusService service = new StatusService();
+        StatusService service = activatedService();
         AstPlayer player = rechargingPlayer(service, 100.0D);
         ShieldRechargeState state = service.getShieldRechargeState(player);
         player.setStatusSnapshot(shieldSnapshot(0.0D));
@@ -174,7 +175,7 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
      */
     @Test
     void restoreAllClearsRechargeRuntimeState() {
-        StatusService service = new StatusService();
+        StatusService service = activatedService();
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
         player.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
             StatusType.MAX_HEALTH, 100.0D,
@@ -195,7 +196,7 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
      */
     @Test
     void configuredRechargeRecoversContinuouslyAndDamageRestartsDelay() {
-        StatusService service = new StatusService();
+        StatusService service = activatedService();
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
         player.setStatusSnapshot(shieldSnapshot(30.0D, 10.0D));
         service.configureShieldRecharge(player, 8.0D, 2.0D);
@@ -220,7 +221,7 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
      */
     @Test
     void configuredPlayerBreakUsesLegacyFullRecovery() {
-        StatusService service = new StatusService();
+        StatusService service = activatedService();
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
         player.setStatusSnapshot(shieldSnapshot(30.0D));
         service.configureShieldRecharge(player, 8.0D, 2.0D);
@@ -242,7 +243,7 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
      */
     @Test
     void clearingRechargeConfigurationPreservesBrokenShieldRecovery() {
-        StatusService service = new StatusService();
+        StatusService service = activatedService();
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
         player.setStatusSnapshot(shieldSnapshot(30.0D));
         service.configureShieldRecharge(player, 8.0D, 2.0D);
@@ -262,7 +263,7 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
      */
     @Test
     void unconfiguredPlayerUsesLegacyShieldRecharge() {
-        StatusService service = new StatusService();
+        StatusService service = activatedService();
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
         player.setStatusSnapshot(shieldSnapshot(30.0D));
 
@@ -270,6 +271,75 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
         assertEquals(31_000L, state.completesAtMs());
         assertTrue(service.completeShieldRechargeIfReady(player, 31_000L));
         assertEquals(30.0D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### シールドアクティベート
+     * 検証契約: シールドアクティベートが無効な間は最大Shieldの候補値があっても現在Shieldを獲得せず、リチャージ状態も作成しない。
+     */
+    @Test
+    void shieldCannotBeAcquiredWithoutShieldActivation() {
+        StatusService service = shieldService(false);
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        player.setStatusSnapshot(shieldSnapshot(100.0D, 25.0D));
+        service.configureShieldRecharge(player, 8.0D, 2.0D);
+
+        assertEquals(0.0D, service.getStatus(player).getCurrentShield(), 0.0001D);
+        assertEquals(100.0D, service.getStatus(player).getMaxValue(StatusType.MAX_SHIELD), 0.0001D);
+        assertNull(service.startShieldRecharge(player, 1_000L));
+        assertNull(service.startShieldRechargeWhileRetained(player, 1_000L));
+        assertEquals(0.0D, service.recoverShield(player, 50.0D).getCurrentShield(), 0.0001D);
+        assertEquals(0.0D, service.restoreAll(player).getCurrentShield(), 0.0001D);
+        assertNull(service.getShieldRechargeState(player));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### ステータス再計算
+     * 検証契約: 既存セッションでシールドアクティベートだけを有効化した場合、現在Shieldを即時付与せず通常30秒リチャージを開始する。
+     */
+    @Test
+    void enablingShieldActivationStartsNormalRechargeForExistingSession() {
+        PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
+        when(passiveSkillService.isPassiveSkillActive(
+            org.mockito.ArgumentMatchers.any(AstPlayer.class),
+            org.mockito.ArgumentMatchers.eq(StatusService.SHIELD_ACTIVATE_SKILL_ID)
+        )).thenReturn(false, true);
+        StatusService service = new StatusService();
+        service.setPassiveSkillService(passiveSkillService);
+        PlayerClassService playerClassService = mock(PlayerClassService.class);
+        when(playerClassService.getStatusBonus(
+            org.mockito.ArgumentMatchers.any(AstPlayer.class),
+            org.mockito.ArgumentMatchers.eq(StatusType.MAX_SHIELD)
+        )).thenReturn(100.0D);
+        service.setPlayerClassService(playerClassService);
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        player.setStatusSnapshot(shieldSnapshot(0.0D));
+
+        service.refreshStatus(player);
+        StatusSnapshot refreshed = service.refreshStatus(player);
+
+        ShieldRechargeState state = service.getShieldRechargeState(player);
+        assertEquals(100.0D, refreshed.getMaxValue(StatusType.MAX_SHIELD), 0.0001D);
+        assertEquals(0.0D, refreshed.getCurrentShield(), 0.0001D);
+        assertNotNull(state);
+        assertEquals(30_000L, state.completesAtMs() - state.startedAtMs());
+    }
+
+    private StatusService activatedService() {
+        return shieldService(true);
+    }
+
+    private StatusService shieldService(boolean activated) {
+        StatusService service = new StatusService();
+        PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
+        when(passiveSkillService.isPassiveSkillActive(
+            org.mockito.ArgumentMatchers.any(AstPlayer.class),
+            org.mockito.ArgumentMatchers.eq(StatusService.SHIELD_ACTIVATE_SKILL_ID)
+        )).thenReturn(activated);
+        service.setPassiveSkillService(passiveSkillService);
+        return service;
     }
 
     private AstPlayer rechargingPlayer(StatusService service, double maxShield) {

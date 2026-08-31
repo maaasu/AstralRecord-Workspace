@@ -1,0 +1,21 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1352",
+  "name": "&bシールドアクティベート",
+  "icon": "SHIELD",
+  "tags": [
+    "defense"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordsman_shield_activate"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}

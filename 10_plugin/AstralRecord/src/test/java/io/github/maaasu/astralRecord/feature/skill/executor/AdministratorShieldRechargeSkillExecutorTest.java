@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
+import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.status.model.ShieldRechargeState;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -40,7 +41,7 @@ class AdministratorShieldRechargeSkillExecutorTest extends MockBukkitTestBase {
      */
     @Test
     void filebaseRechargeRateReachesStatusRuntime() {
-        StatusService statusService = new StatusService();
+        StatusService statusService = activatedStatusService();
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
         player.setStatusSnapshot(shieldSnapshot(30.0D, 10.0D));
 
@@ -78,7 +79,7 @@ class AdministratorShieldRechargeSkillExecutorTest extends MockBukkitTestBase {
      */
     @Test
     void brokenShieldUsesFullRecoveryEvenWithSkillConfigured() {
-        StatusService statusService = new StatusService();
+        StatusService statusService = activatedStatusService();
         ParticleDisplayService particleDisplayService = mock(ParticleDisplayService.class);
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
         player.setStatusSnapshot(shieldSnapshot(30.0D));
@@ -164,5 +165,16 @@ class AdministratorShieldRechargeSkillExecutorTest extends MockBukkitTestBase {
             StatusType.MAX_HEALTH, 100.0D,
             StatusType.MAX_SHIELD, maxShield
         ), 100.0D, 0.0D, 0.0D).withCurrentShield(currentShield);
+    }
+
+    private StatusService activatedStatusService() {
+        StatusService statusService = new StatusService();
+        PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
+        org.mockito.Mockito.when(passiveSkillService.isPassiveSkillActive(
+            org.mockito.ArgumentMatchers.any(AstPlayer.class),
+            org.mockito.ArgumentMatchers.eq(StatusService.SHIELD_ACTIVATE_SKILL_ID)
+        )).thenReturn(true);
+        statusService.setPassiveSkillService(passiveSkillService);
+        return statusService;
     }
 }

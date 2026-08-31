@@ -207,6 +207,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorShieldR
 import io.github.maaasu.astralRecord.feature.skill.executor.HunterSpellStepSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.MageArcaneFlowSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanLastShieldSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanShieldActivateSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.MeditationSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.ActiveSkillExecutorCatalog;
@@ -1314,6 +1315,7 @@ public final class AstralRecord extends JavaPlugin {
         skillService.registerExecutor(new AdministratorJustDodgeSkillExecutor(justDodgeSkillRuntimeService));
         skillService.registerExecutor(new AdministratorShieldRechargeSkillExecutor(statusService, particleDisplayService));
         skillService.registerExecutor(new SwordsmanLastShieldSkillExecutor(lastShieldSkillRuntimeService));
+        skillService.registerExecutor(new SwordsmanShieldActivateSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());
         weaponAttackSkillExecutor = new WeaponAttackSkillExecutor(particleDisplayService, damageService, conditionService);
         skillService.registerExecutor(weaponAttackSkillExecutor);
@@ -1576,6 +1578,7 @@ public final class AstralRecord extends JavaPlugin {
         playerJoinEventHandler.setPlayerLoadedListener(player -> passiveSkillService.reconcileNow(player));
         playerJoinEventHandler.setPlayerQuitListener(player -> {
             passiveSkillService.onPlayerQuit(player);
+            statusService.clearShieldRuntimeState(player.getBukkit().getUniqueId());
         });
         eventManager.registerHandler(playerJoinEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
