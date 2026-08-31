@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.party.gui.PartyGui;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyActionResult;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -14,7 +15,8 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.Objects;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 
 /**
@@ -149,11 +151,22 @@ public final class PartyCommand extends AstCommand {
             return;
         }
 
+        Map<UUID, Player> recipients = new LinkedHashMap<>();
+        for (UUID memberId : party.members()) {
+            Player member = Bukkit.getPlayer(memberId);
+            if (member != null) {
+                recipients.put(member.getUniqueId(), member);
+            }
+        }
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            AstPlayer onlineAstPlayer = AstPlayerCache.get(onlinePlayer);
+            if (onlineAstPlayer != null && onlineAstPlayer.hasAdminPermission()) {
+                recipients.putIfAbsent(onlinePlayer.getUniqueId(), onlinePlayer);
+            }
+        }
+
         PlayerMessageService.getInstance().broadcastPartyChat(
-            party.members().stream()
-                .map(Bukkit::getPlayer)
-                .filter(Objects::nonNull)
-                .toList(),
+            recipients.values(),
             player.getBukkit(),
             message
         );
