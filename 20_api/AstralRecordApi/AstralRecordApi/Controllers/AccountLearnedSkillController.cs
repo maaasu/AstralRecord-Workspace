@@ -34,12 +34,36 @@ public class AccountLearnedSkillController(IAccountLearnedSkillRepository reposi
         [FromBody] AccountLearnedSkillLevelUpRequest request)
         => ToActionResult(await repository.LevelUpAsync(accountId, learnedSkillId, request));
 
+    /// <summary>指定した習得済みスキル個体へシジルを1個消費装着します。</summary>
     [HttpPost("{learnedSkillId:guid}/sigils")]
     public async Task<IActionResult> AttachSigil(
         Guid accountId,
         Guid learnedSkillId,
         [FromBody] AccountLearnedSkillAttachSigilRequest request)
         => ToActionResult(await repository.AttachSigilAsync(accountId, learnedSkillId, request));
+
+    /// <summary>指定した装着済みシジルを取り外し、アカウントの BAG へ1個返却します。</summary>
+    [HttpPost("{learnedSkillId:guid}/sigils/{learnedSkillSigilId:guid}/detach")]
+    public async Task<IActionResult> DetachSigil(
+        Guid accountId,
+        Guid learnedSkillId,
+        Guid learnedSkillSigilId,
+        [FromBody] AccountLearnedSkillDetachSigilRequest request)
+    {
+        var result = await repository.DetachSigilAsync(
+            accountId,
+            learnedSkillId,
+            learnedSkillSigilId,
+            request);
+        if (!result.Succeeded)
+            return ToActionResult(result);
+
+        return Ok(new AccountLearnedSkillDetachSigilResponse
+        {
+            Skill = result.Skill!,
+            ReturnedInventoryEntryId = result.ReturnedInventoryEntryId!.Value,
+        });
+    }
 
     [HttpPost("{learnedSkillId:guid}/forget")]
     public async Task<IActionResult> Forget(
@@ -58,7 +82,8 @@ public class AccountLearnedSkillController(IAccountLearnedSkillRepository reposi
             AccountLearnedSkillMutationFailure.AccountNotFound
                 or AccountLearnedSkillMutationFailure.LearnedSkillNotFound
                 or AccountLearnedSkillMutationFailure.SkillNotFound
-                or AccountLearnedSkillMutationFailure.SigilNotFound => NotFound(new { failure = result.Failure.ToString() }),
+                or AccountLearnedSkillMutationFailure.SigilNotFound
+                or AccountLearnedSkillMutationFailure.SigilAttachmentNotFound => NotFound(new { failure = result.Failure.ToString() }),
             _ => Conflict(new { failure = result.Failure.ToString() }),
         };
     }

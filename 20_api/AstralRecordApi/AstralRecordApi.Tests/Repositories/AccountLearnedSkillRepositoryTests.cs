@@ -136,6 +136,70 @@ public class AccountLearnedSkillRepositoryTests
 
     /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
+    /// 検証契約: 装着済みシジルの指定行だけを論理削除し、同一 transaction で BAG へ1個返却する。
+    /// </summary>
+    [Fact]
+    public async Task DetachSigilAsync_DeletesAttachmentAndReturnsSigilToBag()
+    {
+        await using var fixture = await TestDatabase.CreateAsync();
+        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.adventurer_smash.yml", "skill", null);
+        await fixture.SeedMasterAsync(
+            "40_filebase/10.features.item/sigil/v1.cooldown_sigil.yml", "item", "sigil");
+        var accountId = Guid.NewGuid();
+        await fixture.AddAccountAsync(accountId);
+        var gemEntryId = await fixture.AddInventoryEntryAsync(
+            accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
+        var sigilEntryId = await fixture.AddInventoryEntryAsync(accountId, "sigil", "cooldown_sigil", 1);
+
+        AccountLearnedSkillResponse learned;
+        await using (var requestDb = fixture.CreatePlayerDb())
+        {
+            learned = (await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
+                .LearnAsync(accountId, new AccountLearnedSkillLearnRequest
+                {
+                    SkillId = "adventurer_smash",
+                    GemInventoryEntryId = gemEntryId,
+                    UpdatedBy = accountId,
+                })).Skill!;
+        }
+        AccountLearnedSkillResponse attached;
+        await using (var requestDb = fixture.CreatePlayerDb())
+        {
+            attached = (await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
+                .AttachSigilAsync(accountId, learned.LearnedSkillId, new AccountLearnedSkillAttachSigilRequest
+                {
+                    SigilId = "cooldown_sigil",
+                    SigilInventoryEntryId = sigilEntryId,
+                    UpdatedBy = accountId,
+                })).Skill!;
+        }
+
+        AccountLearnedSkillMutationResult detached;
+        await using (var requestDb = fixture.CreatePlayerDb())
+        {
+            detached = await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
+                .DetachSigilAsync(
+                    accountId,
+                    learned.LearnedSkillId,
+                    attached.Sigils.Single().LearnedSkillSigilId,
+                    new AccountLearnedSkillDetachSigilRequest { UpdatedBy = accountId });
+        }
+
+        Assert.True(detached.Succeeded);
+        Assert.Empty(detached.Skill!.Sigils);
+        Assert.NotNull(detached.ReturnedInventoryEntryId);
+        Assert.True((await fixture.PlayerDb.AccountLearnedSkillSigils.AsNoTracking()
+            .SingleAsync(sigil => sigil.LearnedSkillSigilId == attached.Sigils.Single().LearnedSkillSigilId)).IsDeleted);
+        var returned = await fixture.PlayerDb.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == detached.ReturnedInventoryEntryId);
+        Assert.False(returned.IsDeleted);
+        Assert.Equal("sigil", returned.ItemCategory);
+        Assert.Equal("cooldown_sigil", returned.ItemId);
+        Assert.Equal(1, returned.Quantity);
+    }
+
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
     /// 検証契約: 許可されていないシジルは消費せず、素材選択段階の拒否と同じ理由で API も拒否する。
     /// </summary>
     [Fact]

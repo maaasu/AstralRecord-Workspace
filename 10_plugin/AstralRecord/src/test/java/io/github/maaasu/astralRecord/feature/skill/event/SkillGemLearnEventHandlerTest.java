@@ -128,7 +128,7 @@ class SkillGemLearnEventHandlerTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
      * 章・見出し: # 13_3-イベント > ## 2. スキルジェム習得
-     * 検証契約: すでに同じスキルを習得済みの場合、警告タイトル・習得済み表示・合成推奨の赤字を表示する。
+     * 検証契約: すでに同じスキルを習得済みの場合、警告タイトル・習得済み表示・別個体習得の赤字を表示する。
      */
     @Test
     void duplicateSkillOpensWarningConfirmationGui() {
@@ -175,7 +175,7 @@ class SkillGemLearnEventHandlerTest extends MockBukkitTestBase {
             Objects.requireNonNull(confirmInventory.getItem(ConfirmDialogView.CONFIRM_SLOT)).getItemMeta()
         ).lore();
         assertTrue(Objects.requireNonNull(confirmLore).stream()
-            .filter(line -> plainText(line).contains("合成に使用することをお勧めします。"))
+            .filter(line -> plainText(line).contains("同じスキルを別個体として習得します。"))
             .peek(line -> assertEquals(NamedTextColor.RED, line.color()))
             .findAny()
             .isPresent());

@@ -345,16 +345,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        if (event.isRightClick()) {
-            if (!canOpenSynthesis(entry)) {
-                GuiSound.DENY.play(player);
-                return;
-            }
-            removeSynthesisSelectionAndRestore(player);
-            GuiSound.SELECT.play(player);
-            openSynthesis(player, session, entry.bindingId(), page);
-            return;
-        }
         if (!event.isLeftClick()) {
             GuiSound.DENY.play(player);
             return;

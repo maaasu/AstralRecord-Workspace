@@ -196,7 +196,7 @@ public final class SkillGemLearnEventHandler extends AbstractEventHandler {
                 Component.text("キャンセル", NamedTextColor.RED),
                 List.of(
                     Component.text("すでに習得済みのスキルなので、", NamedTextColor.RED),
-                    Component.text("習得ではなく合成に使用することをお勧めします。", NamedTextColor.RED)
+                    Component.text("同じスキルを別個体として習得します。", NamedTextColor.RED)
                 )
             );
         } else {

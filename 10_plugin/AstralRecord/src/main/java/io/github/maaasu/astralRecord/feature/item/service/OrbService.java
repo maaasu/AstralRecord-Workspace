@@ -25,6 +25,7 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillSigilOrbService;
 import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
@@ -108,6 +109,7 @@ public final class OrbService {
     private final Map<UUID, OrbInventoryListSession> inventoryOrbListSessions = new ConcurrentHashMap<>();
     private @Nullable StatusService statusService;
     private @NotNull BiConsumer<AstPlayer, String> useSuccessListener = (player, orbItemId) -> { };
+    private @Nullable SkillSigilOrbService skillSigilOrbService;
 
     /**
      * オーブ GUI サービスを初期化します。
@@ -199,13 +201,23 @@ public final class OrbService {
     }
 
     /**
+     * シジル用オーブの習得済みスキル GUI を接続します。
+     *
+     * @param skillSigilOrbService シジル装着・脱着サービス
+     */
+    public void setSkillSigilOrbService(@Nullable SkillSigilOrbService skillSigilOrbService) {
+        this.skillSigilOrbService = skillSigilOrbService;
+    }
+
+    /**
      * 対象インベントリがオーブ専用 GUI か判定します。
      *
      * @param inventory 判定対象
      * @return オーブ GUI の場合 {@code true}
      */
     public boolean isOrbInventory(@Nullable Inventory inventory) {
-        return inventory != null && inventory.getHolder() instanceof OrbGuiHolder;
+        return inventory != null && (inventory.getHolder() instanceof OrbGuiHolder
+            || skillSigilOrbService != null && skillSigilOrbService.isSkillSigilInventory(inventory));
     }
 
     private boolean isInventoryOrbList(@Nullable Inventory inventory) {
@@ -222,7 +234,8 @@ public final class OrbService {
      */
     public boolean isLocked(@NotNull Player player) {
         OrbSession session = sessions.get(player.getUniqueId());
-        return session != null && session.interactionLock.isLocked() && !session.detached;
+        return (session != null && session.interactionLock.isLocked() && !session.detached)
+            || (skillSigilOrbService != null && skillSigilOrbService.isLocked(player));
     }
 
     /**
@@ -272,7 +285,7 @@ public final class OrbService {
         }
 
         event.setCancelled(true);
-        startOrbOperation(player, astPlayer, orbModel, false);
+        startOrbOperation(player, astPlayer, entry, orbModel, false);
         return true;
     }
 
@@ -281,12 +294,14 @@ public final class OrbService {
      *
      * @param player 操作プレイヤー
      * @param astPlayer ログイン中のプレイヤー状態
+     * @param originEntry 操作を開始した所持オーブentry
      * @param orbModel 起点オーブのマスタ
      * @param returnToInventoryOrbListOnFailure 対象装備がない場合に所持オーブ一覧へ戻すか
      */
     private void startOrbOperation(
         @NotNull Player player,
         @NotNull AstPlayer astPlayer,
+        @NotNull InventoryEntryModel originEntry,
         @NotNull ItemModel orbModel,
         boolean returnToInventoryOrbListOnFailure
     ) {
@@ -294,6 +309,25 @@ public final class OrbService {
         if (previous != null
             && (previous.operationFuture != null || previous.preloadFuture != null)) {
             GuiSound.DENY.play(player);
+            return;
+        }
+        ItemOrbEffectType type = orbModel.getOrb().getEffect().getType();
+        if (type == ItemOrbEffectType.SIGIL_ATTACH || type == ItemOrbEffectType.SIGIL_DETACH) {
+            if (skillSigilOrbService == null) {
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5873);
+                GuiSound.DENY.play(player);
+                return;
+            }
+            removeSession(player.getUniqueId());
+            inventoryOrbListSessions.remove(player.getUniqueId());
+            skillSigilOrbService.start(
+                player,
+                astPlayer,
+                originEntry.getInventoryEntryId(),
+                orbModel,
+                returnToInventoryOrbListOnFailure,
+                () -> openInventoryOrbList(player, astPlayer, null)
+            );
             return;
         }
         InventoryEntryModel consumable = inventoryService.findOwnedNormalItemEntryForConsumption(
@@ -380,6 +414,11 @@ public final class OrbService {
      * @param event オーブ GUI 上のクリックイベント
      */
     public void handleGuiClick(@NotNull InventoryClickEvent event) {
+        if (skillSigilOrbService != null
+            && skillSigilOrbService.isSkillSigilInventory(event.getView().getTopInventory())) {
+            skillSigilOrbService.handleGuiClick(event);
+            return;
+        }
         if (!(event.getWhoClicked() instanceof Player player)) {
             event.setCancelled(true);
             return;
@@ -431,6 +470,11 @@ public final class OrbService {
      * @param event ドラッグイベント
      */
     public void handleGuiDrag(@NotNull InventoryDragEvent event) {
+        if (skillSigilOrbService != null
+            && skillSigilOrbService.isSkillSigilInventory(event.getView().getTopInventory())) {
+            skillSigilOrbService.handleGuiDrag(event);
+            return;
+        }
         if (isOrbInventory(event.getView().getTopInventory())) {
             event.setCancelled(true);
         }
@@ -443,6 +487,9 @@ public final class OrbService {
      * @return ロック中として拒否した場合 {@code true}
      */
     public boolean handleHeldChange(@NotNull PlayerItemHeldEvent event) {
+        if (skillSigilOrbService != null && skillSigilOrbService.handleHeldChange(event)) {
+            return true;
+        }
         if (!isLocked(event.getPlayer())) {
             return false;
         }
@@ -467,6 +514,10 @@ public final class OrbService {
      * @param closedInventory 閉じられたトップインベントリ。旧 API 互換の呼び出しでは {@code null}
      */
     public void handleClose(@NotNull Player player, @Nullable Inventory closedInventory) {
+        if (skillSigilOrbService != null && skillSigilOrbService.isSkillSigilInventory(closedInventory)) {
+            skillSigilOrbService.handleClose(player, closedInventory);
+            return;
+        }
         if (closedInventory != null && isInventoryOrbList(closedInventory)) {
             OrbInventoryListSession currentList = currentInventoryOrbListSession(player, closedInventory);
             if (currentList != null) {
@@ -529,6 +580,7 @@ public final class OrbService {
      * @param player ログアウトするプレイヤー
      */
     public void prepareForPlayerSave(@NotNull Player player) {
+        if (skillSigilOrbService != null) skillSigilOrbService.prepareForPlayerSave(player);
         inventoryOrbListSessions.remove(player.getUniqueId());
         OrbSession session = sessions.get(player.getUniqueId());
         if (session == null || session.player != player || !sessions.remove(player.getUniqueId(), session)) {
@@ -541,6 +593,7 @@ public final class OrbService {
      * プラグイン停止前に全オーブセッションを停止し、未確定通信を保存キューへ登録します。
      */
     public void prepareAllForShutdown() {
+        if (skillSigilOrbService != null) skillSigilOrbService.prepareAllForShutdown();
         inventoryOrbListSessions.clear();
         for (OrbSession session : List.copyOf(sessions.values())) {
             if (sessions.remove(session.player.getUniqueId(), session)) {
@@ -699,7 +752,7 @@ public final class OrbService {
         }
 
         inventoryOrbListSessions.remove(player.getUniqueId(), session);
-        startOrbOperation(player, session.astPlayer, orbModel, true);
+        startOrbOperation(player, session.astPlayer, entry, orbModel, true);
     }
 
     /**
@@ -1332,6 +1385,7 @@ public final class OrbService {
             case ENCHANT -> OrbEligibility.canEnchant(effect, model, instance, enchantMaster);
             case RUNE_ATTACH -> instance.getRuneMaxSlots() > instance.getRunes().size();
             case RUNE_DETACH -> !instance.getRunes().isEmpty();
+            case SIGIL_ATTACH, SIGIL_DETACH -> false;
         };
     }
 
@@ -1390,6 +1444,9 @@ public final class OrbService {
             }
             case RUNE_ATTACH -> lore.add(Component.text("クリックしてルーンを装着", NamedTextColor.GREEN));
             case RUNE_DETACH -> lore.add(Component.text("クリックしてルーンを取り外し", NamedTextColor.AQUA));
+            case SIGIL_ATTACH, SIGIL_DETACH -> {
+                // シジル用オーブは SkillSigilOrbService の習得済みスキル一覧で描画する。
+            }
             case ENCHANT -> {
                 int maxSlots = OrbEligibility.effectiveEnchantMaxSlots(
                     candidate.model.getEquipment(), candidate.instance.getTranscendenceRank());

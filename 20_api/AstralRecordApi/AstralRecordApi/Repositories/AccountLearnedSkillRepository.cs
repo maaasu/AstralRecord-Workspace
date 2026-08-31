@@ -171,6 +171,86 @@ public class AccountLearnedSkillRepository(
         });
     }
 
+    public async Task<AccountLearnedSkillMutationResult> DetachSigilAsync(
+        Guid accountId,
+        Guid learnedSkillId,
+        Guid learnedSkillSigilId,
+        AccountLearnedSkillDetachSigilRequest request)
+    {
+        return await ExecuteSerializableAsync(async () =>
+        {
+            var entity = await FindLearnedSkillAsync(accountId, learnedSkillId);
+            if (entity is null)
+                return Failure(AccountLearnedSkillMutationFailure.LearnedSkillNotFound);
+
+            var attached = entity.Sigils.FirstOrDefault(candidate =>
+                candidate.LearnedSkillSigilId == learnedSkillSigilId && !candidate.IsDeleted);
+            if (attached is null)
+                return Failure(AccountLearnedSkillMutationFailure.SigilAttachmentNotFound);
+
+            var sigilItem = await GetSigilItemAsync(attached.SigilId);
+            if (sigilItem?.Sigil is null)
+                return Failure(AccountLearnedSkillMutationFailure.SigilNotFound);
+
+            var bag = await dbContext.Inventories.FirstOrDefaultAsync(inventory =>
+                inventory.AccountId == accountId
+                && !inventory.IsDeleted
+                && inventory.IsEnabled
+                && inventory.InventoryProfile == "GAME"
+                && inventory.InventoryType == "BAG");
+            if (bag is null)
+                return Failure(AccountLearnedSkillMutationFailure.InventoryNotFound);
+
+            var now = DateTime.UtcNow;
+            var maxStack = Math.Max(1, sigilItem.MaxStack);
+            var bagEntries = await dbContext.InventoryEntries
+                .Where(entry => entry.InventoryId == bag.InventoryId
+                    && !entry.IsDeleted
+                    && entry.InstanceId == null
+                    && (entry.InstanceType == null || entry.InstanceType == string.Empty))
+                .OrderBy(entry => entry.SlotIndex ?? int.MaxValue)
+                .ThenBy(entry => entry.CreatedAt)
+                .ToArrayAsync();
+            var returnedEntry = bagEntries.FirstOrDefault(entry =>
+                entry.Quantity < maxStack
+                && IdEquals(entry.ItemCategory, SigilCategory)
+                && IdEquals(entry.ItemId, attached.SigilId));
+            if (returnedEntry is null)
+            {
+                returnedEntry = new InventoryEntryEntity
+                {
+                    InventoryEntryId = Guid.NewGuid(),
+                    InventoryId = bag.InventoryId,
+                    SlotIndex = null,
+                    ItemCategory = SigilCategory,
+                    ItemId = NormalizeId(attached.SigilId),
+                    Quantity = 1,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    CreatedBy = request.UpdatedBy,
+                    UpdatedBy = request.UpdatedBy,
+                    IsDeleted = false,
+                };
+                await dbContext.InventoryEntries.AddAsync(returnedEntry);
+            }
+            else
+            {
+                returnedEntry.Quantity += 1;
+                returnedEntry.UpdatedAt = now;
+                returnedEntry.UpdatedBy = request.UpdatedBy;
+            }
+
+            attached.IsDeleted = true;
+            attached.UpdatedAt = now;
+            attached.UpdatedBy = request.UpdatedBy;
+            entity.Version += 1;
+            entity.UpdatedAt = now;
+            entity.UpdatedBy = request.UpdatedBy;
+            await dbContext.SaveChangesAsync();
+            return Success(Map(entity), returnedEntry.InventoryEntryId);
+        });
+    }
+
     public async Task<AccountLearnedSkillMutationResult> ForgetAsync(
         Guid accountId,
         Guid learnedSkillId,
@@ -302,6 +382,11 @@ public class AccountLearnedSkillRepository(
 
     private async Task<ItemSigilResponse?> GetSigilAsync(string sigilId)
     {
+        return (await GetSigilItemAsync(sigilId))?.Sigil;
+    }
+
+    private async Task<ItemResponse?> GetSigilItemAsync(string sigilId)
+    {
         var entry = await masterDataDbContext.Entries.AsNoTracking()
             .Where(candidate => !candidate.IsDeleted
                 && candidate.MasterType == ItemMasterType
@@ -311,7 +396,11 @@ public class AccountLearnedSkillRepository(
             .FirstOrDefaultAsync();
         if (entry is null)
             return null;
-        return DeserializeSigil(entry);
+        var node = JsonNode.Parse(entry)?.AsObject();
+        if (node is null)
+            return null;
+        node["category"] = SigilCategory;
+        return MasterDataPayloadJson.Deserialize<ItemResponse>(node.ToJsonString());
     }
 
     private async Task ReconcileAsync(
@@ -588,8 +677,10 @@ public class AccountLearnedSkillRepository(
     private static string NormalizeId(string? value) => value?.Trim().ToLowerInvariant() ?? string.Empty;
     private static bool IdEquals(string? left, string? right)
         => string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
-    private static AccountLearnedSkillMutationResult Success(AccountLearnedSkillResponse skill)
-        => new(skill, AccountLearnedSkillMutationFailure.None);
+    private static AccountLearnedSkillMutationResult Success(
+        AccountLearnedSkillResponse skill,
+        Guid? returnedInventoryEntryId = null)
+        => new(skill, AccountLearnedSkillMutationFailure.None, returnedInventoryEntryId);
     private static AccountLearnedSkillMutationResult Failure(AccountLearnedSkillMutationFailure failure)
         => new(null, failure);
 }

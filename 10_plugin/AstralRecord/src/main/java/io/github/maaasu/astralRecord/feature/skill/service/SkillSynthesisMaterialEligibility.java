@@ -1,6 +1,8 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillSigilSlotDefinition;
 import org.jetbrains.annotations.NotNull;
@@ -32,18 +34,34 @@ public final class SkillSynthesisMaterialEligibility {
                 ? MaterialKind.GEM
                 : MaterialKind.INVALID_GEM;
         }
+        return resolve(entry.learnedSkill(), entry.definition(), item);
+    }
+
+    /**
+     * 習得済みスキルとシジル素材を照合します。
+     *
+     * @param learnedSkill 合成対象の習得済みスキル
+     * @param definition 対象スキル定義
+     * @param item 所持シジル候補
+     * @return シジル素材の適合結果
+     */
+    public static @NotNull MaterialKind resolve(
+        @NotNull LearnedSkillInstance learnedSkill,
+        @NotNull SkillDefinition definition,
+        @NotNull ItemModel item
+    ) {
         if (item.getSigil() == null) {
             return MaterialKind.NONE;
         }
-        if (entry.definition().getAllowedSigilIds().stream().noneMatch(id -> sameId(id, item.getId()))) {
+        if (definition.getAllowedSigilIds().stream().noneMatch(id -> sameId(id, item.getId()))) {
             return MaterialKind.SIGIL_NOT_ALLOWED;
         }
-        boolean duplicateGroup = entry.learnedSkill().getSigils().stream()
+        boolean duplicateGroup = learnedSkill.getSigils().stream()
             .anyMatch(sigil -> sameId(sigil.getEquipGroupId(), item.getSigil().getEquipGroupId()));
         if (duplicateGroup) {
             return MaterialKind.DUPLICATE_SIGIL_GROUP;
         }
-        return entry.learnedSkill().getSigils().size() >= sigilSlotCount(entry)
+        return learnedSkill.getSigils().size() >= sigilSlotCount(learnedSkill, definition)
             ? MaterialKind.NO_SIGIL_SLOT
             : MaterialKind.SIGIL;
     }
@@ -55,8 +73,22 @@ public final class SkillSynthesisMaterialEligibility {
      * @return 現在レベル以下で最大の枠数。枠定義がなければ 0
      */
     public static int sigilSlotCount(@NotNull SkillManagerEntry entry) {
-        return entry.definition().getSigilSlotsByLevel().stream()
-            .filter(slot -> slot.getLevel() <= entry.learnedSkill().getLevel())
+        return sigilSlotCount(entry.learnedSkill(), entry.definition());
+    }
+
+    /**
+     * 習得済みスキルの現在レベルで利用できるシジル枠数を返します。
+     *
+     * @param learnedSkill 習得済みスキル
+     * @param definition レベル別枠定義
+     * @return 現在レベル以下で最大の枠数。枠定義がなければ 0
+     */
+    public static int sigilSlotCount(
+        @NotNull LearnedSkillInstance learnedSkill,
+        @NotNull SkillDefinition definition
+    ) {
+        return definition.getSigilSlotsByLevel().stream()
+            .filter(slot -> slot.getLevel() <= learnedSkill.getLevel())
             .mapToInt(SkillSigilSlotDefinition::getSlots)
             .max()
             .orElse(0);

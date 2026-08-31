@@ -51,7 +51,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
-/** 習得・強化・シジル合成・バインドを統合したスキルマネージャー GUI です。 */
+/** 習得済みスキルの表示・バインドを扱うスキルマネージャー GUI です。 */
 public final class SkillBindGui {
     public static final int SIZE = 54;
     /** 通常攻撃を slot 0 に常設するため、一覧の 1 ページ容量は 26 件です。 */
@@ -449,7 +449,6 @@ public final class SkillBindGui {
         if (listDisplay) {
             lore.add(separator());
             lore.add(Component.text("左クリック: 空き枠へ自動設定", NamedTextColor.YELLOW));
-            lore.add(Component.text("右クリック: スキル合成を開く", NamedTextColor.LIGHT_PURPLE));
         }
         SkillDefinition skill = entry.definition();
         ItemStack item = createItem(

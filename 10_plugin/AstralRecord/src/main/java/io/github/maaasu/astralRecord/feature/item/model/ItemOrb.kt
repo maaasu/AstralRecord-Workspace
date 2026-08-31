@@ -3,7 +3,8 @@ package io.github.maaasu.astralRecord.feature.item.model
 /**
  * オーブ固有定義。
  *
- * 1個のオーブは1種類の装備操作だけを持ち、操作成功または強化試行開始時に1個消費されます。
+ * 1個のオーブは1種類の装備または習得済みスキル操作だけを持ちます。
+ * 強化系は成立した試行開始時に消費し、ルーン・シジル操作系は消費しません。
  */
 data class ItemOrb(
     val effect: ItemOrbEffect,
@@ -29,6 +30,8 @@ enum class ItemOrbEffectType {
     ENCHANT,
     RUNE_ATTACH,
     RUNE_DETACH,
+    SIGIL_ATTACH,
+    SIGIL_DETACH,
     ;
 
     companion object {

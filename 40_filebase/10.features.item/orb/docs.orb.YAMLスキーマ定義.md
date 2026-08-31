@@ -1,12 +1,12 @@
 # Orb アイテム YAML スキーマ定義
 
-オーブはクリック時に対象装備一覧を開き、装備個体へ1種類の加工効果を実行するアイテムです。`category` は `orb` 固定です。
+オーブはクリック時に対象装備または習得済みスキルの一覧を開き、1種類の加工効果を実行するアイテムです。`category` は `orb` 固定です。
 
 ## `orb.effect`
 
 | キー | 型 | 必須 | 説明 |
 |:--|:--|:--:|:--|
-| `type` | String | ○ | `ENHANCE` / `REPAIR` / `TRANSCENDENCE` / `ENCHANT` / `RUNE_ATTACH` / `RUNE_DETACH` |
+| `type` | String | ○ | `ENHANCE` / `REPAIR` / `TRANSCENDENCE` / `ENCHANT` / `RUNE_ATTACH` / `RUNE_DETACH` / `SIGIL_ATTACH` / `SIGIL_DETACH` |
 | `targetSlots[]` | List<String> | 条件 | 強化対象スロット。`ENHANCE` で指定し、武器・防具・アクセサリを絞り込む |
 | `rank` | Integer | 条件 | `ENHANCE` では現在状態ランク、`TRANSCENDENCE` では次に到達するランクの条件 |
 | `rankMode` | String | × | `EXACT` は `rank` と一致、`AT_MOST` は対象ランクが `rank` 以下。既定 `EXACT` |
@@ -20,3 +20,5 @@
 `FILL_ALL_EMPTY` は全空き枠を1個で埋めます。同一 `effectId` は重複せず、全枠分の未付与候補がない場合は無変更・無消費です。
 
 `RUNE_ATTACH` は対象装備を選択後、所持ルーンを1個選んで装着します。`RUNE_DETACH` は装着済みルーンを1個選んで取り外し、通常インベントリへ返却します。これら二種はオーブ自体を消費しません。
+
+`SIGIL_ATTACH` は操作可能な習得済みスキルを選択後、所持シジルを1個選んで消費装着します。`SIGIL_DETACH` は装着済みシジルを1個選んで取り外し、通常インベントリへ返却します。これら二種もオーブ自体を消費しません。

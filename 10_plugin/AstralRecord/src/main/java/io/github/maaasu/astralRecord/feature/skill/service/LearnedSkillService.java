@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigilDetachResult;
 import io.github.maaasu.astralRecord.feature.skill.repository.LearnedSkillRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -148,6 +149,80 @@ public final class LearnedSkillService {
     }
 
     /**
+     * 装着済みシジルを API で取り外し、返却先 entry と習得個体を正本へ同期します。
+     *
+     * @param accountId アカウント ID
+     * @param learnedSkillId 対象の習得済みスキル個体 ID
+     * @param learnedSkillSigilId 取り外す装着シジル行 ID
+     * @param updatedBy 更新者 ID
+     * @param onSuccess API 更新と返却 entry 同期の成功時処理
+     * @param onFailure API 更新または正本同期の失敗時処理
+     * @return 処理を受け付けた場合は {@code true}、別の習得スキル mutation 実行中は {@code false}
+     */
+    public boolean detachSigilAsync(
+        @NotNull UUID accountId,
+        @NotNull UUID learnedSkillId,
+        @NotNull UUID learnedSkillSigilId,
+        @NotNull UUID updatedBy,
+        @NotNull Consumer<LearnedSkillInstance> onSuccess,
+        @NotNull Consumer<Throwable> onFailure
+    ) {
+        AtomicBoolean lock = mutationLocks.computeIfAbsent(accountId, ignored -> new AtomicBoolean());
+        if (!lock.compareAndSet(false, true)) return false;
+        UUID sessionToken = sessionTokens.get(accountId);
+        if (sessionToken == null) {
+            lock.set(false);
+            return false;
+        }
+
+        inventoryService.saveNow(accountId).whenComplete((saved, saveError) -> {
+            if (!isCurrentSession(accountId, sessionToken)) {
+                lock.set(false);
+                return;
+            }
+            plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+                try {
+                    LearnedSkillSigilDetachResult result = repository.detachSigil(
+                        accountId,
+                        learnedSkillId,
+                        learnedSkillSigilId,
+                        updatedBy
+                    );
+                    if (!isCurrentSession(accountId, sessionToken)) {
+                        lock.set(false);
+                        return;
+                    }
+                    try {
+                        inventoryService.reconcileAuthoritativeEntry(
+                            accountId,
+                            result.getReturnedInventoryEntryId()
+                        );
+                    } catch (Throwable reconciliationError) {
+                        Logger.log(
+                            LogId.W_5252,
+                            "skill_sigil_detach_reconcile",
+                            reconciliationError.getMessage()
+                        );
+                    }
+                    plugin.getServer().getScheduler().runTask(plugin, () -> {
+                        if (!isCurrentSession(accountId, sessionToken)) {
+                            lock.set(false);
+                            return;
+                        }
+                        replaceCached(result.getSkill());
+                        lock.set(false);
+                        onSuccess.accept(result.getSkill());
+                    });
+                } catch (Throwable error) {
+                    reconcileSkillsAfterFailure(accountId, sessionToken);
+                    completeFailure(accountId, sessionToken, lock, onFailure, error);
+                }
+            });
+        });
+        return true;
+    }
+
+    /**
      * 習得済みスキル個体を API から忘却し、ロード済みキャッシュからも除去します。
      *
      * @param accountId アカウント ID
@@ -262,6 +337,18 @@ public final class LearnedSkillService {
             }
         } catch (Throwable ignored) {
             // 元の mutation 例外を通知する。再同期は次回ロードでも再試行される。
+        }
+    }
+
+    private void reconcileSkillsAfterFailure(UUID accountId, UUID sessionToken) {
+        if (!isCurrentSession(accountId, sessionToken)) return;
+        try {
+            List<LearnedSkillInstance> refreshed = normalize(repository.findByAccountId(accountId));
+            if (isCurrentSession(accountId, sessionToken)) {
+                skillsByAccount.put(accountId, refreshed);
+            }
+        } catch (Throwable ignored) {
+            // 元の mutation 例外を通知し、次回ロードで再同期する。
         }
     }
 

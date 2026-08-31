@@ -231,6 +231,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillCooldownBossBarS
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillSigilOrbService;
 import io.github.maaasu.astralRecord.feature.skill.service.SpellStepSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skilltree.event.SkillTreeEventHandler;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeNodeRepository;
@@ -1394,6 +1395,15 @@ public final class AstralRecord extends JavaPlugin {
         );
         passiveSkillService.setStatusService(statusService);
         statusService.setPassiveSkillService(passiveSkillService);
+        orbService.setSkillSigilOrbService(new SkillSigilOrbService(
+            this,
+            inventoryService,
+            itemService,
+            itemStackFactory,
+            skillService,
+            learnedSkillService,
+            passiveSkillService
+        ));
         skillService.setPlayerSkillUseListener(
             (player, skillId) -> meditationSkillRuntimeService.interrupt(player.getBukkit().getUniqueId())
         );

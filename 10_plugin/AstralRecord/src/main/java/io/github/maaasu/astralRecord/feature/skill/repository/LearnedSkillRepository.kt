@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationFailure
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigil
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigilDetachResult
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil
 import java.io.IOException
 import java.net.http.HttpRequest
@@ -63,6 +64,38 @@ class LearnedSkillRepository {
             addProperty("updatedBy", updatedBy.toString())
         }
         return mutate("/api/account-skills/$accountId/$learnedSkillId/sigils", body)
+    }
+
+    fun detachSigil(
+        accountId: UUID,
+        learnedSkillId: UUID,
+        learnedSkillSigilId: UUID,
+        updatedBy: UUID,
+    ): LearnedSkillSigilDetachResult {
+        val path = "/api/account-skills/$accountId/$learnedSkillId/sigils/$learnedSkillSigilId/detach"
+        val body = ApiRequestUtil.buildJsonBody {
+            addProperty("updatedBy", updatedBy.toString())
+        }
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                if (response.statusCode() in 200..299) {
+                    val result = JsonParser.parseString(response.body()).asJsonObject
+                    return LearnedSkillSigilDetachResult(
+                        parseSkill(result.getAsJsonObject("skill")),
+                        UUID.fromString(result.get("returnedInventoryEntryId").asString),
+                    )
+                }
+                val failure = parseFailure(response.body())
+                throw LearnedSkillMutationException(failure, "HTTP ${response.statusCode()} for POST $path: $failure")
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw RuntimeException(e)
+        }
     }
 
     fun forget(accountId: UUID, learnedSkillId: UUID, updatedBy: UUID): LearnedSkillInstance {

@@ -23,11 +23,18 @@ data class LearnedSkillSigil(
     val slotIndex: Int,
 )
 
+data class LearnedSkillSigilDetachResult(
+    val skill: LearnedSkillInstance,
+    val returnedInventoryEntryId: UUID,
+)
+
 enum class LearnedSkillMutationFailure {
     ACCOUNT_NOT_FOUND,
     LEARNED_SKILL_NOT_FOUND,
     SKILL_NOT_FOUND,
     SIGIL_NOT_FOUND,
+    SIGIL_ATTACHMENT_NOT_FOUND,
+    INVENTORY_NOT_FOUND,
     INVALID_MATERIAL,
     MAX_LEVEL_REACHED,
     NO_SIGIL_SLOT,

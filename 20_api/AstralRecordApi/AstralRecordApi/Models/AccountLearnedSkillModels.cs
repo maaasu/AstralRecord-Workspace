@@ -40,6 +40,17 @@ public class AccountLearnedSkillAttachSigilRequest
     public Guid UpdatedBy { get; init; }
 }
 
+public class AccountLearnedSkillDetachSigilRequest
+{
+    public Guid UpdatedBy { get; init; }
+}
+
+public class AccountLearnedSkillDetachSigilResponse
+{
+    public required AccountLearnedSkillResponse Skill { get; init; }
+    public Guid ReturnedInventoryEntryId { get; init; }
+}
+
 public class AccountLearnedSkillForgetRequest
 {
     public Guid UpdatedBy { get; init; }
@@ -52,6 +63,8 @@ public enum AccountLearnedSkillMutationFailure
     LearnedSkillNotFound,
     SkillNotFound,
     SigilNotFound,
+    SigilAttachmentNotFound,
+    InventoryNotFound,
     InvalidMaterial,
     MaxLevelReached,
     NoSigilSlot,
@@ -61,7 +74,8 @@ public enum AccountLearnedSkillMutationFailure
 
 public record AccountLearnedSkillMutationResult(
     AccountLearnedSkillResponse? Skill,
-    AccountLearnedSkillMutationFailure Failure)
+    AccountLearnedSkillMutationFailure Failure,
+    Guid? ReturnedInventoryEntryId = null)
 {
     public bool Succeeded => Failure == AccountLearnedSkillMutationFailure.None && Skill is not null;
 }

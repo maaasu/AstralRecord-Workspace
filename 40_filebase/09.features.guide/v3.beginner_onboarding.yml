@@ -153,13 +153,6 @@ steps:
     condition:
       type: SKILL_LEARNED
       targetId: adventurer_smash
-  - id: enhance_skill
-    text: "&fスキルを合成して強化する"
-    details:
-      - "&7所持している&eスキルジェム&7を使い、強化対象のスキルを選択する。"
-      - "&7必要な素材を確認し、合成を確定する。"
-    condition:
-      type: SKILL_ENHANCED
   - id: cast_astral_edge
     text: "&f&eアストラルエッジ&fを発動する"
     details:

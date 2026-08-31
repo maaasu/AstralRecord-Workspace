@@ -1,0 +1,15 @@
+# design:
+#   motif: "北欧神話 / ミーミル / 知恵の泉"
+#   progression: 1
+schemaVersion: 1
+id: mimir_orb
+category: orb
+name: "&9ミーミルのオーブ"
+icon: echo_shard
+rarity: RARE
+lore:
+  - "&7習得済みスキルからシジルを一つ取り外して返却する。"
+maxStack: 64
+orb:
+  effect:
+    type: SIGIL_DETACH
