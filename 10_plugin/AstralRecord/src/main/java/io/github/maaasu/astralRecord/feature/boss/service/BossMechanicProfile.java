@@ -45,7 +45,7 @@ final class BossMechanicProfile {
                     Mechanic.SUNBIRD_SOLAR_FLARE
                 )
             ),
-            List.of(85L, 65L),
+            List.of(60L, 46L),
             List.of(0.30D)
         )
     );
