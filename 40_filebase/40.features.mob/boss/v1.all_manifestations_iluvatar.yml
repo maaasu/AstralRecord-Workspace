@@ -35,6 +35,8 @@ baseStats:
     value: 92
   - status: KNOCKBACK_RESISTANCE
     value: 100
+  - status: SHIELD_BREAK
+    value: 9
 shield:
   enabled: true
   max: 3

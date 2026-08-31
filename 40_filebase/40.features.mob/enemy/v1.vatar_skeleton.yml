@@ -29,6 +29,8 @@ baseStats:
     value: 3
   - status: MOVEMENT_SPEED
     value: 105
+  - status: SHIELD_BREAK
+    value: 5
 equipment:
   mainHand: IRON_SWORD
 ai:

@@ -31,6 +31,8 @@ baseStats:
     value: 3
   - status: MOVEMENT_SPEED
     value: 112
+  - status: SHIELD_BREAK
+    value: 5
 ai:
   idle:
     behavior: WANDER

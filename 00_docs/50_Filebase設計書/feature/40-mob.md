@@ -19,6 +19,15 @@ Mob は、戦闘対象、案内役、商業・機能提供者など、ワール�
 
 プレイヤーが標準的に遭遇し、対処する段階を記載します。loot、quest、spawner はこの値を基準に接続します。
 
+## 高レベルダンジョンのシールドブレイク
+
+- `recommendedLevel` が7以上の Dungeon の `encounter.normalMobPool` または `encounter.bossMobId` から参照される `ENEMY` / `BOSS` は、実際に使用する Mob レベルの標準ソードマンの最大 `MAX_SHIELD` を基準に、`baseStats`（レベル別なら対象 `levels[]`）へ `SHIELD_BREAK` を定義します。
+- ここでいう標準ソードマンは、対象 Mob レベルの `swordsman` class 基礎値に、対象レベル帯の盾を1つだけ無強化で装備し、skilltree の `MAX_SHIELD` node を取得していない再現用構成とします。現行 Lv.8 は `swordsman` の `MAX_SHIELD +5`（`growthPerLevel` に同 status なし）と未強化 `fang_shield` の `MAX_SHIELD +15`を合算した最大Shield 20を基準にします。
+- `SHIELD_BREAK` は絶対的なシールド量ではなく、Plugin の戦闘計算で算出した基礎シールドダメージへ加算されます。標準 enemy は対象レベルのソードマンの標準構成に対して直接攻撃1回で最大Shieldのおおむね半分を削れる値を初期目安とし、boss は主な直接攻撃の命中回数・多段 skill・ギミックを含めて同等以上のシールド圧力になるよう調整します。
+- Dungeon の `recommendedLevel` と Mob の `level` / `encounter.*Level` は別値です。基準に使う Mob レベルは実際に spawn されるレベルとし、単に Dungeon の推奨レベルや Mob レベルの数値を `SHIELD_BREAK` へ転記しません。
+- 現行の `iluvatar_sanctum` Lv.8 では、上記の最大Shield 20に対して通常敵3体へ `SHIELD_BREAK: 5`、bossへ `SHIELD_BREAK: 9` を設定します。将来、基準装備・強化・skilltree構成または攻撃ローテーションを変更する場合は、同じ基準構成を再計算して値を更新します。
+- `SHIELD_BREAK` の値を決めるときは、上記基準構成のソードマンの最大 `MAX_SHIELD`、Mob の解決攻撃力、攻撃間隔、多段 skill を合わせて試算します。Mob 自身の `shield.max` を設定する場合も、シールド防御とシールドブレイクを別の値として扱います。
+
 ## メモ
 
 現在実装されているモブ関連アイテムのマスタデータ（モブの装備・ドロップで参照される item）は、すべてデバッグ用の仮設定です。正式なゲームバランス、報酬、入手設計として扱わないでください。
