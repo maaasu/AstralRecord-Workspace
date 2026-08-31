@@ -1,0 +1,86 @@
+# design:
+#   motif: "オーブ / 初めての装備更新"
+#   progression: 1
+schemaVersion: 3
+id: first_orb_usage
+category: world
+displayOrder: 11
+title: "&dオーブを使おう"
+iconMaterial: ENDER_PEARL
+summary: "&7オーブで装備・ルーン・シジルを操作する方法を確認する。"
+steps:
+  - id: use_sindri_orb
+    text: "&f{item:sindri_orb}&fで装備を修復する"
+    details:
+      - "&7インベントリで{item:sindri_orb}&7をクリックする。"
+      - "&7一覧から修復したい装備を選択する。"
+      - "&a使用すると、装備の耐久値が75回復する。"
+    condition:
+      type: ORB_USED
+      targetId: sindri_orb
+  - id: use_tyr_orb
+    text: "&f{item:tyr_orb}&fで武器を強化する"
+    details:
+      - "&7インベントリで{item:tyr_orb}&7をクリックする。"
+      - "&7一覧から状態ランク0の武器を選択し、確認画面が表示された場合は実行を確定する。"
+      - "&7強化の成功率と失敗時の挙動は武器ごとに異なる。"
+      - "&a強化に成功すると、武器が1段階強化される。"
+    condition:
+      type: ORB_USED
+      targetId: tyr_orb
+  - id: use_aegis_orb
+    text: "&f{item:aegis_orb}&fで防具を強化する"
+    details:
+      - "&7インベントリで{item:aegis_orb}&7をクリックする。"
+      - "&7一覧から状態ランク0の防具を選択し、確認画面が表示された場合は実行を確定する。"
+      - "&7強化の成功率と失敗時の挙動は防具ごとに異なる。"
+      - "&a強化に成功すると、防具が1段階強化される。"
+    condition:
+      type: ORB_USED
+      targetId: aegis_orb
+  - id: use_freya_orb
+    text: "&f{item:freya_orb}&fでアクセサリを強化する"
+    details:
+      - "&7インベントリで{item:freya_orb}&7をクリックする。"
+      - "&7一覧から状態ランク0のアクセサリを選択し、確認画面が表示された場合は実行を確定する。"
+      - "&7強化の成功率と失敗時の挙動はアクセサリごとに異なる。"
+      - "&a強化に成功すると、アクセサリが1段階強化される。"
+    condition:
+      type: ORB_USED
+      targetId: freya_orb
+  - id: use_bragi_orb
+    text: "&f{item:bragi_orb}&fでシジルを装着する"
+    details:
+      - "&7インベントリで{item:bragi_orb}&7をクリックする。"
+      - "&7一覧からシジルを装着する習得済みスキルを選び、所持シジルを選択する。"
+      - "&aオーブとシジルを1個ずつ消費し、選択したスキルに装着する。"
+    condition:
+      type: ORB_USED
+      targetId: bragi_orb
+  - id: use_mimir_orb
+    text: "&f{item:mimir_orb}&fでシジルを取り外す"
+    details:
+      - "&7インベントリで{item:mimir_orb}&7をクリックする。"
+      - "&7一覧からシジルを取り外す習得済みスキルを選択する。"
+      - "&aオーブを1個消費し、装着済みのシジルを取り外してインベントリへ返却する。"
+    condition:
+      type: ORB_USED
+      targetId: mimir_orb
+  - id: use_urd_orb
+    text: "&f{item:urd_orb}&fでルーンを取り外す"
+    details:
+      - "&7インベントリで{item:urd_orb}&7をクリックする。"
+      - "&7一覧からルーンを取り外す装備を選択する。"
+      - "&a装着済みのルーンを取り外し、インベントリへ返却する。"
+    condition:
+      type: ORB_USED
+      targetId: urd_orb
+  - id: use_verdandi_orb
+    text: "&f{item:verdandi_orb}&fでルーンを装着する"
+    details:
+      - "&7インベントリで{item:verdandi_orb}&7をクリックする。"
+      - "&7一覧からルーンを装着する装備を選び、所持ルーンを選択する。"
+      - "&aルーンを1個消費し、選択した装備に装着する。"
+    condition:
+      type: ORB_USED
+      targetId: verdandi_orb
