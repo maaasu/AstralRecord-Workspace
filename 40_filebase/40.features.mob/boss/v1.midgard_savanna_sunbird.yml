@@ -29,7 +29,7 @@ tags:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 32000
+    value: 52000
   - status: ATTACK
     value: 434
   - status: DEFENSE
