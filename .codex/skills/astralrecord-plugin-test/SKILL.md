@@ -11,6 +11,12 @@ description: AstralRecord の Minecraft プラグイン `10_plugin/AstralRecord`
 
 作業開始時に `git rev-parse --show-toplevel` を実行して現在の task checkout を `<task-root>` として解決し、以後の設計入力・ソース・script はすべて同じ `<task-root>` から読む。main workspace の固定パスへ読み替えない。live server の外部配置先だけは `scripts/dev-server.config.json` の設定値を正本とする。
 
+## Boss Gimmick and Production Master Data Policy
+
+- ボス固有ギミック（フェーズ、周期処理、特殊攻撃など）の恒久テストは原則作成しない。意図どおりのプレイ体験かは実プレイで確認する。制作中の切り分けで一時テストが必要な場合だけ追加し、確認後に削除する。共通モデル・挑戦進行・フィールド管理の契約テストは対象外とする。
+- 通常のPlugin JUnit / MockBukkitテストでは、本番 `<task-root>\40_filebase` を読み込まず、参照せず、接続しない。マスタ形状が必要なら、テスト内の最小固定fixture、inline payload、またはtest doubleを使う。本番ファイルから期待値を組み立てない。
+- YAML読込機構自体のテストで `@TempDir` 等の隔離入力を使うことは許可するが、本番マスタファイルを入力にしてはならない。live server cloneを使う明示的な統合検証は、通常の恒久テストとは別の検証層として扱う。
+
 ## Required Context
 
 1. `<task-root>\AGENTS.md`

@@ -3,7 +3,6 @@ using AstralRecordApi.Repositories;
 using AstralRecordApi.Tests.TestSupport;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace AstralRecordApi.Tests.Repositories;
@@ -23,9 +22,9 @@ public class ClassRepositoryTests
         await using (var setupContext = new MasterDataDbContext(options))
         {
             await MasterDataTestSeed.CreateSchemaAsync(setupContext);
-            await MasterDataTestSeed.SeedEntryAsync(
+            await MasterDataTestSeed.SeedInlinePayloadAsync(
                 setupContext,
-                Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "20.features.class", "v1.mage.yml"),
+                MasterDataTestFixtures.MageClass,
                 "class",
                 null);
         }
@@ -41,20 +40,4 @@ public class ClassRepositoryTests
         Assert.Equal("&bMAG", detail!.ShortName);
     }
 
-    private static string ResolveWorkspaceRoot([CallerFilePath] string currentFile = "")
-    {
-        var current = new FileInfo(currentFile).Directory;
-        while (current is not null)
-        {
-            if (Directory.Exists(Path.Combine(current.FullName, "40_filebase"))
-                && Directory.Exists(Path.Combine(current.FullName, "20_api")))
-            {
-                return current.FullName;
-            }
-
-            current = current.Parent;
-        }
-
-        throw new InvalidOperationException("workspace root could not be resolved from the test source path.");
-    }
 }

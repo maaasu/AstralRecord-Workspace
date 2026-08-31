@@ -1,14 +1,13 @@
 using System.Text.Json.Nodes;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
-using AstralRecordApi.Utilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace AstralRecordApi.Tests.TestSupport;
 
 /// <summary>
-/// テスト用に MasterDataDB（SQLite in-memory）へ filebase YAML を投入するヘルパ。
-/// 本番 Seeder（<c>AstralRecordApi.Services.MasterDataSeeder</c>）を簡略化したもの。
+/// テスト用に MasterDataDB（SQLite in-memory）へ固定 payload を投入するヘルパ。
+/// 本番 Filebase へ接続せず、各テストが必要とする最小データだけを登録する。
 /// </summary>
 internal static class MasterDataTestSeed
 {
@@ -41,21 +40,22 @@ internal static class MasterDataTestSeed
     }
 
     /// <summary>
-    /// 指定 YAML ファイルを読み込み、payload_json を <c>master_data_entry</c> に投入する。
+    /// JSON payload を <c>master_data_entry</c> に投入する。
     /// </summary>
-    public static async Task SeedEntryAsync(
+    public static async Task SeedInlinePayloadAsync(
         MasterDataDbContext dbContext,
-        string filePath,
+        string payloadJson,
         string masterType,
         string? category)
     {
-        var rawText = await File.ReadAllTextAsync(filePath);
-        var root = ParseYamlObject(rawText, filePath);
+        var root = JsonNode.Parse(payloadJson)?.AsObject()
+            ?? throw new InvalidOperationException("inline master payload must be a JSON object.");
 
         var masterId = root["id"]?.GetValue<string>()
-            ?? throw new InvalidOperationException($"id is required: {filePath}");
+            ?? throw new InvalidOperationException("id is required in inline master payload.");
         var schemaVersion = (int)(root["schemaVersion"]?.GetValue<long>()
-            ?? throw new InvalidOperationException($"schemaVersion is required: {filePath}"));
+            ?? throw new InvalidOperationException("schemaVersion is required in inline master payload."));
+        var sourceFilePath = $"test-inline/{masterType}/{masterId}.json";
 
         dbContext.Entries.Add(new MasterDataEntryEntity
         {
@@ -67,7 +67,7 @@ internal static class MasterDataTestSeed
             Type = root["type"] is JsonValue typeValue ? typeValue.ToString() : null,
             SchemaVersion = schemaVersion,
             DisplayName = root["name"] is JsonValue nameValue ? nameValue.ToString() : null,
-            SourceFilePath = filePath,
+            SourceFilePath = sourceFilePath,
             SourceFileHash = new string('0', 64),
             PayloadJson = root.ToJsonString(),
             PayloadVersion = 1,
@@ -80,7 +80,4 @@ internal static class MasterDataTestSeed
         });
         await dbContext.SaveChangesAsync();
     }
-
-    private static JsonObject ParseYamlObject(string rawText, string filePath)
-        => MasterDataYamlParser.ParseObject(rawText, filePath);
 }

@@ -8,7 +8,6 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.EntityFrameworkCore.Storage;
 using System.Data.Common;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Xunit;
 
@@ -200,10 +199,9 @@ public class AccountSkillTreeStateRepositoryTests
             .Options;
         await using var masterDataDbContext = new MasterDataDbContext(masterOptions);
         await MasterDataTestSeed.CreateSchemaAsync(masterDataDbContext);
-        await MasterDataTestSeed.SeedEntryAsync(
+        await MasterDataTestSeed.SeedInlinePayloadAsync(
             masterDataDbContext,
-            Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "05.features.mail",
-                "v1.skilltree_structure_reset_compensation.yml"),
+            MasterDataTestFixtures.CompensationMail,
             "mail",
             null);
 
@@ -334,19 +332,6 @@ public class AccountSkillTreeStateRepositoryTests
         => new(new DbContextOptionsBuilder<MasterDataDbContext>()
             .UseSqlite("Data Source=:memory:")
             .Options);
-
-    private static string ResolveWorkspaceRoot([CallerFilePath] string currentFile = "")
-    {
-        var current = new FileInfo(currentFile).Directory;
-        while (current is not null)
-        {
-            if (Directory.Exists(Path.Combine(current.FullName, "40_filebase"))
-                && Directory.Exists(Path.Combine(current.FullName, "20_api")))
-                return current.FullName;
-            current = current.Parent;
-        }
-        throw new InvalidOperationException("workspace root could not be resolved from the test source path.");
-    }
 
     private sealed class RetryingTestExecutionStrategy(ExecutionStrategyDependencies dependencies)
         : ExecutionStrategy(dependencies, maxRetryCount: 1, maxRetryDelay: TimeSpan.Zero)

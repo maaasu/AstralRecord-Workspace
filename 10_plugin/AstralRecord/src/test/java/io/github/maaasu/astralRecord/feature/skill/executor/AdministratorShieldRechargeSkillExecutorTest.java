@@ -14,14 +14,10 @@ import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.junit.jupiter.api.Test;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
-import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -37,10 +33,10 @@ class AdministratorShieldRechargeSkillExecutorTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/14_0-概要.md
      * 章・見出し: # 14_0-概要 > ## 5. 固定HPダメージとShield
-     * 検証契約: filebaseの2%設定がexecutor経由で実行時の最大Shield30・毎秒0.6へ反映される。
+     * 検証契約: 固定したrechargeRate=2%のスキル定義がexecutor経由で実行時の最大Shield30・毎秒0.6へ反映される。
      */
     @Test
-    void filebaseRechargeRateReachesStatusRuntime() {
+    void configuredRechargeRateReachesStatusRuntime() {
         StatusService statusService = activatedStatusService();
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
         player.setStatusSnapshot(shieldSnapshot(30.0D, 10.0D));
@@ -51,7 +47,7 @@ class AdministratorShieldRechargeSkillExecutorTest extends MockBukkitTestBase {
         );
         executor.onActivate(new PassiveSkillContext(
             player,
-            loadDefinitionFromFilebase(),
+            definition(),
             Instant.EPOCH,
             0L
         ));
@@ -90,7 +86,7 @@ class AdministratorShieldRechargeSkillExecutorTest extends MockBukkitTestBase {
         );
         executor.onActivate(new PassiveSkillContext(
             player,
-            loadDefinitionFromFilebase(),
+            definition(),
             Instant.EPOCH,
             0L
         ));
@@ -98,7 +94,7 @@ class AdministratorShieldRechargeSkillExecutorTest extends MockBukkitTestBase {
         ShieldRechargeState state = statusService.startShieldRecharge(player, 1_000L);
         executor.onTick(new PassiveSkillContext(
             player,
-            loadDefinitionFromFilebase(),
+            definition(),
             Instant.EPOCH,
             10L
         ));
@@ -113,47 +109,31 @@ class AdministratorShieldRechargeSkillExecutorTest extends MockBukkitTestBase {
         );
     }
 
-    private static SkillDefinition loadDefinitionFromFilebase() {
-        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(filebasePath().toFile());
-        ConfigurationSection rawParams = yaml.getConfigurationSection("params");
-        if (rawParams == null) {
-            throw new AssertionError("passive.params must be defined in administrator shield recharge filebase");
-        }
-        Map<String, Object> params = new LinkedHashMap<>();
-        for (String key : rawParams.getKeys(false)) {
-            params.put(key, rawParams.get(key));
-        }
+    private static SkillDefinition definition() {
         return new SkillDefinition(
-            yaml.getString("id", AdministratorShieldRechargeSkillExecutor.ID),
-            yaml.getString("implementationId", AdministratorShieldRechargeSkillExecutor.ID),
-            yaml.getString("name", "シールドリチャージ"),
-            yaml.getString("description"),
-            yaml.getString("icon"),
-            yaml.getStringList("lore"),
-            yaml.getLong("cooldownTicks", 0L),
-            yaml.getDouble("resourceCost", 0.0D),
-            yaml.getLong("castTimeTicks", 0L),
-            yaml.getInt("requiredLevel", 1),
+            AdministratorShieldRechargeSkillExecutor.ID,
+            AdministratorShieldRechargeSkillExecutor.ID,
+            "シールドリチャージ",
             null,
-            params,
-            yaml.getStringList("tags"),
+            "SHIELD",
+            List.of(),
+            0L,
+            0.0D,
+            0L,
+            1,
+            null,
+            Map.of(
+                "maxShield", 30.0D,
+                "rechargeDelaySeconds", 8.0D,
+                "rechargePercentPerSecond", 2.0D,
+                "particleIntervalTicks", 10.0D
+            ),
+            List.of("passive", "defense"),
             SkillKind.PASSIVE,
-            yaml.getBoolean("passive.bindRequired", true),
-            SkillResourceType.valueOf(yaml.getString("resourceType", "MANA")),
-            yaml.getDouble("resourceCost", 0.0D)
+            true,
+            SkillResourceType.MANA,
+            0.0D
         );
-    }
-
-    private static Path filebasePath() {
-        Path current = Path.of("").toAbsolutePath().normalize();
-        while (current != null) {
-            Path candidate = current.resolve("40_filebase/30.features.skill/v1.administrator_shield_recharge.yml");
-            if (Files.isRegularFile(candidate)) {
-                return candidate;
-            }
-            current = current.getParent();
-        }
-        throw new AssertionError("administrator_shield_recharge filebase was not found from the test directory");
     }
 
     private static StatusSnapshot shieldSnapshot(double maxShield) {

@@ -62,36 +62,6 @@ class DungeonDefinitionRepositoryTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
      * 章・見出し: # 32_1-モデル定義 > ## 1. DungeonDefinition
-     * 検証契約: 本番ダンジョンマスタが追加のWorldマスタなしでDungeonDefinitionへ読み込める。
-     */
-    @Test
-    void parsesProductionDungeonMasters() {
-        Path repositoryRoot = findRepositoryRoot();
-        Path filebase = repositoryRoot.resolve("40_filebase");
-
-        List<DungeonDefinition> definitions = FileDatabaseManager.getInstance().withReloadSnapshot(
-                new FileDatabaseManager.ReloadSnapshot(filebase.toFile()),
-                () -> new DungeonDefinitionRepository().findAll()
-        );
-
-        DungeonDefinition middleEarthRuins = definitions.stream()
-                .filter(definition -> definition.id().equals("middle_earth_ruins"))
-                .findFirst()
-                .orElseThrow();
-        assertEquals(5, middleEarthRuins.recommendedLevel());
-
-        DungeonDefinition iluvatarSanctum = definitions.stream()
-                .filter(definition -> definition.id().equals("iluvatar_sanctum"))
-                .findFirst()
-                .orElseThrow();
-        assertEquals(8, iluvatarSanctum.recommendedLevel());
-        assertEquals("all_manifestations_iluvatar", iluvatarSanctum.encounter().bossMobId());
-        assertEquals(3, iluvatarSanctum.encounter().normalMobPool().size());
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_1-モデル定義.md
-     * 章・見出し: # 32_1-モデル定義 > ## 1. DungeonDefinition
      * 検証契約: challengeとclear rewardの省略項目にだけ既定値を適用する。
      */
     @Test
@@ -206,17 +176,6 @@ class DungeonDefinitionRepositoryTest {
                 new FileDatabaseManager.ReloadSnapshot(tempDirectory.toFile()),
                 () -> new DungeonDefinitionRepository().findAll()
         ).getFirst();
-    }
-
-    private Path findRepositoryRoot() {
-        Path current = Path.of("").toAbsolutePath().normalize();
-        while (current != null && !Files.isDirectory(current.resolve("40_filebase"))) {
-            current = current.getParent();
-        }
-        if (current == null) {
-            throw new IllegalStateException("Repository root with 40_filebase was not found");
-        }
-        return current;
     }
 
     private String yaml() {

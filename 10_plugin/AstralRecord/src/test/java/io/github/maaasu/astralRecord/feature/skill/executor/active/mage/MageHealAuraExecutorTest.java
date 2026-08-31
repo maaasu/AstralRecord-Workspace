@@ -23,8 +23,6 @@ import org.bukkit.World;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -62,35 +60,6 @@ class MageHealAuraExecutorTest {
                 () -> executor.validateParams(definition(invalidParams))
         );
         assertEquals("healAmount", exception.key());
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 22. メイジ ヒールオーラの実装契約
-     * 検証契約: 本番filebaseは最大Lv.5、MP6、基礎2秒、半径4m・高さ3m・回復量5の実行paramsを定義する。
-     */
-    @Test
-    void productionFilebaseContainsValidatedParams() {
-        org.bukkit.configuration.file.YamlConfiguration yaml =
-                org.bukkit.configuration.file.YamlConfiguration.loadConfiguration(filebasePath().toFile());
-        assertEquals(MageHealAuraExecutor.ID, yaml.getString("id"));
-        assertEquals(5, yaml.getInt("maxLevel"));
-        assertEquals(40L, yaml.getLong("cooldownTicks"));
-        assertEquals(6.0D, yaml.getDouble("resourceCost"));
-
-        org.bukkit.configuration.ConfigurationSection rawParams = yaml.getConfigurationSection("params");
-        if (rawParams == null) {
-            throw new AssertionError("heal aura params must be defined in filebase");
-        }
-        Map<String, Object> params = new LinkedHashMap<>();
-        for (String key : rawParams.getKeys(false)) {
-            params.put(key, rawParams.get(key));
-        }
-
-        new MageHealAuraExecutor(activeSkillServices()).validateParams(definition(params));
-        assertEquals(4.0D, ((Number) params.get("radius")).doubleValue(), 0.0001D);
-        assertEquals(3.0D, ((Number) params.get("height")).doubleValue(), 0.0001D);
-        assertEquals(5.0D, ((Number) params.get("healAmount")).doubleValue(), 0.0001D);
     }
 
     /**
@@ -179,18 +148,6 @@ class MageHealAuraExecutorTest {
 
     private static Map<String, Object> validParams() {
         return Map.of("radius", 4.0D, "height", 3.0D, "healAmount", 5.0D);
-    }
-
-    private static Path filebasePath() {
-        Path current = Path.of("").toAbsolutePath().normalize();
-        while (current != null) {
-            Path candidate = current.resolve("40_filebase/30.features.skill/v1.mage_heal_aura.yml");
-            if (Files.isRegularFile(candidate)) {
-                return candidate;
-            }
-            current = current.getParent();
-        }
-        throw new AssertionError("heal aura filebase was not found from the test directory");
     }
 
     private static SkillDefinition definition(Map<String, Object> params) {

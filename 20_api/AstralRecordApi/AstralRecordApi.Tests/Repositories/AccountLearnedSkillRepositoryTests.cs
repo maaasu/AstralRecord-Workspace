@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
@@ -22,7 +21,7 @@ public class AccountLearnedSkillRepositoryTests
     public async Task LearnAsync_CreatesIndependentDuplicateInstances()
     {
         await using var fixture = await TestDatabase.CreateAsync();
-        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.adventurer_smash.yml", "skill", null);
+        await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
         var firstGem = await fixture.AddInventoryEntryAsync(
@@ -64,11 +63,9 @@ public class AccountLearnedSkillRepositoryTests
     public async Task UpgradeAndAttachSigil_UseSelectedInstanceAndRejectDuplicateGroup()
     {
         await using var fixture = await TestDatabase.CreateAsync();
-        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.adventurer_smash.yml", "skill", null);
-        await fixture.SeedMasterAsync(
-            "40_filebase/10.features.item/sigil/v1.cooldown_sigil.yml", "item", "sigil");
-        await fixture.SeedMasterAsync(
-            "40_filebase/10.features.item/sigil/v1.cooldown_sigil_ii.yml", "item", "sigil");
+        await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
+        await fixture.SeedMasterAsync("cooldown_sigil", "item", "sigil");
+        await fixture.SeedMasterAsync("cooldown_sigil_ii", "item", "sigil");
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
         var learnGem = await fixture.AddInventoryEntryAsync(
@@ -142,9 +139,8 @@ public class AccountLearnedSkillRepositoryTests
     public async Task DetachSigilAsync_DeletesAttachmentAndReturnsSigilToBag()
     {
         await using var fixture = await TestDatabase.CreateAsync();
-        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.adventurer_smash.yml", "skill", null);
-        await fixture.SeedMasterAsync(
-            "40_filebase/10.features.item/sigil/v1.cooldown_sigil.yml", "item", "sigil");
+        await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
+        await fixture.SeedMasterAsync("cooldown_sigil", "item", "sigil");
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
         var gemEntryId = await fixture.AddInventoryEntryAsync(
@@ -206,9 +202,8 @@ public class AccountLearnedSkillRepositoryTests
     public async Task AttachSigilAsync_RejectsUnsupportedSigilWithoutConsumingIt()
     {
         await using var fixture = await TestDatabase.CreateAsync();
-        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.adventurer_smash.yml", "skill", null);
-        await fixture.SeedMasterAsync(
-            "40_filebase/10.features.item/sigil/v1.homing_fireball_sigil.yml", "item", "sigil");
+        await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
+        await fixture.SeedMasterAsync("homing_fireball_sigil", "item", "sigil");
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
         var gemEntryId = await fixture.AddInventoryEntryAsync(
@@ -255,9 +250,8 @@ public class AccountLearnedSkillRepositoryTests
     public async Task GetByAccountIdAsync_ReconcilesInvalidSigilAndCreatesCompensationMail()
     {
         await using var fixture = await TestDatabase.CreateAsync();
-        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.adventurer_smash.yml", "skill", null);
-        await fixture.SeedMasterAsync(
-            "40_filebase/10.features.item/sigil/v1.homing_fireball_sigil.yml", "item", "sigil");
+        await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
+        await fixture.SeedMasterAsync("homing_fireball_sigil", "item", "sigil");
         var accountId = Guid.NewGuid();
         var userId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId, userId);
@@ -318,7 +312,7 @@ public class AccountLearnedSkillRepositoryTests
     public async Task GetByAccountIdAsync_RemovesDeletedSkillGemLearnedInstanceAndBindings()
     {
         await using var fixture = await TestDatabase.CreateAsync();
-        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.adventurer_smash.yml", "skill", null);
+        await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
         var gemEntryId = await fixture.AddInventoryEntryAsync(
@@ -380,7 +374,7 @@ public class AccountLearnedSkillRepositoryTests
     public async Task GetByAccountIdAsync_ReconcilesInsideRetryExecutionStrategy()
     {
         await using var fixture = await TestDatabase.CreateAsync(useRetryingExecutionStrategy: true);
-        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.adventurer_smash.yml", "skill", null);
+        await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
 
@@ -398,7 +392,7 @@ public class AccountLearnedSkillRepositoryTests
     public async Task ForgetAsync_DeletesInstanceAndSigilsButKeepsBindings()
     {
         await using var fixture = await TestDatabase.CreateAsync();
-        await fixture.SeedMasterAsync("40_filebase/30.features.skill/v1.adventurer_smash.yml", "skill", null);
+        await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
         var learnedSkillId = Guid.NewGuid();
@@ -511,10 +505,10 @@ public class AccountLearnedSkillRepositoryTests
             protected override bool ShouldRetryOn(Exception exception) => false;
         }
 
-        public async Task SeedMasterAsync(string relativePath, string masterType, string? category)
-            => await MasterDataTestSeed.SeedEntryAsync(
+        public async Task SeedMasterAsync(string masterId, string masterType, string? category)
+            => await MasterDataTestSeed.SeedInlinePayloadAsync(
                 MasterDb,
-                Path.Combine(ResolveWorkspaceRoot(), relativePath.Replace('/', Path.DirectorySeparatorChar)),
+                MasterDataTestFixtures.Get(masterId),
                 masterType,
                 category);
 
@@ -602,7 +596,8 @@ public class AccountLearnedSkillRepositoryTests
                 CREATE TABLE skill_bind_preset (
                     skill_bind_preset_id TEXT NOT NULL PRIMARY KEY, account_id TEXT NOT NULL, preset_index INTEGER NOT NULL,
                     active_skill_slots_json TEXT NOT NULL, left_click_skill_id TEXT NULL,
-                    passive_skill_slots_json TEXT NOT NULL, is_unlocked INTEGER NOT NULL, version INTEGER NOT NULL,
+                    passive_skill_slots_json TEXT NOT NULL, is_unlocked INTEGER NOT NULL, is_selected INTEGER NOT NULL,
+                    version INTEGER NOT NULL,
                     created_at TEXT NOT NULL, updated_at TEXT NOT NULL, created_by TEXT NOT NULL,
                     updated_by TEXT NOT NULL, is_deleted INTEGER NOT NULL);
                 CREATE TABLE player_mail_delivery (
@@ -612,16 +607,4 @@ public class AccountLearnedSkillRepositoryTests
         }
     }
 
-    private static string ResolveWorkspaceRoot([CallerFilePath] string currentFile = "")
-    {
-        var current = new FileInfo(currentFile).Directory;
-        while (current is not null)
-        {
-            if (Directory.Exists(Path.Combine(current.FullName, "40_filebase"))
-                && Directory.Exists(Path.Combine(current.FullName, "20_api")))
-                return current.FullName;
-            current = current.Parent;
-        }
-        throw new InvalidOperationException("workspace root could not be resolved from the test source path.");
-    }
 }

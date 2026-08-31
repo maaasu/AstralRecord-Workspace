@@ -26,22 +26,16 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.Sound;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -76,34 +70,6 @@ class MageFireballExecutorTest {
         assertEquals(1, projectile.maxHits());
         assertEquals(SharedParticleDefinitions.MAGE_FIREBALL_TRAIL, projectile.trail());
         assertNull(projectile.impact());
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 21. メイジファイアーボールの実装契約 > ### 21.1 数値・対象・終端
-     * 検証契約: 本番filebaseはLv.5、16m射程、半径2.25m、最大4体、正の実行paramsを定義する。
-     */
-    @Test
-    void productionFilebaseContainsValidatedParams() {
-        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(filebasePath().toFile());
-        assertEquals(MageFireballExecutor.ID, yaml.getString("id"));
-        assertEquals(5, yaml.getInt("maxLevel"));
-        assertEquals(80L, yaml.getLong("cooldownTicks"));
-
-        ConfigurationSection rawParams = yaml.getConfigurationSection("params");
-        if (rawParams == null) {
-            throw new AssertionError("fireball params must be defined in filebase");
-        }
-        Map<String, Object> params = new LinkedHashMap<>();
-        for (String key : rawParams.getKeys(false)) {
-            params.put(key, rawParams.get(key));
-        }
-
-        assertDoesNotThrow(() -> new MageFireballExecutor(activeSkillServices()).validateParams(definition(params)));
-        assertEquals(16.0D, ((Number) params.get("range")).doubleValue(), 0.0001D);
-        assertEquals(2.25D, ((Number) params.get("radius")).doubleValue(), 0.0001D);
-        assertEquals(1.32D, ((Number) params.get("damageRatio")).doubleValue(), 0.0001D);
-        assertEquals(4, ((Number) params.get("maxTargets")).intValue());
     }
 
     /**
@@ -234,30 +200,6 @@ class MageFireballExecutorTest {
                 "projectileSpeed", 1.45D,
                 "projectileHitRadius", 0.45D
         );
-    }
-
-    private static ActiveSkillServices activeSkillServices() {
-        return new ActiveSkillServices(
-                mock(SkillTargetingService.class),
-                mock(SkillCombatService.class),
-                mock(SkillEffectService.class),
-                mock(SkillProjectileService.class),
-                mock(SkillMovementService.class),
-                mock(TemporarySkillEffectService.class),
-                mock(SkillTaskService.class)
-        );
-    }
-
-    private static Path filebasePath() {
-        Path current = Path.of("").toAbsolutePath();
-        while (current != null) {
-            Path candidate = current.resolve("40_filebase/30.features.skill/v1.mage_fireball.yml");
-            if (Files.isRegularFile(candidate)) {
-                return candidate;
-            }
-            current = current.getParent();
-        }
-        throw new IllegalStateException("mage fireball filebase was not found");
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

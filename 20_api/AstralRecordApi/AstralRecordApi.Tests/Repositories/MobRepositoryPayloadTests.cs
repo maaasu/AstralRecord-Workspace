@@ -5,7 +5,6 @@ using AstralRecordApi.Tests.TestSupport;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Xunit;
 
@@ -14,7 +13,7 @@ namespace AstralRecordApi.Tests.Repositories;
 public class MobRepositoryPayloadTests
 {
     [Fact]
-    public async Task GetById_FromAinurindaleYaml_PreservesFangWaveAndRareCharms()
+    public async Task GetById_FromInlineAinurindalePayload_PreservesFangWaveAndRareCharms()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -26,14 +25,9 @@ public class MobRepositoryPayloadTests
         await using (var setupContext = new MasterDataDbContext(options))
         {
             await MasterDataTestSeed.CreateSchemaAsync(setupContext);
-            await MasterDataTestSeed.SeedEntryAsync(
+            await MasterDataTestSeed.SeedInlinePayloadAsync(
                 setupContext,
-                Path.Combine(
-                    ResolveWorkspaceRoot(),
-                    "40_filebase",
-                    "40.features.mob",
-                    "enemy",
-                    "v1.ainurindale.yml"),
+                MasterDataTestFixtures.Ainurindale,
                 "mob.enemy",
                 "ENEMY");
         }
@@ -59,7 +53,7 @@ public class MobRepositoryPayloadTests
     }
 
     [Fact]
-    public async Task GetById_FromShieldGuardYaml_PreservesMissingRechargeAmount()
+    public async Task GetById_FromInlineShieldGuardPayload_PreservesMissingRechargeAmount()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -71,14 +65,9 @@ public class MobRepositoryPayloadTests
         await using (var setupContext = new MasterDataDbContext(options))
         {
             await MasterDataTestSeed.CreateSchemaAsync(setupContext);
-            await MasterDataTestSeed.SeedEntryAsync(
+            await MasterDataTestSeed.SeedInlinePayloadAsync(
                 setupContext,
-                Path.Combine(
-                    ResolveWorkspaceRoot(),
-                    "40_filebase",
-                    "40.features.mob",
-                    "enemy",
-                    "v1.midgard_shield_guard.yml"),
+                MasterDataTestFixtures.ShieldGuard,
                 "mob.enemy",
                 "ENEMY");
         }
@@ -96,7 +85,7 @@ public class MobRepositoryPayloadTests
     }
 
     [Fact]
-    public async Task GetById_FromSkeletonArcherYaml_DoesNotAddNormalAttack_AndPreservesSkillBinding()
+    public async Task GetById_FromInlineSkeletonArcherPayload_DoesNotAddNormalAttack_AndPreservesSkillBinding()
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
@@ -108,14 +97,9 @@ public class MobRepositoryPayloadTests
         await using (var setupContext = new MasterDataDbContext(options))
         {
             await MasterDataTestSeed.CreateSchemaAsync(setupContext);
-            await MasterDataTestSeed.SeedEntryAsync(
+            await MasterDataTestSeed.SeedInlinePayloadAsync(
                 setupContext,
-                Path.Combine(
-                    ResolveWorkspaceRoot(),
-                    "40_filebase",
-                    "40.features.mob",
-                    "enemy",
-                    "v1.midgard_skeleton_archer.yml"),
+                MasterDataTestFixtures.SkeletonArcher,
                 "mob.enemy",
                 "ENEMY");
         }
@@ -354,20 +338,4 @@ public class MobRepositoryPayloadTests
         Assert.False(item.Hidden);
     }
 
-    private static string ResolveWorkspaceRoot([CallerFilePath] string currentFile = "")
-    {
-        var current = new FileInfo(currentFile).Directory;
-        while (current is not null)
-        {
-            if (Directory.Exists(Path.Combine(current.FullName, "40_filebase"))
-                && Directory.Exists(Path.Combine(current.FullName, "20_api")))
-            {
-                return current.FullName;
-            }
-
-            current = current.Parent;
-        }
-
-        throw new InvalidOperationException("workspace root could not be resolved from the test source path.");
-    }
 }

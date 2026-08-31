@@ -29,17 +29,11 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
-import java.util.ArrayList;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -251,79 +245,50 @@ class SwordsmanFlameRushExecutorTest {
                 UUID.randomUUID(), UUID.randomUUID(), SwordsmanFlameRushExecutor.ID, skillLevel, List.of(), 0, null, null
         );
         SkillDefinition resolved = new LearnedSkillResolver(new ItemService())
-                .resolve(loadDefinitionFromFilebase(), learned)
+                .resolve(definitionWithLevels(), learned)
                 .definition();
         return new io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader(
                 resolved.getId(), resolved.getParams()
         ).getDouble("burningChance", -1.0D);
     }
 
-    private static SkillDefinition loadDefinitionFromFilebase() {
-        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(filebasePath().toFile());
-        ConfigurationSection rawParams = yaml.getConfigurationSection("params");
-        if (rawParams == null) {
-            throw new AssertionError("flame rush params must be defined in filebase");
-        }
-        Map<String, Object> params = new LinkedHashMap<>();
-        for (String key : rawParams.getKeys(false)) {
-            params.put(key, rawParams.get(key));
-        }
-        List<SkillLevelDefinition> levels = new ArrayList<>();
-        for (Map<?, ?> level : yaml.getMapList("levels")) {
-            Map<String, Double> paramDeltas = new LinkedHashMap<>();
-            Object rawDeltas = level.get("paramDeltas");
-            if (rawDeltas instanceof Map<?, ?> deltas) {
-                for (Map.Entry<?, ?> entry : deltas.entrySet()) {
-                    if (entry.getKey() instanceof String key && entry.getValue() instanceof Number value) {
-                        paramDeltas.put(key, value.doubleValue());
-                    }
-                }
-            }
-            levels.add(new SkillLevelDefinition(
-                    ((Number) level.get("level")).intValue(),
-                    0L,
-                    0.0D,
-                    0L,
-                    Map.copyOf(paramDeltas),
-                    List.of()
-            ));
-        }
+    private static SkillDefinition definitionWithLevels() {
         return new SkillDefinition(
-                yaml.getString("id", SwordsmanFlameRushExecutor.ID),
-                yaml.getString("implementationId", SwordsmanFlameRushExecutor.ID),
-                yaml.getString("name", "フレイムラッシュ"),
-                yaml.getString("description"),
-                yaml.getString("icon"),
-                yaml.getStringList("lore"),
-                yaml.getLong("cooldownTicks", 0L),
-                0.0D,
-                yaml.getLong("castTimeTicks", 0L),
-                yaml.getInt("requiredLevel", 1),
+                SwordsmanFlameRushExecutor.ID,
+                SwordsmanFlameRushExecutor.ID,
+                "フレイムラッシュ",
                 null,
-                params,
-                yaml.getStringList("tags"),
+                "CRIMSON_ROOTS",
+                List.of(),
+                80L,
+                0.0D,
+                0L,
+                1,
+                null,
+                Map.of(
+                        "range", 6.0D,
+                        "targetAngle", 60.0D,
+                        "maxTargets", 5,
+                        "damageRatios", List.of(0.78D, 0.90D),
+                        "secondHitDelayTicks", 4,
+                        "burningChance", 0.0D,
+                        "burningDurationTicks", 100L
+                ),
+                List.of("active", "melee", "fire"),
                 SkillKind.ACTIVE,
                 true,
-                SkillResourceType.valueOf(yaml.getString("resourceType", "ENERGY")),
-                yaml.getDouble("resourceCost", 0.0D),
+                SkillResourceType.ENERGY,
+                14.0D,
                 null,
-                yaml.getInt("maxLevel", 1),
-                List.copyOf(levels),
+                10,
+                List.of(
+                        new SkillLevelDefinition(8, 0L, 0.0D, 0L, Map.of("burningChance", 35.0D), List.of()),
+                        new SkillLevelDefinition(9, 0L, 0.0D, 0L, Map.of("burningChance", 5.0D), List.of()),
+                        new SkillLevelDefinition(10, 0L, 0.0D, 0L, Map.of("burningChance", 5.0D), List.of())
+                ),
                 List.of(),
                 List.of()
         );
-    }
-
-    private static Path filebasePath() {
-        Path current = Path.of("").toAbsolutePath().normalize();
-        while (current != null) {
-            Path candidate = current.resolve("40_filebase/30.features.skill/v1.swordsman_flame_rush.yml");
-            if (Files.isRegularFile(candidate)) {
-                return candidate;
-            }
-            current = current.getParent();
-        }
-        throw new AssertionError("flame rush filebase was not found from the test directory");
     }
 
     private record Fixture(

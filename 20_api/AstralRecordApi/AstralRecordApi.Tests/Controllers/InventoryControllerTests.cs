@@ -26,7 +26,7 @@ public class InventoryControllerTests
 
         var result = await controller.ReplaceEntries(Guid.NewGuid(), EmptyRequest());
 
-        var conflict = Assert.IsType<ObjectResult>(result);
+        var conflict = Assert.IsType<ConflictObjectResult>(result);
         Assert.Equal(StatusCodes.Status409Conflict, conflict.StatusCode);
         var problem = Assert.IsType<ProblemDetails>(conflict.Value);
         Assert.Equal("Inventory entry snapshot conflict", problem.Title);

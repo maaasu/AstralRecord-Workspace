@@ -4,7 +4,6 @@ using AstralRecordApi.Repositories;
 using AstralRecordApi.Tests.TestSupport;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using System.Runtime.CompilerServices;
 using System.Text.Json;
 using Xunit;
 
@@ -25,9 +24,9 @@ public class SkillRepositoryTests
         await using (var setupContext = new MasterDataDbContext(options))
         {
             await MasterDataTestSeed.CreateSchemaAsync(setupContext);
-            await MasterDataTestSeed.SeedEntryAsync(
+            await MasterDataTestSeed.SeedInlinePayloadAsync(
                 setupContext,
-                Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "30.features.skill", "v1.adventurer_smash.yml"),
+                MasterDataTestFixtures.AdventurerSmash,
                 "skill",
                 null);
         }
@@ -56,9 +55,9 @@ public class SkillRepositoryTests
         await using (var setupContext = new MasterDataDbContext(options))
         {
             await MasterDataTestSeed.CreateSchemaAsync(setupContext);
-            await MasterDataTestSeed.SeedEntryAsync(
+            await MasterDataTestSeed.SeedInlinePayloadAsync(
                 setupContext,
-                Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "30.features.skill", "v1.adventurer_meditation.yml"),
+                MasterDataTestFixtures.AdventurerMeditation,
                 "skill",
                 null);
         }
@@ -70,7 +69,7 @@ public class SkillRepositoryTests
 
         Assert.NotNull(skill);
         Assert.Equal("adventurer_meditation", skill.Id);
-        Assert.Equal("AMETHYST_SHARD", skill.Icon);
+        Assert.Equal("CAMPFIRE", skill.Icon);
         Assert.NotNull(skill.Passive);
         Assert.True(skill.Passive!.BindRequired);
         Assert.True(skill.Params.ContainsKey("regenMultiplier"));
@@ -78,7 +77,7 @@ public class SkillRepositoryTests
 
     /// <summary>
     /// 設計入力: 00_docs/50_Filebase設計書/feature/30-skill.md、00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-    /// 検証契約: 実際のクラッシュアローマスターをseed経路で読み込み、シールドブレイク倍率がLv.1の3.0倍から各レベル0.5ずつ増加してLv.5の5.0倍になる。
+    /// 検証契約: 固定したクラッシュアロー payload を seed 経路へ投入し、シールドブレイク倍率がLv.1の3.0倍から各レベル0.5ずつ増加してLv.5の5.0倍になる。
     /// </summary>
     [Fact]
     public async Task CrashArrowMaster_ResolvesShieldBreakMultiplierAcrossLevels()
@@ -93,9 +92,9 @@ public class SkillRepositoryTests
         await using (var setupContext = new MasterDataDbContext(options))
         {
             await MasterDataTestSeed.CreateSchemaAsync(setupContext);
-            await MasterDataTestSeed.SeedEntryAsync(
+            await MasterDataTestSeed.SeedInlinePayloadAsync(
                 setupContext,
-                Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "30.features.skill", "v1.hunter_crash_arrow.yml"),
+                MasterDataTestFixtures.HunterCrashArrow,
                 "skill",
                 null);
         }
@@ -140,9 +139,9 @@ public class SkillRepositoryTests
         await using (var setupContext = new MasterDataDbContext(options))
         {
             await MasterDataTestSeed.CreateSchemaAsync(setupContext);
-            await MasterDataTestSeed.SeedEntryAsync(
+            await MasterDataTestSeed.SeedInlinePayloadAsync(
                 setupContext,
-                Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "30.features.skill", "v1.adventurer_smash.yml"),
+                MasterDataTestFixtures.AdventurerSmash,
                 "skill",
                 null);
         }
@@ -195,20 +194,4 @@ public class SkillRepositoryTests
         Assert.Equal(20.0D, skill.ResourceCost);
     }
 
-    private static string ResolveWorkspaceRoot([CallerFilePath] string currentFile = "")
-    {
-        var current = new FileInfo(currentFile).Directory;
-        while (current is not null)
-        {
-            if (Directory.Exists(Path.Combine(current.FullName, "40_filebase"))
-                && Directory.Exists(Path.Combine(current.FullName, "20_api")))
-            {
-                return current.FullName;
-            }
-
-            current = current.Parent;
-        }
-
-        throw new InvalidOperationException("workspace root could not be resolved from the test source path.");
-    }
 }

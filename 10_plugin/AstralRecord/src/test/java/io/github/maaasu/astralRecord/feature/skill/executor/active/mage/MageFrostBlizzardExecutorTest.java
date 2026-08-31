@@ -28,15 +28,12 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Particle;
 import org.bukkit.World;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -365,56 +362,6 @@ class MageFrostBlizzardExecutorTest extends MockBukkitTestBase {
         );
         assertEquals(Color.fromRGB(90, 215, 255), dust.getColor());
         assertEquals(1.15F, dust.getSize(), 1.0E-6F);
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 24. メイジ フロストブリザードの実装契約 > ### 24.2 バランス・入手・演出・テスト契約
-     * 検証契約: 本番マスタはMP40・200tick・10tick間隔・24%・最大8体と指定iconを定義し、交換ショップが同じskillの仮想ジェムをslot24へ無印原石3個で配置する。
-     */
-    @Test
-    void filebaseDefinesBalanceIconAndAcquisitionReferences() throws Exception {
-        Path root = repositoryRoot();
-        YamlConfiguration skill = YamlConfiguration.loadConfiguration(
-                root.resolve("40_filebase/30.features.skill/v1.mage_frost_blizzard.yml").toFile()
-        );
-
-        assertEquals("DIAMOND_NAUTILUS_ARMOR", skill.getString("icon"));
-        assertEquals(Material.DIAMOND_NAUTILUS_ARMOR, Material.matchMaterial(skill.getString("icon")));
-        assertEquals(40.0D, skill.getDouble("resourceCost"), 1.0E-9D);
-        assertEquals(200, skill.getInt("params.durationTicks"));
-        assertEquals(10, skill.getInt("params.damageIntervalTicks"));
-        assertEquals(0.24D, skill.getDouble("params.damageRatio"), 1.0E-9D);
-        assertEquals(8, skill.getInt("params.maxTargets"));
-
-        YamlConfiguration shop = YamlConfiguration.loadConfiguration(
-                root.resolve("40_filebase/45.features.shop/v1.skill_gem_exchange.yml").toFile()
-        );
-        assertTrue(shop.getMapList("items").stream().anyMatch(item -> {
-            Object itemId = item.get("itemId");
-             Object requiredItems = item.get("requiredItems");
-             return itemId instanceof Map<?, ?> ref
-                    && "item:00_skill_gem_mage_frost_blizzard".equals(ref.get("ref"))
-                    && Integer.valueOf(1).equals(item.get("page"))
-                    && Integer.valueOf(24).equals(item.get("slot"))
-                    && requiredItems instanceof List<?> costs
-                    && costs.size() == 1
-                    && costs.get(0) instanceof Map<?, ?> cost
-                    && cost.get("itemId") instanceof Map<?, ?> costItem
-                    && "item:skill_gem_raw".equals(costItem.get("ref"))
-                    && Integer.valueOf(3).equals(cost.get("amount"));
-        }));
-    }
-
-    private static Path repositoryRoot() {
-        Path current = Path.of("").toAbsolutePath().normalize();
-        while (current != null) {
-            if (Files.isDirectory(current.resolve("40_filebase"))) {
-                return current;
-            }
-            current = current.getParent();
-        }
-        throw new AssertionError("repository root was not found from the test directory");
     }
 
     private static ActiveSkillServices services(

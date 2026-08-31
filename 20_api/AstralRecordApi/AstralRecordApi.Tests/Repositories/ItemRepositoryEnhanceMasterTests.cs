@@ -1,13 +1,9 @@
 using AstralRecordApi.Data;
-using AstralRecordApi.Options;
 using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
-using AstralRecordApi.Services;
+using AstralRecordApi.Tests.TestSupport;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.Extensions.Logging.Abstractions;
-using Microsoft.Extensions.Options;
-using System.Runtime.CompilerServices;
 using Xunit;
 
 namespace AstralRecordApi.Tests.Repositories;
@@ -53,7 +49,7 @@ public class ItemRepositoryEnhanceMasterTests
     }
 
     [Fact]
-    public async Task GetById_FromEnergyBakedYaml_PreservesConsumableUseTiming()
+    public async Task GetById_FromInlineEnergyBakedPayload_PreservesConsumableUseTiming()
     {
         await using var dbContext = await CreateSeededMasterDataDbContextAsync();
         var repository = new ItemRepository(dbContext);
@@ -127,32 +123,6 @@ public class ItemRepositoryEnhanceMasterTests
         Assert.Equal(75, sindriRepair!.Orb!.Effect.RepairAmount);
         Assert.False(sindriRepair.Orb.Effect.RepairFull);
         Assert.True(fullRepair!.Orb!.Effect.RepairFull);
-    }
-
-    /// <summary>
-    /// 設計入力: 40_filebase/10.features.item/orb/docs.orb.YAMLスキーマ定義.md
-    /// 検証契約: すべてのエンチャントオーブは共通エンチャントマスタへの必須参照として Seeder に収集される。
-    /// </summary>
-    [Fact]
-    public async Task Seeder_CollectsRequiredEnchantMasterReference_FromEveryEnchantOrb()
-    {
-        await using var dbContext = await CreateSeededMasterDataDbContextAsync();
-
-        var references = await dbContext.References
-            .Where(reference => reference.FromMasterType == "item"
-                && reference.ReferenceType == "enchant"
-                && reference.ReferenceIdValue == "enchant001")
-            .OrderBy(reference => reference.FromMasterId)
-            .ToArrayAsync();
-
-        Assert.Equal(
-            ["enchant_fill_all_orb", "enchant_fill_orb", "enchant_overwrite_orb"],
-            references.Select(reference => reference.FromMasterId));
-        Assert.All(references, reference =>
-        {
-            Assert.True(reference.IsRequired);
-            Assert.Equal("$.orb.effect.enchantMasterId", reference.ReferencePath);
-        });
     }
 
     [Fact]
@@ -367,113 +337,15 @@ public class ItemRepositoryEnhanceMasterTests
             .Options;
 
         var dbContext = new MasterDataDbContext(options);
-        await CreateMasterDataSchemaAsync(dbContext);
-
-        var seeder = new MasterDataSeeder(
-            dbContext,
-            Microsoft.Extensions.Options.Options.Create(new FileDatabaseOptions
-            {
-                RootPath = Path.Combine(ResolveWorkspaceRoot(), "40_filebase"),
-            }),
-            Microsoft.Extensions.Options.Options.Create(new MasterDataOptions()),
-            NullLogger<MasterDataSeeder>.Instance);
-
-        await seeder.RunAsync(MasterDataSeedTrigger.Manual, MasterDataSeedMode.Rebuild);
-        return dbContext;
-    }
-
-    private static async Task CreateMasterDataSchemaAsync(MasterDataDbContext dbContext)
-    {
-        await dbContext.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE master_data_source (
-                source_id TEXT NOT NULL PRIMARY KEY,
-                source_key TEXT NOT NULL,
-                source_path TEXT NOT NULL,
-                source_kind TEXT NOT NULL,
-                schema_version INTEGER NOT NULL,
-                is_enabled INTEGER NOT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                created_by TEXT NOT NULL,
-                updated_by TEXT NOT NULL,
-                is_deleted INTEGER NOT NULL
-            );");
-
-        await dbContext.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE master_data_entry (
-                entry_id TEXT NOT NULL PRIMARY KEY,
-                source_id TEXT NOT NULL,
-                master_type TEXT NOT NULL,
-                master_id TEXT NOT NULL,
-                category TEXT NULL,
-                type TEXT NULL,
-                schema_version INTEGER NOT NULL,
-                display_name TEXT NULL,
-                source_file_path TEXT NOT NULL,
-                source_file_hash TEXT NOT NULL,
-                payload_json TEXT NOT NULL,
-                payload_version INTEGER NOT NULL,
-                effective_from TEXT NOT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                created_by TEXT NOT NULL,
-                updated_by TEXT NOT NULL,
-                is_deleted INTEGER NOT NULL
-            );");
-
-        await dbContext.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE master_data_reference (
-                reference_id TEXT NOT NULL PRIMARY KEY,
-                from_entry_id TEXT NOT NULL,
-                from_master_type TEXT NOT NULL,
-                from_master_id TEXT NOT NULL,
-                reference_type TEXT NOT NULL,
-                reference_id_value TEXT NOT NULL,
-                reference_path TEXT NOT NULL,
-                is_required INTEGER NOT NULL,
-                sort_order INTEGER NOT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                created_by TEXT NOT NULL,
-                updated_by TEXT NOT NULL,
-                is_deleted INTEGER NOT NULL
-            );");
-
-        await dbContext.Database.ExecuteSqlRawAsync(@"
-            CREATE TABLE master_data_seed_run (
-                seed_run_id TEXT NOT NULL PRIMARY KEY,
-                trigger_type TEXT NOT NULL,
-                status TEXT NOT NULL,
-                source_root_path TEXT NOT NULL,
-                started_at TEXT NOT NULL,
-                finished_at TEXT NULL,
-                file_count INTEGER NOT NULL DEFAULT 0,
-                upserted_count INTEGER NOT NULL DEFAULT 0,
-                deleted_count INTEGER NOT NULL DEFAULT 0,
-                skipped_count INTEGER NOT NULL DEFAULT 0,
-                error_message TEXT NULL,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL,
-                created_by TEXT NOT NULL,
-                updated_by TEXT NOT NULL
-            );");
-    }
-
-    private static string ResolveWorkspaceRoot([CallerFilePath] string currentFile = "")
-    {
-        var current = new FileInfo(currentFile).Directory;
-        while (current is not null)
+        await MasterDataTestSeed.CreateSchemaAsync(dbContext);
+        foreach (var fixture in MasterDataTestFixtures.EnhancementItems)
         {
-            var filebasePath = Path.Combine(current.FullName, "40_filebase");
-            var apiPath = Path.Combine(current.FullName, "20_api");
-            if (Directory.Exists(filebasePath) && Directory.Exists(apiPath))
-            {
-                return current.FullName;
-            }
-
-            current = current.Parent;
+            await MasterDataTestSeed.SeedInlinePayloadAsync(
+                dbContext,
+                fixture.Payload,
+                "item",
+                fixture.Category);
         }
-
-        throw new InvalidOperationException("workspace root could not be resolved from the test output path.");
+        return dbContext;
     }
 }

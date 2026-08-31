@@ -1,4 +1,3 @@
-using System.Runtime.CompilerServices;
 using AstralRecordApi.Data;
 using AstralRecordApi.Repositories;
 using AstralRecordApi.Tests.TestSupport;
@@ -20,9 +19,9 @@ public class EnchantRepositoryTests
             .Options;
         await using var dbContext = new MasterDataDbContext(options);
         await MasterDataTestSeed.CreateSchemaAsync(dbContext);
-        await MasterDataTestSeed.SeedEntryAsync(
+        await MasterDataTestSeed.SeedInlinePayloadAsync(
             dbContext,
-            Path.Combine(ResolveWorkspaceRoot(), "40_filebase", "12.features.enchant", "v1.enchant001.yml"),
+            MasterDataTestFixtures.Enchant001,
             masterType: "enchant",
             category: null);
 
@@ -46,17 +45,4 @@ public class EnchantRepositoryTests
             entry => entry.EffectId == "weapon_attack_scalar_130" && entry.Weight == 30);
     }
 
-    private static string ResolveWorkspaceRoot([CallerFilePath] string currentFile = "")
-    {
-        var current = new FileInfo(currentFile).Directory;
-        while (current is not null)
-        {
-            if (Directory.Exists(Path.Combine(current.FullName, "40_filebase"))
-                && Directory.Exists(Path.Combine(current.FullName, "20_api")))
-                return current.FullName;
-            current = current.Parent;
-        }
-
-        throw new InvalidOperationException("workspace root could not be resolved from the test source path.");
-    }
 }

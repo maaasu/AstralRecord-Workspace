@@ -135,6 +135,12 @@
 | GET `/api/master-data/seed-runs` | Seeder 実行履歴取得 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
 | GET `/api/master-data/health` | MasterDataDB の参照可能状態取得 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
 
+## テスト運用ルール
+
+- APIの単体テスト・Repositoryテストは、本番の `<task-root>/40_filebase` を読み込まず、参照せず、接続しない。必要なマスタ形状はテスト内の固定JSON/YAMLまたはin-memory DBへ最小限だけ投入する。
+- `MasterDataSeeder` やマスタ参照APIをテストする場合も、期待値を本番ファイルから取得せず、テスト入力を明示的に固定する。本番Filebaseとの接続をテスト成功条件にしない。
+- 本番Filebaseを使う動作確認が必要な場合は、通常の単体・Repositoryテストとは分離した明示的な統合検証として扱う。
+
 ## SQL Server 統合テスト
 
 オーブ操作とスキルバインドプリセット選択の本番用 `UPDLOCK` / `HOLDLOCK` 分岐は、

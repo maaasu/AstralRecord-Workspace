@@ -27,16 +27,11 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.World;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.time.Instant;
-import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -89,36 +84,6 @@ class HunterHealArrowExecutorTest {
                 () -> executor.validateParams(definition(nonFiniteParams))
         );
         assertEquals("radius", nonFiniteException.key());
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 19. ヒールアローの実装契約 > ### 19.1 数値・対象・終端
-     * 検証契約: 本番filebaseの実行paramsが欠落せず、実行器の検証を通過する。
-     */
-    @Test
-    void productionFilebaseContainsValidatedParams() {
-        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(filebasePath().toFile());
-        assertEquals(HunterHealArrowExecutor.ID, yaml.getString("id"));
-        assertEquals(5, yaml.getInt("maxLevel"));
-        assertEquals(200L, yaml.getLong("cooldownTicks"));
-
-        ConfigurationSection rawParams = yaml.getConfigurationSection("params");
-        if (rawParams == null) {
-            throw new AssertionError("heal arrow params must be defined in filebase");
-        }
-        Map<String, Object> params = new LinkedHashMap<>();
-        for (String key : rawParams.getKeys(false)) {
-            params.put(key, rawParams.get(key));
-        }
-
-        new HunterHealArrowExecutor(activeSkillServices()).validateParams(definition(params));
-        assertEquals(2.0D, ((Number) params.get("radius")).doubleValue(), 0.0001D);
-        assertEquals(12.0D, ((Number) params.get("healAmount")).doubleValue(), 0.0001D);
-        assertEquals(0.36D, ((Number) params.get("damageRatio")).doubleValue(), 0.0001D);
-        assertEquals(1.25D, ((Number) params.get("projectileSpeed")).doubleValue(), 0.0001D);
-        assertEquals(0.45D, ((Number) params.get("projectileHitRadius")).doubleValue(), 0.0001D);
-        assertEquals(60, ((Number) params.get("areaDurationTicks")).intValue());
     }
 
     /**
@@ -326,18 +291,6 @@ class HunterHealArrowExecutorTest {
                 "projectileHitRadius", 0.45D,
                 "areaDurationTicks", 60
         );
-    }
-
-    private static Path filebasePath() {
-        Path current = Path.of("").toAbsolutePath().normalize();
-        while (current != null) {
-            Path candidate = current.resolve("40_filebase/30.features.skill/v1.hunter_heal_arrow.yml");
-            if (Files.isRegularFile(candidate)) {
-                return candidate;
-            }
-            current = current.getParent();
-        }
-        throw new AssertionError("heal arrow filebase was not found from the test directory");
     }
 
     private static SkillDefinition definition(Map<String, Object> params) {
