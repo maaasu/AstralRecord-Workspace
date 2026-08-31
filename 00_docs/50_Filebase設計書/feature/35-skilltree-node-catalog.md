@@ -53,6 +53,7 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `skill-hunter-build-up` | `skill` / `hunter_build_up` | `&eビルドアップ` | `TIPPED_ARROW` | `offense`, `wind` |
 | `skill-mage-arcane-flow` | `skill` / `mage_arcane_flow` | `&dアーケインフロー` | `ENCHANTED_BOOK` | `core`, `mana`, `astral` |
 | `skill-mage-sparking` | `skill` / `mage_sparking` | `&eスパーキング` | `GLOWSTONE_DUST` | `lightning`, `shocked` |
+| `skill-mage-fireball` | `skill` / `mage_fireball` | `&6ファイアーボール` | `FIRE_CHARGE` | `fire`, `ember` |
 | `skill-mage-frost-blizzard` | `skill` / `mage_frost_blizzard` | `&bフロストブリザード` | `DIAMOND_NAUTILUS_ARMOR` | `ice`, `azure` |
 | `skill-mage-frost-ball` | `skill` / `mage_frost_ball` | `&bフロストボール` | `SNOWBALL` | `ice`, `azure` |
 | `skill-administrator-just-dodge` | `skill` / `administrator_just_dodge` | `&eジャスト回避` | `RABBIT_FOOT` | `defense`, `agility`, `wind` |
