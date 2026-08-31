@@ -104,3 +104,4 @@ accessory slot の逆引きは `23=AMULET`、`31=TALISMAN_1`、`33=TALISMAN_2`�
 物理名: `renderCraftShortcuts`
 
 プレイヤー情報 shortcut の status lore は、`StatusValue` の合計範囲が基礎範囲と異なる項目だけを `StatusType` のカタログ順に表示する。表示上限は8件とし、超過時は末尾へ `… ほかN件` を追加する。変更項目がない場合と status 未取得の場合は、それぞれ判別できる案内を表示する。
+`AstPlayer.isBedrock=true` の残存 shortcut 消去は、クラフト枠・所持品・カーソルのいずれかに実際の shortcut item が存在する場合だけ対象を変更する。ログイン・ワールド変更などの一連の cleanup では、変更があった場合だけ `updateInventory()` を最大1回実行し、すでに除去済みなら inventory 全体同期を発生させない。

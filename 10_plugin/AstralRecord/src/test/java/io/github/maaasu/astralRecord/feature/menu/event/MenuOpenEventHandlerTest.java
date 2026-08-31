@@ -35,7 +35,11 @@ import org.bukkit.Registry;
 import org.bukkit.Server;
 import org.bukkit.Sound;
 import org.bukkit.event.Event;
+import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
+import org.bukkit.entity.Item;
+import org.bukkit.entity.Player;
+import org.bukkit.World;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.scheduler.BukkitScheduler;
@@ -50,6 +54,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -176,7 +181,57 @@ class MenuOpenEventHandlerTest extends MockBukkitTestBase {
         assertEquals(0L, closeSoundCount(player));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
+     * 章・見出し: # 09_3-GUI・View > ## 6. クラフトショートカット描画
+     * 検証契約: join 時に shortcut が残っていない場合は、cleanup が inventory 全体同期を発生させない。
+     */
+    @Test
+    void joinCleanupDoesNotUpdateInventoryWhenNoShortcutExists() {
+        MenuView menuView = mock(MenuView.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        MenuOpenEventHandler menuHandler = newMenuHandler(
+            menuView,
+            mock(TrashService.class),
+            mock(SellService.class),
+            mock(StorageService.class),
+            mock(MenuGuiTransitionService.class),
+            inventoryService
+        );
+        Player player = mock(Player.class);
+        World world = mock(World.class);
+        PlayerJoinEvent joinEvent = mock(PlayerJoinEvent.class);
+        when(joinEvent.getPlayer()).thenReturn(player);
+        when(player.getUniqueId()).thenReturn(java.util.UUID.randomUUID());
+        when(player.getWorld()).thenReturn(world);
+        when(world.getEntitiesByClass(Item.class)).thenReturn(java.util.List.of());
+
+        menuHandler.onPlayerJoin(joinEvent);
+
+        verify(menuView).clearCraftShortcuts(player);
+        verify(menuView).removeCraftShortcutItems(player);
+        verify(player, never()).updateInventory();
+    }
+
     private MenuOpenEventHandler newMenuHandler(
+        @NotNull TrashService trashService,
+        @NotNull SellService sellService,
+        @NotNull StorageService storageService,
+        @NotNull MenuGuiTransitionService menuGuiTransitionService,
+        @NotNull InventoryService inventoryService
+    ) {
+        return newMenuHandler(
+            mock(MenuView.class),
+            trashService,
+            sellService,
+            storageService,
+            menuGuiTransitionService,
+            inventoryService
+        );
+    }
+
+    private MenuOpenEventHandler newMenuHandler(
+        @NotNull MenuView menuView,
         @NotNull TrashService trashService,
         @NotNull SellService sellService,
         @NotNull StorageService storageService,
@@ -190,7 +245,7 @@ class MenuOpenEventHandlerTest extends MockBukkitTestBase {
         when(menuServer.getScheduler()).thenReturn(menuScheduler);
         return new MenuOpenEventHandler(
             menuPlugin,
-            mock(MenuView.class),
+            menuView,
             inventoryService,
             mock(CurrencyService.class),
             mock(CurrencyExchangeGuiEventHandler.class),

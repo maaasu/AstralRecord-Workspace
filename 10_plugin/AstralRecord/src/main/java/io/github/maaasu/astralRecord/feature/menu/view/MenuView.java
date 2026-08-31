@@ -404,7 +404,12 @@ public class MenuView {
         @NotNull PlayerGuiRenderContext context
     ) {
         if (astPlayer.isBedrock()) {
-            craftShortcutView.clearCraftShortcuts(astPlayer.getBukkit());
+            Player player = astPlayer.getBukkit();
+            boolean shortcutRemoved = craftShortcutView.clearCraftShortcuts(player);
+            shortcutRemoved |= craftShortcutView.removeCraftShortcutItems(player);
+            if (shortcutRemoved) {
+                player.updateInventory();
+            }
             return;
         }
         craftShortcutView.renderCraftShortcuts(
@@ -414,16 +419,37 @@ public class MenuView {
         );
     }
 
-    public void clearCraftShortcuts(@NotNull Player player) {
-        craftShortcutView.clearCraftShortcuts(player);
+    /**
+     * プレイヤーのクラフト欄に残った shortcut item を除去します。
+     * インベントリ同期は行わず、変更有無だけを返します。
+     *
+     * @param player 対象プレイヤー
+     * @return shortcut item を除去した場合は {@code true}
+     */
+    public boolean clearCraftShortcuts(@NotNull Player player) {
+        return craftShortcutView.clearCraftShortcuts(player);
     }
 
-    public void clearCraftShortcuts(@NotNull CraftingInventory inventory) {
-        craftShortcutView.clearCraftShortcuts(inventory);
+    /**
+     * 指定したクラフト欄から shortcut item だけを除去します。
+     * 通常のクラフト入力・結果は保持し、インベントリ同期は行いません。
+     *
+     * @param inventory 対象クラフト欄
+     * @return shortcut item を除去した場合は {@code true}
+     */
+    public boolean clearCraftShortcuts(@NotNull CraftingInventory inventory) {
+        return craftShortcutView.clearCraftShortcuts(inventory);
     }
 
-    public void removeCraftShortcutItems(@NotNull Player player) {
-        craftShortcutView.removeCraftShortcutItems(player);
+    /**
+     * プレイヤーの所持品とカーソルから shortcut item を除去します。
+     * インベントリ同期は行わず、変更有無だけを返します。
+     *
+     * @param player 対象プレイヤー
+     * @return shortcut item を除去した場合は {@code true}
+     */
+    public boolean removeCraftShortcutItems(@NotNull Player player) {
+        return craftShortcutView.removeCraftShortcutItems(player);
     }
 
     /**

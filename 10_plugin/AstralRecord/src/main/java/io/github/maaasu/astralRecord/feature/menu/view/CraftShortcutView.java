@@ -84,33 +84,57 @@ final class CraftShortcutView {
         player.updateInventory();
     }
 
-    void clearCraftShortcuts(@NotNull Player player) {
+    /**
+     * プレイヤーのクラフト欄に残った shortcut を消去します。
+     *
+     * @param player 消去対象のプレイヤー
+     * @return shortcut item を消去した場合は {@code true}
+     */
+    boolean clearCraftShortcuts(@NotNull Player player) {
         if (player.getOpenInventory().getTopInventory() instanceof CraftingInventory inventory) {
-            clearCraftShortcuts(inventory);
-            player.updateInventory();
+            return clearCraftShortcuts(inventory);
         }
+        return false;
     }
 
-    void clearCraftShortcuts(@NotNull CraftingInventory inventory) {
-        if (!isShortcutMatrix(inventory)) {
-            return;
+    /**
+     * クラフト欄に残った shortcut item を消去します。
+     * 通常アイテムが置かれている場合は、プレイヤーの入力を壊さないため消去しません。
+     *
+     * @param inventory 消去対象のクラフトインベントリ
+     * @return shortcut item を1つ以上消去した場合は {@code true}、変更がない場合は {@code false}
+     */
+    boolean clearCraftShortcuts(@NotNull CraftingInventory inventory) {
+        ItemStack[] currentMatrix = inventory.getMatrix();
+        ItemStack[] newMatrix = currentMatrix.clone();
+        boolean matrixChanged = false;
+        for (int slot = 0; slot < currentMatrix.length; slot++) {
+            if (isCraftShortcutIcon(currentMatrix[slot])) {
+                newMatrix[slot] = new ItemStack(Material.AIR);
+                matrixChanged = true;
+            }
         }
-        inventory.setMatrix(new ItemStack[] {
-            new ItemStack(Material.AIR),
-            new ItemStack(Material.AIR),
-            new ItemStack(Material.AIR),
-            new ItemStack(Material.AIR)
-        });
-        inventory.setResult(new ItemStack(Material.AIR));
+        boolean resultChanged = isCraftShortcutIcon(inventory.getResult());
+        if (!matrixChanged && !resultChanged) {
+            return false;
+        }
+        if (matrixChanged) {
+            inventory.setMatrix(newMatrix);
+        }
+        if (resultChanged) {
+            inventory.setResult(new ItemStack(Material.AIR));
+        }
+        return true;
     }
 
-    void removeCraftShortcutItems(@NotNull Player player) {
+    boolean removeCraftShortcutItems(@NotNull Player player) {
         PlayerInventory inventory = player.getInventory();
-        removeCraftShortcutItems(inventory);
+        boolean removed = removeCraftShortcutItems(inventory);
         if (isCraftShortcutIcon(player.getItemOnCursor())) {
             player.setItemOnCursor(new ItemStack(Material.AIR));
+            removed = true;
         }
-        player.updateInventory();
+        return removed;
     }
 
     int getCraftShortcutIndex(int rawSlot) {
@@ -298,21 +322,15 @@ final class CraftShortcutView {
         return true;
     }
 
-    private boolean isShortcutMatrix(@NotNull CraftingInventory inventory) {
-        for (ItemStack itemStack : inventory.getMatrix()) {
-            if (itemStack != null && itemStack.getType() != Material.AIR && !isCraftShortcutIcon(itemStack)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    private void removeCraftShortcutItems(@NotNull Inventory inventory) {
+    private boolean removeCraftShortcutItems(@NotNull Inventory inventory) {
+        boolean removed = false;
         for (int slot = 0; slot < inventory.getSize(); slot++) {
             if (isCraftShortcutIcon(inventory.getItem(slot))) {
                 inventory.setItem(slot, new ItemStack(Material.AIR));
+                removed = true;
             }
         }
+        return removed;
     }
 
     private boolean isSameDisplayItem(@Nullable ItemStack current, @Nullable ItemStack next) {

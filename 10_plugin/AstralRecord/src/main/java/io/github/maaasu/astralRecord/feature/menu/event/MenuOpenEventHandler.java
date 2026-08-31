@@ -268,9 +268,12 @@ public class MenuOpenEventHandler extends AbstractEventHandler
     public void onInventoryClose(InventoryCloseEvent event) {
         runSafely(() -> {
             if (event.getInventory() instanceof CraftingInventory inventory) {
-                menuView.clearCraftShortcuts(inventory);
+                boolean shortcutRemoved = menuView.clearCraftShortcuts(inventory);
                 if (event.getPlayer() instanceof Player player) {
-                    menuView.removeCraftShortcutItems(player);
+                    shortcutRemoved |= menuView.removeCraftShortcutItems(player);
+                    if (shortcutRemoved) {
+                        player.updateInventory();
+                    }
                 }
             }
             if (event.getPlayer() instanceof Player player) {
@@ -907,7 +910,9 @@ public class MenuOpenEventHandler extends AbstractEventHandler
 
     private void openMainMenu(@NotNull Player player) {
         suppressCraftRendering(player);
-        menuView.clearCraftShortcuts(player);
+        if (menuView.clearCraftShortcuts(player)) {
+            player.updateInventory();
+        }
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             try {
                 AstPlayer astPlayer = AstPlayerCache.get(player);
@@ -925,7 +930,9 @@ public class MenuOpenEventHandler extends AbstractEventHandler
 
     private void openCurrency(@NotNull Player player, int pageIndex) {
         suppressCraftRendering(player);
-        menuView.clearCraftShortcuts(player);
+        if (menuView.clearCraftShortcuts(player)) {
+            player.updateInventory();
+        }
         plugin.getServer().getScheduler().runTask(plugin, () -> {
             switchGuiWithoutInventoryReload(
                 player,
@@ -996,7 +1003,9 @@ public class MenuOpenEventHandler extends AbstractEventHandler
             return;
         }
         if (astPlayer.isBedrock()) {
-            menuView.clearCraftShortcuts(player);
+            if (menuView.clearCraftShortcuts(player)) {
+                player.updateInventory();
+            }
             return;
         }
         craftRenderSuppressed.add(playerId);
@@ -1024,10 +1033,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler
     private void cleanupCraftShortcuts(@NotNull Player player, boolean updateInventory) {
         craftRenderSuppressed.add(player.getUniqueId());
         try {
-            menuView.clearCraftShortcuts(player);
-            menuView.removeCraftShortcutItems(player);
+            boolean shortcutRemoved = menuView.clearCraftShortcuts(player);
+            shortcutRemoved |= menuView.removeCraftShortcutItems(player);
             removeDroppedCraftShortcutItems(player.getWorld());
-            if (updateInventory) {
+            if (updateInventory && shortcutRemoved) {
                 player.updateInventory();
             }
         } finally {

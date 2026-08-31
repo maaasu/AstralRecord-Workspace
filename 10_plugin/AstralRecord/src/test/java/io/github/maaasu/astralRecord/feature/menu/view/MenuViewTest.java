@@ -1,22 +1,35 @@
 package io.github.maaasu.astralRecord.feature.menu.view;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.currency.view.CurrencyGuiView;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
+import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
+import io.github.maaasu.astralRecord.feature.menu.model.PlayerEquipmentSnapshot;
+import io.github.maaasu.astralRecord.feature.menu.model.PlayerGuiRenderContext;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Material;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.CraftingInventory;
 import org.bukkit.inventory.Inventory;
+import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.ItemStack;
+import org.bukkit.inventory.PlayerInventory;
+import net.kyori.adventure.text.Component;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.any;
+import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -70,6 +83,84 @@ class MenuViewTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
+     * 章・見出し: # 09_3-GUI・View > ## 6. クラフトショートカット描画
+     * 検証契約: BE の残存 shortcut を除去した場合だけ MenuView がクライアント同期を行う。
+     */
+    @Test
+    void bedrockCraftShortcutCleanupSyncsOnlyAfterRemoval() {
+        MenuView menuView = createMenuView();
+        Player player = mock(Player.class);
+        InventoryView inventoryView = mock(InventoryView.class);
+        CraftingInventory inventory = mock(CraftingInventory.class);
+        PlayerInventory playerInventory = mock(PlayerInventory.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        when(astPlayer.isBedrock()).thenReturn(true);
+        when(astPlayer.getBukkit()).thenReturn(player);
+        when(player.getOpenInventory()).thenReturn(inventoryView);
+        when(inventoryView.getTopInventory()).thenReturn(inventory);
+        when(inventory.getMatrix()).thenReturn(new ItemStack[] {
+            menuView.createCraftResultIcon(),
+            new ItemStack(Material.AIR),
+            new ItemStack(Material.AIR),
+            new ItemStack(Material.AIR)
+        });
+        when(inventory.getResult()).thenReturn(new ItemStack(Material.AIR));
+        when(player.getInventory()).thenReturn(playerInventory);
+        when(playerInventory.getSize()).thenReturn(36);
+        when(player.getItemOnCursor()).thenReturn(new ItemStack(Material.AIR));
+
+        menuView.renderCraftShortcuts(
+            astPlayer,
+            MenuShortcutSettings.defaults(),
+            emptyRenderContext()
+        );
+
+        verify(player).updateInventory();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
+     * 章・見出し: # 09_3-GUI・View > ## 6. クラフトショートカット描画
+     * 検証契約: BE の再描画時にクラフト欄が空でも、所持品とカーソルの残存 shortcut を除去して一度だけ同期する。
+     */
+    @Test
+    void bedrockCraftShortcutCleanupRemovesInventoryAndCursorShortcut() {
+        MenuView menuView = createMenuView();
+        Player player = mock(Player.class);
+        InventoryView inventoryView = mock(InventoryView.class);
+        CraftingInventory craftingInventory = mock(CraftingInventory.class);
+        PlayerInventory playerInventory = mock(PlayerInventory.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        ItemStack shortcut = menuView.createCraftResultIcon();
+        when(astPlayer.isBedrock()).thenReturn(true);
+        when(astPlayer.getBukkit()).thenReturn(player);
+        when(player.getOpenInventory()).thenReturn(inventoryView);
+        when(inventoryView.getTopInventory()).thenReturn(craftingInventory);
+        when(craftingInventory.getMatrix()).thenReturn(new ItemStack[] {
+            new ItemStack(Material.AIR),
+            new ItemStack(Material.AIR),
+            new ItemStack(Material.AIR),
+            new ItemStack(Material.AIR)
+        });
+        when(craftingInventory.getResult()).thenReturn(new ItemStack(Material.AIR));
+        when(player.getInventory()).thenReturn(playerInventory);
+        when(playerInventory.getSize()).thenReturn(36);
+        when(playerInventory.getItem(5)).thenReturn(shortcut);
+        when(player.getItemOnCursor()).thenReturn(shortcut);
+
+        menuView.renderCraftShortcuts(
+            astPlayer,
+            MenuShortcutSettings.defaults(),
+            emptyRenderContext()
+        );
+
+        verify(playerInventory).setItem(eq(5), any(ItemStack.class));
+        verify(player).setItemOnCursor(any(ItemStack.class));
+        verify(player).updateInventory();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
      * 章・見出し: # 09_3-GUI・View > ## 4. プレイヤー一覧・詳細
      * 検証契約: 他プレイヤーの装備画面は対象 UUIDを保持し、参照専用として開く。自分以外を編集可能にしない。
      */
@@ -98,5 +189,22 @@ class MenuViewTest extends MockBukkitTestBase {
         when(plugin.namespace()).thenReturn("astralrecord");
         when(plugin.getItemService()).thenReturn(mock(ItemService.class));
         return new MenuView(plugin, mock(GuideService.class));
+    }
+
+    private static PlayerGuiRenderContext emptyRenderContext() {
+        return new PlayerGuiRenderContext(
+            mock(AccountModel.class),
+            StatusSnapshot.empty(),
+            0,
+            0,
+            0L,
+            0L,
+            new PlayerEquipmentSnapshot(
+                Component.text("なし"),
+                Component.text("なし"),
+                Component.text("なし"),
+                Component.text("なし")
+            )
+        );
     }
 }
