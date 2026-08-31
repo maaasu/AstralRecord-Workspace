@@ -512,6 +512,25 @@ public class WorldService {
             @NotNull WorldMasterData data,
             @Nullable Runnable onSuccess
     ) {
+        return teleportToSpawnAsync(player, data, onSuccess, () -> true);
+    }
+
+    /**
+     * WorldMasterData のスポーン地点へ非同期で移動し、実転送直前に条件を再検証します。
+     *
+     * @param player 移動対象プレイヤー
+     * @param data 移動先 WorldMasterData
+     * @param onSuccess 転送成功後に実行する処理。不要な場合は {@code null}
+     * @param beforeTeleport 実転送直前にメインスレッドで評価する条件
+     * @return 移動結果を返す Future
+     */
+    @NotNull
+    public CompletableFuture<Boolean> teleportToSpawnAsync(
+            @NotNull org.bukkit.entity.Player player,
+            @NotNull WorldMasterData data,
+            @Nullable Runnable onSuccess,
+            @NotNull BooleanSupplier beforeTeleport
+    ) {
         Location spawnLocation = resolveOrLoadSpawnLocation(data);
         if (spawnLocation == null || spawnLocation.getWorld() == null) {
             return CompletableFuture.completedFuture(false);
@@ -522,7 +541,7 @@ public class WorldService {
         int chunkX = spawnLocation.getBlockX() >> 4;
         int chunkZ = spawnLocation.getBlockZ() >> 4;
         Logger.log(LogId.I_5753, data.id(), world.getName(), chunkX, chunkZ);
-        return teleportPlayerAsync(player, spawnLocation, onSuccess);
+        return teleportPlayerAsync(player, spawnLocation, onSuccess, beforeTeleport);
     }
 
     /**

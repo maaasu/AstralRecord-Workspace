@@ -90,6 +90,34 @@ class WorldRepositoryTest {
         }
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_1-モデル定義.md
+     * 章・見出し: # 17_1-モデル定義 > ## WorldMasterData
+     * 検証契約: requiredItemId の item 参照オブジェクトを Currency item ID へ正規化して保持する。
+     */
+    @Test
+    void requiredItemReferenceIsNormalizedToItemId() {
+        WorldRepository repository = new StubWorldRepository(Map.of());
+        var detailed = JsonParser.parseString("""
+                [{
+                  "schemaVersion":1,
+                  "id":"eriva_supercontinent",
+                  "displayName":"Eriva Supercontinent",
+                  "worldType":"OVERWORLD",
+                  "baseWorldPath":"plugins/AstralRecord/worlds/overworld/eriva_supercontinent",
+                  "instanceRootPath":"plugins/AstralRecord/_world_instances/eriva_supercontinent",
+                  "spawnLocation":{"x":0.5,"y":64.0,"z":0.5,"yaw":0.0,"pitch":0.0},
+                  "description":"Eriva",
+                  "requiredItemId":{"ref":"item:eriva_waystone"}
+                }]
+                """).getAsJsonArray();
+
+        try (MockedStatic<Logger> logger = mockStatic(Logger.class)) {
+            var result = repository.resolveListPayload(detailed);
+            assertEquals("eriva_waystone", result.getFirst().requiredItemId());
+        }
+    }
+
     private static final class StubWorldRepository extends WorldRepository {
         private final Map<String, WorldMasterData> details;
 

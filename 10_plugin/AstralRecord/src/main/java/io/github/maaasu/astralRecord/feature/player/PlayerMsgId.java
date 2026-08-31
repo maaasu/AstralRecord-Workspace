@@ -799,6 +799,13 @@ public enum PlayerMsgId {
     P_5776(5776),
     // endregion
 
+    // region /feature/world/service/OverworldTeleportService.java 5777-5779
+    /**
+     * 転送先ワールドの必要アイテムを所持していない。
+     */
+    P_5777(5777),
+    // endregion
+
     // region /feature/player/service/PlayerRegionService.java 5780-5789
     /**
      * 地域切り替えタイトル: {0}

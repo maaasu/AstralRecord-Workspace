@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.world.service;
 
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -24,16 +25,23 @@ import java.util.TreeMap;
 public final class OverworldTeleportService {
     private final Plugin plugin;
     private final WorldService worldService;
+    private final InventoryService inventoryService;
 
     /**
      * サービスを初期化します。
      *
      * @param plugin プラグイン本体
      * @param worldService ワールドサービス
+     * @param inventoryService 通貨所持数を確認するインベントリサービス
      */
-    public OverworldTeleportService(@NotNull Plugin plugin, @NotNull WorldService worldService) {
+    public OverworldTeleportService(
+            @NotNull Plugin plugin,
+            @NotNull WorldService worldService,
+            @NotNull InventoryService inventoryService
+    ) {
         this.plugin = plugin;
         this.worldService = worldService;
+        this.inventoryService = inventoryService;
     }
 
     /**
@@ -84,17 +92,46 @@ public final class OverworldTeleportService {
             return;
         }
 
+        if (!hasRequiredItem(astPlayer, destination)) {
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5777);
+            return;
+        }
+
         String displayName = ColorCodeUtil.toPlainText(destination.displayName(), destination.id());
         player.closeInventory();
-        worldService.teleportToSpawnAsync(player, destination).whenComplete((success, throwable) ->
+        worldService.teleportToSpawnAsync(player, destination, null,
+                () -> hasRequiredItem(astPlayer, destination)).whenComplete((success, throwable) ->
                 Bukkit.getScheduler().runTask(plugin, () -> {
                     if (!player.isOnline()) {
                         return;
                     }
                     if (throwable != null || !Boolean.TRUE.equals(success)) {
-                        PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5766, displayName, destination.id());
+                        if (!hasRequiredItem(astPlayer, destination)) {
+                            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5777);
+                        } else {
+                            PlayerMessageService.getInstance().send(
+                                    astPlayer,
+                                    PlayerMsgId.P_5766,
+                                    displayName,
+                                    destination.id()
+                            );
+                        }
                     }
                 })
         );
+    }
+
+    private boolean hasRequiredItem(@NotNull AstPlayer astPlayer, @NotNull WorldMasterData destination) {
+        String requiredItemId = destination.requiredItemId();
+        if (requiredItemId == null) {
+            return true;
+        }
+        if (requiredItemId.isBlank()) {
+            return false;
+        }
+        return inventoryService.getCurrencyAmount(
+                astPlayer.getAccount().getUuid(),
+                requiredItemId
+        ) >= 1L;
     }
 }

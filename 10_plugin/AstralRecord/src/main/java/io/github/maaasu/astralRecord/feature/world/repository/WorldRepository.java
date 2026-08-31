@@ -183,8 +183,35 @@ public class WorldRepository {
                 optionalString(obj, "description", ""),
                 optionalString(obj, "guiIconMaterial"),
                 parseAdventureGuide(obj),
-                parseOverworldTeleportGui(obj)
+                parseOverworldTeleportGui(obj),
+                parseRequiredItemId(obj)
         );
+    }
+
+    @Nullable
+    private static String parseRequiredItemId(@NotNull JsonObject obj) {
+        if (!obj.has("requiredItemId") || obj.get("requiredItemId").isJsonNull()) {
+            return null;
+        }
+
+        JsonElement element = obj.get("requiredItemId");
+        String rawValue;
+        if (element.isJsonPrimitive()) {
+            rawValue = element.getAsString();
+        } else if (element.isJsonObject()) {
+            JsonElement reference = element.getAsJsonObject().get("ref");
+            rawValue = reference != null && reference.isJsonPrimitive()
+                    ? reference.getAsString()
+                    : "";
+        } else {
+            rawValue = "";
+        }
+
+        String normalized = rawValue.trim();
+        if (normalized.regionMatches(true, 0, "item:", 0, "item:".length())) {
+            normalized = normalized.substring("item:".length()).trim();
+        }
+        return normalized;
     }
 
     @Nullable

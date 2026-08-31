@@ -128,6 +128,7 @@ public class MasterDataSeeder(
                 await db.SaveChangesAsync(ct);
 
                 await ValidateReferencesAsync(warnings, ct);
+                await ValidateWorldRequiredItemsAsync(ct);
                 await ValidateSkillSystemMastersAsync(ct);
                 await transaction.CommitAsync(ct);
             }, cancellationToken);
@@ -483,6 +484,56 @@ public class MasterDataSeeder(
         {
             throw new InvalidOperationException(
                 "必須参照が未解決です: " + string.Join(", ", unresolvedRequired));
+        }
+    }
+
+    private async Task ValidateWorldRequiredItemsAsync(CancellationToken cancellationToken)
+    {
+        var entries = await db.Entries
+            .Where(entry => !entry.IsDeleted
+                && (entry.MasterType == "world" || entry.MasterType == "item"))
+            .Select(entry => new
+            {
+                entry.MasterType,
+                entry.MasterId,
+                entry.Category,
+                entry.PayloadJson,
+                entry.SourceFilePath,
+            })
+            .ToArrayAsync(cancellationToken);
+
+        var currencyItemIds = entries
+            .Where(entry => KeyComparer.Equals(entry.MasterType, "item")
+                && KeyComparer.Equals(entry.Category, "currency"))
+            .Select(entry => entry.MasterId)
+            .ToHashSet(KeyComparer);
+
+        foreach (var entry in entries.Where(entry => KeyComparer.Equals(entry.MasterType, "world")))
+        {
+            var world = MasterDataPayloadJson.Deserialize<WorldResponse>(entry.PayloadJson)
+                ?? throw new InvalidOperationException($"worldの解析に失敗しました: {entry.SourceFilePath}");
+            if (!KeyComparer.Equals(world.Id, entry.MasterId))
+                throw new InvalidOperationException($"world.id と master_id が一致しません: {entry.SourceFilePath}");
+
+            if (world.RequiredItemId is null)
+                continue;
+
+            var rawReference = world.RequiredItemId.Trim();
+            const string itemPrefix = "item:";
+            if (!rawReference.StartsWith(itemPrefix, StringComparison.OrdinalIgnoreCase)
+                || rawReference[itemPrefix.Length..].Trim().Length == 0)
+            {
+                throw new InvalidOperationException(
+                    $"world.requiredItemId には item:<id> 形式の通貨アイテム参照を指定してください: {entry.SourceFilePath}");
+            }
+
+            var itemId = rawReference[itemPrefix.Length..].Trim();
+            if (!currencyItemIds.Contains(itemId))
+            {
+                throw new InvalidOperationException(
+                    $"world.requiredItemId の参照先は currency item である必要があります: "
+                    + $"{entry.SourceFilePath} -> item:{itemId}");
+            }
         }
     }
 

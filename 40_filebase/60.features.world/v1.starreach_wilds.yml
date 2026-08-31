@@ -1,9 +1,9 @@
 # design:
-#   motif: "北欧神話 / ヴァナヘイム"
+#   motif: "地形 / 超大陸"
 #   progression: 1
 schemaVersion: 1
 id: vanaheim_supercontinent
-displayName: "ヴァナヘイム超大陸"
+displayName: "エリヴァ超大陸"
 worldType: OVERWORLD
 baseWorldPath: "plugins/AstralRecord/worlds/overworld/vanaheim_supercontinent"
 instanceRootPath: "plugins/AstralRecord/_world_instances/vanaheim_supercontinent"
@@ -21,6 +21,8 @@ spawnLocation:
   yaw: 0.0
   pitch: 0.0
 description: "広大な探索域を備え、冒険の中心となる大規模オープンワールド"
+requiredItemId:
+  ref: "item:eriva_waystone"
 guiIconMaterial: FILLED_MAP
 adventureGuide:
   recommendedLevelMin: 15

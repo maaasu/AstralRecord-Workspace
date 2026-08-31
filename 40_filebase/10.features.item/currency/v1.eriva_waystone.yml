@@ -1,0 +1,18 @@
+# design:
+#   motif: "航海 / 道標"
+#   progression: 1
+schemaVersion: 1
+id: eriva_waystone
+category: currency
+name: "&bエリヴァの道標"
+icon: LODESTONE
+rarity: COMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7エリヴァ超大陸へ通じる道標。"
+unTradeable: true
+unSellable: true
+currency:
+  type: PASS
+  group: eriva

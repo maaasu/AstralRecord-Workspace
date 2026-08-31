@@ -33,6 +33,8 @@ public class WorldResponse
 
     public required string Description { get; init; }
 
+    public string? RequiredItemId { get; init; }
+
     public string? GuiIconMaterial { get; init; }
 
     public WorldAdventureGuideResponse? AdventureGuide { get; init; }

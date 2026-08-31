@@ -166,6 +166,81 @@ public class MasterDataSeederSkillSystemTests
     }
 
     /// <summary>
+    /// 設計入力: 40_filebase/60.features.world/docs.world.YAMLスキーマ定義.md
+    /// 検証契約: world.requiredItemId が参照する currency item を許可する。
+    /// </summary>
+    [Fact]
+    public async Task ValidateWorldRequiredItemsAsync_AllowsCurrencyItemReference()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        fixture.AddEntry("item", "eriva_waystone", "currency", """
+            {
+              "schemaVersion": 1,
+              "id": "eriva_waystone",
+              "category": "currency",
+              "name": "Eriva Waystone",
+              "icon": "LODESTONE",
+              "rarity": "COMMON"
+            }
+            """);
+        fixture.AddEntry("world", "eriva_supercontinent", null, """
+            {
+              "schemaVersion": 1,
+              "id": "eriva_supercontinent",
+              "displayName": "エリヴァ超大陸",
+              "worldType": "OVERWORLD",
+              "baseWorldPath": "plugins/AstralRecord/worlds/overworld/eriva_supercontinent",
+              "instanceRootPath": "plugins/AstralRecord/_world_instances/eriva_supercontinent",
+              "spawnLocation": { "x": 0.5, "y": 64.0, "z": 0.5, "yaw": 0.0, "pitch": 0.0 },
+              "description": "Eriva",
+              "requiredItemId": { "ref": "item:eriva_waystone" }
+            }
+            """);
+        await fixture.Db.SaveChangesAsync();
+
+        await InvokeAsync(fixture.Seeder, "ValidateWorldRequiredItemsAsync", CancellationToken.None);
+    }
+
+    /// <summary>
+    /// 設計入力: 40_filebase/60.features.world/docs.world.YAMLスキーマ定義.md
+    /// 検証契約: world.requiredItemId が currency 以外の item を参照した場合、Seeder は拒否する。
+    /// </summary>
+    [Fact]
+    public async Task ValidateWorldRequiredItemsAsync_RejectsNonCurrencyItemReference()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        fixture.AddEntry("item", "eriva_waystone", "material", """
+            {
+              "schemaVersion": 1,
+              "id": "eriva_waystone",
+              "category": "material",
+              "name": "Eriva Waystone",
+              "icon": "LODESTONE",
+              "rarity": "COMMON"
+            }
+            """);
+        fixture.AddEntry("world", "eriva_supercontinent", null, """
+            {
+              "schemaVersion": 1,
+              "id": "eriva_supercontinent",
+              "displayName": "エリヴァ超大陸",
+              "worldType": "OVERWORLD",
+              "baseWorldPath": "plugins/AstralRecord/worlds/overworld/eriva_supercontinent",
+              "instanceRootPath": "plugins/AstralRecord/_world_instances/eriva_supercontinent",
+              "spawnLocation": { "x": 0.5, "y": 64.0, "z": 0.5, "yaw": 0.0, "pitch": 0.0 },
+              "description": "Eriva",
+              "requiredItemId": { "ref": "item:eriva_waystone" }
+            }
+            """);
+        await fixture.Db.SaveChangesAsync();
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            InvokeAsync(fixture.Seeder, "ValidateWorldRequiredItemsAsync", CancellationToken.None));
+
+        Assert.Contains("currency item", error.Message, StringComparison.Ordinal);
+    }
+
+    /// <summary>
     /// 設計入力: 40_filebase/10.features.item/docs.item.YAMLスキーマ定義.md
     /// 検証契約: シジルmodifierは共有カタログに存在するstatus IDだけを許可する。
     /// </summary>

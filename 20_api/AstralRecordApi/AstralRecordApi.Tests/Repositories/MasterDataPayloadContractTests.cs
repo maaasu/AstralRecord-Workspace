@@ -185,6 +185,30 @@ public class MasterDataPayloadContractTests
     }
 
     [Fact]
+    public void World_PreservesRequiredItemReference()
+    {
+        var world = Deserialize<WorldResponse>("""
+            {
+              "schemaVersion": 1,
+              "id": "eriva_supercontinent",
+              "displayName": "エリヴァ超大陸",
+              "worldType": "OVERWORLD",
+              "baseWorldPath": "plugins/AstralRecord/worlds/overworld/eriva_supercontinent",
+              "instanceRootPath": "plugins/AstralRecord/_world_instances/eriva_supercontinent",
+              "spawnLocation": { "x": 0.5, "y": 64.0, "z": 0.5, "yaw": 0.0, "pitch": 0.0 },
+              "description": "Eriva",
+              "requiredItemId": { "ref": "item:eriva_waystone" }
+            }
+            """);
+
+        Assert.Equal("item:eriva_waystone", world.RequiredItemId);
+        using var document = JsonDocument.Parse(JsonSerializer.Serialize(world, MasterDataJsonOptions()));
+        Assert.Equal(
+            "item:eriva_waystone",
+            document.RootElement.GetProperty("requiredItemId").GetString());
+    }
+
+    [Fact]
     public void Rune_PreservesTargetTags_ThroughApiModelRoundTrip()
     {
         var item = Deserialize<ItemResponse>("""
