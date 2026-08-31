@@ -3,7 +3,9 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.mage;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
+import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileSpec;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileTermination;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
@@ -23,6 +25,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -50,7 +53,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class MageFrostBallExecutorTest {
+class MageFrostBallExecutorTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
@@ -88,7 +91,7 @@ class MageFrostBallExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 26. メイジ フロストボールの実装契約 > ### 26.1 数値・対象・終端
-     * 検証契約: 敵またはBlockへ着弾すると、氷晶の範囲内から最大4体へMAGIC/ICEの一撃を与える。
+     * 検証契約: 敵またはBlockへ着弾すると、氷晶の範囲内から最大4体へ45% MAGIC/ICEの一撃を与え、各対象へ75%・40tickのFROZENを試行する。
      */
     @Test
     void detonatesOnEntityHitAndDamagesMultipleTargets() {
@@ -111,14 +114,25 @@ class MageFrostBallExecutorTest {
         verify(fixture.effects).point(same(impact), eq(SharedParticleDefinitions.MAGE_FROST_BALL_IMPACT));
         verify(fixture.effects).point(same(impact), eq(SharedParticleDefinitions.SKILL_MAGE_ICE));
         verify(fixture.effects).sound(same(impact), eq(Sound.BLOCK_GLASS_BREAK), eq(0.65F), eq(1.45F));
-        verify(fixture.combat).hit(any(AstEntity.class), same(impactedTarget), eq(AttackType.MAGIC), eq(DamageElement.ICE), eq(1.32D));
-        verify(fixture.combat).hit(any(AstEntity.class), same(nearbyTarget), eq(AttackType.MAGIC), eq(DamageElement.ICE), eq(1.32D));
+        ArgumentCaptor<ActiveSkillCondition[]> freezeConditions = ArgumentCaptor.forClass(ActiveSkillCondition[].class);
+        verify(fixture.combat).hit(
+                any(AstEntity.class), same(impactedTarget), eq(AttackType.MAGIC), eq(DamageElement.ICE),
+                eq(MageFrostBallExecutor.DEFAULT_DAMAGE_RATIO), freezeConditions.capture()
+        );
+        assertEquals(1, freezeConditions.getValue().length);
+        assertEquals(ConditionType.FROZEN, freezeConditions.getValue()[0].type());
+        assertEquals(75.0D, freezeConditions.getValue()[0].chance());
+        assertEquals(40L, freezeConditions.getValue()[0].durationTicks());
+        verify(fixture.combat).hit(
+                any(AstEntity.class), same(nearbyTarget), eq(AttackType.MAGIC), eq(DamageElement.ICE),
+                eq(MageFrostBallExecutor.DEFAULT_DAMAGE_RATIO), any(ActiveSkillCondition[].class)
+        );
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 26. メイジ フロストボールの実装契約 > ### 26.1 数値・対象・終端
-     * 検証契約: Block終端だけで氷晶が炸裂し、射程終端ではダメージも炸裂も発生しない。
+     * 検証契約: Block終端だけで氷晶が炸裂し、射程終端ではダメージも状態異常も炸裂も発生しない。
      */
     @Test
     void detonatesOnBlockButNotRangeTermination() {
@@ -145,10 +159,52 @@ class MageFrostBallExecutorTest {
 
         verify(fixture.effects).point(same(blockImpact), eq(SharedParticleDefinitions.MAGE_FROST_BALL_IMPACT));
         verify(fixture.effects, times(1)).sound(same(blockImpact), eq(Sound.BLOCK_GLASS_BREAK), eq(0.65F), eq(1.45F));
-        verify(fixture.combat).hit(any(AstEntity.class), same(blockTarget), eq(AttackType.MAGIC), eq(DamageElement.ICE), eq(1.32D));
+        verify(fixture.combat).hit(
+                any(AstEntity.class), same(blockTarget), eq(AttackType.MAGIC), eq(DamageElement.ICE),
+                eq(MageFrostBallExecutor.DEFAULT_DAMAGE_RATIO), any(ActiveSkillCondition[].class)
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 26. メイジ フロストボールの実装契約 > ### 26.1 数値・対象・終端
+     * 検証契約: 最大Lv.5では、Lv.1の40tickからレベルごとに40tick加算された200tick（10秒）の凍結設定値を命中時に渡す。
+     */
+    @Test
+    void usesConfiguredMaxLevelFreezeDuration() {
+        Fixture fixture = fixture(200);
+        fixture.executor.cast(fixture.context);
+
+        ArgumentCaptor<BiConsumer<AstEntity, Location>> hitCaptor = biConsumerCaptor();
+        verify(fixture.projectiles).launchWithTermination(
+                same(fixture.player), any(Location.class), any(), any(SkillProjectileSpec.class), hitCaptor.capture(), any()
+        );
+        AstEntity target = mock(AstEntity.class);
+        Location impact = new Location(null, 5.0D, 64.0D, 0.0D);
+        when(fixture.targeting.inRadius(same(fixture.player), same(impact), eq(2.25D), eq(2.25D), eq(4), eq(true)))
+                .thenReturn(List.of(target));
+
+        hitCaptor.getValue().accept(target, impact);
+
+        ArgumentCaptor<ActiveSkillCondition[]> conditions = ArgumentCaptor.forClass(ActiveSkillCondition[].class);
+        verify(fixture.combat).hit(
+                any(AstEntity.class), same(target), eq(AttackType.MAGIC), eq(DamageElement.ICE),
+                eq(MageFrostBallExecutor.DEFAULT_DAMAGE_RATIO), conditions.capture()
+        );
+        assertEquals(ConditionType.FROZEN, conditions.getValue()[0].type());
+        assertEquals(75.0D, conditions.getValue()[0].chance());
+        assertEquals(200L, conditions.getValue()[0].durationTicks());
     }
 
     private static Fixture fixture() {
+        return fixture(validParams());
+    }
+
+    private static Fixture fixture(int freezeDurationTicks) {
+        return fixture(validParams(freezeDurationTicks));
+    }
+
+    private static Fixture fixture(Map<String, Object> params) {
         SkillTargetingService targeting = mock(SkillTargetingService.class);
         SkillCombatService combat = mock(SkillCombatService.class);
         SkillEffectService effects = mock(SkillEffectService.class);
@@ -168,7 +224,7 @@ class MageFrostBallExecutorTest {
         AstPlayer astPlayer = mock(AstPlayer.class);
         when(astPlayer.getBukkit()).thenReturn(player);
         SkillCastContext context = new SkillCastContext(
-                definition(validParams()),
+                definition(params),
                 new PlayerSkillCaster(astPlayer),
                 null,
                 List.of(),
@@ -205,13 +261,19 @@ class MageFrostBallExecutorTest {
     }
 
     private static Map<String, Object> validParams() {
+        return validParams(MageFrostBallExecutor.DEFAULT_FREEZE_DURATION_TICKS);
+    }
+
+    private static Map<String, Object> validParams(int freezeDurationTicks) {
         return Map.of(
                 "range", 16.0D,
                 "radius", 2.25D,
-                "damageRatio", 1.32D,
+                "damageRatio", MageFrostBallExecutor.DEFAULT_DAMAGE_RATIO,
                 "maxTargets", 4,
                 "projectileSpeed", 1.45D,
-                "projectileHitRadius", 0.45D
+                "projectileHitRadius", 0.45D,
+                "freezeChance", MageFrostBallExecutor.DEFAULT_FREEZE_CHANCE,
+                "freezeDurationTicks", freezeDurationTicks
         );
     }
 

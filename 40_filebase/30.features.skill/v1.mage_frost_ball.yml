@@ -12,6 +12,7 @@ lore:
   - "&7射程{skill.range}mへ氷球を放つ。"
   - "&7着弾地点の半径{skill.radius}mへ、魔法攻撃力{skill.effectiveDamageRatio:percent}%の氷属性ダメージ。"
   - "&7最大{skill.maxTargets}体。敵または地形への着弾時だけ氷晶が炸裂する。"
+  - "&7命中時{skill.freezeChance}%の確率で{skill.freezeDurationTicks:seconds}秒間凍結させる。"
 cooldownTicks: 80
 resourceType: MANA
 resourceCost: 12
@@ -20,12 +21,16 @@ requiredLevel: 1
 maxLevel: 5
 levels:
   - level: 2
+    paramDeltas: { freezeDurationTicks: 40 }
     statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
   - level: 3
+    paramDeltas: { freezeDurationTicks: 40 }
     statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
   - level: 4
+    paramDeltas: { freezeDurationTicks: 40 }
     statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
   - level: 5
+    paramDeltas: { freezeDurationTicks: 40 }
     statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
 sigilSlotsByLevel:
   - { level: 1, slots: 1 }
@@ -45,12 +50,14 @@ tags:
   - magic
 # behavior:
 #   projectile: "発動時の照準方向へ射程16mを飛翔する、重力なし・非貫通の氷球。最初の敵または地形ブロックへ衝突すると消滅し、最大射程へ無衝突で到達した場合は炸裂せず消滅する。"
-#   impact: "衝突地点を中心に半径radius、上下radiusの範囲から最大maxTargets体へ、中心・外周で差のないICE属性の魔法攻撃を1回与える。持続エリア、状態異常、ノックバックは発生しない。"
-#   targets: "Mobのみを対象にし、NPCとPvP対象を含めない。Bossは通常Mobと同じく対象になる。中心から対象へのブロック遮蔽がある敵は命中しない。"
+#   impact: "衝突地点を中心に半径radius、上下radiusの範囲から最大maxTargets体へ、中心・外周で差のないICE属性の魔法攻撃を1回与える。命中時freezeChance%でfreezeDurationTicks tickのFROZENを付与し、持続エリアとノックバックは発生させない。"
+#   targets: "Mobのみを対象にし、NPCとPvP対象を含めない。Bossは対象になるが、FROZENは共通CONTROL補正で設定持続時間の25%を実適用する。中心から対象へのブロック遮蔽がある敵は命中しない。"
 params:
   range: 16.0
   radius: 2.25
-  damageRatio: 1.32
+  damageRatio: 0.45
   maxTargets: 4
   projectileSpeed: 1.45
   projectileHitRadius: 0.45
+  freezeChance: 75.0
+  freezeDurationTicks: 40

@@ -3,6 +3,8 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.mage;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
+import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
+import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileSpec;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileTermination;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
@@ -21,6 +23,9 @@ import org.jetbrains.annotations.NotNull;
 public final class MageFrostBallExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "mage_frost_ball";
+    static final double DEFAULT_DAMAGE_RATIO = 0.45D;
+    static final double DEFAULT_FREEZE_CHANCE = 75.0D;
+    static final int DEFAULT_FREEZE_DURATION_TICKS = 40;
 
     /** 共有発動スキルサービスで初期化します。 */
     public MageFrostBallExecutor(@NotNull ActiveSkillServices services) {
@@ -40,6 +45,15 @@ public final class MageFrostBallExecutor extends PlayerActiveSkillExecutor {
         if (params.getInt("maxTargets", 0) < 1) {
             throw new SkillParameterException("maxTargets", "フロストボールの params[maxTargets] は1以上の整数が必要です");
         }
+        if (params.getInt("freezeDurationTicks", 0) < 1) {
+            throw new SkillParameterException("freezeDurationTicks", "フロストボールの凍結時間は1 tick以上が必要です");
+        }
+        double freezeChance = params.getDouble("freezeChance", -1.0D);
+        if (freezeChance < 0.0D || freezeChance > 100.0D) {
+            throw new SkillParameterException(
+                    "freezeChance", "フロストボールの凍結付与確率は0以上100以下が必要です"
+            );
+        }
     }
 
     /** {@inheritDoc} */
@@ -48,10 +62,15 @@ public final class MageFrostBallExecutor extends PlayerActiveSkillExecutor {
         SkillParamReader params = context.params();
         double range = params.getDouble("range", 16.0D);
         double radius = params.getDouble("radius", 2.25D);
-        double damageRatio = params.getDouble("damageRatio", 1.32D);
+        double damageRatio = params.getDouble("damageRatio", DEFAULT_DAMAGE_RATIO);
         int maxTargets = params.getInt("maxTargets", 4);
         double projectileSpeed = params.getDouble("projectileSpeed", 1.45D);
         double projectileHitRadius = params.getDouble("projectileHitRadius", 0.45D);
+        double freezeChance = params.getDouble("freezeChance", DEFAULT_FREEZE_CHANCE);
+        int freezeDurationTicks = params.getInt("freezeDurationTicks", DEFAULT_FREEZE_DURATION_TICKS);
+        ActiveSkillCondition frozen = new ActiveSkillCondition(
+                ConditionType.FROZEN, freezeChance, freezeDurationTicks, 1.0D
+        );
         boolean[] detonated = {false};
 
         context.services().projectiles().launchWithTermination(
@@ -60,7 +79,7 @@ public final class MageFrostBallExecutor extends PlayerActiveSkillExecutor {
                 context.direction(),
                 frostBallProjectile(range, projectileSpeed, projectileHitRadius),
                 (target, impact) -> detonate(
-                        context, context.attacker(), impact, impact, detonated, radius, maxTargets, damageRatio
+                        context, context.attacker(), impact, impact, detonated, radius, maxTargets, damageRatio, frozen
                 ),
                 termination -> {
                     if (termination.type() == SkillProjectileTermination.Type.BLOCK) {
@@ -72,7 +91,8 @@ public final class MageFrostBallExecutor extends PlayerActiveSkillExecutor {
                                 detonated,
                                 radius,
                                 maxTargets,
-                                damageRatio
+                                damageRatio,
+                                frozen
                         );
                     }
                 }
@@ -108,7 +128,8 @@ public final class MageFrostBallExecutor extends PlayerActiveSkillExecutor {
             boolean @NotNull [] detonated,
             double radius,
             int maxTargets,
-            double damageRatio
+            double damageRatio,
+            @NotNull ActiveSkillCondition frozen
     ) {
         if (detonated[0]) {
             return;
@@ -118,7 +139,7 @@ public final class MageFrostBallExecutor extends PlayerActiveSkillExecutor {
         context.services().effects().point(displayCenter, SharedParticleDefinitions.SKILL_MAGE_ICE);
         context.services().targeting().inRadius(context.player(), effectCenter, radius, radius, maxTargets, true)
                 .forEach(target -> context.services().combat().hit(
-                        attacker, target, AttackType.MAGIC, DamageElement.ICE, damageRatio
+                        attacker, target, AttackType.MAGIC, DamageElement.ICE, damageRatio, frozen
                 ));
         context.services().effects().sound(displayCenter, Sound.BLOCK_GLASS_BREAK, 0.65F, 1.45F);
     }
