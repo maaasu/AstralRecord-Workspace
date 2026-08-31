@@ -31,18 +31,18 @@ final class BossMechanicProfile {
                 List.of(
                     Mechanic.SUNBIRD_SOLAR_NOVA,
                     Mechanic.SUNBIRD_SOLAR_FLARE,
-                    Mechanic.SUNBIRD_SOLAR_NOVA,
                     Mechanic.SUNBIRD_SUNSTRIKE,
-                    Mechanic.SUNBIRD_SOLAR_NOVA,
-                    Mechanic.SUNBIRD_SOLAR_BEAM
+                    Mechanic.SUNBIRD_SOLAR_BEAM,
+                    Mechanic.SUNBIRD_SOLAR_FLARE,
+                    Mechanic.SUNBIRD_SUNSTRIKE
                 ),
                 List.of(
                     Mechanic.SUNBIRD_SOLAR_NOVA,
                     Mechanic.SUNBIRD_SOLAR_BEAM,
-                    Mechanic.SUNBIRD_SOLAR_NOVA,
                     Mechanic.SUNBIRD_SUNSTRIKE,
-                    Mechanic.SUNBIRD_SOLAR_NOVA,
-                    Mechanic.SUNBIRD_SOLAR_FLARE
+                    Mechanic.SUNBIRD_SOLAR_FLARE,
+                    Mechanic.SUNBIRD_SOLAR_BEAM,
+                    Mechanic.SUNBIRD_SUNSTRIKE
                 )
             ),
             List.of(60L, 46L),

@@ -64,9 +64,10 @@ public final class BossMechanicService {
     private static final long SUNBIRD_TELEPORT_INTERVAL_TICKS = 240L;
     private static final double SUNBIRD_TELEPORT_RADIUS = 7.0D;
     private static final int SUNBIRD_TELEPORT_POINT_COUNT = 6;
-    private static final double SUNBIRD_ARENA_RADIUS = 13.0D;
+    private static final double SUNBIRD_ARENA_RADIUS = 18.0D;
     private static final int SUNBIRD_ARENA_BOUNDARY_POINT_COUNT = 48;
-    private static final int SUNBIRD_ARENA_BOUNDARY_LAYER_COUNT = 3;
+    private static final int SUNBIRD_ARENA_BOUNDARY_UPPER_LAYER_COUNT = 3;
+    private static final int SUNBIRD_ARENA_BOUNDARY_LOWER_LAYER_COUNT = 5;
     private static final double SUNBIRD_ARENA_BOUNDARY_LAYER_HEIGHT = 0.5D;
     private static final long SUNBIRD_ARENA_PULSE_INTERVAL_TICKS = 20L;
     private static final double SUNBIRD_ARENA_DAMAGE_RATIO = 0.18D;
@@ -183,7 +184,7 @@ public final class BossMechanicService {
     }
 
     /**
-     * サンバード戦の半径13ブロック境界を表示し、外周へ継続ダメージと帰還タックルを適用します。
+     * サンバード戦の半径18ブロック境界を表示し、外周へ継続ダメージと帰還タックルを適用します。
      *
      * @param boss 対象ボス
      * @param entity 対象ボスの実体
@@ -230,7 +231,7 @@ public final class BossMechanicService {
     }
 
     /**
-     * スポーン地点から半径13ブロックより外側にいる管理対象Playerへ火属性ダメージを与えます。
+     * スポーン地点から半径18ブロックより外側にいる管理対象Playerへ火属性ダメージを与えます。
      *
      * @param boss ダメージ発生元
      * @param center 安全圏の中心
@@ -882,21 +883,27 @@ public final class BossMechanicService {
     }
 
     /**
-     * サンバードの安全圏境界を、同じ円周の3層表示として1回の近傍閲覧者判定で表示します。
+     * サンバードの安全圏境界を、同じ円周の上下8層表示として1回の近傍閲覧者判定で表示します。
      *
      * @param center 安全圏の中心
      */
     private void renderSunbirdArenaBoundary(@NotNull Location center) {
+        int layerCount = SUNBIRD_ARENA_BOUNDARY_UPPER_LAYER_COUNT
+            + SUNBIRD_ARENA_BOUNDARY_LOWER_LAYER_COUNT;
         List<Location> locations = new ArrayList<>(
-            SUNBIRD_ARENA_BOUNDARY_POINT_COUNT * SUNBIRD_ARENA_BOUNDARY_LAYER_COUNT
+            SUNBIRD_ARENA_BOUNDARY_POINT_COUNT * layerCount
         );
-        for (int layer = 0; layer < SUNBIRD_ARENA_BOUNDARY_LAYER_COUNT; layer++) {
+        for (int layer = -SUNBIRD_ARENA_BOUNDARY_LOWER_LAYER_COUNT;
+             layer < SUNBIRD_ARENA_BOUNDARY_UPPER_LAYER_COUNT;
+             layer++) {
             Location layerCenter = center.clone().add(
                 0.0D,
                 layer * SUNBIRD_ARENA_BOUNDARY_LAYER_HEIGHT,
                 0.0D
             );
-            locations.addAll(circleLocations(layerCenter, SUNBIRD_ARENA_RADIUS, SUNBIRD_ARENA_BOUNDARY_POINT_COUNT));
+            locations.addAll(
+                circleLocations(layerCenter, SUNBIRD_ARENA_RADIUS, SUNBIRD_ARENA_BOUNDARY_POINT_COUNT)
+            );
         }
         renderRange(center, locations, SharedParticleDefinitions.SUNBIRD_SOLAR_DUST);
     }
