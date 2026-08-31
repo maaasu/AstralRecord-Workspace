@@ -7,7 +7,7 @@
 
 責務:
 
-プレイヤーの現在ワールドと解除状態に応じて、ウェイストーンの BlockDisplay / TextDisplay / ItemDisplay 相当の packet 表示を同期する。
+プレイヤーの現在ワールドと解除状態に応じて、ウェイストーンの BlockDisplay / TextDisplay / ItemDisplay 相当の packet 表示を同期する。`AstPlayer.isBedrock=true` のプレイヤーには BlockDisplay と ItemDisplay を送信せず、TextDisplay と粒子フォールバックで視認性を確保する。
 
 処理内容:
 
@@ -18,6 +18,8 @@
 5. 生成した `PacketEntity` のリストをプレイヤー UUID ごとに保持する。
 
 現行実装は表示距離による除外、既存 entity の metadata 更新、ウェイストーン単位の差分同期を行わない。
+
+BE フォールバックは `WaystonePacketView` の反復処理で10 tick間隔に実行し、同一ワールドかつ基準座標から64 block以内のウェイストーンごとに、基準座標上方の状態色付き粒子をプレイヤー単位で1個表示する。
 
 表示構成:
 

@@ -403,6 +403,10 @@ public class MenuView {
         @NotNull MenuShortcutSettings settings,
         @NotNull PlayerGuiRenderContext context
     ) {
+        if (astPlayer.isBedrock()) {
+            craftShortcutView.clearCraftShortcuts(astPlayer.getBukkit());
+            return;
+        }
         craftShortcutView.renderCraftShortcuts(
             astPlayer.getBukkit(),
             settings,

@@ -72,7 +72,9 @@ public final class MenuGuiTransitionService {
      * @param player 対象プレイヤー
      */
     public void fillPlayerInventoryDummy(@NotNull Player player) {
-        ItemStack dummy = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        Material dummyMaterial = playerInventoryDummyMaterial(astPlayer != null && astPlayer.isBedrock());
+        ItemStack dummy = new ItemStack(dummyMaterial);
         ItemMeta meta = dummy.getItemMeta();
         if (meta != null) {
             meta.displayName(Component.text(" "));
@@ -83,6 +85,16 @@ public final class MenuGuiTransitionService {
             inventory.setItem(slot, dummy.clone());
         }
         player.updateInventory();
+    }
+
+    /**
+     * プレイヤーインベントリを隠すためのダミー素材を版ごとに選択します。
+     *
+     * @param bedrock BE プレイヤーの場合 true
+     * @return 使用するダミー素材
+     */
+    static @NotNull Material playerInventoryDummyMaterial(boolean bedrock) {
+        return bedrock ? Material.GLOW_LICHEN : Material.GRAY_STAINED_GLASS_PANE;
     }
 
     /**

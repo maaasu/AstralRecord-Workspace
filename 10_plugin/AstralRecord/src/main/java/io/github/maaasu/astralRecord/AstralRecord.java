@@ -908,16 +908,18 @@ public final class AstralRecord extends JavaPlugin {
             lootService
         );
         particleDisplayService = new ParticleDisplayService(playerSettingService);
+        skillTreeService.setParticleDisplayService(particleDisplayService);
         hookshotUseService = new HookshotUseService(this, inventoryService, itemService, particleDisplayService);
         mobSpawnerService.setParticleDisplayService(particleDisplayService);
         gatheringSpawnerService.setParticleDisplayService(particleDisplayService);
         displayTextService = new DisplayTextService();
         textDisplayPlacementService.setDisplayTextService(displayTextService);
-        waystonePacketView = new WaystonePacketView(teleporterService);
+        waystonePacketView = new WaystonePacketView(this, teleporterService, particleDisplayService);
         teleporterGui = new TeleporterGui(teleporterService);
         teleporterGuiEventHandler = new TeleporterGuiEventHandler(teleporterGui, teleporterService, inventoryService);
         waystoneHitBoxResolver = new WaystoneHitBoxResolver(teleporterService);
         teleporterService.setRuntimeServices(inventoryService, worldService, waystonePacketView, teleporterGui, teleporterGuiEventHandler, particleDisplayService);
+        waystonePacketView.start();
         overworldTeleportService = new OverworldTeleportService(this, worldService, inventoryService);
         overworldTeleportGui = new OverworldTeleportGui();
         overworldTeleportGuiEventHandler = new OverworldTeleportGuiEventHandler(overworldTeleportGui, overworldTeleportService);

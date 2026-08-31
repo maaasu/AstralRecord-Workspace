@@ -8,6 +8,9 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePosition;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Location;
@@ -53,6 +56,7 @@ final class SkillTreeVisualizer {
 
     private final Plugin plugin;
     private final SkillTreeService service;
+    private final @Nullable ParticleDisplayService particleDisplayService;
     private final SkillTreePacketDisplay packetDisplay;
     private final Map<String, NodeVisual> nodeVisuals = new HashMap<>();
     private final Map<String, AdminPositionVisual> adminPositionVisuals = new HashMap<>();
@@ -65,8 +69,17 @@ final class SkillTreeVisualizer {
     private BukkitTask task;
 
     SkillTreeVisualizer(@NotNull Plugin plugin, @NotNull SkillTreeService service) {
+        this(plugin, service, null);
+    }
+
+    SkillTreeVisualizer(
+            @NotNull Plugin plugin,
+            @NotNull SkillTreeService service,
+            @Nullable ParticleDisplayService particleDisplayService
+    ) {
         this.plugin = plugin;
         this.service = service;
+        this.particleDisplayService = particleDisplayService;
         this.packetDisplay = new SkillTreePacketDisplay(plugin);
     }
 
@@ -127,6 +140,41 @@ final class SkillTreeVisualizer {
         nodeVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
         adminPositionVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
         edgeVisuals.values().forEach(visual -> visual.pruneViewers(onlineViewerIds));
+        renderBedrockEdgeFallbacks();
+    }
+
+    /**
+     * Bedrock Edition では edge の BlockDisplay を送らず、中点の軽量な粒子だけを再表示します。
+     */
+    private void renderBedrockEdgeFallbacks() {
+        ParticleDisplayService particles = particleDisplayService;
+        if (particles == null || edgeVisuals.isEmpty()) {
+            return;
+        }
+        for (Player player : plugin.getServer().getOnlinePlayers()) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null || !astPlayer.isBedrock()) {
+                continue;
+            }
+            RenderMode mode = resolveMode(player);
+            if (mode == RenderMode.HIDDEN) {
+                continue;
+            }
+            for (EdgeVisual visual : edgeVisuals.values()) {
+                Location midpoint = visual.midpoint();
+                if (!isVisibleTo(player, midpoint)) {
+                    continue;
+                }
+                EdgeState state = resolveEdgeState(player, visual.edge(), mode);
+                if (state == EdgeState.HIDDEN) {
+                    continue;
+                }
+                SharedParticleDefinition particle = edgeParticle(state);
+                if (particle != null) {
+                    particles.spawnForViewer(astPlayer, midpoint, particle);
+                }
+            }
+        }
     }
 
     private @NotNull Set<UUID> currentOnlineViewerIds() {
@@ -382,6 +430,16 @@ final class SkillTreeVisualizer {
                 && location.getWorld() != null
                 && player.getWorld() == location.getWorld()
                 && player.getLocation().distanceSquared(location) <= viewDistance * viewDistance;
+    }
+
+    private @Nullable SharedParticleDefinition edgeParticle(@NotNull EdgeState state) {
+        return switch (state) {
+            case ADMIN -> SharedParticleDefinitions.SKILLTREE_EDGE_ADMIN_DUST;
+            case LOCKED -> SharedParticleDefinitions.SKILLTREE_EDGE_LOCKED_DUST;
+            case CONNECTED -> SharedParticleDefinitions.SKILLTREE_EDGE_CONNECTED_DUST;
+            case UNLOCKED -> SharedParticleDefinitions.SKILLTREE_EDGE_UNLOCKED_DUST;
+            case HIDDEN -> null;
+        };
     }
 
     private boolean isChunkLoaded(@NotNull Location location) {
@@ -861,6 +919,15 @@ final class SkillTreeVisualizer {
         private void updateViewer(@NotNull Player player, @NotNull EdgeState nextState) {
             UUID playerId = player.getUniqueId();
             EdgeState previousState = viewerStates.getOrDefault(playerId, EdgeState.HIDDEN);
+
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null && astPlayer.isBedrock()) {
+                if (previousState != EdgeState.HIDDEN) {
+                    block.destroy(player);
+                }
+                viewerStates.remove(playerId);
+                return;
+            }
 
             if (previousState == nextState) {
                 return;

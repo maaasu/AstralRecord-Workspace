@@ -56,6 +56,8 @@ import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
 import org.bukkit.event.inventory.InventoryOpenEvent;
+import org.bukkit.event.inventory.InventoryAction;
+import org.bukkit.event.inventory.InventoryType;
 import org.bukkit.event.inventory.PrepareItemCraftEvent;
 import org.bukkit.event.player.PlayerChangedWorldEvent;
 import org.bukkit.event.player.PlayerDropItemEvent;
@@ -393,6 +395,11 @@ public class MenuOpenEventHandler extends AbstractEventHandler
                 return;
             }
 
+            if (isBedrockCraftingClick(event, player)) {
+                event.setCancelled(true);
+                return;
+            }
+
             if (!isPlayerMode(player)) {
                 return;
             }
@@ -473,7 +480,14 @@ public class MenuOpenEventHandler extends AbstractEventHandler
                 return;
             }
 
-            if (!(event.getWhoClicked() instanceof Player player) || !isPlayerMode(player)) {
+            if (!(event.getWhoClicked() instanceof Player player)) {
+                return;
+            }
+            if (isBedrockCraftingDrag(event, player)) {
+                event.setCancelled(true);
+                return;
+            }
+            if (!isPlayerMode(player)) {
                 return;
             }
             for (int rawSlot : event.getRawSlots()) {
@@ -981,6 +995,10 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         if (astPlayer == null || astPlayer.getAccount().getMode() != AccountMode.PLAYER) {
             return;
         }
+        if (astPlayer.isBedrock()) {
+            menuView.clearCraftShortcuts(player);
+            return;
+        }
         craftRenderSuppressed.add(playerId);
         try {
             var context = playerGuiRenderContextFactory.create(astPlayer);
@@ -1035,6 +1053,85 @@ public class MenuOpenEventHandler extends AbstractEventHandler
         return event.getView().getType() == org.bukkit.event.inventory.InventoryType.CRAFTING
             && event.getRawSlot() >= MenuView.CRAFT_RESULT_RAW_SLOT
             && event.getRawSlot() < MenuView.CRAFT_RESULT_RAW_SLOT + craftMenuSlotCount();
+    }
+
+    private boolean isBedrockCraftingClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
+        return isBedrockCraftingClick(
+            isBedrockPlayer(player),
+            event.getView().getType(),
+            event.getRawSlot(),
+            event.getClick().isShiftClick(),
+            event.getClickedInventory() == event.getView().getBottomInventory(),
+            event.getAction()
+        );
+    }
+
+    private boolean isBedrockCraftingDrag(@NotNull InventoryDragEvent event, @NotNull Player player) {
+        return isBedrockCraftingDrag(
+            isBedrockPlayer(player),
+            event.getView().getType(),
+            event.getRawSlots()
+        );
+    }
+
+    /**
+     * BE プレイヤーのクラフト枠・リザルト枠への操作を判定します。
+     * 通常インベントリからクラフト枠へ移る実際の Shift 移動だけは併せて停止します。
+     *
+     * @param bedrock BE プレイヤーの場合 true
+     * @param viewType 表示中のインベントリ種別
+     * @param rawSlot クリックされた上段インベントリの raw slot
+     * @param shiftClick Shift クリックの場合 true
+     * @param clickedBottom 下段（プレイヤー）インベントリをクリックした場合 true
+     * @param action Bukkit が解決したクリック操作
+     * @return 操作をキャンセルすべき場合 true
+     */
+    static boolean isBedrockCraftingClick(
+        boolean bedrock,
+        @NotNull InventoryType viewType,
+        int rawSlot,
+        boolean shiftClick,
+        boolean clickedBottom,
+        @NotNull InventoryAction action
+    ) {
+        if (!bedrock || viewType != InventoryType.CRAFTING) {
+            return false;
+        }
+        if (rawSlot >= MenuView.CRAFT_RESULT_RAW_SLOT
+            && rawSlot < MenuView.CRAFT_RESULT_RAW_SLOT + MenuShortcutSettings.SLOT_COUNT + 1) {
+            return true;
+        }
+        return shiftClick && clickedBottom && action == InventoryAction.MOVE_TO_OTHER_INVENTORY;
+    }
+
+    /**
+     * BE プレイヤーのクラフト枠・リザルト枠へのドラッグ設置を判定します。
+     *
+     * @param bedrock BE プレイヤーの場合 true
+     * @param viewType 表示中のインベントリ種別
+     * @param rawSlots ドラッグ対象 raw slot 集合
+     * @return 操作をキャンセルすべき場合 true
+     */
+    static boolean isBedrockCraftingDrag(
+        boolean bedrock,
+        @NotNull InventoryType viewType,
+        @NotNull Set<Integer> rawSlots
+    ) {
+        if (!bedrock || viewType != InventoryType.CRAFTING) {
+            return false;
+        }
+        for (int rawSlot : rawSlots) {
+            if (rawSlot >= MenuView.CRAFT_RESULT_RAW_SLOT
+                && rawSlot < MenuView.CRAFT_RESULT_RAW_SLOT + MenuShortcutSettings.SLOT_COUNT + 1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private boolean isBedrockPlayer(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return astPlayer != null && astPlayer.isBedrock();
     }
 
     private int craftMenuSlotCount() {

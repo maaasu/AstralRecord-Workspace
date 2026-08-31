@@ -32,6 +32,7 @@ import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionRayTrace;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import net.kyori.adventure.text.Component;
@@ -296,6 +297,7 @@ public class SkillTreeService {
     private BukkitTask saveTask;
     private BukkitTask feedbackTask;
     private SkillTreeVisualizer visualizer;
+    private @Nullable ParticleDisplayService particleDisplayService;
     private boolean playerStateSaveInProgress;
     private BiConsumer<AstPlayer, String> nodeUnlockListener = (player, nodeId) -> { };
     private volatile PlayerStateValidationSnapshot playerStateValidationSnapshot = PlayerStateValidationSnapshot.unavailable();
@@ -320,6 +322,13 @@ public class SkillTreeService {
 
     public void setInventoryService(@NotNull InventoryService inventoryService) {
         this.inventoryService = inventoryService;
+    }
+
+    /**
+     * Bedrock Edition 向けの表示フォールバックに使うパーティクルサービスを設定します。
+     */
+    public void setParticleDisplayService(@NotNull ParticleDisplayService particleDisplayService) {
+        this.particleDisplayService = particleDisplayService;
     }
 
     /**
@@ -457,7 +466,7 @@ public class SkillTreeService {
                 resolvedWorld == null ? "null" : resolvedWorld.getName()
         );
         if (visualizer == null) {
-            visualizer = new SkillTreeVisualizer(plugin, this);
+            visualizer = new SkillTreeVisualizer(plugin, this, particleDisplayService);
             visualizer.start();
         }
         if (saveTask == null) {

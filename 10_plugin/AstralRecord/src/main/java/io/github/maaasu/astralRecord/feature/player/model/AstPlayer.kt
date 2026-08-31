@@ -9,7 +9,6 @@ import io.github.maaasu.astralRecord.feature.player.GameModeChangeGuard
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot
 import io.github.maaasu.astralRecord.feature.user.model.UserModel
-import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties
 import io.github.maaasu.astralRecord.feature.resourcepack.service.BedrockPlayerDetector
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
@@ -40,6 +39,10 @@ data class AstPlayer(
 ) {
     var statusSnapshot: StatusSnapshot = StatusSnapshot.empty()
     val activeBuffs: MutableList<ActiveBuff> = mutableListOf()
+
+    /** user.mcid にドットを含む場合に Bedrock Edition として扱うセッションフラグ。 */
+    var isBedrock: Boolean = BedrockPlayerDetector.isBedrockMcid(user.mcid)
+        private set
 
     /** GUI を閉じずに遷移した現在画面と戻り先のセッション履歴。 */
     val guiNavigationState: GuiNavigationState = GuiNavigationState()
@@ -205,18 +208,6 @@ data class AstPlayer(
     }
 
     /**
-     * このプレイヤーを Bedrock Edition プレイヤーとして扱うべきか判定します。
-     *
-     * @return Bedrock Edition プレイヤーとして扱うなら true
-     */
-    fun isBedrock(): Boolean {
-        return BedrockPlayerDetector.isBedrock(
-            bukkit.name,
-            ConfigProperties.getInstance().resourcePackBedrockNamePrefixes,
-        )
-    }
-
-    /**
      * [UserModel] の permission を新しい値で更新し、Minecraft OP 権限を同期します。
      * <p>
      * permission >= [OP_PERMISSION_THRESHOLD] の場合は [bukkit].setOp(true)、
@@ -226,6 +217,7 @@ data class AstPlayer(
      */
     fun applyPermission(newUser: UserModel) {
         user = newUser
+        isBedrock = BedrockPlayerDetector.isBedrockMcid(newUser.mcid)
         if (newUser.permission >= OP_PERMISSION_THRESHOLD) {
             bukkit.isOp = true
             Logger.log(LogId.I_5070, bukkit.name, newUser.permission)

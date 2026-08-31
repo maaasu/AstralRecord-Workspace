@@ -464,7 +464,7 @@ public final class TeleporterService {
     public void stop() {
         WaystonePacketView view = packetView;
         if (view != null) {
-            view.clearAll();
+            view.stop();
         }
         unlockStatesByAccount.clear();
         unlocksInProgress.clear();

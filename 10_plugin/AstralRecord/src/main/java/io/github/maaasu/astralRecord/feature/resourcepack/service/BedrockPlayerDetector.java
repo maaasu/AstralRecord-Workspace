@@ -6,7 +6,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.List;
 
 /**
- * プレイヤー名 prefix による Bedrock Edition 接続判定を共通化します。
+ * Bedrock Edition 接続判定の共通処理を提供します。
  */
 public final class BedrockPlayerDetector {
     private BedrockPlayerDetector() {
@@ -26,5 +26,15 @@ public final class BedrockPlayerDetector {
         return prefixes.stream()
             .filter(prefix -> prefix != null && !prefix.isBlank())
             .anyMatch(playerName::startsWith);
+    }
+
+    /**
+     * user.mcid にドットを含むかで Bedrock Edition 接続を判定します。
+     *
+     * @param mcid user.mcid。未設定の場合は Java 版として扱います。
+     * @return mcid にドットを含む場合は {@code true}
+     */
+    public static boolean isBedrockMcid(@Nullable String mcid) {
+        return mcid != null && mcid.contains(".");
     }
 }

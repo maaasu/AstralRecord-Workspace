@@ -1807,7 +1807,7 @@ public class InventoryService {
         state.setDisplayedType(InventoryType.BAG);
 
         InventoryModel selectedInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.BAG);
-        applyInventoryToBukkit(astPlayer.getBukkit(), state, selectedInventory);
+        applyInventoryToBukkit(astPlayer, state, selectedInventory);
 
         if (!applyActiveEquipmentLoadoutToGui(astPlayer)) {
             applyEquipSlotInventoryToGui(astPlayer);
@@ -1817,10 +1817,11 @@ public class InventoryService {
     }
 
     private void applyInventoryToBukkit(
-        @NotNull Player bukkitPlayer,
+        @NotNull AstPlayer astPlayer,
         @NotNull PlayerInventoryState state,
         @Nullable InventoryModel inventory
     ) {
+        Player bukkitPlayer = astPlayer.getBukkit();
         if (inventory == null || !inventory.isEnabled()) {
             clearManagedStorageSlots(bukkitPlayer);
             return;
@@ -1830,12 +1831,12 @@ public class InventoryService {
             return;
         }
         if (inventory.getInventoryType().isSlotted()) {
-            applySlottedInventory(bukkitPlayer, state, inventory);
+            applySlottedInventory(astPlayer, state, inventory);
         }
     }
 
     private void applySlottedInventory(
-        @NotNull Player bukkitPlayer,
+        @NotNull AstPlayer astPlayer,
         @NotNull PlayerInventoryState state,
         @NotNull InventoryModel inventory
     ) {
@@ -1844,9 +1845,9 @@ public class InventoryService {
             inventory,
             state.snapshotEntries(inventory.getInventoryId())
         );
-        PlayerInventory playerInventory = bukkitPlayer.getInventory();
+        PlayerInventory playerInventory = astPlayer.getBukkit().getInventory();
         Map<Integer, ItemStack> itemByGuiSlot = new HashMap<>();
-        ItemStack filler = createManagedSlotFiller();
+        ItemStack filler = createManagedSlotFiller(astPlayer.isBedrock());
         int capacity = inventoryCapacity(inventory);
         int displayCapacity = NormalInventoryLayout.displayCapacity(entries, capacity);
         int scrollRow = Math.min(state.getBagScrollRow(), NormalInventoryLayout.maxScrollRow(displayCapacity));
@@ -5395,7 +5396,7 @@ public class InventoryService {
             return;
         }
         InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, InventoryType.BAG);
-        applyInventoryToBukkit(astPlayer.getBukkit(), state, inventory);
+        applyInventoryToBukkit(astPlayer, state, inventory);
     }
 
     /**
@@ -6962,8 +6963,8 @@ public class InventoryService {
         }
     }
 
-    private @NotNull ItemStack createManagedSlotFiller() {
-        ItemStack itemStack = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+    private @NotNull ItemStack createManagedSlotFiller(boolean bedrock) {
+        ItemStack itemStack = new ItemStack(bedrock ? Material.GLOW_LICHEN : Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.displayName(Component.text(" "));

@@ -295,6 +295,72 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(255, 120, 120), 0.68F)
         );
+    public static final SharedParticleDefinition SKILLTREE_EDGE_ADMIN_DUST =
+        new SharedParticleDefinition(
+            "skilltree_edge_admin_dust",
+            Particle.DUST,
+            1,
+            0.015D,
+            0.015D,
+            0.015D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 220, 80), 1.1F)
+        );
+    public static final SharedParticleDefinition SKILLTREE_EDGE_LOCKED_DUST =
+        new SharedParticleDefinition(
+            "skilltree_edge_locked_dust",
+            Particle.DUST,
+            1,
+            0.015D,
+            0.015D,
+            0.015D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 95, 95), 1.1F)
+        );
+    public static final SharedParticleDefinition SKILLTREE_EDGE_CONNECTED_DUST =
+        new SharedParticleDefinition(
+            "skilltree_edge_connected_dust",
+            Particle.DUST,
+            1,
+            0.015D,
+            0.015D,
+            0.015D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(95, 175, 255), 1.1F)
+        );
+    public static final SharedParticleDefinition SKILLTREE_EDGE_UNLOCKED_DUST =
+        new SharedParticleDefinition(
+            "skilltree_edge_unlocked_dust",
+            Particle.DUST,
+            1,
+            0.015D,
+            0.015D,
+            0.015D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(120, 255, 135), 1.1F)
+        );
+    public static final SharedParticleDefinition BEDROCK_WAYSTONE_LOCKED_DUST =
+        new SharedParticleDefinition(
+            "bedrock_waystone_locked_dust",
+            Particle.DUST,
+            1,
+            0.02D,
+            0.02D,
+            0.02D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(255, 95, 95), 1.2F)
+        );
+    public static final SharedParticleDefinition BEDROCK_WAYSTONE_UNLOCKED_DUST =
+        new SharedParticleDefinition(
+            "bedrock_waystone_unlocked_dust",
+            Particle.DUST,
+            1,
+            0.02D,
+            0.02D,
+            0.02D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(100, 255, 220), 1.2F)
+        );
     public static final SharedParticleDefinition MAGIC_PROJECTILE_CORE_DUST =
         new SharedParticleDefinition(
             "magic_projectile_core_dust",

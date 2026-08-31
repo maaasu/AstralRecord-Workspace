@@ -54,12 +54,12 @@ final class HotbarRenderer {
             boolean selected = selectedSlot != null && selectedSlot == dbSlot;
             boolean equipped = heldDbSlot == dbSlot;
             ItemStack itemStack = entry == null
-                ? createHotbarDummyItem(dbSlot)
+                ? createHotbarDummyItem(dbSlot, astPlayer.isBedrock())
                 : equipped
                     ? itemStackResolver.resolveForEquippedDisplay(entry, accountId, equippedSetCounts)
                     : itemStackResolver.resolve(entry, accountId);
             if (itemStack == null || itemStack.getType() == Material.AIR) {
-                itemStack = createHotbarDummyItem(dbSlot);
+                itemStack = createHotbarDummyItem(dbSlot, astPlayer.isBedrock());
             }
             if (selected) {
                 itemStack = withSelectionGlow(itemStack);
@@ -70,11 +70,11 @@ final class HotbarRenderer {
         ItemStack currentOffhand = inventory.getItemInOffHand();
         ItemStack offhandStack = offhandEntry == null
             ? isEmptyOrDummy(currentOffhand)
-                ? createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND)
+                ? createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND, astPlayer.isBedrock())
                 : currentOffhand
             : itemStackResolver.resolveForEquippedDisplay(offhandEntry, accountId, equippedSetCounts);
         if (offhandStack == null || offhandStack.getType() == Material.AIR) {
-            offhandStack = createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND);
+            offhandStack = createHotbarDummyItem(HotbarLayout.DB_SLOT_OFFHAND, astPlayer.isBedrock());
         }
         if (selectedSlot != null
             && selectedSlot == HotbarLayout.DB_SLOT_OFFHAND
@@ -90,8 +90,8 @@ final class HotbarRenderer {
         }
     }
 
-    private @NotNull ItemStack createHotbarDummyItem(int dbSlot) {
-        ItemStack itemStack = new ItemStack(Material.GRAY_STAINED_GLASS_PANE);
+    private @NotNull ItemStack createHotbarDummyItem(int dbSlot, boolean bedrock) {
+        ItemStack itemStack = new ItemStack(bedrock ? Material.GLOW_LICHEN : Material.GRAY_STAINED_GLASS_PANE);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta != null) {
             meta.getPersistentDataContainer().set(HOTBAR_DUMMY_KEY, PersistentDataType.INTEGER, 1);
@@ -117,7 +117,8 @@ final class HotbarRenderer {
         if (meta.getPersistentDataContainer().has(HOTBAR_DUMMY_KEY, PersistentDataType.INTEGER)) {
             return true;
         }
-        return itemStack.getType() == Material.GRAY_STAINED_GLASS_PANE
+        return (itemStack.getType() == Material.GRAY_STAINED_GLASS_PANE
+            || itemStack.getType() == Material.GLOW_LICHEN)
             && Component.text(ColorCodeUtil.GRAY + "オフハンドスロット").equals(meta.displayName())
             && List.of(Component.text(ColorCodeUtil.GRAY + "アイテム未選択")).equals(meta.lore());
     }

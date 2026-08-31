@@ -20,4 +20,17 @@ class BedrockPlayerDetectorTest {
         assertFalse(BedrockPlayerDetector.isBedrock("JavaUser", List.of(".", "*")));
         assertFalse(BedrockPlayerDetector.isBedrock(".BedrockUser", List.of("", "  ")));
     }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_1-モデル定義.md
+     * 章・見出し: # 03_1-モデル定義 > ## 2. プレイヤーセッション > ### 2.3 Bedrock 判定
+     * 検証契約: user.mcidにドットを含む場合だけ、設定値やプレイヤーキャッシュに依存せずBedrock判定をtrueにする。
+     */
+    @Test
+    void detectsBedrockFromMcidDot() {
+        assertTrue(BedrockPlayerDetector.isBedrockMcid("Bedrock.User"));
+        assertTrue(BedrockPlayerDetector.isBedrockMcid(".BedrockUser"));
+        assertFalse(BedrockPlayerDetector.isBedrockMcid("JavaUser"));
+        assertFalse(BedrockPlayerDetector.isBedrockMcid(null));
+    }
 }
