@@ -7,11 +7,13 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
+import io.github.maaasu.astralRecord.feature.mob.model.MobDropResultItem;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
 import org.bukkit.Location;
+import org.bukkit.Server;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
@@ -24,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
@@ -66,6 +69,70 @@ class MobDropPresentationServiceTest {
         assertEquals("0.1", MobDropPresentationService.formatDropRate(0.1D));
         assertEquals("0.0125", MobDropPresentationService.formatDropRate(0.0125D));
         assertEquals("0.00001", MobDropPresentationService.formatDropRate(0.00001D));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### ドロップ配布対象と演出
+     * 検証契約: レアドロップ通知が有効なオンラインプレイヤーへ block.amethyst_block.break を再生する。
+     */
+    @Test
+    void rareDropNotificationPlaysAmethystBreakSoundForEnabledViewer() {
+        Plugin plugin = mock(Plugin.class);
+        Server server = mock(Server.class);
+        ItemService itemService = mock(ItemService.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        ItemStackFactory itemStackFactory = mock(ItemStackFactory.class);
+        ItemDropAnimationService animationService = mock(ItemDropAnimationService.class);
+        PlayerSettingService settingService = mock(PlayerSettingService.class);
+        MobDropPresentationService service = new MobDropPresentationService(
+            plugin,
+            itemService,
+            inventoryService,
+            itemStackFactory,
+            animationService,
+            settingService
+        );
+        AstPlayer recipient = mock(AstPlayer.class);
+        Player player = onlinePlayer();
+        Location deathLocation = mock(Location.class);
+        Location playerLocation = mock(Location.class);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+        ItemModel model = mock(ItemModel.class);
+        java.util.UUID playerId = java.util.UUID.randomUUID();
+
+        when(plugin.getServer()).thenReturn(server);
+        doReturn(java.util.List.of(player)).when(server).getOnlinePlayers();
+        when(recipient.getBukkit()).thenReturn(player);
+        when(player.getUniqueId()).thenReturn(playerId);
+        when(player.getName()).thenReturn("winner");
+        when(player.getLocation()).thenReturn(playerLocation);
+        when(deathLocation.getWorld()).thenReturn(null);
+        when(itemService.findLoadedById("rare_item")).thenReturn(model);
+        when(model.getId()).thenReturn("rare_item");
+        when(model.getName()).thenReturn("レアアイテム");
+        when(settingService.isDropLogDisplayEnabled(playerId)).thenReturn(true);
+
+        MobDropResult result = new MobDropResult(
+            java.util.List.of(new MobDropResultItem("rare_item", 1, 0.1D)),
+            0,
+            0
+        );
+
+        try (MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+            service.presentAndGrant(recipient, deathLocation, "スライム", result, MobCategory.ENEMY);
+        }
+
+        verify(messageService).send(player, PlayerMsgId.P_5728, "winner", "レアアイテム", 1, "0.1");
+        verify(player).playSound(
+            playerLocation,
+            Sound.BLOCK_AMETHYST_BLOCK_BREAK,
+            SoundCategory.PLAYERS,
+            1.0F,
+            1.0F
+        );
     }
 
     /**
