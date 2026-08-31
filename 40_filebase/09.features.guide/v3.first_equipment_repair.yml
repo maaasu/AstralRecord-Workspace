@@ -1,0 +1,20 @@
+# design:
+#   motif: "北欧神話 / シンドリ / 鍛冶"
+#   progression: 1
+schemaVersion: 3
+id: first_equipment_repair
+category: equipment
+displayOrder: 20
+title: "&d装備の修復"
+iconMaterial: ANVIL
+summary: "&7{item:sindri_orb}で装備の耐久値を回復する。"
+steps:
+  - id: use_sindri_orb
+    text: "&f{item:sindri_orb}&fで装備を修復する"
+    details:
+      - "&7インベントリで{item:sindri_orb}&7をクリックする。"
+      - "&7一覧から修復したい装備を選択する。"
+      - "&a使用すると、装備の耐久値が75回復する。"
+    condition:
+      type: ORB_USED
+      targetId: sindri_orb

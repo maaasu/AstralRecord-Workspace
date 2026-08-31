@@ -70,7 +70,7 @@ Plugin は各 guide の全未達成 step をイベントごとに評価します
 | `SKILL_LEARNED` | skill ID | スキルジェム購入によるスキル個体の習得が成功したとき |
 | `SKILLTREE_NODE_UNLOCKED` | node ID | スキルツリーのノード解放が成功したとき |
 | `SKILL_ENHANCED` | skill ID | スキルの強化が成功したとき |
-| `ORB_USED` | orb item ID | オーブによる装備更新の API／正本反映が成功したとき。強化抽選が失敗してもオーブが消費された操作は達成する |
+| `ORB_USED` | orb item ID | オーブによる装備更新・ルーン操作・シジル操作の API／正本反映が成功したとき。装備強化は抽選が失敗してもオーブ消費が確定した操作を達成し、ルーン・シジル操作はオーブ自体を消費しなくても操作成功で達成する |
 | `ACTION_RING_OPENED` | 使用しない | アクションリングの表示に成功したとき |
 | `SKILL_CAST` | 任意の skill ID | プレイヤーのスキル実行が成功したとき。未指定なら任意のスキル |
 | `MOB_DEFEATED` | mob master ID | 敵 Mob を討伐したとき |

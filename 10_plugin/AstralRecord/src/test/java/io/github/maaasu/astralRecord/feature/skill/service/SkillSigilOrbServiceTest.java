@@ -42,6 +42,7 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeastOnce;
@@ -53,7 +54,9 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
      * 章・見出し: # 13_3-GUI・View > ## 2. 合成画面 > ### 2.1 シジルオーブ操作画面
-     * 検証契約: 装着オーブは起点entryを再検証し、対象個体と選択シジルでAPIを開始して、成功時にパッシブと所持品表示を更新する。
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
+     * 検証契約: 装着オーブは起点entryを再検証し、対象個体と選択シジルでAPIを開始して、成功時にパッシブ・所持品表示を更新し使用したオーブIDをガイド進捗へ通知し、失敗時は通知しない。
      */
     @Test
     void attachOrbShowsLearnedSkillsAndUsesSelectedSigilEntry() {
@@ -97,11 +100,13 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         when(itemService.findLoadedById(sigil.getId())).thenReturn(sigil);
         when(itemStackFactory.create(eq(sigil), eq(1))).thenReturn(new ItemStack(Material.AMETHYST_SHARD));
         AtomicReference<Consumer<LearnedSkillInstance>> success = new AtomicReference<>();
+        AtomicReference<Consumer<Throwable>> failure = new AtomicReference<>();
         when(learnedSkillService.attachSigilAsync(
             eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq(sigil.getId()),
             eq(sigilEntryId), eq(accountId), any(), any()
         )).thenAnswer(invocation -> {
             success.set(invocation.getArgument(6));
+            failure.set(invocation.getArgument(7));
             return true;
         });
 
@@ -118,6 +123,8 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
                 onOpened.run();
             }
         );
+        AtomicReference<String> guideOrbId = new AtomicReference<>();
+        service.setUseSuccessListener((ignored, orbItemId) -> guideOrbId.set(orbItemId));
         service.start(player, astPlayer, orbEntryId, orb, false, () -> { });
 
         SkillSigilOrbGuiHolder listHolder = assertInstanceOf(
@@ -145,13 +152,25 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
 
         verify(passiveSkillService).markDirty(astPlayer);
         verify(inventoryService).refreshManagedInventoryUi(astPlayer);
+        assertEquals(orb.getId(), guideOrbId.get());
         assertFalse(service.isSkillSigilInventory(player.getOpenInventory().getTopInventory()));
+
+        guideOrbId.set(null);
+        service.start(player, astPlayer, orbEntryId, orb, false, () -> { });
+        service.handleGuiClick(click(player, player.getOpenInventory().getTopInventory(), 0, true));
+        service.handleGuiClick(click(player, player.getOpenInventory().getTopInventory(), 9, false));
+        service.handleGuiClick(click(player, player.getOpenInventory().getTopInventory(), 16, true));
+        failure.get().accept(new IllegalStateException("test failure"));
+
+        assertNull(guideOrbId.get());
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
      * 章・見出し: # 13_3-GUI・View > ## 2. 合成画面 > ### 2.1 シジルオーブ操作画面
-     * 検証契約: 脱着オーブは唯一の装着行UUIDでAPIを開始し、成功時にパッシブと所持品表示を更新してGUIを閉じる。
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
+     * 検証契約: 脱着オーブは唯一の装着行UUIDでAPIを開始し、成功時にパッシブ・所持品表示を更新してGUIを閉じ、使用したオーブIDをガイド進捗へ通知する。
      */
     @Test
     void detachOrbUsesSelectedAttachmentId() {
@@ -213,6 +232,8 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
                 onOpened.run();
             }
         );
+        AtomicReference<String> guideOrbId = new AtomicReference<>();
+        service.setUseSuccessListener((ignored, orbItemId) -> guideOrbId.set(orbItemId));
         service.start(player, astPlayer, orbEntryId, orb, false, () -> { });
         service.handleGuiClick(click(player, player.getOpenInventory().getTopInventory(), 0, true));
         SkillSigilOrbGuiHolder detachHolder = assertInstanceOf(
@@ -231,6 +252,7 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
 
         verify(passiveSkillService).markDirty(astPlayer);
         verify(inventoryService).refreshManagedInventoryUi(astPlayer);
+        assertEquals(orb.getId(), guideOrbId.get());
         assertFalse(service.isSkillSigilInventory(player.getOpenInventory().getTopInventory()));
     }
 

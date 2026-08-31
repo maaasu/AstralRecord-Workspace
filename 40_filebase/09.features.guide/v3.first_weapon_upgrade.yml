@@ -13,6 +13,7 @@ steps:
     text: "&f雑貨商ミナから&eノクスツルハシ&fを購入する"
     details:
       - "&7雑貨商ミナに話しかけ、&eノクスツルハシ&7を購入する。"
+      - "&a購入すると、&eノクスツルハシ&aを入手できる。"
     action:
       type: NAVIGATE_NPC
       npcId: general_goods_merchant
@@ -24,6 +25,7 @@ steps:
     text: "&f近くのテレポーターから&eノクス洞窟採掘場&fへ移動する"
     details:
       - "&7近くのテレポーターを使い、ノクス洞窟採掘場へ移動する。"
+      - "&a移動すると、&eノクス洞窟採掘場&aで採掘できる。"
     condition:
       type: WAYSTONE_TELEPORTED
       targetId: ws-20260822103547-7-7-waystone-8-3-8
@@ -31,6 +33,7 @@ steps:
     text: "&f石ころの露頭を採掘する"
     details:
       - "&7ノクス洞窟採掘場で、&eノクスツルハシ&7を使って石ころの露頭を最後まで採掘する。"
+      - "&a採掘を完了すると、ノクス洞窟の素材を入手できる。"
     condition:
       type: GATHERING_COMPLETED
       targetId: box_cave_mining_spawner
@@ -38,6 +41,7 @@ steps:
     text: "&f錬金術師リゼットから&e星映石&fを購入する"
     details:
       - "&7錬金術師リゼットに話しかけ、素材を交換して&e星映石&7を購入する。"
+      - "&a交換すると、&e星映石&aを入手できる。"
     action:
       type: NAVIGATE_NPC
       npcId: alchemy_merchant
@@ -49,6 +53,7 @@ steps:
     text: "&f錬金術師リゼットから&e月影石&fを購入する"
     details:
       - "&7錬金術師リゼットに話しかけ、素材を交換して&e月影石&7を購入する。"
+      - "&a交換すると、&e月影石&aを入手できる。"
     action:
       type: NAVIGATE_NPC
       npcId: alchemy_merchant
@@ -60,6 +65,7 @@ steps:
     text: "&f装備商人カイルから&eノクス武器&fを購入する"
     details:
       - "&7装備商人カイルに話しかけ、&eノクスソード&7・&eノクスボウ&7・&eノクススタッフ&7のいずれかを購入する。"
+      - "&a購入すると、選択したノクス武器を入手できる。"
     action:
       type: NAVIGATE_NPC
       npcId: equipment_shopkeeper

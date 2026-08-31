@@ -1400,7 +1400,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         passiveSkillService.setStatusService(statusService);
         statusService.setPassiveSkillService(passiveSkillService);
-        orbService.setSkillSigilOrbService(new SkillSigilOrbService(
+        SkillSigilOrbService skillSigilOrbService = new SkillSigilOrbService(
             this,
             inventoryService,
             itemService,
@@ -1408,7 +1408,11 @@ public final class AstralRecord extends JavaPlugin {
             skillService,
             learnedSkillService,
             passiveSkillService
-        ));
+        );
+        skillSigilOrbService.setUseSuccessListener(
+            (player, orbItemId) -> guideService.recordCondition(player, GuideConditionType.ORB_USED, orbItemId)
+        );
+        orbService.setSkillSigilOrbService(skillSigilOrbService);
         skillGemPurchaseService = new SkillGemPurchaseService(
             learnedSkillService,
             skillService,

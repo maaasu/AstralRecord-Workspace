@@ -48,6 +48,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 /**
  * シジル用オーブから、習得済みスキル一覧・装着・脱着 GUI を提供します。
@@ -79,6 +80,7 @@ public final class SkillSigilOrbService {
     private final PassiveSkillService passiveSkillService;
     private final InventoryOpener inventoryOpener;
     private final Map<UUID, Session> sessions = new ConcurrentHashMap<>();
+    private @NotNull BiConsumer<AstPlayer, String> useSuccessListener = (player, orbItemId) -> { };
 
     public SkillSigilOrbService(
         @NotNull Plugin plugin,
@@ -119,6 +121,15 @@ public final class SkillSigilOrbService {
         this.learnedSkillService = learnedSkillService;
         this.passiveSkillService = passiveSkillService;
         this.inventoryOpener = inventoryOpener;
+    }
+
+    /**
+     * シジル用オーブ操作が成功した後の通知先を設定します。
+     *
+     * @param listener 操作プレイヤーと使用したオーブ item ID を受け取る通知先
+     */
+    public void setUseSuccessListener(@NotNull BiConsumer<AstPlayer, String> listener) {
+        this.useSuccessListener = listener;
     }
 
     /**
@@ -469,6 +480,7 @@ public final class SkillSigilOrbService {
         session.locked = false;
         passiveSkillService.markDirty(session.astPlayer);
         inventoryService.refreshManagedInventoryUi(session.astPlayer);
+        useSuccessListener.accept(session.astPlayer, session.orbItemId);
         sessions.remove(session.player.getUniqueId(), session);
         session.player.closeInventory();
         GuiSound.SUCCESS.play(session.player);

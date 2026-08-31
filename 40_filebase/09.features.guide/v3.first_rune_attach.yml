@@ -1,0 +1,20 @@
+# design:
+#   motif: "北欧神話 / ヴェルザンディ / 未来を紡ぐ糸"
+#   progression: 1
+schemaVersion: 3
+id: first_rune_attach
+category: equipment
+displayOrder: 27
+title: "&dルーンの装着"
+iconMaterial: GLOW_ITEM_FRAME
+summary: "&7{item:verdandi_orb}で装備にルーンを装着する。"
+steps:
+  - id: use_verdandi_orb
+    text: "&f{item:verdandi_orb}&fでルーンを装着する"
+    details:
+      - "&7インベントリで{item:verdandi_orb}&7をクリックする。"
+      - "&7一覧からルーンを装着する装備を選び、所持ルーンを選択する。"
+      - "&aルーンを1個消費し、選択した装備に装着する。"
+    condition:
+      type: ORB_USED
+      targetId: verdandi_orb

@@ -1,0 +1,21 @@
+# design:
+#   motif: "北欧神話 / フレイヤ / 幸運の加護"
+#   progression: 1
+schemaVersion: 3
+id: first_accessory_enhancement
+category: equipment
+displayOrder: 23
+title: "&dアクセサリの強化"
+iconMaterial: FIRE_CHARGE
+summary: "&7{item:freya_orb}で状態ランク0のアクセサリを強化する。"
+steps:
+  - id: use_freya_orb
+    text: "&f{item:freya_orb}&fでアクセサリを強化する"
+    details:
+      - "&7インベントリで{item:freya_orb}&7をクリックする。"
+      - "&7一覧から状態ランク0のアクセサリを選択し、確認画面が表示された場合は実行を確定する。"
+      - "&7強化の成功率と失敗時の挙動はアクセサリごとに異なる。"
+      - "&a強化に成功すると、アクセサリが1段階強化される。"
+    condition:
+      type: ORB_USED
+      targetId: freya_orb
