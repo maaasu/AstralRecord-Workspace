@@ -12,13 +12,13 @@ entityType: PARROT
 variant:
   age: ADULT
   kind: RED
-  scale: 4.0
+  scale: 2.0
 icon: PARROT_SPAWN_EGG
 nameVisible: true
 lore:
-  - "&7灼光を翼に宿し、太陽の儀式を操る巨大な鳥。"
+  - "&7灼光を翼に宿し、太陽の儀式を操る鳥。"
   - "&7陽炎とともに祭壇の周囲を渡り歩く。"
-  - "&7残りHP30%で祭壇へ帰還し、天陽崩落を解き放つ。"
+  - "&7天陽崩落を繰り返し、残りHP30%で陽冠終焉を解き放つ。"
 tags:
   - midgard
   - savanna
@@ -29,7 +29,7 @@ tags:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 16000
+    value: 32000
   - status: ATTACK
     value: 434
   - status: DEFENSE
@@ -88,3 +88,52 @@ challenge:
     enabled: true
     healthPerExtraPlayer: 100.0
     attackPerExtraPlayer: 0.0
+
+drops:
+  exp: 2400
+  money:
+    min: 800
+    max: 1200
+  items:
+    - itemId:
+        ref: item:sun_crown_sword_bundle
+      rate: 3.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:sun_crown_bow_bundle
+      rate: 3.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:sun_crown_staff_bundle
+      rate: 3.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:rune_attack_small
+      rate: 0.5
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:verdandi_orb
+      rate: 1.0
+      amount: 1
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:sunbird_crown_feather
+      rate: 100.0
+      amount: 2~4
+      luckAffected: true
+      hidden: false
+    - itemId:
+        ref: item:sunbird_solar_core
+      rate: 12.0
+      amount: 1
+      luckAffected: true
+      hidden: false

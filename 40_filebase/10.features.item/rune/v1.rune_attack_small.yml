@@ -1,0 +1,21 @@
+# design:
+#   motif: "刻印 / 小さな攻撃紋"
+#   progression: 10
+schemaVersion: 1
+id: rune_attack_small
+category: rune
+name: "&c攻撃のルーン【小】"
+icon: BRICK
+rarity: UNCOMMON
+maxStack: 64
+lore:
+  - "&7武器へ嵌め込み、攻撃力を少し高める。"
+unTradeable: false
+unSellable: false
+rune:
+  targetSlots:
+    - WEAPON
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value: 5

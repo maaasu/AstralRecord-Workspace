@@ -1,0 +1,64 @@
+# design:
+#   motif: "鳥類 / 太陽鳥 / 陽冠の剣"
+#   progression: 11
+schemaVersion: 1
+id: sun_crown_sword
+category: equipment
+name: "&6陽冠ソード"
+icon: GOLDEN_SWORD
+rarity: EPIC
+maxStack: 1
+saleValue: 1200
+lore:
+  - "&7陽冠の熱を刃へ定着させた片手剣。"
+  - "&7近接攻撃力と筋力は個体ごとに変わる。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: ONE
+  tag: SWORD
+  requiredLevel: 10
+  stats:
+    - status: MELEE_ATTACK
+      type: FLAT
+      value: 92~112
+    - status: STRENGTH
+      type: FLAT
+      value: 7~10
+  durability:
+    max: 250
+    consume: 1
+  enchant:
+    maxSlots: 2
+  rune:
+    maxSlots:
+      random: 1~2
+  enhance:
+    maxLevel: 10
+    levels:
+      - level: 1
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 4 }]
+      - level: 2
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 4 }]
+      - level: 3
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 4 }]
+      - level: 4
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 4 }]
+      - level: 5
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 4 }]
+      - level: 6
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 3 }]
+        successRate: 0.75
+      - level: 7
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 3 }]
+        successRate: 0.75
+      - level: 8
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 3 }]
+        successRate: 0.75
+      - level: 9
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 3 }]
+        successRate: 0.75
+      - level: 10
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 3 }]
+        successRate: 0.75

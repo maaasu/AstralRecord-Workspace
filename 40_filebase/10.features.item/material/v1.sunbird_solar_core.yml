@@ -1,0 +1,16 @@
+# design:
+#   motif: "天体 / 太陽核"
+#   progression: 11
+schemaVersion: 1
+id: sunbird_solar_core
+category: material
+name: "&e陽炎の心核"
+icon: SUNFLOWER
+rarity: EPIC
+maxStack: 64
+saleValue: 680
+lore:
+  - "&7太陽儀式の熱を閉じ込めた希少な心核。"
+  - "&7用途はまだ解明されていない。"
+unTradeable: false
+unSellable: false

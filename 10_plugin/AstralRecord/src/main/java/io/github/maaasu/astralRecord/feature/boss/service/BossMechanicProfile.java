@@ -28,10 +28,24 @@ final class BossMechanicProfile {
         MIDGARD_SAVANNA_SUNBIRD,
         new BossMechanicProfile(
             List.of(
-                List.of(Mechanic.SUNBIRD_SOLAR_FLARE, Mechanic.SUNBIRD_SUNSTRIKE),
-                List.of(Mechanic.SUNBIRD_SOLAR_BEAM, Mechanic.SUNBIRD_SUNSTRIKE, Mechanic.SUNBIRD_SOLAR_FLARE)
+                List.of(
+                    Mechanic.SUNBIRD_SOLAR_NOVA,
+                    Mechanic.SUNBIRD_SOLAR_FLARE,
+                    Mechanic.SUNBIRD_SOLAR_NOVA,
+                    Mechanic.SUNBIRD_SUNSTRIKE,
+                    Mechanic.SUNBIRD_SOLAR_NOVA,
+                    Mechanic.SUNBIRD_SOLAR_BEAM
+                ),
+                List.of(
+                    Mechanic.SUNBIRD_SOLAR_NOVA,
+                    Mechanic.SUNBIRD_SOLAR_BEAM,
+                    Mechanic.SUNBIRD_SOLAR_NOVA,
+                    Mechanic.SUNBIRD_SUNSTRIKE,
+                    Mechanic.SUNBIRD_SOLAR_NOVA,
+                    Mechanic.SUNBIRD_SOLAR_FLARE
+                )
             ),
-            List.of(105L, 80L),
+            List.of(85L, 65L),
             List.of(0.30D)
         )
     );
@@ -87,6 +101,8 @@ final class BossMechanicProfile {
         SUNBIRD_SOLAR_FLARE,
         SUNBIRD_SUNSTRIKE,
         SUNBIRD_SOLAR_BEAM,
-        SUNBIRD_SOLAR_NOVA
+        SUNBIRD_SOLAR_NOVA,
+        SUNBIRD_CORONA_COLLAPSE,
+        SUNBIRD_RETURN_TACKLE
     }
 }

@@ -28,6 +28,7 @@ import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
@@ -57,10 +58,18 @@ public final class BossMechanicService {
     private static final double SUNBIRD_BEAM_HALF_WIDTH = 1.25D;
     private static final double SUNBIRD_NOVA_RADIUS = 12.0D;
     private static final long SUNBIRD_NOVA_TELEGRAPH_TICKS = 60L;
+    private static final double SUNBIRD_CORONA_COLLAPSE_RADIUS = 10.0D;
+    private static final long SUNBIRD_CORONA_COLLAPSE_TELEGRAPH_TICKS = 80L;
     private static final int SUNBIRD_RITUAL_DISPLAY_COUNT = 8;
     private static final long SUNBIRD_TELEPORT_INTERVAL_TICKS = 240L;
     private static final double SUNBIRD_TELEPORT_RADIUS = 7.0D;
     private static final int SUNBIRD_TELEPORT_POINT_COUNT = 6;
+    private static final double SUNBIRD_ARENA_RADIUS = 10.0D;
+    private static final long SUNBIRD_ARENA_PULSE_INTERVAL_TICKS = 20L;
+    private static final double SUNBIRD_ARENA_DAMAGE_RATIO = 0.18D;
+    private static final double SUNBIRD_TACKLE_DESTINATION_RADIUS = 9.0D;
+    private static final double SUNBIRD_TACKLE_HALF_WIDTH = 1.5D;
+    private static final long SUNBIRD_TACKLE_TELEGRAPH_TICKS = 10L;
 
     private final JavaPlugin plugin;
     private final MobService mobService;
@@ -134,7 +143,8 @@ public final class BossMechanicService {
                 ignored -> new BossRuntime(
                     1,
                     clockTicks + 40L,
-                    clockTicks + SUNBIRD_TELEPORT_INTERVAL_TICKS
+                    clockTicks + SUNBIRD_TELEPORT_INTERVAL_TICKS,
+                    clockTicks
                 )
             );
             int observedPhase = profile.phaseForHealth(boss.currentHealth(), boss.maxHealth());
@@ -142,6 +152,7 @@ public final class BossMechanicService {
                 runtime.phase = observedPhase;
                 handlePhaseTransition(profile, boss, entity, runtime);
             }
+            processSunbirdArena(boss, entity, runtime);
             processSunbirdTeleport(boss, entity, runtime);
             if (boss.scriptedAction() || clockTicks < runtime.nextActionTick) {
                 continue;
@@ -166,6 +177,92 @@ public final class BossMechanicService {
             removePendingForBoss(entry.getKey());
             iterator.remove();
         }
+    }
+
+    /**
+     * サンバード戦の半径10ブロック境界を表示し、外周へ継続ダメージと帰還タックルを適用します。
+     *
+     * @param boss 対象ボス
+     * @param entity 対象ボスの実体
+     * @param runtime ボス固有の実行状態
+     */
+    private void processSunbirdArena(
+        @NotNull MobInstance boss,
+        @NotNull Entity entity,
+        @NotNull BossRuntime runtime
+    ) {
+        if (!BossMechanicProfile.MIDGARD_SAVANNA_SUNBIRD.equals(boss.template().id())) {
+            return;
+        }
+
+        Location center = boss.spawnLocation();
+        if (clockTicks >= runtime.nextArenaPulseTick) {
+            renderCircle(center, SUNBIRD_ARENA_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_DUST, 48);
+            damagePlayersOutsideSunbirdArena(boss, center);
+            runtime.nextArenaPulseTick = clockTicks + SUNBIRD_ARENA_PULSE_INTERVAL_TICKS;
+        }
+
+        if (boss.scriptedAction()
+            || horizontalDistanceSquared(entity.getLocation(), center) <= SUNBIRD_ARENA_RADIUS * SUNBIRD_ARENA_RADIUS) {
+            return;
+        }
+        List<Player> safePlayers = nearbyManagedPlayers(center, SUNBIRD_ARENA_RADIUS);
+        if (safePlayers.isEmpty()) {
+            return;
+        }
+
+        Player target = nearestPlayer(entity.getLocation(), safePlayers);
+        Location destination = sunbirdTackleDestination(center, target.getLocation());
+        Vector direction = horizontalDirection(entity.getLocation(), destination, entity.getFacing().getDirection());
+        boss.scriptedAction(true);
+        addPending(
+            boss,
+            BossMechanicProfile.Mechanic.SUNBIRD_RETURN_TACKLE,
+            entity.getLocation(),
+            direction,
+            SUNBIRD_TACKLE_TELEGRAPH_TICKS,
+            destination
+        );
+        runtime.nextActionTick = Math.max(runtime.nextActionTick, clockTicks + 30L);
+    }
+
+    /**
+     * スポーン地点から半径10ブロックより外側にいる管理対象Playerへ火属性ダメージを与えます。
+     *
+     * @param boss ダメージ発生元
+     * @param center 安全圏の中心
+     */
+    private void damagePlayersOutsideSunbirdArena(
+        @NotNull MobInstance boss,
+        @NotNull Location center
+    ) {
+        double safeRadiusSquared = SUNBIRD_ARENA_RADIUS * SUNBIRD_ARENA_RADIUS;
+        for (Player player : managedPlayersInWorld(center)) {
+            if (horizontalDistanceSquared(player.getLocation(), center) <= safeRadiusSquared) {
+                continue;
+            }
+            damagePlayer(boss, player, AttackType.MAGIC, DamageElement.FIRE, SUNBIRD_ARENA_DAMAGE_RATIO);
+        }
+    }
+
+    /**
+     * 境界外のサンバードが帰還タックルで到達する、境界内の地点を返します。
+     *
+     * @param spawnLocation 安全圏中心
+     * @param targetLocation タックル対象の現在地点
+     * @return 水平距離9ブロック以内へ丸めた到達地点
+     */
+    static @NotNull Location sunbirdTackleDestination(
+        @NotNull Location spawnLocation,
+        @NotNull Location targetLocation
+    ) {
+        Vector offset = targetLocation.toVector().subtract(spawnLocation.toVector()).setY(0.0D);
+        if (offset.lengthSquared() > SUNBIRD_TACKLE_DESTINATION_RADIUS * SUNBIRD_TACKLE_DESTINATION_RADIUS) {
+            offset.normalize().multiply(SUNBIRD_TACKLE_DESTINATION_RADIUS);
+        }
+        Location destination = spawnLocation.clone().add(offset);
+        destination.setY(targetLocation.getY() + 1.0D);
+        return destination;
     }
 
     /**
@@ -242,9 +339,12 @@ public final class BossMechanicService {
             PendingMechanic pending = iterator.next();
             MobInstance boss = mobService.getInstance(pending.bossInstanceId());
             Entity entity = boss == null ? null : mobService.entityController().getEntity(boss);
+            boolean noManagedTarget = pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_RETURN_TACKLE
+                && entity != null
+                && nearbyManagedPlayers(entity.getLocation(), TARGET_RANGE).isEmpty();
             if (boss == null || entity == null || !entity.isValid() || entity.isDead() || boss.currentHealth() <= 0.0D
                 || entity.getWorld() != pending.anchor().getWorld()
-                || nearbyManagedPlayers(entity.getLocation(), TARGET_RANGE).isEmpty()) {
+                || noManagedTarget) {
                 removePendingVisuals(pending);
                 releaseScriptedAction(pending);
                 iterator.remove();
@@ -269,8 +369,8 @@ public final class BossMechanicService {
     ) {
         if (BossMechanicProfile.MIDGARD_SAVANNA_SUNBIRD.equals(boss.template().id())
             && runtime.phase >= 2
-            && !runtime.ultimateTriggered) {
-            runtime.ultimateTriggered = true;
+            && !runtime.finalPhaseTriggered) {
+            runtime.finalPhaseTriggered = true;
             boss.scriptedAction(true);
             mobService.resetPosition(boss, boss.spawnLocation());
             Entity resetEntity = mobService.entityController().getEntity(boss);
@@ -278,9 +378,9 @@ public final class BossMechanicService {
             Vector direction = resetEntity == null
                 ? new Vector(0.0D, 0.0D, 1.0D)
                 : resetEntity.getFacing().getDirection();
-            addPending(boss, BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA, anchor, direction,
-                SUNBIRD_NOVA_TELEGRAPH_TICKS);
-            runtime.nextActionTick = clockTicks + SUNBIRD_NOVA_TELEGRAPH_TICKS + 20L;
+            addPending(boss, BossMechanicProfile.Mechanic.SUNBIRD_CORONA_COLLAPSE, anchor, direction,
+                SUNBIRD_CORONA_COLLAPSE_TELEGRAPH_TICKS);
+            runtime.nextActionTick = clockTicks + SUNBIRD_CORONA_COLLAPSE_TELEGRAPH_TICKS + 20L;
             return;
         }
 
@@ -323,6 +423,16 @@ public final class BossMechanicService {
         runtime.summonedMobIds.clear();
     }
 
+    /**
+     * フェーズローテーションの次の攻撃を予兆キューへ追加します。
+     *
+     * <p>天陽崩落は通常ローテーションでも専用行動として扱い、スポーン地点へ帰還してから詠唱します。</p>
+     *
+     * @param boss 発動するボス
+     * @param entity 発動時点の実体
+     * @param mechanic 発動するギミック
+     * @return 対象を解決して予約できた場合は {@code true}
+     */
     private boolean queueMechanic(
         @NotNull MobInstance boss,
         @NotNull Entity entity,
@@ -337,6 +447,12 @@ public final class BossMechanicService {
         Location targetLocation = primaryTarget.getLocation();
         Vector direction = horizontalDirection(bossLocation, targetLocation, entity.getFacing().getDirection());
         long telegraphTicks = telegraphTicks(mechanic);
+        if (mechanic == BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA) {
+            boss.scriptedAction(true);
+            mobService.resetPosition(boss, boss.spawnLocation());
+            addPending(boss, mechanic, boss.spawnLocation(), direction, telegraphTicks);
+            return true;
+        }
         Location anchor = mechanic == BossMechanicProfile.Mechanic.SUNBIRD_SUNSTRIKE
             ? targetLocation
             : bossLocation;
@@ -345,6 +461,15 @@ public final class BossMechanicService {
         return true;
     }
 
+    /**
+     * 到達地点を持たない通常ギミックを予兆キューへ追加します。
+     *
+     * @param boss 発動するボス
+     * @param mechanic 発動するギミック
+     * @param anchor 予兆中心
+     * @param direction 攻撃方向
+     * @param delayTicks 発動までのtick数
+     */
     private void addPending(
         @NotNull MobInstance boss,
         @NotNull BossMechanicProfile.Mechanic mechanic,
@@ -352,7 +477,28 @@ public final class BossMechanicService {
         @NotNull Vector direction,
         long delayTicks
     ) {
-        List<UUID> displayEntityIds = mechanic == BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA
+        addPending(boss, mechanic, anchor, direction, delayTicks, null);
+    }
+
+    /**
+     * 帰還タックルを含むギミックを予兆キューへ追加します。
+     *
+     * @param boss 発動するボス
+     * @param mechanic 発動するギミック
+     * @param anchor 予兆中心
+     * @param direction 攻撃方向
+     * @param delayTicks 発動までのtick数
+     * @param destination 発動後の到達地点。移動しないギミックは {@code null}
+     */
+    private void addPending(
+        @NotNull MobInstance boss,
+        @NotNull BossMechanicProfile.Mechanic mechanic,
+        @NotNull Location anchor,
+        @NotNull Vector direction,
+        long delayTicks,
+        @Nullable Location destination
+    ) {
+        List<UUID> displayEntityIds = isSunbirdRitual(mechanic)
             ? spawnSunbirdRitualDisplays(anchor)
             : List.of();
         PendingMechanic pending = new PendingMechanic(
@@ -361,7 +507,8 @@ public final class BossMechanicService {
             anchor,
             direction,
             clockTicks + delayTicks,
-            displayEntityIds
+            displayEntityIds,
+            destination
         );
         pendingMechanics.add(pending);
         renderTelegraph(pending);
@@ -371,6 +518,23 @@ public final class BossMechanicService {
         }
     }
 
+    /**
+     * 黄金の儀式Displayを使うサンバード攻撃か判定します。
+     *
+     * @param mechanic 判定対象
+     * @return 天陽崩落または陽冠終焉の場合は {@code true}
+     */
+    private boolean isSunbirdRitual(@NotNull BossMechanicProfile.Mechanic mechanic) {
+        return mechanic == BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA
+            || mechanic == BossMechanicProfile.Mechanic.SUNBIRD_CORONA_COLLAPSE;
+    }
+
+    /**
+     * ギミックごとの予兆時間を返します。
+     *
+     * @param mechanic 対象ギミック
+     * @return 予兆tick数
+     */
     private long telegraphTicks(@NotNull BossMechanicProfile.Mechanic mechanic) {
         return switch (mechanic) {
             case COLOSSUS_QUAKE -> 25L;
@@ -379,6 +543,8 @@ public final class BossMechanicService {
             case SUNBIRD_SOLAR_FLARE -> 20L;
             case SUNBIRD_SUNSTRIKE -> 25L;
             case SUNBIRD_SOLAR_NOVA -> SUNBIRD_NOVA_TELEGRAPH_TICKS;
+            case SUNBIRD_CORONA_COLLAPSE -> SUNBIRD_CORONA_COLLAPSE_TELEGRAPH_TICKS;
+            case SUNBIRD_RETURN_TACKLE -> SUNBIRD_TACKLE_TELEGRAPH_TICKS;
         };
     }
 
@@ -415,6 +581,21 @@ public final class BossMechanicService {
                 renderCircle(pending.anchor(), SUNBIRD_NOVA_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_DUST, 52);
                 animateSunbirdRitualDisplays(pending);
             }
+            case SUNBIRD_CORONA_COLLAPSE -> {
+                renderCircle(
+                    pending.anchor(), SUNBIRD_CORONA_COLLAPSE_RADIUS,
+                    SharedParticleDefinitions.SUNBIRD_SOLAR_FLAME, 52
+                );
+                renderCircle(
+                    pending.anchor(), SUNBIRD_ARENA_RADIUS + 1.0D,
+                    SharedParticleDefinitions.SUNBIRD_SOLAR_DUST, 56
+                );
+                animateSunbirdRitualDisplays(pending, SUNBIRD_CORONA_COLLAPSE_TELEGRAPH_TICKS);
+            }
+            case SUNBIRD_RETURN_TACKLE -> renderLane(
+                pending.anchor(), pending.direction(), pending.travelDistance(), SUNBIRD_TACKLE_HALF_WIDTH,
+                SharedParticleDefinitions.SUNBIRD_SOLAR_DUST
+            );
         }
     }
 
@@ -460,6 +641,19 @@ public final class BossMechanicService {
                 boss, pending.anchor(), 0.0D, SUNBIRD_NOVA_RADIUS,
                 AttackType.MAGIC, DamageElement.FIRE, 1.45D, 1.1D
             );
+            case SUNBIRD_CORONA_COLLAPSE -> damageCircle(
+                boss, pending.anchor(), 0.0D, SUNBIRD_CORONA_COLLAPSE_RADIUS,
+                AttackType.MAGIC, DamageElement.FIRE, 1.95D, 1.35D
+            );
+            case SUNBIRD_RETURN_TACKLE -> {
+                damageLine(
+                    boss, pending.anchor(), pending.direction(), pending.travelDistance(), SUNBIRD_TACKLE_HALF_WIDTH,
+                    AttackType.MELEE, DamageElement.FIRE, 1.00D, 0.45D
+                );
+                if (pending.destination() != null) {
+                    mobService.resetPosition(boss, pending.destination());
+                }
+            }
         }
         world.playSound(pending.anchor(), "entity.generic.explode", 1.0F, 0.85F);
     }
@@ -639,6 +833,23 @@ public final class BossMechanicService {
             .toList();
     }
 
+    /**
+     * 指定worldにいる有効な管理対象Playerを返します。
+     *
+     * @param center 対象worldを持つ基準地点
+     * @return world内の管理対象Player
+     */
+    private @NotNull List<Player> managedPlayersInWorld(@NotNull Location center) {
+        World world = center.getWorld();
+        if (world == null) {
+            return List.of();
+        }
+        return world.getPlayers().stream()
+            .filter(Player::isValid)
+            .filter(player -> damageService.resolveEntity(player).isPlayer())
+            .toList();
+    }
+
     private @NotNull Player nearestPlayer(@NotNull Location center, @NotNull List<Player> players) {
         Player nearest = players.getFirst();
         double nearestDistance = horizontalDistanceSquared(nearest.getLocation(), center);
@@ -681,12 +892,28 @@ public final class BossMechanicService {
         @NotNull SharedParticleDefinition particle,
         int points
     ) {
+        renderRange(center, circleLocations(center, radius, points), particle);
+    }
+
+    /**
+     * 円周へ送信するパーティクル地点を生成します。
+     *
+     * @param center 円の中心
+     * @param radius 円の半径
+     * @param points 円周上の地点数
+     * @return 中心から指定水平距離にある地点一覧
+     */
+    static @NotNull List<Location> circleLocations(
+        @NotNull Location center,
+        double radius,
+        int points
+    ) {
         List<Location> locations = new ArrayList<>(points);
         for (int index = 0; index < points; index++) {
             double angle = (Math.PI * 2.0D * index) / points;
             locations.add(center.clone().add(Math.cos(angle) * radius, 0.15D, Math.sin(angle) * radius));
         }
-        renderRange(center, locations, particle);
+        return List.copyOf(locations);
     }
 
     /**
@@ -857,6 +1084,21 @@ public final class BossMechanicService {
                     SharedParticleDefinitions.SUNBIRD_SOLAR_FLASH
                 );
             }
+            case SUNBIRD_CORONA_COLLAPSE -> {
+                renderCircle(
+                    pending.anchor(), SUNBIRD_CORONA_COLLAPSE_RADIUS,
+                    SharedParticleDefinitions.SUNBIRD_SOLAR_IMPACT, 52
+                );
+                renderRange(
+                    pending.anchor(),
+                    List.of(pending.anchor().clone().add(0.0D, 2.5D, 0.0D)),
+                    SharedParticleDefinitions.SUNBIRD_SOLAR_FLASH
+                );
+            }
+            case SUNBIRD_RETURN_TACKLE -> renderLane(
+                pending.anchor(), pending.direction(), pending.travelDistance(), SUNBIRD_TACKLE_HALF_WIDTH,
+                SharedParticleDefinitions.SUNBIRD_SOLAR_IMPACT
+            );
         }
     }
 
@@ -898,9 +1140,22 @@ public final class BossMechanicService {
     }
 
     private void animateSunbirdRitualDisplays(@NotNull PendingMechanic pending) {
+        animateSunbirdRitualDisplays(pending, SUNBIRD_NOVA_TELEGRAPH_TICKS);
+    }
+
+    /**
+     * 指定した詠唱時間に対する進行度で、太陽儀式Displayを回転・収束させます。
+     *
+     * @param pending 対象予兆
+     * @param telegraphTicks 詠唱全体のtick数
+     */
+    private void animateSunbirdRitualDisplays(
+        @NotNull PendingMechanic pending,
+        long telegraphTicks
+    ) {
         long remainingTicks = Math.max(0L, pending.executeAtTick() - clockTicks);
         double progress = 1.0D - Math.clamp(
-            (double) remainingTicks / SUNBIRD_NOVA_TELEGRAPH_TICKS,
+            (double) remainingTicks / telegraphTicks,
             0.0D,
             1.0D
         );
@@ -929,8 +1184,15 @@ public final class BossMechanicService {
         }
     }
 
+    /**
+     * 専用行動として通常AIを停止したギミックの完了・中断時に状態を解放します。
+     *
+     * @param pending 完了または中断したギミック
+     */
     private void releaseScriptedAction(@NotNull PendingMechanic pending) {
-        if (pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA) {
+        if (pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA
+            && pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_CORONA_COLLAPSE
+            && pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_RETURN_TACKLE) {
             return;
         }
         MobInstance boss = mobService.getInstance(pending.bossInstanceId());
@@ -1122,15 +1384,17 @@ public final class BossMechanicService {
         private int actionIndex;
         private long nextActionTick;
         private long nextTeleportTick;
+        private long nextArenaPulseTick;
         private int teleportIndex;
         private boolean summonsTriggered;
-        private boolean ultimateTriggered;
+        private boolean finalPhaseTriggered;
         private final Set<UUID> summonedMobIds = new LinkedHashSet<>();
 
-        private BossRuntime(int phase, long nextActionTick, long nextTeleportTick) {
+        private BossRuntime(int phase, long nextActionTick, long nextTeleportTick, long nextArenaPulseTick) {
             this.phase = phase;
             this.nextActionTick = nextActionTick;
             this.nextTeleportTick = nextTeleportTick;
+            this.nextArenaPulseTick = nextArenaPulseTick;
         }
     }
 
@@ -1140,12 +1404,23 @@ public final class BossMechanicService {
         @NotNull Location anchor,
         @NotNull Vector direction,
         long executeAtTick,
-        @NotNull List<UUID> displayEntityIds
+        @NotNull List<UUID> displayEntityIds,
+        @Nullable Location destination
     ) {
         private PendingMechanic {
             anchor = anchor.clone();
             direction = direction.clone().setY(0.0D).normalize();
             displayEntityIds = List.copyOf(displayEntityIds);
+            destination = destination == null ? null : destination.clone();
+        }
+
+        private double travelDistance() {
+            if (destination == null) {
+                return 0.0D;
+            }
+            double x = destination.getX() - anchor.getX();
+            double z = destination.getZ() - anchor.getZ();
+            return Math.sqrt(x * x + z * z);
         }
     }
 }

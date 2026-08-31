@@ -1,0 +1,19 @@
+# design:
+#   motif: "鳥類 / 太陽鳥 / 陽冠の杖"
+#   progression: 10
+schemaVersion: 1
+id: sun_crown_staff_bundle
+category: bundle
+name: "&6陽冠スタッフの宝匣"
+icon: RED_SHULKER_BOX
+rarity: EPIC
+maxStack: 1
+lore:
+  - "&7陽冠スタッフを封じた討伐報酬。"
+unTradeable: false
+unSellable: true
+bundle:
+  openTimeTicks: 10
+  items:
+    - itemId: sun_crown_staff
+      amount: 1

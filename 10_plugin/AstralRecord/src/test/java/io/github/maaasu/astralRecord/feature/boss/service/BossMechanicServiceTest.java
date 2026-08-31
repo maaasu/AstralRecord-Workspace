@@ -1,7 +1,10 @@
 package io.github.maaasu.astralRecord.feature.boss.service;
 
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
+import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
@@ -15,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobVariantConfig;
 import io.github.maaasu.astralRecord.feature.mob.service.MobEntityController;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import org.bukkit.Bukkit;
 import org.bukkit.block.BlockFace;
 import org.bukkit.FluidCollisionMode;
@@ -34,9 +38,11 @@ import org.mockito.MockedStatic;
 
 import java.lang.reflect.Method;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -44,6 +50,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -69,10 +76,10 @@ class BossMechanicServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
      * 章・見出し: # 26_3-サービス > ## 18. ボス固有ギミック
-     * 検証契約: サンバードは残HP30%を含めて第2段階へ遷移する。
+     * 検証契約: サンバードは残HP30%を含めて陽冠終焉を使う第2段階へ遷移する。
      */
     @Test
-    void sunbirdUltimatePhaseIncludesThirtyPercentBoundary() {
+    void sunbirdFinalPhaseIncludesThirtyPercentBoundary() {
         BossMechanicProfile profile = BossMechanicProfile.find(BossMechanicProfile.MIDGARD_SAVANNA_SUNBIRD);
 
         assertEquals(1, profile.phaseForHealth(30.01D, 100.0D));
@@ -82,10 +89,27 @@ class BossMechanicServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
      * 章・見出し: # 26_3-サービス > ## 18. ボス固有ギミック
-     * 検証契約: 初回監視時に既にHP30%以下でもスポーン地点へ復帰し、必殺技予兆を開始する。
+     * 検証契約: 旧30%必殺技の天陽崩落は、第1・第2段階とも通常攻撃と交互に予約する。
      */
     @Test
-    void sunbirdBelowThresholdOnFirstTickQueuesUltimateAndStopCleansDisplays() throws Exception {
+    void sunbirdSolarNovaBelongsToEveryPhaseRotation() {
+        BossMechanicProfile profile = BossMechanicProfile.find(BossMechanicProfile.MIDGARD_SAVANNA_SUNBIRD);
+
+        assertEquals(BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA, profile.mechanic(1, 0));
+        assertEquals(BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA, profile.mechanic(1, 2));
+        assertEquals(BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA, profile.mechanic(1, 4));
+        assertEquals(BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA, profile.mechanic(2, 0));
+        assertEquals(BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA, profile.mechanic(2, 2));
+        assertEquals(BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA, profile.mechanic(2, 4));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
+     * 章・見出し: # 26_3-サービス > ## 18. ボス固有ギミック
+     * 検証契約: 初回監視時に既にHP30%以下でもスポーン地点へ復帰し、陽冠終焉の予兆を開始する。
+     */
+    @Test
+    void sunbirdBelowThresholdOnFirstTickQueuesFinalSkillAndStopCleansDisplays() throws Exception {
         SunbirdHarness harness = sunbirdHarness();
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
@@ -112,10 +136,10 @@ class BossMechanicServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
      * 章・見出し: # 26_3-サービス > ## 18. ボス固有ギミック
-     * 検証契約: 必殺技は60 tickの予兆後に発動し、専用行動状態とBlockDisplayを解放する。
+     * 検証契約: 陽冠終焉は80 tickの予兆後に発動し、専用行動状態とBlockDisplayを解放する。
      */
     @Test
-    void sunbirdUltimateExecutesAfterTelegraphAndReleasesState() throws Exception {
+    void sunbirdFinalSkillExecutesAfterTelegraphAndReleasesState() throws Exception {
         SunbirdHarness harness = sunbirdHarness();
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
@@ -124,18 +148,12 @@ class BossMechanicServiceTest {
                 bukkit.when(() -> Bukkit.getEntity(displayId)).thenReturn(display);
             }
             invokeTick(harness.service());
-            for (int index = 0; index < 12; index++) {
+            for (int index = 0; index < 16; index++) {
                 invokeTick(harness.service());
             }
         }
 
-        verify(harness.damageService()).attack(
-            any(AstEntity.class),
-            eq(harness.playerEntity()),
-            eq(io.github.maaasu.astralRecord.feature.combat.model.AttackType.MAGIC),
-            org.mockito.ArgumentMatchers.<List<DamageComponent>>any(),
-            eq(io.github.maaasu.astralRecord.feature.combat.model.DamageSource.SKILL)
-        );
+        verifySingleDamage(harness, AttackType.MAGIC, DamageElement.FIRE, 1.95D);
         assertFalse(harness.boss().scriptedAction());
         harness.displays().forEach(display -> verify(display).remove());
     }
@@ -143,10 +161,100 @@ class BossMechanicServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
      * 章・見出し: # 26_3-サービス > ## 18. ボス固有ギミック
-     * 検証契約: サンバードは専用行動中の転移を延期し、解除後は12秒周期でスポーン地点から水平7mの6地点を巡回する。
+     * 検証契約: HP30%より上でも、天陽崩落を通常ローテーションとして詠唱・発動する。
      */
     @Test
-    void sunbirdPeriodicTeleportPausesDuringScriptedActionAndCyclesAroundSpawn() throws Exception {
+    void sunbirdRegularRotationCastsSolarNovaAboveThirtyPercent() throws Exception {
+        SunbirdHarness harness = sunbirdHarness(10000.0D);
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            for (BlockDisplay display : harness.displays()) {
+                UUID displayId = display.getUniqueId();
+                bukkit.when(() -> Bukkit.getEntity(displayId)).thenReturn(display);
+            }
+            for (int index = 0; index < 9; index++) {
+                invokeTick(harness.service());
+            }
+
+            verify(harness.mobService()).resetPosition(harness.boss(), harness.spawnLocation());
+            assertTrue(harness.boss().scriptedAction());
+
+            for (int index = 0; index < 12; index++) {
+                invokeTick(harness.service());
+            }
+        }
+
+        assertFalse(harness.boss().scriptedAction());
+        verifySingleDamage(harness, AttackType.MAGIC, DamageElement.FIRE, 1.45D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
+     * 章・見出し: # 26_3-サービス > ## 18. ボス固有ギミック
+     * 検証契約: スポーン地点から水平10ブロックより外側のPlayerだけが、1秒周期の外周ダメージを受ける。
+     */
+    @Test
+    void sunbirdArenaPulseDamagesOnlyPlayersOutsideTenBlocks() throws Exception {
+        SunbirdHarness outside = sunbirdHarness(10000.0D);
+        when(outside.player().getLocation()).thenReturn(outside.spawnLocation().clone().add(10.1D, 0.0D, 0.0D));
+        invokeTick(outside.service());
+
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<Collection<Location>> boundaryLocations = ArgumentCaptor.forClass(Collection.class);
+        verify(outside.particleDisplayService()).spawnForNearbyViewers(
+            eq(outside.spawnLocation()),
+            boundaryLocations.capture(),
+            any(SharedParticleDefinition.class)
+        );
+        assertEquals(48, boundaryLocations.getValue().size());
+        boundaryLocations.getValue().forEach(location -> assertEquals(
+            10.0D,
+            horizontalDistance(location, outside.spawnLocation()),
+            0.0001D
+        ));
+        verifySingleDamage(outside, AttackType.MAGIC, DamageElement.FIRE, 0.18D);
+
+        SunbirdHarness inside = sunbirdHarness(10000.0D);
+        invokeTick(inside.service());
+        verify(inside.damageService(), never()).attack(
+            any(AstEntity.class),
+            any(AstEntity.class),
+            any(io.github.maaasu.astralRecord.feature.combat.model.AttackType.class),
+            org.mockito.ArgumentMatchers.<List<DamageComponent>>any(),
+            any(io.github.maaasu.astralRecord.feature.combat.model.DamageSource.class)
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
+     * 章・見出し: # 26_3-サービス > ## 18. ボス固有ギミック
+     * 検証契約: 境界外のサンバードは境界内Playerへ帰還タックルし、到達地点を水平9ブロック以内へ収める。
+     */
+    @Test
+    void sunbirdOutsideArenaTacklesTowardSafePlayerAndReturnsInside() throws Exception {
+        SunbirdHarness harness = sunbirdHarness(10000.0D);
+        Location outsideBossLocation = harness.spawnLocation().clone().add(12.0D, 0.0D, 0.0D);
+        harness.entityLocation().set(outsideBossLocation);
+
+        invokeTick(harness.service());
+        assertTrue(harness.boss().scriptedAction());
+        invokeTick(harness.service());
+        invokeTick(harness.service());
+
+        ArgumentCaptor<Location> destinationCaptor = ArgumentCaptor.forClass(Location.class);
+        verify(harness.mobService()).resetPosition(eq(harness.boss()), destinationCaptor.capture());
+        assertTrue(horizontalDistance(destinationCaptor.getValue(), harness.spawnLocation()) <= 9.0D);
+        verifySingleDamage(harness, AttackType.MELEE, DamageElement.FIRE, 1.00D);
+        assertFalse(harness.boss().scriptedAction());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
+     * 章・見出し: # 26_3-サービス > ## 18. ボス固有ギミック
+     * 検証契約: サンバードは専用行動中の転移を延期し、解除後はスポーン地点から水平7mへ転移する。
+     */
+    @Test
+    void sunbirdPeriodicTeleportPausesDuringScriptedAction() throws Exception {
         SunbirdHarness harness = sunbirdHarness(10000.0D);
         harness.boss().scriptedAction(true);
 
@@ -156,22 +264,15 @@ class BossMechanicServiceTest {
         verify(harness.mobService(), never()).resetPosition(eq(harness.boss()), any(Location.class));
 
         harness.boss().scriptedAction(false);
-        for (int index = 0; index < 4; index++) {
-            invokeTick(harness.service());
-        }
-        for (int index = 0; index < 48; index++) {
-            invokeTick(harness.service());
-        }
+        invokeTick(harness.service());
 
         ArgumentCaptor<Location> destinationCaptor = ArgumentCaptor.forClass(Location.class);
-        verify(harness.mobService(), times(2)).resetPosition(eq(harness.boss()), destinationCaptor.capture());
-        List<Location> destinations = destinationCaptor.getAllValues();
-        destinations.forEach(destination -> assertEquals(
+        verify(harness.mobService()).resetPosition(eq(harness.boss()), destinationCaptor.capture());
+        assertEquals(
             7.0D,
-            horizontalDistance(destination, harness.spawnLocation()),
+            horizontalDistance(destinationCaptor.getValue(), harness.spawnLocation()),
             0.0001D
-        ));
-        assertFalse(destinations.get(0).equals(destinations.get(1)));
+        );
     }
 
     /**
@@ -190,9 +291,7 @@ class BossMechanicServiceTest {
         verify(harness.mobService(), never()).resetPosition(eq(harness.boss()), any(Location.class));
 
         when(harness.world().getPlayers()).thenReturn(List.of(harness.player()));
-        for (int index = 0; index < 4; index++) {
-            invokeTick(harness.service());
-        }
+        invokeTick(harness.service());
 
         verify(harness.mobService(), times(1)).resetPosition(eq(harness.boss()), any(Location.class));
     }
@@ -200,10 +299,10 @@ class BossMechanicServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
      * 章・見出し: # 26_3-サービス > ## 18. ボス固有ギミック
-     * 検証契約: HP30%必殺技と転移期限が重なる場合は必殺技を優先し、予兆完了まで転移を延期する。
+     * 検証契約: HP30%の陽冠終焉と転移期限が重なる場合は陽冠終焉を優先し、80 tickの予兆完了まで転移を延期する。
      */
     @Test
-    void sunbirdUltimateWinsTeleportDueTickAndTeleportWaitsForTelegraph() throws Exception {
+    void sunbirdFinalSkillWinsTeleportDueTickAndTeleportWaitsForTelegraph() throws Exception {
         SunbirdHarness harness = sunbirdHarness(10000.0D);
         harness.boss().scriptedAction(true);
 
@@ -222,7 +321,7 @@ class BossMechanicServiceTest {
             verify(harness.mobService(), times(1)).resetPosition(harness.boss(), harness.spawnLocation());
             assertTrue(harness.boss().scriptedAction());
 
-            for (int index = 0; index < 11; index++) {
+            for (int index = 0; index < 15; index++) {
                 invokeTick(harness.service());
             }
             verify(harness.mobService(), times(1)).resetPosition(eq(harness.boss()), any(Location.class));
@@ -251,6 +350,40 @@ class BossMechanicServiceTest {
         assertEquals(135.0F, first.getYaw(), 0.0001F);
         assertEquals(-10.0F, first.getPitch(), 0.0001F);
         assertEquals(7.0D, horizontalDistance(first, spawn), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
+     * 章・見出し: # 26_3-サービス > ## 18. ボス固有ギミック
+     * 検証契約: 帰還タックルの到達地点は対象が境界外でも水平9ブロック以内へ丸める。
+     */
+    @Test
+    void sunbirdTackleDestinationStaysInsideArena() {
+        Location spawn = new Location(null, 0.0D, 70.0D, 0.0D);
+        Location destination = BossMechanicService.sunbirdTackleDestination(
+            spawn,
+            new Location(null, 20.0D, 68.0D, 0.0D)
+        );
+
+        assertEquals(9.0D, horizontalDistance(destination, spawn), 0.0001D);
+        assertEquals(69.0D, destination.getY(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
+     * 章・見出し: # 26_3-サービス > ## 18. ボス固有ギミック
+     * 検証契約: 外周particleはスポーン地点から水平10ブロックの円周48地点へ表示する。
+     */
+    @Test
+    void sunbirdArenaBoundaryParticleLocationsStayAtTenBlocks() {
+        Location center = new Location(null, 20.0D, 70.0D, -10.0D);
+        List<Location> locations = BossMechanicService.circleLocations(center, 10.0D, 48);
+
+        assertEquals(48, locations.size());
+        locations.forEach(location -> {
+            assertEquals(10.0D, horizontalDistance(location, center), 0.0001D);
+            assertEquals(70.15D, location.getY(), 0.0001D);
+        });
     }
 
     /**
@@ -387,6 +520,7 @@ class BossMechanicServiceTest {
         AstEntity playerEntity = mock(AstEntity.class);
         UUID bossId = UUID.randomUUID();
         Location spawnLocation = new Location(world, 20.0D, 70.0D, -10.0D);
+        AtomicReference<Location> entityLocation = new AtomicReference<>(spawnLocation.clone());
         MobTemplate template = new MobTemplate(
             1,
             BossMechanicProfile.MIDGARD_SAVANNA_SUNBIRD,
@@ -422,8 +556,12 @@ class BossMechanicServiceTest {
         when(entity.isValid()).thenReturn(true);
         when(entity.isDead()).thenReturn(false);
         when(entity.getWorld()).thenReturn(world);
-        when(entity.getLocation()).thenReturn(spawnLocation);
+        when(entity.getLocation()).thenAnswer(ignored -> entityLocation.get().clone());
         when(entity.getFacing()).thenReturn(BlockFace.NORTH);
+        doAnswer(invocation -> {
+            entityLocation.set(invocation.<Location>getArgument(1).clone());
+            return null;
+        }).when(mobService).resetPosition(eq(boss), any(Location.class));
 
         when(player.isValid()).thenReturn(true);
         when(player.getLocation()).thenReturn(spawnLocation.clone().add(2.0D, 0.0D, 0.0D));
@@ -457,11 +595,14 @@ class BossMechanicServiceTest {
             service,
             mobService,
             damageService,
+            particleDisplayService,
             boss,
+            entity,
             world,
             spawnLocation,
             player,
             playerEntity,
+            entityLocation,
             List.copyOf(displays)
         );
     }
@@ -470,6 +611,26 @@ class BossMechanicServiceTest {
         double x = left.getX() - right.getX();
         double z = left.getZ() - right.getZ();
         return Math.sqrt(x * x + z * z);
+    }
+
+    private static void verifySingleDamage(
+        SunbirdHarness harness,
+        AttackType attackType,
+        DamageElement element,
+        double ratio
+    ) {
+        @SuppressWarnings("unchecked")
+        ArgumentCaptor<List<DamageComponent>> components = ArgumentCaptor.forClass(List.class);
+        verify(harness.damageService()).attack(
+            any(AstEntity.class),
+            eq(harness.playerEntity()),
+            eq(attackType),
+            components.capture(),
+            eq(DamageSource.SKILL)
+        );
+        DamageComponent component = components.getValue().getFirst();
+        assertEquals(element, component.element());
+        assertEquals(ratio, component.ratio(), 0.0001D);
     }
 
     private static void invokeTick(BossMechanicService service) throws Exception {
@@ -482,11 +643,14 @@ class BossMechanicServiceTest {
         BossMechanicService service,
         MobService mobService,
         DamageService damageService,
+        ParticleDisplayService particleDisplayService,
         MobInstance boss,
+        Entity entity,
         World world,
         Location spawnLocation,
         Player player,
         AstEntity playerEntity,
+        AtomicReference<Location> entityLocation,
         List<BlockDisplay> displays
     ) {
     }

@@ -1,0 +1,16 @@
+# design:
+#   motif: "鳥類 / 太陽鳥 / 冠羽"
+#   progression: 10
+schemaVersion: 1
+id: sunbird_crown_feather
+category: material
+name: "&6陽冠の羽根"
+icon: FEATHER
+rarity: RARE
+maxStack: 64
+saleValue: 140
+lore:
+  - "&7陽光を帯びたサンバードの冠羽。"
+  - "&7熱を失っても淡い光を保ち続ける。"
+unTradeable: false
+unSellable: false
