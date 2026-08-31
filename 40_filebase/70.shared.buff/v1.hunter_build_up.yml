@@ -1,0 +1,15 @@
+# design:
+#   motif: "狩猟術 / 矢束の強化"
+#   progression: 2
+schemaVersion: 1
+id: hunter_build_up
+type: BUFF
+name: "&eビルドアップ"
+lore:
+  - "&7一定時間、間接攻撃力が上昇する。"
+durationTicks: 400 # 20秒
+isDebuff: false
+modifiers:
+  - status: RANGED_ATTACK
+    type: SCALAR
+    value: 0.10 # +10%

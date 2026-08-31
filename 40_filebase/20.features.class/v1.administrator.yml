@@ -89,6 +89,7 @@ usableSkills:
   - skill:hunter_arrow_rain
   - skill:hunter_heal_arrow
   - skill:hunter_spell_step
+  - skill:hunter_build_up
   - skill:mage_heal_aura
   - skill:mage_arcane_flow
 tags:

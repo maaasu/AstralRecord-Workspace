@@ -179,6 +179,22 @@ public final class SkillCombatService {
     }
 
     /**
+     * 指定したバフをプレイヤーへ付与し、付与できたかを返します。
+     * <p>
+     * 有効なプレイヤーを対象とし、同じIDのバフは既存の {@code BuffService} 規則で置き換えられて
+     * 有効期限が更新され、付与後に {@code StatusService} がステータスを再計算します。
+     *
+     * @param target バフ対象プレイヤー（有効なプレイヤー）
+     * @param buffId 付与するバフ ID（バフマスターに定義済み）
+     * @return バフが有効な状態で付与された場合 true
+     */
+    public boolean applyBuff(@NotNull AstPlayer target, @NotNull String buffId) {
+        statusService.applyBuff(target, buffId);
+        return statusService.getActiveBuffs(target).stream()
+                .anyMatch(buff -> buff.getType().getId().equalsIgnoreCase(buffId));
+    }
+
+    /**
      * 対象に指定した有効な状態異常が付与されているかを返します。
      *
      * @param target 判定対象

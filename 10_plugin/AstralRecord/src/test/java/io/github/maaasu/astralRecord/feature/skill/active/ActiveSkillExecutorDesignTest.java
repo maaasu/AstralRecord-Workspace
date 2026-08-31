@@ -64,13 +64,14 @@ class ActiveSkillExecutorDesignTest {
         "swordsman_flame_rush",
         "swordsman_challenging_roar",
         "swordsman_bastion_strike",
-        "hunter_arrow_rain"
+        "hunter_arrow_rain",
+        "hunter_build_up"
     );
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載19 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載20 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {

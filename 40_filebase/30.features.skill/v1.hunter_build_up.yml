@@ -1,0 +1,32 @@
+# design:
+#   motif: "狩猟術 / 矢束の強化"
+#   progression: 2
+schemaVersion: 1
+id: hunter_build_up
+type: SKILL
+implementationId: hunter_build_up
+name: "&eビルドアップ"
+description: "&7狩猟の構えを整え、間接攻撃を強化する。"
+icon: TIPPED_ARROW
+lore:
+  - "&7発動後、20秒間だけ間接攻撃力が10%上昇する。"
+cooldownTicks: 600
+resourceType: ENERGY
+resourceCost: 10
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 1
+sigilSlotsByLevel: []
+allowedSigilIds: []
+gem:
+  rarity: COMMON
+  tradeable: false
+  sellable: false
+onCast:
+  sound: block.beacon.power_select
+params:
+  buffId: buff:hunter_build_up
+tags:
+  - active
+  - ranged
+  - bow

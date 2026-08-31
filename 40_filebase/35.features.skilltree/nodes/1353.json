@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1353",
+  "name": "&eビルドアップ",
+  "icon": "TIPPED_ARROW",
+  "tags": [
+    "offense",
+    "wind"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "hunter_build_up"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "hunter"
+  }
+}

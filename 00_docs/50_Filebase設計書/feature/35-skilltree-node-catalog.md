@@ -50,6 +50,7 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `skill-hunter-crash-arrow` | `skill` / `hunter_crash_arrow` | `&bクラッシュアロー` | `TARGET` | `offense` |
 | `skill-hunter-heal-arrow` | `skill` / `hunter_heal_arrow` | `&aヒールアロー` | `GLOW_BERRIES` | `light` |
 | `skill-hunter-spell-step` | `skill` / `hunter_spell_step` | `&eスペルステップ` | `ENDER_PEARL` | `agility`, `wind` |
+| `skill-hunter-build-up` | `skill` / `hunter_build_up` | `&eビルドアップ` | `TIPPED_ARROW` | `offense`, `wind` |
 | `skill-mage-arcane-flow` | `skill` / `mage_arcane_flow` | `&dアーケインフロー` | `ENCHANTED_BOOK` | `core`, `mana`, `astral` |
 | `skill-mage-sparking` | `skill` / `mage_sparking` | `&eスパーキング` | `GLOWSTONE_DUST` | `lightning`, `shocked` |
 | `skill-mage-frost-blizzard` | `skill` / `mage_frost_blizzard` | `&bフロストブリザード` | `DIAMOND_NAUTILUS_ARMOR` | `ice`, `azure` |
@@ -116,7 +117,7 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 | `status-hunter-energy-cost-ring` | `1277`～`1280` | `ENERGY_COST_REDUCTION / FLAT / 1` | `&b節気の星環` | `HONEY_BOTTLE` | `status`, `resource`, `energy`, `azure` |
 | `status-hunter-energy-notable` | `1281` | `ENERGY_COST_REDUCTION / FLAT / 4` + `ENERGY_REGEN / FLAT / 2` | `&6蒼穹の極星` | `NETHER_STAR` | `status`, `resource`, `energy`, `azure` |
 
-4円環を含むハンター地域の全取得は54ハンターCPです。専門円環の合計は `RANGED_ATTACK +9`、`ACCURACY +3`、`SHIELD_BREAK +5`、`RANGED_DEFENSE_PENETRATION_RATE +5`、`MOVEMENT_SPEED +9`、`EVASION +2`、`ENERGY_COST_REDUCTION +8`、`ENERGY_REGEN +2` です。skill解放3nodeは関連する小nodeから独立分岐します。
+4円環を含むハンター地域の全取得は55ハンターCPです。専門円環の合計は `RANGED_ATTACK +9`、`ACCURACY +3`、`SHIELD_BREAK +5`、`RANGED_DEFENSE_PENETRATION_RATE +5`、`MOVEMENT_SPEED +9`、`EVASION +2`、`ENERGY_COST_REDUCTION +8`、`ENERGY_REGEN +2` です。skill解放4nodeは関連する小nodeから独立分岐します。
 
 ## メイジ専門円環
 
