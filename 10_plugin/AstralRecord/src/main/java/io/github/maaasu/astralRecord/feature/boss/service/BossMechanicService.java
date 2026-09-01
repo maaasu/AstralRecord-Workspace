@@ -70,8 +70,8 @@ public final class BossMechanicService {
     private static final int SUNBIRD_TELEPORT_POINT_COUNT = 6;
     private static final double SUNBIRD_ARENA_RADIUS = 18.0D;
     private static final int SUNBIRD_ARENA_BOUNDARY_POINT_COUNT = 48;
-    private static final int SUNBIRD_ARENA_BOUNDARY_UPPER_LAYER_COUNT = 3;
-    private static final int SUNBIRD_ARENA_BOUNDARY_LOWER_LAYER_COUNT = 5;
+    private static final int SUNBIRD_ARENA_BOUNDARY_UPPER_LAYER_COUNT = 8;
+    private static final int SUNBIRD_ARENA_BOUNDARY_LOWER_LAYER_COUNT = 2;
     private static final double SUNBIRD_ARENA_BOUNDARY_LAYER_HEIGHT = 0.5D;
     private static final long SUNBIRD_ARENA_PULSE_INTERVAL_TICKS = 20L;
     private static final double SUNBIRD_ARENA_DAMAGE_RATIO = 0.18D;
@@ -886,7 +886,7 @@ public final class BossMechanicService {
     }
 
     /**
-     * サンバードの安全圏境界を、同じ円周の上下8層表示として1回の近傍閲覧者判定で表示します。
+     * サンバードの安全圏境界を、同じ円周の上8層・下2層表示として1回の近傍閲覧者判定で表示します。
      *
      * @param center 安全圏の中心
      */
