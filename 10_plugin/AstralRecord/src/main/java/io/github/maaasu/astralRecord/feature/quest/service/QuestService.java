@@ -1233,6 +1233,7 @@ public final class QuestService {
                 skillTreeService.refreshProgressDerivedState(player);
             }
             statusService.refreshStatus(player);
+            playerClassService.updatePlayerListName(player);
         } catch (RuntimeException exception) {
             Logger.log(
                 LogId.W_6606,

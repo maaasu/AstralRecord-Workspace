@@ -196,7 +196,7 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
      * 章・見出し: # 10_3-View > ## 5. tab list 描画
-     * 検証契約: tab list名へアカウント名とスロット番号を反映する。
+     * 検証契約: tab list名へクラス名・クラスレベル・アカウント名とスロット番号を反映する。
      */
     @Test
     fun updatesTabListNameWithAccountDisplayName() {
@@ -209,7 +209,69 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         service.updatePlayerListName(astPlayer)
 
         assertEquals(
-            "test-account#0",
+            "[メイジ Lv.1] test-account#0",
+            PlainTextComponentSerializer.plainText().serialize(player.playerListName()),
+        )
+
+        service.grantClassExperience(astPlayer, 53)
+
+        assertEquals(
+            "[メイジ Lv.2] test-account#0",
+            PlainTextComponentSerializer.plainText().serialize(player.playerListName()),
+        )
+
+        service.setClassLevel(astPlayer, "mage", 4)
+
+        assertEquals(
+            "[メイジ Lv.4] test-account#0",
+            PlainTextComponentSerializer.plainText().serialize(player.playerListName()),
+        )
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
+     * 章・見出し: # 10_3-View > ## 5. tab list 描画
+     * 検証契約: クラスマスター未解決時に内部クラスIDをTabへ表示しない。
+     */
+    @Test
+    fun usesGenericClassNameWhenClassMasterIsUnavailable() {
+        val player = server().addPlayer()
+        val astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER)
+        astPlayer.selectClass("missing_class")
+
+        val service = PlayerClassService()
+        service.updatePlayerListName(astPlayer)
+
+        assertEquals(
+            "[未登録のクラス Lv.1] test-account#0",
+            PlainTextComponentSerializer.plainText().serialize(player.playerListName()),
+        )
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
+     * 章・見出し: # 10_3-View > ## 5. tab list 描画
+     * 検証契約: 現在クラス以外の進行度変更ではTabの現在クラス表示を変えない。
+     */
+    @Test
+    fun keepsCurrentClassTabLabelWhenAnotherClassLevelChanges() {
+        val player = server().addPlayer()
+        val astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER)
+        astPlayer.selectClass("mage")
+
+        val service = PlayerClassService()
+        service.replaceSnapshot(
+            mapOf(
+                "mage" to classModel("mage", "&bメイジ"),
+                "warrior" to classModel("warrior", "&cウォリアー"),
+            ),
+        )
+        service.updatePlayerListName(astPlayer)
+
+        service.setClassLevel(astPlayer, "warrior", 4)
+
+        assertEquals(
+            "[メイジ Lv.1] test-account#0",
             PlainTextComponentSerializer.plainText().serialize(player.playerListName()),
         )
     }

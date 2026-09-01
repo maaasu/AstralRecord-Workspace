@@ -83,19 +83,29 @@ class PlayerClassService @JvmOverloads constructor(
     }
 
     /**
-     * タブのプレイヤーリスト名を、正式クラス名タグ付きで更新します。
+     * タブのプレイヤーリスト名を、正式クラス名・クラスレベルのタグ付きで更新します。
      *
      * @param astPlayer 更新対象プレイヤー
      */
     fun updatePlayerListName(astPlayer: AstPlayer) {
-        val standardName = AccountDisplayNameFormatter.toComponent(astPlayer.account)
-        astPlayer.bukkit.playerListName(
-            if (afkStateProvider.test(astPlayer)) {
-                PlayerMsgResource.getComponent(PlayerMsgId.P_7121.id).append(Component.space()).append(standardName)
-            } else {
-                standardName
-            },
+        val classDisplayName = if (getLoadedClass(astPlayer.classId) == null) {
+            PlayerMsgResource.getMessage(PlayerMsgId.P_7122.id)
+        } else {
+            getDisplayName(astPlayer.classId)
+        }
+        val classTag = PlayerMsgResource.formatPlainComponent(
+            PlayerMsgId.P_5948.id,
+            classDisplayName,
+            astPlayer.classLevel,
         )
+        val standardName = AccountDisplayNameFormatter.toComponent(astPlayer.account)
+        var playerListName = classTag.append(Component.space())
+        if (afkStateProvider.test(astPlayer)) {
+            playerListName = playerListName
+                .append(PlayerMsgResource.getComponent(PlayerMsgId.P_7121.id))
+                .append(Component.space())
+        }
+        astPlayer.bukkit.playerListName(playerListName.append(standardName))
     }
 
     fun getLoadedClasses(): List<ClassModel> = classService.getLoadedClasses()
@@ -142,6 +152,9 @@ class PlayerClassService @JvmOverloads constructor(
         astPlayer.classExperience = totalExperience
         astPlayer.classLevel = level
         persistClassProgress(astPlayer)
+        if (level != previousLevel) {
+            updatePlayerListName(astPlayer)
+        }
         return ClassExperienceResult(previousLevel, level, experience, (level - previousLevel).coerceAtLeast(0))
     }
 
@@ -173,10 +186,14 @@ class PlayerClassService @JvmOverloads constructor(
         val previous = astPlayer.getClassProgress(model.id)
         val previousLevel = previous.level.coerceIn(1, maxLevel)
         val currentLevel = requestedLevel.coerceIn(1L, maxLevel.toLong()).toInt()
+        val isCurrentClass = model.id.equals(astPlayer.classId, ignoreCase = true)
         val experience = totalRequiredClassExperienceForLevel(model, currentLevel)
         astPlayer.setClassProgress(model.id, currentLevel, experience)
         persistClassProgress(astPlayer, model.id, currentLevel, experience)
         skillTreeService?.refreshProgressDerivedState(astPlayer)
+        if (isCurrentClass && currentLevel != previousLevel) {
+            updatePlayerListName(astPlayer)
+        }
         return ClassLevelSetResult(model.id, previousLevel, currentLevel, maxLevel)
     }
 

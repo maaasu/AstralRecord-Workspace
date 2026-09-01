@@ -772,6 +772,7 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
             initialAccount,
             player.getUser().getUuid()
         );
+        rewardOrder.verify(harness.playerClassService).updatePlayerListName(player);
         rewardOrder.verify(harness.inventoryService).addGold(player, 7L);
         rewardOrder.verify(harness.inventoryService).addItemToNormalInventory(
             player,
