@@ -31,6 +31,22 @@ public class UserRepository(
         return user is null ? null : MapToResponse(user);
     }
 
+    public async Task<IReadOnlyList<string>> GetMcidsAsync(string? prefix)
+    {
+        var normalizedPrefix = prefix?.Trim() ?? string.Empty;
+        var query = dbContext.Users
+            .AsNoTracking()
+            .Where(x => !x.IsDeleted);
+
+        if (normalizedPrefix.Length > 0)
+            query = query.Where(x => x.Mcid.StartsWith(normalizedPrefix));
+
+        return await query
+            .OrderBy(x => x.Mcid)
+            .Select(x => x.Mcid)
+            .ToListAsync();
+    }
+
     public async Task<UserResponse> CreateAsync(UserCreateRequest request)
     {
         var now = DateTime.UtcNow;
@@ -76,7 +92,9 @@ public class UserRepository(
         if (request.BanIndefinite.HasValue)
             user.BanIndefinite = request.BanIndefinite.Value;
 
-        if (request.BanDate.HasValue)
+        if (user.BanIndefinite)
+            user.BanDate = null;
+        else if (request.BanDate.HasValue)
             user.BanDate = request.BanDate.Value;
 
         if (request.KickIp.HasValue)

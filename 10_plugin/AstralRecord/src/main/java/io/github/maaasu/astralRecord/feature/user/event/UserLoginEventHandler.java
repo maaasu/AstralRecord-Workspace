@@ -1,8 +1,11 @@
 package io.github.maaasu.astralRecord.feature.user.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.player.AsyncPlayerPreLoginEvent;
@@ -28,10 +31,16 @@ public class UserLoginEventHandler extends AbstractEventHandler {
         InetAddress address = event.getAddress();
         String globalIp = address.getHostAddress();
 
-        runSafely(
-                () -> userService.onAsyncPreLogin(event.getUniqueId(), event.getName(), globalIp),
-                LogId.E_5000,
-                event.getName()
-        );
+        try {
+            boolean allowed = userService.onAsyncPreLogin(event.getUniqueId(), event.getName(), globalIp);
+            if (!allowed) {
+                event.disallow(
+                        AsyncPlayerPreLoginEvent.Result.KICK_OTHER,
+                        PlayerMsgResource.getComponent(PlayerMsgId.P_5307.getId())
+                );
+            }
+        } catch (Exception e) {
+            Logger.log(LogId.E_5000, e, event.getName());
+        }
     }
 }

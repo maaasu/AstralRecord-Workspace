@@ -7,8 +7,10 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil
 import java.io.IOException
+import java.net.URLEncoder
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
+import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import java.util.UUID
@@ -111,6 +113,42 @@ class UserRepository {
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
             throw RuntimeException(e)
+        }
+    }
+
+    /**
+     * 参加履歴のある Minecraft ID を前方一致で取得します。
+     * GET /api/user/mcids?prefix={prefix}
+     */
+    fun findMcids(prefix: String): List<String> {
+        val normalizedPrefix = prefix.trim()
+        val encodedPrefix = URLEncoder.encode(normalizedPrefix, StandardCharsets.UTF_8)
+        val path = if (encodedPrefix.isEmpty()) {
+            "/api/user/mcids"
+        } else {
+            "/api/user/mcids?prefix=$encodedPrefix"
+        }
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                if (response.statusCode() !in 200..299) {
+                    throw IOException("Unexpected status ${response.statusCode()} for GET $path")
+                }
+
+                val mcids = JsonParser.parseString(response.body()).asJsonArray
+                    .map { it.asString }
+                    .filter { it.isNotBlank() }
+                Logger.log(LogId.D_5061, normalizedPrefix, mcids.size)
+                return mcids
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Logger.log(LogId.E_5061, e, path)
+            throw RuntimeException(e)
+        } catch (e: Exception) {
+            Logger.log(LogId.E_5061, e, path)
+            throw e
         }
     }
 
@@ -245,6 +283,51 @@ class UserRepository {
             Thread.currentThread().interrupt()
             Logger.log(LogId.E_5059, e, e.message ?: "Interrupted while PUT $path")
             throw RuntimeException(e)
+        }
+    }
+
+    /**
+     * ユーザーの BAN 状態を更新し、API が返した更新後モデルを返します。
+     * PUT /api/user/{uuid}
+     */
+    fun updateBan(
+        uuid: UUID,
+        banIndefinite: Boolean,
+        banDate: LocalDateTime?,
+        updatedBy: UUID,
+    ): UserModel {
+        val path = "/api/user/$uuid"
+        val body = ApiRequestUtil.buildJsonBody {
+            addProperty("mcid", null as String?)
+            addProperty("lastJoinDate", null as String?)
+            addProperty("globalIp", null as String?)
+            addProperty("accountId", null as String?)
+            addProperty("banIndefinite", banIndefinite)
+            addProperty("banDate", banDate?.format(formatter))
+            addProperty("kickIp", null as Boolean?)
+            addProperty("permission", null as Number?)
+            addProperty("updatedBy", updatedBy.toString())
+        }
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .PUT(HttpRequest.BodyPublishers.ofString(body))
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                if (response.statusCode() !in 200..299) {
+                    throw IOException("Unexpected status ${response.statusCode()} for PUT $path")
+                }
+                val updated = parseUserModel(response.body())
+                Logger.log(LogId.D_5062, uuid, banIndefinite, banDate)
+                return updated
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Logger.log(LogId.E_5062, e, path)
+            throw RuntimeException(e)
+        } catch (e: Exception) {
+            Logger.log(LogId.E_5062, e, path)
+            throw e
         }
     }
 

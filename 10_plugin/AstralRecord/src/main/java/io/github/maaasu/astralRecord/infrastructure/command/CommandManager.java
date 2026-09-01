@@ -149,14 +149,15 @@ public class CommandManager {
                             ? Arrays.copyOfRange(allParts, 1, allParts.length)
                             : new String[0];
 
-                    List<String> suggestions = tabCompleter.onTabComplete(
-                            ctx.getSource().getSender(), null, commandName, args);
-                    int currentArgumentStart = input.lastIndexOf(' ') + 1;
-                    var suggestionBuilder = builder.createOffset(currentArgumentStart);
+                    return tabCompleter.onTabCompleteAsync(
+                            ctx.getSource().getSender(), null, commandName, args
+                    ).thenApply(suggestions -> {
+                        int currentArgumentStart = input.lastIndexOf(' ') + 1;
+                        var suggestionBuilder = builder.createOffset(currentArgumentStart);
 
-                    suggestions.stream()
-                            .forEach(suggestionBuilder::suggest);
-                    return suggestionBuilder.buildFuture();
+                        suggestions.forEach(suggestionBuilder::suggest);
+                        return suggestionBuilder.build();
+                    });
                 });
             }
 

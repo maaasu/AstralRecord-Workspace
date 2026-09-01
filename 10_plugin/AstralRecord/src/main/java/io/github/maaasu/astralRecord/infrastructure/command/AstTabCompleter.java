@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 /**
@@ -91,18 +92,56 @@ public abstract class AstTabCompleter implements TabCompleter {
                 completions = getCompletions(sender, args);
             }
 
-            // 入力に基づいてフィルタリング
-            if (completions != null && args.length > 0) {
-                String currentInput = args[args.length - 1].toLowerCase();
-                return completions.stream()
-                        .filter(completion -> completion.toLowerCase().startsWith(currentInput))
-                        .collect(Collectors.toList());
-            }
-
-            return completions != null ? completions : Collections.emptyList();
+            return filterCompletions(completions, args);
 
         } catch (Exception e) {
             return Collections.emptyList();
+        }
+    }
+
+    /**
+     * 非同期タブ補完を実行します。
+     * <p>
+     * DB/APIを参照する補完は {@link #getCompletionsAsync(CommandSender, String[])} を
+     * オーバーライドしてください。既存の補完は同期実装をそのまま利用します。
+     *
+     * @param sender コマンド送信者
+     * @param command コマンド
+     * @param label コマンドラベル
+     * @param args コマンド引数
+     * @return 補完候補を返すfuture
+     */
+    public final @NotNull CompletableFuture<List<String>> onTabCompleteAsync(
+            @NotNull CommandSender sender,
+            @Nullable Command command,
+            @NotNull String label,
+            @NotNull String[] args
+    ) {
+        try {
+            if (playerOnly && !(sender instanceof Player)) {
+                return CompletableFuture.completedFuture(Collections.emptyList());
+            }
+
+            if (permission != null && !sender.hasPermission(permission)) {
+                return CompletableFuture.completedFuture(Collections.emptyList());
+            }
+
+            CompletableFuture<List<String>> completionsFuture;
+            if (playerOnly) {
+                AstPlayer astPlayer = AstPlayerCache.get((Player) sender);
+                if (astPlayer == null) {
+                    return CompletableFuture.completedFuture(Collections.emptyList());
+                }
+                completionsFuture = getPlayerCompletionsAsync(astPlayer, args);
+            } else {
+                completionsFuture = getCompletionsAsync(sender, args);
+            }
+
+            return completionsFuture
+                    .thenApply(completions -> filterCompletions(completions, args))
+                    .exceptionally(ignored -> Collections.emptyList());
+        } catch (Exception e) {
+            return CompletableFuture.completedFuture(Collections.emptyList());
         }
     }
 
@@ -122,6 +161,21 @@ public abstract class AstTabCompleter implements TabCompleter {
     }
 
     /**
+     * 非同期タブ補完の候補を取得します。
+     * 通常の補完は同期メソッドへ委譲されます。
+     *
+     * @param sender コマンド送信者
+     * @param args コマンド引数
+     * @return 補完候補を返すfuture
+     */
+    protected @NotNull CompletableFuture<List<String>> getCompletionsAsync(
+            @NotNull CommandSender sender,
+            @NotNull String[] args
+    ) {
+        return CompletableFuture.completedFuture(getCompletions(sender, args));
+    }
+
+    /**
      * プレイヤー限定コマンドのタブ補完候補を取得します。
      * {@code playerOnly = true} のコマンドはこのメソッドをオーバーライドしてください。
      *
@@ -131,6 +185,35 @@ public abstract class AstTabCompleter implements TabCompleter {
      */
     protected List<String> getPlayerCompletions(@NotNull AstPlayer player, @NotNull String[] args) {
         return Collections.emptyList();
+    }
+
+    /**
+     * プレイヤー限定コマンドの非同期補完候補を取得します。
+     *
+     * @param player コマンドを実行したAstPlayer
+     * @param args コマンド引数
+     * @return 補完候補を返すfuture
+     */
+    protected @NotNull CompletableFuture<List<String>> getPlayerCompletionsAsync(
+            @NotNull AstPlayer player,
+            @NotNull String[] args
+    ) {
+        return CompletableFuture.completedFuture(getPlayerCompletions(player, args));
+    }
+
+    private @NotNull List<String> filterCompletions(@Nullable List<String> completions,
+                                                    @NotNull String[] args) {
+        if (completions == null) {
+            return Collections.emptyList();
+        }
+        if (args.length == 0) {
+            return completions;
+        }
+
+        String currentInput = args[args.length - 1].toLowerCase();
+        return completions.stream()
+                .filter(completion -> completion.toLowerCase().startsWith(currentInput))
+                .collect(Collectors.toList());
     }
 
     /**

@@ -78,6 +78,8 @@ import io.github.maaasu.astralRecord.feature.trainingdummy.gui.TrainingDummyGui;
 import io.github.maaasu.astralRecord.feature.trainingdummy.service.TrainingDummyService;
 import io.github.maaasu.astralRecord.feature.trade.command.TradeTabCompleter;
 import io.github.maaasu.astralRecord.feature.user.command.UserCommand;
+import io.github.maaasu.astralRecord.feature.user.command.BanCommand;
+import io.github.maaasu.astralRecord.feature.user.command.BanTabCompleter;
 import io.github.maaasu.astralRecord.feature.user.command.UserPermissionCommand;
 import io.github.maaasu.astralRecord.feature.user.command.UserPermissionTabCompleter;
 import io.github.maaasu.astralRecord.feature.user.command.UserTabCompleter;
@@ -215,6 +217,11 @@ public class CommandRegister {
         cm.registerCommand("boss", new BossCommand());
         cm.registerCommand("dungeon", new DungeonCommand());
         cm.registerCommand("user", new UserCommand(), new UserTabCompleter());
+        cm.registerCommand(
+                "ban",
+                new BanCommand(null),
+                new BanTabCompleter(null)
+        );
         cm.registerCommand("uperm", new UserPermissionCommand("uperm", "/uperm <permission> [<player|uuid>]"), new UserPermissionTabCompleter());
         cm.registerCommand("account", accountCommand, new AccountTabCompleter());
         cm.registerCommand("level", new LevelCommand(), new LevelTabCompleter());

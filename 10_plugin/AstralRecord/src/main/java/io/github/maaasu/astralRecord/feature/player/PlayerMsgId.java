@@ -416,7 +416,7 @@ public enum PlayerMsgId {
     P_5295(5295),
     // endregion
 
-    // region /feature/user/command/UserPermissionCommand.java 5300-5309
+    // region /feature/user/command 5300-5319
     /**
      * 対象プレイヤーまたはUUIDが見つかりません: {0}
      */
@@ -441,7 +441,20 @@ public enum PlayerMsgId {
      * このコマンドをコンソールから実行する場合は対象プレイヤーの指定が必要です。
      */
     P_5305(5305),
+    /** 同一対象の権限更新が処理中であることを通知します。 */
     P_5306(5306),
+    /** BAN 対象者の接続を拒否するメッセージ。 */
+    P_5307(5307),
+    /** 無期限 BAN の設定完了通知。{0}: Minecraft ID */
+    P_5308(5308),
+    /** BAN 更新処理中の通知。 */
+    P_5309(5309),
+    /** BAN コマンドの引数不正通知。 */
+    P_5310(5310),
+    /** 有期限 BAN の日数不正通知。 */
+    P_5311(5311),
+    /** 有期限 BAN の設定完了通知。{0}: Minecraft ID、{1}: 日数、{2}: 期限 */
+    P_5312(5312),
     // endregion
 
     // region /feature/guide 5180-5189

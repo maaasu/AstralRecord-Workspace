@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.UUID;
 
 /**
@@ -33,7 +34,7 @@ public class UserService {
      * @param mcid     Minecraft ID
      * @param globalIp グローバル IP
      */
-    public void onAsyncPreLogin(UUID uuid, String mcid, String globalIp) {
+    public boolean onAsyncPreLogin(UUID uuid, String mcid, String globalIp) {
         UserModel existing;
         try {
             // 初参加チェックのため 404 が正常系となる findByUuidSilent を使用する
@@ -41,7 +42,7 @@ public class UserService {
             existing = userRepository.findByUuidSilent(uuid);
         } catch (Exception e) {
             Logger.log(LogId.W_5051, mcid, e.getMessage());
-            return;
+            return true;
         }
 
         if (existing == null) {
@@ -51,6 +52,10 @@ public class UserService {
                 Logger.log(LogId.W_5051, mcid, e.getMessage());
             }
         } else {
+            if (isActiveBan(existing, LocalDateTime.now())) {
+                return false;
+            }
+
             // user.accountId を選択状態の正とし、不整合時のみアクティブアカウントへフォールバックする
             AccountModel selectedAccount = accountService.getSelectedAccount(uuid, existing.getAccountId());
             if (selectedAccount != null) {
@@ -61,6 +66,7 @@ public class UserService {
                 }
             }
         }
+        return true;
     }
 
     /**
@@ -136,9 +142,42 @@ public class UserService {
         }
     }
 
+    /**
+     * Minecraft ID の補完候補を取得します。
+     *
+     * @param prefix Minecraft ID の前方一致検索文字列
+     * @return 参加履歴のある Minecraft ID 一覧
+     */
+    public List<String> getMcidSuggestions(String prefix) {
+        return userRepository.findMcids(prefix);
+    }
+
     public UserModel setPermission(UUID uuid, int permission, UUID updatedBy) {
         userRepository.updatePermission(uuid, permission, updatedBy);
         return getUser(uuid);
+    }
+
+    /**
+     * ユーザーの BAN 状態を更新します。
+     *
+     * @param uuid 対象ユーザー UUID
+     * @param banIndefinite 無期限 BAN かどうか
+     * @param banDate 有期限 BAN の終了日時。無期限の場合は無視されます
+     * @param updatedBy 更新者 UUID
+     * @return 更新後のユーザーモデル
+     */
+    public UserModel setBan(UUID uuid, boolean banIndefinite, LocalDateTime banDate, UUID updatedBy) {
+        return userRepository.updateBan(
+                uuid,
+                banIndefinite,
+                banIndefinite ? null : banDate,
+                updatedBy
+        );
+    }
+
+    private boolean isActiveBan(UserModel user, LocalDateTime now) {
+        return user.getBanIndefinite()
+                || user.getBanDate() != null && user.getBanDate().isAfter(now);
     }
 
     /**

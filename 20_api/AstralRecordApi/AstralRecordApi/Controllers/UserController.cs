@@ -41,6 +41,17 @@ public class UserController(IUserRepository userRepository) : ControllerBase
         return Ok(user);
     }
 
+    /// <summary>参加履歴のある Minecraft ID 一覧を取得します。</summary>
+    /// <param name="prefix">Minecraft ID の前方一致検索文字列。省略時は全件。</param>
+    /// <response code="200">Minecraft ID 一覧の取得成功</response>
+    [HttpGet("mcids")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> GetMcids([FromQuery] string? prefix)
+    {
+        var mcids = await userRepository.GetMcidsAsync(prefix);
+        return Ok(mcids);
+    }
+
     /// <summary>ユーザー登録</summary>
     /// <param name="request">登録するユーザー情報</param>
     /// <response code="201">ユーザー登録成功</response>

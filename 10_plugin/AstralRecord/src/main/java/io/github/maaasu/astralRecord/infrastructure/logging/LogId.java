@@ -306,6 +306,22 @@ public enum LogId {
      * ユーザー履歴の登録に失敗しました (API): %s
      */
     E_5060(5060),
+    /**
+     * MCID一覧を取得しました (API): prefix=%s, count=%d
+     */
+    D_5061(5061),
+    /**
+     * MCID一覧の取得に失敗しました (API): %s
+     */
+    E_5061(5061),
+    /**
+     * BAN情報を更新しました (API): user=%s, indefinite=%s, banDate=%s
+     */
+    D_5062(5062),
+    /**
+     * BAN情報の更新に失敗しました (API): %s
+     */
+    E_5062(5062),
     // endregion
 
     // region /feature/user/service/UserService.java
@@ -321,6 +337,10 @@ public enum LogId {
      * ユーザー取得をスキップしました（API一時障害）: %s (%s)
      */
     W_5052(5052),
+    /**
+     * MCID補完の取得に失敗したため、直前の候補を使用します: prefix=%s, reason=%s
+     */
+    W_5054(5054),
     // endregion
 
     // region /feature/user/command/UserPermissionCommand.java
@@ -328,6 +348,14 @@ public enum LogId {
      * permission を変更しました: 実行者=%s, 対象=%s, 変更前=%s, 変更後=%s, 経路=%s
      */
     I_5053(5053),
+    /**
+     * BANを変更しました: 実行者=%s, 対象=%s, 変更前=%s/%s, 変更後=%s/%s, 経路=%s
+     */
+    I_5054(5054),
+    /**
+     * BANコマンドの更新に失敗しました: 対象=%s
+     */
+    E_5063(5063),
     // endregion
 
     // region /feature/player/event/PlayerJoinEventHandler.java

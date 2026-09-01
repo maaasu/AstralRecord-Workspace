@@ -28,6 +28,7 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 - `GET /api/gathering/{gatheringId}`
 - `GET /api/gathering-spawner`
 - `GET /api/gathering-spawner/{spawnerId}`
+- `GET /api/user/mcids?prefix={prefix}`（参加履歴のある Minecraft ID 補完候補）
 - `POST /api/equipment/durability`
 - `POST /api/account-skills/{accountId}/{learnedSkillId}/sigils`（シジル・SIGIL_ATTACHオーブ消費、[習得済みスキル API 設計](00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md)）
 - `POST /api/account-skills/{accountId}/{learnedSkillId}/sigils/{learnedSkillSigilId}/detach`（SIGIL_DETACHオーブ消費・シジル返却、[習得済みスキル API 設計](00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md)）
