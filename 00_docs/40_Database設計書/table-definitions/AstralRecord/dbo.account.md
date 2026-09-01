@@ -38,7 +38,7 @@
 | `created_by`   | `UNIQUEIDENTIFIER` |    |    ○    |        | 作成者の UUID                                               |
 | `updated_by`   | `UNIQUEIDENTIFIER` |    |    ○    |        | 最終更新者の UUID                                             |
 | `is_deleted`   | `BIT`              |    |    ○    |  `0`   | 論理削除フラグ（`1`: 削除済 / `0`: 未削除）                            |
-| `account_name_normalized` | `AS LOWER(account_name)` |    |    ○    |        | 大文字小文字を無視した重複検査用の永続計算列 |
+| `account_name_normalized` | `AS CONVERT(NVARCHAR(50), LOWER(account_name))` |    |    ○    |        | 大文字小文字を無視した重複検査用の永続計算列 |
 
 ### mode 値定義
 
@@ -132,7 +132,7 @@ CREATE TABLE [dbo].[account] (
     [updated_by]     UNIQUEIDENTIFIER  NOT NULL,
     [is_deleted]     BIT               NOT NULL  CONSTRAINT [DF_account_is_deleted]  DEFAULT (0),
 
-    [account_name_normalized] AS (LOWER([account_name])) PERSISTED,
+    [account_name_normalized] AS (CONVERT(NVARCHAR(50), LOWER([account_name]))) PERSISTED,
 
     CONSTRAINT [PK_account] PRIMARY KEY CLUSTERED ([uuid]),
     CONSTRAINT [FK_account_user] FOREIGN KEY ([user_id])

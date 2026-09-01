@@ -113,6 +113,74 @@ BEGIN TRY
         CREATE NONCLUSTERED INDEX [IX_player_mail_delivery_account_id]
             ON [dbo].[player_mail_delivery] ([account_id]);
 
+    /* アカウント名は設計上 NVARCHAR(50) とする。既存値は切り捨てず、契約違反を明示して停止する。 */
+    IF EXISTS (
+        SELECT 1 FROM [dbo].[account]
+        WHERE [account_name] IS NULL
+           OR LEN([account_name]) = 0
+           OR LEN([account_name]) > 50
+    )
+        THROW 51002, 'Existing account_name values must contain 1-50 characters.', 1;
+
+    IF EXISTS (
+        SELECT 1 FROM sys.columns
+        WHERE [object_id] = OBJECT_ID(N'[dbo].[account]')
+          AND [name] = N'account_name'
+          AND (
+                [system_type_id] <> 231 /* nvarchar */
+                OR [max_length] <> 100 /* nvarchar(50) は100バイト */
+                OR [is_nullable] = 1
+          )
+    )
+    BEGIN
+        /* 型変更前に、この更新で追加した補助列とそのインデックスを外す。 */
+        IF EXISTS (
+            SELECT 1 FROM sys.indexes
+            WHERE [name] = N'UX_account_account_name_active'
+              AND [object_id] = OBJECT_ID(N'[dbo].[account]')
+        )
+            DROP INDEX [UX_account_account_name_active] ON [dbo].[account];
+
+        IF EXISTS (
+            SELECT 1 FROM sys.columns
+            WHERE [object_id] = OBJECT_ID(N'[dbo].[account]')
+              AND [name] = N'account_name_normalized'
+        )
+            ALTER TABLE [dbo].[account]
+                DROP COLUMN [account_name_normalized];
+
+        ALTER TABLE [dbo].[account]
+            ALTER COLUMN [account_name] NVARCHAR(50) NOT NULL;
+    END;
+
+    /* 既存の補助列が不正な型で残っている場合も、正しい定義へ再作成する。 */
+    IF EXISTS (
+        SELECT 1
+        FROM sys.columns AS [c]
+        LEFT JOIN sys.computed_columns AS [cc]
+            ON [cc].[object_id] = [c].[object_id]
+           AND [cc].[column_id] = [c].[column_id]
+        WHERE [c].[object_id] = OBJECT_ID(N'[dbo].[account]')
+          AND [c].[name] = N'account_name_normalized'
+          AND (
+                [c].[is_computed] = 0
+                OR [c].[system_type_id] <> 231 /* nvarchar */
+                OR [c].[max_length] <> 100 /* nvarchar(50) は100バイト */
+                OR ISNULL([cc].[is_persisted], 0) <> 1
+          )
+    )
+    BEGIN
+        IF EXISTS (
+            SELECT 1 FROM sys.indexes
+            WHERE [name] = N'UX_account_account_name_active'
+              AND [object_id] = OBJECT_ID(N'[dbo].[account]')
+        )
+            DROP INDEX [UX_account_account_name_active] ON [dbo].[account];
+
+        ALTER TABLE [dbo].[account]
+            DROP COLUMN [account_name_normalized];
+    END;
+
     /* 既存の未削除重複は、先に作成された行を残して account_name(N) へ退避する。 */
     DECLARE @accountId UNIQUEIDENTIFIER;
     DECLARE @accountName NVARCHAR(50);
@@ -172,7 +240,7 @@ BEGIN TRY
           AND [name] = N'account_name_normalized'
     )
         ALTER TABLE [dbo].[account]
-            ADD [account_name_normalized] AS (LOWER([account_name])) PERSISTED;
+            ADD [account_name_normalized] AS (CONVERT(NVARCHAR(50), LOWER([account_name]))) PERSISTED;
 
     IF NOT EXISTS (
         SELECT 1 FROM sys.indexes

@@ -193,7 +193,7 @@ CREATE TABLE [dbo].[account] (
     [updated_by]     UNIQUEIDENTIFIER  NOT NULL,
     [is_deleted]     BIT               NOT NULL  CONSTRAINT [DF_account_is_deleted]  DEFAULT (0),
 
-    [account_name_normalized] AS (LOWER([account_name])) PERSISTED,
+    [account_name_normalized] AS (CONVERT(NVARCHAR(50), LOWER([account_name]))) PERSISTED,
 
     CONSTRAINT [PK_account] PRIMARY KEY CLUSTERED ([uuid]),
     CONSTRAINT [FK_account_user] FOREIGN KEY ([user_id])
