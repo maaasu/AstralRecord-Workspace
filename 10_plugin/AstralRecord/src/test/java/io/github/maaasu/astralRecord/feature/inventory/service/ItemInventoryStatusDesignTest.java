@@ -35,6 +35,7 @@ import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -847,6 +848,95 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
             .mapToLong(InventoryEntryModel::getQuantity)
             .sum());
         assertEquals(3, state.snapshotEntries(bag.getInventoryId()).size());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 6. ストレージ収納・取り出し
+     * 検証契約: ストレージは基礎5ページで新規entryを拒否し、拡張トークン1個の所持で6ページ目へ収納できる。
+     */
+    @Test
+    void storageCapacityUsesExpansionTokenCount() {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.ADMIN);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel storage = harness.addInventory(state, InventoryType.STORAGE);
+        InventoryModel currency = harness.addInventory(state, InventoryType.CURRENCY);
+        ItemModel source = DesignTestFixtures.item("storage_capacity_source", ItemCategory.MATERIAL, 64);
+        when(harness.itemService.findLoadedById(source.getId())).thenReturn(source);
+
+        List<InventoryEntryModel> fullStorage = new ArrayList<>();
+        for (int slot = 1; slot <= 225; slot++) {
+            fullStorage.add(inventoryEntry(
+                state.getAccountId(),
+                storage.getInventoryId(),
+                slot,
+                ItemCategory.MATERIAL,
+                "stored_material_" + slot,
+                1L
+            ));
+        }
+        state.replaceEntriesFromLoad(storage.getInventoryId(), fullStorage);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
+            inventoryEntry(
+                state.getAccountId(),
+                bag.getInventoryId(),
+                1,
+                ItemCategory.MATERIAL,
+                source.getId(),
+                1L
+            )
+        ));
+
+        assertEquals(5, harness.inventoryService.getStorageMaxPageCount(state.getAccountId()));
+        assertEquals(0, harness.inventoryService.moveOwnedItemToStorage(astPlayer, 9, 1));
+        assertEquals(225, state.snapshotEntries(storage.getInventoryId()).size());
+        assertEquals(1, state.snapshotEntries(bag.getInventoryId()).size());
+
+        state.replaceEntriesFromLoad(currency.getInventoryId(), List.of(
+            inventoryEntry(
+                state.getAccountId(),
+                currency.getInventoryId(),
+                1,
+                ItemCategory.CURRENCY,
+                ItemService.STORAGE_EXPANSION_TOKEN_ITEM_ID,
+                1L
+            )
+        ));
+
+        assertEquals(6, harness.inventoryService.getStorageMaxPageCount(state.getAccountId()));
+        assertEquals(1, harness.inventoryService.moveOwnedItemToStorage(astPlayer, 9, 1));
+        assertEquals(226, state.snapshotEntries(storage.getInventoryId()).size());
+        assertTrue(state.snapshotEntries(bag.getInventoryId()).isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 14. ストレージ操作
+     * 検証契約: ストレージ遠隔アクセストークンはCURRENCY inventoryに所持している場合だけショップの遠隔アクセス権として有効になる。
+     */
+    @Test
+    void storageRemoteAccessRequiresCurrencyToken() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel currency = harness.addInventory(state, InventoryType.CURRENCY);
+
+        assertFalse(harness.inventoryService.hasStorageRemoteAccessToken(state.getAccountId()));
+        state.replaceEntriesFromLoad(currency.getInventoryId(), List.of(
+            inventoryEntry(
+                state.getAccountId(),
+                currency.getInventoryId(),
+                1,
+                ItemCategory.CURRENCY,
+                ItemService.STORAGE_REMOTE_ACCESS_TOKEN_ITEM_ID,
+                1L
+            )
+        ));
+
+        assertTrue(harness.inventoryService.hasStorageRemoteAccessToken(state.getAccountId()));
     }
 
     /**

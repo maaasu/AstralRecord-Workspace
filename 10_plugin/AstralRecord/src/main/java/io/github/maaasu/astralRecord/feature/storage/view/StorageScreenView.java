@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageSortDirection;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageSortKey;
+import io.github.maaasu.astralRecord.feature.storage.model.StorageCapacity;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemRarity;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
@@ -26,7 +27,7 @@ import java.util.List;
 import java.util.UUID;
 
 public final class StorageScreenView extends BaseMenuScreenView {
-    public static final int CONTENT_SLOT_COUNT = 45;
+    public static final int CONTENT_SLOT_COUNT = StorageCapacity.PAGE_SIZE;
     public static final int PREVIOUS_SLOT = 45;
     public static final int CATEGORY_FILTER_SLOT = 46;
     public static final int RARITY_FILTER_SLOT = 47;
@@ -79,7 +80,11 @@ public final class StorageScreenView extends BaseMenuScreenView {
                 options.add(new FilterOption(null, "すべて", Material.BARRIER));
                 for (ItemCategory category : ItemCategory.values()) {
                     if (category != ItemCategory.UNKNOWN) {
-                        options.add(new FilterOption(category.getApiValue(), category.getDisplayNameJa(), Material.CHEST));
+                        options.add(new FilterOption(
+                            category.getApiValue(),
+                            category.getDisplayNameJa(),
+                            categoryIcon(category)
+                        ));
                     }
                 }
                 return options;
@@ -138,18 +143,39 @@ public final class StorageScreenView extends BaseMenuScreenView {
         @NotNull StorageViewOptions options,
         int pageIndex
     ) {
-        int normalizedPage = normalizePage(pageIndex, entries.size());
+        render(inventory, entries, options, pageIndex, StorageCapacity.BASE_PAGE_COUNT);
+    }
+
+    public void render(
+        @NotNull Inventory inventory,
+        @NotNull List<StorageViewEntry> entries,
+        @NotNull StorageViewOptions options,
+        int pageIndex,
+        int maxPageCount
+    ) {
+        int normalizedPage = normalizePage(pageIndex, entries.size(), maxPageCount);
         clear(inventory);
         renderEntries(inventory, entries, normalizedPage);
-        renderNavigation(inventory, entries.size(), normalizedPage, options);
+        renderNavigation(inventory, entries.size(), normalizedPage, options, maxPageCount);
     }
 
     public int normalizePage(int pageIndex, int itemCount) {
-        return GuiPagination.normalizePage(pageIndex, itemCount, CONTENT_SLOT_COUNT);
+        return normalizePage(pageIndex, itemCount, StorageCapacity.BASE_PAGE_COUNT);
+    }
+
+    public int normalizePage(int pageIndex, int itemCount, int maxPageCount) {
+        return Math.max(0, Math.min(pageIndex, totalPages(itemCount, maxPageCount) - 1));
     }
 
     public int totalPages(int itemCount) {
-        return GuiPagination.totalPages(itemCount, CONTENT_SLOT_COUNT);
+        return totalPages(itemCount, StorageCapacity.BASE_PAGE_COUNT);
+    }
+
+    public int totalPages(int itemCount, int maxPageCount) {
+        return Math.min(
+            Math.max(1, maxPageCount),
+            GuiPagination.totalPages(itemCount, CONTENT_SLOT_COUNT)
+        );
     }
 
     public boolean hasPreviousPage(int pageIndex) {
@@ -157,7 +183,11 @@ public final class StorageScreenView extends BaseMenuScreenView {
     }
 
     public boolean hasNextPage(int pageIndex, int itemCount) {
-        return GuiPagination.hasNextPage(pageIndex, itemCount, CONTENT_SLOT_COUNT);
+        return hasNextPage(pageIndex, itemCount, StorageCapacity.BASE_PAGE_COUNT);
+    }
+
+    public boolean hasNextPage(int pageIndex, int itemCount, int maxPageCount) {
+        return pageIndex + 1 < totalPages(itemCount, maxPageCount);
     }
 
     public boolean isContentPlaceholder(@Nullable ItemStack itemStack) {
@@ -205,13 +235,14 @@ public final class StorageScreenView extends BaseMenuScreenView {
         @NotNull Inventory inventory,
         int itemCount,
         int pageIndex,
-        @NotNull StorageViewOptions options
+        @NotNull StorageViewOptions options,
+        int maxPageCount
     ) {
         if (hasPreviousPage(pageIndex)) {
             inventory.setItem(PREVIOUS_SLOT, createItem(
                 Material.MAP,
                 Component.text("前のページ", NamedTextColor.WHITE),
-                List.of(Component.text(pageIndex + " / " + totalPages(itemCount), NamedTextColor.GRAY))
+                List.of(Component.text(pageIndex + " / " + totalPages(itemCount, maxPageCount), NamedTextColor.GRAY))
             ));
         }
         inventory.setItem(CATEGORY_FILTER_SLOT, createItem(
@@ -241,16 +272,35 @@ public final class StorageScreenView extends BaseMenuScreenView {
                 Component.text("下の所持品クリックで収納", NamedTextColor.GRAY),
                 Component.text("上の一覧クリックで取り出し", NamedTextColor.GRAY),
                 Component.text("左: 1個 / 右: 半分", NamedTextColor.GRAY),
-                Component.text("Shift+左: 1スタック / Shift+右: 全部", NamedTextColor.GRAY)
+                Component.text("Shift+左: 1スタック / Shift+右: 全部", NamedTextColor.GRAY),
+                Component.text("容量: 最大 " + Math.max(1, maxPageCount) + "ページ", NamedTextColor.AQUA)
             )
         ));
-        if (hasNextPage(pageIndex, itemCount)) {
+        if (hasNextPage(pageIndex, itemCount, maxPageCount)) {
             inventory.setItem(NEXT_SLOT, createItem(
                 Material.MAP,
                 Component.text("次のページ", NamedTextColor.WHITE),
-                List.of(Component.text((pageIndex + 2) + " / " + totalPages(itemCount), NamedTextColor.GRAY))
+                List.of(Component.text(
+                    (pageIndex + 2) + " / " + totalPages(itemCount, maxPageCount),
+                    NamedTextColor.GRAY
+                ))
             ));
         }
+    }
+
+    private static @NotNull Material categoryIcon(@NotNull ItemCategory category) {
+        return switch (category) {
+            case BUNDLE -> Material.BUNDLE;
+            case CURRENCY -> Material.GOLD_INGOT;
+            case EQUIPMENT -> Material.DIAMOND_CHESTPLATE;
+            case MATERIAL -> Material.IRON_INGOT;
+            case ORB -> Material.END_CRYSTAL;
+            case CONSUMABLE -> Material.APPLE;
+            case RUNE -> Material.ENCHANTED_BOOK;
+            case SKILL_GEM -> Material.AMETHYST_SHARD;
+            case SIGIL -> Material.FIREWORK_STAR;
+            case UNKNOWN -> Material.BARRIER;
+        };
     }
 
     private @NotNull ItemStack createEntryIcon(@NotNull StorageViewEntry entry) {

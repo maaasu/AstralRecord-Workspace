@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageSortDirection;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageSortKey;
+import io.github.maaasu.astralRecord.feature.storage.model.StorageCapacity;
 import io.github.maaasu.astralRecord.feature.storage.view.StorageScreenView;
 import io.github.maaasu.astralRecord.shared.gui.GuiPagination;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -93,11 +94,12 @@ public final class StorageService {
         }
         StorageViewOptions options = storageOptions(player);
         List<StorageViewEntry> entries = refreshStorageEntries(player, options);
-        int normalizedPage = normalizeStoragePage(pageIndex, entries.size());
+        int maxPageCount = storageMaxPageCount(player);
+        int normalizedPage = normalizeStoragePage(pageIndex, entries.size(), maxPageCount);
         storagePageByPlayer.put(player.getUniqueId(), normalizedPage);
         menuGuiTransitionService.switchGuiWithInventoryRestore(
             player,
-            () -> menuView.openStorage(player, entries, options, normalizedPage)
+            () -> menuView.openStorage(player, entries, options, normalizedPage, maxPageCount)
         );
     }
 
@@ -144,7 +146,7 @@ public final class StorageService {
             return;
         }
         if (rawSlot == MenuView.STORAGE_NEXT_SLOT) {
-            if (menuView.hasNextStoragePage(entries, pageIndex)) {
+            if (menuView.hasNextStoragePage(entries, pageIndex, storageMaxPageCount(player))) {
                 GuiSound.PAGE.play(player);
                 rerenderStorageInventory(player, topInventory, pageIndex + 1);
             } else {
@@ -378,13 +380,30 @@ public final class StorageService {
     private void rerenderStorageInventory(@NotNull Player player, @NotNull Inventory topInventory, int pageIndex) {
         StorageViewOptions options = storageOptions(player);
         List<StorageViewEntry> entries = currentStorageEntries(player, options);
-        int normalizedPage = normalizeStoragePage(pageIndex, entries.size());
+        int maxPageCount = storageMaxPageCount(player);
+        int normalizedPage = normalizeStoragePage(pageIndex, entries.size(), maxPageCount);
         storagePageByPlayer.put(player.getUniqueId(), normalizedPage);
-        menuView.renderStorage(topInventory, entries, options, normalizedPage);
+        menuView.renderStorage(topInventory, entries, options, normalizedPage, maxPageCount);
     }
 
-    private int normalizeStoragePage(int pageIndex, int itemCount) {
-        return GuiPagination.normalizePage(pageIndex, itemCount, StorageScreenView.CONTENT_SLOT_COUNT);
+    private int normalizeStoragePage(int pageIndex, int itemCount, int maxPageCount) {
+        return Math.max(0, Math.min(
+            pageIndex,
+            Math.min(
+                Math.max(1, maxPageCount),
+                GuiPagination.totalPages(itemCount, StorageScreenView.CONTENT_SLOT_COUNT)
+            ) - 1
+        ));
+    }
+
+    private int storageMaxPageCount(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return astPlayer == null
+            ? StorageCapacity.BASE_PAGE_COUNT
+            : Math.max(
+                StorageCapacity.BASE_PAGE_COUNT,
+                inventoryService.getStorageMaxPageCount(astPlayer.getAccount().getUuid())
+            );
     }
 
     private boolean isStorageContentSlot(int rawSlot) {
@@ -433,10 +452,11 @@ public final class StorageService {
         };
         storageOptionsByPlayer.put(player.getUniqueId(), updated);
         List<StorageViewEntry> entries = refreshStorageEntries(player, updated);
+        int maxPageCount = storageMaxPageCount(player);
         GuiSound.SELECT.play(player);
         menuGuiTransitionService.switchGuiWithoutInventoryReload(
             player,
-            () -> menuView.openStorage(player, entries, updated, 0)
+            () -> menuView.openStorage(player, entries, updated, 0, maxPageCount)
         );
     }
 

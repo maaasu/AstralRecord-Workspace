@@ -4,13 +4,14 @@
 schemaVersion: 1
 id: storage_cloud_access_token
 category: currency
-name: "&5ストレージクラウドアクセストークン"
+name: "&5ストレージ遠隔アクセストークン"
 icon: ENDER_CHEST
 rarity: EPIC
 maxStack: 1
 saleValue: 0
 lore:
-  - "&7クラウドストレージへアクセスするためのトークン。"
+  - "&7所持している間、ショップの必要素材が"
+  - "&7通常インベントリになくても、ストレージから直接使用できます。"
 unTradeable: true
 unSellable: true
 currency:

@@ -66,6 +66,7 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
         ShopEntry entry = shopEntry("potion", 1, 5, List.of(new ShopCostItem("herb", "material", 2)), "starter_recipe");
         when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(20L);
+        when(harness.inventoryService.hasStorageRemoteAccessToken(player.getAccount().getUuid())).thenReturn(true);
         when(harness.inventoryService.getSpendableNormalItemAmountIncludingStorage(
             player.getAccount().getUuid(), "herb")).thenReturn(6L);
         when(harness.inventoryService.getSpendableNormalItemAmountIncludingStorage(
@@ -101,6 +102,7 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         ShopEntry entry = shopEntry("potion", 2, 4, List.of(), "starter_recipe");
         when(harness.itemService.findLoadedById("potion")).thenReturn(potion);
         when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(20L);
+        when(harness.inventoryService.hasStorageRemoteAccessToken(player.getAccount().getUuid())).thenReturn(true);
         when(harness.inventoryService.getSpendableNormalItemAmountIncludingStorage(
             player.getAccount().getUuid(), "herb")).thenReturn(6L);
         when(harness.inventoryService.canAddItemToNormalInventory(player, potion, 6)).thenReturn(true);
@@ -229,6 +231,7 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         InventoryService.InventoryStateSnapshot snapshot = snapshot(player);
         when(harness.itemService.findLoadedById("potion")).thenReturn(potion);
         when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(10L);
+        when(harness.inventoryService.hasStorageRemoteAccessToken(player.getAccount().getUuid())).thenReturn(true);
         when(harness.inventoryService.getSpendableNormalItemAmountIncludingStorage(
             player.getAccount().getUuid(), "storage_material")).thenReturn(4L);
         when(harness.inventoryService.canAddItemToNormalInventory(player, potion, 2)).thenReturn(true);
@@ -327,6 +330,7 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
             null
         );
         when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(1_000L);
+        when(harness.inventoryService.hasStorageRemoteAccessToken(player.getAccount().getUuid())).thenReturn(true);
         when(harness.inventoryService.getSpendableCurrencyAmountIncludingStorage(
             player.getAccount().getUuid(), "silver_token")).thenReturn(19L);
 
@@ -339,6 +343,75 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         verify(harness.inventoryService).getSpendableCurrencyAmountIncludingStorage(
             player.getAccount().getUuid(), "silver_token");
         verify(harness.inventoryService, never()).getNormalItemAmount(player.getAccount().getUuid(), "silver_token");
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
+     * 章・見出し: # 20_3-メソッド仕様 > ## 購入 preview
+     * 検証契約: ストレージ遠隔アクセストークン未所持時は、STORAGEの必要素材を購入可能数量へ合算しない。
+     */
+    @Test
+    void previewDoesNotUseStorageItemsWithoutRemoteAccessToken() {
+        ShopHarness harness = shopHarness(null);
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        ShopEntry entry = shopEntry(
+            "potion",
+            1,
+            0,
+            List.of(new ShopCostItem("storage_material", "material", 4)),
+            null
+        );
+        UUID accountId = player.getAccount().getUuid();
+        when(harness.currencyService.getGoldAmount(accountId)).thenReturn(100L);
+        when(harness.inventoryService.hasStorageRemoteAccessToken(accountId)).thenReturn(false);
+        when(harness.inventoryService.getSpendableNormalItemAmount(accountId, "storage_material"))
+            .thenReturn(0L);
+        when(harness.inventoryService.getSpendableNormalItemAmountIncludingStorage(accountId, "storage_material"))
+            .thenReturn(4L);
+
+        ShopPurchasePreview preview = harness.service.preview(player, entry, 1);
+
+        assertFalse(preview.canPurchase());
+        assertEquals(1, preview.missingItems().size());
+        assertEquals(4, preview.missingItems().getFirst().amount());
+        verify(harness.inventoryService).getSpendableNormalItemAmount(accountId, "storage_material");
+        verify(harness.inventoryService, never()).getSpendableNormalItemAmountIncludingStorage(
+            accountId, "storage_material");
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
+     * 章・見出し: # 20_3-メソッド仕様 > ## 購入
+     * 検証契約: ストレージ遠隔アクセストークン未所持時は、ショップ必要素材を通常インベントリだけから消費する。
+     */
+    @Test
+    void purchaseConsumesOnlyOwnedInventoryWithoutRemoteAccessToken() {
+        ShopHarness harness = shopHarness(null);
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        ItemModel potion = DesignTestFixtures.item("potion", ItemCategory.CONSUMABLE, 16);
+        ShopEntry entry = shopEntry(
+            "potion",
+            1,
+            0,
+            List.of(new ShopCostItem("material", "material", 2)),
+            null
+        );
+        UUID accountId = player.getAccount().getUuid();
+        when(harness.itemService.findLoadedById("potion")).thenReturn(potion);
+        when(harness.currencyService.getGoldAmount(accountId)).thenReturn(0L);
+        when(harness.inventoryService.hasStorageRemoteAccessToken(accountId)).thenReturn(false);
+        when(harness.inventoryService.getSpendableNormalItemAmount(accountId, "material")).thenReturn(2L);
+        when(harness.inventoryService.canAddItemToNormalInventory(player, potion, 1)).thenReturn(true);
+        when(harness.inventoryService.snapshotState(accountId)).thenReturn(snapshot(player));
+        when(harness.inventoryService.consumeNormalItem(accountId, "material", 2L)).thenReturn(true);
+        when(harness.inventoryService.addItemToNormalInventory(player, potion, 1, "shop")).thenReturn(1);
+        when(harness.inventoryService.resolveInventoryType(potion)).thenReturn(InventoryType.BAG);
+
+        assertTrue(harness.service.purchase(player, entry, 1));
+
+        verify(harness.inventoryService).consumeNormalItem(accountId, "material", 2L);
+        verify(harness.inventoryService, never()).consumeNormalItemIncludingStorage(
+            accountId, "material", 2L);
     }
 
     /**

@@ -7,13 +7,39 @@ type: SHOP
 name: "&bアストラルドショップ"
 access: NPC_ONLY
 items:
+  - id: storage_expansion_token
+    itemId:
+      ref: item:storage_expansion_token
+    category: currency
+    amount: 1
+    page: 1
+    slot: 0
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:astrald
+        category: currency
+        amount: 100
+  - id: storage_cloud_access_token
+    itemId:
+      ref: item:storage_cloud_access_token
+    category: currency
+    amount: 1
+    page: 1
+    slot: 1
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:astrald
+        category: currency
+        amount: 300
   - id: market_expansion_token_alpha
     itemId:
       ref: item:market_expansion_token_alpha
     category: currency
     amount: 1
     page: 1
-    slot: 0
+    slot: 7
     priceGold: 0
     requiredItems:
       - itemId:
@@ -26,7 +52,7 @@ items:
     category: currency
     amount: 1
     page: 1
-    slot: 1
+    slot: 8
     priceGold: 0
     requiredItems:
       - itemId:
@@ -39,7 +65,7 @@ items:
     category: currency
     amount: 1
     page: 1
-    slot: 2
+    slot: 9
     priceGold: 0
     requiredItems:
       - itemId:
@@ -52,23 +78,10 @@ items:
     category: currency
     amount: 1
     page: 1
-    slot: 3
+    slot: 10
     priceGold: 0
     requiredItems:
       - itemId:
           ref: item:astrald
         category: currency
         amount: 200
-  - id: storage_cloud_access_token
-    itemId:
-      ref: item:storage_cloud_access_token
-    category: currency
-    amount: 1
-    page: 1
-    slot: 4
-    priceGold: 0
-    requiredItems:
-      - itemId:
-          ref: item:astrald
-        category: currency
-        amount: 300

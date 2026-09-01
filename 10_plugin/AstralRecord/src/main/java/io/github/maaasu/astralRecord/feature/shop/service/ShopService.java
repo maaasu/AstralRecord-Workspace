@@ -209,12 +209,13 @@ public final class ShopService {
         List<ShopCostItem> requiredItems = resolveRequiredItems(entry).stream()
             .map(cost -> cost.multiplied(safeQuantity))
             .toList();
+        boolean hasStorageRemoteAccess = inventoryService.hasStorageRemoteAccessToken(accountId);
         List<ShopCostItem> missingItems = new ArrayList<>();
         if (ownedGold < requiredGold) {
             missingItems.add(new ShopCostItem(ItemService.DEFAULT_CURRENCY_ITEM_ID, "currency", (int) (requiredGold - ownedGold)));
         }
         for (ShopCostItem cost : requiredItems) {
-            long owned = getOwnedCostAmount(accountId, cost);
+            long owned = getOwnedCostAmount(accountId, cost, hasStorageRemoteAccess);
             if (owned < cost.amount()) {
                 missingItems.add(new ShopCostItem(
                     cost.itemId(),
@@ -287,8 +288,9 @@ public final class ShopService {
             cancelSpecialPurchase(player, model, specialPurchase);
             return false;
         }
+        boolean hasStorageRemoteAccess = inventoryService.hasStorageRemoteAccessToken(accountId);
         for (ShopCostItem cost : preview.requiredItems()) {
-            if (!consumeCost(accountId, cost)) {
+            if (!consumeCost(accountId, cost, hasStorageRemoteAccess)) {
                 restorePurchase(snapshot, player, entry, amount, "cost_consume_failed:" + cost.itemId());
                 cancelSpecialPurchase(player, model, specialPurchase);
                 return false;
@@ -455,24 +457,40 @@ public final class ShopService {
             .toLowerCase(java.util.Locale.ROOT);
     }
 
-    private long getOwnedCostAmount(@NotNull UUID accountId, @NotNull ShopCostItem cost) {
+    private long getOwnedCostAmount(
+        @NotNull UUID accountId,
+        @NotNull ShopCostItem cost,
+        boolean hasStorageRemoteAccess
+    ) {
         if (isCurrencyCost(cost)) {
             if (ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(cost.itemId())) {
                 return currencyService.getGoldAmount(accountId);
             }
-            return inventoryService.getSpendableCurrencyAmountIncludingStorage(accountId, cost.itemId());
+            return hasStorageRemoteAccess
+                ? inventoryService.getSpendableCurrencyAmountIncludingStorage(accountId, cost.itemId())
+                : inventoryService.getCurrencyAmount(accountId, cost.itemId());
         }
-        return inventoryService.getSpendableNormalItemAmountIncludingStorage(accountId, cost.itemId());
+        return hasStorageRemoteAccess
+            ? inventoryService.getSpendableNormalItemAmountIncludingStorage(accountId, cost.itemId())
+            : inventoryService.getSpendableNormalItemAmount(accountId, cost.itemId());
     }
 
-    private boolean consumeCost(@NotNull UUID accountId, @NotNull ShopCostItem cost) {
+    private boolean consumeCost(
+        @NotNull UUID accountId,
+        @NotNull ShopCostItem cost,
+        boolean hasStorageRemoteAccess
+    ) {
         if (isCurrencyCost(cost)) {
             if (ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(cost.itemId())) {
                 return inventoryService.consumeCurrency(accountId, cost.itemId(), cost.amount());
             }
-            return inventoryService.consumeCurrencyIncludingStorage(accountId, cost.itemId(), cost.amount());
+            return hasStorageRemoteAccess
+                ? inventoryService.consumeCurrencyIncludingStorage(accountId, cost.itemId(), cost.amount())
+                : inventoryService.consumeCurrency(accountId, cost.itemId(), cost.amount());
         }
-        return inventoryService.consumeNormalItemIncludingStorage(accountId, cost.itemId(), cost.amount());
+        return hasStorageRemoteAccess
+            ? inventoryService.consumeNormalItemIncludingStorage(accountId, cost.itemId(), cost.amount())
+            : inventoryService.consumeNormalItem(accountId, cost.itemId(), cost.amount());
     }
 
     private boolean isCurrencyCost(@NotNull ShopCostItem cost) {

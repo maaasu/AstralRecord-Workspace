@@ -1,0 +1,19 @@
+# design:
+#   motif: "保管 / 容量拡張許可証"
+#   progression: 0
+schemaVersion: 1
+id: storage_expansion_token
+category: currency
+name: "&bストレージ拡張トークン"
+icon: BARREL
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 0
+lore:
+  - "&7ストレージの容量を1ページ拡張する許可証。"
+  - "&7所持数1個につき、最大ページ数が1ページ増えます。"
+unTradeable: true
+unSellable: true
+currency:
+  type: STORAGE_EXPANSION
+  group: storage_access

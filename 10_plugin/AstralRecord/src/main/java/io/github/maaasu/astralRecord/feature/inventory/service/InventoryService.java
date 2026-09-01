@@ -36,6 +36,7 @@ import io.github.maaasu.astralRecord.feature.player.GameModeChangeGuard;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageSortDirection;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageSortKey;
+import io.github.maaasu.astralRecord.feature.storage.model.StorageCapacity;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewEntry;
 import io.github.maaasu.astralRecord.feature.storage.model.StorageViewOptions;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -535,7 +536,15 @@ public class InventoryService {
         return getSpendableNormalItemAmount(accountId, itemId) >= amount;
     }
 
-    private long getSpendableNormalItemAmount(
+    /**
+     * ショップ決済に使用できる通常アイテムを、BAG・HOTBARから合算します。
+     * オーブ操作で予約済みの数量は除外します。
+     *
+     * @param accountId 対象アカウントID
+     * @param itemId 対象アイテムID
+     * @return 決済に使用できる数量。未ロードまたは未所持の場合は0
+     */
+    public long getSpendableNormalItemAmount(
         @NotNull UUID accountId,
         @NotNull String itemId
     ) {
@@ -2126,6 +2135,27 @@ public class InventoryService {
     }
 
     /**
+     * 指定アカウントのストレージ最大ページ数を返します。
+     *
+     * @param accountId 対象アカウントID
+     * @return 基礎5ページに、所持する拡張トークン1個ごとの1ページを加えた最大ページ数
+     */
+    public int getStorageMaxPageCount(@NotNull UUID accountId) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) {
+            return StorageCapacity.BASE_PAGE_COUNT;
+        }
+        synchronized (state) {
+            long expansionTokenCount = getItemAmount(
+                state,
+                InventoryType.CURRENCY,
+                ItemService.STORAGE_EXPANSION_TOKEN_ITEM_ID
+            );
+            return StorageCapacity.maxPageCount(expansionTokenCount);
+        }
+    }
+
+    /**
      * BAG またはホットバーのアイテムをストレージへ収納します。
      *
      * @param astPlayer 対象プレイヤー
@@ -2177,6 +2207,9 @@ public class InventoryService {
                     withQuantity(existing, existing.getQuantity() + movedAmount, state.getAccountId())
                 );
             } else {
+                if (storageEntries.size() >= storageMaxEntryCount(state)) {
+                    return 0;
+                }
                 storageEntries.add(copyEntryToStorage(sourceEntry, storageInventory.getInventoryId(), movedAmount, state.getAccountId()));
             }
             state.replaceEntries(storageInventory.getInventoryId(), storageEntries);
@@ -2238,6 +2271,9 @@ public class InventoryService {
                     withQuantity(existing, existing.getQuantity() + batch.amount(), state.getAccountId())
                 );
             } else {
+                if (storageEntries.size() >= storageMaxEntryCount(state)) {
+                    return 0;
+                }
                 storageEntries.add(copyEntryToStorage(
                     batch.sourceEntry(),
                     storageInventory.getInventoryId(),
@@ -2356,6 +2392,17 @@ public class InventoryService {
             totalAmount = addAmountsSaturated(totalAmount, entry.getQuantity());
         }
         return totalAmount;
+    }
+
+    /**
+     * ショップの必要素材をSTORAGEから直接使用できる遠隔アクセス権の所持を返します。
+     * トークンは CURRENCY inventory に所持している場合だけ有効です。
+     *
+     * @param accountId 対象アカウントID
+     * @return 遠隔アクセストークンを1個以上所持している場合はtrue
+     */
+    public boolean hasStorageRemoteAccessToken(@NotNull UUID accountId) {
+        return getCurrencyAmount(accountId, ItemService.STORAGE_REMOTE_ACCESS_TOKEN_ITEM_ID) > 0L;
     }
 
     /**
@@ -6608,6 +6655,15 @@ public class InventoryService {
             actor,
             false
         );
+    }
+
+    private int storageMaxEntryCount(@NotNull PlayerInventoryState state) {
+        long expansionTokenCount = getItemAmount(
+            state,
+            InventoryType.CURRENCY,
+            ItemService.STORAGE_EXPANSION_TOKEN_ITEM_ID
+        );
+        return StorageCapacity.maxEntryCount(expansionTokenCount);
     }
 
     private @Nullable OwnedItemBatch collectOwnedItemBatch(

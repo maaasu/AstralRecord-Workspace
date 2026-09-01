@@ -38,6 +38,8 @@ public class ItemService {
     public static final String DEFAULT_CURRENCY_ITEM_ID = "gold";
     public static final String LEGACY_DEFAULT_CURRENCY_ITEM_ID = "ast_gold";
     public static final String ASTRALD_CURRENCY_ITEM_ID = "astrald";
+    public static final String STORAGE_EXPANSION_TOKEN_ITEM_ID = "storage_expansion_token";
+    public static final String STORAGE_REMOTE_ACCESS_TOKEN_ITEM_ID = "storage_cloud_access_token";
 
     private final ItemRepository itemRepository;
     private final SetEffectRepository setEffectRepository;

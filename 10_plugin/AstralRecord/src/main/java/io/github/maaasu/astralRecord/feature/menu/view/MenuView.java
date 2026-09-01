@@ -354,13 +354,14 @@ public class MenuView {
         @NotNull Player player,
         @NotNull List<StorageViewEntry> storageItems,
         @NotNull StorageViewOptions options,
-        int pageIndex
+        int pageIndex,
+        int maxPageCount
     ) {
-        int normalizedPage = storageScreenView.normalizePage(pageIndex, storageItems.size());
-        int totalPages = storageScreenView.totalPages(storageItems.size());
+        int normalizedPage = storageScreenView.normalizePage(pageIndex, storageItems.size(), maxPageCount);
+        int totalPages = storageScreenView.totalPages(storageItems.size(), maxPageCount);
         Component title = Component.text("ストレージ " + (normalizedPage + 1) + "/" + totalPages, NamedTextColor.GOLD);
         Inventory inventory = Bukkit.createInventory(new MenuInventoryHolder(MenuScreen.STORAGE, -1, normalizedPage), SIZE, title);
-        storageScreenView.render(inventory, storageItems, options, normalizedPage);
+        storageScreenView.render(inventory, storageItems, options, normalizedPage, maxPageCount);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
 
@@ -368,9 +369,10 @@ public class MenuView {
         @NotNull Inventory inventory,
         @NotNull List<StorageViewEntry> storageItems,
         @NotNull StorageViewOptions options,
-        int pageIndex
+        int pageIndex,
+        int maxPageCount
     ) {
-        storageScreenView.render(inventory, storageItems, options, pageIndex);
+        storageScreenView.render(inventory, storageItems, options, pageIndex, maxPageCount);
     }
 
     /**
@@ -645,8 +647,12 @@ public class MenuView {
         return storageScreenView.hasPreviousPage(pageIndex);
     }
 
-    public boolean hasNextStoragePage(@NotNull List<StorageViewEntry> storageItems, int pageIndex) {
-        return storageScreenView.hasNextPage(pageIndex, storageItems.size());
+    public boolean hasNextStoragePage(
+        @NotNull List<StorageViewEntry> storageItems,
+        int pageIndex,
+        int maxPageCount
+    ) {
+        return storageScreenView.hasNextPage(pageIndex, storageItems.size(), maxPageCount);
     }
 
     public boolean isTrashContentPlaceholder(@Nullable ItemStack itemStack) {
