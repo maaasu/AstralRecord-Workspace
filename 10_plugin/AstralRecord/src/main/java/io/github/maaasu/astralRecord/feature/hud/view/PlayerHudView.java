@@ -536,9 +536,12 @@ public class PlayerHudView {
                         ParticipantNameLineFormatter.MAX_SIDEBAR_PARTICIPANT_LINES
                 ).stream()
                 .map(line -> ColorCodeUtil.WHITE + String.join("、", line.stream()
-                        .map(name -> waitingParticipantNames.contains(name)
-                                ? ColorCodeUtil.GRAY + name + ColorCodeUtil.WHITE
-                                : name)
+                        .map(name -> {
+                            String displayName = ColorCodeUtil.translateAlternateColorCodes(name);
+                            return waitingParticipantNames.contains(name)
+                                    ? ColorCodeUtil.GRAY + displayName + ColorCodeUtil.WHITE
+                                    : displayName;
+                        })
                         .toList()))
                 .toList();
     }

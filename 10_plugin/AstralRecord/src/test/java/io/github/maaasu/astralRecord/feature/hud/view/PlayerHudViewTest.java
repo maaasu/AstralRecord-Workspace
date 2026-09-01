@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -73,6 +74,49 @@ class PlayerHudViewTest extends MockBukkitTestBase {
         List<String> rendered = entries.getAllValues();
         assertTrue(rendered.stream().anyMatch(entry -> entry.contains("パーティーメンバー待機中")));
         assertTrue(rendered.stream().anyMatch(entry -> entry.contains(ColorCodeUtil.GRAY + "Absent")));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
+     * 章・見出し: # 10_3-View > ## 4. sidebar 描画・解除
+     * 検証契約: ダンジョン／ボス参加者名に含まれる内部 {@code &} カラーコードをスコアボードへそのまま渡さず、
+     * アカウントのスロット番号を灰色で表示する。
+     */
+    @Test
+    void translatesLegacyColorCodesInChallengeParticipantNames() {
+        PlayerHudView view = new PlayerHudView();
+
+        Player bossPlayer = mock(Player.class);
+        Objective bossObjective = prepareSidebar(bossPlayer);
+        view.renderSidebar(
+                bossPlayer, 20.0D, 10, 0.5D, 5, "剣士", "坑道", "入口", 10,
+                false,
+                new BossChallengeSidebarInfo(
+                        "星喰らい", 42, 0, 3, 30L, 180L,
+                        List.of("BossAccount&7#0")
+                )
+        );
+
+        Player dungeonPlayer = mock(Player.class);
+        Objective dungeonObjective = prepareSidebar(dungeonPlayer);
+        view.renderSidebar(
+                dungeonPlayer, 20.0D, 10, 0.5D, 5, "剣士", "坑道", "入口", 10,
+                false,
+                null,
+                new DungeonSidebarInfo(
+                        "黄昏の坑道", 1, 3, 4, 7,
+                        List.of("DungeonAccount&7#1"), -1L
+                ),
+                false,
+                List.of()
+        );
+
+        List<String> bossRendered = collectRawRenderedEntries(bossObjective, 14);
+        List<String> dungeonRendered = collectRawRenderedEntries(dungeonObjective, 15);
+        assertTrue(bossRendered.stream().anyMatch(entry -> entry.contains("BossAccount" + ColorCodeUtil.GRAY + "#0")));
+        assertTrue(dungeonRendered.stream().anyMatch(entry -> entry.contains("DungeonAccount" + ColorCodeUtil.GRAY + "#1")));
+        assertFalse(bossRendered.stream().anyMatch(entry -> entry.contains("&7")));
+        assertFalse(dungeonRendered.stream().anyMatch(entry -> entry.contains("&7")));
     }
 
     /**
@@ -574,6 +618,12 @@ class PlayerHudViewTest extends MockBukkitTestBase {
         ArgumentCaptor<String> entries = ArgumentCaptor.forClass(String.class);
         verify(objective, org.mockito.Mockito.times(expectedCallCount)).getScore(entries.capture());
         return entries.getAllValues().stream().map(ColorCodeUtil::stripColor).toList();
+    }
+
+    private List<String> collectRawRenderedEntries(Objective objective, int expectedCallCount) {
+        ArgumentCaptor<String> entries = ArgumentCaptor.forClass(String.class);
+        verify(objective, org.mockito.Mockito.times(expectedCallCount)).getScore(entries.capture());
+        return entries.getAllValues();
     }
 
     private void assertParticipantLines(List<String> rendered) {
