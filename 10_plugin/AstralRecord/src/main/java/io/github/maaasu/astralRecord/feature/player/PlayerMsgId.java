@@ -1502,6 +1502,14 @@ public enum PlayerMsgId {
     P_7113(7113),
     /** whitelist コマンドの不正な引数。 */
     P_7114(7114),
+    /** whitelist 対象のDBユーザーが見つからない。{0}: プレイヤー名 */
+    P_7115(7115),
+    /** whitelist ユーザー追加完了。{0}: プレイヤー名 */
+    P_7116(7116),
+    /** whitelist ユーザー削除完了。{0}: プレイヤー名 */
+    P_7117(7117),
+    /** whitelist ユーザー更新処理中。 */
+    P_7118(7118),
     // endregion
 
     // region /feature/player/afk 7120-7129

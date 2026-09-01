@@ -13,6 +13,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -101,5 +102,51 @@ public final class WhitelistService {
                 }
             }
         }
+    }
+
+    /**
+     * whitelist ユーザーを config.yml に追加します。
+     * このメソッドはサーバーのメインスレッドから呼び出してください。
+     *
+     * @param playerUuid 追加するプレイヤー UUID
+     * @return 未登録の UUID を追加した場合は {@code true}、既に登録済みの場合は {@code false}
+     * @throws IllegalStateException メインスレッド以外から呼び出した場合
+     */
+    public synchronized boolean addWhitelistUser(@NotNull UUID playerUuid) {
+        return updateWhitelistUsers(playerUuid, true);
+    }
+
+    /**
+     * whitelist ユーザーを config.yml から削除します。
+     * このメソッドはサーバーのメインスレッドから呼び出してください。
+     *
+     * @param playerUuid 削除するプレイヤー UUID
+     * @return 登録済みの UUID を削除した場合は {@code true}、未登録の場合は {@code false}
+     * @throws IllegalStateException メインスレッド以外から呼び出した場合
+     */
+    public synchronized boolean removeWhitelistUser(@NotNull UUID playerUuid) {
+        return updateWhitelistUsers(playerUuid, false);
+    }
+
+    private boolean updateWhitelistUsers(@NotNull UUID playerUuid, boolean add) {
+        if (!Bukkit.isPrimaryThread()) {
+            throw new IllegalStateException("Whitelist users must be changed on the primary thread");
+        }
+
+        ConfigProperties configProperties = ConfigProperties.getInstance();
+        Set<UUID> users = new java.util.HashSet<>(configProperties.getPluginWhitelistUsers());
+        boolean changed = add ? users.add(playerUuid) : users.remove(playerUuid);
+        if (!changed) {
+            return false;
+        }
+
+        ConfigManager configManager = ConfigManager.getInstance();
+        configManager.set(
+            ConfigKeys.PLUGIN_WHITELIST_USERS,
+            users.stream().map(UUID::toString).sorted().toList()
+        );
+        configManager.save();
+        configProperties.setPluginWhitelistUsers(users);
+        return true;
     }
 }

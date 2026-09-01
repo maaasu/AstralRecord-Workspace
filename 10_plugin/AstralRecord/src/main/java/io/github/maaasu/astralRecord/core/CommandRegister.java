@@ -85,6 +85,7 @@ import io.github.maaasu.astralRecord.feature.webauth.command.WebAuthCommand;
 import io.github.maaasu.astralRecord.feature.webauth.repository.WebAuthRepository;
 import io.github.maaasu.astralRecord.feature.webauth.service.WebAuthService;
 import io.github.maaasu.astralRecord.feature.whitelist.command.WhitelistCommand;
+import io.github.maaasu.astralRecord.feature.whitelist.command.WhitelistTabCompleter;
 import io.github.maaasu.astralRecord.feature.whitelist.service.WhitelistService;
 import io.github.maaasu.astralRecord.feature.world.command.WorldCommand;
 import io.github.maaasu.astralRecord.feature.world.command.WorldTabCompleter;
@@ -243,8 +244,12 @@ public class CommandRegister {
         cm.registerCommand("test", new TestCommand(mobService));
         cm.registerCommand("testskilltree", new SkillTreeSpawnCheckCommand(), new SkillTreeSpawnCheckTabCompleter());
         cm.registerCommand("masterdata", new MasterDataCommand(AstralRecord.getInstance()));
-        WhitelistCommand whitelistCommand = new WhitelistCommand(WhitelistService.getInstance());
-        cm.registerCommand("whitelist", whitelistCommand);
-        cm.registerCommand("wl", whitelistCommand);
+        WhitelistCommand whitelistCommand = new WhitelistCommand(
+            WhitelistService.getInstance(),
+            AstralRecord.getInstance().getUserService()
+        );
+        WhitelistTabCompleter whitelistTabCompleter = new WhitelistTabCompleter();
+        cm.registerCommand("whitelist", whitelistCommand, whitelistTabCompleter);
+        cm.registerCommand("wl", whitelistCommand, whitelistTabCompleter);
     }
 }

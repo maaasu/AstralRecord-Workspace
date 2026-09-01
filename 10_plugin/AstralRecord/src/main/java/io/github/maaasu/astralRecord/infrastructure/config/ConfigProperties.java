@@ -16,7 +16,7 @@ public class ConfigProperties {
     // Plugin 関連
     private boolean pluginDebugMode;
     private Set<UUID> pluginDebugUsers = Collections.emptySet();
-    private Set<UUID> pluginWhitelistUsers = Collections.emptySet();
+    private volatile Set<UUID> pluginWhitelistUsers = Collections.emptySet();
     private volatile boolean pluginWhitelistEnabled;
 
     // SQL Server 関連
@@ -189,6 +189,26 @@ public class ConfigProperties {
      */
     public boolean isWhitelistUser(UUID uuid) {
         return uuid != null && pluginWhitelistUsers.contains(uuid);
+    }
+
+    /**
+     * 実行中の whitelist ユーザー UUID を取得します。
+     * 返却する集合は変更できません。
+     *
+     * @return whitelist ユーザー UUID の不変集合
+     */
+    public Set<UUID> getPluginWhitelistUsers() {
+        return pluginWhitelistUsers;
+    }
+
+    /**
+     * 実行中の whitelist ユーザー UUID を置き換えます。
+     * 設定ファイルへの保存は呼び出し側が担当します。
+     *
+     * @param users 置き換え後の whitelist ユーザー UUID 集合
+     */
+    public void setPluginWhitelistUsers(Set<UUID> users) {
+        this.pluginWhitelistUsers = Collections.unmodifiableSet(new HashSet<>(users));
     }
 
     /**
