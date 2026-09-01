@@ -366,7 +366,7 @@ public class MobEntityController {
         mob.setAI(true);
         mob.setAware(true);
         disablePiglinZombification(mob);
-        mob.setInvulnerable(template.damageImmune());
+        mob.setInvulnerable(instance.damageImmune());
         mob.setPersistent(false);
         mob.setRemoveWhenFarAway(false);
         mob.setCanPickupItems(false);

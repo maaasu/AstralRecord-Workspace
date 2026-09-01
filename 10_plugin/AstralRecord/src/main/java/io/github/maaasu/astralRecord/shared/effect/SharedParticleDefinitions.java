@@ -220,6 +220,16 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.RED, 1.2F)
         );
+    public static final SharedParticleDefinition SUNBIRD_BIRD_METEOR_SAFE_ZONE =
+        new SharedParticleDefinition(
+            "sunbird_bird_meteor_safe_zone",
+            Particle.END_ROD,
+            1,
+            0.02D,
+            0.02D,
+            0.02D,
+            0.01D
+        );
     public static final SharedParticleDefinition SUNBIRD_SOLAR_FLAME =
         new SharedParticleDefinition("sunbird_solar_flame", Particle.FLAME, 1, 0.03D, 0.03D, 0.03D, 0.01D);
     public static final SharedParticleDefinition SUNBIRD_SOLAR_IMPACT =

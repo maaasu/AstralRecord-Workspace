@@ -475,7 +475,7 @@ public final class SuperStarCriticalProjectileService {
         return mob.state() != MobState.DEAD
                 && mob.currentHealth() > 0.0D
                 && mob.template().category() != MobCategory.NPC
-                && !mob.template().damageImmune()
+                && !mob.damageImmune()
                 && mob.currentLocation().getWorld() == world;
     }
 

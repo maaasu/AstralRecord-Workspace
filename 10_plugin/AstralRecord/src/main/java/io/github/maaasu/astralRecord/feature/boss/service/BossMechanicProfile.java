@@ -102,7 +102,7 @@ final class BossMechanicProfile {
         SUNBIRD_SUNSTRIKE,
         SUNBIRD_SOLAR_BEAM,
         SUNBIRD_SOLAR_NOVA,
-        SUNBIRD_CORONA_COLLAPSE,
+        SUNBIRD_BIRD_METEOR,
         SUNBIRD_RETURN_TACKLE
     }
 }

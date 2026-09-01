@@ -18,6 +18,9 @@ import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.boss.BarColor;
+import org.bukkit.boss.BarStyle;
+import org.bukkit.boss.BossBar;
 import org.bukkit.entity.BlockDisplay;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
@@ -59,10 +62,15 @@ public final class BossMechanicService {
     private static final double SUNBIRD_BEAM_HALF_WIDTH = 1.25D;
     private static final double SUNBIRD_NOVA_RADIUS = 12.0D;
     private static final long SUNBIRD_NOVA_TELEGRAPH_TICKS = 60L;
-    private static final double SUNBIRD_CORONA_COLLAPSE_RADIUS = 10.0D;
-    private static final long SUNBIRD_CORONA_COLLAPSE_TELEGRAPH_TICKS = 80L;
+    private static final double SUNBIRD_BIRD_METEOR_SAFE_RADIUS = 3.0D;
+    private static final double SUNBIRD_BIRD_METEOR_SAFE_HEIGHT = 2.5D;
+    private static final int SUNBIRD_BIRD_METEOR_SAFE_RING_POINT_COUNT = 36;
+    private static final int SUNBIRD_BIRD_METEOR_SAFE_LAYER_COUNT = 3;
+    private static final int SUNBIRD_BIRD_METEOR_SAFE_VERTICAL_LINE_COUNT = 12;
+    private static final double SUNBIRD_BIRD_METEOR_EXPLOSION_GRID_SPACING = 1.5D;
+    private static final double SUNBIRD_BIRD_METEOR_DAMAGE_RATIO = 1.95D;
+    private static final long SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS = 80L;
     private static final int SUNBIRD_NOVA_DISPLAY_COUNT = 12;
-    private static final int SUNBIRD_CORONA_DISPLAY_COUNT = 8;
     private static final int SUNBIRD_NOVA_INNER_RING_POINT_COUNT = 36;
     private static final int SUNBIRD_NOVA_MIDDLE_RING_POINT_COUNT = 48;
     private static final int SUNBIRD_NOVA_OUTER_RING_POINT_COUNT = 64;
@@ -89,6 +97,7 @@ public final class BossMechanicService {
     private final ParticleDisplayService particleDisplayService;
     private final Map<UUID, BossRuntime> runtimes = new HashMap<>();
     private final List<PendingMechanic> pendingMechanics = new ArrayList<>();
+    private final Map<UUID, BirdMeteorState> birdMeteorStates = new HashMap<>();
 
     private BukkitTask tickTask;
     private long clockTicks;
@@ -127,6 +136,9 @@ public final class BossMechanicService {
             releaseScriptedAction(pending);
         }
         pendingMechanics.clear();
+        for (UUID bossInstanceId : List.copyOf(birdMeteorStates.keySet())) {
+            finishBirdMeteor(bossInstanceId);
+        }
         for (BossRuntime runtime : runtimes.values()) {
             destroySummons(runtime);
         }
@@ -207,13 +219,17 @@ public final class BossMechanicService {
         }
 
         Location center = boss.spawnLocation();
+        boolean birdMeteorActive = isBirdMeteorActive(boss.instanceId());
         if (clockTicks >= runtime.nextArenaPulseTick) {
             renderSunbirdArenaBoundary(center);
-            damagePlayersOutsideSunbirdArena(boss, center);
+            if (!birdMeteorActive) {
+                damagePlayersOutsideSunbirdArena(boss, center);
+            }
             runtime.nextArenaPulseTick = clockTicks + SUNBIRD_ARENA_PULSE_INTERVAL_TICKS;
         }
 
-        if (boss.scriptedAction()
+        if (birdMeteorActive
+            || boss.scriptedAction()
             || horizontalDistanceSquared(entity.getLocation(), center) <= SUNBIRD_ARENA_RADIUS * SUNBIRD_ARENA_RADIUS) {
             return;
         }
@@ -350,7 +366,8 @@ public final class BossMechanicService {
             PendingMechanic pending = iterator.next();
             MobInstance boss = mobService.getInstance(pending.bossInstanceId());
             Entity entity = boss == null ? null : mobService.entityController().getEntity(boss);
-            boolean noManagedTarget = pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_RETURN_TACKLE
+            boolean noManagedTarget = pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_BIRD_METEOR
+                && pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_RETURN_TACKLE
                 && entity != null
                 && nearbyManagedPlayers(entity.getLocation(), TARGET_RANGE).isEmpty();
             if (boss == null || entity == null || !entity.isValid() || entity.isDead() || boss.currentHealth() <= 0.0D
@@ -362,6 +379,9 @@ public final class BossMechanicService {
                 continue;
             }
             if (clockTicks < pending.executeAtTick()) {
+                if (pending.mechanic() == BossMechanicProfile.Mechanic.SUNBIRD_BIRD_METEOR) {
+                    updateBirdMeteorBossBar(pending);
+                }
                 renderTelegraph(pending);
                 continue;
             }
@@ -382,6 +402,7 @@ public final class BossMechanicService {
             && runtime.phase >= 2
             && !runtime.finalPhaseTriggered) {
             runtime.finalPhaseTriggered = true;
+            removePendingForBoss(boss.instanceId());
             boss.scriptedAction(true);
             mobService.resetPosition(boss, boss.spawnLocation());
             Entity resetEntity = mobService.entityController().getEntity(boss);
@@ -389,9 +410,10 @@ public final class BossMechanicService {
             Vector direction = resetEntity == null
                 ? new Vector(0.0D, 0.0D, 1.0D)
                 : resetEntity.getFacing().getDirection();
-            addPending(boss, BossMechanicProfile.Mechanic.SUNBIRD_CORONA_COLLAPSE, anchor, direction,
-                SUNBIRD_CORONA_COLLAPSE_TELEGRAPH_TICKS);
-            runtime.nextActionTick = clockTicks + SUNBIRD_CORONA_COLLAPSE_TELEGRAPH_TICKS + 20L;
+            startBirdMeteor(boss, anchor);
+            addPending(boss, BossMechanicProfile.Mechanic.SUNBIRD_BIRD_METEOR, anchor, direction,
+                SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS);
+            runtime.nextActionTick = clockTicks + SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS + 20L;
             return;
         }
 
@@ -407,6 +429,116 @@ public final class BossMechanicService {
             return;
         }
         runtime.summonsTriggered = true;
+    }
+
+    /**
+     * バードメテオの詠唱状態を開始し、ボスを一時的に無敵にします。
+     *
+     * @param boss 対象ボス
+     * @param arenaCenter 境界の中心
+     */
+    private void startBirdMeteor(
+        @NotNull MobInstance boss,
+        @NotNull Location arenaCenter
+    ) {
+        finishBirdMeteor(boss.instanceId());
+        boss.damageImmune(true);
+        Entity entity = mobService.entityController().getEntity(boss);
+        if (entity != null && entity.isValid()) {
+            entity.setInvulnerable(true);
+        }
+
+        BossBar bossBar = Bukkit.createBossBar("§cバードメテオ", BarColor.RED, BarStyle.SOLID);
+        bossBar.setProgress(1.0D);
+        bossBar.setVisible(true);
+        birdMeteorStates.put(
+            boss.instanceId(),
+            new BirdMeteorState(randomBirdMeteorSafeZoneCenter(arenaCenter), bossBar)
+        );
+    }
+
+    /**
+     * バードメテオ詠唱中の BossBar を更新し、周囲の管理対象Playerへ同期します。
+     *
+     * @param pending バードメテオ予兆
+     */
+    private void updateBirdMeteorBossBar(@NotNull PendingMechanic pending) {
+        BirdMeteorState state = birdMeteorStates.get(pending.bossInstanceId());
+        if (state == null) {
+            return;
+        }
+        long remainingTicks = Math.max(0L, pending.executeAtTick() - clockTicks);
+        double progress = Math.clamp(
+            (double) remainingTicks / SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS,
+            0.0D,
+            1.0D
+        );
+        BossBar bossBar = state.bossBar();
+        bossBar.setTitle("§cバードメテオ");
+        bossBar.setProgress(progress);
+
+        Set<UUID> visiblePlayerIds = nearbyManagedPlayers(pending.anchor(), TARGET_RANGE).stream()
+            .map(Player::getUniqueId)
+            .collect(java.util.stream.Collectors.toSet());
+        for (Player player : List.copyOf(bossBar.getPlayers())) {
+            if (!visiblePlayerIds.contains(player.getUniqueId())) {
+                bossBar.removePlayer(player);
+            }
+        }
+        for (UUID playerId : visiblePlayerIds) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player != null && !bossBar.getPlayers().contains(player)) {
+                bossBar.addPlayer(player);
+            }
+        }
+    }
+
+    /**
+     * バードメテオの表示と一時無敵を解除します。
+     *
+     * @param bossInstanceId 対象ボスのインスタンスID
+     */
+    private void finishBirdMeteor(@NotNull UUID bossInstanceId) {
+        BirdMeteorState state = birdMeteorStates.remove(bossInstanceId);
+        if (state != null) {
+            BossBar bossBar = state.bossBar();
+            bossBar.removeAll();
+            bossBar.setProgress(0.0D);
+            bossBar.setVisible(false);
+        }
+
+        MobInstance boss = mobService.getInstance(bossInstanceId);
+        if (boss == null) {
+            return;
+        }
+        boolean templateDamageImmune = boss.template().damageImmune();
+        boss.damageImmune(templateDamageImmune);
+        Entity entity = mobService.entityController().getEntity(boss);
+        if (entity != null && entity.isValid()) {
+            entity.setInvulnerable(templateDamageImmune);
+        }
+    }
+
+    private boolean isBirdMeteorActive(@NotNull UUID bossInstanceId) {
+        return birdMeteorStates.containsKey(bossInstanceId);
+    }
+
+    /**
+     * 境界内に安全円柱全体が収まるよう、中心から半径15ブロック以内の地点を一様に選びます。
+     *
+     * @param arenaCenter 境界の中心
+     * @return 安全円柱の中心
+     */
+    private static @NotNull Location randomBirdMeteorSafeZoneCenter(@NotNull Location arenaCenter) {
+        double maximumOffset = SUNBIRD_ARENA_RADIUS - SUNBIRD_BIRD_METEOR_SAFE_RADIUS;
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        double angle = random.nextDouble(0.0D, Math.PI * 2.0D);
+        double distance = Math.sqrt(random.nextDouble()) * maximumOffset;
+        return arenaCenter.clone().add(
+            Math.cos(angle) * distance,
+            0.0D,
+            Math.sin(angle) * distance
+        );
     }
 
     private void spawnAdds(
@@ -510,7 +642,6 @@ public final class BossMechanicService {
     ) {
         List<UUID> displayEntityIds = switch (mechanic) {
             case SUNBIRD_SOLAR_NOVA -> spawnSunbirdRitualDisplays(anchor, SUNBIRD_NOVA_DISPLAY_COUNT);
-            case SUNBIRD_CORONA_COLLAPSE -> spawnSunbirdRitualDisplays(anchor, SUNBIRD_CORONA_DISPLAY_COUNT);
             default -> List.of();
         };
         PendingMechanic pending = new PendingMechanic(
@@ -523,6 +654,9 @@ public final class BossMechanicService {
             destination
         );
         pendingMechanics.add(pending);
+        if (mechanic == BossMechanicProfile.Mechanic.SUNBIRD_BIRD_METEOR) {
+            updateBirdMeteorBossBar(pending);
+        }
         renderTelegraph(pending);
         World world = anchor.getWorld();
         if (world != null) {
@@ -544,7 +678,7 @@ public final class BossMechanicService {
             case SUNBIRD_SOLAR_FLARE -> 20L;
             case SUNBIRD_SUNSTRIKE -> 25L;
             case SUNBIRD_SOLAR_NOVA -> SUNBIRD_NOVA_TELEGRAPH_TICKS;
-            case SUNBIRD_CORONA_COLLAPSE -> SUNBIRD_CORONA_COLLAPSE_TELEGRAPH_TICKS;
+            case SUNBIRD_BIRD_METEOR -> SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS;
             case SUNBIRD_RETURN_TACKLE -> SUNBIRD_TACKLE_TELEGRAPH_TICKS;
         };
     }
@@ -591,17 +725,7 @@ public final class BossMechanicService {
                 );
                 animateSunbirdRitualDisplays(pending);
             }
-            case SUNBIRD_CORONA_COLLAPSE -> {
-                renderCircle(
-                    pending.anchor(), SUNBIRD_CORONA_COLLAPSE_RADIUS,
-                    SharedParticleDefinitions.SUNBIRD_SOLAR_FLAME, 52
-                );
-                renderCircle(
-                    pending.anchor(), SUNBIRD_ARENA_RADIUS + 1.0D,
-                    SharedParticleDefinitions.SUNBIRD_SOLAR_DUST, 56
-                );
-                animateSunbirdRitualDisplays(pending, SUNBIRD_CORONA_COLLAPSE_TELEGRAPH_TICKS);
-            }
+            case SUNBIRD_BIRD_METEOR -> renderBirdMeteorTelegraph(pending);
             case SUNBIRD_RETURN_TACKLE -> renderLane(
                 pending.anchor(), pending.direction(), pending.travelDistance(), SUNBIRD_TACKLE_HALF_WIDTH,
                 SharedParticleDefinitions.SUNBIRD_SOLAR_DUST
@@ -651,9 +775,8 @@ public final class BossMechanicService {
                 boss, pending.anchor(), 0.0D, SUNBIRD_NOVA_RADIUS,
                 AttackType.MAGIC, DamageElement.FIRE, 1.45D, 1.1D
             );
-            case SUNBIRD_CORONA_COLLAPSE -> damageCircle(
-                boss, pending.anchor(), 0.0D, SUNBIRD_CORONA_COLLAPSE_RADIUS,
-                AttackType.MAGIC, DamageElement.FIRE, 1.95D, 1.35D
+            case SUNBIRD_BIRD_METEOR -> damagePlayersOutsideBirdMeteorSafeZone(
+                boss, pending.anchor(), birdMeteorSafeZoneCenter(pending)
             );
             case SUNBIRD_RETURN_TACKLE -> {
                 damageLine(
@@ -687,6 +810,27 @@ public final class BossMechanicService {
             }
             damagePlayer(boss, player, attackType, element, ratio);
             pushAway(player, center, pushStrength);
+        }
+    }
+
+    /**
+     * バードメテオの安全円柱の外側にいる管理対象Playerへ大ダメージを与えます。
+     *
+     * @param boss ダメージ発生元
+     * @param arenaCenter 判定する境界の中心
+     * @param safeZoneCenter 安全円柱の中心
+     */
+    private void damagePlayersOutsideBirdMeteorSafeZone(
+        @NotNull MobInstance boss,
+        @NotNull Location arenaCenter,
+        @NotNull Location safeZoneCenter
+    ) {
+        double safeRadiusSquared = SUNBIRD_BIRD_METEOR_SAFE_RADIUS * SUNBIRD_BIRD_METEOR_SAFE_RADIUS;
+        for (Player player : nearbyManagedPlayers(arenaCenter, SUNBIRD_ARENA_RADIUS)) {
+            if (horizontalDistanceSquared(player.getLocation(), safeZoneCenter) <= safeRadiusSquared) {
+                continue;
+            }
+            damagePlayer(boss, player, AttackType.MAGIC, DamageElement.FIRE, SUNBIRD_BIRD_METEOR_DAMAGE_RATIO);
         }
     }
 
@@ -824,7 +968,7 @@ public final class BossMechanicService {
         return offset.subtract(nearest).lengthSquared() <= width * width;
     }
 
-    private double horizontalDistanceSquared(@NotNull Location left, @NotNull Location right) {
+    private static double horizontalDistanceSquared(@NotNull Location left, @NotNull Location right) {
         double x = left.getX() - right.getX();
         double z = left.getZ() - right.getZ();
         return x * x + z * z;
@@ -914,6 +1058,97 @@ public final class BossMechanicService {
             );
         }
         renderRange(center, locations, SharedParticleDefinitions.SUNBIRD_ARENA_BOUNDARY);
+    }
+
+    /**
+     * バードメテオの安全円柱をEND_RODパーティクルで表示します。
+     *
+     * @param pending バードメテオ予兆
+     */
+    private void renderBirdMeteorTelegraph(@NotNull PendingMechanic pending) {
+        renderRange(
+            pending.anchor(),
+            birdMeteorSafeZoneParticleLocations(birdMeteorSafeZoneCenter(pending)),
+            SharedParticleDefinitions.SUNBIRD_BIRD_METEOR_SAFE_ZONE
+        );
+    }
+
+    /**
+     * バードメテオの安全円柱中心を返します。
+     *
+     * @param pending バードメテオ予兆
+     * @return 安全円柱の中心
+     */
+    private @NotNull Location birdMeteorSafeZoneCenter(@NotNull PendingMechanic pending) {
+        BirdMeteorState state = birdMeteorStates.get(pending.bossInstanceId());
+        return state == null ? pending.anchor().clone() : state.safeZoneCenter().clone();
+    }
+
+    /**
+     * 安全円柱の上下円と側面の表示地点を作成します。
+     *
+     * @param center 安全円柱の中心
+     * @return END_ROD表示地点
+     */
+    static @NotNull List<Location> birdMeteorSafeZoneParticleLocations(@NotNull Location center) {
+        List<Location> locations = new ArrayList<>(
+            SUNBIRD_BIRD_METEOR_SAFE_RING_POINT_COUNT * SUNBIRD_BIRD_METEOR_SAFE_LAYER_COUNT
+                + SUNBIRD_BIRD_METEOR_SAFE_VERTICAL_LINE_COUNT * 6
+        );
+        double ringHeight = Math.max(
+            0.0D,
+            SUNBIRD_BIRD_METEOR_SAFE_HEIGHT - 0.15D
+        );
+        for (int layer = 0; layer < SUNBIRD_BIRD_METEOR_SAFE_LAYER_COUNT; layer++) {
+            double height = SUNBIRD_BIRD_METEOR_SAFE_LAYER_COUNT <= 1
+                ? 0.0D
+                : ringHeight * layer / (SUNBIRD_BIRD_METEOR_SAFE_LAYER_COUNT - 1);
+            locations.addAll(circleLocations(center.clone().add(0.0D, height, 0.0D),
+                SUNBIRD_BIRD_METEOR_SAFE_RADIUS, SUNBIRD_BIRD_METEOR_SAFE_RING_POINT_COUNT));
+        }
+
+        for (int index = 0; index < SUNBIRD_BIRD_METEOR_SAFE_VERTICAL_LINE_COUNT; index++) {
+            double angle = Math.PI * 2.0D * index / SUNBIRD_BIRD_METEOR_SAFE_VERTICAL_LINE_COUNT;
+            double x = Math.cos(angle) * SUNBIRD_BIRD_METEOR_SAFE_RADIUS;
+            double z = Math.sin(angle) * SUNBIRD_BIRD_METEOR_SAFE_RADIUS;
+            for (double height = 0.15D; height < SUNBIRD_BIRD_METEOR_SAFE_HEIGHT; height += LINE_PARTICLE_INTERVAL) {
+                locations.add(center.clone().add(x, height, z));
+            }
+            locations.add(center.clone().add(x, SUNBIRD_BIRD_METEOR_SAFE_HEIGHT, z));
+        }
+        return List.copyOf(locations);
+    }
+
+    /**
+     * 安全円柱を除く境界内へ、発動時の爆発パーティクル地点を作成します。
+     *
+     * @param arenaCenter 境界の中心
+     * @param safeZoneCenter 安全円柱の中心
+     * @return 爆発パーティクル表示地点
+     */
+    static @NotNull List<Location> birdMeteorExplosionParticleLocations(
+        @NotNull Location arenaCenter,
+        @NotNull Location safeZoneCenter
+    ) {
+        int gridRadius = (int) Math.ceil(SUNBIRD_ARENA_RADIUS / SUNBIRD_BIRD_METEOR_EXPLOSION_GRID_SPACING);
+        double safeRadiusSquared = SUNBIRD_BIRD_METEOR_SAFE_RADIUS * SUNBIRD_BIRD_METEOR_SAFE_RADIUS;
+        double arenaRadiusSquared = SUNBIRD_ARENA_RADIUS * SUNBIRD_ARENA_RADIUS;
+        List<Location> locations = new ArrayList<>();
+        for (int xIndex = -gridRadius; xIndex <= gridRadius; xIndex++) {
+            double x = xIndex * SUNBIRD_BIRD_METEOR_EXPLOSION_GRID_SPACING;
+            for (int zIndex = -gridRadius; zIndex <= gridRadius; zIndex++) {
+                double z = zIndex * SUNBIRD_BIRD_METEOR_EXPLOSION_GRID_SPACING;
+                if (x * x + z * z > arenaRadiusSquared) {
+                    continue;
+                }
+                Location point = arenaCenter.clone().add(x, 0.15D, z);
+                if (horizontalDistanceSquared(point, safeZoneCenter) <= safeRadiusSquared) {
+                    continue;
+                }
+                locations.add(point);
+            }
+        }
+        return List.copyOf(locations);
     }
 
     /**
@@ -1150,14 +1385,15 @@ public final class BossMechanicService {
                     SharedParticleDefinitions.SUNBIRD_SOLAR_FLASH
                 );
             }
-            case SUNBIRD_CORONA_COLLAPSE -> {
-                renderCircle(
-                    pending.anchor(), SUNBIRD_CORONA_COLLAPSE_RADIUS,
-                    SharedParticleDefinitions.SUNBIRD_SOLAR_IMPACT, 52
+            case SUNBIRD_BIRD_METEOR -> {
+                renderRange(
+                    pending.anchor(),
+                    birdMeteorExplosionParticleLocations(pending.anchor(), birdMeteorSafeZoneCenter(pending)),
+                    SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION
                 );
                 renderRange(
                     pending.anchor(),
-                    List.of(pending.anchor().clone().add(0.0D, 2.5D, 0.0D)),
+                    List.of(birdMeteorSafeZoneCenter(pending).add(0.0D, SUNBIRD_BIRD_METEOR_SAFE_HEIGHT, 0.0D)),
                     SharedParticleDefinitions.SUNBIRD_SOLAR_FLASH
                 );
             }
@@ -1259,11 +1495,14 @@ public final class BossMechanicService {
      */
     private void releaseScriptedAction(@NotNull PendingMechanic pending) {
         if (pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA
-            && pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_CORONA_COLLAPSE
+            && pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_BIRD_METEOR
             && pending.mechanic() != BossMechanicProfile.Mechanic.SUNBIRD_RETURN_TACKLE) {
             return;
         }
         MobInstance boss = mobService.getInstance(pending.bossInstanceId());
+        if (pending.mechanic() == BossMechanicProfile.Mechanic.SUNBIRD_BIRD_METEOR) {
+            finishBirdMeteor(pending.bossInstanceId());
+        }
         if (boss != null) {
             boss.scriptedAction(false);
         }
@@ -1280,6 +1519,7 @@ public final class BossMechanicService {
             releaseScriptedAction(pending);
             iterator.remove();
         }
+        finishBirdMeteor(bossInstanceId);
     }
 
     /**
@@ -1463,6 +1703,15 @@ public final class BossMechanicService {
             this.nextActionTick = nextActionTick;
             this.nextTeleportTick = nextTeleportTick;
             this.nextArenaPulseTick = nextArenaPulseTick;
+        }
+    }
+
+    private record BirdMeteorState(
+        @NotNull Location safeZoneCenter,
+        @NotNull BossBar bossBar
+    ) {
+        private BirdMeteorState {
+            safeZoneCenter = safeZoneCenter.clone();
         }
     }
 

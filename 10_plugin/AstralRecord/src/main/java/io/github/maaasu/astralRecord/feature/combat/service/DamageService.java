@@ -390,7 +390,7 @@ public final class DamageService {
             return;
         }
 
-        if (victim.isMob() && victim.mob() != null && victim.mob().template().damageImmune()) {
+        if (victim.isMob() && victim.mob() != null && victim.mob().damageImmune()) {
             return;
         }
 
@@ -576,7 +576,7 @@ public final class DamageService {
         if (victim.isPlayer() && isPlayerDead(victim.id())) {
             return new DamageResult(0.0D);
         }
-        if (victim.isMob() && victim.mob() != null && victim.mob().template().damageImmune()) {
+        if (victim.isMob() && victim.mob() != null && victim.mob().damageImmune()) {
             return new DamageResult(0.0D);
         }
 
@@ -718,7 +718,7 @@ public final class DamageService {
         if (victim.isPlayer() && isPlayerDead(victim.id())) {
             return new DamageResult(0.0D);
         }
-        if (victim.isMob() && victim.mob() != null && victim.mob().template().damageImmune()) {
+        if (victim.isMob() && victim.mob() != null && victim.mob().damageImmune()) {
             return new DamageResult(0.0D);
         }
         if (conditionService != null && conditionService.isDamageImmune(victim)) {

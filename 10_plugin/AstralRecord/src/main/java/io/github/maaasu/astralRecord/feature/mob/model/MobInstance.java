@@ -33,6 +33,8 @@ public final class MobInstance {
     private double shieldDisplayCapacity;
     private ShieldRechargeState shieldRechargeState;
     private double outgoingDamageMultiplier = 1.0D;
+    /** テンプレート設定を初期値とする、実行時のダメージ無効化フラグ。 */
+    private boolean damageImmune;
     /** 検証用 Mob など、HP が 0 になっても死亡させない実行時フラグ。 */
     private boolean nonLethal;
     /** 描画範囲にプレイヤーがいなくても破棄しない実行時フラグ。 */
@@ -103,6 +105,7 @@ public final class MobInstance {
         this.currentHealth = maxHealth;
         this.currentShield = template.shield().active() ? template.shield().max() : 0.0D;
         this.shieldDisplayCapacity = this.currentShield;
+        this.damageImmune = template.damageImmune();
     }
 
     /** インスタンス ID を返します。 */
@@ -254,6 +257,20 @@ public final class MobInstance {
      */
     public void outgoingDamageMultiplier(double value) {
         this.outgoingDamageMultiplier = Math.max(0.0D, value);
+    }
+
+    /** この個体がダメージを無効化しているか返します。 */
+    public boolean damageImmune() {
+        return damageImmune;
+    }
+
+    /**
+     * この個体の実行時ダメージ無効化を設定します。
+     *
+     * @param value 無効化する場合は true
+     */
+    public void damageImmune(boolean value) {
+        this.damageImmune = value;
     }
 
     /**
