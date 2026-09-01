@@ -13,6 +13,7 @@ public final class ConfigKeys {
     // Plugin 関連
     public static final String PLUGIN_DEBUG_MODE = "plugin.debugMode";
     public static final String PLUGIN_DEBUG_USERS = "plugin.debugUsers";
+    public static final String PLUGIN_WHITELIST_USERS = "plugin.whitelistUsers";
     public static final String PLUGIN_WHITELIST_ENABLED = "plugin.whitelistEnabled";
 
     // Boss／Dungeon インスタンス作成枠

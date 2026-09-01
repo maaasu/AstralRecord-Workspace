@@ -1,8 +1,10 @@
 # Plugin Settings
 plugin:
   debugMode: false
-  # UUIDs allowed to use only /user permission without permission 99 and to join during whitelist maintenance.
+  # UUIDs allowed to use only /user permission without permission 99.
   debugUsers: []
+  # UUIDs allowed to join during whitelist maintenance without debug permissions.
+  whitelistUsers: []
   whitelistEnabled: false
   joinSpawn:
     # WorldMasterData ID. The vanilla server world is not a join-spawn master.

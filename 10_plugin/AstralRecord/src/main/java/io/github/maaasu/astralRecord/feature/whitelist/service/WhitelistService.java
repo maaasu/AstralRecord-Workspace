@@ -48,10 +48,12 @@ public final class WhitelistService {
      * whitelist 有効時に接続を許可する UUID か判定します。
      *
      * @param playerUuid 判定対象 UUID
-     * @return whitelist が無効、または debugUsers に含まれる場合は {@code true}
+     * @return whitelist が無効、または debugUsers / whitelistUsers のいずれかに含まれる場合は {@code true}
      */
     public boolean isAllowed(@Nullable UUID playerUuid) {
-        return !isEnabled() || ConfigProperties.getInstance().isDebugUser(playerUuid);
+        return !isEnabled()
+            || ConfigProperties.getInstance().isDebugUser(playerUuid)
+            || ConfigProperties.getInstance().isWhitelistUser(playerUuid);
     }
 
     /**
@@ -71,7 +73,7 @@ public final class WhitelistService {
     /**
      * whitelist 状態を変更して config.yml へ保存します。
      * このメソッドはサーバーのメインスレッドから呼び出してください。
-     * 有効化時は debugUsers 以外の接続中プレイヤーを即時にキックします。
+     * 有効化時は debugUsers / whitelistUsers のいずれにも含まれない接続中プレイヤーを即時にキックします。
      *
      * @param enabled 更新後の状態
      * @throws IllegalStateException メインスレッド以外から呼び出した場合

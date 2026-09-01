@@ -28,23 +28,30 @@ class WhitelistServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_2-ユースケース.md
      * 章・見出し: # 03_2-ユースケース > ## 11. whitelist メンテナンス
-     * 検証契約: whitelist 有効化は設定を保存し、debugUsers 外の接続中プレイヤーだけを遮断する。
+     * 検証契約: whitelist 有効化は設定を保存し、debugUsers / whitelistUsers のいずれにも含まれない接続中プレイヤーだけを遮断する。
      */
     @Test
-    void enablingWhitelistPersistsStateAndKicksPlayersOutsideDebugUsers() {
+    void enablingWhitelistPersistsStateAndKicksPlayersOutsideConfiguredUsers() {
         ConfigManager configManager = mock(ConfigManager.class);
         ConfigProperties configProperties = mock(ConfigProperties.class);
-        Player allowedPlayer = mock(Player.class);
+        Player debugPlayer = mock(Player.class);
+        Player whitelistPlayer = mock(Player.class);
         Player deniedPlayer = mock(Player.class);
-        UUID allowedUuid = UUID.randomUUID();
+        UUID debugUuid = UUID.randomUUID();
+        UUID whitelistUuid = UUID.randomUUID();
         UUID deniedUuid = UUID.randomUUID();
         AtomicBoolean enabled = new AtomicBoolean(false);
 
-        when(allowedPlayer.getUniqueId()).thenReturn(allowedUuid);
+        when(debugPlayer.getUniqueId()).thenReturn(debugUuid);
+        when(whitelistPlayer.getUniqueId()).thenReturn(whitelistUuid);
         when(deniedPlayer.getUniqueId()).thenReturn(deniedUuid);
         when(configProperties.isPluginWhitelistEnabled()).thenAnswer(invocation -> enabled.get());
-        when(configProperties.isDebugUser(allowedUuid)).thenReturn(true);
+        when(configProperties.isDebugUser(debugUuid)).thenReturn(true);
+        when(configProperties.isWhitelistUser(debugUuid)).thenReturn(true);
+        when(configProperties.isDebugUser(whitelistUuid)).thenReturn(false);
+        when(configProperties.isWhitelistUser(whitelistUuid)).thenReturn(true);
         when(configProperties.isDebugUser(deniedUuid)).thenReturn(false);
+        when(configProperties.isWhitelistUser(deniedUuid)).thenReturn(false);
         doAnswer(invocation -> {
             enabled.set(invocation.getArgument(0));
             return null;
@@ -55,7 +62,7 @@ class WhitelistServiceTest {
              MockedStatic<ConfigProperties> properties = mockStatic(ConfigProperties.class);
              MockedStatic<DiscordSrvChatBridge> discord = mockStatic(DiscordSrvChatBridge.class)) {
             bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
-            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(allowedPlayer, deniedPlayer));
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(debugPlayer, whitelistPlayer, deniedPlayer));
             managers.when(ConfigManager::getInstance).thenReturn(configManager);
             properties.when(ConfigProperties::getInstance).thenReturn(configProperties);
 
@@ -65,7 +72,8 @@ class WhitelistServiceTest {
             verify(configManager).save();
             verify(configProperties).setPluginWhitelistEnabled(true);
             verify(deniedPlayer).kick(any(Component.class));
-            verify(allowedPlayer, never()).kick(any(Component.class));
+            verify(debugPlayer, never()).kick(any(Component.class));
+            verify(whitelistPlayer, never()).kick(any(Component.class));
             discord.verify(() -> DiscordSrvChatBridge.setServerLifecycleMessagesSuppressed(true));
         }
     }

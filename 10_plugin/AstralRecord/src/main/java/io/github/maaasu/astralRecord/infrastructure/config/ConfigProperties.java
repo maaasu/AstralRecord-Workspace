@@ -16,6 +16,7 @@ public class ConfigProperties {
     // Plugin 関連
     private boolean pluginDebugMode;
     private Set<UUID> pluginDebugUsers = Collections.emptySet();
+    private Set<UUID> pluginWhitelistUsers = Collections.emptySet();
     private volatile boolean pluginWhitelistEnabled;
 
     // SQL Server 関連
@@ -86,8 +87,11 @@ public class ConfigProperties {
 
         // Plugin 関連
         this.pluginDebugMode = configManager.getConfig().getBoolean(ConfigKeys.PLUGIN_DEBUG_MODE);
-        this.pluginDebugUsers = parseDebugUsers(
+        this.pluginDebugUsers = parseConfiguredUsers(
                 configManager.getConfig().getStringList(ConfigKeys.PLUGIN_DEBUG_USERS)
+        );
+        this.pluginWhitelistUsers = parseConfiguredUsers(
+                configManager.getConfig().getStringList(ConfigKeys.PLUGIN_WHITELIST_USERS)
         );
         this.pluginWhitelistEnabled = configManager.getConfig().getBoolean(
                 ConfigKeys.PLUGIN_WHITELIST_ENABLED,
@@ -175,6 +179,16 @@ public class ConfigProperties {
      */
     public boolean isDebugUser(UUID uuid) {
         return uuid != null && pluginDebugUsers.contains(uuid);
+    }
+
+    /**
+     * 指定されたプレイヤー UUID が whitelist ユーザーとして設定されているかを返します。
+     *
+     * @param uuid 判定対象のプレイヤー UUID
+     * @return `plugin.whitelistUsers` に完全一致する UUID が含まれていれば true
+     */
+    public boolean isWhitelistUser(UUID uuid) {
+        return uuid != null && pluginWhitelistUsers.contains(uuid);
     }
 
     /**
@@ -360,7 +374,7 @@ public class ConfigProperties {
         return discordMaxMessageLength;
     }
 
-    private Set<UUID> parseDebugUsers(List<String> configuredUsers) {
+    private Set<UUID> parseConfiguredUsers(List<String> configuredUsers) {
         if (configuredUsers == null || configuredUsers.isEmpty()) {
             return Collections.emptySet();
         }
