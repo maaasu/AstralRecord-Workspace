@@ -1,14 +1,12 @@
 package io.github.maaasu.astralRecord.feature.account.command;
 
-import io.github.maaasu.astralRecord.AstralRecord;
-import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.command.AstTabCompleter;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
@@ -18,6 +16,7 @@ import java.util.List;
 public class AccountTabCompleter extends AstTabCompleter {
     private final AccountModeTabCompleter modeTabCompleter = new AccountModeTabCompleter();
     private final AccountDeleteTabCompleter deleteTabCompleter = new AccountDeleteTabCompleter();
+    private final AccountSwitchTabCompleter switchTabCompleter = new AccountSwitchTabCompleter();
 
     /**
      * /account の入力位置に応じて補完候補を返します。
@@ -28,18 +27,11 @@ public class AccountTabCompleter extends AstTabCompleter {
      */
     @Override
     protected List<String> getCompletions(@NotNull CommandSender sender, @NotNull String[] args) {
+        if (!hasAdminPermission(sender)) {
+            return List.of();
+        }
         if (args.length == 1) {
-            List<String> completions = new ArrayList<>(List.of("mode", "delete"));
-            if (sender instanceof Player player) {
-                var astPlayer = AstPlayerCache.get(player);
-                AccountService accountService = AstralRecord.getInstance().getAccountService();
-                if (astPlayer != null && accountService != null) {
-                    accountService.getCachedSlotIndexes(astPlayer.getUser().getUuid()).stream()
-                        .map(String::valueOf)
-                        .forEach(completions::add);
-                }
-            }
-            return completions;
+            return List.of("mode", "delete", "switch");
         }
         if (args.length > 1 && args[0].equalsIgnoreCase("mode")) {
             return modeTabCompleter.onTabComplete(sender, null, "account", Arrays.copyOfRange(args, 1, args.length));
@@ -47,6 +39,17 @@ public class AccountTabCompleter extends AstTabCompleter {
         if (args.length > 1 && args[0].equalsIgnoreCase("delete")) {
             return deleteTabCompleter.onTabComplete(sender, null, "account", Arrays.copyOfRange(args, 1, args.length));
         }
+        if (args.length > 1 && args[0].equalsIgnoreCase("switch")) {
+            return switchTabCompleter.onTabComplete(sender, null, "account", Arrays.copyOfRange(args, 1, args.length));
+        }
         return List.of();
+    }
+
+    private boolean hasAdminPermission(@NotNull CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            return true;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return astPlayer != null && astPlayer.hasAdminPermission();
     }
 }

@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.account.command;
 
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
@@ -19,7 +20,8 @@ public class AccountCommand extends AstCommand {
      * アカウント管理コマンドを初期化します。
      */
     public AccountCommand() {
-        super("account", "アカウントを管理します。", "/account <slot|mode|delete> ...", false, PERMISSION_NONE);
+        super("account", "アカウントを管理します。", "/account <mode|delete|switch> ...", false,
+            UserPermission.ADMIN.getValue());
     }
 
     /**
@@ -62,20 +64,11 @@ public class AccountCommand extends AstCommand {
             deleteCommand.executeCommand(sender, Arrays.copyOfRange(args, 1, args.length));
             return;
         }
-        if (isInteger(args[0])) {
-            switchCommand.executeCommand(sender, args);
+        if (action.equals("switch")) {
+            switchCommand.executeCommand(sender, Arrays.copyOfRange(args, 1, args.length));
             return;
         }
 
         sendUsage(sender);
-    }
-
-    private boolean isInteger(String value) {
-        try {
-            Integer.parseInt(value);
-            return true;
-        } catch (NumberFormatException ignored) {
-            return false;
-        }
     }
 }

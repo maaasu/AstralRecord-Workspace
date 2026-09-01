@@ -9,11 +9,17 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
+import io.github.maaasu.astralRecord.feature.user.model.SystemUser;
+import io.github.maaasu.astralRecord.feature.user.model.UserModel;
+import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
+import io.github.maaasu.astralRecord.feature.user.service.UserService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventPriority;
@@ -30,92 +36,141 @@ import org.bukkit.event.player.PlayerSwapHandItemsEvent;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.List;
+import java.util.Locale;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 
-/** /account のスロット指定によるアカウント切替を扱います。 */
+/** /account switch の実行と、対象プレイヤーの安全な再ロードを扱います。 */
 public final class AccountSwitchCommand extends AstCommand implements EventHandler {
-    private final Set<UUID> pendingPlayers = ConcurrentHashMap.newKeySet();
-    private final Set<UUID> frozenPlayers = ConcurrentHashMap.newKeySet();
+    private final Set<String> pendingTargets = java.util.concurrent.ConcurrentHashMap.newKeySet();
+    private final Set<UUID> frozenPlayers = java.util.concurrent.ConcurrentHashMap.newKeySet();
 
     public AccountSwitchCommand() {
-        super("accountswitch", "アカウントを切り替えます。", "/account <slot>", false, PERMISSION_NONE);
+        super(
+            "accountswitch",
+            "対象プレイヤーのアカウントを切り替えます。",
+            "/account switch <player> <slot>",
+            false,
+            UserPermission.ADMIN.getValue()
+        );
     }
 
     @Override
     protected void executeCommand(@NotNull CommandSender sender, @NotNull String[] args) {
-        if (!(sender instanceof Player player)) {
-            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5060.getId()));
+        if (!hasAdminPermission(sender)) {
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
             return;
         }
-        if (args.length != 1) {
+        if (args.length != 2) {
             sendUsage(sender);
             return;
         }
 
-        Integer slotIndex = parseSlotIndex(args[0]);
+        Integer slotIndex = parseSlotIndex(args[1]);
         if (slotIndex == null) {
             sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5337.getId()));
             return;
         }
-        if (hasCursorItem(player)) {
-            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5344.getId()));
-            return;
-        }
 
+        String targetName = args[0];
         AstralRecord plugin = AstralRecord.getInstance();
         AccountService accountService = plugin.getAccountService();
         PlayerService playerService = plugin.getPlayerService();
         PlayerJoinEventHandler playerJoinEventHandler = plugin.getPlayerJoinEventHandler();
-        AstPlayer currentPlayer = AstPlayerCache.get(player);
-        if (accountService == null || playerService == null || playerJoinEventHandler == null || currentPlayer == null) {
+        UserService userService = plugin.getUserService();
+        Player target = Bukkit.getPlayerExact(targetName);
+        AstPlayer targetAstPlayer = target == null ? null : AstPlayerCache.get(target);
+
+        if (target != null && targetAstPlayer == null) {
+            sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5814.getId(), targetName));
+            return;
+        }
+        if (target != null && hasCursorItem(target)) {
+            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5344.getId()));
+            return;
+        }
+        if (accountService == null
+            || (target != null && (playerService == null || playerJoinEventHandler == null))
+            || (target == null && userService == null)) {
             sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5340.getId()));
             return;
         }
-        if (!pendingPlayers.add(player.getUniqueId())) {
+
+        String pendingKey = targetName.toLowerCase(Locale.ROOT);
+        if (!pendingTargets.add(pendingKey)) {
             sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5341.getId()));
             return;
         }
 
-        UUID userId = currentPlayer.getUser().getUuid();
-        UUID previousAccountId = currentPlayer.getAccount().getUuid();
-        String accountName = player.getName();
+        UUID updatedBy = getUpdatedBy(sender);
+        TargetRequest request = new TargetRequest(
+            targetName,
+            targetAstPlayer == null ? null : targetAstPlayer.getUser().getUuid(),
+            targetAstPlayer == null ? null : targetAstPlayer.getAccount().getUuid(),
+            target
+        );
         AsyncTaskUtil.supplyAsync(plugin, () -> resolveOrCreateAccount(
+            request,
+            slotIndex,
+            updatedBy,
             accountService,
-            userId,
-            accountName,
-            slotIndex
+            userService
         )).whenComplete((resolved, failure) -> AsyncTaskUtil.runSync(plugin, () -> {
             if (failure != null || resolved == null) {
-                fail(sender, player, failure);
-                return;
-            }
-            if (!player.isOnline()) {
-                pendingPlayers.remove(player.getUniqueId());
-                frozenPlayers.remove(player.getUniqueId());
-                return;
-            }
-            if (resolved.account().getUuid().equals(previousAccountId)) {
-                completeSuccess(sender, player, resolved);
+                fail(sender, pendingKey, target, targetName, failure);
                 return;
             }
 
-            freeze(player);
-            PlayerJoinEventHandler.AccountSwitchPreparation preparation =
-                playerJoinEventHandler.prepareAccountSwitch(player);
-            if (preparation == null) {
-                fail(sender, player, null);
+            Player onlineTarget = resolved.onlinePlayer();
+            if (onlineTarget != null && onlineTarget.isOnline() && hasCursorItem(onlineTarget)) {
+                pendingTargets.remove(pendingKey);
+                frozenPlayers.remove(onlineTarget.getUniqueId());
+                sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5344.getId()));
                 return;
             }
+
+            UUID currentAccountId = resolveCurrentAccountId(resolved);
+            if (resolved.account().getUuid().equals(currentAccountId)) {
+                completeSuccess(sender, pendingKey, resolved);
+                return;
+            }
+
+            if (onlineTarget != null && onlineTarget.isOnline()) {
+                freeze(onlineTarget);
+                PlayerJoinEventHandler.AccountSwitchPreparation preparation =
+                    playerJoinEventHandler.prepareAccountSwitch(onlineTarget);
+                if (preparation == null) {
+                    frozenPlayers.remove(onlineTarget.getUniqueId());
+                    failWithCleanup(
+                        sender,
+                        pendingKey,
+                        resolved,
+                        updatedBy,
+                        accountService,
+                        null
+                    );
+                    return;
+                }
+                switchAfterSessionSave(
+                    sender,
+                    pendingKey,
+                    resolved,
+                    updatedBy,
+                    preparation,
+                    accountService,
+                    playerService,
+                    playerJoinEventHandler
+                );
+                return;
+            }
+
             switchAfterSessionSave(
                 sender,
-                player,
-                userId,
-                preparation.accountId(),
-                preparation.logoutSave(),
+                pendingKey,
                 resolved,
+                updatedBy,
+                null,
                 accountService,
                 playerService,
                 playerJoinEventHandler
@@ -123,139 +178,342 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
         }));
     }
 
-    private @NotNull ResolvedAccount resolveOrCreateAccount(
+    private @Nullable ResolvedAccount resolveOrCreateAccount(
+        @NotNull TargetRequest request,
+        int slotIndex,
+        @NotNull UUID updatedBy,
         @NotNull AccountService accountService,
-        @NotNull UUID userId,
-        @NotNull String accountName,
-        int slotIndex
+        @Nullable UserService userService
     ) {
-        AccountModel account = accountService.getAccounts(userId).stream()
-            .filter(candidate -> candidate.getSlotIndex() == slotIndex)
+        UUID userId = request.knownUserId();
+        UUID currentAccountId = request.knownCurrentAccountId();
+        String accountName = request.targetName();
+        if (userId == null) {
+            if (userService == null) {
+                return null;
+            }
+            UserModel user = userService.getUserByMcid(request.targetName());
+            if (user == null) {
+                return null;
+            }
+            userId = user.getUuid();
+            currentAccountId = user.getAccountId();
+            accountName = user.getMcid();
+        }
+
+        UUID resolvedUserId = userId;
+        UUID resolvedCurrentAccountId = currentAccountId;
+        List<AccountModel> accounts = accountService.getAccounts(resolvedUserId);
+        AccountModel current = accounts.stream()
+            .filter(account -> resolvedCurrentAccountId != null
+                && account.getUuid().equals(resolvedCurrentAccountId))
+            .findFirst()
+            .orElseGet(() -> accounts.stream().filter(AccountModel::isActive).findFirst().orElse(null));
+        AccountModel target = accounts.stream()
+            .filter(account -> account.getSlotIndex() == slotIndex)
             .findFirst()
             .orElse(null);
-        if (account != null) {
-            return new ResolvedAccount(account, false);
+        boolean created = false;
+        if (target == null) {
+            target = accountService.createAccount(resolvedUserId, accountName, slotIndex, updatedBy);
+            created = true;
         }
         return new ResolvedAccount(
-            accountService.createAccount(userId, accountName, slotIndex, userId),
-            true
+            resolvedUserId,
+            request.targetName(),
+            request.onlinePlayer(),
+            current == null ? resolvedCurrentAccountId : current.getUuid(),
+            target,
+            created
         );
     }
 
     private void switchAfterSessionSave(
         @NotNull CommandSender sender,
-        @NotNull Player player,
-        @NotNull UUID userId,
-        @NotNull UUID previousAccountId,
-        @NotNull CompletableFuture<Boolean> previousSessionSave,
+        @NotNull String pendingKey,
         @NotNull ResolvedAccount resolved,
+        @NotNull UUID updatedBy,
+        @Nullable PlayerJoinEventHandler.AccountSwitchPreparation preparation,
         @NotNull AccountService accountService,
-        @NotNull PlayerService playerService,
-        @NotNull PlayerJoinEventHandler playerJoinEventHandler
+        @Nullable PlayerService playerService,
+        @Nullable PlayerJoinEventHandler playerJoinEventHandler
     ) {
         AstralRecord plugin = AstralRecord.getInstance();
+        UUID previousAccountId = preparation == null
+            ? resolved.currentAccountId()
+            : preparation.accountId();
         AsyncTaskUtil.supplyAsync(plugin, () -> {
-            playerService.awaitQueuedSavesForAccountSwitch(previousAccountId, previousSessionSave);
-            return accountService.switchAccount(userId, resolved.account().getUuid());
-        }).whenComplete((switched, failure) -> AsyncTaskUtil.runSync(plugin, () -> {
-            if (failure != null || switched == null) {
-                recoverPreviousAccount(
-                    sender,
-                    player,
-                    userId,
-                    previousAccountId,
-                    accountService,
-                    playerJoinEventHandler
+            if (preparation != null && playerService != null) {
+                playerService.awaitQueuedSavesForAccountSwitch(
+                    preparation.accountId(),
+                    preparation.logoutSave()
                 );
+            }
+            return accountService.switchAccount(
+                resolved.userId(),
+                resolved.account().getUuid(),
+                updatedBy
+            );
+        }).whenComplete((switched, failure) -> AsyncTaskUtil.runSync(plugin, () -> {
+            Player onlineTarget = resolved.onlinePlayer();
+            if (failure != null || switched == null) {
+                if (previousAccountId != null) {
+                    recoverPreviousAccount(
+                        sender,
+                        pendingKey,
+                        resolved,
+                        previousAccountId,
+                        updatedBy,
+                        accountService,
+                        playerJoinEventHandler,
+                        failure
+                    );
+                } else {
+                    failWithCleanup(
+                        sender,
+                        pendingKey,
+                        resolved,
+                        updatedBy,
+                        accountService,
+                        failure
+                    );
+                }
                 return;
             }
-            playerJoinEventHandler.reloadAccount(player, switched, succeeded -> {
-                if (succeeded) {
-                    completeSuccess(sender, player, resolved);
-                    return;
-                }
-                recoverPreviousAccount(
-                    sender,
-                    player,
-                    userId,
-                    previousAccountId,
-                    accountService,
-                    playerJoinEventHandler
-                );
-            });
+
+            if (preparation != null && onlineTarget != null && onlineTarget.isOnline()
+                && playerJoinEventHandler != null) {
+                playerJoinEventHandler.reloadAccount(onlineTarget, switched, reloaded -> {
+                    if (reloaded) {
+                        completeSuccess(sender, pendingKey, resolved);
+                        return;
+                    }
+                    if (previousAccountId == null) {
+                        failAndKick(sender, pendingKey, resolved, null);
+                        return;
+                    }
+                    recoverPreviousAccount(
+                        sender,
+                        pendingKey,
+                        resolved,
+                        previousAccountId,
+                        updatedBy,
+                        accountService,
+                        playerJoinEventHandler,
+                        null
+                    );
+                });
+                return;
+            }
+
+            completeSuccess(sender, pendingKey, resolved);
         }));
     }
 
     private void recoverPreviousAccount(
         @NotNull CommandSender sender,
-        @NotNull Player player,
-        @NotNull UUID userId,
+        @NotNull String pendingKey,
+        @NotNull ResolvedAccount resolved,
         @NotNull UUID previousAccountId,
+        @NotNull UUID updatedBy,
         @NotNull AccountService accountService,
-        @NotNull PlayerJoinEventHandler playerJoinEventHandler
+        @Nullable PlayerJoinEventHandler playerJoinEventHandler,
+        @Nullable Throwable originalFailure
     ) {
         AstralRecord plugin = AstralRecord.getInstance();
-        AsyncTaskUtil.supplyAsync(plugin, () -> accountService.switchAccount(userId, previousAccountId))
-            .whenComplete((previousAccount, failure) -> AsyncTaskUtil.runSync(plugin, () -> {
-                if (failure != null || previousAccount == null) {
-                    failAndKick(sender, player, failure);
-                    return;
-                }
-                playerJoinEventHandler.reloadAccount(player, previousAccount, recovered -> {
-                    if (!recovered) {
-                        failAndKick(sender, player, null);
-                        return;
+        AsyncTaskUtil.supplyAsync(plugin, () -> accountService.switchAccount(
+            resolved.userId(),
+            previousAccountId,
+            updatedBy
+        )).whenComplete((previous, failure) -> AsyncTaskUtil.runSync(plugin, () -> {
+            Player target = resolved.onlinePlayer();
+            if (failure != null || previous == null) {
+                failAndKick(sender, pendingKey, resolved, failure != null ? failure : originalFailure);
+                return;
+            }
+            if (target != null && target.isOnline() && playerJoinEventHandler != null) {
+                playerJoinEventHandler.reloadAccount(target, previous, recovered -> {
+                    if (recovered) {
+                        cleanupCreatedAccount(
+                            resolved,
+                            updatedBy,
+                            accountService,
+                            () -> finishRecovery(sender, pendingKey, target)
+                        );
+                    } else {
+                        failAndKick(sender, pendingKey, resolved, null);
                     }
-                    pendingPlayers.remove(player.getUniqueId());
-                    frozenPlayers.remove(player.getUniqueId());
-                    sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5062.getId()));
                 });
-            }));
+                return;
+            }
+            if (target != null && target.isOnline()) {
+                failAndKick(sender, pendingKey, resolved, null);
+                return;
+            }
+            cleanupCreatedAccount(
+                resolved,
+                updatedBy,
+                accountService,
+                () -> finishRecovery(sender, pendingKey, null)
+            );
+        }));
+    }
+
+    private void failWithCleanup(
+        @NotNull CommandSender sender,
+        @NotNull String pendingKey,
+        @NotNull ResolvedAccount resolved,
+        @NotNull UUID updatedBy,
+        @NotNull AccountService accountService,
+        @Nullable Throwable failure
+    ) {
+        cleanupCreatedAccount(
+            resolved,
+            updatedBy,
+            accountService,
+            () -> fail(sender, pendingKey, resolved.onlinePlayer(), resolved.targetName(), failure)
+        );
+    }
+
+    private void cleanupCreatedAccount(
+        @NotNull ResolvedAccount resolved,
+        @NotNull UUID deletedBy,
+        @NotNull AccountService accountService,
+        @NotNull Runnable completionListener
+    ) {
+        if (!resolved.created()) {
+            completionListener.run();
+            return;
+        }
+
+        AstralRecord plugin = AstralRecord.getInstance();
+        AsyncTaskUtil.supplyAsync(plugin, () -> accountService.deleteAccount(
+            resolved.account().getUuid(),
+            deletedBy
+        )).whenComplete((deleted, failure) -> AsyncTaskUtil.runSync(plugin, () -> {
+            if (failure != null || deleted == null) {
+                Throwable cleanupFailure = failure != null
+                    ? failure
+                    : new IllegalStateException("Created account cleanup returned no result");
+                Logger.error(LogId.E_5160, cleanupFailure, resolved.account().getUuid());
+                completionListener.run();
+                return;
+            }
+            completionListener.run();
+        }));
     }
 
     private void completeSuccess(
         @NotNull CommandSender sender,
-        @NotNull Player player,
+        @NotNull String pendingKey,
         @NotNull ResolvedAccount resolved
     ) {
-        pendingPlayers.remove(player.getUniqueId());
-        frozenPlayers.remove(player.getUniqueId());
-        String messageId = resolved.created() ? PlayerMsgId.P_5343.getId() : PlayerMsgId.P_5342.getId();
+        pendingTargets.remove(pendingKey);
+        Player target = resolved.onlinePlayer();
+        if (target != null) {
+            frozenPlayers.remove(target.getUniqueId());
+        }
+        String messageId = resolved.created() ? PlayerMsgId.P_5346.getId() : PlayerMsgId.P_5345.getId();
         sendSuccess(sender, PlayerMsgResource.format(
             messageId,
+            resolved.targetName(),
             resolved.account().getSlotIndex(),
             resolved.account().getAccountName()
         ));
+        if (target != null && target.isOnline() && sender != target) {
+            AstPlayer targetAstPlayer = AstPlayerCache.get(target);
+            if (targetAstPlayer != null) {
+                PlayerMessageService.getInstance().send(
+                    targetAstPlayer,
+                    resolved.created() ? PlayerMsgId.P_5343 : PlayerMsgId.P_5342,
+                    resolved.account().getSlotIndex(),
+                    resolved.account().getAccountName()
+                );
+            }
+        }
+    }
+
+    private void finishRecovery(
+        @NotNull CommandSender sender,
+        @NotNull String pendingKey,
+        @Nullable Player target
+    ) {
+        pendingTargets.remove(pendingKey);
+        if (target != null) {
+            frozenPlayers.remove(target.getUniqueId());
+        }
+        sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5062.getId()));
     }
 
     private void fail(
         @NotNull CommandSender sender,
-        @NotNull Player player,
+        @NotNull String pendingKey,
+        @Nullable Player target,
+        @NotNull String targetName,
         @Nullable Throwable failure
     ) {
         if (failure != null) {
-            Logger.error(LogId.E_5153, failure, player.getUniqueId());
+            Logger.error(LogId.E_5153, failure, targetName);
         }
-        pendingPlayers.remove(player.getUniqueId());
-        frozenPlayers.remove(player.getUniqueId());
+        pendingTargets.remove(pendingKey);
+        if (target != null) {
+            frozenPlayers.remove(target.getUniqueId());
+        }
         sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5062.getId()));
     }
 
     private void failAndKick(
         @NotNull CommandSender sender,
-        @NotNull Player player,
+        @NotNull String pendingKey,
+        @NotNull ResolvedAccount resolved,
         @Nullable Throwable failure
     ) {
         if (failure != null) {
-            Logger.error(LogId.E_5153, failure, player.getUniqueId());
+            Logger.error(LogId.E_5153, failure, resolved.targetName());
         }
-        pendingPlayers.remove(player.getUniqueId());
-        frozenPlayers.remove(player.getUniqueId());
-        if (player.isOnline()) {
-            player.kick(PlayerMsgResource.getComponent(PlayerMsgId.P_5339.getId()));
-        } else {
-            sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5062.getId()));
+        pendingTargets.remove(pendingKey);
+        Player target = resolved.onlinePlayer();
+        if (target != null) {
+            frozenPlayers.remove(target.getUniqueId());
+            if (target.isOnline()) {
+                target.kick(PlayerMsgResource.getComponent(PlayerMsgId.P_5339.getId()));
+                return;
+            }
         }
+        sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5062.getId()));
+    }
+
+    private boolean hasAdminPermission(@NotNull CommandSender sender) {
+        if (!(sender instanceof Player player)) {
+            return true;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return astPlayer != null && astPlayer.hasAdminPermission();
+    }
+
+    private @Nullable Integer parseSlotIndex(@NotNull String value) {
+        try {
+            int slotIndex = Integer.parseInt(value);
+            return slotIndex < 0 ? null : slotIndex;
+        } catch (NumberFormatException ignored) {
+            return null;
+        }
+    }
+
+    private boolean hasCursorItem(@NotNull Player player) {
+        var cursor = player.getItemOnCursor();
+        return cursor != null && !cursor.getType().isAir();
+    }
+
+    private @Nullable UUID resolveCurrentAccountId(@NotNull ResolvedAccount resolved) {
+        Player target = resolved.onlinePlayer();
+        if (target != null && target.isOnline()) {
+            AstPlayer astPlayer = AstPlayerCache.get(target);
+            if (astPlayer != null) {
+                return astPlayer.getAccount().getUuid();
+            }
+        }
+        return resolved.currentAccountId();
     }
 
     private void freeze(@NotNull Player player) {
@@ -272,18 +530,11 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
         player.closeInventory();
     }
 
-    private boolean hasCursorItem(@NotNull Player player) {
-        var cursor = player.getItemOnCursor();
-        return cursor != null && !cursor.getType().isAir();
-    }
-
-    private @Nullable Integer parseSlotIndex(@NotNull String value) {
-        try {
-            int slotIndex = Integer.parseInt(value);
-            return slotIndex < 0 ? null : slotIndex;
-        } catch (NumberFormatException ignored) {
-            return null;
+    private UUID getUpdatedBy(@NotNull CommandSender sender) {
+        if (sender instanceof Player player) {
+            return player.getUniqueId();
         }
+        return SystemUser.INSTANCE.getUuid();
     }
 
     @org.bukkit.event.EventHandler(ignoreCancelled = true)
@@ -356,10 +607,24 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
 
     @org.bukkit.event.EventHandler
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        pendingPlayers.remove(event.getPlayer().getUniqueId());
         frozenPlayers.remove(event.getPlayer().getUniqueId());
     }
 
-    private record ResolvedAccount(@NotNull AccountModel account, boolean created) {
+    private record TargetRequest(
+        @NotNull String targetName,
+        @Nullable UUID knownUserId,
+        @Nullable UUID knownCurrentAccountId,
+        @Nullable Player onlinePlayer
+    ) {
+    }
+
+    private record ResolvedAccount(
+        @NotNull UUID userId,
+        @NotNull String targetName,
+        @Nullable Player onlinePlayer,
+        @Nullable UUID currentAccountId,
+        @NotNull AccountModel account,
+        boolean created
+    ) {
     }
 }

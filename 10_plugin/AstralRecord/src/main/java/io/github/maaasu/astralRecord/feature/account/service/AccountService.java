@@ -167,7 +167,19 @@ public class AccountService {
      * @return 切替後のアカウントモデル
      */
     public AccountModel switchAccount(UUID userId, UUID accountUuid) {
-        AccountModel switched = accountRepository.switchActiveAccount(userId, accountUuid, userId);
+        return switchAccount(userId, accountUuid, userId);
+    }
+
+    /**
+     * 指定ユーザーの選択中アカウントを、指定した実行者として切り替えます。
+     *
+     * @param userId 対象ユーザー UUID
+     * @param accountUuid 選択するアカウント UUID
+     * @param updatedBy 更新者 UUID
+     * @return 切替後のアカウントモデル
+     */
+    public AccountModel switchAccount(UUID userId, UUID accountUuid, UUID updatedBy) {
+        AccountModel switched = accountRepository.switchActiveAccount(userId, accountUuid, updatedBy);
         Logger.log(LogId.I_5101, accountUuid, userId);
         return overlayPendingProgress(switched);
     }
