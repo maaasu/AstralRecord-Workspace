@@ -49,7 +49,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 
 ### 現行の基礎ステータスパッケージ
 
-`starter` 構造は、全職共通のPP基礎領域、冒険者CP基礎幹、ソードマン・ハンター・メイジのCP基礎幹・専門円環とskill解放を定義します。現行は219nodeで構成し、職業条件が異なるnodeも含めて同一座標へ重ねません。
+`starter` 構造は、全職共通のPP基礎領域、冒険者CP基礎幹、ソードマン・ハンター・メイジのCP基礎幹・専門円環とskill解放を定義します。現行は220nodeで構成し、職業条件が異なるnodeも含めて同一座標へ重ねません。
 
 | 地域 | node | 消費 | 解放条件 |
 |:--|--:|:--|:--|
@@ -66,7 +66,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 | ハンターskill解放 | 4 | ハンターCP 4 | `classId: hunter` |
 | メイジ基礎幹 | 27 | メイジCP 27 | `classId: mage` |
 | メイジ専門円環 | 20 | メイジCP 24 | `classId: mage` |
-| メイジskill解放 | 3 | メイジCP 3 | `classId: mage` |
+| メイジskill解放 | 5 | メイジCP 5 | `classId: mage` |
 
 - root は中心 `(0, 0, 0)` に置き、その周囲に合計6個の無料PP status nodeを環状に置きます。rootから環の6nodeすべてへ接続し、環の外側から既存の後続枝へ接続します。rootは `adventurer_meditation` の使用許可を付与します。旧rootの `MAX_HEALTH / MAX_MANA / MAX_ENERGY` 各10は、テーマに沿って命脈・循環・活風の無料nodeへ移し、無料領域全体のstatus総量を維持します。
 - 無料環の6nodeは、全基本能力、全職共通攻撃、物理・魔法防御、HPとMP、三資源、ENと機動の6テーマに分けます。単一職でのみ価値が高い能力に偏らせず、各nodeは直後の通常有料PP nodeより多面的な基礎パッケージとします。割合系statusは職業や装備の特徴とし、無料環では直接付与しません。
@@ -81,7 +81,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 - Shield容量円環は小nodeで `MAX_SHIELD +2` を4個、notableで `MAX_SHIELD +12 / DEFENSE +2` を与えます。Shield再充填円環は小nodeで `SHIELD_RECHARGE_REDUCTION +2.5` を4個、notableで `SHIELD_RECHARGE_REDUCTION +10 / MAX_SHIELD +5` を与えます。再充填短縮はShield破壊後の通常30秒待機、再充填パッシブの8秒待機、敵から受ける追加待機を同じ比率で短縮します。
 - ソードマンskill解放nodeは専門円環のnotable先端へ置かず、関連する小nodeから独立したleafとして分岐します。通常会心円環から `swordsman_flame_rush`、Shield容量円環の別経路から `swordsman_bastion_strike` と `swordsman_last_shield`、Shield再充填円環から `administrator_shield_recharge` と `swordsman_shield_activate` を分岐し、各nodeは1ソードマンCPで使用許可を与えます。シールドアクティベートはShield再充填円環の終端側で、シールド獲得の入口として配置します。
 - ハンターは27nodeの汎用幹から、間接攻撃・Shield破壊・機動・EN効率の4専門円環へ分岐します。各円環はソードマンと同じ2経路・1notable構造で、全取得は55ハンターCPです。`hunter_crash_arrow`、`hunter_heal_arrow`、`hunter_spell_step`、`hunter_build_up` は関連する小nodeから独立したleafとして分岐します。
-- メイジは27nodeの汎用幹から、魔導・炎・雷・氷の4専門円環へ分岐します。各円環は2経路・1notable構造で、全取得は55メイジCPです。`mage_arcane_flow`、`mage_sparking`、`mage_frost_blizzard`、`mage_frost_ball` は関連する小nodeから独立したleafとして分岐します。
+- メイジは27nodeの汎用幹から、魔導・炎・雷・氷の4専門円環へ分岐します。各円環は2経路・1notable構造で、全取得は56メイジCPです。`mage_arcane_flow`、`mage_sparking`、`mage_fireball`、`mage_frost_blizzard`、`mage_frost_ball` は関連する小nodeから独立したleafとして分岐します。
 - 冒険者の敏捷幹から `administrator_just_dodge` を独立した1CP leafとして分岐します。skill nodeはstatus nodeへ混載せず、関連する基礎幹・専門円環の途中から独立接続します。
 
 ### ノード能力・表示の再利用

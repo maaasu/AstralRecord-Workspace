@@ -19,6 +19,9 @@ builder.Services
     .Validate(
         options => options.JavaServerPort is >= 1 and <= 65535,
         $"{PublicSiteOptions.SectionName}:JavaServerPort must be between 1 and 65535.")
+    .Validate(
+        options => options.BedrockServerPort is >= 1 and <= 65535,
+        $"{PublicSiteOptions.SectionName}:BedrockServerPort must be between 1 and 65535.")
     .ValidateOnStart();
 builder.Services.Configure<AstralRecordApiOptions>(
     builder.Configuration.GetSection(AstralRecordApiOptions.SectionName));

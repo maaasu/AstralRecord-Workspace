@@ -60,13 +60,18 @@ public final class BossMechanicService {
     private static final long SUNBIRD_NOVA_TELEGRAPH_TICKS = 60L;
     private static final double SUNBIRD_CORONA_COLLAPSE_RADIUS = 10.0D;
     private static final long SUNBIRD_CORONA_COLLAPSE_TELEGRAPH_TICKS = 80L;
-    private static final int SUNBIRD_RITUAL_DISPLAY_COUNT = 8;
+    private static final int SUNBIRD_NOVA_DISPLAY_COUNT = 12;
+    private static final int SUNBIRD_CORONA_DISPLAY_COUNT = 8;
+    private static final int SUNBIRD_NOVA_INNER_RING_POINT_COUNT = 36;
+    private static final int SUNBIRD_NOVA_MIDDLE_RING_POINT_COUNT = 48;
+    private static final int SUNBIRD_NOVA_OUTER_RING_POINT_COUNT = 64;
     private static final long SUNBIRD_TELEPORT_INTERVAL_TICKS = 240L;
     private static final double SUNBIRD_TELEPORT_RADIUS = 7.0D;
     private static final int SUNBIRD_TELEPORT_POINT_COUNT = 6;
-    private static final double SUNBIRD_ARENA_RADIUS = 13.0D;
+    private static final double SUNBIRD_ARENA_RADIUS = 18.0D;
     private static final int SUNBIRD_ARENA_BOUNDARY_POINT_COUNT = 48;
-    private static final int SUNBIRD_ARENA_BOUNDARY_LAYER_COUNT = 3;
+    private static final int SUNBIRD_ARENA_BOUNDARY_UPPER_LAYER_COUNT = 3;
+    private static final int SUNBIRD_ARENA_BOUNDARY_LOWER_LAYER_COUNT = 5;
     private static final double SUNBIRD_ARENA_BOUNDARY_LAYER_HEIGHT = 0.5D;
     private static final long SUNBIRD_ARENA_PULSE_INTERVAL_TICKS = 20L;
     private static final double SUNBIRD_ARENA_DAMAGE_RATIO = 0.18D;
@@ -183,7 +188,7 @@ public final class BossMechanicService {
     }
 
     /**
-     * サンバード戦の半径13ブロック境界を表示し、外周へ継続ダメージと帰還タックルを適用します。
+     * サンバード戦の半径18ブロック境界を表示し、外周へ継続ダメージと帰還タックルを適用します。
      *
      * @param boss 対象ボス
      * @param entity 対象ボスの実体
@@ -230,7 +235,7 @@ public final class BossMechanicService {
     }
 
     /**
-     * スポーン地点から半径13ブロックより外側にいる管理対象Playerへ火属性ダメージを与えます。
+     * スポーン地点から半径18ブロックより外側にいる管理対象Playerへ火属性ダメージを与えます。
      *
      * @param boss ダメージ発生元
      * @param center 安全圏の中心
@@ -429,7 +434,7 @@ public final class BossMechanicService {
     /**
      * フェーズローテーションの次の攻撃を予兆キューへ追加します。
      *
-     * <p>天陽崩落は通常ローテーションでも専用行動として扱い、スポーン地点へ帰還してから詠唱します。</p>
+     * <p>天陽崩落は通常ローテーションでも専用行動として扱い、発動時の位置から移動せずに詠唱します。</p>
      *
      * @param boss 発動するボス
      * @param entity 発動時点の実体
@@ -452,8 +457,7 @@ public final class BossMechanicService {
         long telegraphTicks = telegraphTicks(mechanic);
         if (mechanic == BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA) {
             boss.scriptedAction(true);
-            mobService.resetPosition(boss, boss.spawnLocation());
-            addPending(boss, mechanic, boss.spawnLocation(), direction, telegraphTicks);
+            addPending(boss, mechanic, bossLocation, direction, telegraphTicks);
             return true;
         }
         Location anchor = mechanic == BossMechanicProfile.Mechanic.SUNBIRD_SUNSTRIKE
@@ -501,9 +505,11 @@ public final class BossMechanicService {
         long delayTicks,
         @Nullable Location destination
     ) {
-        List<UUID> displayEntityIds = isSunbirdRitual(mechanic)
-            ? spawnSunbirdRitualDisplays(anchor)
-            : List.of();
+        List<UUID> displayEntityIds = switch (mechanic) {
+            case SUNBIRD_SOLAR_NOVA -> spawnSunbirdRitualDisplays(anchor, SUNBIRD_NOVA_DISPLAY_COUNT);
+            case SUNBIRD_CORONA_COLLAPSE -> spawnSunbirdRitualDisplays(anchor, SUNBIRD_CORONA_DISPLAY_COUNT);
+            default -> List.of();
+        };
         PendingMechanic pending = new PendingMechanic(
             boss.instanceId(),
             mechanic,
@@ -519,17 +525,6 @@ public final class BossMechanicService {
         if (world != null) {
             world.playSound(anchor, "block.note_block.bass", 0.9F, 0.65F);
         }
-    }
-
-    /**
-     * 黄金の儀式Displayを使うサンバード攻撃か判定します。
-     *
-     * @param mechanic 判定対象
-     * @return 天陽崩落または陽冠終焉の場合は {@code true}
-     */
-    private boolean isSunbirdRitual(@NotNull BossMechanicProfile.Mechanic mechanic) {
-        return mechanic == BossMechanicProfile.Mechanic.SUNBIRD_SOLAR_NOVA
-            || mechanic == BossMechanicProfile.Mechanic.SUNBIRD_CORONA_COLLAPSE;
     }
 
     /**
@@ -579,9 +574,18 @@ public final class BossMechanicService {
                 SharedParticleDefinitions.SUNBIRD_SOLAR_DUST
             );
             case SUNBIRD_SOLAR_NOVA -> {
-                renderCircle(pending.anchor(), 4.0D, SharedParticleDefinitions.SUNBIRD_SOLAR_FLAME, 28);
-                renderCircle(pending.anchor(), 8.0D, SharedParticleDefinitions.SUNBIRD_SOLAR_DUST, 40);
-                renderCircle(pending.anchor(), SUNBIRD_NOVA_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_DUST, 52);
+                renderCircle(
+                    pending.anchor(), 4.0D, SharedParticleDefinitions.SUNBIRD_SOLAR_FLAME,
+                    SUNBIRD_NOVA_INNER_RING_POINT_COUNT
+                );
+                renderCircle(
+                    pending.anchor(), 8.0D, SharedParticleDefinitions.SUNBIRD_SOLAR_DUST,
+                    SUNBIRD_NOVA_MIDDLE_RING_POINT_COUNT
+                );
+                renderCircle(
+                    pending.anchor(), SUNBIRD_NOVA_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_DUST,
+                    SUNBIRD_NOVA_OUTER_RING_POINT_COUNT
+                );
                 animateSunbirdRitualDisplays(pending);
             }
             case SUNBIRD_CORONA_COLLAPSE -> {
@@ -882,23 +886,29 @@ public final class BossMechanicService {
     }
 
     /**
-     * サンバードの安全圏境界を、同じ円周の3層表示として1回の近傍閲覧者判定で表示します。
+     * サンバードの安全圏境界を、同じ円周の上下8層表示として1回の近傍閲覧者判定で表示します。
      *
      * @param center 安全圏の中心
      */
     private void renderSunbirdArenaBoundary(@NotNull Location center) {
+        int layerCount = SUNBIRD_ARENA_BOUNDARY_UPPER_LAYER_COUNT
+            + SUNBIRD_ARENA_BOUNDARY_LOWER_LAYER_COUNT;
         List<Location> locations = new ArrayList<>(
-            SUNBIRD_ARENA_BOUNDARY_POINT_COUNT * SUNBIRD_ARENA_BOUNDARY_LAYER_COUNT
+            SUNBIRD_ARENA_BOUNDARY_POINT_COUNT * layerCount
         );
-        for (int layer = 0; layer < SUNBIRD_ARENA_BOUNDARY_LAYER_COUNT; layer++) {
+        for (int layer = -SUNBIRD_ARENA_BOUNDARY_LOWER_LAYER_COUNT;
+             layer < SUNBIRD_ARENA_BOUNDARY_UPPER_LAYER_COUNT;
+             layer++) {
             Location layerCenter = center.clone().add(
                 0.0D,
                 layer * SUNBIRD_ARENA_BOUNDARY_LAYER_HEIGHT,
                 0.0D
             );
-            locations.addAll(circleLocations(layerCenter, SUNBIRD_ARENA_RADIUS, SUNBIRD_ARENA_BOUNDARY_POINT_COUNT));
+            locations.addAll(
+                circleLocations(layerCenter, SUNBIRD_ARENA_RADIUS, SUNBIRD_ARENA_BOUNDARY_POINT_COUNT)
+            );
         }
-        renderRange(center, locations, SharedParticleDefinitions.SUNBIRD_SOLAR_DUST);
+        renderRange(center, locations, SharedParticleDefinitions.SUNBIRD_ARENA_BOUNDARY);
     }
 
     /**
@@ -1100,7 +1110,10 @@ public final class BossMechanicService {
                 SharedParticleDefinitions.SUNBIRD_SOLAR_IMPACT
             );
             case SUNBIRD_SOLAR_NOVA -> {
-                renderCircle(pending.anchor(), SUNBIRD_NOVA_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_IMPACT, 52);
+                renderCircle(
+                    pending.anchor(), SUNBIRD_NOVA_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_IMPACT,
+                    SUNBIRD_NOVA_OUTER_RING_POINT_COUNT
+                );
                 renderRange(
                     pending.anchor(),
                     List.of(pending.anchor().clone().add(0.0D, 2.0D, 0.0D)),
@@ -1129,16 +1142,17 @@ public final class BossMechanicService {
      * 必殺技の詠唱中だけ、太陽儀式を表す BlockDisplay を生成します。
      *
      * @param center 儀式中心
+     * @param displayCount 生成する表示 Entity 数
      * @return 生成した表示 Entity の UUID
      */
-    private @NotNull List<UUID> spawnSunbirdRitualDisplays(@NotNull Location center) {
+    private @NotNull List<UUID> spawnSunbirdRitualDisplays(@NotNull Location center, int displayCount) {
         World world = center.getWorld();
         if (world == null) {
             return List.of();
         }
-        List<UUID> displayIds = new ArrayList<>(SUNBIRD_RITUAL_DISPLAY_COUNT);
-        for (int index = 0; index < SUNBIRD_RITUAL_DISPLAY_COUNT; index++) {
-            double angle = Math.PI * 2.0D * index / SUNBIRD_RITUAL_DISPLAY_COUNT;
+        List<UUID> displayIds = new ArrayList<>(displayCount);
+        for (int index = 0; index < displayCount; index++) {
+            double angle = Math.PI * 2.0D * index / displayCount;
             Location spawn = center.clone().add(Math.cos(angle) * 6.0D, 0.8D, Math.sin(angle) * 6.0D);
             BlockDisplay display = world.spawn(spawn, BlockDisplay.class, entity -> {
                 entity.setPersistent(false);
@@ -1183,12 +1197,13 @@ public final class BossMechanicService {
             1.0D
         );
         double radius = 6.0D - progress * 2.5D;
+        int displayCount = pending.displayEntityIds().size();
         for (int index = 0; index < pending.displayEntityIds().size(); index++) {
             Entity entity = Bukkit.getEntity(pending.displayEntityIds().get(index));
             if (!(entity instanceof BlockDisplay display) || !display.isValid()) {
                 continue;
             }
-            double angle = Math.PI * 2.0D * index / SUNBIRD_RITUAL_DISPLAY_COUNT + progress * Math.PI * 2.0D;
+            double angle = Math.PI * 2.0D * index / displayCount + progress * Math.PI * 2.0D;
             Location target = pending.anchor().clone().add(
                 Math.cos(angle) * radius,
                 0.8D + progress * 2.2D,

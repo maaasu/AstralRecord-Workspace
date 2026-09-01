@@ -46,8 +46,15 @@ public sealed class PublicSiteRenderingTests
         Assert.Contains("正式リリース時に引き継がれません", join);
         Assert.Contains("予告なく変更されることがあります", join);
         Assert.Contains("Minecraft Bedrock Edition", join);
-        Assert.Contains("対応予定", join);
-        Assert.Contains("現在はMinecraft Bedrock Editionからの参加に対応していませんが、今後参加できるよう対応を予定しています。", join);
+        Assert.Contains("対応中", join);
+        Assert.Contains("統合版にも対応しています", join);
+        Assert.Contains("IPアドレスはJava版と同じ", join);
+        Assert.Contains(
+            "IPアドレスはJava版と同じ <strong>mc.astralrecord.com</strong>、ポートは <strong>19132</strong>",
+            join);
+        Assert.Contains("Java版でのプレイを前提としているため", join);
+        Assert.Contains("公式Discordの改善案チャンネル", join);
+        Assert.Contains("修正される可能性があります", join);
         Assert.DoesNotContain("discord.gg", join, StringComparison.OrdinalIgnoreCase);
 
         Assert.Contains("冒険の続きは、公式Discordで。", discord);

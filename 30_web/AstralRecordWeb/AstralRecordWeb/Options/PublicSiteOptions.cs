@@ -16,5 +16,7 @@ public sealed class PublicSiteOptions
 
     public int JavaServerPort { get; set; } = 25565;
 
+    public int BedrockServerPort { get; set; } = 19132;
+
     public bool IsOpenAlpha => Phase == PublicSitePhase.OpenAlpha;
 }

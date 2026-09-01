@@ -24,6 +24,8 @@ import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Color;
 import org.bukkit.Location;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
@@ -59,6 +61,9 @@ public final class MobDropPresentationService {
     private static final String DROP_SOURCE = "mob_drop";
     private static final double ENEMY_RARE_DROP_MAX_RATE = 0.1D;
     private static final double BOSS_RARE_DROP_MAX_RATE = 5.0D;
+    private static final Sound RARE_DROP_SOUND = Sound.BLOCK_AMETHYST_BLOCK_BREAK;
+    private static final float RARE_DROP_SOUND_VOLUME = 1.0F;
+    private static final float RARE_DROP_SOUND_PITCH = 1.0F;
 
     private final Plugin plugin;
     private final ItemService itemService;
@@ -354,6 +359,13 @@ public final class MobDropPresentationService {
                         itemName,
                         item.amount(),
                         formatDropRate(item.dropRate())
+                    );
+                    viewer.playSound(
+                        viewer.getLocation(),
+                        RARE_DROP_SOUND,
+                        SoundCategory.PLAYERS,
+                        RARE_DROP_SOUND_VOLUME,
+                        RARE_DROP_SOUND_PITCH
                     );
                 }
             }

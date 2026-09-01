@@ -1,0 +1,22 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1354",
+  "name": "&6ファイアーボール",
+  "icon": "FIRE_CHARGE",
+  "tags": [
+    "fire",
+    "ember"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "mage_fireball"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "mage"
+  }
+}
