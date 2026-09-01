@@ -69,11 +69,13 @@ public final class BossMechanicService {
     private static final int SUNBIRD_BIRD_METEOR_SAFE_VERTICAL_LINE_COUNT = 12;
     private static final double SUNBIRD_BIRD_METEOR_EXPLOSION_GRID_SPACING = 1.5D;
     private static final double SUNBIRD_BIRD_METEOR_DAMAGE_RATIO = 1.95D;
+    private static final double SUNBIRD_BIRD_METEOR_ACCURACY_BONUS = 100.0D;
     private static final long SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS = 80L;
     private static final int SUNBIRD_NOVA_DISPLAY_COUNT = 12;
     private static final int SUNBIRD_NOVA_INNER_RING_POINT_COUNT = 36;
     private static final int SUNBIRD_NOVA_MIDDLE_RING_POINT_COUNT = 48;
     private static final int SUNBIRD_NOVA_OUTER_RING_POINT_COUNT = 64;
+    private static final double SUNBIRD_NOVA_ACCURACY_BONUS = 25.0D;
     private static final long SUNBIRD_TELEPORT_INTERVAL_TICKS = 240L;
     private static final double SUNBIRD_TELEPORT_RADIUS = 7.0D;
     private static final int SUNBIRD_TELEPORT_POINT_COUNT = 6;
@@ -773,7 +775,7 @@ public final class BossMechanicService {
             );
             case SUNBIRD_SOLAR_NOVA -> damageCircle(
                 boss, pending.anchor(), 0.0D, SUNBIRD_NOVA_RADIUS,
-                AttackType.MAGIC, DamageElement.FIRE, 1.45D, 1.1D
+                AttackType.MAGIC, DamageElement.FIRE, 1.45D, 1.1D, SUNBIRD_NOVA_ACCURACY_BONUS
             );
             case SUNBIRD_BIRD_METEOR -> damagePlayersOutsideBirdMeteorSafeZone(
                 boss, pending.anchor(), birdMeteorSafeZoneCenter(pending)
@@ -791,6 +793,18 @@ public final class BossMechanicService {
         world.playSound(pending.anchor(), "entity.generic.explode", 1.0F, 0.85F);
     }
 
+    /**
+     * 円形範囲内の管理対象Playerへ通常の命中判定でダメージを適用します。
+     *
+     * @param boss ダメージ発生元
+     * @param center 円形範囲の中心
+     * @param innerRadius 内側の無効範囲半径
+     * @param outerRadius 外側の有効範囲半径
+     * @param attackType 攻撃種別
+     * @param element ダメージ属性
+     * @param ratio 攻撃倍率
+     * @param pushStrength ノックバック強度
+     */
     private void damageCircle(
         @NotNull MobInstance boss,
         @NotNull Location center,
@@ -801,6 +815,44 @@ public final class BossMechanicService {
         double ratio,
         double pushStrength
     ) {
+        damageCircle(
+                boss,
+                center,
+                innerRadius,
+                outerRadius,
+                attackType,
+                element,
+                ratio,
+                pushStrength,
+                0.0D
+        );
+    }
+
+    /**
+     * 円形範囲内の管理対象Playerへ、一撃限定の命中補正を加えてダメージを適用します。
+     * 命中補正は%ポイントとして命中率へ加算し、他の攻撃処理へ持ち越しません。
+     *
+     * @param boss ダメージ発生元
+     * @param center 円形範囲の中心
+     * @param innerRadius 内側の無効範囲半径
+     * @param outerRadius 外側の有効範囲半径
+     * @param attackType 攻撃種別
+     * @param element ダメージ属性
+     * @param ratio 攻撃倍率
+     * @param pushStrength ノックバック強度
+     * @param accuracyBonus この一撃だけ命中率へ加算する補正値（%ポイント）
+     */
+    private void damageCircle(
+        @NotNull MobInstance boss,
+        @NotNull Location center,
+        double innerRadius,
+        double outerRadius,
+        @NotNull AttackType attackType,
+        @NotNull DamageElement element,
+        double ratio,
+        double pushStrength,
+        double accuracyBonus
+    ) {
         double innerSquared = innerRadius * innerRadius;
         double outerSquared = outerRadius * outerRadius;
         for (Player player : nearbyManagedPlayers(center, outerRadius + 1.0D)) {
@@ -808,7 +860,7 @@ public final class BossMechanicService {
             if (distanceSquared < innerSquared || distanceSquared > outerSquared) {
                 continue;
             }
-            damagePlayer(boss, player, attackType, element, ratio);
+            damagePlayer(boss, player, attackType, element, ratio, accuracyBonus);
             pushAway(player, center, pushStrength);
         }
     }
@@ -830,7 +882,14 @@ public final class BossMechanicService {
             if (horizontalDistanceSquared(player.getLocation(), safeZoneCenter) <= safeRadiusSquared) {
                 continue;
             }
-            damagePlayer(boss, player, AttackType.MAGIC, DamageElement.FIRE, SUNBIRD_BIRD_METEOR_DAMAGE_RATIO);
+            damagePlayer(
+                boss,
+                player,
+                AttackType.MAGIC,
+                DamageElement.FIRE,
+                SUNBIRD_BIRD_METEOR_DAMAGE_RATIO,
+                SUNBIRD_BIRD_METEOR_ACCURACY_BONUS
+            );
         }
     }
 
@@ -915,6 +974,15 @@ public final class BossMechanicService {
         }
     }
 
+    /**
+     * 管理対象Playerへ通常の命中判定でダメージを適用します。
+     *
+     * @param boss ダメージ発生元
+     * @param player 被弾Player
+     * @param attackType 攻撃種別
+     * @param element ダメージ属性
+     * @param ratio 攻撃倍率
+     */
     private void damagePlayer(
         @NotNull MobInstance boss,
         @NotNull Player player,
@@ -922,16 +990,49 @@ public final class BossMechanicService {
         @NotNull DamageElement element,
         double ratio
     ) {
+        damagePlayer(boss, player, attackType, element, ratio, 0.0D);
+    }
+
+    /**
+     * 管理対象Playerへ、一撃限定の命中補正を加えてダメージを適用します。
+     * 命中補正は%ポイントとして命中率へ加算し、後続攻撃へ持ち越しません。
+     *
+     * @param boss ダメージ発生元
+     * @param player 被弾Player
+     * @param attackType 攻撃種別
+     * @param element ダメージ属性
+     * @param ratio 攻撃倍率
+     * @param accuracyBonus この一撃だけ命中率へ加算する補正値（%ポイント）
+     */
+    private void damagePlayer(
+        @NotNull MobInstance boss,
+        @NotNull Player player,
+        @NotNull AttackType attackType,
+        @NotNull DamageElement element,
+        double ratio,
+        double accuracyBonus
+    ) {
         AstEntity victim = damageService.resolveEntity(player);
         if (!victim.isPlayer()) {
             return;
         }
+        if (accuracyBonus > 0.0D) {
+            damageService.attackWithAccuracyBonus(
+                AstEntity.mob(boss),
+                victim,
+                attackType,
+                List.of(new DamageComponent(element, ratio)),
+                DamageSource.SKILL,
+                accuracyBonus
+            );
+            return;
+        }
         damageService.attack(
-            AstEntity.mob(boss),
-            victim,
-            attackType,
-            List.of(new DamageComponent(element, ratio)),
-            DamageSource.SKILL
+                AstEntity.mob(boss),
+                victim,
+                attackType,
+                List.of(new DamageComponent(element, ratio)),
+                DamageSource.SKILL
         );
     }
 

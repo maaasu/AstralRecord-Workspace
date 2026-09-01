@@ -517,6 +517,41 @@ public final class DamageService {
     }
 
     /**
+     * 攻撃者のステータスを使い、この一撃だけ命中補正を加えて攻撃ダメージを適用します。
+     * ダメージ倍率、会心、防御、属性などの通常の攻撃計算は維持します。
+     *
+     * @param attacker 攻撃者
+     * @param victim 被弾者
+     * @param attackType 攻撃種別
+     * @param components 属性別の攻撃倍率
+     * @param source 通常攻撃・スキルなどの発生元
+     * @param attackerAccuracyBonus この一撃だけ攻撃者の命中率へ加算する補正値（%ポイント）
+     * @return ダメージ結果
+     */
+    public @NotNull DamageResult attackWithAccuracyBonus(
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> components,
+            @NotNull DamageSource source,
+            double attackerAccuracyBonus
+    ) {
+        return applyDamage(
+                attacker,
+                victim,
+                0.0D,
+                attackType,
+                components,
+                DamageScaling.ATTACKER_STATUS,
+                source,
+                1.0D,
+                1.0D,
+                SuperStarCriticalMode.ROLL,
+                attackerAccuracyBonus
+        );
+    }
+
+    /**
      * 外部で確定した基礎ダメージをそのまま適用します。
      *
      * @param attacker   攻撃者。存在しない場合は {@code null}
@@ -709,6 +744,51 @@ public final class DamageService {
             double shieldBreakMultiplier,
             @NotNull SuperStarCriticalMode superStarCriticalMode
     ) {
+        return applyDamage(
+                attacker,
+                victim,
+                baseDamage,
+                attackType,
+                components,
+                scaling,
+                source,
+                attackerDamageMultiplier,
+                shieldBreakMultiplier,
+                superStarCriticalMode,
+                0.0D
+        );
+    }
+
+    /**
+     * 共通ダメージ処理へ一撃限定の命中補正を渡します。補正は攻撃者の命中率へ加算し、
+     * 通常経路では0として扱います。
+     *
+     * @param attacker 攻撃者。環境ダメージでは {@code null}
+     * @param victim 被弾者
+     * @param baseDamage 外部基礎ダメージ
+     * @param attackType 攻撃種別
+     * @param components 属性別ダメージ倍率
+     * @param scaling 基礎ダメージの解決方法
+     * @param source ダメージの発生元
+     * @param attackerDamageMultiplier 攻撃者固有のダメージ倍率
+     * @param shieldBreakMultiplier シールドダメージ倍率
+     * @param superStarCriticalMode 超星会心倍率の適用方法
+     * @param attackerAccuracyBonus この一撃だけ命中率へ加算する補正値（%ポイント）
+     * @return 適用結果
+     */
+    private @NotNull DamageResult applyDamage(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            double baseDamage,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> components,
+            @NotNull DamageScaling scaling,
+            @NotNull DamageSource source,
+            double attackerDamageMultiplier,
+            double shieldBreakMultiplier,
+            @NotNull SuperStarCriticalMode superStarCriticalMode,
+            double attackerAccuracyBonus
+    ) {
         if (dungeonService != null && !dungeonService.canApplyCombatDamage(attacker, victim)) {
             return new DamageResult(0.0D);
         }
@@ -739,7 +819,7 @@ public final class DamageService {
                 attackerDamageMultiplier,
                 superStarCriticalMode
         );
-        DamageResult calculated = damageCalculator.calculate(context);
+        DamageResult calculated = damageCalculator.calculate(context, attackerAccuracyBonus);
         if (!calculated.evaded() && calculated.finalDamage() > 0.0D) {
             double multiplier = finalDamageMultiplier(attacker) * temporaryDamageMultiplier(attacker, victim);
             if (conditionService != null) {

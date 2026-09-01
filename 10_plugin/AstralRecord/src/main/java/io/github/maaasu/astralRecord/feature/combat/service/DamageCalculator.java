@@ -70,7 +70,22 @@ public final class DamageCalculator {
      * @return 計算結果
      */
     public @NotNull DamageResult calculate(@NotNull DamageContext context) {
-        HitCheck hitCheck = checkHit(context);
+        return calculate(context, 0.0D);
+    }
+
+    /**
+     * 一撃だけ命中補正を加えてダメージを計算します。補正は攻撃者の命中率へ加算し、
+     * それ以外のダメージ計算には影響させません。
+     *
+     * @param context ダメージ計算入力
+     * @param attackerAccuracyBonus この一撃だけ攻撃者の命中率へ加算する補正値（%ポイント）
+     * @return 計算結果
+     */
+    public @NotNull DamageResult calculate(
+            @NotNull DamageContext context,
+            double attackerAccuracyBonus
+    ) {
+        HitCheck hitCheck = checkHit(context, attackerAccuracyBonus);
         if (!hitCheck.hit()) {
             return DamageResult.evaded(hitCheck.hitChance(), hitCheck.accuracy(), hitCheck.evasion());
         }
@@ -138,17 +153,24 @@ public final class DamageCalculator {
         );
     }
 
-    private @NotNull HitCheck checkHit(@NotNull DamageContext context) {
+    private @NotNull HitCheck checkHit(
+            @NotNull DamageContext context,
+            double attackerAccuracyBonus
+    ) {
         if (context.scaling() != DamageScaling.ATTACKER_STATUS
                 || context.attacker() == null
                 || !context.attacker().isManaged()) {
             return new HitCheck(true, 100.0D, 100.0D, 0.0D);
         }
 
+        double normalizedAccuracyBonus = Double.isFinite(attackerAccuracyBonus)
+                ? Math.max(0.0D, attackerAccuracyBonus)
+                : 0.0D;
         double configuredAccuracy = context.attacker().statValue(StatusType.ACCURACY);
         double accuracy = context.attacker().isMob() && configuredAccuracy <= 0.0D
                 ? DEFAULT_ACCURACY
                 : Math.max(0.0D, configuredAccuracy);
+        accuracy += normalizedAccuracyBonus;
         double evasion = context.victim().isManaged()
                 ? Math.max(0.0D, context.victim().statValue(StatusType.EVASION))
                 : 0.0D;

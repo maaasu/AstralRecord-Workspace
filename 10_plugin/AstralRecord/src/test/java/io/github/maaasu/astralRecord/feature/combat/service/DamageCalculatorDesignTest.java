@@ -391,6 +391,73 @@ class DamageCalculatorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
      * 章・見出し: # 14_3-サービス > ## 3. hit chance 計算
+     * 検証契約: 一撃だけの命中補正を攻撃者の命中率へ加算し、最終命中率を100%へclampする。
+     */
+    @Test
+    void accuracyBonusIsAppliedToSingleCalculation() {
+        DamageCalculator calculator = new DamageCalculator(() -> 99.0D, () -> 100.0D);
+        AstPlayer attacker = player(Map.of(
+            StatusType.ATTACK, 10.0D,
+            StatusType.ACCURACY, 95.0D
+        ));
+        AstPlayer victim = player(Map.of(
+            StatusType.EVASION, 10.0D
+        ));
+
+        var result = calculator.calculate(new DamageContext(
+            AstEntity.player(attacker),
+            AstEntity.player(victim),
+            0.0D,
+            AttackType.MELEE,
+            DamageScaling.ATTACKER_STATUS
+        ), 15.0D);
+
+        assertFalse(result.evaded());
+        assertEquals(100.0D, result.hitChance(), 0.0001D);
+        assertEquals(110.0D, result.accuracy(), 0.0001D);
+        assertEquals(10.0D, result.evasion(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 3. hit chance 計算
+     * 検証契約: 負値と非有限値の一撃命中補正は0として扱い、通常の命中結果を維持する。
+     */
+    @Test
+    void invalidAccuracyBonusIsIgnored() {
+        DamageCalculator calculator = new DamageCalculator(() -> 90.0D, () -> 100.0D);
+        AstPlayer attacker = player(Map.of(
+            StatusType.ATTACK, 10.0D,
+            StatusType.ACCURACY, 95.0D
+        ));
+        AstPlayer victim = player(Map.of(
+            StatusType.EVASION, 10.0D
+        ));
+
+        for (double accuracyBonus : new double[]{
+            -15.0D,
+            Double.NaN,
+            Double.POSITIVE_INFINITY,
+            Double.NEGATIVE_INFINITY
+        }) {
+            var result = calculator.calculate(new DamageContext(
+                AstEntity.player(attacker),
+                AstEntity.player(victim),
+                0.0D,
+                AttackType.MELEE,
+                DamageScaling.ATTACKER_STATUS
+            ), accuracyBonus);
+
+            assertTrue(result.evaded());
+            assertEquals(85.0D, result.hitChance(), 0.0001D);
+            assertEquals(95.0D, result.accuracy(), 0.0001D);
+            assertEquals(10.0D, result.evasion(), 0.0001D);
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 3. hit chance 計算
      * 検証契約: 命中率は100%なら乱数値にかかわらず命中し、回避率が命中率を上回っても最終命中率は1%を下回らない。
      */
     @Test
