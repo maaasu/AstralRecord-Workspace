@@ -35,7 +35,7 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 | `hunter` | 散弾・移動・着弾地点制圧・シールド破壊・回復支援・自己強化を扱う遠距離職 | `ENERGY` + `MANA` | 複数短射程飛翔体、単体飛翔体、発射後移動、重力弾道範囲、着弾回復エリア、自己強化バフ |
 | `mage` | 魔法攻撃、壁面反射弾、移動する範囲制圧、短周期の範囲回復を扱う遠距離職 | `MANA` | 前方魔法、条件付き連鎖、着弾範囲、周囲反射弾、移動する持続範囲、発動者中心の即時回復範囲 |
 
-現行定義は冒険者、ソードマン、ハンター、メイジ、Administrator向けのskillを含みます。アローレインはハンター、ヒールオーラはメイジ、シールドドレインとチャレンジングロアは各classの `usableSkills` から初期使用許可を与えます。追加skillは `starter` skilltreeから使用許可を与え、ソードマンはnode `1202` / `1203` / `1204` / `1211` / `1352`、ハンターは `1282`～`1284` / `1353`、メイジは `1347`～`1349` / `1351` / `1354`、メディテーションは共通root `1047`、ジャスト回避は冒険者node `1350` を使用します。Administratorの `usableSkills` には検証用の使用許可を残します。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
+現行定義は冒険者、ソードマン、ハンター、メイジ、Administrator向けのskillを含みます。アローレインはハンター、ヒールオーラはメイジ、シールドドレインとチャレンジングロアは各classの `usableSkills` から初期使用許可を与えます。追加skillは `starter` skilltreeから使用許可を与え、ソードマンはnode `1202` / `1203` / `1204` / `1211` / `1352`、ハンターは `1282`～`1284` / `1353` / `1355`、メイジは `1347`～`1349` / `1351` / `1354`、メディテーションは共通root `1047`、ジャスト回避は冒険者node `1350` とハンターnode `1355` を使用します。Administratorの `usableSkills` には検証用の使用許可を残します。クラスやskilltreeは使用許可だけを与え、習得済み個体の作成はジェム消費に限定します。
 
 ハンターの `hunter_fade_shot` は、5本の短射程飛翔体と水平velocityによるバックステップを同時に扱う機動射撃です。ハンターの `usableSkills` から直接使用許可を配布し、習得用ジェムは `skill_gem_exchange` で無印原石2個から交換します。`hunter_arrow_rain` はハンターの `usableSkills` から初期使用許可を与えます。`hunter_heal_arrow` はハンターの `usableSkills` へ追加せず、`starter` node `1284` から使用許可を与えます。
 
@@ -73,7 +73,7 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 
 `administrator_just_dodge` は `passive.bindRequired: true` のドッジ連動パッシブです。成功したドッジから `params.invulnerabilityTicks` tick の間、`NORMAL_ATTACK` / `SKILL` の直接攻撃を無効化します。無効化回数に上限は設けず、状態異常DoTは `DamageService.applyConditionDamage` の専用経路であるため対象外です。
 
-無効化時は既存のドッジパーティクルとシールドブロック音を表示し、同じドッジ中の最初の無効化時だけ `params.energyRecoveryAmount` のENを回復します。Lv.1・最大Lv.1の設定は無効化時間8 tick、EN回復量30です。ダメージを与えないためDPS算出対象外です。冒険者への使用許可は `starter` node `1350` から、Administratorへの検証用許可はclassから与えます。
+無効化時は既存のドッジパーティクルとシールドブロック音を表示し、同じドッジ中の最初の無効化時だけ `params.energyRecoveryAmount` のENを回復します。Lv.1・最大Lv.1の設定は無効化時間8 tick、EN回復量30です。ダメージを与えないためDPS算出対象外です。冒険者への使用許可は `starter` node `1350` から、ハンターへの使用許可は `starter` node `1355` から、Administratorへの検証用許可はclassから与えます。自動生成ジェムは `skill_gem_exchange` の1ページ目・slot20で無印原石3個から交換します。
 
 `adventurer_lightning_bolt` は、通常時は単体へ `MAGIC` / `LIGHTNING` を適用し、命中対象から半径5m以内にいる別の `SHOCKED` 状態の Mob へだけ最大2体を連鎖させる。連鎖は距離順・UUID順、視線遮蔽なしの対象を選び、連鎖先からの再連鎖と本スキルによる `SHOCKED` 付与は行わない。
 

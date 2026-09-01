@@ -58,7 +58,7 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `skill-mage-frost-ball` | `skill` / `mage_frost_ball` | `&bフロストボール` | `SNOWBALL` | `ice`, `azure` |
 | `skill-administrator-just-dodge` | `skill` / `administrator_just_dodge` | `&eジャスト回避` | `RABBIT_FOOT` | `defense`, `agility`, `wind` |
 
-表の表示名には JSON に保存する Legacy color code を含めます。同じ能力を追加するときは、表の表示名、`icon`、タグをすべて同一にします。各配置済みノードには、従来どおり一意の `nodeId` を割り当てます。
+表の表示名には JSON に保存する Legacy color code を含めます。同じ能力を追加するときは、表の表示名、`icon`、タグをすべて同一にします。`administrator_just_dodge` は冒険者 `1350` とハンター `1355` で同じ表現を再利用します。各配置済みノードには、従来どおり一意の `nodeId` を割り当てます。
 
 ## PPステータスパッケージ
 

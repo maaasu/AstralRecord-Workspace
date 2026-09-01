@@ -1,0 +1,23 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1355",
+  "name": "&eジャスト回避",
+  "icon": "RABBIT_FOOT",
+  "tags": [
+    "defense",
+    "agility",
+    "wind"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "administrator_just_dodge"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "hunter"
+  }
+}

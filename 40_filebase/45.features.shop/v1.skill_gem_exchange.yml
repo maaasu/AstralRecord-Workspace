@@ -208,6 +208,16 @@ items:
       - itemId: { ref: item:skill_gem_raw }
         category: material
         amount: 3
+  - id: just_dodge_from_raw
+    itemId: { ref: item:00_skill_gem_administrator_just_dodge }
+    category: skill_gem
+    amount: 1
+    page: 1
+    slot: 20
+    requiredItems:
+      - itemId: { ref: item:skill_gem_raw }
+        category: material
+        amount: 3
   - id: fireball_from_raw
     itemId: { ref: item:00_skill_gem_mage_fireball }
     category: skill_gem
