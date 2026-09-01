@@ -209,6 +209,17 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(255, 205, 55), 1.2F)
         );
+    public static final SharedParticleDefinition SUNBIRD_ARENA_BOUNDARY =
+        new SharedParticleDefinition(
+            "sunbird_arena_boundary",
+            Particle.DUST,
+            1,
+            0.02D,
+            0.02D,
+            0.02D,
+            0.0D,
+            new Particle.DustOptions(Color.RED, 1.2F)
+        );
     public static final SharedParticleDefinition SUNBIRD_SOLAR_FLAME =
         new SharedParticleDefinition("sunbird_solar_flame", Particle.FLAME, 1, 0.03D, 0.03D, 0.03D, 0.01D);
     public static final SharedParticleDefinition SUNBIRD_SOLAR_IMPACT =
