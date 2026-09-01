@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.boss.service.BossChallengeService;
 import io.github.maaasu.astralRecord.feature.boss.service.BossFieldInstanceService;
 import io.github.maaasu.astralRecord.feature.boss.service.BossMechanicService;
 import io.github.maaasu.astralRecord.feature.combat.event.CombatDamageEventHandler;
+import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.combat.service.CombatDpsTrackerService;
 import io.github.maaasu.astralRecord.feature.dungeon.event.DungeonWorldEventHandler;
@@ -311,6 +312,7 @@ import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
@@ -327,6 +329,7 @@ public final class AstralRecord extends JavaPlugin {
     private AccountModeApplicationService accountModeApplicationService;
     private UserService userService;
     private PlayerService playerService;
+    private PlayerJoinEventHandler playerJoinEventHandler;
     private PlayerMessageService playerMessageService;
     private GlobalChatBridge globalChatBridge;
     private PlayerRegionService playerRegionService;
@@ -1545,6 +1548,10 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
+            commandRegister.getAccountSwitchCommand(),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
             new GuiClickCooldownEventHandler(inventoryService),
             getServer().getPluginManager()
         );
@@ -1569,7 +1576,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         var menuToolJoinGrantService = new MenuToolJoinGrantService(itemService, inventoryService);
-        var playerJoinEventHandler = new PlayerJoinEventHandler(
+        playerJoinEventHandler = new PlayerJoinEventHandler(
             this,
             playerService,
             skillTreeService,
@@ -1583,8 +1590,19 @@ public final class AstralRecord extends JavaPlugin {
         );
         playerJoinEventHandler.setPlayerLoadedListener(player -> passiveSkillService.reconcileNow(player));
         playerJoinEventHandler.setPlayerQuitListener(player -> {
+            UUID playerId = player.getBukkit().getUniqueId();
             passiveSkillService.onPlayerQuit(player);
-            statusService.clearShieldRuntimeState(player.getBukkit().getUniqueId());
+            activeSkillLifecycleService.clearAll(playerId);
+            meditationSkillRuntimeService.interrupt(playerId);
+            justDodgeSkillRuntimeService.clearPlayer(playerId);
+            spellStepSkillRuntimeService.clearPlayer(playerId);
+            arcaneFlowSkillRuntimeService.clearPlayer(playerId);
+            conditionService.clearAll(AstEntity.player(player));
+            skillActionRingHoldService.cancel(player.getBukkit());
+            skillActionRingService.close(player.getBukkit());
+            skillTreeService.restorePlayerVisibility(player.getBukkit());
+            skillTreeService.clearPlayerPresentation(player.getBukkit());
+            statusService.clearShieldRuntimeState(playerId);
         });
         eventManager.registerHandler(playerJoinEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(
@@ -2006,6 +2024,15 @@ public final class AstralRecord extends JavaPlugin {
      */
     public PlayerService getPlayerService() {
         return playerService;
+    }
+
+    /**
+     * プレイヤーの参加データ再ロードを管理するイベントハンドラーを取得します。
+     *
+     * @return プレイヤー参加イベントハンドラー
+     */
+    public PlayerJoinEventHandler getPlayerJoinEventHandler() {
+        return playerJoinEventHandler;
     }
 
     /**

@@ -246,6 +246,21 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         savingSessions.remove(playerId);
     }
 
+    /**
+     * アカウント切替前に、旧アカウントへ紐付く GUI 編集状態を破棄します。
+     * <p>
+     * 先にセッションを除去しておくことで、続く {@code closeInventory()} が dirty 状態の再表示を
+     * 予約しないようにします。メインスレッドから呼び出してください。
+     *
+     * @param player 切替対象プレイヤー
+     */
+    public void releaseForAccountSwitch(@NotNull Player player) {
+        UUID playerId = player.getUniqueId();
+        sessions.remove(playerId);
+        savingSessions.remove(playerId);
+        removeSynthesisSelectionAndRestore(player);
+    }
+
     private void handleMainClick(
         Player player,
         SkillBindSession session,

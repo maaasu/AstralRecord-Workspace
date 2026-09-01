@@ -226,6 +226,34 @@ class InventorySaveCoordinatorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: アカウント切替用バリアは先行logout保存の失敗を伝播し、切替処理を続行させない。
+     */
+    @Test
+    void accountSwitchBarrierPropagatesFailedPriorLogoutSave() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        when(persistence.hasPendingChanges(state)).thenReturn(false);
+        ManualExecutor executor = new ManualExecutor();
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(persistence, registry, executor);
+
+        try (MockedStatic<Logger> ignored = mockStatic(Logger.class)) {
+            var logoutSave = coordinator.saveOnLogoutWithResult(accountId, state, () -> false);
+            var switchBarrier = coordinator.awaitQueuedSavesOrThrow(accountId);
+
+            executor.runAll();
+
+            assertFalse(logoutSave.join());
+            assertThrows(CompletionException.class, switchBarrier::join);
+            assertSame(state, registry.get(accountId));
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
      * 検証契約: 同一accountのimmediate/autosave/logoutを単一laneで直列化する。
      */
     @Test

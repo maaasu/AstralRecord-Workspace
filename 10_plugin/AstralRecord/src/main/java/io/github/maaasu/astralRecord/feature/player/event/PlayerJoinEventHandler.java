@@ -46,6 +46,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -165,12 +166,85 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     }
 
     /**
-     * プレイヤー退出時、キャッシュ削除前の通知先を設定します。
+     * プレイヤー退出またはアカウント切替時、キャッシュ削除前の通知先を設定します。
      *
-     * @param listener キャッシュ削除前に呼び出す通知先
+     * @param listener キャッシュ削除前に呼び出すセッション終了通知先
      */
     public void setPlayerQuitListener(@NotNull Consumer<AstPlayer> listener) {
         this.playerQuitListener = listener;
+    }
+
+    /**
+     * オンライン中のアカウント切替に備え、現在のセッションを保存可能な状態へ移します。
+     * <p>
+     * Bukkit のプレイヤー状態を参照するため、メインスレッドから呼び出してください。
+     * 保存完了の待機は呼び出し元が {@link PlayerService#awaitQueuedSavesForAccountSwitch(UUID)}
+     * を非同期で行います。
+     *
+     * @param player アカウントを切り替えるプレイヤー
+     * @return 切替前のアカウント UUID と保存結果。現在のセッションがない場合は {@code null}
+     */
+    public @Nullable AccountSwitchPreparation prepareAccountSwitch(@NotNull Player player) {
+        if (!Bukkit.isPrimaryThread()) {
+            throw new IllegalStateException("prepareAccountSwitch must run on the Bukkit main thread");
+        }
+
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            return null;
+        }
+
+        UUID accountId = astPlayer.getAccount().getUuid();
+        String playerName = player.getName();
+        runSafely(() -> playerQuitListener.accept(astPlayer), LogId.E_5070, playerName);
+        questService.releaseState(accountId);
+        skillBindPresetService.invalidate(accountId);
+        learnedSkillService.invalidate(accountId);
+        if (guideService != null) {
+            guideService.releaseProgress(accountId);
+        }
+        CompletableFuture<Boolean> logoutSave = playerService.onPlayerQuit(player);
+        return new AccountSwitchPreparation(accountId, logoutSave);
+    }
+
+    /** アカウント切替前に切り離した旧セッションと、その保存結果です。 */
+    public record AccountSwitchPreparation(
+        @NotNull UUID accountId,
+        @NotNull CompletableFuture<Boolean> logoutSave
+    ) {
+    }
+
+    /**
+     * オンラインプレイヤーへ指定アカウントの参加時データを再ロードします。
+     * ログインボーナス・ログイン履歴は発生させず、アカウント単位の runtime state だけを再構築します。
+     *
+     * @param player 再ロード対象プレイヤー
+     * @param account 切替後のアカウント
+     * @param completionListener 再ロード結果の通知先。通知はメインスレッドで行います
+     */
+    public void reloadAccount(
+        @NotNull Player player,
+        @NotNull AccountModel account,
+        @NotNull Consumer<Boolean> completionListener
+    ) {
+        if (!Bukkit.isPrimaryThread()) {
+            plugin.getServer().getScheduler().runTask(
+                plugin,
+                () -> reloadAccount(player, account, completionListener)
+            );
+            return;
+        }
+        if (!player.isOnline() || AstPlayerCache.contains(player.getUniqueId())) {
+            completionListener.accept(false);
+            return;
+        }
+
+        JoinAttempt attempt = startJoinLoading(player);
+        String playerName = player.getName();
+        scheduleAsync(
+            () -> loadAccountSwitchStep(attempt, playerName, account, completionListener),
+            0L
+        );
     }
 
     @EventHandler(priority = EventPriority.NORMAL)
@@ -296,11 +370,41 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            scheduleAsync(() -> loadInventoryStep(attempt, playerName, user, account), JOIN_STEP_DELAY_TICKS);
+            scheduleAsync(() -> loadInventoryStep(attempt, playerName, user, account, null), JOIN_STEP_DELAY_TICKS);
         });
     }
 
-    private void loadInventoryStep(JoinAttempt attempt, String playerName, UserModel user, AccountModel account) {
+    private void loadAccountSwitchStep(
+        JoinAttempt attempt,
+        String playerName,
+        AccountModel account,
+        Consumer<Boolean> completionListener
+    ) {
+        runJoinStep(attempt, playerName, () -> {
+            if (!isJoinLoading(attempt)) {
+                return;
+            }
+
+            UserModel user = playerService.loadPlayerJoinUser(attempt.playerUuid(), playerName);
+            if (!isJoinLoading(attempt)) {
+                return;
+            }
+            if (user == null || !user.getUuid().equals(account.getUserId())) {
+                finishAccountLoad(attempt, false, completionListener);
+                return;
+            }
+
+            loadInventoryStep(attempt, playerName, user, account, completionListener);
+        }, completionListener);
+    }
+
+    private void loadInventoryStep(
+        JoinAttempt attempt,
+        String playerName,
+        UserModel user,
+        AccountModel account,
+        @Nullable Consumer<Boolean> completionListener
+    ) {
         runJoinStep(attempt, playerName, () -> {
             if (!isJoinLoading(attempt)) {
                 return;
@@ -331,7 +435,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     return;
                 }
                 if (skillTreeState == null) {
-                    finishJoinLoading(attempt, false);
+                    finishAccountLoad(attempt, false, completionListener);
                     return;
                 }
                 QuestService.InitialState questState = questService.loadInitialState(account.getUuid());
@@ -364,7 +468,8 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                         questState,
                         skillBindPresets,
                         learnedSkills,
-                        grantForMain
+                        grantForMain,
+                        completionListener
                     )
                 );
                 handedOffToMain = true;
@@ -382,7 +487,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     }
                 }
             }
-        });
+        }, completionListener);
     }
 
     private void applyJoinData(
@@ -393,7 +498,8 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         QuestService.InitialState questState,
         List<SkillBindPreset> skillBindPresets,
         List<LearnedSkillInstance> learnedSkills,
-        @Nullable MenuToolJoinGrantService.PreparedGrant preparedMenuGrant
+        @Nullable MenuToolJoinGrantService.PreparedGrant preparedMenuGrant,
+        @Nullable Consumer<Boolean> completionListener
     ) {
         boolean questApplied = false;
         boolean skillTreeApplied = false;
@@ -417,7 +523,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     null
                 );
                 cleanupPreparedGrantAsync(preparedMenuGrant);
-                finishJoinLoading(attempt, false);
+                finishAccountLoad(attempt, false, completionListener);
                 return;
             }
             if (skillTreeState == null) {
@@ -432,7 +538,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     null
                 );
                 cleanupPreparedGrantAsync(preparedMenuGrant);
-                finishJoinLoading(attempt, false);
+                finishAccountLoad(attempt, false, completionListener);
                 return;
             }
 
@@ -448,7 +554,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     null
                 );
                 cleanupPreparedGrantAsync(preparedMenuGrant);
-                finishJoinLoading(attempt, false);
+                finishAccountLoad(attempt, false, completionListener);
                 return;
             }
             questApplied = true;
@@ -470,7 +576,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     null
                 );
                 cleanupPreparedGrantAsync(preparedMenuGrant);
-                finishJoinLoading(attempt, false);
+                finishAccountLoad(attempt, false, completionListener);
                 return;
             }
             AstPlayer appliedPlayer = AstPlayerCache.get(player);
@@ -483,7 +589,9 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     preparedMenuGrantCleanupScheduled = true;
                 }
             }
-            loginBonusService.openAfterDataLoaded(player);
+            if (completionListener == null) {
+                loginBonusService.openAfterDataLoaded(player);
+            }
             playerService.commitPlayerJoin(playerJoinApplication);
             if (appliedPlayer != null) {
                 runSafely(() -> playerLoadedListener.accept(appliedPlayer), LogId.E_5070, playerName);
@@ -491,7 +599,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             }
             if (guideService != null) {
                 guideService.loadProgressAsync(joinData.account().getUuid());
-                if (appliedPlayer != null) {
+                if (appliedPlayer != null && completionListener == null) {
                     guideService.recordCondition(appliedPlayer, GuideConditionType.PLAYER_LOGGED_IN, null);
                 }
             }
@@ -513,20 +621,22 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 cleanupPreparedGrantAsync(preparedMenuGrant);
             }
             Logger.log(LogId.E_5070, exception, playerName);
-            finishJoinLoading(attempt, false);
+            finishAccountLoad(attempt, false, completionListener);
             return;
         }
 
-        finishJoinLoading(attempt, true);
+        finishAccountLoad(attempt, true, completionListener);
         notifyUnreadMailAsync(attempt, playerName);
-        scheduleAsync(
-            () -> runSafely(
-                () -> playerService.recordLoginHistory(attempt.playerUuid(), playerName),
-                LogId.E_5070,
-                playerName
-            ),
-            JOIN_STEP_DELAY_TICKS
-        );
+        if (completionListener == null) {
+            scheduleAsync(
+                () -> runSafely(
+                    () -> playerService.recordLoginHistory(attempt.playerUuid(), playerName),
+                    LogId.E_5070,
+                    playerName
+                ),
+                JOIN_STEP_DELAY_TICKS
+            );
+        }
     }
 
     private void rollbackJoinApplication(
@@ -639,8 +749,19 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     }
 
     private void finishJoinLoading(JoinAttempt attempt, boolean notifyComplete) {
+        finishJoinLoading(attempt, notifyComplete, notifyComplete);
+    }
+
+    private void finishJoinLoading(
+        JoinAttempt attempt,
+        boolean notifyComplete,
+        boolean notifyLoadCompleteMessage
+    ) {
         if (!Bukkit.isPrimaryThread()) {
-            plugin.getServer().getScheduler().runTask(plugin, () -> finishJoinLoading(attempt, notifyComplete));
+            plugin.getServer().getScheduler().runTask(
+                plugin,
+                () -> finishJoinLoading(attempt, notifyComplete, notifyLoadCompleteMessage)
+            );
             return;
         }
 
@@ -655,7 +776,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             // 失敗時だけログイン前の値へ戻し、ロード中の一時ロックが残らないようにする。
             restoreLoadingControl(player, loadingControl, !notifyComplete);
             player.clearTitle();
-            if (notifyComplete) {
+            if (notifyLoadCompleteMessage) {
                 PlayerMessageService.getInstance().send(
                     player,
                     PlayerMsgId.P_5072,
@@ -696,6 +817,15 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     }
 
     private void runJoinStep(JoinAttempt attempt, String playerName, Runnable action) {
+        runJoinStep(attempt, playerName, action, null);
+    }
+
+    private void runJoinStep(
+        JoinAttempt attempt,
+        String playerName,
+        Runnable action,
+        @Nullable Consumer<Boolean> completionListener
+    ) {
         if (!isJoinLoading(attempt)) {
             return;
         }
@@ -704,7 +834,34 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         } catch (Exception e) {
             Logger.log(LogId.E_5070, e, playerName);
             plugin.getServer().getScheduler().runTask(plugin, () -> finishJoinLoading(attempt, false));
+            notifyAccountLoadCompletion(completionListener, false);
         }
+    }
+
+    private void finishAccountLoad(
+        JoinAttempt attempt,
+        boolean succeeded,
+        @Nullable Consumer<Boolean> completionListener
+    ) {
+        finishJoinLoading(attempt, succeeded, completionListener == null);
+        notifyAccountLoadCompletion(completionListener, succeeded);
+    }
+
+    private void notifyAccountLoadCompletion(
+        @Nullable Consumer<Boolean> completionListener,
+        boolean succeeded
+    ) {
+        if (completionListener == null) {
+            return;
+        }
+        if (!Bukkit.isPrimaryThread()) {
+            plugin.getServer().getScheduler().runTask(
+                plugin,
+                () -> notifyAccountLoadCompletion(completionListener, succeeded)
+            );
+            return;
+        }
+        completionListener.accept(succeeded);
     }
 
     private void scheduleAsync(Runnable task, long delayTicks) {

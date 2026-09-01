@@ -11,6 +11,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<AccountLearnedSkillEntity> AccountLearnedSkills => Set<AccountLearnedSkillEntity>();
     public DbSet<AccountLearnedSkillSigilEntity> AccountLearnedSkillSigils => Set<AccountLearnedSkillSigilEntity>();
     public DbSet<AccountEntity> Accounts => Set<AccountEntity>();
+    public DbSet<AccountDeleteReceiptEntity> AccountDeleteReceipts => Set<AccountDeleteReceiptEntity>();
     public DbSet<AccountClassProgressEntity> AccountClassProgresses => Set<AccountClassProgressEntity>();
     public DbSet<InventoryEntity> Inventories => Set<InventoryEntity>();
     public DbSet<InventoryEntryEntity> InventoryEntries => Set<InventoryEntryEntity>();
@@ -91,6 +92,34 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(account => account.CreatedBy).HasColumnName("created_by");
             entity.Property(account => account.UpdatedBy).HasColumnName("updated_by");
             entity.Property(account => account.IsDeleted).HasColumnName("is_deleted");
+        });
+
+        modelBuilder.Entity<AccountDeleteReceiptEntity>(entity =>
+        {
+            entity.ToTable("account_delete_receipt", "dbo");
+            entity.HasKey(receipt => receipt.DeletedAccountId);
+
+            entity.Property(receipt => receipt.DeletedAccountId).HasColumnName("deleted_account_id");
+            entity.Property(receipt => receipt.UserId).HasColumnName("user_id");
+            entity.Property(receipt => receipt.DeletedSlotIndex).HasColumnName("deleted_slot_index");
+            entity.Property(receipt => receipt.SelectedAccountId).HasColumnName("selected_account_id");
+            entity.Property(receipt => receipt.CreatedReplacement).HasColumnName("created_replacement");
+            entity.Property(receipt => receipt.DeletedBy).HasColumnName("deleted_by");
+            entity.Property(receipt => receipt.CompletedAt).HasColumnName("completed_at");
+            entity.HasOne<AccountEntity>()
+                .WithMany()
+                .HasForeignKey(receipt => receipt.DeletedAccountId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne<UserEntity>()
+                .WithMany()
+                .HasForeignKey(receipt => receipt.UserId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasOne<AccountEntity>()
+                .WithMany()
+                .HasForeignKey(receipt => receipt.SelectedAccountId)
+                .OnDelete(DeleteBehavior.NoAction);
+            entity.HasIndex(receipt => new { receipt.UserId, receipt.CompletedAt })
+                .HasDatabaseName("IX_account_delete_receipt_user_completed");
         });
 
         modelBuilder.Entity<AccountClassProgressEntity>(entity =>

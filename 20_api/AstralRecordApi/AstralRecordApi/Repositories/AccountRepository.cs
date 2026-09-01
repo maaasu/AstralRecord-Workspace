@@ -32,7 +32,36 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
 
     public async Task<AccountResponse> CreateAsync(AccountCreateRequest request)
     {
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+        return await executionStrategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var created = await CreateInTransactionAsync(request);
+            await transaction.CommitAsync();
+            return created;
+        });
+    }
+
+    private async Task<AccountResponse> CreateInTransactionAsync(AccountCreateRequest request)
+    {
+        var existingSlot = await dbContext.Accounts
+            .Include(account => account.ClassProgresses)
+            .FirstOrDefaultAsync(account => account.UserId == request.UserId
+                && account.SlotIndex == request.SlotIndex
+                && !account.IsDeleted);
+        if (existingSlot is not null
+            && string.Equals(existingSlot.AccountName, request.AccountName, StringComparison.Ordinal)
+            && existingSlot.Mode == request.Mode
+            && existingSlot.CreatedBy == request.CreatedBy)
+        {
+            // Commit結果不明後の実行戦略再試行では、最初の試行で確定した行を成功結果として返す。
+            return MapToResponse(existingSlot);
+        }
+
         var now = DateTime.UtcNow;
+        var hasExistingAccount = await dbContext.Accounts
+            .AnyAsync(candidate => candidate.UserId == request.UserId && !candidate.IsDeleted);
         var account = new AccountEntity
         {
             Uuid = Guid.NewGuid(),
@@ -40,7 +69,7 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
             AccountName = request.AccountName,
             SlotIndex = request.SlotIndex,
             Mode = request.Mode,
-            IsActive = true,
+            IsActive = !hasExistingAccount,
             Level = 1,
             TotalExperience = 0,
             ClassId = "adventurer",
@@ -69,6 +98,25 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
     }
 
     public async Task<AccountResponse?> UpdateAsync(Guid uuid, AccountUpdateRequest request)
+    {
+        if (request.IsActive != true)
+            return await UpdateCoreAsync(uuid, request);
+
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+        return await executionStrategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var updated = await UpdateCoreAsync(uuid, request);
+            if (updated is null)
+                return null;
+
+            await transaction.CommitAsync();
+            return updated;
+        });
+    }
+
+    private async Task<AccountResponse?> UpdateCoreAsync(Guid uuid, AccountUpdateRequest request)
     {
         var account = await dbContext.Accounts
             .Include(x => x.ClassProgresses)
@@ -160,7 +208,29 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         account.ClassLevel = selectedProgress.Level;
         account.ClassExperience = selectedProgress.Experience;
 
-        account.UpdatedAt = DateTime.UtcNow;
+        var updatedAt = DateTime.UtcNow;
+        if (request.IsActive == true)
+        {
+            var user = await dbContext.Users
+                .FirstOrDefaultAsync(candidate => candidate.Uuid == account.UserId && !candidate.IsDeleted);
+            if (user is null)
+                throw new InvalidOperationException($"User {account.UserId} was not found for account {uuid}.");
+
+            var otherAccounts = await dbContext.Accounts
+                .Where(candidate => candidate.UserId == account.UserId
+                    && candidate.Uuid != account.Uuid
+                    && !candidate.IsDeleted)
+                .ToListAsync();
+            foreach (var otherAccount in otherAccounts)
+                otherAccount.IsActive = false;
+
+            account.IsActive = true;
+            user.AccountId = account.Uuid;
+            user.UpdatedAt = updatedAt;
+            user.UpdatedBy = request.UpdatedBy;
+        }
+
+        account.UpdatedAt = updatedAt;
         account.UpdatedBy = request.UpdatedBy;
 
         await dbContext.SaveChangesAsync();
@@ -174,12 +244,44 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
     /// </summary>
     public async Task<AccountDeleteResponse?> DeleteAsync(Guid uuid, AccountDeleteRequest request)
     {
-        await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+        var executionStrategy = dbContext.Database.CreateExecutionStrategy();
+        return await executionStrategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var result = await DeleteInTransactionAsync(uuid, request);
+            if (result is null)
+                return null;
+
+            await transaction.CommitAsync();
+            return result;
+        });
+    }
+
+    private async Task<AccountDeleteResponse?> DeleteInTransactionAsync(Guid uuid, AccountDeleteRequest request)
+    {
+        var committedReceipt = await dbContext.AccountDeleteReceipts
+            .AsNoTracking()
+            .FirstOrDefaultAsync(receipt => receipt.DeletedAccountId == uuid);
+        if (committedReceipt is not null)
+        {
+            return committedReceipt.DeletedBy == request.DeletedBy
+                ? MapToDeleteResponse(committedReceipt)
+                : null;
+        }
+
         var now = DateTime.UtcNow;
         var account = await dbContext.Accounts
-            .FirstOrDefaultAsync(candidate => candidate.Uuid == uuid && !candidate.IsDeleted);
+            .FirstOrDefaultAsync(candidate => candidate.Uuid == uuid);
         if (account is null)
             return null;
+        if (account.IsDeleted)
+        {
+            // Commit結果不明後の実行戦略再試行では、最初の試行で論理削除済みになった結果を返す。
+            return account.UpdatedBy == request.DeletedBy
+                ? await RebuildCommittedDeleteResponseAsync(account)
+                : null;
+        }
 
         var user = await dbContext.Users
             .FirstOrDefaultAsync(candidate => candidate.Uuid == account.UserId && !candidate.IsDeleted);
@@ -224,8 +326,18 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         user.UpdatedAt = now;
         user.UpdatedBy = request.DeletedBy;
 
+        dbContext.AccountDeleteReceipts.Add(new AccountDeleteReceiptEntity
+        {
+            DeletedAccountId = account.Uuid,
+            UserId = account.UserId,
+            DeletedSlotIndex = account.SlotIndex,
+            SelectedAccountId = selected.Uuid,
+            CreatedReplacement = createdReplacement,
+            DeletedBy = request.DeletedBy,
+            CompletedAt = now,
+        });
+
         await dbContext.SaveChangesAsync();
-        await transaction.CommitAsync();
 
         return new AccountDeleteResponse
         {
@@ -236,6 +348,35 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
             CreatedReplacement = createdReplacement,
         };
     }
+
+    private async Task<AccountDeleteResponse?> RebuildCommittedDeleteResponseAsync(AccountEntity deleted)
+    {
+        var selected = await dbContext.Accounts
+            .Where(candidate => candidate.UserId == deleted.UserId
+                && !candidate.IsDeleted)
+            .OrderBy(candidate => candidate.SlotIndex)
+            .FirstOrDefaultAsync();
+        if (selected is null)
+            return null;
+
+        return new AccountDeleteResponse
+        {
+            DeletedAccountId = deleted.Uuid,
+            UserId = deleted.UserId,
+            DeletedSlotIndex = deleted.SlotIndex,
+            SelectedAccountId = selected.Uuid,
+            CreatedReplacement = selected.SlotIndex == deleted.SlotIndex,
+        };
+    }
+
+    private static AccountDeleteResponse MapToDeleteResponse(AccountDeleteReceiptEntity receipt) => new()
+    {
+        DeletedAccountId = receipt.DeletedAccountId,
+        UserId = receipt.UserId,
+        DeletedSlotIndex = receipt.DeletedSlotIndex,
+        SelectedAccountId = receipt.SelectedAccountId,
+        CreatedReplacement = receipt.CreatedReplacement,
+    };
 
     private async Task DeleteOwnedDataAsync(Guid accountId, DateTime deletedAt, Guid deletedBy)
     {

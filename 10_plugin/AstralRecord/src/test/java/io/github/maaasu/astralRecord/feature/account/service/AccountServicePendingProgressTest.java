@@ -92,6 +92,26 @@ class AccountServicePendingProgressTest {
         assertEquals(first.updatedAccount().getLevel(), second.updatedAccount().getLevel());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
+     * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウントスロット切替
+     * 検証契約: アカウント一覧取得時に作成済みスロットだけを補完用キャッシュへ登録する。
+     */
+    @Test
+    void cachesCreatedSlotIndexesForTabCompletion() {
+        UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        AccountRepository repository = mock(AccountRepository.class);
+        when(repository.findByUserId(userId)).thenReturn(List.of(
+            account(UUID.randomUUID(), userId, 0L),
+            account(UUID.randomUUID(), userId, 2, 0L)
+        ));
+        Fixture fixture = createFixture(repository);
+
+        fixture.service().getAccounts(userId);
+
+        assertEquals(List.of(0, 2), fixture.service().getCachedSlotIndexes(userId));
+    }
+
     /** テスト対象サービスと定期flush処理を構築します。 */
     private Fixture createFixture(AccountRepository repository) {
         Plugin plugin = mock(Plugin.class);
@@ -111,12 +131,17 @@ class AccountServicePendingProgressTest {
 
     /** 指定した累計経験値を持つレベル1のテスト用アカウントを作成します。 */
     private AccountModel account(UUID accountId, UUID userId, long totalExperience) {
+        return account(accountId, userId, 0, totalExperience);
+    }
+
+    /** 指定スロットのアカウントを作成します。 */
+    private AccountModel account(UUID accountId, UUID userId, int slotIndex, long totalExperience) {
         LocalDateTime now = LocalDateTime.of(2026, 8, 31, 0, 0);
         return new AccountModel(
             accountId,
             userId,
             "test",
-            0,
+            slotIndex,
             true,
             AccountMode.PLAYER,
             "{}",

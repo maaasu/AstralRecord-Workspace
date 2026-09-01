@@ -53,12 +53,15 @@ public class PlayerSaveCoordinator {
      *
      * @param player 保存対象プレイヤー
      * @param trigger 保存の発火契機
+     * @return すべての保存タスクが例外なく完了した場合は {@code true}
      */
-    public void save(@NotNull AstPlayer player, @NotNull PlayerSaveTrigger trigger) {
+    public boolean save(@NotNull AstPlayer player, @NotNull PlayerSaveTrigger trigger) {
+        boolean succeeded = true;
         for (PlayerSaveTask task : tasks) {
             try {
                 task.save(player, trigger);
             } catch (Exception e) {
+                succeeded = false;
                 Logger.log(
                     LogId.W_5071,
                     task.getTaskName(),
@@ -68,5 +71,6 @@ public class PlayerSaveCoordinator {
                 );
             }
         }
+        return succeeded;
     }
 }

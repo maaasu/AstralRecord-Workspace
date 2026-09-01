@@ -166,7 +166,7 @@ class InventoryServiceEquipmentSnapshotOverlayTest extends MockBukkitTestBase {
         doAnswer(invocation -> {
             order.add("logout-save");
             persistence.save(state, InventoryPersistence.SaveTrigger.LOGOUT);
-            return null;
+            return true;
         }).when(playerSaveCoordinator).save(astPlayer, PlayerSaveTrigger.LOGOUT);
         PlayerService playerService = new PlayerService(
             mock(UserService.class),

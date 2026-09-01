@@ -13,12 +13,13 @@ import java.util.Locale;
 public class AccountCommand extends AstCommand {
     private final AccountModeCommand modeCommand = new AccountModeCommand();
     private final AccountDeleteCommand deleteCommand = new AccountDeleteCommand();
+    private final AccountSwitchCommand switchCommand = new AccountSwitchCommand();
 
     /**
      * アカウント管理コマンドを初期化します。
      */
     public AccountCommand() {
-        super("account", "アカウントを管理します。", "/account <mode|delete> ...", false, 99);
+        super("account", "アカウントを管理します。", "/account <slot|mode|delete> ...", false, PERMISSION_NONE);
     }
 
     /**
@@ -28,6 +29,15 @@ public class AccountCommand extends AstCommand {
      */
     public AccountDeleteCommand getDeleteCommand() {
         return deleteCommand;
+    }
+
+    /**
+     * アカウント切替コマンドのイベントハンドラを取得します。
+     *
+     * @return アカウント切替コマンド
+     */
+    public AccountSwitchCommand getSwitchCommand() {
+        return switchCommand;
     }
 
     /**
@@ -52,7 +62,20 @@ public class AccountCommand extends AstCommand {
             deleteCommand.executeCommand(sender, Arrays.copyOfRange(args, 1, args.length));
             return;
         }
+        if (isInteger(args[0])) {
+            switchCommand.executeCommand(sender, args);
+            return;
+        }
 
         sendUsage(sender);
+    }
+
+    private boolean isInteger(String value) {
+        try {
+            Integer.parseInt(value);
+            return true;
+        } catch (NumberFormatException ignored) {
+            return false;
+        }
     }
 }

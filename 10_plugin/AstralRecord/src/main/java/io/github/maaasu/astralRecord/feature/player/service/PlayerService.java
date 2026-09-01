@@ -318,8 +318,10 @@ public class PlayerService {
      * {@link AstPlayerCache} からプレイヤーを削除します。
      *
      * @param player ログアウトした Bukkit プレイヤー
+     * @return ログアウト保存の完了結果
      */
-    public void onPlayerQuit(Player player) {
+    public @NotNull CompletableFuture<Boolean> onPlayerQuit(Player player) {
+        CompletableFuture<Boolean> save = CompletableFuture.completedFuture(true);
         var astPlayer = AstPlayerCache.get(player);
         if (astPlayer != null) {
             UUID accountId = astPlayer.getAccount().getUuid();
@@ -327,16 +329,18 @@ public class PlayerService {
             // Bukkit inventory の参照だけをメインスレッドで完了させ、API I/O は保存キューへ委譲する。
             playerSaveCoordinator.prepare(astPlayer, PlayerSaveTrigger.LOGOUT);
             PlayerInventoryState state = inventoryStateRegistry.get(accountId);
-            inventorySaveCoordinator.saveOnLogout(
+            save = inventorySaveCoordinator.saveOnLogoutWithResult(
                 accountId,
                 state,
                 () -> playerSaveCoordinator.save(astPlayer, PlayerSaveTrigger.LOGOUT)
+                    && !accountService.hasPendingClassProgress(accountId)
             );
             inventoryService.clearClickGuard(accountId);
             inventoryService.clearEquippedSetEffectDisplayCounts(accountId);
         }
         statusService.clearShieldRuntimeState(player.getUniqueId());
         AstPlayerCache.remove(player.getUniqueId());
+        return save;
     }
 
     /**
@@ -370,6 +374,32 @@ public class PlayerService {
      */
     public void awaitQueuedSavesForAccountDeletion(@NotNull UUID accountId) {
         inventorySaveCoordinator.awaitQueuedSaves(accountId).join();
+    }
+
+    /**
+     * アカウント切替前に、同一アカウントへ既に登録された保存を完了させます。
+     * 呼び出し元は Bukkit メインスレッド外で待機してください。
+     *
+     * @param accountId 切替前のアカウント UUID
+     */
+    public void awaitQueuedSavesForAccountSwitch(@NotNull UUID accountId) {
+        inventorySaveCoordinator.awaitQueuedSavesOrThrow(accountId).join();
+    }
+
+    /**
+     * アカウント切替前の旧セッション保存結果と同一アカウントの先行保存を確認します。
+     *
+     * @param accountId 切替前のアカウント UUID
+     * @param logoutSave {@link #onPlayerQuit(Player)} が登録した旧セッション保存
+     */
+    public void awaitQueuedSavesForAccountSwitch(
+        @NotNull UUID accountId,
+        @NotNull CompletableFuture<Boolean> logoutSave
+    ) {
+        inventorySaveCoordinator.awaitQueuedSavesOrThrow(accountId).join();
+        if (!Boolean.TRUE.equals(logoutSave.join())) {
+            throw new IllegalStateException("旧アカウントの保存に失敗したため切替できません: " + accountId);
+        }
     }
 
     /**

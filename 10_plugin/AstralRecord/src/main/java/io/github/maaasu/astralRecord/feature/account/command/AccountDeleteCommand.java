@@ -52,6 +52,13 @@ public final class AccountDeleteCommand extends AstCommand implements io.github.
 
     @Override
     protected void executeCommand(@NotNull CommandSender sender, @NotNull String[] args) {
+        if (sender instanceof Player player) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer == null || !astPlayer.hasAdminPermission()) {
+                sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5061.getId()));
+                return;
+            }
+        }
         if (args.length != 1 && args.length != 2) {
             sendUsage(sender);
             return;
@@ -116,7 +123,7 @@ public final class AccountDeleteCommand extends AstCommand implements io.github.
             pendingAccountIds.remove(account.getUuid());
             if (failure != null || result == null || result.result() == null) {
                 if (failure != null) {
-                    Logger.error(LogId.E_5150, failure, account.getUuid());
+                    Logger.error(LogId.E_5160, failure, account.getUuid());
                 }
                 if (result != null && result.reloadRequired()) {
                     recoverOrKick(onlineTarget, playerService);
@@ -155,7 +162,7 @@ public final class AccountDeleteCommand extends AstCommand implements io.github.
         try {
             return playerService.applyPlayerJoin(player, joinData);
         } catch (RuntimeException exception) {
-            Logger.error(LogId.E_5150, exception, player.getUniqueId());
+            Logger.error(LogId.E_5161, exception, player.getUniqueId());
             playerService.discardPlayerJoinInventoryState(joinData.inventoryState());
             return false;
         }

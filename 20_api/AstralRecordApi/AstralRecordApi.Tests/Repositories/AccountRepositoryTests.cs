@@ -4,6 +4,9 @@ using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
+using Microsoft.EntityFrameworkCore.Storage;
+using System.Data.Common;
 using Xunit;
 
 namespace AstralRecordApi.Tests.Repositories;
@@ -15,7 +18,10 @@ public class AccountRepositoryTests
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
-        var options = new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(connection).Options;
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection, sqlite => sqlite.ExecutionStrategy(
+                dependencies => new RetryingTestExecutionStrategy(dependencies)))
+            .Options;
 
         var userId = Guid.NewGuid();
         var deletedAccountId = Guid.NewGuid();
@@ -52,7 +58,10 @@ public class AccountRepositoryTests
     {
         await using var connection = new SqliteConnection("Data Source=:memory:");
         await connection.OpenAsync();
-        var options = new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(connection).Options;
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection, sqlite => sqlite.ExecutionStrategy(
+                dependencies => new RetryingTestExecutionStrategy(dependencies)))
+            .Options;
 
         var userId = Guid.NewGuid();
         var deletedAccountId = Guid.NewGuid();
@@ -76,6 +85,176 @@ public class AccountRepositoryTests
         Assert.Equal(3, replacement.SlotIndex);
         Assert.True(replacement.IsActive);
         Assert.False(replacement.IsDeleted);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_ActivatingAccountUpdatesUserSelectionAndDeactivatesOtherAccounts()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection, sqlite => sqlite.ExecutionStrategy(
+                dependencies => new RetryingTestExecutionStrategy(dependencies)))
+            .Options;
+
+        var userId = Guid.NewGuid();
+        var currentAccountId = Guid.NewGuid();
+        var targetAccountId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        await using (var setupContext = new AstralRecordDbContext(options))
+        {
+            await setupContext.Database.EnsureCreatedAsync();
+            setupContext.Users.Add(CreateUser(userId, currentAccountId, now));
+            setupContext.Accounts.AddRange(
+                CreateAccount(currentAccountId, userId, 0, true, now),
+                CreateAccount(targetAccountId, userId, 1, false, now));
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var repository = new AccountRepository(dbContext);
+        var updated = await repository.UpdateAsync(targetAccountId, new AccountUpdateRequest
+        {
+            IsActive = true,
+            UpdatedBy = userId,
+        });
+
+        Assert.NotNull(updated);
+        Assert.Equal(targetAccountId, updated!.Uuid);
+        var currentAccount = await dbContext.Accounts.SingleAsync(account => account.Uuid == currentAccountId);
+        var targetAccount = await dbContext.Accounts.SingleAsync(account => account.Uuid == targetAccountId);
+        var user = await dbContext.Users.SingleAsync(candidate => candidate.Uuid == userId);
+        Assert.False(currentAccount.IsActive);
+        Assert.True(targetAccount.IsActive);
+        Assert.Equal(targetAccountId, user.AccountId);
+    }
+
+    [Fact]
+    public async Task CreateAsync_LeavesAdditionalAccountInactiveUntilItIsSelected()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var interceptor = new CommitResultUnknownInterceptor();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection, sqlite => sqlite.ExecutionStrategy(
+                dependencies => new CommitResultUnknownRetryingExecutionStrategy(dependencies)))
+            .AddInterceptors(interceptor)
+            .Options;
+
+        var userId = Guid.NewGuid();
+        var existingAccountId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        await using (var setupContext = new AstralRecordDbContext(options))
+        {
+            await setupContext.Database.EnsureCreatedAsync();
+            setupContext.Users.Add(CreateUser(userId, existingAccountId, now));
+            setupContext.Accounts.Add(CreateAccount(existingAccountId, userId, 0, true, now));
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var repository = new AccountRepository(dbContext);
+        interceptor.Arm();
+        var created = await repository.CreateAsync(new AccountCreateRequest
+        {
+            UserId = userId,
+            AccountName = "second",
+            SlotIndex = 1,
+            Mode = 0,
+            CreatedBy = userId,
+        });
+
+        Assert.False(created.IsActive);
+        Assert.True(interceptor.WasThrown);
+        Assert.Equal(2, await dbContext.Accounts.CountAsync(account => account.UserId == userId));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_CommitResultUnknownReturnsCommittedDeleteResult()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var interceptor = new CommitResultUnknownInterceptor();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection, sqlite => sqlite.ExecutionStrategy(
+                dependencies => new CommitResultUnknownRetryingExecutionStrategy(dependencies)))
+            .AddInterceptors(interceptor)
+            .Options;
+
+        var userId = Guid.NewGuid();
+        var deletedAccountId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        await using (var setupContext = new AstralRecordDbContext(options))
+        {
+            await setupContext.Database.EnsureCreatedAsync();
+            setupContext.Users.Add(CreateUser(userId, deletedAccountId, now));
+            setupContext.Accounts.Add(CreateAccount(deletedAccountId, userId, 0, true, now));
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var repository = new AccountRepository(dbContext);
+        interceptor.Arm();
+        var result = await repository.DeleteAsync(
+            deletedAccountId,
+            new AccountDeleteRequest { DeletedBy = userId });
+
+        Assert.NotNull(result);
+        Assert.True(interceptor.WasThrown);
+        Assert.True(result!.CreatedReplacement);
+        Assert.NotEqual(deletedAccountId, result.SelectedAccountId);
+        Assert.Equal(1, await dbContext.Accounts.CountAsync(account =>
+            account.UserId == userId && !account.IsDeleted));
+    }
+
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/02-account/3-エンドポイント仕様/02_3.04-削除系.md
+    /// 検証契約: 削除確定後に選択先が変わっても、commit結果不明の再送は初回削除の確定応答を返す。
+    /// </summary>
+    [Fact]
+    public async Task DeleteAsync_ReplayReturnsOriginalSelectionAfterAnotherAccountIsActivated()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        var userId = Guid.NewGuid();
+        var deletedAccountId = Guid.NewGuid();
+        var originalSelectedAccountId = Guid.NewGuid();
+        var laterSelectedAccountId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        await using (var setupContext = new AstralRecordDbContext(options))
+        {
+            await setupContext.Database.EnsureCreatedAsync();
+            setupContext.Users.Add(CreateUser(userId, deletedAccountId, now));
+            setupContext.Accounts.AddRange(
+                CreateAccount(deletedAccountId, userId, 4, true, now),
+                CreateAccount(originalSelectedAccountId, userId, 1, false, now),
+                CreateAccount(laterSelectedAccountId, userId, 2, false, now));
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var repository = new AccountRepository(dbContext);
+        var request = new AccountDeleteRequest { DeletedBy = userId };
+        var deleted = await repository.DeleteAsync(deletedAccountId, request);
+        Assert.NotNull(deleted);
+        Assert.Equal(originalSelectedAccountId, deleted!.SelectedAccountId);
+
+        var switched = await repository.UpdateAsync(laterSelectedAccountId, new AccountUpdateRequest
+        {
+            IsActive = true,
+            UpdatedBy = userId,
+        });
+        Assert.NotNull(switched);
+
+        var replay = await repository.DeleteAsync(deletedAccountId, request);
+
+        Assert.NotNull(replay);
+        Assert.Equal(originalSelectedAccountId, replay!.SelectedAccountId);
+        Assert.False(replay.CreatedReplacement);
     }
 
     [Fact]
@@ -390,4 +569,43 @@ public class AccountRepositoryTests
         UpdatedBy = userId,
         IsDeleted = false,
     };
+
+    private sealed class RetryingTestExecutionStrategy(ExecutionStrategyDependencies dependencies)
+        : ExecutionStrategy(dependencies, maxRetryCount: 1, maxRetryDelay: TimeSpan.Zero)
+    {
+        protected override bool ShouldRetryOn(Exception exception) => false;
+    }
+
+    private sealed class CommitResultUnknownRetryingExecutionStrategy(
+        ExecutionStrategyDependencies dependencies)
+        : ExecutionStrategy(dependencies, maxRetryCount: 1, maxRetryDelay: TimeSpan.Zero)
+    {
+        protected override bool ShouldRetryOn(Exception exception) =>
+            exception is CommitResultUnknownException;
+    }
+
+    private sealed class CommitResultUnknownInterceptor : DbTransactionInterceptor
+    {
+        private bool armed;
+
+        public bool WasThrown { get; private set; }
+
+        public void Arm() => armed = true;
+
+        public override Task TransactionCommittedAsync(
+            DbTransaction transaction,
+            TransactionEndEventData eventData,
+            CancellationToken cancellationToken = default)
+        {
+            if (armed && !WasThrown)
+            {
+                armed = false;
+                WasThrown = true;
+                throw new CommitResultUnknownException();
+            }
+            return Task.CompletedTask;
+        }
+    }
+
+    private sealed class CommitResultUnknownException : Exception;
 }

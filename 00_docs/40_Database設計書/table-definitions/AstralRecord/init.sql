@@ -228,6 +228,33 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_account_user_slot_active]
 GO
 
 -- ============================================================
+-- AstralRecord\dbo.account_delete_receipt.md
+-- ============================================================
+
+CREATE TABLE [dbo].[account_delete_receipt] (
+    [deleted_account_id]  UNIQUEIDENTIFIER NOT NULL,
+    [user_id]             UNIQUEIDENTIFIER NOT NULL,
+    [deleted_slot_index]  INT              NOT NULL,
+    [selected_account_id] UNIQUEIDENTIFIER NOT NULL,
+    [created_replacement] BIT              NOT NULL,
+    [deleted_by]          UNIQUEIDENTIFIER NOT NULL,
+    [completed_at]        DATETIME2(3)     NOT NULL,
+
+    CONSTRAINT [PK_account_delete_receipt] PRIMARY KEY CLUSTERED ([deleted_account_id]),
+    CONSTRAINT [FK_account_delete_receipt_deleted_account] FOREIGN KEY ([deleted_account_id])
+        REFERENCES [dbo].[account] ([uuid]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT [FK_account_delete_receipt_user] FOREIGN KEY ([user_id])
+        REFERENCES [dbo].[user] ([uuid]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT [FK_account_delete_receipt_selected_account] FOREIGN KEY ([selected_account_id])
+        REFERENCES [dbo].[account] ([uuid]) ON DELETE NO ACTION ON UPDATE NO ACTION
+);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_account_delete_receipt_user_completed]
+    ON [dbo].[account_delete_receipt] ([user_id], [completed_at]);
+GO
+
+-- ============================================================
 -- AstralRecord\dbo.account_class_progress.md
 -- ============================================================
 

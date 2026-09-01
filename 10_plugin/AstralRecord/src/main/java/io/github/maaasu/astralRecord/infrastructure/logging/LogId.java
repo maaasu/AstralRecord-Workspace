@@ -463,6 +463,14 @@ public enum LogId {
      * 採集報酬の経験値反映に失敗しました: accountId=%s, experience=%d
      */
     E_5159(5159),
+    /**
+     * アカウント削除に失敗しました (API/command): %s
+     */
+    E_5160(5160),
+    /**
+     * アカウント削除後のプレイヤー再ロードに失敗しました (command): %s
+     */
+    E_5161(5161),
     // endregion
 
     // region /feature/guide/ 5180-5189

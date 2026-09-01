@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.account.command.AccountCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountDeleteCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountModeCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountModeTabCompleter;
+import io.github.maaasu.astralRecord.feature.account.command.AccountSwitchCommand;
 import io.github.maaasu.astralRecord.feature.account.command.AccountTabCompleter;
 import io.github.maaasu.astralRecord.feature.account.command.LevelCommand;
 import io.github.maaasu.astralRecord.feature.account.command.LevelTabCompleter;
@@ -162,6 +163,15 @@ public class CommandRegister {
      */
     public AccountDeleteCommand getAccountDeleteCommand() {
         return accountCommand.getDeleteCommand();
+    }
+
+    /**
+     * アカウント切替コマンドのイベントハンドラを取得します。
+     *
+     * @return コマンド登録時に生成したアカウント切替コマンド
+     */
+    public AccountSwitchCommand getAccountSwitchCommand() {
+        return accountCommand.getSwitchCommand();
     }
 
     public final void registerCommand() {

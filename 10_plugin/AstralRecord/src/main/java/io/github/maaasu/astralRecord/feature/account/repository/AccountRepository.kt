@@ -145,7 +145,7 @@ class AccountRepository {
      * 指定プレイヤーの選択中アカウントを切り替えます。
      * PUT /api/account/{targetUuid}
      */
-    fun switchActiveAccount(userId: UUID, targetUuid: UUID, updatedBy: UUID) {
+    fun switchActiveAccount(userId: UUID, targetUuid: UUID, updatedBy: UUID): AccountModel {
         val path = "/api/account/$targetUuid"
         val body = buildSwitchActiveAccountJson(updatedBy)
         try {
@@ -159,6 +159,7 @@ class AccountRepository {
                     throw IOException("Unexpected status ${response.statusCode()} for PUT $path")
                 }
                 Logger.log(LogId.D_5153, userId, targetUuid)
+                return parseAccountModel(response.body())
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()

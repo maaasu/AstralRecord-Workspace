@@ -40,6 +40,7 @@ public class AccountService {
     private final AccountRepository accountRepository;
     private final Map<UUID, PendingExperienceUpdate> pendingExperienceUpdates = new ConcurrentHashMap<>();
     private final Map<UUID, PendingClassProgressUpdate> pendingClassProgressUpdates = new ConcurrentHashMap<>();
+    private final Map<UUID, List<Integer>> accountSlotIndexes = new ConcurrentHashMap<>();
     private final BukkitTask flushTask;
 
     public AccountService(@NotNull Plugin plugin, @NotNull AccountRepository accountRepository) {
@@ -60,9 +61,24 @@ public class AccountService {
      * @return アカウントモデルのリスト
      */
     public List<AccountModel> getAccounts(UUID userId) {
-        return accountRepository.findByUserId(userId).stream()
+        List<AccountModel> accounts = accountRepository.findByUserId(userId).stream()
             .map(this::overlayPendingProgress)
             .toList();
+        cacheAccountSlotIndexes(userId, accounts);
+        return accounts;
+    }
+
+    /**
+     * アカウント一覧取得済み時点のスロット番号を返します。
+     * <p>
+     * コマンド補完から API の同期通信を発生させないため、このメソッドはメモリ上のキャッシュだけを参照します。
+     * 未取得の場合は空のリストを返します。
+     *
+     * @param userId プレイヤー UUID
+     * @return 作成済みアカウントのスロット番号
+     */
+    public List<Integer> getCachedSlotIndexes(@NotNull UUID userId) {
+        return accountSlotIndexes.getOrDefault(userId, List.of());
     }
 
     /**
@@ -136,6 +152,9 @@ public class AccountService {
             false
         );
         AccountModel created = accountRepository.insert(model);
+        List<AccountModel> cachedAccounts = new ArrayList<>(existing);
+        cachedAccounts.add(created);
+        cacheAccountSlotIndexes(userId, cachedAccounts);
         Logger.log(LogId.I_5100, accountName, slotIndex, userId);
         return created;
     }
@@ -145,10 +164,12 @@ public class AccountService {
      *
      * @param userId プレイヤー UUID
      * @param accountUuid 選択するアカウント UUID
+     * @return 切替後のアカウントモデル
      */
-    public void switchAccount(UUID userId, UUID accountUuid) {
-        accountRepository.switchActiveAccount(userId, accountUuid, userId);
+    public AccountModel switchAccount(UUID userId, UUID accountUuid) {
+        AccountModel switched = accountRepository.switchActiveAccount(userId, accountUuid, userId);
         Logger.log(LogId.I_5101, accountUuid, userId);
+        return overlayPendingProgress(switched);
     }
 
     /**
@@ -177,6 +198,15 @@ public class AccountService {
         pendingClassProgressUpdates.remove(accountUuid);
         AccountDeleteResult result = accountRepository.delete(accountUuid, deletedBy);
         if (result != null) {
+            accountSlotIndexes.computeIfPresent(result.getUserId(), (ignored, slots) -> {
+                List<Integer> updatedSlots = new ArrayList<>(slots.stream()
+                    .filter(slot -> slot != result.getDeletedSlotIndex())
+                    .toList());
+                if (result.getCreatedReplacement()) {
+                    updatedSlots.add(result.getDeletedSlotIndex());
+                }
+                return updatedSlots.stream().distinct().sorted().toList();
+            });
             Logger.log(LogId.I_5104, accountUuid, result.getDeletedSlotIndex(), deletedBy);
         }
         return result;
@@ -424,6 +454,16 @@ public class AccountService {
         flushPendingClassProgress(pending.getUuid(), pendingClassProgressUpdates.get(pending.getUuid()));
     }
 
+    /**
+     * 指定アカウントのクラス進行度保存が保留されているかを返します。
+     *
+     * @param accountUuid アカウント UUID
+     * @return API 保存待ちのクラス進行度がある場合は {@code true}
+     */
+    public boolean hasPendingClassProgress(@NotNull UUID accountUuid) {
+        return pendingClassProgressUpdates.containsKey(accountUuid);
+    }
+
     private void flushPendingClassProgress(@NotNull UUID accountUuid, @Nullable PendingClassProgressUpdate snapshot) {
         if (snapshot == null) {
             return;
@@ -465,6 +505,17 @@ public class AccountService {
         AccountModel overlaid = pending == null ? account : pending.account();
         PendingClassProgressUpdate classPending = pendingClassProgressUpdates.get(account.getUuid());
         return classPending == null ? overlaid : withPendingClassProgress(overlaid, classPending.account());
+    }
+
+    private void cacheAccountSlotIndexes(@NotNull UUID userId, @NotNull List<AccountModel> accounts) {
+        accountSlotIndexes.put(
+            userId,
+            accounts.stream()
+                .map(AccountModel::getSlotIndex)
+                .distinct()
+                .sorted()
+                .toList()
+        );
     }
 
     /**

@@ -464,6 +464,28 @@ public final class InventorySaveCoordinator {
         @Nullable PlayerInventoryState expectedState,
         @NotNull Runnable logoutSave
     ) {
+        return saveOnLogoutWithResult(accountId, expectedState, () -> {
+            logoutSave.run();
+            return true;
+        });
+    }
+
+    /**
+     * 結果を返すログアウト保存を、同一アカウントの先行保存完了後に実行します。
+     * <p>
+     * インベントリ以外の保存結果も含めて成功判定を行うため、アカウント切替など、旧セッションの
+     * 全保存成功を要求する処理から使用します。
+     *
+     * @param accountId 対象アカウント ID
+     * @param expectedState ログアウトしたセッションの state。未ロード時は {@code null}
+     * @param logoutSave API 永続化を行い、成功した場合 {@code true} を返すログアウト保存処理
+     * @return すべての保存が成功した場合 {@code true} となる future
+     */
+    public @NotNull CompletableFuture<Boolean> saveOnLogoutWithResult(
+        @NotNull UUID accountId,
+        @Nullable PlayerInventoryState expectedState,
+        @NotNull Supplier<Boolean> logoutSave
+    ) {
         CompletableFuture<Boolean> future = enqueue(accountId, false, () -> {
             if (unresolvedExternalOperations.contains(accountId)) {
                 if (expectedState != null) {
@@ -471,10 +493,13 @@ public final class InventorySaveCoordinator {
                 }
                 return false;
             }
-            logoutSave.run();
-            boolean succeeded = expectedState == null || !persistence.hasPendingChanges(expectedState);
+            boolean logoutSucceeded = Boolean.TRUE.equals(logoutSave.get());
+            boolean inventorySucceeded = expectedState == null || !persistence.hasPendingChanges(expectedState);
+            boolean succeeded = logoutSucceeded && inventorySucceeded;
             if (!succeeded) {
-                expectedState.restoreDirty();
+                if (expectedState != null) {
+                    expectedState.restoreDirty();
+                }
                 Logger.warn(LogId.W_5256, accountId);
             }
             return succeeded;
@@ -538,6 +563,60 @@ public final class InventorySaveCoordinator {
                 return CompletableFuture.completedFuture(null);
             }
             lane.jobs.addLast(new SaveJob(false, () -> true, barrier));
+        }
+        return barrier.thenApply(ignored -> null);
+    }
+
+    /**
+     * 呼び出し時点までに同一アカウントへ登録された保存の後ろへ、失敗を伝播するバリアを追加します。
+     * <p>
+     * 通常の再ログインで使用する {@link #awaitQueuedSaves(UUID)} は、既存仕様どおり先行保存の
+     * {@code false} を呼び出し側へ伝播しません。一方、アカウント切替では旧セッションを破棄するため、
+     * 先行保存の {@code false} または例外を検知して切替を中止する必要があります。
+     *
+     * @param accountId 対象アカウント ID
+     * @return 先行保存がすべて成功したときに完了し、失敗時は例外完了する future
+     */
+    public @NotNull CompletableFuture<Void> awaitQueuedSavesOrThrow(@NotNull UUID accountId) {
+        CompletableFuture<Boolean> barrier = new CompletableFuture<>();
+        List<CompletableFuture<Boolean>> priorResults;
+        boolean startDrain = false;
+        SaveLane lane;
+        synchronized (laneLock) {
+            lane = lanes.get(accountId);
+            if (lane == null) {
+                return CompletableFuture.completedFuture(null);
+            }
+
+            priorResults = new ArrayList<>();
+            if (lane.inFlight != null) {
+                priorResults.addAll(lane.inFlight.results);
+            }
+            for (SaveJob job : lane.jobs) {
+                priorResults.addAll(job.results);
+            }
+            lane.jobs.addLast(new SaveJob(false, () -> {
+                for (CompletableFuture<Boolean> priorResult : priorResults) {
+                    if (!Boolean.TRUE.equals(priorResult.join())) {
+                        throw new IllegalStateException(
+                            "A prior account save failed for account " + accountId
+                        );
+                    }
+                }
+                return true;
+            }, barrier));
+            if (!lane.running) {
+                lane.running = true;
+                startDrain = true;
+            }
+        }
+        if (startDrain) {
+            SaveLane scheduledLane = lane;
+            try {
+                asyncExecutor.execute(() -> drain(accountId, scheduledLane));
+            } catch (Throwable throwable) {
+                failLane(accountId, scheduledLane, throwable);
+            }
         }
         return barrier.thenApply(ignored -> null);
     }
@@ -775,6 +854,7 @@ public final class InventorySaveCoordinator {
                     lanes.remove(accountId, lane);
                     return;
                 }
+                lane.inFlight = job;
             }
             try {
                 boolean succeeded = job.operation.get();
@@ -782,6 +862,12 @@ public final class InventorySaveCoordinator {
             } catch (Throwable throwable) {
                 Logger.warn(LogId.W_5252, accountId, failureReason(throwable));
                 job.results.forEach(result -> result.completeExceptionally(throwable));
+            } finally {
+                synchronized (laneLock) {
+                    if (lane.inFlight == job) {
+                        lane.inFlight = null;
+                    }
+                }
             }
         }
     }
@@ -798,6 +884,7 @@ public final class InventorySaveCoordinator {
     private static final class SaveLane {
         private final ArrayDeque<SaveJob> jobs = new ArrayDeque<>();
         private boolean running;
+        private SaveJob inFlight;
 
         private SaveJob pendingCoalescedJob() {
             SaveJob tail = jobs.peekLast();

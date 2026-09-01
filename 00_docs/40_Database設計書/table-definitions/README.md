@@ -29,6 +29,7 @@
 | `AstralRecord` | `AstralRecord/migrations/20260815_trade_commit.sql` | プレイヤー間トレードの冪等確定台帳を追加 |
 | `AstralRecord` | `AstralRecord/migrations/20260819_add_donor_permission.sql` | `dbo.user.permission` に DONOR(5) を追加 |
 | `AstralRecord` | `AstralRecord/migrations/20260830_market_purchase_receipt.sql` | 購入再送用の更新 inventory entry ID receipt を追加。対応 API 配置前に適用 |
+| `AstralRecord` | `AstralRecord/migrations/20260901_account_delete_receipt.sql` | アカウント削除の確定応答台帳を追加 |
 
 ## AstralRecord
 
@@ -41,6 +42,7 @@
 | `dbo.account_mob_record` | `AstralRecord/dbo.account_mob_record.md` |
 | `dbo.account_dungeon_record` | `AstralRecord/dbo.account_dungeon_record.md` |
 | `dbo.account` | `AstralRecord/dbo.account.md` |
+| `dbo.account_delete_receipt` | `AstralRecord/dbo.account_delete_receipt.md` |
 | `dbo.account_class_progress` | `AstralRecord/dbo.account_class_progress.md` |
 | `dbo.account_learned_skill` | `AstralRecord/dbo.account_learned_skill.md` |
 | `dbo.account_learned_skill_sigil` | `AstralRecord/dbo.account_learned_skill_sigil.md` |
