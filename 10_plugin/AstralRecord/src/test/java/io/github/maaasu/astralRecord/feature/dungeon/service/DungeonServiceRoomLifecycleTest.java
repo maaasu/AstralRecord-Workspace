@@ -45,6 +45,8 @@ import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
+import org.bukkit.SoundCategory;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.block.BlockFace;
@@ -53,6 +55,8 @@ import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
+import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import net.kyori.adventure.title.Title;
 import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
@@ -526,7 +530,44 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         }
 
         assertEquals(List.of(eligible.getUniqueId() + ":test_dungeon"), notifications);
+        assertEquals(1L, eligible.getHeardSounds().stream()
+                .filter(sound -> sound.getSound().equals("ui.toast.challenge_complete"))
+                .count());
+        assertEquals(0L, outside.getHeardSounds().stream()
+                .filter(sound -> sound.getSound().equals("ui.toast.challenge_complete"))
+                .count());
         field(session, "clearReturnTask", BukkitTask.class).cancel();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 3. 遭遇 Mob と部屋進行
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 6. クリア報酬と30秒回収
+     * 検証契約: ダンジョンクリア時は開始時と同じ完了音と、ダンジョン名付きのクリア title を表示する。
+     */
+    @Test
+    void showsDungeonClearTitleAndCompletionSound() throws Exception {
+        DungeonService service = service(mock(MobService.class), mock(DisplayTextService.class));
+        Player player = mock(Player.class);
+        Location location = mock(Location.class);
+        when(player.getLocation()).thenReturn(location);
+
+        Method method = DungeonService.class.getDeclaredMethod("showDungeonClear", List.class, String.class);
+        method.setAccessible(true);
+        method.invoke(service, List.of(player), "古代遺跡");
+
+        ArgumentCaptor<Title> title = ArgumentCaptor.forClass(Title.class);
+        verify(player).showTitle(title.capture());
+        assertEquals("古代遺跡 クリア", PlainTextComponentSerializer.plainText().serialize(title.getValue().title()));
+        assertEquals("ダンジョン", PlainTextComponentSerializer.plainText().serialize(title.getValue().subtitle()));
+        verify(player).playSound(
+                location,
+                Sound.UI_TOAST_CHALLENGE_COMPLETE,
+                SoundCategory.PLAYERS,
+                0.9F,
+                1.0F
+        );
     }
 
     /**

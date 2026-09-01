@@ -1489,6 +1489,10 @@ public enum PlayerMsgId {
     P_7103(7103),
     /** カルトグラフ耐久切れ。 */
     P_7104(7104),
+    /** ダンジョンクリア title。{0}: ダンジョン名 */
+    P_7105(7105),
+    /** ダンジョンクリア subtitle。 */
+    P_7106(7106),
     // endregion
 
     // region /feature/whitelist 7110-7119

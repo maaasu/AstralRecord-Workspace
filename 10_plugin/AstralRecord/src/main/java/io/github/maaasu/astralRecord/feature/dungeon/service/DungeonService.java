@@ -1032,6 +1032,17 @@ public final class DungeonService {
         }
     }
 
+    private void showDungeonClear(@NotNull List<Player> players, @NotNull String name) {
+        for (Player player : players) {
+            player.showTitle(Title.title(
+                    PlayerMsgResource.formatComponent(PlayerMsgId.P_7105.getId(), name),
+                    PlayerMsgResource.getComponent(PlayerMsgId.P_7106.getId()),
+                    COUNTDOWN_TITLE_TIMES
+            ));
+            player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.9F, 1.0F);
+        }
+    }
+
     /** 制限時間が設定されたダンジョンの終了監視を開始します。 */
     private void startChallengeTimeLimit(@NotNull Session session) {
         Long timeLimitSeconds = session.loaded.definition().challenge().timeLimitSeconds();
@@ -1455,6 +1466,7 @@ public final class DungeonService {
     private void beginClearedWait(@NotNull Session session, @NotNull DungeonLayout.Room bossRoom) {
         if (session.cleared || session.ending || session.instanceWorld == null) return;
         session.cleared = true;
+        showDungeonClear(activePlayersInWorld(session), session.loaded.definition().displayName());
         try {
         for (Player player : activePlayersInWorld(session)) {
             AstPlayer astPlayer = AstPlayerCache.get(player);
