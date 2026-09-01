@@ -222,7 +222,7 @@ public final class DesignTestFixtures {
     }
 
     public static MobInstance mobInstance(double maxHealth, double defense, double magicDefense) {
-        return mobInstance(1, maxHealth, defense, magicDefense, MobShieldConfig.EMPTY);
+        return mobInstance(1, MobCategory.ENEMY, maxHealth, 0.0D, defense, magicDefense, MobShieldConfig.EMPTY);
     }
 
     public static MobInstance mobInstance(
@@ -231,7 +231,17 @@ public final class DesignTestFixtures {
         double magicDefense,
         MobShieldConfig shield
     ) {
-        return mobInstance(1, maxHealth, defense, magicDefense, shield);
+        return mobInstance(1, MobCategory.ENEMY, maxHealth, 0.0D, defense, magicDefense, shield);
+    }
+
+    public static MobInstance mobInstance(
+        MobCategory category,
+        double maxHealth,
+        double defense,
+        double magicDefense,
+        MobShieldConfig shield
+    ) {
+        return mobInstance(1, category, maxHealth, 0.0D, defense, magicDefense, shield);
     }
 
     public static MobInstance mobInstance(
@@ -241,7 +251,7 @@ public final class DesignTestFixtures {
         double magicDefense,
         MobShieldConfig shield
     ) {
-        return mobInstance(level, maxHealth, 0.0D, defense, magicDefense, shield);
+        return mobInstance(level, MobCategory.ENEMY, maxHealth, 0.0D, defense, magicDefense, shield);
     }
 
     public static MobInstance mobInstanceWithAttack(
@@ -250,11 +260,12 @@ public final class DesignTestFixtures {
         double defense,
         double magicDefense
     ) {
-        return mobInstance(1, maxHealth, attack, defense, magicDefense, MobShieldConfig.EMPTY);
+        return mobInstance(1, MobCategory.ENEMY, maxHealth, attack, defense, magicDefense, MobShieldConfig.EMPTY);
     }
 
     private static MobInstance mobInstance(
         int level,
+        MobCategory category,
         double maxHealth,
         double attack,
         double defense,
@@ -264,7 +275,7 @@ public final class DesignTestFixtures {
         MobTemplate template = new MobTemplate(
             1,
             "test_mob",
-            MobCategory.ENEMY,
+            category,
             "Test Mob",
             null,
             level,

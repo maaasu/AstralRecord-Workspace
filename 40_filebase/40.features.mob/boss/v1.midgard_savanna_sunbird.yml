@@ -29,7 +29,7 @@ tags:
 
 baseStats:
   - status: MAX_HEALTH
-    value: 52000
+    value: 41600
   - status: ATTACK
     value: 434
   - status: DEFENSE
@@ -44,6 +44,12 @@ baseStats:
     value: 100
   - status: SHIELD_BREAK
     value: 9
+
+shield:
+  enabled: true
+  max: 70
+  rechargeTimeSeconds: 30
+  rechargeAmount: 70
 
 ai:
   idle:
@@ -86,7 +92,6 @@ challenge:
   reviveDelaySeconds: 5
   scaling:
     enabled: true
-    healthPerExtraPlayer: 100.0
     attackPerExtraPlayer: 0.0
 
 drops:

@@ -89,9 +89,10 @@ Enemy と同一仕様です。
 | `challenge.timeLimitSeconds` | Long | × | 制限時間。未指定時 600 |
 | `challenge.deathLimit` | Integer | × | 0 以上。設定回数までは死亡可能で、次の死亡時に終了するパーティー共有死亡許容回数。未指定時 5 |
 | `challenge.reviveDelaySeconds` | Long | × | 許容回数以内の死亡時にフィールドへ復帰するまでの秒数。未指定時 5 |
-| `challenge.scaling.enabled` | Boolean | × | 参加人数補正の有効化 |
-| `challenge.scaling.healthPerExtraPlayer` | Double | × | 2人目以降1人あたりの HP 増加率 (%) |
-| `challenge.scaling.attackPerExtraPlayer` | Double | × | 2人目以降1人あたりの攻撃力増加率 (%)。ボスの与ダメージ倍率へ適用する |
+| `challenge.scaling.enabled` | Boolean | × | BossChallenge 固有の与ダメージ補正を有効化 |
+| `challenge.scaling.attackPerExtraPlayer` | Double | × | 2人目以降1人あたりの攻撃力増加率 (%)。BossChallenge の与ダメージ倍率へ適用する |
+
+BossChallenge／Dungeon の BOSS Mob に対する HP・シールドの参加人数補正は固定仕様であり、YAML から変更しない。`extraPlayers = max(0, 参加人数 - 1)` に対し、HP は `1 + extraPlayers × 50%`、シールドは `1 + extraPlayers × 30%` とする。
 
 ---
 

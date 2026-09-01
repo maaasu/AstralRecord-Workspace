@@ -1119,14 +1119,15 @@ public final class BossChallengeService {
     }
 
     static void applyParticipantScaling(@NotNull BossChallengeInstance challenge, @NotNull MobInstance boss) {
+        if (boss.template().category() != MobCategory.BOSS) {
+            return;
+        }
+        BossMobScalingService.apply(boss, challenge.participantIds().size());
         if (!challenge.config().scaling().enabled()) {
             return;
         }
         int extraPlayers = Math.max(0, challenge.participantIds().size() - 1);
-        double healthMultiplier = 1.0D + extraPlayers * Math.max(0.0D, challenge.config().scaling().healthPerExtraPlayer()) / 100.0D;
         double attackMultiplier = 1.0D + extraPlayers * Math.max(0.0D, challenge.config().scaling().attackPerExtraPlayer()) / 100.0D;
-        boss.maxHealth(boss.maxHealth() * healthMultiplier);
-        boss.currentHealth(boss.maxHealth());
         boss.outgoingDamageMultiplier(attackMultiplier);
     }
 

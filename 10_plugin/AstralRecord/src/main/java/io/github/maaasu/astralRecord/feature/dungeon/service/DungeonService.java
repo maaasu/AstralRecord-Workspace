@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureDungeonRecord;
 import io.github.maaasu.astralRecord.feature.adventurerecord.repository.AdventureRecordRepository;
+import io.github.maaasu.astralRecord.feature.boss.service.BossMobScalingService;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.dungeon.generation.DungeonBlockPlanner;
 import io.github.maaasu.astralRecord.feature.dungeon.generation.DungeonEncounterPlanner;
@@ -1184,6 +1185,7 @@ public final class DungeonService {
             );
             MobInstance mob = mobService.spawn(selected, location);
             if (mob != null) {
+                BossMobScalingService.apply(mob, session.originalParticipants.size());
                 mob.keepWhenUnobserved(true);
                 liveMobs.add(mob.instanceId());
                 mobBindings.put(mob.instanceId(), new MobBinding(session.id, roomId));

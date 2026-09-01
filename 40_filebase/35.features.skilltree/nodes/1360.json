@@ -1,13 +1,14 @@
 {
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
-  "nodeId": "1271",
-  "name": "&6砕盾の極星",
-  "icon": "SPECTRAL_ARROW",
+  "nodeId": "1360",
+  "name": "&6破盾迅刃の極星",
+  "icon": "NETHERITE_SWORD",
   "tags": [
     "status",
     "offense",
-    "shield"
+    "shield",
+    "agility"
   ],
   "pointType": "CP",
   "pointCost": 2,
@@ -16,16 +17,16 @@
       "type": "status",
       "status": "SHIELD_BREAK",
       "modifierType": "FLAT",
-      "value": 1.0
+      "value": 4
     },
     {
       "type": "status",
-      "status": "RANGED_DEFENSE_PENETRATION_RATE",
+      "status": "ATTACK_SPEED",
       "modifierType": "FLAT",
-      "value": 5.0
+      "value": 4
     }
   ],
   "unlockCondition": {
-    "classId": "hunter"
+    "classId": "swordsman"
   }
 }

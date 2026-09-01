@@ -237,7 +237,6 @@ public class MobRepositoryPayloadTests
                 "reviveDelaySeconds": 5,
                 "scaling": {
                   "enabled": true,
-                  "healthPerExtraPlayer": 35.0,
                   "attackPerExtraPlayer": 10.0
                 }
               }
@@ -255,7 +254,7 @@ public class MobRepositoryPayloadTests
         Assert.Equal(5, mob.Challenge.ReviveDelaySeconds);
         Assert.NotNull(mob.Challenge.Scaling);
         Assert.True(mob.Challenge.Scaling!.Enabled);
-        Assert.Equal(35.0D, mob.Challenge.Scaling.HealthPerExtraPlayer);
+        Assert.Equal(10.0D, mob.Challenge.Scaling.AttackPerExtraPlayer);
     }
 
     [Fact]

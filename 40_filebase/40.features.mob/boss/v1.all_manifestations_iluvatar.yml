@@ -22,7 +22,7 @@ tags:
   - shield
 baseStats:
   - status: MAX_HEALTH
-    value: 11200
+    value: 8960
   - status: ATTACK
     value: 305
   - status: DEFENSE
@@ -39,7 +39,7 @@ baseStats:
     value: 9
 shield:
   enabled: true
-  max: 3
+  max: 30
 ai:
   idle:
     behavior: STATIONARY

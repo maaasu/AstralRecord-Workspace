@@ -101,8 +101,10 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 | `status-swordsman-max-shield-notable` | `1229` | `MAX_SHIELD / FLAT / 12` + `DEFENSE / FLAT / 2` | `&6不落の極星` | `SHIELD` | `status`, `defense`, `shield`, `durability` |
 | `status-swordsman-shield-recharge-ring` | `1230`～`1233` | `SHIELD_RECHARGE_REDUCTION / FLAT / 2.5` | `&b再生障壁の星環` | `PRISMARINE_CRYSTALS` | `status`, `defense`, `shield`, `resource` |
 | `status-swordsman-shield-recharge-notable` | `1234` | `SHIELD_RECHARGE_REDUCTION / FLAT / 10` + `MAX_SHIELD / FLAT / 5` | `&6瞬復城塞の極星` | `RECOVERY_COMPASS` | `status`, `defense`, `shield`, `resource` |
+| `status-swordsman-shield-break-speed-ring` | `1356`～`1359` | `SHIELD_BREAK / FLAT / 1` + `ATTACK_SPEED / FLAT / 1` | `&b破盾疾走の星環` | `PRISMARINE_CRYSTALS` | `status`, `offense`, `shield`, `agility` |
+| `status-swordsman-shield-break-speed-notable` | `1360` | `SHIELD_BREAK / FLAT / 4` + `ATTACK_SPEED / FLAT / 4` | `&6破盾迅刃の極星` | `NETHERITE_SWORD` | `status`, `offense`, `shield`, `agility` |
 
-4円環を全取得した場合は、`CRITICAL_RATE +5`、`CRITICAL_DAMAGE +10`、`SUPER_CRITICAL_RATE +4`、`SUPER_CRITICAL_DAMAGE +10`、`MAX_SHIELD +25`、`DEFENSE +2`、`SHIELD_RECHARGE_REDUCTION +20` となります。率と短縮の `FLAT` 値はパーセントポイントです。超星会心は主撃に加えて7個の追尾弾を生成するため、通常会心より遠い専門選択として扱い、最終値はプレイテスト対象とします。
+5円環を全取得した場合は、`CRITICAL_RATE +5`、`CRITICAL_DAMAGE +10`、`SUPER_CRITICAL_RATE +4`、`SUPER_CRITICAL_DAMAGE +10`、`MAX_SHIELD +25`、`DEFENSE +2`、`SHIELD_RECHARGE_REDUCTION +20`、`SHIELD_BREAK +8`、`ATTACK_SPEED +8` となります。率と短縮の `FLAT` 値はパーセントポイントです。超星会心は主撃に加えて7個の追尾弾を生成するため、通常会心より遠い専門選択として扱い、最終値はプレイテスト対象とします。
 
 ## ハンター専門円環
 
@@ -112,13 +114,13 @@ PPの通常・強化パッケージは1PP、各方向のnotableは2PPとしま�
 | `status-accuracy-flat-1` | `1238`, `1246`, `1254` | `ACCURACY / FLAT / 1` | `&d照準の星脈` | `SPYGLASS` | `status`, `offense`, `accuracy` |
 | `status-ranged-accuracy-flat-1` | `1241` | `RANGED_ATTACK / FLAT / 1` + `ACCURACY / FLAT / 1` | `&d狙撃の連星` | `CROSSBOW` | `status`, `offense`, `accuracy`, `wind` |
 | `status-hunter-ranged-notable` | `1266` | `RANGED_ATTACK / FLAT / 5` + `ACCURACY / FLAT / 3` | `&6天穹射の極星` | `CROSSBOW` | `status`, `offense`, `accuracy`, `wind` |
-| `status-hunter-shield-break-ring` | `1267`～`1270` | `SHIELD_BREAK / FLAT / 0.5` | `&b砕盾の星環` | `PRISMARINE_CRYSTALS` | `status`, `offense`, `shield` |
-| `status-hunter-shield-break-notable` | `1271` | `SHIELD_BREAK / FLAT / 3` + `RANGED_DEFENSE_PENETRATION_RATE / FLAT / 5` | `&6砕盾の極星` | `SPECTRAL_ARROW` | `status`, `offense`, `shield` |
+| `status-hunter-shield-break-ring` | `1267`～`1270` | `SHIELD_BREAK / FLAT / 0.25` | `&b砕盾の星環` | `PRISMARINE_CRYSTALS` | `status`, `offense`, `shield` |
+| `status-hunter-shield-break-notable` | `1271` | `SHIELD_BREAK / FLAT / 1` + `RANGED_DEFENSE_PENETRATION_RATE / FLAT / 5` | `&6砕盾の極星` | `SPECTRAL_ARROW` | `status`, `offense`, `shield` |
 | `status-hunter-movement-notable` | `1276` | `MOVEMENT_SPEED / FLAT / 5` + `EVASION / FLAT / 2` | `&6風歩の極星` | `ELYTRA` | `status`, `agility`, `defense`, `wind` |
 | `status-hunter-energy-cost-ring` | `1277`～`1280` | `ENERGY_COST_REDUCTION / FLAT / 1` | `&b節気の星環` | `HONEY_BOTTLE` | `status`, `resource`, `energy`, `azure` |
 | `status-hunter-energy-notable` | `1281` | `ENERGY_COST_REDUCTION / FLAT / 4` + `ENERGY_REGEN / FLAT / 2` | `&6蒼穹の極星` | `NETHER_STAR` | `status`, `resource`, `energy`, `azure` |
 
-4円環を含むハンター地域の全取得は55ハンターCPです。専門円環の合計は `RANGED_ATTACK +9`、`ACCURACY +3`、`SHIELD_BREAK +5`、`RANGED_DEFENSE_PENETRATION_RATE +5`、`MOVEMENT_SPEED +9`、`EVASION +2`、`ENERGY_COST_REDUCTION +8`、`ENERGY_REGEN +2` です。skill解放4nodeは関連する小nodeから独立分岐します。
+4円環を含むハンター地域の全取得は55ハンターCPです。専門円環の合計は `RANGED_ATTACK +9`、`ACCURACY +3`、`SHIELD_BREAK +2`、`RANGED_DEFENSE_PENETRATION_RATE +5`、`MOVEMENT_SPEED +9`、`EVASION +2`、`ENERGY_COST_REDUCTION +8`、`ENERGY_REGEN +2` です。skill解放4nodeは関連する小nodeから独立分岐します。
 
 ## メイジ専門円環
 

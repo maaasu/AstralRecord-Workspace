@@ -553,7 +553,6 @@ public class MobRepository {
         if (obj == null) return BossScalingConfig.EMPTY;
         return new BossScalingConfig(
                 obj.has("enabled") && obj.get("enabled").getAsBoolean(),
-                obj.has("healthPerExtraPlayer") ? obj.get("healthPerExtraPlayer").getAsDouble() : 0.0D,
                 obj.has("attackPerExtraPlayer") ? obj.get("attackPerExtraPlayer").getAsDouble() : 0.0D
         );
     }

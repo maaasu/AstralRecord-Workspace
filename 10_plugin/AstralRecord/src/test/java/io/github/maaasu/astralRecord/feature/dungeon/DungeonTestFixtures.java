@@ -2,12 +2,14 @@ package io.github.maaasu.astralRecord.feature.dungeon;
 
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonDefinition;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonRoomShape;
+import io.github.maaasu.astralRecord.feature.mob.model.MobBaseStat;
 import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobEquipmentConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobIdleConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInteractionsConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import org.bukkit.Material;
 import org.bukkit.entity.EntityType;
 
@@ -84,6 +86,38 @@ public final class DungeonTestFixtures {
                 MobEquipmentConfig.EMPTY,
                 List.of(),
                 MobShieldConfig.EMPTY,
+                MobIdleConfig.defaults(),
+                false,
+                MobInteractionsConfig.EMPTY,
+                null,
+                null,
+                null
+        );
+    }
+
+    public static MobTemplate mob(
+            String id,
+            int level,
+            MobCategory category,
+            double maxHealth,
+            MobShieldConfig shield
+    ) {
+        return new MobTemplate(
+                1,
+                id,
+                category,
+                id,
+                null,
+                level,
+                EntityType.ZOMBIE,
+                false,
+                null,
+                List.of(),
+                List.of(),
+                null,
+                MobEquipmentConfig.EMPTY,
+                List.of(new MobBaseStat(StatusType.MAX_HEALTH.name(), maxHealth)),
+                shield,
                 MobIdleConfig.defaults(),
                 false,
                 MobInteractionsConfig.EMPTY,

@@ -49,7 +49,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 
 ### 現行の基礎ステータスパッケージ
 
-`starter` 構造は、全職共通のPP基礎領域、冒険者CP基礎幹、ソードマン・ハンター・メイジのCP基礎幹・専門円環とskill解放を定義します。現行は221nodeで構成し、職業条件が異なるnodeも含めて同一座標へ重ねません。
+`starter` 構造は、全職共通のPP基礎領域、冒険者CP基礎幹、ソードマン・ハンター・メイジのCP基礎幹・専門円環とskill解放を定義します。現行は226nodeで構成し、職業条件が異なるnodeも含めて同一座標へ重ねません。
 
 | 地域 | node | 消費 | 解放条件 |
 |:--|--:|:--|:--|
@@ -59,7 +59,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 | 冒険者基礎幹 | 29 | 冒険者CP 29 | `classId: adventurer` |
 | 冒険者skill解放 | 1 | 冒険者CP 1 | `classId: adventurer` |
 | ソードマン基礎幹 | 27 | ソードマンCP 27 | `classId: swordsman` |
-| ソードマン専門円環 | 20 | ソードマンCP 24 | `classId: swordsman` |
+| ソードマン専門円環 | 25 | ソードマンCP 30 | `classId: swordsman` |
 | ソードマンskill解放 | 5 | ソードマンCP 5 | `classId: swordsman` |
 | ハンター基礎幹 | 27 | ハンターCP 27 | `classId: hunter` |
 | ハンター専門円環 | 20 | ハンターCP 24 | `classId: hunter` |
@@ -76,11 +76,12 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 - `unlockCondition.playerLevel` は設定せず、接続経路とPP残高で進行を制御します。Player Level 100以上まで拡張する前提で、今回の4小円は内周の基本領域とし、将来はnotableの先から追加クラスタへ伸ばします。
 - 冒険者CP基礎幹は、PP小円の間にある北西・北東・南東・南西の斜め4方向へ、北西8node、ほか各7nodeで配置します。中央無料環から直接接続し、PP小円を中継しません。各nodeは1冒険者CPで、`classId: adventurer` を設定します。
 - ソードマンCP基礎幹は、冒険者幹の4つの中継nodeから分岐する4枝に27nodeを配置します。各status nodeは1ソードマンCPで、`classId: swordsman` を設定します。
-- ソードマン基礎幹の中間から、通常会心、超星会心、Shield容量、Shield再充填の4専門円環を分岐します。各円環は1CPの小nodeを2個ずつ並べた2経路に分かれ、両経路が2CPのnotableへ再合流します。小node4個とnotable1個で1円環6CP、4円環合計20node・24CPです。
+- ソードマン基礎幹の中間から、通常会心、超星会心、Shield容量、Shield再充填、破盾疾走の5専門円環を分岐します。各円環は1CPの小nodeを2個ずつ並べた2経路に分かれ、両経路が2CPのnotableへ再合流します。小node4個とnotable1個で1円環6CP、5円環合計25node・30CPです。
 - 通常会心円環は小nodeで `CRITICAL_RATE +0.5` を4個、notableで `CRITICAL_RATE +3 / CRITICAL_DAMAGE +10` を与えます。超星会心円環は小nodeで `SUPER_CRITICAL_RATE +0.5` を4個、notableで `SUPER_CRITICAL_RATE +2 / SUPER_CRITICAL_DAMAGE +10` を与えます。
 - Shield容量円環は小nodeで `MAX_SHIELD +2` を4個、notableで `MAX_SHIELD +12 / DEFENSE +2` を与えます。Shield再充填円環は小nodeで `SHIELD_RECHARGE_REDUCTION +2.5` を4個、notableで `SHIELD_RECHARGE_REDUCTION +10 / MAX_SHIELD +5` を与えます。再充填短縮はShield破壊後の通常30秒待機、再充填パッシブの8秒待機、敵から受ける追加待機を同じ比率で短縮します。
+- 破盾疾走円環は小nodeで `SHIELD_BREAK +1 / ATTACK_SPEED +1` を4個、notableで `SHIELD_BREAK +4 / ATTACK_SPEED +4` を与えます。全取得時に合計 `SHIELD_BREAK +8 / ATTACK_SPEED +8` となり、シールド破壊をソードマンの主軸として伸ばしつつ、通常攻撃の回転率も伸ばせます。
 - ソードマンskill解放nodeは専門円環のnotable先端へ置かず、関連する小nodeから独立したleafとして分岐します。通常会心円環から `swordsman_flame_rush`、Shield容量円環の別経路から `swordsman_bastion_strike` と `swordsman_last_shield`、Shield再充填円環から `administrator_shield_recharge` と `swordsman_shield_activate` を分岐し、各nodeは1ソードマンCPで使用許可を与えます。シールドアクティベートはShield再充填円環の終端側で、シールド獲得の入口として配置します。
-- ハンターは27nodeの汎用幹から、間接攻撃・Shield破壊・機動・EN効率の4専門円環へ分岐します。各円環はソードマンと同じ2経路・1notable構造で、全取得は56ハンターCPです。`hunter_crash_arrow`、`hunter_heal_arrow`、`hunter_spell_step`、`hunter_build_up`、`administrator_just_dodge` は関連する小nodeから独立したleafとして分岐します。ジャスト回避は冒険者node `1350` と同じ表示・効果を再利用し、ハンターnode `1355` から使用許可を与えます。
+- ハンターは27nodeの汎用幹から、間接攻撃・Shield破壊・機動・EN効率の4専門円環へ分岐します。各円環はソードマンと同じ2経路・1notable構造で、全取得は56ハンターCPです。Shield破壊専門円環の全取得値は `SHIELD_BREAK +2` とし、ソードマンの `+8` より低く設定します。`hunter_crash_arrow`、`hunter_heal_arrow`、`hunter_spell_step`、`hunter_build_up`、`administrator_just_dodge` は関連する小nodeから独立したleafとして分岐します。ジャスト回避は冒険者node `1350` と同じ表示・効果を再利用し、ハンターnode `1355` から使用許可を与えます。
 - メイジは27nodeの汎用幹から、魔導・炎・雷・氷の4専門円環へ分岐します。各円環は2経路・1notable構造で、全取得は56メイジCPです。`mage_arcane_flow`、`mage_sparking`、`mage_fireball`、`mage_frost_blizzard`、`mage_frost_ball` は関連する小nodeから独立したleafとして分岐します。
 - 冒険者の敏捷幹から `administrator_just_dodge` を独立した1CP leafとして分岐し、ハンターにも同じ効果・表示を再利用した1CP leafを配置します。skill nodeはstatus nodeへ混載せず、関連する基礎幹・専門円環の途中から独立接続します。
 

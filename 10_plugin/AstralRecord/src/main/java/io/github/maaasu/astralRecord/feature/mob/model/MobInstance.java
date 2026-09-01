@@ -29,8 +29,10 @@ public final class MobInstance {
     private Location currentLocation;
     private double maxHealth;
     private double currentHealth;
+    private double healthCapacityMultiplier = 1.0D;
     private double currentShield;
     private double shieldDisplayCapacity;
+    private double shieldCapacityMultiplier = 1.0D;
     private ShieldRechargeState shieldRechargeState;
     private double outgoingDamageMultiplier = 1.0D;
     /** テンプレート設定を初期値とする、実行時のダメージ無効化フラグ。 */
@@ -233,6 +235,24 @@ public final class MobInstance {
     }
 
     /**
+     * 現在の最大 HP へ実行時倍率を適用します。
+     *
+     * <p>現在 HP を同じ比率で更新し、同じ倍率を再度渡した場合は二重適用しません。</p>
+     *
+     * @param multiplier 1.0 以上の有限な倍率
+     */
+    public void applyMaxHealthMultiplier(double multiplier) {
+        if (!Double.isFinite(multiplier) || multiplier <= 0.0D) {
+            return;
+        }
+        double normalized = Math.max(1.0D, multiplier);
+        double adjustment = normalized / healthCapacityMultiplier;
+        healthCapacityMultiplier = normalized;
+        maxHealth = Math.max(1.0D, maxHealth * adjustment);
+        currentHealth = Math.clamp(currentHealth * adjustment, 0.0D, maxHealth);
+    }
+
+    /**
      * 現在 HP を更新します。
      *
      * @param value 新しい HP 値
@@ -350,6 +370,27 @@ public final class MobInstance {
     }
 
     /**
+     * 現在のシールド容量へ実行時倍率を適用します。
+     *
+     * <p>現在値と表示容量を同じ比率で更新し、以後の Mob シールド再充填量にも倍率を適用します。
+     * 同じ倍率を再度渡した場合は二重適用しません。</p>
+     *
+     * @param multiplier 1.0 以上の有限な倍率
+     */
+    public void applyShieldCapacityMultiplier(double multiplier) {
+        if (!Double.isFinite(multiplier) || multiplier <= 0.0D) {
+            return;
+        }
+        double normalized = Math.max(1.0D, multiplier);
+        double adjustment = normalized / shieldCapacityMultiplier;
+        shieldCapacityMultiplier = normalized;
+        shieldDisplayCapacity = Math.max(0.0D, shieldDisplayCapacity * adjustment);
+        currentShield = template.shield().active()
+                ? Math.clamp(currentShield * adjustment, 0.0D, shieldDisplayCapacity)
+                : 0.0D;
+    }
+
+    /**
      * 現在のリチャージ状態を返します。
      *
      * @return リチャージ中の状態。通常時は {@code null}
@@ -372,7 +413,7 @@ public final class MobInstance {
         shieldRechargeState = new ShieldRechargeState(
                 nowMs,
                 saturatingAdd(nowMs, Math.max(0L, durationMs)),
-                template.shield().resolvedRechargeAmount()
+                template.shield().resolvedRechargeAmount() * shieldCapacityMultiplier
         );
         return true;
     }

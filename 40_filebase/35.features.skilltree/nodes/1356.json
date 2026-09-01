@@ -1,13 +1,14 @@
 {
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
-  "nodeId": "1267",
-  "name": "&b砕盾の星環",
+  "nodeId": "1356",
+  "name": "&b破盾疾走の星環",
   "icon": "PRISMARINE_CRYSTALS",
   "tags": [
     "status",
     "offense",
-    "shield"
+    "shield",
+    "agility"
   ],
   "pointType": "CP",
   "pointCost": 1,
@@ -16,10 +17,16 @@
       "type": "status",
       "status": "SHIELD_BREAK",
       "modifierType": "FLAT",
-      "value": 0.25
+      "value": 1
+    },
+    {
+      "type": "status",
+      "status": "ATTACK_SPEED",
+      "modifierType": "FLAT",
+      "value": 1
     }
   ],
   "unlockCondition": {
-    "classId": "hunter"
+    "classId": "swordsman"
   }
 }

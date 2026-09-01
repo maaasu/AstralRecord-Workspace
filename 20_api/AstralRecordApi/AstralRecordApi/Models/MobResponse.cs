@@ -336,7 +336,5 @@ public class MobChallengeScalingResponse
 {
     public bool Enabled { get; init; }
 
-    public double HealthPerExtraPlayer { get; init; }
-
     public double AttackPerExtraPlayer { get; init; }
 }

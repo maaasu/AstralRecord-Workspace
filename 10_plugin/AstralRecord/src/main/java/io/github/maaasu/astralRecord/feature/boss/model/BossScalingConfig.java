@@ -1,12 +1,13 @@
 package io.github.maaasu.astralRecord.feature.boss.model;
 
 /**
- * Scaling settings applied from participant count.
+ * ボス挑戦における与ダメージ倍率の設定です。
+ *
+ * <p>HP・シールドは {@code MobCategory.BOSS} 共通の固定補正を使用します。</p>
  */
 public record BossScalingConfig(
         boolean enabled,
-        double healthPerExtraPlayer,
         double attackPerExtraPlayer
 ) {
-    public static final BossScalingConfig EMPTY = new BossScalingConfig(false, 0.0D, 0.0D);
+    public static final BossScalingConfig EMPTY = new BossScalingConfig(false, 0.0D);
 }

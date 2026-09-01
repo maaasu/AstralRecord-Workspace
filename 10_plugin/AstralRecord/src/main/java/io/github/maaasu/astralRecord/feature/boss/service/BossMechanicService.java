@@ -400,6 +400,9 @@ public final class BossMechanicService {
         @NotNull Entity entity,
         @NotNull BossRuntime runtime
     ) {
+        if (boss.template().shield().active()) {
+            boss.currentShield(boss.shieldDisplayCapacity(), System.currentTimeMillis());
+        }
         if (BossMechanicProfile.MIDGARD_SAVANNA_SUNBIRD.equals(boss.template().id())
             && runtime.phase >= 2
             && !runtime.finalPhaseTriggered) {
@@ -419,9 +422,6 @@ public final class BossMechanicService {
             return;
         }
 
-        if (boss.template().shield().active()) {
-            boss.currentShield(boss.template().shield().max(), System.currentTimeMillis());
-        }
         Location center = entity.getLocation().add(0.0D, 0.5D, 0.0D);
         renderCircle(center, 3.0D + runtime.phase, SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE, 28);
         entity.getWorld().playSound(center, "entity.warden.sonic_boom", 1.2F, runtime.phase == 3 ? 0.65F : 0.85F);

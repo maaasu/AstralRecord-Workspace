@@ -21,6 +21,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobCategory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropConfig;
+import io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
@@ -625,6 +626,66 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 3. 遭遇 Mob と部屋進行
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/26_1-モデル定義.md
+     * 章・見出し: # 26_1-モデル定義 > ## 3. BOSS Mob の参加人数補正
+     * 検証契約: DungeonのBOSS部屋生成では、現在参加者が減っていても開始時に確定した3人を基準にBOSSのHPを200、シールドを160へ補正する。
+     */
+    @Test
+    void dungeonBossSpawnUsesOriginalParticipantCountForScaling() throws Exception {
+        MobService mobService = mock(MobService.class);
+        DungeonService service = service(mobService, mock(DisplayTextService.class));
+        World world = server().addSimpleWorld("dungeon-boss-scaling");
+        List<MobInstance> spawned = new ArrayList<>();
+        when(mobService.spawn(any(MobTemplate.class), any(Location.class))).thenAnswer(invocation -> {
+            MobTemplate template = invocation.getArgument(0, MobTemplate.class);
+            Location location = invocation.getArgument(1, Location.class);
+            MobInstance instance = new MobInstance(UUID.randomUUID(), template, location);
+            spawned.add(instance);
+            return instance;
+        });
+
+        UUID first = UUID.randomUUID();
+        UUID second = UUID.randomUUID();
+        UUID third = UUID.randomUUID();
+        Object session = session(
+                List.of(first, second, third),
+                List.of(),
+                "party",
+                DungeonTestFixtures.mob(
+                        "boss",
+                        1,
+                        MobCategory.BOSS,
+                        100.0D,
+                        new MobShieldConfig(true, 100.0D)
+                )
+        );
+        setField(session, "layout", layout());
+        setField(session, "blockPlan", blockPlan());
+        setField(session, "instanceWorld", new DungeonInstanceWorldService.InstanceWorld(
+                world,
+                Path.of("target", "dungeon-boss-scaling"),
+                Set.of()
+        ));
+        @SuppressWarnings("unchecked")
+        Set<UUID> currentParticipants = field(session, "participants", Set.class);
+        currentParticipants.remove(second);
+        currentParticipants.remove(third);
+        mapField(session, "roomStates").put(2, DungeonMapRoomState.ACTIVE);
+        mapField(session, "liveMobsByRoom").put(2, new LinkedHashSet<>());
+
+        invoke(service, "activateRoomContent", session, 2);
+
+        assertEquals(1, spawned.size());
+        MobInstance boss = spawned.getFirst();
+        assertEquals(200.0D, boss.maxHealth(), 0.0001D);
+        assertEquals(200.0D, boss.currentHealth(), 0.0001D);
+        assertEquals(160.0D, boss.currentShield(), 0.0001D);
+        assertEquals(160.0D, boss.shieldDisplayCapacity(), 0.0001D);
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
      * 章・見出し: # 09_3-サービス > ## 10. GUI サウンド意味付け
      * 検証契約: ダンジョン報酬を1個以上インベントリへ付与できた場合だけ、控えめなアイテム受取音を再生する。
@@ -905,6 +966,21 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
             List<DungeonService.LoadedMob> normalMobs,
             String partyKey
     ) throws ReflectiveOperationException {
+        return session(
+                participantIds,
+                normalMobs,
+                partyKey,
+                DungeonTestFixtures.mob("boss", 1, MobCategory.BOSS)
+        );
+    }
+
+    /** パーティーキー、参加者、通常 Mob、ボス Mob のスナップショットを指定して Session を構築します。 */
+    private Object session(
+            List<UUID> participantIds,
+            List<DungeonService.LoadedMob> normalMobs,
+            String partyKey,
+            MobTemplate bossTemplate
+    ) throws ReflectiveOperationException {
         Class<?> sessionType = sessionType();
         Constructor<?> constructor = sessionType.getDeclaredConstructors()[0];
         constructor.setAccessible(true);
@@ -913,7 +989,7 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
                 worldData("entry", WorldType.BASE),
                 worldData("instance", WorldType.DUNGEON),
                 normalMobs,
-                DungeonTestFixtures.mob("boss", 1, MobCategory.BOSS)
+                bossTemplate
         );
         return constructor.newInstance(
                 UUID.randomUUID(),
