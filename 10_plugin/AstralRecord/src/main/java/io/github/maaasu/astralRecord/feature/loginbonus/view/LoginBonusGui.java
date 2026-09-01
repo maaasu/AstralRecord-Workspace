@@ -56,13 +56,56 @@ public final class LoginBonusGui {
         @Nullable ItemModel goldRewardModel,
         @Nullable ItemModel astraldRewardModel
     ) {
+        open(
+            player,
+            displayMonth,
+            today,
+            receivedDates,
+            goldRewardModel,
+            astraldRewardModel,
+            null,
+            0
+        );
+    }
+
+    /**
+     * プレイヤーレベル連動の金曜日報酬を含むログイン報酬画面を開きます。
+     *
+     * @param player 対象プレイヤー
+     * @param displayMonth 表示する年月
+     * @param today 今日の日付
+     * @param receivedDates 受け取り済み日付
+     * @param goldRewardModel 表示する通常報酬アイテム
+     * @param astraldRewardModel 表示する休日報酬アイテム
+     * @param freyaOrbRewardModel 表示する金曜日報酬アイテム
+     * @param playerLevel 金曜日報酬の数量に使用するプレイヤーレベル
+     */
+    public void open(
+        @NotNull Player player,
+        @NotNull YearMonth displayMonth,
+        @NotNull LocalDate today,
+        @NotNull Set<LocalDate> receivedDates,
+        @Nullable ItemModel goldRewardModel,
+        @Nullable ItemModel astraldRewardModel,
+        @Nullable ItemModel freyaOrbRewardModel,
+        int playerLevel
+    ) {
         Inventory inventory = Bukkit.createInventory(
             new Holder(displayMonth),
             SIZE,
             Component.text(displayMonth.getYear() + "年" + displayMonth.getMonthValue() + "月 ログイン報酬", NamedTextColor.GOLD)
         );
         fill(inventory);
-        renderCalendar(inventory, displayMonth, today, receivedDates, goldRewardModel, astraldRewardModel);
+        renderCalendar(
+            inventory,
+            displayMonth,
+            today,
+            receivedDates,
+            goldRewardModel,
+            astraldRewardModel,
+            freyaOrbRewardModel,
+            playerLevel
+        );
         renderControls(inventory);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(player, inventory);
     }
@@ -121,7 +164,9 @@ public final class LoginBonusGui {
         @NotNull LocalDate today,
         @NotNull Set<LocalDate> receivedDates,
         @Nullable ItemModel goldRewardModel,
-        @Nullable ItemModel astraldRewardModel
+        @Nullable ItemModel astraldRewardModel,
+        @Nullable ItemModel freyaOrbRewardModel,
+        int playerLevel
     ) {
         for (int day = 1; day <= displayMonth.lengthOfMonth(); day++) {
             LocalDate date = displayMonth.atDay(day);
@@ -130,7 +175,18 @@ public final class LoginBonusGui {
                 continue;
             }
             var received = receivedDates.contains(date);
-            inventory.setItem(slot, createDateItem(date, today, received, goldRewardModel, astraldRewardModel));
+            inventory.setItem(
+                slot,
+                createDateItem(
+                    date,
+                    today,
+                    received,
+                    goldRewardModel,
+                    astraldRewardModel,
+                    freyaOrbRewardModel,
+                    playerLevel
+                )
+            );
         }
     }
 
@@ -166,7 +222,9 @@ public final class LoginBonusGui {
         @NotNull LocalDate today,
         boolean received,
         @Nullable ItemModel goldRewardModel,
-        @Nullable ItemModel astraldRewardModel
+        @Nullable ItemModel astraldRewardModel,
+        @Nullable ItemModel freyaOrbRewardModel,
+        int playerLevel
     ) {
         boolean todayClaimable = date.equals(today) && !received;
         Material material = resolveDateMaterial(date, today, received);
@@ -175,6 +233,12 @@ public final class LoginBonusGui {
         lore.add(RewardDisplayFormatter.rewardLine(goldRewardModel, DAILY_LOGIN_BONUS_GOLD));
         if (isHolidayBonusDate(date)) {
             lore.add(RewardDisplayFormatter.rewardLine(astraldRewardModel, HOLIDAY_LOGIN_BONUS_ASTRALD));
+        }
+        if (isFridayBonusDate(date) && freyaOrbRewardModel != null) {
+            lore.add(RewardDisplayFormatter.rewardLine(
+                freyaOrbRewardModel,
+                Math.max(1, playerLevel)
+            ));
         }
         lore.add(Component.empty());
         if (received) {
@@ -244,6 +308,10 @@ public final class LoginBonusGui {
 
     private boolean isHolidayBonusDate(@NotNull LocalDate date) {
         return LoginBonusHoliday.isHolidayBonusDate(date);
+    }
+
+    private boolean isFridayBonusDate(@NotNull LocalDate date) {
+        return LoginBonusHoliday.isFridayBonusDate(date);
     }
 
     private @NotNull String japaneseWeekday(@NotNull DayOfWeek dayOfWeek) {

@@ -120,11 +120,15 @@ public final class DesignTestFixtures {
     }
 
     public static ItemModel item(String id, ItemCategory category, int maxStack) {
+        return item(id, id, category, maxStack);
+    }
+
+    public static ItemModel item(String id, String name, ItemCategory category, int maxStack) {
         return new ItemModel(
             1,
             id,
             category.getApiValue(),
-            id,
+            name,
             "PAPER",
             "common",
             maxStack,

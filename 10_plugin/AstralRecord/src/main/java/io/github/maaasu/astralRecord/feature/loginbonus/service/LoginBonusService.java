@@ -33,6 +33,7 @@ public final class LoginBonusService {
     private static final ZoneId DATE_ZONE = ZoneId.of("Asia/Tokyo");
     private static final int DAILY_LOGIN_BONUS_GOLD = 1000;
     private static final int HOLIDAY_LOGIN_BONUS_ASTRALD = 10;
+    private static final String FREYA_ORB_ITEM_ID = "freya_orb";
     private static final String REWARD_SOURCE = "daily_login_bonus";
 
     private final Plugin plugin;
@@ -96,6 +97,7 @@ public final class LoginBonusService {
                 var claimDates = claimRepository.loadClaimDates(accountId, displayMonth);
                 ItemModel goldModel = resolveGoldRewardModel();
                 ItemModel astraldModel = resolveAstraldRewardModel();
+                ItemModel freyaOrbModel = resolveFreyaOrbRewardModel();
                 plugin.getServer().getScheduler().runTask(plugin, () -> {
                     if (!openRequestIds.remove(playerId, requestId)) {
                         return;
@@ -112,7 +114,9 @@ public final class LoginBonusService {
                         LocalDate.now(DATE_ZONE),
                         claimDates,
                         goldModel,
-                        astraldModel
+                        astraldModel,
+                        freyaOrbModel,
+                        Math.max(1, current.getAccount().getLevel())
                     );
                 });
             } catch (RuntimeException e) {
@@ -156,15 +160,19 @@ public final class LoginBonusService {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             ItemModel goldModel;
             ItemModel astraldModel;
+            ItemModel freyaOrbModel;
             try {
                 goldModel = resolveGoldRewardModel();
                 astraldModel = LoginBonusHoliday.isHolidayBonusDate(today) ? resolveAstraldRewardModel() : null;
+                freyaOrbModel = LoginBonusHoliday.isFridayBonusDate(today)
+                    ? resolveFreyaOrbRewardModel()
+                    : null;
             } catch (RuntimeException e) {
                 finishClaim(playerId, LoginBonusClaimResult.FAILED, completion);
                 return;
             }
             plugin.getServer().getScheduler().runTask(plugin, () ->
-                prepareClaim(playerId, accountId, today, goldModel, astraldModel, completion)
+                prepareClaim(playerId, accountId, today, goldModel, astraldModel, freyaOrbModel, completion)
             );
         });
     }
@@ -202,17 +210,26 @@ public final class LoginBonusService {
         @NotNull LocalDate date,
         ItemModel goldModel,
         ItemModel astraldModel,
+        ItemModel freyaOrbModel,
         @NotNull Consumer<Boolean> completion
     ) {
         Player player = plugin.getServer().getPlayer(playerId);
         AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
         boolean holiday = LoginBonusHoliday.isHolidayBonusDate(date);
+        boolean friday = LoginBonusHoliday.isFridayBonusDate(date);
         if (player == null || !player.isOnline() || astPlayer == null
             || !astPlayer.getAccount().getUuid().equals(accountId)
-            || goldModel == null || holiday && astraldModel == null
-            || !inventoryService.canAddItemToNormalInventory(astPlayer, goldModel, DAILY_LOGIN_BONUS_GOLD)
+            || goldModel == null || holiday && astraldModel == null || friday && freyaOrbModel == null) {
+            finishClaim(playerId, LoginBonusClaimResult.FAILED, completion);
+            return;
+        }
+        int freyaOrbAmount = Math.max(1, astPlayer.getAccount().getLevel());
+        if (!inventoryService.canAddItemToNormalInventory(astPlayer, goldModel, DAILY_LOGIN_BONUS_GOLD)
             || holiday && !inventoryService.canAddItemToNormalInventory(
                 astPlayer, astraldModel, HOLIDAY_LOGIN_BONUS_ASTRALD
+            )
+            || friday && !inventoryService.canAddItemToStorageIfPresentOtherwiseNormalInventory(
+                astPlayer, freyaOrbModel, freyaOrbAmount
             )) {
             finishClaim(playerId, LoginBonusClaimResult.FAILED, completion);
             return;
@@ -230,7 +247,16 @@ public final class LoginBonusService {
                     finishClaim(playerId, result, completion);
                     return;
                 }
-                grantClaimedReward(playerId, accountId, date, goldModel, astraldModel, completion);
+                grantClaimedReward(
+                    playerId,
+                    accountId,
+                    date,
+                    goldModel,
+                    astraldModel,
+                    freyaOrbModel,
+                    freyaOrbAmount,
+                    completion
+                );
             });
         });
     }
@@ -241,6 +267,8 @@ public final class LoginBonusService {
         @NotNull LocalDate date,
         @NotNull ItemModel goldModel,
         ItemModel astraldModel,
+        ItemModel freyaOrbModel,
+        int freyaOrbAmount,
         @NotNull Consumer<Boolean> completion
     ) {
         Player player = plugin.getServer().getPlayer(playerId);
@@ -265,7 +293,21 @@ public final class LoginBonusService {
                 REWARD_SOURCE
             )
             : HOLIDAY_LOGIN_BONUS_ASTRALD;
-        if (grantedGold != DAILY_LOGIN_BONUS_GOLD || grantedAstrald != HOLIDAY_LOGIN_BONUS_ASTRALD) {
+        boolean friday = LoginBonusHoliday.isFridayBonusDate(date);
+        InventoryService.StorageFallbackGrantResult freyaOrbGrant = null;
+        if (friday && freyaOrbModel != null) {
+            freyaOrbGrant = inventoryService.addItemToStorageIfPresentOtherwiseNormalInventory(
+                astPlayer,
+                freyaOrbModel,
+                freyaOrbAmount,
+                REWARD_SOURCE
+            );
+        }
+        boolean freyaOrbComplete = !friday
+            || freyaOrbGrant != null && freyaOrbGrant.grantedAmount() == freyaOrbAmount;
+        if (grantedGold != DAILY_LOGIN_BONUS_GOLD
+            || grantedAstrald != HOLIDAY_LOGIN_BONUS_ASTRALD
+            || !freyaOrbComplete) {
             if (inventoryService.restoreState(snapshot)) {
                 cancelFailedClaim(playerId, accountId, date, completion);
             } else {
@@ -273,6 +315,14 @@ public final class LoginBonusService {
                 finishClaim(playerId, LoginBonusClaimResult.FAILED, completion);
             }
             return;
+        }
+        if (friday && freyaOrbGrant != null && freyaOrbGrant.storedInStorage()) {
+            PlayerMessageService.getInstance().send(
+                player,
+                PlayerMsgId.P_5078,
+                freyaOrbModel.getName(),
+                freyaOrbAmount
+            );
         }
         finishClaim(playerId, LoginBonusClaimResult.CREATED, completion);
     }
@@ -331,6 +381,14 @@ public final class LoginBonusService {
         ItemModel model = itemService.findLoadedById(ItemService.ASTRALD_CURRENCY_ITEM_ID);
         if (model == null) {
             model = itemService.loadItem(ItemService.ASTRALD_CURRENCY_ITEM_ID);
+        }
+        return model;
+    }
+
+    private ItemModel resolveFreyaOrbRewardModel() {
+        ItemModel model = itemService.findLoadedById(FREYA_ORB_ITEM_ID);
+        if (model == null) {
+            model = itemService.loadItem(FREYA_ORB_ITEM_ID);
         }
         return model;
     }

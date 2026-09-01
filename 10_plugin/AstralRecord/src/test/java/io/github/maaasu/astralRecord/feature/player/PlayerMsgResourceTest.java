@@ -37,6 +37,25 @@ class PlayerMsgResourceTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 1. service メソッド仕様 > ### ログインボーナス受け取り
+     * 検証契約: 金曜日報酬をSTORAGEへ格納した通知にアイテム名・数量・格納先を含める。
+     */
+    @Test
+    void freyaOrbStorageNotificationIncludesItemAndAmount() {
+        String formatted = PlayerMsgResource.format(
+            PlayerMsgId.P_5078.getId(),
+            "&dフレイヤのオーブ",
+            7
+        );
+
+        assertEquals(
+            "§aログインボーナスの§dフレイヤのオーブ§aを§f7個§aストレージに送りました。",
+            formatted
+        );
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 6. クリア報酬と30秒回収
      * 検証契約: 改行を含む報酬チェスト表示へダンジョン名を差し込む。

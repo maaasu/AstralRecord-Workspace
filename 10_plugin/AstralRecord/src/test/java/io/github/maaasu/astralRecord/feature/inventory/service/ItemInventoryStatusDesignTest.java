@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryInstanceType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryModel;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryProfile;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.repository.EquipmentLoadoutRepository;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepository;
@@ -75,6 +76,142 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         assertEquals(ItemCategory.MATERIAL.getApiValue(), entries.get(0).getItemCategory());
         assertEquals(3L, entries.get(0).getQuantity());
         assertTrue(state.isDirty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 14. ストレージ操作
+     * 検証契約: 既存の同一オーブがSTORAGEにある場合、通常インベントリ容量を消費せずそのentryへ数量を加算する。
+     */
+    @Test
+    void conditionalRewardGrantUsesExistingStorageStack() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN, 0, 7);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel storage = harness.addInventory(state, InventoryType.STORAGE);
+        ItemModel freyaOrb = DesignTestFixtures.item("freya_orb", ItemCategory.ORB, 64);
+        state.replaceEntriesFromLoad(storage.getInventoryId(), List.of(
+            inventoryEntry(state.getAccountId(), storage.getInventoryId(), 1, ItemCategory.ORB, "freya_orb", 2L)
+        ));
+
+        InventoryService.StorageFallbackGrantResult result = harness.inventoryService
+            .addItemToStorageIfPresentOtherwiseNormalInventory(astPlayer, freyaOrb, 7, "daily_login_bonus");
+
+        assertEquals(7, result.grantedAmount());
+        assertTrue(result.storedInStorage());
+        assertEquals(9L, state.snapshotEntries(storage.getInventoryId()).getFirst().getQuantity());
+        assertTrue(state.snapshotEntries(bag.getInventoryId()).isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 14. ストレージ操作
+     * 検証契約: 削除済みSTORAGE entryは既存stackとみなさず、通常インベントリの容量判定へ進む。
+     */
+    @Test
+    void conditionalRewardCapacityCheckIgnoresDeletedStorageEntry() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN, 0, 7);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        harness.addInventory(state, InventoryType.BAG);
+        InventoryModel storage = harness.addInventory(state, InventoryType.STORAGE);
+        state.setBagSlotCapacity(0);
+        ItemModel freyaOrb = DesignTestFixtures.item("freya_orb", ItemCategory.ORB, 64);
+        state.replaceEntriesFromLoad(storage.getInventoryId(), List.of(
+            inventoryEntry(state.getAccountId(), storage.getInventoryId(), 1, ItemCategory.ORB, "freya_orb", 2L, true)
+        ));
+
+        assertFalse(harness.inventoryService.canAddItemToStorageIfPresentOtherwiseNormalInventory(
+            astPlayer, freyaOrb, 7));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 14. ストレージ操作
+     * 検証契約: 削除済みSTORAGE inventoryは報酬格納先にせず、通常インベントリへフォールバックする。
+     */
+    @Test
+    void conditionalRewardGrantIgnoresDeletedStorageInventory() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN, 0, 7);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        LocalDateTime now = LocalDateTime.now();
+        UUID actor = UUID.randomUUID();
+        InventoryModel deletedStorage = new InventoryModel(
+            UUID.randomUUID(),
+            state.getAccountId(),
+            InventoryType.STORAGE,
+            InventoryProfile.GAME.getCode(),
+            null,
+            true,
+            null,
+            now,
+            now,
+            actor,
+            actor,
+            true
+        );
+        harness.addInventory(state, deletedStorage);
+        ItemModel freyaOrb = DesignTestFixtures.item("freya_orb", ItemCategory.ORB, 64);
+        state.replaceEntriesFromLoad(deletedStorage.getInventoryId(), List.of(
+            inventoryEntry(
+                state.getAccountId(), deletedStorage.getInventoryId(), 1,
+                ItemCategory.ORB, "freya_orb", 2L
+            )
+        ));
+
+        InventoryService.StorageFallbackGrantResult result = harness.inventoryService
+            .addItemToStorageIfPresentOtherwiseNormalInventory(astPlayer, freyaOrb, 7, "daily_login_bonus");
+
+        assertEquals(7, result.grantedAmount());
+        assertFalse(result.storedInStorage());
+        assertEquals(7L, state.snapshotEntries(bag.getInventoryId()).getFirst().getQuantity());
+        assertEquals(2L, state.snapshotEntries(deletedStorage.getInventoryId()).getFirst().getQuantity());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 14. ストレージ操作
+     * 検証契約: 同一オーブのSTORAGE entryがない場合はBAGへフォールバックし、STORAGE inventoryを新規作成しない。
+     */
+    @Test
+    void conditionalRewardGrantFallsBackToNormalInventoryWithoutCreatingStorage() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN, 0, 7);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        state.setBagSlotCapacity(1);
+        ItemModel freyaOrb = DesignTestFixtures.item("freya_orb", ItemCategory.ORB, 64);
+
+        InventoryService.StorageFallbackGrantResult result = harness.inventoryService
+            .addItemToStorageIfPresentOtherwiseNormalInventory(astPlayer, freyaOrb, 7, "daily_login_bonus");
+
+        assertEquals(7, result.grantedAmount());
+        assertFalse(result.storedInStorage());
+        assertEquals(7L, state.snapshotEntries(bag.getInventoryId()).getFirst().getQuantity());
+        assertNull(state.findInventory(InventoryProfile.GAME, InventoryType.STORAGE));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 14. ストレージ操作
+     * 検証契約: 付与可否の事前判定では、未作成の通常インベントリもSTORAGEも作成しない。
+     */
+    @Test
+    void conditionalRewardCapacityCheckDoesNotCreateMissingNormalInventory() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN, 0, 7);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        state.setBagSlotCapacity(1);
+        ItemModel freyaOrb = DesignTestFixtures.item("freya_orb", ItemCategory.ORB, 64);
+
+        assertTrue(harness.inventoryService.canAddItemToStorageIfPresentOtherwiseNormalInventory(
+            astPlayer, freyaOrb, 7));
+
+        assertNull(state.findInventory(InventoryProfile.GAME, InventoryType.BAG));
+        assertNull(state.findInventory(InventoryProfile.GAME, InventoryType.STORAGE));
     }
 
     /**
@@ -1662,6 +1799,18 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         String itemId,
         long quantity
     ) {
+        return inventoryEntry(accountId, inventoryId, slot, category, itemId, quantity, false);
+    }
+
+    private static InventoryEntryModel inventoryEntry(
+        UUID accountId,
+        UUID inventoryId,
+        int slot,
+        ItemCategory category,
+        String itemId,
+        long quantity,
+        boolean deleted
+    ) {
         LocalDateTime now = LocalDateTime.now();
         return new InventoryEntryModel(
             UUID.randomUUID(),
@@ -1677,7 +1826,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
             now,
             accountId,
             accountId,
-            false
+            deleted
         );
     }
 

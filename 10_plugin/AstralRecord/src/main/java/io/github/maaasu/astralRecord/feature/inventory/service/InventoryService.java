@@ -1027,6 +1027,103 @@ public class InventoryService {
         );
     }
 
+    /**
+     * 同一通常アイテムの STORAGE entry が存在する場合はそこへ、存在しない場合は通常インベントリへ
+     * 追加できるかを確認します。既存の STORAGE inventory がない場合は新規作成しません。
+     *
+     * @param astPlayer 追加対象プレイヤー
+     * @param model 追加するアイテム
+     * @param amount 追加数。1 未満は 1 として扱う
+     * @return いずれかの格納先へ全量追加できる場合は true
+     */
+    public boolean canAddItemToStorageIfPresentOtherwiseNormalInventory(
+        @NotNull AstPlayer astPlayer,
+        @NotNull ItemModel model,
+        int amount
+    ) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        if (state == null) {
+            return false;
+        }
+        int safeAmount = Math.max(1, amount);
+        synchronized (state) {
+            InventoryModel storageInventory = findExistingStorageInventory(state);
+            if (storageInventory != null) {
+                List<InventoryEntryModel> storageEntries = state.snapshotEntries(storageInventory.getInventoryId()).stream()
+                    .filter(entry -> !entry.isDeleted())
+                    .toList();
+                int storageIndex = findStackableStorageEntryIndex(storageEntries, model);
+                if (storageIndex >= 0) {
+                    InventoryEntryModel entry = storageEntries.get(storageIndex);
+                    return entry.getQuantity() <= Long.MAX_VALUE - safeAmount;
+                }
+            }
+            return canAddItemToNormalInventory(state, model, safeAmount, false);
+        }
+    }
+
+    /**
+     * 同一通常アイテムの STORAGE entry が存在する場合はその数量へ加算し、存在しない場合は通常インベントリへ
+     * 追加します。STORAGE entry へ加算した場合は STORAGE inventory を新規作成せず、結果で判別できます。
+     *
+     * @param astPlayer 追加対象プレイヤー
+     * @param model 追加するアイテム
+     * @param amount 追加数。1 未満は 1 として扱う
+     * @param source インスタンス生成元
+     * @return 実際の付与数と STORAGE へ格納したかを含む結果
+     */
+    public @NotNull StorageFallbackGrantResult addItemToStorageIfPresentOtherwiseNormalInventory(
+        @NotNull AstPlayer astPlayer,
+        @NotNull ItemModel model,
+        int amount,
+        @NotNull String source
+    ) {
+        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        int safeAmount = Math.max(1, amount);
+        if (state == null) {
+            return new StorageFallbackGrantResult(safeAmount, 0, false);
+        }
+
+        InventoryType targetType = resolveTargetInventoryType(model);
+        int granted;
+        synchronized (state) {
+            InventoryModel storageInventory = findExistingStorageInventory(state);
+            if (storageInventory != null) {
+                List<InventoryEntryModel> storageEntries = new ArrayList<>(
+                    state.snapshotEntries(storageInventory.getInventoryId()).stream()
+                        .filter(entry -> !entry.isDeleted())
+                        .toList()
+                );
+                int storageIndex = findStackableStorageEntryIndex(storageEntries, model);
+                if (storageIndex >= 0) {
+                    InventoryEntryModel existing = storageEntries.get(storageIndex);
+                    long nextQuantity;
+                    try {
+                        nextQuantity = Math.addExact(existing.getQuantity(), (long) safeAmount);
+                    } catch (ArithmeticException ignored) {
+                        return new StorageFallbackGrantResult(safeAmount, 0, true);
+                    }
+                    storageEntries.set(
+                        storageIndex,
+                        withQuantity(existing, nextQuantity, state.getAccountId())
+                    );
+                    state.replaceEntries(storageInventory.getInventoryId(), storageEntries);
+                    return new StorageFallbackGrantResult(safeAmount, safeAmount, true);
+                }
+            }
+
+            InventoryModel targetInventory = ensureInventory(state, targetType);
+            granted = switch (ItemCategory.fromApiValue(model.getCategory())) {
+                case EQUIPMENT -> addInstanceItems(state, targetInventory, model, safeAmount, source);
+                default -> addStackedItems(state, targetInventory, model, safeAmount);
+            };
+        }
+        if (granted > 0) {
+            autoSwitchDisplayedInventory(astPlayer, targetType);
+        }
+        return new StorageFallbackGrantResult(safeAmount, granted, false);
+    }
+
     public int addPreparedInstanceToNormalInventory(
         @NotNull AstPlayer astPlayer,
         @NotNull ItemModel model,
@@ -3785,47 +3882,90 @@ public class InventoryService {
             return false;
         }
         int safeAmount = Math.max(1, amount);
+        synchronized (state) {
+            return canAddItemToNormalInventory(state, model, safeAmount, true);
+        }
+    }
+
+    /**
+     * 通常インベントリへの追加可否を、呼び出し側が保持する state lock 内で判定します。
+     *
+     * @param state 対象 state
+     * @param model 追加するアイテム
+     * @param safeAmount 1 以上に補正済みの追加数
+     * @param createMissingInventory 対象インベントリがない場合に作成するか
+     * @return 全量追加できる場合は true
+     */
+    private boolean canAddItemToNormalInventory(
+        @NotNull PlayerInventoryState state,
+        @NotNull ItemModel model,
+        int safeAmount,
+        boolean createMissingInventory
+    ) {
         InventoryType targetType = resolveTargetInventoryType(model);
         if (targetType == InventoryType.CURRENCY) {
             return true;
         }
-        synchronized (state) {
-            InventoryModel inventory = ensureInventory(state, targetType);
-            Set<Integer> usedSlots = collectUsedSlots(state, inventory);
-            ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
-            if (category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE) {
-                int freeSlots = 0;
-                Set<Integer> simulatedUsed = new HashSet<>(usedSlots);
-                for (int i = 0; i < safeAmount; i++) {
-                    Integer freeSlot = findNextFreeSlot(inventory, simulatedUsed);
-                    if (freeSlot == null) {
-                        break;
-                    }
-                    simulatedUsed.add(freeSlot);
-                    freeSlots++;
-                }
-                return freeSlots >= safeAmount;
+        InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, targetType);
+        if (inventory == null) {
+            if (!createMissingInventory) {
+                return canAddItemToEmptyNormalInventory(state, model, safeAmount, targetType);
             }
-
-            int maxStack = Math.max(1, model.getMaxStack());
-            int capacityLimit = inventoryCapacity(inventory);
-            long capacity = state.snapshotEntries(inventory.getInventoryId()).stream()
-                .filter(entry -> !entry.isDeleted())
-                .filter(entry -> isManagedNormalInventoryEntry(entry, capacityLimit))
-                .filter(entry -> isStackableEntry(entry, model, maxStack))
-                .mapToLong(entry -> Math.max(0L, maxStack - entry.getQuantity()))
-                .sum();
+            inventory = ensureInventory(state, targetType);
+        }
+        Set<Integer> usedSlots = collectUsedSlots(state, inventory);
+        ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
+        if (category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE) {
+            int freeSlots = 0;
             Set<Integer> simulatedUsed = new HashSet<>(usedSlots);
-            while (capacity < safeAmount) {
+            for (int i = 0; i < safeAmount; i++) {
                 Integer freeSlot = findNextFreeSlot(inventory, simulatedUsed);
                 if (freeSlot == null) {
                     break;
                 }
                 simulatedUsed.add(freeSlot);
-                capacity += maxStack;
+                freeSlots++;
             }
-            return capacity >= safeAmount;
+            return freeSlots >= safeAmount;
         }
+
+        int maxStack = Math.max(1, model.getMaxStack());
+        int capacityLimit = inventoryCapacity(inventory);
+        long capacity = state.snapshotEntries(inventory.getInventoryId()).stream()
+            .filter(entry -> !entry.isDeleted())
+            .filter(entry -> isManagedNormalInventoryEntry(entry, capacityLimit))
+            .filter(entry -> isStackableEntry(entry, model, maxStack))
+            .mapToLong(entry -> Math.max(0L, maxStack - entry.getQuantity()))
+            .sum();
+        Set<Integer> simulatedUsed = new HashSet<>(usedSlots);
+        while (capacity < safeAmount) {
+            Integer freeSlot = findNextFreeSlot(inventory, simulatedUsed);
+            if (freeSlot == null) {
+                break;
+            }
+            simulatedUsed.add(freeSlot);
+            capacity += maxStack;
+        }
+        return capacity >= safeAmount;
+    }
+
+    /** 未作成の BAG を仮定した通常アイテムの容量判定です。state や API を変更しません。 */
+    private boolean canAddItemToEmptyNormalInventory(
+        @NotNull PlayerInventoryState state,
+        @NotNull ItemModel model,
+        int safeAmount,
+        @NotNull InventoryType targetType
+    ) {
+        if (targetType != InventoryType.BAG) {
+            return false;
+        }
+        int bagCapacity = state.getBagSlotCapacity();
+        ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
+        if (category == ItemCategory.EQUIPMENT || category == ItemCategory.RUNE) {
+            return bagCapacity >= safeAmount;
+        }
+        long capacity = (long) bagCapacity * Math.max(1, model.getMaxStack());
+        return capacity >= safeAmount;
     }
 
     private long getItemAmount(
@@ -6537,6 +6677,13 @@ public class InventoryService {
         }
     }
 
+    private @Nullable InventoryModel findExistingStorageInventory(@NotNull PlayerInventoryState state) {
+        InventoryModel storageInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.STORAGE);
+        return storageInventory != null && storageInventory.isEnabled() && !storageInventory.isDeleted()
+            ? storageInventory
+            : null;
+    }
+
     private int findStackableStorageEntryIndex(
         @NotNull List<InventoryEntryModel> storageEntries,
         @NotNull InventoryEntryModel sourceEntry
@@ -6546,6 +6693,18 @@ public class InventoryService {
         }
         for (int index = 0; index < storageEntries.size(); index++) {
             if (isSameStackableItem(storageEntries.get(index), sourceEntry)) {
+                return index;
+            }
+        }
+        return -1;
+    }
+
+    private int findStackableStorageEntryIndex(
+        @NotNull List<InventoryEntryModel> storageEntries,
+        @NotNull ItemModel model
+    ) {
+        for (int index = 0; index < storageEntries.size(); index++) {
+            if (isSameStackableItem(storageEntries.get(index), model)) {
                 return index;
             }
         }
@@ -6562,6 +6721,16 @@ public class InventoryService {
         return existing.getItemCategory().equals(sourceEntry.getItemCategory())
             && existing.getItemId() != null
             && existing.getItemId().equals(sourceEntry.getItemId());
+    }
+
+    private boolean isSameStackableItem(
+        @NotNull InventoryEntryModel existing,
+        @NotNull ItemModel model
+    ) {
+        return isStackableByItemId(existing)
+            && existing.getItemCategory() != null
+            && existing.getItemCategory().equalsIgnoreCase(model.getCategory())
+            && existing.getItemId().equalsIgnoreCase(model.getId());
     }
 
     private boolean isStackableByItemId(@NotNull InventoryEntryModel entry) {
@@ -7373,6 +7542,24 @@ public class InventoryService {
         /** @return 今回の付与で新しい BAG slot を使用した場合 {@code true} */
         public boolean consumedNewBagSlot() {
             return newlyOccupiedBagSlots > 0;
+        }
+    }
+
+    /**
+     * STORAGE 優先の通常アイテム付与結果です。
+     *
+     * @param requestedAmount 依頼数（1 未満を補正後）
+     * @param grantedAmount 実際に追加できた数
+     * @param storedInStorage 既存 STORAGE entry へ加算した場合は true
+     */
+    public record StorageFallbackGrantResult(
+        int requestedAmount,
+        int grantedAmount,
+        boolean storedInStorage
+    ) {
+        /** @return 依頼数の一部または全部を追加できなかった場合 true */
+        public boolean hasShortfall() {
+            return grantedAmount < requestedAmount;
         }
     }
 

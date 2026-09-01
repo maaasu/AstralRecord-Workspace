@@ -38,6 +38,16 @@ public final class LoginBonusHoliday {
             || isJapaneseHoliday(date);
     }
 
+    /**
+     * ログインボーナスの金曜日加算対象日かどうかを返します。
+     *
+     * @param date 判定日
+     * @return 金曜日の場合は true
+     */
+    public static boolean isFridayBonusDate(@NotNull LocalDate date) {
+        return date.getDayOfWeek() == DayOfWeek.FRIDAY;
+    }
+
     private static @NotNull Set<LocalDate> holidaysOfYear(int year) {
         Set<LocalDate> holidays = new HashSet<>();
         holidays.add(LocalDate.of(year, 1, 1));
