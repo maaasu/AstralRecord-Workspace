@@ -3,7 +3,7 @@ namespace AstralRecordApi.Data.Entities;
 public class PlayerMailStateEntity
 {
     public Guid PlayerMailStateId { get; set; }
-    public Guid UserId { get; set; }
+    public Guid AccountId { get; set; }
     public required string MailId { get; set; }
     public bool IsRead { get; set; }
     public DateTime? ReadAt { get; set; }

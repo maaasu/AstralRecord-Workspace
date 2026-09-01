@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandle
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
+import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Bukkit;
@@ -271,14 +272,14 @@ class AccountSwitchCommandTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
      * 章・見出し: # 02_3-コマンド > ## 2. コマンド仕様
-     * 検証契約: account の第一引数は既存の mode/delete に加え switch サブコマンドであり、ルートは管理者権限を要求する。
+     * 検証契約: account の第一引数は rename/mode/delete/switch を受け付け、ルート自体は権限チェックを行わない。
      */
     @Test
     void keepsAccountAdminSubcommandFormat() {
         AccountCommand command = new AccountCommand();
 
-        assertEquals(UserPermission.ADMIN.getValue(), command.getRequiredPermissionLevel());
-        assertEquals("/account <mode|delete|switch> ...", command.getUsage());
+        assertEquals(AstCommand.PERMISSION_NONE, command.getRequiredPermissionLevel());
+        assertEquals("/account <rename|mode|delete|switch> ...", command.getUsage());
     }
 
     /**
@@ -393,7 +394,7 @@ class AccountSwitchCommandTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
      * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウント補完候補取得
-     * 検証契約: 管理者権限のないプレイヤーには account の補完候補を返さない。
+     * 検証契約: 管理者権限のないプレイヤーにも、自分用の rename 補完だけを返す。
      */
     @Test
     void hidesAccountCompletionFromNonAdmin() {
@@ -404,12 +405,12 @@ class AccountSwitchCommandTest {
         try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
             cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
 
-            assertTrue(new AccountTabCompleter().onTabComplete(
+            assertEquals(List.of("rename"), new AccountTabCompleter().onTabComplete(
                 player,
                 null,
                 "account",
                 new String[] {""}
-            ).isEmpty());
+            ));
         }
     }
 

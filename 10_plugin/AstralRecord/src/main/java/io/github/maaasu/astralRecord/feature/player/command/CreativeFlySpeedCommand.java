@@ -1,7 +1,10 @@
 package io.github.maaasu.astralRecord.feature.player.command;
 
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
 import org.bukkit.Bukkit;
@@ -58,11 +61,15 @@ public final class CreativeFlySpeedCommand extends AstCommand {
         }
 
         target.setFlySpeed(toFlySpeed(percentage));
+        AstPlayer targetAstPlayer = AstPlayerCache.get(target);
+        String targetDisplayName = targetAstPlayer == null
+                ? target.getName()
+                : AccountDisplayNameFormatter.toLegacy(targetAstPlayer.getAccount());
         sendSuccess(
                 sender,
                 PlayerMsgResource.format(
                         PlayerMsgId.P_6920.getId(),
-                        target.getName(),
+                        targetDisplayName,
                         formatPercentage(percentage)
                 )
         );

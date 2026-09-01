@@ -64,7 +64,7 @@ public class AccountSkillTreeStateRepository(
             throw new InvalidOperationException($"User does not own account: {accountId}");
 
         var deliveryMailId = CompensationMailIdPrefix + request.RepairKey;
-        var deliveryExists = await DeliveryExistsAsync(request.UserId, deliveryMailId);
+        var deliveryExists = await DeliveryExistsAsync(accountId, deliveryMailId);
         if (deliveryExists && !await HasUnlockedNodesAsync(accountId))
             return await GetByAccountIdAsync(accountId);
 
@@ -81,7 +81,7 @@ public class AccountSkillTreeStateRepository(
             dbContext.ChangeTracker.Clear();
             await using var transaction = await dbContext.Database.BeginTransactionAsync(
                 IsolationLevel.Serializable);
-            var deliveryExistsInTransaction = await DeliveryExistsForRepairAsync(request.UserId, deliveryMailId);
+            var deliveryExistsInTransaction = await DeliveryExistsForRepairAsync(accountId, deliveryMailId);
             var hasUnlockedNodes = await HasUnlockedNodesAsync(accountId);
             if (deliveryExistsInTransaction && !hasUnlockedNodes)
             {
@@ -99,7 +99,7 @@ public class AccountSkillTreeStateRepository(
                 await dbContext.PlayerMailDeliveries.AddAsync(new PlayerMailDeliveryEntity
                 {
                     PlayerMailDeliveryId = Guid.NewGuid(),
-                    UserId = request.UserId,
+                    AccountId = accountId,
                     MailId = deliveryMailId,
                     PayloadJson = JsonSerializer.Serialize(deliveryMail, MasterDataPayloadJson.Options),
                     Version = 1,
@@ -206,22 +206,22 @@ public class AccountSkillTreeStateRepository(
         await AddUnlockedNodesAsync(entity.AccountSkillTreeStateId, normalizedNodes, now, updatedBy);
     }
 
-    private async Task<bool> DeliveryExistsAsync(Guid userId, string mailId)
+    private async Task<bool> DeliveryExistsAsync(Guid accountId, string mailId)
         => await dbContext.PlayerMailDeliveries
             .AsNoTracking()
-            .AnyAsync(delivery => delivery.UserId == userId && delivery.MailId == mailId);
+            .AnyAsync(delivery => delivery.AccountId == accountId && delivery.MailId == mailId);
 
-    private async Task<bool> DeliveryExistsForRepairAsync(Guid userId, string mailId)
+    private async Task<bool> DeliveryExistsForRepairAsync(Guid accountId, string mailId)
     {
         if (!dbContext.Database.IsSqlServer())
-            return await DeliveryExistsAsync(userId, mailId);
+            return await DeliveryExistsAsync(accountId, mailId);
 
         // 未登録の配信キーにも範囲ロックを取得し、同一repairKeyの補修を直列化する。
         return await dbContext.PlayerMailDeliveries
             .FromSqlInterpolated($"""
                 SELECT TOP (1) *
                 FROM dbo.player_mail_delivery WITH (UPDLOCK, HOLDLOCK)
-                WHERE user_id = {userId} AND mail_id = {mailId}
+                WHERE account_id = {accountId} AND mail_id = {mailId}
                 """)
             .AsNoTracking()
             .AnyAsync();

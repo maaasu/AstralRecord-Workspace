@@ -33,6 +33,7 @@ public class AccountController(IAccountRepository accountRepository) : Controlle
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Update(Guid uuid, [FromBody] AccountUpdateRequest request)
     {
         if (request.Mode.HasValue && !AccessControlContract.IsValidAccountMode(request.Mode.Value))
@@ -45,6 +46,10 @@ public class AccountController(IAccountRepository accountRepository) : Controlle
                 return NotFound();
 
             return Ok(updated);
+        }
+        catch (AccountNameConflictException ex)
+        {
+            return Conflict(new { message = ex.Message });
         }
         catch (ArgumentException ex)
         {

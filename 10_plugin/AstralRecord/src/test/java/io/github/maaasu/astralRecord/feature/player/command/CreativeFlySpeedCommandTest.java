@@ -61,6 +61,7 @@ class CreativeFlySpeedCommandTest extends MockBukkitTestBase {
         CreativeFlySpeedCommand command = new CreativeFlySpeedCommand();
         Player sender = mock(Player.class);
         when(sender.getName()).thenReturn("Admin");
+        when(sender.getUniqueId()).thenReturn(UUID.randomUUID());
 
         command.executeCommand(sender, new String[] {"100"});
 

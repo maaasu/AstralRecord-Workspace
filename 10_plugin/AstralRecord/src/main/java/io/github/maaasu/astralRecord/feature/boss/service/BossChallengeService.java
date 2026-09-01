@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.boss.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeConfig;
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeEndReason;
 import io.github.maaasu.astralRecord.feature.boss.model.BossChallengeInstance;
@@ -1627,7 +1628,10 @@ public final class BossChallengeService {
     private @NotNull String playerName(@NotNull UUID playerId) {
         Player player = Bukkit.getPlayer(playerId);
         if (player != null) {
-            return player.getName();
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            return astPlayer == null
+                    ? player.getName()
+                    : AccountDisplayNameFormatter.toLegacy(astPlayer.getAccount());
         }
         String offlineName = Bukkit.getOfflinePlayer(playerId).getName();
         if (offlineName != null && !offlineName.isBlank()) {

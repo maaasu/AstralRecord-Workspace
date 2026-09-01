@@ -59,7 +59,7 @@ class MailServiceTest {
         InventoryService.InventoryGrantReceipt receipt = context.receipt(3L);
         when(context.inventoryService.addPreparedRewardsToNormalInventory(eq(context.astPlayer), any()))
             .thenReturn(receipt);
-        when(context.repository.markRead(context.userId, context.mail.id()))
+        when(context.repository.markRead(context.accountId, context.userId, context.mail.id()))
             .thenReturn(context.readMail());
         AtomicReference<MailService.ReadAndReceiveResult> result = new AtomicReference<>();
         AtomicInteger receivedEvents = new AtomicInteger();
@@ -77,7 +77,7 @@ class MailServiceTest {
             eq(context.astPlayer),
             any()
         );
-        order.verify(context.repository).markRead(context.userId, context.mail.id());
+        order.verify(context.repository).markRead(context.accountId, context.userId, context.mail.id());
         verify(context.inventoryService, never()).snapshotState(any());
         verify(context.inventoryService, never()).restoreState(any());
     }
@@ -98,7 +98,7 @@ class MailServiceTest {
                 claimReward.addAndGet(3);
                 return receipt;
             });
-        when(context.repository.markRead(context.userId, context.mail.id()))
+        when(context.repository.markRead(context.accountId, context.userId, context.mail.id()))
             .thenAnswer(invocation -> {
                 concurrentReward.incrementAndGet();
                 return null;
@@ -130,7 +130,7 @@ class MailServiceTest {
     void rewardlessMailDoesNotSnapshotOrMutateInventory() {
         TestContext context = new TestContext();
         MailEntry rewardless = TestContext.mail(false, List.of());
-        when(context.repository.markRead(context.userId, rewardless.id()))
+        when(context.repository.markRead(context.accountId, context.userId, rewardless.id()))
             .thenReturn(context.readMail(rewardless));
         AtomicReference<MailService.ReadAndReceiveResult> result = new AtomicReference<>();
         AtomicInteger receivedEvents = new AtomicInteger();
@@ -159,16 +159,16 @@ class MailServiceTest {
         InventoryService.InventoryGrantReceipt receipt = context.receipt(3L);
         when(context.inventoryService.addPreparedRewardsToNormalInventory(eq(context.astPlayer), any()))
             .thenReturn(receipt);
-        when(context.repository.markRead(context.userId, context.mail.id()))
+        when(context.repository.markRead(context.accountId, context.userId, context.mail.id()))
             .thenReturn(context.readMail());
 
         context.runWithPlayerServices(() ->
             context.service.readAndReceive(context.astPlayer, context.mail, ignored -> { })
         );
 
-        when(context.repository.findAvailable(context.userId, MailFilter.ALL))
+        when(context.repository.findAvailable(context.accountId, MailFilter.ALL))
             .thenReturn(List.of(context.mail));
-        context.service.listAsync(context.userId, MailFilter.ALL, ignored -> { }, () -> { });
+        context.service.listAsync(context.accountId, MailFilter.ALL, ignored -> { }, () -> { });
 
         AtomicReference<MailService.ReadAndReceiveResult> duplicateResult = new AtomicReference<>();
         context.runWithPlayerServices(() ->
@@ -181,7 +181,7 @@ class MailServiceTest {
             eq(context.astPlayer),
             any()
         );
-        verify(context.repository, times(1)).markRead(context.userId, context.mail.id());
+        verify(context.repository, times(1)).markRead(context.accountId, context.userId, context.mail.id());
     }
 
     /**
@@ -208,7 +208,7 @@ class MailServiceTest {
         )).thenReturn(firstInstance, secondInstance, thirdInstance);
         when(context.inventoryService.addPreparedRewardsToNormalInventory(eq(context.astPlayer), any()))
             .thenReturn(context.receipt(1L));
-        when(context.repository.markRead(context.userId, context.mail.id()))
+        when(context.repository.markRead(context.accountId, context.userId, context.mail.id()))
             .thenReturn(context.readMail());
 
         context.runWithPlayerServices(() ->
@@ -229,7 +229,7 @@ class MailServiceTest {
             eq(context.astPlayer),
             rewardsCaptor.capture()
         );
-        order.verify(context.repository).markRead(context.userId, context.mail.id());
+        order.verify(context.repository).markRead(context.accountId, context.userId, context.mail.id());
         InventoryService.PreparedInventoryInstance prepared = rewardsCaptor.getValue()
             .get(0)
             .instances()
@@ -254,7 +254,7 @@ class MailServiceTest {
         context.service.setMailReceivedListener((ignoredPlayer, ignoredMailId) -> receivedEvents.incrementAndGet());
         when(context.inventoryService.addPreparedRewardsToNormalInventory(eq(context.astPlayer), any()))
             .thenReturn(receipt);
-        when(context.repository.markRead(context.userId, context.mail.id())).thenReturn(null);
+        when(context.repository.markRead(context.accountId, context.userId, context.mail.id())).thenReturn(null);
         when(context.inventoryService.rollbackPreparedRewards(receipt)).thenReturn(false);
         doAnswer(invocation -> {
             reconciliation.set(invocation.getArgument(1));
@@ -280,9 +280,9 @@ class MailServiceTest {
             eq(context.astPlayer),
             any()
         );
-        verify(context.repository, times(1)).markRead(context.userId, context.mail.id());
+        verify(context.repository, times(1)).markRead(context.accountId, context.userId, context.mail.id());
 
-        when(context.repository.markRead(context.userId, context.mail.id())).thenReturn(context.readMail());
+        when(context.repository.markRead(context.accountId, context.userId, context.mail.id())).thenReturn(context.readMail());
         AtomicReference<MailService.ReadAndReceiveResult> staleResult = new AtomicReference<>();
         context.runWithPlayerServices(() -> {
             reconciliation.get().run();
@@ -296,7 +296,7 @@ class MailServiceTest {
             eq(context.astPlayer),
             any()
         );
-        verify(context.repository, times(2)).markRead(context.userId, context.mail.id());
+        verify(context.repository, times(2)).markRead(context.accountId, context.userId, context.mail.id());
     }
 
     /**
@@ -313,7 +313,7 @@ class MailServiceTest {
         context.service.setMailReceivedListener((ignoredPlayer, ignoredMailId) -> receivedEvents.incrementAndGet());
         when(context.inventoryService.addPreparedRewardsToNormalInventory(eq(context.astPlayer), any()))
             .thenReturn(receipt);
-        when(context.repository.markRead(context.userId, context.mail.id())).thenReturn(null);
+        when(context.repository.markRead(context.accountId, context.userId, context.mail.id())).thenReturn(null);
         when(context.inventoryService.rollbackPreparedRewards(receipt)).thenReturn(false);
         doAnswer(invocation -> {
             reconciliation.set(invocation.getArgument(1));
@@ -324,13 +324,13 @@ class MailServiceTest {
             anyLong()
         );
         when(context.player.isOnline()).thenReturn(true, true, false, true);
-        when(context.repository.markRead(context.userId, context.mail.id())).thenReturn(null);
+        when(context.repository.markRead(context.accountId, context.userId, context.mail.id())).thenReturn(null);
 
         context.runWithPlayerServices(() ->
             context.service.readAndReceive(context.astPlayer, context.mail, ignored -> { })
         );
 
-        when(context.repository.markRead(context.userId, context.mail.id())).thenReturn(context.readMail());
+        when(context.repository.markRead(context.accountId, context.userId, context.mail.id())).thenReturn(context.readMail());
         context.runWithPlayerServices(() -> reconciliation.get().run());
 
         assertEquals(0, receivedEvents.get());

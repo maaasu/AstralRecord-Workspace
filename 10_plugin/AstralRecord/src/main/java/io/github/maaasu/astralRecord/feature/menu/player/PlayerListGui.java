@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.menu.player;
 
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
@@ -132,11 +133,15 @@ public final class PlayerListGui {
     ) {
         OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerId);
         String playerName = playerName(playerId);
+        Player online = Bukkit.getPlayer(playerId);
+        AstPlayer astPlayer = online == null ? null : AstPlayerCache.get(online);
         ItemStack itemStack = new ItemStack(Material.PLAYER_HEAD);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta instanceof SkullMeta skullMeta) {
             skullMeta.setOwningPlayer(offlinePlayer);
-            skullMeta.displayName(noItalic(Component.text(playerName, NamedTextColor.WHITE)));
+            skullMeta.displayName(noItalic(astPlayer == null
+                ? Component.text(playerName, NamedTextColor.WHITE)
+                : AccountDisplayNameFormatter.toComponent(astPlayer.getAccount())));
             skullMeta.lore(new ArrayList<>(buildLore(viewer, purpose, playerId)));
             skullMeta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(skullMeta);
@@ -174,6 +179,10 @@ public final class PlayerListGui {
     private @NotNull String playerName(@NotNull UUID playerId) {
         Player online = Bukkit.getPlayer(playerId);
         if (online != null) {
+            AstPlayer astPlayer = AstPlayerCache.get(online);
+            if (astPlayer != null) {
+                return AccountDisplayNameFormatter.toPlain(astPlayer.getAccount());
+            }
             return online.getName();
         }
         OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerId);

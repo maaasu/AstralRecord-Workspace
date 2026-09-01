@@ -250,7 +250,7 @@ public class AccountSkillTreeStateRepositoryTests
         Assert.Empty(repairedAgain.UnlockedNodes);
         Assert.True(repairedAgain.Version > retried.Version);
         var delivery = await dbContext.PlayerMailDeliveries.AsNoTracking().SingleAsync();
-        Assert.Equal(userId, delivery.UserId);
+        Assert.Equal(accountId, delivery.AccountId);
         Assert.Equal("skilltree-structure-reset-" + repairKey, delivery.MailId);
         var deliveredMail = JsonSerializer.Deserialize<MailResponse>(delivery.PayloadJson,
             new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -312,7 +312,7 @@ public class AccountSkillTreeStateRepositoryTests
 
             CREATE TABLE player_mail_delivery (
                 player_mail_delivery_id TEXT NOT NULL PRIMARY KEY,
-                user_id TEXT NOT NULL,
+                account_id TEXT NOT NULL,
                 mail_id TEXT NOT NULL,
                 payload_json TEXT NOT NULL,
                 version INTEGER NOT NULL,
@@ -323,8 +323,8 @@ public class AccountSkillTreeStateRepositoryTests
                 is_deleted INTEGER NOT NULL
             );
 
-            CREATE UNIQUE INDEX UX_player_mail_delivery_user_mail
-                ON player_mail_delivery (user_id, mail_id);
+            CREATE UNIQUE INDEX UX_player_mail_delivery_account_mail
+                ON player_mail_delivery (account_id, mail_id);
         ");
     }
 

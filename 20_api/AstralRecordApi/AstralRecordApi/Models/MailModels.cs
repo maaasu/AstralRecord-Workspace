@@ -26,6 +26,6 @@ public class MailResponse
 
 public class MailActionRequest
 {
-    public Guid UserId { get; set; }
+    public Guid AccountId { get; set; }
     public Guid UpdatedBy { get; set; }
 }

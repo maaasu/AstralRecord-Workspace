@@ -8,6 +8,8 @@ namespace AstralRecordApi.Repositories;
 
 public class AccountRepository(AstralRecordDbContext dbContext) : IAccountRepository
 {
+    private const int AccountNameMaxLength = 50;
+
     public async Task<IReadOnlyList<AccountResponse>> GetByUserIdAsync(Guid userId)
     {
         var accounts = await dbContext.Accounts
@@ -51,9 +53,9 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
                 && account.SlotIndex == request.SlotIndex
                 && !account.IsDeleted);
         if (existingSlot is not null
-            && string.Equals(existingSlot.AccountName, request.AccountName, StringComparison.Ordinal)
             && existingSlot.Mode == request.Mode
-            && existingSlot.CreatedBy == request.CreatedBy)
+            && existingSlot.CreatedBy == request.CreatedBy
+            && IsRetryOfCreateRequest(existingSlot.AccountName, request.AccountName))
         {
             // Commit結果不明後の実行戦略再試行では、最初の試行で確定した行を成功結果として返す。
             return MapToResponse(existingSlot);
@@ -62,11 +64,12 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         var now = DateTime.UtcNow;
         var hasExistingAccount = await dbContext.Accounts
             .AnyAsync(candidate => candidate.UserId == request.UserId && !candidate.IsDeleted);
+        var accountName = await ResolveGeneratedAccountNameAsync(request.AccountName);
         var account = new AccountEntity
         {
             Uuid = Guid.NewGuid(),
             UserId = request.UserId,
-            AccountName = request.AccountName,
+            AccountName = accountName,
             SlotIndex = request.SlotIndex,
             Mode = request.Mode,
             IsActive = !hasExistingAccount,
@@ -99,7 +102,7 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
 
     public async Task<AccountResponse?> UpdateAsync(Guid uuid, AccountUpdateRequest request)
     {
-        if (request.IsActive != true)
+        if (request.IsActive != true && request.AccountName is null)
             return await UpdateCoreAsync(uuid, request);
 
         var executionStrategy = dbContext.Database.CreateExecutionStrategy();
@@ -126,7 +129,16 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
             return null;
 
         if (request.AccountName is not null)
+        {
+            ValidateManualAccountName(request.AccountName);
+            var duplicateExists = await dbContext.Accounts.AnyAsync(candidate =>
+                candidate.Uuid != uuid
+                && !candidate.IsDeleted
+                && candidate.AccountName.ToLower() == request.AccountName.ToLower());
+            if (duplicateExists)
+                throw new AccountNameConflictException(request.AccountName);
             account.AccountName = request.AccountName;
+        }
 
         if (request.IsActive.HasValue)
             account.IsActive = request.IsActive.Value;
@@ -236,6 +248,61 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         await dbContext.SaveChangesAsync();
 
         return MapToResponse(account);
+    }
+
+    private async Task<string> ResolveGeneratedAccountNameAsync(string requestedName)
+    {
+        var requestedBaseName = string.IsNullOrWhiteSpace(requestedName)
+            ? "Player"
+            : requestedName.Trim();
+        var baseName = requestedBaseName[..Math.Min(AccountNameMaxLength, requestedBaseName.Length)];
+        if (!await AccountNameExistsAsync(baseName))
+            return baseName;
+
+        for (var suffixIndex = 1; suffixIndex < int.MaxValue; suffixIndex++)
+        {
+            var suffix = $"({suffixIndex})";
+            var prefixLength = Math.Max(1, AccountNameMaxLength - suffix.Length);
+            var candidate = baseName.Length + suffix.Length <= AccountNameMaxLength
+                ? baseName + suffix
+                : baseName[..Math.Min(prefixLength, baseName.Length)] + suffix;
+            if (!await AccountNameExistsAsync(candidate))
+                return candidate;
+        }
+
+        throw new InvalidOperationException("No generated account name is available.");
+    }
+
+    private static bool IsRetryOfCreateRequest(string existingName, string requestedName)
+    {
+        var requestedBaseName = string.IsNullOrWhiteSpace(requestedName)
+            ? "Player"
+            : requestedName.Trim();
+        var baseName = requestedBaseName[..Math.Min(AccountNameMaxLength, requestedBaseName.Length)];
+        if (string.Equals(existingName, baseName, StringComparison.Ordinal))
+            return true;
+        if (!existingName.StartsWith(baseName + "(", StringComparison.Ordinal)
+            || !existingName.EndsWith(")", StringComparison.Ordinal))
+            return false;
+
+        var suffix = existingName[(baseName.Length + 1)..^1];
+        return int.TryParse(suffix, out var suffixIndex) && suffixIndex > 0;
+    }
+
+    private Task<bool> AccountNameExistsAsync(string accountName)
+    {
+        var normalizedName = accountName.ToLower();
+        return dbContext.Accounts.AnyAsync(candidate =>
+            !candidate.IsDeleted && candidate.AccountName.ToLower() == normalizedName);
+    }
+
+    private static void ValidateManualAccountName(string accountName)
+    {
+        if (accountName.Length is < 1 or > AccountNameMaxLength
+            || accountName.Any(character =>
+                !((character >= 'A' && character <= 'Z')
+                    || (character >= 'a' && character <= 'z'))))
+            throw new ArgumentException("Account name must contain only ASCII letters and be 1-50 characters long.");
     }
 
     /// <summary>

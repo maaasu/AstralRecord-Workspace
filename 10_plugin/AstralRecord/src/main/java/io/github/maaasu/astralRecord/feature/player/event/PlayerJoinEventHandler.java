@@ -253,12 +253,8 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         UUID playerUuid = player.getUniqueId();
         String playerName = player.getName();
 
-        event.joinMessage(
-            PlayerMessageService.getInstance().formatInteractivePlayerMessage(
-                PlayerMsgId.P_5076,
-                playerName
-            )
-        );
+        // アカウント読み込み前は MCID をゲーム内表示へ出さず、読み込み完了後にアカウント名で通知する。
+        event.joinMessage(null);
 
         JoinAttempt attempt = startJoinLoading(player);
         scheduleAsync(() -> loadUserStep(attempt, playerName), reserveJoinStartDelayTicks());
@@ -309,14 +305,13 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         String playerName = player.getName();
         JoinAttempt attempt = currentJoinAttempt(player);
 
-        event.quitMessage(
-            PlayerMessageService.getInstance().formatInteractivePlayerMessage(
-                PlayerMsgId.P_5077,
-                playerName
-            )
-        );
-
         AstPlayer astPlayer = AstPlayerCache.get(player);
+        event.quitMessage(astPlayer == null
+            ? null
+            : PlayerMessageService.getInstance().formatInteractiveAccountMessage(
+                PlayerMsgId.P_5077,
+                astPlayer
+            ));
         if (astPlayer != null) {
             runSafely(() -> playerQuitListener.accept(astPlayer), LogId.E_5070, playerName);
             UUID accountId = astPlayer.getAccount().getUuid();
@@ -596,6 +591,9 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             if (appliedPlayer != null) {
                 runSafely(() -> playerLoadedListener.accept(appliedPlayer), LogId.E_5070, playerName);
                 plugin.getPlayerClassService().updatePlayerListName(appliedPlayer);
+                if (completionListener == null) {
+                    PlayerMessageService.getInstance().broadcastAccountMessage(PlayerMsgId.P_5076, appliedPlayer);
+                }
             }
             if (guideService != null) {
                 guideService.loadProgressAsync(joinData.account().getUuid());
@@ -626,7 +624,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         }
 
         finishAccountLoad(attempt, true, completionListener);
-        notifyUnreadMailAsync(attempt, playerName);
+        notifyUnreadMailAsync(attempt, playerName, joinData.account().getUuid());
         if (completionListener == null) {
             scheduleAsync(
                 () -> runSafely(
@@ -696,10 +694,10 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         }
     }
 
-    private void notifyUnreadMailAsync(JoinAttempt attempt, String playerName) {
+    private void notifyUnreadMailAsync(JoinAttempt attempt, String playerName, UUID accountId) {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () ->
             runSafely(() -> {
-                int unreadCount = mailService.countUnread(attempt.playerUuid());
+                int unreadCount = mailService.countUnread(accountId);
                 if (unreadCount <= 0) {
                     return;
                 }

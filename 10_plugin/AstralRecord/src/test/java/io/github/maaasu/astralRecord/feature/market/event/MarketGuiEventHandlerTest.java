@@ -617,7 +617,7 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
     private static MarketListing listing(UUID accountId, String status, long pendingProceeds) {
         Instant now = Instant.parse("2026-08-17T00:00:00Z");
         return new MarketListing(
-            UUID.randomUUID(), accountId, "market-test", null, UUID.randomUUID(),
+            UUID.randomUUID(), accountId, "market-test", 0, null, UUID.randomUUID(),
             ItemCategory.MATERIAL.getApiValue(), "market_test_material", null, null,
             1L, 1L, "gold", 1L, 1L, 1L, null, null, "HIGH", null, null,
             status, null, now, now.plusSeconds(86_400L), null, null, 1, now, now,

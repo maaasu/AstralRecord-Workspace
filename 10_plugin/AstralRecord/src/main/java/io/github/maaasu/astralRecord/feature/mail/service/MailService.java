@@ -75,12 +75,12 @@ public final class MailService {
     /**
      * 表示可能なメール一覧を取得します。
      *
-     * @param userId 対象ユーザー ID
+     * @param accountId 対象アカウント ID
      * @param filter 既読フィルター
      * @return メール一覧
      */
-    public @NotNull List<MailEntry> list(@NotNull UUID userId, @NotNull MailFilter filter) {
-        return mailRepository.findAvailable(userId, filter);
+    public @NotNull List<MailEntry> list(@NotNull UUID accountId, @NotNull MailFilter filter) {
+        return mailRepository.findAvailable(accountId, filter);
     }
 
     /**
@@ -120,30 +120,30 @@ public final class MailService {
     /**
      * 表示可能な未読メール件数を返します。
      *
-     * @param userId 対象ユーザー ID
+     * @param accountId 対象アカウント ID
      * @return 未読メール件数
      */
-    public int countUnread(@NotNull UUID userId) {
-        return list(userId, MailFilter.UNREAD).size();
+    public int countUnread(@NotNull UUID accountId) {
+        return list(accountId, MailFilter.UNREAD).size();
     }
 
     /**
      * メール一覧と表示に必要な報酬定義を非同期で取得します。
      *
-     * @param userId 対象ユーザー ID
+     * @param accountId 対象アカウント ID
      * @param filter 既読フィルター
      * @param completion 成功時処理
      * @param failure 失敗時処理
      */
     public void listAsync(
-        @NotNull UUID userId,
+        @NotNull UUID accountId,
         @NotNull MailFilter filter,
         @NotNull Consumer<List<MailEntry>> completion,
         @NotNull Runnable failure
     ) {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             try {
-                List<MailEntry> mails = list(userId, filter);
+                List<MailEntry> mails = list(accountId, filter);
                 preloadRewardModels(mails);
                 plugin.getServer().getScheduler().runTask(plugin, () -> {
                     completion.accept(mails);
@@ -170,7 +170,7 @@ public final class MailService {
         UUID userId = astPlayer.getUser().getUuid();
         UUID accountId = astPlayer.getAccount().getUuid();
         UUID playerId = astPlayer.getBukkit().getUniqueId();
-        MailClaimKey claimKey = new MailClaimKey(userId, mail.id());
+        MailClaimKey claimKey = new MailClaimKey(accountId, mail.id());
         if (completedClaims.contains(claimKey)) {
             completion.accept(new ReadAndReceiveResult(true, false));
             return;
@@ -229,7 +229,7 @@ public final class MailService {
     }
 
     /**
-     * プレイヤー単位でメールを削除状態にします。
+     * アカウント単位でメールを削除状態にします。
      *
      * @param astPlayer 対象プレイヤー
      * @param mailId メール ID
@@ -246,7 +246,7 @@ public final class MailService {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             boolean deleted;
             try {
-                deleted = mailRepository.delete(userId, mailId);
+                deleted = mailRepository.delete(accountId, userId, mailId);
             } catch (RuntimeException e) {
                 deleted = false;
             }
@@ -277,7 +277,7 @@ public final class MailService {
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             MailEntry updated;
             try {
-                updated = mailRepository.markRead(userId, mail.id());
+                updated = mailRepository.markRead(accountId, userId, mail.id());
             } catch (RuntimeException e) {
                 updated = null;
             }
@@ -331,7 +331,7 @@ public final class MailService {
         plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
             MailEntry updated;
             try {
-                updated = mailRepository.markRead(userId, mail.id());
+                updated = mailRepository.markRead(receipt.accountId(), userId, mail.id());
             } catch (RuntimeException e) {
                 updated = null;
             }
@@ -368,7 +368,7 @@ public final class MailService {
             return;
         }
         pendingReceivedNotifications.add(new PendingReceivedNotification(
-            claimKey.userId(),
+            userId,
             accountId,
             mailId
         ));
@@ -521,7 +521,7 @@ public final class MailService {
         }
     }
 
-    private record MailClaimKey(@NotNull UUID userId, @NotNull String mailId) {
+    private record MailClaimKey(@NotNull UUID accountId, @NotNull String mailId) {
     }
 
     private record PendingReceivedNotification(

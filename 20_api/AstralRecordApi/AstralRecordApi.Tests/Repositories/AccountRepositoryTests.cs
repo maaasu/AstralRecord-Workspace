@@ -169,6 +169,106 @@ public class AccountRepositoryTests
         Assert.Equal(2, await dbContext.Accounts.CountAsync(account => account.UserId == userId));
     }
 
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/02-account/1-モデル定義/02_1.00-モデル定義.md
+    /// 検証契約: 自動作成名は大小文字を区別せず重複を避け、連番の空き名を返す。
+    /// </summary>
+    [Fact]
+    public async Task CreateAsync_GeneratesCaseInsensitiveUniqueNamesWithIncrementingSuffix()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        var now = DateTime.UtcNow;
+        var userIds = Enumerable.Range(0, 3).Select(_ => Guid.NewGuid()).ToArray();
+
+        await using (var setupContext = new AstralRecordDbContext(options))
+        {
+            await setupContext.Database.EnsureCreatedAsync();
+            setupContext.Users.AddRange(userIds.Select(userId => new UserEntity
+            {
+                Uuid = userId,
+                Mcid = $"player-{userId:N}",
+                JoinDate = now,
+                LastJoinDate = now,
+                GlobalIp = "127.0.0.1",
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = userId,
+                UpdatedBy = userId,
+                IsDeleted = false,
+            }));
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var repository = new AccountRepository(dbContext);
+
+        var first = await repository.CreateAsync(new AccountCreateRequest
+        {
+            UserId = userIds[0], AccountName = "Alice", SlotIndex = 0, Mode = 0, CreatedBy = userIds[0],
+        });
+        var second = await repository.CreateAsync(new AccountCreateRequest
+        {
+            UserId = userIds[1], AccountName = "alice", SlotIndex = 0, Mode = 0, CreatedBy = userIds[1],
+        });
+        var third = await repository.CreateAsync(new AccountCreateRequest
+        {
+            UserId = userIds[2], AccountName = "Alice", SlotIndex = 0, Mode = 0, CreatedBy = userIds[2],
+        });
+
+        Assert.Equal("Alice", first.AccountName);
+        Assert.Equal("alice(1)", second.AccountName);
+        Assert.Equal("Alice(2)", third.AccountName);
+    }
+
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/02-account/3-エンドポイント仕様/02_3.03-更新系.md
+    /// 検証契約: 手動変更名は ASCII 英字だけを受理し、既存名との大小無視重複は拒否する。
+    /// </summary>
+    [Fact]
+    public async Task UpdateAsync_RejectsInvalidOrDuplicateManualAccountName()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        var userId = Guid.NewGuid();
+        var firstAccountId = Guid.NewGuid();
+        var secondAccountId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+
+        await using (var setupContext = new AstralRecordDbContext(options))
+        {
+            await setupContext.Database.EnsureCreatedAsync();
+            setupContext.Users.Add(CreateUser(userId, firstAccountId, now));
+            var firstAccount = CreateAccount(firstAccountId, userId, 0, true, now);
+            firstAccount.AccountName = "Alice";
+            var secondAccount = CreateAccount(secondAccountId, userId, 1, false, now);
+            secondAccount.AccountName = "Bob";
+            setupContext.Accounts.AddRange(
+                firstAccount,
+                secondAccount);
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var repository = new AccountRepository(dbContext);
+
+        await Assert.ThrowsAsync<AccountNameConflictException>(() => repository.UpdateAsync(
+            secondAccountId,
+            new AccountUpdateRequest { AccountName = "alice", UpdatedBy = userId }));
+        await Assert.ThrowsAsync<ArgumentException>(() => repository.UpdateAsync(
+            secondAccountId,
+            new AccountUpdateRequest { AccountName = "Bob_2", UpdatedBy = userId }));
+
+        var unchanged = await dbContext.Accounts.SingleAsync(account => account.Uuid == secondAccountId);
+        Assert.Equal("Bob", unchanged.AccountName);
+    }
+
     [Fact]
     public async Task DeleteAsync_CommitResultUnknownReturnsCommittedDeleteResult()
     {

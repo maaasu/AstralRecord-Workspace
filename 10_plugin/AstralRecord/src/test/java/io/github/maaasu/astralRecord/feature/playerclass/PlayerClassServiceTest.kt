@@ -196,10 +196,10 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
      * 章・見出し: # 10_3-View > ## 5. tab list 描画
-     * 検証契約: tab list名の左へ正式class名tagを反映する。
+     * 検証契約: tab list名へアカウント名とスロット番号を反映する。
      */
     @Test
-    fun updatesTabListNameWithFullClassName() {
+    fun updatesTabListNameWithAccountDisplayName() {
         val player = server().addPlayer()
         val astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER)
         astPlayer.selectClass("mage")
@@ -209,7 +209,7 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         service.updatePlayerListName(astPlayer)
 
         assertEquals(
-            "[メイジ] ${player.name}",
+            "test-account#0",
             PlainTextComponentSerializer.plainText().serialize(player.playerListName()),
         )
     }

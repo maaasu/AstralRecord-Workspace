@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.menu.view;
 
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuIconDefinition;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutAction;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
@@ -189,7 +190,8 @@ final class CraftShortcutView {
         StatusSnapshot snapshot = context.statusSnapshot();
         List<Component> lore = new ArrayList<>();
         lore.add(Component.text("選択中のアカウント", NamedTextColor.DARK_GRAY));
-        lore.add(Component.text(selectedAccount.getAccountName(), NamedTextColor.GOLD)
+        lore.add(AccountDisplayNameFormatter.toComponent(selectedAccount)
+            .colorIfAbsent(NamedTextColor.GOLD)
             .append(Component.text("  Lv.", NamedTextColor.GRAY))
             .append(Component.text(String.valueOf(selectedAccount.getLevel()), NamedTextColor.YELLOW)));
         lore.add(Component.text("━━━━━━━━━━━━", NamedTextColor.DARK_GRAY));

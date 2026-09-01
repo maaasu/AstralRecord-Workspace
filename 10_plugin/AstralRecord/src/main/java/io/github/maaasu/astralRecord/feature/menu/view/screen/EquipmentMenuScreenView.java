@@ -1,7 +1,10 @@
 package io.github.maaasu.astralRecord.feature.menu.view.screen;
 
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
@@ -284,9 +287,14 @@ public final class EquipmentMenuScreenView extends BaseMenuScreenView {
     }
 
     private @NotNull ItemStack playerStatusItem(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
         ItemStack itemStack = createItem(
             Material.PLAYER_HEAD,
-            Component.text(player.getName(), NamedTextColor.GREEN, TextDecoration.BOLD),
+            astPlayer == null
+                ? Component.text(player.getName(), NamedTextColor.GREEN, TextDecoration.BOLD)
+                : AccountDisplayNameFormatter.toComponent(astPlayer.getAccount())
+                    .colorIfAbsent(NamedTextColor.GREEN)
+                    .decoration(TextDecoration.BOLD, true),
             List.of(Component.text("クリックしてステータスを表示", NamedTextColor.GRAY))
         );
         if (itemStack.getItemMeta() instanceof SkullMeta skullMeta) {

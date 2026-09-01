@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.account.command;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountDeleteResult;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -146,7 +147,7 @@ public final class AccountDeleteCommand extends AstCommand implements io.github.
             sendSuccess(sender, PlayerMsgResource.format(
                 PlayerMsgId.P_5336.getId(),
                 result.result().getDeletedSlotIndex(),
-                account.getAccountName()
+                AccountDisplayNameFormatter.toLegacy(account)
             ));
         }));
     }

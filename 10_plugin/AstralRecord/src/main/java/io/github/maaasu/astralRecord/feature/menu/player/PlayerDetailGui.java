@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.menu.player;
 
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
+
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.model.ClassProgressViewEntry;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
@@ -200,7 +202,8 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         Inventory inventory = Bukkit.createInventory(
             new Holder(target.getBukkit().getUniqueId()),
             SIZE,
-            Component.text("プレイヤー情報: " + target.getBukkit().getName(), NamedTextColor.GOLD)
+            Component.text("プレイヤー情報: ", NamedTextColor.GOLD)
+                .append(AccountDisplayNameFormatter.toComponent(target.getAccount()))
         );
         render(inventory, viewer, target, snapshot, goldAmount, classDisplayName, classProgresses);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
@@ -616,11 +619,14 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
         if (meta instanceof SkullMeta skullMeta) {
             OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(target.getBukkit().getUniqueId());
             skullMeta.setOwningPlayer(offlinePlayer);
-            skullMeta.displayName(noItalic(Component.text(target.getBukkit().getName(), NamedTextColor.WHITE, TextDecoration.BOLD)));
+            skullMeta.displayName(noItalic(
+                AccountDisplayNameFormatter.toComponent(target.getAccount()).decorate(TextDecoration.BOLD)
+            ));
             List<Component> lore = new ArrayList<>();
             lore.add(noItalic(Component.text("プレイヤー Lv." + target.getAccount().getLevel(), NamedTextColor.YELLOW)));
             lore.add(noItalic(Component.text("現在のクラス: ", NamedTextColor.GRAY).append(legacy(classDisplayName))));
-            lore.add(noItalic(Component.text("アカウント: " + target.getAccount().getAccountName(), NamedTextColor.WHITE)));
+            lore.add(noItalic(Component.text("アカウント: ", NamedTextColor.WHITE)
+                .append(AccountDisplayNameFormatter.toComponent(target.getAccount()))));
             lore.add(noItalic(Component.text("モード: " + target.getAccount().getMode().getDisplayName(), NamedTextColor.GRAY)));
             lore.add(noItalic(Component.text("累計 EXP: " + formatInt(target.getAccount().getTotalExperience()), NamedTextColor.YELLOW)));
             lore.add(Component.empty());

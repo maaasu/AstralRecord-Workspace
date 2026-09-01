@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.menu.view;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.currency.view.CurrencyGuiView;
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideEntry;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideStep;
@@ -194,11 +195,22 @@ public class MenuView {
             ),
             SIZE,
             effectiveReadOnly
-                ? Component.text("装備: " + target.getName(), NamedTextColor.GOLD)
+                ? Component.text("装備: ", NamedTextColor.GOLD)
+                    .append(targetAccountDisplay(target, NamedTextColor.GOLD))
                 : EQUIPMENT_TITLE
         );
         equipmentMenuScreenView.render(inventory, target, accessories);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
+    }
+
+    private @NotNull Component targetAccountDisplay(
+        @NotNull Player target,
+        @NotNull NamedTextColor fallbackColor
+    ) {
+        AstPlayer astPlayer = AstPlayerCache.get(target);
+        return astPlayer == null
+            ? Component.text(target.getName(), fallbackColor)
+            : AccountDisplayNameFormatter.toComponent(astPlayer.getAccount()).colorIfAbsent(fallbackColor);
     }
 
     /**

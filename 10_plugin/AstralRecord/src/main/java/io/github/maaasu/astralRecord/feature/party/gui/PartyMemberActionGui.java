@@ -1,6 +1,9 @@
 package io.github.maaasu.astralRecord.feature.party.gui;
 
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
@@ -8,6 +11,7 @@ import net.kyori.adventure.text.format.TextDecoration;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.OfflinePlayer;
+import org.bukkit.entity.Player;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.inventory.ItemFlag;
@@ -83,13 +87,29 @@ public final class PartyMemberActionGui extends BaseMenuScreenView {
         if (meta instanceof SkullMeta skullMeta) {
             OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(targetId);
             skullMeta.setOwningPlayer(offlinePlayer);
-            String displayName = offlinePlayer.getName() == null ? targetId.toString() : offlinePlayer.getName();
-            skullMeta.displayName(Component.text(displayName, NamedTextColor.WHITE, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false));
+            Component displayName = playerNameComponent(targetId)
+                .decoration(TextDecoration.BOLD, true)
+                .decoration(TextDecoration.ITALIC, false);
+            skullMeta.displayName(displayName);
             skullMeta.lore(List.of(Component.text("操作対象のメンバーです", NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false)));
             skullMeta.addItemFlags(ItemFlag.values());
             itemStack.setItemMeta(skullMeta);
         }
         return itemStack;
+    }
+
+    private @NotNull Component playerNameComponent(@NotNull UUID targetId) {
+        Player player = Bukkit.getPlayer(targetId);
+        if (player != null) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null) {
+                return AccountDisplayNameFormatter.toComponent(astPlayer.getAccount())
+                    .colorIfAbsent(NamedTextColor.WHITE);
+            }
+        }
+        OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(targetId);
+        String displayName = offlinePlayer.getName() == null ? targetId.toString() : offlinePlayer.getName();
+        return Component.text(displayName, NamedTextColor.WHITE);
     }
 
     private record Holder(@NotNull UUID targetId) implements HotbarShortcutGuiHolder {

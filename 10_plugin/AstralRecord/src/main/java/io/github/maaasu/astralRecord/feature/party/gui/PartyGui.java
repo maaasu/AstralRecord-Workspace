@@ -1,8 +1,11 @@
 package io.github.maaasu.astralRecord.feature.party.gui;
 
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.menu.view.screen.BaseMenuScreenView;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.model.PartyInvite;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import net.kyori.adventure.text.Component;
@@ -128,10 +131,11 @@ public final class PartyGui extends BaseMenuScreenView {
 
         for (int index = 0; index < INVITE_SLOTS.length && index < invites.size(); index++) {
             PartyInvite invite = invites.get(index);
-            String leaderName = playerName(invite.leaderId());
             inventory.setItem(INVITE_SLOTS[index], playerHead(
                 invite.leaderId(),
-                Component.text(leaderName + " からの招待", NamedTextColor.AQUA, TextDecoration.BOLD),
+                playerNameComponent(invite.leaderId(), NamedTextColor.AQUA)
+                    .append(Component.text(" からの招待", NamedTextColor.AQUA, TextDecoration.BOLD))
+                    .decoration(TextDecoration.BOLD, true),
                 List.of(Component.text("クリックでパーティーへ参加します", NamedTextColor.GRAY))
             ));
         }
@@ -143,7 +147,8 @@ public final class PartyGui extends BaseMenuScreenView {
         inventory.setItem(INFO_SLOT, createItem(
             Material.NETHER_STAR,
             Component.text("パーティー " + party.size() + "/" + PartyService.MAX_MEMBERS, NamedTextColor.GOLD, TextDecoration.BOLD),
-            List.of(Component.text("リーダー: " + playerName(party.getLeaderId()), NamedTextColor.GRAY))
+            List.of(Component.text("リーダー: ", NamedTextColor.GRAY)
+                .append(playerNameComponent(party.getLeaderId(), NamedTextColor.GRAY)))
         ));
 
         List<UUID> members = orderedMembers(party);
@@ -151,7 +156,9 @@ public final class PartyGui extends BaseMenuScreenView {
             UUID leaderId = members.get(0);
             inventory.setItem(LEADER_SLOT, playerHead(
                 leaderId,
-                Component.text(playerName(leaderId) + " ★", NamedTextColor.GOLD, TextDecoration.BOLD),
+                playerNameComponent(leaderId, NamedTextColor.GOLD)
+                    .append(Component.text(" ★", NamedTextColor.GOLD, TextDecoration.BOLD))
+                    .decoration(TextDecoration.BOLD, true),
                 List.of(Component.text("パーティーリーダー", NamedTextColor.GRAY))
             ));
         }
@@ -162,7 +169,8 @@ public final class PartyGui extends BaseMenuScreenView {
                 UUID memberId = members.get(memberIndex);
                 inventory.setItem(MEMBER_SLOTS[index], playerHead(
                     memberId,
-                    Component.text(playerName(memberId), NamedTextColor.WHITE, TextDecoration.BOLD),
+                    playerNameComponent(memberId, NamedTextColor.WHITE)
+                        .decoration(TextDecoration.BOLD, true),
                     List.of(Component.text("クリックでメンバー操作", NamedTextColor.GRAY))
                 ));
                 continue;
@@ -208,10 +216,29 @@ public final class PartyGui extends BaseMenuScreenView {
     private @NotNull String playerName(@NotNull UUID playerId) {
         Player player = Bukkit.getPlayer(playerId);
         if (player != null) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null) {
+                return AccountDisplayNameFormatter.toPlain(astPlayer.getAccount());
+            }
             return player.getName();
         }
         OfflinePlayer offlinePlayer = Bukkit.getOfflinePlayer(playerId);
         return offlinePlayer.getName() == null ? playerId.toString() : offlinePlayer.getName();
+    }
+
+    private @NotNull Component playerNameComponent(
+        @NotNull UUID playerId,
+        @NotNull NamedTextColor fallbackColor
+    ) {
+        Player player = Bukkit.getPlayer(playerId);
+        if (player != null) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            if (astPlayer != null) {
+                return AccountDisplayNameFormatter.toComponent(astPlayer.getAccount())
+                    .colorIfAbsent(fallbackColor);
+            }
+        }
+        return Component.text(playerName(playerId), fallbackColor);
     }
 
     private @NotNull List<UUID> orderedMembers(@NotNull Party party) {

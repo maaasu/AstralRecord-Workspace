@@ -1,7 +1,6 @@
 package io.github.maaasu.astralRecord.feature.account.command;
 
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
-import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import org.bukkit.command.CommandSender;
 import org.jetbrains.annotations.NotNull;
 
@@ -15,13 +14,14 @@ public class AccountCommand extends AstCommand {
     private final AccountModeCommand modeCommand = new AccountModeCommand();
     private final AccountDeleteCommand deleteCommand = new AccountDeleteCommand();
     private final AccountSwitchCommand switchCommand = new AccountSwitchCommand();
+    private final AccountRenameCommand renameCommand = new AccountRenameCommand();
 
     /**
      * アカウント管理コマンドを初期化します。
      */
     public AccountCommand() {
-        super("account", "アカウントを管理します。", "/account <mode|delete|switch> ...", false,
-            UserPermission.ADMIN.getValue());
+        super("account", "アカウントを管理します。", "/account <rename|mode|delete|switch> ...", false,
+            AstCommand.PERMISSION_NONE);
     }
 
     /**
@@ -66,6 +66,10 @@ public class AccountCommand extends AstCommand {
         }
         if (action.equals("switch")) {
             switchCommand.executeCommand(sender, Arrays.copyOfRange(args, 1, args.length));
+            return;
+        }
+        if (action.equals("rename")) {
+            renameCommand.executeCommand(sender, Arrays.copyOfRange(args, 1, args.length));
             return;
         }
 

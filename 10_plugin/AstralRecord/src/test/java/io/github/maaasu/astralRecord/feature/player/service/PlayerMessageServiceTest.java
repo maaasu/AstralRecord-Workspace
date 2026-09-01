@@ -117,6 +117,38 @@ class PlayerMessageServiceTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
+     * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### システムメッセージ送信
+     * 検証契約: 整形済みメッセージに含まれるオンラインプレイヤー名を、アカウント名とスロット番号で表示する。
+     */
+    @Test
+    void rawMessageReplacesOnlinePlayerNameWithAccountDisplay() {
+        Player viewer = onlinePlayer();
+        Player target = onlinePlayer();
+        when(target.getName()).thenReturn("Alice");
+        AccountModel account = mock(AccountModel.class);
+        when(account.getAccountName()).thenReturn("Wonder");
+        when(account.getSlotIndex()).thenReturn(2);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(astPlayer.getBukkit()).thenReturn(target);
+        PlayerMessageService service = new PlayerMessageService();
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(Set.of(target));
+            cache.when(() -> AstPlayerCache.get(target)).thenReturn(astPlayer);
+
+            service.sendRaw(viewer, "対象: Alice");
+
+            assertEquals(
+                "[AstralRecord] 対象: Wonder#2",
+                PlainTextComponentSerializer.plainText().serialize(captureMessage(viewer))
+            );
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
      * 章・見出し: # 03_3-サービス > ## 2. メッセージサービス > ### 全体チャット配信
      * 検証契約: 全体chatでプレイヤーLv.をplayer名より前に置く。
      */
@@ -125,9 +157,12 @@ class PlayerMessageServiceTest {
         Player sender = onlinePlayer();
         when(sender.getName()).thenReturn("Alice");
         AccountModel account = mock(AccountModel.class);
+        when(account.getAccountName()).thenReturn("Alice");
+        when(account.getSlotIndex()).thenReturn(0);
         when(account.getLevel()).thenReturn(12);
         AstPlayer astPlayer = mock(AstPlayer.class);
         when(astPlayer.getAccount()).thenReturn(account);
+        when(astPlayer.getBukkit()).thenReturn(sender);
         PlayerMessageService service = new PlayerMessageService();
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
@@ -138,7 +173,7 @@ class PlayerMessageServiceTest {
             service.broadcastGlobalChat(sender, "hello");
 
             assertEquals(
-                "[全体] [Lv.12] Alice: hello",
+                "[全体] [Lv.12] Alice#0: hello",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(sender))
             );
         }
@@ -155,9 +190,12 @@ class PlayerMessageServiceTest {
         Player recipient = onlinePlayer();
         when(sender.getName()).thenReturn("Alice");
         AccountModel account = mock(AccountModel.class);
+        when(account.getAccountName()).thenReturn("Alice");
+        when(account.getSlotIndex()).thenReturn(0);
         when(account.getLevel()).thenReturn(12);
         AstPlayer astPlayer = mock(AstPlayer.class);
         when(astPlayer.getAccount()).thenReturn(account);
+        when(astPlayer.getBukkit()).thenReturn(sender);
         PlayerMessageService service = new PlayerMessageService();
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
@@ -167,7 +205,7 @@ class PlayerMessageServiceTest {
             service.broadcastPartyChat(Set.of(recipient), sender, "party");
 
             assertEquals(
-                "[パーティー] [Lv.12] Alice: party",
+                "[パーティー] [Lv.12] Alice#0: party",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(recipient))
             );
         }
@@ -185,14 +223,20 @@ class PlayerMessageServiceTest {
         when(sender.getName()).thenReturn("Alice");
         when(target.getName()).thenReturn("Bob");
         AccountModel senderAccount = mock(AccountModel.class);
+        when(senderAccount.getAccountName()).thenReturn("Alice");
+        when(senderAccount.getSlotIndex()).thenReturn(0);
         when(senderAccount.getLevel()).thenReturn(12);
         AstPlayer senderAstPlayer = mock(AstPlayer.class);
         when(senderAstPlayer.getAccount()).thenReturn(senderAccount);
+        when(senderAstPlayer.getBukkit()).thenReturn(sender);
 
         AccountModel targetAccount = mock(AccountModel.class);
+        when(targetAccount.getAccountName()).thenReturn("Bob");
+        when(targetAccount.getSlotIndex()).thenReturn(0);
         when(targetAccount.getLevel()).thenReturn(7);
         AstPlayer targetAstPlayer = mock(AstPlayer.class);
         when(targetAstPlayer.getAccount()).thenReturn(targetAccount);
+        when(targetAstPlayer.getBukkit()).thenReturn(target);
 
         PlayerMessageService service = new PlayerMessageService();
 
@@ -204,11 +248,11 @@ class PlayerMessageServiceTest {
             service.sendDirectMessage(sender, target, "direct");
 
             assertEquals(
-                "[DM送信] [Lv.12] Alice -> [Lv.7] Bob: direct",
+                "[DM送信] [Lv.12] Alice#0 -> [Lv.7] Bob#0: direct",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(sender))
             );
             assertEquals(
-                "[DM受信] [Lv.12] Alice -> [Lv.7] Bob: direct",
+                "[DM受信] [Lv.12] Alice#0 -> [Lv.7] Bob#0: direct",
                 PlainTextComponentSerializer.plainText().serialize(captureMessage(target))
             );
         }

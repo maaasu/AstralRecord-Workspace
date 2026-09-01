@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.account.command;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -105,7 +106,7 @@ public class AccountModeCommand extends AstCommand {
             AccountModel updated = persisted.account();
             sendSuccess(sender, PlayerMsgResource.format(
                 PlayerMsgId.P_5332.getId(),
-                updated.getAccountName(),
+                AccountDisplayNameFormatter.toLegacy(updated),
                 updated.getMode().getDisplayName()
             ));
         }));

@@ -54,19 +54,21 @@ public class MarketRepository(
             .Select(listing => listing.SellerAccountId)
             .Distinct()
             .ToArray();
-        var sellerAccountNames = sellerAccountIds.Length == 0
-            ? new Dictionary<Guid, string>()
+        var sellerAccounts = sellerAccountIds.Length == 0
+            ? new Dictionary<Guid, SellerAccountIdentity>()
             : await dbContext.Accounts
                 .AsNoTracking()
                 .Where(account => !account.IsDeleted && sellerAccountIds.Contains(account.Uuid))
-                .ToDictionaryAsync(account => account.Uuid, account => account.AccountName);
+                .ToDictionaryAsync(
+                    account => account.Uuid,
+                    account => new SellerAccountIdentity(account.AccountName, account.SlotIndex));
         var listingIds = result.Select(listing => listing.ListingId).ToArray();
         var pendingProceedsByListing = await LoadPendingProceedsByListingAsync(listingIds);
 
         return result
             .Select(listing => MapListing(
                 listing,
-                sellerAccountNames.GetValueOrDefault(listing.SellerAccountId, string.Empty),
+                sellerAccounts.GetValueOrDefault(listing.SellerAccountId, SellerAccountIdentity.Empty),
                 Array.Empty<Guid>(),
                 pendingProceedsByListing.GetValueOrDefault(listing.ListingId)))
             .ToList();
@@ -84,7 +86,7 @@ public class MarketRepository(
         var pendingProceedsByListing = await LoadPendingProceedsByListingAsync([listingId]);
         return MapListing(
             listing,
-            await GetSellerAccountNameAsync(listing.SellerAccountId),
+            await GetSellerAccountAsync(listing.SellerAccountId) ?? SellerAccountIdentity.Empty,
             Array.Empty<Guid>(),
             pendingProceedsByListing.GetValueOrDefault(listing.ListingId));
     }
@@ -112,13 +114,14 @@ public class MarketRepository(
                 "market.unsupported_currency",
                 "Market listings must use the configured Gold currency.");
 
-        var sellerAccountName = await dbContext.Accounts
+        var sellerAccount = await dbContext.Accounts
             .AsNoTracking()
             .Where(account => account.Uuid == request.SellerAccountId && !account.IsDeleted)
-            .Select(account => account.AccountName)
+            .Select(account => new { account.AccountName, account.SlotIndex })
             .FirstOrDefaultAsync();
-        if (sellerAccountName is null)
+        if (sellerAccount is null)
             return MarketOperationResult<MarketListingResponse>.Failure(404, "market.seller_not_found", "Seller account was not found.");
+        var sellerAccountIdentity = new SellerAccountIdentity(sellerAccount.AccountName, sellerAccount.SlotIndex);
 
         var listingId = Guid.NewGuid();
         var strategy = dbContext.Database.CreateExecutionStrategy();
@@ -131,7 +134,7 @@ public class MarketRepository(
             if (committedListing is not null)
                 return MarketOperationResult<MarketListingResponse>.Success(MapListing(
                     committedListing,
-                    sellerAccountName,
+                    sellerAccountIdentity,
                     request.SourceEntries.Select(source => source.InventoryEntryId).ToArray(),
                     0L));
 
@@ -243,7 +246,7 @@ public class MarketRepository(
 
             return MarketOperationResult<MarketListingResponse>.Success(MapListing(
                 listing,
-                sellerAccountName,
+                sellerAccountIdentity,
                 request.SourceEntries.Select(source => source.InventoryEntryId).ToArray(),
                 0L));
         });
@@ -430,7 +433,7 @@ public class MarketRepository(
             if (listing.Status is not ("ACTIVE" or "SUSPENDED"))
                 return await RollbackFailureAsync(400, "market.cancel_invalid_status", "Listing cannot be canceled.");
 
-            var sellerAccountName = await GetSellerAccountNameAsync(listing.SellerAccountId);
+            var sellerAccount = await GetSellerAccountAsync(listing.SellerAccountId) ?? SellerAccountIdentity.Empty;
             var sources = await GetListingSourcesAsync(listing.ListingId);
             if (sources.Count == 0)
                 return await RollbackFailureAsync(409, "market.source_inventory_missing", "Listing escrow sources are missing.");
@@ -465,7 +468,7 @@ public class MarketRepository(
 
             return MarketOperationResult<MarketListingResponse>.Success(MapListing(
                 listing,
-                sellerAccountName,
+                sellerAccount,
                 sources.Select(source => source.InventoryEntryId).ToArray(),
                 pendingProceeds));
         });
@@ -1264,24 +1267,26 @@ public class MarketRepository(
         CreatedAt = now,
     };
 
-    private async Task<string> GetSellerAccountNameAsync(Guid sellerAccountId)
+    private async Task<SellerAccountIdentity?> GetSellerAccountAsync(Guid sellerAccountId)
     {
-        return await dbContext.Accounts
+        var account = await dbContext.Accounts
             .AsNoTracking()
             .Where(account => account.Uuid == sellerAccountId && !account.IsDeleted)
-            .Select(account => account.AccountName)
-            .FirstOrDefaultAsync() ?? string.Empty;
+            .Select(account => new { account.AccountName, account.SlotIndex })
+            .FirstOrDefaultAsync();
+        return account is null ? null : new SellerAccountIdentity(account.AccountName, account.SlotIndex);
     }
 
     private static MarketListingResponse MapListing(
         MarketListingEntity entity,
-        string sellerAccountName,
+        SellerAccountIdentity sellerAccount,
         IReadOnlyList<Guid>? sourceInventoryEntryIds = null,
         long pendingProceeds = 0L) => new()
     {
         ListingId = entity.ListingId,
         SellerAccountId = entity.SellerAccountId,
-        SellerAccountName = sellerAccountName,
+        SellerAccountName = sellerAccount.AccountName,
+        SellerAccountSlotIndex = sellerAccount.SlotIndex,
         BuyerAccountId = entity.BuyerAccountId,
         SourceInventoryEntryId = entity.SourceInventoryEntryId,
         ItemCategory = entity.ItemCategory,
@@ -1311,6 +1316,11 @@ public class MarketRepository(
         UpdatedAt = entity.UpdatedAt,
         PendingProceeds = pendingProceeds,
     };
+
+    private sealed record SellerAccountIdentity(string AccountName, int SlotIndex)
+    {
+        public static SellerAccountIdentity Empty { get; } = new(string.Empty, -1);
+    }
 
     private static MarketTransactionResponse MapTransaction(
         MarketTransactionEntity entity,

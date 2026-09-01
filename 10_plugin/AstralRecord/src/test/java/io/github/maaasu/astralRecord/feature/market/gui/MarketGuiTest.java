@@ -116,7 +116,7 @@ class MarketGuiTest extends MockBukkitTestBase {
         gui.openListings(player, UUID.randomUUID(), MarketScreen.BROWSE, List.of(listing("market-seller")), summary(), 1, 0L, false);
 
         Inventory inventory = player.getOpenInventory().getTopInventory();
-        assertTrue(loreText(inventory, MarketGui.CONTENT_START_SLOT).contains("出品者: market-seller"));
+        assertTrue(loreText(inventory, MarketGui.CONTENT_START_SLOT).contains("出品者: market-seller#0"));
     }
 
     /**
@@ -191,6 +191,7 @@ class MarketGuiTest extends MockBukkitTestBase {
             UUID.randomUUID(),
             UUID.randomUUID(),
             sellerAccountName,
+            0,
             null,
             null,
             "MATERIAL",

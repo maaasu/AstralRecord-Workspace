@@ -187,9 +187,9 @@ class PlayerJoinEventHandlerTest {
             onlinePlayer.set(newPlayer);
             handler.onPlayerJoin(newJoin);
 
-            verify(oldJoin).joinMessage(any(Component.class));
-            verify(oldQuit).quitMessage(any(Component.class));
-            verify(newJoin).joinMessage(any(Component.class));
+            verify(oldJoin).joinMessage((Component) null);
+            verify(oldQuit).quitMessage((Component) null);
+            verify(newJoin).joinMessage((Component) null);
 
             delayedTasks.getFirst().run();
 

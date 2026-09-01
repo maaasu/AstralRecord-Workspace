@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.player.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.discord.service.GlobalChatBridge;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -16,6 +17,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
+import java.util.regex.Pattern;
 
 /**
  * プレイヤー向けメッセージ送信を一元管理するサービス。
@@ -66,7 +68,10 @@ public final class PlayerMessageService {
      * @param args 置換引数
      */
     public void send(@NotNull Player player, @NotNull PlayerMsgId msgId, Object... args) {
-        sendComponent(player, PlayerMsgResource.formatComponent(msgId.getId(), args));
+        sendComponent(player, decorateAccountPlayerArguments(
+            PlayerMsgResource.formatComponent(msgId.getId(), args),
+            args
+        ));
     }
 
     /**
@@ -93,7 +98,8 @@ public final class PlayerMessageService {
      * @param message 整形済みメッセージ
      */
     public void sendRaw(@NotNull Player player, @NotNull String message) {
-        sendComponent(player, PlayerMsgResource.decorateInteractiveArguments(message));
+        Component decorated = PlayerMsgResource.decorateInteractiveArguments(message);
+        sendComponent(player, decorateOnlineAccountPlayers(decorated));
     }
 
     /**
@@ -140,6 +146,40 @@ public final class PlayerMessageService {
     }
 
     /**
+     * アカウント表示名をプレイヤー情報へのクリック導線として埋め込んだメッセージを生成します。
+     * 表示文字列はアカウント名とスロット番号、クリック先の識別子は MCID です。
+     *
+     * @param msgId メッセージ ID
+     * @param astPlayer 表示対象プレイヤー
+     * @return アカウント表示名を含むメッセージ
+     */
+    public @NotNull Component formatInteractiveAccountMessage(
+        @NotNull PlayerMsgId msgId,
+        @NotNull AstPlayer astPlayer
+    ) {
+        String displayName = AccountDisplayNameFormatter.toPlain(astPlayer.getAccount());
+        return replaceAccountDisplay(
+            PlayerMsgResource.formatPlainComponent(msgId.getId(), displayName),
+            astPlayer
+        );
+    }
+
+    /**
+     * アカウント表示名を使った参加・退出メッセージを全員へ配信します。
+     *
+     * @param msgId メッセージ ID
+     * @param astPlayer 表示対象プレイヤー
+     */
+    public void broadcastAccountMessage(@NotNull PlayerMsgId msgId, @NotNull AstPlayer astPlayer) {
+        Component component = formatInteractiveAccountMessage(msgId, astPlayer);
+        for (Player recipient : Bukkit.getOnlinePlayers()) {
+            if (recipient.isOnline()) {
+                recipient.sendMessage(component);
+            }
+        }
+    }
+
+    /**
      * 全体チャットの外部中継先を設定する。
      *
      * @param globalChatBridge 外部中継先。{@code null} で解除
@@ -162,11 +202,61 @@ public final class PlayerMessageService {
         @NotNull String command,
         Object... args
     ) {
+        Component message = PlayerMsgResource.formatPlainComponent(msgId.getId(), args)
+            .clickEvent(ClickEvent.runCommand(command));
         sendComponent(
             player,
-            PlayerMsgResource.formatPlainComponent(msgId.getId(), args)
-                .clickEvent(ClickEvent.runCommand(command))
+            decorateAccountPlayerArguments(message, args)
         );
+    }
+
+    /**
+     * メッセージ引数がオンラインプレイヤーの MCID である場合、その表示部分をアカウント表示へ置換します。
+     * クリック時の識別には引き続き MCID を使用します。
+     *
+     * @param message 置換対象のメッセージ
+     * @param args メッセージ引数
+     * @return アカウント表示へ置換したメッセージ
+     */
+    public @NotNull Component decorateAccountPlayerArguments(
+        @NotNull Component message,
+        Object... args
+    ) {
+        Component decorated = message;
+        if (args == null) {
+            return decorated;
+        }
+        for (Object arg : args) {
+            if (!(arg instanceof String playerName)) {
+                continue;
+            }
+            Player player = Bukkit.getPlayerExact(playerName);
+            AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
+            if (astPlayer == null) {
+                continue;
+            }
+            decorated = replaceAccountDisplay(decorated, astPlayer, playerName);
+        }
+        return decorated;
+    }
+
+    /**
+     * 整形済みメッセージ内のオンラインプレイヤー名を、ロード済みアカウントの表示へ置換します。
+     * 既に {@code accountName#slotIndex} 形式になっている箇所は置換対象から除外します。
+     *
+     * @param message 置換対象のメッセージ
+     * @return アカウント表示へ置換したメッセージ
+     */
+    private @NotNull Component decorateOnlineAccountPlayers(@NotNull Component message) {
+        Component decorated = message;
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            AstPlayer astPlayer = AstPlayerCache.get(onlinePlayer);
+            if (astPlayer == null || astPlayer.getAccount() == null) {
+                continue;
+            }
+            decorated = replaceAccountDisplay(decorated, astPlayer, onlinePlayer.getName());
+        }
+        return decorated;
     }
 
     /**
@@ -178,12 +268,19 @@ public final class PlayerMessageService {
      */
     public void broadcastGlobalChat(@NotNull Player sender, @NotNull String message) {
         String normalizedMessage = ChatMessageSanitizer.normalize(message);
-        Component component = PlayerMsgResource.formatComponent(
+        AstPlayer astPlayer = AstPlayerCache.get(sender);
+        String displayName = astPlayer == null
+            ? sender.getName()
+            : AccountDisplayNameFormatter.toPlain(astPlayer.getAccount());
+        Component component = PlayerMsgResource.formatPlainComponent(
             PlayerMsgId.P_5941.getId(),
             resolvePlayerLevel(sender),
-            sender.getName(),
+            displayName,
             ""
         ).append(Component.text(normalizedMessage));
+        if (astPlayer != null) {
+            component = replaceAccountDisplay(component, astPlayer);
+        }
         for (Player recipient : Bukkit.getOnlinePlayers()) {
             if (recipient.isOnline()) {
                 recipient.sendMessage(component);
@@ -231,16 +328,23 @@ public final class PlayerMessageService {
         @NotNull String itemName,
         @NotNull ItemStack itemTooltip
     ) {
-        Component component = PlayerMsgResource.formatComponent(
+        AstPlayer astPlayer = AstPlayerCache.get(sender);
+        String displayName = astPlayer == null
+            ? sender.getName()
+            : AccountDisplayNameFormatter.toPlain(astPlayer.getAccount());
+        Component component = PlayerMsgResource.formatPlainComponent(
             PlayerMsgId.P_5941.getId(),
             resolvePlayerLevel(sender),
-            sender.getName(),
+            displayName,
             ""
         ).append(
             Component.text(itemName)
                 .hoverEvent(itemTooltip.asHoverEvent())
                 .clickEvent(ClickEvent.copyToClipboard(itemName))
         );
+        if (astPlayer != null) {
+            component = replaceAccountDisplay(component, astPlayer);
+        }
         for (Player recipient : Bukkit.getOnlinePlayers()) {
             if (recipient.isOnline()) {
                 recipient.sendMessage(component);
@@ -257,12 +361,19 @@ public final class PlayerMessageService {
      * @param message チャット本文
      */
     public void broadcastPartyChat(@NotNull Collection<Player> recipients, @NotNull Player sender, @NotNull String message) {
-        Component component = PlayerMsgResource.formatComponent(
+        AstPlayer astPlayer = AstPlayerCache.get(sender);
+        String displayName = astPlayer == null
+            ? sender.getName()
+            : AccountDisplayNameFormatter.toPlain(astPlayer.getAccount());
+        Component component = PlayerMsgResource.formatPlainComponent(
             PlayerMsgId.P_5942.getId(),
             resolvePlayerLevel(sender),
-            sender.getName(),
+            displayName,
             message
         );
+        if (astPlayer != null) {
+            component = replaceAccountDisplay(component, astPlayer);
+        }
         for (Player recipient : recipients) {
             if (recipient.isOnline()) {
                 recipient.sendMessage(component);
@@ -279,22 +390,38 @@ public final class PlayerMessageService {
      * @param message メッセージ本文
      */
     public void sendDirectMessage(@NotNull Player sender, @NotNull Player target, @NotNull String message) {
-        Component sent = PlayerMsgResource.formatComponent(
+        AstPlayer senderAstPlayer = AstPlayerCache.get(sender);
+        AstPlayer targetAstPlayer = AstPlayerCache.get(target);
+        String senderDisplayName = senderAstPlayer == null
+            ? sender.getName()
+            : AccountDisplayNameFormatter.toPlain(senderAstPlayer.getAccount());
+        String targetDisplayName = targetAstPlayer == null
+            ? target.getName()
+            : AccountDisplayNameFormatter.toPlain(targetAstPlayer.getAccount());
+        Component sent = PlayerMsgResource.formatPlainComponent(
             PlayerMsgId.P_5943.getId(),
             resolvePlayerLevel(sender),
-            sender.getName(),
+            senderDisplayName,
             resolvePlayerLevel(target),
-            target.getName(),
+            targetDisplayName,
             message
         );
-        Component received = PlayerMsgResource.formatComponent(
+        Component received = PlayerMsgResource.formatPlainComponent(
             PlayerMsgId.P_5944.getId(),
             resolvePlayerLevel(sender),
-            sender.getName(),
+            senderDisplayName,
             resolvePlayerLevel(target),
-            target.getName(),
+            targetDisplayName,
             message
         );
+        if (senderAstPlayer != null) {
+            sent = replaceAccountDisplay(sent, senderAstPlayer);
+            received = replaceAccountDisplay(received, senderAstPlayer);
+        }
+        if (targetAstPlayer != null) {
+            sent = replaceAccountDisplay(sent, targetAstPlayer);
+            received = replaceAccountDisplay(received, targetAstPlayer);
+        }
         if (sender.isOnline()) {
             sender.sendMessage(sent);
         }
@@ -305,6 +432,32 @@ public final class PlayerMessageService {
 
     private @NotNull Component systemPrefix() {
         return PlayerMsgResource.getComponent(PlayerMsgId.P_5940.getId()).append(Component.space());
+    }
+
+    private @NotNull Component replaceAccountDisplay(
+        @NotNull Component message,
+        @NotNull AstPlayer astPlayer,
+        @NotNull String matchText
+    ) {
+        Component display = AccountDisplayNameFormatter.toComponent(astPlayer.getAccount())
+            .clickEvent(ClickEvent.runCommand("/player info " + astPlayer.getBukkit().getName()))
+            .hoverEvent(net.kyori.adventure.text.event.HoverEvent.showText(
+                Component.text("クリックでプレイヤー情報を開く")
+            ));
+        return message.replaceText(builder -> builder
+            .match(Pattern.compile(Pattern.quote(matchText) + "(?!#\\d+)"))
+            .replacement(display));
+    }
+
+    private @NotNull Component replaceAccountDisplay(
+        @NotNull Component message,
+        @NotNull AstPlayer astPlayer
+    ) {
+        return replaceAccountDisplay(
+            message,
+            astPlayer,
+            AccountDisplayNameFormatter.toPlain(astPlayer.getAccount())
+        );
     }
 
     private @NotNull String resolvePlayerLevel(@NotNull Player player) {

@@ -1,5 +1,8 @@
 package io.github.maaasu.astralRecord.feature.trade.gui;
 
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeSession;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
@@ -21,13 +24,22 @@ import java.util.UUID;
 public final class TradeGui {
 
     public void open(@NotNull Player viewer, @NotNull TradeSession session) {
+        Component partnerName = partnerName(viewer, session);
         Inventory inventory = Bukkit.createInventory(
             new TradeHolder(session.getSessionId(), viewer.getUniqueId()),
             TradeGuiLayout.SIZE,
-            Component.text(session.getPartnerName(viewer.getUniqueId()) + "とのトレード", NamedTextColor.WHITE)
+            partnerName.append(Component.text("とのトレード", NamedTextColor.WHITE))
         );
         render(inventory, viewer.getUniqueId(), session);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
+    }
+
+    private @NotNull Component partnerName(@NotNull Player viewer, @NotNull TradeSession session) {
+        AstPlayer partner = AstPlayerCache.get(session.getPartnerUuid(viewer.getUniqueId()));
+        if (partner != null) {
+            return AccountDisplayNameFormatter.toComponent(partner.getAccount());
+        }
+        return Component.text(session.getPartnerName(viewer.getUniqueId()), NamedTextColor.WHITE);
     }
 
     public boolean isTradeInventory(@Nullable Inventory inventory) {

@@ -10,6 +10,7 @@ public record MarketListing(
     UUID listingId,
     UUID sellerAccountId,
     String sellerAccountName,
+    int sellerAccountSlotIndex,
     @Nullable UUID buyerAccountId,
     @Nullable UUID sourceInventoryEntryId,
     String itemCategory,

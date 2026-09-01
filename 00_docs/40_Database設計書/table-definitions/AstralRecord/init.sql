@@ -101,7 +101,7 @@ GO
 
 CREATE TABLE [dbo].[player_mail_state] (
     [player_mail_state_id] UNIQUEIDENTIFIER NOT NULL,
-    [user_id]              UNIQUEIDENTIFIER NOT NULL,
+    [account_id]           UNIQUEIDENTIFIER NOT NULL,
     [mail_id]              NVARCHAR(100)    NOT NULL,
     [is_read]              BIT              NOT NULL CONSTRAINT [DF_player_mail_state_is_read] DEFAULT (0),
     [read_at]              DATETIME2(3)         NULL,
@@ -114,21 +114,17 @@ CREATE TABLE [dbo].[player_mail_state] (
     [deleted_at]           DATETIME2(3)         NULL,
 
     CONSTRAINT [PK_player_mail_state] PRIMARY KEY CLUSTERED ([player_mail_state_id]),
-    CONSTRAINT [FK_player_mail_state_user] FOREIGN KEY ([user_id])
-        REFERENCES [dbo].[user] ([uuid])
-        ON DELETE NO ACTION
-        ON UPDATE NO ACTION,
     CONSTRAINT [CK_player_mail_state_mail_id_not_blank] CHECK (LEN(LTRIM(RTRIM([mail_id]))) > 0),
     CONSTRAINT [CK_player_mail_state_version] CHECK ([version] >= 1)
 );
 GO
 
-CREATE UNIQUE NONCLUSTERED INDEX [UX_player_mail_state_user_mail]
-    ON [dbo].[player_mail_state] ([user_id], [mail_id]);
+CREATE UNIQUE NONCLUSTERED INDEX [UX_player_mail_state_account_mail]
+    ON [dbo].[player_mail_state] ([account_id], [mail_id]);
 GO
 
-CREATE NONCLUSTERED INDEX [IX_player_mail_state_user_id]
-    ON [dbo].[player_mail_state] ([user_id]);
+CREATE NONCLUSTERED INDEX [IX_player_mail_state_account_id]
+    ON [dbo].[player_mail_state] ([account_id]);
 GO
 
 CREATE NONCLUSTERED INDEX [IX_player_mail_state_mail_id]
@@ -145,7 +141,7 @@ GO
 
 CREATE TABLE [dbo].[player_mail_delivery] (
     [player_mail_delivery_id] UNIQUEIDENTIFIER NOT NULL,
-    [user_id]                 UNIQUEIDENTIFIER NOT NULL,
+    [account_id]              UNIQUEIDENTIFIER NOT NULL,
     [mail_id]                 NVARCHAR(128)    NOT NULL,
     [payload_json]            NVARCHAR(MAX)    NOT NULL,
     [version]                 INT              NOT NULL CONSTRAINT [DF_player_mail_delivery_version] DEFAULT (1),
@@ -156,20 +152,18 @@ CREATE TABLE [dbo].[player_mail_delivery] (
     [is_deleted]              BIT              NOT NULL CONSTRAINT [DF_player_mail_delivery_is_deleted] DEFAULT (0),
 
     CONSTRAINT [PK_player_mail_delivery] PRIMARY KEY CLUSTERED ([player_mail_delivery_id]),
-    CONSTRAINT [FK_player_mail_delivery_user] FOREIGN KEY ([user_id])
-        REFERENCES [dbo].[user] ([uuid]) ON DELETE NO ACTION ON UPDATE NO ACTION,
     CONSTRAINT [CK_player_mail_delivery_mail_id_not_blank] CHECK (LEN(LTRIM(RTRIM([mail_id]))) > 0),
     CONSTRAINT [CK_player_mail_delivery_payload_json] CHECK (ISJSON([payload_json]) = 1),
     CONSTRAINT [CK_player_mail_delivery_version] CHECK ([version] >= 1)
 );
 GO
 
-CREATE UNIQUE NONCLUSTERED INDEX [UX_player_mail_delivery_user_mail]
-    ON [dbo].[player_mail_delivery] ([user_id], [mail_id]);
+CREATE UNIQUE NONCLUSTERED INDEX [UX_player_mail_delivery_account_mail]
+    ON [dbo].[player_mail_delivery] ([account_id], [mail_id]);
 GO
 
-CREATE NONCLUSTERED INDEX [IX_player_mail_delivery_user_id]
-    ON [dbo].[player_mail_delivery] ([user_id]);
+CREATE NONCLUSTERED INDEX [IX_player_mail_delivery_account_id]
+    ON [dbo].[player_mail_delivery] ([account_id]);
 GO
 
 CREATE NONCLUSTERED INDEX [IX_player_mail_delivery_is_deleted]
@@ -199,6 +193,8 @@ CREATE TABLE [dbo].[account] (
     [updated_by]     UNIQUEIDENTIFIER  NOT NULL,
     [is_deleted]     BIT               NOT NULL  CONSTRAINT [DF_account_is_deleted]  DEFAULT (0),
 
+    [account_name_normalized] AS (LOWER([account_name])) PERSISTED,
+
     CONSTRAINT [PK_account] PRIMARY KEY CLUSTERED ([uuid]),
     CONSTRAINT [FK_account_user] FOREIGN KEY ([user_id])
         REFERENCES [dbo].[user] ([uuid])
@@ -225,6 +221,23 @@ GO
 CREATE UNIQUE NONCLUSTERED INDEX [UX_account_user_slot_active]
     ON [dbo].[account] ([user_id], [slot_index])
     WHERE [is_deleted] = 0;
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_account_account_name_active]
+    ON [dbo].[account] ([account_name_normalized])
+    WHERE [is_deleted] = 0;
+GO
+
+ALTER TABLE [dbo].[player_mail_state]
+    ADD CONSTRAINT [FK_player_mail_state_account] FOREIGN KEY ([account_id])
+        REFERENCES [dbo].[account] ([uuid])
+        ON DELETE NO ACTION ON UPDATE NO ACTION;
+GO
+
+ALTER TABLE [dbo].[player_mail_delivery]
+    ADD CONSTRAINT [FK_player_mail_delivery_account] FOREIGN KEY ([account_id])
+        REFERENCES [dbo].[account] ([uuid])
+        ON DELETE NO ACTION ON UPDATE NO ACTION;
 GO
 
 -- ============================================================

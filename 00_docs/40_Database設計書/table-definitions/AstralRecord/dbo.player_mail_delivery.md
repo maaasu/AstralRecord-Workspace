@@ -1,6 +1,6 @@
 # dbo.player_mail_delivery テーブル設計
 
-特定ユーザーへ個別配信する動的メールを保持する。マスタ変更で無効になった装着済みシジルの返却など、filebase の静的メールでは表現できない補償に使用する。既読・削除状態は `dbo.player_mail_state` で管理する。
+特定アカウントへ個別配信する動的メールを保持する。マスタ変更で無効になった装着済みシジルの返却など、filebase の静的メールでは表現できない補償に使用する。既読・削除状態は `dbo.player_mail_state` で管理する。
 
 ## テーブル情報
 
@@ -9,15 +9,15 @@
 | スキーマ名 | `dbo` |
 | テーブル名 | `player_mail_delivery` |
 | 主キー | `player_mail_delivery_id` |
-| 外部キー参照先 | `dbo.user.uuid` |
+| 外部キー参照先 | `dbo.account.uuid` |
 
 ## カラム定義
 
 | カラム名 | データ型 | PK | NotNull | デフォルト | 説明 |
 |:--|:--|:-:|:-:|:--|:--|
 | `player_mail_delivery_id` | `UNIQUEIDENTIFIER` | ✓ | ✓ |  | 配信レコード UUID |
-| `user_id` | `UNIQUEIDENTIFIER` |  | ✓ |  | 配信先ユーザー UUID |
-| `mail_id` | `NVARCHAR(128)` |  | ✓ |  | ユーザー内で一意な動的メール ID |
+| `account_id` | `UNIQUEIDENTIFIER` |  | ✓ |  | 配信先アカウント UUID |
+| `mail_id` | `NVARCHAR(128)` |  | ✓ |  | アカウント内で一意な動的メール ID |
 | `payload_json` | `NVARCHAR(MAX)` |  | ✓ |  | `MailResponse` 形式の本文・報酬 JSON |
 | `version` | `INT` |  | ✓ | `1` | 更新バージョン |
 | `created_at` | `DATETIME2(3)` |  | ✓ |  | 作成日時 |
@@ -31,10 +31,10 @@
 | 名前 | 対象 | 種別 | 用途 |
 |:--|:--|:--|:--|
 | `PK_player_mail_delivery` | `player_mail_delivery_id` | PK | 主キー検索 |
-| `FK_player_mail_delivery_user` | `user_id` | FK | 配信先ユーザーの整合性 |
+| `FK_player_mail_delivery_account` | `account_id` | FK | 配信先アカウントの整合性 |
 | `CK_player_mail_delivery_payload_json` | `payload_json` | CHECK | JSON 形式を保証 |
-| `UX_player_mail_delivery_user_mail` | `user_id`, `mail_id` | UNIQUE | 同一メールの重複配信を防止 |
-| `IX_player_mail_delivery_user_id` | `user_id` | INDEX | ユーザー別メール一覧 |
+| `UX_player_mail_delivery_account_mail` | `account_id`, `mail_id` | UNIQUE | 同一メールの重複配信を防止 |
+| `IX_player_mail_delivery_account_id` | `account_id` | INDEX | アカウント別メール一覧 |
 | `IX_player_mail_delivery_is_deleted` | `is_deleted` | INDEX | 有効配信の抽出 |
 
 ## 運用ルール

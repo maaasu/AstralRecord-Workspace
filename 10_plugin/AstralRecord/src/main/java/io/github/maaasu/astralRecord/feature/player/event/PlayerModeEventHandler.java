@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.service.AccountModeApplicationService;
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.GameModeChangeGuard;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -221,7 +222,7 @@ public class PlayerModeEventHandler extends AbstractEventHandler
         PlayerMessageService.getInstance().send(
             pending.player(),
             PlayerMsgId.P_5332,
-            updated.getAccountName(),
+            AccountDisplayNameFormatter.toLegacy(updated),
             updated.getMode().getDisplayName()
         );
     }

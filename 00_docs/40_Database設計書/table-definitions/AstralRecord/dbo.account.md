@@ -38,6 +38,7 @@
 | `created_by`   | `UNIQUEIDENTIFIER` |    |    ○    |        | 作成者の UUID                                               |
 | `updated_by`   | `UNIQUEIDENTIFIER` |    |    ○    |        | 最終更新者の UUID                                             |
 | `is_deleted`   | `BIT`              |    |    ○    |  `0`   | 論理削除フラグ（`1`: 削除済 / `0`: 未削除）                            |
+| `account_name_normalized` | `AS LOWER(account_name)` |    |    ○    |        | 大文字小文字を無視した重複検査用の永続計算列 |
 
 ### mode 値定義
 
@@ -67,6 +68,7 @@
 | 制約名                        | カラム                        | 説明                                 |
 |:---------------------------|:---------------------------|:-----------------------------------|
 | `UX_account_user_slot_active` | `user_id`, `slot_index` | `is_deleted = 0` のアカウントだけでスロット番号の重複を防ぐ |
+| `UX_account_account_name_active` | `account_name_normalized` | `is_deleted = 0` のアカウント名重複を大文字小文字無視で防ぐ |
 
 ### CHECK 制約
 
@@ -104,6 +106,7 @@
 | `IX_account_user_id`       | `user_id`    | NONCLUSTERED   | プレイヤー所有アカウント一覧取得      |
 | `IX_account_is_deleted`    | `is_deleted` | NONCLUSTERED   | 論理削除フィルタリング           |
 | `UX_account_user_slot_active` | `user_id`, `slot_index` | UNIQUE NONCLUSTERED（フィルター） | 未削除アカウントのスロット重複防止 |
+| `UX_account_account_name_active` | `account_name_normalized` | UNIQUE NONCLUSTERED（フィルター） | 未削除アカウントのアカウント名重複防止 |
 
 ---
 
@@ -128,6 +131,8 @@ CREATE TABLE [dbo].[account] (
     [created_by]     UNIQUEIDENTIFIER  NOT NULL,
     [updated_by]     UNIQUEIDENTIFIER  NOT NULL,
     [is_deleted]     BIT               NOT NULL  CONSTRAINT [DF_account_is_deleted]  DEFAULT (0),
+
+    [account_name_normalized] AS (LOWER([account_name])) PERSISTED,
 
     CONSTRAINT [PK_account] PRIMARY KEY CLUSTERED ([uuid]),
     CONSTRAINT [FK_account_user] FOREIGN KEY ([user_id])
@@ -154,6 +159,11 @@ GO
 
 CREATE UNIQUE NONCLUSTERED INDEX [UX_account_user_slot_active]
     ON [dbo].[account] ([user_id], [slot_index])
+    WHERE [is_deleted] = 0;
+GO
+
+CREATE UNIQUE NONCLUSTERED INDEX [UX_account_account_name_active]
+    ON [dbo].[account] ([account_name_normalized])
     WHERE [is_deleted] = 0;
 GO
 ```

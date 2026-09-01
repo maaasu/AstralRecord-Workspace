@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.player.death;
 
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -374,11 +375,21 @@ public final class PlayerDeathService {
         state.headDisplay(itemDisplay);
         state.textDisplay(displayTextService.create(
             DisplayAnchor.fixed(state.deathLocation().clone().add(0.0D, 1.35D, 0.0D)),
-            DisplayTextOptions.defaults(PlayerMsgResource.format(PlayerMsgId.P_5082.getId(), player.getName()))
+            DisplayTextOptions.defaults(PlayerMsgResource.format(
+                    PlayerMsgId.P_5082.getId(),
+                    displayNameForPlayer(player)
+            ))
                 .withShadowed(true)
                 .withLineWidth(220)
                 .withViewRange(48.0F)
         ));
+    }
+
+    private @NotNull String displayNameForPlayer(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return astPlayer == null
+                ? player.getName()
+                : AccountDisplayNameFormatter.toLegacy(astPlayer.getAccount());
     }
 
     private void destroyVisuals(@NotNull DeathState state) {

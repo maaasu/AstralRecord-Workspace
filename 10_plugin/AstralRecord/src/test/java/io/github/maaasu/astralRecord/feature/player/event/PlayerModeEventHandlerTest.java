@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.service.AccountModeApplicationService;
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -108,7 +109,12 @@ class PlayerModeEventHandlerTest {
             syncTask.get().run();
             verify(applicationService).applyPersistedMode(persisted);
             verify(player).setGameMode(GameMode.CREATIVE);
-            verify(messageService).send(player, PlayerMsgId.P_5332, "変更後", AccountMode.ADMIN.getDisplayName());
+            verify(messageService).send(
+                player,
+                PlayerMsgId.P_5332,
+                AccountDisplayNameFormatter.toLegacy(updated),
+                AccountMode.ADMIN.getDisplayName()
+            );
         }
     }
 

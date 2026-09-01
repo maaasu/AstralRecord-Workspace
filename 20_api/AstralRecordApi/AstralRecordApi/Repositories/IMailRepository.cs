@@ -4,7 +4,7 @@ namespace AstralRecordApi.Repositories;
 
 public interface IMailRepository
 {
-    Task<IReadOnlyList<MailResponse>> GetAvailableByUserIdAsync(Guid userId, string? filter);
+    Task<IReadOnlyList<MailResponse>> GetAvailableByAccountIdAsync(Guid accountId, string? filter);
 
     Task<MailResponse?> MarkReadAsync(string mailId, MailActionRequest request);
 

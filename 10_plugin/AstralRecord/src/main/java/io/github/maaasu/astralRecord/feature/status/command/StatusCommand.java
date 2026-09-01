@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.status.command;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -63,7 +64,11 @@ public class StatusCommand extends AstCommand {
         double maxEnergy = snapshot.getMaxValue(StatusType.MAX_ENERGY);
         PlayerMessageService playerMessageService = PlayerMessageService.getInstance();
 
-        playerMessageService.send(player, PlayerMsgId.P_5100, player.getAccount().getAccountName());
+        playerMessageService.send(
+            player,
+            PlayerMsgId.P_5100,
+            AccountDisplayNameFormatter.toLegacy(player.getAccount())
+        );
         playerMessageService.send(
             player,
             PlayerMsgId.P_5105,

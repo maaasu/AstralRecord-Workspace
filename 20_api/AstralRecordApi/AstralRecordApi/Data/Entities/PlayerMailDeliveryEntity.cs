@@ -1,10 +1,10 @@
 namespace AstralRecordApi.Data.Entities;
 
-/// <summary>特定ユーザーだけへ配信する動的メール本文です。</summary>
+/// <summary>特定アカウントだけへ配信する動的メール本文です。</summary>
 public class PlayerMailDeliveryEntity
 {
     public Guid PlayerMailDeliveryId { get; set; }
-    public Guid UserId { get; set; }
+    public Guid AccountId { get; set; }
     public string MailId { get; set; } = string.Empty;
     public string PayloadJson { get; set; } = string.Empty;
     public int Version { get; set; }

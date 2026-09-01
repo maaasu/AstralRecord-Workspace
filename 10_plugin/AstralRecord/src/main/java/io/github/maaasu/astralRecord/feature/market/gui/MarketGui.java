@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.market.gui;
 
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
@@ -416,7 +417,8 @@ public final class MarketGui {
             lore.addAll(meta.lore());
         }
         lore.add(Component.empty());
-        lore.add(Component.text("出品者: " + displaySellerName(listing.sellerAccountName()), NamedTextColor.AQUA));
+        lore.add(Component.text("出品者: ", NamedTextColor.AQUA)
+            .append(displaySellerName(listing)));
         lore.add(Component.text("出品数: " + format(listing.quantity()), NamedTextColor.WHITE));
         lore.add(Component.text("残り: " + format(listing.remainingQuantity()), NamedTextColor.WHITE));
         lore.add(Component.text("単価: " + format(listing.unitPrice()) + " Gold", NamedTextColor.GOLD));
@@ -501,8 +503,14 @@ public final class MarketGui {
         return String.format(Locale.ROOT, "%,d", amount);
     }
 
-    private static @NotNull String displaySellerName(@NotNull String sellerAccountName) {
-        return sellerAccountName.isBlank() ? "不明な出品者" : sellerAccountName;
+    private static @NotNull Component displaySellerName(@NotNull MarketListing listing) {
+        if (listing.sellerAccountName().isBlank() || listing.sellerAccountSlotIndex() < 0) {
+            return Component.text("不明な出品者", NamedTextColor.RED);
+        }
+        return AccountDisplayNameFormatter.toComponent(
+            listing.sellerAccountName(),
+            listing.sellerAccountSlotIndex()
+        );
     }
 
     private static @NotNull String displayStatus(@NotNull String status) {

@@ -155,8 +155,24 @@ public class AccountService {
         List<AccountModel> cachedAccounts = new ArrayList<>(existing);
         cachedAccounts.add(created);
         cacheAccountSlotIndexes(userId, cachedAccounts);
-        Logger.log(LogId.I_5100, accountName, slotIndex, userId);
+        Logger.log(LogId.I_5100, created.getAccountName(), slotIndex, userId);
         return created;
+    }
+
+    /**
+     * アカウント名を変更します。
+     *
+     * @param accountUuid 変更対象アカウント UUID
+     * @param accountName 新しいアカウント名
+     * @param updatedBy 更新者 UUID
+     * @return API が確定した更新後アカウント
+     */
+    public AccountModel renameAccount(
+        @NotNull UUID accountUuid,
+        @NotNull String accountName,
+        @NotNull UUID updatedBy
+    ) {
+        return accountRepository.updateName(accountUuid, accountName, updatedBy);
     }
 
     /**

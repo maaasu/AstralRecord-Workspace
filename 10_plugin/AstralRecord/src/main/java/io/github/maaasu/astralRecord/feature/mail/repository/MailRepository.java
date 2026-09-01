@@ -30,14 +30,14 @@ public class MailRepository {
     private final DateTimeFormatter formatter = DateTimeFormatter.ISO_DATE_TIME;
 
     /**
-     * ユーザーの表示可能メール一覧を取得します。
+     * アカウントの表示可能メール一覧を取得します。
      *
-     * @param userId 対象ユーザー ID
+     * @param accountId 対象アカウント ID
      * @param filter 既読フィルター
      * @return メール一覧
      */
-    public @NotNull List<MailEntry> findAvailable(@NotNull UUID userId, @NotNull MailFilter filter) {
-        String path = "/api/mail?user_id=" + userId + "&filter=" + filter.getApiValue();
+    public @NotNull List<MailEntry> findAvailable(@NotNull UUID accountId, @NotNull MailFilter filter) {
+        String path = "/api/mail?account_id=" + accountId + "&filter=" + filter.getApiValue();
         try {
             var client = ApiRequestUtil.buildClient();
             var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
@@ -60,28 +60,32 @@ public class MailRepository {
     /**
      * メールを既読化します。
      *
-     * @param userId 対象ユーザー ID
+     * @param accountId 対象アカウント ID
      * @param mailId メール ID
      * @return 更新後メール。存在しない場合 null
      */
-    public @Nullable MailEntry markRead(@NotNull UUID userId, @NotNull String mailId) {
-        return sendAction(userId, mailId, "read");
+    public @Nullable MailEntry markRead(
+        @NotNull UUID accountId,
+        @NotNull UUID updatedBy,
+        @NotNull String mailId
+    ) {
+        return sendAction(accountId, updatedBy, mailId, "read");
     }
 
     /**
-     * メールをプレイヤー単位で削除状態にします。
+     * メールをアカウント単位で削除状態にします。
      *
-     * @param userId 対象ユーザー ID
+     * @param accountId 対象アカウント ID
      * @param mailId メール ID
      * @return 削除状態へ更新できた場合 true
      */
-    public boolean delete(@NotNull UUID userId, @NotNull String mailId) {
+    public boolean delete(@NotNull UUID accountId, @NotNull UUID updatedBy, @NotNull String mailId) {
         String encodedMailId = URLEncoder.encode(mailId, StandardCharsets.UTF_8).replace("+", "%20");
         String path = "/api/mail/" + encodedMailId + "/delete";
         try {
             var client = ApiRequestUtil.buildClient();
             var request = ApiRequestUtil.buildRequestBuilder(path)
-                .PUT(HttpRequest.BodyPublishers.ofString(actionBody(userId)))
+                .PUT(HttpRequest.BodyPublishers.ofString(actionBody(accountId, updatedBy)))
                 .build();
             var response = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 204) {
@@ -102,13 +106,18 @@ public class MailRepository {
         }
     }
 
-    private @Nullable MailEntry sendAction(@NotNull UUID userId, @NotNull String mailId, @NotNull String action) {
+    private @Nullable MailEntry sendAction(
+        @NotNull UUID accountId,
+        @NotNull UUID updatedBy,
+        @NotNull String mailId,
+        @NotNull String action
+    ) {
         String encodedMailId = URLEncoder.encode(mailId, StandardCharsets.UTF_8).replace("+", "%20");
         String path = "/api/mail/" + encodedMailId + "/" + action;
         try {
             var client = ApiRequestUtil.buildClient();
             var request = ApiRequestUtil.buildRequestBuilder(path)
-                .PUT(HttpRequest.BodyPublishers.ofString(actionBody(userId)))
+                .PUT(HttpRequest.BodyPublishers.ofString(actionBody(accountId, updatedBy)))
                 .build();
             var response = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 200) {
@@ -129,10 +138,10 @@ public class MailRepository {
         }
     }
 
-    private @NotNull String actionBody(@NotNull UUID userId) {
+    private @NotNull String actionBody(@NotNull UUID accountId, @NotNull UUID updatedBy) {
         JsonObject body = new JsonObject();
-        body.addProperty("userId", userId.toString());
-        body.addProperty("updatedBy", userId.toString());
+        body.addProperty("accountId", accountId.toString());
+        body.addProperty("updatedBy", updatedBy.toString());
         return body.toString();
     }
 

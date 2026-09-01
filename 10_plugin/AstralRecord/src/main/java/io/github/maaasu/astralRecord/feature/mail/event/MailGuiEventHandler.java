@@ -55,7 +55,6 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
             return;
         }
         UUID playerId = player.getUniqueId();
-        UUID userId = astPlayer.getUser().getUuid();
         UUID accountId = astPlayer.getAccount().getUuid();
         PendingOpenRequest request = new PendingOpenRequest(
             UUID.randomUUID(),
@@ -63,7 +62,7 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
         );
         openRequests.put(playerId, request);
         mailService.listAsync(
-            userId,
+            accountId,
             filter,
             mails -> {
                 if (!openRequests.remove(playerId, request)) {
@@ -72,7 +71,6 @@ public final class MailGuiEventHandler extends AbstractEventHandler {
                 Player online = org.bukkit.Bukkit.getPlayer(playerId);
                 var current = online == null ? null : AstPlayerCache.get(online);
                 if (online == null || !online.isOnline() || current == null
-                    || !current.getUser().getUuid().equals(userId)
                     || !current.getAccount().getUuid().equals(accountId)
                     || online.getOpenInventory().getTopInventory() != request.expectedInventory()) {
                     return;

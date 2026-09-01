@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.playerclass
 
 import io.github.maaasu.astralRecord.AstralRecord
 import io.github.maaasu.astralRecord.feature.account.service.AccountService
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassStat
 import io.github.maaasu.astralRecord.feature.`class`.service.ClassService
@@ -87,12 +88,7 @@ class PlayerClassService @JvmOverloads constructor(
      * @param astPlayer 更新対象プレイヤー
      */
     fun updatePlayerListName(astPlayer: AstPlayer) {
-        val standardName =
-            PlayerMsgResource.formatComponent(
-                PlayerMsgId.P_5948.id,
-                getDisplayName(astPlayer.classId),
-                astPlayer.bukkit.name,
-            )
+        val standardName = AccountDisplayNameFormatter.toComponent(astPlayer.account)
         astPlayer.bukkit.playerListName(
             if (afkStateProvider.test(astPlayer)) {
                 PlayerMsgResource.getComponent(PlayerMsgId.P_7121.id).append(Component.space()).append(standardName)

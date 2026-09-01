@@ -202,6 +202,42 @@ class AccountRepository {
     }
 
     /**
+     * account.accountName を更新します。
+     * PUT /api/account/{targetUuid}
+     */
+    fun updateName(targetUuid: UUID, accountName: String, updatedBy: UUID): AccountModel {
+        val path = "/api/account/$targetUuid"
+        val body = ApiRequestUtil.buildJsonBody {
+            addProperty("accountName", accountName)
+            addProperty("updatedBy", updatedBy.toString())
+        }
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .PUT(HttpRequest.BodyPublishers.ofString(body))
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                if (response.statusCode() == 409) {
+                    throw AccountNameConflictException("Account name is already in use: $accountName")
+                }
+                if (response.statusCode() !in 200..299) {
+                    Logger.log(LogId.E_5162, response.statusCode())
+                    throw IOException("Unexpected status ${response.statusCode()} for PUT $path")
+                }
+                Logger.log(LogId.D_5162, targetUuid, accountName)
+                return parseAccountModel(response.body())
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            Logger.error(LogId.E_5162, e, e.message ?: e.javaClass.simpleName)
+            throw RuntimeException(e)
+        } catch (e: IOException) {
+            Logger.error(LogId.E_5162, e, e.message ?: e.javaClass.simpleName)
+            throw e
+        }
+    }
+
+    /**
      * account.level と account.totalExperience を更新します。
      * PUT /api/account/{targetUuid}
      */

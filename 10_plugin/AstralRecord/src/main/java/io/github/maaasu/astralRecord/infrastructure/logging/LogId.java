@@ -499,6 +499,14 @@ public enum LogId {
      * アカウント削除後のプレイヤー再ロードに失敗しました (command): %s
      */
     E_5161(5161),
+    /**
+     * アカウント名の更新結果を記録しました (API): accountId=%s, accountName=%s
+     */
+    D_5162(5162),
+    /**
+     * アカウント名の更新に失敗しました (API/command): %s
+     */
+    E_5162(5162),
     // endregion
 
     // region /feature/guide/ 5180-5189

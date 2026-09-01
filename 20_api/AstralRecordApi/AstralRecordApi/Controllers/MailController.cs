@@ -10,16 +10,16 @@ namespace AstralRecordApi.Controllers;
 public class MailController(IMailRepository mailRepository) : ControllerBase
 {
     /// <summary>期限内かつ未削除のメール一覧を取得</summary>
-    /// <param name="userId">ユーザー ID（query: user_id）</param>
+    /// <param name="accountId">アカウント ID（query: account_id）</param>
     /// <param name="filter">all / unread / read</param>
     /// <response code="200">メール一覧取得成功</response>
     [HttpGet]
     [ProducesResponseType(StatusCodes.Status200OK)]
-    public async Task<IActionResult> GetByUserId(
-        [FromQuery(Name = "user_id")] Guid userId,
+    public async Task<IActionResult> GetByAccountId(
+        [FromQuery(Name = "account_id")] Guid accountId,
         [FromQuery] string? filter)
     {
-        return Ok(await mailRepository.GetAvailableByUserIdAsync(userId, filter));
+        return Ok(await mailRepository.GetAvailableByAccountIdAsync(accountId, filter));
     }
 
     /// <summary>メールを既読にする</summary>
@@ -36,7 +36,7 @@ public class MailController(IMailRepository mailRepository) : ControllerBase
         return mail is null ? NotFound() : Ok(mail);
     }
 
-    /// <summary>プレイヤー単位でメールを一覧から削除する</summary>
+    /// <summary>アカウント単位でメールを一覧から削除する</summary>
     /// <param name="mailId">メール ID</param>
     /// <param name="request">更新者情報</param>
     /// <response code="204">削除状態更新成功</response>

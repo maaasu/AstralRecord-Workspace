@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.trade.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
@@ -192,7 +193,10 @@ public final class TradeService {
         messageService.send(sender, PlayerMsgId.P_6200, target.getName());
         messageService.sendComponent(
             target,
-            PlayerMsgResource.formatComponent(PlayerMsgId.P_6201.getId(), sender.getName())
+            messageService.decorateAccountPlayerArguments(
+                PlayerMsgResource.formatComponent(PlayerMsgId.P_6201.getId(), sender.getName()),
+                sender.getName()
+            )
                 .clickEvent(ClickEvent.runCommand("/trade accept"))
                 .hoverEvent(HoverEvent.showText(net.kyori.adventure.text.Component.text("/trade accept")))
         );
@@ -246,10 +250,10 @@ public final class TradeService {
             UUID.randomUUID(),
             sender.getUniqueId(),
             senderAstPlayer.getAccount().getUuid(),
-            sender.getName(),
+            AccountDisplayNameFormatter.toPlain(senderAstPlayer.getAccount()),
             accepter.getUniqueId(),
             accepterAstPlayer.getAccount().getUuid(),
-            accepter.getName(),
+            AccountDisplayNameFormatter.toPlain(accepterAstPlayer.getAccount()),
             Instant.now()
         );
         sessions.put(session.getSessionId(), session);

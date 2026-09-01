@@ -364,6 +364,7 @@ public class MarketRepository {
             uuid(obj, "listingId"),
             uuid(obj, "sellerAccountId"),
             string(obj, "sellerAccountName", ""),
+            intValue(obj, "sellerAccountSlotIndex", -1),
             nullableUuid(obj, "buyerAccountId"),
             nullableUuid(obj, "sourceInventoryEntryId"),
             string(obj, "itemCategory", ""),

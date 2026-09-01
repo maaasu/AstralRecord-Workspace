@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.shared.display;
 
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -331,18 +332,18 @@ public class OverheadDisplayService {
         }
 
         StatusSnapshot snapshot = statusService.getStatus(astPlayer);
-        String className = playerClassService.getDisplayName(astPlayer.getClassId());
         ShieldRechargeState recharge = statusService.getShieldRechargeState(astPlayer);
         String shield = recharge == null
                 ? shieldIconLine(snapshot.getCurrentShield(), statusService.getShieldDisplayCapacity(astPlayer))
                 : "\n" + rechargeBar(recharge, System.currentTimeMillis());
+        String accountName = AccountDisplayNameFormatter.toLegacy(astPlayer.getAccount());
         String playerName = afkStateProvider.test(player)
-                ? PlayerMsgResource.format(PlayerMsgId.P_7121.getId()) + " " + player.getName()
-                : player.getName();
+                ? PlayerMsgResource.format(PlayerMsgId.P_7121.getId()) + " " + accountName
+                : accountName;
         return String.format(
                 Locale.ROOT,
                 "&7[%s&7] &f%s\n%s\n%s%s",
-                className,
+                playerClassService.getDisplayName(astPlayer.getClassId()),
                 playerName,
                 bar("HP", snapshot.getCurrentHp(), snapshot.getMaxValue(StatusType.MAX_HEALTH), "&c"),
                 bar("MP", snapshot.getCurrentMp(), snapshot.getMaxValue(StatusType.MAX_MANA), "&9"),

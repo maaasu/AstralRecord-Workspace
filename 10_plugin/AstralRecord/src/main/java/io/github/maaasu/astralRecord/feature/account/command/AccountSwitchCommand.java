@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.account.command;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.EventHandler;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -418,7 +419,7 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
             messageId,
             resolved.targetName(),
             resolved.account().getSlotIndex(),
-            resolved.account().getAccountName()
+            AccountDisplayNameFormatter.toLegacy(resolved.account())
         ));
         if (target != null && target.isOnline() && sender != target) {
             AstPlayer targetAstPlayer = AstPlayerCache.get(target);
@@ -427,7 +428,7 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
                     targetAstPlayer,
                     resolved.created() ? PlayerMsgId.P_5343 : PlayerMsgId.P_5342,
                     resolved.account().getSlotIndex(),
-                    resolved.account().getAccountName()
+                    AccountDisplayNameFormatter.toLegacy(resolved.account())
                 );
             }
         }

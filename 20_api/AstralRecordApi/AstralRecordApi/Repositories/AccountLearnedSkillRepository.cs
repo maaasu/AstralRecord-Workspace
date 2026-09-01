@@ -23,17 +23,15 @@ public class AccountLearnedSkillRepository(
 
     public async Task<IReadOnlyList<AccountLearnedSkillResponse>> GetByAccountIdAsync(Guid accountId)
     {
-        var account = await dbContext.Accounts
+        var accountExists = await dbContext.Accounts
             .AsNoTracking()
-            .Where(candidate => candidate.Uuid == accountId && !candidate.IsDeleted)
-            .Select(candidate => new { candidate.UserId })
-            .FirstOrDefaultAsync();
-        if (account is null)
+            .AnyAsync(candidate => candidate.Uuid == accountId && !candidate.IsDeleted);
+        if (!accountExists)
             throw new KeyNotFoundException($"Account not found: {accountId}");
 
         var skills = await GetSkillMastersAsync();
         var sigils = await GetSigilMastersAsync();
-        await ReconcileAsync(accountId, account.UserId, skills, sigils);
+        await ReconcileAsync(accountId, skills, sigils);
 
         return (await dbContext.AccountLearnedSkills
                 .AsNoTracking()
@@ -451,7 +449,6 @@ public class AccountLearnedSkillRepository(
 
     private async Task ReconcileAsync(
         Guid accountId,
-        Guid userId,
         IReadOnlyDictionary<string, SkillResponse> skills,
         IReadOnlyDictionary<string, ItemSigilResponse> sigils)
     {
@@ -460,14 +457,13 @@ public class AccountLearnedSkillRepository(
         {
             dbContext.ChangeTracker.Clear();
             await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
-            await ReconcileInTransactionAsync(accountId, userId, skills, sigils);
+            await ReconcileInTransactionAsync(accountId, skills, sigils);
             await transaction.CommitAsync();
         });
     }
 
     private async Task ReconcileInTransactionAsync(
         Guid accountId,
-        Guid userId,
         IReadOnlyDictionary<string, SkillResponse> skills,
         IReadOnlyDictionary<string, ItemSigilResponse> sigils)
     {
@@ -559,7 +555,7 @@ public class AccountLearnedSkillRepository(
             await RemoveDeletedBindingsAsync(accountId, removedLearnedSkillIds, actor, now);
 
         if (compensatedSigilIds.Count > 0)
-            await AddSigilCompensationMailAsync(userId, compensatedSigilIds, actor, now);
+            await AddSigilCompensationMailAsync(accountId, compensatedSigilIds, actor, now);
 
         await dbContext.SaveChangesAsync();
     }
@@ -596,7 +592,7 @@ public class AccountLearnedSkillRepository(
     }
 
     private async Task AddSigilCompensationMailAsync(
-        Guid userId,
+        Guid accountId,
         IReadOnlyCollection<string> sigilIds,
         Guid actor,
         DateTime now)
@@ -630,7 +626,7 @@ public class AccountLearnedSkillRepository(
         await dbContext.PlayerMailDeliveries.AddAsync(new PlayerMailDeliveryEntity
         {
             PlayerMailDeliveryId = Guid.NewGuid(),
-            UserId = userId,
+            AccountId = accountId,
             MailId = mailId,
             PayloadJson = JsonSerializer.Serialize(mail, MasterDataPayloadJson.Options),
             Version = 1,
