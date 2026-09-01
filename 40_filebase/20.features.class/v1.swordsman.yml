@@ -1,9 +1,9 @@
 schemaVersion: 1
 id: swordsman
 type: CLASS
-name: "&fソードマン"
+name: "&cソードマン"
 order: 1.1
-shortName: "&fSWD"
+shortName: "&cSWD"
 description: "&7前線近接戦士。"
 icon: IRON_SWORD
 role: TANK

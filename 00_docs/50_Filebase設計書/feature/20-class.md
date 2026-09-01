@@ -15,11 +15,12 @@ Class は、プレイヤーの戦闘上の役割、成長傾向、利用でき�
 - クラスは `usableSkills` で現在クラスにおける使用許可だけを定義し、スキルの習得・レベル・所持個体は変更しません。
 - `swordsman` / `hunter` / `mage` は、冒険者から引き継ぐ初期攻撃 skill を `usableSkills` に定義する。ソードマンは `adventurer_astral_edge` / `adventurer_smash`、ハンターは `adventurer_blast_arrow` / `adventurer_quick_shot`、メイジは `adventurer_mana_burst` / `adventurer_lightning_bolt` とする。加えてハンターは職固有の初期範囲攻撃 `hunter_arrow_rain`、メイジは職固有の即時範囲回復 `mage_heal_aura` を許可する。
 - 上記以外の skill は class の `usableSkills` に追加せず、skilltree の `skill` 効果で使用許可を付与する。運営検証用 `administrator` は実装済みスキルだけを許可する。`usableSkills` は使用許可であり、習得個体はジェムから作成する。
-- クラスの短縮表示には `shortName`、タブのプレイヤーリストには `name` の正式名を使用します。`shortName` の形式は、下記の `shortName` 定義に従います。
+- クラスの短縮表示とタブのプレイヤーリストには `shortName`、正式なクラス名の表示には `name` を使用します。`shortName` の形式は、下記の `shortName` 定義に従います。
+- 現行一次職のクラス色は、ソードマンを赤 `&c`、ハンターを緑 `&a`、メイジを紫 `&d` とし、各クラス YAML の `name` と `shortName` に同じ色コードを定義します。
 
 ## shortName
 
-`shortName` はクラスの短縮表示名として保持する項目です。色・装飾コードと前後空白を除いた表示文字を、ASCII の英大文字 `A-Z` だけで構成したちょうど3文字（正規表現 `^[A-Z]{3}$`）にします。クラス間で同じ短縮名を定義してはいけません。タブのプレイヤーリストでは `shortName` ではなく正式な `name` を表示します。
+`shortName` はクラスの短縮表示名として保持する項目です。色・装飾コードと前後空白を除いた表示文字を、ASCII の英大文字 `A-Z` だけで構成したちょうど3文字（正規表現 `^[A-Z]{3}$`）にします。クラス間で同じ短縮名を定義してはいけません。タブのプレイヤーリストでは、定義した色・装飾コードを反映した `shortName` を表示します。
 
 ## status の成長
 

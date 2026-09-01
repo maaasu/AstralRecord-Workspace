@@ -83,7 +83,7 @@ class PlayerClassService @JvmOverloads constructor(
     }
 
     /**
-     * タブのプレイヤーリスト名を、正式クラス名・クラスレベルのタグ付きで更新します。
+     * タブのプレイヤーリスト名を、クラス短縮名・クラスレベルのタグ付きで更新します。
      *
      * @param astPlayer 更新対象プレイヤー
      */
@@ -91,7 +91,7 @@ class PlayerClassService @JvmOverloads constructor(
         val classDisplayName = if (getLoadedClass(astPlayer.classId) == null) {
             PlayerMsgResource.getMessage(PlayerMsgId.P_7122.id)
         } else {
-            getDisplayName(astPlayer.classId)
+            getShortDisplayName(astPlayer.classId)
         }
         val classTag = PlayerMsgResource.formatPlainComponent(
             PlayerMsgId.P_5948.id,

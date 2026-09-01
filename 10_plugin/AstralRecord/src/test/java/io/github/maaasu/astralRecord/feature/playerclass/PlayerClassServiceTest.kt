@@ -8,10 +8,12 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType
 import io.github.maaasu.astralRecord.feature.status.service.StatusService
 import io.github.maaasu.astralRecord.support.DesignTestFixtures
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase
+import net.kyori.adventure.text.format.NamedTextColor
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertFalse
+import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Assertions.assertThrows
 import java.util.Locale
@@ -121,9 +123,9 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
     @Test
     fun returnsConfiguredThreeCharacterShortName() {
         val service = PlayerClassService()
-        service.replaceSnapshot(mapOf("mage" to classModel("mage", "&bメイジ", shortName = "&bMAG")))
+        service.replaceSnapshot(mapOf("mage" to classModel("mage", "&dメイジ", shortName = "&dMAG")))
 
-        assertEquals("§bMAG", service.getShortDisplayName("mage"))
+        assertEquals("§dMAG", service.getShortDisplayName("mage"))
     }
 
     /**
@@ -196,34 +198,40 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
      * 章・見出し: # 10_3-View > ## 5. tab list 描画
-     * 検証契約: tab list名へクラス名・クラスレベル・アカウント名とスロット番号を反映する。
+     * 検証契約: tab list名へクラス短縮名・クラスレベル・アカウント名とスロット番号を反映する。
      */
     @Test
-    fun updatesTabListNameWithAccountDisplayName() {
+    fun updatesTabListNameWithShortClassNameAndAccountDisplayName() {
         val player = server().addPlayer()
         val astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER)
         astPlayer.selectClass("mage")
         val service = PlayerClassService()
-        service.replaceSnapshot(mapOf("mage" to classModel("mage", "&bメイジ", shortName = "&bMAG")))
+        service.replaceSnapshot(mapOf("mage" to classModel("mage", "&dメイジ", shortName = "&dMAG")))
 
         service.updatePlayerListName(astPlayer)
 
         assertEquals(
-            "[メイジ Lv.1] test-account#0",
+            "[MAG Lv.1] test-account#0",
             PlainTextComponentSerializer.plainText().serialize(player.playerListName()),
         )
+        val shortNameComponent = player.playerListName().children()
+            .firstOrNull { child ->
+                PlainTextComponentSerializer.plainText().serialize(child) == "MAG"
+            }
+        assertNotNull(shortNameComponent)
+        assertEquals(NamedTextColor.LIGHT_PURPLE, shortNameComponent!!.color())
 
         service.grantClassExperience(astPlayer, 53)
 
         assertEquals(
-            "[メイジ Lv.2] test-account#0",
+            "[MAG Lv.2] test-account#0",
             PlainTextComponentSerializer.plainText().serialize(player.playerListName()),
         )
 
         service.setClassLevel(astPlayer, "mage", 4)
 
         assertEquals(
-            "[メイジ Lv.4] test-account#0",
+            "[MAG Lv.4] test-account#0",
             PlainTextComponentSerializer.plainText().serialize(player.playerListName()),
         )
     }
@@ -262,7 +270,7 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         val service = PlayerClassService()
         service.replaceSnapshot(
             mapOf(
-                "mage" to classModel("mage", "&bメイジ"),
+                "mage" to classModel("mage", "&dメイジ", shortName = "&dMAG"),
                 "warrior" to classModel("warrior", "&cウォリアー"),
             ),
         )
@@ -271,7 +279,7 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
         service.setClassLevel(astPlayer, "warrior", 4)
 
         assertEquals(
-            "[メイジ Lv.1] test-account#0",
+            "[MAG Lv.1] test-account#0",
             PlainTextComponentSerializer.plainText().serialize(player.playerListName()),
         )
     }
