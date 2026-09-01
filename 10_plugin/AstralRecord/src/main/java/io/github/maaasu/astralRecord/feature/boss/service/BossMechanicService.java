@@ -41,6 +41,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * ボス固有のフェーズ、予兆攻撃、召喚、地形破壊を同期 tick で管理します。
@@ -69,10 +70,12 @@ public final class BossMechanicService {
     private static final double SUNBIRD_TELEPORT_RADIUS = 7.0D;
     private static final int SUNBIRD_TELEPORT_POINT_COUNT = 6;
     private static final double SUNBIRD_ARENA_RADIUS = 18.0D;
-    private static final int SUNBIRD_ARENA_BOUNDARY_POINT_COUNT = 48;
+    private static final int SUNBIRD_ARENA_BOUNDARY_POINT_COUNT = 64;
     private static final int SUNBIRD_ARENA_BOUNDARY_UPPER_LAYER_COUNT = 8;
     private static final int SUNBIRD_ARENA_BOUNDARY_LOWER_LAYER_COUNT = 2;
     private static final double SUNBIRD_ARENA_BOUNDARY_LAYER_HEIGHT = 0.5D;
+    private static final double SUNBIRD_ARENA_BOUNDARY_HORIZONTAL_JITTER = 0.12D;
+    private static final double SUNBIRD_ARENA_BOUNDARY_VERTICAL_JITTER = 0.04D;
     private static final long SUNBIRD_ARENA_PULSE_INTERVAL_TICKS = 20L;
     private static final double SUNBIRD_ARENA_DAMAGE_RATIO = 0.18D;
     private static final double SUNBIRD_TACKLE_DESTINATION_RADIUS = 9.0D;
@@ -905,7 +908,9 @@ public final class BossMechanicService {
                 0.0D
             );
             locations.addAll(
-                circleLocations(layerCenter, SUNBIRD_ARENA_RADIUS, SUNBIRD_ARENA_BOUNDARY_POINT_COUNT)
+                randomizedCircleLocations(
+                    layerCenter, SUNBIRD_ARENA_RADIUS, SUNBIRD_ARENA_BOUNDARY_POINT_COUNT
+                )
             );
         }
         renderRange(center, locations, SharedParticleDefinitions.SUNBIRD_ARENA_BOUNDARY);
@@ -945,6 +950,31 @@ public final class BossMechanicService {
         for (int index = 0; index < points; index++) {
             double angle = (Math.PI * 2.0D * index) / points;
             locations.add(center.clone().add(Math.cos(angle) * radius, 0.15D, Math.sin(angle) * radius));
+        }
+        return List.copyOf(locations);
+    }
+
+    /**
+     * 円周上の各パーティクル地点へ、境界を視認しやすくする小さな位置揺らぎを加えます。
+     *
+     * @param center 円の中心
+     * @param radius 円の半径
+     * @param points 円周上の地点数
+     * @return 位置揺らぎを加えた地点一覧
+     */
+    private static @NotNull List<Location> randomizedCircleLocations(
+        @NotNull Location center,
+        double radius,
+        int points
+    ) {
+        List<Location> locations = new ArrayList<>(circleLocations(center, radius, points));
+        ThreadLocalRandom random = ThreadLocalRandom.current();
+        for (Location location : locations) {
+            location.add(
+                random.nextDouble(-SUNBIRD_ARENA_BOUNDARY_HORIZONTAL_JITTER, SUNBIRD_ARENA_BOUNDARY_HORIZONTAL_JITTER),
+                random.nextDouble(-SUNBIRD_ARENA_BOUNDARY_VERTICAL_JITTER, SUNBIRD_ARENA_BOUNDARY_VERTICAL_JITTER),
+                random.nextDouble(-SUNBIRD_ARENA_BOUNDARY_HORIZONTAL_JITTER, SUNBIRD_ARENA_BOUNDARY_HORIZONTAL_JITTER)
+            );
         }
         return List.copyOf(locations);
     }
