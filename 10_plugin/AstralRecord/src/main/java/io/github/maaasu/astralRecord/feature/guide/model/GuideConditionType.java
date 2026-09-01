@@ -24,6 +24,8 @@ public enum GuideConditionType {
     SKILLTREE_NODE_UNLOCKED,
     /** スキルを強化した。 */
     SKILL_ENHANCED,
+    /** スキルをアクションリングへ設定した。 */
+    SKILL_BOUND,
     /** オーブによる装備更新が確定した。 */
     ORB_USED,
     /** アクションリングを表示した。 */

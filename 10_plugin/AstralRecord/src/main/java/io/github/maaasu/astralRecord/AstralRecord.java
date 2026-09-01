@@ -1810,6 +1810,9 @@ public final class AstralRecord extends JavaPlugin {
             passiveSkillService,
             inventoryService
         );
+        skillBindGuiEventHandler.setSkillBoundListener((player, skillId) ->
+            guideService.recordConditionSilently(player, GuideConditionType.SKILL_BOUND, skillId)
+        );
         eventManager.registerHandler(
             skillBindGuiEventHandler,
             getServer().getPluginManager()

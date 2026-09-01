@@ -45,7 +45,7 @@ steps:
 | `steps[].action` | no | 詳細画面の手順 item をクリックしたときの型付き案内動作。 |
 | `steps[].action.type` | yes when action exists | `NAVIGATE_NPC` または `OPEN_MENU`。未知の値は読み込みエラーとする。 |
 | `steps[].action.npcId` | yes for `NAVIGATE_NPC` | 案内対象の NPC マスタ ID。画面には ID を表示しない。 |
-| `steps[].action.menuId` | yes for `OPEN_MENU` | 起動するメニュー ID。現状は `mail` を使用する。 |
+| `steps[].action.menuId` | yes for `OPEN_MENU` | 起動するメニュー ID。現状は `mail` または `skill_bind` を使用する。 |
 | `steps[].action.description` | no | クリック時に実行される動作の説明。指定時は details の下へ灰色で表示する。 |
 | `steps[].condition.type` | yes | Plugin が解釈する達成条件種別。 |
 | `steps[].condition.targetId` | no | 条件対象 ID。`targetIds` 未指定時に使用し、未指定時は同じ type の全対象に一致する。 |
@@ -70,6 +70,7 @@ Plugin は各 guide の全未達成 step をイベントごとに評価します
 | `SKILL_LEARNED` | skill ID | スキルジェム購入によるスキル個体の習得が成功したとき |
 | `SKILLTREE_NODE_UNLOCKED` | node ID | スキルツリーのノード解放が成功したとき |
 | `SKILL_ENHANCED` | skill ID | スキルの強化が成功したとき |
+| `SKILL_BOUND` | skill ID | スキルをアクションリングへ設定して保存が成功したとき |
 | `ORB_USED` | orb item ID | オーブによる装備更新・ルーン操作・シジル操作の API／正本反映が成功したとき。装備強化は抽選が失敗してもオーブ消費が確定した操作を達成し、ルーン操作はオーブ自体を消費しなくても操作成功、シジル操作は対応オーブ1個の消費を伴う操作成功で達成する |
 | `ACTION_RING_OPENED` | 使用しない | アクションリングの表示に成功したとき |
 | `SKILL_CAST` | 任意の skill ID | プレイヤーのスキル実行が成功したとき。未指定なら任意のスキル |
@@ -88,7 +89,7 @@ Plugin は各 guide の全未達成 step をイベントごとに評価します
 
 ### `OPEN_MENU`
 
-Plugin が許可したゲーム内メニューを開きます。現状の `mail` は通常のメニューから開けるメール GUI を起動し、NPC の場所案内は行いません。
+Plugin が許可したゲーム内メニューを開きます。`mail` はメール GUI、`skill_bind` はスキルマネージャー GUI を起動し、NPC の場所案内は行いません。
 
 ## 本文参照
 

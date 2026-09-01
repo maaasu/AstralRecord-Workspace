@@ -150,6 +150,20 @@ steps:
       targetIds:
         - adventurer_astral_edge
         - adventurer_smash
+  - id: bind_skill_to_action_ring
+    text: "&f習得したスキルをアクションリングに設定する"
+    details:
+      - "&7スキルマネージャーGUIを開き、習得したスキルを左クリックする。"
+      - "&7アクションリングスロットに習得したスキルが設定されたことを確認する。"
+    action:
+      type: OPEN_MENU
+      menuId: skill_bind
+      description: "&dクリックでスキルマネージャーGUIを開く。"
+    condition:
+      type: SKILL_BOUND
+      targetIds:
+        - adventurer_astral_edge
+        - adventurer_smash
   - id: cast_astral_edge
     text: "&f&eアストラルエッジ&fを発動する"
     details:

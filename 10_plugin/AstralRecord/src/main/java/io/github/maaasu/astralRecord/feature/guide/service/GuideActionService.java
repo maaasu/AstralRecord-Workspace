@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.NpcPlacementService;
 import io.github.maaasu.astralRecord.feature.mail.event.MailGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -100,17 +101,29 @@ public final class GuideActionService {
     }
 
     private boolean openMenu(@NotNull Player player, @Nullable String menuId) {
-        if (menuId == null || !menuId.equalsIgnoreCase("mail")) {
+        if (menuId == null) {
             playerMessageService.send(player, PlayerMsgId.P_5184);
             return false;
         }
-        MailGuiEventHandler mailGuiEventHandler = plugin.getMailGuiEventHandler();
-        if (mailGuiEventHandler == null) {
-            playerMessageService.send(player, PlayerMsgId.P_5184);
-            return false;
+        if (menuId.equalsIgnoreCase("mail")) {
+            MailGuiEventHandler mailGuiEventHandler = plugin.getMailGuiEventHandler();
+            if (mailGuiEventHandler == null) {
+                playerMessageService.send(player, PlayerMsgId.P_5184);
+                return false;
+            }
+            mailGuiEventHandler.open(player);
+            return true;
         }
-        mailGuiEventHandler.open(player);
-        return true;
+        if (menuId.equalsIgnoreCase("skill_bind")) {
+            SkillBindGuiEventHandler skillBindGuiEventHandler = plugin.getSkillBindGuiEventHandler();
+            if (skillBindGuiEventHandler == null) {
+                playerMessageService.send(player, PlayerMsgId.P_5184);
+                return false;
+            }
+            return skillBindGuiEventHandler.open(player);
+        }
+        playerMessageService.send(player, PlayerMsgId.P_5184);
+        return false;
     }
 
     private @Nullable NavigationTarget findNearestLiveNpc(@NotNull Player player, @NotNull String npcId) {

@@ -58,6 +58,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.function.Consumer;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -525,6 +526,130 @@ class SkillBindGuiEventHandlerTest {
         }
 
         verifySound(player, location, Sound.UI_BUTTON_CLICK);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+    * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
+    * 検証契約: active スキルをアクションリングへ設定して保存が成功したときだけ、設定したスキル ID をガイドへ通知する。
+    */
+    @SuppressWarnings("unchecked")
+    @Test
+    void successfulActiveBindingNotifiesGuideCondition() throws ReflectiveOperationException {
+        SkillBindGui gui = mock(SkillBindGui.class);
+        SkillService skillService = mock(SkillService.class);
+        SkillBindPresetService presetService = mock(SkillBindPresetService.class);
+        SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
+        SkillPermissionService permissionService = mock(SkillPermissionService.class);
+        PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
+        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
+            mock(AstralRecord.class), gui, skillService, presetService, ownershipService,
+            permissionService, mock(LearnedSkillService.class), passiveSkillService, mock(InventoryService.class)
+        );
+        Player player = mock(Player.class);
+        Location location = mock(Location.class);
+        InventoryView view = mock(InventoryView.class);
+        Inventory topInventory = mock(Inventory.class);
+        InventoryClickEvent event = mock(InventoryClickEvent.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        UUID playerId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        UUID learnedSkillId = UUID.randomUUID();
+        SkillBindSession session = new SkillBindSession(presets(accountId));
+        LearnedSkillInstance learned = new LearnedSkillInstance(
+            learnedSkillId, accountId, "adventurer_smash", 1, List.of(), 1, null, null
+        );
+        SkillDefinition definition = skillDefinition();
+        SkillRegistry registry = new SkillRegistry();
+        registry.replaceDefinitions(Map.of(definition.getId(), definition));
+        List<String> notifiedSkillIds = new ArrayList<>();
+        handler.setSkillBoundListener((current, skillId) -> notifiedSkillIds.add(skillId));
+        when(player.getUniqueId()).thenReturn(playerId);
+        when(player.getLocation()).thenReturn(location);
+        when(player.getOpenInventory()).thenReturn(view);
+        when(view.getTopInventory()).thenReturn(topInventory);
+        when(gui.isInventory(topInventory)).thenReturn(false);
+        when(gui.learnedSkillId(any())).thenReturn(learnedSkillId.toString());
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+        when(skillService.registry()).thenReturn(registry);
+        when(ownershipService.findInstance(astPlayer, learnedSkillId.toString())).thenReturn(learned);
+        when(permissionService.isPermitted(astPlayer, definition.getId())).thenReturn(true);
+        when(passiveSkillService.activePassiveSlotCount(astPlayer)).thenReturn(0);
+        when(event.getRawSlot()).thenReturn(10);
+        when(event.isLeftClick()).thenReturn(true);
+        when(presetService.saveAsync(any(), anyInt(), any(), any(), any(), any(), any(), any())).thenReturn(true);
+        putMapValue(handler, "sessions", playerId, session);
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            invoke(handler, "handleMainClick",
+                new Class<?>[] {Player.class, SkillBindSession.class, SkillBindInventoryHolder.class, InventoryClickEvent.class},
+                player, session, new SkillBindInventoryHolder(SkillBindScreen.MAIN, 1, 0), event);
+
+            ArgumentCaptor<Consumer<SkillBindPreset>> success = ArgumentCaptor.forClass(Consumer.class);
+            verify(presetService).saveAsync(
+                eq(accountId), eq(1), any(), any(), any(), eq(accountId), success.capture(), any()
+            );
+            success.getValue().accept(new SkillBindPreset(
+                null, accountId, 1, List.of(learnedSkillId.toString()),
+                SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID, List.of(), true, true, 2
+            ));
+        }
+
+        assertEquals(List.of("adventurer_smash"), notifiedSkillIds);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+    * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
+    * 検証契約: active 以外のバインド保存では、ガイドの SKILL_BOUND 通知を発生させない。
+    */
+    @SuppressWarnings("unchecked")
+    @Test
+    void nonActiveBindingSaveDoesNotNotifyGuideCondition() throws ReflectiveOperationException {
+        SkillBindGui gui = mock(SkillBindGui.class);
+        SkillBindPresetService presetService = mock(SkillBindPresetService.class);
+        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
+            mock(AstralRecord.class), gui, mock(SkillService.class), presetService, mock(SkillOwnershipService.class),
+            mock(SkillPermissionService.class), mock(LearnedSkillService.class), mock(PassiveSkillService.class), mock(InventoryService.class)
+        );
+        Player player = mock(Player.class);
+        InventoryView view = mock(InventoryView.class);
+        Inventory topInventory = mock(Inventory.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        UUID playerId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        SkillBindSession session = new SkillBindSession(presets(accountId));
+        session.setLeftClickSkillId("adventurer_smash");
+        List<String> notifiedSkillIds = new ArrayList<>();
+        handler.setSkillBoundListener((current, skillId) -> notifiedSkillIds.add(skillId));
+        when(player.getUniqueId()).thenReturn(playerId);
+        when(player.getOpenInventory()).thenReturn(view);
+        when(view.getTopInventory()).thenReturn(topInventory);
+        when(gui.isInventory(topInventory)).thenReturn(false);
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+        when(presetService.saveAsync(any(), anyInt(), any(), any(), any(), any(), any(), any())).thenReturn(true);
+        putMapValue(handler, "sessions", playerId, session);
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            invoke(handler, "saveCurrentPreset",
+                new Class<?>[] {Player.class, SkillBindSession.class, int.class}, player, session, 0);
+
+            ArgumentCaptor<Consumer<SkillBindPreset>> success = ArgumentCaptor.forClass(Consumer.class);
+            verify(presetService).saveAsync(
+                eq(accountId), eq(1), any(), any(), any(), eq(accountId), success.capture(), any()
+            );
+            success.getValue().accept(new SkillBindPreset(
+                null, accountId, 1, List.of(), "adventurer_smash", List.of(), true, true, 2
+            ));
+        }
+
+        assertTrue(notifiedSkillIds.isEmpty());
     }
 
     /**

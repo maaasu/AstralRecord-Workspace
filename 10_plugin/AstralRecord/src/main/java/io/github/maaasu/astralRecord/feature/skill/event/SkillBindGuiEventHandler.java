@@ -59,6 +59,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 /** スキルマネージャーの一覧・バインド・合成操作を処理します。 */
 public final class SkillBindGuiEventHandler extends AbstractEventHandler {
@@ -80,6 +81,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     /** 選択不可素材の理由を、消費せず合成画面のバリア表示へ渡す一時プレビューです。 */
     private final Map<UUID, SynthesisPreview> synthesisPreviews = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> savingSessions = new ConcurrentHashMap<>();
+    private BiConsumer<AstPlayer, String> skillBoundListener = (player, skillId) -> { };
 
     public SkillBindGuiEventHandler(
         @NotNull AstralRecord plugin,
@@ -101,6 +103,15 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         this.learnedSkillService = learnedSkillService;
         this.passiveSkillService = passiveSkillService;
         this.inventoryService = inventoryService;
+    }
+
+    /**
+     * アクションリングへのスキル設定保存成功時の通知先を設定します。
+     *
+     * @param listener 設定保存に成功したプレイヤーとスキル ID を受け取る通知先
+     */
+    public void setSkillBoundListener(@NotNull BiConsumer<AstPlayer, String> listener) {
+        this.skillBoundListener = listener;
     }
 
     /**
@@ -366,11 +377,15 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             session.setSlot(session.selectedBindType(), session.selectedBindSlotIndex(), entry.bindingId());
+            String skillBoundId = session.selectedBindType() == SkillBindType.ACTIVE
+                ? entry.definition().getId()
+                : null;
             session.clearSelectedBindSlot();
             GuiSound.SELECT.play(player);
-            saveCurrentPreset(player, session, page);
+            saveCurrentPreset(player, session, page, skillBoundId);
             return;
         }
+        List<String> activeBefore = new ArrayList<>(session.activeDraft());
         if (!session.assignSelectedOrNextSlot(
             entry.bindingId(),
             entry.definition().getKind(),
@@ -381,7 +396,22 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return;
         }
         GuiSound.SELECT.play(player);
-        saveCurrentPreset(player, session, page);
+        saveCurrentPreset(player, session, page, newlyBoundActiveSkillId(activeBefore, session.activeDraft(), entry));
+    }
+
+    private @Nullable String newlyBoundActiveSkillId(
+        @NotNull List<String> activeBefore,
+        @NotNull List<String> activeAfter,
+        @NotNull SkillManagerEntry entry
+    ) {
+        for (int index = 0; index < activeAfter.size(); index++) {
+            String after = activeAfter.get(index);
+            String before = index < activeBefore.size() ? activeBefore.get(index) : null;
+            if (entry.bindingId().equals(after) && !Objects.equals(before, after)) {
+                return entry.definition().getId();
+            }
+        }
+        return null;
     }
 
     private void handleBindSlotClick(
@@ -626,6 +656,15 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     }
 
     private void saveCurrentPreset(Player player, SkillBindSession session, int page) {
+        saveCurrentPreset(player, session, page, null);
+    }
+
+    private void saveCurrentPreset(
+        Player player,
+        SkillBindSession session,
+        int page,
+        @Nullable String skillBoundId
+    ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || !session.selectedPreset().isUnlocked()) return;
         if (restoreInvalidPassiveOverflowChanges(astPlayer, session)) {
@@ -655,7 +694,12 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                     || !session.passiveDraft().equals(passive)) return;
                 session.replaceSelectedPreset(saved);
                 AstPlayer current = AstPlayerCache.get(player);
-                if (current != null) passiveSkillService.reconcileNow(current);
+                if (current != null) {
+                    passiveSkillService.reconcileNow(current);
+                    if (skillBoundId != null) {
+                        skillBoundListener.accept(current, skillBoundId);
+                    }
+                }
                 if (!isSkillManagerVisible(player)) return;
                 openMain(player, session, page);
             },

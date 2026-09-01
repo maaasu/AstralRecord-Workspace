@@ -86,6 +86,38 @@ class GuideProgressEvaluatorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
      * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
+     * 検証契約: アクションリングへ設定した対象スキルだけをバインド手順の達成対象にする。
+     */
+    @Test
+    void evaluateAcceptsBoundSkillTarget() {
+        GuideEntry guide = new GuideEntry(
+            3,
+            "skill_bind_guide",
+            "skill",
+            10,
+            "guide",
+            null,
+            null,
+            List.of(new GuideStep(
+                "bind_skill",
+                "bind",
+                List.of(),
+                new GuideCondition(GuideConditionType.SKILL_BOUND, "adventurer_astral_edge"),
+                null
+            ))
+        );
+
+        assertEquals(List.of(), ids(GuideProgressEvaluator.evaluate(
+            guide, Set.of(), GuideConditionType.SKILL_BOUND, "adventurer_smash"
+        )));
+        assertEquals(List.of("bind_skill"), ids(GuideProgressEvaluator.evaluate(
+            guide, Set.of(), GuideConditionType.SKILL_BOUND, "adventurer_astral_edge"
+        )));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
      * 検証契約: targetIdsを指定した手順は、候補のいずれかと一致したイベントだけを達成対象にする。
      */
     @Test
