@@ -24,6 +24,9 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skill.service.BastionStrikeSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
+import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
@@ -70,9 +73,10 @@ class DamageServiceBastionStrikeTest extends MockBukkitTestBase {
         SkillCombatService combat = mock(SkillCombatService.class);
         SkillEffectService effects = mock(SkillEffectService.class);
         SkillTaskService tasks = mock(SkillTaskService.class);
+        SkillService skillService = new SkillService(mock(SkillRepository.class), new SkillRegistry(), null);
         DamageService damageService = damageService(statusService);
         BastionStrikeSkillRuntimeService runtime = new BastionStrikeSkillRuntimeService(
-                targeting, combat, effects, tasks
+                skillService, targeting, combat, effects, tasks
         );
         damageService.setBastionStrikeSkillRuntimeService(runtime);
 
@@ -103,6 +107,7 @@ class DamageServiceBastionStrikeTest extends MockBukkitTestBase {
         assertFalse(negated.shieldBroken());
         assertEquals(1.0D, victim.getStatusSnapshot().getCurrentShield(), 0.0001D);
         assertEquals(100.0D, victim.getStatusSnapshot().getCurrentHp(), 0.0001D);
+        assertEquals(0.0D, victim.getStatusSnapshot().getCurrentMp(), 0.0001D);
         verify(combat).hit(
                 any(AstEntity.class), same(target), eq(AttackType.MELEE),
                 eq(io.github.maaasu.astralRecord.feature.combat.model.DamageElement.NONE), eq(1.875D)
@@ -127,7 +132,9 @@ class DamageServiceBastionStrikeTest extends MockBukkitTestBase {
         StatusService statusService = activatedStatusService();
         SkillTargetingService targeting = mock(SkillTargetingService.class);
         SkillCombatService combat = mock(SkillCombatService.class);
+        SkillService skillService = new SkillService(mock(SkillRepository.class), new SkillRegistry(), null);
         BastionStrikeSkillRuntimeService runtime = new BastionStrikeSkillRuntimeService(
+                skillService,
                 targeting,
                 combat,
                 mock(SkillEffectService.class),
@@ -210,8 +217,9 @@ class DamageServiceBastionStrikeTest extends MockBukkitTestBase {
         victim.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
                 StatusType.MAX_HEALTH, 100.0D,
                 StatusType.MAX_SHIELD, 5.0D,
+                StatusType.MAX_MANA, 100.0D,
                 StatusType.EVASION, 0.0D
-        ), 100.0D, 0.0D, 0.0D).withCurrentShield(1.0D));
+        ), 100.0D, 100.0D, 0.0D).withCurrentShield(1.0D));
         return victim;
     }
 
@@ -230,7 +238,12 @@ class DamageServiceBastionStrikeTest extends MockBukkitTestBase {
                         0L,
                         1,
                         null,
-                        Map.of("range", 6.0D, "damageRatio", 1.875D),
+                        Map.of(
+                                "range", 6.0D,
+                                "damageRatio", 1.875D,
+                                "consumeAllCurrentMana", true,
+                                "levelFiveRequiredManaRatio", 0.80D
+                        ),
                         List.of("passive", "melee", "defense"),
                         SkillKind.PASSIVE,
                         true,

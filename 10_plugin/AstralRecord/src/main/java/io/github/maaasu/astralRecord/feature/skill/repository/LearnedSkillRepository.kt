@@ -4,6 +4,8 @@ import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillConsumedMaterial
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMaterialMutationResult
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationFailure
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigil
@@ -34,19 +36,19 @@ class LearnedSkillRepository {
         }
     }
 
-    fun learn(accountId: UUID, skillId: String, updatedBy: UUID): LearnedSkillInstance {
+    fun learn(accountId: UUID, skillId: String, updatedBy: UUID): LearnedSkillMaterialMutationResult {
         val body = ApiRequestUtil.buildJsonBody {
             addProperty("skillId", skillId)
             addProperty("updatedBy", updatedBy.toString())
         }
-        return mutate("/api/account-skills/$accountId/learn", body)
+        return mutateWithMaterials("/api/account-skills/$accountId/learn", body)
     }
 
-    fun levelUp(accountId: UUID, learnedSkillId: UUID, updatedBy: UUID): LearnedSkillInstance {
+    fun levelUp(accountId: UUID, learnedSkillId: UUID, updatedBy: UUID): LearnedSkillMaterialMutationResult {
         val body = ApiRequestUtil.buildJsonBody {
             addProperty("updatedBy", updatedBy.toString())
         }
-        return mutate("/api/account-skills/$accountId/$learnedSkillId/level-up", body)
+        return mutateWithMaterials("/api/account-skills/$accountId/$learnedSkillId/level-up", body)
     }
 
     fun attachSigil(
@@ -116,6 +118,38 @@ class LearnedSkillRepository {
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 if (response.statusCode() in 200..299) {
                     return parseSkill(JsonParser.parseString(response.body()).asJsonObject)
+                }
+                val failure = parseFailure(response.body())
+                throw LearnedSkillMutationException(failure, "HTTP ${response.statusCode()} for POST $path: $failure")
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw RuntimeException(e)
+        }
+    }
+
+    private fun mutateWithMaterials(path: String, body: String): LearnedSkillMaterialMutationResult {
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                if (response.statusCode() in 200..299) {
+                    val result = JsonParser.parseString(response.body()).asJsonObject
+                    return LearnedSkillMaterialMutationResult(
+                        skill = parseSkill(result.getAsJsonObject("skill")),
+                        consumedMaterials = result.getAsJsonArray("consumedMaterials")
+                            ?.filter { it.isJsonObject }
+                            ?.map { element ->
+                                val material = element.asJsonObject
+                                LearnedSkillConsumedMaterial(
+                                    inventoryEntryId = UUID.fromString(material.get("inventoryEntryId").asString),
+                                    consumedAmount = material.get("consumedAmount").asLong,
+                                )
+                            }
+                            ?: emptyList(),
+                    )
                 }
                 val failure = parseFailure(response.body())
                 throw LearnedSkillMutationException(failure, "HTTP ${response.statusCode()} for POST $path: $failure")

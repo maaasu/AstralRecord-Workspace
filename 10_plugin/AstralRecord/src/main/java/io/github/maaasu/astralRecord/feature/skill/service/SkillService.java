@@ -1105,6 +1105,38 @@ public class SkillService {
     }
 
     /**
+     * 発動者のクールダウン短縮を適用して、スキルの cooldown を開始します。
+     *
+     * @param caster 発動者
+     * @param skillId 表示・管理対象のスキル ID
+     * @param baseCooldownTicks スキル定義の基本クールダウン（tick）
+     */
+    public void startSkillCooldown(
+            @NotNull SkillCaster caster,
+            @NotNull String skillId,
+            long baseCooldownTicks
+    ) {
+        startCooldown(caster, skillId, skillId, resolveCooldownTicks(caster, baseCooldownTicks));
+    }
+
+    /**
+     * 発動者の指定スキル cooldown だけを破棄します。
+     *
+     * @param casterId 発動者 UUID
+     * @param skillId スキル ID
+     */
+    public void clearCooldown(@NotNull UUID casterId, @NotNull String skillId) {
+        Map<String, CooldownState> byCaster = cooldownExpiryByCaster.get(casterId);
+        if (byCaster == null) {
+            return;
+        }
+        byCaster.remove(normalize(skillId));
+        if (byCaster.isEmpty()) {
+            cooldownExpiryByCaster.remove(casterId, byCaster);
+        }
+    }
+
+    /**
      * 発動者の有効なクールダウンを開始時刻の降順で取得します。
      *
      * @param caster 発動者
@@ -1473,7 +1505,9 @@ public class SkillService {
                 definition.getMaxLevel(),
                 definition.getLevels(),
                 definition.getSigilSlotsByLevel(),
-                definition.getAllowedSigilIds()
+                definition.getAllowedSigilIds(),
+                definition.getLearnRequiredItems(),
+                definition.getLevelUpRequiredItems()
         );
     }
 

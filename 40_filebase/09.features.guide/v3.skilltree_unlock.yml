@@ -1,0 +1,45 @@
+# design:
+#   motif: "成長 / 分岐する道"
+#   progression: 1
+schemaVersion: 3
+id: skilltree_unlock
+category: skill
+displayOrder: 10
+title: "&dスキルツリーによるスキル解放"
+iconMaterial: ENCHANTED_BOOK
+summary: "&7スキルツリーでポイントを使い、ステータスやスキルを解放する。"
+steps:
+  - id: unlock_pp_node
+    text: "&fPPを消費するノードを解放する"
+    details:
+      - "&7PPはプレイヤーポイントの略で、プレイヤーレベルが1上昇するごとに1ポイントもらえる。"
+      - "&7スキルツリーでPPを消費するノードを選び、解放してみよう。"
+    action:
+      type: NAVIGATE_NPC
+      npcId: skilltree_entry_guide
+      description: "&dクリックでスキルツリー案内人の場所を表示し、発光させる。"
+    condition:
+      type: SKILLTREE_PP_NODE_UNLOCKED
+  - id: unlock_cp_node
+    text: "&fCPを消費するノードを解放する"
+    details:
+      - "&7CPはクラスポイントの略で、クラスのレベルアップによってもらえるポイント。"
+      - "&7CPはクラスごとに種類が異なる。冒険者の場合は、CP[冒険者]と表示されているノードを解放できる。"
+      - "&7該当するCPを消費するノードを解放してみよう。"
+    action:
+      type: NAVIGATE_NPC
+      npcId: skilltree_entry_guide
+      description: "&dクリックでスキルツリー案内人の場所を表示し、発光させる。"
+    condition:
+      type: SKILLTREE_CP_NODE_UNLOCKED
+  - id: unlock_skill_node
+    text: "&fスキルを習得できるノードを解放する"
+    details:
+      - "&7スキルツリーのノードには、ステータス上昇のほかに新しいスキルを使えるようになるノードがある。"
+      - "&7スキルを習得できるノードを解放してみよう。"
+    action:
+      type: NAVIGATE_NPC
+      npcId: skilltree_entry_guide
+      description: "&dクリックでスキルツリー案内人の場所を表示し、発光させる。"
+    condition:
+      type: SKILLTREE_SKILL_NODE_UNLOCKED

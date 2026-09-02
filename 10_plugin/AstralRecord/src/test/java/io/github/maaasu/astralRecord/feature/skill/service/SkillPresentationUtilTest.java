@@ -168,6 +168,28 @@ class SkillPresentationUtilTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
      * 章・見出し: # 13_1-モデル定義 > ## 3. 解決済みスキル
+     * 検証契約: クールダウンのtop-level値をプレースホルダーから秒へ変換して表示する。
+     */
+    @Test
+    void topLevelCooldownTicksExpandAsSeconds() {
+        SkillDefinition definition = new SkillDefinition(
+            "swordsman_bastion_strike", "swordsman_bastion_strike", "バスティオンストライク",
+            null, "SOUL_CAMPFIRE",
+            List.of("&7クールタイム: {skill.cooldownTicks:seconds}秒。"),
+            3000L, 0.0D, 0L, 1, null, Map.of(),
+            List.of("passive"), SkillKind.PASSIVE, true, SkillResourceType.MANA, 0.0D
+        );
+
+        List<String> rendered = SkillPresentationUtil.skillDescriptionAndLore(definition, null).stream()
+            .map(PlainTextComponentSerializer.plainText()::serialize)
+            .toList();
+
+        assertEquals(List.of("クールタイム: 150秒。"), rendered);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
+     * 章・見出し: # 13_1-モデル定義 > ## 3. 解決済みスキル
      * 検証契約: プレースホルダーを使わない固定説明文は、解決済みスキル補正で書き換えない。
      */
     @Test

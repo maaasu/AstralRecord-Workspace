@@ -28,6 +28,16 @@ data class LearnedSkillSigilDetachResult(
     val returnedInventoryEntryId: UUID,
 )
 
+data class LearnedSkillConsumedMaterial(
+    val inventoryEntryId: UUID,
+    val consumedAmount: Long,
+)
+
+data class LearnedSkillMaterialMutationResult(
+    val skill: LearnedSkillInstance,
+    val consumedMaterials: List<LearnedSkillConsumedMaterial> = emptyList(),
+)
+
 enum class LearnedSkillMutationFailure {
     ACCOUNT_NOT_FOUND,
     LEARNED_SKILL_NOT_FOUND,

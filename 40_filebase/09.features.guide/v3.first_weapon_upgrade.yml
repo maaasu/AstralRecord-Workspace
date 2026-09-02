@@ -76,3 +76,19 @@ steps:
         - nox_sword
         - nox_bow
         - nox_staff
+  - id: cast_matching_weapon_skill
+    text: "&f武器に合ったタグのスキルを発動する"
+    details:
+      - "&7武器には近接攻撃力・間接攻撃力・魔法攻撃力があり、スキルにも対応する攻撃種別のタグが付いている。"
+      - "&7{item:nox_sword}なら近接タグ、{item:nox_bow}なら間接タグ、{item:nox_staff}なら魔法タグのスキルを発動する。"
+      - "&a武器とスキルの攻撃種別を合わせて、武器の強さを活かそう。"
+    action:
+      type: OPEN_MENU
+      menuId: skill_bind
+      description: "&dクリックでスキルマネージャーGUIを開く。"
+    condition:
+      type: WEAPON_SKILL_CAST
+      targetIds:
+        - "nox_sword:melee"
+        - "nox_bow:ranged"
+        - "nox_staff:magic"

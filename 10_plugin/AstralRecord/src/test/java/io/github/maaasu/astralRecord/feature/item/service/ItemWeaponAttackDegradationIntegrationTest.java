@@ -38,6 +38,7 @@ class ItemWeaponAttackDegradationIntegrationTest extends MockBukkitTestBase {
         SkillService skillService = mock(SkillService.class);
         NormalAttackDegradationService degradationService = new NormalAttackDegradationService();
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        player.selectClass("swordsman");
         ItemModel weapon = weaponModel();
         when(inventoryService.getItemModelInHand(player, EquipmentSlot.HAND)).thenReturn(weapon);
         when(skillService.isOnCooldown(any(), eq(SkillService.WEAPON_NORMAL_ATTACK_COOLDOWN_ID))).thenReturn(false);

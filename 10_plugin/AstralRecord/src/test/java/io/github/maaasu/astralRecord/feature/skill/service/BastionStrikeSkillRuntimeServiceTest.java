@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
@@ -33,6 +34,7 @@ import java.util.List;
 import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -83,13 +85,20 @@ class BastionStrikeSkillRuntimeServiceTest extends MockBukkitTestBase {
         verify(fixture.effects).sound(any(Location.class), eq(Sound.ITEM_SHIELD_BLOCK), eq(0.9F), eq(0.85F));
         verify(fixture.effects).sound(any(Location.class), eq(Sound.BLOCK_BEACON_ACTIVATE), eq(0.9F), eq(1.15F));
         verify(fixture.effects).sound(any(Location.class), eq(Sound.ITEM_TRIDENT_THUNDER), eq(0.7F), eq(1.30F));
-        verify(fixture.tasks).repeat(
+            verify(fixture.tasks).repeat(
                 eq(fixture.player.getBukkit().getUniqueId()),
                 eq(BastionStrikeSkillRuntimeService.SKILL_ID + ":soul-bastion"),
                 eq(0L),
                 eq(2L),
                 eq(4),
                 any()
+        );
+
+        assertEquals(0.0D, fixture.player.getStatusSnapshot().getCurrentMp(), 0.0001D);
+        assertEquals(1, fixture.skillService.getActiveCooldowns(fixture.player.getBukkit().getUniqueId()).size());
+        assertEquals(
+                3000L,
+                fixture.skillService.getActiveCooldowns(fixture.player.getBukkit().getUniqueId()).get(0).totalTicks()
         );
 
         assertFalse(fixture.runtime.tryNegateShieldBreakingDirectDamage(
@@ -137,17 +146,81 @@ class BastionStrikeSkillRuntimeServiceTest extends MockBukkitTestBase {
         verify(otherSource.targeting, never()).inLine(any(), any(), any(), any(Double.class), any(Double.class), any(Integer.class));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 13. バスティオンストライクの実装契約 > ### 13.1 数値・対象・演出
+     * 検証契約: Lv.1〜4は最大MP未満で反撃せず、Lv.5は最大MPの80%以上で反撃成立時に現在MPを全量消費する。
+     */
+    @Test
+    void appliesLevelSpecificManaRequirements() {
+        Fixture levelFour = fixture(new DamageResult(30.0D), List.of(mockTarget()), 4, 99.0D);
+
+        assertFalse(levelFour.runtime.tryNegateShieldBreakingDirectDamage(
+                AstEntity.player(levelFour.player), DamageSource.NORMAL_ATTACK
+        ));
+        verify(levelFour.targeting, never()).inLine(
+                any(), any(), any(), any(Double.class), any(Double.class), any(Integer.class)
+        );
+        assertEquals(99.0D, levelFour.player.getStatusSnapshot().getCurrentMp(), 0.0001D);
+
+        Fixture levelFive = fixture(new DamageResult(30.0D), List.of(mockTarget()), 5, 80.0D);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+        try (MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+            assertTrue(levelFive.runtime.tryNegateShieldBreakingDirectDamage(
+                    AstEntity.player(levelFive.player), DamageSource.NORMAL_ATTACK
+            ));
+        }
+        assertEquals(0.0D, levelFive.player.getStatusSnapshot().getCurrentMp(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 13. バスティオンストライクの実装契約 > ### 13.1 数値・対象・演出
+     * 検証契約: Lv.5で最大MPの80%未満の場合は反撃、MP消費、Shield回復、cooldown開始を行わない。
+     */
+    @Test
+    void rejectsLevelFiveBelowRequiredManaRatio() {
+        Fixture fixture = fixture(new DamageResult(30.0D), List.of(mockTarget()), 5, 79.0D);
+
+        assertFalse(fixture.runtime.tryNegateShieldBreakingDirectDamage(
+                AstEntity.player(fixture.player), DamageSource.NORMAL_ATTACK
+        ));
+        verify(fixture.targeting, never()).inLine(
+                any(), any(), any(), any(Double.class), any(Double.class), any(Integer.class)
+        );
+        verify(fixture.combat, never()).hit(any(), any(), any(), any(), any(Double.class));
+        verify(fixture.combat, never()).recoverShield(any(), any(Double.class));
+        assertEquals(79.0D, fixture.player.getStatusSnapshot().getCurrentMp(), 0.0001D);
+        assertTrue(fixture.skillService.getActiveCooldowns(fixture.player.getBukkit().getUniqueId()).isEmpty());
+    }
+
     private Fixture fixture(DamageResult counterattack, List<AstEntity> targets) {
+        return fixture(counterattack, targets, 1, 100.0D);
+    }
+
+    private Fixture fixture(
+            DamageResult counterattack,
+            List<AstEntity> targets,
+            int skillLevel,
+            double currentMana
+    ) {
         SkillTargetingService targeting = mock(SkillTargetingService.class);
         SkillCombatService combat = mock(SkillCombatService.class);
         SkillEffectService effects = mock(SkillEffectService.class);
         SkillTaskService tasks = mock(SkillTaskService.class);
+        SkillService skillService = new SkillService(
+                mock(io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository.class),
+                new io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry(),
+                null
+        );
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
         player.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
                 StatusType.MAX_HEALTH, 100.0D,
                 StatusType.MAX_SHIELD, 100.0D,
+                StatusType.MAX_MANA, 100.0D,
                 StatusType.EVASION, 0.0D
-        ), 100.0D, 0.0D, 0.0D).withCurrentShield(25.0D));
+        ), 100.0D, currentMana, 0.0D).withCurrentShield(25.0D));
         Player bukkitPlayer = player.getBukkit();
         when(targeting.inLine(
                 any(Player.class),
@@ -169,6 +242,7 @@ class BastionStrikeSkillRuntimeServiceTest extends MockBukkitTestBase {
         when(combat.recoverShield(any(AstEntity.class), any(Double.class))).thenReturn(75.0D);
 
         BastionStrikeSkillRuntimeService runtime = new BastionStrikeSkillRuntimeService(
+                skillService,
                 targeting,
                 combat,
                 effects,
@@ -178,10 +252,20 @@ class BastionStrikeSkillRuntimeServiceTest extends MockBukkitTestBase {
                 player,
                 definition(),
                 Instant.EPOCH,
-                0L
+                0L,
+                new LearnedSkillInstance(
+                        java.util.UUID.randomUUID(),
+                        java.util.UUID.randomUUID(),
+                        BastionStrikeSkillRuntimeService.SKILL_ID,
+                        skillLevel,
+                        List.of(),
+                        0,
+                        null,
+                        null
+                )
         ));
         AstEntity target = targets.isEmpty() ? mockTarget() : targets.get(0);
-        return new Fixture(player, target, targeting, combat, effects, tasks, runtime);
+        return new Fixture(player, target, targeting, combat, effects, tasks, skillService, runtime);
     }
 
     private AstEntity mockTarget() {
@@ -203,7 +287,12 @@ class BastionStrikeSkillRuntimeServiceTest extends MockBukkitTestBase {
                 0L,
                 1,
                 null,
-                Map.of("range", 6.0D, "damageRatio", 1.875D),
+                Map.of(
+                        "range", 6.0D,
+                        "damageRatio", 1.875D,
+                        "consumeAllCurrentMana", true,
+                        "levelFiveRequiredManaRatio", 0.80D
+                ),
                 List.of("passive", "melee", "defense"),
                 SkillKind.PASSIVE,
                 true,
@@ -219,6 +308,7 @@ class BastionStrikeSkillRuntimeServiceTest extends MockBukkitTestBase {
             SkillCombatService combat,
             SkillEffectService effects,
             SkillTaskService tasks,
+            SkillService skillService,
             BastionStrikeSkillRuntimeService runtime
     ) {
     }

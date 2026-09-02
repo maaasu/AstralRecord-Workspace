@@ -161,6 +161,90 @@ class GuideProgressEvaluatorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
      * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
+     * 検証契約: クラス変更、PP/CP/スキルノード解放、武器に対応するスキル発動の各条件を、種別と対象IDの一致に基づいて評価する。
+     */
+    @Test
+    void evaluate_AcceptsProgressionGuideConditionTypes() {
+        GuideEntry guide = new GuideEntry(
+            3,
+            "progression_conditions",
+            "skill",
+            10,
+            "progression",
+            null,
+            null,
+            List.of(
+                new GuideStep(
+                    "change_class",
+                    "change class",
+                    List.of(),
+                    new GuideCondition(
+                        GuideConditionType.CLASS_CHANGED,
+                        null,
+                        List.of("swordsman", "hunter", "mage"),
+                        null
+                    ),
+                    null
+                ),
+                new GuideStep(
+                    "unlock_pp",
+                    "unlock pp",
+                    List.of(),
+                    new GuideCondition(GuideConditionType.SKILLTREE_PP_NODE_UNLOCKED, null),
+                    null
+                ),
+                new GuideStep(
+                    "unlock_cp",
+                    "unlock cp",
+                    List.of(),
+                    new GuideCondition(GuideConditionType.SKILLTREE_CP_NODE_UNLOCKED, null),
+                    null
+                ),
+                new GuideStep(
+                    "unlock_skill",
+                    "unlock skill",
+                    List.of(),
+                    new GuideCondition(GuideConditionType.SKILLTREE_SKILL_NODE_UNLOCKED, null),
+                    null
+                ),
+                new GuideStep(
+                    "cast_weapon_skill",
+                    "cast weapon skill",
+                    List.of(),
+                    new GuideCondition(
+                        GuideConditionType.WEAPON_SKILL_CAST,
+                        null,
+                        List.of("nox_sword:melee", "nox_bow:ranged", "nox_staff:magic"),
+                        null
+                    ),
+                    null
+                )
+            )
+        );
+
+        assertEquals(List.of("change_class"), ids(GuideProgressEvaluator.evaluate(
+            guide, Set.of(), GuideConditionType.CLASS_CHANGED, "mage"
+        )));
+        assertEquals(List.of("unlock_pp"), ids(GuideProgressEvaluator.evaluate(
+            guide, Set.of(), GuideConditionType.SKILLTREE_PP_NODE_UNLOCKED, "1057"
+        )));
+        assertEquals(List.of("unlock_cp"), ids(GuideProgressEvaluator.evaluate(
+            guide, Set.of(), GuideConditionType.SKILLTREE_CP_NODE_UNLOCKED, "1086"
+        )));
+        assertEquals(List.of("unlock_skill"), ids(GuideProgressEvaluator.evaluate(
+            guide, Set.of(), GuideConditionType.SKILLTREE_SKILL_NODE_UNLOCKED, "1047"
+        )));
+        assertEquals(List.of(), ids(GuideProgressEvaluator.evaluate(
+            guide, Set.of(), GuideConditionType.WEAPON_SKILL_CAST, "nox_sword:ranged"
+        )));
+        assertEquals(List.of("cast_weapon_skill"), ids(GuideProgressEvaluator.evaluate(
+            guide, Set.of(), GuideConditionType.WEAPON_SKILL_CAST, "nox_bow:ranged"
+        )));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
      * 検証契約: スキル習得イベントは対象 skill ID が一致した手順だけを達成対象にする。
      */
     @Test

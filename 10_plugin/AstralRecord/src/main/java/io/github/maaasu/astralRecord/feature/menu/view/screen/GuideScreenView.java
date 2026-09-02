@@ -216,12 +216,15 @@ public final class GuideScreenView extends BaseMenuScreenView {
         boolean completed
     ) {
         List<Component> lore = new ArrayList<>();
-        lore.add(component(text, "&f"));
+        lore.add(componentWithFallbackColor(text, NamedTextColor.WHITE));
         for (String detail : step.details()) {
-            lore.add(component(guideService.resolveText(detail), "&7"));
+            lore.add(componentWithFallbackColor(guideService.resolveText(detail), NamedTextColor.GRAY));
         }
         if (step.action() != null && !step.action().description().isBlank()) {
-            lore.add(component(guideService.resolveText(step.action().description()), "&7"));
+            lore.add(componentWithFallbackColor(
+                guideService.resolveText(step.action().description()),
+                NamedTextColor.GRAY
+            ));
         }
         return createItem(
             completed ? Material.LIME_DYE : Material.GRAY_DYE,
@@ -232,6 +235,13 @@ public final class GuideScreenView extends BaseMenuScreenView {
 
     private @NotNull Component component(@NotNull String text, @NotNull String fallback) {
         return GuiItems.noItalic(LEGACY.deserialize(ColorCodeUtil.toLegacyText(text, fallback)));
+    }
+
+    private @NotNull Component componentWithFallbackColor(
+        @NotNull String text,
+        @NotNull NamedTextColor fallbackColor
+    ) {
+        return GuiItems.noItalic(ColorCodeUtil.toComponent(text, "", fallbackColor));
     }
 
     private @NotNull Material material(String materialName, @NotNull Material fallback) {

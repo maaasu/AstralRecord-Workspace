@@ -48,15 +48,15 @@
 | `params` | Map<String, Any> | 任意 | `{}` | Executorと説明文で共有する実効値。共通項目は定義しない |
 | `tags` | List<String> | 任意 | `[]` | `76.shared.tag/v1.tags.yml`の`SKILL`対象タグID |
 
-`swordsman_bastion_strike` の `params.range: 6.0` と `params.damageRatio: 1.875` は、シールド破壊時の視線ライン反撃に使うexecutor固有の値です。`passive.bindRequired: true` により、使用許可だけでなくパッシブスロットへのバインドを要求します。`resourceType: MANA` と `resourceCost: 0` はパッシブ定義の共通表示と固定コストを明示するために維持しますが、バスティオンストライクは発動時にMPを消費しません。
+`swordsman_bastion_strike` の `params.range: 6.0` と `params.damageRatio: 1.875` は、シールド破壊時の視線ライン反撃に使うexecutor固有の値です。`params.consumeAllCurrentMana: true` と `params.levelFiveRequiredManaRatio: 0.80` は、反撃成立時の現在MP全消費とLv.5の必要MP比率を定義します。`passive.bindRequired: true` により、使用許可だけでなくパッシブスロットへのバインドを要求します。`resourceType: MANA` と `resourceCost: 0` は共通消費を重ねないための定義であり、反撃成立時のMP全消費はexecutorが行います。
 
 複合消費では `ENERGY_COST_REDUCTION` と `MANA_COST_REDUCTION` を各消費へ個別に適用します。片方でも残量不足なら発動前に全消費を拒否し、executor成功時だけ両方を消費します。GUIも主ENGと副MPを別行で表示します。
 
 ## 説明文プレースホルダー
 
-`description` はスキルの主目的を短く示すために使い、具体的な効果詳細、発動条件、対象数、持続時間、例外処理は `lore` に記載します。`lore` の各行は1つの効果または条件に分け、表示が横へ伸びないようにします。消費リソース、クールダウン、詠唱時間は top-level 項目と GUI の専用表示を使い、説明文へ重複させません。
+`description` はスキルの主目的を短く示すために使い、具体的な効果詳細、発動条件、対象数、持続時間、例外処理は `lore` に記載します。`lore` の各行は1つの効果または条件に分け、表示が横へ伸びないようにします。消費リソース、クールダウン、詠唱時間は top-level 項目と GUI の専用表示を正とし、説明上必要な場合だけ共通値用プレースホルダーで参照します。
 
-`description` と `lore` では、解決済み `params` の値を次の形式で参照できます。
+`description` と `lore` では、解決済み `params` と top-level 共通値を次の形式で参照できます。
 
 | 記法 | 内容 |
 | --- | --- |
@@ -66,13 +66,14 @@
 | `{skill.damageRatios:percent}` | 数値配列を ` / ` 区切りで表示 |
 | `{skill.durationTicks:seconds}` | tick値を20で割り、秒へ変換して表示 |
 | `{skill.<param>:seconds}` | 数値パラメータを20で割り、秒へ変換して表示 |
+| `{skill.cooldownTicks:seconds}` | top-level クールダウンtickを20で割り、秒へ変換して表示 |
 | `{skill.level}` / `{skill.maxLevel}` | 習得レベル・最大レベル |
 | `{skill.skillDamageIncrease}` | レベル・シジル由来の `SKILL_DAMAGE_INCREASE` 合計 |
 | `{skill.effectiveDamageRatio:percent}` | `damageRatio × (1 + skillDamageIncrease / 100)` |
 | `{skill.effectiveChainDamageRatio:percent}` | `chainDamageRatio × (1 + skillDamageIncrease / 100)` |
 | `{skill.effectiveDamageRatios:percent}` | `damageRatios` の各要素へ同じ補正を適用した配列 |
 
-説明文は、基礎定義を直接表示せず、`LearnedSkillResolver` がレベル差分と有効シジルを合成した値を使って展開します。未知のプレースホルダーは `?` として表示されるため、マスターデータ検証で修正します。
+説明文は、基礎定義を直接表示せず、`LearnedSkillResolver` がレベル差分と有効シジルを合成した値を使って展開します。top-level の `cooldownTicks` も解決済みスキルの値を参照します。未知のプレースホルダーは `?` として表示されるため、マスターデータ検証で修正します。
 
 展開されたプレースホルダー値は GUI 上で黄色に着色します。数値は小数第2位を四捨五入して小数第1位まで表示し、末尾の0は表示しません（例: `120.75` → `120.8`）。
 

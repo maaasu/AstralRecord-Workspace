@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillLevelDefinition;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillRequiredItemDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillSigilSlotDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillStatusModifierDefinition;
@@ -78,7 +79,9 @@ class LearnedSkillResolverTest {
                     List.of(new SkillStatusModifierDefinition("SKILL_DAMAGE_INCREASE", 6.0D)))
             ),
             List.of(new SkillSigilSlotDefinition(1, 1), new SkillSigilSlotDefinition(3, 2)),
-            List.of("cooldown_sigil", "cooldown_sigil_ii")
+            List.of("cooldown_sigil", "cooldown_sigil_ii"),
+            List.of(new SkillRequiredItemDefinition("skill_gem_raw", 1)),
+            List.of(new SkillRequiredItemDefinition("skill_gem_raw", 2))
         );
         UUID accountId = UUID.randomUUID();
         LearnedSkillInstance learned = new LearnedSkillInstance(
@@ -109,6 +112,8 @@ class LearnedSkillResolverTest {
         assertTrue(resolved.hasSigil("cooldown_sigil"));
         assertFalse(resolved.hasSigil("cooldown_sigil_ii"));
         assertEquals(1, resolved.sigilIds().size());
+        assertEquals(definition.getLearnRequiredItems(), resolved.definition().getLearnRequiredItems());
+        assertEquals(definition.getLevelUpRequiredItems(), resolved.definition().getLevelUpRequiredItems());
     }
 
     /**

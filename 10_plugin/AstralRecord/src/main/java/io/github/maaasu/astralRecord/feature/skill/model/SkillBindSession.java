@@ -67,6 +67,25 @@ public final class SkillBindSession {
     }
 
     /**
+     * 指定したバインド ID が同一種別のスロットへ設定済みかを返します。
+     *
+     * @param type      バインド種別
+     * @param bindingId 確認するバインド ID
+     * @return 同一種別のスロットへ設定済みの場合は {@code true}
+     */
+    public boolean isBound(@NotNull SkillBindType type, @NotNull String bindingId) {
+        String normalized = bindingId.trim();
+        if (normalized.isEmpty()) {
+            return false;
+        }
+        if (type == SkillBindType.LEFT_CLICK) {
+            return normalized.equalsIgnoreCase(leftClickDraft);
+        }
+        List<String> target = type == SkillBindType.ACTIVE ? activeDraft : passiveDraft;
+        return target.stream().anyMatch(binding -> normalized.equalsIgnoreCase(binding));
+    }
+
+    /**
      * スキル割当先のバインドスロットを選択します。
      *
      * @param type      バインド種別
@@ -117,6 +136,27 @@ public final class SkillBindSession {
         @NotNull SkillKind skillKind,
         int availablePassiveSlotCount
     ) {
+        return assignSelectedOrNextSlot(skillId, skillKind, availablePassiveSlotCount, true);
+    }
+
+    /**
+     * 選択中スロット、または現在有効な種別対応スロットへスキルを割り当てます。
+     *
+     * <p>バインド必須パッシブだけをパッシブ枠へ割り当て、同一プリセットのパッシブ枠へ
+     * 既に設定済みの個体は重複して割り当てません。</p>
+     *
+     * @param skillId               割り当てる習得済みスキル個体 ID
+     * @param skillKind              割り当てるスキル種別
+     * @param availablePassiveSlotCount 現在利用できるパッシブ枠数
+     * @param passiveBindRequired    パッシブスロットへの設定が必要なスキルかどうか
+     * @return 割当できた場合は {@code true}
+     */
+    public boolean assignSelectedOrNextSlot(
+        @NotNull String skillId,
+        @NotNull SkillKind skillKind,
+        int availablePassiveSlotCount,
+        boolean passiveBindRequired
+    ) {
         SkillBindType targetType = selectedBindType;
         int targetIndex = selectedBindSlotIndex;
         if (targetType == null || targetIndex < 0 || targetIndex >= slotCount(targetType)) {
@@ -133,6 +173,10 @@ public final class SkillBindSession {
         }
         if (targetType == SkillBindType.PASSIVE
             && targetIndex >= Math.max(0, Math.min(availablePassiveSlotCount, passiveDraft.size()))) {
+            return false;
+        }
+        if (targetType == SkillBindType.PASSIVE
+            && (!passiveBindRequired || isBound(SkillBindType.PASSIVE, skillId))) {
             return false;
         }
         if (targetIndex < 0) {

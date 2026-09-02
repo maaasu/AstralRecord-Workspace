@@ -404,7 +404,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (!session.assignSelectedOrNextSlot(
             entry.bindingId(),
             entry.definition().getKind(),
-            passiveSkillService.activePassiveSlotCount(astPlayer)
+            passiveSkillService.activePassiveSlotCount(astPlayer),
+            entry.definition().getPassiveBindRequired()
         )) {
             GuiSound.DENY.play(player);
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5865);
@@ -595,7 +596,9 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         SkillBindType selected = session.selectedBindType();
         if (selected == null) return false;
         if (selected == SkillBindType.PASSIVE) {
-            return entry.definition().getKind() == SkillKind.PASSIVE && entry.definition().getPassiveBindRequired();
+            return entry.definition().getKind() == SkillKind.PASSIVE
+                && entry.definition().getPassiveBindRequired()
+                && !session.isBound(SkillBindType.PASSIVE, entry.bindingId());
         }
         return entry.definition().getKind() != SkillKind.PASSIVE;
     }
@@ -739,7 +742,8 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 }
                 if (selected == SkillBindType.PASSIVE) {
                     return entry.definition().getKind() == SkillKind.PASSIVE
-                        && entry.definition().getPassiveBindRequired();
+                        && entry.definition().getPassiveBindRequired()
+                        && !session.isBound(SkillBindType.PASSIVE, entry.bindingId());
                 }
                 return entry.definition().getKind() != SkillKind.PASSIVE;
             })
@@ -829,6 +833,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 if (current == null) return;
                 plugin.getGuideService().recordConditionSilently(current, GuideConditionType.SKILL_LEARNED, skillId);
                 passiveSkillService.markDirty(current);
+                inventoryService.refreshManagedInventoryUi(current);
                 GuiSound.SUCCESS.play(current.getBukkit()); openMain(current.getBukkit(), session, page);
             },
             error -> { GuiSound.DENY.play(player); openMain(player, session, page); });
@@ -847,6 +852,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 if (current == null) return;
                 plugin.getGuideService().recordConditionSilently(current, GuideConditionType.SKILL_ENHANCED, entry.definition().getId());
                 passiveSkillService.markDirty(current);
+                inventoryService.refreshManagedInventoryUi(current);
                 GuiSound.SUCCESS.play(current.getBukkit()); openMain(current.getBukkit(), session, page);
             },
             error -> { GuiSound.DENY.play(player); openMain(player, session, page); });

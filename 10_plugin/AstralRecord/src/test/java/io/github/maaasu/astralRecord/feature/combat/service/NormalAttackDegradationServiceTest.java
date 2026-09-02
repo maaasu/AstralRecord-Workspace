@@ -3,13 +3,16 @@ package io.github.maaasu.astralRecord.feature.combat.service;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDefinitions;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
 import org.junit.jupiter.api.Test;
+import org.mockito.MockedStatic;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
 import java.util.UUID;
@@ -19,6 +22,10 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
 
 class NormalAttackDegradationServiceTest extends MockBukkitTestBase {
 
@@ -48,6 +55,55 @@ class NormalAttackDegradationServiceTest extends MockBukkitTestBase {
             assertEquals(expectedStages[index], ticket.stage(), "attack=" + (index + 1));
             assertEquals(expectedDamageMultipliers[index], ticket.damageMultiplier(), 0.000001D);
             assertEquals(expectedAttackSpeedMultipliers[index], ticket.attackSpeedMultiplier(), 0.000001D);
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 12. 通常攻撃劣化
+     * 検証契約: 冒険者は通常攻撃を連続しても劣化状態・ダメージ倍率・攻撃速度倍率が変化しない。
+     */
+    @Test
+    void adventurerDoesNotAccumulateNormalAttackDegradation() {
+        AtomicLong now = new AtomicLong(1_000L);
+        NormalAttackDegradationService service = new NormalAttackDegradationService(now::get);
+        AstPlayer player = adventurerAstPlayer();
+
+        for (int index = 0; index < 20; index++) {
+            NormalAttackDegradationService.AttackTicket ticket = service.beginNormalAttack(player);
+            assertEquals(0, ticket.stage(), "attack=" + (index + 1));
+            assertEquals(1.0D, ticket.damageMultiplier(), 0.000001D);
+            assertEquals(1.0D, ticket.attackSpeedMultiplier(), 0.000001D);
+        }
+
+        assertEquals(0, service.currentStage(player));
+        assertEquals(1.0D, service.currentDamageMultiplier(player), 0.000001D);
+        assertEquals(1.0D, service.currentAttackSpeedMultiplier(player), 0.000001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 12. 通常攻撃劣化
+     * 検証契約: 劣化が段階1へ遷移した成功時だけ、通常攻撃の連続使用に関する案内を1回送信する。
+     */
+    @Test
+    void degradationStartSendsAdviceOnlyOnce() {
+        NormalAttackDegradationService service = new NormalAttackDegradationService(() -> 1_000L);
+        AstPlayer player = astPlayer();
+        PlayerMessageService messages = mock(PlayerMessageService.class);
+
+        try (MockedStatic<PlayerMessageService> messageService = mockStatic(PlayerMessageService.class)) {
+            messageService.when(PlayerMessageService::getInstance).thenReturn(messages);
+
+            for (int index = 0; index < 5; index++) {
+                service.beginNormalAttack(player);
+            }
+            service.onSkillCast(player, BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MELEE);
+
+            service.beginNormalAttack(player);
+            service.onSkillCast(player, BuiltInWeaponAttackDefinitions.NORMAL_ATTACK_MELEE);
+
+            verify(messages, times(1)).send(player, PlayerMsgId.P_5357);
         }
     }
 
@@ -127,6 +183,7 @@ class NormalAttackDegradationServiceTest extends MockBukkitTestBase {
         NormalAttackDegradationService service = new NormalAttackDegradationService(now::get);
         PlayerMock bukkitPlayer = server().addPlayer();
         AstPlayer player = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.PLAYER);
+        player.selectClass("swordsman");
         UUID playerId = bukkitPlayer.getUniqueId();
         AstPlayerCache.put(player);
         try {
@@ -154,6 +211,12 @@ class NormalAttackDegradationServiceTest extends MockBukkitTestBase {
     }
 
     private AstPlayer astPlayer() {
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        player.selectClass("swordsman");
+        return player;
+    }
+
+    private AstPlayer adventurerAstPlayer() {
         return DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
     }
 }

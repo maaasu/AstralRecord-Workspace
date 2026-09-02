@@ -81,6 +81,65 @@ public class AccountLearnedSkillRepositoryTests
     }
 
     /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md
+    /// 検証契約: required items は通常アイテム共通消費順でBAGのslot降順から使い、HOTBARよりBAGを優先し、STORAGEとinstance itemを除外する。
+    /// </summary>
+    [Fact]
+    public async Task LearnAsync_UsesCommonNormalItemConsumptionOrder()
+    {
+        await using var fixture = await TestDatabase.CreateAsync();
+        await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
+        var master = await fixture.MasterDb.Entries.SingleAsync(entry => entry.MasterId == "adventurer_smash");
+        master.PayloadJson = master.PayloadJson.Replace(
+            "\"maxLevel\":5,",
+            "\"maxLevel\":5,\"learnRequiredItems\":[{\"itemId\":\"skill_gem_raw\",\"amount\":1}],");
+        await fixture.MasterDb.SaveChangesAsync();
+        var accountId = Guid.NewGuid();
+        await fixture.AddAccountAsync(accountId);
+        var storage = await fixture.AddInventoryEntryAsync(
+            accountId, "material", "skill_gem_raw", 1, "STORAGE", 20,
+            Guid.Parse("00000000-0000-0000-0000-000000000001"));
+        var hotbar = await fixture.AddInventoryEntryAsync(
+            accountId, "material", "skill_gem_raw", 1, "HOTBAR", 8,
+            Guid.Parse("00000000-0000-0000-0000-000000000002"));
+        var instance = await fixture.AddInventoryEntryAsync(
+            accountId, "material", "skill_gem_raw", 1, "BAG", 9,
+            Guid.Parse("00000000-0000-0000-0000-000000000003"), "ITEM_INSTANCE", Guid.NewGuid());
+        var bagLowSlot = await fixture.AddInventoryEntryAsync(
+            accountId, "material", "skill_gem_raw", 1, "BAG", 1,
+            Guid.Parse("00000000-0000-0000-0000-000000000004"));
+        var bagHighSlot = await fixture.AddInventoryEntryAsync(
+            accountId, "material", "skill_gem_raw", 2, "BAG", 5,
+            Guid.Parse("00000000-0000-0000-0000-000000000005"));
+
+        var learned = await new AccountLearnedSkillRepository(fixture.PlayerDb, fixture.MasterDb)
+            .LearnAsync(accountId, new AccountLearnedSkillLearnRequest
+            {
+                SkillId = "adventurer_smash",
+                UpdatedBy = accountId,
+            });
+
+        Assert.True(learned.Succeeded);
+        var consumedEntry = await fixture.PlayerDb.InventoryEntries.SingleAsync(
+            entry => entry.InventoryEntryId == bagHighSlot);
+        Assert.False(consumedEntry.IsDeleted);
+        Assert.Equal(1, consumedEntry.Quantity);
+        Assert.Collection(
+            learned.ConsumedMaterials!,
+            material =>
+            {
+                Assert.Equal(bagHighSlot, material.InventoryEntryId);
+                Assert.Equal(1, material.ConsumedAmount);
+            });
+        Assert.All([storage, hotbar, instance, bagLowSlot], entryId =>
+        {
+            var entry = fixture.PlayerDb.InventoryEntries.Single(candidate => candidate.InventoryEntryId == entryId);
+            Assert.False(entry.IsDeleted);
+            Assert.Equal(1, entry.Quantity);
+        });
+    }
+
+    /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
     /// 検証契約: 指定個体だけを1レベル上げ、同じequipGroupIdのシジルを重複装着しない。
     /// </summary>
@@ -612,17 +671,23 @@ public class AccountLearnedSkillRepositoryTests
             Guid accountId,
             string category,
             string itemId,
-            long quantity)
+            long quantity,
+            string inventoryType = "BAG",
+            int? slotIndex = null,
+            Guid? inventoryEntryId = null,
+            string? instanceType = null,
+            Guid? instanceId = null)
         {
             var now = DateTime.UtcNow;
-            var inventory = await PlayerDb.Inventories.FirstOrDefaultAsync(candidate => candidate.AccountId == accountId);
+            var inventory = await PlayerDb.Inventories.FirstOrDefaultAsync(candidate =>
+                candidate.AccountId == accountId && candidate.InventoryType == inventoryType);
             if (inventory is null)
             {
                 inventory = new InventoryEntity
                 {
                     InventoryId = Guid.NewGuid(),
                     AccountId = accountId,
-                    InventoryType = "BAG",
+                    InventoryType = inventoryType,
                     InventoryProfile = "GAME",
                     IsEnabled = true,
                     CreatedAt = now,
@@ -634,10 +699,13 @@ public class AccountLearnedSkillRepositoryTests
             }
             var entry = new InventoryEntryEntity
             {
-                InventoryEntryId = Guid.NewGuid(),
+                InventoryEntryId = inventoryEntryId ?? Guid.NewGuid(),
                 InventoryId = inventory.InventoryId,
+                SlotIndex = slotIndex,
                 ItemCategory = category,
                 ItemId = itemId,
+                InstanceType = instanceType,
+                InstanceId = instanceId,
                 Quantity = quantity,
                 CreatedAt = now,
                 UpdatedAt = now,

@@ -782,6 +782,25 @@ public class InventoryService {
         @NotNull UUID accountId,
         @NotNull UUID inventoryEntryId
     ) {
+        consumeOwnedEntryAfterAuthoritativeMutation(accountId, inventoryEntryId, 1L);
+    }
+
+    /**
+     * APIが確定した消費数量を、正本再同期失敗時のローカルentryへ反映します。
+     *
+     * <p>対象entryの数量が消費数以下ならentryを削除し、後続slotを通常規則で前詰めします。
+     * 対象accountのインベントリstateが未ロード、対象entryが不在、または消費数が0以下なら変更しません。</p>
+     *
+     * @param accountId 対象アカウントID
+     * @param inventoryEntryId APIが消費を確定したinventory entry ID
+     * @param consumedAmount API応答の消費数量
+     */
+    public void consumeOwnedEntryAfterAuthoritativeMutation(
+        @NotNull UUID accountId,
+        @NotNull UUID inventoryEntryId,
+        long consumedAmount
+    ) {
+        if (consumedAmount <= 0L) return;
         PlayerInventoryState state = getState(accountId);
         if (state == null) return;
         synchronized (state) {
@@ -792,12 +811,12 @@ public class InventoryService {
                     if (entry.isDeleted() || !entry.getInventoryEntryId().equals(inventoryEntryId)) {
                         continue;
                     }
-                    if (entry.getQuantity() <= 1) {
+                    if (entry.getQuantity() <= consumedAmount) {
                         entries.remove(index);
                         state.replaceEntries(inventory.getInventoryId(), entries);
                         compactInventoryEntriesAfterRemoval(state, inventory.getInventoryId());
                     } else {
-                        entries.set(index, withQuantity(entry, entry.getQuantity() - 1, accountId));
+                        entries.set(index, withQuantity(entry, entry.getQuantity() - consumedAmount, accountId));
                         state.replaceEntries(inventory.getInventoryId(), entries);
                     }
                     return;
@@ -2907,7 +2926,7 @@ public class InventoryService {
             accountId,
             affectedEntryIds,
             baseline,
-            authoritativeAffected -> reloadTradeInstanceCaches(
+            authoritativeAffected -> reloadAffectedEquipmentInstances(
                 accountId,
                 affectedEntryIds,
                 baseline,
@@ -2918,11 +2937,11 @@ public class InventoryService {
     }
 
     /**
-     * トレードで所有権が変わった個体を API から再取得し、state を変更する前に cache を正本へ置換します。
-     * baseline は送信側で既に state から除去された個体を特定し、affected entry の再取得結果は受取側の
-     * 現在の所有者を特定するために使用します。再取得に失敗した場合は state を変更せず recovery へ返します。
+     * 外部 API 操作で所有権または配置が変わった装備個体を API から再取得し、state を変更する前に
+     * cache を正本へ置換します。baseline は操作前から存在した個体を特定し、affected entry の再取得結果は
+     * 操作後の現在の所有者を特定するために使用します。再取得に失敗した場合は state を変更せず recovery へ返します。
      */
-    private void reloadTradeInstanceCaches(
+    private void reloadAffectedEquipmentInstances(
         @NotNull UUID accountId,
         @NotNull Collection<UUID> affectedEntryIds,
         @NotNull InventoryPersistence.PersistedInventoryBaseline baseline,
@@ -2930,20 +2949,20 @@ public class InventoryService {
     ) {
         Set<String> equipmentInstanceIds = new LinkedHashSet<>();
         for (UUID entryId : new LinkedHashSet<>(affectedEntryIds)) {
-            addTradeEquipmentInstanceId(equipmentInstanceIds, baseline.findEntry(entryId));
-            addTradeEquipmentInstanceId(
+            addEquipmentInstanceId(equipmentInstanceIds, baseline.findEntry(entryId));
+            addEquipmentInstanceId(
                 equipmentInstanceIds,
                 authoritativeAffected.getOrDefault(entryId, Optional.empty()).orElse(null)
             );
         }
         if (!equipmentInstanceIds.isEmpty()) {
             ItemService.EquipmentPreloadResult result = itemService.reloadEquipmentInstances(equipmentInstanceIds);
-            requireTradeInstanceReload(result, "equipment", accountId);
+            requireEquipmentInstanceReload(result, accountId);
         }
     }
 
-    /** Trade affected entry から装備個体 ID を抽出します。 */
-    private void addTradeEquipmentInstanceId(
+    /** 外部 API 操作の affected entry から装備個体 ID を抽出します。 */
+    private void addEquipmentInstanceId(
         @NotNull Set<String> equipmentInstanceIds,
         @Nullable InventoryEntryModel entry
     ) {
@@ -2960,22 +2979,21 @@ public class InventoryService {
         }
     }
 
-    private void requireTradeInstanceReload(
+    private void requireEquipmentInstanceReload(
         @Nullable ItemService.EquipmentPreloadResult result,
-        @NotNull String instanceType,
         @NotNull UUID accountId
     ) {
         if (result == ItemService.EquipmentPreloadResult.UNAVAILABLE) {
             throw new IllegalStateException(
-                "Trade " + instanceType + " cache reload is unavailable for account " + accountId);
+                "Equipment cache reload is unavailable for account " + accountId);
         }
         if (result == ItemService.EquipmentPreloadResult.MISSING) {
             throw new IllegalStateException(
-                "Trade " + instanceType + " cache reload found a missing instance for account " + accountId);
+                "Equipment cache reload found a missing instance for account " + accountId);
         }
         if (result != ItemService.EquipmentPreloadResult.COMPLETE) {
             throw new IllegalStateException(
-                "Trade " + instanceType + " cache reload returned no result for account " + accountId);
+                "Equipment cache reload returned no result for account " + accountId);
         }
     }
 
@@ -3020,13 +3038,14 @@ public class InventoryService {
      * BAG に未配置または最大 stack 超過で返された stack entry は、その返却分だけを一度取り除き、
      * 既存 stack を保持したまま共通追加処理へ通します。HOTBAR に復元された entry と BAG 以外へ返された個体品は、一度取り除いて
      * {@link #returnItemToOwnedInventory(AstPlayer, InventoryEntryModel)} と同じ state 更新処理で BAG へ戻します。
+     * 装備個体を含む場合は、state へ反映する前に API 正本から装備個体 cache を強制再取得します。
      * 通貨 entry は額面正規化を含む三者マージ結果をそのまま維持します。
      *
      * @param astPlayer 対象プレイヤー
      * @param affectedEntryIds API 操作が返した affected IDs と request origin ID
      * @param baseline 操作直前に API が保存済みと返した entry
      * @throws IllegalArgumentException baseline またはプレイヤーの account が一致しない場合
-     * @throws IllegalStateException 正本反映後の返却アイテムを全量収容できない場合
+     * @throws IllegalStateException 正本反映後の返却アイテムを全量収容できない場合、または装備個体 cache の再取得に失敗した場合
      */
     public void reconcileExternalInventoryEntriesToOwnedInventory(
         @NotNull AstPlayer astPlayer,
@@ -3038,7 +3057,12 @@ public class InventoryService {
             accountId,
             affectedEntryIds,
             baseline,
-            null,
+            authoritativeAffected -> reloadAffectedEquipmentInstances(
+                accountId,
+                affectedEntryIds,
+                baseline,
+                authoritativeAffected
+            ),
             new ExternalReturnNormalization(false, false)
         );
     }

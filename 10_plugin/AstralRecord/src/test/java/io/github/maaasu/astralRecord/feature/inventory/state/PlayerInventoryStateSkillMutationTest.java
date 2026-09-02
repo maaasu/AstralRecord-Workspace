@@ -171,10 +171,10 @@ class PlayerInventoryStateSkillMutationTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
      * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
-     * 検証契約: API消費成功後の再同期失敗でも、ローカル表示は素材を復活させず一個消費した状態へ回復する。
+     * 検証契約: API消費成功後の再同期失敗でも、APIが返した消費数量をローカル表示へ反映して削除時は前詰めする。
      */
     @Test
-    void authoritativeSuccessFallbackConsumesOneMaterialLocally() {
+    void authoritativeSuccessFallbackConsumesReportedMaterialAmountLocally() {
         UUID accountId = UUID.randomUUID();
         UUID materialId = UUID.randomUUID();
         UUID followingId = UUID.randomUUID();
@@ -182,14 +182,14 @@ class PlayerInventoryStateSkillMutationTest {
         PlayerInventoryState state = new PlayerInventoryState(accountId);
         state.putInventory(bag);
         state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
-            entry(materialId, bag.getInventoryId(), 1, "cooldown_sigil", 2L, accountId),
+            entry(materialId, bag.getInventoryId(), 1, "cooldown_sigil", 5L, accountId),
             entry(followingId, bag.getInventoryId(), 2, "following", 1L, accountId)
         ));
         InventoryService service = inventoryService(state);
 
-        service.consumeOwnedEntryAfterAuthoritativeMutation(accountId, materialId);
-        assertEquals(1L, entryById(state.snapshotEntries(bag.getInventoryId()), materialId).getQuantity());
-        service.consumeOwnedEntryAfterAuthoritativeMutation(accountId, materialId);
+        service.consumeOwnedEntryAfterAuthoritativeMutation(accountId, materialId, 3L);
+        assertEquals(2L, entryById(state.snapshotEntries(bag.getInventoryId()), materialId).getQuantity());
+        service.consumeOwnedEntryAfterAuthoritativeMutation(accountId, materialId, 2L);
 
         List<InventoryEntryModel> entries = state.snapshotEntries(bag.getInventoryId());
         assertFalse(entries.stream().anyMatch(entry -> entry.getInventoryEntryId().equals(materialId)));

@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMaterialMutationResult;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigilDetachResult;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException;
 import io.github.maaasu.astralRecord.feature.skill.repository.LearnedSkillRepository;
@@ -13,6 +14,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -106,7 +109,13 @@ public final class LearnedSkillService {
         @NotNull Consumer<LearnedSkillInstance> onSuccess,
         @NotNull Consumer<Throwable> onFailure
     ) {
-        return mutateAsync(accountId, requiredItemEntryIds, () -> repository.learn(accountId, skillId, updatedBy), onSuccess, onFailure);
+        return mutateAsync(
+            accountId,
+            requiredItemEntryIds,
+            () -> managerMutationOutcome(repository.learn(accountId, skillId, updatedBy)),
+            onSuccess,
+            onFailure
+        );
     }
 
     /** スキルマネージャーから master 定義の素材を消費してレベルアップします。 */
@@ -118,7 +127,13 @@ public final class LearnedSkillService {
         @NotNull Consumer<LearnedSkillInstance> onSuccess,
         @NotNull Consumer<Throwable> onFailure
     ) {
-        return mutateAsync(accountId, requiredItemEntryIds, () -> repository.levelUp(accountId, learnedSkillId, updatedBy), onSuccess, onFailure);
+        return mutateAsync(
+            accountId,
+            requiredItemEntryIds,
+            () -> managerMutationOutcome(repository.levelUp(accountId, learnedSkillId, updatedBy)),
+            onSuccess,
+            onFailure
+        );
     }
 
     /**
@@ -147,13 +162,16 @@ public final class LearnedSkillService {
         return mutateAsync(
             accountId,
             List.of(orbInventoryEntryId, sigilInventoryEntryId),
-            () -> repository.attachSigil(
-                accountId,
-                learnedSkillId,
-                orbInventoryEntryId,
-                sigilId,
-                sigilInventoryEntryId,
-                updatedBy
+            () -> oneEachMutationOutcome(
+                repository.attachSigil(
+                    accountId,
+                    learnedSkillId,
+                    orbInventoryEntryId,
+                    sigilId,
+                    sigilInventoryEntryId,
+                    updatedBy
+                ),
+                List.of(orbInventoryEntryId, sigilInventoryEntryId)
             ),
             onSuccess,
             onFailure
@@ -342,21 +360,26 @@ public final class LearnedSkillService {
             // 成否どちらでも素材 entry を API 正本へ再同期する。
             plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
                 try {
-                    LearnedSkillInstance result = mutation.execute();
+                    MutationOutcome outcome = mutation.execute();
+                    LearnedSkillInstance result = outcome.skill();
                     if (!isCurrentSession(accountId, sessionToken)) {
                         lock.set(false);
                         return;
                     }
-                    for (UUID materialInventoryEntryId : materialInventoryEntryIds) {
+                    LinkedHashSet<UUID> reconciliationIds = new LinkedHashSet<>(materialInventoryEntryIds);
+                    reconciliationIds.addAll(outcome.consumedAmounts().keySet());
+                    for (UUID materialInventoryEntryId : reconciliationIds) {
                         try {
                             inventoryService.reconcileAuthoritativeEntry(accountId, materialInventoryEntryId);
                         } catch (Throwable reconciliationError) {
-                            // mutation は API 正本で成功している。再同期失敗で素材を復元すると二重消費に見えるため、
-                            // 成功結果を維持し、次回ロードで回復できるよう警告だけを残す。
-                            inventoryService.consumeOwnedEntryAfterAuthoritativeMutation(
-                                accountId,
-                                materialInventoryEntryId
-                            );
+                            Long consumedAmount = outcome.consumedAmounts().get(materialInventoryEntryId);
+                            if (consumedAmount != null && consumedAmount > 0L) {
+                                inventoryService.consumeOwnedEntryAfterAuthoritativeMutation(
+                                    accountId,
+                                    materialInventoryEntryId,
+                                    consumedAmount
+                                );
+                            }
                             Logger.log(LogId.W_5252, "skill_mutation_reconcile", reconciliationError.getMessage());
                         }
                     }
@@ -447,9 +470,31 @@ public final class LearnedSkillService {
             .toList();
     }
 
+    private static MutationOutcome managerMutationOutcome(LearnedSkillMaterialMutationResult result) {
+        Map<UUID, Long> consumedAmounts = new LinkedHashMap<>();
+        result.getConsumedMaterials().forEach(material -> consumedAmounts.merge(
+            material.getInventoryEntryId(),
+            material.getConsumedAmount(),
+            Long::sum
+        ));
+        return new MutationOutcome(result.getSkill(), Map.copyOf(consumedAmounts));
+    }
+
+    private static MutationOutcome oneEachMutationOutcome(
+        LearnedSkillInstance skill,
+        List<UUID> consumedEntryIds
+    ) {
+        Map<UUID, Long> consumedAmounts = new LinkedHashMap<>();
+        consumedEntryIds.forEach(entryId -> consumedAmounts.merge(entryId, 1L, Long::sum));
+        return new MutationOutcome(skill, Map.copyOf(consumedAmounts));
+    }
+
+    private record MutationOutcome(LearnedSkillInstance skill, Map<UUID, Long> consumedAmounts) {
+    }
+
     @FunctionalInterface
     private interface Mutation {
-        LearnedSkillInstance execute();
+        MutationOutcome execute();
     }
 
 }

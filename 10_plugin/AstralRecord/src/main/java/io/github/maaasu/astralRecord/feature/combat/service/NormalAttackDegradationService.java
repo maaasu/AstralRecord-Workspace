@@ -3,7 +3,10 @@ package io.github.maaasu.astralRecord.feature.combat.service;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDefinitions;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import org.bukkit.Bukkit;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
@@ -68,6 +71,10 @@ public final class NormalAttackDegradationService {
      */
     public @NotNull AttackTicket beginNormalAttack(@NotNull AstPlayer player) {
         UUID playerId = player.getBukkit().getUniqueId();
+        if (isDegradationExcluded(player)) {
+            clearPlayer(playerId);
+            return new AttackTicket(0, 1.0D, 1.0D, 0, 0, 0L, 0L);
+        }
         long now = currentTimeMillis.getAsLong();
         DegradationState previous = activeState(playerId, now);
         int previousAttackCount = previous == null ? 0 : previous.attackCount();
@@ -134,6 +141,10 @@ public final class NormalAttackDegradationService {
      * @return 劣化段階。劣化していない場合は0
      */
     public int currentStage(@NotNull AstPlayer player) {
+        if (isDegradationExcluded(player)) {
+            clearPlayer(player.getBukkit().getUniqueId());
+            return 0;
+        }
         DegradationState state = activeState(player.getBukkit().getUniqueId(), currentTimeMillis.getAsLong());
         return state == null ? 0 : stageForState(state);
     }
@@ -167,6 +178,9 @@ public final class NormalAttackDegradationService {
      */
     public void onSkillCast(@NotNull AstPlayer player, @NotNull String skillId) {
         if (BuiltInWeaponAttackDefinitions.isNormalAttackSkillId(skillId)) {
+            if (currentStage(player) == 1) {
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5357);
+            }
             return;
         }
         clearPlayer(player.getBukkit().getUniqueId());
@@ -213,7 +227,9 @@ public final class NormalAttackDegradationService {
         for (AstPlayer astPlayer : List.copyOf(AstPlayerCache.getAll())) {
             Player player = astPlayer.getBukkit();
             UUID playerId = player.getUniqueId();
-            if (!player.isOnline() || !astPlayer.getAccount().getMode().shouldProcessGameplay()) {
+            if (!player.isOnline()
+                    || !astPlayer.getAccount().getMode().shouldProcessGameplay()
+                    || isDegradationExcluded(astPlayer)) {
                 clearPlayer(playerId);
                 continue;
             }
@@ -285,6 +301,10 @@ public final class NormalAttackDegradationService {
 
     private static int stageForState(@NotNull DegradationState state) {
         return stageForAttackCount(state.attackCount());
+    }
+
+    private static boolean isDegradationExcluded(@NotNull AstPlayer player) {
+        return MasterTagIds.Theme.ADVENTURER.equalsIgnoreCase(player.getClassId());
     }
 
     static int stageForAttackCount(int attackCount) {

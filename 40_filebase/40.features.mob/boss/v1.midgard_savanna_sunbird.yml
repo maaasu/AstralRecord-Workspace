@@ -54,6 +54,7 @@ shield:
 ai:
   idle:
     behavior: STATIONARY
+    speed: 0.6
   targeting:
     strategy: HIGHEST_THREAT
     aggroRange: 40

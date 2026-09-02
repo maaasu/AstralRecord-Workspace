@@ -9,6 +9,8 @@ name: "&b&l万物のエル"
 title: "&8-- ミドルアースの遺跡主 --"
 level: 5
 entityType: BREEZE
+variant:
+  scale: 1.2
 icon: SNOWBALL
 nameVisible: true
 lore:
@@ -36,6 +38,7 @@ shield:
 ai:
   idle:
     behavior: STATIONARY
+    speed: 0.6
   targeting:
     strategy: HIGHEST_THREAT
     aggroRange: 30

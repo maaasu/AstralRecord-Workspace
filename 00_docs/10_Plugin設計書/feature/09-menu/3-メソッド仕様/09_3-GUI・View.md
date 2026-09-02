@@ -20,14 +20,14 @@
 
 各画面の slot 判定と描画は `view/screen/*ScreenView` へ委譲する。
 
-ガイド詳細の手順 item は、白色の `text`、灰色の `details[]`、灰色の `action.description` を順に lore へ表示する。action が定義された手順をクリックした場合は `GuideActionService` へ委譲し、NPC の座標案内・発光、メール GUI 起動、またはスキルマネージャー GUI 起動を実行する。action がない手順や表示対象外スロットは操作不可とする。
+ガイド詳細の手順 item は、白色の `text`、灰色の `details[]`、マスターのカラーコードを反映した `action.description` を順に lore へ表示する。`action.description` にカラーコードがない場合は灰色とする。スキルマネージャーを開く操作は紫色で表示する。action が定義された手順をクリックした場合は `GuideActionService` へ委譲し、NPC の座標案内・発光、メール GUI 起動、またはスキルマネージャー GUI 起動を実行する。action がない手順や表示対象外スロットは操作不可とする。
 
 ## 2. メイン画面
 
 クラス名: `MainMenuScreenView`
 物理名: `render`
 
-54 slot inventory に [[09_2-ユースケース]].メインメニューを開く の配置で icon を描画する。クエスト icon は slot `22` に配置する。`ACCOUNT_INFO` は描画対象 `Player` のスキンを `PLAYER_HEAD` へ設定する。プレイヤー依存 lore は `PlayerGuiRenderContext` だけを参照し、描画中に各 repository を再取得しない。
+54 slot inventory に [[09_2-ユースケース]].メインメニューを開く の配置で icon を描画する。クエスト icon は slot `24` に配置する。`ACCOUNT_INFO` は描画対象 `Player` のスキンを `PLAYER_HEAD` へ設定する。プレイヤー依存 lore は `PlayerGuiRenderContext` だけを参照し、描画中に各 repository を再取得しない。
 
 ## 3. アイコン生成
 

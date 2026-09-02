@@ -37,7 +37,7 @@ class SwordsmanBastionStrikeExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 13. バスティオンストライクの実装契約 > ### 13.1 数値・対象・演出
-     * 検証契約: 正のクールダウン、射程、反撃倍率を持つパッシブ定義だけを受け付ける。
+     * 検証契約: 正のクールダウン、射程、反撃倍率、現在MP全消費、Lv.5必要MP比率を持つパッシブ定義だけを受け付ける。
      */
     @Test
     void validatesPassiveCombatParams() {
@@ -84,7 +84,12 @@ class SwordsmanBastionStrikeExecutorTest {
                 0L,
                 1,
                 null,
-                Map.of("range", range, "damageRatio", damageRatio),
+                Map.of(
+                        "range", range,
+                        "damageRatio", damageRatio,
+                        "consumeAllCurrentMana", true,
+                        "levelFiveRequiredManaRatio", 0.80D
+                ),
                 List.of("passive", "melee", "defense"),
                 kind,
                 true,

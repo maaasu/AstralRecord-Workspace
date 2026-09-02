@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * メディテーションのスニーク継続と発動状態を管理します。
  * <p>
  * 状態は Bukkit Player UUID 単位の短命なメモリ状態だけで、ログアウト・死亡・バインド解除時に
- * 破棄されます。発動時の一時バフと、発動終了時のMP/ENG全回復もこのサービスで管理します。
+ * 破棄されます。発動時の一時バフ、発動終了時のMP/ENG全回復と完了演出もこのサービスで管理します。
  */
 public final class MeditationSkillRuntimeService {
     private static final String MEDITATION_BUFF_ID = "adventurer_meditation";
@@ -199,9 +199,36 @@ public final class MeditationSkillRuntimeService {
         }
         if (state.player != null) {
             statusService.restoreMpAndEnergy(state.player);
+            renderCompletion(state.player.getBukkit());
         }
         state.effectActive = false;
         state.completed = true;
+    }
+
+    /**
+     * MP/ENG全回復の完了を示すパーティクルとサウンドを再生します。
+     *
+     * @param player 完了したプレイヤー
+     */
+    private void renderCompletion(@NotNull Player player) {
+        Location base = player.getLocation();
+        if (base == null || base.getWorld() == null) return;
+        Location center = base.clone().add(0.0D, 1.0D, 0.0D);
+        particleDisplayService.spawnForNearbyViewers(
+            center,
+            SharedParticleDefinitions.PLAYER_LEVEL_UP_TOTEM
+        );
+        particleDisplayService.spawnForNearbyViewers(
+            center,
+            SharedParticleDefinitions.PLAYER_LEVEL_UP_END_ROD
+        );
+        base.getWorld().playSound(
+            base,
+            Sound.ENTITY_PLAYER_LEVELUP,
+            SoundCategory.PLAYERS,
+            0.8F,
+            1.15F
+        );
     }
 
     private void renderCharging(@NotNull Player player) {

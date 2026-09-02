@@ -10,7 +10,7 @@ description: "&7敵を叩き伏せる重撃。"
 icon: IRON_AXE
 lore:
   - "&7プレイヤーの半径{skill.primaryRadius}m以内の敵1体へ近接攻撃力{skill.effectiveDamageRatio:percent}%の落下打撃。"
-  - "&7複数の敵がいる場合は視点ライン上の敵を優先し、該当しなければ最も近い敵を選択。"
+  - "&7複数の敵がいる場合は見ている方向の敵を優先し、該当しなければ最も近い敵を選択。"
   - "&7着地点の半径{skill.impactRadius}m以内にいる別の敵へ近接攻撃力{skill.secondaryRatio:percent}%のダメージとノックバック。"
 cooldownTicks: 150
 resourceType: ENERGY

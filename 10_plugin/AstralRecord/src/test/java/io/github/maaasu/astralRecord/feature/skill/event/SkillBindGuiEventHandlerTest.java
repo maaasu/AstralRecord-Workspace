@@ -57,6 +57,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
@@ -248,6 +249,79 @@ class SkillBindGuiEventHandlerTest {
 
         assertTrue(restored);
         assertNull(session.passiveDraft().get(6));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/4-統合フロー/13_4-スキルバインドGUI.md
+     * 章・見出し: # 13_4-スキルバインドGUI > ## 2. バインド
+     * 検証契約: パッシブ枠にはバインド必須パッシブだけを設定でき、同一プリセット内で既に設定済みの個体は重複設定できない。
+     */
+    @Test
+    void passiveSlotSelectionRejectsUnrequiredAndAlreadyBoundSkills() throws ReflectiveOperationException {
+        SkillBindGuiEventHandler handler = newHandler();
+        UUID accountId = UUID.randomUUID();
+        UUID learnedSkillId = UUID.randomUUID();
+        SkillBindSession session = new SkillBindSession(presets(accountId));
+        session.selectBindSlot(SkillBindType.PASSIVE, 0);
+        LearnedSkillInstance learned = new LearnedSkillInstance(
+            learnedSkillId, accountId, "passive_unrequired", 1, List.of(), 1, null, null
+        );
+        SkillManagerEntry entry = new SkillManagerEntry(
+            learned, passiveSkillDefinition("passive_unrequired", false), true
+        );
+        Method method = SkillBindGuiEventHandler.class.getDeclaredMethod(
+            "canBindToSelected", SkillBindSession.class, SkillManagerEntry.class
+        );
+        method.setAccessible(true);
+
+        assertFalse((boolean) method.invoke(handler, session, entry));
+
+        session.setSlot(SkillBindType.PASSIVE, 1, entry.bindingId().toUpperCase(Locale.ROOT));
+        assertFalse((boolean) method.invoke(handler, session, new SkillManagerEntry(
+            learned, passiveSkillDefinition("passive_required", true), true
+        )));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 3. スキルマネージャーの習得表示
+     * 検証契約: パッシブ枠へ設定済みの個体は、UUID表記の大文字小文字が異なっても設定候補から除外する。
+     */
+    @Test
+    @SuppressWarnings("unchecked")
+    void passiveCandidatesExcludeAlreadyBoundSkillWithDifferentUuidCase() throws ReflectiveOperationException {
+        SkillService skillService = mock(SkillService.class);
+        SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
+        SkillPermissionService permissionService = mock(SkillPermissionService.class);
+        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
+            mock(AstralRecord.class), mock(SkillBindGui.class), skillService,
+            mock(SkillBindPresetService.class), ownershipService, permissionService,
+            mock(LearnedSkillService.class), mock(PassiveSkillService.class), mock(InventoryService.class)
+        );
+        UUID accountId = UUID.randomUUID();
+        UUID learnedSkillId = UUID.randomUUID();
+        AstPlayer player = mock(AstPlayer.class);
+        LearnedSkillInstance learned = new LearnedSkillInstance(
+            learnedSkillId, accountId, "passive_required", 1, List.of(), 1, null, null
+        );
+        SkillDefinition definition = passiveSkillDefinition("passive_required", true);
+        SkillRegistry registry = new SkillRegistry();
+        registry.replaceDefinitions(Map.of(definition.getId(), definition));
+        when(skillService.registry()).thenReturn(registry);
+        when(ownershipService.learnedSkills(player)).thenReturn(List.of(learned));
+        when(permissionService.isPermitted(player, learned.getSkillId())).thenReturn(true);
+
+        SkillBindSession session = new SkillBindSession(presets(accountId));
+        session.setSlot(SkillBindType.PASSIVE, 0, learnedSkillId.toString().toUpperCase(Locale.ROOT));
+        session.selectBindSlot(SkillBindType.PASSIVE, 1);
+        Method method = SkillBindGuiEventHandler.class.getDeclaredMethod(
+            "visibleEntries", AstPlayer.class, SkillBindSession.class
+        );
+        method.setAccessible(true);
+
+        List<SkillManagerEntry> visible = (List<SkillManagerEntry>) method.invoke(handler, player, session);
+
+        assertTrue(visible.isEmpty());
     }
 
     /**
@@ -758,10 +832,11 @@ class SkillBindGuiEventHandlerTest {
         LearnedSkillService learnedSkillService = mock(LearnedSkillService.class);
         PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
         SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
+        InventoryService inventoryService = mock(InventoryService.class);
         SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
             plugin, mock(SkillBindGui.class), skillService, mock(SkillBindPresetService.class),
             ownershipService, permissionService, learnedSkillService, passiveSkillService,
-            mock(InventoryService.class)
+            inventoryService
         );
         Player player = mock(Player.class);
         AstPlayer original = mock(AstPlayer.class);
@@ -805,6 +880,7 @@ class SkillBindGuiEventHandlerTest {
 
         verify(passiveSkillService).markDirty(current);
         verify(passiveSkillService, never()).markDirty(original);
+        verify(inventoryService).refreshManagedInventoryUi(current);
         verify(guideService).recordConditionSilently(current, io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType.SKILL_LEARNED, definition.getId());
     }
 
@@ -822,10 +898,11 @@ class SkillBindGuiEventHandlerTest {
         PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
         SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
         SkillPermissionService permissionService = mock(SkillPermissionService.class);
+        InventoryService inventoryService = mock(InventoryService.class);
         SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
             plugin, mock(SkillBindGui.class), skillService, mock(SkillBindPresetService.class),
             ownershipService, permissionService, learnedSkillService, passiveSkillService,
-            mock(InventoryService.class)
+            inventoryService
         );
         Player player = mock(Player.class);
         AstPlayer original = mock(AstPlayer.class);
@@ -871,6 +948,7 @@ class SkillBindGuiEventHandlerTest {
 
         verify(passiveSkillService).markDirty(current);
         verify(passiveSkillService, never()).markDirty(original);
+        verify(inventoryService).refreshManagedInventoryUi(current);
         verify(guideService).recordConditionSilently(current, io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType.SKILL_ENHANCED, definition.getId());
     }
 
@@ -939,6 +1017,14 @@ class SkillBindGuiEventHandlerTest {
             60L, 18.0D, 0L, 1, null, Map.of(), List.of(), SkillKind.ACTIVE, true,
             SkillResourceType.ENERGY, 18.0D, "adventurer_smash", 3, List.of(),
             List.of(new SkillSigilSlotDefinition(1, 1)), List.of("allowed_sigil")
+        );
+    }
+
+    private static SkillDefinition passiveSkillDefinition(String id, boolean bindRequired) {
+        return new SkillDefinition(
+            id, id, id, null, "IRON_SWORD", List.of(),
+            0L, 0.0D, 0L, 1, null, Map.of(), List.of(), SkillKind.PASSIVE, bindRequired,
+            SkillResourceType.MANA, 0.0D, id, 1, List.of(), List.of(), List.of()
         );
     }
 

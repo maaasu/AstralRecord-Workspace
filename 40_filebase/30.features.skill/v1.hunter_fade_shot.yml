@@ -9,9 +9,9 @@ name: "&fフェイドショット"
 description: "&7散弾を放ち、間合いを切る後退射撃。"
 icon: CROSSBOW
 lore:
-  - "&7全角{skill.spreadAngle}度へ矢を{skill.pelletCount}本放ち、1本ごとに間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
+  - "&7前方の左右に広がる、合計{skill.spreadAngle}度の範囲へ矢を{skill.pelletCount}本放ち、1本ごとに間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
   - "&7各矢は射程{skill.range}m、同じ敵へ複数本命中する。"
-  - "&7発射後、視線と反対方向へ水平velocity {skill.backstepVelocity}を設定する。"
+  - "&7発射後、後方へ素早く飛び退く（後退の強さ: {skill.backstepVelocity}）。"
 cooldownTicks: 80
 resourceType: ENERGY
 resourceCost: 14
