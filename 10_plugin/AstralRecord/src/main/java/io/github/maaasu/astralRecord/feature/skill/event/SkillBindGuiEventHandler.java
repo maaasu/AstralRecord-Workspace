@@ -825,8 +825,11 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (definition == null) { GuiSound.DENY.play(player); return; }
         boolean scheduled = learnedSkillService.learnFromManagerAsync(astPlayer.getAccount().getUuid(), skillId,
             astPlayer.getAccount().getUuid(), requiredItemEntryIds(astPlayer, definition.getLearnRequiredItems()), learned -> {
-                plugin.getGuideService().recordConditionSilently(astPlayer, GuideConditionType.SKILL_LEARNED, skillId);
-                GuiSound.SUCCESS.play(player); openMain(player, session, page);
+                AstPlayer current = currentPlayer(astPlayer);
+                if (current == null) return;
+                plugin.getGuideService().recordConditionSilently(current, GuideConditionType.SKILL_LEARNED, skillId);
+                passiveSkillService.markDirty(current);
+                GuiSound.SUCCESS.play(current.getBukkit()); openMain(current.getBukkit(), session, page);
             },
             error -> { GuiSound.DENY.play(player); openMain(player, session, page); });
         if (!scheduled) GuiSound.DENY.play(player);
@@ -840,11 +843,22 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             entry.learnedSkill().getLearnedSkillId(), astPlayer.getAccount().getUuid(),
             requiredItemEntryIds(astPlayer, entry.definition().getLevelUpRequiredItems()),
             updated -> {
-                plugin.getGuideService().recordConditionSilently(astPlayer, GuideConditionType.SKILL_ENHANCED, entry.definition().getId());
-                GuiSound.SUCCESS.play(player); openMain(player, session, page);
+                AstPlayer current = currentPlayer(astPlayer);
+                if (current == null) return;
+                plugin.getGuideService().recordConditionSilently(current, GuideConditionType.SKILL_ENHANCED, entry.definition().getId());
+                passiveSkillService.markDirty(current);
+                GuiSound.SUCCESS.play(current.getBukkit()); openMain(current.getBukkit(), session, page);
             },
             error -> { GuiSound.DENY.play(player); openMain(player, session, page); });
         if (!scheduled) GuiSound.DENY.play(player);
+    }
+
+    private @Nullable AstPlayer currentPlayer(@NotNull AstPlayer original) {
+        AstPlayer current = AstPlayerCache.get(original.getBukkit());
+        if (current == null || !current.getAccount().getUuid().equals(original.getAccount().getUuid())) {
+            return null;
+        }
+        return current;
     }
 
     /** API 正本が消費し得る、要求素材と一致する全ローカルentryを返します。 */

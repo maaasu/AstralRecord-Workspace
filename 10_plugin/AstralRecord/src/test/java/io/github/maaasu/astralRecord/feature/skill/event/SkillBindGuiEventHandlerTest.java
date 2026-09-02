@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemSigil;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -19,6 +20,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillBindType;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationFailure;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
@@ -740,6 +742,136 @@ class SkillBindGuiEventHandlerTest {
         invoke(handler, "restoreAndClose", new Class<?>[] {Player.class}, player);
 
         verify(player).closeInventory();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
+     * 検証契約: 素材を消費する初回習得が成功したら、現在のアカウントを再取得して常時パッシブを再評価する。
+     */
+    @SuppressWarnings("unchecked")
+    @Test
+    void managerLearningSuccessMarksCurrentPlayerPassivesDirty() throws ReflectiveOperationException {
+        AstralRecord plugin = mock(AstralRecord.class);
+        SkillService skillService = mock(SkillService.class);
+        SkillPermissionService permissionService = mock(SkillPermissionService.class);
+        LearnedSkillService learnedSkillService = mock(LearnedSkillService.class);
+        PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
+        SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
+        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
+            plugin, mock(SkillBindGui.class), skillService, mock(SkillBindPresetService.class),
+            ownershipService, permissionService, learnedSkillService, passiveSkillService,
+            mock(InventoryService.class)
+        );
+        Player player = mock(Player.class);
+        AstPlayer original = mock(AstPlayer.class);
+        AstPlayer current = mock(AstPlayer.class);
+        AccountModel originalAccount = mock(AccountModel.class);
+        AccountModel currentAccount = mock(AccountModel.class);
+        GuideService guideService = mock(GuideService.class);
+        UUID accountId = UUID.randomUUID();
+        UUID learnedSkillId = UUID.randomUUID();
+        SkillDefinition definition = skillDefinition();
+        SkillRegistry registry = new SkillRegistry();
+        registry.replaceDefinitions(Map.of(definition.getId(), definition));
+        LearnedSkillInstance learned = new LearnedSkillInstance(
+            learnedSkillId, accountId, definition.getId(), 1, List.of(), 1, null, null
+        );
+        when(original.getAccount()).thenReturn(originalAccount);
+        when(current.getAccount()).thenReturn(currentAccount);
+        when(originalAccount.getUuid()).thenReturn(accountId);
+        when(currentAccount.getUuid()).thenReturn(accountId);
+        when(original.getBukkit()).thenReturn(player);
+        when(current.getBukkit()).thenReturn(player);
+        when(permissionService.isPermitted(original, definition.getId())).thenReturn(true);
+        when(permissionService.permittedSkillIds(current)).thenReturn(Set.of(definition.getId()));
+        when(ownershipService.learnedSkills(current)).thenReturn(List.of(learned));
+        when(passiveSkillService.activePassiveSlotCount(current)).thenReturn(0);
+        when(skillService.registry()).thenReturn(registry);
+        when(plugin.getGuideService()).thenReturn(guideService);
+        when(learnedSkillService.learnFromManagerAsync(any(), any(), any(), any(), any(), any())).thenReturn(true);
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(original, current);
+            invoke(handler, "learnFromManager", new Class<?>[] {Player.class, SkillBindSession.class, int.class, String.class},
+                player, new SkillBindSession(presets(accountId)), 0, definition.getId());
+
+            ArgumentCaptor<Consumer<LearnedSkillInstance>> success = ArgumentCaptor.forClass(Consumer.class);
+            verify(learnedSkillService).learnFromManagerAsync(
+                eq(accountId), eq(definition.getId()), eq(accountId), any(), success.capture(), any()
+            );
+            success.getValue().accept(learned);
+        }
+
+        verify(passiveSkillService).markDirty(current);
+        verify(passiveSkillService, never()).markDirty(original);
+        verify(guideService).recordConditionSilently(current, io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType.SKILL_LEARNED, definition.getId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
+     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
+     * 検証契約: 素材を消費するレベルアップが成功したら、現在のアカウントを再取得して常時パッシブを再評価する。
+     */
+    @SuppressWarnings("unchecked")
+    @Test
+    void managerLevelUpSuccessMarksCurrentPlayerPassivesDirty() throws ReflectiveOperationException {
+        AstralRecord plugin = mock(AstralRecord.class);
+        SkillService skillService = mock(SkillService.class);
+        LearnedSkillService learnedSkillService = mock(LearnedSkillService.class);
+        PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
+        SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
+        SkillPermissionService permissionService = mock(SkillPermissionService.class);
+        SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
+            plugin, mock(SkillBindGui.class), skillService, mock(SkillBindPresetService.class),
+            ownershipService, permissionService, learnedSkillService, passiveSkillService,
+            mock(InventoryService.class)
+        );
+        Player player = mock(Player.class);
+        AstPlayer original = mock(AstPlayer.class);
+        AstPlayer current = mock(AstPlayer.class);
+        AccountModel originalAccount = mock(AccountModel.class);
+        AccountModel currentAccount = mock(AccountModel.class);
+        GuideService guideService = mock(GuideService.class);
+        UUID accountId = UUID.randomUUID();
+        UUID learnedSkillId = UUID.randomUUID();
+        SkillDefinition definition = skillDefinition();
+        SkillRegistry registry = new SkillRegistry();
+        registry.replaceDefinitions(Map.of(definition.getId(), definition));
+        LearnedSkillInstance before = new LearnedSkillInstance(
+            learnedSkillId, accountId, definition.getId(), 1, List.of(), 1, null, null
+        );
+        LearnedSkillInstance updated = new LearnedSkillInstance(
+            learnedSkillId, accountId, definition.getId(), 2, List.of(), 2, null, null
+        );
+        when(original.getAccount()).thenReturn(originalAccount);
+        when(current.getAccount()).thenReturn(currentAccount);
+        when(originalAccount.getUuid()).thenReturn(accountId);
+        when(currentAccount.getUuid()).thenReturn(accountId);
+        when(original.getBukkit()).thenReturn(player);
+        when(current.getBukkit()).thenReturn(player);
+        when(skillService.registry()).thenReturn(registry);
+        when(permissionService.permittedSkillIds(current)).thenReturn(Set.of(definition.getId()));
+        when(ownershipService.learnedSkills(current)).thenReturn(List.of(updated));
+        when(passiveSkillService.activePassiveSlotCount(current)).thenReturn(0);
+        when(plugin.getGuideService()).thenReturn(guideService);
+        when(learnedSkillService.levelUpFromManagerAsync(any(), any(), any(), any(), any(), any())).thenReturn(true);
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(original, current);
+            invoke(handler, "levelUpFromManager", new Class<?>[] {Player.class, SkillBindSession.class, int.class, SkillManagerEntry.class},
+                player, new SkillBindSession(presets(accountId)), 0, new SkillManagerEntry(before, definition, true));
+
+            ArgumentCaptor<Consumer<LearnedSkillInstance>> success = ArgumentCaptor.forClass(Consumer.class);
+            verify(learnedSkillService).levelUpFromManagerAsync(
+                eq(accountId), eq(learnedSkillId), eq(accountId), any(), success.capture(), any()
+            );
+            success.getValue().accept(updated);
+        }
+
+        verify(passiveSkillService).markDirty(current);
+        verify(passiveSkillService, never()).markDirty(original);
+        verify(guideService).recordConditionSilently(current, io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType.SKILL_ENHANCED, definition.getId());
     }
 
     /**

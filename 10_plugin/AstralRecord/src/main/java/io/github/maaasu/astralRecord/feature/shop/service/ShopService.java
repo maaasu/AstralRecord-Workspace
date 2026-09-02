@@ -1,7 +1,6 @@
 package io.github.maaasu.astralRecord.feature.shop.service;
 
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
-import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
@@ -13,7 +12,6 @@ import io.github.maaasu.astralRecord.feature.shop.model.ShopDefinition;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopEntry;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopPurchasePreview;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopRecipeCost;
-import io.github.maaasu.astralRecord.feature.shop.model.ShopSpecialPurchaseState;
 import io.github.maaasu.astralRecord.feature.shop.repository.ShopRecipeRepository;
 import io.github.maaasu.astralRecord.feature.shop.repository.ShopRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -23,11 +21,9 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
@@ -42,8 +38,6 @@ public final class ShopService {
     private final CurrencyService currencyService;
     private BiConsumer<AstPlayer, String> purchaseListener = (player, entryId) -> { };
     private BiConsumer<AstPlayer, String> purchaseSavedListener = (player, entryId) -> { };
-    private BiConsumer<AstPlayer, ShopEntry> purchaseStateChangedListener = (player, entry) -> { };
-    private @Nullable ShopSpecialPurchaseHandler specialPurchaseHandler;
 
     public ShopService(
         @NotNull ShopRepository shopRepository,
@@ -79,16 +73,6 @@ public final class ShopService {
      */
     public void setPurchaseSavedListener(@NotNull BiConsumer<AstPlayer, String> purchaseSavedListener) {
         this.purchaseSavedListener = purchaseSavedListener;
-    }
-
-    /** 購入後に別のゲーム状態へ反映する汎用 handler を設定します。 */
-    public void setSpecialPurchaseHandler(@NotNull ShopSpecialPurchaseHandler specialPurchaseHandler) {
-        this.specialPurchaseHandler = specialPurchaseHandler;
-    }
-
-    /** 非同期の特殊購入効果が完了した際のショップ再評価先を設定します。 */
-    public void setPurchaseStateChangedListener(@NotNull BiConsumer<AstPlayer, ShopEntry> listener) {
-        this.purchaseStateChangedListener = listener;
     }
 
     /**
@@ -187,13 +171,9 @@ public final class ShopService {
         @NotNull ShopEntry entry,
         int quantity
     ) {
-        ItemModel model = resolveItem(entry);
-        ShopSpecialPurchaseState specialPurchase = previewSpecialPurchase(player, model);
-        int safeQuantity = specialPurchase.singleQuantity() ? 1 : Math.max(1, quantity);
+        int safeQuantity = Math.max(1, quantity);
         if (!AccountModeGuard.isGameplayPlayer(player)) {
-            return new ShopPurchasePreview(
-                safeQuantity, 0L, 0L, List.of(), List.of(), false, specialPurchase
-            );
+            return new ShopPurchasePreview(safeQuantity, 0L, 0L, List.of(), List.of(), false);
         }
         UUID accountId = player.getAccount().getUuid();
         long ownedGold = currencyService.getGoldAmount(accountId);
@@ -222,20 +202,8 @@ public final class ShopService {
             ownedGold,
             requiredItems,
             missingItems,
-            missingItems.isEmpty() && specialPurchase.canPurchase(),
-            specialPurchase
+            missingItems.isEmpty()
         );
-    }
-
-    /** 登録済みの汎用 handler が対象商品へ与える追加購入状態を返します。 */
-    public @NotNull ShopSpecialPurchaseState previewSpecialPurchase(
-        @Nullable AstPlayer player,
-        @Nullable ItemModel model
-    ) {
-        if (player == null || model == null || specialPurchaseHandler == null) {
-            return ShopSpecialPurchaseState.standard();
-        }
-        return specialPurchaseHandler.preview(player, model);
     }
 
     public boolean purchase(@NotNull AstPlayer player, @NotNull ShopEntry entry, int quantity) {
@@ -251,46 +219,28 @@ public final class ShopService {
             return false;
         }
         UUID accountId = player.getAccount().getUuid();
-        boolean specialPurchase = preview.specialPurchase().special();
-        if (specialPurchase
-            && (specialPurchaseHandler == null || !specialPurchaseHandler.reserve(player, model))) {
-            return false;
-        }
-        int amount = specialPurchase ? 1 : Math.max(1, entry.amount()) * preview.quantity();
+        int amount = Math.max(1, entry.amount()) * preview.quantity();
         if (!inventoryService.canAddItemToNormalInventory(player, model, amount)) {
-            cancelSpecialPurchase(player, model, specialPurchase);
             return false;
         }
         InventoryService.InventoryStateSnapshot snapshot = inventoryService.snapshotState(accountId);
         if (snapshot == null) {
-            cancelSpecialPurchase(player, model, specialPurchase);
             return false;
         }
         if (preview.requiredGold() > 0L && !inventoryService.consumeGold(accountId, preview.requiredGold())) {
             restorePurchase(snapshot, player, entry, amount, "gold_consume_failed");
-            cancelSpecialPurchase(player, model, specialPurchase);
             return false;
         }
         boolean hasStorageRemoteAccess = inventoryService.hasStorageRemoteAccessToken(accountId);
         for (ShopCostItem cost : preview.requiredItems()) {
             if (!consumeCost(accountId, cost, hasStorageRemoteAccess)) {
                 restorePurchase(snapshot, player, entry, amount, "cost_consume_failed:" + cost.itemId());
-                cancelSpecialPurchase(player, model, specialPurchase);
                 return false;
             }
         }
         int granted = inventoryService.addItemToNormalInventory(player, model, amount, PURCHASE_SOURCE);
         if (granted != amount) {
             restorePurchase(snapshot, player, entry, amount, "item_grant_failed:" + granted);
-            cancelSpecialPurchase(player, model, specialPurchase);
-            return false;
-        }
-        InventoryEntryModel specialPurchaseEntry = specialPurchase
-            ? findNewlyGrantedEntry(snapshot, accountId, model.getId())
-            : null;
-        if (specialPurchase && specialPurchaseEntry == null) {
-            restorePurchase(snapshot, player, entry, amount, "special_purchase_entry_missing");
-            cancelSpecialPurchase(player, model, true);
             return false;
         }
         InventoryType type = inventoryService.resolveInventoryType(model);
@@ -298,23 +248,6 @@ public final class ShopService {
             inventoryService.applyInventoryToGui(player, type);
         }
         purchaseListener.accept(player, entry.id());
-        if (specialPurchase && specialPurchaseHandler != null && specialPurchaseEntry != null) {
-            UUID purchasedEntryId = specialPurchaseEntry.getInventoryEntryId();
-            List<InventoryService.InventoryRefundItem> refundItems = preview.requiredItems().stream()
-                .map(cost -> new InventoryService.InventoryRefundItem(cost.itemId(), cost.category(), cost.amount()))
-                .toList();
-            specialPurchaseHandler.completePurchase(
-                player,
-                model,
-                purchasedEntryId,
-                () -> inventoryService.compensateFailedShopPurchase(
-                    accountId, purchasedEntryId, model.getId(), preview.requiredGold(), refundItems
-                ),
-                () -> purchaseSavedListener.accept(player, entry.id()),
-                () -> purchaseStateChangedListener.accept(player, entry)
-            );
-            return true;
-        }
         CompletableFuture<Boolean> saveFuture = inventoryService.saveNow(accountId);
         if (saveFuture != null) {
             saveFuture.whenComplete((saved, saveError) -> {
@@ -324,40 +257,6 @@ public final class ShopService {
             });
         }
         return true;
-    }
-
-    private void cancelSpecialPurchase(
-        @NotNull AstPlayer player,
-        @NotNull ItemModel model,
-        boolean specialPurchase
-    ) {
-        if (specialPurchase && specialPurchaseHandler != null) {
-            specialPurchaseHandler.cancel(player, model);
-        }
-    }
-
-    private @Nullable InventoryEntryModel findNewlyGrantedEntry(
-        @NotNull InventoryService.InventoryStateSnapshot before,
-        @NotNull UUID accountId,
-        @NotNull String itemId
-    ) {
-        Set<UUID> existingEntryIds = new HashSet<>();
-        before.entriesByInventoryId().values().forEach(entries -> entries.forEach(entry ->
-            existingEntryIds.add(entry.getInventoryEntryId())
-        ));
-        InventoryService.InventoryStateSnapshot after = inventoryService.snapshotState(accountId);
-        if (after == null) {
-            return null;
-        }
-        return after.entriesByInventoryId().values().stream()
-            .flatMap(List::stream)
-            .filter(entry -> !existingEntryIds.contains(entry.getInventoryEntryId())
-                && !entry.isDeleted()
-                && entry.getQuantity() > 0L
-                && entry.getItemId() != null
-                && entry.getItemId().equalsIgnoreCase(itemId))
-            .findFirst()
-            .orElse(null);
     }
 
 

@@ -35,7 +35,6 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
         this.shopGui = shopGui;
         this.shopService = shopService;
         this.inventoryService = inventoryService;
-        this.shopService.setPurchaseStateChangedListener(this::refreshPurchaseState);
     }
 
     /**
@@ -238,45 +237,6 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             || rawSlot == ShopGui.QUANTITY_MINUS_1_SLOT
             || rawSlot == ShopGui.QUANTITY_PLUS_1_SLOT
             || rawSlot == ShopGui.QUANTITY_PLUS_10_SLOT;
-    }
-
-    private void refreshPurchaseState(@NotNull AstPlayer astPlayer, @NotNull ShopEntry entry) {
-        Runnable refresh = () -> {
-            Player player = astPlayer.getBukkit();
-            AstPlayer current = player.isOnline() ? AstPlayerCache.get(player) : null;
-            if (current == null
-                || !current.getAccount().getUuid().equals(astPlayer.getAccount().getUuid())) {
-                return;
-            }
-            var topInventory = player.getOpenInventory().getTopInventory();
-            String openShopId = shopGui.getShopId(topInventory);
-            ShopDefinition shop = openShopId == null ? null : shopService.findById(openShopId);
-            if (shop == null || shop.findEntry(entry.id()) == null) {
-                return;
-            }
-            int pageIndex = shopGui.getPageIndex(topInventory);
-            String openEntryId = shopGui.getEntryId(topInventory);
-            if (openEntryId != null && openEntryId.equals(entry.id())) {
-                int quantity = shopGui.getQuantity(topInventory);
-                shopGui.openConfirm(
-                    player,
-                    shop,
-                    entry,
-                    quantity,
-                    shopService.preview(current, entry, quantity),
-                    pageIndex
-                );
-                return;
-            }
-            if (shopGui.isListInventory(topInventory)) {
-                shopGui.openList(player, shop, pageIndex);
-            }
-        };
-        if (org.bukkit.Bukkit.isPrimaryThread()) {
-            refresh.run();
-        } else {
-            AstralRecord.getInstance().getServer().getScheduler().runTask(AstralRecord.getInstance(), refresh);
-        }
     }
 
     private boolean handleHotbarShortcutClick(@NotNull InventoryClickEvent event, @NotNull Player player) {

@@ -8,7 +8,6 @@ import io.github.maaasu.astralRecord.feature.shop.model.ShopCostItem;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopDefinition;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopEntry;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopMode;
-import io.github.maaasu.astralRecord.feature.shop.model.ShopSpecialPurchaseState;
 import io.github.maaasu.astralRecord.feature.shop.service.ShopService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -75,7 +74,6 @@ class ShopGuiTest extends MockBukkitTestBase {
         when(shopService.resolveItem(entry)).thenReturn(token);
         when(shopService.resolveGoldCost(entry)).thenReturn(0);
         when(shopService.resolveRequiredItems(entry)).thenReturn(entry.requiredItems());
-        when(shopService.previewSpecialPurchase(null, token)).thenReturn(ShopSpecialPurchaseState.standard());
         when(shopService.resolveItemDisplayName(entry.requiredItems().get(0))).thenReturn("アストラルド");
         when(itemStackFactory.createShopDisplay(token, 1)).thenReturn(new ItemStack(Material.PAPER));
 

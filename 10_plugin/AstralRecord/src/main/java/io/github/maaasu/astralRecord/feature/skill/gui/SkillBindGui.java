@@ -543,6 +543,19 @@ public final class SkillBindGui {
             lore.add(Component.text("所持中はバインド不要で発動", NamedTextColor.AQUA));
         }
         lore.add(separator());
+        int currentLevel = entry.learnedSkill().getLevel();
+        if (currentLevel >= skill.getMaxLevel()) {
+            lore.add(Component.text("レベル: ", NamedTextColor.GRAY)
+                .append(Component.text("MAX", NamedTextColor.RED, TextDecoration.BOLD)));
+        } else {
+            lore.add(Component.text(
+                "次のレベル: Lv." + currentLevel + " → Lv." + (currentLevel + 1),
+                NamedTextColor.AQUA
+            ));
+            appendRequiredItemLore(lore, skill.getLevelUpRequiredItems(), "レベルアップに必要");
+            lore.add(Component.text("右クリック: レベルアップ", NamedTextColor.YELLOW));
+        }
+        lore.add(separator());
         appendSigilSlotLore(lore, entry, entry.learnedSkill().getLevel(), null);
     }
 

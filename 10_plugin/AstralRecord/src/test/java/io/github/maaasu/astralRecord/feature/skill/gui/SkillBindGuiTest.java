@@ -5,6 +5,9 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindSession;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillRequiredItemDefinition;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
@@ -72,6 +75,50 @@ class SkillBindGuiTest extends MockBukkitTestBase {
         assertFalse(lore.contains("  ▸ アクティブスキル"));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 3. スキルマネージャーの習得表示
+     * 検証契約: 最大レベル未満の習得済み個体は、次のレベル、必要素材、右クリックによるレベルアップ操作を表示する。
+     */
+    @Test
+    void learnedSkillBelowMaxShowsNextLevelMaterialsAndLevelUpAction() {
+        PluginMock plugin = MockBukkit.createMockPlugin("SkillBindGuiTest");
+        SkillBindGui gui = new SkillBindGui(plugin, mock(ItemService.class), mock(SkillService.class));
+        SkillBindSession session = new SkillBindSession(presets());
+
+        Inventory inventory = gui.createMainInventory(
+            session, List.of(learnedEntry(1, 3)), Map.of(), List.of(), 5, 0
+        );
+        List<String> lore = lore(inventory.getItem(1));
+
+        assertTrue(lore.contains("次のレベル: Lv.1 → Lv.2"));
+        assertTrue(lore.contains("レベルアップに必要:"));
+        assertTrue(lore.contains("  未登録の素材 x2"));
+        assertTrue(lore.contains("右クリック: レベルアップ"));
+        assertFalse(lore.contains("レベル: MAX"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 3. スキルマネージャーの習得表示
+     * 検証契約: 最大レベルの習得済み個体はMAXを表示し、レベルアップ操作と必要素材を表示しない。
+     */
+    @Test
+    void learnedSkillAtMaxShowsMaxWithoutLevelUpAction() {
+        PluginMock plugin = MockBukkit.createMockPlugin("SkillBindGuiTest");
+        SkillBindGui gui = new SkillBindGui(plugin, mock(ItemService.class), mock(SkillService.class));
+        SkillBindSession session = new SkillBindSession(presets());
+
+        Inventory inventory = gui.createMainInventory(
+            session, List.of(learnedEntry(3, 3)), Map.of(), List.of(), 5, 0
+        );
+        List<String> lore = lore(inventory.getItem(1));
+
+        assertTrue(lore.contains("レベル: MAX"));
+        assertFalse(lore.contains("レベルアップに必要:"));
+        assertFalse(lore.contains("右クリック: レベルアップ"));
+    }
+
     private static List<SkillBindPreset> presets() {
         List<SkillBindPreset> presets = new ArrayList<>();
         for (int index = 1; index <= SkillBindGui.PRESET_COUNT; index++) {
@@ -98,6 +145,19 @@ class SkillBindGuiTest extends MockBukkitTestBase {
             Map.of(), List.of(), kind, passiveBindRequired, null, null, id, 1,
             List.of(), List.of(), List.of()
         );
+    }
+
+    private static SkillManagerEntry learnedEntry(int level, int maxLevel) {
+        SkillDefinition definition = new SkillDefinition(
+            "test_skill", "test_skill", "テストスキル", null, "BOOK", List.of(),
+            0L, 0.0D, 0L, 1, null, Map.of(), List.of(), SkillKind.ACTIVE, true,
+            null, null, "test_skill", maxLevel, List.of(), List.of(), List.of(), List.of(),
+            List.of(new SkillRequiredItemDefinition("skill_gem_raw", 2))
+        );
+        LearnedSkillInstance learned = new LearnedSkillInstance(
+            UUID.randomUUID(), UUID.randomUUID(), "test_skill", level, List.of(), 0, null, null
+        );
+        return new SkillManagerEntry(learned, definition, true);
     }
 
     private static List<String> lore(ItemStack item) {

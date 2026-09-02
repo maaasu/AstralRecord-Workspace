@@ -3,13 +3,11 @@ package io.github.maaasu.astralRecord.feature.shop.gui;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
-import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopCostItem;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopDefinition;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopEntry;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopMode;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopPurchasePreview;
-import io.github.maaasu.astralRecord.feature.shop.model.ShopSpecialPurchaseState;
 import io.github.maaasu.astralRecord.feature.shop.service.ShopService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
@@ -91,7 +89,6 @@ public final class ShopGui {
      */
     public void openList(@NotNull Player player, @NotNull ShopDefinition shop, int pageIndex) {
         int normalizedPage = normalizePage(pageIndex, shop);
-        var astPlayer = AstPlayerCache.get(player);
         Inventory inventory = Bukkit.createInventory(
             new ListHolder(shop.id(), normalizedPage),
             LIST_SIZE,
@@ -112,7 +109,7 @@ public final class ShopGui {
                 }
                 inventory.setItem(
                     guiSlot,
-                    createShopItem(model, shop, entry, shopService.previewSpecialPurchase(astPlayer, model))
+                    createShopItem(model, shop, entry)
                 );
             });
         renderPagination(inventory, shop, normalizedPage);
@@ -264,17 +261,15 @@ public final class ShopGui {
     private @NotNull ItemStack createShopItem(
         @NotNull ItemModel model,
         @NotNull ShopDefinition shop,
-        @NotNull ShopEntry entry,
-        @NotNull ShopSpecialPurchaseState specialPurchase
+        @NotNull ShopEntry entry
     ) {
-        int displayAmount = specialPurchase.singleQuantity() ? 1 : Math.max(1, entry.amount());
+        int displayAmount = Math.max(1, entry.amount());
         ItemStack itemStack = itemStackFactory.createShopDisplay(model, displayAmount);
         ItemMeta meta = itemStack.getItemMeta();
         if (meta == null) {
             return itemStack;
         }
         List<Component> lore = meta.lore() == null ? new ArrayList<>() : new ArrayList<>(meta.lore());
-        appendSpecialPurchaseLore(lore, specialPurchase);
         lore.add(Component.empty());
         boolean exchange = isExchange(shop);
         lore.add(Component.text(exchange ? "◆ 両替情報 ◆" : "◆ 販売情報 ◆", NamedTextColor.GOLD, TextDecoration.BOLD)
@@ -292,10 +287,8 @@ public final class ShopGui {
         appendMaterialList(lore, requiredItems, "なし", NamedTextColor.AQUA);
         lore.add(Component.empty());
         lore.add(Component.text(
-                specialPurchase.canPurchase()
-                    ? exchange ? "クリックで両替確認へ" : "クリックで購入確認へ"
-                    : "購入できません",
-                specialPurchase.canPurchase() ? NamedTextColor.GREEN : NamedTextColor.RED,
+                exchange ? "クリックで両替確認へ" : "クリックで購入確認へ",
+                NamedTextColor.GREEN,
                 TextDecoration.BOLD)
             .decoration(TextDecoration.ITALIC, false));
         meta.lore(lore);
@@ -317,16 +310,13 @@ public final class ShopGui {
         lore.add(Component.text(exchange ? "受取通貨: " : "購入品: ", NamedTextColor.GRAY)
             .append(Component.text(shopService.resolveItemDisplayName(entry), NamedTextColor.WHITE))
             .append(Component.text(
-                " " + quantityText(preview.specialPurchase().singleQuantity()
-                    ? 1
-                    : Math.max(1, entry.amount()) * preview.quantity()),
+                " " + quantityText(Math.max(1, entry.amount()) * preview.quantity()),
                 NamedTextColor.AQUA
             ))
             .decoration(TextDecoration.ITALIC, false));
         lore.add(Component.text(exchange ? "両替口数: " : "購入数量: ", NamedTextColor.GRAY)
             .append(Component.text(String.valueOf(preview.quantity()), NamedTextColor.YELLOW))
             .decoration(TextDecoration.ITALIC, false));
-        appendSpecialPurchaseLore(lore, preview.specialPurchase());
         if (preview.requiredGold() > 0) {
             lore.add(Component.text("ゴールド: ", NamedTextColor.GRAY)
                 .append(Component.text("必要 " + preview.requiredGold(), NamedTextColor.GOLD))
@@ -586,14 +576,6 @@ public final class ShopGui {
         boolean exchange,
         @NotNull ShopPurchasePreview preview
     ) {
-        if (!preview.specialPurchase().canPurchase()) {
-            return switch (preview.specialPurchase().action()) {
-                case SKILL_MAX_LEVEL -> "◆ レベルMAXのため購入できません ◆";
-                case PROCESSING -> "◆ 前回の購入を反映中です ◆";
-                case UNAVAILABLE -> "◆ スキル情報を読み込み中です ◆";
-                default -> "◆ 現在購入できません ◆";
-            };
-        }
         if (preview.canPurchase()) {
             return exchange ? "◆ クリックして両替する ◆" : "◆ クリックして購入する ◆";
         }
@@ -612,14 +594,6 @@ public final class ShopGui {
         boolean exchange,
         @NotNull ShopPurchasePreview preview
     ) {
-        if (!preview.specialPurchase().canPurchase()) {
-            return switch (preview.specialPurchase().action()) {
-                case SKILL_MAX_LEVEL -> "レベルMAXです";
-                case PROCESSING -> "購入結果を反映中です";
-                case UNAVAILABLE -> "スキル情報を読み込み中です";
-                default -> "現在購入できません";
-            };
-        }
         if (exchange) {
             return "通貨が不足しています";
         }
@@ -635,63 +609,6 @@ public final class ShopGui {
 
     private boolean isExchange(@NotNull ShopDefinition shop) {
         return shop.mode() == ShopMode.EXCHANGE;
-    }
-
-    private boolean appendSpecialPurchaseLore(
-        @NotNull ItemStack item,
-        @NotNull ShopSpecialPurchaseState specialPurchase
-    ) {
-        if (!item.hasItemMeta() || !specialPurchase.special()) {
-            return false;
-        }
-        ItemMeta meta = item.getItemMeta();
-        List<Component> lore = meta.lore() == null ? new ArrayList<>() : new ArrayList<>(meta.lore());
-        appendSpecialPurchaseLore(lore, specialPurchase);
-        meta.lore(lore);
-        item.setItemMeta(meta);
-        return true;
-    }
-
-    private void appendSpecialPurchaseLore(
-        @NotNull List<Component> lore,
-        @NotNull ShopSpecialPurchaseState specialPurchase
-    ) {
-        if (!specialPurchase.special()) {
-            return;
-        }
-        lore.add(Component.empty());
-        lore.add(sectionHeader("購入時の効果"));
-        switch (specialPurchase.action()) {
-            case SKILL_LEARN -> lore.add(Component.text(
-                "次の購入: スキルを習得",
-                NamedTextColor.GREEN,
-                TextDecoration.BOLD
-            ).decoration(TextDecoration.ITALIC, false));
-            case SKILL_LEVEL_UP -> lore.add(Component.text("次の購入: ", NamedTextColor.GREEN)
-                .append(Component.text(
-                    "Lv." + specialPurchase.currentLevel() + " → Lv." + specialPurchase.nextLevel(),
-                    NamedTextColor.YELLOW,
-                    TextDecoration.BOLD
-                )).decoration(TextDecoration.ITALIC, false));
-            case SKILL_MAX_LEVEL -> {
-                lore.add(Component.text("現在: レベルMAX", NamedTextColor.RED, TextDecoration.BOLD)
-                    .decoration(TextDecoration.ITALIC, false));
-                lore.add(Component.text(
-                    "※ すでにレベルMAXのため購入できません。",
-                    NamedTextColor.RED
-                ).decoration(TextDecoration.ITALIC, false));
-            }
-            case PROCESSING -> lore.add(Component.text(
-                "※ 前回の購入結果を反映中です。",
-                NamedTextColor.YELLOW
-            ).decoration(TextDecoration.ITALIC, false));
-            case UNAVAILABLE -> lore.add(Component.text(
-                "※ スキル情報の読み込み完了後に購入できます。",
-                NamedTextColor.RED
-            ).decoration(TextDecoration.ITALIC, false));
-            case STANDARD -> {
-            }
-        }
     }
 
     public record ListHolder(@NotNull String shopId, int pageIndex) implements HotbarShortcutGuiHolder {

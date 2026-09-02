@@ -13,7 +13,6 @@ import io.github.maaasu.astralRecord.feature.shop.model.ShopDefinition;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopEntry;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopMode;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopPurchasePreview;
-import io.github.maaasu.astralRecord.feature.shop.model.ShopSpecialPurchaseState;
 import io.github.maaasu.astralRecord.feature.shop.service.ShopService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.event.inventory.InventoryClickEvent;

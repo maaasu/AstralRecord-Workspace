@@ -10,17 +10,5 @@ public record ShopPurchasePreview(
     long ownedGold,
     @NotNull List<ShopCostItem> requiredItems,
     @NotNull List<ShopCostItem> missingItems,
-    boolean canPurchase,
-    @NotNull ShopSpecialPurchaseState specialPurchase
-) {
-    public ShopPurchasePreview(
-        int quantity,
-        long requiredGold,
-        long ownedGold,
-        @NotNull List<ShopCostItem> requiredItems,
-        @NotNull List<ShopCostItem> missingItems,
-        boolean canPurchase
-    ) {
-        this(quantity, requiredGold, ownedGold, requiredItems, missingItems, canPurchase, ShopSpecialPurchaseState.standard());
-    }
-}
+    boolean canPurchase
+) { }
