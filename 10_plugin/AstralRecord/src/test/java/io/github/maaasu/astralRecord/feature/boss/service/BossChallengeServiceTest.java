@@ -156,4 +156,53 @@ class BossChallengeServiceTest {
         assertTrue(BossChallengeService.isFieldCleanupReady(false, false, true));
         assertTrue(BossChallengeService.isFieldCleanupReady(true, true, true));
     }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
+     * 章・見出し: # 26_3-サービス > ## 3. ボス挑戦受付
+     * 検証契約: 待機ハブから離脱した本人は再参加候補として予定者一覧に残しつつ、Boss Sidebar の対象から外し、再到着後は再表示する。
+     */
+    @Test
+    void excludesWaitingHubDepartedPlayerFromBossSidebarUntilRejoin() {
+        UUID remainingPlayer = UUID.randomUUID();
+        UUID departedPlayer = UUID.randomUUID();
+        BossLocation location = new BossLocation("world", 0.5D, 64.0D, 0.5D, 0.0F, 0.0F);
+        BossChallengeConfig config = new BossChallengeConfig(
+                "boss_field",
+                location,
+                2.0D,
+                location,
+                location,
+                1,
+                6,
+                600L,
+                0,
+                5L,
+                BossScalingConfig.EMPTY
+        );
+        BossChallengeInstance challenge = new BossChallengeInstance(
+                UUID.randomUUID(),
+                "party:test",
+                remainingPlayer,
+                DesignTestFixtures.mobInstance(
+                        MobCategory.BOSS,
+                        100.0D,
+                        0.0D,
+                        0.0D,
+                        MobShieldConfig.EMPTY
+                ).template(),
+                config,
+                List.of(remainingPlayer, departedPlayer)
+        );
+
+        challenge.markWaitingAbsent(departedPlayer);
+
+        assertTrue(BossChallengeService.isSidebarParticipant(challenge, remainingPlayer));
+        assertFalse(BossChallengeService.isSidebarParticipant(challenge, departedPlayer));
+        assertEquals(List.of(remainingPlayer, departedPlayer), challenge.expectedParticipantIds());
+
+        challenge.clearWaitingAbsent(departedPlayer);
+
+        assertTrue(BossChallengeService.isSidebarParticipant(challenge, departedPlayer));
+    }
 }

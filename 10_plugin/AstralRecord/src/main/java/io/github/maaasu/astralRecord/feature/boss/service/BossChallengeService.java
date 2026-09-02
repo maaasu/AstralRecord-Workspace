@@ -608,7 +608,7 @@ public final class BossChallengeService {
         for (BossChallengeInstance challenge : challengesById.values()) {
             if ((challenge.state() != BossChallengeState.PREPARING
                     && challenge.state() != BossChallengeState.IN_PROGRESS)
-                    || !displayParticipantIds(challenge).contains(playerId)) {
+                    || !isSidebarParticipant(challenge, playerId)) {
                 continue;
             }
             long elapsed = challenge.startedAtMs() <= 0L
@@ -629,6 +629,26 @@ public final class BossChallengeService {
             );
         }
         return null;
+    }
+
+    /**
+     * Boss の Sidebar 情報へ対象プレイヤーを含められるか判定します。
+     * <p>
+     * 待機ハブから離脱したプレイヤーは再参加のため {@code expectedParticipantIds} に残しますが、
+     * 離脱中の本人へ待機中の Boss 表示を返して別の挑戦表示を隠さないよう除外します。
+     *
+     * @param challenge 判定対象の Boss 挑戦
+     * @param playerId Sidebar を取得するプレイヤー UUID
+     * @return 現在の表示参加者で、待機ハブ離脱中でなければ {@code true}
+     */
+    static boolean isSidebarParticipant(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull UUID playerId
+    ) {
+        List<UUID> participantIds = challenge.participantsConfirmed()
+                ? challenge.participantIds()
+                : challenge.expectedParticipantIds();
+        return participantIds.contains(playerId) && !challenge.isWaitingAbsent(playerId);
     }
 
     /**
