@@ -69,3 +69,6 @@ ai:
           speed: 1.45
           damageRatio: 0.85
           holdTicks: 16
+
+drops:
+  exp: 1536

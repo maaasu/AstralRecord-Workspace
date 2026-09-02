@@ -5,7 +5,7 @@ schemaVersion: 1
 id: mimir_orb
 category: orb
 name: "&9ミーミルのオーブ"
-icon: echo_shard
+icon: BOOK
 rarity: RARE
 lore:
   - "&7習得済みスキルからシジルを一つ取り外して返却する。"

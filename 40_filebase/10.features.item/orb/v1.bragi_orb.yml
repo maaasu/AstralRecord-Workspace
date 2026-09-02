@@ -5,7 +5,7 @@ schemaVersion: 1
 id: bragi_orb
 category: orb
 name: "&aブラギのオーブ"
-icon: amethyst_shard
+icon: ENCHANTED_BOOK
 rarity: UNCOMMON
 lore:
   - "&7習得済みスキルを選択し、所持シジルを一つ装着する。"
