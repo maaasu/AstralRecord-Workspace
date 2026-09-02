@@ -30,37 +30,37 @@ equipment:
     maxLevel: 10
     levels:
       - level: 1
-        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 1 }]
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
         successRate: 1.0
         failAction: NONE
       - level: 2
-        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 1 }]
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
         successRate: 1.0
         failAction: NONE
       - level: 3
-        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 1 }]
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
         successRate: 1.0
         failAction: NONE
       - level: 4
-        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 1 }]
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
         successRate: 1.0
         failAction: NONE
       - level: 5
-        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 1 }]
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
         successRate: 1.0
         failAction: NONE
       - level: 6
-        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 1 }]
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
         successRate: 0.75
       - level: 7
-        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 1 }]
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
         successRate: 0.75
       - level: 8
-        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 1 }]
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
         successRate: 0.75
       - level: 9
-        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 1 }]
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
         successRate: 0.75
       - level: 10
-        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 1 }]
+        statIncrease: [{ status: MELEE_ATTACK, type: FLAT, value: 1 }]
         successRate: 0.75
