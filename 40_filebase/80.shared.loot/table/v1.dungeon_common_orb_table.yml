@@ -1,0 +1,9 @@
+# design:
+#   motif: "冒険 / ダンジョン共通報酬"
+#   progression: 5
+schemaVersion: 1
+id: dungeon_common_orb_table
+type: LOOT_TABLE
+rolls: 1
+pools:
+  - ref: loot_pool:dungeon_common_orb_pool

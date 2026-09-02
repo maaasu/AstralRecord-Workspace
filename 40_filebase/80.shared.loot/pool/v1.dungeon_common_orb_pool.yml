@@ -1,0 +1,23 @@
+# design:
+#   motif: "冒険 / ダンジョン共通報酬"
+#   progression: 5
+schemaVersion: 1
+id: dungeon_common_orb_pool
+type: LOOT_POOL
+contents:
+  - itemId:
+      ref: item:aegis_orb
+    rate: 70.0
+    amount: "1~5"
+  - itemId:
+      ref: item:tyr_orb
+    rate: 70.0
+    amount: "1~5"
+  - itemId:
+      ref: item:freya_orb
+    rate: 70.0
+    amount: "1~5"
+  - itemId:
+      ref: item:sindri_orb_intermediate
+    rate: 90.0
+    amount: "1~2"

@@ -69,6 +69,7 @@ clearRewards:
     - itemId: item:anarion_staff
       rate: 5.0
       amount: "1"
+  lootTable: loot_table:dungeon_common_orb_table
 generation:
   area:
     width: 120

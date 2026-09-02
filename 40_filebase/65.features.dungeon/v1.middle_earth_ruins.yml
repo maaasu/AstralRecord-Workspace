@@ -44,18 +44,6 @@ clearRewards:
     - itemId: item:middle_earth_amulet
       rate: 12.0
       amount: "1"
-    - itemId: item:tyr_orb
-      rate: 8.0
-      amount: "1~2"
-    - itemId: item:aegis_orb
-      rate: 8.0
-      amount: "1~2"
-    - itemId: item:freya_orb
-      rate: 6.0
-      amount: "1~2"
-    - itemId: item:sindri_orb
-      rate: 12.0
-      amount: "1"
     - itemId: item:middle_earth_ruins_weathered_coin
       rate: 100.0
       amount: "1~32"
@@ -65,6 +53,7 @@ clearRewards:
     - itemId: item:middle_earth_ruins_royal_jewel
       rate: 25.0
       amount: "1~6"
+  lootTable: loot_table:dungeon_common_orb_table
 generation:
   area:
     width: 112
