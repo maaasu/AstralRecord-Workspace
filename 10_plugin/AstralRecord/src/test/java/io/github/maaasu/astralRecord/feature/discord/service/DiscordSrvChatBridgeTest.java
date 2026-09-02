@@ -17,6 +17,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -71,15 +72,20 @@ class DiscordSrvChatBridgeTest {
         verify(config, times(2)).setRuntimeValue("MinecraftPlayerJoinMessage.Enabled", false);
         verify(config, times(2)).setRuntimeValue("MinecraftPlayerFirstJoinMessage.Enabled", false);
         verify(config, times(2)).setRuntimeValue("MinecraftPlayerLeaveMessage.Enabled", false);
+        verify(config, times(2)).setRuntimeValue("DiscordChatChannelMinecraftToDiscord", false);
         verify(config, times(1)).getOptionalBoolean("MinecraftPlayerJoinMessage.Enabled");
         verify(config, times(1)).getOptionalBoolean("MinecraftPlayerFirstJoinMessage.Enabled");
         verify(config, times(1)).getOptionalBoolean("MinecraftPlayerLeaveMessage.Enabled");
+        verify(config, times(1)).getOptionalBoolean("DiscordChatChannelMinecraftToDiscord");
 
         DiscordSrvChatBridge.setServerLifecycleMessagesSuppressed(config, false);
 
         verify(config).setRuntimeValue("MinecraftPlayerJoinMessage.Enabled", true);
         verify(config).setRuntimeValue("MinecraftPlayerFirstJoinMessage.Enabled", true);
         verify(config, times(3)).setRuntimeValue("MinecraftPlayerLeaveMessage.Enabled", false);
+        verify(config).setRuntimeValue("DiscordChatChannelMinecraftToDiscord", true);
+        verify(config, never())
+            .setRuntimeValue("DiscordChatChannelDiscordToMinecraft", false);
     }
 
     private DiscordSrvChatBridge newBridge() throws Exception {

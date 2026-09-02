@@ -571,6 +571,9 @@ public final class AstralRecord extends JavaPlugin {
             globalChatBridge.close();
             globalChatBridge = null;
         }
+        if (!getServer().isStopping()) {
+            DiscordSrvChatBridge.setServerLifecycleMessagesSuppressed(false);
+        }
         masterDataReloadGeneration.incrementAndGet();
         CompletableFuture<Integer> pendingMasterDataReload = masterDataReloadInFlight.getAndSet(null);
         if (pendingMasterDataReload != null && !pendingMasterDataReload.isDone()) {

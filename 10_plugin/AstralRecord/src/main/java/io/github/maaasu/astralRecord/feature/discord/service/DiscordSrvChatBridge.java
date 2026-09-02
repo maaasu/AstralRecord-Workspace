@@ -31,6 +31,7 @@ import java.util.Objects;
 public final class DiscordSrvChatBridge implements GlobalChatBridge {
     private static final String SERVER_STARTUP_MESSAGE_KEY = "DiscordChatChannelServerStartupMessage";
     private static final String SERVER_SHUTDOWN_MESSAGE_KEY = "DiscordChatChannelServerShutdownMessage";
+    private static final String MINECRAFT_TO_DISCORD_CHAT_ENABLED_KEY = "DiscordChatChannelMinecraftToDiscord";
     private static final List<String> PLAYER_LIFECYCLE_MESSAGE_ENABLED_KEYS = List.of(
         "MinecraftPlayerJoinMessage.Enabled",
         "MinecraftPlayerFirstJoinMessage.Enabled",
@@ -40,6 +41,7 @@ public final class DiscordSrvChatBridge implements GlobalChatBridge {
     private static boolean lifecycleMessagesSuppressed;
     private static String originalServerStartupMessage;
     private static String originalServerShutdownMessage;
+    private static Boolean originalMinecraftToDiscordChatEnabled;
     private static final Map<String, Boolean> originalPlayerLifecycleMessageEnabled = new LinkedHashMap<>();
 
     private final AstralRecord plugin;
@@ -97,7 +99,8 @@ public final class DiscordSrvChatBridge implements GlobalChatBridge {
     }
 
     /**
-     * DiscordSRVの起動・停止・プレイヤー参加・初回参加・退出通知をwhitelist状態に合わせて抑制します。
+     * DiscordSRVの起動・停止・プレイヤー参加・初回参加・退出通知と、
+     * MinecraftからDiscordへのチャット転送をwhitelist状態に合わせて抑制します。
      * DiscordSRV 1.30.5 の messages.yml は実サーバーの設定ファイルを書き換えず、
      * DynamicConfig のランタイム値だけを変更します。
      *
@@ -129,6 +132,9 @@ public final class DiscordSrvChatBridge implements GlobalChatBridge {
             if (!lifecycleMessagesSuppressed) {
                 originalServerStartupMessage = config.getString(SERVER_STARTUP_MESSAGE_KEY);
                 originalServerShutdownMessage = config.getString(SERVER_SHUTDOWN_MESSAGE_KEY);
+                originalMinecraftToDiscordChatEnabled = config
+                    .getOptionalBoolean(MINECRAFT_TO_DISCORD_CHAT_ENABLED_KEY)
+                    .orElse(true);
                 originalPlayerLifecycleMessageEnabled.clear();
                 for (String key : PLAYER_LIFECYCLE_MESSAGE_ENABLED_KEYS) {
                     originalPlayerLifecycleMessageEnabled.put(
@@ -140,6 +146,7 @@ public final class DiscordSrvChatBridge implements GlobalChatBridge {
             }
             config.setRuntimeValue(SERVER_STARTUP_MESSAGE_KEY, "");
             config.setRuntimeValue(SERVER_SHUTDOWN_MESSAGE_KEY, "");
+            config.setRuntimeValue(MINECRAFT_TO_DISCORD_CHAT_ENABLED_KEY, false);
             for (String key : PLAYER_LIFECYCLE_MESSAGE_ENABLED_KEYS) {
                 config.setRuntimeValue(key, false);
             }
@@ -155,12 +162,17 @@ public final class DiscordSrvChatBridge implements GlobalChatBridge {
                 SERVER_SHUTDOWN_MESSAGE_KEY,
                 Objects.requireNonNullElse(originalServerShutdownMessage, "")
             );
+            config.setRuntimeValue(
+                MINECRAFT_TO_DISCORD_CHAT_ENABLED_KEY,
+                Objects.requireNonNullElse(originalMinecraftToDiscordChatEnabled, true)
+            );
             for (Map.Entry<String, Boolean> entry : originalPlayerLifecycleMessageEnabled.entrySet()) {
                 config.setRuntimeValue(entry.getKey(), entry.getValue());
             }
             lifecycleMessagesSuppressed = false;
             originalServerStartupMessage = null;
             originalServerShutdownMessage = null;
+            originalMinecraftToDiscordChatEnabled = null;
             originalPlayerLifecycleMessageEnabled.clear();
         }
     }
