@@ -2,6 +2,7 @@ using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
 using AstralRecordApi.Repositories;
+using AstralRecordApi.Tests.TestSupport;
 using Microsoft.Data.Sqlite;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Diagnostics;
@@ -284,6 +285,164 @@ public class SkillBindPresetRepositoryTests
         Assert.Null(rejected);
         var reloaded = (await repository.GetByAccountIdAsync(accountId)).Single(preset => preset.PresetIndex == 1);
         Assert.Equal(saved.PassiveSkillSlots, reloaded.PassiveSkillSlots);
+    }
+
+    [Fact]
+    public async Task UpsertAsync_RejectsDuplicatePassiveBindingIds()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var dbContext = new AstralRecordDbContext(options);
+        await CreateSchemaAsync(dbContext);
+        var accountId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var learnedSkillId = Guid.NewGuid();
+        await dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"INSERT INTO account (uuid, is_deleted) VALUES ({accountId}, {false})");
+        dbContext.AccountLearnedSkills.Add(new AccountLearnedSkillEntity
+        {
+            LearnedSkillId = learnedSkillId,
+            AccountId = accountId,
+            SkillId = "adventurer_meditation",
+            Level = 1,
+            Version = 1,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            CreatedBy = userId,
+            UpdatedBy = userId,
+        });
+        await dbContext.SaveChangesAsync();
+
+        var saved = await new SkillBindPresetRepository(dbContext).UpsertAsync(accountId, 1,
+            new SkillBindPresetUpsertRequest
+            {
+                PassiveSkillSlots = [learnedSkillId.ToString(), learnedSkillId.ToString()],
+                UpdatedBy = userId,
+            });
+
+        Assert.Null(saved);
+    }
+
+    [Fact]
+    public async Task UpsertAsync_NormalizesNonCanonicalLearnedSkillIds()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+        await using var dbContext = new AstralRecordDbContext(options);
+        await CreateSchemaAsync(dbContext);
+        var accountId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var learnedSkillId = Guid.NewGuid();
+        await dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"INSERT INTO account (uuid, is_deleted) VALUES ({accountId}, {false})");
+        dbContext.AccountLearnedSkills.Add(new AccountLearnedSkillEntity
+        {
+            LearnedSkillId = learnedSkillId,
+            AccountId = accountId,
+            SkillId = "adventurer_meditation",
+            Level = 1,
+            Version = 1,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            CreatedBy = userId,
+            UpdatedBy = userId,
+        });
+        await dbContext.SaveChangesAsync();
+        var repository = new SkillBindPresetRepository(dbContext);
+
+        var noHyphen = await repository.UpsertAsync(accountId, 1, new SkillBindPresetUpsertRequest
+        {
+            PassiveSkillSlots = [learnedSkillId.ToString("N")],
+            UpdatedBy = userId,
+        });
+        var braces = await repository.UpsertAsync(accountId, 2, new SkillBindPresetUpsertRequest
+        {
+            PassiveSkillSlots = [$"{{{learnedSkillId}}}"],
+            UpdatedBy = userId,
+        });
+
+        Assert.NotNull(noHyphen);
+        Assert.Equal(learnedSkillId.ToString(), noHyphen.PassiveSkillSlots[0]);
+        Assert.NotNull(braces);
+        Assert.Equal(learnedSkillId.ToString(), braces.PassiveSkillSlots[0]);
+    }
+
+    [Fact]
+    public async Task UpsertAsync_AllowsRequiredPassiveAndRejectsAlwaysOnPassive()
+    {
+        await using var playerConnection = new SqliteConnection("Data Source=:memory:");
+        await using var masterConnection = new SqliteConnection("Data Source=:memory:");
+        await playerConnection.OpenAsync();
+        await masterConnection.OpenAsync();
+        var playerOptions = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(playerConnection)
+            .Options;
+        var masterOptions = new DbContextOptionsBuilder<MasterDataDbContext>()
+            .UseSqlite(masterConnection)
+            .Options;
+        await using var dbContext = new AstralRecordDbContext(playerOptions);
+        await using var masterDataDbContext = new MasterDataDbContext(masterOptions);
+        await CreateSchemaAsync(dbContext);
+        await MasterDataTestSeed.CreateSchemaAsync(masterDataDbContext);
+
+        var accountId = Guid.NewGuid();
+        var userId = Guid.NewGuid();
+        var now = DateTime.UtcNow;
+        var requiredPassiveId = Guid.NewGuid();
+        var alwaysOnPassiveId = Guid.NewGuid();
+        await dbContext.Database.ExecuteSqlInterpolatedAsync(
+            $"INSERT INTO account (uuid, is_deleted) VALUES ({accountId}, {false})");
+        dbContext.AccountLearnedSkills.AddRange(
+            new AccountLearnedSkillEntity
+            {
+                LearnedSkillId = requiredPassiveId,
+                AccountId = accountId,
+                SkillId = "adventurer_meditation",
+                Level = 1,
+                Version = 1,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = userId,
+                UpdatedBy = userId,
+            },
+            new AccountLearnedSkillEntity
+            {
+                LearnedSkillId = alwaysOnPassiveId,
+                AccountId = accountId,
+                SkillId = "adventurer_always_on",
+                Level = 1,
+                Version = 1,
+                CreatedAt = now.AddMinutes(1),
+                UpdatedAt = now.AddMinutes(1),
+                CreatedBy = userId,
+                UpdatedBy = userId,
+            });
+        await dbContext.SaveChangesAsync();
+        await MasterDataTestSeed.SeedInlinePayloadAsync(
+            masterDataDbContext, MasterDataTestFixtures.AdventurerMeditation, "skill", null);
+        await MasterDataTestSeed.SeedInlinePayloadAsync(
+            masterDataDbContext, MasterDataTestFixtures.AdventurerAlwaysOn, "skill", null);
+
+        var repository = new SkillBindPresetRepository(dbContext, masterDataDbContext);
+        var saved = await repository.UpsertAsync(accountId, 1, new SkillBindPresetUpsertRequest
+        {
+            PassiveSkillSlots = [requiredPassiveId.ToString()],
+            UpdatedBy = userId,
+        });
+        var rejected = await repository.UpsertAsync(accountId, 2, new SkillBindPresetUpsertRequest
+        {
+            PassiveSkillSlots = [alwaysOnPassiveId.ToString()],
+            UpdatedBy = userId,
+        });
+
+        Assert.NotNull(saved);
+        Assert.Null(rejected);
     }
 
     private static async Task CreateSchemaAsync(AstralRecordDbContext dbContext)

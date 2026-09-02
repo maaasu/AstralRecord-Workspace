@@ -7,7 +7,9 @@ using Microsoft.EntityFrameworkCore;
 
 namespace AstralRecordApi.Repositories;
 
-public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkillBindPresetRepository
+public class SkillBindPresetRepository(
+    AstralRecordDbContext dbContext,
+    MasterDataDbContext? masterDataDbContext = null) : ISkillBindPresetRepository
 {
     public const int PresetCount = 6;
     public const int ActionRingSlotCount = 6;
@@ -237,13 +239,21 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
     private static IReadOnlyList<string?> NormalizeSlots(IEnumerable<string?> slots, int slotCount)
         => slots
             .Take(slotCount)
-            .Select(slot => string.IsNullOrWhiteSpace(slot) ? null : slot.Trim())
+            .Select(NormalizeSkillId)
             .Concat(Enumerable.Repeat<string?>(null, slotCount))
             .Take(slotCount)
             .ToArray();
 
     private static string? NormalizeSkillId(string? skillId)
-        => string.IsNullOrWhiteSpace(skillId) ? null : skillId.Trim();
+    {
+        if (string.IsNullOrWhiteSpace(skillId))
+            return null;
+
+        var normalized = skillId.Trim();
+        return Guid.TryParse(normalized, out var learnedSkillId)
+            ? learnedSkillId.ToString()
+            : normalized;
+    }
 
     private static IReadOnlyList<string?> NormalizeLegacySlots(
         IReadOnlyList<string?> slots,
@@ -283,6 +293,13 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
         if (passiveSlots.Any(slot => string.Equals(slot, WeaponNormalAttackBindingId, StringComparison.Ordinal)))
             return false;
 
+        var passiveBindingIds = passiveSlots
+            .Where(binding => !string.IsNullOrWhiteSpace(binding))
+            .Select(binding => binding!)
+            .ToArray();
+        if (passiveBindingIds.Length != passiveBindingIds.Distinct(StringComparer.OrdinalIgnoreCase).Count())
+            return false;
+
         var rawBindings = activeSlots
             .Concat(passiveSlots)
             .Append(leftClickSkillId)
@@ -305,7 +322,52 @@ public class SkillBindPresetRepository(AstralRecordDbContext dbContext) : ISkill
             .CountAsync(skill => skill.AccountId == accountId
                 && !skill.IsDeleted
                 && learnedSkillIds.Contains(skill.LearnedSkillId));
-        return ownedCount == learnedSkillIds.Count;
+        if (ownedCount != learnedSkillIds.Count)
+            return false;
+
+        return await HasValidPassiveBindingsAsync(accountId, passiveBindingIds);
+    }
+
+    private async Task<bool> HasValidPassiveBindingsAsync(
+        Guid accountId,
+        IReadOnlyList<string> passiveBindingIds)
+    {
+        if (passiveBindingIds.Count == 0 || masterDataDbContext is null)
+            return true;
+
+        var learnedSkillIds = passiveBindingIds
+            .Select(Guid.Parse)
+            .ToArray();
+        var learnedSkills = await dbContext.AccountLearnedSkills.AsNoTracking()
+            .Where(skill => skill.AccountId == accountId
+                && !skill.IsDeleted
+                && learnedSkillIds.Contains(skill.LearnedSkillId))
+            .Select(skill => new { skill.LearnedSkillId, skill.SkillId })
+            .ToListAsync();
+        if (learnedSkills.Count != passiveBindingIds.Count)
+            return false;
+
+        var skillIds = learnedSkills
+            .Select(skill => skill.SkillId)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .ToArray();
+        var masters = await masterDataDbContext.Entries.AsNoTracking()
+            .Where(entry => !entry.IsDeleted
+                && entry.MasterType == "skill"
+                && skillIds.Contains(entry.MasterId))
+            .Select(entry => new { entry.MasterId, entry.PayloadJson })
+            .ToListAsync();
+        var bySkillId = masters
+            .Select(entry => new
+            {
+                entry.MasterId,
+                Skill = MasterDataPayloadJson.Deserialize<SkillResponse>(entry.PayloadJson),
+            })
+            .Where(entry => entry.Skill is not null)
+            .ToDictionary(entry => entry.MasterId, entry => entry.Skill!, StringComparer.OrdinalIgnoreCase);
+
+        return learnedSkills.All(learned => bySkillId.TryGetValue(learned.SkillId, out var skill)
+            && skill.Passive?.BindRequired == true);
     }
 
     private static IReadOnlyList<string?> DeserializeSlots(string? json, int slotCount)

@@ -47,6 +47,20 @@ internal static class MasterDataTestFixtures
         }
         """;
 
+    public const string AdventurerAlwaysOn = """
+        {
+          "schemaVersion": 1,
+          "id": "adventurer_always_on",
+          "type": "SKILL",
+          "implementationId": "adventurer_always_on",
+          "name": "&d常時発動",
+          "icon": "BEACON",
+          "maxLevel": 1,
+          "passive": { "bindRequired": false },
+          "tags": ["passive", "field"]
+        }
+        """;
+
     public const string HunterCrashArrow = """
         {
           "schemaVersion": 1,
