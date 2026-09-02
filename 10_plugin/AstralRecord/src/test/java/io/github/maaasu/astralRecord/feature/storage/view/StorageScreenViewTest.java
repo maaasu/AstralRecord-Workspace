@@ -39,7 +39,6 @@ class StorageScreenViewTest extends MockBukkitTestBase {
             Material.END_CRYSTAL,
             Material.APPLE,
             Material.ENCHANTED_BOOK,
-            Material.AMETHYST_SHARD,
             Material.FIREWORK_STAR
         );
         for (int slot = 0; slot < expected.size(); slot++) {
