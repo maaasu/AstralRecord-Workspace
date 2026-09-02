@@ -488,7 +488,7 @@ public final class SkillBindGui {
         lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(skill, NamedTextColor.GRAY));
         lore.add(separator());
         lore.add(Component.text("未習得", NamedTextColor.RED));
-        appendRequiredItemLore(lore, skill.getLearnRequiredItems(), "習得に必要");
+        appendRequiredItemLore(lore, skill.getLearnRequiredItems(), "習得に必要な素材");
         lore.add(Component.text("左クリック: 習得", NamedTextColor.YELLOW));
         ItemStack item = createItem(parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON),
             SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE), lore);
@@ -504,7 +504,8 @@ public final class SkillBindGui {
         @NotNull String label
     ) {
         if (costs.isEmpty()) {
-            lore.add(Component.text(label + ": なし", NamedTextColor.GREEN));
+            lore.add(Component.text(label + ":", NamedTextColor.AQUA));
+            lore.add(Component.text("• なし", NamedTextColor.DARK_GRAY));
             return;
         }
         lore.add(Component.text(label + ":", NamedTextColor.AQUA));
@@ -512,8 +513,8 @@ public final class SkillBindGui {
             ItemModel item = itemService.findLoadedById(cost.getItemId());
             Component name = item == null ? Component.text("未登録の素材", NamedTextColor.RED)
                 : SkillPresentationUtil.itemNameComponent(item, item.getId(), NamedTextColor.WHITE);
-            lore.add(Component.text("  ", NamedTextColor.GRAY).append(name)
-                .append(Component.text(" x" + cost.getAmount(), NamedTextColor.AQUA)));
+            lore.add(Component.text("• ", NamedTextColor.AQUA).append(name)
+                .append(Component.text(" ×" + cost.getAmount(), NamedTextColor.AQUA)));
         }
     }
 
@@ -552,7 +553,7 @@ public final class SkillBindGui {
                 "次のレベル: Lv." + currentLevel + " → Lv." + (currentLevel + 1),
                 NamedTextColor.AQUA
             ));
-            appendRequiredItemLore(lore, skill.getLevelUpRequiredItems(), "レベルアップに必要");
+            appendRequiredItemLore(lore, skill.getLevelUpRequiredItems(), "レベルアップに必要な素材");
             lore.add(Component.text("右クリック: レベルアップ", NamedTextColor.YELLOW));
         }
         lore.add(separator());

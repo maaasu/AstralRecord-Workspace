@@ -230,7 +230,7 @@ public class GuideService {
         recordCondition(player, eventType, targetId, targetLevel, true);
     }
 
-    /** オフライン完了を含む状態変更を、効果音・チャット通知なしでガイドへ記録します。 */
+    /** 現在のプレイヤーセッションの状態変更を、効果音・チャット通知なしでガイドへ記録します。 */
     public void recordConditionSilently(
         @NotNull AstPlayer player,
         @NotNull GuideConditionType eventType,

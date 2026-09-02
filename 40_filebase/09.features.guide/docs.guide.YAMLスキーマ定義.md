@@ -46,7 +46,7 @@ steps:
 | `steps[].action.type` | yes when action exists | `NAVIGATE_NPC` または `OPEN_MENU`。未知の値は読み込みエラーとする。 |
 | `steps[].action.npcId` | yes for `NAVIGATE_NPC` | 案内対象の NPC マスタ ID。画面には ID を表示しない。 |
 | `steps[].action.menuId` | yes for `OPEN_MENU` | 起動するメニュー ID。現状は `mail` または `skill_bind` を使用する。 |
-| `steps[].action.description` | no | クリック時に実行される動作の説明。指定時は details の下へ灰色で表示する。 |
+| `steps[].action.description` | no | クリック時に実行される動作の説明。指定時は details の下へ表示し、カラーコードを反映する。カラーコード未指定時は灰色。スキルマネージャーを開く操作は紫色を使用する。 |
 | `steps[].condition.type` | yes | Plugin が解釈する達成条件種別。 |
 | `steps[].condition.targetId` | no | 条件対象 ID。`targetIds` 未指定時に使用し、未指定時は同じ type の全対象に一致する。 |
 | `steps[].condition.targetIds` | no | 条件対象 ID の候補配列。いずれか1つに一致したとき達成する。`targetId` と併記した場合はどちらかに一致すればよい。 |

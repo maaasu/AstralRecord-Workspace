@@ -829,6 +829,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 if (current == null) return;
                 plugin.getGuideService().recordConditionSilently(current, GuideConditionType.SKILL_LEARNED, skillId);
                 passiveSkillService.markDirty(current);
+                inventoryService.refreshManagedInventoryUi(current);
                 GuiSound.SUCCESS.play(current.getBukkit()); openMain(current.getBukkit(), session, page);
             },
             error -> { GuiSound.DENY.play(player); openMain(player, session, page); });
@@ -847,6 +848,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 if (current == null) return;
                 plugin.getGuideService().recordConditionSilently(current, GuideConditionType.SKILL_ENHANCED, entry.definition().getId());
                 passiveSkillService.markDirty(current);
+                inventoryService.refreshManagedInventoryUi(current);
                 GuiSound.SUCCESS.play(current.getBukkit()); openMain(current.getBukkit(), session, page);
             },
             error -> { GuiSound.DENY.play(player); openMain(player, session, page); });

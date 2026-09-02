@@ -119,6 +119,10 @@ steps:
       - "&7スキルマネージャーを開く。"
       - "&7未習得の&eアストラルエッジ&7を選択し、必要な&e原石&7を消費する。"
       - "&a習得すると、&eアストラルエッジ&aを使用できる。"
+    action:
+      type: OPEN_MENU
+      menuId: skill_bind
+      description: "&dクリックでスキルマネージャーGUIを開く。"
     condition:
       type: SKILL_LEARNED
       targetId: adventurer_astral_edge
@@ -128,6 +132,10 @@ steps:
       - "&7スキルマネージャーを開く。"
       - "&7未習得の&eスマッシュ&7を選択し、必要な&e原石&7を消費する。"
       - "&a習得すると、&eスマッシュ&aを使用できる。"
+    action:
+      type: OPEN_MENU
+      menuId: skill_bind
+      description: "&dクリックでスキルマネージャーGUIを開く。"
     condition:
       type: SKILL_LEARNED
       targetId: adventurer_smash
@@ -137,6 +145,10 @@ steps:
       - "&7スキルマネージャーで、習得済みスキルを右クリックする。"
       - "&7次のレベルに必要な&e原石&7を確認する。"
       - "&a原石を消費すると、対象スキルのレベルが1上がる。"
+    action:
+      type: OPEN_MENU
+      menuId: skill_bind
+      description: "&dクリックでスキルマネージャーGUIを開く。"
     condition:
       type: SKILL_ENHANCED
       targetIds:

@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skill.gui;
 
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindSession;
@@ -25,6 +26,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 class SkillBindGuiTest extends MockBukkitTestBase {
     /**
@@ -83,7 +85,8 @@ class SkillBindGuiTest extends MockBukkitTestBase {
     @Test
     void learnedSkillBelowMaxShowsNextLevelMaterialsAndLevelUpAction() {
         PluginMock plugin = MockBukkit.createMockPlugin("SkillBindGuiTest");
-        SkillBindGui gui = new SkillBindGui(plugin, mock(ItemService.class), mock(SkillService.class));
+        ItemService itemService = itemServiceWithSkillGemRaw();
+        SkillBindGui gui = new SkillBindGui(plugin, itemService, mock(SkillService.class));
         SkillBindSession session = new SkillBindSession(presets());
 
         Inventory inventory = gui.createMainInventory(
@@ -92,10 +95,34 @@ class SkillBindGuiTest extends MockBukkitTestBase {
         List<String> lore = lore(inventory.getItem(1));
 
         assertTrue(lore.contains("次のレベル: Lv.1 → Lv.2"));
-        assertTrue(lore.contains("レベルアップに必要:"));
-        assertTrue(lore.contains("  未登録の素材 x2"));
+        assertTrue(lore.contains("レベルアップに必要な素材:"));
+        assertTrue(lore.contains("• スキルジェムの原石(無印) ×2"));
         assertTrue(lore.contains("右クリック: レベルアップ"));
         assertFalse(lore.contains("レベル: MAX"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 3. スキルマネージャーの習得表示
+     * 検証契約: 未習得スキルは、習得に必要な素材のマスター表示名と個数をShop形式の箇条書きで表示する。
+     */
+    @Test
+    void unlearnedSkillShowsRequiredItemNameAndAmount() {
+        PluginMock plugin = MockBukkit.createMockPlugin("SkillBindGuiTest");
+        ItemService itemService = itemServiceWithSkillGemRaw();
+        SkillBindGui gui = new SkillBindGui(plugin, itemService, mock(SkillService.class));
+        SkillBindSession session = new SkillBindSession(presets());
+        SkillDefinition definition = unlearnedDefinition();
+
+        Inventory inventory = gui.createMainInventory(
+            session, List.of(), List.of(definition), Map.of(), List.of(definition), 5, 0
+        );
+        List<String> lore = lore(inventory.getItem(1));
+
+        assertTrue(lore.contains("未習得"));
+        assertTrue(lore.contains("習得に必要な素材:"));
+        assertTrue(lore.contains("• スキルジェムの原石(無印) ×3"));
+        assertTrue(lore.contains("左クリック: 習得"));
     }
 
     /**
@@ -115,7 +142,7 @@ class SkillBindGuiTest extends MockBukkitTestBase {
         List<String> lore = lore(inventory.getItem(1));
 
         assertTrue(lore.contains("レベル: MAX"));
-        assertFalse(lore.contains("レベルアップに必要:"));
+        assertFalse(lore.contains("レベルアップに必要な素材:"));
         assertFalse(lore.contains("右クリック: レベルアップ"));
     }
 
@@ -158,6 +185,24 @@ class SkillBindGuiTest extends MockBukkitTestBase {
             UUID.randomUUID(), UUID.randomUUID(), "test_skill", level, List.of(), 0, null, null
         );
         return new SkillManagerEntry(learned, definition, true);
+    }
+
+    private static SkillDefinition unlearnedDefinition() {
+        return new SkillDefinition(
+            "unlearned_skill", "unlearned_skill", "未習得テスト", null, "BOOK", List.of(),
+            0L, 0.0D, 0L, 1, null, Map.of(), List.of(), SkillKind.ACTIVE, true,
+            null, null, "unlearned_skill", 3, List.of(), List.of(), List.of(),
+            List.of(new SkillRequiredItemDefinition("skill_gem_raw", 3)), List.of()
+        );
+    }
+
+    private static ItemService itemServiceWithSkillGemRaw() {
+        ItemService itemService = mock(ItemService.class);
+        ItemModel item = mock(ItemModel.class);
+        when(item.getId()).thenReturn("skill_gem_raw");
+        when(item.getName()).thenReturn("&fスキルジェムの原石(無印)");
+        when(itemService.findLoadedById("skill_gem_raw")).thenReturn(item);
+        return itemService;
     }
 
     private static List<String> lore(ItemStack item) {

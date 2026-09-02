@@ -758,10 +758,11 @@ class SkillBindGuiEventHandlerTest {
         LearnedSkillService learnedSkillService = mock(LearnedSkillService.class);
         PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
         SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
+        InventoryService inventoryService = mock(InventoryService.class);
         SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
             plugin, mock(SkillBindGui.class), skillService, mock(SkillBindPresetService.class),
             ownershipService, permissionService, learnedSkillService, passiveSkillService,
-            mock(InventoryService.class)
+            inventoryService
         );
         Player player = mock(Player.class);
         AstPlayer original = mock(AstPlayer.class);
@@ -805,6 +806,7 @@ class SkillBindGuiEventHandlerTest {
 
         verify(passiveSkillService).markDirty(current);
         verify(passiveSkillService, never()).markDirty(original);
+        verify(inventoryService).refreshManagedInventoryUi(current);
         verify(guideService).recordConditionSilently(current, io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType.SKILL_LEARNED, definition.getId());
     }
 
@@ -822,10 +824,11 @@ class SkillBindGuiEventHandlerTest {
         PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
         SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
         SkillPermissionService permissionService = mock(SkillPermissionService.class);
+        InventoryService inventoryService = mock(InventoryService.class);
         SkillBindGuiEventHandler handler = new SkillBindGuiEventHandler(
             plugin, mock(SkillBindGui.class), skillService, mock(SkillBindPresetService.class),
             ownershipService, permissionService, learnedSkillService, passiveSkillService,
-            mock(InventoryService.class)
+            inventoryService
         );
         Player player = mock(Player.class);
         AstPlayer original = mock(AstPlayer.class);
@@ -871,6 +874,7 @@ class SkillBindGuiEventHandlerTest {
 
         verify(passiveSkillService).markDirty(current);
         verify(passiveSkillService, never()).markDirty(original);
+        verify(inventoryService).refreshManagedInventoryUi(current);
         verify(guideService).recordConditionSilently(current, io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType.SKILL_ENHANCED, definition.getId());
     }
 
