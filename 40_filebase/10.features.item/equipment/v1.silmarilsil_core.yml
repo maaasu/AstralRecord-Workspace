@@ -11,7 +11,7 @@ maxStack: 1
 saleValue: 1200
 lore:
   - "&7シルマリルの光と死英雄の残響が凝縮した核。"
-  - "&7わずかな攻撃力と、HP・MP・ENの上限を高める。"
+  - "&7わずかな攻撃力と、HP・MP・ENGの上限を高める。"
 unTradeable: false
 unSellable: false
 equipment:

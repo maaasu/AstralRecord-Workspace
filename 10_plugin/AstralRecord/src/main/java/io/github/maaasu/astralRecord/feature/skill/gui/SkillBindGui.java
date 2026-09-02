@@ -501,7 +501,7 @@ public final class SkillBindGui {
         SkillResourceType resourceType = skill.getResourceType() == null
             ? SkillResourceType.MANA
             : skill.getResourceType();
-        String resourceName = resourceType == SkillResourceType.ENERGY ? "EN" : "MP";
+        String resourceName = resourceType == SkillResourceType.ENERGY ? "ENG" : "MP";
         String cost = Boolean.TRUE.equals(skill.getParams().get("consumeAllCurrentMana"))
             ? "現在値すべて"
             : BigDecimal.valueOf(resourceCost).stripTrailingZeros().toPlainString();

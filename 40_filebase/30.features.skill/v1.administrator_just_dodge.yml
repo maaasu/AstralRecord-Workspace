@@ -11,7 +11,7 @@ icon: RABBIT_FOOT
 lore:
   - "&7ドッジ後、{skill.invulnerabilityTicks:seconds}秒間、直接攻撃を無効化する。"
   - "&7無効化回数に制限はない。"
-  - "&7無効化時、ENを{skill.energyRecoveryAmount}回復する。1回のドッジにつき1回まで。"
+  - "&7無効化時、ENGを{skill.energyRecoveryAmount}回復する。1回のドッジにつき1回まで。"
   - "&7状態異常DoTは無効化しない。"
 cooldownTicks: 0
 resourceType: MANA

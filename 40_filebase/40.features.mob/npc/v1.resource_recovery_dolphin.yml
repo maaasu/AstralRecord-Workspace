@@ -14,7 +14,7 @@ damageImmune: true
 icon: HEART_OF_THE_SEA
 lore:
   - "&7疲れた冒険者のリソースを回復するイルカ。"
-  - "&7右クリックで現在のHP・MP・EN・Shieldを全回復する。"
+  - "&7右クリックで現在のHP・MP・ENG・Shieldを全回復する。"
 tags:
   - npc
 

@@ -133,7 +133,7 @@ public class PlayerHudView {
     }
 
     /**
-     * HP、MP、EN、Shield およびアカウント経験値を vanilla HUD へ描画します。
+     * HP、MP、ENG、Shield およびアカウント経験値を vanilla HUD へ描画します。
      *
      * @param player 対象プレイヤー
      * @param snapshot 現在のステータス

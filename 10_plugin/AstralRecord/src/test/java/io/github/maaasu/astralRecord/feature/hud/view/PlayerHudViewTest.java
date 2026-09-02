@@ -449,7 +449,7 @@ class PlayerHudViewTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
      * 章・見出し: # 10_3-View > ## 1. status ActionBar 描画
-     * 検証契約: HP/MP/EN/必要時shieldと装飾済みcondition最大3件を同じActionBarへ描く。
+     * 検証契約: HP/MP/ENG/必要時shieldと装飾済みcondition最大3件を同じActionBarへ描く。
      */
     @Test
     void rendersResourcesAndDecoratedConditionsTogetherOnActionBar() {

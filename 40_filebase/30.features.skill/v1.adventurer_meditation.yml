@@ -6,11 +6,11 @@ id: adventurer_meditation
 type: SKILL
 implementationId: adventurer_meditation
 name: "&dメディテーション"
-description: "&7精神を集中し、MP / EN の自然回復を高める休息パッシブ。"
+description: "&7精神を集中し、MP / ENG の自然回復を高める休息パッシブ。"
 icon: CAMPFIRE
 lore:
   - "&7スニークを{skill.chargeTicks:seconds}秒続けると発動する。"
-  - "&7発動中はMP / ENの自然回復量が{skill.regenMultiplier}倍になる。"
+  - "&7発動中はMP / ENGの自然回復量が{skill.regenMultiplier}倍になる。"
   - "&7スニーク解除、被弾、通常攻撃、他スキル使用で集中が途切れる。"
   - "&7準備中と発動中は粒子、発動中は環境音で状態を示す。"
 cooldownTicks: 0

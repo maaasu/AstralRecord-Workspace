@@ -13,7 +13,7 @@ maxStack: 1
 saleValue: 900
 lore:
   - "&7軽い黒布と黒鋼を組み合わせた脚衣。"
-  - "&7移動とEN回復を補助する間接向けの脚防具。"
+  - "&7移動とENG回復を補助する間接向けの脚防具。"
 unTradeable: false
 unSellable: false
 equipment:

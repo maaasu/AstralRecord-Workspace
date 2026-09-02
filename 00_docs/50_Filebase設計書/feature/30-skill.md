@@ -57,7 +57,7 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 `hunter_arrow_rain` は2秒詠唱後に重力のある初弾を放ち、Mobまたはblockへの着弾地点を中心にLv.1で半径3m・45本、Lv.5で半径5m・81本の雨矢を3本/tickで降らせます。雨矢は初弾の正確な着弾Y以上にあるblockを貫通し、着弾Yより低い位置では従来どおり最初のblockで消滅します。初弾と雨矢は `RANGED` / `NONE` で、Lv.1基礎倍率は84% / 36%です。主ENG 16と副MP 8を同時消費し、クールダウンは12秒です。ハンターclassで初期使用許可を与え、習得個体は交換ジェムから作成します。
 `mage_fireball` は、射程16mの火球を最初のMobまたはBlockへ着弾させ、半径2.25m・最大4体へ火属性の範囲攻撃を行うメイジの初期魔法です。MP 12、4秒のクールダウン、0.2秒詠唱で、Lv.1の基礎倍率132%からレベル補正を加え、最大Lv.5では158.4%です。使用許可は `starter` node `1354` とAdministratorで与え、習得個体は `skill_gem_exchange` の無印原石2個交換から作成します。
 `mage_heal_aura` は、発動者を中心に水平半径4m・上下3m以内のゲームプレイ中プレイヤー全員を即時回復するメイジの短周期支援魔法です。回復量はLv.1の5からLv.5の9まで、消費MPは6、クールダウンはLv.1の2秒からLv.5の1.6秒まで短縮します。範囲輪郭は紫色の粒子リングで示し、実際に回復したプレイヤーへ追加の回復粒子を表示します。メイジclassとAdministratorで使用許可を与え、習得個体は `skill_gem_exchange` の無印原石2個交換から作成します。攻撃を行わないためDPS算出対象外です。
-`hunter_spell_step` は、`ranged` タグ付きスキルの成功後20tick以内に行う次のドッジを1回だけEN消費0にするバインド必須パッシブです。無料化成立時は `block.beacon.power_select` を再生し、通常のドッジ移動・成功通知・演出は維持します。`starter` node `1283` から使用許可を与え、ジェムは `skill_gem_exchange` の無印原石3個交換で入手します。攻撃を行わないためDPS算出対象外です。
+`hunter_spell_step` は、`ranged` タグ付きスキルの成功後20tick以内に行う次のドッジを1回だけENG消費0にするバインド必須パッシブです。無料化成立時は `block.beacon.power_select` を再生し、通常のドッジ移動・成功通知・演出は維持します。`starter` node `1283` から使用許可を与え、ジェムは `skill_gem_exchange` の無印原石3個交換で入手します。攻撃を行わないためDPS算出対象外です。
 
 `hunter_build_up` は発動後20秒間、`RANGED_ATTACK` の `SCALAR` 補正を10%付与するハンターの自己強化スキルです。クールダウンは30秒、消費はENERGY10、最大Lv.1とし、効果の実体は `hunter_build_up` buff masterへ委ねます。使用許可は `starter` node `1353` から与え、ジェムは `skill_gem_exchange` のslot19で無印原石3個から交換します。ハンターclassの `usableSkills` へは追加せず、Administratorには検証用の使用許可を与えます。
 
@@ -73,7 +73,7 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 
 `administrator_just_dodge` は `passive.bindRequired: true` のドッジ連動パッシブです。成功したドッジから `params.invulnerabilityTicks` tick の間、`NORMAL_ATTACK` / `SKILL` の直接攻撃を無効化します。無効化回数に上限は設けず、状態異常DoTは `DamageService.applyConditionDamage` の専用経路であるため対象外です。
 
-無効化時は既存のドッジパーティクルとシールドブロック音を表示し、同じドッジ中の最初の無効化時だけ `params.energyRecoveryAmount` のENを回復します。Lv.1・最大Lv.1の設定は無効化時間8 tick、EN回復量30です。ダメージを与えないためDPS算出対象外です。冒険者への使用許可は `starter` node `1350` から、ハンターへの使用許可は `starter` node `1355` から、Administratorへの検証用許可はclassから与えます。自動生成ジェムは `skill_gem_exchange` の1ページ目・slot20で無印原石3個から交換します。
+無効化時は既存のドッジパーティクルとシールドブロック音を表示し、同じドッジ中の最初の無効化時だけ `params.energyRecoveryAmount` のENGを回復します。Lv.1・最大Lv.1の設定は無効化時間8 tick、ENG回復量30です。ダメージを与えないためDPS算出対象外です。冒険者への使用許可は `starter` node `1350` から、ハンターへの使用許可は `starter` node `1355` から、Administratorへの検証用許可はclassから与えます。自動生成ジェムは `skill_gem_exchange` の1ページ目・slot20で無印原石3個から交換します。
 
 `adventurer_lightning_bolt` は、通常時は単体へ `MAGIC` / `LIGHTNING` を適用し、命中対象から半径5m以内にいる別の `SHOCKED` 状態の Mob へだけ最大2体を連鎖させる。連鎖は距離順・UUID順、視線遮蔽なしの対象を選び、連鎖先からの再連鎖と本スキルによる `SHOCKED` 付与は行わない。
 
@@ -83,7 +83,7 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 
 `adventurer_meditation` は、`passive.bindRequired: true` のバインド必須パッシブです。全職共通root node `1047` から使用許可を与え、冒険者classの直接許可からは除外します。YAML の `params.chargeTicks: 100` と `params.regenMultiplier: 3` は Plugin executor が固定値として検証し、スキルレベルでは変更しません。`chargeParticleIntervalTicks` / `activeParticleIntervalTicks` は控えめな予兆・維持演出の間隔、`activeSoundIntervalTicks` は発動中の環境音の間隔だけを指定します。環境音は `World#playSound` / `SoundCategory.PLAYERS` で音源位置の周囲へ再生し、効果対象の自然回復倍率は自身のみです。
 
-このスキルは最大値や固定回復量を持たず、Plugin の自然回復処理が持つ MP / EN の既存回復量へ条件付き倍率を適用します。スニーク解除、被弾、通常攻撃、他スキル使用で runtime 状態を破棄し、再発動には再度100 tickの継続が必要です。
+このスキルは最大値や固定回復量を持たず、Plugin の自然回復処理が持つ MP / ENG の既存回復量へ条件付き倍率を適用します。スニーク解除、被弾、通常攻撃、他スキル使用で runtime 状態を破棄し、再発動には再度100 tickの継続が必要です。
 
 ## progression
 

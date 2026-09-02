@@ -28,7 +28,7 @@ class DodgeServiceSpellStepTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-サービス.md
      * 章・見出し: # 03_3-サービス > ## 1. service メソッド仕様 > ### しゃがみ解除ドッジ判定
-     * 検証契約: 無償化resolverが0を返すドッジはEN 0でも拒否されず、実消費にも同じ0が渡される。
+     * 検証契約: 無償化resolverが0を返すドッジはENG 0でも拒否されず、実消費にも同じ0が渡される。
      */
     @Test
     void resolvedFreeDodgeBypassesEnergyShortageAndConsumesZero() {

@@ -9,7 +9,7 @@ name: "&eスペルステップ"
 description: "&7遠隔スキルから素早く身をかわす機動パッシブ。"
 icon: ENDER_PEARL
 lore:
-  - "&7遠隔タグ付きスキル発動後、{skill.windowTicks:seconds}秒以内の次のドッジはENを消費しない。"
+  - "&7遠隔タグ付きスキル発動後、{skill.windowTicks:seconds}秒以内の次のドッジはENGを消費しない。"
   - "&7効果はドッジ1回で消費され、発動時にサウンドを再生する。"
 cooldownTicks: 0
 resourceType: MANA

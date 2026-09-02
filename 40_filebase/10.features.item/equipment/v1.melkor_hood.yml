@@ -13,7 +13,7 @@ maxStack: 1
 saleValue: 820
 lore:
   - "&7影を縫い込んだ、狙いを妨げない頭巾。"
-  - "&7最大ENと命中率を高める間接向けの頭防具。"
+  - "&7最大ENGと命中率を高める間接向けの頭防具。"
 unTradeable: false
 unSellable: false
 equipment:

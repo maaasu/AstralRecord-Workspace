@@ -13,7 +13,7 @@ maxStack: 1
 saleValue: 220
 lore:
   - "&7クウィンヤの装備として作られた、視界を確保する頭巾。"
-  - "&7最大ENと命中率を高める間接向けの頭防具。"
+  - "&7最大ENGと命中率を高める間接向けの頭防具。"
 unTradeable: false
 unSellable: false
 equipment:

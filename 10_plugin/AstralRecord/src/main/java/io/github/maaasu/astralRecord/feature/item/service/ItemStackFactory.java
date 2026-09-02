@@ -1071,7 +1071,7 @@ public class ItemStackFactory {
         return switch (normalized) {
             case "HP", "HEALTH", "MAX_HEALTH" -> "HP";
             case "MP", "MANA", "MAX_MANA" -> "MP";
-            case "EN", "ENERGY", "MAX_ENERGY" -> "EN";
+            case "EN", "ENERGY", "MAX_ENERGY" -> "ENG";
             default -> {
                 StatusType statusType = resolveStatusTypeOrNull(rawStatus);
                 yield statusType == null ? "回復" : statusType.getDisplayName();

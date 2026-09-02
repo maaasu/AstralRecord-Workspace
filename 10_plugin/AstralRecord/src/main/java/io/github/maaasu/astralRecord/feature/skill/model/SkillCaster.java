@@ -47,10 +47,10 @@ public interface SkillCaster {
     double currentMana();
 
     /**
-     * 現在 EN を返します。
-     * EN を扱わない発動主体は {@code 0.0} を返して構いません。
+     * 現在 ENG を返します。
+     * ENG を扱わない発動主体は {@code 0.0} を返して構いません。
      *
-     * @return 現在 EN
+     * @return 現在 ENG
      */
     default double currentEnergy() {
         return 0.0D;
@@ -65,8 +65,8 @@ public interface SkillCaster {
     void consumeMana(double amount);
 
     /**
-     * EN を消費します。
-     * EN を扱わない発動主体は no-op で構いません。
+     * ENG を消費します。
+     * ENG を扱わない発動主体は no-op で構いません。
      *
      * @param amount 消費量
      */

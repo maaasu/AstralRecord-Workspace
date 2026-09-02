@@ -1036,7 +1036,7 @@ public class StatusService {
     }
 
     /**
-     * MP / EN 自然回復へ適用するパッシブ由来の倍率を返します。
+     * MP / ENG 自然回復へ適用するパッシブ由来の倍率を返します。
      *
      * @param player 対象プレイヤー
      * @param type 自然回復ステータス。MP_REGEN または ENERGY_REGEN
