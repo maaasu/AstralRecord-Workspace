@@ -33,6 +33,7 @@ import org.mockbukkit.mockbukkit.entity.PlayerMock;
 import org.mockbukkit.mockbukkit.plugin.PluginMock;
 
 import java.time.LocalDateTime;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -56,16 +57,16 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
      * 章・見出し: # 13_3-GUI・View > ## 2. 合成画面 > ### 2.1 シジルオーブ操作画面
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
      * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
-     * 検証契約: 装着オーブは起点entryを再検証し、対象個体と選択シジルでAPIを開始して、成功時にパッシブ・所持品表示を更新し使用したオーブIDをガイド進捗へ通知し、失敗時は通知しない。
+     * 検証契約: 装着オーブはitem IDの共通消費順で起点entryと選択シジルentryを解決してAPIを開始し、成功時にパッシブ・所持品表示を更新し使用したオーブIDをガイド進捗へ通知し、失敗時は通知しない。
      */
     @Test
-    void attachOrbShowsLearnedSkillsAndUsesSelectedSigilEntry() {
+    void attachOrbShowsLearnedSkillsAndUsesCommonConsumptionEntries() {
         PluginMock plugin = MockBukkit.createMockPlugin("SkillSigilOrbServiceTest");
         PlayerMock player = server().addPlayer();
         AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
         UUID accountId = astPlayer.getAccount().getUuid();
         UUID learnedSkillId = UUID.randomUUID();
-        UUID sigilEntryId = UUID.randomUUID();
+        UUID clickedSigilEntryId = UUID.randomUUID();
         LearnedSkillInstance learned = new LearnedSkillInstance(
             learnedSkillId,
             accountId,
@@ -79,9 +80,36 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         SkillDefinition definition = definition();
         ItemModel orb = orb();
         ItemModel sigil = sigil();
-        UUID orbEntryId = UUID.randomUUID();
-        InventoryEntryModel orbEntry = entry(accountId, orbEntryId, ItemCategory.ORB, orb.getId());
-        InventoryEntryModel sigilEntry = entry(accountId, sigilEntryId, ItemCategory.SIGIL, sigil.getId());
+        UUID bagInventoryId = UUID.randomUUID();
+        UUID hotbarInventoryId = UUID.randomUUID();
+        UUID commonOrbEntryId = UUID.fromString("00000000-0000-0000-0000-000000000012");
+        UUID commonSigilEntryId = UUID.fromString("00000000-0000-0000-0000-000000000021");
+        List<InventoryEntryModel> orbCandidates = List.of(
+            entry(accountId, UUID.fromString("00000000-0000-0000-0000-000000000011"),
+                bagInventoryId, 1, ItemCategory.ORB, orb.getId()),
+            entry(accountId, commonOrbEntryId, bagInventoryId, 5, ItemCategory.ORB, orb.getId()),
+            entry(accountId, UUID.fromString("00000000-0000-0000-0000-000000000013"),
+                hotbarInventoryId, 8, ItemCategory.ORB, orb.getId()),
+            entry(accountId, UUID.fromString("00000000-0000-0000-0000-000000000014"),
+                bagInventoryId, null, ItemCategory.ORB, orb.getId())
+        );
+        InventoryEntryModel clickedSigilEntry = entry(
+            accountId, clickedSigilEntryId, ItemCategory.SIGIL, sigil.getId());
+        List<InventoryEntryModel> sigilCandidates = List.of(
+            entry(accountId, UUID.fromString("00000000-0000-0000-0000-000000000023"),
+                bagInventoryId, 1, ItemCategory.SIGIL, sigil.getId()),
+            entry(accountId, commonSigilEntryId, bagInventoryId, 5, ItemCategory.SIGIL, sigil.getId()),
+            entry(accountId, UUID.fromString("00000000-0000-0000-0000-000000000022"),
+                bagInventoryId, 5, ItemCategory.SIGIL, sigil.getId()),
+            entry(accountId, UUID.fromString("00000000-0000-0000-0000-000000000024"),
+                hotbarInventoryId, 8, ItemCategory.SIGIL, sigil.getId()),
+            entry(accountId, UUID.fromString("00000000-0000-0000-0000-000000000025"),
+                bagInventoryId, null, ItemCategory.SIGIL, sigil.getId())
+        );
+        assertEquals(commonOrbEntryId,
+            commonConsumptionEntry(orbCandidates, bagInventoryId, hotbarInventoryId).getInventoryEntryId());
+        assertEquals(commonSigilEntryId,
+            commonConsumptionEntry(sigilCandidates, bagInventoryId, hotbarInventoryId).getInventoryEntryId());
 
         InventoryService inventoryService = mock(InventoryService.class);
         ItemService itemService = mock(ItemService.class);
@@ -94,16 +122,21 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         when(registry.getDefinition("adventurer_smash")).thenReturn(definition);
         when(learnedSkillService.getLearnedSkills(accountId)).thenReturn(List.of(learned));
         when(learnedSkillService.findInstance(accountId, learnedSkillId)).thenReturn(learned);
-        when(inventoryService.findOwnedEntry(accountId, orbEntryId)).thenReturn(orbEntry);
-        when(inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, 9)).thenReturn(sigilEntry);
+        when(inventoryService.findOwnedNormalItemEntryForConsumption(accountId, orb.getId()))
+            .thenAnswer(invocation -> commonConsumptionEntry(
+                orbCandidates, bagInventoryId, hotbarInventoryId));
+        when(inventoryService.findOwnedNormalItemEntryForConsumption(accountId, sigil.getId()))
+            .thenAnswer(invocation -> commonConsumptionEntry(
+                sigilCandidates, bagInventoryId, hotbarInventoryId));
+        when(inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, 9)).thenReturn(clickedSigilEntry);
         when(itemService.findLoadedById(orb.getId())).thenReturn(orb);
         when(itemService.findLoadedById(sigil.getId())).thenReturn(sigil);
         when(itemStackFactory.create(eq(sigil), eq(1))).thenReturn(new ItemStack(Material.AMETHYST_SHARD));
         AtomicReference<Consumer<LearnedSkillInstance>> success = new AtomicReference<>();
         AtomicReference<Consumer<Throwable>> failure = new AtomicReference<>();
         when(learnedSkillService.attachSigilAsync(
-            eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq(sigil.getId()),
-            eq(sigilEntryId), eq(accountId), any(), any()
+            eq(accountId), eq(learnedSkillId), eq(commonOrbEntryId), eq(sigil.getId()),
+            eq(commonSigilEntryId), eq(accountId), any(), any()
         )).thenAnswer(invocation -> {
             success.set(invocation.getArgument(6));
             failure.set(invocation.getArgument(7));
@@ -125,7 +158,7 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         );
         AtomicReference<String> guideOrbId = new AtomicReference<>();
         service.setUseSuccessListener((ignored, orbItemId) -> guideOrbId.set(orbItemId));
-        service.start(player, astPlayer, orbEntryId, orb, false, () -> { });
+        service.start(player, astPlayer, orb, false, () -> { });
 
         SkillSigilOrbGuiHolder listHolder = assertInstanceOf(
             SkillSigilOrbGuiHolder.class,
@@ -143,10 +176,11 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         service.handleGuiClick(click(player, player.getOpenInventory().getTopInventory(), 16, true));
 
         verify(learnedSkillService).attachSigilAsync(
-            eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq(sigil.getId()),
-            eq(sigilEntryId), eq(accountId), any(), any()
+            eq(accountId), eq(learnedSkillId), eq(commonOrbEntryId), eq(sigil.getId()),
+            eq(commonSigilEntryId), eq(accountId), any(), any()
         );
-        verify(inventoryService, atLeastOnce()).findOwnedEntry(accountId, orbEntryId);
+        verify(inventoryService, atLeastOnce()).findOwnedNormalItemEntryForConsumption(
+            accountId, orb.getId());
 
         success.get().accept(learned);
 
@@ -156,7 +190,7 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         assertFalse(service.isSkillSigilInventory(player.getOpenInventory().getTopInventory()));
 
         guideOrbId.set(null);
-        service.start(player, astPlayer, orbEntryId, orb, false, () -> { });
+        service.start(player, astPlayer, orb, false, () -> { });
         service.handleGuiClick(click(player, player.getOpenInventory().getTopInventory(), 0, true));
         service.handleGuiClick(click(player, player.getOpenInventory().getTopInventory(), 9, false));
         service.handleGuiClick(click(player, player.getOpenInventory().getTopInventory(), 16, true));
@@ -170,7 +204,7 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
      * 章・見出し: # 13_3-GUI・View > ## 2. 合成画面 > ### 2.1 シジルオーブ操作画面
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
      * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
-     * 検証契約: 脱着オーブは唯一の装着行UUIDでAPIを開始し、成功時にパッシブ・所持品表示を更新してGUIを閉じ、使用したオーブIDをガイド進捗へ通知する。
+     * 検証契約: 脱着オーブは共通消費順で解決したオーブentryと唯一の装着行UUIDでAPIを開始し、成功時にパッシブ・所持品表示を更新してGUIを閉じ、使用したオーブIDをガイド進捗へ通知する。
      */
     @Test
     void detachOrbUsesSelectedAttachmentId() {
@@ -207,7 +241,8 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         when(registry.getDefinition("adventurer_smash")).thenReturn(definition);
         when(learnedSkillService.getLearnedSkills(accountId)).thenReturn(List.of(learned));
         when(learnedSkillService.findInstance(accountId, learnedSkillId)).thenReturn(learned);
-        when(inventoryService.findOwnedEntry(accountId, orbEntryId)).thenReturn(orbEntry);
+        when(inventoryService.findOwnedNormalItemEntryForConsumption(accountId, orb.getId()))
+            .thenReturn(orbEntry);
         when(itemService.findLoadedById(orb.getId())).thenReturn(orb);
         when(itemService.findLoadedById(sigil.getId())).thenReturn(sigil);
         when(itemStackFactory.create(eq(sigil), eq(1))).thenReturn(new ItemStack(Material.AMETHYST_SHARD));
@@ -234,7 +269,7 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         );
         AtomicReference<String> guideOrbId = new AtomicReference<>();
         service.setUseSuccessListener((ignored, orbItemId) -> guideOrbId.set(orbItemId));
-        service.start(player, astPlayer, orbEntryId, orb, false, () -> { });
+        service.start(player, astPlayer, orb, false, () -> { });
         service.handleGuiClick(click(player, player.getOpenInventory().getTopInventory(), 0, true));
         SkillSigilOrbGuiHolder detachHolder = assertInstanceOf(
             SkillSigilOrbGuiHolder.class,
@@ -327,11 +362,22 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         ItemCategory category,
         String itemId
     ) {
+        return entry(accountId, entryId, UUID.randomUUID(), null, category, itemId);
+    }
+
+    private static InventoryEntryModel entry(
+        UUID accountId,
+        UUID entryId,
+        UUID inventoryId,
+        Integer slotIndex,
+        ItemCategory category,
+        String itemId
+    ) {
         LocalDateTime now = LocalDateTime.now();
         return new InventoryEntryModel(
             entryId,
-            UUID.randomUUID(),
-            null,
+            inventoryId,
+            slotIndex,
             category.getApiValue(),
             itemId,
             null,
@@ -344,5 +390,23 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
             accountId,
             false
         );
+    }
+
+    private static InventoryEntryModel commonConsumptionEntry(
+        List<InventoryEntryModel> candidates,
+        UUID bagInventoryId,
+        UUID hotbarInventoryId
+    ) {
+        return candidates.stream()
+            .filter(candidate -> candidate.getQuantity() > 0L)
+            .min(Comparator
+                .comparingInt((InventoryEntryModel candidate) ->
+                    candidate.getInventoryId().equals(bagInventoryId) ? 0
+                        : candidate.getInventoryId().equals(hotbarInventoryId) ? 1 : 2)
+                .thenComparing(
+                    InventoryEntryModel::getSlotIndex,
+                    Comparator.nullsLast(Comparator.reverseOrder()))
+                .thenComparing(InventoryEntryModel::getInventoryEntryId))
+            .orElse(null);
     }
 }

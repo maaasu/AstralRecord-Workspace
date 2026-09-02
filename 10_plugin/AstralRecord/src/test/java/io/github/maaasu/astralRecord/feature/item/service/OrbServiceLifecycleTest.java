@@ -38,6 +38,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
+import io.github.maaasu.astralRecord.feature.skill.service.SkillSigilOrbService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
@@ -228,6 +229,30 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             eq(harness.additionalOrbEntryId.toString()),
             eq(harness.orbModel.getId()),
             any(),
+            any()
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 2. 合成画面 > ### 2.1 シジルオーブ操作画面
+     * 検証契約: 通常インベントリのクリックはitem IDだけをシジルオーブ操作へ渡し、クリックしたentry IDを消費元として固定しない。
+     */
+    @Test
+    void directInventorySigilOrbSelectionDoesNotFixClickedEntry() {
+        Harness harness = new Harness(ItemOrbEffectType.SIGIL_ATTACH);
+        SkillSigilOrbService skillSigilOrbService = mock(SkillSigilOrbService.class);
+        harness.service.setSkillSigilOrbService(skillSigilOrbService);
+
+        InventoryClickEvent click = harness.normalInventoryClick(9);
+        harness.handler.onInventoryClick(click);
+
+        verify(click).setCancelled(true);
+        verify(skillSigilOrbService).start(
+            eq(harness.player),
+            eq(harness.astPlayer),
+            eq(harness.orbModel),
+            eq(false),
             any()
         );
     }

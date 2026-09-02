@@ -215,9 +215,9 @@ public final class LearnedSkillService {
      *
      * @param accountId アカウント ID
      * @param learnedSkillId 対象の習得済みスキル個体 ID
-     * @param orbInventoryEntryId 消費する SIGIL_ATTACH オーブの inventory entry ID
+     * @param orbInventoryEntryId 操作確定時に共通消費順で解決済みの SIGIL_ATTACH オーブ inventory entry ID
      * @param sigilId 装着するシジル item ID
-     * @param sigilInventoryEntryId 消費するシジルの inventory entry ID
+     * @param sigilInventoryEntryId 操作確定時に共通消費順で解決済みのシジル inventory entry ID
      * @param updatedBy 更新者 ID
      * @param onSuccess API 更新と素材entry同期の成功時処理
      * @param onFailure API 更新または正本同期の失敗時処理
@@ -254,7 +254,7 @@ public final class LearnedSkillService {
      *
      * @param accountId アカウント ID
      * @param learnedSkillId 対象の習得済みスキル個体 ID
-     * @param orbInventoryEntryId 消費する SIGIL_DETACH オーブの inventory entry ID
+     * @param orbInventoryEntryId 操作確定時に共通消費順で解決済みの SIGIL_DETACH オーブ inventory entry ID
      * @param learnedSkillSigilId 取り外す装着シジル行 ID
      * @param updatedBy 更新者 ID
      * @param onSuccess API 更新と返却 entry 同期の成功時処理

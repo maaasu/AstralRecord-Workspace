@@ -53,7 +53,8 @@ import java.util.function.BiConsumer;
 /**
  * シジル用オーブから、習得済みスキル一覧・装着・脱着 GUI を提供します。
  *
- * <p>装着・脱着の成立時は、起点オーブを1個消費します。装着時は選択した SIGIL entry も API が消費し、
+ * <p>装着・脱着の成立時は、起点オーブを1個消費します。装着時は選択した SIGIL item IDから
+ * 通常アイテム共通消費順で解決したentryも API が消費し、
  * 脱着時は API が返却した entry を {@link LearnedSkillService} がローカル所持品へ同期します。</p>
  */
 public final class SkillSigilOrbService {
@@ -137,15 +138,13 @@ public final class SkillSigilOrbService {
      *
      * @param player 操作プレイヤー
      * @param astPlayer ロード済みプレイヤー状態
-     * @param orbInventoryEntryId 操作を開始したオーブentry ID
-     * @param orbModel 起点オーブのマスタ
+     * @param orbModel 選択したオーブのマスタ。消費元entryはitem IDの共通順で解決する
      * @param returnToOrbListOnFailure 対象がない場合にオーブ一覧へ戻すか
      * @param openOrbList オーブ一覧へ戻る処理
      */
     public void start(
         @NotNull Player player,
         @NotNull AstPlayer astPlayer,
-        @NotNull UUID orbInventoryEntryId,
         @NotNull ItemModel orbModel,
         boolean returnToOrbListOnFailure,
         @NotNull Runnable openOrbList
@@ -156,7 +155,8 @@ public final class SkillSigilOrbService {
             return;
         }
         UUID accountId = astPlayer.getAccount().getUuid();
-        if (!ownsOrb(accountId, orbInventoryEntryId, orbModel.getId(), type)) {
+        InventoryEntryModel orbEntry = resolveOrbEntryForConsumption(accountId, orbModel.getId(), type);
+        if (orbEntry == null) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -171,7 +171,7 @@ public final class SkillSigilOrbService {
             astPlayer,
             accountId,
             UUID.randomUUID(),
-            orbInventoryEntryId,
+            orbEntry.getInventoryEntryId(),
             orbModel.getId(),
             type,
             openOrbList
@@ -347,12 +347,7 @@ public final class SkillSigilOrbService {
 
     private void handleOperationClick(int slot, @NotNull Session session) {
         SkillTarget target = currentTarget(session);
-        if (target == null || !ownsOrb(
-            session.accountId,
-            session.orbInventoryEntryId,
-            session.orbItemId,
-            session.type
-        )) {
+        if (target == null || resolveCurrentOrbEntry(session) == null) {
             closeAndRemove(session);
             PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5873);
             GuiSound.DENY.play(session.player);
@@ -360,7 +355,6 @@ public final class SkillSigilOrbService {
         }
         if (slot == BACK_SLOT) {
             session.selectedSigilItemId = null;
-            session.selectedInventoryEntryId = null;
             session.selectedLearnedSkillSigilId = null;
             openList(session, collectCandidates(session), true);
             return;
@@ -368,7 +362,6 @@ public final class SkillSigilOrbService {
         if (session.screen == SkillSigilOrbGuiHolder.Screen.ATTACH
             && slot == SELECTION_SLOT && session.selectedSigilItemId != null) {
             session.selectedSigilItemId = null;
-            session.selectedInventoryEntryId = null;
             renderOperation(session, target);
             GuiSound.SELECT.play(session.player);
             return;
@@ -400,7 +393,6 @@ public final class SkillSigilOrbService {
             return;
         }
         session.selectedSigilItemId = sigil.getId();
-        session.selectedInventoryEntryId = entry.getInventoryEntryId();
         renderOperation(session, target);
         GuiSound.SELECT.play(session.player);
     }
@@ -447,16 +439,26 @@ public final class SkillSigilOrbService {
 
     private void execute(@NotNull Session session, @NotNull SkillTarget target) {
         if (session.locked) return;
+        if (resolveCurrentOrbEntry(session) == null) {
+            fail(session, null);
+            return;
+        }
         session.locked = true;
         renderProcessing(session);
         boolean scheduled;
         if (session.type == ItemOrbEffectType.SIGIL_ATTACH) {
+            InventoryEntryModel sigilEntry = inventoryService.findOwnedNormalItemEntryForConsumption(
+                session.accountId, session.selectedSigilItemId);
+            if (sigilEntry == null) {
+                fail(session, new IllegalStateException("Selected sigil is no longer available"));
+                return;
+            }
             scheduled = learnedSkillService.attachSigilAsync(
                 session.accountId,
                 target.learnedSkill.getLearnedSkillId(),
                 session.orbInventoryEntryId,
                 session.selectedSigilItemId,
-                session.selectedInventoryEntryId,
+                sigilEntry.getInventoryEntryId(),
                 session.accountId,
                 updated -> complete(session),
                 error -> fail(session, error)
@@ -497,7 +499,6 @@ public final class SkillSigilOrbService {
         } else {
             if (session.type == ItemOrbEffectType.SIGIL_ATTACH) {
                 session.selectedSigilItemId = null;
-                session.selectedInventoryEntryId = null;
             } else if (target.learnedSkill.getSigils().stream().noneMatch(sigil ->
                 sigil.getLearnedSkillSigilId().equals(session.selectedLearnedSkillSigilId))) {
                 session.selectedLearnedSkillSigilId = null;
@@ -571,7 +572,6 @@ public final class SkillSigilOrbService {
     private void openOperation(@NotNull Session session, @NotNull SkillTarget target) {
         session.selectedLearnedSkillId = target.learnedSkill.getLearnedSkillId();
         session.selectedSigilItemId = null;
-        session.selectedInventoryEntryId = null;
         session.selectedLearnedSkillSigilId = null;
         if (session.type == ItemOrbEffectType.SIGIL_DETACH && target.learnedSkill.getSigils().size() == 1) {
             LearnedSkillSigil sigil = target.learnedSkill.getSigils().getFirst();
@@ -684,16 +684,16 @@ public final class SkillSigilOrbService {
     }
 
     private boolean isOperationReady(@NotNull Session session, @NotNull SkillTarget target) {
-        if (!ownsOrb(session.accountId, session.orbInventoryEntryId, session.orbItemId, session.type)
+        if (resolveCurrentOrbEntry(session) == null
             || session.selectedSigilItemId == null) return false;
         if (session.type == ItemOrbEffectType.SIGIL_DETACH) {
             return session.selectedLearnedSkillSigilId != null && target.learnedSkill.getSigils().stream().anyMatch(sigil ->
                 sigil.getLearnedSkillSigilId().equals(session.selectedLearnedSkillSigilId)
                     && sigil.getSigilId().equalsIgnoreCase(session.selectedSigilItemId));
         }
-        if (session.selectedInventoryEntryId == null) return false;
         ItemModel sigil = itemService.findLoadedById(session.selectedSigilItemId);
         return sigil != null
+            && inventoryService.findOwnedNormalItemEntryForConsumption(session.accountId, sigil.getId()) != null
             && SkillSynthesisMaterialEligibility.resolve(target.learnedSkill, target.definition, sigil) == MaterialKind.SIGIL;
     }
 
@@ -806,18 +806,31 @@ public final class SkillSigilOrbService {
             ? session : null;
     }
 
-    private boolean ownsOrb(
+    private @Nullable InventoryEntryModel resolveOrbEntryForConsumption(
         @NotNull UUID accountId,
-        @NotNull UUID orbInventoryEntryId,
         @NotNull String orbItemId,
         @NotNull ItemOrbEffectType expectedType
     ) {
-        InventoryEntryModel entry = inventoryService.findOwnedEntry(accountId, orbInventoryEntryId);
-        if (entry == null || entry.getQuantity() <= 0L || entry.getItemId() == null) return false;
+        InventoryEntryModel entry = inventoryService.findOwnedNormalItemEntryForConsumption(accountId, orbItemId);
+        if (entry == null || entry.getQuantity() <= 0L || entry.getItemId() == null) return null;
         ItemModel model = itemService.findLoadedById(entry.getItemId());
         return model != null
             && effectType(model) == expectedType
-            && model.getId().equalsIgnoreCase(orbItemId);
+            && model.getId().equalsIgnoreCase(orbItemId)
+            ? entry
+            : null;
+    }
+
+    private @Nullable InventoryEntryModel resolveCurrentOrbEntry(@NotNull Session session) {
+        InventoryEntryModel entry = resolveOrbEntryForConsumption(
+            session.accountId,
+            session.orbItemId,
+            session.type
+        );
+        if (entry != null) {
+            session.orbInventoryEntryId = entry.getInventoryEntryId();
+        }
+        return entry;
     }
 
     private @Nullable ItemOrbEffectType effectType(@Nullable ItemModel orbModel) {
@@ -865,7 +878,7 @@ public final class SkillSigilOrbService {
         private final AstPlayer astPlayer;
         private final UUID accountId;
         private final UUID token;
-        private final UUID orbInventoryEntryId;
+        private UUID orbInventoryEntryId;
         private final String orbItemId;
         private final ItemOrbEffectType type;
         private final Runnable openOrbList;
@@ -876,7 +889,6 @@ public final class SkillSigilOrbService {
         private Map<Integer, UUID> displayedTargets = Map.of();
         private UUID selectedLearnedSkillId;
         private String selectedSigilItemId;
-        private UUID selectedInventoryEntryId;
         private UUID selectedLearnedSkillSigilId;
         private boolean locked;
         private boolean transitioning;

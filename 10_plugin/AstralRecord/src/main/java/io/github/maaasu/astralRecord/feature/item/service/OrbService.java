@@ -285,23 +285,21 @@ public final class OrbService {
         }
 
         event.setCancelled(true);
-        startOrbOperation(player, astPlayer, entry, orbModel, false);
+        startOrbOperation(player, astPlayer, orbModel, false);
         return true;
     }
 
     /**
-     * 指定された所持オーブを起点に、既存の装備候補 GUI を開くセッションを開始します。
+     * 指定されたオーブ item IDを起点に、消費元entryを共通消費順で解決して既存の装備候補GUIを開くセッションを開始します。
      *
      * @param player 操作プレイヤー
      * @param astPlayer ログイン中のプレイヤー状態
-     * @param originEntry 操作を開始した所持オーブentry
      * @param orbModel 起点オーブのマスタ
      * @param returnToInventoryOrbListOnFailure 対象装備がない場合に所持オーブ一覧へ戻すか
      */
     private void startOrbOperation(
         @NotNull Player player,
         @NotNull AstPlayer astPlayer,
-        @NotNull InventoryEntryModel originEntry,
         @NotNull ItemModel orbModel,
         boolean returnToInventoryOrbListOnFailure
     ) {
@@ -323,7 +321,6 @@ public final class OrbService {
             skillSigilOrbService.start(
                 player,
                 astPlayer,
-                originEntry.getInventoryEntryId(),
                 orbModel,
                 returnToInventoryOrbListOnFailure,
                 () -> openInventoryOrbList(player, astPlayer, null)
@@ -752,7 +749,7 @@ public final class OrbService {
         }
 
         inventoryOrbListSessions.remove(player.getUniqueId(), session);
-        startOrbOperation(player, session.astPlayer, entry, orbModel, true);
+        startOrbOperation(player, session.astPlayer, orbModel, true);
     }
 
     /**
