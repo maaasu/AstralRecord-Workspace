@@ -20,6 +20,18 @@ public class AccountLearnedSkillSigilResponse
     public int SlotIndex { get; init; }
 }
 
+public class AccountLearnedSkillConsumedMaterialResponse
+{
+    public Guid InventoryEntryId { get; init; }
+    public long ConsumedAmount { get; init; }
+}
+
+public class AccountLearnedSkillMaterialMutationResponse
+{
+    public required AccountLearnedSkillResponse Skill { get; init; }
+    public IReadOnlyList<AccountLearnedSkillConsumedMaterialResponse> ConsumedMaterials { get; init; } = [];
+}
+
 public class AccountLearnedSkillLearnRequest
 {
     public required string SkillId { get; init; }
@@ -75,7 +87,8 @@ public enum AccountLearnedSkillMutationFailure
 public record AccountLearnedSkillMutationResult(
     AccountLearnedSkillResponse? Skill,
     AccountLearnedSkillMutationFailure Failure,
-    Guid? ReturnedInventoryEntryId = null)
+    Guid? ReturnedInventoryEntryId = null,
+    IReadOnlyList<AccountLearnedSkillConsumedMaterialResponse>? ConsumedMaterials = null)
 {
     public bool Succeeded => Failure == AccountLearnedSkillMutationFailure.None && Skill is not null;
 }

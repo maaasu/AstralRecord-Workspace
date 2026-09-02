@@ -107,7 +107,9 @@ public final class LearnedSkillResolver {
             base.getMaxLevel(),
             base.getLevels(),
             base.getSigilSlotsByLevel(),
-            base.getAllowedSigilIds()
+            base.getAllowedSigilIds(),
+            base.getLearnRequiredItems(),
+            base.getLevelUpRequiredItems()
         );
         return new ResolvedLearnedSkill(learned, resolved, statusBonuses, sigilIds);
     }

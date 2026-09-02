@@ -23,16 +23,18 @@ public class AccountLearnedSkillController(IAccountLearnedSkillRepository reposi
         }
     }
 
+    /// <summary>スキルmasterの必要素材を原子的に消費し、更新後個体と実消費entry・数量を返します。</summary>
     [HttpPost("learn")]
     public async Task<IActionResult> Learn(Guid accountId, [FromBody] AccountLearnedSkillLearnRequest request)
-        => ToActionResult(await repository.LearnAsync(accountId, request));
+        => ToMaterialActionResult(await repository.LearnAsync(accountId, request));
 
+    /// <summary>スキルmasterの必要素材を原子的に消費し、レベル更新後個体と実消費entry・数量を返します。</summary>
     [HttpPost("{learnedSkillId:guid}/level-up")]
     public async Task<IActionResult> LevelUp(
         Guid accountId,
         Guid learnedSkillId,
         [FromBody] AccountLearnedSkillLevelUpRequest request)
-        => ToActionResult(await repository.LevelUpAsync(accountId, learnedSkillId, request));
+        => ToMaterialActionResult(await repository.LevelUpAsync(accountId, learnedSkillId, request));
 
     /// <summary>指定した習得済みスキル個体へ対応するオーブとシジルを各1個消費して装着します。</summary>
     [HttpPost("{learnedSkillId:guid}/sigils")]
@@ -86,5 +88,17 @@ public class AccountLearnedSkillController(IAccountLearnedSkillRepository reposi
                 or AccountLearnedSkillMutationFailure.SigilAttachmentNotFound => NotFound(new { failure = result.Failure.ToString() }),
             _ => Conflict(new { failure = result.Failure.ToString() }),
         };
+    }
+
+    private IActionResult ToMaterialActionResult(AccountLearnedSkillMutationResult result)
+    {
+        if (!result.Succeeded)
+            return ToActionResult(result);
+
+        return Ok(new AccountLearnedSkillMaterialMutationResponse
+        {
+            Skill = result.Skill!,
+            ConsumedMaterials = result.ConsumedMaterials ?? [],
+        });
     }
 }

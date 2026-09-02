@@ -782,6 +782,25 @@ public class InventoryService {
         @NotNull UUID accountId,
         @NotNull UUID inventoryEntryId
     ) {
+        consumeOwnedEntryAfterAuthoritativeMutation(accountId, inventoryEntryId, 1L);
+    }
+
+    /**
+     * APIが確定した消費数量を、正本再同期失敗時のローカルentryへ反映します。
+     *
+     * <p>対象entryの数量が消費数以下ならentryを削除し、後続slotを通常規則で前詰めします。
+     * 対象accountのインベントリstateが未ロード、対象entryが不在、または消費数が0以下なら変更しません。</p>
+     *
+     * @param accountId 対象アカウントID
+     * @param inventoryEntryId APIが消費を確定したinventory entry ID
+     * @param consumedAmount API応答の消費数量
+     */
+    public void consumeOwnedEntryAfterAuthoritativeMutation(
+        @NotNull UUID accountId,
+        @NotNull UUID inventoryEntryId,
+        long consumedAmount
+    ) {
+        if (consumedAmount <= 0L) return;
         PlayerInventoryState state = getState(accountId);
         if (state == null) return;
         synchronized (state) {
@@ -792,12 +811,12 @@ public class InventoryService {
                     if (entry.isDeleted() || !entry.getInventoryEntryId().equals(inventoryEntryId)) {
                         continue;
                     }
-                    if (entry.getQuantity() <= 1) {
+                    if (entry.getQuantity() <= consumedAmount) {
                         entries.remove(index);
                         state.replaceEntries(inventory.getInventoryId(), entries);
                         compactInventoryEntriesAfterRemoval(state, inventory.getInventoryId());
                     } else {
-                        entries.set(index, withQuantity(entry, entry.getQuantity() - 1, accountId));
+                        entries.set(index, withQuantity(entry, entry.getQuantity() - consumedAmount, accountId));
                         state.replaceEntries(inventory.getInventoryId(), entries);
                     }
                     return;

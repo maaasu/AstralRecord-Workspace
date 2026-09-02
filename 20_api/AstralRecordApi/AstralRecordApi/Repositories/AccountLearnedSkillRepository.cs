@@ -76,7 +76,7 @@ public class AccountLearnedSkillRepository(
             await dbContext.AccountLearnedSkills.AddAsync(entity);
             ConsumeMaterials(materials, request.UpdatedBy, now);
             await dbContext.SaveChangesAsync();
-            return Success(Map(entity));
+            return Success(Map(entity), consumedMaterials: MapConsumedMaterials(materials));
         });
     }
 
@@ -107,7 +107,7 @@ public class AccountLearnedSkillRepository(
             entity.UpdatedBy = request.UpdatedBy;
             ConsumeMaterials(materials, request.UpdatedBy, now);
             await dbContext.SaveChangesAsync();
-            return Success(Map(entity));
+            return Success(Map(entity), consumedMaterials: MapConsumedMaterials(materials));
         });
     }
 
@@ -368,20 +368,35 @@ public class AccountLearnedSkillRepository(
             .ToArray();
         if (normalized.Length != requirements.Count || normalized.Any(requirement => string.IsNullOrWhiteSpace(requirement.ItemId)))
             return null;
+        if (normalized.Length == 0)
+            return [];
+
+        var inventories = await dbContext.Inventories
+            .Where(inventory => inventory.AccountId == accountId
+                && !inventory.IsDeleted
+                && inventory.IsEnabled
+                && inventory.InventoryProfile == "GAME"
+                && (inventory.InventoryType == "BAG" || inventory.InventoryType == "HOTBAR"))
+            .Select(inventory => new { inventory.InventoryId, inventory.InventoryType })
+            .ToArrayAsync();
+        var inventoryIds = inventories.Select(inventory => inventory.InventoryId).ToArray();
+        var inventoryTypeById = inventories.ToDictionary(
+            inventory => inventory.InventoryId,
+            inventory => inventory.InventoryType);
 
         var result = new List<(InventoryEntryEntity Entry, long Amount)>();
         foreach (var requirement in normalized)
         {
-            var entries = await (from entry in dbContext.InventoryEntries
-                                 join inventory in dbContext.Inventories on entry.InventoryId equals inventory.InventoryId
-                                 where !entry.IsDeleted && entry.Quantity > 0
-                                       && !inventory.IsDeleted && inventory.IsEnabled
-                                       && inventory.InventoryProfile == "GAME" && inventory.AccountId == accountId
-                                       && entry.ItemId == requirement.ItemId
-                                 orderby entry.InventoryEntryId
-                                 select entry).ToArrayAsync();
+            var entries = await dbContext.InventoryEntries
+                .Where(entry => inventoryIds.Contains(entry.InventoryId)
+                    && !entry.IsDeleted
+                    && entry.Quantity > 0
+                    && entry.InstanceId == null
+                    && (entry.InstanceType == null || entry.InstanceType == string.Empty)
+                    && entry.ItemId == requirement.ItemId)
+                .ToArrayAsync();
             long remaining = requirement.Amount;
-            foreach (var entry in entries)
+            foreach (var entry in InventoryEntryConsumptionOrder.OrderNormalEntries(entries, inventoryTypeById))
             {
                 var amount = Math.Min(remaining, entry.Quantity);
                 if (amount > 0) result.Add((entry, amount));
@@ -406,6 +421,16 @@ public class AccountLearnedSkillRepository(
             entry.UpdatedBy = updatedBy;
         }
     }
+
+    private static IReadOnlyList<AccountLearnedSkillConsumedMaterialResponse> MapConsumedMaterials(
+        IReadOnlyList<(InventoryEntryEntity Entry, long Amount)> materials)
+        => materials
+            .Select(material => new AccountLearnedSkillConsumedMaterialResponse
+            {
+                InventoryEntryId = material.Entry.InventoryEntryId,
+                ConsumedAmount = material.Amount,
+            })
+            .ToArray();
 
     private async Task<SkillResponse?> GetSkillAsync(string skillId)
     {
@@ -751,8 +776,9 @@ public class AccountLearnedSkillRepository(
         => string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
     private static AccountLearnedSkillMutationResult Success(
         AccountLearnedSkillResponse skill,
-        Guid? returnedInventoryEntryId = null)
-        => new(skill, AccountLearnedSkillMutationFailure.None, returnedInventoryEntryId);
+        Guid? returnedInventoryEntryId = null,
+        IReadOnlyList<AccountLearnedSkillConsumedMaterialResponse>? consumedMaterials = null)
+        => new(skill, AccountLearnedSkillMutationFailure.None, returnedInventoryEntryId, consumedMaterials);
     private static AccountLearnedSkillMutationResult Failure(AccountLearnedSkillMutationFailure failure)
         => new(null, failure);
 }

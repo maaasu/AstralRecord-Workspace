@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillRequiredItemDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillSummary;
 import io.github.maaasu.astralRecord.feature.skill.registry.SkillRegistry;
@@ -55,7 +56,7 @@ class SkillServiceDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 1. definition load / reload
-     * 検証契約: reload時に登録executorがありparams検証を通るdefinitionだけを一括公開する。
+     * 検証契約: reload時に登録executorがありparams検証を通るdefinitionだけを、習得・強化素材を保持して一括公開する。
      */
     @Test
     void reloadDefinitionsKeepsOnlyDefinitionsWithRegisteredExecutorsAndValidParams() {
@@ -64,13 +65,21 @@ class SkillServiceDesignTest extends MockBukkitTestBase {
         SkillService service = new SkillService(repository, registry, null);
         registry.registerExecutor(new TestExecutor("valid_impl"));
         registry.registerExecutor(new RejectingExecutor("rejecting_impl"));
+        List<SkillRequiredItemDefinition> learnRequiredItems = List.of(
+            new SkillRequiredItemDefinition("skill_gem_raw", 1)
+        );
+        List<SkillRequiredItemDefinition> levelUpRequiredItems = List.of(
+            new SkillRequiredItemDefinition("skill_gem_raw_beginner", 2)
+        );
 
         when(repository.findAll()).thenReturn(List.of(
             summary("valid_skill", "valid_impl"),
             summary("missing_executor_skill", "missing_impl"),
             summary("bad_params_skill", "rejecting_impl")
         ));
-        when(repository.findById("valid_skill")).thenReturn(skill("valid_skill", "valid_impl", 0.0D, 0L, Map.of()));
+        when(repository.findById("valid_skill")).thenReturn(skillWithRequiredItems(
+            "valid_skill", "valid_impl", learnRequiredItems, levelUpRequiredItems
+        ));
         when(repository.findById("missing_executor_skill")).thenReturn(skill("missing_executor_skill", "missing_impl", 0.0D, 0L, Map.of()));
         when(repository.findById("bad_params_skill")).thenReturn(skill("bad_params_skill", "rejecting_impl", 0.0D, 0L, Map.of()));
 
@@ -84,7 +93,10 @@ class SkillServiceDesignTest extends MockBukkitTestBase {
 
         assertEquals(1, loaded);
         assertEquals(1, registry.definitionCount());
-        assertNotNull(registry.getDefinition("valid_skill"));
+        SkillDefinition loadedDefinition = registry.getDefinition("valid_skill");
+        assertNotNull(loadedDefinition);
+        assertEquals(learnRequiredItems, loadedDefinition.getLearnRequiredItems());
+        assertEquals(levelUpRequiredItems, loadedDefinition.getLevelUpRequiredItems());
         assertNull(registry.getDefinition("missing_executor_skill"));
         assertNull(registry.getDefinition("bad_params_skill"));
     }
@@ -638,6 +650,40 @@ class SkillServiceDesignTest extends MockBukkitTestBase {
             List.of(),
             List.of(),
             List.of()
+        );
+    }
+
+    private SkillDefinition skillWithRequiredItems(
+        String id,
+        String implementationId,
+        List<SkillRequiredItemDefinition> learnRequiredItems,
+        List<SkillRequiredItemDefinition> levelUpRequiredItems
+    ) {
+        return new SkillDefinition(
+            id,
+            implementationId,
+            id,
+            null,
+            null,
+            List.of(),
+            0L,
+            0.0D,
+            0L,
+            1,
+            null,
+            Map.of(),
+            List.of(),
+            SkillKind.ACTIVE,
+            true,
+            SkillResourceType.MANA,
+            0.0D,
+            null,
+            1,
+            List.of(),
+            List.of(),
+            List.of(),
+            learnRequiredItems,
+            levelUpRequiredItems
         );
     }
 

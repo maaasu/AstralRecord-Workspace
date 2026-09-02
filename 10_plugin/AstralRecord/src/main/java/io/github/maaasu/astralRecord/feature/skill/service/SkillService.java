@@ -1473,7 +1473,9 @@ public class SkillService {
                 definition.getMaxLevel(),
                 definition.getLevels(),
                 definition.getSigilSlotsByLevel(),
-                definition.getAllowedSigilIds()
+                definition.getAllowedSigilIds(),
+                definition.getLearnRequiredItems(),
+                definition.getLevelUpRequiredItems()
         );
     }
 

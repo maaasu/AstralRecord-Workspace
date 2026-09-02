@@ -2,6 +2,8 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillConsumedMaterial;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMaterialMutationResult;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationFailure;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigilDetachResult;
@@ -21,9 +23,11 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -59,7 +63,12 @@ class LearnedSkillServiceTest {
             return mock(BukkitTask.class);
         }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
         when(inventoryService.saveNow(accountId)).thenReturn(CompletableFuture.completedFuture(false));
-        when(repository.learn(accountId, "adventurer_smash", accountId)).thenReturn(learned);
+        when(repository.learn(accountId, "adventurer_smash", accountId)).thenReturn(
+            new LearnedSkillMaterialMutationResult(
+                learned,
+                List.of(new LearnedSkillConsumedMaterial(materialEntryId, 1L))
+            )
+        );
 
         LearnedSkillService service = new LearnedSkillService(plugin, repository, inventoryService);
         service.applyInitialSkills(accountId, List.of());
@@ -73,6 +82,63 @@ class LearnedSkillServiceTest {
         assertEquals(learned, service.findInstance(accountId, learned.getLearnedSkillId()));
         verify(repository).learn(accountId, "adventurer_smash", accountId);
         verify(inventoryService).reconcileAuthoritativeEntry(accountId, materialEntryId);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: 正本再同期失敗時はAPI応答で実際に消費されたentryへ正確な数量だけを反映し、STORAGE候補を推測消費しない。
+     */
+    @Test
+    void learnFallbackUsesAuthoritativeConsumedAmountsWithoutConsumingStorageCandidate() {
+        Plugin plugin = mock(Plugin.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        LearnedSkillRepository repository = mock(LearnedSkillRepository.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        UUID accountId = UUID.randomUUID();
+        UUID bagEntryId = UUID.randomUUID();
+        UUID storageEntryId = UUID.randomUUID();
+        LearnedSkillInstance learned = learned(accountId, 1);
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTaskAsynchronously(eq(plugin), any(Runnable.class));
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
+        when(inventoryService.saveNow(accountId)).thenReturn(CompletableFuture.completedFuture(true));
+        when(repository.learn(accountId, "adventurer_smash", accountId)).thenReturn(
+            new LearnedSkillMaterialMutationResult(
+                learned,
+                List.of(new LearnedSkillConsumedMaterial(bagEntryId, 3L))
+            )
+        );
+        when(inventoryService.reconcileAuthoritativeEntry(accountId, bagEntryId))
+            .thenThrow(new IllegalStateException("bag reconcile failed"));
+        when(inventoryService.reconcileAuthoritativeEntry(accountId, storageEntryId))
+            .thenThrow(new IllegalStateException("storage reconcile failed"));
+
+        LearnedSkillService service = new LearnedSkillService(plugin, repository, inventoryService);
+        service.applyInitialSkills(accountId, List.of());
+
+        assertTrue(service.learnFromManagerAsync(
+            accountId,
+            "adventurer_smash",
+            accountId,
+            List.of(bagEntryId, storageEntryId),
+            ignored -> { },
+            ignored -> { throw new AssertionError("learning should succeed"); }
+        ));
+
+        verify(inventoryService).consumeOwnedEntryAfterAuthoritativeMutation(accountId, bagEntryId, 3L);
+        verify(inventoryService, never()).consumeOwnedEntryAfterAuthoritativeMutation(
+            eq(accountId), eq(storageEntryId), anyLong()
+        );
     }
 
     /**
