@@ -335,15 +335,16 @@ class ActiveSkillExecutorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 10. シールドドレインの実装契約 > ### 10.1 数値・対象・演出
-     * 検証契約: シールドドレインは正の射程・対象角・ダメージ・Shield倍率と、0より大きく1以下の吸収率を必須とする。
+     * 検証契約: シールドドレインは正の射程・180度以下の対象角・1以上の最大対象数・ダメージ・Shield倍率と、0より大きく1以下の吸収率を必須とする。
      */
     @Test
     void shieldDrainValidatesCombatParams() {
         SwordsmanShieldDrainExecutor executor = new SwordsmanShieldDrainExecutor(activeSkillServices());
 
         assertDoesNotThrow(() -> executor.validateParams(shieldDrainDefinition(Map.of(
-                "range", 6.0D,
-                "targetAngle", 40.0D,
+                "range", 8.0D,
+                "targetAngle", 110.0D,
+                "maxTargets", 8,
                 "damageRatio", 0.975D,
                 "shieldBreakMultiplier", 3.0D,
                 "shieldAbsorbRatio", 0.50D
@@ -352,14 +353,28 @@ class ActiveSkillExecutorDesignTest {
         SkillParameterException exception = assertThrows(
                 SkillParameterException.class,
                 () -> executor.validateParams(shieldDrainDefinition(Map.of(
-                        "range", 6.0D,
-                        "targetAngle", 40.0D,
+                        "range", 8.0D,
+                        "targetAngle", 110.0D,
+                        "maxTargets", 8,
                         "damageRatio", 0.975D,
                         "shieldBreakMultiplier", 3.0D,
                         "shieldAbsorbRatio", 1.5D
                 )))
         );
         assertEquals("shieldAbsorbRatio", exception.key());
+
+        exception = assertThrows(
+                SkillParameterException.class,
+                () -> executor.validateParams(shieldDrainDefinition(Map.of(
+                        "range", 8.0D,
+                        "targetAngle", 110.0D,
+                        "maxTargets", 0,
+                        "damageRatio", 0.975D,
+                        "shieldBreakMultiplier", 3.0D,
+                        "shieldAbsorbRatio", 0.50D
+                )))
+        );
+        assertEquals("maxTargets", exception.key());
     }
 
     /**
@@ -718,7 +733,7 @@ class ActiveSkillExecutorDesignTest {
                 List.of("active", "melee"),
                 SkillKind.ACTIVE,
                 true,
-                SkillResourceType.ENERGY,
+                SkillResourceType.MANA,
                 10.0D
         );
     }

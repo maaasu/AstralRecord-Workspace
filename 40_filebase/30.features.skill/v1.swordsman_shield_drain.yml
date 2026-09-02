@@ -6,13 +6,13 @@ id: swordsman_shield_drain
 type: SKILL
 implementationId: swordsman_shield_drain
 name: "&bシールドドレイン"
-description: "&7敵のシールドを奪う近接攻撃。"
+description: "&7前方を広く薙ぎ払い、敵のシールドを奪う。"
 icon: TUBE_CORAL
 lore:
-  - "&7前方{skill.range}mの敵1体へ近接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&7前方{skill.range}m・全角{skill.targetAngle}度の敵最大{skill.maxTargets}体へ近接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
   - "&7シールドダメージ{skill.shieldBreakMultiplier:percent}%、実際に削った量の{skill.shieldAbsorbRatio:percent}%を吸収。"
 cooldownTicks: 60
-resourceType: ENERGY
+resourceType: MANA
 resourceCost: 10
 castTimeTicks: 0
 requiredLevel: 1
@@ -38,8 +38,9 @@ gem:
   tradeable: false
   sellable: false
 params:
-  range: 6.0
-  targetAngle: 40.0
+  range: 8.0
+  targetAngle: 110.0
+  maxTargets: 8
   damageRatio: 0.975
   shieldBreakMultiplier: 3.0
   shieldAbsorbRatio: 0.50

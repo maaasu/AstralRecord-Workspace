@@ -39,7 +39,7 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 
 ハンターの `hunter_fade_shot` は、5本の短射程飛翔体と水平velocityによるバックステップを同時に扱う機動射撃です。ハンターの `usableSkills` から直接使用許可を配布し、習得用ジェムは `skill_gem_exchange` で無印原石2個から交換します。`hunter_arrow_rain` はハンターの `usableSkills` から初期使用許可を与えます。`hunter_heal_arrow` はハンターの `usableSkills` へ追加せず、`starter` node `1284` から使用許可を与えます。
 
-`swordsman_shield_drain` は97.5%の単体攻撃、敵Shieldへの3倍ブレイク、実減少量50%の自己Shield吸収を行います。実際に自身のShieldが回復した場合だけ、対象から発動者へ向かう吸収演出を表示します。
+`swordsman_shield_drain` は前方8m・全角110度から最大8体を選ぶ扇形近接攻撃です。各対象へ97.5%の基礎攻撃、敵Shieldへの3倍ブレイク、実減少量50%の自己Shield吸収を行い、消費リソースはMP10とします。実際に自身のShieldが回復した場合だけ、対象から発動者へ向かう吸収演出を表示します。
 
 `administrator_shield_recharge` は最大Shieldを30増加し、シールド残存時の被弾後8秒から最大Shieldの毎秒2%を再充填するバインド必須パッシブです。ただし `swordsman_shield_activate` が有効でない限り、最大Shield補正があってもShieldの獲得・再充填は行いません。再充填中に被弾すると待機をやり直し、シールド破壊時は通常の回復仕様に従います。ソードマンではskilltree node `1202`、Administratorではclassの `usableSkills` から使用を許可します。
 
