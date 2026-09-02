@@ -54,6 +54,21 @@ public final class SwordsmanBastionStrikeExecutor implements SkillExecutor {
         SkillParamReader params = new SkillParamReader(skill.getId(), skill.getParams());
         requirePositiveFinite(params, "range");
         requirePositiveFinite(params, "damageRatio");
+        if (!params.getBoolean("consumeAllCurrentMana", false)) {
+            throw new SkillParameterException(
+                    "consumeAllCurrentMana",
+                    "バスティオンストライクは現在MP全消費を指定してください"
+            );
+        }
+        double levelFiveRequiredManaRatio = params.getDouble("levelFiveRequiredManaRatio", 0.0D);
+        if (!(Double.isFinite(levelFiveRequiredManaRatio)
+                && levelFiveRequiredManaRatio > 0.0D
+                && levelFiveRequiredManaRatio <= 1.0D)) {
+            throw new SkillParameterException(
+                    "levelFiveRequiredManaRatio",
+                    "バスティオンストライクのLv.5必要MP比率は0より大きく1以下の有限値が必要です"
+            );
+        }
     }
 
     private static void requirePositiveFinite(

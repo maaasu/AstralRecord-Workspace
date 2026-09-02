@@ -12,11 +12,11 @@ import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectSer
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTargetingService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTaskService;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
+import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
-import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.World;
@@ -39,16 +39,18 @@ public final class BastionStrikeSkillRuntimeService {
     private final SkillCombatService combatService;
     private final SkillEffectService effectService;
     private final SkillTaskService taskService;
+    private final SkillService skillService;
     private final Map<UUID, Map<String, Configuration>> configurations = new ConcurrentHashMap<>();
-    private final Map<UUID, Long> cooldownEndsAtTick = new ConcurrentHashMap<>();
 
     /** バスティオンストライクが使用する戦闘・対象選択・演出サービスで初期化します。 */
     public BastionStrikeSkillRuntimeService(
+            @NotNull SkillService skillService,
             @NotNull SkillTargetingService targetingService,
             @NotNull SkillCombatService combatService,
             @NotNull SkillEffectService effectService,
             @NotNull SkillTaskService taskService
     ) {
+        this.skillService = skillService;
         this.targetingService = targetingService;
         this.combatService = combatService;
         this.effectService = effectService;
@@ -61,7 +63,10 @@ public final class BastionStrikeSkillRuntimeService {
         Configuration configuration = new Configuration(
                 context.skill().getCooldownTicks(),
                 params.getDouble("range", 6.0D),
-                params.getDouble("damageRatio", 1.875D)
+                params.getDouble("damageRatio", 1.875D),
+                context.learnedSkill() == null ? 1 : context.learnedSkill().getLevel(),
+                params.getBoolean("consumeAllCurrentMana", false),
+                params.getDouble("levelFiveRequiredManaRatio", 0.80D)
         );
         UUID playerId = context.player().getBukkit().getUniqueId();
         configurations.computeIfAbsent(playerId, ignored -> new ConcurrentHashMap<>())
@@ -73,14 +78,14 @@ public final class BastionStrikeSkillRuntimeService {
         UUID playerId = context.player().getBukkit().getUniqueId();
         Map<String, Configuration> playerConfigurations = configurations.get(playerId);
         if (playerConfigurations == null) {
-            cooldownEndsAtTick.remove(playerId);
+            skillService.clearCooldown(playerId, SKILL_ID);
             taskService.cancel(playerId, BASTION_TASK_SCOPE);
             return;
         }
         playerConfigurations.remove(configurationKey(context));
         if (playerConfigurations.isEmpty()) {
             configurations.remove(playerId, playerConfigurations);
-            cooldownEndsAtTick.remove(playerId);
+            skillService.clearCooldown(playerId, SKILL_ID);
             taskService.cancel(playerId, BASTION_TASK_SCOPE);
         }
     }
@@ -99,13 +104,12 @@ public final class BastionStrikeSkillRuntimeService {
         if (configuration == null) {
             return false;
         }
-        long currentTick = Bukkit.getCurrentTick();
-        long cooldownEndsAt = cooldownEndsAtTick.getOrDefault(playerId, Long.MIN_VALUE);
-        if (currentTick < cooldownEndsAt) {
-            return false;
-        }
 
         Player player = victim.player().getBukkit();
+        PlayerSkillCaster caster = new PlayerSkillCaster(victim.player());
+        if (skillService.isOnCooldown(caster, SKILL_ID) || !hasRequiredMana(caster, configuration)) {
+            return false;
+        }
         Location eyeLocation = player.getEyeLocation();
         AstEntity target = targetingService.inLine(
                         player,
@@ -133,10 +137,10 @@ public final class BastionStrikeSkillRuntimeService {
             return false;
         }
 
-        cooldownEndsAtTick.put(
-                playerId,
-                saturatingAdd(currentTick, configuration.cooldownTicks())
-        );
+        if (configuration.consumeAllCurrentMana()) {
+            consumeAllCurrentMana(caster);
+        }
+        skillService.startSkillCooldown(caster, SKILL_ID, configuration.cooldownTicks());
         recoverMissingShield(victim);
         renderActivation(player, target.location());
         return true;
@@ -145,15 +149,15 @@ public final class BastionStrikeSkillRuntimeService {
     /** プレイヤーの設定とクールダウンを破棄します。 */
     public void clearPlayer(@NotNull UUID playerId) {
         configurations.remove(playerId);
-        cooldownEndsAtTick.remove(playerId);
+        skillService.clearCooldown(playerId, SKILL_ID);
         taskService.cancel(playerId, BASTION_TASK_SCOPE);
     }
 
     /** サービス停止時に全プレイヤーの設定、クールダウン、演出タスクを破棄します。 */
     public void clearAll() {
         configurations.keySet().forEach(playerId -> taskService.cancel(playerId, BASTION_TASK_SCOPE));
+        configurations.keySet().forEach(playerId -> skillService.clearCooldown(playerId, SKILL_ID));
         configurations.clear();
-        cooldownEndsAtTick.clear();
     }
 
     private void recoverMissingShield(@NotNull AstEntity victim) {
@@ -252,13 +256,36 @@ public final class BastionStrikeSkillRuntimeService {
         return source == DamageSource.NORMAL_ATTACK || source == DamageSource.SKILL;
     }
 
-    private static long saturatingAdd(long left, long right) {
-        if (right > 0L && left > Long.MAX_VALUE - right) {
-            return Long.MAX_VALUE;
+    private static boolean hasRequiredMana(
+            @NotNull PlayerSkillCaster caster,
+            @NotNull Configuration configuration
+    ) {
+        StatusSnapshot snapshot = caster.statusSnapshot();
+        double maxMana = snapshot.getMaxValue(StatusType.MAX_MANA);
+        double currentMana = caster.currentMana();
+        if (!(Double.isFinite(maxMana) && maxMana > 0.0D && Double.isFinite(currentMana))) {
+            return false;
         }
-        return left + right;
+        if (configuration.level() < 5) {
+            return Math.abs(currentMana - maxMana) <= 1.0E-6D;
+        }
+        return currentMana + 1.0E-6D >= maxMana * configuration.levelFiveRequiredManaRatio();
     }
 
-    private record Configuration(long cooldownTicks, double range, double damageRatio) {
+    private static void consumeAllCurrentMana(@NotNull PlayerSkillCaster caster) {
+        double currentMana = caster.currentMana();
+        if (Double.isFinite(currentMana) && currentMana > 0.0D) {
+            caster.consumeMana(currentMana);
+        }
+    }
+
+    private record Configuration(
+            long cooldownTicks,
+            double range,
+            double damageRatio,
+            int level,
+            boolean consumeAllCurrentMana,
+            double levelFiveRequiredManaRatio
+    ) {
     }
 }

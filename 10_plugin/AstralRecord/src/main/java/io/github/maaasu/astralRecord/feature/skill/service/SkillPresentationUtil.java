@@ -236,8 +236,8 @@ public final class SkillPresentationUtil {
 
     /**
      * スキルの説明文に使用する解決済み表示値を作成します。
-     * paramsの値を正本とし、レベル・シジル由来のスキルダメージ補正と、
-     * 倍率を補正した表示用エイリアスを追加します。
+     * paramsの値と top-level の共通表示値を正本とし、レベル・シジル由来の
+     * スキルダメージ補正と、倍率を補正した表示用エイリアスを追加します。
      */
     private static @NotNull Map<String, Object> descriptionValues(
         @NotNull ResolvedLearnedSkill resolved
@@ -266,6 +266,7 @@ public final class SkillPresentationUtil {
     ) {
         Map<String, Object> values = new HashMap<>();
         values.putAll(definition.getParams());
+        values.put("cooldownTicks", definition.getCooldownTicks());
         values.put("level", level);
         values.put("maxLevel", definition.getMaxLevel());
         values.put("skillDamageIncrease", damageIncrease);

@@ -11,9 +11,11 @@ icon: SOUL_CAMPFIRE
 lore:
   - "&7シールドを破壊する直接攻撃を受けたときに反撃する。"
   - "&7自身から{skill.range}m以内で視線の先にいる最も近い敵1体へ、近接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&7Lv.1〜4はMP最大時、Lv.5はMP{skill.levelFiveRequiredManaRatio:percent}%以上で反撃する。"
   - "&7反撃が命中した場合、その攻撃を無効化し自身のシールドを最大まで回復する。"
   - "&7反撃が命中しなかった場合、攻撃は無効化しない。"
-  - "&7クールタイムはLv.1で150秒、Lv.5で110秒。"
+  - "&7反撃が成立したとき、現在MPをすべて消費する。"
+  - "&7クールタイム: {skill.cooldownTicks:seconds}秒。"
 cooldownTicks: 3000
 resourceType: MANA
 resourceCost: 0
@@ -40,6 +42,8 @@ levelUpRequiredItems: [{ itemId: skill_gem_raw, amount: 3 }]
 params:
   range: 6.0
   damageRatio: 1.875
+  consumeAllCurrentMana: true
+  levelFiveRequiredManaRatio: 0.80
 passive:
   bindRequired: true
 tags:

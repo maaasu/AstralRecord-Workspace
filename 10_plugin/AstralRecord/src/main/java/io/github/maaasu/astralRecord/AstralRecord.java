@@ -1470,6 +1470,7 @@ public final class AstralRecord extends JavaPlugin {
             activeSkillTaskService
         );
         bastionStrikeSkillRuntimeService = new BastionStrikeSkillRuntimeService(
+            skillService,
             activeSkillServices.targeting(),
             activeSkillServices.combat(),
             activeSkillServices.effects(),
