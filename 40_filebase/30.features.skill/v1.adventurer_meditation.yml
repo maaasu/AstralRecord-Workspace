@@ -16,6 +16,7 @@ lore:
   - "&7スニーク解除、被弾、通常攻撃、他スキル使用で集中が途切れる。"
   - "&7開始から{skill.activeDurationTicks:seconds}秒後、MP / ENGを全回復して終了する。"
   - "&7準備中と発動中は粒子、発動中は環境音で状態を示す。"
+  - "&7全回復時は粒子と音で完了を知らせる。"
 cooldownTicks: 0
 manaCost: 0
 castTimeTicks: 0

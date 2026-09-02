@@ -10,6 +10,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -146,6 +147,77 @@ class MeditationSkillRuntimeServiceTest extends MockBukkitTestBase {
         assertFalse(runtime.isEffectActive(playerId));
         verify(statusService).removeBuff(astPlayer, "adventurer_meditation");
         verify(statusService, never()).restoreMpAndEnergy(astPlayer);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 6.1 自然回復倍率
+     * 検証契約: 発動開始から140 tick経過してMP/ENGを全回復した時、完了パーティクル2種とPLAYERSカテゴリの完了音を一度ずつ表示・再生し、以後のtickでは重複させない。
+     */
+    @Test
+    void playsCompletionEffectsOnceAfterRestoringResources() {
+        UUID playerId = UUID.randomUUID();
+        AstPlayer astPlayer = player(playerId);
+        Player bukkit = astPlayer.getBukkit();
+        World world = mock(World.class);
+        Location location = new Location(world, 10.0D, 64.0D, 20.0D);
+        when(bukkit.getLocation()).thenReturn(location);
+        StatusService statusService = mock(StatusService.class);
+        ParticleDisplayService particleDisplayService = mock(ParticleDisplayService.class);
+        MeditationSkillRuntimeService runtime = new MeditationSkillRuntimeService(
+            statusService,
+            particleDisplayService
+        );
+
+        runtime.tick(context(astPlayer, definition(validParams()), 0L));
+        runtime.tick(context(astPlayer, definition(validParams()), 60L));
+        runtime.tick(context(astPlayer, definition(validParams()), 199L));
+        verify(statusService, never()).restoreMpAndEnergy(astPlayer);
+
+        org.mockito.Mockito.clearInvocations(statusService, particleDisplayService, world);
+        runtime.tick(context(astPlayer, definition(validParams()), 200L));
+
+        Location completionCenter = location.clone().add(0.0D, 1.0D, 0.0D);
+        org.mockito.InOrder completionOrder = org.mockito.Mockito.inOrder(
+            statusService,
+            particleDisplayService,
+            world
+        );
+        completionOrder.verify(statusService).restoreMpAndEnergy(astPlayer);
+        completionOrder.verify(particleDisplayService).spawnForNearbyViewers(
+            completionCenter,
+            SharedParticleDefinitions.PLAYER_LEVEL_UP_TOTEM
+        );
+        completionOrder.verify(particleDisplayService).spawnForNearbyViewers(
+            completionCenter,
+            SharedParticleDefinitions.PLAYER_LEVEL_UP_END_ROD
+        );
+        completionOrder.verify(world).playSound(
+            location,
+            Sound.ENTITY_PLAYER_LEVELUP,
+            SoundCategory.PLAYERS,
+            0.8F,
+            1.15F
+        );
+
+        runtime.tick(context(astPlayer, definition(validParams()), 201L));
+
+        verify(statusService, org.mockito.Mockito.times(1)).restoreMpAndEnergy(astPlayer);
+        verify(particleDisplayService, org.mockito.Mockito.times(1)).spawnForNearbyViewers(
+            completionCenter,
+            SharedParticleDefinitions.PLAYER_LEVEL_UP_TOTEM
+        );
+        verify(particleDisplayService, org.mockito.Mockito.times(1)).spawnForNearbyViewers(
+            completionCenter,
+            SharedParticleDefinitions.PLAYER_LEVEL_UP_END_ROD
+        );
+        verify(world, org.mockito.Mockito.times(1)).playSound(
+            location,
+            Sound.ENTITY_PLAYER_LEVELUP,
+            SoundCategory.PLAYERS,
+            0.8F,
+            1.15F
+        );
     }
 
     /**
