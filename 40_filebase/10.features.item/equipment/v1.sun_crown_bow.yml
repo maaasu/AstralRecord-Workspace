@@ -16,7 +16,7 @@ unTradeable: false
 unSellable: false
 equipment:
   slot: WEAPON
-  handType: TWO
+  handType: ONE
   tag: BOW
   requiredLevel: 10
   stats:

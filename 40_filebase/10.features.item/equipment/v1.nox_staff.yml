@@ -15,7 +15,7 @@ unTradeable: false
 unSellable: false
 equipment:
   slot: WEAPON
-  handType: TWO
+  handType: ONE
   tag: STAFF
   requiredLevel: 0
   stats:

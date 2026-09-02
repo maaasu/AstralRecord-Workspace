@@ -16,7 +16,7 @@ unTradeable: true
 unSellable: true
 equipment:
   slot: WEAPON
-  handType: TWO
+  handType: ONE
   tag: LONGBOW
   requiredLevel: 0
   stats:
