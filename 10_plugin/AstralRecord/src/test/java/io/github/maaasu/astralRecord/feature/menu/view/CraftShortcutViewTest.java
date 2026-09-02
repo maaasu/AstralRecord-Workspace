@@ -154,7 +154,7 @@ class CraftShortcutViewTest extends MockBukkitTestBase {
         String statusLore = String.join("\n", statusLoreLines);
         List<String> expectedStatusPrefixes = List.of(
             "最大MP:",
-            "最大EN:",
+            "最大ENG:",
             "最大シールド:",
             "筋力:",
             "器用さ:",

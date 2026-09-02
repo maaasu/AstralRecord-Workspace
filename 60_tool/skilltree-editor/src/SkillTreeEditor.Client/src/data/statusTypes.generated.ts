@@ -113,7 +113,7 @@ export interface StatusTypeDefinition {
 export const STATUS_TYPES: readonly StatusTypeDefinition[] = [
   { id: "MAX_HEALTH", displayName: "最大HP", description: "戦闘不能になるまでに耐えられるダメージ量の上限。", category: "RESOURCE", suffix: "", decimalPlaces: 0, supportsRange: false },
   { id: "MAX_MANA", displayName: "最大MP", description: "スキルや魔法の使用に充てられるMPの上限。", category: "RESOURCE", suffix: "", decimalPlaces: 0, supportsRange: false },
-  { id: "MAX_ENERGY", displayName: "最大EN", description: "特殊行動やスキルの使用に充てられるENの上限。", category: "RESOURCE", suffix: "", decimalPlaces: 0, supportsRange: false },
+  { id: "MAX_ENERGY", displayName: "最大ENG", description: "特殊行動やスキルの使用に充てられるENGの上限。", category: "RESOURCE", suffix: "", decimalPlaces: 0, supportsRange: false },
   { id: "MAX_SHIELD", displayName: "最大シールド", description: "HPとは別にダメージを受け止めるシールド量の上限。最大シールドの獲得にはシールドアクティベートスキルの使用許可とパッシブ設定が必要。", category: "RESOURCE", suffix: "", decimalPlaces: 0, supportsRange: false },
   { id: "STRENGTH", displayName: "筋力", description: "物理的な攻撃能力を表す基本能力値。", category: "PRIMARY", suffix: "", decimalPlaces: 0, supportsRange: true },
   { id: "DEXTERITY", displayName: "器用さ", description: "攻撃や行動を正確に扱う技量を表す基本能力値。", category: "PRIMARY", suffix: "", decimalPlaces: 0, supportsRange: true },
@@ -188,7 +188,7 @@ export const STATUS_TYPES: readonly StatusTypeDefinition[] = [
   { id: "KNOCKBACK_RESISTANCE", displayName: "ノックバック耐性", description: "攻撃を受けたときにノックバックしにくくする補正。", category: "DEFENSE", suffix: "%", decimalPlaces: 1, supportsRange: true },
   { id: "HP_REGEN", displayName: "HP回復力", description: "時間経過などでHPを回復する量。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: true },
   { id: "MP_REGEN", displayName: "MP回復力", description: "時間経過などでMPを回復する量。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: true },
-  { id: "ENERGY_REGEN", displayName: "EN回復力", description: "時間経過などでENを回復する量。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: true },
+  { id: "ENERGY_REGEN", displayName: "ENG回復力", description: "時間経過などでENGを回復する量。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: true },
   { id: "MOVEMENT_SPEED", displayName: "移動速度", description: "フィールド上を移動する速さ。", category: "UTILITY", suffix: "", decimalPlaces: 0, supportsRange: true },
   { id: "COOLDOWN_REDUCTION", displayName: "クールダウン短縮", description: "スキルの再使用までに必要な時間を短縮する補正。", category: "UTILITY", suffix: "%", decimalPlaces: 1, supportsRange: true },
   { id: "CAST_TIME_REDUCTION", displayName: "詠唱時間短縮率", description: "スキルの詠唱時間を割合で短縮する補正。", category: "UTILITY", suffix: "%", decimalPlaces: 1, supportsRange: true },

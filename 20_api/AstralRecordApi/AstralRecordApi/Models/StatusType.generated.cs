@@ -134,7 +134,7 @@ public static class StatusTypes
             {
                 ["MAX_HEALTH"] = new(StatusType.MAX_HEALTH, "MAX_HEALTH", "最大HP", "戦闘不能になるまでに耐えられるダメージ量の上限。", StatusCategory.RESOURCE, "", 0, false),
                 ["MAX_MANA"] = new(StatusType.MAX_MANA, "MAX_MANA", "最大MP", "スキルや魔法の使用に充てられるMPの上限。", StatusCategory.RESOURCE, "", 0, false),
-                ["MAX_ENERGY"] = new(StatusType.MAX_ENERGY, "MAX_ENERGY", "最大EN", "特殊行動やスキルの使用に充てられるENの上限。", StatusCategory.RESOURCE, "", 0, false),
+                ["MAX_ENERGY"] = new(StatusType.MAX_ENERGY, "MAX_ENERGY", "最大ENG", "特殊行動やスキルの使用に充てられるENGの上限。", StatusCategory.RESOURCE, "", 0, false),
                 ["MAX_SHIELD"] = new(StatusType.MAX_SHIELD, "MAX_SHIELD", "最大シールド", "HPとは別にダメージを受け止めるシールド量の上限。最大シールドの獲得にはシールドアクティベートスキルの使用許可とパッシブ設定が必要。", StatusCategory.RESOURCE, "", 0, false),
                 ["STRENGTH"] = new(StatusType.STRENGTH, "STRENGTH", "筋力", "物理的な攻撃能力を表す基本能力値。", StatusCategory.PRIMARY, "", 0, true),
                 ["DEXTERITY"] = new(StatusType.DEXTERITY, "DEXTERITY", "器用さ", "攻撃や行動を正確に扱う技量を表す基本能力値。", StatusCategory.PRIMARY, "", 0, true),
@@ -209,7 +209,7 @@ public static class StatusTypes
                 ["KNOCKBACK_RESISTANCE"] = new(StatusType.KNOCKBACK_RESISTANCE, "KNOCKBACK_RESISTANCE", "ノックバック耐性", "攻撃を受けたときにノックバックしにくくする補正。", StatusCategory.DEFENSE, "%", 1, true),
                 ["HP_REGEN"] = new(StatusType.HP_REGEN, "HP_REGEN", "HP回復力", "時間経過などでHPを回復する量。", StatusCategory.UTILITY, "", 0, true),
                 ["MP_REGEN"] = new(StatusType.MP_REGEN, "MP_REGEN", "MP回復力", "時間経過などでMPを回復する量。", StatusCategory.UTILITY, "", 0, true),
-                ["ENERGY_REGEN"] = new(StatusType.ENERGY_REGEN, "ENERGY_REGEN", "EN回復力", "時間経過などでENを回復する量。", StatusCategory.UTILITY, "", 0, true),
+                ["ENERGY_REGEN"] = new(StatusType.ENERGY_REGEN, "ENERGY_REGEN", "ENG回復力", "時間経過などでENGを回復する量。", StatusCategory.UTILITY, "", 0, true),
                 ["MOVEMENT_SPEED"] = new(StatusType.MOVEMENT_SPEED, "MOVEMENT_SPEED", "移動速度", "フィールド上を移動する速さ。", StatusCategory.UTILITY, "", 0, true),
                 ["COOLDOWN_REDUCTION"] = new(StatusType.COOLDOWN_REDUCTION, "COOLDOWN_REDUCTION", "クールダウン短縮", "スキルの再使用までに必要な時間を短縮する補正。", StatusCategory.UTILITY, "%", 1, true),
                 ["CAST_TIME_REDUCTION"] = new(StatusType.CAST_TIME_REDUCTION, "CAST_TIME_REDUCTION", "詠唱時間短縮率", "スキルの詠唱時間を割合で短縮する補正。", StatusCategory.UTILITY, "%", 1, true),
