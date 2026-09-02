@@ -161,7 +161,7 @@ public class StatusService {
     /**
      * プレイヤーのステータスを再計算し、{@link AstPlayer} に反映します。
      * シールドアクティベートが有効な場合だけShieldの現在値を初期化・維持し、
-     * セッション中に最大シールドが 0 から正数へ変化した場合は、即時回復せずリチャージを開始します。
+     * セッション中に最大シールドが増加した場合は、現在Shieldの状態に応じたリチャージを開始します。
      *
      * @param player 対象プレイヤー
      * @return 再計算後のステータススナップショット
@@ -191,6 +191,7 @@ public class StatusService {
 
         player.setStatusSnapshot(merged);
         double maxShield = merged.getMaxValue(StatusType.MAX_SHIELD);
+        double previousMaxShield = previous.getMaxValue(StatusType.MAX_SHIELD);
         if (!shieldActivationEnabled) {
             clearShieldAcquisitionRuntime(playerId);
         } else if (previous.getValues().isEmpty()) {
@@ -198,10 +199,17 @@ public class StatusService {
             shieldDisplayCapacities.put(playerId, maxShield);
         } else if (maxShield <= 0.0D) {
             clearShieldRuntimeState(playerId);
-        } else if (!wasShieldActivationEnabled || previous.getMaxValue(StatusType.MAX_SHIELD) <= 0.0D) {
+        } else if (!wasShieldActivationEnabled || previousMaxShield <= 0.0D) {
             clearShieldAcquisitionRuntime(playerId);
             shieldDisplayCapacities.put(playerId, maxShield);
             startShieldRecharge(player, merged, System.currentTimeMillis());
+        } else if (maxShield > previousMaxShield) {
+            shieldDisplayCapacities.put(playerId, maxShield);
+            if (merged.getCurrentShield() <= 0.0D) {
+                startShieldRecharge(player, merged, System.currentTimeMillis());
+            } else {
+                startShieldRechargeWhileRetained(player, merged, System.currentTimeMillis());
+            }
         }
         shieldActivationStates.put(playerId, shieldActivationEnabled);
         if (inventoryService != null) {

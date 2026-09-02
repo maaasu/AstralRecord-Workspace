@@ -119,6 +119,37 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### ステータス再計算
+     * 検証契約: 既存セッションで正数のMAX_SHIELDが上昇した場合、保持中のShieldを即時満タンにせず設定済み段階リチャージを開始する。
+     */
+    @Test
+    void increasingPositiveMaxShieldStartsConfiguredIncrementalRecharge() {
+        StatusService service = activatedService();
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        player.setStatusSnapshot(shieldSnapshot(100.0D, 100.0D));
+        service.configureShieldRecharge(player, 8.0D, 2.0D);
+        PlayerClassService playerClassService = mock(PlayerClassService.class);
+        when(playerClassService.getStatusBonus(player, StatusType.MAX_SHIELD))
+            .thenReturn(100.0D, 130.0D);
+        service.setPlayerClassService(playerClassService);
+
+        service.refreshStatus(player);
+        StatusSnapshot refreshed = service.refreshStatus(player);
+        ShieldRechargeState state = service.getShieldRechargeState(player);
+
+        assertEquals(130.0D, refreshed.getMaxValue(StatusType.MAX_SHIELD), 0.0001D);
+        assertEquals(100.0D, refreshed.getCurrentShield(), 0.0001D);
+        assertNotNull(state);
+        assertTrue(state.incrementalRecovery());
+        assertEquals(8_000L, state.completesAtMs() - state.startedAtMs());
+        assertEquals(2.6D, state.rechargeAmount(), 0.0001D);
+        assertEquals(130.0D, service.getShieldDisplayCapacity(player), 0.0001D);
+        assertTrue(service.completeShieldRechargeIfReady(player, state.completesAtMs()));
+        assertEquals(102.6D, player.getStatusSnapshot().getCurrentShield(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
      * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### Shield リチャージ
      * 検証契約: リチャージ中にMAX_SHIELDが増加した場合は完了時点の最大値まで回復する。
      */
