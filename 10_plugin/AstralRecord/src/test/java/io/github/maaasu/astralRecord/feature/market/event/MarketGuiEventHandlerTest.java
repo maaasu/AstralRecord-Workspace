@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.market.gui.MarketScreen;
 import io.github.maaasu.astralRecord.feature.market.gui.MarketGui;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListing;
+import io.github.maaasu.astralRecord.feature.market.model.MarketListingCreateRequest;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingDraft;
 import io.github.maaasu.astralRecord.feature.market.model.MarketListingSource;
 import io.github.maaasu.astralRecord.feature.market.model.MarketProceedsClaim;
@@ -94,6 +95,95 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_3-メソッド仕様.md
+     * 章・見出し: # 23_3-メソッド仕様 > ## GUI 起動・プレイヤー操作
+     * 検証契約: stack itemのクリックはitem選択だけを行い、クリック元entryを出品消費元の先頭へ固定しない。
+     */
+    @Test
+    void marketListingSelectionUsesCommonSourceOrderInsteadOfClickedStack() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        MarketService marketService = mock(MarketService.class);
+        MarketGuiEventHandler handler = handler(inventoryService, marketService);
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        AstPlayerCache.put(astPlayer);
+        InventoryEntryModel clickedEntry = stackEntry(astPlayer.getAccount().getUuid());
+        InventoryEntryModel commonFirstEntry = stackEntry(astPlayer.getAccount().getUuid());
+        ItemModel item = item();
+        when(inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, 0)).thenReturn(clickedEntry);
+        when(inventoryService.getOwnedItemModelAtBukkitSlot(astPlayer, 0)).thenReturn(item);
+        when(inventoryService.getOwnedStackEntries(
+            astPlayer, clickedEntry.getItemCategory(), clickedEntry.getItemId()))
+            .thenReturn(List.of(commonFirstEntry, clickedEntry));
+
+        InventoryClickEvent event = mock(InventoryClickEvent.class);
+        when(event.getClickedInventory()).thenReturn(player.getInventory());
+        when(event.getSlot()).thenReturn(0);
+        when(event.getRawSlot()).thenReturn(54);
+
+        Object session = newMarketSession();
+        setSessionField(session, "ownListings", true);
+        setSessionField(session, "screen", MarketScreen.MY_LISTINGS);
+
+        invoke(handler, "handleListingsClick",
+            new Class<?>[] { InventoryClickEvent.class, Player.class, session.getClass() },
+            event, player, session);
+
+        MarketListingDraft draft = (MarketListingDraft) getSessionField(session, "draft");
+        assertEquals(commonFirstEntry.getInventoryEntryId(), draft.selectedSources().getFirst().inventoryEntryId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
+     * 検証契約: 出品確定時は保存lane内で通常アイテム共通消費順のsourceを再解決し、クリック元を直接削除対象にしない。
+     */
+    @Test
+    void marketListingSubmissionReResolvesCurrentCommonSourceOrder() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        InventorySaveCoordinator coordinator = mock(InventorySaveCoordinator.class);
+        MarketService marketService = mock(MarketService.class);
+        MarketGuiEventHandler handler = handler(inventoryService, marketService, coordinator);
+        PlayerMock player = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
+        AstPlayerCache.put(astPlayer);
+        UUID accountId = astPlayer.getAccount().getUuid();
+        InventoryEntryModel clickedEntry = stackEntry(accountId);
+        InventoryEntryModel commonFirstEntry = stackEntry(accountId);
+        MarketListingDraft draft = new MarketListingDraft(
+            UUID.randomUUID(),
+            List.of(
+                new MarketListingSource(clickedEntry.getInventoryEntryId(), 1L),
+                new MarketListingSource(commonFirstEntry.getInventoryEntryId(), 1L)
+            ),
+            ItemCategory.MATERIAL.getApiValue(),
+            "market_test_material",
+            null,
+            null,
+            2L,
+            1L
+        );
+        when(inventoryService.getOwnedStackEntries(astPlayer, draft.itemCategory(), draft.itemId()))
+            .thenReturn(List.of(commonFirstEntry, clickedEntry));
+        when(marketService.createListing(any(MarketListingCreateRequest.class)))
+            .thenReturn(listing(accountId, "ACTIVE", 0L));
+        InventoryPersistence.PersistedInventoryBaseline baseline =
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of());
+        executeMarketMutation(coordinator, baseline);
+
+        invoke(handler, "submitListing",
+            new Class<?>[] { Player.class, newMarketSession().getClass(), MarketListingDraft.class },
+            player, newMarketSession(), draft);
+
+        var requestCaptor = org.mockito.ArgumentCaptor.forClass(MarketListingCreateRequest.class);
+        verify(marketService).createListing(requestCaptor.capture());
+        assertEquals(commonFirstEntry.getInventoryEntryId(),
+            requestCaptor.getValue().sourceEntries().getFirst().inventoryEntryId());
+        verify(inventoryService).reconcileExternalInventoryEntries(
+            accountId, List.of(commonFirstEntry.getInventoryEntryId()), baseline);
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
      * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入
      * 検証契約: 出品・購入・取り下げ・売上受取の4確定callbackは成功時だけBukkit所持品表示を一度更新し、失敗時は更新しない。
@@ -108,6 +198,8 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
         AstPlayerCache.put(astPlayer);
         UUID accountId = astPlayer.getAccount().getUuid();
         MarketListing listing = listing(accountId, "ACTIVE", 0L);
+        when(inventoryService.getOwnedStackEntries(any(AstPlayer.class), any(String.class), any(String.class)))
+            .thenReturn(List.of(stackEntry(accountId)));
 
         completeMarketMutation(coordinator, CompletableFuture.completedFuture(null));
         invokeMarketMutationCallbacks(handler, player, accountId, listing);
@@ -336,6 +428,9 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
         UUID currencyAffectedId = UUID.randomUUID();
         InventoryPersistence.PersistedInventoryBaseline baseline =
             new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of());
+        when(inventoryService.getOwnedStackEntries(
+            astPlayer, draft.itemCategory(), draft.itemId()))
+            .thenReturn(List.of(stackEntry(accountId, draft.sourceEntries().getFirst().inventoryEntryId(), 1L)));
         when(marketService.createListing(any())).thenReturn(listing(accountId, "ACTIVE", 0L));
         when(marketService.claimProceeds(any(), any())).thenReturn(
             new MarketProceedsClaim(soldListing.listingId(), 1L, List.of(currencyAffectedId))
@@ -626,16 +721,20 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
     }
 
     private static InventoryEntryModel stackEntry(UUID accountId) {
+        return stackEntry(accountId, UUID.randomUUID(), 1L);
+    }
+
+    private static InventoryEntryModel stackEntry(UUID accountId, UUID entryId, long quantity) {
         LocalDateTime now = LocalDateTime.of(2026, 8, 17, 0, 0);
         return new InventoryEntryModel(
-            UUID.randomUUID(),
+            entryId,
             UUID.randomUUID(),
             1,
             ItemCategory.MATERIAL.getApiValue(),
             "market_test_material",
             null,
             null,
-            1L,
+            quantity,
             null,
             now,
             now,

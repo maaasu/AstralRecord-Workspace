@@ -334,11 +334,13 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                 entry.getItemCategory(),
                 entry.getItemId()
             );
+            if (matchingEntries.stream().noneMatch(sourceEntry ->
+                sourceEntry.getInventoryEntryId().equals(entry.getInventoryEntryId()))) {
+                GuiSound.DENY.play(player);
+                return;
+            }
             long total = 0L;
             for (InventoryEntryModel sourceEntry : matchingEntries) {
-                if (sourceEntry.getInventoryEntryId().equals(entry.getInventoryEntryId())) {
-                    continue;
-                }
                 try {
                     total = Math.addExact(total, sourceEntry.getQuantity());
                 } catch (ArithmeticException overflow) {
@@ -351,14 +353,6 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                     sourceEntry.getQuantity()
                 ));
             }
-            try {
-                total = Math.addExact(total, entry.getQuantity());
-            } catch (ArithmeticException overflow) {
-                messageService.send(player, PlayerMsgId.P_6304);
-                GuiSound.DENY.play(player);
-                return;
-            }
-            sourceEntries.add(0, new MarketListingSource(entry.getInventoryEntryId(), entry.getQuantity()));
             maxQuantity = total;
         }
         long minimumUnitPrice = minimumListingUnitPrice(item);
@@ -585,9 +579,10 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         session.screen = MarketScreen.LOADING;
         marketGui.openLoading(player, session.sessionId);
         inventorySaveCoordinator.executeExclusiveAfterSave(accountId, baseline -> {
+            List<MarketListingSource> selectedSources = resolveListingSources(astPlayer, draft);
             MarketListing listing = marketService.createListing(new MarketListingCreateRequest(
                 accountId,
-                draft.selectedSources(),
+                selectedSources,
                 draft.itemCategory(),
                 draft.itemId(),
                 draft.instanceType(),
@@ -600,7 +595,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             ));
             inventoryService.reconcileExternalInventoryEntries(
                 accountId,
-                draft.selectedSources().stream().map(MarketListingSource::inventoryEntryId).toList(),
+                selectedSources.stream().map(MarketListingSource::inventoryEntryId).toList(),
                 baseline
             );
             return listing;
@@ -621,6 +616,31 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             GuiSound.SUCCESS.play(player);
             openListings(player, true, 1);
         }));
+    }
+
+    /**
+     * 出品確定時点の正本 state から、通常アイテム共通消費順の source を再解決します。
+     * 個体品だけは選択した instance の entry ID を保持し、スタック品はクリック元を消費元に固定しません。
+     *
+     * @param astPlayer 出品操作中のプレイヤー
+     * @param draft 出品設定
+     * @return API へ送信する source entry 一覧
+     */
+    private @NotNull List<MarketListingSource> resolveListingSources(
+        @NotNull AstPlayer astPlayer,
+        @NotNull MarketListingDraft draft
+    ) {
+        if (draft.instanceId() != null) {
+            return draft.selectedSources();
+        }
+        List<MarketListingSource> currentSources = inventoryService.getOwnedStackEntries(
+            astPlayer,
+            draft.itemCategory(),
+            draft.itemId()
+        ).stream()
+            .map(entry -> new MarketListingSource(entry.getInventoryEntryId(), entry.getQuantity()))
+            .toList();
+        return draft.selectedSources(currentSources);
     }
 
     private void purchaseListing(

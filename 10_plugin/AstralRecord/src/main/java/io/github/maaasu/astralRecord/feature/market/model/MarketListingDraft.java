@@ -91,14 +91,30 @@ public final class MarketListingDraft {
     }
 
     /**
-     * 現在の出品予定数量を、選択した source entry の順に割り当てた escrow 要求を返します。
+     * 現在の出品予定数量を、保持している source entry の順に割り当てた escrow 要求を返します。
      *
      * @return API へ送信する entry ごとの確保数量
      */
     public @NotNull List<MarketListingSource> selectedSources() {
+        return selectedSources(sourceEntries);
+    }
+
+    /**
+     * 現在の出品予定数量を、指定された最新の source entry 順に割り当てた escrow 要求を返します。
+     * <p>
+     * 出品設定を開いてから所持品が変化する可能性があるため、出品確定時は保存済み候補ではなく
+     * 保存 lane 内で再取得した通常アイテム共通消費順の候補を渡します。
+     *
+     * @param availableSources 出品確定時点の source entry 候補
+     * @return API へ送信する entry ごとの確保数量
+     * @throws IllegalStateException 指定候補が出品予定数量を満たさない場合
+     */
+    public @NotNull List<MarketListingSource> selectedSources(
+        @NotNull List<MarketListingSource> availableSources
+    ) {
         long remaining = quantity;
         List<MarketListingSource> selected = new ArrayList<>();
-        for (MarketListingSource source : sourceEntries) {
+        for (MarketListingSource source : availableSources) {
             if (remaining <= 0L) {
                 break;
             }

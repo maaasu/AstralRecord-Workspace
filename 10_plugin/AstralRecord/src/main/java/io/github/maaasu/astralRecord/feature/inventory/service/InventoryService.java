@@ -2649,8 +2649,9 @@ public class InventoryService {
 
     /**
      * BAG と HOTBAR にある同一スタック品の正本 entry を返します。
-     * マーケットの複数スタック出品では、クリックした stack だけでなくこの一覧全体を
-     * escrow 候補として扱います。個体品・削除済み entry は含めません。
+     * マーケットの複数スタック出品では、クリックした stack を消費元として固定せず、
+     * 通常アイテムの共通消費順でこの一覧全体を escrow 候補として扱います。
+     * 個体品・削除済み entry は含めません。
      *
      * @param astPlayer 対象プレイヤー
      * @param itemCategory アイテムカテゴリ
@@ -2666,7 +2667,8 @@ public class InventoryService {
             astPlayer,
             itemCategory,
             itemId,
-            List.of(InventoryType.BAG, InventoryType.HOTBAR)
+            List.of(InventoryType.BAG, InventoryType.HOTBAR),
+            true
         );
     }
 
@@ -2688,7 +2690,8 @@ public class InventoryService {
             astPlayer,
             itemCategory,
             itemId,
-            List.of(InventoryType.BAG, InventoryType.HOTBAR, InventoryType.STORAGE)
+            List.of(InventoryType.BAG, InventoryType.HOTBAR, InventoryType.STORAGE),
+            false
         );
     }
 
@@ -2696,7 +2699,8 @@ public class InventoryService {
         @NotNull AstPlayer astPlayer,
         @NotNull String itemCategory,
         @NotNull String itemId,
-        @NotNull List<InventoryType> inventoryTypes
+        @NotNull List<InventoryType> inventoryTypes,
+        boolean commonConsumptionOrder
     ) {
         String normalizedCategory = itemCategory.trim();
         String normalizedItemId = itemId.trim();
@@ -2709,11 +2713,13 @@ public class InventoryService {
         }
         synchronized (state) {
             List<InventoryEntryModel> result = new ArrayList<>();
+            List<UUID> inventoryOrder = new ArrayList<>();
             for (InventoryType type : inventoryTypes) {
                 InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, type);
                 if (inventory == null || !inventory.isEnabled() || inventory.isDeleted()) {
                     continue;
                 }
+                inventoryOrder.add(inventory.getInventoryId());
                 state.snapshotEntries(inventory.getInventoryId()).stream()
                     .filter(entry -> !entry.isDeleted())
                     .filter(entry -> entry.getQuantity() > 0L)
@@ -2727,7 +2733,9 @@ public class InventoryService {
                         .thenComparing(InventoryEntryModel::getInventoryEntryId))
                     .forEach(result::add);
             }
-            return List.copyOf(result);
+            return commonConsumptionOrder
+                ? List.copyOf(orderNormalItemConsumptionEntries(result, inventoryOrder))
+                : List.copyOf(result);
         }
     }
 

@@ -581,6 +581,37 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
      * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加 > ### 通常アイテムの消費・支払い順
+     * 検証契約: マーケットの同種stack候補も、クリック位置ではなくBAG優先・後方slot優先の共通順で返す。
+     */
+    @Test
+    void marketStackCandidatesUseCommonNormalItemConsumptionOrder() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel hotbar = harness.addInventory(state, InventoryType.HOTBAR);
+        String itemId = "market_common_order_test";
+        InventoryEntryModel bagFront = bagEntry(state.getAccountId(), bag.getInventoryId(), 1, itemId, 10L);
+        InventoryEntryModel bagBack = bagEntry(state.getAccountId(), bag.getInventoryId(), 2, itemId, 10L);
+        InventoryEntryModel hotbarBack = bagEntry(state.getAccountId(), hotbar.getInventoryId(), 8, itemId, 10L);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(bagFront, bagBack));
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of(hotbarBack));
+
+        List<InventoryEntryModel> candidates = harness.inventoryService.getOwnedStackEntries(
+            astPlayer,
+            ItemCategory.MATERIAL.getApiValue(),
+            itemId
+        );
+
+        assertEquals(
+            List.of(bagBack.getInventoryEntryId(), bagFront.getInventoryEntryId(), hotbarBack.getInventoryEntryId()),
+            candidates.stream().map(InventoryEntryModel::getInventoryEntryId).toList()
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加 > ### 通常アイテムの消費・支払い順
      * 検証契約: 未指定slotは指定slotの後に扱い、同一slotはinventoryEntryId昇順で安定して選ぶ。
      */
     @Test

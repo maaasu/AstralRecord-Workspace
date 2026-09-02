@@ -11,7 +11,7 @@ class MarketListingDraftTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_1-モデル定義.md
      * 章・見出し: # 23_1-モデル定義 > ## Quote・summary・transaction > ### MarketListingDraft
-     * 検証契約: 同種 stack を複数 source から出品するとき、クリックした source を先頭に選択数量だけを順に割り当てる。
+     * 検証契約: 同種 stack を複数 source から出品するとき、渡された共通消費順の source へ選択数量だけを順に割り当てる。
      */
     @Test
     void selectedSourcesAllocateQuantityAcrossMatchingInventoryEntries() {
