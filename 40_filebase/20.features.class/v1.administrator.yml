@@ -85,7 +85,6 @@ usableSkills:
   - skill:swordsman_shield_drain
   - skill:swordsman_flame_rush
   - skill:swordsman_challenging_roar
-  - skill:swordsman_last_shield
   - skill:hunter_arrow_rain
   - skill:hunter_heal_arrow
   - skill:hunter_spell_step

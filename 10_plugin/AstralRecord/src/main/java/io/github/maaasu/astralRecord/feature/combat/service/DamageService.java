@@ -29,8 +29,8 @@ import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
+import io.github.maaasu.astralRecord.feature.skill.service.BastionStrikeSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.JustDodgeSkillRuntimeService;
-import io.github.maaasu.astralRecord.feature.skill.service.LastShieldSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryNotification;
@@ -90,7 +90,7 @@ public final class DamageService {
     private TemporarySkillEffectService temporarySkillEffectService;
     private CombatDpsTrackerService combatDpsTrackerService;
     private JustDodgeSkillRuntimeService justDodgeSkillRuntimeService;
-    private LastShieldSkillRuntimeService lastShieldSkillRuntimeService;
+    private BastionStrikeSkillRuntimeService bastionStrikeSkillRuntimeService;
     private Consumer<AstPlayer> playerDamageListener = player -> { };
     private Consumer<UUID> mobDeathListener = mobInstanceId -> { };
 
@@ -272,12 +272,12 @@ public final class DamageService {
     /**
      * シールド破壊時の攻撃無効化を行う runtime を設定します。
      *
-     * @param runtimeService ラストシールド runtime。null の場合は無効化しない
+     * @param runtimeService バスティオンストライク runtime。null の場合は無効化しない
      */
-    public void setLastShieldSkillRuntimeService(
-            @Nullable LastShieldSkillRuntimeService runtimeService
+    public void setBastionStrikeSkillRuntimeService(
+            @Nullable BastionStrikeSkillRuntimeService runtimeService
     ) {
-        this.lastShieldSkillRuntimeService = runtimeService;
+        this.bastionStrikeSkillRuntimeService = runtimeService;
     }
 
     /**
@@ -853,9 +853,9 @@ public final class DamageService {
         long rechargeEventAtMs = System.currentTimeMillis();
         completeShieldRechargeIfReady(victim, rechargeEventAtMs);
         boolean shieldWasActive = hasActiveShield(victim);
-        if (lastShieldSkillRuntimeService != null
+        if (bastionStrikeSkillRuntimeService != null
                 && shieldWouldBreak(attacker, victim, calculated, shieldBreakMultiplier)
-                && lastShieldSkillRuntimeService.tryNegateShieldBreakingDirectDamage(victim, source)) {
+                && bastionStrikeSkillRuntimeService.tryNegateShieldBreakingDirectDamage(victim, source)) {
             return new DamageResult(0.0D);
         }
         DamageResult result = applyShieldDamage(attacker, victim, calculated, shieldBreakMultiplier);

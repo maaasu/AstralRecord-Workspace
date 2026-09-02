@@ -14,19 +14,25 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillCombatService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTargetingService;
+import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTaskService;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
-import io.github.maaasu.astralRecord.feature.skill.service.LastShieldSkillRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.BastionStrikeSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
-import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import org.bukkit.Location;
+import org.bukkit.entity.Player;
+import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
@@ -39,33 +45,50 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyFloat;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.same;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class DamageServiceLastShieldTest extends MockBukkitTestBase {
+class DamageServiceBastionStrikeTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 14. ラストシールドの実装契約
-     * 検証契約: シールドを破壊する直接攻撃だけを1回無効化し、クールダウン中は通常のシールド破壊経路へ戻す。
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 13. バスティオンストライクの実装契約
+     * 検証契約: シールド破壊時に命中する反撃が成立した場合だけ、元攻撃を無効化して不足Shieldを回復する。
      */
     @Test
-    void shieldBreakingDirectDamageIsNegatedOnceThenRespectsCooldown() {
+    void successfulCounterattackIsConnectedToDamageService() {
         StatusService statusService = activatedStatusService();
-        ParticleDisplayService particleDisplayService = mock(ParticleDisplayService.class);
-        DamageService damageService = damageService(statusService, particleDisplayService);
-        LastShieldSkillRuntimeService runtime = new LastShieldSkillRuntimeService(particleDisplayService);
-        damageService.setLastShieldSkillRuntimeService(runtime);
+        SkillTargetingService targeting = mock(SkillTargetingService.class);
+        SkillCombatService combat = mock(SkillCombatService.class);
+        SkillEffectService effects = mock(SkillEffectService.class);
+        SkillTaskService tasks = mock(SkillTaskService.class);
+        DamageService damageService = damageService(statusService);
+        BastionStrikeSkillRuntimeService runtime = new BastionStrikeSkillRuntimeService(
+                targeting, combat, effects, tasks
+        );
+        damageService.setBastionStrikeSkillRuntimeService(runtime);
 
         AstPlayer attacker = attacker();
         AstPlayer victim = shieldedVictim();
-        runtime.activate(passiveContext(victim, 2400L));
+        AstEntity target = mock(AstEntity.class);
+        Location targetLocation = victim.getBukkit().getLocation().clone().add(0.0D, 0.0D, 4.0D);
+        when(target.location()).thenReturn(targetLocation);
+        when(targeting.inLine(
+                any(Player.class), any(Location.class), any(Vector.class), eq(6.0D), eq(0.0D), eq(1)
+        )).thenReturn(List.of(target));
+        when(combat.hit(
+                any(AstEntity.class), same(target), eq(AttackType.MELEE), eq(io.github.maaasu.astralRecord.feature.combat.model.DamageElement.NONE), eq(1.875D)
+        )).thenReturn(new DamageResult(30.0D));
+        when(combat.recoverShield(any(AstEntity.class), eq(4.0D))).thenReturn(4.0D);
+        runtime.activate(passiveContext(victim, 3000L));
 
         PlayerMessageService messageService = mock(PlayerMessageService.class);
         DamageResult negated;
@@ -80,14 +103,11 @@ class DamageServiceLastShieldTest extends MockBukkitTestBase {
         assertFalse(negated.shieldBroken());
         assertEquals(1.0D, victim.getStatusSnapshot().getCurrentShield(), 0.0001D);
         assertEquals(100.0D, victim.getStatusSnapshot().getCurrentHp(), 0.0001D);
-        verify(particleDisplayService).spawnForNearbyViewers(
-                any(org.bukkit.Location.class),
-                eq(SharedParticleDefinitions.LAST_SHIELD_ACTIVATION_TOTEM)
+        verify(combat).hit(
+                any(AstEntity.class), same(target), eq(AttackType.MELEE),
+                eq(io.github.maaasu.astralRecord.feature.combat.model.DamageElement.NONE), eq(1.875D)
         );
-        verify(particleDisplayService).spawnForNearbyViewers(
-                any(org.bukkit.Location.class),
-                eq(SharedParticleDefinitions.LAST_SHIELD_ACTIVATION_FLASH)
-        );
+        verify(combat).recoverShield(any(AstEntity.class), eq(4.0D));
 
         DamageResult cooldownHit = attack(damageService, attacker, victim, DamageSource.SKILL);
 
@@ -99,35 +119,56 @@ class DamageServiceLastShieldTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 14. ラストシールドの実装契約
-     * 検証契約: 状態異常DoTはラストシールドの無効化対象に含めない。
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 13. バスティオンストライクの実装契約 > ### 13.1 数値・対象・演出
+     * 検証契約: 反撃が回避された場合は元のシールド破壊経路へ戻り、DoTはパッシブ経路を通らない。
      */
     @Test
-    void conditionDotIsNotNegated() {
+    void missAndConditionDamageAreNotNegated() {
         StatusService statusService = activatedStatusService();
-        ParticleDisplayService particleDisplayService = mock(ParticleDisplayService.class);
-        DamageService damageService = damageService(statusService, particleDisplayService);
-        LastShieldSkillRuntimeService runtime = new LastShieldSkillRuntimeService(particleDisplayService);
-        damageService.setLastShieldSkillRuntimeService(runtime);
-        AstPlayer victim = shieldedVictim();
-        runtime.activate(passiveContext(victim, 2400L));
+        SkillTargetingService targeting = mock(SkillTargetingService.class);
+        SkillCombatService combat = mock(SkillCombatService.class);
+        BastionStrikeSkillRuntimeService runtime = new BastionStrikeSkillRuntimeService(
+                targeting,
+                combat,
+                mock(SkillEffectService.class),
+                mock(SkillTaskService.class)
+        );
+        DamageService damageService = damageService(statusService);
+        damageService.setBastionStrikeSkillRuntimeService(runtime);
 
-        DamageResult result = damageService.applyConditionDamage(
+        AstPlayer attacker = attacker();
+        AstPlayer victim = shieldedVictim();
+        AstEntity target = mock(AstEntity.class);
+        Location targetLocation = victim.getBukkit().getLocation().clone().add(0.0D, 0.0D, 4.0D);
+        when(target.location()).thenReturn(targetLocation);
+        when(targeting.inLine(
+                any(Player.class), any(Location.class), any(Vector.class), eq(6.0D), eq(0.0D), eq(1)
+        )).thenReturn(List.of(target));
+        when(combat.hit(any(), same(target), any(), any(), eq(1.875D)))
+                .thenReturn(DamageResult.evaded(0.0D, 0.0D, 0.0D));
+        runtime.activate(passiveContext(victim, 3000L));
+
+        DamageResult missedCounterattack = attack(damageService, attacker, victim, DamageSource.NORMAL_ATTACK);
+
+        assertTrue(missedCounterattack.shieldBroken());
+        assertEquals(0.0D, victim.getStatusSnapshot().getCurrentShield(), 0.0001D);
+        verify(combat, never()).recoverShield(any(), anyDouble());
+
+        AstPlayer dotVictim = shieldedVictim();
+        runtime.activate(passiveContext(dotVictim, 3000L));
+        DamageResult dot = damageService.applyConditionDamage(
                 null,
-                AstEntity.player(victim),
+                AstEntity.player(dotVictim),
                 5.0D,
                 ConditionType.POISON
         );
 
-        assertEquals(5.0D, result.finalDamage(), 0.0001D);
-        assertEquals(1.0D, victim.getStatusSnapshot().getCurrentShield(), 0.0001D);
-        assertEquals(95.0D, victim.getStatusSnapshot().getCurrentHp(), 0.0001D);
+        assertEquals(5.0D, dot.finalDamage(), 0.0001D);
+        assertEquals(1.0D, dotVictim.getStatusSnapshot().getCurrentShield(), 0.0001D);
+        assertEquals(95.0D, dotVictim.getStatusSnapshot().getCurrentHp(), 0.0001D);
     }
 
-    private DamageService damageService(
-            StatusService statusService,
-            ParticleDisplayService particleDisplayService
-    ) {
+    private DamageService damageService(StatusService statusService) {
         return new DamageService(
                 statusService,
                 mock(MobService.class),
@@ -135,7 +176,7 @@ class DamageServiceLastShieldTest extends MockBukkitTestBase {
                 mock(MobKnockbackService.class),
                 mock(DisplayTextService.class),
                 mock(PlayerSettingService.class),
-                particleDisplayService
+                mock(ParticleDisplayService.class)
         );
     }
 
@@ -143,8 +184,7 @@ class DamageServiceLastShieldTest extends MockBukkitTestBase {
         StatusService statusService = new StatusService();
         PassiveSkillService passiveSkillService = mock(PassiveSkillService.class);
         when(passiveSkillService.isPassiveSkillActive(
-                any(AstPlayer.class),
-                eq(StatusService.SHIELD_ACTIVATE_SKILL_ID)
+                any(AstPlayer.class), eq(StatusService.SHIELD_ACTIVATE_SKILL_ID)
         )).thenReturn(true);
         statusService.setPassiveSkillService(passiveSkillService);
         return statusService;
@@ -165,7 +205,7 @@ class DamageServiceLastShieldTest extends MockBukkitTestBase {
 
     private AstPlayer shieldedVictim() {
         PlayerMock victimBukkitPlayer = spy(server().addPlayer());
-        doNothing().when(victimBukkitPlayer).playHurtAnimation(anyFloat());
+        doNothing().when(victimBukkitPlayer).playHurtAnimation(org.mockito.ArgumentMatchers.anyFloat());
         AstPlayer victim = DesignTestFixtures.astPlayer(victimBukkitPlayer, AccountMode.ADMIN);
         victim.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
                 StatusType.MAX_HEALTH, 100.0D,
@@ -179,19 +219,19 @@ class DamageServiceLastShieldTest extends MockBukkitTestBase {
         return new PassiveSkillContext(
                 player,
                 new SkillDefinition(
-                        "swordsman_last_shield",
-                        "swordsman_last_shield",
-                        "ラストシールド",
-                        "シールド破壊を防ぐ防御パッシブ。",
-                        "SHIELD",
+                        BastionStrikeSkillRuntimeService.SKILL_ID,
+                        BastionStrikeSkillRuntimeService.SKILL_ID,
+                        "バスティオンストライク",
+                        "攻撃を受け止めて返す近接反撃。",
+                        "SOUL_CAMPFIRE",
                         List.of(),
                         cooldownTicks,
                         0.0D,
                         0L,
                         1,
                         null,
-                        Map.of(),
-                        List.of("passive", "defense"),
+                        Map.of("range", 6.0D, "damageRatio", 1.875D),
+                        List.of("passive", "melee", "defense"),
                         SkillKind.PASSIVE,
                         true,
                         SkillResourceType.MANA,

@@ -6,13 +6,14 @@ id: swordsman_bastion_strike
 type: SKILL
 implementationId: swordsman_bastion_strike
 name: "&bバスティオンストライク"
-description: "&7守りを立て直す近接反撃。"
+description: "&7攻撃を受け止めて返す近接反撃。"
 icon: SOUL_CAMPFIRE
 lore:
-  - "&7前方{skill.range}mの敵1体へ近接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
-  - "&7発動時、自身のシールドを最大まで即時回復する。"
-  - "&7発動時の現在MPをすべて消費する。"
-  - "&7Lv.1〜4はMP最大時、Lv.5はMP{skill.levelFiveRequiredManaRatio:percent}%以上で発動できる。"
+  - "&7シールドを破壊する直接攻撃を受けたときに反撃する。"
+  - "&7自身から{skill.range}m以内で視点ラインに触れている最も近い敵1体へ、近接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&7反撃が命中した場合、その攻撃を無効化し自身のシールドを最大まで回復する。"
+  - "&7反撃が命中しなかった場合、攻撃は無効化しない。"
+  - "&7クールタイムはLv.1で150秒、Lv.5で110秒。"
 cooldownTicks: 3000
 resourceType: MANA
 resourceCost: 0
@@ -40,12 +41,10 @@ gem:
   sellable: false
 params:
   range: 6.0
-  targetAngle: 40.0
   damageRatio: 1.875
-  consumeAllCurrentMana: true
-  levelFiveRequiredManaRatio: 0.80
-onCast:
-  sound: block.beacon.power_select
+passive:
+  bindRequired: true
 tags:
-  - active
+  - passive
   - melee
+  - defense

@@ -570,12 +570,6 @@
       "z": -33
     },
     {
-      "nodeId": "1211",
-      "x": 0,
-      "y": 0,
-      "z": 30
-    },
-    {
       "nodeId": "1215",
       "x": -6,
       "y": 0,
@@ -1866,10 +1860,6 @@
     {
       "sourceNodeId": "1204",
       "targetNodeId": "1216"
-    },
-    {
-      "sourceNodeId": "1211",
-      "targetNodeId": "1228"
     },
     {
       "sourceNodeId": "1215",
