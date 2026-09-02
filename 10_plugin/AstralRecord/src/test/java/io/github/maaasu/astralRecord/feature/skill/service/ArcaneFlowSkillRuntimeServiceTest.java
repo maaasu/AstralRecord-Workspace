@@ -48,7 +48,7 @@ class ArcaneFlowSkillRuntimeServiceTest extends MockBukkitTestBase {
 
         SkillDefinition firstMagic = skillDefinition("mage_fireball", List.of("active", "magic"));
         SkillDefinition secondMagic = skillDefinition("mage_heal_aura", List.of("active", "magic"));
-        SkillDefinition nonMagic = skillDefinition("swordsman_bastion_strike", List.of("active", "melee"));
+        SkillDefinition nonMagic = skillDefinition("swordsman_challenging_roar", List.of("active"));
 
         runtime.onSkillCast(player, firstMagic);
         assertEquals(10.0D, runtime.castTimeReductionPercent(player, secondMagic), 0.0001D);

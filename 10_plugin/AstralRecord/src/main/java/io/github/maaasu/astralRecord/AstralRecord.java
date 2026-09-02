@@ -207,7 +207,7 @@ import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorJustDod
 import io.github.maaasu.astralRecord.feature.skill.executor.AdministratorShieldRechargeSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.HunterSpellStepSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.MageArcaneFlowSkillExecutor;
-import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanLastShieldSkillExecutor;
+import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanBastionStrikeExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.SwordsmanShieldActivateSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.MeditationSkillExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.StatusPassiveSkillExecutor;
@@ -221,8 +221,8 @@ import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillResolver;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.ArcaneFlowSkillRuntimeService;
+import io.github.maaasu.astralRecord.feature.skill.service.BastionStrikeSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.JustDodgeSkillRuntimeService;
-import io.github.maaasu.astralRecord.feature.skill.service.LastShieldSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.MeditationSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingHoldService;
@@ -402,7 +402,7 @@ public final class AstralRecord extends JavaPlugin {
     private JustDodgeSkillRuntimeService justDodgeSkillRuntimeService;
     private SpellStepSkillRuntimeService spellStepSkillRuntimeService;
     private ArcaneFlowSkillRuntimeService arcaneFlowSkillRuntimeService;
-    private LastShieldSkillRuntimeService lastShieldSkillRuntimeService;
+    private BastionStrikeSkillRuntimeService bastionStrikeSkillRuntimeService;
     private SkillTreeService skillTreeService;
     private SkillBindPresetService skillBindPresetService;
     private LearnedSkillService learnedSkillService;
@@ -746,8 +746,8 @@ public final class AstralRecord extends JavaPlugin {
         if (arcaneFlowSkillRuntimeService != null) {
             arcaneFlowSkillRuntimeService.clearAll();
         }
-        if (lastShieldSkillRuntimeService != null) {
-            lastShieldSkillRuntimeService.clearAll();
+        if (bastionStrikeSkillRuntimeService != null) {
+            bastionStrikeSkillRuntimeService.clearAll();
         }
         if (skillTreeService != null) {
             skillTreeService.stop();
@@ -1308,7 +1308,6 @@ public final class AstralRecord extends JavaPlugin {
         justDodgeSkillRuntimeService = new JustDodgeSkillRuntimeService(statusService, particleDisplayService);
         spellStepSkillRuntimeService = new SpellStepSkillRuntimeService();
         arcaneFlowSkillRuntimeService = new ArcaneFlowSkillRuntimeService(particleDisplayService);
-        lastShieldSkillRuntimeService = new LastShieldSkillRuntimeService(particleDisplayService);
         dodgeService.setSuccessfulDodgeListener(justDodgeSkillRuntimeService::onDodge);
         configureSpellStepIntegration(
             skillService,
@@ -1318,11 +1317,9 @@ public final class AstralRecord extends JavaPlugin {
         );
         configureArcaneFlowIntegration(skillService, arcaneFlowSkillRuntimeService);
         damageService.setJustDodgeSkillRuntimeService(justDodgeSkillRuntimeService);
-        damageService.setLastShieldSkillRuntimeService(lastShieldSkillRuntimeService);
         skillService.registerExecutor(new MeditationSkillExecutor(meditationSkillRuntimeService));
         skillService.registerExecutor(new AdministratorJustDodgeSkillExecutor(justDodgeSkillRuntimeService));
         skillService.registerExecutor(new AdministratorShieldRechargeSkillExecutor(statusService, particleDisplayService));
-        skillService.registerExecutor(new SwordsmanLastShieldSkillExecutor(lastShieldSkillRuntimeService));
         skillService.registerExecutor(new SwordsmanShieldActivateSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());
         weaponAttackSkillExecutor = new WeaponAttackSkillExecutor(particleDisplayService, damageService, conditionService);
@@ -1379,6 +1376,14 @@ public final class AstralRecord extends JavaPlugin {
             temporarySkillEffectService,
             activeSkillTaskService
         );
+        bastionStrikeSkillRuntimeService = new BastionStrikeSkillRuntimeService(
+            activeSkillServices.targeting(),
+            activeSkillServices.combat(),
+            activeSkillServices.effects(),
+            activeSkillServices.tasks()
+        );
+        damageService.setBastionStrikeSkillRuntimeService(bastionStrikeSkillRuntimeService);
+        skillService.registerExecutor(new SwordsmanBastionStrikeExecutor(bastionStrikeSkillRuntimeService));
         ActiveSkillExecutorCatalog.create(activeSkillServices)
             .forEach(skillService::registerExecutor);
         damageService.setTemporarySkillEffectService(temporarySkillEffectService);
@@ -1600,6 +1605,7 @@ public final class AstralRecord extends JavaPlugin {
             justDodgeSkillRuntimeService.clearPlayer(playerId);
             spellStepSkillRuntimeService.clearPlayer(playerId);
             arcaneFlowSkillRuntimeService.clearPlayer(playerId);
+            bastionStrikeSkillRuntimeService.clearPlayer(playerId);
             conditionService.clearAll(AstEntity.player(player));
             skillActionRingHoldService.cancel(player.getBukkit());
             skillActionRingService.close(player.getBukkit());

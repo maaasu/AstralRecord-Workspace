@@ -21,7 +21,6 @@ import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageFire
 import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageFrostBlizzardExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageHealAuraExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.mage.MageSparkingExecutor;
-import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanBastionStrikeExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanShieldDrainExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanFlameRushExecutor;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.swordsman.SwordsmanChallengingRoarExecutor;
@@ -63,7 +62,6 @@ class ActiveSkillExecutorDesignTest {
         "swordsman_shield_drain",
         "swordsman_flame_rush",
         "swordsman_challenging_roar",
-        "swordsman_bastion_strike",
         "hunter_arrow_rain",
         "hunter_build_up"
     );
@@ -71,7 +69,7 @@ class ActiveSkillExecutorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック
-     * 検証契約: catalogが設計記載20 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
+     * 検証契約: catalogが設計記載19 skill IDを各1回だけ返し全てPlayerActiveSkillExecutorである。
      */
     @Test
     void catalogContainsEveryDesignedSkillIdExactlyOnce() {
@@ -476,36 +474,6 @@ class ActiveSkillExecutorDesignTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
-     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 13. バスティオンストライクの実装契約 > ### 13.1 数値・対象・演出
-     * 検証契約: バスティオンストライクは正の射程・対象角・ダメージと現在MP全消費指定を必須とする。
-     */
-    @Test
-    void bastionStrikeValidatesCombatParams() {
-        SwordsmanBastionStrikeExecutor executor = new SwordsmanBastionStrikeExecutor(activeSkillServices());
-
-        assertDoesNotThrow(() -> executor.validateParams(bastionStrikeDefinition(Map.of(
-                "range", 6.0D,
-                "targetAngle", 40.0D,
-                "damageRatio", 1.875D,
-                "consumeAllCurrentMana", true,
-                "levelFiveRequiredManaRatio", 0.80D
-        ))));
-
-        SkillParameterException exception = assertThrows(
-                SkillParameterException.class,
-                () -> executor.validateParams(bastionStrikeDefinition(Map.of(
-                        "range", 6.0D,
-                        "targetAngle", 40.0D,
-                        "damageRatio", 1.875D,
-                        "consumeAllCurrentMana", false,
-                        "levelFiveRequiredManaRatio", 0.80D
-                )))
-        );
-        assertEquals("consumeAllCurrentMana", exception.key());
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 17. ハンター アローレインの実装契約
      * 検証契約: アローレインは射程・範囲・矢数・2撃倍率・初弾と雨矢の飛翔体仕様をmasterから要求する。
      */
@@ -831,28 +799,6 @@ class ActiveSkillExecutorDesignTest {
                 true,
                 SkillResourceType.ENERGY,
                 25.0D
-        );
-    }
-
-    private static SkillDefinition bastionStrikeDefinition(Map<String, Object> params) {
-        return new SkillDefinition(
-                "swordsman_bastion_strike",
-                "swordsman_bastion_strike",
-                "バスティオンストライク",
-                null,
-                "SHIELD",
-                List.of(),
-                100L,
-                0.0D,
-                0L,
-                1,
-                null,
-                params,
-                List.of("active", "melee"),
-                SkillKind.ACTIVE,
-                true,
-                SkillResourceType.MANA,
-                0.0D
         );
     }
 

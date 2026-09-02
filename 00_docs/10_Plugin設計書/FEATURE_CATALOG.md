@@ -6,7 +6,7 @@
 |:--|:--|:--|:--|
 | 01 | [[01_0-概要]] | Minecraft ユーザー登録、権限、履歴 | `feature/user` |
 | 02 | [[02_0-概要]] | 選択アカウント、モード、アカウント進行 | `feature/account` |
-| 03 | [[03_0-概要]] | プレイヤーライフサイクル、チャット、DiscordSRV連携、死亡、ログインボーナス、クラス進行 | `feature/player`, `feature/discord`, `feature/loginbonus`, `feature/class`, `feature/playerclass` |
+| 03 | [[03_0-概要]] | プレイヤーライフサイクル、チャット、DiscordSRV連携、死亡、ログインボーナス、クラス進行、ホワイトリスト | `feature/player`, `feature/discord`, `feature/loginbonus`, `feature/class`, `feature/playerclass`, `feature/whitelist` |
 | 04 | [[04_0-概要]] | アイテム定義、生成、使用、装備操作 | `feature/item` |
 | 05 | [[05_0-概要]] | バフ定義と適用状態 | `feature/buff` |
 | 06 | [[06_0-概要]] | ルートテーブル取得と抽選 | `feature/loot` |

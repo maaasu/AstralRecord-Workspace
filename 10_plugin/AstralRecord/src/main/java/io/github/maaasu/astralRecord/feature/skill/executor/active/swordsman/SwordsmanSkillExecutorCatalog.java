@@ -22,8 +22,7 @@ public final class SwordsmanSkillExecutorCatalog {
         return List.of(
             new SwordsmanShieldDrainExecutor(services),
             new SwordsmanFlameRushExecutor(services),
-            new SwordsmanChallengingRoarExecutor(services),
-            new SwordsmanBastionStrikeExecutor(services)
+            new SwordsmanChallengingRoarExecutor(services)
         );
     }
 }

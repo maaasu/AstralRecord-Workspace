@@ -319,6 +319,68 @@ class SkillTargetingServiceTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 13. バスティオンストライクの実装契約 > ### 13.1 数値・対象・演出
+     * 検証契約: inLineは6m以内で視線線分と交差する最寄りMob 1体を返し、線外・射程外のMobを除外する。
+     */
+    @Test
+    void lineSelectsNearestIntersectingMobWithinSixMeters() {
+        World world = mock(World.class);
+        Player player = mock(Player.class);
+        MobService mobService = mock(MobService.class);
+        MobTemplate template = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D).template();
+        MobInstance far = mockMob(template, world, 0.0D, 5.0D);
+        MobInstance side = mockMob(template, world, 1.5D, 3.0D);
+        MobInstance near = mockMob(template, world, 0.0D, 3.0D);
+        MobInstance outside = mockMob(template, world, 0.0D, 7.0D);
+        when(mobService.getInstances()).thenReturn(List.of(far, side, outside, near));
+        when(player.getWorld()).thenReturn(world);
+        Location eye = new Location(world, 0.0D, 1.6D, 0.0D);
+        eye.setDirection(new Vector(0.0D, 0.0D, 1.0D));
+        when(player.getEyeLocation()).thenReturn(eye);
+        when(world.rayTraceBlocks(
+                any(Location.class), any(Vector.class), anyDouble(), eq(FluidCollisionMode.NEVER), eq(true)
+        )).thenReturn(null);
+
+        List<AstEntity> targets = new SkillTargetingService(mobService).inLine(
+                player, eye, eye.getDirection(), 6.0D, 0.0D, 1
+        );
+
+        assertEquals(1, targets.size());
+        assertEquals(near.instanceId(), targets.get(0).id());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 13. バスティオンストライクの実装契約 > ### 13.1 数値・対象・演出
+     * 検証契約: inLineは視線上のBlockより後ろにいるMobを対象から除外する。
+     */
+    @Test
+    void lineDoesNotSelectMobBehindBlockOcclusion() {
+        World world = mock(World.class);
+        Player player = mock(Player.class);
+        MobService mobService = mock(MobService.class);
+        MobTemplate template = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D).template();
+        MobInstance target = mockMob(template, world, 0.0D, 4.0D);
+        when(mobService.getInstances()).thenReturn(List.of(target));
+        when(player.getWorld()).thenReturn(world);
+        Location eye = new Location(world, 0.0D, 1.6D, 0.0D);
+        eye.setDirection(new Vector(0.0D, 0.0D, 1.0D));
+        when(player.getEyeLocation()).thenReturn(eye);
+        RayTraceResult blockHit = mock(RayTraceResult.class);
+        when(blockHit.getHitPosition()).thenReturn(new Vector(0.0D, 1.6D, 2.0D));
+        when(world.rayTraceBlocks(
+                any(Location.class), any(Vector.class), anyDouble(), eq(FluidCollisionMode.NEVER), eq(true)
+        )).thenReturn(blockHit);
+
+        List<AstEntity> targets = new SkillTargetingService(mobService).inLine(
+                player, eye, eye.getDirection(), 6.0D, 0.0D, 1
+        );
+
+        assertTrue(targets.isEmpty());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 9. 冒険者マナバーストの実装契約 > ### 9.1 数値と対象形状
      * 検証契約: inConeは視線前方のMobだけを発動者から近い順に選び、最大対象数で打ち切る。
      */

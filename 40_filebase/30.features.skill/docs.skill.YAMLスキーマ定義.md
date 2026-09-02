@@ -46,7 +46,7 @@
 | `params` | Map<String, Any> | 任意 | `{}` | Executorと説明文で共有する実効値。共通項目は定義しない |
 | `tags` | List<String> | 任意 | `[]` | `76.shared.tag/v1.tags.yml`の`SKILL`対象タグID |
 
-`swordsman_bastion_strike` の `params.consumeAllCurrentMana: true` は、このスキルだけが現在MPを固定値ではなく全量消費することを表すexecutor固有の指定です。`params.levelFiveRequiredManaRatio: 0.80` はLv.5の必要MP比率で、Lv.1〜4は最大MP一致、Lv.5は最大MPの80%以上を発動条件とします。`resourceType: MANA` と `resourceCost: 0` は共通の固定コストを重複適用しないために維持し、Plugin executor が発動成功時に現在MPを0へ設定します。
+`swordsman_bastion_strike` の `params.range: 6.0` と `params.damageRatio: 1.875` は、シールド破壊時の視線ライン反撃に使うexecutor固有の値です。`passive.bindRequired: true` により、使用許可だけでなくパッシブスロットへのバインドを要求します。`resourceType: MANA` と `resourceCost: 0` はパッシブ定義の共通表示と固定コストを明示するために維持しますが、バスティオンストライクは発動時にMPを消費しません。
 
 複合消費では `ENERGY_COST_REDUCTION` と `MANA_COST_REDUCTION` を各消費へ個別に適用します。片方でも残量不足なら発動前に全消費を拒否し、executor成功時だけ両方を消費します。GUIも主ENGと副MPを別行で表示します。
 
