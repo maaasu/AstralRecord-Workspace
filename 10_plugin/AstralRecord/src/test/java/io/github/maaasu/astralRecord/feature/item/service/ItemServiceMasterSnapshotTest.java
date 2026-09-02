@@ -223,7 +223,6 @@ class ItemServiceMasterSnapshotTest {
             null,
             null,
             null,
-            null,
             new ItemOrb(effect)
         );
     }

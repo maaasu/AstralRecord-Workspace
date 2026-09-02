@@ -24,10 +24,8 @@ maxLevel: 1
 sigilSlotsByLevel:
   - { level: 1, slots: 1 }
 allowedSigilIds: []
-gem:
-  rarity: COMMON
-  tradeable: false
-  sellable: false
+learnRequiredItems: [{ itemId: skill_gem_raw, amount: 1 }]
+levelUpRequiredItems: [{ itemId: skill_gem_raw, amount: 1 }]
 passive:
   bindRequired: true
 params:

@@ -29,10 +29,8 @@ levels:
     paramDeltas: { castTimeReductionPercent: 1.25 }
 sigilSlotsByLevel: []
 allowedSigilIds: []
-gem:
-  rarity: COMMON
-  tradeable: false
-  sellable: false
+learnRequiredItems: [{ itemId: skill_gem_raw, amount: 3 }]
+levelUpRequiredItems: [{ itemId: skill_gem_raw, amount: 3 }]
 passive:
   bindRequired: true
 params:

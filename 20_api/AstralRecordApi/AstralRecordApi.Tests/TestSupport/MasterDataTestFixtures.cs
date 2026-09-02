@@ -19,7 +19,6 @@ internal static class MasterDataTestFixtures
           "maxLevel": 5,
           "sigilSlotsByLevel": [{ "level": 1, "slots": 1 }, { "level": 3, "slots": 2 }, { "level": 5, "slots": 3 }],
           "allowedSigilIds": ["cooldown_sigil", "cooldown_sigil_ii"],
-          "gem": { "rarity": "COMMON", "tradeable": false, "sellable": false },
           "tags": ["active", "melee", "adventurer"]
         }
         """;
@@ -44,7 +43,6 @@ internal static class MasterDataTestFixtures
             "activeParticleIntervalTicks": 5,
             "activeSoundIntervalTicks": 40
           },
-          "gem": { "rarity": "COMMON", "tradeable": false, "sellable": false },
           "tags": ["passive", "field"]
         }
         """;
@@ -65,7 +63,6 @@ internal static class MasterDataTestFixtures
             { "level": 5, "paramDeltas": { "shieldBreakMultiplier": 0.5 } }
           ],
           "params": { "shieldBreakMultiplier": 3.0 },
-          "gem": { "rarity": "COMMON", "tradeable": false, "sellable": false },
           "tags": ["active", "ranged"]
         }
         """;

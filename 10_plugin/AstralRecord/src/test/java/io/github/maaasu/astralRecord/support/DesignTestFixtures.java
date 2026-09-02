@@ -144,7 +144,6 @@ public final class DesignTestFixtures {
             null,
             null,
             null,
-            null,
             null
         );
     }
@@ -181,7 +180,6 @@ public final class DesignTestFixtures {
             null,
             null,
             equipment,
-            null,
             null,
             null,
             null,

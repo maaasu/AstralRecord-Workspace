@@ -1827,9 +1827,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
             null,
             null,
             null,
-            null,
-            null
-        );
+            null);
     }
 
     private void assertOffhandAssignmentRejected(ItemModel sourceModel, ItemCategory category) {

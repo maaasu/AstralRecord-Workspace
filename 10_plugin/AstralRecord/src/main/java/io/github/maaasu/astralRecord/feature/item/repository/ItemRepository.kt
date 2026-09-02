@@ -43,7 +43,6 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEnchantOperation
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbRankMode
 import io.github.maaasu.astralRecord.feature.item.model.ItemRune
 import io.github.maaasu.astralRecord.feature.item.model.ItemSummary
-import io.github.maaasu.astralRecord.feature.item.model.ItemSkillGem
 import io.github.maaasu.astralRecord.feature.item.model.ItemSigil
 import io.github.maaasu.astralRecord.feature.item.model.ItemSigilModifier
 import io.github.maaasu.astralRecord.feature.item.model.EnchantEntry
@@ -344,7 +343,6 @@ class ItemRepository {
             equipment = parseEquipment(obj),
             rune = parseRune(obj),
             consumable = parseConsumable(obj),
-            skillGem = parseSkillGem(obj),
             sigil = parseSigil(obj),
             orb = parseOrb(obj),
         )
@@ -460,12 +458,6 @@ class ItemRepository {
         } else {
             normalized
         }
-    }
-
-    private fun parseSkillGem(obj: JsonObject): ItemSkillGem? {
-        val skillGemObj = parseObjectOrNull(obj, "skillGem") ?: return null
-        val skillId = parseStringOrNull(skillGemObj, "skillId") ?: return null
-        return ItemSkillGem(skillId)
     }
 
     private fun parseSigil(obj: JsonObject): ItemSigil? {

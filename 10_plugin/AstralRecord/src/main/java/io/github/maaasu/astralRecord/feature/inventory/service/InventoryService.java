@@ -2643,6 +2643,42 @@ public class InventoryService {
         @NotNull String itemCategory,
         @NotNull String itemId
     ) {
+        return findOwnedStackEntries(
+            astPlayer,
+            itemCategory,
+            itemId,
+            List.of(InventoryType.BAG, InventoryType.HOTBAR)
+        );
+    }
+
+    /**
+     * 有効な GAME プロファイルの通常スタック品を返します。
+     * スキル習得・レベルアップの必要素材候補と、API 原子操作後の正本再同期に使用します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @param itemCategory アイテムカテゴリ
+     * @param itemId アイテムID
+     * @return BAG・HOTBAR・STORAGE に存在する通常 stack entry。state 未ロード時は空
+     */
+    public @NotNull List<InventoryEntryModel> getOwnedGameStackEntries(
+        @NotNull AstPlayer astPlayer,
+        @NotNull String itemCategory,
+        @NotNull String itemId
+    ) {
+        return findOwnedStackEntries(
+            astPlayer,
+            itemCategory,
+            itemId,
+            List.of(InventoryType.BAG, InventoryType.HOTBAR, InventoryType.STORAGE)
+        );
+    }
+
+    private @NotNull List<InventoryEntryModel> findOwnedStackEntries(
+        @NotNull AstPlayer astPlayer,
+        @NotNull String itemCategory,
+        @NotNull String itemId,
+        @NotNull List<InventoryType> inventoryTypes
+    ) {
         String normalizedCategory = itemCategory.trim();
         String normalizedItemId = itemId.trim();
         if (normalizedCategory.isBlank() || normalizedItemId.isBlank()) {
@@ -2654,7 +2690,7 @@ public class InventoryService {
         }
         synchronized (state) {
             List<InventoryEntryModel> result = new ArrayList<>();
-            for (InventoryType type : List.of(InventoryType.BAG, InventoryType.HOTBAR)) {
+            for (InventoryType type : inventoryTypes) {
                 InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, type);
                 if (inventory == null || !inventory.isEnabled() || inventory.isDeleted()) {
                     continue;

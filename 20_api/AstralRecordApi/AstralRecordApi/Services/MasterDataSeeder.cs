@@ -23,7 +23,6 @@ public class MasterDataSeeder(
     private const string StatusRunning = "RUNNING";
     private const string StatusSucceeded = "SUCCEEDED";
     private const string StatusFailed = "FAILED";
-    private const string GeneratedSkillGemIdPrefix = "00_skill_gem_";
     private const string BuiltInAstraldCurrencyItemId = "astrald";
     private const int InventoryItemIdMaxLength = 100;
     private const int LearnedSkillSigilIdMaxLength = 128;
@@ -449,10 +448,6 @@ public class MasterDataSeeder(
                 .ToListAsync(cancellationToken);
         var activeTypesByMasterId = activeEntries
             .ToLookup(entry => entry.MasterId, entry => entry.MasterType, KeyComparer);
-        var generatedSkillGemIds = activeEntries
-            .Where(entry => KeyComparer.Equals(entry.MasterType, "skill"))
-            .Select(entry => GeneratedSkillGemIdPrefix + entry.MasterId)
-            .ToHashSet(KeyComparer);
 
         var references = await db.References
             .Where(reference => !reference.IsDeleted)
@@ -466,8 +461,7 @@ public class MasterDataSeeder(
                 string.Equals(masterType, reference.ReferenceType, StringComparison.OrdinalIgnoreCase)
                 || masterType.StartsWith(reference.ReferenceType + ".", StringComparison.OrdinalIgnoreCase))
                 || (KeyComparer.Equals(reference.ReferenceType, "item")
-                    && (generatedSkillGemIds.Contains(reference.ReferenceIdValue)
-                        || KeyComparer.Equals(reference.ReferenceIdValue, BuiltInAstraldCurrencyItemId)));
+                    && KeyComparer.Equals(reference.ReferenceIdValue, BuiltInAstraldCurrencyItemId));
 
             if (resolved)
                 continue;
@@ -558,6 +552,10 @@ public class MasterDataSeeder(
             .Where(entry => KeyComparer.Equals(entry.MasterType, "skill"))
             .Select(entry => entry.MasterId)
             .ToHashSet(KeyComparer);
+        var activeItemIds = entries
+            .Where(entry => KeyComparer.Equals(entry.MasterType, "item"))
+            .Select(entry => entry.MasterId)
+            .ToHashSet(KeyComparer);
         var sigilIds = entries
             .Where(entry => KeyComparer.Equals(entry.MasterType, "item")
                 && KeyComparer.Equals(entry.Category, "sigil"))
@@ -585,26 +583,23 @@ public class MasterDataSeeder(
                 throw new InvalidOperationException(
                     $"sigil.modifiersには既知status IDと有限値を指定してください: {entry.SourceFilePath}");
         }
-        var reservedItem = entries.FirstOrDefault(entry => KeyComparer.Equals(entry.MasterType, "item")
-            && entry.MasterId.StartsWith(GeneratedSkillGemIdPrefix, StringComparison.OrdinalIgnoreCase));
-        if (reservedItem is not null)
-            throw new InvalidOperationException(
-                $"item.id '{reservedItem.MasterId}' は自動生成スキルジェム用の予約prefixです: {reservedItem.SourceFilePath}");
-
         foreach (var entry in entries.Where(entry => KeyComparer.Equals(entry.MasterType, "skill")))
         {
-            var skillPayload = JsonNode.Parse(entry.PayloadJson)?.AsObject();
-            var gemPayload = skillPayload?["gem"] as JsonObject;
-            var explicitGemRarity = gemPayload?["rarity"]?.GetValue<string>();
-            if (gemPayload is null || string.IsNullOrWhiteSpace(explicitGemRarity))
-                throw new InvalidOperationException($"skill.gem と gem.rarity は明示必須です: {entry.SourceFilePath}");
             var skill = MasterDataPayloadJson.Deserialize<SkillResponse>(entry.PayloadJson)
                 ?? throw new InvalidOperationException($"skillの解析に失敗しました: {entry.SourceFilePath}");
             if (!KeyComparer.Equals(skill.Id, entry.MasterId))
                 throw new InvalidOperationException($"skill.id と master_id が一致しません: {entry.SourceFilePath}");
-            if (GeneratedSkillGemIdPrefix.Length + skill.Id.Length > InventoryItemIdMaxLength)
+            if (!AreValidRequiredItems(skill.LearnRequiredItems) || !AreValidRequiredItems(skill.LevelUpRequiredItems))
+                throw new InvalidOperationException($"skillのrequiredItemsにはitemIdと1以上のamountを指定してください: {entry.SourceFilePath}");
+            var unknownRequiredItems = skill.LearnRequiredItems
+                .Concat(skill.LevelUpRequiredItems)
+                .Select(item => item.ItemId.Trim())
+                .Where(itemId => !activeItemIds.Contains(itemId))
+                .Distinct(KeyComparer)
+                .ToArray();
+            if (unknownRequiredItems.Length > 0)
                 throw new InvalidOperationException(
-                    $"skill.id が長すぎるため自動生成ジェムIDをinventory_entry.item_idへ保存できません: {entry.SourceFilePath}");
+                    $"skillのrequiredItemsに有効item masterがありません ({string.Join(", ", unknownRequiredItems)}): {entry.SourceFilePath}");
             if (skill.MaxLevel < 1)
                 throw new InvalidOperationException($"maxLevel は1以上です: {entry.SourceFilePath}");
             var expectedLevels = Enumerable.Range(2, Math.Max(0, skill.MaxLevel - 1)).ToArray();
@@ -661,6 +656,9 @@ public class MasterDataSeeder(
                     $"usableSkillsに未定義スキルがあります ({string.Join(", ", unknownSkills)}): {entry.SourceFilePath}");
         }
     }
+
+    private static bool AreValidRequiredItems(IReadOnlyList<SkillRequiredItemResponse> requiredItems)
+        => requiredItems.All(item => !string.IsNullOrWhiteSpace(item.ItemId) && item.Amount > 0);
 
     // ---- ファイル走査 -----------------------------------------------------
 

@@ -44,7 +44,11 @@ public class SkillResponse
 
     public IReadOnlyList<string> AllowedSigilIds { get; init; } = [];
 
-    public SkillGemResponse Gem { get; init; } = new();
+    /// <summary>初回習得時に消費するアイテム。未指定時は無条件で習得できます。</summary>
+    public IReadOnlyList<SkillRequiredItemResponse> LearnRequiredItems { get; init; } = [];
+
+    /// <summary>レベルアップ時に消費するアイテム。未指定時は無条件でレベルアップできます。</summary>
+    public IReadOnlyList<SkillRequiredItemResponse> LevelUpRequiredItems { get; init; } = [];
 
     public IReadOnlyDictionary<string, object?> Params { get; init; } = new Dictionary<string, object?>();
 
@@ -103,13 +107,9 @@ public class SkillSigilSlotResponse
     public int Slots { get; init; }
 }
 
-public class SkillGemResponse
+public class SkillRequiredItemResponse
 {
-    public string? Icon { get; init; }
+    public required string ItemId { get; init; }
 
-    public string Rarity { get; init; } = "COMMON";
-
-    public bool Tradeable { get; init; }
-
-    public bool Sellable { get; init; }
+    public int Amount { get; init; } = 1;
 }

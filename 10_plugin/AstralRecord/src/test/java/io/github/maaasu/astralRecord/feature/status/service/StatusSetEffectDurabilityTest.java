@@ -279,7 +279,6 @@ class StatusSetEffectDurabilityTest extends MockBukkitTestBase {
                 null,
                 null,
                 null,
-                null,
                 null
         );
     }
@@ -316,7 +315,6 @@ class StatusSetEffectDurabilityTest extends MockBukkitTestBase {
                 null,
                 null,
                 equipment,
-                null,
                 null,
                 null,
                 null,
@@ -358,7 +356,6 @@ class StatusSetEffectDurabilityTest extends MockBukkitTestBase {
                 null,
                 null,
                 equipment,
-                null,
                 null,
                 null,
                 null,

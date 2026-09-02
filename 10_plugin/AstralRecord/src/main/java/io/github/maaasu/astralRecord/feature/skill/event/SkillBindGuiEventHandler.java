@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skill.event;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -57,6 +58,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
@@ -293,7 +295,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (slot == SkillBindGui.NEXT_PAGE_SLOT) {
-            int pages = gui.totalPages(visibleEntries(astPlayer, session).size());
+            int pages = gui.totalPages(visibleEntries(astPlayer, session).size() + visibleUnlearnedDefinitions(astPlayer, session).size());
             if (page + 1 >= pages) {
                 GuiSound.DENY.play(player);
                 return;
@@ -358,10 +360,23 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return;
         }
 
+        String unlearnedSkillId = gui.unlearnedSkillId(event.getCurrentItem());
+        if (unlearnedSkillId != null) {
+            if (!event.isLeftClick() || session.selectedBindType() != null) {
+                GuiSound.DENY.play(player);
+                return;
+            }
+            learnFromManager(player, session, page, unlearnedSkillId);
+            return;
+        }
         String learnedSkillId = gui.learnedSkillId(event.getCurrentItem());
         SkillManagerEntry entry = entry(astPlayer, learnedSkillId);
         if (entry == null) {
             GuiSound.DENY.play(player);
+            return;
+        }
+        if (event.isRightClick() && session.selectedBindType() == null) {
+            levelUpFromManager(player, session, page, entry);
             return;
         }
         if (!event.isLeftClick()) {
@@ -720,8 +735,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             .filter(entry -> {
                 SkillBindType selected = session.selectedBindType();
                 if (selected == null) {
-                    return !entry.definition().getKind().isPassive()
-                        || entry.definition().getPassiveBindRequired();
+                    return true;
                 }
                 if (selected == SkillBindType.PASSIVE) {
                     return entry.definition().getKind() == SkillKind.PASSIVE
@@ -780,11 +794,71 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         return gui.createMainInventory(
             session,
             visible,
+            visibleUnlearnedDefinitions(astPlayer, session),
             allById,
             permittedSkillDefinitions(astPlayer),
             passiveSkillService.activePassiveSlotCount(astPlayer),
             page
         );
+    }
+
+    private List<SkillDefinition> visibleUnlearnedDefinitions(@NotNull AstPlayer player, @NotNull SkillBindSession session) {
+        Set<String> learnedIds = ownershipService.learnedSkills(player).stream()
+            .map(learned -> learned.getSkillId().toLowerCase(java.util.Locale.ROOT))
+            .collect(java.util.stream.Collectors.toSet());
+        return permittedSkillDefinitions(player).stream()
+            .filter(definition -> !learnedIds.contains(definition.getId().toLowerCase(java.util.Locale.ROOT)))
+            .filter(definition -> {
+                SkillBindType selected = session.selectedBindType();
+                if (selected == null) return true;
+                return selected == SkillBindType.PASSIVE
+                    ? definition.getKind() == SkillKind.PASSIVE && definition.getPassiveBindRequired()
+                    : definition.getKind() != SkillKind.PASSIVE;
+            })
+            .toList();
+    }
+
+    private void learnFromManager(Player player, SkillBindSession session, int page, String skillId) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || !permissionService.isPermitted(astPlayer, skillId)) { GuiSound.DENY.play(player); return; }
+        SkillDefinition definition = skillService.registry().getDefinition(skillId);
+        if (definition == null) { GuiSound.DENY.play(player); return; }
+        boolean scheduled = learnedSkillService.learnFromManagerAsync(astPlayer.getAccount().getUuid(), skillId,
+            astPlayer.getAccount().getUuid(), requiredItemEntryIds(astPlayer, definition.getLearnRequiredItems()), learned -> {
+                plugin.getGuideService().recordConditionSilently(astPlayer, GuideConditionType.SKILL_LEARNED, skillId);
+                GuiSound.SUCCESS.play(player); openMain(player, session, page);
+            },
+            error -> { GuiSound.DENY.play(player); openMain(player, session, page); });
+        if (!scheduled) GuiSound.DENY.play(player);
+    }
+
+    private void levelUpFromManager(Player player, SkillBindSession session, int page, SkillManagerEntry entry) {
+        if (entry.learnedSkill().getLevel() >= entry.definition().getMaxLevel()) { GuiSound.DENY.play(player); return; }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) { GuiSound.DENY.play(player); return; }
+        boolean scheduled = learnedSkillService.levelUpFromManagerAsync(astPlayer.getAccount().getUuid(),
+            entry.learnedSkill().getLearnedSkillId(), astPlayer.getAccount().getUuid(),
+            requiredItemEntryIds(astPlayer, entry.definition().getLevelUpRequiredItems()),
+            updated -> {
+                plugin.getGuideService().recordConditionSilently(astPlayer, GuideConditionType.SKILL_ENHANCED, entry.definition().getId());
+                GuiSound.SUCCESS.play(player); openMain(player, session, page);
+            },
+            error -> { GuiSound.DENY.play(player); openMain(player, session, page); });
+        if (!scheduled) GuiSound.DENY.play(player);
+    }
+
+    /** API 正本が消費し得る、要求素材と一致する全ローカルentryを返します。 */
+    private @NotNull List<UUID> requiredItemEntryIds(
+        @NotNull AstPlayer player,
+        @NotNull List<io.github.maaasu.astralRecord.feature.skill.model.SkillRequiredItemDefinition> requiredItems
+    ) {
+        return requiredItems.stream()
+            .map(cost -> plugin.getItemService().findLoadedById(cost.getItemId()))
+            .filter(Objects::nonNull)
+            .flatMap(item -> inventoryService.getOwnedGameStackEntries(player, item.getCategory(), item.getId()).stream())
+            .map(InventoryEntryModel::getInventoryEntryId)
+            .distinct()
+            .toList();
     }
 
     /**
@@ -938,7 +1012,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             case SIGIL_NOT_ALLOWED -> PlayerMsgId.P_5859;
             case NO_SIGIL_SLOT -> PlayerMsgId.P_5860;
             case DUPLICATE_SIGIL_GROUP -> PlayerMsgId.P_5861;
-            case NONE, GEM_PURCHASE_ONLY -> PlayerMsgId.P_5862;
+            case NONE -> PlayerMsgId.P_5862;
             case SIGIL -> null;
         };
         if (messageId != null) {

@@ -38,8 +38,6 @@ public class ItemResponse
 
     public ItemRuneResponse? Rune { get; init; }
 
-    public ItemSkillGemResponse? SkillGem { get; init; }
-
     public ItemSigilResponse? Sigil { get; init; }
 
     public ItemOrbResponse? Orb { get; init; }
@@ -252,11 +250,6 @@ public class ItemRuneResponse
 
     public IReadOnlyList<ItemRuneStatResponse> Stats { get; init; } = [];
 
-}
-
-public class ItemSkillGemResponse
-{
-    public required string SkillId { get; init; }
 }
 
 public class ItemSigilResponse

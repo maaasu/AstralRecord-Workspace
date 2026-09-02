@@ -34,10 +34,8 @@ sigilSlotsByLevel:
 allowedSigilIds:
   - cooldown_sigil
   - cooldown_sigil_ii
-gem:
-  rarity: COMMON
-  tradeable: false
-  sellable: false
+learnRequiredItems: [{ itemId: skill_gem_raw, amount: 3 }]
+levelUpRequiredItems: [{ itemId: skill_gem_raw, amount: 3 }]
 onCast:
   sound: entity.lightning_bolt.thunder
 tags:

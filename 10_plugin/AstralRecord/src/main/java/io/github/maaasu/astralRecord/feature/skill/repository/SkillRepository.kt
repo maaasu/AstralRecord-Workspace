@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType
 import io.github.maaasu.astralRecord.feature.skill.model.SkillLevelDefinition
 import io.github.maaasu.astralRecord.feature.skill.model.SkillSigilSlotDefinition
+import io.github.maaasu.astralRecord.feature.skill.model.SkillRequiredItemDefinition
 import io.github.maaasu.astralRecord.feature.skill.model.SkillStatusModifierDefinition
 import io.github.maaasu.astralRecord.feature.skill.model.SkillSummary
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId
@@ -126,7 +127,20 @@ class SkillRepository {
             levels = parseLevels(obj.getAsJsonArray("levels")),
             sigilSlotsByLevel = parseSigilSlots(obj.getAsJsonArray("sigilSlotsByLevel")),
             allowedSigilIds = parseStringList(obj.getAsJsonArray("allowedSigilIds")),
+            learnRequiredItems = parseRequiredItems(obj.getAsJsonArray("learnRequiredItems")),
+            levelUpRequiredItems = parseRequiredItems(obj.getAsJsonArray("levelUpRequiredItems")),
         )
+    }
+
+    private fun parseRequiredItems(array: JsonArray?): List<SkillRequiredItemDefinition> {
+        if (array == null) return emptyList()
+        return array.filter { it.isJsonObject }.map { element ->
+            val obj = element.asJsonObject
+            SkillRequiredItemDefinition(
+                itemId = obj.get("itemId")?.asString?.trim().orEmpty(),
+                amount = obj.get("amount")?.asInt ?: 1,
+            )
+        }.filter { it.itemId.isNotBlank() && it.amount > 0 }
     }
 
     private fun parseLevels(array: JsonArray?): List<SkillLevelDefinition> {

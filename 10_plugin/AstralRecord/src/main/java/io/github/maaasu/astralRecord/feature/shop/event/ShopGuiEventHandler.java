@@ -184,10 +184,6 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             GuiSound.SELECT.play(player);
             return;
         }
-        if (preview.specialPurchase().singleQuantity() && isQuantitySlot(event.getRawSlot())) {
-            GuiSound.DENY.play(player);
-            return;
-        }
         int nextQuantity = switch (event.getRawSlot()) {
             case ShopGui.QUANTITY_MINUS_10_SLOT -> Math.max(1, quantity - 10);
             case ShopGui.QUANTITY_MINUS_1_SLOT -> Math.max(1, quantity - 1);
@@ -233,9 +229,7 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
         if (model == null) {
             return false;
         }
-        int amount = preview.specialPurchase().singleQuantity()
-            ? 1
-            : Math.max(1, entry.amount()) * Math.max(1, preview.quantity());
+        int amount = Math.max(1, entry.amount()) * Math.max(1, preview.quantity());
         return !inventoryService.canAddItemToNormalInventory(astPlayer, model, amount);
     }
 

@@ -108,7 +108,7 @@ public class ItemStackPacketAdapter {
     }
 
     /**
-     * 受信者ごとのスキルジェム使用可否表示を含めてアダプタを初期化します。
+     * 受信者ごとのスキル使用可否表示を含めてアダプタを初期化します。
      *
      * @param plugin プラグインインスタンス
      * @param playerSettingService 受信者ごとの防具表示設定を参照するサービス
@@ -473,7 +473,6 @@ public class ItemStackPacketAdapter {
         var customModelData = ItemStackFactory.getCustomModelData(original);
         var appearanceColor = ItemStackFactory.getAppearanceColor(original);
         var potionType = ItemStackFactory.getPotionType(original);
-        var skillGemId = ItemStackFactory.getSkillGemId(original);
         boolean hookshotLoaded = ItemStackFactory.isHookshotLoaded(original);
         boolean virtualWeapon = virtualTrident && ItemStackFactory.isWeapon(original);
 
@@ -481,8 +480,7 @@ public class ItemStackPacketAdapter {
             && iconName == null
             && customModelData == null
             && appearanceColor == null
-            && potionType == null
-            && skillGemId == null) {
+            && potionType == null) {
             return null;
         }
 
@@ -518,12 +516,6 @@ public class ItemStackPacketAdapter {
         if (ItemStackFactory.applyAppearance(replaced)) {
             modified = true;
         }
-        if (skillGemId != null && permittedSkillIds != null) {
-            modified |= appendSkillGemAvailabilityLore(
-                replaced,
-                permittedSkillIds.contains(skillGemId)
-            );
-        }
         if (ItemStackFactory.applyDurabilityVisual(replaced)) {
             modified = true;
         }
@@ -535,38 +527,6 @@ public class ItemStackPacketAdapter {
         }
 
         return modified ? replaced : null;
-    }
-
-    /**
-     * スキルジェムの送信コピーへ、使用可否を示す Lore 行を追加します。
-     *
-     * @param item 送信コピー
-     * @param permitted 現在使用可能な場合は {@code true}
-     * @return Lore 行を追加した場合は {@code true}
-     */
-    static boolean appendSkillGemAvailabilityLore(@NotNull ItemStack item, boolean permitted) {
-        ItemMeta meta = item.getItemMeta();
-        if (meta == null) {
-            return false;
-        }
-
-        List<Component> lore = meta.lore() == null
-            ? new ArrayList<>()
-            : new ArrayList<>(meta.lore());
-        boolean alreadyAdded = lore.stream()
-            .map(Component::toString)
-            .anyMatch(line -> line.contains("現在使用可能:"));
-        if (alreadyAdded) {
-            return false;
-        }
-
-        lore.add(Component.text(
-            "現在使用可能: " + (permitted ? "はい" : "いいえ"),
-            permitted ? NamedTextColor.GREEN : NamedTextColor.RED
-        ).decoration(TextDecoration.ITALIC, false));
-        meta.lore(lore);
-        item.setItemMeta(meta);
-        return true;
     }
 
     /**

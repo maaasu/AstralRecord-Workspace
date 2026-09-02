@@ -73,35 +73,6 @@ public class MasterDataSeederSkillSystemTests
     }
 
     /// <summary>
-    /// 設計入力: 00_docs/50_Filebase設計書/feature/30-skill.md
-    /// 検証契約: 有効skillから自動生成される仮想gem IDは、loot/quest等のitem必須参照として解決できる。
-    /// </summary>
-    [Fact]
-    public async Task ValidateReferencesAsync_ResolvesGeneratedSkillGemItemReference()
-    {
-        await using var fixture = await Fixture.CreateAsync();
-        var skill = fixture.AddEntry("skill", "adventurer_smash", null, "{}");
-        fixture.Db.References.Add(new MasterDataReferenceEntity
-        {
-            ReferenceId = Guid.NewGuid(),
-            FromEntryId = skill.EntryId,
-            FromMasterType = "loot",
-            FromMasterId = "gem_drop",
-            ReferenceType = "item",
-            ReferenceIdValue = "00_skill_gem_adventurer_smash",
-            ReferencePath = "$.entries[0].ref",
-            IsRequired = true,
-            CreatedAt = fixture.Now,
-            UpdatedAt = fixture.Now,
-            CreatedBy = fixture.SystemUser,
-            UpdatedBy = fixture.SystemUser,
-        });
-        await fixture.Db.SaveChangesAsync();
-
-        await InvokeAsync(fixture.Seeder, "ValidateReferencesAsync", new List<string>(), CancellationToken.None);
-    }
-
-    /// <summary>
     /// 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_0-概要.md
     /// 検証契約: Plugin組み込み通貨astraldはFilebase item定義なしでも必須参照として解決できる。
     /// </summary>
@@ -128,6 +99,43 @@ public class MasterDataSeederSkillSystemTests
         await fixture.Db.SaveChangesAsync();
 
         await InvokeAsync(fixture.Seeder, "ValidateReferencesAsync", new List<string>(), CancellationToken.None);
+    }
+
+    /// <summary>
+    /// 設計入力: 40_filebase/30.features.skill/docs.skill.YAMLスキーマ定義.md
+    /// 検証契約: skill の習得・強化素材は有効な item master を参照する。
+    /// </summary>
+    [Fact]
+    public async Task ValidateSkillSystemMastersAsync_AllowsRequiredItemsWithActiveItemMaster()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        fixture.AddEntry("item", "skill_gem_raw", "material", "{}");
+        fixture.AddEntry("skill", "test_skill", null, """
+            { "schemaVersion": 1, "id": "test_skill", "type": "SKILL", "implementationId": "test_skill",
+              "name": "Test", "maxLevel": 1,
+              "learnRequiredItems": [{ "itemId": "skill_gem_raw", "amount": 2 }],
+              "levelUpRequiredItems": [{ "itemId": "skill_gem_raw", "amount": 1 }] }
+            """);
+        await fixture.Db.SaveChangesAsync();
+
+        await InvokeAsync(fixture.Seeder, "ValidateSkillSystemMastersAsync", CancellationToken.None);
+    }
+
+    [Fact]
+    public async Task ValidateSkillSystemMastersAsync_RejectsMissingRequiredItemMaster()
+    {
+        await using var fixture = await Fixture.CreateAsync();
+        fixture.AddEntry("skill", "test_skill", null, """
+            { "schemaVersion": 1, "id": "test_skill", "type": "SKILL", "implementationId": "test_skill",
+              "name": "Test", "maxLevel": 1,
+              "learnRequiredItems": [{ "itemId": "missing_item", "amount": 1 }] }
+            """);
+        await fixture.Db.SaveChangesAsync();
+
+        var error = await Assert.ThrowsAsync<InvalidOperationException>(() =>
+            InvokeAsync(fixture.Seeder, "ValidateSkillSystemMastersAsync", CancellationToken.None));
+
+        Assert.Contains("有効item master", error.Message, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -260,30 +268,6 @@ public class MasterDataSeederSkillSystemTests
                 "equipGroupId": "bad_group",
                 "modifiers": [{ "status": "UNKNOWN_STATUS", "value": 1.0 }]
               }
-            }
-            """);
-        await fixture.Db.SaveChangesAsync();
-
-        await Assert.ThrowsAsync<InvalidOperationException>(() =>
-            InvokeAsync(fixture.Seeder, "ValidateSkillSystemMastersAsync", CancellationToken.None));
-    }
-
-    /// <summary>
-    /// 設計入力: 00_docs/50_Filebase設計書/feature/30-skill.md
-    /// 検証契約: DTOの既定値へ暗黙fallbackせず、各skill masterがgem rarityを明示する。
-    /// </summary>
-    [Fact]
-    public async Task ValidateSkillSystemMastersAsync_RejectsMissingGemDefinition()
-    {
-        await using var fixture = await Fixture.CreateAsync();
-        fixture.AddEntry("skill", "missing_gem", null, """
-            {
-              "schemaVersion": 1,
-              "id": "missing_gem",
-              "type": "SKILL",
-              "implementationId": "missing_gem",
-              "name": "Missing Gem",
-              "maxLevel": 1
             }
             """);
         await fixture.Db.SaveChangesAsync();

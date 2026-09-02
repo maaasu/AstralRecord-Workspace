@@ -8,7 +8,7 @@ import org.jetbrains.annotations.NotNull;
  * プレイヤー用スキルマスターと分離した、Mob 専用スキルの実行契約です。
  *
  * <p>1つの実装は1つの {@link #id()} だけを担当します。Mob マスターは ID と少数の
- * {@link MobSkillBinding#params()} を指定し、スキルジェム・習得・職業・レベルは扱いません。</p>
+ * {@link MobSkillBinding#params()} を指定し、プレイヤー側の習得・職業・レベルは扱いません。</p>
  */
 public interface MobSkillExecutor {
 

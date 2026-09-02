@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillForgetInventoryHolder;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillForgetScreen;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.service.LearnedSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
@@ -210,7 +211,7 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
         forgetting.put(playerId, learnedSkillId);
         GuiSound.CONFIRM.play(player);
         PurchaseMaterial compensationMaterial = paidForget
-            ? findPurchaseMaterial(entry.learnedSkill().getSkillId())
+            ? findPurchaseMaterial(entry.definition())
             : null;
         if (paidForget && compensationMaterial == null) {
             rejectPaidForget(player, playerId, PlayerMsgId.P_5870);
@@ -324,38 +325,12 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
         }
     }
 
-    private @Nullable ItemModel findSkillGem(@NotNull String skillId) {
-        return itemService.getLoadedItems().stream()
-            .filter(item -> item.getSkillGem() != null)
-            .filter(item -> skillId.equalsIgnoreCase(item.getSkillGem().getSkillId()))
-            .findFirst()
-            .orElse(null);
-    }
-
-    private @Nullable PurchaseMaterial findPurchaseMaterial(@NotNull String skillId) {
-        ItemModel gem = findSkillGem(skillId);
-        ShopDefinition exchange = shopService.findById("skill_gem_exchange");
-        if (gem == null || exchange == null) {
-            return null;
-        }
-        ShopEntry purchaseEntry = exchange.entries().stream()
-            .filter(entry -> entry.itemId().equalsIgnoreCase(gem.getId()))
-            .findFirst()
-            .orElse(null);
-        if (purchaseEntry == null || shopService.resolveGoldCost(purchaseEntry) > 0) {
-            return null;
-        }
-        List<ShopCostItem> costs = shopService.resolveRequiredItems(purchaseEntry);
-        if (costs.size() != 1 || costs.get(0).amount() <= 0
-            || "currency".equalsIgnoreCase(costs.get(0).category())) {
-            return null;
-        }
-        ShopCostItem cost = costs.get(0);
-        ItemModel material = itemService.findLoadedById(cost.itemId());
-        if (material == null) {
-            material = itemService.loadItem(cost.itemId(), cost.category());
-        }
-        return material == null ? null : new PurchaseMaterial(material, cost.amount());
+    private @Nullable PurchaseMaterial findPurchaseMaterial(@NotNull SkillDefinition skill) {
+        List<io.github.maaasu.astralRecord.feature.skill.model.SkillRequiredItemDefinition> costs = skill.getLearnRequiredItems();
+        if (costs.size() != 1 || costs.get(0).getAmount() <= 0) return null;
+        var cost = costs.get(0);
+        ItemModel material = itemService.findLoadedById(cost.getItemId());
+        return material == null ? null : new PurchaseMaterial(material, cost.getAmount());
     }
 
     private void runOnMainThread(@NotNull Runnable action) {

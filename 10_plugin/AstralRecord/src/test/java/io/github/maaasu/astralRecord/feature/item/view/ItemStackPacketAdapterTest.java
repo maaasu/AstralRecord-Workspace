@@ -10,7 +10,6 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentDurability;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
-import io.github.maaasu.astralRecord.feature.item.model.ItemSkillGem;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -307,48 +306,6 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
-     * 章・見出し: # 13_1-モデル定義 > ## 8. スキルジェムとシジルのアイテムモデル
-     * 検証契約: スキルジェムの送信コピーだけに、受信者の現在の使用可否を表示する。
-     */
-    @Test
-    void skillGemShowsRecipientSpecificAvailabilityWithoutMutatingServerItem()
-        throws ReflectiveOperationException {
-        ItemStack serverGem = new ItemStackFactory(
-            mock(LootService.class),
-            mock(ItemService.class)
-        ).create(skillGemModel(), 1);
-        assertEquals("adventurer_smash", ItemStackFactory.getSkillGemId(serverGem));
-
-        ItemStackPacketAdapter adapter = new ItemStackPacketAdapter(
-            mock(Plugin.class),
-            mock(PlayerSettingService.class),
-            mock(SkillActionRingService.class)
-        );
-        Method replaceIcon = ItemStackPacketAdapter.class.getDeclaredMethod(
-            "replaceIcon", ItemStack.class, boolean.class, boolean.class, Set.class
-        );
-        replaceIcon.setAccessible(true);
-
-        ItemStack clientGem = (ItemStack) replaceIcon.invoke(adapter, serverGem, true, false, Set.of());
-
-        assertEquals(Material.PAPER, serverGem.getType());
-        assertTrue(clientGem.getItemMeta() != null && clientGem.getItemMeta().lore() != null
-            && clientGem.getItemMeta().lore().stream()
-                .anyMatch(line -> line.toString().contains("現在使用可能: いいえ")));
-        assertFalse(serverGem.getItemMeta() != null && serverGem.getItemMeta().lore() != null
-            && serverGem.getItemMeta().lore().stream()
-                .anyMatch(line -> line.toString().contains("現在使用可能:")));
-
-        ItemStack allowedGem = serverGem.clone();
-        assertTrue(ItemStackPacketAdapter.appendSkillGemAvailabilityLore(allowedGem, true));
-        assertFalse(ItemStackPacketAdapter.appendSkillGemAvailabilityLore(allowedGem, true));
-        assertTrue(allowedGem.getItemMeta() != null && allowedGem.getItemMeta().lore() != null
-            && allowedGem.getItemMeta().lore().stream()
-                .anyMatch(line -> line.toString().contains("現在使用可能: はい")));
-    }
-
-    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
      * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### パケットアダプタ登録
      * 検証契約: メインスレッドの許可スナップショット初回反映と、集合変更時だけのインベントリ再同期を行う。
@@ -552,33 +509,6 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
             equipment,
             null,
             null,
-            null,
-            null,
-            null
-        );
-    }
-
-    private ItemModel skillGemModel() {
-        return new ItemModel(
-            1,
-            "00_skill_gem_adventurer_smash",
-            ItemCategory.MATERIAL.getApiValue(),
-            "アドベンチャースマッシュのジェム",
-            "AMETHYST_SHARD",
-            "common",
-            1,
-            0,
-            null,
-            null,
-            List.of(),
-            false,
-            false,
-            null,
-            null,
-            null,
-            null,
-            null,
-            new ItemSkillGem("adventurer_smash"),
             null,
             null
         );

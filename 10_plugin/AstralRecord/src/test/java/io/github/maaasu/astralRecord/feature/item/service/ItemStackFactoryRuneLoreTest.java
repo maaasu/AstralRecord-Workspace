@@ -119,7 +119,6 @@ class ItemStackFactoryRuneLoreTest {
                 rune,
                 null,
                 null,
-                null,
                 null
         );
     }

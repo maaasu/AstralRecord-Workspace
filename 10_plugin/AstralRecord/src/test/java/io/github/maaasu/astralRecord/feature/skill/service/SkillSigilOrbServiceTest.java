@@ -351,7 +351,7 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
     ) {
         return new ItemModel(
             1, id, category.getApiValue(), id, "AMETHYST_SHARD", "common", 64, 0,
-            null, null, List.of(), false, false, null, null, null, null, null, null,
+            null, null, List.of(), false, false, null, null, null, null, null,
             sigil, orb
         );
     }

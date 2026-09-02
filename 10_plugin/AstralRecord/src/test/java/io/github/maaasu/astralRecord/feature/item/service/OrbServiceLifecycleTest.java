@@ -1955,7 +1955,6 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 null,
                 null,
                 null,
-                null,
                 new ItemOrb(effect)
             );
         }
@@ -1979,7 +1978,6 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 null,
                 null,
                 new ItemRune(List.of("WEAPON"), 0, List.of(), List.of("SWORD")),
-                null,
                 null,
                 null,
                 null
@@ -2033,7 +2031,6 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 null,
                 null,
                 equipment,
-                null,
                 null,
                 null,
                 null,

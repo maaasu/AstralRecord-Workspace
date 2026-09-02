@@ -71,7 +71,6 @@ class ItemStackFactorySaleValueLoreTest extends MockBukkitTestBase {
                 null,
                 null,
                 null,
-                null,
                 null
         );
     }

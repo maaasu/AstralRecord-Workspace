@@ -52,7 +52,7 @@ class ItemStackFactoryEquipmentStatLoreTest {
                 2, "rune.lore-test", ItemCategory.RUNE.getApiValue(), "会心のルーン",
                 "AMETHYST_SHARD", "COMMON", 64, 0, null, null, List.of(), false, false,
                 null, null, null, new ItemRune(List.of("WEAPON"), 0, List.of(runeStat)),
-                null, null, null, null);
+                null, null, null);
         EquipmentInstance instance = new EquipmentInstance(
                 "equipment-instance", "account", equipment.getId(), 0, 1, 0,
                 100, 100, "", "", List.of(), List.of(),
@@ -397,7 +397,6 @@ class ItemStackFactoryEquipmentStatLoreTest {
                 null,
                 null,
                 equipment,
-                null,
                 null,
                 null,
                 null,

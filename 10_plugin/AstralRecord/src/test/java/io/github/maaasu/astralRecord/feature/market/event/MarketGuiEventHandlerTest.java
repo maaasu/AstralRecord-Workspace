@@ -666,7 +666,6 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
             null,
             null,
             null,
-            null,
             null
         );
     }

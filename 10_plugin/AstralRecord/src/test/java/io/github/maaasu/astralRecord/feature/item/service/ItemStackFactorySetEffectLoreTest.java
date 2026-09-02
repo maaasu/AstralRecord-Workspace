@@ -142,7 +142,6 @@ class ItemStackFactorySetEffectLoreTest extends MockBukkitTestBase {
                 null,
                 null,
                 null,
-                null,
                 null
         );
     }

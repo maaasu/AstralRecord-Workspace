@@ -8,7 +8,6 @@ import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
-import io.github.maaasu.astralRecord.feature.item.model.ItemSkillGem;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopCostItem;
@@ -453,76 +452,6 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         order.verify(harness.inventoryService).addItemToNormalInventory(player, goldCoin, 1, "shop");
         order.verify(harness.inventoryService).saveNow(player.getAccount().getUuid());
         verify(harness.inventoryService, never()).applyInventoryToGui(player, InventoryType.CURRENCY);
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
-     * 章・見出し: # 20_3-メソッド仕様 > ## スキルジェム購入効果
-     * 検証契約: 最大レベルの特殊購入stateは数量を1に固定し、残高があっても購入不可にする。
-     */
-    @Test
-    void previewBlocksMaxLevelSkillGemAndForcesSingleQuantity() {
-        ShopHarness harness = shopHarness(null);
-        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
-        ItemModel gem = mock(ItemModel.class);
-        ShopSpecialPurchaseHandler special = mock(ShopSpecialPurchaseHandler.class);
-        ShopEntry entry = shopEntry("00_skill_gem_adventurer_smash", 1, 0, List.of(), null);
-        when(gem.getId()).thenReturn(entry.itemId());
-        when(gem.getSkillGem()).thenReturn(new ItemSkillGem("adventurer_smash"));
-        when(harness.itemService.findLoadedById(entry.itemId())).thenReturn(gem);
-        when(special.preview(player, gem)).thenReturn(ShopSpecialPurchaseState.maxLevel(5));
-        harness.service.setSpecialPurchaseHandler(special);
-
-        ShopPurchasePreview preview = harness.service.preview(player, entry, 12);
-
-        assertEquals(1, preview.quantity());
-        assertEquals(ShopSpecialPurchaseState.Action.SKILL_MAX_LEVEL, preview.specialPurchase().action());
-        assertFalse(preview.canPurchase());
-    }
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
-     * 章・見出し: # 20_3-メソッド仕様 > ## 購入
-     * 検証契約: 購入専用保存境界には既存ジェムでなく、この購入で新規作成されたentry UUIDだけを渡す。
-     */
-    @Test
-    void specialPurchaseUsesNewlyGrantedGemEntryInExclusiveSaveBoundary() {
-        ShopHarness harness = shopHarness(null);
-        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
-        ItemModel gem = mock(ItemModel.class);
-        ShopSpecialPurchaseHandler special = mock(ShopSpecialPurchaseHandler.class);
-        ShopEntry shopEntry = shopEntry("00_skill_gem_adventurer_smash", 1, 0, List.of(), null);
-        UUID inventoryId = UUID.randomUUID();
-        UUID legacyEntryId = UUID.randomUUID();
-        UUID purchasedEntryId = UUID.randomUUID();
-        InventoryEntryModel legacyGem = inventoryEntry(legacyEntryId, inventoryId, shopEntry.itemId());
-        InventoryEntryModel purchasedGem = inventoryEntry(purchasedEntryId, inventoryId, shopEntry.itemId());
-        InventoryService.InventoryStateSnapshot before = new InventoryService.InventoryStateSnapshot(
-            player.getAccount().getUuid(), Map.of(inventoryId, List.of(legacyGem)), InventoryType.BAG, false
-        );
-        InventoryService.InventoryStateSnapshot after = new InventoryService.InventoryStateSnapshot(
-            player.getAccount().getUuid(), Map.of(inventoryId, List.of(legacyGem, purchasedGem)), InventoryType.BAG, true
-        );
-        when(gem.getId()).thenReturn(shopEntry.itemId());
-        when(gem.getSkillGem()).thenReturn(new ItemSkillGem("adventurer_smash"));
-        when(harness.itemService.findLoadedById(shopEntry.itemId())).thenReturn(gem);
-        when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(0L);
-        when(special.preview(player, gem)).thenReturn(ShopSpecialPurchaseState.learn(5));
-        when(special.reserve(player, gem)).thenReturn(true);
-        harness.service.setSpecialPurchaseHandler(special);
-        when(harness.inventoryService.canAddItemToNormalInventory(player, gem, 1)).thenReturn(true);
-        when(harness.inventoryService.snapshotState(player.getAccount().getUuid())).thenReturn(before, after);
-        when(harness.inventoryService.addItemToNormalInventory(player, gem, 1, "shop")).thenReturn(1);
-        when(harness.inventoryService.resolveInventoryType(gem)).thenReturn(InventoryType.BAG);
-
-        assertTrue(harness.service.purchase(player, shopEntry, 9));
-        verify(special).completePurchase(
-            eq(player), eq(gem), eq(purchasedEntryId), any(), any(Runnable.class), any(Runnable.class)
-        );
-        verify(special, never()).completePurchase(
-            eq(player), eq(gem), eq(legacyEntryId), any(), any(Runnable.class), any(Runnable.class)
-        );
-        verify(harness.inventoryService, never()).saveNow(player.getAccount().getUuid());
     }
 
     /**

@@ -34,18 +34,16 @@ class LearnedSkillRepository {
         }
     }
 
-    fun learn(accountId: UUID, skillId: String, gemInventoryEntryId: UUID, updatedBy: UUID): LearnedSkillInstance {
+    fun learn(accountId: UUID, skillId: String, updatedBy: UUID): LearnedSkillInstance {
         val body = ApiRequestUtil.buildJsonBody {
             addProperty("skillId", skillId)
-            addProperty("gemInventoryEntryId", gemInventoryEntryId.toString())
             addProperty("updatedBy", updatedBy.toString())
         }
         return mutate("/api/account-skills/$accountId/learn", body)
     }
 
-    fun levelUp(accountId: UUID, learnedSkillId: UUID, gemInventoryEntryId: UUID, updatedBy: UUID): LearnedSkillInstance {
+    fun levelUp(accountId: UUID, learnedSkillId: UUID, updatedBy: UUID): LearnedSkillInstance {
         val body = ApiRequestUtil.buildJsonBody {
-            addProperty("gemInventoryEntryId", gemInventoryEntryId.toString())
             addProperty("updatedBy", updatedBy.toString())
         }
         return mutate("/api/account-skills/$accountId/$learnedSkillId/level-up", body)

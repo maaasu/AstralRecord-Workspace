@@ -44,6 +44,13 @@ data class SkillDefinition @JvmOverloads constructor(
     val levels: List<SkillLevelDefinition> = emptyList(),
     val sigilSlotsByLevel: List<SkillSigilSlotDefinition> = emptyList(),
     val allowedSigilIds: List<String> = emptyList(),
+    val learnRequiredItems: List<SkillRequiredItemDefinition> = emptyList(),
+    val levelUpRequiredItems: List<SkillRequiredItemDefinition> = emptyList(),
+)
+
+data class SkillRequiredItemDefinition(
+    val itemId: String,
+    val amount: Int = 1,
 )
 
 data class SkillLevelDefinition(

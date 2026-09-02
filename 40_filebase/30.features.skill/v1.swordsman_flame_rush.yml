@@ -48,10 +48,8 @@ sigilSlotsByLevel:
 allowedSigilIds:
   - cooldown_sigil
   - cooldown_sigil_ii
-gem:
-  rarity: RARE
-  tradeable: false
-  sellable: false
+learnRequiredItems: [{ itemId: skill_gem_raw, amount: 3 }]
+levelUpRequiredItems: [{ itemId: skill_gem_raw, amount: 3 }]
 params:
   range: 6.0
   targetAngle: 60.0

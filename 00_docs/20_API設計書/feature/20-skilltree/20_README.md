@@ -7,7 +7,7 @@ CP / PP の残高は永続化しない。API は解放ノードごとに CP の�
 
 ノード定義と配置・接続構造は、それぞれ filebase `40_filebase/35.features.skilltree/nodes/*.json` と `structures/*.json` を正本とします。これらは Plugin が直接読み込む静的マスタであり、`account-skilltree` API の入出力や MasterDataDB へは追加しません。
 
-skill effectはスキル個体を習得させず、現在クラス条件を満たしてノード効果が有効な間だけ使用許可を追加する。所持はスキルジェムから作成する習得済み個体を正本とする。
+skill effectはスキル個体を習得させず、現在クラス条件を満たしてノード効果が有効な間だけ使用許可を追加する。所持はスキルマネージャーが skill master の `learnRequiredItems` / `levelUpRequiredItems` に従って作成・強化する習得済み個体を正本とする。
 
 ## 対象実装パス
 

@@ -23,13 +23,11 @@ public class AccountLearnedSkillSigilResponse
 public class AccountLearnedSkillLearnRequest
 {
     public required string SkillId { get; init; }
-    public Guid GemInventoryEntryId { get; init; }
     public Guid UpdatedBy { get; init; }
 }
 
 public class AccountLearnedSkillLevelUpRequest
 {
-    public Guid GemInventoryEntryId { get; init; }
     public Guid UpdatedBy { get; init; }
 }
 

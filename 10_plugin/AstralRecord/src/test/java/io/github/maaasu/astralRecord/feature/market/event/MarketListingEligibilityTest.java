@@ -17,7 +17,7 @@ class MarketListingEligibilityTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
      * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入
-     * 検証契約: 取引可能なBUNDLE、MATERIAL、ORB、CONSUMABLE、SKILL_GEM、SIGILのstack itemは、固定カテゴリ列挙により出品候補から除外されない。
+     * 検証契約: 取引可能なBUNDLE、MATERIAL、ORB、CONSUMABLE、SIGILのstack itemは、固定カテゴリ列挙により出品候補から除外されない。
      */
     @Test
     void acceptsTradeableStackItemsAcrossSupportedNonCurrencyCategories() {
@@ -26,7 +26,6 @@ class MarketListingEligibilityTest {
             ItemCategory.MATERIAL,
             ItemCategory.ORB,
             ItemCategory.CONSUMABLE,
-            ItemCategory.SKILL_GEM,
             ItemCategory.SIGIL,
             ItemCategory.RUNE
         )) {
@@ -138,7 +137,6 @@ class MarketListingEligibilityTest {
             List.<String>of(),
             unTradeable,
             unSellable,
-            null,
             null,
             null,
             null,

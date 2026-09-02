@@ -38,10 +38,8 @@ sigilSlotsByLevel:
 allowedSigilIds:
   - cooldown_sigil
   - cooldown_sigil_ii
-gem:
-  rarity: COMMON
-  tradeable: false
-  sellable: false
+learnRequiredItems: [{ itemId: skill_gem_raw, amount: 3 }]
+levelUpRequiredItems: [{ itemId: skill_gem_raw, amount: 3 }]
 # behavior:
 #   projectile: "発動者の視線方向へ射程14mを毎tick1.35mで直進する非貫通の仮想飛翔体を1本だけ放つ。重力による落下はなく、最初のMobまたは地形ブロックに到達する。"
 #   damage: "最初に命中したMob 1体へRANGED/NONEの基礎倍率45%を1回適用し、skill damage補正を共通経路で加算する。同じ対象への再命中、状態異常、ノックバックは発生しない。"

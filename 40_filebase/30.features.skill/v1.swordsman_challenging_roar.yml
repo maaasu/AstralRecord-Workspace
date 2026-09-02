@@ -34,10 +34,8 @@ sigilSlotsByLevel:
 allowedSigilIds:
   - cooldown_sigil
   - cooldown_sigil_ii
-gem:
-  rarity: COMMON
-  tradeable: false
-  sellable: false
+learnRequiredItems: [{ itemId: skill_gem_raw, amount: 2 }]
+levelUpRequiredItems: [{ itemId: skill_gem_raw, amount: 2 }]
 # behavior:
 #   pulse: "発動直後から20tickごとに、発動者を中心とする水平半径8m・上下8m・遮蔽なしのMobを距離順で最大24体挑発する。"
 #   taunt: "挑発は脅威値を変更せず対象を発動者へ固定する。同じMobへ複数の挑発が届いた場合は後発を優先し、終了時は通常のAIターゲット選定へ戻す。"

@@ -327,7 +327,6 @@ class OrbEligibilityTest {
             null,
             null,
             null,
-            null,
             null
         );
     }

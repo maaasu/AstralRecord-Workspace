@@ -300,9 +300,7 @@ class EquippedSetEffectLoreIntegrationTest extends MockBukkitTestBase {
             null,
             null,
             null,
-            null,
-            null
-        );
+            null);
     }
 
     private static SetEffect setEffect() {

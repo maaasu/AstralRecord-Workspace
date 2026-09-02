@@ -214,11 +214,11 @@ class InventoryPersistenceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
      * 章・見出し: # 08_3-タスク・補助 > ## 5. 永続化制御
-     * 検証契約: 削除済みアイテムマスタを参照する通常 entry はログインロード時に破棄し、
-     * API の置換保存へ未解決 entry を送らない。
+     * 検証契約: 撤廃済みスキルジェムのようにアイテムマスタを解決できない通常 entry は、
+     * ログインロード時に補償なしで破棄し、API の置換保存へ送らない。
      */
     @Test
-    void loadDiscardsEntriesForDeletedItemMastersAndPersistsTheCleanup() {
+    void loadDiscardsLegacySkillGemEntriesAndPersistsTheCleanup() {
         UUID accountId = UUID.randomUUID();
         UUID inventoryId = UUID.randomUUID();
         LocalDateTime now = LocalDateTime.of(2026, 8, 26, 19, 0);
@@ -226,8 +226,8 @@ class InventoryPersistenceTest {
             inventoryId, accountId, InventoryType.BAG, InventoryProfile.GAME.getCode(), 9,
             true, null, now, now, accountId, accountId, false
         );
-        InventoryEntryModel deletedMasterEntry = new InventoryEntryModel(
-            UUID.randomUUID(), inventoryId, 1, "MATERIAL", "skygrass_fiber", null, null,
+        InventoryEntryModel legacySkillGemEntry = new InventoryEntryModel(
+            UUID.randomUUID(), inventoryId, 1, "SKILL_GEM", "00_skill_gem_legacy", null, null,
             3L, null, now, now, accountId, accountId, false
         );
         InventoryEntryModel validEntry = new InventoryEntryModel(
@@ -239,7 +239,7 @@ class InventoryPersistenceTest {
         ItemService itemService = mock(ItemService.class);
         ItemModel validItem = mock(ItemModel.class);
         when(inventoryRepository.findByAccountId(accountId)).thenReturn(List.of(inventory));
-        when(inventoryRepository.findEntries(inventoryId)).thenReturn(List.of(deletedMasterEntry, validEntry));
+        when(inventoryRepository.findEntries(inventoryId)).thenReturn(List.of(legacySkillGemEntry, validEntry));
         when(loadoutRepository.findByAccountId(accountId, InventoryProfile.GAME)).thenReturn(List.of());
         when(itemService.isMasterDataLoaded()).thenReturn(true);
         when(itemService.findLoadedById("still_valid")).thenReturn(validItem);

@@ -15,7 +15,7 @@ public class AccountLearnedSkillRepositoryTests
 {
     /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
-    /// 検証契約: 同一スキルジェムを個別に消費し、同一skillIdを別UUIDの個体として何個でも習得できる。
+    /// 検証契約: 無条件習得では、同一skillIdを別UUIDの個体として何個でも習得できる。
     /// </summary>
     [Fact]
     public async Task LearnAsync_CreatesIndependentDuplicateInstances()
@@ -24,22 +24,16 @@ public class AccountLearnedSkillRepositoryTests
         await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
-        var firstGem = await fixture.AddInventoryEntryAsync(
-            accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
-        var secondGem = await fixture.AddInventoryEntryAsync(
-            accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
         var repository = new AccountLearnedSkillRepository(fixture.PlayerDb, fixture.MasterDb);
 
         var first = await repository.LearnAsync(accountId, new AccountLearnedSkillLearnRequest
         {
             SkillId = "adventurer_smash",
-            GemInventoryEntryId = firstGem,
             UpdatedBy = accountId,
         });
         var second = await repository.LearnAsync(accountId, new AccountLearnedSkillLearnRequest
         {
             SkillId = "adventurer_smash",
-            GemInventoryEntryId = secondGem,
             UpdatedBy = accountId,
         });
 
@@ -52,12 +46,43 @@ public class AccountLearnedSkillRepositoryTests
             Assert.Equal(1, learned.Level);
         });
         Assert.Equal(2, await fixture.PlayerDb.AccountLearnedSkills.CountAsync(skill => !skill.IsDeleted));
-        Assert.Equal(2, await fixture.PlayerDb.InventoryEntries.CountAsync(entry => entry.IsDeleted));
+        Assert.Empty(await fixture.PlayerDb.InventoryEntries.ToListAsync());
     }
 
     /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
-    /// 検証契約: 指定個体だけを同ジェムで1レベル上げ、同じequipGroupIdのシジルを重複装着しない。
+    /// 検証契約: required items は複数stackから原子的に消費し、不足時は習得も消費もしない。
+    /// </summary>
+    [Fact]
+    public async Task LearnAsync_ConsumesRequiredItemsAcrossMultipleStacksAndRejectsShortage()
+    {
+        await using var fixture = await TestDatabase.CreateAsync();
+        await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
+        var master = await fixture.MasterDb.Entries.SingleAsync(entry => entry.MasterId == "adventurer_smash");
+        master.PayloadJson = master.PayloadJson.Replace(
+            "\"maxLevel\":5,",
+            "\"maxLevel\":5,\"learnRequiredItems\":[{\"itemId\":\"skill_gem_raw\",\"amount\":3}],");
+        await fixture.MasterDb.SaveChangesAsync();
+        var accountId = Guid.NewGuid();
+        await fixture.AddAccountAsync(accountId);
+        var first = await fixture.AddInventoryEntryAsync(accountId, "material", "skill_gem_raw", 1);
+        var second = await fixture.AddInventoryEntryAsync(accountId, "material", "skill_gem_raw", 2);
+
+        var learned = await new AccountLearnedSkillRepository(fixture.PlayerDb, fixture.MasterDb)
+            .LearnAsync(accountId, new AccountLearnedSkillLearnRequest { SkillId = "adventurer_smash", UpdatedBy = accountId });
+
+        Assert.True(learned.Succeeded);
+        Assert.True((await fixture.PlayerDb.InventoryEntries.SingleAsync(entry => entry.InventoryEntryId == first)).IsDeleted);
+        Assert.True((await fixture.PlayerDb.InventoryEntries.SingleAsync(entry => entry.InventoryEntryId == second)).IsDeleted);
+
+        var rejected = await new AccountLearnedSkillRepository(fixture.PlayerDb, fixture.MasterDb)
+            .LearnAsync(accountId, new AccountLearnedSkillLearnRequest { SkillId = "adventurer_smash", UpdatedBy = accountId });
+        Assert.Equal(AccountLearnedSkillMutationFailure.InvalidMaterial, rejected.Failure);
+    }
+
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
+    /// 検証契約: 指定個体だけを1レベル上げ、同じequipGroupIdのシジルを重複装着しない。
     /// </summary>
     [Fact]
     public async Task UpgradeAndAttachSigil_UseSelectedInstanceAndRejectDuplicateGroup()
@@ -69,10 +94,6 @@ public class AccountLearnedSkillRepositoryTests
         await fixture.SeedMasterAsync("bragi_orb", "item", "orb");
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
-        var learnGem = await fixture.AddInventoryEntryAsync(
-            accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
-        var levelGem = await fixture.AddInventoryEntryAsync(
-            accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
         var firstSigil = await fixture.AddInventoryEntryAsync(accountId, "sigil", "cooldown_sigil", 2);
         var secondSigil = await fixture.AddInventoryEntryAsync(accountId, "sigil", "cooldown_sigil_ii", 1);
         var bragiOrb = await fixture.AddInventoryEntryAsync(accountId, "orb", "bragi_orb", 2);
@@ -83,7 +104,6 @@ public class AccountLearnedSkillRepositoryTests
                 .LearnAsync(accountId, new AccountLearnedSkillLearnRequest
                 {
                     SkillId = "adventurer_smash",
-                    GemInventoryEntryId = learnGem,
                     UpdatedBy = accountId,
                 })).Skill!;
         }
@@ -93,7 +113,6 @@ public class AccountLearnedSkillRepositoryTests
             upgraded = await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
                 .LevelUpAsync(accountId, learned.LearnedSkillId, new AccountLearnedSkillLevelUpRequest
                 {
-                    GemInventoryEntryId = levelGem,
                     UpdatedBy = accountId,
                 });
         }
@@ -151,8 +170,6 @@ public class AccountLearnedSkillRepositoryTests
         await fixture.SeedMasterAsync("mimir_orb", "item", "orb");
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
-        var gemEntryId = await fixture.AddInventoryEntryAsync(
-            accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
         var sigilEntryId = await fixture.AddInventoryEntryAsync(accountId, "sigil", "cooldown_sigil", 1);
         var bragiOrb = await fixture.AddInventoryEntryAsync(accountId, "orb", "bragi_orb", 2);
         var mimirOrb = await fixture.AddInventoryEntryAsync(accountId, "orb", "mimir_orb", 2);
@@ -164,7 +181,6 @@ public class AccountLearnedSkillRepositoryTests
                 .LearnAsync(accountId, new AccountLearnedSkillLearnRequest
                 {
                     SkillId = "adventurer_smash",
-                    GemInventoryEntryId = gemEntryId,
                     UpdatedBy = accountId,
                 })).Skill!;
         }
@@ -226,8 +242,6 @@ public class AccountLearnedSkillRepositoryTests
         await fixture.SeedMasterAsync("bragi_orb", "item", "orb");
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
-        var gemEntryId = await fixture.AddInventoryEntryAsync(
-            accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
         var sigilEntryId = await fixture.AddInventoryEntryAsync(
             accountId, "sigil", "homing_fireball_sigil", 1);
         var bragiOrb = await fixture.AddInventoryEntryAsync(accountId, "orb", "bragi_orb", 1);
@@ -239,7 +253,6 @@ public class AccountLearnedSkillRepositoryTests
                 .LearnAsync(accountId, new AccountLearnedSkillLearnRequest
                 {
                     SkillId = "adventurer_smash",
-                    GemInventoryEntryId = gemEntryId,
                     UpdatedBy = accountId,
                 })).Skill!;
         }
@@ -281,8 +294,6 @@ public class AccountLearnedSkillRepositoryTests
         await fixture.SeedMasterAsync("mimir_orb", "item", "orb");
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
-        var gemEntryId = await fixture.AddInventoryEntryAsync(
-            accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
         var sigilEntryId = await fixture.AddInventoryEntryAsync(accountId, "sigil", "cooldown_sigil", 1);
         var mimirOrb = await fixture.AddInventoryEntryAsync(accountId, "orb", "mimir_orb", 1);
 
@@ -293,7 +304,6 @@ public class AccountLearnedSkillRepositoryTests
                 .LearnAsync(accountId, new AccountLearnedSkillLearnRequest
                 {
                     SkillId = "adventurer_smash",
-                    GemInventoryEntryId = gemEntryId,
                     UpdatedBy = accountId,
                 })).Skill!;
         }
@@ -387,17 +397,15 @@ public class AccountLearnedSkillRepositoryTests
 
     /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
-    /// 検証契約: skill master削除時は対応gem・習得個体・そのbindをロード時に無効化する。
+    /// 検証契約: skill master削除時は習得個体とそのbindをロード時に無効化する。
     /// </summary>
     [Fact]
-    public async Task GetByAccountIdAsync_RemovesDeletedSkillGemLearnedInstanceAndBindings()
+    public async Task GetByAccountIdAsync_RemovesDeletedSkillLearnedInstanceAndBindings()
     {
         await using var fixture = await TestDatabase.CreateAsync();
         await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
-        var gemEntryId = await fixture.AddInventoryEntryAsync(
-            accountId, "skill_gem", "00_skill_gem_adventurer_smash", 1);
         var now = DateTime.UtcNow;
         var learnedSkillId = Guid.NewGuid();
         fixture.PlayerDb.AccountLearnedSkills.Add(new AccountLearnedSkillEntity
@@ -438,8 +446,6 @@ public class AccountLearnedSkillRepositoryTests
         Assert.Empty(result);
         Assert.True((await fixture.PlayerDb.AccountLearnedSkills.AsNoTracking()
             .SingleAsync(skill => skill.LearnedSkillId == learnedSkillId)).IsDeleted);
-        Assert.True((await fixture.PlayerDb.InventoryEntries.AsNoTracking()
-            .SingleAsync(entry => entry.InventoryEntryId == gemEntryId)).IsDeleted);
         var preset = await fixture.PlayerDb.SkillBindPresets.AsNoTracking().SingleAsync();
         Assert.DoesNotContain(learnedSkillId.ToString(), preset.ActiveSkillSlotsJson, StringComparison.OrdinalIgnoreCase);
         Assert.DoesNotContain(learnedSkillId.ToString(), preset.PassiveSkillSlotsJson, StringComparison.OrdinalIgnoreCase);

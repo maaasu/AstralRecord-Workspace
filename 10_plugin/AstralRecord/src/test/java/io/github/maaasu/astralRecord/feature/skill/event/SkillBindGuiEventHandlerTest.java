@@ -159,7 +159,7 @@ class SkillBindGuiEventHandlerTest {
         }
 
         verify(inventoryService, never()).hideOwnedEntryFromGui(any(), any());
-        verify(learnedSkillService, never()).levelUpAsync(any(), any(), any(), any(), any(), any());
+        verify(learnedSkillService, never()).levelUpFromManagerAsync(any(), any(), any(), any(), any(), any());
         verify(learnedSkillService, never()).attachSigilAsync(
             any(), any(), any(), any(), any(), any(), any(), any()
         );
@@ -484,7 +484,7 @@ class SkillBindGuiEventHandlerTest {
 
         ArgumentCaptor<Integer> page = ArgumentCaptor.forClass(Integer.class);
         verify(gui).createMainInventory(
-            any(), any(), any(), eq(List.of(permittedDefinition)), anyInt(), page.capture()
+            any(), any(), any(), any(), eq(List.of(permittedDefinition)), anyInt(), page.capture()
         );
         assertEquals(1, page.getValue());
     }

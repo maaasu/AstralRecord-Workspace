@@ -47,8 +47,8 @@ public class InventoryRepositoryTests
             InventoryEntryId = existingEntryId,
             InventoryId = inventoryId,
             SlotIndex = 1,
-            ItemCategory = "skill_gem",
-            ItemId = "00_skill_gem_adventurer_smash",
+            ItemCategory = "material",
+            ItemId = "skill_gem_raw",
             Quantity = 1,
             CreatedAt = now,
             UpdatedAt = now,
@@ -68,8 +68,8 @@ public class InventoryRepositoryTests
                     InventoryEntryId = existingEntryId,
                     ExpectedUpdatedAt = now,
                     SlotIndex = 2,
-                    ItemCategory = "skill_gem",
-                    ItemId = "00_skill_gem_adventurer_smash",
+                    ItemCategory = "material",
+                    ItemId = "skill_gem_raw",
                     Quantity = 1,
                 },
                 new InventoryEntryReplaceItemRequest
@@ -177,10 +177,10 @@ public class InventoryRepositoryTests
             consumedEntryId,
             inventoryId,
             1,
-            "00_skill_gem_adventurer_smash",
+            "skill_gem_raw",
             accountId,
             now);
-        consumed.ItemCategory = "skill_gem";
+        consumed.ItemCategory = "material";
         consumed.IsDeleted = true;
         dbContext.InventoryEntries.Add(consumed);
         await dbContext.SaveChangesAsync();
@@ -197,8 +197,8 @@ public class InventoryRepositoryTests
                         InventoryEntryId = consumedEntryId,
                         ExpectedUpdatedAt = now,
                         SlotIndex = 1,
-                        ItemCategory = "skill_gem",
-                        ItemId = "00_skill_gem_adventurer_smash",
+                        ItemCategory = "material",
+                        ItemId = "skill_gem_raw",
                         Quantity = 1,
                     },
                 ],

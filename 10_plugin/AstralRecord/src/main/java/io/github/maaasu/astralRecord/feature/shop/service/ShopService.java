@@ -81,20 +81,12 @@ public final class ShopService {
         this.purchaseSavedListener = purchaseSavedListener;
     }
 
-    /**
-     * 購入品の保存後に別のゲーム状態へ反映する handler を設定します。
-     *
-     * @param specialPurchaseHandler 特殊購入効果の判定・実行担当
-     */
+    /** 購入後に別のゲーム状態へ反映する汎用 handler を設定します。 */
     public void setSpecialPurchaseHandler(@NotNull ShopSpecialPurchaseHandler specialPurchaseHandler) {
         this.specialPurchaseHandler = specialPurchaseHandler;
     }
 
-    /**
-     * 非同期の特殊購入効果が完了し、ショップ表示の再評価が必要になった通知先を設定します。
-     *
-     * @param listener 購入者と対象商品を受け取る通知先
-     */
+    /** 非同期の特殊購入効果が完了した際のショップ再評価先を設定します。 */
     public void setPurchaseStateChangedListener(@NotNull BiConsumer<AstPlayer, ShopEntry> listener) {
         this.purchaseStateChangedListener = listener;
     }
@@ -235,22 +227,13 @@ public final class ShopService {
         );
     }
 
-    /**
-     * 商品が購入時に別状態へ即時反映される場合、その効果と可否を返します。
-     *
-     * @param player 購入者。ロード前などで未解決の場合は {@code null}
-     * @param model 購入品。未解決の場合は {@code null}
-     * @return 特殊購入状態。通常商品は standard
-     */
+    /** 登録済みの汎用 handler が対象商品へ与える追加購入状態を返します。 */
     public @NotNull ShopSpecialPurchaseState previewSpecialPurchase(
         @Nullable AstPlayer player,
         @Nullable ItemModel model
     ) {
-        if (model == null || model.getSkillGem() == null) {
+        if (player == null || model == null || specialPurchaseHandler == null) {
             return ShopSpecialPurchaseState.standard();
-        }
-        if (player == null || specialPurchaseHandler == null) {
-            return ShopSpecialPurchaseState.unavailable();
         }
         return specialPurchaseHandler.preview(player, model);
     }
@@ -318,22 +301,14 @@ public final class ShopService {
         if (specialPurchase && specialPurchaseHandler != null && specialPurchaseEntry != null) {
             UUID purchasedEntryId = specialPurchaseEntry.getInventoryEntryId();
             List<InventoryService.InventoryRefundItem> refundItems = preview.requiredItems().stream()
-                .map(cost -> new InventoryService.InventoryRefundItem(
-                    cost.itemId(),
-                    cost.category(),
-                    cost.amount()
-                ))
+                .map(cost -> new InventoryService.InventoryRefundItem(cost.itemId(), cost.category(), cost.amount()))
                 .toList();
             specialPurchaseHandler.completePurchase(
                 player,
                 model,
                 purchasedEntryId,
                 () -> inventoryService.compensateFailedShopPurchase(
-                    accountId,
-                    purchasedEntryId,
-                    model.getId(),
-                    preview.requiredGold(),
-                    refundItems
+                    accountId, purchasedEntryId, model.getId(), preview.requiredGold(), refundItems
                 ),
                 () -> purchaseSavedListener.accept(player, entry.id()),
                 () -> purchaseStateChangedListener.accept(player, entry)
@@ -384,6 +359,7 @@ public final class ShopService {
             .findFirst()
             .orElse(null);
     }
+
 
     private void restorePurchase(
         @NotNull InventoryService.InventoryStateSnapshot snapshot,

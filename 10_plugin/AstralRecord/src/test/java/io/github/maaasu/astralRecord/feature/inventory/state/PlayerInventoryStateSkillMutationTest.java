@@ -78,7 +78,7 @@ class PlayerInventoryStateSkillMutationTest {
         UUID unrelatedId = UUID.randomUUID();
         PlayerInventoryState state = new PlayerInventoryState(accountId);
         state.replaceEntriesFromLoad(inventoryId, List.of(
-            entry(targetId, inventoryId, 1, "00_skill_gem_adventurer_smash", 1L, accountId),
+            entry(targetId, inventoryId, 1, "skill_gem_raw", 1L, accountId),
             entry(unrelatedId, inventoryId, 2, "new_drop", 1L, accountId)
         ));
 
@@ -104,7 +104,7 @@ class PlayerInventoryStateSkillMutationTest {
         PlayerInventoryState state = new PlayerInventoryState(accountId);
         state.putInventory(bag);
         state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
-            entry(targetId, bag.getInventoryId(), 1, "skill_gem", 1L, accountId),
+            entry(targetId, bag.getInventoryId(), 1, "material", 1L, accountId),
             entry(followingId, bag.getInventoryId(), 3, "following", 2L, accountId),
             entry(concurrentId, bag.getInventoryId(), 5, "concurrent", 7L, accountId)
         ));

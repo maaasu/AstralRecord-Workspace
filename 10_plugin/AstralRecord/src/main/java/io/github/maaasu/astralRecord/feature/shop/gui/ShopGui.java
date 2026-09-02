@@ -167,15 +167,11 @@ public final class ShopGui {
         if (model != null) {
             ItemStack itemPreview = itemStackFactory.createShopDisplay(
                 model,
-                preview.specialPurchase().singleQuantity()
-                    ? 1
-                    : Math.max(1, entry.amount()) * preview.quantity()
+                Math.max(1, entry.amount()) * preview.quantity()
             );
-            appendSpecialPurchaseLore(itemPreview, preview.specialPurchase());
             inventory.setItem(ITEM_PREVIEW_SLOT, itemPreview);
         }
-        if (!preview.specialPurchase().singleQuantity()) {
-            inventory.setItem(QUANTITY_MINUS_10_SLOT, actionItem(
+        inventory.setItem(QUANTITY_MINUS_10_SLOT, actionItem(
                 Material.REDSTONE,
                 quantityAdjustName("数量 ", "-10", NamedTextColor.RED),
                 List.of(quantityLore(preview.quantity()))
@@ -195,7 +191,6 @@ public final class ShopGui {
                 quantityAdjustName("数量 ", "+10", NamedTextColor.GREEN),
                 List.of(quantityLore(preview.quantity()))
             ));
-        }
         inventory.setItem(CONFIRM_BACK_SLOT, actionItem(
             Material.SPECTRAL_ARROW,
             isExchange(shop) ? "両替一覧へ戻る" : "商品一覧へ戻る",

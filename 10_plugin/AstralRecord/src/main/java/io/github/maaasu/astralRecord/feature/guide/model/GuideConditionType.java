@@ -18,7 +18,7 @@ public enum GuideConditionType {
     BUNDLE_OPENED,
     /** ショップからアイテムを購入または交換した。 */
     SHOP_PURCHASED,
-    /** スキルジェムからスキル個体を習得した。 */
+    /** スキルマネージャーからスキル個体を習得した。 */
     SKILL_LEARNED,
     /** スキルツリーノードを解放した。 */
     SKILLTREE_NODE_UNLOCKED,

@@ -18,9 +18,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
-import java.util.function.Function;
 
 /**
  * 習得済みスキル個体のキャッシュと API 更新を扱います。
@@ -99,115 +97,28 @@ public final class LearnedSkillService {
         return lock != null && lock.get();
     }
 
-    public boolean learnAsync(
+    /** スキルマネージャーから master 定義の素材を消費して初回習得します。 */
+    public boolean learnFromManagerAsync(
         @NotNull UUID accountId,
         @NotNull String skillId,
-        @NotNull UUID gemInventoryEntryId,
         @NotNull UUID updatedBy,
+        @NotNull List<UUID> requiredItemEntryIds,
         @NotNull Consumer<LearnedSkillInstance> onSuccess,
         @NotNull Consumer<Throwable> onFailure
     ) {
-        return mutateAsync(
-            accountId,
-            gemInventoryEntryId,
-            () -> repository.learn(accountId, skillId, gemInventoryEntryId, updatedBy),
-            onSuccess,
-            onFailure
-        );
+        return mutateAsync(accountId, requiredItemEntryIds, () -> repository.learn(accountId, skillId, updatedBy), onSuccess, onFailure);
     }
 
-    public boolean levelUpAsync(
+    /** スキルマネージャーから master 定義の素材を消費してレベルアップします。 */
+    public boolean levelUpFromManagerAsync(
         @NotNull UUID accountId,
         @NotNull UUID learnedSkillId,
-        @NotNull UUID gemInventoryEntryId,
         @NotNull UUID updatedBy,
+        @NotNull List<UUID> requiredItemEntryIds,
         @NotNull Consumer<LearnedSkillInstance> onSuccess,
         @NotNull Consumer<Throwable> onFailure
     ) {
-        return mutateAsync(
-            accountId,
-            gemInventoryEntryId,
-            () -> repository.levelUp(accountId, learnedSkillId, gemInventoryEntryId, updatedBy),
-            onSuccess,
-            onFailure
-        );
-    }
-
-    /**
-     * ショップ初回購入を、購入 state の事前保存・API 習得・購入 entry 正本照合・再保存まで一続きで実行します。
-     * ログアウト後も API mutation を完了し、API が確実に不成立なら同じ保存境界内で購入を補償します。
-     */
-    public boolean learnFromPurchaseAsync(
-        @NotNull UUID accountId,
-        @NotNull String skillId,
-        @NotNull UUID gemInventoryEntryId,
-        @NotNull UUID updatedBy,
-        @NotNull BooleanSupplier compensatePurchase,
-        @NotNull Consumer<LearnedSkillInstance> onSuccess,
-        @NotNull Consumer<Throwable> onFailure
-    ) {
-        return mutateFromPurchaseAsync(
-            accountId,
-            gemInventoryEntryId,
-            () -> repository.learn(accountId, skillId, gemInventoryEntryId, updatedBy),
-            refreshed -> refreshed.stream()
-                .filter(skill -> skill.getSkillId().equalsIgnoreCase(skillId))
-                .findFirst()
-                .orElse(null),
-            compensatePurchase,
-            onSuccess,
-            onFailure
-        );
-    }
-
-    /**
-     * ショップ再購入を、購入 state の事前保存・API レベルアップ・購入 entry 正本照合・再保存まで一続きで実行します。
-     */
-    public boolean levelUpFromPurchaseAsync(
-        @NotNull UUID accountId,
-        @NotNull UUID learnedSkillId,
-        int expectedLevel,
-        @NotNull UUID gemInventoryEntryId,
-        @NotNull UUID updatedBy,
-        @NotNull BooleanSupplier compensatePurchase,
-        @NotNull Consumer<LearnedSkillInstance> onSuccess,
-        @NotNull Consumer<Throwable> onFailure
-    ) {
-        int safeExpectedLevel = Math.max(1, expectedLevel);
-        return mutateFromPurchaseAsync(
-            accountId,
-            gemInventoryEntryId,
-            () -> repository.levelUp(accountId, learnedSkillId, gemInventoryEntryId, updatedBy),
-            refreshed -> refreshed.stream()
-                .filter(skill -> skill.getLearnedSkillId().equals(learnedSkillId)
-                    && skill.getLevel() >= safeExpectedLevel)
-                .findFirst()
-                .orElse(null),
-            compensatePurchase,
-            onSuccess,
-            onFailure
-        );
-    }
-
-    /** 購入効果を予約できなかった場合も、ログアウト保存より先に購入補償と再保存を完了します。 */
-    public void compensateRejectedPurchaseAsync(
-        @NotNull UUID accountId,
-        @NotNull BooleanSupplier compensatePurchase,
-        @NotNull Runnable onComplete,
-        @NotNull Consumer<Throwable> onFailure
-    ) {
-        inventoryService.executeExternalMutationAfterSave(accountId, () -> {
-            if (!compensatePurchase.getAsBoolean()) {
-                throw new IllegalStateException("Failed to compensate rejected skill purchase");
-            }
-            return true;
-        }).whenComplete((ignored, error) -> plugin.getServer().getScheduler().runTask(plugin, () -> {
-            if (error == null) {
-                onComplete.run();
-            } else {
-                onFailure.accept(error);
-            }
-        }));
+        return mutateAsync(accountId, requiredItemEntryIds, () -> repository.levelUp(accountId, learnedSkillId, updatedBy), onSuccess, onFailure);
     }
 
     /**
@@ -426,7 +337,7 @@ public final class LearnedSkillService {
                 return;
             }
             // 直前の保存キューが失敗しても、素材消費 API は inventoryEntryId を正本で検証する。
-            // ここで利用者操作を中断すると、無関係な stale entry の同期失敗だけで次のジェム習得・
+            // ここで利用者操作を中断すると、無関係な stale entry の同期失敗だけで次のスキル習得・
             // 合成を永続的に拒否してしまう。保存完了（成功／失敗）後に API mutation を直列実行し、
             // 成否どちらでも素材 entry を API 正本へ再同期する。
             plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
@@ -465,110 +376,6 @@ public final class LearnedSkillService {
             });
         });
         return true;
-    }
-
-    private boolean mutateFromPurchaseAsync(
-        UUID accountId,
-        UUID materialInventoryEntryId,
-        Mutation mutation,
-        Function<List<LearnedSkillInstance>, LearnedSkillInstance> resolveAppliedMutation,
-        BooleanSupplier compensatePurchase,
-        Consumer<LearnedSkillInstance> onSuccess,
-        Consumer<Throwable> onFailure
-    ) {
-        AtomicBoolean lock = mutationLocks.computeIfAbsent(accountId, ignored -> new AtomicBoolean());
-        if (!lock.compareAndSet(false, true)) {
-            return false;
-        }
-
-        inventoryService.executeExternalMutationAfterSave(accountId, () -> {
-            try {
-                LearnedSkillInstance result = mutation.execute();
-                reconcileAfterSuccessfulMutation(accountId, materialInventoryEntryId);
-                return PurchaseMutationOutcome.success(result, null);
-            } catch (Throwable mutationError) {
-                if (mutationError instanceof LearnedSkillMutationException) {
-                    requirePurchaseCompensation(compensatePurchase, mutationError);
-                    return PurchaseMutationOutcome.failure(mutationError, null);
-                }
-                try {
-                    List<LearnedSkillInstance> refreshed = normalize(repository.findByAccountId(accountId));
-                    boolean materialStillExists = inventoryService.reconcileAuthoritativeEntry(
-                        accountId,
-                        materialInventoryEntryId
-                    );
-                    LearnedSkillInstance applied = resolveAppliedMutation.apply(refreshed);
-                    if (applied != null && !materialStillExists) {
-                        return PurchaseMutationOutcome.success(applied, refreshed);
-                    }
-                    if (applied == null && materialStillExists) {
-                        requirePurchaseCompensation(compensatePurchase, mutationError);
-                        return PurchaseMutationOutcome.failure(mutationError, refreshed);
-                    }
-                    throw new IllegalStateException(
-                        "Skill purchase mutation and material state are inconsistent for account " + accountId,
-                        mutationError
-                    );
-                } catch (Throwable reconciliationError) {
-                    if (reconciliationError != mutationError) {
-                        mutationError.addSuppressed(reconciliationError);
-                    }
-                    throw new IllegalStateException(
-                        "Could not resolve skill purchase mutation for account " + accountId,
-                        mutationError
-                    );
-                }
-            }
-        }).whenComplete((outcome, fatalError) -> plugin.getServer().getScheduler().runTask(plugin, () -> {
-            if (fatalError != null || outcome == null) {
-                Throwable unresolved = fatalError == null
-                    ? new IllegalStateException("Skill purchase mutation returned no outcome")
-                    : fatalError;
-                Logger.log(LogId.W_5252, "skill_purchase_unresolved", unresolved.getMessage());
-                releasePurchaseMutationLock(accountId, lock);
-                onFailure.accept(unresolved);
-                return;
-            }
-            releasePurchaseMutationLock(accountId, lock);
-            if (outcome.refreshedSkills() != null && hasLoadedSkills(accountId)) {
-                skillsByAccount.put(accountId, outcome.refreshedSkills());
-            }
-            if (outcome.learnedSkill() != null) {
-                if (hasLoadedSkills(accountId)) {
-                    replaceCached(outcome.learnedSkill());
-                }
-                onSuccess.accept(outcome.learnedSkill());
-                return;
-            }
-            onFailure.accept(outcome.error());
-        }));
-        return true;
-    }
-
-    private void releasePurchaseMutationLock(UUID accountId, AtomicBoolean lock) {
-        lock.set(false);
-        if (!hasLoadedSkills(accountId)) {
-            mutationLocks.remove(accountId, lock);
-        }
-    }
-
-    private void reconcileAfterSuccessfulMutation(UUID accountId, UUID materialInventoryEntryId) {
-        try {
-            inventoryService.reconcileAuthoritativeEntry(accountId, materialInventoryEntryId);
-        } catch (Throwable reconciliationError) {
-            inventoryService.consumeOwnedEntryAfterAuthoritativeMutation(accountId, materialInventoryEntryId);
-            Logger.log(LogId.W_5252, "skill_purchase_reconcile", reconciliationError.getMessage());
-        }
-    }
-
-    private void requirePurchaseCompensation(BooleanSupplier compensatePurchase, Throwable mutationError) {
-        if (!compensatePurchase.getAsBoolean()) {
-            throw new IllegalStateException("Failed to compensate rejected skill purchase", mutationError);
-        }
-    }
-
-    private void reconcileAfterFailure(UUID accountId, UUID sessionToken, UUID materialInventoryEntryId) {
-        reconcileAfterFailure(accountId, sessionToken, List.of(materialInventoryEntryId));
     }
 
     private void reconcileAfterFailure(UUID accountId, UUID sessionToken, List<UUID> materialInventoryEntryIds) {
@@ -645,23 +452,4 @@ public final class LearnedSkillService {
         LearnedSkillInstance execute();
     }
 
-    private record PurchaseMutationOutcome(
-        @Nullable LearnedSkillInstance learnedSkill,
-        @Nullable Throwable error,
-        @Nullable List<LearnedSkillInstance> refreshedSkills
-    ) {
-        private static PurchaseMutationOutcome success(
-            LearnedSkillInstance learnedSkill,
-            @Nullable List<LearnedSkillInstance> refreshedSkills
-        ) {
-            return new PurchaseMutationOutcome(learnedSkill, null, refreshedSkills);
-        }
-
-        private static PurchaseMutationOutcome failure(
-            Throwable error,
-            @Nullable List<LearnedSkillInstance> refreshedSkills
-        ) {
-            return new PurchaseMutationOutcome(null, error, refreshedSkills);
-        }
-    }
 }

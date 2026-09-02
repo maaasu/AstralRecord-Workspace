@@ -297,7 +297,6 @@ public final class StorageScreenView extends BaseMenuScreenView {
             case ORB -> Material.END_CRYSTAL;
             case CONSUMABLE -> Material.APPLE;
             case RUNE -> Material.ENCHANTED_BOOK;
-            case SKILL_GEM -> Material.AMETHYST_SHARD;
             case SIGIL -> Material.FIREWORK_STAR;
             case UNKNOWN -> Material.BARRIER;
         };

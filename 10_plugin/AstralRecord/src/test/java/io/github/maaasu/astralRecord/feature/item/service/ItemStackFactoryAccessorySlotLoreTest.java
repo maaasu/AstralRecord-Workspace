@@ -104,7 +104,6 @@ class ItemStackFactoryAccessorySlotLoreTest {
                 null,
                 null,
                 null,
-                null,
                 null
         );
     }

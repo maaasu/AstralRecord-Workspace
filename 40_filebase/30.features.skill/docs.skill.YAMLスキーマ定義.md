@@ -11,7 +11,7 @@
 | キー | 型 | 必須 | 既定値 | 説明 |
 | --- | --- | --- | --- | --- |
 | `schemaVersion` | Integer | 必須 | - | 現在は `1` |
-| `id` | String | 必須 | - | スキル ID。自動生成ID `00_skill_gem_<id>` が100文字以内となる長さにする |
+| `id` | String | 必須 | - | スキル ID |
 | `type` | String | 必須 | - | `SKILL` |
 | `implementationId` | String | 必須 | - | plugin 側実装 ID |
 | `name` | String | 必須 | - | 表示名 |
@@ -39,10 +39,12 @@
 | `levels[].statusModifiers[]` | List | 任意 | `[]` | このスキルの計算中だけ加算するステータス補正。共有カタログの既知status IDだけを指定 |
 | `sigilSlotsByLevel[]` | List | 任意 | `[]` | 指定レベル以降のシジル装着可能数。現在レベル以下で最大の定義を採用 |
 | `allowedSigilIds` | List<String> | 任意 | `[]` | このスキルへ合成可能なシジル ID |
-| `gem.icon` | String | 任意 | `icon` | 自動生成ジェムのアイコン |
-| `gem.rarity` | String | 必須 | - | 自動生成ジェムのレアリティ。DTO既定値へ暗黙fallbackせず各マスタで明示 |
-| `gem.tradeable` | Boolean | 任意 | `false` | 自動生成ジェムを取引可能にするか |
-| `gem.sellable` | Boolean | 任意 | `false` | 自動生成ジェムを売却可能にするか |
+| `learnRequiredItems[]` | List | 任意 | `[]` | 初回習得時に消費するアイテム。未指定なら無条件で習得可能 |
+| `learnRequiredItems[].itemId` | String | 必須 | - | 消費する item ID |
+| `learnRequiredItems[].amount` | Integer | 任意 | `1` | 消費個数。1以上 |
+| `levelUpRequiredItems[]` | List | 任意 | `[]` | レベルアップ時に消費するアイテム。未指定なら無条件で可能 |
+| `levelUpRequiredItems[].itemId` | String | 必須 | - | 消費する item ID |
+| `levelUpRequiredItems[].amount` | Integer | 任意 | `1` | 消費個数。1以上 |
 | `params` | Map<String, Any> | 任意 | `{}` | Executorと説明文で共有する実効値。共通項目は定義しない |
 | `tags` | List<String> | 任意 | `[]` | `76.shared.tag/v1.tags.yml`の`SKILL`対象タグID |
 
@@ -161,10 +163,12 @@ sigilSlotsByLevel:
   - { level: 3, slots: 2 }
 allowedSigilIds:
   - cooldown_sigil
-gem:
-  rarity: COMMON
-  tradeable: false
-  sellable: false
+learnRequiredItems:
+  - itemId: skill_gem_raw
+    amount: 1
+levelUpRequiredItems:
+  - itemId: skill_gem_raw
+    amount: 1
 onCast:
   sound: entity.player.attack.sweep
 tags:

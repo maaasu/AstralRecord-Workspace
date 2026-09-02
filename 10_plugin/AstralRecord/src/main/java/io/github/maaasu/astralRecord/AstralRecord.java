@@ -230,7 +230,6 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingHoldSe
 import io.github.maaasu.astralRecord.feature.skill.service.SkillActionRingService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillCooldownBossBarService;
-import io.github.maaasu.astralRecord.feature.skill.service.SkillGemPurchaseService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPermissionService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
@@ -408,7 +407,6 @@ public final class AstralRecord extends JavaPlugin {
     private SkillTreeService skillTreeService;
     private SkillBindPresetService skillBindPresetService;
     private LearnedSkillService learnedSkillService;
-    private SkillGemPurchaseService skillGemPurchaseService;
     private SkillOwnershipService skillOwnershipService;
     private SkillPermissionService skillPermissionService;
     private SkillBindGui skillBindGui;
@@ -1436,23 +1434,6 @@ public final class AstralRecord extends JavaPlugin {
             (player, orbItemId) -> guideService.recordCondition(player, GuideConditionType.ORB_USED, orbItemId)
         );
         orbService.setSkillSigilOrbService(skillSigilOrbService);
-        skillGemPurchaseService = new SkillGemPurchaseService(
-            learnedSkillService,
-            skillService,
-            inventoryService,
-            passiveSkillService
-        );
-        skillGemPurchaseService.setSkillLearnedListener(
-            (player, skillId) -> guideService.recordConditionSilently(
-                player, GuideConditionType.SKILL_LEARNED, skillId
-            )
-        );
-        skillGemPurchaseService.setSkillEnhancedListener(
-            (player, skillId) -> guideService.recordConditionSilently(
-                player, GuideConditionType.SKILL_ENHANCED, skillId
-            )
-        );
-        shopService.setSpecialPurchaseHandler(skillGemPurchaseService);
         skillService.setPlayerSkillUseListener(
             (player, skillId) -> meditationSkillRuntimeService.interrupt(player.getBukkit().getUniqueId())
         );

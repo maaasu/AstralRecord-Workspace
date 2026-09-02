@@ -12,10 +12,7 @@ namespace AstralRecordApi.Repositories;
 public class ItemRepository(MasterDataDbContext dbContext) : IItemRepository
 {
     private const string MasterType = "item";
-    private const string SkillMasterType = "skill";
-    private const string SkillGemCategory = "skill_gem";
     private const string SigilCategory = "sigil";
-    private const string SkillGemIdPrefix = "00_skill_gem_";
     private static readonly StringComparer KeyComparer = StringComparer.OrdinalIgnoreCase;
     private static readonly HashSet<string> SupportedCategories = new(KeyComparer)
     {
@@ -46,25 +43,11 @@ public class ItemRepository(MasterDataDbContext dbContext) : IItemRepository
             })
             .ToList();
 
-        var skillGemIds = dbContext.Entries
-            .AsNoTracking()
-            .Where(entry => !entry.IsDeleted && entry.MasterType == SkillMasterType)
-            .OrderBy(entry => entry.MasterId)
-            .Select(entry => entry.MasterId)
-            .ToArray();
-        items.AddRange(skillGemIds.Select(skillId => new ItemSummaryResponse
-        {
-            Id = SkillGemIdPrefix + skillId,
-            Category = SkillGemCategory,
-        }));
         return items;
     }
 
     public ItemResponse? GetById(string itemId)
     {
-        if (itemId.StartsWith(SkillGemIdPrefix, StringComparison.Ordinal))
-            return GetSkillGem(itemId);
-
         var entry = dbContext.Entries
             .AsNoTracking()
             .Where(entry => entry.MasterType == MasterType
@@ -87,41 +70,4 @@ public class ItemRepository(MasterDataDbContext dbContext) : IItemRepository
         return MasterDataPayloadJson.Deserialize<ItemResponse>(node.ToJsonString());
     }
 
-    private ItemResponse? GetSkillGem(string itemId)
-    {
-        var skillId = itemId[SkillGemIdPrefix.Length..];
-        if (string.IsNullOrWhiteSpace(skillId))
-            return null;
-
-        var payload = dbContext.Entries
-            .AsNoTracking()
-            .Where(entry => !entry.IsDeleted
-                && entry.MasterType == SkillMasterType
-                && entry.MasterId == skillId)
-            .Select(entry => entry.PayloadJson)
-            .FirstOrDefault();
-        var skill = payload is null ? null : MasterDataPayloadJson.Deserialize<SkillResponse>(payload);
-        if (skill is null)
-            return null;
-
-        return new ItemResponse
-        {
-            SchemaVersion = skill.SchemaVersion,
-            Id = itemId,
-            Category = SkillGemCategory,
-            Name = skill.Name + "ジェム",
-            Icon = skill.Gem.Icon ?? skill.Icon ?? "EMERALD",
-            Rarity = skill.Gem.Rarity,
-            SaleValue = 0,
-            MaxStack = 0,
-            Lore =
-            [
-                "&7スキルジェム交換所で購入すると即時反映されます。",
-                "&7未習得なら習得し、習得済みならレベルアップします。",
-            ],
-            UnTradeable = !skill.Gem.Tradeable,
-            UnSellable = !skill.Gem.Sellable,
-            SkillGem = new ItemSkillGemResponse { SkillId = skill.Id },
-        };
-    }
 }

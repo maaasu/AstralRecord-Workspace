@@ -14,10 +14,8 @@ public class AccountLearnedSkillRepository(
 {
     private const string SkillMasterType = "skill";
     private const string ItemMasterType = "item";
-    private const string SkillGemCategory = "skill_gem";
     private const string SigilCategory = "sigil";
     private const string OrbCategory = "orb";
-    private const string SkillGemIdPrefix = "00_skill_gem_";
     private const string SigilAttachOrbEffectType = "SIGIL_ATTACH";
     private const string SigilDetachOrbEffectType = "SIGIL_DETACH";
 
@@ -57,8 +55,8 @@ public class AccountLearnedSkillRepository(
 
         return await ExecuteSerializableAsync(async () =>
         {
-            var material = await FindOwnedMaterialAsync(accountId, request.GemInventoryEntryId);
-            if (!IsExpectedMaterial(material, SkillGemCategory, SkillGemIdPrefix + skill.Id))
+            var materials = await FindAndValidateRequiredMaterialsAsync(accountId, skill.LearnRequiredItems);
+            if (materials is null)
                 return Failure(AccountLearnedSkillMutationFailure.InvalidMaterial);
 
             var now = DateTime.UtcNow;
@@ -76,7 +74,7 @@ public class AccountLearnedSkillRepository(
                 IsDeleted = false,
             };
             await dbContext.AccountLearnedSkills.AddAsync(entity);
-            ConsumeMaterial(material!, request.UpdatedBy, now);
+            ConsumeMaterials(materials, request.UpdatedBy, now);
             await dbContext.SaveChangesAsync();
             return Success(Map(entity));
         });
@@ -98,8 +96,8 @@ public class AccountLearnedSkillRepository(
             if (entity.Level >= Math.Max(1, skill.MaxLevel))
                 return Failure(AccountLearnedSkillMutationFailure.MaxLevelReached);
 
-            var material = await FindOwnedMaterialAsync(accountId, request.GemInventoryEntryId);
-            if (!IsExpectedMaterial(material, SkillGemCategory, SkillGemIdPrefix + skill.Id))
+            var materials = await FindAndValidateRequiredMaterialsAsync(accountId, skill.LevelUpRequiredItems);
+            if (materials is null)
                 return Failure(AccountLearnedSkillMutationFailure.InvalidMaterial);
 
             var now = DateTime.UtcNow;
@@ -107,7 +105,7 @@ public class AccountLearnedSkillRepository(
             entity.Version += 1;
             entity.UpdatedAt = now;
             entity.UpdatedBy = request.UpdatedBy;
-            ConsumeMaterial(material!, request.UpdatedBy, now);
+            ConsumeMaterials(materials, request.UpdatedBy, now);
             await dbContext.SaveChangesAsync();
             return Success(Map(entity));
         });
@@ -334,7 +332,7 @@ public class AccountLearnedSkillRepository(
             && IdEquals(entry.ItemCategory, category)
             && IdEquals(entry.ItemId, itemId)
             && entry.Quantity > 0
-            && (!IdEquals(category, SkillGemCategory) || entry.Quantity == 1);
+            ;
 
     private static bool IsExpectedOrb(
         InventoryEntryEntity? entry,
@@ -356,6 +354,57 @@ public class AccountLearnedSkillRepository(
             entry.IsDeleted = true;
         entry.UpdatedAt = now;
         entry.UpdatedBy = updatedBy;
+    }
+
+    /// <summary>同一 itemId が複数スタックへ分かれていても、要求個数を原子的に検証して消費します。</summary>
+    private async Task<IReadOnlyList<(InventoryEntryEntity Entry, long Amount)>?> FindAndValidateRequiredMaterialsAsync(
+        Guid accountId,
+        IReadOnlyList<SkillRequiredItemResponse> requirements)
+    {
+        var normalized = requirements
+            .Where(requirement => !string.IsNullOrWhiteSpace(requirement.ItemId) && requirement.Amount > 0)
+            .GroupBy(requirement => NormalizeId(requirement.ItemId), StringComparer.OrdinalIgnoreCase)
+            .Select(group => new { ItemId = group.Key, Amount = group.Sum(requirement => requirement.Amount) })
+            .ToArray();
+        if (normalized.Length != requirements.Count || normalized.Any(requirement => string.IsNullOrWhiteSpace(requirement.ItemId)))
+            return null;
+
+        var result = new List<(InventoryEntryEntity Entry, long Amount)>();
+        foreach (var requirement in normalized)
+        {
+            var entries = await (from entry in dbContext.InventoryEntries
+                                 join inventory in dbContext.Inventories on entry.InventoryId equals inventory.InventoryId
+                                 where !entry.IsDeleted && entry.Quantity > 0
+                                       && !inventory.IsDeleted && inventory.IsEnabled
+                                       && inventory.InventoryProfile == "GAME" && inventory.AccountId == accountId
+                                       && entry.ItemId == requirement.ItemId
+                                 orderby entry.InventoryEntryId
+                                 select entry).ToArrayAsync();
+            long remaining = requirement.Amount;
+            foreach (var entry in entries)
+            {
+                var amount = Math.Min(remaining, entry.Quantity);
+                if (amount > 0) result.Add((entry, amount));
+                remaining -= amount;
+                if (remaining == 0) break;
+            }
+            if (remaining > 0) return null;
+        }
+        return result;
+    }
+
+    private static void ConsumeMaterials(
+        IReadOnlyList<(InventoryEntryEntity Entry, long Amount)> materials,
+        Guid updatedBy,
+        DateTime now)
+    {
+        foreach (var (entry, amount) in materials)
+        {
+            entry.Quantity -= amount;
+            entry.IsDeleted = entry.Quantity <= 0;
+            entry.UpdatedAt = now;
+            entry.UpdatedBy = updatedBy;
+        }
     }
 
     private async Task<SkillResponse?> GetSkillAsync(string skillId)
@@ -530,25 +579,6 @@ public class AccountLearnedSkillRepository(
                 learnedSkill.UpdatedAt = now;
                 learnedSkill.UpdatedBy = actor;
             }
-        }
-
-        var validGemIds = skills.Keys
-            .Select(skillId => SkillGemIdPrefix + skillId)
-            .ToHashSet(StringComparer.OrdinalIgnoreCase);
-        var ownedGemEntries = await (from entry in dbContext.InventoryEntries
-                                     join inventory in dbContext.Inventories
-                                         on entry.InventoryId equals inventory.InventoryId
-                                     where inventory.AccountId == accountId
-                                           && !inventory.IsDeleted
-                                           && !entry.IsDeleted
-                                           && entry.ItemCategory == SkillGemCategory
-                                     select entry).ToArrayAsync();
-        foreach (var entry in ownedGemEntries.Where(entry => entry.ItemId is null
-                     || !validGemIds.Contains(entry.ItemId)))
-        {
-            entry.IsDeleted = true;
-            entry.UpdatedAt = now;
-            entry.UpdatedBy = actor;
         }
 
         if (removedLearnedSkillIds.Count > 0)

@@ -73,6 +73,7 @@ public final class SkillBindGui {
     private static final Material DEFAULT_SKILL_ICON = Material.AMETHYST_SHARD;
     private static final int PERMITTED_SKILL_LORE_LIMIT = 6;
     private final NamespacedKey learnedSkillIdKey;
+    private final NamespacedKey unlearnedSkillIdKey;
     private final NamespacedKey dummyKey;
     private final ItemService itemService;
     private final SkillService skillService;
@@ -91,6 +92,7 @@ public final class SkillBindGui {
         @NotNull SkillService skillService
     ) {
         learnedSkillIdKey = new NamespacedKey(plugin, "skill_manager_learned_skill_id");
+        unlearnedSkillIdKey = new NamespacedKey(plugin, "skill_manager_unlearned_skill_id");
         dummyKey = new NamespacedKey(plugin, "skill_manager_dummy");
         this.itemService = itemService;
         this.skillService = skillService;
@@ -148,8 +150,21 @@ public final class SkillBindGui {
         int activePassiveSlots,
         int pageIndex
     ) {
-        int page = normalizePage(pageIndex, entries.size());
-        int pages = totalPages(entries.size());
+        return createMainInventory(session, entries, List.of(), entryByBindingId, permittedSkillDefinitions, activePassiveSlots, pageIndex);
+    }
+
+    public @NotNull Inventory createMainInventory(
+        @NotNull SkillBindSession session,
+        @NotNull List<SkillManagerEntry> entries,
+        @NotNull List<SkillDefinition> unlearnedDefinitions,
+        @NotNull Map<String, SkillManagerEntry> entryByBindingId,
+        @NotNull List<SkillDefinition> permittedSkillDefinitions,
+        int activePassiveSlots,
+        int pageIndex
+    ) {
+        int displayCount = entries.size() + unlearnedDefinitions.size();
+        int page = normalizePage(pageIndex, displayCount);
+        int pages = totalPages(displayCount);
         Inventory inventory = Bukkit.createInventory(
             new SkillBindInventoryHolder(SkillBindScreen.MAIN, session.selectedPresetIndex(), page),
             SIZE,
@@ -158,11 +173,12 @@ public final class SkillBindGui {
         fill(inventory);
 
         int start = GuiPagination.pageStart(page, CONTENT_SLOT_COUNT);
-        int end = GuiPagination.pageEnd(page, entries.size(), CONTENT_SLOT_COUNT);
+        int end = GuiPagination.pageEnd(page, displayCount, CONTENT_SLOT_COUNT);
         int contentSlotOffset = contentSlotOffset(page, session.selectedBindType());
         for (int index = start; index < end; index++) {
-            SkillManagerEntry entry = entries.get(index);
-            inventory.setItem(index - start + contentSlotOffset, createLearnedSkillItem(entry, true));
+            inventory.setItem(index - start + contentSlotOffset, index < entries.size()
+                ? createLearnedSkillItem(entries.get(index), true)
+                : createUnlearnedSkillItem(unlearnedDefinitions.get(index - entries.size())));
         }
 
         for (int index = 0; index < SkillBindPreset.PASSIVE_SLOT_COUNT; index++) {
@@ -372,6 +388,11 @@ public final class SkillBindGui {
         return item.getItemMeta().getPersistentDataContainer().get(learnedSkillIdKey, PersistentDataType.STRING);
     }
 
+    public @Nullable String unlearnedSkillId(@Nullable ItemStack item) {
+        if (item == null || !item.hasItemMeta()) return null;
+        return item.getItemMeta().getPersistentDataContainer().get(unlearnedSkillIdKey, PersistentDataType.STRING);
+    }
+
     public int normalizePage(int pageIndex, int count) {
         return GuiPagination.normalizePage(pageIndex, count, CONTENT_SLOT_COUNT);
     }
@@ -460,6 +481,40 @@ public final class SkillBindGui {
             lore
         );
         return withBindingId(item, entry.bindingId());
+    }
+
+    private ItemStack createUnlearnedSkillItem(@NotNull SkillDefinition skill) {
+        List<Component> lore = new ArrayList<>();
+        lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(skill, NamedTextColor.GRAY));
+        lore.add(separator());
+        lore.add(Component.text("未習得", NamedTextColor.RED));
+        appendRequiredItemLore(lore, skill.getLearnRequiredItems(), "習得に必要");
+        lore.add(Component.text("左クリック: 習得", NamedTextColor.YELLOW));
+        ItemStack item = createItem(parseMaterial(skill.getIcon(), DEFAULT_SKILL_ICON),
+            SkillPresentationUtil.skillNameComponent(skill, skill.getId(), NamedTextColor.WHITE), lore);
+        ItemMeta meta = item.getItemMeta();
+        meta.getPersistentDataContainer().set(unlearnedSkillIdKey, PersistentDataType.STRING, skill.getId());
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private void appendRequiredItemLore(
+        @NotNull List<Component> lore,
+        @NotNull List<io.github.maaasu.astralRecord.feature.skill.model.SkillRequiredItemDefinition> costs,
+        @NotNull String label
+    ) {
+        if (costs.isEmpty()) {
+            lore.add(Component.text(label + ": なし", NamedTextColor.GREEN));
+            return;
+        }
+        lore.add(Component.text(label + ":", NamedTextColor.AQUA));
+        for (var cost : costs) {
+            ItemModel item = itemService.findLoadedById(cost.getItemId());
+            Component name = item == null ? Component.text("未登録の素材", NamedTextColor.RED)
+                : SkillPresentationUtil.itemNameComponent(item, item.getId(), NamedTextColor.WHITE);
+            lore.add(Component.text("  ", NamedTextColor.GRAY).append(name)
+                .append(Component.text(" x" + cost.getAmount(), NamedTextColor.AQUA)));
+        }
     }
 
     /** 一覧・設定済みスロットで共通に表示する、習得済みスキルのプレイヤー向け詳細です。 */
@@ -924,7 +979,6 @@ public final class SkillBindGui {
             case SIGIL_NOT_ALLOWED -> "このシジルはこのスキルに装着できません。";
             case NO_SIGIL_SLOT -> "シジル合成枠が空いていません。";
             case DUPLICATE_SIGIL_GROUP -> "同系統のシジルは重ねて装着できません。";
-            case GEM_PURCHASE_ONLY -> "スキルレベルはスキルジェム購入時に上がります。";
             case NONE -> "このアイテムは合成素材にできません。";
             case SIGIL -> "";
         };

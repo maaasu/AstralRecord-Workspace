@@ -327,7 +327,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             Material.BOOK,
             noItalic(Component.text("習得済みスキル", NamedTextColor.LIGHT_PURPLE, TextDecoration.BOLD)),
             List.of(
-                noItalic(Component.text("スキルジェムから習得した", NamedTextColor.GRAY)),
+                noItalic(Component.text("スキルマネージャーで習得した", NamedTextColor.GRAY)),
                 noItalic(Component.text("スキル個体の一覧", NamedTextColor.GRAY)),
                 noItalic(Component.text("クリックで一覧を表示", NamedTextColor.YELLOW))
             )

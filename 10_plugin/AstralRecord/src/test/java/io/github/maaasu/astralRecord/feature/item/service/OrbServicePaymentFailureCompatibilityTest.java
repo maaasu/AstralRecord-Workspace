@@ -269,7 +269,6 @@ class OrbServicePaymentFailureCompatibilityTest extends MockBukkitTestBase {
             null,
             null,
             null,
-            null,
             orb
         );
     }

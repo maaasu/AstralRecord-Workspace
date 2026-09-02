@@ -8,7 +8,7 @@ import java.util.Map;
 /**
  * Mob マスターから Mob 専用スキルExecutorへ渡す紐付けです。
  *
- * <p>プレイヤー用 {@code SkillDefinition} とは独立しており、スキルジェム、習得、職業、
+ * <p>プレイヤー用 {@code SkillDefinition} とは独立しており、習得、職業、
  * レベルなどのプレイヤー用状態を持ちません。{@code params} は個別Executorが宣言した
  * 数値パラメータだけを受け付け、通常は2～3個、最大10個を上限とします。</p>
  *

@@ -113,38 +113,30 @@ steps:
     condition:
       type: SKILLTREE_NODE_UNLOCKED
       targetId: "1047"
-  - id: buy_astral_edge
-    text: "&fスキルジェム交換で&eアストラルエッジ&fを購入する"
+  - id: learn_astral_edge
+    text: "&fスキルマネージャーで&eアストラルエッジ&fを習得する"
     details:
-      - "&7星晶錬成師に話しかけ、スキルジェム交換GUIを開く。"
-      - "&7&eアストラルエッジ&7を選択し、必要な&e原石&7を消費して購入する。"
-      - "&a購入すると、&eアストラルエッジ&aを自動的に習得できる。"
-    action:
-      type: NAVIGATE_NPC
-      npcId: skill_gem_alchemist
-      description: "&dクリックで星晶錬成師の場所を表示し、発光させる。"
+      - "&7スキルマネージャーを開く。"
+      - "&7未習得の&eアストラルエッジ&7を選択し、必要な&e原石&7を消費する。"
+      - "&a習得すると、&eアストラルエッジ&aを使用できる。"
     condition:
-      type: SHOP_PURCHASED
-      targetId: astral_edge_from_raw
-  - id: buy_smash
-    text: "&fスキルジェム交換で&eスマッシュ&fを購入する"
+      type: SKILL_LEARNED
+      targetId: adventurer_astral_edge
+  - id: learn_smash
+    text: "&fスキルマネージャーで&eスマッシュ&fを習得する"
     details:
-      - "&7星晶錬成師に話しかけ、スキルジェム交換GUIを開く。"
-      - "&7&eスマッシュ&7を選択し、必要な&e原石&7を消費して購入する。"
-      - "&a購入すると、&eスマッシュ&aを自動的に習得できる。"
-    action:
-      type: NAVIGATE_NPC
-      npcId: skill_gem_alchemist
-      description: "&dクリックで星晶錬成師の場所を表示し、発光させる。"
+      - "&7スキルマネージャーを開く。"
+      - "&7未習得の&eスマッシュ&7を選択し、必要な&e原石&7を消費する。"
+      - "&a習得すると、&eスマッシュ&aを使用できる。"
     condition:
-      type: SHOP_PURCHASED
-      targetId: smash_from_raw
+      type: SKILL_LEARNED
+      targetId: adventurer_smash
   - id: enhance_skill
-    text: "&f同じスキルジェムを再購入して強化する"
+    text: "&fスキルマネージャーでスキルを強化する"
     details:
-      - "&7星晶錬成師のスキルジェム交換GUIで、習得済みスキルのジェムを選択する。"
-      - "&7次の購入で上がるレベルを確認し、同じジェムをもう一度購入する。"
-      - "&a再購入するとスキルジェムが即時消費され、対象スキルのレベルが1上がる。"
+      - "&7スキルマネージャーで、習得済みスキルを右クリックする。"
+      - "&7次のレベルに必要な&e原石&7を確認する。"
+      - "&a原石を消費すると、対象スキルのレベルが1上がる。"
     condition:
       type: SKILL_ENHANCED
       targetIds:

@@ -33,11 +33,12 @@ class InventoryServiceShopPurchaseCompensationTest {
      * 検証契約: API拒否時は今回購入entryだけを除去し、Gold・通貨・通常素材を全返却して無関係entryを維持する。
      */
     @Test
-    void compensatesOnlyPurchasedGemAndPreservesConcurrentInventoryChanges() {
+    void compensatesOnlyPurchasedItemAndPreservesConcurrentInventoryChanges() {
         UUID accountId = UUID.randomUUID();
-        UUID purchasedGemEntryId = UUID.randomUUID();
-        UUID legacyGemEntryId = UUID.randomUUID();
-        String gemId = "00_skill_gem_adventurer_smash";
+        UUID purchasedEntryId = UUID.randomUUID();
+        UUID originalEntryId = UUID.randomUUID();
+        String purchasedItemId = "purchased_reward";
+        String originalItemId = "preexisting_reward";
         PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
         PlayerInventoryState state = new PlayerInventoryState(accountId);
         InventoryModel bag = DesignTestFixtures.inventory(accountId, InventoryType.BAG, 27);
@@ -45,8 +46,8 @@ class InventoryServiceShopPurchaseCompensationTest {
         state.putInventory(bag);
         state.putInventory(currency);
         state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
-            entry(purchasedGemEntryId, accountId, bag.getInventoryId(), 1, ItemCategory.SKILL_GEM, gemId, 1L),
-            entry(legacyGemEntryId, accountId, bag.getInventoryId(), 2, ItemCategory.SKILL_GEM, gemId, 1L),
+            entry(purchasedEntryId, accountId, bag.getInventoryId(), 1, ItemCategory.MATERIAL, purchasedItemId, 1L),
+            entry(originalEntryId, accountId, bag.getInventoryId(), 2, ItemCategory.MATERIAL, originalItemId, 1L),
             entry(UUID.randomUUID(), accountId, bag.getInventoryId(), 3, ItemCategory.MATERIAL, "concurrent_reward", 2L)
         ));
         state.replaceEntriesFromLoad(currency.getInventoryId(), List.of(
@@ -77,8 +78,8 @@ class InventoryServiceShopPurchaseCompensationTest {
 
         assertTrue(service.compensateFailedShopPurchase(
             accountId,
-            purchasedGemEntryId,
-            gemId,
+            purchasedEntryId,
+            purchasedItemId,
             7L,
             List.of(
                 new InventoryService.InventoryRefundItem("skill_gem_raw", "material", 3),
@@ -86,8 +87,8 @@ class InventoryServiceShopPurchaseCompensationTest {
             )
         ));
 
-        assertNull(service.findOwnedEntry(accountId, purchasedGemEntryId));
-        assertEquals(1L, service.getNormalItemAmount(accountId, gemId));
+        assertNull(service.findOwnedEntry(accountId, purchasedEntryId));
+        assertEquals(1L, service.getNormalItemAmount(accountId, originalItemId));
         assertEquals(2L, service.getNormalItemAmount(accountId, "concurrent_reward"));
         assertEquals(3L, service.getNormalItemAmount(accountId, "skill_gem_raw"));
         assertEquals(2L, service.getCurrencyAmount(accountId, "astrald"));

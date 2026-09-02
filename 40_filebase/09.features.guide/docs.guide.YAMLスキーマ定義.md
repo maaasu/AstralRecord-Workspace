@@ -67,7 +67,7 @@ Plugin は各 guide の全未達成 step をイベントごとに評価します
 | `MAIL_RECEIVED` | mail ID | メールを既読化し、報酬受取が成功したとき |
 | `BUNDLE_OPENED` | bundle item ID | bundle を開封して報酬付与が成功したとき |
 | `SHOP_PURCHASED` | shop entry ID | ショップの商品購入または交換が成功したとき |
-| `SKILL_LEARNED` | skill ID | スキルジェム購入によるスキル個体の習得が成功したとき |
+| `SKILL_LEARNED` | skill ID | スキルマネージャーで必要素材を消費するスキル個体の習得が成功したとき |
 | `SKILLTREE_NODE_UNLOCKED` | node ID | スキルツリーのノード解放が成功したとき |
 | `SKILL_ENHANCED` | skill ID | スキルの強化が成功したとき |
 | `SKILL_BOUND` | skill ID | スキルをアクションリングへ設定して保存が成功したとき |
