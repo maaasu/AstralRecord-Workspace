@@ -533,6 +533,8 @@ public enum PlayerMsgId {
     P_5355(5355),
     /** 自己HP回復の詳細。{0}:実回復量 {1}:回復手段 */
     P_5356(5356),
+    /** 通常攻撃劣化の開始案内。 */
+    P_5357(5357),
     // endregion
 
     // region /feature/inventory/command/InventoryCommand.java 5250-5269
