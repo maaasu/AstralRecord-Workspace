@@ -37,6 +37,8 @@ baseStats:
     value: 3
   - status: MAGIC_DEFENSE
     value: 7
+  - status: SHIELD_BREAK
+    value: 1
 growthPerLevel:
   - status: MAX_HEALTH
     value: 4
@@ -56,6 +58,8 @@ growthPerLevel:
     value: 0.8
   - status: MP_REGEN
     value: 0.2
+  - status: SHIELD_BREAK
+    value: 0.1
 expRate: 100
 usableSkills:
   - skill:adventurer_mana_burst
