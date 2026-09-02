@@ -83,6 +83,28 @@ class SkillCombatServiceShieldRecoveryTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック > ### 6.1 アストラルエッジ変更契約
+     * 検証契約: 最大ENGの割合回復はStatusService経路で計算し、最大値を超える要求では実増加量だけを返す。
+     */
+    @Test
+    void returnsActualEnergyIncreaseAfterMaximumCap() {
+        StatusService statusService = new StatusService();
+        SkillCombatService combat = combat(statusService, mock(ConditionService.class));
+        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        StatusSnapshot snapshot = DesignTestFixtures.statusSnapshot(Map.of(
+                StatusType.MAX_HEALTH, 100.0D,
+                StatusType.MAX_ENERGY, 100.0D
+        ), 100.0D, 0.0D, 98.0D);
+        player.setStatusSnapshot(snapshot);
+
+        double recovered = combat.recoverEnergyByMaxRatio(player, 0.05D);
+
+        assertEquals(2.0D, recovered, 0.0001D);
+        assertEquals(100.0D, player.getStatusSnapshot().getCurrentEnergy(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 19. ヒールアローの実装契約 > ### 19.1 数値・対象・終端
      * 検証契約: ヒールアローのHP回復は回復阻害中にStatusServiceが現在HPを変更せず、実増加量0を返す。
      */

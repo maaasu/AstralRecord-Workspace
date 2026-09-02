@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobTauntService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
 import org.bukkit.Location;
@@ -144,6 +145,40 @@ public final class SkillCombatService {
         double before = statusService.getStatus(target.player()).getCurrentShield();
         double after = statusService.recoverShield(target.player(), amount).getCurrentShield();
         return Math.max(0.0D, after - before);
+    }
+
+    /**
+     * プレイヤーの現在エネルギーを既存の回復規則で回復します。
+     *
+     * @param target 回復対象プレイヤー
+     * @param amount 回復要求量
+     * @return 上限・回復阻害を反映した実増加量
+     */
+    public double recoverEnergy(@NotNull AstPlayer target, double amount) {
+        if (amount <= 0.0D) {
+            return 0.0D;
+        }
+        double before = statusService.getStatus(target).getCurrentEnergy();
+        double after = statusService.recoverEnergy(target, amount).getCurrentEnergy();
+        return Math.max(0.0D, after - before);
+    }
+
+    /**
+     * プレイヤーの最大エネルギーに対する割合を現在エネルギーへ回復します。
+     *
+     * @param target 回復対象プレイヤー
+     * @param maxRatio 最大エネルギーに対する回復割合（0.05 は5%）
+     * @return 上限・回復阻害を反映した実増加量
+     */
+    public double recoverEnergyByMaxRatio(@NotNull AstPlayer target, double maxRatio) {
+        if (!(maxRatio > 0.0D) || !Double.isFinite(maxRatio)) {
+            return 0.0D;
+        }
+        double maxEnergy = statusService.getStatus(target).getMaxValue(StatusType.MAX_ENERGY);
+        if (!(maxEnergy > 0.0D) || !Double.isFinite(maxEnergy)) {
+            return 0.0D;
+        }
+        return recoverEnergy(target, maxEnergy * maxRatio);
     }
 
     /**

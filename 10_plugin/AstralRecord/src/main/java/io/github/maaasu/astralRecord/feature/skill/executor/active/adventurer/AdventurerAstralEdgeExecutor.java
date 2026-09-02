@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skill.executor.active.adventurer;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillExecutor;
@@ -31,6 +32,7 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
     private static final double DEFAULT_REACH = 5.5D;
     private static final int DEFAULT_MAX_TARGETS = 5;
     private static final List<Double> DEFAULT_DAMAGE_RATIOS = List.of(1.2D, 0.6D);
+    private static final double DEFAULT_ENERGY_RECOVERY_RATIO = 0.05D;
     private static final double[] SWEEP_RADIUS_BASES = {2.4D, 3.9D, 5.4D};
     private static final double SWEEP_START_ANGLE = 55.0D;
     private static final double SWEEP_END_ANGLE = -55.0D;
@@ -62,6 +64,13 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
                     "アストラルエッジの params[maxTargets] は1以上の整数が必要です"
             );
         }
+        double energyRecoveryRatio = params.getDouble("energyRecoveryRatio", 0.0D);
+        if (!(energyRecoveryRatio > 0.0D && energyRecoveryRatio <= 1.0D)) {
+            throw new SkillParameterException(
+                    "energyRecoveryRatio",
+                    "アストラルエッジの params[energyRecoveryRatio] は0より大きく1以下が必要です"
+            );
+        }
     }
 
     /** {@inheritDoc} */
@@ -78,6 +87,7 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
         List<Double> damageRatios = params.getDoubleList("damageRatios", DEFAULT_DAMAGE_RATIOS);
         double damageRatio = damageRatios.get(0);
         double thrustDamageRatio = damageRatios.get(1);
+        double energyRecoveryRatio = params.getDouble("energyRecoveryRatio", DEFAULT_ENERGY_RECOVERY_RATIO);
         double[] sweepRadii = scaledSweepRadii(reach);
         Set<UUID> hitTargetIds = new HashSet<>();
 
@@ -137,7 +147,8 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
                                 castWorld,
                                 target,
                                 damageRatio,
-                                thrustDamageRatio
+                                thrustDamageRatio,
+                                energyRecoveryRatio
                         );
                     }
                 }
@@ -151,6 +162,18 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
         return context.success();
     }
 
+    /**
+     * 薙ぎ払いの命中と、独立した遅延突き刺しを対象へ適用します。
+     *
+     * @param context 発動者・共有サービス・解決済みスキルを保持するコンテキスト
+     * @param attacker 発動者の攻撃エンティティ
+     * @param player Bukkitプレイヤー
+     * @param castWorld 発動時ワールド
+     * @param target 命中対象
+     * @param damageRatio 薙ぎ払い倍率
+     * @param thrustDamageRatio 突き刺し倍率
+     * @param energyRecoveryRatio 最大ENGに対する一撃ごとの回復割合
+     */
     private void hitSweepTarget(
             @NotNull PlayerActiveSkillContext context,
             @NotNull AstEntity attacker,
@@ -158,15 +181,17 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
             @NotNull World castWorld,
             @NotNull AstEntity target,
             double damageRatio,
-            double thrustDamageRatio
+            double thrustDamageRatio,
+            double energyRecoveryRatio
     ) {
-        context.services().combat().hit(
+        DamageResult sweepResult = context.services().combat().hit(
                 attacker,
                 target,
                 AttackType.MELEE,
                 DamageElement.NONE,
                 damageRatio
         );
+        recoverEnergyOnHit(context, sweepResult, energyRecoveryRatio);
         Location targetLocation = target.location().add(0.0D, 0.9D, 0.0D);
         context.services().effects().sound(
                 targetLocation,
@@ -186,13 +211,14 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
                     0.38D,
                     SharedParticleDefinitions.SKILL_SWORD_EDGE
             );
-            context.services().combat().hit(
+            DamageResult thrustResult = context.services().combat().hit(
                     attacker,
                     target,
                     AttackType.MELEE,
                     DamageElement.NONE,
                     thrustDamageRatio
             );
+            recoverEnergyOnHit(context, thrustResult, energyRecoveryRatio);
             context.services().effects().point(
                     currentTargetLocation,
                     SharedParticleDefinitions.SKILL_SWORD_EDGE
@@ -204,6 +230,27 @@ public final class AdventurerAstralEdgeExecutor extends PlayerActiveSkillExecuto
                     1.2F
             );
         });
+    }
+
+    /**
+     * 回避されず、HPまたはShieldへ有効なダメージが適用された一撃のENG回復を処理します。
+     *
+     * @param context 発動者・共有サービス・解決済みスキルを保持するコンテキスト
+     * @param result 一撃のダメージ結果
+     * @param energyRecoveryRatio 最大ENGに対する回復割合
+     */
+    private void recoverEnergyOnHit(
+            @NotNull PlayerActiveSkillContext context,
+            @NotNull DamageResult result,
+            double energyRecoveryRatio
+    ) {
+        if (result.evaded() || (result.finalDamage() <= 0.0D && result.shieldDamage() <= 0.0D)) {
+            return;
+        }
+        context.services().combat().recoverEnergyByMaxRatio(
+                context.caster().player(),
+                energyRecoveryRatio
+        );
     }
 
     private static double[] scaledSweepRadii(double reach) {

@@ -11,20 +11,26 @@ icon: IRON_SWORD
 lore:
   - "&7前方{skill.reach}mの扇形へ近接攻撃力{skill.effectiveDamageRatios[0]:percent}%の薙ぎ払い。最大{skill.maxTargets}体。"
   - "&7薙ぎ払い命中対象へ近接攻撃力{skill.effectiveDamageRatios[1]:percent}%の突き刺し。"
+  - "&7薙ぎ払いと突き刺しはそれぞれ独立して命中判定を行う。"
+  - "&7各攻撃が命中すると最大ENGの{skill.energyRecoveryRatio:percent}%を回復する。"
 cooldownTicks: 50
-resourceType: ENERGY
+resourceType: MANA
 resourceCost: 8
 castTimeTicks: 0
 requiredLevel: 1
 maxLevel: 5
 levels:
   - level: 2
+    paramDeltas: { energyRecoveryRatio: 0.02 }
     statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
   - level: 3
+    paramDeltas: { energyRecoveryRatio: 0.02 }
     statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
   - level: 4
+    paramDeltas: { energyRecoveryRatio: 0.02 }
     statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
   - level: 5
+    paramDeltas: { energyRecoveryRatio: 0.02 }
     statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
 sigilSlotsByLevel:
   - { level: 1, slots: 1 }
@@ -47,3 +53,4 @@ params:
   reach: 5.5
   maxTargets: 5
   damageRatios: [1.2, 0.6]
+  energyRecoveryRatio: 0.05

@@ -100,7 +100,8 @@ class ActiveSkillExecutorDesignTest {
         assertDoesNotThrow(() -> executor.validateParams(astralEdgeDefinition(Map.of(
                 "reach", 5.5D,
                 "maxTargets", 5,
-                "damageRatios", List.of(1.2D, 0.6D)
+                "damageRatios", List.of(1.2D, 0.6D),
+                "energyRecoveryRatio", 0.05D
         ))));
 
         SkillParameterException exception = assertThrows(
@@ -108,7 +109,8 @@ class ActiveSkillExecutorDesignTest {
                 () -> executor.validateParams(astralEdgeDefinition(Map.of(
                         "reach", 5.5D,
                         "maxTargets", 5,
-                        "damageRatios", List.of(1.2D)
+                        "damageRatios", List.of(1.2D),
+                        "energyRecoveryRatio", 0.05D
                 )))
         );
         assertEquals("damageRatios", exception.key());
@@ -579,7 +581,7 @@ class ActiveSkillExecutorDesignTest {
                 List.of("active", "melee", "adventurer"),
                 SkillKind.ACTIVE,
                 true,
-                SkillResourceType.ENERGY,
+                SkillResourceType.MANA,
                 8.0D
         );
     }

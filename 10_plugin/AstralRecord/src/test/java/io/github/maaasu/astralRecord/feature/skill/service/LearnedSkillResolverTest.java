@@ -113,6 +113,58 @@ class LearnedSkillResolverTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 6. レビュー・テストチェック > ### 6.1 アストラルエッジ変更契約
+     * 検証契約: アストラルエッジの最大ENG回復率はLv.1の5%へLv.2〜5の各2%を累積し、Lv.5で13%になる。
+     */
+    @Test
+    void resolveAstralEdgeMaxLevelEnergyRecoveryRatio() {
+        SkillDefinition definition = new SkillDefinition(
+            "adventurer_astral_edge",
+            "adventurer_astral_edge",
+            "アストラルエッジ",
+            null,
+            "IRON_SWORD",
+            List.of(),
+            50L,
+            8.0D,
+            0L,
+            1,
+            null,
+            Map.of("energyRecoveryRatio", 0.05D),
+            List.of("active", "melee", "adventurer"),
+            SkillKind.ACTIVE,
+            true,
+            SkillResourceType.MANA,
+            8.0D,
+            null,
+            5,
+            List.of(
+                new SkillLevelDefinition(2, 0L, 0.0D, 0L, Map.of("energyRecoveryRatio", 0.02D), List.of()),
+                new SkillLevelDefinition(3, 0L, 0.0D, 0L, Map.of("energyRecoveryRatio", 0.02D), List.of()),
+                new SkillLevelDefinition(4, 0L, 0.0D, 0L, Map.of("energyRecoveryRatio", 0.02D), List.of()),
+                new SkillLevelDefinition(5, 0L, 0.0D, 0L, Map.of("energyRecoveryRatio", 0.02D), List.of())
+            ),
+            List.of(),
+            List.of()
+        );
+        LearnedSkillInstance learned = new LearnedSkillInstance(
+            UUID.randomUUID(),
+            UUID.randomUUID(),
+            definition.getId(),
+            5,
+            List.of(),
+            1,
+            null,
+            null
+        );
+
+        ResolvedLearnedSkill resolved = new LearnedSkillResolver(mock(ItemService.class)).resolve(definition, learned);
+
+        assertEquals(0.13D, ((Number) resolved.definition().getParams().get("energyRecoveryRatio")).doubleValue(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 26. メイジ フロストボールの実装契約 > ### 26.1 数値・対象・終端
      * 検証契約: フロストボールの基礎40tickへLv.2〜5の各+40tickを累積すると、最大Lv.5の凍結設定値は200tick（10秒）になる。
      */
