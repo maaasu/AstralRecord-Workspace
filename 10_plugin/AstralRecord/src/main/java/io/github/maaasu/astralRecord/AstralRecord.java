@@ -21,6 +21,7 @@ import io.github.maaasu.astralRecord.feature.combat.event.CombatDamageEventHandl
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.combat.service.CombatDpsTrackerService;
+import io.github.maaasu.astralRecord.feature.combat.service.NormalAttackDegradationService;
 import io.github.maaasu.astralRecord.feature.dungeon.event.DungeonWorldEventHandler;
 import io.github.maaasu.astralRecord.feature.dungeon.event.DungeonInteractionEventHandler;
 import io.github.maaasu.astralRecord.feature.dungeon.repository.DungeonDefinitionRepository;
@@ -396,6 +397,7 @@ public final class AstralRecord extends JavaPlugin {
     private SkillActionRingService skillActionRingService;
     private SkillActionRingHoldService skillActionRingHoldService;
     private SkillCooldownBossBarService skillCooldownBossBarService;
+    private NormalAttackDegradationService normalAttackDegradationService;
     private WeaponAttackSkillExecutor weaponAttackSkillExecutor;
     private PassiveSkillService passiveSkillService;
     private MeditationSkillRuntimeService meditationSkillRuntimeService;
@@ -630,6 +632,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (skillCooldownBossBarService != null) {
             skillCooldownBossBarService.stop();
+        }
+        if (normalAttackDegradationService != null) {
+            normalAttackDegradationService.stop();
         }
         if (weaponAttackSkillExecutor != null) {
             weaponAttackSkillExecutor.stop();
@@ -1316,13 +1321,20 @@ public final class AstralRecord extends JavaPlugin {
             guideService
         );
         configureArcaneFlowIntegration(skillService, arcaneFlowSkillRuntimeService);
+        normalAttackDegradationService = new NormalAttackDegradationService();
+        skillService.addPlayerCastSuccessListener(normalAttackDegradationService::onSkillCast);
         damageService.setJustDodgeSkillRuntimeService(justDodgeSkillRuntimeService);
         skillService.registerExecutor(new MeditationSkillExecutor(meditationSkillRuntimeService));
         skillService.registerExecutor(new AdministratorJustDodgeSkillExecutor(justDodgeSkillRuntimeService));
         skillService.registerExecutor(new AdministratorShieldRechargeSkillExecutor(statusService, particleDisplayService));
         skillService.registerExecutor(new SwordsmanShieldActivateSkillExecutor());
         skillService.registerExecutor(new StatusPassiveSkillExecutor());
-        weaponAttackSkillExecutor = new WeaponAttackSkillExecutor(particleDisplayService, damageService, conditionService);
+        weaponAttackSkillExecutor = new WeaponAttackSkillExecutor(
+            particleDisplayService,
+            damageService,
+            conditionService,
+            normalAttackDegradationService
+        );
         skillService.registerExecutor(weaponAttackSkillExecutor);
         mobProjectileService = new MobProjectileService(mobService, particleDisplayService);
         var mobSkillRegistry = new MobSkillRegistry();
@@ -1461,7 +1473,11 @@ public final class AstralRecord extends JavaPlugin {
             guideService.recordCondition(player, GuideConditionType.ACTION_RING_OPENED, null)
         );
         skillBindGui = new SkillBindGui(this, itemService, skillService);
-        itemWeaponAttackService = new ItemWeaponAttackService(inventoryService, skillService);
+        itemWeaponAttackService = new ItemWeaponAttackService(
+            inventoryService,
+            skillService,
+            normalAttackDegradationService
+        );
         itemWeaponAttackService.setEquipmentDurabilityService(equipmentDurabilityService);
         skillActionRingService.setItemWeaponAttackService(itemWeaponAttackService);
         skillActionRingHoldService = new SkillActionRingHoldService(
@@ -1606,6 +1622,7 @@ public final class AstralRecord extends JavaPlugin {
             spellStepSkillRuntimeService.clearPlayer(playerId);
             arcaneFlowSkillRuntimeService.clearPlayer(playerId);
             bastionStrikeSkillRuntimeService.clearPlayer(playerId);
+            normalAttackDegradationService.clearPlayer(playerId);
             conditionService.clearAll(AstEntity.player(player));
             skillActionRingHoldService.cancel(player.getBukkit());
             skillActionRingService.close(player.getBukkit());
@@ -1974,6 +1991,7 @@ public final class AstralRecord extends JavaPlugin {
         playerHudService.start(this);
         afkService.start(this);
         skillCooldownBossBarService.start(this);
+        normalAttackDegradationService.start(this);
         statusRegenTask.start(this);
         displayTextService.start(this);
         overheadDisplayService.start(this);

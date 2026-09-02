@@ -3,12 +3,14 @@ package io.github.maaasu.astralRecord.feature.item.service;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
+import io.github.maaasu.astralRecord.feature.combat.service.NormalAttackDegradationService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import org.bukkit.Location;
 import org.bukkit.inventory.EquipmentSlot;
@@ -26,6 +28,7 @@ public final class ItemWeaponAttackService {
 
     private final InventoryService inventoryService;
     private final SkillService skillService;
+    private final NormalAttackDegradationService normalAttackDegradationService;
     private EquipmentDurabilityService equipmentDurabilityService;
     private Consumer<AstPlayer> attackAttemptListener = player -> { };
 
@@ -33,8 +36,24 @@ public final class ItemWeaponAttackService {
             @NotNull InventoryService inventoryService,
             @NotNull SkillService skillService
     ) {
+        this(inventoryService, skillService, null);
+    }
+
+    /**
+     * 通常攻撃劣化を含む武器通常攻撃サービスを構築します。
+     *
+     * @param inventoryService インベントリサービス
+     * @param skillService スキルサービス
+     * @param normalAttackDegradationService 通常攻撃劣化サービス。nullの場合は劣化を適用しない
+     */
+    public ItemWeaponAttackService(
+            @NotNull InventoryService inventoryService,
+            @NotNull SkillService skillService,
+            @Nullable NormalAttackDegradationService normalAttackDegradationService
+    ) {
         this.inventoryService = inventoryService;
         this.skillService = skillService;
+        this.normalAttackDegradationService = normalAttackDegradationService;
     }
 
     public void setEquipmentDurabilityService(@Nullable EquipmentDurabilityService equipmentDurabilityService) {
@@ -152,18 +171,50 @@ public final class ItemWeaponAttackService {
             return;
         }
 
-        var result = skillService.castSkill(
-                caster,
-                skillId,
-                SkillCastTrigger.AUTO_ATTACK,
-                castLocation,
-                null,
-                List.of()
-        );
+        NormalAttackDegradationService.AttackTicket degradationTicket =
+                normalAttackDegradationService == null ? null : normalAttackDegradationService.beginNormalAttack(player);
+        var result = castNormalAttack(caster, skillId, castLocation, degradationTicket, player);
         if (result.success() && cooldownTicks > 0) {
-            skillService.startAttackCooldown(caster, skillId, cooldownTicks);
+            if (degradationTicket == null) {
+                skillService.startAttackCooldown(caster, skillId, cooldownTicks);
+            } else {
+                skillService.startAttackCooldown(
+                        caster,
+                        skillId,
+                        cooldownTicks,
+                        degradationTicket.attackSpeedMultiplier()
+                );
+            }
         }
         attackAttemptListener.accept(player);
+    }
+
+    private @NotNull SkillCastResult castNormalAttack(
+            @NotNull SkillCaster caster,
+            @NotNull String skillId,
+            @NotNull Location castLocation,
+            @Nullable NormalAttackDegradationService.AttackTicket degradationTicket,
+            @NotNull AstPlayer player
+    ) {
+        try {
+            var result = skillService.castSkill(
+                    caster,
+                    skillId,
+                    SkillCastTrigger.AUTO_ATTACK,
+                    castLocation,
+                    null,
+                    List.of()
+            );
+            if (!result.success() && degradationTicket != null) {
+                normalAttackDegradationService.rollbackNormalAttack(player, degradationTicket);
+            }
+            return result;
+        } catch (RuntimeException | Error exception) {
+            if (degradationTicket != null) {
+                normalAttackDegradationService.rollbackNormalAttack(player, degradationTicket);
+            }
+            throw exception;
+        }
     }
 
     private @Nullable WeaponAttackDefinition resolveAttack(@Nullable String rawTag) {

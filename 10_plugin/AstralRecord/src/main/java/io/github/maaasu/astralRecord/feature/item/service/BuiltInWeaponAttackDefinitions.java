@@ -8,6 +8,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * weapon equipment のタグから自動解決する通常攻撃の組み込みスキル定義です。
@@ -23,8 +24,28 @@ public final class BuiltInWeaponAttackDefinitions {
     public static final String NORMAL_ATTACK_WAND = "normal_attack_wand";
     public static final String NORMAL_ATTACK_MAGIC = "normal_attack_magic";
     private static final String IMPLEMENTATION_ID = "normal_attack";
+    private static final Set<String> NORMAL_ATTACK_IDS = Set.of(
+        NORMAL_ATTACK_MELEE,
+        NORMAL_ATTACK_HAMMER,
+        NORMAL_ATTACK_SPEAR,
+        NORMAL_ATTACK_BOW,
+        NORMAL_ATTACK_SHORTBOW,
+        NORMAL_ATTACK_LONGBOW,
+        NORMAL_ATTACK_WAND,
+        NORMAL_ATTACK_MAGIC
+    );
 
     private BuiltInWeaponAttackDefinitions() {
+    }
+
+    /**
+     * 指定したスキルIDが、装備武器の通常攻撃として扱う組み込みスキルか判定します。
+     *
+     * @param skillId 判定対象のスキルID
+     * @return 8種類の武器通常攻撃IDのいずれかであれば true
+     */
+    public static boolean isNormalAttackSkillId(@NotNull String skillId) {
+        return NORMAL_ATTACK_IDS.contains(skillId);
     }
 
     public static @NotNull List<SkillDefinition> definitions() {

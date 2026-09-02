@@ -6,7 +6,9 @@ import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageElement;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageResult;
+import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
+import io.github.maaasu.astralRecord.feature.combat.service.NormalAttackDegradationService;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyReason;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyRequest;
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
@@ -16,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.MobSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.PlayerSkillCaster;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillCastTrigger;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParameterException;
 import io.github.maaasu.astralRecord.infrastructure.util.MaterialNameResolver;
@@ -62,6 +65,7 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     private final ParticleDisplayService particleDisplayService;
     private final DamageService damageService;
     private final ConditionService conditionService;
+    private final NormalAttackDegradationService normalAttackDegradationService;
     private final Set<BukkitTask> activeProjectileTasks = new HashSet<>();
     private final Set<ItemDisplay> activeProjectileDisplays = new HashSet<>();
 
@@ -74,17 +78,42 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             @NotNull ParticleDisplayService particleDisplayService,
             @NotNull DamageService damageService
     ) {
-        this(particleDisplayService, damageService, null);
+        this(particleDisplayService, damageService, null, null);
     }
 
+    /**
+     * executor を構築します。
+     *
+     * @param particleDisplayService パーティクル表示サービス
+     * @param damageService custom damage 適用サービス
+     * @param conditionService 通常攻撃に付随する状態異常サービス
+     */
     public WeaponAttackSkillExecutor(
             @NotNull ParticleDisplayService particleDisplayService,
             @NotNull DamageService damageService,
             @Nullable ConditionService conditionService
     ) {
+        this(particleDisplayService, damageService, conditionService, null);
+    }
+
+    /**
+     * 通常攻撃劣化を含む weapon attack executor を構築します。
+     *
+     * @param particleDisplayService パーティクル表示サービス
+     * @param damageService custom damage 適用サービス
+     * @param conditionService 通常攻撃に付随する状態異常サービス
+     * @param normalAttackDegradationService 通常攻撃劣化サービス
+     */
+    public WeaponAttackSkillExecutor(
+            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull DamageService damageService,
+            @Nullable ConditionService conditionService,
+            @Nullable NormalAttackDegradationService normalAttackDegradationService
+    ) {
         this.particleDisplayService = particleDisplayService;
         this.damageService = damageService;
         this.conditionService = conditionService;
+        this.normalAttackDegradationService = normalAttackDegradationService;
     }
 
     @Override
@@ -146,7 +175,13 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                 extra,
                 readAttackType(context.skill())
         );
-        applyAttackDamage(context.skill(), origin.attacker(), effectLocation, direction);
+        applyAttackDamage(
+                context,
+                origin.attacker(),
+                effectLocation,
+                direction,
+                resolveNormalAttackDamageMultiplier(context)
+        );
         return SkillCastResult.succeeded();
     }
 
@@ -198,24 +233,35 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
     }
 
     private void applyAttackDamage(
-            @NotNull SkillDefinition skill,
+            @NotNull SkillCastContext context,
             @NotNull AstEntity attacker,
             @NotNull Location startLocation,
-            @NotNull Vector direction
+            @NotNull Vector direction,
+            double normalAttackDamageMultiplier
     ) {
+        SkillDefinition skill = context.skill();
         AttackType attackType = readAttackType(skill);
         if (attackType == AttackType.MELEE) {
-            applyMeleeDamage(skill, attacker, startLocation, direction);
+            applyMeleeDamage(skill, attacker, startLocation, direction, normalAttackDamageMultiplier);
             return;
         }
-        launchProjectileAttack(skill, attacker, startLocation, direction, attackType, readDamageComponents(skill));
+        launchProjectileAttack(
+                skill,
+                attacker,
+                startLocation,
+                direction,
+                attackType,
+                readDamageComponents(skill),
+                normalAttackDamageMultiplier
+        );
     }
 
     private void applyMeleeDamage(
             @NotNull SkillDefinition skill,
             @NotNull AstEntity attacker,
             @NotNull Location startLocation,
-            @NotNull Vector direction
+            @NotNull Vector direction,
+            double normalAttackDamageMultiplier
     ) {
         double hitRadius = readDoubleParam(skill, "hitRadius", 0.75D);
         double hitRange = readDoubleParam(skill, "hitRange", 2.5D);
@@ -250,28 +296,42 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
         for (int hitIndex = 0; hitIndex < hitCount; hitIndex++) {
             long delayTicks = (long) hitIndex * hitIntervalTicks;
             if (delayTicks == 0L) {
-                applyMeleeHit(skill, attacker, selectedVictims, damageComponents);
+                applyMeleeHit(skill, attacker, selectedVictims, damageComponents, normalAttackDamageMultiplier);
                 continue;
             }
             Bukkit.getScheduler().runTaskLater(
                 AstralRecord.getInstance(),
-                () -> applyMeleeHit(skill, attacker, selectedVictims, damageComponents),
+                () -> applyMeleeHit(
+                        skill,
+                        attacker,
+                        selectedVictims,
+                        damageComponents,
+                        normalAttackDamageMultiplier
+                ),
                 delayTicks
             );
         }
     }
 
     private void applyMeleeHit(
-        @NotNull SkillDefinition skill,
-        @NotNull AstEntity attacker,
-        @NotNull List<AstEntity> victims,
-        @NotNull List<DamageComponent> damageComponents
+            @NotNull SkillDefinition skill,
+            @NotNull AstEntity attacker,
+            @NotNull List<AstEntity> victims,
+            @NotNull List<DamageComponent> damageComponents,
+            double normalAttackDamageMultiplier
     ) {
         for (AstEntity victim : victims) {
             if (!isAttackableTarget(attacker, victim)) {
                 continue;
             }
-            DamageResult result = damageService.attack(attacker, victim, AttackType.MELEE, damageComponents);
+            DamageResult result = damageService.attack(
+                    attacker,
+                    victim,
+                    AttackType.MELEE,
+                    damageComponents,
+                    DamageSource.NORMAL_ATTACK,
+                    victim.isMob() ? normalAttackDamageMultiplier : 1.0D
+            );
             applyConditions(skill, attacker, victim, AttackType.MELEE, result);
         }
     }
@@ -282,7 +342,8 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             @NotNull Location startLocation,
             @NotNull Vector direction,
             @NotNull AttackType attackType,
-            @NotNull List<DamageComponent> damageComponents
+            @NotNull List<DamageComponent> damageComponents,
+            double normalAttackDamageMultiplier
     ) {
         double hitRadius = readDoubleParam(skill, "hitRadius", 0.75D);
         double hitRange = readDoubleParam(skill, "hitRange", 6.0D);
@@ -391,7 +452,9 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
                                 attacker,
                                 impactVictim,
                                 attackType,
-                                damageComponents
+                                damageComponents,
+                                DamageSource.NORMAL_ATTACK,
+                                impactVictim.isMob() ? normalAttackDamageMultiplier : 1.0D
                         );
                         applyConditions(skill, attacker, impactVictim, attackType, result);
                     }
@@ -839,6 +902,15 @@ public final class WeaponAttackSkillExecutor implements SkillExecutor {
             return victim.isPlayer() && victim.player() != null;
         }
         return false;
+    }
+
+    private double resolveNormalAttackDamageMultiplier(@NotNull SkillCastContext context) {
+        if (normalAttackDegradationService == null
+                || context.trigger() != SkillCastTrigger.AUTO_ATTACK
+                || !(context.caster() instanceof PlayerSkillCaster caster)) {
+            return 1.0D;
+        }
+        return normalAttackDegradationService.currentDamageMultiplier(caster.player());
     }
 
     private @Nullable CastOrigin resolveCastOrigin(@NotNull SkillCastContext context) {

@@ -1162,10 +1162,30 @@ public class SkillService {
             @NotNull String skillId,
             long baseCooldownTicks
     ) {
+        startAttackCooldown(caster, skillId, baseCooldownTicks, 1.0D);
+    }
+
+    /**
+     * 装備の通常攻撃・攻撃行動に、CD短縮率・攻撃速度・一時攻撃速度倍率を適用して cooldown を開始します。
+     *
+     * @param caster 発動者
+     * @param skillId 攻撃に対応する表示用スキル ID
+     * @param baseCooldownTicks 装備定義上の基本攻撃間隔 tick
+     * @param attackSpeedMultiplier この攻撃行動だけへ適用する攻撃速度倍率
+     */
+    public void startAttackCooldown(
+            @NotNull SkillCaster caster,
+            @NotNull String skillId,
+            long baseCooldownTicks,
+            double attackSpeedMultiplier
+    ) {
         long cooldownTicks = resolveCooldownTicks(caster.statusSnapshot(), baseCooldownTicks);
+        double temporaryMultiplier = Double.isFinite(attackSpeedMultiplier) && attackSpeedMultiplier > 0.0D
+                ? attackSpeedMultiplier
+                : 1.0D;
         cooldownTicks = CombatTimingCalculator.resolveAttackIntervalTicks(
                 cooldownTicks,
-                caster.statusSnapshot().rollValue(StatusType.ATTACK_SPEED)
+                caster.statusSnapshot().rollValue(StatusType.ATTACK_SPEED) * temporaryMultiplier
         );
         startCooldown(caster, WEAPON_NORMAL_ATTACK_COOLDOWN_ID, skillId, cooldownTicks);
     }
