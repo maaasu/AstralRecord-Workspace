@@ -515,6 +515,41 @@ class InventoryServiceOrbReconciliationTest {
     }
 
     /**
+    * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 4. 購入 > ### 処理要点
+     * 検証契約: マーケット購入で取得した装備個体を state へ反映する前に API 正本から cache を再取得する。
+     */
+    @Test
+    void ownedInventoryReconciliationReloadsAffectedEquipmentBeforeCompletion() {
+        Harness harness = harness();
+        UUID entryId = UUID.randomUUID();
+        UUID instanceId = UUID.randomUUID();
+        InventoryEntryModel received = equipmentEntry(
+            entryId,
+            harness.bag.getInventoryId(),
+            harness.accountId,
+            instanceId,
+            NormalInventoryLayout.DB_SLOT_START + 1
+        );
+        when(harness.repository.findEntryById(entryId)).thenReturn(received);
+        when(harness.itemService.reloadEquipmentInstances(Set.of(instanceId.toString())))
+            .thenAnswer(invocation -> {
+                assertNull(harness.service.findOwnedEntry(harness.accountId, entryId));
+                return ItemService.EquipmentPreloadResult.COMPLETE;
+            });
+
+        harness.service.reconcileExternalInventoryEntriesToOwnedInventory(
+            astPlayer(harness.accountId),
+            List.of(entryId),
+            baseline(harness.accountId, harness.bag.getInventoryId(),
+                harness.state.snapshotEntries(harness.bag.getInventoryId()))
+        );
+
+        verify(harness.itemService).reloadEquipmentInstances(Set.of(instanceId.toString()));
+        assertEquals(instanceId, harness.service.findOwnedEntry(harness.accountId, entryId).getInstanceId());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
      * 章・見出し: # 22_4-統合フロー > ## 3. Commit
      * 検証契約: 装備個体の API 再取得が一時的に利用不能なら、trade 再同期を成功扱いにせず recovery 境界へ返す。
@@ -1159,6 +1194,8 @@ class InventoryServiceOrbReconciliationTest {
             false
         );
         when(repository.findEntryById(affectedEntryId)).thenReturn(affected);
+        when(itemService.reloadEquipmentInstances(Set.of(equipmentInstanceId.toString())))
+            .thenReturn(ItemService.EquipmentPreloadResult.COMPLETE);
         when(itemService.findLoadedById("market_equipment"))
             .thenReturn(DesignTestFixtures.item("market_equipment", ItemCategory.EQUIPMENT, 1));
 
