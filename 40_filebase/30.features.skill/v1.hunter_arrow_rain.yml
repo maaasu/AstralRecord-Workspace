@@ -10,7 +10,7 @@ description: "&7着弾地点へ頭上から矢の雨を降らせる範囲射撃�
 icon: ARROW
 lore:
   - "&7射程{skill.range}mの重力矢。敵命中時は間接攻撃力{skill.effectiveDamageRatios[0]:percent}%のダメージ。"
-  - "&7敵または地形への着弾時、半径{skill.radius}mへ{skill.arrowCount}本を1tickに3本ずつ降らせる。"
+  - "&7敵または地形に当たると、半径{skill.radius}mの範囲へ{skill.arrowCount}本の雨矢を3本ずつ連続して降らせる。"
   - "&7雨矢は1本につき最初の敵へ間接攻撃力{skill.effectiveDamageRatios[1]:percent}%のダメージ。"
   - "&7雨矢は初弾の着弾高度以上の地形を貫通し、それより低い地形で消滅する。"
 cooldownTicks: 240

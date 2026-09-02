@@ -9,8 +9,8 @@ name: "&bシールドドレイン"
 description: "&7前方を広く薙ぎ払い、敵のシールドを奪う。"
 icon: TUBE_CORAL
 lore:
-  - "&7前方{skill.range}m・全角{skill.targetAngle}度の敵最大{skill.maxTargets}体へ近接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
-  - "&7シールドダメージ{skill.shieldBreakMultiplier:percent}%、実際に削った量の{skill.shieldAbsorbRatio:percent}%を吸収。"
+  - "&7前方{skill.range}mの扇形（{skill.targetAngle}度）にいる敵最大{skill.maxTargets}体へ近接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&7シールドを通常の{skill.shieldBreakMultiplier}倍削り、削った量の{skill.shieldAbsorbRatio:percent}%を吸収する。"
 cooldownTicks: 60
 resourceType: MANA
 resourceCost: 10

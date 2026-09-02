@@ -10,8 +10,8 @@ description: "&7敵を貫通し、着弾地点に味方を癒す回復エリア�
 icon: GLOW_BERRIES
 lore:
   - "&7半径{skill.radius}mの回復エリアを{skill.areaDurationTicks:seconds}秒展開し、入ったプレイヤーを即座に{skill.healAmount}回復する。"
-  - "&7各プレイヤーへの回復は1エリアにつき1回。敵Mobに命中すると間接攻撃力{skill.damageRatio:percent}%の無属性ダメージを与える。"
-  - "&7重力の影響を強く受け、敵Mobを貫通し、命中地点とブロックへの着弾地点にエリアを作成する。"
+  - "&7各プレイヤーへの回復は1エリアにつき1回。敵に命中すると間接攻撃力{skill.damageRatio:percent}%の無属性ダメージを与える。"
+  - "&7重力の影響を強く受け、敵を貫通し、命中地点とブロックへの着弾地点にエリアを作成する。"
 cooldownTicks: 200
 resourceType: ENERGY
 resourceCost: 14

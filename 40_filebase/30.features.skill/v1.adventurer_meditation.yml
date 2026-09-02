@@ -12,7 +12,7 @@ lore:
   - "&7スニークを{skill.chargeTicks:seconds}秒続けると回復効果が始まる。"
   - "&7開始時、MP / ENG自然回復量が{skill.initialRegenMultiplier}倍になる。"
   - "&7以降1秒ごとに回復倍率が{skill.regenMultiplierIncrement}倍ずつ加算される。"
-  - "&7開始時に移動速度+120%のメディテーションバフを7秒付与する。"
+  - "&7開始時に移動速度が120%上がる効果を7秒付与する。"
   - "&7スニーク解除、被弾、通常攻撃、他スキル使用で集中が途切れる。"
   - "&7開始から{skill.activeDurationTicks:seconds}秒後、MP / ENGを全回復して終了する。"
   - "&7準備中と発動中は粒子、発動中は環境音で状態を示す。"
