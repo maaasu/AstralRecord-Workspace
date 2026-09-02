@@ -63,6 +63,39 @@ class StatusServiceConditionTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### MP/EN全回復
+     * 検証契約: MP/ENだけを最大値へ戻し、HP/Shieldを変更せず、明示的な全回復として回復阻害を受けない。
+     */
+    @Test
+    void restoreMpAndEnergyChangesOnlyTheRequestedResources() {
+        AstPlayer player = mock(AstPlayer.class);
+        Player bukkitPlayer = mock(Player.class);
+        when(bukkitPlayer.getUniqueId()).thenReturn(UUID.fromString("00000000-0000-0000-0000-000000000002"));
+        when(player.getBukkit()).thenReturn(bukkitPlayer);
+        StatusSnapshot snapshot = DesignTestFixtures.statusSnapshot(Map.of(
+            StatusType.MAX_HEALTH, 100.0D,
+            StatusType.MAX_MANA, 50.0D,
+            StatusType.MAX_ENERGY, 30.0D,
+            StatusType.MAX_SHIELD, 40.0D
+        ), 5.0D, 2.0D, 3.0D);
+        when(player.getStatusSnapshot()).thenReturn(snapshot);
+
+        ConditionService conditionService = mock(ConditionService.class);
+        when(conditionService.isHealingBlocked(any(AstEntity.class))).thenReturn(true);
+        StatusService statusService = new StatusService();
+        statusService.setConditionService(conditionService);
+
+        StatusSnapshot restored = statusService.restoreMpAndEnergy(player);
+
+        assertEquals(5.0D, restored.getCurrentHp(), 0.0001D);
+        assertEquals(50.0D, restored.getCurrentMp(), 0.0001D);
+        assertEquals(30.0D, restored.getCurrentEnergy(), 0.0001D);
+        assertEquals(0.0D, restored.getCurrentShield(), 0.0001D);
+        verify(player).setStatusSnapshot(restored);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
      * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### HP回復
      * 検証契約: HP回復通知は上限適用後に実際に増加した量だけを受け取る。
      */

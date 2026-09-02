@@ -1,0 +1,15 @@
+# design:
+#   motif: "静寂 / 瞑想"
+#   progression: 1
+schemaVersion: 1
+id: adventurer_meditation
+type: BUFF
+name: "&dメディテーション"
+lore:
+  - "&7一定時間、移動速度が大きく上昇する。"
+durationTicks: 140 # 7秒
+isDebuff: false
+modifiers:
+  - status: MOVEMENT_SPEED
+    type: SCALAR
+    value: 1.20 # +120%

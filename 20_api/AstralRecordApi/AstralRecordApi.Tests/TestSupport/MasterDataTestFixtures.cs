@@ -34,7 +34,16 @@ internal static class MasterDataTestFixtures
           "icon": "CAMPFIRE",
           "maxLevel": 1,
           "passive": { "bindRequired": true },
-          "params": { "regenMultiplier": 3 },
+          "params": {
+            "chargeTicks": 60,
+            "initialRegenMultiplier": 2,
+            "regenMultiplierIncrement": 0.5,
+            "activeDurationTicks": 140,
+            "buffId": "buff:adventurer_meditation",
+            "chargeParticleIntervalTicks": 10,
+            "activeParticleIntervalTicks": 5,
+            "activeSoundIntervalTicks": 40
+          },
           "gem": { "rarity": "COMMON", "tradeable": false, "sellable": false },
           "tags": ["passive", "field"]
         }

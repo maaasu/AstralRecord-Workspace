@@ -72,7 +72,14 @@ public class SkillRepositoryTests
         Assert.Equal("CAMPFIRE", skill.Icon);
         Assert.NotNull(skill.Passive);
         Assert.True(skill.Passive!.BindRequired);
-        Assert.True(skill.Params.ContainsKey("regenMultiplier"));
+        Assert.Equal(60L, ((JsonElement)skill.Params["chargeTicks"]!).GetInt64());
+        Assert.Equal(2.0D, ((JsonElement)skill.Params["initialRegenMultiplier"]!).GetDouble());
+        Assert.Equal(0.5D, ((JsonElement)skill.Params["regenMultiplierIncrement"]!).GetDouble());
+        Assert.Equal(140L, ((JsonElement)skill.Params["activeDurationTicks"]!).GetInt64());
+        Assert.Equal("buff:adventurer_meditation", ((JsonElement)skill.Params["buffId"]!).GetString());
+        Assert.Equal(10L, ((JsonElement)skill.Params["chargeParticleIntervalTicks"]!).GetInt64());
+        Assert.Equal(5L, ((JsonElement)skill.Params["activeParticleIntervalTicks"]!).GetInt64());
+        Assert.Equal(40L, ((JsonElement)skill.Params["activeSoundIntervalTicks"]!).GetInt64());
     }
 
     /// <summary>

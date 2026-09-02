@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.model.PassiveSkillContext;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillParamReader;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
@@ -21,24 +22,34 @@ import java.util.concurrent.ConcurrentHashMap;
  * メディテーションのスニーク継続と発動状態を管理します。
  * <p>
  * 状態は Bukkit Player UUID 単位の短命なメモリ状態だけで、ログアウト・死亡・バインド解除時に
- * 破棄されます。自然回復の値そのものは変更せず、発動中かどうかだけを公開します。
+ * 破棄されます。発動時の一時バフと、発動終了時のMP/EN全回復もこのサービスで管理します。
  */
 public final class MeditationSkillRuntimeService {
-    private static final int DEFAULT_CHARGE_TICKS = 100;
-    private static final double DEFAULT_REGEN_MULTIPLIER = 3.0D;
+    private static final String MEDITATION_BUFF_ID = "adventurer_meditation";
+    private static final int DEFAULT_CHARGE_TICKS = 60;
+    private static final double DEFAULT_INITIAL_REGEN_MULTIPLIER = 2.0D;
+    private static final double DEFAULT_REGEN_MULTIPLIER_INCREMENT = 0.5D;
+    private static final int DEFAULT_ACTIVE_DURATION_TICKS = 140;
+    private static final long REGEN_MULTIPLIER_INCREMENT_INTERVAL_TICKS = 20L;
     private static final int DEFAULT_CHARGE_PARTICLE_INTERVAL_TICKS = 10;
     private static final int DEFAULT_ACTIVE_PARTICLE_INTERVAL_TICKS = 5;
     private static final int DEFAULT_ACTIVE_SOUND_INTERVAL_TICKS = 40;
 
+    private final StatusService statusService;
     private final ParticleDisplayService particleDisplayService;
     private final Map<UUID, State> states = new ConcurrentHashMap<>();
 
     /**
-     * 表示サービスを受け取って runtime を構築します。
+     * ステータスサービスと表示サービスを受け取って runtime を構築します。
      *
+     * @param statusService ステータスサービス
      * @param particleDisplayService 共通パーティクル表示サービス
      */
-    public MeditationSkillRuntimeService(@NotNull ParticleDisplayService particleDisplayService) {
+    public MeditationSkillRuntimeService(
+        @NotNull StatusService statusService,
+        @NotNull ParticleDisplayService particleDisplayService
+    ) {
+        this.statusService = statusService;
         this.particleDisplayService = particleDisplayService;
     }
 
@@ -53,13 +64,20 @@ public final class MeditationSkillRuntimeService {
         Player player = astPlayer.getBukkit();
         UUID playerId = player.getUniqueId();
         State state = states.computeIfAbsent(playerId, ignored -> new State());
+        state.player = astPlayer;
         if (!player.isOnline() || player.isDead() || !player.isSneaking()) {
-            states.remove(playerId);
+            interrupt(playerId);
+            return;
+        }
+        if (state.completed) {
             return;
         }
 
         SkillParamReader params = new SkillParamReader(context.skill().getId(), context.skill().getParams());
         int chargeTicks = readPositiveInt(params, "chargeTicks", DEFAULT_CHARGE_TICKS);
+        int activeDurationTicks = readPositiveInt(
+            params, "activeDurationTicks", DEFAULT_ACTIVE_DURATION_TICKS
+        );
         int chargeInterval = readPositiveInt(
             params, "chargeParticleIntervalTicks", DEFAULT_CHARGE_PARTICLE_INTERVAL_TICKS
         );
@@ -74,13 +92,25 @@ public final class MeditationSkillRuntimeService {
             state.sneakStartedAtTick = activeTicks;
         }
 
-        if (!state.effectActive && activeTicks - state.sneakStartedAtTick >= chargeTicks) {
+        if (state.regenStartedAtTick == null && activeTicks - state.sneakStartedAtTick >= chargeTicks) {
+            state.regenStartedAtTick = state.sneakStartedAtTick + chargeTicks;
+            if (activeTicks - state.regenStartedAtTick >= activeDurationTicks) {
+                complete(state);
+                return;
+            }
+
             state.effectActive = true;
+            state.buffApplied = true;
+            statusService.applyBuff(astPlayer, MEDITATION_BUFF_ID);
             state.lastSoundTick = activeTicks;
             renderActivation(player);
         }
 
-        if (state.effectActive) {
+        if (state.regenStartedAtTick != null) {
+            if (activeTicks - state.regenStartedAtTick >= activeDurationTicks) {
+                complete(state);
+                return;
+            }
             if (activeTicks - state.lastParticleTick >= activeInterval) {
                 state.lastParticleTick = activeTicks;
                 renderActive(player, activeTicks);
@@ -93,6 +123,39 @@ public final class MeditationSkillRuntimeService {
             state.lastParticleTick = activeTicks;
             renderCharging(player);
         }
+    }
+
+    /**
+     * 現在のパッシブコンテキストに対するMP/EN自然回復倍率を返します。
+     * 発動開始を0秒として、20 tickごとに加算値を一段階適用します。
+     *
+     * @param context 解決済みパッシブコンテキスト
+     * @return 自然回復倍率。対象外または終了後は1.0
+     */
+    public double resourceRegenMultiplier(@NotNull PassiveSkillContext context) {
+        UUID playerId = context.player().getBukkit().getUniqueId();
+        State state = states.get(playerId);
+        if (state == null || !state.effectActive || state.completed || state.regenStartedAtTick == null) {
+            return 1.0D;
+        }
+
+        SkillParamReader params = new SkillParamReader(context.skill().getId(), context.skill().getParams());
+        int activeDurationTicks = readPositiveInt(
+            params, "activeDurationTicks", DEFAULT_ACTIVE_DURATION_TICKS
+        );
+        long elapsedTicks = context.activeTicks() - state.regenStartedAtTick;
+        if (elapsedTicks < 0L || elapsedTicks >= activeDurationTicks) {
+            return 1.0D;
+        }
+
+        double initialMultiplier = params.getDouble(
+            "initialRegenMultiplier", DEFAULT_INITIAL_REGEN_MULTIPLIER
+        );
+        double increment = params.getDouble(
+            "regenMultiplierIncrement", DEFAULT_REGEN_MULTIPLIER_INCREMENT
+        );
+        long increments = elapsedTicks / REGEN_MULTIPLIER_INCREMENT_INTERVAL_TICKS;
+        return initialMultiplier + increments * increment;
     }
 
     /**
@@ -112,14 +175,33 @@ public final class MeditationSkillRuntimeService {
      * @param playerId プレイヤー UUID
      */
     public void interrupt(@NotNull UUID playerId) {
-        states.remove(playerId);
+        State state = states.remove(playerId);
+        if (state != null && state.buffApplied && state.player != null) {
+            state.buffApplied = false;
+            statusService.removeBuff(state.player, MEDITATION_BUFF_ID);
+        }
     }
 
     /**
      * サービス停止時に全プレイヤーの runtime 状態を破棄します。
      */
     public void clearAll() {
+        for (UUID playerId : new ArrayList<>(states.keySet())) {
+            interrupt(playerId);
+        }
         states.clear();
+    }
+
+    private void complete(@NotNull State state) {
+        if (state.buffApplied && state.player != null) {
+            state.buffApplied = false;
+            statusService.removeBuff(state.player, MEDITATION_BUFF_ID);
+        }
+        if (state.player != null) {
+            statusService.restoreMpAndEnergy(state.player);
+        }
+        state.effectActive = false;
+        state.completed = true;
     }
 
     private void renderCharging(@NotNull Player player) {
@@ -206,9 +288,13 @@ public final class MeditationSkillRuntimeService {
     }
 
     private static final class State {
+        private AstPlayer player;
         private Long sneakStartedAtTick;
+        private Long regenStartedAtTick;
         private long lastParticleTick;
         private long lastSoundTick;
         private boolean effectActive;
+        private boolean buffApplied;
+        private boolean completed;
     }
 }

@@ -9,9 +9,12 @@ name: "&dメディテーション"
 description: "&7精神を集中し、MP / ENG の自然回復を高める休息パッシブ。"
 icon: CAMPFIRE
 lore:
-  - "&7スニークを{skill.chargeTicks:seconds}秒続けると発動する。"
-  - "&7発動中はMP / ENGの自然回復量が{skill.regenMultiplier}倍になる。"
+  - "&7スニークを{skill.chargeTicks:seconds}秒続けると回復効果が始まる。"
+  - "&7開始時、MP / ENG自然回復量が{skill.initialRegenMultiplier}倍になる。"
+  - "&7以降1秒ごとに回復倍率が{skill.regenMultiplierIncrement}倍ずつ加算される。"
+  - "&7開始時に移動速度+120%のメディテーションバフを7秒付与する。"
   - "&7スニーク解除、被弾、通常攻撃、他スキル使用で集中が途切れる。"
+  - "&7開始から{skill.activeDurationTicks:seconds}秒後、MP / ENGを全回復して終了する。"
   - "&7準備中と発動中は粒子、発動中は環境音で状態を示す。"
 cooldownTicks: 0
 manaCost: 0
@@ -28,8 +31,11 @@ gem:
 passive:
   bindRequired: true
 params:
-  chargeTicks: 100
-  regenMultiplier: 3
+  chargeTicks: 60
+  initialRegenMultiplier: 2
+  regenMultiplierIncrement: 0.5
+  activeDurationTicks: 140
+  buffId: buff:adventurer_meditation
   chargeParticleIntervalTicks: 10
   activeParticleIntervalTicks: 5
   activeSoundIntervalTicks: 40

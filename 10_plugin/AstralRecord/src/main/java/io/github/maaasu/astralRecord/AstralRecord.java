@@ -1301,7 +1301,7 @@ public final class AstralRecord extends JavaPlugin {
         skillCooldownBossBarService = new SkillCooldownBossBarService(skillService);
         skillService.setConditionService(conditionService);
         skillService.setPlayerHudService(playerHudService);
-        meditationSkillRuntimeService = new MeditationSkillRuntimeService(particleDisplayService);
+        meditationSkillRuntimeService = new MeditationSkillRuntimeService(statusService, particleDisplayService);
         justDodgeSkillRuntimeService = new JustDodgeSkillRuntimeService(statusService, particleDisplayService);
         spellStepSkillRuntimeService = new SpellStepSkillRuntimeService();
         arcaneFlowSkillRuntimeService = new ArcaneFlowSkillRuntimeService(particleDisplayService);

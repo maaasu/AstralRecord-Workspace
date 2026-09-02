@@ -16,8 +16,12 @@ import org.jetbrains.annotations.NotNull;
  */
 public final class MeditationSkillExecutor implements SkillExecutor {
     public static final String ID = "adventurer_meditation";
-    private static final int FIXED_CHARGE_TICKS = 100;
-    private static final double FIXED_REGEN_MULTIPLIER = 3.0D;
+    private static final int FIXED_CHARGE_TICKS = 60;
+    private static final double FIXED_INITIAL_REGEN_MULTIPLIER = 2.0D;
+    private static final double FIXED_REGEN_MULTIPLIER_INCREMENT = 0.5D;
+    private static final int FIXED_ACTIVE_DURATION_TICKS = 140;
+    private static final String BUFF_PARAM = "buffId";
+    private static final String BUFF_PREFIX = "buff:";
 
     private final MeditationSkillRuntimeService runtimeService;
 
@@ -75,18 +79,26 @@ public final class MeditationSkillExecutor implements SkillExecutor {
         @NotNull PassiveSkillContext context,
         @NotNull SkillResourceType resourceType
     ) {
-        if ((resourceType != SkillResourceType.MANA && resourceType != SkillResourceType.ENERGY)
-            || !runtimeService.isEffectActive(context.player().getBukkit().getUniqueId())) {
+        if (resourceType != SkillResourceType.MANA && resourceType != SkillResourceType.ENERGY) {
             return 1.0D;
         }
-        return readDouble(context.skill(), "regenMultiplier", FIXED_REGEN_MULTIPLIER);
+        return runtimeService.resourceRegenMultiplier(context);
     }
 
     @Override
     public void validateParams(@NotNull SkillDefinition skill) {
         SkillParamReader params = new SkillParamReader(skill.getId(), skill.getParams());
         requireFixedInt(params, "chargeTicks", FIXED_CHARGE_TICKS);
-        requireFixedDouble(skill, "regenMultiplier", FIXED_REGEN_MULTIPLIER);
+        requireFixedDouble(skill, "initialRegenMultiplier", FIXED_INITIAL_REGEN_MULTIPLIER);
+        requireFixedDouble(skill, "regenMultiplierIncrement", FIXED_REGEN_MULTIPLIER_INCREMENT);
+        requireFixedInt(params, "activeDurationTicks", FIXED_ACTIVE_DURATION_TICKS);
+        String buffId = params.getRefId(BUFF_PARAM, BUFF_PREFIX);
+        if (!ID.equals(buffId)) {
+            throw new SkillParameterException(
+                BUFF_PARAM,
+                "メディテーションには buff:adventurer_meditation の参照が必要です"
+            );
+        }
         requirePositiveInt(params, "chargeParticleIntervalTicks");
         requirePositiveInt(params, "activeParticleIntervalTicks");
         requirePositiveInt(params, "activeSoundIntervalTicks");
@@ -126,8 +138,4 @@ public final class MeditationSkillExecutor implements SkillExecutor {
         }
     }
 
-    private double readDouble(@NotNull SkillDefinition skill, @NotNull String key, double defaultValue) {
-        Object raw = skill.getParams().get(key);
-        return raw instanceof Number number ? number.doubleValue() : defaultValue;
-    }
 }

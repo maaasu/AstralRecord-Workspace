@@ -722,6 +722,25 @@ public class StatusService {
     }
 
     /**
+     * 現在MP/エネルギーを最大値まで回復します。HPとShieldは変更しません。
+     * 明示的な全回復効果として、回復阻害の影響を受けません。
+     *
+     * @param player 対象プレイヤー
+     * @return 更新後のステータススナップショット
+     */
+    public @NotNull StatusSnapshot restoreMpAndEnergy(@NotNull AstPlayer player) {
+        StatusSnapshot previous = getStatus(player);
+        StatusSnapshot updated = previous.withCurrentValues(
+            previous.getCurrentHp(),
+            previous.getMaxValue(StatusType.MAX_MANA),
+            previous.getMaxValue(StatusType.MAX_ENERGY),
+            previous.getCurrentShield()
+        );
+        player.setStatusSnapshot(updated);
+        return updated;
+    }
+
+    /**
      * 現在HP/MP/エネルギーを最大値まで回復します。Shieldはシールドアクティベートが有効な場合だけ最大値まで回復します。
      *
      * @param player 対象プレイヤー
