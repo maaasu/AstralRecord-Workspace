@@ -184,6 +184,32 @@ class MobDropPresentationServiceTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/12_2-ユースケース.md
+     * 章・見出し: # 12_2-ユースケース > ## 7. Mob が死亡する
+     * 検証契約: ドロップ結果のmoneyを通貨インベントリへ直接加算する。
+     */
+    @Test
+    void grantsGoldDropToCurrencyInventory() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        MobDropPresentationService service = createService(inventoryService);
+        AstPlayer recipient = mock(AstPlayer.class);
+        Player player = onlinePlayer();
+        when(recipient.getBukkit()).thenReturn(player);
+        Location deathLocation = mock(Location.class);
+        when(deathLocation.getWorld()).thenReturn(null);
+
+        service.presentAndGrant(
+            recipient,
+            deathLocation,
+            "スライム",
+            new MobDropResult(java.util.List.of(), 0, 34),
+            "mob_drop"
+        );
+
+        verify(inventoryService).addGold(recipient, 34L);
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
      * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### ドロップ配布対象と演出
      * 検証契約: inventoryに入らなかった通常アイテムの残数をworld dropへfallbackせず破棄する。

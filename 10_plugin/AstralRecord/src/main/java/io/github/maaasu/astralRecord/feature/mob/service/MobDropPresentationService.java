@@ -188,6 +188,9 @@ public final class MobDropPresentationService {
             return;
         }
 
+        if (result.money() > 0) {
+            inventoryService.addGold(recipient, result.money());
+        }
         List<ResolvedDropItem> resolvedItems = resolveItems(result);
         spawnResultText(player, deathLocation, sourceName, result, resolvedItems);
         if (mobCategory != null) {

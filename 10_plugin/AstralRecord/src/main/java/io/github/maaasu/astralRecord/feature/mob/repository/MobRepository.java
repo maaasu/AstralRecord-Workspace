@@ -675,7 +675,21 @@ public class MobRepository {
     private static String optionalString(@Nullable JsonObject obj, @NotNull String key, @Nullable String fallback) {
         if (obj == null || !obj.has(key) || obj.get(key).isJsonNull()) return fallback;
         JsonElement element = obj.get(key);
-        return element.isJsonPrimitive() ? element.getAsString() : fallback;
+        String primitive = primitiveToString(element);
+        if (primitive != null) {
+            return primitive;
+        }
+        if (!element.isJsonObject()) {
+            return fallback;
+        }
+
+        JsonObject reference = element.getAsJsonObject();
+        String ref = primitiveToString(reference.get("ref"));
+        if (ref != null) {
+            return ref;
+        }
+        String random = primitiveToString(reference.get("random"));
+        return random == null ? fallback : random;
     }
 
     @Nullable
