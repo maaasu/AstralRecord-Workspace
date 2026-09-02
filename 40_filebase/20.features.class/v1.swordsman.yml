@@ -1,3 +1,6 @@
+# design:
+#   motif: "工芸 / 鋼の剣"
+#   progression: 1
 schemaVersion: 1
 id: swordsman
 type: CLASS
@@ -34,7 +37,25 @@ baseStats:
   - status: LUCK
     value: 3
   - status: ATTACK
-    value: 8
+    value: 10
+  - status: ATTACK_SPEED
+    value: 5
+  - status: BURNING_RESISTANCE
+    value: 10
+  - status: FROZEN_RESISTANCE
+    value: 5
+  - status: CHILLED_RESISTANCE
+    value: 5
+  - status: SHOCKED_RESISTANCE
+    value: 5
+  - status: POISONED_RESISTANCE
+    value: 5
+  - status: BLINDNESS_RESISTANCE
+    value: 5
+  - status: WEAKNESS_RESISTANCE
+    value: 5
+  - status: HEALING_INHIBITION_RESISTANCE
+    value: 5
   - status: DEFENSE
     value: 7
   - status: MAGIC_DEFENSE
@@ -51,7 +72,23 @@ growthPerLevel:
   - status: AGILITY
     value: 0.4
   - status: ATTACK
-    value: 1
+    value: 1.2
+  - status: BURNING_RESISTANCE
+    value: 0.4
+  - status: FROZEN_RESISTANCE
+    value: 0.2
+  - status: CHILLED_RESISTANCE
+    value: 0.2
+  - status: SHOCKED_RESISTANCE
+    value: 0.2
+  - status: POISONED_RESISTANCE
+    value: 0.2
+  - status: BLINDNESS_RESISTANCE
+    value: 0.2
+  - status: WEAKNESS_RESISTANCE
+    value: 0.2
+  - status: HEALING_INHIBITION_RESISTANCE
+    value: 0.2
   - status: DEFENSE
     value: 0.8
   - status: MAGIC_DEFENSE
