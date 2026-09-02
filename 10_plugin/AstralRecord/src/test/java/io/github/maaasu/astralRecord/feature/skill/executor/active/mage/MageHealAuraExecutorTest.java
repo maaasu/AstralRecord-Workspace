@@ -18,6 +18,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -40,12 +41,12 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class MageHealAuraExecutorTest {
+class MageHealAuraExecutorTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 22. メイジ ヒールオーラの実装契約
-     * 検証契約: ヒールオーラは正の半径・高さ・回復量を必須とする。
+     * 検証契約: ヒールオーラは正の半径・高さ・固定最低回復量・割合回復量を必須とする。
      */
     @Test
     void validatesRequiredParams() {
@@ -54,27 +55,45 @@ class MageHealAuraExecutorTest {
         assertDoesNotThrow(() -> executor.validateParams(definition(validParams())));
 
         Map<String, Object> invalidParams = new LinkedHashMap<>(validParams());
-        invalidParams.put("healAmount", 0.0D);
+        invalidParams.put("healPercent", 0.0D);
         SkillParameterException exception = org.junit.jupiter.api.Assertions.assertThrows(
                 SkillParameterException.class,
                 () -> executor.validateParams(definition(invalidParams))
         );
+        assertEquals("healPercent", exception.key());
+
+        Map<String, Object> invalidMinimum = new LinkedHashMap<>(validParams());
+        invalidMinimum.put("healAmount", 0.0D);
+        exception = org.junit.jupiter.api.Assertions.assertThrows(
+                SkillParameterException.class,
+                () -> executor.validateParams(definition(invalidMinimum))
+        );
         assertEquals("healAmount", exception.key());
+
+        Map<String, Object> missingPercent = new LinkedHashMap<>(validParams());
+        missingPercent.remove("healPercent");
+        exception = org.junit.jupiter.api.Assertions.assertThrows(
+                SkillParameterException.class,
+                () -> executor.validateParams(definition(missingPercent))
+        );
+        assertEquals("healPercent", exception.key());
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 22. メイジ ヒールオーラの実装契約
-     * 検証契約: 発動位置の半径4m・上下3m内にいる全プレイヤーを即時回復し、範囲輪郭と実回復演出を表示する。
+     * 検証契約: 発動位置の半径4m・上下3m内にいる全プレイヤーを、現在HPの割合または固定最低値の大きい方で即時回復し、範囲輪郭と実回復演出を表示する。
      */
     @Test
     void immediatelyHealsEveryPlayerInAuraAndDisplaysRange() {
         Fixture fixture = fixture();
         AstPlayer firstTarget = target(fixture.world, 1.0D);
         AstPlayer secondTarget = target(fixture.world, 2.0D);
+        when(firstTarget.getStatusSnapshot()).thenReturn(statusSnapshot(1000.0D));
+        when(secondTarget.getStatusSnapshot()).thenReturn(statusSnapshot(100.0D));
         when(fixture.targeting.playersInRadius(any(Location.class), eq(4.0D), eq(3.0D)))
                 .thenReturn(List.of(firstTarget, secondTarget));
-        when(fixture.combat.recoverHp(same(firstTarget), eq(5.0D), any(HealthRecoveryContext.class)))
+        when(fixture.combat.recoverHp(same(firstTarget), eq(10.0D), any(HealthRecoveryContext.class)))
                 .thenReturn(5.0D);
         when(fixture.combat.recoverHp(same(secondTarget), eq(5.0D), any(HealthRecoveryContext.class)))
                 .thenReturn(2.0D);
@@ -82,7 +101,7 @@ class MageHealAuraExecutorTest {
         assertTrue(fixture.executor.cast(fixture.context).success());
 
         verify(fixture.targeting).playersInRadius(any(Location.class), eq(4.0D), eq(3.0D));
-        verify(fixture.combat).recoverHp(same(firstTarget), eq(5.0D), any(HealthRecoveryContext.class));
+        verify(fixture.combat).recoverHp(same(firstTarget), eq(10.0D), any(HealthRecoveryContext.class));
         verify(fixture.combat).recoverHp(same(secondTarget), eq(5.0D), any(HealthRecoveryContext.class));
         verify(fixture.effects).ring(any(Location.class), eq(4.0D), eq(24),
                 eq(SharedParticleDefinitions.MAGE_HEAL_AURA_RING));
@@ -92,7 +111,41 @@ class MageHealAuraExecutorTest {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 22. メイジ ヒールオーラの実装契約 > ### 22.1 数値・対象・回復
+     * 検証契約: 最大レベルの解決値9・5%を使い、現在HPの割合が最低値を上回る対象には割合値を、下回る対象には固定最低値を要求する。
+     */
+    @Test
+    void appliesLevelFiveResolvedHealingValues() {
+        Fixture fixture = fixture(Map.of(
+                "radius", 4.0D,
+                "height", 3.0D,
+                "healAmount", 9.0D,
+                "healPercent", 5.0D
+        ));
+        AstPlayer minimumTarget = target(fixture.world, 1.0D);
+        AstPlayer percentageTarget = target(fixture.world, 2.0D);
+        when(minimumTarget.getStatusSnapshot()).thenReturn(statusSnapshot(100.0D));
+        when(percentageTarget.getStatusSnapshot()).thenReturn(statusSnapshot(1000.0D));
+        when(fixture.targeting.playersInRadius(any(Location.class), eq(4.0D), eq(3.0D)))
+                .thenReturn(List.of(minimumTarget, percentageTarget));
+        when(fixture.combat.recoverHp(same(minimumTarget), eq(9.0D), any(HealthRecoveryContext.class)))
+                .thenReturn(9.0D);
+        when(fixture.combat.recoverHp(same(percentageTarget), eq(50.0D), any(HealthRecoveryContext.class)))
+                .thenReturn(50.0D);
+
+        assertTrue(fixture.executor.cast(fixture.context).success());
+
+        verify(fixture.combat).recoverHp(same(minimumTarget), eq(9.0D), any(HealthRecoveryContext.class));
+        verify(fixture.combat).recoverHp(same(percentageTarget), eq(50.0D), any(HealthRecoveryContext.class));
+    }
+
     private static Fixture fixture() {
+        return fixture(validParams());
+    }
+
+    private static Fixture fixture(Map<String, Object> params) {
         SkillTargetingService targeting = mock(SkillTargetingService.class);
         SkillCombatService combat = mock(SkillCombatService.class);
         SkillEffectService effects = mock(SkillEffectService.class);
@@ -104,7 +157,7 @@ class MageHealAuraExecutorTest {
         AstPlayer astPlayer = mock(AstPlayer.class);
         when(astPlayer.getBukkit()).thenReturn(player);
         SkillCastContext context = new SkillCastContext(
-                definition(validParams()),
+                definition(params),
                 new PlayerSkillCaster(astPlayer),
                 null,
                 List.of(),
@@ -134,6 +187,10 @@ class MageHealAuraExecutorTest {
         return target;
     }
 
+    private static StatusSnapshot statusSnapshot(double currentHp) {
+        return new StatusSnapshot(Map.of(), currentHp, 0.0D, 0.0D, 0.0D, 0L, Instant.EPOCH.atZone(java.time.ZoneOffset.UTC).toLocalDateTime());
+    }
+
     private static ActiveSkillServices activeSkillServices() {
         return new ActiveSkillServices(
                 mock(SkillTargetingService.class),
@@ -147,7 +204,7 @@ class MageHealAuraExecutorTest {
     }
 
     private static Map<String, Object> validParams() {
-        return Map.of("radius", 4.0D, "height", 3.0D, "healAmount", 5.0D);
+        return Map.of("radius", 4.0D, "height", 3.0D, "healAmount", 5.0D, "healPercent", 1.0D);
     }
 
     private static SkillDefinition definition(Map<String, Object> params) {

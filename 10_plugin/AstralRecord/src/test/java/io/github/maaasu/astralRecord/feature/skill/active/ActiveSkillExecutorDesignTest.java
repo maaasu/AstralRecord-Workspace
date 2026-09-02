@@ -541,7 +541,7 @@ class ActiveSkillExecutorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 22. メイジ ヒールオーラの実装契約
-     * 検証契約: ヒールオーラは正の範囲・高さ・回復量を必須とする。
+     * 検証契約: ヒールオーラは正の範囲・高さ・固定最低回復量・割合回復量を必須とする。
      */
     @Test
     void healAuraValidatesImmediateHealParams() {
@@ -550,7 +550,8 @@ class ActiveSkillExecutorDesignTest {
         assertDoesNotThrow(() -> executor.validateParams(healAuraDefinition(Map.of(
                 "radius", 4.0D,
                 "height", 3.0D,
-                "healAmount", 5.0D
+                "healAmount", 5.0D,
+                "healPercent", 1.0D
         ))));
 
         SkillParameterException exception = assertThrows(
@@ -558,7 +559,8 @@ class ActiveSkillExecutorDesignTest {
                 () -> executor.validateParams(healAuraDefinition(Map.of(
                         "radius", 4.0D,
                         "height", 0.0D,
-                        "healAmount", 5.0D
+                        "healAmount", 5.0D,
+                        "healPercent", 1.0D
                 )))
         );
         assertEquals("height", exception.key());

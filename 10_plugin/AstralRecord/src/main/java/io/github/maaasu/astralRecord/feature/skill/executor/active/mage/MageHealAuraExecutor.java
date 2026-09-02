@@ -33,6 +33,7 @@ public final class MageHealAuraExecutor extends PlayerActiveSkillExecutor {
         requirePositive(params, "radius");
         requirePositive(params, "height");
         requirePositive(params, "healAmount");
+        requirePositive(params, "healPercent");
     }
 
     /** {@inheritDoc} */
@@ -41,7 +42,8 @@ public final class MageHealAuraExecutor extends PlayerActiveSkillExecutor {
         SkillParamReader params = context.params();
         double radius = params.getDouble("radius", 4.0D);
         double height = params.getDouble("height", 3.0D);
-        double healAmount = params.getDouble("healAmount", 5.0D);
+        double minimumHealAmount = params.getDouble("healAmount", 5.0D);
+        double healPercent = params.getDouble("healPercent", 1.0D);
         Location center = context.player().getLocation().clone();
 
         context.services().effects().ring(
@@ -59,6 +61,11 @@ public final class MageHealAuraExecutor extends PlayerActiveSkillExecutor {
                 SkillPresentationUtil.plainName(context.source().skill(), "スキル")
         );
         for (AstPlayer target : context.services().targeting().playersInRadius(center, radius, height)) {
+            double targetCurrentHp = target.getStatusSnapshot().getCurrentHp();
+            double healAmount = Math.max(
+                    minimumHealAmount,
+                    targetCurrentHp * healPercent / 100.0D
+            );
             double recovered = context.services().combat().recoverHp(target, healAmount, recoveryContext);
             if (recovered > 0.0D) {
                 context.services().effects().point(
