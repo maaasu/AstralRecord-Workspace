@@ -22,7 +22,7 @@ import java.util.concurrent.ConcurrentHashMap;
  * メディテーションのスニーク継続と発動状態を管理します。
  * <p>
  * 状態は Bukkit Player UUID 単位の短命なメモリ状態だけで、ログアウト・死亡・バインド解除時に
- * 破棄されます。発動時の一時バフと、発動終了時のMP/EN全回復もこのサービスで管理します。
+ * 破棄されます。発動時の一時バフと、発動終了時のMP/ENG全回復もこのサービスで管理します。
  */
 public final class MeditationSkillRuntimeService {
     private static final String MEDITATION_BUFF_ID = "adventurer_meditation";
@@ -126,7 +126,7 @@ public final class MeditationSkillRuntimeService {
     }
 
     /**
-     * 現在のパッシブコンテキストに対するMP/EN自然回復倍率を返します。
+     * 現在のパッシブコンテキストに対するMP/ENG自然回復倍率を返します。
      * 発動開始を0秒として、20 tickごとに加算値を一段階適用します。
      *
      * @param context 解決済みパッシブコンテキスト

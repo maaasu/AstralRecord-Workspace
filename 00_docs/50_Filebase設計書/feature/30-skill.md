@@ -81,7 +81,7 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力と
 
 ## 条件付きリソース回復パッシブ
 
-`adventurer_meditation` は、`passive.bindRequired: true` のバインド必須パッシブです。全職共通root node `1047` から使用許可を与え、冒険者classの直接許可からは除外します。YAML の `params.chargeTicks: 60`、`params.initialRegenMultiplier: 2`、`params.regenMultiplierIncrement: 0.5`、`params.activeDurationTicks: 140`、`params.buffId: buff:adventurer_meditation` は Plugin executor が固定値として検証し、スキルレベルでは変更しません。3秒の連続スニーク後、MP / EN自然回復倍率を2.0から開始し、1秒ごとに0.5ずつ加算して7秒後に終了します。開始時は `buff:adventurer_meditation` の移動速度+120%バフを7秒付与し、スニーク解除・被弾・通常攻撃・他スキル使用などの中断時に強制解除します。`chargeParticleIntervalTicks` / `activeParticleIntervalTicks` は控えめな予兆・維持演出の間隔、`activeSoundIntervalTicks` は発動中の環境音の間隔だけを指定します。環境音は `World#playSound` / `SoundCategory.PLAYERS` で音源位置の周囲へ再生し、効果対象の自然回復倍率は自身のみです。
+`adventurer_meditation` は、`passive.bindRequired: true` のバインド必須パッシブです。全職共通root node `1047` から使用許可を与え、冒険者classの直接許可からは除外します。YAML の `params.chargeTicks: 60`、`params.initialRegenMultiplier: 2`、`params.regenMultiplierIncrement: 0.5`、`params.activeDurationTicks: 140`、`params.buffId: buff:adventurer_meditation` は Plugin executor が固定値として検証し、スキルレベルでは変更しません。3秒の連続スニーク後、MP / ENG自然回復倍率を2.0から開始し、1秒ごとに0.5ずつ加算して7秒後に終了します。開始時は `buff:adventurer_meditation` の移動速度+120%バフを7秒付与し、スニーク解除・被弾・通常攻撃・他スキル使用などの中断時に強制解除します。`chargeParticleIntervalTicks` / `activeParticleIntervalTicks` は控えめな予兆・維持演出の間隔、`activeSoundIntervalTicks` は発動中の環境音の間隔だけを指定します。環境音は `World#playSound` / `SoundCategory.PLAYERS` で音源位置の周囲へ再生し、効果対象の自然回復倍率は自身のみです。
 
 このスキルは最大値や固定回復量を持たず、Plugin の自然回復処理が持つ MP / ENG の既存回復量へ条件付き倍率を適用します。HP / Shield の自然回復量は変更しません。回復効果開始から7秒後に MP / ENG だけを最大値へ回復して終了します。スニーク解除、被弾、通常攻撃、他スキル使用で runtime 状態とメディテーションバフを破棄し、完了後にスニークを継続していても再発動せず、再発動にはいったん中断してから再度60 tickの継続が必要です。
 

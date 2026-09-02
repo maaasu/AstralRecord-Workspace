@@ -63,8 +63,8 @@ class StatusServiceConditionTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
-     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### MP/EN全回復
-     * 検証契約: MP/ENだけを最大値へ戻し、HP/Shieldを変更せず、明示的な全回復として回復阻害を受けない。
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### MP/ENG全回復
+     * 検証契約: MP/ENGだけを最大値へ戻し、HP/Shieldを変更せず、明示的な全回復として回復阻害を受けない。
      */
     @Test
     void restoreMpAndEnergyChangesOnlyTheRequestedResources() {

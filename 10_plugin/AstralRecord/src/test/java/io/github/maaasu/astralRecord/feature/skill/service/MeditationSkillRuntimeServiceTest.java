@@ -39,7 +39,7 @@ class MeditationSkillRuntimeServiceTest extends MockBukkitTestBase {
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
      * 章・見出し: # 13_3-イベント > ## 5. メディテーション中断
      * 検証契約: 60 tickの連続スニークで回復効果が始まり、開始後は1秒ごとに倍率が0.5ずつ増え、
-     * 140 tick後にMP/EN全回復とともに終了する。終了後はスニーク継続中に再始動しない。
+     * 140 tick後にMP/ENG全回復とともに終了する。終了後はスニーク継続中に再始動しない。
      */
     @Test
     void appliesIncreasingRegenAndCompletesWithMpAndEnergyRestore() {
@@ -126,7 +126,7 @@ class MeditationSkillRuntimeServiceTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
      * 章・見出し: # 13_3-イベント > ## 5. メディテーション中断
-     * 検証契約: 回復効果開始後の中断ではメディテーションバフを解除するが、完了時のMP/EN全回復は行わない。
+     * 検証契約: 回復効果開始後の中断ではメディテーションバフを解除するが、完了時のMP/ENG全回復は行わない。
      */
     @Test
     void interruptRemovesMeditationBuffWithoutRestoringResources() {
