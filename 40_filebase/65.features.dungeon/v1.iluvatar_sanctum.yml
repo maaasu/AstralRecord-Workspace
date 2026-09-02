@@ -60,6 +60,15 @@ clearRewards:
     - itemId: item:melkor_plate
       rate: 5.0
       amount: "1"
+    - itemId: item:anarion_spear
+      rate: 5.0
+      amount: "1"
+    - itemId: item:anarion_shortbow
+      rate: 5.0
+      amount: "1"
+    - itemId: item:anarion_staff
+      rate: 5.0
+      amount: "1"
 generation:
   area:
     width: 120

@@ -1,0 +1,64 @@
+# design:
+#   motif: "中つ国 / 太陽と王統 / スタッフ"
+#   progression: 8
+schemaVersion: 1
+id: anarion_staff
+category: equipment
+name: "&6アナーリオンのスタッフ"
+icon: END_ROD
+rarity: EPIC
+maxStack: 1
+saleValue: 1000
+lore:
+  - "&7聖域の光を導く、アナーリオンの長杖。"
+  - "&7魔法攻撃力と知力は個体ごとに変わる。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: WEAPON
+  handType: ONE
+  tag: STAFF
+  requiredLevel: 8
+  stats:
+    - status: MAGIC_ATTACK
+      type: FLAT
+      value: 48~60
+    - status: INTELLIGENCE
+      type: FLAT
+      value: 4~6
+  durability:
+    max: 200
+    consume: 1
+  enhance:
+    maxLevel: 10
+    levels:
+      - level: 1
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 3 }]
+        successRate: 1.0
+      - level: 2
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 3 }]
+        successRate: 0.75
+      - level: 3
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 3 }]
+        successRate: 0.75
+      - level: 4
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 3 }]
+        successRate: 0.75
+      - level: 5
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 3 }]
+        successRate: 0.50
+      - level: 6
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 2 }]
+        successRate: 0.50
+      - level: 7
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 2 }]
+        successRate: 0.35
+      - level: 8
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 2 }]
+        successRate: 0.35
+      - level: 9
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 2 }]
+        successRate: 0.20
+      - level: 10
+        statIncrease: [{ status: MAGIC_ATTACK, type: FLAT, value: 2 }]
+        successRate: 0.05
