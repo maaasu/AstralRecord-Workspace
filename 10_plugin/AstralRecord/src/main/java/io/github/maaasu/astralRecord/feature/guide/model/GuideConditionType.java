@@ -22,6 +22,12 @@ public enum GuideConditionType {
     SKILL_LEARNED,
     /** スキルツリーノードを解放した。 */
     SKILLTREE_NODE_UNLOCKED,
+    /** PPを消費するスキルツリーノードを解放した。 */
+    SKILLTREE_PP_NODE_UNLOCKED,
+    /** CPを消費するスキルツリーノードを解放した。 */
+    SKILLTREE_CP_NODE_UNLOCKED,
+    /** スキル効果を持つスキルツリーノードを解放した。 */
+    SKILLTREE_SKILL_NODE_UNLOCKED,
     /** スキルを強化した。 */
     SKILL_ENHANCED,
     /** スキルをアクションリングへ設定した。 */
@@ -32,6 +38,10 @@ public enum GuideConditionType {
     ACTION_RING_OPENED,
     /** プレイヤーによるスキル発動が成功した。 */
     SKILL_CAST,
+    /** 装備中の武器に対応するタグを持つスキルの発動が成功した。 */
+    WEAPON_SKILL_CAST,
+    /** クラス変更が成功した。 */
+    CLASS_CHANGED,
     /** 敵Mobを討伐した。 */
     MOB_DEFEATED,
     /** 採集オブジェクトを完了まで採集した。 */

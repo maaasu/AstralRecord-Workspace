@@ -4,7 +4,7 @@
 schemaVersion: 3
 id: first_orb_usage
 category: world
-displayOrder: 11
+displayOrder: 10
 title: "&dオーブを使おう"
 iconMaterial: ENDER_PEARL
 summary: "&7オーブで装備・ルーン・シジルを操作する方法を確認する。"

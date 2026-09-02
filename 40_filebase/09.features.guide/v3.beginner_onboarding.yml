@@ -7,7 +7,7 @@ category: beginner
 displayOrder: 10
 title: "&b冒険を始めよう"
 iconMaterial: NETHER_STAR
-summary: "&7ノクスで必要な準備、最初の戦闘、採集を体験する。"
+summary: "&7ノクスで必要な準備、最初の戦闘、採集、転職を体験する。"
 steps:
   - id: login
     text: "&fゲームへログインする"
@@ -217,3 +217,19 @@ steps:
     condition:
       type: QUEST_COMPLETED
       targetId: nox_flora_gathering
+  - id: freely_explore_and_change_class
+    text: "&fあとは自由に冒険しよう"
+    details:
+      - "&7{world:midgard_greenfields}で倒せる敵モブを倒しながら、プレイヤーレベルを上げる。"
+      - "&7レベルが上がったら、&e{class:swordsman}&7・&e{class:hunter}&7・&e{class:mage}&7のいずれかへの転職を目指す。"
+      - "&7困ったときは、別のガイドを進めてみよう。"
+    action:
+      type: NAVIGATE_NPC
+      npcId: class_guide
+      description: "&dクリックでクラス案内人の場所を表示し、発光させる。"
+    condition:
+      type: CLASS_CHANGED
+      targetIds:
+        - swordsman
+        - hunter
+        - mage

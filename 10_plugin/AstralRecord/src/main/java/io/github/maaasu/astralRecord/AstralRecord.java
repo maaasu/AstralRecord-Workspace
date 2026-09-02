@@ -236,6 +236,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillSigilOrbService;
 import io.github.maaasu.astralRecord.feature.skill.service.SpellStepSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.skilltree.event.SkillTreeEventHandler;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeNodeRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreePlayerStateRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeStructureRepository;
@@ -308,6 +309,7 @@ import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueueConfi
 import io.github.maaasu.astralRecord.shared.display.OverheadDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionGatewayEventHandler;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.ArrayList;
@@ -849,6 +851,87 @@ public final class AstralRecord extends JavaPlugin {
                 skillService.registry().getDefinition(skillId)
             )
         );
+    }
+
+    /**
+     * 武器に対応するスキル発動のガイド進捗通知を接続します。
+     */
+    static void configureWeaponSkillGuideIntegration(
+        SkillService skillService,
+        InventoryService inventoryService,
+        GuideService guideService
+    ) {
+        skillService.addPlayerCastSuccessListener((player, skillId) -> {
+            if (BuiltInWeaponAttackDefinitions.isNormalAttackSkillId(skillId)) {
+                return;
+            }
+            var skillDefinition = skillService.registry().getDefinition(skillId);
+            var weapon = inventoryService.getItemModelInHand(player, EquipmentSlot.HAND);
+            if (skillDefinition == null || weapon == null) {
+                return;
+            }
+            skillDefinition.getTags().stream()
+                .filter(tag -> tag != null && !tag.isBlank())
+                .map(String::trim)
+                .distinct()
+                .forEach(tag -> guideService.recordCondition(
+                    player,
+                    GuideConditionType.WEAPON_SKILL_CAST,
+                    weapon.getId() + ":" + tag
+                ));
+        });
+    }
+
+    /**
+     * クラス変更後のガイド進捗通知を接続します。
+     */
+    static void configureClassChangeGuideIntegration(
+        PlayerClassService playerClassService,
+        PassiveSkillService passiveSkillService,
+        GuideService guideService
+    ) {
+        playerClassService.setClassChangeListener(player -> {
+            passiveSkillService.reconcileNow(player);
+            guideService.recordCondition(player, GuideConditionType.CLASS_CHANGED, player.getClassId());
+        });
+    }
+
+    /**
+     * スキルツリーノード解放のガイド進捗通知を接続します。
+     */
+    static void configureSkillTreeGuideIntegration(
+        SkillTreeService skillTreeService,
+        GuideService guideService
+    ) {
+        skillTreeService.setNodeUnlockListener((player, nodeId) -> {
+            guideService.recordCondition(player, GuideConditionType.SKILLTREE_NODE_UNLOCKED, nodeId);
+            var node = skillTreeService.getNode(nodeId);
+            if (node == null) {
+                return;
+            }
+            if (node.pointCost() > 0) {
+                if (node.pointType() == SkillTreePointType.PASSIVE_POINT) {
+                    guideService.recordCondition(
+                        player,
+                        GuideConditionType.SKILLTREE_PP_NODE_UNLOCKED,
+                        nodeId
+                    );
+                } else if (node.pointType() == SkillTreePointType.CLASS_POINT) {
+                    guideService.recordCondition(
+                        player,
+                        GuideConditionType.SKILLTREE_CP_NODE_UNLOCKED,
+                        nodeId
+                    );
+                }
+            }
+            if (!node.skillEffects().isEmpty()) {
+                guideService.recordCondition(
+                    player,
+                    GuideConditionType.SKILLTREE_SKILL_NODE_UNLOCKED,
+                    nodeId
+                );
+            }
+        });
     }
 
     /**
@@ -1437,14 +1520,13 @@ public final class AstralRecord extends JavaPlugin {
         skillService.setPlayerSkillUseListener(
             (player, skillId) -> meditationSkillRuntimeService.interrupt(player.getBukkit().getUniqueId())
         );
-        playerClassService.setClassChangeListener(player -> passiveSkillService.reconcileNow(player));
+        configureWeaponSkillGuideIntegration(skillService, inventoryService, guideService);
+        configureClassChangeGuideIntegration(playerClassService, passiveSkillService, guideService);
         damageService.setPlayerDamageListener(
             player -> meditationSkillRuntimeService.interrupt(player.getBukkit().getUniqueId())
         );
         skillTreeService.setStatusService(statusService);
-        skillTreeService.setNodeUnlockListener((player, nodeId) ->
-            guideService.recordCondition(player, GuideConditionType.SKILLTREE_NODE_UNLOCKED, nodeId)
-        );
+        configureSkillTreeGuideIntegration(skillTreeService, guideService);
         skillTreeService.setSkillService(skillService);
         skillTreeService.setPassiveSkillService(passiveSkillService);
         skillActionRingService = new SkillActionRingService(

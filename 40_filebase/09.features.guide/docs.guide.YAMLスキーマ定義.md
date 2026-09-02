@@ -69,11 +69,16 @@ Plugin は各 guide の全未達成 step をイベントごとに評価します
 | `SHOP_PURCHASED` | shop entry ID | ショップの商品購入または交換が成功したとき |
 | `SKILL_LEARNED` | skill ID | スキルマネージャーで必要素材を消費するスキル個体の習得が成功したとき |
 | `SKILLTREE_NODE_UNLOCKED` | node ID | スキルツリーのノード解放が成功したとき |
+| `SKILLTREE_PP_NODE_UNLOCKED` | node ID | PPを1以上消費するスキルツリーノードの解放が成功したとき |
+| `SKILLTREE_CP_NODE_UNLOCKED` | node ID | CPを1以上消費するスキルツリーノードの解放が成功したとき |
+| `SKILLTREE_SKILL_NODE_UNLOCKED` | node ID | スキル効果を持つスキルツリーノードの解放が成功したとき |
 | `SKILL_ENHANCED` | skill ID | スキルの強化が成功したとき |
 | `SKILL_BOUND` | skill ID | スキルをアクションリングへ設定して保存が成功したとき |
 | `ORB_USED` | orb item ID | オーブによる装備更新・ルーン操作・シジル操作の API／正本反映が成功したとき。装備強化は抽選が失敗してもオーブ消費が確定した操作を達成し、ルーン操作はオーブ自体を消費しなくても操作成功、シジル操作は対応オーブ1個の消費を伴う操作成功で達成する |
 | `ACTION_RING_OPENED` | 使用しない | アクションリングの表示に成功したとき |
 | `SKILL_CAST` | 任意の skill ID | プレイヤーのスキル実行が成功したとき。未指定なら任意のスキル |
+| `WEAPON_SKILL_CAST` | `<weapon item ID>:<skill tag>` | 通常攻撃を除くプレイヤーのスキル実行が成功し、主手の武器IDとスキルタグの組み合わせを記録したとき |
+| `CLASS_CHANGED` | class ID | プレイヤーのクラス変更が成功したとき |
 | `MOB_DEFEATED` | mob master ID | 敵 Mob を討伐したとき |
 | `GATHERING_COMPLETED` | gathering spawner ID | 指定スポナーに属する採集を完了したとき |
 | `WAYSTONE_TELEPORTED` | waystone ID | 指定ウェイストーンへのテレポートが成功したとき |
