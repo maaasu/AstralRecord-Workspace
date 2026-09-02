@@ -19,7 +19,12 @@ import org.bukkit.entity.Player;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
-/** 前方の敵を上空から地面へ叩き落とし、着地点の敵を押し出す冒険者のスマッシュです。 */
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.UUID;
+
+/** 発動者の周囲の敵を上空から地面へ叩き落とし、着地点の敵を押し出す冒険者のスマッシュです。 */
 public final class AdventurerSmashExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "adventurer_smash";
@@ -34,8 +39,7 @@ public final class AdventurerSmashExecutor extends PlayerActiveSkillExecutor {
     public void validateParams(@NotNull SkillDefinition skill) {
         super.validateParams(skill);
         SkillParamReader params = new SkillParamReader(skill.getId(), skill.getParams());
-        requirePositive(params, "reach");
-        requirePositive(params, "targetAngle");
+        requirePositive(params, "primaryRadius");
         requirePositive(params, "impactRadius");
         requirePositive(params, "damageRatio");
         requirePositive(params, "secondaryRatio");
@@ -51,22 +55,44 @@ public final class AdventurerSmashExecutor extends PlayerActiveSkillExecutor {
         Player player = context.player();
         AstEntity attacker = context.attacker();
         var params = context.params();
-        double reach = params.getDouble("reach", 6.0D);
-        double targetAngle = params.getDouble("targetAngle", 35.0D);
+        double primaryRadius = params.getDouble("primaryRadius", 4.0D);
         double impactRadius = params.getDouble("impactRadius", 2.0D);
         double damageRatio = params.getDouble("damageRatio", 3.60D);
         double secondaryRatio = params.getDouble("secondaryRatio", 0.576D);
         double secondaryKnockback = params.getDouble("secondaryKnockback", 1.0D);
         int impactDelayTicks = params.getInt("impactDelayTicks", 8);
         int maxSecondaryTargets = params.getInt("maxSecondaryTargets", 8);
+        Location eye = context.eyeLocation();
         int radiusCandidateLimit = maxSecondaryTargets == Integer.MAX_VALUE
                 ? Integer.MAX_VALUE
                 : maxSecondaryTargets + 1;
-        AstEntity primary = context.services().targeting()
-                .inCone(player, reach, targetAngle, 1, true)
-                .stream()
-                .findFirst()
-                .orElse(null);
+        List<AstEntity> primaryCandidates = context.services().targeting().inRadius(
+                player,
+                eye,
+                primaryRadius,
+                primaryRadius,
+                Integer.MAX_VALUE,
+                true
+        );
+        AstEntity selectedPrimary = primaryCandidates.isEmpty() ? null : primaryCandidates.get(0);
+        if (primaryCandidates.size() > 1) {
+            Set<UUID> viewLineTargetIds = new HashSet<>();
+            for (AstEntity target : context.services().targeting().inLine(
+                    player,
+                    eye,
+                    context.direction(),
+                    primaryRadius,
+                    0.0D,
+                    Integer.MAX_VALUE
+            )) {
+                viewLineTargetIds.add(target.id());
+            }
+            selectedPrimary = primaryCandidates.stream()
+                    .filter(target -> viewLineTargetIds.contains(target.id()))
+                    .findFirst()
+                    .orElse(selectedPrimary);
+        }
+        final AstEntity primary = selectedPrimary;
         if (primary == null) {
             return context.success();
         }
