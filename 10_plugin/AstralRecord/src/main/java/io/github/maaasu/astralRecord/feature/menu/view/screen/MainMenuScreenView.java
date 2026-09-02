@@ -9,19 +9,19 @@ import org.bukkit.inventory.Inventory;
 import org.jetbrains.annotations.NotNull;
 
 public final class MainMenuScreenView extends BaseMenuScreenView {
-    public static final int STATUS_SLOT = 20;
-    public static final int EQUIPMENT_GUI_SLOT = 21;
-    public static final int SKILL_BIND_SLOT = 22;
-    public static final int QUEST_SLOT = 23;
-    public static final int PLAYER_SETTING_SLOT = 24;
-    public static final int ADVENTURE_RECORD_SLOT = 29;
-    public static final int MAIL_SLOT = 30;
-    public static final int PARTY_SLOT = 31;
-    public static final int PLAYER_INFO_SLOT = 32;
-    public static final int CURRENCY_SLOT = 38;
-    public static final int GUIDE_SLOT = 39;
-    public static final int RETURN_TO_BASE_SLOT = 40;
-    public static final int TRASH_SLOT = 41;
+    public static final int STATUS_SLOT = 10;
+    public static final int EQUIPMENT_GUI_SLOT = 11;
+    public static final int SKILL_BIND_SLOT = 12;
+    public static final int CURRENCY_SLOT = 13;
+    public static final int PLAYER_SETTING_SLOT = 14;
+    public static final int ADVENTURE_RECORD_SLOT = 20;
+    public static final int GUIDE_SLOT = 21;
+    public static final int QUEST_SLOT = 22;
+    public static final int PARTY_SLOT = 30;
+    public static final int PLAYER_INFO_SLOT = 31;
+    public static final int MAIL_SLOT = 38;
+    public static final int RETURN_TO_BASE_SLOT = 39;
+    public static final int TRASH_SLOT = 40;
 
     /**
      * メインメニューを描画します。
@@ -38,26 +38,26 @@ public final class MainMenuScreenView extends BaseMenuScreenView {
         fill(inventory);
         inventory.setItem(BACK_SLOT, GuiItems.closeButton());
         inventory.setItem(STATUS_SLOT, MenuIconFactory.createPlayerInfo(player));
-        inventory.setItem(QUEST_SLOT, MenuIconFactory.create(MenuIconDefinition.QUEST));
-        inventory.setItem(PLAYER_SETTING_SLOT, MenuIconFactory.create(MenuIconDefinition.PLAYER_SETTING));
         inventory.setItem(EQUIPMENT_GUI_SLOT, MenuIconFactory.create(
             MenuIconDefinition.EQUIPMENT,
             MenuIconFactory.equipmentDetails(context)
         ));
-        inventory.setItem(TRASH_SLOT, MenuIconFactory.create(MenuIconDefinition.TRASH));
-        inventory.setItem(GUIDE_SLOT, MenuIconFactory.create(MenuIconDefinition.GUIDE));
-        inventory.setItem(RETURN_TO_BASE_SLOT, MenuIconFactory.create(
-            MenuIconDefinition.RETURN_TO_BASE,
-            MenuIconFactory.returnToBaseDetails(context)
-        ));
-        inventory.setItem(ADVENTURE_RECORD_SLOT, MenuIconFactory.create(MenuIconDefinition.ADVENTURE_RECORD));
-        inventory.setItem(MAIL_SLOT, MenuIconFactory.create(MenuIconDefinition.MAIL));
         inventory.setItem(SKILL_BIND_SLOT, MenuIconFactory.create(MenuIconDefinition.SKILL_BIND));
         inventory.setItem(CURRENCY_SLOT, MenuIconFactory.create(
             MenuIconDefinition.CURRENCY,
             MenuIconFactory.currencyDetails(context)
         ));
+        inventory.setItem(PLAYER_SETTING_SLOT, MenuIconFactory.create(MenuIconDefinition.PLAYER_SETTING));
+        inventory.setItem(ADVENTURE_RECORD_SLOT, MenuIconFactory.create(MenuIconDefinition.ADVENTURE_RECORD));
+        inventory.setItem(GUIDE_SLOT, MenuIconFactory.create(MenuIconDefinition.GUIDE));
+        inventory.setItem(QUEST_SLOT, MenuIconFactory.create(MenuIconDefinition.QUEST));
         inventory.setItem(PARTY_SLOT, MenuIconFactory.create(MenuIconDefinition.PARTY));
         inventory.setItem(PLAYER_INFO_SLOT, MenuIconFactory.create(MenuIconDefinition.PLAYER_LIST));
+        inventory.setItem(MAIL_SLOT, MenuIconFactory.create(MenuIconDefinition.MAIL));
+        inventory.setItem(RETURN_TO_BASE_SLOT, MenuIconFactory.create(
+            MenuIconDefinition.RETURN_TO_BASE,
+            MenuIconFactory.returnToBaseDetails(context)
+        ));
+        inventory.setItem(TRASH_SLOT, MenuIconFactory.create(MenuIconDefinition.TRASH));
     }
 }

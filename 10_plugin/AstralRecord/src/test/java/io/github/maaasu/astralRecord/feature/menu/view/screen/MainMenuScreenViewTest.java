@@ -45,38 +45,38 @@ class MainMenuScreenViewTest extends MockBukkitTestBase {
 
         new MainMenuScreenView().render(inventory, player, context);
 
-        assertEquals(20, MainMenuScreenView.STATUS_SLOT);
-        assertEquals(21, MainMenuScreenView.EQUIPMENT_GUI_SLOT);
-        assertEquals(22, MainMenuScreenView.SKILL_BIND_SLOT);
-        assertEquals(23, MainMenuScreenView.QUEST_SLOT);
-        assertEquals(24, MainMenuScreenView.PLAYER_SETTING_SLOT);
-        assertEquals(29, MainMenuScreenView.ADVENTURE_RECORD_SLOT);
-        assertEquals(30, MainMenuScreenView.MAIL_SLOT);
-        assertEquals(31, MainMenuScreenView.PARTY_SLOT);
-        assertEquals(32, MainMenuScreenView.PLAYER_INFO_SLOT);
-        assertEquals(38, MainMenuScreenView.CURRENCY_SLOT);
-        assertEquals(39, MainMenuScreenView.GUIDE_SLOT);
-        assertEquals(40, MainMenuScreenView.RETURN_TO_BASE_SLOT);
-        assertEquals(41, MainMenuScreenView.TRASH_SLOT);
+        assertEquals(10, MainMenuScreenView.STATUS_SLOT);
+        assertEquals(11, MainMenuScreenView.EQUIPMENT_GUI_SLOT);
+        assertEquals(12, MainMenuScreenView.SKILL_BIND_SLOT);
+        assertEquals(13, MainMenuScreenView.CURRENCY_SLOT);
+        assertEquals(14, MainMenuScreenView.PLAYER_SETTING_SLOT);
+        assertEquals(20, MainMenuScreenView.ADVENTURE_RECORD_SLOT);
+        assertEquals(21, MainMenuScreenView.GUIDE_SLOT);
+        assertEquals(22, MainMenuScreenView.QUEST_SLOT);
+        assertEquals(30, MainMenuScreenView.PARTY_SLOT);
+        assertEquals(31, MainMenuScreenView.PLAYER_INFO_SLOT);
+        assertEquals(38, MainMenuScreenView.MAIL_SLOT);
+        assertEquals(39, MainMenuScreenView.RETURN_TO_BASE_SLOT);
+        assertEquals(40, MainMenuScreenView.TRASH_SLOT);
         assertEquals(49, BaseMenuScreenView.BACK_SLOT);
-        assertMaterial(inventory, 20, Material.PLAYER_HEAD);
-        assertMaterial(inventory, 21, Material.NETHERITE_CHESTPLATE);
-        assertMaterial(inventory, 22, Material.ENCHANTING_TABLE);
-        assertMaterial(inventory, 23, Material.MAP);
-        assertMaterial(inventory, 24, Material.COMPARATOR);
-        assertDisplayNameContains(inventory, 23, "クエスト");
-        assertMaterial(inventory, 29, Material.SPYGLASS);
-        assertMaterial(inventory, 30, Material.CHEST);
-        assertMaterial(inventory, 31, Material.IRON_CHAIN);
-        assertMaterial(inventory, 32, Material.NAME_TAG);
-        assertMaterial(inventory, 38, Material.BUNDLE);
-        assertMaterial(inventory, 39, Material.KNOWLEDGE_BOOK);
-        assertMaterial(inventory, 40, Material.BEACON);
-        assertMaterial(inventory, 41, Material.LAVA_BUCKET);
+        assertMaterial(inventory, 10, Material.PLAYER_HEAD);
+        assertMaterial(inventory, 11, Material.NETHERITE_CHESTPLATE);
+        assertMaterial(inventory, 12, Material.ENCHANTING_TABLE);
+        assertMaterial(inventory, 13, Material.BUNDLE);
+        assertMaterial(inventory, 14, Material.COMPARATOR);
+        assertMaterial(inventory, 20, Material.SPYGLASS);
+        assertMaterial(inventory, 21, Material.KNOWLEDGE_BOOK);
+        assertMaterial(inventory, 22, Material.MAP);
+        assertDisplayNameContains(inventory, 22, "クエスト");
+        assertMaterial(inventory, 30, Material.IRON_CHAIN);
+        assertMaterial(inventory, 31, Material.NAME_TAG);
+        assertMaterial(inventory, 38, Material.CHEST);
+        assertMaterial(inventory, 39, Material.BEACON);
+        assertMaterial(inventory, 40, Material.LAVA_BUCKET);
         assertMaterial(inventory, 49, Material.BARRIER);
-        assertDisplayNameContains(inventory, 20, "プレイヤー情報");
-        assertDisplayNameContains(inventory, 31, "パーティー");
-        assertPlayerHeadProfile(inventory, 20, player);
+        assertDisplayNameContains(inventory, 10, "プレイヤー情報");
+        assertDisplayNameContains(inventory, 30, "パーティー");
+        assertPlayerHeadProfile(inventory, 10, player);
     }
 
     /**
@@ -108,9 +108,9 @@ class MainMenuScreenViewTest extends MockBukkitTestBase {
 
         new MainMenuScreenView().render(inventory, player, context);
 
-        assertLoreContains(inventory, 21, "星頭巾");
-        assertLoreContains(inventory, 38, "123 G");
-        assertLoreContains(inventory, 40, "必要ゴールド 100");
+        assertLoreContains(inventory, 11, "星頭巾");
+        assertLoreContains(inventory, 13, "123 G");
+        assertLoreContains(inventory, 39, "必要ゴールド 100");
     }
 
     private static void assertMaterial(Inventory inventory, int slot, Material expected) {
