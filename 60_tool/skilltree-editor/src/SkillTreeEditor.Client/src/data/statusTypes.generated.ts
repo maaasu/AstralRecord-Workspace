@@ -114,7 +114,7 @@ export const STATUS_TYPES: readonly StatusTypeDefinition[] = [
   { id: "MAX_HEALTH", displayName: "最大HP", description: "戦闘不能になるまでに耐えられるダメージ量の上限。", category: "RESOURCE", suffix: "", decimalPlaces: 0, supportsRange: false },
   { id: "MAX_MANA", displayName: "最大MP", description: "スキルや魔法の使用に充てられるMPの上限。", category: "RESOURCE", suffix: "", decimalPlaces: 0, supportsRange: false },
   { id: "MAX_ENERGY", displayName: "最大ENG", description: "特殊行動やスキルの使用に充てられるENGの上限。", category: "RESOURCE", suffix: "", decimalPlaces: 0, supportsRange: false },
-  { id: "MAX_SHIELD", displayName: "最大シールド", description: "HPとは別にダメージを受け止めるシールド量の上限。最大シールドの獲得にはシールドアクティベートスキルの使用許可とパッシブ設定が必要。", category: "RESOURCE", suffix: "", decimalPlaces: 0, supportsRange: false },
+  { id: "MAX_SHIELD", displayName: "最大シールド", description: "HPとは別にダメージを受け止めるシールド量の上限。最大シールドの獲得にはタンクシールドアクティベートの習得と使用許可が必要。", category: "RESOURCE", suffix: "", decimalPlaces: 0, supportsRange: false },
   { id: "STRENGTH", displayName: "筋力", description: "物理的な攻撃能力を表す基本能力値。", category: "PRIMARY", suffix: "", decimalPlaces: 0, supportsRange: true },
   { id: "DEXTERITY", displayName: "器用さ", description: "攻撃や行動を正確に扱う技量を表す基本能力値。", category: "PRIMARY", suffix: "", decimalPlaces: 0, supportsRange: true },
   { id: "INTELLIGENCE", displayName: "知力", description: "魔法や知識を扱う能力を表す基本能力値。", category: "PRIMARY", suffix: "", decimalPlaces: 0, supportsRange: true },

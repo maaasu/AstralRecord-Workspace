@@ -2,17 +2,17 @@
   "$schema": "../schemas/node.v1.schema.json",
   "schemaVersion": 1,
   "nodeId": "1352",
-  "name": "&bシールドアクティベート",
-  "icon": "SHIELD",
+  "name": "&bシールドドレイン",
+  "icon": "TUBE_CORAL",
   "tags": [
-    "defense"
+    "offense"
   ],
   "pointType": "CP",
   "pointCost": 1,
   "effects": [
     {
       "type": "skill",
-      "skillId": "swordsman_shield_activate"
+      "skillId": "swordsman_shield_drain"
     }
   ],
   "unlockCondition": {

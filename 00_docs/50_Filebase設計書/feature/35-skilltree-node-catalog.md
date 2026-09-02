@@ -43,7 +43,7 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `status-max-energy-dual-regen-flat` | `MAX_ENERGY` / `FLAT` / `5` + `MP_REGEN` / `FLAT` / `1` + `ENERGY_REGEN` / `FLAT` / `1` | `&d双環の星脈` | `END_CRYSTAL` | `status`, `resource`, `energy`, `mana`, `azure` |
 | `status-max-mana-mp-regen-flat` | `MAX_MANA` / `FLAT` / `6` + `MP_REGEN` / `FLAT` / `1` | `&d蒼泉の還流` | `AMETHYST_SHARD` | `status`, `resource`, `mana`, `azure` |
 | `skill-administrator-shield-recharge` | `skill` / `administrator_shield_recharge` | `&bシールドリチャージ` | `SHIELD` | `defense` |
-| `skill-swordsman-shield-activate` | `skill` / `swordsman_shield_activate` | `&bシールドアクティベート` | `SHIELD` | `defense` |
+| `skill-swordsman-shield-drain` | `skill` / `swordsman_shield_drain` | `&bシールドドレイン` | `TUBE_CORAL` | `offense` |
 | `skill-swordsman-last-shield` | `skill` / `swordsman_last_shield` | `&bラストシールド` | `BEACON` | `defense` |
 | `skill-swordsman-flame-rush` | `skill` / `swordsman_flame_rush` | `&6フレイムラッシュ` | `CRIMSON_ROOTS` | `fire` |
 | `skill-swordsman-bastion-strike` | `skill` / `swordsman_bastion_strike` | `&bバスティオンストライク` | `SOUL_CAMPFIRE` | `defense` |

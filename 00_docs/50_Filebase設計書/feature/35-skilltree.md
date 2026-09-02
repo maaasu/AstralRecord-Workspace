@@ -69,9 +69,9 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 | メイジskill解放 | 5 | メイジCP 5 | `classId: mage` |
 
 - root は中心 `(0, 0, 0)` に置き、その周囲に合計6個の無料PP status nodeを環状に置きます。rootから環の6nodeすべてへ接続し、環の外側から既存の後続枝へ接続します。rootは `adventurer_meditation` の使用許可を付与します。旧rootの `MAX_HEALTH / MAX_MANA / MAX_ENERGY` 各10は、テーマに沿って命脈・循環・活風の無料nodeへ移し、無料領域全体のstatus総量を維持します。
-- 無料環の6nodeは、全基本能力、全職共通攻撃、物理・魔法防御、HPとMP、三資源、ENGと機動の6テーマに分けます。単一職でのみ価値が高い能力に偏らせず、各nodeは直後の通常有料PP nodeより多面的な基礎パッケージとします。割合系statusは職業や装備の特徴とし、無料環では直接付与しません。
+- 無料環の6nodeは、全基本能力、全職共通攻撃、物理・魔法防御、HPとMP、三資源、ENと機動の6テーマに分けます。単一職でのみ価値が高い能力に偏らせず、各nodeは直後の通常有料PP nodeより多面的な基礎パッケージとします。割合系statusは職業や装備の特徴とし、無料環では直接付与しません。
 - 有料PPは十字の4方向へ小円を1個ずつ置きます。各小円は無料環から2経路へ分岐し、各経路に1PP nodeを3個置き、外端の2PP notableで再合流します。各方向は6個の1PP nodeと1個の2PP notableからなり、4方向合計28node・32PPとします。
-- 二つの経路は攻撃、基本能力、耐久、HP、MP、ENG、回復を混在させます。同じ能力パッケージを一本道へ連続配置せず、一方向だけを進んでも単一statusだけが伸びない構成とします。
+- 二つの経路は攻撃、基本能力、耐久、HP、MP、EN、回復を混在させます。同じ能力パッケージを一本道へ連続配置せず、一方向だけを進んでも単一statusだけが伸びない構成とします。
 - 1PP nodeは既存の通常・強化パッケージを再利用し、2PP notableは全職で利用できる攻撃、機動、耐久、三資源の4テーマとします。割合系statusは職業や装備の特徴としてPP nodeから外し、すべて `FLAT` の実数系statusで構成します。
 - `unlockCondition.playerLevel` は設定せず、接続経路とPP残高で進行を制御します。Player Level 100以上まで拡張する前提で、今回の4小円は内周の基本領域とし、将来はnotableの先から追加クラスタへ伸ばします。
 - 冒険者CP基礎幹は、PP小円の間にある北西・北東・南東・南西の斜め4方向へ、北西8node、ほか各7nodeで配置します。中央無料環から直接接続し、PP小円を中継しません。各nodeは1冒険者CPで、`classId: adventurer` を設定します。
@@ -80,7 +80,7 @@ PP の獲得量と残高計算は API / Plugin の契約を正本とし、本書
 - 通常会心円環は小nodeで `CRITICAL_RATE +0.5` を4個、notableで `CRITICAL_RATE +3 / CRITICAL_DAMAGE +10` を与えます。超星会心円環は小nodeで `SUPER_CRITICAL_RATE +0.5` を4個、notableで `SUPER_CRITICAL_RATE +2 / SUPER_CRITICAL_DAMAGE +10` を与えます。
 - Shield容量円環は小nodeで `MAX_SHIELD +2` を4個、notableで `MAX_SHIELD +12 / DEFENSE +2` を与えます。Shield再充填円環は小nodeで `SHIELD_RECHARGE_REDUCTION +2.5` を4個、notableで `SHIELD_RECHARGE_REDUCTION +10 / MAX_SHIELD +5` を与えます。再充填短縮はShield破壊後の通常30秒待機、再充填パッシブの8秒待機、敵から受ける追加待機を同じ比率で短縮します。
 - 破盾疾走円環は小nodeで `SHIELD_BREAK +1 / ATTACK_SPEED +1` を4個、notableで `SHIELD_BREAK +4 / ATTACK_SPEED +4` を与えます。全取得時に合計 `SHIELD_BREAK +8 / ATTACK_SPEED +8` となり、シールド破壊をソードマンの主軸として伸ばしつつ、通常攻撃の回転率も伸ばせます。
-- ソードマンskill解放nodeは専門円環のnotable先端へ置かず、関連する小nodeから独立したleafとして分岐します。通常会心円環から `swordsman_flame_rush`、Shield容量円環の別経路から `swordsman_bastion_strike` と `swordsman_last_shield`、Shield再充填円環から `administrator_shield_recharge` と `swordsman_shield_activate` を分岐し、各nodeは1ソードマンCPで使用許可を与えます。シールドアクティベートはShield再充填円環の終端側で、シールド獲得の入口として配置します。
+- ソードマンskill解放nodeは専門円環のnotable先端へ置かず、関連する小nodeから独立したleafとして分岐します。通常会心円環から `swordsman_flame_rush`、Shield容量円環の別経路から `swordsman_bastion_strike`、`swordsman_last_shield`、`swordsman_shield_drain`、Shield再充填円環から `administrator_shield_recharge` を分岐し、各nodeは1ソードマンCPで使用許可を与えます。タンクシールドアクティベート `swordsman_shield_activate` はソードマンの `usableSkills` から使用許可を与え、スキルツリーには配置しません。
 - ハンターは27nodeの汎用幹から、間接攻撃・Shield破壊・機動・ENG効率の4専門円環へ分岐します。各円環はソードマンと同じ2経路・1notable構造で、全取得は56ハンターCPです。Shield破壊専門円環の全取得値は `SHIELD_BREAK +2` とし、ソードマンの `+8` より低く設定します。`hunter_crash_arrow`、`hunter_heal_arrow`、`hunter_spell_step`、`hunter_build_up`、`administrator_just_dodge` は関連する小nodeから独立したleafとして分岐します。ジャスト回避は冒険者node `1350` と同じ表示・効果を再利用し、ハンターnode `1355` から使用許可を与えます。
 - メイジは27nodeの汎用幹から、魔導・炎・雷・氷の4専門円環へ分岐します。各円環は2経路・1notable構造で、全取得は56メイジCPです。`mage_arcane_flow`、`mage_sparking`、`mage_fireball`、`mage_frost_blizzard`、`mage_frost_ball` は関連する小nodeから独立したleafとして分岐します。
 - 冒険者の敏捷幹から `administrator_just_dodge` を独立した1CP leafとして分岐し、ハンターにも同じ効果・表示を再利用した1CP leafを配置します。skill nodeはstatus nodeへ混載せず、関連する基礎幹・専門円環の途中から独立接続します。

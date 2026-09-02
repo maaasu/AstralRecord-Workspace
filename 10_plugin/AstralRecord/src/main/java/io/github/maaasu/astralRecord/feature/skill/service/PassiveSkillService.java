@@ -178,7 +178,7 @@ public final class PassiveSkillService {
     }
 
     /**
-     * 指定したパッシブスキルが、使用許可と現在のパッシブ設定を満たして有効かを返します。
+     * 指定したパッシブスキルが、使用許可と定義されたバインド要否に従う条件を満たして有効かを返します。
      *
      * @param player 対象プレイヤー
      * @param skillId 判定するスキル ID

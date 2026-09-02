@@ -5,7 +5,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillCastResult;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import org.jetbrains.annotations.NotNull;
 
-/** implementationId {@code swordsman_shield_activate} のシールド有効化パッシブです。 */
+/** implementationId {@code swordsman_shield_activate} のタンクシールドアクティベートパッシブです。 */
 public final class SwordsmanShieldActivateSkillExecutor implements SkillExecutor {
     public static final String ID = "swordsman_shield_activate";
 

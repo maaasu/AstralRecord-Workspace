@@ -139,7 +139,7 @@ public class StatusService {
     /**
      * プレイヤーの現在ステータスを取得します。
      * 未計算の場合は初回計算を行い、その結果を返します。
-     * シールドアクティベートが有効でない場合、現在Shieldは0へ正規化します。
+     * タンクシールドアクティベートが有効でない場合、現在Shieldは0へ正規化します。
      *
      * @param player 対象プレイヤー
      * @return 現在のステータススナップショット
@@ -160,7 +160,7 @@ public class StatusService {
 
     /**
      * プレイヤーのステータスを再計算し、{@link AstPlayer} に反映します。
-     * シールドアクティベートが有効な場合だけShieldの現在値を初期化・維持し、
+     * タンクシールドアクティベートが有効な場合だけShieldの現在値を初期化・維持し、
      * セッション中に最大シールドが増加した場合は、現在Shieldの状態に応じたリチャージを開始します。
      *
      * @param player 対象プレイヤー
@@ -340,7 +340,7 @@ public class StatusService {
      *
      * @param player 対象プレイヤー
      * @param nowMs 破壊時刻（epoch milliseconds）
-     * @return 開始後の状態。シールドアクティベートが無効、最大Shieldがない、またはShieldが残っている場合は {@code null}
+     * @return 開始後の状態。タンクシールドアクティベートが無効、最大Shieldがない、またはShieldが残っている場合は {@code null}
      */
     public @Nullable ShieldRechargeState startShieldRecharge(@NotNull AstPlayer player, long nowMs) {
         return startShieldRecharge(player, getStatus(player), nowMs);
@@ -383,7 +383,7 @@ public class StatusService {
      *
      * @param player 対象プレイヤー
      * @param nowMs 被ダメージ時刻（epoch milliseconds）
-     * @return 開始後の状態。シールドアクティベートが無効、パッシブ未設定、Shieldが0以下、または満タンの場合は {@code null}
+     * @return 開始後の状態。タンクシールドアクティベートが無効、Shieldが0以下、満タン、または再充填パッシブ未設定の場合は {@code null}
      */
     public @Nullable ShieldRechargeState startShieldRechargeWhileRetained(@NotNull AstPlayer player, long nowMs) {
         return startShieldRechargeWhileRetained(player, getStatus(player), nowMs);
@@ -453,7 +453,7 @@ public class StatusService {
 
     /**
      * 待機時間を過ぎていれば、状態の種別に応じてシールドを回復します。
-     * シールドアクティベートが無効になった場合は回復せず、進行中の状態を破棄します。
+     * タンクシールドアクティベートが無効になった場合は回復せず、進行中の状態を破棄します。
      *
      * @param player 対象プレイヤー
      * @param nowMs 判定時刻（epoch milliseconds）
@@ -643,7 +643,7 @@ public class StatusService {
 
     /**
      * 現在シールド値を回復します。
-     * シールドアクティベートが有効でない場合は回復しません。
+     * タンクシールドアクティベートが有効でない場合は回復しません。
      *
      * @param player 対象プレイヤー
      * @param amount 回復量
@@ -741,7 +741,7 @@ public class StatusService {
     }
 
     /**
-     * 現在HP/MP/エネルギーを最大値まで回復します。Shieldはシールドアクティベートが有効な場合だけ最大値まで回復します。
+     * 現在HP/MP/エネルギーを最大値まで回復します。Shieldはタンクシールドアクティベートが有効な場合だけ最大値まで回復します。
      *
      * @param player 対象プレイヤー
      * @return 更新後のステータススナップショット
@@ -752,7 +752,7 @@ public class StatusService {
     }
 
     /**
-     * 現在HP/MP/エネルギーを最大値まで回復し、シールドアクティベートが有効な場合だけShieldも最大値まで回復します。
+     * 現在HP/MP/エネルギーを最大値まで回復し、タンクシールドアクティベートが有効な場合だけShieldも最大値まで回復します。
      * 指定された発生元がある場合だけHP通知を行います。
      *
      * @param player 対象プレイヤー

@@ -61,7 +61,7 @@ usableSkills:
   - skill:adventurer_astral_edge
   - skill:adventurer_smash
   - skill:swordsman_challenging_roar
-  - skill:swordsman_shield_drain
+  - skill:swordsman_shield_activate
 tags:
   - tier1
   - melee

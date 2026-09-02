@@ -20,7 +20,7 @@ enum class StatusType(
     MAX_HEALTH("MAX_HEALTH", "最大HP", "戦闘不能になるまでに耐えられるダメージ量の上限。", Category.RESOURCE, "", 0, false),
     MAX_MANA("MAX_MANA", "最大MP", "スキルや魔法の使用に充てられるMPの上限。", Category.RESOURCE, "", 0, false),
     MAX_ENERGY("MAX_ENERGY", "最大ENG", "特殊行動やスキルの使用に充てられるENGの上限。", Category.RESOURCE, "", 0, false),
-    MAX_SHIELD("MAX_SHIELD", "最大シールド", "HPとは別にダメージを受け止めるシールド量の上限。最大シールドの獲得にはシールドアクティベートスキルの使用許可とパッシブ設定が必要。", Category.RESOURCE, "", 0, false),
+    MAX_SHIELD("MAX_SHIELD", "最大シールド", "HPとは別にダメージを受け止めるシールド量の上限。最大シールドの獲得にはタンクシールドアクティベートの習得と使用許可が必要。", Category.RESOURCE, "", 0, false),
     STRENGTH("STRENGTH", "筋力", "物理的な攻撃能力を表す基本能力値。", Category.PRIMARY, "", 0, true),
     DEXTERITY("DEXTERITY", "器用さ", "攻撃や行動を正確に扱う技量を表す基本能力値。", Category.PRIMARY, "", 0, true),
     INTELLIGENCE("INTELLIGENCE", "知力", "魔法や知識を扱う能力を表す基本能力値。", Category.PRIMARY, "", 0, true),

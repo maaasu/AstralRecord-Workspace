@@ -5,12 +5,12 @@ schemaVersion: 1
 id: swordsman_shield_activate
 type: SKILL
 implementationId: swordsman_shield_activate
-name: "&bシールドアクティベート"
-description: "&7シールドを獲得するための防御パッシブ。"
+name: "&bタンクシールドアクティベート"
+description: "&7タンクのシールドを常時有効化する防御パッシブ。"
 icon: SHIELD
 lore:
   - "&7シールドの獲得を許可する。"
-  - "&7使用許可があり、パッシブ設定中の場合だけ有効。"
+  - "&7使用許可と習得済み個体があれば、パッシブ設定に関係なく有効。"
 cooldownTicks: 0
 resourceType: MANA
 resourceCost: 0
@@ -24,7 +24,7 @@ gem:
   tradeable: false
   sellable: false
 passive:
-  bindRequired: true
+  bindRequired: false
 params: {}
 tags:
   - passive

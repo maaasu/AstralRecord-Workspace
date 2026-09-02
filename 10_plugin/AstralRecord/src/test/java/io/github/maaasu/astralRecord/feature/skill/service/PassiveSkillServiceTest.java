@@ -82,7 +82,7 @@ class PassiveSkillServiceTest {
         SkillDefinition definition = new SkillDefinition(
             SwordsmanShieldActivateSkillExecutor.ID,
             SwordsmanShieldActivateSkillExecutor.ID,
-            "シールドアクティベート",
+            "タンクシールドアクティベート",
             null,
             "SHIELD",
             List.of(),
@@ -157,5 +157,73 @@ class PassiveSkillServiceTest {
         when(permissionService.isPermitted(player, definition.getId())).thenReturn(false);
         service.markDirty(player);
         assertFalse(service.isPassiveSkillActive(player, SwordsmanShieldActivateSkillExecutor.ID));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## タンクシールドアクティベートの実装契約
+     * 検証契約: bindRequired=false のタンクシールドアクティベートは、使用許可と習得済み個体があればパッシブスロット未設定でも有効になる。
+     */
+    @Test
+    void nonBindRequiredPassiveActivatesWithoutBoundInstance() {
+        UUID accountId = UUID.randomUUID();
+        LearnedSkillInstance learned = new LearnedSkillInstance(
+            UUID.randomUUID(),
+            accountId,
+            SwordsmanShieldActivateSkillExecutor.ID,
+            1,
+            List.of(),
+            0,
+            null,
+            null
+        );
+        AstPlayer player = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        when(player.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+
+        SkillDefinition definition = new SkillDefinition(
+            SwordsmanShieldActivateSkillExecutor.ID,
+            SwordsmanShieldActivateSkillExecutor.ID,
+            "タンクシールドアクティベート",
+            null,
+            "SHIELD",
+            List.of(),
+            0L,
+            0.0D,
+            0L,
+            1,
+            null,
+            Map.of(),
+            List.of("passive", "defense"),
+            SkillKind.PASSIVE,
+            false,
+            SkillResourceType.MANA,
+            0.0D
+        );
+        SkillRegistry registry = new SkillRegistry();
+        registry.registerExecutor(new SwordsmanShieldActivateSkillExecutor());
+        registry.replaceDefinitions(Map.of(definition.getId(), definition));
+
+        SkillService skillService = mock(SkillService.class);
+        SkillOwnershipService ownershipService = mock(SkillOwnershipService.class);
+        SkillPermissionService permissionService = mock(SkillPermissionService.class);
+        SkillBindPresetService presetService = mock(SkillBindPresetService.class);
+        when(skillService.registry()).thenReturn(registry);
+        when(ownershipService.learnedSkills(player)).thenReturn(List.of(learned));
+        when(permissionService.isPermitted(player, definition.getId())).thenReturn(true);
+        when(presetService.selectedPresetIndex(accountId)).thenReturn(0);
+        when(presetService.getPresets(accountId)).thenReturn(List.of());
+
+        PassiveSkillService service = new PassiveSkillService(
+            mock(AstralRecord.class),
+            skillService,
+            presetService,
+            ownershipService,
+            permissionService,
+            new LearnedSkillResolver(mock(ItemService.class))
+        );
+
+        assertTrue(service.isPassiveSkillActive(player, SwordsmanShieldActivateSkillExecutor.ID));
     }
 }

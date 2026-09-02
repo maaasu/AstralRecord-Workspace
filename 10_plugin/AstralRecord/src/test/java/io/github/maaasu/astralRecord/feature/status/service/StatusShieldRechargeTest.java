@@ -306,8 +306,8 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
-     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### シールドアクティベート
-     * 検証契約: シールドアクティベートが無効な間は最大Shieldの候補値があっても現在Shieldを獲得せず、リチャージ状態も作成しない。
+     * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### タンクシールドアクティベート
+     * 検証契約: タンクシールドアクティベートが無効な間は最大Shieldの候補値があっても現在Shieldを獲得せず、リチャージ状態も作成しない。
      */
     @Test
     void shieldCannotBeAcquiredWithoutShieldActivation() {
@@ -328,7 +328,7 @@ class StatusShieldRechargeTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/07-status/3-メソッド仕様/07_3-サービス.md
      * 章・見出し: # 07_3-サービス > ## 1. StatusService メソッド仕様 > ### ステータス再計算
-     * 検証契約: 既存セッションでシールドアクティベートだけを有効化した場合、現在Shieldを即時付与せず通常30秒リチャージを開始する。
+     * 検証契約: 既存セッションでタンクシールドアクティベートだけを有効化した場合、現在Shieldを即時付与せず通常30秒リチャージを開始する。
      */
     @Test
     void enablingShieldActivationStartsNormalRechargeForExistingSession() {
