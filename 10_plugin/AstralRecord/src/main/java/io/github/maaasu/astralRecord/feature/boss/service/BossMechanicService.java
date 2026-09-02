@@ -68,8 +68,8 @@ public final class BossMechanicService {
     private static final int SUNBIRD_BIRD_METEOR_SAFE_LAYER_COUNT = 3;
     private static final int SUNBIRD_BIRD_METEOR_SAFE_VERTICAL_LINE_COUNT = 12;
     private static final double SUNBIRD_BIRD_METEOR_EXPLOSION_GRID_SPACING = 1.5D;
-    private static final double SUNBIRD_BIRD_METEOR_DAMAGE_RATIO = 1.95D;
-    private static final double SUNBIRD_BIRD_METEOR_ACCURACY_BONUS = 100.0D;
+    private static final double SUNBIRD_BIRD_METEOR_DAMAGE_RATIO = 30.0D;
+    private static final double SUNBIRD_BIRD_METEOR_ACCURACY_BONUS = 1000.0D;
     private static final long SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS = 80L;
     private static final int SUNBIRD_NOVA_DISPLAY_COUNT = 12;
     private static final int SUNBIRD_NOVA_INNER_RING_POINT_COUNT = 36;
@@ -866,7 +866,7 @@ public final class BossMechanicService {
     }
 
     /**
-     * バードメテオの安全円柱の外側にいる管理対象Playerへ大ダメージを与えます。
+     * バードメテオの安全円柱の外側にいる管理対象Playerへ即死級ダメージを与えます。
      *
      * @param boss ダメージ発生元
      * @param arenaCenter 判定する境界の中心
@@ -879,7 +879,11 @@ public final class BossMechanicService {
     ) {
         double safeRadiusSquared = SUNBIRD_BIRD_METEOR_SAFE_RADIUS * SUNBIRD_BIRD_METEOR_SAFE_RADIUS;
         for (Player player : nearbyManagedPlayers(arenaCenter, SUNBIRD_ARENA_RADIUS)) {
-            if (horizontalDistanceSquared(player.getLocation(), safeZoneCenter) <= safeRadiusSquared) {
+            Location playerLocation = player.getLocation();
+            double verticalOffset = playerLocation.getY() - safeZoneCenter.getY();
+            if (horizontalDistanceSquared(playerLocation, safeZoneCenter) <= safeRadiusSquared
+                && verticalOffset >= 0.0D
+                && verticalOffset <= SUNBIRD_BIRD_METEOR_SAFE_HEIGHT) {
                 continue;
             }
             damagePlayer(
