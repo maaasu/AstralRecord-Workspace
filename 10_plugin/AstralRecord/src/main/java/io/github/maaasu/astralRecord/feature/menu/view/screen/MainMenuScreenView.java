@@ -10,18 +10,18 @@ import org.jetbrains.annotations.NotNull;
 
 public final class MainMenuScreenView extends BaseMenuScreenView {
     public static final int STATUS_SLOT = 10;
-    public static final int EQUIPMENT_GUI_SLOT = 11;
-    public static final int SKILL_BIND_SLOT = 12;
-    public static final int CURRENCY_SLOT = 13;
-    public static final int PLAYER_SETTING_SLOT = 14;
+    public static final int EQUIPMENT_GUI_SLOT = 12;
+    public static final int SKILL_BIND_SLOT = 13;
+    public static final int CURRENCY_SLOT = 14;
+    public static final int PLAYER_SETTING_SLOT = 16;
     public static final int ADVENTURE_RECORD_SLOT = 20;
-    public static final int GUIDE_SLOT = 21;
-    public static final int QUEST_SLOT = 22;
+    public static final int GUIDE_SLOT = 22;
+    public static final int QUEST_SLOT = 24;
     public static final int PARTY_SLOT = 30;
-    public static final int PLAYER_INFO_SLOT = 31;
+    public static final int PLAYER_INFO_SLOT = 32;
     public static final int MAIL_SLOT = 38;
-    public static final int RETURN_TO_BASE_SLOT = 39;
-    public static final int TRASH_SLOT = 40;
+    public static final int RETURN_TO_BASE_SLOT = 40;
+    public static final int TRASH_SLOT = 42;
 
     /**
      * メインメニューを描画します。
