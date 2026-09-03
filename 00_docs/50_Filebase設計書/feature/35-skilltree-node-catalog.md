@@ -46,7 +46,7 @@ JSON のノード定義は、実際の `effects`、`pointType`、`pointCost`、�
 | `skill-swordsman-shield-drain` | `skill` / `swordsman_shield_drain` | `&bシールドドレイン` | `TUBE_CORAL` | `offense` |
 | `skill-swordsman-flame-rush` | `skill` / `swordsman_flame_rush` | `&6フレイムラッシュ` | `CRIMSON_ROOTS` | `fire` |
 | `skill-swordsman-bastion-strike` | `skill` / `swordsman_bastion_strike` | `&bバスティオンストライク` | `SOUL_CAMPFIRE` | `defense` |
-| `skill-swordsman-exept-stamp` | `skill` / `swordsman_exept_stamp` | `&6エクゼプトスタンプ` | `ANVIL` | `offense`, `mobility`, `debuff` |
+| `skill-swordsman-exept-stamp` | `skill` / `swordsman_exept_stamp` | `&6エクゼプトスタンプ` | `ANVIL` | `offense`, `status` |
 | `skill-hunter-crash-arrow` | `skill` / `hunter_crash_arrow` | `&bクラッシュアロー` | `TARGET` | `offense` |
 | `skill-hunter-heal-arrow` | `skill` / `hunter_heal_arrow` | `&aヒールアロー` | `GLOW_BERRIES` | `light` |
 | `skill-hunter-spell-step` | `skill` / `hunter_spell_step` | `&eスペルステップ` | `ENDER_PEARL` | `agility`, `wind` |

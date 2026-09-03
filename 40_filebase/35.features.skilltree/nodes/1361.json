@@ -6,8 +6,7 @@
   "icon": "ANVIL",
   "tags": [
     "offense",
-    "mobility",
-    "debuff"
+    "status"
   ],
   "pointType": "CP",
   "pointCost": 1,
