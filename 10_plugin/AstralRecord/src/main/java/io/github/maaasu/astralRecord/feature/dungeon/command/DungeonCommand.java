@@ -65,7 +65,7 @@ public final class DungeonCommand extends AstCommand {
             case REJOINED -> {
                 // 再参加完了メッセージは転送成功後に DungeonService から送信します。
             }
-            case ALREADY_IN_PROGRESS -> messages.send(astPlayer, PlayerMsgId.P_7024);
+            case ALREADY_IN_PROGRESS -> sendChallengeConflict(messages, astPlayer, result.activeChallengeName());
             case UNAVAILABLE -> messages.send(astPlayer, PlayerMsgId.P_7000);
             case NOT_FOUND -> messages.send(astPlayer, PlayerMsgId.P_7002, args[1]);
             case PARTY_SIZE -> messages.send(
@@ -75,11 +75,23 @@ public final class DungeonCommand extends AstCommand {
                     result.max(),
                     result.current()
             );
-            case PARTICIPANT_BUSY -> messages.send(astPlayer, PlayerMsgId.P_7005);
+            case PARTICIPANT_BUSY -> sendChallengeConflict(messages, astPlayer, result.activeChallengeName());
             case NOT_GAMEPLAY -> messages.send(astPlayer, PlayerMsgId.P_5065);
             case NOT_AT_ENTRY -> messages.send(astPlayer, PlayerMsgId.P_7018);
             case HUB_UNAVAILABLE -> messages.send(astPlayer, PlayerMsgId.P_7019);
         }
+    }
+
+    private void sendChallengeConflict(
+            @NotNull PlayerMessageService messages,
+            @NotNull AstPlayer player,
+            String activeChallengeName
+    ) {
+        if (activeChallengeName == null || activeChallengeName.isBlank()) {
+            messages.send(player, PlayerMsgId.P_7024);
+            return;
+        }
+        messages.send(player, PlayerMsgId.P_7005, activeChallengeName);
     }
 
     private void leave(@NotNull AstPlayer astPlayer, @NotNull DungeonService service) {

@@ -174,15 +174,23 @@ public final class DungeonInteractionEventHandler extends AbstractEventHandler
 
     private void notifyEntryResult(@NotNull Player player, @NotNull DungeonService.StartRequestResult result) {
         if (result.status() == DungeonService.StartStatus.ALREADY_IN_PROGRESS) {
-            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7024);
+            sendChallengeConflict(player, result.activeChallengeName());
         } else if (result.status() == DungeonService.StartStatus.PARTY_SIZE) {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7004,
                     result.min(), result.max(), result.current());
         } else if (result.status() == DungeonService.StartStatus.PARTICIPANT_BUSY) {
-            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7005);
+            sendChallengeConflict(player, result.activeChallengeName());
         } else if (result.status() == DungeonService.StartStatus.HUB_UNAVAILABLE) {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7019);
         }
+    }
+
+    private void sendChallengeConflict(@NotNull Player player, String activeChallengeName) {
+        if (activeChallengeName == null || activeChallengeName.isBlank()) {
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7024);
+            return;
+        }
+        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_7005, activeChallengeName);
     }
 
     private void openCancel(@NotNull Player player, @NotNull UUID sessionId) {
@@ -346,6 +354,7 @@ public final class DungeonInteractionEventHandler extends AbstractEventHandler
         if (service.cancelGui().isInventory(event.getView().getTopInventory())
                 || service.rewardGui().isInventory(event.getView().getTopInventory())
                 || service.mapGui().holder(event.getView().getTopInventory()) != null
+                || service.emergencyTeleportGui().holder(event.getView().getTopInventory()) != null
                 || service.archiveGui().listHolder(event.getView().getTopInventory()) != null
                 || service.archiveGui().detailHolder(event.getView().getTopInventory()) != null) {
             event.setCancelled(true);

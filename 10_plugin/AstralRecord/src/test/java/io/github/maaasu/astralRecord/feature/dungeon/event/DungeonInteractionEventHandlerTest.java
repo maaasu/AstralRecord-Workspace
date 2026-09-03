@@ -39,6 +39,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.mockito.Mockito.atLeastOnce;
@@ -254,6 +255,24 @@ class DungeonInteractionEventHandlerTest {
         InventoryDragEvent event = mock(InventoryDragEvent.class);
         when(event.getView()).thenReturn(context.view);
         when(context.rewardGui.isInventory(context.top)).thenReturn(true);
+
+        context.handler.onInventoryDrag(event);
+
+        verify(event).setCancelled(true);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 5. 離脱・再参加・中止
+     * 検証契約: 緊急転送選択GUI上のInventoryDragEventをcancelして標準移動を防ぐ。
+     */
+    @Test
+    void cancelsDragOverEmergencyTeleportInventory() {
+        TestContext context = new TestContext();
+        InventoryDragEvent event = mock(InventoryDragEvent.class);
+        when(event.getView()).thenReturn(context.view);
+        when(context.emergencyTeleportGui.holder(context.top)).thenReturn(new DungeonEmergencyTeleportGui.Holder(
+                UUID.randomUUID(), UUID.randomUUID(), 0, Map.of()));
 
         context.handler.onInventoryDrag(event);
 

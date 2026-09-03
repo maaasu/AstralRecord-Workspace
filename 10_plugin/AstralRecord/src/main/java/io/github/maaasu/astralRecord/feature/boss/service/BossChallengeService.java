@@ -31,6 +31,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeDeathPolicy;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeParticipationRegistry;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeStartCountdown;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueue;
@@ -102,6 +103,7 @@ public final class BossChallengeService {
     private final DisplayTextService displayTextService;
     private final PlayerDeathService playerDeathService;
     private final InstanceCreationQueue creationQueue;
+    private final ChallengeParticipationRegistry challengeParticipationRegistry;
     private final String hubWorldId;
     private final Map<UUID, BossChallengeInstance> challengesById = new ConcurrentHashMap<>();
     private final Map<String, UUID> challengeIdByPartyKey = new ConcurrentHashMap<>();
@@ -139,7 +141,8 @@ public final class BossChallengeService {
                 displayTextService,
                 playerDeathService,
                 hubWorldId,
-                new InstanceCreationQueue(InstanceCreationQueueConfig.DEFAULT_BOSS)
+                new InstanceCreationQueue(InstanceCreationQueueConfig.DEFAULT_BOSS),
+                new ChallengeParticipationRegistry()
         );
     }
 
@@ -157,6 +160,51 @@ public final class BossChallengeService {
      * @param playerDeathService 死亡・復帰サービス
      * @param hubWorldId 待機HubのWorld ID
      * @param creationQueue インスタンス作成枠キュー
+     * @param challengeParticipationRegistry Dungeon/Boss 共通の挑戦参加予約
+     */
+    public BossChallengeService(
+            @NotNull AstralRecord plugin,
+            @NotNull MobService mobService,
+            @NotNull WorldService worldService,
+            @NotNull PartyService partyService,
+            @NotNull PlayerMessageService messageService,
+            @NotNull BossFieldInstanceService fieldInstanceService,
+            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull DisplayTextService displayTextService,
+            @NotNull PlayerDeathService playerDeathService,
+            @NotNull String hubWorldId,
+            @NotNull InstanceCreationQueue creationQueue,
+            @NotNull ChallengeParticipationRegistry challengeParticipationRegistry
+    ) {
+        this.plugin = plugin;
+        this.mobService = mobService;
+        this.worldService = worldService;
+        this.partyService = partyService;
+        this.messageService = messageService;
+        this.fieldInstanceService = fieldInstanceService;
+        this.particleDisplayService = particleDisplayService;
+        this.displayTextService = displayTextService;
+        this.playerDeathService = playerDeathService;
+        this.creationQueue = creationQueue;
+        this.challengeParticipationRegistry = challengeParticipationRegistry;
+        this.hubWorldId = hubWorldId;
+    }
+
+    /**
+     * 既定の作成枠キューを使うBoss挑戦サービスを構成します。
+     * 共通予約を呼び出し側で共有する場合は、末尾にレジストリを指定する構成子を使用します。
+     *
+     * @param plugin Plugin 本体
+     * @param mobService Mob サービス
+     * @param worldService World 管理サービス
+     * @param partyService パーティーサービス
+     * @param messageService プレイヤーメッセージサービス
+     * @param fieldInstanceService Bossフィールド生成サービス
+     * @param particleDisplayService パーティクル表示サービス
+     * @param displayTextService TextDisplayサービス
+     * @param playerDeathService 死亡・復帰サービス
+     * @param hubWorldId 待機HubのWorld ID
+     * @param creationQueue インスタンス作成枠キュー
      */
     public BossChallengeService(
             @NotNull AstralRecord plugin,
@@ -171,17 +219,20 @@ public final class BossChallengeService {
             @NotNull String hubWorldId,
             @NotNull InstanceCreationQueue creationQueue
     ) {
-        this.plugin = plugin;
-        this.mobService = mobService;
-        this.worldService = worldService;
-        this.partyService = partyService;
-        this.messageService = messageService;
-        this.fieldInstanceService = fieldInstanceService;
-        this.particleDisplayService = particleDisplayService;
-        this.displayTextService = displayTextService;
-        this.playerDeathService = playerDeathService;
-        this.creationQueue = creationQueue;
-        this.hubWorldId = hubWorldId;
+        this(
+                plugin,
+                mobService,
+                worldService,
+                partyService,
+                messageService,
+                fieldInstanceService,
+                particleDisplayService,
+                displayTextService,
+                playerDeathService,
+                hubWorldId,
+                creationQueue,
+                new ChallengeParticipationRegistry()
+        );
     }
 
     /**
@@ -221,6 +272,7 @@ public final class BossChallengeService {
         fieldInstanceService.cancelPendingCreations();
         for (BossChallengeInstance challenge : List.copyOf(challengesById.values())) {
             forceShutdownChallenge(challenge);
+            challengeParticipationRegistry.release(challenge.challengeId());
         }
         challengesById.clear();
         challengeIdByPartyKey.clear();
@@ -334,7 +386,11 @@ public final class BossChallengeService {
         if (existingChallenge != null) {
             if (!existingChallenge.bossTemplate().id().equals(template.id())
                     || !isWaitingForPartyMembers(existingChallenge)) {
-                messageService.send(player, PlayerMsgId.P_6505);
+                messageService.send(
+                        player,
+                        PlayerMsgId.P_6505,
+                        existingChallenge.bossTemplate().displayName()
+                );
                 return;
             }
             WorldMasterData existingHubData = worldService.getById(hubWorldId);
@@ -367,8 +423,19 @@ public final class BossChallengeService {
             return;
         }
 
+        UUID challengeId = UUID.randomUUID();
+        ChallengeParticipationRegistry.ReservationResult reservation = challengeParticipationRegistry.reserve(
+                challengeId,
+                partyKey,
+                participants,
+                template.displayName()
+        );
+        if (!reservation.acquired()) {
+            messageService.send(player, PlayerMsgId.P_6505, reservation.conflictingDisplayName());
+            return;
+        }
         BossChallengeInstance challenge = new BossChallengeInstance(
-                UUID.randomUUID(),
+                challengeId,
                 partyKey,
                 player.getUniqueId(),
                 template,
@@ -662,6 +729,7 @@ public final class BossChallengeService {
     public boolean isPlayerInActiveChallenge(@NotNull UUID playerId) {
         for (BossChallengeInstance challenge : challengesById.values()) {
             if (challenge.state() == BossChallengeState.ENDED
+                    || isWaitingForPartyMembers(challenge)
                     || !isSidebarParticipant(challenge, playerId)) {
                 continue;
             }
@@ -869,8 +937,18 @@ public final class BossChallengeService {
             @NotNull Player player,
             @NotNull WorldMasterData hubData
     ) {
+        ChallengeParticipationRegistry.ReservationResult reservation = challengeParticipationRegistry.reserve(
+                challenge.challengeId(),
+                challenge.partyKey(),
+                challenge.expectedParticipantIds(),
+                challenge.bossTemplate().displayName()
+        );
+        if (!reservation.acquired()) {
+            messageService.send(player, PlayerMsgId.P_6505, reservation.conflictingDisplayName());
+            return;
+        }
         if (!challenge.expectedParticipantIds().contains(player.getUniqueId())) {
-            messageService.send(player, PlayerMsgId.P_6505);
+            messageService.send(player, PlayerMsgId.P_6505, challenge.bossTemplate().displayName());
             return;
         }
         WorldMasterData fieldData = worldService.getById(challenge.config().fieldWorldId());
@@ -898,6 +976,10 @@ public final class BossChallengeService {
         }
         synchronizeWaitingParty(challenge);
         if (!isWaitingForPartyMembers(challenge)) {
+            return;
+        }
+        if (!isCurrentWaitingPartyMembership(challenge)) {
+            cancelWaitingTicket(challenge);
             return;
         }
         List<Player> readyParticipants = eligibleParticipantsForEntry(challenge);
@@ -1220,6 +1302,10 @@ public final class BossChallengeService {
                 continue;
             }
             synchronizeWaitingParty(challenge);
+            if (!isCurrentWaitingPartyMembership(challenge)) {
+                cancelWaitingTicket(challenge);
+                continue;
+            }
             if (challenge.creationQueueTicketId() == null
                     || !challenge.creationQueueTicketId().equals(ticket.id())
                     || !isWaitingForPartyMembers(challenge)) {
@@ -1462,6 +1548,7 @@ public final class BossChallengeService {
 
     private void finishChallengeRemoval(@NotNull BossChallengeInstance challenge) {
         destroyBossBar(challenge);
+        challengeParticipationRegistry.release(challenge.challengeId());
         pendingFieldPreparationChallenges.remove(challenge.challengeId());
         participantExitCompletedChallenges.remove(challenge.challengeId());
         UUID queueTicketId = challenge.creationQueueTicketId();
@@ -1870,6 +1957,15 @@ public final class BossChallengeService {
 
         List<UUID> previous = challenge.expectedParticipantIds();
         List<UUID> current = party.members();
+        ChallengeParticipationRegistry.ReservationResult reservation = challengeParticipationRegistry.reserve(
+                challenge.challengeId(),
+                challenge.partyKey(),
+                current,
+                challenge.bossTemplate().displayName()
+        );
+        if (!reservation.acquired()) {
+            return;
+        }
         if (!previous.equals(current)) {
             Set<UUID> previousSet = new HashSet<>(previous);
             Set<UUID> currentSet = new HashSet<>(current);
@@ -1917,6 +2013,33 @@ public final class BossChallengeService {
                 }
             }
         }
+    }
+
+    private boolean isCurrentWaitingPartyMembership(@NotNull BossChallengeInstance challenge) {
+        if (!challengeParticipationRegistry.contains(challenge.challengeId())) {
+            return false;
+        }
+        if (!challenge.partyKey().startsWith("party:")) {
+            return true;
+        }
+        try {
+            UUID partyId = UUID.fromString(challenge.partyKey().substring("party:".length()));
+            Party party = partyService.findPartyById(partyId);
+            return party != null && new HashSet<>(party.members()).equals(
+                    new HashSet<>(challenge.expectedParticipantIds()));
+        } catch (IllegalArgumentException exception) {
+            return false;
+        }
+    }
+
+    private void cancelWaitingTicket(@NotNull BossChallengeInstance challenge) {
+        InstanceCreationQueue.Ticket ticket = waitingTicket(challenge);
+        if (ticket == null) {
+            return;
+        }
+        creationQueue.cancelWaiting(ticket.id());
+        challenge.creationQueueTicketId(null);
+        clearQueueTitles(ticket.participantIds());
     }
 
     private @Nullable InstanceCreationQueue.Ticket waitingTicket(
@@ -2181,7 +2304,10 @@ public final class BossChallengeService {
     private @NotNull CompletableFuture<Boolean> teleportParticipantsOutAsync(
             @NotNull BossChallengeInstance challenge
     ) {
-        List<Player> players = onlinePlayers(exitParticipantIds(challenge));
+        boolean fieldPresent = challenge.field() != null;
+        List<Player> players = onlinePlayers(exitParticipantIds(challenge)).stream()
+                .filter(player -> shouldReturnPreparingParticipant(fieldPresent, isInHub(player)))
+                .toList();
         if (players.isEmpty()) {
             return CompletableFuture.completedFuture(true);
         }
@@ -2261,7 +2387,10 @@ public final class BossChallengeService {
      * @param challenge 対象ボス挑戦
      */
     private boolean teleportParticipantsOutNow(@NotNull BossChallengeInstance challenge) {
-        List<Player> players = onlinePlayers(exitParticipantIds(challenge));
+        boolean fieldPresent = challenge.field() != null;
+        List<Player> players = onlinePlayers(exitParticipantIds(challenge)).stream()
+                .filter(player -> shouldReturnPreparingParticipant(fieldPresent, isInHub(player)))
+                .toList();
         if (players.isEmpty()) {
             return true;
         }
@@ -2278,6 +2407,17 @@ public final class BossChallengeService {
             }
         }
         return success;
+    }
+
+    /**
+     * フィールド生成前の終了処理で、対象プレイヤーを受付位置へ戻すべきか判定します。
+     *
+     * @param fieldPresent Bossフィールドが生成済みか
+     * @param inHub 待機HUBにいるか
+     * @return フィールド参加者、または待機HUB内の参加者なら {@code true}
+     */
+    static boolean shouldReturnPreparingParticipant(boolean fieldPresent, boolean inHub) {
+        return fieldPresent || inHub;
     }
 
     /**

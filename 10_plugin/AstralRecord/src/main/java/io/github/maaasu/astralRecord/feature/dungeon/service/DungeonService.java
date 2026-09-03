@@ -59,6 +59,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeDeathPolicy;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeParticipationRegistry;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeStartCountdown;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueue;
@@ -154,6 +155,7 @@ public final class DungeonService {
     private final DungeonEmergencyTeleportGui emergencyTeleportGui;
     private final DungeonArchiveGui archiveGui;
     private final InstanceCreationQueue creationQueue;
+    private final ChallengeParticipationRegistry challengeParticipationRegistry;
     private final String hubWorldId;
     private AfkService afkService;
     private @NotNull BiConsumer<AstPlayer, String> clearListener = (player, dungeonId) -> { };
@@ -231,7 +233,8 @@ public final class DungeonService {
                 lootService,
                 adventureRecordRepository,
                 hubWorldId,
-                new InstanceCreationQueue(InstanceCreationQueueConfig.DEFAULT_DUNGEON)
+                new InstanceCreationQueue(InstanceCreationQueueConfig.DEFAULT_DUNGEON),
+                new ChallengeParticipationRegistry()
         );
     }
 
@@ -255,6 +258,7 @@ public final class DungeonService {
      * @param adventureRecordRepository 踏破記録リポジトリ
      * @param hubWorldId 生成待機中に参加者を退避するHub World ID
      * @param creationQueue インスタンス作成枠キュー
+     * @param challengeParticipationRegistry Dungeon/Boss 共通の挑戦参加予約
      */
     public DungeonService(
             @NotNull AstralRecord plugin,
@@ -273,7 +277,8 @@ public final class DungeonService {
             @NotNull LootService lootService,
             @NotNull AdventureRecordRepository adventureRecordRepository,
             @NotNull String hubWorldId,
-            @NotNull InstanceCreationQueue creationQueue
+            @NotNull InstanceCreationQueue creationQueue,
+            @NotNull ChallengeParticipationRegistry challengeParticipationRegistry
     ) {
         this.plugin = plugin;
         this.repository = repository;
@@ -302,7 +307,71 @@ public final class DungeonService {
         this.emergencyTeleportGui = new DungeonEmergencyTeleportGui();
         this.archiveGui = new DungeonArchiveGui(itemService, itemStackFactory);
         this.creationQueue = creationQueue;
+        this.challengeParticipationRegistry = challengeParticipationRegistry;
         this.hubWorldId = hubWorldId;
+    }
+
+    /**
+     * 既定の作成枠キューを使うDungeonサービスを構成します。
+     * 共通予約を呼び出し側で共有する必要がある場合は、末尾にレジストリを指定する構成子を使用します。
+     *
+     * @param plugin Plugin 本体
+     * @param repository ダンジョン定義リポジトリ
+     * @param worldService World 管理サービス
+     * @param partyService パーティー管理サービス
+     * @param mobService Mob 管理サービス
+     * @param messageService プレイヤーメッセージサービス
+     * @param particleDisplayService パーティクル表示サービス
+     * @param displayTextService TextDisplay 管理サービス
+     * @param playerDeathService 死亡・復帰サービス
+     * @param mobDropService クリア報酬抽選サービス
+     * @param inventoryService 報酬付与先インベントリ
+     * @param itemService アイテム定義サービス
+     * @param itemStackFactory 報酬GUIのItemStack生成サービス
+     * @param lootService ルートテーブルサービス
+     * @param adventureRecordRepository 踏破記録リポジトリ
+     * @param hubWorldId 生成待機中に参加者を退避するHUB World ID
+     * @param creationQueue インスタンス作成枠キュー
+     */
+    public DungeonService(
+            @NotNull AstralRecord plugin,
+            @NotNull DungeonDefinitionRepository repository,
+            @NotNull WorldService worldService,
+            @NotNull PartyService partyService,
+            @NotNull MobService mobService,
+            @NotNull PlayerMessageService messageService,
+            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull DisplayTextService displayTextService,
+            @NotNull PlayerDeathService playerDeathService,
+            @NotNull MobDropService mobDropService,
+            @NotNull InventoryService inventoryService,
+            @NotNull ItemService itemService,
+            @NotNull ItemStackFactory itemStackFactory,
+            @NotNull LootService lootService,
+            @NotNull AdventureRecordRepository adventureRecordRepository,
+            @NotNull String hubWorldId,
+            @NotNull InstanceCreationQueue creationQueue
+    ) {
+        this(
+                plugin,
+                repository,
+                worldService,
+                partyService,
+                mobService,
+                messageService,
+                particleDisplayService,
+                displayTextService,
+                playerDeathService,
+                mobDropService,
+                inventoryService,
+                itemService,
+                itemStackFactory,
+                lootService,
+                adventureRecordRepository,
+                hubWorldId,
+                creationQueue,
+                new ChallengeParticipationRegistry()
+        );
     }
 
     /**
@@ -456,7 +525,7 @@ public final class DungeonService {
         if (isWaitingForPartyMembers(active)) {
             if (!active.loaded.definition().id().equals(dungeonId)
                     || !isInsideEntry(player, active.loaded)) {
-                return StartRequestResult.of(StartStatus.ALREADY_IN_PROGRESS);
+                return StartRequestResult.alreadyInProgress(active.loaded.definition().displayName());
             }
             return acceptWaitingParticipant(active, player);
         }
@@ -466,7 +535,7 @@ public final class DungeonService {
                         active.gateReturnEligible,
                         player.getUniqueId()
                 )) {
-            return StartRequestResult.of(StartStatus.ALREADY_IN_PROGRESS);
+            return StartRequestResult.alreadyInProgress(active.loaded.definition().displayName());
         }
         return requestRejoin(active, player);
     }
@@ -503,7 +572,9 @@ public final class DungeonService {
         List<Player> participants = onlinePlayers(participantIds);
         String partyKey = partyKey(leader.getUniqueId(), party);
         if (sessionIdByPartyKey.containsKey(partyKey)) {
-            return StartRequestResult.of(StartStatus.ALREADY_IN_PROGRESS);
+            Session active = sessionsById.get(sessionIdByPartyKey.get(partyKey));
+            return StartRequestResult.alreadyInProgress(
+                    active == null ? null : active.loaded.definition().displayName());
         }
         if (participants.stream().anyMatch(player ->
                 !AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(player)))) {
@@ -512,13 +583,23 @@ public final class DungeonService {
         int participantCount = participantIds.size();
         DungeonDefinition.IntRange allowed = loaded.definition().partySize();
         if (participantCount < allowed.min() || participantCount > allowed.max()) {
-            return new StartRequestResult(StartStatus.PARTY_SIZE, allowed.min(), allowed.max(), participantCount);
+            return new StartRequestResult(
+                    StartStatus.PARTY_SIZE, allowed.min(), allowed.max(), participantCount, null);
         }
         if (participantIds.stream().anyMatch(sessionIdByBusyParticipant::containsKey)) {
-            return StartRequestResult.of(StartStatus.PARTICIPANT_BUSY);
+            return StartRequestResult.participantBusy(activeDungeonName(participantIds));
         }
 
         UUID sessionId = UUID.randomUUID();
+        ChallengeParticipationRegistry.ReservationResult reservation = challengeParticipationRegistry.reserve(
+                sessionId,
+                partyKey,
+                participantIds,
+                loaded.definition().displayName()
+        );
+        if (!reservation.acquired()) {
+            return StartRequestResult.participantBusy(reservation.conflictingDisplayName());
+        }
         long seed = requestedSeed.isPresent()
                 ? requestedSeed.getAsLong()
                 : ThreadLocalRandom.current().nextLong();
@@ -555,12 +636,13 @@ public final class DungeonService {
      * プレイヤーがダンジョンセッションの参加者として扱われているかを返します。
      *
      * @param playerId 判定対象プレイヤーの UUID
-     * @return 受付後からセッション終了処理完了までの参加者で、待機ハブ離脱中でなければ {@code true}
+     * @return 生成枠待機前後の待機中を除く参加者で、待機ハブ離脱中でなければ {@code true}
      */
     public boolean isPlayerInActiveSession(@NotNull UUID playerId) {
         UUID sessionId = sessionIdByParticipant.get(playerId);
         Session session = sessionId == null ? null : sessionsById.get(sessionId);
         return session != null
+                && !isWaitingForPartyMembers(session)
                 && isSidebarParticipant(session.participants, session.waitingAbsentParticipants, playerId);
     }
 
@@ -583,6 +665,17 @@ public final class DungeonService {
 
     private @NotNull String partyKey(@NotNull UUID playerId, @Nullable Party party) {
         return party == null ? "solo:" + playerId : "party:" + party.getPartyId();
+    }
+
+    private @Nullable String activeDungeonName(@NotNull Collection<UUID> participantIds) {
+        for (UUID participantId : participantIds) {
+            UUID sessionId = sessionIdByBusyParticipant.get(participantId);
+            Session session = sessionId == null ? null : sessionsById.get(sessionId);
+            if (session != null) {
+                return session.loaded.definition().displayName();
+            }
+        }
+        return null;
     }
 
     private @NotNull StartRequestResult requestRejoin(@NotNull Session session, @NotNull Player player) {
@@ -672,7 +765,18 @@ public final class DungeonService {
         Party party = currentParty(session);
         if (session.partyKey.startsWith("party:")
                 && (party == null || !party.contains(player.getUniqueId()))) {
-            return StartRequestResult.of(StartStatus.ALREADY_IN_PROGRESS);
+            return StartRequestResult.alreadyInProgress(session.loaded.definition().displayName());
+        }
+        LinkedHashSet<UUID> participantIds = new LinkedHashSet<>(session.participants);
+        participantIds.add(player.getUniqueId());
+        ChallengeParticipationRegistry.ReservationResult reservation = challengeParticipationRegistry.reserve(
+                session.id,
+                session.partyKey,
+                participantIds,
+                session.loaded.definition().displayName()
+        );
+        if (!reservation.acquired()) {
+            return StartRequestResult.participantBusy(reservation.conflictingDisplayName());
         }
         if (!session.participants.contains(player.getUniqueId())) {
             addWaitingParticipant(session, player.getUniqueId(), player);
@@ -711,6 +815,10 @@ public final class DungeonService {
         }
         synchronizeWaitingParty(session);
         if (!isWaitingForPartyMembers(session)) {
+            return;
+        }
+        if (!isCurrentWaitingPartyMembership(session)) {
+            cancelWaitingTicket(session);
             return;
         }
         if (!allParticipantsInHub(session)) {
@@ -3064,6 +3172,7 @@ public final class DungeonService {
                             && !session.participants.contains(playerId)
                             && !session.gateReturnEligible.contains(playerId)) {
                         sessionIdByBusyParticipant.remove(playerId, session.id);
+                        challengeParticipationRegistry.removeParticipant(session.id, playerId);
                     }
                 }));
     }
@@ -3107,6 +3216,17 @@ public final class DungeonService {
         return expectedSessionId.equals(indexedSessionId)
                 && !ending
                 && participants.contains(playerId);
+    }
+
+    /**
+     * 生成準備中の終了処理で、対象プレイヤーを受付位置へ戻すべきか判定します。
+     *
+     * @param instancePresent Dungeonインスタンスが生成済みか
+     * @param inHub 待機HUBにいるか
+     * @return インスタンス参加者、または待機HUB内の参加者なら {@code true}
+     */
+    static boolean shouldReturnPreparingParticipant(boolean instancePresent, boolean inHub) {
+        return instancePresent || inHub;
     }
 
     private void failPreparation(@NotNull Session session, @NotNull Throwable failure) {
@@ -3164,6 +3284,9 @@ public final class DungeonService {
         for (UUID participantId : session.participants) {
             Player participant = Bukkit.getPlayer(participantId);
             if (participant == null || !participant.isOnline()) {
+                continue;
+            }
+            if (!shouldReturnPreparingParticipant(instance != null, isInHub(participant))) {
                 continue;
             }
             Location target = resolveForcedReturnLocation(session, participantId, instance);
@@ -3261,6 +3384,7 @@ public final class DungeonService {
             sessionIdByBusyParticipant.remove(participant, session.id);
             dungeonDeathSessionByParticipant.remove(participant, session.id);
         }
+        challengeParticipationRegistry.release(session.id);
         session.entryTransfers.clear();
         session.returnTransfers.clear();
         session.cartographTransfers.clear();
@@ -3453,11 +3577,12 @@ public final class DungeonService {
                 for (UUID participantId : session.participants) {
                     Player player = Bukkit.getPlayer(participantId);
                     Location target = resolveForcedReturnLocation(session, participantId, null);
-                    if (player != null && player.isOnline() && target != null) {
+                    if (player != null && player.isOnline() && isInHub(player) && target != null) {
                         PlayerTeleportService.teleport(player, target);
                     }
                 }
             }
+            challengeParticipationRegistry.release(session.id);
             for (UUID participantId : List.copyOf(session.dungeonDeathParticipants)) {
                 recoverDungeonDeath(session, participantId);
             }
@@ -3563,6 +3688,18 @@ public final class DungeonService {
         }
     }
 
+    private boolean isCurrentWaitingPartyMembership(@NotNull Session session) {
+        if (!challengeParticipationRegistry.contains(session.id)) {
+            return false;
+        }
+        if (!session.partyKey.startsWith("party:")) {
+            return true;
+        }
+        Party party = currentParty(session);
+        return party != null
+                && new HashSet<>(party.members()).equals(session.participants);
+    }
+
     /**
      * 待機中のパーティーセッションを現在のパーティー構成と Hub 滞在状態へ同期します。
      * <p>
@@ -3588,6 +3725,15 @@ public final class DungeonService {
         }
         List<UUID> previous = List.copyOf(session.participants);
         List<UUID> current = party.members();
+        ChallengeParticipationRegistry.ReservationResult reservation = challengeParticipationRegistry.reserve(
+                session.id,
+                session.partyKey,
+                current,
+                session.loaded.definition().displayName()
+        );
+        if (!reservation.acquired()) {
+            return;
+        }
         if (current.stream().noneMatch(this::isInHub)) {
             completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
             return;
@@ -3672,6 +3818,7 @@ public final class DungeonService {
         if (!session.participants.remove(participantId)) {
             return;
         }
+        challengeParticipationRegistry.removeParticipant(session.id, participantId);
         sessionIdByParticipant.remove(participantId, session.id);
         sessionIdByBusyParticipant.remove(participantId, session.id);
         session.waitingAbsentParticipants.remove(participantId);
@@ -3686,6 +3833,16 @@ public final class DungeonService {
             }
         }
         releaseBusyParticipantWhenTransfersSettle(session, participantId);
+    }
+
+    private void cancelWaitingTicket(@NotNull Session session) {
+        InstanceCreationQueue.Ticket ticket = waitingTicket(session);
+        if (ticket == null) {
+            return;
+        }
+        creationQueue.cancelWaiting(ticket.id());
+        session.creationQueueTicketId = null;
+        clearQueueTitles(ticket.participantIds());
     }
 
     private boolean allParticipantsInHub(@NotNull Session session) {
@@ -3797,7 +3954,7 @@ public final class DungeonService {
 
     /**
      * 生成待機中の固定参加者から、オンライン・通常プレイ・ハブ滞在条件を満たさない者を除外します。
-     * 除外したオンライン参加者には受付前 Location への非同期転送を試みます。
+     * 除外した参加者がハブ内に残っている場合だけ受付前 Location への非同期転送を試みます。
      *
      * @param session 準備中セッション
      * @param hubData 待機 HUB World 定義
@@ -3817,20 +3974,7 @@ public final class DungeonService {
             if (eligible) {
                 continue;
             }
-            session.participants.remove(participantId);
-            sessionIdByParticipant.remove(participantId, session.id);
-            recoverDungeonDeath(session, participantId);
-            if (player != null && player.isOnline()) {
-                Location target = resolveReturnLocation(session.returnLocations.get(participantId), null);
-                if (target != null) {
-                    trackReturnTransfer(
-                            session,
-                            participantId,
-                            worldService.teleportPlayerAsync(player, target, null)
-                    );
-                }
-            }
-            releaseBusyParticipantWhenTransfersSettle(session, participantId);
+            removeWaitingParticipant(session, participantId);
         }
     }
 
@@ -3901,6 +4045,10 @@ public final class DungeonService {
                 continue;
             }
             synchronizeWaitingParty(session);
+            if (!isCurrentWaitingPartyMembership(session)) {
+                cancelWaitingTicket(session);
+                continue;
+            }
             if (session.creationQueueTicketId == null
                     || !session.creationQueueTicketId.equals(ticket.id())
                     || !isWaitingForPartyMembers(session)) {
@@ -4178,10 +4326,24 @@ public final class DungeonService {
         HUB_UNAVAILABLE
     }
 
-    /** 開始受付結果です。人数エラー時だけ min/max/current が設定されます。 */
-    public record StartRequestResult(StartStatus status, int min, int max, int current) {
+    /** 開始受付結果です。人数エラー時だけ min/max/current、競合時だけ挑戦名が設定されます。 */
+    public record StartRequestResult(
+            @NotNull StartStatus status,
+            int min,
+            int max,
+            int current,
+            @Nullable String activeChallengeName
+    ) {
         private static @NotNull StartRequestResult of(@NotNull StartStatus status) {
-            return new StartRequestResult(status, 0, 0, 0);
+            return new StartRequestResult(status, 0, 0, 0, null);
+        }
+
+        private static @NotNull StartRequestResult alreadyInProgress(@Nullable String displayName) {
+            return new StartRequestResult(StartStatus.ALREADY_IN_PROGRESS, 0, 0, 0, displayName);
+        }
+
+        private static @NotNull StartRequestResult participantBusy(@Nullable String displayName) {
+            return new StartRequestResult(StartStatus.PARTICIPANT_BUSY, 0, 0, 0, displayName);
         }
     }
 

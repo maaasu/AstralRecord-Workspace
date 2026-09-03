@@ -119,6 +119,18 @@ class DungeonChallengePolicyTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 7. 終了と回収
+     * 検証契約: 生成前に終了した場合、Hub外のパーティーメンバーは現在位置を維持し、Hub内の参加者だけを受付へ戻す。
+     */
+    @Test
+    void returnsOnlyHubParticipantsBeforeInstanceCreation() {
+        assertTrue(DungeonService.shouldReturnPreparingParticipant(false, true));
+        assertFalse(DungeonService.shouldReturnPreparingParticipant(false, false));
+        assertTrue(DungeonService.shouldReturnPreparingParticipant(true, false));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 5. 離脱・再参加・中止
      * 検証契約: 受付時参加者かつ帰還gate自主離脱者だけを再参加可能とし、late joinとlogout失効後を拒否する。
      */

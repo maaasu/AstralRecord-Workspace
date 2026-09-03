@@ -171,6 +171,18 @@ class BossChallengeServiceTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/26_4-統合フロー.md
+     * 章・見出し: # 26_4-統合フロー > ## 2. フィールド作成と戦闘開始
+     * 検証契約: フィールド生成前に終了した場合、Hub外のパーティーメンバーは受付位置へ強制転送しない。
+     */
+    @Test
+    void returnsOnlyHubParticipantsBeforeFieldCreation() {
+        assertTrue(BossChallengeService.shouldReturnPreparingParticipant(false, true));
+        assertFalse(BossChallengeService.shouldReturnPreparingParticipant(false, false));
+        assertTrue(BossChallengeService.shouldReturnPreparingParticipant(true, false));
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
      * 章・見出し: # 26_3-サービス > ## 3. ボス挑戦受付
      * 検証契約: 待機ハブから離脱した本人は再参加候補として予定者一覧に残しつつ、Boss Sidebar の対象から外し、再到着後は再表示する。
