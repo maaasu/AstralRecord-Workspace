@@ -37,6 +37,7 @@ public final class HunterArrowRainExecutor extends PlayerActiveSkillExecutor {
     static final int RAIN_MIN_FLIGHT_TICKS = 10;
     static final int RAIN_MAX_FLIGHT_TICKS = 14;
     static final double RAIN_PATH_DISTANCE_MARGIN = 0.25D;
+    static final double SHIELD_BREAK_DAMAGE_RATIO = 0.1D;
     private final RandomGenerator random;
 
     /** 共有発動スキルサービスとスレッドローカル乱数で初期化します。 */
@@ -90,8 +91,9 @@ public final class HunterArrowRainExecutor extends PlayerActiveSkillExecutor {
         );
         context.services().projectiles().launchBallisticWithTermination(
                 context.player(), context.eyeLocation(), opening,
-                (target, impact) -> context.services().combat().hit(
-                        context.attacker(), target, AttackType.RANGED, DamageElement.NONE, openingDamageRatio
+                (target, impact) -> context.services().combat().hitWithShieldBreakRatio(
+                        context.attacker(), target, AttackType.RANGED, DamageElement.NONE,
+                        openingDamageRatio, SHIELD_BREAK_DAMAGE_RATIO
                 ),
                 termination -> {
                     if (termination.type() == SkillProjectileTermination.Type.ENTITY
@@ -144,8 +146,9 @@ public final class HunterArrowRainExecutor extends PlayerActiveSkillExecutor {
                 volley,
                 ARROWS_PER_TICK,
                 openingImpactY,
-                (target, impact) -> context.services().combat().hit(
-                        context.attacker(), target, AttackType.RANGED, DamageElement.NONE, rainDamageRatio
+                (target, impact) -> context.services().combat().hitWithShieldBreakRatio(
+                        context.attacker(), target, AttackType.RANGED, DamageElement.NONE,
+                        rainDamageRatio, SHIELD_BREAK_DAMAGE_RATIO
                 ),
                 termination -> {
                     if (termination.type() == SkillProjectileTermination.Type.BLOCK) {

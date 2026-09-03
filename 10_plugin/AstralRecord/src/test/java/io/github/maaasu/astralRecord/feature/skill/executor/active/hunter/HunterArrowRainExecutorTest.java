@@ -119,8 +119,9 @@ class HunterArrowRainExecutorTest {
         AstEntity target = AstEntity.bukkit(mock(Entity.class));
         Location impact = new Location(world, 7.0D, 64.0D, 8.0D);
         openingHit.getValue().accept(target, impact);
-        verify(combat).hit(
-                any(AstEntity.class), same(target), eq(AttackType.RANGED), eq(DamageElement.NONE), eq(0.84D)
+        verify(combat).hitWithShieldBreakRatio(
+                any(AstEntity.class), same(target), eq(AttackType.RANGED), eq(DamageElement.NONE),
+                eq(0.84D), eq(HunterArrowRainExecutor.SHIELD_BREAK_DAMAGE_RATIO)
         );
 
         openingTermination.getValue().accept(new SkillProjectileTermination(
@@ -142,8 +143,9 @@ class HunterArrowRainExecutorTest {
         assertTrue(volley.getValue().stream().allMatch(launch -> launch.spec().gravityPerTick() > 0.0D));
 
         rainHit.getValue().accept(target, impact);
-        verify(combat).hit(
-                any(AstEntity.class), same(target), eq(AttackType.RANGED), eq(DamageElement.NONE), eq(0.36D)
+        verify(combat).hitWithShieldBreakRatio(
+                any(AstEntity.class), same(target), eq(AttackType.RANGED), eq(DamageElement.NONE),
+                eq(0.36D), eq(HunterArrowRainExecutor.SHIELD_BREAK_DAMAGE_RATIO)
         );
 
         Location blockFace = new Location(world, 12.0D, 66.0D, 8.0D);

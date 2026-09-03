@@ -132,6 +132,35 @@ public final class SkillCombatService {
     }
 
     /**
+     * 攻撃者のシールドブレイク値に対する比率を、この一撃のシールドダメージとして適用します。
+     *
+     * @param attacker 発動者
+     * @param target 対象
+     * @param attackType 攻撃種別
+     * @param element 属性
+     * @param ratio HPダメージ倍率
+     * @param shieldBreakRatio 攻撃者のシールドブレイク値へ乗算する比率
+     * @return 実際に適用したHP・シールドダメージ
+     */
+    public @NotNull DamageResult hitWithShieldBreakRatio(
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity target,
+            @NotNull AttackType attackType,
+            @NotNull DamageElement element,
+            double ratio,
+            double shieldBreakRatio
+    ) {
+        return damageService.attackWithShieldBreakRatio(
+                attacker,
+                target,
+                attackType,
+                List.of(new DamageComponent(element, ratio)),
+                DamageSource.SKILL,
+                shieldBreakRatio
+        );
+    }
+
+    /**
      * プレイヤーの現在シールドを既存回復規則で回復し、実際の増加量を返します。
      *
      * @param target 回復対象プレイヤー

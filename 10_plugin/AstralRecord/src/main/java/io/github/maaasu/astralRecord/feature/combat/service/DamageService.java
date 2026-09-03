@@ -517,6 +517,42 @@ public final class DamageService {
     }
 
     /**
+     * 攻撃者のシールドブレイク値に対する比率を、この一撃のシールドダメージとして適用します。
+     * HPダメージの計算は通常の攻撃経路を維持し、シールドダメージだけを指定比率で置き換えます。
+     *
+     * @param attacker 攻撃者
+     * @param victim 被弾者
+     * @param attackType 攻撃種別
+     * @param components 属性別の攻撃倍率
+     * @param source 発生元
+     * @param shieldBreakRatio 攻撃者のシールドブレイク値へ乗算する比率
+     * @return 実際に適用したHP・シールドダメージ
+     */
+    public @NotNull DamageResult attackWithShieldBreakRatio(
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> components,
+            @NotNull DamageSource source,
+            double shieldBreakRatio
+    ) {
+        return applyDamage(
+                attacker,
+                victim,
+                0.0D,
+                attackType,
+                components,
+                DamageScaling.ATTACKER_STATUS,
+                source,
+                1.0D,
+                1.0D,
+                SuperStarCriticalMode.ROLL,
+                0.0D,
+                shieldBreakRatio
+        );
+    }
+
+    /**
      * 攻撃者のステータスを使い、この一撃だけ命中補正を加えて攻撃ダメージを適用します。
      * ダメージ倍率、会心、防御、属性などの通常の攻撃計算は維持します。
      *
@@ -547,7 +583,8 @@ public final class DamageService {
                 1.0D,
                 1.0D,
                 SuperStarCriticalMode.ROLL,
-                attackerAccuracyBonus
+                attackerAccuracyBonus,
+                null
         );
     }
 
@@ -755,7 +792,8 @@ public final class DamageService {
                 attackerDamageMultiplier,
                 shieldBreakMultiplier,
                 superStarCriticalMode,
-                0.0D
+                0.0D,
+                null
         );
     }
 
@@ -787,7 +825,8 @@ public final class DamageService {
             double attackerDamageMultiplier,
             double shieldBreakMultiplier,
             @NotNull SuperStarCriticalMode superStarCriticalMode,
-            double attackerAccuracyBonus
+            double attackerAccuracyBonus,
+            @Nullable Double shieldBreakRatio
     ) {
         if (dungeonService != null && !dungeonService.canApplyCombatDamage(attacker, victim)) {
             return new DamageResult(0.0D);
@@ -854,11 +893,11 @@ public final class DamageService {
         completeShieldRechargeIfReady(victim, rechargeEventAtMs);
         boolean shieldWasActive = hasActiveShield(victim);
         if (bastionStrikeSkillRuntimeService != null
-                && shieldWouldBreak(attacker, victim, calculated, shieldBreakMultiplier)
+                && shieldWouldBreak(attacker, victim, calculated, shieldBreakMultiplier, shieldBreakRatio)
                 && bastionStrikeSkillRuntimeService.tryNegateShieldBreakingDirectDamage(victim, source)) {
             return new DamageResult(0.0D);
         }
-        DamageResult result = applyShieldDamage(attacker, victim, calculated, shieldBreakMultiplier);
+        DamageResult result = applyShieldDamage(attacker, victim, calculated, shieldBreakMultiplier, shieldBreakRatio);
         if (!shieldWasActive && isDirectDamage(source) && !result.evaded()) {
             result = result.withAddedFixedHealthDamage(fixedHealthDamage(attacker));
         }
@@ -1067,7 +1106,8 @@ public final class DamageService {
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim,
             @NotNull DamageResult result,
-            double shieldBreakMultiplier
+            double shieldBreakMultiplier,
+            @Nullable Double shieldBreakRatio
     ) {
         if (result.finalDamage() <= 0.0D || !hasActiveShield(victim)) {
             return result;
@@ -1075,13 +1115,15 @@ public final class DamageService {
 
         double shieldBreak = attacker == null ? 0.0D : Math.max(0.0D, attacker.statValue(StatusType.SHIELD_BREAK));
         double currentShield = currentShield(victim);
-        double shieldDamage = calculateShieldDamage(
-                result.finalDamage(),
-                victim.maxHealth(),
-                shieldBreak,
-                shieldBreakMultiplier,
-                currentShield
-        );
+        double shieldDamage = shieldBreakRatio == null
+                ? calculateShieldDamage(
+                        result.finalDamage(),
+                        victim.maxHealth(),
+                        shieldBreak,
+                        shieldBreakMultiplier,
+                        currentShield
+                )
+                : calculateShieldDamageFromBreakRatio(shieldBreak, shieldBreakRatio, currentShield);
         boolean shieldBroken = currentShield > 0.0D && currentShield - shieldDamage <= 0.0D;
         consumeShield(victim, shieldDamage);
         return DamageResult.shield(shieldDamage, shieldBroken, result);
@@ -1091,20 +1133,23 @@ public final class DamageService {
             @Nullable AstEntity attacker,
             @NotNull AstEntity victim,
             @NotNull DamageResult result,
-            double shieldBreakMultiplier
+            double shieldBreakMultiplier,
+            @Nullable Double shieldBreakRatio
     ) {
         if (result.finalDamage() <= 0.0D || !hasActiveShield(victim)) {
             return false;
         }
         double currentShield = currentShield(victim);
         double shieldBreak = attacker == null ? 0.0D : Math.max(0.0D, attacker.statValue(StatusType.SHIELD_BREAK));
-        double shieldDamage = calculateShieldDamage(
-                result.finalDamage(),
-                victim.maxHealth(),
-                shieldBreak,
-                shieldBreakMultiplier,
-                currentShield
-        );
+        double shieldDamage = shieldBreakRatio == null
+                ? calculateShieldDamage(
+                        result.finalDamage(),
+                        victim.maxHealth(),
+                        shieldBreak,
+                        shieldBreakMultiplier,
+                        currentShield
+                )
+                : calculateShieldDamageFromBreakRatio(shieldBreak, shieldBreakRatio, currentShield);
         return currentShield > 0.0D && currentShield - shieldDamage <= 0.0D;
     }
 
@@ -1124,6 +1169,26 @@ public final class DamageService {
         );
         double calculated = (baseShieldDamage + Math.max(0.0D, shieldBreak))
                 * Math.max(0.0D, shieldBreakMultiplier);
+        return Math.min(Math.max(0.0D, currentShield), calculated);
+    }
+
+    /**
+     * 攻撃者のシールドブレイク値に比率を乗算した一撃分のシールドダメージを返します。
+     *
+     * @param shieldBreak 攻撃者のシールドブレイク値
+     * @param shieldBreakRatio シールドブレイク値へ乗算する比率
+     * @param currentShield 対象の現在Shield
+     * @return 最小値1および現在Shield上限を反映したシールドダメージ
+     */
+    static double calculateShieldDamageFromBreakRatio(
+            double shieldBreak,
+            double shieldBreakRatio,
+            double currentShield
+    ) {
+        double calculated = Math.max(
+                1.0D,
+                Math.max(0.0D, shieldBreak) * Math.max(0.0D, shieldBreakRatio)
+        );
         return Math.min(Math.max(0.0D, currentShield), calculated);
     }
 

@@ -140,6 +140,41 @@ class DamageServiceShieldBreakMultiplierTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 17. ハンター アローレインの実装契約
+     * 検証契約: アローレインの一撃はHP換算値やシールドブレイク加算を使わず、SHIELD_BREAKの10分の1を最低1としてShieldへ適用する。
+     */
+    @Test
+    void shieldBreakRatioUsesOneTenthOfAttackerValueWithMinimumOne() {
+        AstPlayer attacker = attacker(100.0D, 25.0D);
+        DamageHarness harness = damageHarness(new DamageCalculator(() -> 0.0D, () -> 100.0D));
+        MobInstance mob = shieldedMob(100.0D);
+        when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
+
+        DamageResult result = harness.service.attackWithShieldBreakRatio(
+                AstEntity.player(attacker), AstEntity.mob(mob), AttackType.RANGED,
+                List.of(DamageComponent.defaultComponent()), DamageSource.SKILL, 0.1D
+        );
+
+        assertEquals(2.5D, result.shieldDamage(), 0.0001D);
+        assertEquals(97.5D, mob.currentShield(), 0.0001D);
+        assertEquals(100.0D, mob.currentHealth(), 0.0001D);
+
+        AstPlayer lowBreakAttacker = attacker(100.0D, 5.0D);
+        DamageHarness minimumHarness = damageHarness(new DamageCalculator(() -> 0.0D, () -> 100.0D));
+        MobInstance minimumMob = shieldedMob(100.0D);
+        when(minimumHarness.statusService.getStatus(lowBreakAttacker)).thenReturn(lowBreakAttacker.getStatusSnapshot());
+
+        DamageResult minimumResult = minimumHarness.service.attackWithShieldBreakRatio(
+                AstEntity.player(lowBreakAttacker), AstEntity.mob(minimumMob), AttackType.RANGED,
+                List.of(DamageComponent.defaultComponent()), DamageSource.SKILL, 0.1D
+        );
+
+        assertEquals(1.0D, minimumResult.shieldDamage(), 0.0001D);
+        assertEquals(99.0D, minimumMob.currentShield(), 0.0001D);
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
      * 章・見出し: # 14_3-サービス > ## 1. damage 計算
      * 検証契約: 回避された専用hitは3倍指定があっても被弾者のHP・Shieldを変更しない。
