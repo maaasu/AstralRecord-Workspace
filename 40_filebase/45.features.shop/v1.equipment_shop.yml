@@ -59,6 +59,57 @@ items:
           ref: item:nox_moonshadow_stone
         category: material
         amount: 1
+  - id: sun_crown_sword
+    itemId:
+      ref: item:sun_crown_sword
+    category: equipment
+    amount: 1
+    page: 2
+    slot: 7
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:sunbird_crown_feather
+        category: material
+        amount: 55
+      - itemId:
+          ref: item:sunbird_solar_core
+        category: material
+        amount: 3
+  - id: sun_crown_bow
+    itemId:
+      ref: item:sun_crown_bow
+    category: equipment
+    amount: 1
+    page: 2
+    slot: 9
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:sunbird_crown_feather
+        category: material
+        amount: 55
+      - itemId:
+          ref: item:sunbird_solar_core
+        category: material
+        amount: 3
+  - id: sun_crown_staff
+    itemId:
+      ref: item:sun_crown_staff
+    category: equipment
+    amount: 1
+    page: 2
+    slot: 11
+    priceGold: 0
+    requiredItems:
+      - itemId:
+          ref: item:sunbird_crown_feather
+        category: material
+        amount: 55
+      - itemId:
+          ref: item:sunbird_solar_core
+        category: material
+        amount: 3
   - id: midgard_clay_guardian_plate
     itemId:
       ref: item:midgard_clay_guardian_plate
