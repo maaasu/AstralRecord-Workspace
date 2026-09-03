@@ -63,6 +63,7 @@ Plugin は各 guide の全未達成 step をイベントごとに評価します
 | type | targetId / targetIds | 達成タイミング |
 |:--|:--|:--|
 | `PLAYER_LOGGED_IN` | 使用しない | ゲームプレイ状態でログインしたとき |
+| `GUIDE_OPENED` | 使用しない | ガイド一覧を開いたとき |
 | `LOGIN_BONUS_CLAIMED` | 使用しない | ログインボーナスを受け取ったとき |
 | `MAIL_RECEIVED` | mail ID | メールを既読化し、報酬受取が成功したとき |
 | `BUNDLE_OPENED` | bundle item ID | bundle を開封して報酬付与が成功したとき |

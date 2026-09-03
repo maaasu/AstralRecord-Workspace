@@ -101,6 +101,21 @@ public enum PlayerMsgId {
      * 金曜日のログインボーナスを既存のストレージ entry へ格納した通知。{0}: アイテム表示名、{1}: 格納数量
      */
     P_5078(5078),
+    /**
+     * 初参加者へガイドを開くよう促す title。
+     */
+    P_5079(5079),
+    // endregion
+
+    // region /feature/player/event/PlayerJoinEventHandler.java 5083-5084
+    /**
+     * 本サーバーの利用規約確認を促す参加時案内。
+     */
+    P_5083(5083),
+    /**
+     * 同一IPに登録済みの他ユーザーがいる場合の監視案内。
+     */
+    P_5084(5084),
     // endregion
 
     // region /feature/player/death 5080-5089

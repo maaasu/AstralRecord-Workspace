@@ -36,6 +36,11 @@ public class GuideService {
     private static final long PROGRESS_RETRY_DELAY_TICKS = 100L;
     private static final Pattern REFERENCE_PATTERN = Pattern.compile("\\{([a-zA-Z_]+):([^}]+)}");
 
+    /** 初参加者へ案内する導入ガイドの ID。 */
+    public static final String INITIAL_GUIDE_ID = "beginner_onboarding";
+    /** 導入ガイドを初めて開いたことを記録する step ID。 */
+    public static final String INITIAL_GUIDE_OPEN_STEP_ID = "open_guide";
+
     private final AstralRecord plugin;
     private final GuideRepository repository;
     private final GuideProgressRepository progressRepository;
@@ -48,6 +53,7 @@ public class GuideService {
     private final Map<UUID, Long> progressGenerations = new ConcurrentHashMap<>();
     private final Map<UUID, Long> loadingGenerations = new ConcurrentHashMap<>();
     private final Map<UUID, List<GuideConditionEvent>> pendingConditionsByAccount = new ConcurrentHashMap<>();
+    private final Set<UUID> initialGuideOpenedAccounts = ConcurrentHashMap.newKeySet();
 
     /**
      * ガイドマスターとアカウント進行を扱うサービスを生成します。
@@ -178,6 +184,7 @@ public class GuideService {
         completedStepsByAccount.remove(accountId);
         loadingGenerations.remove(accountId);
         pendingConditionsByAccount.remove(accountId);
+        initialGuideOpenedAccounts.remove(accountId);
     }
 
     /**
@@ -203,6 +210,29 @@ public class GuideService {
     public boolean isStepCompleted(@Nullable UUID accountId, @NotNull String guideId, @NotNull String stepId) {
         Set<GuideStepKey> completed = accountId == null ? null : completedStepsByAccount.get(accountId);
         return completed != null && completed.contains(new GuideStepKey(guideId, stepId));
+    }
+
+    /**
+     * 導入ガイドを開いたことが確認済みか判定します。
+     * <p>
+     * 進行ロード中に開いた場合は pending event も確認するため、ロード完了前に title が再表示されません。
+     *
+     * @param accountId アカウント ID
+     * @return 導入ガイド開封済みなら true
+     */
+    public boolean isInitialGuideOpened(@Nullable UUID accountId) {
+        if (accountId == null) {
+            return false;
+        }
+        if (initialGuideOpenedAccounts.contains(accountId)) {
+            return true;
+        }
+        if (isStepCompleted(accountId, INITIAL_GUIDE_ID, INITIAL_GUIDE_OPEN_STEP_ID)) {
+            return true;
+        }
+        List<GuideConditionEvent> pending = pendingConditionsByAccount.get(accountId);
+        return pending != null && pending.stream()
+            .anyMatch(event -> event.type() == GuideConditionType.GUIDE_OPENED);
     }
 
     /**
@@ -247,6 +277,9 @@ public class GuideService {
         boolean notifyPlayer
     ) {
         UUID accountId = player.getAccount().getUuid();
+        if (eventType == GuideConditionType.GUIDE_OPENED) {
+            initialGuideOpenedAccounts.add(accountId);
+        }
         Set<GuideStepKey> completed = completedStepsByAccount.get(accountId);
         if (completed == null) {
             pendingConditionsByAccount.computeIfAbsent(accountId, ignored -> new java.util.concurrent.CopyOnWriteArrayList<>())

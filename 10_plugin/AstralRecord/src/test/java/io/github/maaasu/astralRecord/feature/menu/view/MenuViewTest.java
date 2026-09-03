@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.menu.view;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.currency.view.CurrencyGuiView;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.menu.model.MenuScreen;
@@ -10,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.menu.model.MenuShortcutSettings;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerEquipmentSnapshot;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerGuiRenderContext;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Material;
@@ -23,12 +25,14 @@ import net.kyori.adventure.text.Component;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.UUID;
 import java.util.stream.IntStream;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -55,6 +59,31 @@ class MenuViewTest extends MockBukkitTestBase {
         menuView.openCurrency(player, List.of(), 0, true);
         Inventory unlockedInventory = player.getOpenInventory().getTopInventory();
         assertEquals(Material.EMERALD, unlockedInventory.getItem(51).getType());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-GUI・View.md
+     * 章・見出し: # 09_3-GUI・View > ## 1. menu facade
+     * 検証契約: ガイド一覧を開く入口は GUIDE_OPENED を記録し、参加時案内 title を解除する。
+     */
+    @Test
+    void openingGuideRecordsGuideOpenedCondition() {
+        GuideService guideService = mock(GuideService.class);
+        MenuView menuView = createMenuView(guideService);
+        Player player = server().addPlayer();
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(UUID.randomUUID());
+
+        try (var cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+
+            menuView.openGuide(player);
+
+            verify(guideService).recordCondition(astPlayer, GuideConditionType.GUIDE_OPENED, null);
+        }
+        assertEquals(MenuScreen.GUIDE, menuView.getMenuScreen(player.getOpenInventory().getTopInventory()));
     }
 
     /**
@@ -185,10 +214,14 @@ class MenuViewTest extends MockBukkitTestBase {
     }
 
     private MenuView createMenuView() {
+        return createMenuView(mock(GuideService.class));
+    }
+
+    private MenuView createMenuView(GuideService guideService) {
         AstralRecord plugin = mock(AstralRecord.class);
         when(plugin.namespace()).thenReturn("astralrecord");
         when(plugin.getItemService()).thenReturn(mock(ItemService.class));
-        return new MenuView(plugin, mock(GuideService.class));
+        return new MenuView(plugin, guideService);
     }
 
     private static PlayerGuiRenderContext emptyRenderContext() {

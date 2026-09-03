@@ -17,6 +17,38 @@ class GuideProgressEvaluatorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
      * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
+     * 検証契約: GUIDE_OPENED の対象なし条件はガイド開封イベントと一致した未達成手順を達成対象にする。
+     */
+    @Test
+    void evaluateAcceptsGuideOpenedCondition() {
+        GuideEntry guide = new GuideEntry(
+            3,
+            "beginner_onboarding",
+            "beginner",
+            10,
+            "onboarding",
+            null,
+            null,
+            List.of(new GuideStep(
+                "open_guide",
+                "open guide",
+                List.of(),
+                new GuideCondition(GuideConditionType.GUIDE_OPENED, null),
+                null
+            ))
+        );
+
+        assertEquals(List.of("open_guide"), ids(GuideProgressEvaluator.evaluate(
+            guide,
+            Set.of(),
+            GuideConditionType.GUIDE_OPENED,
+            null
+        )));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 8. ガイド進捗評価
      * 検証契約: 表示順に関係なく、条件を満たした未達成 step を達成対象にする。
      */
     @Test

@@ -322,6 +322,14 @@ public enum LogId {
      * BAN情報の更新に失敗しました (API): %s
      */
     E_5062(5062),
+    /**
+     * 同一IPの別ユーザー有無を確認しました (API): hasOther=%s
+     */
+    D_5064(5064),
+    /**
+     * 同一IPの別ユーザー有無の確認に失敗しました (API): %s
+     */
+    E_5064(5064),
     // endregion
 
     // region /feature/user/service/UserService.java
@@ -337,6 +345,10 @@ public enum LogId {
      * ユーザー取得をスキップしました（API一時障害）: %s (%s)
      */
     W_5052(5052),
+    /**
+     * 同一IPユーザーの確認をスキップしました（API一時障害）: %s (%s)
+     */
+    W_5053(5053),
     /**
      * MCID補完の取得に失敗したため、直前の候補を使用します: prefix=%s, reason=%s
      */

@@ -10,6 +10,8 @@ import java.util.Locale;
 public enum GuideConditionType {
     /** プレイヤーがゲームプレイ状態でログインした。 */
     PLAYER_LOGGED_IN,
+    /** ガイドを開いた。 */
+    GUIDE_OPENED,
     /** ログインボーナスを受け取った。 */
     LOGIN_BONUS_CLAIMED,
     /** メールを既読化して報酬を受け取った。 */

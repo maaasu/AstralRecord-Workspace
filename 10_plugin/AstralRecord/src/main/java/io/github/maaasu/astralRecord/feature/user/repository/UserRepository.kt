@@ -152,6 +152,42 @@ class UserRepository {
         }
     }
 
+    /**
+     * グローバル IP が一致する参加者以外の登録済みユーザーの有無を確認します。
+     * GET /api/user/by-ip?globalIp={globalIp}&excludeUuid={uuid}
+     */
+    fun hasOtherByGlobalIp(uuid: UUID, globalIp: String): Boolean {
+        val normalizedIp = globalIp.trim()
+        if (normalizedIp.isEmpty()) {
+            return false
+        }
+        val encodedIp = URLEncoder.encode(normalizedIp, StandardCharsets.UTF_8)
+        val path = "/api/user/by-ip?globalIp=$encodedIp&excludeUuid=$uuid"
+        val endpoint = "/api/user/by-ip"
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                if (response.statusCode() !in 200..299) {
+                    throw IOException("Unexpected status ${response.statusCode()} for GET $endpoint")
+                }
+
+                val hasOtherUser = JsonParser.parseString(response.body()).asBoolean
+                Logger.log(LogId.D_5064, hasOtherUser)
+                return hasOtherUser
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            val reason = e.javaClass.simpleName
+            Logger.log(LogId.E_5064, reason)
+            throw RuntimeException(e)
+        } catch (e: Exception) {
+            val reason = e.javaClass.simpleName
+            Logger.log(LogId.E_5064, reason)
+            throw e
+        }
+    }
+
     // -------------------------------------------------------
     // INSERT
     // -------------------------------------------------------

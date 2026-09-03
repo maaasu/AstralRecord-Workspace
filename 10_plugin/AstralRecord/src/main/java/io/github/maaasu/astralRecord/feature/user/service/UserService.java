@@ -10,7 +10,9 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentHashMap;
 
 /**
  * ユーザー機能のビジネスロジックを担うサービスクラス。
@@ -20,6 +22,7 @@ public class UserService {
 
     private final UserRepository userRepository;
     private final AccountService accountService;
+    private final Map<UUID, Boolean> pendingSameIpUsers = new ConcurrentHashMap<>();
 
     public UserService(UserRepository userRepository, AccountService accountService) {
         this.userRepository = userRepository;
@@ -51,11 +54,13 @@ public class UserService {
             } catch (Exception e) {
                 Logger.log(LogId.W_5051, mcid, e.getMessage());
             }
+            pendingSameIpUsers.put(uuid, hasOtherUsersByGlobalIp(uuid, mcid, globalIp));
         } else {
             if (isActiveBan(existing, LocalDateTime.now())) {
                 return false;
             }
 
+            pendingSameIpUsers.put(uuid, hasOtherUsersByGlobalIp(uuid, mcid, globalIp));
             // user.accountId を選択状態の正とし、不整合時のみアクティブアカウントへフォールバックする
             AccountModel selectedAccount = accountService.getSelectedAccount(uuid, existing.getAccountId());
             if (selectedAccount != null) {
@@ -67,6 +72,25 @@ public class UserService {
             }
         }
         return true;
+    }
+
+    /**
+     * 接続前処理で確認した同一IPの別ユーザー有無を一度だけ取り出します。
+     *
+     * @param uuid 参加したプレイヤー UUID
+     * @return 参加者本人以外の同一IPユーザーが存在する場合は true
+     */
+    public boolean consumePendingSameIpUser(UUID uuid) {
+        return Boolean.TRUE.equals(pendingSameIpUsers.remove(uuid));
+    }
+
+    private boolean hasOtherUsersByGlobalIp(UUID uuid, String mcid, String globalIp) {
+        try {
+            return userRepository.hasOtherByGlobalIp(uuid, globalIp);
+        } catch (Exception e) {
+            Logger.log(LogId.W_5053, mcid, e.getClass().getSimpleName());
+            return false;
+        }
     }
 
     /**

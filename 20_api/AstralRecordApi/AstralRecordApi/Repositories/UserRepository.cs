@@ -47,6 +47,17 @@ public class UserRepository(
             .ToListAsync();
     }
 
+    public async Task<bool> HasOtherByGlobalIpAsync(string globalIp, Guid excludingUuid)
+    {
+        var normalizedIp = globalIp.Trim();
+        if (normalizedIp.Length == 0)
+            return false;
+
+        return await dbContext.Users
+            .AsNoTracking()
+            .AnyAsync(x => !x.IsDeleted && x.Uuid != excludingUuid && x.GlobalIp == normalizedIp);
+    }
+
     public async Task<UserResponse> CreateAsync(UserCreateRequest request)
     {
         var now = DateTime.UtcNow;

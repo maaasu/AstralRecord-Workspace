@@ -2,13 +2,17 @@ package io.github.maaasu.astralRecord.feature.player.event;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
+import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryState;
 import io.github.maaasu.astralRecord.feature.loginbonus.service.LoginBonusService;
 import io.github.maaasu.astralRecord.feature.mail.service.MailService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
+import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestPlayerState;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillBindPresetService;
@@ -17,6 +21,8 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerStat
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
+import net.kyori.adventure.title.Title;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Server;
@@ -28,6 +34,7 @@ import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.MockedStatic;
 import org.mockito.InOrder;
 
@@ -51,6 +58,7 @@ import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -579,6 +587,263 @@ class PlayerJoinEventHandlerTest {
             verify(movementSpeed).setBaseValue(0.0D);
             verify(movementSpeed, never()).setBaseValue(0.1D);
             assertEquals(0.42D, jumpStrengthBase.get(), 0.0001D);
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
+     * 検証契約: 通常参加の成功後に利用規約案内・同IP警告・初回ガイドtitleを表示し、ガイド開封後にtitle taskを停止する。
+     */
+    @Test
+    void normalJoinSendsJoinNoticesAndStopsInitialGuideTitleAfterOpening() {
+        SuccessfulJoinFixture fixture = successfulJoinFixture(true);
+        when(fixture.guideService.isInitialGuideOpened(fixture.accountId)).thenReturn(false, true);
+
+        try (MockedStatic<AstralRecord> pluginInstance = mockStatic(AstralRecord.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            pluginInstance.when(AstralRecord::getInstance).thenReturn(fixture.plugin);
+            cache.when(() -> AstPlayerCache.get(fixture.player)).thenReturn(fixture.astPlayer);
+            bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+
+            runNormalJoin(fixture);
+
+            verify(fixture.messageService).send(fixture.astPlayer, PlayerMsgId.P_5083);
+            verify(fixture.messageService).send(fixture.astPlayer, PlayerMsgId.P_5084);
+            ArgumentCaptor<Title> titleCaptor = ArgumentCaptor.forClass(Title.class);
+            verify(fixture.player).showTitle(titleCaptor.capture());
+            assertEquals(
+                "§e/guide",
+                LegacyComponentSerializer.legacySection().serialize(titleCaptor.getValue().title())
+            );
+
+            assertEquals(2, fixture.repeatingTasks.size());
+            fixture.repeatingTasks.get(1).run();
+            verify(fixture.repeatingTaskHandles.get(1)).cancel();
+            verify(fixture.player, times(2)).clearTitle();
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
+     * 検証契約: 同IPユーザーが存在しない通常参加では、利用規約案内だけを送信し同IP警告を送信しない。
+     */
+    @Test
+    void normalJoinWithoutSameIpUserDoesNotSendSameIpWarning() {
+        SuccessfulJoinFixture fixture = successfulJoinFixture(false);
+
+        try (MockedStatic<AstralRecord> pluginInstance = mockStatic(AstralRecord.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            pluginInstance.when(AstralRecord::getInstance).thenReturn(fixture.plugin);
+            cache.when(() -> AstPlayerCache.get(fixture.player)).thenReturn(fixture.astPlayer);
+            bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+
+            runNormalJoin(fixture);
+
+            verify(fixture.messageService).send(fixture.astPlayer, PlayerMsgId.P_5083);
+            verify(fixture.messageService, never()).send(fixture.astPlayer, PlayerMsgId.P_5084);
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
+     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### アカウント切替
+     * 検証契約: アカウント切替では通常参加向けの利用規約案内・同IP警告・初回ガイドtitleを送信しない。
+     */
+    @Test
+    void accountSwitchDoesNotSendJoinNoticesOrInitialGuideTitle() {
+        SuccessfulJoinFixture fixture = successfulJoinFixture(true);
+        AtomicBoolean completed = new AtomicBoolean();
+
+        try (MockedStatic<AstralRecord> pluginInstance = mockStatic(AstralRecord.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            pluginInstance.when(AstralRecord::getInstance).thenReturn(fixture.plugin);
+            cache.when(() -> AstPlayerCache.contains(fixture.playerUuid)).thenReturn(false);
+            cache.when(() -> AstPlayerCache.get(fixture.player)).thenReturn(fixture.astPlayer);
+            bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+
+            fixture.handler.reloadAccount(fixture.player, fixture.account, completed::set);
+            fixture.delayedTasks.getFirst().run();
+
+            assertTrue(completed.get());
+            verify(fixture.messageService, never()).send(fixture.astPlayer, PlayerMsgId.P_5083);
+            verify(fixture.messageService, never()).send(fixture.astPlayer, PlayerMsgId.P_5084);
+            verify(fixture.guideService, never()).isInitialGuideOpened(fixture.accountId);
+            verify(fixture.player, never()).showTitle(any(Title.class));
+        }
+    }
+
+    private void runNormalJoin(SuccessfulJoinFixture fixture) {
+        fixture.handler.onPlayerJoin(fixture.joinEvent);
+        fixture.delayedTasks.get(0).run();
+        fixture.delayedTasks.get(1).run();
+        fixture.delayedTasks.get(2).run();
+    }
+
+    private SuccessfulJoinFixture successfulJoinFixture(boolean hasSameIpUser) {
+        UUID playerUuid = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        AstralRecord plugin = mock(AstralRecord.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        PlayerService playerService = mock(PlayerService.class);
+        SkillTreeService skillTreeService = mock(SkillTreeService.class);
+        QuestService questService = mock(QuestService.class);
+        SkillBindPresetService skillBindPresetService = mock(SkillBindPresetService.class);
+        LearnedSkillService learnedSkillService = mock(LearnedSkillService.class);
+        LoginBonusService loginBonusService = mock(LoginBonusService.class);
+        MailService mailService = mock(MailService.class);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+        GuideService guideService = mock(GuideService.class);
+        PlayerClassService playerClassService = mock(PlayerClassService.class);
+        Player player = player(playerUuid, "join-notice");
+        PlayerJoinEvent joinEvent = mock(PlayerJoinEvent.class);
+        UserModel user = mock(UserModel.class);
+        AccountModel account = mock(AccountModel.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        PlayerService.PlayerJoinInventoryState inventoryState = new PlayerService.PlayerJoinInventoryState(
+            mock(PlayerInventoryState.class),
+            null
+        );
+        PlayerService.PlayerJoinApplication playerApplication = mock(PlayerService.PlayerJoinApplication.class);
+        SkillTreePlayerState skillTreeState = mock(SkillTreePlayerState.class);
+        QuestService.InitialState questState = new QuestService.InitialState(
+            accountId,
+            1L,
+            0L,
+            new QuestPlayerState(accountId, Map.of(), Map.of(), Map.of())
+        );
+        AttributeInstance movementSpeed = mock(AttributeInstance.class);
+        AttributeInstance jumpStrength = mock(AttributeInstance.class);
+        List<Runnable> delayedTasks = new ArrayList<>();
+        List<Runnable> repeatingTasks = new ArrayList<>();
+        List<BukkitTask> repeatingTaskHandles = new ArrayList<>();
+
+        when(plugin.getServer()).thenReturn(server);
+        when(plugin.getPlayerMessageService()).thenReturn(messageService);
+        when(plugin.getPlayerClassService()).thenReturn(playerClassService);
+        when(plugin.getLogger()).thenReturn(java.util.logging.Logger.getLogger(
+            PlayerJoinEventHandlerTest.class.getName()
+        ));
+        when(server.getScheduler()).thenReturn(scheduler);
+        when(server.getPlayer(playerUuid)).thenReturn(player);
+        when(joinEvent.getPlayer()).thenReturn(player);
+        when(player.isOnline()).thenReturn(true);
+        when(player.getAttribute(Attribute.MOVEMENT_SPEED)).thenReturn(movementSpeed);
+        when(player.getAttribute(Attribute.JUMP_STRENGTH)).thenReturn(jumpStrength);
+        when(movementSpeed.getBaseValue()).thenReturn(0.1D);
+        when(jumpStrength.getBaseValue()).thenReturn(0.42D);
+        when(user.getUuid()).thenReturn(playerUuid);
+        when(account.getUuid()).thenReturn(accountId);
+        when(account.getUserId()).thenReturn(playerUuid);
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(astPlayer.getBukkit()).thenReturn(player);
+        when(playerService.consumePendingSameIpUser(playerUuid)).thenReturn(hasSameIpUser);
+        when(playerService.loadPlayerJoinUser(playerUuid, "join-notice")).thenReturn(user);
+        when(playerService.loadPlayerJoinAccount(user, "join-notice")).thenReturn(account);
+        when(playerService.loadPlayerJoinInventoryState(account)).thenReturn(inventoryState);
+        when(skillTreeService.loadInitialPlayerState(eq(accountId), any())).thenReturn(skillTreeState);
+        when(questService.loadInitialState(accountId)).thenReturn(questState);
+        when(questService.applyInitialState(questState)).thenReturn(true);
+        when(skillBindPresetService.loadInitialPresets(accountId)).thenReturn(List.of());
+        when(learnedSkillService.loadInitialSkills(accountId)).thenReturn(List.of());
+        when(playerService.applyPlayerJoinTransactional(any(Player.class), any(PlayerService.PlayerJoinData.class)))
+            .thenReturn(playerApplication);
+        when(messageService.formatInteractivePlayerMessage(any(PlayerMsgId.class), any(String.class)))
+            .thenReturn(Component.empty());
+        doAnswer(invocation -> {
+            repeatingTasks.add(invocation.getArgument(1));
+            BukkitTask task = mock(BukkitTask.class);
+            repeatingTaskHandles.add(task);
+            return task;
+        }).when(scheduler).runTaskTimer(eq(plugin), any(Runnable.class), anyLong(), anyLong());
+        doAnswer(invocation -> {
+            delayedTasks.add(invocation.getArgument(1));
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTaskLaterAsynchronously(eq(plugin), any(Runnable.class), anyLong());
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
+        doAnswer(invocation -> mock(BukkitTask.class))
+            .when(scheduler).runTaskAsynchronously(eq(plugin), any(Runnable.class));
+
+        PlayerJoinEventHandler handler = new PlayerJoinEventHandler(
+            plugin,
+            playerService,
+            skillTreeService,
+            questService,
+            skillBindPresetService,
+            learnedSkillService,
+            loginBonusService,
+            mailService,
+            guideService,
+            null
+        );
+        return new SuccessfulJoinFixture(
+            plugin,
+            playerUuid,
+            player,
+            joinEvent,
+            account,
+            accountId,
+            astPlayer,
+            messageService,
+            guideService,
+            handler,
+            delayedTasks,
+            repeatingTasks,
+            repeatingTaskHandles
+        );
+    }
+
+    private static final class SuccessfulJoinFixture {
+        private final AstralRecord plugin;
+        private final UUID playerUuid;
+        private final Player player;
+        private final PlayerJoinEvent joinEvent;
+        private final AccountModel account;
+        private final UUID accountId;
+        private final AstPlayer astPlayer;
+        private final PlayerMessageService messageService;
+        private final GuideService guideService;
+        private final PlayerJoinEventHandler handler;
+        private final List<Runnable> delayedTasks;
+        private final List<Runnable> repeatingTasks;
+        private final List<BukkitTask> repeatingTaskHandles;
+
+        private SuccessfulJoinFixture(
+            AstralRecord plugin,
+            UUID playerUuid,
+            Player player,
+            PlayerJoinEvent joinEvent,
+            AccountModel account,
+            UUID accountId,
+            AstPlayer astPlayer,
+            PlayerMessageService messageService,
+            GuideService guideService,
+            PlayerJoinEventHandler handler,
+            List<Runnable> delayedTasks,
+            List<Runnable> repeatingTasks,
+            List<BukkitTask> repeatingTaskHandles
+        ) {
+            this.plugin = plugin;
+            this.playerUuid = playerUuid;
+            this.player = player;
+            this.joinEvent = joinEvent;
+            this.account = account;
+            this.accountId = accountId;
+            this.astPlayer = astPlayer;
+            this.messageService = messageService;
+            this.guideService = guideService;
+            this.handler = handler;
+            this.delayedTasks = delayedTasks;
+            this.repeatingTasks = repeatingTasks;
+            this.repeatingTaskHandles = repeatingTaskHandles;
         }
     }
 

@@ -52,6 +52,25 @@ public class UserController(IUserRepository userRepository) : ControllerBase
         return Ok(mcids);
     }
 
+    /// <summary>グローバル IP が一致する別の登録済みユーザーの有無を確認します。</summary>
+    /// <param name="globalIp">検索するグローバル IP</param>
+    /// <param name="excludeUuid">検索結果から除外する参加者 UUID</param>
+    /// <response code="200">別ユーザーの有無の確認成功</response>
+    /// <response code="400">グローバル IP または除外 UUID が未指定</response>
+    [HttpGet("by-ip")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> HasOtherByGlobalIp(
+        [FromQuery] string? globalIp,
+        [FromQuery] Guid? excludeUuid)
+    {
+        if (string.IsNullOrWhiteSpace(globalIp) || !excludeUuid.HasValue)
+            return BadRequest();
+
+        var hasOtherUser = await userRepository.HasOtherByGlobalIpAsync(globalIp, excludeUuid.Value);
+        return Ok(hasOtherUser);
+    }
+
     /// <summary>ユーザー登録</summary>
     /// <param name="request">登録するユーザー情報</param>
     /// <response code="201">ユーザー登録成功</response>

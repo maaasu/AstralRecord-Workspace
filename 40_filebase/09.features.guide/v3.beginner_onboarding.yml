@@ -16,6 +16,12 @@ steps:
       - "&7これを見れているということはすでに達成済みですね！おめでとうございます。"
     condition:
       type: PLAYER_LOGGED_IN
+  - id: open_guide
+    text: "&fガイドを開く"
+    details:
+      - "&7このガイドを確認するために、&e/guide&7を実行する。"
+    condition:
+      type: GUIDE_OPENED
   - id: claim_login_bonus
     text: "&fログインボーナスを受け取る"
     details:

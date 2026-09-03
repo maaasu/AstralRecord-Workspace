@@ -33,6 +33,7 @@
 | GET `/api/user/{uuid}` | ユーザー情報取得 | `00_docs/20_API設計書/feature/01-user/3-エンドポイント仕様/01_3.00-索引.md` |
 | GET `/api/user/mcid/{mcid}` | Minecraft ID 指定ユーザー情報取得 | `00_docs/20_API設計書/feature/01-user/3-エンドポイント仕様/01_3.00-索引.md` |
 | GET `/api/user/mcids?prefix={prefix}` | 参加履歴のある Minecraft ID 一覧取得 | `00_docs/20_API設計書/feature/01-user/3-エンドポイント仕様/01_3.00-索引.md` |
+| GET `/api/user/by-ip?globalIp={globalIp}&excludeUuid={uuid}` | 同一グローバルIPの別登録済みユーザー有無取得 | `00_docs/20_API設計書/feature/01-user/3-エンドポイント仕様/01_3.00-索引.md` |
 | POST `/api/user` | ユーザー作成 | `00_docs/20_API設計書/feature/01-user/3-エンドポイント仕様/01_3.00-索引.md` |
 | POST `/api/user/history` | ユーザー履歴登録 | `00_docs/20_API設計書/feature/01-user/3-エンドポイント仕様/01_3.04-履歴登録系.md` |
 | PUT `/api/user/{uuid}` | ユーザー情報更新 | `00_docs/20_API設計書/feature/01-user/3-エンドポイント仕様/01_3.00-索引.md` |

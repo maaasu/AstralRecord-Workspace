@@ -11,7 +11,7 @@
 - `openBuff` / `renderBuff`: バフ画面。
 - `openClass`: クラス画面。
 - `openCurrency`: 通貨画面。
-- `openGuide` / `openGuideDetail`: ガイド一覧・詳細。
+- `openGuide` / `openGuideDetail`: ガイド一覧・詳細。`openGuide(Player)` は `GuideConditionType.GUIDE_OPENED` を記録して title を解除し、ページ移動用 overload は開封イベントを再記録しない。
 - `openTrash` / `renderTrash` / `openTrashConfirm`: ゴミ箱。
 - `openSell` / `renderSell` / `openSellConfirm`: sell feature が利用する共通 view。
 - `openStorage` / `renderStorage`: storage feature が利用する共通 view。

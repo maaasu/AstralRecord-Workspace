@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.currency.view.CurrencyGuiView;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideEntry;
+import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideStep;
 import io.github.maaasu.astralRecord.feature.guide.service.GuideService;
 import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
@@ -277,6 +278,11 @@ public class MenuView {
     }
 
     public void openGuide(@NotNull Player player) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer != null) {
+            guideService.recordCondition(astPlayer, GuideConditionType.GUIDE_OPENED, null);
+        }
+        player.clearTitle();
         openGuide(player, 0);
     }
 

@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.user.service;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.user.model.SystemUser;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
@@ -82,6 +83,31 @@ class UserServiceBanTest {
 
         assertFalse(allowed);
         verify(accountService, never()).getSelectedAccount(playerUuid, user.getAccountId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/01-user/3-メソッド仕様/01_3-サービス.md
+     * 章・見出し: # 01_3-サービス > ## 1.サービスメソッド仕様 > ### ログイン前検証
+     * 検証契約: 接続前処理で取得した同一IPユーザー一覧は参加者本人を除外して保持し、参加処理側が一度だけ取得できる。
+     */
+    @Test
+    void queuesOtherUsersWithSameIpAndConsumesThemOnce() {
+        UUID playerUuid = UUID.randomUUID();
+        UserRepository userRepository = mock(UserRepository.class);
+        AccountService accountService = mock(AccountService.class);
+        UserModel player = createUser(playerUuid, false, null);
+        UserModel other = createUser(UUID.randomUUID(), false, null);
+        when(userRepository.findByUuidSilent(playerUuid)).thenReturn(player);
+        when(userRepository.hasOtherByGlobalIp(playerUuid, "203.0.113.10")).thenReturn(true);
+        when(accountService.getSelectedAccount(playerUuid, player.getAccountId()))
+                .thenReturn(mock(AccountModel.class));
+
+        UserService service = new UserService(userRepository, accountService);
+
+        assertTrue(service.onAsyncPreLogin(playerUuid, "Alice", "203.0.113.10"));
+
+        assertTrue(service.consumePendingSameIpUser(playerUuid));
+        assertFalse(service.consumePendingSameIpUser(playerUuid));
     }
 
     private UserModel createUser(UUID uuid, boolean banIndefinite, LocalDateTime banDate) {

@@ -129,6 +129,16 @@ public class PlayerService {
     }
 
     /**
+     * 接続前処理で確認した、参加者本人以外の同一IPユーザーの有無を取得して破棄します。
+     *
+     * @param playerUuid 参加したプレイヤー UUID
+     * @return 同一IPで登録済みの他ユーザーが存在する場合は true
+     */
+    public boolean consumePendingSameIpUser(@NotNull UUID playerUuid) {
+        return userService.consumePendingSameIpUser(playerUuid);
+    }
+
+    /**
      * プレイヤー参加時に使用する選択中アカウントを取得します。
      * <p>
      * API 通信を伴うため Bukkit メインスレッド外から呼び出してください。

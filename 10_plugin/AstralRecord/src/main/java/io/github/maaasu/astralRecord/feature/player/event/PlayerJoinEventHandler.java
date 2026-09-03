@@ -24,6 +24,7 @@ import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import net.kyori.adventure.text.Component;
 import net.kyori.adventure.title.Title;
 import org.bukkit.attribute.Attribute;
 import org.bukkit.attribute.AttributeInstance;
@@ -65,6 +66,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private static final long JOIN_START_SPACING_TICKS = 20L;
     private static final long JOIN_STEP_DELAY_TICKS = 10L;
     private static final long JOIN_LOADING_TITLE_INTERVAL_TICKS = 100L;
+    private static final long INITIAL_GUIDE_TITLE_INTERVAL_TICKS = 100L;
     private static final long JOIN_LOADING_RETRY_MILLIS = 500L;
 
     private final PlayerService playerService;
@@ -79,6 +81,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
     private final AstralRecord plugin;
     private final Map<UUID, JoinAttempt> joinAttempts = new ConcurrentHashMap<>();
     private final Map<UUID, LoadingControl> loadingControls = new ConcurrentHashMap<>();
+    private final Map<UUID, BukkitTask> initialGuideTitleTasks = new ConcurrentHashMap<>();
     private final AtomicLong joinAttemptSequence = new AtomicLong();
     private final AtomicLong nextJoinStartNanos = new AtomicLong();
     private Consumer<AstPlayer> playerLoadedListener = ignored -> { };
@@ -304,6 +307,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         UUID playerUuid = player.getUniqueId();
         String playerName = player.getName();
         JoinAttempt attempt = currentJoinAttempt(player);
+        stopInitialGuideTitle(playerUuid, false);
 
         AstPlayer astPlayer = AstPlayerCache.get(player);
         event.quitMessage(astPlayer == null
@@ -338,6 +342,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             }
 
             UserModel user = playerService.loadPlayerJoinUser(attempt.playerUuid(), playerName);
+            boolean hasSameIpUser = playerService.consumePendingSameIpUser(attempt.playerUuid());
             if (!isJoinLoading(attempt)) {
                 return;
             }
@@ -346,11 +351,16 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            scheduleAsync(() -> loadAccountStep(attempt, playerName, user), JOIN_STEP_DELAY_TICKS);
+            scheduleAsync(() -> loadAccountStep(attempt, playerName, user, hasSameIpUser), JOIN_STEP_DELAY_TICKS);
         });
     }
 
-    private void loadAccountStep(JoinAttempt attempt, String playerName, UserModel user) {
+    private void loadAccountStep(
+        JoinAttempt attempt,
+        String playerName,
+        UserModel user,
+        boolean hasSameIpUser
+    ) {
         runJoinStep(attempt, playerName, () -> {
             if (!isJoinLoading(attempt)) {
                 return;
@@ -365,7 +375,10 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            scheduleAsync(() -> loadInventoryStep(attempt, playerName, user, account, null), JOIN_STEP_DELAY_TICKS);
+            scheduleAsync(
+                () -> loadInventoryStep(attempt, playerName, user, account, hasSameIpUser, null),
+                JOIN_STEP_DELAY_TICKS
+            );
         });
     }
 
@@ -389,7 +402,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            loadInventoryStep(attempt, playerName, user, account, completionListener);
+            loadInventoryStep(attempt, playerName, user, account, false, completionListener);
         }, completionListener);
     }
 
@@ -398,6 +411,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         String playerName,
         UserModel user,
         AccountModel account,
+        boolean hasSameIpUser,
         @Nullable Consumer<Boolean> completionListener
     ) {
         runJoinStep(attempt, playerName, () -> {
@@ -464,6 +478,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                         skillBindPresets,
                         learnedSkills,
                         grantForMain,
+                        hasSameIpUser,
                         completionListener
                     )
                 );
@@ -494,6 +509,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         List<SkillBindPreset> skillBindPresets,
         List<LearnedSkillInstance> learnedSkills,
         @Nullable MenuToolJoinGrantService.PreparedGrant preparedMenuGrant,
+        boolean hasSameIpUser,
         @Nullable Consumer<Boolean> completionListener
     ) {
         boolean questApplied = false;
@@ -501,6 +517,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         boolean skillBindPresetsApplied = false;
         boolean preparedMenuGrantCleanupScheduled = false;
         PlayerService.PlayerJoinApplication playerJoinApplication = null;
+        AstPlayer appliedPlayer = null;
         try {
             Player player = plugin.getServer().getPlayer(attempt.playerUuid());
             if (player == null
@@ -574,7 +591,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 finishAccountLoad(attempt, false, completionListener);
                 return;
             }
-            AstPlayer appliedPlayer = AstPlayerCache.get(player);
+            appliedPlayer = AstPlayerCache.get(player);
             if (menuToolJoinGrantService != null && preparedMenuGrant != null) {
                 if (appliedPlayer == null) {
                     throw new IllegalStateException("AstPlayer was not published after join application");
@@ -589,7 +606,8 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             }
             playerService.commitPlayerJoin(playerJoinApplication);
             if (appliedPlayer != null) {
-                runSafely(() -> playerLoadedListener.accept(appliedPlayer), LogId.E_5070, playerName);
+                AstPlayer loadedPlayer = appliedPlayer;
+                runSafely(() -> playerLoadedListener.accept(loadedPlayer), LogId.E_5070, playerName);
                 plugin.getPlayerClassService().updatePlayerListName(appliedPlayer);
                 if (completionListener == null) {
                     PlayerMessageService.getInstance().broadcastAccountMessage(PlayerMsgId.P_5076, appliedPlayer);
@@ -624,6 +642,14 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         }
 
         finishAccountLoad(attempt, true, completionListener);
+        if (appliedPlayer != null && completionListener == null) {
+            PlayerMessageService messageService = PlayerMessageService.getInstance();
+            messageService.send(appliedPlayer, PlayerMsgId.P_5083);
+            if (hasSameIpUser) {
+                messageService.send(appliedPlayer, PlayerMsgId.P_5084);
+            }
+            startInitialGuideTitle(appliedPlayer);
+        }
         notifyUnreadMailAsync(attempt, playerName, joinData.account().getUuid());
         if (completionListener == null) {
             scheduleAsync(
@@ -899,6 +925,70 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         player.showTitle(Title.title(
             PlayerMsgResource.formatComponent(PlayerMsgId.P_5073.getId()),
             PlayerMsgResource.formatComponent(PlayerMsgId.P_5071.getId()),
+            Title.Times.times(Duration.ZERO, Duration.ofSeconds(6), Duration.ofMillis(500))
+        ));
+    }
+
+    private void startInitialGuideTitle(@NotNull AstPlayer astPlayer) {
+        if (guideService == null) {
+            return;
+        }
+        Player player = astPlayer.getBukkit();
+        UUID playerUuid = player.getUniqueId();
+        UUID accountId = astPlayer.getAccount().getUuid();
+        stopInitialGuideTitle(playerUuid, false);
+        if (guideService.isInitialGuideOpened(accountId)) {
+            return;
+        }
+
+        showInitialGuideTitle(player);
+        BukkitTask task = plugin.getServer().getScheduler().runTaskTimer(
+            plugin,
+            () -> {
+                Player current = plugin.getServer().getPlayer(playerUuid);
+                if (current == null || current != player || !current.isOnline()) {
+                    stopInitialGuideTitle(playerUuid, false);
+                    return;
+                }
+                AstPlayer currentAstPlayer = AstPlayerCache.get(current);
+                if (currentAstPlayer == null
+                    || !accountId.equals(currentAstPlayer.getAccount().getUuid())) {
+                    stopInitialGuideTitle(playerUuid, false);
+                    return;
+                }
+                if (guideService.isInitialGuideOpened(accountId)) {
+                    stopInitialGuideTitle(playerUuid, true);
+                    return;
+                }
+                showInitialGuideTitle(current);
+            },
+            0L,
+            INITIAL_GUIDE_TITLE_INTERVAL_TICKS
+        );
+        initialGuideTitleTasks.put(playerUuid, task);
+    }
+
+    private void stopInitialGuideTitle(UUID playerUuid, boolean clearTitle) {
+        BukkitTask task = initialGuideTitleTasks.remove(playerUuid);
+        if (task != null) {
+            task.cancel();
+        }
+        if (!clearTitle) {
+            return;
+        }
+        Player player = plugin.getServer().getPlayer(playerUuid);
+        if (player != null && player.isOnline()) {
+            player.clearTitle();
+        }
+    }
+
+    private void showInitialGuideTitle(@NotNull Player player) {
+        if (!player.isOnline()) {
+            return;
+        }
+        player.showTitle(Title.title(
+            PlayerMsgResource.formatComponent(PlayerMsgId.P_5079.getId()),
+            Component.empty(),
             Title.Times.times(Duration.ZERO, Duration.ofSeconds(6), Duration.ofMillis(500))
         ));
     }
