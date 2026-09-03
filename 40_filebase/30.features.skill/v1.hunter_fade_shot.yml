@@ -50,4 +50,4 @@ params:
   spreadAngle: 30.0
   projectileSpeed: 1.8
   projectileHitRadius: 0.30
-  backstepVelocity: 0.35
+  backstepVelocity: 1.35
