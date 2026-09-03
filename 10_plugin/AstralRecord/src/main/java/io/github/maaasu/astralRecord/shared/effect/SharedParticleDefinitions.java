@@ -226,6 +226,49 @@ public final class SharedParticleDefinitions {
             0.0D,
             new Particle.DustOptions(Color.fromRGB(176, 122, 82), 0.9F)
         );
+    public static final SharedParticleDefinition MOB_ALDA_LEAP_CORE =
+        new SharedParticleDefinition(
+            "mob_alda_leap_core",
+            Particle.END_ROD,
+            2,
+            0.08D,
+            0.16D,
+            0.08D,
+            0.02D
+        );
+    public static final SharedParticleDefinition MOB_ALDA_SHIELD_BREAK =
+        new SharedParticleDefinition(
+            "mob_alda_shield_break",
+            Particle.DUST,
+            3,
+            0.06D,
+            0.10D,
+            0.06D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(110, 220, 255), 1.55F)
+        );
+    public static final SharedParticleDefinition MOB_ALDA_SHOCKWAVE =
+        new SharedParticleDefinition(
+            "mob_alda_shockwave",
+            Particle.DUST,
+            2,
+            0.04D,
+            0.04D,
+            0.04D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(100, 180, 255), 1.25F)
+        );
+    public static final SharedParticleDefinition MOB_ALDA_COLLAPSE =
+        new SharedParticleDefinition(
+            "mob_alda_collapse",
+            Particle.DUST,
+            2,
+            0.05D,
+            0.08D,
+            0.05D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(170, 105, 80), 1.35F)
+        );
     public static final SharedParticleDefinition DUNGEON_ENTRY_FRAME_DUST =
         new SharedParticleDefinition(
             "dungeon_entry_frame_dust",

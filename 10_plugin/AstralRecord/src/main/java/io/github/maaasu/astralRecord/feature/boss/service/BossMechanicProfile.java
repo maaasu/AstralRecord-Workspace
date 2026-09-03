@@ -13,6 +13,7 @@ final class BossMechanicProfile {
 
     static final String TWILIGHT_COLOSSUS = "twilight_colossus";
     static final String MIDGARD_SAVANNA_SUNBIRD = "midgard_savanna_sunbird";
+    static final String FORGOTTEN_ALDA_COLOSSUS = "forgotten_alda_colossus";
 
     private static final Map<String, BossMechanicProfile> PROFILES = Map.of(
         TWILIGHT_COLOSSUS,
@@ -47,6 +48,16 @@ final class BossMechanicProfile {
             ),
             List.of(60L, 46L),
             List.of(0.30D)
+        ),
+        FORGOTTEN_ALDA_COLOSSUS,
+        new BossMechanicProfile(
+            List.of(
+                List.of(),
+                List.of(Mechanic.ALDA_RUIN_SHOCKWAVE),
+                List.of(Mechanic.ALDA_PRIMORDIAL_COLLAPSE)
+            ),
+            List.of(120L, 105L, 90L),
+            List.of(0.70D, 0.35D)
         )
     );
 
@@ -85,8 +96,11 @@ final class BossMechanicProfile {
         return 1;
     }
 
-    @NotNull Mechanic mechanic(int phase, int actionIndex) {
+    @Nullable Mechanic mechanic(int phase, int actionIndex) {
         List<Mechanic> rotation = rotations.get(Math.clamp(phase, 1, rotations.size()) - 1);
+        if (rotation.isEmpty()) {
+            return null;
+        }
         return rotation.get(Math.floorMod(actionIndex, rotation.size()));
     }
 
@@ -98,6 +112,9 @@ final class BossMechanicProfile {
         COLOSSUS_QUAKE,
         COLOSSUS_RUNE_LANES,
         COLOSSUS_COLLAPSE,
+        ALDA_RUIN_SHOCKWAVE,
+        ALDA_PRIMORDIAL_COLLAPSE,
+        ALDA_PRIMORDIAL_COLLAPSE_FOLLOW_UP,
         SUNBIRD_SOLAR_FLARE,
         SUNBIRD_SUNSTRIKE,
         SUNBIRD_SOLAR_BEAM,

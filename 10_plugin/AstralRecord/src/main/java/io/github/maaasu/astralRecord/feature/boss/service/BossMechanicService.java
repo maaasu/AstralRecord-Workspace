@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.skill.active.service.TemporarySkillEffectService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
@@ -18,6 +19,7 @@ import org.bukkit.Bukkit;
 import org.bukkit.FluidCollisionMode;
 import org.bukkit.Location;
 import org.bukkit.Material;
+import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.boss.BarColor;
@@ -57,6 +59,24 @@ public final class BossMechanicService {
     private static final double TARGET_RANGE = 32.0D;
     private static final double COLOSSUS_RUNE_LANES_MAX_LENGTH = TARGET_RANGE;
     private static final double COLOSSUS_RUNE_LANES_HALF_WIDTH = 1.0D;
+    private static final double ALDA_SHOCKWAVE_MAX_LENGTH = 22.0D;
+    private static final double ALDA_SHOCKWAVE_HALF_WIDTH = 1.25D;
+    private static final long ALDA_SHOCKWAVE_TELEGRAPH_TICKS = 30L;
+    private static final double ALDA_SHOCKWAVE_DAMAGE_RATIO = 0.68D;
+    private static final double ALDA_SHOCKWAVE_PUSH_STRENGTH = 0.65D;
+    private static final int ALDA_SHOCKWAVE_DISPLAY_COUNT = 16;
+    private static final double ALDA_COLLAPSE_INNER_RADIUS = 2.8D;
+    private static final double ALDA_COLLAPSE_OUTER_RADIUS = 7.0D;
+    private static final long ALDA_COLLAPSE_TELEGRAPH_TICKS = 40L;
+    private static final long ALDA_COLLAPSE_FOLLOW_UP_TELEGRAPH_TICKS = 10L;
+    private static final double ALDA_COLLAPSE_DAMAGE_RATIO = 0.95D;
+    private static final double ALDA_COLLAPSE_PUSH_STRENGTH = 0.7D;
+    private static final double ALDA_COLLAPSE_MIN_SEPARATION = 16.0D;
+    private static final int ALDA_COLLAPSE_DISPLAY_COUNT_PER_ANCHOR = 6;
+    private static final long ALDA_EXPOSURE_DURATION_TICKS = 60L;
+    private static final double ALDA_EXPOSURE_DAMAGE_MULTIPLIER = 1.50D;
+    private static final int ALDA_EXPOSURE_DISPLAY_COUNT = 8;
+    private static final String ALDA_EXPOSURE_EFFECT_ID = "forgotten-alda-shield-break";
     private static final double LINE_PARTICLE_INTERVAL = 0.5D;
     private static final double SUNBIRD_FLARE_RADIUS = 5.0D;
     private static final double SUNBIRD_SUNSTRIKE_RADIUS = 3.0D;
@@ -101,7 +121,9 @@ public final class BossMechanicService {
     private final ParticleDisplayService particleDisplayService;
     private final Map<UUID, BossRuntime> runtimes = new HashMap<>();
     private final List<PendingMechanic> pendingMechanics = new ArrayList<>();
+    private final List<PendingMechanic> deferredPendingMechanics = new ArrayList<>();
     private final Map<UUID, BirdMeteorState> birdMeteorStates = new HashMap<>();
+    private @Nullable TemporarySkillEffectService temporarySkillEffectService;
 
     private BukkitTask tickTask;
     private long clockTicks;
@@ -118,6 +140,15 @@ public final class BossMechanicService {
         this.damageService = damageService;
         this.dungeonService = dungeonService;
         this.particleDisplayService = particleDisplayService;
+    }
+
+    /**
+     * シールド破壊時の一時被ダメージ倍率を適用するサービスを設定します。
+     *
+     * @param temporarySkillEffectService 一時効果サービス。null の場合は露出の倍率を適用しません
+     */
+    public void setTemporarySkillEffectService(@Nullable TemporarySkillEffectService temporarySkillEffectService) {
+        this.temporarySkillEffectService = temporarySkillEffectService;
     }
 
     /** ボス固有ギミックの定期処理を開始します。 */
@@ -138,6 +169,7 @@ public final class BossMechanicService {
         BossRuntime runtime = runtimes.remove(bossInstanceId);
         if (runtime != null) {
             destroySummons(runtime);
+            cleanupAldaExposure(bossInstanceId, runtime);
         }
         removePendingForBoss(bossInstanceId);
     }
@@ -153,11 +185,17 @@ public final class BossMechanicService {
             releaseScriptedAction(pending);
         }
         pendingMechanics.clear();
+        for (PendingMechanic pending : deferredPendingMechanics) {
+            removePendingVisuals(pending);
+            releaseScriptedAction(pending);
+        }
+        deferredPendingMechanics.clear();
         for (UUID bossInstanceId : List.copyOf(birdMeteorStates.keySet())) {
             finishBirdMeteor(bossInstanceId);
         }
         for (BossRuntime runtime : runtimes.values()) {
             destroySummons(runtime);
+            cleanupAldaExposure(runtime.bossInstanceId, runtime);
         }
         runtimes.clear();
     }
@@ -181,17 +219,21 @@ public final class BossMechanicService {
             BossRuntime runtime = runtimes.computeIfAbsent(
                 boss.instanceId(),
                 ignored -> new BossRuntime(
+                    boss.instanceId(),
                     1,
                     clockTicks + 40L,
                     clockTicks + SUNBIRD_TELEPORT_INTERVAL_TICKS,
-                    clockTicks
+                    clockTicks,
+                    boss.currentShield()
                 )
             );
+            processAldaShieldBreak(boss, entity, runtime);
             int observedPhase = profile.phaseForHealth(boss.currentHealth(), boss.maxHealth());
             if (observedPhase > runtime.phase) {
                 runtime.phase = observedPhase;
                 handlePhaseTransition(profile, boss, entity, runtime);
             }
+            processAldaExposure(boss, entity, runtime);
             processSunbirdArena(boss, entity, runtime);
             processSunbirdTeleport(boss, entity, runtime);
             if (boss.scriptedAction() || clockTicks < runtime.nextActionTick) {
@@ -199,6 +241,9 @@ public final class BossMechanicService {
             }
 
             BossMechanicProfile.Mechanic mechanic = profile.mechanic(runtime.phase, runtime.actionIndex);
+            if (mechanic == null) {
+                continue;
+            }
             if (queueMechanic(boss, entity, mechanic)) {
                 runtime.actionIndex++;
                 runtime.nextActionTick = clockTicks + profile.intervalTicks(runtime.phase);
@@ -214,6 +259,7 @@ public final class BossMechanicService {
                 continue;
             }
             destroySummons(entry.getValue());
+            cleanupAldaExposure(entry.getKey(), entry.getValue());
             removePendingForBoss(entry.getKey());
             iterator.remove();
         }
@@ -378,6 +424,10 @@ public final class BossMechanicService {
     }
 
     private void processPendingMechanics() {
+        if (!deferredPendingMechanics.isEmpty()) {
+            pendingMechanics.addAll(deferredPendingMechanics);
+            deferredPendingMechanics.clear();
+        }
         Iterator<PendingMechanic> iterator = pendingMechanics.iterator();
         while (iterator.hasNext()) {
             PendingMechanic pending = iterator.next();
@@ -407,6 +457,211 @@ public final class BossMechanicService {
             releaseScriptedAction(pending);
             iterator.remove();
         }
+        if (!deferredPendingMechanics.isEmpty()) {
+            pendingMechanics.addAll(deferredPendingMechanics);
+            deferredPendingMechanics.clear();
+        }
+    }
+
+    /** アルダ巨神兵のシールドが0へ到達した瞬間を検出します。 */
+    private void processAldaShieldBreak(
+        @NotNull MobInstance boss,
+        @NotNull Entity entity,
+        @NotNull BossRuntime runtime
+    ) {
+        if (!BossMechanicProfile.FORGOTTEN_ALDA_COLOSSUS.equals(boss.template().id())) {
+            return;
+        }
+        double currentShield = Math.max(0.0D, boss.currentShield());
+        boolean broken = runtime.observedShield > 0.0D && currentShield <= 0.0D;
+        runtime.observedShield = currentShield;
+        if (broken && runtime.exposureUntilTick <= clockTicks) {
+            startAldaExposure(boss, entity, runtime);
+        }
+    }
+
+    /** シールド破壊後の露出・硬直と、その表示を進行させます。 */
+    private void processAldaExposure(
+        @NotNull MobInstance boss,
+        @NotNull Entity entity,
+        @NotNull BossRuntime runtime
+    ) {
+        if (!BossMechanicProfile.FORGOTTEN_ALDA_COLOSSUS.equals(boss.template().id())
+            || runtime.exposureUntilTick <= 0L) {
+            return;
+        }
+        if (clockTicks >= runtime.exposureUntilTick) {
+            finishAldaExposure(boss.instanceId(), runtime);
+            return;
+        }
+        boss.scriptedAction(true);
+        animateAldaExposureDisplays(entity.getLocation(), runtime.exposureDisplayEntityIds);
+        renderAldaExposure(entity.getLocation(), clockTicks);
+    }
+
+    /** シールド破壊演出を開始し、短時間だけ被ダメージを増幅します。 */
+    private void startAldaExposure(
+        @NotNull MobInstance boss,
+        @NotNull Entity entity,
+        @NotNull BossRuntime runtime
+    ) {
+        removePendingForBoss(boss.instanceId());
+        runtime.exposureUntilTick = clockTicks + ALDA_EXPOSURE_DURATION_TICKS;
+        runtime.exposureWasGlowing = entity.isGlowing();
+        runtime.exposureDisplayEntityIds = spawnAldaExposureDisplays(entity.getLocation());
+        boss.scriptedAction(true);
+        entity.setGlowing(true);
+        if (temporarySkillEffectService != null) {
+            temporarySkillEffectService.apply(
+                boss.instanceId(),
+                ALDA_EXPOSURE_EFFECT_ID,
+                ALDA_EXPOSURE_DURATION_TICKS,
+                ALDA_EXPOSURE_DAMAGE_MULTIPLIER,
+                1.0D,
+                1.0D
+            );
+        }
+        renderCircle(entity.getLocation(), 3.2D, SharedParticleDefinitions.MOB_ALDA_SHIELD_BREAK, 36);
+        renderRange(
+            entity.getLocation(),
+            List.of(entity.getLocation().add(0.0D, 1.8D, 0.0D)),
+            SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION
+        );
+        World world = entity.getWorld();
+        world.playSound(entity.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, 1.2F, 0.7F);
+        world.playSound(entity.getLocation(), Sound.ENTITY_IRON_GOLEM_DAMAGE, 1.0F, 0.55F);
+        runtime.nextActionTick = Math.max(runtime.nextActionTick, runtime.exposureUntilTick + 20L);
+    }
+
+    /** 露出表示、倍率、硬直を解除します。 */
+    private void finishAldaExposure(@NotNull UUID bossInstanceId, @NotNull BossRuntime runtime) {
+        removeDisplayEntities(runtime.exposureDisplayEntityIds);
+        runtime.exposureDisplayEntityIds = List.of();
+        runtime.exposureUntilTick = 0L;
+        if (temporarySkillEffectService != null) {
+            temporarySkillEffectService.clear(bossInstanceId, ALDA_EXPOSURE_EFFECT_ID);
+        }
+        MobInstance boss = mobService.getInstance(bossInstanceId);
+        if (boss != null) {
+            boss.scriptedAction(false);
+            Entity entity = mobService.entityController().getEntity(boss);
+            if (entity != null && entity.isValid()) {
+                entity.setGlowing(runtime.exposureWasGlowing);
+            }
+        }
+    }
+
+    /** Mob破棄後にも参照を残さず、露出表示を回収します。 */
+    private void cleanupAldaExposure(@NotNull UUID bossInstanceId, @NotNull BossRuntime runtime) {
+        boolean exposureActive = runtime.exposureUntilTick > 0L
+            || !runtime.exposureDisplayEntityIds.isEmpty();
+        removeDisplayEntities(runtime.exposureDisplayEntityIds);
+        runtime.exposureDisplayEntityIds = List.of();
+        runtime.exposureUntilTick = 0L;
+        if (!exposureActive) {
+            return;
+        }
+        if (temporarySkillEffectService != null) {
+            temporarySkillEffectService.clear(bossInstanceId, ALDA_EXPOSURE_EFFECT_ID);
+        }
+        MobInstance boss = mobService.getInstance(bossInstanceId);
+        if (boss != null) {
+            boss.scriptedAction(false);
+            Entity entity = mobService.entityController().getEntity(boss);
+            if (entity != null && entity.isValid()) {
+                entity.setGlowing(runtime.exposureWasGlowing);
+            }
+        }
+    }
+
+    /** 露出中の鉄片を巨像の周囲で回転させます。 */
+    private void animateAldaExposureDisplays(
+        @NotNull Location center,
+        @NotNull List<UUID> displayEntityIds
+    ) {
+        for (int index = 0; index < displayEntityIds.size(); index++) {
+            Entity entity = Bukkit.getEntity(displayEntityIds.get(index));
+            if (!(entity instanceof BlockDisplay display) || !display.isValid()) {
+                continue;
+            }
+            double angle = clockTicks * 0.12D + Math.PI * 2.0D * index / displayEntityIds.size();
+            double radius = 2.1D + 0.25D * Math.sin(clockTicks * 0.16D + index);
+            double height = 0.55D + (index % 4) * 0.55D;
+            display.teleport(center.clone().add(
+                Math.cos(angle) * radius,
+                height,
+                Math.sin(angle) * radius
+            ));
+            float scale = 0.34F + (index % 3) * 0.06F;
+            display.setTransformation(new Transformation(
+                new Vector3f(-scale / 2.0F, -scale / 2.0F, -scale / 2.0F),
+                new Quaternionf().rotateXYZ(index * 0.7F, (float) angle, clockTicks * 0.08F),
+                new Vector3f(scale, scale, scale),
+                new Quaternionf()
+            ));
+        }
+    }
+
+    /** 露出中の螺旋状パーティクルを表示します。 */
+    private void renderAldaExposure(@NotNull Location center, long tick) {
+        List<Location> locations = new ArrayList<>(24);
+        for (int index = 0; index < 24; index++) {
+            double fraction = (double) index / 23.0D;
+            double angle = tick * 0.18D + fraction * Math.PI * 4.0D;
+            locations.add(center.clone().add(
+                Math.cos(angle) * (1.0D + fraction * 1.5D),
+                0.25D + fraction * 2.6D,
+                Math.sin(angle) * (1.0D + fraction * 1.5D)
+            ));
+        }
+        renderRange(center, locations, SharedParticleDefinitions.MOB_ALDA_LEAP_CORE);
+        renderRange(center, circleLocations(center.clone().add(0.0D, 0.18D, 0.0D), 2.8D, 32),
+            SharedParticleDefinitions.MOB_ALDA_SHIELD_BREAK);
+    }
+
+    /** フェーズ移行時に、巨像のコアが起動する円環を表示します。 */
+    private void renderAldaPhaseBurst(@NotNull Location center, int phase) {
+        renderCircle(center, 3.0D + phase, SharedParticleDefinitions.MOB_ALDA_SHOCKWAVE, 32 + phase * 8);
+        renderRange(
+            center,
+            List.of(center.clone().add(0.0D, 1.8D + phase * 0.2D, 0.0D)),
+            SharedParticleDefinitions.MOB_ALDA_LEAP_CORE
+        );
+    }
+
+    /** 指定された一時表示 Entity を安全に削除します。 */
+    private void removeDisplayEntities(@NotNull List<UUID> displayEntityIds) {
+        for (UUID entityId : displayEntityIds) {
+            Entity entity = Bukkit.getEntity(entityId);
+            if (entity != null) {
+                entity.remove();
+            }
+        }
+    }
+
+    /** 巨像の露出演出に使う鉄片 BlockDisplay を生成します。 */
+    private @NotNull List<UUID> spawnAldaExposureDisplays(@NotNull Location center) {
+        World world = center.getWorld();
+        if (world == null) {
+            return List.of();
+        }
+        List<UUID> displayEntityIds = new ArrayList<>(ALDA_EXPOSURE_DISPLAY_COUNT);
+        for (int index = 0; index < ALDA_EXPOSURE_DISPLAY_COUNT; index++) {
+            BlockDisplay display = world.spawn(center, BlockDisplay.class, entity -> {
+                entity.setPersistent(false);
+                entity.setInvulnerable(true);
+                entity.setGravity(false);
+                entity.setBlock(Material.IRON_BLOCK.createBlockData());
+                entity.setBrightness(new Display.Brightness(15, 15));
+                entity.setViewRange(48.0F);
+                entity.setDisplayWidth(1.0F);
+                entity.setDisplayHeight(1.0F);
+                entity.setTeleportDuration(1);
+                entity.setInterpolationDuration(2);
+            });
+            displayEntityIds.add(display.getUniqueId());
+        }
+        return List.copyOf(displayEntityIds);
     }
 
     private void handlePhaseTransition(
@@ -417,6 +672,7 @@ public final class BossMechanicService {
     ) {
         if (boss.template().shield().active()) {
             boss.currentShield(boss.shieldDisplayCapacity(), System.currentTimeMillis());
+            runtime.observedShield = boss.currentShield();
         }
         if (BossMechanicProfile.MIDGARD_SAVANNA_SUNBIRD.equals(boss.template().id())
             && runtime.phase >= 2
@@ -439,6 +695,9 @@ public final class BossMechanicService {
 
         Location center = entity.getLocation().add(0.0D, 0.5D, 0.0D);
         renderCircle(center, 3.0D + runtime.phase, SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE, 28);
+        if (BossMechanicProfile.FORGOTTEN_ALDA_COLOSSUS.equals(boss.template().id())) {
+            renderAldaPhaseBurst(center, runtime.phase);
+        }
         entity.getWorld().playSound(center, "entity.warden.sonic_boom", 1.2F, runtime.phase == 3 ? 0.65F : 0.85F);
         runtime.nextActionTick = Math.min(runtime.nextActionTick, clockTicks + 25L);
 
@@ -612,12 +871,54 @@ public final class BossMechanicService {
             addPending(boss, mechanic, bossLocation, direction, telegraphTicks);
             return true;
         }
+        if (mechanic == BossMechanicProfile.Mechanic.ALDA_PRIMORDIAL_COLLAPSE) {
+            List<Location> anchors = resolveAldaCollapseAnchors(bossLocation, targetLocation, direction, targets, primaryTarget);
+            addPending(
+                boss,
+                mechanic,
+                anchors.getFirst(),
+                direction,
+                telegraphTicks,
+                null,
+                anchors.subList(1, anchors.size())
+            );
+            return true;
+        }
         Location anchor = mechanic == BossMechanicProfile.Mechanic.SUNBIRD_SUNSTRIKE
             ? targetLocation
             : bossLocation;
 
         addPending(boss, mechanic, anchor, direction, telegraphTicks);
         return true;
+    }
+
+    /** 始源崩落の2地点を、重ならない円として解決します。 */
+    private @NotNull List<Location> resolveAldaCollapseAnchors(
+        @NotNull Location bossLocation,
+        @NotNull Location primaryTarget,
+        @NotNull Vector direction,
+        @NotNull List<Player> targets,
+        @NotNull Player primaryPlayer
+    ) {
+        Player secondaryPlayer = targets.stream()
+            .filter(player -> !player.getUniqueId().equals(primaryPlayer.getUniqueId()))
+            .max((left, right) -> Double.compare(
+                horizontalDistanceSquared(left.getLocation(), primaryTarget),
+                horizontalDistanceSquared(right.getLocation(), primaryTarget)
+            ))
+            .orElse(null);
+        Location secondary = secondaryPlayer == null ? null : secondaryPlayer.getLocation();
+        if (secondary == null
+            || horizontalDistanceSquared(primaryTarget, secondary) < ALDA_COLLAPSE_MIN_SEPARATION
+                * ALDA_COLLAPSE_MIN_SEPARATION) {
+            Vector side = new Vector(-direction.getZ(), 0.0D, direction.getX());
+            if (side.lengthSquared() <= 0.001D) {
+                side = new Vector(1.0D, 0.0D, 0.0D);
+            }
+            secondary = primaryTarget.clone().add(side.normalize().multiply(ALDA_COLLAPSE_MIN_SEPARATION));
+            secondary.setY(bossLocation.getY());
+        }
+        return List.of(primaryTarget.clone(), secondary.clone());
     }
 
     /**
@@ -636,7 +937,7 @@ public final class BossMechanicService {
         @NotNull Vector direction,
         long delayTicks
     ) {
-        addPending(boss, mechanic, anchor, direction, delayTicks, null);
+        addPending(boss, mechanic, anchor, direction, delayTicks, null, List.of());
     }
 
     /**
@@ -657,27 +958,84 @@ public final class BossMechanicService {
         long delayTicks,
         @Nullable Location destination
     ) {
-        List<UUID> displayEntityIds = switch (mechanic) {
-            case SUNBIRD_SOLAR_NOVA -> spawnSunbirdRitualDisplays(anchor, SUNBIRD_NOVA_DISPLAY_COUNT);
-            default -> List.of();
-        };
-        PendingMechanic pending = new PendingMechanic(
+        addPending(boss, mechanic, anchor, direction, delayTicks, destination, List.of());
+    }
+
+    /** 2地点攻撃など、追加の予兆中心を持つギミックを予約します。 */
+    private void addPending(
+        @NotNull MobInstance boss,
+        @NotNull BossMechanicProfile.Mechanic mechanic,
+        @NotNull Location anchor,
+        @NotNull Vector direction,
+        long delayTicks,
+        @Nullable Location destination,
+        @NotNull List<Location> additionalAnchors
+    ) {
+        PendingMechanic pending = createPending(
+            boss,
+            mechanic,
+            anchor,
+            direction,
+            delayTicks,
+            destination,
+            additionalAnchors
+        );
+        pendingMechanics.add(pending);
+        announcePending(pending);
+    }
+
+    /** 既存予兆の処理中に、次の予兆を安全に繰り越します。 */
+    private void deferPending(
+        @NotNull MobInstance boss,
+        @NotNull BossMechanicProfile.Mechanic mechanic,
+        @NotNull Location anchor,
+        @NotNull Vector direction,
+        long delayTicks
+    ) {
+        PendingMechanic pending = createPending(
+            boss,
+            mechanic,
+            anchor,
+            direction,
+            delayTicks,
+            null,
+            List.of()
+        );
+        deferredPendingMechanics.add(pending);
+        announcePending(pending);
+    }
+
+    /** 予兆データを生成します。表示Entityはこの予兆へ所有させます。 */
+    private @NotNull PendingMechanic createPending(
+        @NotNull MobInstance boss,
+        @NotNull BossMechanicProfile.Mechanic mechanic,
+        @NotNull Location anchor,
+        @NotNull Vector direction,
+        long delayTicks,
+        @Nullable Location destination,
+        @NotNull List<Location> additionalAnchors
+    ) {
+        return new PendingMechanic(
             boss.instanceId(),
             mechanic,
             anchor,
             direction,
             clockTicks + delayTicks,
-            displayEntityIds,
-            destination
+            spawnPendingDisplays(mechanic, anchor, additionalAnchors),
+            destination,
+            additionalAnchors
         );
-        pendingMechanics.add(pending);
-        if (mechanic == BossMechanicProfile.Mechanic.SUNBIRD_BIRD_METEOR) {
+    }
+
+    /** 予兆の表示と開始音を共通化します。 */
+    private void announcePending(@NotNull PendingMechanic pending) {
+        if (pending.mechanic() == BossMechanicProfile.Mechanic.SUNBIRD_BIRD_METEOR) {
             updateBirdMeteorBossBar(pending);
         }
         renderTelegraph(pending);
-        World world = anchor.getWorld();
+        World world = pending.anchor().getWorld();
         if (world != null) {
-            world.playSound(anchor, "block.note_block.bass", 0.9F, 0.65F);
+            world.playSound(pending.anchor(), "block.note_block.bass", 0.9F, 0.65F);
         }
     }
 
@@ -692,12 +1050,186 @@ public final class BossMechanicService {
             case COLOSSUS_QUAKE -> 25L;
             case COLOSSUS_RUNE_LANES, SUNBIRD_SOLAR_BEAM -> 30L;
             case COLOSSUS_COLLAPSE -> 35L;
+            case ALDA_RUIN_SHOCKWAVE -> ALDA_SHOCKWAVE_TELEGRAPH_TICKS;
+            case ALDA_PRIMORDIAL_COLLAPSE -> ALDA_COLLAPSE_TELEGRAPH_TICKS;
+            case ALDA_PRIMORDIAL_COLLAPSE_FOLLOW_UP -> ALDA_COLLAPSE_FOLLOW_UP_TELEGRAPH_TICKS;
             case SUNBIRD_SOLAR_FLARE -> 20L;
             case SUNBIRD_SUNSTRIKE -> 25L;
             case SUNBIRD_SOLAR_NOVA -> SUNBIRD_NOVA_TELEGRAPH_TICKS;
             case SUNBIRD_BIRD_METEOR -> SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS;
             case SUNBIRD_RETURN_TACKLE -> SUNBIRD_TACKLE_TELEGRAPH_TICKS;
         };
+    }
+
+    /** ギミック種別に応じた一時 BlockDisplay を生成します。 */
+    private @NotNull List<UUID> spawnPendingDisplays(
+        @NotNull BossMechanicProfile.Mechanic mechanic,
+        @NotNull Location anchor,
+        @NotNull List<Location> additionalAnchors
+    ) {
+        return switch (mechanic) {
+            case SUNBIRD_SOLAR_NOVA -> spawnSunbirdRitualDisplays(anchor, SUNBIRD_NOVA_DISPLAY_COUNT);
+            case ALDA_RUIN_SHOCKWAVE -> spawnAldaShockwaveDisplays(anchor);
+            case ALDA_PRIMORDIAL_COLLAPSE -> spawnAldaCollapseDisplays(anchor, additionalAnchors);
+            case ALDA_PRIMORDIAL_COLLAPSE_FOLLOW_UP -> spawnAldaCollapseDisplays(anchor, List.of());
+            default -> List.of();
+        };
+    }
+
+    /** 4方向衝撃波の伸長を表す石片を生成します。 */
+    private @NotNull List<UUID> spawnAldaShockwaveDisplays(@NotNull Location center) {
+        World world = center.getWorld();
+        if (world == null) {
+            return List.of();
+        }
+        List<UUID> displayEntityIds = new ArrayList<>(ALDA_SHOCKWAVE_DISPLAY_COUNT);
+        for (int index = 0; index < ALDA_SHOCKWAVE_DISPLAY_COUNT; index++) {
+            BlockDisplay display = world.spawn(center, BlockDisplay.class, entity -> configureAldaDisplay(
+                entity, Material.POLISHED_DEEPSLATE, 48.0F
+            ));
+            displayEntityIds.add(display.getUniqueId());
+        }
+        return List.copyOf(displayEntityIds);
+    }
+
+    /** 2地点の崩落予告を表す黒曜石片を生成します。 */
+    private @NotNull List<UUID> spawnAldaCollapseDisplays(
+        @NotNull Location firstAnchor,
+        @NotNull List<Location> additionalAnchors
+    ) {
+        World world = firstAnchor.getWorld();
+        if (world == null) {
+            return List.of();
+        }
+        int centerCount = 1 + additionalAnchors.size();
+        int displayCount = centerCount * ALDA_COLLAPSE_DISPLAY_COUNT_PER_ANCHOR;
+        List<UUID> displayEntityIds = new ArrayList<>(displayCount);
+        for (int index = 0; index < displayCount; index++) {
+            // 予告Entityは中心へ一度置き、renderTelegraphの初回更新で配置します。
+            BlockDisplay display = world.spawn(firstAnchor, BlockDisplay.class, entity -> configureAldaDisplay(
+                entity, Material.CRYING_OBSIDIAN, 48.0F
+            ));
+            displayEntityIds.add(display.getUniqueId());
+        }
+        return List.copyOf(displayEntityIds);
+    }
+
+    /** 衝撃波の石片を中心から4方向へ伸長させます。 */
+    private void animateAldaShockwaveDisplays(@NotNull PendingMechanic pending) {
+        List<LineSegment> segments = resolveCrossSegments(
+            pending.anchor(), pending.direction(), ALDA_SHOCKWAVE_MAX_LENGTH
+        );
+        double progress = telegraphProgress(pending, ALDA_SHOCKWAVE_TELEGRAPH_TICKS);
+        int perArm = Math.max(1, ALDA_SHOCKWAVE_DISPLAY_COUNT / segments.size());
+        for (int index = 0; index < pending.displayEntityIds().size(); index++) {
+            Entity entity = Bukkit.getEntity(pending.displayEntityIds().get(index));
+            if (!(entity instanceof BlockDisplay display) || !display.isValid()) {
+                continue;
+            }
+            int arm = Math.min(segments.size() - 1, index / perArm);
+            int slot = index % perArm;
+            LineSegment segment = segments.get(arm);
+            double slotProgress = (slot + 0.5D) / perArm;
+            double distance = Math.min(
+                segment.length(),
+                1.0D + slotProgress * Math.max(0.0D, segment.length() - 1.0D)
+                    * (0.35D + progress * 0.65D)
+            );
+            Location target = pending.anchor().clone().add(
+                segment.direction().clone().multiply(distance)
+            ).add(0.0D, 0.3D + 0.08D * Math.sin(clockTicks * 0.20D + index), 0.0D);
+            animateAldaDisplay(
+                display, target, 0.24F + (slot % 2) * 0.06F,
+                clockTicks * 0.10F + index, clockTicks * 0.13F + arm, clockTicks * 0.08F
+            );
+        }
+    }
+
+    /** 崩落地点の石片を回転・収束させます。 */
+    private void animateAldaCollapseDisplays(@NotNull PendingMechanic pending) {
+        List<Location> centers = new ArrayList<>(1 + pending.additionalAnchors().size());
+        centers.add(pending.anchor());
+        centers.addAll(pending.additionalAnchors());
+        long duration = pending.mechanic() == BossMechanicProfile.Mechanic.ALDA_PRIMORDIAL_COLLAPSE
+            ? ALDA_COLLAPSE_TELEGRAPH_TICKS
+            : ALDA_COLLAPSE_FOLLOW_UP_TELEGRAPH_TICKS;
+        double progress = telegraphProgress(pending, duration);
+        int perCenter = ALDA_COLLAPSE_DISPLAY_COUNT_PER_ANCHOR;
+        for (int index = 0; index < pending.displayEntityIds().size(); index++) {
+            Entity entity = Bukkit.getEntity(pending.displayEntityIds().get(index));
+            if (!(entity instanceof BlockDisplay display) || !display.isValid()) {
+                continue;
+            }
+            int centerIndex = Math.min(centers.size() - 1, index / perCenter);
+            int slot = index % perCenter;
+            double angle = clockTicks * 0.12D + Math.PI * 2.0D * slot / perCenter;
+            double radius = ALDA_COLLAPSE_OUTER_RADIUS * (0.62D - progress * 0.20D);
+            Location target = centers.get(centerIndex).clone().add(
+                Math.cos(angle) * radius,
+                0.45D + (slot % 3) * 0.35D + progress * 0.4D,
+                Math.sin(angle) * radius
+            );
+            animateAldaDisplay(
+                display, target, 0.28F + (slot % 3) * 0.05F,
+                (float) (slot * 0.85F + progress * 2.0D), (float) angle, clockTicks * 0.09F
+            );
+        }
+    }
+
+    /** 予兆開始からの描画進行度を0〜1へ丸めます。 */
+    private double telegraphProgress(@NotNull PendingMechanic pending, long durationTicks) {
+        if (durationTicks <= 0L) {
+            return 1.0D;
+        }
+        long remainingTicks = Math.max(0L, pending.executeAtTick() - clockTicks);
+        return 1.0D - Math.clamp((double) remainingTicks / durationTicks, 0.0D, 1.0D);
+    }
+
+    /** アルダ用BlockDisplayの共通設定を適用します。 */
+    private void configureAldaDisplay(
+        @NotNull BlockDisplay display,
+        @NotNull Material material,
+        float viewRange
+    ) {
+        display.setPersistent(false);
+        display.setInvulnerable(true);
+        display.setGravity(false);
+        display.setBlock(material.createBlockData());
+        display.setBrightness(new Display.Brightness(15, 15));
+        display.setViewRange(viewRange);
+        display.setDisplayWidth(1.0F);
+        display.setDisplayHeight(1.0F);
+        display.setTeleportDuration(1);
+        display.setInterpolationDuration(2);
+    }
+
+    /** アルダ用BlockDisplayを指定位置・回転へ更新します。 */
+    private void animateAldaDisplay(
+        @NotNull BlockDisplay display,
+        @NotNull Location location,
+        float scale,
+        float xRotation,
+        float yRotation,
+        float zRotation
+    ) {
+        display.teleport(location);
+        display.setTransformation(new Transformation(
+            new Vector3f(-scale / 2.0F, -scale / 2.0F, -scale / 2.0F),
+            new Quaternionf().rotateXYZ(xRotation, yRotation, zRotation),
+            new Vector3f(scale, scale, scale),
+            new Quaternionf()
+        ));
+    }
+
+    /** 始源崩落の円形予兆を表示します。 */
+    private void renderAldaCollapseTelegraph(@NotNull Location center) {
+        renderCircle(center, ALDA_COLLAPSE_INNER_RADIUS, SharedParticleDefinitions.MOB_ALDA_COLLAPSE, 28);
+        renderCircle(center, ALDA_COLLAPSE_OUTER_RADIUS, SharedParticleDefinitions.MOB_ALDA_COLLAPSE, 48);
+        renderRange(
+            center,
+            List.of(center.clone().add(0.0D, 1.0D, 0.0D)),
+            SharedParticleDefinitions.MOB_ALDA_LEAP_CORE
+        );
     }
 
     /**
@@ -716,6 +1248,24 @@ public final class BossMechanicService {
             case COLOSSUS_COLLAPSE -> {
                 renderCircle(pending.anchor(), 2.8D, SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE, 20);
                 renderCircle(pending.anchor(), 7.0D, SharedParticleDefinitions.BOSS_MECHANIC_SOUL_FIRE, 36);
+            }
+            case ALDA_RUIN_SHOCKWAVE -> {
+                renderCross(
+                    pending.anchor(), pending.direction(), ALDA_SHOCKWAVE_MAX_LENGTH,
+                    ALDA_SHOCKWAVE_HALF_WIDTH, SharedParticleDefinitions.MOB_ALDA_SHOCKWAVE
+                );
+                animateAldaShockwaveDisplays(pending);
+            }
+            case ALDA_PRIMORDIAL_COLLAPSE -> {
+                renderAldaCollapseTelegraph(pending.anchor());
+                for (Location anchor : pending.additionalAnchors()) {
+                    renderAldaCollapseTelegraph(anchor);
+                }
+                animateAldaCollapseDisplays(pending);
+            }
+            case ALDA_PRIMORDIAL_COLLAPSE_FOLLOW_UP -> {
+                renderAldaCollapseTelegraph(pending.anchor());
+                animateAldaCollapseDisplays(pending);
             }
             case SUNBIRD_SOLAR_FLARE -> renderCircle(
                 pending.anchor(), SUNBIRD_FLARE_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_FLAME, 32
@@ -776,6 +1326,32 @@ public final class BossMechanicService {
                 damageCircle(boss, pending.anchor(), 2.8D, 7.0D, AttackType.MAGIC, DamageElement.NONE, 0.95D, 0.7D);
                 breakRing(boss, pending.anchor(), 3.0D, 6.0D);
             }
+            case ALDA_RUIN_SHOCKWAVE -> damageCross(
+                boss, pending.anchor(), pending.direction(), ALDA_SHOCKWAVE_MAX_LENGTH,
+                ALDA_SHOCKWAVE_HALF_WIDTH, AttackType.MELEE, DamageElement.NONE,
+                ALDA_SHOCKWAVE_DAMAGE_RATIO, ALDA_SHOCKWAVE_PUSH_STRENGTH
+            );
+            case ALDA_PRIMORDIAL_COLLAPSE -> {
+                damageCircle(
+                    boss, pending.anchor(), ALDA_COLLAPSE_INNER_RADIUS, ALDA_COLLAPSE_OUTER_RADIUS,
+                    AttackType.MELEE, DamageElement.NONE, ALDA_COLLAPSE_DAMAGE_RATIO,
+                    ALDA_COLLAPSE_PUSH_STRENGTH
+                );
+                if (!pending.additionalAnchors().isEmpty()) {
+                    deferPending(
+                        boss,
+                        BossMechanicProfile.Mechanic.ALDA_PRIMORDIAL_COLLAPSE_FOLLOW_UP,
+                        pending.additionalAnchors().getFirst(),
+                        pending.direction(),
+                        ALDA_COLLAPSE_FOLLOW_UP_TELEGRAPH_TICKS
+                    );
+                }
+            }
+            case ALDA_PRIMORDIAL_COLLAPSE_FOLLOW_UP -> damageCircle(
+                boss, pending.anchor(), ALDA_COLLAPSE_INNER_RADIUS, ALDA_COLLAPSE_OUTER_RADIUS,
+                AttackType.MELEE, DamageElement.NONE, ALDA_COLLAPSE_DAMAGE_RATIO,
+                ALDA_COLLAPSE_PUSH_STRENGTH
+            );
             case SUNBIRD_SOLAR_FLARE -> damageCircle(
                 boss, pending.anchor(), 0.0D, SUNBIRD_FLARE_RADIUS,
                 AttackType.MAGIC, DamageElement.FIRE, 0.65D, 0.75D
@@ -950,6 +1526,21 @@ public final class BossMechanicService {
         @NotNull DamageElement element,
         double ratio
     ) {
+        damageCross(boss, origin, direction, length, width, attackType, element, ratio, 0.0D);
+    }
+
+    /** 壁で区切られた交差範囲へダメージとノックバックを適用します。 */
+    private void damageCross(
+        @NotNull MobInstance boss,
+        @NotNull Location origin,
+        @NotNull Vector direction,
+        double length,
+        double width,
+        @NotNull AttackType attackType,
+        @NotNull DamageElement element,
+        double ratio,
+        double pushStrength
+    ) {
         List<LineSegment> segments = resolveCrossSegments(origin, direction, length);
         for (Player player : nearbyManagedPlayers(origin, length + width)) {
             Location point = player.getLocation();
@@ -962,6 +1553,7 @@ public final class BossMechanicService {
             ));
             if (hit) {
                 damagePlayer(boss, player, attackType, element, ratio);
+                pushAway(player, origin, pushStrength);
             }
         }
     }
@@ -1477,6 +2069,20 @@ public final class BossMechanicService {
                 renderCircle(pending.anchor(), 2.8D, SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION, 20);
                 renderCircle(pending.anchor(), 7.0D, SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION, 36);
             }
+            case ALDA_RUIN_SHOCKWAVE -> renderCross(
+                pending.anchor(), pending.direction(), ALDA_SHOCKWAVE_MAX_LENGTH,
+                ALDA_SHOCKWAVE_HALF_WIDTH, SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION
+            );
+            case ALDA_PRIMORDIAL_COLLAPSE, ALDA_PRIMORDIAL_COLLAPSE_FOLLOW_UP -> {
+                renderCircle(
+                    pending.anchor(), ALDA_COLLAPSE_INNER_RADIUS,
+                    SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION, 24
+                );
+                renderCircle(
+                    pending.anchor(), ALDA_COLLAPSE_OUTER_RADIUS,
+                    SharedParticleDefinitions.BOSS_MECHANIC_EXPLOSION, 44
+                );
+            }
             case SUNBIRD_SOLAR_FLARE -> renderCircle(
                 pending.anchor(), SUNBIRD_FLARE_RADIUS, SharedParticleDefinitions.SUNBIRD_SOLAR_IMPACT, 32
             );
@@ -1628,6 +2234,16 @@ public final class BossMechanicService {
 
     private void removePendingForBoss(@NotNull UUID bossInstanceId) {
         Iterator<PendingMechanic> iterator = pendingMechanics.iterator();
+        while (iterator.hasNext()) {
+            PendingMechanic pending = iterator.next();
+            if (!pending.bossInstanceId().equals(bossInstanceId)) {
+                continue;
+            }
+            removePendingVisuals(pending);
+            releaseScriptedAction(pending);
+            iterator.remove();
+        }
+        iterator = deferredPendingMechanics.iterator();
         while (iterator.hasNext()) {
             PendingMechanic pending = iterator.next();
             if (!pending.bossInstanceId().equals(bossInstanceId)) {
@@ -1806,6 +2422,7 @@ public final class BossMechanicService {
     }
 
     private static final class BossRuntime {
+        private final UUID bossInstanceId;
         private int phase;
         private int actionIndex;
         private long nextActionTick;
@@ -1814,13 +2431,26 @@ public final class BossMechanicService {
         private int teleportIndex;
         private boolean summonsTriggered;
         private boolean finalPhaseTriggered;
+        private double observedShield;
+        private long exposureUntilTick;
+        private boolean exposureWasGlowing;
+        private List<UUID> exposureDisplayEntityIds = List.of();
         private final Set<UUID> summonedMobIds = new LinkedHashSet<>();
 
-        private BossRuntime(int phase, long nextActionTick, long nextTeleportTick, long nextArenaPulseTick) {
+        private BossRuntime(
+            @NotNull UUID bossInstanceId,
+            int phase,
+            long nextActionTick,
+            long nextTeleportTick,
+            long nextArenaPulseTick,
+            double observedShield
+        ) {
+            this.bossInstanceId = bossInstanceId;
             this.phase = phase;
             this.nextActionTick = nextActionTick;
             this.nextTeleportTick = nextTeleportTick;
             this.nextArenaPulseTick = nextArenaPulseTick;
+            this.observedShield = Math.max(0.0D, observedShield);
         }
     }
 
@@ -1840,13 +2470,15 @@ public final class BossMechanicService {
         @NotNull Vector direction,
         long executeAtTick,
         @NotNull List<UUID> displayEntityIds,
-        @Nullable Location destination
+        @Nullable Location destination,
+        @NotNull List<Location> additionalAnchors
     ) {
         private PendingMechanic {
             anchor = anchor.clone();
             direction = direction.clone().setY(0.0D).normalize();
             displayEntityIds = List.copyOf(displayEntityIds);
             destination = destination == null ? null : destination.clone();
+            additionalAnchors = additionalAnchors.stream().map(Location::clone).toList();
         }
 
         private double travelDistance() {

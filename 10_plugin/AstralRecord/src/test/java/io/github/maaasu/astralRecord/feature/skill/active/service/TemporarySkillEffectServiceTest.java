@@ -61,6 +61,24 @@ class TemporarySkillEffectServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
+     * 検証契約: 指定したtemporary effectだけを解除し同一対象の別効果を保持する。
+     */
+    @Test
+    void clearsOnlyTheSpecifiedEffect() {
+        TemporarySkillEffectService service = new TemporarySkillEffectService();
+        AstEntity entity = entity(UUID.randomUUID());
+
+        service.apply(entity.id(), "exposure", 200L, 1.5D, 1.0D, 1.0D);
+        service.apply(entity.id(), "guard", 200L, 0.5D, 1.0D, 1.0D);
+
+        service.clear(entity.id(), "exposure");
+
+        assertEquals(0.5D, service.incomingMultiplier(entity), DELTA);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 9. active skill 共通支援
      * 検証契約: 1 entityのeffectだけをclearでき、全clearも他stateを残さず行える。
      */
     @Test
