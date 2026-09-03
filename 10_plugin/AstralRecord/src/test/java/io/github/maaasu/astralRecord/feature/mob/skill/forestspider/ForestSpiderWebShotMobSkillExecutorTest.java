@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.mob.skill.forestspider;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
@@ -14,6 +16,8 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobSkillTiming;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobProjectileService;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillContext;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
@@ -38,6 +42,7 @@ import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -103,8 +108,10 @@ class ForestSpiderWebShotMobSkillExecutorTest extends MockBukkitTestBase {
 
         World world = mock(World.class);
         Player player = mock(Player.class);
+        UUID playerId = UUID.randomUUID();
         when(world.getPlayers()).thenReturn(java.util.List.of(player));
         when(world.rayTraceBlocks(any(Location.class), any(Vector.class), anyDouble())).thenReturn(null);
+        when(player.getUniqueId()).thenReturn(playerId);
         when(player.isOnline()).thenReturn(true);
         when(player.isDead()).thenReturn(false);
         when(player.getBoundingBox()).thenReturn(new BoundingBox(
@@ -118,6 +125,10 @@ class ForestSpiderWebShotMobSkillExecutorTest extends MockBukkitTestBase {
         when(damageService.attack(
                 any(AstEntity.class), eq(target), eq(AttackType.RANGED), anyList(), eq(DamageSource.SKILL)
         )).thenReturn(new DamageResult(10.0D));
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getMode()).thenReturn(AccountMode.PLAYER);
         ConditionService conditionService = mock(ConditionService.class);
         ParticleDisplayService particleDisplayService = mock(ParticleDisplayService.class);
         MobProjectileService projectileService = new MobProjectileService(mobService, particleDisplayService);
@@ -137,21 +148,24 @@ class ForestSpiderWebShotMobSkillExecutorTest extends MockBukkitTestBase {
         );
         Location origin = new Location(world, 0.0D, 0.0D, 0.0D);
 
-        assertTrue(executor.cast(new MobSkillContext(
-                caster, player, binding, executor.defaultTiming(), origin, new Vector(1.0D, 0.0D, 0.0D)
-        )));
-        server().getScheduler().performTicks(2L);
+        try (var cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(playerId)).thenReturn(astPlayer);
+            assertTrue(executor.cast(new MobSkillContext(
+                    caster, player, binding, executor.defaultTiming(), origin, new Vector(1.0D, 0.0D, 0.0D)
+            )));
+            server().getScheduler().performTicks(2L);
 
-        verify(damageService).attack(
-                any(AstEntity.class), eq(target), eq(AttackType.RANGED), anyList(), eq(DamageSource.SKILL)
-        );
-        ArgumentCaptor<ConditionApplyRequest> request = ArgumentCaptor.forClass(ConditionApplyRequest.class);
-        verify(conditionService).applyCondition(request.capture());
-        assertEquals(target, request.getValue().target());
-        assertEquals(ConditionType.WEAKNESS, request.getValue().type());
-        assertEquals(AttackType.RANGED, request.getValue().attackType());
-        assertEquals(100L, request.getValue().durationTicks());
-        assertEquals(25.0D, request.getValue().chance());
+            verify(damageService).attack(
+                    any(AstEntity.class), eq(target), eq(AttackType.RANGED), anyList(), eq(DamageSource.SKILL)
+            );
+            ArgumentCaptor<ConditionApplyRequest> request = ArgumentCaptor.forClass(ConditionApplyRequest.class);
+            verify(conditionService).applyCondition(request.capture());
+            assertEquals(target, request.getValue().target());
+            assertEquals(ConditionType.WEAKNESS, request.getValue().type());
+            assertEquals(AttackType.RANGED, request.getValue().attackType());
+            assertEquals(100L, request.getValue().durationTicks());
+            assertEquals(25.0D, request.getValue().chance());
+        }
         projectileService.stop();
     }
 

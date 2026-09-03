@@ -23,6 +23,7 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobDropPresentationServ
 import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
@@ -1276,18 +1277,20 @@ public final class DamageService {
             if (isPlayerDead(attacker.id())) {
                 return;
             }
-            mob.threatTable().add(attacker.id(), result.finalDamage());
-            mob.lastAttackerUuid(attacker.id());
-            if (bossChallengeService != null && bossChallengeService.isBossMob(mob.instanceId())) {
-                bossChallengeService.recordBossDamage(
-                        mob.instanceId(),
-                        attacker.id(),
-                        effectiveHealthDamage + result.shieldDamage()
-                );
-            }
-            if (mob.state() == MobState.IDLE) {
-                mob.state(MobState.AGGRO);
-                mob.targetId(attacker.id());
+            if (attacker.player() != null && AccountModeGuard.isGameplayPlayer(attacker.player())) {
+                mob.threatTable().add(attacker.id(), result.finalDamage());
+                mob.lastAttackerUuid(attacker.id());
+                if (bossChallengeService != null && bossChallengeService.isBossMob(mob.instanceId())) {
+                    bossChallengeService.recordBossDamage(
+                            mob.instanceId(),
+                            attacker.id(),
+                            effectiveHealthDamage + result.shieldDamage()
+                    );
+                }
+                if (mob.state() == MobState.IDLE) {
+                    mob.state(MobState.AGGRO);
+                    mob.targetId(attacker.id());
+                }
             }
         }
         if (mob.currentHealth() <= 0.0D) {
@@ -1330,6 +1333,9 @@ public final class DamageService {
             return;
         }
         if (isPlayerDead(attacker.id())) {
+            return;
+        }
+        if (attacker.player() == null || !AccountModeGuard.isGameplayPlayer(attacker.player())) {
             return;
         }
         var mob = victim.mob();

@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.shared.display;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -107,12 +108,17 @@ public class OverheadDisplayService {
         destroyAll(mobDisplays);
     }
 
-    public void suspendPlayerDisplay(@NotNull UUID playerId) {
-        suspendedPlayerDisplays.add(playerId);
+    /** 指定プレイヤーの頭上表示を破棄します。次回更新時に表示条件を満たせば再生成されます。 */
+    public void removePlayerDisplay(@NotNull UUID playerId) {
         DisplayTextService.ManagedTextDisplay display = playerDisplays.remove(playerId);
         if (display != null) {
             display.destroy();
         }
+    }
+
+    public void suspendPlayerDisplay(@NotNull UUID playerId) {
+        suspendedPlayerDisplays.add(playerId);
+        removePlayerDisplay(playerId);
     }
 
     public void resumePlayerDisplay(@NotNull UUID playerId) {
@@ -173,12 +179,11 @@ public class OverheadDisplayService {
             UUID subjectId = subject.getUniqueId();
             subject.setCustomNameVisible(false);
 
-            if (suspendedPlayerDisplays.contains(subjectId)
+            AstPlayer astPlayer = AstPlayerCache.get(subject);
+            if (!AccountModeGuard.isGameplayPlayer(astPlayer)
+                    || suspendedPlayerDisplays.contains(subjectId)
                     || suppressPlayerDisplayInWorld.test(subject.getWorld())) {
-                DisplayTextService.ManagedTextDisplay suspendedDisplay = playerDisplays.remove(subjectId);
-                if (suspendedDisplay != null) {
-                    suspendedDisplay.destroy();
-                }
+                removePlayerDisplay(subjectId);
                 continue;
             }
 

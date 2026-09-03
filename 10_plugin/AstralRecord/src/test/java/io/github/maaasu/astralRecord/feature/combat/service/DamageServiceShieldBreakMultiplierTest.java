@@ -205,7 +205,7 @@ class DamageServiceShieldBreakMultiplierTest extends MockBukkitTestBase {
     }
 
     private AstPlayer attacker(double accuracy, double shieldBreak) {
-        AstPlayer attacker = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        AstPlayer attacker = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
         attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
                 StatusType.MAX_HEALTH, 100.0D,
                 StatusType.ATTACK, 50.0D,

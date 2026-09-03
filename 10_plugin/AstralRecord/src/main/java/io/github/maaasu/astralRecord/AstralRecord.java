@@ -307,6 +307,7 @@ import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueue;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueueConfig;
 import io.github.maaasu.astralRecord.shared.display.OverheadDisplayService;
+import io.github.maaasu.astralRecord.shared.display.PlayerTeleportDisplayEventHandler;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionGatewayEventHandler;
 import org.bukkit.inventory.EquipmentSlot;
@@ -1441,6 +1442,7 @@ public final class AstralRecord extends JavaPlugin {
             mobSkillService.clearCasterState(mobInstanceId);
             mobProjectileService.clearCasterState(mobInstanceId);
             mobTauntService.clearMob(mobInstanceId);
+            bossMechanicService.handleMobDestroyed(mobInstanceId);
         });
         var activeSkillTargetingService = new SkillTargetingService(mobService);
         var activeSkillEffectService = new SkillEffectService(particleDisplayService);
@@ -1717,6 +1719,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new WorldChangeTitleEventHandler(worldService, playerRegionService),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new PlayerTeleportDisplayEventHandler(overheadDisplayService),
             getServer().getPluginManager()
         );
         eventManager.registerHandler(

@@ -41,6 +41,7 @@ import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Sound;
@@ -1393,6 +1394,14 @@ public final class BossChallengeService {
             finishChallengeRemoval(challenge);
             return;
         }
+        if (!evacuateRemainingFieldPlayers(challenge)) {
+            Bukkit.getScheduler().runTaskLater(
+                    plugin,
+                    () -> exitParticipantsAndCleanup(challenge),
+                    END_RETRY_DELAY_TICKS
+            );
+            return;
+        }
         fieldInstanceService.destroyFieldAsync(field).whenComplete((success, throwable) ->
                 runSync(() -> {
                     if (!isEnding(challenge)) {
@@ -2164,6 +2173,91 @@ public final class BossChallengeService {
                 });
     }
 
+    /**
+     * ボスフィールドからの同期帰還先を受付開始位置優先で解決します。
+     *
+     * @param challenge 対象ボス挑戦
+     * @return 受付開始位置、または受付 World が利用できない場合の安全な帰還先
+     */
+    private @Nullable Location resolveSynchronousExitLocation(@NotNull BossChallengeInstance challenge) {
+        World entryWorld = resolveLocationWorld(challenge.config().entryLocation());
+        Location target = entryWorld == null
+                ? null
+                : challenge.config().entryLocation().toLocation(entryWorld);
+        if (target == null) {
+            BossFieldInstance field = challenge.field();
+            WorldMasterData hubData = worldService.getById(hubWorldId);
+            World hubWorld = hubData == null ? null : worldService.resolveLoadedWorld(hubData);
+            World fallbackWorld = Bukkit.getWorlds().stream()
+                    .filter(world -> field == null || !world.getUID().equals(field.world().getUID()))
+                    .filter(world -> hubWorld == null || !world.getUID().equals(hubWorld.getUID()))
+                    .findFirst()
+                    .orElse(null);
+            if (fallbackWorld != null) {
+                target = fallbackWorld.getSpawnLocation();
+            }
+        }
+        return target;
+    }
+
+    /**
+     * プラグイン停止時に参加者を受付開始位置へ同期帰還させます。
+     *
+     * <p>停止中は非同期転送の完了を待てないため、フィールド破棄より前に実行します。</p>
+     *
+     * @param challenge 対象ボス挑戦
+     */
+    private boolean teleportParticipantsOutNow(@NotNull BossChallengeInstance challenge) {
+        List<Player> players = onlinePlayers(exitParticipantIds(challenge));
+        if (players.isEmpty()) {
+            return true;
+        }
+        Location target = resolveSynchronousExitLocation(challenge);
+        if (target == null) {
+            return false;
+        }
+        boolean success = true;
+        for (Player player : players) {
+            try {
+                success &= PlayerTeleportService.teleport(player, target);
+            } catch (RuntimeException failure) {
+                success = false;
+            }
+        }
+        return success;
+    }
+
+    /**
+     * 参加者一覧に含まれないプレイヤーも、ボスフィールド破棄前に退避させます。
+     *
+     * @param challenge 対象ボス挑戦
+     */
+    private boolean evacuateRemainingFieldPlayers(@NotNull BossChallengeInstance challenge) {
+        BossFieldInstance field = challenge.field();
+        if (field == null) {
+            return true;
+        }
+        List<Player> players = List.copyOf(field.world().getPlayers()).stream()
+                .filter(Player::isOnline)
+                .toList();
+        if (players.isEmpty()) {
+            return true;
+        }
+        Location target = resolveSynchronousExitLocation(challenge);
+        if (target == null) {
+            return false;
+        }
+        boolean success = true;
+        for (Player player : players) {
+            try {
+                success &= PlayerTeleportService.teleport(player, target);
+            } catch (RuntimeException failure) {
+                success = false;
+            }
+        }
+        return success;
+    }
+
     private void forceShutdownChallenge(@NotNull BossChallengeInstance challenge) {
         challenge.state(BossChallengeState.ENDING);
         cancelStartCountdown(challenge);
@@ -2187,8 +2281,9 @@ public final class BossChallengeService {
         for (UUID participantId : exitParticipantIds(challenge)) {
             playerDeathService.recoverNow(participantId);
         }
-        teleportParticipantsOutAsync(challenge);
-        if (challenge.field() != null) {
+        boolean participantsEvacuated = teleportParticipantsOutNow(challenge);
+        boolean fieldPlayersEvacuated = evacuateRemainingFieldPlayers(challenge);
+        if (participantsEvacuated && fieldPlayersEvacuated && challenge.field() != null) {
             fieldInstanceService.destroyField(challenge.field());
         }
         challenge.state(BossChallengeState.ENDED);

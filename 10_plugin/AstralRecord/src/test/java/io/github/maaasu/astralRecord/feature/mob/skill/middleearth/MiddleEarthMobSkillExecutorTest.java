@@ -1,10 +1,14 @@
 package io.github.maaasu.astralRecord.feature.mob.skill.middleearth;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
 import io.github.maaasu.astralRecord.feature.mob.service.MobProjectileService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -14,6 +18,7 @@ import org.bukkit.util.Vector;
 import org.junit.jupiter.api.Test;
 
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -21,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.when;
 
 class MiddleEarthMobSkillExecutorTest {
@@ -148,21 +154,30 @@ class MiddleEarthMobSkillExecutorTest {
         Entity entity = mock(Entity.class);
         Player target = mock(Player.class);
         Location targetSnapshot = new Location(casterWorld, 4.0D, 64.0D, 0.0D);
+        UUID targetId = UUID.randomUUID();
         when(entity.getWorld()).thenReturn(casterWorld);
+        when(target.getUniqueId()).thenReturn(targetId);
         when(target.isOnline()).thenReturn(true);
         when(target.isDead()).thenReturn(false);
         when(target.getWorld()).thenReturn(casterWorld);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getMode()).thenReturn(AccountMode.PLAYER);
 
-        assertTrue(MiddleEarthRushMotion.isTargetAvailable(entity, target, targetSnapshot));
+        try (var cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(target)).thenReturn(astPlayer);
+            assertTrue(MiddleEarthRushMotion.isTargetAvailable(entity, target, targetSnapshot));
 
-        when(target.getWorld()).thenReturn(otherWorld);
-        assertFalse(MiddleEarthRushMotion.isTargetAvailable(entity, target, targetSnapshot));
-        when(target.getWorld()).thenReturn(casterWorld);
-        when(target.isOnline()).thenReturn(false);
-        assertFalse(MiddleEarthRushMotion.isTargetAvailable(entity, target, targetSnapshot));
-        when(target.isOnline()).thenReturn(true);
-        when(target.isDead()).thenReturn(true);
-        assertFalse(MiddleEarthRushMotion.isTargetAvailable(entity, target, targetSnapshot));
+            when(target.getWorld()).thenReturn(otherWorld);
+            assertFalse(MiddleEarthRushMotion.isTargetAvailable(entity, target, targetSnapshot));
+            when(target.getWorld()).thenReturn(casterWorld);
+            when(target.isOnline()).thenReturn(false);
+            assertFalse(MiddleEarthRushMotion.isTargetAvailable(entity, target, targetSnapshot));
+            when(target.isOnline()).thenReturn(true);
+            when(target.isDead()).thenReturn(true);
+            assertFalse(MiddleEarthRushMotion.isTargetAvailable(entity, target, targetSnapshot));
+        }
     }
 
     /**

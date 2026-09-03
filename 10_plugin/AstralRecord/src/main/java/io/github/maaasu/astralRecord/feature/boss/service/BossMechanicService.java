@@ -9,6 +9,8 @@ import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
@@ -125,6 +127,19 @@ public final class BossMechanicService {
         }
         clockTicks = 0L;
         tickTask = plugin.getServer().getScheduler().runTaskTimer(plugin, this::tick, 20L, TICK_PERIOD);
+    }
+
+    /**
+     * ボス Mob 破棄時に、そのボスへ紐付くギミック状態と演出個体を即時解放します。
+     *
+     * @param bossInstanceId 破棄されたボス Mob のインスタンス ID
+     */
+    public void handleMobDestroyed(@NotNull UUID bossInstanceId) {
+        BossRuntime runtime = runtimes.remove(bossInstanceId);
+        if (runtime != null) {
+            destroySummons(runtime);
+        }
+        removePendingForBoss(bossInstanceId);
     }
 
     /** 定期処理、未発動の予兆、召喚個体を回収します。 */
@@ -1084,6 +1099,7 @@ public final class BossMechanicService {
         return world.getPlayers().stream()
             .filter(Player::isValid)
             .filter(player -> horizontalDistanceSquared(player.getLocation(), center) <= radiusSquared)
+            .filter(player -> AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(player)))
             .filter(player -> damageService.resolveEntity(player).isPlayer())
             .toList();
     }
@@ -1101,6 +1117,7 @@ public final class BossMechanicService {
         }
         return world.getPlayers().stream()
             .filter(Player::isValid)
+            .filter(player -> AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(player)))
             .filter(player -> damageService.resolveEntity(player).isPlayer())
             .toList();
     }

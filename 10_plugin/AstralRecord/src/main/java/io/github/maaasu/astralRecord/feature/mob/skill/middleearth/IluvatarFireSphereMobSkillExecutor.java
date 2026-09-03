@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobSkillTiming;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillContext;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.service.MobProjectileService;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -71,7 +72,7 @@ public final class IluvatarFireSphereMobSkillExecutor implements MobSkillExecuto
             return false;
         }
         List<Player> players = origin.getWorld().getPlayers().stream()
-                .filter(player -> player.isOnline() && !player.isDead())
+                .filter(player -> player.isOnline() && !player.isDead() && isGameplayTargetPlayer(player))
                 .toList();
         if (players.isEmpty()) {
             return false;
@@ -90,6 +91,10 @@ public final class IluvatarFireSphereMobSkillExecutor implements MobSkillExecuto
         }
         origin.getWorld().playSound(origin, Sound.ENTITY_BLAZE_SHOOT, 1.0F, 0.7F);
         return true;
+    }
+
+    private boolean isGameplayTargetPlayer(@NotNull Player player) {
+        return player.getUniqueId() != null && AccountModeGuard.isGameplayPlayer(player);
     }
 
     private @NotNull Vector spreadToward(@NotNull Location origin, @NotNull Player player, double spreadDegrees) {

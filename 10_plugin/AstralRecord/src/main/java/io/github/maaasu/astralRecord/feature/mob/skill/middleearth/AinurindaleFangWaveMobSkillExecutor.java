@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobSkillTiming;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillContext;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
@@ -182,7 +183,8 @@ public final class AinurindaleFangWaveMobSkillExecutor implements MobSkillExecut
     ) {
         Set<UUID> damaged = new HashSet<>();
         for (Player player : centers.get(1).getWorld().getPlayers()) {
-            if (!player.isOnline() || player.isDead() || !damaged.add(player.getUniqueId())) {
+            if (!player.isOnline() || player.isDead() || !isGameplayTargetPlayer(player)
+                    || !damaged.add(player.getUniqueId())) {
                 continue;
             }
             boolean hit = centers.stream().anyMatch(center -> isWithinHitRadius(player.getLocation(), center, hitRadius));
@@ -194,6 +196,10 @@ public final class AinurindaleFangWaveMobSkillExecutor implements MobSkillExecut
                     List.of(new DamageComponent(DamageElement.NONE, damageRatio)), DamageSource.SKILL
             );
         }
+    }
+
+    private boolean isGameplayTargetPlayer(@NotNull Player player) {
+        return player.getUniqueId() != null && AccountModeGuard.isGameplayPlayer(player);
     }
 
     private @NotNull Vector horizontalDirection(

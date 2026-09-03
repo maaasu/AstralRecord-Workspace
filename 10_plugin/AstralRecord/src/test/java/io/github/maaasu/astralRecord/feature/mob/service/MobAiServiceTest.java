@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.mob.model.IdleBehavior;
 import io.github.maaasu.astralRecord.feature.mob.model.CombatStyle;
 import io.github.maaasu.astralRecord.feature.mob.model.MobBaseStat;
@@ -16,6 +18,8 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobVariantConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.TargetStrategy;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.World;
@@ -47,6 +51,45 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class MobAiServiceTest {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
+     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### アカウントモード変更・オンライン反映
+     * 検証契約: ADMIN モードのオンラインプレイヤーは Mob AI のターゲット候補に含めない。
+     */
+    @Test
+    void ignoresAdministratorModePlayerAsMobTarget() throws ReflectiveOperationException {
+        World world = mock(World.class);
+        MobInstance instance = new MobInstance(
+                UUID.randomUUID(),
+                enemyTemplate(),
+                new Location(world, 0.0D, 64.0D, 0.0D)
+        );
+        Player admin = activePlayer(world, 1.0D);
+        UUID adminId = UUID.randomUUID();
+        when(admin.getUniqueId()).thenReturn(adminId);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getMode()).thenReturn(AccountMode.ADMIN);
+
+        MobAiService aiService = new MobAiService(
+                mock(MobService.class),
+                mock(MobCombatService.class),
+                mock(MobSkillService.class)
+        );
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(admin));
+            cache.when(() -> AstPlayerCache.get(admin)).thenReturn(astPlayer);
+
+            invokeTickAggro(aiService, instance);
+        }
+
+        assertNull(instance.targetId());
+        assertEquals(MobState.IDLE, instance.state());
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
@@ -83,7 +126,12 @@ class MobAiServiceTest {
                 tauntService
         );
 
-        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+        AstPlayer taunterPlayer = gameplayAstPlayer();
+        AstPlayer threatTargetPlayer = gameplayAstPlayer();
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(taunter)).thenReturn(taunterPlayer);
+            cache.when(() -> AstPlayerCache.get(threatTarget)).thenReturn(threatTargetPlayer);
             bukkit.when(() -> Bukkit.getPlayer(taunterId)).thenReturn(taunter);
             bukkit.when(() -> Bukkit.getPlayer(threatTargetId)).thenReturn(threatTarget);
             bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(taunter, threatTarget));
@@ -368,7 +416,10 @@ class MobAiServiceTest {
         when(mobSkillService.tryCast(instance, binding, target, 0L)).thenReturn(true);
         MobAiService aiService = new MobAiService(mobService, mock(MobCombatService.class), mobSkillService);
 
-        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+        AstPlayer gameplayTarget = gameplayAstPlayer();
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(target)).thenReturn(gameplayTarget);
             bukkit.when(() -> Bukkit.getPlayer(targetId)).thenReturn(target);
 
             invokeTickCombatHold(aiService, instance);
@@ -405,7 +456,10 @@ class MobAiServiceTest {
         when(mobSkillService.isWithinActivationRange(instance, binding, target, 12.25D)).thenReturn(true);
         MobAiService aiService = new MobAiService(mobService, mock(MobCombatService.class), mobSkillService);
 
-        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+        AstPlayer gameplayTarget = gameplayAstPlayer();
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(target)).thenReturn(gameplayTarget);
             bukkit.when(() -> Bukkit.getPlayer(targetId)).thenReturn(target);
 
             invokeTickAggro(aiService, instance);
@@ -455,6 +509,14 @@ class MobAiServiceTest {
         when(player.getLocation()).thenReturn(new Location(world, x, y, 0.0D));
         when(player.getEyeLocation()).thenReturn(new Location(world, x, y + 1.6D, 0.0D));
         return player;
+    }
+
+    private static AstPlayer gameplayAstPlayer() {
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getMode()).thenReturn(AccountMode.PLAYER);
+        return astPlayer;
     }
 
     private static MobTemplate verticalTargetingEnemyTemplate(MobSkillBinding binding) {

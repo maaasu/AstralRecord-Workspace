@@ -21,6 +21,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.model.TargetStrategy;
 import io.github.maaasu.astralRecord.feature.party.model.Party;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
@@ -182,7 +183,7 @@ public class MobCombatService {
         if (targeting.retaliateOnly()) {
             UUID topId = instance.threatTable().top();
             Player top = topId == null ? null : Bukkit.getPlayer(topId);
-            if (top == null || isPlayerDead(top) || top.getWorld() != loc.getWorld()
+            if (top == null || !isGameplayTargetPlayer(top) || isPlayerDead(top) || top.getWorld() != loc.getWorld()
                     || top.getLocation().distanceSquared(loc) > aggroSq) {
                 instance.targetId(null);
                 return null;
@@ -193,6 +194,7 @@ public class MobCombatService {
         List<Player> candidates = new ArrayList<>();
         for (Player player : Bukkit.getOnlinePlayers()) {
             if (player.getWorld() != loc.getWorld()) continue;
+            if (!isGameplayTargetPlayer(player)) continue;
             if (isPlayerDead(player)) continue;
             if (player.getLocation().distanceSquared(loc) > aggroSq) continue;
             candidates.add(player);
@@ -230,7 +232,7 @@ public class MobCombatService {
             return;
         }
         Player target = Bukkit.getPlayer(targetId);
-        if (target == null || !target.isOnline() || isPlayerDead(target)) {
+        if (target == null || !target.isOnline() || !isGameplayTargetPlayer(target) || isPlayerDead(target)) {
             instance.targetId(null);
             instance.state(MobState.AGGRO);
             return;
@@ -412,7 +414,7 @@ public class MobCombatService {
             return;
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) {
+        if (astPlayer == null || !AccountModeGuard.isGameplayPlayer(astPlayer)) {
             return;
         }
         recipients.putIfAbsent(player.getUniqueId(), astPlayer);
@@ -489,6 +491,10 @@ public class MobCombatService {
 
     private boolean isPlayerDead(@NotNull Player player) {
         return playerDeathService != null && playerDeathService.isDead(player.getUniqueId());
+    }
+
+    private boolean isGameplayTargetPlayer(@NotNull Player player) {
+        return player.getUniqueId() != null && AccountModeGuard.isGameplayPlayer(player);
     }
 
     @Nullable

@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobSkillTiming;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillContext;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillExecutor;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
@@ -34,7 +35,16 @@ public final class TwilightColossusGateSlamSkillExecutor implements MobSkillExec
         renderImpact(center);
         for (Entity entity : center.getWorld().getNearbyEntities(center, RANGE, RANGE, RANGE)) {
             AstEntity victim = damageService.resolveEntity(entity);
-            if (victim.isPlayer() && victim.location().distanceSquared(center) <= RANGE * RANGE) damageService.attack(AstEntity.mob(context.mob()), victim, AttackType.MELEE, List.of(new DamageComponent(DamageElement.NONE, 0.65D)));
+            if (victim.isPlayer() && victim.player() != null
+                    && AccountModeGuard.isGameplayPlayer(victim.player())
+                    && victim.location().distanceSquared(center) <= RANGE * RANGE) {
+                damageService.attack(
+                        AstEntity.mob(context.mob()),
+                        victim,
+                        AttackType.MELEE,
+                        List.of(new DamageComponent(DamageElement.NONE, 0.65D))
+                );
+            }
         }
         return true;
     }

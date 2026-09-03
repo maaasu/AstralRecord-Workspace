@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobSkillBinding;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTargetingConfig;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.death.PlayerDeathService;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -895,7 +896,9 @@ public class MobAiService {
     private boolean isActiveTargetPlayer(@NotNull Player player) {
         return player.isOnline()
                 && !player.isDead()
-                && (playerDeathService == null || !playerDeathService.isDead(player.getUniqueId()));
+                && (playerDeathService == null || !playerDeathService.isDead(player.getUniqueId()))
+                && player.getUniqueId() != null
+                && AccountModeGuard.isGameplayPlayer(player);
     }
 
     @Nullable

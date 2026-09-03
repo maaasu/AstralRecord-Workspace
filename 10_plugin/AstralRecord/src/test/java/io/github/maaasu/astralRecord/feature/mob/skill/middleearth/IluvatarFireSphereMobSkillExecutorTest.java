@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.mob.skill.middleearth;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.combat.model.AttackType;
 import io.github.maaasu.astralRecord.feature.combat.model.DamageComponent;
@@ -13,6 +15,8 @@ import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.service.MobProjectileService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
@@ -34,6 +38,7 @@ import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -56,8 +61,10 @@ class IluvatarFireSphereMobSkillExecutorTest extends MockBukkitTestBase {
 
         World world = mock(World.class);
         Player player = mock(Player.class);
+        UUID playerId = UUID.randomUUID();
         when(world.getPlayers()).thenReturn(List.of(player));
         when(world.rayTraceBlocks(any(Location.class), any(Vector.class), anyDouble())).thenReturn(null);
+        when(player.getUniqueId()).thenReturn(playerId);
         when(player.isOnline()).thenReturn(true);
         when(player.isDead()).thenReturn(false);
         when(player.getBoundingBox()).thenReturn(new BoundingBox(
@@ -71,36 +78,43 @@ class IluvatarFireSphereMobSkillExecutorTest extends MockBukkitTestBase {
         when(damageService.attack(
                 any(AstEntity.class), eq(target), eq(AttackType.MAGIC), anyList(), eq(DamageSource.SKILL)
         )).thenReturn(new DamageResult(10.0D));
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getMode()).thenReturn(AccountMode.PLAYER);
         ConditionService conditionService = mock(ConditionService.class);
         MobProjectileService projectileService = new MobProjectileService(
                 mobService, mock(ParticleDisplayService.class)
         );
 
-        projectileService.launchBouncingFireSphere(
-                caster,
-                new Location(world, 0.0D, 0.0D, 0.0D),
-                new Vector(1.0D, 0.0D, 0.0D),
-                1.0D,
-                0.0D,
-                0.65D,
-                60L,
-                damageService,
-                conditionService
-        );
-        server().getScheduler().performTicks(2L);
+        try (var cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(playerId)).thenReturn(astPlayer);
+            projectileService.launchBouncingFireSphere(
+                    caster,
+                    new Location(world, 0.0D, 0.0D, 0.0D),
+                    new Vector(1.0D, 0.0D, 0.0D),
+                    1.0D,
+                    0.0D,
+                    0.65D,
+                    60L,
+                    damageService,
+                    conditionService
+            );
+            server().getScheduler().performTicks(2L);
 
-        @SuppressWarnings("unchecked")
-        ArgumentCaptor<List<DamageComponent>> components = ArgumentCaptor.forClass(List.class);
-        verify(damageService).attack(
-                any(AstEntity.class), eq(target), eq(AttackType.MAGIC), components.capture(), eq(DamageSource.SKILL)
-        );
-        assertEquals(DamageElement.FIRE, components.getValue().getFirst().element());
-        assertEquals(0.65D, components.getValue().getFirst().ratio(), 0.0001D);
+            @SuppressWarnings("unchecked")
+            ArgumentCaptor<List<DamageComponent>> components = ArgumentCaptor.forClass(List.class);
+            verify(damageService).attack(
+                    any(AstEntity.class), eq(target), eq(AttackType.MAGIC), components.capture(), eq(DamageSource.SKILL)
+            );
+            assertEquals(DamageElement.FIRE, components.getValue().getFirst().element());
+            assertEquals(0.65D, components.getValue().getFirst().ratio(), 0.0001D);
 
-        ArgumentCaptor<ConditionApplyRequest> condition = ArgumentCaptor.forClass(ConditionApplyRequest.class);
-        verify(conditionService).applyCondition(condition.capture());
-        assertEquals(ConditionType.BURNING, condition.getValue().type());
-        assertEquals(60L, condition.getValue().durationTicks());
+            ArgumentCaptor<ConditionApplyRequest> condition = ArgumentCaptor.forClass(ConditionApplyRequest.class);
+            verify(conditionService).applyCondition(condition.capture());
+            assertEquals(ConditionType.BURNING, condition.getValue().type());
+            assertEquals(60L, condition.getValue().durationTicks());
+        }
         projectileService.stop();
     }
 }

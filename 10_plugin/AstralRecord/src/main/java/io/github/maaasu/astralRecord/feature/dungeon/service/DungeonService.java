@@ -119,6 +119,7 @@ public final class DungeonService {
     private static final int ENTRY_FRAME_POINTS = 20;
     private static final double ENTRY_VIEW_DISTANCE_SQUARED = 48.0D * 48.0D;
     private static final long CLEAR_RETURN_DELAY_TICKS = 30L * 20L;
+    private static final long END_RETRY_DELAY_TICKS = 5L * 20L;
     private static final long DEFAULT_CHALLENGE_TIME_LIMIT_SECONDS = 600L;
     private static final double RETURN_GATE_RADIUS_SQUARED = 2.25D * 2.25D;
     private static final Material ACTIVE_ROOM_GATE_MATERIAL = Material.GLASS;
@@ -3124,9 +3125,7 @@ public final class DungeonService {
             if (participant == null || !participant.isOnline()) {
                 continue;
             }
-            Location target = session.instanceWorld == null
-                    ? resolvePreparingEntryLocation(session)
-                    : resolveReturnLocation(session.returnLocations.get(participantId), instance);
+            Location target = resolveForcedReturnLocation(session, participantId, instance);
             CompletableFuture<Boolean> transfer = target == null
                     ? CompletableFuture.completedFuture(false)
                     : worldService.teleportPlayerAsync(participant, target, null);
@@ -3135,11 +3134,18 @@ public final class DungeonService {
         CompletableFuture.allOf(transfers.toArray(CompletableFuture[]::new))
                 .whenComplete((ignored, failure) -> runMain(() -> {
                     if (!isEndingTransferCallback(session, endingGeneration)) return;
+                    if (failure != null || !allTransfersSucceeded(transfers)) {
+                        scheduleReturnParticipantsAndDestroyRetry(session, endingGeneration);
+                        return;
+                    }
                     if (instance == null || session.instanceWorld == null) {
                         finishSessionCleanup(session, endingGeneration);
                         return;
                     }
-                    evacuateRemainingPlayers(instance);
+                    if (!evacuateRemainingPlayers(instance, resolvePreparingEntryLocation(session))) {
+                        scheduleReturnParticipantsAndDestroyRetry(session, endingGeneration);
+                        return;
+                    }
                     instanceWorldService.destroyAsync(session.instanceWorld)
                             .whenComplete((destroyed, destroyFailure) -> runMain(() -> {
                                 if (isEndingTransferCallback(session, endingGeneration)
@@ -3150,11 +3156,50 @@ public final class DungeonService {
                 }));
     }
 
+    private boolean allTransfersSucceeded(@NotNull List<CompletableFuture<Boolean>> transfers) {
+        return transfers.stream().allMatch(transfer -> Boolean.TRUE.equals(transfer.getNow(false)));
+    }
+
+    private void scheduleReturnParticipantsAndDestroyRetry(
+            @NotNull Session session,
+            long endingGeneration
+    ) {
+        if (!plugin.isEnabled()) return;
+        Bukkit.getScheduler().runTaskLater(
+                plugin,
+                () -> {
+                    if (isEndingTransferCallback(session, endingGeneration)) {
+                        returnParticipantsAndDestroy(session, endingGeneration);
+                    }
+                },
+                END_RETRY_DELAY_TICKS
+        );
+    }
+
     private @Nullable Location resolvePreparingEntryLocation(@NotNull Session session) {
         World entryWorld = worldService.resolveLoadedWorld(session.loaded.entryWorldData());
         return entryWorld == null
                 ? null
                 : entryLocation(session.loaded.definition().entry(), entryWorld);
+    }
+
+    /**
+     * インスタンス破棄時のプレイヤー帰還先を受付開始位置優先で解決します。
+     *
+     * @param session 対象セッション
+     * @param participantId 対象プレイヤー
+     * @param instance 破棄対象のインスタンス World
+     * @return 受付開始位置、または受付 World が利用できない場合の安全な帰還先
+     */
+    private @Nullable Location resolveForcedReturnLocation(
+            @NotNull Session session,
+            @NotNull UUID participantId,
+            @Nullable World instance
+    ) {
+        Location entryLocation = resolvePreparingEntryLocation(session);
+        return entryLocation != null
+                ? entryLocation
+                : resolveReturnLocation(session.returnLocations.get(participantId), instance);
     }
 
     /** 帰還と一時 World 破棄が完了したセッションの reverse index を最後に解放します。 */
@@ -3276,14 +3321,57 @@ public final class DungeonService {
                 .orElse(null);
     }
 
-    private void evacuateRemainingPlayers(@NotNull World instance) {
-        Location fallback = resolveReturnLocation(null, instance);
+    private boolean evacuateRemainingPlayers(@NotNull World instance) {
+        return evacuateRemainingPlayers(instance, null);
+    }
+
+    private boolean evacuateRemainingPlayers(@NotNull World instance, @Nullable Location preferredLocation) {
+        List<Player> players = List.copyOf(instance.getPlayers());
+        if (players.stream().noneMatch(Player::isOnline)) {
+            return true;
+        }
+        Location fallback = preferredLocation == null
+                ? resolveReturnLocation(null, instance)
+                : preferredLocation.clone();
         if (fallback == null) {
-            return;
+            return false;
         }
-        for (Player player : List.copyOf(instance.getPlayers())) {
-            PlayerTeleportService.teleport(player, fallback);
+        boolean success = true;
+        for (Player player : players) {
+            if (!player.isOnline()) {
+                continue;
+            }
+            try {
+                success &= PlayerTeleportService.teleport(player, fallback);
+            } catch (RuntimeException failure) {
+                success = false;
+            }
         }
+        return success;
+    }
+
+    private boolean returnParticipantsAndEvacuateNow(
+            @NotNull Session session,
+            @NotNull World instance
+    ) {
+        boolean success = true;
+        for (UUID participantId : session.participants) {
+            Player player = Bukkit.getPlayer(participantId);
+            if (player == null || !player.isOnline()) {
+                continue;
+            }
+            Location target = resolveForcedReturnLocation(session, participantId, instance);
+            if (target == null) {
+                success = false;
+                continue;
+            }
+            try {
+                success &= PlayerTeleportService.teleport(player, target);
+            } catch (RuntimeException failure) {
+                success = false;
+            }
+        }
+        return success && evacuateRemainingPlayers(instance, resolvePreparingEntryLocation(session));
     }
 
     /** プラグイン停止時に全セッションを同期回収します。 */
@@ -3317,21 +3405,13 @@ public final class DungeonService {
             }
             if (session.instanceWorld != null) {
                 World instance = session.instanceWorld.world();
-                for (UUID participantId : session.participants) {
-                    Player player = Bukkit.getPlayer(participantId);
-                    if (player != null && player.isOnline()) {
-                        Location target = resolveReturnLocation(session.returnLocations.get(participantId), instance);
-                        if (target != null) {
-                            PlayerTeleportService.teleport(player, target);
-                        }
-                    }
+                if (returnParticipantsAndEvacuateNow(session, instance)) {
+                    instanceWorldService.destroyNow(session.instanceWorld);
                 }
-                evacuateRemainingPlayers(instance);
-                instanceWorldService.destroyNow(session.instanceWorld);
             } else {
                 for (UUID participantId : session.participants) {
                     Player player = Bukkit.getPlayer(participantId);
-                    Location target = resolveReturnLocation(session.returnLocations.get(participantId), null);
+                    Location target = resolveForcedReturnLocation(session, participantId, null);
                     if (player != null && player.isOnline() && target != null) {
                         PlayerTeleportService.teleport(player, target);
                     }
@@ -3342,9 +3422,15 @@ public final class DungeonService {
             }
         }
         for (DungeonInstanceWorldService.InstanceWorld instance : instanceWorldService.activeInstances()) {
-            evacuateRemainingPlayers(instance.world());
+            UUID sessionId = sessionIdByWorld.get(instance.world().getUID());
+            Session session = sessionId == null ? null : sessionsById.get(sessionId);
+            boolean evacuated = session == null
+                    ? evacuateRemainingPlayers(instance.world())
+                    : returnParticipantsAndEvacuateNow(session, instance.world());
+            if (evacuated) {
+                instanceWorldService.destroyNow(instance);
+            }
         }
-        instanceWorldService.destroyAllNow();
         sessionsById.clear();
         sessionIdByParticipant.clear();
         sessionIdByBusyParticipant.clear();

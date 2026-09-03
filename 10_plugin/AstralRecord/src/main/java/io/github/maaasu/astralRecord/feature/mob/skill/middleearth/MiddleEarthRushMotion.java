@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.combat.model.DamageSource;
 import io.github.maaasu.astralRecord.feature.combat.service.DamageService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import org.bukkit.Location;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
@@ -139,7 +140,9 @@ final class MiddleEarthRushMotion {
             @NotNull Player target,
             @NotNull Location targetLocation
     ) {
-        return target.isOnline() && !target.isDead()
+        return target.getUniqueId() != null
+                && AccountModeGuard.isGameplayPlayer(target)
+                && target.isOnline() && !target.isDead()
                 && entity.getWorld() == target.getWorld()
                 && entity.getWorld() == targetLocation.getWorld();
     }

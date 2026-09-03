@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillContext;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillRegistry;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
@@ -103,7 +104,7 @@ public final class MobSkillService {
             long serverTick
     ) {
         MobSkillExecutor executor = registry.find(binding.id());
-        if (executor == null || instance.isSkillCasting()) {
+        if (executor == null || instance.isSkillCasting() || !isGameplayTargetPlayer(target)) {
             return false;
         }
         try {
@@ -185,7 +186,8 @@ public final class MobSkillService {
             @Override
             public void run() {
                 MobInstance active = mobService.getInstance(instance.instanceId());
-                if (active != instance || active.state() == MobState.DEAD || !context.target().isOnline()) {
+                if (active != instance || active.state() == MobState.DEAD || !context.target().isOnline()
+                        || !isGameplayTargetPlayer(context.target())) {
                     finish();
                     return;
                 }
@@ -212,6 +214,10 @@ public final class MobSkillService {
 
     private boolean isOnCooldown(@NotNull UUID mobInstanceId, @NotNull String skillId, long serverTick) {
         return cooldownUntilByMob.getOrDefault(mobInstanceId, Map.of()).getOrDefault(skillId, Long.MIN_VALUE) > serverTick;
+    }
+
+    private boolean isGameplayTargetPlayer(@NotNull Player player) {
+        return player.getUniqueId() != null && AccountModeGuard.isGameplayPlayer(player);
     }
 
     private void startCooldown(@NotNull UUID mobInstanceId, @NotNull String skillId, long serverTick, long cooldownTicks) {

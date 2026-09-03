@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobSkillTiming;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillContext;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Entity;
@@ -98,7 +99,9 @@ public final class AinuaBiteRushMobSkillExecutor implements MobSkillExecutor {
                 MobInstance active = mobService.getInstance(context.mob().instanceId());
                 Entity entity = active == context.mob() ? mobService.entityController().getEntity(active) : null;
                 if (entity == null || entity.isDead() || !context.target().isOnline() || context.target().isDead()
-                        || entity.getWorld() != context.target().getWorld()) {
+                        || entity.getWorld() != context.target().getWorld()
+                        || context.target().getUniqueId() == null
+                        || !AccountModeGuard.isGameplayPlayer(context.target())) {
                     complete();
                     return;
                 }

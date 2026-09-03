@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.mob.model.MobSkillTiming;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillContext;
 import io.github.maaasu.astralRecord.feature.mob.skill.MobSkillExecutor;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
@@ -169,7 +170,9 @@ public final class ClayGuardLeapMobSkillExecutor implements MobSkillExecutor {
         world.playSound(landing, Sound.ENTITY_IRON_GOLEM_DAMAGE, 0.8F, 0.65F);
         for (Entity entity : world.getNearbyEntities(landing, radius, radius, radius)) {
             var victim = damageService.resolveEntity(entity);
-            if (!victim.isPlayer() || horizontalDistanceSquared(entity.getLocation(), landing) > radius * radius) {
+            if (!victim.isPlayer() || victim.player() == null
+                    || !AccountModeGuard.isGameplayPlayer(victim.player())
+                    || horizontalDistanceSquared(entity.getLocation(), landing) > radius * radius) {
                 continue;
             }
             damageService.attack(

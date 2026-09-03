@@ -11,6 +11,8 @@ import io.github.maaasu.astralRecord.feature.condition.model.ConditionApplyReque
 import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinition;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
@@ -396,13 +398,15 @@ public final class MobProjectileService {
                     return;
                 }
                 Player target = Bukkit.getPlayer(targetId);
-                if (target != null && target.isOnline() && !target.isDead()) {
-                    Vector desired = target.getEyeLocation().toVector().subtract(position.toVector());
-                    if (desired.lengthSquared() > 1.0E-6D) {
-                        velocity = velocity.normalize().multiply(1.0D - steering)
-                                .add(desired.normalize().multiply(steering))
-                                .normalize().multiply(projectileSpeed);
-                    }
+                if (target == null || !target.isOnline() || target.isDead() || !isGameplayTargetPlayer(target)) {
+                    finish();
+                    return;
+                }
+                Vector desired = target.getEyeLocation().toVector().subtract(position.toVector());
+                if (desired.lengthSquared() > 1.0E-6D) {
+                    velocity = velocity.normalize().multiply(1.0D - steering)
+                            .add(desired.normalize().multiply(steering))
+                            .normalize().multiply(projectileSpeed);
                 }
                 Location next = position.clone().add(velocity);
                 ProjectileImpact impact = firstImpact(position, next, Math.max(0.0D, hitRadius));
@@ -472,7 +476,7 @@ public final class MobProjectileService {
         Player result = null;
         double closest = Double.POSITIVE_INFINITY;
         for (Player player : world.getPlayers()) {
-            if (!player.isOnline() || player.isDead()) {
+            if (!player.isOnline() || player.isDead() || !isGameplayTargetPlayer(player)) {
                 continue;
             }
             double distance = rayDistance(from, to, player.getBoundingBox().expand(hitRadius));
@@ -482,6 +486,11 @@ public final class MobProjectileService {
             }
         }
         return result;
+    }
+
+    private boolean isGameplayTargetPlayer(@NotNull Player player) {
+        var playerId = player.getUniqueId();
+        return playerId != null && AccountModeGuard.isGameplayPlayer(AstPlayerCache.get(playerId));
     }
 
     private double rayDistance(@NotNull Location from, @NotNull Location to, @NotNull BoundingBox box) {

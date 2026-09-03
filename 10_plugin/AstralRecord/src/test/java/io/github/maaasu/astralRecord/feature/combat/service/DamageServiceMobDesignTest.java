@@ -827,7 +827,7 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
     }
 
     private AstPlayer attacker() {
-        AstPlayer attacker = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.ADMIN);
+        AstPlayer attacker = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
         attacker.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
             StatusType.MAX_HEALTH, 100.0D,
             StatusType.FINAL_DAMAGE_MULTIPLIER, 100.0D

@@ -14,6 +14,7 @@ import io.github.maaasu.astralRecord.feature.condition.service.ConditionService;
 import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.service.MobKnockbackService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobTauntService;
+import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.HealthRecoveryContext;
 import io.github.maaasu.astralRecord.feature.status.model.StatusType;
@@ -272,7 +273,8 @@ public final class SkillCombatService {
 
     /** 対象 Mob を発動者へ向け、脅威値を加算します。 */
     public void provoke(@NotNull AstEntity attacker, @NotNull AstEntity target, double threat) {
-        if (!attacker.isPlayer() || target.mob() == null) {
+        if (!attacker.isPlayer() || attacker.player() == null || !AccountModeGuard.isGameplayPlayer(attacker.player())
+                || target.mob() == null) {
             return;
         }
         double highestThreat = target.mob().threatTable().snapshot().values().stream()
@@ -291,7 +293,8 @@ public final class SkillCombatService {
 
     /** 脅威値を変更せず、対象 Mob の攻撃対象を発動者へ一時固定します。 */
     public void taunt(@NotNull AstEntity attacker, @NotNull AstEntity target, long durationTicks) {
-        if (tauntService == null || !attacker.isPlayer() || target.mob() == null) {
+        if (tauntService == null || !attacker.isPlayer() || attacker.player() == null
+                || !AccountModeGuard.isGameplayPlayer(attacker.player()) || target.mob() == null) {
             return;
         }
         tauntService.apply(target.mob(), attacker.id(), durationTicks);
