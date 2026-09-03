@@ -36,7 +36,7 @@ public final class SwordsmanExeptStampExecutor extends PlayerActiveSkillExecutor
     private static final double DEFAULT_DAMAGE_RATIO = 1.10D;
     private static final double DEFAULT_MOVEMENT_SPEED_REDUCTION = 10.0D;
     private static final int DEFAULT_MOVEMENT_SPEED_DEBUFF_DURATION_TICKS = 100;
-    private static final double DEFAULT_LAUNCH_HORIZONTAL_VELOCITY = 0.65D;
+    private static final double DEFAULT_LAUNCH_HORIZONTAL_VELOCITY = 1.30D;
     private static final double DEFAULT_LAUNCH_VERTICAL_VELOCITY = 1.05D;
     private static final double DEFAULT_DIVE_VELOCITY = 2.40D;
     private static final int DEFAULT_MAX_FLIGHT_TICKS = 100;

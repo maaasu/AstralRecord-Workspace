@@ -127,7 +127,7 @@ class SwordsmanExeptStampExecutorTest extends MockBukkitTestBase {
                 any(AstEntity.class),
                 velocityCaptor.capture()
         );
-        assertEquals(new Vector(0.0D, 1.05D, 0.65D), velocityCaptor.getAllValues().get(0));
+        assertEquals(new Vector(0.0D, 1.05D, 1.30D), velocityCaptor.getAllValues().get(0));
         assertEquals(new Vector(0.0D, -2.40D, 0.0D), velocityCaptor.getAllValues().get(1));
         verify(fixture.combat()).hit(
                 any(AstEntity.class),
@@ -335,7 +335,7 @@ class SwordsmanExeptStampExecutorTest extends MockBukkitTestBase {
                         "damageRatio", 1.10D,
                         "movementSpeedReduction", 10.0D,
                         "movementSpeedDebuffDurationTicks", 100,
-                        "launchHorizontalVelocity", 0.65D,
+                        "launchHorizontalVelocity", 1.30D,
                         "launchVerticalVelocity", 1.05D,
                         "diveVelocity", 2.40D,
                         "maxFlightTicks", 100
