@@ -6,6 +6,9 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.boss.BarColor;
@@ -15,6 +18,7 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -26,6 +30,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 class NormalAttackDegradationServiceTest extends MockBukkitTestBase {
 
@@ -56,6 +61,31 @@ class NormalAttackDegradationServiceTest extends MockBukkitTestBase {
             assertEquals(expectedDamageMultipliers[index], ticket.damageMultiplier(), 0.000001D);
             assertEquals(expectedAttackSpeedMultipliers[index], ticket.attackSpeedMultiplier(), 0.000001D);
         }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 12. 通常攻撃劣化
+     * 検証契約: 通常攻撃劣化遅延の整数部1につき劣化開始を1回遅延し、遅延分を含めても段階11まで進む。
+     */
+    @Test
+    void normalAttackDegradationDelayAddsWholeStatusValueToGracePeriod() {
+        AtomicLong now = new AtomicLong(1_000L);
+        StatusService statusService = mock(StatusService.class);
+        NormalAttackDegradationService service = new NormalAttackDegradationService(statusService, now::get);
+        AstPlayer player = astPlayer();
+        StatusSnapshot snapshot = StatusSnapshot.empty().withFlatBonuses(
+                Map.of(StatusType.NORMAL_ATTACK_DEGRADATION_DELAY, 3.2D)
+        );
+        when(statusService.getStatus(player)).thenReturn(snapshot);
+
+        for (int attack = 1; attack <= 7; attack++) {
+            assertEquals(0, service.beginNormalAttack(player).stage(), "attack=" + attack);
+        }
+        for (int expectedStage = 1; expectedStage <= NormalAttackDegradationService.MAX_STAGE; expectedStage++) {
+            assertEquals(expectedStage, service.beginNormalAttack(player).stage());
+        }
+        service.stop();
     }
 
     /**

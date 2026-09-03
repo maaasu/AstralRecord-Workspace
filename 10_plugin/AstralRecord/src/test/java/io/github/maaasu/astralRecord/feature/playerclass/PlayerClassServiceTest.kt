@@ -149,14 +149,19 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
                     baseStats = listOf(
                         ClassStat(StatusType.ATTACK.name, 10.0),
                         ClassStat(StatusType.MOVEMENT_SPEED_CAP.name, 150.0),
+                        ClassStat(StatusType.NORMAL_ATTACK_DEGRADATION_DELAY.name, 3.0),
                     ),
-                    growthPerLevel = listOf(ClassStat(StatusType.ATTACK.name, 2.0)),
+                    growthPerLevel = listOf(
+                        ClassStat(StatusType.ATTACK.name, 2.0),
+                        ClassStat(StatusType.NORMAL_ATTACK_DEGRADATION_DELAY.name, 0.2),
+                    ),
                 ),
             ),
         )
 
         assertEquals(16.0, service.getStatusBonus(astPlayer, StatusType.ATTACK), 0.0001)
         assertEquals(150.0, service.getStatusBonus(astPlayer, StatusType.MOVEMENT_SPEED_CAP), 0.0001)
+        assertEquals(3.6, service.getStatusBonus(astPlayer, StatusType.NORMAL_ATTACK_DEGRADATION_DELAY), 0.0001)
     }
 
     /**

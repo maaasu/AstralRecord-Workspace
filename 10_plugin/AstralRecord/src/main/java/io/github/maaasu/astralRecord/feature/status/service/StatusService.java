@@ -977,6 +977,7 @@ public class StatusService {
             case ATTACK_SPEED -> 100.0D;
             case SHIELD_BREAK -> 0.0D;
             case FIXED_HEALTH_DAMAGE -> 0.0D;
+            case NORMAL_ATTACK_DEGRADATION_DELAY -> 0.0D;
             case SHIELD_RECHARGE_DELAY_CHANCE -> 0.0D;
             case SHIELD_RECHARGE_DELAY_SECONDS -> 0.0D;
             // 属性系

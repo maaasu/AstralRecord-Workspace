@@ -29,13 +29,16 @@ class StatusClassGrowthTest extends MockBukkitTestBase {
         PlayerClassService playerClassService = mock(PlayerClassService.class);
         when(playerClassService.getStatusBonus(player, StatusType.ATTACK)).thenReturn(12.0D);
         when(playerClassService.getStatusBonus(player, StatusType.MAX_HEALTH)).thenReturn(30.0D);
+        when(playerClassService.getStatusBonus(player, StatusType.NORMAL_ATTACK_DEGRADATION_DELAY)).thenReturn(3.2D);
         service.setPlayerClassService(playerClassService);
 
         StatusSnapshot snapshot = service.refreshStatus(player);
 
         assertEquals(20.0D, snapshot.getMaxValue(StatusType.ATTACK), 0.0001D);
         assertEquals(60.0D, snapshot.getMaxValue(StatusType.MAX_HEALTH), 0.0001D);
+        assertEquals(3.2D, snapshot.getMaxValue(StatusType.NORMAL_ATTACK_DEGRADATION_DELAY), 0.0001D);
         verify(playerClassService, atLeastOnce()).getStatusBonus(player, StatusType.ATTACK);
         verify(playerClassService, atLeastOnce()).getStatusBonus(player, StatusType.MAX_HEALTH);
+        verify(playerClassService, atLeastOnce()).getStatusBonus(player, StatusType.NORMAL_ATTACK_DEGRADATION_DELAY);
     }
 }

@@ -6,6 +6,8 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.status.model.StatusType;
+import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.masterdata.tag.MasterTagIds;
 import org.bukkit.Bukkit;
 import org.bukkit.boss.BarColor;
@@ -14,6 +16,7 @@ import org.bukkit.boss.BossBar;
 import org.bukkit.entity.Player;
 import org.bukkit.scheduler.BukkitTask;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.Map;
@@ -24,9 +27,10 @@ import java.util.function.LongSupplier;
 /**
  * プレイヤーの PvE 通常攻撃連打による劣化状態を管理します。
  * <p>
- * 通常攻撃の成功した発動回数をプレイヤーごとに保持し、5回目から通常攻撃のダメージと
- * 攻撃速度へ段階補正を適用します。状態は {@link io.github.maaasu.astralRecord.feature.buff.service.BuffService}
- * とは独立した一時 runtime state として扱います。
+ * 通常攻撃の成功した発動回数をプレイヤーごとに保持し、通常攻撃劣化遅延を加味した回数から
+ * 通常攻撃のダメージと攻撃速度へ段階補正を適用します。状態は
+ * {@link io.github.maaasu.astralRecord.feature.buff.service.BuffService} とは独立した一時 runtime state
+ * として扱います。
  */
 public final class NormalAttackDegradationService {
 
@@ -35,10 +39,10 @@ public final class NormalAttackDegradationService {
     /** 通常攻撃劣化の最大段階。通常攻撃倍率が0になった時点で以降の補正値が変化しません。 */
     public static final int MAX_STAGE = 11;
     private static final int FIRST_DEGRADATION_ATTACK_COUNT = 5;
-    private static final int MAX_ATTACK_COUNT = FIRST_DEGRADATION_ATTACK_COUNT + MAX_STAGE - 1;
     private static final double MAX_ATTACK_SPEED_REDUCTION = 0.50D;
     private static final long UPDATE_INTERVAL_TICKS = 1L;
 
+    private final @Nullable StatusService statusService;
     private final LongSupplier currentTimeMillis;
     private final Map<UUID, DegradationState> states = new ConcurrentHashMap<>();
     private final Map<UUID, BossBar> bossBars = new ConcurrentHashMap<>();
@@ -46,7 +50,16 @@ public final class NormalAttackDegradationService {
 
     /** 本番用の時計でサービスを構築します。 */
     public NormalAttackDegradationService() {
-        this(System::currentTimeMillis);
+        this(null, System::currentTimeMillis);
+    }
+
+    /**
+     * ステータスを参照する本番用サービスを構築します。
+     *
+     * @param statusService プレイヤーの計算済みステータスを取得するサービス
+     */
+    public NormalAttackDegradationService(@NotNull StatusService statusService) {
+        this(statusService, System::currentTimeMillis);
     }
 
     /**
@@ -56,6 +69,21 @@ public final class NormalAttackDegradationService {
      * @param currentTimeMillis 現在時刻を返す関数
      */
     NormalAttackDegradationService(@NotNull LongSupplier currentTimeMillis) {
+        this(null, currentTimeMillis);
+    }
+
+    /**
+     * ステータスサービスと時計を差し替えてサービスを構築します。
+     * <p>通常攻撃劣化遅延を固定した単体テストで使用します。</p>
+     *
+     * @param statusService プレイヤーの計算済みステータスを取得するサービス。null の場合は遅延なし
+     * @param currentTimeMillis 現在時刻を返す関数
+     */
+    NormalAttackDegradationService(
+            @Nullable StatusService statusService,
+            @NotNull LongSupplier currentTimeMillis
+    ) {
+        this.statusService = statusService;
         this.currentTimeMillis = currentTimeMillis;
     }
 
@@ -79,14 +107,18 @@ public final class NormalAttackDegradationService {
         DegradationState previous = activeState(playerId, now);
         int previousAttackCount = previous == null ? 0 : previous.attackCount();
         long previousExpiresAtMillis = previous == null ? 0L : previous.expiresAtMillis();
-        int attackCount = Math.min(MAX_ATTACK_COUNT, previousAttackCount + 1);
+        int degradationDelay = degradationDelayAttackCount(player);
+        int maxAttackCountForState = maxAttackCount(degradationDelay);
+        int attackCount = previousAttackCount >= maxAttackCountForState
+                ? maxAttackCountForState
+                : previousAttackCount + 1;
         long expiresAtMillis = now + DEGRADATION_DURATION_MILLIS;
         DegradationState updated = new DegradationState(attackCount, expiresAtMillis);
         states.put(playerId, updated);
 
-        int stage = stageForAttackCount(attackCount);
+        int stage = stageForAttackCount(attackCount, degradationDelay);
         if (stage > 0 && player.getBukkit().isOnline()) {
-            updateBossBar(player.getBukkit(), updated, now);
+            updateBossBar(player.getBukkit(), updated, now, stage);
         }
         return new AttackTicket(
                 stage,
@@ -127,10 +159,11 @@ public final class NormalAttackDegradationService {
         );
         states.put(playerId, restored);
         Player bukkitPlayer = player.getBukkit();
-        if (stageForState(restored) == 0 || !bukkitPlayer.isOnline()) {
+        int stage = stageForState(player, restored);
+        if (stage == 0 || !bukkitPlayer.isOnline()) {
             removeBossBar(playerId);
         } else {
-            updateBossBar(bukkitPlayer, restored, currentTimeMillis.getAsLong());
+            updateBossBar(bukkitPlayer, restored, currentTimeMillis.getAsLong(), stage);
         }
     }
 
@@ -146,7 +179,7 @@ public final class NormalAttackDegradationService {
             return 0;
         }
         DegradationState state = activeState(player.getBukkit().getUniqueId(), currentTimeMillis.getAsLong());
-        return state == null ? 0 : stageForState(state);
+        return state == null ? 0 : stageForState(player, state);
     }
 
     /**
@@ -235,11 +268,16 @@ public final class NormalAttackDegradationService {
             }
 
             DegradationState state = activeState(playerId, now);
-            if (state == null || stageForState(state) == 0) {
+            if (state == null) {
                 removeBossBar(playerId);
                 continue;
             }
-            updateBossBar(player, state, now);
+            int stage = stageForState(astPlayer, state);
+            if (stage == 0) {
+                removeBossBar(playerId);
+                continue;
+            }
+            updateBossBar(player, state, now, stage);
         }
 
         for (UUID playerId : List.copyOf(states.keySet())) {
@@ -267,14 +305,15 @@ public final class NormalAttackDegradationService {
     private void updateBossBar(
             @NotNull Player player,
             @NotNull DegradationState state,
-            long now
+            long now,
+            int stage
     ) {
         UUID playerId = player.getUniqueId();
         BossBar bossBar = bossBars.computeIfAbsent(playerId, ignored -> createBossBar(player));
         bossBar.addPlayer(player);
         bossBar.setColor(BarColor.RED);
         bossBar.setStyle(BarStyle.SEGMENTED_6);
-        bossBar.setTitle("通常攻撃劣化[" + stageForState(state) + "]");
+        bossBar.setTitle("通常攻撃劣化[" + stage + "]");
         double progress = (double) (state.expiresAtMillis() - now) / (double) DEGRADATION_DURATION_MILLIS;
         bossBar.setProgress(Math.max(0.0D, Math.min(1.0D, progress)));
     }
@@ -299,8 +338,8 @@ public final class NormalAttackDegradationService {
         bossBar.setVisible(false);
     }
 
-    private static int stageForState(@NotNull DegradationState state) {
-        return stageForAttackCount(state.attackCount());
+    private int stageForState(@NotNull AstPlayer player, @NotNull DegradationState state) {
+        return stageForAttackCount(state.attackCount(), degradationDelayAttackCount(player));
     }
 
     private static boolean isDegradationExcluded(@NotNull AstPlayer player) {
@@ -308,10 +347,37 @@ public final class NormalAttackDegradationService {
     }
 
     static int stageForAttackCount(int attackCount) {
-        if (attackCount < FIRST_DEGRADATION_ATTACK_COUNT) {
+        return stageForAttackCount(attackCount, 0);
+    }
+
+    static int stageForAttackCount(int attackCount, int degradationDelay) {
+        long firstDegradationAttackCount = (long) FIRST_DEGRADATION_ATTACK_COUNT
+                + Math.max(0, degradationDelay);
+        if (attackCount < firstDegradationAttackCount) {
             return 0;
         }
-        return Math.min(MAX_STAGE, attackCount - FIRST_DEGRADATION_ATTACK_COUNT + 1);
+        return Math.min(MAX_STAGE, (int) ((long) attackCount - firstDegradationAttackCount + 1L));
+    }
+
+    private int degradationDelayAttackCount(@NotNull AstPlayer player) {
+        if (statusService == null) {
+            return 0;
+        }
+        double value = statusService.getStatus(player).getMaxValue(StatusType.NORMAL_ATTACK_DEGRADATION_DELAY);
+        if (!Double.isFinite(value)) {
+            return 0;
+        }
+        return (int) Math.min(
+                Integer.MAX_VALUE - (double) FIRST_DEGRADATION_ATTACK_COUNT,
+                Math.floor(Math.max(0.0D, value))
+        );
+    }
+
+    private static int maxAttackCount(int degradationDelay) {
+        long maxAttackCount = (long) FIRST_DEGRADATION_ATTACK_COUNT
+                + Math.max(0, degradationDelay)
+                + MAX_STAGE - 1L;
+        return (int) Math.min(Integer.MAX_VALUE, maxAttackCount);
     }
 
     static double damageMultiplierForStage(int stage) {

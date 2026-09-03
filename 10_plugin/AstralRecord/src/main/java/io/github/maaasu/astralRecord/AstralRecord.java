@@ -152,6 +152,7 @@ import io.github.maaasu.astralRecord.feature.party.event.PartyQuitEventHandler;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyGui;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyMemberActionGui;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.ManagedChatEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerModeEventHandler;
@@ -1407,7 +1408,7 @@ public final class AstralRecord extends JavaPlugin {
             guideService
         );
         configureArcaneFlowIntegration(skillService, arcaneFlowSkillRuntimeService);
-        normalAttackDegradationService = new NormalAttackDegradationService();
+        normalAttackDegradationService = new NormalAttackDegradationService(statusService);
         skillService.addPlayerCastSuccessListener(normalAttackDegradationService::onSkillCast);
         damageService.setJustDodgeSkillRuntimeService(justDodgeSkillRuntimeService);
         skillService.registerExecutor(new MeditationSkillExecutor(meditationSkillRuntimeService));
@@ -2454,7 +2455,10 @@ public final class AstralRecord extends JavaPlugin {
 
         var classSnapshot = playerClassService.loadSnapshot();
         loaded += classSnapshot.size();
-        publications.add(() -> playerClassService.replaceSnapshot(classSnapshot));
+        publications.add(() -> {
+            playerClassService.replaceSnapshot(classSnapshot);
+            AstPlayerCache.getAll().forEach(statusService::refreshStatus);
+        });
         publications.add(() -> skillTreeService.replaceMasterDataSnapshot(skillTreeSnapshot));
         var guideSnapshot = guideService.loadEntrySnapshot();
         loaded += guideSnapshot.size();

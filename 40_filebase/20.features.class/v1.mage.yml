@@ -33,6 +33,8 @@ baseStats:
     value: 4
   - status: ATTACK
     value: 6
+  - status: NORMAL_ATTACK_DEGRADATION_DELAY
+    value: 2
   - status: DEFENSE
     value: 3
   - status: MAGIC_DEFENSE
@@ -56,6 +58,8 @@ growthPerLevel:
     value: 0.3
   - status: ATTACK
     value: 0.7
+  - status: NORMAL_ATTACK_DEGRADATION_DELAY
+    value: 0.1
   - status: MAGIC_DEFENSE
     value: 0.8
   - status: MP_REGEN
