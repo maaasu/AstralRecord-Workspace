@@ -1305,8 +1305,10 @@ public final class BossChallengeService {
         if (challenge.state() != BossChallengeState.IN_PROGRESS) {
             return;
         }
+        long now = System.currentTimeMillis();
+        long defeatElapsedSeconds = calculateDefeatElapsedSeconds(challenge.startedAtMs(), now);
         challenge.state(BossChallengeState.RESULT_WAITING);
-        challenge.resultWaitEndsAtMs(System.currentTimeMillis() + DEFEATED_RESULT_WAIT_TICKS * 50L);
+        challenge.resultWaitEndsAtMs(now + DEFEATED_RESULT_WAIT_TICKS * 50L);
         Logger.log(LogId.I_6502, challenge.challengeId(), challenge.bossTemplate().id(), BossChallengeEndReason.DEFEATED.name());
 
         UUID bossMobId = challenge.bossMobInstanceId();
@@ -1315,8 +1317,8 @@ public final class BossChallengeService {
         }
         destroyBossBar(challenge);
 
-        notifyParticipants(challenge, PlayerMsgId.P_6511, challenge.bossTemplate().displayName());
-        showDamageResult(challenge, deathLocation);
+        notifyParticipants(challenge, PlayerMsgId.P_6511, challenge.bossTemplate().displayName(), defeatElapsedSeconds);
+        showDamageResult(challenge, deathLocation, defeatElapsedSeconds);
         BukkitTask task = Bukkit.getScheduler().runTaskLater(
                 plugin,
                 () -> beginChallengeCompletion(challenge, BossChallengeEndReason.DEFEATED),
@@ -1605,6 +1607,20 @@ public final class BossChallengeService {
     }
 
     /**
+     * 戦闘開始からボス討伐までの経過秒数を計算します。
+     *
+     * @param startedAtMs 戦闘開始時刻（UNIX epoch ミリ秒）。未開始は0以下
+     * @param defeatedAtMs 討伐処理時刻（UNIX epoch ミリ秒）
+     * @return 経過秒数。未開始、時刻逆行、1秒未満は0
+     */
+    static long calculateDefeatElapsedSeconds(long startedAtMs, long defeatedAtMs) {
+        if (startedAtMs <= 0L || defeatedAtMs <= startedAtMs) {
+            return 0L;
+        }
+        return (defeatedAtMs - startedAtMs) / 1000L;
+    }
+
+    /**
      * BossBar タイトル用の HP 数値を整形します。
      *
      * @param health 整形対象 HP
@@ -1619,16 +1635,20 @@ public final class BossChallengeService {
                 && challengesById.get(challenge.challengeId()) == challenge;
     }
 
-    private void showDamageResult(@NotNull BossChallengeInstance challenge, @NotNull Location deathLocation) {
+    private void showDamageResult(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull Location deathLocation,
+            long defeatElapsedSeconds
+    ) {
         Location displayLocation = deathLocation.clone().add(0.0D, 2.4D, 0.0D);
         DisplayTextService.ManagedTextDisplay display = displayTextService.create(
                 DisplayAnchor.fixed(displayLocation),
-                DisplayTextOptions.defaults(formatDamageResult(challenge))
+                DisplayTextOptions.defaults(formatDamageResult(challenge, defeatElapsedSeconds))
                         .withShadowed(true)
                         .withLineWidth(360)
                         .withViewRange(64.0F)
         );
-        display.setDynamicText(() -> formatDamageResult(challenge));
+        display.setDynamicText(() -> formatDamageResult(challenge, defeatElapsedSeconds));
         challenge.resultDisplay(display);
     }
 
@@ -1640,12 +1660,18 @@ public final class BossChallengeService {
         }
     }
 
-    private @NotNull String formatDamageResult(@NotNull BossChallengeInstance challenge) {
+    private @NotNull String formatDamageResult(
+            @NotNull BossChallengeInstance challenge,
+            long defeatElapsedSeconds
+    ) {
         Map<UUID, Double> damage = challenge.damageSnapshot();
         double total = damage.values().stream().mapToDouble(Double::doubleValue).sum();
         long remainingSeconds = Math.max(0L, (challenge.resultWaitEndsAtMs() - System.currentTimeMillis() + 999L) / 1000L);
         StringBuilder text = new StringBuilder("&6&lボス討伐成功 &f")
                 .append(challenge.bossTemplate().displayName())
+                .append("\n&7討伐時間 &e")
+                .append(defeatElapsedSeconds)
+                .append("秒")
                 .append("\n&7挑戦地点へ戻るまで &e")
                 .append(remainingSeconds)
                 .append("秒")

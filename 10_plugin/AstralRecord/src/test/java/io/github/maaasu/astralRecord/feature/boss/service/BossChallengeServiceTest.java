@@ -145,6 +145,19 @@ class BossChallengeServiceTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
+     * 章・見出し: # 26_3-サービス > ## 9. ボス討伐
+     * 検証契約: 討伐時間は戦闘開始から討伐処理までの経過秒数を切り捨て、未開始または時刻逆行時は0秒とする。
+     */
+    @Test
+    void defeatElapsedSecondsIsCalculatedFromCombatStart() {
+        assertEquals(12L, BossChallengeService.calculateDefeatElapsedSeconds(1_000L, 13_999L));
+        assertEquals(0L, BossChallengeService.calculateDefeatElapsedSeconds(1_000L, 1_999L));
+        assertEquals(0L, BossChallengeService.calculateDefeatElapsedSeconds(0L, 10_000L));
+        assertEquals(0L, BossChallengeService.calculateDefeatElapsedSeconds(10_000L, 9_000L));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-サービス.md
      * 章・見出し: # 26_3-サービス > ## 14. フィールド作成
      * 検証契約: 参加者退出またはフィールド準備 callback が未完了の間は作成枠を回収せず、両方が完了した後だけ回収へ進む。
      */
