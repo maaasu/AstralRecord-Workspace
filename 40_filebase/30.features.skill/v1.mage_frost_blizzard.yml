@@ -15,7 +15,7 @@ lore:
   - "&7竜巻は進行方向の地形へ到達すると、その場で停止する。"
 cooldownTicks: 400
 resourceType: MANA
-resourceCost: 40
+resourceCost: 50
 castTimeTicks: 20
 requiredLevel: 1
 maxLevel: 5

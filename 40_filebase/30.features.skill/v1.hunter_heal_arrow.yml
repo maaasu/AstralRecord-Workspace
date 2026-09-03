@@ -15,6 +15,7 @@ lore:
 cooldownTicks: 200
 resourceType: ENERGY
 resourceCost: 14
+manaCost: 6
 castTimeTicks: 0
 requiredLevel: 1
 maxLevel: 5

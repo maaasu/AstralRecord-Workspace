@@ -14,7 +14,7 @@ lore:
   - "&7最大{skill.maxTargets}体。敵または地形への着弾時だけ小爆発する。"
 cooldownTicks: 80
 resourceType: MANA
-resourceCost: 12
+resourceCost: 16
 castTimeTicks: 4
 requiredLevel: 1
 maxLevel: 5

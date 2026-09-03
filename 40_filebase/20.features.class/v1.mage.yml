@@ -45,7 +45,7 @@ growthPerLevel:
   - status: MAX_HEALTH
     value: 4
   - status: MAX_MANA
-    value: 6
+    value: 3
   - status: MAX_ENERGY
     value: 1
   - status: INTELLIGENCE
@@ -59,7 +59,7 @@ growthPerLevel:
   - status: MAGIC_DEFENSE
     value: 0.8
   - status: MP_REGEN
-    value: 0.2
+    value: 0.05
   - status: SHIELD_BREAK
     value: 0.1
 expRate: 100

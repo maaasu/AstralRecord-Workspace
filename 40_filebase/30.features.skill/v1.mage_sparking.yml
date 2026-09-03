@@ -14,7 +14,7 @@ lore:
   - "&7雷弾は外へ広がる渦を描き、壁で反射して{skill.durationTicks:seconds}秒後に消滅する。"
 cooldownTicks: 160
 resourceType: MANA
-resourceCost: 14
+resourceCost: 18
 castTimeTicks: 4
 requiredLevel: 1
 maxLevel: 5

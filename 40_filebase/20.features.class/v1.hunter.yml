@@ -43,9 +43,9 @@ growthPerLevel:
   - status: MAX_HEALTH
     value: 5
   - status: MAX_MANA
-    value: 2
+    value: 1
   - status: MAX_ENERGY
-    value: 2
+    value: 1
   - status: DEXTERITY
     value: 1.2
   - status: AGILITY

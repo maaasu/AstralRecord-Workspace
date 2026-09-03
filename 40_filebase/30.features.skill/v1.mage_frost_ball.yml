@@ -15,7 +15,7 @@ lore:
   - "&7命中時{skill.freezeChance}%の確率で{skill.freezeDurationTicks:seconds}秒間凍結させる。"
 cooldownTicks: 80
 resourceType: MANA
-resourceCost: 12
+resourceCost: 16
 castTimeTicks: 4
 requiredLevel: 1
 maxLevel: 5
