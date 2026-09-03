@@ -42,6 +42,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -598,6 +599,8 @@ class PlayerJoinEventHandlerTest {
     @Test
     void normalJoinSendsJoinNoticesAndStopsInitialGuideTitleAfterOpening() {
         SuccessfulJoinFixture fixture = successfulJoinFixture(true);
+        when(fixture.guideService.loadProgressAsync(fixture.accountId))
+            .thenReturn(CompletableFuture.completedFuture(true));
         when(fixture.guideService.isInitialGuideOpened(fixture.accountId)).thenReturn(false, true);
 
         try (MockedStatic<AstralRecord> pluginInstance = mockStatic(AstralRecord.class);
@@ -622,6 +625,88 @@ class PlayerJoinEventHandlerTest {
             fixture.repeatingTasks.get(1).run();
             verify(fixture.repeatingTaskHandles.get(1)).cancel();
             verify(fixture.player, times(2)).clearTitle();
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
+     * 検証契約: ガイド進行の読み込みが完了するまで、未達成と判定して初回ガイドtitleを表示しない。
+     */
+    @Test
+    void normalJoinDoesNotShowInitialGuideTitleBeforeProgressLoad() {
+        SuccessfulJoinFixture fixture = successfulJoinFixture(true);
+        CompletableFuture<Boolean> progressLoad = new CompletableFuture<>();
+        when(fixture.guideService.loadProgressAsync(fixture.accountId)).thenReturn(progressLoad);
+        when(fixture.guideService.isInitialGuideOpened(fixture.accountId)).thenReturn(false);
+
+        try (MockedStatic<AstralRecord> pluginInstance = mockStatic(AstralRecord.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            pluginInstance.when(AstralRecord::getInstance).thenReturn(fixture.plugin);
+            cache.when(() -> AstPlayerCache.get(fixture.player)).thenReturn(fixture.astPlayer);
+            bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+
+            runNormalJoin(fixture);
+
+            verify(fixture.player, never()).showTitle(any(Title.class));
+            assertEquals(1, fixture.repeatingTasks.size());
+
+            progressLoad.complete(true);
+
+            verify(fixture.player).showTitle(any(Title.class));
+            assertEquals(2, fixture.repeatingTasks.size());
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
+     * 検証契約: ガイド進行の読み込みに失敗した場合、達成状態が不明なため初回ガイドtitleを表示しない。
+     */
+    @Test
+    void normalJoinDoesNotShowInitialGuideTitleWhenProgressLoadFails() {
+        SuccessfulJoinFixture fixture = successfulJoinFixture(true);
+        when(fixture.guideService.loadProgressAsync(fixture.accountId))
+            .thenReturn(CompletableFuture.completedFuture(false));
+
+        try (MockedStatic<AstralRecord> pluginInstance = mockStatic(AstralRecord.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            pluginInstance.when(AstralRecord::getInstance).thenReturn(fixture.plugin);
+            cache.when(() -> AstPlayerCache.get(fixture.player)).thenReturn(fixture.astPlayer);
+            bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+
+            runNormalJoin(fixture);
+
+            verify(fixture.player, never()).showTitle(any(Title.class));
+            assertEquals(1, fixture.repeatingTasks.size());
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-イベント.md
+     * 章・見出し: # 03_3-イベント > ## 1. event メソッド仕様 > ### プレイヤー参加イベント受付
+     * 検証契約: 進行読み込み後に導入ガイド開封済みなら、初回ガイドtitleを表示しない。
+     */
+    @Test
+    void normalJoinDoesNotShowInitialGuideTitleWhenAlreadyOpened() {
+        SuccessfulJoinFixture fixture = successfulJoinFixture(true);
+        when(fixture.guideService.loadProgressAsync(fixture.accountId))
+            .thenReturn(CompletableFuture.completedFuture(true));
+        when(fixture.guideService.isInitialGuideOpened(fixture.accountId)).thenReturn(true);
+
+        try (MockedStatic<AstralRecord> pluginInstance = mockStatic(AstralRecord.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            pluginInstance.when(AstralRecord::getInstance).thenReturn(fixture.plugin);
+            cache.when(() -> AstPlayerCache.get(fixture.player)).thenReturn(fixture.astPlayer);
+            bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+
+            runNormalJoin(fixture);
+
+            verify(fixture.player, never()).showTitle(any(Title.class));
+            assertEquals(1, fixture.repeatingTasks.size());
         }
     }
 

@@ -28,6 +28,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -51,7 +52,7 @@ public class GuideService {
     private final Map<String, GuideEntry> loadedGuides = new LinkedHashMap<>();
     private final Map<UUID, Set<GuideStepKey>> completedStepsByAccount = new ConcurrentHashMap<>();
     private final Map<UUID, Long> progressGenerations = new ConcurrentHashMap<>();
-    private final Map<UUID, Long> loadingGenerations = new ConcurrentHashMap<>();
+    private final Map<UUID, CompletableFuture<Boolean>> progressLoadFutures = new ConcurrentHashMap<>();
     private final Map<UUID, List<GuideConditionEvent>> pendingConditionsByAccount = new ConcurrentHashMap<>();
     private final Set<UUID> initialGuideOpenedAccounts = ConcurrentHashMap.newKeySet();
 
@@ -137,17 +138,29 @@ public class GuideService {
     }
 
     /**
-     * アカウントのガイド進行を非同期で読み込みます。読み込み済みの場合は何もしません。
+     * アカウントのガイド進行を非同期で読み込みます。読み込み済みの場合は即時完了したFutureを返します。
      *
      * @param accountId アカウント ID
+     * @return 進行を正常に取得して現世代へ反映できた場合にtrueで完了するFuture。
+     *         読み込み失敗または古い世代の結果になった場合はfalse
      */
-    public void loadProgressAsync(@NotNull UUID accountId) {
-        long generation = progressGenerations.getOrDefault(accountId, 0L);
-        if (completedStepsByAccount.containsKey(accountId)
-            || loadingGenerations.putIfAbsent(accountId, generation) != null) {
-            return;
+    public @NotNull CompletableFuture<Boolean> loadProgressAsync(@NotNull UUID accountId) {
+        if (completedStepsByAccount.containsKey(accountId)) {
+            return CompletableFuture.completedFuture(true);
         }
+        CompletableFuture<Boolean> existing = progressLoadFutures.get(accountId);
+        if (existing != null) {
+            return existing;
+        }
+
+        CompletableFuture<Boolean> future = new CompletableFuture<>();
+        existing = progressLoadFutures.putIfAbsent(accountId, future);
+        if (existing != null) {
+            return existing;
+        }
+        long generation = progressGenerations.getOrDefault(accountId, 0L);
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
+            boolean loadedSuccessfully = false;
             try {
                 Set<GuideStepKey> loaded = ConcurrentHashMap.newKeySet();
                 loaded.addAll(progressRepository.findByAccountId(accountId));
@@ -165,13 +178,16 @@ public class GuideService {
                             )
                         ));
                     }
+                    loadedSuccessfully = true;
                 }
             } catch (RuntimeException e) {
                 Logger.log(LogId.E_5182, e, "load", accountId, failureReason(e));
             } finally {
-                loadingGenerations.remove(accountId, generation);
+                progressLoadFutures.remove(accountId, future);
+                future.complete(loadedSuccessfully);
             }
         });
+        return future;
     }
 
     /**
@@ -182,7 +198,7 @@ public class GuideService {
     public void releaseProgress(@NotNull UUID accountId) {
         progressGenerations.merge(accountId, 1L, Long::sum);
         completedStepsByAccount.remove(accountId);
-        loadingGenerations.remove(accountId);
+        progressLoadFutures.remove(accountId);
         pendingConditionsByAccount.remove(accountId);
         initialGuideOpenedAccounts.remove(accountId);
     }

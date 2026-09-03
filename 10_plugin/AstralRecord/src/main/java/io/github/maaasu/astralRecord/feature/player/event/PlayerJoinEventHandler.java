@@ -516,6 +516,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         boolean skillTreeApplied = false;
         boolean skillBindPresetsApplied = false;
         boolean preparedMenuGrantCleanupScheduled = false;
+        @Nullable CompletableFuture<Boolean> guideProgressLoad = null;
         PlayerService.PlayerJoinApplication playerJoinApplication = null;
         AstPlayer appliedPlayer = null;
         try {
@@ -614,7 +615,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 }
             }
             if (guideService != null) {
-                guideService.loadProgressAsync(joinData.account().getUuid());
+                guideProgressLoad = guideService.loadProgressAsync(joinData.account().getUuid());
                 if (appliedPlayer != null && completionListener == null) {
                     guideService.recordCondition(appliedPlayer, GuideConditionType.PLAYER_LOGGED_IN, null);
                 }
@@ -648,7 +649,9 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
             if (hasSameIpUser) {
                 messageService.send(appliedPlayer, PlayerMsgId.P_5084);
             }
-            startInitialGuideTitle(appliedPlayer);
+            if (guideProgressLoad != null) {
+                scheduleInitialGuideTitleAfterProgressLoad(appliedPlayer, guideProgressLoad);
+            }
         }
         notifyUnreadMailAsync(attempt, playerName, joinData.account().getUuid());
         if (completionListener == null) {
@@ -661,6 +664,38 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 JOIN_STEP_DELAY_TICKS
             );
         }
+    }
+
+    /**
+     * ガイド進行の読み込み完了後、現在のプレイヤーセッションへ初回ガイドtitleを開始します。
+     *
+     * @param astPlayer 参加処理を完了したプレイヤー
+     * @param progressLoad ガイド進行の読み込みFuture
+     */
+    private void scheduleInitialGuideTitleAfterProgressLoad(
+        @NotNull AstPlayer astPlayer,
+        @NotNull CompletableFuture<Boolean> progressLoad
+    ) {
+        Player player = astPlayer.getBukkit();
+        UUID playerUuid = player.getUniqueId();
+        UUID accountId = astPlayer.getAccount().getUuid();
+        progressLoad.thenAccept(loaded -> {
+            if (!loaded) {
+                return;
+            }
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                Player current = plugin.getServer().getPlayer(playerUuid);
+                if (current == null || current != player || !current.isOnline()) {
+                    return;
+                }
+                AstPlayer currentAstPlayer = AstPlayerCache.get(current);
+                if (currentAstPlayer == null
+                    || !accountId.equals(currentAstPlayer.getAccount().getUuid())) {
+                    return;
+                }
+                startInitialGuideTitle(currentAstPlayer);
+            });
+        });
     }
 
     private void rollbackJoinApplication(
