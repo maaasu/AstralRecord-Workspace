@@ -24,9 +24,10 @@ import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 
@@ -39,11 +40,13 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
     static final double DEFAULT_PROJECTILE_RANGE = 16.0D;
     static final double DEFAULT_PROJECTILE_SPEED = 1.45D;
     static final double DEFAULT_SPIRAL_RADIUS_GROWTH = 0.14D;
-    static final double DEFAULT_SPIRAL_DEGREES_PER_TICK = 7.2D;
+    static final double DEFAULT_SPIRAL_DEGREES_PER_TICK = 3.0D;
     static final double DEFAULT_PROJECTILE_HIT_RADIUS = 0.60D;
     static final int DEFAULT_DURATION_TICKS = 50;
     static final double DEFAULT_SHOCK_CHANCE = 25.0D;
     static final int DEFAULT_SHOCK_DURATION_TICKS = 100;
+    /** 同一スパーキング発動内で同一対象へ再命中できる最短間隔です。 */
+    static final int TARGET_HIT_COOLDOWN_TICKS = 10;
     private static final double WALL_OFFSET = 0.05D;
     private static final double MOVEMENT_EPSILON = 1.0E-8D;
     private static final int MAX_REFLECTIONS_PER_TICK = 4;
@@ -164,7 +167,7 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
     ) {
         Location sparkOrigin = origin.clone();
         List<SparkState> sparks = spiralStates(sparkOrigin, projectileCount, yawDegrees);
-        Set<UUID> hitTargetIds = new HashSet<>();
+        Map<UUID, Integer> lastHitTickByTarget = new HashMap<>();
         ActiveSkillCondition shocked = new ActiveSkillCondition(
                 ConditionType.SHOCKED, shockChance, shockDurationTicks, 1.0D
         );
@@ -174,8 +177,9 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
         );
         context.services().tasks().repeat(
                 context.player().getUniqueId(), scope, 0L, 1L, durationTicks,
-                ignored -> advanceSparks(
-                        context, sparkOrigin, scope, sparks, hitTargetIds, spiralRadiusGrowth,
+                tick -> advanceSparks(
+                        context, sparkOrigin, scope, sparks, lastHitTickByTarget, tick,
+                        spiralRadiusGrowth,
                         spiralRadiansPerTick, hitRadius, damageRatio, shocked
                 )
         );
@@ -210,7 +214,8 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
             @NotNull Location viewerCenter,
             @NotNull String scope,
             @NotNull List<SparkState> sparks,
-            @NotNull Set<UUID> hitTargetIds,
+            @NotNull Map<UUID, Integer> lastHitTickByTarget,
+            int tickIndex,
             double spiralRadiusGrowth,
             double spiralRadiansPerTick,
             double hitRadius,
@@ -224,14 +229,12 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
         SkillTargetingService.LineTargetSnapshot snapshot =
                 context.services().targeting().captureLineTargetSnapshot(context.player());
         List<SkillEffectLineSegment> trails = new ArrayList<>(sparks.size());
-        Iterator<SparkState> iterator = sparks.iterator();
-        while (iterator.hasNext()) {
-            SparkState spark = iterator.next();
+        for (SparkState spark : sparks) {
             double remainingDistance = spark.advanceSpiral(
                     spiralRadiusGrowth, spiralRadiansPerTick
             ).length();
             int reflectionCount = 0;
-            boolean removed = false;
+            Set<UUID> skippedTargetIds = new HashSet<>();
             while (remainingDistance > MOVEMENT_EPSILON && reflectionCount < MAX_REFLECTIONS_PER_TICK) {
                 SkillTargetingService.BlockHit blockHit = context.services().targeting().blockHit(
                         spark.location, spark.direction, remainingDistance
@@ -241,16 +244,31 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
                         : Math.min(remainingDistance, spark.location.distance(blockHit.location()));
                 SkillLineTargetHit targetHit = context.services().targeting().lineTargetHits(
                         context.player(), snapshot, spark.location, spark.direction,
-                        collisionRange, hitRadius, 1, blockHit == null
-                ).stream().findFirst().orElse(null);
+                        collisionRange, hitRadius, skippedTargetIds.size() + 1, blockHit == null
+                ).stream()
+                        .filter(hit -> !skippedTargetIds.contains(hit.target().id()))
+                        .findFirst()
+                        .orElse(null);
                 if (targetHit != null) {
+                    skippedTargetIds.add(targetHit.target().id());
                     trails.add(new SkillEffectLineSegment(spark.location, targetHit.location()));
-                    if (hitTargetIds.add(targetHit.target().id())) {
+                    Integer lastHitTick = lastHitTickByTarget.get(targetHit.target().id());
+                    if (lastHitTick == null || tickIndex - lastHitTick >= TARGET_HIT_COOLDOWN_TICKS) {
+                        lastHitTickByTarget.put(targetHit.target().id(), tickIndex);
                         hit(context, targetHit.target(), targetHit.location(), damageRatio, shocked);
                     }
-                    iterator.remove();
-                    removed = true;
-                    break;
+                    double targetDistance = Math.max(
+                            0.0D, Math.min(remainingDistance, targetHit.distance())
+                    );
+                    double passDistance = Math.min(
+                            remainingDistance, Math.max(targetDistance + MOVEMENT_EPSILON, MOVEMENT_EPSILON)
+                    );
+                    Location afterTarget = spark.location.clone()
+                            .add(spark.direction.clone().multiply(passDistance));
+                    trails.add(new SkillEffectLineSegment(targetHit.location(), afterTarget));
+                    spark.location = afterTarget;
+                    remainingDistance -= passDistance;
+                    continue;
                 }
                 if (blockHit == null) {
                     Location next = spark.location.clone()
@@ -273,9 +291,6 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
                 spark.location = impact.clone().add(spark.direction.clone().multiply(offsetDistance));
                 remainingDistance -= collisionRange + offsetDistance;
                 reflectionCount++;
-            }
-            if (removed) {
-                continue;
             }
         }
         context.services().effects().lines(

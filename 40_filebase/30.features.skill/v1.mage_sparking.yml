@@ -11,7 +11,7 @@ icon: GLOWSTONE_DUST
 lore:
   - "&7視点方向へ{skill.range}mまで雷弾を放ち、敵またはBlockに触れると渦を展開。"
   - "&7着弾地点から{skill.projectileCount}個の雷弾を広げ、触れた敵へ魔法攻撃力{skill.effectiveDamageRatio:percent}%の雷属性ダメージ。"
-  - "&7同じ発動では敵1体につき1回だけ命中し、{skill.shockChance}%の確率で{skill.shockDurationTicks:seconds}秒感電させる。"
+  - "&7同じ発動では敵ごとに0.5秒間隔で命中し、{skill.shockChance}%の確率で{skill.shockDurationTicks:seconds}秒感電させる。"
   - "&7着弾後の雷弾は外へ広がる渦を描き、壁で反射して{skill.durationTicks:seconds}秒後に消滅する。"
 cooldownTicks: 160
 resourceType: MANA
@@ -43,16 +43,16 @@ tags:
   - lightning
 # behavior:
 #   projectile: "視点方向へ射程16m・速度1.45m/tick・命中半径0.60mの非貫通雷弾を1発放つ。最初のMobまたはBlockへの接触時だけ、接触地点から現在のスパーキング処理を開始し、最大射程到達時は展開しない。"
-#   spiral: "着弾地点から水平360度へ等間隔に雷弾を放つ。各弾は半径を0.14m/tick、角度を7.2度/tick増やして50tickで半径7m・1周の開いた渦を描き、命中半径0.60mでBlock面の法線に沿って軌道ごと反射する。"
-#   hit: "管理対象Mobだけを対象にMAGIC/LIGHTNINGの120%を適用し、25%でSHOCKEDを100tick付与する。同一発動では対象ごとに1回だけ命中する。"
-#   lifecycle: "起点弾はMobまたはBlockへの接触時に消滅し、着弾後の雷弾はMob命中時に消滅し、Block反射または寿命まで残る。PvP、NPC、別world、死亡Mobは対象外。"
+#   spiral: "着弾地点から水平360度へ等間隔に雷弾を放つ。各弾は半径を0.14m/tick、角度を3.0度/tick増やして50tickで半径7m・150度の開いた緩い渦を描き、命中半径0.60mでBlock面の法線に沿って軌道ごと反射する。"
+#   hit: "管理対象Mobだけを対象にMAGIC/LIGHTNINGの120%を適用し、25%でSHOCKEDを100tick付与する。シールド有無にかかわらず雷弾はMob接触後も外へ進み、同一スパーキング発動内の同一対象へは最後の命中から10tick経過後に再度命中する。"
+#   lifecycle: "起点弾はMobまたはBlockへの接触時に消滅し、着弾後の雷弾はMob接触後も外へ進み、Block反射または寿命まで残る。PvP、NPC、別world、死亡Mobは対象外。"
 params:
   damageRatio: 1.2
   projectileCount: 5
   range: 16.0
   projectileSpeed: 1.45
   spiralRadiusGrowth: 0.14
-  spiralDegreesPerTick: 7.2
+  spiralDegreesPerTick: 3.0
   projectileHitRadius: 0.60
   durationTicks: 50
   shockChance: 25.0

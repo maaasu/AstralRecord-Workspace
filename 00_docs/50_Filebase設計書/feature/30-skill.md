@@ -63,7 +63,7 @@ Skill は、プレイヤーまたは Mob が実行する能動・受動能力を
 
 `hunter_build_up` は発動後20秒間、`RANGED_ATTACK` の `SCALAR` 補正を10%付与するハンターの自己強化スキルです。クールダウンは30秒、消費はENERGY10 + 副MP6、最大Lv.1とし、効果の実体は `hunter_build_up` buff masterへ委ねます。使用許可は `starter` node `1353` から与え、習得・レベルアップ素材はskill masterの `learnRequiredItems` / `levelUpRequiredItems` に定義してスキルマネージャーで消費します。ハンターclassの `usableSkills` へは追加せず、Administratorには検証用の使用許可を与えます。
 
-`mage_sparking` は、視点方向へ1発の雷弾を放ち、最初のMobまたはBlockへの接触地点から水平360度へLv.1で5個、Lv.5で13個の雷弾を展開するメイジ用の範囲制圧魔法です。MP18を消費し、起点弾は射程16m・速度1.45m/tickで、何にも触れずに最大射程へ到達した場合は渦を展開しません。着弾後の雷弾は2.5秒で半径7mまで1周する開いた渦を描き、壁面では螺旋軌道ごと反射します。命中半径は0.60mで、各弾は最初に触れたMobへ `MAGIC` / `LIGHTNING` 120%と25%の `SHOCKED` を適用しますが、同じ発動では1体につき1回だけ命中します。メイジへの使用許可は `starter` node `1348` から与え、Administratorの検証用 `usableSkills` も維持します。習得・レベルアップ素材はskill masterに定義します。
+`mage_sparking` は、視点方向へ1発の雷弾を放ち、最初のMobまたはBlockへの接触地点から水平360度へLv.1で5個、Lv.5で13個の雷弾を展開するメイジ用の範囲制圧魔法です。MP18を消費し、起点弾は射程16m・速度1.45m/tickで、何にも触れずに最大射程へ到達した場合は渦を展開しません。着弾後の雷弾は2.5秒で半径7mまで150度の緩い開いた渦を描き、壁面では螺旋軌道ごと反射します。命中半径は0.60mで、各弾はMob接触後も外へ進み、シールド有無にかかわらず `MAGIC` / `LIGHTNING` 120%と25%の `SHOCKED` を適用します。同じスパーキング発動内では対象ごとに最後の命中から10tick（0.5秒）経過すれば再度命中し、1体1回には制限しません。メイジへの使用許可は `starter` node `1348` から与え、Administratorの検証用 `usableSkills` も維持します。習得・レベルアップ素材はskill masterに定義します。
 
 `mage_frost_blizzard` は、視点方向へ前進して地形の手前で停止する、10秒持続の氷竜巻です。半径2.75m・最大8体へ0.5秒ごとに24%の `MAGIC` / `ICE` ダメージを与え、対象へ接線・中心・上方向のvelocityを合成して適用します。velocityはノックバック耐性で線形減衰し、耐性100では0になります。MP50、20秒クールダウン、1秒詠唱とし、メイジへの使用許可は `starter` node `1349` から与えます。Administratorの検証用 `usableSkills` も維持し、習得・レベルアップ素材はskill masterに定義します。
 

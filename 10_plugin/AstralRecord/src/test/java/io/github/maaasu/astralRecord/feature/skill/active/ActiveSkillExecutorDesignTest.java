@@ -225,7 +225,7 @@ class ActiveSkillExecutorDesignTest {
                 "range", 16.0D,
                 "projectileSpeed", 1.45D,
                 "spiralRadiusGrowth", 0.14D,
-                "spiralDegreesPerTick", 7.2D,
+                "spiralDegreesPerTick", 3.0D,
                 "projectileHitRadius", 0.60D,
                 "durationTicks", 50,
                 "shockChance", 25.0D,
