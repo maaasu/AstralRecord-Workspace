@@ -16,6 +16,35 @@ tags:
   - undead
   - skeleton
   - ranged
+
+levels:
+  - level: 5
+  - level: 15
+    name: "&f遺跡のスケルトン・アーチャー Lv.15"
+    baseStats:
+      - status: MAX_HEALTH
+        value: 3520
+      - status: ATTACK
+        value: 724
+      - status: RANGED_ATTACK
+        value: 339
+      - status: DEXTERITY
+        value: 5
+      - status: DEFENSE
+        value: 614
+      - status: ACCURACY
+        value: 95
+      - status: EVASION
+        value: 3
+      - status: MOVEMENT_SPEED
+        value: 110
+      - status: SHIELD_BREAK
+        value: 5
+    drops:
+      exp: 150
+      lootTable:
+        ref: loot_table:normal_enemy_common_table_tier_1
+
 baseStats:
   - status: MAX_HEALTH
     value: 400

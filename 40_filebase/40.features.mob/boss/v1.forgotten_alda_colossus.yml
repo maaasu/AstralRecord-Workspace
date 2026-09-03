@@ -1,0 +1,68 @@
+# design:
+#   motif: "建築 / アルダ始まりの遺跡を守る巨神兵"
+#   progression: 15
+schemaVersion: 1
+id: forgotten_alda_colossus
+type: MOB
+category: BOSS
+name: "&8&l忘れられたアルダの巨神兵"
+title: "&7-- 始まりの遺跡の巨像 --"
+level: 15
+entityType: IRON_GOLEM
+variant:
+  age: ADULT
+  scale: 3.0
+icon: IRON_BLOCK
+nameVisible: true
+lore:
+  - "&7アルダの始まりを見届けた、忘れられし鉄の巨像。"
+  - "&7大地を踏み鳴らし、広大な着地点へ跳躍する。"
+tags:
+  - midgard
+  - boss
+  - golem
+  - melee
+  - shield
+  - stone
+baseStats:
+  - status: MAX_HEALTH
+    value: 28160
+  - status: ATTACK
+    value: 956
+  - status: DEFENSE
+    value: 882
+  - status: ACCURACY
+    value: 95
+  - status: EVASION
+    value: 3
+  - status: MOVEMENT_SPEED
+    value: 72
+  - status: KNOCKBACK_RESISTANCE
+    value: 100
+  - status: SHIELD_BREAK
+    value: 9
+shield:
+  enabled: true
+  max: 60
+ai:
+  idle:
+    behavior: STATIONARY
+    speed: 0.6
+  targeting:
+    strategy: HIGHEST_THREAT
+    aggroRange: 40
+    deaggroRange: 56
+    leashRange: 64
+  combat:
+    style: MELEE
+    preferredRange: 3
+    skills:
+      - id: mob_clay_guard_leap
+        activationRange: 12
+        cooldownTicks: 160
+        castTimeTicks: 30
+        params:
+          radius: 8.0
+          damageRatio: 1.50
+drops:
+  exp: 4000

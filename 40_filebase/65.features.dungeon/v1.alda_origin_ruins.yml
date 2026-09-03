@@ -1,0 +1,127 @@
+# design:
+#   motif: "建築 / 巨石の始源遺跡"
+#   progression: 15
+schemaVersion: 1
+id: alda_origin_ruins
+displayName: "アルダ始まりの遺跡"
+recommendedLevel: 15
+entry:
+  worldRef: world:midgard_greenfields
+  x: -78.5
+  y: 9.0
+  z: -674.5
+  yaw: 0.0
+  pitch: 0.0
+party:
+  min: 1
+  max: 4
+challenge:
+  deathLimit: 5
+  reviveDelaySeconds: 5
+  timeLimitSeconds: 900
+clearRewards:
+  lootTable: loot_table:dungeon_common_orb_table
+generation:
+  area:
+    width: 144
+    depth: 144
+  baseY: 64
+  roomCount:
+    min: 10
+    max: 12
+  roomSize:
+    min: 15
+    max: 27
+  roomHeight: 10
+  corridorWidth: 5
+  corridorHeight: 6
+  splitRatio:
+    min: 0.32
+    max: 0.48
+  roomShapes:
+    - type: RECTANGLE
+      weight: 3
+    - type: CYLINDER
+      weight: 2
+  roomTypes:
+    - type: STANDARD
+      weight: 4
+    - type: SUPPORT_HALL
+      weight: 3
+    - type: COLLAPSED
+      weight: 2
+    - type: ORE_CHAMBER
+      weight: 1
+theme:
+  floor:
+    - material: DEEPSLATE_TILES
+      weight: 3
+    - material: POLISHED_DEEPSLATE
+      weight: 2
+    - material: CRACKED_DEEPSLATE_TILES
+      weight: 1
+  wall:
+    - material: DEEPSLATE_BRICKS
+      weight: 3
+    - material: CRACKED_DEEPSLATE_BRICKS
+      weight: 2
+    - material: TUFF
+      weight: 1
+  ceiling:
+    - material: DEEPSLATE_TILES
+      weight: 3
+    - material: POLISHED_DEEPSLATE
+      weight: 1
+  corridor:
+    - material: COBBLED_DEEPSLATE
+      weight: 3
+    - material: POLISHED_BASALT
+      weight: 1
+  gateMaterial: IRON_BARS
+  lightMaterial: SOUL_LANTERN
+  pillar:
+    enabled: true
+    chance: 0.40
+    material: CHISELED_DEEPSLATE
+    stairMaterial: DEEPSLATE_BRICK_STAIRS
+  decorations:
+    supportMaterial: DARK_OAK_LOG
+    beamMaterial: STRIPPED_DARK_OAK_LOG
+    rubble:
+      - material: COBBLED_DEEPSLATE
+        weight: 3
+      - material: TUFF
+        weight: 2
+      - material: GRAVEL
+        weight: 1
+    accent:
+      - material: DEEPSLATE_IRON_ORE
+        weight: 3
+      - material: DEEPSLATE_GOLD_ORE
+        weight: 1
+encounter:
+  normalMobPool:
+    - mobId: mob:middle_earth_ruins_skeleton
+      level: 15
+      weight: 4
+    - mobId: mob:middle_earth_ruins_skeleton_archer
+      level: 15
+      weight: 3
+    - mobId: mob:middle_earth_ruins_piglin_charger
+      level: 15
+      weight: 2
+    - mobId: mob:vatar_skeleton
+      level: 15
+      weight: 3
+    - mobId: mob:ainua
+      level: 15
+      weight: 3
+    - mobId: mob:ainurindale
+      level: 15
+      weight: 2
+  mobsPerRoom:
+    min: 5
+    max: 7
+  firstCombatRoomMaxMobLevel: 15
+  bossMobId: mob:forgotten_alda_colossus
+  bossMobLevel: 15

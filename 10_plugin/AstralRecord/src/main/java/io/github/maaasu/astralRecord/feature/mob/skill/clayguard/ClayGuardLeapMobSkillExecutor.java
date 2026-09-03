@@ -30,9 +30,9 @@ import java.util.Map;
 import java.util.Set;
 
 /**
- * {@code mob_clay_guard_leap}: クレイガードが予告地点へ跳び、半径約2mを打撃する着地スキルです。
+ * {@code mob_clay_guard_leap}: クレイガードが予告地点へ跳び、着地点周辺を打撃する着地スキルです。
  *
- * <p>任意パラメーターは {@code radius}（着地ダメージ半径、既定2.0、0より大きく3以下）と
+ * <p>任意パラメーターは {@code radius}（着地ダメージ半径、既定2.0、0より大きく8以下）と
  * {@code damageRatio}（攻撃力倍率、既定0.85、0より大きい）です。着地地点の地面ブロックは
  * 破壊せず、その {@link org.bukkit.block.data.BlockData} を破片パーティクルの見た目にだけ使用します。</p>
  */
@@ -42,6 +42,7 @@ public final class ClayGuardLeapMobSkillExecutor implements MobSkillExecutor {
     private static final Set<String> PARAMETER_KEYS = Set.of("radius", "damageRatio");
     private static final long LEAP_DURATION_TICKS = 14L;
     private static final double DEFAULT_RADIUS = 2.0D;
+    private static final double MAX_RADIUS = 8.0D;
     private static final double DEFAULT_DAMAGE_RATIO = 0.85D;
     private static final double LEAP_HEIGHT = 1.7D;
     private static final int WARNING_RING_POINTS = 24;
@@ -88,7 +89,7 @@ public final class ClayGuardLeapMobSkillExecutor implements MobSkillExecutor {
         if (!PARAMETER_KEYS.containsAll(params.keySet())) {
             throw new IllegalArgumentException("Unsupported parameter for " + SKILL_ID);
         }
-        bounded(params.getOrDefault("radius", DEFAULT_RADIUS), "radius", 0.01D, 3.0D);
+        bounded(params.getOrDefault("radius", DEFAULT_RADIUS), "radius", 0.01D, MAX_RADIUS);
         bounded(params.getOrDefault("damageRatio", DEFAULT_DAMAGE_RATIO), "damageRatio", 0.01D, Double.MAX_VALUE);
     }
 
