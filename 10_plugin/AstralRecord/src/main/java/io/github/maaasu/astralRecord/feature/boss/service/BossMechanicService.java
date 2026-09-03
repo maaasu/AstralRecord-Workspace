@@ -27,7 +27,6 @@ import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.java.JavaPlugin;
 import org.bukkit.scheduler.BukkitTask;
-import org.bukkit.util.BoundingBox;
 import org.bukkit.util.RayTraceResult;
 import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
@@ -867,11 +866,11 @@ public final class BossMechanicService {
     }
 
     /**
-     * バードメテオの安全円柱の外側にいる管理対象Playerへ即死級ダメージを与えます。
+     * バードメテオの安全範囲（X/Zの水平距離）の外側にいる管理対象Playerへ即死級ダメージを与えます。
      *
      * @param boss ダメージ発生元
      * @param arenaCenter 判定する境界の中心
-     * @param safeZoneCenter 安全円柱の中心
+     * @param safeZoneCenter 安全範囲の中心
      */
     private void damagePlayersOutsideBirdMeteorSafeZone(
         @NotNull MobInstance boss,
@@ -880,7 +879,7 @@ public final class BossMechanicService {
     ) {
         double safeRadiusSquared = SUNBIRD_BIRD_METEOR_SAFE_RADIUS * SUNBIRD_BIRD_METEOR_SAFE_RADIUS;
         for (Player player : nearbyManagedPlayers(arenaCenter, SUNBIRD_ARENA_RADIUS)) {
-            if (isInsideBirdMeteorSafeZone(player, safeZoneCenter, safeRadiusSquared)) {
+            if (horizontalDistanceSquared(player.getLocation(), safeZoneCenter) <= safeRadiusSquared) {
                 continue;
             }
             damagePlayer(
@@ -892,34 +891,6 @@ public final class BossMechanicService {
                 SUNBIRD_BIRD_METEOR_ACCURACY_BONUS
             );
         }
-    }
-
-    /**
-     * プレイヤーの当たり判定がバードメテオの安全円柱と交差しているかを判定します。
-     *
-     * <p>プレイヤーの足元座標だけで判定すると、ボススポーン地点と参加者の立ち位置に
-     * 高さ差がある場合に、身体が円柱内にあるプレイヤーまで安全地帯の外側として扱います。</p>
-     *
-     * @param player 判定対象のPlayer
-     * @param safeZoneCenter 安全円柱の中心下端
-     * @param safeRadiusSquared 安全円柱半径の二乗
-     * @return 当たり判定が安全円柱と交差していればtrue
-     */
-    private static boolean isInsideBirdMeteorSafeZone(
-        @NotNull Player player,
-        @NotNull Location safeZoneCenter,
-        double safeRadiusSquared
-    ) {
-        BoundingBox playerBox = player.getBoundingBox();
-        double nearestX = Math.clamp(safeZoneCenter.getX(), playerBox.getMinX(), playerBox.getMaxX());
-        double nearestZ = Math.clamp(safeZoneCenter.getZ(), playerBox.getMinZ(), playerBox.getMaxZ());
-        double horizontalOffsetX = nearestX - safeZoneCenter.getX();
-        double horizontalOffsetZ = nearestZ - safeZoneCenter.getZ();
-        double safeZoneBottom = safeZoneCenter.getY();
-        double safeZoneTop = safeZoneBottom + SUNBIRD_BIRD_METEOR_SAFE_HEIGHT;
-        return horizontalOffsetX * horizontalOffsetX + horizontalOffsetZ * horizontalOffsetZ <= safeRadiusSquared
-            && playerBox.getMaxY() >= safeZoneBottom
-            && playerBox.getMinY() <= safeZoneTop;
     }
 
     private void damageLine(
