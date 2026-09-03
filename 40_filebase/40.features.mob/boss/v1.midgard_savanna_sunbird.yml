@@ -12,7 +12,7 @@ entityType: PARROT
 variant:
   age: ADULT
   kind: RED
-  scale: 2.0
+  scale: 3.0
 icon: PARROT_SPAWN_EGG
 nameVisible: true
 lore:
