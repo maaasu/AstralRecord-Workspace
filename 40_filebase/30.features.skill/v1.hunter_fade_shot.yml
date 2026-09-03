@@ -12,7 +12,7 @@ lore:
   - "&7前方の左右に広がる、合計{skill.spreadAngle}度の範囲へ矢を{skill.pelletCount}本放ち、1本ごとに間接攻撃力{skill.effectiveDamageRatio:percent}%の無属性ダメージ。"
   - "&7各矢は射程{skill.range}m、同じ敵へ複数本命中する。"
   - "&7発射後、後方へ素早く飛び退く（後退の強さ: {skill.backstepVelocity}）。"
-cooldownTicks: 80
+cooldownTicks: 160
 resourceType: ENERGY
 resourceCost: 14
 castTimeTicks: 0
@@ -20,13 +20,13 @@ requiredLevel: 1
 maxLevel: 5
 levels:
   - level: 2
-    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 15 }]
   - level: 3
-    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 15 }]
   - level: 4
-    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 15 }]
   - level: 5
-    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
+    statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 15 }]
 sigilSlotsByLevel:
   - { level: 1, slots: 1 }
   - { level: 3, slots: 2 }
@@ -46,7 +46,7 @@ tags:
 params:
   range: 9.0
   damageRatio: 0.384
-  pelletCount: 5
+  pelletCount: 8
   spreadAngle: 30.0
   projectileSpeed: 1.8
   projectileHitRadius: 0.30
