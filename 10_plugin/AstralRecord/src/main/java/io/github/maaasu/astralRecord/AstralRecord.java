@@ -308,6 +308,7 @@ import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueue;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueueConfig;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeParticipationRegistry;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingHubArrivalGuard;
 import io.github.maaasu.astralRecord.shared.display.OverheadDisplayService;
 import io.github.maaasu.astralRecord.shared.display.PlayerTeleportDisplayEventHandler;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
@@ -471,6 +472,7 @@ public final class AstralRecord extends JavaPlugin {
     private BossMechanicService bossMechanicService;
     private BossChallengeCancelGui bossChallengeCancelGui;
     private DungeonService dungeonService;
+    private ChallengeWaitingHubArrivalGuard arrivalGuard;
     private String joinSpawnWorldId;
     private final AtomicReference<CompletableFuture<Integer>> masterDataReloadInFlight = new AtomicReference<>();
     private final AtomicLong masterDataReloadGeneration = new AtomicLong();
@@ -1151,6 +1153,7 @@ public final class AstralRecord extends JavaPlugin {
         InstanceCreationQueueConfig instanceCreationQueueConfig =
                 InstanceCreationQueueConfig.from(getConfig());
         ChallengeParticipationRegistry challengeParticipationRegistry = new ChallengeParticipationRegistry();
+        arrivalGuard = new ChallengeWaitingHubArrivalGuard();
         bossChallengeService = new BossChallengeService(
             this,
             mobService,
@@ -1163,7 +1166,8 @@ public final class AstralRecord extends JavaPlugin {
             playerDeathService,
             bossHubWorldId,
             new InstanceCreationQueue(instanceCreationQueueConfig.boss()),
-            challengeParticipationRegistry
+            challengeParticipationRegistry,
+            arrivalGuard
         );
         damageService.setBossChallengeService(bossChallengeService);
         dungeonService = new DungeonService(
@@ -1184,7 +1188,8 @@ public final class AstralRecord extends JavaPlugin {
             new AdventureRecordRepository(),
             bossHubWorldId,
             new InstanceCreationQueue(instanceCreationQueueConfig.dungeon()),
-            challengeParticipationRegistry
+            challengeParticipationRegistry,
+            arrivalGuard
         );
         dungeonService.setAfkService(afkService);
         dungeonService.setClearListener((player, dungeonId) ->
@@ -1762,14 +1767,16 @@ public final class AstralRecord extends JavaPlugin {
         );
         var overworldSpawnReturnEventHandler = new OverworldSpawnReturnEventHandler(
             worldService,
-            returnToBaseService
+            returnToBaseService,
+            arrivalGuard
         );
         var bossEntryEventHandler = new BossEntryEventHandler(bossChallengeService);
         var dungeonInteractionEventHandler = new DungeonInteractionEventHandler(dungeonService, inventoryService);
         var challengeWaitingHubEventHandler = new ChallengeWaitingHubEventHandler(
             worldService,
             bossChallengeService,
-            dungeonService
+            dungeonService,
+            arrivalGuard
         );
         eventManager.registerHandler(
             new BossPlayerEventHandler(bossChallengeService),

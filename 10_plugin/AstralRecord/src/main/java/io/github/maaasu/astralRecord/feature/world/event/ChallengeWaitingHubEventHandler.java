@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingLeaveConfirmGui;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingHubArrivalGuard;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.Location;
@@ -43,6 +44,7 @@ public final class ChallengeWaitingHubEventHandler extends AbstractEventHandler
     private final WorldService worldService;
     private final BossChallengeService bossChallengeService;
     private final DungeonService dungeonService;
+    private final ChallengeWaitingHubArrivalGuard arrivalGuard;
     private final ChallengeWaitingLeaveConfirmGui confirmGui = new ChallengeWaitingLeaveConfirmGui();
 
     /**
@@ -57,9 +59,27 @@ public final class ChallengeWaitingHubEventHandler extends AbstractEventHandler
             @NotNull BossChallengeService bossChallengeService,
             @NotNull DungeonService dungeonService
     ) {
+        this(worldService, bossChallengeService, dungeonService, new ChallengeWaitingHubArrivalGuard());
+    }
+
+    /**
+     * 挑戦待機Hub離脱 resolver を共有到着抑止付きで構成します。
+     *
+     * @param worldService World サービス
+     * @param bossChallengeService ボス挑戦サービス
+     * @param dungeonService ダンジョンサービス
+     * @param arrivalGuard Hub到着直後の離脱入力抑止
+     */
+    public ChallengeWaitingHubEventHandler(
+            @NotNull WorldService worldService,
+            @NotNull BossChallengeService bossChallengeService,
+            @NotNull DungeonService dungeonService,
+            @NotNull ChallengeWaitingHubArrivalGuard arrivalGuard
+    ) {
         this.worldService = worldService;
         this.bossChallengeService = bossChallengeService;
         this.dungeonService = dungeonService;
+        this.arrivalGuard = arrivalGuard;
     }
 
     @Override
@@ -70,6 +90,9 @@ public final class ChallengeWaitingHubEventHandler extends AbstractEventHandler
         if (context.family() != InputFamily.SNEAK
                 || !(snapshot.event() instanceof PlayerToggleSneakEvent event)
                 || !event.isSneaking()) {
+            return List.of();
+        }
+        if (arrivalGuard.isSuppressed(snapshot.player().getUniqueId())) {
             return List.of();
         }
         Double distance = triggerDistance(snapshot.player());

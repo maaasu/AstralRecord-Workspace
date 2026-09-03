@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingHubArrivalGuard;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -36,13 +37,30 @@ public final class OverworldSpawnReturnEventHandler extends AbstractEventHandler
 
     private final WorldService worldService;
     private final ReturnToBaseService returnToBaseService;
+    private final ChallengeWaitingHubArrivalGuard arrivalGuard;
 
     public OverworldSpawnReturnEventHandler(
         @NotNull WorldService worldService,
         @NotNull ReturnToBaseService returnToBaseService
     ) {
+        this(worldService, returnToBaseService, new ChallengeWaitingHubArrivalGuard());
+    }
+
+    /**
+     * 拠点帰還 resolver を挑戦待機Hub到着抑止付きで構成します。
+     *
+     * @param worldService Worldサービス
+     * @param returnToBaseService 拠点帰還サービス
+     * @param arrivalGuard Hub到着直後の初期スポーン帰還抑止
+     */
+    public OverworldSpawnReturnEventHandler(
+        @NotNull WorldService worldService,
+        @NotNull ReturnToBaseService returnToBaseService,
+        @NotNull ChallengeWaitingHubArrivalGuard arrivalGuard
+    ) {
         this.worldService = worldService;
         this.returnToBaseService = returnToBaseService;
+        this.arrivalGuard = arrivalGuard;
     }
 
     @Override
@@ -53,6 +71,9 @@ public final class OverworldSpawnReturnEventHandler extends AbstractEventHandler
         if (context.family() != InputFamily.SNEAK
             || !(snapshot.event() instanceof PlayerToggleSneakEvent event)
             || !event.isSneaking()) {
+            return List.of();
+        }
+        if (arrivalGuard.isSuppressed(snapshot.player().getUniqueId())) {
             return List.of();
         }
         AstPlayer astPlayer = AstPlayerCache.get(snapshot.player());

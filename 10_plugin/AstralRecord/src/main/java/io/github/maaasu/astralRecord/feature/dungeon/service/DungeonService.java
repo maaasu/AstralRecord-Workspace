@@ -62,6 +62,7 @@ import io.github.maaasu.astralRecord.shared.challenge.ChallengeDeathPolicy;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeParticipationRegistry;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeStartCountdown;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingHubArrivalGuard;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueue;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueueConfig;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceQueueTitleRenderer;
@@ -156,6 +157,7 @@ public final class DungeonService {
     private final DungeonArchiveGui archiveGui;
     private final InstanceCreationQueue creationQueue;
     private final ChallengeParticipationRegistry challengeParticipationRegistry;
+    private final ChallengeWaitingHubArrivalGuard arrivalGuard;
     private final String hubWorldId;
     private AfkService afkService;
     private @NotNull BiConsumer<AstPlayer, String> clearListener = (player, dungeonId) -> { };
@@ -234,7 +236,8 @@ public final class DungeonService {
                 adventureRecordRepository,
                 hubWorldId,
                 new InstanceCreationQueue(InstanceCreationQueueConfig.DEFAULT_DUNGEON),
-                new ChallengeParticipationRegistry()
+                new ChallengeParticipationRegistry(),
+                new ChallengeWaitingHubArrivalGuard()
         );
     }
 
@@ -280,6 +283,73 @@ public final class DungeonService {
             @NotNull InstanceCreationQueue creationQueue,
             @NotNull ChallengeParticipationRegistry challengeParticipationRegistry
     ) {
+        this(
+                plugin,
+                repository,
+                worldService,
+                partyService,
+                mobService,
+                messageService,
+                particleDisplayService,
+                displayTextService,
+                playerDeathService,
+                mobDropService,
+                inventoryService,
+                itemService,
+                itemStackFactory,
+                lootService,
+                adventureRecordRepository,
+                hubWorldId,
+                creationQueue,
+                challengeParticipationRegistry,
+                new ChallengeWaitingHubArrivalGuard()
+        );
+    }
+
+    /**
+     * Dungeonサービスを共通挑戦予約とHub到着抑止付きで構成します。
+     *
+     * @param plugin Plugin 本体
+     * @param repository ダンジョン定義リポジトリ
+     * @param worldService World 管理サービス
+     * @param partyService Party 管理サービス
+     * @param mobService Mob サービス
+     * @param messageService プレイヤーメッセージサービス
+     * @param particleDisplayService パーティクル表示サービス
+     * @param displayTextService TextDisplay サービス
+     * @param playerDeathService 死亡・復帰サービス
+     * @param mobDropService クリア報酬抽選サービス
+     * @param inventoryService 報酬付与先インベントリ
+     * @param itemService アイテム定義サービス
+     * @param itemStackFactory 報酬GUIのItemStack生成サービス
+     * @param lootService ルートテーブルサービス
+     * @param adventureRecordRepository 踏破記録リポジトリ
+     * @param hubWorldId 生成待機中に参加者を退避するHub World ID
+     * @param creationQueue インスタンス作成枠キュー
+     * @param challengeParticipationRegistry Dungeon/Boss 共通の挑戦参加予約
+     * @param arrivalGuard Hub到着直後の離脱入力抑止
+     */
+    public DungeonService(
+            @NotNull AstralRecord plugin,
+            @NotNull DungeonDefinitionRepository repository,
+            @NotNull WorldService worldService,
+            @NotNull PartyService partyService,
+            @NotNull MobService mobService,
+            @NotNull PlayerMessageService messageService,
+            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull DisplayTextService displayTextService,
+            @NotNull PlayerDeathService playerDeathService,
+            @NotNull MobDropService mobDropService,
+            @NotNull InventoryService inventoryService,
+            @NotNull ItemService itemService,
+            @NotNull ItemStackFactory itemStackFactory,
+            @NotNull LootService lootService,
+            @NotNull AdventureRecordRepository adventureRecordRepository,
+            @NotNull String hubWorldId,
+            @NotNull InstanceCreationQueue creationQueue,
+            @NotNull ChallengeParticipationRegistry challengeParticipationRegistry,
+            @NotNull ChallengeWaitingHubArrivalGuard arrivalGuard
+    ) {
         this.plugin = plugin;
         this.repository = repository;
         this.validator = new DungeonDefinitionValidator();
@@ -308,6 +378,7 @@ public final class DungeonService {
         this.archiveGui = new DungeonArchiveGui(itemService, itemStackFactory);
         this.creationQueue = creationQueue;
         this.challengeParticipationRegistry = challengeParticipationRegistry;
+        this.arrivalGuard = arrivalGuard;
         this.hubWorldId = hubWorldId;
     }
 
@@ -734,7 +805,8 @@ public final class DungeonService {
             if (!isActiveTransferCallback(session, transferGeneration)) {
                 return;
             }
-            if (failure == null && Boolean.TRUE.equals(success)) {
+            if (failure == null && Boolean.TRUE.equals(success) && initiator.isOnline()) {
+                arrivalGuard.markArrival(initiator.getUniqueId());
                 session.waitingAbsentParticipants.remove(initiator.getUniqueId());
                 notifyWaitingPartyMembers(session, initiator.getUniqueId());
             }
@@ -800,7 +872,8 @@ public final class DungeonService {
             if (!isActiveTransferCallback(session, transferGeneration)) {
                 return;
             }
-            if (failure == null && Boolean.TRUE.equals(success)) {
+            if (failure == null && Boolean.TRUE.equals(success) && player.isOnline()) {
+                arrivalGuard.markArrival(player.getUniqueId());
                 session.waitingAbsentParticipants.remove(player.getUniqueId());
                 notifyWaitingPartyMembers(session, player.getUniqueId());
             }
@@ -2878,6 +2951,7 @@ public final class DungeonService {
 
     /** ログアウトした参加者をセッションから外します。 */
     public void handleQuit(@NotNull UUID playerId) {
+        arrivalGuard.clear(playerId);
         UUID sessionId = sessionIdByParticipant.get(playerId);
         Session session = sessionId == null ? null : sessionsById.get(sessionId);
         if (session != null && !session.ending) {
@@ -3725,6 +3799,10 @@ public final class DungeonService {
         }
         List<UUID> previous = List.copyOf(session.participants);
         List<UUID> current = party.members();
+        if (current.stream().noneMatch(this::isInHub)) {
+            completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
+            return;
+        }
         ChallengeParticipationRegistry.ReservationResult reservation = challengeParticipationRegistry.reserve(
                 session.id,
                 session.partyKey,
@@ -3732,10 +3810,6 @@ public final class DungeonService {
                 session.loaded.definition().displayName()
         );
         if (!reservation.acquired()) {
-            return;
-        }
-        if (current.stream().noneMatch(this::isInHub)) {
-            completeSession(session, EndReason.PARTICIPANT_REQUIREMENT_NOT_MET, false);
             return;
         }
         if (!previous.equals(current)) {

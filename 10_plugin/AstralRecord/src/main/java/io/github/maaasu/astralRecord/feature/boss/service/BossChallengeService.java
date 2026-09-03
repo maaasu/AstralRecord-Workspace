@@ -34,6 +34,7 @@ import io.github.maaasu.astralRecord.shared.challenge.ChallengeDeathPolicy;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeParticipationRegistry;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeStartCountdown;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingStatus;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeWaitingHubArrivalGuard;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueue;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceCreationQueueConfig;
 import io.github.maaasu.astralRecord.shared.challenge.InstanceQueueTitleRenderer;
@@ -104,6 +105,7 @@ public final class BossChallengeService {
     private final PlayerDeathService playerDeathService;
     private final InstanceCreationQueue creationQueue;
     private final ChallengeParticipationRegistry challengeParticipationRegistry;
+    private final ChallengeWaitingHubArrivalGuard arrivalGuard;
     private final String hubWorldId;
     private final Map<UUID, BossChallengeInstance> challengesById = new ConcurrentHashMap<>();
     private final Map<String, UUID> challengeIdByPartyKey = new ConcurrentHashMap<>();
@@ -142,7 +144,8 @@ public final class BossChallengeService {
                 playerDeathService,
                 hubWorldId,
                 new InstanceCreationQueue(InstanceCreationQueueConfig.DEFAULT_BOSS),
-                new ChallengeParticipationRegistry()
+                new ChallengeParticipationRegistry(),
+                new ChallengeWaitingHubArrivalGuard()
         );
     }
 
@@ -176,6 +179,55 @@ public final class BossChallengeService {
             @NotNull InstanceCreationQueue creationQueue,
             @NotNull ChallengeParticipationRegistry challengeParticipationRegistry
     ) {
+        this(
+                plugin,
+                mobService,
+                worldService,
+                partyService,
+                messageService,
+                fieldInstanceService,
+                particleDisplayService,
+                displayTextService,
+                playerDeathService,
+                hubWorldId,
+                creationQueue,
+                challengeParticipationRegistry,
+                new ChallengeWaitingHubArrivalGuard()
+        );
+    }
+
+    /**
+     * Boss挑戦サービスを共通挑戦予約とHub到着抑止付きで構成します。
+     *
+     * @param plugin Plugin 本体
+     * @param mobService Mob サービス
+     * @param worldService World 管理サービス
+     * @param partyService Party 管理サービス
+     * @param messageService プレイヤーメッセージサービス
+     * @param fieldInstanceService Boss フィールド生成サービス
+     * @param particleDisplayService パーティクル表示サービス
+     * @param displayTextService TextDisplay サービス
+     * @param playerDeathService 死亡・復帰サービス
+     * @param hubWorldId 待機HubのWorld ID
+     * @param creationQueue インスタンス作成枠キュー
+     * @param challengeParticipationRegistry Dungeon/Boss 共通の挑戦参加予約
+     * @param arrivalGuard Hub到着直後の離脱入力抑止
+     */
+    public BossChallengeService(
+            @NotNull AstralRecord plugin,
+            @NotNull MobService mobService,
+            @NotNull WorldService worldService,
+            @NotNull PartyService partyService,
+            @NotNull PlayerMessageService messageService,
+            @NotNull BossFieldInstanceService fieldInstanceService,
+            @NotNull ParticleDisplayService particleDisplayService,
+            @NotNull DisplayTextService displayTextService,
+            @NotNull PlayerDeathService playerDeathService,
+            @NotNull String hubWorldId,
+            @NotNull InstanceCreationQueue creationQueue,
+            @NotNull ChallengeParticipationRegistry challengeParticipationRegistry,
+            @NotNull ChallengeWaitingHubArrivalGuard arrivalGuard
+    ) {
         this.plugin = plugin;
         this.mobService = mobService;
         this.worldService = worldService;
@@ -187,6 +239,7 @@ public final class BossChallengeService {
         this.playerDeathService = playerDeathService;
         this.creationQueue = creationQueue;
         this.challengeParticipationRegistry = challengeParticipationRegistry;
+        this.arrivalGuard = arrivalGuard;
         this.hubWorldId = hubWorldId;
     }
 
@@ -581,6 +634,7 @@ public final class BossChallengeService {
      * @param playerId quit player
      */
     public void handleQuit(@NotNull UUID playerId) {
+        arrivalGuard.clear(playerId);
         for (BossChallengeInstance challenge : List.copyOf(challengesById.values())) {
             if (!challenge.expectedParticipantIds().contains(playerId)
                     || !isWaitingForPartyMembers(challenge)) {
@@ -925,7 +979,10 @@ public final class BossChallengeService {
         if (challenge == null || challenge.state() != BossChallengeState.PREPARING) {
             return;
         }
-        if (throwable == null && Boolean.TRUE.equals(result)) {
+        Player participant = Bukkit.getPlayer(participantId);
+        if (throwable == null && Boolean.TRUE.equals(result)
+                && participant != null && participant.isOnline()) {
+            arrivalGuard.markArrival(participantId);
             challenge.clearWaitingAbsent(participantId);
             notifyWaitingPartyMembers(challenge, participantId);
         }
@@ -1957,6 +2014,10 @@ public final class BossChallengeService {
 
         List<UUID> previous = challenge.expectedParticipantIds();
         List<UUID> current = party.members();
+        if (current.stream().noneMatch(this::isInHub)) {
+            endChallenge(challenge, BossChallengeEndReason.PARTICIPANT_REQUIREMENT_NOT_MET);
+            return;
+        }
         ChallengeParticipationRegistry.ReservationResult reservation = challengeParticipationRegistry.reserve(
                 challenge.challengeId(),
                 challenge.partyKey(),

@@ -40,6 +40,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.display.DisplayAnchor;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
+import io.github.maaasu.astralRecord.shared.challenge.ChallengeParticipationRegistry;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
@@ -125,6 +126,51 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         when(worldService.getById("hub")).thenReturn(hubData);
         when(worldService.resolveLoadedWorld(hubData)).thenReturn(hubWorld);
         Object session = session(player.getUniqueId(), List.of(), "party:" + partyId);
+
+        try (MockedStatic<Logger> ignored = Mockito.mockStatic(Logger.class)) {
+            invoke(service, "synchronizeWaitingParty", session);
+        }
+
+        assertTrue(field(session, "ending", Boolean.class));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 4. 開始・生成・転送
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_0-概要.md
+     * 章・見出し: # 32_0-概要 > ## 4. 主要境界と不変条件
+     * 検証契約: 他挑戦の参加予約競合があっても、現在パーティーメンバーが全員Hub外なら待機Dungeonセッションを終了し、予約残留で再挑戦不能にしない。
+     */
+    @Test
+    void endsWaitingPartySessionBeforeCrossChallengeReservationConflictCanKeepItAlive() throws Exception {
+        WorldService worldService = mock(WorldService.class);
+        PartyService partyService = mock(PartyService.class);
+        DungeonService service = service(
+                mock(MobService.class),
+                mock(DisplayTextService.class),
+                worldService,
+                mock(MobDropService.class),
+                partyService
+        );
+        World hubWorld = server().addSimpleWorld("dungeon-waiting-conflict-hub");
+        World outsideWorld = server().addSimpleWorld("dungeon-waiting-conflict-outside");
+        PlayerMock player = server().addPlayer();
+        player.teleport(new Location(outsideWorld, 0.5D, 65.0D, 0.5D));
+        UUID partyId = UUID.randomUUID();
+        Party party = new Party(partyId, player.getUniqueId());
+        when(partyService.findPartyById(partyId)).thenReturn(party);
+        WorldMasterData hubData = worldData("hub", WorldType.BASE);
+        when(worldService.getById("hub")).thenReturn(hubData);
+        when(worldService.resolveLoadedWorld(hubData)).thenReturn(hubWorld);
+        Object session = session(player.getUniqueId(), List.of(), "party:" + partyId);
+        ChallengeParticipationRegistry registry = field(
+                service, "challengeParticipationRegistry", ChallengeParticipationRegistry.class);
+        assertTrue(registry.reserve(
+                UUID.randomUUID(),
+                "party:other",
+                List.of(player.getUniqueId()),
+                "別の挑戦"
+        ).acquired());
 
         try (MockedStatic<Logger> ignored = Mockito.mockStatic(Logger.class)) {
             invoke(service, "synchronizeWaitingParty", session);
