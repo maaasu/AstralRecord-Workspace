@@ -25,6 +25,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.function.Predicate;
 
 /**
  * 一時パーティーの作成、招待、参加、離脱を管理します。
@@ -39,6 +40,7 @@ public final class PartyService {
     private final Map<UUID, Map<UUID, PartyInvite>> invitesByTarget = new ConcurrentHashMap<>();
     private final CopyOnWriteArrayList<PartyMembershipChangeListener> membershipChangeListeners =
             new CopyOnWriteArrayList<>();
+    private volatile Predicate<UUID> challengePartyMutationGuard = ignored -> false;
 
     /**
      * PartyService を作成します。
@@ -49,6 +51,18 @@ public final class PartyService {
     public PartyService(@NotNull AstralRecord plugin, @NotNull UserService userService) {
         this.plugin = plugin;
         this.userService = userService;
+    }
+
+    /**
+     * 挑戦開始後のパーティー招待・承認を拒否する判定を設定します。
+     * <p>
+     * PartyService が Boss／Dungeon の実装へ直接依存しないよう、起動時に呼出元が判定を注入します。
+     * 待機ハブでメンバーを揃えている段階はこの判定で拒否しません。
+     *
+     * @param guard 対象プレイヤーが招待・承認操作を制限されている場合に true を返す判定
+     */
+    public void setChallengePartyMutationGuard(@NotNull Predicate<UUID> guard) {
+        this.challengePartyMutationGuard = guard;
     }
 
     /**
@@ -89,6 +103,9 @@ public final class PartyService {
         UUID targetId = target.getUniqueId();
         if (inviterId.equals(targetId)) {
             return PartyActionResult.failure(PlayerMsgId.P_5904);
+        }
+        if (isChallengePartyMutationBlocked(inviterId) || isChallengePartyMutationBlocked(targetId)) {
+            return PartyActionResult.failure(PlayerMsgId.P_7024);
         }
         if (partyIdByMember.containsKey(targetId)) {
             return PartyActionResult.failure(PlayerMsgId.P_5906);
@@ -153,6 +170,9 @@ public final class PartyService {
 
         UUID playerId = player.getBukkit().getUniqueId();
         UUID leaderId = leader.getUniqueId();
+        if (isChallengePartyMutationBlocked(playerId) || isChallengePartyMutationBlocked(leaderId)) {
+            return PartyActionResult.failure(PlayerMsgId.P_7024);
+        }
         PartyInvite invite = invitesByTarget.getOrDefault(playerId, Map.of()).get(leaderId);
         if (invite == null) {
             return PartyActionResult.failure(PlayerMsgId.P_5911, leaderName);
@@ -419,6 +439,10 @@ public final class PartyService {
                 Logger.log(LogId.E_6110, exception, partyId.toString());
             }
         }
+    }
+
+    private boolean isChallengePartyMutationBlocked(@NotNull UUID playerId) {
+        return challengePartyMutationGuard.test(playerId);
     }
 
     private void notifyParty(@NotNull Party party, @NotNull PlayerMsgId messageId, Object... args) {

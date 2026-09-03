@@ -138,6 +138,22 @@ class DungeonChallengePolicyTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 5. 離脱・再参加・中止
+     * 検証契約: 待機ハブから離脱した参加者だけをDungeon Sidebarの対象外とし、再到着して未到着記録が消えた後は再び対象にする。
+     */
+    @Test
+    void excludesWaitingHubDepartedParticipantFromDungeonSidebarUntilRejoin() {
+        UUID remainingPlayer = UUID.randomUUID();
+        UUID departedPlayer = UUID.randomUUID();
+        List<UUID> participants = List.of(remainingPlayer, departedPlayer);
+
+        assertTrue(DungeonService.isSidebarParticipant(participants, List.of(), remainingPlayer));
+        assertFalse(DungeonService.isSidebarParticipant(participants, List.of(departedPlayer), departedPlayer));
+        assertTrue(DungeonService.isSidebarParticipant(participants, List.of(), departedPlayer));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 6. クリア報酬と30秒回収
      * 検証契約: 当選報酬は設定確率の昇順で個別claim IDを付け、表示後に一覧が変化してもclaim IDで同じ報酬を特定する。
      */

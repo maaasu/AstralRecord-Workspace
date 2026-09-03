@@ -555,10 +555,30 @@ public final class DungeonService {
      * プレイヤーがダンジョンセッションの参加者として扱われているかを返します。
      *
      * @param playerId 判定対象プレイヤーの UUID
-     * @return 受付後からセッション終了処理完了までの参加者であれば {@code true}
+     * @return 受付後からセッション終了処理完了までの参加者で、待機ハブ離脱中でなければ {@code true}
      */
     public boolean isPlayerInActiveSession(@NotNull UUID playerId) {
-        return sessionIdByParticipant.containsKey(playerId);
+        UUID sessionId = sessionIdByParticipant.get(playerId);
+        Session session = sessionId == null ? null : sessionsById.get(sessionId);
+        return session != null
+                && isSidebarParticipant(session.participants, session.waitingAbsentParticipants, playerId);
+    }
+
+    /**
+     * 挑戦開始後のパーティー招待・承認をこのプレイヤーへ許可できるか判定します。
+     * <p>
+     * 待機ハブから離脱したメンバーは再到着までの通常ワールド移動を許可するため、
+     * {@code waitingAbsentParticipants} に記録されている間は制限対象から除外します。
+     *
+     * @param playerId 判定対象プレイヤー UUID
+     * @return 挑戦が作成開始後で、パーティー操作を固定すべきなら {@code true}
+     */
+    public boolean isPartyMutationBlocked(@NotNull UUID playerId) {
+        UUID sessionId = sessionIdByParticipant.get(playerId);
+        Session session = sessionId == null ? null : sessionsById.get(sessionId);
+        return session != null
+                && isSidebarParticipant(session.participants, session.waitingAbsentParticipants, playerId)
+                && !isWaitingForPartyMembers(session);
     }
 
     private @NotNull String partyKey(@NotNull UUID playerId, @Nullable Party party) {
@@ -623,7 +643,7 @@ public final class DungeonService {
             }
             if (failure == null && Boolean.TRUE.equals(success)) {
                 session.waitingAbsentParticipants.remove(initiator.getUniqueId());
-                notifyWaitingPartyMembers(session, initiator.getName());
+                notifyWaitingPartyMembers(session, initiator.getUniqueId());
             }
             tryEnqueueWaitingSession(session);
         }));
@@ -657,8 +677,9 @@ public final class DungeonService {
         if (!session.participants.contains(player.getUniqueId())) {
             addWaitingParticipant(session, player.getUniqueId(), player);
         }
-        session.waitingAbsentParticipants.remove(player.getUniqueId());
         if (isInHub(player)) {
+            session.waitingAbsentParticipants.remove(player.getUniqueId());
+            notifyWaitingPartyMembers(session, player.getUniqueId());
             tryEnqueueWaitingSession(session);
             return StartRequestResult.of(StartStatus.ACCEPTED);
         }
@@ -677,6 +698,7 @@ public final class DungeonService {
             }
             if (failure == null && Boolean.TRUE.equals(success)) {
                 session.waitingAbsentParticipants.remove(player.getUniqueId());
+                notifyWaitingPartyMembers(session, player.getUniqueId());
             }
             tryEnqueueWaitingSession(session);
         }));
@@ -2481,6 +2503,22 @@ public final class DungeonService {
         return originalParticipants.contains(playerId) && gateReturnEligible.contains(playerId);
     }
 
+    /**
+     * 待機ハブ離脱中の参加者を Dungeon Sidebar の対象から除外します。
+     *
+     * @param participantIds 現在セッションの参加者
+     * @param waitingAbsentParticipantIds 待機ハブから離脱した参加者
+     * @param playerId Sidebar 判定対象
+     * @return Sidebar 対象なら {@code true}
+     */
+    static boolean isSidebarParticipant(
+            @NotNull Collection<UUID> participantIds,
+            @NotNull Collection<UUID> waitingAbsentParticipantIds,
+            @NotNull UUID playerId
+    ) {
+        return participantIds.contains(playerId) && !waitingAbsentParticipantIds.contains(playerId);
+    }
+
     static @NotNull List<DungeonRewardEntry> createRewardEntries(
             @NotNull Collection<MobDropResultItem> rolledItems
     ) {
@@ -2673,7 +2711,10 @@ public final class DungeonService {
     public @Nullable DungeonSidebarInfo findSidebarInfo(@NotNull UUID playerId) {
         UUID sessionId = sessionIdByParticipant.get(playerId);
         Session session = sessionId == null ? null : sessionsById.get(sessionId);
-        if (session == null || session.ending) return null;
+        if (session == null || session.ending
+                || !isSidebarParticipant(session.participants, session.waitingAbsentParticipants, playerId)) {
+            return null;
+        }
         ChallengeWaitingStatus waitingStatus = waitingStatus(session);
         if (session.layout == null && !waitingStatus.isVisible()) return null;
         int clearedRooms = (int) session.roomStates.values().stream()
@@ -4051,10 +4092,11 @@ public final class DungeonService {
 
     private void notifyWaitingPartyMembers(
             @NotNull Session session,
-            @NotNull String initiatorName
+            @NotNull UUID waitingMemberId
     ) {
+        String waitingMemberName = playerName(waitingMemberId);
         for (UUID participantId : session.participants) {
-            if (participantId.equals(session.initiatorId) || isInHub(participantId)) {
+            if (participantId.equals(waitingMemberId) || isInHub(participantId)) {
                 continue;
             }
             Player player = Bukkit.getPlayer(participantId);
@@ -4062,9 +4104,10 @@ public final class DungeonService {
                 messageService.send(
                         player,
                         PlayerMsgId.P_7094,
-                        initiatorName,
+                        waitingMemberName,
                         session.loaded.definition().displayName()
                 );
+                GuiSound.CONFIRM.play(player);
             }
         }
     }

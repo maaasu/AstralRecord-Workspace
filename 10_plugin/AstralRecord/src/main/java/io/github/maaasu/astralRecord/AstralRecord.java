@@ -1181,6 +1181,10 @@ public final class AstralRecord extends JavaPlugin {
         dungeonService.setClearListener((player, dungeonId) ->
             guideService.recordCondition(player, GuideConditionType.DUNGEON_CLEARED, dungeonId)
         );
+        partyService.setChallengePartyMutationGuard(playerId ->
+            bossChallengeService.isPartyMutationBlocked(playerId)
+                || dungeonService.isPartyMutationBlocked(playerId)
+        );
         partyService.addMembershipChangeListener(bossChallengeService::handlePartyMembershipChanged);
         partyService.addMembershipChangeListener(dungeonService::handlePartyMembershipChanged);
         damageService.setDungeonService(dungeonService);

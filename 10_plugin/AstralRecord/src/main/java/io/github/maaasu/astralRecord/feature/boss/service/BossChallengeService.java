@@ -41,6 +41,7 @@ import io.github.maaasu.astralRecord.shared.display.DisplayTextOptions;
 import io.github.maaasu.astralRecord.shared.display.DisplayTextService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
@@ -656,12 +657,35 @@ public final class BossChallengeService {
      * プレイヤーが終了処理を含むボス挑戦へ参加中かを返します。
      *
      * @param playerId 判定対象プレイヤーの UUID
-     * @return 挑戦の準備中、進行中、結果待ち、または終了処理中であれば {@code true}
+     * @return 挑戦の準備中、進行中、結果待ち、または終了処理中で、待機ハブ離脱中でなければ {@code true}
      */
     public boolean isPlayerInActiveChallenge(@NotNull UUID playerId) {
         for (BossChallengeInstance challenge : challengesById.values()) {
             if (challenge.state() == BossChallengeState.ENDED
-                    || !displayParticipantIds(challenge).contains(playerId)) {
+                    || !isSidebarParticipant(challenge, playerId)) {
+                continue;
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
+     * 挑戦開始後のパーティー招待・承認をこのプレイヤーへ許可できるか判定します。
+     * <p>
+     * 待機ハブから離脱した {@code waitingAbsent} のメンバーは、挑戦待機へ戻るための
+     * 通常ワールド移動を許可するため制限対象から除外します。
+     *
+     * @param playerId 判定対象プレイヤー UUID
+     * @return 挑戦が作成開始後で、パーティー操作を固定すべきなら {@code true}
+     */
+    public boolean isPartyMutationBlocked(@NotNull UUID playerId) {
+        for (BossChallengeInstance challenge : challengesById.values()) {
+            if (challenge.state() == BossChallengeState.ENDED
+                    || !isSidebarParticipant(challenge, playerId)) {
+                continue;
+            }
+            if (isWaitingForPartyMembers(challenge)) {
                 continue;
             }
             return true;
@@ -835,9 +859,7 @@ public final class BossChallengeService {
         }
         if (throwable == null && Boolean.TRUE.equals(result)) {
             challenge.clearWaitingAbsent(participantId);
-            if (challenge.initiatorId().equals(participantId)) {
-                notifyWaitingPartyMembers(challenge);
-            }
+            notifyWaitingPartyMembers(challenge, participantId);
         }
         tryEnqueueWaitingChallenge(challenge, fieldData);
     }
@@ -851,13 +873,14 @@ public final class BossChallengeService {
             messageService.send(player, PlayerMsgId.P_6505);
             return;
         }
-        challenge.clearWaitingAbsent(player.getUniqueId());
         WorldMasterData fieldData = worldService.getById(challenge.config().fieldWorldId());
         if (fieldData == null) {
             messageService.send(player, PlayerMsgId.P_6507, challenge.config().fieldWorldId());
             return;
         }
         if (isInHub(player)) {
+            challenge.clearWaitingAbsent(player.getUniqueId());
+            notifyWaitingPartyMembers(challenge, player.getUniqueId());
             tryEnqueueWaitingChallenge(challenge, fieldData);
             return;
         }
@@ -1948,10 +1971,13 @@ public final class BossChallengeService {
         return result;
     }
 
-    private void notifyWaitingPartyMembers(@NotNull BossChallengeInstance challenge) {
-        String initiatorName = playerName(challenge.initiatorId());
+    private void notifyWaitingPartyMembers(
+            @NotNull BossChallengeInstance challenge,
+            @NotNull UUID waitingMemberId
+    ) {
+        String waitingMemberName = playerName(waitingMemberId);
         for (UUID participantId : challenge.expectedParticipantIds()) {
-            if (participantId.equals(challenge.initiatorId())
+            if (participantId.equals(waitingMemberId)
                     || isInHub(participantId)
                     || !stillBelongsToAcceptedParty(challenge, participantId)) {
                 continue;
@@ -1961,9 +1987,10 @@ public final class BossChallengeService {
                 messageService.send(
                         player,
                         PlayerMsgId.P_6535,
-                        initiatorName,
+                        waitingMemberName,
                         challenge.bossTemplate().displayName()
                 );
+                GuiSound.CONFIRM.play(player);
             }
         }
     }
