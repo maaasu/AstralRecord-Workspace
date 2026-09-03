@@ -972,7 +972,7 @@ public class StatusService {
             case CRITICAL_DAMAGE -> 150.0D;
             case SUPER_CRITICAL_RATE -> 0.0D;
             case SUPER_CRITICAL_DAMAGE -> 30.0D;
-            case FINAL_DAMAGE_MULTIPLIER -> 130.0D;
+            case FINAL_DAMAGE_MULTIPLIER -> 100.0D;
             case ACCURACY -> 95.0D;
             case ATTACK_SPEED -> 100.0D;
             case SHIELD_BREAK -> 0.0D;
