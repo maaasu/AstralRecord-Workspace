@@ -16,25 +16,34 @@ import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
+import org.bukkit.Material;
 import org.bukkit.Sound;
 import org.bukkit.World;
 import org.bukkit.block.Block;
+import org.bukkit.entity.BlockDisplay;
+import org.bukkit.entity.Display;
 import org.bukkit.entity.Entity;
 import org.bukkit.scheduler.BukkitRunnable;
+import org.bukkit.util.Transformation;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 /**
  * {@code mob_clay_guard_leap}: クレイガードが予告地点へ跳び、着地点周辺を打撃する着地スキルです。
  *
  * <p>任意パラメーターは {@code radius}（着地ダメージ半径、既定2.0、0より大きく8以下）と
  * {@code damageRatio}（攻撃力倍率、既定0.85、0より大きい）です。着地地点の地面ブロックは
- * 破壊せず、その {@link org.bukkit.block.data.BlockData} を破片パーティクルの見た目にだけ使用します。</p>
+ * 破壊せず、その {@link org.bukkit.block.data.BlockData} を破片パーティクルの見た目にだけ使用します。
+ * ボス級の大きな着地では、予告中だけ地面の周囲へ一時的な BlockDisplay を表示します。</p>
  */
 public final class ClayGuardLeapMobSkillExecutor implements MobSkillExecutor {
 
@@ -46,10 +55,12 @@ public final class ClayGuardLeapMobSkillExecutor implements MobSkillExecutor {
     private static final double DEFAULT_DAMAGE_RATIO = 0.85D;
     private static final double LEAP_HEIGHT = 1.7D;
     private static final int WARNING_RING_POINTS = 24;
+    private static final int LEAP_DISPLAY_COUNT = 10;
 
     private final MobService mobService;
     private final DamageService damageService;
     private final ParticleDisplayService particleDisplayService;
+    private final Map<UUID, LeapVisualState> activeVisuals = new HashMap<>();
 
     /**
      * Mob 実体制御、ダメージ、演出の依存先を指定して executor を構築します。
@@ -103,10 +114,43 @@ public final class ClayGuardLeapMobSkillExecutor implements MobSkillExecutor {
 
         double radius = context.binding().params().getOrDefault("radius", DEFAULT_RADIUS);
         double damageRatio = context.binding().params().getOrDefault("damageRatio", DEFAULT_DAMAGE_RATIO);
-        renderLandingWarning(landing, radius);
+        boolean largeVisual = radius >= MAX_RADIUS;
+        renderLandingWarning(landing, radius, largeVisual);
         landing.getWorld().playSound(landing, Sound.BLOCK_GRAVEL_PLACE, 0.8F, 0.75F);
-        startLeap(context.mob(), entity, landing, radius, damageRatio);
+        LeapVisualState visual = new LeapVisualState(landing, radius, largeVisual);
+        try {
+            visual.spawn();
+        } catch (RuntimeException ignored) {
+            visual.destroy();
+        }
+        if (largeVisual) {
+            LeapVisualState previous = activeVisuals.put(context.mob().instanceId(), visual);
+            if (previous != null) {
+                previous.cancel();
+            }
+        }
+        startLeap(context.mob(), entity, landing, radius, damageRatio, visual);
         return true;
+    }
+
+    /**
+     * Mob 破棄時に、その Mob が表示中の跳躍演出を回収します。
+     *
+     * @param mobInstanceId 破棄された Mob のインスタンス ID
+     */
+    public void handleMobDestroyed(@NotNull UUID mobInstanceId) {
+        LeapVisualState visual = activeVisuals.remove(mobInstanceId);
+        if (visual != null) {
+            visual.cancel();
+        }
+    }
+
+    /** Plugin 停止時に、表示中の跳躍演出をすべて回収します。 */
+    public void stop() {
+        for (LeapVisualState visual : List.copyOf(activeVisuals.values())) {
+            visual.cancel();
+        }
+        activeVisuals.clear();
     }
 
     private void startLeap(
@@ -114,7 +158,8 @@ public final class ClayGuardLeapMobSkillExecutor implements MobSkillExecutor {
             @NotNull Entity entity,
             @NotNull Location landing,
             double radius,
-            double damageRatio
+            double damageRatio,
+            @NotNull LeapVisualState visual
     ) {
         Location start = entity.getLocation();
         boolean gravity = entity.hasGravity();
@@ -122,32 +167,55 @@ public final class ClayGuardLeapMobSkillExecutor implements MobSkillExecutor {
         entity.setVelocity(new Vector());
         start.getWorld().playSound(start, Sound.ENTITY_IRON_GOLEM_DAMAGE, 0.7F, 1.25F);
 
-        new BukkitRunnable() {
-            private long elapsedTicks;
+        try {
+            new BukkitRunnable() {
+                private long elapsedTicks;
 
-            @Override
-            public void run() {
-                MobInstance active = mobService.getInstance(caster.instanceId());
-                Entity activeEntity = active == caster ? mobService.entityController().getEntity(active) : null;
-                if (activeEntity == null || activeEntity.getWorld() != landing.getWorld()) {
-                    restoreGravity(entity, gravity);
-                    cancel();
-                    return;
+                @Override
+                public void run() {
+                    if (visual.cancelled()) {
+                        cancel();
+                        return;
+                    }
+                    MobInstance active = mobService.getInstance(caster.instanceId());
+                    Entity activeEntity = active == caster ? mobService.entityController().getEntity(active) : null;
+                    if (activeEntity == null || activeEntity.getWorld() != landing.getWorld()) {
+                        restoreGravity(entity, gravity);
+                        releaseVisual(caster.instanceId(), visual);
+                        cancel();
+                        return;
+                    }
+
+                    double progress = Math.min(1.0D, (double) ++elapsedTicks / LEAP_DURATION_TICKS);
+                    Location position = interpolate(start, landing, progress);
+                    activeEntity.teleport(position);
+                    active.currentLocation(position);
+                    visual.update(progress);
+                    if (progress < 1.0D) {
+                        return;
+                    }
+
+                    restoreGravity(activeEntity, gravity);
+                    try {
+                        impact(active, landing, radius, damageRatio, visual.largeVisual());
+                    } finally {
+                        releaseVisual(caster.instanceId(), visual);
+                        cancel();
+                    }
                 }
+            }.runTaskTimer(mobService.plugin(), 0L, 1L);
+        } catch (RuntimeException exception) {
+            restoreGravity(entity, gravity);
+            releaseVisual(caster.instanceId(), visual);
+            throw exception;
+        }
+    }
 
-                double progress = Math.min(1.0D, (double) ++elapsedTicks / LEAP_DURATION_TICKS);
-                Location position = interpolate(start, landing, progress);
-                activeEntity.teleport(position);
-                active.currentLocation(position);
-                if (progress < 1.0D) {
-                    return;
-                }
-
-                restoreGravity(activeEntity, gravity);
-                impact(active, landing, radius, damageRatio);
-                cancel();
-            }
-        }.runTaskTimer(mobService.plugin(), 0L, 1L);
+    private void releaseVisual(@NotNull UUID mobInstanceId, @NotNull LeapVisualState visual) {
+        if (activeVisuals.get(mobInstanceId) == visual) {
+            activeVisuals.remove(mobInstanceId);
+        }
+        visual.destroy();
     }
 
     private @NotNull Location interpolate(@NotNull Location start, @NotNull Location landing, double progress) {
@@ -164,8 +232,14 @@ public final class ClayGuardLeapMobSkillExecutor implements MobSkillExecutor {
         }
     }
 
-    private void impact(@NotNull MobInstance caster, @NotNull Location landing, double radius, double damageRatio) {
-        renderImpact(landing);
+    private void impact(
+            @NotNull MobInstance caster,
+            @NotNull Location landing,
+            double radius,
+            double damageRatio,
+            boolean largeVisual
+    ) {
+        renderImpact(landing, largeVisual);
         World world = landing.getWorld();
         world.playSound(landing, Sound.BLOCK_STONE_BREAK, 1.15F, 0.8F);
         world.playSound(landing, Sound.ENTITY_IRON_GOLEM_DAMAGE, 0.8F, 0.65F);
@@ -186,20 +260,34 @@ public final class ClayGuardLeapMobSkillExecutor implements MobSkillExecutor {
         }
     }
 
-    private void renderLandingWarning(@NotNull Location landing, double radius) {
+    private void renderLandingWarning(@NotNull Location landing, double radius, boolean largeVisual) {
         particleDisplayService.spawnForNearbyViewers(
                 landing,
                 circlePoints(landing, radius, 0.08D),
                 SharedParticleDefinitions.MOB_CLAY_GUARD_LANDING_RING
         );
+        if (largeVisual) {
+            particleDisplayService.spawnForNearbyViewers(
+                    landing,
+                    List.of(landing.clone().add(0.0D, 0.65D, 0.0D)),
+                    SharedParticleDefinitions.MOB_ALDA_LEAP_CORE
+            );
+        }
     }
 
-    private void renderImpact(@NotNull Location landing) {
+    private void renderImpact(@NotNull Location landing, boolean largeVisual) {
         Block ground = landing.clone().add(0.0D, -0.08D, 0.0D).getBlock();
         particleDisplayService.spawnForNearbyViewers(
                 landing,
                 SharedParticleDefinitions.mobImpactBlock(ground.getBlockData())
         );
+        if (largeVisual) {
+            particleDisplayService.spawnForNearbyViewers(
+                    landing,
+                    circlePoints(landing, 2.5D, 0.18D),
+                    SharedParticleDefinitions.MOB_ALDA_LEAP_CORE
+            );
+        }
     }
 
     private @NotNull List<Location> circlePoints(@NotNull Location center, double radius, double height) {
@@ -234,6 +322,94 @@ public final class ClayGuardLeapMobSkillExecutor implements MobSkillExecutor {
     private void bounded(double value, @NotNull String key, double minimum, double maximum) {
         if (!Double.isFinite(value) || value < minimum || value > maximum) {
             throw new IllegalArgumentException(key + " must be between " + minimum + " and " + maximum);
+        }
+    }
+
+    /** 着地予告の周囲で回転し、着地時に破棄する一時表示を管理します。 */
+    private static final class LeapVisualState {
+        private final Location center;
+        private final double radius;
+        private final boolean largeVisual;
+        private final List<BlockDisplay> displays = new ArrayList<>();
+        private boolean cancelled;
+
+        private LeapVisualState(@NotNull Location center, double radius, boolean largeVisual) {
+            this.center = center.clone();
+            this.radius = radius;
+            this.largeVisual = largeVisual;
+        }
+
+        private void spawn() {
+            if (!largeVisual) {
+                return;
+            }
+            World world = center.getWorld();
+            if (world == null) {
+                return;
+            }
+            for (int index = 0; index < LEAP_DISPLAY_COUNT; index++) {
+                BlockDisplay display = world.spawn(center, BlockDisplay.class, entity -> {
+                    entity.setPersistent(false);
+                    entity.setInvulnerable(true);
+                    entity.setGravity(false);
+                    entity.setBlock(Material.DEEPSLATE_BRICKS.createBlockData());
+                    entity.setBrightness(new Display.Brightness(15, 15));
+                    entity.setViewRange(48.0F);
+                    entity.setDisplayWidth(1.0F);
+                    entity.setDisplayHeight(1.0F);
+                    entity.setTeleportDuration(1);
+                    entity.setInterpolationDuration(2);
+                });
+                displays.add(display);
+            }
+            update(0.0D);
+        }
+
+        private void update(double progress) {
+            for (int index = 0; index < displays.size(); index++) {
+                BlockDisplay display = displays.get(index);
+                if (!display.isValid()) {
+                    continue;
+                }
+                double angle = index * Math.PI * 2.0D / LEAP_DISPLAY_COUNT + progress * Math.PI * 1.8D;
+                double orbitRadius = Math.max(0.9D, radius * (0.75D - progress * 0.25D));
+                double height = 0.25D + 0.75D * Math.sin(Math.PI * progress)
+                        + (index % 3) * 0.16D;
+                display.teleport(center.clone().add(
+                        Math.cos(angle) * orbitRadius,
+                        height,
+                        Math.sin(angle) * orbitRadius
+                ));
+                float scale = 0.24F + (index % 3) * 0.05F + (float) progress * 0.08F;
+                display.setTransformation(new Transformation(
+                        new Vector3f(-scale / 2.0F, -scale / 2.0F, -scale / 2.0F),
+                        new Quaternionf().rotateXYZ(
+                                (float) (progress * Math.PI + index),
+                                (float) angle,
+                                (float) (progress * Math.PI * 1.5D)
+                        ),
+                        new Vector3f(scale, scale, scale),
+                        new Quaternionf()
+                ));
+            }
+        }
+
+        private void destroy() {
+            displays.stream().filter(Entity::isValid).forEach(Entity::remove);
+            displays.clear();
+        }
+
+        private void cancel() {
+            cancelled = true;
+            destroy();
+        }
+
+        private boolean cancelled() {
+            return cancelled;
+        }
+
+        private boolean largeVisual() {
+            return largeVisual;
         }
     }
 }

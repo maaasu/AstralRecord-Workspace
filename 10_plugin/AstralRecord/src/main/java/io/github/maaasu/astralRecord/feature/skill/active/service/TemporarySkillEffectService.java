@@ -69,6 +69,23 @@ public final class TemporarySkillEffectService {
         modifiersByEntity.remove(entityId);
     }
 
+    /**
+     * 指定対象の指定効果だけを解除します。
+     *
+     * @param entityId 対象エンティティの UUID
+     * @param effectId 解除する効果 ID
+     */
+    public void clear(@NotNull UUID entityId, @NotNull String effectId) {
+        Map<String, Modifier> modifiers = modifiersByEntity.get(entityId);
+        if (modifiers == null) {
+            return;
+        }
+        modifiers.remove(effectId);
+        if (modifiers.isEmpty()) {
+            modifiersByEntity.remove(entityId, modifiers);
+        }
+    }
+
     /** 全効果を解除します。 */
     public void clearAll() {
         modifiersByEntity.clear();

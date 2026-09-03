@@ -7,6 +7,8 @@ import io.github.maaasu.astralRecord.feature.condition.model.ConditionType;
 import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillEffectLineSegment;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillLineTargetHit;
+import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileSpec;
+import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileTermination;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillTargetingService;
 import io.github.maaasu.astralRecord.feature.skill.executor.active.support.PlayerActiveSkillContext;
@@ -28,14 +30,16 @@ import java.util.List;
 import java.util.Set;
 import java.util.UUID;
 
-/** 周囲へ渦巻く雷弾を放ち、地形で反射させるメイジの範囲制圧魔法です。 */
+/** 視線方向へ雷弾を放ち、着弾地点から渦巻く雷弾を展開するメイジの範囲制圧魔法です。 */
 public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "mage_sparking";
     static final double DEFAULT_DAMAGE_RATIO = 1.2D;
     static final int DEFAULT_PROJECTILE_COUNT = 5;
-    static final double DEFAULT_SPIRAL_RADIUS_GROWTH = 0.10D;
-    static final double DEFAULT_SPIRAL_DEGREES_PER_TICK = 14.4D;
+    static final double DEFAULT_PROJECTILE_RANGE = 16.0D;
+    static final double DEFAULT_PROJECTILE_SPEED = 1.45D;
+    static final double DEFAULT_SPIRAL_RADIUS_GROWTH = 0.14D;
+    static final double DEFAULT_SPIRAL_DEGREES_PER_TICK = 7.2D;
     static final double DEFAULT_PROJECTILE_HIT_RADIUS = 0.60D;
     static final int DEFAULT_DURATION_TICKS = 50;
     static final double DEFAULT_SHOCK_CHANCE = 25.0D;
@@ -55,6 +59,8 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
         super.validateParams(skill);
         SkillParamReader params = new SkillParamReader(skill.getId(), skill.getParams());
         requirePositive(params, "damageRatio");
+        requirePositive(params, "range");
+        requirePositive(params, "projectileSpeed");
         requirePositive(params, "spiralRadiusGrowth");
         requirePositive(params, "spiralDegreesPerTick");
         requirePositive(params, "projectileHitRadius");
@@ -75,6 +81,8 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
         SkillParamReader params = context.params();
         double damageRatio = params.getDouble("damageRatio", DEFAULT_DAMAGE_RATIO);
         int projectileCount = params.getInt("projectileCount", DEFAULT_PROJECTILE_COUNT);
+        double range = params.getDouble("range", DEFAULT_PROJECTILE_RANGE);
+        double projectileSpeed = params.getDouble("projectileSpeed", DEFAULT_PROJECTILE_SPEED);
         double spiralRadiusGrowth = params.getDouble(
                 "spiralRadiusGrowth", DEFAULT_SPIRAL_RADIUS_GROWTH
         );
@@ -85,28 +93,121 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
         int durationTicks = params.getInt("durationTicks", DEFAULT_DURATION_TICKS);
         double shockChance = params.getDouble("shockChance", DEFAULT_SHOCK_CHANCE);
         int shockDurationTicks = params.getInt("shockDurationTicks", DEFAULT_SHOCK_DURATION_TICKS);
-        Location origin = context.player().getLocation().clone().add(0.0D, 0.75D, 0.0D);
-        List<SparkState> sparks = spiralStates(origin, projectileCount, context.player().getYaw());
-        Set<UUID> hitTargetIds = new HashSet<>();
-        ActiveSkillCondition shocked = new ActiveSkillCondition(
-                ConditionType.SHOCKED, shockChance, shockDurationTicks, 1.0D
-        );
-        String scope = "mage-sparking:" + UUID.randomUUID();
+        float yawDegrees = context.player().getYaw();
+        String sparkScope = "mage-sparking:" + UUID.randomUUID();
+        boolean[] started = {false};
 
-        context.services().effects().point(origin, SharedParticleDefinitions.SKILL_MAGE_LIGHTNING);
-        context.services().effects().sound(origin, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.35F, 1.75F);
-        context.services().tasks().repeat(
-                context.player().getUniqueId(), scope, 0L, 1L, durationTicks,
-                ignored -> advanceSparks(
-                        context, scope, sparks, hitTargetIds, spiralRadiusGrowth,
-                        spiralRadiansPerTick, hitRadius, damageRatio, shocked
-                )
+        context.services().projectiles().launchWithTermination(
+                context.player(),
+                context.eyeLocation(),
+                context.direction(),
+                sparkingProjectile(range, projectileSpeed, hitRadius),
+                (ignoredTarget, ignoredImpact) -> { },
+                termination -> {
+                    if (started[0]
+                            || (termination.type() != SkillProjectileTermination.Type.ENTITY
+                            && termination.type() != SkillProjectileTermination.Type.BLOCK)) {
+                        return;
+                    }
+                    started[0] = true;
+                    Location sparkOrigin = termination.type() == SkillProjectileTermination.Type.ENTITY
+                            ? termination.location()
+                            : termination.effectLocation();
+                    startSparking(
+                            context,
+                            sparkScope,
+                            sparkOrigin,
+                            yawDegrees,
+                            projectileCount,
+                            spiralRadiusGrowth,
+                            spiralRadiansPerTick,
+                            hitRadius,
+                            durationTicks,
+                            damageRatio,
+                            shockChance,
+                            shockDurationTicks
+                    );
+                }
         );
         return context.success();
     }
 
+    /**
+     * 着弾地点を中心とする渦巻き雷弾の反復処理を開始します。
+     *
+     * @param context プレイヤー発動コンテキスト
+     * @param scope 発動単位のtask識別子
+     * @param origin 螺旋の開始地点。Block着弾では遮蔽を避けた効果地点
+     * @param yawDegrees 発動時の水平基準角
+     * @param projectileCount 展開する雷弾数
+     * @param spiralRadiusGrowth 1tickあたりの螺旋半径成長
+     * @param spiralRadiansPerTick 1tickあたりの螺旋角度
+     * @param hitRadius 雷弾の命中半径
+     * @param durationTicks 螺旋の持続tick数
+     * @param damageRatio 雷魔法ダメージ倍率
+     * @param shockChance 感電付与確率
+     * @param shockDurationTicks 感電持続tick数
+     */
+    private void startSparking(
+            @NotNull PlayerActiveSkillContext context,
+            @NotNull String scope,
+            @NotNull Location origin,
+            float yawDegrees,
+            int projectileCount,
+            double spiralRadiusGrowth,
+            double spiralRadiansPerTick,
+            double hitRadius,
+            int durationTicks,
+            double damageRatio,
+            double shockChance,
+            int shockDurationTicks
+    ) {
+        Location sparkOrigin = origin.clone();
+        List<SparkState> sparks = spiralStates(sparkOrigin, projectileCount, yawDegrees);
+        Set<UUID> hitTargetIds = new HashSet<>();
+        ActiveSkillCondition shocked = new ActiveSkillCondition(
+                ConditionType.SHOCKED, shockChance, shockDurationTicks, 1.0D
+        );
+        context.services().effects().point(sparkOrigin, SharedParticleDefinitions.SKILL_MAGE_LIGHTNING);
+        context.services().effects().sound(
+                sparkOrigin, Sound.ENTITY_LIGHTNING_BOLT_THUNDER, 0.35F, 1.75F
+        );
+        context.services().tasks().repeat(
+                context.player().getUniqueId(), scope, 0L, 1L, durationTicks,
+                ignored -> advanceSparks(
+                        context, sparkOrigin, scope, sparks, hitTargetIds, spiralRadiusGrowth,
+                        spiralRadiansPerTick, hitRadius, damageRatio, shocked
+                )
+        );
+    }
+
+    /**
+     * スパーキングの視線方向・非貫通仮想飛翔体仕様を返します。
+     *
+     * @param range 最大飛距離
+     * @param speed 1tickあたりの移動距離
+     * @param hitRadius 飛翔体と展開雷弾の命中半径
+     * @return 雷粒子で表す飛翔体仕様
+     */
+    static @NotNull SkillProjectileSpec sparkingProjectile(
+            double range,
+            double speed,
+            double hitRadius
+    ) {
+        return new SkillProjectileSpec(
+                range,
+                speed,
+                hitRadius,
+                false,
+                1,
+                SharedParticleDefinitions.SKILL_MAGE_LIGHTNING,
+                null
+        );
+    }
+
     private void advanceSparks(
             @NotNull PlayerActiveSkillContext context,
+            @NotNull Location viewerCenter,
             @NotNull String scope,
             @NotNull List<SparkState> sparks,
             @NotNull Set<UUID> hitTargetIds,
@@ -178,7 +279,7 @@ public final class MageSparkingExecutor extends PlayerActiveSkillExecutor {
             }
         }
         context.services().effects().lines(
-                context.player().getLocation(), trails, 0.32D, SharedParticleDefinitions.SKILL_MAGE_LIGHTNING
+                viewerCenter, trails, 0.32D, SharedParticleDefinitions.SKILL_MAGE_LIGHTNING
         );
     }
 

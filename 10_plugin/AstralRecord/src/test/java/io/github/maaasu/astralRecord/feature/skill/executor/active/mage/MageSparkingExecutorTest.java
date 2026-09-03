@@ -8,6 +8,8 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.skill.active.model.ActiveSkillCondition;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillEffectLineSegment;
 import io.github.maaasu.astralRecord.feature.skill.active.model.SkillLineTargetHit;
+import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileSpec;
+import io.github.maaasu.astralRecord.feature.skill.active.model.SkillProjectileTermination;
 import io.github.maaasu.astralRecord.feature.skill.active.service.ActiveSkillServices;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillCombatService;
 import io.github.maaasu.astralRecord.feature.skill.active.service.SkillEffectService;
@@ -23,6 +25,8 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
+import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.bukkit.entity.Player;
@@ -35,6 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.function.Consumer;
 import java.util.function.IntConsumer;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -49,14 +54,15 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
-class MageSparkingExecutorTest {
+class MageSparkingExecutorTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 23. メイジ スパーキングの実装契約
-     * 検証契約: 雷弾は水平360度へ等間隔に生成され、50tickで半径5mまで2周する螺旋を描く。
+     * 検証契約: 着弾地点から展開した雷弾は水平360度へ等間隔に生成され、50tickで半径7mまで1周する開いた螺旋を描く。
      */
     @Test
     void createsConfiguredHorizontalSpiralProjectiles() {
@@ -64,7 +70,7 @@ class MageSparkingExecutorTest {
                 new Location(null, 1.0D, 2.0D, 3.0D), 5, 0.0F
         );
         List<Vector> firstSteps = states.stream()
-                .map(state -> state.advanceSpiral(0.10D, Math.toRadians(14.4D)))
+                .map(state -> state.advanceSpiral(0.14D, Math.toRadians(7.2D)))
                 .toList();
 
         assertEquals(5, states.size());
@@ -74,9 +80,9 @@ class MageSparkingExecutorTest {
 
         Vector displacement = firstSteps.getFirst().clone();
         for (int tick = 1; tick < 50; tick++) {
-            displacement.add(states.getFirst().advanceSpiral(0.10D, Math.toRadians(14.4D)));
+            displacement.add(states.getFirst().advanceSpiral(0.14D, Math.toRadians(7.2D)));
         }
-        assertEquals(5.0D, displacement.length(), 1.0E-6D);
+        assertEquals(7.0D, displacement.length(), 1.0E-6D);
         assertEquals(0.0D, displacement.angle(new Vector(0.0D, 0.0D, 1.0D)), 1.0E-6D);
     }
 
@@ -114,6 +120,62 @@ class MageSparkingExecutorTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 23. メイジ スパーキングの実装契約 > ### 23.1 数値・弾道・対象
+     * 検証契約: 起点弾は発動時の視線方向へ射程16m・速度1.45m/tickで1発だけ進み、非貫通のまま最初のMobまたはBlockで終了する。
+     */
+    @Test
+    @SuppressWarnings({"unchecked", "rawtypes"})
+    void launchesSingleNonPiercingProjectileInViewDirection() {
+        SkillProjectileService projectiles = mock(SkillProjectileService.class);
+        SkillTaskService tasks = mock(SkillTaskService.class);
+        SkillEffectService effects = mock(SkillEffectService.class);
+        ActiveSkillServices services = new ActiveSkillServices(
+                mock(SkillTargetingService.class), mock(SkillCombatService.class),
+                effects, projectiles, mock(SkillMovementService.class),
+                mock(TemporarySkillEffectService.class), tasks
+        );
+        World world = mock(World.class);
+        Player player = mock(Player.class);
+        UUID playerId = UUID.randomUUID();
+        Location playerLocation = new Location(world, 0.0D, 64.0D, 0.0D);
+        Location eyeLocation = new Location(world, 0.0D, 65.62D, 0.0D, -90.0F, 0.0F);
+        when(player.getUniqueId()).thenReturn(playerId);
+        when(player.getLocation()).thenReturn(playerLocation);
+        when(player.getEyeLocation()).thenReturn(eyeLocation);
+        when(player.getYaw()).thenReturn(-90.0F);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        when(astPlayer.getBukkit()).thenReturn(player);
+
+        MageSparkingExecutor executor = new MageSparkingExecutor(services);
+        assertTrue(executor.cast(new SkillCastContext(
+                definition(), new PlayerSkillCaster(astPlayer), null, List.of(), playerLocation,
+                StatusSnapshot.empty(), SkillCastTrigger.PLAYER_COMMAND, Instant.EPOCH
+        )).success());
+
+        ArgumentCaptor<Vector> direction = ArgumentCaptor.forClass(Vector.class);
+        ArgumentCaptor<SkillProjectileSpec> spec = ArgumentCaptor.forClass(SkillProjectileSpec.class);
+        ArgumentCaptor<Consumer<SkillProjectileTermination>> termination =
+                (ArgumentCaptor) ArgumentCaptor.forClass(Consumer.class);
+        verify(projectiles).launchWithTermination(
+                same(player), any(Location.class), direction.capture(), spec.capture(),
+                any(), termination.capture()
+        );
+        assertEquals(eyeLocation.getDirection().normalize(), direction.getValue());
+        assertEquals(16.0D, spec.getValue().range(), 1.0E-9D);
+        assertEquals(1.45D, spec.getValue().speed(), 1.0E-9D);
+        assertEquals(0.60D, spec.getValue().hitRadius(), 1.0E-9D);
+        assertEquals(false, spec.getValue().piercing());
+        assertEquals(1, spec.getValue().maxHits());
+
+        termination.getValue().accept(new SkillProjectileTermination(
+                SkillProjectileTermination.Type.RANGE, eyeLocation, eyeLocation
+        ));
+        verify(tasks, never()).repeat(eq(playerId), any(), eq(0L), eq(1L), eq(50), any());
+        verifyNoInteractions(effects);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 23. メイジ スパーキングの実装契約
      * 検証契約: 同じ発動で命中済みの手前Mobへ再接触した雷弾は、奥のMobへ貫通せず消滅し、120%雷魔法と25%・100tick感電を1回だけ適用する。
      */
@@ -124,8 +186,9 @@ class MageSparkingExecutorTest {
         SkillCombatService combat = mock(SkillCombatService.class);
         SkillEffectService effects = mock(SkillEffectService.class);
         SkillTaskService tasks = mock(SkillTaskService.class);
+        SkillProjectileService projectiles = mock(SkillProjectileService.class);
         ActiveSkillServices services = new ActiveSkillServices(
-                targeting, combat, effects, mock(SkillProjectileService.class),
+                targeting, combat, effects, projectiles,
                 mock(SkillMovementService.class), mock(TemporarySkillEffectService.class), tasks
         );
         World world = mock(World.class);
@@ -134,6 +197,8 @@ class MageSparkingExecutorTest {
         Location playerLocation = new Location(world, 0.0D, 64.0D, 0.0D);
         when(player.getUniqueId()).thenReturn(playerId);
         when(player.getLocation()).thenReturn(playerLocation);
+        when(player.getEyeLocation()).thenReturn(playerLocation.clone());
+        when(player.getYaw()).thenReturn(0.0F);
         AstPlayer astPlayer = mock(AstPlayer.class);
         when(astPlayer.getBukkit()).thenReturn(player);
         AstEntity target = mock(AstEntity.class);
@@ -164,6 +229,20 @@ class MageSparkingExecutorTest {
                 StatusSnapshot.empty(), SkillCastTrigger.PLAYER_COMMAND, Instant.EPOCH
         )).success());
 
+        ArgumentCaptor<Consumer<SkillProjectileTermination>> termination =
+                (ArgumentCaptor) ArgumentCaptor.forClass(Consumer.class);
+        verify(projectiles).launchWithTermination(
+                same(player), any(Location.class), any(Vector.class), any(SkillProjectileSpec.class),
+                any(), termination.capture()
+        );
+        Location entityImpact = new Location(world, 3.0D, 65.0D, 2.0D);
+        Location entityEffectLocation = new Location(world, 4.0D, 66.0D, 2.0D);
+        termination.getValue().accept(new SkillProjectileTermination(
+                SkillProjectileTermination.Type.ENTITY, entityImpact, entityEffectLocation
+        ));
+        ArgumentCaptor<Location> sparkOrigin = ArgumentCaptor.forClass(Location.class);
+        verify(effects).point(sparkOrigin.capture(), same(SharedParticleDefinitions.SKILL_MAGE_LIGHTNING));
+        assertEquals(entityImpact, sparkOrigin.getValue());
         ArgumentCaptor<IntConsumer> tick = ArgumentCaptor.forClass(IntConsumer.class);
         verify(tasks).repeat(eq(playerId), any(), eq(0L), eq(1L), eq(50), tick.capture());
         tick.getValue().accept(0);
@@ -185,7 +264,7 @@ class MageSparkingExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 23. メイジ スパーキングの実装契約 > ### 23.1 数値・弾道・対象
-     * 検証契約: 壁へ衝突した雷弾は現在の進行方向と以後の螺旋座標軸を反射し、壁の反対側へ渦を継続する。
+     * 検証契約: 着弾後の開いた渦へ壁面法線による鏡面反射を適用し、以後の螺旋座標軸を反射して壁の反対側へ継続する。
      */
     @Test
     void reflectsFollowingSpiralMovementAfterWallCollision() {
@@ -195,13 +274,13 @@ class MageSparkingExecutorTest {
         MageSparkingExecutor.SparkState reflected = MageSparkingExecutor.spiralStates(
                 new Location(null, 0.0D, 0.0D, 0.0D), 1, -90.0F
         ).getFirst();
-        double radiansPerTick = Math.toRadians(14.4D);
-        original.advanceSpiral(0.10D, radiansPerTick);
-        reflected.advanceSpiral(0.10D, radiansPerTick);
+        double radiansPerTick = Math.toRadians(7.2D);
+        original.advanceSpiral(0.14D, radiansPerTick);
+        reflected.advanceSpiral(0.14D, radiansPerTick);
         reflected.reflectTrajectory(new Vector(-1.0D, 0.0D, 0.0D));
 
-        Vector originalNext = original.advanceSpiral(0.10D, radiansPerTick);
-        Vector reflectedNext = reflected.advanceSpiral(0.10D, radiansPerTick);
+        Vector originalNext = original.advanceSpiral(0.14D, radiansPerTick);
+        Vector reflectedNext = reflected.advanceSpiral(0.14D, radiansPerTick);
 
         assertEquals(-originalNext.getX(), reflectedNext.getX(), 1.0E-9D);
         assertEquals(originalNext.getZ(), reflectedNext.getZ(), 1.0E-9D);
@@ -218,8 +297,9 @@ class MageSparkingExecutorTest {
         SkillTargetingService targeting = mock(SkillTargetingService.class);
         SkillEffectService effects = mock(SkillEffectService.class);
         SkillTaskService tasks = mock(SkillTaskService.class);
+        SkillProjectileService projectiles = mock(SkillProjectileService.class);
         ActiveSkillServices services = new ActiveSkillServices(
-                targeting, mock(SkillCombatService.class), effects, mock(SkillProjectileService.class),
+                targeting, mock(SkillCombatService.class), effects, projectiles,
                 mock(SkillMovementService.class), mock(TemporarySkillEffectService.class), tasks
         );
         World world = mock(World.class);
@@ -229,6 +309,7 @@ class MageSparkingExecutorTest {
         Location sparkStart = playerLocation.clone().add(0.0D, 0.75D, 0.0D);
         when(player.getUniqueId()).thenReturn(playerId);
         when(player.getLocation()).thenReturn(playerLocation);
+        when(player.getEyeLocation()).thenReturn(playerLocation.clone());
         when(player.getYaw()).thenReturn(-90.0F);
         AstPlayer astPlayer = mock(AstPlayer.class);
         when(astPlayer.getBukkit()).thenReturn(player);
@@ -236,7 +317,7 @@ class MageSparkingExecutorTest {
         when(targeting.captureLineTargetSnapshot(player)).thenReturn(snapshot);
 
         Vector initialMovement = MageSparkingExecutor.spiralStates(sparkStart, 1, -90.0F)
-                .getFirst().advanceSpiral(0.65D, Math.toRadians(14.4D));
+                .getFirst().advanceSpiral(0.65D, Math.toRadians(7.2D));
         Vector initialDirection = initialMovement.clone().normalize();
         Location impact = sparkStart.clone().add(initialDirection.clone().multiply(0.20D));
         Vector wallNormal = initialDirection.clone().multiply(-1.0D);
@@ -253,6 +334,15 @@ class MageSparkingExecutorTest {
                 StatusSnapshot.empty(), SkillCastTrigger.PLAYER_COMMAND, Instant.EPOCH
         )).success());
 
+        ArgumentCaptor<Consumer<SkillProjectileTermination>> termination =
+                (ArgumentCaptor) ArgumentCaptor.forClass(Consumer.class);
+        verify(projectiles).launchWithTermination(
+                same(player), any(Location.class), any(Vector.class), any(SkillProjectileSpec.class),
+                any(), termination.capture()
+        );
+        termination.getValue().accept(new SkillProjectileTermination(
+                SkillProjectileTermination.Type.BLOCK, impact, sparkStart
+        ));
         ArgumentCaptor<IntConsumer> tick = ArgumentCaptor.forClass(IntConsumer.class);
         verify(tasks).repeat(eq(playerId), any(), eq(0L), eq(1L), eq(50), tick.capture());
         tick.getValue().accept(0);
@@ -285,8 +375,9 @@ class MageSparkingExecutorTest {
         SkillTargetingService targeting = mock(SkillTargetingService.class);
         SkillCombatService combat = mock(SkillCombatService.class);
         SkillTaskService tasks = mock(SkillTaskService.class);
+        SkillProjectileService projectiles = mock(SkillProjectileService.class);
         ActiveSkillServices services = new ActiveSkillServices(
-                targeting, combat, mock(SkillEffectService.class), mock(SkillProjectileService.class),
+                targeting, combat, mock(SkillEffectService.class), projectiles,
                 mock(SkillMovementService.class), mock(TemporarySkillEffectService.class), tasks
         );
         World world = mock(World.class);
@@ -295,6 +386,8 @@ class MageSparkingExecutorTest {
         Location playerLocation = new Location(world, 0.0D, 64.0D, 0.0D);
         when(player.getUniqueId()).thenReturn(playerId);
         when(player.getLocation()).thenReturn(playerLocation);
+        when(player.getEyeLocation()).thenReturn(playerLocation.clone());
+        when(player.getYaw()).thenReturn(0.0F);
         AstPlayer astPlayer = mock(AstPlayer.class);
         when(astPlayer.getBukkit()).thenReturn(player);
         AstEntity frontTarget = mock(AstEntity.class);
@@ -333,12 +426,24 @@ class MageSparkingExecutorTest {
                 StatusSnapshot.empty(), SkillCastTrigger.PLAYER_COMMAND, Instant.EPOCH
         )).success());
 
+        ArgumentCaptor<Consumer<SkillProjectileTermination>> termination =
+                (ArgumentCaptor) ArgumentCaptor.forClass(Consumer.class);
+        verify(projectiles).launchWithTermination(
+                same(player), any(Location.class), any(Vector.class), any(SkillProjectileSpec.class),
+                any(), termination.capture()
+        );
+        termination.getValue().accept(new SkillProjectileTermination(
+                SkillProjectileTermination.Type.BLOCK, playerLocation, playerLocation
+        ));
         ArgumentCaptor<IntConsumer> tick = ArgumentCaptor.forClass(IntConsumer.class);
         verify(tasks).repeat(eq(playerId), any(), eq(0L), eq(1L), eq(50), tick.capture());
         tick.getValue().accept(0);
 
-        assertEquals(List.of(0.08D, 0.08D), collisionRanges.getAllValues());
-        assertEquals(List.of(false, false), includeEnds.getAllValues());
+        assertEquals(3, collisionRanges.getAllValues().size());
+        assertEquals(0.08D, collisionRanges.getAllValues().get(0), 1.0E-9D);
+        assertEquals(0.08D, collisionRanges.getAllValues().get(1), 1.0E-9D);
+        assertEquals(0.01D, collisionRanges.getAllValues().get(2), 1.0E-9D);
+        assertEquals(List.of(false, false, false), includeEnds.getAllValues());
         verify(combat, times(1)).hit(
                 any(AstEntity.class), same(frontTarget), eq(AttackType.MAGIC), eq(DamageElement.LIGHTNING),
                 eq(1.2D), any(ActiveSkillCondition[].class)
@@ -353,7 +458,7 @@ class MageSparkingExecutorTest {
     }
 
     private static SkillDefinition definition(int projectileCount) {
-        return definition(projectileCount, 0.10D);
+        return definition(projectileCount, 0.14D);
     }
 
     private static SkillDefinition definition(int projectileCount, double spiralRadiusGrowth) {
@@ -372,8 +477,10 @@ class MageSparkingExecutorTest {
                 Map.of(
                         "damageRatio", 1.2D,
                         "projectileCount", projectileCount,
+                        "range", 16.0D,
+                        "projectileSpeed", 1.45D,
                         "spiralRadiusGrowth", spiralRadiusGrowth,
-                        "spiralDegreesPerTick", 14.4D,
+                        "spiralDegreesPerTick", 7.2D,
                         "projectileHitRadius", 0.60D,
                         "durationTicks", 50,
                         "shockChance", 25.0D,
@@ -383,7 +490,7 @@ class MageSparkingExecutorTest {
                 SkillKind.ACTIVE,
                 true,
                 SkillResourceType.MANA,
-                14.0D
+                18.0D
         );
     }
 

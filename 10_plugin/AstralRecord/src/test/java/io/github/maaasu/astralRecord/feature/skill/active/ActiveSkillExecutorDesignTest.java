@@ -214,16 +214,18 @@ class ActiveSkillExecutorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 23. メイジ スパーキングの実装契約
-     * 検証契約: スパーキングは正の弾数・螺旋半径成長・回転角・命中半径・寿命・感電時間と、0〜100%の感電率を要求する。
+     * 検証契約: スパーキングは正の起点弾射程・速度、弾数・螺旋半径成長・回転角・命中半径・寿命・感電時間と、0〜100%の感電率を要求する。
      */
     @Test
-    void sparkingValidatesBouncingProjectileParams() {
+    void sparkingValidatesViewProjectileAndSpiralParams() {
         MageSparkingExecutor executor = new MageSparkingExecutor(activeSkillServices());
         Map<String, Object> valid = Map.of(
                 "damageRatio", 1.2D,
                 "projectileCount", 5,
-                "spiralRadiusGrowth", 0.10D,
-                "spiralDegreesPerTick", 14.4D,
+                "range", 16.0D,
+                "projectileSpeed", 1.45D,
+                "spiralRadiusGrowth", 0.14D,
+                "spiralDegreesPerTick", 7.2D,
                 "projectileHitRadius", 0.60D,
                 "durationTicks", 50,
                 "shockChance", 25.0D,
@@ -663,7 +665,7 @@ class ActiveSkillExecutorDesignTest {
                 SkillKind.ACTIVE,
                 true,
                 SkillResourceType.MANA,
-                14.0D
+                18.0D
         );
     }
 
