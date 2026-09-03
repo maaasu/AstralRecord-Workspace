@@ -11,7 +11,7 @@ level: 15
 entityType: IRON_GOLEM
 variant:
   age: ADULT
-  scale: 3.0
+  scale: 1.5
 icon: IRON_BLOCK
 nameVisible: true
 lore:
