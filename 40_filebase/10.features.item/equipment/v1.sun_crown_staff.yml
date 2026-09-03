@@ -4,7 +4,7 @@
 schemaVersion: 1
 id: sun_crown_staff
 category: equipment
-name: "&6陽冠スタッフ"
+name: "&6太陽鳥の長杖"
 icon: BREEZE_ROD
 rarity: EPIC
 maxStack: 1
@@ -22,15 +22,17 @@ equipment:
   stats:
     - status: MAGIC_ATTACK
       type: FLAT
-      value: 92~112
+      value:
+        min: 45~65
+        max: 66~95
     - status: INTELLIGENCE
       type: FLAT
-      value: 7~10
+      value:
+        min: 3~6
+        max: 7~10
   durability:
     max: 250
     consume: 1
-  enchant:
-    maxSlots: 2
   rune:
     maxSlots:
       random: 1~2

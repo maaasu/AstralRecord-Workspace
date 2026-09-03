@@ -102,32 +102,20 @@ drops:
     max: 1200
   items:
     - itemId:
-        ref: item:sun_crown_sword_bundle
-      rate: 3.0
-      amount: 1
-      luckAffected: true
-      hidden: false
-    - itemId:
-        ref: item:sun_crown_bow_bundle
-      rate: 3.0
-      amount: 1
-      luckAffected: true
-      hidden: false
-    - itemId:
-        ref: item:sun_crown_staff_bundle
-      rate: 3.0
+        ref: item:sun_crown_bundle
+      rate: 10.0
       amount: 1
       luckAffected: true
       hidden: false
     - itemId:
         ref: item:rune_attack_small
-      rate: 0.5
+      rate: 1.5
       amount: 1
       luckAffected: true
       hidden: false
     - itemId:
         ref: item:verdandi_orb
-      rate: 1.0
+      rate: 2.0
       amount: 1
       luckAffected: true
       hidden: false
@@ -143,3 +131,5 @@ drops:
       amount: 1
       luckAffected: true
       hidden: false
+  lootTable:
+    ref: loot_table:dungeon_common_orb_table
