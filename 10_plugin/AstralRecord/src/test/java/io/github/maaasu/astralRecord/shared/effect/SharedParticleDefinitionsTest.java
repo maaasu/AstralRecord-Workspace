@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.shared.effect;
 
+import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.junit.jupiter.api.Test;
 
 import java.lang.reflect.Field;
@@ -8,7 +9,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-class SharedParticleDefinitionsTest {
+class SharedParticleDefinitionsTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: PLUGIN_GUIDE.md

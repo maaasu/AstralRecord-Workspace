@@ -1549,6 +1549,11 @@ public enum PlayerMsgId {
     P_7122(7122),
     // endregion
 
+    // region /feature/skill/executor/active/swordsman 7130-7139
+    /** エクゼプトスタンプのスニーク急降下案内。 */
+    P_7130(7130),
+    // endregion
+
     ;
 
     private final String id;

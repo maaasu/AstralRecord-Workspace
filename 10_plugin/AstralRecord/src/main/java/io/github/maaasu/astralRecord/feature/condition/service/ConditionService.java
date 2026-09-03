@@ -33,6 +33,8 @@ public final class ConditionService {
     private static final long MS_PER_TICK = 50L;
 
     private final Map<UUID, Map<ConditionType, ActiveCondition>> activeByTarget = new ConcurrentHashMap<>();
+    private final Map<UUID, TemporaryMovementSpeedReduction> temporaryMovementSpeedReductions =
+            new ConcurrentHashMap<>();
     private final ConditionDisplayService displayService;
     private final PlayerDeathService playerDeathService;
     private StatusService statusService;
@@ -107,6 +109,7 @@ public final class ConditionService {
     /** 対象の全状態異常を解除します。 */
     public int clearAll(@NotNull AstEntity target) {
         Map<ConditionType, ActiveCondition> removed = activeByTarget.remove(target.id());
+        temporaryMovementSpeedReductions.remove(target.id());
         displayService.clearAll(target);
         refreshConditionDependentStatus(target);
         return removed == null ? 0 : removed.size();
@@ -215,7 +218,55 @@ public final class ConditionService {
         for (ActiveCondition condition : getActiveConditions(target)) {
             multiplier = Math.min(multiplier, effect(condition).movementSpeedMultiplier());
         }
+        TemporaryMovementSpeedReduction reduction = temporaryMovementSpeedReduction(target);
+        if (reduction != null) {
+            double baseSpeed = target.statValue(StatusType.MOVEMENT_SPEED);
+            if (!(baseSpeed > 0.0D) || !Double.isFinite(baseSpeed)) {
+                baseSpeed = 100.0D;
+            }
+            multiplier = Math.min(
+                    multiplier,
+                    Math.max(0.0D, (baseSpeed - reduction.amount()) / baseSpeed)
+            );
+        }
         return Math.max(0.0D, multiplier);
+    }
+
+    /**
+     * Mobへ一時的な移動速度のフラット減少を付与します。
+     * NPC、死亡Mob、移動速度または持続時間が不正な対象には適用しません。
+     *
+     * @param target 対象Mob
+     * @param reduction 移動速度ステータスから減算する値
+     * @param durationTicks 効果時間（tick）
+     * @return 有効なMobへ適用できた場合は {@code true}
+     */
+    public boolean applyTemporaryMovementSpeedReduction(
+            @NotNull AstEntity target,
+            double reduction,
+            long durationTicks
+    ) {
+        if (!target.isMob()
+                || target.mob() == null
+                || target.mob().template().category() == MobCategory.NPC
+                || target.mob().state() == MobState.DEAD
+                || !(reduction > 0.0D)
+                || !Double.isFinite(reduction)
+                || durationTicks <= 0L) {
+            return false;
+        }
+        long nowMs = System.currentTimeMillis();
+        long expiresAtMs = saturatingAdd(nowMs, saturatingMultiply(durationTicks, MS_PER_TICK));
+        temporaryMovementSpeedReductions.compute(target.id(), (ignored, existing) -> {
+            if (existing == null || existing.expiresAtMs() <= nowMs) {
+                return new TemporaryMovementSpeedReduction(reduction, expiresAtMs);
+            }
+            return new TemporaryMovementSpeedReduction(
+                    Math.max(existing.amount(), reduction),
+                    Math.max(existing.expiresAtMs(), expiresAtMs)
+            );
+        });
+        return true;
     }
 
     /** 冷気などを合成した詠唱時間倍率を返します。 */
@@ -288,7 +339,20 @@ public final class ConditionService {
             }
         }
         activeByTarget.clear();
+        temporaryMovementSpeedReductions.clear();
         targets.forEach(this::refreshConditionDependentStatus);
+    }
+
+    private @Nullable TemporaryMovementSpeedReduction temporaryMovementSpeedReduction(@NotNull AstEntity target) {
+        TemporaryMovementSpeedReduction reduction = temporaryMovementSpeedReductions.get(target.id());
+        if (reduction == null) {
+            return null;
+        }
+        if (reduction.expiresAtMs() <= System.currentTimeMillis()) {
+            temporaryMovementSpeedReductions.remove(target.id(), reduction);
+            return null;
+        }
+        return reduction;
     }
 
     private @NotNull ActiveCondition createCondition(
@@ -482,5 +546,24 @@ public final class ConditionService {
 
     private static double clampPercent(double value) {
         return Math.max(0.0D, Math.min(100.0D, value));
+    }
+
+    private static long saturatingAdd(long left, long right) {
+        try {
+            return Math.addExact(left, right);
+        } catch (ArithmeticException ignored) {
+            return Long.MAX_VALUE;
+        }
+    }
+
+    private static long saturatingMultiply(long left, long right) {
+        try {
+            return Math.multiplyExact(left, right);
+        } catch (ArithmeticException ignored) {
+            return Long.MAX_VALUE;
+        }
+    }
+
+    private record TemporaryMovementSpeedReduction(double amount, long expiresAtMs) {
     }
 }

@@ -476,6 +476,19 @@ public final class SharedParticleDefinitions {
         );
     public static final SharedParticleDefinition SWORDSMAN_FLAME_RUSH_VERTICAL_FLAME =
         new SharedParticleDefinition("swordsman_flame_rush_vertical_flame", Particle.FLAME, 14, 0.12D, 0.18D, 0.12D, 0.04D);
+    public static final SharedParticleDefinition SWORDSMAN_EXEPT_STAMP_CRIT =
+        new SharedParticleDefinition("swordsman_exept_stamp_crit", Particle.CRIT, 18, 0.28D, 0.28D, 0.28D, 0.12D);
+    public static final SharedParticleDefinition SWORDSMAN_EXEPT_STAMP_DUST =
+        new SharedParticleDefinition(
+            "swordsman_exept_stamp_dust",
+            Particle.DUST,
+            4,
+            0.18D,
+            0.05D,
+            0.18D,
+            0.0D,
+            new Particle.DustOptions(Color.fromRGB(139, 90, 43), 1.4F)
+        );
     public static final SharedParticleDefinition ADVENTURER_ASTRAL_EDGE_CRIT =
         new SharedParticleDefinition("adventurer_astral_edge_crit", Particle.CRIT, 3, 0.04D, 0.04D, 0.04D, 0.08D);
     public static final SharedParticleDefinition ADVENTURER_ASTRAL_EDGE_SPARK =

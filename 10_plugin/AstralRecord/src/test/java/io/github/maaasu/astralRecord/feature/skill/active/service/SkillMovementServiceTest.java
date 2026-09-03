@@ -11,9 +11,11 @@ import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -53,6 +55,28 @@ class SkillMovementServiceTest {
 
         assertEquals(new Vector(0.0D, 0.0D, -0.35D), velocity);
         verify(player).setVelocity(eq(new Vector(0.0D, 0.0D, -0.35D)));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 28. ソードマン エクゼプトスタンプの実装契約 > ### 28.2 演出・実装境界
+     * 検証契約: 汎用velocityは移動禁止中に設定せず、nullを返す。
+     */
+    @Test
+    void genericVelocityDoesNotApplyWhenMovementIsBlocked() {
+        ConditionService conditionService = mock(ConditionService.class);
+        Player player = mock(Player.class);
+        AstEntity mover = mock(AstEntity.class);
+        when(conditionService.canMove(mover)).thenReturn(false);
+
+        Vector velocity = new SkillMovementService(conditionService).velocity(
+                player,
+                mover,
+                new Vector(0.0D, 1.0D, 0.0D)
+        );
+
+        assertNull(velocity);
+        verify(player, never()).setVelocity(org.mockito.ArgumentMatchers.any(Vector.class));
     }
 
     /**

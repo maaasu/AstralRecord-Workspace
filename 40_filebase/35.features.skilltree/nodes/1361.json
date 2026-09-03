@@ -1,0 +1,23 @@
+{
+  "$schema": "../schemas/node.v1.schema.json",
+  "schemaVersion": 1,
+  "nodeId": "1361",
+  "name": "&6エクゼプトスタンプ",
+  "icon": "ANVIL",
+  "tags": [
+    "offense",
+    "mobility",
+    "debuff"
+  ],
+  "pointType": "CP",
+  "pointCost": 1,
+  "effects": [
+    {
+      "type": "skill",
+      "skillId": "swordsman_exept_stamp"
+    }
+  ],
+  "unlockCondition": {
+    "classId": "swordsman"
+  }
+}

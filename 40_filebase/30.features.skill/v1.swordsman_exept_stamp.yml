@@ -1,0 +1,64 @@
+# design:
+#   motif: "ソードマン戦技 / 空中急降下"
+#   progression: 2
+schemaVersion: 1
+id: swordsman_exept_stamp
+type: SKILL
+implementationId: swordsman_exept_stamp
+name: "&6エクゼプトスタンプ"
+description: "&7前方へ飛び上がり、急降下して叩き潰す。"
+icon: ANVIL
+lore:
+  - "&7前方へ飛び上がり、空中でスニークすると急降下する。"
+  - "&7着地点の半径{skill.radius}mへ近接攻撃力{skill.effectiveDamageRatio:percent}%のダメージ。"
+  - "&7命中した敵へ5秒間、移動速度-{skill.movementSpeedReduction}。"
+cooldownTicks: 160
+resourceType: ENERGY
+resourceCost: 20
+castTimeTicks: 0
+requiredLevel: 1
+maxLevel: 5
+levels:
+  - level: 2
+    paramDeltas:
+      radius: 1.0
+      damageRatio: 0.10
+      movementSpeedReduction: 10.0
+  - level: 3
+    paramDeltas:
+      radius: 1.0
+      damageRatio: 0.10
+      movementSpeedReduction: 10.0
+  - level: 4
+    paramDeltas:
+      radius: 1.0
+      damageRatio: 0.10
+      movementSpeedReduction: 10.0
+  - level: 5
+    paramDeltas:
+      radius: 1.0
+      damageRatio: 0.10
+      movementSpeedReduction: 10.0
+sigilSlotsByLevel:
+  - { level: 1, slots: 1 }
+  - { level: 3, slots: 2 }
+  - { level: 5, slots: 3 }
+allowedSigilIds:
+  - cooldown_sigil
+  - cooldown_sigil_ii
+learnRequiredItems: [{ itemId: skill_gem_raw, amount: 3 }]
+levelUpRequiredItems: [{ itemId: skill_gem_raw, amount: 3 }]
+params:
+  radius: 1.0
+  damageRatio: 1.10
+  movementSpeedReduction: 10.0
+  movementSpeedDebuffDurationTicks: 100
+  launchHorizontalVelocity: 0.65
+  launchVerticalVelocity: 1.05
+  diveVelocity: 2.40
+  maxFlightTicks: 100
+tags:
+  - active
+  - melee
+  - mobility
+  - debuff

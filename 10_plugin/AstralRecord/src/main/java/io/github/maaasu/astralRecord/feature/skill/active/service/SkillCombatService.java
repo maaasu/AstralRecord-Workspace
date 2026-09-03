@@ -315,6 +315,23 @@ public final class SkillCombatService {
         knockbackService.applyVelocityWithResistance(target, velocity);
     }
 
+    /**
+     * 対象Mobの移動速度へ一時的なフラット減少を適用します。
+     * 減少値と持続時間の検証、および既存の減少との合成は {@link ConditionService} に委ねます。
+     *
+     * @param target 対象Mob
+     * @param reduction 移動速度ステータスから減算する値
+     * @param durationTicks 効果時間（tick）
+     * @return 有効なMobへ適用できた場合は {@code true}
+     */
+    public boolean applyTemporaryMovementSpeedReduction(
+            @NotNull AstEntity target,
+            double reduction,
+            long durationTicks
+    ) {
+        return conditionService.applyTemporaryMovementSpeedReduction(target, reduction, durationTicks);
+    }
+
     private void applyCondition(
             @NotNull AstEntity attacker,
             @NotNull AstEntity target,

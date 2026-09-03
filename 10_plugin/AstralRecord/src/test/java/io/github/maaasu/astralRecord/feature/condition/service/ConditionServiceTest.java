@@ -163,6 +163,28 @@ class ConditionServiceTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 28. ソードマン エクゼプトスタンプの実装契約 > ### 28.1 数値・発動条件
+     * 検証契約: Mobの基礎移動速度100へ減少30を適用すると0.7倍になり、弱い再付与では効果を弱めない。全体掃除後は等倍へ戻る。
+     */
+    @Test
+    void temporaryMovementSpeedReductionUsesFlatAmountAndRestoresOnCleanup() {
+        ConditionService service = service();
+        AstEntity target = AstEntity.mob(mob(MobCategory.ENEMY, List.of(
+                new MobBaseStat(StatusType.MOVEMENT_SPEED.name(), 100.0D)
+        )));
+
+        assertTrue(service.applyTemporaryMovementSpeedReduction(target, 30.0D, 100L));
+        assertEquals(0.7D, service.movementSpeedMultiplier(target), 0.0001D);
+
+        assertTrue(service.applyTemporaryMovementSpeedReduction(target, 10.0D, 100L));
+        assertEquals(0.7D, service.movementSpeedMultiplier(target), 0.0001D);
+
+        service.clearAll(target);
+        assertEquals(1.0D, service.movementSpeedMultiplier(target), 0.0001D);
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/27-condition/3-メソッド仕様/27_3-サービス.md
      * 章・見出し: # 27_3-サービス > ## 4. `conditionDamageMultiplier`
      * 検証契約: DoT増加20%、耐性50%、貫通10%を専用式で0.72倍へ計算する。

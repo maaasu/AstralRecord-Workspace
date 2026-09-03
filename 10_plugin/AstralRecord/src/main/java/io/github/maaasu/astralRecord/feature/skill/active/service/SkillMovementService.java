@@ -81,6 +81,28 @@ public final class SkillMovementService {
         return velocity;
     }
 
+    /**
+     * 指定した velocity を移動可能なプレイヤーへ設定します。
+     * 移動禁止状態または有限値でない velocity の場合はプレイヤーを変更しません。
+     *
+     * @param player velocityを設定するプレイヤー
+     * @param mover 移動可否を確認する主体
+     * @param velocity 設定する三軸velocity
+     * @return 設定したvelocityの複製、適用できない場合は {@code null}
+     */
+    public @Nullable Vector velocity(
+            @NotNull Player player,
+            @NotNull AstEntity mover,
+            @NotNull Vector velocity
+    ) {
+        if (!conditionService.canMove(mover) || !isFinite(velocity)) {
+            return null;
+        }
+        Vector applied = velocity.clone();
+        player.setVelocity(applied);
+        return applied;
+    }
+
     /** 視線方向へ安全に瞬間移動します。 */
     public @NotNull MovementResult blink(
             @NotNull Player player,
@@ -199,5 +221,11 @@ public final class SkillMovementService {
         }
         double yawRadians = Math.toRadians(yaw);
         return new Vector(-Math.sin(yawRadians), 0.0D, Math.cos(yawRadians));
+    }
+
+    private static boolean isFinite(@NotNull Vector vector) {
+        return Double.isFinite(vector.getX())
+                && Double.isFinite(vector.getY())
+                && Double.isFinite(vector.getZ());
     }
 }
