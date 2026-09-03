@@ -51,11 +51,13 @@ class SkillBindGuiLayoutTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
      * 章・見出し: # 13_3-GUI・View > ## 5. 識別とページング
-     * 検証契約: メインの49だけを共有ナビゲーションへ公開し、合成の49はスキルマネージャーへ戻る専用操作にする。
+     * 検証契約: メインの49だけを共有ナビゲーションへ公開し、詳細・合成の戻る操作は各画面専用にする。
      */
     @Test
     void synthesisBackDoesNotUseSharedNavigationSlot() {
         assertEquals(49, new SkillBindInventoryHolder(SkillBindScreen.MAIN, 1, 0).getBackSlot());
+        SkillBindInventoryHolder detail = new SkillBindInventoryHolder(SkillBindScreen.DETAIL, 1, 2, "skill");
+        assertEquals(-1, detail.getBackSlot());
         assertEquals(-1, new SkillBindInventoryHolder(SkillBindScreen.SYNTHESIS, 1, 0, "skill").getBackSlot());
     }
 

@@ -5,6 +5,7 @@ package io.github.maaasu.astralRecord.feature.skill.model;
  */
 public enum SkillBindScreen {
     MAIN,
+    DETAIL,
     SYNTHESIS,
     CONFIRM
 }

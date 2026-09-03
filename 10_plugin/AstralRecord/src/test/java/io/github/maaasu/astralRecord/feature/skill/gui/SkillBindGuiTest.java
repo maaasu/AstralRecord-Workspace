@@ -2,8 +2,11 @@ package io.github.maaasu.astralRecord.feature.skill.gui;
 
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillBindInventoryHolder;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillBindScreen;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindSession;
+import io.github.maaasu.astralRecord.feature.skill.model.SkillBindType;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
@@ -24,6 +27,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -80,7 +84,7 @@ class SkillBindGuiTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
      * 章・見出し: # 13_3-GUI・View > ## 3. スキルマネージャーの習得表示
-     * 検証契約: 最大レベル未満の習得済み個体は、次のレベル、必要素材、右クリックによるレベルアップ操作を表示する。
+     * 検証契約: 最大レベル未満の習得済み個体は、次のレベルと必要素材を表示し、クリックで詳細画面へ進む案内を表示する。
      */
     @Test
     void learnedSkillBelowMaxShowsNextLevelMaterialsAndLevelUpAction() {
@@ -97,8 +101,46 @@ class SkillBindGuiTest extends MockBukkitTestBase {
         assertTrue(lore.contains("次のレベル: Lv.1 → Lv.2"));
         assertTrue(lore.contains("レベルアップに必要な素材:"));
         assertTrue(lore.contains("• スキルジェムの原石(無印) ×2"));
-        assertTrue(lore.contains("右クリック: レベルアップ"));
+        assertTrue(lore.contains("クリック: 詳細画面を開く"));
+        assertFalse(lore.contains("右クリック: レベルアップ"));
         assertFalse(lore.contains("レベル: MAX"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 3. スキルマネージャーの習得表示
+     * 検証契約: 詳細画面は9×3で、選択中のバインド枠を表示し、レベルアップ操作と戻る操作を持つ。
+     */
+    @Test
+    void detailScreenUsesNineByThreeAndShowsSelectedBindTarget() {
+        PluginMock plugin = MockBukkit.createMockPlugin("SkillBindGuiDetailTest");
+        ItemService itemService = itemServiceWithSkillGemRaw();
+        SkillBindGui gui = new SkillBindGui(plugin, itemService, mock(SkillService.class));
+        SkillBindSession session = new SkillBindSession(presets());
+        session.selectBindSlot(SkillBindType.ACTIVE, 2);
+
+        Inventory inventory = gui.createDetailInventory(session, learnedEntry(1, 3), 2);
+        SkillBindInventoryHolder holder = (SkillBindInventoryHolder) inventory.getHolder();
+
+        assertEquals(SkillBindGui.DETAIL_SIZE, inventory.getSize());
+        assertEquals(SkillBindScreen.DETAIL, holder.screen());
+        assertEquals(2, holder.pageIndex());
+        assertTrue(lore(inventory.getItem(SkillBindGui.DETAIL_BIND_SLOT))
+            .contains("選択中: アクションスロット 3"));
+        assertTrue(lore(inventory.getItem(SkillBindGui.DETAIL_LEVEL_UP_SLOT))
+            .contains("クリックでレベルアップ"));
+        assertTrue(lore(inventory.getItem(SkillBindGui.DETAIL_SKILL_SLOT))
+            .contains("レベルアップに必要な素材:"));
+        assertFalse(lore(inventory.getItem(SkillBindGui.DETAIL_SKILL_SLOT))
+            .contains("右クリック: レベルアップ"));
+        assertTrue(lore(inventory.getItem(SkillBindGui.DETAIL_BACK_SLOT)).contains("前の画面へ戻ります"));
+
+        Inventory processing = gui.createDetailInventory(session, learnedEntry(1, 3), 2, true);
+        assertEquals(org.bukkit.Material.CLOCK, processing.getItem(SkillBindGui.DETAIL_BIND_SLOT).getType());
+        assertTrue(lore(processing.getItem(SkillBindGui.DETAIL_LEVEL_UP_SLOT))
+            .contains("完了までお待ちください"));
+        assertFalse(lore(processing.getItem(SkillBindGui.DETAIL_LEVEL_UP_SLOT))
+            .contains("クリックでレベルアップ"));
     }
 
     /**
@@ -128,7 +170,7 @@ class SkillBindGuiTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
      * 章・見出し: # 13_3-GUI・View > ## 3. スキルマネージャーの習得表示
-     * 検証契約: 最大レベルの習得済み個体はMAXを表示し、レベルアップ操作と必要素材を表示しない。
+     * 検証契約: 最大レベルの習得済み個体はMAXとクリックでバインドする案内を表示し、レベルアップ操作と必要素材を表示しない。
      */
     @Test
     void learnedSkillAtMaxShowsMaxWithoutLevelUpAction() {
@@ -142,6 +184,7 @@ class SkillBindGuiTest extends MockBukkitTestBase {
         List<String> lore = lore(inventory.getItem(1));
 
         assertTrue(lore.contains("レベル: MAX"));
+        assertTrue(lore.contains("クリック: バインド"));
         assertFalse(lore.contains("レベルアップに必要な素材:"));
         assertFalse(lore.contains("右クリック: レベルアップ"));
     }

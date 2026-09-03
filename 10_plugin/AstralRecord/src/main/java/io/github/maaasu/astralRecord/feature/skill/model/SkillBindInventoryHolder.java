@@ -59,8 +59,8 @@ public record SkillBindInventoryHolder(
 
     @Override
     public int getBackSlot() {
-        // 合成画面の slot 49 はスキルマネージャーへ戻る専用操作です。
-        // 共有ナビゲーションに渡すと、履歴なしで GUI 自体が閉じてしまいます。
+        // 詳細・合成画面の戻る操作は各 feature handler が遷移先を持つため、
+        // 共有ナビゲーションへは公開しません。
         return screen == SkillBindScreen.MAIN ? 49 : -1;
     }
 
@@ -71,6 +71,6 @@ public record SkillBindInventoryHolder(
 
     @Override
     public @NotNull Inventory getInventory() {
-        return Bukkit.createInventory(this, 54);
+        return Bukkit.createInventory(this, screen == SkillBindScreen.DETAIL ? 27 : 54);
     }
 }

@@ -66,6 +66,12 @@ public final class SkillBindGui {
     public static final int NEXT_PAGE_SLOT = 53;
     public static final int PRESET_COUNT = 6;
 
+    public static final int DETAIL_SIZE = 27;
+    public static final int DETAIL_BIND_SLOT = 11;
+    public static final int DETAIL_SKILL_SLOT = 13;
+    public static final int DETAIL_LEVEL_UP_SLOT = 15;
+    public static final int DETAIL_BACK_SLOT = 22;
+
     public static final int SYNTHESIS_SKILL_SLOT = 20;
     public static final int SYNTHESIS_MATERIAL_SLOT = 22;
     public static final int SYNTHESIS_RESULT_SLOT = 24;
@@ -227,6 +233,85 @@ public final class SkillBindGui {
         if (page + 1 < pages) {
             inventory.setItem(NEXT_PAGE_SLOT, createNextPageItem(page, pages));
         }
+        return inventory;
+    }
+
+    /**
+     * スキル詳細画面を生成します。
+     *
+     * @param session 編集中セッション。選択中バインド枠の表示に使用する
+     * @param entry 詳細表示する習得済みスキル
+     * @param returnPage スキルマネージャーへ戻るページ番号
+     * @return 表示用の詳細画面 inventory
+     */
+    public @NotNull Inventory createDetailInventory(
+        @NotNull SkillBindSession session,
+        @NotNull SkillManagerEntry entry,
+        int returnPage
+    ) {
+        return createDetailInventory(session, entry, returnPage, false);
+    }
+
+    /**
+     * スキル詳細画面を、レベルアップ処理中の状態を含めて生成します。
+     *
+     * @param session 編集中セッション。選択中バインド枠の表示に使用する
+     * @param entry 詳細表示する習得済みスキル
+     * @param returnPage スキルマネージャーへ戻るページ番号
+     * @param mutationInProgress レベルアップなどのスキル更新処理中かどうか
+     * @return 表示用の詳細画面 inventory
+     */
+    public @NotNull Inventory createDetailInventory(
+        @NotNull SkillBindSession session,
+        @NotNull SkillManagerEntry entry,
+        int returnPage,
+        boolean mutationInProgress
+    ) {
+        Inventory inventory = Bukkit.createInventory(
+            new SkillBindInventoryHolder(
+                SkillBindScreen.DETAIL,
+                session.selectedPresetIndex(),
+                returnPage,
+                entry.bindingId()
+            ),
+            DETAIL_SIZE,
+            Component.text("スキル詳細", NamedTextColor.AQUA)
+        );
+        fill(inventory);
+        inventory.setItem(DETAIL_SKILL_SLOT, createLearnedSkillItem(entry, false));
+        if (mutationInProgress) {
+            ItemStack processing = createItem(
+                Material.CLOCK,
+                "処理中...",
+                NamedTextColor.YELLOW,
+                List.of(Component.text("完了までお待ちください", NamedTextColor.GRAY))
+            );
+            inventory.setItem(DETAIL_BIND_SLOT, processing.clone());
+            inventory.setItem(DETAIL_LEVEL_UP_SLOT, processing);
+        } else {
+            inventory.setItem(
+                DETAIL_BIND_SLOT,
+                createItem(
+                    Material.NAME_TAG,
+                    "このスキルをバインド",
+                    NamedTextColor.GREEN,
+                    List.of(
+                        Component.text(bindTargetText(session), NamedTextColor.YELLOW),
+                        Component.text("クリックで設定", NamedTextColor.GRAY)
+                    )
+                )
+            );
+            inventory.setItem(
+                DETAIL_LEVEL_UP_SLOT,
+                createItem(
+                    Material.ENCHANTED_BOOK,
+                    "レベルアップ",
+                    NamedTextColor.LIGHT_PURPLE,
+                    List.of(Component.text("クリックでレベルアップ", NamedTextColor.YELLOW))
+                )
+            );
+        }
+        inventory.setItem(DETAIL_BACK_SLOT, GuiItems.backButton());
         return inventory;
     }
 
@@ -469,7 +554,12 @@ public final class SkillBindGui {
         appendLearnedSkillDetails(lore, entry);
         if (listDisplay) {
             lore.add(separator());
-            lore.add(Component.text("左クリック: 空き枠へ自動設定", NamedTextColor.YELLOW));
+            lore.add(Component.text(
+                entry.learnedSkill().getLevel() >= entry.definition().getMaxLevel()
+                    ? "クリック: バインド"
+                    : "クリック: 詳細画面を開く",
+                NamedTextColor.YELLOW
+            ));
         }
         SkillDefinition skill = entry.definition();
         ItemStack item = createItem(
@@ -554,7 +644,6 @@ public final class SkillBindGui {
                 NamedTextColor.AQUA
             ));
             appendRequiredItemLore(lore, skill.getLevelUpRequiredItems(), "レベルアップに必要な素材");
-            lore.add(Component.text("右クリック: レベルアップ", NamedTextColor.YELLOW));
         }
         lore.add(separator());
         appendSigilSlotLore(lore, entry, entry.learnedSkill().getLevel(), null);
@@ -769,6 +858,18 @@ public final class SkillBindGui {
         if (compatible.size() > displayedCount) {
             lore.add(Component.text("  ... +" + (compatible.size() - displayedCount), NamedTextColor.DARK_GRAY));
         }
+    }
+
+    private @NotNull String bindTargetText(@NotNull SkillBindSession session) {
+        SkillBindType type = session.selectedBindType();
+        if (type == null) {
+            return "種別に合う空き枠へ自動設定します";
+        }
+        return switch (type) {
+            case PASSIVE -> "選択中: パッシブスロット " + (session.selectedBindSlotIndex() + 1);
+            case LEFT_CLICK -> "選択中: 左クリック";
+            case ACTIVE -> "選択中: アクションスロット " + (session.selectedBindSlotIndex() + 1);
+        };
     }
 
     /**

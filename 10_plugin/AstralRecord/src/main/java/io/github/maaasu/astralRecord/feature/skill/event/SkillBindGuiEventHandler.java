@@ -63,7 +63,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
-/** スキルマネージャーの一覧・バインド・合成操作を処理します。 */
+/** スキルマネージャーの一覧・詳細・バインド・合成操作を処理します。 */
 public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     private static final String ACTION_BACK = "back";
     private static final String ACTION_CLOSE = "close";
@@ -161,6 +161,10 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             }
             if (holder.screen() == SkillBindScreen.SYNTHESIS) {
                 handleSynthesisClick(player, session, holder, event);
+                return;
+            }
+            if (holder.screen() == SkillBindScreen.DETAIL) {
+                handleDetailClick(player, session, holder, event);
                 return;
             }
             if (event.getClickedInventory() instanceof PlayerInventory) {
@@ -323,6 +327,10 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
         if (slot >= SkillBindGui.PASSIVE_BIND_SLOT_START
             && slot < SkillBindGui.PASSIVE_BIND_SLOT_START + SkillBindPreset.PASSIVE_SLOT_COUNT) {
+            if (!event.isLeftClick()) {
+                GuiSound.DENY.play(player);
+                return;
+            }
             handleBindSlotClick(
                 player, session, SkillBindType.PASSIVE,
                 slot - SkillBindGui.PASSIVE_BIND_SLOT_START, page,
@@ -331,11 +339,19 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return;
         }
         if (slot == SkillBindGui.LEFT_CLICK_BIND_SLOT) {
+            if (!event.isLeftClick()) {
+                GuiSound.DENY.play(player);
+                return;
+            }
             handleBindSlotClick(player, session, SkillBindType.LEFT_CLICK, 0, page, 1);
             return;
         }
         if (slot >= SkillBindGui.ACTION_RING_BIND_SLOT_START
             && slot < SkillBindGui.ACTION_RING_BIND_SLOT_START + SkillBindPreset.ACTION_RING_SLOT_COUNT) {
+            if (!event.isLeftClick()) {
+                GuiSound.DENY.play(player);
+                return;
+            }
             handleBindSlotClick(
                 player, session, SkillBindType.ACTIVE,
                 slot - SkillBindGui.ACTION_RING_BIND_SLOT_START, page, SkillBindPreset.ACTION_RING_SLOT_COUNT
@@ -375,11 +391,78 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        if (event.isRightClick() && session.selectedBindType() == null) {
-            levelUpFromManager(player, session, page, entry);
+        if (!isMouseClick(event)) {
+            GuiSound.DENY.play(player);
             return;
         }
-        if (!event.isLeftClick()) {
+        if (entry.learnedSkill().getLevel() < entry.definition().getMaxLevel()) {
+            openDetail(player, session, entry, page);
+            return;
+        }
+        bindSkillFromManager(player, session, page, entry);
+    }
+
+    private void handleDetailClick(
+        @NotNull Player player,
+        @NotNull SkillBindSession session,
+        @NotNull SkillBindInventoryHolder holder,
+        @NotNull InventoryClickEvent event
+    ) {
+        if (event.getClickedInventory() instanceof PlayerInventory || !isMouseClick(event)) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        int slot = event.getRawSlot();
+        if (slot == SkillBindGui.DETAIL_BACK_SLOT) {
+            GuiSound.SELECT.play(player);
+            openMain(player, session, holder.pageIndex());
+            return;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        SkillManagerEntry entry = entry(astPlayer, holder.learnedSkillId());
+        if (entry == null) {
+            GuiSound.DENY.play(player);
+            openMain(player, session, holder.pageIndex());
+            return;
+        }
+        if (learnedSkillService.hasMutationInProgress(astPlayer.getAccount().getUuid())) {
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (slot == SkillBindGui.DETAIL_BIND_SLOT) {
+            bindSkillFromManager(player, session, holder.pageIndex(), entry);
+            return;
+        }
+        if (slot == SkillBindGui.DETAIL_LEVEL_UP_SLOT) {
+            if (entry.learnedSkill().getLevel() >= entry.definition().getMaxLevel()) {
+                GuiSound.DENY.play(player);
+                openMain(player, session, holder.pageIndex());
+                return;
+            }
+            if (levelUpFromManager(player, session, holder.pageIndex(), entry, true)) {
+                openDetail(player, session, entry, holder.pageIndex(), true);
+            }
+            return;
+        }
+        GuiSound.DENY.play(player);
+    }
+
+    private boolean isMouseClick(@NotNull InventoryClickEvent event) {
+        return event.isLeftClick() || event.isRightClick();
+    }
+
+    private void bindSkillFromManager(
+        Player player,
+        SkillBindSession session,
+        int page,
+        SkillManagerEntry entry
+    ) {
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -789,6 +872,28 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
     }
 
+    private void openDetail(
+        @NotNull Player player,
+        @NotNull SkillBindSession session,
+        @NotNull SkillManagerEntry entry,
+        int returnPage
+    ) {
+        openDetail(player, session, entry, returnPage, false);
+    }
+
+    private void openDetail(
+        @NotNull Player player,
+        @NotNull SkillBindSession session,
+        @NotNull SkillManagerEntry entry,
+        int returnPage,
+        boolean mutationInProgress
+    ) {
+        Inventory inventory = gui.createDetailInventory(session, entry, returnPage, mutationInProgress);
+        if (inventory != null) {
+            GuiOpenSupport.open(player, inventory);
+        }
+    }
+
     private @Nullable Inventory createMainInventory(Player player, SkillBindSession session, int page) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) return null;
@@ -840,23 +945,59 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (!scheduled) GuiSound.DENY.play(player);
     }
 
-    private void levelUpFromManager(Player player, SkillBindSession session, int page, SkillManagerEntry entry) {
-        if (entry.learnedSkill().getLevel() >= entry.definition().getMaxLevel()) { GuiSound.DENY.play(player); return; }
+    private boolean levelUpFromManager(Player player, SkillBindSession session, int page, SkillManagerEntry entry) {
+        return levelUpFromManager(player, session, page, entry, false);
+    }
+
+    private boolean levelUpFromManager(
+        Player player,
+        SkillBindSession session,
+        int page,
+        SkillManagerEntry entry,
+        boolean keepDetail
+    ) {
+        if (entry.learnedSkill().getLevel() >= entry.definition().getMaxLevel()) {
+            GuiSound.DENY.play(player);
+            return false;
+        }
         AstPlayer astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null) { GuiSound.DENY.play(player); return; }
+        if (astPlayer == null) {
+            GuiSound.DENY.play(player);
+            return false;
+        }
+        UUID playerId = player.getUniqueId();
         boolean scheduled = learnedSkillService.levelUpFromManagerAsync(astPlayer.getAccount().getUuid(),
             entry.learnedSkill().getLearnedSkillId(), astPlayer.getAccount().getUuid(),
             requiredItemEntryIds(astPlayer, entry.definition().getLevelUpRequiredItems()),
             updated -> {
+                if (sessions.get(playerId) != session) return;
                 AstPlayer current = currentPlayer(astPlayer);
                 if (current == null) return;
                 plugin.getGuideService().recordConditionSilently(current, GuideConditionType.SKILL_ENHANCED, entry.definition().getId());
                 passiveSkillService.markDirty(current);
                 inventoryService.refreshManagedInventoryUi(current);
-                GuiSound.SUCCESS.play(current.getBukkit()); openMain(current.getBukkit(), session, page);
+                GuiSound.SUCCESS.play(current.getBukkit());
+                SkillManagerEntry updatedEntry = entry(current, updated.getLearnedSkillId().toString());
+                if (keepDetail && updatedEntry != null
+                    && updatedEntry.learnedSkill().getLevel() < updatedEntry.definition().getMaxLevel()) {
+                    openDetail(current.getBukkit(), session, updatedEntry, page);
+                } else {
+                    openMain(current.getBukkit(), session, page);
+                }
             },
-            error -> { GuiSound.DENY.play(player); openMain(player, session, page); });
-        if (!scheduled) GuiSound.DENY.play(player);
+            error -> {
+                if (sessions.get(playerId) != session) return;
+                GuiSound.DENY.play(player);
+                if (keepDetail) {
+                    openDetail(player, session, entry, page);
+                } else {
+                    openMain(player, session, page);
+                }
+            });
+        if (!scheduled) {
+            GuiSound.DENY.play(player);
+        }
+        return scheduled;
     }
 
     private @Nullable AstPlayer currentPlayer(@NotNull AstPlayer original) {
