@@ -25,7 +25,7 @@ equipment:
       value: 6
     - status: MOVEMENT_SPEED
       type: FLAT
-      value: 5
+      value: 3
   durability:
     max: 150
     consume: 1

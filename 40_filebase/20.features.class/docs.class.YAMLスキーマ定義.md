@@ -61,6 +61,8 @@ Class（職業）のスキーマ定義。
 
 `baseStats` と `growthPerLevel` は StatusService の共有基礎値へ加算するクラス補正です。現在クラスの補正値は、`baseStats + growthPerLevel × (classLevel - 1)` で計算します。`classLevel` はクラスごとの `maxLevel` の範囲へ補正し、定義されていないステータスの補正は `0.0` とします。
 
+`MOVEMENT_SPEED_CAP` のように職業レベルで増加させない上限系ステータスは、`baseStats` のみに定義します。
+
 ### 参照（ref）
 他DBからclassを参照する場合は `class:` prefix を使用します（aliases: `cls`）。
 
@@ -100,6 +102,8 @@ baseStats:
     value: 10
   - status: MOVEMENT_SPEED
     value: 100
+  - status: MOVEMENT_SPEED_CAP
+    value: 150
 growthPerLevel:
   - status: MAX_HEALTH
     value: 8

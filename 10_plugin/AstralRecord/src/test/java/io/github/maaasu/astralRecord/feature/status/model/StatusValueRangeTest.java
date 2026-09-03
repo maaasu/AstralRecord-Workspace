@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.status.model;
 import org.junit.jupiter.api.Test;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 class StatusValueRangeTest {
@@ -63,5 +64,6 @@ class StatusValueRangeTest {
         assertEquals("100%", StatusType.ATTACK_SPEED.formatValue(100.0D));
         assertEquals("100", StatusType.MOVEMENT_SPEED.formatValue(100.0D));
         assertTrue(StatusType.byCategory(StatusType.Category.UTILITY).contains(StatusType.MOVEMENT_SPEED));
+        assertFalse(StatusType.MOVEMENT_SPEED_CAP.getSupportsRange());
     }
 }

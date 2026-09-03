@@ -146,13 +146,17 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
                 "growth" to classModel(
                     id = "growth",
                     name = "Growth",
-                    baseStats = listOf(ClassStat(StatusType.ATTACK.name, 10.0)),
+                    baseStats = listOf(
+                        ClassStat(StatusType.ATTACK.name, 10.0),
+                        ClassStat(StatusType.MOVEMENT_SPEED_CAP.name, 150.0),
+                    ),
                     growthPerLevel = listOf(ClassStat(StatusType.ATTACK.name, 2.0)),
                 ),
             ),
         )
 
         assertEquals(16.0, service.getStatusBonus(astPlayer, StatusType.ATTACK), 0.0001)
+        assertEquals(150.0, service.getStatusBonus(astPlayer, StatusType.MOVEMENT_SPEED_CAP), 0.0001)
     }
 
     /**

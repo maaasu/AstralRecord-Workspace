@@ -22,10 +22,13 @@ equipment:
   stats:
     - status: DEFENSE
       type: FLAT
-      value: 6
+      value: 8
     - status: MAX_SHIELD
       type: FLAT
       value: 2
+    - status: MP_REGEN
+      type: FLAT
+      value: 0.5
   durability:
     max: 150
     consume: 1

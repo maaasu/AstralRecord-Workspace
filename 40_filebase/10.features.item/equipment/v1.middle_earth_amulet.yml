@@ -25,7 +25,7 @@ equipment:
       value: 4~7
     - status: MOVEMENT_SPEED
       type: FLAT
-      value: 4~6
+      value: 3~5
     - status: EVASION
       type: FLAT
       value: 3~5

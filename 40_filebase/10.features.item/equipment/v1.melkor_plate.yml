@@ -21,8 +21,8 @@ equipment:
     - status: DEFENSE
       type: FLAT
       value:
-        min: 12~29
-        max: 30~55
+        min: 18~35
+        max: 36~61
     - status: MAX_HEALTH
       type: FLAT
       value: 100
@@ -34,7 +34,10 @@ equipment:
       value: 8
     - status: MELEE_DEFENSE
       type: FLAT
-      value: 10
+      value: 14
+    - status: MP_REGEN
+      type: FLAT
+      value: 1
   durability:
     max: 360
     consume: 1

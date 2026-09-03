@@ -22,7 +22,10 @@ equipment:
   stats:
     - status: DEFENSE
       type: FLAT
-      value: 16
+      value: 20
+    - status: MP_REGEN
+      type: FLAT
+      value: 1
     - status: MAX_HEALTH
       type: FLAT
       value: 80

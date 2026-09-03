@@ -96,6 +96,7 @@ enum class StatusType(
     MP_REGEN("MP_REGEN", "MP回復力", "時間経過などでMPを回復する量。", Category.UTILITY, "", 0, true),
     ENERGY_REGEN("ENERGY_REGEN", "ENG回復力", "時間経過などでENGを回復する量。", Category.UTILITY, "", 0, true),
     MOVEMENT_SPEED("MOVEMENT_SPEED", "移動速度", "フィールド上を移動する速さ。", Category.UTILITY, "", 0, true),
+    MOVEMENT_SPEED_CAP("MOVEMENT_SPEED_CAP", "移動速度上限", "通常状態で適用できる移動速度の上限。", Category.UTILITY, "", 0, false),
     COOLDOWN_REDUCTION("COOLDOWN_REDUCTION", "クールダウン短縮", "スキルの再使用までに必要な時間を短縮する補正。", Category.UTILITY, "%", 1, true),
     CAST_TIME_REDUCTION("CAST_TIME_REDUCTION", "詠唱時間短縮率", "スキルの詠唱時間を割合で短縮する補正。", Category.UTILITY, "%", 1, true),
     MANA_COST_REDUCTION("MANA_COST_REDUCTION", "MP消費軽減率", "スキルのMP消費量を割合で軽減する補正。", Category.UTILITY, "%", 1, true),

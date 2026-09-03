@@ -233,8 +233,12 @@ public class StatusService {
         double conditionMultiplier = conditionService == null
             ? 1.0D
             : conditionService.movementSpeedMultiplier(AstEntity.player(player));
-        double speedPercent = Math.max(0.0D, snapshot.getMaxValue(StatusType.MOVEMENT_SPEED))
-            * conditionMultiplier;
+        double movementSpeed = Math.max(0.0D, snapshot.getMaxValue(StatusType.MOVEMENT_SPEED));
+        double movementSpeedCap = snapshot.getMaxValue(StatusType.MOVEMENT_SPEED_CAP);
+        if (movementSpeedCap > 0.0D) {
+            movementSpeed = Math.min(movementSpeed, movementSpeedCap);
+        }
+        double speedPercent = movementSpeed * conditionMultiplier;
         attribute.setBaseValue(VANILLA_PLAYER_MOVEMENT_SPEED * speedPercent / 100.0D);
     }
 
@@ -988,6 +992,7 @@ public class StatusService {
             case ENERGY_REGEN -> 5.0D;
             case SUPPORT_POWER -> 0.0D;
             case MOVEMENT_SPEED -> 100.0D;
+            case MOVEMENT_SPEED_CAP -> 0.0D;
             case COOLDOWN_REDUCTION -> 0.0D;
             case SHIELD_RECHARGE_REDUCTION -> 0.0D;
             // 採集速度は装備値をそのまま1回分の破壊力として扱う。装備なしは GatheringService 側で1に補正する。

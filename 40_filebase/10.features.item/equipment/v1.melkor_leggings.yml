@@ -25,7 +25,7 @@ equipment:
       value: 20
     - status: MOVEMENT_SPEED
       type: FLAT
-      value: 4
+      value: 3
     - status: ENERGY_REGEN
       type: FLAT
       value: 2

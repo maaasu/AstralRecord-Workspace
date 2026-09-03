@@ -22,13 +22,16 @@ equipment:
   stats:
     - status: DEFENSE
       type: FLAT
-      value: 20
+      value: 26
     - status: KNOCKBACK_RESISTANCE
       type: FLAT
       value: 4
     - status: MELEE_DEFENSE
       type: FLAT
-      value: 8
+      value: 12
+    - status: MP_REGEN
+      type: FLAT
+      value: 1
   durability:
     max: 330
     consume: 1

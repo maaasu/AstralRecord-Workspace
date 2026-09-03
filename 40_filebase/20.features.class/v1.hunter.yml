@@ -37,6 +37,8 @@ baseStats:
     value: 4
   - status: MAGIC_DEFENSE
     value: 4
+  - status: MOVEMENT_SPEED_CAP
+    value: 175
 growthPerLevel:
   - status: MAX_HEALTH
     value: 5

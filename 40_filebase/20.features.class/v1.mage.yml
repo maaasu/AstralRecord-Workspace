@@ -39,6 +39,8 @@ baseStats:
     value: 7
   - status: SHIELD_BREAK
     value: 1
+  - status: MOVEMENT_SPEED_CAP
+    value: 160
 growthPerLevel:
   - status: MAX_HEALTH
     value: 4
