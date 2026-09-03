@@ -46,7 +46,7 @@ tags:
 params:
   range: 9.0
   damageRatio: 0.384
-  pelletCount: 8
+  pelletCount: 9
   spreadAngle: 30.0
   projectileSpeed: 1.8
   projectileHitRadius: 0.30
