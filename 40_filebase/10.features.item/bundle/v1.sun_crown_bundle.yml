@@ -1,5 +1,5 @@
 # design:
-#   motif: "鳥類 / 太陽鳥 / 陽冠の杖"
+#   motif: "鳥類 / 太陽鳥 / 陽冠の武器"
 #   progression: 10
 schemaVersion: 1
 id: sun_crown_bundle
@@ -14,6 +14,5 @@ unTradeable: false
 unSellable: true
 bundle:
   openTimeTicks: 10
-  items:
-    - itemId: sun_crown_staff
-      amount: 1
+  lootTableId:
+    ref: loot_table:sun_crown_weapon_table

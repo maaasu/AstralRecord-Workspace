@@ -1,0 +1,20 @@
+# design:
+#   motif: "鳥類 / 太陽鳥 / 陽冠の武器"
+#   progression: 10
+schemaVersion: 1
+id: sun_crown_weapon_pool
+type: LOOT_POOL
+pick: 1
+contents:
+  - itemId:
+      ref: item:sun_crown_sword
+    rate: 100.0
+    amount: 1
+  - itemId:
+      ref: item:sun_crown_bow
+    rate: 100.0
+    amount: 1
+  - itemId:
+      ref: item:sun_crown_staff
+    rate: 100.0
+    amount: 1
