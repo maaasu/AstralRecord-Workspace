@@ -10,6 +10,14 @@ plugin:
     # WorldMasterData ID. The vanilla server world is not a join-spawn master.
     world: "starlit_nox"
 
+# Player connection capacity
+# maxPlayers is reserved for PLAYER. donorExtraPlayers can be used by DONOR and ADMIN,
+# and adminExtraPlayers can be used by ADMIN only.
+playerCapacity:
+  maxPlayers: 30
+  donorExtraPlayers: 5
+  adminExtraPlayers: 1
+
 skilltree:
   worldName: "plugins/AstralRecord/worlds/hub/skill_tree"
   structureId: "starter"

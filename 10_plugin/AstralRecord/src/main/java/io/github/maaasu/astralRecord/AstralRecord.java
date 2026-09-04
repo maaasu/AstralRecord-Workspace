@@ -153,6 +153,7 @@ import io.github.maaasu.astralRecord.feature.party.gui.PartyGui;
 import io.github.maaasu.astralRecord.feature.party.gui.PartyMemberActionGui;
 import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
+import io.github.maaasu.astralRecord.feature.player.event.PlayerCapacityEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.ManagedChatEventHandler;
 import io.github.maaasu.astralRecord.feature.player.event.PlayerModeEventHandler;
@@ -167,6 +168,7 @@ import io.github.maaasu.astralRecord.feature.player.save.PlayerSaveCoordinator;
 import io.github.maaasu.astralRecord.feature.player.service.AirActionService;
 import io.github.maaasu.astralRecord.feature.player.service.DodgeService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerCapacityService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerRegionService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
 import io.github.maaasu.astralRecord.feature.player.service.StoneButtonReachService;
@@ -334,6 +336,7 @@ public final class AstralRecord extends JavaPlugin {
     private AccountService accountService;
     private AccountModeApplicationService accountModeApplicationService;
     private UserService userService;
+    private PlayerCapacityService playerCapacityService;
     private PlayerService playerService;
     private PlayerJoinEventHandler playerJoinEventHandler;
     private PlayerMessageService playerMessageService;
@@ -772,6 +775,9 @@ public final class AstralRecord extends JavaPlugin {
         if (mobService != null) {
             mobService.destroyAll();
         }
+        if (playerCapacityService != null) {
+            playerCapacityService.restoreConfiguredMaximum(getServer());
+        }
         // AuditLogger をシャットダウン
         AuditLogger.shutdownDefault();
         AuditLoggerRegistry.shutdownAll();
@@ -792,6 +798,8 @@ public final class AstralRecord extends JavaPlugin {
         try {
             // 設定ファイルを初期化
             ConfigManager.getInstance().initialize();
+            playerCapacityService = new PlayerCapacityService();
+            playerCapacityService.applyConfiguredMaximum(getServer());
 
 
             // DB を初期化
@@ -1686,6 +1694,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new WhitelistConnectionEventHandler(WhitelistService.getInstance()),
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
+            new PlayerCapacityEventHandler(userService, playerCapacityService),
             getServer().getPluginManager()
         );
         var menuToolJoinGrantService = new MenuToolJoinGrantService(itemService, inventoryService);

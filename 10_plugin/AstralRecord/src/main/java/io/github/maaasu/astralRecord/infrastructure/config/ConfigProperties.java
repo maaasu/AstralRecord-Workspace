@@ -11,6 +11,10 @@ import java.util.UUID;
 
 public class ConfigProperties {
 
+    private static final int DEFAULT_PLAYER_CAPACITY_MAX_PLAYERS = 30;
+    private static final int DEFAULT_PLAYER_CAPACITY_DONOR_EXTRA_PLAYERS = 5;
+    private static final int DEFAULT_PLAYER_CAPACITY_ADMIN_EXTRA_PLAYERS = 1;
+
     private static ConfigProperties instance;
 
     // Plugin 関連
@@ -18,6 +22,11 @@ public class ConfigProperties {
     private Set<UUID> pluginDebugUsers = Collections.emptySet();
     private volatile Set<UUID> pluginWhitelistUsers = Collections.emptySet();
     private volatile boolean pluginWhitelistEnabled;
+
+    // プレイヤー接続人数制限
+    private volatile int playerCapacityMaxPlayers;
+    private volatile int playerCapacityDonorExtraPlayers;
+    private volatile int playerCapacityAdminExtraPlayers;
 
     // SQL Server 関連
     private boolean sqlserverEnabled;
@@ -96,6 +105,29 @@ public class ConfigProperties {
         this.pluginWhitelistEnabled = configManager.getConfig().getBoolean(
                 ConfigKeys.PLUGIN_WHITELIST_ENABLED,
                 false
+        );
+
+        // プレイヤー接続人数制限
+        this.playerCapacityMaxPlayers = Math.max(
+                1,
+                configManager.getConfig().getInt(
+                        ConfigKeys.PLAYER_CAPACITY_MAX_PLAYERS,
+                        DEFAULT_PLAYER_CAPACITY_MAX_PLAYERS
+                )
+        );
+        this.playerCapacityDonorExtraPlayers = Math.max(
+                0,
+                configManager.getConfig().getInt(
+                        ConfigKeys.PLAYER_CAPACITY_DONOR_EXTRA_PLAYERS,
+                        DEFAULT_PLAYER_CAPACITY_DONOR_EXTRA_PLAYERS
+                )
+        );
+        this.playerCapacityAdminExtraPlayers = Math.max(
+                0,
+                configManager.getConfig().getInt(
+                        ConfigKeys.PLAYER_CAPACITY_ADMIN_EXTRA_PLAYERS,
+                        DEFAULT_PLAYER_CAPACITY_ADMIN_EXTRA_PLAYERS
+                )
         );
 
         // SQL Server 関連
@@ -228,6 +260,33 @@ public class ConfigProperties {
      */
     public void setPluginWhitelistEnabled(boolean enabled) {
         this.pluginWhitelistEnabled = enabled;
+    }
+
+    /**
+     * 通常プレイヤーが参加できる基本人数を返します。
+     *
+     * @return 通常プレイヤー用の基本人数
+     */
+    public int getPlayerCapacityMaxPlayers() {
+        return playerCapacityMaxPlayers;
+    }
+
+    /**
+     * 寄付者以上のプレイヤーへ追加する参加枠を返します。
+     *
+     * @return 寄付者追加枠。管理者も利用可能
+     */
+    public int getPlayerCapacityDonorExtraPlayers() {
+        return playerCapacityDonorExtraPlayers;
+    }
+
+    /**
+     * 管理者だけへ追加する参加枠を返します。
+     *
+     * @return 管理者追加枠
+     */
+    public int getPlayerCapacityAdminExtraPlayers() {
+        return playerCapacityAdminExtraPlayers;
     }
 
     // SQL Server 関連のゲッター

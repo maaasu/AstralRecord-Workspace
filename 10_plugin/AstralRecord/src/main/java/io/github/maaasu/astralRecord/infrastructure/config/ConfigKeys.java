@@ -16,6 +16,11 @@ public final class ConfigKeys {
     public static final String PLUGIN_WHITELIST_USERS = "plugin.whitelistUsers";
     public static final String PLUGIN_WHITELIST_ENABLED = "plugin.whitelistEnabled";
 
+    // プレイヤー接続人数制限
+    public static final String PLAYER_CAPACITY_MAX_PLAYERS = "playerCapacity.maxPlayers";
+    public static final String PLAYER_CAPACITY_DONOR_EXTRA_PLAYERS = "playerCapacity.donorExtraPlayers";
+    public static final String PLAYER_CAPACITY_ADMIN_EXTRA_PLAYERS = "playerCapacity.adminExtraPlayers";
+
     // Boss／Dungeon インスタンス作成枠
     public static final String INSTANCE_LIMITS_BOSS = "instanceLimits.boss";
     public static final String INSTANCE_LIMITS_DUNGEON = "instanceLimits.dungeon";

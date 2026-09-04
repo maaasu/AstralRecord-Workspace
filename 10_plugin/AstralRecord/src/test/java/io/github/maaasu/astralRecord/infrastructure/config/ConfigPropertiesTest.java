@@ -8,6 +8,7 @@ import org.mockito.MockedStatic;
 import java.util.List;
 import java.util.UUID;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.doAnswer;
@@ -36,6 +37,9 @@ class ConfigPropertiesTest {
                 ConfigKeys.PLUGIN_WHITELIST_USERS,
                 List.of(" " + whitelistUuid + " ", "invalid", "")
         );
+        initialConfig.set(ConfigKeys.PLAYER_CAPACITY_MAX_PLAYERS, 30);
+        initialConfig.set(ConfigKeys.PLAYER_CAPACITY_DONOR_EXTRA_PLAYERS, 5);
+        initialConfig.set(ConfigKeys.PLAYER_CAPACITY_ADMIN_EXTRA_PLAYERS, 1);
 
         FileConfiguration reloadedConfig = new YamlConfiguration();
         reloadedConfig.set(ConfigKeys.PLUGIN_DEBUG_USERS, List.of());
@@ -43,6 +47,9 @@ class ConfigPropertiesTest {
                 ConfigKeys.PLUGIN_WHITELIST_USERS,
                 List.of(reloadedWhitelistUuid.toString())
         );
+        reloadedConfig.set(ConfigKeys.PLAYER_CAPACITY_MAX_PLAYERS, 40);
+        reloadedConfig.set(ConfigKeys.PLAYER_CAPACITY_DONOR_EXTRA_PLAYERS, 2);
+        reloadedConfig.set(ConfigKeys.PLAYER_CAPACITY_ADMIN_EXTRA_PLAYERS, 3);
 
         ConfigManager configManager = mock(ConfigManager.class);
         when(configManager.getConfig()).thenReturn(initialConfig);
@@ -62,12 +69,18 @@ class ConfigPropertiesTest {
             assertTrue(properties.isWhitelistUser(whitelistUuid));
             assertFalse(properties.isDebugUser(whitelistUuid));
             assertFalse(properties.isWhitelistUser(null));
+            assertEquals(30, properties.getPlayerCapacityMaxPlayers());
+            assertEquals(5, properties.getPlayerCapacityDonorExtraPlayers());
+            assertEquals(1, properties.getPlayerCapacityAdminExtraPlayers());
 
             properties.reload();
 
             assertFalse(properties.isDebugUser(debugUuid));
             assertFalse(properties.isWhitelistUser(whitelistUuid));
             assertTrue(properties.isWhitelistUser(reloadedWhitelistUuid));
+            assertEquals(40, properties.getPlayerCapacityMaxPlayers());
+            assertEquals(2, properties.getPlayerCapacityDonorExtraPlayers());
+            assertEquals(3, properties.getPlayerCapacityAdminExtraPlayers());
         }
     }
 }

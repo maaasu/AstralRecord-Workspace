@@ -1556,6 +1556,11 @@ public enum PlayerMsgId {
     P_7130(7130),
     // endregion
 
+    // region /feature/player/event/PlayerCapacityEventHandler.java 7140-7149
+    /** 接続可能人数に達したため接続を拒否するメッセージ。 */
+    P_7140(7140),
+    // endregion
+
     ;
 
     private final String id;
