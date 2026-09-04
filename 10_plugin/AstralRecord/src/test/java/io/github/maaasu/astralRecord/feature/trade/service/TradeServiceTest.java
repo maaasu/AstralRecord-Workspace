@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeCancelConfirmGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
+import io.github.maaasu.astralRecord.feature.trade.model.TradeCommitItem;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeRequest;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeRequestStatus;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeCommitRequest;
@@ -54,6 +55,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -64,6 +66,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.any;
 import static org.mockito.Mockito.anyInt;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.eq;
 import static org.mockito.Mockito.never;
@@ -99,6 +102,66 @@ class TradeServiceTest {
         verify(context.inventoryService).getOwnedEntryAtBukkitSlot(context.astPlayer, 9);
         verify(context.inventoryService).hideOwnedEntryQuantityFromGui(context.astPlayer, context.sourceEntryId, 4);
         verify(context.inventoryService, never()).takeOwnedItemAmount(context.astPlayer, 9, 4);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_1-モデル定義.md
+     * 章・見出し: # 22_1-モデル定義 > ## TradeSession
+     * 検証契約: 同一 source inventory entry を複数の提示 clone に分割しても、API へ送る明細は
+     * source entry 単位に一つへ集約し、数量を合算する。
+     */
+    @Test
+    void commitItemsAggregateRepeatedSourceEntryIdsForApiRequest() throws Exception {
+        TestContext context = new TestContext();
+        UUID secondSourceEntryId = UUID.randomUUID();
+        context.session.setItems(
+            context.playerId,
+            List.of(itemStack(2), itemStack(3), itemStack(4)),
+            List.of(context.sourceEntryId, context.sourceEntryId, secondSourceEntryId)
+        );
+
+        assertTrue(context.session.hasValidCommitItems(context.playerId));
+        assertEquals(
+            List.of(
+                new TradeCommitItem(context.sourceEntryId, 5L),
+                new TradeCommitItem(secondSourceEntryId, 4L)
+            ),
+            context.session.getCommitItems(context.playerId)
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_1-モデル定義.md
+     * 章・見出し: # 22_1-モデル定義 > ## TradeSession
+     * 検証契約: 一つの source inventory entry が複数の表示stackへ分割された場合も、各cloneへ同じ
+     * source entry IDを対応付け、API確定時に全数量を合算できる。
+     */
+    @Test
+    void splitEscrowItemsKeepSourceEntryIdForEachApiQuantity() throws Exception {
+        TestContext context = new TestContext();
+        ItemStack displayed = splitItemStack(5, 2);
+
+        boolean offered;
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            cache.when(() -> AstPlayerCache.get(context.player)).thenReturn(context.astPlayer);
+
+            offered = context.service.offerOwnedItem(context.player, 9, ClickType.SHIFT_RIGHT, displayed);
+        }
+
+        assertTrue(offered);
+        assertEquals(3, context.session.getItems(context.playerId).size());
+        for (int index = 0; index < 3; index++) {
+            assertEquals(
+                context.sourceEntryId,
+                context.session.getItemSourceEntryId(context.playerId, index)
+            );
+        }
+        assertEquals(
+            List.of(new TradeCommitItem(context.sourceEntryId, 5L)),
+            context.session.getCommitItems(context.playerId)
+        );
+        verify(context.inventoryService).hideOwnedEntryQuantityFromGui(context.astPlayer, context.sourceEntryId, 5);
     }
 
     /**
@@ -327,6 +390,45 @@ class TradeServiceTest {
                 eq(context.playerBAccountId),
                 eq(context.result.playerBAffectedInventoryEntryIds()),
                 any()
+            );
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_1-モデル定義.md
+     * 章・見出し: # 22_1-モデル定義 > ## TradeSession
+     * 検証契約: 同一 source inventory entry を複数提示した session から commit する場合、API request
+     * の同一 player 側明細へ重複 ID を送らず数量を合算する。
+     */
+    @Test
+    void commitRequestDoesNotDuplicateSourceEntryIds() throws Exception {
+        try (CommitContext context = new CommitContext(false, false);
+             MockedStatic<AccountModeGuard> accountModeGuard = mockStatic(AccountModeGuard.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            UUID repeatedSourceEntryId = UUID.randomUUID();
+            context.session.setItems(
+                context.playerAId,
+                List.of(itemStack(2), itemStack(3)),
+                List.of(repeatedSourceEntryId, repeatedSourceEntryId)
+            );
+            ItemModel itemModel = mock(ItemModel.class);
+            when(itemModel.getUnTradeable()).thenReturn(false);
+            when(context.itemReferenceResolver.resolveItemModel(any(ItemStack.class))).thenReturn(itemModel);
+            context.session.setReady(context.playerAId, true);
+            context.session.setReady(context.playerBId, true);
+            accountModeGuard.when(() -> AccountModeGuard.isGameplayPlayer(context.playerA)).thenReturn(true);
+            accountModeGuard.when(() -> AccountModeGuard.isGameplayPlayer(context.playerB)).thenReturn(true);
+            bukkit.when(() -> Bukkit.getPlayer(context.playerAId)).thenReturn(context.playerA);
+            bukkit.when(() -> Bukkit.getPlayer(context.playerBId)).thenReturn(context.playerB);
+            bukkit.when(Bukkit::getScheduler).thenReturn(mock(BukkitScheduler.class));
+
+            invokeComplete(context.service, context.session);
+
+            ArgumentCaptor<TradeCommitRequest> requests = ArgumentCaptor.forClass(TradeCommitRequest.class);
+            verify(context.repository).commit(requests.capture());
+            assertEquals(
+                List.of(new TradeCommitItem(repeatedSourceEntryId, 5L)),
+                requests.getValue().playerAItems()
             );
         }
     }
@@ -757,6 +859,20 @@ class TradeServiceTest {
         when(itemStack.getAmount()).thenReturn(amount);
         when(itemStack.getMaxStackSize()).thenReturn(64);
         when(itemStack.clone()).thenReturn(itemStack);
+        return itemStack;
+    }
+
+    private static ItemStack splitItemStack(int amount, int maxStackSize) {
+        ItemStack itemStack = mock(ItemStack.class);
+        AtomicInteger currentAmount = new AtomicInteger(amount);
+        when(itemStack.getType()).thenReturn(Material.STONE);
+        when(itemStack.getAmount()).thenAnswer(ignored -> currentAmount.get());
+        when(itemStack.getMaxStackSize()).thenReturn(maxStackSize);
+        doAnswer(invocation -> {
+            currentAmount.set((Integer) invocation.getArgument(0));
+            return null;
+        }).when(itemStack).setAmount(anyInt());
+        when(itemStack.clone()).thenAnswer(ignored -> splitItemStack(currentAmount.get(), maxStackSize));
         return itemStack;
     }
 }

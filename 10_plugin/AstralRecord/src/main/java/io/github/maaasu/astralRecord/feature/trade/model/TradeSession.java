@@ -6,10 +6,14 @@ import org.jetbrains.annotations.Nullable;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public final class TradeSession {
+    private static final UUID EMPTY_UUID = new UUID(0L, 0L);
+
     private final UUID sessionId;
     private final UUID playerAUuid;
     private final UUID playerBUuid;
@@ -137,7 +141,37 @@ public final class TradeSession {
     }
 
     /**
+     * 現在の提示が API 確定用明細へ変換できる状態か判定します。
+     * <p>
+     * GUI 上で同じ source entry を複数の表示 clone に分割できるため、source entry ID の重複は
+     * この段階では許可します。{@link #getCommitItems(UUID)} が API の明細単位へ集約します。
+     * 空の提示は Gold だけを交換するケースで有効です。
+     *
+     * @param playerUuid 提示者 UUID
+     * @return すべての提示 item に有効な source entry ID と正の数量が対応していれば true
+     */
+    public boolean hasValidCommitItems(@NotNull UUID playerUuid) {
+        List<ItemStack> items = playerAUuid.equals(playerUuid) ? playerAItems : playerBItems;
+        List<UUID> sourceIds = playerAUuid.equals(playerUuid)
+            ? playerAItemSourceEntryIds : playerBItemSourceEntryIds;
+        if (items.size() != sourceIds.size()) {
+            return false;
+        }
+        for (int index = 0; index < items.size(); index++) {
+            ItemStack item = items.get(index);
+            if (item == null || item.getType().isAir() || item.getAmount() <= 0
+                || !isValidSourceEntryId(sourceIds.get(index))) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
      * 現在の提示を API 確定用 entry ID・数量へ変換します。
+     * <p>
+     * 同一 source entry が GUI 上で複数の表示 clone に分割されている場合は、API が要求する
+     * 「1 source entry につき1明細」へ集約し、数量を合算します。
      *
      * @param playerUuid 提示者 UUID
      * @return source entry が確定している提示明細。未解決明細があれば空のリスト
@@ -146,12 +180,23 @@ public final class TradeSession {
         List<ItemStack> items = playerAUuid.equals(playerUuid) ? playerAItems : playerBItems;
         List<UUID> sourceIds = playerAUuid.equals(playerUuid)
             ? playerAItemSourceEntryIds : playerBItemSourceEntryIds;
-        if (items.size() != sourceIds.size() || sourceIds.stream().anyMatch(java.util.Objects::isNull)) {
+        if (!hasValidCommitItems(playerUuid)) {
             return List.of();
         }
-        List<TradeCommitItem> result = new ArrayList<>();
+
+        Map<UUID, Long> quantitiesBySourceEntryId = new LinkedHashMap<>();
         for (int index = 0; index < items.size(); index++) {
-            result.add(new TradeCommitItem(sourceIds.get(index), items.get(index).getAmount()));
+            UUID sourceEntryId = sourceIds.get(index);
+            quantitiesBySourceEntryId.merge(
+                sourceEntryId,
+                (long) items.get(index).getAmount(),
+                (existing, added) -> Math.addExact(existing, added)
+            );
+        }
+
+        List<TradeCommitItem> result = new ArrayList<>(quantitiesBySourceEntryId.size());
+        for (Map.Entry<UUID, Long> entry : quantitiesBySourceEntryId.entrySet()) {
+            result.add(new TradeCommitItem(entry.getKey(), entry.getValue()));
         }
         return List.copyOf(result);
     }
@@ -234,6 +279,10 @@ public final class TradeSession {
             return new ArrayList<>(java.util.Collections.nCopies(itemCount, null));
         }
         return new ArrayList<>(sourceEntryIds);
+    }
+
+    private static boolean isValidSourceEntryId(@Nullable UUID sourceEntryId) {
+        return sourceEntryId != null && !EMPTY_UUID.equals(sourceEntryId);
     }
 
     private static boolean sameItems(@NotNull List<ItemStack> left, @NotNull List<ItemStack> right) {

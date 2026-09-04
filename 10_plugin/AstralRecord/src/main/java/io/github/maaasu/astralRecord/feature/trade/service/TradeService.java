@@ -20,7 +20,6 @@ import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeCancelConfirmGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGuiLayout;
-import io.github.maaasu.astralRecord.feature.trade.model.TradeCommitItem;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeRequest;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeRequestStatus;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeCommitRequest;
@@ -517,7 +516,10 @@ public final class TradeService {
                 return false;
             }
             List<UUID> sourceEntryIds = sourceEntryIds(session, player.getUniqueId());
-            sourceEntryIds.add(sourceEntry.getInventoryEntryId());
+            int addedItemCount = updated.size() - originalItems.size();
+            for (int index = 0; index < addedItemCount; index++) {
+                sourceEntryIds.add(sourceEntry.getInventoryEntryId());
+            }
             session.setItems(player.getUniqueId(), updated, sourceEntryIds);
             inventoryService.hideOwnedEntryQuantityFromGui(astPlayer, sourceEntry.getInventoryEntryId(), capacity);
             refreshBoth(session);
@@ -627,11 +629,9 @@ public final class TradeService {
                 refreshBoth(session);
                 return;
             }
-            List<TradeCommitItem> playerACommitItems = session.getCommitItems(session.getPlayerAUuid());
-            List<TradeCommitItem> playerBCommitItems = session.getCommitItems(session.getPlayerBUuid());
             if (inventorySaveCoordinator == null || tradeRepository == null
-                || playerACommitItems.size() != session.getItems(session.getPlayerAUuid()).size()
-                || playerBCommitItems.size() != session.getItems(session.getPlayerBUuid()).size()) {
+                || !session.hasValidCommitItems(session.getPlayerAUuid())
+                || !session.hasValidCommitItems(session.getPlayerBUuid())) {
                 session.resetReady();
                 sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6209);
                 sendIfOnline(session.getPlayerBUuid(), PlayerMsgId.P_6209);
