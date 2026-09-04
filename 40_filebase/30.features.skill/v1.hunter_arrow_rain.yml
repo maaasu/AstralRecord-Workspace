@@ -17,7 +17,7 @@ cooldownTicks: 240
 resourceType: ENERGY
 resourceCost: 16
 manaCost: 8
-castTimeTicks: 40
+castTimeTicks: 30
 requiredLevel: 1
 maxLevel: 5
 levels:
