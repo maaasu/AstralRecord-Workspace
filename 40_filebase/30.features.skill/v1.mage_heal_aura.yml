@@ -9,7 +9,8 @@ name: "&dヒールオーラ"
 description: "&7周囲を即時回復する短周期の支援魔法。"
 icon: AMETHYST_CLUSTER
 lore:
-  - "&7自身を中心とした半径{skill.radius}mのプレイヤー全員を即時に、最低{skill.healAmount}・対象の現在HPの{skill.healPercent}%回復する。"
+  - "&7自身を中心とした半径{skill.radius}mのプレイヤー全員を即時回復する。"
+  - "&7回復量は固定の最低値{skill.healAmount}と対象の現在HP×{skill.healPercent}%を比較し、大きい方のみを適用する（加算ではない）。"
   - "&7範囲は紫色の魔法陣で表示される。"
 cooldownTicks: 40
 resourceType: MANA
