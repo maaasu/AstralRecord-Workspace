@@ -585,12 +585,17 @@ public final class AstralRecord extends JavaPlugin {
             networkBridgeService.stop();
             networkBridgeService = null;
         }
-        if (globalChatBridge != null) {
-            globalChatBridge.close();
-            globalChatBridge = null;
+        GlobalChatBridge chatBridge = globalChatBridge;
+        globalChatBridge = null;
+        if (playerMessageService != null) {
+            playerMessageService.setGlobalChatBridge(null);
         }
-        if (!getServer().isStopping()) {
-            DiscordSrvChatBridge.setServerLifecycleMessagesSuppressed(false);
+        WhitelistService.getInstance().setGlobalChatBridge(null);
+        if (chatBridge != null) {
+            if (!getServer().isStopping()) {
+                chatBridge.setMaintenanceMode(false);
+            }
+            chatBridge.close();
         }
         masterDataReloadGeneration.incrementAndGet();
         CompletableFuture<Integer> pendingMasterDataReload = masterDataReloadInFlight.getAndSet(null);
@@ -1657,10 +1662,9 @@ public final class AstralRecord extends JavaPlugin {
      */
     private void setupDiscordChatBridge() {
         WhitelistService whitelistService = WhitelistService.getInstance();
-        DiscordSrvChatBridge.setServerLifecycleMessagesSuppressed(
-            ConfigProperties.getInstance().isPluginWhitelistEnabled()
-        );
         if (!ConfigProperties.getInstance().isDiscordEnabled()) {
+            globalChatBridge = null;
+            playerMessageService.setGlobalChatBridge(null);
             whitelistService.setGlobalChatBridge(null);
             return;
         }
@@ -1669,6 +1673,9 @@ public final class AstralRecord extends JavaPlugin {
             playerMessageService.setGlobalChatBridge(globalChatBridge);
             whitelistService.setGlobalChatBridge(globalChatBridge);
         } catch (LinkageError | RuntimeException exception) {
+            globalChatBridge = null;
+            playerMessageService.setGlobalChatBridge(null);
+            whitelistService.setGlobalChatBridge(null);
             Logger.log(LogId.W_7102, exception, exception.getClass().getSimpleName());
         }
     }

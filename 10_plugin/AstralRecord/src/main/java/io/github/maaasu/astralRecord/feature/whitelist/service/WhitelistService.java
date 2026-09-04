@@ -1,6 +1,5 @@
 package io.github.maaasu.astralRecord.feature.whitelist.service;
 
-import io.github.maaasu.astralRecord.feature.discord.service.DiscordSrvChatBridge;
 import io.github.maaasu.astralRecord.feature.discord.service.GlobalChatBridge;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -65,7 +64,6 @@ public final class WhitelistService {
      */
     public void setGlobalChatBridge(@Nullable GlobalChatBridge globalChatBridge) {
         this.globalChatBridge = globalChatBridge;
-        DiscordSrvChatBridge.setServerLifecycleMessagesSuppressed(isEnabled());
         if (globalChatBridge != null) {
             globalChatBridge.setMaintenanceMode(isEnabled());
         }
@@ -89,7 +87,6 @@ public final class WhitelistService {
         configManager.save();
         ConfigProperties.getInstance().setPluginWhitelistEnabled(enabled);
 
-        DiscordSrvChatBridge.setServerLifecycleMessagesSuppressed(enabled);
         GlobalChatBridge bridge = globalChatBridge;
         if (bridge != null) {
             bridge.setMaintenanceMode(enabled);

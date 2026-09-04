@@ -1,12 +1,13 @@
 package io.github.maaasu.astralRecord.feature.whitelist.service;
 
-import io.github.maaasu.astralRecord.feature.discord.service.DiscordSrvChatBridge;
+import io.github.maaasu.astralRecord.feature.discord.service.GlobalChatBridge;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigKeys;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigManager;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import net.kyori.adventure.text.Component;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
+import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
@@ -27,6 +28,11 @@ import static org.mockito.Mockito.mockStatic;
 
 class WhitelistServiceTest {
 
+    @AfterEach
+    void clearGlobalChatBridge() {
+        WhitelistService.getInstance().setGlobalChatBridge(null);
+    }
+
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/03_2-ユースケース.md
      * 章・見出し: # 03_2-ユースケース > ## 11. whitelist メンテナンス
@@ -39,6 +45,7 @@ class WhitelistServiceTest {
         Player debugPlayer = mock(Player.class);
         Player whitelistPlayer = mock(Player.class);
         Player deniedPlayer = mock(Player.class);
+        GlobalChatBridge globalChatBridge = mock(GlobalChatBridge.class);
         UUID debugUuid = UUID.randomUUID();
         UUID whitelistUuid = UUID.randomUUID();
         UUID deniedUuid = UUID.randomUUID();
@@ -61,12 +68,12 @@ class WhitelistServiceTest {
 
         try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
              MockedStatic<ConfigManager> managers = mockStatic(ConfigManager.class);
-             MockedStatic<ConfigProperties> properties = mockStatic(ConfigProperties.class);
-             MockedStatic<DiscordSrvChatBridge> discord = mockStatic(DiscordSrvChatBridge.class)) {
+             MockedStatic<ConfigProperties> properties = mockStatic(ConfigProperties.class)) {
             bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
             bukkit.when(Bukkit::getOnlinePlayers).thenReturn(List.of(debugPlayer, whitelistPlayer, deniedPlayer));
             managers.when(ConfigManager::getInstance).thenReturn(configManager);
             properties.when(ConfigProperties::getInstance).thenReturn(configProperties);
+            WhitelistService.getInstance().setGlobalChatBridge(globalChatBridge);
 
             WhitelistService.getInstance().setEnabled(true);
 
@@ -76,7 +83,7 @@ class WhitelistServiceTest {
             verify(deniedPlayer).kick(any(Component.class));
             verify(debugPlayer, never()).kick(any(Component.class));
             verify(whitelistPlayer, never()).kick(any(Component.class));
-            discord.verify(() -> DiscordSrvChatBridge.setServerLifecycleMessagesSuppressed(true));
+            verify(globalChatBridge).setMaintenanceMode(true);
         }
     }
 
