@@ -1,0 +1,9 @@
+{
+  "sourceApiAppsettingsPath": "\\\\192.168.0.88\\server\\AstralRecordApi\\appsettings.json",
+  "connectionStrings": {
+    "sqlServer": "",
+    "masterData": "",
+    "history": ""
+  },
+  "commandTimeoutSeconds": 600
+}

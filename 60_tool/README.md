@@ -16,6 +16,7 @@
 | 08 | `08-generate-tag-types.bat` | 共有タグカタログからJava / C# / TypeScriptを生成し、filebaseのタグ参照を検証 |
 | 09 | `09-astralarchitect-build-deploy.bat` | AstralArchitectをテスト・ビルドし、指定したMinecraftサーバーへJARを配置 |
 | 10 | `10-release-management-deploy.bat` | Release Note 用の API / Web だけをビルド・デプロイ |
+| 11 | `11-db-reset-except-release-notes.bat` | Release Note の送信情報を保持して3 DBのデータをリセット |
 
 PowerShellから直接実行する場合は`generate-status-types.ps1`または`generate-tag-types.ps1`を使用します。bat はどのカレントディレクトリから実行しても動作するよう、内部で同じディレクトリのスクリプトを絶対パス解決します。
 
@@ -33,6 +34,7 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 ├─ 08-generate-tag-types.bat
 ├─ 09-astralarchitect-build-deploy.bat
 ├─ 10-release-management-deploy.bat
+├─ 11-db-reset-except-release-notes.bat
 ├─ generate-status-types.ps1
 ├─ generate-tag-types.ps1
 ├─ deploy-debug/
@@ -53,6 +55,12 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 │  ├─ DbRebuildTool.csproj
 │  ├─ Program.cs
 │  ├─ db-rebuild.config.json
+│  └─ README.md
+├─ db-reset-except-release-notes/
+│  ├─ DbResetExceptReleaseNotesTool.csproj
+│  ├─ Program.cs
+│  ├─ db-reset-except-release-notes.config.json
+│  ├─ reset-db-except-release-notes.sql
 │  └─ README.md
 ├─ status-catalog-codegen/
 │  ├─ StatusCatalogCodegen.csproj
@@ -131,3 +139,17 @@ DB 再構築で確認を省略する場合は次のように実行します。
 ```powershell
 E:\AstralRecord-Workspace\60_tool\04-db-rebuild.bat --yes
 ```
+
+リリースノートの公開・送信情報を保持したまま、その他の `AstralRecord`、`MasterDataDB`、`HistoryDB` のデータをリセットする場合は次を実行します。既定では `RESET` の確認入力が必要です。
+
+```powershell
+E:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat
+```
+
+確認を省略する場合は `--yes` を付けます。
+
+```powershell
+E:\AstralRecord-Workspace\60_tool\11-db-reset-except-release-notes.bat --yes
+```
+
+この操作は対象DBを一時的に `SINGLE_USER WITH ROLLBACK IMMEDIATE` にします。実行前にAPI、Web、PluginなどのDB接続元を停止し、完了後は `03-master-data-reload.bat` で `MasterDataDB` を再投入してください。`--yes` を付けた場合はBAT終了時の `pause` も省略します。詳細は `db-reset-except-release-notes/README.md` を参照してください。
