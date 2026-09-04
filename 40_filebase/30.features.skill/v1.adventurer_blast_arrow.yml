@@ -47,8 +47,8 @@ tags:
 #   targets: "Mobのみを対象にし、NPCとPvP対象を含めない。Bossは通常Mobと同じく対象になる。中心から対象へのブロック遮蔽がある敵は命中しない。"
 params:
   range: 14.0
-  radius: 2.25
-  damageRatio: 1.44
+  radius: 4.5
+  damageRatio: 1.74
   maxTargets: 6
   projectileSpeed: 1.35
   projectileHitRadius: 0.45
