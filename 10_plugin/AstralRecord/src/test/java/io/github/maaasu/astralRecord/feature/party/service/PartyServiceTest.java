@@ -25,6 +25,7 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
@@ -225,6 +226,181 @@ class PartyServiceTest {
             assertFalse(result.success());
             assertEquals(PlayerMsgId.P_7024, result.messageId());
             assertNull(service.findParty(targetId));
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_3-メソッド仕様.md
+     * 章・見出し: # 19_3-メソッド仕様 > ## パーティーチャット mode / 管理者一覧
+     * 検証契約: party 所属者が togglePartyChat を実行すると有効・無効が交互に切り替わる。
+     */
+    @Test
+    void togglesPartyChatModeForPartyMember() {
+        AstralRecord plugin = mock(AstralRecord.class);
+        UserService userService = mock(UserService.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        AstPlayer player = mock(AstPlayer.class);
+        Player bukkitPlayer = mock(Player.class);
+        UUID playerId = UUID.randomUUID();
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        when(player.getBukkit()).thenReturn(bukkitPlayer);
+        when(bukkitPlayer.getUniqueId()).thenReturn(playerId);
+
+        PartyService service = new PartyService(plugin, userService);
+        try (MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(player)).thenReturn(true);
+            bukkit.when(() -> Bukkit.getPlayer(playerId)).thenReturn(bukkitPlayer);
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(bukkitPlayer)).thenReturn(true);
+
+            assertEquals(PlayerMsgId.P_5900, service.createParty(player).messageId());
+            assertEquals(PlayerMsgId.P_5926, service.togglePartyChat(player).messageId());
+            assertTrue(service.isPartyChatEnabled(playerId));
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(bukkitPlayer)).thenReturn(false);
+            assertFalse(service.isPartyChatEnabled(playerId));
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(bukkitPlayer)).thenReturn(true);
+            assertEquals(PlayerMsgId.P_5927, service.togglePartyChat(player).messageId());
+            assertFalse(service.isPartyChatEnabled(playerId));
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_2-ユースケース.md
+     * 章・見出し: # 19_2-ユースケース > ## UC-19-05 party chat
+     * 検証契約: パーティーチャットは party member と party 外の Admin へ配信し、通常プレイヤーには配信しない。
+     */
+    @Test
+    void broadcastsPartyChatToMembersAndAdmins() {
+        AstralRecord plugin = mock(AstralRecord.class);
+        UserService userService = mock(UserService.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+        AstPlayer senderAstPlayer = mock(AstPlayer.class);
+        AstPlayer adminAstPlayer = mock(AstPlayer.class);
+        AstPlayer regularAstPlayer = mock(AstPlayer.class);
+        Player sender = mock(Player.class);
+        Player member = mock(Player.class);
+        Player admin = mock(Player.class);
+        Player regular = mock(Player.class);
+        UUID senderId = UUID.randomUUID();
+        UUID memberId = UUID.randomUUID();
+        UUID adminId = UUID.randomUUID();
+        UUID regularId = UUID.randomUUID();
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        when(sender.getUniqueId()).thenReturn(senderId);
+        when(member.getUniqueId()).thenReturn(memberId);
+        when(admin.getUniqueId()).thenReturn(adminId);
+        when(regular.getUniqueId()).thenReturn(regularId);
+        when(sender.isOnline()).thenReturn(true);
+        when(member.isOnline()).thenReturn(true);
+        when(admin.isOnline()).thenReturn(true);
+        when(regular.isOnline()).thenReturn(true);
+        when(adminAstPlayer.hasAdminPermission()).thenReturn(true);
+        when(regularAstPlayer.hasAdminPermission()).thenReturn(false);
+        when(senderAstPlayer.getBukkit()).thenReturn(sender);
+
+        PartyService service = new PartyService(plugin, userService);
+        try (MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(senderAstPlayer)).thenReturn(true);
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+            assertTrue(service.createParty(senderAstPlayer).success());
+            service.findParty(senderId).addMember(memberId);
+            bukkit.when(() -> Bukkit.getPlayer(senderId)).thenReturn(sender);
+            bukkit.when(() -> Bukkit.getPlayer(memberId)).thenReturn(member);
+            bukkit.when(Bukkit::getOnlinePlayers).thenReturn(java.util.List.of(sender, member, admin, regular));
+            cache.when(() -> AstPlayerCache.get(admin)).thenReturn(adminAstPlayer);
+            cache.when(() -> AstPlayerCache.get(regular)).thenReturn(regularAstPlayer);
+
+            service.broadcastPartyChat(sender, "hello");
+        }
+
+        verify(messageService).broadcastPartyChat(
+            argThat(recipients -> recipients.size() == 3
+                && recipients.containsAll(java.util.Set.of(sender, member, admin))),
+            eq(sender),
+            eq("hello")
+        );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/19-party/19_4-統合フロー.md
+     * 章・見出し: # 19_4-統合フロー > ## 5. パーティーチャット切替・管理者一覧 > ### パーティーチャット
+     * 検証契約: party chat mode は離脱・logout・追放・解散・clearAll で stale にならず、再作成後に再度有効化できる。
+     */
+    @Test
+    void clearsPartyChatModeAcrossPartyLifecycleOperations() {
+        AstralRecord plugin = mock(AstralRecord.class);
+        UserService userService = mock(UserService.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+        AstPlayer leader = mock(AstPlayer.class);
+        AstPlayer memberAstPlayer = mock(AstPlayer.class);
+        Player leaderPlayer = mock(Player.class);
+        Player member = mock(Player.class);
+        UUID leaderId = UUID.randomUUID();
+        UUID memberId = UUID.randomUUID();
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        when(leader.getBukkit()).thenReturn(leaderPlayer);
+        when(memberAstPlayer.getBukkit()).thenReturn(member);
+        when(leaderPlayer.getUniqueId()).thenReturn(leaderId);
+        when(leaderPlayer.getName()).thenReturn("leader");
+        when(member.getUniqueId()).thenReturn(memberId);
+        when(member.getName()).thenReturn("member");
+        when(leaderPlayer.isOnline()).thenReturn(true);
+        when(member.isOnline()).thenReturn(true);
+
+        PartyService service = new PartyService(plugin, userService);
+        try (MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(leader)).thenReturn(true);
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(memberAstPlayer)).thenReturn(true);
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(leaderPlayer)).thenReturn(true);
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(member)).thenReturn(true);
+            cache.when(() -> AstPlayerCache.get(leaderPlayer)).thenReturn(leader);
+            cache.when(() -> AstPlayerCache.get(member)).thenReturn(memberAstPlayer);
+            bukkit.when(() -> Bukkit.getPlayer(leaderId)).thenReturn(leaderPlayer);
+            bukkit.when(() -> Bukkit.getPlayer(memberId)).thenReturn(member);
+            bukkit.when(() -> Bukkit.getPlayerExact("leader")).thenReturn(leaderPlayer);
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+            assertTrue(service.createParty(leader).success());
+            assertEquals(PlayerMsgId.P_5926, service.togglePartyChat(leader).messageId());
+            assertTrue(service.leave(leader).success());
+            assertTrue(service.createParty(leader).success());
+            assertEquals(PlayerMsgId.P_5926, service.togglePartyChat(leader).messageId());
+
+            service.leaveOnLogout(leaderId, "leader");
+            assertTrue(service.createParty(leader).success());
+            assertEquals(PlayerMsgId.P_5926, service.togglePartyChat(leader).messageId());
+
+            assertTrue(service.invite(leader, member).success());
+            assertTrue(service.acceptInvite(memberAstPlayer, "leader").success());
+            assertEquals(PlayerMsgId.P_5926, service.togglePartyChat(memberAstPlayer).messageId());
+            assertTrue(service.kick(leader, member).success());
+            assertTrue(service.createParty(memberAstPlayer).success());
+            assertEquals(PlayerMsgId.P_5926, service.togglePartyChat(memberAstPlayer).messageId());
+
+            assertTrue(service.disband(memberAstPlayer).success());
+            assertTrue(service.createParty(memberAstPlayer).success());
+            assertEquals(PlayerMsgId.P_5926, service.togglePartyChat(memberAstPlayer).messageId());
+
+            service.clearAll();
+            assertTrue(service.createParty(leader).success());
+            assertEquals(PlayerMsgId.P_5926, service.togglePartyChat(leader).messageId());
         }
     }
 }

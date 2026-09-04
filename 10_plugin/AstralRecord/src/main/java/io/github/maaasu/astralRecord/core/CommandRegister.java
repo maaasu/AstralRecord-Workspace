@@ -239,7 +239,10 @@ public class CommandRegister {
         cm.registerCommand("class", new ClassCommand(), new ClassTabCompleter());
         cm.registerCommand("skill", new SkillCommand());
         cm.registerCommand("skilltree", new SkillTreeCommand(skillTreeService), new SkillTreeTabCompleter());
-        cm.registerCommand("party", new PartyCommand(), new PartyTabCompleter());
+        PartyCommand partyCommand = new PartyCommand();
+        PartyTabCompleter partyTabCompleter = new PartyTabCompleter();
+        cm.registerCommand("party", partyCommand, partyTabCompleter);
+        cm.registerCommand("pt", partyCommand, partyTabCompleter);
         ParticleCommand particleCommand = new ParticleCommand(AstralRecord.getInstance(), particleDisplayServiceSupplier);
         ParticleTabCompleter particleTabCompleter = new ParticleTabCompleter();
         cm.registerCommand("particle", particleCommand, particleTabCompleter);

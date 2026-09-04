@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.player.event;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.party.service.PartyService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -50,9 +51,15 @@ public final class ManagedChatEventHandler extends AbstractEventHandler {
             if (message.isBlank()) {
                 return;
             }
-            plugin.getServer().getScheduler().runTask(plugin, () ->
-                PlayerMessageService.getInstance().broadcastGlobalChat(event.getPlayer(), message)
-            );
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
+                PartyService partyService = plugin.getPartyService();
+                if (partyService != null
+                    && partyService.isPartyChatEnabled(event.getPlayer().getUniqueId())) {
+                    partyService.broadcastPartyChat(event.getPlayer(), message);
+                    return;
+                }
+                PlayerMessageService.getInstance().broadcastGlobalChat(event.getPlayer(), message);
+            });
         }, LogId.E_3002, handlerName + ":chat");
     }
 

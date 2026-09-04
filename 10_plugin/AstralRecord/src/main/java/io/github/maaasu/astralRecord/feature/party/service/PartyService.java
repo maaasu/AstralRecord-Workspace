@@ -22,6 +22,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -38,6 +39,7 @@ public final class PartyService {
     private final Map<UUID, Party> parties = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> partyIdByMember = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, PartyInvite>> invitesByTarget = new ConcurrentHashMap<>();
+    private final Set<UUID> partyChatEnabled = ConcurrentHashMap.newKeySet();
     private final CopyOnWriteArrayList<PartyMembershipChangeListener> membershipChangeListeners =
             new CopyOnWriteArrayList<>();
     private volatile Predicate<UUID> challengePartyMutationGuard = ignored -> false;
@@ -279,6 +281,7 @@ public final class PartyService {
         parties.remove(party.getPartyId());
         for (UUID memberId : members) {
             partyIdByMember.remove(memberId);
+            partyChatEnabled.remove(memberId);
             clearInvitesForTarget(memberId);
             if (!memberId.equals(leaderId)) {
                 sendIfOnline(memberId, PlayerMsgId.P_5918);
@@ -319,6 +322,7 @@ public final class PartyService {
 
         party.removeMember(targetId);
         partyIdByMember.remove(targetId);
+        partyChatEnabled.remove(targetId);
         clearInvitesForTarget(targetId);
         PlayerMessageService.getInstance().send(target, PlayerMsgId.P_5922);
         notifyPartyExcept(party, leaderId, PlayerMsgId.P_5917, target.getName());
@@ -357,6 +361,81 @@ public final class PartyService {
         recordHistory(leaderId, "PARTY_LEADER_TRANSFERRED", "Party leader transferred to " + target.getName());
         recordHistory(targetId, "PARTY_LEADER_ASSIGNED", "Party leader assigned: " + party.getPartyId());
         return PartyActionResult.success(PlayerMsgId.P_5923, target.getName());
+    }
+
+    /**
+     * 実行者のパーティーチャットモードを切り替えます。
+     *
+     * @param player モードを切り替えるプレイヤー
+     * @return 操作結果。パーティー未所属または通常プレイ以外の場合は失敗
+     */
+    public synchronized @NotNull PartyActionResult togglePartyChat(@NotNull AstPlayer player) {
+        if (!AccountModeGuard.isGameplayPlayer(player)) {
+            return PartyActionResult.failure(PlayerMsgId.P_5065);
+        }
+        UUID playerId = player.getBukkit().getUniqueId();
+        if (findParty(playerId) == null) {
+            partyChatEnabled.remove(playerId);
+            return PartyActionResult.failure(PlayerMsgId.P_5902);
+        }
+        if (partyChatEnabled.add(playerId)) {
+            return PartyActionResult.success(PlayerMsgId.P_5926);
+        }
+        partyChatEnabled.remove(playerId);
+        return PartyActionResult.success(PlayerMsgId.P_5927);
+    }
+
+    /**
+     * 指定プレイヤーのパーティーチャットモードが有効かを判定します。
+     *
+     * @param playerId 判定対象プレイヤーUUID
+     * @return パーティー所属中、パーティーチャットモードが有効、かつ通常プレイ中なら true
+     */
+    public synchronized boolean isPartyChatEnabled(@NotNull UUID playerId) {
+        return partyChatEnabled.contains(playerId)
+            && partyIdByMember.containsKey(playerId)
+            && AccountModeGuard.isGameplayPlayer(Bukkit.getPlayer(playerId));
+    }
+
+    /**
+     * 指定プレイヤーのパーティーチャットを、パーティーメンバーと管理者へ配信します。
+     *
+     * @param sender 発言者
+     * @param message チャット本文
+     */
+    public void broadcastPartyChat(@NotNull Player sender, @NotNull String message) {
+        if (message.isBlank()) {
+            return;
+        }
+        Party party = findParty(sender.getUniqueId());
+        if (party == null) {
+            return;
+        }
+
+        Map<UUID, Player> recipients = new LinkedHashMap<>();
+        for (UUID memberId : party.members()) {
+            Player member = Bukkit.getPlayer(memberId);
+            if (member != null && member.isOnline()) {
+                recipients.put(member.getUniqueId(), member);
+            }
+        }
+        for (Player onlinePlayer : Bukkit.getOnlinePlayers()) {
+            AstPlayer onlineAstPlayer = AstPlayerCache.get(onlinePlayer);
+            if (onlineAstPlayer != null && onlineAstPlayer.hasAdminPermission()) {
+                recipients.putIfAbsent(onlinePlayer.getUniqueId(), onlinePlayer);
+            }
+        }
+
+        PlayerMessageService.getInstance().broadcastPartyChat(recipients.values(), sender, message);
+    }
+
+    /**
+     * 現在保持している全パーティーのスナップショットを返します。
+     *
+     * @return パーティー一覧。戻り値のリスト自体は変更不可
+     */
+    public synchronized @NotNull List<Party> getParties() {
+        return List.copyOf(parties.values());
     }
 
     public @Nullable Party findParty(@NotNull UUID playerId) {
@@ -400,9 +479,11 @@ public final class PartyService {
         parties.clear();
         partyIdByMember.clear();
         invitesByTarget.clear();
+        partyChatEnabled.clear();
     }
 
     private boolean leaveInternal(@NotNull UUID playerId, @NotNull String playerName, @NotNull String eventType, boolean notify) {
+        partyChatEnabled.remove(playerId);
         Party party = findParty(playerId);
         if (party == null) {
             return false;
