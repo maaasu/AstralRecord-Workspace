@@ -9,10 +9,22 @@ channelNames:
   ch2: "ch2"
   dev: "dev"
 serverCapacities:
-  lobby: 100
-  ch1: 40
-  ch2: 40
-  dev: 20
+  lobby:
+    maxPlayers: 100
+    donorExtraPlayers: 0
+    adminExtraPlayers: 0
+  ch1:
+    maxPlayers: 30
+    donorExtraPlayers: 5
+    adminExtraPlayers: 1
+  ch2:
+    maxPlayers: 30
+    donorExtraPlayers: 5
+    adminExtraPlayers: 1
+  dev:
+    maxPlayers: 20
+    donorExtraPlayers: 5
+    adminExtraPlayers: 1
 transferCooldownSeconds: 30
 tabRefreshSeconds: 2
 presenceHeartbeatSeconds: 10

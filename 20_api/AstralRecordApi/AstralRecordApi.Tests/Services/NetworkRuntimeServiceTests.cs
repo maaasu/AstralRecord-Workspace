@@ -23,6 +23,21 @@ public sealed class NetworkRuntimeServiceTests
     }
 
     [Fact]
+    public void ServerPresenceKeepsRoleSpecificCapacity()
+    {
+        var time = new MutableTimeProvider(new DateTimeOffset(2026, 9, 4, 0, 0, 0, TimeSpan.Zero));
+        var service = new NetworkRuntimeService(time);
+
+        service.UpsertServer(new NetworkServerHeartbeatRequest(
+            "ch1", "ch1", "online", 32, 40, 5, 1));
+
+        var server = Assert.Single(service.GetServers());
+        Assert.Equal(40, server.Capacity);
+        Assert.Equal(5, server.DonorExtraPlayers);
+        Assert.Equal(1, server.AdminExtraPlayers);
+    }
+
+    [Fact]
     public void DuplicateChatMessageIdReturnsSameSequence()
     {
         var time = new MutableTimeProvider(new DateTimeOffset(2026, 9, 4, 0, 0, 0, TimeSpan.Zero));

@@ -1,6 +1,7 @@
 package io.github.maaasu.astralrecordlobby;
 
 import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.format.NamedTextColor;
 import org.bukkit.Bukkit;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -19,14 +20,16 @@ import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.util.RayTraceResult;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
+import java.util.UUID;
 
 final class ServerSelector {
     private final AstralRecordLobbyPlugin plugin;
     private final NamespacedKey npcKey;
-    private final Map<Integer, String> serversBySlot = new HashMap<>();
     private Entity npc;
 
     ServerSelector(AstralRecordLobbyPlugin plugin) {
@@ -90,6 +93,11 @@ final class ServerSelector {
         return true;
     }
 
+    /**
+     * サーバー選択GUIを即時表示し、APIから取得した人数情報で非同期更新する。
+     *
+     * @param player GUIを開くプレイヤー
+     */
     void open(Player player) {
         int configuredSize = plugin.getConfig().getInt("selector.size", 27);
         int size = Math.max(9, Math.min(54, ((configuredSize + 8) / 9) * 9));
@@ -97,7 +105,47 @@ final class ServerSelector {
         Inventory inventory = Bukkit.createInventory(
             holder, size, Component.text(plugin.getConfig().getString("selector.title", "サーバー選択")));
         holder.inventory = inventory;
-        serversBySlot.clear();
+        populateEntries(holder, player, Map.of(), StatusLoadState.LOADING);
+        player.openInventory(inventory);
+
+        UUID playerId = player.getUniqueId();
+        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
+            Map<String, LobbyApiClient.ServerPresence> presences;
+            StatusLoadState loadState;
+            try {
+                presences = plugin.api().getServers();
+                loadState = StatusLoadState.AVAILABLE;
+            } catch (RuntimeException exception) {
+                plugin.getLogger().warning("Failed to load server selector status: " + exception.getMessage());
+                presences = Map.of();
+                loadState = StatusLoadState.FAILED;
+            }
+            Map<String, LobbyApiClient.ServerPresence> result = presences;
+            StatusLoadState resultState = loadState;
+            Bukkit.getScheduler().runTask(plugin, () -> {
+                Player current = Bukkit.getPlayer(playerId);
+                if (current == null || !current.isOnline()
+                    || current.getOpenInventory().getTopInventory().getHolder() != holder) return;
+                populateEntries(holder, current, result, resultState);
+            });
+        });
+    }
+
+    /**
+     * 設定済みサーバーアイコンへ閲覧者別の人数・接続可否を反映する。
+     *
+     * @param holder 更新対象GUI holder
+     * @param player 閲覧プレイヤー
+     * @param presences APIから取得したサーバー状態
+     * @param loadState API取得状態
+     */
+    private void populateEntries(
+        SelectorHolder holder,
+        Player player,
+        Map<String, LobbyApiClient.ServerPresence> presences,
+        StatusLoadState loadState
+    ) {
+        holder.serversBySlot.clear();
         ConfigurationSection entries = plugin.getConfig().getConfigurationSection("selector.entries");
         if (entries != null) {
             for (String key : entries.getKeys(false)) {
@@ -105,36 +153,101 @@ final class ServerSelector {
                 if (entry == null) continue;
                 int slot = entry.getInt("slot", -1);
                 String server = entry.getString("server", key).trim();
-                if (slot < 0 || slot >= size || server.isBlank()) continue;
+                if (slot < 0 || slot >= holder.inventory.getSize() || server.isBlank()) continue;
                 Material material = Material.matchMaterial(entry.getString("material", "COMPASS"));
                 if (material == null || material.isAir()) material = Material.COMPASS;
                 ItemStack item = new ItemStack(material);
                 ItemMeta meta = item.getItemMeta();
                 meta.displayName(Component.text(entry.getString("name", server)));
-                List<String> lore = entry.getStringList("lore");
-                if (!lore.isEmpty()) meta.lore(lore.stream().map(Component::text).toList());
+                List<Component> lore = new ArrayList<>(
+                    entry.getStringList("lore").stream().map(Component::text).toList());
+                if (!lore.isEmpty()) lore.add(Component.empty());
+                LobbyApiClient.ServerPresence presence = presences.get(server.toLowerCase(Locale.ROOT));
+                boolean connectable = appendServerStatus(
+                    lore, presence, plugin.permissionOf(player.getUniqueId()), loadState);
+                meta.lore(lore);
                 item.setItemMeta(meta);
-                inventory.setItem(slot, item);
-                serversBySlot.put(slot, server);
+                holder.inventory.setItem(slot, item);
+                if (connectable) holder.serversBySlot.put(slot, server);
             }
         }
-        player.openInventory(inventory);
     }
 
+    /**
+     * サーバー状態をアイコンloreへ追加する。
+     *
+     * @param lore 更新対象lore
+     * @param presence APIサーバー状態
+     * @param permission 閲覧者のAPI権限
+     * @param loadState API取得状態
+     * @return 現在接続操作を許可する場合true
+     */
+    private boolean appendServerStatus(
+        List<Component> lore,
+        LobbyApiClient.ServerPresence presence,
+        int permission,
+        StatusLoadState loadState
+    ) {
+        if (loadState == StatusLoadState.LOADING) {
+            lore.add(Component.text("人数情報を取得しています...", NamedTextColor.GRAY));
+            return false;
+        }
+        if (loadState == StatusLoadState.FAILED) {
+            lore.add(Component.text("人数情報を利用できません", NamedTextColor.RED));
+            return false;
+        }
+        if (presence == null || !presence.online()) {
+            lore.add(Component.text("現在は接続できません", NamedTextColor.RED));
+            return false;
+        }
+
+        int online = Math.max(0, presence.onlineCount());
+        int baseCapacity = Math.max(0, presence.capacity());
+        int extra = presence.extraFor(permission);
+        int limit = presence.limitFor(permission);
+        lore.add(Component.text("現在人数: " + online, NamedTextColor.WHITE));
+        if (extra > 0) {
+            lore.add(Component.text(
+                "最大人数: " + limit + "（基本 " + baseCapacity + " +" + extra + "）",
+                NamedTextColor.AQUA));
+        } else {
+            lore.add(Component.text("最大人数: " + limit, NamedTextColor.WHITE));
+        }
+        if (presence.fullFor(permission)) {
+            lore.add(Component.text("満員のため接続できません", NamedTextColor.RED));
+            return false;
+        }
+        lore.add(Component.text("クリックして接続", NamedTextColor.GREEN));
+        return true;
+    }
+
+    /**
+     * サーバー選択GUIのクリックを処理する。
+     *
+     * @param event インベントリクリックイベント
+     * @return サーバー選択GUI内の操作だった場合true
+     */
     boolean handleClick(InventoryClickEvent event) {
-        if (!(event.getView().getTopInventory().getHolder() instanceof SelectorHolder)) return false;
+        if (!(event.getView().getTopInventory().getHolder() instanceof SelectorHolder holder)) return false;
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player)) return true;
-        String server = serversBySlot.get(event.getRawSlot());
+        String server = holder.serversBySlot.get(event.getRawSlot());
         if (server != null) {
             player.closeInventory();
-            BackendProtocol.sendConnect(plugin, player, server);
+            BackendProtocol.sendConnect(plugin, player, server, plugin.permissionOf(player.getUniqueId()));
         }
         return true;
     }
 
     private static final class SelectorHolder implements InventoryHolder {
+        private final Map<Integer, String> serversBySlot = new HashMap<>();
         private Inventory inventory;
         @Override public Inventory getInventory() { return inventory; }
+    }
+
+    private enum StatusLoadState {
+        LOADING,
+        AVAILABLE,
+        FAILED
     }
 }

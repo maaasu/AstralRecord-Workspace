@@ -24,6 +24,10 @@ public final class AstralRecordLobbyPlugin extends JavaPlugin {
     @Override
     public void onEnable() {
         saveDefaultConfig();
+        if (getConfig().getBoolean("api.allowInsecureTls", false)) {
+            getLogger().warning(
+                "Network API TLS certificate and host name verification are disabled. Use only in development.");
+        }
         api = new LobbyApiClient(getConfig());
         selector = new ServerSelector(this);
         getServer().getMessenger().registerOutgoingPluginChannel(this, BackendProtocol.CHANNEL);
@@ -75,6 +79,16 @@ public final class AstralRecordLobbyPlugin extends JavaPlugin {
 
     boolean isAdmin(Player player) {
         return administrators.contains(player.getUniqueId()) && permissions.getOrDefault(player.getUniqueId(), 0) == 99;
+    }
+
+    /**
+     * API admissionで確認済みのユーザー権限を取得する。
+     *
+     * @param playerId プレイヤーUUID
+     * @return キャッシュ済み権限。未取得の場合は一般権限0
+     */
+    int permissionOf(UUID playerId) {
+        return permissions.getOrDefault(playerId, 0);
     }
 
     void applyLobbyPermission(Player player) {

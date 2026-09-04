@@ -1,6 +1,7 @@
 package io.github.maaasu.astralrecordproxy;
 
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import java.nio.charset.StandardCharsets;
@@ -33,5 +34,33 @@ class ProxyConfigTest {
         ProxyConfig config = ProxyConfig.load(dataDirectory);
 
         assertTrue(config.allowInsecureTls());
+    }
+
+    @Test
+    void roleSpecificCapacityIsLoadedAndCalculated() throws Exception {
+        Files.writeString(
+            dataDirectory.resolve("config.yml"),
+            "serverCapacities:\n  ch1:\n    maxPlayers: 40\n    donorExtraPlayers: 5\n    adminExtraPlayers: 1\n",
+            StandardCharsets.UTF_8);
+
+        ProxyConfig.ServerCapacity capacity = ProxyConfig.load(dataDirectory).capacity("ch1");
+
+        assertEquals(40, capacity.limitFor(0));
+        assertEquals(45, capacity.limitFor(5));
+        assertEquals(46, capacity.limitFor(99));
+        assertEquals(46, capacity.totalCapacity());
+    }
+
+    @Test
+    void legacyScalarCapacityRemainsSupported() throws Exception {
+        Files.writeString(
+            dataDirectory.resolve("config.yml"),
+            "serverCapacities:\n  ch1: 40\n",
+            StandardCharsets.UTF_8);
+
+        ProxyConfig.ServerCapacity capacity = ProxyConfig.load(dataDirectory).capacity("ch1");
+
+        assertEquals(40, capacity.limitFor(0));
+        assertEquals(40, capacity.limitFor(99));
     }
 }

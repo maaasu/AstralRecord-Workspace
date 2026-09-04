@@ -38,7 +38,9 @@ public sealed record NetworkServerHeartbeatRequest(
     string DisplayName,
     string State,
     int OnlineCount,
-    int Capacity);
+    int Capacity,
+    int DonorExtraPlayers,
+    int AdminExtraPlayers);
 
 public sealed record NetworkServerPresenceResponse(
     string ServerId,
@@ -46,6 +48,8 @@ public sealed record NetworkServerPresenceResponse(
     string State,
     int OnlineCount,
     int Capacity,
+    int DonorExtraPlayers,
+    int AdminExtraPlayers,
     DateTime LastSeenUtc);
 
 public sealed record NetworkChatPublishRequest(

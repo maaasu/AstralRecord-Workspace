@@ -65,6 +65,7 @@ public sealed class NetworkController(
     [ProducesResponseType<IReadOnlyList<NetworkPlayerPresenceResponse>>(StatusCodes.Status200OK)]
     public IActionResult GetPlayers() => Ok(runtimeService.GetPlayers());
 
+    /// <summary>サーバー人数と一般・寄付者・管理者の接続枠を更新します。</summary>
     [HttpPut("servers/{serverId}")]
     [ProducesResponseType<NetworkServerPresenceResponse>(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -73,12 +74,14 @@ public sealed class NetworkController(
         if (!string.Equals(serverId, request.ServerId, StringComparison.OrdinalIgnoreCase)
             || string.IsNullOrWhiteSpace(request.DisplayName)
             || string.IsNullOrWhiteSpace(request.State)
-            || request.OnlineCount < 0 || request.Capacity < 0)
+            || request.OnlineCount < 0 || request.Capacity < 0
+            || request.DonorExtraPlayers < 0 || request.AdminExtraPlayers < 0)
             return BadRequest();
 
         return Ok(runtimeService.UpsertServer(request));
     }
 
+    /// <summary>期限内のサーバー人数と権限別接続枠を一覧で返します。</summary>
     [HttpGet("servers")]
     [ProducesResponseType<IReadOnlyList<NetworkServerPresenceResponse>>(StatusCodes.Status200OK)]
     public IActionResult GetServers() => Ok(runtimeService.GetServers());

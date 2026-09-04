@@ -176,7 +176,8 @@ public final class AstralRecordProxyPlugin {
         try {
             BackendProtocol.Incoming incoming = BackendProtocol.decode(event.getData());
             if (incoming instanceof BackendProtocol.Connect connect) {
-                requestConnection(connection.getPlayer(), connect.targetServer());
+                requestConnection(connection.getPlayer(), connection.getServerInfo().getName(),
+                    connect.targetServer(), connect.permission());
             } else if (incoming instanceof BackendProtocol.Metadata update) {
                 if (!connection.getPlayer().getUniqueId().equals(update.playerId())) {
                     return;
@@ -200,7 +201,15 @@ public final class AstralRecordProxyPlugin {
         }
     }
 
-    private void requestConnection(Player player, String targetServer) {
+    /**
+     * Backendから要求されたサーバー接続を検証して実行する。
+     *
+     * @param player 接続するプレイヤー
+     * @param sourceServer 要求元backend名
+     * @param targetServer 接続先backend名
+     * @param permission LobbyがAPI admissionから取得した権限
+     */
+    private void requestConnection(Player player, String sourceServer, String targetServer, int permission) {
         RegisteredServer target = proxy.getServer(targetServer).orElse(null);
         if (target == null || (!config.isGameServer(targetServer)
             && !targetServer.equalsIgnoreCase(config.lobbyServer()))) {
@@ -208,6 +217,10 @@ public final class AstralRecordProxyPlugin {
             return;
         }
         if (config.isGameServer(targetServer)) {
+            if (!sourceServer.equalsIgnoreCase(config.lobbyServer())) {
+                player.sendMessage(Component.text("RPGサーバーへの接続はロビーから選択してください。", NamedTextColor.YELLOW));
+                return;
+            }
             boolean currentlyInGame = player.getCurrentServer()
                 .map(connection -> config.isGameServer(connection.getServerInfo().getName()))
                 .orElse(false);
@@ -224,13 +237,14 @@ public final class AstralRecordProxyPlugin {
                 player.sendMessage(Component.text("サーバーへ接続中です。", NamedTextColor.YELLOW));
                 return;
             }
-            int capacity = config.capacity(targetServer);
-            if (capacity > 0 && !reserveServerSlot(targetServer, target, capacity)) {
+            ProxyConfig.ServerCapacity capacity = config.capacity(targetServer);
+            int connectionLimit = capacity.limitFor(permission);
+            if (connectionLimit > 0 && !reserveServerSlot(targetServer, target, connectionLimit)) {
                 pendingGameConnections.remove(player.getUniqueId());
                 player.sendMessage(Component.text("このチャンネルは満員です。", NamedTextColor.YELLOW));
                 return;
             }
-            connectToGameServer(player, target, targetServer, capacity > 0);
+            connectToGameServer(player, target, targetServer, connectionLimit > 0);
             return;
         }
         player.createConnectionRequest(target).connect().thenAccept(result -> {
@@ -345,10 +359,28 @@ public final class AstralRecordProxyPlugin {
             api.heartbeatPlayer(value).exceptionally(failure -> null);
         }
         for (RegisteredServer server : proxy.getAllServers()) {
-            String serverId = server.getServerInfo().getName();
-            api.heartbeatServer(serverId, config.channelName(serverId), server.getPlayersConnected().size(), config.capacity(serverId))
-                .exceptionally(failure -> null);
+            refreshServerPresence(server);
         }
+    }
+
+    /**
+     * Backendの到達性を非同期確認してNetwork APIへ状態を送信する。
+     *
+     * @param server 状態を確認するVelocity登録サーバー
+     */
+    private void refreshServerPresence(RegisteredServer server) {
+        String serverId = server.getServerInfo().getName();
+        ProxyConfig.ServerCapacity capacity = config.capacity(serverId);
+        server.ping().whenComplete((ignored, failure) -> {
+            boolean online = failure == null;
+            api.heartbeatServer(
+                serverId,
+                config.channelName(serverId),
+                online ? server.getPlayersConnected().size() : 0,
+                online ? "online" : "offline",
+                capacity
+            ).exceptionally(apiFailure -> null);
+        });
     }
 
     private void refreshTabEntries() {

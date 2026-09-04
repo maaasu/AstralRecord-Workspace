@@ -60,13 +60,31 @@ final class NetworkApiClient {
         return send("DELETE", "/api/network/players/" + playerId, null).thenApply(ignored -> null);
     }
 
-    CompletableFuture<Void> heartbeatServer(String serverId, String displayName, int online, int capacity) {
+    /**
+     * サーバー人数と権限別定員をNetwork APIへ送信する。
+     *
+     * @param serverId backend識別子
+     * @param displayName 表示名
+     * @param online 現在接続人数
+     * @param state backend到達状態
+     * @param capacity 基本枠と権限別追加枠
+     * @return API送信完了を表すfuture
+     */
+    CompletableFuture<Void> heartbeatServer(
+        String serverId,
+        String displayName,
+        int online,
+        String state,
+        ProxyConfig.ServerCapacity capacity
+    ) {
         JsonObject body = new JsonObject();
         body.addProperty("serverId", serverId);
         body.addProperty("displayName", displayName);
-        body.addProperty("state", "online");
+        body.addProperty("state", state);
         body.addProperty("onlineCount", online);
-        body.addProperty("capacity", capacity);
+        body.addProperty("capacity", capacity.maxPlayers());
+        body.addProperty("donorExtraPlayers", capacity.donorExtraPlayers());
+        body.addProperty("adminExtraPlayers", capacity.adminExtraPlayers());
         return send("PUT", "/api/network/servers/" + serverId, body.toString()).thenApply(ignored -> null);
     }
 

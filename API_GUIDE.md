@@ -136,6 +136,8 @@
 | POST `/api/master-data/seed` | filebase から MasterDataDB を同期 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
 | GET `/api/master-data/seed-runs` | Seeder 実行履歴取得 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
 | GET `/api/master-data/health` | MasterDataDB の参照可能状態取得 | `00_docs/20_API設計書/feature/99-system/3-エンドポイント仕様/99_3.00-索引.md` |
+| GET `/api/network/admissions/{uuid}` | Lobby参加可否・権限取得 | `00_docs/20_API設計書/feature/33-network/3-エンドポイント仕様/33_3.00-エンドポイント仕様.md` |
+| GET `/api/network/servers` | サーバー人数・権限別定員一覧取得 | `00_docs/20_API設計書/feature/33-network/3-エンドポイント仕様/33_3.00-エンドポイント仕様.md` |
 
 ## テスト運用ルール
 

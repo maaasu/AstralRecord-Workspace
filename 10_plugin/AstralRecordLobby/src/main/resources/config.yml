@@ -4,6 +4,8 @@ api:
   baseUrl: "http://127.0.0.1:5261"
   apiKey: "your_api_key"
   timeoutMillis: 3000
+  # 開発環境の自己署名証明書でのみ使用する。本番では必ず false にする。
+  allowInsecureTls: false
 discord:
   enabled: true
   gameChannel: global

@@ -41,6 +41,7 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 - `POST /api/account-skilltree/{accountId}/repair-invalid-state`（[SkillTree API 設計](00_docs/20_API設計書/feature/20-skilltree/3-エンドポイント仕様/20_3.00-索引.md)）
 - `POST /api/release-notes/publish`（[Release Note API 設計](00_docs/20_API設計書/feature/28-release-note/28_README.md)）
 - `POST /api/release-notes/{slug}/retry-notification`（[Release Note API 設計](00_docs/20_API設計書/feature/28-release-note/28_README.md)）
+- `GET /api/network/servers`（Lobbyのサーバー選択GUI向け人数・権限別定員）
 
 ## AstralRecord Plugin
 

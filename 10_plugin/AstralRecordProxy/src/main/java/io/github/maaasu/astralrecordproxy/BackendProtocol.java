@@ -24,7 +24,7 @@ final class BackendProtocol {
         try (DataInputStream input = new DataInputStream(new ByteArrayInputStream(payload))) {
             String type = input.readUTF();
             return switch (type) {
-                case CONNECT -> new Connect(input.readUTF());
+                case CONNECT -> new Connect(input.readUTF(), input.available() >= Integer.BYTES ? input.readInt() : 0);
                 case METADATA -> new Metadata(
                     UUID.fromString(input.readUTF()), input.readUTF(), input.readUTF(), input.readUTF(),
                     input.readInt(), input.readUTF(), input.readBoolean());
@@ -51,7 +51,7 @@ final class BackendProtocol {
     sealed interface Incoming permits Connect, Metadata, Chat {
     }
 
-    record Connect(String targetServer) implements Incoming {
+    record Connect(String targetServer, int permission) implements Incoming {
     }
 
     record Metadata(

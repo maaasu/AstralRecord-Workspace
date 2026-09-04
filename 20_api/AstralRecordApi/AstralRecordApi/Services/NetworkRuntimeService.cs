@@ -57,6 +57,8 @@ public sealed class NetworkRuntimeService(TimeProvider timeProvider) : INetworkR
             request.State.Trim(),
             request.OnlineCount,
             request.Capacity,
+            request.DonorExtraPlayers,
+            request.AdminExtraPlayers,
             timeProvider.GetUtcNow().UtcDateTime);
         servers[presence.ServerId] = presence;
         return presence;

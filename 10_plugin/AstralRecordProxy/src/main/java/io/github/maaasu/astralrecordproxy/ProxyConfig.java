@@ -15,7 +15,7 @@ record ProxyConfig(
     String lobbyServer,
     List<String> gameServers,
     Map<String, String> channelNames,
-    Map<String, Integer> serverCapacities,
+    Map<String, ServerCapacity> serverCapacities,
     long transferCooldownSeconds,
     long tabRefreshSeconds,
     long presenceHeartbeatSeconds,
@@ -45,14 +45,9 @@ record ProxyConfig(
         Map<String, Object> api = child(root, "api");
         Map<String, String> channels = new LinkedHashMap<>();
         child(root, "channelNames").forEach((key, value) -> channels.put(key, String.valueOf(value)));
-        Map<String, Integer> capacities = new LinkedHashMap<>();
-        child(root, "serverCapacities").forEach((key, value) -> {
-            try {
-                capacities.put(key, Math.max(0, Integer.parseInt(String.valueOf(value))));
-            } catch (NumberFormatException ignored) {
-                capacities.put(key, 0);
-            }
-        });
+        Map<String, ServerCapacity> capacities = new LinkedHashMap<>();
+        child(root, "serverCapacities").forEach((key, value) ->
+            capacities.put(key, serverCapacity(value)));
         List<String> games = new ArrayList<>();
         Object rawGames = root.get("gameServers");
         if (rawGames instanceof List<?> list) {
@@ -82,8 +77,8 @@ record ProxyConfig(
         return gameServers.stream().anyMatch(value -> value.equalsIgnoreCase(serverId));
     }
 
-    int capacity(String serverId) {
-        return serverCapacities.getOrDefault(serverId, 0);
+    ServerCapacity capacity(String serverId) {
+        return serverCapacities.getOrDefault(serverId, ServerCapacity.NONE);
     }
 
     private static Map<String, Object> stringMap(Map<?, ?> source) {
@@ -120,5 +115,67 @@ record ProxyConfig(
             return flag;
         }
         return value == null ? fallback : Boolean.parseBoolean(String.valueOf(value).trim());
+    }
+
+    /**
+     * 新形式の権限別定員、または旧形式の単一定員を読み込む。
+     *
+     * @param value YAML上の定員設定
+     * @return 0未満を補正した定員設定
+     */
+    private static ServerCapacity serverCapacity(Object value) {
+        if (value instanceof Map<?, ?> map) {
+            Map<String, Object> values = stringMap(map);
+            return new ServerCapacity(
+                nonNegativeInt(values, "maxPlayers"),
+                nonNegativeInt(values, "donorExtraPlayers"),
+                nonNegativeInt(values, "adminExtraPlayers"));
+        }
+        try {
+            return new ServerCapacity(Math.max(0, Integer.parseInt(String.valueOf(value))), 0, 0);
+        } catch (NumberFormatException ignored) {
+            return ServerCapacity.NONE;
+        }
+    }
+
+    /**
+     * YAMLの整数値を0以上へ補正して取得する。
+     *
+     * @param source 読み取り元
+     * @param key キー
+     * @return 0以上の整数。未定義または不正値は0
+     */
+    private static int nonNegativeInt(Map<String, Object> source, String key) {
+        return (int) Math.min(Integer.MAX_VALUE, Math.max(0L, number(source, key, 0L)));
+    }
+
+    record ServerCapacity(int maxPlayers, int donorExtraPlayers, int adminExtraPlayers) {
+        private static final ServerCapacity NONE = new ServerCapacity(0, 0, 0);
+
+        /**
+         * 指定権限で利用できる接続上限を返す。
+         *
+         * @param permission APIユーザー権限
+         * @return 一般枠と利用可能な追加枠の合計
+         */
+        int limitFor(int permission) {
+            long limit = maxPlayers;
+            if (permission >= 99) {
+                limit += (long) donorExtraPlayers + adminExtraPlayers;
+            } else if (permission >= 5) {
+                limit += donorExtraPlayers;
+            }
+            return (int) Math.min(Integer.MAX_VALUE, limit);
+        }
+
+        /**
+         * 全権限を含むサーバーの物理的な最大接続数を返す。
+         *
+         * @return 一般枠・寄付者枠・管理者枠の合計
+         */
+        int totalCapacity() {
+            return (int) Math.min(Integer.MAX_VALUE,
+                (long) maxPlayers + donorExtraPlayers + adminExtraPlayers);
+        }
     }
 }

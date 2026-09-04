@@ -25,10 +25,19 @@ final class BackendProtocol {
         }
     }
 
-    static void sendConnect(Plugin plugin, Player player, String targetServer) {
+    /**
+     * Lobbyで確認済みの権限を添えてProxyへ接続要求を送る。
+     *
+     * @param plugin 送信元プラグイン
+     * @param player 接続するプレイヤー
+     * @param targetServer 接続先backend名
+     * @param permission API admissionで取得したユーザー権限
+     */
+    static void sendConnect(Plugin plugin, Player player, String targetServer, int permission) {
         send(plugin, player, output -> {
             output.writeUTF("connect");
             output.writeUTF(targetServer);
+            output.writeInt(permission);
         });
     }
 
