@@ -17,6 +17,7 @@
 | 09 | `09-astralarchitect-build-deploy.bat` | AstralArchitectをテスト・ビルドし、指定したMinecraftサーバーへJARを配置 |
 | 10 | `10-release-management-deploy.bat` | Release Note 用の API / Web だけをビルド・デプロイ |
 | 11 | `11-db-reset-except-release-notes.bat` | Release Note の送信情報を保持して3 DBのデータをリセット |
+| 12 | `12-build-network-plugins.bat` | Lobby / Velocity Proxyプラグインをビルドし、ローカル出力フォルダへJARを生成 |
 
 PowerShellから直接実行する場合は`generate-status-types.ps1`または`generate-tag-types.ps1`を使用します。bat はどのカレントディレクトリから実行しても動作するよう、内部で同じディレクトリのスクリプトを絶対パス解決します。
 
@@ -35,6 +36,7 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 ├─ 09-astralarchitect-build-deploy.bat
 ├─ 10-release-management-deploy.bat
 ├─ 11-db-reset-except-release-notes.bat
+├─ 12-build-network-plugins.bat
 ├─ generate-status-types.ps1
 ├─ generate-tag-types.ps1
 ├─ deploy-debug/
@@ -62,6 +64,9 @@ PowerShellから直接実行する場合は`generate-status-types.ps1`または`
 │  ├─ db-reset-except-release-notes.config.json
 │  ├─ reset-db-except-release-notes.sql
 │  └─ README.md
+├─ network-plugin-build/
+│  ├─ build-network-plugins.ps1
+│  └─ output/                     # ローカル生成物（Git管理外）
 ├─ status-catalog-codegen/
 │  ├─ StatusCatalogCodegen.csproj
 │  ├─ Program.cs
@@ -107,6 +112,13 @@ powershell -NoProfile -ExecutionPolicy Bypass -File .\deploy-debug\tests\release
 
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\astralarchitect-deploy\tests\astralarchitect-deploy.integration.ps1
+```
+
+`12-build-network-plugins.bat`は`AstralRecordLobby`と`AstralRecordProxy`をビルドし、既定では`network-plugin-build/output`へ`AstralRecordLobby.jar`と`AstralRecordProxy.jar`を生成します。サーバーへの配置は行いません。片方だけをビルドする場合は`-Target Lobby`または`-Target Proxy`、テストのコンパイルと実行を省略する場合は`-SkipTests`、出力先を変更する場合は`-OutputDirectory <path>`を指定します。
+
+```powershell
+.\12-build-network-plugins.bat
+.\12-build-network-plugins.bat -Target Proxy -SkipTests
 ```
 
 スキルツリーエディタは初回のみ `skilltree-editor/src/SkillTreeEditor.Client` で `npm ci` と `npm run build` を実行してください。開発時の2プロセス起動やpublish手順は `skilltree-editor/README.md` を参照してください。

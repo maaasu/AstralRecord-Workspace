@@ -27,6 +27,7 @@ __pycache__/
 *.py[cod]
 dist/
 60_tool/skilltree-editor/.cache/
+60_tool/network-plugin-build/output/
 10_plugin/AstralRecord/.dev-server/
 dependency-reduced-pom.xml
 
