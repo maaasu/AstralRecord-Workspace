@@ -5,6 +5,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 import java.net.URI;
+import java.net.Socket;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -17,9 +18,10 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 
+import javax.net.ssl.SSLEngine;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.X509ExtendedTrustManager;
 
 final class NetworkApiClient {
     private final HttpClient client;
@@ -119,7 +121,7 @@ final class NetworkApiClient {
     }
 
     private static SSLContext createInsecureSslContext() {
-        TrustManager[] trustManagers = {new X509TrustManager() {
+        TrustManager[] trustManagers = {new X509ExtendedTrustManager() {
             @Override
             public void checkClientTrusted(X509Certificate[] chain, String authType) {
                 // 開発環境限定設定ではクライアント証明書を検証しない。
@@ -128,6 +130,26 @@ final class NetworkApiClient {
             @Override
             public void checkServerTrusted(X509Certificate[] chain, String authType) {
                 // 開発環境限定設定ではサーバー証明書を検証しない。
+            }
+
+            @Override
+            public void checkClientTrusted(X509Certificate[] chain, String authType, Socket socket) {
+                // 開発環境限定設定ではクライアント証明書を検証しない。
+            }
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] chain, String authType, Socket socket) {
+                // 開発環境限定設定ではサーバー証明書とホスト名を検証しない。
+            }
+
+            @Override
+            public void checkClientTrusted(X509Certificate[] chain, String authType, SSLEngine engine) {
+                // 開発環境限定設定ではクライアント証明書を検証しない。
+            }
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] chain, String authType, SSLEngine engine) {
+                // 開発環境限定設定ではサーバー証明書とホスト名を検証しない。
             }
 
             @Override

@@ -32,7 +32,7 @@ class NetworkApiClientTest {
     Path temporaryDirectory;
 
     @Test
-    void insecureTlsAcceptsSelfSignedDevelopmentCertificate() throws Exception {
+    void insecureTlsAcceptsSelfSignedCertificateWithMismatchedHostName() throws Exception {
         SSLContext serverContext = createServerContext();
         byte[] responseBody = "{\"generationId\":\"test-generation\",\"messages\":[]}".getBytes(StandardCharsets.UTF_8);
 
@@ -67,7 +67,7 @@ class NetworkApiClientTest {
             "-storepass", String.valueOf(STORE_PASSWORD),
             "-keypass", String.valueOf(STORE_PASSWORD),
             "-dname", "CN=localhost",
-            "-ext", "SAN=ip:127.0.0.1",
+            "-ext", "SAN=dns:localhost",
             "-validity", "1",
             "-noprompt")
             .redirectErrorStream(true)
