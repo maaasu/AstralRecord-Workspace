@@ -1,0 +1,44 @@
+# design:
+#   motif: "建築 / 巨石の始源遺跡"
+#   progression: 15
+schemaVersion: 1
+id: alda_origin_trousers
+category: equipment
+name: "&5始源遺跡の魔導脚衣"
+icon: LEATHER_LEGGINGS
+appearance:
+  color: "#4A2A69"
+rarity: RARE
+maxStack: 1
+saleValue: 1800
+lore:
+  - "&7石壁に残る始源文字を織り込んだ脚衣。"
+  - "&7防御力とMP回復を高める魔法向けの脚防具。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: LEGS
+  requiredLevel: 15
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 30
+    - status: MP_REGEN
+      type: FLAT
+      value: 4
+  durability:
+    max: 390
+    consume: 1
+  enhance:
+    maxLevel: 10
+    levels:
+      - { level: 1, statIncrease: [{ status: DEFENSE, type: FLAT, value: 4 }], successRate: 1.0, failAction: NONE }
+      - { level: 2, statIncrease: [{ status: DEFENSE, type: FLAT, value: 4 }], successRate: 0.75, failAction: NONE }
+      - { level: 3, statIncrease: [{ status: DEFENSE, type: FLAT, value: 4 }], successRate: 0.75, failAction: NONE }
+      - { level: 4, statIncrease: [{ status: DEFENSE, type: FLAT, value: 4 }], successRate: 0.75, failAction: NONE }
+      - { level: 5, statIncrease: [{ status: DEFENSE, type: FLAT, value: 4 }], successRate: 0.50, failAction: NONE }
+      - { level: 6, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 0.50, failAction: NONE }
+      - { level: 7, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 0.35, failAction: NONE }
+      - { level: 8, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 0.35, failAction: NONE }
+      - { level: 9, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 0.20, failAction: NONE }
+      - { level: 10, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 0.05, failAction: NONE }

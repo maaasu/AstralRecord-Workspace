@@ -42,6 +42,12 @@ levels:
       exp: 200
       items:
         - itemId:
+            ref: item:alda_origin_ruins_fragment
+          rate: 40.0
+          amount: 1~2
+          luckAffected: true
+          hidden: false
+        - itemId:
             ref: item:merian_charm
           rate: 0.1
           amount: 1
@@ -58,6 +64,12 @@ levels:
           rate: 0.1
           amount: 1
           luckAffected: true
+          hidden: false
+        - itemId:
+            ref: item:alda_origin_plate
+          rate: 0.3
+          amount: 1
+          luckAffected: false
           hidden: false
       lootTable:
         ref: loot_table:normal_enemy_common_table_tier_1

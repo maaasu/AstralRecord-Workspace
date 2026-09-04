@@ -770,3 +770,229 @@ items:
       - itemId: { ref: item:maril_sil_hero_shard }
         category: material
         amount: 2
+  - id: alda_origin_plate
+    itemId:
+      ref: item:alda_origin_plate
+    category: equipment
+    amount: 1
+    page: 3
+    row: 1
+    column: 4
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:alda_origin_ruins_fragment }
+        category: material
+        amount: 480
+      - itemId: { ref: item:alda_origin_skeleton_fragment }
+        category: material
+        amount: 64
+      - itemId: { ref: item:alda_origin_bowstring }
+        category: material
+        amount: 64
+      - itemId: { ref: item:alda_origin_piglin_alloy }
+        category: material
+        amount: 48
+      - itemId: { ref: item:alda_origin_vatar_bone }
+        category: material
+        amount: 36
+      - itemId: { ref: item:alda_origin_ainua_hide }
+        category: material
+        amount: 48
+  - id: alda_origin_helm
+    itemId:
+      ref: item:alda_origin_helm
+    category: equipment
+    amount: 1
+    page: 3
+    row: 2
+    column: 2
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:alda_origin_ruins_fragment }
+        category: material
+        amount: 48
+      - itemId: { ref: item:alda_origin_skeleton_fragment }
+        category: material
+        amount: 18
+      - itemId: { ref: item:alda_origin_piglin_alloy }
+        category: material
+        amount: 10
+      - itemId: { ref: item:alda_origin_vatar_bone }
+        category: material
+        amount: 6
+  - id: alda_origin_greaves
+    itemId:
+      ref: item:alda_origin_greaves
+    category: equipment
+    amount: 1
+    page: 3
+    row: 3
+    column: 2
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:alda_origin_ruins_fragment }
+        category: material
+        amount: 64
+      - itemId: { ref: item:alda_origin_skeleton_fragment }
+        category: material
+        amount: 24
+      - itemId: { ref: item:alda_origin_piglin_alloy }
+        category: material
+        amount: 14
+      - itemId: { ref: item:alda_origin_vatar_bone }
+        category: material
+        amount: 8
+  - id: alda_origin_sabaton
+    itemId:
+      ref: item:alda_origin_sabaton
+    category: equipment
+    amount: 1
+    page: 3
+    row: 4
+    column: 2
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:alda_origin_ruins_fragment }
+        category: material
+        amount: 48
+      - itemId: { ref: item:alda_origin_skeleton_fragment }
+        category: material
+        amount: 18
+      - itemId: { ref: item:alda_origin_piglin_alloy }
+        category: material
+        amount: 10
+      - itemId: { ref: item:alda_origin_vatar_bone }
+        category: material
+        amount: 8
+  - id: alda_origin_hood
+    itemId:
+      ref: item:alda_origin_hood
+    category: equipment
+    amount: 1
+    page: 3
+    row: 2
+    column: 4
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:alda_origin_ruins_fragment }
+        category: material
+        amount: 48
+      - itemId: { ref: item:alda_origin_bowstring }
+        category: material
+        amount: 18
+      - itemId: { ref: item:alda_origin_ainua_hide }
+        category: material
+        amount: 10
+      - itemId: { ref: item:alda_origin_piglin_alloy }
+        category: material
+        amount: 8
+  - id: alda_origin_leggings
+    itemId:
+      ref: item:alda_origin_leggings
+    category: equipment
+    amount: 1
+    page: 3
+    row: 3
+    column: 4
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:alda_origin_ruins_fragment }
+        category: material
+        amount: 64
+      - itemId: { ref: item:alda_origin_bowstring }
+        category: material
+        amount: 24
+      - itemId: { ref: item:alda_origin_ainua_hide }
+        category: material
+        amount: 14
+      - itemId: { ref: item:alda_origin_piglin_alloy }
+        category: material
+        amount: 10
+  - id: alda_origin_boots
+    itemId:
+      ref: item:alda_origin_boots
+    category: equipment
+    amount: 1
+    page: 3
+    row: 4
+    column: 4
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:alda_origin_ruins_fragment }
+        category: material
+        amount: 48
+      - itemId: { ref: item:alda_origin_bowstring }
+        category: material
+        amount: 18
+      - itemId: { ref: item:alda_origin_ainua_hide }
+        category: material
+        amount: 10
+      - itemId: { ref: item:alda_origin_piglin_alloy }
+        category: material
+        amount: 8
+  - id: alda_origin_circlet
+    itemId:
+      ref: item:alda_origin_circlet
+    category: equipment
+    amount: 1
+    page: 3
+    row: 2
+    column: 6
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:alda_origin_ruins_fragment }
+        category: material
+        amount: 48
+      - itemId: { ref: item:alda_origin_vatar_bone }
+        category: material
+        amount: 18
+      - itemId: { ref: item:alda_origin_ainua_hide }
+        category: material
+        amount: 10
+      - itemId: { ref: item:alda_origin_piglin_alloy }
+        category: material
+        amount: 8
+  - id: alda_origin_trousers
+    itemId:
+      ref: item:alda_origin_trousers
+    category: equipment
+    amount: 1
+    page: 3
+    row: 3
+    column: 6
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:alda_origin_ruins_fragment }
+        category: material
+        amount: 64
+      - itemId: { ref: item:alda_origin_vatar_bone }
+        category: material
+        amount: 24
+      - itemId: { ref: item:alda_origin_ainua_hide }
+        category: material
+        amount: 14
+      - itemId: { ref: item:alda_origin_piglin_alloy }
+        category: material
+        amount: 10
+  - id: alda_origin_sandals
+    itemId:
+      ref: item:alda_origin_sandals
+    category: equipment
+    amount: 1
+    page: 3
+    row: 4
+    column: 6
+    priceGold: 0
+    requiredItems:
+      - itemId: { ref: item:alda_origin_ruins_fragment }
+        category: material
+        amount: 48
+      - itemId: { ref: item:alda_origin_vatar_bone }
+        category: material
+        amount: 18
+      - itemId: { ref: item:alda_origin_ainua_hide }
+        category: material
+        amount: 10
+      - itemId: { ref: item:alda_origin_piglin_alloy }
+        category: material
+        amount: 8

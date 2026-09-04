@@ -1,0 +1,16 @@
+# design:
+#   motif: "建築 / 巨石の始源遺跡"
+#   progression: 15
+schemaVersion: 1
+id: alda_origin_skeleton_fragment
+category: material
+name: "&f始源の骨片"
+icon: BONE
+rarity: COMMON
+maxStack: 64
+saleValue: 220
+lore:
+  - "&7始源遺跡の白骨兵に残る、硬質な骨片。"
+  - "&7遺跡の武具を補修する素材として使われる。"
+unTradeable: false
+unSellable: false

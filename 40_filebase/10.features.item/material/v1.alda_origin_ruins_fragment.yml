@@ -1,0 +1,16 @@
+# design:
+#   motif: "建築 / 巨石の始源遺跡"
+#   progression: 15
+schemaVersion: 1
+id: alda_origin_ruins_fragment
+category: material
+name: "&f始源遺跡の石片"
+icon: DEEPSLATE
+rarity: COMMON
+maxStack: 64
+saleValue: 180
+lore:
+  - "&7アルダの始源遺跡から剥がれ落ちた、古い石片。"
+  - "&7遺跡に棲む敵から共通して入手できる。"
+unTradeable: false
+unSellable: false

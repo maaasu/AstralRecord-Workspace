@@ -1,0 +1,16 @@
+# design:
+#   motif: "建築 / 巨石の始源遺跡"
+#   progression: 15
+schemaVersion: 1
+id: alda_origin_piglin_alloy
+category: material
+name: "&6始源の鍛造合金"
+icon: IRON_NUGGET
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 360
+lore:
+  - "&7突撃ピグリンの武器に混ぜられた、重い合金片。"
+  - "&7遺跡武具の鍛造に使われる。"
+unTradeable: false
+unSellable: false

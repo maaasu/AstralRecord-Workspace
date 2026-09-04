@@ -1,0 +1,16 @@
+# design:
+#   motif: "建築 / 巨石の始源遺跡"
+#   progression: 15
+schemaVersion: 1
+id: alda_origin_vatar_bone
+category: material
+name: "&dヴァタールの骨核"
+icon: BONE_BLOCK
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 420
+lore:
+  - "&7聖域を越えた白骨兵の奥に残る、密度の高い骨核。"
+  - "&7高位の装備素材として扱われる。"
+unTradeable: false
+unSellable: false

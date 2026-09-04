@@ -1,0 +1,16 @@
+# design:
+#   motif: "建築 / 巨石の始源遺跡"
+#   progression: 15
+schemaVersion: 1
+id: alda_origin_ainua_hide
+category: material
+name: "&eアイヌアの始源毛皮"
+icon: WHITE_WOOL
+rarity: UNCOMMON
+maxStack: 64
+saleValue: 380
+lore:
+  - "&7始源遺跡の獣から得られる、淡い光を帯びた毛皮。"
+  - "&7軽装具の補強に使われる。"
+unTradeable: false
+unSellable: false

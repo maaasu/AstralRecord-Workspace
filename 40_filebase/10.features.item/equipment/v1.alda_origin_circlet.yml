@@ -1,0 +1,47 @@
+# design:
+#   motif: "建築 / 巨石の始源遺跡"
+#   progression: 15
+schemaVersion: 1
+id: alda_origin_circlet
+category: equipment
+name: "&5始源遺跡の星冠"
+icon: LEATHER_HELMET
+appearance:
+  color: "#4A2A69"
+rarity: RARE
+maxStack: 1
+saleValue: 1600
+lore:
+  - "&7始源の光を編み込んだ、魔力を巡らせる冠。"
+  - "&7最大MPとMP回復を高める魔法向けの頭防具。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: HEAD
+  requiredLevel: 15
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 24
+    - status: MAX_MANA
+      type: FLAT
+      value: 50
+    - status: MP_REGEN
+      type: FLAT
+      value: 3
+  durability:
+    max: 360
+    consume: 1
+  enhance:
+    maxLevel: 10
+    levels:
+      - { level: 1, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 1.0, failAction: NONE }
+      - { level: 2, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 0.75, failAction: NONE }
+      - { level: 3, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 0.75, failAction: NONE }
+      - { level: 4, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 0.75, failAction: NONE }
+      - { level: 5, statIncrease: [{ status: DEFENSE, type: FLAT, value: 3 }], successRate: 0.50, failAction: NONE }
+      - { level: 6, statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }], successRate: 0.50, failAction: NONE }
+      - { level: 7, statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }], successRate: 0.35, failAction: NONE }
+      - { level: 8, statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }], successRate: 0.35, failAction: NONE }
+      - { level: 9, statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }], successRate: 0.20, failAction: NONE }
+      - { level: 10, statIncrease: [{ status: DEFENSE, type: FLAT, value: 2 }], successRate: 0.05, failAction: NONE }

@@ -1,0 +1,16 @@
+# design:
+#   motif: "建築 / 巨石の始源遺跡"
+#   progression: 15
+schemaVersion: 1
+id: alda_origin_bowstring
+category: material
+name: "&f始源遺跡の弦糸"
+icon: STRING
+rarity: COMMON
+maxStack: 64
+saleValue: 240
+lore:
+  - "&7始源遺跡の射手が使っていた、張りの強い弦糸。"
+  - "&7遠距離武器の調整に使われる。"
+unTradeable: false
+unSellable: false
