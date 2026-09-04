@@ -78,6 +78,58 @@ class TradeServiceTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
+     * 章・見出し: # 22_4-統合フロー > ## 3. Commit > ### 例外・終了条件
+     * 検証契約: 確定待ち中に取引画面を閉じた参加者がいれば、API拒否後は画面のないOPENへ戻さず中止する。
+     */
+    @Test
+    void rejectedCommitAfterClosingGuiCancelsInsteadOfLeavingInvisibleSession() throws Exception {
+        try (CommitContext context = new CommitContext(false, false);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
+             MockedStatic<io.github.maaasu.astralRecord.infrastructure.logging.Logger> logger =
+                 mockStatic(io.github.maaasu.astralRecord.infrastructure.logging.Logger.class)) {
+            context.stubParticipants(bukkit, cache, guard);
+            TestContext.registerSession(context.service, context.session);
+            when(context.playerA.getOpenInventory().getTopInventory().getHolder()).thenReturn(null);
+            context.session.setStatus(TradeSessionStatus.COMMITTING);
+            invokeFinish(context.service, context.session,
+                new TradeRepository.TradeCommitRejectedException(409, "trade.inventory_missing"));
+            assertEquals(TradeSessionStatus.CANCELLED, context.session.getStatus());
+            assertEquals(null, context.service.getOpenSession(context.playerAId));
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
+     * 章・見出し: # 22_4-統合フロー > ## 3. Commit > ### 例外・終了条件
+     * 検証契約: 同じsessionのGold設定または中止確認画面を維持している場合、API拒否後はOPENへ戻す。
+     */
+    @Test
+    void rejectedCommitCanResumeFromBothAuxiliaryTradeViews() throws Exception {
+        try (CommitContext context = new CommitContext(false, false);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
+             MockedStatic<io.github.maaasu.astralRecord.infrastructure.logging.Logger> logger =
+                 mockStatic(io.github.maaasu.astralRecord.infrastructure.logging.Logger.class)) {
+            context.stubParticipants(bukkit, cache, guard);
+            when(context.playerA.getOpenInventory().getTopInventory().getHolder()).thenReturn(
+                new GoldAmountSettingGui.GoldAmountHolder(TradeService.GOLD_AMOUNT_SOURCE_KEY,
+                    context.session.getSessionId(), context.playerAId, 0, 0));
+            when(context.playerB.getOpenInventory().getTopInventory().getHolder()).thenReturn(
+                new TradeCancelConfirmGui.CancelHolder(context.session.getSessionId(), context.playerBId));
+            context.session.setStatus(TradeSessionStatus.COMMITTING);
+            invokeFinish(context.service, context.session,
+                new TradeRepository.TradeCommitRejectedException(409, "trade.inventory_missing"));
+            assertEquals(TradeSessionStatus.OPEN, context.session.getStatus());
+            verify(context.playerA, never()).closeInventory();
+            verify(context.playerB, never()).closeInventory();
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
      * 章・見出し: # 22_4-統合フロー > ## 4. Close・cancel > ### 処理要点
      * 検証契約: 承認直後の片側GUI表示が同期的に失敗した場合、終了済み取引のGUIを相手に開かない。
      */
@@ -1073,6 +1125,8 @@ class TradeServiceTest {
                 when(astPlayer.getAccount()).thenReturn(account);
                 when(account.getUuid()).thenReturn(accountId);
                 when(player.isOnline()).thenReturn(true);
+                var tradeHolder = new TradeGui.TradeHolder(session.getSessionId(), player.getUniqueId());
+                when(player.getOpenInventory().getTopInventory().getHolder()).thenReturn(tradeHolder);
                 bukkit.when(() -> Bukkit.getPlayer(player.getUniqueId())).thenReturn(player);
                 cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
                 guard.when(() -> AccountModeGuard.isGameplayPlayer(player)).thenReturn(true);

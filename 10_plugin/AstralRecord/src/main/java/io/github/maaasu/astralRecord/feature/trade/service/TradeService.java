@@ -849,12 +849,32 @@ public final class TradeService {
             && session.getAccountId(player.getUniqueId()).equals(astPlayer.getAccount().getUuid());
     }
 
-    /** API未確定の失敗後に、両参加者が同じaccountと許可ワールドで取引を再開できるか判定します。 */
+    /** API未確定の失敗後に、両参加者が同じaccount・許可ワールド・取引画面で再開できるか判定します。 */
     private boolean canResumeTrade(@NotNull TradeSession session) {
         Player playerA = Bukkit.getPlayer(session.getPlayerAUuid());
         Player playerB = Bukkit.getPlayer(session.getPlayerBUuid());
         return hasSessionIdentity(session, playerA) && hasSessionIdentity(session, playerB)
-            && isTradeAllowedWorld(playerA) && isTradeAllowedWorld(playerB);
+            && isTradeAllowedWorld(playerA) && isTradeAllowedWorld(playerB)
+            && hasSessionGui(session, playerA) && hasSessionGui(session, playerB);
+    }
+
+    /** 確定待ち中に閉じた画面を取り残さないよう、現在のholderと固定session・viewerを照合します。 */
+    private boolean hasSessionGui(@NotNull TradeSession session, @NotNull Player player) {
+        var holder = player.getOpenInventory().getTopInventory().getHolder();
+        if (holder instanceof TradeGui.TradeHolder tradeHolder) {
+            return session.getSessionId().equals(tradeHolder.sessionId())
+                && player.getUniqueId().equals(tradeHolder.viewerUuid());
+        }
+        if (holder instanceof TradeCancelConfirmGui.CancelHolder cancelHolder) {
+            return session.getSessionId().equals(cancelHolder.sessionId())
+                && player.getUniqueId().equals(cancelHolder.viewerUuid());
+        }
+        if (holder instanceof GoldAmountSettingGui.GoldAmountHolder goldHolder) {
+            return GOLD_AMOUNT_SOURCE_KEY.equals(goldHolder.sourceKey())
+                && session.getSessionId().equals(goldHolder.contextId())
+                && player.getUniqueId().equals(goldHolder.viewerUuid());
+        }
+        return false;
     }
 
     private void openTrade(@NotNull Player player, @NotNull TradeSession session) {

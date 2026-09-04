@@ -205,6 +205,11 @@ class LearnedSkillServiceTest {
 
         assertTrue(successCompleted.await(2, TimeUnit.SECONDS));
         assertEquals(learned, success.get());
+        // 成功callbackの後にfinallyでロックが解放されるため、完了を待って検証する。
+        long lockDeadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(1);
+        while (service.hasMutationInProgress(accountId) && System.nanoTime() < lockDeadline) {
+            Thread.yield();
+        }
         assertFalse(service.hasMutationInProgress(accountId));
         verify(repository).attachSigil(
             eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq("cooldown_sigil"),
