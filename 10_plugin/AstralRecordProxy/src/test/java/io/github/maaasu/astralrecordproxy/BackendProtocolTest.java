@@ -39,4 +39,20 @@ class BackendProtocolTest {
 
         assertEquals(0, connect.permission());
     }
+
+    @Test
+    void decodesBackendMspt() throws Exception {
+        byte[] payload;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+             DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeUTF("server_metrics");
+            output.writeDouble(12.34D);
+            payload = bytes.toByteArray();
+        }
+
+        BackendProtocol.ServerMetrics metrics =
+            (BackendProtocol.ServerMetrics) BackendProtocol.decode(payload);
+
+        assertEquals(12.34D, metrics.mspt());
+    }
 }

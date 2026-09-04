@@ -12,6 +12,7 @@ final class BackendProtocol {
     static final String CONNECT = "connect";
     static final String METADATA = "metadata";
     static final String CHAT = "chat";
+    static final String SERVER_METRICS = "server_metrics";
     static final String OPEN_MENU = "open_menu";
 
     private BackendProtocol() {
@@ -31,6 +32,7 @@ final class BackendProtocol {
                 case CHAT -> new Chat(
                     UUID.fromString(input.readUTF()), UUID.fromString(input.readUTF()), input.readUTF(),
                     input.readUTF(), input.readUTF(), input.readInt(), input.readUTF(), input.readUTF());
+                case SERVER_METRICS -> new ServerMetrics(input.readDouble());
                 default -> throw new IOException("Unknown plugin message type: " + type);
             };
         }
@@ -48,7 +50,7 @@ final class BackendProtocol {
         }
     }
 
-    sealed interface Incoming permits Connect, Metadata, Chat {
+    sealed interface Incoming permits Connect, Metadata, Chat, ServerMetrics {
     }
 
     record Connect(String targetServer, int permission) implements Incoming {
@@ -75,5 +77,8 @@ final class BackendProtocol {
         String className,
         String message
     ) implements Incoming {
+    }
+
+    record ServerMetrics(double mspt) implements Incoming {
     }
 }

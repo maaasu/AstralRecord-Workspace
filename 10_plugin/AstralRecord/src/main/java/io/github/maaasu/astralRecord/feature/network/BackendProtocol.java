@@ -64,6 +64,20 @@ final class BackendProtocol {
         });
     }
 
+    /**
+     * RPGサーバーの平均MSPTをProxyへ送る。
+     *
+     * @param plugin 送信元プラグイン
+     * @param player Proxy接続に利用するオンラインプレイヤー
+     * @param mspt RPGサーバーの平均MSPT
+     */
+    static void sendServerMetrics(@NotNull Plugin plugin, @NotNull Player player, double mspt) {
+        send(plugin, player, output -> {
+            output.writeUTF("server_metrics");
+            output.writeDouble(mspt);
+        });
+    }
+
     private static void send(@NotNull Plugin plugin, @NotNull Player player, @NotNull Writer writer) {
         try {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();

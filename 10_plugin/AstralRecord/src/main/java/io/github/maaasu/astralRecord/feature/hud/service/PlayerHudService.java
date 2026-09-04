@@ -51,6 +51,7 @@ public class PlayerHudService {
     private final Map<UUID, Function<AstPlayer, Component>> primaryActionBarRenderers = new HashMap<>();
     private AstralRecord plugin;
     private BukkitTask task;
+    private boolean proxyOwnsTabHeader;
 
     /**
      * HUD サービスを構築します。
@@ -101,6 +102,7 @@ public class PlayerHudService {
             return;
         }
         this.plugin = plugin;
+        proxyOwnsTabHeader = plugin.getConfig().getBoolean("network.enabled", true);
         task = plugin.getServer().getScheduler().runTaskTimer(plugin, this::updateAll, 10L, 10L);
     }
 
@@ -113,6 +115,7 @@ public class PlayerHudService {
             actionBarOverrideTask.cancel();
         }
         actionBarOverrideTasks.clear();
+        proxyOwnsTabHeader = false;
         plugin = null;
     }
 
@@ -266,11 +269,13 @@ public class PlayerHudService {
                 playerHudView.removeSidebar(player);
             }
             playerHudView.renderBars(player, snapshot, playerLevel, experienceProgress);
-            playerHudView.renderTabList(
-                player,
-                mspt,
-                playerSettingService.isPerformanceInfoDisplayEnabled(astPlayer.getUser().getUuid())
-            );
+            if (!proxyOwnsTabHeader) {
+                playerHudView.renderTabList(
+                    player,
+                    mspt,
+                    playerSettingService.isPerformanceInfoDisplayEnabled(astPlayer.getUser().getUuid())
+                );
+            }
         }
     }
 

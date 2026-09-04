@@ -41,6 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 @Plugin(id = "astralrecordproxy", name = "AstralRecordProxy", version = "1.0.0")
 public final class AstralRecordProxyPlugin {
+    static final long SERVER_METRICS_TTL_NANOS = TimeUnit.SECONDS.toNanos(15L);
     private static final MinecraftChannelIdentifier CHANNEL =
         MinecraftChannelIdentifier.from(BackendProtocol.CHANNEL);
 
@@ -51,6 +52,7 @@ public final class AstralRecordProxyPlugin {
     private final Map<UUID, Long> lastGameConnectMillis = new ConcurrentHashMap<>();
     private final Set<UUID> pendingGameConnections = ConcurrentHashMap.newKeySet();
     private final Map<String, AtomicInteger> serverReservations = new ConcurrentHashMap<>();
+    private final Map<String, ServerMetric> serverMspt = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, PlayerMetadata>> tabDisplayCache = new ConcurrentHashMap<>();
     private final AtomicBoolean discordPollRunning = new AtomicBoolean();
     private final AtomicLong discordSequence = new AtomicLong();
@@ -195,6 +197,11 @@ public final class AstralRecordProxyPlugin {
                     logger.warn("Failed to relay Minecraft chat to API", failure);
                     return null;
                 });
+            } else if (incoming instanceof BackendProtocol.ServerMetrics metrics
+                && Double.isFinite(metrics.mspt()) && metrics.mspt() >= 0.0D) {
+                serverMspt.put(
+                    connection.getServerInfo().getName().toLowerCase(Locale.ROOT),
+                    new ServerMetric(metrics.mspt(), System.nanoTime()));
             }
         } catch (RuntimeException | IOException exception) {
             logger.warn("Rejected malformed AstralRecord plugin message", exception);
@@ -373,6 +380,7 @@ public final class AstralRecordProxyPlugin {
         ProxyConfig.ServerCapacity capacity = config.capacity(serverId);
         server.ping().whenComplete((ignored, failure) -> {
             boolean online = failure == null;
+            if (!online) serverMspt.remove(serverId.toLowerCase(Locale.ROOT));
             api.heartbeatServer(
                 serverId,
                 config.channelName(serverId),
@@ -386,7 +394,16 @@ public final class AstralRecordProxyPlugin {
     private void refreshTabEntries() {
         Set<UUID> onlineIds = new HashSet<>();
         proxy.getAllPlayers().forEach(player -> onlineIds.add(player.getUniqueId()));
+        int totalPlayers = onlineIds.size();
+        long nowNanos = System.nanoTime();
+        serverMspt.entrySet().removeIf(entry -> resolveServerMspt(entry.getValue(), nowNanos) == null);
         for (Player viewer : proxy.getAllPlayers()) {
+            String currentServer = viewer.getCurrentServer()
+                .map(connection -> connection.getServerInfo().getName().toLowerCase(Locale.ROOT))
+                .orElse("");
+            ProxyTabDisplay.HeaderFooter headerFooter = ProxyTabDisplay.render(
+                viewer.getPing(), resolveServerMspt(serverMspt.get(currentServer), nowNanos), totalPlayers);
+            viewer.sendPlayerListHeaderAndFooter(headerFooter.header(), headerFooter.footer());
             TabList tabList = viewer.getTabList();
             Map<UUID, PlayerMetadata> cached =
                 tabDisplayCache.computeIfAbsent(viewer.getUniqueId(), ignored -> new ConcurrentHashMap<>());
@@ -428,6 +445,22 @@ public final class AstralRecordProxyPlugin {
         return new PlayerMetadata(
             player.getUniqueId(), player.getUsername(), serverId, config.channelName(serverId),
             player.getUsername(), null, null, false);
+    }
+
+    /**
+     * 受信済みMSPTが有効期限内の場合だけ表示値として返す。
+     *
+     * @param metric 受信済みサーバーメトリクス
+     * @param nowNanos 現在時刻
+     * @return 有効なMSPT。未受信または期限切れの場合はnull
+     */
+    static Double resolveServerMspt(ServerMetric metric, long nowNanos) {
+        if (metric == null) return null;
+        long ageNanos = nowNanos - metric.receivedAtNanos();
+        return ageNanos >= 0L && ageNanos <= SERVER_METRICS_TTL_NANOS ? metric.mspt() : null;
+    }
+
+    record ServerMetric(double mspt, long receivedAtNanos) {
     }
 
     private final class ServerMenuCommand implements SimpleCommand {

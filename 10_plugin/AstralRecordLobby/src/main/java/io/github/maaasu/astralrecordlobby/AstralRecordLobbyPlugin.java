@@ -42,6 +42,7 @@ public final class AstralRecordLobbyPlugin extends JavaPlugin {
         discordBridge.start();
         getServer().getScheduler().runTaskTimer(this, () ->
             getServer().getOnlinePlayers().forEach(this::applyLobbyPermission), 20L, 20L);
+        getServer().getScheduler().runTaskTimer(this, this::publishServerMetrics, 20L, 100L);
     }
 
     @Override
@@ -97,6 +98,12 @@ public final class AstralRecordLobbyPlugin extends JavaPlugin {
         if (!admin && player.getGameMode() != GameMode.ADVENTURE) player.setGameMode(GameMode.ADVENTURE);
         setAttribute(player, Attribute.ENTITY_INTERACTION_RANGE, admin ? 3.0 : 0.0);
         setAttribute(player, Attribute.BLOCK_INTERACTION_RANGE, admin ? 4.5 : 0.0);
+    }
+
+    /** オンラインプレイヤー1人を経由してLobbyの平均MSPTをProxyへ送る。 */
+    private void publishServerMetrics() {
+        getServer().getOnlinePlayers().stream().findFirst().ifPresent(player ->
+            BackendProtocol.sendServerMetrics(this, player, getServer().getAverageTickTime()));
     }
 
     private void setAttribute(Player player, Attribute attribute, double value) {

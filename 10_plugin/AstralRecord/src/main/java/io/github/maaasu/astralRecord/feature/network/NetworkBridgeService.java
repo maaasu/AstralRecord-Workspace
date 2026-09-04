@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
+import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -63,7 +64,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
         metadataTask = plugin.getServer().getScheduler().runTaskTimer(
             plugin,
-            () -> AstPlayerCache.getAll().forEach(this::publishMetadata),
+            this::publishNetworkState,
             20L,
             100L);
     }
@@ -220,6 +221,18 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
         if (!player.getBukkit().isOnline()) return;
         BackendProtocol.sendMetadata(
             plugin, player, channelName, displayName(player), className(player), afkService.isAfk(player));
+    }
+
+    /** プレイヤーTabメタデータとサーバー平均MSPTをProxyへ送る。 */
+    private void publishNetworkState() {
+        Player metricsSender = null;
+        for (AstPlayer player : AstPlayerCache.getAll()) {
+            publishMetadata(player);
+            if (metricsSender == null && player.getBukkit().isOnline()) metricsSender = player.getBukkit();
+        }
+        if (metricsSender != null) {
+            BackendProtocol.sendServerMetrics(plugin, metricsSender, Bukkit.getServer().getAverageTickTime());
+        }
     }
 
     private @NotNull String displayName(@NotNull AstPlayer player) {

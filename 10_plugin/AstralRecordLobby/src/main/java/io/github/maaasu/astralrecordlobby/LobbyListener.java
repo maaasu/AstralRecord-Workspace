@@ -3,6 +3,7 @@ package io.github.maaasu.astralrecordlobby;
 import io.papermc.paper.event.player.AsyncChatEvent;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.GameRule;
+import org.bukkit.Location;
 import org.bukkit.entity.Player;
 import org.bukkit.entity.Projectile;
 import org.bukkit.entity.TNTPrimed;
@@ -28,14 +29,22 @@ import org.bukkit.event.player.PlayerDropItemEvent;
 import org.bukkit.event.player.PlayerInteractEntityEvent;
 import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
+import org.bukkit.event.player.PlayerMoveEvent;
 import org.bukkit.event.player.PlayerPickupItemEvent;
 import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.event.player.PlayerSwapHandItemsEvent;
+import org.bukkit.event.player.PlayerTeleportEvent;
 import org.bukkit.event.world.WorldLoadEvent;
+import org.bukkit.util.Vector;
+
+import java.util.HashSet;
+import java.util.Set;
+import java.util.UUID;
 
 final class LobbyListener implements Listener {
     private final AstralRecordLobbyPlugin plugin;
     private final ServerSelector selector;
+    private final Set<UUID> voidReturning = new HashSet<>();
 
     LobbyListener(AstralRecordLobbyPlugin plugin, ServerSelector selector) {
         this.plugin = plugin;
@@ -65,7 +74,27 @@ final class LobbyListener implements Listener {
 
     @EventHandler
     public void onQuit(PlayerQuitEvent event) {
-        plugin.clearPermission(event.getPlayer().getUniqueId());
+        UUID playerId = event.getPlayer().getUniqueId();
+        voidReturning.remove(playerId);
+        plugin.clearPermission(playerId);
+    }
+
+    /**
+     * 一般プレイヤーが奈落へ落ちた場合、現在ワールドのスポーン地点へ戻す。
+     *
+     * @param event プレイヤー移動イベント
+     */
+    @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
+    public void onMove(PlayerMoveEvent event) {
+        Player player = event.getPlayer();
+        Location destination = event.getTo();
+        if (plugin.isAdmin(player) || destination == null
+            || !isBelowWorld(player.getWorld().getMinHeight(), destination.getY())) {
+            return;
+        }
+
+        event.setCancelled(true);
+        returnFromVoid(player);
     }
 
     @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
@@ -139,9 +168,17 @@ final class LobbyListener implements Listener {
         if (event.getEntity() instanceof Player player && !plugin.isAdmin(player)) event.setCancelled(true);
     }
 
+    /**
+     * 一般プレイヤーへのダメージを無効化し、奈落ダメージ時はスポーン地点へ戻す。
+     *
+     * @param event エンティティダメージイベント
+     */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onDamage(EntityDamageEvent event) {
-        if (event.getEntity() instanceof Player player && !plugin.isAdmin(player)) event.setCancelled(true);
+        if (!(event.getEntity() instanceof Player player) || plugin.isAdmin(player)) return;
+
+        event.setCancelled(true);
+        if (event.getCause() == EntityDamageEvent.DamageCause.VOID) returnFromVoid(player);
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
@@ -171,5 +208,63 @@ final class LobbyListener implements Listener {
 
     private void cancelUnlessAdmin(Player player, org.bukkit.event.Cancellable event) {
         if (!plugin.isAdmin(player)) event.setCancelled(true);
+    }
+
+    /**
+     * プレイヤーの向きを維持して現在ワールドのスポーン地点へ戻し、落下状態を解除する。
+     *
+     * @param player 対象プレイヤー
+     */
+    private void returnFromVoid(Player player) {
+        UUID playerId = player.getUniqueId();
+        if (!voidReturning.add(playerId)) return;
+
+        Location spawn = spawnWithRotation(player.getWorld().getSpawnLocation(), player.getYaw(), player.getPitch());
+        resetFallingState(player);
+        plugin.getServer().getScheduler().runTask(plugin, () -> {
+            try {
+                if (!player.isOnline()) return;
+                resetFallingState(player);
+                player.teleport(spawn, PlayerTeleportEvent.TeleportCause.PLUGIN);
+            } finally {
+                voidReturning.remove(playerId);
+            }
+        });
+    }
+
+    /**
+     * 奈落復帰前の落下距離と移動速度を解除する。
+     *
+     * @param player 対象プレイヤー
+     */
+    private static void resetFallingState(Player player) {
+        player.setFallDistance(0.0F);
+        player.setVelocity(new Vector());
+    }
+
+    /**
+     * 指定座標がワールドの最低高度を下回っているか判定する。
+     *
+     * @param minHeight ワールドの最低高度
+     * @param y 判定するY座標
+     * @return 最低高度を下回っている場合はtrue
+     */
+    static boolean isBelowWorld(int minHeight, double y) {
+        return y < minHeight;
+    }
+
+    /**
+     * スポーン地点の複製へプレイヤーの向きを設定する。
+     *
+     * @param spawn スポーン地点
+     * @param yaw プレイヤーの水平角度
+     * @param pitch プレイヤーの垂直角度
+     * @return プレイヤーの向きを反映したスポーン地点
+     */
+    static Location spawnWithRotation(Location spawn, float yaw, float pitch) {
+        Location destination = spawn.clone();
+        destination.setYaw(yaw);
+        destination.setPitch(pitch);
+        return destination;
     }
 }

@@ -55,6 +55,20 @@ final class BackendProtocol {
         });
     }
 
+    /**
+     * Lobbyサーバーの平均MSPTをProxyへ送る。
+     *
+     * @param plugin 送信元プラグイン
+     * @param player Proxy接続に利用するオンラインプレイヤー
+     * @param mspt Lobbyサーバーの平均MSPT
+     */
+    static void sendServerMetrics(Plugin plugin, Player player, double mspt) {
+        send(plugin, player, output -> {
+            output.writeUTF("server_metrics");
+            output.writeDouble(mspt);
+        });
+    }
+
     private static void send(Plugin plugin, Player player, Writer writer) {
         try {
             ByteArrayOutputStream bytes = new ByteArrayOutputStream();
