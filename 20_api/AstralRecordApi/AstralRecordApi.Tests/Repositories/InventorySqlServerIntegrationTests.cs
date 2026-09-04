@@ -15,6 +15,75 @@ public class InventorySqlServerIntegrationTests
     private const string LocalSqlServerInstance = @"localhost\SQLEXPRESS";
     private const string SqlServerOptInEnvironmentVariable = "ASTRALRECORD_RUN_SQLSERVER_INTEGRATION";
 
+    [Theory]
+    [InlineData("create")]
+    [InlineData("update")]
+    [InlineData("replace")]
+    public async Task SavedEntryVersion_MatchesDatabaseAndAllowsSubsequentReplace(string operation)
+    {
+        if (!SqlServerIntegrationEnabled())
+            return;
+
+        var databaseName = DatabasePrefix + Guid.NewGuid().ToString("N");
+        var connectionString = BuildConnectionString(databaseName);
+        try
+        {
+            await CreateDatabaseAsync(databaseName);
+            await CreateInventorySchemaAsync(connectionString);
+            var accountId = Guid.NewGuid();
+            var inventoryId = Guid.NewGuid();
+            var entryId = Guid.NewGuid();
+            var now = new DateTime(2026, 9, 5, 0, 0, 0, DateTimeKind.Utc);
+            await SeedInventoryAsync(connectionString, accountId, inventoryId,
+                entryId, Guid.NewGuid(), accountId, now);
+
+            await using var writeContext = CreateDbContext(connectionString);
+            var repository = new InventoryRepository(writeContext);
+            InventoryEntryResponse? saved;
+            if (operation == "create")
+            {
+                saved = await repository.CreateEntryAsync(inventoryId, new InventoryEntryCreateRequest
+                {
+                    SlotIndex = 3, ItemCategory = "MATERIAL", ItemId = "version_test",
+                    Quantity = 1, CreatedBy = accountId,
+                });
+            }
+            else if (operation == "update")
+            {
+                saved = await repository.UpdateEntryAsync(entryId, new InventoryEntryUpdateRequest
+                {
+                    SlotIndex = 1, ItemCategory = "MATERIAL", ItemId = "version_test",
+                    Quantity = 1, UpdatedBy = accountId,
+                });
+            }
+            else
+            {
+                var replaced = await repository.ReplaceEntriesAsync(inventoryId,
+                    CreateMoveRequest(entryId, accountId, now, 1));
+                saved = Assert.Single(Assert.IsAssignableFrom<IReadOnlyList<InventoryEntryResponse>>(replaced));
+            }
+            Assert.NotNull(saved);
+
+            // 別 context の読込値と、次回保存へそのまま渡す応答の版が一致することを保証する。
+            await using var readContext = CreateDbContext(connectionString);
+            var stored = await new InventoryRepository(readContext).GetEntryByIdAsync(saved.InventoryEntryId);
+            Assert.NotNull(stored);
+            Assert.Equal(stored.UpdatedAt, saved.UpdatedAt);
+            Assert.Equal(stored.CreatedAt, saved.CreatedAt);
+
+            var secondSave = await repository.ReplaceEntriesAsync(inventoryId,
+                CreateMoveRequest(saved.InventoryEntryId, accountId, saved.UpdatedAt, 2));
+            Assert.NotNull(secondSave);
+            var persisted = Assert.Single(secondSave);
+            Assert.Equal(saved.InventoryEntryId, persisted.InventoryEntryId);
+            Assert.Equal(2, persisted.SlotIndex);
+        }
+        finally
+        {
+            await DropDatabaseAsync(databaseName);
+        }
+    }
+
     [Fact]
     public async Task ReplaceEntriesConcurrently_SerializesSameInventoryWithoutDeadlock()
     {

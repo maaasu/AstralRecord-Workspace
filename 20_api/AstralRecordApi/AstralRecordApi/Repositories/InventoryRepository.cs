@@ -166,6 +166,8 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
 
         await dbContext.InventoryEntries.AddAsync(entity);
         await dbContext.SaveChangesAsync();
+        // DB の日時精度で確定した版を返し、次回の expectedUpdatedAt と一致させる。
+        await dbContext.Entry(entity).ReloadAsync();
 
         return MapEntry(entity);
     }
@@ -204,6 +206,7 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
         entity.UpdatedBy = request.UpdatedBy;
 
         await dbContext.SaveChangesAsync();
+        await dbContext.Entry(entity).ReloadAsync();
 
         return MapEntry(entity);
     }
@@ -299,7 +302,6 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
             if (entriesToDisable.Length > 0)
                 await dbContext.SaveChangesAsync();
 
-            var nextEntries = new List<InventoryEntryEntity>(request.Entries.Count);
             for (var entryIndex = 0; entryIndex < request.Entries.Count; entryIndex++)
             {
                 var entry = request.Entries[entryIndex];
@@ -331,18 +333,15 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
                 entity.UpdatedAt = now;
                 entity.UpdatedBy = request.UpdatedBy;
                 entity.IsDeleted = false;
-                nextEntries.Add(entity);
             }
 
             await dbContext.SaveChangesAsync();
+            // datetime2(3) への保存で丸められるため、メモリ上の DateTime.UtcNow を版として返さない。
+            // ロックを保持している transaction 内で一括再取得し、この保存で確定した応答を作る。
+            var persistedEntries = await GetEntriesByInventoryIdAsync(inventoryId);
             await transaction.CommitAsync();
 
-            return nextEntries
-                .OrderBy(x => x.SlotIndex.HasValue ? 0 : 1)
-                .ThenBy(x => x.SlotIndex)
-                .ThenBy(x => x.ItemId)
-                .Select(MapEntry)
-                .ToList();
+            return persistedEntries;
         });
     }
 

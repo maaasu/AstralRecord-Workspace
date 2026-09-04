@@ -76,6 +76,9 @@ public class InventoryController(IInventoryRepository inventoryRepository) : Con
         return Ok(entry);
     }
 
+    /// <summary>
+    /// エントリを登録し、DBに保存された更新時刻を含む結果を返します。
+    /// </summary>
     [HttpPost("{inventoryId:guid}/entries")]
     [ProducesResponseType(StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -92,6 +95,9 @@ public class InventoryController(IInventoryRepository inventoryRepository) : Con
         return CreatedAtAction(nameof(GetEntryById), new { inventoryEntryId = created.InventoryEntryId }, created);
     }
 
+    /// <summary>
+    /// エントリを更新し、次回一括置換の版として利用できる保存済み更新時刻を返します。
+    /// </summary>
     [HttpPut("entries/{inventoryEntryId:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -110,6 +116,7 @@ public class InventoryController(IInventoryRepository inventoryRepository) : Con
 
     /// <summary>
     /// 指定インベントリの有効エントリをリクエスト内容で丸ごと置換します。
+    /// 応答の更新時刻は同じトランザクション内でDBから再取得した保存済みの版です。
     /// </summary>
     [HttpPut("{inventoryId:guid}/entries")]
     [ProducesResponseType(StatusCodes.Status200OK)]
