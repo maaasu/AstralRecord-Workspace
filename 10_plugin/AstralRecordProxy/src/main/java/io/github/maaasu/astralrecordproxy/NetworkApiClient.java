@@ -8,11 +8,18 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.security.GeneralSecurityException;
+import java.security.SecureRandom;
+import java.security.cert.X509Certificate;
 import java.time.Duration;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 final class NetworkApiClient {
     private final HttpClient client;
@@ -25,10 +32,13 @@ final class NetworkApiClient {
         baseUrl = config.apiBaseUrl().replaceAll("/+$", "");
         apiKey = config.apiKey();
         timeout = Duration.ofMillis(Math.max(500, config.apiTimeoutMillis()));
-        client = HttpClient.newBuilder()
+        HttpClient.Builder builder = HttpClient.newBuilder()
             .connectTimeout(timeout)
-            .followRedirects(HttpClient.Redirect.NORMAL)
-            .build();
+            .followRedirects(HttpClient.Redirect.NORMAL);
+        if (config.allowInsecureTls()) {
+            builder.sslContext(createInsecureSslContext());
+        }
+        client = builder.build();
     }
 
     CompletableFuture<Void> heartbeatPlayer(PlayerMetadata metadata) {
@@ -106,6 +116,32 @@ final class NetworkApiClient {
                 }
                 return response.body();
             });
+    }
+
+    private static SSLContext createInsecureSslContext() {
+        TrustManager[] trustManagers = {new X509TrustManager() {
+            @Override
+            public void checkClientTrusted(X509Certificate[] chain, String authType) {
+                // 開発環境限定設定ではクライアント証明書を検証しない。
+            }
+
+            @Override
+            public void checkServerTrusted(X509Certificate[] chain, String authType) {
+                // 開発環境限定設定ではサーバー証明書を検証しない。
+            }
+
+            @Override
+            public X509Certificate[] getAcceptedIssuers() {
+                return new X509Certificate[0];
+            }
+        }};
+        try {
+            SSLContext context = SSLContext.getInstance("TLS");
+            context.init(null, trustManagers, new SecureRandom());
+            return context;
+        } catch (GeneralSecurityException exception) {
+            throw new IllegalStateException("Failed to initialize insecure TLS context", exception);
+        }
     }
 
     record DiscordChat(long sequence, String messageId, String authorName, String message) {

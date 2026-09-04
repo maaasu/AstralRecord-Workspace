@@ -72,6 +72,9 @@ public final class AstralRecordProxyPlugin {
         } catch (IOException exception) {
             throw new IllegalStateException("Failed to load AstralRecordProxy config", exception);
         }
+        if (config.allowInsecureTls()) {
+            logger.warn("Network API TLS certificate verification is disabled. Use only in development.");
+        }
         api = new NetworkApiClient(config);
         proxy.getChannelRegistrar().register(CHANNEL);
         proxy.getCommandManager().register(

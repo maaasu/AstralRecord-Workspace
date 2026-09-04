@@ -22,7 +22,8 @@ record ProxyConfig(
     String apiBaseUrl,
     String apiKey,
     int apiTimeoutMillis,
-    long discordPollMillis
+    long discordPollMillis,
+    boolean allowInsecureTls
 ) {
     static ProxyConfig load(Path dataDirectory) throws IOException {
         Files.createDirectories(dataDirectory);
@@ -68,7 +69,8 @@ record ProxyConfig(
             text(api, "baseUrl", "http://127.0.0.1:5261"),
             text(api, "apiKey", ""),
             (int) number(api, "timeoutMillis", 3000L),
-            Math.max(250L, number(api, "discordPollMillis", 500L))
+            Math.max(250L, number(api, "discordPollMillis", 500L)),
+            bool(api, "allowInsecureTls", false)
         );
     }
 
@@ -110,5 +112,13 @@ record ProxyConfig(
         } catch (NumberFormatException ignored) {
             return fallback;
         }
+    }
+
+    private static boolean bool(Map<String, Object> source, String key, boolean fallback) {
+        Object value = source.get(key);
+        if (value instanceof Boolean flag) {
+            return flag;
+        }
+        return value == null ? fallback : Boolean.parseBoolean(String.valueOf(value).trim());
     }
 }
