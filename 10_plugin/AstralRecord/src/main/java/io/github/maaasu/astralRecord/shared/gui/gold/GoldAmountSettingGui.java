@@ -51,6 +51,21 @@ public final class GoldAmountSettingGui {
         long amount,
         long maxAmount
     ) {
+        open(viewer, sourceKey, contextId, amount, maxAmount, () -> { }, () -> { });
+    }
+
+    /**
+     * 金額設定画面を開き、遅延遷移の表示完了または取消を通知します。
+     * @param viewer 表示対象
+     * @param sourceKey 呼出元キー
+     * @param contextId 呼出元コンテキスト
+     * @param amount 初期金額
+     * @param maxAmount 設定上限
+     * @param onOpened 表示完了時の処理
+     * @param onCancelled 遷移取消時の処理
+     */
+    public void open(@NotNull Player viewer, @NotNull String sourceKey, @NotNull UUID contextId,
+                     long amount, long maxAmount, @NotNull Runnable onOpened, @NotNull Runnable onCancelled) {
         long normalizedMax = Math.max(0L, maxAmount);
         long normalizedAmount = clamp(amount, normalizedMax);
         Inventory inventory = Bukkit.createInventory(
@@ -59,7 +74,7 @@ public final class GoldAmountSettingGui {
             Component.text("ゴールド金額", NamedTextColor.GOLD)
         );
         render(inventory, normalizedAmount, normalizedMax, 1L);
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory, onOpened, onCancelled);
     }
 
     /**

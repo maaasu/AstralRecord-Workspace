@@ -77,6 +77,268 @@ import static org.mockito.Mockito.when;
 class TradeServiceTest {
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
+     * 章・見出し: # 22_4-統合フロー > ## 4. Close・cancel > ### 処理要点
+     * 検証契約: 承認直後の片側GUI表示が同期的に失敗した場合、終了済み取引のGUIを相手に開かない。
+     */
+    @Test
+    void failedFirstParticipantOpenDoesNotOpenCancelledSessionForPartner() throws Exception {
+        TestContext context = new TestContext();
+        TestContext.clearSessions(context.service);
+        TradeRequest request = new TradeRequest(UUID.randomUUID(), context.playerId, "sender",
+            context.partnerId, "receiver", Instant.now(), Instant.now().plusSeconds(60));
+        TestContext.registerRequest(context.service, request);
+        AstPlayer partnerAst = mock(AstPlayer.class);
+        AccountModel partnerAccount = mock(AccountModel.class);
+        when(partnerAst.getAccount()).thenReturn(partnerAccount);
+        when(partnerAccount.getUuid()).thenReturn(context.partnerAccountId);
+        doAnswer(invocation -> {
+            ((Runnable) invocation.getArgument(3)).run();
+            return null;
+        }).when(context.tradeGui).open(eq(context.player), any(TradeSession.class), any(Runnable.class), any(Runnable.class));
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
+             MockedStatic<io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter> names =
+                 mockStatic(io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter.class)) {
+            bukkit.when(() -> Bukkit.getPlayer(context.playerId)).thenReturn(context.player);
+            bukkit.when(() -> Bukkit.getPlayer(context.partnerId)).thenReturn(context.partner);
+            cache.when(() -> AstPlayerCache.get(context.player)).thenReturn(context.astPlayer);
+            cache.when(() -> AstPlayerCache.get(context.partner)).thenReturn(partnerAst);
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(context.player)).thenReturn(true);
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(context.partner)).thenReturn(true);
+            names.when(() -> io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter.toPlain(context.account))
+                .thenReturn("sender");
+            names.when(() -> io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter.toPlain(partnerAccount))
+                .thenReturn("receiver");
+            context.service.acceptTrade(context.partner);
+        }
+        assertEquals(null, context.service.getOpenSession(context.playerId));
+        assertEquals(null, context.service.getOpenSession(context.partnerId));
+        verify(context.tradeGui, never()).open(eq(context.partner), any(TradeSession.class), any(Runnable.class), any(Runnable.class));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
+     * 章・見出し: # 22_4-統合フロー > ## 4. Close・cancel > ### 処理要点
+     * 検証契約: 通常inventoryから初めて開く取引GUIの手動closeを内部遷移として抑止しない。
+     */
+    @Test
+    void initialTradeOpenDoesNotSuppressFirstManualClose() throws Exception {
+        TestContext context = new TestContext();
+        try (MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class)) {
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(context.player)).thenReturn(true);
+            context.service.reopenTrade(context.player);
+        }
+        assertFalse(context.service.consumeSuppressedClose(context.playerId));
+        verify(context.tradeGui).open(eq(context.player), eq(context.session), any(Runnable.class), any(Runnable.class));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
+     * 章・見出し: # 22_4-統合フロー > ## 4. Close・cancel > ### 処理要点
+     * 検証契約: Gold画面への遅延遷移が取消された場合、取引と表示予約を終了する。
+     */
+    @Test
+    void cancelledGoldTransitionReleasesSessionAndReservations() throws Exception {
+        TestContext context = new TestContext();
+        context.session.setItems(context.playerId, List.of(splitItemStack(2, 64)), List.of(context.sourceEntryId));
+        when(context.tradeGui.isTradeInventory(context.player.getOpenInventory().getTopInventory())).thenReturn(true);
+        try (MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(context.player)).thenReturn(true);
+            cache.when(() -> AstPlayerCache.get(context.player)).thenReturn(context.astPlayer);
+            bukkit.when(() -> Bukkit.getPlayer(context.playerId)).thenReturn(context.player);
+            context.service.openGoldAmountSetting(context.player);
+            ArgumentCaptor<Runnable> cancelled = ArgumentCaptor.forClass(Runnable.class);
+            verify(context.goldAmountSettingGui).open(eq(context.player), eq(TradeService.GOLD_AMOUNT_SOURCE_KEY),
+                eq(context.session.getSessionId()), eq(0L), eq(0L), any(Runnable.class), cancelled.capture());
+            assertTrue(context.service.consumeSuppressedClose(context.playerId));
+            cancelled.getValue().run();
+        }
+        assertEquals(TradeSessionStatus.CANCELLED, context.session.getStatus());
+        assertFalse(context.service.consumeSuppressedClose(context.playerId));
+        assertEquals(null, context.service.getOpenSession(context.playerId));
+        verify(context.inventoryService).releaseHiddenEntryQuantity(context.accountId, context.sourceEntryId, 2);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
+     * 章・見出し: # 22_4-統合フロー > ## 4. Close・cancel > ### 処理要点
+     * 検証契約: 同じ取引で遷移を差し替えた場合、古い取消通知は新しい画面と取引を中止しない。
+     */
+    @Test
+    void supersededTransitionCannotCancelCurrentSession() throws Exception {
+        TestContext context = new TestContext();
+        try (MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class)) {
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(context.player)).thenReturn(true);
+            context.service.reopenTrade(context.player);
+            context.service.reopenTrade(context.player);
+        }
+        ArgumentCaptor<Runnable> cancelled = ArgumentCaptor.forClass(Runnable.class);
+        verify(context.tradeGui, times(2)).open(eq(context.player), eq(context.session), any(Runnable.class), cancelled.capture());
+        cancelled.getAllValues().getFirst().run();
+        assertSame(context.session, context.service.getOpenSession(context.playerId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
+     * 章・見出し: # 22_3-メソッド仕様 > ## Cancel・終了
+     * 検証契約: 確定待ち中の退出後にAPI拒否が判明した場合、無人OPEN sessionを残さず中止する。
+     */
+    @Test
+    void rejectedCommitAfterDisconnectCancelsSession() throws Exception {
+        try (CommitContext context = new CommitContext(false, false);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<io.github.maaasu.astralRecord.infrastructure.logging.Logger> logger =
+                 mockStatic(io.github.maaasu.astralRecord.infrastructure.logging.Logger.class)) {
+            TestContext.registerSession(context.service, context.session);
+            context.session.setStatus(TradeSessionStatus.COMMITTING);
+            invokeFinish(context.service, context.session,
+                new TradeRepository.TradeCommitRejectedException(409, "trade.inventory_missing"));
+            assertEquals(TradeSessionStatus.CANCELLED, context.session.getStatus());
+            assertEquals(null, context.service.getOpenSession(context.playerAId));
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
+     * 章・見出し: # 22_3-メソッド仕様 > ## Ready・確定
+     * 検証契約: 開始時と現在のaccount identityが異なる場合、API確定を開始せず取引を中止する。
+     */
+    @Test
+    void changedAccountCannotCommitOriginalAccountsOffer() throws Exception {
+        try (CommitContext context = new CommitContext(false, false);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class)) {
+            context.stubParticipants(bukkit, cache, guard);
+            AstPlayer replacement = mock(AstPlayer.class);
+            AccountModel account = mock(AccountModel.class);
+            when(replacement.getAccount()).thenReturn(account);
+            when(account.getUuid()).thenReturn(UUID.randomUUID());
+            cache.when(() -> AstPlayerCache.get(context.playerA)).thenReturn(replacement);
+            invokeComplete(context.service, context.session);
+            assertEquals(TradeSessionStatus.CANCELLED, context.session.getStatus());
+            verify(context.repository, never()).commit(any());
+            verify(context.inventoryService, never()).refreshManagedInventoryUi(replacement);
+            verify(context.playerA, never()).closeInventory();
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
+     * 章・見出し: # 22_4-統合フロー > ## 3. Commit > ### 例外・終了条件
+     * 検証契約: 旧accountの確定拒否後の中止処理は切替後accountのGUIを閉じない。
+     */
+    @Test
+    void oldAccountsRejectedCommitDoesNotCloseCurrentAccountsGui() throws Exception {
+        try (CommitContext context = new CommitContext(false, false);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
+             MockedStatic<io.github.maaasu.astralRecord.infrastructure.logging.Logger> logger =
+                 mockStatic(io.github.maaasu.astralRecord.infrastructure.logging.Logger.class)) {
+            context.stubParticipants(bukkit, cache, guard);
+            AstPlayer current = mock(AstPlayer.class);
+            AccountModel account = mock(AccountModel.class);
+            when(current.getAccount()).thenReturn(account);
+            when(account.getUuid()).thenReturn(UUID.randomUUID());
+            cache.when(() -> AstPlayerCache.get(context.playerA)).thenReturn(current);
+            context.session.setStatus(TradeSessionStatus.COMMITTING);
+            invokeFinish(context.service, context.session,
+                new TradeRepository.TradeCommitRejectedException(409, "trade.inventory_missing"));
+            assertEquals(TradeSessionStatus.CANCELLED, context.session.getStatus());
+            verify(context.playerA, never()).closeInventory();
+            verify(context.playerB).closeInventory();
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
+     * 章・見出し: # 22_4-統合フロー > ## 1. 招待から session 開始 > ### 例外・終了条件
+     * 検証契約: API確定中の参加者からの新しい招待も拒否し、既存sessionを維持する。
+     */
+    @Test
+    void committingParticipantCannotRequestAnotherTrade() throws Exception {
+        TestContext context = new TestContext();
+        context.session.setStatus(TradeSessionStatus.COMMITTING);
+        try (MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class)) {
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(context.player)).thenReturn(true);
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(context.partner)).thenReturn(true);
+            context.service.requestTrade(context.player, context.partner);
+        }
+        assertTrue(TestContext.requestsOf(context.service).isEmpty());
+        assertEquals(TradeSessionStatus.COMMITTING, context.session.getStatus());
+        verify(context.messageService).send(context.player, PlayerMsgId.P_6203);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
+     * 章・見出し: # 22_4-統合フロー > ## 1. 招待から session 開始 > ### 例外・終了条件
+     * 検証契約: 申請後に送信者が確定中となった場合、承認しても既存sessionを上書きしない。
+     */
+    @Test
+    void cannotAcceptRequestFromCommittingParticipant() throws Exception {
+        TestContext context = new TestContext();
+        context.session.setStatus(TradeSessionStatus.COMMITTING);
+        TradeRequest request = new TradeRequest(UUID.randomUUID(), context.playerId, "sender",
+            context.partnerId, "receiver", Instant.now(), Instant.now().plusSeconds(60));
+        TestContext.registerRequest(context.service, request);
+        try (MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(context.player)).thenReturn(true);
+            guard.when(() -> AccountModeGuard.isGameplayPlayer(context.partner)).thenReturn(true);
+            bukkit.when(() -> Bukkit.getPlayer(context.playerId)).thenReturn(context.player);
+            context.service.acceptTrade(context.partner);
+        }
+        assertEquals(TradeRequestStatus.CANCELLED, request.getStatus());
+        assertEquals(TradeSessionStatus.COMMITTING, context.session.getStatus());
+        verify(context.messageService).send(context.partner, PlayerMsgId.P_6203);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
+     * 章・見出し: # 22_4-統合フロー > ## 2. Item／gold 提示 > ### 例外・終了条件
+     * 検証契約: 表示予約の追加が失敗しても、既存提示のsource entry IDと数量を維持する。
+     */
+    @Test
+    void failedOfferPreservesExistingSourceEntryIds() throws Exception {
+        TestContext context = new TestContext();
+        context.session.setItems(context.playerId, List.of(splitItemStack(2, 64)), List.of(context.sourceEntryId));
+        doThrow(new IllegalStateException("render failed")).when(context.inventoryService)
+            .hideOwnedEntryQuantityFromGui(any(), any(), anyInt());
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<io.github.maaasu.astralRecord.infrastructure.logging.Logger> logger =
+                 mockStatic(io.github.maaasu.astralRecord.infrastructure.logging.Logger.class)) {
+            cache.when(() -> AstPlayerCache.get(context.player)).thenReturn(context.astPlayer);
+            assertFalse(context.service.offerOwnedItem(context.player, 9, ClickType.LEFT, splitItemStack(4, 64)));
+        }
+        assertEquals(List.of(new TradeCommitItem(context.sourceEntryId, 2)), context.session.getCommitItems(context.playerId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
+     * 章・見出し: # 22_4-統合フロー > ## 2. Item／gold 提示 > ### 例外・終了条件
+     * 検証契約: 取り下げ予約解除が失敗しても、提示元entry IDと数量を元のまま維持する。
+     */
+    @Test
+    void failedWithdrawalPreservesExistingSourceEntryIds() throws Exception {
+        TestContext context = new TestContext();
+        context.session.setItems(context.playerId, List.of(splitItemStack(2, 64)), List.of(context.sourceEntryId));
+        doThrow(new IllegalStateException("render failed")).when(context.inventoryService)
+            .restoreHiddenEntryQuantityToGui(any(), any(), anyInt());
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<io.github.maaasu.astralRecord.infrastructure.logging.Logger> logger =
+                 mockStatic(io.github.maaasu.astralRecord.infrastructure.logging.Logger.class)) {
+            cache.when(() -> AstPlayerCache.get(context.player)).thenReturn(context.astPlayer);
+            assertFalse(context.service.withdrawOfferedItem(context.player, 0, ClickType.LEFT));
+        }
+        assertEquals(List.of(new TradeCommitItem(context.sourceEntryId, 2)), context.session.getCommitItems(context.playerId));
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
      * 章・見出し: # 22_3-メソッド仕様 > ## Item 提示・取り下げ
      * 検証契約: 表示itemを正本にせず所有 entry を特定し、提示中は正本を減算せず表示予約だけを追加する。
@@ -403,8 +665,10 @@ class TradeServiceTest {
     @Test
     void commitRequestDoesNotDuplicateSourceEntryIds() throws Exception {
         try (CommitContext context = new CommitContext(false, false);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
              MockedStatic<AccountModeGuard> accountModeGuard = mockStatic(AccountModeGuard.class);
              MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            context.stubParticipants(bukkit, cache, accountModeGuard);
             UUID repeatedSourceEntryId = UUID.randomUUID();
             context.session.setItems(
                 context.playerAId,
@@ -537,9 +801,12 @@ class TradeServiceTest {
     void explicitApiRejectionReopensTradeAndReleasesPreparedBoundaries() throws Exception {
         try (CommitContext context = new CommitContext(false, false);
              MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<AccountModeGuard> guard = mockStatic(AccountModeGuard.class);
              MockedStatic<io.github.maaasu.astralRecord.infrastructure.logging.Logger> logger = mockStatic(
                  io.github.maaasu.astralRecord.infrastructure.logging.Logger.class
              )) {
+            context.stubParticipants(bukkit, cache, guard);
             when(context.repository.commit(any())).thenThrow(
                 new TradeRepository.TradeCommitRejectedException(409, "trade.inventory_missing")
             );
@@ -566,8 +833,10 @@ class TradeServiceTest {
     @Test
     void fullInventoryDoesNotPreventTradeCommitFromStarting() throws Exception {
         try (CommitContext context = new CommitContext(false, false);
+             MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
              MockedStatic<AccountModeGuard> accountModeGuard = mockStatic(AccountModeGuard.class);
              MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            context.stubParticipants(bukkit, cache, accountModeGuard);
             ItemModel itemModel = mock(ItemModel.class);
             when(itemModel.getUnTradeable()).thenReturn(false);
             when(context.itemReferenceResolver.resolveItemModel(any(ItemStack.class))).thenReturn(itemModel);
@@ -685,6 +954,11 @@ class TradeServiceTest {
         );
 
         private TestContext() throws Exception {
+            for (Player participant : List.of(player, partner)) {
+                var view = mock(org.bukkit.inventory.InventoryView.class);
+                when(view.getTopInventory()).thenReturn(mock(org.bukkit.inventory.Inventory.class));
+                when(participant.getOpenInventory()).thenReturn(view);
+            }
             when(player.getUniqueId()).thenReturn(playerId);
             when(player.isOnline()).thenReturn(true);
             when(player.getWorld()).thenReturn(playerWorld);
@@ -790,11 +1064,31 @@ class TradeServiceTest {
         );
         private final TradeService service;
 
+        private void stubParticipants(MockedStatic<Bukkit> bukkit, MockedStatic<AstPlayerCache> cache,
+                                      MockedStatic<AccountModeGuard> guard) {
+            for (Player player : List.of(playerA, playerB)) {
+                UUID accountId = player == playerA ? playerAAccountId : playerBAccountId;
+                AstPlayer astPlayer = mock(AstPlayer.class);
+                AccountModel account = mock(AccountModel.class);
+                when(astPlayer.getAccount()).thenReturn(account);
+                when(account.getUuid()).thenReturn(accountId);
+                when(player.isOnline()).thenReturn(true);
+                bukkit.when(() -> Bukkit.getPlayer(player.getUniqueId())).thenReturn(player);
+                cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+                guard.when(() -> AccountModeGuard.isGameplayPlayer(player)).thenReturn(true);
+            }
+        }
+
         private CommitContext(boolean failPlayerBReconciliation) {
             this(failPlayerBReconciliation, true);
         }
 
         private CommitContext(boolean failPlayerBReconciliation, boolean useSingleThreadExecutor) {
+            for (Player participant : List.of(playerA, playerB)) {
+                var view = mock(org.bukkit.inventory.InventoryView.class);
+                when(view.getTopInventory()).thenReturn(mock(org.bukkit.inventory.Inventory.class));
+                when(participant.getOpenInventory()).thenReturn(view);
+            }
             executorService = useSingleThreadExecutor ? Executors.newSingleThreadExecutor() : null;
             executor = executorService == null ? Runnable::run : executorService;
             coordinator = new InventorySaveCoordinator(persistence, stateRegistry, executor);

@@ -24,6 +24,18 @@ import java.util.UUID;
 public final class TradeGui {
 
     public void open(@NotNull Player viewer, @NotNull TradeSession session) {
+        open(viewer, session, () -> { }, () -> { });
+    }
+
+    /**
+     * トレード画面を開き、遅延遷移の表示完了または取消を通知します。
+     * @param viewer 表示対象
+     * @param session 表示する取引
+     * @param onOpened 表示完了時の処理
+     * @param onCancelled 遷移取消時の処理
+     */
+    public void open(@NotNull Player viewer, @NotNull TradeSession session,
+                     @NotNull Runnable onOpened, @NotNull Runnable onCancelled) {
         Component partnerName = partnerName(viewer, session);
         Inventory inventory = Bukkit.createInventory(
             new TradeHolder(session.getSessionId(), viewer.getUniqueId()),
@@ -31,7 +43,7 @@ public final class TradeGui {
             partnerName.append(Component.text("とのトレード", NamedTextColor.WHITE))
         );
         render(inventory, viewer.getUniqueId(), session);
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory, onOpened, onCancelled);
     }
 
     private @NotNull Component partnerName(@NotNull Player viewer, @NotNull TradeSession session) {

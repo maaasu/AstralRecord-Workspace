@@ -844,6 +844,7 @@ public class InventoryService {
      * @param astPlayer 対象プレイヤー
      * @param inventoryEntryId 一時的に隠す entry ID
      * @param quantity 一時的に隠す数量
+     * @throws RuntimeException 表示更新に失敗した場合。追加した表示予約は元に戻します。
      */
     public void hideOwnedEntryQuantityFromGui(
         @NotNull AstPlayer astPlayer,
@@ -857,7 +858,16 @@ public class InventoryService {
         temporarilyHiddenEntryQuantitiesByAccount
             .computeIfAbsent(accountId, ignored -> new ConcurrentHashMap<>())
             .merge(inventoryEntryId, quantity, Integer::sum);
-        requestManagedInventoryUiRefresh(astPlayer, true);
+        try {
+            requestManagedInventoryUiRefresh(astPlayer, true);
+        } catch (RuntimeException failure) {
+            temporarilyHiddenEntryQuantitiesByAccount.computeIfPresent(accountId, (ignored, reserved) -> {
+                reserved.computeIfPresent(inventoryEntryId, (entryId, amount) ->
+                    amount <= quantity ? null : amount - quantity);
+                return reserved.isEmpty() ? null : reserved;
+            });
+            throw failure;
+        }
     }
 
     /**
@@ -876,6 +886,7 @@ public class InventoryService {
      * @param astPlayer 対象プレイヤー
      * @param inventoryEntryId 復元する entry ID
      * @param quantity 復元する数量
+     * @throws RuntimeException 表示更新に失敗した場合。解除した表示予約は元に戻します。
      */
     public void restoreHiddenEntryQuantityToGui(
         @NotNull AstPlayer astPlayer,
@@ -890,17 +901,42 @@ public class InventoryService {
         if (reserved == null || !reserved.containsKey(inventoryEntryId)) {
             return;
         }
+        int originalQuantity = reserved.get(inventoryEntryId);
         reserved.computeIfPresent(inventoryEntryId, (ignored, reservedQuantity) ->
             reservedQuantity <= quantity ? null : reservedQuantity - quantity);
         if (reserved.isEmpty()) {
             temporarilyHiddenEntryQuantitiesByAccount.remove(accountId, reserved);
         }
-        requestManagedInventoryUiRefresh(astPlayer, true);
+        try {
+            requestManagedInventoryUiRefresh(astPlayer, true);
+        } catch (RuntimeException failure) {
+            temporarilyHiddenEntryQuantitiesByAccount
+                .computeIfAbsent(accountId, ignored -> new ConcurrentHashMap<>())
+                .put(inventoryEntryId, originalQuantity);
+            throw failure;
+        }
     }
 
     /** ログアウト時などに対象アカウントの一時表示予約を破棄します。 */
     public void clearHiddenEntriesFromGui(@NotNull UUID accountId) {
         temporarilyHiddenEntryQuantitiesByAccount.remove(accountId);
+    }
+
+    /**
+     * 終了済み操作の表示予約を解除します。GUIを操作せず、他entryや他操作の予約残量は維持します。
+     * @param accountId 予約を保持するaccount ID
+     * @param inventoryEntryId 解除対象entry ID
+     * @param quantity 解除数量。0以下は変更しません
+     */
+    public void releaseHiddenEntryQuantity(@NotNull UUID accountId, @NotNull UUID inventoryEntryId, int quantity) {
+        if (quantity <= 0) {
+            return;
+        }
+        temporarilyHiddenEntryQuantitiesByAccount.computeIfPresent(accountId, (ignored, reserved) -> {
+            reserved.computeIfPresent(inventoryEntryId, (entryId, amount) ->
+                amount <= quantity ? null : amount - quantity);
+            return reserved.isEmpty() ? null : reserved;
+        });
     }
 
     /**

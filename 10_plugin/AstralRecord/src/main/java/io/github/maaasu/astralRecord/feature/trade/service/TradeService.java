@@ -57,6 +57,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.BiConsumer;
 
 public final class TradeService {
     private static final Duration REQUEST_TTL = Duration.ofSeconds(60);
@@ -77,6 +78,7 @@ public final class TradeService {
     private final Map<UUID, UUID> activeSessionByPlayer = new HashMap<>();
     private final Map<UUID, TradeCommitRecovery> tradeCommitRecoveries = new ConcurrentHashMap<>();
     private final Set<UUID> suppressedClosePlayers = new HashSet<>();
+    private final Map<UUID, UUID> pendingGuiTransitions = new HashMap<>();
 
     public TradeService(
         @NotNull AstralRecord plugin,
@@ -302,7 +304,7 @@ public final class TradeService {
      * @param player 表示対象プレイヤー
      */
     public void openCancelConfirm(@NotNull Player player) {
-        openCancelConfirm(player, true);
+        showCancelConfirm(player);
     }
 
     /**
@@ -311,7 +313,7 @@ public final class TradeService {
      * @param player 表示対象プレイヤー
      */
     public void openCancelConfirmAfterClose(@NotNull Player player) {
-        openCancelConfirm(player, false);
+        showCancelConfirm(player);
     }
 
     /**
@@ -332,17 +334,17 @@ public final class TradeService {
         if (session == null) {
             return;
         }
-        suppressNextClose(player);
-        clearTopInventory(player);
         long ownedGold = currencyService.getGoldAmount(player);
         long currentAmount = session.getGoldAmount(player.getUniqueId());
-        goldAmountSettingGui.open(
+        openSessionGui(player, session, (opened, cancelled) -> goldAmountSettingGui.open(
             player,
             GOLD_AMOUNT_SOURCE_KEY,
             session.getSessionId(),
             currentAmount,
-            Math.max(ownedGold, currentAmount)
-        );
+            Math.max(ownedGold, currentAmount),
+            opened,
+            cancelled
+        ));
     }
 
     /**
@@ -405,7 +407,7 @@ public final class TradeService {
         if (session == null) {
             return;
         }
-        openTrade(player, session, false);
+        openTrade(player, session);
     }
 
     /**
@@ -427,6 +429,8 @@ public final class TradeService {
         restoreOfferedItemsToOwner(session, session.getPlayerAUuid());
         restoreOfferedItemsToOwner(session, session.getPlayerBUuid());
         session.setStatus(TradeSessionStatus.CANCELLED);
+        refreshManagedInventoryUi(session, session.getPlayerAUuid());
+        refreshManagedInventoryUi(session, session.getPlayerBUuid());
         closeParticipants(session);
         clearSession(session);
         sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6208);
@@ -508,6 +512,7 @@ public final class TradeService {
             return false;
         }
         List<ItemStack> originalItems = session.getItems(player.getUniqueId());
+        List<UUID> originalSourceIds = sourceEntryIds(session, player.getUniqueId());
         try {
             ItemStack moved = displayedItem.clone();
             moved.setAmount(capacity);
@@ -522,13 +527,13 @@ public final class TradeService {
             }
             session.setItems(player.getUniqueId(), updated, sourceEntryIds);
             inventoryService.hideOwnedEntryQuantityFromGui(astPlayer, sourceEntry.getInventoryEntryId(), capacity);
-            refreshBoth(session);
-            return true;
         } catch (RuntimeException e) {
-            session.setItems(player.getUniqueId(), originalItems);
+            session.setItems(player.getUniqueId(), originalItems, originalSourceIds);
             Logger.log(LogId.E_6201, e, "offer:" + session.getSessionId());
             return false;
         }
+        refreshBoth(session);
+        return true;
     }
 
     /**
@@ -573,6 +578,7 @@ public final class TradeService {
         if (requested <= 0 || sourceEntryId == null) {
             return false;
         }
+        List<UUID> originalSourceIds = sourceEntryIds(session, player.getUniqueId());
         try {
             List<ItemStack> updated = new ArrayList<>(originalItems);
             List<UUID> sourceEntryIds = sourceEntryIds(session, player.getUniqueId());
@@ -587,20 +593,20 @@ public final class TradeService {
             }
             session.setItems(player.getUniqueId(), updated, sourceEntryIds);
             inventoryService.restoreHiddenEntryQuantityToGui(astPlayer, sourceEntryId, requested);
-            refreshBoth(session);
-            return true;
         } catch (RuntimeException e) {
-            session.setItems(player.getUniqueId(), originalItems);
+            session.setItems(player.getUniqueId(), originalItems, originalSourceIds);
             Logger.log(LogId.E_6201, e, "withdraw:" + session.getSessionId());
             return false;
         }
+        refreshBoth(session);
+        return true;
     }
 
     private void completeTrade(@NotNull TradeSession session) {
         try {
             Player playerA = Bukkit.getPlayer(session.getPlayerAUuid());
             Player playerB = Bukkit.getPlayer(session.getPlayerBUuid());
-            if (!AccountModeGuard.isGameplayPlayer(playerA) || !AccountModeGuard.isGameplayPlayer(playerB)) {
+            if (!hasSessionIdentity(session, playerA) || !hasSessionIdentity(session, playerB)) {
                 cancelTrade(session);
                 return;
             }
@@ -753,6 +759,10 @@ public final class TradeService {
             }
             session.setStatus(TradeSessionStatus.OPEN);
             session.resetReady();
+            if (!canResumeTrade(session)) {
+                cancelTrade(session);
+                return;
+            }
             sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6209);
             sendIfOnline(session.getPlayerBUuid(), PlayerMsgId.P_6209);
             refreshBoth(session);
@@ -761,8 +771,8 @@ public final class TradeService {
         tradeCommitRecoveries.remove(session.getSessionId());
         session.setStatus(TradeSessionStatus.COMPLETED);
         clearHiddenOfferReservations(session);
-        refreshManagedInventoryUi(session.getPlayerAUuid());
-        refreshManagedInventoryUi(session.getPlayerBUuid());
+        refreshManagedInventoryUi(session, session.getPlayerAUuid());
+        refreshManagedInventoryUi(session, session.getPlayerBUuid());
         closeParticipants(session);
         clearSession(session);
         sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6207);
@@ -813,18 +823,41 @@ public final class TradeService {
         Player playerA = Bukkit.getPlayer(session.getPlayerAUuid());
         Player playerB = Bukkit.getPlayer(session.getPlayerBUuid());
         if (playerA != null && playerA.isOnline()) {
-            tradeGui.refreshIfOpen(playerA, session);
+            refreshTradeView(playerA, session);
         }
         if (playerB != null && playerB.isOnline()) {
-            tradeGui.refreshIfOpen(playerB, session);
+            refreshTradeView(playerB, session);
         }
+    }
+
+    /** 提示・予約確定後の描画失敗は記録し、確定した提示情報を巻き戻しません。 */
+    private void refreshTradeView(@NotNull Player player, @NotNull TradeSession session) {
+        try {
+            tradeGui.refreshIfOpen(player, session);
+        } catch (RuntimeException failure) {
+            Logger.log(LogId.E_6201, failure, "refresh:" + session.getSessionId());
+        }
+    }
+
+    /** 現在のonline playerが開始時のaccount identityとmodeを維持しているかを判定します。 */
+    private boolean hasSessionIdentity(@NotNull TradeSession session, @Nullable Player player) {
+        if (player == null || !player.isOnline() || !AccountModeGuard.isGameplayPlayer(player)) {
+            return false;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        return astPlayer != null && session.contains(player.getUniqueId())
+            && session.getAccountId(player.getUniqueId()).equals(astPlayer.getAccount().getUuid());
+    }
+
+    /** API未確定の失敗後に、両参加者が同じaccountと許可ワールドで取引を再開できるか判定します。 */
+    private boolean canResumeTrade(@NotNull TradeSession session) {
+        Player playerA = Bukkit.getPlayer(session.getPlayerAUuid());
+        Player playerB = Bukkit.getPlayer(session.getPlayerBUuid());
+        return hasSessionIdentity(session, playerA) && hasSessionIdentity(session, playerB)
+            && isTradeAllowedWorld(playerA) && isTradeAllowedWorld(playerB);
     }
 
     private void openTrade(@NotNull Player player, @NotNull TradeSession session) {
-        openTrade(player, session, true);
-    }
-
-    private void openTrade(@NotNull Player player, @NotNull TradeSession session, boolean suppressCurrentClose) {
         if (!AccountModeGuard.isGameplayPlayer(player)) {
             messageService.send(player, PlayerMsgId.P_5065);
             return;
@@ -833,11 +866,7 @@ public final class TradeService {
             messageService.send(player, PlayerMsgId.P_6210);
             return;
         }
-        if (suppressCurrentClose) {
-            suppressNextClose(player);
-        }
-        clearTopInventory(player);
-        tradeGui.open(player, session);
+        openSessionGui(player, session, (opened, cancelled) -> tradeGui.open(player, session, opened, cancelled));
     }
 
     private int offerCapacity(
@@ -886,16 +915,12 @@ public final class TradeService {
     }
 
     private void restoreOfferedItemsToOwner(@NotNull TradeSession session, @NotNull UUID playerUuid) {
-        Player player = Bukkit.getPlayer(playerUuid);
-        AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
-        if (astPlayer == null) {
-            return;
-        }
         List<ItemStack> items = session.getItems(playerUuid);
         for (int index = 0; index < items.size(); index++) {
             UUID sourceEntryId = session.getItemSourceEntryId(playerUuid, index);
             if (sourceEntryId != null) {
-                inventoryService.restoreHiddenEntryQuantityToGui(astPlayer, sourceEntryId, items.get(index).getAmount());
+                inventoryService.releaseHiddenEntryQuantity(
+                    session.getAccountId(playerUuid), sourceEntryId, items.get(index).getAmount());
             }
         }
     }
@@ -905,11 +930,15 @@ public final class TradeService {
         restoreOfferedItemsToOwner(session, session.getPlayerBUuid());
     }
 
-    private void refreshManagedInventoryUi(@NotNull UUID playerUuid) {
+    private void refreshManagedInventoryUi(@NotNull TradeSession session, @NotNull UUID playerUuid) {
         Player player = Bukkit.getPlayer(playerUuid);
         AstPlayer astPlayer = player == null ? null : AstPlayerCache.get(player);
-        if (astPlayer != null) {
-            inventoryService.refreshManagedInventoryUi(astPlayer);
+        if (astPlayer != null && session.getAccountId(playerUuid).equals(astPlayer.getAccount().getUuid())) {
+            try {
+                inventoryService.refreshManagedInventoryUi(astPlayer);
+            } catch (RuntimeException failure) {
+                Logger.log(LogId.E_6201, failure, "inventory-refresh:" + session.getSessionId());
+            }
         }
     }
 
@@ -1034,23 +1063,35 @@ public final class TradeService {
     }
 
     private void closeParticipants(@NotNull TradeSession session) {
-        closeIfOnline(session.getPlayerAUuid());
-        closeIfOnline(session.getPlayerBUuid());
+        closeIfOnline(session, session.getPlayerAUuid());
+        closeIfOnline(session, session.getPlayerBUuid());
     }
 
-    private void closeIfOnline(@NotNull UUID playerUuid) {
+    private void closeIfOnline(@NotNull TradeSession session, @NotNull UUID playerUuid) {
         Player player = Bukkit.getPlayer(playerUuid);
         if (player == null || !player.isOnline()) {
             return;
         }
-        suppressNextClose(player);
-        clearTopInventory(player);
-        player.closeInventory();
+        AstPlayer astPlayer = AstPlayerCache.get(player);
+        if (astPlayer == null || !session.getAccountId(playerUuid).equals(astPlayer.getAccount().getUuid())) {
+            return;
+        }
+        try {
+            suppressNextClose(player);
+            clearTopInventory(player);
+            player.closeInventory();
+        } catch (RuntimeException failure) {
+            Logger.log(LogId.E_6201, failure, "close:" + session.getSessionId());
+        }
     }
 
     private void clearSession(@NotNull TradeSession session) {
-        activeSessionByPlayer.remove(session.getPlayerAUuid());
-        activeSessionByPlayer.remove(session.getPlayerBUuid());
+        pendingGuiTransitions.remove(session.getPlayerAUuid());
+        pendingGuiTransitions.remove(session.getPlayerBUuid());
+        suppressedClosePlayers.remove(session.getPlayerAUuid());
+        suppressedClosePlayers.remove(session.getPlayerBUuid());
+        activeSessionByPlayer.remove(session.getPlayerAUuid(), session.getSessionId());
+        activeSessionByPlayer.remove(session.getPlayerBUuid(), session.getSessionId());
         sessions.remove(session.getSessionId());
     }
 
@@ -1062,7 +1103,10 @@ public final class TradeService {
     }
 
     private boolean isTrading(@NotNull UUID playerUuid) {
-        return getOpenSession(playerUuid) != null;
+        UUID sessionId = activeSessionByPlayer.get(playerUuid);
+        TradeSession session = sessionId == null ? null : sessions.get(sessionId);
+        return session != null && (session.getStatus() == TradeSessionStatus.OPEN
+            || session.getStatus() == TradeSessionStatus.COMMITTING);
     }
 
     private @Nullable TradeRequest findPendingRequest(@NotNull UUID senderUuid, @NotNull UUID targetUuid) {
@@ -1110,19 +1154,54 @@ public final class TradeService {
     }
 
     private void suppressNextClose(@NotNull Player player) {
-        suppressedClosePlayers.add(player.getUniqueId());
+        Inventory top = player.getOpenInventory().getTopInventory();
+        if (tradeGui.isTradeInventory(top) || cancelConfirmGui.isCancelInventory(top)
+            || (goldAmountSettingGui.getHolder(top) != null
+                && GOLD_AMOUNT_SOURCE_KEY.equals(goldAmountSettingGui.getHolder(top).sourceKey()))) {
+            suppressedClosePlayers.add(player.getUniqueId());
+        }
     }
 
-    private void openCancelConfirm(@NotNull Player player, boolean suppressCurrentClose) {
+    /**
+     * 取引GUIの遅延遷移を管理します。取消時は同じ遷移だけを終了し、OPENの取引を中止します。
+     * 通常inventoryからの初回openにはclose抑止を残しません。
+     */
+    private void openSessionGui(@NotNull Player player, @NotNull TradeSession session,
+                                @NotNull BiConsumer<Runnable, Runnable> opener) {
+        if (session.getStatus() != TradeSessionStatus.OPEN || getOpenSession(player.getUniqueId()) != session) {
+            return;
+        }
+        UUID playerId = player.getUniqueId();
+        UUID transitionId = UUID.randomUUID();
+        pendingGuiTransitions.put(playerId, transitionId);
+        Runnable opened = () -> {
+            if (pendingGuiTransitions.remove(playerId, transitionId)) {
+                suppressedClosePlayers.remove(playerId);
+            }
+        };
+        Runnable cancelled = () -> {
+            if (pendingGuiTransitions.remove(playerId, transitionId)) {
+                suppressedClosePlayers.remove(playerId);
+                cancelTrade(session);
+            }
+        };
+        try {
+            suppressNextClose(player);
+            clearTopInventory(player);
+            opener.accept(opened, cancelled);
+        } catch (RuntimeException failure) {
+            Logger.log(LogId.E_6201, failure, "open:" + session.getSessionId());
+            cancelled.run();
+        }
+    }
+
+    private void showCancelConfirm(@NotNull Player player) {
         TradeSession session = getOpenSession(player.getUniqueId());
         if (session == null) {
             return;
         }
-        if (suppressCurrentClose) {
-            suppressNextClose(player);
-        }
-        clearTopInventory(player);
-        cancelConfirmGui.open(player, session.getSessionId());
+        openSessionGui(player, session, (opened, cancelled) ->
+            cancelConfirmGui.open(player, session.getSessionId(), opened, cancelled));
     }
 
 }

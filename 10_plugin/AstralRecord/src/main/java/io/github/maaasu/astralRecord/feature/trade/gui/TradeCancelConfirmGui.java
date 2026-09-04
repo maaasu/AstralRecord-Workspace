@@ -22,6 +22,18 @@ public final class TradeCancelConfirmGui {
     public static final int BACK_SLOT = 15;
 
     public void open(@NotNull Player viewer, @NotNull UUID sessionId) {
+        open(viewer, sessionId, () -> { }, () -> { });
+    }
+
+    /**
+     * 中止確認画面を開き、遅延遷移の表示完了または取消を通知します。
+     * @param viewer 表示対象
+     * @param sessionId 対象取引
+     * @param onOpened 表示完了時の処理
+     * @param onCancelled 遷移取消時の処理
+     */
+    public void open(@NotNull Player viewer, @NotNull UUID sessionId,
+                     @NotNull Runnable onOpened, @NotNull Runnable onCancelled) {
         Inventory inventory = Bukkit.createInventory(
             new CancelHolder(sessionId, viewer.getUniqueId()),
             SIZE,
@@ -38,7 +50,7 @@ public final class TradeCancelConfirmGui {
             Component.text("トレードへ戻る", NamedTextColor.GREEN, TextDecoration.BOLD),
             List.of(Component.text("取引 GUI へ戻ります。", NamedTextColor.GRAY))
         ));
-        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory);
+        io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory, onOpened, onCancelled);
     }
 
     public boolean isCancelInventory(@Nullable Inventory inventory) {
