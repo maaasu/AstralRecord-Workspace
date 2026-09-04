@@ -518,6 +518,47 @@ public final class DamageService {
     }
 
     /**
+     * 一撃限定の超星会心発生率を指定して、攻撃ダメージを適用します。
+     * 指定率は攻撃者の {@code SUPER_CRITICAL_RATE} を加算せず、この攻撃の主撃だけへ使用します。
+     *
+     * @param attacker 攻撃者
+     * @param victim 被弾者
+     * @param attackType 攻撃種別
+     * @param components 属性別の攻撃倍率
+     * @param source 通常攻撃・スキルなどの発生元
+     * @param attackerDamageMultiplier 攻撃者固有のダメージ倍率
+     * @param shieldBreakMultiplier この一撃のシールドダメージ倍率
+     * @param superStarCriticalChance 一撃限定の超星会心発生率（%）
+     * @return ダメージ結果
+     */
+    public @NotNull DamageResult attackWithSuperStarCriticalChance(
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity victim,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> components,
+            @NotNull DamageSource source,
+            double attackerDamageMultiplier,
+            double shieldBreakMultiplier,
+            double superStarCriticalChance
+    ) {
+        return applyDamage(
+                attacker,
+                victim,
+                0.0D,
+                attackType,
+                components,
+                DamageScaling.ATTACKER_STATUS,
+                source,
+                attackerDamageMultiplier,
+                shieldBreakMultiplier,
+                SuperStarCriticalMode.ROLL,
+                0.0D,
+                null,
+                superStarCriticalChance
+        );
+    }
+
+    /**
      * 攻撃者のシールドブレイク値に対する比率を、この一撃のシールドダメージとして適用します。
      * HPダメージの計算は通常の攻撃経路を維持し、シールドダメージだけを指定比率で置き換えます。
      *
@@ -798,6 +839,37 @@ public final class DamageService {
         );
     }
 
+    private @NotNull DamageResult applyDamage(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim,
+            double baseDamage,
+            @NotNull AttackType attackType,
+            @NotNull List<DamageComponent> components,
+            @NotNull DamageScaling scaling,
+            @NotNull DamageSource source,
+            double attackerDamageMultiplier,
+            double shieldBreakMultiplier,
+            @NotNull SuperStarCriticalMode superStarCriticalMode,
+            double attackerAccuracyBonus,
+            @Nullable Double shieldBreakRatio
+    ) {
+        return applyDamage(
+                attacker,
+                victim,
+                baseDamage,
+                attackType,
+                components,
+                scaling,
+                source,
+                attackerDamageMultiplier,
+                shieldBreakMultiplier,
+                superStarCriticalMode,
+                attackerAccuracyBonus,
+                shieldBreakRatio,
+                null
+        );
+    }
+
     /**
      * 共通ダメージ処理へ一撃限定の命中補正を渡します。補正は攻撃者の命中率へ加算し、
      * 通常経路では0として扱います。
@@ -813,6 +885,7 @@ public final class DamageService {
      * @param shieldBreakMultiplier シールドダメージ倍率
      * @param superStarCriticalMode 超星会心倍率の適用方法
      * @param attackerAccuracyBonus この一撃だけ命中率へ加算する補正値（%ポイント）
+     * @param superStarCriticalRateOverride この一撃だけ使用する超星会心率。null の場合は攻撃者の status を使用
      * @return 適用結果
      */
     private @NotNull DamageResult applyDamage(
@@ -827,7 +900,8 @@ public final class DamageService {
             double shieldBreakMultiplier,
             @NotNull SuperStarCriticalMode superStarCriticalMode,
             double attackerAccuracyBonus,
-            @Nullable Double shieldBreakRatio
+            @Nullable Double shieldBreakRatio,
+            @Nullable Double superStarCriticalRateOverride
     ) {
         if (dungeonService != null && !dungeonService.canApplyCombatDamage(attacker, victim)) {
             return new DamageResult(0.0D);
@@ -857,7 +931,8 @@ public final class DamageService {
                 scaling,
                 source,
                 attackerDamageMultiplier,
-                superStarCriticalMode
+                superStarCriticalMode,
+                superStarCriticalRateOverride
         );
         DamageResult calculated = damageCalculator.calculate(context, attackerAccuracyBonus);
         if (!calculated.evaded() && calculated.finalDamage() > 0.0D) {

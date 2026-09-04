@@ -241,7 +241,10 @@ public final class DamageCalculator {
         if (context.superStarCriticalMode() == SuperStarCriticalMode.FORCE) {
             return true;
         }
-        double rate = Math.max(0.0D, attacker.statValue(StatusType.SUPER_CRITICAL_RATE));
+        double configuredRate = context.superStarCriticalRateOverride() == null
+                ? attacker.statValue(StatusType.SUPER_CRITICAL_RATE)
+                : context.superStarCriticalRateOverride();
+        double rate = Math.max(0.0D, configuredRate);
         return rate > 0.0D && criticalRollSupplier.getAsDouble() < rate;
     }
 

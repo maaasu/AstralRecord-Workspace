@@ -259,6 +259,39 @@ class DamageCalculatorDesignTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
+     * 章・見出し: # 13_6-発動スキル追加ガイド > ## 18. ハンタークラッシュアローの実装契約 > ### 18.1 数値・対象・ダメージ
+     * 検証契約: スキル固有の超星会心率は攻撃者statusへ加算せず、一撃だけ指定率を使って判定する。
+     */
+    @Test
+    void skillSpecificSuperStarCriticalRateOverridesAttackerRateForOneHit() {
+        AstPlayer attacker = player(Map.of(
+            StatusType.CRITICAL_RATE, 0.0D,
+            StatusType.SUPER_CRITICAL_RATE, 100.0D,
+            StatusType.SUPER_CRITICAL_DAMAGE, 30.0D
+        ));
+        MobInstance victim = DesignTestFixtures.mobInstance(100.0D, 0.0D, 0.0D);
+
+        var successfulResult = new DamageCalculator(() -> 49.9D).calculate(new DamageContext(
+            AstEntity.player(attacker), AstEntity.mob(victim), 10.0D,
+            AttackType.MELEE, List.of(DamageComponent.defaultComponent()),
+            DamageScaling.FIXED, DamageSource.SKILL, 1.0D,
+            SuperStarCriticalMode.ROLL, 50.0D
+        ));
+        var failedResult = new DamageCalculator(() -> 75.0D).calculate(new DamageContext(
+            AstEntity.player(attacker), AstEntity.mob(victim), 10.0D,
+            AttackType.MELEE, List.of(DamageComponent.defaultComponent()),
+            DamageScaling.FIXED, DamageSource.SKILL, 1.0D,
+            SuperStarCriticalMode.ROLL, 50.0D
+        ));
+
+        assertEquals(13.0D, successfulResult.finalDamage(), 0.0001D);
+        assertTrue(successfulResult.superStarCritical());
+        assertEquals(10.0D, failedResult.finalDamage(), 0.0001D);
+        assertFalse(failedResult.superStarCritical());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
      * 章・見出し: # 14_3-サービス > ## 1. damage 計算
      * 検証契約: FORCE超星criticalでも通常criticalを再抽選し未設定超星倍率30%を使う。

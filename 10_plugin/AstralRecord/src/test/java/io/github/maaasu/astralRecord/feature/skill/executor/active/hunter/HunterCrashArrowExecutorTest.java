@@ -22,6 +22,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillResourceType;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
+import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.entity.Player;
@@ -46,7 +47,7 @@ import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
-class HunterCrashArrowExecutorTest {
+class HunterCrashArrowExecutorTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
@@ -69,7 +70,7 @@ class HunterCrashArrowExecutorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 18. ハンタークラッシュアローの実装契約 > ### 18.1 数値・対象・ダメージ
-     * 検証契約: 最初のMob 1体へRANGED/NONEの低い倍率と、レベル解決済みの3倍シールドブレイク倍率を同じhitへ渡し、詠唱後の射撃音を1回表示する。
+     * 検証契約: 最初のMob 1体へRANGED/NONEの低い倍率、3倍シールドブレイク倍率、50%の一撃限定超星会心率を同じhitへ渡し、詠唱後の射撃音を1回表示する。
      */
     @Test
     void launchesArrowAndAppliesShieldBreakMultiplier() {
@@ -105,8 +106,9 @@ class HunterCrashArrowExecutorTest {
         hitCaptor.getValue().accept(target, eyeLocation);
 
         ArgumentCaptor<AstEntity> attackerCaptor = ArgumentCaptor.forClass(AstEntity.class);
-        verify(combat).hit(
-                attackerCaptor.capture(), same(target), eq(AttackType.RANGED), eq(DamageElement.NONE), eq(0.45D), eq(3.0D)
+        verify(combat).hitWithSuperStarCriticalChance(
+                attackerCaptor.capture(), same(target), eq(AttackType.RANGED), eq(DamageElement.NONE),
+                eq(0.45D), eq(3.0D), eq(50.0D)
         );
         assertSame(astPlayer, attackerCaptor.getValue().player());
     }
@@ -128,6 +130,7 @@ class HunterCrashArrowExecutorTest {
                         "range", 14.0D,
                         "damageRatio", 0.45D,
                         "shieldBreakMultiplier", 3.0D,
+                        "superStarCriticalChance", 50.0D,
                         "projectileSpeed", 1.35D,
                         "projectileHitRadius", 0.45D
                 ),

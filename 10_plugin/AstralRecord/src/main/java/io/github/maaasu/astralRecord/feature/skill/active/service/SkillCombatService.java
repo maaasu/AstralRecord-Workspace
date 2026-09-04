@@ -133,6 +133,40 @@ public final class SkillCombatService {
     }
 
     /**
+     * 一撃限定の超星会心発生率とシールドブレイク倍率を指定してスキルダメージを適用します。
+     * 指定した発生率は攻撃者の超星会心率へ加算せず、この一撃だけへ適用します。
+     *
+     * @param attacker 発動者
+     * @param target 対象
+     * @param attackType 攻撃種別
+     * @param element 属性
+     * @param ratio ダメージ倍率
+     * @param shieldBreakMultiplier シールドダメージ倍率
+     * @param superStarCriticalChance 一撃限定の超星会心発生率（%）
+     * @return 実際に適用したHP・シールドダメージ
+     */
+    public @NotNull DamageResult hitWithSuperStarCriticalChance(
+            @NotNull AstEntity attacker,
+            @NotNull AstEntity target,
+            @NotNull AttackType attackType,
+            @NotNull DamageElement element,
+            double ratio,
+            double shieldBreakMultiplier,
+            double superStarCriticalChance
+    ) {
+        return damageService.attackWithSuperStarCriticalChance(
+                attacker,
+                target,
+                attackType,
+                List.of(new DamageComponent(element, ratio)),
+                DamageSource.SKILL,
+                1.0D,
+                shieldBreakMultiplier,
+                superStarCriticalChance
+        );
+    }
+
+    /**
      * 攻撃者のシールドブレイク値に対する比率を、この一撃のシールドダメージとして適用します。
      *
      * @param attacker 発動者

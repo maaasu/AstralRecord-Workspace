@@ -150,7 +150,7 @@ class ActiveSkillExecutorDesignTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_6-発動スキル追加ガイド.md
      * 章・見出し: # 13_6-発動スキル追加ガイド > ## 18. ハンタークラッシュアローの実装契約
-     * 検証契約: クラッシュアローは射程・低いHP倍率・シールドブレイク倍率・飛翔体値を正数として要求する。
+     * 検証契約: クラッシュアローは射程・低いHP倍率・シールドブレイク倍率・飛翔体値を正数として要求し、超星会心率を0〜100%に制限する。
      */
     @Test
     void crashArrowValidatesDataDrivenParams() {
@@ -160,6 +160,7 @@ class ActiveSkillExecutorDesignTest {
                 "range", 14.0D,
                 "damageRatio", 0.45D,
                 "shieldBreakMultiplier", 3.0D,
+                "superStarCriticalChance", 50.0D,
                 "projectileSpeed", 1.35D,
                 "projectileHitRadius", 0.45D
         ))));
@@ -170,11 +171,25 @@ class ActiveSkillExecutorDesignTest {
                         "range", 14.0D,
                         "damageRatio", 0.45D,
                         "shieldBreakMultiplier", 0.0D,
+                        "superStarCriticalChance", 50.0D,
                         "projectileSpeed", 1.35D,
                         "projectileHitRadius", 0.45D
                 )))
         );
         assertEquals("shieldBreakMultiplier", exception.key());
+
+        SkillParameterException chanceException = assertThrows(
+                SkillParameterException.class,
+                () -> executor.validateParams(crashArrowDefinition(Map.of(
+                        "range", 14.0D,
+                        "damageRatio", 0.45D,
+                        "shieldBreakMultiplier", 3.0D,
+                        "superStarCriticalChance", 100.1D,
+                        "projectileSpeed", 1.35D,
+                        "projectileHitRadius", 0.45D
+                )))
+        );
+        assertEquals("superStarCriticalChance", chanceException.key());
     }
 
     /**

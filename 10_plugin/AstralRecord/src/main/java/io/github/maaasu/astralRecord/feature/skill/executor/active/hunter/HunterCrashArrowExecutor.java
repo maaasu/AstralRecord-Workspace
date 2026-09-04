@@ -19,6 +19,7 @@ import org.jetbrains.annotations.NotNull;
 public final class HunterCrashArrowExecutor extends PlayerActiveSkillExecutor {
 
     public static final String ID = "hunter_crash_arrow";
+    static final double DEFAULT_SUPER_STAR_CRITICAL_CHANCE = 50.0D;
 
     /** 共有発動スキルサービスで初期化します。 */
     public HunterCrashArrowExecutor(@NotNull ActiveSkillServices services) {
@@ -33,6 +34,7 @@ public final class HunterCrashArrowExecutor extends PlayerActiveSkillExecutor {
         requirePositive(params, "range");
         requirePositive(params, "damageRatio");
         requirePositive(params, "shieldBreakMultiplier");
+        requirePercentage(params, "superStarCriticalChance");
         requirePositive(params, "projectileSpeed");
         requirePositive(params, "projectileHitRadius");
     }
@@ -44,6 +46,9 @@ public final class HunterCrashArrowExecutor extends PlayerActiveSkillExecutor {
         double range = params.getDouble("range", 14.0D);
         double damageRatio = params.getDouble("damageRatio", 0.45D);
         double shieldBreakMultiplier = params.getDouble("shieldBreakMultiplier", 3.0D);
+        double superStarCriticalChance = params.getDouble(
+                "superStarCriticalChance", DEFAULT_SUPER_STAR_CRITICAL_CHANCE
+        );
         double projectileSpeed = params.getDouble("projectileSpeed", 1.35D);
         double projectileHitRadius = params.getDouble("projectileHitRadius", 0.45D);
         AstEntity attacker = context.attacker();
@@ -53,13 +58,14 @@ public final class HunterCrashArrowExecutor extends PlayerActiveSkillExecutor {
                 context.eyeLocation(),
                 context.direction(),
                 crashArrowProjectile(range, projectileSpeed, projectileHitRadius),
-                (target, ignored) -> context.services().combat().hit(
+                (target, ignored) -> context.services().combat().hitWithSuperStarCriticalChance(
                         attacker,
                         target,
                         AttackType.RANGED,
                         DamageElement.NONE,
                         damageRatio,
-                        shieldBreakMultiplier
+                        shieldBreakMultiplier,
+                        superStarCriticalChance
                 ),
                 ignored -> { }
         );
@@ -99,6 +105,13 @@ public final class HunterCrashArrowExecutor extends PlayerActiveSkillExecutor {
     private static void requirePositive(@NotNull SkillParamReader params, @NotNull String key) {
         if (!(params.getDouble(key, 0.0D) > 0.0D)) {
             throw new SkillParameterException(key, "クラッシュアローの params[" + key + "] は正数が必要です");
+        }
+    }
+
+    private static void requirePercentage(@NotNull SkillParamReader params, @NotNull String key) {
+        double value = params.getDouble(key, -1.0D);
+        if (!Double.isFinite(value) || value < 0.0D || value > 100.0D) {
+            throw new SkillParameterException(key, "クラッシュアローの params[" + key + "] は0以上100以下が必要です");
         }
     }
 }
