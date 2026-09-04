@@ -26,7 +26,7 @@ tags:
   - stone
 baseStats:
   - status: MAX_HEALTH
-    value: 28160
+    value: 88160
   - status: ATTACK
     value: 956
   - status: DEFENSE
