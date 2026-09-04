@@ -59,6 +59,26 @@ class BaseWorldGatewayEventHandlerTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
      * 章・見出し: # 17_4-統合フロー > ## 2. BASE から OVERWORLD へ移動 > ### 処理要点
+     * 検証契約: ゲート退避に成功した後、同じプレイヤーが再入場すると転送 GUI を再度起動する。
+     */
+    @Test
+    void reenteringGatewayAfterSuccessfulEvacuationCanOpenGuiAgain() {
+        GatewayFixture fixture = fixture(true);
+        BaseWorldGatewayEventHandler handler = fixture.handler();
+
+        handler.onPlayerMove(new PlayerMoveEvent(fixture.player(), fixture.outside(), fixture.gateway()));
+        server().getScheduler().performOneTick();
+        verify(fixture.guiEventHandler(), times(1)).open(fixture.player());
+
+        handler.onPlayerMove(new PlayerMoveEvent(fixture.player(), fixture.outside(), fixture.gateway()));
+        server().getScheduler().performOneTick();
+
+        verify(fixture.guiEventHandler(), times(2)).open(fixture.player());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
+     * 章・見出し: # 17_4-統合フロー > ## 2. BASE から OVERWORLD へ移動 > ### 処理要点
      * 検証契約: BASE のゲートウェイ系テレポートをキャンセルし、移動イベントがなくても同じ転送 GUI 起動要求へ接続する。
      */
     @Test
@@ -109,6 +129,7 @@ class BaseWorldGatewayEventHandlerTest extends MockBukkitTestBase {
         Location gateway = new Location(world, 1.1D, 64.0D, 0.1D);
         Location gatewayInside = new Location(world, 1.9D, 64.0D, 0.9D);
         Location spawn = new Location(world, 5.0D, 64.0D, 5.0D);
+        Location[] currentLocation = {gateway};
 
         when(outsideBlock.getType()).thenReturn(Material.STONE);
         when(gatewayBlock.getType()).thenReturn(Material.NETHER_PORTAL);
@@ -121,10 +142,15 @@ class BaseWorldGatewayEventHandlerTest extends MockBukkitTestBase {
         when(world.getSpawnLocation()).thenReturn(spawn);
         when(player.getUniqueId()).thenReturn(playerId);
         when(player.getWorld()).thenReturn(world);
-        when(player.getLocation()).thenReturn(gateway);
+        when(player.getLocation()).thenAnswer(invocation -> currentLocation[0]);
         when(player.isOnline()).thenReturn(true);
         when(player.teleport(any(Location.class), eq(PlayerTeleportEvent.TeleportCause.PLUGIN)))
-                .thenReturn(evacuationTeleportSucceeds);
+                .thenAnswer(invocation -> {
+                    if (evacuationTeleportSucceeds) {
+                        currentLocation[0] = invocation.getArgument(0);
+                    }
+                    return evacuationTeleportSucceeds;
+                });
         when(teleportService.isBaseWorld(world)).thenReturn(true);
         when(guiEventHandler.isOpen(player)).thenReturn(false);
         when(guiEventHandler.open(player)).thenReturn(true);

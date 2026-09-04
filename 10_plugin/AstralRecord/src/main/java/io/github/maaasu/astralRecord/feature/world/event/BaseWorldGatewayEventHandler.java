@@ -118,7 +118,10 @@ public final class BaseWorldGatewayEventHandler extends AbstractEventHandler {
 
         Location spawnLocation = player.getWorld().getSpawnLocation();
         Bukkit.getScheduler().runTask(plugin, () -> openGui(player, playerId));
-        PlayerTeleportService.teleport(player, spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN);
+        boolean evacuated = PlayerTeleportService.teleport(player, spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN);
+        if (evacuated) {
+            playersInGateway.remove(playerId);
+        }
     }
 
     private void openGui(@NotNull Player player, @NotNull UUID playerId) {
