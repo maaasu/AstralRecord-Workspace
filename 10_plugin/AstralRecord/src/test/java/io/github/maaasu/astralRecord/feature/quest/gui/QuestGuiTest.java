@@ -6,16 +6,19 @@ import io.github.maaasu.astralRecord.feature.quest.model.QuestBoardEntry;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestCompletionMode;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestDefinition;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestDisplayState;
+import io.github.maaasu.astralRecord.feature.quest.model.QuestItemStackDefinition;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestObjectiveDefinition;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestObjectiveType;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestProgress;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestRepeatMode;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestRewardDefinition;
 import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationHolder;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import org.bukkit.Material;
 import org.bukkit.inventory.ItemFlag;
@@ -86,6 +89,55 @@ class QuestGuiTest extends MockBukkitTestBase {
             "状態: 報告可能",
             PlainTextComponentSerializer.plainText().serialize(inventory.getItem(10).getItemMeta().lore().getFirst())
         );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 13. NPC interaction・GUI
+     * 検証契約: 報酬itemの表示名はitemマスタのカラーコードを反映したComponentとして表示し、未変換の&カラーコードを表示しない。
+     */
+    @Test
+    void rendersRewardItemNameWithItsMasterColorCode() {
+        PluginMock plugin = PluginMock.builder().withPluginName("astralrecord").build();
+        QuestService questService = mock(QuestService.class);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        QuestItemStackDefinition rewardItem = new QuestItemStackDefinition("freya_orb", "orb", 5);
+        QuestDefinition quest = new QuestDefinition(
+            "quest-reward-color",
+            "報酬カラークエスト",
+            List.of(),
+            Material.PAPER,
+            QuestRepeatMode.ONCE,
+            0L,
+            QuestCompletionMode.NPC,
+            null,
+            List.of(),
+            List.of(),
+            new QuestRewardDefinition(0, 0L, List.of(rewardItem))
+        );
+        QuestBoardDefinition board = new QuestBoardDefinition(
+            "board-reward-color",
+            "報酬カラー",
+            List.of(new QuestBoardEntry(quest.id(), 1, 0, null, null))
+        );
+        when(questService.findQuest(quest.id())).thenReturn(quest);
+        when(questService.displayState(astPlayer, quest)).thenReturn(QuestDisplayState.AVAILABLE);
+        when(questService.resolveItemDisplayComponent(rewardItem))
+            .thenReturn(ColorCodeUtil.toComponent("&dフレイヤのオーブ", "未登録のアイテム"));
+
+        QuestGui questGui = new QuestGui(plugin, questService);
+        var player = server().addPlayer();
+        questGui.openBoard(player, astPlayer, board, "npc-reward-color");
+
+        List<Component> lore = player.getOpenInventory().getTopInventory().getItem(10).getItemMeta().lore();
+        Component rewardLine = lore.stream()
+            .filter(line -> PlainTextComponentSerializer.plainText().serialize(line).contains("フレイヤのオーブ"))
+            .findFirst()
+            .orElseThrow();
+        assertEquals("- フレイヤのオーブ ×5", PlainTextComponentSerializer.plainText().serialize(rewardLine));
+        String legacyLine = LegacyComponentSerializer.legacySection().serialize(rewardLine);
+        assertTrue(legacyLine.contains("§dフレイヤのオーブ"));
+        assertFalse(legacyLine.contains("&d"));
     }
 
     /**

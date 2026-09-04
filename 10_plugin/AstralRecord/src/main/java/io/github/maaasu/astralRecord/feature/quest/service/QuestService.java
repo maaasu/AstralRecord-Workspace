@@ -38,6 +38,7 @@ import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
+import net.kyori.adventure.text.Component;
 import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
@@ -1371,6 +1372,21 @@ public final class QuestService {
         }
         String displayName = ColorCodeUtil.stripColor(ColorCodeUtil.translateAlternateColorCodes(model.getName()));
         return displayName == null || displayName.isBlank() ? UNREGISTERED_ITEM_DISPLAY_NAME : displayName;
+    }
+
+    /**
+     * クエスト報酬GUI向けにitemの表示名をカラーコード対応Componentへ変換します。
+     * 未ロードのitemはitemServiceのロード経路から取得し、解決できない場合は汎用の未登録表示を返します。
+     *
+     * @param item 表示するitem定義。item IDとカテゴリを持つ必要があり、{@code null}は不可
+     * @return item名のカラーコードを反映したComponent
+     */
+    public @NotNull Component resolveItemDisplayComponent(@NotNull QuestItemStackDefinition item) {
+        ItemModel model = resolveItem(item);
+        if (model == null || model.getName() == null || model.getName().isBlank()) {
+            return Component.text(UNREGISTERED_ITEM_DISPLAY_NAME);
+        }
+        return ColorCodeUtil.toComponent(model.getName(), UNREGISTERED_ITEM_DISPLAY_NAME);
     }
 
     private @Nullable ItemModel resolveItem(@NotNull QuestItemStackDefinition item) {

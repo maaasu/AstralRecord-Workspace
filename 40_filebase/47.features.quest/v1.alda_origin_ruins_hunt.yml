@@ -78,6 +78,6 @@ rewards:
       category: consumable
       amount: 6
     - itemId:
-        ref: item:high_tyr_orb
+        ref: item:freya_orb
       category: orb
-      amount: 1
+      amount: 5

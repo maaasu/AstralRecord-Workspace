@@ -304,7 +304,11 @@ public final class QuestGui {
             lore.add(Component.text("- ゴールド " + rewards.gold(), NamedTextColor.GOLD).decoration(TextDecoration.ITALIC, false));
         }
         for (var item : rewards.items()) {
-            lore.add(Component.text("- " + questService.resolveItemDisplayName(item) + " ×" + item.amount(), NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
+            Component rewardLine = Component.text("- ", NamedTextColor.WHITE)
+                .decoration(TextDecoration.ITALIC, false)
+                .append(questService.resolveItemDisplayComponent(item).decoration(TextDecoration.ITALIC, false))
+                .append(Component.text(" ×" + item.amount(), NamedTextColor.WHITE).decoration(TextDecoration.ITALIC, false));
+            lore.add(rewardLine);
         }
     }
 
