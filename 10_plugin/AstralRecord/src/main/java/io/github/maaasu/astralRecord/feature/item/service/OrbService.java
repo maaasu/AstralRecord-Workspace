@@ -3216,6 +3216,8 @@ public final class OrbService {
     }
 
     private static final class OrbOperationPendingException extends IllegalStateException {
+        private static final long serialVersionUID = 1L;
+
         private OrbOperationPendingException(@NotNull UUID operationId) {
             super("Orb operation remains unresolved after the player wait deadline: " + operationId);
         }

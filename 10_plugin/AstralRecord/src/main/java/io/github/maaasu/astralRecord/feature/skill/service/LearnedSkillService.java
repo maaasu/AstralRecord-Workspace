@@ -985,6 +985,8 @@ public final class LearnedSkillService {
 
     /** API mutation開始前の保存待機が上限を超え、外部副作用なしに中断したことを表します。 */
     public static final class MutationPreflightTimeoutException extends IllegalStateException {
+        private static final long serialVersionUID = 1L;
+
         public MutationPreflightTimeoutException(@NotNull UUID accountId) {
             super("Skill mutation preflight timed out for account " + accountId);
         }

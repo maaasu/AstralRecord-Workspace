@@ -570,6 +570,8 @@ public final class InventorySaveCoordinator {
 
     /** 外部操作の正本境界を保ったまま、保存再試行を打ち切る例外です。 */
     public static final class ExternalOperationTimeoutException extends IllegalStateException {
+        private static final long serialVersionUID = 1L;
+
         public ExternalOperationTimeoutException(@NotNull UUID accountId, @NotNull String phase) {
             super("External operation save timed out for account " + accountId + " (" + phase + ")");
         }
@@ -1112,6 +1114,8 @@ public final class InventorySaveCoordinator {
 
     /** 同一 account に未確定の外部操作が残っているため、新規操作を拒否したことを表します。 */
     public static final class ExternalOperationPendingException extends IllegalStateException {
+        private static final long serialVersionUID = 1L;
+
         private ExternalOperationPendingException(@NotNull UUID accountId) {
             super("An external operation is still unresolved for account " + accountId);
         }
