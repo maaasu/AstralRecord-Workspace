@@ -56,6 +56,20 @@ public final class OverworldTeleportGuiEventHandler extends AbstractEventHandler
      * @return GUI を開いた場合は {@code true}
      */
     public boolean open(@NotNull Player player) {
+        return openInternal(player, true);
+    }
+
+    /**
+     * 暗黒エフェクトを付与せずに GUI を開きます。
+     *
+     * @param player 対象プレイヤー
+     * @return GUI を開いた場合は {@code true}
+     */
+    public boolean openWithoutDarkness(@NotNull Player player) {
+        return openInternal(player, false);
+    }
+
+    private boolean openInternal(@NotNull Player player, boolean applyDarkness) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
             return false;
@@ -67,7 +81,14 @@ public final class OverworldTeleportGuiEventHandler extends AbstractEventHandler
             return false;
         }
 
-        gui.open(player, destinations, () -> applyGuiDarkness(player), () -> clearGuiDarkness(player));
+        gui.open(
+                player,
+                destinations,
+                applyDarkness ? () -> applyGuiDarkness(player) : () -> {
+                },
+                applyDarkness ? () -> clearGuiDarkness(player) : () -> {
+                }
+        );
         return true;
     }
 
