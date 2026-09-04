@@ -71,6 +71,29 @@ class OverworldTeleportGuiEventHandlerTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
      * 章・見出し: # 17_4-統合フロー > ## 2. BASE から OVERWORLD へ移動 > ### 処理要点
+     * 検証契約: BASE 初期スポーン付近の SNEAK で転送 GUI を表示しても暗黒エフェクトを付与しない。
+     */
+    @Test
+    void openingTransferGuiFromBaseSpawnDoesNotApplyDarkness() {
+        Player player = server().addPlayer();
+        OverworldTeleportService teleportService = mock(OverworldTeleportService.class);
+        when(teleportService.listDestinations()).thenReturn(List.of(destination()));
+        OverworldTeleportGuiEventHandler handler = new OverworldTeleportGuiEventHandler(
+                new OverworldTeleportGui(),
+                teleportService
+        );
+
+        try (var astPlayerCache = org.mockito.Mockito.mockStatic(AstPlayerCache.class)) {
+            astPlayerCache.when(() -> AstPlayerCache.get(player)).thenReturn(mock(AstPlayer.class));
+            assertTrue(handler.openWithoutDarkness(player));
+        }
+
+        assertNull(player.getPotionEffect(PotionEffectType.DARKNESS));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
+     * 章・見出し: # 17_4-統合フロー > ## 2. BASE から OVERWORLD へ移動 > ### 処理要点
      * 検証契約: 遅延された転送 GUI の再表示が成功した場合、表示中の暗黒エフェクトを再付与する。
      */
     @Test
