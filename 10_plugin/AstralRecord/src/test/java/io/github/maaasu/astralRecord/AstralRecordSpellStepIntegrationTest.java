@@ -19,6 +19,8 @@ import io.github.maaasu.astralRecord.feature.skill.repository.SkillRepository;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.feature.skill.service.SpellStepSkillRuntimeService;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentStatType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
@@ -26,6 +28,7 @@ import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.Server;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
@@ -75,6 +78,14 @@ class AstralRecordSpellStepIntegrationTest extends MockBukkitTestBase {
         when(statusService.getStatus(player)).thenReturn(
             DesignTestFixtures.statusSnapshot(Map.of(), 100.0D, 100.0D, 0.0D)
         );
+        InventoryService inventoryService = mock(InventoryService.class);
+        when(inventoryService.getItemModelInHand(player, EquipmentSlot.HAND)).thenReturn(
+            DesignTestFixtures.equipmentItem(
+                "test_weapon",
+                "test_weapon",
+                ItemEquipmentStatType.FLAT
+            )
+        );
         AstralRecord plugin = mock(AstralRecord.class);
         Server server = mock(Server.class);
         BukkitScheduler scheduler = mock(BukkitScheduler.class);
@@ -84,6 +95,7 @@ class AstralRecordSpellStepIntegrationTest extends MockBukkitTestBase {
         DodgeService dodgeService = new DodgeService(
             plugin,
             statusService,
+            inventoryService,
             mock(PlayerHudService.class),
             mock(ParticleDisplayService.class)
         );

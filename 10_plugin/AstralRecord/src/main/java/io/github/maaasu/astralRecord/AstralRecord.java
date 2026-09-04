@@ -1253,7 +1253,13 @@ public final class AstralRecord extends JavaPlugin {
         hookshotUseService.setPlayerHudService(playerHudService);
 
         // dodge
-        dodgeService = new DodgeService(this, statusService, playerHudService, particleDisplayService);
+        dodgeService = new DodgeService(
+            this,
+            statusService,
+            inventoryService,
+            playerHudService,
+            particleDisplayService
+        );
         airActionService = new AirActionService(this, playerHudService, particleDisplayService);
 
         // resource pack

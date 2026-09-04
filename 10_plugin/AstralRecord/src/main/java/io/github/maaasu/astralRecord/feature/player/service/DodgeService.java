@@ -2,6 +2,9 @@ package io.github.maaasu.astralRecord.feature.player.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentSlot;
+import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.status.model.StatusSnapshot;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
@@ -11,6 +14,7 @@ import org.bukkit.Location;
 import org.bukkit.Sound;
 import org.bukkit.SoundCategory;
 import org.bukkit.entity.Player;
+import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.util.Vector;
 import org.jetbrains.annotations.NotNull;
 
@@ -21,6 +25,7 @@ import java.util.function.ToDoubleFunction;
  * プレイヤーのドッジ（短距離ダッシュ回避）アクションを制御するサービス。
  * <p>
  * ドッジは「しゃがみ開始から短時間以内にしゃがみを解除した」場合に発動候補となります。
+ * 現在選択中のメインホットバー項目が武器である場合だけ、ドッジを発動できます。
  * 発動条件・スタミナ消費・演出（効果音/パーティクル）・
  * {@link AstPlayer#isDodging} フラグの ON/OFF を一元管理します。
  * <p>
@@ -51,19 +56,31 @@ public class DodgeService {
 
     private final AstralRecord plugin;
     private final StatusService statusService;
+    private final InventoryService inventoryService;
     private final PlayerHudService playerHudService;
     private final ParticleDisplayService particleDisplayService;
     private Consumer<AstPlayer> successfulDodgeListener = ignored -> { };
     private ToDoubleFunction<AstPlayer> energyCostResolver = ignored -> DEFAULT_ENERGY_COST;
 
+    /**
+     * ドッジサービスを生成します。
+     *
+     * @param plugin プラグイン本体
+     * @param statusService プレイヤーのエネルギーを扱うサービス
+     * @param inventoryService 選択中ホットバー項目を解決するサービス
+     * @param playerHudService ドッジ受付表示を扱うサービス
+     * @param particleDisplayService ドッジ演出を扱うサービス
+     */
     public DodgeService(
         @NotNull AstralRecord plugin,
         @NotNull StatusService statusService,
+        @NotNull InventoryService inventoryService,
         @NotNull PlayerHudService playerHudService,
         @NotNull ParticleDisplayService particleDisplayService
     ) {
         this.plugin = plugin;
         this.statusService = statusService;
+        this.inventoryService = inventoryService;
         this.playerHudService = playerHudService;
         this.particleDisplayService = particleDisplayService;
     }
@@ -91,6 +108,7 @@ public class DodgeService {
 
     /**
      * 地上スニーク入力からドッジ受付ウィンドウを開始します。
+     * 現在選択中のメインホットバー項目が武器でない場合は開始しません。
      *
      * @param astPlayer 対象プレイヤー
      * @return ドッジ受付を開始した場合は {@code true}
@@ -109,6 +127,9 @@ public class DodgeService {
         if (!player.isOnline() || player.isDead() || !isGrounded(player)) {
             return false;
         }
+        if (!hasSelectedMainHandWeapon(astPlayer)) {
+            return false;
+        }
 
         long startedAtMs = System.currentTimeMillis();
         astPlayer.setSneakStartedAtMs(startedAtMs);
@@ -121,7 +142,7 @@ public class DodgeService {
     /**
      * しゃがみ解除時にドッジ発動を試みます。
      * しゃがみ開始からの経過時間が {@link #QUICK_SNEAK_WINDOW_MS} 未満の場合のみ判定し、
-     * エネルギー不足の場合は発動しません。
+     * 現在選択中のメインホットバー項目が武器でない場合またはエネルギー不足の場合は発動しません。
      *
      * @param astPlayer 対象プレイヤー
      */
@@ -154,6 +175,9 @@ public class DodgeService {
             return;
         }
         if (!isGrounded(player)) {
+            return;
+        }
+        if (!hasSelectedMainHandWeapon(astPlayer)) {
             return;
         }
 
@@ -265,6 +289,20 @@ public class DodgeService {
         astPlayer.setSneakStartedAtMs(0L);
         astPlayer.setSneakStartedAtLocation(null);
         astPlayer.setSneakDodgeWindowExpiresAtMs(0L);
+    }
+
+    /**
+     * 現在選択中のメインホットバー項目が武器か判定します。
+     * 装備条件や耐久値は確認せず、ホットバーのアイテムモデルが武器スロットを持つかだけを確認します。
+     *
+     * @param astPlayer 対象プレイヤー
+     * @return 現在選択中のメインホットバー項目が武器の場合は {@code true}
+     */
+    private boolean hasSelectedMainHandWeapon(@NotNull AstPlayer astPlayer) {
+        ItemModel itemModel = inventoryService.getItemModelInHand(astPlayer, EquipmentSlot.HAND);
+        return itemModel != null
+            && itemModel.getEquipment() != null
+            && itemModel.getEquipment().getSlot() == ItemEquipmentSlot.WEAPON;
     }
 
     private double resolveEnergyCost(@NotNull AstPlayer astPlayer) {
