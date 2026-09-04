@@ -69,7 +69,7 @@ public final class BaseWorldSpawnTeleportEventHandler extends AbstractEventHandl
             snapshot.player().getWorld().getUID() + ":base-spawn",
             InputClaimPolicy.CLAIM,
             () -> runSafely(
-                () -> guiEventHandler.openWithoutDarkness(snapshot.player()),
+                () -> guiEventHandler.open(snapshot.player()),
                 LogId.E_5755,
                 snapshot.player().getName(),
                 "base-spawn-sneak"

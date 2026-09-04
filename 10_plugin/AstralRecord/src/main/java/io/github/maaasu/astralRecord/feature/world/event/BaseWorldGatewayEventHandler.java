@@ -40,7 +40,8 @@ public final class BaseWorldGatewayEventHandler extends AbstractEventHandler {
     private final Plugin plugin;
     private final OverworldTeleportService teleportService;
     private final OverworldTeleportGuiEventHandler guiEventHandler;
-    private final Set<UUID> awaitingGatewayExit = new HashSet<>();
+    private final Set<UUID> playersInGateway = new HashSet<>();
+    private final Set<UUID> pendingGuiOpen = new HashSet<>();
 
     public BaseWorldGatewayEventHandler(
             @NotNull Plugin plugin,
@@ -62,16 +63,18 @@ public final class BaseWorldGatewayEventHandler extends AbstractEventHandler {
         runSafely(() -> {
             Player player = event.getPlayer();
             UUID playerId = player.getUniqueId();
-            boolean fromGateway = isGatewayBlock(event.getFrom());
             boolean toGateway = isGatewayBlock(event.getTo());
             if (!toGateway) {
-                awaitingGatewayExit.remove(playerId);
+                playersInGateway.remove(playerId);
                 return;
             }
-            if (fromGateway || awaitingGatewayExit.contains(playerId) || !teleportService.isBaseWorld(player.getWorld())) {
+            if (!teleportService.isBaseWorld(player.getWorld())) {
+                playersInGateway.remove(playerId);
                 return;
             }
-            openGui(player);
+            if (playersInGateway.add(playerId)) {
+                requestGuiOpen(player);
+            }
         }, LogId.E_5754, event.getPlayer().getName(), "move");
     }
 
@@ -88,10 +91,8 @@ public final class BaseWorldGatewayEventHandler extends AbstractEventHandler {
             }
             event.setCancelled(true);
             Player player = event.getPlayer();
-            if (awaitingGatewayExit.contains(player.getUniqueId()) || guiEventHandler.isOpen(player)) {
-                return;
-            }
-            openGui(player);
+            playersInGateway.add(player.getUniqueId());
+            requestGuiOpen(player);
         }, LogId.E_5754, event.getPlayer().getName(), "teleport");
     }
 
@@ -102,29 +103,38 @@ public final class BaseWorldGatewayEventHandler extends AbstractEventHandler {
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        runSafely(() -> awaitingGatewayExit.remove(event.getPlayer().getUniqueId()), LogId.E_5754, event.getPlayer().getName(), "quit");
+        runSafely(() -> {
+            UUID playerId = event.getPlayer().getUniqueId();
+            playersInGateway.remove(playerId);
+            pendingGuiOpen.remove(playerId);
+        }, LogId.E_5754, event.getPlayer().getName(), "quit");
     }
 
-    private void openGui(@NotNull Player player) {
+    private void requestGuiOpen(@NotNull Player player) {
         UUID playerId = player.getUniqueId();
-        awaitingGatewayExit.add(playerId);
-
-        Location spawnLocation = player.getWorld().getSpawnLocation();
-        boolean teleported = PlayerTeleportService.teleport(player, spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN);
-        if (!teleported && isGatewayBlock(player.getLocation())) {
+        if (guiEventHandler.isOpen(player) || !pendingGuiOpen.add(playerId)) {
             return;
         }
 
-        Bukkit.getScheduler().runTask(plugin, () -> {
-            if (!player.isOnline()) {
-                awaitingGatewayExit.remove(playerId);
-                return;
-            }
-            guiEventHandler.open(player);
-            if (!isGatewayBlock(player.getLocation())) {
-                awaitingGatewayExit.remove(playerId);
-            }
-        });
+        Location spawnLocation = player.getWorld().getSpawnLocation();
+        Bukkit.getScheduler().runTask(plugin, () -> openGui(player, playerId));
+        PlayerTeleportService.teleport(player, spawnLocation, PlayerTeleportEvent.TeleportCause.PLUGIN);
+    }
+
+    private void openGui(@NotNull Player player, @NotNull UUID playerId) {
+        if (!pendingGuiOpen.remove(playerId)) {
+            return;
+        }
+        if (!player.isOnline() || !teleportService.isBaseWorld(player.getWorld())) {
+            playersInGateway.remove(playerId);
+            return;
+        }
+        if (guiEventHandler.isOpen(player)) {
+            return;
+        }
+        if (!guiEventHandler.open(player)) {
+            playersInGateway.remove(playerId);
+        }
     }
 
     private boolean isGatewayBlock(@Nullable Location location) {

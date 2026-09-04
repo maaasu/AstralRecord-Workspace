@@ -9,37 +9,23 @@ import io.github.maaasu.astralRecord.feature.world.gui.OverworldTeleportGui;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.service.OverworldTeleportService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
-import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndEvent;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
-import org.bukkit.event.inventory.InventoryOpenEvent;
-import org.bukkit.event.player.PlayerQuitEvent;
 import org.bukkit.inventory.Inventory;
-import org.bukkit.potion.PotionEffect;
-import org.bukkit.potion.PotionEffectType;
 import org.jetbrains.annotations.NotNull;
 
-import java.util.HashMap;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.UUID;
 
 /**
  * オーバーワールド転送 GUI の操作を処理します。
  */
 public final class OverworldTeleportGuiEventHandler extends AbstractEventHandler {
-    private static final int GUI_DARKNESS_DURATION_TICKS = 20 * 60 * 10;
-
     private final OverworldTeleportGui gui;
     private final OverworldTeleportService teleportService;
-    private final Set<UUID> guiDarknessPlayers = new HashSet<>();
-    private final Map<UUID, PotionEffect> previousDarknessEffects = new HashMap<>();
 
     public OverworldTeleportGuiEventHandler(
             @NotNull OverworldTeleportGui gui,
@@ -56,20 +42,6 @@ public final class OverworldTeleportGuiEventHandler extends AbstractEventHandler
      * @return GUI を開いた場合は {@code true}
      */
     public boolean open(@NotNull Player player) {
-        return openInternal(player, true);
-    }
-
-    /**
-     * 暗黒エフェクトを付与せずに GUI を開きます。
-     *
-     * @param player 対象プレイヤー
-     * @return GUI を開いた場合は {@code true}
-     */
-    public boolean openWithoutDarkness(@NotNull Player player) {
-        return openInternal(player, false);
-    }
-
-    private boolean openInternal(@NotNull Player player, boolean applyDarkness) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
             return false;
@@ -81,14 +53,7 @@ public final class OverworldTeleportGuiEventHandler extends AbstractEventHandler
             return false;
         }
 
-        gui.open(
-                player,
-                destinations,
-                applyDarkness ? () -> applyGuiDarkness(player) : () -> {
-                },
-                applyDarkness ? () -> clearGuiDarkness(player) : () -> {
-                }
-        );
+        gui.open(player, destinations);
         return true;
     }
 
@@ -130,49 +95,6 @@ public final class OverworldTeleportGuiEventHandler extends AbstractEventHandler
         }, LogId.E_5755, event.getWhoClicked().getName(), "drag");
     }
 
-    /**
-     * 別 GUI への遷移で転送 GUI が表示対象から外れた場合の暗黒エフェクトを解除します。
-     *
-     * @param event Bukkit のインベントリオープンイベント
-     */
-    @EventHandler(priority = EventPriority.MONITOR, ignoreCancelled = true)
-    public void onInventoryOpen(@NotNull InventoryOpenEvent event) {
-        runSafely(() -> {
-            if (!(event.getPlayer() instanceof Player player)) {
-                return;
-            }
-            if (gui.isInventory(event.getInventory())) {
-                return;
-            }
-            clearGuiDarkness(player);
-        }, LogId.E_5755, event.getPlayer().getName(), "open-other");
-    }
-
-    /**
-     * GUI セッションの終了が確定したプレイヤーの暗黒エフェクトを解除します。
-     *
-     * @param event GUI セッション終了イベント
-     */
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onGuiSessionEnd(@NotNull GuiSessionEndEvent event) {
-        runSafely(() -> {
-            if (!gui.isInventory(event.getInventory())) {
-                return;
-            }
-            clearGuiDarkness(event.getPlayer());
-        }, LogId.E_5755, event.getPlayer().getName(), "session-close");
-    }
-
-    /**
-     * 切断したプレイヤーへ付与していた GUI 用暗黒エフェクトを解除します。
-     *
-     * @param event プレイヤー切断イベント
-     */
-    @EventHandler(priority = EventPriority.MONITOR)
-    public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        runSafely(() -> clearGuiDarkness(event.getPlayer()), LogId.E_5755, event.getPlayer().getName(), "quit");
-    }
-
     private void handleTopClick(@NotNull Player player, @NotNull Inventory inventory, int rawSlot) {
         OverworldTeleportGui.Holder holder = gui.holder(inventory);
         AstPlayer astPlayer = AstPlayerCache.get(player);
@@ -191,31 +113,4 @@ public final class OverworldTeleportGuiEventHandler extends AbstractEventHandler
         teleportService.teleportToDestination(player, astPlayer, worldId);
     }
 
-    private void applyGuiDarkness(@NotNull Player player) {
-        UUID playerId = player.getUniqueId();
-        if (guiDarknessPlayers.add(playerId)) {
-            previousDarknessEffects.put(playerId, player.getPotionEffect(PotionEffectType.DARKNESS));
-        }
-        player.addPotionEffect(new PotionEffect(
-                PotionEffectType.DARKNESS,
-                GUI_DARKNESS_DURATION_TICKS,
-                0,
-                false,
-                false,
-                false
-        ));
-    }
-
-    private void clearGuiDarkness(@NotNull Player player) {
-        UUID playerId = player.getUniqueId();
-        if (!guiDarknessPlayers.remove(playerId)) {
-            return;
-        }
-
-        PotionEffect previousEffect = previousDarknessEffects.remove(playerId);
-        player.removePotionEffect(PotionEffectType.DARKNESS);
-        if (previousEffect != null) {
-            player.addPotionEffect(previousEffect);
-        }
-    }
 }
