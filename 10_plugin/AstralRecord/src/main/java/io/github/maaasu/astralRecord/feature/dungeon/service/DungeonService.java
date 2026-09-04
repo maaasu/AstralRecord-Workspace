@@ -1238,11 +1238,21 @@ public final class DungeonService {
         }
     }
 
+    /**
+     * ダンジョンクリアを通知します。Bedrock 接続プレイヤーには報酬再表示用の {@code /drop} を表示します。
+     *
+     * @param players クリア時点でダンジョン World にいる参加者
+     * @param name ダンジョン表示名
+     */
     private void showDungeonClear(@NotNull List<Player> players, @NotNull String name) {
         for (Player player : players) {
+            AstPlayer astPlayer = AstPlayerCache.get(player);
+            PlayerMsgId subtitleId = astPlayer != null && astPlayer.isBedrock()
+                    ? PlayerMsgId.P_7107
+                    : PlayerMsgId.P_7106;
             player.showTitle(Title.title(
                     PlayerMsgResource.formatComponent(PlayerMsgId.P_7105.getId(), name),
-                    PlayerMsgResource.getComponent(PlayerMsgId.P_7106.getId()),
+                    PlayerMsgResource.getComponent(subtitleId.getId()),
                     COUNTDOWN_TITLE_TIMES
             ));
             player.playSound(player.getLocation(), Sound.UI_TOAST_CHALLENGE_COMPLETE, SoundCategory.PLAYERS, 0.9F, 1.0F);
@@ -1673,16 +1683,18 @@ public final class DungeonService {
     private void beginClearedWait(@NotNull Session session, @NotNull DungeonLayout.Room bossRoom) {
         if (session.cleared || session.ending || session.instanceWorld == null) return;
         session.cleared = true;
-        showDungeonClear(activePlayersInWorld(session), session.loaded.definition().displayName());
+        List<Player> eligiblePlayers = activePlayersInWorld(session);
+        showDungeonClear(eligiblePlayers, session.loaded.definition().displayName());
         try {
-        for (Player player : activePlayersInWorld(session)) {
-            AstPlayer astPlayer = AstPlayerCache.get(player);
-            if (astPlayer == null) continue;
-            List<DungeonRewardEntry> rewards = rollClearRewards(astPlayer, session.loaded.definition());
-            session.rewardsByPlayer.put(player.getUniqueId(), new ArrayList<>(rewards));
-            recordDungeonClearAsync(astPlayer, session.loaded.definition());
-            clearListener.accept(astPlayer, session.loaded.definition().id());
-        }
+            for (Player player : eligiblePlayers) {
+                AstPlayer astPlayer = AstPlayerCache.get(player);
+                if (astPlayer == null) continue;
+                List<DungeonRewardEntry> rewards = rollClearRewards(astPlayer, session.loaded.definition());
+                session.rewardsByPlayer.put(player.getUniqueId(), new ArrayList<>(rewards));
+                openRewardGui(session, player, 0);
+                recordDungeonClearAsync(astPlayer, session.loaded.definition());
+                clearListener.accept(astPlayer, session.loaded.definition().id());
+            }
         Location chestLocation = findRewardChestLocation(session, bossRoom);
         Block chest = chestLocation.getBlock();
         session.rewardChestLocation = chest.getLocation();
@@ -1789,7 +1801,7 @@ public final class DungeonService {
      * @return 操作可能な報酬 CHEST。参加中でない、受取対象でない、または回収終了後なら {@code null}
      */
     public @Nullable DungeonRewardChestTarget findRewardChestTarget(@NotNull Player player) {
-        Session session = rewardSession(player);
+        Session session = rewardSession(player, true);
         if (session == null) {
             return null;
         }
@@ -1805,7 +1817,7 @@ public final class DungeonService {
      * @return 報酬チェストとして処理した場合 {@code true}
      */
     public boolean openRewardChest(@NotNull Player player, @NotNull Block block) {
-        Session session = rewardSession(player);
+        Session session = rewardSession(player, true);
         if (session == null || block.getType() != Material.CHEST
                 || !sameBlock(session.rewardChestLocation, block.getLocation())) return false;
         openRewardGui(session, player, 0);
@@ -1813,15 +1825,47 @@ public final class DungeonService {
     }
 
     /**
-     * プレイヤーが現在操作できる報酬セッションを返します。
+     * クリア待機中に残っている未受取報酬の GUI を再表示します。
+     * <p>
+     * 報酬チェストへアクセスできない場合の再表示専用経路です。クリア待機中でない、
+     * ダンジョン World 外、現在参加者でない、または未受取報酬が残っていない場合は開きません。
      *
      * @param player 操作プレイヤー
-     * @return 受取対象として固定済みのセッション。対象外なら {@code null}
+     * @return 報酬 GUI を開いた場合は {@code true}
      */
-    private @Nullable Session rewardSession(@NotNull Player player) {
+    public boolean openRewardDrop(@NotNull Player player) {
+        Session session = rewardSession(player, false);
+        if (session == null) {
+            return false;
+        }
+        List<DungeonRewardEntry> rewards = session.rewardsByPlayer.get(player.getUniqueId());
+        if (rewards == null || rewards.isEmpty()) {
+            return false;
+        }
+        openRewardGui(session, player, 0);
+        return true;
+    }
+
+    /**
+     * プレイヤーが報酬を操作できるセッションを検証します。
+     *
+     * @param player 操作プレイヤー
+     * @param requireRewardChest チェストの存在と Material も検証する場合は {@code true}
+     * @return 条件を満たすセッション。対象外なら {@code null}
+     */
+    private @Nullable Session rewardSession(@NotNull Player player, boolean requireRewardChest) {
         UUID sessionId = sessionIdByParticipant.get(player.getUniqueId());
         Session session = sessionId == null ? null : sessionsById.get(sessionId);
-        if (session == null || session.rewardChestLocation == null) {
+        if (session == null || session.ending || !session.cleared || session.instanceWorld == null
+                || !session.participants.contains(player.getUniqueId())
+                || !session.rewardsByPlayer.containsKey(player.getUniqueId())
+                || !session.instanceWorld.world().getUID().equals(player.getWorld().getUID())) {
+            return null;
+        }
+        if (!requireRewardChest) {
+            return session;
+        }
+        if (session.rewardChestLocation == null) {
             return null;
         }
         World rewardWorld = session.rewardChestLocation.getWorld();

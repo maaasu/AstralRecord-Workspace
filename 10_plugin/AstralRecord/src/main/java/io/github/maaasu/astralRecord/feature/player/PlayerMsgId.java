@@ -1519,6 +1519,8 @@ public enum PlayerMsgId {
     P_7105(7105),
     /** ダンジョンクリア subtitle。 */
     P_7106(7106),
+    /** Bedrock 接続プレイヤー向けのクリア報酬再表示コマンド subtitle。 */
+    P_7107(7107),
     // endregion
 
     // region /feature/whitelist 7110-7119

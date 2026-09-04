@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.adventurerecord.repository.Adventur
 import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureDungeonRecord;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.dungeon.DungeonTestFixtures;
+import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonRewardGui;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonBlockPlan;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonLayout;
 import io.github.maaasu.astralRecord.feature.dungeon.model.DungeonMapRoomState;
@@ -57,6 +58,7 @@ import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.AfterEach;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
+import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
 import net.kyori.adventure.title.Title;
 import org.mockito.ArgumentCaptor;
@@ -583,6 +585,11 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         assertEquals(0L, outside.getHeardSounds().stream()
                 .filter(sound -> sound.getSound().equals("ui.toast.challenge_complete"))
                 .count());
+        DungeonRewardGui.Holder rewardHolder = service.rewardGui()
+                .holder(eligible.getOpenInventory().getTopInventory());
+        assertTrue(rewardHolder != null);
+        assertEquals(field(session, "id", UUID.class), rewardHolder.sessionId());
+        assertEquals(eligible.getUniqueId(), rewardHolder.playerId());
         field(session, "clearReturnTask", BukkitTask.class).cancel();
     }
 
@@ -598,6 +605,7 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         DungeonService service = service(mock(MobService.class), mock(DisplayTextService.class));
         Player player = mock(Player.class);
         Location location = mock(Location.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(player.getLocation()).thenReturn(location);
 
         Method method = DungeonService.class.getDeclaredMethod("showDungeonClear", List.class, String.class);
@@ -615,6 +623,34 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
                 0.9F,
                 1.0F
         );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 6. クリア報酬と30秒回収
+     * 検証契約: Bedrock接続プレイヤーのクリア通知には黄色の /drop を表示する。
+     */
+    @Test
+    void showsYellowDropCommandForBedrockPlayer() throws Exception {
+        DungeonService service = service(mock(MobService.class), mock(DisplayTextService.class));
+        Player player = mock(Player.class);
+        Location location = mock(Location.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getLocation()).thenReturn(location);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        when(astPlayer.isBedrock()).thenReturn(true);
+
+        try (MockedStatic<AstPlayerCache> cache = Mockito.mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            Method method = DungeonService.class.getDeclaredMethod("showDungeonClear", List.class, String.class);
+            method.setAccessible(true);
+            method.invoke(service, List.of(player), "古代遺跡");
+        }
+
+        ArgumentCaptor<Title> title = ArgumentCaptor.forClass(Title.class);
+        verify(player).showTitle(title.capture());
+        assertEquals("/drop", PlainTextComponentSerializer.plainText().serialize(title.getValue().subtitle()));
+        assertEquals(NamedTextColor.YELLOW, title.getValue().subtitle().color());
     }
 
     /**
@@ -765,6 +801,36 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         assertEquals(1L, player.getHeardSounds().stream()
                 .filter(sound -> sound.getSound().equals("entity.item.pickup"))
                 .count());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 6. クリア報酬と30秒回収
+     * 検証契約: 報酬チェストへアクセスできなくても、クリア待機中かつ未受取報酬があれば /drop でGUIを再表示できる。
+     */
+    @Test
+    void opensPendingRewardGuiWithoutRewardChestForDropFallback() throws Exception {
+        DungeonService service = service(mock(MobService.class), mock(DisplayTextService.class));
+        World dungeonWorld = server().addSimpleWorld("dungeon-reward-drop-fallback");
+        PlayerMock player = server().addPlayer();
+        player.teleport(new Location(dungeonWorld, 28.5D, 65.0D, 4.5D));
+        Object session = session(player.getUniqueId());
+        configureRunningSession(service, session, player, dungeonWorld);
+        setField(session, "cleared", true);
+        UUID claimId = UUID.randomUUID();
+        mapField(session, "rewardsByPlayer").put(
+                player.getUniqueId(), new ArrayList<>(List.of(
+                        new DungeonRewardEntry(claimId, "reward_item", 1, 1.0D))));
+
+        assertTrue(service.openRewardDrop(player));
+        DungeonRewardGui.Holder rewardHolder = service.rewardGui()
+                .holder(player.getOpenInventory().getTopInventory());
+        assertTrue(rewardHolder != null);
+        assertEquals(claimId, rewardHolder.claimIdAt(0));
+
+        Map<UUID, List<DungeonRewardEntry>> rewardsByPlayer = mapField(session, "rewardsByPlayer");
+        rewardsByPlayer.get(player.getUniqueId()).clear();
+        assertFalse(service.openRewardDrop(player));
     }
 
     /**
