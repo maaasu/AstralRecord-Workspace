@@ -32,6 +32,7 @@ class PlayerClassService @JvmOverloads constructor(
     private var skillTreeService: SkillTreeService? = null
     private var classChangeListener: Consumer<AstPlayer>? = null
     private var afkStateProvider: Predicate<AstPlayer> = Predicate { false }
+    private var playerListNameUpdatesEnabled = true
 
     fun setSkillTreeService(service: SkillTreeService) {
         skillTreeService = service
@@ -53,6 +54,16 @@ class PlayerClassService @JvmOverloads constructor(
      */
     fun setAfkStateProvider(provider: Predicate<AstPlayer>) {
         afkStateProvider = provider
+    }
+
+    /**
+     * RPG側からプレイヤーリスト名を更新するか設定します。
+     * Proxy連携中はProxyがTabのプレイヤーリスト名を正本として更新するため、RPG側の送信を停止します。
+     *
+     * @param enabled RPG側でプレイヤーリスト名を更新する場合は {@code true}
+     */
+    fun setPlayerListNameUpdatesEnabled(enabled: Boolean) {
+        playerListNameUpdatesEnabled = enabled
     }
 
     fun loadAll(): Int = classService.loadAll()
@@ -88,6 +99,9 @@ class PlayerClassService @JvmOverloads constructor(
      * @param astPlayer 更新対象プレイヤー
      */
     fun updatePlayerListName(astPlayer: AstPlayer) {
+        if (!playerListNameUpdatesEnabled) {
+            return
+        }
         val classDisplayName = if (getLoadedClass(astPlayer.classId) == null) {
             PlayerMsgResource.getMessage(PlayerMsgId.P_7122.id)
         } else {

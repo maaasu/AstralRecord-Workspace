@@ -22,6 +22,7 @@ import com.velocitypowered.api.proxy.player.TabList;
 import com.velocitypowered.api.proxy.player.TabListEntry;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.slf4j.Logger;
 
 import java.io.IOException;
@@ -44,6 +45,7 @@ public final class AstralRecordProxyPlugin {
     static final long SERVER_METRICS_TTL_NANOS = TimeUnit.SECONDS.toNanos(15L);
     private static final MinecraftChannelIdentifier CHANNEL =
         MinecraftChannelIdentifier.from(BackendProtocol.CHANNEL);
+    private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
 
     private final ProxyServer proxy;
     private final Logger logger;
@@ -185,6 +187,12 @@ public final class AstralRecordProxyPlugin {
                     return;
                 }
                 String sourceServer = connection.getServerInfo().getName();
+                String currentServer = connection.getPlayer().getCurrentServer()
+                    .map(current -> current.getServerInfo().getName())
+                    .orElse(null);
+                if (!isCurrentBackend(currentServer, sourceServer)) {
+                    return;
+                }
                 metadata.put(update.playerId(), new PlayerMetadata(
                     update.playerId(), update.mcid(), sourceServer, update.channel(), update.displayName(),
                     update.level(), update.className(), update.afk()));
@@ -421,22 +429,41 @@ public final class AstralRecordProxyPlugin {
                         .latency((int) Math.min(Integer.MAX_VALUE, target.getPing()))
                         .gameMode(0)
                         .build());
-                } else if (!value.equals(cached.get(target.getUniqueId()))) {
-                    entry.get().setDisplayName(displayName);
+                } else {
+                    TabListEntry currentEntry = entry.get();
+                    Component currentDisplayName = currentEntry.getDisplayNameComponent().orElse(null);
+                    if (!value.equals(cached.get(target.getUniqueId()))
+                        || !displayName.equals(currentDisplayName)) {
+                        currentEntry.setDisplayName(displayName);
+                    }
                 }
                 cached.put(target.getUniqueId(), value);
             }
         }
     }
 
-    private Component tabDisplayName(PlayerMetadata value) {
+    static boolean isCurrentBackend(String currentServer, String sourceServer) {
+        return currentServer != null
+            && sourceServer != null
+            && currentServer.equalsIgnoreCase(sourceServer);
+    }
+
+    /** ProxyのTabエントリへ適用するRPG側準拠の表示名を生成する。 */
+    static Component tabDisplayName(PlayerMetadata value) {
         Component prefix = Component.text("[" + value.channel() + "] ", NamedTextColor.GRAY);
         if (value.level() == null || value.className() == null) {
             return prefix.append(Component.text(value.mcid(), NamedTextColor.WHITE));
         }
-        Component afk = value.afk() ? Component.text("[AFK] ", NamedTextColor.YELLOW) : Component.empty();
+        Component className = LEGACY_SERIALIZER.deserialize(value.className())
+            .colorIfAbsent(NamedTextColor.AQUA);
+        Component classTag = Component.text("[", NamedTextColor.DARK_GRAY)
+            .append(className)
+            .append(Component.text(" Lv.", NamedTextColor.GRAY))
+            .append(Component.text(String.valueOf(value.level()), NamedTextColor.YELLOW))
+            .append(Component.text("] ", NamedTextColor.DARK_GRAY));
+        Component afk = value.afk() ? Component.text("[AFK] ", NamedTextColor.RED) : Component.empty();
         return prefix
-            .append(Component.text("[Lv." + value.level() + " " + value.className() + "] ", NamedTextColor.AQUA))
+            .append(classTag)
             .append(afk)
             .append(Component.text(value.displayName(), NamedTextColor.WHITE));
     }

@@ -59,6 +59,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
     }
 
     public void start() {
+        playerClassService.setPlayerListNameUpdatesEnabled(!enabled);
         if (!enabled) return;
         plugin.getServer().getMessenger().registerOutgoingPluginChannel(plugin, BackendProtocol.CHANNEL);
         plugin.getServer().getPluginManager().registerEvents(this, plugin);
@@ -77,6 +78,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
             HandlerList.unregisterAll(this);
         }
         transfers.clear();
+        playerClassService.setPlayerListNameUpdatesEnabled(true);
     }
 
     public void onPlayerLoaded(@NotNull AstPlayer player) {
@@ -89,7 +91,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
         AstPlayer player = AstPlayerCache.get(sender);
         if (player == null) return false;
         BackendProtocol.sendChat(
-            plugin, player, channelName, displayName(player), className(player), message);
+            plugin, player, channelName, displayName(player), plainClassName(player), message);
         return true;
     }
 
@@ -220,7 +222,9 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
     private void publishMetadata(@NotNull AstPlayer player) {
         if (!player.getBukkit().isOnline()) return;
         BackendProtocol.sendMetadata(
-            plugin, player, channelName, displayName(player), className(player), afkService.isAfk(player));
+            plugin, player, channelName, displayName(player), tabClassName(
+                playerClassService.getShortDisplayName(player.getClassId()), player.getClassId()),
+            afkService.isAfk(player));
     }
 
     /** プレイヤーTabメタデータとサーバー平均MSPTをProxyへ送る。 */
@@ -239,9 +243,13 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
         return AccountDisplayNameFormatter.toPlain(player.getAccount());
     }
 
-    private @NotNull String className(@NotNull AstPlayer player) {
+    private @NotNull String plainClassName(@NotNull AstPlayer player) {
         String raw = playerClassService.getShortDisplayName(player.getClassId());
         String stripped = ColorCodeUtil.stripColor(raw);
         return stripped == null || stripped.isBlank() ? player.getClassId() : stripped;
+    }
+
+    static @NotNull String tabClassName(String raw, @NotNull String fallback) {
+        return ColorCodeUtil.toLegacyText(raw, fallback);
     }
 }

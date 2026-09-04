@@ -246,6 +246,34 @@ class PlayerClassServiceTest : MockBukkitTestBase() {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
+     * 章・見出し: # 33_4-統合フロー > ## 全体Tabと所在
+     * 検証契約: ProxyがTabを所有する場合、RPG側のプレイヤーリスト名更新を停止し、単体表示へ戻した場合は更新できる。
+     */
+    @Test
+    fun skipsTabListNameUpdateWhenProxyOwnsTab() {
+        val player = server().addPlayer()
+        val astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER)
+        astPlayer.selectClass("mage")
+        val service = PlayerClassService()
+        val initialName = player.playerListName()
+
+        service.setPlayerListNameUpdatesEnabled(false)
+        service.replaceSnapshot(mapOf("mage" to classModel("mage", "&dメイジ", shortName = "&dMAG")))
+        service.updatePlayerListName(astPlayer)
+
+        assertEquals(initialName, player.playerListName())
+
+        service.setPlayerListNameUpdatesEnabled(true)
+        service.updatePlayerListName(astPlayer)
+
+        assertEquals(
+            "[MAG Lv.1] test-account#0",
+            PlainTextComponentSerializer.plainText().serialize(player.playerListName()),
+        )
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/10-hud/3-メソッド仕様/10_3-View.md
      * 章・見出し: # 10_3-View > ## 5. tab list 描画
      * 検証契約: クラスマスター未解決時に内部クラスIDをTabへ表示しない。
