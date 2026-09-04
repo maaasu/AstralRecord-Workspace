@@ -1,0 +1,23 @@
+lobbyServer: lobby
+gameServers:
+  - ch1
+  - ch2
+  - dev
+channelNames:
+  lobby: "ロビー"
+  ch1: "ch1"
+  ch2: "ch2"
+  dev: "dev"
+serverCapacities:
+  lobby: 100
+  ch1: 40
+  ch2: 40
+  dev: 20
+transferCooldownSeconds: 30
+tabRefreshSeconds: 2
+presenceHeartbeatSeconds: 10
+api:
+  baseUrl: "http://127.0.0.1:5261"
+  apiKey: "your_api_key"
+  timeoutMillis: 3000
+  discordPollMillis: 500

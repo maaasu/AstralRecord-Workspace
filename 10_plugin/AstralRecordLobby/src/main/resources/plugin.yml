@@ -1,0 +1,10 @@
+name: AstralRecordLobby
+version: ${project.version}
+main: io.github.maaasu.astralrecordlobby.AstralRecordLobbyPlugin
+api-version: '1.21'
+authors: [ "AstralRecord" ]
+softdepend: [ DiscordSRV ]
+commands:
+  server:
+    description: サーバー選択GUIを開きます。
+    usage: /server

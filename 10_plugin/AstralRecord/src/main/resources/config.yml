@@ -95,9 +95,16 @@ resourcePack:
 
 # DiscordSRV integration. The bot token is managed only by DiscordSRV's own config.yml.
 discord:
-  enabled: true
+  # DiscordSRV はロビーサーバーだけで動かすため、RPGサーバーでは無効にする。
+  enabled: false
   globalChannelId: "1540365856956088331"
   maxMessageLength: 256
+
+# Velocity Proxyとのネットワーク連携。各RPGサーバーでserverId/channelNameを個別設定する。
+network:
+  enabled: true
+  channelName: "dev"
+  lobbyServer: "lobby"
 
 
 # Logging Settings

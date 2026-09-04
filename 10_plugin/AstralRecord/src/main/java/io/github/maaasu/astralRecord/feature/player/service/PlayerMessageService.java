@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.player.service;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.discord.service.GlobalChatBridge;
+import io.github.maaasu.astralRecord.feature.network.NetworkChatBridge;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
@@ -28,6 +29,7 @@ import java.util.regex.Pattern;
 public final class PlayerMessageService {
     private static final PlayerMessageService FALLBACK_INSTANCE = new PlayerMessageService();
     private @Nullable GlobalChatBridge globalChatBridge;
+    private @Nullable NetworkChatBridge networkChatBridge;
 
     /**
      * PlayerMessageService を初期化する。
@@ -188,6 +190,11 @@ public final class PlayerMessageService {
         this.globalChatBridge = globalChatBridge;
     }
 
+    /** Proxy経由の全体チャット中継先を設定します。 */
+    public void setNetworkChatBridge(@Nullable NetworkChatBridge networkChatBridge) {
+        this.networkChatBridge = networkChatBridge;
+    }
+
     /**
      * クリック時に指定コマンドを実行するシステムメッセージを送信する。
      *
@@ -268,6 +275,10 @@ public final class PlayerMessageService {
      */
     public void broadcastGlobalChat(@NotNull Player sender, @NotNull String message) {
         String normalizedMessage = ChatMessageSanitizer.normalize(message);
+        if (!normalizedMessage.isBlank() && networkChatBridge != null
+            && networkChatBridge.publish(sender, normalizedMessage)) {
+            return;
+        }
         AstPlayer astPlayer = AstPlayerCache.get(sender);
         String displayName = astPlayer == null
             ? sender.getName()

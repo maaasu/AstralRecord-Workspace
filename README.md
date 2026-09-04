@@ -7,6 +7,8 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 | Project | Role | Main Stack | Rules |
 |:--|:--|:--|:--|
 | `10_plugin/AstralRecord/` | Minecraft Plugin | Java, Kotlin, Paper/Spigot, Maven | [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md) / `$astralrecord-code` |
+| `10_plugin/AstralRecordLobby/` | Lobby Plugin | Java, Paper, Maven | [Network設計](00_docs/10_Plugin設計書/feature/33-network/33_0-概要.md) / `$astralrecord-code` |
+| `10_plugin/AstralRecordProxy/` | Velocity Proxy Plugin | Java, Velocity, Maven | [Network設計](00_docs/10_Plugin設計書/feature/33-network/33_0-概要.md) / `$astralrecord-code` |
 | `10_plugin/AstralArchitect/` | AI-assisted Minecraft building Plugin | Java, Paper, FAWE, Maven, Python | [AstralArchitect README](10_plugin/AstralArchitect/README.md) / `$astralarchitect-builder` |
 | `20_api/AstralRecordApi/` | REST API | ASP.NET Core, C#, SQL Server | [API_GUIDE.md](API_GUIDE.md) / `$astralrecord-code` |
 | `30_web/AstralRecordWeb/` | Web Site | ASP.NET Core Razor Pages | この README の「AstralRecord Web」 |

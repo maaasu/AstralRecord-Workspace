@@ -11,6 +11,7 @@
 | feature | 内容 |
 |---|---|
 | `feature/28-release-note` | Markdownリリースノートの公開登録とDiscord通知Outbox |
+| `feature/33-network` | ロビーadmission、オンライン所在、サーバー状態、チャット中継 |
 
 ## 0. 編集ツールと参照記法
 

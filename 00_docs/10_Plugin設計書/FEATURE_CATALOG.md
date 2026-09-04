@@ -36,6 +36,7 @@
 | 30 | [[30_0-概要]] | Java 用リソースパック要求と client status | `feature/resourcepack` |
 | 31 | [[31_0-概要]] | 検証用カカシの配置、共有ステータス調整、非致死・定期回復 | `feature/trainingdummy` |
 | 32 | [[32_0-概要]] | BSP ダンジョン生成、部屋戦闘、ゲート進行、一時ワールド回収 | `feature/dungeon` |
+| 33 | [[33_0-概要]] | Velocity経由のチャンネル選択、ロビー保護、全体チャット、全体Tab、所在同期 | `feature/network`, `AstralRecordProxy`, `AstralRecordLobby` |
 
 ## 更新規則
 
@@ -313,6 +314,14 @@
 - `10_plugin/AstralRecord/src/main/resources/player.properties`（`P_7000` から `P_7047`）
 - `10_plugin/AstralRecord/src/main/resources/logger.properties`（Dungeon の `7000` 系）
 - `40_filebase/65.features.dungeon/*`
+
+### [[33_0-概要|33-network]]
+
+- `10_plugin/AstralRecord/src/main/java/io/github/maaasu/astralRecord/feature/network/*`
+- `10_plugin/AstralRecordProxy/*`
+- `10_plugin/AstralRecordLobby/*`
+- `10_plugin/AstralRecord/src/main/resources/config.yml` の `network` / `discord` 設定
+- `10_plugin/AstralRecord/src/main/resources/player.properties`（`P_7150`から`P_7154`）
 
 ## 共通基盤所有パス
 

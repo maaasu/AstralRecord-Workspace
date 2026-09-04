@@ -99,6 +99,7 @@ import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.test.SkillTreeSpawnCheckCommand;
 import io.github.maaasu.astralRecord.test.SkillTreeSpawnCheckTabCompleter;
 import io.github.maaasu.astralRecord.test.TestCommand;
+import io.github.maaasu.astralRecord.feature.network.command.LobbyCommand;
 
 import java.util.function.Supplier;
 
@@ -251,6 +252,7 @@ public class CommandRegister {
         cm.registerCommand("test", new TestCommand(mobService));
         cm.registerCommand("testskilltree", new SkillTreeSpawnCheckCommand(), new SkillTreeSpawnCheckTabCompleter());
         cm.registerCommand("masterdata", new MasterDataCommand(AstralRecord.getInstance()));
+        cm.registerCommand("lobby", new LobbyCommand());
         WhitelistCommand whitelistCommand = new WhitelistCommand(
             WhitelistService.getInstance(),
             AstralRecord.getInstance().getUserService()

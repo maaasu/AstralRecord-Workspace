@@ -1,0 +1,46 @@
+serverId: lobby
+channelName: "ロビー"
+api:
+  baseUrl: "http://127.0.0.1:5261"
+  apiKey: "your_api_key"
+  timeoutMillis: 3000
+discord:
+  enabled: true
+  gameChannel: global
+  minecraftPollTicks: 10
+selector:
+  title: "サーバー選択"
+  size: 27
+  npc:
+    enabled: true
+    world: world
+    x: 0.5
+    y: 64.0
+    z: 0.5
+    yaw: 0.0
+    pitch: 0.0
+    type: VILLAGER
+    name: "サーバー選択"
+    raycastDistance: 6.0
+  entries:
+    ch1:
+      server: ch1
+      slot: 11
+      material: DIAMOND_SWORD
+      name: "ch1 に接続"
+      lore:
+        - "クリックして ch1 に移動します"
+    ch2:
+      server: ch2
+      slot: 13
+      material: GOLDEN_SWORD
+      name: "ch2 に接続"
+      lore:
+        - "クリックして ch2 に移動します"
+    dev:
+      server: dev
+      slot: 15
+      material: REDSTONE
+      name: "dev に接続"
+      lore:
+        - "開発・検証用サーバー"

@@ -94,6 +94,8 @@ builder.Services.AddScoped<IMarketListingLimitService, MarketListingLimitService
 builder.Services.AddScoped<IMasterDataRepository, MasterDataRepository>();
 builder.Services.AddScoped<IMasterDataSeeder, MasterDataSeeder>();
 builder.Services.AddSingleton<IMasterDataFileService, MasterDataFileService>();
+builder.Services.AddSingleton(TimeProvider.System);
+builder.Services.AddSingleton<INetworkRuntimeService, NetworkRuntimeService>();
 builder.Services.AddHostedService<MasterDataSeedHostedService>();
 builder.Services.AddHttpClient<IDiscordReleaseNotificationSender, DiscordReleaseNotificationSender>(httpClient =>
 {

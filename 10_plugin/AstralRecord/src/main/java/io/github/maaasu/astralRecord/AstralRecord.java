@@ -28,6 +28,7 @@ import io.github.maaasu.astralRecord.feature.dungeon.repository.DungeonDefinitio
 import io.github.maaasu.astralRecord.feature.dungeon.service.DungeonService;
 import io.github.maaasu.astralRecord.feature.discord.service.DiscordSrvChatBridge;
 import io.github.maaasu.astralRecord.feature.discord.service.GlobalChatBridge;
+import io.github.maaasu.astralRecord.feature.network.NetworkBridgeService;
 import io.github.maaasu.astralRecord.feature.whitelist.event.WhitelistConnectionEventHandler;
 import io.github.maaasu.astralRecord.feature.whitelist.service.WhitelistService;
 import io.github.maaasu.astralRecord.feature.condition.display.ConditionDisplayService;
@@ -341,6 +342,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerJoinEventHandler playerJoinEventHandler;
     private PlayerMessageService playerMessageService;
     private GlobalChatBridge globalChatBridge;
+    private NetworkBridgeService networkBridgeService;
     private PlayerRegionService playerRegionService;
     private AfkService afkService;
     private InventoryService inventoryService;
@@ -570,6 +572,7 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         setupFeature();
+        setupNetworkBridge();
         setupDiscordChatBridge();
 
         // 4. イベントとコマンドを登録
@@ -578,6 +581,10 @@ public final class AstralRecord extends JavaPlugin {
 
     @Override
     public void onDisable() {
+        if (networkBridgeService != null) {
+            networkBridgeService.stop();
+            networkBridgeService = null;
+        }
         if (globalChatBridge != null) {
             globalChatBridge.close();
             globalChatBridge = null;
@@ -1660,6 +1667,13 @@ public final class AstralRecord extends JavaPlugin {
         }
     }
 
+    /** Velocity ProxyとのRPGネットワーク連携を初期化します。 */
+    private void setupNetworkBridge() {
+        networkBridgeService = new NetworkBridgeService(this, playerClassService, afkService);
+        networkBridgeService.start();
+        playerMessageService.setNetworkChatBridge(networkBridgeService);
+    }
+
     /**
      * イベントやコマンドなどの機能を登録します。
      */
@@ -1713,7 +1727,12 @@ public final class AstralRecord extends JavaPlugin {
             guideService,
             menuToolJoinGrantService
         );
-        playerJoinEventHandler.setPlayerLoadedListener(player -> passiveSkillService.reconcileNow(player));
+        playerJoinEventHandler.setPlayerLoadedListener(player -> {
+            passiveSkillService.reconcileNow(player);
+            if (networkBridgeService != null) {
+                networkBridgeService.onPlayerLoaded(player);
+            }
+        });
         playerJoinEventHandler.setPlayerQuitListener(player -> {
             UUID playerId = player.getBukkit().getUniqueId();
             passiveSkillService.onPlayerQuit(player);
@@ -2373,6 +2392,11 @@ public final class AstralRecord extends JavaPlugin {
      */
     public PlayerClassService getPlayerClassService() {
         return playerClassService;
+    }
+
+    /** Velocity Proxy連携サービスを返します。 */
+    public NetworkBridgeService getNetworkBridgeService() {
+        return networkBridgeService;
     }
 
     /**
