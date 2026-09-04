@@ -536,6 +536,39 @@ class InventorySaveCoordinatorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: 古い prepared handle の遅延破棄は、同一accountで後から開始した外部操作の境界を解除しない。
+     */
+    @Test
+    void stalePreparedCleanupCannotReleaseNewExternalOperationBoundary() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        InventoryPersistence.PersistedInventoryBaseline baseline =
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of());
+        when(persistence.saveNowWithBaseline(state)).thenReturn(baseline);
+        when(persistence.saveNow(state)).thenReturn(true);
+        ManualExecutor executor = new ManualExecutor();
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(persistence, registry, executor);
+
+        var preparedFuture = coordinator.prepareExternalOperationAfterSave(accountId);
+        executor.runAll();
+        InventorySaveCoordinator.PreparedExternalOperation prepared = preparedFuture.join();
+        coordinator.abandonPreparedExternalOperation(prepared);
+
+        var nextOperation = coordinator.executeExclusiveAfterSave(accountId, () -> "next");
+        coordinator.abandonPreparedExternalOperation(prepared);
+
+        assertTrue(coordinator.hasUnresolvedExternalOperation(accountId));
+        executor.runAll();
+        assertEquals("next", nextOperation.join());
+        assertFalse(coordinator.hasUnresolvedExternalOperation(accountId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
      * 検証契約: 三者マージ後保存中に同account stateが再変更された場合は2回目の保存までunresolved境界を保持し、先行受理済みlogoutとshutdown drainをその後にだけ完了する。
      */
     @Test
@@ -647,6 +680,51 @@ class InventorySaveCoordinatorTest {
         verify(persistence, times(1)).saveNow(state);
         verify(persistence, never()).save(state, InventoryPersistence.SaveTrigger.AUTO);
         verify(persistence, never()).clearAccount(accountId);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: 外部操作後の正本保存が失敗し続けても、有限時間で future を失敗完了し、未解決境界を保持する。
+     */
+    @Test
+    void timesOutPostExternalSaveWhileKeepingUnresolvedBoundary() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        InventoryPersistence.PersistedInventoryBaseline baseline =
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of());
+        when(persistence.saveNowWithBaseline(state)).thenReturn(baseline);
+        when(persistence.saveNow(state)).thenReturn(false);
+        when(persistence.hasPendingChanges(state)).thenReturn(true);
+        ExecutorService executor = Executors.newSingleThreadExecutor();
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(
+            persistence,
+            registry,
+            executor,
+            1_000L
+        );
+
+        try (MockedStatic<Logger> ignored = mockStatic(Logger.class)) {
+            AtomicBoolean operationCalled = new AtomicBoolean();
+            var operation = coordinator.executeExclusiveAfterSave(accountId, savedBaseline -> {
+                operationCalled.set(true);
+                assertSame(baseline, savedBaseline);
+                return "APPLIED";
+            });
+
+            CompletionException failure = assertThrows(CompletionException.class, operation::join);
+
+            assertTrue(failure.getCause() instanceof InventorySaveCoordinator.ExternalOperationTimeoutException);
+            assertTrue(operationCalled.get());
+            assertTrue(coordinator.hasUnresolvedExternalOperation(accountId));
+            assertTrue(state.isDirty());
+            verify(persistence).saveNowWithBaseline(state);
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     private static final class ManualExecutor implements Executor {

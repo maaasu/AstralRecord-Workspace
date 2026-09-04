@@ -25,6 +25,7 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndEvent;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -288,6 +289,12 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
                 forgetting.remove(playerId);
                 if (compensationMaterial != null) refundPaidForget(player, accountId);
                 failForget(player, playerId, PlayerMsgId.P_5867);
+            },
+            () -> {
+                if (!forgetting.containsKey(playerId) || !player.isOnline()) return;
+                player.closeInventory();
+                GuiSound.DENY.play(player);
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5874);
             }
         );
         if (!accepted) {
@@ -338,7 +345,7 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
             action.run();
             return;
         }
-        plugin.getServer().getScheduler().runTask(plugin, action);
+        AsyncTaskUtil.runSyncEventually(plugin, action);
     }
 
     private void openList(@NotNull Player player, int page) {

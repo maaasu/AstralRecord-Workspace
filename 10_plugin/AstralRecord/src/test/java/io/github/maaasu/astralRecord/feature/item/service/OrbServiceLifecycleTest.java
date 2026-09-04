@@ -1241,6 +1241,32 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
+     * 検証契約: API応答が期限内に確定しない場合は時計GUIを閉じ、同一operationIdと支払い予約を保留回復へ残す。
+     */
+    @Test
+    void timesOutOrbOperationWithoutReleasingPaymentReservation() {
+        Harness harness = new Harness(ItemOrbEffectType.REPAIR, List.of(), 0, 1_000L);
+        harness.terminalApplyCall.set(Integer.MAX_VALUE);
+        harness.openOrbList();
+
+        harness.handler.onInventoryClick(harness.guiClick(0));
+        harness.laneExecutor.runAll();
+
+        assertTrue(harness.operationIds.size() > 0);
+        assertEquals(1, harness.operationIds.stream().distinct().count());
+        assertTrue(harness.coordinator.hasUnresolvedExternalOperation(harness.accountId));
+        verify(harness.inventoryService, never()).releaseOrbOperationPayment(
+            eq(harness.accountId), any(UUID.class));
+
+        server().getScheduler().performOneTick();
+
+        assertFalse(harness.service.isOrbInventory(harness.player.getOpenInventory().getTopInventory()));
+        assertFalse(harness.service.isLocked(harness.player));
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
      * 検証契約: lane開始前にstate世代が変わりPOSTへ到達できない場合はinitial予約を解放し、unresolved境界を残さない。
@@ -1430,13 +1456,22 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         private final List<String> usedOrbIds = new ArrayList<>();
 
         private Harness(ItemOrbEffectType effectType) {
-            this(effectType, List.of(), 0);
+            this(effectType, List.of(), 0, 60_000L);
         }
 
         private Harness(
             ItemOrbEffectType effectType,
             List<ItemEquipmentEnhanceMaterial> transcendenceMaterials,
             int transcendenceCurrency
+        ) {
+            this(effectType, transcendenceMaterials, transcendenceCurrency, 60_000L);
+        }
+
+        private Harness(
+            ItemOrbEffectType effectType,
+            List<ItemEquipmentEnhanceMaterial> transcendenceMaterials,
+            int transcendenceCurrency,
+            long operationTimeoutMillis
         ) {
             this.effectType = effectType;
             this.orbModel = orbModel(effectType);
@@ -1455,7 +1490,8 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             state.putInventory(bag);
             registry.put(state);
             configureMocks();
-            coordinator = new InventorySaveCoordinator(persistence, registry, laneExecutor);
+            coordinator = new InventorySaveCoordinator(
+                persistence, registry, laneExecutor, operationTimeoutMillis);
             service = new OrbService(
                 plugin,
                 inventoryService,
@@ -1471,7 +1507,8 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                         onCancelled.run();
                     }
                 },
-                (operationId, delayMillis) -> retryBehavior.get().await(operationId, delayMillis)
+                (operationId, delayMillis) -> retryBehavior.get().await(operationId, delayMillis),
+                operationTimeoutMillis
             );
             service.setStatusService(statusService);
             service.setUseSuccessListener((player, orbItemId) -> usedOrbIds.add(orbItemId));

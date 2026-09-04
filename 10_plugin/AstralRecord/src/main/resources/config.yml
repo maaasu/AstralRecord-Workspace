@@ -75,6 +75,8 @@ api:
     apiKey: "your_api_key"
   # タイムアウト設定（ミリ秒）
   timeout: 30000
+  # 装備・スキルなど、一連のゲーム操作をプレイヤー向け待機から保留へ切り替える時間（ミリ秒）
+  operationTimeout: 60000
   ssl:
     # SSL証明書の検証を行うか否か。false は debug mode または localhost/private IP の開発 endpoint のみ許可
     # 公開 endpoint で false の場合は API key 送信前にクライアント生成を拒否して Plugin 起動を失敗させる

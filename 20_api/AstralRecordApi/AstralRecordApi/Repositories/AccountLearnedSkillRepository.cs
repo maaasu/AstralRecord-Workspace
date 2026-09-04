@@ -1,4 +1,6 @@
 using System.Data;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using AstralRecordApi.Data;
@@ -18,6 +20,7 @@ public class AccountLearnedSkillRepository(
     private const string OrbCategory = "orb";
     private const string SigilAttachOrbEffectType = "SIGIL_ATTACH";
     private const string SigilDetachOrbEffectType = "SIGIL_DETACH";
+    private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
     public async Task<IReadOnlyList<AccountLearnedSkillResponse>> GetByAccountIdAsync(Guid accountId)
     {
@@ -47,14 +50,25 @@ public class AccountLearnedSkillRepository(
         AccountLearnedSkillLearnRequest request)
     {
         var skillId = NormalizeId(request.SkillId);
-        var skill = await GetSkillAsync(skillId);
-        if (skill is null)
-            return Failure(AccountLearnedSkillMutationFailure.SkillNotFound);
-        if (!await AccountExistsAsync(accountId))
-            return Failure(AccountLearnedSkillMutationFailure.AccountNotFound);
-
-        return await ExecuteSerializableAsync(async () =>
+        var operationId = NormalizeOperationId(request.OperationId);
+        return await ExecuteIdempotentAsync(
+            accountId,
+            operationId,
+            "LEARN",
+            ComputeRequestHash(
+                operationId,
+                accountId,
+                "LEARN",
+                skillId,
+                 request.UpdatedBy.ToString("D")),
+             async () =>
         {
+            var skill = await GetSkillAsync(skillId);
+            if (skill is null)
+                return Failure(AccountLearnedSkillMutationFailure.SkillNotFound);
+            if (!await AccountExistsAsync(accountId))
+                return Failure(AccountLearnedSkillMutationFailure.AccountNotFound);
+
             var materials = await FindAndValidateRequiredMaterialsAsync(accountId, skill.LearnRequiredItems);
             if (materials is null)
                 return Failure(AccountLearnedSkillMutationFailure.InvalidMaterial);
@@ -85,7 +99,18 @@ public class AccountLearnedSkillRepository(
         Guid learnedSkillId,
         AccountLearnedSkillLevelUpRequest request)
     {
-        return await ExecuteSerializableAsync(async () =>
+        var operationId = NormalizeOperationId(request.OperationId);
+        return await ExecuteIdempotentAsync(
+            accountId,
+            operationId,
+            "LEVEL_UP",
+            ComputeRequestHash(
+                operationId,
+                accountId,
+                "LEVEL_UP",
+                learnedSkillId.ToString("D"),
+                request.UpdatedBy.ToString("D")),
+            async () =>
         {
             var entity = await FindLearnedSkillAsync(accountId, learnedSkillId);
             if (entity is null)
@@ -117,12 +142,26 @@ public class AccountLearnedSkillRepository(
         AccountLearnedSkillAttachSigilRequest request)
     {
         var requestedSigilId = NormalizeId(request.SigilId);
-        var sigil = await GetSigilAsync(requestedSigilId);
-        if (sigil is null)
-            return Failure(AccountLearnedSkillMutationFailure.SigilNotFound);
-
-        return await ExecuteSerializableAsync(async () =>
+        var operationId = NormalizeOperationId(request.OperationId);
+        return await ExecuteIdempotentAsync(
+            accountId,
+            operationId,
+            "SIGIL_ATTACH",
+            ComputeRequestHash(
+                operationId,
+                accountId,
+                "SIGIL_ATTACH",
+                learnedSkillId.ToString("D"),
+                requestedSigilId,
+                request.SigilInventoryEntryId.ToString("D"),
+                request.OrbInventoryEntryId.ToString("D"),
+                 request.UpdatedBy.ToString("D")),
+             async () =>
         {
+            var sigil = await GetSigilAsync(requestedSigilId);
+            if (sigil is null)
+                return Failure(AccountLearnedSkillMutationFailure.SigilNotFound);
+
             var entity = await FindLearnedSkillAsync(accountId, learnedSkillId);
             if (entity is null)
                 return Failure(AccountLearnedSkillMutationFailure.LearnedSkillNotFound);
@@ -181,7 +220,20 @@ public class AccountLearnedSkillRepository(
         Guid learnedSkillSigilId,
         AccountLearnedSkillDetachSigilRequest request)
     {
-        return await ExecuteSerializableAsync(async () =>
+        var operationId = NormalizeOperationId(request.OperationId);
+        return await ExecuteIdempotentAsync(
+            accountId,
+            operationId,
+            "SIGIL_DETACH",
+            ComputeRequestHash(
+                operationId,
+                accountId,
+                "SIGIL_DETACH",
+                learnedSkillId.ToString("D"),
+                learnedSkillSigilId.ToString("D"),
+                request.OrbInventoryEntryId.ToString("D"),
+                request.UpdatedBy.ToString("D")),
+            async () =>
         {
             var entity = await FindLearnedSkillAsync(accountId, learnedSkillId);
             if (entity is null)
@@ -265,28 +317,39 @@ public class AccountLearnedSkillRepository(
         Guid learnedSkillId,
         AccountLearnedSkillForgetRequest request)
     {
-        return await ExecuteSerializableAsync(async () =>
-        {
-            var entity = await FindLearnedSkillAsync(accountId, learnedSkillId);
-            if (entity is null)
-                return Failure(AccountLearnedSkillMutationFailure.LearnedSkillNotFound);
-
-            var now = DateTime.UtcNow;
-            var result = Success(Map(entity));
-            entity.IsDeleted = true;
-            entity.Version += 1;
-            entity.UpdatedAt = now;
-            entity.UpdatedBy = request.UpdatedBy;
-            foreach (var sigil in entity.Sigils.Where(sigil => !sigil.IsDeleted))
+        var operationId = NormalizeOperationId(request.OperationId);
+        return await ExecuteIdempotentAsync(
+            accountId,
+            operationId,
+            "FORGET",
+            ComputeRequestHash(
+                operationId,
+                accountId,
+                "FORGET",
+                learnedSkillId.ToString("D"),
+                request.UpdatedBy.ToString("D")),
+            async () =>
             {
-                sigil.IsDeleted = true;
-                sigil.UpdatedAt = now;
-                sigil.UpdatedBy = request.UpdatedBy;
-            }
+                var entity = await FindLearnedSkillAsync(accountId, learnedSkillId);
+                if (entity is null)
+                    return Failure(AccountLearnedSkillMutationFailure.LearnedSkillNotFound);
 
-            await dbContext.SaveChangesAsync();
-            return result;
-        });
+                var now = DateTime.UtcNow;
+                var result = Success(Map(entity));
+                entity.IsDeleted = true;
+                entity.Version += 1;
+                entity.UpdatedAt = now;
+                entity.UpdatedBy = request.UpdatedBy;
+                foreach (var sigil in entity.Sigils.Where(sigil => !sigil.IsDeleted))
+                {
+                    sigil.IsDeleted = true;
+                    sigil.UpdatedAt = now;
+                    sigil.UpdatedBy = request.UpdatedBy;
+                }
+
+                await dbContext.SaveChangesAsync();
+                return result;
+            });
     }
 
     private async Task<AccountLearnedSkillMutationResult> ExecuteSerializableAsync(
@@ -303,6 +366,72 @@ public class AccountLearnedSkillRepository(
                 await transaction.CommitAsync();
             return result;
         });
+    }
+
+    private async Task<AccountLearnedSkillMutationResult> ExecuteIdempotentAsync(
+        Guid accountId,
+        Guid? operationId,
+        string operationType,
+        string requestHash,
+        Func<Task<AccountLearnedSkillMutationResult>> operation)
+    {
+        if (!operationId.HasValue)
+            return await ExecuteSerializableAsync(operation);
+
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database
+                .BeginTransactionAsync(IsolationLevel.Serializable);
+            var existing = await FindOperationForUpdateAsync(operationId.Value);
+            if (existing is not null)
+            {
+                if (existing.AccountId != accountId
+                    || !string.Equals(existing.OperationType, operationType, StringComparison.Ordinal)
+                    || !string.Equals(existing.RequestHash, requestHash, StringComparison.Ordinal))
+                {
+                    await transaction.CommitAsync();
+                    return Failure(AccountLearnedSkillMutationFailure.IdempotencyConflict);
+                }
+
+                var replay = DeserializeMutationResult(existing.ResultPayloadJson);
+                await transaction.CommitAsync();
+                return replay;
+            }
+
+            var result = await operation();
+            var now = DateTime.UtcNow;
+            dbContext.AccountLearnedSkillOperations.Add(new AccountLearnedSkillOperationEntity
+            {
+                OperationId = operationId.Value,
+                AccountId = accountId,
+                OperationType = operationType,
+                RequestHash = requestHash,
+                ResultPayloadJson = JsonSerializer.Serialize(result, JsonOptions),
+                CreatedAt = now,
+                CompletedAt = now,
+                CreatedBy = accountId,
+            });
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return result;
+        });
+    }
+
+    private async Task<AccountLearnedSkillOperationEntity?> FindOperationForUpdateAsync(Guid operationId)
+    {
+        if (dbContext.Database.IsSqlServer())
+        {
+            return await dbContext.AccountLearnedSkillOperations
+                .FromSqlInterpolated($"""
+                    SELECT * FROM [dbo].[account_learned_skill_operation] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE [operation_id] = {operationId}
+                    """)
+                .SingleOrDefaultAsync();
+        }
+        return await dbContext.AccountLearnedSkillOperations
+            .SingleOrDefaultAsync(operation => operation.OperationId == operationId);
     }
 
     private async Task<bool> AccountExistsAsync(Guid accountId)
@@ -772,6 +901,24 @@ public class AccountLearnedSkillRepository(
     };
 
     private static string NormalizeId(string? value) => value?.Trim().ToLowerInvariant() ?? string.Empty;
+    private static Guid? NormalizeOperationId(Guid? operationId)
+        => operationId.HasValue && operationId.Value != Guid.Empty ? operationId : null;
+
+    private static string ComputeRequestHash(params object?[] values)
+        => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(string.Join(
+            '|',
+            values.Select(value => value switch
+            {
+                Guid guid => guid.ToString("D"),
+                null => string.Empty,
+                _ => value.ToString() ?? string.Empty,
+            }))
+        )));
+
+    private static AccountLearnedSkillMutationResult DeserializeMutationResult(string payload)
+        => JsonSerializer.Deserialize<AccountLearnedSkillMutationResult>(payload, JsonOptions)
+            ?? throw new InvalidOperationException("Stored learned skill operation payload is invalid.");
+
     private static bool IdEquals(string? left, string? right)
         => string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
     private static AccountLearnedSkillMutationResult Success(

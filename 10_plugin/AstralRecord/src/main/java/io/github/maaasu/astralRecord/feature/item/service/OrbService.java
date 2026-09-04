@@ -26,6 +26,9 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillSigilOrbService;
+import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport;
@@ -63,6 +66,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
 /**
@@ -96,6 +100,7 @@ public final class OrbService {
     private static final Material PROCESSING_ICON = Material.CLOCK;
     private static final long OPERATION_RETRY_INITIAL_MILLIS = 250L;
     private static final long OPERATION_RETRY_MAX_MILLIS = 2_000L;
+    private static final long DEFAULT_OPERATION_TIMEOUT_MILLIS = 60_000L;
 
     private final Plugin plugin;
     private final InventoryService inventoryService;
@@ -105,8 +110,11 @@ public final class OrbService {
     private final ItemStackFactory itemStackFactory;
     private final OrbInventoryOpener inventoryOpener;
     private final OrbRetryWaiter retryWaiter;
+    private final long operationTimeoutMillis;
     private final Map<UUID, OrbSession> sessions = new ConcurrentHashMap<>();
     private final Map<UUID, OrbInventoryListSession> inventoryOrbListSessions = new ConcurrentHashMap<>();
+    private final Map<UUID, PendingOrbOperation> pendingOrbOperations = new ConcurrentHashMap<>();
+    private final Set<UUID> pendingOrbAccounts = ConcurrentHashMap.newKeySet();
     private @Nullable StatusService statusService;
     private @NotNull BiConsumer<AstPlayer, String> useSuccessListener = (player, orbItemId) -> { };
     private @Nullable SkillSigilOrbService skillSigilOrbService;
@@ -137,7 +145,8 @@ public final class OrbService {
             itemService,
             itemStackFactory,
             GuiOpenSupport::open,
-            OrbService::sleepForOperationRetry
+            OrbService::sleepForOperationRetry,
+            configuredOperationTimeoutMillis()
         );
     }
 
@@ -158,7 +167,8 @@ public final class OrbService {
             itemService,
             itemStackFactory,
             inventoryOpener,
-            OrbService::sleepForOperationRetry
+            OrbService::sleepForOperationRetry,
+            configuredOperationTimeoutMillis()
         );
     }
 
@@ -172,6 +182,30 @@ public final class OrbService {
         @NotNull OrbInventoryOpener inventoryOpener,
         @NotNull OrbRetryWaiter retryWaiter
     ) {
+        this(
+            plugin,
+            inventoryService,
+            inventorySaveCoordinator,
+            inventoryStateRegistry,
+            itemService,
+            itemStackFactory,
+            inventoryOpener,
+            retryWaiter,
+            configuredOperationTimeoutMillis()
+        );
+    }
+
+    OrbService(
+        @NotNull Plugin plugin,
+        @NotNull InventoryService inventoryService,
+        @NotNull InventorySaveCoordinator inventorySaveCoordinator,
+        @NotNull PlayerInventoryStateRegistry inventoryStateRegistry,
+        @NotNull ItemService itemService,
+        @NotNull ItemStackFactory itemStackFactory,
+        @NotNull OrbInventoryOpener inventoryOpener,
+        @NotNull OrbRetryWaiter retryWaiter,
+        long operationTimeoutMillis
+    ) {
         this.plugin = plugin;
         this.inventoryService = inventoryService;
         this.inventorySaveCoordinator = inventorySaveCoordinator;
@@ -180,6 +214,12 @@ public final class OrbService {
         this.itemStackFactory = itemStackFactory;
         this.inventoryOpener = inventoryOpener;
         this.retryWaiter = retryWaiter;
+        this.operationTimeoutMillis = Math.max(1_000L, operationTimeoutMillis);
+    }
+
+    private static long configuredOperationTimeoutMillis() {
+        long configured = ConfigProperties.getInstance().getApiOperationTimeout();
+        return configured > 0L ? configured : DEFAULT_OPERATION_TIMEOUT_MILLIS;
     }
 
     /**
@@ -255,6 +295,11 @@ public final class OrbService {
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             return false;
         }
+        if (pendingOrbAccounts.contains(astPlayer.getAccount().getUuid())) {
+            event.setCancelled(true);
+            notifyOrbOperationPending(player);
+            return true;
+        }
 
         event.setCancelled(true);
         openInventoryOrbList(player, astPlayer, null);
@@ -277,6 +322,11 @@ public final class OrbService {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             return false;
+        }
+        if (pendingOrbAccounts.contains(astPlayer.getAccount().getUuid())) {
+            event.setCancelled(true);
+            notifyOrbOperationPending(player);
+            return true;
         }
         InventoryEntryModel entry = inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, event.getSlot());
         ItemModel orbModel = resolveOrbModel(entry);
@@ -303,6 +353,10 @@ public final class OrbService {
         @NotNull ItemModel orbModel,
         boolean returnToInventoryOrbListOnFailure
     ) {
+        if (pendingOrbAccounts.contains(astPlayer.getAccount().getUuid())) {
+            notifyOrbOperationPending(player);
+            return;
+        }
         OrbSession previous = sessions.get(player.getUniqueId());
         if (previous != null
             && (previous.operationFuture != null || previous.preloadFuture != null)) {
@@ -655,6 +709,10 @@ public final class OrbService {
         OrbSession currentOperation = sessions.get(player.getUniqueId());
         if (previousOperation != null && currentOperation != previousOperation) {
             GuiSound.DENY.play(player);
+            return;
+        }
+        if (pendingOrbAccounts.contains(astPlayer.getAccount().getUuid())) {
+            notifyOrbOperationPending(player);
             return;
         }
         if (currentOperation != null
@@ -2123,19 +2181,63 @@ public final class OrbService {
         @NotNull ItemModel orbModel
     ) {
         UUID operationId = Objects.requireNonNull(session.operationId);
-        CompletableFuture<MutationResult> future = inventorySaveCoordinator.executeExclusiveAfterSave(
-            session.accountId,
-            baseline -> performOrbOperation(session, target, orbModel, operationId, baseline)
-        );
+        // 初回の external outcome unknown では pending UI の main task と recovery task が
+        // 競合し得るため、pending map の存在も recovery 判定に含める。
+        boolean recovery = session.pending || pendingOrbOperations.containsKey(operationId);
+        CompletableFuture<MutationResult> future = recovery
+            ? inventorySaveCoordinator.executeExclusiveAfterSaveRecovery(
+                session.accountId,
+                operationId,
+                baseline -> performOrbOperation(session, target, orbModel, operationId, baseline)
+            )
+            : inventorySaveCoordinator.executeExclusiveAfterSave(
+                session.accountId,
+                operationId,
+                baseline -> performOrbOperation(session, target, orbModel, operationId, baseline)
+            );
         session.operationFuture = future;
         future.whenComplete((result, throwable) -> {
-            if (throwable != null && !session.externalOperationStarted) {
+            Throwable failure = unwrapFailure(throwable);
+            boolean externalOutcomeUnknown = session.externalOperationStarted
+                && (failure != null || result == null);
+            if (externalOutcomeUnknown || failure instanceof OrbOperationPendingException) {
+                PendingOrbOperation pending = pendingOrbOperations.computeIfAbsent(
+                    operationId,
+                    ignored -> new PendingOrbOperation(session, target, orbModel, operationId)
+                );
+                pendingOrbAccounts.add(session.accountId);
+                schedulePendingOrbRecovery(pending);
+                if (!session.pending) {
+                    AsyncTaskUtil.runSyncEventually(
+                        plugin,
+                        () -> markOperationPending(session, operationId)
+                    );
+                }
+                return;
+            }
+            if ((failure == null && result != null) || !session.externalOperationStarted) {
                 inventoryService.releaseOrbOperationPayment(session.accountId, operationId);
             }
+            if (session.pending || pendingOrbOperations.containsKey(operationId)) {
+                AsyncTaskUtil.runSyncEventually(plugin, () -> {
+                    removePendingOrbOperation(session, operationId);
+                    if (Objects.equals(operationId, session.operationId)) {
+                        completeMutation(
+                            session,
+                            failure == null && result != null
+                                ? result
+                                : MutationResult.failed(MutationStatus.FAILED)
+                        );
+                    }
+                });
+                return;
+            }
+            pendingOrbOperations.remove(operationId);
+            removePendingOrbAccountIfUnused(session.accountId);
             if (session.detached) {
                 return;
             }
-            AsyncTaskUtil.runSync(plugin, () -> {
+            AsyncTaskUtil.runSyncEventually(plugin, () -> {
                 if (session.detached
                     || !Objects.equals(operationId, session.operationId)
                     || sessions.get(session.player.getUniqueId()) != session) {
@@ -2143,7 +2245,7 @@ public final class OrbService {
                 }
                 completeMutation(
                     session,
-                    throwable == null && result != null
+                    failure == null && result != null
                         ? result
                         : MutationResult.failed(MutationStatus.FAILED)
                 );
@@ -2151,7 +2253,128 @@ public final class OrbService {
         });
     }
 
-    /** transport failure 時も同一 operationId を保持し、台帳結果と正本照合が完了するまでlaneを解放しません。 */
+    private @Nullable Throwable unwrapFailure(@Nullable Throwable throwable) {
+        if (throwable == null) {
+            return null;
+        }
+        Throwable failure = throwable;
+        while ((failure instanceof java.util.concurrent.CompletionException
+            || failure instanceof java.util.concurrent.ExecutionException)
+            && failure.getCause() != null) {
+            failure = failure.getCause();
+        }
+        return failure;
+    }
+
+    private void schedulePendingOrbRecovery(@NotNull PendingOrbOperation pending) {
+        synchronized (pending) {
+            if (pending.recoveryScheduled || pendingOrbOperations.get(pending.operationId) != pending) {
+                return;
+            }
+            long delayMillis = pending.nextDelayMillis;
+            long delayTicks = Math.max(1L, (delayMillis + 49L) / 50L);
+            pending.nextDelayMillis = Math.min(OPERATION_RETRY_MAX_MILLIS, delayMillis * 2L);
+            pending.recoveryScheduled = true;
+            try {
+                plugin.getServer().getScheduler().runTaskLaterAsynchronously(
+                    plugin,
+                    () -> {
+                        synchronized (pending) {
+                            pending.recoveryScheduled = false;
+                        }
+                        runPendingOrbRecovery(pending);
+                    },
+                    delayTicks
+                );
+            } catch (Throwable schedulingFailure) {
+                // Bukkit scheduler が一時的に task を受理できない場合は、plugin scheduler に
+                // 依存しない遅延 executor へ切り替える。未確定支払いと境界は保持する。
+                pending.recoveryScheduled = false;
+                Logger.warn(
+                    LogId.W_5252,
+                    pending.session.accountId,
+                    failureReason(schedulingFailure)
+                );
+                pending.recoveryScheduled = true;
+                try {
+                    CompletableFuture.delayedExecutor(delayMillis, TimeUnit.MILLISECONDS)
+                        .execute(() -> {
+                            synchronized (pending) {
+                                pending.recoveryScheduled = false;
+                            }
+                            runPendingOrbRecovery(pending);
+                        });
+                } catch (Throwable fallbackFailure) {
+                    pending.recoveryScheduled = false;
+                    Logger.warn(
+                        LogId.W_5252,
+                        pending.session.accountId,
+                        failureReason(fallbackFailure)
+                    );
+                }
+            }
+        }
+    }
+
+    private void runPendingOrbRecovery(@NotNull PendingOrbOperation pending) {
+        if (pendingOrbOperations.get(pending.operationId) != pending || !plugin.isEnabled()) return;
+        try {
+            startAsyncMutation(pending.session, pending.target, pending.orbModel);
+        } catch (Throwable recoveryFailure) {
+            Logger.warn(LogId.W_5252, pending.session.accountId, failureReason(recoveryFailure));
+            schedulePendingOrbRecovery(pending);
+        }
+    }
+
+    private void removePendingOrbOperation(@NotNull OrbSession session, @NotNull UUID operationId) {
+        PendingOrbOperation pending = pendingOrbOperations.get(operationId);
+        if (pending != null && pending.session == session) {
+            pendingOrbOperations.remove(operationId, pending);
+        } else {
+            pendingOrbOperations.remove(operationId);
+        }
+        removePendingOrbAccountIfUnused(session.accountId);
+    }
+
+    private void removePendingOrbAccountIfUnused(@NotNull UUID accountId) {
+        boolean remains = pendingOrbOperations.values().stream()
+            .anyMatch(pending -> pending.session.accountId.equals(accountId));
+        if (!remains) pendingOrbAccounts.remove(accountId);
+    }
+
+    private static @NotNull String failureReason(@NotNull Throwable throwable) {
+        Throwable cause = throwable;
+        while (cause.getCause() != null) {
+            cause = cause.getCause();
+        }
+        String message = cause.getMessage();
+        return message == null || message.isBlank()
+            ? cause.getClass().getSimpleName()
+            : message;
+    }
+
+    private void markOperationPending(@NotNull OrbSession session, @NotNull UUID operationId) {
+        if (session.pending
+            || !Objects.equals(session.operationId, operationId)
+            || session.operationFuture == null) {
+            return;
+        }
+        session.pending = true;
+        session.detached = true;
+        session.uiClosed = true;
+        cancelReopenTask(session);
+        boolean shouldClose = isCurrentInventory(session.player, session);
+        sessions.remove(session.player.getUniqueId(), session);
+        session.interactionLock.close();
+        if (shouldClose && session.player.isOnline()) {
+            session.player.closeInventory();
+        }
+        if (session.player.isOnline()) {
+            notifyOrbOperationPending(session.player);
+        }
+    }
+
+    /** transport failure 時も同一 operationId を保持し、台帳結果と正本照合を保留回復します。 */
     private @NotNull MutationResult performOrbOperation(
         @NotNull OrbSession session,
         @NotNull OrbCandidate target,
@@ -2164,7 +2387,6 @@ public final class OrbService {
             operationId,
             baseline
         )) {
-            inventoryService.releaseOrbOperationPayment(session.accountId, operationId);
             return MutationResult.failed(MutationStatus.PAYMENT_UNAVAILABLE);
         }
         // From this point onward the POST may commit even if its response is lost. A failure must
@@ -2172,10 +2394,11 @@ public final class OrbService {
         session.externalOperationStarted = true;
         String accountId = session.accountId.toString();
         String operationIdText = operationId.toString();
+        long deadlineNanos = operationDeadline();
         long retryDelayMillis = OPERATION_RETRY_INITIAL_MILLIS;
         EquipmentOrbOperationResult operation = null;
         while (operation == null) {
-            ensureOperationThreadActive(operationId);
+            ensureOperationWithinDeadline(operationId, deadlineNanos);
             operation = itemService.applyEquipmentOrbOperation(
                 operationIdText,
                 accountId,
@@ -2189,7 +2412,7 @@ public final class OrbService {
                 operation = itemService.findEquipmentOrbOperation(operationIdText, accountId);
             }
             if (operation == null) {
-                waitForOperationRetry(operationId, retryDelayMillis);
+                waitForOperationRetry(operationId, retryDelayMillis, deadlineNanos);
                 retryDelayMillis = Math.min(OPERATION_RETRY_MAX_MILLIS, retryDelayMillis * 2L);
             }
         }
@@ -2201,7 +2424,7 @@ public final class OrbService {
         // request origin は古いAPIのaffected欠落や業務失敗でも必ず照合する。
         reconciliationEntryIds.add(session.orbEntryId);
         while (true) {
-            ensureOperationThreadActive(operationId);
+            ensureOperationWithinDeadline(operationId, deadlineNanos);
             try {
                 inventoryService.reconcileOrbOperationEntries(
                     session.accountId,
@@ -2210,7 +2433,7 @@ public final class OrbService {
                 );
                 break;
             } catch (Exception reconciliationFailure) {
-                waitForOperationRetry(operationId, retryDelayMillis);
+                waitForOperationRetry(operationId, retryDelayMillis, deadlineNanos);
                 retryDelayMillis = Math.min(OPERATION_RETRY_MAX_MILLIS, retryDelayMillis * 2L);
             }
         }
@@ -2221,19 +2444,18 @@ public final class OrbService {
             && operation.getResult() != EquipmentOrbOperationResultType.INVALID) {
             UUID targetInstanceId = UUID.fromString(target.instance.getEquipmentInstanceId());
             while (true) {
-                ensureOperationThreadActive(operationId);
+                ensureOperationWithinDeadline(operationId, deadlineNanos);
                 try {
                     itemService.evictEquipmentInstanceFromCache(target.instance.getEquipmentInstanceId());
                     inventoryService.discardUnavailableEquipmentInstance(session.accountId, targetInstanceId);
                     break;
                 } catch (Exception cleanupFailure) {
-                    waitForOperationRetry(operationId, retryDelayMillis);
+                    waitForOperationRetry(operationId, retryDelayMillis, deadlineNanos);
                     retryDelayMillis = Math.min(OPERATION_RETRY_MAX_MILLIS, retryDelayMillis * 2L);
                 }
             }
         }
         MutationResult result = toMutationResult(operation, target, orbModel);
-        inventoryService.releaseOrbOperationPayment(session.accountId, operationId);
         return result;
     }
 
@@ -2244,9 +2466,29 @@ public final class OrbService {
         }
     }
 
+    private long operationDeadline() {
+        return System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(operationTimeoutMillis);
+    }
+
+    private void ensureOperationWithinDeadline(@NotNull UUID operationId, long deadlineNanos) {
+        ensureOperationThreadActive(operationId);
+        if (System.nanoTime() >= deadlineNanos) {
+            throw new OrbOperationPendingException(operationId);
+        }
+    }
+
     /** 同一operationId再送の指数backoffを非メインスレッドで待機します。 */
-    private void waitForOperationRetry(@NotNull UUID operationId, long delayMillis) {
-        retryWaiter.await(operationId, Math.max(1L, delayMillis));
+    private void waitForOperationRetry(
+        @NotNull UUID operationId,
+        long delayMillis,
+        long deadlineNanos
+    ) {
+        long remainingNanos = deadlineNanos - System.nanoTime();
+        if (remainingNanos <= 0L) {
+            throw new OrbOperationPendingException(operationId);
+        }
+        long remainingMillis = Math.max(1L, TimeUnit.NANOSECONDS.toMillis(remainingNanos));
+        retryWaiter.await(operationId, Math.min(Math.max(1L, delayMillis), remainingMillis));
     }
 
     /** production用の再送待機。interruptを復元してpending境界を維持したまま失敗させます。 */
@@ -2326,9 +2568,14 @@ public final class OrbService {
 
     /** 装備処理結果を業務失敗表示または即時の結果反映へ収束させます。 */
     private void completeMutation(@NotNull OrbSession session, @NotNull MutationResult result) {
+        boolean pending = session.pending;
         session.operationFuture = null;
         session.operationId = null;
         session.externalOperationStarted = false;
+        if (pending) {
+            completePendingMutation(session, result);
+            return;
+        }
         if (result.status != MutationStatus.SUCCESS) {
             session.interactionLock.release();
             if (session.detached) {
@@ -2386,6 +2633,62 @@ public final class OrbService {
             return;
         }
         finishSuccessfulMutation(session, result);
+    }
+
+    /**
+     * 待機表示を閉じた後に確定した結果を、GUI再表示なしで正本・表示へ反映します。
+     * 保留中は旧GUIを再利用しない一方、成功通知、ガイド、装備表示、status再計算は省略しません。
+     */
+    private void completePendingMutation(
+        @NotNull OrbSession session,
+        @NotNull MutationResult result
+    ) {
+        session.pending = false;
+        session.interactionLock.release();
+        if (result.status != MutationStatus.SUCCESS) {
+            if (session.player.isOnline()) {
+                inventoryService.refreshManagedInventoryUi(session.astPlayer);
+                if (result.status == MutationStatus.TARGET_UNAVAILABLE
+                    || result.status == MutationStatus.TARGET_CHANGED) {
+                    inventoryService.refreshEquipmentDisplaysForSave(session.astPlayer);
+                    if (statusService != null) {
+                        statusService.refreshStatus(session.astPlayer);
+                    }
+                }
+                PlayerMessageService.getInstance().send(
+                    session.player,
+                    switch (result.status) {
+                        case NO_CANDIDATE -> PlayerMsgId.P_5294;
+                        case PAYMENT_UNAVAILABLE -> session.screen == OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM
+                            ? PlayerMsgId.P_5291
+                            : PlayerMsgId.P_5289;
+                        case TARGET_UNAVAILABLE, TARGET_CHANGED -> PlayerMsgId.P_5290;
+                        default -> PlayerMsgId.P_5295;
+                    }
+                );
+                GuiSound.DENY.play(session.player);
+            }
+            sessions.remove(session.player.getUniqueId(), session);
+            return;
+        }
+
+        useSuccessListener.accept(session.astPlayer, session.orbItemId);
+        if (result.instance != null && session.player.isOnline()) {
+            inventoryService.refreshManagedInventoryUi(session.astPlayer);
+            inventoryService.refreshEquipmentInstanceDisplay(session.astPlayer, result.instance);
+            if (statusService != null) {
+                statusService.refreshStatus(session.astPlayer);
+            }
+        }
+        if (session.player.isOnline()) {
+            sendMutationResult(session.player, result);
+            if (result.kind == MutationKind.ENHANCEMENT && !result.enhancementSucceeded) {
+                GuiSound.DENY.play(session.player);
+            } else {
+                GuiSound.SUCCESS.play(session.player);
+            }
+        }
+        sessions.remove(session.player.getUniqueId(), session);
     }
 
     /**
@@ -2529,6 +2832,11 @@ public final class OrbService {
             case TRANSCENDENCE -> PlayerMessageService.getInstance().send(
                 player, PlayerMsgId.P_5287, displayName, result.transitionName);
         }
+    }
+
+    private void notifyOrbOperationPending(@NotNull Player player) {
+        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5296);
+        GuiSound.DENY.play(player);
     }
 
     /**
@@ -2847,12 +3155,13 @@ public final class OrbService {
         private boolean transitioning;
         private boolean uiClosed;
         private boolean reopening;
-        private boolean detached;
-        private UUID operationId;
+        private volatile boolean detached;
+        private volatile boolean pending;
+        private volatile UUID operationId;
         private volatile boolean externalOperationStarted;
         private int processingSlot = -1;
         private CompletableFuture<ItemService.EquipmentPreloadResult> preloadFuture;
-        private CompletableFuture<MutationResult> operationFuture;
+        private volatile CompletableFuture<MutationResult> operationFuture;
         private BukkitTask reopenTask;
 
         /**
@@ -2882,6 +3191,33 @@ public final class OrbService {
             this.orbEntryId = orbEntryId;
             this.orbItemId = orbItemId;
             this.returnToInventoryOrbListOnFailure = returnToInventoryOrbListOnFailure;
+        }
+    }
+
+    private static final class PendingOrbOperation {
+        private final OrbSession session;
+        private final OrbCandidate target;
+        private final ItemModel orbModel;
+        private final UUID operationId;
+        private long nextDelayMillis = OPERATION_RETRY_INITIAL_MILLIS;
+        private boolean recoveryScheduled;
+
+        private PendingOrbOperation(
+            @NotNull OrbSession session,
+            @NotNull OrbCandidate target,
+            @NotNull ItemModel orbModel,
+            @NotNull UUID operationId
+        ) {
+            this.session = session;
+            this.target = target;
+            this.orbModel = orbModel;
+            this.operationId = operationId;
+        }
+    }
+
+    private static final class OrbOperationPendingException extends IllegalStateException {
+        private OrbOperationPendingException(@NotNull UUID operationId) {
+            super("Orb operation remains unresolved after the player wait deadline: " + operationId);
         }
     }
 }

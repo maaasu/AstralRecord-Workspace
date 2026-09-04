@@ -35,11 +35,13 @@ public class AccountLearnedSkillMaterialMutationResponse
 public class AccountLearnedSkillLearnRequest
 {
     public required string SkillId { get; init; }
+    public Guid? OperationId { get; init; }
     public Guid UpdatedBy { get; init; }
 }
 
 public class AccountLearnedSkillLevelUpRequest
 {
+    public Guid? OperationId { get; init; }
     public Guid UpdatedBy { get; init; }
 }
 
@@ -48,12 +50,14 @@ public class AccountLearnedSkillAttachSigilRequest
     public required string SigilId { get; init; }
     public Guid SigilInventoryEntryId { get; init; }
     public Guid OrbInventoryEntryId { get; init; }
+    public Guid? OperationId { get; init; }
     public Guid UpdatedBy { get; init; }
 }
 
 public class AccountLearnedSkillDetachSigilRequest
 {
     public Guid OrbInventoryEntryId { get; init; }
+    public Guid? OperationId { get; init; }
     public Guid UpdatedBy { get; init; }
 }
 
@@ -65,6 +69,7 @@ public class AccountLearnedSkillDetachSigilResponse
 
 public class AccountLearnedSkillForgetRequest
 {
+    public Guid? OperationId { get; init; }
     public Guid UpdatedBy { get; init; }
 }
 
@@ -82,6 +87,7 @@ public enum AccountLearnedSkillMutationFailure
     NoSigilSlot,
     SigilNotAllowed,
     DuplicateSigilGroup,
+    IdempotencyConflict,
 }
 
 public record AccountLearnedSkillMutationResult(

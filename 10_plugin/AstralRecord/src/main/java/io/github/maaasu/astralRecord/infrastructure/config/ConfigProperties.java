@@ -56,6 +56,7 @@ public class ConfigProperties {
     private String apiBaseUrl;
     private String apiAuthApiKey;
     private int apiTimeout;
+    private long apiOperationTimeout;
     private boolean apiSslVerifyEnabled;
     private String apiServerId;
 
@@ -158,6 +159,10 @@ public class ConfigProperties {
         this.apiBaseUrl = configManager.getConfig().getString(ConfigKeys.API_BASE_URL, "https://api.astralrecord.example.com");
         this.apiAuthApiKey = configManager.getConfig().getString(ConfigKeys.API_AUTH_API_KEY, "");
         this.apiTimeout = configManager.getConfig().getInt(ConfigKeys.API_TIMEOUT, 30000);
+        this.apiOperationTimeout = Math.max(
+                1_000L,
+                configManager.getConfig().getLong(ConfigKeys.API_OPERATION_TIMEOUT, 60_000L)
+        );
         this.apiSslVerifyEnabled = configManager.getConfig().getBoolean(ConfigKeys.API_SSL_VERIFY_ENABLED, true);
         this.apiServerId = configManager.getConfig().getString(ConfigKeys.API_SERVER_ID, "main");
         if (!this.apiSslVerifyEnabled) {
@@ -394,6 +399,16 @@ public class ConfigProperties {
      */
     public int getApiTimeout() {
         return apiTimeout;
+    }
+
+    /**
+     * API を伴う一連のゲーム操作の初回待機時間（ミリ秒）を返します。
+     *
+     * <p>HTTP リクエスト単体のタイムアウトとは別に、複数回の照会・正本同期を含む
+     * プレイヤー向け待機時間を制限するために使用します。</p>
+     */
+    public long getApiOperationTimeout() {
+        return apiOperationTimeout;
     }
 
     /**

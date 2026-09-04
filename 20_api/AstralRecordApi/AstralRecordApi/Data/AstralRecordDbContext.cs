@@ -10,6 +10,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<SkillBindPresetEntity> SkillBindPresets => Set<SkillBindPresetEntity>();
     public DbSet<AccountLearnedSkillEntity> AccountLearnedSkills => Set<AccountLearnedSkillEntity>();
     public DbSet<AccountLearnedSkillSigilEntity> AccountLearnedSkillSigils => Set<AccountLearnedSkillSigilEntity>();
+    public DbSet<AccountLearnedSkillOperationEntity> AccountLearnedSkillOperations => Set<AccountLearnedSkillOperationEntity>();
     public DbSet<AccountEntity> Accounts => Set<AccountEntity>();
     public DbSet<AccountDeleteReceiptEntity> AccountDeleteReceipts => Set<AccountDeleteReceiptEntity>();
     public DbSet<AccountClassProgressEntity> AccountClassProgresses => Set<AccountClassProgressEntity>();
@@ -609,6 +610,27 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
                 .IsUnique()
                 .HasFilter("[is_deleted] = 0")
                 .HasDatabaseName("UX_account_learned_skill_sigil_slot");
+        });
+
+        modelBuilder.Entity<AccountLearnedSkillOperationEntity>(entity =>
+        {
+            entity.ToTable("account_learned_skill_operation", "dbo");
+            entity.HasKey(operation => operation.OperationId);
+
+            entity.Property(operation => operation.OperationId).HasColumnName("operation_id");
+            entity.Property(operation => operation.AccountId).HasColumnName("account_id");
+            entity.Property(operation => operation.OperationType)
+                .HasColumnName("operation_type")
+                .HasMaxLength(32);
+            entity.Property(operation => operation.RequestHash)
+                .HasColumnName("request_hash")
+                .HasMaxLength(64);
+            entity.Property(operation => operation.ResultPayloadJson).HasColumnName("result_payload_json");
+            entity.Property(operation => operation.CreatedAt).HasColumnName("created_at");
+            entity.Property(operation => operation.CompletedAt).HasColumnName("completed_at");
+            entity.Property(operation => operation.CreatedBy).HasColumnName("created_by");
+            entity.HasIndex(operation => new { operation.AccountId, operation.CreatedAt })
+                .HasDatabaseName("IX_account_learned_skill_operation_account_created_at");
         });
 
         modelBuilder.Entity<InventoryEntity>(entity =>

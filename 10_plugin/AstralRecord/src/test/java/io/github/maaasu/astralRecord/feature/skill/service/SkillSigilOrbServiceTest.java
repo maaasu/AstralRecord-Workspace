@@ -136,7 +136,7 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         AtomicReference<Consumer<Throwable>> failure = new AtomicReference<>();
         when(learnedSkillService.attachSigilAsync(
             eq(accountId), eq(learnedSkillId), eq(commonOrbEntryId), eq(sigil.getId()),
-            eq(commonSigilEntryId), eq(accountId), any(), any()
+            eq(commonSigilEntryId), eq(accountId), any(), any(), any()
         )).thenAnswer(invocation -> {
             success.set(invocation.getArgument(6));
             failure.set(invocation.getArgument(7));
@@ -177,7 +177,7 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
 
         verify(learnedSkillService).attachSigilAsync(
             eq(accountId), eq(learnedSkillId), eq(commonOrbEntryId), eq(sigil.getId()),
-            eq(commonSigilEntryId), eq(accountId), any(), any()
+            eq(commonSigilEntryId), eq(accountId), any(), any(), any()
         );
         verify(inventoryService, atLeastOnce()).findOwnedNormalItemEntryForConsumption(
             accountId, orb.getId());
@@ -248,7 +248,7 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         when(itemStackFactory.create(eq(sigil), eq(1))).thenReturn(new ItemStack(Material.AMETHYST_SHARD));
         AtomicReference<Consumer<LearnedSkillInstance>> success = new AtomicReference<>();
         when(learnedSkillService.detachSigilAsync(
-            eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq(attachmentId), eq(accountId), any(), any()
+            eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq(attachmentId), eq(accountId), any(), any(), any()
         )).thenAnswer(invocation -> {
             success.set(invocation.getArgument(5));
             return true;
@@ -280,7 +280,7 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         service.handleGuiClick(click(player, player.getOpenInventory().getTopInventory(), 16, true));
 
         verify(learnedSkillService).detachSigilAsync(
-            eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq(attachmentId), eq(accountId), any(), any()
+            eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq(attachmentId), eq(accountId), any(), any(), any()
         );
 
         success.get().accept(learned);

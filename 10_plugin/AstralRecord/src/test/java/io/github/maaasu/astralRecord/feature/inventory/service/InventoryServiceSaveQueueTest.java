@@ -71,7 +71,8 @@ class InventoryServiceSaveQueueTest {
             new InventorySaveCoordinator.PreparedExternalOperation(
                 accountId,
                 state,
-                new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of())
+                new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of()),
+                UUID.randomUUID()
             );
         when(saveCoordinator.prepareExternalOperationAfterSave(accountId))
             .thenReturn(CompletableFuture.completedFuture(prepared));

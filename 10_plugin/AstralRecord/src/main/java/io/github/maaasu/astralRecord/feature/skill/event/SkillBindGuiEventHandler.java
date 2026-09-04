@@ -444,7 +444,12 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 return;
             }
             if (levelUpFromManager(player, session, holder.pageIndex(), entry, true)) {
-                openDetail(player, session, entry, holder.pageIndex(), true);
+                AstPlayer current = AstPlayerCache.get(player);
+                if (current != null
+                    && learnedSkillService.hasMutationInProgress(current.getAccount().getUuid())
+                    && sessions.get(player.getUniqueId()) == session) {
+                    openDetail(player, session, entry, holder.pageIndex(), true);
+                }
             }
             return;
         }
@@ -932,6 +937,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         if (astPlayer == null || !permissionService.isPermitted(astPlayer, skillId)) { GuiSound.DENY.play(player); return; }
         SkillDefinition definition = skillService.registry().getDefinition(skillId);
         if (definition == null) { GuiSound.DENY.play(player); return; }
+        UUID playerId = player.getUniqueId();
         boolean scheduled = learnedSkillService.learnFromManagerAsync(astPlayer.getAccount().getUuid(), skillId,
             astPlayer.getAccount().getUuid(), requiredItemEntryIds(astPlayer, definition.getLearnRequiredItems()), learned -> {
                 AstPlayer current = currentPlayer(astPlayer);
@@ -939,9 +945,19 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 plugin.getGuideService().recordConditionSilently(current, GuideConditionType.SKILL_LEARNED, skillId);
                 passiveSkillService.markDirty(current);
                 inventoryService.refreshManagedInventoryUi(current);
+                if (sessions.get(playerId) != session) return;
                 GuiSound.SUCCESS.play(current.getBukkit()); openMain(current.getBukkit(), session, page);
             },
-            error -> { GuiSound.DENY.play(player); openMain(player, session, page); });
+            error -> {
+                AstPlayer current = currentPlayer(astPlayer);
+                if (current == null || !player.isOnline()) return;
+                GuiSound.DENY.play(player);
+                PlayerMessageService.getInstance().send(player, mutationFailureMessage(error));
+                if (sessions.get(playerId) != session) return;
+                openMain(player, session, page);
+            },
+            () -> markSkillMutationPending(player, session)
+        );
         if (!scheduled) GuiSound.DENY.play(player);
     }
 
@@ -967,16 +983,16 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         }
         UUID playerId = player.getUniqueId();
         boolean scheduled = learnedSkillService.levelUpFromManagerAsync(astPlayer.getAccount().getUuid(),
-            entry.learnedSkill().getLearnedSkillId(), astPlayer.getAccount().getUuid(),
-            requiredItemEntryIds(astPlayer, entry.definition().getLevelUpRequiredItems()),
-            updated -> {
-                if (sessions.get(playerId) != session) return;
-                AstPlayer current = currentPlayer(astPlayer);
-                if (current == null) return;
-                plugin.getGuideService().recordConditionSilently(current, GuideConditionType.SKILL_ENHANCED, entry.definition().getId());
-                passiveSkillService.markDirty(current);
-                inventoryService.refreshManagedInventoryUi(current);
-                GuiSound.SUCCESS.play(current.getBukkit());
+             entry.learnedSkill().getLearnedSkillId(), astPlayer.getAccount().getUuid(),
+             requiredItemEntryIds(astPlayer, entry.definition().getLevelUpRequiredItems()),
+             updated -> {
+                 AstPlayer current = currentPlayer(astPlayer);
+                 if (current == null) return;
+                 plugin.getGuideService().recordConditionSilently(current, GuideConditionType.SKILL_ENHANCED, entry.definition().getId());
+                 passiveSkillService.markDirty(current);
+                 inventoryService.refreshManagedInventoryUi(current);
+                 if (sessions.get(playerId) != session) return;
+                 GuiSound.SUCCESS.play(current.getBukkit());
                 SkillManagerEntry updatedEntry = entry(current, updated.getLearnedSkillId().toString());
                 if (keepDetail && updatedEntry != null
                     && updatedEntry.learnedSkill().getLevel() < updatedEntry.definition().getMaxLevel()) {
@@ -984,20 +1000,38 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 } else {
                     openMain(current.getBukkit(), session, page);
                 }
-            },
+             },
             error -> {
-                if (sessions.get(playerId) != session) return;
+                AstPlayer current = currentPlayer(astPlayer);
+                if (current == null || !player.isOnline()) return;
                 GuiSound.DENY.play(player);
+                PlayerMessageService.getInstance().send(player, mutationFailureMessage(error));
+                if (sessions.get(playerId) != session) return;
                 if (keepDetail) {
                     openDetail(player, session, entry, page);
                 } else {
                     openMain(player, session, page);
                 }
-            });
+            },
+            () -> markSkillMutationPending(player, session)
+        );
         if (!scheduled) {
             GuiSound.DENY.play(player);
         }
         return scheduled;
+    }
+
+    private void markSkillMutationPending(
+        @NotNull Player player,
+        @NotNull SkillBindSession session
+    ) {
+        UUID playerId = player.getUniqueId();
+        if (!sessions.remove(playerId, session)) return;
+        if (player.isOnline()) {
+            player.closeInventory();
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5874);
+            GuiSound.DENY.play(player);
+        }
     }
 
     private @Nullable AstPlayer currentPlayer(@NotNull AstPlayer original) {
@@ -1184,6 +1218,9 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     private PlayerMsgId mutationFailureMessage(@Nullable Throwable error) {
         Throwable current = error;
         while (current != null) {
+            if (current instanceof LearnedSkillService.MutationPreflightTimeoutException) {
+                return PlayerMsgId.P_5875;
+            }
             if (current instanceof LearnedSkillMutationException mutationException) {
                 return switch (mutationException.getFailure()) {
                     case NO_SIGIL_SLOT -> PlayerMsgId.P_5860;

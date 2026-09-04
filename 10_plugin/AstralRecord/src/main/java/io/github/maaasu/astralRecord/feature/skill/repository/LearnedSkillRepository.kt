@@ -37,15 +37,35 @@ class LearnedSkillRepository {
     }
 
     fun learn(accountId: UUID, skillId: String, updatedBy: UUID): LearnedSkillMaterialMutationResult {
+        return learn(accountId, skillId, updatedBy, UUID.randomUUID())
+    }
+
+    fun learn(
+        accountId: UUID,
+        skillId: String,
+        updatedBy: UUID,
+        operationId: UUID,
+    ): LearnedSkillMaterialMutationResult {
         val body = ApiRequestUtil.buildJsonBody {
             addProperty("skillId", skillId)
+            addProperty("operationId", operationId.toString())
             addProperty("updatedBy", updatedBy.toString())
         }
         return mutateWithMaterials("/api/account-skills/$accountId/learn", body)
     }
 
     fun levelUp(accountId: UUID, learnedSkillId: UUID, updatedBy: UUID): LearnedSkillMaterialMutationResult {
+        return levelUp(accountId, learnedSkillId, updatedBy, UUID.randomUUID())
+    }
+
+    fun levelUp(
+        accountId: UUID,
+        learnedSkillId: UUID,
+        updatedBy: UUID,
+        operationId: UUID,
+    ): LearnedSkillMaterialMutationResult {
         val body = ApiRequestUtil.buildJsonBody {
+            addProperty("operationId", operationId.toString())
             addProperty("updatedBy", updatedBy.toString())
         }
         return mutateWithMaterials("/api/account-skills/$accountId/$learnedSkillId/level-up", body)
@@ -59,10 +79,31 @@ class LearnedSkillRepository {
         sigilInventoryEntryId: UUID,
         updatedBy: UUID,
     ): LearnedSkillInstance {
+        return attachSigil(
+            accountId,
+            learnedSkillId,
+            orbInventoryEntryId,
+            sigilId,
+            sigilInventoryEntryId,
+            updatedBy,
+            UUID.randomUUID(),
+        )
+    }
+
+    fun attachSigil(
+        accountId: UUID,
+        learnedSkillId: UUID,
+        orbInventoryEntryId: UUID,
+        sigilId: String,
+        sigilInventoryEntryId: UUID,
+        updatedBy: UUID,
+        operationId: UUID,
+    ): LearnedSkillInstance {
         val body = ApiRequestUtil.buildJsonBody {
             addProperty("orbInventoryEntryId", orbInventoryEntryId.toString())
             addProperty("sigilId", sigilId)
             addProperty("sigilInventoryEntryId", sigilInventoryEntryId.toString())
+            addProperty("operationId", operationId.toString())
             addProperty("updatedBy", updatedBy.toString())
         }
         return mutate("/api/account-skills/$accountId/$learnedSkillId/sigils", body)
@@ -75,9 +116,28 @@ class LearnedSkillRepository {
         learnedSkillSigilId: UUID,
         updatedBy: UUID,
     ): LearnedSkillSigilDetachResult {
+        return detachSigil(
+            accountId,
+            learnedSkillId,
+            orbInventoryEntryId,
+            learnedSkillSigilId,
+            updatedBy,
+            UUID.randomUUID(),
+        )
+    }
+
+    fun detachSigil(
+        accountId: UUID,
+        learnedSkillId: UUID,
+        orbInventoryEntryId: UUID,
+        learnedSkillSigilId: UUID,
+        updatedBy: UUID,
+        operationId: UUID,
+    ): LearnedSkillSigilDetachResult {
         val path = "/api/account-skills/$accountId/$learnedSkillId/sigils/$learnedSkillSigilId/detach"
         val body = ApiRequestUtil.buildJsonBody {
             addProperty("orbInventoryEntryId", orbInventoryEntryId.toString())
+            addProperty("operationId", operationId.toString())
             addProperty("updatedBy", updatedBy.toString())
         }
         try {
@@ -103,7 +163,17 @@ class LearnedSkillRepository {
     }
 
     fun forget(accountId: UUID, learnedSkillId: UUID, updatedBy: UUID): LearnedSkillInstance {
+        return forget(accountId, learnedSkillId, updatedBy, UUID.randomUUID())
+    }
+
+    fun forget(
+        accountId: UUID,
+        learnedSkillId: UUID,
+        updatedBy: UUID,
+        operationId: UUID,
+    ): LearnedSkillInstance {
         val body = ApiRequestUtil.buildJsonBody {
+            addProperty("operationId", operationId.toString())
             addProperty("updatedBy", updatedBy.toString())
         }
         return mutate("/api/account-skills/$accountId/$learnedSkillId/forget", body)

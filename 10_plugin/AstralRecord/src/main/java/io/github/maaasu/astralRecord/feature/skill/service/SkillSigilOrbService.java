@@ -161,7 +161,7 @@ public final class SkillSigilOrbService {
             return;
         }
         Session previous = sessions.get(player.getUniqueId());
-        if (previous != null && previous.locked) {
+        if ((previous != null && previous.locked) || learnedSkillService.hasMutationInProgress(accountId)) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -461,7 +461,8 @@ public final class SkillSigilOrbService {
                 sigilEntry.getInventoryEntryId(),
                 session.accountId,
                 updated -> complete(session),
-                error -> fail(session, error)
+                error -> fail(session, error),
+                () -> markPending(session)
             );
         } else {
             scheduled = learnedSkillService.detachSigilAsync(
@@ -471,24 +472,40 @@ public final class SkillSigilOrbService {
                 session.selectedLearnedSkillSigilId,
                 session.accountId,
                 updated -> complete(session),
-                error -> fail(session, error)
+                error -> fail(session, error),
+                () -> markPending(session)
             );
         }
         if (!scheduled) fail(session, null);
     }
 
     private void complete(@NotNull Session session) {
-        if (sessions.get(session.player.getUniqueId()) != session) return;
+        boolean current = sessions.get(session.player.getUniqueId()) == session;
+        if (!current && !session.pending) return;
         session.locked = false;
         passiveSkillService.markDirty(session.astPlayer);
         inventoryService.refreshManagedInventoryUi(session.astPlayer);
         useSuccessListener.accept(session.astPlayer, session.orbItemId);
-        sessions.remove(session.player.getUniqueId(), session);
-        session.player.closeInventory();
-        GuiSound.SUCCESS.play(session.player);
+        if (current) {
+            sessions.remove(session.player.getUniqueId(), session);
+            session.player.closeInventory();
+            GuiSound.SUCCESS.play(session.player);
+        }
     }
 
     private void fail(@NotNull Session session, @Nullable Throwable error) {
+        if (session.pending) {
+            // pending後はGUIを閉じているため通常画面の再描画は行わないが、API失敗時も
+            // 正本照合済みの所持品を反映し、利用者へ最終結果を通知する。
+            session.pending = false;
+            session.locked = false;
+            if (session.player.isOnline()) {
+                inventoryService.refreshManagedInventoryUi(session.astPlayer);
+                PlayerMessageService.getInstance().send(session.player, failureMessage(error));
+                GuiSound.DENY.play(session.player);
+            }
+            return;
+        }
         if (sessions.get(session.player.getUniqueId()) != session) return;
         session.locked = false;
         PlayerMsgId message = failureMessage(error);
@@ -509,7 +526,24 @@ public final class SkillSigilOrbService {
         GuiSound.DENY.play(session.player);
     }
 
+    private void markPending(@NotNull Session session) {
+        if (!sessions.remove(session.player.getUniqueId(), session)) return;
+        session.pending = true;
+        if (session.reopenTask != null) {
+            session.reopenTask.cancel();
+            session.reopenTask = null;
+        }
+        if (session.player.isOnline()) {
+            session.player.closeInventory();
+            PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5874);
+            GuiSound.DENY.play(session.player);
+        }
+    }
+
     private @NotNull PlayerMsgId failureMessage(@Nullable Throwable error) {
+        if (error instanceof LearnedSkillService.MutationPreflightTimeoutException) {
+            return PlayerMsgId.P_5875;
+        }
         if (!(error instanceof LearnedSkillMutationException mutation)) return PlayerMsgId.P_5873;
         LearnedSkillMutationFailure failure = mutation.getFailure();
         return switch (failure) {
@@ -891,6 +925,7 @@ public final class SkillSigilOrbService {
         private String selectedSigilItemId;
         private UUID selectedLearnedSkillSigilId;
         private boolean locked;
+        private boolean pending;
         private boolean transitioning;
         private BukkitTask reopenTask;
 

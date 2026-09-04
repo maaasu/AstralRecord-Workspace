@@ -50,6 +50,7 @@ enum class LearnedSkillMutationFailure {
     NO_SIGIL_SLOT,
     SIGIL_NOT_ALLOWED,
     DUPLICATE_SIGIL_GROUP,
+    IDEMPOTENCY_CONFLICT,
     UNKNOWN,
 }
 
