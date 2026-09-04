@@ -37,7 +37,8 @@ public class AccountQuestStateRepository(AstralRecordDbContext dbContext) : IAcc
         var executionStrategy = dbContext.Database.CreateExecutionStrategy();
         return await executionStrategy.ExecuteAsync(async () =>
         {
-            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted);
             var response = await UpsertInTransactionAsync(accountId, request);
             await transaction.CommitAsync();
             return response;
@@ -48,8 +49,7 @@ public class AccountQuestStateRepository(AstralRecordDbContext dbContext) : IAcc
         Guid accountId,
         AccountQuestStateUpsertRequest request)
     {
-        var accountExists = await dbContext.Accounts
-            .AnyAsync(account => account.Uuid == accountId && !account.IsDeleted);
+        var accountExists = await AccountExistsForUpdateAsync(accountId);
         if (!accountExists)
             throw new KeyNotFoundException($"Account not found: {accountId}");
 
@@ -101,6 +101,26 @@ public class AccountQuestStateRepository(AstralRecordDbContext dbContext) : IAcc
         AddCooldowns(dbContext, state, request.Cooldowns, now, request.UpdatedBy);
         await dbContext.SaveChangesAsync();
         return Map(state);
+    }
+
+    private async Task<bool> AccountExistsForUpdateAsync(Guid accountId)
+    {
+        if (dbContext.Database.IsSqlServer())
+        {
+            var account = await dbContext.Accounts
+                .FromSqlInterpolated($"""
+                    SELECT TOP (1) *
+                    FROM [dbo].[account] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE [uuid] = {accountId} AND [is_deleted] = 0
+                    """)
+                .AsNoTracking()
+                .SingleOrDefaultAsync();
+            return account is not null;
+        }
+
+        return await dbContext.Accounts
+            .AsNoTracking()
+            .AnyAsync(account => account.Uuid == accountId && !account.IsDeleted);
     }
 
     private static void AddActiveQuests(

@@ -338,8 +338,7 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         }
 
         var now = DateTime.UtcNow;
-        var account = await dbContext.Accounts
-            .FirstOrDefaultAsync(candidate => candidate.Uuid == uuid);
+        var account = await FindAccountForDeleteAsync(uuid);
         if (account is null)
             return null;
         if (account.IsDeleted)
@@ -414,6 +413,23 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
             SelectedAccountId = selected.Uuid,
             CreatedReplacement = createdReplacement,
         };
+    }
+
+    private async Task<AccountEntity?> FindAccountForDeleteAsync(Guid uuid)
+    {
+        if (dbContext.Database.IsSqlServer())
+        {
+            return await dbContext.Accounts
+                .FromSqlInterpolated($"""
+                    SELECT *
+                    FROM [dbo].[account] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE [uuid] = {uuid}
+                    """)
+                .SingleOrDefaultAsync();
+        }
+
+        return await dbContext.Accounts
+            .FirstOrDefaultAsync(candidate => candidate.Uuid == uuid);
     }
 
     private async Task<AccountDeleteResponse?> RebuildCommittedDeleteResponseAsync(AccountEntity deleted)
@@ -531,6 +547,7 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
                 .SetProperty(entity => entity.IsDeleted, true)
                 .SetProperty(entity => entity.UpdatedAt, deletedAt)
                 .SetProperty(entity => entity.UpdatedBy, deletedBy));
+        await LockAccountInventoriesForUpdateAsync(accountId);
         await dbContext.InventoryEntries
             .Where(entity => dbContext.Inventories
                 .Where(inventory => inventory.AccountId == accountId)
@@ -611,6 +628,22 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
                 .SetProperty(entity => entity.CanceledAt, deletedAt)
                 .SetProperty(entity => entity.UpdatedAt, deletedAt)
                 .SetProperty(entity => entity.UpdatedBy, deletedBy));
+    }
+
+    private async Task LockAccountInventoriesForUpdateAsync(Guid accountId)
+    {
+        if (!dbContext.Database.IsSqlServer())
+            return;
+
+        await dbContext.Inventories
+            .FromSqlInterpolated($"""
+                SELECT *
+                FROM [dbo].[inventory] WITH (UPDLOCK, HOLDLOCK)
+                WHERE [account_id] = {accountId} AND [is_deleted] = 0
+                ORDER BY [inventory_id]
+                """)
+            .AsNoTracking()
+            .ToListAsync();
     }
 
     private static AccountEntity CreateReplacementAccount(AccountEntity deleted, DateTime now, Guid createdBy) => new()

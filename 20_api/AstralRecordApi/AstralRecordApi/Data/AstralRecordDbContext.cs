@@ -649,6 +649,8 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(entry => entry.CreatedBy).HasColumnName("created_by");
             entity.Property(entry => entry.UpdatedBy).HasColumnName("updated_by");
             entity.Property(entry => entry.IsDeleted).HasColumnName("is_deleted");
+            entity.HasIndex(entry => entry.InventoryId)
+                .HasDatabaseName("IX_inventory_entry_inventory_id");
         });
 
         modelBuilder.Entity<EquipmentInstanceEntity>(entity =>

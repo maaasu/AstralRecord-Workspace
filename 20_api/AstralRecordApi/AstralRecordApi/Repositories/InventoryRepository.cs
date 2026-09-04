@@ -2,6 +2,7 @@ using System.Data;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 
 namespace AstralRecordApi.Repositories;
@@ -216,12 +217,19 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
         return await strategy.ExecuteAsync(async () =>
         {
             dbContext.ChangeTracker.Clear();
-            await using var transaction = await dbContext.Database
-                .BeginTransactionAsync(IsolationLevel.Serializable);
+            var inventoryAccountId = await FindInventoryAccountIdAsync(inventoryId);
+            if (!inventoryAccountId.HasValue)
+                return null;
 
-            var inventory = await dbContext.Inventories
-                .AsNoTracking()
-                .FirstOrDefaultAsync(x => x.InventoryId == inventoryId && !x.IsDeleted);
+            await using var transaction = await dbContext.Database
+                .BeginTransactionAsync(dbContext.Database.IsSqlServer()
+                    ? IsolationLevel.ReadCommitted
+                    : IsolationLevel.Serializable);
+
+            if (!await LockAccountForInventoryUpdateAsync(inventoryAccountId.Value))
+                return null;
+
+            var inventory = await FindInventoryAndLockAccountInventoriesAsync(inventoryId, inventoryAccountId.Value);
 
             if (inventory is null)
                 return null;
@@ -246,14 +254,10 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
                 return null;
 
             var now = DateTime.UtcNow;
-            var currentEntries = await dbContext.InventoryEntries
-                .Where(x => x.InventoryId == inventoryId && !x.IsDeleted)
-                .ToListAsync();
+            var currentEntries = await FindCurrentEntriesForUpdateAsync(inventoryId);
             var knownEntries = requestedIds.Length == 0
                 ? new Dictionary<Guid, InventoryEntryEntity>()
-                : await dbContext.InventoryEntries
-                    .Where(entry => requestedIds.Contains(entry.InventoryEntryId))
-                    .ToDictionaryAsync(entry => entry.InventoryEntryId);
+                : await FindEntriesForUpdateAsync(requestedIds);
 
             // 一度消費・削除されたentry UUIDはクライアントの古いスナップショットから復活させない。
             if (knownEntries.Values.Any(entry => entry.IsDeleted))
@@ -340,6 +344,110 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
                 .Select(MapEntry)
                 .ToList();
         });
+    }
+
+    private async Task<List<InventoryEntryEntity>> FindCurrentEntriesForUpdateAsync(Guid inventoryId)
+    {
+        if (dbContext.Database.IsSqlServer())
+        {
+            return await dbContext.InventoryEntries
+                .FromSqlInterpolated($"""
+                    SELECT *
+                    FROM [dbo].[inventory_entry] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE [inventory_id] = {inventoryId} AND [is_deleted] = 0
+                    ORDER BY [inventory_entry_id]
+                    """)
+                .ToListAsync();
+        }
+
+        return await dbContext.InventoryEntries
+            .Where(entry => entry.InventoryId == inventoryId && !entry.IsDeleted)
+            .OrderBy(entry => entry.InventoryEntryId)
+            .ToListAsync();
+    }
+
+    private async Task<Guid?> FindInventoryAccountIdAsync(Guid inventoryId) => await dbContext.Inventories
+        .AsNoTracking()
+        .Where(inventory => inventory.InventoryId == inventoryId && !inventory.IsDeleted)
+        .Select(inventory => (Guid?)inventory.AccountId)
+        .FirstOrDefaultAsync();
+
+    private async Task<bool> LockAccountForInventoryUpdateAsync(Guid accountId)
+    {
+        if (!dbContext.Database.IsSqlServer())
+            return true;
+
+        var account = await dbContext.Accounts
+            .FromSqlInterpolated($"""
+                SELECT TOP (1) *
+                FROM [dbo].[account] WITH (UPDLOCK, HOLDLOCK)
+                WHERE [uuid] = {accountId} AND [is_deleted] = 0
+                """)
+            .AsNoTracking()
+            .SingleOrDefaultAsync();
+        return account is not null;
+    }
+
+    private async Task<InventoryEntity?> FindInventoryAndLockAccountInventoriesAsync(
+        Guid inventoryId,
+        Guid accountId)
+    {
+        if (dbContext.Database.IsSqlServer())
+        {
+            // A valid request may move entries between inventories of the same account.
+            // Lock all active parent rows in one deterministic query before locking entry
+            // rows. The target's account_id is read before the transaction so this query
+            // cannot acquire a target shared lock before the ordered parent update locks.
+            var accountInventories = await dbContext.Inventories
+                .FromSqlInterpolated($"""
+                    SELECT *
+                    FROM [dbo].[inventory] WITH (UPDLOCK, HOLDLOCK)
+                    WHERE [account_id] = {accountId} AND [is_deleted] = 0
+                    ORDER BY [inventory_id]
+                    """)
+                .AsNoTracking()
+                .ToListAsync();
+            return accountInventories.SingleOrDefault(inventory => inventory.InventoryId == inventoryId);
+        }
+
+        return await dbContext.Inventories
+            .AsNoTracking()
+            .FirstOrDefaultAsync(x => x.InventoryId == inventoryId && !x.IsDeleted);
+    }
+
+    private async Task<Dictionary<Guid, InventoryEntryEntity>> FindEntriesForUpdateAsync(
+        IReadOnlyCollection<Guid> entryIds)
+    {
+        var orderedIds = entryIds.OrderBy(entryId => entryId).ToArray();
+        if (!dbContext.Database.IsSqlServer())
+        {
+            return await dbContext.InventoryEntries
+                .Where(entry => orderedIds.Contains(entry.InventoryEntryId))
+                .OrderBy(entry => entry.InventoryEntryId)
+                .ToDictionaryAsync(entry => entry.InventoryEntryId);
+        }
+
+        var parameters = new object[orderedIds.Length];
+        var placeholders = new string[orderedIds.Length];
+        for (var index = 0; index < orderedIds.Length; index++)
+        {
+            var parameterName = $"@entryId{index}";
+            placeholders[index] = parameterName;
+            parameters[index] = new SqlParameter(parameterName, System.Data.SqlDbType.UniqueIdentifier)
+            {
+                Value = orderedIds[index],
+            };
+        }
+
+        var sql = $"""
+            SELECT *
+            FROM [dbo].[inventory_entry] WITH (UPDLOCK, HOLDLOCK)
+            WHERE [inventory_entry_id] IN ({string.Join(", ", placeholders)})
+            ORDER BY [inventory_entry_id]
+            """;
+        return await dbContext.InventoryEntries
+            .FromSqlRaw(sql, parameters)
+            .ToDictionaryAsync(entry => entry.InventoryEntryId);
     }
 
     public async Task<bool?> DeleteEntryAsync(Guid inventoryEntryId, Guid updatedBy)

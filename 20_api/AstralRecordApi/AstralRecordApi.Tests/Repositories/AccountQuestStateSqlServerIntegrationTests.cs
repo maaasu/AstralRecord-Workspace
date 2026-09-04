@@ -15,10 +15,14 @@ public class AccountQuestStateSqlServerIntegrationTests
 {
     private const string DatabasePrefix = "AstralRecordQuestIntegration_";
     private const string LocalSqlServerInstance = @"localhost\SQLEXPRESS";
+    private const string SqlServerOptInEnvironmentVariable = "ASTRALRECORD_RUN_SQLSERVER_INTEGRATION";
 
     [Fact]
     public async Task PutSameAccountConcurrently_SucceedsAndKeepsOneCompleteSnapshot()
     {
+        if (!SqlServerIntegrationEnabled())
+            return;
+
         var databaseName = DatabasePrefix + Guid.NewGuid().ToString("N");
         var connectionString = BuildConnectionString(databaseName);
         try
@@ -54,6 +58,99 @@ public class AccountQuestStateSqlServerIntegrationTests
             Assert.Equal(2, finalState.ActiveQuests.Count);
             Assert.Single(finalState.Completions);
             Assert.Single(finalState.Cooldowns);
+        }
+        finally
+        {
+            await DropDatabaseAsync(databaseName);
+        }
+    }
+
+    [Fact]
+    public async Task PutConcurrentlyWithAccountDelete_SerializesWithoutDeadlock()
+    {
+        if (!SqlServerIntegrationEnabled())
+            return;
+
+        var databaseName = DatabasePrefix + Guid.NewGuid().ToString("N");
+        var connectionString = BuildConnectionString(databaseName);
+        try
+        {
+            await CreateDatabaseAsync(databaseName);
+            await CreateFullSchemaAsync(connectionString);
+
+            var userId = Guid.NewGuid();
+            var accountId = Guid.NewGuid();
+            var remainingAccountId = Guid.NewGuid();
+            var inventoryId = Guid.NewGuid();
+            var inventoryEntryId = Guid.NewGuid();
+            var updatedBy = Guid.NewGuid();
+            await SeedAccountDeleteScenarioAsync(
+                connectionString,
+                userId,
+                accountId,
+                remainingAccountId,
+                inventoryId,
+                inventoryEntryId,
+                updatedBy);
+            await PutAsync(connectionString, accountId, CreateRequest("initial", updatedBy));
+
+            using var start = new Barrier(2);
+            var put = Task.Run(async () =>
+            {
+                start.SignalAndWait();
+                try
+                {
+                    return (Result: await PutAsync(connectionString, accountId, CreateRequest("concurrent", updatedBy)),
+                        Exception: (Exception?)null);
+                }
+                catch (Exception exception)
+                {
+                    return (Result: (IActionResult?)null, Exception: exception);
+                }
+            });
+            var delete = Task.Run(async () =>
+            {
+                await using var dbContext = CreateDbContext(connectionString);
+                start.SignalAndWait();
+                try
+                {
+                    return (Result: await new AccountRepository(dbContext).DeleteAsync(
+                            accountId,
+                            new AccountDeleteRequest { DeletedBy = updatedBy }),
+                        Exception: (Exception?)null);
+                }
+                catch (Exception exception)
+                {
+                    return (Result: (AccountDeleteResponse?)null, Exception: exception);
+                }
+            });
+
+            var combined = Task.WhenAll(put, delete);
+            var completed = await Task.WhenAny(combined, Task.Delay(TimeSpan.FromSeconds(30)));
+            Assert.Same(combined, completed);
+            await combined;
+            var putResult = await put;
+            var deleteResult = await delete;
+
+            Assert.Null(putResult.Exception);
+            Assert.Null(deleteResult.Exception);
+            Assert.True(putResult.Result is OkObjectResult or NotFoundResult);
+            Assert.NotNull(deleteResult.Result);
+
+            await using var verifyContext = CreateDbContext(connectionString);
+            var deletedAccount = await verifyContext.Accounts
+                .AsNoTracking()
+                .SingleAsync(account => account.Uuid == accountId);
+            var user = await verifyContext.Users
+                .AsNoTracking()
+                .SingleAsync(candidate => candidate.Uuid == userId);
+            var inventoryEntry = await verifyContext.InventoryEntries
+                .AsNoTracking()
+                .SingleAsync(entry => entry.InventoryEntryId == inventoryEntryId);
+            Assert.True(deletedAccount.IsDeleted);
+            Assert.False(deletedAccount.IsActive);
+            Assert.Equal(remainingAccountId, user.AccountId);
+            Assert.True(inventoryEntry.IsDeleted);
         }
         finally
         {
@@ -182,6 +279,105 @@ public class AccountQuestStateSqlServerIntegrationTests
             """);
     }
 
+    private static async Task CreateFullSchemaAsync(string connectionString)
+    {
+        await using var dbContext = CreateDbContext(connectionString);
+        await dbContext.Database.EnsureCreatedAsync();
+    }
+
+    private static async Task SeedAccountDeleteScenarioAsync(
+        string connectionString,
+        Guid userId,
+        Guid accountId,
+        Guid remainingAccountId,
+        Guid inventoryId,
+        Guid inventoryEntryId,
+        Guid updatedBy)
+    {
+        await using var dbContext = CreateDbContext(connectionString);
+        var now = DateTime.UtcNow;
+        dbContext.Users.Add(new UserEntity
+        {
+            Uuid = userId,
+            Mcid = "quest-delete-sqlserver-integration",
+            JoinDate = now,
+            LastJoinDate = now,
+            GlobalIp = "127.0.0.1",
+            AccountId = accountId,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = updatedBy,
+            UpdatedBy = updatedBy,
+            IsDeleted = false,
+        });
+        dbContext.Accounts.AddRange(
+            new AccountEntity
+            {
+                Uuid = accountId,
+                UserId = userId,
+                AccountName = "quest-delete-target",
+                SlotIndex = 0,
+                IsActive = true,
+                Mode = 0,
+                MenuShortcutsJson = "{}",
+                Level = 1,
+                ClassId = "adventurer",
+                ClassLevel = 1,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = updatedBy,
+                UpdatedBy = updatedBy,
+                IsDeleted = false,
+            },
+            new AccountEntity
+            {
+                Uuid = remainingAccountId,
+                UserId = userId,
+                AccountName = "quest-delete-remaining",
+                SlotIndex = 1,
+                IsActive = false,
+                Mode = 0,
+                MenuShortcutsJson = "{}",
+                Level = 1,
+                ClassId = "adventurer",
+                ClassLevel = 1,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = updatedBy,
+                UpdatedBy = updatedBy,
+                IsDeleted = false,
+            });
+        dbContext.Inventories.Add(new InventoryEntity
+        {
+            InventoryId = inventoryId,
+            AccountId = accountId,
+            InventoryType = "BAG",
+            InventoryProfile = "GAME",
+            SlotCapacity = 9,
+            IsEnabled = true,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = updatedBy,
+            UpdatedBy = updatedBy,
+            IsDeleted = false,
+        });
+        dbContext.InventoryEntries.Add(new InventoryEntryEntity
+        {
+            InventoryEntryId = inventoryEntryId,
+            InventoryId = inventoryId,
+            SlotIndex = 1,
+            ItemCategory = "MATERIAL",
+            ItemId = "quest-delete-test-item",
+            Quantity = 1,
+            CreatedAt = now,
+            UpdatedAt = now,
+            CreatedBy = updatedBy,
+            UpdatedBy = updatedBy,
+            IsDeleted = false,
+        });
+        await dbContext.SaveChangesAsync();
+    }
+
     private static async Task CreateAccountAsync(string connectionString, Guid accountId, Guid updatedBy)
     {
         await using var dbContext = CreateDbContext(connectionString);
@@ -268,6 +464,11 @@ public class AccountQuestStateSqlServerIntegrationTests
             TrustServerCertificate = true,
         }.ConnectionString;
     }
+
+    private static bool SqlServerIntegrationEnabled() => string.Equals(
+        Environment.GetEnvironmentVariable(SqlServerOptInEnvironmentVariable),
+        "1",
+        StringComparison.Ordinal);
 
     private static void EnsureTemporaryDatabaseName(string databaseName)
     {
