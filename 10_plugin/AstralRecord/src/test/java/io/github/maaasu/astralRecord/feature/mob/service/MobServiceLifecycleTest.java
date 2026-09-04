@@ -19,6 +19,7 @@ import org.bukkit.entity.ComplexLivingEntity;
 import org.bukkit.entity.Entity;
 import org.bukkit.entity.EntityType;
 import org.junit.jupiter.api.Test;
+import org.mockbukkit.mockbukkit.entity.PlayerMock;
 import org.mockbukkit.mockbukkit.plugin.PluginMock;
 import org.mockito.MockedConstruction;
 
@@ -204,6 +205,74 @@ class MobServiceLifecycleTest extends MockBukkitTestBase {
         assertEquals(1, service.destroyEnemiesOutsideViewDistance());
         assertNotNull(service.getInstance(kept.instanceId()));
         assertNull(service.getInstance(removed.instanceId()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 1. MobService メソッド仕様 > ### 視認距離外 enemy 破棄
+     * 検証契約: viewer 更新直後の破棄判定は、その更新で得た viewer 集合を使い、次回更新後に視認距離外となった enemy だけを破棄する。
+     */
+    @Test
+    void cachedViewerSnapshotIsRefreshedBeforeEnemyDestruction() {
+        PluginMock plugin = PluginMock.builder().withPluginName("AstralRecordTest").build();
+        MobService service = new MobService(plugin, mock(MobRepository.class));
+        World world = server().addSimpleWorld("mob_cached_viewer_world");
+        PlayerMock viewer = server().addPlayer();
+        viewer.teleport(new Location(world, 0.5D, 64.0D, 0.5D));
+
+        MobInstance instance = service.spawn(template(), new Location(world, 0.5D, 64.0D, 0.5D));
+        MobInstance kept = service.spawn(template(), new Location(world, 1.5D, 64.0D, 0.5D));
+        assertNotNull(instance);
+        assertNotNull(kept);
+        kept.keepWhenUnobserved(true);
+
+        service.updateViewers();
+        viewer.teleport(new Location(world, 100.5D, 64.0D, 100.5D));
+        assertEquals(0, service.destroyEnemiesOutsideViewDistanceUsingCachedViewers());
+        assertNotNull(service.getInstance(instance.instanceId()));
+        assertNotNull(service.getInstance(kept.instanceId()));
+
+        service.updateViewers();
+        assertEquals(1, service.destroyEnemiesOutsideViewDistanceUsingCachedViewers());
+        assertNull(service.getInstance(instance.instanceId()));
+        assertNotNull(service.getInstance(kept.instanceId()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 1. MobService メソッド仕様 > ### 視認距離外 enemy 破棄
+     * 検証契約: cached viewer が残っていても実体同期に失敗した enemy は破棄する。
+     */
+    @Test
+    void cachedViewerCleanupStillDestroysEnemyWhenEntitySyncFails() {
+        PluginMock plugin = PluginMock.builder().withPluginName("AstralRecordTest").build();
+        World world = server().addSimpleWorld("mob_cached_sync_failure_world");
+        PlayerMock viewer = server().addPlayer();
+        viewer.teleport(new Location(world, 0.5D, 64.0D, 0.5D));
+        UUID entityId = UUID.randomUUID();
+        Entity realEntity = mock(Entity.class);
+        when(realEntity.getUniqueId()).thenReturn(entityId);
+        when(realEntity.getEntityId()).thenReturn(42);
+
+        try (MockedConstruction<MobEntityController> controllers = mockConstruction(
+                MobEntityController.class,
+                (controller, context) -> {
+                    doAnswer(invocation -> {
+                        MobInstance spawned = invocation.getArgument(0);
+                        spawned.bindEntity(entityId, 42, new Location(world, 0.5D, 64.0D, 0.5D));
+                        return realEntity;
+                    }).when(controller).spawn(any(MobInstance.class), any(Location.class));
+                    when(controller.syncLocation(any(MobInstance.class))).thenReturn(true, true, false);
+                })) {
+            MobService service = new MobService(plugin, mock(MobRepository.class));
+            MobInstance instance = service.spawn(template(), new Location(world, 0.5D, 64.0D, 0.5D));
+            assertNotNull(instance);
+
+            service.updateViewers();
+
+            assertEquals(1, service.destroyEnemiesOutsideViewDistanceUsingCachedViewers());
+            assertNull(service.getInstance(instance.instanceId()));
+        }
     }
 
     /**

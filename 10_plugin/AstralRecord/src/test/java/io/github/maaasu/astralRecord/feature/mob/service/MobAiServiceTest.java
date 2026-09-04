@@ -26,6 +26,7 @@ import org.bukkit.World;
 import org.bukkit.entity.EntityType;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
+import org.mockito.InOrder;
 import org.mockito.MockedStatic;
 
 import java.lang.reflect.Field;
@@ -44,6 +45,7 @@ import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.same;
+import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.never;
@@ -164,6 +166,29 @@ class MobAiServiceTest {
 
         verify(mobService).syncPlayerSkinPacketViews();
         verify(mobService, never()).updateViewers();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
+     * 検証契約: viewer 更新tickでは、viewer集合を更新してからcached viewerを使ったenemy破棄判定を実行する。
+     */
+    @Test
+    void viewerCleanupUsesCachedViewersImmediatelyAfterViewerRefresh() throws ReflectiveOperationException {
+        MobService mobService = mock(MobService.class);
+        when(mobService.getInstances()).thenReturn(List.of());
+        MobAiService aiService = new MobAiService(
+                mobService,
+                mock(MobCombatService.class),
+                mock(MobSkillService.class)
+        );
+        setInternalTick(aiService, 4L);
+
+        aiService.tick();
+
+        InOrder order = inOrder(mobService);
+        order.verify(mobService).updateViewers();
+        order.verify(mobService).destroyEnemiesOutsideViewDistanceUsingCachedViewers();
     }
 
     /**

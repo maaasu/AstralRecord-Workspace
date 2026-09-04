@@ -257,9 +257,13 @@ public final class NormalAttackDegradationService {
 
     void updateAll() {
         long now = currentTimeMillis.getAsLong();
-        for (AstPlayer astPlayer : List.copyOf(AstPlayerCache.getAll())) {
+        for (UUID playerId : List.copyOf(states.keySet())) {
+            AstPlayer astPlayer = AstPlayerCache.get(playerId);
+            if (astPlayer == null) {
+                clearPlayer(playerId);
+                continue;
+            }
             Player player = astPlayer.getBukkit();
-            UUID playerId = player.getUniqueId();
             if (!player.isOnline()
                     || !astPlayer.getAccount().getMode().shouldProcessGameplay()
                     || isDegradationExcluded(astPlayer)) {
@@ -280,8 +284,8 @@ public final class NormalAttackDegradationService {
             updateBossBar(player, state, now, stage);
         }
 
-        for (UUID playerId : List.copyOf(states.keySet())) {
-            if (AstPlayerCache.get(playerId) == null) {
+        for (UUID playerId : List.copyOf(bossBars.keySet())) {
+            if (!states.containsKey(playerId) || AstPlayerCache.get(playerId) == null) {
                 clearPlayer(playerId);
             }
         }

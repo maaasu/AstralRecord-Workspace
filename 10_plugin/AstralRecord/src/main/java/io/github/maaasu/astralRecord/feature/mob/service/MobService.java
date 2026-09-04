@@ -685,6 +685,23 @@ public class MobService {
      * @return 破棄した enemy Mob 数
      */
     public int destroyEnemiesOutsideViewDistance() {
+        return destroyEnemiesOutsideViewDistance(false);
+    }
+
+    /**
+     * 直前の {@link #updateViewers()} で更新した viewer 集合を使って、視認距離外の enemy Mob を破棄します。
+     *
+     * <p>通常の公開メソッドは呼び出し時点のオンラインプレイヤーを再確認しますが、Mob AI の viewer 更新直後は
+     * このメソッドを使うことで同じ距離判定を重複して実行しません。呼び出し元は同一 tick 内に
+     * {@link #updateViewers()} を先に実行する必要があります。</p>
+     *
+     * @return 破棄した enemy Mob 数
+     */
+    int destroyEnemiesOutsideViewDistanceUsingCachedViewers() {
+        return destroyEnemiesOutsideViewDistance(true);
+    }
+
+    private int destroyEnemiesOutsideViewDistance(boolean useCachedViewers) {
         List<UUID> targetIds = instances.values().stream()
                 .filter(instance -> instance.template().category() == MobCategory.ENEMY)
                 .filter(instance -> !instance.keepWhenUnobserved())
@@ -692,7 +709,9 @@ public class MobService {
                     if (!syncLocation(instance)) {
                         return true;
                     }
-                    return !hasViewerInRange(instance);
+                    return useCachedViewers
+                            ? !hasCachedViewer(instance)
+                            : !hasViewerInRange(instance);
                 })
                 .map(MobInstance::instanceId)
                 .toList();
@@ -704,6 +723,11 @@ public class MobService {
             }
         }
         return count;
+    }
+
+    private boolean hasCachedViewer(@NotNull MobInstance instance) {
+        Set<UUID> currentViewers = viewers.get(instance.instanceId());
+        return currentViewers != null && !currentViewers.isEmpty();
     }
 
     /**

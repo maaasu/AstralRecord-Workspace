@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.combat.service;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDefinitions;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -11,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.status.model.StatusType;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import org.bukkit.entity.Player;
 import org.bukkit.boss.BarColor;
 import org.bukkit.boss.BarStyle;
 import org.bukkit.boss.BossBar;
@@ -24,6 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.mockito.Mockito.mock;
@@ -236,6 +239,171 @@ class NormalAttackDegradationServiceTest extends MockBukkitTestBase {
             assertNull(service.bossBarFor(playerId));
         } finally {
             AstPlayerCache.remove(playerId, player);
+            service.stop();
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 12. 通常攻撃劣化
+     * 検証契約: 更新周期を維持したまま、期限切れの劣化 state と BossBar を updateAll で解除する。
+     */
+    @Test
+    void updateAllClearsExpiredDegradationStateAndBossBar() {
+        AtomicLong now = new AtomicLong(1_000L);
+        NormalAttackDegradationService service = new NormalAttackDegradationService(now::get);
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer player = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.PLAYER);
+        player.selectClass("swordsman");
+        UUID playerId = bukkitPlayer.getUniqueId();
+        AstPlayerCache.put(player);
+        try {
+            for (int index = 0; index < 5; index++) {
+                service.beginNormalAttack(player);
+            }
+            assertNotNull(service.bossBarFor(playerId));
+
+            now.addAndGet(NormalAttackDegradationService.DEGRADATION_DURATION_MILLIS);
+            service.updateAll();
+
+            assertNull(service.bossBarFor(playerId));
+            assertEquals(0, service.currentStage(player));
+        } finally {
+            AstPlayerCache.remove(playerId, player);
+            service.stop();
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 12. 通常攻撃劣化
+     * 検証契約: states中心走査でもキャッシュから消えたプレイヤーの state と BossBar を解除する。
+     */
+    @Test
+    void updateAllClearsStateWhenPlayerLeavesCache() {
+        AtomicLong now = new AtomicLong(1_000L);
+        NormalAttackDegradationService service = new NormalAttackDegradationService(now::get);
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer player = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.PLAYER);
+        player.selectClass("swordsman");
+        UUID playerId = bukkitPlayer.getUniqueId();
+        AstPlayerCache.put(player);
+        try {
+            for (int index = 0; index < 5; index++) {
+                service.beginNormalAttack(player);
+            }
+            assertNotNull(service.bossBarFor(playerId));
+
+            AstPlayerCache.remove(playerId, player);
+            service.updateAll();
+
+            assertNull(service.bossBarFor(playerId));
+        } finally {
+            AstPlayerCache.remove(playerId, player);
+            service.stop();
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 12. 通常攻撃劣化
+     * 検証契約: 段階0の state も対象外クラスへの変更時に updateAll で解除し、再利用時に攻撃回数を引き継がない。
+     */
+    @Test
+    void updateAllClearsStageZeroStateForExcludedClass() {
+        AtomicLong now = new AtomicLong(1_000L);
+        NormalAttackDegradationService service = new NormalAttackDegradationService(now::get);
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer player = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.PLAYER);
+        player.selectClass("swordsman");
+        UUID playerId = bukkitPlayer.getUniqueId();
+        AstPlayerCache.put(player);
+        try {
+            assertEquals(0, service.beginNormalAttack(player).stage());
+            player.selectClass("adventurer");
+            service.updateAll();
+
+            player.selectClass("swordsman");
+            for (int index = 0; index < 4; index++) {
+                assertEquals(0, service.beginNormalAttack(player).stage());
+            }
+            assertEquals(1, service.beginNormalAttack(player).stage());
+        } finally {
+            AstPlayerCache.remove(playerId, player);
+            service.stop();
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 12. 通常攻撃劣化
+     * 検証契約: キャッシュ中のプレイヤーがオフラインになった場合、updateAll で劣化 state と BossBar を解除する。
+     */
+    @Test
+    void updateAllClearsStateWhenPlayerGoesOffline() {
+        AtomicLong now = new AtomicLong(1_000L);
+        NormalAttackDegradationService service = new NormalAttackDegradationService(now::get);
+        Player bukkitPlayer = mock(Player.class);
+        UUID playerId = UUID.randomUUID();
+        when(bukkitPlayer.getUniqueId()).thenReturn(playerId);
+        when(bukkitPlayer.isOnline()).thenReturn(true);
+        AccountModel account = mock(AccountModel.class);
+        when(account.getMode()).thenReturn(AccountMode.PLAYER);
+        AstPlayer player = mock(AstPlayer.class);
+        when(player.getBukkit()).thenReturn(bukkitPlayer);
+        when(player.getAccount()).thenReturn(account);
+        when(player.getClassId()).thenReturn("swordsman");
+        AstPlayerCache.put(player);
+        try {
+            for (int index = 0; index < 5; index++) {
+                service.beginNormalAttack(player);
+            }
+            assertNotNull(service.bossBarFor(playerId));
+
+            when(bukkitPlayer.isOnline()).thenReturn(false);
+            service.updateAll();
+
+            assertNull(service.bossBarFor(playerId));
+            assertEquals(0, service.currentStage(player));
+        } finally {
+            AstPlayerCache.remove(playerId);
+            service.stop();
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/14-combat/3-メソッド仕様/14_3-サービス.md
+     * 章・見出し: # 14_3-サービス > ## 12. 通常攻撃劣化
+     * 検証契約: ゲームプレイを処理しないアカウントモードへ移行した場合、updateAll で劣化 state と BossBar を解除する。
+     */
+    @Test
+    void updateAllClearsStateWhenAccountModeStopsGameplayProcessing() {
+        AtomicLong now = new AtomicLong(1_000L);
+        NormalAttackDegradationService service = new NormalAttackDegradationService(now::get);
+        Player bukkitPlayer = mock(Player.class);
+        UUID playerId = UUID.randomUUID();
+        when(bukkitPlayer.getUniqueId()).thenReturn(playerId);
+        when(bukkitPlayer.isOnline()).thenReturn(true);
+        AccountModel account = mock(AccountModel.class);
+        when(account.getMode()).thenReturn(AccountMode.PLAYER);
+        AstPlayer player = mock(AstPlayer.class);
+        when(player.getBukkit()).thenReturn(bukkitPlayer);
+        when(player.getAccount()).thenReturn(account);
+        when(player.getClassId()).thenReturn("swordsman");
+        AstPlayerCache.put(player);
+        try {
+            for (int index = 0; index < 5; index++) {
+                service.beginNormalAttack(player);
+            }
+            assertNotNull(service.bossBarFor(playerId));
+
+            when(account.getMode()).thenReturn(AccountMode.ADMIN);
+            service.updateAll();
+
+            assertNull(service.bossBarFor(playerId));
+            assertEquals(0, service.currentStage(player));
+        } finally {
+            AstPlayerCache.remove(playerId);
             service.stop();
         }
     }
