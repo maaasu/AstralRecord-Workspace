@@ -1,0 +1,83 @@
+# design:
+#   motif: "建築 / 巨石の始源遺跡"
+#   progression: 15
+schemaVersion: 1
+id: alda_origin_ruins_hunt
+type: QUEST
+name: "&8アルダ始源遺跡の討伐依頼"
+description:
+  - "&7アルダ始源遺跡の通常敵6種を各3体討伐する依頼。"
+  - "&7遺跡の深部を切り開き、村長へ報告する。"
+icon: DEEPSLATE
+repeat:
+  mode: COOLDOWN
+  cooldownSeconds: 600
+completion:
+  mode: NPC
+  turnInNpcId:
+    ref: mob:village_elder
+objectives:
+  - id: defeat_alda_middle_earth_skeleton
+    type: KILL_MOB
+    targetId:
+      ref: mob:middle_earth_ruins_skeleton
+    level: 15
+    label: "遺跡のスケルトン Lv.15"
+    amount: 3
+  - id: defeat_alda_middle_earth_skeleton_archer
+    type: KILL_MOB
+    targetId:
+      ref: mob:middle_earth_ruins_skeleton_archer
+    level: 15
+    label: "遺跡のスケルトン・アーチャー Lv.15"
+    amount: 3
+  - id: defeat_alda_middle_earth_piglin_charger
+    type: KILL_MOB
+    targetId:
+      ref: mob:middle_earth_ruins_piglin_charger
+    level: 15
+    label: "遺跡の突撃ピグリン Lv.15"
+    amount: 3
+  - id: defeat_alda_vatar_skeleton
+    type: KILL_MOB
+    targetId:
+      ref: mob:vatar_skeleton
+    level: 15
+    label: "ヴァタールスケルトン Lv.15"
+    amount: 3
+  - id: defeat_alda_ainua
+    type: KILL_MOB
+    targetId:
+      ref: mob:ainua
+    level: 15
+    label: "アイヌア Lv.15"
+    amount: 3
+  - id: defeat_alda_ainurindale
+    type: KILL_MOB
+    targetId:
+      ref: mob:ainurindale
+    level: 15
+    label: "アイヌリンダレ Lv.15"
+    amount: 3
+acceptRequirements:
+  items: []
+rewards:
+  exp: 3400
+  gold: 1800
+  items:
+    - itemId:
+        ref: item:healing_potion_medium
+      category: consumable
+      amount: 4
+    - itemId:
+        ref: item:mana_potion_medium
+      category: consumable
+      amount: 4
+    - itemId:
+        ref: item:energy_baked
+      category: consumable
+      amount: 6
+    - itemId:
+        ref: item:high_tyr_orb
+      category: orb
+      amount: 1

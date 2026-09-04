@@ -1,0 +1,63 @@
+# design:
+#   motif: "シルマリル / 輝きを守る死者たち"
+#   progression: 10
+schemaVersion: 1
+id: silmaril_frontier_hunt
+type: QUEST
+name: "&dシルマリル辺境の討伐依頼"
+description:
+  - "&7シルマリルのスケルトンとマリルシルの死英雄を各8体討伐する依頼。"
+  - "&7輝きを守る死者たちを退け、村長へ報告する。"
+icon: WITHER_SKELETON_SKULL
+repeat:
+  mode: COOLDOWN
+  cooldownSeconds: 600
+completion:
+  mode: NPC
+  turnInNpcId:
+    ref: mob:village_elder
+objectives:
+  - id: defeat_silmaril_skeleton
+    type: KILL_MOB
+    targetId:
+      ref: mob:silmaril_skeleton
+    level: 9
+    label: "シルマリルのスケルトン Lv.9"
+    amount: 8
+  - id: defeat_maril_sil_dead_hero
+    type: KILL_MOB
+    targetId:
+      ref: mob:maril_sil_dead_hero
+    level: 10
+    label: "マリルシルの死英雄 Lv.10"
+    amount: 8
+acceptRequirements:
+  items: []
+rewards:
+  exp: 2300
+  gold: 1200
+  items:
+    - itemId:
+        ref: item:healing_potion_medium
+      category: consumable
+      amount: 4
+    - itemId:
+        ref: item:mana_potion_medium
+      category: consumable
+      amount: 3
+    - itemId:
+        ref: item:energy_baked
+      category: consumable
+      amount: 4
+    - itemId:
+        ref: item:sindri_orb_advanced
+      category: orb
+      amount: 1
+    - itemId:
+        ref: item:silmaril_bone_fragment
+      category: material
+      amount: 2
+    - itemId:
+        ref: item:maril_sil_hero_shard
+      category: material
+      amount: 1

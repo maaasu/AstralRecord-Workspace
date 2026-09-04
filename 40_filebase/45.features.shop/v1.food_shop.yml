@@ -14,7 +14,12 @@ items:
     amount: 1
     page: 1
     slot: 0
-    priceGold: 10
+    priceGold: 6
+    requiredItems:
+      - itemId:
+          ref: item:grassboar_meat
+        category: material
+        amount: 1
   - id: nox_night_herb_boar_skewer
     itemId:
       ref: item:nox_night_herb_boar_skewer
@@ -22,7 +27,7 @@ items:
     amount: 1
     page: 1
     slot: 1
-    priceGold: 0
+    priceGold: 2
     requiredItems:
       - itemId:
           ref: item:grassboar_meat

@@ -1,0 +1,43 @@
+# design:
+#   motif: "動物 / 森林を駆ける群狼"
+#   progression: 6
+schemaVersion: 1
+id: midgard_forest_wolf_hunt
+type: QUEST
+name: "&aフォレストウルフ討伐依頼"
+description:
+  - "&7森林を駆けるフォレストウルフを12体討伐する依頼。"
+  - "&7群れの脅威を取り除き、村長へ報告する。"
+icon: WOLF_SPAWN_EGG
+repeat:
+  mode: COOLDOWN
+  cooldownSeconds: 600
+completion:
+  mode: NPC
+  turnInNpcId:
+    ref: mob:village_elder
+objectives:
+  - id: defeat_midgard_forest_wolf
+    type: KILL_MOB
+    targetId:
+      ref: mob:midgard_forest_wolf
+    label: "フォレストウルフ"
+    amount: 12
+acceptRequirements:
+  items: []
+rewards:
+  exp: 650
+  gold: 360
+  items:
+    - itemId:
+        ref: item:healing_potion_medium
+      category: consumable
+      amount: 2
+    - itemId:
+        ref: item:mana_potion_medium
+      category: consumable
+      amount: 1
+    - itemId:
+        ref: item:nox_night_herb_boar_skewer
+      category: consumable
+      amount: 3

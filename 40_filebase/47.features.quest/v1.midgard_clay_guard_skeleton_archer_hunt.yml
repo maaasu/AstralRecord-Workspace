@@ -11,7 +11,7 @@ description:
 icon: CLAY_BALL
 repeat:
   mode: COOLDOWN
-  cooldownSeconds: 3600
+  cooldownSeconds: 600
 completion:
   mode: NPC
   turnInNpcId:
@@ -21,25 +21,35 @@ objectives:
     type: KILL_MOB
     targetId:
       ref: mob:midgard_skeleton_archer
+    level: 3
     label: "スケルトン・アーチャー"
     amount: 10
   - id: defeat_midgard_clay_guard
     type: KILL_MOB
     targetId:
       ref: mob:midgard_clay_guard
+    level: 3
     label: "クレイガード"
     amount: 10
 acceptRequirements:
   items: []
 rewards:
-  exp: 90
-  gold: 45
+  exp: 520
+  gold: 260
   items:
     - itemId:
-        ref: item:healing_potion_small
+        ref: item:healing_potion_medium
       category: consumable
       amount: 1
     - itemId:
-        ref: item:mana_potion_small
+        ref: item:mana_potion_medium
       category: consumable
+      amount: 1
+    - itemId:
+        ref: item:nox_night_herb_boar_skewer
+      category: consumable
+      amount: 2
+    - itemId:
+        ref: item:sindri_orb
+      category: orb
       amount: 1

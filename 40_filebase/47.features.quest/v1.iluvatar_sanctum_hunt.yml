@@ -1,0 +1,62 @@
+# design:
+#   motif: "中つ国 / 万象と炎の聖域"
+#   progression: 8
+schemaVersion: 1
+id: iluvatar_sanctum_hunt
+type: QUEST
+name: "&c万象聖域の三種討伐依頼"
+description:
+  - "&7万象聖域の通常敵3種を各6体討伐する依頼。"
+  - "&7炎の聖域を制圧し、村長へ報告する。"
+icon: NETHER_STAR
+repeat:
+  mode: COOLDOWN
+  cooldownSeconds: 600
+completion:
+  mode: NPC
+  turnInNpcId:
+    ref: mob:village_elder
+objectives:
+  - id: defeat_vatar_skeleton
+    type: KILL_MOB
+    targetId:
+      ref: mob:vatar_skeleton
+    level: 8
+    label: "ヴァタールスケルトン Lv.8"
+    amount: 6
+  - id: defeat_ainua
+    type: KILL_MOB
+    targetId:
+      ref: mob:ainua
+    level: 8
+    label: "アイヌア Lv.8"
+    amount: 6
+  - id: defeat_ainurindale
+    type: KILL_MOB
+    targetId:
+      ref: mob:ainurindale
+    level: 8
+    label: "アイヌリンダレ Lv.8"
+    amount: 6
+acceptRequirements:
+  items: []
+rewards:
+  exp: 1700
+  gold: 900
+  items:
+    - itemId:
+        ref: item:healing_potion_medium
+      category: consumable
+      amount: 3
+    - itemId:
+        ref: item:mana_potion_medium
+      category: consumable
+      amount: 2
+    - itemId:
+        ref: item:energy_baked
+      category: consumable
+      amount: 4
+    - itemId:
+        ref: item:sindri_orb_advanced
+      category: orb
+      amount: 1

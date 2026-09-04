@@ -1,0 +1,59 @@
+# design:
+#   motif: "動物 / 魔術 / サバナの三つ巴"
+#   progression: 7
+schemaVersion: 1
+id: midgard_savanna_hunt
+type: QUEST
+name: "&6サバナ三種討伐依頼"
+description:
+  - "&7サバナハイエナ、ウィッチ、ガードキャメルを各8体討伐する依頼。"
+  - "&7三種の脅威を退け、村長へ報告する。"
+icon: CAMEL_SPAWN_EGG
+repeat:
+  mode: COOLDOWN
+  cooldownSeconds: 600
+completion:
+  mode: NPC
+  turnInNpcId:
+    ref: mob:village_elder
+objectives:
+  - id: defeat_midgard_savanna_hyena
+    type: KILL_MOB
+    targetId:
+      ref: mob:midgard_savanna_hyena
+    label: "サバナハイエナ"
+    amount: 8
+  - id: defeat_midgard_savanna_witch
+    type: KILL_MOB
+    targetId:
+      ref: mob:midgard_savanna_witch
+    label: "サバナウィッチ"
+    amount: 8
+  - id: defeat_midgard_savanna_camel
+    type: KILL_MOB
+    targetId:
+      ref: mob:midgard_savanna_camel
+    label: "サバナガードキャメル"
+    amount: 8
+acceptRequirements:
+  items: []
+rewards:
+  exp: 1750
+  gold: 900
+  items:
+    - itemId:
+        ref: item:healing_potion_medium
+      category: consumable
+      amount: 3
+    - itemId:
+        ref: item:mana_potion_medium
+      category: consumable
+      amount: 2
+    - itemId:
+        ref: item:nox_night_herb_boar_skewer
+      category: consumable
+      amount: 4
+    - itemId:
+        ref: item:sindri_orb_advanced
+      category: orb
+      amount: 1

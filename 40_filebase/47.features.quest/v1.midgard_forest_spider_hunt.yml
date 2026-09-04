@@ -1,0 +1,47 @@
+# design:
+#   motif: "動物 / 毒を持つ森林の狩人"
+#   progression: 7
+schemaVersion: 1
+id: midgard_forest_spider_hunt
+type: QUEST
+name: "&2フォレストスパイダー討伐依頼"
+description:
+  - "&7森林のフォレストスパイダーを12体討伐する依頼。"
+  - "&7毒袋を持つ危険な個体を片付け、村長へ報告する。"
+icon: SPIDER_SPAWN_EGG
+repeat:
+  mode: COOLDOWN
+  cooldownSeconds: 600
+completion:
+  mode: NPC
+  turnInNpcId:
+    ref: mob:village_elder
+objectives:
+  - id: defeat_midgard_forest_spider
+    type: KILL_MOB
+    targetId:
+      ref: mob:midgard_forest_spider
+    label: "フォレストスパイダー"
+    amount: 12
+acceptRequirements:
+  items: []
+rewards:
+  exp: 780
+  gold: 420
+  items:
+    - itemId:
+        ref: item:healing_potion_medium
+      category: consumable
+      amount: 2
+    - itemId:
+        ref: item:mana_potion_medium
+      category: consumable
+      amount: 2
+    - itemId:
+        ref: item:energy_baked
+      category: consumable
+      amount: 3
+    - itemId:
+        ref: item:forest_spider_venom_sack
+      category: material
+      amount: 2

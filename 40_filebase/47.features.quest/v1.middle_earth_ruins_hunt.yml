@@ -1,0 +1,62 @@
+# design:
+#   motif: "中つ国 / 緑野に眠る古代遺跡"
+#   progression: 5
+schemaVersion: 1
+id: middle_earth_ruins_hunt
+type: QUEST
+name: "&f遺跡の三種討伐依頼"
+description:
+  - "&7ミドルアースの遺跡に潜む3種の敵を各5体討伐する依頼。"
+  - "&7遺跡の奥から無事に戻り、村長へ報告する。"
+icon: STONE_BRICKS
+repeat:
+  mode: COOLDOWN
+  cooldownSeconds: 600
+completion:
+  mode: NPC
+  turnInNpcId:
+    ref: mob:village_elder
+objectives:
+  - id: defeat_middle_earth_ruins_skeleton
+    type: KILL_MOB
+    targetId:
+      ref: mob:middle_earth_ruins_skeleton
+    level: 5
+    label: "遺跡のスケルトン Lv.5"
+    amount: 5
+  - id: defeat_middle_earth_ruins_skeleton_archer
+    type: KILL_MOB
+    targetId:
+      ref: mob:middle_earth_ruins_skeleton_archer
+    level: 5
+    label: "遺跡のスケルトン・アーチャー Lv.5"
+    amount: 5
+  - id: defeat_middle_earth_ruins_piglin_charger
+    type: KILL_MOB
+    targetId:
+      ref: mob:middle_earth_ruins_piglin_charger
+    level: 5
+    label: "遺跡の突撃ピグリン Lv.5"
+    amount: 5
+acceptRequirements:
+  items: []
+rewards:
+  exp: 900
+  gold: 420
+  items:
+    - itemId:
+        ref: item:healing_potion_medium
+      category: consumable
+      amount: 2
+    - itemId:
+        ref: item:mana_potion_medium
+      category: consumable
+      amount: 1
+    - itemId:
+        ref: item:energy_baked
+      category: consumable
+      amount: 3
+    - itemId:
+        ref: item:sindri_orb_advanced
+      category: orb
+      amount: 1

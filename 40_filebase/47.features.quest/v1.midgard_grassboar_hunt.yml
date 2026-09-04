@@ -10,7 +10,7 @@ description:
 icon: COMPASS
 repeat:
   mode: COOLDOWN
-  cooldownSeconds: 3600
+  cooldownSeconds: 600
 completion:
   mode: NPC
   turnInNpcId:
@@ -25,8 +25,8 @@ objectives:
 acceptRequirements:
   items: []
 rewards:
-  exp: 90
-  gold: 45
+  exp: 120
+  gold: 75
   items:
     - itemId:
         ref: item:healing_potion_small
@@ -36,3 +36,7 @@ rewards:
         ref: item:mana_potion_small
       category: consumable
       amount: 1
+    - itemId:
+        ref: item:nox_night_herb_boar_skewer
+      category: consumable
+      amount: 2

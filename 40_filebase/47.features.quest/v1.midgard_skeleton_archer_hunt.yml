@@ -1,13 +1,14 @@
 # design:
-#   motif: "苔 / 小型の甲殻獣"
+#   motif: "北欧神話 / 草原を狙う骸の射手"
 #   progression: 2
 schemaVersion: 1
-id: midgard_moss_shell_hunt
+id: midgard_skeleton_archer_hunt
 type: QUEST
-name: "&2苔甲羅の討伐依頼"
+name: "&fスケルトン・アーチャー討伐依頼"
 description:
-  - "&7ミッドガルズ・モスシェルを10体討伐する依頼。"
-icon: TURTLE_HELMET
+  - "&7Lv.2のスケルトン・アーチャーを10体討伐する依頼。"
+  - "&7討伐後、村長へ報告する。"
+icon: BOW
 repeat:
   mode: COOLDOWN
   cooldownSeconds: 600
@@ -16,17 +17,18 @@ completion:
   turnInNpcId:
     ref: mob:village_elder
 objectives:
-  - id: defeat_midgard_moss_shell
+  - id: defeat_midgard_skeleton_archer
     type: KILL_MOB
     targetId:
-      ref: mob:midgard_moss_shell
-    label: "ミッドガルズ・モスシェル"
+      ref: mob:midgard_skeleton_archer
+    level: 2
+    label: "スケルトン・アーチャー Lv.2"
     amount: 10
 acceptRequirements:
   items: []
 rewards:
-  exp: 230
-  gold: 120
+  exp: 210
+  gold: 110
   items:
     - itemId:
         ref: item:healing_potion_small
@@ -39,4 +41,4 @@ rewards:
     - itemId:
         ref: item:energy_baked
       category: consumable
-      amount: 2
+      amount: 1

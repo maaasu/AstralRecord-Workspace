@@ -62,14 +62,18 @@ objectives:
 acceptRequirements:
   items: []
 rewards:
-  exp: 90
-  gold: 45
+  exp: 180
+  gold: 100
   items:
     - itemId:
         ref: item:healing_potion_medium
       category: consumable
-      amount: 3
+      amount: 1
     - itemId:
         ref: item:mana_potion_medium
       category: consumable
-      amount: 3
+      amount: 1
+    - itemId:
+        ref: item:energy_baked
+      category: consumable
+      amount: 2

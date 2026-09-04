@@ -12,10 +12,42 @@ quests:
     page: 1
     slot: 14
   - questId:
-      ref: quest:midgard_moss_shell_hunt
+      ref: quest:midgard_skeleton_archer_hunt
     page: 1
     slot: 15
   - questId:
-      ref: quest:midgard_clay_guard_skeleton_archer_hunt
+      ref: quest:midgard_moss_shell_hunt
     page: 1
     slot: 16
+  - questId:
+      ref: quest:midgard_clay_guard_skeleton_archer_hunt
+    page: 1
+    slot: 17
+  - questId:
+      ref: quest:middle_earth_ruins_hunt
+    page: 2
+    slot: 0
+  - questId:
+      ref: quest:midgard_forest_wolf_hunt
+    page: 2
+    slot: 1
+  - questId:
+      ref: quest:midgard_forest_spider_hunt
+    page: 2
+    slot: 2
+  - questId:
+      ref: quest:midgard_savanna_hunt
+    page: 2
+    slot: 3
+  - questId:
+      ref: quest:iluvatar_sanctum_hunt
+    page: 2
+    slot: 4
+  - questId:
+      ref: quest:silmaril_frontier_hunt
+    page: 2
+    slot: 5
+  - questId:
+      ref: quest:alda_origin_ruins_hunt
+    page: 3
+    slot: 0

@@ -14,7 +14,12 @@ items:
     amount: 1
     page: 1
     slot: 0
-    priceGold: 10
+    priceGold: 6
+    requiredItems:
+      - itemId:
+          ref: item:nox_dewgrass_leaf
+        category: material
+        amount: 1
   - id: healing_potion_medium
     itemId:
       ref: item:healing_potion_medium
@@ -38,7 +43,12 @@ items:
     amount: 1
     page: 1
     slot: 7
-    priceGold: 20
+    priceGold: 16
+    requiredItems:
+      - itemId:
+          ref: item:windleaf_sprig
+        category: material
+        amount: 1
   - id: mana_potion_medium
     itemId:
       ref: item:mana_potion_medium
