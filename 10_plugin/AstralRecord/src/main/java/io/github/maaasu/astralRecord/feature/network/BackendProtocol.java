@@ -51,14 +51,44 @@ final class BackendProtocol {
         @NotNull String className,
         @NotNull String message
     ) {
-        send(plugin, player.getBukkit(), output -> {
+        sendChat(
+            plugin,
+            player.getBukkit(),
+            channel,
+            displayName,
+            player.getClassLevel(),
+            className,
+            message);
+    }
+
+    /**
+     * プレイヤーデータのロード前でもProxyへグローバルチャットを送る。
+     *
+     * @param plugin 送信元プラグイン
+     * @param player Proxy接続に利用するオンラインプレイヤー
+     * @param channel 送信元チャンネル名
+     * @param displayName 表示名
+     * @param level クラスレベル。未ロードの場合は0
+     * @param className クラス名。未ロードの場合は空文字列
+     * @param message チャット本文
+     */
+    static void sendChat(
+        @NotNull Plugin plugin,
+        @NotNull Player player,
+        @NotNull String channel,
+        @NotNull String displayName,
+        int level,
+        @NotNull String className,
+        @NotNull String message
+    ) {
+        send(plugin, player, output -> {
             output.writeUTF("chat");
             output.writeUTF(UUID.randomUUID().toString());
-            output.writeUTF(player.getBukkit().getUniqueId().toString());
-            output.writeUTF(player.getBukkit().getName());
+            output.writeUTF(player.getUniqueId().toString());
+            output.writeUTF(player.getName());
             output.writeUTF(channel);
             output.writeUTF(displayName);
-            output.writeInt(player.getClassLevel());
+            output.writeInt(level);
             output.writeUTF(className);
             output.writeUTF(message);
         });

@@ -89,9 +89,13 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
     public boolean publish(@NotNull Player sender, @NotNull String message) {
         if (!enabled || !sender.isOnline()) return false;
         AstPlayer player = AstPlayerCache.get(sender);
-        if (player == null) return false;
-        BackendProtocol.sendChat(
-            plugin, player, channelName, displayName(player), plainClassName(player), message);
+        if (player != null) {
+            BackendProtocol.sendChat(
+                plugin, player, channelName, displayName(player), plainClassName(player), message);
+        } else {
+            // プレイヤーデータのロード完了を待つと、この発言だけが同一サーバーに閉じてしまう。
+            BackendProtocol.sendChat(plugin, sender, channelName, sender.getName(), 0, "", message);
+        }
         return true;
     }
 
