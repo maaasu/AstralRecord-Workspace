@@ -88,6 +88,7 @@ public class ItemStackPacketAdapter {
     private final SkillActionRingService actionRingService;
     private final @Nullable SkillPermissionService skillPermissionService;
     private final Map<UUID, Set<String>> permittedSkillSnapshots = new ConcurrentHashMap<>();
+    private final Map<UUID, Boolean> bedrockSnapshots = new ConcurrentHashMap<>();
     private final EquipmentOverrideRegistry equipmentOverrideRegistry = new EquipmentOverrideRegistry();
     private final Map<UUID, Integer> selectedHotbarSlots = new ConcurrentHashMap<>();
     private boolean registered = false;
@@ -154,6 +155,7 @@ public class ItemStackPacketAdapter {
                 PacketContainer packet = event.getPacket();
                 PacketType type = packet.getType();
                 Player viewer = event.getPlayer();
+                boolean bedrockViewer = bedrockSnapshots.getOrDefault(viewer.getUniqueId(), false);
                 Set<String> permittedSkillIds = permittedSkillSnapshots.getOrDefault(
                     viewer.getUniqueId(),
                     Set.of()
@@ -182,7 +184,8 @@ public class ItemStackPacketAdapter {
                             hotbarSlotForSetSlot(packet),
                             selectedHotbarSlot
                         ),
-                        permittedSkillIds
+                        permittedSkillIds,
+                        bedrockViewer
                     );
                 } else if (type == PacketType.Play.Server.WINDOW_ITEMS) {
                     handleWindowItems(
@@ -190,7 +193,8 @@ public class ItemStackPacketAdapter {
                         armorDisplayEnabled,
                         actionRingHoldSelectEnabled,
                         selectedHotbarSlot,
-                        permittedSkillIds
+                        permittedSkillIds,
+                        bedrockViewer
                     );
                 } else if (type == PacketType.Play.Server.ENTITY_EQUIPMENT) {
                     handleEntityEquipment(
@@ -198,7 +202,8 @@ public class ItemStackPacketAdapter {
                         armorDisplayEnabled,
                         actionRingHoldSelectEnabled,
                         selectedHotbarSlot,
-                        permittedSkillIds
+                        permittedSkillIds,
+                        bedrockViewer
                     );
                 }
             }
@@ -243,43 +248,51 @@ public class ItemStackPacketAdapter {
             public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
                 selectedHotbarSlots.remove(event.getPlayer().getUniqueId());
                 permittedSkillSnapshots.remove(event.getPlayer().getUniqueId());
+                bedrockSnapshots.remove(event.getPlayer().getUniqueId());
                 equipmentOverrideRegistry.discardViewer(event.getPlayer().getUniqueId());
             }
         }, plugin);
 
-        if (skillPermissionService != null) {
-            plugin.getServer().getScheduler().runTaskTimer(
-                plugin,
-                this::refreshSkillPermissionSnapshots,
-                1L,
-                1L
-            );
-        }
+        plugin.getServer().getScheduler().runTaskTimer(
+            plugin,
+            this::refreshSkillPermissionSnapshots,
+            1L,
+            1L
+        );
 
         registered = true;
         Logger.log(LogId.I_5210);
     }
 
     /**
-     * 使用許可サービスの状態をメインスレッドで受信者別にスナップショット化します。
-     * パケット送信側ではこの不変集合だけを参照し、スキルツリー本体へアクセスしません。
+     * パケット表示に必要な使用許可と Bedrock 判定をメインスレッドで受信者別にスナップショット化します。
+     * パケット送信側ではこの不変値だけを参照し、プレイヤー本体やスキルツリーへアクセスしません。
      */
     private void refreshSkillPermissionSnapshots() {
-        if (skillPermissionService == null) {
-            return;
-        }
         for (Player player : plugin.getServer().getOnlinePlayers()) {
             AstPlayer astPlayer = AstPlayerCache.get(player);
             if (astPlayer == null) {
                 permittedSkillSnapshots.remove(player.getUniqueId());
+                bedrockSnapshots.remove(player.getUniqueId());
                 continue;
             }
-            Set<String> nextPermittedSkillIds = Set.copyOf(skillPermissionService.permittedSkillIds(astPlayer));
-            Set<String> previousPermittedSkillIds = permittedSkillSnapshots.put(
-                player.getUniqueId(),
-                nextPermittedSkillIds
-            );
-            if (previousPermittedSkillIds == null || !previousPermittedSkillIds.equals(nextPermittedSkillIds)) {
+            boolean nextBedrock = astPlayer.isBedrock();
+            Boolean previousBedrock = bedrockSnapshots.put(player.getUniqueId(), nextBedrock);
+            boolean displaySnapshotChanged = (previousBedrock == null && nextBedrock)
+                || (previousBedrock != null && previousBedrock != nextBedrock);
+            boolean permittedSkillSnapshotChanged = false;
+            if (skillPermissionService != null) {
+                Set<String> nextPermittedSkillIds = Set.copyOf(skillPermissionService.permittedSkillIds(astPlayer));
+                Set<String> previousPermittedSkillIds = permittedSkillSnapshots.put(
+                    player.getUniqueId(),
+                    nextPermittedSkillIds
+                );
+                permittedSkillSnapshotChanged = previousPermittedSkillIds == null
+                    || !previousPermittedSkillIds.equals(nextPermittedSkillIds);
+            }
+            if (displaySnapshotChanged) {
+                refreshEquipmentView(player, true);
+            } else if (permittedSkillSnapshotChanged) {
                 player.updateInventory();
             }
         }
@@ -293,19 +306,22 @@ public class ItemStackPacketAdapter {
      * @param packet 書き換え対象パケット
      * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
      * @param virtualTrident 選択中の主武器を長押し入力用トライデントとして表示する場合は {@code true}
+     * @param permittedSkillIds 受信者が現在使用可能なスキル ID
+     * @param bedrockViewer 受信者が Bedrock Edition の場合は {@code true}
      */
     private void handleSetSlot(
         @NotNull PacketContainer packet,
         boolean armorDisplayEnabled,
         boolean virtualTrident,
-        @Nullable Set<String> permittedSkillIds
+        @Nullable Set<String> permittedSkillIds,
+        boolean bedrockViewer
     ) {
         var original = packet.getItemModifier().readSafely(0);
         if (original == null || original.getType() == Material.AIR) {
             return;
         }
 
-        var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds);
+        var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer);
         if (replaced != null) {
             packet.getItemModifier().writeSafely(0, replaced);
         }
@@ -318,13 +334,16 @@ public class ItemStackPacketAdapter {
      * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
      * @param actionRingHoldSelectEnabled 長押し選択設定が有効な場合は {@code true}
      * @param selectedHotbarSlot 選択中 hotbar slot（0-8）、不明な場合は負値
+     * @param permittedSkillIds 受信者が現在使用可能なスキル ID
+     * @param bedrockViewer 受信者が Bedrock Edition の場合は {@code true}
      */
     private void handleWindowItems(
         @NotNull PacketContainer packet,
         boolean armorDisplayEnabled,
         boolean actionRingHoldSelectEnabled,
         int selectedHotbarSlot,
-        @Nullable Set<String> permittedSkillIds
+        @Nullable Set<String> permittedSkillIds,
+        boolean bedrockViewer
     ) {
         var items = packet.getItemListModifier().readSafely(0);
         if (items == null || items.isEmpty()) {
@@ -343,7 +362,7 @@ public class ItemStackPacketAdapter {
                 playerInventoryHotbarSlot(packet, i),
                 selectedHotbarSlot
             );
-            var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds);
+            var replaced = replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer);
             if (replaced != null) {
                 items.set(i, replaced);
                 modified = true;
@@ -363,13 +382,16 @@ public class ItemStackPacketAdapter {
      * @param armorDisplayEnabled 受信者が防具の身体描画を表示する場合は {@code true}
      * @param actionRingHoldSelectEnabled 長押し選択設定が有効な場合は {@code true}
      * @param selectedHotbarSlot 受信者が選択中の hotbar slot
+     * @param permittedSkillIds 受信者が現在使用可能なスキル ID
+     * @param bedrockViewer 受信者が Bedrock Edition の場合は {@code true}
      */
     private void handleEntityEquipment(
         @NotNull PacketEvent event,
         boolean armorDisplayEnabled,
         boolean actionRingHoldSelectEnabled,
         int selectedHotbarSlot,
-        @Nullable Set<String> permittedSkillIds
+        @Nullable Set<String> permittedSkillIds,
+        boolean bedrockViewer
     ) {
         PacketContainer packet = event.getPacket();
         List<Pair<EnumWrappers.ItemSlot, ItemStack>> equipment = packet.getSlotStackPairLists().readSafely(0);
@@ -395,7 +417,7 @@ public class ItemStackPacketAdapter {
             boolean virtualTrident = virtualizeSelectedMainHand
                 && pair.getFirst() == EnumWrappers.ItemSlot.MAINHAND;
             if (original != null && original.getType() != Material.AIR
-                && replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds) != null) {
+                && replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, bedrockViewer) != null) {
                 requiresOverride = true;
             }
             updates.add(new EquipmentUpdate(
@@ -417,7 +439,8 @@ public class ItemStackPacketAdapter {
                 entityId,
                 updates,
                 originalPacket,
-                virtualizeSelectedMainHand
+                virtualizeSelectedMainHand,
+                bedrockViewer
             )
         );
     }
@@ -469,6 +492,27 @@ public class ItemStackPacketAdapter {
         boolean virtualTrident,
         @Nullable Set<String> permittedSkillIds
     ) {
+        return replaceIcon(original, armorDisplayEnabled, virtualTrident, permittedSkillIds, false);
+    }
+
+    /**
+     * AstralRecord アイテムを、受信者の状態を反映したクライアント表示用へ変換します。
+     * Bedrock 受信者へは POTION icon を PAPER として送信し、クリック移動時のポーション固有入力を避けます。
+     *
+     * @param original サーバー側 ItemStack
+     * @param armorDisplayEnabled 防具の身体描画を表示する場合は {@code true}
+     * @param virtualTrident hotbar 内の武器を長押し入力用トライデントとして表示する場合は {@code true}
+     * @param permittedSkillIds 受信者が現在使用可能なスキル ID。未指定の場合は可否表示を追加しません
+     * @param bedrockViewer 受信者が Bedrock Edition の場合は {@code true}
+     * @return 変換済み ItemStack。変換不要の場合は {@code null}
+     */
+    private ItemStack replaceIcon(
+        @NotNull ItemStack original,
+        boolean armorDisplayEnabled,
+        boolean virtualTrident,
+        @Nullable Set<String> permittedSkillIds,
+        boolean bedrockViewer
+    ) {
         var iconName = ItemStackFactory.getIconName(original);
         var customModelData = ItemStackFactory.getCustomModelData(original);
         var appearanceColor = ItemStackFactory.getAppearanceColor(original);
@@ -492,8 +536,11 @@ public class ItemStackPacketAdapter {
             modified = true;
         } else if (iconName != null) {
             var iconMaterial = resolveMaterial(iconName);
-            if (iconMaterial != null && iconMaterial != original.getType()) {
-                replaced = ItemStackFactory.applyDisplayIcon(original, iconMaterial);
+            var displayIconMaterial = bedrockViewer && iconMaterial == Material.POTION
+                ? Material.PAPER
+                : iconMaterial;
+            if (displayIconMaterial != null && displayIconMaterial != original.getType()) {
+                replaced = ItemStackFactory.applyDisplayIcon(original, displayIconMaterial);
                 modified = true;
             }
         }
@@ -649,6 +696,16 @@ public class ItemStackPacketAdapter {
      * @param viewer 表示設定を反映する受信プレイヤー
      */
     public void refreshEquipmentView(@NotNull Player viewer) {
+        refreshEquipmentView(viewer, false);
+    }
+
+    /**
+     * 指定プレイヤーの表示を再同期します。Bedrock 判定確定時は追跡中プレイヤーの手持ちも再送します。
+     *
+     * @param viewer 表示設定を反映する受信プレイヤー
+     * @param includeTrackedPlayerHands Bedrock 判定変更時に追跡中プレイヤーの手持ちを含める場合は {@code true}
+     */
+    private void refreshEquipmentView(@NotNull Player viewer, boolean includeTrackedPlayerHands) {
         if (!viewer.isOnline()) {
             return;
         }
@@ -658,13 +715,16 @@ public class ItemStackPacketAdapter {
             if (target != viewer && !target.isTrackedBy(viewer)) {
                 continue;
             }
-            List<EquipmentUpdate> updates = new java.util.ArrayList<>(5);
+            List<EquipmentUpdate> updates = new java.util.ArrayList<>(includeTrackedPlayerHands ? 7 : 5);
             updates.add(new EquipmentUpdate(EquipmentSlot.HEAD, copyOrAir(target.getInventory().getHelmet())));
             updates.add(new EquipmentUpdate(EquipmentSlot.CHEST, copyOrAir(target.getInventory().getChestplate())));
             updates.add(new EquipmentUpdate(EquipmentSlot.LEGS, copyOrAir(target.getInventory().getLeggings())));
             updates.add(new EquipmentUpdate(EquipmentSlot.FEET, copyOrAir(target.getInventory().getBoots())));
             boolean viewerTarget = target == viewer;
-            if (viewerTarget) {
+            if (!viewerTarget && includeTrackedPlayerHands) {
+                updates.add(new EquipmentUpdate(EquipmentSlot.HAND, copyOrAir(target.getInventory().getItemInMainHand())));
+                updates.add(new EquipmentUpdate(EquipmentSlot.OFF_HAND, copyOrAir(target.getInventory().getItemInOffHand())));
+            } else if (viewerTarget) {
                 updates.add(new EquipmentUpdate(
                     EquipmentSlot.OFF_HAND,
                     copyOrAir(target.getInventory().getItemInOffHand())
@@ -687,13 +747,15 @@ public class ItemStackPacketAdapter {
      * @param updates 元パケットから退避した装備更新
      * @param originalPacket 解決失敗時にフィルタを通さず再送する元パケット
      * @param virtualizeSelectedMainHand 本人のメインハンドを仮想トライデント化する場合は {@code true}
+     * @param bedrockViewer 受信者が Bedrock Edition の場合は {@code true}
      */
     private void sendEquipmentOverride(
         @NotNull Player viewer,
         int entityId,
         @NotNull List<EquipmentUpdate> updates,
         @NotNull PacketContainer originalPacket,
-        boolean virtualizeSelectedMainHand
+        boolean virtualizeSelectedMainHand,
+        boolean bedrockViewer
     ) {
         if (!viewer.isOnline()) {
             return;
@@ -710,7 +772,7 @@ public class ItemStackPacketAdapter {
             return;
         }
 
-        sendEquipmentOverride(viewer, target, updates, virtualizeSelectedMainHand);
+        sendEquipmentOverride(viewer, target, updates, virtualizeSelectedMainHand, bedrockViewer);
     }
 
     /**
@@ -742,6 +804,31 @@ public class ItemStackPacketAdapter {
         @NotNull List<EquipmentUpdate> updates,
         boolean virtualizeSelectedMainHand
     ) {
+        sendEquipmentOverride(
+            viewer,
+            target,
+            updates,
+            virtualizeSelectedMainHand,
+            isBedrockViewerOnMainThread(viewer)
+        );
+    }
+
+    /**
+     * Paper API 経由で装備更新を送信し、必要な表示変換を受信者別に適用します。
+     *
+     * @param viewer 装備表示を受信するプレイヤー
+     * @param target 装備を表示する対象エンティティ
+     * @param updates 送信する装備更新
+     * @param virtualizeSelectedMainHand 本人のメインハンドを仮想トライデント化する場合は {@code true}
+     * @param bedrockViewer 受信者が Bedrock Edition の場合は {@code true}
+     */
+    private void sendEquipmentOverride(
+        @NotNull Player viewer,
+        @NotNull org.bukkit.entity.LivingEntity target,
+        @NotNull List<EquipmentUpdate> updates,
+        boolean virtualizeSelectedMainHand,
+        boolean bedrockViewer
+    ) {
         boolean armorDisplayEnabled = playerSettingService.isArmorDisplayEnabled(viewer.getUniqueId());
         Map<EquipmentSlot, ItemStack> equipment = new EnumMap<>(EquipmentSlot.class);
         for (EquipmentUpdate update : updates) {
@@ -750,7 +837,8 @@ public class ItemStackPacketAdapter {
                 update.item(),
                 armorDisplayEnabled,
                 virtualTrident,
-                permittedSkillSnapshots.getOrDefault(viewer.getUniqueId(), Set.of())
+                permittedSkillSnapshots.getOrDefault(viewer.getUniqueId(), Set.of()),
+                bedrockViewer
             );
             equipment.put(update.slot(), replaced != null ? replaced : update.item());
         }
@@ -760,6 +848,22 @@ public class ItemStackPacketAdapter {
 
         equipmentOverrideRegistry.mark(viewer.getUniqueId(), target.getEntityId(), equipment, System.currentTimeMillis());
         viewer.sendEquipmentChange(target, equipment);
+    }
+
+    /**
+     * メインスレッド上で Paper API 再送に使う Bedrock 判定を取得します。
+     * スナップショットが未作成の場合だけ、キャッシュ済みセッションをフォールバックとして参照します。
+     *
+     * @param viewer 判定対象の受信プレイヤー
+     * @return Bedrock Edition の場合は {@code true}
+     */
+    private boolean isBedrockViewerOnMainThread(@NotNull Player viewer) {
+        Boolean snapshot = bedrockSnapshots.get(viewer.getUniqueId());
+        if (snapshot != null) {
+            return snapshot;
+        }
+        AstPlayer astPlayer = AstPlayerCache.get(viewer);
+        return astPlayer != null && astPlayer.isBedrock();
     }
 
     /**

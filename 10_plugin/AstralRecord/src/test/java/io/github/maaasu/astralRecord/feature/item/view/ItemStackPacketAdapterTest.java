@@ -35,6 +35,7 @@ import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.InventoryView;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.inventory.meta.CrossbowMeta;
+import org.bukkit.inventory.PlayerInventory;
 import org.bukkit.persistence.PersistentDataType;
 import org.bukkit.plugin.Plugin;
 import org.mockito.ArgumentCaptor;
@@ -271,6 +272,46 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
      * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### アイコン書き換え判定
+     * 検証契約: Bedrock受信者のPOTION iconだけを送信コピー上でPAPERへ変換し、Java受信者とサーバー側ItemStackは変更しない。
+     */
+    @Test
+    void convertsPotionIconToPaperOnlyForBedrockViewer() throws ReflectiveOperationException {
+        ItemStack serverPotion = itemWithPotionIcon(Material.POTION);
+        ItemStackPacketAdapter adapter = new ItemStackPacketAdapter(
+            mock(Plugin.class), mock(PlayerSettingService.class), mock(SkillActionRingService.class)
+        );
+        Method replaceIcon = ItemStackPacketAdapter.class.getDeclaredMethod(
+            "replaceIcon", ItemStack.class, boolean.class, boolean.class, Set.class, boolean.class
+        );
+        replaceIcon.setAccessible(true);
+
+        ItemStack bedrockPotion = (ItemStack) replaceIcon.invoke(
+            adapter, serverPotion, true, false, Set.of(), true
+        );
+        ItemStack javaPotion = (ItemStack) replaceIcon.invoke(
+            adapter, serverPotion, true, false, Set.of(), false
+        );
+        ItemStack serverPaperPotion = itemWithPotionIcon(Material.PAPER);
+        ItemStack bedrockPaperPotion = (ItemStack) replaceIcon.invoke(
+            adapter, serverPaperPotion, true, false, Set.of(), true
+        );
+        ItemStack javaPotionFromPaper = (ItemStack) replaceIcon.invoke(
+            adapter, serverPaperPotion, true, false, Set.of(), false
+        );
+
+        assertEquals(Material.POTION, serverPotion.getType());
+        assertEquals(Material.PAPER, bedrockPotion.getType());
+        assertEquals(Material.POTION, javaPotion.getType());
+        assertEquals("HEALING", ItemStackFactory.getPotionType(bedrockPotion));
+        assertNull(bedrockPaperPotion);
+        assertEquals(Material.PAPER, serverPaperPotion.getType());
+        assertEquals("HEALING", ItemStackFactory.getPotionType(serverPaperPotion));
+        assertEquals(Material.POTION, javaPotionFromPaper.getType());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
+     * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### アイコン書き換え判定
      * 検証契約: 装填済みフックショットはLoreへ状態を表示し、送信コピーだけをバニラのチャージ済みクロスボウ表示へ変換する。
      */
     @Test
@@ -315,6 +356,7 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
         Plugin plugin = mock(Plugin.class);
         Server server = mock(Server.class);
         Player viewer = mock(Player.class);
+        PlayerInventory viewerInventory = mock(PlayerInventory.class);
         UUID viewerId = UUID.randomUUID();
         AstPlayer astPlayer = mock(AstPlayer.class);
         SkillPermissionService permissionService = mock(SkillPermissionService.class);
@@ -322,6 +364,9 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
         when(plugin.getServer()).thenReturn(server);
         doReturn(List.of(viewer)).when(server).getOnlinePlayers();
         when(viewer.getUniqueId()).thenReturn(viewerId);
+        when(viewer.isOnline()).thenReturn(true);
+        when(viewer.getInventory()).thenReturn(viewerInventory);
+        when(viewerInventory.getHeldItemSlot()).thenReturn(0);
         when(astPlayer.getBukkit()).thenReturn(viewer);
         when(permissionService.permittedSkillIds(astPlayer)).thenReturn(Set.of("adventurer_smash"));
         AstPlayerCache.put(astPlayer);
@@ -340,6 +385,61 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
             refresh.invoke(adapter);
 
             verify(viewer, times(2)).updateInventory();
+        } finally {
+            AstPlayerCache.remove(viewerId);
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-アダプタ・リスナー.md
+     * 章・見出し: # 04_3-アダプタ・リスナー > ## 1. ItemStackPacketAdapter メソッド仕様 > ### 装備表示再同期
+     * 検証契約: Bedrock判定snapshot初回反映時にinventoryと追跡中プレイヤーの手持ちを再送し、PAPER起点のポーションiconを維持する。
+     */
+    @Test
+    void refreshesTrackedPlayerHandsWhenBedrockSnapshotBecomesKnown() throws ReflectiveOperationException {
+        Plugin plugin = mock(Plugin.class);
+        Server server = mock(Server.class);
+        Player viewer = mock(Player.class);
+        Player target = mock(Player.class);
+        PlayerInventory viewerInventory = mock(PlayerInventory.class);
+        PlayerInventory targetInventory = mock(PlayerInventory.class);
+        PlayerSettingService settings = mock(PlayerSettingService.class);
+        UUID viewerId = UUID.randomUUID();
+        UUID targetId = UUID.randomUUID();
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        ItemStack targetPotion = itemWithPotionIcon(Material.PAPER);
+
+        when(plugin.getServer()).thenReturn(server);
+        doReturn(List.of(viewer, target)).when(server).getOnlinePlayers();
+        when(viewer.getUniqueId()).thenReturn(viewerId);
+        when(viewer.isOnline()).thenReturn(true);
+        when(viewer.getInventory()).thenReturn(viewerInventory);
+        when(viewerInventory.getHeldItemSlot()).thenReturn(0);
+        when(target.getUniqueId()).thenReturn(targetId);
+        when(target.isTrackedBy(viewer)).thenReturn(true);
+        when(target.getEntityId()).thenReturn(43);
+        when(target.getInventory()).thenReturn(targetInventory);
+        when(targetInventory.getItemInMainHand()).thenReturn(targetPotion);
+        when(settings.isArmorDisplayEnabled(viewerId)).thenReturn(true);
+        when(astPlayer.getBukkit()).thenReturn(viewer);
+        when(astPlayer.isBedrock()).thenReturn(true);
+        AstPlayerCache.put(astPlayer);
+        try {
+            ItemStackPacketAdapter adapter = new ItemStackPacketAdapter(
+                plugin, settings, mock(SkillActionRingService.class)
+            );
+            Method refresh = ItemStackPacketAdapter.class.getDeclaredMethod("refreshSkillPermissionSnapshots");
+            refresh.setAccessible(true);
+
+            refresh.invoke(adapter);
+
+            ArgumentCaptor<Map<EquipmentSlot, ItemStack>> equipmentCaptor = ArgumentCaptor.captor();
+            verify(viewer).sendEquipmentChange(eq(target), equipmentCaptor.capture());
+            Map<EquipmentSlot, ItemStack> equipment = equipmentCaptor.getValue();
+            assertEquals(Material.PAPER, equipment.get(EquipmentSlot.HAND).getType());
+            assertTrue(equipment.containsKey(EquipmentSlot.OFF_HAND));
+            assertEquals(Material.PAPER, targetPotion.getType());
+            verify(viewer).updateInventory();
         } finally {
             AstPlayerCache.remove(viewerId);
         }
@@ -437,6 +537,18 @@ class ItemStackPacketAdapterTest extends MockBukkitTestBase {
             new NamespacedKey("astralrecord", "icon"),
             PersistentDataType.STRING,
             icon
+        );
+        item.setItemMeta(meta);
+        return item;
+    }
+
+    private ItemStack itemWithPotionIcon(Material baseMaterial) {
+        ItemStack item = itemWithIcon(baseMaterial, "POTION");
+        ItemMeta meta = item.getItemMeta();
+        meta.getPersistentDataContainer().set(
+            new NamespacedKey("astralrecord", "potion_type"),
+            PersistentDataType.STRING,
+            "HEALING"
         );
         item.setItemMeta(meta);
         return item;
