@@ -32,6 +32,7 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndEvent;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -159,6 +160,23 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
         sessions.remove(event.getPlayer().getUniqueId());
+    }
+
+    /**
+     * マーケット GUI セッションの終了確定時に、遅延 callback が古い画面を再表示しないよう状態を破棄します。
+     *
+     * @param event 共有 GUI 基盤が終了を確定したイベント
+     */
+    @EventHandler(priority = EventPriority.MONITOR)
+    public void onGuiSessionEnd(@NotNull GuiSessionEndEvent event) {
+        runSafely(() -> {
+            Inventory closedInventory = event.getInventory();
+            if (!marketGui.isMarketInventory(closedInventory)
+                && !isMarketGoldAmountInventory(closedInventory)) {
+                return;
+            }
+            sessions.remove(event.getPlayer().getUniqueId());
+        }, LogId.E_6320, event.getPlayer().getName(), "market_gui_session_end");
     }
 
     private void handleMarketClick(
@@ -577,6 +595,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         UUID accountId = astPlayer.getAccount().getUuid();
         session.busy = true;
         session.screen = MarketScreen.LOADING;
+        long requestVersion = ++session.requestVersion;
         marketGui.openLoading(player, session.sessionId);
         inventorySaveCoordinator.executeExclusiveAfterSave(accountId, baseline -> {
             List<MarketListingSource> selectedSources = resolveListingSources(astPlayer, draft);
@@ -601,7 +620,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             return listing;
         }).whenComplete((listing, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
             refreshInventoryUiAfterMarketMutation(player, throwable);
-            if (!isCurrentSession(player, session)) {
+            if (!isCurrentSession(player, session, requestVersion)) {
                 return;
             }
             session.busy = false;
@@ -657,6 +676,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         UUID accountId = astPlayer.getAccount().getUuid();
         session.busy = true;
         session.screen = MarketScreen.LOADING;
+        long requestVersion = ++session.requestVersion;
         marketGui.openLoading(player, session.sessionId);
         inventorySaveCoordinator.executeExclusiveAfterSave(accountId, baseline -> {
             PlayerMsgId preflightRejection = purchasePreflightRejection(astPlayer, listing, purchaseQuantity);
@@ -678,7 +698,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             return PurchaseListingResult.completed(transaction);
         }).whenComplete((result, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
             refreshInventoryUiAfterMarketMutation(player, throwable);
-            if (!isCurrentSession(player, session)) {
+            if (!isCurrentSession(player, session, requestVersion)) {
                 return;
             }
             session.busy = false;
@@ -723,6 +743,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         UUID accountId = astPlayer.getAccount().getUuid();
         session.busy = true;
         session.screen = MarketScreen.LOADING;
+        long requestVersion = ++session.requestVersion;
         marketGui.openLoading(player, session.sessionId);
         inventorySaveCoordinator.executeExclusiveAfterSave(accountId, baseline -> {
             if (!canReturnListingToInventory(astPlayer, listing)) {
@@ -743,7 +764,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             return CancelListingResult.completed();
         }).whenComplete((result, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
             refreshInventoryUiAfterMarketMutation(player, throwable);
-            if (!isCurrentSession(player, session)) {
+            if (!isCurrentSession(player, session, requestVersion)) {
                 return;
             }
             session.busy = false;
@@ -783,6 +804,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         );
         session.busy = true;
         session.screen = MarketScreen.LOADING;
+        long requestVersion = ++session.requestVersion;
         marketGui.openLoading(player, session.sessionId);
         inventorySaveCoordinator.executeExclusiveAfterSave(accountId, baseline -> {
             MarketProceedsClaim claim = claimProceedsWithReplay(listing.listingId(), request);
@@ -794,7 +816,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             return claim;
         }).whenComplete((claim, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
             refreshInventoryUiAfterMarketMutation(player, throwable);
-            if (!isCurrentSession(player, session)) {
+            if (!isCurrentSession(player, session, requestVersion)) {
                 return;
             }
             session.busy = false;
@@ -835,6 +857,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
         session.page = Math.max(1, page);
         session.selectedListing = null;
         session.purchaseQuantity = 1L;
+        long requestVersion = ++session.requestVersion;
         marketGui.openLoading(player, session.sessionId);
 
         UUID accountId = astPlayer.getAccount().getUuid();
@@ -857,7 +880,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                 summary = marketService.findAccountSummary(accountId).orElse(null);
             } catch (RuntimeException failure) {
                 Bukkit.getScheduler().runTask(plugin, () -> {
-                    if (isCurrentSession(player, session)) {
+                    if (isCurrentSession(player, session, requestVersion)) {
                         session.busy = false;
                         sendMarketFailure(player, failure);
                         player.closeInventory();
@@ -871,14 +894,14 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
                 : List.copyOf(listings);
             if (requestedPage > 1 && pageListings.isEmpty()) {
                 Bukkit.getScheduler().runTask(plugin, () -> {
-                    if (isCurrentSession(player, session)) {
+                    if (isCurrentSession(player, session, requestVersion)) {
                         openListings(player, ownListings, requestedPage - 1, false);
                     }
                 });
                 return;
             }
             Bukkit.getScheduler().runTask(plugin, () -> {
-                if (!isCurrentSession(player, session)) {
+                if (!isCurrentSession(player, session, requestVersion)) {
                     return;
                 }
                 session.busy = false;
@@ -914,8 +937,20 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
             && holder.screen() == session.screen;
     }
 
-    private boolean isCurrentSession(@NotNull Player player, @NotNull MarketSession session) {
-        return player.isOnline() && sessions.get(player.getUniqueId()) == session;
+    private boolean isCurrentSession(
+        @NotNull Player player,
+        @NotNull MarketSession session,
+        long requestVersion
+    ) {
+        if (!player.isOnline()
+            || sessions.get(player.getUniqueId()) != session
+            || session.requestVersion != requestVersion) {
+            return false;
+        }
+        MarketGui.MarketHolder holder = marketGui.getHolder(player.getOpenInventory().getTopInventory());
+        return holder != null
+            && holder.viewerUuid().equals(player.getUniqueId())
+            && holder.sessionId().equals(session.sessionId);
     }
 
     private boolean isMarketGoldAmountInventory(@Nullable Inventory inventory) {
@@ -1142,6 +1177,7 @@ public final class MarketGuiEventHandler extends AbstractEventHandler {
 
     private static final class MarketSession {
         private final UUID sessionId = UUID.randomUUID();
+        private long requestVersion;
         private MarketScreen screen = MarketScreen.LOADING;
         private boolean ownListings;
         private boolean busy;

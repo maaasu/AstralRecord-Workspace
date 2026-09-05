@@ -24,10 +24,13 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndEvent;
+import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndReason;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.InventoryClickEvent;
+import org.bukkit.inventory.Inventory;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
@@ -44,11 +47,14 @@ import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.junit.jupiter.api.Assertions.fail;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.nullable;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -619,6 +625,79 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
+     * 検証契約: マーケット GUI の終了確定時はセッションを破棄し、遅延 callback が終了後の画面を再表示できない。
+     */
+    @Test
+    void marketSessionIsClearedWhenMarketGuiSessionEnds() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        MarketService marketService = mock(MarketService.class);
+        MarketGui marketGui = mock(MarketGui.class);
+        MarketGuiEventHandler handler = handler(
+            inventoryService, marketService, mock(InventorySaveCoordinator.class), marketGui);
+        PlayerMock player = server().addPlayer();
+        Object session = newMarketSession();
+        sessionMap(handler).put(player.getUniqueId(), session);
+        Inventory closingInventory = mock(Inventory.class);
+        when(marketGui.isMarketInventory(closingInventory)).thenReturn(true);
+
+        handler.onGuiSessionEnd(
+            new GuiSessionEndEvent(player, closingInventory, GuiSessionEndReason.MANUAL_CLOSE));
+
+        assertFalse(sessionMap(handler).containsKey(player.getUniqueId()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/23-market/23_4-統合フロー.md
+     * 章・見出し: # 23_4-統合フロー > ## 5. サーバー内 GUI の出品・購入 > ### 処理要点
+     * 検証契約: callback は同じ要求世代かつ同じマーケット GUI が表示中の場合だけ有効で、終了後または古い世代は無効にする。
+     */
+    @Test
+    void marketCallbackRequiresCurrentRequestAndDisplayedMarketGui() {
+        InventoryService inventoryService = mock(InventoryService.class);
+        MarketService marketService = mock(MarketService.class);
+        MarketGui marketGui = mock(MarketGui.class);
+        MarketGuiEventHandler handler = handler(
+            inventoryService, marketService, mock(InventorySaveCoordinator.class), marketGui);
+        PlayerMock player = server().addPlayer();
+        Object session = newMarketSession();
+        UUID sessionId = (UUID) getSessionField(session, "sessionId");
+        setSessionField(session, "requestVersion", 1L);
+        sessionMap(handler).put(player.getUniqueId(), session);
+        MarketGui.MarketHolder holder = new MarketGui.MarketHolder(
+            sessionId, player.getUniqueId(), MarketScreen.BROWSE);
+        when(marketGui.getHolder(nullable(Inventory.class))).thenReturn(holder);
+
+        assertTrue((Boolean) invokeResult(
+            handler,
+            "isCurrentSession",
+            new Class<?>[] { Player.class, session.getClass(), long.class },
+            player,
+            session,
+            1L
+        ));
+        assertFalse((Boolean) invokeResult(
+            handler,
+            "isCurrentSession",
+            new Class<?>[] { Player.class, session.getClass(), long.class },
+            player,
+            session,
+            0L
+        ));
+
+        when(marketGui.getHolder(nullable(Inventory.class))).thenReturn(null);
+        assertFalse((Boolean) invokeResult(
+            handler,
+            "isCurrentSession",
+            new Class<?>[] { Player.class, session.getClass(), long.class },
+            player,
+            session,
+            1L
+        ));
+    }
+
     @AfterEach
     void clearPlayerCache() {
         AstPlayerCache.clear();
@@ -636,10 +715,19 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
         MarketService marketService,
         InventorySaveCoordinator inventorySaveCoordinator
     ) {
+        return handler(inventoryService, marketService, inventorySaveCoordinator, mock(MarketGui.class));
+    }
+
+    private static MarketGuiEventHandler handler(
+        InventoryService inventoryService,
+        MarketService marketService,
+        InventorySaveCoordinator inventorySaveCoordinator,
+        MarketGui marketGui
+    ) {
         return new MarketGuiEventHandler(
             mock(AstralRecord.class),
             mock(ItemService.class),
-            mock(MarketGui.class),
+            marketGui,
             marketService,
             inventoryService,
             inventorySaveCoordinator,
@@ -647,6 +735,17 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
             mock(PlayerMessageService.class),
             mock(GoldAmountSettingGui.class)
         );
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<UUID, Object> sessionMap(MarketGuiEventHandler handler) {
+        try {
+            Field field = MarketGuiEventHandler.class.getDeclaredField("sessions");
+            field.setAccessible(true);
+            return (Map<UUID, Object>) field.get(handler);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError(exception);
+        }
     }
 
     @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -811,6 +910,30 @@ class MarketGuiEventHandlerTest extends MockBukkitTestBase {
                 throw runtimeException;
             }
             fail(cause);
+        } catch (ReflectiveOperationException exception) {
+            throw new AssertionError(exception);
+        }
+    }
+
+    private static Object invokeResult(
+        Object target,
+        String methodName,
+        Class<?>[] parameterTypes,
+        Object... arguments
+    ) {
+        try {
+            Method method = target.getClass().getDeclaredMethod(methodName, parameterTypes);
+            method.setAccessible(true);
+            return method.invoke(target, arguments);
+        } catch (InvocationTargetException exception) {
+            Throwable cause = exception.getCause();
+            if (cause instanceof RuntimeException runtimeException) {
+                throw runtimeException;
+            }
+            if (cause instanceof Error error) {
+                throw error;
+            }
+            throw new AssertionError(cause);
         } catch (ReflectiveOperationException exception) {
             throw new AssertionError(exception);
         }
