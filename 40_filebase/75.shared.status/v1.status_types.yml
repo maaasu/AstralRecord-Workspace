@@ -22,14 +22,14 @@ statuses:
   - { id: INTELLIGENCE, displayName: "知力", description: "魔法や知識を扱う能力を表す基本能力値。", category: PRIMARY }
   - { id: VITALITY, displayName: "体力", description: "肉体の頑健さと生命力を表す基本能力値。", category: PRIMARY }
   - { id: AGILITY, displayName: "敏捷性", description: "素早く動き、危険を避ける能力を表す基本能力値。", category: PRIMARY }
-  - { id: LUCK, displayName: "幸運", description: "有利な結果を引き寄せる運の強さを表す基本能力値。", category: PRIMARY }
+  - { id: LUCK, displayName: "幸運", description: "幸運1につき通常会心率が0.1ポイント上がり、幸運補正対象の直接ドロップ率が1%ずつ相対的に上がる基本能力値。", category: PRIMARY }
   - { id: ATTACK, displayName: "攻撃力", description: "物理・魔法を含む攻撃の基礎となる総合的な威力。", category: OFFENSE }
   - { id: MELEE_ATTACK, displayName: "近接攻撃力", description: "近距離で行う物理攻撃の威力。", category: OFFENSE }
   - { id: RANGED_ATTACK, displayName: "間接攻撃力", description: "距離を取って行う射撃などの攻撃の威力。", category: OFFENSE }
   - { id: MAGIC_ATTACK, displayName: "魔法攻撃力", description: "魔法による攻撃の威力。", category: OFFENSE }
   - { id: CRITICAL_RATE, displayName: "会心率", description: "攻撃が会心になる確率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: CRITICAL_DAMAGE, displayName: "会心ダメージ", description: "会心が発生したときのダメージ倍率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
-  - { id: SUPER_CRITICAL_RATE, displayName: "超星会心率", description: "プレイヤーの攻撃が超星会心になる確率。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
+  - { id: SUPER_CRITICAL_RATE, displayName: "超星会心率", description: "プレイヤーの対Mob攻撃で、通常会心とは別に判定される超星会心の発生確率。発生時は主攻撃のダメージが超星会心倍率分増加し、追尾弾が追加される。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: SUPER_CRITICAL_DAMAGE, displayName: "超星会心倍率", description: "主攻撃では100%へ加算し、追尾弾ではそのまま乗算する超星会心の割合。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: SKILL_DAMAGE_INCREASE, displayName: "スキルダメージ増加", description: "スキルで与えるダメージを増加させる補正。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
   - { id: NORMAL_ATTACK_DAMAGE_INCREASE, displayName: "通常攻撃ダメージ増加", description: "通常攻撃で与えるダメージを増加させる補正。", category: OFFENSE, suffix: "%", decimalPlaces: 1 }
