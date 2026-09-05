@@ -128,7 +128,8 @@ public class InventoryService {
      */
     private final Map<UUID, Map<UUID, Integer>> temporarilyHiddenEntryQuantitiesByAccount = new ConcurrentHashMap<>();
     /** API原子操作が支払うまで、同じ資産をローカル消費へ二重使用させないaccount単位予約。 */
-    private final Map<UUID, OrbPaymentReservation> orbPaymentReservationsByAccount = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<UUID, OrbPaymentReservation>> orbPaymentReservationsByAccount =
+        new ConcurrentHashMap<>();
     /**
      * 非同期の装備個体生成が完了するまで、他の付与処理へ使用させない BAG slot 予約です。
      *
@@ -326,32 +327,77 @@ public class InventoryService {
             return false;
         }
         synchronized (state) {
-            OrbPaymentReservation current = orbPaymentReservationsByAccount.get(accountId);
-            if (current != null && current.stateGeneration() == state) {
-                return current.operationId().equals(operationId);
+            Map<UUID, OrbPaymentReservation> currentReservations = currentOrbPaymentReservations(accountId, state);
+            OrbPaymentReservation existing = currentReservations.get(operationId);
+            if (existing != null) {
+                return true;
             }
-            if (current != null) {
-                orbPaymentReservationsByAccount.remove(accountId, current);
-            }
-            for (Map.Entry<String, Long> requirement : normalized.entrySet()) {
-                if (getNormalItemAmount(accountId, requirement.getKey()) < requirement.getValue()) {
-                    return false;
-                }
-            }
-            if (getGoldAmount(accountId) < goldAmount) {
+            if (!hasAvailablePayment(currentReservations.values(), normalized, goldAmount, accountId)) {
                 return false;
             }
-
-            orbPaymentReservationsByAccount.put(
-                accountId,
+            currentReservations.put(
+                operationId,
                 new OrbPaymentReservation(
-                    operationId,
-                    state,
-                    Map.copyOf(normalized),
-                    Map.of(),
-                    false,
-                    goldAmount
-                )
+                    operationId, state, Map.copyOf(normalized), Map.of(), false, goldAmount)
+            );
+            return true;
+        }
+    }
+
+    /**
+     * スキルなど、Plugin側で消費entryまで確定したmutationの支払いを予約します。
+     * stateは減算せず、対象entryだけをローカル消費・表示から除外します。
+     */
+    public boolean reserveLocalMutationPayment(
+        @NotNull UUID accountId,
+        @NotNull UUID operationId,
+        @NotNull Map<UUID, Long> entryAmounts
+    ) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null || entryAmounts.isEmpty()) {
+            return entryAmounts.isEmpty() && state != null;
+        }
+        Map<UUID, Long> normalizedEntries = new LinkedHashMap<>();
+        try {
+            entryAmounts.forEach((entryId, amount) -> {
+                if (entryId != null && amount != null && amount > 0L) {
+                    normalizedEntries.merge(entryId, amount, Math::addExact);
+                }
+            });
+        } catch (ArithmeticException overflow) {
+            return false;
+        }
+        if (normalizedEntries.isEmpty()) {
+            return false;
+        }
+        synchronized (state) {
+            Map<UUID, OrbPaymentReservation> currentReservations = currentOrbPaymentReservations(accountId, state);
+            if (currentReservations.containsKey(operationId)) {
+                return true;
+            }
+            Map<String, Long> itemAmounts = new LinkedHashMap<>();
+            try {
+                for (Map.Entry<UUID, Long> entry : normalizedEntries.entrySet()) {
+                    InventoryEntryModel owned = findOwnedEntry(accountId, entry.getKey());
+                    if (owned == null || !isNormalItemEntry(owned) || owned.getQuantity() < entry.getValue()) {
+                        return false;
+                    }
+                    itemAmounts.merge(
+                        owned.getItemId().trim().toLowerCase(Locale.ROOT),
+                        entry.getValue(),
+                        Math::addExact
+                    );
+                }
+            } catch (ArithmeticException overflow) {
+                return false;
+            }
+            if (!hasAvailablePayment(currentReservations.values(), itemAmounts, 0L, accountId)) {
+                return false;
+            }
+            currentReservations.put(
+                operationId,
+                new OrbPaymentReservation(
+                    operationId, state, Map.copyOf(itemAmounts), Map.copyOf(normalizedEntries), true, 0L)
             );
             return true;
         }
@@ -378,14 +424,13 @@ public class InventoryService {
             if (getState(accountId) != state) {
                 return false;
             }
-            OrbPaymentReservation reservation = orbPaymentReservationsByAccount.get(accountId);
+            Map<UUID, OrbPaymentReservation> currentReservations =
+                currentOrbPaymentReservations(accountId, state);
+            OrbPaymentReservation reservation = currentReservations.get(operationId);
             if (reservation == null
                 || reservation.stateGeneration() != state
-                || !reservation.operationId().equals(operationId)) {
+                || reservation.baselineAllocated()) {
                 return false;
-            }
-            if (reservation.baselineAllocated()) {
-                return true;
             }
             Set<UUID> normalInventoryIds = new LinkedHashSet<>();
             for (InventoryType type : List.of(InventoryType.BAG, InventoryType.HOTBAR)) {
@@ -403,21 +448,17 @@ public class InventoryService {
             Map<UUID, Long> allocation = allocateNormalPaymentEntries(
                 reservation,
                 persistedNormalEntries,
-                normalInventoryIds
+                normalInventoryIds,
+                currentReservations.values()
             );
             if (allocation == null) {
                 return false;
             }
-            orbPaymentReservationsByAccount.put(
-                accountId,
+            currentReservations.put(
+                operationId,
                 new OrbPaymentReservation(
-                    reservation.operationId(),
-                    state,
-                    reservation.normalItemAmounts(),
-                    Map.copyOf(allocation),
-                    true,
-                    reservation.goldAmount()
-                )
+                    operationId, state, reservation.normalItemAmounts(), Map.copyOf(allocation), true,
+                    reservation.goldAmount())
             );
             return true;
         }
@@ -426,31 +467,30 @@ public class InventoryService {
     private @Nullable Map<UUID, Long> allocateNormalPaymentEntries(
         @NotNull OrbPaymentReservation reservation,
         @NotNull List<InventoryEntryModel> persistedNormalEntries,
-        @NotNull Collection<UUID> inventoryOrder
+        @NotNull Collection<UUID> inventoryOrder,
+        @NotNull Collection<OrbPaymentReservation> allReservations
     ) {
         List<InventoryEntryModel> ordered = orderNormalItemConsumptionEntries(
             persistedNormalEntries,
             inventoryOrder
         );
         Map<UUID, Long> reservedByEntryId = new LinkedHashMap<>();
+        for (OrbPaymentReservation other : allReservations) {
+            if (other.operationId().equals(reservation.operationId())) {
+                continue;
+            }
+            for (Map.Entry<UUID, Long> entry : other.normalEntryAmounts().entrySet()) {
+                try {
+                    reservedByEntryId.merge(entry.getKey(), entry.getValue(), Math::addExact);
+                } catch (ArithmeticException overflow) {
+                    return null;
+                }
+            }
+        }
         for (Map.Entry<String, Long> requirement : reservation.normalItemAmounts().entrySet().stream()
             .sorted(Map.Entry.comparingByKey())
             .toList()) {
-            long alreadyReserved = 0L;
-            try {
-                for (InventoryEntryModel entry : ordered) {
-                    if (isNormalItemEntry(entry)
-                        && entry.getItemId().equalsIgnoreCase(requirement.getKey())) {
-                        alreadyReserved = Math.addExact(
-                            alreadyReserved,
-                            reservedByEntryId.getOrDefault(entry.getInventoryEntryId(), 0L)
-                        );
-                    }
-                }
-            } catch (ArithmeticException overflow) {
-                return null;
-            }
-            long remaining = requirement.getValue() - alreadyReserved;
+            long remaining = requirement.getValue();
             for (InventoryEntryModel entry : ordered) {
                 if (remaining <= 0L) {
                     break;
@@ -487,39 +527,61 @@ public class InventoryService {
     public void releaseOrbOperationPayment(@NotNull UUID accountId, @NotNull UUID operationId) {
         PlayerInventoryState state = getState(accountId);
         if (state == null) {
-            orbPaymentReservationsByAccount.computeIfPresent(accountId, (ignored, reservation) ->
-                reservation.operationId().equals(operationId) ? null : reservation
-            );
+            orbPaymentReservationsByAccount.computeIfPresent(accountId, (ignored, reservations) -> {
+                reservations.remove(operationId);
+                return reservations.isEmpty() ? null : reservations;
+            });
             return;
         }
         synchronized (state) {
-            orbPaymentReservationsByAccount.computeIfPresent(accountId, (ignored, reservation) ->
-                reservation.operationId().equals(operationId) ? null : reservation
-            );
+            orbPaymentReservationsByAccount.computeIfPresent(accountId, (ignored, reservations) -> {
+                reservations.remove(operationId);
+                return reservations.isEmpty() ? null : reservations;
+            });
         }
     }
 
     private long reservedNormalItemAmount(@NotNull UUID accountId, @NotNull String itemId) {
-        OrbPaymentReservation reservation = currentOrbPaymentReservation(accountId);
-        if (reservation == null) {
-            return 0L;
+        String normalizedItemId = itemId.trim().toLowerCase(Locale.ROOT);
+        long reserved = 0L;
+        for (OrbPaymentReservation reservation : currentOrbPaymentReservations(accountId).values()) {
+            try {
+                reserved = Math.addExact(
+                    reserved,
+                    reservation.normalItemAmounts().getOrDefault(normalizedItemId, 0L)
+                );
+            } catch (ArithmeticException overflow) {
+                return Long.MAX_VALUE;
+            }
         }
-        return reservation.normalItemAmounts().getOrDefault(
-            itemId.trim().toLowerCase(Locale.ROOT),
-            0L
-        );
+        return reserved;
     }
 
     private long reservedGoldAmount(@NotNull UUID accountId) {
-        OrbPaymentReservation reservation = currentOrbPaymentReservation(accountId);
-        return reservation == null ? 0L : reservation.goldAmount();
+        long reserved = 0L;
+        for (OrbPaymentReservation reservation : currentOrbPaymentReservations(accountId).values()) {
+            try {
+                reserved = Math.addExact(reserved, reservation.goldAmount());
+            } catch (ArithmeticException overflow) {
+                return Long.MAX_VALUE;
+            }
+        }
+        return reserved;
     }
 
     private long reservedEntryAmount(@NotNull UUID accountId, @NotNull UUID inventoryEntryId) {
-        OrbPaymentReservation reservation = currentOrbPaymentReservation(accountId);
-        return reservation == null
-            ? 0L
-            : reservation.normalEntryAmounts().getOrDefault(inventoryEntryId, 0L);
+        long reserved = 0L;
+        for (OrbPaymentReservation reservation : currentOrbPaymentReservations(accountId).values()) {
+            try {
+                reserved = Math.addExact(
+                    reserved,
+                    reservation.normalEntryAmounts().getOrDefault(inventoryEntryId, 0L)
+                );
+            } catch (ArithmeticException overflow) {
+                return Long.MAX_VALUE;
+            }
+        }
+        return reserved;
     }
 
     private boolean hasUnreservedNormalItem(
@@ -548,22 +610,63 @@ public class InventoryService {
         @NotNull UUID accountId,
         @NotNull String itemId
     ) {
-        OrbPaymentReservation reservation = currentOrbPaymentReservation(accountId);
         String normalizedItemId = itemId.trim().toLowerCase(Locale.ROOT);
-        if (reservation != null
-            && !reservation.baselineAllocated()
-            && reservation.normalItemAmounts().containsKey(normalizedItemId)) {
-            return 0L;
+        for (OrbPaymentReservation reservation : currentOrbPaymentReservations(accountId).values()) {
+            if (!reservation.baselineAllocated()
+                && reservation.normalItemAmounts().containsKey(normalizedItemId)) {
+                return 0L;
+            }
         }
         long owned = getNormalItemAmount(accountId, itemId);
         long reserved = reservedNormalItemAmount(accountId, normalizedItemId);
         return owned >= reserved ? owned - reserved : 0L;
     }
 
-    private @Nullable OrbPaymentReservation currentOrbPaymentReservation(@NotNull UUID accountId) {
-        OrbPaymentReservation reservation = orbPaymentReservationsByAccount.get(accountId);
+    private @NotNull Map<UUID, OrbPaymentReservation> currentOrbPaymentReservations(
+        @NotNull UUID accountId
+    ) {
         PlayerInventoryState state = getState(accountId);
-        return reservation != null && reservation.stateGeneration() == state ? reservation : null;
+        if (state == null) {
+            return Map.of();
+        }
+        return currentOrbPaymentReservations(accountId, state);
+    }
+
+    private @NotNull Map<UUID, OrbPaymentReservation> currentOrbPaymentReservations(
+        @NotNull UUID accountId,
+        @NotNull PlayerInventoryState state
+    ) {
+        Map<UUID, OrbPaymentReservation> reservations = orbPaymentReservationsByAccount
+            .computeIfAbsent(accountId, ignored -> new ConcurrentHashMap<>());
+        reservations.entrySet().removeIf(entry -> entry.getValue().stateGeneration() != state);
+        return reservations;
+    }
+
+    private boolean hasAvailablePayment(
+        @NotNull Collection<OrbPaymentReservation> existing,
+        @NotNull Map<String, Long> requestedItems,
+        long requestedGold,
+        @NotNull UUID accountId
+    ) {
+        Map<String, Long> alreadyReservedItems = new LinkedHashMap<>();
+        long alreadyReservedGold = 0L;
+        try {
+            for (OrbPaymentReservation reservation : existing) {
+                reservation.normalItemAmounts().forEach((itemId, amount) ->
+                    alreadyReservedItems.merge(itemId, amount, Math::addExact));
+                alreadyReservedGold = Math.addExact(alreadyReservedGold, reservation.goldAmount());
+            }
+            for (Map.Entry<String, Long> requested : requestedItems.entrySet()) {
+                long total = Math.addExact(
+                    alreadyReservedItems.getOrDefault(requested.getKey(), 0L), requested.getValue());
+                if (getNormalItemAmount(accountId, requested.getKey()) < total) {
+                    return false;
+                }
+            }
+            return getGoldAmount(accountId) >= Math.addExact(alreadyReservedGold, requestedGold);
+        } catch (ArithmeticException overflow) {
+            return false;
+        }
     }
 
     public List<InventoryModel> getInventories(@NotNull UUID accountId) {

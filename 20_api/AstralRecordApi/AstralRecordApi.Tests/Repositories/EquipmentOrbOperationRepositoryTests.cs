@@ -93,6 +93,68 @@ public class EquipmentOrbOperationRepositoryTests
         Assert.Equal(1, await harness.GetEntryQuantityAsync(orb));
     }
 
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/14-equipment/3-エンドポイント仕様/14_3.02-登録系.md
+    /// 検証契約: Pluginが先に計算したENHANCE結果は、現在状態とmaster条件が一致する場合だけAPIで確定する。
+    /// </summary>
+    [Fact]
+    public async Task Enhance_AcceptsMatchingPluginCalculatedState()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        var orb = await harness.AddOrbAsync("plugin_calculated_enhance_orb", new ItemOrbEffectResponse
+        {
+            Type = "ENHANCE",
+            TargetSlots = ["WEAPON"],
+            Rank = 0,
+        });
+        var request = harness.CreateRequest(Guid.NewGuid(), "plugin_calculated_enhance_orb", orb);
+        request.ClientState = new EquipmentOrbClientState
+        {
+            BaseEnhanceLevel = 0,
+            BaseTranscendenceRank = 0,
+            EnhanceLevel = 1,
+            EnhancementSucceeded = true,
+        };
+
+        var result = await harness.ExecuteAsync(request);
+
+        Assert.Equal("APPLIED", result.Result);
+        Assert.True(result.PaymentConsumed);
+        Assert.Equal(1, result.Equipment!.EnhanceLevel);
+        Assert.Equal(1, await harness.GetEntryQuantityAsync(orb));
+    }
+
+    /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/14-equipment/5-例外・ログ・運用/14_5.00-例外・ログ・運用.md
+    /// 検証契約: Pluginのローカル結果が現在の装備状態と一致しない場合、APIは消費せずINVALIDとして確定する。
+    /// </summary>
+    [Fact]
+    public async Task Enhance_RejectsStalePluginCalculatedStateWithoutConsumingPayment()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        var orb = await harness.AddOrbAsync("stale_plugin_enhance_orb", new ItemOrbEffectResponse
+        {
+            Type = "ENHANCE",
+            TargetSlots = ["WEAPON"],
+            Rank = 0,
+        });
+        var request = harness.CreateRequest(Guid.NewGuid(), "stale_plugin_enhance_orb", orb);
+        request.ClientState = new EquipmentOrbClientState
+        {
+            BaseEnhanceLevel = 1,
+            BaseTranscendenceRank = 0,
+            EnhanceLevel = 2,
+            EnhancementSucceeded = true,
+        };
+
+        var result = await harness.ExecuteAsync(request);
+
+        Assert.Equal("INVALID", result.Result);
+        Assert.False(result.PaymentConsumed);
+        Assert.Equal(0, result.Equipment!.EnhanceLevel);
+        Assert.Equal(2, await harness.GetEntryQuantityAsync(orb));
+    }
+
     [Fact]
     public async Task Repair_UpdatesDurabilityAndConsumesExactlyOneOrbAtomically()
     {

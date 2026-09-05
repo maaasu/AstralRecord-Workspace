@@ -19,6 +19,8 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffect;
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffectType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
+import io.github.maaasu.astralRecord.feature.mutation.model.LocalMutationCommand;
+import io.github.maaasu.astralRecord.feature.mutation.service.LocalMutationOutbox;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -65,6 +67,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
@@ -120,6 +123,7 @@ public final class OrbService {
     private @Nullable StatusService statusService;
     private @NotNull BiConsumer<AstPlayer, String> useSuccessListener = (player, orbItemId) -> { };
     private @Nullable SkillSigilOrbService skillSigilOrbService;
+    private @Nullable LocalMutationOutbox mutationOutbox;
 
     /**
      * オーブ GUI サービスを初期化します。
@@ -249,6 +253,11 @@ public final class OrbService {
      */
     public void setSkillSigilOrbService(@Nullable SkillSigilOrbService skillSigilOrbService) {
         this.skillSigilOrbService = skillSigilOrbService;
+    }
+
+    /** 装備のローカル確定結果を後送するoutboxを接続します。 */
+    public void setMutationOutbox(@Nullable LocalMutationOutbox mutationOutbox) {
+        this.mutationOutbox = mutationOutbox;
     }
 
     /**
@@ -2281,6 +2290,15 @@ public final class OrbService {
             GuiSound.DENY.play(session.player);
             return;
         }
+        if (effect.getType() == ItemOrbEffectType.ENHANCE && mutationOutbox != null) {
+            if (startLocalEnhancement(session, target, currentOrb, operationId)) {
+                return;
+            }
+            inventoryService.releaseOrbOperationPayment(session.accountId, operationId);
+            PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5289);
+            GuiSound.DENY.play(session.player);
+            return;
+        }
         session.interactionLock.beginMutation();
         session.operationId = operationId;
         session.externalOperationStarted = false;
@@ -2323,6 +2341,187 @@ public final class OrbService {
             normalItems,
             gold
         );
+    }
+
+    /** 強化結果をローカルで確定し、画面結果を待たせずoutboxへ登録します。 */
+    private boolean startLocalEnhancement(
+        @NotNull OrbSession session,
+        @NotNull OrbCandidate target,
+        @NotNull ItemModel orbModel,
+        @NotNull UUID operationId
+    ) {
+        LocalMutationOutbox outbox = mutationOutbox;
+        if (outbox == null) {
+            return false;
+        }
+        EquipmentInstance current = itemService.findLoadedEquipmentInstanceById(
+            target.instance.getEquipmentInstanceId());
+        if (current == null) {
+            return false;
+        }
+        OrbLocalMutationCalculator.EnhancementResult local = OrbLocalMutationCalculator.enhance(
+            orbModel.getOrb().getEffect(),
+            target.model,
+            current
+        );
+        if (local == null) {
+            return false;
+        }
+        EquipmentInstance updated = local.instance();
+        LocalMutationCommand.EquipmentOrb command = new LocalMutationCommand.EquipmentOrb(
+            operationId,
+            session.accountId,
+            UUID.fromString(updated.getEquipmentInstanceId()),
+            session.orbEntryId,
+            orbModel.getId(),
+            local.baseEnhanceLevel(),
+            local.baseTranscendenceRank(),
+            updated.getEnhanceLevel(),
+            local.succeeded()
+        );
+        try {
+            // ファイルへの登録を先に行い、登録後にプロセスが落ちてもローカル結果を失わない。
+            outbox.enqueue(command);
+            if (itemService.applyLocalEquipmentInstance(updated) == null) {
+                return false;
+            }
+            try {
+                inventoryService.hideOwnedEntryFromGui(session.astPlayer, session.orbEntryId);
+            } catch (RuntimeException displayFailure) {
+                Logger.warn(LogId.W_5252, session.accountId, failureReason(displayFailure));
+            }
+        } catch (RuntimeException failure) {
+            Logger.warn(LogId.W_5252, session.accountId, failureReason(failure));
+            return false;
+        }
+
+        session.interactionLock.beginMutation();
+        session.operationId = operationId;
+        session.externalOperationStarted = false;
+        try {
+            completeMutation(
+                session,
+                MutationResult.enhancement(
+                    target.model,
+                    updated,
+                    local.succeeded(),
+                    local.failAction(),
+                    local.successRate()
+                )
+            );
+        } finally {
+            outbox.dispatch();
+        }
+        return true;
+    }
+
+    /** outboxから一件ずつ実行する装備mutationの送信入口です。 */
+    public @NotNull CompletionStage<LocalMutationOutbox.Delivery> dispatchLocalMutation(
+        @NotNull LocalMutationCommand command
+    ) {
+        if (!(command instanceof LocalMutationCommand.EquipmentOrb equipment)) {
+            return CompletableFuture.completedFuture(LocalMutationOutbox.Delivery.RETRY);
+        }
+        UUID accountId = equipment.accountId();
+        boolean recovery = inventorySaveCoordinator.hasUnresolvedExternalOperation(accountId);
+        CompletableFuture<EquipmentOrbOperationResult> future = recovery
+            ? inventorySaveCoordinator.executeExclusiveAfterSaveRecovery(
+                accountId,
+                equipment.operationId(),
+                baseline -> performLocalOrbOperation(equipment, baseline)
+            )
+            : inventorySaveCoordinator.executeExclusiveAfterSave(
+                accountId,
+                equipment.operationId(),
+                baseline -> performLocalOrbOperation(equipment, baseline)
+            );
+        return future.handle((result, failure) -> {
+            if (failure != null || result == null) {
+                return LocalMutationOutbox.Delivery.RETRY;
+            }
+            inventoryService.releaseOrbOperationPayment(accountId, equipment.operationId());
+            inventoryService.releaseHiddenEntryQuantity(accountId, equipment.orbInventoryEntryId(), 1);
+            refreshAccountAfterLocalMutation(accountId, result);
+            return LocalMutationOutbox.Delivery.ACK;
+        });
+    }
+
+    private @NotNull EquipmentOrbOperationResult performLocalOrbOperation(
+        @NotNull LocalMutationCommand.EquipmentOrb command,
+        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline
+    ) {
+        if (!inventoryService.reserveOrbOperationPayment(
+            command.accountId(), command.operationId(), Map.of(command.orbItemId(), 1L), 0L)) {
+            throw new IllegalStateException("Local orb payment is unavailable.");
+        }
+        if (!inventoryService.finalizeOrbOperationPaymentReservation(
+            command.accountId(), command.operationId(), baseline)) {
+            throw new IllegalStateException("Local orb payment allocation failed.");
+        }
+        EquipmentOrbOperationResult operation = itemService.applyEquipmentOrbOperation(
+            command.operationId().toString(),
+            command.accountId().toString(),
+            command.equipmentInstanceId().toString(),
+            command.orbInventoryEntryId().toString(),
+            command.orbItemId(),
+            null,
+            null,
+            command
+        );
+        if (operation == null) {
+            operation = itemService.findEquipmentOrbOperation(
+                command.operationId().toString(),
+                command.accountId().toString()
+            );
+        }
+        if (operation == null) {
+            throw new IllegalStateException("Local orb operation result is not available.");
+        }
+
+        Set<UUID> affectedEntryIds = new LinkedHashSet<>();
+        for (String entryId : operation.getAffectedInventoryEntryIds()) {
+            affectedEntryIds.add(UUID.fromString(entryId));
+        }
+        affectedEntryIds.add(command.orbInventoryEntryId());
+        if (operation.getInventorySnapshot() == null) {
+            inventoryService.reconcileOrbOperationEntries(command.accountId(), affectedEntryIds, baseline);
+        } else {
+            inventoryService.reconcileOrbOperationEntries(
+                command.accountId(), affectedEntryIds, baseline, operation.getInventorySnapshot());
+        }
+        if (!operation.getTargetAvailable()
+            && operation.getResult() != EquipmentOrbOperationResultType.OPERATION_CONFLICT
+            && operation.getResult() != EquipmentOrbOperationResultType.INVALID) {
+            itemService.evictEquipmentInstanceFromCache(command.equipmentInstanceId().toString());
+            inventoryService.discardUnavailableEquipmentInstance(
+                command.accountId(), command.equipmentInstanceId());
+        }
+        return operation;
+    }
+
+    private void refreshAccountAfterLocalMutation(
+        @NotNull UUID accountId,
+        @NotNull EquipmentOrbOperationResult operation
+    ) {
+        boolean rejected = operation.getResult() != EquipmentOrbOperationResultType.APPLIED
+            || !operation.getTargetAvailable();
+        AsyncTaskUtil.runSyncEventually(plugin, () -> AstPlayerCache.getAll().stream()
+            .filter(player -> player.getAccount().getUuid().equals(accountId))
+            .forEach(player -> {
+                inventoryService.refreshManagedInventoryUi(player);
+                if (!rejected && operation.getEquipment() != null) {
+                    inventoryService.refreshEquipmentInstanceDisplay(player, operation.getEquipment());
+                } else {
+                    inventoryService.refreshEquipmentDisplaysForSave(player);
+                }
+                if (statusService != null) {
+                    statusService.refreshStatus(player);
+                }
+                if (rejected && player.getBukkit().isOnline()) {
+                    PlayerMessageService.getInstance().send(player.getBukkit(), PlayerMsgId.P_5295);
+                    GuiSound.DENY.play(player.getBukkit());
+                }
+            }));
     }
 
     /** 保存 lane 内で事前保存、冪等 API 操作、影響 entry の正本照合を一続きで実行します。 */

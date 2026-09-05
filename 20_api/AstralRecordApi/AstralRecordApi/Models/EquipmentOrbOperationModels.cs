@@ -22,6 +22,11 @@ public class EquipmentOrbOperationRequest : IValidatableObject
     public string? RuneItemId { get; set; }
     /// <summary>RUNE_DETACH で取り外すスロット番号。RUNE_ATTACH では null。</summary>
     public int? RuneSlotIndex { get; set; }
+    /// <summary>
+    /// Pluginがローカルで確定した動的状態。未指定時は従来どおりAPI側で計算する。
+    /// APIは現在状態・マスタ・支払い条件を再検証したうえで、この値を採用する。
+    /// </summary>
+    public EquipmentOrbClientState? ClientState { get; set; }
 
     public IEnumerable<ValidationResult> Validate(ValidationContext validationContext)
     {
@@ -39,6 +44,15 @@ public class EquipmentOrbOperationRequest : IValidatableObject
                 [nameof(RuneItemId)]);
         }
     }
+}
+
+/// <summary>Plugin側で計算済みの装備動的状態。静的な装備マスタや作成日時は含めない。</summary>
+public class EquipmentOrbClientState
+{
+    public int? BaseEnhanceLevel { get; init; }
+    public int? BaseTranscendenceRank { get; init; }
+    public int? EnhanceLevel { get; init; }
+    public bool? EnhancementSucceeded { get; init; }
 }
 
 /// <summary>

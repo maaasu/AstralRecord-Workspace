@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationRes
 import io.github.maaasu.astralRecord.feature.item.model.EnchantMaster;
 import io.github.maaasu.astralRecord.feature.item.model.SetEffect;
 import io.github.maaasu.astralRecord.feature.item.repository.ItemRepository;
+import io.github.maaasu.astralRecord.feature.mutation.model.LocalMutationCommand;
 import io.github.maaasu.astralRecord.feature.item.repository.SetEffectRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -503,6 +504,29 @@ public class ItemService {
     }
 
     /**
+     * APIを待たずに確定した装備状態をキャッシュへ反映します。
+     * <p>
+     * 耐久値のdirty保存はここでは作成しません。対応するローカルmutation outboxが同じ最終値を
+     * APIへ送るため、通常の耐久値flushが未確定の装備状態を先に保存しないようにします。
+     * </p>
+     *
+     * @param instance Plugin側で計算済みの装備個体
+     * @return 反映した装備個体。不正なIDの場合はnull
+     */
+    public @Nullable EquipmentInstance applyLocalEquipmentInstance(
+        @NotNull EquipmentInstance instance
+    ) {
+        String key = normalize(instance.getEquipmentInstanceId());
+        if (key.isBlank()) {
+            return null;
+        }
+        synchronized (equipmentStateMutex) {
+            loadedEquipmentInstances.put(key, instance);
+            return instance;
+        }
+    }
+
+    /**
      * 指定された装備個体を非同期I/Oスレッド用に事前ロードします。
      *
      * @param instanceIds 事前ロードする装備個体ID
@@ -667,9 +691,38 @@ public class ItemService {
         @Nullable String runeItemId,
         @Nullable Integer runeSlotIndex
     ) {
+        return applyEquipmentOrbOperation(
+            operationId,
+            accountId,
+            instanceId,
+            orbInventoryEntryId,
+            orbItemId,
+            runeItemId,
+            runeSlotIndex,
+            null
+        );
+    }
+
+    /** ローカル確定結果を同梱して装備オーブ操作をAPIへ送信します。 */
+    public @Nullable EquipmentOrbOperationResult applyEquipmentOrbOperation(
+        @NotNull String operationId,
+        @NotNull String accountId,
+        @NotNull String instanceId,
+        @NotNull String orbInventoryEntryId,
+        @NotNull String orbItemId,
+        @Nullable String runeItemId,
+        @Nullable Integer runeSlotIndex,
+        @Nullable LocalMutationCommand.EquipmentOrb clientState
+    ) {
         try {
-            return mergeOrbOperationResult(itemRepository.applyEquipmentOrbOperation(
-                operationId, accountId, instanceId, orbInventoryEntryId, orbItemId, runeItemId, runeSlotIndex));
+            EquipmentOrbOperationResult result = clientState == null
+                ? itemRepository.applyEquipmentOrbOperation(
+                    operationId, accountId, instanceId, orbInventoryEntryId, orbItemId,
+                    runeItemId, runeSlotIndex)
+                : itemRepository.applyEquipmentOrbOperation(
+                    operationId, accountId, instanceId, orbInventoryEntryId, orbItemId,
+                    runeItemId, runeSlotIndex, clientState);
+            return mergeOrbOperationResult(result);
         } catch (Exception exception) {
             Logger.log(LogId.E_5202, exception, instanceId);
             return null;

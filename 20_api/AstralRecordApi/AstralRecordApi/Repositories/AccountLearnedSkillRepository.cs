@@ -112,7 +112,12 @@ public class AccountLearnedSkillRepository(
                 accountId,
                 "LEVEL_UP",
                 learnedSkillId.ToString("D"),
-                request.UpdatedBy.ToString("D")),
+                request.UpdatedBy.ToString("D"),
+                request.ExpectedLevel,
+                request.TargetLevel,
+                request.ExpectedVersion,
+                request.TargetVersion,
+                JsonSerializer.Serialize(request.MaterialPayments, JsonOptions)),
             async () =>
         {
             var entity = await FindLearnedSkillAsync(accountId, learnedSkillId);
@@ -121,16 +126,25 @@ public class AccountLearnedSkillRepository(
             var skill = await GetSkillAsync(entity.SkillId);
             if (skill is null)
                 return Failure(AccountLearnedSkillMutationFailure.SkillNotFound);
+            if (request.ExpectedLevel.HasValue && entity.Level != request.ExpectedLevel.Value
+                || request.TargetLevel.HasValue && request.TargetLevel.Value != entity.Level + 1)
+                return Failure(AccountLearnedSkillMutationFailure.InvalidMaterial);
+            if (request.ExpectedVersion.HasValue && entity.Version != request.ExpectedVersion.Value
+                || request.TargetVersion.HasValue && request.TargetVersion.Value != entity.Version + 1)
+                return Failure(AccountLearnedSkillMutationFailure.InvalidMaterial);
             if (entity.Level >= Math.Max(1, skill.MaxLevel))
                 return Failure(AccountLearnedSkillMutationFailure.MaxLevelReached);
 
-            var materials = await FindAndValidateRequiredMaterialsAsync(accountId, skill.LevelUpRequiredItems);
+            var materials = request.MaterialPayments.Count == 0
+                ? await FindAndValidateRequiredMaterialsAsync(accountId, skill.LevelUpRequiredItems)
+                : await FindAndValidateRequestedMaterialsAsync(
+                    accountId, skill.LevelUpRequiredItems, request.MaterialPayments);
             if (materials is null)
                 return Failure(AccountLearnedSkillMutationFailure.InvalidMaterial);
 
             var now = DateTime.UtcNow;
-            entity.Level += 1;
-            entity.Version += 1;
+            entity.Level = request.TargetLevel ?? entity.Level + 1;
+            entity.Version = request.TargetVersion ?? entity.Version + 1;
             entity.UpdatedAt = now;
             entity.UpdatedBy = request.UpdatedBy;
             ConsumeMaterials(materials, request.UpdatedBy, now);
@@ -490,6 +504,19 @@ public class AccountLearnedSkillRepository(
                         && inventory.AccountId == accountId
                   select entry).FirstOrDefaultAsync();
 
+    private async Task<InventoryEntryEntity?> FindOwnedNormalMaterialAsync(Guid accountId, Guid inventoryEntryId)
+        => await (from entry in dbContext.InventoryEntries
+                  join inventory in dbContext.Inventories on entry.InventoryId equals inventory.InventoryId
+                  where entry.InventoryEntryId == inventoryEntryId
+                        && !entry.IsDeleted
+                        && entry.Quantity > 0
+                        && !inventory.IsDeleted
+                        && inventory.IsEnabled
+                        && inventory.InventoryProfile == "GAME"
+                        && (inventory.InventoryType == "BAG" || inventory.InventoryType == "HOTBAR")
+                        && inventory.AccountId == accountId
+                  select entry).FirstOrDefaultAsync();
+
     private static bool IsExpectedMaterial(InventoryEntryEntity? entry, string category, string itemId)
         => entry is not null
             && IdEquals(entry.ItemCategory, category)
@@ -569,6 +596,47 @@ public class AccountLearnedSkillRepository(
             if (remaining > 0) return null;
         }
         return result;
+    }
+
+    /// <summary>Pluginが選択したentryを、masterの必要数量と照合して原子的に使用します。</summary>
+    private async Task<IReadOnlyList<(InventoryEntryEntity Entry, long Amount)>?>
+        FindAndValidateRequestedMaterialsAsync(
+            Guid accountId,
+            IReadOnlyList<SkillRequiredItemResponse> requirements,
+            IReadOnlyList<AccountLearnedSkillMaterialPaymentRequest> requested)
+    {
+        var requiredByItem = requirements
+            .Where(requirement => !string.IsNullOrWhiteSpace(requirement.ItemId) && requirement.Amount > 0)
+            .GroupBy(requirement => NormalizeId(requirement.ItemId), StringComparer.OrdinalIgnoreCase)
+            .ToDictionary(group => group.Key, group => group.Sum(requirement => requirement.Amount),
+                StringComparer.OrdinalIgnoreCase);
+        if (requiredByItem.Count != requirements.Count
+            || requested.Any(payment => payment.InventoryEntryId == Guid.Empty || payment.Amount <= 0))
+            return null;
+
+        var result = new List<(InventoryEntryEntity Entry, long Amount)>();
+        var seen = new HashSet<Guid>();
+        var actualByItem = new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase);
+        foreach (var payment in requested)
+        {
+            if (!seen.Add(payment.InventoryEntryId))
+                return null;
+            var entry = await FindOwnedNormalMaterialAsync(accountId, payment.InventoryEntryId);
+            var itemId = NormalizeId(entry?.ItemId);
+            if (entry is null
+                || entry.InstanceId is not null
+                || !string.IsNullOrWhiteSpace(entry.InstanceType)
+                || !requiredByItem.ContainsKey(itemId)
+                || payment.Amount > entry.Quantity)
+                return null;
+            actualByItem[itemId] = actualByItem.GetValueOrDefault(itemId) + payment.Amount;
+            result.Add((entry, payment.Amount));
+        }
+        return actualByItem.Count == requiredByItem.Count
+            && requiredByItem.All(requirement =>
+                actualByItem.GetValueOrDefault(requirement.Key) == requirement.Value)
+            ? result
+            : null;
     }
 
     private static void ConsumeMaterials(

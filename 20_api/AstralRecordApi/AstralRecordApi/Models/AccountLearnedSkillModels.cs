@@ -47,6 +47,20 @@ public class AccountLearnedSkillLevelUpRequest
 {
     public Guid? OperationId { get; init; }
     public Guid UpdatedBy { get; init; }
+    /// <summary>Pluginが計算した変更前レベル。指定時は現在値と一致する必要がある。</summary>
+    public int? ExpectedLevel { get; init; }
+    /// <summary>Pluginが計算した変更後レベル。</summary>
+    public int? TargetLevel { get; init; }
+    public int? ExpectedVersion { get; init; }
+    public int? TargetVersion { get; init; }
+    /// <summary>Pluginが選択した素材entryと数量。未指定時は従来の共通消費順。</summary>
+    public IReadOnlyList<AccountLearnedSkillMaterialPaymentRequest> MaterialPayments { get; init; } = [];
+}
+
+public class AccountLearnedSkillMaterialPaymentRequest
+{
+    public Guid InventoryEntryId { get; init; }
+    public long Amount { get; init; }
 }
 
 public class AccountLearnedSkillAttachSigilRequest

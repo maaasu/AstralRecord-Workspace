@@ -80,6 +80,7 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemDropAnimationServi
 import io.github.maaasu.astralRecord.feature.item.service.ItemChatShareService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.item.service.OrbService;
+import io.github.maaasu.astralRecord.feature.mutation.service.LocalMutationOutbox;
 import io.github.maaasu.astralRecord.feature.item.service.PotionUseService;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepository;
 import io.github.maaasu.astralRecord.feature.inventory.repository.EquipmentLoadoutRepository;
@@ -347,6 +348,7 @@ public final class AstralRecord extends JavaPlugin {
     private AfkService afkService;
     private InventoryService inventoryService;
     private InventorySaveCoordinator inventorySaveCoordinator;
+    private LocalMutationOutbox localMutationOutbox;
     private InventoryPersistence inventoryPersistence;
     private PlayerInventoryStateRegistry inventoryStateRegistry;
     private InventoryAutoSaveTask inventoryAutoSaveTask;
@@ -624,6 +626,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (orbService != null) {
             orbService.prepareAllForShutdown();
+        }
+        if (localMutationOutbox != null) {
+            localMutationOutbox.close();
         }
         if (inventorySaveCoordinator != null) {
             // accepted済み操作・正本照合を先に待つ。main threadへ戻った後に現在装備表示を再構築し、
@@ -990,6 +995,10 @@ public final class AstralRecord extends JavaPlugin {
             inventoryStateRegistry,
             task -> getServer().getScheduler().runTaskAsynchronously(this, task)
         );
+        localMutationOutbox = new LocalMutationOutbox(
+            getDataFolder().toPath(),
+            task -> getServer().getScheduler().runTaskAsynchronously(this, task)
+        );
         inventoryService = new InventoryService(
             inventoryRepository,
             equipmentLoadoutRepository,
@@ -1315,6 +1324,7 @@ public final class AstralRecord extends JavaPlugin {
             itemService,
             itemStackFactory
         );
+        orbService.setMutationOutbox(localMutationOutbox);
         orbService.setStatusService(statusService);
         orbService.setUseSuccessListener((player, orbItemId) ->
             guideService.recordCondition(player, GuideConditionType.ORB_USED, orbItemId)
@@ -1539,6 +1549,13 @@ public final class AstralRecord extends JavaPlugin {
         bossMechanicService.setTemporarySkillEffectService(temporarySkillEffectService);
         skillService.registerBuiltInDefinitions(BuiltInWeaponAttackDefinitions.definitions());
         learnedSkillService = new LearnedSkillService(this, new LearnedSkillRepository(), inventoryService);
+        learnedSkillService.setMutationOutbox(localMutationOutbox);
+        localMutationOutbox.setDispatcher(command -> {
+            if (command instanceof io.github.maaasu.astralRecord.feature.mutation.model.LocalMutationCommand.EquipmentOrb) {
+                return orbService.dispatchLocalMutation(command);
+            }
+            return learnedSkillService.dispatchLocalMutation(command);
+        });
         skillOwnershipService = new SkillOwnershipService(learnedSkillService);
         skillPermissionService = new SkillPermissionService(playerClassService, skillTreeService);
         playerDetailGui.setSkillServices(

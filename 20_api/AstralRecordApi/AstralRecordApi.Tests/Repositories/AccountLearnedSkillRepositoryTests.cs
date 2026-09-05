@@ -307,6 +307,69 @@ public class AccountLearnedSkillRepositoryTests
     }
 
     /// <summary>
+    /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md
+    /// 検証契約: Pluginが選択したentry・数量・レベル・versionをAPIが再検証し、指定entryだけを消費する。
+    /// </summary>
+    [Fact]
+    public async Task LevelUpAsync_AcceptsExactPluginPaymentAndState()
+    {
+        await using var fixture = await TestDatabase.CreateAsync();
+        await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
+        var master = await fixture.MasterDb.Entries.SingleAsync(entry => entry.MasterId == "adventurer_smash");
+        master.PayloadJson = master.PayloadJson.Replace(
+            "\"maxLevel\":5,",
+            "\"maxLevel\":5,\"levelUpRequiredItems\":[{\"itemId\":\"skill_gem_raw\",\"amount\":2}],");
+        await fixture.MasterDb.SaveChangesAsync();
+        var accountId = Guid.NewGuid();
+        await fixture.AddAccountAsync(accountId);
+        var materialEntryId = await fixture.AddInventoryEntryAsync(
+            accountId, "material", "skill_gem_raw", 2);
+        AccountLearnedSkillResponse learned;
+        await using (var requestDb = fixture.CreatePlayerDb())
+        {
+            learned = (await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
+                .LearnAsync(accountId, new AccountLearnedSkillLearnRequest
+                {
+                    SkillId = "adventurer_smash",
+                    UpdatedBy = accountId,
+                })).Skill!;
+        }
+
+        AccountLearnedSkillMutationResult result;
+        await using (var requestDb = fixture.CreatePlayerDb())
+        {
+            result = await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
+                .LevelUpAsync(accountId, learned.LearnedSkillId, new AccountLearnedSkillLevelUpRequest
+                {
+                    UpdatedBy = accountId,
+                    ExpectedLevel = 1,
+                    TargetLevel = 2,
+                    ExpectedVersion = 1,
+                    TargetVersion = 2,
+                    MaterialPayments =
+                    [
+                        new AccountLearnedSkillMaterialPaymentRequest
+                        {
+                            InventoryEntryId = materialEntryId,
+                            Amount = 2,
+                        },
+                    ],
+                });
+        }
+
+        Assert.True(result.Succeeded);
+        Assert.Equal(2, result.Skill!.Level);
+        Assert.Equal(2, result.Skill.Version);
+        Assert.Collection(result.ConsumedMaterials!, payment =>
+        {
+            Assert.Equal(materialEntryId, payment.InventoryEntryId);
+            Assert.Equal(2, payment.ConsumedAmount);
+        });
+        Assert.True((await fixture.PlayerDb.InventoryEntries.AsNoTracking()
+            .SingleAsync(entry => entry.InventoryEntryId == materialEntryId)).IsDeleted);
+    }
+
+    /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様
     /// 検証契約: 装着済みシジルの指定行だけを論理削除し、同一 transaction で BAG へ1個返却する。
     /// </summary>

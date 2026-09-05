@@ -160,6 +160,14 @@ public class EquipmentOrbOperationRepository(
                 .Where(enchant => enchant.EquipmentInstanceId == instance.EquipmentInstanceId)
                 .OrderBy(enchant => enchant.SlotIndex)
                 .ToListAsync();
+            var initialEnhanceLevel = instance.EnhanceLevel;
+            var initialTranscendenceRank = instance.TranscendenceRank;
+            if (request.ClientState is not null
+                && !MatchesClientBaseState(
+                    request.ClientState,
+                    initialEnhanceLevel,
+                    initialTranscendenceRank))
+                return await CompleteAsync("INVALID");
 
             bool enhancementSucceeded = false;
             string? failAction = null;
@@ -183,9 +191,32 @@ public class EquipmentOrbOperationRepository(
                         return await CompleteAsync("NOT_ELIGIBLE");
 
                     successRate = Math.Clamp(level.SuccessRate, 0.0F, 1.0F);
-                    enhancementSucceeded = Random.Shared.NextDouble() < successRate.Value;
                     failAction = NormalizeFailAction(level.FailAction);
-                    var appliedLevel = enhancementSucceeded
+                    var clientState = request.ClientState;
+                    if (clientState is null)
+                    {
+                        enhancementSucceeded = Random.Shared.NextDouble() < successRate.Value;
+                    }
+                    else
+                    {
+                        if (!clientState.EnhancementSucceeded.HasValue
+                            || !clientState.EnhanceLevel.HasValue)
+                            return await CompleteAsync("INVALID");
+                        enhancementSucceeded = clientState.EnhancementSucceeded.Value;
+                        if ((successRate.Value <= 0.0D && enhancementSucceeded)
+                            || (successRate.Value >= 1.0D && !enhancementSucceeded))
+                            return await CompleteAsync("INVALID");
+                    }
+                    var appliedLevel = clientState?.EnhanceLevel
+                        ?? (enhancementSucceeded
+                            ? targetLevel
+                            : failAction switch
+                            {
+                                "SET_LEVEL" => Math.Clamp(level.FailTargetLevel ?? instance.EnhanceLevel, 0, maxLevel),
+                                "DECREASE_ONE" => Math.Max(0, instance.EnhanceLevel - 1),
+                                _ => instance.EnhanceLevel,
+                            });
+                    var expectedAppliedLevel = enhancementSucceeded
                         ? targetLevel
                         : failAction switch
                         {
@@ -193,6 +224,8 @@ public class EquipmentOrbOperationRepository(
                             "DECREASE_ONE" => Math.Max(0, instance.EnhanceLevel - 1),
                             _ => instance.EnhanceLevel,
                         };
+                    if (appliedLevel != expectedAppliedLevel)
+                        return await CompleteAsync("INVALID");
                     ApplyEnhanceLevel(instance, equipmentItem.Equipment, appliedLevel);
                     break;
                 }
@@ -296,6 +329,10 @@ public class EquipmentOrbOperationRepository(
                 default:
                     return await CompleteAsync("NOT_ELIGIBLE");
             }
+
+            if (request.ClientState is not null
+                && !MatchesClientEquipmentState(request.ClientState, instance))
+                return await CompleteAsync("INVALID");
 
             var paymentAvailable = HasMaterials(normalEntries, requiredMaterials, normalizedOrbItemId)
                 && await HasGoldAsync(request.AccountId, requiredGold);
@@ -442,6 +479,19 @@ public class EquipmentOrbOperationRepository(
                             && slot.EquipmentInstanceId == equipmentInstanceId
                       select slot).AnyAsync();
     }
+
+    private static bool MatchesClientBaseState(
+        EquipmentOrbClientState client,
+        int currentEnhanceLevel,
+        int currentTranscendenceRank)
+        => (!client.BaseEnhanceLevel.HasValue || client.BaseEnhanceLevel.Value == currentEnhanceLevel)
+            && (!client.BaseTranscendenceRank.HasValue
+                || client.BaseTranscendenceRank.Value == currentTranscendenceRank);
+
+    private static bool MatchesClientEquipmentState(
+        EquipmentOrbClientState client,
+        EquipmentInstanceEntity instance)
+        => !client.EnhanceLevel.HasValue || client.EnhanceLevel.Value == instance.EnhanceLevel;
 
     private string ApplyEnchant(
         Guid accountId,
@@ -998,7 +1048,8 @@ public class EquipmentOrbOperationRepository(
             request.OrbInventoryEntryId.ToString("D"),
             orbItemId,
             NormalizeId(request.RuneItemId),
-            request.RuneSlotIndex?.ToString(CultureInfo.InvariantCulture) ?? string.Empty);
+            request.RuneSlotIndex?.ToString(CultureInfo.InvariantCulture) ?? string.Empty,
+            JsonSerializer.Serialize(request.ClientState, JsonOptions));
         return Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(canonical)));
     }
 

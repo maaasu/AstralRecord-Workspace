@@ -7,6 +7,9 @@ import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMaterialMut
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigilDetachResult;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException;
 import io.github.maaasu.astralRecord.feature.skill.repository.LearnedSkillRepository;
+import io.github.maaasu.astralRecord.feature.mutation.model.LocalMutationCommand;
+import io.github.maaasu.astralRecord.feature.mutation.service.LocalMutationOutbox;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -27,6 +30,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
 /**
@@ -47,7 +51,12 @@ public final class LearnedSkillService {
     private final long mutationTimeoutMillis;
     private final Map<UUID, List<LearnedSkillInstance>> skillsByAccount = new ConcurrentHashMap<>();
     private final Map<UUID, AtomicBoolean> mutationLocks = new ConcurrentHashMap<>();
+    private final Map<UUID, AtomicInteger> localMutationPendingCounts =
+        new ConcurrentHashMap<>();
+    private final Map<UUID, UUID> localMutationOperationByAccount = new ConcurrentHashMap<>();
+    private final Map<UUID, Consumer<Throwable>> localMutationFailureCallbacks = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> sessionTokens = new ConcurrentHashMap<>();
+    private @Nullable LocalMutationOutbox mutationOutbox;
 
     public LearnedSkillService(
         @NotNull Plugin plugin,
@@ -72,6 +81,11 @@ public final class LearnedSkillService {
     private static long configuredMutationTimeoutMillis() {
         long configured = ConfigProperties.getInstance().getApiOperationTimeout();
         return configured > 0L ? configured : DEFAULT_MUTATION_TIMEOUT_MILLIS;
+    }
+
+    /** ローカル確定したスキルmutationを後送するoutboxを接続します。 */
+    public void setMutationOutbox(@Nullable LocalMutationOutbox mutationOutbox) {
+        this.mutationOutbox = mutationOutbox;
     }
 
     public @NotNull List<LearnedSkillInstance> loadInitialSkills(@NotNull UUID accountId) {
@@ -127,6 +141,18 @@ public final class LearnedSkillService {
         return lock != null && lock.get();
     }
 
+    /** API応答待ちでも、ローカルoutboxへ積めるレベルアップなら受付可能かを返します。 */
+    public boolean canQueueLocalLevelUp(@NotNull UUID accountId) {
+        return mutationOutbox != null
+            && hasLoadedSkills(accountId)
+            && localMutationPendingCounts.containsKey(accountId);
+    }
+
+    /** ローカル反映済みのレベルアップが再描画を済ませたかを返します。 */
+    public boolean hasLocalMutationPending(@NotNull UUID accountId) {
+        return localMutationPendingCounts.containsKey(accountId);
+    }
+
     /** スキルマネージャーから master 定義の素材を消費して初回習得します。 */
     public boolean learnFromManagerAsync(
         @NotNull UUID accountId,
@@ -179,6 +205,181 @@ public final class LearnedSkillService {
         );
     }
 
+    /** outboxから一件ずつ実行するスキルレベルアップの送信入口です。 */
+    public @NotNull java.util.concurrent.CompletionStage<LocalMutationOutbox.Delivery> dispatchLocalMutation(
+        @NotNull LocalMutationCommand command
+    ) {
+        if (!(command instanceof LocalMutationCommand.SkillLevelUp skill)) {
+            return CompletableFuture.completedFuture(LocalMutationOutbox.Delivery.RETRY);
+        }
+        if (!hasLoadedSkills(skill.accountId())) {
+            return CompletableFuture.completedFuture(LocalMutationOutbox.Delivery.RETRY);
+        }
+        UUID activeOperation = localMutationOperationByAccount.putIfAbsent(
+            skill.accountId(), skill.operationId());
+        if (activeOperation != null && !activeOperation.equals(skill.operationId())) {
+            return CompletableFuture.completedFuture(LocalMutationOutbox.Delivery.RETRY);
+        }
+        if (activeOperation == null) {
+            AtomicBoolean lock = mutationLocks.computeIfAbsent(skill.accountId(), ignored -> new AtomicBoolean());
+            if (!lock.compareAndSet(false, true)
+                && !localMutationPendingCounts.containsKey(skill.accountId())) {
+                localMutationOperationByAccount.remove(skill.accountId(), skill.operationId());
+                return CompletableFuture.completedFuture(LocalMutationOutbox.Delivery.RETRY);
+            }
+        }
+        try {
+            inventoryService.reserveLocalMutationPayment(
+                skill.accountId(),
+                skill.operationId(),
+                skill.payments().stream().collect(
+                    LinkedHashMap::new,
+                    (map, payment) -> map.merge(payment.inventoryEntryId(), payment.amount(), Long::sum),
+                    LinkedHashMap::putAll
+                )
+            );
+        } catch (RuntimeException ignored) {
+            // 再起動後に既にAPI反映済みのstateを読み込んだ場合も、冪等再送は継続する。
+        }
+
+        CompletableFuture<Boolean> saveFuture;
+        try {
+            saveFuture = inventoryService.saveNow(skill.accountId());
+        } catch (Throwable saveFailure) {
+            saveFuture = CompletableFuture.completedFuture(false);
+        }
+        return saveFuture
+            .handle((ignored, saveFailure) -> ignored)
+            .thenCompose(ignored -> CompletableFuture.supplyAsync(() -> repository.levelUp(
+                skill.accountId(),
+                skill.learnedSkillId(),
+                skill.updatedBy(),
+                skill.operationId(),
+                skill.expectedLevel(),
+                skill.targetLevel(),
+                skill.expectedVersion(),
+                skill.targetVersion(),
+                skill.payments()
+            )))
+            .handle((result, failure) -> {
+                Throwable error = unwrapFailure(failure);
+                if (error != null) {
+                    if (!isTerminalLocalMutationFailure(error)) {
+                        return LocalMutationOutbox.Delivery.RETRY;
+                    }
+                    if (!reconcileLocalSkillFailure(skill.accountId())) {
+                        return LocalMutationOutbox.Delivery.RETRY;
+                    }
+                    inventoryService.releaseOrbOperationPayment(skill.accountId(), skill.operationId());
+                    releaseLocalMutationEntries(skill);
+                    refreshLocalMutationInventory(skill.accountId());
+                    releaseLocalMutationLock(skill.accountId(), skill.operationId());
+                    notifyLocalMutationFailure(skill.operationId(), error);
+                    return LocalMutationOutbox.Delivery.ACK;
+                }
+                try {
+                    if (result.getInventorySnapshot() == null) {
+                        for (LocalMutationCommand.Payment payment : skill.payments()) {
+                            inventoryService.reconcileAuthoritativeEntry(
+                                skill.accountId(), payment.inventoryEntryId());
+                        }
+                    } else {
+                        for (LocalMutationCommand.Payment payment : skill.payments()) {
+                            inventoryService.reconcileAuthoritativeEntry(
+                                skill.accountId(), payment.inventoryEntryId(), result.getInventorySnapshot());
+                        }
+                    }
+                    replaceCached(result.getSkill());
+                    inventoryService.releaseOrbOperationPayment(skill.accountId(), skill.operationId());
+                    releaseLocalMutationEntries(skill);
+                    refreshLocalMutationInventory(skill.accountId());
+                    releaseLocalMutationLock(skill.accountId(), skill.operationId());
+                    localMutationFailureCallbacks.remove(skill.operationId());
+                    return LocalMutationOutbox.Delivery.ACK;
+                } catch (Throwable reconciliationFailure) {
+                    Logger.log(
+                        LogId.W_5252,
+                        "skill_mutation_outbox_reconcile",
+                        reconciliationFailure.getMessage()
+                    );
+                    return LocalMutationOutbox.Delivery.RETRY;
+                }
+            });
+    }
+
+    private boolean reconcileLocalSkillFailure(@NotNull UUID accountId) {
+        try {
+            skillsByAccount.put(accountId, normalize(repository.findByAccountId(accountId)));
+            return true;
+        } catch (Throwable ignored) {
+            // 正本を取得できない場合は、予約・outboxを維持して再送する。
+            return false;
+        }
+    }
+
+    private void notifyLocalMutationFailure(@NotNull UUID operationId, @NotNull Throwable error) {
+        Consumer<Throwable> callback = localMutationFailureCallbacks.remove(operationId);
+        if (callback == null) return;
+        AsyncTaskUtil.runSyncEventually(plugin, () -> {
+            try {
+                callback.accept(error);
+            } catch (Throwable callbackFailure) {
+                Logger.log(LogId.W_5252, "skill_mutation_failure_callback", callbackFailure.getMessage());
+            }
+        });
+    }
+
+    private void refreshLocalMutationInventory(@NotNull UUID accountId) {
+        AsyncTaskUtil.runSyncEventually(plugin, () -> AstPlayerCache.getAll().stream()
+            .filter(player -> player.getAccount().getUuid().equals(accountId))
+            .forEach(inventoryService::refreshManagedInventoryUi));
+    }
+
+    private void releaseLocalMutationEntries(@NotNull LocalMutationCommand.SkillLevelUp skill) {
+        skill.payments().forEach(payment -> inventoryService.releaseHiddenEntryQuantity(
+            skill.accountId(), payment.inventoryEntryId(), Math.toIntExact(payment.amount())));
+    }
+
+    private void releaseLocalMutationLock(@NotNull UUID accountId, @NotNull UUID operationId) {
+        if (!localMutationOperationByAccount.remove(accountId, operationId)) {
+            return;
+        }
+        AtomicInteger pending = localMutationPendingCounts.get(accountId);
+        if (pending != null && pending.decrementAndGet() > 0) {
+            return;
+        }
+        if (pending != null) {
+            localMutationPendingCounts.remove(accountId, pending);
+        }
+        AtomicBoolean lock = mutationLocks.remove(accountId);
+        if (lock != null) {
+            lock.set(false);
+        }
+    }
+
+    private void releaseLocalMutationReservation(@NotNull UUID accountId) {
+        AtomicInteger pending = localMutationPendingCounts.get(accountId);
+        if (pending == null || pending.decrementAndGet() > 0) {
+            return;
+        }
+        localMutationPendingCounts.remove(accountId, pending);
+        AtomicBoolean lock = mutationLocks.remove(accountId);
+        if (lock != null) {
+            lock.set(false);
+        }
+    }
+
+    private static @Nullable Throwable unwrapFailure(@Nullable Throwable throwable) {
+        Throwable current = throwable;
+        while (current != null
+            && (current instanceof java.util.concurrent.CompletionException
+                || current instanceof java.util.concurrent.ExecutionException)
+            && current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current;
+    }
+
     /** スキルマネージャーから master 定義の素材を消費してレベルアップします。 */
     public boolean levelUpFromManagerAsync(
         @NotNull UUID accountId,
@@ -188,11 +389,31 @@ public final class LearnedSkillService {
         @NotNull Consumer<LearnedSkillInstance> onSuccess,
         @NotNull Consumer<Throwable> onFailure
     ) {
-        return levelUpFromManagerAsync(
+        return levelUpFromManagerWithPaymentsAsync(
             accountId,
             learnedSkillId,
             updatedBy,
-            requiredItemEntryIds,
+            unitPayments(requiredItemEntryIds),
+            onSuccess,
+            onFailure,
+            () -> { }
+        );
+    }
+
+    /** 素材entryごとの数量を指定する、ローカルmutation対応のレベルアップ入口です。 */
+    public boolean levelUpFromManagerWithPaymentsAsync(
+        @NotNull UUID accountId,
+        @NotNull UUID learnedSkillId,
+        @NotNull UUID updatedBy,
+        @NotNull Map<UUID, Long> requiredItemPayments,
+        @NotNull Consumer<LearnedSkillInstance> onSuccess,
+        @NotNull Consumer<Throwable> onFailure
+    ) {
+        return levelUpFromManagerWithPaymentsAsync(
+            accountId,
+            learnedSkillId,
+            updatedBy,
+            requiredItemPayments,
             onSuccess,
             onFailure,
             () -> { }
@@ -220,15 +441,132 @@ public final class LearnedSkillService {
         @NotNull Consumer<Throwable> onFailure,
         @NotNull Runnable onPending
     ) {
+        return levelUpFromManagerWithPaymentsAsync(
+            accountId,
+            learnedSkillId,
+            updatedBy,
+            unitPayments(requiredItemEntryIds),
+            onSuccess,
+            onFailure,
+            onPending
+        );
+    }
+
+    /** 素材数量を保持したままローカルoutboxへ登録するレベルアップ処理です。 */
+    public boolean levelUpFromManagerWithPaymentsAsync(
+        @NotNull UUID accountId,
+        @NotNull UUID learnedSkillId,
+        @NotNull UUID updatedBy,
+        @NotNull Map<UUID, Long> requiredItemPayments,
+        @NotNull Consumer<LearnedSkillInstance> onSuccess,
+        @NotNull Consumer<Throwable> onFailure,
+        @NotNull Runnable onPending
+    ) {
         UUID operationId = UUID.randomUUID();
+        LocalMutationOutbox outbox = mutationOutbox;
+        LearnedSkillInstance current = findInstance(accountId, learnedSkillId);
+        if (outbox != null && current != null) {
+            AtomicBoolean localLock = mutationLocks.computeIfAbsent(accountId, ignored -> new AtomicBoolean());
+            AtomicInteger localPending = localMutationPendingCounts
+                .computeIfAbsent(accountId, ignored -> new AtomicInteger());
+            if (localPending.get() == 0 && !localLock.compareAndSet(false, true)) {
+                localMutationPendingCounts.remove(accountId, localPending);
+                return false;
+            }
+            localPending.incrementAndGet();
+            LearnedSkillInstance updated = new LearnedSkillInstance(
+                current.getLearnedSkillId(),
+                current.getAccountId(),
+                current.getSkillId(),
+                current.getLevel() + 1,
+                current.getSigils(),
+                current.getVersion() + 1,
+                current.getCreatedAt(),
+                java.time.LocalDateTime.now()
+            );
+            Map<UUID, Long> reservedMaterials = new LinkedHashMap<>();
+            try {
+                requiredItemPayments.forEach((entryId, amount) -> {
+                    if (entryId == null || amount == null || amount <= 0L) {
+                        throw new IllegalArgumentException("Invalid local skill payment.");
+                    }
+                    reservedMaterials.merge(entryId, amount, Math::addExact);
+                });
+            } catch (RuntimeException invalidPayment) {
+                releaseLocalMutationReservation(accountId);
+                return false;
+            }
+            if (!inventoryService.reserveLocalMutationPayment(
+                accountId, operationId, reservedMaterials)) {
+                releaseLocalMutationReservation(accountId);
+                return false;
+            }
+            List<LocalMutationCommand.Payment> payments = reservedMaterials.entrySet().stream()
+                .map(entry -> new LocalMutationCommand.Payment(entry.getKey(), entry.getValue()))
+                .toList();
+            LocalMutationCommand.SkillLevelUp command = new LocalMutationCommand.SkillLevelUp(
+                operationId,
+                accountId,
+                learnedSkillId,
+                updatedBy,
+                current.getLevel(),
+                updated.getLevel(),
+                current.getVersion(),
+                updated.getVersion(),
+                payments
+            );
+            try {
+                localMutationFailureCallbacks.put(operationId, onFailure);
+                outbox.enqueue(command);
+            } catch (RuntimeException enqueueFailure) {
+                localMutationFailureCallbacks.remove(operationId);
+                releaseLocalMutationReservation(accountId);
+                inventoryService.releaseOrbOperationPayment(accountId, operationId);
+                Logger.log(LogId.W_5252, "skill_mutation_outbox_enqueue", enqueueFailure.getMessage());
+                return false;
+            }
+            try {
+                hideLocalMutationEntries(accountId, payments);
+                replaceCached(updated);
+                onSuccess.accept(updated);
+            } finally {
+                outbox.dispatch();
+            }
+            return true;
+        }
         return mutateAsync(
             accountId,
-            requiredItemEntryIds,
+            new ArrayList<>(requiredItemPayments.keySet()),
             () -> managerMutationOutcome(repository.levelUp(accountId, learnedSkillId, updatedBy, operationId)),
             onSuccess,
             onFailure,
             onPending
         );
+    }
+
+    private static @NotNull Map<UUID, Long> unitPayments(@NotNull List<UUID> entryIds) {
+        Map<UUID, Long> payments = new LinkedHashMap<>();
+        entryIds.forEach(entryId -> payments.merge(entryId, 1L, Math::addExact));
+        return payments;
+    }
+
+    private void hideLocalMutationEntries(
+        @NotNull UUID accountId,
+        @NotNull List<LocalMutationCommand.Payment> payments
+    ) {
+        AstPlayerCache.getAll().stream()
+            .filter(player -> player.getAccount().getUuid().equals(accountId))
+            .forEach(player -> payments.forEach(payment -> {
+                try {
+                    inventoryService.hideOwnedEntryQuantityFromGui(
+                        player,
+                        payment.inventoryEntryId(),
+                        Math.toIntExact(payment.amount())
+                    );
+                } catch (RuntimeException displayFailure) {
+                    Logger.warn(LogId.W_5252, accountId, displayFailure.getMessage());
+                }
+            }));
     }
 
     /**
@@ -770,6 +1108,22 @@ public final class LearnedSkillService {
             if (current instanceof InterruptedException) return false;
             current = current.getCause();
         }
+        return false;
+    }
+
+    /** ローカルoutboxをACKしてよい、APIが確定的に返した業務失敗だけを判定します。 */
+    private static boolean isTerminalLocalMutationFailure(@NotNull Throwable error) {
+        Throwable current = error;
+        while (current != null) {
+            if (current instanceof LearnedSkillMutationException) {
+                return !isRetryableMutationTransport(current);
+            }
+            if (current instanceof java.io.IOException || current instanceof InterruptedException) {
+                return false;
+            }
+            current = current.getCause();
+        }
+        // JSON解析失敗や予期しないRuntimeExceptionは、APIが確定したか不明なため再送する。
         return false;
     }
 

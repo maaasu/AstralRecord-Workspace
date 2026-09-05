@@ -18,6 +18,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -828,6 +830,82 @@ class LearnedSkillServiceTest {
             eq(accountId), eq("adventurer_smash"), eq(accountId), any(UUID.class)
         );
         verify(timeoutTask).cancel();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: ローカル確定済みレベルアップのAPI業務失敗時は、正本へ戻して予約を解放し、失敗通知を行う。
+     */
+    @Test
+    void localLevelUpBusinessFailureReconcilesAndNotifies() throws Exception {
+        Plugin plugin = mock(Plugin.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        LearnedSkillRepository repository = mock(LearnedSkillRepository.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        UUID accountId = UUID.randomUUID();
+        UUID learnedSkillId = UUID.randomUUID();
+        LearnedSkillInstance learned = new LearnedSkillInstance(
+            learnedSkillId, accountId, "adventurer_smash", 1, List.of(), 0, null, null
+        );
+        CountDownLatch failureNotified = new CountDownLatch(1);
+        AtomicInteger failures = new AtomicInteger();
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
+        when(inventoryService.reserveLocalMutationPayment(eq(accountId), any(UUID.class), any()))
+            .thenReturn(true);
+        when(inventoryService.saveNow(accountId)).thenReturn(CompletableFuture.completedFuture(true));
+        when(repository.findByAccountId(accountId)).thenReturn(List.of(learned));
+        when(repository.levelUp(
+            eq(accountId), eq(learnedSkillId), eq(accountId), any(UUID.class),
+            any(), any(), any(), any(), any()
+        )).thenThrow(new LearnedSkillMutationException(
+            LearnedSkillMutationFailure.INVALID_MATERIAL,
+            "material is insufficient",
+            409
+        ));
+
+        LearnedSkillService service = new LearnedSkillService(plugin, repository, inventoryService);
+        service.applyInitialSkills(accountId, List.of(learned));
+        Path outboxDirectory = Files.createTempDirectory("astralrecord-local-skill-outbox");
+        try (io.github.maaasu.astralRecord.feature.mutation.service.LocalMutationOutbox outbox =
+                 new io.github.maaasu.astralRecord.feature.mutation.service.LocalMutationOutbox(
+                     outboxDirectory, java.util.concurrent.ForkJoinPool.commonPool())) {
+            service.setMutationOutbox(outbox);
+            outbox.setDispatcher(service::dispatchLocalMutation);
+
+            assertTrue(service.levelUpFromManagerWithPaymentsAsync(
+                accountId,
+                learnedSkillId,
+                accountId,
+                java.util.Map.of(),
+                ignored -> { },
+                ignored -> {
+                    failures.incrementAndGet();
+                    failureNotified.countDown();
+                }
+            ));
+
+            assertTrue(failureNotified.await(5, TimeUnit.SECONDS));
+            assertEquals(1, failures.get());
+            assertEquals(1, service.findInstance(accountId, learnedSkillId).getLevel());
+            assertFalse(service.hasMutationInProgress(accountId));
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+            while (outbox.pendingCount() != 0 && System.nanoTime() < deadline) {
+                Thread.sleep(10L);
+            }
+            assertEquals(0, outbox.pendingCount());
+        } finally {
+            Files.deleteIfExists(outboxDirectory.resolve("pending-mutations.bin"));
+            Files.deleteIfExists(outboxDirectory.resolve("pending-mutations.bin.tmp"));
+            Files.deleteIfExists(outboxDirectory);
+        }
     }
 
     private LearnedSkillInstance learned(UUID accountId, int level) {

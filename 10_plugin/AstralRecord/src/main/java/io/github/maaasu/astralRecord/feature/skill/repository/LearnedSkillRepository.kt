@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationExc
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationFailure
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigil
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigilDetachResult
+import io.github.maaasu.astralRecord.feature.mutation.model.LocalMutationCommand
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil
 import java.io.IOException
 import java.net.http.HttpRequest
@@ -114,9 +115,41 @@ class LearnedSkillRepository {
         updatedBy: UUID,
         operationId: UUID,
     ): LearnedSkillMaterialMutationResult {
+        return levelUp(
+            accountId, learnedSkillId, updatedBy, operationId,
+            null, null, null, null, emptyList()
+        )
+    }
+
+    /** Plugin側のローカル確定値を検証付きで送信するレベルアップ要求です。 */
+    fun levelUp(
+        accountId: UUID,
+        learnedSkillId: UUID,
+        updatedBy: UUID,
+        operationId: UUID,
+        expectedLevel: Int?,
+        targetLevel: Int?,
+        expectedVersion: Int?,
+        targetVersion: Int?,
+        payments: List<LocalMutationCommand.Payment>,
+    ): LearnedSkillMaterialMutationResult {
         val body = ApiRequestUtil.buildJsonBody {
             addProperty("operationId", operationId.toString())
             addProperty("updatedBy", updatedBy.toString())
+            if (expectedLevel != null) addProperty("expectedLevel", expectedLevel)
+            if (targetLevel != null) addProperty("targetLevel", targetLevel)
+            if (expectedVersion != null) addProperty("expectedVersion", expectedVersion)
+            if (targetVersion != null) addProperty("targetVersion", targetVersion)
+            if (payments.isNotEmpty()) {
+                val materialPayments = JsonArray()
+                payments.forEach { payment ->
+                    materialPayments.add(JsonObject().apply {
+                        addProperty("inventoryEntryId", payment.inventoryEntryId().toString())
+                        addProperty("amount", payment.amount())
+                    })
+                }
+                add("materialPayments", materialPayments)
+            }
         }
         return mutateWithMaterials("/api/account-skills/$accountId/$learnedSkillId/level-up", body)
     }

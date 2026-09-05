@@ -7,6 +7,7 @@ import io.github.maaasu.astralRecord.feature.item.model.EquipmentEnchant
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationResult
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationResultType
+import io.github.maaasu.astralRecord.feature.mutation.model.LocalMutationCommand
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentRune
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentStatRoll
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundle
@@ -371,6 +372,7 @@ class ItemRepository {
     }
 
     /** オーブ支払いと装備更新を同一 operationId でAPIへ要求します。オーブ消費元はAPIが共通順で確定します。 */
+    @JvmOverloads
     fun applyEquipmentOrbOperation(
         operationId: String,
         accountId: String,
@@ -379,6 +381,7 @@ class ItemRepository {
         orbItemId: String,
         runeItemId: String? = null,
         runeSlotIndex: Int? = null,
+        clientState: LocalMutationCommand.EquipmentOrb? = null,
     ): EquipmentOrbOperationResult? {
         val path = "/api/equipment/orb-operations"
         val body = ApiRequestUtil.buildJsonBody {
@@ -389,6 +392,14 @@ class ItemRepository {
             addProperty("orbItemId", orbItemId)
             if (runeItemId != null) addProperty("runeItemId", runeItemId)
             if (runeSlotIndex != null) addProperty("runeSlotIndex", runeSlotIndex)
+            if (clientState != null) {
+                val client = JsonObject()
+                client.addProperty("baseEnhanceLevel", clientState.baseEnhanceLevel())
+                client.addProperty("baseTranscendenceRank", clientState.baseTranscendenceRank())
+                client.addProperty("enhanceLevel", clientState.enhanceLevel())
+                client.addProperty("enhancementSucceeded", clientState.enhancementSucceeded())
+                add("clientState", client)
+            }
         }
         try {
             ApiRequestUtil.buildClient().use { client ->

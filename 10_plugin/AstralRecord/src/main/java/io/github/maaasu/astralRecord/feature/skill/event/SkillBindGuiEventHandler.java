@@ -433,7 +433,10 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             openMain(player, session, holder.pageIndex());
             return;
         }
-        if (learnedSkillService.hasMutationInProgress(astPlayer.getAccount().getUuid())) {
+        boolean mutationInProgress = learnedSkillService.hasMutationInProgress(astPlayer.getAccount().getUuid());
+        boolean canQueueLevelUp = slot == SkillBindGui.DETAIL_LEVEL_UP_SLOT
+            && learnedSkillService.canQueueLocalLevelUp(astPlayer.getAccount().getUuid());
+        if (mutationInProgress && !canQueueLevelUp) {
             GuiSound.DENY.play(player);
             return;
         }
@@ -451,6 +454,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 AstPlayer current = AstPlayerCache.get(player);
                 if (current != null
                     && learnedSkillService.hasMutationInProgress(current.getAccount().getUuid())
+                    && !learnedSkillService.hasLocalMutationPending(current.getAccount().getUuid())
                     && sessions.get(player.getUniqueId()) == session) {
                     openDetail(player, session, entry, holder.pageIndex(), true);
                 }
@@ -996,9 +1000,17 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return false;
         }
         UUID playerId = player.getUniqueId();
-        boolean scheduled = learnedSkillService.levelUpFromManagerAsync(astPlayer.getAccount().getUuid(),
+        Map<UUID, Long> requiredPayments = requiredItemPayments(
+            astPlayer,
+            entry.definition().getLevelUpRequiredItems()
+        );
+        if (requiredPayments == null) {
+            GuiSound.DENY.play(player);
+            return false;
+        }
+        boolean scheduled = learnedSkillService.levelUpFromManagerWithPaymentsAsync(astPlayer.getAccount().getUuid(),
              entry.learnedSkill().getLearnedSkillId(), astPlayer.getAccount().getUuid(),
-             requiredItemEntryIds(astPlayer, entry.definition().getLevelUpRequiredItems()),
+             requiredPayments,
              updated -> {
                  AstPlayer current = currentPlayer(astPlayer);
                  if (current == null) return;
@@ -1021,8 +1033,14 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 GuiSound.DENY.play(player);
                 PlayerMessageService.getInstance().send(player, mutationFailureMessage(error));
                 if (sessions.get(playerId) != session) return;
+                if (learnedSkillService.hasLocalMutationPending(current.getAccount().getUuid())) return;
+                SkillManagerEntry currentEntry = entry(current, entry.learnedSkill().getLearnedSkillId().toString());
                 if (keepDetail) {
-                    openDetail(player, session, entry, page);
+                    if (currentEntry != null) {
+                        openDetail(player, session, currentEntry, page);
+                    } else {
+                        openMain(player, session, page);
+                    }
                 } else {
                     openMain(player, session, page);
                 }
@@ -1054,6 +1072,60 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             return null;
         }
         return current;
+    }
+
+    /** レベルアップに必要な数量を、BAG/HOTBARのentryごとの支払額へ割り当てます。 */
+    private @Nullable Map<UUID, Long> requiredItemPayments(
+        @NotNull AstPlayer player,
+        @NotNull List<io.github.maaasu.astralRecord.feature.skill.model.SkillRequiredItemDefinition> requiredItems
+    ) {
+        Map<String, Long> requiredByItem = new LinkedHashMap<>();
+        Map<String, ItemModel> itemById = new LinkedHashMap<>();
+        try {
+            for (io.github.maaasu.astralRecord.feature.skill.model.SkillRequiredItemDefinition cost : requiredItems) {
+                if (cost.getAmount() <= 0 || cost.getItemId() == null || cost.getItemId().isBlank()) {
+                    return null;
+                }
+                ItemModel item = plugin.getItemService().findLoadedById(cost.getItemId());
+                if (item == null) {
+                    return null;
+                }
+                String itemId = item.getId().trim().toLowerCase(java.util.Locale.ROOT);
+                requiredByItem.merge(itemId, (long) cost.getAmount(), Math::addExact);
+                itemById.putIfAbsent(itemId, item);
+            }
+
+            Map<UUID, Long> payments = new LinkedHashMap<>();
+            for (Map.Entry<String, Long> requirement : requiredByItem.entrySet()) {
+                ItemModel item = itemById.get(requirement.getKey());
+                long remaining = requirement.getValue();
+                for (InventoryEntryModel candidate : inventoryService.getOwnedStackEntries(
+                    player, item.getCategory(), item.getId())) {
+                    InventoryEntryModel owned = inventoryService.findOwnedEntry(
+                        player.getAccount().getUuid(), candidate.getInventoryEntryId());
+                    if (owned == null) {
+                        continue;
+                    }
+                    long alreadyAllocated = payments.getOrDefault(owned.getInventoryEntryId(), 0L);
+                    long available = owned.getQuantity() - alreadyAllocated;
+                    if (available <= 0L) {
+                        continue;
+                    }
+                    long amount = Math.min(remaining, available);
+                    payments.merge(owned.getInventoryEntryId(), amount, Math::addExact);
+                    remaining -= amount;
+                    if (remaining == 0L) {
+                        break;
+                    }
+                }
+                if (remaining > 0L) {
+                    return null;
+                }
+            }
+            return payments;
+        } catch (ArithmeticException overflow) {
+            return null;
+        }
     }
 
     /** API 正本が消費し得る、要求素材と一致する全ローカルentryを返します。 */
