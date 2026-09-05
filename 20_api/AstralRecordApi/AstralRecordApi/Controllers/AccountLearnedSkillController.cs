@@ -42,7 +42,13 @@ public class AccountLearnedSkillController(IAccountLearnedSkillRepository reposi
         Guid accountId,
         Guid learnedSkillId,
         [FromBody] AccountLearnedSkillAttachSigilRequest request)
-        => ToActionResult(await repository.AttachSigilAsync(accountId, learnedSkillId, request));
+    {
+        var result = await repository.AttachSigilAsync(accountId, learnedSkillId, request);
+        if (!result.Succeeded)
+            return ToActionResult(result);
+
+        return Ok(WithInventorySnapshot(result.Skill!, result.InventorySnapshot));
+    }
 
     /// <summary>指定した装着済みシジルを対応するオーブ1個を消費して取り外し、アカウントの BAG へシジルを1個返却します。</summary>
     [HttpPost("{learnedSkillId:guid}/sigils/{learnedSkillSigilId:guid}/detach")]
@@ -64,6 +70,7 @@ public class AccountLearnedSkillController(IAccountLearnedSkillRepository reposi
         {
             Skill = result.Skill!,
             ReturnedInventoryEntryId = result.ReturnedInventoryEntryId!.Value,
+            InventorySnapshot = result.InventorySnapshot,
         });
     }
 
@@ -99,6 +106,24 @@ public class AccountLearnedSkillController(IAccountLearnedSkillRepository reposi
         {
             Skill = result.Skill!,
             ConsumedMaterials = result.ConsumedMaterials ?? [],
+            InventorySnapshot = result.InventorySnapshot,
         });
     }
+
+    /// <summary>既存の裸skill応答を維持したまま、任意のinventory snapshotを付加します。</summary>
+    private static AccountLearnedSkillResponse WithInventorySnapshot(
+        AccountLearnedSkillResponse skill,
+        InventoryOperationSnapshotResponse? inventorySnapshot)
+        => new()
+        {
+            LearnedSkillId = skill.LearnedSkillId,
+            AccountId = skill.AccountId,
+            SkillId = skill.SkillId,
+            Level = skill.Level,
+            Sigils = skill.Sigils,
+            Version = skill.Version,
+            CreatedAt = skill.CreatedAt,
+            UpdatedAt = skill.UpdatedAt,
+            InventorySnapshot = inventorySnapshot,
+        };
 }

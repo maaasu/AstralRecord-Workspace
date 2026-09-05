@@ -6,6 +6,7 @@ using System.Text.Json.Nodes;
 using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
+using AstralRecordApi.Utilities;
 using Microsoft.EntityFrameworkCore;
 
 namespace AstralRecordApi.Repositories;
@@ -91,7 +92,9 @@ public class AccountLearnedSkillRepository(
             ConsumeMaterials(materials, request.UpdatedBy, now);
             await dbContext.SaveChangesAsync();
             return Success(Map(entity), consumedMaterials: MapConsumedMaterials(materials));
-        });
+        }, result => ReadInventorySnapshotAsync(
+            accountId,
+            result.ConsumedMaterials?.Select(material => material.InventoryEntryId) ?? []));
     }
 
     public async Task<AccountLearnedSkillMutationResult> LevelUpAsync(
@@ -133,7 +136,9 @@ public class AccountLearnedSkillRepository(
             ConsumeMaterials(materials, request.UpdatedBy, now);
             await dbContext.SaveChangesAsync();
             return Success(Map(entity), consumedMaterials: MapConsumedMaterials(materials));
-        });
+        }, result => ReadInventorySnapshotAsync(
+            accountId,
+            result.ConsumedMaterials?.Select(material => material.InventoryEntryId) ?? []));
     }
 
     public async Task<AccountLearnedSkillMutationResult> AttachSigilAsync(
@@ -211,7 +216,9 @@ public class AccountLearnedSkillRepository(
             ConsumeMaterial(orb!, request.UpdatedBy, now);
             await dbContext.SaveChangesAsync();
             return Success(Map(entity));
-        });
+        }, _ => ReadInventorySnapshotAsync(
+            accountId,
+            [request.SigilInventoryEntryId, request.OrbInventoryEntryId]));
     }
 
     public async Task<AccountLearnedSkillMutationResult> DetachSigilAsync(
@@ -309,7 +316,11 @@ public class AccountLearnedSkillRepository(
             ConsumeMaterial(orb!, request.UpdatedBy, now);
             await dbContext.SaveChangesAsync();
             return Success(Map(entity), returnedEntry.InventoryEntryId);
-        });
+        }, result => ReadInventorySnapshotAsync(
+            accountId,
+            result.ReturnedInventoryEntryId.HasValue
+                ? [request.OrbInventoryEntryId, result.ReturnedInventoryEntryId.Value]
+                : [request.OrbInventoryEntryId]));
     }
 
     public async Task<AccountLearnedSkillMutationResult> ForgetAsync(
@@ -373,10 +384,15 @@ public class AccountLearnedSkillRepository(
         Guid? operationId,
         string operationType,
         string requestHash,
-        Func<Task<AccountLearnedSkillMutationResult>> operation)
+        Func<Task<AccountLearnedSkillMutationResult>> operation,
+        Func<AccountLearnedSkillMutationResult, Task<InventoryOperationSnapshotResponse>>? snapshotReader = null)
     {
         if (!operationId.HasValue)
-            return await ExecuteSerializableAsync(operation);
+            return await ExecuteSerializableAsync(async () =>
+            {
+                var result = await operation();
+                return await WithCurrentSnapshotAsync(result, snapshotReader);
+            });
 
         var strategy = dbContext.Database.CreateExecutionStrategy();
         return await strategy.ExecuteAsync(async () =>
@@ -395,7 +411,8 @@ public class AccountLearnedSkillRepository(
                     return Failure(AccountLearnedSkillMutationFailure.IdempotencyConflict);
                 }
 
-                var replay = DeserializeMutationResult(existing.ResultPayloadJson);
+                var replay = await WithCurrentSnapshotAsync(
+                    DeserializeMutationResult(existing.ResultPayloadJson), snapshotReader);
                 await transaction.CommitAsync();
                 return replay;
             }
@@ -414,10 +431,27 @@ public class AccountLearnedSkillRepository(
                 CreatedBy = accountId,
             });
             await dbContext.SaveChangesAsync();
+            result = await WithCurrentSnapshotAsync(result, snapshotReader);
             await transaction.CommitAsync();
             return result;
         });
     }
+
+    /// <summary>成功済みmutationの現在の所有entry状態を、同じtransaction内で応答へだけ付加します。</summary>
+    private async Task<AccountLearnedSkillMutationResult> WithCurrentSnapshotAsync(
+        AccountLearnedSkillMutationResult result,
+        Func<AccountLearnedSkillMutationResult, Task<InventoryOperationSnapshotResponse>>? snapshotReader)
+    {
+        if (!result.Succeeded || snapshotReader is null)
+            return result;
+        return result with { InventorySnapshot = await snapshotReader(result) };
+    }
+
+    /// <summary>指定したmutation対象entryの現在の所有者限定正本を取得します。</summary>
+    private Task<InventoryOperationSnapshotResponse> ReadInventorySnapshotAsync(
+        Guid accountId,
+        IEnumerable<Guid> entryIds)
+        => InventoryOperationSnapshotReader.ReadAsync(dbContext, accountId, entryIds);
 
     private async Task<AccountLearnedSkillOperationEntity?> FindOperationForUpdateAsync(Guid operationId)
     {

@@ -10,6 +10,9 @@ public class AccountLearnedSkillResponse
     public int Version { get; init; }
     public DateTime CreatedAt { get; init; }
     public DateTime UpdatedAt { get; init; }
+    [System.Text.Json.Serialization.JsonIgnore(
+        Condition = System.Text.Json.Serialization.JsonIgnoreCondition.WhenWritingNull)]
+    public InventoryOperationSnapshotResponse? InventorySnapshot { get; init; }
 }
 
 public class AccountLearnedSkillSigilResponse
@@ -30,6 +33,7 @@ public class AccountLearnedSkillMaterialMutationResponse
 {
     public required AccountLearnedSkillResponse Skill { get; init; }
     public IReadOnlyList<AccountLearnedSkillConsumedMaterialResponse> ConsumedMaterials { get; init; } = [];
+    public InventoryOperationSnapshotResponse? InventorySnapshot { get; init; }
 }
 
 public class AccountLearnedSkillLearnRequest
@@ -65,6 +69,7 @@ public class AccountLearnedSkillDetachSigilResponse
 {
     public required AccountLearnedSkillResponse Skill { get; init; }
     public Guid ReturnedInventoryEntryId { get; init; }
+    public InventoryOperationSnapshotResponse? InventorySnapshot { get; init; }
 }
 
 public class AccountLearnedSkillForgetRequest
@@ -94,7 +99,9 @@ public record AccountLearnedSkillMutationResult(
     AccountLearnedSkillResponse? Skill,
     AccountLearnedSkillMutationFailure Failure,
     Guid? ReturnedInventoryEntryId = null,
-    IReadOnlyList<AccountLearnedSkillConsumedMaterialResponse>? ConsumedMaterials = null)
+    IReadOnlyList<AccountLearnedSkillConsumedMaterialResponse>? ConsumedMaterials = null,
+    [property: System.Text.Json.Serialization.JsonIgnore]
+    InventoryOperationSnapshotResponse? InventorySnapshot = null)
 {
     public bool Succeeded => Failure == AccountLearnedSkillMutationFailure.None && Skill is not null;
 }

@@ -3,7 +3,9 @@ package io.github.maaasu.astralRecord.feature.skill.repository
 import com.google.gson.JsonArray
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryOperationSnapshotParser
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInventoryMutationResult
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillConsumedMaterial
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMaterialMutationResult
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException
@@ -78,7 +80,7 @@ class LearnedSkillRepository {
         sigilId: String,
         sigilInventoryEntryId: UUID,
         updatedBy: UUID,
-    ): LearnedSkillInstance {
+    ): LearnedSkillInventoryMutationResult {
         return attachSigil(
             accountId,
             learnedSkillId,
@@ -98,7 +100,7 @@ class LearnedSkillRepository {
         sigilInventoryEntryId: UUID,
         updatedBy: UUID,
         operationId: UUID,
-    ): LearnedSkillInstance {
+    ): LearnedSkillInventoryMutationResult {
         val body = ApiRequestUtil.buildJsonBody {
             addProperty("orbInventoryEntryId", orbInventoryEntryId.toString())
             addProperty("sigilId", sigilId)
@@ -106,7 +108,7 @@ class LearnedSkillRepository {
             addProperty("operationId", operationId.toString())
             addProperty("updatedBy", updatedBy.toString())
         }
-        return mutate("/api/account-skills/$accountId/$learnedSkillId/sigils", body)
+        return mutateWithInventorySnapshot("/api/account-skills/$accountId/$learnedSkillId/sigils", body)
     }
 
     fun detachSigil(
@@ -151,6 +153,7 @@ class LearnedSkillRepository {
                     return LearnedSkillSigilDetachResult(
                         parseSkill(result.getAsJsonObject("skill")),
                         UUID.fromString(result.get("returnedInventoryEntryId").asString),
+                        InventoryOperationSnapshotParser.parse(result.getAsJsonObject("inventorySnapshot")),
                     )
                 }
                 val failure = parseFailure(response.body())
@@ -227,6 +230,9 @@ class LearnedSkillRepository {
                                 )
                             }
                             ?: emptyList(),
+                        inventorySnapshot = InventoryOperationSnapshotParser.parse(
+                            result.getAsJsonObject("inventorySnapshot"),
+                        ),
                     )
                 }
                 val failure = parseFailure(response.body())
@@ -245,6 +251,38 @@ class LearnedSkillRepository {
     private fun parseList(json: String): List<LearnedSkillInstance> {
         val array: JsonArray = JsonParser.parseString(json).asJsonArray
         return array.filter { it.isJsonObject }.map { parseSkill(it.asJsonObject) }
+    }
+
+    private fun mutateWithInventorySnapshot(
+        path: String,
+        body: String,
+    ): LearnedSkillInventoryMutationResult {
+        try {
+            ApiRequestUtil.buildClient().use { client ->
+                val request = ApiRequestUtil.buildRequestBuilder(path)
+                    .POST(HttpRequest.BodyPublishers.ofString(body))
+                    .build()
+                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
+                if (response.statusCode() in 200..299) {
+                    val result = JsonParser.parseString(response.body()).asJsonObject
+                    return LearnedSkillInventoryMutationResult(
+                        skill = parseSkill(result),
+                        inventorySnapshot = InventoryOperationSnapshotParser.parse(
+                            result.getAsJsonObject("inventorySnapshot"),
+                        ),
+                    )
+                }
+                val failure = parseFailure(response.body())
+                throw LearnedSkillMutationException(
+                    failure,
+                    "HTTP ${response.statusCode()} for POST $path: $failure",
+                    response.statusCode(),
+                )
+            }
+        } catch (e: InterruptedException) {
+            Thread.currentThread().interrupt()
+            throw RuntimeException(e)
+        }
     }
 
     private fun parseSkill(obj: JsonObject): LearnedSkillInstance = LearnedSkillInstance(

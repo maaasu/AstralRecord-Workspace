@@ -15,15 +15,22 @@ public class AccountLearnedSkillRepositoryTests
 {
     /// <summary>
     /// 設計入力: 00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md
-    /// 検証契約: 同じ operationId の再送は、API/DbContext が変わっても個体作成と素材消費を再実行せず保存済み結果を返す。
+    /// 検証契約: 同じ operationId の再送は個体作成・素材消費を再実行せず、現在の所有entry snapshotだけを再取得して返す。
     /// </summary>
     [Fact]
     public async Task LearnAsync_ReplaysOperationWithoutDuplicatingMutation()
     {
         await using var fixture = await TestDatabase.CreateAsync();
         await fixture.SeedMasterAsync("adventurer_smash", "skill", null);
+        var master = await fixture.MasterDb.Entries.SingleAsync(entry => entry.MasterId == "adventurer_smash");
+        master.PayloadJson = master.PayloadJson.Replace(
+            "\"maxLevel\":5,",
+            "\"maxLevel\":5,\"learnRequiredItems\":[{\"itemId\":\"skill_gem_raw\",\"amount\":1}],");
+        await fixture.MasterDb.SaveChangesAsync();
         var accountId = Guid.NewGuid();
         await fixture.AddAccountAsync(accountId);
+        var materialEntryId = await fixture.AddInventoryEntryAsync(
+            accountId, "material", "skill_gem_raw", 2);
         var operationId = Guid.NewGuid();
         var request = new AccountLearnedSkillLearnRequest
         {
@@ -39,6 +46,12 @@ public class AccountLearnedSkillRepositoryTests
                 .LearnAsync(accountId, request);
         }
 
+        var currentEntry = await fixture.PlayerDb.InventoryEntries
+            .SingleAsync(entry => entry.InventoryEntryId == materialEntryId);
+        currentEntry.Quantity = 7;
+        currentEntry.UpdatedAt = DateTime.UtcNow;
+        await fixture.PlayerDb.SaveChangesAsync();
+
         AccountLearnedSkillMutationResult replay;
         await using (var requestDb = fixture.CreatePlayerDb())
         {
@@ -49,6 +62,11 @@ public class AccountLearnedSkillRepositoryTests
         Assert.True(first.Succeeded);
         Assert.True(replay.Succeeded);
         Assert.Equal(first.Skill!.LearnedSkillId, replay.Skill!.LearnedSkillId);
+        Assert.NotNull(first.InventorySnapshot);
+        Assert.Equal(1, Assert.Single(first.InventorySnapshot!.Entries).Quantity);
+        Assert.NotNull(replay.InventorySnapshot);
+        Assert.Contains(materialEntryId, replay.InventorySnapshot!.CoveredEntryIds);
+        Assert.Equal(7, Assert.Single(replay.InventorySnapshot.Entries).Quantity);
         Assert.Equal(1, await fixture.PlayerDb.AccountLearnedSkills.CountAsync(skill => !skill.IsDeleted));
         Assert.Equal(1, await fixture.PlayerDb.AccountLearnedSkillOperations.CountAsync());
     }
@@ -316,18 +334,19 @@ public class AccountLearnedSkillRepositoryTests
                     UpdatedBy = accountId,
                 })).Skill!;
         }
-        AccountLearnedSkillResponse attached;
+        AccountLearnedSkillMutationResult attachedResult;
         await using (var requestDb = fixture.CreatePlayerDb())
         {
-            attached = (await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
+            attachedResult = await new AccountLearnedSkillRepository(requestDb, fixture.MasterDb)
                 .AttachSigilAsync(accountId, learned.LearnedSkillId, new AccountLearnedSkillAttachSigilRequest
                 {
                     SigilId = "cooldown_sigil",
                     SigilInventoryEntryId = sigilEntryId,
                     OrbInventoryEntryId = bragiOrb,
                     UpdatedBy = accountId,
-                })).Skill!;
+                });
         }
+        var attached = attachedResult.Skill!;
 
         AccountLearnedSkillMutationResult detached;
         await using (var requestDb = fixture.CreatePlayerDb())
@@ -347,6 +366,17 @@ public class AccountLearnedSkillRepositoryTests
         Assert.True(detached.Succeeded);
         Assert.Empty(detached.Skill!.Sigils);
         Assert.NotNull(detached.ReturnedInventoryEntryId);
+        Assert.NotNull(attachedResult.InventorySnapshot);
+        Assert.Equal(
+            new[] { sigilEntryId, bragiOrb }.Order(),
+            attachedResult.InventorySnapshot!.CoveredEntryIds.Order());
+        Assert.NotNull(detached.InventorySnapshot);
+        Assert.Equal(
+            new[] { mimirOrb, detached.ReturnedInventoryEntryId!.Value }.Order(),
+            detached.InventorySnapshot!.CoveredEntryIds.Order());
+        Assert.Contains(detached.InventorySnapshot.Entries,
+            entry => entry.InventoryEntryId == detached.ReturnedInventoryEntryId.Value
+                && entry.Quantity == 1);
         Assert.True((await fixture.PlayerDb.AccountLearnedSkillSigils.AsNoTracking()
             .SingleAsync(sigil => sigil.LearnedSkillSigilId == attached.Sigils.Single().LearnedSkillSigilId)).IsDeleted);
         var returned = await fixture.PlayerDb.InventoryEntries.AsNoTracking()

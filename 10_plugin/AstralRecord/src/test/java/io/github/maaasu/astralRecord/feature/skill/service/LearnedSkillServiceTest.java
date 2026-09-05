@@ -1,7 +1,9 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInventoryMutationResult;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillConsumedMaterial;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMaterialMutationResult;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException;
@@ -17,6 +19,7 @@ import org.mockito.ArgumentCaptor;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
@@ -393,7 +396,7 @@ class LearnedSkillServiceTest {
             eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq("cooldown_sigil"),
             eq(sigilEntryId), eq(accountId),
             any(UUID.class)
-        )).thenReturn(learned);
+        )).thenReturn(new LearnedSkillInventoryMutationResult(learned));
 
         LearnedSkillService service = new LearnedSkillService(plugin, repository, inventoryService);
         service.applyInitialSkills(accountId, List.of());
@@ -422,6 +425,57 @@ class LearnedSkillServiceTest {
         );
         verify(inventoryService).reconcileAuthoritativeEntry(accountId, orbEntryId);
         verify(inventoryService).reconcileAuthoritativeEntry(accountId, sigilEntryId);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: API応答が消費entry全件をcoverするsnapshotを含む時は、個別GETを行わず同snapshotを適用する。
+     */
+    @Test
+    void attachSigilUsesResponseSnapshotForBothConsumedEntries() {
+        Plugin plugin = mock(Plugin.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        LearnedSkillRepository repository = mock(LearnedSkillRepository.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        UUID accountId = UUID.randomUUID();
+        UUID learnedSkillId = UUID.randomUUID();
+        UUID orbEntryId = UUID.randomUUID();
+        UUID sigilEntryId = UUID.randomUUID();
+        LearnedSkillInstance learned = learned(accountId, 1);
+        InventoryOperationSnapshot snapshot = new InventoryOperationSnapshot(
+            accountId, Set.of(orbEntryId, sigilEntryId), List.of(), null, List.of()
+        );
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTaskAsynchronously(eq(plugin), any(Runnable.class));
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
+        when(inventoryService.saveNow(accountId)).thenReturn(CompletableFuture.completedFuture(true));
+        when(repository.attachSigil(
+            eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq("cooldown_sigil"),
+            eq(sigilEntryId), eq(accountId), any(UUID.class)
+        )).thenReturn(new LearnedSkillInventoryMutationResult(learned, snapshot));
+
+        LearnedSkillService service = new LearnedSkillService(plugin, repository, inventoryService);
+        service.applyInitialSkills(accountId, List.of());
+
+        assertTrue(service.attachSigilAsync(
+            accountId, learnedSkillId, orbEntryId, "cooldown_sigil", sigilEntryId, accountId,
+            ignored -> { }, ignored -> { throw new AssertionError("attachment should succeed"); }
+        ));
+
+        verify(inventoryService).reconcileAuthoritativeEntry(accountId, orbEntryId, snapshot);
+        verify(inventoryService).reconcileAuthoritativeEntry(accountId, sigilEntryId, snapshot);
+        verify(inventoryService, never()).reconcileAuthoritativeEntry(accountId, orbEntryId);
+        verify(inventoryService, never()).reconcileAuthoritativeEntry(accountId, sigilEntryId);
     }
 
     /**

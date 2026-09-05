@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skill.model
 
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot
 import java.time.LocalDateTime
 import java.util.UUID
 
@@ -26,6 +27,7 @@ data class LearnedSkillSigil(
 data class LearnedSkillSigilDetachResult(
     val skill: LearnedSkillInstance,
     val returnedInventoryEntryId: UUID,
+    val inventorySnapshot: InventoryOperationSnapshot? = null,
 )
 
 data class LearnedSkillConsumedMaterial(
@@ -36,6 +38,13 @@ data class LearnedSkillConsumedMaterial(
 data class LearnedSkillMaterialMutationResult(
     val skill: LearnedSkillInstance,
     val consumedMaterials: List<LearnedSkillConsumedMaterial> = emptyList(),
+    val inventorySnapshot: InventoryOperationSnapshot? = null,
+)
+
+/** シジル装着後の習得個体と、消費entryの任意の正本snapshotです。 */
+data class LearnedSkillInventoryMutationResult(
+    val skill: LearnedSkillInstance,
+    val inventorySnapshot: InventoryOperationSnapshot? = null,
 )
 
 enum class LearnedSkillMutationFailure {

@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInventoryMutationResult;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMaterialMutationResult;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigilDetachResult;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException;
@@ -295,8 +296,8 @@ public final class LearnedSkillService {
         return mutateAsync(
             accountId,
             List.of(orbInventoryEntryId, sigilInventoryEntryId),
-            () -> oneEachMutationOutcome(
-                repository.attachSigil(
+            () -> {
+                LearnedSkillInventoryMutationResult result = repository.attachSigil(
                     accountId,
                     learnedSkillId,
                     orbInventoryEntryId,
@@ -304,9 +305,12 @@ public final class LearnedSkillService {
                     sigilInventoryEntryId,
                     updatedBy,
                     operationId
-                ),
-                List.of(orbInventoryEntryId, sigilInventoryEntryId)
-            ),
+                );
+                return oneEachMutationOutcome(
+                    result,
+                    List.of(orbInventoryEntryId, sigilInventoryEntryId)
+                );
+            },
             onSuccess,
             onFailure,
             onPending
@@ -386,7 +390,8 @@ public final class LearnedSkillService {
                     result.getSkill(),
                     Map.of(orbInventoryEntryId, 1L),
                     List.of(result.getReturnedInventoryEntryId()),
-                    false
+                    false,
+                    result.getInventorySnapshot()
                 );
             },
             onSuccess,
@@ -443,7 +448,8 @@ public final class LearnedSkillService {
                 repository.forget(accountId, learnedSkillId, updatedBy, operationId),
                 Map.of(),
                 List.of(),
-                true
+                true,
+                null
             ),
             onSuccess,
             onFailure,
@@ -664,7 +670,15 @@ public final class LearnedSkillService {
             reconciliationIds.addAll(outcome.additionalReconciliationEntryIds());
             for (UUID materialInventoryEntryId : reconciliationIds) {
                 try {
-                    inventoryService.reconcileAuthoritativeEntry(accountId, materialInventoryEntryId);
+                    if (outcome.inventorySnapshot() == null) {
+                        inventoryService.reconcileAuthoritativeEntry(accountId, materialInventoryEntryId);
+                    } else {
+                        inventoryService.reconcileAuthoritativeEntry(
+                            accountId,
+                            materialInventoryEntryId,
+                            outcome.inventorySnapshot()
+                        );
+                    }
                 } catch (Throwable reconciliationError) {
                     Long consumedAmount = outcome.consumedAmounts().get(materialInventoryEntryId);
                     if (consumedAmount != null && consumedAmount > 0L) {
@@ -921,23 +935,36 @@ public final class LearnedSkillService {
             material.getConsumedAmount(),
             Long::sum
         ));
-        return new MutationOutcome(result.getSkill(), Map.copyOf(consumedAmounts), List.of(), false);
+        return new MutationOutcome(
+            result.getSkill(),
+            Map.copyOf(consumedAmounts),
+            List.of(),
+            false,
+            result.getInventorySnapshot()
+        );
     }
 
     private static MutationOutcome oneEachMutationOutcome(
-        LearnedSkillInstance skill,
+        LearnedSkillInventoryMutationResult result,
         List<UUID> consumedEntryIds
     ) {
         Map<UUID, Long> consumedAmounts = new LinkedHashMap<>();
         consumedEntryIds.forEach(entryId -> consumedAmounts.merge(entryId, 1L, Long::sum));
-        return new MutationOutcome(skill, Map.copyOf(consumedAmounts), List.of(), false);
+        return new MutationOutcome(
+            result.getSkill(),
+            Map.copyOf(consumedAmounts),
+            List.of(),
+            false,
+            result.getInventorySnapshot()
+        );
     }
 
     private record MutationOutcome(
         LearnedSkillInstance skill,
         Map<UUID, Long> consumedAmounts,
         List<UUID> additionalReconciliationEntryIds,
-        boolean removeFromCache
+        boolean removeFromCache,
+        @Nullable io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot inventorySnapshot
     ) {
     }
 
