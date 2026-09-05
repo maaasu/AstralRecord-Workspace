@@ -419,6 +419,8 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         victim.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
             StatusType.MAX_HEALTH, 100.0D, StatusType.MAX_SHIELD, 30.0D
         ), 100.0D, 0.0D, 0.0D).withCurrentShield(30.0D));
+        attacker.setPvpEnabled(true);
+        victim.setPvpEnabled(true);
         when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
         when(harness.statusService.getStatus(victim)).thenReturn(victim.getStatusSnapshot());
         when(harness.statusService.hasConfiguredShieldRecharge(victim)).thenReturn(true);
@@ -442,6 +444,8 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         victim.setStatusSnapshot(DesignTestFixtures.statusSnapshot(Map.of(
             StatusType.MAX_HEALTH, 100.0D, StatusType.MAX_SHIELD, 30.0D
         ), 100.0D, 0.0D, 0.0D).withCurrentShield(30.0D));
+        attacker.setPvpEnabled(true);
+        victim.setPvpEnabled(true);
         when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
         when(harness.statusService.getStatus(victim)).thenReturn(victim.getStatusSnapshot());
         when(harness.statusService.hasConfiguredShieldRecharge(victim)).thenReturn(true);

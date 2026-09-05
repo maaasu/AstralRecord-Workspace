@@ -681,6 +681,9 @@ public final class DamageService {
             double baseDamage,
             @NotNull ConditionType conditionType
     ) {
+        if (!canApplyPlayerDamage(attacker, victim)) {
+            return new DamageResult(0.0D);
+        }
         if (dungeonService != null && !dungeonService.canApplyCombatDamage(attacker, victim)) {
             return new DamageResult(0.0D);
         }
@@ -708,6 +711,25 @@ public final class DamageService {
         applyDamageResult(attacker, victim, result, AttackType.MAGIC, false);
         spawnDamageDisplay(attacker, victim, result);
         return result;
+    }
+
+    /**
+     * プレイヤー間ダメージの許可状態を判定します。
+     * PvP フラグはオンラインセッションの既定値を false とし、両者が有効な場合だけ許可します。
+     */
+    private boolean canApplyPlayerDamage(
+            @Nullable AstEntity attacker,
+            @NotNull AstEntity victim
+    ) {
+        if (attacker == null || !attacker.isPlayer() || !victim.isPlayer()) {
+            return true;
+        }
+        AstPlayer attackerPlayer = attacker.player();
+        AstPlayer victimPlayer = victim.player();
+        return attackerPlayer != null
+                && victimPlayer != null
+                && attackerPlayer.isPvpEnabled()
+                && victimPlayer.isPvpEnabled();
     }
 
     /**
@@ -903,6 +925,9 @@ public final class DamageService {
             @Nullable Double shieldBreakRatio,
             @Nullable Double superStarCriticalRateOverride
     ) {
+        if (!canApplyPlayerDamage(attacker, victim)) {
+            return new DamageResult(0.0D);
+        }
         if (dungeonService != null && !dungeonService.canApplyCombatDamage(attacker, victim)) {
             return new DamageResult(0.0D);
         }

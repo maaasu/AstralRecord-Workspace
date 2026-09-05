@@ -16,6 +16,7 @@ import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
 import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
+import io.github.maaasu.astralRecord.shared.interaction.InputSource;
 import io.github.maaasu.astralRecord.shared.interaction.InteractionCandidateOrder;
 import io.github.maaasu.astralRecord.shared.interaction.InteractionTier;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
@@ -23,6 +24,7 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import org.bukkit.GameMode;
+import org.bukkit.entity.Entity;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.InventoryHolder;
 import org.bukkit.entity.Player;
@@ -102,8 +104,58 @@ public class PlayerModeEventHandler extends AbstractEventHandler
     public @NotNull Collection<PlayerInputCandidate> resolve(
         @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
     ) {
-        if (context.family() != InputFamily.DROP_ITEM
-            || !isPlayerMode(context.inputSnapshot().player())) {
+        PlayerInteractionSnapshot snapshot = context.inputSnapshot();
+        if (!isPlayerMode(snapshot.player())) {
+            return List.of();
+        }
+        Collection<PlayerInputCandidate> playerModeGuard = resolvePlayerModeGuard(context, snapshot);
+        if (!playerModeGuard.isEmpty()) {
+            return playerModeGuard;
+        }
+        return List.of();
+    }
+
+    private @NotNull Collection<PlayerInputCandidate> resolvePlayerModeGuard(
+        @NotNull PlayerInputContext<PlayerInteractionSnapshot> context,
+        @NotNull PlayerInteractionSnapshot snapshot
+    ) {
+        if (context.family() == InputFamily.RIGHT_CLICK
+            && isEntityInteractionSource(context.source())
+            && snapshot.targetEntity() != null) {
+            Entity target = snapshot.targetEntity();
+            Double hitDistance = snapshot.hitDistance(target);
+            double candidateDistance = hitDistance != null
+                ? hitDistance
+                : snapshot.blockingDistance();
+            return List.of(new PlayerInputCandidate(
+                "player-mode-entity-interaction-guard",
+                InteractionTier.WORLD_INTERACTION,
+                candidateDistance,
+                InteractionCandidateOrder.PLAYER_MODE_ENTITY_INTERACTION_GUARD,
+                snapshot.directTargetKey(),
+                InputClaimPolicy.CLAIM_AND_CANCEL,
+                () -> {
+                }
+            ));
+        }
+
+        if (context.family() == InputFamily.LEFT_CLICK
+            && context.source() == InputSource.PRE_PLAYER_ATTACK_ENTITY
+            && snapshot.willAttack()
+            && !isPvpAttackAllowed(snapshot)) {
+            return List.of(new PlayerInputCandidate(
+                "player-mode-vanilla-combat-guard",
+                InteractionTier.FALLBACK,
+                0.0D,
+                InteractionCandidateOrder.PLAYER_MODE_VANILLA_COMBAT_GUARD,
+                snapshot.directTargetKey(),
+                InputClaimPolicy.CLAIM_AND_CANCEL,
+                () -> {
+                }
+            ));
+        }
+
+        if (context.family() != InputFamily.DROP_ITEM) {
             return List.of();
         }
         return List.of(new PlayerInputCandidate(
@@ -116,6 +168,23 @@ public class PlayerModeEventHandler extends AbstractEventHandler
             () -> {
             }
         ));
+    }
+
+    private boolean isEntityInteractionSource(InputSource source) {
+        return source == InputSource.PLAYER_INTERACT_ENTITY
+            || source == InputSource.PLAYER_INTERACT_AT_ENTITY;
+    }
+
+    private boolean isPvpAttackAllowed(PlayerInteractionSnapshot snapshot) {
+        if (!(snapshot.targetEntity() instanceof Player target)) {
+            return false;
+        }
+        var attacker = AstPlayerCache.get(snapshot.player());
+        var victim = AstPlayerCache.get(target);
+        return attacker != null
+            && victim != null
+            && attacker.isPvpEnabled()
+            && victim.isPvpEnabled();
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

@@ -44,6 +44,9 @@ data class AstPlayer(
     var isBedrock: Boolean = BedrockPlayerDetector.isBedrockMcid(user.mcid)
         private set
 
+    /** プレイヤー間のダメージを許可するセッションフラグ。既定では無効。 */
+    var isPvpEnabled: Boolean = false
+
     /** GUI を閉じずに遷移した現在画面と戻り先のセッション履歴。 */
     val guiNavigationState: GuiNavigationState = GuiNavigationState()
 

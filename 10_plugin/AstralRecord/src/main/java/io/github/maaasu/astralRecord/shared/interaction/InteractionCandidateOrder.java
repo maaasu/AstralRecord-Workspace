@@ -18,12 +18,14 @@ public final class InteractionCandidateOrder {
     public static final int MOB_SPAWNER = 60;
     public static final int GATHERING_SPAWNER = 70;
     public static final int HOOKSHOT = 80;
+    public static final int PLAYER_MODE_ENTITY_INTERACTION_GUARD = 85;
     public static final int VANILLA_INTERACTION = 90;
     public static final int MENU_SHORTCUT = 90;
     public static final int OPEN_ACTION_RING = 100;
     public static final int ATTACK_CONDITION_GUARD = 150;
     public static final int WEAPON_ACTION = 200;
     public static final int ITEM_VANILLA_GUARD = 220;
+    public static final int PLAYER_MODE_VANILLA_COMBAT_GUARD = 299;
     public static final int VANILLA_COMBAT = 300;
     public static final int NEW_ACTION_RING = 400;
     public static final int RIGHT_CLICK_ITEM_VANILLA_GUARD = 450;

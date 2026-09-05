@@ -81,6 +81,8 @@ class DamageServiceJustDodgeTest extends MockBukkitTestBase {
                 StatusType.MAX_ENERGY, 100.0D,
                 StatusType.EVASION, 0.0D
         ), 100.0D, 0.0D, 0.0D));
+        attacker.setPvpEnabled(true);
+        victim.setPvpEnabled(true);
 
         PassiveSkillContext context = new PassiveSkillContext(
                 victim,

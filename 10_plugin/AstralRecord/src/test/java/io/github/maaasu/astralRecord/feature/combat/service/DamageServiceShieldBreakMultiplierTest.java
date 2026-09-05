@@ -189,6 +189,8 @@ class DamageServiceShieldBreakMultiplierTest extends MockBukkitTestBase {
                 StatusType.EVASION, 100.0D
         ), 100.0D, 0.0D, 0.0D).withCurrentShield(50.0D);
         victim.setStatusSnapshot(victimStatus);
+        attacker.setPvpEnabled(true);
+        victim.setPvpEnabled(true);
         DamageHarness harness = damageHarness(new DamageCalculator(() -> 100.0D, () -> 100.0D));
         when(harness.statusService.getStatus(attacker)).thenReturn(attacker.getStatusSnapshot());
         when(harness.statusService.getStatus(victim)).thenReturn(victimStatus);

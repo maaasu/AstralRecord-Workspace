@@ -261,6 +261,8 @@ class DamageServiceBastionStrikeTest extends MockBukkitTestBase {
             AstPlayer victim,
             DamageSource source
     ) {
+        attacker.setPvpEnabled(true);
+        victim.setPvpEnabled(true);
         return damageService.attack(
                 AstEntity.player(attacker),
                 AstEntity.player(victim),

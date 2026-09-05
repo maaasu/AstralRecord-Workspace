@@ -1,14 +1,18 @@
 package io.github.maaasu.astralRecord.feature.player.event;
 
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import org.bukkit.entity.Entity;
 import org.bukkit.entity.Player;
+import org.bukkit.entity.Projectile;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
 import org.bukkit.event.entity.EntityDamageEvent;
+import org.bukkit.event.entity.EntityDamageByEntityEvent;
 import org.jetbrains.annotations.NotNull;
 
 /**
@@ -40,6 +44,10 @@ public class PlayerVanillaDamageBlockEventHandler extends AbstractEventHandler {
                 return;
             }
 
+            if (isAllowedPlayerDamage(event, player)) {
+                return;
+            }
+
             if (event.getCause() == EntityDamageEvent.DamageCause.VOID) {
                 event.setDamage(0.0D);
                 event.setCancelled(true);
@@ -50,6 +58,36 @@ public class PlayerVanillaDamageBlockEventHandler extends AbstractEventHandler {
             event.setDamage(0.0D);
             event.setCancelled(true);
         }, LogId.E_3002, "vanilla_damage_block:" + event.getEntity().getName());
+    }
+
+    private boolean isAllowedPlayerDamage(
+        @NotNull EntityDamageEvent event,
+        @NotNull Player victim
+    ) {
+        if (!(event instanceof EntityDamageByEntityEvent byEntityEvent)) {
+            return false;
+        }
+        Player attacker = resolvePlayerAttacker(byEntityEvent.getDamager());
+        if (attacker == null) {
+            return false;
+        }
+        var attackerModel = AstPlayerCache.get(attacker);
+        var victimModel = AstPlayerCache.get(victim);
+        return attackerModel != null
+            && victimModel != null
+            && attackerModel.isPvpEnabled()
+            && victimModel.isPvpEnabled();
+    }
+
+    private Player resolvePlayerAttacker(@NotNull Entity damager) {
+        if (damager instanceof Player player) {
+            return player;
+        }
+        if (damager instanceof Projectile projectile
+            && projectile.getShooter() instanceof Player player) {
+            return player;
+        }
+        return null;
     }
 
     private void teleportToWorldMasterSpawn(@NotNull Player player) {
