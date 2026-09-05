@@ -74,6 +74,7 @@ import io.github.maaasu.astralRecord.feature.item.service.BuiltInWeaponAttackDef
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseEffectService;
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
+import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityReminderTask;
 import io.github.maaasu.astralRecord.feature.item.service.HookshotUseService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemDropAnimationService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemChatShareService;
@@ -442,6 +443,7 @@ public final class AstralRecord extends JavaPlugin {
     private PlayerClassService playerClassService;
     private ItemWeaponAttackService itemWeaponAttackService;
     private EquipmentDurabilityService equipmentDurabilityService;
+    private EquipmentDurabilityReminderTask equipmentDurabilityReminderTask;
     private HookshotUseService hookshotUseService;
     private OrbService orbService;
     private WorldService worldService;
@@ -609,6 +611,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (guideReminderTask != null) {
             guideReminderTask.stop();
+        }
+        if (equipmentDurabilityReminderTask != null) {
+            equipmentDurabilityReminderTask.stop();
         }
         if (questService != null) {
             questService.stop();
@@ -1318,6 +1323,10 @@ public final class AstralRecord extends JavaPlugin {
         );
         equipmentDurabilityService = new EquipmentDurabilityService(inventoryService, itemService);
         equipmentDurabilityService.setStatusService(statusService);
+        equipmentDurabilityReminderTask = new EquipmentDurabilityReminderTask(
+            equipmentDurabilityService,
+            playerMessageService
+        );
         damageService.setEquipmentDurabilityService(equipmentDurabilityService);
         gatheringService.setEquipmentDurabilityService(equipmentDurabilityService);
         playerListGui = new PlayerListGui(worldService);
@@ -2151,6 +2160,7 @@ public final class AstralRecord extends JavaPlugin {
         // インベントリオートセーブ（60 秒）を開始
         inventoryAutoSaveTask.start(this, InventoryAutoSaveTask.DEFAULT_INTERVAL_TICKS);
         guideReminderTask.start(this, GuideReminderTask.DEFAULT_INTERVAL_TICKS);
+        equipmentDurabilityReminderTask.start(this, EquipmentDurabilityReminderTask.DEFAULT_INTERVAL_TICKS);
     }
     /**
      * AstralRecord のインスタンスを取得します。

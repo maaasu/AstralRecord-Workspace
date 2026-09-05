@@ -23,7 +23,9 @@ import org.bukkit.inventory.PlayerInventory;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.function.DoubleSupplier;
@@ -188,6 +190,47 @@ public final class EquipmentDurabilityService {
         return instance != null && instance.getDurabilityMax() > 0 && instance.getDurabilityValue() <= 0;
     }
 
+    /**
+     * 装備中の防具およびアクセサリのうち、最大耐久値を下回っている装備名を返します。
+     * <p>
+     * Bukkit の防具スロットと仮想アクセサリスロットを走査し、同じ装備個体は一度だけ扱います。
+     * 武器・補助装備・道具、最大耐久値を持たない装備は対象外です。
+     *
+     * @param player 判定対象プレイヤー
+     * @return 破損がある装備の表示名一覧。該当しない場合は空のリスト
+     */
+    public @NotNull List<String> getDamagedArmorAndAccessoryDisplayNames(@NotNull AstPlayer player) {
+        PlayerInventory inventory = player.getBukkit().getInventory();
+        List<ItemStack> equippedItems = new ArrayList<>();
+        equippedItems.add(inventory.getHelmet());
+        equippedItems.add(inventory.getChestplate());
+        equippedItems.add(inventory.getLeggings());
+        equippedItems.add(inventory.getBoots());
+        equippedItems.addAll(inventoryService.getEquippedAccessorySnapshotItems(player));
+
+        Set<String> inspectedInstanceIds = new HashSet<>();
+        List<String> damagedNames = new ArrayList<>();
+        for (ItemStack itemStack : equippedItems) {
+            ItemReference reference = itemReferenceResolver.resolveLoaded(itemStack);
+            if (reference == null
+                || !reference.hasEquipmentInstanceId()
+                || ItemCategory.fromApiValue(reference.category()) != ItemCategory.EQUIPMENT
+                || !inspectedInstanceIds.add(reference.equipmentInstanceId())) {
+                continue;
+            }
+            ItemModel model = itemService.findLoadedById(reference.itemId());
+            EquipmentInstance instance = itemService.findLoadedEquipmentInstanceById(reference.equipmentInstanceId());
+            if (model == null
+                || model.getEquipment() == null
+                || !isArmorOrAccessory(model.getEquipment().getSlot())
+                || !isDamaged(instance)) {
+                continue;
+            }
+            damagedNames.add(ColorCodeUtil.toLegacyText(model.getName(), model.getId()));
+        }
+        return List.copyOf(damagedNames);
+    }
+
     private void consumeAccessories(
         @NotNull AstPlayer player,
         double chance,
@@ -196,6 +239,20 @@ public final class EquipmentDurabilityService {
         for (ItemStack itemStack : inventoryService.getEquippedAccessorySnapshotItems(player)) {
             consumeStack(player, itemStack, equipment -> equipment.getSlot() == ItemEquipmentSlot.ACCESSORY, chance, consumed);
         }
+    }
+
+    private boolean isArmorOrAccessory(@Nullable ItemEquipmentSlot slot) {
+        return slot == ItemEquipmentSlot.HEAD
+            || slot == ItemEquipmentSlot.CHEST
+            || slot == ItemEquipmentSlot.LEGS
+            || slot == ItemEquipmentSlot.FEET
+            || slot == ItemEquipmentSlot.ACCESSORY;
+    }
+
+    private boolean isDamaged(@Nullable EquipmentInstance instance) {
+        return instance != null
+            && instance.getDurabilityMax() > 0
+            && instance.getDurabilityValue() < instance.getDurabilityMax();
     }
 
     private void consumeStack(

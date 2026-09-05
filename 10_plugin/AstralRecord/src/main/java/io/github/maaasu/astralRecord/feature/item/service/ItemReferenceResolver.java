@@ -61,6 +61,33 @@ public final class ItemReferenceResolver {
     }
 
     /**
+     * API へフォールバックせず、ItemStack の PDC に揃っている参照情報だけを解決します。
+     * <p>
+     * 周期タスクやメインスレッドの走査など、キャッシュ未命中時に同期 API 通信を発生させては
+     * ならない経路で使用します。カテゴリが欠落した古い ItemStack は解決対象外です。
+     *
+     * @param itemStack 変換対象の ItemStack
+     * @return PDC から解決できる参照情報。対象外またはカテゴリ欠落の場合は null
+     */
+    public @Nullable ItemReference resolveLoaded(@Nullable ItemStack itemStack) {
+        if (itemStack == null || itemStack.getType() == Material.AIR) {
+            return null;
+        }
+
+        String itemId = ItemStackFactory.getAstralItemId(itemStack);
+        String category = ItemStackFactory.getCategory(itemStack);
+        if (itemId == null || itemId.isBlank() || category == null || category.isBlank()) {
+            return null;
+        }
+
+        return new ItemReference(
+            itemId,
+            category,
+            ItemStackFactory.getEquipmentInstanceId(itemStack)
+        );
+    }
+
+    /**
      * {@link ItemStack} が AstralRecord アイテムか判定します。
      *
      * @param itemStack 判定対象の ItemStack
