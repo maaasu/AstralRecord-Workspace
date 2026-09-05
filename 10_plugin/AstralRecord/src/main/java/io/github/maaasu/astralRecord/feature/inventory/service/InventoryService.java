@@ -2259,10 +2259,24 @@ public class InventoryService {
                 return 0;
             }
 
-            boolean takeAll = amount <= 0
-                || amount >= sourceItem.getAmount()
-                || sourceEntry.getInstanceType() != null;
-            int movedAmount = takeAll ? sourceItem.getAmount() : Math.max(1, amount);
+            boolean stackableByItemId = isStackableByItemId(sourceEntry);
+            OwnedItemBatch batch = stackableByItemId
+                ? collectOwnedItemBatch(state, sourceBukkitSlot)
+                : null;
+            if (stackableByItemId && batch == null) {
+                return 0;
+            }
+            boolean takeAll = !stackableByItemId && (
+                amount <= 0
+                    || amount >= sourceItem.getAmount()
+                    || sourceEntry.getInstanceType() != null
+            );
+            int movedAmount = stackableByItemId
+                ? Math.min(
+                    batch.amount(),
+                    amount <= 0 ? sourceItem.getAmount() : Math.max(1, amount)
+                )
+                : takeAll ? sourceItem.getAmount() : Math.max(1, amount);
             InventoryModel storageInventory = ensureInventory(
                 state,
                 InventoryType.STORAGE,
@@ -2288,7 +2302,9 @@ public class InventoryService {
             }
             state.replaceEntries(storageInventory.getInventoryId(), storageEntries);
 
-            if (takeAll) {
+            if (batch != null) {
+                consumeOwnedItemBatch(state, batch, movedAmount);
+            } else if (takeAll) {
                 if (hotbarSlot) {
                     removeHotbarEntryAfterMove(state, sourceEntry);
                 } else {
@@ -2297,7 +2313,7 @@ public class InventoryService {
             } else {
                 reduceDisplayedEntryQuantity(state, sourceEntry, sourceEntry.getQuantity() - movedAmount);
             }
-            requestManagedInventoryUiRefresh(astPlayer, hotbarSlot);
+            requestManagedInventoryUiRefresh(astPlayer, hotbarSlot || (batch != null && batch.includesHotbar()));
             return movedAmount;
         }
     }
@@ -6842,10 +6858,11 @@ public class InventoryService {
         if (!isStackableByItemId(sourceEntry)) {
             int amount = (int) Math.clamp(sourceEntry.getQuantity(), 1L, Integer.MAX_VALUE);
             boolean includesHotbar = sourceBukkitSlot >= 0 && sourceBukkitSlot <= 8;
-            return new OwnedItemBatch(sourceEntry, Set.of(sourceEntry.getInventoryEntryId()), amount, includesHotbar);
+            return new OwnedItemBatch(sourceEntry, List.of(sourceEntry), amount, includesHotbar);
         }
 
-        Set<UUID> entryIds = new HashSet<>();
+        List<InventoryEntryModel> entries = new ArrayList<>();
+        List<UUID> inventoryOrder = new ArrayList<>();
         long totalAmount = 0L;
         boolean includesHotbar = false;
         for (InventoryType inventoryType : List.of(InventoryType.BAG, InventoryType.HOTBAR)) {
@@ -6853,25 +6870,71 @@ public class InventoryService {
             if (inventory == null || !inventory.isEnabled()) {
                 continue;
             }
+            inventoryOrder.add(inventory.getInventoryId());
             for (InventoryEntryModel entry : state.snapshotEntries(inventory.getInventoryId())) {
                 if (entry.isDeleted() || !isSameStackableItem(entry, sourceEntry)) {
                     continue;
                 }
-                entryIds.add(entry.getInventoryEntryId());
+                entries.add(entry);
                 totalAmount += Math.max(0L, entry.getQuantity());
                 includesHotbar |= inventoryType == InventoryType.HOTBAR;
             }
         }
-        if (entryIds.isEmpty() || totalAmount <= 0L || totalAmount > Integer.MAX_VALUE) {
+        if (entries.isEmpty() || totalAmount <= 0L || totalAmount > Integer.MAX_VALUE) {
             return null;
         }
-        return new OwnedItemBatch(sourceEntry, Set.copyOf(entryIds), (int) totalAmount, includesHotbar);
+        return new OwnedItemBatch(
+            sourceEntry,
+            orderNormalItemConsumptionEntries(entries, inventoryOrder),
+            (int) totalAmount,
+            includesHotbar
+        );
+    }
+
+    /**
+     * 同一通常アイテムを共通消費順で指定数だけ減算し、全量消費した BAG entry を前詰めします。
+     *
+     * @param state 更新対象のインベントリ状態
+     * @param batch 後方スロット優先で並んだ同一アイテム群
+     * @param amount 減算する数量
+     */
+    private void consumeOwnedItemBatch(
+        @NotNull PlayerInventoryState state,
+        @NotNull OwnedItemBatch batch,
+        int amount
+    ) {
+        int remaining = Math.max(0, amount);
+        InventoryModel hotbarInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.HOTBAR);
+        UUID hotbarInventoryId = hotbarInventory == null ? null : hotbarInventory.getInventoryId();
+        for (InventoryEntryModel entry : batch.entries()) {
+            if (remaining <= 0) {
+                break;
+            }
+            int available = (int) Math.clamp(entry.getQuantity(), 0L, Integer.MAX_VALUE);
+            int consumed = Math.min(available, remaining);
+            if (consumed <= 0) {
+                continue;
+            }
+            remaining -= consumed;
+            if (consumed >= entry.getQuantity()) {
+                if (entry.getInventoryId().equals(hotbarInventoryId)) {
+                    removeHotbarEntryAfterMove(state, entry);
+                } else {
+                    removeDisplayedEntryAfterMove(state, entry);
+                }
+            } else {
+                reduceDisplayedEntryQuantity(state, entry, entry.getQuantity() - consumed);
+            }
+        }
     }
 
     private void removeOwnedItemBatch(
         @NotNull PlayerInventoryState state,
         @NotNull OwnedItemBatch batch
     ) {
+        Set<UUID> entryIds = batch.entries().stream()
+            .map(InventoryEntryModel::getInventoryEntryId)
+            .collect(Collectors.toSet());
         for (InventoryType inventoryType : List.of(InventoryType.BAG, InventoryType.HOTBAR)) {
             InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, inventoryType);
             if (inventory == null) {
@@ -6880,11 +6943,11 @@ public class InventoryService {
             List<InventoryEntryModel> activeEntries = state.snapshotEntries(inventory.getInventoryId()).stream()
                 .filter(entry -> !entry.isDeleted())
                 .toList();
-            if (activeEntries.stream().noneMatch(entry -> batch.entryIds().contains(entry.getInventoryEntryId()))) {
+            if (activeEntries.stream().noneMatch(entry -> entryIds.contains(entry.getInventoryEntryId()))) {
                 continue;
             }
             List<InventoryEntryModel> remaining = activeEntries.stream()
-                .filter(entry -> !batch.entryIds().contains(entry.getInventoryEntryId()))
+                .filter(entry -> !entryIds.contains(entry.getInventoryEntryId()))
                 .toList();
             if (inventoryType != InventoryType.BAG) {
                 state.setSelectedHotbarSlot(null);
@@ -6966,7 +7029,7 @@ public class InventoryService {
 
     private record OwnedItemBatch(
         @NotNull InventoryEntryModel sourceEntry,
-        @NotNull Set<UUID> entryIds,
+        @NotNull List<InventoryEntryModel> entries,
         int amount,
         boolean includesHotbar
     ) {

@@ -838,6 +838,119 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 6. ストレージ収納・取り出し
+     * 検証契約: 同一通常アイテムの収納はクリック位置に固定せず、後方slotから要求数を複数entryにまたがって減算する。
+     */
+    @Test
+    void storageTransferConsumesMatchingEntriesFromTheHighestSlot() {
+        assertStorageTransferOrder(9, 32, 64L, -1L);
+        assertStorageTransferOrder(10, 32, 64L, -1L);
+        assertStorageTransferOrder(9, 1, 64L, 31L);
+        assertStorageTransferOrder(9, 64, 32L, -1L);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 6. ストレージ収納・取り出し
+     * 検証契約: 収納要求がBAG全体を超える場合はBAGを先に使い切ってからHOTBARの後方slotを消費し、HOTBARを前詰めしない。
+     */
+    @Test
+    void storageTransferConsumesBagBeforeHotbarWithoutCompactingHotbarSlots() {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.ADMIN);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel hotbar = harness.addInventory(state, InventoryType.HOTBAR);
+        InventoryModel storage = harness.addInventory(state, InventoryType.STORAGE);
+        ItemModel material = DesignTestFixtures.item(
+            "storage_cross_inventory_order_test", ItemCategory.MATERIAL, 64);
+        when(harness.itemService.findLoadedById(material.getId())).thenReturn(material);
+        InventoryEntryModel hotbarFront = bagEntry(
+            state.getAccountId(), hotbar.getInventoryId(), 3, material.getId(), 20L);
+        InventoryEntryModel hotbarBack = bagEntry(
+            state.getAccountId(), hotbar.getInventoryId(), 8, material.getId(), 20L);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(
+            bagEntry(state.getAccountId(), bag.getInventoryId(), 1, material.getId(), 10L),
+            bagEntry(state.getAccountId(), bag.getInventoryId(), 2, material.getId(), 20L)
+        ));
+        state.replaceEntriesFromLoad(hotbar.getInventoryId(), List.of(hotbarFront, hotbarBack));
+
+        assertEquals(50, harness.inventoryService.moveOwnedItemToStorage(astPlayer, 9, 50));
+
+        assertTrue(state.snapshotEntries(bag.getInventoryId()).isEmpty());
+        List<InventoryEntryModel> remainingHotbar = state.snapshotEntries(hotbar.getInventoryId());
+        assertEquals(1, remainingHotbar.size());
+        assertEquals(hotbarFront.getInventoryEntryId(), remainingHotbar.getFirst().getInventoryEntryId());
+        assertEquals(3, remainingHotbar.getFirst().getSlotIndex());
+        assertEquals(20L, remainingHotbar.getFirst().getQuantity());
+        assertFalse(remainingHotbar.stream()
+            .anyMatch(entry -> entry.getInventoryEntryId().equals(hotbarBack.getInventoryEntryId())));
+        List<InventoryEntryModel> stored = state.snapshotEntries(storage.getInventoryId());
+        assertEquals(1, stored.size());
+        assertEquals(50L, stored.getFirst().getQuantity());
+    }
+
+    /**
+     * 64個と32個の同一通常アイテムを持つ状態で、指定数量の収納元順序を検証します。
+     *
+     * @param sourceBukkitSlot クリック元の Bukkit slot
+     * @param requestedAmount 収納要求数
+     * @param expectedFrontAmount 前方 entry の期待残数
+     * @param expectedBackAmount 後方 entry の期待残数。削除を期待する場合は負数
+     */
+    private void assertStorageTransferOrder(
+        int sourceBukkitSlot,
+        int requestedAmount,
+        long expectedFrontAmount,
+        long expectedBackAmount
+    ) {
+        InventoryHarness harness = inventoryHarness();
+        PlayerMock bukkitPlayer = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.ADMIN);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        InventoryModel bag = harness.addInventory(state, InventoryType.BAG);
+        InventoryModel storage = harness.addInventory(state, InventoryType.STORAGE);
+        ItemModel material = DesignTestFixtures.item(
+            "storage_highest_slot_test", ItemCategory.MATERIAL, 64);
+        when(harness.itemService.findLoadedById(material.getId())).thenReturn(material);
+        InventoryEntryModel front = bagEntry(
+            state.getAccountId(), bag.getInventoryId(), 1, material.getId(), 64L);
+        InventoryEntryModel back = bagEntry(
+            state.getAccountId(), bag.getInventoryId(), 2, material.getId(), 32L);
+        state.replaceEntriesFromLoad(bag.getInventoryId(), List.of(front, back));
+
+        assertEquals(requestedAmount, harness.inventoryService.moveOwnedItemToStorage(
+            astPlayer,
+            sourceBukkitSlot,
+            requestedAmount
+        ));
+
+        List<InventoryEntryModel> remaining = state.snapshotEntries(bag.getInventoryId());
+        InventoryEntryModel remainingFront = remaining.stream()
+            .filter(entry -> entry.getInventoryEntryId().equals(front.getInventoryEntryId()))
+            .findFirst()
+            .orElseThrow();
+        assertEquals(expectedFrontAmount, remainingFront.getQuantity());
+        assertEquals(1, remainingFront.getSlotIndex());
+        if (expectedBackAmount < 0L) {
+            assertFalse(remaining.stream()
+                .anyMatch(entry -> entry.getInventoryEntryId().equals(back.getInventoryEntryId())));
+        } else {
+            InventoryEntryModel remainingBack = remaining.stream()
+                .filter(entry -> entry.getInventoryEntryId().equals(back.getInventoryEntryId()))
+                .findFirst()
+                .orElseThrow();
+            assertEquals(expectedBackAmount, remainingBack.getQuantity());
+            assertEquals(2, remainingBack.getSlotIndex());
+        }
+        List<InventoryEntryModel> stored = state.snapshotEntries(storage.getInventoryId());
+        assertEquals(1, stored.size());
+        assertEquals(requestedAmount, stored.getFirst().getQuantity());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
      * 章・見出し: # 08_3-サービス > ## 14. ストレージ操作
      * 検証契約: BAG/hotbar全体の同一通常itemを一括収納し全量取出し時は複数stackへ分割する。

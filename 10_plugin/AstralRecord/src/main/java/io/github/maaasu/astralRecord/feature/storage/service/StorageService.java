@@ -285,9 +285,8 @@ public final class StorageService {
         if (ItemTransferSupport.isAllStacksTransfer(event.getClick())) {
             moved = inventoryService.moveAllOwnedMatchingItemsToStorage(astPlayer, event.getSlot());
         } else {
-            int requested = ItemTransferSupport.resolveTransferAmount(
+            int requested = ItemTransferSupport.resolveStackUnitTransferAmount(
                 event.getClick(),
-                clicked.getAmount(),
                 clicked.getMaxStackSize()
             );
             if (requested <= 0) {

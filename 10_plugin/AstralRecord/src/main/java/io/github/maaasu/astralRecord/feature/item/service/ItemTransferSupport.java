@@ -79,6 +79,27 @@ public final class ItemTransferSupport {
     }
 
     /**
+     * クリック種別から、現在の表示数量に依存しない1スタック基準の移動要求数を解決します。
+     * Shift+右クリックによる全スタック移動は呼び出し側で別途処理します。
+     *
+     * @param clickType クリック種別
+     * @param maxStackSize 対象アイテムの1スタック上限
+     * @return 左クリックは1、右クリックは半スタック切り上げ、Shift+左クリックは1スタック。未対応クリックは0
+     */
+    public static int resolveStackUnitTransferAmount(
+        @NotNull ClickType clickType,
+        int maxStackSize
+    ) {
+        int normalizedMaxStackSize = Math.max(1, maxStackSize);
+        return switch (clickType) {
+            case LEFT -> 1;
+            case RIGHT -> 1 + (normalizedMaxStackSize - 1) / 2;
+            case SHIFT_LEFT -> normalizedMaxStackSize;
+            default -> 0;
+        };
+    }
+
+    /**
      * 同一アイテムの全スタックを対象にするクリックか判定します。
      *
      * @param clickType クリック種別

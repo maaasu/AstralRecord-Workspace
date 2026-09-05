@@ -43,6 +43,63 @@ class StorageServiceDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
      * 章・見出し: # 08_2-ユースケース > ## 6. ストレージ収納・取り出し
+     * 検証契約: 通常アイテム収納の要求数は表示数量ではなく、左1個・右半スタック・Shift+左1スタックで決定する。
+     */
+    @Test
+    void storageDepositClickUsesStackBasedTransferAmount() {
+        assertStorageDepositAmount(ClickType.LEFT, 1);
+        assertStorageDepositAmount(ClickType.RIGHT, 32);
+        assertStorageDepositAmount(ClickType.SHIFT_LEFT, 64);
+    }
+
+    /**
+     * 指定クリックで InventoryService へ渡される収納要求数を検証します。
+     *
+     * @param clickType 検証するクリック種別
+     * @param expectedAmount 期待する収納要求数
+     */
+    private void assertStorageDepositAmount(ClickType clickType, int expectedAmount) {
+        MenuView menuView = mock(MenuView.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        StorageService service = new StorageService(
+            menuView,
+            inventoryService,
+            mock(InventorySaveCoordinator.class),
+            mock(MenuGuiTransitionService.class),
+            mock(PlayerMessageService.class)
+        );
+        var bukkitPlayer = server().addPlayer();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(bukkitPlayer, AccountMode.PLAYER);
+        ItemStack displayedItem = new ItemStack(Material.PAPER, 32);
+        InventoryClickEvent event = mock(InventoryClickEvent.class);
+        InventoryView view = mock(InventoryView.class);
+        Inventory topInventory = mock(Inventory.class);
+        when(event.getWhoClicked()).thenReturn(bukkitPlayer);
+        when(event.getView()).thenReturn(view);
+        when(event.getRawSlot()).thenReturn(MenuView.SIZE + 10);
+        when(event.getSlot()).thenReturn(10);
+        when(event.getClickedInventory()).thenReturn(bukkitPlayer.getInventory());
+        when(event.getCurrentItem()).thenReturn(displayedItem);
+        when(event.getClick()).thenReturn(clickType);
+        when(view.getTopInventory()).thenReturn(topInventory);
+        when(topInventory.getSize()).thenReturn(MenuView.SIZE);
+        when(menuView.getMenuScreen(topInventory)).thenReturn(MenuScreen.STORAGE);
+        when(inventoryService.moveOwnedItemToStorage(astPlayer, 10, expectedAmount))
+            .thenReturn(expectedAmount);
+        when(inventoryService.getStorageViewEntries(any(UUID.class), any(StorageViewOptions.class)))
+            .thenReturn(List.of());
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+            cache.when(() -> AstPlayerCache.get(bukkitPlayer)).thenReturn(astPlayer);
+            service.handleClick(event);
+        }
+
+        verify(inventoryService).moveOwnedItemToStorage(astPlayer, 10, expectedAmount);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 6. ストレージ収納・取り出し
      * 検証契約: ストレージから実際に取得できた数量を「(+数量)」形式のP_5253で通知する。
      */
     @Test
