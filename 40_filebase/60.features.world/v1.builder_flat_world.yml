@@ -1,0 +1,23 @@
+# design:
+#   motif: "建築 / スーパーフラット"
+#   progression: 0
+schemaVersion: 1
+id: builder_flat_world
+displayName: "ビルダー用スーパーフラット"
+worldType: OVERWORLD
+baseWorldPath: "plugins/AstralRecord/worlds/overworld/super_flat"
+instanceRootPath: "plugins/AstralRecord/_world_instances/builder_flat_world"
+autoLoad: true
+instanceEnabled: false
+maxPlayers: 100
+allowBlockBreak: true
+allowBlockPlace: true
+allowMobSpawn: false
+showSpawnParticle: false
+spawnLocation:
+  x: 0.5
+  y: 64.0
+  z: 0.5
+  yaw: 0.0
+  pitch: 0.0
+description: "建築作業用のスーパーフラットワールド。"
