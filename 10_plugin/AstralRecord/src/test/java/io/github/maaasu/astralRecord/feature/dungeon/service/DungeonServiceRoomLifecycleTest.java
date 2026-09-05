@@ -90,6 +90,7 @@ import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -768,6 +769,58 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
+     * 章・見出し: # 32_3-処理契約 > ## 3. 遭遇 Mob と部屋進行
+     * 検証契約: ACTIVEなBOSS部屋のボスがx/z範囲外へ移動した場合は生成地点へ戻し、Y座標だけの逸脱では戻さない。
+     */
+    @Test
+    void returnsDungeonBossWhenItLeavesBossRoomOnHorizontalAxisAndIgnoresVerticalPosition() throws Exception {
+        MobService mobService = mock(MobService.class);
+        DungeonService service = service(mobService, mock(DisplayTextService.class));
+        World world = server().addSimpleWorld("dungeon-boss-boundary");
+        Location spawnLocation = new Location(world, 28.5D, 65.0D, 4.5D);
+        MobInstance boss = new MobInstance(
+                UUID.randomUUID(),
+                DungeonTestFixtures.mob("boss", 1, MobCategory.BOSS),
+                spawnLocation
+        );
+        when(mobService.spawn(any(MobTemplate.class), any(Location.class))).thenReturn(boss);
+        when(mobService.getInstance(boss.instanceId())).thenReturn(boss);
+        when(mobService.syncLocation(boss)).thenReturn(true);
+
+        Object session = session(UUID.randomUUID(), List.of());
+        setField(session, "layout", layout());
+        setField(session, "blockPlan", blockPlan());
+        setField(session, "instanceWorld", new DungeonInstanceWorldService.InstanceWorld(
+                world,
+                Path.of("target", "dungeon-boss-boundary"),
+                Set.of()
+        ));
+        setField(session, "combatStarted", true);
+        mapField(session, "roomStates").put(2, DungeonMapRoomState.ACTIVE);
+        mapField(session, "liveMobsByRoom").put(2, new LinkedHashSet<>());
+
+        invoke(service, "activateRoomContent", session, 2);
+        UUID sessionId = field(session, "id", UUID.class);
+        mapField(service, "sessionsById").put(sessionId, session);
+
+        boss.currentLocation(new Location(world, 28.5D, 200.0D, 4.5D));
+        invoke(service, "tickBossRoomBoundaries");
+        verify(mobService, never()).resetPosition(any(MobInstance.class), any(Location.class));
+
+        boss.currentLocation(new Location(world, 40.5D, 200.0D, 4.5D));
+        invoke(service, "tickBossRoomBoundaries");
+
+        verify(mobService).resetPosition(
+                eq(boss),
+                argThat(location -> location.getWorld() == world
+                        && location.getX() == spawnLocation.getX()
+                        && location.getY() == spawnLocation.getY()
+                        && location.getZ() == spawnLocation.getZ())
+        );
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
      * 章・見出し: # 09_3-サービス > ## 10. GUI サウンド意味付け
      * 検証契約: ダンジョン報酬を1個以上インベントリへ付与できた場合だけ、控えめなアイテム受取音を再生する。
@@ -1165,6 +1218,13 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         Method method = DungeonService.class.getDeclaredMethod(name, sessionType());
         method.setAccessible(true);
         method.invoke(service, session);
+    }
+
+    /** 引数なしのDungeonService privateメソッドをテストから呼び出します。 */
+    private void invoke(DungeonService service, String name) throws ReflectiveOperationException {
+        Method method = DungeonService.class.getDeclaredMethod(name);
+        method.setAccessible(true);
+        method.invoke(service);
     }
 
     /** Session と部屋 ID を引数に取る DungeonService の private メソッドを呼び出します。 */

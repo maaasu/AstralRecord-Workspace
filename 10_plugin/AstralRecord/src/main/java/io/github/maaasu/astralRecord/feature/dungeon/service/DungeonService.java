@@ -34,6 +34,7 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemStackFactory;
 import io.github.maaasu.astralRecord.feature.mob.model.MobInstance;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResult;
 import io.github.maaasu.astralRecord.feature.mob.model.MobDropResultItem;
+import io.github.maaasu.astralRecord.feature.mob.model.MobState;
 import io.github.maaasu.astralRecord.feature.mob.model.MobTemplate;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.mob.service.MobDropService;
@@ -118,6 +119,7 @@ public final class DungeonService {
     }
     private static final String INSTANCE_ROOT_PATH = "plugins/AstralRecord/_world_instances/dungeon";
     private static final long ENTRY_VISUAL_PERIOD_TICKS = 10L;
+    private static final long BOSS_ROOM_BOUNDARY_CHECK_PERIOD_TICKS = 1L;
     private static final int ENTRY_FRAME_POINTS = 20;
     private static final double ENTRY_VIEW_DISTANCE_SQUARED = 48.0D * 48.0D;
     private static final long CLEAR_RETURN_DELAY_TICKS = 30L * 20L;
@@ -177,6 +179,7 @@ public final class DungeonService {
     private final Set<UUID> loadedArchiveAccounts = new HashSet<>();
     private final Set<UUID> loadingArchiveAccounts = new HashSet<>();
     private BukkitTask entryVisualTask;
+    private BukkitTask bossRoomBoundaryTask;
     private long entryVisualFrame;
     private boolean stopping;
 
@@ -541,6 +544,50 @@ public final class DungeonService {
                 1L,
                 ENTRY_VISUAL_PERIOD_TICKS
         );
+        if (bossRoomBoundaryTask != null) {
+            bossRoomBoundaryTask.cancel();
+        }
+        bossRoomBoundaryTask = Bukkit.getScheduler().runTaskTimer(
+                plugin,
+                this::tickBossRoomBoundaries,
+                1L,
+                BOSS_ROOM_BOUNDARY_CHECK_PERIOD_TICKS
+        );
+    }
+
+    /**
+     * ACTIVEなBOSS部屋のボスが部屋の水平範囲から外れていないか確認し、外れていれば生成位置へ戻します。
+     *
+     * <p>判定はボス実体の現在ブロックの x/z 座標と部屋形状だけを対象とし、Y座標は判定しません。
+     * メインスレッド上で実行し、既存のMobServiceの位置同期と復帰処理を利用します。</p>
+     */
+    private void tickBossRoomBoundaries() {
+        if (stopping || mobBindings.isEmpty()) {
+            return;
+        }
+        for (Map.Entry<UUID, MobBinding> entry : List.copyOf(mobBindings.entrySet())) {
+            MobBinding binding = entry.getValue();
+            Session session = sessionsById.get(binding.sessionId());
+            if (!isActiveDungeonMobRoom(session, binding)) {
+                continue;
+            }
+            DungeonLayout.Room room = room(session, binding.roomId());
+            if (room.role() != DungeonLayout.RoomRole.BOSS) {
+                continue;
+            }
+            MobInstance mob = mobService.getInstance(entry.getKey());
+            if (mob == null || mob.state() == MobState.DEAD || !mobService.syncLocation(mob)) {
+                continue;
+            }
+            Location current = mob.currentLocation();
+            if (current.getWorld() == null
+                    || session.instanceWorld == null
+                    || !current.getWorld().getUID().equals(session.instanceWorld.world().getUID())
+                    || contains(room, current.getBlockX(), current.getBlockZ())) {
+                continue;
+            }
+            mobService.resetPosition(mob, mob.spawnLocation());
+        }
     }
 
     /**
@@ -3664,6 +3711,10 @@ public final class DungeonService {
         if (entryVisualTask != null) {
             entryVisualTask.cancel();
             entryVisualTask = null;
+        }
+        if (bossRoomBoundaryTask != null) {
+            bossRoomBoundaryTask.cancel();
+            bossRoomBoundaryTask = null;
         }
         clearEntryPromptDisplays();
         for (InstanceCreationQueue.Ticket ticket : creationQueue.waitingTickets()) {
