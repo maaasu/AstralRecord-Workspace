@@ -33,6 +33,7 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 - `GET /api/user/mcids?prefix={prefix}`（参加履歴のある Minecraft ID 補完候補）
 - `GET /api/user/by-ip?globalIp={globalIp}&excludeUuid={uuid}`（同一グローバルIPの別登録済みユーザー有無照合）
 - `POST /api/equipment/durability`
+- `POST /api/equipment/orb-operations`（確定結果と現在のインベントリ正本を同梱し、Pluginの操作後GETを削減）
 - `POST /api/account-skills/{accountId}/{learnedSkillId}/sigils`（シジル・SIGIL_ATTACHオーブ消費、[習得済みスキル API 設計](00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md)）
 - `POST /api/account-skills/{accountId}/{learnedSkillId}/sigils/{learnedSkillSigilId}/detach`（SIGIL_DETACHオーブ消費・シジル返却、[習得済みスキル API 設計](00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md)）
 - `POST /api/trade/commit`（[Trade API 設計](00_docs/20_API設計書/feature/22-trade/22_README.md)）

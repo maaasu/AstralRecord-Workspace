@@ -595,13 +595,32 @@ public class InventoryService {
         @NotNull UUID accountId,
         @NotNull UUID inventoryEntryId
     ) {
+        return reconcileAuthoritativeEntry(accountId, inventoryEntryId, null);
+    }
+
+    /**
+     * 操作応答の正本で対象entryを照合する。accountまたは対象IDが未収録なら従来のGETを使用する。
+     * @param accountId 対象account
+     * @param inventoryEntryId 照合するentry
+     * @param snapshot APIの現在正本。旧APIの場合null
+     * @return 所有するentryが正本に存在する場合true
+     * @throws IllegalStateException stateが未ロードの場合
+     */
+    public boolean reconcileAuthoritativeEntry(
+        @NotNull UUID accountId,
+        @NotNull UUID inventoryEntryId,
+        @Nullable io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot snapshot
+    ) {
         PlayerInventoryState state = getState(accountId);
         if (state == null) {
             throw new IllegalStateException(
                 "Inventory state is not loaded during authoritative reconciliation: " + accountId
             );
         }
-        InventoryEntryModel authoritative = inventoryRepository.findEntryById(inventoryEntryId);
+        InventoryEntryModel authoritative = snapshot != null && snapshot.covers(accountId, List.of(inventoryEntryId))
+            ? snapshot.getEntries().stream().filter(entry -> entry.getInventoryEntryId().equals(inventoryEntryId))
+                .findFirst().orElse(null)
+            : inventoryRepository.findEntryById(inventoryEntryId);
         // API mutation の非同期 thread とメイン thread の収納操作を同じ state monitor で直列化する。
         // owner検証・reconcile・前詰めの間に古いsnapshotで無関係entryを置換しない。
         synchronized (state) {
@@ -2834,6 +2853,19 @@ public class InventoryService {
         @Nullable Consumer<Map<UUID, Optional<InventoryEntryModel>>> beforePublish,
         @Nullable ExternalReturnNormalization returnNormalization
     ) {
+        return reconcileExternalInventoryEntries(accountId, affectedEntryIds, baseline, beforePublish,
+            returnNormalization, null);
+    }
+
+    /** 応答内正本が対象account・entry・通貨inventoryを完全に収録する場合に追加GETを省略する。 */
+    private @NotNull Set<UUID> reconcileExternalInventoryEntries(
+        @NotNull UUID accountId,
+        @NotNull Collection<UUID> affectedEntryIds,
+        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline,
+        @Nullable Consumer<Map<UUID, Optional<InventoryEntryModel>>> beforePublish,
+        @Nullable ExternalReturnNormalization returnNormalization,
+        @Nullable io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot snapshot
+    ) {
         if (!baseline.accountId().equals(accountId)) {
             throw new IllegalArgumentException("Inventory baseline account mismatch: " + accountId);
         }
@@ -2855,7 +2887,9 @@ public class InventoryService {
                 .collect(Collectors.toUnmodifiableSet());
         }
 
-        List<InventoryEntryModel> authoritativeCurrency = currencyInventoryId == null
+        boolean useSnapshot = snapshot != null && snapshot.covers(accountId, affectedEntryIds)
+            && Objects.equals(currencyInventoryId, snapshot.getCurrencyInventoryId());
+        List<InventoryEntryModel> authoritativeCurrency = useSnapshot ? snapshot.getCurrencyEntries() : currencyInventoryId == null
             ? List.of()
             : inventoryRepository.findEntries(currencyInventoryId);
         Map<UUID, InventoryEntryModel> currencyById = new HashMap<>();
@@ -2866,7 +2900,10 @@ public class InventoryService {
         for (UUID entryId : new LinkedHashSet<>(affectedEntryIds)) {
             InventoryEntryModel authoritative = currencyById.get(entryId);
             if (authoritative == null) {
-                authoritative = inventoryRepository.findEntryById(entryId);
+                authoritative = useSnapshot
+                    ? snapshot.getEntries().stream().filter(entry -> entry.getInventoryEntryId().equals(entryId))
+                        .findFirst().orElse(null)
+                    : inventoryRepository.findEntryById(entryId);
             }
             authoritativeAffected.put(entryId, Optional.ofNullable(authoritative));
         }
@@ -3404,6 +3441,28 @@ public class InventoryService {
             null,
             new ExternalReturnNormalization(true, true)
         );
+    }
+
+    /**
+     * オーブ結果に同梱された正本を既存の三者マージへ渡す。未収録の場合はGETへ戻す。
+     * @param accountId 対象account
+     * @param affectedEntryIds 操作の全対象entry
+     * @param baseline 操作直前の保存済み状態
+     * @param snapshot API応答時の正本。旧APIはnull
+     * @throws IllegalStateException stateが失われた場合
+     */
+    public void reconcileOrbOperationEntries(
+        @NotNull UUID accountId,
+        @NotNull Collection<UUID> affectedEntryIds,
+        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline,
+        @Nullable io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot snapshot
+    ) {
+        if (snapshot == null) {
+            reconcileOrbOperationEntries(accountId, affectedEntryIds, baseline);
+            return;
+        }
+        reconcileExternalInventoryEntries(accountId, affectedEntryIds, baseline, null,
+            new ExternalReturnNormalization(true, true), snapshot);
     }
 
     private @NotNull List<InventoryEntryModel> compactMergedEntriesAfterRemoval(

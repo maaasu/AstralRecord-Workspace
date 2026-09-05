@@ -796,6 +796,35 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
+     * 検証契約: API結果にsnapshotがある操作は、GUIから実行した場合も従来GET経路ではなくsnapshot照合を選ぶ。
+     */
+    @Test
+    void guiOperationUsesResponseSnapshotReconciliation() {
+        Harness harness = new Harness(ItemOrbEffectType.REPAIR);
+        harness.inventorySnapshot = new io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot(
+            harness.accountId, java.util.Set.of(harness.orbEntryId), List.of(), null, List.of());
+        doAnswer(invocation -> {
+            harness.orbQuantity.decrementAndGet();
+            return null;
+        }).when(harness.inventoryService).reconcileOrbOperationEntries(eq(harness.accountId), any(),
+            any(InventoryPersistence.PersistedInventoryBaseline.class), eq(harness.inventorySnapshot));
+        harness.openOrbList();
+
+        harness.handler.onInventoryClick(harness.guiClick(0));
+        harness.laneExecutor.runAll();
+        server().getScheduler().performOneTick();
+
+        assertEquals(1, harness.orbQuantity.get());
+        assertFalse(harness.service.isLocked(harness.player));
+        verify(harness.inventoryService).reconcileOrbOperationEntries(eq(harness.accountId), any(),
+            any(InventoryPersistence.PersistedInventoryBaseline.class), eq(harness.inventorySnapshot));
+        verify(harness.inventoryService, org.mockito.Mockito.never()).reconcileOrbOperationEntries(
+            eq(harness.accountId), any(), any(InventoryPersistence.PersistedInventoryBaseline.class));
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
      * 検証契約: 台帳再生でpayment消費済みAPPLIEDかつ装備が削除・所有者変更済みなら、affected entryを照合してterminal完了し、旧target cache・managed表示・statusを再構築して別所有者装備を残さない。
@@ -1440,6 +1469,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         private int additionalOrbQuantity;
         private final AtomicReference<EquipmentOrbOperationResultType> apiResultType =
             new AtomicReference<>(EquipmentOrbOperationResultType.APPLIED);
+        private io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot inventorySnapshot;
         private final AtomicBoolean preloadRanOnPrimaryThread = new AtomicBoolean(true);
         private final AtomicInteger applyCount = new AtomicInteger();
         private final AtomicInteger terminalApplyCall = new AtomicInteger(2);
@@ -1878,7 +1908,8 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 null,
                 null,
                 effectType == ItemOrbEffectType.REPAIR ? 30 : null,
-                effectType == ItemOrbEffectType.TRANSCENDENCE ? "星鋼化" : null
+                effectType == ItemOrbEffectType.TRANSCENDENCE ? "星鋼化" : null,
+                inventorySnapshot
             );
         }
 

@@ -695,6 +695,7 @@ public class ItemService {
         }
     }
 
+    /** 装備のローカル耐久差分を合成し、API応答のインベントリ正本はそのまま引き継ぐ。 */
     private @Nullable EquipmentOrbOperationResult mergeOrbOperationResult(
         @Nullable EquipmentOrbOperationResult result
     ) {
@@ -714,7 +715,8 @@ public class ItemService {
             result.getFailAction(),
             result.getSuccessRate(),
             result.getRepairedAmount(),
-            result.getTransitionName()
+            result.getTransitionName(),
+            result.getInventorySnapshot()
         );
     }
 

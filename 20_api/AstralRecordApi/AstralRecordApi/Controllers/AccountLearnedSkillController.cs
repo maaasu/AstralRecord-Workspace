@@ -23,12 +23,12 @@ public class AccountLearnedSkillController(IAccountLearnedSkillRepository reposi
         }
     }
 
-    /// <summary>スキルmasterの必要素材を原子的に消費し、更新後個体と実消費entry・数量を返します。</summary>
+    /// <summary>必要素材を原子的に消費し、更新後個体・実消費数量・現在所有者限定inventorySnapshotを返します。</summary>
     [HttpPost("learn")]
     public async Task<IActionResult> Learn(Guid accountId, [FromBody] AccountLearnedSkillLearnRequest request)
         => ToMaterialActionResult(await repository.LearnAsync(accountId, request));
 
-    /// <summary>スキルmasterの必要素材を原子的に消費し、レベル更新後個体と実消費entry・数量を返します。</summary>
+    /// <summary>必要素材を原子的に消費し、レベル更新後個体・実消費数量・現在所有者限定inventorySnapshotを返します。</summary>
     [HttpPost("{learnedSkillId:guid}/level-up")]
     public async Task<IActionResult> LevelUp(
         Guid accountId,
@@ -36,7 +36,7 @@ public class AccountLearnedSkillController(IAccountLearnedSkillRepository reposi
         [FromBody] AccountLearnedSkillLevelUpRequest request)
         => ToMaterialActionResult(await repository.LevelUpAsync(accountId, learnedSkillId, request));
 
-    /// <summary>指定した習得済みスキル個体へ対応するオーブとシジルを各1個消費して装着します。</summary>
+    /// <summary>オーブとシジルを各1個消費して装着し、習得個体に現在所有者限定inventorySnapshotを付加して返します。</summary>
     [HttpPost("{learnedSkillId:guid}/sigils")]
     public async Task<IActionResult> AttachSigil(
         Guid accountId,
@@ -50,7 +50,7 @@ public class AccountLearnedSkillController(IAccountLearnedSkillRepository reposi
         return Ok(WithInventorySnapshot(result.Skill!, result.InventorySnapshot));
     }
 
-    /// <summary>指定した装着済みシジルを対応するオーブ1個を消費して取り外し、アカウントの BAG へシジルを1個返却します。</summary>
+    /// <summary>オーブ1個でシジルを外してBAGへ返却し、消費・返却entryの現在所有者限定inventorySnapshotも返します。</summary>
     [HttpPost("{learnedSkillId:guid}/sigils/{learnedSkillSigilId:guid}/detach")]
     public async Task<IActionResult> DetachSigil(
         Guid accountId,

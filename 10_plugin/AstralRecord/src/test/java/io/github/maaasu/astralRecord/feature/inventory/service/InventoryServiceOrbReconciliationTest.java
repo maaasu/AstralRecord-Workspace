@@ -47,6 +47,67 @@ import static org.mockito.Mockito.when;
 class InventoryServiceOrbReconciliationTest {
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
+     * 検証契約: 応答snapshotが欠落、明示null、非object、不完全objectの場合は例外を出さずGET fallbackを選ぶ。
+     */
+    @Test
+    void optionalSnapshotParserAcceptsMissingNullAndMalformedResponses() {
+        for (String json : List.of("{}", "{\"inventorySnapshot\":null}", "{\"inventorySnapshot\":[]}",
+            "{\"inventorySnapshot\":{}}")) {
+            var response = com.google.gson.JsonParser.parseString(json).getAsJsonObject();
+            assertNull(io.github.maaasu.astralRecord.feature.inventory.repository.InventoryOperationSnapshotParser
+                .parse(response.get("inventorySnapshot")));
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
+     * 検証契約: 応答内の削除正本を追加GETなしで三者マージし、同時加算分だけを新IDで保持する。
+     */
+    @Test
+    void responseSnapshotAvoidsGetAndKeepsConcurrentAdditionAfterDeletion() {
+        Harness harness = harness();
+        InventoryEntryModel before = entry(harness.orbEntryId, harness.accountId, harness.bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START, "orb.weapon_tyr", 2L);
+        InventoryEntryModel current = entry(harness.orbEntryId, harness.accountId, harness.bag.getInventoryId(),
+            NormalInventoryLayout.DB_SLOT_START, "orb.weapon_tyr", 3L);
+        harness.state.replaceEntriesFromLoad(harness.bag.getInventoryId(), List.of(current));
+        var snapshot = new io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot(
+            harness.accountId, Set.of(harness.orbEntryId), List.of(), null, List.of());
+
+        harness.service.reconcileOrbOperationEntries(harness.accountId, Set.of(harness.orbEntryId),
+            baseline(harness.accountId, harness.bag.getInventoryId(), List.of(before)), snapshot);
+
+        List<InventoryEntryModel> remaining = harness.state.snapshotEntries(harness.bag.getInventoryId());
+        assertEquals(1, remaining.size());
+        assertEquals(1L, remaining.getFirst().getQuantity());
+        assertFalse(remaining.getFirst().getInventoryEntryId().equals(harness.orbEntryId));
+        org.mockito.Mockito.verifyNoInteractions(harness.repository);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
+     * 検証契約: 他accountの応答内正本は利用せず、所有者の正本GETへ戻す。
+     */
+    @Test
+    void foreignSnapshotFallsBackToAuthoritativeGet() {
+        Harness harness = harness();
+        List<InventoryEntryModel> before = harness.state.snapshotEntries(harness.bag.getInventoryId());
+        var snapshot = new io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot(
+            UUID.randomUUID(), Set.of(harness.orbEntryId), List.of(), null, List.of());
+        when(harness.repository.findEntryById(harness.orbEntryId)).thenReturn(before.getFirst());
+
+        harness.service.reconcileOrbOperationEntries(harness.accountId, Set.of(harness.orbEntryId),
+            baseline(harness.accountId, harness.bag.getInventoryId(), before), snapshot);
+
+        verify(harness.repository).findEntryById(harness.orbEntryId);
+        assertEquals(2L, harness.state.snapshotEntries(harness.bag.getInventoryId()).getFirst().getQuantity());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_0-概要.md
      * 章・見出し: # 22_0-概要 > ## 責務
      * 検証契約: 受取 capacity 判定の仮差引は全量送付 entry を除去し、部分送付 entry は残量だけを保持する。

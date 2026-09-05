@@ -53,6 +53,7 @@ public class EquipmentOrbOperationResponse
     /// <summary>台帳accountが対象装備を現在も所有し、BAG/HOTBARまたはactive loadoutに保持する場合true。</summary>
     public bool TargetAvailable { get; init; }
     public IReadOnlyList<Guid> AffectedInventoryEntryIds { get; init; } = [];
+    public InventoryOperationSnapshotResponse? InventorySnapshot { get; init; }
     public bool PaymentConsumed { get; init; }
     public bool EnhancementSucceeded { get; init; }
     public string? FailAction { get; init; }

@@ -38,10 +38,34 @@ class LearnedSkillRepository {
         }
     }
 
+    /**
+     * APIでスキル変更と素材消費を確定する。事前保存・操作排他を済ませた非メインスレッドから呼ぶ。
+     * DBをAPI経由で更新するが、Pluginのキャッシュやインベントリは変更しない。
+     * 呼出しごとに新しい冪等IDを採番する。再送が必要な場合はID指定版を使用する。
+     * @param accountId 対象所有者account
+     * @param skillId 習得するスキルmaster ID
+     * @param updatedBy 操作したaccount
+     * @return 確定個体と消費・返却情報。snapshotが未収録・不正ならnullとし呼出元で正本GETを行う
+     * @throws LearnedSkillMutationException APIが業務失敗またはエラーstatusを返した場合
+     * @throws IOException 通信に失敗した場合
+     * @throws RuntimeException 必須応答の解析失敗または待機中断の場合
+     */
     fun learn(accountId: UUID, skillId: String, updatedBy: UUID): LearnedSkillMaterialMutationResult {
         return learn(accountId, skillId, updatedBy, UUID.randomUUID())
     }
 
+    /**
+     * APIでスキル変更と素材消費を確定する。事前保存・操作排他を済ませた非メインスレッドから呼ぶ。
+     * DBをAPI経由で更新するが、Pluginのキャッシュやインベントリは変更しない。
+     * @param accountId 対象所有者account
+     * @param skillId 習得するスキルmaster ID
+     * @param updatedBy 操作したaccount
+     * @param operationId 再送でも保持する冪等ID
+     * @return 確定個体と消費・返却情報。snapshotが未収録・不正ならnullとし呼出元で正本GETを行う
+     * @throws LearnedSkillMutationException APIが業務失敗またはエラーstatusを返した場合
+     * @throws IOException 通信に失敗した場合
+     * @throws RuntimeException 必須応答の解析失敗または待機中断の場合
+     */
     fun learn(
         accountId: UUID,
         skillId: String,
@@ -56,10 +80,34 @@ class LearnedSkillRepository {
         return mutateWithMaterials("/api/account-skills/$accountId/learn", body)
     }
 
+    /**
+     * APIでスキル変更と素材消費を確定する。事前保存・操作排他を済ませた非メインスレッドから呼ぶ。
+     * DBをAPI経由で更新するが、Pluginのキャッシュやインベントリは変更しない。
+     * 呼出しごとに新しい冪等IDを採番する。再送が必要な場合はID指定版を使用する。
+     * @param accountId 対象所有者account
+     * @param learnedSkillId 対象習得個体ID
+     * @param updatedBy 操作したaccount
+     * @return 確定個体と消費・返却情報。snapshotが未収録・不正ならnullとし呼出元で正本GETを行う
+     * @throws LearnedSkillMutationException APIが業務失敗またはエラーstatusを返した場合
+     * @throws IOException 通信に失敗した場合
+     * @throws RuntimeException 必須応答の解析失敗または待機中断の場合
+     */
     fun levelUp(accountId: UUID, learnedSkillId: UUID, updatedBy: UUID): LearnedSkillMaterialMutationResult {
         return levelUp(accountId, learnedSkillId, updatedBy, UUID.randomUUID())
     }
 
+    /**
+     * APIでスキル変更と素材消費を確定する。事前保存・操作排他を済ませた非メインスレッドから呼ぶ。
+     * DBをAPI経由で更新するが、Pluginのキャッシュやインベントリは変更しない。
+     * @param accountId 対象所有者account
+     * @param learnedSkillId 対象習得個体ID
+     * @param updatedBy 操作したaccount
+     * @param operationId 再送でも保持する冪等ID
+     * @return 確定個体と消費・返却情報。snapshotが未収録・不正ならnullとし呼出元で正本GETを行う
+     * @throws LearnedSkillMutationException APIが業務失敗またはエラーstatusを返した場合
+     * @throws IOException 通信に失敗した場合
+     * @throws RuntimeException 必須応答の解析失敗または待機中断の場合
+     */
     fun levelUp(
         accountId: UUID,
         learnedSkillId: UUID,
@@ -73,6 +121,21 @@ class LearnedSkillRepository {
         return mutateWithMaterials("/api/account-skills/$accountId/$learnedSkillId/level-up", body)
     }
 
+    /**
+     * APIでスキル変更と素材消費を確定する。事前保存・操作排他を済ませた非メインスレッドから呼ぶ。
+     * DBをAPI経由で更新するが、Pluginのキャッシュやインベントリは変更しない。
+     * 呼出しごとに新しい冪等IDを採番する。再送が必要な場合はID指定版を使用する。
+     * @param accountId 対象所有者account
+     * @param learnedSkillId 対象習得個体ID
+     * @param orbInventoryEntryId 消費オーブentry ID
+     * @param sigilId 装着シジルmaster ID
+     * @param sigilInventoryEntryId 消費シジルentry ID
+     * @param updatedBy 操作したaccount
+     * @return 確定個体と消費・返却情報。snapshotが未収録・不正ならnullとし呼出元で正本GETを行う
+     * @throws LearnedSkillMutationException APIが業務失敗またはエラーstatusを返した場合
+     * @throws IOException 通信に失敗した場合
+     * @throws RuntimeException 必須応答の解析失敗または待機中断の場合
+     */
     fun attachSigil(
         accountId: UUID,
         learnedSkillId: UUID,
@@ -92,6 +155,21 @@ class LearnedSkillRepository {
         )
     }
 
+    /**
+     * APIでスキル変更と素材消費を確定する。事前保存・操作排他を済ませた非メインスレッドから呼ぶ。
+     * DBをAPI経由で更新するが、Pluginのキャッシュやインベントリは変更しない。
+     * @param accountId 対象所有者account
+     * @param learnedSkillId 対象習得個体ID
+     * @param orbInventoryEntryId 消費オーブentry ID
+     * @param sigilId 装着シジルmaster ID
+     * @param sigilInventoryEntryId 消費シジルentry ID
+     * @param updatedBy 操作したaccount
+     * @param operationId 再送でも保持する冪等ID
+     * @return 確定個体と消費・返却情報。snapshotが未収録・不正ならnullとし呼出元で正本GETを行う
+     * @throws LearnedSkillMutationException APIが業務失敗またはエラーstatusを返した場合
+     * @throws IOException 通信に失敗した場合
+     * @throws RuntimeException 必須応答の解析失敗または待機中断の場合
+     */
     fun attachSigil(
         accountId: UUID,
         learnedSkillId: UUID,
@@ -111,6 +189,20 @@ class LearnedSkillRepository {
         return mutateWithInventorySnapshot("/api/account-skills/$accountId/$learnedSkillId/sigils", body)
     }
 
+    /**
+     * APIでスキル変更と素材消費を確定する。事前保存・操作排他を済ませた非メインスレッドから呼ぶ。
+     * DBをAPI経由で更新するが、Pluginのキャッシュやインベントリは変更しない。
+     * 呼出しごとに新しい冪等IDを採番する。再送が必要な場合はID指定版を使用する。
+     * @param accountId 対象所有者account
+     * @param learnedSkillId 対象習得個体ID
+     * @param orbInventoryEntryId 消費オーブentry ID
+     * @param learnedSkillSigilId 取り外す装着個体ID
+     * @param updatedBy 操作したaccount
+     * @return 確定個体と消費・返却情報。snapshotが未収録・不正ならnullとし呼出元で正本GETを行う
+     * @throws LearnedSkillMutationException APIが業務失敗またはエラーstatusを返した場合
+     * @throws IOException 通信に失敗した場合
+     * @throws RuntimeException 必須応答の解析失敗または待機中断の場合
+     */
     fun detachSigil(
         accountId: UUID,
         learnedSkillId: UUID,
@@ -128,6 +220,20 @@ class LearnedSkillRepository {
         )
     }
 
+    /**
+     * APIでスキル変更と素材消費を確定する。事前保存・操作排他を済ませた非メインスレッドから呼ぶ。
+     * DBをAPI経由で更新するが、Pluginのキャッシュやインベントリは変更しない。
+     * @param accountId 対象所有者account
+     * @param learnedSkillId 対象習得個体ID
+     * @param orbInventoryEntryId 消費オーブentry ID
+     * @param learnedSkillSigilId 取り外す装着個体ID
+     * @param updatedBy 操作したaccount
+     * @param operationId 再送でも保持する冪等ID
+     * @return 確定個体と消費・返却情報。snapshotが未収録・不正ならnullとし呼出元で正本GETを行う
+     * @throws LearnedSkillMutationException APIが業務失敗またはエラーstatusを返した場合
+     * @throws IOException 通信に失敗した場合
+     * @throws RuntimeException 必須応答の解析失敗または待機中断の場合
+     */
     fun detachSigil(
         accountId: UUID,
         learnedSkillId: UUID,
@@ -153,7 +259,7 @@ class LearnedSkillRepository {
                     return LearnedSkillSigilDetachResult(
                         parseSkill(result.getAsJsonObject("skill")),
                         UUID.fromString(result.get("returnedInventoryEntryId").asString),
-                        InventoryOperationSnapshotParser.parse(result.getAsJsonObject("inventorySnapshot")),
+                        InventoryOperationSnapshotParser.parse(result.get("inventorySnapshot")),
                     )
                 }
                 val failure = parseFailure(response.body())
@@ -231,7 +337,7 @@ class LearnedSkillRepository {
                             }
                             ?: emptyList(),
                         inventorySnapshot = InventoryOperationSnapshotParser.parse(
-                            result.getAsJsonObject("inventorySnapshot"),
+                            result.get("inventorySnapshot"),
                         ),
                     )
                 }
@@ -268,7 +374,7 @@ class LearnedSkillRepository {
                     return LearnedSkillInventoryMutationResult(
                         skill = parseSkill(result),
                         inventorySnapshot = InventoryOperationSnapshotParser.parse(
-                            result.getAsJsonObject("inventorySnapshot"),
+                            result.get("inventorySnapshot"),
                         ),
                     )
                 }

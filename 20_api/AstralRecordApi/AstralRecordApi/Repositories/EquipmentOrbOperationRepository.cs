@@ -76,6 +76,7 @@ public class EquipmentOrbOperationRepository(
                     Equipment = equipment,
                     // 解決済みの通常消費順オーブentry、または解決前はPluginの直近候補を返す。
                     AffectedInventoryEntryIds = (affected ?? [resolvedOrbEntryId])
+                        .Append(request.OrbInventoryEntryId)
                         .Distinct()
                         .Order()
                         .ToArray(),
@@ -371,6 +372,8 @@ public class EquipmentOrbOperationRepository(
         Guid ledgerAccountId,
         Guid equipmentInstanceId)
     {
+        var inventorySnapshot = await InventoryOperationSnapshotReader.ReadAsync(
+            dbContext, ledgerAccountId, stored.AffectedInventoryEntryIds, includeCurrency: true);
         var instance = await dbContext.EquipmentInstances.AsNoTracking()
             .FirstOrDefaultAsync(candidate =>
                 candidate.EquipmentInstanceId == equipmentInstanceId
@@ -378,19 +381,20 @@ public class EquipmentOrbOperationRepository(
                 && !candidate.IsDeleted);
         if (instance is null
             || !await IsTargetPresentAsync(ledgerAccountId, equipmentInstanceId))
-            return CopyWithEquipment(stored, null, targetAvailable: false);
+            return CopyWithEquipment(stored, null, false, inventorySnapshot);
         var enchants = await dbContext.EquipmentInstanceEnchants.AsNoTracking()
             .Where(enchant => enchant.EquipmentInstanceId == instance.EquipmentInstanceId)
             .OrderBy(enchant => enchant.SlotIndex)
             .ToListAsync();
         var current = await BuildResponseAsync(instance, enchants);
-        return CopyWithEquipment(stored, current, targetAvailable: true);
+        return CopyWithEquipment(stored, current, true, inventorySnapshot);
     }
 
     private static EquipmentOrbOperationResponse CopyWithEquipment(
         EquipmentOrbOperationResponse stored,
         EquipmentInstanceResponse? equipment,
-        bool targetAvailable)
+        bool targetAvailable,
+        InventoryOperationSnapshotResponse inventorySnapshot)
         => new()
         {
             OperationId = stored.OperationId,
@@ -399,6 +403,7 @@ public class EquipmentOrbOperationRepository(
             Equipment = equipment,
             TargetAvailable = targetAvailable,
             AffectedInventoryEntryIds = stored.AffectedInventoryEntryIds,
+            InventorySnapshot = inventorySnapshot,
             PaymentConsumed = stored.PaymentConsumed,
             EnhancementSucceeded = stored.EnhancementSucceeded,
             FailAction = stored.FailAction,

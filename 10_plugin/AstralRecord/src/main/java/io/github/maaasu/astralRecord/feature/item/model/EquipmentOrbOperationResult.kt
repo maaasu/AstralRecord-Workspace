@@ -1,7 +1,7 @@
 package io.github.maaasu.astralRecord.feature.item.model
 
 /** API台帳に確定したオーブ装備操作結果。 */
-data class EquipmentOrbOperationResult(
+data class EquipmentOrbOperationResult @JvmOverloads constructor(
     val operationId: String,
     val result: EquipmentOrbOperationResultType,
     val operationType: String,
@@ -14,6 +14,7 @@ data class EquipmentOrbOperationResult(
     val successRate: Double?,
     val repairedAmount: Int?,
     val transitionName: String?,
+    val inventorySnapshot: io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot? = null,
 )
 
 /** オーブ装備操作のAPI結果コード。 */

@@ -32,6 +32,34 @@ import static org.mockito.Mockito.when;
 class ItemServiceRepairDurabilityRaceTest {
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
+     * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
+     * 検証契約: 初回POSTと結果照会のどちらも、装備cache反映後までインベントリ応答正本を保持する。
+     */
+    @Test
+    void cacheMergePreservesInventorySnapshotForPostAndLookup() {
+        ItemRepository repository = mock(ItemRepository.class);
+        ItemService service = new ItemService(repository, mock(SetEffectRepository.class));
+        UUID accountId = UUID.randomUUID();
+        String instanceId = UUID.randomUUID().toString();
+        String operationId = UUID.randomUUID().toString();
+        String orbEntryId = UUID.randomUUID().toString();
+        var snapshot = new io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot(
+            accountId, java.util.Set.of(UUID.fromString(orbEntryId)), List.of(), null, List.of());
+        var result = new EquipmentOrbOperationResult(operationId, EquipmentOrbOperationResultType.APPLIED,
+            "REPAIR", instance(instanceId, accountId.toString(), 100, 100), true, List.of(orbEntryId),
+            true, false, null, null, 60, null, snapshot);
+        when(repository.applyEquipmentOrbOperation(operationId, accountId.toString(), instanceId,
+            orbEntryId, "orb.repair_full", null, null)).thenReturn(result);
+        when(repository.findEquipmentOrbOperation(operationId, accountId.toString())).thenReturn(result);
+
+        org.junit.jupiter.api.Assertions.assertSame(snapshot, service.applyEquipmentOrbOperation(
+            operationId, accountId.toString(), instanceId, orbEntryId, "orb.repair_full", null, null).getInventorySnapshot());
+        org.junit.jupiter.api.Assertions.assertSame(snapshot,
+            service.findEquipmentOrbOperation(operationId, accountId.toString()).getInventorySnapshot());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 4. 装備耐久値 > ### dirty耐久値照会・保存・破棄
      * 検証契約: オーブ操作前に既存damageをflush済みなら、FULL修理と固定値修理のAPI確定耐久値を古いdirty差分で減らさずそのままcacheする。

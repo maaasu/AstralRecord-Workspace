@@ -970,6 +970,8 @@ class ItemRepository {
             successRate = obj.get("successRate")?.takeIf { !it.isJsonNull }?.asDouble,
             repairedAmount = parseIntOrNull(obj, "repairedAmount"),
             transitionName = parseStringOrNull(obj, "transitionName"),
+            inventorySnapshot = io.github.maaasu.astralRecord.feature.inventory.repository.InventoryOperationSnapshotParser
+                .parse(parseObjectOrNull(obj, "inventorySnapshot")),
         )
     }
 

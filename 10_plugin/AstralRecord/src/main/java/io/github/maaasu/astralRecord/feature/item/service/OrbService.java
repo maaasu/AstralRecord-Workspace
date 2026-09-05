@@ -2426,11 +2426,12 @@ public final class OrbService {
         while (true) {
             ensureOperationWithinDeadline(operationId, deadlineNanos);
             try {
-                inventoryService.reconcileOrbOperationEntries(
-                    session.accountId,
-                    reconciliationEntryIds,
-                    baseline
-                );
+                if (operation.getInventorySnapshot() == null) {
+                    inventoryService.reconcileOrbOperationEntries(session.accountId, reconciliationEntryIds, baseline);
+                } else {
+                    inventoryService.reconcileOrbOperationEntries(
+                        session.accountId, reconciliationEntryIds, baseline, operation.getInventorySnapshot());
+                }
                 break;
             } catch (Exception reconciliationFailure) {
                 waitForOperationRetry(operationId, retryDelayMillis, deadlineNanos);

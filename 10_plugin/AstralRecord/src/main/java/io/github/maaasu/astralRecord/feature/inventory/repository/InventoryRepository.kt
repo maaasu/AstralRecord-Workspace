@@ -322,7 +322,13 @@ class InventoryRepository {
         return arr.map { it.asJsonObject.toInventoryModel() }
     }
 
-    private fun parseInventoryEntryModel(json: String): InventoryEntryModel {
+    /**
+     * APIのentry JSONを通信・共有状態変更なしでモデルへ変換する。
+     * @param json InventoryEntryResponse形式の必須値を含むJSONオブジェクト
+     * @return デコードしたentry
+     * @throws RuntimeException JSON構造、日時、UUIDまたは必須値が不正な場合
+     */
+    fun parseInventoryEntryModel(json: String): InventoryEntryModel {
         val obj = JsonParser.parseString(json).asJsonObject
         return obj.toInventoryEntryModel()
     }

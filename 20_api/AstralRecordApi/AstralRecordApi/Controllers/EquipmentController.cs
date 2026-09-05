@@ -47,7 +47,7 @@ public class EquipmentController(IEquipmentService equipmentService) : Controlle
         return Ok(instance);
     }
 
-    /// <summary>オーブ支払いと装備更新を冪等かつ原子的に実施</summary>
+    /// <summary>オーブ支払いと装備更新を冪等かつ原子的に実施し、現在のインベントリ正本も返す</summary>
     /// <param name="request">operationId、所有者、オーブitem、対象装備</param>
     /// <response code="200">確定済みの業務結果。同一 operationId は同じ結果を再生する</response>
     /// <response code="400">識別子が空、または orbItemId が128 UTF-16 code unitを超える</response>
@@ -69,7 +69,7 @@ public class EquipmentController(IEquipmentService equipmentService) : Controlle
         return result.Result == "OPERATION_CONFLICT" ? Conflict(result) : Ok(result);
     }
 
-    /// <summary>通信結果が不明なオーブ操作の台帳結果を取得</summary>
+    /// <summary>通信結果が不明なオーブ操作の台帳結果と、現在の装備・インベントリ正本を取得</summary>
     [HttpGet("orb-operations/{operationId:guid}")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]

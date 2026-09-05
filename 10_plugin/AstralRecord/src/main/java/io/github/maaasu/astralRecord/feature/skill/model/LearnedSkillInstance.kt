@@ -24,7 +24,7 @@ data class LearnedSkillSigil(
     val slotIndex: Int,
 )
 
-data class LearnedSkillSigilDetachResult(
+data class LearnedSkillSigilDetachResult @JvmOverloads constructor(
     val skill: LearnedSkillInstance,
     val returnedInventoryEntryId: UUID,
     val inventorySnapshot: InventoryOperationSnapshot? = null,
@@ -35,14 +35,14 @@ data class LearnedSkillConsumedMaterial(
     val consumedAmount: Long,
 )
 
-data class LearnedSkillMaterialMutationResult(
+data class LearnedSkillMaterialMutationResult @JvmOverloads constructor(
     val skill: LearnedSkillInstance,
     val consumedMaterials: List<LearnedSkillConsumedMaterial> = emptyList(),
     val inventorySnapshot: InventoryOperationSnapshot? = null,
 )
 
 /** シジル装着後の習得個体と、消費entryの任意の正本snapshotです。 */
-data class LearnedSkillInventoryMutationResult(
+data class LearnedSkillInventoryMutationResult @JvmOverloads constructor(
     val skill: LearnedSkillInstance,
     val inventorySnapshot: InventoryOperationSnapshot? = null,
 )

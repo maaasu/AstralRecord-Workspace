@@ -14,6 +14,31 @@ namespace AstralRecordApi.Tests.Repositories;
 public class EquipmentOrbOperationRepositoryTests
 {
     [Fact]
+    public async Task ReplaySnapshotReflectsLaterConsumptionWithoutReapplyingPayment()
+    {
+        await using var harness = await OrbOperationHarness.CreateAsync();
+        await harness.SetEquipmentStateAsync(instance => instance.DurabilityValue = 10);
+        var orb = await harness.AddOrbAsync("snapshot_repair", new ItemOrbEffectResponse
+        {
+            Type = "REPAIR", RepairAmount = 10,
+        });
+        var request = harness.CreateRequest(Guid.NewGuid(), "snapshot_repair", orb);
+        var first = await harness.ExecuteAsync(request);
+        Assert.Equal(1, Assert.Single(first.InventorySnapshot!.Entries).Quantity);
+        await harness.ExecuteAsync("snapshot_repair", orb);
+
+        var replay = await harness.ExecuteAsync(request);
+        var lookup = await harness.FindAsync(request.OperationId, harness.AccountId);
+
+        Assert.True(replay.PaymentConsumed);
+        Assert.Contains(orb, replay.InventorySnapshot!.CoveredEntryIds);
+        Assert.Empty(replay.InventorySnapshot.Entries);
+        Assert.Empty(lookup!.InventorySnapshot!.Entries);
+        Assert.Equal(30, replay.Equipment!.DurabilityValue);
+        Assert.Equal(2, (await harness.GetLedgersAsync()).Count);
+    }
+
+    [Fact]
     public async Task Enhance_AppliesEquipmentRuleAndConsumesExactlyOneOrbAtomically()
     {
         await using var harness = await OrbOperationHarness.CreateAsync();
@@ -32,6 +57,10 @@ public class EquipmentOrbOperationRepositoryTests
         Assert.True(result.EnhancementSucceeded);
         Assert.Equal(1, result.Equipment!.EnhanceLevel);
         Assert.Equal(1, await harness.GetEntryQuantityAsync(orb));
+        Assert.NotNull(result.InventorySnapshot);
+        Assert.Equal(harness.AccountId, result.InventorySnapshot.AccountId);
+        Assert.Contains(orb, result.InventorySnapshot.CoveredEntryIds);
+        Assert.Equal(1, Assert.Single(result.InventorySnapshot.Entries).Quantity);
         await harness.AssertSingleTerminalLedgerAsync(result.OperationId, paymentConsumed: true);
     }
 
@@ -105,6 +134,10 @@ public class EquipmentOrbOperationRepositoryTests
         Assert.Equal(1, await harness.GetEntryQuantityAsync(lowSlotOrb));
         Assert.False((await harness.GetEntryAsync(lowSlotOrb)).IsDeleted);
         Assert.True((await harness.GetEntryAsync(highSlotOrb)).IsDeleted);
+        Assert.NotNull(result.InventorySnapshot);
+        Assert.Contains(lowSlotOrb, result.InventorySnapshot.CoveredEntryIds);
+        Assert.Contains(highSlotOrb, result.InventorySnapshot.CoveredEntryIds);
+        Assert.Equal(lowSlotOrb, Assert.Single(result.InventorySnapshot.Entries).InventoryEntryId);
         var ledger = Assert.Single(await harness.GetLedgersAsync());
         Assert.Equal(highSlotOrb, ledger.OrbInventoryEntryId);
     }
@@ -361,6 +394,11 @@ public class EquipmentOrbOperationRepositoryTests
         Assert.Equal(1, await harness.GetEntryQuantityAsync(orb));
         Assert.Equal(3, await harness.GetEntryQuantityAsync(material));
         Assert.Equal(50, await harness.GetGoldValueAsync());
+        Assert.NotNull(result.InventorySnapshot!.CurrencyInventoryId);
+        Assert.NotEmpty(result.InventorySnapshot.CurrencyEntries);
+        Assert.All(result.InventorySnapshot.CurrencyEntries, entry =>
+            Assert.Equal(result.InventorySnapshot.CurrencyInventoryId, entry.InventoryId));
+        Assert.Contains(result.InventorySnapshot.Entries, entry => entry.InventoryEntryId == material && entry.Quantity == 3);
         await harness.AssertSingleTerminalLedgerAsync(result.OperationId, paymentConsumed: true);
     }
 
