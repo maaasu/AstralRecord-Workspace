@@ -317,10 +317,10 @@ class WorldJoinSpawnEventHandlerTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_4-統合フロー.md
      * 章・見出し: # 17_4-統合フロー > ## 4. 参加時の拠点スポーン転送
-     * 検証契約: 初回転送 Future が例外完了した場合でも、参加後の検証予約を失わない。
+     * 検証契約: 初回転送 Future が未完了のまま参加後検証が実行されても並行再転送せず、Future 完了後に再試行する。
      */
     @Test
-    void exceptionalInitialJoinSpawnSchedulesVerification() {
+    void pendingInitialJoinSpawnStillSchedulesVerification() {
         AstralRecord plugin = mock(AstralRecord.class);
         Server server = mock(Server.class);
         BukkitScheduler scheduler = mock(BukkitScheduler.class);
@@ -347,17 +347,30 @@ class WorldJoinSpawnEventHandlerTest {
         );
         Player player = mock(Player.class);
         PlayerJoinEvent event = mock(PlayerJoinEvent.class);
+        World initialWorld = mock(World.class);
+        World targetWorld = mock(World.class);
+        UUID playerUuid = UUID.randomUUID();
         List<Runnable> joinTasks = new ArrayList<>();
         List<Runnable> verificationTasks = new ArrayList<>();
         List<Long> verificationDelays = new ArrayList<>();
         CompletableFuture<Boolean> failedTeleport = new CompletableFuture<>();
+        AtomicInteger teleportCallCount = new AtomicInteger();
 
         when(plugin.getServer()).thenReturn(server);
         when(server.getScheduler()).thenReturn(scheduler);
         when(event.getPlayer()).thenReturn(player);
         when(player.getName()).thenReturn("exception-player");
+        when(player.getUniqueId()).thenReturn(playerUuid);
+        when(player.isOnline()).thenReturn(true);
+        when(player.getWorld()).thenReturn(initialWorld, initialWorld, targetWorld);
+        when(server.getPlayer(playerUuid)).thenReturn(player);
         when(worldService.getById("starlit_nox")).thenReturn(worldData);
-        when(worldService.teleportToSpawnAsync(player, worldData)).thenReturn(failedTeleport);
+        when(worldService.resolveLoadedWorld(worldData)).thenReturn(targetWorld);
+        when(worldService.teleportToSpawnAsync(player, worldData)).thenAnswer(invocation ->
+            teleportCallCount.getAndIncrement() == 0
+                ? failedTeleport
+                : CompletableFuture.completedFuture(true)
+        );
         doAnswer(invocation -> {
             joinTasks.add(invocation.getArgument(1, Runnable.class));
             return mock(BukkitTask.class);
@@ -377,14 +390,22 @@ class WorldJoinSpawnEventHandlerTest {
         try (MockedStatic<Logger> ignoredLogger = mockStatic(Logger.class)) {
             handler.onPlayerJoin(event);
             joinTasks.getFirst().run();
-            CompletableFuture.runAsync(() ->
-                failedTeleport.completeExceptionally(new IllegalStateException("teleport failed"))
-            ).join();
-            assertEquals(0, verificationTasks.size());
-            joinTasks.get(1).run();
-
             assertEquals(1, verificationTasks.size());
             assertEquals(List.of(40L), verificationDelays);
+
+            verificationTasks.getFirst().run();
+            verify(worldService).teleportToSpawnAsync(player, worldData);
+            assertEquals(List.of(40L), verificationDelays);
+
+            failedTeleport.complete(false);
+            joinTasks.get(1).run();
+            assertEquals(List.of(40L, 10L), verificationDelays);
+
+            verificationTasks.get(1).run();
+            verify(worldService, times(2)).teleportToSpawnAsync(player, worldData);
+            assertEquals(List.of(40L, 10L, 10L), verificationDelays);
+            verificationTasks.get(2).run();
+            verify(worldService, times(2)).teleportToSpawnAsync(player, worldData);
         }
     }
 

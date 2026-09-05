@@ -42,6 +42,11 @@ public class WorldJoinSpawnEventHandler extends AbstractEventHandler {
         this.worldService = worldService;
     }
 
+    /**
+     * プレイヤー参加後に設定されたスポーン先への転送と到達検証を開始します。
+     *
+     * @param event プレイヤー参加イベント
+     */
     @EventHandler(priority = EventPriority.HIGHEST)
     public void onPlayerJoin(PlayerJoinEvent event) {
         Player joinedPlayer = event.getPlayer();
@@ -53,83 +58,118 @@ public class WorldJoinSpawnEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            // 通常転送が非同期処理の途中で失敗しても、プレイヤーをBukkit既定ワールドへ残さない。
+            // 転送 Future の完了を待たず、ログイン後の検証を独立して予約する。
+            // 非同期処理が未完了のままでも、プレイヤーを Bukkit 既定ワールドへ残さない。
             // 検証はこの参加イベントのプレイヤーインスタンスにだけ紐付くため、再接続後の別セッションへ作用しない。
-            try {
-                worldService.teleportToSpawnAsync(joinedPlayer, worldData).whenComplete((success, failure) -> {
-                    plugin.getServer().getScheduler().runTask(plugin, () -> runSafely(() -> {
-                        if (failure != null) {
-                            Logger.log(LogId.E_5752, failure, playerName);
-                        } else if (!Boolean.TRUE.equals(success)) {
-                            logJoinSpawnFailure(worldData);
-                        }
-                        scheduleJoinSpawnVerification(
-                                joinedPlayer,
-                                worldData,
-                                JOIN_SPAWN_VERIFICATION_DELAY_TICKS,
-                                1
-                        );
-                    }, LogId.E_5752, playerName));
-                });
-            } catch (RuntimeException failure) {
-                Logger.log(LogId.E_5752, failure, playerName);
-                scheduleJoinSpawnVerification(
-                        joinedPlayer,
-                        worldData,
-                        JOIN_SPAWN_VERIFICATION_DELAY_TICKS,
-                        1
-                );
-            }
+            JoinSpawnSession session = new JoinSpawnSession(joinedPlayer, worldData);
+            scheduleJoinSpawnVerification(
+                    session,
+                    JOIN_SPAWN_VERIFICATION_DELAY_TICKS,
+                    1
+            );
+            startJoinSpawnTeleport(session, 1);
         }, LogId.E_5752, playerName));
     }
 
+    /**
+     * 参加先ワールドの到達検証をメインスレッドへ予約します。
+     *
+     * @param session 参加セッション
+     * @param delayTicks 検証までの tick 数
+     * @param teleportAttempts 現在までの転送試行回数
+     */
     private void scheduleJoinSpawnVerification(
-            @NotNull Player player,
-            @NotNull WorldMasterData worldData,
+            @NotNull JoinSpawnSession session,
             long delayTicks,
             int teleportAttempts
     ) {
+        if (session.verificationScheduled || session.verificationFinished) {
+            return;
+        }
+        session.verificationScheduled = true;
         plugin.getServer().getScheduler().runTaskLater(
                 plugin,
                 () -> runSafely(
-                        () -> verifyJoinSpawn(player, worldData, teleportAttempts),
+                        () -> {
+                            session.verificationScheduled = false;
+                            verifyJoinSpawn(session, teleportAttempts);
+                        },
                         LogId.E_5752,
-                        player.getName()
+                        session.playerName
                 ),
                 delayTicks
         );
     }
 
+    /**
+     * 参加先ワールドへ到達しているかを確認し、必要な場合だけ直列に再転送します。
+     *
+     * @param session 参加セッション
+     * @param teleportAttempts 現在までの転送試行回数
+     */
     private void verifyJoinSpawn(
-            @NotNull Player player,
-            @NotNull WorldMasterData worldData,
+            @NotNull JoinSpawnSession session,
             int teleportAttempts
     ) {
-        if (!isCurrentJoinSession(player)) {
+        if (!isCurrentJoinSession(session.player)) {
+            session.verificationFinished = true;
             return;
         }
 
-        var targetWorld = worldService.resolveLoadedWorld(worldData);
-        if (targetWorld != null && player.getWorld() == targetWorld) {
+        var targetWorld = worldService.resolveLoadedWorld(session.worldData);
+        if (targetWorld != null && session.player.getWorld() == targetWorld) {
+            session.verificationFinished = true;
+            return;
+        }
+        if (session.teleportInProgress) {
             return;
         }
         if (teleportAttempts >= JOIN_SPAWN_MAX_TELEPORT_ATTEMPTS) {
-            logJoinSpawnFailure(worldData);
+            session.verificationFinished = true;
+            logJoinSpawnFailure(session.worldData);
             return;
         }
 
-        try {
-            worldService.teleportToSpawnAsync(player, worldData);
-        } catch (RuntimeException failure) {
-            Logger.log(LogId.E_5752, failure, player.getName());
-        }
+        startJoinSpawnTeleport(session, teleportAttempts + 1);
         // 再試行の完了 callback では Bukkit API に触れず、開始時点で main thread から最終確認を予約する。
         scheduleJoinSpawnVerification(
-                player,
-                worldData,
+                session,
                 JOIN_SPAWN_CONFIRMATION_DELAY_TICKS,
                 teleportAttempts + 1
         );
+    }
+
+    /**
+     * 参加先スポーンへの転送を開始し、完了状態だけをセッションへ反映します。
+     *
+     * @param session 参加セッション
+     * @param teleportAttempts 開始する転送試行の番号
+     */
+    private void startJoinSpawnTeleport(@NotNull JoinSpawnSession session, int teleportAttempts) {
+        session.teleportInProgress = true;
+        try {
+            worldService.teleportToSpawnAsync(session.player, session.worldData).whenComplete((success, failure) -> {
+                session.teleportInProgress = false;
+                plugin.getServer().getScheduler().runTask(plugin, () -> runSafely(() -> {
+                    if (session.verificationFinished) {
+                        return;
+                    }
+                    if (failure != null) {
+                        Logger.log(LogId.E_5752, failure, session.playerName);
+                    } else if (!Boolean.TRUE.equals(success)) {
+                        logJoinSpawnFailure(session.worldData);
+                    }
+                    if (!isCurrentJoinSession(session.player)) {
+                        session.verificationFinished = true;
+                        return;
+                    }
+                    scheduleJoinSpawnVerification(session, JOIN_SPAWN_CONFIRMATION_DELAY_TICKS, teleportAttempts);
+                }, LogId.E_5752, session.playerName));
+            });
+        } catch (RuntimeException failure) {
+            session.teleportInProgress = false;
+            Logger.log(LogId.E_5752, failure, session.playerName);
+        }
     }
 
     private void logJoinSpawnFailure(@NotNull WorldMasterData worldData) {
@@ -153,5 +193,20 @@ public class WorldJoinSpawnEventHandler extends AbstractEventHandler {
             return false;
         }
         return plugin.getServer().getPlayer(player.getUniqueId()) == player;
+    }
+
+    private static final class JoinSpawnSession {
+        private final Player player;
+        private final WorldMasterData worldData;
+        private final String playerName;
+        private volatile boolean teleportInProgress;
+        private boolean verificationScheduled;
+        private boolean verificationFinished;
+
+        private JoinSpawnSession(@NotNull Player player, @NotNull WorldMasterData worldData) {
+            this.player = player;
+            this.worldData = worldData;
+            this.playerName = player.getName();
+        }
     }
 }
