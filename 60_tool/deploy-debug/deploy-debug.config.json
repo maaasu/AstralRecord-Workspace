@@ -26,6 +26,11 @@
       ]
     }
   },
+  "databaseMigrations": {
+    "enabled": true,
+    "projectPath": "E:\\AstralRecord-Workspace\\60_tool\\db-migrate\\DbMigrateTool.csproj",
+    "configPath": "E:\\AstralRecord-Workspace\\60_tool\\db-migrate\\db-migrate.config.json"
+  },
   "web": {
     "enabled": true,
     "expectedApiBaseUrl": "https://device_server:444",

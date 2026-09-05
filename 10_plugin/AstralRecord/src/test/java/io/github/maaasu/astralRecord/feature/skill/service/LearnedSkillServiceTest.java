@@ -13,7 +13,9 @@ import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
 import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -31,10 +33,212 @@ import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class LearnedSkillServiceTest {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: APIが一時的なHTTP 5xxを返しても、同一operationIdで再送し、成功結果をキャッシュへ反映する。
+     */
+    @Test
+    void retriesTransientApiStatusWithTheSameOperationId() {
+        Plugin plugin = mock(Plugin.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        LearnedSkillRepository repository = mock(LearnedSkillRepository.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        BukkitTask timeoutTask = mock(BukkitTask.class);
+        UUID accountId = UUID.randomUUID();
+        LearnedSkillInstance learned = learned(accountId, 1);
+        AtomicInteger delayedTaskCalls = new AtomicInteger();
+        AtomicReference<LearnedSkillInstance> success = new AtomicReference<>();
+        AtomicInteger failures = new AtomicInteger();
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        when(scheduler.runTaskLaterAsynchronously(eq(plugin), any(Runnable.class), anyLong()))
+            .thenAnswer(invocation -> {
+                if (delayedTaskCalls.getAndIncrement() == 0) return timeoutTask;
+                invocation.<Runnable>getArgument(1).run();
+                return mock(BukkitTask.class);
+            });
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTaskAsynchronously(eq(plugin), any(Runnable.class));
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
+        when(inventoryService.saveNow(accountId)).thenReturn(CompletableFuture.completedFuture(true));
+        when(repository.learn(eq(accountId), eq("adventurer_smash"), eq(accountId), any(UUID.class)))
+            .thenThrow(new LearnedSkillMutationException(
+                LearnedSkillMutationFailure.UNKNOWN,
+                "temporary API failure",
+                503
+            ))
+            .thenReturn(new LearnedSkillMaterialMutationResult(learned, List.of()));
+
+        LearnedSkillService service = new LearnedSkillService(plugin, repository, inventoryService);
+        service.applyInitialSkills(accountId, List.of());
+
+        assertTrue(service.learnFromManagerAsync(
+            accountId,
+            "adventurer_smash",
+            accountId,
+            List.of(),
+            success::set,
+            ignored -> failures.incrementAndGet()
+        ));
+
+        assertEquals(learned, success.get());
+        assertEquals(0, failures.get());
+        assertFalse(service.hasMutationInProgress(accountId));
+
+        ArgumentCaptor<UUID> operationIds = ArgumentCaptor.forClass(UUID.class);
+        verify(repository, times(2)).learn(
+            eq(accountId), eq("adventurer_smash"), eq(accountId), operationIds.capture()
+        );
+        assertEquals(operationIds.getAllValues().get(0), operationIds.getAllValues().get(1));
+        verify(timeoutTask).cancel();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_5-例外・ログ・運用.md
+     * 章・見出し: # 13_5-例外・ログ・運用 > ## 3. 例外方針
+     * 検証契約: 素材不足などのHTTP 409業務エラーは再送せず、失敗結果として1回だけ通知する。
+     */
+    @Test
+    void doesNotRetryBusinessMutationConflict() {
+        Plugin plugin = mock(Plugin.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        LearnedSkillRepository repository = mock(LearnedSkillRepository.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        BukkitTask timeoutTask = mock(BukkitTask.class);
+        UUID accountId = UUID.randomUUID();
+        AtomicInteger failures = new AtomicInteger();
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        when(scheduler.runTaskLaterAsynchronously(eq(plugin), any(Runnable.class), anyLong()))
+            .thenReturn(timeoutTask);
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTaskAsynchronously(eq(plugin), any(Runnable.class));
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
+        when(inventoryService.saveNow(accountId)).thenReturn(CompletableFuture.completedFuture(true));
+        when(repository.findByAccountId(accountId)).thenReturn(List.of());
+        when(repository.learn(eq(accountId), eq("adventurer_smash"), eq(accountId), any(UUID.class)))
+            .thenThrow(new LearnedSkillMutationException(
+                LearnedSkillMutationFailure.INVALID_MATERIAL,
+                "material is insufficient",
+                409
+            ));
+
+        LearnedSkillService service = new LearnedSkillService(plugin, repository, inventoryService);
+        service.applyInitialSkills(accountId, List.of());
+
+        assertTrue(service.learnFromManagerAsync(
+            accountId,
+            "adventurer_smash",
+            accountId,
+            List.of(),
+            ignored -> { throw new AssertionError("business conflict must fail"); },
+            ignored -> failures.incrementAndGet()
+        ));
+
+        assertEquals(1, failures.get());
+        assertFalse(service.hasMutationInProgress(accountId));
+        verify(repository).learn(eq(accountId), eq("adventurer_smash"), eq(accountId), any(UUID.class));
+        verify(timeoutTask).cancel();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_5-例外・ログ・運用.md
+     * 章・見出し: # 13_5-例外・ログ・運用 > ## 3. 例外方針
+     * 検証契約: 一時HTTP statusの境界とIOExceptionは再送し、業務・認証・対象不在の4xxと500は再送しない。
+     */
+    @Test
+    void coversTransientStatusBoundariesAndTransportRetry() {
+        for (int statusCode : new int[] { 408, 425, 429, 502, 503, 504 }) {
+            assertTransientStatusRetries(statusCode);
+        }
+        for (int statusCode : new int[] { 400, 401, 404, 409, 500, 501, 505 }) {
+            assertBusinessStatusDoesNotRetry(statusCode);
+        }
+        assertIOExceptionRetries();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_5-例外・ログ・運用.md
+     * 章・見出し: # 13_5-例外・ログ・運用 > ## 3. 例外方針
+     * 検証契約: 一時APIエラーが継続しても再送回数の上限後に正本再同期・失敗通知・ロック解放を完了する。
+     */
+    @Test
+    void stopsTransientApiRetriesAfterAttemptBudget() {
+        Plugin plugin = mock(Plugin.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        LearnedSkillRepository repository = mock(LearnedSkillRepository.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        BukkitTask timeoutTask = mock(BukkitTask.class);
+        UUID accountId = UUID.randomUUID();
+        AtomicInteger delayedTaskCalls = new AtomicInteger();
+        AtomicInteger failures = new AtomicInteger();
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        when(scheduler.runTaskLaterAsynchronously(eq(plugin), any(Runnable.class), anyLong()))
+            .thenAnswer(invocation -> {
+                if (delayedTaskCalls.getAndIncrement() == 0) return timeoutTask;
+                invocation.<Runnable>getArgument(1).run();
+                return mock(BukkitTask.class);
+            });
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTaskAsynchronously(eq(plugin), any(Runnable.class));
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
+        when(inventoryService.saveNow(accountId)).thenReturn(CompletableFuture.completedFuture(true));
+        when(repository.findByAccountId(accountId)).thenReturn(List.of());
+        when(repository.learn(eq(accountId), eq("adventurer_smash"), eq(accountId), any(UUID.class)))
+            .thenThrow(new LearnedSkillMutationException(
+                LearnedSkillMutationFailure.UNKNOWN,
+                "persistent API failure",
+                503
+            ));
+
+        LearnedSkillService service = new LearnedSkillService(plugin, repository, inventoryService);
+        service.applyInitialSkills(accountId, List.of());
+
+        assertTrue(service.learnFromManagerAsync(
+            accountId,
+            "adventurer_smash",
+            accountId,
+            List.of(),
+            ignored -> { throw new AssertionError("persistent API failure must not succeed"); },
+            ignored -> failures.incrementAndGet()
+        ));
+
+        assertEquals(1, failures.get());
+        assertFalse(service.hasMutationInProgress(accountId));
+        verify(repository, times(20)).learn(
+            eq(accountId), eq("adventurer_smash"), eq(accountId), any(UUID.class)
+        );
+        verify(timeoutTask).cancel();
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
@@ -399,6 +603,176 @@ class LearnedSkillServiceTest {
         assertEquals(1, failures.get());
         assertFalse(service.hasMutationInProgress(accountId));
         verify(repository, never()).learn(any(), any(), any(), any());
+        verify(timeoutTask).cancel();
+    }
+
+    private void assertTransientStatusRetries(int statusCode) {
+        Plugin plugin = mock(Plugin.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        LearnedSkillRepository repository = mock(LearnedSkillRepository.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        BukkitTask timeoutTask = mock(BukkitTask.class);
+        UUID accountId = UUID.randomUUID();
+        LearnedSkillInstance learned = learned(accountId, 1);
+        AtomicInteger delayedTaskCalls = new AtomicInteger();
+        AtomicReference<LearnedSkillInstance> success = new AtomicReference<>();
+        AtomicInteger failures = new AtomicInteger();
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        when(scheduler.runTaskLaterAsynchronously(eq(plugin), any(Runnable.class), anyLong()))
+            .thenAnswer(invocation -> {
+                if (delayedTaskCalls.getAndIncrement() == 0) return timeoutTask;
+                invocation.<Runnable>getArgument(1).run();
+                return mock(BukkitTask.class);
+            });
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTaskAsynchronously(eq(plugin), any(Runnable.class));
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
+        when(inventoryService.saveNow(accountId)).thenReturn(CompletableFuture.completedFuture(true));
+        when(repository.learn(eq(accountId), eq("adventurer_smash"), eq(accountId), any(UUID.class)))
+            .thenThrow(new LearnedSkillMutationException(
+                LearnedSkillMutationFailure.UNKNOWN,
+                "temporary API failure",
+                statusCode
+            ))
+            .thenReturn(new LearnedSkillMaterialMutationResult(learned, List.of()));
+
+        LearnedSkillService service = new LearnedSkillService(plugin, repository, inventoryService);
+        service.applyInitialSkills(accountId, List.of());
+
+        assertTrue(service.learnFromManagerAsync(
+            accountId,
+            "adventurer_smash",
+            accountId,
+            List.of(),
+            success::set,
+            ignored -> failures.incrementAndGet()
+        ));
+
+        assertEquals(learned, success.get());
+        assertEquals(0, failures.get());
+        assertFalse(service.hasMutationInProgress(accountId));
+        ArgumentCaptor<UUID> operationIds = ArgumentCaptor.forClass(UUID.class);
+        verify(repository, times(2)).learn(
+            eq(accountId), eq("adventurer_smash"), eq(accountId), operationIds.capture()
+        );
+        assertEquals(operationIds.getAllValues().get(0), operationIds.getAllValues().get(1));
+        verify(timeoutTask).cancel();
+    }
+
+    private void assertBusinessStatusDoesNotRetry(int statusCode) {
+        Plugin plugin = mock(Plugin.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        LearnedSkillRepository repository = mock(LearnedSkillRepository.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        BukkitTask timeoutTask = mock(BukkitTask.class);
+        UUID accountId = UUID.randomUUID();
+        AtomicInteger failures = new AtomicInteger();
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        when(scheduler.runTaskLaterAsynchronously(eq(plugin), any(Runnable.class), anyLong()))
+            .thenReturn(timeoutTask);
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTaskAsynchronously(eq(plugin), any(Runnable.class));
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
+        when(inventoryService.saveNow(accountId)).thenReturn(CompletableFuture.completedFuture(true));
+        when(repository.findByAccountId(accountId)).thenReturn(List.of());
+        when(repository.learn(eq(accountId), eq("adventurer_smash"), eq(accountId), any(UUID.class)))
+            .thenThrow(new LearnedSkillMutationException(
+                LearnedSkillMutationFailure.UNKNOWN,
+                "business API failure",
+                statusCode
+            ));
+
+        LearnedSkillService service = new LearnedSkillService(plugin, repository, inventoryService);
+        service.applyInitialSkills(accountId, List.of());
+
+        assertTrue(service.learnFromManagerAsync(
+            accountId,
+            "adventurer_smash",
+            accountId,
+            List.of(),
+            ignored -> { throw new AssertionError("business API failure must not succeed"); },
+            ignored -> failures.incrementAndGet()
+        ));
+
+        assertEquals(1, failures.get());
+        assertFalse(service.hasMutationInProgress(accountId));
+        verify(repository).learn(eq(accountId), eq("adventurer_smash"), eq(accountId), any(UUID.class));
+        verify(timeoutTask).cancel();
+    }
+
+    private void assertIOExceptionRetries() {
+        Plugin plugin = mock(Plugin.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        LearnedSkillRepository repository = mock(LearnedSkillRepository.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        BukkitTask timeoutTask = mock(BukkitTask.class);
+        UUID accountId = UUID.randomUUID();
+        LearnedSkillInstance learned = learned(accountId, 1);
+        AtomicInteger delayedTaskCalls = new AtomicInteger();
+        AtomicReference<LearnedSkillInstance> success = new AtomicReference<>();
+        AtomicInteger failures = new AtomicInteger();
+
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        when(scheduler.runTaskLaterAsynchronously(eq(plugin), any(Runnable.class), anyLong()))
+            .thenAnswer(invocation -> {
+                if (delayedTaskCalls.getAndIncrement() == 0) return timeoutTask;
+                invocation.<Runnable>getArgument(1).run();
+                return mock(BukkitTask.class);
+            });
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTaskAsynchronously(eq(plugin), any(Runnable.class));
+        doAnswer(invocation -> {
+            invocation.<Runnable>getArgument(1).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
+        when(inventoryService.saveNow(accountId)).thenReturn(CompletableFuture.completedFuture(true));
+        AtomicInteger repositoryCalls = new AtomicInteger();
+        when(repository.learn(eq(accountId), eq("adventurer_smash"), eq(accountId), any(UUID.class)))
+            .thenAnswer(invocation -> {
+                if (repositoryCalls.getAndIncrement() == 0) {
+                    throw new IOException("temporary transport failure");
+                }
+                return new LearnedSkillMaterialMutationResult(learned, List.of());
+            });
+
+        LearnedSkillService service = new LearnedSkillService(plugin, repository, inventoryService);
+        service.applyInitialSkills(accountId, List.of());
+
+        assertTrue(service.learnFromManagerAsync(
+            accountId,
+            "adventurer_smash",
+            accountId,
+            List.of(),
+            success::set,
+            ignored -> failures.incrementAndGet()
+        ));
+
+        assertEquals(learned, success.get());
+        assertEquals(0, failures.get());
+        assertFalse(service.hasMutationInProgress(accountId));
+        verify(repository, times(2)).learn(
+            eq(accountId), eq("adventurer_smash"), eq(accountId), any(UUID.class)
+        );
         verify(timeoutTask).cancel();
     }
 

@@ -54,7 +54,9 @@ enum class LearnedSkillMutationFailure {
     UNKNOWN,
 }
 
-class LearnedSkillMutationException(
+class LearnedSkillMutationException @JvmOverloads constructor(
     val failure: LearnedSkillMutationFailure,
     message: String,
+    /** HTTP response status when the mutation reached the API, otherwise null. */
+    val statusCode: Int? = null,
 ) : RuntimeException(message)

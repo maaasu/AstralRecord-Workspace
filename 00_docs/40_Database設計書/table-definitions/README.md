@@ -31,6 +31,9 @@
 | `AstralRecord` | `AstralRecord/migrations/20260830_market_purchase_receipt.sql` | 購入再送用の更新 inventory entry ID receipt を追加。対応 API 配置前に適用 |
 | `AstralRecord` | `AstralRecord/migrations/20260901_account_delete_receipt.sql` | アカウント削除の確定応答台帳を追加 |
 | `AstralRecord` | `AstralRecord/migrations/20260904_add_inventory_entry_lookup_index.sql` | inventory entry 一括置換の inventory 単位検索用インデックスを追加 |
+| `AstralRecord` | `AstralRecord/migrations/20260905_account_learned_skill_operation.sql` | スキル mutation の冪等操作台帳を追加 |
+
+本番配置時に適用する migration は `60_tool/db-migrate/db-migrate.config.json` の manifest で管理する。`01-deploy-debug.bat` は API 配置前に manifest の適用と対象スキーマ検査を実行し、失敗時は API を配置しない。`04-db-rebuild.bat` は既存データを削除する再構築用であり、稼働中DBの差分適用には使用しない。
 
 ## AstralRecord
 
@@ -46,6 +49,7 @@
 | `dbo.account_delete_receipt` | `AstralRecord/dbo.account_delete_receipt.md` |
 | `dbo.account_class_progress` | `AstralRecord/dbo.account_class_progress.md` |
 | `dbo.account_learned_skill` | `AstralRecord/dbo.account_learned_skill.md` |
+| `dbo.account_learned_skill_operation` | `AstralRecord/dbo.account_learned_skill_operation.md` |
 | `dbo.account_learned_skill_sigil` | `AstralRecord/dbo.account_learned_skill_sigil.md` |
 | `dbo.account_guide_step_progress` | `AstralRecord/dbo.account_guide_step_progress.md` |
 | `dbo.account_skilltree_state` | `AstralRecord/dbo.account_skilltree_state.md` |
@@ -67,6 +71,7 @@
 | `dbo.market_transaction` | `AstralRecord/dbo.market_transaction.md` |
 | `dbo.market_price_snapshot` | `AstralRecord/dbo.market_price_snapshot.md` |
 | `dbo.trade_commit` | `AstralRecord/dbo.trade_commit.md` |
+| `dbo.schema_migration` | `AstralRecord/dbo.schema_migration.md` |
 | `dbo.web_login_challenge` | `AstralRecord/dbo.web_login_challenge.md` |
 
 ## MasterDataDB

@@ -307,6 +307,23 @@ function Publish-DotNetProject {
     }
 }
 
+function Invoke-DatabaseMigrations {
+    param($MigrationConfig)
+
+    if ($null -eq $MigrationConfig -or -not $MigrationConfig.enabled) {
+        return
+    }
+
+    Assert-PathExists -Label "Database migration project" -Path $MigrationConfig.projectPath
+    Assert-PathExists -Label "Database migration config" -Path $MigrationConfig.configPath
+
+    Write-Step "Applying and validating database migrations"
+    & dotnet run --project $MigrationConfig.projectPath -- --config $MigrationConfig.configPath
+    if ($LASTEXITCODE -ne 0) {
+        throw "Database migration failed. API deployment was not started."
+    }
+}
+
 function Build-Plugin {
     param(
         $Component,
@@ -558,6 +575,10 @@ try {
 
     if ($config.plugin.enabled) {
         Build-Plugin -Component $config.plugin -SkipTests:$PluginOnly
+    }
+
+    if ($config.api.enabled) {
+        Invoke-DatabaseMigrations -MigrationConfig $config.databaseMigrations
     }
 
     if ($null -ne $script:iisResetCommand -and ($config.api.enabled -or $config.web.enabled)) {

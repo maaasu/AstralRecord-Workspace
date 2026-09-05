@@ -1,0 +1,57 @@
+{
+  "sourceApiAppsettingsPath": "\\\\192.168.0.88\\server\\AstralRecordApi\\appsettings.json",
+  "connectionStrings": {
+    "sqlServer": ""
+  },
+  "migrationsRootPath": "..\\..\\00_docs\\40_Database設計書\\table-definitions\\AstralRecord\\migrations",
+  "preExistingMigrationFileNames": [
+    "20260801_add_left_click_skill_id.sql",
+    "20260802_add_learned_skills.sql",
+    "20260810_orb_enchant_effect_id.sql",
+    "20260811_equipment_orb_operation.sql",
+    "20260812_account_dungeon_record.sql",
+    "20260815_trade_commit.sql",
+    "20260816_market_listing_settlement.sql",
+    "20260819_add_donor_permission.sql",
+    "20260824_release_note.sql",
+    "20260826_account_delete.sql",
+    "20260829_add_selected_skill_bind_preset.sql",
+    "20260830_market_purchase_receipt.sql",
+    "20260901_account_delete_receipt.sql",
+    "20260901_account_mailbox_name.sql",
+    "20260904_add_inventory_entry_lookup_index.sql"
+  ],
+  "migrations": [
+    {
+      "id": "20260905_account_learned_skill_operation",
+      "fileName": "20260905_account_learned_skill_operation.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "account_learned_skill_operation",
+        "primaryKey": "PK_account_learned_skill_operation",
+        "columns": [
+          { "name": "operation_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+          { "name": "account_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+          { "name": "operation_type", "sqlType": "nvarchar", "maxLengthBytes": 64, "isNullable": false },
+          { "name": "request_hash", "sqlType": "char", "maxLengthBytes": 64, "isNullable": false },
+          { "name": "result_payload_json", "sqlType": "nvarchar", "maxLengthBytes": -1, "isNullable": false },
+          { "name": "created_at", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+          { "name": "completed_at", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+          { "name": "created_by", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false }
+        ],
+        "checkConstraints": [
+          "CK_account_learned_skill_operation_result_payload_json"
+        ],
+        "indexes": [
+          "IX_account_learned_skill_operation_account_created_at"
+        ],
+        "indexDefinitions": [
+          {
+            "name": "IX_account_learned_skill_operation_account_created_at",
+            "columns": [ "account_id", "created_at" ]
+          }
+        ]
+      }
+    }
+  ]
+}

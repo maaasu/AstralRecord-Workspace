@@ -154,7 +154,11 @@ class LearnedSkillRepository {
                     )
                 }
                 val failure = parseFailure(response.body())
-                throw LearnedSkillMutationException(failure, "HTTP ${response.statusCode()} for POST $path: $failure")
+                throw LearnedSkillMutationException(
+                    failure,
+                    "HTTP ${response.statusCode()} for POST $path: $failure",
+                    response.statusCode(),
+                )
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
@@ -190,7 +194,11 @@ class LearnedSkillRepository {
                     return parseSkill(JsonParser.parseString(response.body()).asJsonObject)
                 }
                 val failure = parseFailure(response.body())
-                throw LearnedSkillMutationException(failure, "HTTP ${response.statusCode()} for POST $path: $failure")
+                throw LearnedSkillMutationException(
+                    failure,
+                    "HTTP ${response.statusCode()} for POST $path: $failure",
+                    response.statusCode(),
+                )
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()
@@ -222,7 +230,11 @@ class LearnedSkillRepository {
                     )
                 }
                 val failure = parseFailure(response.body())
-                throw LearnedSkillMutationException(failure, "HTTP ${response.statusCode()} for POST $path: $failure")
+                throw LearnedSkillMutationException(
+                    failure,
+                    "HTTP ${response.statusCode()} for POST $path: $failure",
+                    response.statusCode(),
+                )
             }
         } catch (e: InterruptedException) {
             Thread.currentThread().interrupt()

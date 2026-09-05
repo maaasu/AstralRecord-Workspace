@@ -37,7 +37,8 @@ import java.util.function.Consumer;
 public final class LearnedSkillService {
     private static final long DEFAULT_MUTATION_TIMEOUT_MILLIS = 60_000L;
     private static final long MUTATION_RETRY_INITIAL_MILLIS = 250L;
-    private static final long MUTATION_RETRY_MAX_MILLIS = 2_000L;
+    private static final long MUTATION_RETRY_MAX_MILLIS = 5_000L;
+    private static final int MUTATION_RETRY_MAX_ATTEMPTS = 20;
 
     private final Plugin plugin;
     private final LearnedSkillRepository repository;
@@ -649,6 +650,7 @@ public final class LearnedSkillService {
             return;
         }
         if (!watchdog.beginMutation()) return;
+        retryState.attempts++;
         try {
             MutationOutcome outcome = mutation.execute();
             LearnedSkillInstance result = outcome.skill();
@@ -694,7 +696,8 @@ public final class LearnedSkillService {
                 }
             });
         } catch (Throwable error) {
-            if (isRetryableMutationTransport(error)) {
+            if (isRetryableMutationTransport(error)
+                && retryState.attempts < MUTATION_RETRY_MAX_ATTEMPTS) {
                 scheduleMutationRetry(
                     accountId,
                     sessionToken,
@@ -708,6 +711,8 @@ public final class LearnedSkillService {
                 );
                 return;
             }
+            // API応答不明の再送にも上限を設け、恒常障害時の負荷とaccount lockの滞留を防ぐ。
+            // 上限到達時も同じ operationId の結果を正本から再確認してから失敗完了する。
             reconcileAfterFailure(accountId, sessionToken, materialInventoryEntryIds);
             completeFailure(accountId, sessionToken, lock, watchdog, onFailure, error);
         }
@@ -742,14 +747,31 @@ public final class LearnedSkillService {
     }
 
     private static boolean isRetryableMutationTransport(@NotNull Throwable error) {
-        if (error instanceof LearnedSkillMutationException) return false;
         Throwable current = error;
         while (current != null) {
+            if (current instanceof LearnedSkillMutationException mutationException) {
+                return isRetryableHttpStatus(mutationException.getStatusCode());
+            }
             if (current instanceof java.io.IOException) return true;
             if (current instanceof InterruptedException) return false;
             current = current.getCause();
         }
         return false;
+    }
+
+    /**
+     * API が業務結果を返せず、同じ operationId で再送して結果を確定すべき HTTP status です。
+     * 4xx の業務エラー（素材不足、権限不成立、冪等キー衝突など）と、アプリ設定・スキーマ不備を
+     * 示す 500 は再送しません。
+     */
+    private static boolean isRetryableHttpStatus(@Nullable Integer statusCode) {
+        if (statusCode == null) return false;
+        return statusCode == 408
+            || statusCode == 425
+            || statusCode == 429
+            || statusCode == 502
+            || statusCode == 503
+            || statusCode == 504;
     }
 
     private void reconcileAfterFailure(UUID accountId, UUID sessionToken, List<UUID> materialInventoryEntryIds) {
@@ -921,6 +943,7 @@ public final class LearnedSkillService {
 
     private static final class MutationRetryState {
         private long nextDelayMillis = MUTATION_RETRY_INITIAL_MILLIS;
+        private int attempts;
     }
 
     private static final class MutationWatchdog {

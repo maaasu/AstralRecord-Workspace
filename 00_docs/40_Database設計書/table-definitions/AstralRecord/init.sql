@@ -349,6 +349,22 @@ CREATE NONCLUSTERED INDEX [IX_account_learned_skill_operation_account_created_at
 GO
 
 -- ============================================================
+-- AstralRecord\dbo.schema_migration.md
+-- ============================================================
+
+CREATE TABLE [dbo].[schema_migration] (
+    [migration_id]  NVARCHAR(128) NOT NULL,
+    [file_name]     NVARCHAR(260) NOT NULL,
+    [script_sha256] CHAR(64)      NOT NULL,
+    [applied_at]    DATETIME2(3)  NOT NULL CONSTRAINT [DF_schema_migration_applied_at] DEFAULT (SYSUTCDATETIME()),
+
+    CONSTRAINT [PK_schema_migration] PRIMARY KEY CLUSTERED ([migration_id]),
+    CONSTRAINT [CK_schema_migration_script_sha256]
+        CHECK ([script_sha256] LIKE '[0-9A-Fa-f]' + REPLICATE('[0-9A-Fa-f]', 63))
+);
+GO
+
+-- ============================================================
 -- AstralRecord\dbo.account_learned_skill_sigil.md
 -- ============================================================
 
