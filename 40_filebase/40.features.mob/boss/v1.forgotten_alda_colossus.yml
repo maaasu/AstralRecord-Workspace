@@ -28,7 +28,7 @@ baseStats:
   - status: MAX_HEALTH
     value: 88160
   - status: ATTACK
-    value: 956
+    value: 765
   - status: DEFENSE
     value: 882
   - status: ACCURACY

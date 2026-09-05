@@ -25,7 +25,7 @@ levels:
       - status: MAX_HEALTH
         value: 4400
       - status: ATTACK
-        value: 797
+        value: 638
       - status: DEFENSE
         value: 767
       - status: ACCURACY

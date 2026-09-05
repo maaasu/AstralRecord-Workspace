@@ -25,9 +25,9 @@ levels:
       - status: MAX_HEALTH
         value: 3520
       - status: ATTACK
-        value: 724
+        value: 579
       - status: RANGED_ATTACK
-        value: 339
+        value: 271
       - status: DEXTERITY
         value: 5
       - status: DEFENSE
