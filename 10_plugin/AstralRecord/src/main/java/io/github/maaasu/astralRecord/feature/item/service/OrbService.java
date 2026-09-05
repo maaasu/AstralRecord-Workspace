@@ -78,6 +78,8 @@ public final class OrbService {
     private static final int PREVIOUS_PAGE_SLOT = 45;
     private static final int INFO_SLOT = 49;
     private static final int NEXT_PAGE_SLOT = 53;
+    private static final int ORB_USE_COUNT_MINUS_SLOT = 48;
+    private static final int ORB_USE_COUNT_PLUS_SLOT = 50;
     private static final int INVENTORY_ORB_CONTENT_SLOT_COUNT = 28;
     private static final int INVENTORY_ORB_PREVIOUS_PAGE_SLOT = 45;
     private static final int INVENTORY_ORB_INFO_SLOT = 49;
@@ -928,13 +930,51 @@ public final class OrbService {
         session.displayedTargets = Map.copyOf(displayed);
         inventory.setItem(PREVIOUS_PAGE_SLOT, pageButton(false, session.page > 0));
         inventory.setItem(NEXT_PAGE_SLOT, pageButton(true, session.page + 1 < pageCount));
+        long availableOrbAmount = currentOrbQuantity(session, orbModel);
+        session.selectedOrbAmount = normalizeSelectedOrbAmount(
+            session,
+            orbModel,
+            availableOrbAmount
+        );
+        boolean batchable = supportsBatchUse(orbModel.getOrb().getEffect().getType());
+        inventory.setItem(
+            ORB_USE_COUNT_MINUS_SLOT,
+            orbAmountButton(false, batchable && session.selectedOrbAmount > 1)
+        );
+        inventory.setItem(
+            ORB_USE_COUNT_PLUS_SLOT,
+            orbAmountButton(
+                true,
+                batchable && availableOrbAmount > session.selectedOrbAmount
+            )
+        );
         ItemStack info = itemStackFactory.create(orbModel, 1);
-        appendLore(info, List.of(
+        List<Component> infoLore = new ArrayList<>(List.of(
             Component.empty(),
             Component.text("対象装備のみ表示しています。", NamedTextColor.GRAY),
-            Component.text("ページ " + (session.page + 1) + " / " + pageCount, NamedTextColor.DARK_GRAY)
+            Component.text("ページ " + (session.page + 1) + " / " + pageCount, NamedTextColor.DARK_GRAY),
+            Component.text("所持数: " + availableOrbAmount, NamedTextColor.AQUA),
+            Component.text("使用数: " + session.selectedOrbAmount, NamedTextColor.YELLOW)
         ));
+        infoLore.add(batchable
+            ? Component.text("左右のボタンで使用数を1個ずつ変更", NamedTextColor.GOLD)
+            : Component.text("この操作は1回のみです", NamedTextColor.GRAY));
+        appendLore(info, infoLore);
         inventory.setItem(INFO_SLOT, info);
+    }
+
+    /** オーブ使用数変更ボタンを生成します。 */
+    private @NotNull ItemStack orbAmountButton(boolean plus, boolean enabled) {
+        Material material = plus ? Material.LIME_DYE : Material.RED_DYE;
+        String label = plus ? "使用数を増やす" : "使用数を減らす";
+        String instruction = enabled
+            ? "1個ずつ変更"
+            : "これ以上変更できません";
+        return GuiItems.create(
+            material,
+            Component.text(label, enabled ? NamedTextColor.GREEN : NamedTextColor.GRAY),
+            List.of(Component.text(instruction, NamedTextColor.GRAY))
+        );
     }
 
     /**
@@ -976,6 +1016,31 @@ public final class OrbService {
             closeAndRemove(session);
             return;
         }
+        if (event.getRawSlot() == ORB_USE_COUNT_MINUS_SLOT
+            || event.getRawSlot() == ORB_USE_COUNT_PLUS_SLOT) {
+            if (!supportsBatchUse(orbModel.getOrb().getEffect().getType())) {
+                GuiSound.DENY.play(session.player);
+                return;
+            }
+            long available = currentOrbQuantity(session, orbModel);
+            if (available <= 0L) {
+                PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5289);
+                closeAndRemove(session);
+                return;
+            }
+            int current = normalizeSelectedOrbAmount(session, orbModel, available);
+            int next = event.getRawSlot() == ORB_USE_COUNT_PLUS_SLOT
+                ? incrementOrbUseAmount(current, available)
+                : Math.max(1, current - 1);
+            if (next == current) {
+                GuiSound.DENY.play(session.player);
+                return;
+            }
+            session.selectedOrbAmount = next;
+            renderList(session, orbModel, session.inventory, collectCandidates(session, orbModel));
+            GuiSound.SELECT.play(session.player);
+            return;
+        }
         if (event.getRawSlot() == PREVIOUS_PAGE_SLOT && session.page > 0) {
             session.page--;
             renderList(session, orbModel, session.inventory, collectCandidates(session, orbModel));
@@ -1015,6 +1080,7 @@ public final class OrbService {
             return;
         }
         session.processingSlot = event.getRawSlot();
+        prepareBatch(session, orbModel, target);
         if (orbModel.getOrb().getEffect().getType() == ItemOrbEffectType.TRANSCENDENCE) {
             openTranscendenceConfirmation(session, orbModel, target);
             return;
@@ -1025,6 +1091,46 @@ public final class OrbService {
             return;
         }
         executeCandidate(session, orbModel, target);
+    }
+
+    /** 複数回の連続適用に対応するオーブ効果か判定します。 */
+    private boolean supportsBatchUse(@NotNull ItemOrbEffectType type) {
+        return type == ItemOrbEffectType.ENHANCE
+            || type == ItemOrbEffectType.REPAIR
+            || type == ItemOrbEffectType.ENCHANT;
+    }
+
+    /** 一覧GUIで選択された使用数を、現在の所持数に合わせてセッションへ確定します。 */
+    private void prepareBatch(
+        @NotNull OrbSession session,
+        @NotNull ItemModel orbModel,
+        @NotNull OrbCandidate target
+    ) {
+        if (!supportsBatchUse(orbModel.getOrb().getEffect().getType())) {
+            clearBatch(session);
+            return;
+        }
+        int selected = normalizeSelectedOrbAmount(
+            session,
+            orbModel,
+            currentOrbQuantity(session, orbModel)
+        );
+        session.batchRequestedAmount = selected;
+        session.batchTargetId = target.instance.getEquipmentInstanceId();
+        session.batchConsumedAmount = 0;
+        session.batchSuccessCount = 0;
+        session.batchFailureCount = 0;
+        session.batchActive = selected > 1;
+    }
+
+    /** 複数回適用の状態を初期化します。 */
+    private void clearBatch(@NotNull OrbSession session) {
+        session.batchActive = false;
+        session.batchTargetId = null;
+        session.batchRequestedAmount = 1;
+        session.batchConsumedAmount = 0;
+        session.batchSuccessCount = 0;
+        session.batchFailureCount = 0;
     }
 
     /**
@@ -1249,6 +1355,43 @@ public final class OrbService {
             && session.inventory == inventory
             ? session
             : null;
+    }
+
+    /** 起点オーブ item ID の現在の通常インベントリ合計数を返します。 */
+    private long currentOrbQuantity(
+        @NotNull OrbSession session,
+        @NotNull ItemModel orbModel
+    ) {
+        if (orbModel.getOrb() == null || orbModel.getOrb().getEffect() == null) {
+            return 0L;
+        }
+        return Math.max(0L, inventoryService.getNormalItemAmount(
+            session.accountId,
+            orbModel.getId()
+        ));
+    }
+
+    /** GUIで選択できる使用数を1個以上かつ現在の所持数以下へ丸めます。 */
+    private int normalizeSelectedOrbAmount(
+        @NotNull OrbSession session,
+        @NotNull ItemModel orbModel,
+        long availableOrbAmount
+    ) {
+        if (!supportsBatchUse(orbModel.getOrb().getEffect().getType())) {
+            return 1;
+        }
+        int max = availableOrbAmount >= Integer.MAX_VALUE
+            ? Integer.MAX_VALUE
+            : (int) Math.max(1L, availableOrbAmount);
+        return Math.max(1, Math.min(session.selectedOrbAmount, max));
+    }
+
+    /** 使用数を上限を越えない範囲で1個増やします。 */
+    private int incrementOrbUseAmount(int current, long availableOrbAmount) {
+        if (current >= Integer.MAX_VALUE || current >= availableOrbAmount) {
+            return current;
+        }
+        return current + 1;
     }
 
     /**
@@ -2103,6 +2246,10 @@ public final class OrbService {
     ) {
         ItemModel currentOrb = resolveCurrentOrb(session);
         if (currentOrb == null || !currentOrb.getId().equalsIgnoreCase(orbModel.getId())) {
+            if (session.batchActive && session.batchConsumedAmount > 0) {
+                finishBatchMutation(session, MutationResult.failed(MutationStatus.PAYMENT_UNAVAILABLE));
+                return;
+            }
             PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5289);
             closeAndRemove(session);
             return;
@@ -2126,6 +2273,10 @@ public final class OrbService {
 
         UUID operationId = UUID.randomUUID();
         if (!reserveOperationPayment(session, currentOrb, transitionPlan, operationId)) {
+            if (session.batchActive) {
+                finishBatchMutation(session, MutationResult.failed(MutationStatus.PAYMENT_UNAVAILABLE));
+                return;
+            }
             PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5289);
             GuiSound.DENY.play(session.player);
             return;
@@ -2578,7 +2729,9 @@ public final class OrbService {
             return;
         }
         if (result.status != MutationStatus.SUCCESS) {
-            session.interactionLock.release();
+            if (!session.batchActive) {
+                session.interactionLock.release();
+            }
             if (session.detached) {
                 return;
             }
@@ -2593,17 +2746,14 @@ public final class OrbService {
                     statusService.refreshStatus(session.astPlayer);
                 }
             }
+            if (session.batchActive) {
+                finishBatchMutation(session, result);
+                return;
+            }
             if (session.player.isOnline()) {
                 PlayerMessageService.getInstance().send(
                     session.player,
-                    switch (result.status) {
-                        case NO_CANDIDATE -> PlayerMsgId.P_5294;
-                        case PAYMENT_UNAVAILABLE -> session.screen == OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM
-                            ? PlayerMsgId.P_5291
-                            : PlayerMsgId.P_5289;
-                        case TARGET_UNAVAILABLE, TARGET_CHANGED -> PlayerMsgId.P_5290;
-                        default -> PlayerMsgId.P_5295;
-                    }
+                    mutationFailureMessage(session, result)
                 );
                 GuiSound.DENY.play(session.player);
             }
@@ -2623,6 +2773,10 @@ public final class OrbService {
             if (statusService != null) {
                 statusService.refreshStatus(session.astPlayer);
             }
+        }
+        if (session.batchActive) {
+            continueBatchMutation(session, result);
+            return;
         }
         if (session.uiClosed
             || !session.player.isOnline()
@@ -2656,18 +2810,19 @@ public final class OrbService {
                         statusService.refreshStatus(session.astPlayer);
                     }
                 }
+                if (session.batchActive) {
+                    finishBatchMutation(session, result);
+                    return;
+                }
                 PlayerMessageService.getInstance().send(
                     session.player,
-                    switch (result.status) {
-                        case NO_CANDIDATE -> PlayerMsgId.P_5294;
-                        case PAYMENT_UNAVAILABLE -> session.screen == OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM
-                            ? PlayerMsgId.P_5291
-                            : PlayerMsgId.P_5289;
-                        case TARGET_UNAVAILABLE, TARGET_CHANGED -> PlayerMsgId.P_5290;
-                        default -> PlayerMsgId.P_5295;
-                    }
+                    mutationFailureMessage(session, result)
                 );
                 GuiSound.DENY.play(session.player);
+            }
+            if (session.batchActive) {
+                finishBatchMutation(session, result);
+                return;
             }
             sessions.remove(session.player.getUniqueId(), session);
             return;
@@ -2681,6 +2836,11 @@ public final class OrbService {
                 statusService.refreshStatus(session.astPlayer);
             }
         }
+        if (session.batchActive) {
+            recordBatchResult(session, result);
+            finishBatchMutation(session, result);
+            return;
+        }
         if (session.player.isOnline()) {
             sendMutationResult(session.player, result);
             if (result.kind == MutationKind.ENHANCEMENT && !result.enhancementSucceeded) {
@@ -2690,6 +2850,126 @@ public final class OrbService {
             }
         }
         sessions.remove(session.player.getUniqueId(), session);
+    }
+
+    /** 複数回適用の成功結果を集計し、次の1個を同じ対象へ開始します。 */
+    private void continueBatchMutation(
+        @NotNull OrbSession session,
+        @NotNull MutationResult result
+    ) {
+        recordBatchResult(session, result);
+        if (session.batchConsumedAmount >= session.batchRequestedAmount
+            || session.detached
+            || session.uiClosed
+            || !session.player.isOnline()
+            || !isCurrentInventory(session.player, session)) {
+            finishBatchMutation(session, result);
+            return;
+        }
+        ItemModel orbModel = resolveCurrentOrb(session);
+        if (orbModel == null || session.batchTargetId == null) {
+            finishBatchMutation(session, MutationResult.failed(MutationStatus.PAYMENT_UNAVAILABLE));
+            return;
+        }
+        OrbCandidate target = collectCandidates(session, orbModel).stream()
+            .filter(candidate -> candidate.instance.getEquipmentInstanceId()
+                .equalsIgnoreCase(session.batchTargetId))
+            .findFirst()
+            .orElse(null);
+        if (target == null) {
+            finishBatchMutation(session, MutationResult.failed(MutationStatus.TARGET_CHANGED));
+            return;
+        }
+        executeCandidate(session, orbModel, target);
+    }
+
+    /** 1回分の確定結果を複数回適用の成功・失敗件数へ加算します。 */
+    private void recordBatchResult(
+        @NotNull OrbSession session,
+        @NotNull MutationResult result
+    ) {
+        session.batchConsumedAmount++;
+        if (result.kind == MutationKind.ENHANCEMENT && !result.enhancementSucceeded) {
+            session.batchFailureCount++;
+        } else {
+            session.batchSuccessCount++;
+        }
+    }
+
+    /** 複数回適用を終了し、集計結果を一度だけ通知して一覧を更新します。 */
+    private void finishBatchMutation(
+        @NotNull OrbSession session,
+        @NotNull MutationResult lastResult
+    ) {
+        int consumed = session.batchConsumedAmount;
+        int successes = session.batchSuccessCount;
+        int failures = session.batchFailureCount;
+        long remaining = Math.max(0L, inventoryService.getNormalItemAmount(
+            session.accountId,
+            session.orbItemId
+        ));
+        session.batchActive = false;
+        session.batchTargetId = null;
+        session.batchRequestedAmount = 1;
+        session.interactionLock.release();
+
+        if (session.player.isOnline()) {
+            if (consumed > 0) {
+                PlayerMessageService.getInstance().send(
+                    session.player,
+                    PlayerMsgId.P_5297,
+                    batchOrbDisplayName(session),
+                    consumed,
+                    successes,
+                    failures,
+                    remaining
+                );
+                if (successes > 0) {
+                    GuiSound.SUCCESS.play(session.player);
+                } else {
+                    GuiSound.DENY.play(session.player);
+                }
+            } else {
+                PlayerMessageService.getInstance().send(
+                    session.player,
+                    mutationFailureMessage(session, lastResult)
+                );
+                GuiSound.DENY.play(session.player);
+            }
+        }
+
+        if (session.detached
+            || session.uiClosed
+            || !session.player.isOnline()
+            || !isCurrentInventory(session.player, session)) {
+            sessions.remove(session.player.getUniqueId(), session);
+            return;
+        }
+        ItemModel remainingOrb = resolveCurrentOrb(session);
+        if (remainingOrb == null) {
+            closeAndRemove(session);
+            return;
+        }
+        List<OrbCandidate> candidates = collectCandidates(session, remainingOrb);
+        if (candidates.isEmpty()) {
+            if (session.returnToInventoryOrbListOnFailure) {
+                restoreInventoryOrbListOrRemoveSession(session);
+            } else {
+                closeAndRemove(session);
+            }
+            return;
+        }
+        session.page = 0;
+        renderList(session, remainingOrb, session.inventory, candidates);
+    }
+
+    /** 複数回適用の集計通知に表示するオーブ名を解決します。 */
+    private @NotNull String batchOrbDisplayName(@NotNull OrbSession session) {
+        ItemModel orbModel = itemService.findLoadedById(session.orbItemId);
+        if (orbModel == null || orbModel.getName() == null || orbModel.getName().isBlank()) {
+            return "オーブ";
+        }
+        return orbModel.getName();
     }
 
     /**
@@ -2778,6 +3058,21 @@ public final class OrbService {
             return;
         }
         renderList(session, orbModel, session.inventory, collectCandidates(session, orbModel));
+    }
+
+    /** 装備操作結果の失敗状態を既存のプレイヤーメッセージへ変換します。 */
+    private @NotNull PlayerMsgId mutationFailureMessage(
+        @NotNull OrbSession session,
+        @NotNull MutationResult result
+    ) {
+        return switch (result.status) {
+            case NO_CANDIDATE -> PlayerMsgId.P_5294;
+            case PAYMENT_UNAVAILABLE -> session.screen == OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM
+                ? PlayerMsgId.P_5291
+                : PlayerMsgId.P_5289;
+            case TARGET_UNAVAILABLE, TARGET_CHANGED -> PlayerMsgId.P_5290;
+            default -> PlayerMsgId.P_5295;
+        };
     }
 
     /**
@@ -3152,6 +3447,13 @@ public final class OrbService {
         private String selectedRuneItemId;
         private int selectedRuneSlot = -1;
         private int runePage;
+        private int selectedOrbAmount = 1;
+        private boolean batchActive;
+        private String batchTargetId;
+        private int batchRequestedAmount = 1;
+        private int batchConsumedAmount;
+        private int batchSuccessCount;
+        private int batchFailureCount;
         private final OrbInteractionLock interactionLock = new OrbInteractionLock();
         private boolean transitioning;
         private boolean uiClosed;

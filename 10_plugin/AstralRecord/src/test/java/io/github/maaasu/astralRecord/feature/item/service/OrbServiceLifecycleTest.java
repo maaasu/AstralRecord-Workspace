@@ -20,6 +20,9 @@ import io.github.maaasu.astralRecord.feature.item.model.EquipmentRune;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipment;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentDurability;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhance;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceFailAction;
+import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceLevel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceMaterial;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentHandType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentRuneDef;
@@ -198,6 +201,90 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             any(),
             any()
         );
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
+     * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
+     * 検証契約: 装備候補GUIの下段中央の左右に使用数変更ボタンを表示し、所持数を上限として1個単位で使用数を変更する。
+     */
+    @Test
+    void orbAmountControlsDisplayInventoryAndSelectedAmount() {
+        Harness harness = new Harness(ItemOrbEffectType.REPAIR);
+        harness.orbQuantity.set(3);
+        harness.openOrbList();
+
+        Inventory list = harness.player.getOpenInventory().getTopInventory();
+        assertEquals(Material.RED_DYE, list.getItem(48).getType());
+        assertEquals(Material.LIME_DYE, list.getItem(50).getType());
+        assertLoreContains(list.getItem(49), "所持数: 3", "使用数: 1");
+
+        harness.handler.onInventoryClick(harness.guiClick(50));
+        assertLoreContains(list.getItem(49), "所持数: 3", "使用数: 2");
+
+        harness.handler.onInventoryClick(harness.guiClick(48));
+        assertLoreContains(list.getItem(49), "所持数: 3", "使用数: 1");
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
+     * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
+     * 検証契約: 選択した強化回数を同じ対象へ1回ずつAPI送信し、各回の時計・結果通知を省略して最後に集計する。
+     */
+    @Test
+    void selectedEnhancementAmountRunsSequentiallyAndSummarizesOnce() {
+        Harness harness = new Harness(ItemOrbEffectType.ENHANCE);
+        harness.orbQuantity.set(3);
+        harness.terminalApplyCall.set(1);
+        harness.openOrbList();
+        harness.handler.onInventoryClick(harness.guiClick(50));
+        harness.handler.onInventoryClick(harness.guiClick(50));
+        assertLoreContains(
+            harness.player.getOpenInventory().getTopInventory().getItem(49),
+            "所持数: 3",
+            "使用数: 3"
+        );
+
+        harness.handler.onInventoryClick(harness.guiClick(0));
+        for (int index = 0; index < 3; index++) {
+            harness.laneExecutor.runAll();
+            server().getScheduler().performOneTick();
+        }
+
+        assertEquals(3, harness.usedOrbIds.size());
+        assertEquals(3, harness.applyCount.get());
+        assertEquals(3, harness.operationIds.stream().distinct().count());
+        assertEquals(3, harness.equippedInstance.get().getEnhanceLevel());
+        assertEquals(0, harness.orbQuantity.get());
+        assertFalse(harness.service.isOrbInventory(
+            harness.player.getOpenInventory().getTopInventory()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
+     * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
+     * 検証契約: 複数回適用中に対象が使用不可になった場合、未実行分を消費せずその時点で終了する。
+     */
+    @Test
+    void batchStopsWhenTargetIsNoLongerEligible() {
+        Harness harness = new Harness(ItemOrbEffectType.REPAIR);
+        harness.orbQuantity.set(3);
+        harness.terminalApplyCall.set(1);
+        harness.openOrbList();
+        harness.handler.onInventoryClick(harness.guiClick(50));
+        harness.handler.onInventoryClick(harness.guiClick(50));
+
+        harness.handler.onInventoryClick(harness.guiClick(0));
+        harness.laneExecutor.runAll();
+        server().getScheduler().performOneTick();
+
+        assertEquals(1, harness.applyCount.get());
+        assertEquals(2, harness.orbQuantity.get());
+        assertFalse(harness.service.isLocked(harness.player));
+        assertTrue(harness.service.isOrbInventory(
+            harness.player.getOpenInventory().getTopInventory()));
+        assertEquals(Material.IRON_SWORD,
+            harness.player.getOpenInventory().getTopInventory().getItem(0).getType());
     }
 
     /**
@@ -1432,6 +1519,18 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             .count();
     }
 
+    /** 指定された文字列がGUIアイテムのloreに含まれることを検証します。 */
+    private static void assertLoreContains(ItemStack item, String... expected) {
+        assertNotNull(item);
+        assertNotNull(item.getItemMeta());
+        assertNotNull(item.getItemMeta().lore());
+        for (String value : expected) {
+            assertTrue(item.getItemMeta().lore().stream()
+                .anyMatch(line -> line.toString().contains(value)),
+                "Missing lore: " + value);
+        }
+    }
+
     private final class Harness {
         private final PluginMock plugin = MockBukkit.createMockPlugin("OrbServiceLifecycleTest");
         private final PlayerMock player = server().addPlayer();
@@ -1598,6 +1697,8 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 eq(accountId),
                 eq(orbModel.getId())
             )).thenAnswer(invocation -> additionalOrbQuantity > 0 ? additionalOrbEntry() : orbEntry());
+            when(inventoryService.getNormalItemAmount(eq(accountId), eq(orbModel.getId())))
+                .thenAnswer(invocation -> (long) orbQuantity.get() + Math.max(0, additionalOrbQuantity));
             when(inventoryService.isInventoryInfoSlot(26)).thenReturn(true);
             when(inventoryService.reserveOrbOperationPayment(
                 eq(accountId),
@@ -1876,11 +1977,20 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                     null
                 );
             }
-            EquipmentInstance updated = effectType == ItemOrbEffectType.TRANSCENDENCE
-                ? instance(equippedInstanceId, equippedModel.getId(), 1, 70)
-                : effectType == ItemOrbEffectType.RUNE_DETACH
-                    ? instance(equippedInstanceId, equippedModel.getId(), 0, 100, List.of())
-                    : instance(equippedInstanceId, equippedModel.getId(), 0, 100);
+            EquipmentInstance updated = effectType == ItemOrbEffectType.ENHANCE
+                ? instanceWithEnhanceLevel(
+                    equippedInstanceId,
+                    equippedModel.getId(),
+                    0,
+                    100,
+                    equippedInstance.get().getEnhanceLevel() + 1,
+                    List.of()
+                )
+                : effectType == ItemOrbEffectType.TRANSCENDENCE
+                    ? instance(equippedInstanceId, equippedModel.getId(), 1, 70)
+                    : effectType == ItemOrbEffectType.RUNE_DETACH
+                        ? instance(equippedInstanceId, equippedModel.getId(), 0, 100, List.of())
+                        : instance(equippedInstanceId, equippedModel.getId(), 0, 100);
             equippedInstance.set(updated);
             return operationResult(operationId, EquipmentOrbOperationResultType.APPLIED, updated);
         }
@@ -1891,6 +2001,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             EquipmentInstance equipment
         ) {
             String operationType = switch (effectType) {
+                case ENHANCE -> "ENHANCE";
                 case TRANSCENDENCE -> "TRANSCENDENCE";
                 case RUNE_ATTACH -> "RUNE_ATTACH";
                 case RUNE_DETACH -> "RUNE_DETACH";
@@ -1904,9 +2015,10 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 !terminalEquipmentMissing.get(),
                 List.of(orbEntryId.toString()),
                 resultType == EquipmentOrbOperationResultType.APPLIED,
-                false,
-                null,
-                null,
+                effectType == ItemOrbEffectType.ENHANCE,
+                effectType == ItemOrbEffectType.ENHANCE
+                    ? ItemEquipmentEnhanceFailAction.NONE : null,
+                effectType == ItemOrbEffectType.ENHANCE ? 1.0D : null,
                 effectType == ItemOrbEffectType.REPAIR ? 30 : null,
                 effectType == ItemOrbEffectType.TRANSCENDENCE ? "星鋼化" : null,
                 inventorySnapshot
@@ -1996,6 +2108,15 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
 
         private ItemModel orbModel(String itemId, ItemOrbEffectType type) {
             ItemOrbEffect effect = switch (type) {
+                case ENHANCE -> new ItemOrbEffect(
+                    type,
+                    List.of(ItemEquipmentSlot.WEAPON),
+                    null,
+                    ItemOrbRankMode.EXACT,
+                    null,
+                    false,
+                    null,
+                    null);
                 case TRANSCENDENCE -> new ItemOrbEffect(
                     type, List.of(), 1, ItemOrbRankMode.EXACT, null, false, null, null);
                 case RUNE_ATTACH, RUNE_DETACH -> new ItemOrbEffect(
@@ -2076,7 +2197,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 null,
                 List.of(),
                 new ItemEquipmentDurability(100, 1),
-                null,
+                type == ItemOrbEffectType.ENHANCE ? enhancementDefinition() : null,
                 null,
                 type == ItemOrbEffectType.RUNE_ATTACH || type == ItemOrbEffectType.RUNE_DETACH
                     ? new ItemEquipmentRuneDef("2") : null,
@@ -2106,6 +2227,20 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             );
         }
 
+        private ItemEquipmentEnhance enhancementDefinition() {
+            List<ItemEquipmentEnhanceLevel> levels = java.util.stream.IntStream.rangeClosed(1, 8)
+                .mapToObj(level -> new ItemEquipmentEnhanceLevel(
+                    level,
+                    List.of(),
+                    null,
+                    1.0D,
+                    ItemEquipmentEnhanceFailAction.NONE,
+                    null
+                ))
+                .toList();
+            return new ItemEquipmentEnhance(8, levels);
+        }
+
         private EquipmentInstance instance(
             UUID instanceId,
             String itemId,
@@ -2128,11 +2263,22 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             int durability,
             List<EquipmentRune> runes
         ) {
+            return instanceWithEnhanceLevel(instanceId, itemId, rank, durability, 0, runes);
+        }
+
+        private EquipmentInstance instanceWithEnhanceLevel(
+            UUID instanceId,
+            String itemId,
+            int rank,
+            int durability,
+            int enhanceLevel,
+            List<EquipmentRune> runes
+        ) {
             return new EquipmentInstance(
                 instanceId.toString(),
                 accountId.toString(),
                 itemId,
-                0,
+                enhanceLevel,
                 effectType == ItemOrbEffectType.RUNE_ATTACH || effectType == ItemOrbEffectType.RUNE_DETACH ? 2 : 0,
                 rank,
                 100,

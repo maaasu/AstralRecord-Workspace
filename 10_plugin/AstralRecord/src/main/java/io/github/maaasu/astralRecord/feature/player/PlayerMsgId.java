@@ -433,6 +433,8 @@ public enum PlayerMsgId {
     P_5295(5295),
     /** 装備操作の応答待ちを保留へ切り替えた。 */
     P_5296(5296),
+    /** オーブ複数回使用の集計結果。 */
+    P_5297(5297),
     // endregion
 
     // region /feature/user/command 5300-5319
