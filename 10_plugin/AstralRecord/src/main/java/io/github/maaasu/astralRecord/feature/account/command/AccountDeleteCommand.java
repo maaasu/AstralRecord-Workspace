@@ -242,7 +242,7 @@ public final class AccountDeleteCommand extends AstCommand implements io.github.
         frozenPlayers.add(player.getUniqueId());
         var tradeService = AstralRecord.getInstance().getTradeService();
         if (tradeService != null) {
-            tradeService.cancelTrade(player);
+            tradeService.cancelRelatedSessions(player);
         }
         player.closeInventory();
         player.getInventory().clear();

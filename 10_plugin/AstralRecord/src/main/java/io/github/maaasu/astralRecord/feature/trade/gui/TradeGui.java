@@ -28,7 +28,7 @@ public final class TradeGui {
     }
 
     /**
-     * トレード画面を開き、遅延遷移の表示完了または取消を通知します。
+     * 送信画面を開き、遅延遷移の表示完了または取消を通知します。
      * @param viewer 表示対象
      * @param session 表示する取引
      * @param onOpened 表示完了時の処理
@@ -40,7 +40,7 @@ public final class TradeGui {
         Inventory inventory = Bukkit.createInventory(
             new TradeHolder(session.getSessionId(), viewer.getUniqueId()),
             TradeGuiLayout.SIZE,
-            partnerName.append(Component.text("とのトレード", NamedTextColor.WHITE))
+            partnerName.append(Component.text("へアイテム・送金", NamedTextColor.WHITE))
         );
         render(inventory, viewer.getUniqueId(), session);
         io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.open(viewer, inventory, onOpened, onCancelled);
@@ -63,11 +63,11 @@ public final class TradeGui {
     }
 
     /**
-     * 現在表示中の同一セッションのトレード GUI だけを再描画します。
+     * 現在表示中の同一セッションの送信 GUI だけを再描画します。
      *
      * @param viewer 再描画対象プレイヤー
-     * @param session 表示するトレードセッション
-     * @return 同一セッションのトレード GUI を再描画した場合は {@code true}
+     * @param session 表示する送信セッション
+     * @return 同一セッションの送信 GUI を再描画した場合は {@code true}
      */
     public boolean refreshIfOpen(@NotNull Player viewer, @NotNull TradeSession session) {
         Inventory inventory = viewer.getOpenInventory().getTopInventory();
@@ -90,18 +90,19 @@ public final class TradeGui {
         }
     }
 
+    /** 送信者の予約品だけを描画し、最下行へ金額・送信・終了操作を配置します。 */
     private void render(@NotNull Inventory inventory, @NotNull UUID viewerUuid, @NotNull TradeSession session) {
         fill(inventory, Material.GRAY_STAINED_GLASS_PANE);
         placeItems(inventory, TradeGuiLayout.OWN_SLOT_LIST, session.getItems(viewerUuid));
-        placeItems(inventory, TradeGuiLayout.PARTNER_SLOT_LIST, session.getPartnerItems(viewerUuid));
-        for (int slot : TradeGuiLayout.DIVIDER_SLOTS) {
-            inventory.setItem(slot, actionItem(Material.BLACK_STAINED_GLASS_PANE, Component.text(" ", NamedTextColor.DARK_GRAY), List.of()));
-        }
-        inventory.setItem(TradeGuiLayout.GOLD_SLOT, goldItem(
-            session.getGoldAmount(viewerUuid),
-            session.getPartnerGoldAmount(viewerUuid)
-        ));
-        inventory.setItem(TradeGuiLayout.READY_SLOT, readyItem(session.isReady(viewerUuid), session.isPartnerReady(viewerUuid)));
+        inventory.setItem(TradeGuiLayout.GOLD_SLOT, goldItem(session.getGoldAmount(viewerUuid)));
+        inventory.setItem(TradeGuiLayout.SEND_SLOT, actionItem(Material.CHEST,
+            Component.text("送信する", NamedTextColor.GREEN, TextDecoration.BOLD), List.of(
+                Component.text("送信先: " + session.getPlayerBName(), NamedTextColor.WHITE),
+                Component.text("アイテムと設定した金額を送信します。", NamedTextColor.GRAY),
+                Component.text("相手の承認は不要です。", NamedTextColor.YELLOW))));
+        inventory.setItem(TradeGuiLayout.BACK_SLOT,
+            session.getReturnAction() == null ? GuiItems.closeButton() : GuiItems.backButton());
+        inventory.setItem(TradeGuiLayout.CLOSE_SLOT, GuiItems.closeButton());
     }
 
     private void placeItems(@NotNull Inventory inventory, @NotNull List<Integer> slots, @NotNull List<ItemStack> items) {
@@ -117,38 +118,12 @@ public final class TradeGui {
         }
     }
 
-    private @NotNull ItemStack readyItem(boolean viewerReady, boolean partnerReady) {
-        if (viewerReady) {
-            return actionItem(
-                Material.YELLOW_CONCRETE,
-                Component.text("準備完了中", NamedTextColor.YELLOW, TextDecoration.BOLD),
-                List.of(Component.text("もう一度押すと準備をキャンセルします。", NamedTextColor.GRAY))
-            );
-        }
-        if (partnerReady) {
-            return actionItem(
-                Material.EMERALD_BLOCK,
-                Component.text("取引を成立する", NamedTextColor.GREEN, TextDecoration.BOLD),
-                List.of(Component.text("相手は準備完了しています。", NamedTextColor.GRAY))
-            );
-        }
-        return actionItem(
-            Material.LIME_CONCRETE,
-            Component.text("準備完了", NamedTextColor.GREEN, TextDecoration.BOLD),
-            List.of(Component.text("相手の準備完了を待ちます。", NamedTextColor.GRAY))
-        );
-    }
-
-    private @NotNull ItemStack goldItem(long viewerGold, long partnerGold) {
-        return actionItem(
-            Material.GOLD_INGOT,
-            Component.text("ゴールド", NamedTextColor.GOLD, TextDecoration.BOLD),
-            List.of(
-                Component.text("あなたの提示額: " + viewerGold + " ゴールド", NamedTextColor.YELLOW),
-                Component.text("相手の提示額: " + partnerGold + " ゴールド", NamedTextColor.GRAY),
-                Component.text("クリックで提示額を設定します。", NamedTextColor.GREEN)
-            )
-        );
+    /** 現在の送金予定額と共通金額設定画面への導線を生成します。 */
+    private @NotNull ItemStack goldItem(long amount) {
+        return actionItem(Material.GOLD_INGOT,
+            Component.text("送金額", NamedTextColor.GOLD, TextDecoration.BOLD), List.of(
+                Component.text("送金額: " + amount + " ゴールド", NamedTextColor.YELLOW),
+                Component.text("クリックで金額を設定します。", NamedTextColor.GREEN)));
     }
 
     private @NotNull ItemStack actionItem(@NotNull Material material, @NotNull Component name, @NotNull List<Component> lore) {

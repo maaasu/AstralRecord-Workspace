@@ -25,7 +25,7 @@ import static org.mockito.Mockito.when;
 class InventoryServiceTradeReservationTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_3-メソッド仕様.md
-     * 章・見出し: # 22_3-メソッド仕様 > ## Cancel・終了
+     * 章・見出し: # 22_3-メソッド仕様 > ## 送信画面の開始・終了
      * 検証契約: 終了時の予約解除は表示障害に影響されず、別の予約残量を維持する。
      */
     @Test
@@ -39,7 +39,7 @@ class InventoryServiceTradeReservationTest {
     }
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
-     * 章・見出し: # 22_4-統合フロー > ## 2. Item／gold 提示 > ### 例外・終了条件
+     * 章・見出し: # 22_4-統合フロー > ## 2. 提示
      * 検証契約: 予約追加後のBukkit表示更新が失敗した場合、既存予約数量を維持する。
      */
     @Test
@@ -53,7 +53,7 @@ class InventoryServiceTradeReservationTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/22-trade/22_4-統合フロー.md
-     * 章・見出し: # 22_4-統合フロー > ## 2. Item／gold 提示 > ### 例外・終了条件
+     * 章・見出し: # 22_4-統合フロー > ## 2. 提示
      * 検証契約: 全量取り下げ後のBukkit表示更新が失敗した場合、削除済み予約を元の数量で復元する。
      */
     @Test

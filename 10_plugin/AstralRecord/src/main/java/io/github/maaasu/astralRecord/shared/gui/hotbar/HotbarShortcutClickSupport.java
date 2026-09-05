@@ -52,6 +52,27 @@ public final class HotbarShortcutClickSupport {
         return true;
     }
 
+    /**
+     * アイテム移動用GUIのスクロール・ホットバー操作だけを共通処理します。
+     * 内容スロットのクリックは呼び出し元の移動処理へ残します。
+     * @param event クリックイベント
+     * @param player 操作したプレイヤー
+     * @param inventoryService インベントリサービス
+     * @return 制御操作を処理した場合 true
+     */
+    public static boolean handleControls(
+        @NotNull InventoryClickEvent event,
+        @NotNull Player player,
+        @NotNull InventoryService inventoryService
+    ) {
+        if (handleInventoryControlClick(event, player, inventoryService)) {
+            return true;
+        }
+        return event.getClickedInventory() instanceof PlayerInventory
+            && event.getSlot() >= HOTBAR_MIN_SLOT && event.getSlot() <= HOTBAR_MAX_SLOT
+            && handle(event, player, inventoryService);
+    }
+
     public static boolean handle(
         @NotNull InventoryClickEvent event,
         @NotNull Player player,

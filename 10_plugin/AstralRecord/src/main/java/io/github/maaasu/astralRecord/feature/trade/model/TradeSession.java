@@ -27,8 +27,7 @@ public final class TradeSession {
     private List<UUID> playerBItemSourceEntryIds;
     private long playerAGoldAmount;
     private long playerBGoldAmount;
-    private boolean playerAReady;
-    private boolean playerBReady;
+    private @Nullable Runnable returnAction;
     private TradeSessionStatus status;
     private final Instant openedAt;
     private Instant updatedAt;
@@ -66,8 +65,6 @@ public final class TradeSession {
     public UUID getPlayerBAccountId() { return playerBAccountId; }
     public String getPlayerAName() { return playerAName; }
     public String getPlayerBName() { return playerBName; }
-    public boolean isPlayerAReady() { return playerAReady; }
-    public boolean isPlayerBReady() { return playerBReady; }
     public TradeSessionStatus getStatus() { return status; }
     public Instant getOpenedAt() { return openedAt; }
     public Instant getUpdatedAt() { return updatedAt; }
@@ -92,16 +89,8 @@ public final class TradeSession {
         return cloneItems(playerAUuid.equals(playerUuid) ? playerAItems : playerBItems);
     }
 
-    public List<ItemStack> getPartnerItems(@NotNull UUID playerUuid) {
-        return getItems(getPartnerUuid(playerUuid));
-    }
-
     public long getGoldAmount(@NotNull UUID playerUuid) {
         return playerAUuid.equals(playerUuid) ? playerAGoldAmount : playerBGoldAmount;
-    }
-
-    public long getPartnerGoldAmount(@NotNull UUID playerUuid) {
-        return getGoldAmount(getPartnerUuid(playerUuid));
     }
 
     public void setItems(@NotNull UUID playerUuid, @NotNull List<ItemStack> items) {
@@ -111,7 +100,7 @@ public final class TradeSession {
     /**
      * 提示 item と API 確定で使う元 inventory entry ID を同時に更新します。
      * <p>
-     * 提示内容の変更は、各プレイヤーが明示的に切り替えた ready 状態を変更しません。
+     * 送信者の提示だけを更新し、受信者は提示しません。
      *
      * @param playerUuid 提示者 UUID
      * @param items 提示 item
@@ -210,8 +199,7 @@ public final class TradeSession {
     /**
      * 提示 Gold を更新します。
      * <p>
-     * 金額は 0 以上へ正規化します。提示内容の変更は、各プレイヤーが明示的に切り替えた
-     * ready 状態を変更しません。
+     * 金額は 0 以上へ正規化します。受信者の金額は常に 0 として扱います。
      *
      * @param playerUuid 提示者 UUID
      * @param amount 更新後の提示額
@@ -232,28 +220,11 @@ public final class TradeSession {
         touch();
     }
 
-    public boolean isReady(@NotNull UUID playerUuid) {
-        return playerAUuid.equals(playerUuid) ? playerAReady : playerBReady;
-    }
+    /** @return 起点の情報画面へ戻る処理。コマンド起動時は null */
+    public @Nullable Runnable getReturnAction() { return returnAction; }
 
-    public boolean isPartnerReady(@NotNull UUID playerUuid) {
-        return isReady(getPartnerUuid(playerUuid));
-    }
-
-    public void setReady(@NotNull UUID playerUuid, boolean ready) {
-        if (playerAUuid.equals(playerUuid)) {
-            playerAReady = ready;
-        } else {
-            playerBReady = ready;
-        }
-        touch();
-    }
-
-    public void resetReady() {
-        playerAReady = false;
-        playerBReady = false;
-        touch();
-    }
+    /** @param returnAction 起点の情報画面へ戻る処理。コマンド起動時は null */
+    public void setReturnAction(@Nullable Runnable returnAction) { this.returnAction = returnAction; }
 
     public void setStatus(@NotNull TradeSessionStatus status) {
         this.status = status;

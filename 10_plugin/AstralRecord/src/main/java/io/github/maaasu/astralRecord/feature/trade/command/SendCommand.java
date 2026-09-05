@@ -10,15 +10,16 @@ import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.jetbrains.annotations.NotNull;
 
-public final class TradeCommand extends AstCommand {
+public final class SendCommand extends AstCommand {
 
     /**
-     * TradeCommand を初期化する。
+     * SendCommand を初期化する。
      */
-    public TradeCommand() {
-        super("trade", "プレイヤー間取引を申請または承認します。", "/trade <playerName|accept>", true);
+    public SendCommand() {
+        super("send", "プレイヤーへアイテムやゴールドを送ります。", "/send <playerName>", true);
     }
 
+    /** @param player 実行者 @param args 最後の引数にオンライン受信者名を指定 */
     @Override
     protected void executePlayerCommand(@NotNull AstPlayer player, @NotNull String[] args) {
         if (!requireGameplayMode(player)) {
@@ -29,11 +30,8 @@ public final class TradeCommand extends AstCommand {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6203);
             return;
         }
-        if (args.length == 1 && "accept".equalsIgnoreCase(args[0])) {
-            tradeService.acceptTrade(player.getBukkit());
-            return;
-        }
-        if (!checkArgsLength(args, 1, player.getBukkit())) {
+        if (args.length != 1) {
+            sendUsage(player.getBukkit());
             return;
         }
         Player target = Bukkit.getPlayerExact(args[0]);
@@ -41,6 +39,6 @@ public final class TradeCommand extends AstCommand {
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_6203);
             return;
         }
-        tradeService.requestTrade(player.getBukkit(), target);
+        tradeService.openSend(player.getBukkit(), target, null);
     }
 }

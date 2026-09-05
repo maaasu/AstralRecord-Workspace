@@ -117,7 +117,7 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
         }
         var tradeService = plugin.getTradeService();
         if (tradeService != null) {
-            tradeService.cancelTrade(bukkit);
+            tradeService.cancelRelatedSessions(bukkit);
         }
         bukkit.closeInventory();
         bukkit.setInvulnerable(true);

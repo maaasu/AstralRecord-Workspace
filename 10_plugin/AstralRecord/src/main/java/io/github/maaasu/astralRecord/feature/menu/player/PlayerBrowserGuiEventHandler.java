@@ -258,8 +258,8 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             playerDetailGui.openSkillInfoSelection(player, target);
             return;
         }
-        if (rawSlot == PlayerDetailGui.TRADE_SLOT) {
-            handleTradeRequest(player, inventory);
+        if (rawSlot == PlayerDetailGui.SEND_SLOT) {
+            handleSendItems(player, inventory);
             return;
         }
         if (rawSlot == PlayerDetailGui.PARTY_INVITE_SLOT) {
@@ -420,7 +420,8 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
         openTargetDetail(viewer, target);
     }
 
-    private void handleTradeRequest(@NotNull Player player, @NotNull org.bukkit.inventory.Inventory inventory) {
+    /** 情報画面の対象への送信画面を、情報画面への戻り先付きで開きます。 */
+    private void handleSendItems(@NotNull Player player, @NotNull org.bukkit.inventory.Inventory inventory) {
         UUID targetId = playerDetailGui.getTargetId(inventory);
         Player target = targetId == null ? null : Bukkit.getPlayer(targetId);
         if (target == null) {
@@ -432,7 +433,7 @@ public final class PlayerBrowserGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        tradeService.requestTrade(player, target);
+        tradeService.openSend(player, target, () -> openDetailFromCommand(player, target));
         GuiSound.SELECT.play(player);
     }
 

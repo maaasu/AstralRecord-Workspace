@@ -25,7 +25,7 @@
 | 19 | [[19_0-概要]] | パーティー状態と Mob 報酬共有 | `feature/party` |
 | 20 | [[20_0-概要]] | ショップ表示、コスト preview、購入補償 | `feature/shop` |
 | 21 | [[21_0-概要]] | Mob 討伐の冒険記録と閲覧 GUI | `feature/adventurerecord` |
-| 22 | [[22_0-概要]] | プレイヤー間トレードと返却補償 | `feature/trade` |
+| 22 | [[22_0-概要]] | プレイヤーへのアイテム送信・送金 | `feature/trade` |
 | 23 | [[23_0-概要]] | マーケット出品・検索・取引 | `feature/market` |
 | 24 | [[24_0-概要]] | Minecraft からの Web ログインコード発行 | `feature/webauth` |
 | 25 | [[25_0-概要]] | ウェイストーン、解除状態、同一ワールド転送 | `feature/teleporter` |

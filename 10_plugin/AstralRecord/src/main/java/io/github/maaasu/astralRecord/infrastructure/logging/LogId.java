@@ -1024,7 +1024,9 @@ public enum LogId {
     // endregion
 
     // region /feature/trade/ 6200-6299
+    /** アイテム・送金GUI処理の失敗。 */
     E_6200(6200),
+    /** アイテム・送金処理の失敗。 */
     E_6201(6201),
     W_6202(6202),
     // endregion

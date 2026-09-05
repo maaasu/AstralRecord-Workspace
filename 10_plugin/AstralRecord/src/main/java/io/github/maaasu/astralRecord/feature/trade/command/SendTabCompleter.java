@@ -7,19 +7,20 @@ import org.jetbrains.annotations.NotNull;
 import java.util.ArrayList;
 import java.util.List;
 
-public final class TradeTabCompleter extends AstTabCompleter {
+public final class SendTabCompleter extends AstTabCompleter {
 
-    public TradeTabCompleter() {
+    /** プレイヤー向け送信先補完を初期化します。 */
+    public SendTabCompleter() {
         super(true);
     }
 
+    /** @param player 実行者 @param args 引数 @return 自分以外のオンライン候補 */
     @Override
     protected List<String> getPlayerCompletions(@NotNull AstPlayer player, @NotNull String[] args) {
         if (args.length != 1) {
             return List.of();
         }
         List<String> completions = new ArrayList<>();
-        completions.add("accept");
         completions.addAll(getOnlinePlayerNames().stream()
             .filter(name -> !name.equalsIgnoreCase(player.getBukkit().getName()))
             .toList());

@@ -23,6 +23,18 @@ public final class GuiOpenSupport {
     }
 
     /**
+     * 対象プレイヤーの保留中の画面遷移を取り消し、取消コールバックを一度だけ通知します。
+     * メインスレッドで呼び出し、既に表示済みの画面には影響しません。
+     * @param playerId 遷移を取り消すプレイヤー UUID
+     */
+    public static void cancelPending(@NotNull UUID playerId) {
+        PendingTransition transition = PENDING_TRANSITIONS.remove(playerId);
+        if (transition != null) {
+            transition.cancel();
+        }
+    }
+
+    /**
      * GUI を開きます。プラグイン GUI からの遷移はクリック同期ずれを避けるため 2 tick 後に実行します。
      *
      * @param player 対象プレイヤー

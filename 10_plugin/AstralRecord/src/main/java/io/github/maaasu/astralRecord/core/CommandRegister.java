@@ -72,12 +72,12 @@ import io.github.maaasu.astralRecord.feature.textdisplay.service.TextDisplayPlac
 import io.github.maaasu.astralRecord.feature.teleporter.command.TeleporterCommand;
 import io.github.maaasu.astralRecord.feature.teleporter.command.TeleporterTabCompleter;
 import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterService;
-import io.github.maaasu.astralRecord.feature.trade.command.TradeCommand;
+import io.github.maaasu.astralRecord.feature.trade.command.SendCommand;
 import io.github.maaasu.astralRecord.feature.trainingdummy.command.TrainingDummyCommand;
 import io.github.maaasu.astralRecord.feature.trainingdummy.command.TrainingDummyTabCompleter;
 import io.github.maaasu.astralRecord.feature.trainingdummy.gui.TrainingDummyGui;
 import io.github.maaasu.astralRecord.feature.trainingdummy.service.TrainingDummyService;
-import io.github.maaasu.astralRecord.feature.trade.command.TradeTabCompleter;
+import io.github.maaasu.astralRecord.feature.trade.command.SendTabCompleter;
 import io.github.maaasu.astralRecord.feature.user.command.UserCommand;
 import io.github.maaasu.astralRecord.feature.user.command.BanCommand;
 import io.github.maaasu.astralRecord.feature.user.command.BanTabCompleter;
@@ -247,7 +247,7 @@ public class CommandRegister {
         ParticleTabCompleter particleTabCompleter = new ParticleTabCompleter();
         cm.registerCommand("particle", particleCommand, particleTabCompleter);
         cm.registerCommand("p", particleCommand, particleTabCompleter);
-        cm.registerCommand("trade", new TradeCommand(), new TradeTabCompleter());
+        cm.registerCommand("send", new SendCommand(), new SendTabCompleter());
         cm.registerCommand("shop", new ShopCommand(), new ShopTabCompleter());
         cm.registerCommand("market", new MarketCommand());
         cm.registerCommand("quest", new QuestCommand());

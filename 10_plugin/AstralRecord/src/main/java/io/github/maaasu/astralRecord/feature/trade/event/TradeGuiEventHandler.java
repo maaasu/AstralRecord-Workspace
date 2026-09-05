@@ -1,14 +1,10 @@
 package io.github.maaasu.astralRecord.feature.trade.event;
 
-import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
-import io.github.maaasu.astralRecord.feature.inventory.service.InventoryClickGuard;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
-import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
-import io.github.maaasu.astralRecord.feature.trade.gui.TradeCancelConfirmGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGuiLayout;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeSession;
@@ -17,11 +13,9 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
-import org.bukkit.event.inventory.ClickType;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryCloseEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
@@ -36,26 +30,28 @@ import org.jetbrains.annotations.Nullable;
 import java.util.UUID;
 
 public final class TradeGuiEventHandler extends AbstractEventHandler {
-    private final AstralRecord plugin;
     private final TradeGui tradeGui;
-    private final TradeCancelConfirmGui cancelConfirmGui;
     private final GoldAmountSettingGui goldAmountSettingGui;
     private final TradeService tradeService;
     private final InventoryService inventoryService;
     private final PlayerMessageService messageService;
 
+    /**
+     * 送信画面と共有金額入力のイベントを初期化します。
+     * @param tradeGui 送信画面
+     * @param goldAmountSettingGui 金額画面
+     * @param tradeService 送信サービス
+     * @param inventoryService インベントリ操作
+     * @param messageService 通知サービス
+     */
     public TradeGuiEventHandler(
-        @NotNull AstralRecord plugin,
         @NotNull TradeGui tradeGui,
-        @NotNull TradeCancelConfirmGui cancelConfirmGui,
         @NotNull GoldAmountSettingGui goldAmountSettingGui,
         @NotNull TradeService tradeService,
         @NotNull InventoryService inventoryService,
         @NotNull PlayerMessageService messageService
     ) {
-        this.plugin = plugin;
         this.tradeGui = tradeGui;
-        this.cancelConfirmGui = cancelConfirmGui;
         this.goldAmountSettingGui = goldAmountSettingGui;
         this.tradeService = tradeService;
         this.inventoryService = inventoryService;
@@ -63,7 +59,7 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
     }
 
     /**
-     * トレード関連 GUI のクリックを処理します。
+     * 送信関連 GUI のクリックを処理します。
      *
      * @param event Bukkit の inventory click event
      */
@@ -86,15 +82,6 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
                 handleTradeClick(event);
                 return;
             }
-            if (cancelConfirmGui.isCancelInventory(top)) {
-                if (event.getWhoClicked() instanceof Player player && !isCurrentCancelConfirmView(top, player)) {
-                    event.setCancelled(true);
-                    GuiSound.DENY.play(player);
-                    return;
-                }
-                handleCancelConfirmClick(event);
-                return;
-            }
             if (isTradeGoldAmountInventory(top)) {
                 if (event.getWhoClicked() instanceof Player player
                     && !AccountModeGuard.isGameplayPlayer(player)) {
@@ -112,12 +99,12 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
         }, LogId.E_6200, event.getWhoClicked().getName());
     }
 
+    /** @param event 送信画面への直接ドラッグを禁止するイベント */
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = false)
     public void onInventoryDrag(@NotNull InventoryDragEvent event) {
         runSafely(() -> {
             Inventory top = event.getView().getTopInventory();
             if (!tradeGui.isTradeInventory(top)
-                && !cancelConfirmGui.isCancelInventory(top)
                 && !isTradeGoldAmountInventory(top)) {
                 return;
             }
@@ -127,7 +114,7 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
                 player.closeInventory();
                 return;
             }
-            if (cancelConfirmGui.isCancelInventory(top) || isTradeGoldAmountInventory(top)) {
+            if (isTradeGoldAmountInventory(top)) {
                 event.setCancelled(true);
                 return;
             }
@@ -138,84 +125,72 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
         }, LogId.E_6200, event.getWhoClicked().getName());
     }
 
+    /**
+     * 手動で閉じた未確定画面の予約を直ちに解除します。内部の金額画面遷移だけ抑止します。
+     * @param event 閉じられた画面
+     */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onInventoryClose(@NotNull InventoryCloseEvent event) {
         if (!(event.getPlayer() instanceof Player player)) {
             return;
         }
         Inventory inventory = event.getInventory();
-        boolean tradeInventory = tradeGui.isTradeInventory(inventory);
-        boolean cancelInventory = cancelConfirmGui.isCancelInventory(inventory);
-        boolean goldAmountInventory = isTradeGoldAmountInventory(inventory);
-        if (!tradeInventory && !cancelInventory && !goldAmountInventory) {
+        if (!tradeGui.isTradeInventory(inventory) && !isTradeGoldAmountInventory(inventory)) {
             return;
         }
         if (tradeService.consumeSuppressedClose(player.getUniqueId())) {
             return;
         }
-        if (tradeInventory) {
-            if (!isCurrentTradeView(inventory, player)) {
-                return;
-            }
-            Bukkit.getScheduler().runTask(plugin, () -> tradeService.openCancelConfirmAfterClose(player));
-            return;
+        if (isCurrentTradeView(inventory, player) || isCurrentGoldAmountView(inventory, player)) {
+            tradeService.cancelTrade(player);
         }
-        if (goldAmountInventory) {
-            if (!isCurrentGoldAmountView(inventory, player)) {
-                return;
-            }
-            Bukkit.getScheduler().runTask(plugin, () -> tradeService.reopenTradeAfterClose(player));
-            return;
-        }
-        if (!isCurrentCancelConfirmView(inventory, player)) {
-            return;
-        }
-        Bukkit.getScheduler().runTask(plugin, () -> tradeService.cancelTrade(player));
     }
 
+    /** @param event 離脱者に関連する未確定送信を解除するイベント */
     @EventHandler(priority = EventPriority.LOWEST)
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        tradeService.cancelTrade(event.getPlayer());
+        tradeService.cancelRelatedSessions(event.getPlayer());
     }
 
     /**
-     * 許可対象外ワールドへの移動時に、開いているトレードを中止します。
+     * 許可対象外ワールドへの移動時に、開いている送信を中止します。
      *
      * @param event ワールド移動イベント
      */
     @EventHandler(priority = EventPriority.MONITOR)
     public void onPlayerChangedWorld(@NotNull PlayerChangedWorldEvent event) {
         Player player = event.getPlayer();
-        if (tradeService.getOpenSession(player.getUniqueId()) != null
-            && !tradeService.isTradeAllowedWorld(player)) {
-            tradeService.cancelTrade(player);
+        if (!tradeService.isTradeAllowedWorld(player)) {
+            tradeService.cancelRelatedSessions(player);
         }
     }
 
     /**
-     * トレード GUI の操作を処理し、プレイヤー inventory のスクロールは共通処理へ委譲します。
+     * 送信 GUI の操作を処理し、プレイヤー inventory のスクロールは共通処理へ委譲します。
      *
-     * @param event トレード GUI 上の click event
+     * @param event 送信 GUI 上の click event
      */
     private void handleTradeClick(@NotNull InventoryClickEvent event) {
         event.setCancelled(true);
         if (!(event.getWhoClicked() instanceof Player player)) {
             return;
         }
-        if (HotbarShortcutClickSupport.handleInventoryControlClick(event, player, inventoryService)) {
-            return;
-        }
-        if (handleHotbarShortcutClick(event, player)) {
+        if (HotbarShortcutClickSupport.handleControls(event, player, inventoryService)) {
             return;
         }
         int rawSlot = event.getRawSlot();
+        if (rawSlot == TradeGuiLayout.BACK_SLOT || rawSlot == TradeGuiLayout.CLOSE_SLOT) {
+            tradeService.leave(player, rawSlot == TradeGuiLayout.BACK_SLOT);
+            GuiSound.CLOSE.play(player);
+            return;
+        }
         if (rawSlot == TradeGuiLayout.GOLD_SLOT) {
             tradeService.openGoldAmountSetting(player);
             GuiSound.SELECT.play(player);
             return;
         }
-        if (rawSlot == TradeGuiLayout.READY_SLOT) {
-            tradeService.toggleReady(player);
+        if (rawSlot == TradeGuiLayout.SEND_SLOT) {
+            tradeService.send(player);
             GuiSound.SELECT.play(player);
             return;
         }
@@ -254,24 +229,6 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
         } else {
             GuiSound.DENY.play(player);
         }
-    }
-
-    private void handleCancelConfirmClick(@NotNull InventoryClickEvent event) {
-        event.setCancelled(true);
-        if (!(event.getWhoClicked() instanceof Player player)) {
-            return;
-        }
-        if (event.getRawSlot() == TradeCancelConfirmGui.CANCEL_SLOT) {
-            tradeService.cancelTrade(player);
-            GuiSound.CLOSE.play(player);
-            return;
-        }
-        if (event.getRawSlot() == TradeCancelConfirmGui.BACK_SLOT) {
-            tradeService.reopenTrade(player);
-            GuiSound.SELECT.play(player);
-            return;
-        }
-        GuiSound.DENY.play(player);
     }
 
     private void handleGoldAmountClick(@NotNull InventoryClickEvent event) {
@@ -349,12 +306,6 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
             && isCurrentSessionView(player, holder.viewerUuid(), holder.sessionId());
     }
 
-    private boolean isCurrentCancelConfirmView(@NotNull Inventory inventory, @NotNull Player player) {
-        TradeCancelConfirmGui.CancelHolder holder = cancelConfirmGui.getCancelHolder(inventory);
-        return holder != null
-            && isCurrentSessionView(player, holder.viewerUuid(), holder.sessionId());
-    }
-
     private boolean isCurrentGoldAmountView(@NotNull Inventory inventory, @NotNull Player player) {
         GoldAmountSettingGui.GoldAmountHolder holder = goldAmountSettingGui.getHolder(inventory);
         return holder != null
@@ -377,32 +328,6 @@ public final class TradeGuiEventHandler extends AbstractEventHandler {
         }
         TradeSession session = tradeService.getOpenSession(player.getUniqueId());
         return session != null && session.getSessionId().equals(sessionId);
-    }
-
-    private boolean handleHotbarShortcutClick(@NotNull InventoryClickEvent event, @NotNull Player player) {
-        if (!(event.getClickedInventory() instanceof PlayerInventory)) {
-            return false;
-        }
-        int slot = event.getSlot();
-        if (slot < 0 || slot > 8) {
-            return false;
-        }
-        var astPlayer = AstPlayerCache.get(player);
-        if (astPlayer == null || !inventoryService.isHotbarShortcutMode(astPlayer)) {
-            return false;
-        }
-        event.setCancelled(true);
-        if (!inventoryService.getClickGuard().tryAcquire(
-            astPlayer.getAccount().getUuid(), InventoryClickGuard.ClickAction.HOTBAR_SHORTCUT)) {
-            return true;
-        }
-        if (slot == 4 || event.getClick() == ClickType.DROP) {
-            tradeService.openCancelConfirm(player);
-            GuiSound.CLOSE.play(player);
-        } else {
-            GuiSound.DENY.play(player);
-        }
-        return true;
     }
 
 }

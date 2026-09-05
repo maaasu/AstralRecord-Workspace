@@ -268,7 +268,6 @@ import io.github.maaasu.astralRecord.feature.teleporter.service.TeleporterServic
 import io.github.maaasu.astralRecord.feature.teleporter.service.WaystoneHitBoxResolver;
 import io.github.maaasu.astralRecord.feature.teleporter.view.WaystonePacketView;
 import io.github.maaasu.astralRecord.feature.trade.event.TradeGuiEventHandler;
-import io.github.maaasu.astralRecord.feature.trade.gui.TradeCancelConfirmGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
 import io.github.maaasu.astralRecord.feature.trade.service.TradeService;
 import io.github.maaasu.astralRecord.feature.trainingdummy.event.TrainingDummyGuiEventHandler;
@@ -470,7 +469,6 @@ public final class AstralRecord extends JavaPlugin {
     private QuestGuiEventHandler questGuiEventHandler;
     private TradeService tradeService;
     private TradeGui tradeGui;
-    private TradeCancelConfirmGui tradeCancelConfirmGui;
     private GoldAmountSettingGui goldAmountSettingGui;
     private MarketService marketService;
     private MarketGuiEventHandler marketGuiEventHandler;
@@ -1412,12 +1410,10 @@ public final class AstralRecord extends JavaPlugin {
             guideService.recordCondition(player, GuideConditionType.GATHERING_COMPLETED, spawnerOrGatheringId)
         );
         tradeGui = new TradeGui();
-        tradeCancelConfirmGui = new TradeCancelConfirmGui();
         goldAmountSettingGui = new GoldAmountSettingGui();
         tradeService = new TradeService(
             this,
             tradeGui,
-            tradeCancelConfirmGui,
             goldAmountSettingGui,
             inventoryService,
             currencyService,
@@ -1897,9 +1893,7 @@ public final class AstralRecord extends JavaPlugin {
         );
         eventManager.registerHandler(
             new TradeGuiEventHandler(
-                this,
                 tradeGui,
-                tradeCancelConfirmGui,
                 goldAmountSettingGui,
                 tradeService,
                 inventoryService,
@@ -2717,9 +2711,9 @@ public final class AstralRecord extends JavaPlugin {
     }
 
     /**
-     * トレードサービスを取得する。
+     * アイテム・送金サービスを取得する。
      *
-     * @return トレードサービス
+     * @return アイテム・送金サービス
      */
     public TradeService getTradeService() {
         return tradeService;

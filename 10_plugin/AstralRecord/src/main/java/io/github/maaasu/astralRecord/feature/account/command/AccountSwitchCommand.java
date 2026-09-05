@@ -526,7 +526,7 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
         }
         var tradeService = plugin.getTradeService();
         if (tradeService != null) {
-            tradeService.cancelTrade(player);
+            tradeService.cancelRelatedSessions(player);
         }
         player.closeInventory();
     }

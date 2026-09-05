@@ -69,7 +69,7 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
     public static final int CLASS_SLOT = 30;
     public static final int SKILL_INFO_SLOT = 31;
     public static final int BUFF_SLOT = 32;
-    public static final int TRADE_SLOT = 38;
+    public static final int SEND_SLOT = 38;
     public static final int PARTY_INVITE_SLOT = 42;
 
     private static final String SEPARATOR = "◇════════════════◇";
@@ -480,12 +480,12 @@ public final class PlayerDetailGui extends BaseMenuScreenView {
             noItalic(Component.text("現在のバフ", NamedTextColor.AQUA)),
             buildBuffLore(target)
         ));
-        inventory.setItem(TRADE_SLOT, actionItem(
-            Material.EMERALD,
-            "トレード申請",
+        inventory.setItem(SEND_SLOT, actionItem(
+            Material.CHEST,
+            "アイテム・送金",
             self,
-            "対象プレイヤーへトレード申請を送ります",
-            "自分自身へは申請できません"
+            "対象プレイヤーへアイテムやゴールドを送ります",
+            "自分自身へは送信できません"
         ));
         inventory.setItem(PARTY_INVITE_SLOT, actionItem(
             Material.WRITABLE_BOOK,

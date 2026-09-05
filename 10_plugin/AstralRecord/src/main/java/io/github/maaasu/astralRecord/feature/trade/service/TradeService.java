@@ -17,11 +17,8 @@ import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skilltree.service.SkillTreeService;
-import io.github.maaasu.astralRecord.feature.trade.gui.TradeCancelConfirmGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGui;
 import io.github.maaasu.astralRecord.feature.trade.gui.TradeGuiLayout;
-import io.github.maaasu.astralRecord.feature.trade.model.TradeRequest;
-import io.github.maaasu.astralRecord.feature.trade.model.TradeRequestStatus;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeCommitRequest;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeCommitResult;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeSession;
@@ -34,8 +31,6 @@ import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.gui.gold.GoldAmountSettingGui;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
-import net.kyori.adventure.text.event.ClickEvent;
-import net.kyori.adventure.text.event.HoverEvent;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.inventory.ClickType;
@@ -44,12 +39,10 @@ import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -59,13 +52,12 @@ import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
+/** 一方向送信を管理します。既存の原子的な Trade API 契約と内部名を維持します。 */
 public final class TradeService {
-    private static final Duration REQUEST_TTL = Duration.ofSeconds(60);
-    public static final String GOLD_AMOUNT_SOURCE_KEY = "trade";
+    public static final String GOLD_AMOUNT_SOURCE_KEY = "send";
 
     private final AstralRecord plugin;
     private final TradeGui tradeGui;
-    private final TradeCancelConfirmGui cancelConfirmGui;
     private final GoldAmountSettingGui goldAmountSettingGui;
     private final InventoryService inventoryService;
     private final CurrencyService currencyService;
@@ -73,17 +65,26 @@ public final class TradeService {
     private final ItemReferenceResolver itemReferenceResolver;
     private final @Nullable InventorySaveCoordinator inventorySaveCoordinator;
     private final @Nullable TradeRepository tradeRepository;
-    private final Map<UUID, TradeRequest> requests = new HashMap<>();
     private final Map<UUID, TradeSession> sessions = new HashMap<>();
     private final Map<UUID, UUID> activeSessionByPlayer = new HashMap<>();
     private final Map<UUID, TradeCommitRecovery> tradeCommitRecoveries = new ConcurrentHashMap<>();
     private final Set<UUID> suppressedClosePlayers = new HashSet<>();
     private final Map<UUID, UUID> pendingGuiTransitions = new HashMap<>();
 
+    /**
+     * 送信サービスを構築します。公開操作は Bukkit main thread から呼び出します。
+     * @param plugin タスク実行元
+     * @param tradeGui 送信画面
+     * @param goldAmountSettingGui 金額画面
+     * @param inventoryService 予約・再同期サービス
+     * @param currencyService 残高サービス
+     * @param messageService 通知サービス
+     * @param itemService マスタ解決サービス
+     * @param inventorySaveCoordinator 両accountの保存境界
+     */
     public TradeService(
         @NotNull AstralRecord plugin,
         @NotNull TradeGui tradeGui,
-        @NotNull TradeCancelConfirmGui cancelConfirmGui,
         @NotNull GoldAmountSettingGui goldAmountSettingGui,
         @NotNull InventoryService inventoryService,
         @NotNull CurrencyService currencyService,
@@ -94,7 +95,6 @@ public final class TradeService {
         this(
             plugin,
             tradeGui,
-            cancelConfirmGui,
             goldAmountSettingGui,
             inventoryService,
             currencyService,
@@ -108,7 +108,6 @@ public final class TradeService {
     TradeService(
         @NotNull AstralRecord plugin,
         @NotNull TradeGui tradeGui,
-        @NotNull TradeCancelConfirmGui cancelConfirmGui,
         @NotNull GoldAmountSettingGui goldAmountSettingGui,
         @NotNull InventoryService inventoryService,
         @NotNull CurrencyService currencyService,
@@ -118,7 +117,6 @@ public final class TradeService {
         this(
             plugin,
             tradeGui,
-            cancelConfirmGui,
             goldAmountSettingGui,
             inventoryService,
             currencyService,
@@ -132,7 +130,6 @@ public final class TradeService {
     TradeService(
         @NotNull AstralRecord plugin,
         @NotNull TradeGui tradeGui,
-        @NotNull TradeCancelConfirmGui cancelConfirmGui,
         @NotNull GoldAmountSettingGui goldAmountSettingGui,
         @NotNull InventoryService inventoryService,
         @NotNull CurrencyService currencyService,
@@ -143,7 +140,6 @@ public final class TradeService {
     ) {
         this.plugin = plugin;
         this.tradeGui = tradeGui;
-        this.cancelConfirmGui = cancelConfirmGui;
         this.goldAmountSettingGui = goldAmountSettingGui;
         this.inventoryService = inventoryService;
         this.currencyService = currencyService;
@@ -154,13 +150,13 @@ public final class TradeService {
     }
 
     /**
-     * トレード申請を作成し、相手プレイヤーへクリック可能な承諾メッセージを送信する。
-     *
-     * @param sender 申請者
-     * @param target 相手プレイヤー
+     * メインスレッドで送信者だけのアイテム・送金画面を開きます。
+     * 開始時の両 account を固定し、自己送信・オフライン・操作中の送信者を拒否します。
+     * @param sender 送信者
+     * @param target 同一サーバーの受信者
+     * @param returnAction プレイヤー情報へ戻る処理。コマンド起動時は null
      */
-    public void requestTrade(@NotNull Player sender, @NotNull Player target) {
-        expireRequests();
+    public void openSend(@NotNull Player sender, @NotNull Player target, @Nullable Runnable returnAction) {
         if (!AccountModeGuard.isGameplayPlayer(sender) || !AccountModeGuard.isGameplayPlayer(target)) {
             messageService.send(sender, PlayerMsgId.P_5065);
             return;
@@ -169,151 +165,63 @@ public final class TradeService {
             messageService.send(sender, PlayerMsgId.P_6210);
             return;
         }
+        AstPlayer senderAst = AstPlayerCache.get(sender);
+        AstPlayer targetAst = AstPlayerCache.get(target);
         if (sender.getUniqueId().equals(target.getUniqueId()) || !target.isOnline()
-            || isTrading(sender.getUniqueId()) || isTrading(target.getUniqueId())) {
+            || isTrading(sender.getUniqueId()) || senderAst == null || targetAst == null
+            || senderAst.getAccount().getUuid().equals(targetAst.getAccount().getUuid())) {
             messageService.send(sender, PlayerMsgId.P_6203);
             return;
         }
-        TradeRequest existing = findPendingRequest(sender.getUniqueId(), target.getUniqueId());
-        if (existing != null) {
-            messageService.send(sender, PlayerMsgId.P_6203);
-            return;
-        }
-
-        Instant now = Instant.now();
-        TradeRequest request = new TradeRequest(
-            UUID.randomUUID(),
-            sender.getUniqueId(),
-            sender.getName(),
-            target.getUniqueId(),
-            target.getName(),
-            now,
-            now.plus(REQUEST_TTL)
-        );
-        requests.put(request.getRequestId(), request);
-        messageService.send(sender, PlayerMsgId.P_6200, target.getName());
-        messageService.sendComponent(
-            target,
-            messageService.decorateAccountPlayerArguments(
-                PlayerMsgResource.formatComponent(PlayerMsgId.P_6201.getId(), sender.getName()),
-                sender.getName()
-            )
-                .clickEvent(ClickEvent.runCommand("/trade accept"))
-                .hoverEvent(HoverEvent.showText(net.kyori.adventure.text.Component.text("/trade accept")))
-        );
-    }
-
-    /**
-     * 最新の有効な受信トレード申請を承諾し、双方の取引 GUI を開く。
-     *
-     * @param accepter 承諾者
-     */
-    public void acceptTrade(@NotNull Player accepter) {
-        expireRequests();
-        if (!AccountModeGuard.isGameplayPlayer(accepter)) {
-            messageService.send(accepter, PlayerMsgId.P_5065);
-            return;
-        }
-        if (!isTradeAllowedWorld(accepter)) {
-            messageService.send(accepter, PlayerMsgId.P_6210);
-            return;
-        }
-        TradeRequest request = findLatestIncoming(accepter.getUniqueId());
-        if (request == null) {
-            messageService.send(accepter, PlayerMsgId.P_6202);
-            return;
-        }
-        Player sender = Bukkit.getPlayer(request.getSenderUuid());
-        if (sender != null && !AccountModeGuard.isGameplayPlayer(sender)) {
-            finishRequest(request, TradeRequestStatus.CANCELLED);
-            messageService.send(accepter, PlayerMsgId.P_5065);
-            return;
-        }
-        if (sender == null || !sender.isOnline() || isTrading(sender.getUniqueId()) || isTrading(accepter.getUniqueId())) {
-            finishRequest(request, TradeRequestStatus.CANCELLED);
-            messageService.send(accepter, PlayerMsgId.P_6203);
-            return;
-        }
-        if (!isTradeAllowedWorld(sender)) {
-            finishRequest(request, TradeRequestStatus.CANCELLED);
-            messageService.send(accepter, PlayerMsgId.P_6210);
-            return;
-        }
-        AstPlayer senderAstPlayer = AstPlayerCache.get(sender);
-        AstPlayer accepterAstPlayer = AstPlayerCache.get(accepter);
-        if (senderAstPlayer == null || accepterAstPlayer == null) {
-            finishRequest(request, TradeRequestStatus.CANCELLED);
-            messageService.send(accepter, PlayerMsgId.P_6203);
-            return;
-        }
-        finishRequest(request, TradeRequestStatus.ACCEPTED);
-        TradeSession session = new TradeSession(
-            UUID.randomUUID(),
-            sender.getUniqueId(),
-            senderAstPlayer.getAccount().getUuid(),
-            AccountDisplayNameFormatter.toPlain(senderAstPlayer.getAccount()),
-            accepter.getUniqueId(),
-            accepterAstPlayer.getAccount().getUuid(),
-            AccountDisplayNameFormatter.toPlain(accepterAstPlayer.getAccount()),
-            Instant.now()
-        );
+        TradeSession session = new TradeSession(UUID.randomUUID(), sender.getUniqueId(),
+            senderAst.getAccount().getUuid(), AccountDisplayNameFormatter.toPlain(senderAst.getAccount()),
+            target.getUniqueId(), targetAst.getAccount().getUuid(),
+            AccountDisplayNameFormatter.toPlain(targetAst.getAccount()), Instant.now());
+        session.setReturnAction(returnAction);
         sessions.put(session.getSessionId(), session);
         activeSessionByPlayer.put(sender.getUniqueId(), session.getSessionId());
-        activeSessionByPlayer.put(accepter.getUniqueId(), session.getSessionId());
         openTrade(sender, session);
-        openTrade(accepter, session);
     }
 
     /**
-     * 指定プレイヤーの取引準備状態を切り替え、条件が揃えば取引成立を実行する。
-     *
-     * @param player 操作したプレイヤー
+     * メインスレッドで送信者の内容を確定します。受信者の提示・承認はありません。
+     * @param player 送信ボタンを押したプレイヤー
      */
-    public void toggleReady(@NotNull Player player) {
-        if (!AccountModeGuard.isGameplayPlayer(player)) {
-            messageService.send(player, PlayerMsgId.P_5065);
-            return;
+    public void send(@NotNull Player player) {
+        TradeSession session = getOpenSession(player.getUniqueId());
+        if (session != null) {
+            completeTrade(session);
         }
-        if (!isTradeAllowedWorld(player)) {
-            messageService.send(player, PlayerMsgId.P_6210);
-            return;
-        }
+    }
+
+    /**
+     * 未送信の予約を解除して画面を閉じ、指定時だけ開始元の情報画面へ戻ります。
+     * @param player 操作した送信者
+     * @param back 情報画面へ戻る場合 true
+     */
+    public void leave(@NotNull Player player, boolean back) {
         TradeSession session = getOpenSession(player.getUniqueId());
         if (session == null) {
             return;
         }
-        if (session.isReady(player.getUniqueId())) {
-            session.setReady(player.getUniqueId(), false);
-            messageService.send(player, PlayerMsgId.P_6206);
-            refreshBoth(session);
-            return;
+        Runnable returnAction = session.getReturnAction();
+        cancelTrade(session);
+        if (back && returnAction != null && player.isOnline()) {
+            returnAction.run();
         }
-        if (!session.isPartnerReady(player.getUniqueId())) {
-            session.setReady(player.getUniqueId(), true);
-            messageService.send(player, PlayerMsgId.P_6205);
-            refreshBoth(session);
-            return;
-        }
-        session.setReady(player.getUniqueId(), true);
-        completeTrade(session);
     }
 
     /**
-     * 対象プレイヤーの取引中止確認 GUI を開く。
-     *
-     * @param player 表示対象プレイヤー
+     * ログアウト・account切替・ワールド離脱時に、当人に関係する未確定送信を中止します。
+     * 確定中の送信は同じ operation ID での回復を継続します。
+     * @param player 離脱するプレイヤー
      */
-    public void openCancelConfirm(@NotNull Player player) {
-        showCancelConfirm(player);
-    }
-
-    /**
-     * トレード GUI が手動で閉じられたあとに中止確認 GUI を開きます。
-     *
-     * @param player 表示対象プレイヤー
-     */
-    public void openCancelConfirmAfterClose(@NotNull Player player) {
-        showCancelConfirm(player);
+    public void cancelRelatedSessions(@NotNull Player player) {
+        for (TradeSession session : List.copyOf(sessions.values())) {
+            if (session.contains(player.getUniqueId())) {
+                cancelTrade(session);
+            }
+        }
     }
 
     /**
@@ -370,10 +278,6 @@ public final class TradeService {
         long maxAmount = currencyService.getGoldAmount(player);
         session.setGoldAmount(player.getUniqueId(), Math.min(Math.max(0L, amount), maxAmount));
         reopenTrade(player);
-        Player partner = Bukkit.getPlayer(session.getPartnerUuid(player.getUniqueId()));
-        if (partner != null && partner.isOnline()) {
-            tradeGui.refreshIfOpen(partner, session);
-        }
     }
 
     /**
@@ -382,23 +286,6 @@ public final class TradeService {
      * @param player 表示対象プレイヤー
      */
     public void reopenTrade(@NotNull Player player) {
-        if (!AccountModeGuard.isGameplayPlayer(player)) {
-            messageService.send(player, PlayerMsgId.P_5065);
-            return;
-        }
-        TradeSession session = getOpenSession(player.getUniqueId());
-        if (session == null) {
-            return;
-        }
-        openTrade(player, session);
-    }
-
-    /**
-     * サブ GUI が手動で閉じられたあとに、suppress フラグを残さず取引 GUI を再表示します。
-     *
-     * @param player 表示対象プレイヤー
-     */
-    public void reopenTradeAfterClose(@NotNull Player player) {
         if (!AccountModeGuard.isGameplayPlayer(player)) {
             messageService.send(player, PlayerMsgId.P_5065);
             return;
@@ -422,6 +309,10 @@ public final class TradeService {
         }
     }
 
+    /**
+     * OPEN の予約を解除し、送信者の同じ画面だけを閉じます。確定中は何もしません。
+     * @param session 中止対象
+     */
     public void cancelTrade(@NotNull TradeSession session) {
         if (session.getStatus() != TradeSessionStatus.OPEN) {
             return;
@@ -434,7 +325,6 @@ public final class TradeService {
         closeParticipants(session);
         clearSession(session);
         sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6208);
-        sendIfOnline(session.getPlayerBUuid(), PlayerMsgId.P_6208);
     }
 
     public void cancelAll() {
@@ -602,6 +492,7 @@ public final class TradeService {
         return true;
     }
 
+    /** 送受信者のidentityと送信内容を再検証し、重複送信を遮断して非同期確定を開始します。 */
     private void completeTrade(@NotNull TradeSession session) {
         try {
             Player playerA = Bukkit.getPlayer(session.getPlayerAUuid());
@@ -612,35 +503,29 @@ public final class TradeService {
             }
             if (!isTradeAllowedWorld(playerA) || !isTradeAllowedWorld(playerB)) {
                 sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6210);
-                sendIfOnline(session.getPlayerBUuid(), PlayerMsgId.P_6210);
                 cancelTrade(session);
                 return;
             }
             if (!hasAnyOffer(session)) {
-                cancelTrade(session);
+                sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6202);
                 return;
             }
-            if (!session.isPlayerAReady() || !session.isPlayerBReady()
-                || !allTradeable(session.getItems(session.getPlayerAUuid()))
-                || !allTradeable(session.getItems(session.getPlayerBUuid()))) {
-                session.resetReady();
+            if (!allTradeable(session.getItems(session.getPlayerAUuid()))
+                || !session.getItems(session.getPlayerBUuid()).isEmpty()
+                || session.getGoldAmount(session.getPlayerBUuid()) != 0L) {
                 refreshBoth(session);
                 return;
             }
             if (!hasGold(session.getPlayerAUuid(), session.getGoldAmount(session.getPlayerAUuid()))
                 || !hasGold(session.getPlayerBUuid(), session.getGoldAmount(session.getPlayerBUuid()))) {
-                session.resetReady();
                 sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6203);
-                sendIfOnline(session.getPlayerBUuid(), PlayerMsgId.P_6203);
                 refreshBoth(session);
                 return;
             }
             if (inventorySaveCoordinator == null || tradeRepository == null
                 || !session.hasValidCommitItems(session.getPlayerAUuid())
                 || !session.hasValidCommitItems(session.getPlayerBUuid())) {
-                session.resetReady();
                 sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6209);
-                sendIfOnline(session.getPlayerBUuid(), PlayerMsgId.P_6209);
                 refreshBoth(session);
                 return;
             }
@@ -651,7 +536,6 @@ public final class TradeService {
         } catch (Exception e) {
             Logger.log(LogId.E_6201, e, session.getSessionId());
             session.setStatus(TradeSessionStatus.OPEN);
-            session.resetReady();
             refreshBoth(session);
         }
     }
@@ -758,13 +642,11 @@ public final class TradeService {
                 return;
             }
             session.setStatus(TradeSessionStatus.OPEN);
-            session.resetReady();
             if (!canResumeTrade(session)) {
                 cancelTrade(session);
                 return;
             }
             sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6209);
-            sendIfOnline(session.getPlayerBUuid(), PlayerMsgId.P_6209);
             refreshBoth(session);
             return;
         }
@@ -775,8 +657,7 @@ public final class TradeService {
         refreshManagedInventoryUi(session, session.getPlayerBUuid());
         closeParticipants(session);
         clearSession(session);
-        sendIfOnline(session.getPlayerAUuid(), PlayerMsgId.P_6207);
-        sendIfOnline(session.getPlayerBUuid(), PlayerMsgId.P_6207);
+        notifyDelivery(session);
         playCompletionSound(session.getPlayerAUuid());
         playCompletionSound(session.getPlayerBUuid());
     }
@@ -819,14 +700,11 @@ public final class TradeService {
         }
     }
 
+    /** 送信者の同一session画面だけを更新します。受信者の画面には介入しません。 */
     private void refreshBoth(@NotNull TradeSession session) {
         Player playerA = Bukkit.getPlayer(session.getPlayerAUuid());
-        Player playerB = Bukkit.getPlayer(session.getPlayerBUuid());
         if (playerA != null && playerA.isOnline()) {
             refreshTradeView(playerA, session);
-        }
-        if (playerB != null && playerB.isOnline()) {
-            refreshTradeView(playerB, session);
         }
     }
 
@@ -849,13 +727,13 @@ public final class TradeService {
             && session.getAccountId(player.getUniqueId()).equals(astPlayer.getAccount().getUuid());
     }
 
-    /** API未確定の失敗後に、両参加者が同じaccount・許可ワールド・取引画面で再開できるか判定します。 */
+    /** API未確定の失敗後に両者のidentityとワールド、送信者の画面を照合します。 */
     private boolean canResumeTrade(@NotNull TradeSession session) {
         Player playerA = Bukkit.getPlayer(session.getPlayerAUuid());
         Player playerB = Bukkit.getPlayer(session.getPlayerBUuid());
         return hasSessionIdentity(session, playerA) && hasSessionIdentity(session, playerB)
             && isTradeAllowedWorld(playerA) && isTradeAllowedWorld(playerB)
-            && hasSessionGui(session, playerA) && hasSessionGui(session, playerB);
+            && hasSessionGui(session, playerA);
     }
 
     /** 確定待ち中に閉じた画面を取り残さないよう、現在のholderと固定session・viewerを照合します。 */
@@ -864,10 +742,6 @@ public final class TradeService {
         if (holder instanceof TradeGui.TradeHolder tradeHolder) {
             return session.getSessionId().equals(tradeHolder.sessionId())
                 && player.getUniqueId().equals(tradeHolder.viewerUuid());
-        }
-        if (holder instanceof TradeCancelConfirmGui.CancelHolder cancelHolder) {
-            return session.getSessionId().equals(cancelHolder.sessionId())
-                && player.getUniqueId().equals(cancelHolder.viewerUuid());
         }
         if (holder instanceof GoldAmountSettingGui.GoldAmountHolder goldHolder) {
             return GOLD_AMOUNT_SOURCE_KEY.equals(goldHolder.sourceKey())
@@ -1082,11 +956,12 @@ public final class TradeService {
         return skillTreeService != null && skillTreeService.isSkillTreeWorld(player.getWorld());
     }
 
+    /** 送信者の画面だけを閉じます。 */
     private void closeParticipants(@NotNull TradeSession session) {
         closeIfOnline(session, session.getPlayerAUuid());
-        closeIfOnline(session, session.getPlayerBUuid());
     }
 
+    /** 開始時accountと現在のholderが一致する場合だけ画面を閉じます。 */
     private void closeIfOnline(@NotNull TradeSession session, @NotNull UUID playerUuid) {
         Player player = Bukkit.getPlayer(playerUuid);
         if (player == null || !player.isOnline()) {
@@ -1094,6 +969,9 @@ public final class TradeService {
         }
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null || !session.getAccountId(playerUuid).equals(astPlayer.getAccount().getUuid())) {
+            return;
+        }
+        if (!hasSessionGui(session, player)) {
             return;
         }
         try {
@@ -1105,13 +983,13 @@ public final class TradeService {
         }
     }
 
+    /** 送信者の索引と遷移だけを解放し、受信者の独立した送信を保持します。 */
     private void clearSession(@NotNull TradeSession session) {
-        pendingGuiTransitions.remove(session.getPlayerAUuid());
-        pendingGuiTransitions.remove(session.getPlayerBUuid());
+        if (pendingGuiTransitions.remove(session.getPlayerAUuid()) != null) {
+            io.github.maaasu.astralRecord.shared.gui.GuiOpenSupport.cancelPending(session.getPlayerAUuid());
+        }
         suppressedClosePlayers.remove(session.getPlayerAUuid());
-        suppressedClosePlayers.remove(session.getPlayerBUuid());
         activeSessionByPlayer.remove(session.getPlayerAUuid(), session.getSessionId());
-        activeSessionByPlayer.remove(session.getPlayerBUuid(), session.getSessionId());
         sessions.remove(session.getSessionId());
     }
 
@@ -1129,53 +1007,9 @@ public final class TradeService {
             || session.getStatus() == TradeSessionStatus.COMMITTING);
     }
 
-    private @Nullable TradeRequest findPendingRequest(@NotNull UUID senderUuid, @NotNull UUID targetUuid) {
-        return requests.values().stream()
-            .filter(request -> request.getStatus() == TradeRequestStatus.PENDING)
-            .filter(request -> request.getSenderUuid().equals(senderUuid) && request.getTargetUuid().equals(targetUuid))
-            .findFirst()
-            .orElse(null);
-    }
-
-    private @Nullable TradeRequest findLatestIncoming(@NotNull UUID targetUuid) {
-        return requests.values().stream()
-            .filter(request -> request.getStatus() == TradeRequestStatus.PENDING)
-            .filter(request -> request.getTargetUuid().equals(targetUuid))
-            .max((left, right) -> left.getCreatedAt().compareTo(right.getCreatedAt()))
-            .orElse(null);
-    }
-
-    /**
-     * 期限切れの pending トレード申請を終端状態へ遷移させ、管理対象から除去します。
-     *
-     * @implNote iterator を通じて削除し、同一走査中の構造変更例外を防ぎます。
-     */
-    private void expireRequests() {
-        Instant now = Instant.now();
-        Iterator<TradeRequest> iterator = requests.values().iterator();
-        while (iterator.hasNext()) {
-            TradeRequest request = iterator.next();
-            if (request.getStatus() == TradeRequestStatus.PENDING && request.isExpired(now)) {
-                request.setStatus(TradeRequestStatus.EXPIRED);
-                iterator.remove();
-            }
-        }
-    }
-
-    /**
-     * トレード申請を終端状態へ遷移させ、pending request 管理から除去します。
-     *
-     * @param request 終端化するトレード申請
-     * @param status 設定する終端状態
-     */
-    private void finishRequest(@NotNull TradeRequest request, @NotNull TradeRequestStatus status) {
-        request.setStatus(status);
-        requests.remove(request.getRequestId());
-    }
-
     private void suppressNextClose(@NotNull Player player) {
         Inventory top = player.getOpenInventory().getTopInventory();
-        if (tradeGui.isTradeInventory(top) || cancelConfirmGui.isCancelInventory(top)
+        if (tradeGui.isTradeInventory(top)
             || (goldAmountSettingGui.getHolder(top) != null
                 && GOLD_AMOUNT_SOURCE_KEY.equals(goldAmountSettingGui.getHolder(top).sourceKey()))) {
             suppressedClosePlayers.add(player.getUniqueId());
@@ -1215,13 +1049,23 @@ public final class TradeService {
         }
     }
 
-    private void showCancelConfirm(@NotNull Player player) {
-        TradeSession session = getOpenSession(player.getUniqueId());
-        if (session == null) {
+    /** 確定後、同じ account を利用中の両者へ送信内容を表示名・数量・実金額で通知します。 */
+    private void notifyDelivery(@NotNull TradeSession session) {
+        Player sender = Bukkit.getPlayer(session.getPlayerAUuid());
+        Player target = Bukkit.getPlayer(session.getPlayerBUuid());
+        long amount = session.getGoldAmount(session.getPlayerAUuid());
+        if (hasSessionIdentity(session, sender)) {
+            messageService.send(sender, PlayerMsgId.P_6207, amount, session.getPlayerBName());
+        }
+        if (!hasSessionIdentity(session, target)) {
             return;
         }
-        openSessionGui(player, session, (opened, cancelled) ->
-            cancelConfirmGui.open(player, session.getSessionId(), opened, cancelled));
+        messageService.send(target, PlayerMsgId.P_6201, session.getPlayerAName(), amount);
+        for (ItemStack item : session.getItems(session.getPlayerAUuid())) {
+            ItemModel model = itemReferenceResolver.resolveItemModel(item);
+            String name = model == null ? PlayerMsgResource.getMessage(PlayerMsgId.P_6212.getId()) : model.getName();
+            messageService.send(target, PlayerMsgId.P_6211, name, item.getAmount());
+        }
     }
 
 }
