@@ -288,6 +288,10 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         int page = holder.pageIndex();
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) return;
+        if (session.processingSkillId() != null) {
+            GuiSound.DENY.play(player);
+            return;
+        }
 
         if (slot == SkillBindGui.PREVIOUS_PAGE_SLOT) {
             if (page <= 0) {
@@ -938,8 +942,10 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
         SkillDefinition definition = skillService.registry().getDefinition(skillId);
         if (definition == null) { GuiSound.DENY.play(player); return; }
         UUID playerId = player.getUniqueId();
+        session.setProcessingSkillId(skillId);
         boolean scheduled = learnedSkillService.learnFromManagerAsync(astPlayer.getAccount().getUuid(), skillId,
             astPlayer.getAccount().getUuid(), requiredItemEntryIds(astPlayer, definition.getLearnRequiredItems()), learned -> {
+                session.clearProcessingSkill();
                 AstPlayer current = currentPlayer(astPlayer);
                 if (current == null) return;
                 plugin.getGuideService().recordConditionSilently(current, GuideConditionType.SKILL_LEARNED, skillId);
@@ -949,6 +955,7 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 GuiSound.SUCCESS.play(current.getBukkit()); openMain(current.getBukkit(), session, page);
             },
             error -> {
+                session.clearProcessingSkill();
                 AstPlayer current = currentPlayer(astPlayer);
                 if (current == null || !player.isOnline()) return;
                 GuiSound.DENY.play(player);
@@ -958,7 +965,14 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
             },
             () -> markSkillMutationPending(player, session)
         );
-        if (!scheduled) GuiSound.DENY.play(player);
+        if (!scheduled) {
+            session.clearProcessingSkill();
+            GuiSound.DENY.play(player);
+            return;
+        }
+        if (sessions.get(playerId) == session && session.processingSkillId() != null) {
+            openMain(player, session, page);
+        }
     }
 
     private boolean levelUpFromManager(Player player, SkillBindSession session, int page, SkillManagerEntry entry) {

@@ -530,6 +530,7 @@ public final class TradeService {
                 return;
             }
             session.setStatus(TradeSessionStatus.COMMITTING);
+            refreshBoth(session);
             commitTradeWithInventoryLocks(session).whenComplete((result, throwable) ->
                 Bukkit.getScheduler().runTask(plugin, () -> finishTradeCommit(session, throwable))
             );

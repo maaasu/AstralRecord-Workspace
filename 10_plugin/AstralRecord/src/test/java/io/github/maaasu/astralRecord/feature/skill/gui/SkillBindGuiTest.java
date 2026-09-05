@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import net.kyori.adventure.text.serializer.plain.PlainTextComponentSerializer;
+import org.bukkit.Material;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.Test;
@@ -165,6 +166,29 @@ class SkillBindGuiTest extends MockBukkitTestBase {
         assertTrue(lore.contains("習得に必要な素材:"));
         assertTrue(lore.contains("• スキルジェムの原石(無印) ×3"));
         assertTrue(lore.contains("左クリック: 習得"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-GUI・View.md
+     * 章・見出し: # 13_3-GUI・View > ## 3. スキルマネージャーの習得表示
+     * 検証契約: 習得受付中の対象スキルは時計アイコンへ置換し、習得操作の案内を表示しない。
+     */
+    @Test
+    void unlearnedSkillShowsProcessingClockWhileLearning() {
+        PluginMock plugin = MockBukkit.createMockPlugin("SkillBindGuiProcessingTest");
+        SkillBindGui gui = new SkillBindGui(plugin, mock(ItemService.class), mock(SkillService.class));
+        SkillBindSession session = new SkillBindSession(presets());
+        SkillDefinition definition = unlearnedDefinition();
+        session.setProcessingSkillId(definition.getId());
+
+        Inventory inventory = gui.createMainInventory(
+            session, List.of(), List.of(definition), Map.of(), List.of(definition), 5, 0
+        );
+        ItemStack processing = inventory.getItem(1);
+
+        assertEquals(Material.CLOCK, processing.getType());
+        assertTrue(lore(processing).contains("完了までお待ちください"));
+        assertFalse(lore(processing).contains("左クリック: 習得"));
     }
 
     /**

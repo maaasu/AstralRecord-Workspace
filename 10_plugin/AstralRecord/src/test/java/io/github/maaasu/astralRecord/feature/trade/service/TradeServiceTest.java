@@ -291,6 +291,7 @@ class TradeServiceTest {
             context.service.send(context.sender);
 
             assertEquals(TradeSessionStatus.COMMITTING, context.session.getStatus());
+            verify(context.tradeGui).refreshIfOpen(context.sender, context.session);
             verify(context.repository, times(1)).commit(any());
         }
     }

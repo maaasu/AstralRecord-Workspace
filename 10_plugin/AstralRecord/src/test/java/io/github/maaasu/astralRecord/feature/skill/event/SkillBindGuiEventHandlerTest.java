@@ -769,6 +769,7 @@ class SkillBindGuiEventHandlerTest {
         when(event.getRawSlot()).thenReturn(1);
         when(event.isLeftClick()).thenReturn(true);
         when(event.isRightClick()).thenReturn(false);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
         when(learnedSkillService.learnFromManagerAsync(any(), any(), any(), any(), any(), any(), any())).thenReturn(true);
 
         try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {

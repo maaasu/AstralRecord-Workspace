@@ -48,6 +48,19 @@ public final class GuiItems {
     }
 
     /**
+     * 非同期操作の完了待ちを示す共通の時計アイコンを生成します。
+     *
+     * @return 処理中表示用 ItemStack
+     */
+    public static @NotNull ItemStack processingItem() {
+        return create(
+            Material.CLOCK,
+            Component.text("処理中...", NamedTextColor.YELLOW),
+            List.of(Component.text("完了までお待ちください", NamedTextColor.GRAY))
+        );
+    }
+
+    /**
      * 永続データで識別できる灰色ガラスのプレースホルダーを生成します。
      *
      * @param markerKey プレースホルダー識別キー

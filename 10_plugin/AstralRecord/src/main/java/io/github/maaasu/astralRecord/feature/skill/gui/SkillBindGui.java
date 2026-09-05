@@ -184,7 +184,8 @@ public final class SkillBindGui {
         for (int index = start; index < end; index++) {
             inventory.setItem(index - start + contentSlotOffset, index < entries.size()
                 ? createLearnedSkillItem(entries.get(index), true)
-                : createUnlearnedSkillItem(unlearnedDefinitions.get(index - entries.size())));
+                : createUnlearnedSkillItem(
+                    unlearnedDefinitions.get(index - entries.size()), session.processingSkillId()));
         }
 
         for (int index = 0; index < SkillBindPreset.PASSIVE_SLOT_COUNT; index++) {
@@ -280,12 +281,7 @@ public final class SkillBindGui {
         fill(inventory);
         inventory.setItem(DETAIL_SKILL_SLOT, createLearnedSkillItem(entry, false));
         if (mutationInProgress) {
-            ItemStack processing = createItem(
-                Material.CLOCK,
-                "処理中...",
-                NamedTextColor.YELLOW,
-                List.of(Component.text("完了までお待ちください", NamedTextColor.GRAY))
-            );
+            ItemStack processing = GuiItems.processingItem();
             inventory.setItem(DETAIL_BIND_SLOT, processing.clone());
             inventory.setItem(DETAIL_LEVEL_UP_SLOT, processing);
         } else {
@@ -573,7 +569,13 @@ public final class SkillBindGui {
         return withBindingId(item, entry.bindingId());
     }
 
-    private ItemStack createUnlearnedSkillItem(@NotNull SkillDefinition skill) {
+    private ItemStack createUnlearnedSkillItem(
+        @NotNull SkillDefinition skill,
+        @Nullable String processingSkillId
+    ) {
+        if (processingSkillId != null && processingSkillId.equalsIgnoreCase(skill.getId())) {
+            return GuiItems.processingItem();
+        }
         List<Component> lore = new ArrayList<>();
         lore.addAll(SkillPresentationUtil.skillDescriptionAndFlavorLore(skill, NamedTextColor.GRAY));
         lore.add(separator());

@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameF
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.trade.model.TradeSession;
+import io.github.maaasu.astralRecord.feature.trade.model.TradeSessionStatus;
 import io.github.maaasu.astralRecord.shared.gui.GuiItems;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutGuiHolder;
 import net.kyori.adventure.text.Component;
@@ -95,11 +96,13 @@ public final class TradeGui {
         fill(inventory, Material.GRAY_STAINED_GLASS_PANE);
         placeItems(inventory, TradeGuiLayout.OWN_SLOT_LIST, session.getItems(viewerUuid));
         inventory.setItem(TradeGuiLayout.GOLD_SLOT, goldItem(session.getGoldAmount(viewerUuid)));
-        inventory.setItem(TradeGuiLayout.SEND_SLOT, actionItem(Material.CHEST,
-            Component.text("送信する", NamedTextColor.GREEN, TextDecoration.BOLD), List.of(
-                Component.text("送信先: " + session.getPlayerBName(), NamedTextColor.WHITE),
-                Component.text("アイテムと設定した金額を送信します。", NamedTextColor.GRAY),
-                Component.text("相手の承認は不要です。", NamedTextColor.YELLOW))));
+        inventory.setItem(TradeGuiLayout.SEND_SLOT, session.getStatus() == TradeSessionStatus.COMMITTING
+            ? GuiItems.processingItem()
+            : actionItem(Material.CHEST,
+                Component.text("送信する", NamedTextColor.GREEN, TextDecoration.BOLD), List.of(
+                    Component.text("送信先: " + session.getPlayerBName(), NamedTextColor.WHITE),
+                    Component.text("アイテムと設定した金額を送信します。", NamedTextColor.GRAY),
+                    Component.text("相手の承認は不要です。", NamedTextColor.YELLOW))));
         inventory.setItem(TradeGuiLayout.BACK_SLOT,
             session.getReturnAction() == null ? GuiItems.closeButton() : GuiItems.backButton());
         inventory.setItem(TradeGuiLayout.CLOSE_SLOT, GuiItems.closeButton());

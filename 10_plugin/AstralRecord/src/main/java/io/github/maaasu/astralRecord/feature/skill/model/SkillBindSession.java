@@ -17,6 +17,8 @@ public final class SkillBindSession {
     private List<String> passiveDraft;
     private SkillBindType selectedBindType;
     private int selectedBindSlotIndex = -1;
+    /** 習得処理中として一覧上で時計表示するスキル ID です。 */
+    private @Nullable String processingSkillId;
 
     public SkillBindSession(@NotNull List<SkillBindPreset> presets) {
         this(presets, 1);
@@ -53,6 +55,29 @@ public final class SkillBindSession {
      */
     public int selectedBindSlotIndex() {
         return selectedBindSlotIndex;
+    }
+
+    /**
+     * 習得処理中として表示するスキル ID を返します。
+     *
+     * @return 処理中のスキル ID。処理中でない場合は {@code null}
+     */
+    public @Nullable String processingSkillId() {
+        return processingSkillId;
+    }
+
+    /**
+     * 一覧上で処理中表示するスキル ID を設定します。
+     *
+     * @param skillId 処理中のスキル ID。{@code null} または空文字の場合は解除
+     */
+    public void setProcessingSkillId(@Nullable String skillId) {
+        this.processingSkillId = skillId == null || skillId.isBlank() ? null : skillId.trim();
+    }
+
+    /** 一覧上の処理中表示を解除します。 */
+    public void clearProcessingSkill() {
+        this.processingSkillId = null;
     }
 
     /**
