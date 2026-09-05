@@ -87,13 +87,36 @@ public final class GuiNavigationService {
      * @return 戻り先を開く予約を開始できた場合は {@code true}
      */
     public boolean openPrevious(@NotNull Player player, @NotNull Runnable onOpened) {
+        return openPrevious(player, onOpened, () -> {
+        });
+    }
+
+    /**
+     * 一つ前の GUI を開き、遷移結果に応じた処理を実行します。
+     *
+     * <p>GUI のセッション終了処理は共有の {@code GuiSessionEndEvent} が担当します。
+     * 戻り先を実際に開けた場合は {@code onOpened}、戻り先の表示が取消・失敗した場合は
+     * {@code onCancelled} を実行します。</p>
+     *
+     * @param player 対象プレイヤー
+     * @param onOpened 戻り先を開けた場合に実行する処理
+     * @param onCancelled 戻り先を開けなかった場合に実行する処理
+     * @return 戻り先を開く予約を開始できた場合は {@code true}
+     */
+    public boolean openPrevious(
+        @NotNull Player player,
+        @NotNull Runnable onOpened,
+        @NotNull Runnable onCancelled
+    ) {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (astPlayer == null) {
+            onCancelled.run();
             return false;
         }
         GuiNavigationState state = astPlayer.getGuiNavigationState();
         GuiNavigationState.BackReservation reservation = state.beginBack();
         if (reservation == null) {
+            onCancelled.run();
             return false;
         }
         GuiOpenSupport.open(
@@ -103,7 +126,10 @@ public final class GuiNavigationService {
                 state.completeBack(reservation);
                 onOpened.run();
             },
-            () -> state.rollbackBack(reservation)
+            () -> {
+                state.rollbackBack(reservation);
+                onCancelled.run();
+            }
         );
         return true;
     }

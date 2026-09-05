@@ -312,11 +312,49 @@ public final class SellService {
             }
             menuGuiTransitionService.switchGuiWithInventoryRestore(
                 player,
-                () -> plugin.getGuiNavigationService().openPrevious(player)
+                () -> plugin.getGuiNavigationService().openPrevious(
+                    player,
+                    () -> clearReturnedSellScreen(player),
+                    () -> closeReturnedSellConfirmScreen(player, topInventory)
+                )
             );
             return;
         }
         GuiSound.DENY.play(player);
+    }
+
+    /**
+     * 戻り先の売却編集画面を空状態へ再描画します。
+     *
+     * <p>確認画面で返却した item が表示へ残ると、次の確認操作で再取り込みされるため、
+     * 戻り先が実際に売却編集画面になった場合だけ表示内容を消去します。</p>
+     *
+     * @param player 対象プレイヤー
+     */
+    private void clearReturnedSellScreen(@NotNull Player player) {
+        Inventory inventory = player.getOpenInventory().getTopInventory();
+        if (menuView.getMenuScreen(inventory) == MenuScreen.SELL) {
+            menuView.renderSell(inventory, List.of(), 0);
+        }
+    }
+
+    /**
+     * 戻り先への遷移に失敗した返却済み売却確認画面を閉じます。
+     *
+     * <p>別の GUI がすでに開かれている場合は、その GUI を閉じないよう何もしません。</p>
+     *
+     * @param player 対象プレイヤー
+     * @param returnedConfirmInventory 返却処理を開始した確認画面 inventory
+     */
+    private void closeReturnedSellConfirmScreen(
+        @NotNull Player player,
+        @NotNull Inventory returnedConfirmInventory
+    ) {
+        Inventory inventory = player.getOpenInventory().getTopInventory();
+        if (inventory == returnedConfirmInventory
+            && menuView.getMenuScreen(inventory) == MenuScreen.SELL_CONFIRM) {
+            player.closeInventory();
+        }
     }
 
     private void handleSellPlayerInventoryClick(

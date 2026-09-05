@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.shared.gui.navigation.GuiNavigationService;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.NamespacedKey;
@@ -40,6 +41,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.clearInvocations;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -169,6 +171,172 @@ class SellServiceSoundTest {
         verify(inventoryService).returnItemToOwnedInventory(eq(astPlayer), any(ItemStack.class));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 売却
+     * 検証契約: 確認画面から売却せずに戻った場合、戻り先の売却編集画面を空状態へ更新し、
+     * 返却済み item を次の確認操作へ再取り込みしない。
+     */
+    @Test
+    void returningFromConfirmClearsStaleSellScreen() throws Exception {
+        AstralRecord plugin = mock(AstralRecord.class);
+        ItemService itemService = mock(ItemService.class);
+        when(plugin.getItemService()).thenReturn(itemService);
+        MenuView menuView = mock(MenuView.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        MenuGuiTransitionService transitionService = mock(MenuGuiTransitionService.class);
+        GuiNavigationService navigationService = mock(GuiNavigationService.class);
+        SellService service = new SellService(plugin, menuView, inventoryService, transitionService);
+        Player player = mock(Player.class);
+        Location location = mock(Location.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getLocation()).thenReturn(location);
+        when(plugin.getGuiNavigationService()).thenReturn(navigationService);
+
+        Inventory confirmInventory = mock(Inventory.class);
+        when(confirmInventory.getSize()).thenReturn(27);
+        InventoryView confirmView = mock(InventoryView.class);
+        InventoryClickEvent event = mock(InventoryClickEvent.class);
+        when(event.getRawSlot()).thenReturn(MenuView.SELL_CONFIRM_RETURN_SLOT);
+        when(event.getView()).thenReturn(confirmView);
+        when(confirmView.getTopInventory()).thenReturn(confirmInventory);
+
+        Inventory sellInventory = mock(Inventory.class);
+        InventoryView openView = mock(InventoryView.class);
+        when(player.getOpenInventory()).thenReturn(openView);
+        when(openView.getTopInventory()).thenReturn(sellInventory);
+        when(menuView.getMenuScreen(sellInventory)).thenReturn(MenuScreen.SELL);
+
+        ItemModel itemModel = mock(ItemModel.class);
+        when(itemModel.getUnSellable()).thenReturn(false);
+        when(itemService.findLoadedById("test_item")).thenReturn(itemModel);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        when(inventoryService.canAddItemToNormalInventory(astPlayer, itemModel, 1)).thenReturn(true);
+        when(inventoryService.returnItemToOwnedInventory(eq(astPlayer), any(ItemStack.class)))
+            .thenReturn(InventoryType.BAG);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+
+        doAnswer(invocation -> {
+            invocation.getArgument(1, Runnable.class).run();
+            return null;
+        }).when(transitionService).switchGuiWithInventoryRestore(eq(player), any(Runnable.class));
+        doAnswer(invocation -> {
+            invocation.getArgument(1, Runnable.class).run();
+            return true;
+        }).when(navigationService).openPrevious(
+            eq(player),
+            any(Runnable.class),
+            any(Runnable.class)
+        );
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+            invokeOpenConfirm(service, player, List.of(astralItem()), 0);
+            invokeConfirmClick(service, event, player);
+        }
+
+        verify(menuView).renderSell(eq(sellInventory), org.mockito.ArgumentMatchers.argThat(List::isEmpty), eq(0));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 売却
+     * 検証契約: 戻り先の表示が取消・失敗した場合、返却済み item を保持しない確認画面だけを閉じる。
+     */
+    @Test
+    void returningFromConfirmClosesConfirmWhenNavigationIsCancelled() throws Exception {
+        AstralRecord plugin = mock(AstralRecord.class);
+        ItemService itemService = mock(ItemService.class);
+        when(plugin.getItemService()).thenReturn(itemService);
+        MenuView menuView = mock(MenuView.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        MenuGuiTransitionService transitionService = mock(MenuGuiTransitionService.class);
+        GuiNavigationService navigationService = mock(GuiNavigationService.class);
+        SellService service = new SellService(plugin, menuView, inventoryService, transitionService);
+        Player player = mock(Player.class);
+        Location location = mock(Location.class);
+        when(player.getUniqueId()).thenReturn(UUID.randomUUID());
+        when(player.getLocation()).thenReturn(location);
+        when(plugin.getGuiNavigationService()).thenReturn(navigationService);
+
+        Inventory confirmInventory = mock(Inventory.class);
+        when(confirmInventory.getSize()).thenReturn(27);
+        InventoryView confirmView = mock(InventoryView.class);
+        InventoryClickEvent event = mock(InventoryClickEvent.class);
+        when(event.getRawSlot()).thenReturn(MenuView.SELL_CONFIRM_RETURN_SLOT);
+        when(event.getView()).thenReturn(confirmView);
+        when(confirmView.getTopInventory()).thenReturn(confirmInventory);
+        InventoryView openView = mock(InventoryView.class);
+        when(player.getOpenInventory()).thenReturn(openView);
+        when(openView.getTopInventory()).thenReturn(confirmInventory);
+        when(menuView.getMenuScreen(confirmInventory)).thenReturn(MenuScreen.SELL_CONFIRM);
+
+        ItemModel itemModel = mock(ItemModel.class);
+        when(itemModel.getUnSellable()).thenReturn(false);
+        when(itemService.findLoadedById("test_item")).thenReturn(itemModel);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        when(inventoryService.canAddItemToNormalInventory(astPlayer, itemModel, 1)).thenReturn(true);
+        when(inventoryService.returnItemToOwnedInventory(eq(astPlayer), any(ItemStack.class)))
+            .thenReturn(InventoryType.BAG);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+
+        doAnswer(invocation -> {
+            invocation.getArgument(1, Runnable.class).run();
+            return null;
+        }).when(transitionService).switchGuiWithInventoryRestore(eq(player), any(Runnable.class));
+        doAnswer(invocation -> {
+            invocation.getArgument(2, Runnable.class).run();
+            return true;
+        }).when(navigationService).openPrevious(
+            eq(player),
+            any(Runnable.class),
+            any(Runnable.class)
+        );
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+            invokeOpenConfirm(service, player, List.of(astralItem()), 0);
+            invokeConfirmClick(service, event, player);
+        }
+
+        verify(player).closeInventory();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/09-menu/3-メソッド仕様/09_3-サービス.md
+     * 章・見出し: # 09_3-サービス > ## 売却
+     * 検証契約: 遷移取消 callback は、元の確認画面とは異なる同種 GUI を閉じない。
+     */
+    @Test
+    void cancelledNavigationDoesNotCloseReplacementSellConfirmScreen() throws Exception {
+        AstralRecord plugin = mock(AstralRecord.class);
+        when(plugin.getItemService()).thenReturn(mock(ItemService.class));
+        MenuView menuView = mock(MenuView.class);
+        SellService service = new SellService(
+            plugin,
+            menuView,
+            mock(InventoryService.class),
+            mock(MenuGuiTransitionService.class)
+        );
+        Player player = mock(Player.class);
+        Inventory originalConfirmInventory = mock(Inventory.class);
+        Inventory replacementConfirmInventory = mock(Inventory.class);
+        InventoryView openView = mock(InventoryView.class);
+        when(player.getOpenInventory()).thenReturn(openView);
+        when(openView.getTopInventory()).thenReturn(replacementConfirmInventory);
+        when(menuView.getMenuScreen(replacementConfirmInventory)).thenReturn(MenuScreen.SELL_CONFIRM);
+
+        invokeCloseReturnedSellConfirmScreen(service, player, originalConfirmInventory);
+
+        verify(player, never()).closeInventory();
+    }
+
     private void invokeOpenConfirm(SellService service, Player player, List<ItemStack> items, int pageIndex) throws Exception {
         Method method = SellService.class.getDeclaredMethod("openSellConfirm", Player.class, List.class, int.class);
         method.setAccessible(true);
@@ -187,6 +355,20 @@ class SellServiceSoundTest {
         );
         method.setAccessible(true);
         method.invoke(service, event, player);
+    }
+
+    private void invokeCloseReturnedSellConfirmScreen(
+        SellService service,
+        Player player,
+        Inventory returnedConfirmInventory
+    ) throws Exception {
+        Method method = SellService.class.getDeclaredMethod(
+            "closeReturnedSellConfirmScreen",
+            Player.class,
+            Inventory.class
+        );
+        method.setAccessible(true);
+        method.invoke(service, player, returnedConfirmInventory);
     }
 
     private ItemStack normalizableItem() {

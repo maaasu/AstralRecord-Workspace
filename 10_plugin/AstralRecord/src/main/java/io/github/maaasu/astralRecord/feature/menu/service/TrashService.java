@@ -287,11 +287,49 @@ public final class TrashService {
             closeTrashAndReturnItems(player, currentTrashItems);
             menuGuiTransitionService.switchGuiWithInventoryRestore(
                 player,
-                () -> plugin.getGuiNavigationService().openPrevious(player)
+                () -> plugin.getGuiNavigationService().openPrevious(
+                    player,
+                    () -> clearReturnedTrashScreen(player),
+                    () -> closeReturnedTrashConfirmScreen(player, topInventory)
+                )
             );
             return;
         }
         GuiSound.DENY.play(player);
+    }
+
+    /**
+     * 戻り先のゴミ箱編集画面を空状態へ再描画します。
+     *
+     * <p>確認画面で返却した item が表示へ残ると、次の確認操作で再取り込みされるため、
+     * 戻り先が実際にゴミ箱編集画面になった場合だけ表示内容を消去します。</p>
+     *
+     * @param player 対象プレイヤー
+     */
+    private void clearReturnedTrashScreen(@NotNull Player player) {
+        Inventory inventory = player.getOpenInventory().getTopInventory();
+        if (menuView.getMenuScreen(inventory) == MenuScreen.TRASH) {
+            menuView.renderTrash(inventory, List.of(), 0);
+        }
+    }
+
+    /**
+     * 戻り先への遷移に失敗した返却済みゴミ箱確認画面を閉じます。
+     *
+     * <p>別の GUI がすでに開かれている場合は、その GUI を閉じないよう何もしません。</p>
+     *
+     * @param player 対象プレイヤー
+     * @param returnedConfirmInventory 返却処理を開始した確認画面 inventory
+     */
+    private void closeReturnedTrashConfirmScreen(
+        @NotNull Player player,
+        @NotNull Inventory returnedConfirmInventory
+    ) {
+        Inventory inventory = player.getOpenInventory().getTopInventory();
+        if (inventory == returnedConfirmInventory
+            && menuView.getMenuScreen(inventory) == MenuScreen.TRASH_CONFIRM) {
+            player.closeInventory();
+        }
     }
 
     private void handleTrashPlayerInventoryClick(
