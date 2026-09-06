@@ -2385,6 +2385,7 @@ public final class OrbService {
                         rejected.set(true);
                         throw new LocalMutationRejectedException();
                     }
+                    MutationResult result = toLocalMutationResult(effect.getType(), currentModel, local);
                     if (local.returnedRuneItemId() != null) {
                         ItemModel returnedRune = itemService.findLoadedById(local.returnedRuneItemId());
                         if (returnedRune == null || inventoryService.addItemToNormalInventory(
@@ -2397,7 +2398,7 @@ public final class OrbService {
                         rejected.set(true);
                         throw new LocalMutationRejectedException();
                     }
-                    resultReference.set(toLocalMutationResult(effect.getType(), currentModel, local));
+                    resultReference.set(result);
                 }
             );
             if (!committed || resultReference.get() == null) {

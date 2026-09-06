@@ -872,7 +872,7 @@ public class ItemService {
                 current.getDurabilityMax(),
                 clampedValue,
                 current.getCreatedAt(),
-                LocalDateTime.now().toString(),
+                current.getUpdatedAt(),
                 current.getStatRolls(),
                 current.getEnchants(),
                 current.getRunes()

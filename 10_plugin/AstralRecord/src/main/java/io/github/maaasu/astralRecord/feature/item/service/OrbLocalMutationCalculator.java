@@ -18,7 +18,6 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.math.BigDecimal;
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
@@ -194,7 +193,7 @@ final class OrbLocalMutationCalculator {
         int transcendenceRank, int durabilityMax, int durabilityValue, @NotNull List<EquipmentEnchant> enchants,
         @NotNull List<EquipmentRune> runes) {
         return new EquipmentInstance(current.getEquipmentInstanceId(), current.getAccountId(), current.getItemId(), enhanceLevel,
-            runeMaxSlots, transcendenceRank, durabilityMax, durabilityValue, current.getCreatedAt(), LocalDateTime.now().toString(),
+            runeMaxSlots, transcendenceRank, durabilityMax, durabilityValue, current.getCreatedAt(), current.getUpdatedAt(),
             current.getStatRolls(), List.copyOf(enchants), List.copyOf(runes));
     }
 
