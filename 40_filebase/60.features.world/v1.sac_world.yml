@@ -1,0 +1,23 @@
+# design:
+#   motif: "建築 / スーパーフラット"
+#   progression: 0
+schemaVersion: 1
+id: sac_world
+displayName: "SAC WORLD"
+worldType: OVERWORLD
+baseWorldPath: "plugins/AstralRecord/worlds/overworld/sac_world"
+instanceRootPath: "plugins/AstralRecord/_world_instances/sac_world"
+autoLoad: true
+instanceEnabled: false
+maxPlayers: 100
+allowBlockBreak: true
+allowBlockPlace: true
+allowMobSpawn: false
+showSpawnParticle: false
+spawnLocation:
+  x: 0.5
+  y: 64.0
+  z: 0.5
+  yaw: 0.0
+  pitch: 0.0
+description: "SAC用の建築作業ワールド。"
