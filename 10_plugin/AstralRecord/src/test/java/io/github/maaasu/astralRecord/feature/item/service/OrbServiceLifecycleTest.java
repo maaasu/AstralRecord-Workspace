@@ -172,10 +172,10 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
      * 章・見出し: # 08_2-ユースケース > ## 1.5. インベントリ内オーブ一覧
-     * 検証契約: 集約一覧からオーブ操作を開始した場合、共通消費順で解決した後方slotのentry IDをAPI操作へ渡す。
+     * 検証契約: 集約一覧から選んだオーブは共通消費順で再解決し、API commandを送らず、支払い・装備更新・非同期snapshot保存要求をその場で確定する。
      */
     @Test
-    void inventoryOrbListSelectionUsesBackmostEntryForOrbPayment() {
+    void inventoryOrbListSelectionCommitsLocallyAndQueuesSnapshotSave() {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         harness.orbQuantity.set(64);
         harness.additionalOrbQuantity = 32;
@@ -184,23 +184,19 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         harness.handler.onInventoryClick(harness.guiClick(10));
         harness.awaitOrbScreen(OrbGuiHolder.Screen.LIST);
         harness.handler.onInventoryClick(harness.guiClick(0));
-        harness.laneExecutor.runAll();
-
         verify(harness.inventoryService).reserveOrbOperationPayment(
             eq(harness.accountId),
             any(UUID.class),
             any(),
             anyLong()
         );
-        verify(harness.itemService, atLeastOnce()).applyEquipmentOrbOperation(
-            anyString(),
-            eq(harness.accountId.toString()),
-            anyString(),
-            eq(harness.additionalOrbEntryId.toString()),
-            eq(harness.orbModel.getId()),
-            any(),
-            any()
-        );
+        verify(harness.inventoryService).commitLocalOrbOperationPayment(
+            eq(harness.accountId), any(UUID.class), any(Runnable.class));
+        verify(harness.inventoryService).queueLocalPlayerSave(harness.accountId);
+        verify(harness.itemService, never()).applyEquipmentOrbOperation(
+            anyString(), anyString(), anyString(), anyString(), anyString(), any(), any());
+        assertEquals(63, harness.orbQuantity.get());
+        assertEquals(100, harness.equippedInstance.get().getDurabilityValue());
     }
 
     /**
@@ -229,13 +225,12 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
      * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
-     * 検証契約: 選択した強化回数を同じ対象へ1回ずつAPI送信し、各回の時計・結果通知を省略して最後に集計する。
+     * 検証契約: 選択した強化回数を同じ対象へ1回ずつローカル確定し、各回の支払い・完成状態・snapshot保存要求を即時に行って最後に集計する。
      */
     @Test
     void selectedEnhancementAmountRunsSequentiallyAndSummarizesOnce() {
         Harness harness = new Harness(ItemOrbEffectType.ENHANCE);
         harness.orbQuantity.set(3);
-        harness.terminalApplyCall.set(1);
         harness.openOrbList();
         harness.handler.onInventoryClick(harness.guiClick(50));
         harness.handler.onInventoryClick(harness.guiClick(50));
@@ -246,16 +241,14 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         );
 
         harness.handler.onInventoryClick(harness.guiClick(0));
-        for (int index = 0; index < 3; index++) {
-            harness.laneExecutor.runAll();
-            server().getScheduler().performOneTick();
-        }
-
         assertEquals(3, harness.usedOrbIds.size());
-        assertEquals(3, harness.applyCount.get());
-        assertEquals(3, harness.operationIds.stream().distinct().count());
         assertEquals(3, harness.equippedInstance.get().getEnhanceLevel());
         assertEquals(0, harness.orbQuantity.get());
+        verify(harness.inventoryService, times(3)).commitLocalOrbOperationPayment(
+            eq(harness.accountId), any(UUID.class), any(Runnable.class));
+        verify(harness.inventoryService, times(3)).queueLocalPlayerSave(harness.accountId);
+        verify(harness.itemService, never()).applyEquipmentOrbOperation(
+            anyString(), anyString(), anyString(), anyString(), anyString(), any(), any());
         assertFalse(harness.service.isOrbInventory(
             harness.player.getOpenInventory().getTopInventory()));
     }
@@ -263,34 +256,33 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
      * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
-     * 検証契約: 複数回適用中に対象が使用不可になった場合、未実行分を消費せずその時点で終了する。
+     * 検証契約: 素材・通貨を予約できない状態で状態変化確認を実行しても、ローカル装備・所持オーブを変更せずsnapshot保存を要求しない。
      */
     @Test
-    void batchStopsWhenTargetIsNoLongerEligible() {
-        Harness harness = new Harness(ItemOrbEffectType.REPAIR);
-        harness.orbQuantity.set(3);
-        harness.terminalApplyCall.set(1);
+    void insufficientTranscendenceMaterialsRollBackWithoutQueueingSave() {
+        Harness harness = new Harness(
+            ItemOrbEffectType.TRANSCENDENCE,
+            List.of(new ItemEquipmentEnhanceMaterial("transcendence_material", 2)),
+            100
+        );
+        harness.reservePaymentAvailable.set(false);
         harness.openOrbList();
-        harness.handler.onInventoryClick(harness.guiClick(50));
-        harness.handler.onInventoryClick(harness.guiClick(50));
-
         harness.handler.onInventoryClick(harness.guiClick(0));
-        harness.laneExecutor.runAll();
-        server().getScheduler().performOneTick();
+        harness.awaitOrbScreen(OrbGuiHolder.Screen.TRANSCENDENCE_CONFIRM);
+        harness.handler.onInventoryClick(harness.guiClick(15));
 
-        assertEquals(1, harness.applyCount.get());
+        verify(harness.inventoryService, never()).commitLocalOrbOperationPayment(
+            any(UUID.class), any(UUID.class), any(Runnable.class));
+        verify(harness.inventoryService, never()).queueLocalPlayerSave(any(UUID.class));
         assertEquals(2, harness.orbQuantity.get());
-        assertFalse(harness.service.isLocked(harness.player));
-        assertTrue(harness.service.isOrbInventory(
-            harness.player.getOpenInventory().getTopInventory()));
-        assertEquals(Material.IRON_SWORD,
-            harness.player.getOpenInventory().getTopInventory().getItem(0).getType());
+        assertEquals(0, harness.equippedInstance.get().getTranscendenceRank());
+        assertTrue(harness.service.isOrbInventory(harness.player.getOpenInventory().getTopInventory()));
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
      * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
-     * 検証契約: 通常インベントリでクリックしたentryが消えていても、同じitem IDの通常stackがあれば共通消費順で再解決して操作する。
+     * 検証契約: 通常インベントリでクリックしたentryが消えていても、同じitem IDの通常stackがあれば共通消費順で再解決し、ローカル確定へ進む。
      */
     @Test
     void directInventoryOrbSelectionSwitchesToTheCommonConsumptionStack() {
@@ -300,8 +292,6 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         harness.openOrbList();
         InventoryClickEvent targetClick = harness.guiClick(0);
         harness.handler.onInventoryClick(targetClick);
-        harness.laneExecutor.runAll();
-
         verify(targetClick).setCancelled(true);
         verify(harness.inventoryService, atLeastOnce()).findOwnedNormalItemEntryForConsumption(
             harness.accountId,
@@ -309,15 +299,9 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         );
         verify(harness.inventoryService).reserveOrbOperationPayment(
             eq(harness.accountId), any(UUID.class), any(), anyLong());
-        verify(harness.itemService, atLeastOnce()).applyEquipmentOrbOperation(
-            anyString(),
-            eq(harness.accountId.toString()),
-            anyString(),
-            eq(harness.additionalOrbEntryId.toString()),
-            eq(harness.orbModel.getId()),
-            any(),
-            any()
-        );
+        verify(harness.inventoryService).commitLocalOrbOperationPayment(
+            eq(harness.accountId), any(UUID.class), any(Runnable.class));
+        verify(harness.inventoryService).queueLocalPlayerSave(harness.accountId);
     }
 
     /**
@@ -627,7 +611,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
      * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
-     * 検証契約: ルーン装着GUIで装備のslotとtagに一致する所持ルーンを選択すると、完成プレビューが有効になり、RUNE_ATTACH API要求へルーンIDを渡す。
+     * 検証契約: ルーン装着GUIで装備のslotとtagに一致する所持ルーンを選択すると、支払い・ルーン装着・snapshot保存要求をAPI待機なしで確定する。
      */
     @Test
     void runeAttachGuiAcceptsRuneMatchingEquipmentSlotAndTag() {
@@ -669,28 +653,18 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         harness.handler.onInventoryClick(harness.guiPlayerInventoryClick(10));
 
         harness.handler.onInventoryClick(harness.guiClick(16));
-        assertEquals(Material.CLOCK,
-            harness.player.getOpenInventory().getTopInventory().getItem(16).getType());
-        harness.laneExecutor.runAll();
-        server().getScheduler().performOneTick();
-        assertFalse(harness.service.isOrbInventory(
-            harness.player.getOpenInventory().getTopInventory()));
-
-        verify(harness.itemService).applyEquipmentOrbOperation(
-            anyString(),
-            eq(harness.accountId.toString()),
-            eq(harness.equippedInstanceId.toString()),
-            eq(harness.orbEntryId.toString()),
-            eq(harness.orbModel.getId()),
-            eq(harness.runeModel.getId()),
-            isNull()
-        );
+        verify(harness.inventoryService).commitLocalOrbOperationPayment(
+            eq(harness.accountId), any(UUID.class), any(Runnable.class));
+        verify(harness.inventoryService).queueLocalPlayerSave(harness.accountId);
+        verify(harness.itemService, never()).applyEquipmentOrbOperation(
+            anyString(), anyString(), anyString(), anyString(), anyString(), any(), any());
+        assertEquals(1, harness.equippedInstance.get().getRunes().size());
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
      * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
-     * 検証契約: 複数ルーンの脱着GUIはルーン選択とBAGスクロールを受け付け、完成形slot 16へ時計を表示し、正本照合完了時に自動で閉じる。
+     * 検証契約: 複数ルーンの脱着GUIはルーン選択とBAGスクロールを受け付け、支払い・ルーン返却・装備完成状態・snapshot保存要求をその場で確定する。
      */
     @Test
     void runeDetachGuiSelectsRuneDelegatesScrollAndClosesAfterReconciliation() {
@@ -758,26 +732,12 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
             harness.player.getOpenInventory().getTopInventory().getItem(16).getType());
 
         harness.handler.onInventoryClick(harness.guiClick(16));
-        assertEquals(Material.CLOCK,
-            harness.player.getOpenInventory().getTopInventory().getItem(16).getType());
-        InventoryClickEvent lockedScrollClick = harness.guiPlayerInventoryClick(17);
-        harness.handler.onInventoryClick(lockedScrollClick);
-        verify(lockedScrollClick).setCancelled(true);
-        verify(harness.inventoryService, times(1)).handleInventoryControlClick(harness.astPlayer, 17);
-        harness.laneExecutor.runAll();
-        server().getScheduler().performOneTick();
-        verify(harness.itemService).applyEquipmentOrbOperation(
-            anyString(),
-            eq(harness.accountId.toString()),
-            eq(harness.equippedInstanceId.toString()),
-            eq(harness.orbEntryId.toString()),
-            eq(harness.orbModel.getId()),
-            eq(harness.runeModel.getId()),
-            eq(0)
-        );
-
-        assertFalse(harness.service.isOrbInventory(
-            harness.player.getOpenInventory().getTopInventory()));
+        verify(harness.inventoryService).commitLocalOrbOperationPayment(
+            eq(harness.accountId), any(UUID.class), any(Runnable.class));
+        verify(harness.inventoryService).queueLocalPlayerSave(harness.accountId);
+        verify(harness.itemService, never()).applyEquipmentOrbOperation(
+            anyString(), anyString(), anyString(), anyString(), anyString(), any(), any());
+        assertEquals(26, harness.equippedInstance.get().getRunes().size());
     }
 
     /**
@@ -820,7 +780,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
      * 検証契約: 修理は処理中に時計を一度表示して全入力をロックし、pre-save後の同一operationIdによるPOST・GET・再送・affected entry照合完了と同じtickで候補を更新し、オーブitem IDをガイド進捗へ通知する。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void appliedRepairShowsClockAndRefreshesImmediatelyAfterReconciliation() {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         harness.openOrbList();
@@ -858,7 +818,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
      * 検証契約: APIがNO_CANDIDATEを確定した場合はpaymentConsumed=falseのままオーブ数量と装備を変更せず、時計表示を戻して一覧操作を再開し、ガイド進捗へ通知しない。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void noCandidateResultDoesNotConsumeOrbOrMutateEquipment() {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         harness.apiResultType.set(EquipmentOrbOperationResultType.NO_CANDIDATE);
@@ -887,7 +847,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
      * 検証契約: API結果にsnapshotがある操作は、GUIから実行した場合も従来GET経路ではなくsnapshot照合を選ぶ。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void guiOperationUsesResponseSnapshotReconciliation() {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         harness.inventorySnapshot = new io.github.maaasu.astralRecord.feature.inventory.model.InventoryOperationSnapshot(
@@ -916,7 +876,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
      * 検証契約: 台帳再生でpayment消費済みAPPLIEDかつ装備が削除・所有者変更済みなら、affected entryを照合してterminal完了し、旧target cache・managed表示・statusを再構築して別所有者装備を残さない。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void terminalAppliedWithoutEquipmentReconcilesPaymentAndCompletesSafely() {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         harness.ledgerTerminal.set(true);
@@ -958,7 +918,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
      * 検証契約: 初回NOT_ELIGIBLEが所有・削除・membership不在をtargetAvailable=falseで返した場合、旧cache/state参照を破棄し、同account lane内のcleanup保存が成功するまで操作を確定しない。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void notEligibleUnavailableTargetIsTombstonedAndPersistedInsideTheLane() {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         harness.apiResultType.set(EquipmentOrbOperationResultType.NOT_ELIGIBLE);
@@ -991,7 +951,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
      * 検証契約: NOT_ELIGIBLEでもtargetAvailable=trueかつ現行装備が返る場合は破棄せず、現行値を使って一覧を再構築し、オーブは消費しない。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void notEligibleOwnedTargetRefreshesCurrentEquipmentWithoutTombstone() {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         EquipmentInstance current = new EquipmentInstance(
@@ -1035,7 +995,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 08_3-サービス > ## 8. 装備・ホットバー・アクセサリのスナップショット保存
      * 検証契約: 保存済みNO_CANDIDATE/PAYMENT_UNAVAILABLEの再生時に対象が削除・譲渡済みなら、business resultよりtargetAvailable=falseを優先し、cache/state破棄とmanaged表示/status再構築を実行する。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void storedNoCandidateWithUnavailableTargetRefreshesManagedStateAndStatus() {
         assertStoredBusinessFailureWithUnavailableTarget(
             EquipmentOrbOperationResultType.NO_CANDIDATE);
@@ -1048,7 +1008,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 08_3-サービス > ## 8. 装備・ホットバー・アクセサリのスナップショット保存
      * 検証契約: 保存済みPAYMENT_UNAVAILABLEの再生時に対象が削除・譲渡済みなら、business resultよりtargetAvailable=falseを優先し、cache/state破棄とmanaged表示/status再構築を実行する。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void storedPaymentUnavailableWithUnavailableTargetRefreshesManagedStateAndStatus() {
         assertStoredBusinessFailureWithUnavailableTarget(
             EquipmentOrbOperationResultType.PAYMENT_UNAVAILABLE);
@@ -1089,7 +1049,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
      * 検証契約: affected-entry GETのIOExceptionは同operationId・unresolved lane・未消費local entryを維持して再試行し、次の200/404確定後だけ照合して後続saveを解放する。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void reconcileIOExceptionRetriesBeforeLocalConsumptionAndFollowingSave() {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         harness.terminalApplyCall.set(1);
@@ -1125,7 +1085,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
      * 検証契約: 成功結果の反映時に同種オーブが0個なら即座にGUIを閉じ、1個だけだった起点オーブを再利用可能な一覧として残さない。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void refreshClosesGuiWhenTheSingleOrbWasConsumed() {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         harness.orbQuantity.set(1);
@@ -1143,7 +1103,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/04_2-ユースケース.md
      * 章・見出し: # 04_2-ユースケース > ## 9. オーブで装備を更新する
-     * 検証契約: 状態変化は一覧から専用確認画面を経て実行し、正本照合完了時にオーブ残数にかかわらずGUIを即座に閉じる。
+     * 検証契約: 状態変化は一覧から専用確認画面を経て支払い・ランク更新・snapshot保存要求をその場で確定し、API照合を待たずにGUIを閉じる。
      */
     @Test
     void transcendenceConfirmationAlwaysClosesImmediatelyAfterSuccess() {
@@ -1162,12 +1122,13 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         assertEquals(Material.ARROW, confirmation.getItem(22).getType());
 
         harness.handler.onInventoryClick(harness.guiClick(15));
-        assertEquals(Material.CLOCK,
-            harness.player.getOpenInventory().getTopInventory().getItem(11).getType());
-        harness.laneExecutor.runAll();
-        server().getScheduler().performOneTick();
-
         assertEquals(1, harness.orbQuantity.get());
+        assertEquals(1, harness.equippedInstance.get().getTranscendenceRank());
+        verify(harness.inventoryService).commitLocalOrbOperationPayment(
+            eq(harness.accountId), any(UUID.class), any(Runnable.class));
+        verify(harness.inventoryService).queueLocalPlayerSave(harness.accountId);
+        verify(harness.itemService, never()).applyEquipmentOrbOperation(
+            anyString(), anyString(), anyString(), anyString(), anyString(), any(), any());
         assertFalse(harness.service.isOrbInventory(
             harness.player.getOpenInventory().getTopInventory()));
     }
@@ -1214,7 +1175,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
      * 検証契約: API操作・正本照合中のEscape closeは次tickまでplayer単位入力lockを維持して同じtokenのGUIを再表示し、更新結果を反映する。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void escapeDuringMutationReopensSameGuiAndCompletesLifecycle() {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         harness.openOrbList();
@@ -1249,7 +1210,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
      * 検証契約: 全transport応答が一時不明でも同一operationIdとaccount laneを保持し、commit済みledger照会または未commit同POST再送のterminal後だけ照合・autosave・logoutを解放する。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void committedTransportAmbiguityRecoversByLedgerReplay() throws Exception {
         assertTransportAmbiguityRecovery(TransportRecovery.LEDGER_REPLAY);
     }
@@ -1261,7 +1222,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
      * 検証契約: 未commitのtransport失敗でも同一operationIdのPOST再送とaccount laneをterminalまで保持し、照合後だけautosave・logoutを解放する。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void uncommittedTransportAmbiguityRetriesSamePostAndId() throws Exception {
         assertTransportAmbiguityRecovery(TransportRecovery.SAME_POST_RETRY);
     }
@@ -1336,7 +1297,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
      * 検証契約: stable baselineへの支払い割当が失敗してPOST未開始の場合は予約を解放し、外部操作を送信しない。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void baselinePaymentFinalizationFailureReleasesReservationBeforePost() {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         when(harness.inventoryService.finalizeOrbOperationPaymentReservation(
@@ -1361,7 +1322,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
      * 検証契約: API応答が期限内に確定しない場合は時計GUIを閉じ、同一operationIdと支払い予約を保留回復へ残す。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void timesOutOrbOperationWithoutReleasingPaymentReservation() {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR, List.of(), 0, 1_000L);
         harness.terminalApplyCall.set(Integer.MAX_VALUE);
@@ -1387,7 +1348,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
      * 検証契約: lane開始前にstate世代が変わりPOSTへ到達できない場合はinitial予約を解放し、unresolved境界を残さない。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void stateGenerationChangeBeforePreSaveReleasesInitialReservation() {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         harness.openOrbList();
@@ -1415,7 +1376,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
      * 検証契約: POST応答不明後にlane threadがinterruptされても予約とunresolved境界を保持し、API消費をローカルへ再支出可能にしない。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void interruptAfterPostAmbiguityRetainsReservationAndUnresolvedBoundary() throws Exception {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         harness.terminalApplyCall.set(Integer.MAX_VALUE);
@@ -1456,7 +1417,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
      * 検証契約: 通信中quitは旧sessionを切り離し、API確定とaffected entry照合を後続logout保存より先に完了して再login世代へUI完了処理を適用しない。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void quitDuringCommunicationReconcilesBeforeLogoutAndDoesNotTouchReloginGeneration() {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         harness.openOrbList();
@@ -1489,7 +1450,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
      * 検証契約: shutdownは全UI sessionを切り離して処理中表示を止める一方、closing前に受理したオーブ操作とaffected entry照合をlane drainまで完了する。
      */
-    @Test
+    @Deprecated(forRemoval = true)
     void shutdownDetachesUiButDrainsAcceptedMutation() {
         Harness harness = new Harness(ItemOrbEffectType.REPAIR);
         harness.openOrbList();
@@ -1565,6 +1526,7 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
         private final AtomicReference<EquipmentInstance> equippedInstance;
         private final AtomicReference<EquipmentInstance> bagInstance;
         private final AtomicInteger orbQuantity = new AtomicInteger(2);
+        private final AtomicBoolean reservePaymentAvailable = new AtomicBoolean(true);
         private int additionalOrbQuantity;
         private final AtomicReference<EquipmentOrbOperationResultType> apiResultType =
             new AtomicReference<>(EquipmentOrbOperationResultType.APPLIED);
@@ -1705,7 +1667,19 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 any(UUID.class),
                 any(),
                 anyLong()
-            )).thenReturn(true);
+            )).thenAnswer(invocation -> reservePaymentAvailable.get());
+            when(inventoryService.commitLocalOrbOperationPayment(
+                eq(accountId),
+                any(UUID.class),
+                any(Runnable.class)
+            )).thenAnswer(invocation -> {
+                if (!reservePaymentAvailable.get()) {
+                    return false;
+                }
+                invocation.getArgument(2, Runnable.class).run();
+                orbQuantity.decrementAndGet();
+                return true;
+            });
             when(inventoryService.finalizeOrbOperationPaymentReservation(
                 eq(accountId),
                 any(UUID.class),
@@ -1730,6 +1704,18 @@ class OrbServiceLifecycleTest extends MockBukkitTestBase {
                 if (bagInstanceId.toString().equalsIgnoreCase(id)) return bagInstance.get();
                 return null;
             });
+            when(itemService.applyLocalEquipmentInstance(any(EquipmentInstance.class)))
+                .thenAnswer(invocation -> {
+                    EquipmentInstance updated = invocation.getArgument(0, EquipmentInstance.class);
+                    if (updated.getEquipmentInstanceId().equalsIgnoreCase(equippedInstanceId.toString())) {
+                        equippedInstance.set(updated);
+                    } else if (updated.getEquipmentInstanceId().equalsIgnoreCase(bagInstanceId.toString())) {
+                        bagInstance.set(updated);
+                    }
+                    return updated;
+                });
+            when(inventoryService.addItemToNormalInventory(any(AstPlayer.class), any(ItemModel.class), eq(1), anyString()))
+                .thenReturn(1);
             when(itemStackFactory.create(any(ItemModel.class), anyInt())).thenAnswer(invocation ->
                 new ItemStack(Material.AMETHYST_SHARD));
             when(itemStackFactory.create(

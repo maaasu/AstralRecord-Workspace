@@ -57,6 +57,32 @@ class ItemServiceDurabilityMergeTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 4. 装備耐久値 > ### 耐久値キャッシュ更新
+     * 検証契約: ローカル耐久更新は表示用の現在時刻をupdatedAtへ書かず、次のsnapshotがAPI expectedUpdatedAtに使うbase timestampを保持する。
+     */
+    @Test
+    void localDurabilityUpdateKeepsApiBaseTimestampForSnapshotConflictControl() {
+        ItemRepository repository = mock(ItemRepository.class);
+        ItemService service = new ItemService(repository, mock(SetEffectRepository.class));
+        String instanceId = UUID.randomUUID().toString();
+        String accountId = UUID.randomUUID().toString();
+        EquipmentInstance base = new EquipmentInstance(
+            instanceId, accountId, "debug_sword", 0, 0, 0, 100, 100,
+            "2026-08-10T00:00:00", "2026-08-11T12:00:00", List.of(), List.of(), List.of());
+        when(repository.createEquipmentInstance("debug_sword", accountId, "test", accountId))
+            .thenReturn(base);
+
+        assertNotNull(service.createEquipmentInstance("debug_sword", accountId, "test", accountId));
+        EquipmentInstance updated = service.updateEquipmentDurability(instanceId, 70, accountId);
+
+        assertNotNull(updated);
+        assertEquals("2026-08-11T12:00:00", updated.getUpdatedAt());
+        assertEquals("2026-08-11T12:00:00",
+            service.snapshotDirtyEquipmentState(UUID.fromString(accountId)).getFirst().getUpdatedAt());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
      * 検証契約: 初回POSTがNOT_ELIGIBLEでも対象が引き続き本人所有なら、APIが返した現行装備をcacheへ反映し、条件変化後の値で一覧再構築できるようにする。
      */

@@ -1,8 +1,6 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
-import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
-import io.github.maaasu.astralRecord.feature.inventory.event.InventoryEquipmentGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
@@ -26,18 +24,14 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemOrb;
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffect;
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffectType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbRankMode;
-import io.github.maaasu.astralRecord.feature.menu.event.MenuOpenEventHandler;
-import io.github.maaasu.astralRecord.feature.menu.service.MenuGuiTransitionService;
-import io.github.maaasu.astralRecord.feature.menu.view.MenuView;
+import io.github.maaasu.astralRecord.feature.mutation.model.LocalMutationCommand;
+import io.github.maaasu.astralRecord.feature.mutation.service.LocalMutationOutbox;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
-import io.github.maaasu.astralRecord.feature.skill.service.PassiveSkillService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.support.DesignTestFixtures;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
 import org.bukkit.Material;
-import org.bukkit.event.inventory.ClickType;
-import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.inventory.ItemStack;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
@@ -51,7 +45,6 @@ import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.Executor;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -73,10 +66,10 @@ class OrbServicePaymentFailureCompatibilityTest extends MockBukkitTestBase {
      * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
      * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
-     * 検証契約: 旧API互換のPAYMENT_UNAVAILABLEがaffected=[]を返しても起点orb entryを必ず正本照合し、404ならstateとBukkit inventoryからghost orbを除去してオーブGUIを閉じる。
+     * 検証契約: legacy dispatcher がPAYMENT_UNAVAILABLEかつaffected=[]を返しても起点orb entryを必ず正本照合し、404ならstateとBukkit inventoryからghost orbを除去してACKする。GUIのローカル確定経路はこの API dispatcher を呼ばない。
      */
     @Test
-    void paymentUnavailableWithEmptyAffectedIdsReconcilesDeletedOriginAndClosesGhostGui() {
+    void paymentUnavailableWithEmptyAffectedIdsReconcilesDeletedOriginAndAcknowledgesDispatcher() {
         var player = server().addPlayer();
         var plugin = MockBukkit.createMockPlugin("OrbServicePaymentFailureCompatibilityTest");
         AstPlayer astPlayer = DesignTestFixtures.astPlayer(player, AccountMode.PLAYER);
@@ -174,41 +167,18 @@ class OrbServicePaymentFailureCompatibilityTest extends MockBukkitTestBase {
             }
         );
         orbService.setStatusService(mock(StatusService.class));
-        InventoryEquipmentGuiEventHandler handler = new InventoryEquipmentGuiEventHandler(
-            mock(MenuView.class),
-            inventoryService,
-            mock(CurrencyService.class),
-            mock(StatusService.class),
-            mock(PassiveSkillService.class),
-            orbService,
-            mock(MenuGuiTransitionService.class),
-            mock(MenuOpenEventHandler.class)
-        );
         inventoryService.refreshManagedInventoryUi(astPlayer);
         assertEquals(Material.AMETHYST_SHARD, player.getInventory().getItem(9).getType());
 
-        InventoryClickEvent originClick = mock(InventoryClickEvent.class);
-        when(originClick.getWhoClicked()).thenReturn(player);
-        when(originClick.getView()).thenReturn(player.getOpenInventory());
-        when(originClick.getClickedInventory()).thenReturn(player.getInventory());
-        when(originClick.getSlot()).thenReturn(9);
-        handler.onInventoryClick(originClick);
-        server().getScheduler().waitAsyncTasksFinished();
-        server().getScheduler().performOneTick();
-
-        InventoryClickEvent targetClick = mock(InventoryClickEvent.class);
-        when(targetClick.getWhoClicked()).thenReturn(player);
-        when(targetClick.getView()).thenReturn(player.getOpenInventory());
-        when(targetClick.getRawSlot()).thenReturn(0);
-        when(targetClick.getClick()).thenReturn(ClickType.LEFT);
-        handler.onInventoryClick(targetClick);
+        LocalMutationCommand.EquipmentOrb command = new LocalMutationCommand.EquipmentOrb(
+            UUID.randomUUID(), accountId, equipmentInstanceId, orbEntryId, orbModel.getId(), 0, 0, 0, false);
+        var delivery = orbService.dispatchLocalMutation(command);
         laneExecutor.runAll();
-        server().getScheduler().performOneTick();
 
+        assertEquals(LocalMutationOutbox.Delivery.ACK, delivery.toCompletableFuture().join());
         verify(inventoryRepository).findEntryById(orbEntryId);
         assertNull(inventoryService.findOwnedEntry(accountId, orbEntryId));
         assertEquals(Material.DIAMOND_SWORD, player.getInventory().getItem(9).getType());
-        assertFalse(orbService.isOrbInventory(player.getOpenInventory().getTopInventory()));
     }
 
     private ItemModel orbModel() {

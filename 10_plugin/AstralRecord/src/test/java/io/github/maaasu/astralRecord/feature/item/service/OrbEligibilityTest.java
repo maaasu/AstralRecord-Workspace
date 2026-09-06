@@ -256,6 +256,7 @@ class OrbEligibilityTest {
             .map(EquipmentEnchant::getEffectId).distinct().count());
         assertEquals(List.of(0, 1), result.instance().getEnchants().stream()
             .map(EquipmentEnchant::getSlotIndex).toList());
+        assertEquals("2026-08-11T00:00:00", result.instance().getUpdatedAt());
     }
 
     /**
@@ -282,6 +283,7 @@ class OrbEligibilityTest {
         assertNotNull(detached);
         assertTrue(detached.instance().getRunes().isEmpty());
         assertEquals("test_rune", detached.returnedRuneItemId());
+        assertEquals("2026-08-11T00:00:00", detached.instance().getUpdatedAt());
     }
 
     /** 指定ランク条件の武器強化オーブ効果を作成します。 */
