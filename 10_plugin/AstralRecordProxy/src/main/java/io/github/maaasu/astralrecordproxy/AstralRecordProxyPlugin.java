@@ -162,6 +162,7 @@ public final class AstralRecordProxyPlugin {
         metadata.remove(playerId);
         tabDisplayCache.remove(playerId);
         tabDisplayCache.values().forEach(cache -> cache.remove(playerId));
+        removeTabEntryFromAllViewers(proxy.getAllPlayers(), playerId);
         api.removePlayer(playerId).exceptionally(failure -> {
             logger.warn("Failed to remove player presence for {}", playerId, failure);
             return null;
@@ -413,6 +414,7 @@ public final class AstralRecordProxyPlugin {
                 viewer.getPing(), resolveServerMspt(serverMspt.get(currentServer), nowNanos), totalPlayers);
             viewer.sendPlayerListHeaderAndFooter(headerFooter.header(), headerFooter.footer());
             TabList tabList = viewer.getTabList();
+            removeStaleTabEntries(tabList, onlineIds);
             Map<UUID, PlayerMetadata> cached =
                 tabDisplayCache.computeIfAbsent(viewer.getUniqueId(), ignored -> new ConcurrentHashMap<>());
             cached.keySet().removeIf(playerId -> !onlineIds.contains(playerId));
@@ -439,6 +441,32 @@ public final class AstralRecordProxyPlugin {
                 }
                 cached.put(target.getUniqueId(), value);
             }
+        }
+    }
+
+    /**
+     * Proxyの現在オンライン一覧に存在しないTabエントリを削除する。
+     *
+     * @param tabList 同期対象のTab一覧
+     * @param onlineIds Proxyに現在接続しているプレイヤーUUID
+     */
+    static void removeStaleTabEntries(TabList tabList, Set<UUID> onlineIds) {
+        tabList.getEntries().stream()
+            .map(entry -> entry.getProfile().getId())
+            .filter(playerId -> !onlineIds.contains(playerId))
+            .toList()
+            .forEach(tabList::removeEntry);
+    }
+
+    /**
+     * 退出したプレイヤーのTabエントリを全viewerから即時削除する。
+     *
+     * @param viewers Tabエントリを削除するviewer
+     * @param playerId 退出したプレイヤーUUID
+     */
+    static void removeTabEntryFromAllViewers(Iterable<? extends Player> viewers, UUID playerId) {
+        for (Player viewer : viewers) {
+            viewer.getTabList().removeEntry(playerId);
         }
     }
 

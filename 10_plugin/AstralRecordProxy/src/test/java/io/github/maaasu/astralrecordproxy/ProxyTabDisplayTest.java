@@ -3,8 +3,17 @@ package io.github.maaasu.astralrecordproxy;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
 import net.kyori.adventure.text.format.TextDecoration;
+import com.velocitypowered.api.proxy.Player;
+import com.velocitypowered.api.proxy.player.TabList;
+import com.velocitypowered.api.proxy.player.TabListEntry;
+import com.velocitypowered.api.util.GameProfile;
 import org.junit.jupiter.api.Test;
 
+import java.lang.reflect.Proxy;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -14,6 +23,8 @@ import java.util.UUID;
 
 class ProxyTabDisplayTest {
     private static final UUID PLAYER_ID = UUID.fromString("00000000-0000-0000-0000-000000000001");
+    private static final UUID ONLINE_PLAYER_ID = UUID.fromString("00000000-0000-0000-0000-000000000002");
+    private static final UUID DISCONNECTED_PLAYER_ID = UUID.fromString("00000000-0000-0000-0000-000000000003");
 
     @Test
     void rendersBrandCurrentBackendMsptPingAndTotalPlayers() {
@@ -136,5 +147,67 @@ class ProxyTabDisplayTest {
         assertTrue(AstralRecordProxyPlugin.isCurrentBackend("rpg-1", "RPG-1"));
         assertFalse(AstralRecordProxyPlugin.isCurrentBackend("rpg-1", "rpg-2"));
         assertFalse(AstralRecordProxyPlugin.isCurrentBackend(null, "rpg-1"));
+    }
+
+    @Test
+    void removesTabEntriesForPlayersNoLongerConnectedToProxy() {
+        List<UUID> removedIds = new ArrayList<>();
+        TabList tabList = recordingTabList(
+            removedIds, tabEntry(ONLINE_PLAYER_ID), tabEntry(DISCONNECTED_PLAYER_ID));
+
+        AstralRecordProxyPlugin.removeStaleTabEntries(tabList, Set.of(ONLINE_PLAYER_ID));
+
+        assertEquals(List.of(DISCONNECTED_PLAYER_ID), removedIds);
+    }
+
+    @Test
+    void removesDisconnectedTabEntryFromEveryViewer() {
+        List<UUID> removedIds = new ArrayList<>();
+        TabList firstViewerTabList = recordingTabList(removedIds);
+        TabList secondViewerTabList = recordingTabList(removedIds);
+
+        AstralRecordProxyPlugin.removeTabEntryFromAllViewers(
+            List.of(viewer(firstViewerTabList), viewer(secondViewerTabList)), DISCONNECTED_PLAYER_ID);
+
+        assertEquals(List.of(DISCONNECTED_PLAYER_ID, DISCONNECTED_PLAYER_ID), removedIds);
+    }
+
+    private static TabList recordingTabList(List<UUID> removedIds, TabListEntry... entries) {
+        return (TabList) Proxy.newProxyInstance(
+            TabList.class.getClassLoader(),
+            new Class<?>[]{TabList.class},
+            (proxy, method, arguments) -> switch (method.getName()) {
+                case "getEntries" -> List.of(entries);
+                case "removeEntry" -> {
+                    removedIds.add((UUID) arguments[0]);
+                    yield Optional.empty();
+                }
+                default -> throw new UnsupportedOperationException(method.getName());
+            });
+    }
+
+    private static Player viewer(TabList tabList) {
+        return (Player) Proxy.newProxyInstance(
+            Player.class.getClassLoader(),
+            new Class<?>[]{Player.class},
+            (proxy, method, arguments) -> {
+                if (method.getName().equals("getTabList")) {
+                    return tabList;
+                }
+                throw new UnsupportedOperationException(method.getName());
+            });
+    }
+
+    private static TabListEntry tabEntry(UUID playerId) {
+        GameProfile profile = new GameProfile(playerId, "player", List.of());
+        return (TabListEntry) Proxy.newProxyInstance(
+            TabListEntry.class.getClassLoader(),
+            new Class<?>[]{TabListEntry.class},
+            (proxy, method, arguments) -> {
+                if (method.getName().equals("getProfile")) {
+                    return profile;
+                }
+                throw new UnsupportedOperationException(method.getName());
+            });
     }
 }
