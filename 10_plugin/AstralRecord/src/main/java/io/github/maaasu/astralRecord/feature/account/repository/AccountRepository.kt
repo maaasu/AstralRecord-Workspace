@@ -494,5 +494,6 @@ class AccountRepository {
                     experience = get("classExperience")?.takeIf { !it.isJsonNull }?.asLong ?: 0L,
                 )
             ),
+        progressVersion = get("progressVersion")?.takeIf { !it.isJsonNull }?.asInt ?: 0,
     )
 }

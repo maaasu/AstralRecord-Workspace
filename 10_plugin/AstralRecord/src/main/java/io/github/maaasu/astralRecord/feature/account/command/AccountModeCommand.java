@@ -86,18 +86,24 @@ public class AccountModeCommand extends AstCommand {
             UUID accountUuid = request.accountUuid() != null
                 ? request.accountUuid()
                 : resolveRemoteAccountUuid(request.lookupUuid(), accountService, userService);
-            return accountUuid == null
-                ? null
-                : accountModeApplicationService.persistModeChange(accountUuid, mode, updatedBy);
-        }).whenComplete((persisted, throwable) -> AsyncTaskUtil.runSync(plugin, () -> {
+            return accountUuid == null ? null : accountService.getAccount(accountUuid);
+        }).whenComplete((account, throwable) -> AsyncTaskUtil.runSync(plugin, () -> {
             pendingTargets.remove(pendingKey);
             if (throwable != null) {
                 Logger.log(LogId.E_5154, throwable, pendingKey);
                 sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5062.getId()));
                 return;
             }
-            if (persisted == null) {
+            if (account == null) {
                 sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5333.getId(), request.label()));
+                return;
+            }
+            AccountModeApplicationService.PersistedModeChange persisted;
+            try {
+                persisted = accountModeApplicationService.persistModeChange(account, mode, updatedBy);
+            } catch (RuntimeException localFailure) {
+                Logger.log(LogId.E_5154, localFailure, pendingKey);
+                sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5062.getId()));
                 return;
             }
             if (!accountModeApplicationService.applyPersistedMode(persisted)) {

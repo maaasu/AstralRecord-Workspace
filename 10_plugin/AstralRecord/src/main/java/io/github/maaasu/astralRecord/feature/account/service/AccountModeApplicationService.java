@@ -11,7 +11,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 
-/** アカウントモードの永続化とオンラインプレイヤーへの反映を一括で行います。 */
+/** アカウントモードのローカル確定とオンラインプレイヤーへの反映を一括で行います。 */
 public final class AccountModeApplicationService {
     private final AccountService accountService;
     private final InventoryService inventoryService;
@@ -37,8 +37,8 @@ public final class AccountModeApplicationService {
     }
 
     /**
-     * API へモード変更をアカウント単位で直列に永続化します。
-     * Bukkit API を呼ばないため、非同期タスクから実行できます。
+     * モード変更をローカルstateへ確定します。
+     * Bukkit API を直接呼ばず、API応答を待ってローカル値を戻すことはありません。
      *
      * @param accountUuid 更新対象アカウント UUID
      * @param mode 更新後のモード
@@ -50,12 +50,49 @@ public final class AccountModeApplicationService {
         @NotNull AccountMode mode,
         @NotNull UUID updatedBy
     ) {
-        ModeChangeState state = modeChangeStates.computeIfAbsent(accountUuid, ignored -> new ModeChangeState());
-        synchronized (state.persistenceMonitor) {
-            AccountModel updated = accountService.setMode(accountUuid, mode, updatedBy);
-            long generation = state.persistedGeneration.incrementAndGet();
-            return new PersistedModeChange(updated, generation);
+        AccountModel current = AstPlayerCache.getAll().stream()
+            .filter(player -> player.getAccount().getUuid().equals(accountUuid))
+            .findFirst()
+            .map(player -> player.getAccount())
+            .orElseGet(() -> accountService.getAccount(accountUuid));
+        if (current == null) {
+            throw new IllegalArgumentException("Account was not found: " + accountUuid);
         }
+        return persistModeChange(current, mode, updatedBy);
+    }
+
+    /**
+     * 取得済みaccountをローカルstateへ確定します。
+     *
+     * @param current 現在のaccount正本
+     * @param mode 変更後のmode
+     * @param updatedBy 更新者
+     * @return ローカル確定後のaccountと適用世代
+     */
+    public @NotNull PersistedModeChange persistModeChange(
+        @NotNull AccountModel current,
+        @NotNull AccountMode mode,
+        @NotNull UUID updatedBy
+    ) {
+        UUID accountUuid = current.getUuid();
+        ModeChangeState state = modeChangeStates.computeIfAbsent(accountUuid, ignored -> new ModeChangeState());
+        PersistedModeChange change;
+        synchronized (state.persistenceMonitor) {
+            var onlinePlayer = AstPlayerCache.getAll().stream()
+                .filter(player -> player.getAccount().getUuid().equals(accountUuid))
+                .findFirst()
+                .orElse(null);
+            AccountModel latest = onlinePlayer == null ? current : onlinePlayer.getAccount();
+            AccountModel updated = onlinePlayer == null
+                ? accountService.setMode(latest, mode, updatedBy)
+                : inventoryService.executeLocalPlayerMutation(
+                    accountUuid,
+                    () -> accountService.setMode(latest, mode, updatedBy)
+                );
+            long generation = state.persistedGeneration.incrementAndGet();
+            change = new PersistedModeChange(updated, generation);
+        }
+        return change;
     }
 
     /**
@@ -75,23 +112,28 @@ public final class AccountModeApplicationService {
             if (!astPlayer.getAccount().getUuid().equals(updated.getUuid())) {
                 continue;
             }
-            var previousMode = astPlayer.getAccount().getMode();
-            if (isToolInventoryMode(previousMode) && previousMode != updated.getMode()) {
-                inventoryService.saveToolInventorySnapshot(astPlayer);
-            }
-            astPlayer.applyAccountMode(updated);
-            if (updated.getMode().shouldReflectInventoryToGui()) {
+            inventoryService.executeLocalPlayerMutation(updated.getUuid(), () -> {
+                var previousMode = astPlayer.getAccount().getMode();
                 if (isToolInventoryMode(previousMode) && previousMode != updated.getMode()) {
-                    inventoryService.applyInventoriesToGuiForModeSwitch(astPlayer);
-                } else {
-                    inventoryService.applyInventoriesToGui(astPlayer);
+                    inventoryService.saveToolInventorySnapshot(astPlayer);
                 }
-            } else if (isToolInventoryMode(updated.getMode())) {
-                inventoryService.applyToolInventoryToGui(astPlayer);
-            } else {
-                inventoryService.clearGuiInventory(astPlayer);
-            }
+                astPlayer.applyAccountMode(updated);
+                if (updated.getMode().shouldReflectInventoryToGui()) {
+                    if (isToolInventoryMode(previousMode) && previousMode != updated.getMode()) {
+                        inventoryService.applyInventoriesToGuiForModeSwitch(astPlayer);
+                    } else {
+                        inventoryService.applyInventoriesToGui(astPlayer);
+                    }
+                } else if (isToolInventoryMode(updated.getMode())) {
+                    inventoryService.applyToolInventoryToGui(astPlayer);
+                } else {
+                    inventoryService.clearGuiInventory(astPlayer);
+                }
+                return null;
+            });
         }
+        // account と inventory/UI のローカル反映を終え、state lock を解放してから保存を要求する。
+        accountService.requestLocalPlayerSave(updated.getUuid());
         return true;
     }
 

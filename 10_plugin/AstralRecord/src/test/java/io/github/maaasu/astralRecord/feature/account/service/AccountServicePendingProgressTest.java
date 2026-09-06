@@ -1,10 +1,12 @@
 package io.github.maaasu.astralRecord.feature.account.service;
 
+import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.feature.account.model.AccountExperienceResult;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.model.ClassProgressModel;
 import io.github.maaasu.astralRecord.feature.account.repository.AccountRepository;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import org.bukkit.Server;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
@@ -18,6 +20,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -90,6 +93,36 @@ class AccountServicePendingProgressTest {
         assertFalse(second.leveledUp());
         assertEquals(1_000L, second.updatedAccount().getTotalExperience());
         assertEquals(first.updatedAccount().getLevel(), second.updatedAccount().getLevel());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
+     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### accountProgress state section
+     * 検証契約: 古いsnapshot ACKは、後から確定したmodeのdirtyを解除もrollbackもしない。
+     */
+    @Test
+    void oldSnapshotAcknowledgementKeepsNewerModeDirty() {
+        Fixture fixture = createFixture(mock(AccountRepository.class));
+        UUID accountId = UUID.fromString("00000000-0000-0000-0000-000000000001");
+        UUID userId = UUID.fromString("00000000-0000-0000-0000-000000000002");
+        AccountModel initial = account(accountId, userId, 0L);
+
+        AccountModel admin = fixture.service().setMode(initial, AccountMode.ADMIN, userId);
+        PlayerStateSection first = fixture.service().snapshotPlayerState(accountId);
+        assertNotNull(first);
+
+        fixture.service().setMode(admin, AccountMode.PLAYER, userId);
+        JsonObject oldAcknowledgement = new JsonObject();
+        oldAcknowledgement.addProperty(
+            "clientRevision",
+            first.payload().getAsJsonObject().get("clientRevision").getAsLong()
+        );
+        oldAcknowledgement.addProperty("progressVersion", 1);
+        first.acknowledge().accept(oldAcknowledgement);
+
+        PlayerStateSection newer = fixture.service().snapshotPlayerState(accountId);
+        assertNotNull(newer);
+        assertEquals(AccountMode.PLAYER.getValue(), newer.payload().getAsJsonObject().get("mode").getAsString());
     }
 
     /**

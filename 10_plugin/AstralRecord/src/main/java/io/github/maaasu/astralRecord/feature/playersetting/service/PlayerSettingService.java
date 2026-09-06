@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKe
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingModel;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingSnapshot;
 import io.github.maaasu.astralRecord.feature.playersetting.repository.PlayerSettingRepository;
+import io.github.maaasu.astralRecord.feature.mutation.service.PendingStateStore;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -21,8 +22,11 @@ import org.jetbrains.annotations.Nullable;
 import java.util.EnumMap;
 import java.util.Map;
 import java.util.UUID;
+import java.nio.file.Path;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.Supplier;
@@ -36,19 +40,44 @@ public final class PlayerSettingService {
     private final PlayerSettingRepository repository;
     private final PlayerSettingDefaults defaults;
     private final PlayerSettingCache cache;
+    private final Executor asyncExecutor;
     private final Object sessionMonitor = new Object();
     private final AtomicLong sessionSequence = new AtomicLong();
     private final ConcurrentMap<UUID, Long> activeSessionTokens = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, UserOperationLock> operationLocks = new ConcurrentHashMap<>();
+    /** userごとの API delivery を一つにし、shutdown drain と通常再送を重複送信させない。 */
+    private final ConcurrentMap<UUID, Object> deliveryLocks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<UUID, EnumMap<PlayerSettingKey, PendingSetting>> pendingSettings = new ConcurrentHashMap<>();
+    private final ConcurrentMap<UUID, Boolean> deliveryScheduled = new ConcurrentHashMap<>();
+    private final AtomicLong pendingRevisionSequence = new AtomicLong();
+    private @Nullable PendingStateStore pendingStateStore;
 
     public PlayerSettingService(
         @NotNull PlayerSettingRepository repository,
         @NotNull PlayerSettingDefaults defaults,
         @NotNull PlayerSettingCache cache
     ) {
+        this(repository, defaults, cache, Runnable::run);
+    }
+
+    /**
+     * プレイヤー設定サービスを構築します。
+     *
+     * @param repository API 通信を行う repository
+     * @param defaults key ごとの既定値
+     * @param cache online session 用の snapshot cache
+     * @param asyncExecutor API 送信と再送を実行する非同期 executor
+     */
+    public PlayerSettingService(
+        @NotNull PlayerSettingRepository repository,
+        @NotNull PlayerSettingDefaults defaults,
+        @NotNull PlayerSettingCache cache,
+        @NotNull Executor asyncExecutor
+    ) {
         this.repository = repository;
         this.defaults = defaults;
         this.cache = cache;
+        this.asyncExecutor = asyncExecutor;
     }
 
     /**
@@ -83,7 +112,7 @@ public final class PlayerSettingService {
             Logger.log(LogId.W_5310, userId, e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
         }
 
-        PlayerSettingSnapshot snapshot = new PlayerSettingSnapshot(userId, entries);
+        PlayerSettingSnapshot snapshot = overlayPending(new PlayerSettingSnapshot(userId, entries));
         publishIfSessionActive(snapshot, sessionToken);
         return snapshot;
     }
@@ -98,7 +127,9 @@ public final class PlayerSettingService {
         synchronized (sessionMonitor) {
             long sessionToken = nextSessionToken();
             activeSessionTokens.put(userId, sessionToken);
-            cache.remove(userId);
+            if (!hasPendingSettings(userId)) {
+                cache.remove(userId);
+            }
             return sessionToken;
         }
     }
@@ -124,6 +155,7 @@ public final class PlayerSettingService {
             loadPlayerSettingsLocked(userId, sessionToken);
             return null;
         });
+        scheduleDelivery(userId, 0L);
     }
 
     /**
@@ -134,7 +166,9 @@ public final class PlayerSettingService {
     public void clear(@NotNull UUID userId) {
         synchronized (sessionMonitor) {
             activeSessionTokens.remove(userId);
-            cache.remove(userId);
+            if (!hasPendingSettings(userId)) {
+                cache.remove(userId);
+            }
         }
     }
 
@@ -323,8 +357,10 @@ public final class PlayerSettingService {
 
         PlayerSettingSnapshot snapshot = cache.find(request.userId());
         if (snapshot == null) {
-            Logger.log(LogId.W_5312, request.userId(), "snapshot not cached");
-            snapshot = loadPlayerSettingsLocked(request.userId(), sessionToken);
+            // Bukkit main thread の設定操作で API 読込を発生させない。join warmup の遅延中でも
+            // 既定値から直ちにローカル反映し、取得結果は pending 値の metadata だけへ重ねる。
+            snapshot = new PlayerSettingSnapshot(request.userId(), createDefaultEntries());
+            publishIfSessionActive(snapshot, sessionToken);
         }
 
         PlayerSettingEntry currentEntry = snapshot.getEntry(request.settingKey());
@@ -332,49 +368,348 @@ public final class PlayerSettingService {
             currentEntry = defaultEntry(request.settingKey());
         }
 
+        PlayerSettingEntry localEntry = new PlayerSettingEntry(
+            currentEntry.getUserSettingId(), request.settingKey(), request.newValue(), currentEntry.getVersion()
+        );
+        publishIfSessionActive(snapshot.withEntry(localEntry), sessionToken);
+        PendingSetting pending = new PendingSetting(
+            request.settingKey(), request.newValue(), request.requestedBy(), pendingRevisionSequence.incrementAndGet()
+        );
+        pendingSettings.compute(request.userId(), (ignored, current) -> {
+            EnumMap<PlayerSettingKey, PendingSetting> updated = current == null
+                ? new EnumMap<>(PlayerSettingKey.class)
+                : new EnumMap<>(current);
+            updated.put(request.settingKey(), pending);
+            return updated;
+        });
+        scheduleDelivery(request.userId(), 0L);
+        return UpdateResult.success(request.settingKey(), request.newValue());
+    }
+
+    /**
+     * 未送信の設定を非同期 write-behind に登録します。同一 user/key は最後の値だけを送信し、
+     * API 応答は値をロールバックせず ID・version metadata のみを更新します。
+     *
+     * @param userId 送信対象ユーザー ID
+     * @param delayMillis 再送までの待機時間
+     */
+    private void scheduleDelivery(@NotNull UUID userId, long delayMillis) {
+        if (deliveryScheduled.putIfAbsent(userId, Boolean.TRUE) != null) {
+            return;
+        }
         try {
-            PlayerSettingModel updatedModel;
-            String valueJson = serializeValue(request.settingKey(), request.newValue());
-            if (currentEntry.getUserSettingId() == null || currentEntry.getVersion() == null) {
-                updatedModel = repository.create(
-                    request.userId(),
-                    request.settingKey().getCode(),
-                    valueJson,
-                    request.requestedBy()
+            java.util.concurrent.CompletableFuture.delayedExecutor(
+                Math.max(0L, delayMillis),
+                java.util.concurrent.TimeUnit.MILLISECONDS,
+                asyncExecutor
+            ).execute(() -> deliverPending(userId));
+        } catch (Throwable schedulingFailure) {
+            deliveryScheduled.remove(userId);
+            Logger.log(LogId.W_5312, userId, schedulingFailure.getClass().getSimpleName());
+        }
+    }
+
+    private void deliverPending(@NotNull UUID userId) {
+        deliveryScheduled.remove(userId);
+        withDeliveryLock(userId, () -> deliverPendingLocked(userId));
+    }
+
+    private void deliverPendingLocked(@NotNull UUID userId) {
+        PendingSetting pending = nextPendingSetting(userId);
+        if (pending == null) {
+            return;
+        }
+
+        try {
+            deliverOne(userId, pending);
+        } catch (RuntimeException failure) {
+            Logger.log(LogId.W_5312, userId, failure.getMessage() == null
+                ? failure.getClass().getSimpleName()
+                : failure.getMessage());
+            scheduleDelivery(userId, 1_000L);
+            return;
+        }
+        scheduleDelivery(userId, 0L);
+    }
+
+    private @Nullable PendingSetting nextPendingSetting(@NotNull UUID userId) {
+        return withUserOperationLock(userId, () -> {
+            EnumMap<PlayerSettingKey, PendingSetting> entries = pendingSettings.get(userId);
+            if (entries == null || entries.isEmpty()) {
+                return null;
+            }
+            return entries.values().iterator().next();
+        });
+    }
+
+    private void deliverOne(@NotNull UUID userId, @NotNull PendingSetting pending) {
+        DeliveryContext context = withUserOperationLock(userId, () -> {
+            PendingSetting currentPending = pendingSetting(userId, pending.key());
+            if (currentPending != pending) {
+                return null;
+            }
+            PlayerSettingSnapshot snapshot = cache.find(userId);
+            PlayerSettingEntry currentEntry = snapshot == null ? defaultEntry(pending.key()) : snapshot.getEntry(pending.key());
+            if (currentEntry == null) {
+                currentEntry = defaultEntry(pending.key());
+            }
+            return new DeliveryContext(currentPending, currentEntry, serializeValue(pending.key(), pending.value()));
+        });
+        if (context == null) {
+            return;
+        }
+        persistPendingSettings(userId);
+        try {
+            PlayerSettingModel updated = context.entry().getUserSettingId() == null || context.entry().getVersion() == null
+                ? repository.create(userId, pending.key().getCode(), context.valueJson(), pending.requestedBy())
+                : repository.update(
+                    context.entry().getUserSettingId(),
+                    context.valueJson(),
+                    context.entry().getVersion(),
+                    pending.requestedBy()
                 );
+            if (updated == null) {
+                updated = repository.create(userId, pending.key().getCode(), context.valueJson(), pending.requestedBy());
+            }
+            PlayerSettingModel acknowledged = updated;
+            boolean hasRemaining = withUserOperationLock(
+                userId,
+                () -> acknowledgeMetadata(userId, context.pending(), acknowledged)
+            );
+            // user状態のlockを解放してから、async writerだけがローカルファイルを更新する。
+            if (hasRemaining) {
+                persistPendingSettings(userId);
             } else {
-                updatedModel = repository.update(
-                    currentEntry.getUserSettingId(),
-                    valueJson,
-                    currentEntry.getVersion(),
-                    request.requestedBy()
-                );
-                if (updatedModel == null) {
-                    updatedModel = repository.create(
-                        request.userId(),
-                        request.settingKey().getCode(),
-                        valueJson,
-                        request.requestedBy()
-                    );
+                deletePersistedSettings(userId);
+            }
+        } catch (OptimisticLockConflictException conflict) {
+            withUserOperationLock(userId, () -> {
+                // 最新 version を取り込みつつ、ユーザーが最後に選んだ値は維持して再送する。
+                applyLatestMetadata(userId, pending.key(), pending.value(), conflict.getCurrent());
+                return null;
+            });
+            scheduleDelivery(userId, 0L);
+        }
+    }
+
+    private boolean acknowledgeMetadata(
+        @NotNull UUID userId,
+        @NotNull PendingSetting delivered,
+        @NotNull PlayerSettingModel updated
+    ) {
+        updateEntryMetadata(userId, delivered.key(), delivered.value(), updated);
+        pendingSettings.computeIfPresent(userId, (ignored, entries) -> {
+            EnumMap<PlayerSettingKey, PendingSetting> remaining = new EnumMap<>(entries);
+            if (remaining.get(delivered.key()) == delivered) {
+                remaining.remove(delivered.key());
+            }
+            return remaining.isEmpty() ? null : remaining;
+        });
+        return hasPendingSettings(userId);
+    }
+
+    private void applyLatestMetadata(
+        @NotNull UUID userId,
+        @NotNull PlayerSettingKey key,
+        @NotNull Object desiredValue,
+        @NotNull PlayerSettingModel latest
+    ) {
+        updateEntryMetadata(userId, key, desiredValue, latest);
+    }
+
+    private void updateEntryMetadata(
+        @NotNull UUID userId,
+        @NotNull PlayerSettingKey key,
+        @NotNull Object desiredValue,
+        @NotNull PlayerSettingModel model
+    ) {
+        PlayerSettingSnapshot snapshot = cache.find(userId);
+        if (snapshot == null) {
+            snapshot = new PlayerSettingSnapshot(userId, createDefaultEntries());
+        }
+        PlayerSettingEntry existing = snapshot.getEntry(key);
+        Object currentValue = existing == null ? desiredValue : existing.getValue();
+        cache.put(snapshot.withEntry(new PlayerSettingEntry(
+            model.getUserSettingId(), key, currentValue, model.getVersion()
+        )));
+    }
+
+    private @NotNull PlayerSettingSnapshot overlayPending(@NotNull PlayerSettingSnapshot snapshot) {
+        EnumMap<PlayerSettingKey, PendingSetting> pending = pendingSettings.get(snapshot.getUserId());
+        if (pending == null || pending.isEmpty()) {
+            return snapshot;
+        }
+        PlayerSettingSnapshot overlaid = snapshot;
+        for (PendingSetting entry : pending.values()) {
+            PlayerSettingEntry remote = overlaid.getEntry(entry.key());
+            overlaid = overlaid.withEntry(new PlayerSettingEntry(
+                remote == null ? null : remote.getUserSettingId(),
+                entry.key(),
+                entry.value(),
+                remote == null ? null : remote.getVersion()
+            ));
+        }
+        return overlaid;
+    }
+
+    private @Nullable PendingSetting pendingSetting(@NotNull UUID userId, @NotNull PlayerSettingKey key) {
+        EnumMap<PlayerSettingKey, PendingSetting> settings = pendingSettings.get(userId);
+        return settings == null ? null : settings.get(key);
+    }
+
+    private boolean hasPendingSettings(@NotNull UUID userId) {
+        EnumMap<PlayerSettingKey, PendingSetting> settings = pendingSettings.get(userId);
+        return settings != null && !settings.isEmpty();
+    }
+
+    private void persistPendingSettings(@NotNull UUID userId) {
+        PendingStateStore store = pendingStateStore;
+        if (store == null) {
+            return;
+        }
+        String payload = withUserOperationLock(userId, () -> serializePendingSettings(userId));
+        if (payload == null) {
+            store.delete(userId);
+            return;
+        }
+        store.write(userId, payload);
+    }
+
+    private @Nullable String serializePendingSettings(@NotNull UUID userId) {
+        EnumMap<PlayerSettingKey, PendingSetting> pending = pendingSettings.get(userId);
+        if (pending == null || pending.isEmpty()) {
+            return null;
+        }
+        JsonObject root = new JsonObject();
+        com.google.gson.JsonArray entries = new com.google.gson.JsonArray();
+        for (PendingSetting entry : pending.values()) {
+            JsonObject value = new JsonObject();
+            value.addProperty("key", entry.key().getCode());
+            value.addProperty("valueJson", serializeValue(entry.key(), entry.value()));
+            value.addProperty("requestedBy", entry.requestedBy().toString());
+            value.addProperty("revision", entry.revision());
+            entries.add(value);
+        }
+        root.add("entries", entries);
+        return root.toString();
+    }
+
+    private void deletePersistedSettings(@NotNull UUID userId) {
+        PendingStateStore store = pendingStateStore;
+        if (store != null) {
+            store.delete(userId);
+        }
+    }
+
+    private void restorePendingSettings() {
+        PendingStateStore store = pendingStateStore;
+        if (store == null) {
+            return;
+        }
+        for (UUID userId : store.subjects()) {
+            try {
+                String json = store.read(userId);
+                if (json == null) {
+                    continue;
+                }
+                JsonObject root = JsonParser.parseString(json).getAsJsonObject();
+                EnumMap<PlayerSettingKey, PendingSetting> restored = new EnumMap<>(PlayerSettingKey.class);
+                for (JsonElement element : root.getAsJsonArray("entries")) {
+                    JsonObject entry = element.getAsJsonObject();
+                    PlayerSettingKey key = PlayerSettingKey.fromInput(entry.get("key").getAsString());
+                    if (key == null) {
+                        continue;
+                    }
+                    Object value = parseJsonValue(key, entry.get("valueJson").getAsString(), userId);
+                    UUID requestedBy = UUID.fromString(entry.get("requestedBy").getAsString());
+                    long revision = entry.has("revision") ? entry.get("revision").getAsLong()
+                        : pendingRevisionSequence.incrementAndGet();
+                    pendingRevisionSequence.accumulateAndGet(revision, Math::max);
+                    restored.put(key, new PendingSetting(key, value, requestedBy, revision));
+                }
+                if (restored.isEmpty()) {
+                    store.delete(userId);
+                } else {
+                    pendingSettings.put(userId, restored);
+                    // restore と login warmup の完了順は保証しない。warmup済みなら直ちに
+                    // 最後の希望値をoverlayしてdeliveryへ渡し、古いAPI値で画面を戻さない。
+                    PlayerSettingSnapshot snapshot = cache.find(userId);
+                    if (snapshot != null) {
+                        cache.put(overlayPending(snapshot));
+                        scheduleDelivery(userId, 0L);
+                    }
+                }
+            } catch (RuntimeException failure) {
+                Logger.log(LogId.W_5312, userId, failure.getClass().getSimpleName());
+            }
+        }
+    }
+
+    /**
+     * plugin disable 前に未送信値を async writer 上で保存・送信し、完了を返します。
+     * API 送信に失敗しても dirty は削除せず、最後に PendingStateStore へ書き戻すため、
+     * bootstrap はこの Future 完了後に writer を停止できます。
+     *
+     * @return 全 user の shutdown drain 完了 Future
+     */
+    public @NotNull CompletableFuture<Void> flushPendingWrites() {
+        CompletableFuture<Void> completion = new CompletableFuture<>();
+        try {
+            asyncExecutor.execute(() -> {
+                try {
+                    List<UUID> users = List.copyOf(pendingSettings.keySet());
+                    // delivery lock/API応答待ちに入る前に、全userの最新dirtyを durable にする。
+                    for (UUID userId : users) {
+                        persistPendingSettings(userId);
+                    }
+                    for (UUID userId : users) {
+                        drainPendingWritesForShutdown(userId);
+                    }
+                    completion.complete(null);
+                } catch (RuntimeException failure) {
+                    completion.completeExceptionally(failure);
+                }
+            });
+        } catch (RuntimeException schedulingFailure) {
+            completion.completeExceptionally(schedulingFailure);
+        }
+        return completion;
+    }
+
+    private void drainPendingWritesForShutdown(@NotNull UUID userId) {
+        withDeliveryLock(userId, () -> {
+            int attemptsRemaining = Math.max(2, PlayerSettingKey.values().length * 3);
+            while (attemptsRemaining-- > 0) {
+                PendingSetting pending = nextPendingSetting(userId);
+                if (pending == null) {
+                    break;
+                }
+                try {
+                    deliverOne(userId, pending);
+                } catch (RuntimeException failure) {
+                    Logger.log(LogId.W_5312, userId, failure.getMessage() == null
+                        ? failure.getClass().getSimpleName()
+                        : failure.getMessage());
+                    break;
                 }
             }
+            // 競合反復上限・通信失敗時も、再ログイン時に overlay できる値を残す。
+            persistPendingSettings(userId);
+        });
+    }
 
-            PlayerSettingEntry updatedEntry = new PlayerSettingEntry(
-                updatedModel.getUserSettingId(),
-                request.settingKey(),
-                request.newValue(),
-                updatedModel.getVersion()
-            );
-            publishIfSessionActive(snapshot.withEntry(updatedEntry), sessionToken);
-            return UpdateResult.success(request.settingKey(), request.newValue());
-        } catch (OptimisticLockConflictException conflict) {
-            PlayerSettingEntry latest = entryFromModel(conflict.getCurrent(), request.settingKey());
-            publishIfSessionActive(snapshot.withEntry(latest), sessionToken);
-            return UpdateResult.conflict(
-                request.settingKey(),
-                latest.getValue(),
-                PlayerMsgResource.format(PlayerSettingMsgId.P_5320.getId(), request.settingKey().getDisplayNameJa())
-            );
+    /**
+     * user設定の未受領write-behindを復元するローカル保存先を設定します。
+     * ファイル操作は delivery executor だけで行い、Bukkit main thread では実行しません。
+     *
+     * @param root `player-settings` 用の専用ディレクトリ
+     */
+    public void setPersistence(@NotNull Path root) {
+        pendingStateStore = new PendingStateStore(root);
+        try {
+            asyncExecutor.execute(this::restorePendingSettings);
+        } catch (Throwable failure) {
+            Logger.log(LogId.W_5312, root.toString(), failure.getClass().getSimpleName());
         }
     }
 
@@ -420,6 +755,13 @@ public final class PlayerSettingService {
                 operationLock.references--;
                 return operationLock.references == 0 ? null : operationLock;
             });
+        }
+    }
+
+    private void withDeliveryLock(@NotNull UUID userId, @NotNull Runnable operation) {
+        Object lock = deliveryLocks.computeIfAbsent(userId, ignored -> new Object());
+        synchronized (lock) {
+            operation.run();
         }
     }
 
@@ -504,5 +846,20 @@ public final class PlayerSettingService {
     private static final class UserOperationLock {
         private final ReentrantLock lock = new ReentrantLock();
         private int references;
+    }
+
+    private record PendingSetting(
+        @NotNull PlayerSettingKey key,
+        @NotNull Object value,
+        @NotNull UUID requestedBy,
+        long revision
+    ) {
+    }
+
+    private record DeliveryContext(
+        @NotNull PendingSetting pending,
+        @NotNull PlayerSettingEntry entry,
+        @NotNull String valueJson
+    ) {
     }
 }

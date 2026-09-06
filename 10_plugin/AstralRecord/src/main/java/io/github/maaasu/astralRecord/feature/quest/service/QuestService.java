@@ -779,7 +779,10 @@ public final class QuestService {
             completeRewardProcessing(expectedState.accountId(), rewardProcessing);
             return false;
         }
-        AppliedRewards applied = applyPreparedRewards(player, quest, prepared);
+        AppliedRewards applied = inventoryService.executeLocalPlayerMutation(
+            expectedState.accountId(),
+            () -> applyPreparedRewards(player, quest, prepared)
+        );
         if (applied == null) {
             cleanupPreparedInstances(prepared);
             pendingRewardClaims.remove(claimKey, claimId);
@@ -813,7 +816,13 @@ public final class QuestService {
             return true;
         } catch (RuntimeException exception) {
             restoreQuestState(currentState, stateBeforeCommit, quest.id());
-            rollbackAppliedRewards(player, applied, quest.id());
+            inventoryService.executeLocalPlayerMutation(
+                currentState.accountId(),
+                () -> {
+                    rollbackAppliedRewards(player, applied, quest.id());
+                    return null;
+                }
+            );
             cleanupPreparedInstances(prepared);
             save(currentState);
             pendingRewardClaims.remove(claimKey, claimId);
@@ -981,7 +990,13 @@ public final class QuestService {
         }
 
         restoreQuestState(currentState, stateBeforeCommit, quest.id());
-        rollbackAppliedRewards(player, applied, quest.id());
+        inventoryService.executeLocalPlayerMutation(
+            currentState.accountId(),
+            () -> {
+                rollbackAppliedRewards(player, applied, quest.id());
+                return null;
+            }
+        );
         cleanupPreparedInstances(prepared);
 
         CompletableFuture<Boolean> compensation;

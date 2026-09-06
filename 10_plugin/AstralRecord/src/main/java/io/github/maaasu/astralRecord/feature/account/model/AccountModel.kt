@@ -78,4 +78,6 @@ data class AccountModel @JvmOverloads constructor(
     val classLevel: Int = 1,
     val classExperience: Long = 0L,
     val classProgresses: List<ClassProgressModel> = emptyList(),
+    /** 進行度・modeだけの楽観ロックに使う専用世代。通常プロフィール更新のupdatedAtとは独立する。 */
+    val progressVersion: Int = 0,
 )

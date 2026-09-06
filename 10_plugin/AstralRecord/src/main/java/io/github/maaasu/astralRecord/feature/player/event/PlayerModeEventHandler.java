@@ -244,13 +244,10 @@ public class PlayerModeEventHandler extends AbstractEventHandler
             return;
         }
         try {
-            AsyncTaskUtil.supplyAsync(plugin, () -> accountModeApplicationService.persistModeChange(
-                pending.accountUuid(),
-                pending.requestedMode(),
-                playerId
-            )).whenComplete((updated, throwable) -> AsyncTaskUtil.runSync(plugin, () ->
-                completeModeChange(playerId, pending, updated, throwable)
-            ));
+            AccountModeApplicationService.PersistedModeChange updated = accountModeApplicationService.persistModeChange(
+                pending.accountUuid(), pending.requestedMode(), playerId
+            );
+            completeModeChange(playerId, pending, updated, null);
         } catch (RuntimeException exception) {
             pendingModeChanges.remove(playerId, pending);
             throw exception;

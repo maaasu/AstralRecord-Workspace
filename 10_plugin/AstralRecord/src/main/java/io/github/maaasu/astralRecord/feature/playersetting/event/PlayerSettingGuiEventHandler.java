@@ -214,52 +214,31 @@ public final class PlayerSettingGuiEventHandler extends AbstractEventHandler {
         UUID userId = astPlayer.getUser().getUuid();
         long sessionToken = playerSettingService.captureSessionToken(userId);
         AstralRecord plugin = AstralRecord.getInstance();
-        AsyncTaskUtil.supplyAsync(plugin, () -> persistChanges(userId, sessionToken, pendingCopy))
-            .whenComplete((results, throwable) -> AsyncTaskUtil.runSync(plugin, () -> {
-                if (!player.isOnline()) {
-                    return;
-                }
-                if (playerSettingService.captureSessionToken(userId) != sessionToken
-                    || plugin.getServer().getPlayer(userId) != player) {
-                    return;
-                }
-                if (throwable != null) {
-                    Logger.log(LogId.E_5312, throwable, userId);
-                    PlayerMessageService.getInstance().sendRaw(
-                        player,
-                        PlayerMsgResource.getMessage(PlayerSettingMsgId.P_5326.getId())
-                    );
-                    return;
-                }
-                for (PersistResult persisted : results) {
-                    if (persisted.result().staleSession()) {
-                        continue;
-                    }
-                    if (persisted.result().conflict()) {
-                        PlayerMessageService.getInstance().sendRaw(player, persisted.result().message());
-                        continue;
-                    }
-                    PlayerMessageService.getInstance().sendRaw(player, PlayerMsgResource.format(
-                        PlayerSettingMsgId.P_5321.getId(),
-                        persisted.key().getDisplayNameJa(),
-                        persisted.key().formatValue(persisted.value())
-                    ));
-                }
-                boolean armorSettingSynchronized = results.stream().anyMatch(persisted ->
-                    persisted.key() == PlayerSettingKey.ARMOR_DISPLAY
-                        && !persisted.result().staleSession()
-                );
-                if (armorSettingSynchronized) {
-                    itemStackPacketAdapter.refreshEquipmentView(player);
-                }
-                boolean actionRingHoldSelectSynchronized = results.stream().anyMatch(persisted ->
-                    persisted.key() == PlayerSettingKey.ACTION_RING_HOLD_SELECT
-                        && !persisted.result().staleSession()
-                );
-                if (actionRingHoldSelectSynchronized) {
-                    player.updateInventory();
-                }
-            }));
+        List<PersistResult> results = persistChanges(userId, sessionToken, pendingCopy);
+        for (PersistResult persisted : results) {
+            if (persisted.result().staleSession()) {
+                continue;
+            }
+            PlayerMessageService.getInstance().sendRaw(player, PlayerMsgResource.format(
+                PlayerSettingMsgId.P_5321.getId(),
+                persisted.key().getDisplayNameJa(),
+                persisted.key().formatValue(persisted.value())
+            ));
+        }
+        boolean armorSettingSynchronized = results.stream().anyMatch(persisted ->
+            persisted.key() == PlayerSettingKey.ARMOR_DISPLAY
+                && !persisted.result().staleSession()
+        );
+        if (armorSettingSynchronized) {
+            itemStackPacketAdapter.refreshEquipmentView(player);
+        }
+        boolean actionRingHoldSelectSynchronized = results.stream().anyMatch(persisted ->
+            persisted.key() == PlayerSettingKey.ACTION_RING_HOLD_SELECT
+                && !persisted.result().staleSession()
+        );
+        if (actionRingHoldSelectSynchronized) {
+            player.updateInventory();
+        }
     }
 
     private @NotNull List<PersistResult> persistChanges(

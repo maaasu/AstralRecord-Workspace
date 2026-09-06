@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.playerclass
 import io.github.maaasu.astralRecord.AstralRecord
 import io.github.maaasu.astralRecord.feature.account.service.AccountService
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassModel
 import io.github.maaasu.astralRecord.feature.`class`.model.ClassStat
 import io.github.maaasu.astralRecord.feature.`class`.service.ClassService
@@ -23,6 +24,7 @@ import java.util.LinkedHashSet
 import java.util.Locale
 import java.util.function.Consumer
 import java.util.function.Predicate
+import java.util.function.Supplier
 import kotlin.math.roundToLong
 
 class PlayerClassService @JvmOverloads constructor(
@@ -32,10 +34,20 @@ class PlayerClassService @JvmOverloads constructor(
     private var skillTreeService: SkillTreeService? = null
     private var classChangeListener: Consumer<AstPlayer>? = null
     private var afkStateProvider: Predicate<AstPlayer> = Predicate { false }
+    private var inventoryService: InventoryService? = null
     private var playerListNameUpdatesEnabled = true
 
     fun setSkillTreeService(service: SkillTreeService) {
         skillTreeService = service
+    }
+
+    /**
+     * クラス進行を inventory と同じローカルstateロックで確定するためのサービスを設定します。
+     *
+     * @param service account単位mutationと共通保存要求を提供するinventory service
+     */
+    fun setInventoryService(service: InventoryService) {
+        inventoryService = service
     }
 
     /**
@@ -158,18 +170,21 @@ class PlayerClassService @JvmOverloads constructor(
             return ClassExperienceResult(previousLevel, previousLevel, 0, 0)
         }
 
-        val totalExperience = (astPlayer.classExperience + experience).coerceAtLeast(0L)
-        var level = previousLevel
-        while (level < maxLevel && totalExperience >= totalRequiredClassExperienceForLevel(model, level + 1)) {
-            level++
+        val result = executeLocalMutation(astPlayer) {
+            val totalExperience = (astPlayer.classExperience + experience).coerceAtLeast(0L)
+            var level = previousLevel
+            while (level < maxLevel && totalExperience >= totalRequiredClassExperienceForLevel(model, level + 1)) {
+                level++
+            }
+            astPlayer.classExperience = totalExperience
+            astPlayer.classLevel = level
+            persistClassProgress(astPlayer)
+            ClassExperienceResult(previousLevel, level, experience, (level - previousLevel).coerceAtLeast(0))
         }
-        astPlayer.classExperience = totalExperience
-        astPlayer.classLevel = level
-        persistClassProgress(astPlayer)
-        if (level != previousLevel) {
+        if (result.updatedLevel != previousLevel) {
             updatePlayerListName(astPlayer)
         }
-        return ClassExperienceResult(previousLevel, level, experience, (level - previousLevel).coerceAtLeast(0))
+        return result
     }
 
     /**
@@ -179,8 +194,10 @@ class PlayerClassService @JvmOverloads constructor(
      * @param classId 変更後のクラス ID
      */
     fun changeClass(astPlayer: AstPlayer, classId: String) {
-        astPlayer.selectClass(classId)
-        persistClassProgress(astPlayer)
+        executeLocalMutation(astPlayer) {
+            astPlayer.selectClass(classId)
+            persistClassProgress(astPlayer)
+        }
         skillTreeService?.refreshProgressDerivedState(astPlayer)
         classChangeListener?.accept(astPlayer)
         updatePlayerListName(astPlayer)
@@ -202,8 +219,10 @@ class PlayerClassService @JvmOverloads constructor(
         val currentLevel = requestedLevel.coerceIn(1L, maxLevel.toLong()).toInt()
         val isCurrentClass = model.id.equals(astPlayer.classId, ignoreCase = true)
         val experience = totalRequiredClassExperienceForLevel(model, currentLevel)
-        astPlayer.setClassProgress(model.id, currentLevel, experience)
-        persistClassProgress(astPlayer, model.id, currentLevel, experience)
+        executeLocalMutation(astPlayer) {
+            astPlayer.setClassProgress(model.id, currentLevel, experience)
+            persistClassProgress(astPlayer, model.id, currentLevel, experience)
+        }
         skillTreeService?.refreshProgressDerivedState(astPlayer)
         if (isCurrentClass && currentLevel != previousLevel) {
             updatePlayerListName(astPlayer)
@@ -510,6 +529,11 @@ class PlayerClassService @JvmOverloads constructor(
             astPlayer.user.uuid,
         ) ?: return
         astPlayer.account = updated
+    }
+
+    private fun <T> executeLocalMutation(astPlayer: AstPlayer, mutation: () -> T): T {
+        val service = inventoryService ?: return mutation()
+        return service.executeLocalPlayerMutation(astPlayer.account.uuid, Supplier { mutation() })
     }
 
     private data class ChangeAvailability(

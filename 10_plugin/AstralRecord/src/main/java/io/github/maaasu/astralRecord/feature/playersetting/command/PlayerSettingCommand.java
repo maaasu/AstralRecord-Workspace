@@ -83,42 +83,24 @@ public final class PlayerSettingCommand extends AstCommand {
             player.getUser().getUuid()
         );
         long sessionToken = service.captureSessionToken(request.userId());
-        AsyncTaskUtil.supplyAsync(plugin, () -> service.updatePlayerSetting(request, sessionToken))
-            .whenComplete((result, throwable) -> AsyncTaskUtil.runSync(plugin, () -> {
-                if (!player.getBukkit().isOnline()) {
-                    return;
-                }
-                if (service.captureSessionToken(request.userId()) != sessionToken
-                    || plugin.getServer().getPlayer(request.userId()) != player.getBukkit()) {
-                    return;
-                }
-                if (throwable != null) {
-                    Logger.log(LogId.E_5312, throwable, key.getCode());
-                    sendError(player.getBukkit(), PlayerMsgResource.getMessage(PlayerSettingMsgId.P_5326.getId()));
-                    return;
-                }
-                if (result.staleSession()) {
-                    return;
-                }
-                if (key == PlayerSettingKey.ARMOR_DISPLAY) {
-                    plugin.getItemStackPacketAdapter().refreshEquipmentView(player.getBukkit());
-                }
-                if (key == PlayerSettingKey.ACTION_RING_HOLD_SELECT) {
-                    player.getBukkit().updateInventory();
-                }
-                if (result.conflict()) {
-                    sendError(player.getBukkit(), result.message());
-                    return;
-                }
-                sendSuccess(
-                    player.getBukkit(),
-                    PlayerMsgResource.format(
-                        PlayerSettingMsgId.P_5321.getId(),
-                        key.getDisplayNameJa(),
-                        key.formatValue(parsedValue)
-                    )
-                );
-            }));
+        PlayerSettingService.UpdateResult result = service.updatePlayerSetting(request, sessionToken);
+        if (result.staleSession()) {
+            return;
+        }
+        if (key == PlayerSettingKey.ARMOR_DISPLAY) {
+            plugin.getItemStackPacketAdapter().refreshEquipmentView(player.getBukkit());
+        }
+        if (key == PlayerSettingKey.ACTION_RING_HOLD_SELECT) {
+            player.getBukkit().updateInventory();
+        }
+        sendSuccess(
+            player.getBukkit(),
+            PlayerMsgResource.format(
+                PlayerSettingMsgId.P_5321.getId(),
+                key.getDisplayNameJa(),
+                key.formatValue(parsedValue)
+            )
+        );
     }
 
     private void showCurrentSettings(@NotNull AstPlayer player, @NotNull PlayerSettingService service) {

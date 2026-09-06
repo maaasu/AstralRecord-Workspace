@@ -161,10 +161,10 @@ class PlayerSettingServiceConcurrencyTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
      * 章・見出し: # 11_3-サービス > ## 5. 設定更新
-     * 検証契約: update中clearでtokenが失効した場合成功modelをstale cacheへ再公開しない。
+     * 検証契約: update中clearでtokenが失効しても、未送信の最後の希望値を次sessionへ引き継ぐ。
      */
     @Test
-    void clearDuringUpdatePreventsStaleUpdatedSnapshotFromBeingPublished() throws Exception {
+    void clearDuringUpdateRetainsLatestDirtyValueForNextSession() throws Exception {
         UUID userId = UUID.randomUUID();
         UUID settingId = UUID.randomUUID();
         PlayerSettingRepository repository = mock(PlayerSettingRepository.class);
@@ -207,7 +207,8 @@ class PlayerSettingServiceConcurrencyTest {
             releaseRepositoryCall.countDown();
 
             assertTrue(update.get(5, TimeUnit.SECONDS).success());
-            assertNull(cache.find(userId));
+            PlayerSettingSnapshot retained = cache.find(userId);
+            assertTrue((Boolean) retained.getEntry(PlayerSettingKey.DAMAGE_LOG_DISPLAY).getValue());
         } finally {
             releaseRepositoryCall.countDown();
             executor.shutdownNow();
