@@ -900,6 +900,15 @@ public final class LearnedSkillService {
         @NotNull Map<UUID, Long> paymentEntries,
         @NotNull Runnable mutation
     ) {
+        if (paymentEntries.isEmpty()) {
+            inventoryService.executeLocalPlayerMutation(accountId, () -> {
+                mutation.run();
+                markPlayerStateDirty(accountId);
+                return null;
+            });
+            inventoryService.queueLocalPlayerSave(accountId);
+            return true;
+        }
         UUID operationId = UUID.randomUUID();
         Boolean committed = inventoryService.executeLocalPlayerMutation(accountId, () -> {
             if (!inventoryService.reserveLocalMutationPayment(accountId, operationId, paymentEntries)) {
