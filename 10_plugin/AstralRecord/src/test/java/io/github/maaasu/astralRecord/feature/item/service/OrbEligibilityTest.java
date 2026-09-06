@@ -256,7 +256,7 @@ class OrbEligibilityTest {
             .map(EquipmentEnchant::getEffectId).distinct().count());
         assertEquals(List.of(0, 1), result.instance().getEnchants().stream()
             .map(EquipmentEnchant::getSlotIndex).toList());
-        assertEquals("2026-08-11T00:00:00", result.instance().getUpdatedAt());
+        assertEquals("2026-08-10T00:00:00Z", result.instance().getUpdatedAt());
     }
 
     /**
@@ -283,7 +283,39 @@ class OrbEligibilityTest {
         assertNotNull(detached);
         assertTrue(detached.instance().getRunes().isEmpty());
         assertEquals("test_rune", detached.returnedRuneItemId());
-        assertEquals("2026-08-11T00:00:00", detached.instance().getUpdatedAt());
+        assertEquals("2026-08-10T00:00:00Z", detached.instance().getUpdatedAt());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
+     * 検証契約: 強化・修理・状態変化のローカル完成形は表示用の現在時刻をupdatedAtへ書かず、snapshot競合制御に使うAPI base timestampを保持する。
+     */
+    @Test
+    void localEquipmentMutationsKeepApiBaseTimestamp() {
+        ItemModel enhanced = equipmentModel(ItemEquipmentSlot.WEAPON, 5, List.of(), 0);
+        ItemOrbEffect repair = new ItemOrbEffect(ItemOrbEffectType.REPAIR, List.of(), null,
+            ItemOrbRankMode.EXACT, null, true, null, null);
+        ItemEquipmentTranscendence transition = transition("星鋼化", 1, 5, null, null);
+        ItemModel transcended = equipmentModel(ItemEquipmentSlot.WEAPON, 5, List.of(transition), 0);
+
+        OrbLocalMutationCalculator.LocalResult enhancedResult = OrbLocalMutationCalculator.apply(
+            enhancementEffect(0, ItemOrbRankMode.EXACT), enhanced, instance(0, 0, 100, 70, List.of()),
+            null, null, null);
+        OrbLocalMutationCalculator.LocalResult repairedResult = OrbLocalMutationCalculator.apply(
+            repair, enhanced, instance(0, 0, 100, 70, List.of()), null, null, null);
+        OrbLocalMutationCalculator.LocalResult transcendedResult = OrbLocalMutationCalculator.apply(
+            transitionEffect(1, ItemOrbRankMode.EXACT), transcended, instance(0, 5, 100, 100, List.of()),
+            null, null, null);
+
+        assertNotNull(enhancedResult);
+        assertNotNull(repairedResult);
+        assertNotNull(transcendedResult);
+        assertAll(
+            () -> assertEquals("2026-08-10T00:00:00Z", enhancedResult.instance().getUpdatedAt()),
+            () -> assertEquals("2026-08-10T00:00:00Z", repairedResult.instance().getUpdatedAt()),
+            () -> assertEquals("2026-08-10T00:00:00Z", transcendedResult.instance().getUpdatedAt())
+        );
     }
 
     /** 指定ランク条件の武器強化オーブ効果を作成します。 */
