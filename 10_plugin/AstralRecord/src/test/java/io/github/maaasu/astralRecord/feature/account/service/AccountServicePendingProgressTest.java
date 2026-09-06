@@ -123,7 +123,7 @@ class AccountServicePendingProgressTest {
 
         PlayerStateSection newer = fixture.service().snapshotPlayerState(accountId);
         assertNotNull(newer);
-        assertEquals(AccountMode.PLAYER.getValue(), newer.payload().getAsJsonObject().get("mode").getAsString());
+        assertEquals(AccountMode.PLAYER.getValue(), newer.payload().getAsJsonObject().get("mode").getAsByte());
         assertEquals(1, newer.payload().getAsJsonObject().get("expectedProgressVersion").getAsInt());
     }
 

@@ -51,6 +51,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -983,6 +984,9 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         StatusService statusService = mock(StatusService.class);
         ParticleDisplayService particleDisplayService = mock(ParticleDisplayService.class);
         when(inventoryService.saveNow(any(UUID.class))).thenReturn(CompletableFuture.completedFuture(true));
+        doAnswer(invocation -> invocation.<Supplier<Object>>getArgument(1).get())
+            .when(inventoryService)
+            .executeLocalPlayerMutation(any(UUID.class), org.mockito.ArgumentMatchers.<Supplier<Object>>any());
         QuestService service = new QuestService(
             null,
             questRepository,

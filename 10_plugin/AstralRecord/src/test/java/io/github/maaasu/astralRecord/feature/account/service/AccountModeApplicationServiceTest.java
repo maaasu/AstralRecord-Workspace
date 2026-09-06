@@ -21,7 +21,6 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
@@ -47,8 +46,10 @@ class AccountModeApplicationServiceTest {
         when(astPlayer.getAccount()).thenReturn(initial);
         when(accountService.setMode(initial, AccountMode.ADMIN, updatedBy)).thenReturn(eventResult);
         when(accountService.setMode(eventResult, AccountMode.PLAYER, updatedBy)).thenReturn(commandResult);
-        when(inventoryService.executeLocalPlayerMutation(eq(accountUuid), any(Supplier.class)))
-            .thenAnswer(invocation -> ((Supplier<?>) invocation.getArgument(1)).get());
+        when(inventoryService.executeLocalPlayerMutation(
+            eq(accountUuid),
+            org.mockito.ArgumentMatchers.<Supplier<AccountModel>>any()
+        )).thenAnswer(invocation -> invocation.<Supplier<AccountModel>>getArgument(1).get());
         AccountModeApplicationService service = new AccountModeApplicationService(accountService, inventoryService);
 
         try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
