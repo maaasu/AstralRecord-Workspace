@@ -107,7 +107,7 @@ class AdminWorldTeleportItemEventHandlerTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
      * 章・見出し: # 17_3-サービス > ## 管理者用ワールドテレポートアイテム・GUI
-     * 検証契約: 専用コンパスの右クリックは外部アイテムツールへ渡る前にブロック操作を拒否し、
+     * 検証契約: 専用 NETHER_STAR の右クリックは外部アイテムツールへ渡る前にブロック操作を拒否し、
      * gateway が候補解決を継続できる入力状態にする。
      */
     @Test
@@ -209,10 +209,10 @@ class AdminWorldTeleportItemEventHandlerTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-コマンド.md
      * 章・見出し: # 17_3-コマンド > ## `/adminitem`
-     * 検証契約: 左クリックは管理者用処理で変更せず、Compass のナビゲーション操作へ委譲する。
+     * 検証契約: 左クリックは管理者用処理で捕捉しない。
      */
     @Test
-    void leftClickIsNotSuppressedForCompassNavigation() {
+    void leftClickIsNotCapturedByAdminItem() {
         Player player = server().addPlayer();
         AdminWorldTeleportItemService itemService = new AdminWorldTeleportItemService();
         Block block = player.getWorld().getBlockAt(0, 64, 0);

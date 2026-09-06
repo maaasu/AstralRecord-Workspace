@@ -19,12 +19,12 @@ class AdminWorldTeleportItemServiceTest extends MockBukkitTestBase {
      * 検証契約: 管理者用アイテムは専用 PDC マーカーで識別でき、プレイヤー向けの日本語名と使用方法を持つ。
      */
     @Test
-    void createsMarkedCompassWithJapaneseUsageText() {
+    void createsMarkedNetherStarWithJapaneseUsageText() {
         var service = new AdminWorldTeleportItemService();
 
         ItemStack item = service.createItem();
 
-        assertEquals(Material.COMPASS, item.getType());
+        assertEquals(Material.NETHER_STAR, item.getType());
         assertTrue(service.isTeleportItem(item));
         assertFalse(service.isTeleportItem(new ItemStack(Material.COMPASS)));
         assertNotNull(item.getItemMeta());

@@ -92,13 +92,13 @@ public final class AdminWorldTeleportItemEventHandler extends AbstractEventHandl
     }
 
     /**
-     * 外部のアイテムツールが管理者用コンパスの右クリックを処理する前に、入力を抑止します。
+     * 外部のアイテムツールが管理者用アイテムの右クリックを処理する前に、入力を抑止します。
      *
      * <p>{@link PlayerInteractionGatewayEventHandler} は Bukkit の
      * {@link PlayerInteractEvent#isCancelled()} と異なり、item use 側まで DENY の場合だけ
      * 初期キャンセルとして扱います。そのため、ブロック側を DENY にしたまま item use 側を
      * DEFAULT に戻し、外部ツールにはキャンセル済みとして見せつつ、gateway には候補解決を
-     * 継続させます。左クリックは対象外で、Compass のナビゲーション操作を維持します。
+     * 継続させます。左クリックは管理者用処理の対象外です。
      *
      * @param event プレイヤーの汎用 interact event
      */

@@ -17,7 +17,7 @@ import java.util.List;
  * 管理者用ワールドテレポートアイテムの生成と識別を担当します。
  */
 public final class AdminWorldTeleportItemService {
-    private static final Material ITEM_MATERIAL = Material.COMPASS;
+    private static final Material ITEM_MATERIAL = Material.NETHER_STAR;
     private static final NamespacedKey ITEM_MARKER_KEY =
             new NamespacedKey("astralrecord", "admin_world_teleport_item");
 
