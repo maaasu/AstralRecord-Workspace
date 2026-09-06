@@ -3,28 +3,25 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillBindPresetRepository;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import org.bukkit.Server;
 import org.bukkit.plugin.Plugin;
-import org.bukkit.scheduler.BukkitScheduler;
-import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.Test;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.doAnswer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
@@ -80,16 +77,18 @@ class SkillBindPresetServiceTest {
      * 検証契約: プリセット切替は通信なしでローカル確定し、保存キューへ渡す。
      */
     @Test
-    void selectPresetPersistsSelectionAsynchronously() {
+    void selectPresetConfirmsSelectionLocallyAndQueuesSave() {
         Plugin plugin = mock(Plugin.class);
         SkillBindPresetRepository repository = mock(SkillBindPresetRepository.class);
         UUID accountId = UUID.randomUUID();
+        InventoryService persistence = localPersistence(accountId);
         SkillBindPresetService service = new SkillBindPresetService(plugin, repository);
-        service.setLocalStatePersistence(localPersistence(accountId));
+        service.setLocalStatePersistence(persistence);
 
         service.selectPreset(accountId, 4);
 
         assertEquals(4, service.selectedPresetIndex(accountId));
+        verify(persistence).queueLocalPlayerSave(accountId);
         verify(repository, never()).select(any(), anyInt(), any());
     }
 
@@ -103,97 +102,54 @@ class SkillBindPresetServiceTest {
         Plugin plugin = mock(Plugin.class);
         SkillBindPresetRepository repository = mock(SkillBindPresetRepository.class);
         UUID accountId = UUID.randomUUID();
+        InventoryService persistence = localPersistence(accountId);
         SkillBindPresetService service = new SkillBindPresetService(plugin, repository);
-        service.setLocalStatePersistence(localPersistence(accountId));
+        service.setLocalStatePersistence(persistence);
 
         service.selectPreset(accountId, 4);
         service.selectPreset(accountId, 5);
 
         assertEquals(5, service.selectedPresetIndex(accountId));
-        assertEquals(5, service.snapshotPlayerState(accountId).payload().getAsJsonObject().get("selectedPresetIndex").getAsInt());
+        assertEquals(5, service.snapshotPlayerState(accountId).payload().getAsJsonObject()
+            .get("selectedPresetIndex").getAsInt());
+        verify(persistence, times(2)).queueLocalPlayerSave(accountId);
         verify(repository, never()).select(any(), anyInt(), any());
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
-     * 検証契約: session invalidate後の旧save callbackがcacheを再生成しない。
+     * 検証契約: バインド内容保存はrepository I/Oを行わずローカルcacheへ即時反映し、全プリセットsnapshotの保存を予約する。
      */
     @Test
-    void saveCompletionFromInvalidatedSessionDoesNotRecreateCache() {
+    void saveUpdatesLocalCacheAndQueuesPlayerStateSnapshot() {
         Plugin plugin = mock(Plugin.class);
-        Server server = mock(Server.class);
-        BukkitScheduler scheduler = mock(BukkitScheduler.class);
         SkillBindPresetRepository repository = mock(SkillBindPresetRepository.class);
-        List<Runnable> asyncTasks = new ArrayList<>();
-        List<Runnable> syncTasks = new ArrayList<>();
-        when(plugin.getServer()).thenReturn(server);
-        when(server.getScheduler()).thenReturn(scheduler);
-        doAnswer(invocation -> {
-            asyncTasks.add(invocation.getArgument(1));
-            return mock(BukkitTask.class);
-        }).when(scheduler).runTaskAsynchronously(eq(plugin), org.mockito.ArgumentMatchers.any(Runnable.class));
-        doAnswer(invocation -> {
-            syncTasks.add(invocation.getArgument(1));
-            return mock(BukkitTask.class);
-        }).when(scheduler).runTask(eq(plugin), org.mockito.ArgumentMatchers.any(Runnable.class));
         UUID accountId = UUID.randomUUID();
-        when(repository.save(eq(accountId), anyInt(), anyList(), any(), anyList(), eq(accountId)))
-            .thenAnswer(invocation -> preset(accountId, invocation.getArgument(1)));
+        InventoryService persistence = localPersistence(accountId);
         SkillBindPresetService service = new SkillBindPresetService(plugin, repository);
+        service.setLocalStatePersistence(persistence);
         service.applyInitialPresets(accountId, presets(accountId));
-        AtomicBoolean oldSuccess = new AtomicBoolean();
-        AtomicBoolean oldFailure = new AtomicBoolean();
 
         assertTrue(service.saveAsync(
             accountId,
-            1,
-            List.of("old"),
-            List.of(),
-            accountId,
-            ignored -> oldSuccess.set(true),
-            () -> oldFailure.set(true)
-        ));
-        asyncTasks.getFirst().run();
-        service.invalidate(accountId);
-
-        assertFalse(service.hasLoadedPresets(accountId));
-        assertFalse(service.saveAsync(
-            accountId,
             2,
-            List.of("blocked"),
-            List.of(),
+            List.of("active-one"),
+            "left-click",
+            List.of("passive-one"),
             accountId,
             ignored -> { },
-            () -> { }
+            () -> { throw new AssertionError("local save should succeed"); }
         ));
 
-        syncTasks.getFirst().run();
-
-        assertFalse(service.hasLoadedPresets(accountId));
-        assertFalse(oldSuccess.get());
-        assertFalse(oldFailure.get());
-
-        AtomicBoolean newSuccess = new AtomicBoolean();
-        assertTrue(service.saveAsync(
-            accountId,
-            2,
-            List.of("new"),
-            List.of(),
-            accountId,
-            ignored -> newSuccess.set(true),
-            () -> { }
-        ));
-        asyncTasks.get(1).run();
-        syncTasks.get(1).run();
-
-        assertTrue(newSuccess.get());
-        assertTrue(service.hasLoadedPresets(accountId));
-        assertEquals("new", service.getPresets(accountId).get(1).getActiveSkillSlots().getFirst());
-        verify(repository).save(
-            eq(accountId), eq(1), anyList(),
-            eq(SkillBindPreset.WEAPON_NORMAL_ATTACK_BINDING_ID), anyList(), eq(accountId)
-        );
+        SkillBindPreset saved = service.getPresets(accountId).get(1);
+        assertEquals("active-one", saved.getActiveSkillSlots().getFirst());
+        assertEquals("left-click", saved.getLeftClickSkillId());
+        assertEquals("passive-one", saved.getPassiveSkillSlots().getFirst());
+        assertEquals(3, service.snapshotPlayerState(accountId).payload().getAsJsonObject().getAsJsonArray("presets")
+            .get(1).getAsJsonObject().get("targetVersion").getAsInt());
+        verify(persistence).queueLocalPlayerSave(accountId);
+        verify(repository, never()).save(any(), anyInt(), anyList(), any(), anyList(), any());
     }
 
     /**
@@ -219,39 +175,27 @@ class SkillBindPresetServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/13_1-モデル定義.md
      * 章・見出し: # 13_1-モデル定義 > ## 5. バインドプリセット
-     * 検証契約: 左クリックバインドは null を保存して解除できる。
+     * 検証契約: 左クリックバインドのnull解除はローカルcacheとplayer-state snapshotへnullのまま確定する。
      */
     @Test
-    void saveAsyncPersistsNullLeftClickBindingAsUnbound() {
+    void savePersistsNullLeftClickBindingInLocalSnapshot() {
         Plugin plugin = mock(Plugin.class);
-        Server server = mock(Server.class);
-        BukkitScheduler scheduler = mock(BukkitScheduler.class);
         SkillBindPresetRepository repository = mock(SkillBindPresetRepository.class);
-        List<Runnable> asyncTasks = new ArrayList<>();
-        List<Runnable> syncTasks = new ArrayList<>();
         UUID accountId = UUID.randomUUID();
-        when(plugin.getServer()).thenReturn(server);
-        when(server.getScheduler()).thenReturn(scheduler);
-        doAnswer(invocation -> {
-            asyncTasks.add(invocation.getArgument(1));
-            return mock(BukkitTask.class);
-        }).when(scheduler).runTaskAsynchronously(eq(plugin), org.mockito.ArgumentMatchers.any(Runnable.class));
-        doAnswer(invocation -> {
-            syncTasks.add(invocation.getArgument(1));
-            return mock(BukkitTask.class);
-        }).when(scheduler).runTask(eq(plugin), org.mockito.ArgumentMatchers.any(Runnable.class));
-        when(repository.save(eq(accountId), anyInt(), anyList(), isNull(), anyList(), eq(accountId)))
-            .thenReturn(preset(accountId, 1));
+        InventoryService persistence = localPersistence(accountId);
         SkillBindPresetService service = new SkillBindPresetService(plugin, repository);
+        service.setLocalStatePersistence(persistence);
         service.applyInitialPresets(accountId, presets(accountId));
 
         assertTrue(service.saveAsync(
             accountId, 1, List.of(), null, List.of(), accountId, ignored -> { }, () -> { }
         ));
-        asyncTasks.getFirst().run();
-        syncTasks.getFirst().run();
 
-        verify(repository).save(eq(accountId), eq(1), anyList(), isNull(), anyList(), eq(accountId));
+        assertNull(service.getPresets(accountId).getFirst().getLeftClickSkillId());
+        assertTrue(service.snapshotPlayerState(accountId).payload().getAsJsonObject().getAsJsonArray("presets")
+            .get(0).getAsJsonObject().get("leftClickSkillId").isJsonNull());
+        verify(persistence).queueLocalPlayerSave(accountId);
+        verify(repository, never()).save(any(), anyInt(), anyList(), any(), anyList(), any());
     }
 
     private List<SkillBindPreset> presets(UUID accountId) {
@@ -281,19 +225,6 @@ class SkillBindPresetServiceTest {
             ));
         }
         return presets;
-    }
-
-    private SkillBindPreset preset(UUID accountId, int presetIndex) {
-        return new SkillBindPreset(
-            UUID.randomUUID(),
-            accountId,
-            presetIndex,
-            List.of(presetIndex == 2 ? "new" : "old"),
-            List.of(),
-            true,
-            true,
-            0
-        );
     }
 
     private InventoryService localPersistence(UUID accountId) {
