@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryApiEx
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepository;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateAcknowledgementException;
 import io.github.maaasu.astralRecord.feature.mutation.repository.PlayerStateRepository;
 import io.github.maaasu.astralRecord.feature.mutation.service.PendingStateStore;
 import com.google.gson.JsonObject;
@@ -56,7 +57,10 @@ public final class InventoryPersistence {
     private final Map<UUID, PlayerStateSnapshot> pendingSnapshots = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, Set<UUID>>> persistedEntryIds = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, java.time.LocalDateTime>> persistedEntryVersions = new ConcurrentHashMap<>();
-    private final Set<UUID> snapshotsOnDisk = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, Object> journalLocks = new ConcurrentHashMap<>();
+    private final Map<UUID, PlayerInventoryState> liveStates = new ConcurrentHashMap<>();
+    private final Map<UUID, CheckpointLane> checkpointLanes = new ConcurrentHashMap<>();
+    private final Set<UUID> frozenAccounts = ConcurrentHashMap.newKeySet();
     private final Set<UUID> blockedSnapshots = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Integer> snapshotAttempts = new ConcurrentHashMap<>();
     private final Map<UUID, Long> retryNotBefore = new ConcurrentHashMap<>();
@@ -435,31 +439,45 @@ public final class InventoryPersistence {
 
     private boolean savePlayerStateLocked(PlayerInventoryState state, Map<UUID, List<InventoryEntryModel>> baselineTarget) {
         UUID accountId = state.getAccountId();
-        PlayerStateSnapshot snapshot = pendingSnapshots.get(accountId);
-        if (snapshot == null) {
-            synchronized (state) {
-                List<PlayerStateSection> sections = stateParticipants.stream().map(participant -> participant.apply(accountId))
-                    .filter(java.util.Objects::nonNull).toList();
-                var equipment = itemService.snapshotDirtyEquipmentState(accountId);
-                if (!state.isDirty() && equipment.isEmpty() && sections.isEmpty()) return false;
-                snapshot = new PlayerStateSnapshot(state, equipment, sections, persistedEntryIds.getOrDefault(accountId, Map.of()),
-                    persistedEntryVersions.getOrDefault(accountId, Map.of()));
-                state.takeAndClearDirty();
-                pendingSnapshots.put(accountId, snapshot);
+        if (frozenAccounts.contains(accountId)) return false;
+        liveStates.put(accountId, state);
+        PlayerStateSnapshot snapshot;
+        synchronized (journalLock(accountId)) {
+            if (frozenAccounts.contains(accountId)) return false;
+            snapshot = pendingSnapshots.get(accountId);
+            if (snapshot == null) {
+                synchronized (state) {
+                    snapshot = captureState(state, false);
+                    if (snapshot == null) return false;
+                    state.takeAndClearDirty();
+                    pendingSnapshots.put(accountId, snapshot);
+                }
             }
         }
         if (blockedSnapshots.contains(snapshot.snapshotId)) return true;
         Long retryAt = retryNotBefore.get(accountId);
         if (retryAt != null && System.nanoTime() - retryAt < 0L) return true;
         try {
-            if (!snapshotsOnDisk.contains(snapshot.snapshotId)) {
-                pendingStateStore.write(accountId, snapshot.payload);
-                snapshotsOnDisk.add(snapshot.snapshotId);
+            synchronized (journalLock(accountId)) {
+                if (frozenAccounts.contains(accountId)) return false;
+                writeJournal(state, snapshot);
             }
             JsonObject ack = playerStateRepository.saveSnapshot(snapshot.payload);
-            snapshot.validateAck(ack);
+            try {
+                snapshot.validateAck(ack);
+            } catch (RuntimeException invalid) {
+                throw new PlayerStateAcknowledgementException(invalid);
+            }
             var entryVersions = PlayerStateSnapshot.versions(ack, "entries", "inventoryEntryId");
-            synchronized (state) {
+            synchronized (journalLock(accountId)) {
+              if (frozenAccounts.contains(accountId)) {
+                  acknowledgeFrozenJournal(accountId, snapshot, ack);
+                  pendingSnapshots.remove(accountId, snapshot);
+                  snapshotAttempts.remove(accountId);
+                  retryNotBefore.remove(accountId);
+                  return true;
+              }
+              synchronized (state) {
                 state.acknowledgeSnapshotVersions(snapshot.inventories,
                     PlayerStateSnapshot.versions(ack, "inventories", "inventoryId"),
                     PlayerStateSnapshot.versions(ack, "loadouts", "equipmentLoadoutId"), entryVersions);
@@ -480,14 +498,16 @@ public final class InventoryPersistence {
                 persistedEntryVersions.put(accountId, savedVersions);
                 if (baselineTarget != null) baselineTarget.putAll(snapshot.baseline(ack).entriesByInventoryId());
             }
-            pendingStateStore.delete(accountId);
-            pendingSnapshots.remove(accountId, snapshot);
-            snapshotsOnDisk.remove(snapshot.snapshotId);
+              // ACK後の後続状態を先に耐久化する。書込失敗なら旧headを残して再試行する。
+              writeJournal(state, null);
+              pendingSnapshots.remove(accountId, snapshot);
+            }
             snapshotAttempts.remove(accountId);
             retryNotBefore.remove(accountId);
         } catch (RuntimeException failure) {
-            if (failure instanceof InventoryApiException api && api.getStatusCode() >= 400 && api.getStatusCode() < 500
-                && api.getStatusCode() != 408 && api.getStatusCode() != 429) {
+            if (failure instanceof PlayerStateAcknowledgementException
+                || failure instanceof InventoryApiException api && api.getStatusCode() >= 400 && api.getStatusCode() < 500
+                    && api.getStatusCode() != 408 && api.getStatusCode() != 429) {
                 blockedSnapshots.add(snapshot.snapshotId);
             }
             int attempt = snapshotAttempts.merge(accountId, 1, Integer::sum);
@@ -496,6 +516,152 @@ public final class InventoryPersistence {
             Logger.warn(LogId.W_5252, accountId, failureReason(failure));
         }
         return true;
+    }
+
+    private Object journalLock(UUID accountId) {
+        return journalLocks.computeIfAbsent(accountId, ignored -> new Object());
+    }
+
+    private void acknowledgeFrozenJournal(UUID accountId, PlayerStateSnapshot snapshot, JsonObject ack) {
+        String stored = pendingStateStore.read(accountId);
+        if (stored == null) throw new IllegalStateException("Missing frozen player-state journal");
+        PlayerStateJournal journal = PlayerStateJournal.decode(stored);
+        journal.validateAccount(accountId);
+        if (!com.google.gson.JsonParser.parseString(journal.inFlight()).getAsJsonObject().get("snapshotId")
+            .getAsString().equals(snapshot.snapshotId.toString()))
+            throw new IllegalStateException("Frozen journal head mismatch");
+        if (journal.successor() == null) pendingStateStore.delete(accountId);
+        else pendingStateStore.write(accountId, new PlayerStateJournal(journal.advance(ack), null).encode());
+    }
+
+    /** state monitor内で捕捉する。API・ファイルI/Oを呼ばない。 */
+    private PlayerStateSnapshot captureState(PlayerInventoryState state, boolean includePendingInventories) {
+        UUID accountId = state.getAccountId();
+        List<PlayerStateSection> sections = stateParticipants.stream().map(participant -> participant.apply(accountId))
+            .filter(java.util.Objects::nonNull).toList();
+        var equipment = itemService.snapshotDirtyEquipmentState(accountId);
+        if (!state.isDirty() && equipment.isEmpty() && sections.isEmpty() && !includePendingInventories) return null;
+        return new PlayerStateSnapshot(state, equipment, sections, persistedEntryIds.getOrDefault(accountId, Map.of()),
+            persistedEntryVersions.getOrDefault(accountId, Map.of()), includePendingInventories);
+    }
+
+    /** journal lockを保持し、現在値から毎回捕捉するため古いwriterが新しい内容を上書きしない。 */
+    private void writeJournal(PlayerInventoryState state, PlayerStateSnapshot head) {
+        PlayerStateSnapshot latest;
+        synchronized (state) {
+            latest = captureState(state, head != null && !head.inventories.isEmpty());
+        }
+        if (head == null && latest == null) {
+            pendingStateStore.delete(state.getAccountId());
+            return;
+        }
+        String first = head == null ? latest.payload : head.payload;
+        String next = head != null && latest != null && !PlayerStateJournal.sameState(first, latest.payload)
+            ? latest.payload : null;
+        pendingStateStore.write(state.getAccountId(), new PlayerStateJournal(first, next).encode());
+    }
+
+    /**
+     * API laneとは独立して、送信中と後続最新状態をファイルへ記録します。連打は最新一世代へ合流します。
+     * @param state 対象の現在state
+     * @param executor ローカルI/Oを実行するexecutor
+     * @return この要求までのファイル書込完了。API応答は待たない
+     */
+    public java.util.concurrent.CompletableFuture<Void> checkpointAsync(
+        @NotNull PlayerInventoryState state, @NotNull java.util.concurrent.Executor executor
+    ) {
+        return checkpointAsync(state, executor, () -> true);
+    }
+
+    /**
+     * 外部取引の未解決境界を検査した上で、ローカル記録を要求します。
+     * @param state 対象state
+     * @param executor I/O executor
+     * @param allowed 実捕捉時に外部取引が未解決でなければtrue
+     * @return ローカル記録の完了
+     */
+    public java.util.concurrent.CompletableFuture<Void> checkpointAsync(
+        @NotNull PlayerInventoryState state, @NotNull java.util.concurrent.Executor executor,
+        @NotNull java.util.function.BooleanSupplier allowed
+    ) {
+        if (!usesPlayerStateSnapshots()) return java.util.concurrent.CompletableFuture.completedFuture(null);
+        UUID accountId = state.getAccountId();
+        liveStates.put(accountId, state);
+        CheckpointLane lane = checkpointLanes.computeIfAbsent(accountId, ignored -> new CheckpointLane());
+        synchronized (lane) {
+            lane.state = state;
+            lane.allowed = allowed;
+            lane.revision++;
+            if (lane.future != null) return lane.future;
+            var result = new java.util.concurrent.CompletableFuture<Void>();
+            lane.future = result;
+            try {
+                executor.execute(() -> drainCheckpoints(accountId, lane, result));
+            } catch (RuntimeException rejected) {
+                lane.future = null;
+                result.completeExceptionally(rejected);
+            }
+            return result;
+        }
+    }
+
+    private void drainCheckpoints(UUID accountId, CheckpointLane lane, java.util.concurrent.CompletableFuture<Void> result) {
+        try {
+            while (true) {
+                PlayerInventoryState state;
+                java.util.function.BooleanSupplier allowed;
+                long revision;
+                synchronized (lane) {
+                    state = lane.state;
+                    allowed = lane.allowed;
+                    revision = lane.revision;
+                }
+                synchronized (journalLock(accountId)) {
+                    if (liveStates.get(accountId) == state && !frozenAccounts.contains(accountId) && allowed.getAsBoolean())
+                        writeJournal(state, pendingSnapshots.get(accountId));
+                }
+                synchronized (lane) {
+                    if (revision == lane.revision) {
+                        lane.future = null;
+                        result.complete(null);
+                        return;
+                    }
+                }
+            }
+        } catch (RuntimeException failure) {
+            synchronized (lane) { lane.future = null; }
+            result.completeExceptionally(failure);
+            Logger.warn(LogId.W_5252, accountId, failureReason(failure));
+        }
+    }
+
+    private static final class CheckpointLane {
+        private PlayerInventoryState state;
+        private java.util.function.BooleanSupplier allowed;
+        private long revision;
+        private java.util.concurrent.CompletableFuture<Void> future;
+    }
+
+    /**
+     * 正常停止用の最終記録。以後の遅延ACKはメモリから再捕捉せず、凍結した後続本文を引き継ぎます。
+     * @param state 最終state
+     * @param executor ローカルI/O executor
+     * @param allowed 外部取引が未解決でなければtrue
+     * @return 最終記録完了
+     */
+    public java.util.concurrent.CompletableFuture<Void> freezeCheckpointAsync(
+        @NotNull PlayerInventoryState state, @NotNull java.util.concurrent.Executor executor,
+        @NotNull java.util.function.BooleanSupplier allowed
+    ) {
+        if (!usesPlayerStateSnapshots()) return java.util.concurrent.CompletableFuture.completedFuture(null);
+        return java.util.concurrent.CompletableFuture.runAsync(() -> {
+            UUID accountId = state.getAccountId();
+            synchronized (journalLock(accountId)) {
+                if (!frozenAccounts.contains(accountId) && allowed.getAsBoolean())
+                    writeJournal(state, pendingSnapshots.get(accountId));
+                frozenAccounts.add(accountId);
+            }
+        }, executor);
     }
 
     /**
@@ -510,13 +676,22 @@ public final class InventoryPersistence {
     }
 
     private boolean recoverPendingSnapshotLocked(UUID accountId) {
-        if (!usesPlayerStateSnapshots() || pendingSnapshots.containsKey(accountId)) return false;
+        if (!usesPlayerStateSnapshots() || liveStates.containsKey(accountId) || pendingSnapshots.containsKey(accountId)) return false;
         String pending = pendingStateStore.read(accountId);
         if (pending == null) return false;
-        JsonObject ack = playerStateRepository.saveSnapshot(pending);
-        PlayerStateSnapshot.validatePayloadAck(pending, ack);
-        pendingStateStore.delete(accountId);
-        return true;
+        PlayerStateJournal journal = PlayerStateJournal.decode(pending);
+        journal.validateAccount(accountId);
+        while (true) {
+            JsonObject ack = playerStateRepository.saveSnapshot(journal.inFlight());
+            PlayerStateSnapshot.validatePayloadAck(journal.inFlight(), ack);
+            if (journal.successor() == null) {
+                pendingStateStore.delete(accountId);
+                return true;
+            }
+            journal = new PlayerStateJournal(journal.advance(ack), null);
+            // 先行が既に受領済みであることと次便の期待版を、次便POSTより先に記録する。
+            pendingStateStore.write(accountId, journal.encode());
+        }
     }
 
     /**
@@ -573,6 +748,7 @@ public final class InventoryPersistence {
     public boolean saveNow(@NotNull PlayerInventoryState state) {
         if (usesPlayerStateSnapshots()) {
             synchronized (snapshotSaveLocks.computeIfAbsent(state.getAccountId(), ignored -> new Object())) {
+                if (frozenAccounts.contains(state.getAccountId())) return false;
                 boolean previousPending = pendingSnapshots.containsKey(state.getAccountId());
                 state.markDirty();
                 savePlayerStateLocked(state, null);
@@ -702,11 +878,16 @@ public final class InventoryPersistence {
      * @param accountId 対象アカウントID
      */
     public void clearAccount(@NotNull UUID accountId) {
-        if (pendingSnapshots.containsKey(accountId)) return;
-        persistedEntryIds.remove(accountId);
-        persistedEntryVersions.remove(accountId);
-        lastPersistedLoadoutSlots.remove(accountId);
-        itemService.clearEquipmentState(accountId);
+        synchronized (journalLock(accountId)) {
+            PlayerInventoryState state = liveStates.get(accountId);
+            if (pendingSnapshots.containsKey(accountId) || state != null && hasPendingChanges(state)) return;
+            liveStates.remove(accountId);
+            checkpointLanes.remove(accountId);
+            persistedEntryIds.remove(accountId);
+            persistedEntryVersions.remove(accountId);
+            lastPersistedLoadoutSlots.remove(accountId);
+            itemService.clearEquipmentState(accountId);
+        }
     }
 
     /**

@@ -110,6 +110,7 @@ public final class InventorySaveCoordinator {
             return CompletableFuture.completedFuture(false);
         }
         state.markDirty();
+        checkpoint(state);
         return enqueue(accountId, true, () -> {
             if (stateRegistry.get(accountId) != state) {
                 return true;
@@ -140,6 +141,7 @@ public final class InventorySaveCoordinator {
      */
     public @NotNull CompletableFuture<Boolean> saveAuto(@NotNull PlayerInventoryState state) {
         UUID accountId = state.getAccountId();
+        checkpoint(state);
         return enqueue(accountId, true, () -> {
             if (stateRegistry.get(accountId) != state) {
                 return true;
@@ -807,6 +809,29 @@ public final class InventorySaveCoordinator {
             PlayerInventoryState state = stateRegistry.get(accountId);
             if (!closing && state != null) saveAuto(state);
         });
+    }
+
+    private CompletableFuture<Void> checkpoint(PlayerInventoryState state) {
+        UUID accountId = state.getAccountId();
+        if (!persistence.usesPlayerStateSnapshots() || stateRegistry.get(accountId) != state)
+            return CompletableFuture.completedFuture(null);
+        return persistence.checkpointAsync(state, asyncExecutor,
+            () -> !unresolvedExternalOperations.containsKey(accountId));
+    }
+
+    /**
+     * 停止時、API queueの成否に依存せず現在のローカル状態をファイルへ退避します。
+     * @return 全対象のローカル記録が完了するfuture
+     */
+    public @NotNull CompletableFuture<Void> flushLocalCheckpoints() {
+        List<CompletableFuture<Void>> pending = new ArrayList<>();
+        for (PlayerInventoryState state : stateRegistry.all()) {
+            if (closing && persistence.usesPlayerStateSnapshots())
+                pending.add(persistence.freezeCheckpointAsync(state, asyncExecutor,
+                    () -> !unresolvedExternalOperations.containsKey(state.getAccountId())));
+            else pending.add(checkpoint(state));
+        }
+        return CompletableFuture.allOf(pending.toArray(CompletableFuture[]::new));
     }
 
     private @Nullable UUID claimExternalBoundary(

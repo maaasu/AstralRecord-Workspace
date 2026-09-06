@@ -4,6 +4,7 @@ import com.google.gson.*;
 import io.github.maaasu.astralRecord.feature.inventory.model.*;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateAcknowledgementException;
 
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -23,10 +24,16 @@ final class PlayerStateSnapshot {
     PlayerStateSnapshot(PlayerInventoryState state, List<EquipmentInstance> equipment,
                         List<PlayerStateSection> sections, Map<UUID, Set<UUID>> persistedEntries,
                         Map<UUID, LocalDateTime> persistedVersions) {
+        this(state, equipment, sections, persistedEntries, persistedVersions, false);
+    }
+
+    PlayerStateSnapshot(PlayerInventoryState state, List<EquipmentInstance> equipment,
+                        List<PlayerStateSection> sections, Map<UUID, Set<UUID>> persistedEntries,
+                        Map<UUID, LocalDateTime> persistedVersions, boolean includePendingInventories) {
         this.accountId = state.getAccountId();
         this.equipment = List.copyOf(equipment);
         this.sections = List.copyOf(sections);
-        boolean inventoryDirty = state.isDirty();
+        boolean inventoryDirty = state.isDirty() || includePendingInventories;
         this.inventories = inventoryDirty ? state.snapshotInventories().stream()
             .filter(value -> value.isEnabled() && !value.isDeleted()).toList() : List.of();
         JsonObject body = new JsonObject();
@@ -200,16 +207,13 @@ final class PlayerStateSnapshot {
                     case "skillTree" -> requireVersion(section, received, "expectedVersion", "version");
                     case "accountProgress" -> requireVersion(section, received, "expectedProgressVersion", "progressVersion");
                     case "waystones" -> {
-                        Set<String> ids = new HashSet<>();
-                        for (JsonElement id : received.getAsJsonArray("unlockedWaystoneIds")) ids.add(id.getAsString());
-                        for (JsonElement id : section.getAsJsonArray("unlockedWaystoneIds"))
-                            if (!ids.contains(id.getAsString())) throw new IllegalStateException("Missing waystone acknowledgement");
+                        requireEqual(section.get("unlockedWaystoneIds"), received.get("unlockedWaystoneIds"));
                     }
                     default -> throw new IllegalStateException("Unsupported section");
                 }
             }
         } catch (RuntimeException invalid) {
-            throw new IllegalStateException("Incomplete player-state acknowledgement", invalid);
+            throw new PlayerStateAcknowledgementException(invalid);
         }
     }
 

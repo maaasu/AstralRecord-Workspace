@@ -4,6 +4,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryApiException;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateAcknowledgementException;
 
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
@@ -25,7 +26,11 @@ public class PlayerStateRepository {
             if (response.statusCode() != 200) {
                 throw new InventoryApiException("POST", path, response.statusCode(), response.body());
             }
-            return JsonParser.parseString(response.body()).getAsJsonObject();
+            try {
+                return JsonParser.parseString(response.body()).getAsJsonObject();
+            } catch (RuntimeException invalid) {
+                throw new PlayerStateAcknowledgementException(invalid);
+            }
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Player snapshot save interrupted", interrupted);

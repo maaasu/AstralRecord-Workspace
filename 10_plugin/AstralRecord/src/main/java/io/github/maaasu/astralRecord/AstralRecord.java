@@ -664,6 +664,11 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (inventorySaveCoordinator != null) {
             inventorySaveCoordinator.beginClosing();
+            try {
+                inventorySaveCoordinator.flushLocalCheckpoints().join();
+            } catch (RuntimeException failure) {
+                Logger.warn(LogId.W_5252, "player-state-checkpoint", failure.getMessage());
+            }
             inventorySaveCoordinator.awaitPendingWrites(5000L);
         }
         if (inventoryService != null) {

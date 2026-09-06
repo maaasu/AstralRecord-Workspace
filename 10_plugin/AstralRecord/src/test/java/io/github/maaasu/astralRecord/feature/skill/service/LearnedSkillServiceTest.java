@@ -576,7 +576,7 @@ class LearnedSkillServiceTest {
         assertTrue(onlySkill(learnSnapshot).get("expectedVersion").isJsonNull());
         assertTrue(service.forgetAsync(accountId, skillId, accountId,
             ignored -> { }, failure -> { throw new AssertionError(failure); }));
-        assertEquals(1, onlyDeletedSkill(service.snapshotPlayerState(accountId)).get("expectedVersion").getAsInt());
+        assertTrue(service.snapshotPlayerState(accountId).payload().getAsJsonObject().getAsJsonArray("deletedSkills").isEmpty());
         service.invalidate(accountId);
 
         learnSnapshot.acknowledge().accept(acknowledgement(learnSnapshot, Map.of(skillId, 9), List.of()));
@@ -588,6 +588,29 @@ class LearnedSkillServiceTest {
         assertEquals(9, onlyDeletedSkill(deletion).get("expectedVersion").getAsInt());
         deletion.acknowledge().accept(acknowledgement(deletion, Map.of(), List.of(skillId)));
         assertFalse(service.hasLoadedSkills(accountId));
+        assertNull(service.snapshotPlayerState(accountId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: captureだけで未送信の新規習得をforgetしても存在しない個体の削除予定を作らない。
+     */
+    @Test
+    void forgettingCapturedButNeverSentLearnDoesNotCreatePhantomDeletion() {
+        UUID accountId = UUID.randomUUID();
+        LearnedSkillService service = service(accountId, committingInventory(accountId), List.of());
+        assertTrue(service.learnFromManagerAsync(accountId, "adventurer_smash", accountId,
+            List.of(UUID.randomUUID()), ignored -> { }, failure -> { throw new AssertionError(failure); }));
+        UUID skillId = service.getLearnedSkills(accountId).getFirst().getLearnedSkillId();
+        assertNotNull(service.snapshotPlayerState(accountId));
+        assertNotNull(service.snapshotPlayerState(accountId));
+        assertTrue(service.forgetAsync(accountId, skillId, accountId,
+            ignored -> { }, failure -> { throw new AssertionError(failure); }));
+        PlayerStateSection initialSend = service.snapshotPlayerState(accountId);
+        assertTrue(initialSend.payload().getAsJsonObject().getAsJsonArray("skills").isEmpty());
+        assertTrue(initialSend.payload().getAsJsonObject().getAsJsonArray("deletedSkills").isEmpty());
+        initialSend.acknowledge().accept(acknowledgement(initialSend, Map.of(), List.of()));
         assertNull(service.snapshotPlayerState(accountId));
     }
 

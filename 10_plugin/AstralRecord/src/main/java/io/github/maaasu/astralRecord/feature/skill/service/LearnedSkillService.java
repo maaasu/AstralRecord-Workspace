@@ -72,7 +72,6 @@ public final class LearnedSkillService {
     private final Set<UUID> retainedInitialLoads = ConcurrentHashMap.newKeySet();
     private final Map<UUID, UUID> playerStateEpochs = new ConcurrentHashMap<>();
     private final Map<UUID, Long> acknowledgedPlayerStateRevisions = new ConcurrentHashMap<>();
-    private final Map<UUID, Map<UUID, Integer>> capturedSkillVersions = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, Integer>> persistedSkillVersions = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, LocalDateTime>> persistedSkillUpdatedAts = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, Integer>> pendingDeletedSkillVersions = new ConcurrentHashMap<>();
@@ -156,7 +155,6 @@ public final class LearnedSkillService {
         dirtyPlayerStates.remove(accountId);
         playerStateEpochs.put(accountId, UUID.randomUUID());
         acknowledgedPlayerStateRevisions.remove(accountId);
-        capturedSkillVersions.remove(accountId);
     }
 
     /**
@@ -184,7 +182,6 @@ public final class LearnedSkillService {
         dirtyPlayerStates.remove(accountId);
         playerStateEpochs.remove(accountId);
         acknowledgedPlayerStateRevisions.remove(accountId);
-        capturedSkillVersions.remove(accountId);
         mutationLocks.computeIfPresent(accountId, (ignored, lock) -> lock.get() ? lock : null);
         sessionTokens.remove(accountId);
     }
@@ -872,9 +869,6 @@ public final class LearnedSkillService {
                     }
                     Integer expectedVersion = persistedSkillVersions
                         .getOrDefault(accountId, Map.of()).get(learnedSkillId);
-                    if (expectedVersion == null) {
-                        expectedVersion = capturedSkillVersions.getOrDefault(accountId, Map.of()).get(learnedSkillId);
-                    }
                     if (expectedVersion != null) {
                         pendingDeletedSkillVersions.computeIfAbsent(accountId,
                             ignored -> new ConcurrentHashMap<>()).put(learnedSkillId, expectedVersion);
@@ -941,7 +935,6 @@ public final class LearnedSkillService {
             skills.add(value);
         }
         payload.add("skills", skills);
-        capturedSkillVersions.computeIfAbsent(accountId, ignored -> new ConcurrentHashMap<>()).putAll(capturedVersions);
         JsonArray deletedSkills = new JsonArray();
         Set<UUID> capturedDeletedIds = new LinkedHashSet<>();
         for (Map.Entry<UUID, Integer> deleted : pendingDeletedSkillVersions
@@ -1055,6 +1048,10 @@ public final class LearnedSkillService {
                     replaceCached(new LearnedSkillInstance(current.getLearnedSkillId(), accountId,
                         current.getSkillId(), current.getLevel(), current.getSigils(), nextVersion,
                         current.getCreatedAt(), current.getUpdatedAt()));
+                } else {
+                    // 捕捉だけでは送信済みと見なさない。新規learnの実ACKで初めて削除期待版が確定する。
+                    pending = pendingDeletedSkillVersions.computeIfAbsent(accountId, ignored -> new ConcurrentHashMap<>());
+                    pending.put(entry.getKey(), version);
                 }
                 if (pending != null && pending.containsKey(entry.getKey())) pending.put(entry.getKey(), version);
                 if (receivedUpdatedAts.containsKey(entry.getKey())) {
@@ -1063,8 +1060,6 @@ public final class LearnedSkillService {
             }
             for (UUID id : deletedIds) {
                 versions.remove(id); updatedAts.remove(id);
-                Map<UUID, Integer> captured = capturedSkillVersions.get(accountId);
-                if (captured != null) captured.remove(id);
                 if (pending != null) pending.remove(id);
             }
         } catch (RuntimeException malformedAck) { return; }

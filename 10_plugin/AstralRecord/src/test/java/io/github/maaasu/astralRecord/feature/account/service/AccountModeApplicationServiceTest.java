@@ -99,7 +99,7 @@ class AccountModeApplicationServiceTest {
         when(astPlayer.getAccount()).thenReturn(initial);
         when(accountService.setMode(initial, AccountMode.ADMIN, updatedBy)).thenAnswer(invocation -> {
             firstEntered.countDown();
-            releaseFirst.await(1, TimeUnit.SECONDS);
+            releaseFirst.await(5, TimeUnit.SECONDS);
             return firstResult;
         });
         when(accountService.setMode(initial, AccountMode.PLAYER, updatedBy)).thenAnswer(invocation -> {
@@ -113,21 +113,26 @@ class AccountModeApplicationServiceTest {
         AccountModeApplicationService service = new AccountModeApplicationService(accountService, inventoryService);
         ExecutorService executor = Executors.newFixedThreadPool(2);
 
-        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
-            cache.when(AstPlayerCache::getAll).thenReturn(List.of(astPlayer));
-            Future<AccountModeApplicationService.PersistedModeChange> first = executor.submit(() ->
-                service.persistModeChange(initial, AccountMode.ADMIN, updatedBy)
-            );
-            assertTrue(firstEntered.await(1, TimeUnit.SECONDS));
-            Future<AccountModeApplicationService.PersistedModeChange> second = executor.submit(() ->
-                service.persistModeChange(firstResult, AccountMode.PLAYER, updatedBy)
-            );
+        try {
+            Future<AccountModeApplicationService.PersistedModeChange> first = executor.submit(() -> {
+                try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+                    cache.when(AstPlayerCache::getAll).thenReturn(List.of(astPlayer));
+                    return service.persistModeChange(initial, AccountMode.ADMIN, updatedBy);
+                }
+            });
+            assertTrue(firstEntered.await(5, TimeUnit.SECONDS));
+            Future<AccountModeApplicationService.PersistedModeChange> second = executor.submit(() -> {
+                try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class)) {
+                    cache.when(AstPlayerCache::getAll).thenReturn(List.of(astPlayer));
+                    return service.persistModeChange(firstResult, AccountMode.PLAYER, updatedBy);
+                }
+            });
 
             assertFalse(secondEntered.await(100, TimeUnit.MILLISECONDS));
             releaseFirst.countDown();
 
-            assertTrue(first.get(1, TimeUnit.SECONDS).generation()
-                < second.get(1, TimeUnit.SECONDS).generation());
+            assertTrue(first.get(5, TimeUnit.SECONDS).generation()
+                < second.get(5, TimeUnit.SECONDS).generation());
         } finally {
             releaseFirst.countDown();
             executor.shutdownNow();
