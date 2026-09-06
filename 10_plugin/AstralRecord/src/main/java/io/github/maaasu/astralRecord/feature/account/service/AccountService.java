@@ -49,6 +49,7 @@ public class AccountService {
     private final Map<UUID, PendingModeUpdate> pendingModeUpdates = new ConcurrentHashMap<>();
     private final Map<UUID, Long> pendingProgressRevisions = new ConcurrentHashMap<>();
     private final Map<UUID, Integer> acknowledgedProgressVersions = new ConcurrentHashMap<>();
+    private final Map<UUID, AccountModel> persistedOfflineModes = new ConcurrentHashMap<>();
     /**
      * account進行の read-modify-write と snapshot取得を直列化するガードです。
      * InventoryService の state lock を取った呼出元では、必ずその内側で取得します。
@@ -142,11 +143,50 @@ public class AccountService {
      * @return アカウントモデル。存在しない場合は null
      */
     public AccountModel getAccount(UUID accountUuid) {
-        AccountModel account = accountRepository.findByUuid(accountUuid);
-        if (account != null) {
-            acknowledgedProgressVersions.putIfAbsent(account.getUuid(), account.getProgressVersion());
-        }
-        return account == null ? null : overlayPendingProgress(account);
+        return withProgressLock(accountUuid, () -> {
+            AccountModel account = accountRepository.findByUuid(accountUuid);
+            if (account != null) {
+                acknowledgedProgressVersions.merge(account.getUuid(), account.getProgressVersion(), Math::max);
+            }
+            return account == null ? null : overlayPendingProgress(account);
+        });
+    }
+
+    /**
+     * 未保存進行のないofflineアカウントのmodeをAPIへ保存します。管理コマンドの非同期処理専用です。
+     * 初期読込と同じaccountガードで直列化し、成功後だけ進行版とmodeの読込overlayを更新します。
+     *
+     * @param accountId 対象アカウント
+     * @param mode 保存するmode
+     * @param updatedBy 管理操作の実行者
+     * @return APIが保存したアカウント
+     * @throws IllegalStateException 未ACK進行がある場合
+     */
+    public @NotNull AccountModel saveOfflineMode(
+        @NotNull UUID accountId, @NotNull AccountMode mode, @NotNull UUID updatedBy
+    ) {
+        return withProgressLock(accountId, () -> {
+            if (pendingProgressRevisions.containsKey(accountId)) {
+                throw new IllegalStateException("Offline account has pending player state: " + accountId);
+            }
+            AccountModel saved = accountRepository.updateMode(accountId, mode, updatedBy);
+            acknowledgedProgressVersions.merge(accountId, saved.getProgressVersion(), Math::max);
+            persistedOfflineModes.put(accountId, saved);
+            Logger.log(LogId.I_5102, accountId, mode.getValue(), updatedBy);
+            return saved;
+        });
+    }
+
+    /**
+     * offline API待機中にログインした対象へ、現在の進行を保持して保存済みmodeだけを反映します。
+     * @param current 現在のオンライン状態
+     * @param saved API保存済み結果
+     * @return 最新pending進行とmodeを重ねた状態
+     */
+    public @NotNull AccountModel mergeSavedOfflineMode(@NotNull AccountModel current, @NotNull AccountModel saved) {
+        return withProgressLock(current.getUuid(), () -> overlayPendingProgress(
+            withMode(current, saved.getMode(), saved.getUpdatedBy())
+        ));
     }
 
     /**
@@ -632,6 +672,10 @@ public class AccountService {
     }
 
     private @NotNull AccountModel overlayPendingProgressLocked(@NotNull AccountModel account) {
+        AccountModel savedMode = persistedOfflineModes.get(account.getUuid());
+        if (savedMode != null && account.getProgressVersion() < savedMode.getProgressVersion()) {
+            account = withMode(account, savedMode.getMode(), savedMode.getUpdatedBy());
+        }
         PendingExperienceUpdate pending = pendingExperienceUpdates.get(account.getUuid());
         AccountModel overlaid = pending == null ? account : pending.account();
         PendingClassProgressUpdate classPending = pendingClassProgressUpdates.get(account.getUuid());

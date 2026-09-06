@@ -23,6 +23,38 @@ public final class AccountModeApplicationService {
     }
 
     /**
+     * 対象accountがオンラインcacheに存在するか判定します。
+     *
+     * @param accountId 対象account
+     * @return オンラインcacheに存在する場合は {@code true}
+     */
+    public boolean isAccountOnline(@NotNull UUID accountId) {
+        return AstPlayerCache.getAll().stream().anyMatch(player -> player.getAccount().getUuid().equals(accountId));
+    }
+
+    /**
+     * offline管理対象をAPI保存します。非同期処理から呼び、成功後にmain threadで結果を通知します。
+     * @param current 取得済みaccount
+     * @param mode 保存するmode
+     * @param updatedBy 管理操作の実行者
+     * @return API保存済みの結果
+     * @throws IllegalStateException 対象がオンラインになった場合、または未保存進行がある場合
+     */
+    public @NotNull PersistedModeChange persistOfflineModeChange(
+        @NotNull AccountModel current, @NotNull AccountMode mode, @NotNull UUID updatedBy
+    ) {
+        UUID accountId = current.getUuid();
+        ModeChangeState state = modeChangeStates.computeIfAbsent(accountId, ignored -> new ModeChangeState());
+        synchronized (state.persistenceMonitor) {
+            if (isAccountOnline(accountId)) {
+                throw new IllegalStateException("Account became online: " + accountId);
+            }
+            AccountModel saved = accountService.saveOfflineMode(accountId, mode, updatedBy);
+            return new PersistedModeChange(saved, state.persistedGeneration.incrementAndGet(), true);
+        }
+    }
+
+    /**
      * アカウントモードを更新し、オンライン中の対象アカウントへ反映します。
      *
      * @param accountUuid 更新対象アカウント UUID
@@ -83,9 +115,10 @@ public final class AccountModeApplicationService {
                 .findFirst()
                 .orElse(null);
             AccountModel latest = onlinePlayer == null ? current : onlinePlayer.getAccount();
-            AccountModel updated = onlinePlayer == null
-                ? accountService.setMode(latest, mode, updatedBy)
-                : inventoryService.executeLocalPlayerMutation(
+            if (onlinePlayer == null) {
+                throw new IllegalStateException("Offline mode requires API persistence: " + accountUuid);
+            }
+            AccountModel updated = inventoryService.executeLocalPlayerMutation(
                     accountUuid,
                     () -> accountService.setMode(latest, mode, updatedBy)
                 );
@@ -117,7 +150,8 @@ public final class AccountModeApplicationService {
                 if (isToolInventoryMode(previousMode) && previousMode != updated.getMode()) {
                     inventoryService.saveToolInventorySnapshot(astPlayer);
                 }
-                astPlayer.applyAccountMode(updated);
+                astPlayer.applyAccountMode(persisted.savedRemotely()
+                    ? accountService.mergeSavedOfflineMode(astPlayer.getAccount(), updated) : updated);
                 if (updated.getMode().shouldReflectInventoryToGui()) {
                     if (isToolInventoryMode(previousMode) && previousMode != updated.getMode()) {
                         inventoryService.applyInventoriesToGuiForModeSwitch(astPlayer);
@@ -133,7 +167,9 @@ public final class AccountModeApplicationService {
             });
         }
         // account と inventory/UI のローカル反映を終え、state lock を解放してから保存を要求する。
-        accountService.requestLocalPlayerSave(updated.getUuid());
+        if (!persisted.savedRemotely()) {
+            accountService.requestLocalPlayerSave(updated.getUuid());
+        }
         return true;
     }
 
@@ -142,7 +178,16 @@ public final class AccountModeApplicationService {
     }
 
     /** アカウントモードの永続化結果と、同一アカウント内での完了世代です。 */
-    public record PersistedModeChange(@NotNull AccountModel account, long generation) {
+    public record PersistedModeChange(@NotNull AccountModel account, long generation, boolean savedRemotely) {
+        /**
+         * ローカル確定したmode変更結果を構築します。
+         *
+         * @param account ローカル確定後のaccount
+         * @param generation 同一account内の確定世代
+         */
+        public PersistedModeChange(@NotNull AccountModel account, long generation) {
+            this(account, generation, false);
+        }
     }
 
     private static final class ModeChangeState {

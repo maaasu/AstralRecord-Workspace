@@ -16,6 +16,12 @@ import org.junit.jupiter.api.Test;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -30,6 +36,8 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.never;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class AccountServicePendingProgressTest {
@@ -159,6 +167,139 @@ class AccountServicePendingProgressTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
+     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### offlineモードAPI保存
+     * 検証契約: offline mode保存はaccount取得と同じ進行ガードで直列化し、保存済み版をACK基準へ採用する。
+     */
+    @Test
+    void offlineModeSaveWaitsForAccountLoadAndAdvancesAcknowledgedVersion() throws Exception {
+        UUID accountId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID updatedBy = UUID.randomUUID();
+        AccountModel stale = account(accountId, userId, 0, AccountMode.PLAYER, 7, 7_700L, 3, userId);
+        AccountModel saved = account(accountId, userId, 0, AccountMode.ADMIN, 1, 0L, 4, updatedBy);
+        AccountRepository repository = mock(AccountRepository.class);
+        CountDownLatch loadEntered = new CountDownLatch(1);
+        CountDownLatch releaseLoad = new CountDownLatch(1);
+        CountDownLatch updateEntered = new CountDownLatch(1);
+        AtomicBoolean firstLoad = new AtomicBoolean(true);
+        when(repository.findByUuid(accountId)).thenAnswer(ignored -> {
+            if (firstLoad.compareAndSet(true, false)) {
+                loadEntered.countDown();
+                assertTrue(releaseLoad.await(5, TimeUnit.SECONDS));
+            }
+            return stale;
+        });
+        when(repository.updateMode(accountId, AccountMode.ADMIN, updatedBy)).thenAnswer(ignored -> {
+            updateEntered.countDown();
+            return saved;
+        });
+        Fixture fixture = createFixture(repository);
+        ExecutorService executor = Executors.newFixedThreadPool(2);
+
+        try {
+            Future<AccountModel> load = executor.submit(() -> fixture.service().getAccount(accountId));
+            assertTrue(loadEntered.await(5, TimeUnit.SECONDS));
+            Future<AccountModel> save = executor.submit(() ->
+                fixture.service().saveOfflineMode(accountId, AccountMode.ADMIN, updatedBy)
+            );
+
+            assertFalse(updateEntered.await(200, TimeUnit.MILLISECONDS));
+            releaseLoad.countDown();
+            assertEquals(AccountMode.PLAYER, load.get(5, TimeUnit.SECONDS).getMode());
+            assertEquals(saved, save.get(5, TimeUnit.SECONDS));
+
+            AccountModel overlaid = fixture.service().getAccount(accountId);
+            assertEquals(AccountMode.ADMIN, overlaid.getMode());
+            assertEquals(7, overlaid.getLevel());
+            assertEquals(7_700L, overlaid.getTotalExperience());
+            assertEquals(3, overlaid.getProgressVersion());
+
+            AccountModel locallyChanged = fixture.service().setMode(overlaid, AccountMode.PLAYER, updatedBy);
+            PlayerStateSection snapshot = fixture.service().snapshotPlayerState(accountId);
+            assertNotNull(snapshot);
+            assertEquals(AccountMode.PLAYER, locallyChanged.getMode());
+            assertEquals(4, snapshot.payload().getAsJsonObject().get("expectedProgressVersion").getAsInt());
+        } finally {
+            releaseLoad.countDown();
+            executor.shutdownNow();
+        }
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
+     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### offlineモードAPI保存
+     * 検証契約: offline API保存後の古い一覧応答には保存済みmodeだけを重ね、応答の進行値を維持する。
+     */
+    @Test
+    void staleAccountListKeepsProgressAndOverlaysPersistedOfflineMode() {
+        UUID accountId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID updatedBy = UUID.randomUUID();
+        AccountModel stale = account(accountId, userId, 0, AccountMode.PLAYER, 8, 9_900L, 6, userId);
+        AccountModel saved = account(accountId, userId, 0, AccountMode.ADMIN, 1, 0L, 7, updatedBy);
+        AccountRepository repository = mock(AccountRepository.class);
+        when(repository.updateMode(accountId, AccountMode.ADMIN, updatedBy)).thenReturn(saved);
+        when(repository.findByUserId(userId)).thenReturn(List.of(stale));
+        Fixture fixture = createFixture(repository);
+
+        fixture.service().saveOfflineMode(accountId, AccountMode.ADMIN, updatedBy);
+        AccountModel overlaid = fixture.service().getAccounts(userId).getFirst();
+
+        assertEquals(AccountMode.ADMIN, overlaid.getMode());
+        assertEquals(8, overlaid.getLevel());
+        assertEquals(9_900L, overlaid.getTotalExperience());
+        assertEquals(6, overlaid.getProgressVersion());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
+     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### offlineモードAPI保存
+     * 検証契約: 未ACK進行があるアカウントはoffline API mode保存を開始しない。
+     */
+    @Test
+    void offlineModeSaveRejectsAccountWithPendingProgress() {
+        UUID accountId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID updatedBy = UUID.randomUUID();
+        AccountRepository repository = mock(AccountRepository.class);
+        Fixture fixture = createFixture(repository);
+        AccountModel initial = account(accountId, userId, 0L);
+        fixture.service().grantExperienceCached(initial, 100, updatedBy);
+
+        assertThrows(IllegalStateException.class, () ->
+            fixture.service().saveOfflineMode(accountId, AccountMode.ADMIN, updatedBy)
+        );
+        verify(repository, never()).updateMode(accountId, AccountMode.ADMIN, updatedBy);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-サービス.md
+     * 章・見出し: # 02_3-サービス > ## 1. service メソッド仕様 > ### offlineモードオンライン反映
+     * 検証契約: offline保存待機中に生じたオンライン進行pendingを保持し、保存済みmodeだけを合成する。
+     */
+    @Test
+    void mergingOfflineModePreservesProgressCreatedAfterRemoteSave() {
+        UUID accountId = UUID.randomUUID();
+        UUID userId = UUID.randomUUID();
+        UUID updatedBy = UUID.randomUUID();
+        AccountModel joined = account(accountId, userId, 0, AccountMode.PLAYER, 2, 800L, 3, userId);
+        AccountModel saved = account(accountId, userId, 0, AccountMode.ADMIN, 1, 0L, 4, updatedBy);
+        AccountRepository repository = mock(AccountRepository.class);
+        when(repository.updateMode(accountId, AccountMode.ADMIN, updatedBy)).thenReturn(saved);
+        Fixture fixture = createFixture(repository);
+        fixture.service().saveOfflineMode(accountId, AccountMode.ADMIN, updatedBy);
+        AccountModel progressed = fixture.service().grantExperienceCached(joined, 250, userId).updatedAccount();
+
+        AccountModel merged = fixture.service().mergeSavedOfflineMode(joined, saved);
+
+        assertEquals(AccountMode.ADMIN, merged.getMode());
+        assertEquals(progressed.getLevel(), merged.getLevel());
+        assertEquals(progressed.getTotalExperience(), merged.getTotalExperience());
+        assertEquals(progressed.getClassProgresses(), merged.getClassProgresses());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/02-account/3-メソッド仕様/02_3-コマンド.md
      * 章・見出し: # 02_3-コマンド > ## 1. command メソッド仕様 > ### アカウントスロット切替
      * 検証契約: アカウント一覧取得時に作成済みスロットだけを補完用キャッシュへ登録する。
@@ -202,6 +343,20 @@ class AccountServicePendingProgressTest {
 
     /** 指定スロットのアカウントを作成します。 */
     private AccountModel account(UUID accountId, UUID userId, int slotIndex, long totalExperience) {
+        return account(accountId, userId, slotIndex, AccountMode.PLAYER, 1, totalExperience, 0, userId);
+    }
+
+    /** 指定した進行・mode・進行版を持つテスト用アカウントを作成します。 */
+    private AccountModel account(
+        UUID accountId,
+        UUID userId,
+        int slotIndex,
+        AccountMode mode,
+        int level,
+        long totalExperience,
+        int progressVersion,
+        UUID updatedBy
+    ) {
         LocalDateTime now = LocalDateTime.of(2026, 8, 31, 0, 0);
         return new AccountModel(
             accountId,
@@ -209,19 +364,20 @@ class AccountServicePendingProgressTest {
             "test",
             slotIndex,
             true,
-            AccountMode.PLAYER,
+            mode,
             "{}",
             now,
             now,
             userId,
-            userId,
+            updatedBy,
             false,
-            1,
+            level,
             totalExperience,
             "adventurer",
             1,
             0L,
-            List.of(new ClassProgressModel("adventurer", 1, 0L))
+            List.of(new ClassProgressModel("adventurer", 1, 0L)),
+            progressVersion
         );
     }
 

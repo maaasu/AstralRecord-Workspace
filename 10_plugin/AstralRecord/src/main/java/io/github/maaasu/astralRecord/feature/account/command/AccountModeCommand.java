@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
+import io.github.maaasu.astralRecord.feature.account.service.AccountModeApplicationService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -90,16 +91,36 @@ public class AccountModeCommand extends AstCommand {
                 : resolveRemoteAccountUuid(request.lookupUuid(), accountService, userService);
             return accountUuid == null ? null : accountService.getAccount(accountUuid);
         }).whenComplete((account, throwable) -> AsyncTaskUtil.runSync(plugin, () -> {
-            pendingTargets.remove(pendingKey);
             if (throwable != null) {
+                pendingTargets.remove(pendingKey);
                 Logger.log(LogId.E_5154, throwable, pendingKey);
                 sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5062.getId()));
                 return;
             }
             if (account == null) {
+                pendingTargets.remove(pendingKey);
                 sendError(sender, PlayerMsgResource.format(PlayerMsgId.P_5333.getId(), request.label()));
                 return;
             }
+            if (!accountModeApplicationService.isAccountOnline(account.getUuid())) {
+                AsyncTaskUtil.supplyAsync(plugin, () ->
+                    accountModeApplicationService.persistOfflineModeChange(account, mode, updatedBy)
+                ).whenComplete((saved, failure) -> AsyncTaskUtil.runSync(plugin, () -> {
+                    pendingTargets.remove(pendingKey);
+                    if (failure != null) {
+                        Logger.log(LogId.E_5154, failure, pendingKey);
+                        sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5062.getId()));
+                    } else if (accountModeApplicationService.applyPersistedMode(saved)) {
+                        sendSuccess(sender, PlayerMsgResource.format(
+                            PlayerMsgId.P_5332.getId(),
+                            AccountDisplayNameFormatter.toLegacy(saved.account()),
+                            saved.account().getMode().getDisplayName()
+                        ));
+                    }
+                }));
+                return;
+            }
+            pendingTargets.remove(pendingKey);
             AccountModeApplicationService.PersistedModeChange persisted;
             try {
                 persisted = accountModeApplicationService.persistModeChange(account, mode, updatedBy);

@@ -17,6 +17,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.ConcurrentLinkedQueue;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -34,6 +35,51 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class PlayerSettingServiceConcurrencyTest {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
+     * 章・見出し: # 11_3-サービス > ## 2. session 管理と warmup
+     * 検証契約: 起動時の復元が設定変更より遅れても同keyの新pendingを優先し、別keyの未送信値は復元する。
+     */
+    @Test
+    void delayedRestoreMergesMissingKeysWithoutReplacingCurrentSessionPending(@TempDir Path root) throws Exception {
+        UUID userId = UUID.randomUUID();
+        PendingStateStore store = new PendingStateStore(root);
+        String persisted = """
+            {"entries":[
+              {"key":"%s","valueJson":"{\\\"enabled\\\":false}","requestedBy":"%s","revision":900},
+              {"key":"%s","valueJson":"{\\\"enabled\\\":true}","requestedBy":"%s","revision":901}
+            ]}
+            """.formatted(PlayerSettingKey.DAMAGE_LOG_DISPLAY.getCode(), userId,
+                PlayerSettingKey.DROP_LOG_DISPLAY.getCode(), userId);
+        ConcurrentLinkedQueue<Runnable> scheduled = new ConcurrentLinkedQueue<>();
+        PlayerSettingRepository repository = mock(PlayerSettingRepository.class);
+        when(repository.findByUserId(userId)).thenReturn(List.of());
+        PlayerSettingCache cache = new PlayerSettingCache();
+        PlayerSettingService service = new PlayerSettingService(
+            repository, new PlayerSettingDefaults(), cache, scheduled::add
+        );
+        ExecutorService writer = Executors.newSingleThreadExecutor();
+        try {
+            writer.submit(() -> store.write(userId, persisted)).get(5, TimeUnit.SECONDS);
+            service.setPersistence(root);
+            Runnable restore = scheduled.remove();
+            long token = service.beginSession(userId);
+            assertTrue(service.updatePlayerSetting(new PlayerSettingChangeRequest(
+                userId, PlayerSettingKey.DAMAGE_LOG_DISPLAY, true, userId
+            ), token).success());
+            writer.submit(restore).get(5, TimeUnit.SECONDS);
+            assertTrue((Boolean) cache.find(userId).getEntry(PlayerSettingKey.DAMAGE_LOG_DISPLAY).getValue());
+            assertTrue((Boolean) cache.find(userId).getEntry(PlayerSettingKey.DROP_LOG_DISPLAY).getValue());
+
+            // 再warmupでもpendingが重なることを確認し、cacheだけの偶然の一致を除外する。
+            writer.submit(() -> service.warmup(userId, token)).get(5, TimeUnit.SECONDS);
+            assertTrue((Boolean) cache.find(userId).getEntry(PlayerSettingKey.DAMAGE_LOG_DISPLAY).getValue());
+            assertTrue((Boolean) cache.find(userId).getEntry(PlayerSettingKey.DROP_LOG_DISPLAY).getValue());
+        } finally {
+            writer.shutdownNow();
+        }
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md

@@ -658,14 +658,23 @@ public final class PlayerSettingService {
                     restored.put(key, new PendingSetting(key, value, requestedBy, revision));
                 }
                 if (restored.isEmpty()) {
-                    deletePersistedSettings(userId);
+                    persistPendingSettings(userId);
                 } else {
-                    pendingSettings.put(userId, restored);
-                    // restore と login warmup の完了順は保証しない。warmup済みなら直ちに
-                    // 最後の希望値をoverlayしてdeliveryへ渡し、古いAPI値で画面を戻さない。
-                    PlayerSettingSnapshot snapshot = cache.find(userId);
-                    if (snapshot != null) {
-                        cache.put(overlayPending(snapshot));
+                    boolean warmedUp = withUserOperationLock(userId, () -> {
+                        EnumMap<PlayerSettingKey, PendingSetting> merged = new EnumMap<>(restored);
+                        EnumMap<PlayerSettingKey, PendingSetting> current = pendingSettings.get(userId);
+                        if (current != null) {
+                            // 起動前ファイルのrevision値にかかわらず、今sessionの希望値を優先する。
+                            merged.putAll(current);
+                        }
+                        pendingSettings.put(userId, merged);
+                        PlayerSettingSnapshot snapshot = cache.find(userId);
+                        if (snapshot != null) {
+                            cache.put(overlayPending(snapshot));
+                        }
+                        return snapshot != null;
+                    });
+                    if (warmedUp) {
                         scheduleDelivery(userId, 0L);
                     }
                 }
