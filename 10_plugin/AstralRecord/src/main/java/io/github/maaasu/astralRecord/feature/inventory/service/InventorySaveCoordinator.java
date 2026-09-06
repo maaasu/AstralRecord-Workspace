@@ -119,6 +119,8 @@ public final class InventorySaveCoordinator {
                 return false;
             }
             boolean succeeded = persistence.saveNow(state);
+            if (succeeded && persistence.usesPlayerStateSnapshots() && persistence.hasPendingChanges(state))
+                scheduleBackgroundSave(accountId);
             if (!succeeded) {
                 if (persistence.usesPlayerStateSnapshots()) scheduleBackgroundSave(accountId);
                 else Logger.warn(LogId.W_5255, accountId);
@@ -193,7 +195,7 @@ public final class InventorySaveCoordinator {
                 releaseExternalBoundary(accountId, boundaryToken);
                 throw new IllegalStateException("Inventory state generation changed for account " + accountId);
             }
-            if (!persistence.saveNow(expectedState)) {
+            if (!persistence.saveNow(expectedState) || persistence.hasPendingChanges(expectedState)) {
                 releaseExternalBoundary(accountId, boundaryToken);
                 Logger.warn(LogId.W_5255, accountId);
                 throw new IllegalStateException("Failed to persist inventory before external operation");

@@ -149,10 +149,31 @@ public class PlayerService {
      */
     public @Nullable AccountModel loadPlayerJoinAccount(@NotNull UserModel user, @NotNull String playerName) {
         var account = accountService.getSelectedAccount(user.getUuid(), user.getAccountId());
+        if (account != null && recoverPendingPlayerState(account.getUuid())) {
+            account = accountService.getAccount(account.getUuid());
+        }
         if (account == null) {
             Logger.log(LogId.W_5070, playerName);
         }
         return account;
+    }
+
+    /**
+     * account/skillの初期値を採用する前に未受領状態を復元します。
+     * @param accountId 対象account
+     * @return APIからaccountを再読込する必要がある場合true
+     */
+    public boolean recoverPendingPlayerState(@NotNull UUID accountId) {
+        return inventoryPersistence.recoverPendingSnapshot(accountId);
+    }
+
+    /**
+     * 復元済みの切替先accountを、現在のユーザー選択値に依存せず再取得します。
+     * @param accountId 切替先account
+     * @return 復元後のaccount。存在しない場合null
+     */
+    public @Nullable AccountModel reloadPlayerJoinAccount(@NotNull UUID accountId) {
+        return accountService.getAccount(accountId);
     }
 
     /**

@@ -498,16 +498,25 @@ public final class InventoryPersistence {
         return true;
     }
 
-    private void recoverPendingSnapshot(UUID accountId) {
-        if (!usesPlayerStateSnapshots() || pendingSnapshots.containsKey(accountId)) return;
-        String pending = pendingStateStore.read(accountId);
-        if (pending == null) return;
-        JsonObject ack = playerStateRepository.saveSnapshot(pending);
-        String expected = com.google.gson.JsonParser.parseString(pending).getAsJsonObject().get("snapshotId").getAsString();
-        if (!expected.equals(ack.get("snapshotId").getAsString())) {
-            throw new IllegalStateException("Recovered snapshot acknowledgement ID mismatch");
+    /**
+     * account・skillを含む通常ロードの前に、再起動で残った完成状態を復元します。
+     * @param accountId 復元対象account
+     * @return 保存ファイルを再送して受領確認できた場合true
+     */
+    public boolean recoverPendingSnapshot(@NotNull UUID accountId) {
+        synchronized (snapshotSaveLocks.computeIfAbsent(accountId, ignored -> new Object())) {
+            return recoverPendingSnapshotLocked(accountId);
         }
+    }
+
+    private boolean recoverPendingSnapshotLocked(UUID accountId) {
+        if (!usesPlayerStateSnapshots() || pendingSnapshots.containsKey(accountId)) return false;
+        String pending = pendingStateStore.read(accountId);
+        if (pending == null) return false;
+        JsonObject ack = playerStateRepository.saveSnapshot(pending);
+        PlayerStateSnapshot.validatePayloadAck(pending, ack);
         pendingStateStore.delete(accountId);
+        return true;
     }
 
     /**
@@ -562,6 +571,18 @@ public final class InventoryPersistence {
      * @return 通信が成功して反映された場合 true
      */
     public boolean saveNow(@NotNull PlayerInventoryState state) {
+        if (usesPlayerStateSnapshots()) {
+            synchronized (snapshotSaveLocks.computeIfAbsent(state.getAccountId(), ignored -> new Object())) {
+                boolean previousPending = pendingSnapshots.containsKey(state.getAccountId());
+                state.markDirty();
+                savePlayerStateLocked(state, null);
+                if (pendingSnapshots.containsKey(state.getAccountId())) return false;
+                // 先行便だけのACKを今回の保存成功と取り違えない。
+                if (previousPending) savePlayerStateLocked(state, null);
+                // 捕捉後のdirtyは次便の仕事。今回ACK済みの操作失敗ではない。
+                return !pendingSnapshots.containsKey(state.getAccountId());
+            }
+        }
         state.markDirty();
         save(state, SaveTrigger.IMMEDIATE);
         return !hasPendingChanges(state);

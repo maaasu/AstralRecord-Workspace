@@ -1044,6 +1044,7 @@ public final class AstralRecord extends JavaPlugin {
         inventoryService.setPendingLegacyMutations(localMutationOutbox::hasPending);
         accountService.setLocalPlayerSaveRequester(inventoryService::queueLocalPlayerSave);
         inventoryPersistence.registerStateParticipant(accountService::snapshotPlayerState);
+        inventoryPersistence.registerStateParticipant(teleporterService::snapshotPlayerState);
         skillTreeService.setInventoryService(inventoryService);
         skillTreeService.setLocalStatePersistence(inventoryService);
         currencyService = new CurrencyService(inventoryService, itemService);

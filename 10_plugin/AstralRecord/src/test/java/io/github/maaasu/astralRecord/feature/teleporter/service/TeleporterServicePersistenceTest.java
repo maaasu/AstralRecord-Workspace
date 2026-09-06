@@ -365,6 +365,9 @@ class TeleporterServicePersistenceTest {
         when(harness.inventoryService.consumeGold(harness.accountId, 50L)).thenReturn(true);
         when(repository.loadUnlockedWaystoneIds(harness.accountId)).thenReturn(Set.of("ws-legacy"));
         org.bukkit.scheduler.BukkitScheduler scheduler = mock(org.bukkit.scheduler.BukkitScheduler.class);
+        org.bukkit.Server server = mock(org.bukkit.Server.class);
+        when(harness.plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
         doAnswer(invocation -> {
             invocation.getArgument(1, Runnable.class).run();
             return null;
@@ -471,6 +474,7 @@ class TeleporterServicePersistenceTest {
         when(player.getLocation()).thenReturn(location);
         AstPlayer astPlayer = mock(AstPlayer.class);
         AccountModel account = mock(AccountModel.class);
+        when(astPlayer.getBukkit()).thenReturn(player);
         when(astPlayer.getAccount()).thenReturn(account);
         when(account.getUuid()).thenReturn(accountId);
         return new UnlockHarness(service, inventoryService, player, astPlayer, accountId, plugin);

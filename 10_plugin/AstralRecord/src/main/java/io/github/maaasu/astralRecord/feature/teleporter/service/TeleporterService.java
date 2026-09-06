@@ -1,5 +1,8 @@
 package io.github.maaasu.astralRecord.feature.teleporter.service;
 
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
@@ -289,7 +292,7 @@ public final class TeleporterService {
             Set<String> ids = new LinkedHashSet<>(accountWaystoneRepository.loadUnlockedWaystoneIds(accountId));
             return new WaystoneUnlockState(accountId, Set.copyOf(ids));
         }).thenApply(state -> {
-            Bukkit.getScheduler().runTask(plugin, () -> {
+            plugin.getServer().getScheduler().runTask(plugin, () -> {
                 mergeLoadedUnlockState(accountId, state);
                 syncView(astPlayer.getBukkit());
             });

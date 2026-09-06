@@ -402,7 +402,15 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            loadInventoryStep(attempt, playerName, user, account, false, completionListener);
+            AccountModel currentAccount = account;
+            if (playerService.recoverPendingPlayerState(account.getUuid())) {
+                currentAccount = playerService.reloadPlayerJoinAccount(account.getUuid());
+                if (currentAccount == null || !currentAccount.getUuid().equals(account.getUuid())) {
+                    finishAccountLoad(attempt, false, completionListener);
+                    return;
+                }
+            }
+            loadInventoryStep(attempt, playerName, user, currentAccount, false, completionListener);
         }, completionListener);
     }
 

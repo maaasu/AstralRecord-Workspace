@@ -109,7 +109,7 @@ class OrbServicePaymentFailureCompatibilityTest extends MockBukkitTestBase {
             .thenReturn(ItemService.EquipmentPreloadResult.COMPLETE);
         when(itemService.applyEquipmentOrbOperation(
             anyString(), eq(accountId.toString()), eq(equipmentInstanceId.toString()),
-            eq(orbEntryId.toString()), eq(orbModel.getId()), any(), any()
+            eq(orbEntryId.toString()), eq(orbModel.getId()), any(), any(), any(LocalMutationCommand.EquipmentOrb.class)
         )).thenAnswer(invocation -> new EquipmentOrbOperationResult(
             invocation.getArgument(0, String.class),
             EquipmentOrbOperationResultType.PAYMENT_UNAVAILABLE,
@@ -178,6 +178,7 @@ class OrbServicePaymentFailureCompatibilityTest extends MockBukkitTestBase {
         assertEquals(LocalMutationOutbox.Delivery.ACK, delivery.toCompletableFuture().join());
         verify(inventoryRepository).findEntryById(orbEntryId);
         assertNull(inventoryService.findOwnedEntry(accountId, orbEntryId));
+        server().getScheduler().performOneTick();
         assertEquals(Material.DIAMOND_SWORD, player.getInventory().getItem(9).getType());
     }
 

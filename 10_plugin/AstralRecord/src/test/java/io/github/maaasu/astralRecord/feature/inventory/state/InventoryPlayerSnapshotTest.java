@@ -43,7 +43,7 @@ class InventoryPlayerSnapshotTest {
             return ack(request, originalTime.plusSeconds(sent.size()));
         });
         state.markDirty();
-        persistence.save(state, InventoryPersistence.SaveTrigger.AUTO);
+        assertTrue(persistence.saveNow(state), "Later dirty must not turn an acknowledged save into failure");
         assertEquals(7, state.snapshotEntries(inventoryId).getFirst().getQuantity());
         assertEquals(originalTime.plusSeconds(1), state.snapshotEntries(inventoryId).getFirst().getUpdatedAt());
         assertTrue(persistence.hasPendingChanges(state));
@@ -153,9 +153,84 @@ class InventoryPlayerSnapshotTest {
         assertEquals(originalTime.toString(), body.getAsJsonArray("loadouts").get(0).getAsJsonObject().get("expectedUpdatedAt").getAsString());
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## 1. save メソッド仕様 > ### ローカルファイルと再送
+     * 検証契約: 再起動の不完全ACKではファイルを保持し、通常ロードも開始しない。
+     */
+    @Test void recoveryKeepsFrozenFileWhenEntryAcknowledgementIsMissing() {
+        PlayerInventoryState state = new PlayerInventoryState(account);
+        state.putInventory(inventory());
+        state.replaceEntries(inventoryId, List.of(entry(10, originalTime)));
+        PlayerStateSnapshot snapshot = new PlayerStateSnapshot(state, List.of(), List.of(),
+            Map.of(inventoryId, Set.of(entryId)), Map.of(entryId, originalTime));
+        var disk = new io.github.maaasu.astralRecord.feature.mutation.service.PendingStateStore(directory);
+        disk.write(account, snapshot.payload);
+        InventoryRepository inventories = mock(InventoryRepository.class);
+        PlayerStateRepository api = mock(PlayerStateRepository.class);
+        JsonObject incomplete = ack(JsonParser.parseString(snapshot.payload).getAsJsonObject(), originalTime.plusSeconds(1));
+        incomplete.add("entries", new JsonArray());
+        when(api.saveSnapshot(snapshot.payload)).thenReturn(incomplete);
+        InventoryPersistence persistence = new InventoryPersistence(inventories,
+            mock(EquipmentLoadoutRepository.class), mock(ItemService.class));
+        persistence.enablePlayerStateSnapshots(api, directory);
+        assertThrows(IllegalStateException.class, () -> persistence.load(account));
+        assertEquals(snapshot.payload, disk.read(account));
+        verifyNoInteractions(inventories);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## 1. save メソッド仕様 > ### ローカル状態と完成スナップショット
+     * 検証契約: 全sectionの欠落・旧revision・不完全明細ACKを拒否し、完全ACKだけを受領する。
+     */
+    @Test void validatesAllSectionAcknowledgementsFromFrozenPayload() {
+        PlayerInventoryState state = new PlayerInventoryState(account);
+        PlayerStateSnapshot snapshot = new PlayerStateSnapshot(state, List.of(), List.of(), Map.of(), Map.of());
+        JsonObject request = JsonParser.parseString(snapshot.payload).getAsJsonObject();
+        JsonObject response = ack(request, originalTime.plusSeconds(1));
+        UUID skill = UUID.randomUUID();
+        UUID removedSkill = UUID.randomUUID();
+        request.add("learnedSkills", JsonParser.parseString("""
+            {"clientRevision":2,"skills":[{"learnedSkillId":"%s","expectedVersion":4}],
+             "deletedSkills":[{"learnedSkillId":"%s","expectedVersion":1}]}
+            """.formatted(skill, removedSkill)));
+        response.add("learnedSkills", JsonParser.parseString("""
+            {"clientRevision":2,"entries":[{"learnedSkillId":"%s","version":5}],"deletedIds":["%s"]}
+            """.formatted(skill, removedSkill)));
+        request.add("skillBindPresets", JsonParser.parseString("""
+            {"clientRevision":3,"presets":[{"presetIndex":0,"expectedVersion":1}]}
+            """));
+        response.add("skillBindPresets", JsonParser.parseString("""
+            {"clientRevision":3,"entries":[{"presetIndex":0,"version":2}]}
+            """));
+        request.add("skillTree", JsonParser.parseString("{\"clientRevision\":4,\"expectedVersion\":2}"));
+        response.add("skillTree", JsonParser.parseString("{\"clientRevision\":4,\"version\":3}"));
+        request.add("accountProgress", JsonParser.parseString("{\"clientRevision\":5,\"expectedProgressVersion\":2}"));
+        response.add("accountProgress", JsonParser.parseString("{\"clientRevision\":5,\"progressVersion\":3}"));
+        request.add("waystones", JsonParser.parseString("{\"clientRevision\":6,\"unlockedWaystoneIds\":[\"ws-first\"]}"));
+        response.add("waystones", JsonParser.parseString("{\"clientRevision\":6,\"unlockedWaystoneIds\":[\"ws-first\"]}"));
+        assertDoesNotThrow(() -> PlayerStateSnapshot.validatePayloadAck(request.toString(), response));
+        for (String name : List.of("learnedSkills", "skillBindPresets", "skillTree", "accountProgress", "waystones")) {
+            JsonObject missing = response.deepCopy();
+            missing.remove(name);
+            assertThrows(IllegalStateException.class, () -> PlayerStateSnapshot.validatePayloadAck(request.toString(), missing));
+            JsonObject stale = response.deepCopy();
+            stale.getAsJsonObject(name).addProperty("clientRevision", 0);
+            assertThrows(IllegalStateException.class, () -> PlayerStateSnapshot.validatePayloadAck(request.toString(), stale));
+        }
+        JsonObject incomplete = response.deepCopy();
+        incomplete.getAsJsonObject("learnedSkills").add("deletedIds", new JsonArray());
+        assertThrows(IllegalStateException.class, () -> PlayerStateSnapshot.validatePayloadAck(request.toString(), incomplete));
+        JsonObject missingWaystone = response.deepCopy();
+        missingWaystone.getAsJsonObject("waystones").add("unlockedWaystoneIds", new JsonArray());
+        assertThrows(IllegalStateException.class, () -> PlayerStateSnapshot.validatePayloadAck(request.toString(), missingWaystone));
+    }
+
     private JsonObject ack(JsonObject request, LocalDateTime time) {
         JsonObject ack = new JsonObject();
         ack.add("snapshotId", request.get("snapshotId"));
+        ack.add("accountId", request.get("accountId"));
         ack.add("entries", versions("inventoryEntryId", entryId, time));
         ack.add("inventories", versions("inventoryId", inventoryId, time));
         ack.add("loadouts", new JsonArray());

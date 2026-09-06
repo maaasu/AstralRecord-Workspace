@@ -120,6 +120,7 @@ final class PlayerStateSnapshot {
     }
 
     void validateAck(JsonObject ack) {
+        validatePayloadAck(payload, ack);
         if (!snapshotId.toString().equals(ack.get("snapshotId").getAsString())) {
             throw new IllegalStateException("Snapshot acknowledgement ID mismatch");
         }
@@ -151,6 +152,99 @@ final class PlayerStateSnapshot {
         }
     }
 
+    /** 再起動時も送信本文そのものを基準に、全明細のACKを検証します。 */
+    static void validatePayloadAck(String payload, JsonObject ack) {
+        try {
+            JsonObject request = JsonParser.parseString(payload).getAsJsonObject();
+            requireEqual(request.get("snapshotId"), ack.get("snapshotId"));
+            requireEqual(request.get("accountId"), ack.get("accountId"));
+            requireRows(request.getAsJsonArray("inventories"), ack, "inventories", "inventoryId");
+            requireRows(request.getAsJsonArray("loadouts"), ack, "loadouts", "equipmentLoadoutId");
+            requireRows(request.getAsJsonArray("equipment"), ack, "equipment", "equipmentInstanceId");
+            Set<String> activeIds = new HashSet<>();
+            Set<String> expectedIds = new HashSet<>();
+            for (JsonElement inventory : request.getAsJsonArray("inventories")) {
+                JsonObject row = inventory.getAsJsonObject();
+                for (JsonElement entry : row.getAsJsonArray("entries"))
+                    activeIds.add(entry.getAsJsonObject().get("inventoryEntryId").getAsString());
+                for (JsonElement entry : row.getAsJsonArray("expectedEntries"))
+                    expectedIds.add(entry.getAsJsonObject().get("inventoryEntryId").getAsString());
+            }
+            expectedIds.addAll(activeIds);
+            Map<UUID, LocalDateTime> entryVersions = versions(ack, "entries", "inventoryEntryId");
+            Map<String, Boolean> deleted = new HashMap<>();
+            for (JsonElement entry : ack.getAsJsonArray("entries")) {
+                JsonObject row = entry.getAsJsonObject();
+                deleted.put(row.get("inventoryEntryId").getAsString(), row.get("isDeleted").getAsBoolean());
+            }
+            for (String id : expectedIds) {
+                if (!entryVersions.containsKey(UUID.fromString(id))
+                    || !Objects.equals(deleted.get(id), !activeIds.contains(id)))
+                    throw new IllegalStateException("Missing or inconsistent entry acknowledgement");
+            }
+            for (String name : List.of("learnedSkills", "skillBindPresets", "skillTree", "accountProgress", "waystones")) {
+                if (!request.has(name)) continue;
+                JsonObject section = request.getAsJsonObject(name);
+                JsonObject received = ack.getAsJsonObject(name);
+                requireEqual(section.get("clientRevision"), received.get("clientRevision"));
+                switch (name) {
+                    case "learnedSkills" -> {
+                        requireSectionVersions(section.getAsJsonArray("skills"), received, "learnedSkillId");
+                        Set<String> deletedIds = new HashSet<>();
+                        for (JsonElement id : received.getAsJsonArray("deletedIds")) deletedIds.add(id.getAsString());
+                        for (JsonElement row : section.getAsJsonArray("deletedSkills"))
+                            if (!deletedIds.contains(row.getAsJsonObject().get("learnedSkillId").getAsString()))
+                                throw new IllegalStateException("Missing deleted skill acknowledgement");
+                    }
+                    case "skillBindPresets" -> requireSectionVersions(section.getAsJsonArray("presets"), received, "presetIndex");
+                    case "skillTree" -> requireVersion(section, received, "expectedVersion", "version");
+                    case "accountProgress" -> requireVersion(section, received, "expectedProgressVersion", "progressVersion");
+                    case "waystones" -> {
+                        Set<String> ids = new HashSet<>();
+                        for (JsonElement id : received.getAsJsonArray("unlockedWaystoneIds")) ids.add(id.getAsString());
+                        for (JsonElement id : section.getAsJsonArray("unlockedWaystoneIds"))
+                            if (!ids.contains(id.getAsString())) throw new IllegalStateException("Missing waystone acknowledgement");
+                    }
+                    default -> throw new IllegalStateException("Unsupported section");
+                }
+            }
+        } catch (RuntimeException invalid) {
+            throw new IllegalStateException("Incomplete player-state acknowledgement", invalid);
+        }
+    }
+
+    private static void requireEqual(JsonElement expected, JsonElement actual) {
+        if (expected == null || actual == null || !expected.equals(actual))
+            throw new IllegalStateException("Acknowledgement identity mismatch");
+    }
+
+    private static void requireRows(JsonArray requested, JsonObject ack, String array, String id) {
+        Set<UUID> received = versions(ack, array, id).keySet();
+        for (JsonElement row : requested)
+            if (!received.contains(UUID.fromString(row.getAsJsonObject().get(id).getAsString())))
+                throw new IllegalStateException("Missing " + array + " acknowledgement");
+    }
+
+    private static void requireSectionVersions(JsonArray requested, JsonObject ack, String id) {
+        Map<String, JsonObject> received = new HashMap<>();
+        for (JsonElement row : ack.getAsJsonArray("entries")) {
+            JsonObject value = row.getAsJsonObject();
+            if (received.put(value.get(id).getAsString(), value) != null)
+                throw new IllegalStateException("Duplicate section acknowledgement");
+        }
+        for (JsonElement row : requested) {
+            JsonObject value = row.getAsJsonObject();
+            requireVersion(value, received.get(value.get(id).getAsString()), "expectedVersion", "version");
+        }
+    }
+
+    private static void requireVersion(JsonObject request, JsonObject ack, String expectedKey, String versionKey) {
+        JsonElement expected = request.get(expectedKey);
+        int minimum = expected == null || expected.isJsonNull() ? 0 : expected.getAsInt();
+        if (ack == null || ack.get(versionKey).getAsInt() <= minimum)
+            throw new IllegalStateException("Missing or stale section version");
+    }
+
     InventoryPersistence.PersistedInventoryBaseline baseline(JsonObject ack) {
         Map<UUID, LocalDateTime> versions = versions(ack, "entries", "inventoryEntryId");
         Map<UUID, List<InventoryEntryModel>> result = new LinkedHashMap<>();
@@ -170,7 +264,8 @@ final class PlayerStateSnapshot {
             LocalDateTime time;
             try { time = LocalDateTime.parse(text); }
             catch (java.time.format.DateTimeParseException offset) { time = OffsetDateTime.parse(text).toLocalDateTime(); }
-            result.put(UUID.fromString(row.get(id).getAsString()), time);
+            if (result.put(UUID.fromString(row.get(id).getAsString()), time) != null)
+                throw new IllegalStateException("Duplicate acknowledgement row");
         }
         return result;
     }
