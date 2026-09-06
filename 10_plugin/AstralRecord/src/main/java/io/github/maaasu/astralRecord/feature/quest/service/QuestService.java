@@ -87,6 +87,7 @@ public final class QuestService {
     private final Set<UUID> dirtyStates = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Long> saveDueAtMillis = new ConcurrentHashMap<>();
     private final Map<RewardClaimKey, UUID> pendingRewardClaims = new ConcurrentHashMap<>();
+    private final Map<RewardClaimKey, RewardPersistenceRetry> rewardPersistenceRetries = new ConcurrentHashMap<>();
     private final Map<UUID, CompletableFuture<Void>> rewardProcessingTails = new ConcurrentHashMap<>();
     private BiConsumer<AstPlayer, String> questAcceptedListener = (player, questId) -> { };
     private BiConsumer<AstPlayer, String> questCompletedListener = (player, questId) -> { };
@@ -252,6 +253,7 @@ public final class QuestService {
         dirtyStates.clear();
         saveDueAtMillis.clear();
         pendingRewardClaims.clear();
+        rewardPersistenceRetries.clear();
         rewardProcessingTails.clear();
         persistenceCoordinator.clear();
     }
@@ -791,121 +793,114 @@ public final class QuestService {
             return false;
         }
 
-        QuestPlayerState stateBeforeCommit = currentState.snapshot();
-        try {
-            currentState.activeQuests().remove(quest.id());
-            long now = System.currentTimeMillis();
-            currentState.completedAt().put(quest.id(), now);
-            if (quest.repeatMode() == QuestRepeatMode.COOLDOWN && quest.cooldownSeconds() > 0L) {
-                currentState.cooldownUntil().put(quest.id(), now + quest.cooldownSeconds() * 1000L);
-            }
-            CompletableFuture<Void> questSave = saveImmediately(currentState);
-            continueRewardPersistence(
-                player,
-                currentState,
-                stateBeforeCommit,
-                quest,
-                claimKey,
-                claimId,
-                prepared,
-                applied,
-                questSave,
-                rewardProcessing,
-                onCompleted
-            );
-            return true;
-        } catch (RuntimeException exception) {
-            restoreQuestState(currentState, stateBeforeCommit, quest.id());
-            inventoryService.executeLocalPlayerMutation(
-                currentState.accountId(),
-                () -> {
-                    rollbackAppliedRewards(player, applied, quest.id());
-                    return null;
-                }
-            );
-            cleanupPreparedInstances(prepared);
-            save(currentState);
-            pendingRewardClaims.remove(claimKey, claimId);
-            Logger.log(LogId.W_6604, exception, currentState.accountId(), quest.id());
-            send(player, PlayerMsgId.P_6609);
-            completeRewardProcessing(currentState.accountId(), rewardProcessing);
-            return false;
+        currentState.activeQuests().remove(quest.id());
+        long now = System.currentTimeMillis();
+        currentState.completedAt().put(quest.id(), now);
+        if (quest.repeatMode() == QuestRepeatMode.COOLDOWN && quest.cooldownSeconds() > 0L) {
+            currentState.cooldownUntil().put(quest.id(), now + quest.cooldownSeconds() * 1000L);
         }
+        // 保存開始後の失敗は応答不明も含むため、報酬や後続操作を補償で巻き戻さない。
+        save(currentState);
+        continueRewardPersistence(player, currentState, quest, claimKey, claimId,
+            applied, rewardProcessing, onCompleted, 0);
+        return true;
     }
 
     /**
-     * クエスト状態の保存成功後にだけインベントリ保存を連結し、両方の結果をメインスレッドへ戻します。
+     * 最新quest保存とinventory保存を順に試み、失敗時は完了状態とclaimを保持して再送します。
+     * 再送では報酬を再付与せず、coordinatorにある最新世代を使い、後続quest進行も保持します。
      *
      * @param player 対象プレイヤー
-     * @param currentState 完了状態を仮反映したクエスト状態
-     * @param stateBeforeCommit 完了前の補償用状態
+     * @param currentState 完了をローカル確定した状態
      * @param quest 対象クエスト
      * @param claimKey 多重受取防止キー
-     * @param claimId 今回の受取要求 ID
-     * @param prepared 準備済み報酬
-     * @param applied 反映済み報酬の補償情報
-     * @param questSave クエスト状態の保存 Future
-     * @param rewardProcessing account単位報酬処理の完了 Future
-     * @param onCompleted 報酬処理と関連する永続化が成功した後に呼び出す処理
+     * @param claimId 今回の受取要求ID
+     * @param applied 反映済み報酬
+     * @param rewardProcessing account単位の待機Future
+     * @param onCompleted 保存成功後のcallback
+     * @param attempt 再試行回数
      */
     private void continueRewardPersistence(
         @NotNull AstPlayer player,
         @NotNull QuestPlayerState currentState,
-        @NotNull QuestPlayerState stateBeforeCommit,
         @NotNull QuestDefinition quest,
         @NotNull RewardClaimKey claimKey,
         @NotNull UUID claimId,
-        @NotNull PreparedRewards prepared,
         @NotNull AppliedRewards applied,
-        @NotNull CompletableFuture<Void> questSave,
         @NotNull CompletableFuture<Void> rewardProcessing,
-        @NotNull Runnable onCompleted
+        @NotNull Runnable onCompleted,
+        int attempt
     ) {
-        CompletableFuture<Boolean> persistence = questSave.thenCompose(ignored -> {
-            if (applied.inventorySnapshot() == null) {
-                return CompletableFuture.completedFuture(true);
-            }
-            return inventoryService.saveNow(currentState.accountId());
-        });
-        persistence.whenComplete((inventorySaved, failure) -> {
-            boolean succeeded = failure == null && Boolean.TRUE.equals(inventorySaved);
-            try {
-                mainExecutor.execute(() -> {
-                    if (succeeded) {
-                        finishRewardPersistence(
-                            player,
-                            currentState,
-                            quest,
-                            claimKey,
-                            claimId,
-                            rewardProcessing,
-                            onCompleted
-                        );
-                        return;
-                    }
-                    compensateRewardPersistence(
-                        player,
-                        currentState,
-                        stateBeforeCommit,
-                        quest,
-                        claimKey,
-                        claimId,
-                        prepared,
-                        applied,
-                        failure,
-                        rewardProcessing
-                    );
-                });
-            } catch (RuntimeException exception) {
-                pendingRewardClaims.remove(claimKey, claimId);
-                if (succeeded) {
-                    Logger.error(LogId.W_6605, exception, currentState.accountId(), quest.id());
-                } else {
-                    Logger.error(LogId.W_6606, exception, currentState.accountId(), quest.id());
+        if (!claimId.equals(pendingRewardClaims.get(claimKey))) {
+            return;
+        }
+        CompletableFuture<Boolean> persistence;
+        try {
+            persistence = persistenceCoordinator.flushLatest(currentState.accountId()).thenCompose(ignored -> {
+                // 通常flush/logoutと同じtailへ合流した場合、tail自体は失敗を吸収する。
+                // 完了だけを成功とせず、最新世代の保存済み状態も確認する。
+                if (!persistenceCoordinator.isLatestPersisted(currentState.accountId())) {
+                    return CompletableFuture.failedFuture(new IllegalStateException("quest_state_not_persisted"));
                 }
-                completeRewardProcessing(currentState.accountId(), rewardProcessing);
+                return applied.inventorySnapshot() == null && !applied.progressChanged()
+                    ? CompletableFuture.completedFuture(true)
+                    : inventoryService.saveNow(currentState.accountId());
+            });
+        } catch (RuntimeException exception) {
+            persistence = CompletableFuture.failedFuture(exception);
+        }
+        persistence.whenComplete((saved, failure) -> {
+            Runnable completion = () -> {
+                if (!claimId.equals(pendingRewardClaims.get(claimKey))) {
+                    return;
+                }
+                if (failure == null && Boolean.TRUE.equals(saved)) {
+                    rewardPersistenceRetries.remove(claimKey);
+                    clearPersistedMarker(currentState.accountId());
+                    finishRewardPersistence(player, currentState, quest, claimKey, claimId,
+                        rewardProcessing, onCompleted);
+                } else {
+                    Throwable cause = unwrapFailure(failure);
+                    if (cause == null) {
+                        Logger.warn(LogId.W_5071, "quest_reward", quest.id(), currentState.accountId(), "save_returned_false");
+                    } else {
+                        Logger.error(LogId.W_5071, cause, "quest_reward", quest.id(), currentState.accountId(), cause.getClass().getSimpleName());
+                    }
+                    scheduleRewardPersistenceRetry(claimKey, attempt, () ->
+                        continueRewardPersistence(player, currentState, quest, claimKey, claimId,
+                            applied, rewardProcessing, onCompleted, attempt + 1));
+                }
+            };
+            try {
+                mainExecutor.execute(completion);
+            } catch (RuntimeException exception) {
+                // 完了処理の受付失敗でもclaimを保持する。成功済み保存を報酬取消へ変換しない。
+                Logger.error(LogId.W_5071, exception, "quest_reward_completion", quest.id(), currentState.accountId(), exception.getClass().getSimpleName());
+                scheduleRewardPersistenceRetry(claimKey, attempt, completion);
             }
         });
+    }
+
+    /**
+     * 次の定期tickへ再送を予約します。同期executorでも再帰せず、1秒から最大60秒へbackoffします。
+     */
+    private void scheduleRewardPersistenceRetry(
+        @NotNull RewardClaimKey key, int attempt, @NotNull Runnable action
+    ) {
+        long delay = Math.min(60_000L, 1_000L << Math.min(6, Math.max(0, attempt)));
+        long dueAt = Math.max(System.currentTimeMillis() + delay,
+            persistenceCoordinator.retryNotBeforeMillis(key.accountId()));
+        rewardPersistenceRetries.put(key, new RewardPersistenceRetry(dueAt, action));
+    }
+
+    /** 定期tickで期限到来した報酬保存だけを一度取り出して再試行します。 */
+    void retryRewardPersistence(long now) {
+        for (var entry : List.copyOf(rewardPersistenceRetries.entrySet())) {
+            RewardPersistenceRetry retry = entry.getValue();
+            if (retry.dueAtMillis() <= now && rewardPersistenceRetries.remove(entry.getKey(), retry)) {
+                retry.action().run();
+            }
+        }
     }
 
     /**
@@ -953,151 +948,7 @@ public final class QuestService {
     }
 
     /**
-     * 保存失敗時にクエストと報酬を受取前へ戻し、補償状態の保存完了後に再試行を許可します。
-     *
-     * @param player 対象プレイヤー
-     * @param currentState 現在のクエスト状態
-     * @param stateBeforeCommit 報酬反映前の補償用状態
-     * @param quest 補償対象クエスト
-     * @param claimKey 多重受取防止キー
-     * @param claimId 今回の受取要求 ID
-     * @param prepared 準備済み報酬
-     * @param applied 反映済み報酬の補償情報
-     * @param failure 保存失敗原因
-     * @param rewardProcessing account単位報酬処理の完了 Future
-     */
-    private void compensateRewardPersistence(
-        @NotNull AstPlayer player,
-        @NotNull QuestPlayerState currentState,
-        @NotNull QuestPlayerState stateBeforeCommit,
-        @NotNull QuestDefinition quest,
-        @NotNull RewardClaimKey claimKey,
-        @NotNull UUID claimId,
-        @NotNull PreparedRewards prepared,
-        @NotNull AppliedRewards applied,
-        @Nullable Throwable failure,
-        @NotNull CompletableFuture<Void> rewardProcessing
-    ) {
-        if (!claimId.equals(pendingRewardClaims.get(claimKey))) {
-            completeRewardProcessing(currentState.accountId(), rewardProcessing);
-            return;
-        }
-        Throwable cause = unwrapFailure(failure);
-        if (cause == null) {
-            Logger.warn(LogId.W_6604, currentState.accountId(), quest.id());
-        } else {
-            Logger.error(LogId.W_6604, cause, currentState.accountId(), quest.id());
-        }
-
-        restoreQuestState(currentState, stateBeforeCommit, quest.id());
-        inventoryService.executeLocalPlayerMutation(
-            currentState.accountId(),
-            () -> {
-                rollbackAppliedRewards(player, applied, quest.id());
-                return null;
-            }
-        );
-        cleanupPreparedInstances(prepared);
-
-        CompletableFuture<Boolean> compensation;
-        try {
-            compensation = saveImmediately(currentState)
-                .handle((ignored, questFailure) -> {
-                    Throwable questCause = unwrapFailure(questFailure);
-                    if (questCause != null) {
-                        Logger.error(LogId.W_6606, questCause, currentState.accountId(), quest.id());
-                    }
-                    return questCause == null;
-                })
-                .thenCompose(questRestored -> {
-                    if (applied.inventorySnapshot() == null) {
-                        return CompletableFuture.completedFuture(questRestored);
-                    }
-                    return inventoryService.saveNow(currentState.accountId())
-                        .handle((inventoryRestored, inventoryFailure) -> {
-                            Throwable inventoryCause = unwrapFailure(inventoryFailure);
-                            if (inventoryCause != null) {
-                                Logger.error(
-                                    LogId.W_6606,
-                                    inventoryCause,
-                                    currentState.accountId(),
-                                    quest.id()
-                                );
-                            } else if (!Boolean.TRUE.equals(inventoryRestored)) {
-                                Logger.warn(LogId.W_6606, currentState.accountId(), quest.id());
-                            }
-                            return questRestored
-                                && inventoryCause == null
-                                && Boolean.TRUE.equals(inventoryRestored);
-                        });
-                });
-        } catch (RuntimeException exception) {
-            pendingRewardClaims.remove(claimKey, claimId);
-            Logger.error(LogId.W_6606, exception, currentState.accountId(), quest.id());
-            if (!stopping && states.get(currentState.accountId()) == currentState) {
-                send(player, PlayerMsgId.P_6609);
-            }
-            completeRewardProcessing(currentState.accountId(), rewardProcessing);
-            return;
-        }
-
-        compensation.whenComplete((restored, compensationFailure) -> {
-            try {
-                mainExecutor.execute(() -> finishRewardCompensation(
-                    player,
-                    currentState,
-                    quest,
-                    claimKey,
-                    claimId,
-                    restored,
-                    compensationFailure,
-                    rewardProcessing
-                ));
-            } catch (RuntimeException exception) {
-                pendingRewardClaims.remove(claimKey, claimId);
-                Logger.error(LogId.W_6606, exception, currentState.accountId(), quest.id());
-                completeRewardProcessing(currentState.accountId(), rewardProcessing);
-            }
-        });
-    }
-
-    /**
-     * 補償保存の終了後に受取中状態とaccount単位の待機を解除し、オンライン中の対象へ再試行を案内します。
-     *
-     * @param player 対象プレイヤー
-     * @param expectedState 補償したクエスト状態
-     * @param quest 補償対象クエスト
-     * @param claimKey 多重受取防止キー
-     * @param claimId 今回の受取要求 ID
-     * @param restored 補償保存の成否
-     * @param failure 補償処理の失敗原因
-     * @param rewardProcessing account単位報酬処理の完了 Future
-     */
-    private void finishRewardCompensation(
-        @NotNull AstPlayer player,
-        @NotNull QuestPlayerState expectedState,
-        @NotNull QuestDefinition quest,
-        @NotNull RewardClaimKey claimKey,
-        @NotNull UUID claimId,
-        @Nullable Boolean restored,
-        @Nullable Throwable failure,
-        @NotNull CompletableFuture<Void> rewardProcessing
-    ) {
-        Throwable cause = unwrapFailure(failure);
-        if (cause != null) {
-            Logger.error(LogId.W_6606, cause, expectedState.accountId(), quest.id());
-        } else if (!Boolean.TRUE.equals(restored)) {
-            Logger.warn(LogId.W_6606, expectedState.accountId(), quest.id());
-        }
-        pendingRewardClaims.remove(claimKey, claimId);
-        if (!stopping && states.get(expectedState.accountId()) == expectedState) {
-            send(player, PlayerMsgId.P_6609);
-        }
-        completeRewardProcessing(expectedState.accountId(), rewardProcessing);
-    }
-
-    /**
-     * account単位の報酬反映・保存・補償の待機列を進めます。
+     * account単位の報酬反映・保存再試行の待機列を進めます。
      *
      * @param accountId 対象account ID
      * @param rewardProcessing 今回の報酬処理の完了 Future
@@ -1210,6 +1061,10 @@ public final class QuestService {
         }
     }
 
+    /**
+     * 同期報酬反映中の失敗だけを、同じinventory mutation lock内で補償します。
+     * API保存開始後や非同期callbackから呼び出してはなりません。
+     */
     private void rollbackAppliedRewards(
         @NotNull AstPlayer player,
         @NotNull AppliedRewards applied,
@@ -1257,54 +1112,6 @@ public final class QuestService {
                 applied.previousAccount().getUuid(),
                 questId
             );
-        }
-    }
-
-    /**
-     * 報酬保存に失敗したクエストだけを受取前の状態へ戻します。
-     *
-     * @param target 現在のプレイヤークエスト状態
-     * @param snapshot 報酬反映直前の状態
-     * @param questId 補償対象クエスト ID
-     */
-    private void restoreQuestState(
-        @NotNull QuestPlayerState target,
-        @NotNull QuestPlayerState snapshot,
-        @NotNull String questId
-    ) {
-        QuestProgress activeBeforeCommit = snapshot.activeQuests().get(questId);
-        if (activeBeforeCommit == null) {
-            target.activeQuests().remove(questId);
-        } else {
-            target.activeQuests().put(questId, new QuestProgress(
-                activeBeforeCommit.questId(),
-                activeBeforeCommit.acceptedAtEpochMillis(),
-                activeBeforeCommit.acceptedNpcId(),
-                activeBeforeCommit.objectiveProgress(),
-                activeBeforeCommit.readyToTurnIn()
-            ));
-        }
-        restoreTimestamp(target.completedAt(), snapshot.completedAt(), questId);
-        restoreTimestamp(target.cooldownUntil(), snapshot.cooldownUntil(), questId);
-    }
-
-    /**
-     * 対象クエストの時刻状態だけを補償用 snapshot に戻します。
-     *
-     * @param target 現在の時刻状態 map
-     * @param snapshot 補償基準の時刻状態 map
-     * @param questId 補償対象クエスト ID
-     */
-    private void restoreTimestamp(
-        @NotNull Map<String, Long> target,
-        @NotNull Map<String, Long> snapshot,
-        @NotNull String questId
-    ) {
-        Long valueBeforeCommit = snapshot.get(questId);
-        if (valueBeforeCommit == null) {
-            target.remove(questId);
-        } else {
-            target.put(questId, valueBeforeCommit);
         }
     }
 
@@ -1433,24 +1240,9 @@ public final class QuestService {
         return pendingRewardClaims.containsKey(new RewardClaimKey(accountId, questId));
     }
 
-    /**
-     * 最新クエスト状態を保存世代へ登録し、debounceを待たず当該保存の成否 Future を返します。
-     *
-     * @param state 即時保存するクエスト状態
-     * @return 今回の保存試行 Future
-     */
-    private @NotNull CompletableFuture<Void> saveImmediately(@NotNull QuestPlayerState state) {
-        save(state);
-        CompletableFuture<Void> future = persistenceCoordinator.flushLatest(state.accountId());
-        future.thenRun(() -> {
-            clearPersistedMarker(state.accountId());
-            persistenceCoordinator.evictReleasedPersisted(state.accountId());
-        });
-        return future;
-    }
-
     private void flushDueStates() {
         long now = System.currentTimeMillis();
+        retryRewardPersistence(now);
         for (UUID accountId : List.copyOf(dirtyStates)) {
             clearPersistedMarker(accountId);
             if (!dirtyStates.contains(accountId)) {
@@ -1575,6 +1367,9 @@ public final class QuestService {
         long previousClassExperience,
         boolean progressChanged
     ) {
+    }
+
+    private record RewardPersistenceRetry(long dueAtMillis, @NotNull Runnable action) {
     }
 
     private record RewardClaimKey(@NotNull UUID accountId, @NotNull String questId) {

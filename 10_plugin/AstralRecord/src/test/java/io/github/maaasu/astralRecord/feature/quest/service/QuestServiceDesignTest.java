@@ -39,6 +39,7 @@ import org.bukkit.Registry;
 import org.bukkit.Sound;
 import org.bukkit.Material;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 
@@ -50,6 +51,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Supplier;
 
@@ -547,10 +549,10 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
      * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
-     * 検証契約: quest API保存失敗時に報酬とquest stateを復元してclaimを解放し、再試行成功時だけ完了へ進める。
+     * 検証契約: quest API応答不明時は完了状態とclaimを保持し、報酬を再付与せず保存再試行成功時だけclaimを解放する。
      */
     @Test
-    void questSaveFailureRestoresRewardsAndAllowsRetry() {
+    void questSaveFailureRetainsRewardsAndRetriesPersistence() {
         QuestDefinition quest = quest(
             "quest_save_retry",
             QuestCompletionMode.NPC,
@@ -571,22 +573,24 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
 
         assertTrue(harness.service.turnIn(player, quest, null));
 
-        assertTrue(state.activeQuests().containsKey(quest.id()));
-        assertFalse(state.completedAt().containsKey(quest.id()));
-        assertFalse(harness.service.hasPendingRewardClaim(player.getAccount().getUuid(), quest.id()));
-        verify(harness.inventoryService).restoreState(inventorySnapshot);
-
-        assertTrue(harness.service.turnIn(player, quest, null));
-
         assertFalse(state.activeQuests().containsKey(quest.id()));
         assertTrue(state.completedAt().containsKey(quest.id()));
-        verify(harness.stateRepository, times(3)).save(any(QuestPlayerState.class));
+        assertTrue(harness.service.hasPendingRewardClaim(player.getAccount().getUuid(), quest.id()));
+        verify(harness.inventoryService, never()).restoreState(any());
+        assertFalse(harness.service.turnIn(player, quest, null));
+
+        harness.service.retryRewardPersistence(Long.MAX_VALUE);
+
+        assertFalse(harness.service.hasPendingRewardClaim(player.getAccount().getUuid(), quest.id()));
+        assertTrue(state.completedAt().containsKey(quest.id()));
+        verify(harness.inventoryService).addGold(player, 5L);
+        verify(harness.stateRepository, times(2)).save(any(QuestPlayerState.class));
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
      * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
-     * 検証契約: あるクエストの保存失敗を補償しても、待機中に記録された別クエストの進行を巻き戻さない。
+     * 検証契約: 保存再試行は最新quest世代を保存し、待機中に記録された別questの進行を巻き戻さない。
      */
     @Test
     void questSaveFailurePreservesLaterProgressForAnotherQuest() {
@@ -633,8 +637,14 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         asyncExecutor.runAll();
         mainExecutor.runAll();
 
-        assertTrue(state.activeQuests().containsKey(rewardQuest.id()));
-        assertFalse(state.completedAt().containsKey(rewardQuest.id()));
+        assertFalse(state.activeQuests().containsKey(rewardQuest.id()));
+        assertTrue(state.completedAt().containsKey(rewardQuest.id()));
+        harness.service.retryRewardPersistence(Long.MAX_VALUE);
+        asyncExecutor.runAll();
+        mainExecutor.runAll();
+        ArgumentCaptor<QuestPlayerState> snapshots = ArgumentCaptor.forClass(QuestPlayerState.class);
+        verify(harness.stateRepository, times(2)).save(snapshots.capture());
+        assertEquals(1, snapshots.getValue().activeQuests().get(otherQuest.id()).progress("kill_wolf"));
         assertEquals(1, state.activeQuests().get(otherQuest.id()).progress("kill_wolf"));
         assertTrue(state.activeQuests().get(otherQuest.id()).readyToTurnIn());
     }
@@ -642,7 +652,7 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
      * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
-     * 検証契約: 同一accountの別quest報酬は先行questの保存失敗補償後に反映し、後続questのGold・item・account/class EXPと完了状態を保持する。
+     * 検証契約: 同一accountの別quest報酬は先行保存再試行の成功後に反映し、双方のGold・item・account/class EXPと完了状態を保持する。
      */
     @Test
     void failedRewardPersistenceQueuesAnotherQuestAndPreservesItsRewards() {
@@ -703,13 +713,17 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         AccountModel initialAccount = player.getAccount();
         AccountModel failedRewardAccount = mock(AccountModel.class);
         AccountModel succeedingRewardAccount = mock(AccountModel.class);
+        when(failedRewardAccount.getUuid()).thenReturn(initialAccount.getUuid());
+        when(failedRewardAccount.getMode()).thenReturn(AccountMode.PLAYER);
+        when(succeedingRewardAccount.getUuid()).thenReturn(initialAccount.getUuid());
+        when(succeedingRewardAccount.getMode()).thenReturn(AccountMode.PLAYER);
         when(harness.accountService.grantExperienceCached(
             eq(initialAccount),
             eq(10),
             eq(player.getUser().getUuid())
         )).thenReturn(new AccountExperienceResult(initialAccount, failedRewardAccount, 10, 0));
         when(harness.accountService.grantExperienceCached(
-            eq(initialAccount),
+            eq(failedRewardAccount),
             eq(20),
             eq(player.getUser().getUuid())
         )).thenReturn(new AccountExperienceResult(initialAccount, succeedingRewardAccount, 20, 0));
@@ -738,17 +752,20 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
 
         asyncExecutor.runAll();
         mainExecutor.runAll();
+        assertTrue(harness.service.hasPendingRewardClaim(initialAccount.getUuid(), failedQuest.id()));
+        verify(harness.inventoryService, never()).addGold(player, 7L);
+        harness.service.retryRewardPersistence(Long.MAX_VALUE);
         asyncExecutor.runAll();
         mainExecutor.runAll();
         asyncExecutor.runAll();
         mainExecutor.runAll();
 
-        assertTrue(state.activeQuests().containsKey(failedQuest.id()));
-        assertFalse(state.completedAt().containsKey(failedQuest.id()));
+        assertFalse(state.activeQuests().containsKey(failedQuest.id()));
+        assertTrue(state.completedAt().containsKey(failedQuest.id()));
         assertFalse(state.activeQuests().containsKey(succeedingQuest.id()));
         assertTrue(state.completedAt().containsKey(succeedingQuest.id()));
         assertSame(succeedingRewardAccount, player.getAccount());
-        assertEquals(120L, player.getClassExperience());
+        assertEquals(130L, player.getClassExperience());
 
         InOrder rewardOrder = inOrder(
             harness.inventoryService,
@@ -768,12 +785,8 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
             player.getUser().getUuid()
         );
         rewardOrder.verify(harness.playerClassService).grantClassExperience(player, 10);
-        rewardOrder.verify(harness.inventoryService).restoreState(failedInventorySnapshot);
-        rewardOrder.verify(harness.accountService).restoreCachedProgress(
-            initialAccount,
-            player.getUser().getUuid()
-        );
-        rewardOrder.verify(harness.playerClassService).updatePlayerListName(player);
+        verify(harness.inventoryService, never()).restoreState(any());
+        verify(harness.accountService, never()).restoreCachedProgress(any(), any());
         rewardOrder.verify(harness.inventoryService).addGold(player, 7L);
         rewardOrder.verify(harness.inventoryService).addItemToNormalInventory(
             player,
@@ -782,7 +795,7 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
             "quest_reward"
         );
         rewardOrder.verify(harness.accountService).grantExperienceCached(
-            initialAccount,
+            failedRewardAccount,
             20,
             player.getUser().getUuid()
         );
@@ -792,10 +805,10 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
      * 章・見出し: # 29_3-メソッド仕様 > ## 7. クエスト受領
-     * 検証契約: 繰り返しクエストの報酬保存が失敗して補償中でも、同一questを再受領して受領条件itemを消費できない。
+     * 検証契約: 繰り返しクエストの報酬保存が失敗して再試行中でも、同一questを再受領して受領条件itemを消費できない。
      */
     @Test
-    void repeatableQuestCannotBeAcceptedWhileFailedRewardSaveIsBeingCompensated() {
+    void repeatableQuestCannotBeAcceptedWhileFailedRewardSaveIsRetried() {
         QuestDefinition quest = new QuestDefinition(
             "repeatable_reward_save_failure",
             "repeatable_reward_save_failure",
@@ -842,17 +855,22 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
         asyncExecutor.runAll();
         mainExecutor.runAll();
 
+        assertTrue(harness.service.hasPendingRewardClaim(player.getAccount().getUuid(), quest.id()));
+        assertFalse(harness.service.accept(player, quest, null));
+        harness.service.retryRewardPersistence(Long.MAX_VALUE);
+        asyncExecutor.runAll();
+        mainExecutor.runAll();
         assertFalse(harness.service.hasPendingRewardClaim(player.getAccount().getUuid(), quest.id()));
-        assertTrue(state.activeQuests().containsKey(quest.id()));
+        assertFalse(state.activeQuests().containsKey(quest.id()));
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
      * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
-     * 検証契約: quest保存後のinventory保存失敗時に両storeを受取前へ戻して再保存し、再試行成功時だけ完了へ進める。
+     * 検証契約: quest保存後のinventory保存失敗時は完了状態を保持し、報酬再付与や巻戻しなしでinventory保存を再試行する。
      */
     @Test
-    void inventorySaveFailureRestoresBothStoresAndAllowsRetry() {
+    void inventorySaveFailureRetainsBothStoresAndRetriesPersistence() {
         QuestDefinition quest = quest(
             "inventory_save_retry",
             QuestCompletionMode.NPC,
@@ -874,17 +892,230 @@ class QuestServiceDesignTest extends MockBukkitTestBase {
 
         assertTrue(harness.service.turnIn(player, quest, null));
 
-        assertTrue(state.activeQuests().containsKey(quest.id()));
-        assertFalse(state.completedAt().containsKey(quest.id()));
-        assertFalse(harness.service.hasPendingRewardClaim(player.getAccount().getUuid(), quest.id()));
-        verify(harness.inventoryService).restoreState(inventorySnapshot);
-
-        assertTrue(harness.service.turnIn(player, quest, null));
-
         assertFalse(state.activeQuests().containsKey(quest.id()));
         assertTrue(state.completedAt().containsKey(quest.id()));
-        verify(harness.stateRepository, times(3)).save(any(QuestPlayerState.class));
-        verify(harness.inventoryService, times(3)).saveNow(player.getAccount().getUuid());
+        assertTrue(harness.service.hasPendingRewardClaim(player.getAccount().getUuid(), quest.id()));
+        verify(harness.inventoryService, never()).restoreState(any());
+        assertFalse(harness.service.turnIn(player, quest, null));
+
+        harness.service.retryRewardPersistence(Long.MAX_VALUE);
+
+        assertFalse(harness.service.hasPendingRewardClaim(player.getAccount().getUuid(), quest.id()));
+        verify(harness.inventoryService).addGold(player, 5L);
+        verify(harness.stateRepository).save(any(QuestPlayerState.class));
+        verify(harness.inventoryService, times(2)).saveNow(player.getAccount().getUuid());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
+     * 検証契約: 保存中に報酬を消費し別item・Gold・EXPを取得しても、応答不明と再試行失敗で後続状態を巻き戻さず、再付与せずに保存を確定する。
+     */
+    @Test
+    void uncertainSavePreservesSpentRewardsAndLaterInventoryAndExperience() {
+        ItemModel rewardItem = DesignTestFixtures.item("retry_stack", ItemCategory.MATERIAL, 64);
+        QuestDefinition quest = quest("later_mutations", QuestCompletionMode.NPC, List.of(), List.of(),
+            new QuestRewardDefinition(10, 5L, List.of(new QuestItemStackDefinition("retry_stack", "material", 2))));
+        QuestHarness harness = questHarness(quest);
+        AstPlayer player = playerWithQuestLimit(2.0D);
+        player.selectClass("adventurer");
+        player.setClassLevel(1);
+        player.setClassExperience(100L);
+        UUID accountId = player.getAccount().getUuid();
+        AccountModel initialAccount = player.getAccount();
+        QuestPlayerState state = readyState(player, quest);
+        harness.service.applyInitialState(state);
+        AtomicLong gold = new AtomicLong(100L);
+        AtomicLong stack = new AtomicLong(3L);
+        AtomicLong otherItem = new AtomicLong(1L);
+        when(harness.inventoryService.snapshotState(accountId)).thenReturn(inventorySnapshot(player));
+        doAnswer(ignored -> {
+            gold.set(100L);
+            stack.set(3L);
+            otherItem.set(1L);
+            return true;
+        }).when(harness.inventoryService).restoreState(any());
+        when(harness.itemService.findLoadedById("retry_stack")).thenReturn(rewardItem);
+        when(harness.inventoryService.addGold(player, 5L)).thenAnswer(ignored -> {
+            gold.addAndGet(5L);
+            return true;
+        });
+        when(harness.inventoryService.addItemToNormalInventory(player, rewardItem, 2, "quest_reward"))
+            .thenAnswer(ignored -> {
+                stack.addAndGet(2L);
+                return 2;
+            });
+        when(harness.accountService.grantExperienceCached(initialAccount, 10, player.getUser().getUuid()))
+            .thenReturn(new AccountExperienceResult(initialAccount, initialAccount, 10, 0));
+        when(harness.playerClassService.grantClassExperience(player, 10)).thenAnswer(ignored -> {
+            player.setClassExperience(110L);
+            return new ClassExperienceResult(1, 1, 10, 0);
+        });
+        CompletableFuture<Boolean> unknownSave = new CompletableFuture<>();
+        when(harness.inventoryService.saveNow(accountId)).thenReturn(unknownSave)
+            .thenReturn(CompletableFuture.completedFuture(false))
+            .thenReturn(CompletableFuture.completedFuture(true));
+        AtomicBoolean completed = new AtomicBoolean();
+        assertTrue(harness.service.turnIn(player, quest, null, () -> completed.set(true)));
+
+        // 別操作が報酬を含めて消費し、その後に別の取得とレベル進行を確定した状態。
+        gold.addAndGet(-105L);
+        gold.addAndGet(7L);
+        stack.addAndGet(-5L);
+        otherItem.addAndGet(4L);
+        AccountModel laterAccount = mock(AccountModel.class);
+        when(laterAccount.getUuid()).thenReturn(accountId);
+        when(laterAccount.getMode()).thenReturn(AccountMode.PLAYER);
+        player.setAccount(laterAccount);
+        player.setClassLevel(2);
+        player.setClassExperience(130L);
+        unknownSave.completeExceptionally(new IllegalStateException("response_lost_after_commit"));
+
+        assertTrue(state.completedAt().containsKey(quest.id()));
+        assertFalse(state.activeQuests().containsKey(quest.id()));
+        assertTrue(harness.service.hasPendingRewardClaim(accountId, quest.id()));
+        assertFalse(harness.service.turnIn(player, quest, null));
+        assertFalse(completed.get());
+        harness.service.retryRewardPersistence(0L);
+        verify(harness.inventoryService).saveNow(accountId);
+        harness.service.retryRewardPersistence(Long.MAX_VALUE);
+        assertTrue(harness.service.hasPendingRewardClaim(accountId, quest.id()));
+        assertFalse(completed.get());
+        harness.service.retryRewardPersistence(Long.MAX_VALUE);
+
+        assertEquals(7L, gold.get());
+        assertEquals(0L, stack.get());
+        assertEquals(5L, otherItem.get());
+        assertSame(laterAccount, player.getAccount());
+        assertEquals(2, player.getClassLevel());
+        assertEquals(130L, player.getClassExperience());
+        assertFalse(harness.service.hasPendingRewardClaim(accountId, quest.id()));
+        assertTrue(completed.get());
+        verify(harness.inventoryService, never()).restoreState(any());
+        verify(harness.accountService, never()).restoreCachedProgress(any(), any());
+        verify(harness.inventoryService).addGold(player, 5L);
+        verify(harness.inventoryService).addItemToNormalInventory(player, rewardItem, 2, "quest_reward");
+        verify(harness.accountService).grantExperienceCached(initialAccount, 10, player.getUser().getUuid());
+        verify(harness.playerClassService).grantClassExperience(player, 10);
+        verify(harness.inventoryService, times(3)).saveNow(accountId);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
+     * 検証契約: EXPのみの報酬でも共通プレイヤー状態保存の成功までclaimを保持し、保存再試行で後続class EXPを復元・再付与しない。
+     */
+    @Test
+    void experienceOnlyRewardAwaitsPlayerStateSaveAndPreservesLaterExperience() {
+        QuestDefinition quest = quest("exp_only_retry", QuestCompletionMode.NPC, List.of(), List.of(),
+            new QuestRewardDefinition(10, 0L, List.of()));
+        QuestHarness harness = questHarness(quest);
+        AstPlayer player = playerWithQuestLimit(2.0D);
+        player.selectClass("adventurer");
+        UUID accountId = player.getAccount().getUuid();
+        harness.service.applyInitialState(readyState(player, quest));
+        when(harness.accountService.grantExperienceCached(player.getAccount(), 10, player.getUser().getUuid()))
+            .thenReturn(new AccountExperienceResult(player.getAccount(), player.getAccount(), 10, 0));
+        when(harness.playerClassService.grantClassExperience(player, 10))
+            .thenReturn(new ClassExperienceResult(1, 1, 10, 0));
+        CompletableFuture<Boolean> save = new CompletableFuture<>();
+        when(harness.inventoryService.saveNow(accountId)).thenReturn(save)
+            .thenReturn(CompletableFuture.completedFuture(true));
+
+        assertTrue(harness.service.turnIn(player, quest, null));
+        assertTrue(harness.service.hasPendingRewardClaim(accountId, quest.id()));
+        player.setClassExperience(50L);
+        save.complete(false);
+        assertTrue(harness.service.hasPendingRewardClaim(accountId, quest.id()));
+        harness.service.retryRewardPersistence(Long.MAX_VALUE);
+
+        assertEquals(50L, player.getClassExperience());
+        assertFalse(harness.service.hasPendingRewardClaim(accountId, quest.id()));
+        verify(harness.inventoryService, never()).snapshotState(any());
+        verify(harness.inventoryService, times(2)).saveNow(accountId);
+        verify(harness.playerClassService).grantClassExperience(player, 10);
+        verify(harness.accountService, never()).restoreCachedProgress(any(), any());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
+     * 検証契約: equipment報酬反映後のquest API応答不明ではinstanceを削除せず、同じ完了状態を保存再試行する。
+     */
+    @Test
+    void uncertainQuestSaveDoesNotDeleteAppliedEquipmentInstance() {
+        ItemModel item = DesignTestFixtures.item("retry_sword", ItemCategory.EQUIPMENT, 1);
+        QuestDefinition quest = quest("equipment_retry", QuestCompletionMode.NPC, List.of(), List.of(),
+            new QuestRewardDefinition(0, 0L, List.of(new QuestItemStackDefinition("retry_sword", "equipment", 1))));
+        QuestHarness harness = questHarness(quest);
+        AstPlayer player = playerWithQuestLimit(2.0D);
+        UUID accountId = player.getAccount().getUuid();
+        UUID instanceId = UUID.randomUUID();
+        EquipmentInstance instance = mock(EquipmentInstance.class);
+        when(instance.getEquipmentInstanceId()).thenReturn(instanceId.toString());
+        harness.service.applyInitialState(readyState(player, quest));
+        when(harness.itemService.findLoadedById("retry_sword")).thenReturn(item);
+        when(harness.itemService.createEquipmentInstance("retry_sword", accountId.toString(), "quest_reward", accountId.toString()))
+            .thenReturn(instance);
+        when(harness.inventoryService.snapshotState(accountId)).thenReturn(inventorySnapshot(player));
+        when(harness.inventoryService.addPreparedInstanceToNormalInventory(player, item, InventoryInstanceType.EQUIPMENT, instanceId))
+            .thenReturn(1);
+        doThrow(new IllegalStateException("response_lost_after_commit")).doNothing()
+            .when(harness.stateRepository).save(any(QuestPlayerState.class));
+
+        assertTrue(harness.service.turnIn(player, quest, null));
+        assertTrue(harness.service.hasPendingRewardClaim(accountId, quest.id()));
+        harness.service.retryRewardPersistence(Long.MAX_VALUE);
+
+        assertFalse(harness.service.hasPendingRewardClaim(accountId, quest.id()));
+        verify(harness.itemService, never()).deleteEquipmentInstance(any());
+        verify(harness.inventoryService, never()).restoreState(any());
+        verify(harness.inventoryService).addPreparedInstanceToNormalInventory(player, item, InventoryInstanceType.EQUIPMENT, instanceId);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
+     * 章・見出し: # 29_3-メソッド仕様 > ## 11. 報酬commit・補償
+     * 検証契約: logout保存と報酬再試行が同じ保存tailへ合流して失敗しても、保存済みと誤認せずclaimを保持し、再ログイン状態を巻き戻さない。
+     */
+    @Test
+    void retryJoiningFailedLogoutSaveKeepsClaimUntilLatestQuestIsPersisted() {
+        QuestDefinition quest = quest("logout_retry", QuestCompletionMode.NPC, List.of(), List.of(),
+            new QuestRewardDefinition(0, 5L, List.of()));
+        ManualExecutor asyncExecutor = new ManualExecutor();
+        ManualExecutor mainExecutor = new ManualExecutor();
+        QuestHarness harness = questHarness(quest, asyncExecutor, mainExecutor);
+        AstPlayer player = playerWithQuestLimit(2.0D);
+        UUID accountId = player.getAccount().getUuid();
+        harness.service.applyInitialState(readyState(player, quest));
+        when(harness.inventoryService.snapshotState(accountId)).thenReturn(inventorySnapshot(player));
+        when(harness.inventoryService.addGold(player, 5L)).thenReturn(true);
+        doThrow(new IllegalStateException("first_save_failure"))
+            .doThrow(new IllegalStateException("logout_save_failure")).doNothing()
+            .when(harness.stateRepository).save(any(QuestPlayerState.class));
+
+        assertTrue(harness.service.turnIn(player, quest, null));
+        asyncExecutor.runAll();
+        mainExecutor.runAll();
+        asyncExecutor.runAll();
+        mainExecutor.runAll();
+        harness.service.releaseState(accountId);
+        harness.service.retryRewardPersistence(Long.MAX_VALUE);
+        asyncExecutor.runAll();
+        mainExecutor.runAll();
+
+        assertTrue(harness.service.hasPendingRewardClaim(accountId, quest.id()));
+        verify(harness.inventoryService, never()).saveNow(accountId);
+        harness.service.applyInitialState(harness.service.loadInitialState(accountId));
+        assertEquals(QuestDisplayState.COMPLETED, harness.service.displayState(player, quest));
+        harness.service.retryRewardPersistence(Long.MAX_VALUE);
+        asyncExecutor.runAll();
+        mainExecutor.runAll();
+
+        assertFalse(harness.service.hasPendingRewardClaim(accountId, quest.id()));
+        assertEquals(QuestDisplayState.COMPLETED, harness.service.displayState(player, quest));
+        verify(harness.inventoryService).addGold(player, 5L);
+        verify(harness.inventoryService, never()).restoreState(any());
     }
 
     private AstPlayer playerWithQuestLimit(double questLimit) {
