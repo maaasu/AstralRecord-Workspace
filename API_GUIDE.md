@@ -42,6 +42,7 @@
 | POST `/api/account` | アカウント作成 | `00_docs/20_API設計書/feature/02-account/3-エンドポイント仕様/02_3.00-索引.md` |
 | PUT `/api/account/{uuid}` | アカウント更新 | `00_docs/20_API設計書/feature/02-account/3-エンドポイント仕様/02_3.00-索引.md` |
 | DELETE `/api/account/{uuid}` | アカウント削除 | `00_docs/20_API設計書/feature/02-account/3-エンドポイント仕様/02_3.00-索引.md` |
+| POST `/api/player-state/snapshots` | Plugin ローカル確定 player-state の原子的保存・冪等 ACK | `00_docs/20_API設計書/feature/34-player-state/3-エンドポイント仕様/34_3.00-索引.md` |
 | GET `/api/player-setting?user_id={user_id}` | ユーザー単位プレイヤー設定一覧取得 | `00_docs/20_API設計書/feature/03-player-setting/3-エンドポイント仕様/03_3.00-索引.md` |
 | GET `/api/player-setting/{userSettingId}` | プレイヤー設定取得 | `00_docs/20_API設計書/feature/03-player-setting/3-エンドポイント仕様/03_3.00-索引.md` |
 | POST `/api/player-setting` | プレイヤー設定作成 | `00_docs/20_API設計書/feature/03-player-setting/3-エンドポイント仕様/03_3.00-索引.md` |

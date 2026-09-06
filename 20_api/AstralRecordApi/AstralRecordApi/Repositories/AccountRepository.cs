@@ -78,6 +78,7 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
             ClassId = "adventurer",
             ClassLevel = 1,
             ClassExperience = 0,
+            ProgressVersion = 1,
             CreatedAt = now,
             UpdatedAt = now,
             CreatedBy = request.CreatedBy,
@@ -127,6 +128,11 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
 
         if (account is null)
             return null;
+
+        var progressRequested = request.Mode.HasValue
+            || request.Level.HasValue || request.TotalExperience.HasValue
+            || request.ClassId is not null || request.ClassLevel.HasValue || request.ClassExperience.HasValue
+            || request.ClassProgresses is not null;
 
         if (request.AccountName is not null)
         {
@@ -244,6 +250,8 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
 
         account.UpdatedAt = updatedAt;
         account.UpdatedBy = request.UpdatedBy;
+        if (progressRequested)
+            account.ProgressVersion = Math.Max(1, account.ProgressVersion + 1);
 
         await dbContext.SaveChangesAsync();
 
@@ -659,6 +667,7 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
         ClassId = "adventurer",
         ClassLevel = 1,
         ClassExperience = 0,
+        ProgressVersion = 1,
         CreatedAt = now,
         UpdatedAt = now,
         CreatedBy = createdBy,
@@ -731,6 +740,7 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
             ClassId = account.ClassId,
             ClassLevel = account.ClassLevel,
             ClassExperience = account.ClassExperience,
+            ProgressVersion = account.ProgressVersion,
             ClassProgresses = progresses,
             CreatedAt = account.CreatedAt,
             UpdatedAt = account.UpdatedAt,

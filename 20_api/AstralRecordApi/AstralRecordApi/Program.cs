@@ -81,6 +81,7 @@ builder.Services.AddScoped<ISkillBindPresetRepository, SkillBindPresetRepository
 builder.Services.AddScoped<IAccountLearnedSkillRepository, AccountLearnedSkillRepository>();
 builder.Services.AddScoped<IAccountRepository, AccountRepository>();
 builder.Services.AddScoped<IInventoryRepository, InventoryRepository>();
+builder.Services.AddScoped<IPlayerStateSnapshotRepository, PlayerStateSnapshotRepository>();
 builder.Services.AddScoped<IEquipmentRepository, EquipmentRepository>();
 builder.Services.AddScoped<IEquipmentOrbOperationRepository, EquipmentOrbOperationRepository>();
 builder.Services.AddScoped<IEquipmentLoadoutRepository, EquipmentLoadoutRepository>();

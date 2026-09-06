@@ -32,6 +32,7 @@
 | `AstralRecord` | `AstralRecord/migrations/20260901_account_delete_receipt.sql` | アカウント削除の確定応答台帳を追加 |
 | `AstralRecord` | `AstralRecord/migrations/20260904_add_inventory_entry_lookup_index.sql` | inventory entry 一括置換の inventory 単位検索用インデックスを追加 |
 | `AstralRecord` | `AstralRecord/migrations/20260905_account_learned_skill_operation.sql` | スキル mutation の冪等操作台帳を追加 |
+| `AstralRecord` | `AstralRecord/migrations/20260906_player_state_snapshot.sql` | player-state snapshot 冪等台帳と account 進行度専用版を追加 |
 
 本番配置時に適用する migration は `60_tool/db-migrate/db-migrate.config.json` の manifest で管理する。`01-deploy-debug.bat` は API 配置前に manifest の適用と対象スキーマ検査を実行し、失敗時は API を配置しない。`04-db-rebuild.bat` は既存データを削除する再構築用であり、稼働中DBの差分適用には使用しない。
 
@@ -47,6 +48,7 @@
 | `dbo.account_dungeon_record` | `AstralRecord/dbo.account_dungeon_record.md` |
 | `dbo.account` | `AstralRecord/dbo.account.md` |
 | `dbo.account_delete_receipt` | `AstralRecord/dbo.account_delete_receipt.md` |
+| `dbo.player_state_snapshot` | `AstralRecord/dbo.player_state_snapshot.md` |
 | `dbo.account_class_progress` | `AstralRecord/dbo.account_class_progress.md` |
 | `dbo.account_learned_skill` | `AstralRecord/dbo.account_learned_skill.md` |
 | `dbo.account_learned_skill_operation` | `AstralRecord/dbo.account_learned_skill_operation.md` |

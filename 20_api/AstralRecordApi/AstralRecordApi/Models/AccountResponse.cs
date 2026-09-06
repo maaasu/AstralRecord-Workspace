@@ -14,6 +14,7 @@ public class AccountResponse
     public string ClassId { get; set; } = string.Empty;
     public int ClassLevel { get; set; }
     public long ClassExperience { get; set; }
+    public int ProgressVersion { get; set; }
     public IReadOnlyList<AccountClassProgressResponse> ClassProgresses { get; set; } = [];
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }

@@ -14,6 +14,7 @@ public class AccountEntity
     public string ClassId { get; set; } = "adventurer";
     public int ClassLevel { get; set; } = 1;
     public long ClassExperience { get; set; }
+    public int ProgressVersion { get; set; } = 1;
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public Guid CreatedBy { get; set; }

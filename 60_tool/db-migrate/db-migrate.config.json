@@ -52,6 +52,37 @@
           }
         ]
       }
+    },
+    {
+      "id": "20260906_player_state_snapshot",
+      "fileName": "20260906_player_state_snapshot.sql",
+      "expectation": {
+        "schema": "dbo",
+        "table": "player_state_snapshot",
+        "primaryKey": "PK_player_state_snapshot",
+        "columns": [
+          { "name": "snapshot_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+          { "name": "account_id", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false },
+          { "name": "request_hash", "sqlType": "char", "maxLengthBytes": 64, "isNullable": false },
+          { "name": "ack_payload_json", "sqlType": "nvarchar", "maxLengthBytes": -1, "isNullable": false },
+          { "name": "created_at", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+          { "name": "completed_at", "sqlType": "datetime2", "precision": 23, "scale": 3, "isNullable": false },
+          { "name": "created_by", "sqlType": "uniqueidentifier", "maxLengthBytes": 16, "isNullable": false }
+        ],
+        "checkConstraints": [
+          "CK_player_state_snapshot_request_hash",
+          "CK_player_state_snapshot_ack_payload_json"
+        ],
+        "indexes": [
+          "IX_player_state_snapshot_account_completed"
+        ],
+        "indexDefinitions": [
+          {
+            "name": "IX_player_state_snapshot_account_completed",
+            "columns": [ "account_id", "completed_at" ]
+          }
+        ]
+      }
     }
   ]
 }

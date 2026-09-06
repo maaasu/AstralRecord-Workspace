@@ -187,6 +187,7 @@ CREATE TABLE [dbo].[account] (
     [class_id]       NVARCHAR(100)     NOT NULL  CONSTRAINT [DF_account_class_id]      DEFAULT (N'adventurer'),
     [class_level]    INT               NOT NULL  CONSTRAINT [DF_account_class_level]   DEFAULT (1),
     [class_experience] BIGINT          NOT NULL  CONSTRAINT [DF_account_class_experience] DEFAULT (0),
+    [progress_version] INT             NOT NULL  CONSTRAINT [DF_account_progress_version] DEFAULT (1),
     [created_at]     DATETIME2(3)      NOT NULL,
     [updated_at]     DATETIME2(3)      NOT NULL,
     [created_by]     UNIQUEIDENTIFIER  NOT NULL,
@@ -206,7 +207,8 @@ CREATE TABLE [dbo].[account] (
     CONSTRAINT [CK_account_total_experience] CHECK ([total_experience] >= 0),
     CONSTRAINT [CK_account_class_id_not_blank] CHECK (LEN(LTRIM(RTRIM([class_id]))) > 0),
     CONSTRAINT [CK_account_class_level] CHECK ([class_level] >= 1),
-    CONSTRAINT [CK_account_class_experience] CHECK ([class_experience] >= 0)
+    CONSTRAINT [CK_account_class_experience] CHECK ([class_experience] >= 0),
+    CONSTRAINT [CK_account_progress_version] CHECK ([progress_version] >= 1)
 );
 GO
 
@@ -265,6 +267,33 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_account_delete_receipt_user_completed]
     ON [dbo].[account_delete_receipt] ([user_id], [completed_at]);
+GO
+
+-- ============================================================
+-- AstralRecord\dbo.player_state_snapshot.md
+-- ============================================================
+
+CREATE TABLE [dbo].[player_state_snapshot] (
+    [snapshot_id]      UNIQUEIDENTIFIER NOT NULL,
+    [account_id]       UNIQUEIDENTIFIER NOT NULL,
+    [request_hash]     CHAR(64)         NOT NULL,
+    [ack_payload_json] NVARCHAR(MAX)    NOT NULL,
+    [created_at]       DATETIME2(3)     NOT NULL,
+    [completed_at]     DATETIME2(3)     NOT NULL,
+    [created_by]       UNIQUEIDENTIFIER NOT NULL,
+
+    CONSTRAINT [PK_player_state_snapshot] PRIMARY KEY CLUSTERED ([snapshot_id]),
+    CONSTRAINT [FK_player_state_snapshot_account] FOREIGN KEY ([account_id])
+        REFERENCES [dbo].[account] ([uuid]) ON DELETE NO ACTION ON UPDATE NO ACTION,
+    CONSTRAINT [CK_player_state_snapshot_request_hash]
+        CHECK ([request_hash] LIKE '[0-9A-Fa-f]' + REPLICATE('[0-9A-Fa-f]', 63)),
+    CONSTRAINT [CK_player_state_snapshot_ack_payload_json]
+        CHECK (ISJSON([ack_payload_json]) = 1)
+);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_player_state_snapshot_account_completed]
+    ON [dbo].[player_state_snapshot] ([account_id], [completed_at]);
 GO
 
 -- ============================================================

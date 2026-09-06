@@ -88,6 +88,7 @@ public class AccountGuideProgressRepositoryTests
                 class_id TEXT NOT NULL,
                 class_level INTEGER NOT NULL,
                 class_experience INTEGER NOT NULL,
+                progress_version INTEGER NOT NULL,
                 created_at TEXT NOT NULL,
                 updated_at TEXT NOT NULL,
                 created_by TEXT NOT NULL,

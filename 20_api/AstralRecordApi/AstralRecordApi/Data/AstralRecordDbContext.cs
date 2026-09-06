@@ -43,6 +43,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
     public DbSet<MarketTransactionEntity> MarketTransactions => Set<MarketTransactionEntity>();
     public DbSet<MarketPriceSnapshotEntity> MarketPriceSnapshots => Set<MarketPriceSnapshotEntity>();
     public DbSet<TradeCommitEntity> TradeCommits => Set<TradeCommitEntity>();
+    public DbSet<PlayerStateSnapshotEntity> PlayerStateSnapshots => Set<PlayerStateSnapshotEntity>();
     public DbSet<WebLoginChallengeEntity> WebLoginChallenges => Set<WebLoginChallengeEntity>();
     public DbSet<ReleaseNoteEntity> ReleaseNotes => Set<ReleaseNoteEntity>();
     public DbSet<ReleaseNotificationOutboxEntity> ReleaseNotificationOutboxes => Set<ReleaseNotificationOutboxEntity>();
@@ -88,6 +89,7 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(account => account.ClassId).HasColumnName("class_id").HasMaxLength(100);
             entity.Property(account => account.ClassLevel).HasColumnName("class_level");
             entity.Property(account => account.ClassExperience).HasColumnName("class_experience");
+            entity.Property(account => account.ProgressVersion).HasColumnName("progress_version");
             entity.Property(account => account.CreatedAt).HasColumnName("created_at");
             entity.Property(account => account.UpdatedAt).HasColumnName("updated_at");
             entity.Property(account => account.CreatedBy).HasColumnName("created_by");
@@ -970,6 +972,21 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(e => e.CreatedBy).HasColumnName("created_by");
             entity.HasIndex(e => new { e.PlayerAAccountId, e.PlayerBAccountId, e.CompletedAt })
                 .HasDatabaseName("IX_trade_commit_accounts_completed");
+        });
+
+        modelBuilder.Entity<PlayerStateSnapshotEntity>(entity =>
+        {
+            entity.ToTable("player_state_snapshot", "dbo");
+            entity.HasKey(snapshot => snapshot.SnapshotId);
+            entity.Property(snapshot => snapshot.SnapshotId).HasColumnName("snapshot_id");
+            entity.Property(snapshot => snapshot.AccountId).HasColumnName("account_id");
+            entity.Property(snapshot => snapshot.RequestHash).HasColumnName("request_hash").HasMaxLength(64);
+            entity.Property(snapshot => snapshot.AckPayloadJson).HasColumnName("ack_payload_json");
+            entity.Property(snapshot => snapshot.CreatedAt).HasColumnName("created_at");
+            entity.Property(snapshot => snapshot.CompletedAt).HasColumnName("completed_at");
+            entity.Property(snapshot => snapshot.CreatedBy).HasColumnName("created_by");
+            entity.HasIndex(snapshot => new { snapshot.AccountId, snapshot.CompletedAt })
+                .HasDatabaseName("IX_player_state_snapshot_account_completed");
         });
     }
 }

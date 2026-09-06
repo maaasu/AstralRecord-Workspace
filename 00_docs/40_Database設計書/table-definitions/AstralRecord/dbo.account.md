@@ -33,6 +33,7 @@
 | `class_id`     | `NVARCHAR(100)`    |    |    ○    | `adventurer` | 現在クラス ID |
 | `class_level`  | `INT`              |    |    ○    |  `1`   | 現在クラスレベルの互換ミラー。正本は `dbo.account_class_progress` |
 | `class_experience` | `BIGINT`      |    |    ○    |  `0`   | 現在クラス累計経験値の互換ミラー。正本は `dbo.account_class_progress` |
+| `progress_version` | `INT` |    |    ○    | `1` | 進行度・mode 専用の楽観ロック版。位置・shortcut 等と共有しない |
 | `created_at`   | `DATETIME2(3)`     |    |    ○    |        | レコード作成日時                                                |
 | `updated_at`   | `DATETIME2(3)`     |    |    ○    |        | レコード最終更新日時                                              |
 | `created_by`   | `UNIQUEIDENTIFIER` |    |    ○    |        | 作成者の UUID                                               |
@@ -81,6 +82,7 @@
 | `CK_account_class_id_not_blank` | `class_id` | `LEN(LTRIM(RTRIM(class_id))) > 0` | 現在クラス ID の空文字を防ぐ |
 | `CK_account_class_level` | `class_level` | `>= 1` | クラスレベルの下限を制限する |
 | `CK_account_class_experience` | `class_experience` | `>= 0` | クラス経験値の負数保存を防ぐ |
+| `CK_account_progress_version` | `progress_version` | `>= 1` | 進行度専用版の下限を制限する |
 
 ### デフォルト制約
 
@@ -95,6 +97,7 @@
 | `DF_account_class_id`            | `class_id`            | `adventurer`                                                                       |
 | `DF_account_class_level`         | `class_level`         | `1`                                                                                |
 | `DF_account_class_experience`    | `class_experience`    | `0`                                                                                |
+| `DF_account_progress_version`    | `progress_version`    | `1`                                                                                |
 
 ---
 
@@ -126,6 +129,7 @@ CREATE TABLE [dbo].[account] (
     [class_id]       NVARCHAR(100)     NOT NULL  CONSTRAINT [DF_account_class_id]      DEFAULT (N'adventurer'),
     [class_level]    INT               NOT NULL  CONSTRAINT [DF_account_class_level]   DEFAULT (1),
     [class_experience] BIGINT          NOT NULL  CONSTRAINT [DF_account_class_experience] DEFAULT (0),
+    [progress_version] INT             NOT NULL  CONSTRAINT [DF_account_progress_version] DEFAULT (1),
     [created_at]     DATETIME2(3)      NOT NULL,
     [updated_at]     DATETIME2(3)      NOT NULL,
     [created_by]     UNIQUEIDENTIFIER  NOT NULL,
@@ -145,7 +149,8 @@ CREATE TABLE [dbo].[account] (
     CONSTRAINT [CK_account_total_experience] CHECK ([total_experience] >= 0),
     CONSTRAINT [CK_account_class_id_not_blank] CHECK (LEN(LTRIM(RTRIM([class_id]))) > 0),
     CONSTRAINT [CK_account_class_level] CHECK ([class_level] >= 1),
-    CONSTRAINT [CK_account_class_experience] CHECK ([class_experience] >= 0)
+    CONSTRAINT [CK_account_class_experience] CHECK ([class_experience] >= 0),
+    CONSTRAINT [CK_account_progress_version] CHECK ([progress_version] >= 1)
 );
 GO
 
@@ -180,6 +185,7 @@ GO
 | 権限モード管理      | `mode` により、アカウントの権限レベル（管理者、プレイヤー）を管理する       |
 | プレイヤーレベル管理  | `level` と `total_experience` により、アカウント単位の進行度を永続化する     |
 | クラス進行度管理 | `class_id` で現在クラスを保持し、クラス別レベル・経験値の正本は `dbo.account_class_progress` に永続化する。`class_level` / `class_experience` は現在クラスの互換ミラーとする |
+| snapshot 進行度競合検出 | `progress_version` で level・経験値・class・mode の更新だけを検出し、位置や menu shortcut の更新で player-state snapshot を不必要に競合させない |
 | 論理削除         | `is_deleted` フラグにより、キャラクターの削除を物理削除せず論理削除として管理する   |
 
 ## アカウント削除の整合性規則
