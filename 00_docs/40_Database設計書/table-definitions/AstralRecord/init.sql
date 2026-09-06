@@ -897,7 +897,7 @@ CREATE TABLE [dbo].[inventory_entry] (
     CONSTRAINT [CK_inventory_entry_quantity] CHECK ([quantity] >= 1),
     CONSTRAINT [CK_inventory_entry_payload] CHECK (
         ([item_id] IS NOT NULL AND [instance_type] IS NULL AND [instance_id] IS NULL)
-        OR ([item_id] IS NULL AND [instance_type] IS NOT NULL AND [instance_id] IS NOT NULL)
+        OR ([instance_type] IS NOT NULL AND [instance_id] IS NOT NULL)
     )
 );
 GO
@@ -916,6 +916,8 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_inventory_entry_inventory_item]
     ON [dbo].[inventory_entry] ([inventory_id], [item_id])
     WHERE [slot_index] IS NULL
       AND [item_id] IS NOT NULL
+      AND [instance_type] IS NULL
+      AND [instance_id] IS NULL
       AND [is_deleted] = 0;
 GO
 

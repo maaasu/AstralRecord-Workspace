@@ -103,9 +103,6 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
 
     public async Task<AccountResponse?> UpdateAsync(Guid uuid, AccountUpdateRequest request)
     {
-        if (request.IsActive != true && request.AccountName is null)
-            return await UpdateCoreAsync(uuid, request);
-
         var executionStrategy = dbContext.Database.CreateExecutionStrategy();
         return await executionStrategy.ExecuteAsync(async () =>
         {
@@ -122,9 +119,15 @@ public class AccountRepository(AstralRecordDbContext dbContext) : IAccountReposi
 
     private async Task<AccountResponse?> UpdateCoreAsync(Guid uuid, AccountUpdateRequest request)
     {
-        var account = await dbContext.Accounts
+        var accounts = dbContext.Database.IsSqlServer()
+            ? dbContext.Accounts.FromSqlInterpolated($"""
+                SELECT * FROM [dbo].[account] WITH (UPDLOCK, HOLDLOCK)
+                WHERE [uuid] = {uuid} AND [is_deleted] = 0
+                """)
+            : dbContext.Accounts.Where(x => x.Uuid == uuid && !x.IsDeleted);
+        var account = await accounts
             .Include(x => x.ClassProgresses)
-            .FirstOrDefaultAsync(x => x.Uuid == uuid && !x.IsDeleted);
+            .SingleOrDefaultAsync();
 
         if (account is null)
             return null;

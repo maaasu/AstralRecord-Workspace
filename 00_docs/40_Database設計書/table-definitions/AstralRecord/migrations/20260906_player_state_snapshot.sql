@@ -1,6 +1,29 @@
 SET XACT_ABORT ON;
 BEGIN TRANSACTION;
 
+-- Instance-backed entries may carry the API-resolved authoritative item ID.
+IF EXISTS (SELECT 1 FROM sys.check_constraints
+    WHERE [name] = N'CK_inventory_entry_payload'
+      AND [parent_object_id] = OBJECT_ID(N'[dbo].[inventory_entry]'))
+    ALTER TABLE [dbo].[inventory_entry] DROP CONSTRAINT [CK_inventory_entry_payload];
+ALTER TABLE [dbo].[inventory_entry] WITH CHECK
+    ADD CONSTRAINT [CK_inventory_entry_payload] CHECK (
+        ([item_id] IS NOT NULL AND [instance_type] IS NULL AND [instance_id] IS NULL)
+        OR ([instance_type] IS NOT NULL AND [instance_id] IS NOT NULL)
+    );
+
+IF EXISTS (SELECT 1 FROM sys.indexes
+    WHERE [name] = N'UX_inventory_entry_inventory_item'
+      AND [object_id] = OBJECT_ID(N'[dbo].[inventory_entry]'))
+    DROP INDEX [UX_inventory_entry_inventory_item] ON [dbo].[inventory_entry];
+CREATE UNIQUE NONCLUSTERED INDEX [UX_inventory_entry_inventory_item]
+    ON [dbo].[inventory_entry] ([inventory_id], [item_id])
+    WHERE [slot_index] IS NULL
+      AND [item_id] IS NOT NULL
+      AND [instance_type] IS NULL
+      AND [instance_id] IS NULL
+      AND [is_deleted] = 0;
+
 IF COL_LENGTH(N'[dbo].[account]', N'progress_version') IS NULL
 BEGIN
     ALTER TABLE [dbo].[account]

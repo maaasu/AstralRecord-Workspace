@@ -154,6 +154,7 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
             live.UpdatedAt = AdvanceParentUpdatedAt(live.UpdatedAt, DateTime.UtcNow);
             live.UpdatedBy = updatedBy;
             await dbContext.SaveChangesAsync();
+            await dbContext.Entry(live).ReloadAsync();
             await transaction.CommitAsync();
             return live;
         });
@@ -188,5 +189,9 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
     }
 
     private static DateTime AdvanceParentUpdatedAt(DateTime current, DateTime candidate)
-        => candidate > current.AddMilliseconds(1) ? candidate : current.AddMilliseconds(1);
+    {
+        var roundedCandidate = new DateTime(candidate.Ticks - candidate.Ticks % TimeSpan.TicksPerMillisecond, DateTimeKind.Utc);
+        var next = new DateTime(current.Ticks - current.Ticks % TimeSpan.TicksPerMillisecond, DateTimeKind.Utc).AddMilliseconds(1);
+        return roundedCandidate > next ? roundedCandidate : next;
+    }
 }

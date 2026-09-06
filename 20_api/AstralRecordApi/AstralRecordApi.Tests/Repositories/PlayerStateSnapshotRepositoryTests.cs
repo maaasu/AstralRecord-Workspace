@@ -9,7 +9,7 @@ using Xunit;
 
 namespace AstralRecordApi.Tests.Repositories;
 
-public sealed class PlayerStateSnapshotRepositoryTests
+public sealed partial class PlayerStateSnapshotRepositoryTests
 {
     [Fact]
     public async Task SaveAsync_MovesEntryAcrossSnapshotParents_AndReplaysFixedAck()
@@ -48,7 +48,7 @@ public sealed class PlayerStateSnapshotRepositoryTests
             InventoryEntryId = Guid.NewGuid(),
             InventoryId = fixture.FirstInventoryId,
             ItemCategory = "CURRENCY",
-            ItemId = "gold",
+            ItemId = "silver",
             Quantity = 1,
             CreatedAt = fixture.BaseTime,
             UpdatedAt = fixture.BaseTime,
@@ -593,6 +593,19 @@ public sealed class PlayerStateSnapshotRepositoryTests
             var options = new DbContextOptionsBuilder<AstralRecordDbContext>().UseSqlite(connection).Options;
             var dbContext = new AstralRecordDbContext(options);
             await dbContext.Database.EnsureCreatedAsync();
+            await dbContext.Database.ExecuteSqlRawAsync("""
+                CREATE UNIQUE INDEX test_loadout_position ON equipment_loadout_slot
+                    (equipment_loadout_id, slot_type COLLATE NOCASE, slot_index) WHERE is_deleted = 0;
+                CREATE UNIQUE INDEX test_loadout_equipment ON equipment_loadout_slot
+                    (equipment_loadout_id, equipment_instance_id) WHERE is_deleted = 0;
+                CREATE UNIQUE INDEX test_rune_slot ON equipment_instance_rune
+                    (equipment_instance_id, slot_index);
+                CREATE UNIQUE INDEX test_inventory_slot ON inventory_entry
+                    (inventory_id, slot_index) WHERE is_deleted = 0 AND slot_index IS NOT NULL;
+                CREATE UNIQUE INDEX test_inventory_stack ON inventory_entry
+                    (inventory_id, item_id COLLATE NOCASE) WHERE is_deleted = 0 AND slot_index IS NULL
+                    AND item_id IS NOT NULL AND instance_type IS NULL AND instance_id IS NULL;
+                """);
             var accountId = Guid.NewGuid();
             var firstInventoryId = Guid.NewGuid();
             var secondInventoryId = Guid.NewGuid();

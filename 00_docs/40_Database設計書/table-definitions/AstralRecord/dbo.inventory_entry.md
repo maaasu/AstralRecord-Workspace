@@ -25,7 +25,7 @@
 | `inventory_id` | `UNIQUEIDENTIFIER` |  | ✓ |  | 所属インベントリ ID |
 | `slot_index` | `INT` |  |  |  | スロット番号。スロットレスの場合は `NULL` |
 | `item_category` | `NVARCHAR(30)` |  | ✓ |  | アイテムカテゴリ。例: `CONSUMABLE`, `MATERIAL`, `CURRENCY`, `EQUIPMENT`, `RUNE`, `PET` |
-| `item_id` | `NVARCHAR(100)` |  |  |  | YAML マスタのアイテム ID。スタック型で使用 |
+| `item_id` | `NVARCHAR(100)` |  |  |  | スタック型のアイテム ID。個体型にもAPIが所有個体の正本item IDを補完する。既存個体行のNULLは許容する |
 | `instance_type` | `NVARCHAR(30)` |  |  |  | インスタンス生成種別。例: `EQUIPMENT`, `PET` |
 | `instance_id` | `UNIQUEIDENTIFIER` |  |  |  | インスタンス生成先の ID |
 | `quantity` | `BIGINT` |  | ✓ | `1` | 所持数。スタック型は 1 以上、インスタンス生成型は常に 1 |
@@ -46,7 +46,7 @@
 | `FK_inventory_entry_inventory` | FK | `inventory_id -> dbo.inventory(inventory_id)` |
 | `CK_inventory_entry_slot_index` | CHECK | `[slot_index] IS NULL OR [slot_index] >= 0` |
 | `CK_inventory_entry_quantity` | CHECK | `[quantity] >= 1` |
-| `CK_inventory_entry_payload` | CHECK | `([item_id] IS NOT NULL AND [instance_type] IS NULL AND [instance_id] IS NULL) OR ([item_id] IS NULL AND [instance_type] IS NOT NULL AND [instance_id] IS NOT NULL)` |
+| `CK_inventory_entry_payload` | CHECK | `([item_id] IS NOT NULL AND [instance_type] IS NULL AND [instance_id] IS NULL) OR ([instance_type] IS NOT NULL AND [instance_id] IS NOT NULL)` |
 | `DF_inventory_entry_quantity` | DEFAULT | `quantity = 1` |
 | `DF_inventory_entry_is_deleted` | DEFAULT | `is_deleted = 0` |
 
@@ -101,7 +101,7 @@ CREATE TABLE [dbo].[inventory_entry] (
     CONSTRAINT [CK_inventory_entry_quantity] CHECK ([quantity] >= 1),
     CONSTRAINT [CK_inventory_entry_payload] CHECK (
         ([item_id] IS NOT NULL AND [instance_type] IS NULL AND [instance_id] IS NULL)
-        OR ([item_id] IS NULL AND [instance_type] IS NOT NULL AND [instance_id] IS NOT NULL)
+        OR ([instance_type] IS NOT NULL AND [instance_id] IS NOT NULL)
     )
 );
 GO
@@ -120,6 +120,8 @@ CREATE UNIQUE NONCLUSTERED INDEX [UX_inventory_entry_inventory_item]
     ON [dbo].[inventory_entry] ([inventory_id], [item_id])
     WHERE [slot_index] IS NULL
       AND [item_id] IS NOT NULL
+      AND [instance_type] IS NULL
+      AND [instance_id] IS NULL
       AND [is_deleted] = 0;
 GO
 

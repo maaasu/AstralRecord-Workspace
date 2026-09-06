@@ -45,6 +45,8 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             var account = await FindAccountForUpdateAsync(request.AccountId);
             if (account is null)
                 return Failure(PlayerStateSnapshotSaveFailure.AccountNotFound, "Account was not found.");
+            if (!await ChildIdsBelongToSnapshotParentsAsync(request))
+                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Child ID belongs to another parent or deleted state.");
 
             var now = RoundToMilliseconds(DateTime.UtcNow);
             var accountInventories = await FindAccountInventoriesForUpdateAsync(request.AccountId);
@@ -437,6 +439,8 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             if (applied is null)
                 return Failure(PlayerStateSnapshotSaveFailure.Conflict, "learnedSkills section conflicts with current state.");
             learnedSkillsAck = JsonSerializer.SerializeToElement(applied, JsonOptions);
+            // Bind ownership must see both additions and deletions from this same snapshot.
+            await dbContext.SaveChangesAsync();
         }
 
         if (request.SkillBindPresets.HasValue)
@@ -561,6 +565,8 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
         var byId = existing.ToDictionary(skill => skill.LearnedSkillId);
         var requestedIds = section.Skills.Select(skill => skill.LearnedSkillId).ToHashSet();
         var deletedById = section.DeletedSkills.ToDictionary(skill => skill.LearnedSkillId);
+        if (deletedById.Keys.Any(id => !byId.ContainsKey(id)))
+            return null;
         if (existing.Any(skill => !requestedIds.Contains(skill.LearnedSkillId) && !deletedById.ContainsKey(skill.LearnedSkillId)))
             return null;
         var deletedIds = new List<Guid>();
@@ -617,6 +623,10 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             }
 
             var currentSigils = entity.Sigils.Where(sigil => !sigil.IsDeleted).ToDictionary(sigil => sigil.LearnedSkillSigilId);
+            foreach (var currentSigil in currentSigils.Values)
+                currentSigil.IsDeleted = true;
+            if (currentSigils.Count > 0)
+                await dbContext.SaveChangesAsync();
             var requestedSigilIds = snapshot.Sigils.Select(sigil => sigil.LearnedSkillSigilId).ToHashSet();
             foreach (var removed in currentSigils.Values.Where(sigil => !requestedSigilIds.Contains(sigil.LearnedSkillSigilId)))
             {
@@ -684,6 +694,19 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
         var existing = await dbContext.SkillBindPresets
             .Where(preset => preset.AccountId == request.AccountId && !preset.IsDeleted).ToListAsync();
         var byIndex = existing.ToDictionary(preset => preset.PresetIndex);
+        foreach (var snapshot in section.Presets)
+        {
+            if (byIndex.TryGetValue(snapshot.PresetIndex, out var current)
+                ? snapshot.ExpectedVersion != current.Version
+                : snapshot.ExpectedVersion.HasValue)
+                return null;
+        }
+        var previouslySelected = existing.Where(preset => preset.IsSelected
+            && preset.PresetIndex != section.SelectedPresetIndex).ToArray();
+        foreach (var preset in previouslySelected)
+            preset.IsSelected = false;
+        if (previouslySelected.Length > 0)
+            await dbContext.SaveChangesAsync();
         var acknowledgements = new List<object>();
         foreach (var snapshot in section.Presets.OrderBy(preset => preset.PresetIndex))
         {
@@ -745,6 +768,7 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             var existingNodes = await dbContext.AccountSkillTreeUnlockedNodes
                 .Where(node => node.AccountSkillTreeStateId == state.AccountSkillTreeStateId).ToListAsync();
             dbContext.AccountSkillTreeUnlockedNodes.RemoveRange(existingNodes);
+            await dbContext.SaveChangesAsync();
         }
         await dbContext.AccountSkillTreeUnlockedNodes.AddRangeAsync(section.UnlockedNodes.Select(node => new AccountSkillTreeUnlockedNodeEntity
         {
@@ -867,8 +891,64 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             : authoritativeItemId;
     }
 
+    private async Task<bool> ChildIdsBelongToSnapshotParentsAsync(PlayerStateSnapshotSaveRequest request)
+    {
+        var enchants = request.Equipment.SelectMany(e => e.Enchants.Select(c => (c.EnchantId, e.EquipmentInstanceId)))
+            .ToDictionary(c => c.EnchantId, c => c.EquipmentInstanceId);
+        var enchantIds = enchants.Keys.ToArray();
+        var existingEnchants = await dbContext.EquipmentInstanceEnchants.AsNoTracking()
+            .Where(c => enchantIds.Contains(c.EnchantId)).ToListAsync();
+        if (existingEnchants.Any(c => enchants[c.EnchantId] != c.EquipmentInstanceId)) return false;
+        var runes = request.Equipment.SelectMany(e => e.Runes.Select(c => (c.RuneId, e.EquipmentInstanceId)))
+            .ToDictionary(c => c.RuneId, c => c.EquipmentInstanceId);
+        var runeIds = runes.Keys.ToArray();
+        var existingRunes = await dbContext.EquipmentInstanceRunes.AsNoTracking()
+            .Where(c => runeIds.Contains(c.RuneId)).ToListAsync();
+        if (existingRunes.Any(c => runes[c.RuneId] != c.EquipmentInstanceId)) return false;
+        if (request.LearnedSkills is { } json)
+        {
+            var section = json.Deserialize<PlayerStateLearnedSkillsSection>(JsonOptions)!;
+            var skillIds = section.Skills.Select(s => s.LearnedSkillId).ToArray();
+            if (await dbContext.AccountLearnedSkills.AsNoTracking().AnyAsync(s => skillIds.Contains(s.LearnedSkillId)
+                && (s.AccountId != request.AccountId || s.IsDeleted))) return false;
+            var sigils = section.Skills.SelectMany(s => s.Sigils.Select(c => (c.LearnedSkillSigilId, s.LearnedSkillId)))
+                .ToDictionary(c => c.LearnedSkillSigilId, c => c.LearnedSkillId);
+            var sigilIds = sigils.Keys.ToArray();
+            var existingSigils = await dbContext.AccountLearnedSkillSigils.AsNoTracking()
+                .Where(c => sigilIds.Contains(c.LearnedSkillSigilId)).ToListAsync();
+            if (existingSigils.Any(c => sigils[c.LearnedSkillSigilId] != c.LearnedSkillId || c.IsDeleted)) return false;
+        }
+        return true;
+    }
+
     private static bool TryValidateRoot(PlayerStateSnapshotSaveRequest request, out string? detail)
     {
+        detail = "Snapshot structure is invalid.";
+        if (request.Inventories is null || request.Loadouts is null || request.Equipment is null
+            || request.Inventories.Any(i => i is null || i.ExpectedEntries is null || i.Entries is null)
+            || request.Loadouts.Any(l => l is null || l.Slots is null)
+            || request.Equipment.Any(e => e is null || e.Enchants is null || e.Runes is null))
+            return false;
+        if (request.Inventories.Any(i => i.ExpectedEntries.Any(e => e is null || e.InventoryEntryId == Guid.Empty)
+                || i.Entries.Any(e => e is null || !IsValidEntry(e) || !IsJsonOrNull(e.MetadataJson))
+                || (i.MetadataDirty && !IsJsonOrNull(i.MetadataJson))
+                || HasDuplicates(i.Entries.Where(e => e.SlotIndex.HasValue).Select(e => e.SlotIndex))
+                || HasDuplicates(i.Entries.Where(e => e.SlotIndex is null && string.IsNullOrWhiteSpace(e.InstanceType))
+                    .Select(e => e.ItemId!.Trim().ToUpperInvariant())))
+            || HasDuplicates(request.Inventories.SelectMany(i => i.Entries).Select(e => e.InventoryEntryId))
+            || HasDuplicates(request.Inventories.SelectMany(i => i.ExpectedEntries).Select(e => e.InventoryEntryId))
+            || HasDuplicates(request.Loadouts.Select(l => l.EquipmentLoadoutId))
+            || request.Loadouts.Any(l => l.Slots.Any(s => s is null || s.EquipmentInstanceId == Guid.Empty
+                    || s.SlotIndex < 0 || !ValidText(s.SlotType, 30))
+                || HasDuplicates(l.Slots.Select(s => (s.SlotType.Trim().ToUpperInvariant(), s.SlotIndex)))
+                || HasDuplicates(l.Slots.Select(s => s.EquipmentInstanceId)))
+            || HasDuplicates(request.Equipment.Select(e => e.EquipmentInstanceId))
+            || request.Equipment.Any(e => !IsValidEquipment(e))
+            || HasDuplicates(request.Equipment.SelectMany(e => e.Enchants).Select(e => e.EnchantId))
+            || HasDuplicates(request.Equipment.SelectMany(e => e.Runes).Select(e => e.RuneId)))
+            return false;
+        if (!ValidateSections(request))
+            return false;
         if (request.SnapshotId == Guid.Empty || request.AccountId == Guid.Empty || request.UpdatedBy == Guid.Empty)
         {
             detail = "snapshotId, accountId and updatedBy are required.";
@@ -894,9 +974,11 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
         => entry.InventoryEntryId != Guid.Empty
             && entry.Quantity >= 1
             && (!entry.SlotIndex.HasValue || entry.SlotIndex >= 0)
-            && !string.IsNullOrWhiteSpace(entry.ItemCategory)
+            && ValidText(entry.ItemCategory, 30)
+            && (entry.ItemId is null || entry.ItemId.Length <= 100)
             && ((string.IsNullOrWhiteSpace(entry.InstanceType) && !entry.InstanceId.HasValue && !string.IsNullOrWhiteSpace(entry.ItemId))
-                || (!string.IsNullOrWhiteSpace(entry.InstanceType) && entry.InstanceId.HasValue));
+                || (string.Equals(entry.InstanceType?.Trim(), "EQUIPMENT", StringComparison.OrdinalIgnoreCase)
+                    && entry.InstanceId.HasValue && entry.InstanceId != Guid.Empty && entry.Quantity == 1));
 
     private static bool IsValidEquipment(PlayerStateEquipmentSnapshot snapshot)
         => snapshot.EnhanceLevel >= 0
@@ -905,13 +987,14 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             && ((snapshot.DurabilityMax is null && snapshot.DurabilityValue is null)
                 || (snapshot.DurabilityMax is int durabilityMax && durabilityMax > 0
                     && snapshot.DurabilityValue is int durabilityValue && durabilityValue >= 0 && durabilityValue <= durabilityMax))
-            && snapshot.Enchants.All(enchant => enchant.EnchantId != Guid.Empty && enchant.SlotIndex >= 0
-                && !string.IsNullOrWhiteSpace(enchant.EnchantMasterId) && !string.IsNullOrWhiteSpace(enchant.EffectId)
-                && !string.IsNullOrWhiteSpace(enchant.Status) && !string.IsNullOrWhiteSpace(enchant.Type))
+            && snapshot.Enchants.All(enchant => enchant is not null && enchant.EnchantId != Guid.Empty && enchant.SlotIndex >= 0
+                && ValidText(enchant.EnchantMasterId, 100) && ValidText(enchant.EffectId, 100)
+                && ValidText(enchant.Status, 50) && ValidText(enchant.Type, 20))
             && snapshot.Enchants.GroupBy(enchant => enchant.EnchantId).All(group => group.Count() == 1)
             && snapshot.Enchants.GroupBy(enchant => enchant.SlotIndex).All(group => group.Count() == 1)
-            && snapshot.Enchants.GroupBy(enchant => enchant.EffectId, StringComparer.OrdinalIgnoreCase).All(group => group.Count() == 1)
-            && snapshot.Runes.All(rune => rune.RuneId != Guid.Empty && rune.SlotIndex >= 0 && !string.IsNullOrWhiteSpace(rune.ItemId))
+            && snapshot.Enchants.GroupBy(enchant => enchant.EffectId.Trim(), StringComparer.OrdinalIgnoreCase).All(group => group.Count() == 1)
+            && snapshot.Runes.All(rune => rune is not null && rune.RuneId != Guid.Empty && rune.SlotIndex >= 0
+                && rune.SlotIndex < snapshot.RuneMaxSlots && ValidText(rune.ItemId, 100))
             && snapshot.Runes.GroupBy(rune => rune.RuneId).All(group => group.Count() == 1)
             && snapshot.Runes.GroupBy(rune => rune.SlotIndex).All(group => group.Count() == 1);
 
@@ -929,15 +1012,79 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
     }
 
     private static bool IsValidLearnedSkill(PlayerStateLearnedSkillSnapshot skill)
-        => skill.LearnedSkillId != Guid.Empty
+        => skill is not null && skill.LearnedSkillId != Guid.Empty
             && skill.Level >= 1
-            && !string.IsNullOrWhiteSpace(skill.SkillId)
-            && skill.Sigils.All(sigil => sigil.LearnedSkillSigilId != Guid.Empty
-                && sigil.SlotIndex >= 0 && !string.IsNullOrWhiteSpace(sigil.SigilId)
-                && !string.IsNullOrWhiteSpace(sigil.EquipGroupId))
+            && skill.ExpectedVersion is not < 1 && skill.TargetVersion is not < 1
+            && ValidText(skill.SkillId, 100) && skill.Sigils is not null
+            && skill.Sigils.All(sigil => sigil is not null && sigil.LearnedSkillSigilId != Guid.Empty
+                && sigil.SlotIndex >= 0 && ValidText(sigil.SigilId, 100)
+                && ValidText(sigil.EquipGroupId, 100))
             && skill.Sigils.GroupBy(sigil => sigil.LearnedSkillSigilId).All(group => group.Count() == 1)
             && skill.Sigils.GroupBy(sigil => sigil.SlotIndex).All(group => group.Count() == 1)
-            && skill.Sigils.GroupBy(sigil => sigil.EquipGroupId, StringComparer.OrdinalIgnoreCase).All(group => group.Count() == 1);
+            && skill.Sigils.GroupBy(sigil => sigil.EquipGroupId.Trim(), StringComparer.OrdinalIgnoreCase).All(group => group.Count() == 1);
+
+    private static bool HasDuplicates<T>(IEnumerable<T> values) => values.GroupBy(value => value).Any(group => group.Count() > 1);
+
+    private static bool ValidText(string? value, int maxLength) => !string.IsNullOrWhiteSpace(value) && value.Trim().Length <= maxLength;
+
+    private static bool ValidateSections(PlayerStateSnapshotSaveRequest request)
+    {
+        if (request.LearnedSkills is { } learnedJson)
+        {
+            var section = TryDeserializeSection<PlayerStateLearnedSkillsSection>(learnedJson);
+            if (section is null || section.AccountId != request.AccountId || section.ClientRevision < 0
+                || section.Skills is null || section.DeletedSkills is null
+                || section.Skills.Any(s => !IsValidLearnedSkill(s))
+                || section.DeletedSkills.Any(s => s is null || s.LearnedSkillId == Guid.Empty || s.ExpectedVersion < 1)
+                || HasDuplicates(section.Skills.Select(s => s.LearnedSkillId).Concat(section.DeletedSkills.Select(s => s.LearnedSkillId)))
+                || HasDuplicates(section.Skills.SelectMany(s => s.Sigils).Select(s => s.LearnedSkillSigilId)))
+                return false;
+        }
+        if (request.SkillBindPresets is { } bindJson)
+        {
+            var section = TryDeserializeSection<PlayerStateSkillBindPresetsSection>(bindJson);
+            if (section is null || section.AccountId != request.AccountId || section.ClientRevision < 0
+                || section.Presets is null || section.Presets.Count != SkillBindPresetRepository.PresetCount
+                || section.SelectedPresetIndex is < 1 or > SkillBindPresetRepository.PresetCount
+                || section.Presets.Any(p => p is null || p.PresetIndex is < 1 or > SkillBindPresetRepository.PresetCount
+                    || p.ExpectedVersion is < 1 || p.TargetVersion is < 1
+                    || p.ActiveSkillSlots is null || p.PassiveSkillSlots is null
+                    || p.ActiveSkillSlots.Count > SkillBindPresetRepository.ActionRingSlotCount
+                    || p.PassiveSkillSlots.Count > SkillBindPresetRepository.PassiveSlotCount)
+                || HasDuplicates(section.Presets.Select(p => p.PresetIndex)))
+                return false;
+        }
+        if (request.SkillTree is { } treeJson)
+        {
+            var section = TryDeserializeSection<PlayerStateSkillTreeSection>(treeJson);
+            if (section is null || section.AccountId != request.AccountId || section.ClientRevision < 0
+                || section.ExpectedVersion is < 0 || section.TargetVersion is < 1 || section.UnlockedNodes is null
+                || section.UnlockedNodes.Any(n => n is null || !ValidText(n.NodeId, 100)
+                    || (n.ConsumedClassId is not null && !ValidText(n.ConsumedClassId, 100)))
+                || HasDuplicates(section.UnlockedNodes.Select(n => n.NodeId.Trim().ToUpperInvariant())))
+                return false;
+        }
+        if (request.AccountProgress is { } progressJson)
+        {
+            var section = TryDeserializeSection<PlayerStateAccountProgressSection>(progressJson);
+            if (section is null || section.AccountId != request.AccountId || section.ClientRevision < 0
+                || section.ExpectedProgressVersion < 1 || section.Level < 1 || section.TotalExperience < 0
+                || section.ClassLevel < 1 || section.ClassExperience < 0 || !ValidText(section.ClassId, 100)
+                || (section.Mode.HasValue && section.Mode is not (0 or 2)) || section.ClassProgresses is null
+                || section.ClassProgresses.Any(p => p is null || !ValidText(p.ClassId, 100) || p.Level < 1 || p.Experience < 0)
+                || HasDuplicates(section.ClassProgresses.Select(p => p.ClassId.Trim().ToUpperInvariant())))
+                return false;
+        }
+        if (request.Waystones is { } waystonesJson)
+        {
+            var section = TryDeserializeSection<PlayerStateWaystonesSection>(waystonesJson);
+            if (section is null || section.ClientRevision < 0 || section.UnlockedWaystoneIds is null
+                || section.UnlockedWaystoneIds.Any(id => !ValidText(id, 100) || id != id.Trim())
+                || HasDuplicates(section.UnlockedWaystoneIds.Select(id => id.ToUpperInvariant())))
+                return false;
+        }
+        return true;
+    }
 
     private static IReadOnlyList<string?> NormalizeSlots(IReadOnlyList<string?> values, int count)
         => Enumerable.Range(0, count)

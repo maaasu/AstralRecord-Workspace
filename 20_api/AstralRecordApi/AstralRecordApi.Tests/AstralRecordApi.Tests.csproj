@@ -23,4 +23,10 @@
     <ProjectReference Include="..\AstralRecordApi\AstralRecordApi.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Include="../../../00_docs/40_Database設計書/table-definitions/AstralRecord/init.sql" Link="Ddl/init.sql" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../../00_docs/40_Database設計書/table-definitions/AstralRecord/dbo.inventory_entry.md" Link="Ddl/inventory_entry.md" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="../../../00_docs/40_Database設計書/table-definitions/AstralRecord/migrations/20260906_player_state_snapshot.sql" Link="Ddl/migration.sql" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>
