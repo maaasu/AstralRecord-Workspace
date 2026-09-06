@@ -1,0 +1,23 @@
+# design:
+#   motif: "建築 / ボスフィールド"
+#   progression: 0
+schemaVersion: 1
+id: boss1
+displayName: "ビルダー用ボス制作ワールド1"
+worldType: OVERWORLD
+baseWorldPath: "plugins/AstralRecord/worlds/overworld/boss1"
+instanceRootPath: "plugins/AstralRecord/_world_instances/boss1"
+autoLoad: true
+instanceEnabled: false
+maxPlayers: 100
+allowBlockBreak: true
+allowBlockPlace: true
+allowMobSpawn: false
+showSpawnParticle: false
+spawnLocation:
+  x: 0.5
+  y: 64.0
+  z: 0.5
+  yaw: 0.0
+  pitch: 0.0
+description: "ボス制作作業用のワールド。"
