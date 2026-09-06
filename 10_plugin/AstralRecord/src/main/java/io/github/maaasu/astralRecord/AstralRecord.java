@@ -353,6 +353,7 @@ public final class AstralRecord extends JavaPlugin {
     private InventorySaveCoordinator inventorySaveCoordinator;
     private LocalMutationOutbox localMutationOutbox;
     private InventoryPersistence inventoryPersistence;
+    private java.util.concurrent.ExecutorService playerStateExecutor;
     private PlayerInventoryStateRegistry inventoryStateRegistry;
     private InventoryAutoSaveTask inventoryAutoSaveTask;
     private CurrencyService currencyService;
@@ -638,6 +639,16 @@ public final class AstralRecord extends JavaPlugin {
         if (localMutationOutbox != null) {
             localMutationOutbox.close();
         }
+        if (playerSettingService != null) {
+            try {
+                playerSettingService.flushPendingWrites().get(5L, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                Logger.warn(LogId.W_5252, "player-settings", interrupted.getMessage());
+            } catch (java.util.concurrent.ExecutionException | java.util.concurrent.TimeoutException failure) {
+                Logger.warn(LogId.W_5252, "player-settings", failure.getMessage());
+            }
+        }
         if (inventorySaveCoordinator != null) {
             // accepted済み操作・正本照合を先に待つ。main threadへ戻った後に現在装備表示を再構築し、
             // 解決済みaccountだけの停止snapshotを取得する。
@@ -657,6 +668,14 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (inventoryService != null) {
             inventoryService.awaitPendingWrites(5000L);
+        }
+        if (playerStateExecutor != null) {
+            playerStateExecutor.shutdown();
+            try {
+                playerStateExecutor.awaitTermination(5L, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+            }
         }
         if (airActionService != null) {
             airActionService.stop();
@@ -997,15 +1016,20 @@ public final class AstralRecord extends JavaPlugin {
         var inventoryRepository = new InventoryRepository();
         var equipmentLoadoutRepository = new EquipmentLoadoutRepository();
         inventoryStateRegistry = new PlayerInventoryStateRegistry();
+        playerStateExecutor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor();
         inventoryPersistence = new InventoryPersistence(inventoryRepository, equipmentLoadoutRepository, itemService);
+        inventoryPersistence.enablePlayerStateSnapshots(
+            new io.github.maaasu.astralRecord.feature.mutation.repository.PlayerStateRepository(),
+            getDataFolder().toPath().resolve("player-state-pending")
+        );
         inventorySaveCoordinator = new InventorySaveCoordinator(
             inventoryPersistence,
             inventoryStateRegistry,
-            task -> getServer().getScheduler().runTaskAsynchronously(this, task)
+            playerStateExecutor
         );
         localMutationOutbox = new LocalMutationOutbox(
             getDataFolder().toPath(),
-            task -> getServer().getScheduler().runTaskAsynchronously(this, task)
+            playerStateExecutor
         );
         inventoryService = new InventoryService(
             inventoryRepository,
@@ -1017,16 +1041,23 @@ public final class AstralRecord extends JavaPlugin {
             inventorySaveCoordinator
         );
         accountModeApplicationService = new AccountModeApplicationService(accountService, inventoryService);
+        inventoryService.setPendingLegacyMutations(localMutationOutbox::hasPending);
+        accountService.setLocalPlayerSaveRequester(inventoryService::queueLocalPlayerSave);
+        inventoryPersistence.registerStateParticipant(accountService::snapshotPlayerState);
         skillTreeService.setInventoryService(inventoryService);
+        skillTreeService.setLocalStatePersistence(inventoryService);
         currencyService = new CurrencyService(inventoryService, itemService);
         currencyExchangeGuiEventHandler = new CurrencyExchangeGuiEventHandler(currencyService);
         playerSettingService = new PlayerSettingService(
             new PlayerSettingRepository(),
             new PlayerSettingDefaults(),
-            new PlayerSettingCache()
+            new PlayerSettingCache(),
+            playerStateExecutor
         );
+        playerSettingService.setPersistence(getDataFolder().toPath().resolve("player-settings"));
         // class
         playerClassService = new PlayerClassService(accountService);
+        playerClassService.setInventoryService(inventoryService);
         afkService = new AfkService(playerClassService);
         playerClassService.setAfkStateProvider(afkService::isAfk);
         itemStackFactory.setPlayerClassService(playerClassService);
@@ -1572,6 +1603,10 @@ public final class AstralRecord extends JavaPlugin {
             return learnedSkillService.dispatchLocalMutation(command);
         });
         skillOwnershipService = new SkillOwnershipService(learnedSkillService);
+        skillBindPresetService.setLocalStatePersistence(inventoryService);
+        inventoryPersistence.registerStateParticipant(learnedSkillService::snapshotPlayerState);
+        inventoryPersistence.registerStateParticipant(skillBindPresetService::snapshotPlayerState);
+        inventoryPersistence.registerStateParticipant(skillTreeService::snapshotPlayerState);
         skillPermissionService = new SkillPermissionService(playerClassService, skillTreeService);
         playerDetailGui.setSkillServices(
             skillService,

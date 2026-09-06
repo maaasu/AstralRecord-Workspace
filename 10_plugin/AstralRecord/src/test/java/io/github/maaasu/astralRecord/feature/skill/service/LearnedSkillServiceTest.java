@@ -866,10 +866,10 @@ class LearnedSkillServiceTest {
 
         var section = service.snapshotPlayerState(accountId);
         assertEquals("learnedSkills", section.name());
-        assertEquals(learnedSkillId.toString(), section.payload().getAsJsonArray("deletedSkills")
+        assertEquals(learnedSkillId.toString(), section.payload().getAsJsonObject().getAsJsonArray("deletedSkills")
             .get(0).getAsJsonObject().get("learnedSkillId").getAsString());
         com.google.gson.JsonObject levelUpAck = new com.google.gson.JsonObject();
-        levelUpAck.addProperty("clientRevision", levelUpSnapshot.payload().get("clientRevision").getAsLong());
+        levelUpAck.addProperty("clientRevision", levelUpSnapshot.payload().getAsJsonObject().get("clientRevision").getAsLong());
         com.google.gson.JsonArray entries = new com.google.gson.JsonArray();
         com.google.gson.JsonObject entry = new com.google.gson.JsonObject();
         entry.addProperty("learnedSkillId", learnedSkillId.toString());
@@ -880,13 +880,13 @@ class LearnedSkillServiceTest {
         levelUpSnapshot.acknowledge().accept(levelUpAck);
 
         section = service.snapshotPlayerState(accountId);
-        assertEquals(9, section.payload().getAsJsonArray("deletedSkills").get(0).getAsJsonObject()
+        assertEquals(9, section.payload().getAsJsonObject().getAsJsonArray("deletedSkills").get(0).getAsJsonObject()
             .get("expectedVersion").getAsInt());
         section.acknowledge().accept(new com.google.gson.JsonObject());
         assertTrue(service.snapshotPlayerState(accountId) != null);
 
         com.google.gson.JsonObject deleteAck = new com.google.gson.JsonObject();
-        deleteAck.addProperty("clientRevision", section.payload().get("clientRevision").getAsLong());
+        deleteAck.addProperty("clientRevision", section.payload().getAsJsonObject().get("clientRevision").getAsLong());
         deleteAck.add("entries", new com.google.gson.JsonArray());
         com.google.gson.JsonArray deleted = new com.google.gson.JsonArray();
         deleted.add(learnedSkillId.toString());

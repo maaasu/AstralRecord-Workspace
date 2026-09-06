@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.account.command;
 
+import io.github.maaasu.astralRecord.feature.account.service.AccountModeApplicationService;
+
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;

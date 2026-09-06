@@ -110,7 +110,7 @@ class SkillBindPresetServiceTest {
         service.selectPreset(accountId, 5);
 
         assertEquals(5, service.selectedPresetIndex(accountId));
-        assertEquals(5, service.snapshotPlayerState(accountId).payload().get("selectedPresetIndex").getAsInt());
+        assertEquals(5, service.snapshotPlayerState(accountId).payload().getAsJsonObject().get("selectedPresetIndex").getAsInt());
         verify(repository, never()).select(any(), anyInt(), any());
     }
 
