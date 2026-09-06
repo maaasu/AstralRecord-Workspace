@@ -1,5 +1,8 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillBindPresetRepository;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
@@ -18,6 +21,7 @@ import static org.mockito.Mockito.doAnswer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -196,6 +200,102 @@ class SkillBindPresetServiceTest {
             .get(0).getAsJsonObject().get("leftClickSkillId").isJsonNull());
         verify(persistence).queueLocalPlayerSave(accountId);
         verify(repository, never()).save(any(), anyInt(), anyList(), any(), anyList(), any());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
+     * 検証契約: バインド変更直後の退出はsnapshot捕捉前でも全内容と選択番号を保持し、完全ACK後に退出済みcacheを破棄する。
+     */
+    @Test
+    void quitBeforeSnapshotRetainsBindingsUntilCompleteAck() {
+        UUID accountId = UUID.randomUUID();
+        SkillBindPresetService service = localService(accountId);
+        assertTrue(service.saveAsync(accountId, 2, List.of("learned-id"), null, List.of(),
+            accountId, ignored -> { }, () -> { throw new AssertionError("save failed"); }));
+        service.selectPreset(accountId, 2);
+        service.invalidate(accountId);
+
+        PlayerStateSection snapshot = service.snapshotPlayerState(accountId);
+        assertNotNull(snapshot);
+        assertEquals(2, snapshot.payload().getAsJsonObject().get("selectedPresetIndex").getAsInt());
+        assertEquals("learned-id", service.getPresets(accountId).get(1).getActiveSkillSlots().getFirst());
+        snapshot.acknowledge().accept(new JsonObject());
+        assertTrue(service.hasLoadedPresets(accountId));
+        snapshot.acknowledge().accept(presetAck(snapshot, 9));
+        assertFalse(service.hasLoadedPresets(accountId));
+        assertNull(service.snapshotPlayerState(accountId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
+     * 検証契約: 再参加ロードとapplyの間にACKが完了しても保持したバインドと選択番号を優先し、次回versionへ反映する。
+     */
+    @Test
+    void rejoinRetainsBindingsAcrossAckBetweenLoadAndApply() {
+        UUID accountId = UUID.randomUUID();
+        SkillBindPresetService service = localService(accountId);
+        service.saveAsync(accountId, 2, List.of("local-id"), null, List.of(), accountId, ignored -> { }, () -> { });
+        service.selectPreset(accountId, 2);
+        PlayerStateSection sent = service.snapshotPlayerState(accountId);
+        service.invalidate(accountId);
+        assertEquals("local-id", service.loadInitialPresets(accountId).get(1).getActiveSkillSlots().getFirst());
+        sent.acknowledge().accept(presetAck(sent, 9));
+        service.applyInitialPresets(accountId, selectedPresets(accountId, 1));
+        assertEquals(2, service.selectedPresetIndex(accountId));
+        assertEquals("local-id", service.getPresets(accountId).get(1).getActiveSkillSlots().getFirst());
+
+        service.saveAsync(accountId, 2, List.of("next-id"), null, List.of(), accountId, ignored -> { }, () -> { });
+        JsonObject next = service.snapshotPlayerState(accountId).payload().getAsJsonObject()
+            .getAsJsonArray("presets").get(1).getAsJsonObject();
+        assertEquals(9, next.get("expectedVersion").getAsInt());
+        assertEquals(10, next.get("targetVersion").getAsInt());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
+     * 検証契約: 再参加applyは未保存バインドを旧API値で置換せず、旧ACKと重複ACKは後続変更の内容とdirtyを維持する。
+     */
+    @Test
+    void rejoinAndDuplicateOldAckPreserveNewerBindings() {
+        UUID accountId = UUID.randomUUID();
+        SkillBindPresetService service = localService(accountId);
+        service.saveAsync(accountId, 2, List.of("first-id"), null, List.of(), accountId, ignored -> { }, () -> { });
+        PlayerStateSection first = service.snapshotPlayerState(accountId);
+        service.invalidate(accountId);
+        service.applyInitialPresets(accountId, presets(accountId));
+        assertEquals("first-id", service.getPresets(accountId).get(1).getActiveSkillSlots().getFirst());
+        service.saveAsync(accountId, 2, List.of("next-id"), null, List.of(), accountId, ignored -> { }, () -> { });
+        first.acknowledge().accept(presetAck(first, 9));
+        first.acknowledge().accept(presetAck(first, 9));
+        JsonObject next = service.snapshotPlayerState(accountId).payload().getAsJsonObject()
+            .getAsJsonArray("presets").get(1).getAsJsonObject();
+        assertEquals("next-id", next.getAsJsonArray("activeSkillSlots").get(0).getAsString());
+        assertEquals(9, next.get("expectedVersion").getAsInt());
+        assertEquals(10, next.get("targetVersion").getAsInt());
+    }
+
+    private SkillBindPresetService localService(UUID accountId) {
+        SkillBindPresetService service = new SkillBindPresetService(mock(Plugin.class), mock(SkillBindPresetRepository.class));
+        service.setLocalStatePersistence(localPersistence(accountId));
+        service.applyInitialPresets(accountId, presets(accountId));
+        return service;
+    }
+
+    private JsonObject presetAck(PlayerStateSection snapshot, int version) {
+        JsonObject ack = new JsonObject();
+        ack.addProperty("clientRevision", snapshot.payload().getAsJsonObject().get("clientRevision").getAsLong());
+        JsonArray entries = new JsonArray();
+        for (int index = 1; index <= 6; index++) {
+            JsonObject entry = new JsonObject();
+            entry.addProperty("presetIndex", index);
+            entry.addProperty("version", version);
+            entries.add(entry);
+        }
+        ack.add("entries", entries);
+        return ack;
     }
 
     private List<SkillBindPreset> presets(UUID accountId) {

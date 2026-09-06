@@ -929,6 +929,89 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         assertFalse(service.isStateReady(player));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: 再参加のロードとapplyは未保存ツリーを優先し、ACKが間に届いても旧API値へ戻さない。
+     */
+    @Test
+    void rejoinPreservesDirtyTreeAcrossAckBetweenLoadAndApply() {
+        UUID accountId = UUID.randomUUID();
+        SkillTreePlayerStateRepository repository = mock(SkillTreePlayerStateRepository.class);
+        SkillTreeService service = newService(null, repository);
+        SkillTreePlayerState local = new SkillTreePlayerState(accountId, Set.of("local-node"));
+        service.applyInitialPlayerState(local);
+        service.markDirty(local);
+        var sent = service.snapshotPlayerState(accountId);
+        assertEquals(local.unlockedNodeIds(), service.loadInitialPlayerState(accountId, UUID.randomUUID()).unlockedNodeIds());
+        com.google.gson.JsonObject ack = new com.google.gson.JsonObject();
+        ack.addProperty("clientRevision", sent.payload().getAsJsonObject().get("clientRevision").getAsLong());
+        ack.addProperty("version", 9);
+        sent.acknowledge().accept(ack);
+        service.applyInitialPlayerState(new SkillTreePlayerState(accountId, Set.of("old-node")));
+        service.markDirty(local);
+        var next = service.snapshotPlayerState(accountId).payload().getAsJsonObject();
+        assertEquals("local-node", next.getAsJsonArray("unlockedNodes").get(0).getAsJsonObject().get("nodeId").getAsString());
+        assertEquals(9, next.get("expectedVersion").getAsInt());
+        assertEquals(10, next.get("targetVersion").getAsInt());
+        verify(repository, never()).load(accountId);
+        verify(repository, never()).repairInvalidState(any(), any(), any());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: 初期反映の取消は未保存ツリーを破棄せず、完全ACK後に取消済みcacheを解放する。
+     */
+    @Test
+    void discardedDirtyTreeIsRetainedUntilAck() {
+        UUID accountId = UUID.randomUUID();
+        SkillTreeService service = newService(null);
+        SkillTreePlayerState local = new SkillTreePlayerState(accountId, Set.of("local-node"));
+        service.applyInitialPlayerState(local);
+        service.markDirty(local);
+        service.discardInitialPlayerState(local);
+        var snapshot = service.snapshotPlayerState(accountId);
+        org.junit.jupiter.api.Assertions.assertNotNull(snapshot);
+        com.google.gson.JsonObject ack = new com.google.gson.JsonObject();
+        ack.addProperty("clientRevision", snapshot.payload().getAsJsonObject().get("clientRevision").getAsLong());
+        ack.addProperty("version", 1);
+        snapshot.acknowledge().accept(ack);
+        org.junit.jupiter.api.Assertions.assertNull(service.snapshotPlayerState(accountId));
+        AstPlayer player = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        when(player.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+        assertFalse(service.isStateReady(player));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: 保持状態を再利用する新joinの後に旧joinの取消が来ても、新joinの状態をACK後に破棄しない。
+     */
+    @Test
+    void oldJoinRollbackCannotReleaseRetainedStateClaimedByNewJoin() {
+        UUID accountId = UUID.randomUUID();
+        SkillTreeService service = newService(null);
+        SkillTreePlayerState local = new SkillTreePlayerState(accountId, Set.of("local-node"));
+        service.applyInitialPlayerState(local);
+        service.markDirty(local);
+        SkillTreePlayerState oldLoad = service.loadInitialPlayerState(accountId);
+        service.applyInitialPlayerState(oldLoad);
+        SkillTreePlayerState newLoad = service.loadInitialPlayerState(accountId);
+        service.applyInitialPlayerState(newLoad);
+        service.discardInitialPlayerState(oldLoad);
+        var sent = service.snapshotPlayerState(accountId);
+        com.google.gson.JsonObject ack = new com.google.gson.JsonObject();
+        ack.addProperty("clientRevision", sent.payload().getAsJsonObject().get("clientRevision").getAsLong());
+        ack.addProperty("version", 9);
+        sent.acknowledge().accept(ack);
+        service.markDirty(local);
+        assertEquals("local-node", service.snapshotPlayerState(accountId).payload().getAsJsonObject()
+            .getAsJsonArray("unlockedNodes").get(0).getAsJsonObject().get("nodeId").getAsString());
+    }
+
     private SkillTreeService newService(SkillTreeNodeDefinition node) {
         return newService(node, mock(SkillTreePlayerStateRepository.class));
     }

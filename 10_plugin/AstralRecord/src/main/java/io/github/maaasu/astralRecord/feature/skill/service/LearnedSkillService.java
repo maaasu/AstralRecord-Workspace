@@ -33,6 +33,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.time.LocalDateTime;
 import java.util.concurrent.ConcurrentHashMap;
@@ -66,6 +67,12 @@ public final class LearnedSkillService {
     private final Map<UUID, Consumer<Throwable>> localMutationFailureCallbacks = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> sessionTokens = new ConcurrentHashMap<>();
     private final Map<UUID, Long> playerStateRevisions = new ConcurrentHashMap<>();
+    private final Set<UUID> dirtyPlayerStates = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> releasedPlayerStates = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> retainedInitialLoads = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, UUID> playerStateEpochs = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> acknowledgedPlayerStateRevisions = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<UUID, Integer>> capturedSkillVersions = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, Integer>> persistedSkillVersions = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, LocalDateTime>> persistedSkillUpdatedAts = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, Integer>> pendingDeletedSkillVersions = new ConcurrentHashMap<>();
@@ -101,14 +108,37 @@ public final class LearnedSkillService {
         this.mutationOutbox = mutationOutbox;
     }
 
+    /**
+     * 再参加では未保存の保持状態を優先して取得し、applyまでACK後の破棄を抑止します。
+     * @param accountId 読込対象
+     * @return 保持状態、またはAPI初期状態
+     */
     public @NotNull List<LearnedSkillInstance> loadInitialSkills(@NotNull UUID accountId) {
+        synchronized (this) {
+            if (skillsByAccount.containsKey(accountId) && (dirtyPlayerStates.contains(accountId)
+                || retainedInitialLoads.contains(accountId))) {
+                retainedInitialLoads.add(accountId);
+                releasedPlayerStates.remove(accountId);
+                return getLearnedSkills(accountId);
+            }
+        }
         return normalize(repository.findByAccountId(accountId));
     }
 
-    public void applyInitialSkills(
+    /**
+     * 初期状態を公開します。保持中の変更は上書きせず、新しいセッションtokenだけを発行します。
+     * @param accountId 対象アカウント
+     * @param skills 初期ロード結果
+     */
+    public synchronized void applyInitialSkills(
         @NotNull UUID accountId,
         @NotNull List<LearnedSkillInstance> skills
     ) {
+        releasedPlayerStates.remove(accountId);
+        sessionTokens.put(accountId, UUID.randomUUID());
+        if (retainedInitialLoads.remove(accountId) || dirtyPlayerStates.contains(accountId)) {
+            return;
+        }
         List<LearnedSkillInstance> normalized = normalize(skills);
         skillsByAccount.put(accountId, normalized);
         Map<UUID, Integer> versions = new ConcurrentHashMap<>();
@@ -123,15 +153,38 @@ public final class LearnedSkillService {
         persistedSkillUpdatedAts.put(accountId, updatedAts);
         pendingDeletedSkillVersions.remove(accountId);
         playerStateRevisions.put(accountId, 0L);
-        sessionTokens.put(accountId, UUID.randomUUID());
+        dirtyPlayerStates.remove(accountId);
+        playerStateEpochs.put(accountId, UUID.randomUUID());
+        acknowledgedPlayerStateRevisions.remove(accountId);
+        capturedSkillVersions.remove(accountId);
     }
 
-    public void invalidate(@NotNull UUID accountId) {
+    /**
+     * 退出したセッションを失効させ、未保存状態は完全ACKまで保持します。
+     * @param accountId 退出またはアカウント切替対象
+     */
+    public synchronized void invalidate(@NotNull UUID accountId) {
+        sessionTokens.remove(accountId);
+        retainedInitialLoads.remove(accountId);
+        releasedPlayerStates.add(accountId);
+        if (dirtyPlayerStates.contains(accountId)) {
+            return;
+        }
+        evictReleasedPlayerState(accountId);
+    }
+
+    /** 保存済みかつ退出済みの状態を破棄します。呼出元は本serviceのmonitorを保持します。 */
+    private void evictReleasedPlayerState(UUID accountId) {
+        if (!releasedPlayerStates.remove(accountId)) return;
         skillsByAccount.remove(accountId);
         playerStateRevisions.remove(accountId);
         persistedSkillVersions.remove(accountId);
         persistedSkillUpdatedAts.remove(accountId);
         pendingDeletedSkillVersions.remove(accountId);
+        dirtyPlayerStates.remove(accountId);
+        playerStateEpochs.remove(accountId);
+        acknowledgedPlayerStateRevisions.remove(accountId);
+        capturedSkillVersions.remove(accountId);
         mutationLocks.computeIfPresent(accountId, (ignored, lock) -> lock.get() ? lock : null);
         sessionTokens.remove(accountId);
     }
@@ -812,20 +865,25 @@ public final class LearnedSkillService {
         final LearnedSkillInstance[] removed = new LearnedSkillInstance[1];
         try {
             Boolean changed = inventoryService.executeLocalPlayerMutation(accountId, () -> {
-                LearnedSkillInstance current = findInstance(accountId, learnedSkillId);
-                if (current == null) {
-                    return false;
+                synchronized (this) {
+                    LearnedSkillInstance current = findInstance(accountId, learnedSkillId);
+                    if (current == null) {
+                        return false;
+                    }
+                    Integer expectedVersion = persistedSkillVersions
+                        .getOrDefault(accountId, Map.of()).get(learnedSkillId);
+                    if (expectedVersion == null) {
+                        expectedVersion = capturedSkillVersions.getOrDefault(accountId, Map.of()).get(learnedSkillId);
+                    }
+                    if (expectedVersion != null) {
+                        pendingDeletedSkillVersions.computeIfAbsent(accountId,
+                            ignored -> new ConcurrentHashMap<>()).put(learnedSkillId, expectedVersion);
+                    }
+                    removeCached(accountId, learnedSkillId);
+                    markPlayerStateDirty(accountId);
+                    removed[0] = current;
+                    return true;
                 }
-                Integer expectedVersion = persistedSkillVersions
-                    .getOrDefault(accountId, Map.of()).get(learnedSkillId);
-                if (expectedVersion != null) {
-                    pendingDeletedSkillVersions.computeIfAbsent(accountId,
-                        ignored -> new ConcurrentHashMap<>()).put(learnedSkillId, expectedVersion);
-                }
-                removeCached(accountId, learnedSkillId);
-                markPlayerStateDirty(accountId);
-                removed[0] = current;
-                return true;
             });
             if (!changed) {
                 onFailure.accept(new IllegalStateException("Learned skill is no longer loaded."));
@@ -847,9 +905,9 @@ public final class LearnedSkillService {
      * @param accountId 対象アカウント ID
      * @return dirty でない場合は {@code null}
      */
-    public @Nullable PlayerStateSection snapshotPlayerState(@NotNull UUID accountId) {
+    public synchronized @Nullable PlayerStateSection snapshotPlayerState(@NotNull UUID accountId) {
         Long capturedRevision = playerStateRevisions.get(accountId);
-        if (capturedRevision == null || capturedRevision == 0L) {
+        if (capturedRevision == null || !dirtyPlayerStates.contains(accountId)) {
             return null;
         }
         JsonObject payload = new JsonObject();
@@ -857,9 +915,12 @@ public final class LearnedSkillService {
         payload.addProperty("clientRevision", capturedRevision);
         JsonArray skills = new JsonArray();
         Set<UUID> capturedSkillIds = new LinkedHashSet<>();
+        Map<UUID, Integer> capturedVersions = new LinkedHashMap<>();
+        UUID capturedEpoch = playerStateEpochs.get(accountId);
         Map<UUID, Integer> baseVersions = persistedSkillVersions.getOrDefault(accountId, Map.of());
         for (LearnedSkillInstance skill : getLearnedSkills(accountId)) {
             capturedSkillIds.add(skill.getLearnedSkillId());
+            capturedVersions.put(skill.getLearnedSkillId(), skill.getVersion());
             JsonObject value = new JsonObject();
             value.addProperty("learnedSkillId", skill.getLearnedSkillId().toString());
             value.addProperty("skillId", skill.getSkillId());
@@ -880,6 +941,7 @@ public final class LearnedSkillService {
             skills.add(value);
         }
         payload.add("skills", skills);
+        capturedSkillVersions.computeIfAbsent(accountId, ignored -> new ConcurrentHashMap<>()).putAll(capturedVersions);
         JsonArray deletedSkills = new JsonArray();
         Set<UUID> capturedDeletedIds = new LinkedHashSet<>();
         for (Map.Entry<UUID, Integer> deleted : pendingDeletedSkillVersions
@@ -893,7 +955,8 @@ public final class LearnedSkillService {
         payload.add("deletedSkills", deletedSkills);
         return new PlayerStateSection("learnedSkills", payload,
             acknowledged -> acknowledgeSnapshot(
-                accountId, capturedRevision, capturedSkillIds, capturedDeletedIds, acknowledged));
+                accountId, capturedEpoch, capturedRevision, capturedVersions, capturedSkillIds,
+                capturedDeletedIds, acknowledged));
     }
 
     private boolean commitLocalPaymentMutation(
@@ -903,9 +966,11 @@ public final class LearnedSkillService {
     ) {
         if (paymentEntries.isEmpty()) {
             inventoryService.executeLocalPlayerMutation(accountId, () -> {
-                mutation.run();
-                markPlayerStateDirty(accountId);
-                return null;
+                synchronized (this) {
+                    mutation.run();
+                    markPlayerStateDirty(accountId);
+                    return null;
+                }
             });
             inventoryService.queueLocalPlayerSave(accountId);
             return true;
@@ -918,8 +983,10 @@ public final class LearnedSkillService {
                     return false;
                 }
                 return inventoryService.commitLocalOrbOperationPayment(accountId, operationId, () -> {
-                    mutation.run();
-                    markPlayerStateDirty(accountId);
+                    synchronized (this) {
+                        mutation.run();
+                        markPlayerStateDirty(accountId);
+                    }
                 });
             });
             if (committed) {
@@ -934,17 +1001,23 @@ public final class LearnedSkillService {
     }
 
     private void markPlayerStateDirty(@NotNull UUID accountId) {
+        dirtyPlayerStates.add(accountId);
+        playerStateEpochs.computeIfAbsent(accountId, ignored -> UUID.randomUUID());
         playerStateRevisions.merge(accountId, 1L, Long::sum);
     }
 
-    private void acknowledgeSnapshot(
+    private synchronized void acknowledgeSnapshot(
         @NotNull UUID accountId,
+        UUID capturedEpoch,
         long capturedRevision,
+        Map<UUID, Integer> capturedVersions,
         @NotNull Set<UUID> capturedSkillIds,
         @NotNull Set<UUID> capturedDeletedIds,
         @NotNull JsonElement acknowledged
     ) {
-        if (!acknowledged.isJsonObject()) return;
+        if (!java.util.Objects.equals(capturedEpoch, playerStateEpochs.get(accountId))
+            || capturedRevision <= acknowledgedPlayerStateRevisions.getOrDefault(accountId, -1L)
+            || !dirtyPlayerStates.contains(accountId) || !acknowledged.isJsonObject()) return;
         JsonObject metadata = acknowledged.getAsJsonObject();
         try {
             if (!metadata.has("clientRevision")
@@ -962,24 +1035,43 @@ public final class LearnedSkillService {
                 if (!deletedIds.add(UUID.fromString(deleted.getAsString()))) return;
             }
             if (!entries.keySet().equals(capturedSkillIds) || !deletedIds.equals(capturedDeletedIds)) return;
+            Map<UUID, Integer> receivedVersions = new LinkedHashMap<>();
+            Map<UUID, LocalDateTime> receivedUpdatedAts = new LinkedHashMap<>();
+            for (Map.Entry<UUID, JsonObject> entry : entries.entrySet()) {
+                receivedVersions.put(entry.getKey(), entry.getValue().get("version").getAsInt());
+                if (entry.getValue().has("updatedAt") && !entry.getValue().get("updatedAt").isJsonNull()) {
+                    receivedUpdatedAts.put(entry.getKey(), LocalDateTime.parse(entry.getValue().get("updatedAt").getAsString()));
+                }
+            }
             Map<UUID, Integer> versions = persistedSkillVersions.computeIfAbsent(accountId, ignored -> new ConcurrentHashMap<>());
             Map<UUID, LocalDateTime> updatedAts = persistedSkillUpdatedAts.computeIfAbsent(accountId, ignored -> new ConcurrentHashMap<>());
             Map<UUID, Integer> pending = pendingDeletedSkillVersions.get(accountId);
             for (Map.Entry<UUID, JsonObject> entry : entries.entrySet()) {
-                int version = entry.getValue().get("version").getAsInt();
+                int version = receivedVersions.get(entry.getKey());
                 versions.put(entry.getKey(), version);
+                LearnedSkillInstance current = findInstance(accountId, entry.getKey());
+                if (current != null) {
+                    int nextVersion = version + current.getVersion() - capturedVersions.get(entry.getKey());
+                    replaceCached(new LearnedSkillInstance(current.getLearnedSkillId(), accountId,
+                        current.getSkillId(), current.getLevel(), current.getSigils(), nextVersion,
+                        current.getCreatedAt(), current.getUpdatedAt()));
+                }
                 if (pending != null && pending.containsKey(entry.getKey())) pending.put(entry.getKey(), version);
-                if (entry.getValue().has("updatedAt") && !entry.getValue().get("updatedAt").isJsonNull()) {
-                    updatedAts.put(entry.getKey(), LocalDateTime.parse(entry.getValue().get("updatedAt").getAsString()));
+                if (receivedUpdatedAts.containsKey(entry.getKey())) {
+                    updatedAts.put(entry.getKey(), receivedUpdatedAts.get(entry.getKey()));
                 }
             }
             for (UUID id : deletedIds) {
                 versions.remove(id); updatedAts.remove(id);
+                Map<UUID, Integer> captured = capturedSkillVersions.get(accountId);
+                if (captured != null) captured.remove(id);
                 if (pending != null) pending.remove(id);
             }
         } catch (RuntimeException malformedAck) { return; }
+        acknowledgedPlayerStateRevisions.put(accountId, capturedRevision);
         if (playerStateRevisions.getOrDefault(accountId, 0L) == capturedRevision) {
-            playerStateRevisions.put(accountId, 0L);
+            dirtyPlayerStates.remove(accountId);
+            evictReleasedPlayerState(accountId);
         }
     }
 

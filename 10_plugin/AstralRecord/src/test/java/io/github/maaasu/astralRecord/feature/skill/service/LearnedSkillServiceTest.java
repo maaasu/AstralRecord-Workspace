@@ -88,7 +88,7 @@ class LearnedSkillServiceTest {
             eq(accountId), operationId.capture(), eq(Map.of(materialEntryId, 2L))
         );
         verify(inventory).commitLocalOrbOperationPayment(
-            accountId, operationId.getValue(), any(Runnable.class)
+            eq(accountId), eq(operationId.getValue()), any(Runnable.class)
         );
         assertEquals(1, service.getLearnedSkills(accountId).size());
         verify(inventory).queueLocalPlayerSave(accountId);
@@ -402,7 +402,7 @@ class LearnedSkillServiceTest {
         assertNotNull(latest);
         assertEquals(2L, latest.payload().getAsJsonObject().get("clientRevision").getAsLong());
         assertEquals(9, onlySkill(latest).get("expectedVersion").getAsInt());
-        assertEquals(6, onlySkill(latest).get("targetVersion").getAsInt());
+        assertEquals(10, onlySkill(latest).get("targetVersion").getAsInt());
     }
 
     /**
@@ -453,6 +453,141 @@ class LearnedSkillServiceTest {
         deleteSnapshot.acknowledge().accept(acknowledgement(
             deleteSnapshot, Map.of(), List.of(learned.getLearnedSkillId())
         ));
+        assertNull(service.snapshotPlayerState(accountId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: 習得とシジル装着直後の退出でもsnapshot捕捉前の変更を保持し、完全ACK後に退出済みcacheを破棄する。
+     */
+    @Test
+    void quitBeforeSnapshotRetainsLearnAndSigilUntilCompleteAck() {
+        UUID accountId = UUID.randomUUID();
+        LearnedSkillService service = service(accountId, committingInventory(accountId), List.of());
+        assertTrue(service.learnFromManagerAsync(accountId, "adventurer_smash", accountId,
+            List.of(UUID.randomUUID()), ignored -> { }, failure -> { throw new AssertionError(failure); }));
+        UUID skillId = service.getLearnedSkills(accountId).getFirst().getLearnedSkillId();
+        LearnedSkillSigil attached = sigil("sigil_power", "power", 0);
+        assertTrue(service.attachSigilLocally(accountId, skillId, UUID.randomUUID(), attached,
+            UUID.randomUUID(), ignored -> { }, failure -> { throw new AssertionError(failure); }));
+
+        service.invalidate(accountId);
+        PlayerStateSection snapshot = service.snapshotPlayerState(accountId);
+
+        assertEquals(1, onlySkill(snapshot).getAsJsonArray("sigils").size());
+        snapshot.acknowledge().accept(new JsonObject());
+        assertTrue(service.hasLoadedSkills(accountId));
+        snapshot.acknowledge().accept(acknowledgement(snapshot, Map.of(skillId, 2), List.of()));
+        assertFalse(service.hasLoadedSkills(accountId));
+        assertNull(service.snapshotPlayerState(accountId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: 退出後の再参加は未保存個体を優先し、ロードとapplyの間にACKが届いても旧値へ戻さず次回versionへ反映する。
+     */
+    @Test
+    void rejoinRetainsLocalSkillAcrossAckBetweenLoadAndApply() {
+        UUID accountId = UUID.randomUUID();
+        LearnedSkillInstance initial = learned(accountId, 1, 4, List.of());
+        LearnedSkillRepository repository = mock(LearnedSkillRepository.class);
+        LearnedSkillService service = service(accountId, committingInventory(accountId), repository, List.of(initial));
+        levelUpWithoutPayment(service, accountId, initial.getLearnedSkillId());
+        PlayerStateSection sent = service.snapshotPlayerState(accountId);
+        service.invalidate(accountId);
+
+        List<LearnedSkillInstance> loaded = service.loadInitialSkills(accountId);
+        assertEquals(2, loaded.getFirst().getLevel());
+        sent.acknowledge().accept(acknowledgement(sent, Map.of(initial.getLearnedSkillId(), 9), List.of()));
+        service.applyInitialSkills(accountId, List.of(initial));
+        levelUpWithoutPayment(service, accountId, initial.getLearnedSkillId());
+
+        JsonObject next = onlySkill(service.snapshotPlayerState(accountId));
+        assertEquals(3, next.get("level").getAsInt());
+        assertEquals(9, next.get("expectedVersion").getAsInt());
+        assertEquals(10, next.get("targetVersion").getAsInt());
+        verify(repository, never()).findByAccountId(accountId);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: 再参加のapplyへ渡された旧API値は未保存忘却を復活させず、削除ACK後も再参加中のcacheは維持する。
+     */
+    @Test
+    void rejoinDoesNotResurrectPendingDeletion() {
+        UUID accountId = UUID.randomUUID();
+        LearnedSkillInstance initial = learned(accountId, 1, 4, List.of());
+        LearnedSkillService service = service(accountId, committingInventory(accountId), List.of(initial));
+        assertTrue(service.forgetAsync(accountId, initial.getLearnedSkillId(), accountId,
+            ignored -> { }, failure -> { throw new AssertionError(failure); }));
+        service.invalidate(accountId);
+        service.applyInitialSkills(accountId, List.of(initial));
+
+        PlayerStateSection snapshot = service.snapshotPlayerState(accountId);
+        assertNull(service.findInstance(accountId, initial.getLearnedSkillId()));
+        assertEquals(4, onlyDeletedSkill(snapshot).get("expectedVersion").getAsInt());
+        snapshot.acknowledge().accept(acknowledgement(snapshot, Map.of(), List.of(initial.getLearnedSkillId())));
+        assertTrue(service.hasLoadedSkills(accountId));
+        assertNull(service.snapshotPlayerState(accountId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: 旧ACKの重複到着は後続変更のversionを二重加算せず、再ロード後の保存世代にも影響しない。
+     */
+    @Test
+    void duplicateAckCannotChangePendingVersionOrNewSession() {
+        UUID accountId = UUID.randomUUID();
+        LearnedSkillInstance initial = learned(accountId, 1, 4, List.of());
+        LearnedSkillService service = service(accountId, committingInventory(accountId), List.of(initial));
+        levelUpWithoutPayment(service, accountId, initial.getLearnedSkillId());
+        PlayerStateSection first = service.snapshotPlayerState(accountId);
+        levelUpWithoutPayment(service, accountId, initial.getLearnedSkillId());
+        JsonObject ack = acknowledgement(first, Map.of(initial.getLearnedSkillId(), 9), List.of());
+        first.acknowledge().accept(ack);
+        first.acknowledge().accept(ack);
+        assertEquals(10, onlySkill(service.snapshotPlayerState(accountId)).get("targetVersion").getAsInt());
+        PlayerStateSection latest = service.snapshotPlayerState(accountId);
+        latest.acknowledge().accept(acknowledgement(latest, Map.of(initial.getLearnedSkillId(), 10), List.of()));
+        service.invalidate(accountId);
+        service.applyInitialSkills(accountId, List.of(initial));
+        levelUpWithoutPayment(service, accountId, initial.getLearnedSkillId());
+        first.acknowledge().accept(ack);
+        assertEquals(4, onlySkill(service.snapshotPlayerState(accountId)).get("expectedVersion").getAsInt());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: 未ACKの新規learnを忘却して退出した場合も、先行learn ACKのversionを後続削除へ引き継ぎ個体を復活させない。
+     */
+    @Test
+    void forgetOfUnacknowledgedNewLearnRetainsDeletionAfterLearnAck() {
+        UUID accountId = UUID.randomUUID();
+        LearnedSkillService service = service(accountId, committingInventory(accountId), List.of());
+        assertTrue(service.learnFromManagerAsync(accountId, "adventurer_smash", accountId,
+            List.of(UUID.randomUUID()), ignored -> { }, failure -> { throw new AssertionError(failure); }));
+        UUID skillId = service.getLearnedSkills(accountId).getFirst().getLearnedSkillId();
+        PlayerStateSection learnSnapshot = service.snapshotPlayerState(accountId);
+        assertTrue(onlySkill(learnSnapshot).get("expectedVersion").isJsonNull());
+        assertTrue(service.forgetAsync(accountId, skillId, accountId,
+            ignored -> { }, failure -> { throw new AssertionError(failure); }));
+        assertEquals(1, onlyDeletedSkill(service.snapshotPlayerState(accountId)).get("expectedVersion").getAsInt());
+        service.invalidate(accountId);
+
+        learnSnapshot.acknowledge().accept(acknowledgement(learnSnapshot, Map.of(skillId, 9), List.of()));
+
+        PlayerStateSection deletion = service.snapshotPlayerState(accountId);
+        assertNotNull(deletion);
+        assertEquals(0, deletion.payload().getAsJsonObject().getAsJsonArray("skills").size());
+        assertEquals(skillId.toString(), onlyDeletedSkill(deletion).get("learnedSkillId").getAsString());
+        assertEquals(9, onlyDeletedSkill(deletion).get("expectedVersion").getAsInt());
+        deletion.acknowledge().accept(acknowledgement(deletion, Map.of(), List.of(skillId)));
+        assertFalse(service.hasLoadedSkills(accountId));
         assertNull(service.snapshotPlayerState(accountId));
     }
 
