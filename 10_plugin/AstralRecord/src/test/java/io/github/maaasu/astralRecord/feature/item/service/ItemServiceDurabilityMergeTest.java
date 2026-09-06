@@ -8,6 +8,7 @@ import io.github.maaasu.astralRecord.feature.item.repository.SetEffectRepository
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
@@ -25,6 +26,34 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class ItemServiceDurabilityMergeTest {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 3. 所有インスタンス > ### ローカル装備状態の保存
+     * 検証契約: 古いcaptureのACKは後続の装備変更をdirtyに残しつつ、API確定updatedAtだけを現在個体へ反映する。
+     */
+    @Test
+    void staleEquipmentCaptureAckKeepsNewerDirtyStateAndUpdatesBaseTimestamp() {
+        ItemService service = new ItemService(mock(ItemRepository.class), mock(SetEffectRepository.class));
+        String instanceId = UUID.randomUUID().toString();
+        String accountId = UUID.randomUUID().toString();
+        EquipmentInstance first = instance(instanceId, accountId, 1, 0, 100, 90);
+        EquipmentInstance second = instance(instanceId, accountId, 2, 0, 110, 100);
+
+        assertNotNull(service.applyLocalEquipmentInstance(first));
+        List<EquipmentInstance> captured = service.snapshotDirtyEquipmentState(UUID.fromString(accountId));
+        assertNotNull(service.applyLocalEquipmentInstance(second));
+
+        service.acknowledgeEquipmentState(
+            UUID.fromString(accountId), captured, Map.of(instanceId, "2026-09-06T12:00:00")
+        );
+
+        EquipmentInstance current = service.findLoadedEquipmentInstanceById(instanceId);
+        assertNotNull(current);
+        assertEquals(2, current.getEnhanceLevel());
+        assertEquals("2026-09-06T12:00:00", current.getUpdatedAt());
+        assertEquals(1, service.snapshotDirtyEquipmentState(UUID.fromString(accountId)).size());
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md

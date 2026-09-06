@@ -2290,20 +2290,10 @@ public final class OrbService {
             GuiSound.DENY.play(session.player);
             return;
         }
-        if (effect.getType() == ItemOrbEffectType.ENHANCE && mutationOutbox != null) {
-            if (startLocalEnhancement(session, target, currentOrb, operationId)) {
-                return;
-            }
-            inventoryService.releaseOrbOperationPayment(session.accountId, operationId);
-            PlayerMessageService.getInstance().send(session.player, PlayerMsgId.P_5289);
-            GuiSound.DENY.play(session.player);
-            return;
-        }
         session.interactionLock.beginMutation();
         session.operationId = operationId;
         session.externalOperationStarted = false;
-        showProcessingIcon(session);
-        startAsyncMutation(session, target, currentOrb);
+        completeLocalMutation(session, target, currentOrb, operationId);
     }
 
     /** APIが支払う資産をローカル消費から予約し、報酬加算や移動は止めず二重支出だけを防ぎます。 */
@@ -2343,76 +2333,108 @@ public final class OrbService {
         );
     }
 
-    /** 強化結果をローカルで確定し、画面結果を待たせずoutboxへ登録します。 */
-    private boolean startLocalEnhancement(
+    /**
+     * 予約済み支払いと全種類のオーブ結果を同一player state lockで確定します。
+     * API command/outboxは送信せず、確定後の完全スナップショット保存だけを非同期要求します。
+     */
+    private void completeLocalMutation(
         @NotNull OrbSession session,
         @NotNull OrbCandidate target,
         @NotNull ItemModel orbModel,
         @NotNull UUID operationId
     ) {
-        LocalMutationOutbox outbox = mutationOutbox;
-        if (outbox == null) {
-            return false;
-        }
-        EquipmentInstance current = itemService.findLoadedEquipmentInstanceById(
-            target.instance.getEquipmentInstanceId());
-        if (current == null) {
-            return false;
-        }
-        OrbLocalMutationCalculator.EnhancementResult local = OrbLocalMutationCalculator.enhance(
-            orbModel.getOrb().getEffect(),
-            target.model,
-            current
-        );
-        if (local == null) {
-            return false;
-        }
-        EquipmentInstance updated = local.instance();
-        LocalMutationCommand.EquipmentOrb command = new LocalMutationCommand.EquipmentOrb(
-            operationId,
-            session.accountId,
-            UUID.fromString(updated.getEquipmentInstanceId()),
-            session.orbEntryId,
-            orbModel.getId(),
-            local.baseEnhanceLevel(),
-            local.baseTranscendenceRank(),
-            updated.getEnhanceLevel(),
-            local.succeeded()
-        );
+        java.util.concurrent.atomic.AtomicReference<MutationResult> resultReference =
+            new java.util.concurrent.atomic.AtomicReference<>();
+        java.util.concurrent.atomic.AtomicBoolean rejected = new java.util.concurrent.atomic.AtomicBoolean();
         try {
-            // ファイルへの登録を先に行い、登録後にプロセスが落ちてもローカル結果を失わない。
-            outbox.enqueue(command);
-            if (itemService.applyLocalEquipmentInstance(updated) == null) {
-                return false;
-            }
-            try {
-                inventoryService.hideOwnedEntryFromGui(session.astPlayer, session.orbEntryId);
-            } catch (RuntimeException displayFailure) {
-                Logger.warn(LogId.W_5252, session.accountId, failureReason(displayFailure));
-            }
-        } catch (RuntimeException failure) {
-            Logger.warn(LogId.W_5252, session.accountId, failureReason(failure));
-            return false;
-        }
-
-        session.interactionLock.beginMutation();
-        session.operationId = operationId;
-        session.externalOperationStarted = false;
-        try {
-            completeMutation(
-                session,
-                MutationResult.enhancement(
-                    target.model,
-                    updated,
-                    local.succeeded(),
-                    local.failAction(),
-                    local.successRate()
-                )
+            boolean committed = inventoryService.commitLocalOrbOperationPayment(
+                session.accountId,
+                operationId,
+                () -> {
+                    EquipmentInstance current = itemService.findLoadedEquipmentInstanceById(
+                        target.instance.getEquipmentInstanceId());
+                    ItemModel currentModel = current == null ? null : itemService.findLoadedById(current.getItemId());
+                    if (current == null || currentModel == null
+                        || !current.getAccountId().equalsIgnoreCase(session.accountId.toString())) {
+                        rejected.set(true);
+                        throw new LocalMutationRejectedException();
+                    }
+                    ItemOrbEffect effect = orbModel.getOrb().getEffect();
+                    EnchantMaster enchantMaster = effect.getType() == ItemOrbEffectType.ENCHANT
+                        && effect.getEnchantMasterId() != null
+                        ? itemService.findEnchantMasterById(effect.getEnchantMasterId())
+                        : null;
+                    ItemModel runeItem = session.selectedRuneItemId == null ? null
+                        : itemService.findLoadedById(session.selectedRuneItemId);
+                    if (effect.getType() == ItemOrbEffectType.RUNE_DETACH
+                        && (session.selectedRuneItemId == null || current.getRunes().stream().noneMatch(rune ->
+                            rune.getSlotIndex() == session.selectedRuneSlot
+                                && rune.getItemId().equalsIgnoreCase(session.selectedRuneItemId)))) {
+                        rejected.set(true);
+                        throw new LocalMutationRejectedException();
+                    }
+                    OrbLocalMutationCalculator.LocalResult local = OrbLocalMutationCalculator.apply(
+                        effect,
+                        currentModel,
+                        current,
+                        enchantMaster,
+                        runeItem,
+                        effect.getType() == ItemOrbEffectType.RUNE_DETACH ? session.selectedRuneSlot : null
+                    );
+                    if (local == null) {
+                        rejected.set(true);
+                        throw new LocalMutationRejectedException();
+                    }
+                    if (local.returnedRuneItemId() != null) {
+                        ItemModel returnedRune = itemService.findLoadedById(local.returnedRuneItemId());
+                        if (returnedRune == null || inventoryService.addItemToNormalInventory(
+                            session.astPlayer, returnedRune, 1, "orb_rune_detach") != 1) {
+                            rejected.set(true);
+                            throw new LocalMutationRejectedException();
+                        }
+                    }
+                    if (itemService.applyLocalEquipmentInstance(local.instance()) == null) {
+                        rejected.set(true);
+                        throw new LocalMutationRejectedException();
+                    }
+                    resultReference.set(toLocalMutationResult(effect.getType(), currentModel, local));
+                }
             );
-        } finally {
-            outbox.dispatch();
+            if (!committed || resultReference.get() == null) {
+                inventoryService.releaseOrbOperationPayment(session.accountId, operationId);
+                completeMutation(session, MutationResult.failed(
+                    rejected.get() ? MutationStatus.TARGET_CHANGED : MutationStatus.PAYMENT_UNAVAILABLE));
+                return;
+            }
+            inventoryService.queueLocalPlayerSave(session.accountId);
+            completeMutation(session, resultReference.get());
+        } catch (LocalMutationRejectedException rejected) {
+            inventoryService.releaseOrbOperationPayment(session.accountId, operationId);
+            completeMutation(session, MutationResult.failed(MutationStatus.TARGET_CHANGED));
+        } catch (RuntimeException failure) {
+            inventoryService.releaseOrbOperationPayment(session.accountId, operationId);
+            Logger.warn(LogId.W_5252, session.accountId, failureReason(failure));
+            completeMutation(session, MutationResult.failed(MutationStatus.FAILED));
         }
-        return true;
+    }
+
+    /** ローカル計算結果を既存GUI通知用の結果型へ変換します。 */
+    private @NotNull MutationResult toLocalMutationResult(
+        @NotNull ItemOrbEffectType type,
+        @NotNull ItemModel model,
+        @NotNull OrbLocalMutationCalculator.LocalResult local
+    ) {
+        return switch (type) {
+            case ENHANCE -> MutationResult.enhancement(
+                model, local.instance(), local.enhancementSucceeded(),
+                Objects.requireNonNull(local.failAction()), local.successRate());
+            case REPAIR -> MutationResult.repair(model, local.instance(), local.repairedAmount());
+            case ENCHANT -> MutationResult.enchant(model, local.instance());
+            case RUNE_ATTACH, RUNE_DETACH -> MutationResult.rune(model, local.instance());
+            case TRANSCENDENCE -> MutationResult.transcendence(
+                model, local.instance(), Objects.requireNonNull(local.transitionName()));
+            case SIGIL_ATTACH, SIGIL_DETACH -> throw new LocalMutationRejectedException();
+        };
     }
 
     /** outboxから一件ずつ実行する装備mutationの送信入口です。 */
@@ -3723,5 +3745,10 @@ public final class OrbService {
         private OrbOperationPendingException(@NotNull UUID operationId) {
             super("Orb operation remains unresolved after the player wait deadline: " + operationId);
         }
+    }
+
+    /** state lock内の最終再検証が失敗し、予約済み支払いを復元すべきことを示します。 */
+    private static final class LocalMutationRejectedException extends IllegalStateException {
+        private static final long serialVersionUID = 1L;
     }
 }

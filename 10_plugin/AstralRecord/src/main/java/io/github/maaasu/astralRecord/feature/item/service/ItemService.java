@@ -50,6 +50,8 @@ public class ItemService {
     private final Map<String, EquipmentInstance> loadedEquipmentInstances;
     private final Map<String, Object> instanceReloadLocks;
     private final Map<String, PendingDurabilityUpdate> dirtyEquipmentDurability;
+    /** snapshot 保存へ渡す装備全体の最新世代。耐久だけの変更も同じ集合へ含める。 */
+    private final Map<String, DirtyEquipmentState> dirtyEquipmentState;
     private final Object equipmentStateMutex = new Object();
     private long durabilityRevision;
 
@@ -69,6 +71,7 @@ public class ItemService {
         this.loadedEquipmentInstances = new ConcurrentHashMap<>();
         this.instanceReloadLocks = new ConcurrentHashMap<>();
         this.dirtyEquipmentDurability = new ConcurrentHashMap<>();
+        this.dirtyEquipmentState = new ConcurrentHashMap<>();
     }
 
     /**
@@ -506,8 +509,8 @@ public class ItemService {
     /**
      * APIを待たずに確定した装備状態をキャッシュへ反映します。
      * <p>
-     * 耐久値のdirty保存はここでは作成しません。対応するローカルmutation outboxが同じ最終値を
-     * APIへ送るため、通常の耐久値flushが未確定の装備状態を先に保存しないようにします。
+     * 完全スナップショット保存の対象として記録します。耐久だけの変更も同じdirty集合で
+     * capture/ackされるため、別経路の保存がオーブ操作の値を上書きしません。
      * </p>
      *
      * @param instance Plugin側で計算済みの装備個体
@@ -522,6 +525,7 @@ public class ItemService {
         }
         synchronized (equipmentStateMutex) {
             loadedEquipmentInstances.put(key, instance);
+            markEquipmentStateDirty(key, instance);
             return instance;
         }
     }
@@ -874,6 +878,7 @@ public class ItemService {
                 current.getRunes()
             );
             loadedEquipmentInstances.put(normalizedId, updated);
+            markEquipmentStateDirty(normalizedId, updated);
             dirtyEquipmentDurability.put(
                 normalizedId,
                 new PendingDurabilityUpdate(
@@ -900,6 +905,70 @@ public class ItemService {
         synchronized (equipmentStateMutex) {
             return dirtyEquipmentDurability.values().stream()
                 .anyMatch(update -> update.accountId().equalsIgnoreCase(targetAccountId));
+        }
+    }
+
+    /**
+     * 対象アカウントの未保存装備全体を、同一の装備状態世代として取得します。
+     * 呼出側は inventory state lock 中にこの戻り値と所持品スナップショットを同時にcaptureすること。
+     *
+     * @param accountId 対象アカウント ID
+     * @return 保存対象の装備個体。返却順は装備個体ID順
+     */
+    public @NotNull List<EquipmentInstance> snapshotDirtyEquipmentState(@NotNull UUID accountId) {
+        String targetAccountId = accountId.toString();
+        synchronized (equipmentStateMutex) {
+            return dirtyEquipmentState.values().stream()
+                .map(DirtyEquipmentState::instance)
+                .filter(instance -> instance.getAccountId().equalsIgnoreCase(targetAccountId))
+                .sorted(Comparator.comparing(EquipmentInstance::getEquipmentInstanceId, String.CASE_INSENSITIVE_ORDER))
+                .toList();
+        }
+    }
+
+    /**
+     * 保存済みcaptureを確認し、capture以後に変化していないdirtyだけを解除します。
+     * APIが返した更新日時はcapture世代が古くても現在cacheの同一個体へ反映し、後続の保存の
+     * optimistic concurrency基準を最新化します。
+     *
+     * @param accountId 対象アカウント ID
+     * @param captured 保存要求へ同梱した装備個体
+     * @param updatedAtById APIが確定した装備個体IDごとの更新日時
+     */
+    public void acknowledgeEquipmentState(
+        @NotNull UUID accountId,
+        @NotNull List<EquipmentInstance> captured,
+        @NotNull Map<String, String> updatedAtById
+    ) {
+        String targetAccountId = accountId.toString();
+        Map<String, EquipmentInstance> capturedById = captured.stream()
+            .filter(instance -> instance.getAccountId().equalsIgnoreCase(targetAccountId))
+            .collect(java.util.stream.Collectors.toMap(
+                instance -> normalize(instance.getEquipmentInstanceId()),
+                instance -> instance,
+                (left, right) -> right,
+                LinkedHashMap::new
+            ));
+        synchronized (equipmentStateMutex) {
+            for (Map.Entry<String, EquipmentInstance> entry : capturedById.entrySet()) {
+                DirtyEquipmentState currentDirty = dirtyEquipmentState.get(entry.getKey());
+                if (currentDirty != null && currentDirty.instance().equals(entry.getValue())) {
+                    dirtyEquipmentState.remove(entry.getKey(), currentDirty);
+                    dirtyEquipmentDurability.remove(entry.getKey());
+                }
+            }
+            updatedAtById.forEach((instanceId, updatedAt) -> {
+                String key = normalize(instanceId);
+                EquipmentInstance current = loadedEquipmentInstances.get(key);
+                if (current == null || updatedAt == null || updatedAt.isBlank()) {
+                    return;
+                }
+                loadedEquipmentInstances.put(key, withUpdatedAt(current, updatedAt));
+                DirtyEquipmentState dirty = dirtyEquipmentState.get(key);
+                if (dirty != null) {
+                    dirtyEquipmentState.put(key, new DirtyEquipmentState(withUpdatedAt(dirty.instance(), updatedAt), dirty.revision()));
+                }
+            });
         }
     }
 
@@ -934,6 +1003,10 @@ public class ItemService {
                         if (current != null && current.revision() == pending.revision()) {
                             loadedEquipmentInstances.put(entry.getKey(), persisted);
                             dirtyEquipmentDurability.remove(entry.getKey());
+                            DirtyEquipmentState dirty = dirtyEquipmentState.get(entry.getKey());
+                            if (dirty != null && withUpdatedAt(dirty.instance(), persisted.getUpdatedAt()).equals(persisted)) {
+                                dirtyEquipmentState.remove(entry.getKey(), dirty);
+                            }
                         } else {
                             allOk = false;
                         }
@@ -960,6 +1033,8 @@ public class ItemService {
         synchronized (equipmentStateMutex) {
             dirtyEquipmentDurability.entrySet().removeIf(
                 entry -> entry.getValue().accountId().equalsIgnoreCase(targetAccountId));
+            dirtyEquipmentState.entrySet().removeIf(
+                entry -> entry.getValue().instance().getAccountId().equalsIgnoreCase(targetAccountId));
         }
     }
 
@@ -971,6 +1046,8 @@ public class ItemService {
                 entry -> entry.getValue().getAccountId().equalsIgnoreCase(targetAccountId));
             dirtyEquipmentDurability.entrySet().removeIf(
                 entry -> entry.getValue().accountId().equalsIgnoreCase(targetAccountId));
+            dirtyEquipmentState.entrySet().removeIf(
+                entry -> entry.getValue().instance().getAccountId().equalsIgnoreCase(targetAccountId));
         }
     }
 
@@ -988,6 +1065,7 @@ public class ItemService {
         synchronized (equipmentStateMutex) {
             loadedEquipmentInstances.remove(normalizedId);
             dirtyEquipmentDurability.remove(normalizedId);
+            dirtyEquipmentState.remove(normalizedId);
         }
     }
 
@@ -1001,6 +1079,25 @@ public class ItemService {
     ) {
     }
 
+    /** 完全スナップショットへ保存する装備状態と、そのローカル更新世代です。 */
+    private record DirtyEquipmentState(@NotNull EquipmentInstance instance, long revision) {
+    }
+
+    /** 呼出元が equipmentStateMutex を保持している前提で、最新装備状態をdirtyとして記録します。 */
+    private void markEquipmentStateDirty(@NotNull String key, @NotNull EquipmentInstance instance) {
+        dirtyEquipmentState.put(key, new DirtyEquipmentState(instance, ++durabilityRevision));
+    }
+
+    /** 装備個体の更新日時だけをAPI確定値へ差し替えます。 */
+    private @NotNull EquipmentInstance withUpdatedAt(@NotNull EquipmentInstance current, @NotNull String updatedAt) {
+        return new EquipmentInstance(
+            current.getEquipmentInstanceId(), current.getAccountId(), current.getItemId(),
+            current.getEnhanceLevel(), current.getRuneMaxSlots(), current.getTranscendenceRank(),
+            current.getDurabilityMax(), current.getDurabilityValue(), current.getCreatedAt(), updatedAt,
+            current.getStatRolls(), current.getEnchants(), current.getRunes()
+        );
+    }
+
     public boolean deleteEquipmentInstance(@NotNull String instanceId) {
         String normalizedId = normalize(instanceId);
         if (normalizedId.isBlank()) {
@@ -1012,6 +1109,7 @@ public class ItemService {
                 synchronized (equipmentStateMutex) {
                     loadedEquipmentInstances.remove(normalizedId);
                     dirtyEquipmentDurability.remove(normalizedId);
+                    dirtyEquipmentState.remove(normalizedId);
                 }
             }
             return deleted;

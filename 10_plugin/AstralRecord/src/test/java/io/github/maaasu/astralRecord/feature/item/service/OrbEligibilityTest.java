@@ -19,6 +19,7 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffect;
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffectType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEnchantOperation;
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbRankMode;
+import io.github.maaasu.astralRecord.feature.item.model.ItemRune;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
@@ -234,6 +235,55 @@ class OrbEligibilityTest {
         ));
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
+     * 検証契約: エンチャント全空枠付与はAPIを待たず、空き枠を異なるeffectIdのローカル確定結果で満たす。
+     */
+    @Test
+    void localEnchantFillsEveryEmptySlotWithDistinctEffects() {
+        ItemModel model = equipmentModel(ItemEquipmentSlot.WEAPON, 5, List.of(), 2);
+        ItemOrbEffect effect = enchantEffect(ItemOrbEnchantOperation.FILL_ALL_EMPTY);
+
+        OrbLocalMutationCalculator.LocalResult result = OrbLocalMutationCalculator.apply(
+            effect, model, instance(0, 0, 100, 100, List.of()),
+            enchantMaster(List.of("attack", "critical")), null, null
+        );
+
+        assertNotNull(result);
+        assertEquals(2, result.instance().getEnchants().size());
+        assertEquals(2, result.instance().getEnchants().stream()
+            .map(EquipmentEnchant::getEffectId).distinct().count());
+        assertEquals(List.of(0, 1), result.instance().getEnchants().stream()
+            .map(EquipmentEnchant::getSlotIndex).toList());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### オーブ装備操作
+     * 検証契約: ルーン装着と指定slotの脱着はローカル完成状態を作り、脱着時は返却するルーンitem IDを返す。
+     */
+    @Test
+    void localRuneOperationsReturnUpdatedEquipmentAndDetachedRuneId() {
+        ItemModel equipment = equipmentModelWithRuneSlots(1);
+        ItemModel rune = runeModel("test_rune");
+        ItemOrbEffect attach = new ItemOrbEffect(ItemOrbEffectType.RUNE_ATTACH, List.of(), null,
+            ItemOrbRankMode.EXACT, null, false, null, null);
+        ItemOrbEffect detach = new ItemOrbEffect(ItemOrbEffectType.RUNE_DETACH, List.of(), null,
+            ItemOrbRankMode.EXACT, null, false, null, null);
+
+        OrbLocalMutationCalculator.LocalResult attached = OrbLocalMutationCalculator.apply(
+            attach, equipment, instanceWithRuneSlots(1), null, rune, null);
+        assertNotNull(attached);
+        assertEquals("test_rune", attached.instance().getRunes().getFirst().getItemId());
+
+        OrbLocalMutationCalculator.LocalResult detached = OrbLocalMutationCalculator.apply(
+            detach, equipment, attached.instance(), null, null, 0);
+        assertNotNull(detached);
+        assertTrue(detached.instance().getRunes().isEmpty());
+        assertEquals("test_rune", detached.returnedRuneItemId());
+    }
+
     /** 指定ランク条件の武器強化オーブ効果を作成します。 */
     private static ItemOrbEffect enhancementEffect(int rank, ItemOrbRankMode mode) {
         return new ItemOrbEffect(
@@ -331,6 +381,24 @@ class OrbEligibilityTest {
         );
     }
 
+    private static ItemModel equipmentModelWithRuneSlots(int slots) {
+        ItemEquipment base = equipmentModel(ItemEquipmentSlot.WEAPON, 5, List.of(), 0).getEquipment();
+        ItemEquipment equipment = new ItemEquipment(
+            base.getSlot(), base.getHandType(), base.getTag(), base.getRequiredLevel(), base.getRequiredClasses(),
+            base.getSetId(), base.getStats(), base.getDurability(), base.getEnhance(), base.getEnchant(),
+            new io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentRuneDef(String.valueOf(slots)),
+            base.getTranscendence()
+        );
+        return new ItemModel(1, "test_equipment", "equipment", "テスト装備", "IRON_SWORD", "common", 1,
+            0, null, null, List.of(), false, false, null, null, equipment, null, null, null, null);
+    }
+
+    private static ItemModel runeModel(String id) {
+        return new ItemModel(1, id, "rune", "テストルーン", "AMETHYST_SHARD", "common", 64,
+            0, null, null, List.of(), false, false, null, null, null,
+            new ItemRune(List.of("WEAPON"), 0, List.of(), List.of()), null, null, null);
+    }
+
     /** テスト用状態変化定義を作成します。 */
     private static ItemEquipmentTranscendence transition(
         String name,
@@ -374,6 +442,14 @@ class OrbEligibilityTest {
             enchants,
             List.of()
         );
+    }
+
+    private static EquipmentInstance instanceWithRuneSlots(int runeMaxSlots) {
+        EquipmentInstance base = instance(0, 0, 100, 100, List.of());
+        return new EquipmentInstance(base.getEquipmentInstanceId(), base.getAccountId(), base.getItemId(),
+            base.getEnhanceLevel(), runeMaxSlots, base.getTranscendenceRank(), base.getDurabilityMax(),
+            base.getDurabilityValue(), base.getCreatedAt(), base.getUpdatedAt(), base.getStatRolls(),
+            base.getEnchants(), base.getRunes());
     }
 
     /** テスト用エンチャント個体を作成します。 */
