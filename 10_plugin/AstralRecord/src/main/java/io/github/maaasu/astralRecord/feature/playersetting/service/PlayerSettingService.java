@@ -50,8 +50,11 @@ public final class PlayerSettingService {
     private final ConcurrentMap<UUID, UserOperationLock> operationLocks = new ConcurrentHashMap<>();
     /** userごとの API delivery を一つにし、shutdown drain と通常再送を重複送信させない。 */
     private final ConcurrentMap<UUID, Object> deliveryLocks = new ConcurrentHashMap<>();
+    /** capture後の古いpayloadが新しいpending fileを上書きしないためのwriter直列化。 */
+    private final ConcurrentMap<UUID, Object> pendingFileWriteLocks = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, EnumMap<PlayerSettingKey, PendingSetting>> pendingSettings = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, Boolean> deliveryScheduled = new ConcurrentHashMap<>();
+    private final ConcurrentMap<UUID, RetryState> deliveryRetries = new ConcurrentHashMap<>();
     private final AtomicLong pendingRevisionSequence = new AtomicLong();
     private @Nullable PendingStateStore pendingStateStore;
 
@@ -400,9 +403,10 @@ public final class PlayerSettingService {
         if (deliveryScheduled.putIfAbsent(userId, Boolean.TRUE) != null) {
             return;
         }
+        long actualDelay = Math.max(delayMillis, remainingRetryDelayMillis(userId));
         try {
             java.util.concurrent.CompletableFuture.delayedExecutor(
-                Math.max(0L, delayMillis),
+                actualDelay,
                 java.util.concurrent.TimeUnit.MILLISECONDS,
                 asyncExecutor
             ).execute(() -> deliverPending(userId));
@@ -414,6 +418,11 @@ public final class PlayerSettingService {
 
     private void deliverPending(@NotNull UUID userId) {
         deliveryScheduled.remove(userId);
+        long remainingRetryDelay = remainingRetryDelayMillis(userId);
+        if (remainingRetryDelay > 0L) {
+            scheduleDelivery(userId, remainingRetryDelay);
+            return;
+        }
         withDeliveryLock(userId, () -> deliverPendingLocked(userId));
     }
 
@@ -429,7 +438,7 @@ public final class PlayerSettingService {
             Logger.log(LogId.W_5312, userId, failure.getMessage() == null
                 ? failure.getClass().getSimpleName()
                 : failure.getMessage());
-            scheduleDelivery(userId, 1_000L);
+            scheduleDelivery(userId, registerDeliveryFailure(userId));
             return;
         }
         scheduleDelivery(userId, 0L);
@@ -475,27 +484,44 @@ public final class PlayerSettingService {
                 updated = repository.create(userId, pending.key().getCode(), context.valueJson(), pending.requestedBy());
             }
             PlayerSettingModel acknowledged = updated;
-            boolean hasRemaining = withUserOperationLock(
-                userId,
-                () -> acknowledgeMetadata(userId, context.pending(), acknowledged)
-            );
-            // user状態のlockを解放してから、async writerだけがローカルファイルを更新する。
-            if (hasRemaining) {
-                persistPendingSettings(userId);
-            } else {
-                deletePersistedSettings(userId);
-            }
+            withUserOperationLock(userId, () -> {
+                acknowledgeMetadata(userId, context.pending(), acknowledged);
+                return null;
+            });
+            deliveryRetries.remove(userId);
+            // ACK直後に新しいdirtyが入っても、最新pendingを再判定する単一writerへ委譲する。
+            persistPendingSettings(userId);
         } catch (OptimisticLockConflictException conflict) {
             withUserOperationLock(userId, () -> {
                 // 最新 version を取り込みつつ、ユーザーが最後に選んだ値は維持して再送する。
                 applyLatestMetadata(userId, pending.key(), pending.value(), conflict.getCurrent());
                 return null;
             });
-            scheduleDelivery(userId, 0L);
+            scheduleDelivery(userId, 250L);
         }
     }
 
-    private boolean acknowledgeMetadata(
+    private long remainingRetryDelayMillis(@NotNull UUID userId) {
+        RetryState retry = deliveryRetries.get(userId);
+        return retry == null ? 0L : Math.max(0L, retry.nextAllowedAtMillis() - System.currentTimeMillis());
+    }
+
+    private long registerDeliveryFailure(@NotNull UUID userId) {
+        long now = System.currentTimeMillis();
+        RetryState retry = deliveryRetries.compute(userId, (ignored, current) -> {
+            int attempt = current == null ? 1 : current.attempt() + 1;
+            return new RetryState(attempt, now + retryDelayMillis(attempt));
+        });
+        return Math.max(0L, retry.nextAllowedAtMillis() - now);
+    }
+
+    static long retryDelayMillis(int attempt) {
+        int normalizedAttempt = Math.max(1, attempt);
+        long seconds = 1L << Math.min(normalizedAttempt - 1, 5);
+        return Math.min(30L, seconds) * 1_000L;
+    }
+
+    private void acknowledgeMetadata(
         @NotNull UUID userId,
         @NotNull PendingSetting delivered,
         @NotNull PlayerSettingModel updated
@@ -508,7 +534,6 @@ public final class PlayerSettingService {
             }
             return remaining.isEmpty() ? null : remaining;
         });
-        return hasPendingSettings(userId);
     }
 
     private void applyLatestMetadata(
@@ -570,12 +595,14 @@ public final class PlayerSettingService {
         if (store == null) {
             return;
         }
-        String payload = withUserOperationLock(userId, () -> serializePendingSettings(userId));
-        if (payload == null) {
-            store.delete(userId);
-            return;
-        }
-        store.write(userId, payload);
+        withPendingFileWriteLock(userId, () -> {
+            String payload = withUserOperationLock(userId, () -> serializePendingSettings(userId));
+            if (payload == null) {
+                store.delete(userId);
+                return;
+            }
+            store.write(userId, payload);
+        });
     }
 
     private @Nullable String serializePendingSettings(@NotNull UUID userId) {
@@ -600,7 +627,7 @@ public final class PlayerSettingService {
     private void deletePersistedSettings(@NotNull UUID userId) {
         PendingStateStore store = pendingStateStore;
         if (store != null) {
-            store.delete(userId);
+            withPendingFileWriteLock(userId, () -> store.delete(userId));
         }
     }
 
@@ -631,7 +658,7 @@ public final class PlayerSettingService {
                     restored.put(key, new PendingSetting(key, value, requestedBy, revision));
                 }
                 if (restored.isEmpty()) {
-                    store.delete(userId);
+                    deletePersistedSettings(userId);
                 } else {
                     pendingSettings.put(userId, restored);
                     // restore と login warmup の完了順は保証しない。warmup済みなら直ちに
@@ -768,6 +795,13 @@ public final class PlayerSettingService {
         }
     }
 
+    private void withPendingFileWriteLock(@NotNull UUID userId, @NotNull Runnable operation) {
+        Object lock = pendingFileWriteLocks.computeIfAbsent(userId, ignored -> new Object());
+        synchronized (lock) {
+            operation.run();
+        }
+    }
+
     private @NotNull Map<PlayerSettingKey, PlayerSettingEntry> createDefaultEntries() {
         EnumMap<PlayerSettingKey, PlayerSettingEntry> entries = new EnumMap<>(PlayerSettingKey.class);
         for (PlayerSettingKey key : PlayerSettingKey.values()) {
@@ -857,6 +891,9 @@ public final class PlayerSettingService {
         @NotNull UUID requestedBy,
         long revision
     ) {
+    }
+
+    private record RetryState(int attempt, long nextAllowedAtMillis) {
     }
 
     private record DeliveryContext(

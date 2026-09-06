@@ -1,5 +1,7 @@
 package io.github.maaasu.astralRecord.feature.playersetting.service;
 
+import com.google.gson.JsonParser;
+import io.github.maaasu.astralRecord.feature.mutation.service.PendingStateStore;
 import io.github.maaasu.astralRecord.feature.playersetting.cache.PlayerSettingCache;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingChangeRequest;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingEntry;
@@ -8,7 +10,9 @@ import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingMo
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingSnapshot;
 import io.github.maaasu.astralRecord.feature.playersetting.repository.PlayerSettingRepository;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 
+import java.nio.file.Path;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
@@ -30,6 +34,59 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 class PlayerSettingServiceConcurrencyTest {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
+     * 章・見出し: # 11_3-サービス > ## 5. 設定更新
+     * 検証契約: delivery失敗の待機は指数的に伸び、30秒を超えない。
+     */
+    @Test
+    void deliveryRetryBackoffGrowsAndCapsAtThirtySeconds() {
+        assertEquals(1_000L, PlayerSettingService.retryDelayMillis(1));
+        assertEquals(2_000L, PlayerSettingService.retryDelayMillis(2));
+        assertEquals(4_000L, PlayerSettingService.retryDelayMillis(3));
+        assertEquals(30_000L, PlayerSettingService.retryDelayMillis(6));
+        assertEquals(30_000L, PlayerSettingService.retryDelayMillis(100));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md
+     * 章・見出し: # 11_3-サービス > ## 5. 設定更新
+     * 検証契約: 同一user/keyの後続dirtyがあれば、shutdown drain後のpending fileは最後の希望値だけを保持する。
+     */
+    @Test
+    void shutdownDrainPersistsLatestCoalescedDirtyValue(@TempDir Path temporaryDirectory) throws Exception {
+        UUID userId = UUID.randomUUID();
+        UUID settingId = UUID.randomUUID();
+        PlayerSettingRepository repository = mock(PlayerSettingRepository.class);
+        when(repository.update(any(UUID.class), anyString(), anyInt(), any(UUID.class)))
+            .thenThrow(new IllegalStateException("offline"));
+        PlayerSettingCache cache = new PlayerSettingCache();
+        PlayerSettingService service = new PlayerSettingService(
+            repository,
+            new PlayerSettingDefaults(),
+            cache,
+            Runnable::run
+        );
+        service.setPersistence(temporaryDirectory);
+        long sessionToken = service.beginSession(userId);
+        cache.put(new PlayerSettingSnapshot(userId, Map.of(
+            PlayerSettingKey.DAMAGE_LOG_DISPLAY,
+            new PlayerSettingEntry(settingId, PlayerSettingKey.DAMAGE_LOG_DISPLAY, false, 1)
+        )));
+
+        service.updatePlayerSetting(new PlayerSettingChangeRequest(
+            userId, PlayerSettingKey.DAMAGE_LOG_DISPLAY, true, userId
+        ), sessionToken);
+        service.updatePlayerSetting(new PlayerSettingChangeRequest(
+            userId, PlayerSettingKey.DAMAGE_LOG_DISPLAY, false, userId
+        ), sessionToken);
+        service.flushPendingWrites().get(5, TimeUnit.SECONDS);
+
+        String persisted = new PendingStateStore(temporaryDirectory).read(userId);
+        assertTrue(JsonParser.parseString(persisted).getAsJsonObject().getAsJsonArray("entries")
+            .get(0).getAsJsonObject().get("valueJson").getAsString().contains("false"));
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/11-player-setting/3-メソッド仕様/11_3-サービス.md

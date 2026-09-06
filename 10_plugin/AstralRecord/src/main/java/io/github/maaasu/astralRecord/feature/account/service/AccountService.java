@@ -563,19 +563,28 @@ public class AccountService {
         @NotNull JsonElement acknowledgement
     ) {
         if (!acknowledgement.isJsonObject()) {
-            return;
+            throw new IllegalArgumentException("accountProgress acknowledgement must be an object");
         }
-        JsonElement acknowledgedRevision = acknowledgement.getAsJsonObject().get("clientRevision");
+        JsonObject acknowledged = acknowledgement.getAsJsonObject();
+        JsonElement acknowledgedRevision = acknowledged.get("clientRevision");
         if (acknowledgedRevision == null || !acknowledgedRevision.isJsonPrimitive()
             || acknowledgedRevision.getAsLong() != capturedRevision) {
-            return;
+            throw new IllegalArgumentException("accountProgress acknowledgement revision did not match snapshot");
+        }
+        JsonElement progressVersion = acknowledged.get("progressVersion");
+        if (progressVersion == null || !progressVersion.isJsonPrimitive()) {
+            throw new IllegalArgumentException("accountProgress acknowledgement must contain progressVersion");
+        }
+        final int acknowledgedProgressVersion;
+        try {
+            acknowledgedProgressVersion = progressVersion.getAsInt();
+        } catch (NumberFormatException exception) {
+            throw new IllegalArgumentException("accountProgress acknowledgement progressVersion must be an integer", exception);
         }
         withProgressLock(accountId, () -> {
+            // snapshot世代が古くても、API成功で得た専用versionは次の送信のbaseとして必ず採用する。
+            acknowledgedProgressVersions.merge(accountId, acknowledgedProgressVersion, Math::max);
             if (pendingProgressRevisions.remove(accountId, capturedRevision)) {
-                JsonElement progressVersion = acknowledgement.getAsJsonObject().get("progressVersion");
-                if (progressVersion != null && progressVersion.isJsonPrimitive()) {
-                    acknowledgedProgressVersions.put(accountId, progressVersion.getAsInt());
-                }
                 if (capturedExperience != null) {
                     pendingExperienceUpdates.remove(accountId, capturedExperience);
                 }
