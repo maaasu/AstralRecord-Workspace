@@ -5,6 +5,7 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestPlayerState;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestProgress;
+import io.github.maaasu.astralRecord.feature.mutation.service.PendingStateStore;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
 import org.bukkit.configuration.ConfigurationSection;
 import org.bukkit.configuration.file.YamlConfiguration;
@@ -16,6 +17,7 @@ import java.io.File;
 import java.io.IOException;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -26,9 +28,13 @@ import java.util.UUID;
  */
 public final class QuestPlayerStateRepository {
     private final File legacyDirectory;
+    private final PendingStateStore pendingStateStore;
 
     public QuestPlayerStateRepository(@NotNull Plugin plugin) {
         this.legacyDirectory = new File(plugin.getDataFolder(), "quest-states");
+        this.pendingStateStore = new PendingStateStore(
+            Path.of(plugin.getDataFolder().getPath(), "pending-quest-states")
+        );
     }
 
     /**
@@ -39,6 +45,16 @@ public final class QuestPlayerStateRepository {
      * @throws RuntimeException API 通信またはレスポンス解析に失敗した場合
      */
     public @NotNull QuestPlayerState load(@NotNull UUID accountId) {
+        String pending = pendingStateStore.read(accountId);
+        if (pending != null) {
+            QuestPlayerState localState = parsePending(accountId, pending);
+            try {
+                save(localState);
+            } catch (RuntimeException ignored) {
+                // API障害時もローカル完成状態を旧API値へ戻さず、次回ロードで再送する。
+            }
+            return localState;
+        }
         JsonObject response = request(accountId, HttpRequest.BodyPublishers.noBody(), "GET");
         QuestPlayerState apiState = parseApi(accountId, response);
         if (response.has("isSaved") && !response.get("isSaved").getAsBoolean()) {
@@ -102,7 +118,16 @@ public final class QuestPlayerStateRepository {
         body.add("completions", completions);
         body.add("cooldowns", cooldowns);
         body.addProperty("updatedBy", state.accountId().toString());
-        request(state.accountId(), HttpRequest.BodyPublishers.ofString(body.toString()), "PUT");
+        String payload = body.toString();
+        // API待ち・停止・プロセス再起動に備え、完成状態を先にローカルへ固定する。
+        pendingStateStore.write(state.accountId(), payload);
+        try {
+            request(state.accountId(), HttpRequest.BodyPublishers.ofString(payload), "PUT");
+            pendingStateStore.delete(state.accountId());
+        } catch (RuntimeException failure) {
+            // 受領不明を含めてファイルを残し、次回ロード時に同じ完成状態を再送する。
+            throw failure;
+        }
     }
 
     private @NotNull JsonObject request(
@@ -159,6 +184,14 @@ public final class QuestPlayerStateRepository {
             parseLongMap(object, "completions", "questId", "completedAtEpochMillis"),
             parseLongMap(object, "cooldowns", "questId", "cooldownUntilEpochMillis")
         );
+    }
+
+    private @NotNull QuestPlayerState parsePending(@NotNull UUID accountId, @NotNull String payload) {
+        JsonObject object = JsonParser.parseString(payload).getAsJsonObject();
+        if (!accountId.toString().equalsIgnoreCase(object.get("updatedBy").getAsString())) {
+            throw new IllegalStateException("Quest pending state account mismatch");
+        }
+        return parseApi(accountId, object);
     }
 
     private @NotNull QuestPlayerState loadLegacy(@NotNull File file, @NotNull UUID accountId) {
