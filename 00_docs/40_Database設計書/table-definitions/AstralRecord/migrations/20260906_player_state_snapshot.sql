@@ -37,8 +37,9 @@ IF NOT EXISTS (
       AND [parent_object_id] = OBJECT_ID(N'[dbo].[account]')
 )
 BEGIN
-    ALTER TABLE [dbo].[account]
-        ADD CONSTRAINT [CK_account_progress_version] CHECK ([progress_version] >= 1);
+    EXEC sys.sp_executesql N'
+        ALTER TABLE [dbo].[account]
+            ADD CONSTRAINT [CK_account_progress_version] CHECK ([progress_version] >= 1);';
 END;
 
 IF OBJECT_ID(N'[dbo].[player_state_snapshot]', N'U') IS NULL
