@@ -854,8 +854,10 @@ public final class LearnedSkillService {
         payload.addProperty("accountId", accountId.toString());
         payload.addProperty("clientRevision", capturedRevision);
         JsonArray skills = new JsonArray();
+        Set<UUID> capturedSkillIds = new LinkedHashSet<>();
         Map<UUID, Integer> baseVersions = persistedSkillVersions.getOrDefault(accountId, Map.of());
         for (LearnedSkillInstance skill : getLearnedSkills(accountId)) {
+            capturedSkillIds.add(skill.getLearnedSkillId());
             JsonObject value = new JsonObject();
             value.addProperty("learnedSkillId", skill.getLearnedSkillId().toString());
             value.addProperty("skillId", skill.getSkillId());
@@ -863,12 +865,6 @@ public final class LearnedSkillService {
             Integer expectedVersion = baseVersions.get(skill.getLearnedSkillId());
             value.add("expectedVersion", expectedVersion == null ? JsonNull.INSTANCE : new com.google.gson.JsonPrimitive(expectedVersion));
             value.addProperty("targetVersion", skill.getVersion());
-            if (skill.getCreatedAt() != null) {
-                value.addProperty("createdAt", skill.getCreatedAt().toString());
-            }
-            if (skill.getUpdatedAt() != null) {
-                value.addProperty("updatedAt", skill.getUpdatedAt().toString());
-            }
             JsonArray sigils = new JsonArray();
             for (LearnedSkillSigil sigil : skill.getSigils()) {
                 JsonObject sigilJson = new JsonObject();
@@ -883,8 +879,10 @@ public final class LearnedSkillService {
         }
         payload.add("skills", skills);
         JsonArray deletedSkills = new JsonArray();
+        Set<UUID> capturedDeletedIds = new LinkedHashSet<>();
         for (Map.Entry<UUID, Integer> deleted : pendingDeletedSkillVersions
             .getOrDefault(accountId, Map.of()).entrySet()) {
+            capturedDeletedIds.add(deleted.getKey());
             JsonObject value = new JsonObject();
             value.addProperty("learnedSkillId", deleted.getKey().toString());
             value.addProperty("expectedVersion", deleted.getValue());
@@ -892,7 +890,8 @@ public final class LearnedSkillService {
         }
         payload.add("deletedSkills", deletedSkills);
         return new PlayerStateSection("learnedSkills", payload,
-            acknowledged -> acknowledgeSnapshot(accountId, capturedRevision, acknowledged));
+            acknowledged -> acknowledgeSnapshot(
+                accountId, capturedRevision, capturedSkillIds, capturedDeletedIds, acknowledged));
     }
 
     private boolean commitLocalPaymentMutation(
@@ -910,19 +909,26 @@ public final class LearnedSkillService {
             return true;
         }
         UUID operationId = UUID.randomUUID();
-        Boolean committed = inventoryService.executeLocalPlayerMutation(accountId, () -> {
-            if (!inventoryService.reserveLocalMutationPayment(accountId, operationId, paymentEntries)) {
-                return false;
-            }
-            return inventoryService.commitLocalOrbOperationPayment(accountId, operationId, () -> {
-                mutation.run();
-                markPlayerStateDirty(accountId);
+        boolean committed = false;
+        try {
+            committed = inventoryService.executeLocalPlayerMutation(accountId, () -> {
+                if (!inventoryService.reserveLocalMutationPayment(accountId, operationId, paymentEntries)) {
+                    return false;
+                }
+                return inventoryService.commitLocalOrbOperationPayment(accountId, operationId, () -> {
+                    mutation.run();
+                    markPlayerStateDirty(accountId);
+                });
             });
-        });
-        if (committed) {
-            inventoryService.queueLocalPlayerSave(accountId);
+            if (committed) {
+                inventoryService.queueLocalPlayerSave(accountId);
+            }
+            return committed;
+        } finally {
+            if (!committed) {
+                inventoryService.releaseOrbOperationPayment(accountId, operationId);
+            }
         }
-        return committed;
     }
 
     private void markPlayerStateDirty(@NotNull UUID accountId) {
@@ -932,47 +938,44 @@ public final class LearnedSkillService {
     private void acknowledgeSnapshot(
         @NotNull UUID accountId,
         long capturedRevision,
+        @NotNull Set<UUID> capturedSkillIds,
+        @NotNull Set<UUID> capturedDeletedIds,
         @NotNull JsonElement acknowledged
     ) {
-        if (acknowledged.isJsonObject()) {
-            JsonObject metadata = acknowledged.getAsJsonObject();
-            Map<UUID, Integer> versions = persistedSkillVersions.computeIfAbsent(accountId,
-                ignored -> new ConcurrentHashMap<>());
-            Map<UUID, LocalDateTime> updatedAts = persistedSkillUpdatedAts.computeIfAbsent(accountId,
-                ignored -> new ConcurrentHashMap<>());
-            if (metadata.has("entries") && metadata.get("entries").isJsonArray()) {
-                for (JsonElement entry : metadata.getAsJsonArray("entries")) {
-                    if (!entry.isJsonObject()) continue;
-                    JsonObject value = entry.getAsJsonObject();
-                    try {
-                        UUID learnedSkillId = UUID.fromString(value.get("learnedSkillId").getAsString());
-                        if (value.has("version") && !value.get("version").isJsonNull()) {
-                            versions.put(learnedSkillId, value.get("version").getAsInt());
-                        }
-                        if (value.has("updatedAt") && !value.get("updatedAt").isJsonNull()) {
-                            updatedAts.put(learnedSkillId, LocalDateTime.parse(value.get("updatedAt").getAsString()));
-                        }
-                    } catch (RuntimeException ignored) {
-                        // ACK の一行が不正でも、他の metadata と次回再送を維持する。
-                    }
+        if (!acknowledged.isJsonObject()) return;
+        JsonObject metadata = acknowledged.getAsJsonObject();
+        try {
+            if (!metadata.has("clientRevision")
+                || metadata.get("clientRevision").getAsLong() != capturedRevision
+                || !metadata.has("entries") || !metadata.get("entries").isJsonArray()
+                || !metadata.has("deletedIds") || !metadata.get("deletedIds").isJsonArray()) return;
+            Map<UUID, JsonObject> entries = new LinkedHashMap<>();
+            for (JsonElement entry : metadata.getAsJsonArray("entries")) {
+                JsonObject value = entry.getAsJsonObject();
+                UUID id = UUID.fromString(value.get("learnedSkillId").getAsString());
+                if (!value.has("version") || value.get("version").isJsonNull() || entries.put(id, value) != null) return;
+            }
+            Set<UUID> deletedIds = new LinkedHashSet<>();
+            for (JsonElement deleted : metadata.getAsJsonArray("deletedIds")) {
+                if (!deletedIds.add(UUID.fromString(deleted.getAsString()))) return;
+            }
+            if (!entries.keySet().equals(capturedSkillIds) || !deletedIds.equals(capturedDeletedIds)) return;
+            Map<UUID, Integer> versions = persistedSkillVersions.computeIfAbsent(accountId, ignored -> new ConcurrentHashMap<>());
+            Map<UUID, LocalDateTime> updatedAts = persistedSkillUpdatedAts.computeIfAbsent(accountId, ignored -> new ConcurrentHashMap<>());
+            Map<UUID, Integer> pending = pendingDeletedSkillVersions.get(accountId);
+            for (Map.Entry<UUID, JsonObject> entry : entries.entrySet()) {
+                int version = entry.getValue().get("version").getAsInt();
+                versions.put(entry.getKey(), version);
+                if (pending != null && pending.containsKey(entry.getKey())) pending.put(entry.getKey(), version);
+                if (entry.getValue().has("updatedAt") && !entry.getValue().get("updatedAt").isJsonNull()) {
+                    updatedAts.put(entry.getKey(), LocalDateTime.parse(entry.getValue().get("updatedAt").getAsString()));
                 }
             }
-            if (metadata.has("deletedIds") && metadata.get("deletedIds").isJsonArray()) {
-                for (JsonElement deleted : metadata.getAsJsonArray("deletedIds")) {
-                    try {
-                        UUID learnedSkillId = UUID.fromString(deleted.getAsString());
-                        versions.remove(learnedSkillId);
-                        updatedAts.remove(learnedSkillId);
-                        Map<UUID, Integer> pending = pendingDeletedSkillVersions.get(accountId);
-                        if (pending != null) {
-                            pending.remove(learnedSkillId);
-                        }
-                    } catch (RuntimeException ignored) {
-                        // 不正な ID は無視して dirty を維持する。
-                    }
-                }
+            for (UUID id : deletedIds) {
+                versions.remove(id); updatedAts.remove(id);
+                if (pending != null) pending.remove(id);
             }
-        }
+        } catch (RuntimeException malformedAck) { return; }
         if (playerStateRevisions.getOrDefault(accountId, 0L) == capturedRevision) {
             playerStateRevisions.put(accountId, 0L);
         }

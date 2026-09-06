@@ -252,7 +252,9 @@ public final class SkillBindPresetService {
         payload.addProperty("clientRevision", capturedRevision);
         payload.addProperty("selectedPresetIndex", selectedPresetIndex(accountId));
         JsonArray presets = new JsonArray();
+        java.util.Set<Integer> capturedPresetIndexes = new java.util.LinkedHashSet<>();
         for (SkillBindPreset preset : getPresets(accountId)) {
+            capturedPresetIndexes.add(preset.getPresetIndex());
             JsonObject value = new JsonObject();
             value.addProperty("presetIndex", preset.getPresetIndex());
             value.add("activeSkillSlots", slotArray(preset.getActiveSkillSlots()));
@@ -272,7 +274,7 @@ public final class SkillBindPresetService {
         }
         payload.add("presets", presets);
         return new PlayerStateSection("skillBindPresets", payload,
-            acknowledged -> acknowledgeSnapshot(accountId, capturedRevision, acknowledged));
+            acknowledged -> acknowledgeSnapshot(accountId, capturedRevision, capturedPresetIndexes, acknowledged));
     }
 
     private void mutateLocal(@NotNull UUID accountId, @NotNull Runnable mutation) {
@@ -292,22 +294,23 @@ public final class SkillBindPresetService {
         persistence.queueLocalPlayerSave(accountId);
     }
 
-    private void acknowledgeSnapshot(@NotNull UUID accountId, long capturedRevision, @NotNull JsonElement acknowledged) {
-        if (acknowledged.isJsonObject()) {
+    private void acknowledgeSnapshot(@NotNull UUID accountId, long capturedRevision,
+        @NotNull java.util.Set<Integer> capturedPresetIndexes, @NotNull JsonElement acknowledged) {
+        if (!acknowledged.isJsonObject()) return;
+        try {
             JsonObject metadata = acknowledged.getAsJsonObject();
-            Map<Integer, Integer> versions = persistedPresetVersions.computeIfAbsent(accountId,
-                ignored -> new ConcurrentHashMap<>());
-            if (metadata.has("entries") && metadata.get("entries").isJsonArray()) {
-                for (JsonElement entry : metadata.getAsJsonArray("entries")) {
-                    if (!entry.isJsonObject()) continue;
-                    JsonObject value = entry.getAsJsonObject();
-                    if (value.has("presetIndex") && value.has("version")
-                        && !value.get("version").isJsonNull()) {
-                        versions.put(value.get("presetIndex").getAsInt(), value.get("version").getAsInt());
-                    }
-                }
+            if (!metadata.has("clientRevision") || metadata.get("clientRevision").getAsLong() != capturedRevision
+                || !metadata.has("entries") || !metadata.get("entries").isJsonArray()) return;
+            Map<Integer, Integer> received = new java.util.LinkedHashMap<>();
+            for (JsonElement entry : metadata.getAsJsonArray("entries")) {
+                JsonObject value = entry.getAsJsonObject();
+                int index = value.get("presetIndex").getAsInt();
+                if (!value.has("version") || value.get("version").isJsonNull()
+                    || received.put(index, value.get("version").getAsInt()) != null) return;
             }
-        }
+            if (!received.keySet().equals(capturedPresetIndexes)) return;
+            persistedPresetVersions.computeIfAbsent(accountId, ignored -> new ConcurrentHashMap<>()).putAll(received);
+        } catch (RuntimeException malformedAck) { return; }
         AccountSessionState state = sessionStates.get(accountId);
         if (state == null) {
             return;

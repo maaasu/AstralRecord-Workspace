@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillBindPresetRepository;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import org.bukkit.Server;
 import org.bukkit.plugin.Plugin;
 import org.bukkit.scheduler.BukkitScheduler;
@@ -76,65 +77,41 @@ class SkillBindPresetServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
-     * 検証契約: プリセット切替時の選択番号をバインド内容と独立して非同期保存する。
+     * 検証契約: プリセット切替は通信なしでローカル確定し、保存キューへ渡す。
      */
     @Test
     void selectPresetPersistsSelectionAsynchronously() {
         Plugin plugin = mock(Plugin.class);
-        Server server = mock(Server.class);
-        BukkitScheduler scheduler = mock(BukkitScheduler.class);
         SkillBindPresetRepository repository = mock(SkillBindPresetRepository.class);
-        List<Runnable> asyncTasks = new ArrayList<>();
         UUID accountId = UUID.randomUUID();
-        when(plugin.getServer()).thenReturn(server);
-        when(server.getScheduler()).thenReturn(scheduler);
-        doAnswer(invocation -> {
-            asyncTasks.add(invocation.getArgument(1));
-            return mock(BukkitTask.class);
-        }).when(scheduler).runTaskAsynchronously(eq(plugin), org.mockito.ArgumentMatchers.any(Runnable.class));
-        when(repository.select(accountId, 4, accountId)).thenReturn(true);
         SkillBindPresetService service = new SkillBindPresetService(plugin, repository);
+        service.setLocalStatePersistence(localPersistence(accountId));
 
         service.selectPreset(accountId, 4);
 
         assertEquals(4, service.selectedPresetIndex(accountId));
-        asyncTasks.getFirst().run();
-
-        verify(repository).select(accountId, 4, accountId);
+        verify(repository, never()).select(any(), anyInt(), any());
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
-     * 検証契約: 連続したプリセット切替要求を API へ発生順で保存する。
+     * 検証契約: 連続したプリセット切替は最後のローカル状態を一つのsnapshotとして後送する。
      */
     @Test
     void selectPresetWritesRapidChangesInOrder() {
         Plugin plugin = mock(Plugin.class);
-        Server server = mock(Server.class);
-        BukkitScheduler scheduler = mock(BukkitScheduler.class);
         SkillBindPresetRepository repository = mock(SkillBindPresetRepository.class);
-        List<Runnable> asyncTasks = new ArrayList<>();
         UUID accountId = UUID.randomUUID();
-        when(plugin.getServer()).thenReturn(server);
-        when(server.getScheduler()).thenReturn(scheduler);
-        doAnswer(invocation -> {
-            asyncTasks.add(invocation.getArgument(1));
-            return mock(BukkitTask.class);
-        }).when(scheduler).runTaskAsynchronously(eq(plugin), org.mockito.ArgumentMatchers.any(Runnable.class));
-        when(repository.select(any(), anyInt(), any())).thenReturn(true);
         SkillBindPresetService service = new SkillBindPresetService(plugin, repository);
+        service.setLocalStatePersistence(localPersistence(accountId));
 
         service.selectPreset(accountId, 4);
         service.selectPreset(accountId, 5);
 
-        assertEquals(1, asyncTasks.size());
-        asyncTasks.getFirst().run();
-        assertEquals(2, asyncTasks.size());
-        asyncTasks.get(1).run();
-
-        verify(repository).select(accountId, 4, accountId);
-        verify(repository).select(accountId, 5, accountId);
+        assertEquals(5, service.selectedPresetIndex(accountId));
+        assertEquals(5, service.snapshotPlayerState(accountId).payload().get("selectedPresetIndex").getAsInt());
+        verify(repository, never()).select(any(), anyInt(), any());
     }
 
     /**
@@ -317,5 +294,14 @@ class SkillBindPresetServiceTest {
             true,
             0
         );
+    }
+
+    private InventoryService localPersistence(UUID accountId) {
+        InventoryService persistence = mock(InventoryService.class);
+        doAnswer(invocation -> {
+            java.util.function.Supplier<?> mutation = invocation.getArgument(1);
+            return mutation.get();
+        }).when(persistence).executeLocalPlayerMutation(eq(accountId), any());
+        return persistence;
     }
 }

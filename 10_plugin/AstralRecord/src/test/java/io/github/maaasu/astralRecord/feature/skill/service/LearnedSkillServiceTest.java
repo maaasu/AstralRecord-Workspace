@@ -836,7 +836,7 @@ class LearnedSkillServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: 忘却は通信なしで cache を確定し、同一revisionのsection ACK後だけdirtyを解除する。
+     * 検証契約: 送信中スナップショット後の忘却は、旧ACKのversion metadataを次回削除のexpectedVersionへ引き継ぐ。不完全ACKはdirtyを解除しない。
      */
     @Test
     void forgetConfirmsLocallyAndKeepsSnapshotDirtyUntilMatchingAcknowledgement() {
@@ -856,6 +856,10 @@ class LearnedSkillServiceTest {
         LearnedSkillService service = new LearnedSkillService(plugin, repository, inventoryService);
         service.applyInitialSkills(accountId, List.of(learned));
 
+        assertTrue(service.levelUpFromManagerWithPaymentsAsync(
+            accountId, learnedSkillId, accountId, java.util.Map.of(), ignored -> { }, ignored -> { }, () -> { }
+        ));
+        var levelUpSnapshot = service.snapshotPlayerState(accountId);
         assertTrue(service.forgetAsync(accountId, learnedSkillId, accountId, ignored -> { }, ignored -> { }));
         assertNull(service.findInstance(accountId, learnedSkillId));
         verify(repository, never()).forget(eq(accountId), eq(learnedSkillId), eq(accountId), any(UUID.class));
@@ -864,7 +868,30 @@ class LearnedSkillServiceTest {
         assertEquals("learnedSkills", section.name());
         assertEquals(learnedSkillId.toString(), section.payload().getAsJsonArray("deletedSkills")
             .get(0).getAsJsonObject().get("learnedSkillId").getAsString());
+        com.google.gson.JsonObject levelUpAck = new com.google.gson.JsonObject();
+        levelUpAck.addProperty("clientRevision", levelUpSnapshot.payload().get("clientRevision").getAsLong());
+        com.google.gson.JsonArray entries = new com.google.gson.JsonArray();
+        com.google.gson.JsonObject entry = new com.google.gson.JsonObject();
+        entry.addProperty("learnedSkillId", learnedSkillId.toString());
+        entry.addProperty("version", 9);
+        entries.add(entry);
+        levelUpAck.add("entries", entries);
+        levelUpAck.add("deletedIds", new com.google.gson.JsonArray());
+        levelUpSnapshot.acknowledge().accept(levelUpAck);
+
+        section = service.snapshotPlayerState(accountId);
+        assertEquals(9, section.payload().getAsJsonArray("deletedSkills").get(0).getAsJsonObject()
+            .get("expectedVersion").getAsInt());
         section.acknowledge().accept(new com.google.gson.JsonObject());
+        assertTrue(service.snapshotPlayerState(accountId) != null);
+
+        com.google.gson.JsonObject deleteAck = new com.google.gson.JsonObject();
+        deleteAck.addProperty("clientRevision", section.payload().get("clientRevision").getAsLong());
+        deleteAck.add("entries", new com.google.gson.JsonArray());
+        com.google.gson.JsonArray deleted = new com.google.gson.JsonArray();
+        deleted.add(learnedSkillId.toString());
+        deleteAck.add("deletedIds", deleted);
+        section.acknowledge().accept(deleteAck);
         assertNull(service.snapshotPlayerState(accountId));
     }
 

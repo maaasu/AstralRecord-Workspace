@@ -1715,12 +1715,15 @@ public class SkillTreeService {
     }
 
     private void acknowledgeSnapshot(@NotNull UUID accountId, long capturedRevision, @NotNull JsonElement acknowledged) {
-        if (acknowledged.isJsonObject()) {
+        if (!acknowledged.isJsonObject()) return;
+        final int version;
+        try {
             JsonObject metadata = acknowledged.getAsJsonObject();
-            if (metadata.has("version") && !metadata.get("version").isJsonNull()) {
-                persistedPlayerStateVersions.put(accountId, metadata.get("version").getAsInt());
-            }
-        }
+            if (!metadata.has("clientRevision") || metadata.get("clientRevision").getAsLong() != capturedRevision
+                || !metadata.has("version") || metadata.get("version").isJsonNull()) return;
+            version = metadata.get("version").getAsInt();
+        } catch (RuntimeException malformedAck) { return; }
+        persistedPlayerStateVersions.put(accountId, version);
         if (playerStateRevisions.getOrDefault(accountId, 0L) == capturedRevision) {
             dirtyPlayerStates.remove(accountId);
             dirtyPlayerStateDueAtMillis.remove(accountId);
