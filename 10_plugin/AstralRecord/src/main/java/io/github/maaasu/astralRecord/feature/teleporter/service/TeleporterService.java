@@ -1,6 +1,10 @@
 package io.github.maaasu.astralRecord.feature.teleporter.service;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -11,8 +15,6 @@ import io.github.maaasu.astralRecord.feature.teleporter.repository.AccountWaysto
 import io.github.maaasu.astralRecord.feature.teleporter.repository.WaystoneDefinitionRepository;
 import io.github.maaasu.astralRecord.feature.teleporter.view.WaystonePacketView;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
-import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
-import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
@@ -32,6 +34,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -40,7 +43,6 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
 /**
@@ -56,7 +58,10 @@ public final class TeleporterService {
     private final AccountWaystoneRepository accountWaystoneRepository;
     private final Map<String, WaystoneDefinition> definitionsById = new LinkedHashMap<>();
     private final Map<UUID, WaystoneUnlockState> unlockStatesByAccount = new LinkedHashMap<>();
-    private final Set<UnlockKey> unlocksInProgress = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, LinkedHashMap<String, Long>> pendingUnlockRevisionsByAccount = new LinkedHashMap<>();
+    private final Map<UUID, Long> unlockStateRevisionsByAccount = new LinkedHashMap<>();
+    private final Set<UUID> releaseWhenAcknowledgedAccounts = new HashSet<>();
+    private final Object unlockStateLock = new Object();
 
     private @Nullable InventoryService inventoryService;
     private @Nullable WorldService worldService;
@@ -251,8 +256,10 @@ public final class TeleporterService {
         if (!definition.lockEnabled()) {
             return true;
         }
-        WaystoneUnlockState state = unlockStatesByAccount.get(astPlayer.getAccount().getUuid());
-        return state != null && state.isUnlocked(definition);
+        synchronized (unlockStateLock) {
+            WaystoneUnlockState state = unlockStatesByAccount.get(astPlayer.getAccount().getUuid());
+            return state != null && state.isUnlocked(definition);
+        }
     }
 
     /**
@@ -283,7 +290,7 @@ public final class TeleporterService {
             return new WaystoneUnlockState(accountId, Set.copyOf(ids));
         }).thenApply(state -> {
             Bukkit.getScheduler().runTask(plugin, () -> {
-                unlockStatesByAccount.put(accountId, state);
+                mergeLoadedUnlockState(accountId, state);
                 syncView(astPlayer.getBukkit());
             });
             return state;
@@ -333,43 +340,27 @@ public final class TeleporterService {
             PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5963);
             return;
         }
-        long cost = Math.max(0L, definition.unlockGold());
         UUID accountId = astPlayer.getAccount().getUuid();
-        UnlockKey unlockKey = new UnlockKey(accountId, definition.id());
-        if (!unlocksInProgress.add(unlockKey)) {
-            return;
-        }
+        long cost = Math.max(0L, definition.unlockGold());
+        UnlockCommitResult result;
         try {
-            if (!inventory.consumeGold(accountId, cost)) {
-                unlocksInProgress.remove(unlockKey);
-                PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5955, cost);
-                return;
-            }
-            inventory.saveNow(accountId);
+            result = inventory.executeLocalPlayerMutation(accountId,
+                () -> commitWaystoneUnlock(accountId, definition, inventory, cost));
         } catch (RuntimeException e) {
-            unlocksInProgress.remove(unlockKey);
             throw e;
         }
-        CompletableFuture.runAsync(() -> accountWaystoneRepository.unlock(accountId, definition.id()))
-                .whenComplete((ignored, throwable) -> Bukkit.getScheduler().runTask(plugin, () -> {
-                    try {
-                        if (throwable != null) {
-                            if (!inventory.addGold(astPlayer, cost)) {
-                                Logger.log(LogId.E_5952, player.getName(), definition.id(), cost);
-                            }
-                            inventory.saveNow(accountId);
-                            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5957);
-                            return;
-                        }
-                        WaystoneUnlockState current = unlockStatesByAccount.getOrDefault(accountId, new WaystoneUnlockState(accountId, Set.of()));
-                        unlockStatesByAccount.put(accountId, current.withUnlocked(definition.id()));
-                        PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5952, definition.name(), cost);
-                        syncView(player);
-                        playUnlockEffects(player, definition);
-                    } finally {
-                        unlocksInProgress.remove(unlockKey);
-                    }
-                }));
+        if (result == UnlockCommitResult.ALREADY_UNLOCKED) {
+            openGui(player, astPlayer, definition, 0);
+            return;
+        }
+        if (result == UnlockCommitResult.INSUFFICIENT_GOLD) {
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5955, cost);
+            return;
+        }
+        inventory.queueLocalPlayerSave(accountId);
+        PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5952, definition.name(), cost);
+        syncView(player);
+        playUnlockEffects(player, definition);
     }
 
     /**
@@ -449,8 +440,7 @@ public final class TeleporterService {
     public void clearPlayer(@NotNull Player player) {
         AstPlayer astPlayer = io.github.maaasu.astralRecord.feature.player.AstPlayerCache.get(player);
         if (astPlayer != null) {
-            unlockStatesByAccount.remove(astPlayer.getAccount().getUuid());
-            unlocksInProgress.removeIf(key -> key.accountId().equals(astPlayer.getAccount().getUuid()));
+            releaseOrRetainUnlockState(astPlayer.getAccount().getUuid());
         }
         WaystonePacketView view = packetView;
         if (view != null) {
@@ -466,8 +456,33 @@ public final class TeleporterService {
         if (view != null) {
             view.stop();
         }
-        unlockStatesByAccount.clear();
-        unlocksInProgress.clear();
+    }
+
+    /**
+     * 現在の未受領解除状態を player-state section として取得します。
+     * 呼出元は対象アカウントの inventory state lock を保持している必要があります。
+     *
+     * @param accountId 対象アカウント ID
+     * @return 未受領の解除がない場合は {@code null}
+     */
+    public @Nullable PlayerStateSection snapshotPlayerState(@NotNull UUID accountId) {
+        final long capturedRevision;
+        final LinkedHashMap<String, Long> capturedUnlocks;
+        synchronized (unlockStateLock) {
+            LinkedHashMap<String, Long> pending = pendingUnlockRevisionsByAccount.get(accountId);
+            if (pending == null || pending.isEmpty()) {
+                return null;
+            }
+            capturedRevision = unlockStateRevisionsByAccount.getOrDefault(accountId, 0L);
+            capturedUnlocks = new LinkedHashMap<>(pending);
+        }
+        JsonObject payload = new JsonObject();
+        payload.addProperty("clientRevision", capturedRevision);
+        JsonArray unlockedWaystoneIds = new JsonArray();
+        capturedUnlocks.keySet().forEach(unlockedWaystoneIds::add);
+        payload.add("unlockedWaystoneIds", unlockedWaystoneIds);
+        return new PlayerStateSection("waystones", payload,
+            acknowledged -> acknowledgeSnapshot(accountId, capturedRevision, capturedUnlocks, acknowledged));
     }
 
     private void saveAll() {
@@ -475,7 +490,122 @@ public final class TeleporterService {
     }
 
     private boolean isUnlockStateLoaded(@NotNull AstPlayer astPlayer) {
-        return unlockStatesByAccount.containsKey(astPlayer.getAccount().getUuid());
+        synchronized (unlockStateLock) {
+            return unlockStatesByAccount.containsKey(astPlayer.getAccount().getUuid());
+        }
+    }
+
+    private @NotNull UnlockCommitResult commitWaystoneUnlock(
+        @NotNull UUID accountId,
+        @NotNull WaystoneDefinition definition,
+        @NotNull InventoryService inventory,
+        long cost
+    ) {
+        synchronized (unlockStateLock) {
+            WaystoneUnlockState current = unlockStatesByAccount.getOrDefault(accountId,
+                new WaystoneUnlockState(accountId, Set.of()));
+            if (current.isUnlocked(definition)) {
+                return UnlockCommitResult.ALREADY_UNLOCKED;
+            }
+            if (!inventory.consumeGold(accountId, cost)) {
+                return UnlockCommitResult.INSUFFICIENT_GOLD;
+            }
+            unlockStatesByAccount.put(accountId, current.withUnlocked(definition.id()));
+            long revision = unlockStateRevisionsByAccount.merge(accountId, 1L, Math::addExact);
+            pendingUnlockRevisionsByAccount.computeIfAbsent(accountId, ignored -> new LinkedHashMap<>())
+                .put(definition.id(), revision);
+            return UnlockCommitResult.UNLOCKED;
+        }
+    }
+
+    private void mergeLoadedUnlockState(@NotNull UUID accountId, @NotNull WaystoneUnlockState loaded) {
+        synchronized (unlockStateLock) {
+            Set<String> merged = new LinkedHashSet<>(loaded.unlockedWaystoneIds());
+            WaystoneUnlockState current = unlockStatesByAccount.get(accountId);
+            if (current != null) {
+                merged.addAll(current.unlockedWaystoneIds());
+            }
+            unlockStatesByAccount.put(accountId, new WaystoneUnlockState(accountId, Set.copyOf(merged)));
+        }
+    }
+
+    private void releaseOrRetainUnlockState(@NotNull UUID accountId) {
+        synchronized (unlockStateLock) {
+            if (pendingUnlockRevisionsByAccount.containsKey(accountId)) {
+                releaseWhenAcknowledgedAccounts.add(accountId);
+                return;
+            }
+            discardUnlockState(accountId);
+        }
+    }
+
+    private void acknowledgeSnapshot(
+        @NotNull UUID accountId,
+        long capturedRevision,
+        @NotNull LinkedHashMap<String, Long> capturedUnlocks,
+        @NotNull JsonElement acknowledged
+    ) {
+        validateAcknowledgement(capturedRevision, capturedUnlocks.keySet(), acknowledged);
+        synchronized (unlockStateLock) {
+            LinkedHashMap<String, Long> pending = pendingUnlockRevisionsByAccount.get(accountId);
+            if (pending != null) {
+                capturedUnlocks.forEach((waystoneId, generation) -> {
+                    if (generation.equals(pending.get(waystoneId))) {
+                        pending.remove(waystoneId);
+                    }
+                });
+                if (pending.isEmpty()) {
+                    pendingUnlockRevisionsByAccount.remove(accountId);
+                    if (releaseWhenAcknowledgedAccounts.remove(accountId)) {
+                        discardUnlockState(accountId);
+                    }
+                }
+            }
+        }
+    }
+
+    private void validateAcknowledgement(
+        long capturedRevision,
+        @NotNull Set<String> capturedUnlockIds,
+        @NotNull JsonElement acknowledged
+    ) {
+        if (!acknowledged.isJsonObject()) {
+            throw new IllegalStateException("Waystone acknowledgement must be an object");
+        }
+        JsonObject acknowledgement = acknowledged.getAsJsonObject();
+        if (!acknowledgement.has("clientRevision") || !acknowledgement.get("clientRevision").isJsonPrimitive()
+            || !acknowledgement.getAsJsonPrimitive("clientRevision").isNumber()
+            || acknowledgement.getAsJsonPrimitive("clientRevision").getAsLong() != capturedRevision) {
+            throw new IllegalStateException("Waystone acknowledgement client revision mismatch");
+        }
+        if (!acknowledgement.has("unlockedWaystoneIds")
+            || !acknowledgement.get("unlockedWaystoneIds").isJsonArray()) {
+            throw new IllegalStateException("Waystone acknowledgement IDs are missing");
+        }
+        List<String> expected = List.copyOf(capturedUnlockIds);
+        List<String> received = new ArrayList<>();
+        Set<String> normalizedIds = new HashSet<>();
+        for (JsonElement element : acknowledgement.getAsJsonArray("unlockedWaystoneIds")) {
+            if (!element.isJsonPrimitive() || !element.getAsJsonPrimitive().isString()) {
+                throw new IllegalStateException("Waystone acknowledgement ID must be a string");
+            }
+            String id = element.getAsString();
+            if (id.isBlank() || !id.equals(id.trim()) || id.length() > 100
+                || !normalizedIds.add(id.toLowerCase(Locale.ROOT))) {
+                throw new IllegalStateException("Waystone acknowledgement ID is invalid");
+            }
+            received.add(id);
+        }
+        if (!expected.equals(received)) {
+            throw new IllegalStateException("Waystone acknowledgement IDs mismatch");
+        }
+    }
+
+    private void discardUnlockState(@NotNull UUID accountId) {
+        unlockStatesByAccount.remove(accountId);
+        pendingUnlockRevisionsByAccount.remove(accountId);
+        unlockStateRevisionsByAccount.remove(accountId);
+        releaseWhenAcknowledgedAccounts.remove(accountId);
     }
 
     private void playUnlockEffects(@NotNull Player player, @NotNull WaystoneDefinition definition) {
@@ -510,7 +640,10 @@ public final class TeleporterService {
         location.getWorld().playSound(location, Sound.BLOCK_AMETHYST_BLOCK_CHIME, SoundCategory.PLAYERS, 0.55F, 1.7F);
     }
 
-    private record UnlockKey(@NotNull UUID accountId, @NotNull String waystoneId) {
+    private enum UnlockCommitResult {
+        UNLOCKED,
+        ALREADY_UNLOCKED,
+        INSUFFICIENT_GOLD
     }
 
     @NotNull

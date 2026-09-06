@@ -49,36 +49,6 @@ public final class AccountWaystoneRepository {
         }
     }
 
-    /**
-     * 指定ウェイストーンを解除済みとして登録します。
-     *
-     * @param accountId 対象アカウント ID
-     * @param waystoneId 解除するウェイストーン ID
-     */
-    public void unlock(@NotNull UUID accountId, @NotNull String waystoneId) {
-        String path = "/api/account-waystone/" + accountId + "/unlock";
-        JsonObject body = new JsonObject();
-        body.addProperty("waystoneId", waystoneId);
-        body.addProperty("updatedBy", accountId.toString());
-        try {
-            try (var client = ApiRequestUtil.buildClient()) {
-                HttpRequest request = ApiRequestUtil.buildRequestBuilder(path)
-                        .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
-                        .build();
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() != 200) {
-                    throw new IOException("Unexpected status " + response.statusCode() + " for POST " + path);
-                }
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        } catch (IOException | RuntimeException e) {
-            Logger.log(LogId.E_5954, e, path);
-            throw new RuntimeException(e);
-        }
-    }
-
     @NotNull
     private Set<String> parseUnlockedIds(@NotNull JsonObject obj) {
         Set<String> ids = new LinkedHashSet<>();
