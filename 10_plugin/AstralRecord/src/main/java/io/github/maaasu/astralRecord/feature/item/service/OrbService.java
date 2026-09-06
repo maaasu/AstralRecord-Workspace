@@ -2408,7 +2408,7 @@ public final class OrbService {
             }
             inventoryService.queueLocalPlayerSave(session.accountId);
             completeMutation(session, resultReference.get());
-        } catch (LocalMutationRejectedException rejected) {
+        } catch (LocalMutationRejectedException rejection) {
             inventoryService.releaseOrbOperationPayment(session.accountId, operationId);
             completeMutation(session, MutationResult.failed(MutationStatus.TARGET_CHANGED));
         } catch (RuntimeException failure) {
