@@ -1,10 +1,13 @@
 package io.github.maaasu.astralrecordlobby;
 
 import github.scarsz.discordsrv.DiscordSRV;
+import github.scarsz.discordsrv.api.ListenerPriority;
 import github.scarsz.discordsrv.api.Subscribe;
 import github.scarsz.discordsrv.api.events.DiscordGuildMessagePreProcessEvent;
+import github.scarsz.discordsrv.api.events.GameChatMessagePreProcessEvent;
 import github.scarsz.discordsrv.util.DiscordUtil;
 import org.bukkit.Bukkit;
+import org.bukkit.event.Cancellable;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -32,8 +35,7 @@ final class DiscordNetworkBridge {
     }
 
     void start() {
-        if (!plugin.getConfig().getBoolean("discord.enabled", true)
-            || Bukkit.getPluginManager().getPlugin("DiscordSRV") == null) return;
+        if (!plugin.getConfig().getBoolean("discord.enabled", true)) return;
         initializationTask = Bukkit.getScheduler().runTaskTimer(
             plugin, this::tryInitialize, 1L, 20L);
         tryInitialize();
@@ -143,6 +145,19 @@ final class DiscordNetworkBridge {
                 lifecycleLock.readLock().unlock();
             }
         });
+    }
+
+    /**
+     * LobbyがキャンセルしたMinecraftチャットをDiscordSRV標準中継から除外する。
+     * 独自のNetwork API経由の中継だけをDiscordへ送るため、標準経路との二重送信を防ぐ。
+     *
+     * @param event DiscordSRVのMinecraftチャット処理前イベント
+     */
+    @Subscribe(priority = ListenerPriority.HIGHEST)
+    public void onGameChatMessagePreProcess(GameChatMessagePreProcessEvent event) {
+        if (event.getTriggeringBukkitEvent() instanceof Cancellable cancellable && cancellable.isCancelled()) {
+            event.setCancelled(true);
+        }
     }
 
     private void pollMinecraft() {
