@@ -35,7 +35,7 @@ public interface IEquipmentRepository
 
     Task<bool> UpsertRuneAsync(Guid instanceId, Guid accountId, EquipmentInstanceRuneEntity rune);
 
-    Task<bool> DeleteRuneBySlotIndexAsync(Guid instanceId, int slotIndex);
+    Task<bool> DeleteRuneBySlotIndexAsync(Guid instanceId, int slotIndex, Guid accountId);
 
     Task<EquipmentInstanceEntity?> UpdateDurabilityAsync(Guid instanceId, int durabilityValue, Guid updatedBy);
 

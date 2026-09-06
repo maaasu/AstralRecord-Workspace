@@ -63,6 +63,8 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
                 return false;
 
             dbContext.EquipmentInstanceEnchants.RemoveRange(enchants);
+            live.UpdatedAt = AdvanceParentUpdatedAt(live.UpdatedAt, DateTime.UtcNow);
+            live.UpdatedBy = accountId;
             await dbContext.SaveChangesAsync();
             await transaction.CommitAsync();
             return true;
@@ -83,7 +85,7 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
             if (live is null || live.IsDeleted || live.AccountId != accountId)
                 return false;
 
-            live.UpdatedAt = rune.UpdatedAt;
+            live.UpdatedAt = AdvanceParentUpdatedAt(live.UpdatedAt, rune.UpdatedAt);
             live.UpdatedBy = rune.UpdatedBy;
             var existing = await dbContext.EquipmentInstanceRunes
                 .FirstOrDefaultAsync(x => x.EquipmentInstanceId == instanceId && x.SlotIndex == rune.SlotIndex);
@@ -105,17 +107,29 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
         });
     }
 
-    public async Task<bool> DeleteRuneBySlotIndexAsync(Guid instanceId, int slotIndex)
+    public async Task<bool> DeleteRuneBySlotIndexAsync(Guid instanceId, int slotIndex, Guid accountId)
     {
-        var rune = await dbContext.EquipmentInstanceRunes
-            .FirstOrDefaultAsync(x => x.EquipmentInstanceId == instanceId && x.SlotIndex == slotIndex);
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            var live = await FindInstanceForUpdateAsync(instanceId);
+            if (live is null || live.IsDeleted || live.AccountId != accountId)
+                return false;
 
-        if (rune is null)
-            return false;
+            var rune = await dbContext.EquipmentInstanceRunes
+                .FirstOrDefaultAsync(x => x.EquipmentInstanceId == instanceId && x.SlotIndex == slotIndex);
+            if (rune is null)
+                return false;
 
-        dbContext.EquipmentInstanceRunes.Remove(rune);
-        await dbContext.SaveChangesAsync();
-        return true;
+            dbContext.EquipmentInstanceRunes.Remove(rune);
+            live.UpdatedAt = AdvanceParentUpdatedAt(live.UpdatedAt, DateTime.UtcNow);
+            live.UpdatedBy = accountId;
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return true;
+        });
     }
 
     public async Task<EquipmentInstanceEntity?> UpdateDurabilityAsync(
@@ -137,7 +151,7 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
                 return null;
 
             live.DurabilityValue = Math.Clamp(durabilityValue, 0, live.DurabilityMax.Value);
-            live.UpdatedAt = DateTime.UtcNow;
+            live.UpdatedAt = AdvanceParentUpdatedAt(live.UpdatedAt, DateTime.UtcNow);
             live.UpdatedBy = updatedBy;
             await dbContext.SaveChangesAsync();
             await transaction.CommitAsync();
@@ -172,4 +186,7 @@ public class EquipmentRepository(AstralRecordDbContext dbContext) : IEquipmentRe
         return await dbContext.EquipmentInstances
             .SingleOrDefaultAsync(instance => instance.EquipmentInstanceId == instanceId);
     }
+
+    private static DateTime AdvanceParentUpdatedAt(DateTime current, DateTime candidate)
+        => candidate > current.AddMilliseconds(1) ? candidate : current.AddMilliseconds(1);
 }

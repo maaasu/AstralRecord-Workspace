@@ -25,9 +25,15 @@ public sealed class PlayerStateInventorySnapshot
     public bool MetadataDirty { get; init; }
     public DateTime? ExpectedUpdatedAt { get; init; }
     public string? MetadataJson { get; init; }
-    /// <summary>ロード時点の当該 inventory の有効 entry UUID 全集合。省略削除と並行追加を検出する。</summary>
-    public IReadOnlyList<Guid> ExpectedEntryIds { get; init; } = [];
+    /// <summary>ロード時点の当該 inventory の有効 entry 全集合と timestamp。省略削除、並行追加・更新を検出する。</summary>
+    public IReadOnlyList<PlayerStateExpectedInventoryEntry> ExpectedEntries { get; init; } = [];
     public IReadOnlyList<PlayerStateInventoryEntrySnapshot> Entries { get; init; } = [];
+}
+
+public sealed class PlayerStateExpectedInventoryEntry
+{
+    public Guid InventoryEntryId { get; init; }
+    public DateTime UpdatedAt { get; init; }
 }
 
 public sealed class PlayerStateInventoryEntrySnapshot

@@ -388,7 +388,7 @@ public class EquipmentServiceTests
             return Task.FromResult(true);
         }
 
-        public Task<bool> DeleteRuneBySlotIndexAsync(Guid instanceId, int slotIndex) =>
+        public Task<bool> DeleteRuneBySlotIndexAsync(Guid instanceId, int slotIndex, Guid accountId) =>
             Task.FromResult(false);
 
         public Task<EquipmentInstanceEntity?> UpdateDurabilityAsync(

@@ -61,7 +61,36 @@ public sealed class PlayerStateSnapshotRepositoryTests
             .SaveAsync(fixture.CreateMoveRequest(Guid.NewGuid()));
 
         Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, result.Failure);
-        Assert.Contains("membership", result.Detail!, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("baseline", result.Detail!, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task SaveAsync_RejectsDeletionWhenBaselineEntryWasChangedExternally()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var entry = await fixture.DbContext.InventoryEntries.SingleAsync();
+        entry.Quantity = 11;
+        entry.UpdatedAt = entry.UpdatedAt.AddSeconds(1);
+        await fixture.DbContext.SaveChangesAsync();
+
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            Inventories =
+            [
+                new PlayerStateInventorySnapshot
+                {
+                    InventoryId = fixture.FirstInventoryId,
+                    ExpectedEntries = [new PlayerStateExpectedInventoryEntry { InventoryEntryId = fixture.EntryId, UpdatedAt = fixture.BaseTime }],
+                    Entries = [],
+                },
+            ],
+        });
+
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, result.Failure);
+        var unchanged = await fixture.DbContext.InventoryEntries.SingleAsync();
+        Assert.False(unchanged.IsDeleted);
+        Assert.Equal(11, unchanged.Quantity);
     }
 
     [Fact]
@@ -160,10 +189,15 @@ public sealed class PlayerStateSnapshotRepositoryTests
             UpdatedBy = AccountId,
             Inventories =
             [
-                new PlayerStateInventorySnapshot { InventoryId = FirstInventoryId, ExpectedEntryIds = [EntryId], Entries = [] },
                 new PlayerStateInventorySnapshot
                 {
-                    InventoryId = SecondInventoryId, ExpectedEntryIds = [],
+                    InventoryId = FirstInventoryId,
+                    ExpectedEntries = [new PlayerStateExpectedInventoryEntry { InventoryEntryId = EntryId, UpdatedAt = BaseTime }],
+                    Entries = [],
+                },
+                new PlayerStateInventorySnapshot
+                {
+                    InventoryId = SecondInventoryId, ExpectedEntries = [],
                     Entries = [new PlayerStateInventoryEntrySnapshot { InventoryEntryId = EntryId, ExpectedUpdatedAt = BaseTime, ItemCategory = "CURRENCY", ItemId = "gold", Quantity = quantity }],
                 },
             ],

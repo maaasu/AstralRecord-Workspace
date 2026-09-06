@@ -365,7 +365,7 @@ public class EquipmentOrbOperationRepository(
                 await ReturnRuneAsync(request.AccountId, normalEntries, returnedRuneItemId, now, affectedEntryIds);
             }
 
-            instance.UpdatedAt = now;
+            instance.UpdatedAt = AdvanceParentUpdatedAt(instance.UpdatedAt, now);
             instance.UpdatedBy = request.AccountId;
             var responseEquipment = await BuildResponseAsync(instance, currentEnchants);
             return await CompleteAsync(
@@ -1066,6 +1066,9 @@ public class EquipmentOrbOperationRepository(
 
     private static bool IdEquals(string? left, string? right)
         => string.Equals(left?.Trim(), right?.Trim(), StringComparison.OrdinalIgnoreCase);
+
+    private static DateTime AdvanceParentUpdatedAt(DateTime current, DateTime candidate)
+        => candidate > current.AddMilliseconds(1) ? candidate : current.AddMilliseconds(1);
 
     private static string NormalizeId(string? value) => value?.Trim().ToLowerInvariant() ?? string.Empty;
 }

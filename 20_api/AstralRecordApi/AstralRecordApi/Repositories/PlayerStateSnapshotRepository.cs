@@ -87,6 +87,10 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Inventory ownership conflict.");
 
         var entriesById = accountEntries.ToDictionary(entry => entry.InventoryEntryId);
+        var expectedEntriesById = request.Inventories.SelectMany(inventory => inventory.ExpectedEntries)
+            .GroupBy(entry => entry.InventoryEntryId).ToDictionary(group => group.Key, group => group.ToArray());
+        if (expectedEntriesById.Any(pair => pair.Key == Guid.Empty || pair.Value.Length != 1))
+            return Failure(PlayerStateSnapshotSaveFailure.Invalid, "expectedEntries contains an invalid or duplicated inventoryEntryId.");
         var requestedEntryIds = request.Inventories.SelectMany(inventory => inventory.Entries)
             .Select(entry => entry.InventoryEntryId)
             .ToArray();
@@ -104,12 +108,15 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
         foreach (var inventorySnapshot in request.Inventories)
         {
             var inventory = inventoriesById[inventorySnapshot.InventoryId];
-            var currentEntryIds = accountEntries.Where(entry => entry.InventoryId == inventory.InventoryId && !entry.IsDeleted)
-                .Select(entry => entry.InventoryEntryId).Order().ToArray();
-            var expectedEntryIds = inventorySnapshot.ExpectedEntryIds.Order().ToArray();
-            if (expectedEntryIds.Distinct().Count() != expectedEntryIds.Length
-                || !currentEntryIds.SequenceEqual(expectedEntryIds))
-                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Inventory entry membership snapshot is stale.");
+            var currentEntries = accountEntries.Where(entry => entry.InventoryId == inventory.InventoryId && !entry.IsDeleted)
+                .OrderBy(entry => entry.InventoryEntryId).ToArray();
+            var expectedEntries = inventorySnapshot.ExpectedEntries.OrderBy(entry => entry.InventoryEntryId).ToArray();
+            if (expectedEntries.GroupBy(entry => entry.InventoryEntryId).Any(group => group.Count() != 1)
+                || currentEntries.Length != expectedEntries.Length
+                || currentEntries.Zip(expectedEntries).Any(pair =>
+                    pair.First.InventoryEntryId != pair.Second.InventoryEntryId
+                    || pair.First.UpdatedAt != pair.Second.UpdatedAt))
+                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Inventory entry baseline snapshot is stale.");
             if (inventorySnapshot.MetadataDirty)
             {
                 if (!inventorySnapshot.ExpectedUpdatedAt.HasValue || inventory.UpdatedAt != inventorySnapshot.ExpectedUpdatedAt.Value)
@@ -131,6 +138,7 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
                 if (entriesById.TryGetValue(entrySnapshot.InventoryEntryId, out var existing))
                 {
                     if (existing.IsDeleted
+                        || !expectedEntriesById.ContainsKey(existing.InventoryEntryId)
                         || !entrySnapshot.ExpectedUpdatedAt.HasValue
                         || existing.UpdatedAt != entrySnapshot.ExpectedUpdatedAt.Value)
                         return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Inventory entry snapshot is stale.");
@@ -237,7 +245,7 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             entity.TranscendenceRank = snapshot.TranscendenceRank;
             entity.DurabilityMax = snapshot.DurabilityMax;
             entity.DurabilityValue = snapshot.DurabilityValue;
-            entity.UpdatedAt = now;
+            entity.UpdatedAt = AdvanceUpdatedAt(entity.UpdatedAt, now);
             entity.UpdatedBy = request.UpdatedBy;
 
             var existingEnchants = await dbContext.EquipmentInstanceEnchants
@@ -370,7 +378,7 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
         PlayerStateSnapshotAck baseAck,
         DateTime fallbackUpdatedAt)
     {
-        var entryIds = request.Inventories.SelectMany(inventory => inventory.ExpectedEntryIds
+        var entryIds = request.Inventories.SelectMany(inventory => inventory.ExpectedEntries.Select(entry => entry.InventoryEntryId)
                 .Concat(inventory.Entries.Select(entry => entry.InventoryEntryId)))
             .Distinct().ToArray();
         var entries = await dbContext.InventoryEntries.AsNoTracking()
@@ -888,4 +896,7 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
 
     private static DateTime RoundToMilliseconds(DateTime value)
         => new(value.Ticks - value.Ticks % TimeSpan.TicksPerMillisecond, DateTimeKind.Utc);
+
+    private static DateTime AdvanceUpdatedAt(DateTime current, DateTime candidate)
+        => candidate > current.AddMilliseconds(1) ? candidate : current.AddMilliseconds(1);
 }

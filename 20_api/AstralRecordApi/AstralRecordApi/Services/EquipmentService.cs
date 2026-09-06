@@ -148,7 +148,10 @@ public class EquipmentService(
         if (instance is null || instance.AccountId != request.UpdatedBy)
             return null;
 
-        var deleted = await equipmentRepository.DeleteRuneBySlotIndexAsync(request.EquipmentInstanceId, request.SlotIndex);
+        var deleted = await equipmentRepository.DeleteRuneBySlotIndexAsync(
+            request.EquipmentInstanceId,
+            request.SlotIndex,
+            request.UpdatedBy);
         if (!deleted)
             return null;
 
