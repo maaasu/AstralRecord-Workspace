@@ -134,12 +134,12 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         when(itemStackFactory.create(eq(sigil), eq(1))).thenReturn(new ItemStack(Material.AMETHYST_SHARD));
         AtomicReference<Consumer<LearnedSkillInstance>> success = new AtomicReference<>();
         AtomicReference<Consumer<Throwable>> failure = new AtomicReference<>();
-        when(learnedSkillService.attachSigilAsync(
-            eq(accountId), eq(learnedSkillId), eq(commonOrbEntryId), eq(sigil.getId()),
-            eq(commonSigilEntryId), eq(accountId), any(), any(), any()
+        when(learnedSkillService.attachSigilLocally(
+            eq(accountId), eq(learnedSkillId), eq(commonOrbEntryId), any(LearnedSkillSigil.class),
+            eq(commonSigilEntryId), any(), any()
         )).thenAnswer(invocation -> {
-            success.set(invocation.getArgument(6));
-            failure.set(invocation.getArgument(7));
+            success.set(invocation.getArgument(5));
+            failure.set(invocation.getArgument(6));
             return true;
         });
 
@@ -175,9 +175,9 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         service.handleGuiClick(click(player, player.getOpenInventory().getTopInventory(), 9, false));
         service.handleGuiClick(click(player, player.getOpenInventory().getTopInventory(), 16, true));
 
-        verify(learnedSkillService).attachSigilAsync(
-            eq(accountId), eq(learnedSkillId), eq(commonOrbEntryId), eq(sigil.getId()),
-            eq(commonSigilEntryId), eq(accountId), any(), any(), any()
+        verify(learnedSkillService).attachSigilLocally(
+            eq(accountId), eq(learnedSkillId), eq(commonOrbEntryId),
+            any(LearnedSkillSigil.class), eq(commonSigilEntryId), any(), any()
         );
         verify(inventoryService, atLeastOnce()).findOwnedNormalItemEntryForConsumption(
             accountId, orb.getId());
@@ -247,8 +247,8 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
         when(itemService.findLoadedById(sigil.getId())).thenReturn(sigil);
         when(itemStackFactory.create(eq(sigil), eq(1))).thenReturn(new ItemStack(Material.AMETHYST_SHARD));
         AtomicReference<Consumer<LearnedSkillInstance>> success = new AtomicReference<>();
-        when(learnedSkillService.detachSigilAsync(
-            eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq(attachmentId), eq(accountId), any(), any(), any()
+        when(learnedSkillService.detachSigilLocally(
+            eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq(attachmentId), any(), any(), any()
         )).thenAnswer(invocation -> {
             success.set(invocation.getArgument(5));
             return true;
@@ -279,8 +279,8 @@ class SkillSigilOrbServiceTest extends MockBukkitTestBase {
 
         service.handleGuiClick(click(player, player.getOpenInventory().getTopInventory(), 16, true));
 
-        verify(learnedSkillService).detachSigilAsync(
-            eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq(attachmentId), eq(accountId), any(), any(), any()
+        verify(learnedSkillService).detachSigilLocally(
+            eq(accountId), eq(learnedSkillId), eq(orbEntryId), eq(attachmentId), any(), any(), any()
         );
 
         success.get().accept(learned);
