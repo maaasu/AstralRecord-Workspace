@@ -180,6 +180,38 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
         Assert.True(result.Succeeded, result.Detail);
     }
 
+    // AR-CODE-015: SQL Server DECIMAL(18,4) overflow must be rejected as an invalid payload.
+    [Theory]
+    [InlineData(100_000_000_000_000L)]
+    [InlineData(-100_000_000_000_000L)]
+    public async Task SaveAsync_EnchantValueOutsideSqlDecimalRangeIsInvalidBeforeAnyDatabaseMutation(long value)
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var equipment = CreateEquipment(Guid.NewGuid(), fixture);
+        fixture.DbContext.EquipmentInstances.Add(equipment);
+        await fixture.DbContext.SaveChangesAsync();
+
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            Equipment = [new PlayerStateEquipmentSnapshot
+            {
+                EquipmentInstanceId = equipment.EquipmentInstanceId, ExpectedUpdatedAt = equipment.UpdatedAt,
+                RuneMaxSlots = equipment.RuneMaxSlots,
+                Enchants = [new PlayerStateEquipmentEnchantSnapshot
+                {
+                    EnchantId = Guid.NewGuid(), SlotIndex = 0, EnchantMasterId = "master", EffectId = "effect",
+                    Status = "FIXED", Type = "FLAT", Value = value,
+                }],
+            }],
+        });
+
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Invalid, result.Failure);
+        Assert.Empty(await fixture.DbContext.EquipmentInstanceEnchants.AsNoTracking().ToListAsync());
+        Assert.Empty(await fixture.DbContext.PlayerStateSnapshots.AsNoTracking().ToListAsync());
+        Assert.False(fixture.DbContext.ChangeTracker.HasChanges());
+    }
+
     [Theory]
     [InlineData("duplicateEquipment")]
     [InlineData("negativeEquipment")]

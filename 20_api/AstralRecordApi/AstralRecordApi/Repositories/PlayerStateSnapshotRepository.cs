@@ -989,7 +989,8 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
                     && snapshot.DurabilityValue is int durabilityValue && durabilityValue >= 0 && durabilityValue <= durabilityMax))
             && snapshot.Enchants.All(enchant => enchant is not null && enchant.EnchantId != Guid.Empty && enchant.SlotIndex >= 0
                 && ValidText(enchant.EnchantMasterId, 100) && ValidText(enchant.EffectId, 100)
-                && ValidText(enchant.Status, 50) && ValidText(enchant.Type, 20))
+                && ValidText(enchant.Status, 50) && ValidText(enchant.Type, 20)
+                && enchant.Value >= -99_999_999_999_999.9999m && enchant.Value <= 99_999_999_999_999.9999m)
             && snapshot.Enchants.GroupBy(enchant => enchant.EnchantId).All(group => group.Count() == 1)
             && snapshot.Enchants.GroupBy(enchant => enchant.SlotIndex).All(group => group.Count() == 1)
             && snapshot.Enchants.GroupBy(enchant => enchant.EffectId.Trim(), StringComparer.OrdinalIgnoreCase).All(group => group.Count() == 1)
