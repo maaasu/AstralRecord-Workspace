@@ -281,6 +281,7 @@ import io.github.maaasu.astralRecord.feature.user.event.UserLoginEventHandler;
 import io.github.maaasu.astralRecord.feature.user.repository.UserRepository;
 import io.github.maaasu.astralRecord.feature.user.service.UserService;
 import io.github.maaasu.astralRecord.feature.world.config.PluginJoinSpawnWorldConfig;
+import io.github.maaasu.astralRecord.feature.world.event.AdminWorldTeleportItemEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.BaseWorldGatewayEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.BaseWorldSpawnTeleportEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.ChallengeWaitingHubEventHandler;
@@ -289,8 +290,10 @@ import io.github.maaasu.astralRecord.feature.world.event.OverworldSpawnReturnEve
 import io.github.maaasu.astralRecord.feature.world.event.WorldChangeTitleEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.WorldJoinSpawnEventHandler;
 import io.github.maaasu.astralRecord.feature.world.event.WorldNaturalSpawnBlockEventHandler;
+import io.github.maaasu.astralRecord.feature.world.gui.AdminWorldTeleportGui;
 import io.github.maaasu.astralRecord.feature.world.gui.OverworldTeleportGui;
 import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
+import io.github.maaasu.astralRecord.feature.world.service.AdminWorldTeleportItemService;
 import io.github.maaasu.astralRecord.feature.world.service.OverworldTeleportService;
 import io.github.maaasu.astralRecord.feature.world.service.ReturnToBaseService;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
@@ -448,6 +451,9 @@ public final class AstralRecord extends JavaPlugin {
     private HookshotUseService hookshotUseService;
     private OrbService orbService;
     private WorldService worldService;
+    private AdminWorldTeleportItemService adminWorldTeleportItemService;
+    private AdminWorldTeleportGui adminWorldTeleportGui;
+    private AdminWorldTeleportItemEventHandler adminWorldTeleportItemEventHandler;
     private OverworldTeleportService overworldTeleportService;
     private OverworldTeleportGui overworldTeleportGui;
     private OverworldTeleportGuiEventHandler overworldTeleportGuiEventHandler;
@@ -489,6 +495,7 @@ public final class AstralRecord extends JavaPlugin {
         instance = this;
         adminMessageBossBarService = new AdminMessageBossBarService(this);
         itemService = new ItemService();
+        adminWorldTeleportItemService = new AdminWorldTeleportItemService();
         lootService = new LootService();
         itemStackFactory = new ItemStackFactory(lootService, itemService);
         mobService = new MobService(this, new MobRepository());
@@ -537,6 +544,7 @@ public final class AstralRecord extends JavaPlugin {
                 mobSpawnerService,
                 npcPlacementService,
                 worldService,
+                adminWorldTeleportItemService,
                 skillTreeService,
                 gatheringService,
                 gatheringSpawnerService,
@@ -1056,6 +1064,13 @@ public final class AstralRecord extends JavaPlugin {
         overworldTeleportService = new OverworldTeleportService(this, worldService, inventoryService);
         overworldTeleportGui = new OverworldTeleportGui();
         overworldTeleportGuiEventHandler = new OverworldTeleportGuiEventHandler(overworldTeleportGui, overworldTeleportService);
+        adminWorldTeleportGui = new AdminWorldTeleportGui();
+        adminWorldTeleportItemEventHandler = new AdminWorldTeleportItemEventHandler(
+            this,
+            worldService,
+            adminWorldTeleportItemService,
+            adminWorldTeleportGui
+        );
         movementCancelableWaitService = new MovementCancelableWaitService(this);
         bundleUseEffectService = new BundleUseEffectService();
         itemDropAnimationService = new ItemDropAnimationService(this, itemStackFactory, particleDisplayService);
@@ -1823,6 +1838,10 @@ public final class AstralRecord extends JavaPlugin {
             getServer().getPluginManager()
         );
         eventManager.registerHandler(
+            adminWorldTeleportItemEventHandler,
+            getServer().getPluginManager()
+        );
+        eventManager.registerHandler(
             new BaseWorldGatewayEventHandler(this, overworldTeleportService, overworldTeleportGuiEventHandler),
             getServer().getPluginManager()
         );
@@ -2113,6 +2132,7 @@ public final class AstralRecord extends JavaPlugin {
                     baseWorldSpawnTeleportEventHandler,
                     overworldSpawnReturnEventHandler,
                     hookshotInteractionEventHandler,
+                    adminWorldTeleportItemEventHandler,
                     itemInteractionBlockEventHandler,
                     menuOpenEventHandler,
                     teleporterInteractEventHandler,

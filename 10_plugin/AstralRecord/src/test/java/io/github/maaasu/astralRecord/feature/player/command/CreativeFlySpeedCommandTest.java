@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.textdisplay.service.TextDisplayPlac
 import io.github.maaasu.astralRecord.feature.trainingdummy.gui.TrainingDummyGui;
 import io.github.maaasu.astralRecord.feature.trainingdummy.service.TrainingDummyService;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
+import io.github.maaasu.astralRecord.feature.world.service.AdminWorldTeleportItemService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.infrastructure.command.AstCommand;
@@ -148,6 +149,7 @@ class CreativeFlySpeedCommandTest extends MockBukkitTestBase {
                 mock(MobSpawnerService.class),
                 mock(NpcPlacementService.class),
                 mock(WorldService.class),
+                mock(AdminWorldTeleportItemService.class),
                 mock(SkillTreeService.class),
                 mock(GatheringService.class),
                 mock(GatheringSpawnerService.class),

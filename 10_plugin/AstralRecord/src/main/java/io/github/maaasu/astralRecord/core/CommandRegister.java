@@ -91,9 +91,11 @@ import io.github.maaasu.astralRecord.feature.whitelist.command.WhitelistCommand;
 import io.github.maaasu.astralRecord.feature.whitelist.command.WhitelistTabCompleter;
 import io.github.maaasu.astralRecord.feature.whitelist.service.WhitelistService;
 import io.github.maaasu.astralRecord.feature.world.command.WorldCommand;
+import io.github.maaasu.astralRecord.feature.world.command.AdminWorldTeleportItemCommand;
 import io.github.maaasu.astralRecord.feature.world.command.WorldTabCompleter;
 import io.github.maaasu.astralRecord.feature.world.command.WorldTeleportCommand;
 import io.github.maaasu.astralRecord.feature.world.command.WorldTeleportTabCompleter;
+import io.github.maaasu.astralRecord.feature.world.service.AdminWorldTeleportItemService;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.command.CommandManager;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
@@ -114,6 +116,7 @@ public class CommandRegister {
     private final MobSpawnerService spawnerService;
     private final NpcPlacementService npcPlacementService;
     private final WorldService worldService;
+    private final AdminWorldTeleportItemService adminWorldTeleportItemService;
     private final SkillTreeService skillTreeService;
     private final GatheringService gatheringService;
     private final GatheringSpawnerService gatheringSpawnerService;
@@ -132,6 +135,7 @@ public class CommandRegister {
             MobSpawnerService spawnerService,
             NpcPlacementService npcPlacementService,
             WorldService worldService,
+            AdminWorldTeleportItemService adminWorldTeleportItemService,
             SkillTreeService skillTreeService,
             GatheringService gatheringService,
             GatheringSpawnerService gatheringSpawnerService,
@@ -148,6 +152,7 @@ public class CommandRegister {
         this.spawnerService = spawnerService;
         this.npcPlacementService = npcPlacementService;
         this.worldService = worldService;
+        this.adminWorldTeleportItemService = adminWorldTeleportItemService;
         this.skillTreeService = skillTreeService;
         this.gatheringService = gatheringService;
         this.gatheringSpawnerService = gatheringSpawnerService;
@@ -216,6 +221,7 @@ public class CommandRegister {
         WorldCommand worldCommand = new WorldCommand(worldService);
         cm.registerCommand("world", worldCommand, new WorldTabCompleter(worldService));
         cm.registerCommand("wtp", new WorldTeleportCommand(worldCommand), new WorldTeleportTabCompleter(worldService));
+        cm.registerCommand("adminitem", new AdminWorldTeleportItemCommand(adminWorldTeleportItemService));
         cm.registerCommand("boss", new BossCommand());
         cm.registerCommand("dungeon", new DungeonCommand());
         cm.registerCommand("drop", new DungeonDropCommand());

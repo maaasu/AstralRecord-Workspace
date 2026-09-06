@@ -1593,6 +1593,11 @@ public enum PlayerMsgId {
     P_7154(7154),
     // endregion
 
+    // region /feature/world/command/AdminWorldTeleportItemCommand.java 7160-7169
+    /** 管理者用ワールドテレポートアイテムを付与した通知。 */
+    P_7160(7160),
+    // endregion
+
     ;
 
     private final String id;
