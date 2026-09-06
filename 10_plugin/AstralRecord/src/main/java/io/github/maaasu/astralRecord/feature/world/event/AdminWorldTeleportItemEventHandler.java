@@ -15,22 +15,28 @@ import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import io.github.maaasu.astralRecord.shared.interaction.InputClaimPolicy;
 import io.github.maaasu.astralRecord.shared.interaction.InputFamily;
+import io.github.maaasu.astralRecord.shared.interaction.InteractionCandidateOrder;
 import io.github.maaasu.astralRecord.shared.interaction.InteractionTier;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputCandidate;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInputResolver;
+import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionGatewayEventHandler;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.entity.Player;
+import org.bukkit.event.Event;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
+import org.bukkit.event.block.Action;
 import org.bukkit.event.inventory.InventoryClickEvent;
 import org.bukkit.event.inventory.InventoryDragEvent;
+import org.bukkit.event.player.PlayerInteractEvent;
 import org.bukkit.inventory.EquipmentSlot;
 import org.bukkit.inventory.Inventory;
 import org.bukkit.inventory.ItemStack;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.Collection;
 import java.util.List;
@@ -85,6 +91,27 @@ public final class AdminWorldTeleportItemEventHandler extends AbstractEventHandl
         return true;
     }
 
+    /**
+     * 外部のアイテムツールが管理者用コンパスの右クリックを処理する前に、入力を抑止します。
+     *
+     * <p>{@link PlayerInteractionGatewayEventHandler} は Bukkit の
+     * {@link PlayerInteractEvent#isCancelled()} と異なり、item use 側まで DENY の場合だけ
+     * 初期キャンセルとして扱います。そのため、ブロック側を DENY にしたまま item use 側を
+     * DEFAULT に戻し、外部ツールにはキャンセル済みとして見せつつ、gateway には候補解決を
+     * 継続させます。左クリックは対象外で、Compass のナビゲーション操作を維持します。
+     *
+     * @param event プレイヤーの汎用 interact event
+     */
+    @EventHandler(priority = EventPriority.LOWEST, ignoreCancelled = false)
+    public void onPlayerInteract(@NotNull PlayerInteractEvent event) {
+        if (!isRightClick(event.getAction()) || !itemService.isTeleportItem(event.getItem())) {
+            return;
+        }
+
+        event.setCancelled(true);
+        event.setUseItemInHand(Event.Result.DEFAULT);
+    }
+
     @Override
     public @NotNull Collection<PlayerInputCandidate> resolve(
             @NotNull PlayerInputContext<PlayerInteractionSnapshot> context
@@ -106,9 +133,9 @@ public final class AdminWorldTeleportItemEventHandler extends AbstractEventHandl
 
         return List.of(new PlayerInputCandidate(
                 "admin-world-teleport-item",
-                InteractionTier.ITEM_USE,
+                InteractionTier.INPUT_LOCK,
                 0.0D,
-                0,
+                InteractionCandidateOrder.ADMIN_WORLD_TELEPORT_ITEM,
                 snapshot.player().getUniqueId() + ":" + hand.name(),
                 InputClaimPolicy.CLAIM_AND_CANCEL,
                 () -> itemService.isTeleportItem(snapshot.player().getInventory().getItem(hand)),
@@ -119,6 +146,16 @@ public final class AdminWorldTeleportItemEventHandler extends AbstractEventHandl
                         "admin_world_teleport_item"
                 )
         ));
+    }
+
+    /**
+     * 入力 action が右クリックか判定します。
+     *
+     * @param action PlayerInteractEvent の action。{@code null} を許容します
+     * @return ブロックまたは空気への右クリックなら {@code true}
+     */
+    private boolean isRightClick(@Nullable Action action) {
+        return action == Action.RIGHT_CLICK_AIR || action == Action.RIGHT_CLICK_BLOCK;
     }
 
     @EventHandler(priority = EventPriority.HIGHEST, ignoreCancelled = true)

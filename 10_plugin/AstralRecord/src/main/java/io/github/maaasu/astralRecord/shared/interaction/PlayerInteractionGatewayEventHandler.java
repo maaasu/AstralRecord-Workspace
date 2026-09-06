@@ -75,7 +75,7 @@ public final class PlayerInteractionGatewayEventHandler extends AbstractEventHan
                 "player-input-lock",
                 InteractionTier.INPUT_LOCK,
                 0.0D,
-                0,
+                InteractionCandidateOrder.GLOBAL_INPUT_LOCK,
                 context.playerId().toString(),
                 InputClaimPolicy.CLAIM_AND_CANCEL,
                 () -> {
