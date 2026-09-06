@@ -1,13 +1,19 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonNull;
+import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
+import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigil;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInventoryMutationResult;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMaterialMutationResult;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigilDetachResult;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException;
 import io.github.maaasu.astralRecord.feature.skill.repository.LearnedSkillRepository;
 import io.github.maaasu.astralRecord.feature.mutation.model.LocalMutationCommand;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.mutation.service.LocalMutationOutbox;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
@@ -26,6 +32,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.time.LocalDateTime;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
@@ -56,6 +63,10 @@ public final class LearnedSkillService {
     private final Map<UUID, UUID> localMutationOperationByAccount = new ConcurrentHashMap<>();
     private final Map<UUID, Consumer<Throwable>> localMutationFailureCallbacks = new ConcurrentHashMap<>();
     private final Map<UUID, UUID> sessionTokens = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> playerStateRevisions = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<UUID, Integer>> persistedSkillVersions = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<UUID, LocalDateTime>> persistedSkillUpdatedAts = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<UUID, Integer>> pendingDeletedSkillVersions = new ConcurrentHashMap<>();
     private @Nullable LocalMutationOutbox mutationOutbox;
 
     public LearnedSkillService(
@@ -96,12 +107,29 @@ public final class LearnedSkillService {
         @NotNull UUID accountId,
         @NotNull List<LearnedSkillInstance> skills
     ) {
-        skillsByAccount.put(accountId, normalize(skills));
+        List<LearnedSkillInstance> normalized = normalize(skills);
+        skillsByAccount.put(accountId, normalized);
+        Map<UUID, Integer> versions = new ConcurrentHashMap<>();
+        Map<UUID, LocalDateTime> updatedAts = new ConcurrentHashMap<>();
+        normalized.forEach(skill -> {
+            versions.put(skill.getLearnedSkillId(), skill.getVersion());
+            if (skill.getUpdatedAt() != null) {
+                updatedAts.put(skill.getLearnedSkillId(), skill.getUpdatedAt());
+            }
+        });
+        persistedSkillVersions.put(accountId, versions);
+        persistedSkillUpdatedAts.put(accountId, updatedAts);
+        pendingDeletedSkillVersions.remove(accountId);
+        playerStateRevisions.put(accountId, 0L);
         sessionTokens.put(accountId, UUID.randomUUID());
     }
 
     public void invalidate(@NotNull UUID accountId) {
         skillsByAccount.remove(accountId);
+        playerStateRevisions.remove(accountId);
+        persistedSkillVersions.remove(accountId);
+        persistedSkillUpdatedAts.remove(accountId);
+        pendingDeletedSkillVersions.remove(accountId);
         mutationLocks.computeIfPresent(accountId, (ignored, lock) -> lock.get() ? lock : null);
         sessionTokens.remove(accountId);
     }
@@ -141,14 +169,12 @@ public final class LearnedSkillService {
         return lock != null && lock.get();
     }
 
-    /** API応答待ちでも、ローカルoutboxへ積めるレベルアップなら受付可能かを返します。 */
+    /** ローカル確定と player-state 後送が利用できるレベルアップなら受付可能かを返します。 */
     public boolean canQueueLocalLevelUp(@NotNull UUID accountId) {
-        return mutationOutbox != null
-            && hasLoadedSkills(accountId)
-            && localMutationPendingCounts.containsKey(accountId);
+        return hasLoadedSkills(accountId);
     }
 
-    /** ローカル反映済みのレベルアップが再描画を済ませたかを返します。 */
+    /** 通信待ちを伴う旧outbox level-up が残っているかを返します。 */
     public boolean hasLocalMutationPending(@NotNull UUID accountId) {
         return localMutationPendingCounts.containsKey(accountId);
     }
@@ -194,15 +220,25 @@ public final class LearnedSkillService {
         @NotNull Consumer<Throwable> onFailure,
         @NotNull Runnable onPending
     ) {
-        UUID operationId = UUID.randomUUID();
-        return mutateAsync(
-            accountId,
-            requiredItemEntryIds,
-            () -> managerMutationOutcome(repository.learn(accountId, skillId, updatedBy, operationId)),
-            onSuccess,
-            onFailure,
-            onPending
-        );
+        final LearnedSkillInstance[] learned = new LearnedSkillInstance[1];
+        try {
+            boolean committed = commitLocalPaymentMutation(accountId, unitPayments(requiredItemEntryIds), () -> {
+                LearnedSkillInstance created = new LearnedSkillInstance(
+                    UUID.randomUUID(), accountId, skillId, 1, List.of(), 1,
+                    LocalDateTime.now(), LocalDateTime.now());
+                skillsByAccount.compute(accountId, (ignored, current) -> appendSkill(current, created));
+                learned[0] = created;
+            });
+            if (!committed) {
+                onFailure.accept(new IllegalStateException("Skill learning payment is no longer available."));
+                return false;
+            }
+            onSuccess.accept(learned[0]);
+            return true;
+        } catch (RuntimeException error) {
+            onFailure.accept(error);
+            return false;
+        }
     }
 
     /** outboxから一件ずつ実行するスキルレベルアップの送信入口です。 */
@@ -462,86 +498,27 @@ public final class LearnedSkillService {
         @NotNull Consumer<Throwable> onFailure,
         @NotNull Runnable onPending
     ) {
-        UUID operationId = UUID.randomUUID();
-        LocalMutationOutbox outbox = mutationOutbox;
-        LearnedSkillInstance current = findInstance(accountId, learnedSkillId);
-        if (outbox != null && current != null) {
-            AtomicBoolean localLock = mutationLocks.computeIfAbsent(accountId, ignored -> new AtomicBoolean());
-            AtomicInteger localPending = localMutationPendingCounts
-                .computeIfAbsent(accountId, ignored -> new AtomicInteger());
-            if (localPending.get() == 0 && !localLock.compareAndSet(false, true)) {
-                localMutationPendingCounts.remove(accountId, localPending);
+        final LearnedSkillInstance[] updated = new LearnedSkillInstance[1];
+        try {
+            boolean committed = commitLocalPaymentMutation(accountId, requiredItemPayments, () -> {
+                LearnedSkillInstance current = findInstance(accountId, learnedSkillId);
+                if (current == null) {
+                    throw new IllegalStateException("Learned skill is no longer loaded.");
+                }
+                LearnedSkillInstance next = withLevel(current, current.getLevel() + 1);
+                replaceCached(next);
+                updated[0] = next;
+            });
+            if (!committed) {
+                onFailure.accept(new IllegalStateException("Skill level-up payment is no longer available."));
                 return false;
             }
-            localPending.incrementAndGet();
-            LearnedSkillInstance updated = new LearnedSkillInstance(
-                current.getLearnedSkillId(),
-                current.getAccountId(),
-                current.getSkillId(),
-                current.getLevel() + 1,
-                current.getSigils(),
-                current.getVersion() + 1,
-                current.getCreatedAt(),
-                java.time.LocalDateTime.now()
-            );
-            Map<UUID, Long> reservedMaterials = new LinkedHashMap<>();
-            try {
-                requiredItemPayments.forEach((entryId, amount) -> {
-                    if (entryId == null || amount == null || amount <= 0L) {
-                        throw new IllegalArgumentException("Invalid local skill payment.");
-                    }
-                    reservedMaterials.merge(entryId, amount, Math::addExact);
-                });
-            } catch (RuntimeException invalidPayment) {
-                releaseLocalMutationReservation(accountId);
-                return false;
-            }
-            if (!inventoryService.reserveLocalMutationPayment(
-                accountId, operationId, reservedMaterials)) {
-                releaseLocalMutationReservation(accountId);
-                return false;
-            }
-            List<LocalMutationCommand.Payment> payments = reservedMaterials.entrySet().stream()
-                .map(entry -> new LocalMutationCommand.Payment(entry.getKey(), entry.getValue()))
-                .toList();
-            LocalMutationCommand.SkillLevelUp command = new LocalMutationCommand.SkillLevelUp(
-                operationId,
-                accountId,
-                learnedSkillId,
-                updatedBy,
-                current.getLevel(),
-                updated.getLevel(),
-                current.getVersion(),
-                updated.getVersion(),
-                payments
-            );
-            try {
-                localMutationFailureCallbacks.put(operationId, onFailure);
-                outbox.enqueue(command);
-            } catch (RuntimeException enqueueFailure) {
-                localMutationFailureCallbacks.remove(operationId);
-                releaseLocalMutationReservation(accountId);
-                inventoryService.releaseOrbOperationPayment(accountId, operationId);
-                Logger.log(LogId.W_5252, "skill_mutation_outbox_enqueue", enqueueFailure.getMessage());
-                return false;
-            }
-            try {
-                hideLocalMutationEntries(accountId, payments);
-                replaceCached(updated);
-                onSuccess.accept(updated);
-            } finally {
-                outbox.dispatch();
-            }
+            onSuccess.accept(updated[0]);
             return true;
+        } catch (RuntimeException error) {
+            onFailure.accept(error);
+            return false;
         }
-        return mutateAsync(
-            accountId,
-            new ArrayList<>(requiredItemPayments.keySet()),
-            () -> managerMutationOutcome(repository.levelUp(accountId, learnedSkillId, updatedBy, operationId)),
-            onSuccess,
-            onFailure,
-            onPending
-        );
     }
 
     private static @NotNull Map<UUID, Long> unitPayments(@NotNull List<UUID> entryIds) {
@@ -630,29 +607,62 @@ public final class LearnedSkillService {
         @NotNull Consumer<Throwable> onFailure,
         @NotNull Runnable onPending
     ) {
-        UUID operationId = UUID.randomUUID();
-        return mutateAsync(
-            accountId,
-            List.of(orbInventoryEntryId, sigilInventoryEntryId),
-            () -> {
-                LearnedSkillInventoryMutationResult result = repository.attachSigil(
-                    accountId,
-                    learnedSkillId,
-                    orbInventoryEntryId,
-                    sigilId,
-                    sigilInventoryEntryId,
-                    updatedBy,
-                    operationId
-                );
-                return oneEachMutationOutcome(
-                    result,
-                    List.of(orbInventoryEntryId, sigilInventoryEntryId)
-                );
-            },
-            onSuccess,
-            onFailure,
-            onPending
+        LearnedSkillInstance current = findInstance(accountId, learnedSkillId);
+        if (current == null) {
+            onFailure.accept(new IllegalStateException("Learned skill is no longer loaded."));
+            return false;
+        }
+        int resolvedSlot = 0;
+        while (hasSigilSlot(current, resolvedSlot)) {
+            resolvedSlot++;
+        }
+        final int slot = resolvedSlot;
+        return attachSigilLocally(
+            accountId, learnedSkillId, orbInventoryEntryId,
+            new LearnedSkillSigil(UUID.randomUUID(), sigilId, "", slot), sigilInventoryEntryId,
+            onSuccess, onFailure
         );
+    }
+
+    /**
+     * GUI が検証済みのシジル個体情報を使い、装着と二素材消費を同じ state lock で確定します。
+     */
+    public boolean attachSigilLocally(
+        @NotNull UUID accountId,
+        @NotNull UUID learnedSkillId,
+        @NotNull UUID orbInventoryEntryId,
+        @NotNull LearnedSkillSigil sigil,
+        @NotNull UUID sigilInventoryEntryId,
+        @NotNull Consumer<LearnedSkillInstance> onSuccess,
+        @NotNull Consumer<Throwable> onFailure
+    ) {
+        final LearnedSkillInstance[] updated = new LearnedSkillInstance[1];
+        try {
+            boolean committed = commitLocalPaymentMutation(accountId,
+                Map.of(orbInventoryEntryId, 1L, sigilInventoryEntryId, 1L), () -> {
+                    LearnedSkillInstance current = findInstance(accountId, learnedSkillId);
+                    if (current == null || current.getSigils().stream().anyMatch(existing ->
+                        existing.getLearnedSkillSigilId().equals(sigil.getLearnedSkillSigilId())
+                            || existing.getSlotIndex() == sigil.getSlotIndex()
+                            || existing.getEquipGroupId().equalsIgnoreCase(sigil.getEquipGroupId()))) {
+                        throw new IllegalStateException("Selected sigil can no longer be attached.");
+                    }
+                    List<LearnedSkillSigil> sigils = new ArrayList<>(current.getSigils());
+                    sigils.add(sigil);
+                    LearnedSkillInstance next = withSigils(current, sigils);
+                    replaceCached(next);
+                    updated[0] = next;
+                });
+            if (!committed) {
+                onFailure.accept(new IllegalStateException("Sigil attachment payment is no longer available."));
+                return false;
+            }
+            onSuccess.accept(updated[0]);
+            return true;
+        } catch (RuntimeException error) {
+            onFailure.accept(error);
+            return false;
+        }
     }
 
     /**
@@ -711,31 +721,50 @@ public final class LearnedSkillService {
         @NotNull Consumer<Throwable> onFailure,
         @NotNull Runnable onPending
     ) {
-        UUID operationId = UUID.randomUUID();
-        return mutateAsync(
-            accountId,
-            List.of(orbInventoryEntryId),
-            () -> {
-                LearnedSkillSigilDetachResult result = repository.detachSigil(
-                    accountId,
-                    learnedSkillId,
-                    orbInventoryEntryId,
-                    learnedSkillSigilId,
-                    updatedBy,
-                    operationId
-                );
-                return new MutationOutcome(
-                    result.getSkill(),
-                    Map.of(orbInventoryEntryId, 1L),
-                    List.of(result.getReturnedInventoryEntryId()),
-                    false,
-                    result.getInventorySnapshot()
-                );
-            },
-            onSuccess,
-            onFailure,
-            onPending
+        return detachSigilLocally(
+            accountId, learnedSkillId, orbInventoryEntryId, learnedSkillSigilId,
+            () -> { }, onSuccess, onFailure
         );
+    }
+
+    /**
+     * 脱着オーブの消費、返却アイテム追加、習得個体更新を同じ account state lock で確定します。
+     */
+    public boolean detachSigilLocally(
+        @NotNull UUID accountId,
+        @NotNull UUID learnedSkillId,
+        @NotNull UUID orbInventoryEntryId,
+        @NotNull UUID learnedSkillSigilId,
+        @NotNull Runnable returnSigilToInventory,
+        @NotNull Consumer<LearnedSkillInstance> onSuccess,
+        @NotNull Consumer<Throwable> onFailure
+    ) {
+        final LearnedSkillInstance[] updated = new LearnedSkillInstance[1];
+        try {
+            boolean committed = commitLocalPaymentMutation(accountId, Map.of(orbInventoryEntryId, 1L), () -> {
+                LearnedSkillInstance current = findInstance(accountId, learnedSkillId);
+                if (current == null || current.getSigils().stream().noneMatch(sigil ->
+                    sigil.getLearnedSkillSigilId().equals(learnedSkillSigilId))) {
+                    throw new IllegalStateException("Selected sigil is no longer attached.");
+                }
+                returnSigilToInventory.run();
+                List<LearnedSkillSigil> sigils = current.getSigils().stream()
+                    .filter(sigil -> !sigil.getLearnedSkillSigilId().equals(learnedSkillSigilId))
+                    .toList();
+                LearnedSkillInstance next = withSigils(current, sigils);
+                replaceCached(next);
+                updated[0] = next;
+            });
+            if (!committed) {
+                onFailure.accept(new IllegalStateException("Sigil detachment payment is no longer available."));
+                return false;
+            }
+            onSuccess.accept(updated[0]);
+            return true;
+        } catch (RuntimeException error) {
+            onFailure.accept(error);
+            return false;
+        }
     }
 
     /**
@@ -778,22 +807,196 @@ public final class LearnedSkillService {
         @NotNull Consumer<Throwable> onFailure,
         @NotNull Runnable onPending
     ) {
+        final LearnedSkillInstance[] removed = new LearnedSkillInstance[1];
+        try {
+            Boolean changed = inventoryService.executeLocalPlayerMutation(accountId, () -> {
+                LearnedSkillInstance current = findInstance(accountId, learnedSkillId);
+                if (current == null) {
+                    return false;
+                }
+                Integer expectedVersion = persistedSkillVersions
+                    .getOrDefault(accountId, Map.of()).get(learnedSkillId);
+                if (expectedVersion != null) {
+                    pendingDeletedSkillVersions.computeIfAbsent(accountId,
+                        ignored -> new ConcurrentHashMap<>()).put(learnedSkillId, expectedVersion);
+                }
+                removeCached(accountId, learnedSkillId);
+                markPlayerStateDirty(accountId);
+                removed[0] = current;
+                return true;
+            });
+            if (!changed) {
+                onFailure.accept(new IllegalStateException("Learned skill is no longer loaded."));
+                return false;
+            }
+            inventoryService.queueLocalPlayerSave(accountId);
+            onSuccess.accept(removed[0]);
+            return true;
+        } catch (RuntimeException error) {
+            onFailure.accept(error);
+            return false;
+        }
+    }
+
+    /**
+     * dirty な習得済みスキル全体を player-state section として取得します。
+     * 呼出元は account の inventory state lock を保持している必要があります。
+     *
+     * @param accountId 対象アカウント ID
+     * @return dirty でない場合は {@code null}
+     */
+    public @Nullable PlayerStateSection snapshotPlayerState(@NotNull UUID accountId) {
+        Long capturedRevision = playerStateRevisions.get(accountId);
+        if (capturedRevision == null || capturedRevision == 0L) {
+            return null;
+        }
+        JsonObject payload = new JsonObject();
+        payload.addProperty("accountId", accountId.toString());
+        payload.addProperty("clientRevision", capturedRevision);
+        JsonArray skills = new JsonArray();
+        Map<UUID, Integer> baseVersions = persistedSkillVersions.getOrDefault(accountId, Map.of());
+        for (LearnedSkillInstance skill : getLearnedSkills(accountId)) {
+            JsonObject value = new JsonObject();
+            value.addProperty("learnedSkillId", skill.getLearnedSkillId().toString());
+            value.addProperty("skillId", skill.getSkillId());
+            value.addProperty("level", skill.getLevel());
+            Integer expectedVersion = baseVersions.get(skill.getLearnedSkillId());
+            value.add("expectedVersion", expectedVersion == null ? JsonNull.INSTANCE : new com.google.gson.JsonPrimitive(expectedVersion));
+            value.addProperty("targetVersion", skill.getVersion());
+            if (skill.getCreatedAt() != null) {
+                value.addProperty("createdAt", skill.getCreatedAt().toString());
+            }
+            if (skill.getUpdatedAt() != null) {
+                value.addProperty("updatedAt", skill.getUpdatedAt().toString());
+            }
+            JsonArray sigils = new JsonArray();
+            for (LearnedSkillSigil sigil : skill.getSigils()) {
+                JsonObject sigilJson = new JsonObject();
+                sigilJson.addProperty("learnedSkillSigilId", sigil.getLearnedSkillSigilId().toString());
+                sigilJson.addProperty("sigilId", sigil.getSigilId());
+                sigilJson.addProperty("equipGroupId", sigil.getEquipGroupId());
+                sigilJson.addProperty("slotIndex", sigil.getSlotIndex());
+                sigils.add(sigilJson);
+            }
+            value.add("sigils", sigils);
+            skills.add(value);
+        }
+        payload.add("skills", skills);
+        JsonArray deletedSkills = new JsonArray();
+        for (Map.Entry<UUID, Integer> deleted : pendingDeletedSkillVersions
+            .getOrDefault(accountId, Map.of()).entrySet()) {
+            JsonObject value = new JsonObject();
+            value.addProperty("learnedSkillId", deleted.getKey().toString());
+            value.addProperty("expectedVersion", deleted.getValue());
+            deletedSkills.add(value);
+        }
+        payload.add("deletedSkills", deletedSkills);
+        return new PlayerStateSection("learnedSkills", payload,
+            acknowledged -> acknowledgeSnapshot(accountId, capturedRevision, acknowledged));
+    }
+
+    private boolean commitLocalPaymentMutation(
+        @NotNull UUID accountId,
+        @NotNull Map<UUID, Long> paymentEntries,
+        @NotNull Runnable mutation
+    ) {
         UUID operationId = UUID.randomUUID();
-        return mutateAsync(
-            accountId,
-            List.of(),
-            () -> new MutationOutcome(
-                repository.forget(accountId, learnedSkillId, updatedBy, operationId),
-                Map.of(),
-                List.of(),
-                true,
-                null
-            ),
-            onSuccess,
-            onFailure,
-            onPending,
-            false
-        );
+        Boolean committed = inventoryService.executeLocalPlayerMutation(accountId, () -> {
+            if (!inventoryService.reserveLocalMutationPayment(accountId, operationId, paymentEntries)) {
+                return false;
+            }
+            return inventoryService.commitLocalOrbOperationPayment(accountId, operationId, () -> {
+                mutation.run();
+                markPlayerStateDirty(accountId);
+            });
+        });
+        if (committed) {
+            inventoryService.queueLocalPlayerSave(accountId);
+        }
+        return committed;
+    }
+
+    private void markPlayerStateDirty(@NotNull UUID accountId) {
+        playerStateRevisions.merge(accountId, 1L, Long::sum);
+    }
+
+    private void acknowledgeSnapshot(
+        @NotNull UUID accountId,
+        long capturedRevision,
+        @NotNull JsonElement acknowledged
+    ) {
+        if (acknowledged.isJsonObject()) {
+            JsonObject metadata = acknowledged.getAsJsonObject();
+            Map<UUID, Integer> versions = persistedSkillVersions.computeIfAbsent(accountId,
+                ignored -> new ConcurrentHashMap<>());
+            Map<UUID, LocalDateTime> updatedAts = persistedSkillUpdatedAts.computeIfAbsent(accountId,
+                ignored -> new ConcurrentHashMap<>());
+            if (metadata.has("entries") && metadata.get("entries").isJsonArray()) {
+                for (JsonElement entry : metadata.getAsJsonArray("entries")) {
+                    if (!entry.isJsonObject()) continue;
+                    JsonObject value = entry.getAsJsonObject();
+                    try {
+                        UUID learnedSkillId = UUID.fromString(value.get("learnedSkillId").getAsString());
+                        if (value.has("version") && !value.get("version").isJsonNull()) {
+                            versions.put(learnedSkillId, value.get("version").getAsInt());
+                        }
+                        if (value.has("updatedAt") && !value.get("updatedAt").isJsonNull()) {
+                            updatedAts.put(learnedSkillId, LocalDateTime.parse(value.get("updatedAt").getAsString()));
+                        }
+                    } catch (RuntimeException ignored) {
+                        // ACK の一行が不正でも、他の metadata と次回再送を維持する。
+                    }
+                }
+            }
+            if (metadata.has("deletedIds") && metadata.get("deletedIds").isJsonArray()) {
+                for (JsonElement deleted : metadata.getAsJsonArray("deletedIds")) {
+                    try {
+                        UUID learnedSkillId = UUID.fromString(deleted.getAsString());
+                        versions.remove(learnedSkillId);
+                        updatedAts.remove(learnedSkillId);
+                        Map<UUID, Integer> pending = pendingDeletedSkillVersions.get(accountId);
+                        if (pending != null) {
+                            pending.remove(learnedSkillId);
+                        }
+                    } catch (RuntimeException ignored) {
+                        // 不正な ID は無視して dirty を維持する。
+                    }
+                }
+            }
+        }
+        if (playerStateRevisions.getOrDefault(accountId, 0L) == capturedRevision) {
+            playerStateRevisions.put(accountId, 0L);
+        }
+    }
+
+    private static @NotNull List<LearnedSkillInstance> appendSkill(
+        @Nullable List<LearnedSkillInstance> current,
+        @NotNull LearnedSkillInstance appended
+    ) {
+        List<LearnedSkillInstance> values = new ArrayList<>(current == null ? List.of() : current);
+        values.add(appended);
+        return List.copyOf(values);
+    }
+
+    private static @NotNull LearnedSkillInstance withLevel(
+        @NotNull LearnedSkillInstance current,
+        int level
+    ) {
+        return new LearnedSkillInstance(current.getLearnedSkillId(), current.getAccountId(), current.getSkillId(),
+            level, current.getSigils(), current.getVersion() + 1, current.getCreatedAt(), LocalDateTime.now());
+    }
+
+    private static @NotNull LearnedSkillInstance withSigils(
+        @NotNull LearnedSkillInstance current,
+        @NotNull List<LearnedSkillSigil> sigils
+    ) {
+        return new LearnedSkillInstance(current.getLearnedSkillId(), current.getAccountId(), current.getSkillId(),
+            current.getLevel(), List.copyOf(sigils), current.getVersion() + 1,
+            current.getCreatedAt(), LocalDateTime.now());
+    }
+
+    private static boolean hasSigilSlot(@NotNull LearnedSkillInstance skill, int slot) {
+        return skill.getSigils().stream().anyMatch(existing -> existing.getSlotIndex() == slot);
     }
 
     private boolean mutateAsync(

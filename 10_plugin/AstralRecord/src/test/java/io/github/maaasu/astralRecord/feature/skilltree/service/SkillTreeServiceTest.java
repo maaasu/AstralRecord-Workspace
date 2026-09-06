@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.skilltree.service;
 
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.model.ClassProgressModel;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
@@ -56,10 +57,12 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mockStatic;
 import static org.mockito.Mockito.inOrder;
 import static org.mockito.Mockito.never;
@@ -936,6 +939,12 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
     ) {
         SkillTreeNodeRepository nodeRepository = mock(SkillTreeNodeRepository.class);
         SkillTreeStructureRepository structureRepository = mock(SkillTreeStructureRepository.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        doAnswer(invocation -> {
+            java.util.function.Supplier<?> mutation = invocation.getArgument(1);
+            return mutation.get();
+        }).when(inventoryService).executeLocalPlayerMutation(any(UUID.class), any());
+        when(inventoryService.consumeGold(any(UUID.class), anyLong())).thenReturn(true);
 
         Plugin plugin = mock(Plugin.class);
         when(plugin.getName()).thenReturn("AstralRecord");
@@ -944,7 +953,7 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         SkillTreeService service = new SkillTreeService(
                 plugin,
                 mock(WorldService.class),
-                null,
+                inventoryService,
                 nodeRepository,
                 structureRepository,
                 stateRepository

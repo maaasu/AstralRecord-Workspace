@@ -449,31 +449,45 @@ public final class SkillSigilOrbService {
         if (session.type == ItemOrbEffectType.SIGIL_ATTACH) {
             InventoryEntryModel sigilEntry = inventoryService.findOwnedNormalItemEntryForConsumption(
                 session.accountId, session.selectedSigilItemId);
-            if (sigilEntry == null) {
+            ItemModel sigilModel = itemService.findLoadedById(session.selectedSigilItemId);
+            if (sigilEntry == null || sigilModel == null || sigilModel.getSigil() == null) {
                 fail(session, new IllegalStateException("Selected sigil is no longer available"));
                 return;
             }
-            scheduled = learnedSkillService.attachSigilAsync(
+            int slotIndex = firstFreeSigilSlot(target);
+            scheduled = learnedSkillService.attachSigilLocally(
                 session.accountId,
                 target.learnedSkill.getLearnedSkillId(),
                 session.orbInventoryEntryId,
-                session.selectedSigilItemId,
+                new LearnedSkillSigil(
+                    UUID.randomUUID(), sigilModel.getId(), sigilModel.getSigil().getEquipGroupId(), slotIndex),
                 sigilEntry.getInventoryEntryId(),
-                session.accountId,
                 updated -> complete(session),
-                error -> fail(session, error),
-                () -> markPending(session)
+                error -> fail(session, error)
             );
         } else {
-            scheduled = learnedSkillService.detachSigilAsync(
+            LearnedSkillSigil attached = target.learnedSkill.getSigils().stream()
+                .filter(sigil -> sigil.getLearnedSkillSigilId().equals(session.selectedLearnedSkillSigilId))
+                .findFirst()
+                .orElse(null);
+            ItemModel returnedSigil = attached == null ? null : itemService.findLoadedById(attached.getSigilId());
+            if (attached == null || returnedSigil == null) {
+                fail(session, new IllegalStateException("Selected sigil is no longer available"));
+                return;
+            }
+            scheduled = learnedSkillService.detachSigilLocally(
                 session.accountId,
                 target.learnedSkill.getLearnedSkillId(),
                 session.orbInventoryEntryId,
                 session.selectedLearnedSkillSigilId,
-                session.accountId,
+                () -> {
+                    if (inventoryService.addItemToNormalInventory(
+                        session.astPlayer, returnedSigil, 1, "skill-sigil-detach") != 1) {
+                        throw new IllegalStateException("Detached sigil could not be returned to inventory.");
+                    }
+                },
                 updated -> complete(session),
-                error -> fail(session, error),
-                () -> markPending(session)
+                error -> fail(session, error)
             );
         }
         if (!scheduled) fail(session, null);
@@ -729,6 +743,17 @@ public final class SkillSigilOrbService {
         return sigil != null
             && inventoryService.findOwnedNormalItemEntryForConsumption(session.accountId, sigil.getId()) != null
             && SkillSynthesisMaterialEligibility.resolve(target.learnedSkill, target.definition, sigil) == MaterialKind.SIGIL;
+    }
+
+    private int firstFreeSigilSlot(@NotNull SkillTarget target) {
+        int slotCount = SkillSynthesisMaterialEligibility.sigilSlotCount(target.learnedSkill, target.definition);
+        for (int index = 0; index < slotCount; index++) {
+            int candidate = index;
+            if (target.learnedSkill.getSigils().stream().noneMatch(sigil -> sigil.getSlotIndex() == candidate)) {
+                return candidate;
+            }
+        }
+        throw new IllegalStateException("No sigil slot is available.");
     }
 
     private @NotNull List<SkillTarget> collectCandidates(@NotNull Session session) {

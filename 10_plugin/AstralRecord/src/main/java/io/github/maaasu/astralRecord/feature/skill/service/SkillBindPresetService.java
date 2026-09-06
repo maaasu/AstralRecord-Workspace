@@ -1,11 +1,17 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.repository.SkillBindPresetRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
+import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -26,11 +32,21 @@ public final class SkillBindPresetService {
     private final Map<UUID, Integer> selectedPresetIndexes = new ConcurrentHashMap<>();
     private final Map<UUID, List<SkillBindPreset>> presetsByAccount = new ConcurrentHashMap<>();
     private final Map<UUID, AccountSessionState> sessionStates = new ConcurrentHashMap<>();
-    private final Map<UUID, SelectionWriteState> selectionWrites = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<Integer, Integer>> persistedPresetVersions = new ConcurrentHashMap<>();
+    private @Nullable InventoryService localStatePersistence;
 
     public SkillBindPresetService(@NotNull Plugin plugin, @NotNull SkillBindPresetRepository repository) {
         this.plugin = plugin;
         this.repository = repository;
+    }
+
+    /**
+     * プリセット変更を account のローカル状態保存へ接続します。
+     *
+     * @param localStatePersistence state lock と保存キューを提供するインベントリサービス
+     */
+    public void setLocalStatePersistence(@NotNull InventoryService localStatePersistence) {
+        this.localStatePersistence = localStatePersistence;
     }
 
     /**
@@ -60,6 +76,7 @@ public final class SkillBindPresetService {
         }
         presetsByAccount.remove(accountId);
         selectedPresetIndexes.remove(accountId);
+        persistedPresetVersions.remove(accountId);
     }
 
     public @NotNull List<SkillBindPreset> loadInitialPresets(@NotNull UUID accountId) {
@@ -92,6 +109,14 @@ public final class SkillBindPresetService {
                 .findFirst()
                 .orElse(1)
         );
+        AccountSessionState state = sessionStates.computeIfAbsent(accountId, ignored -> new AccountSessionState());
+        synchronized (state) {
+            state.dirty = false;
+            state.revision = 0L;
+        }
+        Map<Integer, Integer> versions = new ConcurrentHashMap<>();
+        normalized.forEach(preset -> versions.put(preset.getPresetIndex(), preset.getVersion()));
+        persistedPresetVersions.put(accountId, versions);
     }
 
     private @NotNull List<SkillBindPreset> fallbackPresets(@NotNull UUID accountId) {
@@ -131,42 +156,7 @@ public final class SkillBindPresetService {
      */
     public void selectPreset(@NotNull UUID accountId, int presetIndex) {
         int normalizedPresetIndex = Math.max(1, Math.min(PRESET_COUNT, presetIndex));
-        selectedPresetIndexes.put(accountId, normalizedPresetIndex);
-        SelectionWriteState state = selectionWrites.computeIfAbsent(accountId, ignored -> new SelectionWriteState());
-        boolean startWrite;
-        synchronized (state) {
-            state.pendingPresetIndex = normalizedPresetIndex;
-            startWrite = !state.inProgress;
-            state.inProgress = true;
-        }
-        if (startWrite) {
-            persistNextSelection(accountId, state);
-        }
-    }
-
-    private void persistNextSelection(@NotNull UUID accountId, @NotNull SelectionWriteState state) {
-        int presetIndex;
-        synchronized (state) {
-            presetIndex = state.pendingPresetIndex;
-            state.pendingPresetIndex = -1;
-        }
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                repository.select(accountId, presetIndex, accountId);
-            } catch (Exception exception) {
-                Logger.log(LogId.E_5804, exception, accountId + ":" + presetIndex);
-            }
-            boolean continueWrite;
-            synchronized (state) {
-                continueWrite = state.pendingPresetIndex > 0;
-                if (!continueWrite) {
-                    state.inProgress = false;
-                }
-            }
-            if (continueWrite) {
-                persistNextSelection(accountId, state);
-            }
-        });
+        mutateLocal(accountId, () -> selectedPresetIndexes.put(accountId, normalizedPresetIndex));
     }
 
     /**
@@ -190,47 +180,34 @@ public final class SkillBindPresetService {
         @NotNull Consumer<SkillBindPreset> onSuccess,
         @NotNull Runnable onFailure
     ) {
-        AccountSessionState state = sessionStates.computeIfAbsent(accountId, ignored -> new AccountSessionState());
-        SaveAttempt attempt;
-        synchronized (state) {
-            if (state.inProgress != null) {
-                return false;
-            }
-            attempt = new SaveAttempt(state.generation);
-            state.inProgress = attempt;
-        }
         int normalizedPresetIndex = Math.max(1, Math.min(PRESET_COUNT, presetIndex));
         List<String> activeSnapshot = Collections.unmodifiableList(new ArrayList<>(activeSkillSlots));
         String leftClickSnapshot = leftClickSkillId == null || leftClickSkillId.isBlank() ? null : leftClickSkillId.trim();
         List<String> passiveSnapshot = Collections.unmodifiableList(new ArrayList<>(passiveSkillSlots));
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            SkillBindPreset saved = null;
-            try {
-                saved = repository.save(
-                    accountId,
-                    normalizedPresetIndex,
-                    activeSnapshot,
-                    leftClickSnapshot,
-                    passiveSnapshot,
-                    updatedBy
-                );
-            } catch (Exception exception) {
-                Logger.log(LogId.E_5804, exception, "skill_bind_save:" + accountId + ":" + normalizedPresetIndex);
-            }
-            SkillBindPreset result = saved;
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                if (!completeSaveAttempt(state, attempt)) {
-                    return;
-                }
-                if (result == null) {
-                    onFailure.run();
-                    return;
-                }
-                presetsByAccount.compute(accountId, (ignored, current) -> mergePreset(accountId, current, result));
-                onSuccess.accept(result);
-            });
-        });
-        return true;
+        SkillBindPreset existing = getPresets(accountId).get(normalizedPresetIndex - 1);
+        SkillBindPreset local = new SkillBindPreset(
+            existing.getPresetId(),
+            accountId,
+            normalizedPresetIndex,
+            activeSnapshot,
+            leftClickSnapshot,
+            passiveSnapshot,
+            existing.isUnlocked(),
+            false,
+            existing.getVersion() + 1,
+            normalizedPresetIndex == selectedPresetIndex(accountId)
+        );
+        try {
+            mutateLocal(accountId, () -> presetsByAccount.compute(
+                accountId,
+                (ignored, current) -> mergePreset(accountId, current, local)
+            ));
+            onSuccess.accept(local);
+            return true;
+        } catch (RuntimeException exception) {
+            onFailure.run();
+            return false;
+        }
     }
 
     /**
@@ -251,14 +228,107 @@ public final class SkillBindPresetService {
         );
     }
 
-    private boolean completeSaveAttempt(AccountSessionState state, SaveAttempt attempt) {
-        synchronized (state) {
-            if (state.inProgress != attempt) {
-                return false;
-            }
-            state.inProgress = null;
-            return state.generation == attempt.generation();
+    /**
+     * 現在のローカル確定済みプリセットを player-state section として取得します。
+     * 呼出元は account の state lock を保持している必要があります。
+     *
+     * @param accountId 対象アカウントID
+     * @return dirty でない場合は {@code null}
+     */
+    public @Nullable PlayerStateSection snapshotPlayerState(@NotNull UUID accountId) {
+        AccountSessionState state = sessionStates.get(accountId);
+        if (state == null) {
+            return null;
         }
+        final long capturedRevision;
+        synchronized (state) {
+            if (!state.dirty) {
+                return null;
+            }
+            capturedRevision = state.revision;
+        }
+        JsonObject payload = new JsonObject();
+        payload.addProperty("accountId", accountId.toString());
+        payload.addProperty("clientRevision", capturedRevision);
+        payload.addProperty("selectedPresetIndex", selectedPresetIndex(accountId));
+        JsonArray presets = new JsonArray();
+        for (SkillBindPreset preset : getPresets(accountId)) {
+            JsonObject value = new JsonObject();
+            value.addProperty("presetIndex", preset.getPresetIndex());
+            value.add("activeSkillSlots", slotArray(preset.getActiveSkillSlots()));
+            if (preset.getLeftClickSkillId() == null) {
+                value.add("leftClickSkillId", com.google.gson.JsonNull.INSTANCE);
+            } else {
+                value.addProperty("leftClickSkillId", preset.getLeftClickSkillId());
+            }
+            value.add("passiveSkillSlots", slotArray(preset.getPassiveSkillSlots()));
+            Integer expectedVersion = persistedPresetVersions
+                .getOrDefault(accountId, Map.of()).get(preset.getPresetIndex());
+            value.add("expectedVersion", expectedVersion == null
+                ? com.google.gson.JsonNull.INSTANCE
+                : new com.google.gson.JsonPrimitive(expectedVersion));
+            value.addProperty("targetVersion", preset.getVersion());
+            presets.add(value);
+        }
+        payload.add("presets", presets);
+        return new PlayerStateSection("skillBindPresets", payload,
+            acknowledged -> acknowledgeSnapshot(accountId, capturedRevision, acknowledged));
+    }
+
+    private void mutateLocal(@NotNull UUID accountId, @NotNull Runnable mutation) {
+        InventoryService persistence = localStatePersistence;
+        if (persistence == null) {
+            throw new IllegalStateException("Local state persistence is not configured.");
+        }
+        persistence.executeLocalPlayerMutation(accountId, () -> {
+            mutation.run();
+            AccountSessionState state = sessionStates.computeIfAbsent(accountId, ignored -> new AccountSessionState());
+            synchronized (state) {
+                state.dirty = true;
+                state.revision++;
+            }
+            return null;
+        });
+        persistence.queueLocalPlayerSave(accountId);
+    }
+
+    private void acknowledgeSnapshot(@NotNull UUID accountId, long capturedRevision, @NotNull JsonElement acknowledged) {
+        if (acknowledged.isJsonObject()) {
+            JsonObject metadata = acknowledged.getAsJsonObject();
+            Map<Integer, Integer> versions = persistedPresetVersions.computeIfAbsent(accountId,
+                ignored -> new ConcurrentHashMap<>());
+            if (metadata.has("entries") && metadata.get("entries").isJsonArray()) {
+                for (JsonElement entry : metadata.getAsJsonArray("entries")) {
+                    if (!entry.isJsonObject()) continue;
+                    JsonObject value = entry.getAsJsonObject();
+                    if (value.has("presetIndex") && value.has("version")
+                        && !value.get("version").isJsonNull()) {
+                        versions.put(value.get("presetIndex").getAsInt(), value.get("version").getAsInt());
+                    }
+                }
+            }
+        }
+        AccountSessionState state = sessionStates.get(accountId);
+        if (state == null) {
+            return;
+        }
+        synchronized (state) {
+            if (state.revision == capturedRevision) {
+                state.dirty = false;
+            }
+        }
+    }
+
+    private @NotNull JsonArray slotArray(@NotNull List<String> slots) {
+        JsonArray values = new JsonArray();
+        for (String slot : slots) {
+            if (slot == null || slot.isBlank()) {
+                values.add(com.google.gson.JsonNull.INSTANCE);
+            } else {
+                values.add(slot);
+            }
+        }
+        return values;
     }
 
     private @NotNull List<SkillBindPreset> normalizePresets(
@@ -291,14 +361,7 @@ public final class SkillBindPresetService {
 
     private static final class AccountSessionState {
         private long generation;
-        private SaveAttempt inProgress;
-    }
-
-    private static final class SelectionWriteState {
-        private int pendingPresetIndex = -1;
-        private boolean inProgress;
-    }
-
-    private record SaveAttempt(long generation) {
+        private long revision;
+        private boolean dirty;
     }
 }

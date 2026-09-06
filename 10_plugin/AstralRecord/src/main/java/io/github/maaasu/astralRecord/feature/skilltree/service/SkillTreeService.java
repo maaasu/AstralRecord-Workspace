@@ -1,8 +1,12 @@
 package io.github.maaasu.astralRecord.feature.skilltree.service;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
@@ -290,6 +294,8 @@ public class SkillTreeService {
     private final Set<UUID> loadingPlayerStates = new LinkedHashSet<>();
     private final Set<UUID> failedPlayerStateLoads = new LinkedHashSet<>();
     private final Map<UUID, Long> dirtyPlayerStateDueAtMillis = new HashMap<>();
+    private final Map<UUID, Long> playerStateRevisions = new HashMap<>();
+    private final Map<UUID, Integer> persistedPlayerStateVersions = new HashMap<>();
     private final Map<UUID, Location> returnLocations = new HashMap<>();
     private final Map<UUID, Long> visualReadyAtMillis = new HashMap<>();
     private final Map<UUID, BossBar> loadingBossBars = new HashMap<>();
@@ -322,6 +328,15 @@ public class SkillTreeService {
 
     public void setInventoryService(@NotNull InventoryService inventoryService) {
         this.inventoryService = inventoryService;
+    }
+
+    /**
+     * スキルツリーのローカル確定と player-state 保存を接続します。
+     *
+     * @param localStatePersistence account state lock と保存キューを提供するサービス
+     */
+    public void setLocalStatePersistence(@NotNull InventoryService localStatePersistence) {
+        setInventoryService(localStatePersistence);
     }
 
     /**
@@ -921,7 +936,8 @@ public class SkillTreeService {
 
     public void markDirty(@NotNull SkillTreePlayerState state) {
         dirtyPlayerStates.add(state.accountId());
-        dirtyPlayerStateDueAtMillis.put(state.accountId(), System.currentTimeMillis() + SAVE_DEBOUNCE_MILLIS);
+        dirtyPlayerStateDueAtMillis.remove(state.accountId());
+        playerStateRevisions.merge(state.accountId(), 1L, Long::sum);
     }
 
     /**
@@ -1290,40 +1306,58 @@ public class SkillTreeService {
             @NotNull SkillTreeNodeDefinition node,
             @Nullable String consumedClassId
     ) {
-        if (!canUnlockNode(astPlayer, node, consumedClassId)) {
+        InventoryService persistence = inventoryService;
+        if (persistence == null) {
             return false;
         }
-        SkillTreePlayerState state = state(astPlayer);
-        Set<String> previousSkillIds = derivedState(astPlayer, state).unlockedSkillIds();
-        String normalizedSource = node.pointType() == SkillTreePointType.CLASS_POINT && consumedClassId != null
-                ? normalizeClassId(consumedClassId)
-                : null;
-        boolean changed = state.unlock(node.nodeId(), normalizedSource);
+        boolean changed = persistence.executeLocalPlayerMutation(astPlayer.getAccount().getUuid(), () -> {
+            if (!canUnlockNode(astPlayer, node, consumedClassId)) {
+                return false;
+            }
+            SkillTreePlayerState state = state(astPlayer);
+            Set<String> previousSkillIds = derivedState(astPlayer, state).unlockedSkillIds();
+            String normalizedSource = node.pointType() == SkillTreePointType.CLASS_POINT && consumedClassId != null
+                    ? normalizeClassId(consumedClassId)
+                    : null;
+            boolean locallyChanged = state.unlock(node.nodeId(), normalizedSource);
+            if (locallyChanged) {
+                DerivedPlayerState nextDerivedState = rebuildDerivedState(astPlayer, state);
+                derivedPlayerStates.put(state.accountId(), nextDerivedState);
+                markDirty(state);
+                markNodeStateChanged(astPlayer, node, previousSkillIds, nextDerivedState.unlockedSkillIds());
+                nodeUnlockListener.accept(astPlayer, node.nodeId());
+            }
+            return locallyChanged;
+        });
         if (changed) {
-            DerivedPlayerState nextDerivedState = rebuildDerivedState(astPlayer, state);
-            derivedPlayerStates.put(state.accountId(), nextDerivedState);
-            markDirty(state);
-            markNodeStateChanged(astPlayer, node, previousSkillIds, nextDerivedState.unlockedSkillIds());
-            nodeUnlockListener.accept(astPlayer, node.nodeId());
+            persistence.queueLocalPlayerSave(astPlayer.getAccount().getUuid());
         }
         return changed;
     }
 
     public boolean relockNode(@NotNull AstPlayer astPlayer, @NotNull SkillTreeNodeDefinition node) {
-        if (!canRelockNode(astPlayer, node)) {
+        InventoryService persistence = inventoryService;
+        if (persistence == null) {
             return false;
         }
-        if (inventoryService == null || !inventoryService.consumeGold(astPlayer.getAccount().getUuid(), RELOCK_GOLD_COST)) {
-            return false;
-        }
-        SkillTreePlayerState state = state(astPlayer);
-        Set<String> previousSkillIds = derivedState(astPlayer, state).unlockedSkillIds();
-        boolean changed = state.relock(node.nodeId());
+        boolean changed = persistence.executeLocalPlayerMutation(astPlayer.getAccount().getUuid(), () -> {
+            if (!canRelockNode(astPlayer, node)
+                || !persistence.consumeGold(astPlayer.getAccount().getUuid(), RELOCK_GOLD_COST)) {
+                return false;
+            }
+            SkillTreePlayerState state = state(astPlayer);
+            Set<String> previousSkillIds = derivedState(astPlayer, state).unlockedSkillIds();
+            boolean locallyChanged = state.relock(node.nodeId());
+            if (locallyChanged) {
+                DerivedPlayerState nextDerivedState = rebuildDerivedState(astPlayer, state);
+                derivedPlayerStates.put(state.accountId(), nextDerivedState);
+                markDirty(state);
+                markNodeStateChanged(astPlayer, node, previousSkillIds, nextDerivedState.unlockedSkillIds());
+            }
+            return locallyChanged;
+        });
         if (changed) {
-            DerivedPlayerState nextDerivedState = rebuildDerivedState(astPlayer, state);
-            derivedPlayerStates.put(state.accountId(), nextDerivedState);
-            markDirty(state);
-            markNodeStateChanged(astPlayer, node, previousSkillIds, nextDerivedState.unlockedSkillIds());
+            persistence.queueLocalPlayerSave(astPlayer.getAccount().getUuid());
         }
         return changed;
     }
@@ -1624,14 +1658,11 @@ public class SkillTreeService {
     }
 
     public void saveDirty() {
-        for (UUID accountId : List.copyOf(dirtyPlayerStates)) {
-            SkillTreePlayerState state = playerStates.get(accountId);
-            if (state != null) {
-                playerStateRepository.save(state);
-            }
-            dirtyPlayerStates.remove(accountId);
-            dirtyPlayerStateDueAtMillis.remove(accountId);
+        InventoryService persistence = inventoryService;
+        if (persistence == null) {
+            return;
         }
+        List.copyOf(dirtyPlayerStates).forEach(persistence::queueLocalPlayerSave);
     }
 
     /**
@@ -1640,50 +1671,60 @@ public class SkillTreeService {
      * Bukkit API には触れず、メインスレッドでは保存対象のスナップショット作成だけを行います。
      */
     public void saveDirtyAsync() {
-        flushDirtyPlayerStatesAsync();
+        saveDirty();
     }
 
-    private void flushDirtyPlayerStatesAsync() {
-        if (playerStateSaveInProgress || dirtyPlayerStates.isEmpty()) {
-            return;
+    /**
+     * 現在のローカル確定済み解放状態を player-state section として返します。
+     * 呼出元は account の state lock を保持している必要があります。
+     *
+     * @param accountId 対象アカウントID
+     * @return dirty state がない場合は {@code null}
+     */
+    public @Nullable PlayerStateSection snapshotPlayerState(@NotNull UUID accountId) {
+        if (!dirtyPlayerStates.contains(accountId)) {
+            return null;
         }
+        SkillTreePlayerState state = playerStates.get(accountId);
+        if (state == null) {
+            return null;
+        }
+        long capturedRevision = playerStateRevisions.getOrDefault(accountId, 0L);
+        JsonObject payload = new JsonObject();
+        payload.addProperty("accountId", accountId.toString());
+        payload.addProperty("clientRevision", capturedRevision);
+        Integer expectedVersion = persistedPlayerStateVersions.get(accountId);
+        payload.add("expectedVersion", expectedVersion == null
+            ? com.google.gson.JsonNull.INSTANCE
+            : new com.google.gson.JsonPrimitive(expectedVersion));
+        payload.addProperty("targetVersion", capturedRevision);
+        JsonArray nodes = new JsonArray();
+        for (SkillTreeUnlockedNode node : state.unlockedNodes()) {
+            JsonObject value = new JsonObject();
+            value.addProperty("nodeId", node.nodeId());
+            if (node.consumedClassId() == null) {
+                value.add("consumedClassId", com.google.gson.JsonNull.INSTANCE);
+            } else {
+                value.addProperty("consumedClassId", node.consumedClassId());
+            }
+            nodes.add(value);
+        }
+        payload.add("unlockedNodes", nodes);
+        return new PlayerStateSection("skillTree", payload,
+            acknowledged -> acknowledgeSnapshot(accountId, capturedRevision, acknowledged));
+    }
 
-        List<SkillTreePlayerState> snapshots = new ArrayList<>();
-        long now = System.currentTimeMillis();
-        for (UUID accountId : List.copyOf(dirtyPlayerStates)) {
-            Long dueAt = dirtyPlayerStateDueAtMillis.get(accountId);
-            if (dueAt != null && dueAt > now) {
-                continue;
+    private void acknowledgeSnapshot(@NotNull UUID accountId, long capturedRevision, @NotNull JsonElement acknowledged) {
+        if (acknowledged.isJsonObject()) {
+            JsonObject metadata = acknowledged.getAsJsonObject();
+            if (metadata.has("version") && !metadata.get("version").isJsonNull()) {
+                persistedPlayerStateVersions.put(accountId, metadata.get("version").getAsInt());
             }
-            SkillTreePlayerState state = playerStates.get(accountId);
-            if (state != null) {
-                snapshots.add(new SkillTreePlayerState(state.accountId(), state.unlockedNodes()));
-            }
+        }
+        if (playerStateRevisions.getOrDefault(accountId, 0L) == capturedRevision) {
             dirtyPlayerStates.remove(accountId);
             dirtyPlayerStateDueAtMillis.remove(accountId);
         }
-        if (snapshots.isEmpty()) {
-            return;
-        }
-
-        playerStateSaveInProgress = true;
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            Set<UUID> failedAccountIds = new LinkedHashSet<>();
-            for (SkillTreePlayerState snapshot : snapshots) {
-                try {
-                    playerStateRepository.save(snapshot);
-                } catch (RuntimeException e) {
-                    failedAccountIds.add(snapshot.accountId());
-                    Logger.log(LogId.W_9003, snapshot.accountId(), e.getMessage());
-                }
-            }
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                long retryDueAt = System.currentTimeMillis() + SAVE_DEBOUNCE_MILLIS;
-                dirtyPlayerStates.addAll(failedAccountIds);
-                failedAccountIds.forEach(accountId -> dirtyPlayerStateDueAtMillis.put(accountId, retryDueAt));
-                playerStateSaveInProgress = false;
-            });
-        });
     }
 
     @NotNull

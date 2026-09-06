@@ -32,6 +32,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.eq;
@@ -835,77 +836,36 @@ class LearnedSkillServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
-     * 検証契約: ローカル確定済みレベルアップのAPI業務失敗時は、正本へ戻して予約を解放し、失敗通知を行う。
+     * 検証契約: 忘却は通信なしで cache を確定し、同一revisionのsection ACK後だけdirtyを解除する。
      */
     @Test
-    void localLevelUpBusinessFailureReconcilesAndNotifies() throws Exception {
+    void forgetConfirmsLocallyAndKeepsSnapshotDirtyUntilMatchingAcknowledgement() {
         Plugin plugin = mock(Plugin.class);
-        Server server = mock(Server.class);
-        BukkitScheduler scheduler = mock(BukkitScheduler.class);
         LearnedSkillRepository repository = mock(LearnedSkillRepository.class);
         InventoryService inventoryService = mock(InventoryService.class);
         UUID accountId = UUID.randomUUID();
         UUID learnedSkillId = UUID.randomUUID();
         LearnedSkillInstance learned = new LearnedSkillInstance(
-            learnedSkillId, accountId, "adventurer_smash", 1, List.of(), 0, null, null
+            learnedSkillId, accountId, "adventurer_smash", 1, List.of(), 4, null, null
         );
-        CountDownLatch failureNotified = new CountDownLatch(1);
-        AtomicInteger failures = new AtomicInteger();
-
-        when(plugin.getServer()).thenReturn(server);
-        when(server.getScheduler()).thenReturn(scheduler);
         doAnswer(invocation -> {
-            invocation.<Runnable>getArgument(1).run();
-            return mock(BukkitTask.class);
-        }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
-        when(inventoryService.reserveLocalMutationPayment(eq(accountId), any(UUID.class), any()))
-            .thenReturn(true);
-        when(inventoryService.saveNow(accountId)).thenReturn(CompletableFuture.completedFuture(true));
-        when(repository.findByAccountId(accountId)).thenReturn(List.of(learned));
-        when(repository.levelUp(
-            eq(accountId), eq(learnedSkillId), eq(accountId), any(UUID.class),
-            any(), any(), any(), any(), any()
-        )).thenThrow(new LearnedSkillMutationException(
-            LearnedSkillMutationFailure.INVALID_MATERIAL,
-            "material is insufficient",
-            409
-        ));
+            java.util.function.Supplier<?> mutation = invocation.getArgument(1);
+            return mutation.get();
+        }).when(inventoryService).executeLocalPlayerMutation(eq(accountId), any());
 
         LearnedSkillService service = new LearnedSkillService(plugin, repository, inventoryService);
         service.applyInitialSkills(accountId, List.of(learned));
-        Path outboxDirectory = Files.createTempDirectory("astralrecord-local-skill-outbox");
-        try (io.github.maaasu.astralRecord.feature.mutation.service.LocalMutationOutbox outbox =
-                 new io.github.maaasu.astralRecord.feature.mutation.service.LocalMutationOutbox(
-                     outboxDirectory, java.util.concurrent.ForkJoinPool.commonPool())) {
-            service.setMutationOutbox(outbox);
-            outbox.setDispatcher(service::dispatchLocalMutation);
 
-            assertTrue(service.levelUpFromManagerWithPaymentsAsync(
-                accountId,
-                learnedSkillId,
-                accountId,
-                java.util.Map.of(),
-                ignored -> { },
-                ignored -> {
-                    failures.incrementAndGet();
-                    failureNotified.countDown();
-                }
-            ));
+        assertTrue(service.forgetAsync(accountId, learnedSkillId, accountId, ignored -> { }, ignored -> { }));
+        assertNull(service.findInstance(accountId, learnedSkillId));
+        verify(repository, never()).forget(eq(accountId), eq(learnedSkillId), eq(accountId), any(UUID.class));
 
-            assertTrue(failureNotified.await(5, TimeUnit.SECONDS));
-            assertEquals(1, failures.get());
-            assertEquals(1, service.findInstance(accountId, learnedSkillId).getLevel());
-            assertFalse(service.hasMutationInProgress(accountId));
-            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
-            while (outbox.pendingCount() != 0 && System.nanoTime() < deadline) {
-                Thread.sleep(10L);
-            }
-            assertEquals(0, outbox.pendingCount());
-        } finally {
-            Files.deleteIfExists(outboxDirectory.resolve("pending-mutations.bin"));
-            Files.deleteIfExists(outboxDirectory.resolve("pending-mutations.bin.tmp"));
-            Files.deleteIfExists(outboxDirectory);
-        }
+        var section = service.snapshotPlayerState(accountId);
+        assertEquals("learnedSkills", section.name());
+        assertEquals(learnedSkillId.toString(), section.payload().getAsJsonArray("deletedSkills")
+            .get(0).getAsJsonObject().get("learnedSkillId").getAsString());
+        section.acknowledge().accept(new com.google.gson.JsonObject());
+        assertNull(service.snapshotPlayerState(accountId));
     }
 
     private LearnedSkillInstance learned(UUID accountId, int level) {
