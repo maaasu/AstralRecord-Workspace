@@ -124,7 +124,7 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
                 if (!IsJsonOrNull(inventorySnapshot.MetadataJson))
                     return Failure(PlayerStateSnapshotSaveFailure.Invalid, "Inventory metadataJson is invalid.");
                 inventory.MetadataJson = inventorySnapshot.MetadataJson;
-                inventory.UpdatedAt = now;
+                inventory.UpdatedAt = AdvanceUpdatedAt(inventory.UpdatedAt, now);
                 inventory.UpdatedBy = request.UpdatedBy;
             }
 
@@ -166,7 +166,7 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
         foreach (var entry in entriesToDisable)
         {
             entry.IsDeleted = true;
-            entry.UpdatedAt = now;
+            entry.UpdatedAt = AdvanceUpdatedAt(entry.UpdatedAt, now);
             entry.UpdatedBy = request.UpdatedBy;
         }
         if (entriesToDisable.Length > 0)
@@ -202,7 +202,7 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
                 entry.Quantity = entrySnapshot.Quantity;
                 entry.MetadataJson = entrySnapshot.MetadataJson;
                 entry.IsDeleted = false;
-                entry.UpdatedAt = now;
+                entry.UpdatedAt = AdvanceUpdatedAt(entry.UpdatedAt, now);
                 entry.UpdatedBy = request.UpdatedBy;
             }
         }
@@ -251,55 +251,47 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             var existingEnchants = await dbContext.EquipmentInstanceEnchants
                 .Where(enchant => enchant.EquipmentInstanceId == entity.EquipmentInstanceId)
                 .ToListAsync();
-            var existingEnchantsById = existingEnchants.ToDictionary(enchant => enchant.EnchantId);
-            var requestedEnchants = snapshot.Enchants.ToDictionary(enchant => enchant.EnchantId);
-            dbContext.EquipmentInstanceEnchants.RemoveRange(existingEnchants.Where(enchant => !requestedEnchants.ContainsKey(enchant.EnchantId)));
-            foreach (var enchantSnapshot in snapshot.Enchants)
-            {
-                if (!existingEnchantsById.TryGetValue(enchantSnapshot.EnchantId, out var enchant))
-                {
-                    enchant = new EquipmentInstanceEnchantEntity
-                    {
-                        EnchantId = enchantSnapshot.EnchantId,
-                        EquipmentInstanceId = entity.EquipmentInstanceId,
-                        CreatedAt = now,
-                        CreatedBy = request.UpdatedBy,
-                    };
-                    await dbContext.EquipmentInstanceEnchants.AddAsync(enchant);
-                }
-                enchant.SlotIndex = enchantSnapshot.SlotIndex;
-                enchant.EnchantMasterId = enchantSnapshot.EnchantMasterId.Trim();
-                enchant.EffectId = enchantSnapshot.EffectId.Trim();
-                enchant.Status = enchantSnapshot.Status.Trim();
-                enchant.Type = enchantSnapshot.Type.Trim();
-                enchant.Value = enchantSnapshot.Value;
-                enchant.UpdatedAt = now;
-                enchant.UpdatedBy = request.UpdatedBy;
-            }
-
             var existingRunes = await dbContext.EquipmentInstanceRunes
                 .Where(rune => rune.EquipmentInstanceId == entity.EquipmentInstanceId)
                 .ToListAsync();
-            var existingRunesById = existingRunes.ToDictionary(rune => rune.RuneId);
-            var requestedRunes = snapshot.Runes.ToDictionary(rune => rune.RuneId);
-            dbContext.EquipmentInstanceRunes.RemoveRange(existingRunes.Where(rune => !requestedRunes.ContainsKey(rune.RuneId)));
+            dbContext.EquipmentInstanceEnchants.RemoveRange(existingEnchants);
+            dbContext.EquipmentInstanceRunes.RemoveRange(existingRunes);
+            // Unique (slot/effect) constraints require physical child deletion to reach the database
+            // before reusing an ID at another position in this full-state replacement.
+            await dbContext.SaveChangesAsync();
+            foreach (var enchantSnapshot in snapshot.Enchants)
+            {
+                var enchant = new EquipmentInstanceEnchantEntity
+                {
+                    EnchantId = enchantSnapshot.EnchantId,
+                    EquipmentInstanceId = entity.EquipmentInstanceId,
+                    SlotIndex = enchantSnapshot.SlotIndex,
+                    EnchantMasterId = enchantSnapshot.EnchantMasterId.Trim(),
+                    EffectId = enchantSnapshot.EffectId.Trim(),
+                    Status = enchantSnapshot.Status.Trim(),
+                    Type = enchantSnapshot.Type.Trim(),
+                    Value = enchantSnapshot.Value,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    CreatedBy = request.UpdatedBy,
+                    UpdatedBy = request.UpdatedBy,
+                };
+                await dbContext.EquipmentInstanceEnchants.AddAsync(enchant);
+            }
             foreach (var runeSnapshot in snapshot.Runes)
             {
-                if (!existingRunesById.TryGetValue(runeSnapshot.RuneId, out var rune))
+                var rune = new EquipmentInstanceRuneEntity
                 {
-                    rune = new EquipmentInstanceRuneEntity
-                    {
-                        RuneId = runeSnapshot.RuneId,
-                        EquipmentInstanceId = entity.EquipmentInstanceId,
-                        CreatedAt = now,
-                        CreatedBy = request.UpdatedBy,
-                    };
-                    await dbContext.EquipmentInstanceRunes.AddAsync(rune);
-                }
-                rune.SlotIndex = runeSnapshot.SlotIndex;
-                rune.ItemId = runeSnapshot.ItemId.Trim();
-                rune.UpdatedAt = now;
-                rune.UpdatedBy = request.UpdatedBy;
+                    RuneId = runeSnapshot.RuneId,
+                    EquipmentInstanceId = entity.EquipmentInstanceId,
+                    SlotIndex = runeSnapshot.SlotIndex,
+                    ItemId = runeSnapshot.ItemId.Trim(),
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    CreatedBy = request.UpdatedBy,
+                    UpdatedBy = request.UpdatedBy,
+                };
+                await dbContext.EquipmentInstanceRunes.AddAsync(rune);
             }
         }
         return byId;
@@ -343,9 +335,13 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             foreach (var slot in existingSlots)
             {
                 slot.IsDeleted = true;
-                slot.UpdatedAt = now;
+                slot.UpdatedAt = AdvanceUpdatedAt(slot.UpdatedAt, now);
                 slot.UpdatedBy = request.UpdatedBy;
             }
+            // Filtered unique indexes only release the old positions after this flush. Without it,
+            // a same-request slot/equipment swap can be ordered as conflicting UPDATE statements.
+            if (existingSlots.Count > 0)
+                await dbContext.SaveChangesAsync();
             foreach (var slotSnapshot in snapshot.Slots)
             {
                 var slot = existingSlots.FirstOrDefault(existing =>
@@ -364,10 +360,10 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
                 slot.SlotIndex = slotSnapshot.SlotIndex;
                 slot.EquipmentInstanceId = slotSnapshot.EquipmentInstanceId;
                 slot.IsDeleted = false;
-                slot.UpdatedAt = now;
+                slot.UpdatedAt = AdvanceUpdatedAt(slot.UpdatedAt, now);
                 slot.UpdatedBy = request.UpdatedBy;
             }
-            loadout.UpdatedAt = now;
+            loadout.UpdatedAt = AdvanceUpdatedAt(loadout.UpdatedAt, now);
             loadout.UpdatedBy = request.UpdatedBy;
         }
         return true;
@@ -416,6 +412,7 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             SkillBindPresets = baseAck.SkillBindPresets,
             SkillTree = baseAck.SkillTree,
             AccountProgress = baseAck.AccountProgress,
+            Waystones = baseAck.Waystones,
         };
     }
 
@@ -429,6 +426,7 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
         JsonElement? bindPresetsAck = null;
         JsonElement? skillTreeAck = null;
         JsonElement? accountProgressAck = null;
+        JsonElement? waystonesAck = null;
 
         if (request.LearnedSkills.HasValue)
         {
@@ -474,6 +472,17 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             accountProgressAck = JsonSerializer.SerializeToElement(applied, JsonOptions);
         }
 
+        if (request.Waystones.HasValue)
+        {
+            var section = TryDeserializeSection<PlayerStateWaystonesSection>(request.Waystones.Value);
+            if (section is null)
+                return Failure(PlayerStateSnapshotSaveFailure.Invalid, "waystones section is invalid.");
+            var applied = await ApplyWaystonesAsync(section, request, now);
+            if (applied is null)
+                return Failure(PlayerStateSnapshotSaveFailure.Invalid, "waystones section contains an invalid or duplicated ID.");
+            waystonesAck = JsonSerializer.SerializeToElement(applied, JsonOptions);
+        }
+
         return Success(new PlayerStateSnapshotAck
         {
             SnapshotId = baseAck.SnapshotId,
@@ -482,7 +491,57 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             SkillBindPresets = bindPresetsAck,
             SkillTree = skillTreeAck,
             AccountProgress = accountProgressAck,
+            Waystones = waystonesAck,
         });
+    }
+
+    private async Task<object?> ApplyWaystonesAsync(
+        PlayerStateWaystonesSection section,
+        PlayerStateSnapshotSaveRequest request,
+        DateTime now)
+    {
+        if (section.UnlockedWaystoneIds is null)
+            return null;
+
+        var normalizedWaystoneIds = new List<string>(section.UnlockedWaystoneIds.Count);
+        foreach (var rawWaystoneId in section.UnlockedWaystoneIds)
+        {
+            if (string.IsNullOrWhiteSpace(rawWaystoneId)
+                || rawWaystoneId.Length > 100
+                || !string.Equals(rawWaystoneId, rawWaystoneId.Trim(), StringComparison.Ordinal))
+                return null;
+            normalizedWaystoneIds.Add(rawWaystoneId);
+        }
+        if (normalizedWaystoneIds.GroupBy(waystoneId => waystoneId, StringComparer.OrdinalIgnoreCase).Any(group => group.Count() > 1))
+            return null;
+
+        // Existing account-waystone API and plugin WaystoneDefinition use string IDs (ws-...).
+        // Keep the existing case-insensitive no-op behavior without introducing a parallel UUID contract.
+        var activeWaystoneIds = await dbContext.AccountWaystoneUnlocks.AsNoTracking()
+            .Where(unlock => unlock.AccountId == request.AccountId && !unlock.IsDeleted)
+            .Select(unlock => unlock.WaystoneId)
+            .ToListAsync();
+        var existing = activeWaystoneIds.ToHashSet(StringComparer.OrdinalIgnoreCase);
+        foreach (var waystoneId in normalizedWaystoneIds.Where(waystoneId => !existing.Contains(waystoneId)))
+        {
+            await dbContext.AccountWaystoneUnlocks.AddAsync(new AccountWaystoneUnlockEntity
+            {
+                AccountWaystoneUnlockId = Guid.NewGuid(),
+                AccountId = request.AccountId,
+                WaystoneId = waystoneId,
+                UnlockedAt = now,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = request.UpdatedBy,
+                UpdatedBy = request.UpdatedBy,
+                IsDeleted = false,
+            });
+        }
+        return new
+        {
+            clientRevision = section.ClientRevision,
+            unlockedWaystoneIds = normalizedWaystoneIds,
+        };
     }
 
     private async Task<object?> ApplyLearnedSkillsAsync(

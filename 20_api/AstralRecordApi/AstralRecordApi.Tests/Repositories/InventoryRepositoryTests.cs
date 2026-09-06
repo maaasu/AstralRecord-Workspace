@@ -29,7 +29,7 @@ public class InventoryRepositoryTests
         var inventoryId = Guid.NewGuid();
         var existingEntryId = Guid.NewGuid();
         var clientGeneratedEntryId = Guid.NewGuid();
-        var now = DateTime.UtcNow;
+        var now = DateTime.UtcNow.AddMinutes(1);
         dbContext.Inventories.Add(new InventoryEntity
         {
             InventoryId = inventoryId,
@@ -92,6 +92,8 @@ public class InventoryRepositoryTests
             .ToArrayAsync();
         Assert.Equal(expectedIds, persisted.Select(entry => entry.InventoryEntryId).ToArray());
         Assert.Equal(2, persisted.Single(entry => entry.InventoryEntryId == existingEntryId).SlotIndex);
+        var persistedInventory = await dbContext.Inventories.AsNoTracking().SingleAsync(inventory => inventory.InventoryId == inventoryId);
+        Assert.True(persistedInventory.UpdatedAt > now);
     }
 
     /// <summary>

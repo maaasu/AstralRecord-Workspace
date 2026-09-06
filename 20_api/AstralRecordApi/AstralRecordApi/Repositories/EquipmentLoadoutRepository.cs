@@ -88,7 +88,7 @@ public class EquipmentLoadoutRepository(AstralRecordDbContext dbContext) : IEqui
             entity.SortOrder = request.SortOrder.Value;
 
         entity.MetadataJson = request.MetadataJson;
-        entity.UpdatedAt = DateTime.UtcNow;
+        entity.UpdatedAt = AdvanceUpdatedAt(entity.UpdatedAt, DateTime.UtcNow);
         entity.UpdatedBy = request.UpdatedBy;
 
         if (request.IsActive.HasValue)
@@ -116,7 +116,7 @@ public class EquipmentLoadoutRepository(AstralRecordDbContext dbContext) : IEqui
         var now = DateTime.UtcNow;
         entity.IsDeleted = true;
         entity.IsActive = false;
-        entity.UpdatedAt = now;
+        entity.UpdatedAt = AdvanceUpdatedAt(entity.UpdatedAt, now);
         entity.UpdatedBy = updatedBy;
 
         var slots = await dbContext.EquipmentLoadoutSlots
@@ -126,7 +126,7 @@ public class EquipmentLoadoutRepository(AstralRecordDbContext dbContext) : IEqui
         foreach (var slot in slots)
         {
             slot.IsDeleted = true;
-            slot.UpdatedAt = now;
+            slot.UpdatedAt = AdvanceUpdatedAt(slot.UpdatedAt, now);
             slot.UpdatedBy = updatedBy;
         }
 
@@ -146,7 +146,7 @@ public class EquipmentLoadoutRepository(AstralRecordDbContext dbContext) : IEqui
         await DeactivateOtherLoadoutsAsync(entity.AccountId, entity.LoadoutProfile, entity.EquipmentLoadoutId, updatedBy, now);
 
         entity.IsActive = true;
-        entity.UpdatedAt = now;
+        entity.UpdatedAt = AdvanceUpdatedAt(entity.UpdatedAt, now);
         entity.UpdatedBy = updatedBy;
 
         await dbContext.SaveChangesAsync();
@@ -220,11 +220,11 @@ public class EquipmentLoadoutRepository(AstralRecordDbContext dbContext) : IEqui
         else
         {
             entity.EquipmentInstanceId = request.EquipmentInstanceId;
-            entity.UpdatedAt = now;
+            entity.UpdatedAt = AdvanceUpdatedAt(entity.UpdatedAt, now);
             entity.UpdatedBy = request.UpdatedBy;
         }
 
-        loadout.UpdatedAt = now;
+        loadout.UpdatedAt = AdvanceUpdatedAt(loadout.UpdatedAt, now);
         loadout.UpdatedBy = request.UpdatedBy;
 
         await dbContext.SaveChangesAsync();
@@ -250,9 +250,9 @@ public class EquipmentLoadoutRepository(AstralRecordDbContext dbContext) : IEqui
 
         var now = DateTime.UtcNow;
         slot.IsDeleted = true;
-        slot.UpdatedAt = now;
+        slot.UpdatedAt = AdvanceUpdatedAt(slot.UpdatedAt, now);
         slot.UpdatedBy = updatedBy;
-        loadout.UpdatedAt = now;
+        loadout.UpdatedAt = AdvanceUpdatedAt(loadout.UpdatedAt, now);
         loadout.UpdatedBy = updatedBy;
 
         await dbContext.SaveChangesAsync();
@@ -298,7 +298,7 @@ public class EquipmentLoadoutRepository(AstralRecordDbContext dbContext) : IEqui
         foreach (var loadout in activeLoadouts)
         {
             loadout.IsActive = false;
-            loadout.UpdatedAt = updatedAt;
+            loadout.UpdatedAt = AdvanceUpdatedAt(loadout.UpdatedAt, updatedAt);
             loadout.UpdatedBy = updatedBy;
         }
     }
@@ -335,4 +335,13 @@ public class EquipmentLoadoutRepository(AstralRecordDbContext dbContext) : IEqui
         UpdatedBy = entity.UpdatedBy,
         IsDeleted = entity.IsDeleted,
     };
+
+    private static DateTime RoundToMilliseconds(DateTime value)
+        => new(value.Ticks - value.Ticks % TimeSpan.TicksPerMillisecond, DateTimeKind.Utc);
+
+    private static DateTime AdvanceUpdatedAt(DateTime current, DateTime candidate)
+    {
+        candidate = RoundToMilliseconds(candidate);
+        return candidate > current.AddMilliseconds(1) ? candidate : current.AddMilliseconds(1);
+    }
 }

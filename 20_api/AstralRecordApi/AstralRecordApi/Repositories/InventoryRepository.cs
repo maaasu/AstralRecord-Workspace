@@ -98,7 +98,7 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
             entity.InventoryProfile = request.InventoryProfile;
 
         entity.MetadataJson = request.MetadataJson;
-        entity.UpdatedAt = DateTime.UtcNow;
+        entity.UpdatedAt = AdvanceUpdatedAt(entity.UpdatedAt, DateTime.UtcNow);
         entity.UpdatedBy = request.UpdatedBy;
 
         await dbContext.SaveChangesAsync();
@@ -131,7 +131,6 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
     public async Task<InventoryEntryResponse?> CreateEntryAsync(Guid inventoryId, InventoryEntryCreateRequest request)
     {
         var inventory = await dbContext.Inventories
-            .AsNoTracking()
             .FirstOrDefaultAsync(x => x.InventoryId == inventoryId && !x.IsDeleted);
 
         if (inventory is null)
@@ -165,6 +164,8 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
         };
 
         await dbContext.InventoryEntries.AddAsync(entity);
+        inventory.UpdatedAt = AdvanceUpdatedAt(inventory.UpdatedAt, now);
+        inventory.UpdatedBy = request.CreatedBy;
         await dbContext.SaveChangesAsync();
         // DB の日時精度で確定した版を返し、次回の expectedUpdatedAt と一致させる。
         await dbContext.Entry(entity).ReloadAsync();
@@ -180,18 +181,16 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
         if (entity is null)
             return null;
 
-        var ownerAccountId = await dbContext.Inventories
-            .Where(inventory => inventory.InventoryId == entity.InventoryId && !inventory.IsDeleted)
-            .Select(inventory => (Guid?)inventory.AccountId)
-            .FirstOrDefaultAsync();
-        if (!ownerAccountId.HasValue)
+        var inventory = await dbContext.Inventories
+            .FirstOrDefaultAsync(inventory => inventory.InventoryId == entity.InventoryId && !inventory.IsDeleted);
+        if (inventory is null)
             return null;
 
         var itemId = await ResolveEntryItemIdAsync(
             request.ItemId,
             request.InstanceType,
             request.InstanceId,
-            ownerAccountId.Value);
+            inventory.AccountId);
         if (itemId is null)
             return null;
 
@@ -202,8 +201,11 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
         entity.InstanceId = request.InstanceId;
         entity.Quantity = request.Quantity;
         entity.MetadataJson = request.MetadataJson;
-        entity.UpdatedAt = DateTime.UtcNow;
+        var now = DateTime.UtcNow;
+        entity.UpdatedAt = AdvanceUpdatedAt(entity.UpdatedAt, now);
         entity.UpdatedBy = request.UpdatedBy;
+        inventory.UpdatedAt = AdvanceUpdatedAt(inventory.UpdatedAt, now);
+        inventory.UpdatedBy = request.UpdatedBy;
 
         await dbContext.SaveChangesAsync();
         await dbContext.Entry(entity).ReloadAsync();
@@ -256,7 +258,7 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
             if (requestedIds.Distinct().Count() != requestedIds.Length)
                 return null;
 
-            var now = DateTime.UtcNow;
+            var now = RoundToMilliseconds(DateTime.UtcNow);
             var currentEntries = await FindCurrentEntriesForUpdateAsync(inventoryId);
             var knownEntries = requestedIds.Length == 0
                 ? new Dictionary<Guid, InventoryEntryEntity>()
@@ -287,6 +289,17 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
                     || knownOwners.Any(owner => owner.AccountId != inventory.AccountId || owner.IsDeleted))
                     return null;
             }
+            var affectedInventoryIds = knownEntries.Values
+                .Select(entry => entry.InventoryId)
+                .Append(inventoryId)
+                .Distinct()
+                .ToArray();
+            var affectedInventories = await dbContext.Inventories
+                .Where(parent => affectedInventoryIds.Contains(parent.InventoryId)
+                    && parent.AccountId == inventory.AccountId && !parent.IsDeleted)
+                .ToListAsync();
+            if (affectedInventories.Count != affectedInventoryIds.Length)
+                return null;
 
             // 部分一意インデックスへ途中配置が衝突しないよう、移動対象と現在配置を一度無効化する。
             var entriesToDisable = currentEntries
@@ -296,7 +309,7 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
             foreach (var entity in entriesToDisable)
             {
                 entity.IsDeleted = true;
-                entity.UpdatedAt = now;
+                entity.UpdatedAt = AdvanceUpdatedAt(entity.UpdatedAt, now);
                 entity.UpdatedBy = request.UpdatedBy;
             }
             if (entriesToDisable.Length > 0)
@@ -330,11 +343,16 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
                 entity.InstanceId = entry.InstanceId;
                 entity.Quantity = entry.Quantity;
                 entity.MetadataJson = entry.MetadataJson;
-                entity.UpdatedAt = now;
+                entity.UpdatedAt = AdvanceUpdatedAt(entity.UpdatedAt, now);
                 entity.UpdatedBy = request.UpdatedBy;
                 entity.IsDeleted = false;
             }
 
+            foreach (var affectedInventory in affectedInventories)
+            {
+                affectedInventory.UpdatedAt = AdvanceUpdatedAt(affectedInventory.UpdatedAt, now);
+                affectedInventory.UpdatedBy = request.UpdatedBy;
+            }
             await dbContext.SaveChangesAsync();
             // datetime2(3) への保存で丸められるため、メモリ上の DateTime.UtcNow を版として返さない。
             // ロックを保持している transaction 内で一括再取得し、この保存で確定した応答を作る。
@@ -404,13 +422,11 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
                     WHERE [account_id] = {accountId} AND [is_deleted] = 0
                     ORDER BY [inventory_id]
                     """)
-                .AsNoTracking()
                 .ToListAsync();
             return accountInventories.SingleOrDefault(inventory => inventory.InventoryId == inventoryId);
         }
 
         return await dbContext.Inventories
-            .AsNoTracking()
             .FirstOrDefaultAsync(x => x.InventoryId == inventoryId && !x.IsDeleted);
     }
 
@@ -457,9 +473,17 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
         if (entity is null)
             return null;
 
+        var inventory = await dbContext.Inventories
+            .FirstOrDefaultAsync(inventory => inventory.InventoryId == entity.InventoryId && !inventory.IsDeleted);
+        if (inventory is null)
+            return null;
+
+        var now = DateTime.UtcNow;
         entity.IsDeleted = true;
-        entity.UpdatedAt = DateTime.UtcNow;
+        entity.UpdatedAt = AdvanceUpdatedAt(entity.UpdatedAt, now);
         entity.UpdatedBy = updatedBy;
+        inventory.UpdatedAt = AdvanceUpdatedAt(inventory.UpdatedAt, now);
+        inventory.UpdatedBy = updatedBy;
 
         await dbContext.SaveChangesAsync();
         return true;
@@ -491,8 +515,18 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
         foreach (var candidate in candidates)
         {
             candidate.Entry.ItemId = candidate.EquipmentItemId;
-            candidate.Entry.UpdatedAt = now;
+            candidate.Entry.UpdatedAt = AdvanceUpdatedAt(candidate.Entry.UpdatedAt, now);
             candidate.Entry.UpdatedBy = accountId;
+        }
+
+        var inventoryIds = candidates.Select(candidate => candidate.Entry.InventoryId).Distinct().ToArray();
+        var inventories = await dbContext.Inventories
+            .Where(inventory => inventoryIds.Contains(inventory.InventoryId) && !inventory.IsDeleted)
+            .ToListAsync();
+        foreach (var inventory in inventories)
+        {
+            inventory.UpdatedAt = AdvanceUpdatedAt(inventory.UpdatedAt, now);
+            inventory.UpdatedBy = accountId;
         }
 
         await dbContext.SaveChangesAsync();
@@ -561,4 +595,13 @@ public class InventoryRepository(AstralRecordDbContext dbContext) : IInventoryRe
         UpdatedBy = entity.UpdatedBy,
         IsDeleted = entity.IsDeleted,
     };
+
+    private static DateTime RoundToMilliseconds(DateTime value)
+        => new(value.Ticks - value.Ticks % TimeSpan.TicksPerMillisecond, DateTimeKind.Utc);
+
+    private static DateTime AdvanceUpdatedAt(DateTime current, DateTime candidate)
+    {
+        candidate = RoundToMilliseconds(candidate);
+        return candidate > current.AddMilliseconds(1) ? candidate : current.AddMilliseconds(1);
+    }
 }

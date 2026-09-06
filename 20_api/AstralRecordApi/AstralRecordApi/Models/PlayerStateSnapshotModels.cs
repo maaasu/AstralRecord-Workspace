@@ -17,6 +17,7 @@ public sealed class PlayerStateSnapshotSaveRequest
     public JsonElement? SkillBindPresets { get; init; }
     public JsonElement? SkillTree { get; init; }
     public JsonElement? AccountProgress { get; init; }
+    public JsonElement? Waystones { get; init; }
 }
 
 public sealed class PlayerStateInventorySnapshot
@@ -171,6 +172,16 @@ public sealed class PlayerStateAccountProgressSection
     public byte? Mode { get; init; }
 }
 
+/// <summary>
+/// Plugin がローカルで確定した開放済みウェイストーンを追記する section です。
+/// 取消は扱わず、既存の開放 ID は no-op とします。
+/// </summary>
+public sealed class PlayerStateWaystonesSection
+{
+    public long ClientRevision { get; init; }
+    public IReadOnlyList<string> UnlockedWaystoneIds { get; init; } = [];
+}
+
 /// <summary>ACK は state content を返さず、Plugin が pending snapshot の metadata だけを更新するための値に限る。</summary>
 public sealed class PlayerStateSnapshotAck
 {
@@ -184,6 +195,7 @@ public sealed class PlayerStateSnapshotAck
     public JsonElement? SkillBindPresets { get; init; }
     public JsonElement? SkillTree { get; init; }
     public JsonElement? AccountProgress { get; init; }
+    public JsonElement? Waystones { get; init; }
 }
 
 public sealed class PlayerStateInventoryEntryAck

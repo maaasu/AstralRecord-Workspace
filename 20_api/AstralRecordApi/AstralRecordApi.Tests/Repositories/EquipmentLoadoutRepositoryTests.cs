@@ -146,6 +146,68 @@ public class EquipmentLoadoutRepositoryTests
         Assert.Empty(await dbContext.EquipmentLoadoutSlots.AsNoTracking().ToListAsync());
     }
 
+    [Fact]
+    public async Task UpsertSlotAsync_AdvancesParentTimestampBeyondFutureBaseline()
+    {
+        await using var connection = new SqliteConnection("Data Source=:memory:");
+        await connection.OpenAsync();
+
+        var options = new DbContextOptionsBuilder<AstralRecordDbContext>()
+            .UseSqlite(connection)
+            .Options;
+
+        await CreateLoadoutTablesAsync(options);
+        await CreateEquipmentInstanceTableAsync(options);
+
+        var accountId = Guid.NewGuid();
+        var loadoutId = Guid.NewGuid();
+        var equipmentInstanceId = Guid.NewGuid();
+        var futureBaseline = DateTime.UtcNow.AddMinutes(1);
+
+        await using (var setupContext = new AstralRecordDbContext(options))
+        {
+            await setupContext.EquipmentLoadouts.AddAsync(new EquipmentLoadoutEntity
+            {
+                EquipmentLoadoutId = loadoutId,
+                AccountId = accountId,
+                LoadoutProfile = "GAME",
+                LoadoutName = "Normal",
+                SortOrder = 0,
+                IsActive = true,
+                CreatedAt = futureBaseline,
+                UpdatedAt = futureBaseline,
+                CreatedBy = accountId,
+                UpdatedBy = accountId,
+                IsDeleted = false,
+            });
+            await setupContext.EquipmentInstances.AddAsync(new EquipmentInstanceEntity
+            {
+                EquipmentInstanceId = equipmentInstanceId,
+                AccountId = accountId,
+                ItemId = "bronze_sword",
+                CreatedAt = futureBaseline,
+                UpdatedAt = futureBaseline,
+                CreatedBy = accountId,
+                UpdatedBy = accountId,
+                IsDeleted = false,
+            });
+            await setupContext.SaveChangesAsync();
+        }
+
+        await using var dbContext = new AstralRecordDbContext(options);
+        var result = await new EquipmentLoadoutRepository(dbContext).UpsertSlotAsync(loadoutId, new EquipmentLoadoutSlotUpsertRequest
+        {
+            SlotType = "WEAPON",
+            SlotIndex = 0,
+            EquipmentInstanceId = equipmentInstanceId,
+            UpdatedBy = accountId,
+        });
+
+        Assert.NotNull(result);
+        var persistedLoadout = await dbContext.EquipmentLoadouts.AsNoTracking().SingleAsync(loadout => loadout.EquipmentLoadoutId == loadoutId);
+        Assert.True(persistedLoadout.UpdatedAt > futureBaseline);
+    }
+
     private static async Task CreateLoadoutTablesAsync(DbContextOptions<AstralRecordDbContext> options)
     {
         await using var setupContext = new AstralRecordDbContext(options);
