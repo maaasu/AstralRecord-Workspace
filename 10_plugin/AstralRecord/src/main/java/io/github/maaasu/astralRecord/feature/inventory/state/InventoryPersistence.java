@@ -10,6 +10,10 @@ import io.github.maaasu.astralRecord.feature.inventory.repository.EquipmentLoado
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryApiException;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepository;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
+import io.github.maaasu.astralRecord.feature.mutation.repository.PlayerStateRepository;
+import io.github.maaasu.astralRecord.feature.mutation.service.PendingStateStore;
+import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.jetbrains.annotations.NotNull;
@@ -48,6 +52,17 @@ public final class InventoryPersistence {
     private final ItemService itemService;
     /** アカウントID → 直前に保存済みの装備ロードアウトスロット (キー: SlotKey, 値: 装備インスタンスID)。 */
     private final Map<UUID, Map<SlotKey, UUID>> lastPersistedLoadoutSlots = new ConcurrentHashMap<>();
+    private final List<java.util.function.Function<UUID, PlayerStateSection>> stateParticipants = new java.util.concurrent.CopyOnWriteArrayList<>();
+    private final Map<UUID, PlayerStateSnapshot> pendingSnapshots = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<UUID, Set<UUID>>> persistedEntryIds = new ConcurrentHashMap<>();
+    private final Map<UUID, Map<UUID, java.time.LocalDateTime>> persistedEntryVersions = new ConcurrentHashMap<>();
+    private final Set<UUID> snapshotsOnDisk = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> blockedSnapshots = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, Integer> snapshotAttempts = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> retryNotBefore = new ConcurrentHashMap<>();
+    private final Map<UUID, Object> snapshotSaveLocks = new ConcurrentHashMap<>();
+    private @Nullable PlayerStateRepository playerStateRepository;
+    private @Nullable PendingStateStore pendingStateStore;
 
     /**
      * 永続層との同期処理を構築します。
@@ -66,6 +81,39 @@ public final class InventoryPersistence {
         this.itemService = itemService;
     }
 
+    /**
+     * 初期化時に完成状態の一括保存を有効にします。
+     * @param repository snapshot保存API
+     * @param directory 未受領snapshotを保持する専用ローカルディレクトリ
+     */
+    public void enablePlayerStateSnapshots(@NotNull PlayerStateRepository repository, @NotNull java.nio.file.Path directory) {
+        playerStateRepository = repository;
+        pendingStateStore = new PendingStateStore(directory);
+    }
+
+    /**
+     * 起動中に、所持品と同時保存する機能を登録します。
+     * @param participant stateロック内でdirty状態を捕捉し、変更がない場合nullを返す処理
+     */
+    public void registerStateParticipant(@NotNull java.util.function.Function<UUID, PlayerStateSection> participant) {
+        stateParticipants.add(participant);
+    }
+
+    /** @return 完成状態保存が初期化済みの場合true */
+    public boolean usesPlayerStateSnapshots() {
+        return playerStateRepository != null;
+    }
+
+    /**
+     * 保存契約の不整合を検出し、そのアカウントの追加経済操作を止めているか返します。
+     * @param accountId 対象アカウント
+     * @return 通信の一時障害ではなく、確定的な保存拒否の場合true
+     */
+    public boolean isPlayerStateBlocked(@NotNull UUID accountId) {
+        PlayerStateSnapshot snapshot = pendingSnapshots.get(accountId);
+        return snapshot != null && blockedSnapshots.contains(snapshot.snapshotId);
+    }
+
     // ---------------------------------------------------------------
     // load
     // ---------------------------------------------------------------
@@ -80,16 +128,25 @@ public final class InventoryPersistence {
      * @return 構築済み state
      */
     public @NotNull PlayerInventoryState load(@NotNull UUID accountId) {
+        recoverPendingSnapshot(accountId);
         PlayerInventoryState state = new PlayerInventoryState(accountId);
         try {
             // 過去に itemId を併記せず保存された装備 entry を、マーケット照合前に API 正本で補正する。
             inventoryRepository.repairEquipmentEntryItemIds(accountId);
             List<InventoryModel> inventories = inventoryRepository.findByAccountId(accountId);
+            Map<UUID, Set<UUID>> loadedEntryIds = new HashMap<>();
+            Map<UUID, java.time.LocalDateTime> loadedEntryVersions = new HashMap<>();
             for (InventoryModel inventory : inventories) {
                 state.putInventory(inventory);
                 List<InventoryEntryModel> entries = inventoryRepository.findEntries(inventory.getInventoryId());
                 state.replaceEntriesFromLoad(inventory.getInventoryId(), entries);
+                entries.stream().filter(entry -> !entry.isDeleted()).forEach(entry ->
+                    loadedEntryVersions.put(entry.getInventoryEntryId(), entry.getUpdatedAt()));
+                loadedEntryIds.put(inventory.getInventoryId(), entries.stream().filter(entry -> !entry.isDeleted())
+                    .map(InventoryEntryModel::getInventoryEntryId).collect(java.util.stream.Collectors.toCollection(HashSet::new)));
             }
+            persistedEntryIds.put(accountId, loadedEntryIds);
+            persistedEntryVersions.put(accountId, loadedEntryVersions);
             List<EquipmentLoadoutModel> loadouts = equipmentLoadoutRepository
                 .findByAccountId(accountId, InventoryProfile.GAME);
             for (EquipmentLoadoutModel loadout : loadouts) {
@@ -194,6 +251,7 @@ public final class InventoryPersistence {
         @NotNull SaveTrigger trigger,
         @Nullable Map<UUID, List<InventoryEntryModel>> persistedEntries
     ) {
+        if (usesPlayerStateSnapshots()) return savePlayerState(state, persistedEntries);
         UUID accountId = state.getAccountId();
         boolean inventoryDirty = state.takeAndClearDirty();
         boolean durabilityDirty = itemService.hasDirtyEquipmentDurability(accountId);
@@ -361,7 +419,136 @@ public final class InventoryPersistence {
      * @return 未保存変更が残っている場合は {@code true}
      */
     public boolean hasPendingChanges(@NotNull PlayerInventoryState state) {
-        return state.isDirty() || itemService.hasDirtyEquipmentDurability(state.getAccountId());
+        synchronized (state) {
+            return state.isDirty() || pendingSnapshots.containsKey(state.getAccountId())
+                || itemService.hasDirtyEquipmentDurability(state.getAccountId())
+                || usesPlayerStateSnapshots() && (!itemService.snapshotDirtyEquipmentState(state.getAccountId()).isEmpty()
+                    || stateParticipants.stream().anyMatch(participant -> participant.apply(state.getAccountId()) != null));
+        }
+    }
+
+    private boolean savePlayerState(PlayerInventoryState state, Map<UUID, List<InventoryEntryModel>> baselineTarget) {
+        synchronized (snapshotSaveLocks.computeIfAbsent(state.getAccountId(), ignored -> new Object())) {
+            return savePlayerStateLocked(state, baselineTarget);
+        }
+    }
+
+    private boolean savePlayerStateLocked(PlayerInventoryState state, Map<UUID, List<InventoryEntryModel>> baselineTarget) {
+        UUID accountId = state.getAccountId();
+        PlayerStateSnapshot snapshot = pendingSnapshots.get(accountId);
+        if (snapshot == null) {
+            synchronized (state) {
+                List<PlayerStateSection> sections = stateParticipants.stream().map(participant -> participant.apply(accountId))
+                    .filter(java.util.Objects::nonNull).toList();
+                var equipment = itemService.snapshotDirtyEquipmentState(accountId);
+                if (!state.isDirty() && equipment.isEmpty() && sections.isEmpty()) return false;
+                snapshot = new PlayerStateSnapshot(state, equipment, sections, persistedEntryIds.getOrDefault(accountId, Map.of()),
+                    persistedEntryVersions.getOrDefault(accountId, Map.of()));
+                state.takeAndClearDirty();
+                pendingSnapshots.put(accountId, snapshot);
+            }
+        }
+        if (blockedSnapshots.contains(snapshot.snapshotId)) return true;
+        Long retryAt = retryNotBefore.get(accountId);
+        if (retryAt != null && System.nanoTime() - retryAt < 0L) return true;
+        try {
+            if (!snapshotsOnDisk.contains(snapshot.snapshotId)) {
+                pendingStateStore.write(accountId, snapshot.payload);
+                snapshotsOnDisk.add(snapshot.snapshotId);
+            }
+            JsonObject ack = playerStateRepository.saveSnapshot(snapshot.payload);
+            snapshot.validateAck(ack);
+            var entryVersions = PlayerStateSnapshot.versions(ack, "entries", "inventoryEntryId");
+            synchronized (state) {
+                state.acknowledgeSnapshotVersions(snapshot.inventories,
+                    PlayerStateSnapshot.versions(ack, "inventories", "inventoryId"),
+                    PlayerStateSnapshot.versions(ack, "loadouts", "equipmentLoadoutId"), entryVersions);
+                Map<String, String> equipmentVersions = new HashMap<>();
+                for (var element : ack.getAsJsonArray("equipment")) {
+                    var row = element.getAsJsonObject();
+                    equipmentVersions.put(row.get("equipmentInstanceId").getAsString(), row.get("updatedAt").getAsString());
+                }
+                itemService.acknowledgeEquipmentState(accountId, snapshot.equipment, equipmentVersions);
+                for (PlayerStateSection section : snapshot.sections) section.acknowledge().accept(ack.get(section.name()));
+                Map<UUID, Set<UUID>> savedIds = new HashMap<>(persistedEntryIds.getOrDefault(accountId, Map.of()));
+                Map<UUID, java.time.LocalDateTime> savedVersions = new HashMap<>(persistedEntryVersions.getOrDefault(accountId, Map.of()));
+                snapshot.entries.keySet().forEach(id -> savedIds.getOrDefault(id, Set.of()).forEach(savedVersions::remove));
+                snapshot.entries.forEach((inventoryId, rows) -> savedIds.put(inventoryId, rows.stream()
+                    .map(InventoryEntryModel::getInventoryEntryId).collect(java.util.stream.Collectors.toCollection(HashSet::new))));
+                persistedEntryIds.put(accountId, savedIds);
+                snapshot.entries.values().forEach(rows -> rows.forEach(row -> savedVersions.put(row.getInventoryEntryId(), entryVersions.get(row.getInventoryEntryId()))));
+                persistedEntryVersions.put(accountId, savedVersions);
+                if (baselineTarget != null) baselineTarget.putAll(snapshot.baseline(ack).entriesByInventoryId());
+            }
+            pendingStateStore.delete(accountId);
+            pendingSnapshots.remove(accountId, snapshot);
+            snapshotsOnDisk.remove(snapshot.snapshotId);
+            snapshotAttempts.remove(accountId);
+            retryNotBefore.remove(accountId);
+        } catch (RuntimeException failure) {
+            if (failure instanceof InventoryApiException api && api.getStatusCode() >= 400 && api.getStatusCode() < 500
+                && api.getStatusCode() != 408 && api.getStatusCode() != 429) {
+                blockedSnapshots.add(snapshot.snapshotId);
+            }
+            int attempt = snapshotAttempts.merge(accountId, 1, Integer::sum);
+            retryNotBefore.put(accountId, System.nanoTime() + TimeUnit.SECONDS.toNanos(
+                Math.min(30L, 1L << Math.min(5, attempt - 1))));
+            Logger.warn(LogId.W_5252, accountId, failureReason(failure));
+        }
+        return true;
+    }
+
+    private void recoverPendingSnapshot(UUID accountId) {
+        if (!usesPlayerStateSnapshots() || pendingSnapshots.containsKey(accountId)) return;
+        String pending = pendingStateStore.read(accountId);
+        if (pending == null) return;
+        JsonObject ack = playerStateRepository.saveSnapshot(pending);
+        String expected = com.google.gson.JsonParser.parseString(pending).getAsJsonObject().get("snapshotId").getAsString();
+        if (!expected.equals(ack.get("snapshotId").getAsString())) {
+            throw new IllegalStateException("Recovered snapshot acknowledgement ID mismatch");
+        }
+        pendingStateStore.delete(accountId);
+    }
+
+    /**
+     * 外部取引後の正本entryを、次回完成状態保存の期待集合へ反映します。
+     * @param state 所有state。呼出元はこのmonitorを保持する
+     * @param entryId 照合したentry ID
+     * @param authoritative 正本行。消滅・他者移管の場合null
+     */
+    public void acknowledgeExternalEntry(@NotNull PlayerInventoryState state, @NotNull UUID entryId,
+                                        @Nullable InventoryEntryModel authoritative) {
+        synchronized (state) {
+            Map<UUID, Set<UUID>> known = persistedEntryIds.computeIfAbsent(state.getAccountId(), ignored -> new HashMap<>());
+            known.values().forEach(ids -> ids.remove(entryId));
+            Map<UUID, java.time.LocalDateTime> versions = persistedEntryVersions.computeIfAbsent(state.getAccountId(), ignored -> new HashMap<>());
+            versions.remove(entryId);
+            if (authoritative != null && !authoritative.isDeleted()
+                && state.findInventoryById(authoritative.getInventoryId()) != null) {
+                known.computeIfAbsent(authoritative.getInventoryId(), ignored -> new HashSet<>()).add(entryId);
+                versions.put(entryId, authoritative.getUpdatedAt());
+            }
+        }
+    }
+
+    /**
+     * 外部取引後に全件取得した通貨inventoryの期待集合を更新します。
+     * @param state 所有state
+     * @param inventoryId 全件取得したinventory
+     * @param authoritative API正本全行。ローカル差分合成前の値
+     */
+    public void acknowledgeExternalInventory(@NotNull PlayerInventoryState state, @NotNull UUID inventoryId,
+                                            @NotNull List<InventoryEntryModel> authoritative) {
+        synchronized (state) {
+            Map<UUID, java.time.LocalDateTime> versions = persistedEntryVersions.computeIfAbsent(state.getAccountId(), ignored -> new HashMap<>());
+            persistedEntryIds.getOrDefault(state.getAccountId(), Map.of()).getOrDefault(inventoryId, Set.of())
+                .forEach(versions::remove);
+            authoritative.stream().filter(entry -> !entry.isDeleted()).forEach(entry ->
+                versions.put(entry.getInventoryEntryId(), entry.getUpdatedAt()));
+            persistedEntryIds.computeIfAbsent(state.getAccountId(), ignored -> new HashMap<>()).put(inventoryId,
+                authoritative.stream().filter(entry -> !entry.isDeleted()).map(InventoryEntryModel::getInventoryEntryId)
+                    .collect(java.util.stream.Collectors.toCollection(HashSet::new)));
+        }
     }
 
     /**
@@ -494,6 +681,9 @@ public final class InventoryPersistence {
      * @param accountId 対象アカウントID
      */
     public void clearAccount(@NotNull UUID accountId) {
+        if (pendingSnapshots.containsKey(accountId)) return;
+        persistedEntryIds.remove(accountId);
+        persistedEntryVersions.remove(accountId);
         lastPersistedLoadoutSlots.remove(accountId);
         itemService.clearEquipmentState(accountId);
     }

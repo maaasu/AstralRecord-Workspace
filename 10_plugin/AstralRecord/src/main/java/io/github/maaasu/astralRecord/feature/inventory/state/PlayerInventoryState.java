@@ -214,7 +214,7 @@ public final class PlayerInventoryState {
                 cached.isEnabled(),
                 metadataJson,
                 cached.getCreatedAt(),
-                java.time.LocalDateTime.now(),
+                cached.getUpdatedAt(),
                 cached.getCreatedBy(),
                 updatedBy,
                 cached.isDeleted()
@@ -379,6 +379,51 @@ public final class PlayerInventoryState {
             } else {
                 current.set(index, withUpdatedAt(currentEntry, persistedEntry.getUpdatedAt()));
             }
+        }
+    }
+
+    /**
+     * 完成状態保存の受領確認を反映します。送信後の値・スロット変更を維持します。
+     * @param submittedInventories 送信時点の親インベントリ
+     * @param inventoryVersions 保存済み親更新時刻
+     * @param loadoutVersions 保存済みロードアウト更新時刻
+     * @param entryVersions 保存済みentry更新時刻
+     */
+    public synchronized void acknowledgeSnapshotVersions(
+        @NotNull List<InventoryModel> submittedInventories,
+        @NotNull Map<UUID, java.time.LocalDateTime> inventoryVersions,
+        @NotNull Map<UUID, java.time.LocalDateTime> loadoutVersions,
+        @NotNull Map<UUID, java.time.LocalDateTime> entryVersions
+    ) {
+        for (List<InventoryEntryModel> entries : entriesByInventoryId.values()) {
+            for (int index = 0; index < entries.size(); index++) {
+                InventoryEntryModel current = entries.get(index);
+                var version = entryVersions.get(current.getInventoryEntryId());
+                if (version != null) entries.set(index, withUpdatedAt(current, version));
+            }
+        }
+        for (int index = 0; index < inventories.size(); index++) {
+            InventoryModel current = inventories.get(index);
+            var version = inventoryVersions.get(current.getInventoryId());
+            if (version == null) continue;
+            InventoryModel submitted = submittedInventories.stream()
+                .filter(value -> value.getInventoryId().equals(current.getInventoryId())).findFirst().orElse(null);
+            if (submitted != null && java.util.Objects.equals(submitted.getMetadataJson(), current.getMetadataJson())) {
+                dirtyMetadataInventoryIds.remove(current.getInventoryId());
+            }
+            inventories.set(index, new InventoryModel(current.getInventoryId(), current.getAccountId(),
+                current.getInventoryType(), current.getInventoryProfile(), current.getSlotCapacity(),
+                current.isEnabled(), current.getMetadataJson(), current.getCreatedAt(), version,
+                current.getCreatedBy(), current.getUpdatedBy(), current.isDeleted()));
+        }
+        for (int index = 0; index < loadouts.size(); index++) {
+            EquipmentLoadoutModel current = loadouts.get(index);
+            var version = loadoutVersions.get(current.getEquipmentLoadoutId());
+            if (version == null) continue;
+            loadouts.set(index, new EquipmentLoadoutModel(current.getEquipmentLoadoutId(), current.getAccountId(),
+                current.getLoadoutProfile(), current.getLoadoutName(), current.getSortOrder(), current.isActive(),
+                current.getMetadataJson(), current.getSlots(), current.getCreatedAt(), version,
+                current.getCreatedBy(), current.getUpdatedBy(), current.isDeleted()));
         }
     }
 
@@ -666,7 +711,7 @@ public final class PlayerInventoryState {
             active.getMetadataJson(),
             nextSlots,
             active.getCreatedAt(),
-            now,
+            active.getUpdatedAt(),
             active.getCreatedBy(),
             updatedBy,
             active.isDeleted()

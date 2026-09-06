@@ -43,6 +43,53 @@ import static org.mockito.Mockito.when;
 class InventoryServiceOrbPaymentReservationTest extends MockBukkitTestBase {
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## 1. save メソッド仕様 > ### ローカル状態と完成スナップショット
+     * 検証契約: 連続確定は最新残数を消費し、同じ予約の二重確定と不足時の状態更新を拒否する。
+     */
+    @Test
+    void consecutiveLocalPaymentsConsumeLatestQuantityExactlyOnce() {
+        Harness harness = harness(false);
+        InventoryEntryModel orb = entry(UUID.randomUUID(), harness, 1, ItemCategory.ORB, "orb.weapon_tyr", 2L);
+        harness.state.replaceEntriesFromLoad(harness.bag.getInventoryId(), List.of(orb));
+        AtomicInteger applied = new AtomicInteger();
+        for (int index = 0; index < 2; index++) {
+            UUID operation = UUID.randomUUID();
+            assertTrue(harness.service.reserveOrbOperationPayment(harness.accountId(), operation,
+                Map.of("orb.weapon_tyr", 1L), 0L));
+            assertTrue(harness.service.commitLocalOrbOperationPayment(harness.accountId(), operation, () -> {
+                assertTrue(Thread.holdsLock(harness.state));
+                applied.incrementAndGet();
+            }));
+            assertFalse(harness.service.commitLocalOrbOperationPayment(harness.accountId(), operation, applied::incrementAndGet));
+        }
+        assertEquals(2, applied.get());
+        assertTrue(harness.state.snapshotEntries(harness.bag.getInventoryId()).isEmpty());
+        assertFalse(harness.service.reserveOrbOperationPayment(harness.accountId(), UUID.randomUUID(),
+            Map.of("orb.weapon_tyr", 1L), 0L));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## 1. save メソッド仕様 > ### ローカル状態と完成スナップショット
+     * 検証契約: ローカル反映前の検証例外では消費した所持品と予約を復元する。
+     */
+    @Test
+    void restoresLocalPaymentWhenApplicationRejects() {
+        Harness harness = harness(false);
+        InventoryEntryModel orb = entry(UUID.randomUUID(), harness, 1, ItemCategory.ORB, "orb.weapon_tyr", 1L);
+        harness.state.replaceEntriesFromLoad(harness.bag.getInventoryId(), List.of(orb));
+        UUID operation = UUID.randomUUID();
+        assertTrue(harness.service.reserveOrbOperationPayment(harness.accountId(), operation, Map.of("orb.weapon_tyr", 1L), 0L));
+        org.junit.jupiter.api.Assertions.assertThrows(IllegalStateException.class, () ->
+            harness.service.commitLocalOrbOperationPayment(harness.accountId(), operation, () -> {
+                throw new IllegalStateException("local validation rejected");
+            }));
+        assertEquals(1L, harness.state.snapshotEntries(harness.bag.getInventoryId()).getFirst().getQuantity());
+        assertTrue(harness.service.commitLocalOrbOperationPayment(harness.accountId(), operation, () -> {}));
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_2-ユースケース.md
      * 章・見出し: # 08_2-ユースケース > ## 7. プレイヤーがオーブから装備操作を開始する
      * 検証契約: 同itemのオーブstackを予約するときは後方slotを予約し、ローカル消費は予約外の前方stackだけを減らしてAPI tombstoneとの三者マージを負数にしない。
@@ -537,7 +584,7 @@ class InventoryServiceOrbPaymentReservationTest extends MockBukkitTestBase {
             mock(ItemStackFactory.class),
             registry,
             mock(InventoryPersistence.class),
-            mock(InventorySaveCoordinator.class)
+            new InventorySaveCoordinator(mock(InventoryPersistence.class), registry, Runnable::run)
         );
         return new Harness(accountId, player, state, bag, currency, repository, service);
     }

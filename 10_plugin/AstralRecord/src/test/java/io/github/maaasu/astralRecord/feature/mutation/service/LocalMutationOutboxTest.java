@@ -101,6 +101,35 @@ class LocalMutationOutboxTest {
         second.close();
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## 1. save メソッド仕様 > ### 共有更新とライフサイクルの境界
+     * 検証契約: 旧形式移行の先頭が再送待ちの間、同accountの後続操作を送らない。
+     */
+    @Test
+    void retryingLegacyHeadCannotBeOvertaken() {
+        LocalMutationCommand.EquipmentOrb first = equipmentCommand(UUID.randomUUID());
+        LocalMutationCommand.EquipmentOrb next = new LocalMutationCommand.EquipmentOrb(
+            UUID.randomUUID(), first.accountId(), UUID.randomUUID(), UUID.randomUUID(), "orb.test", 3, 0, 4, true);
+        List<UUID> dispatched = new java.util.concurrent.CopyOnWriteArrayList<>();
+        CompletableFuture<LocalMutationOutbox.Delivery> delivery = new CompletableFuture<>();
+        try (LocalMutationOutbox outbox = new LocalMutationOutbox(temporaryDirectory, Runnable::run)) {
+            outbox.setDispatcher(command -> {
+                dispatched.add(command.operationId());
+                return delivery;
+            });
+            outbox.enqueue(first);
+            outbox.enqueue(next);
+            outbox.dispatch();
+            assertEquals(List.of(first.operationId()), dispatched);
+            delivery.complete(LocalMutationOutbox.Delivery.RETRY);
+            outbox.dispatch();
+            assertEquals(List.of(first.operationId()), dispatched);
+            assertEquals(2, outbox.pendingCount());
+            assertTrue(outbox.hasPending(first.accountId()));
+        }
+    }
+
     private static LocalMutationCommand.EquipmentOrb equipmentCommand(UUID operationId) {
         return new LocalMutationCommand.EquipmentOrb(
             operationId,

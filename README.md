@@ -33,6 +33,7 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 - `GET /api/user/mcids?prefix={prefix}`（参加履歴のある Minecraft ID 補完候補）
 - `GET /api/user/by-ip?globalIp={globalIp}&excludeUuid={uuid}`（同一グローバルIPの別登録済みユーザー有無照合）
 - `POST /api/equipment/durability`
+- `POST /api/player-state/snapshots`（Pluginで確定した所持品・装備・プレイヤー進行の原子保存。ACKは保存済み版情報のみ）
 - `POST /api/equipment/orb-operations`（確定結果と現在のインベントリ正本を同梱し、Pluginの操作後GETを削減）
 - `POST /api/account-skills/{accountId}/{learnedSkillId}/sigils`（シジル・SIGIL_ATTACHオーブ消費、[習得済みスキル API 設計](00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md)）
 - `POST /api/account-skills/{accountId}/{learnedSkillId}/sigils/{learnedSkillSigilId}/detach`（SIGIL_DETACHオーブ消費・シジル返却、[習得済みスキル API 設計](00_docs/20_API設計書/feature/11-skill/3-エンドポイント仕様/11_3.03-習得済みスキル.md)）
@@ -49,6 +50,8 @@ AstralRecord のモノレポです。各プロジェクトの作業ルールは�
 `10_plugin/AstralRecord/` は Minecraft MMO RPG「AstralRecord」のサーバープラグインです。コード追加・修正全般は `$astralrecord-code` を使い、詳細ルールは [PLUGIN_GUIDE.md](PLUGIN_GUIDE.md) と `.codex/skills/astralrecord-code/references/plugin-code.md` を参照してください。
 
 設計方針として、Plugin はライトビハインド方式を採用しています。そのためクラッシュ発生時の未反映データや書き込み途中の整合性までは考慮対象としておらず、クラッシュ耐性に関する考慮は不要です。
+
+プレイヤー状態の決定元はPluginとし、通常の装備・スキル・進行変更と素材・通貨消費はローカルで一体確定します。APIには完成状態を非同期保存し、ACKで現在値を上書きしません。ユーザー設定、外部取引、旧outbox移行を含む境界は [プレイヤー保存契約](00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md) を正本とします。
 
 - AstralRecord Plugin では legacy color code の共通定義として `io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil` を使い、`org.bukkit.ChatColor` は新規利用しません。
 - プレイヤー向けメッセージ送信は `io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService` を正本とし、`Player#sendMessage(...)` や `AstPlayer#sendMessage(...)` を新規利用しません。

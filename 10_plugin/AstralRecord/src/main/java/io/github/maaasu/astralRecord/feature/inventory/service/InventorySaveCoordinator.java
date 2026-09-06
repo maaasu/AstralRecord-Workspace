@@ -49,7 +49,8 @@ public final class InventorySaveCoordinator {
     private final Map<UUID, RetainedStateSlot> retainedStates = new HashMap<>();
     /** accountごとに外部操作の所有者を保持し、古いcleanupが新しい操作を解除しないようにします。 */
     private final Map<UUID, UUID> unresolvedExternalOperations = new ConcurrentHashMap<>();
-    private boolean closing;
+    private final java.util.Set<UUID> backgroundRetries = ConcurrentHashMap.newKeySet();
+    private volatile boolean closing;
 
     /**
      * 保存コーディネーターを構築します。
@@ -119,7 +120,8 @@ public final class InventorySaveCoordinator {
             }
             boolean succeeded = persistence.saveNow(state);
             if (!succeeded) {
-                Logger.warn(LogId.W_5255, accountId);
+                if (persistence.usesPlayerStateSnapshots()) scheduleBackgroundSave(accountId);
+                else Logger.warn(LogId.W_5255, accountId);
             }
             return succeeded;
         });
@@ -145,7 +147,9 @@ public final class InventorySaveCoordinator {
                 return false;
             }
             persistence.save(state, InventoryPersistence.SaveTrigger.AUTO);
-            return !persistence.hasPendingChanges(state);
+            boolean succeeded = !persistence.hasPendingChanges(state);
+            if (!succeeded && persistence.usesPlayerStateSnapshots()) scheduleBackgroundSave(accountId);
+            return succeeded;
         });
     }
 
@@ -778,6 +782,31 @@ public final class InventorySaveCoordinator {
         return unresolvedExternalOperations.containsKey(accountId);
     }
 
+    /**
+     * 外部取引の受付と排他的に、通信を伴わないローカル変更を実行します。
+     * @param accountId 更新対象アカウント
+     * @param mutation 呼出元がstateロックを保持して実行する短い計算・変更
+     * @return 変更の戻り値
+     * @throws ExternalOperationPendingException 外部取引の確定待ちの場合
+     */
+    public <T> T executeLocalMutation(@NotNull UUID accountId, @NotNull Supplier<T> mutation) {
+        synchronized (unresolvedBoundaryLock) {
+            if (closing || unresolvedExternalOperations.containsKey(accountId) || persistence.isPlayerStateBlocked(accountId)) {
+                throw new ExternalOperationPendingException(accountId);
+            }
+            return mutation.get();
+        }
+    }
+
+    private void scheduleBackgroundSave(UUID accountId) {
+        if (closing || persistence.isPlayerStateBlocked(accountId) || !backgroundRetries.add(accountId)) return;
+        CompletableFuture.delayedExecutor(1L, TimeUnit.SECONDS, asyncExecutor).execute(() -> {
+            backgroundRetries.remove(accountId);
+            PlayerInventoryState state = stateRegistry.get(accountId);
+            if (!closing && state != null) saveAuto(state);
+        });
+    }
+
     private @Nullable UUID claimExternalBoundary(
         @NotNull UUID accountId,
         @Nullable UUID requestedToken,
@@ -1116,7 +1145,8 @@ public final class InventorySaveCoordinator {
     public static final class ExternalOperationPendingException extends IllegalStateException {
         private static final long serialVersionUID = 1L;
 
-        private ExternalOperationPendingException(@NotNull UUID accountId) {
+        /** @param accountId 外部操作または保存不整合の解消待ちアカウント */
+        public ExternalOperationPendingException(@NotNull UUID accountId) {
             super("An external operation is still unresolved for account " + accountId);
         }
     }

@@ -118,6 +118,17 @@ public final class LocalMutationOutbox implements AutoCloseable {
         }
     }
 
+    /**
+     * 旧形式からの移行時、未確定操作があるアカウントの新規変更を保留します。
+     * @param accountId 対象アカウント
+     * @return 旧形式の未受領操作が残る場合true
+     */
+    public boolean hasPending(@NotNull UUID accountId) {
+        synchronized (lock) {
+            return pending.values().stream().anyMatch(command -> command.accountId().equals(accountId));
+        }
+    }
+
     @Override
     public void close() {
         synchronized (lock) {
@@ -131,9 +142,10 @@ public final class LocalMutationOutbox implements AutoCloseable {
             if (!started || closing || dispatcher == null) {
                 return;
             }
+            java.util.Set<UUID> encounteredAccounts = new java.util.HashSet<>();
             for (LocalMutationCommand command : pending.values()) {
                 UUID accountId = command.accountId();
-                if (inFlightByAccount.containsKey(accountId)
+                if (!encounteredAccounts.add(accountId) || inFlightByAccount.containsKey(accountId)
                     || retryScheduled.containsKey(command.operationId())) {
                     continue;
                 }
@@ -179,7 +191,11 @@ public final class LocalMutationOutbox implements AutoCloseable {
                     persistLocked();
                 } catch (RuntimeException persistFailure) {
                     // メモリ上で削除した操作を戻し、次回の再送対象として残す。
-                    pending.put(command.operationId(), command);
+                    LinkedHashMap<UUID, LocalMutationCommand> retained = new LinkedHashMap<>();
+                    retained.put(command.operationId(), command);
+                    retained.putAll(pending);
+                    pending.clear();
+                    pending.putAll(retained);
                     Logger.warn(LogId.W_5252, command.accountId(), failureReason(persistFailure));
                     retry = true;
                 }

@@ -523,6 +523,94 @@ public class InventoryService {
         return reservedByEntryId;
     }
 
+    /**
+     * 装備・スキルと支払いを同じスナップショットへ含めるため、stateロック内で変更します。
+     * @param accountId 更新対象アカウント
+     * @param mutation 通信や画面更新を含まないローカル変更
+     * @return 変更の戻り値
+     * @throws IllegalStateException state未ロード、外部操作の確定待ちの場合
+     */
+    public <T> T executeLocalPlayerMutation(
+        @NotNull UUID accountId, @NotNull java.util.function.Supplier<T> mutation
+    ) {
+        PlayerInventoryState state = getState(accountId);
+        if (state == null) throw new IllegalStateException("Player state is not loaded: " + accountId);
+        synchronized (state) {
+            if (pendingLegacyMutations.test(accountId)) throw new InventorySaveCoordinator.ExternalOperationPendingException(accountId);
+            return saveCoordinator.executeLocalMutation(accountId, mutation);
+        }
+    }
+
+    private java.util.function.Predicate<UUID> pendingLegacyMutations = ignored -> false;
+
+    /**
+     * 旧outbox移行中のアカウントへ新操作を重ねないための判定を接続します。
+     * @param pending 旧形式の未受領操作がある場合trueを返す述語
+     */
+    public void setPendingLegacyMutations(@NotNull java.util.function.Predicate<UUID> pending) {
+        pendingLegacyMutations = pending;
+    }
+
+    /**
+     * 予約した素材・通貨を実消費し、装備またはスキルの完成状態を同時に反映します。
+     * @param accountId 所有アカウント
+     * @param operationId 呼出元が予約した操作ID
+     * @param mutation 事前検証済みのローカル状態反映。通信・GUI操作を含めない
+     * @return 消費と状態反映が完了した場合true。外部操作中や不足時はfalse
+     * @throws RuntimeException 状態反映が例外終了した場合。所持品は反映前へ復元する
+     */
+    public boolean commitLocalOrbOperationPayment(
+        @NotNull UUID accountId, @NotNull UUID operationId, @NotNull Runnable mutation
+    ) {
+        try {
+            return executeLocalPlayerMutation(accountId, () -> {
+                PlayerInventoryState state = getState(accountId);
+                Map<UUID, OrbPaymentReservation> reservations = currentOrbPaymentReservations(accountId, state);
+                OrbPaymentReservation payment = reservations.remove(operationId);
+                if (payment == null) return false;
+                InventoryStateSnapshot before = snapshotState(accountId);
+                boolean committed = false;
+                try {
+                    if (!hasAvailablePayment(reservations.values(), payment.normalItemAmounts(),
+                        payment.goldAmount(), accountId)) return false;
+                    if (payment.baselineAllocated()) {
+                        for (Map.Entry<UUID, Long> required : payment.normalEntryAmounts().entrySet()) {
+                            InventoryEntryModel entry = findOwnedEntry(accountId, required.getKey());
+                            if (entry == null || entry.getQuantity() - reservedEntryAmount(accountId,
+                                required.getKey()) < required.getValue()) return false;
+                            reduceDisplayedEntryQuantity(state, entry, entry.getQuantity() - required.getValue());
+                        }
+                    } else {
+                        for (Map.Entry<String, Long> required : payment.normalItemAmounts().entrySet()) {
+                            if (!consumeNormalItem(accountId, required.getKey(), required.getValue())) return false;
+                        }
+                    }
+                    if (!consumeGold(accountId, payment.goldAmount())) return false;
+                    mutation.run();
+                    state.markDirty();
+                    committed = true;
+                    return true;
+                } finally {
+                    if (!committed) {
+                        restoreState(before);
+                        reservations.put(operationId, payment);
+                    }
+                }
+            });
+        } catch (InventorySaveCoordinator.ExternalOperationPendingException pending) {
+            return false;
+        }
+    }
+
+    /**
+     * ローカル確定後の完成状態を、応答を待たずアカウント別保存キューへ登録します。
+     * @param accountId 保存対象アカウント
+     */
+    public void queueLocalPlayerSave(@NotNull UUID accountId) {
+        PlayerInventoryState state = getState(accountId);
+        if (state != null) saveCoordinator.saveAuto(state);
+    }
+
     /** terminal結果の三者マージ完了後に、同じoperationの支払い予約を解除します。 */
     public void releaseOrbOperationPayment(@NotNull UUID accountId, @NotNull UUID operationId) {
         PlayerInventoryState state = getState(accountId);
@@ -738,6 +826,7 @@ public class InventoryService {
                 }
             }
             UUID compactInventoryId = state.reconcileAuthoritativeEntry(inventoryEntryId, authoritative);
+            persistence.acknowledgeExternalEntry(state, inventoryEntryId, authoritative);
             if (compactInventoryId != null) {
                 compactInventoryEntriesAfterRemoval(state, compactInventoryId);
             }
@@ -3099,6 +3188,11 @@ public class InventoryService {
                         preparedReturns
                     );
                 }
+                authoritativeAffected.forEach((entryId, authoritative) ->
+                    persistence.acknowledgeExternalEntry(state, entryId, authoritative.orElse(null)));
+                if (currencyInventoryId != null) {
+                    persistence.acknowledgeExternalInventory(state, currencyInventoryId, authoritativeCurrency);
+                }
                 return result.apiAddedEntryIds();
             } catch (RuntimeException exception) {
                 restoreState(prePublish);
@@ -3537,6 +3631,7 @@ public class InventoryService {
                 return false;
             }
             state.replaceEntriesFromAuthoritativeSnapshot(currencyInventoryId, authoritative);
+            persistence.acknowledgeExternalInventory(state, currencyInventoryId, authoritative);
             return true;
         }
     }
