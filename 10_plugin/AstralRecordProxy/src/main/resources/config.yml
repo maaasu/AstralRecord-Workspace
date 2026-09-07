@@ -28,6 +28,10 @@ serverCapacities:
 transferCooldownSeconds: 30
 tabRefreshSeconds: 2
 presenceHeartbeatSeconds: 10
+discord:
+  # ここに指定したbackendのMinecraftチャットは、Proxy内には配信するがDiscord中継用APIへ登録しない。
+  excludedSourceServers:
+    - dev
 api:
   baseUrl: "http://127.0.0.1:5261"
   apiKey: "your_api_key"

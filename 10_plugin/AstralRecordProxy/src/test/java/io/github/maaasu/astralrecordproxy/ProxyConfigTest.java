@@ -7,6 +7,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.List;
 
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
@@ -34,6 +35,32 @@ class ProxyConfigTest {
         ProxyConfig config = ProxyConfig.load(dataDirectory);
 
         assertTrue(config.allowInsecureTls());
+    }
+
+    @Test
+    void discordExcludedSourceServersDefaultToEmpty() throws Exception {
+        Files.writeString(dataDirectory.resolve("config.yml"), "api:\n  baseUrl: https://localhost:7296\n", StandardCharsets.UTF_8);
+
+        ProxyConfig config = ProxyConfig.load(dataDirectory);
+
+        assertTrue(config.discordExcludedSourceServers().isEmpty());
+        assertFalse(config.isDiscordSourceServerExcluded("dev"));
+    }
+
+    @Test
+    void discordExcludedSourceServersTrimAndMatchCaseInsensitively() throws Exception {
+        Files.writeString(
+            dataDirectory.resolve("config.yml"),
+            "discord:\n  excludedSourceServers:\n    - ' DEV '\n    - ''\n    - '   '\n    - ch1\n",
+            StandardCharsets.UTF_8);
+
+        ProxyConfig config = ProxyConfig.load(dataDirectory);
+
+        assertEquals(List.of("DEV", "ch1"), config.discordExcludedSourceServers());
+        assertTrue(config.isDiscordSourceServerExcluded("dev"));
+        assertTrue(config.isDiscordSourceServerExcluded("CH1"));
+        assertFalse(config.isDiscordSourceServerExcluded("ch2"));
+        assertFalse(config.isDiscordSourceServerExcluded(null));
     }
 
     @Test

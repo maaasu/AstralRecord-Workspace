@@ -201,11 +201,15 @@ public final class AstralRecordProxyPlugin {
                 if (!connection.getPlayer().getUniqueId().equals(chat.playerId())) {
                     return;
                 }
-                broadcastMinecraftChat(chat);
-                api.publishMinecraftChat(chat, connection.getServerInfo().getName()).exceptionally(failure -> {
-                    logger.warn("Failed to relay Minecraft chat to API", failure);
-                    return null;
-                });
+                String sourceServerId = connection.getServerInfo().getName();
+                dispatchMinecraftChat(
+                    sourceServerId,
+                    config,
+                    () -> broadcastMinecraftChat(chat),
+                    () -> api.publishMinecraftChat(chat, sourceServerId).exceptionally(failure -> {
+                        logger.warn("Failed to relay Minecraft chat to API", failure);
+                        return null;
+                    }));
             } else if (incoming instanceof BackendProtocol.ServerMetrics metrics
                 && Double.isFinite(metrics.mspt()) && metrics.mspt() >= 0.0D) {
                 serverMspt.put(
@@ -214,6 +218,21 @@ public final class AstralRecordProxyPlugin {
             }
         } catch (RuntimeException | IOException exception) {
             logger.warn("Rejected malformed AstralRecord plugin message", exception);
+        }
+    }
+
+    /**
+     * MinecraftチャットはProxy内へ常に配信し、Discord中継だけ送信元backend設定で制御する。
+     */
+    static void dispatchMinecraftChat(
+        String sourceServerId,
+        ProxyConfig config,
+        Runnable minecraftBroadcast,
+        Runnable discordRelay
+    ) {
+        minecraftBroadcast.run();
+        if (!config.isDiscordSourceServerExcluded(sourceServerId)) {
+            discordRelay.run();
         }
     }
 

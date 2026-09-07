@@ -42,7 +42,7 @@ class NetworkApiClientTest {
             Future<?> response = executor.submit(() -> serveOneRequest(server, responseBody));
             ProxyConfig config = new ProxyConfig(
                 "lobby", List.of("dev"), Map.of(), Map.of(), 30L, 2L, 10L,
-                "https://127.0.0.1:" + server.getLocalPort(), "test-key", 3000, 500L, true);
+                "https://127.0.0.1:" + server.getLocalPort(), "test-key", 3000, 500L, true, List.of());
 
             NetworkApiClient.DiscordChatBatch batch = new NetworkApiClient(config).getDiscordChat(0L).get(5, TimeUnit.SECONDS);
 

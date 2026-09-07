@@ -23,7 +23,8 @@ record ProxyConfig(
     String apiKey,
     int apiTimeoutMillis,
     long discordPollMillis,
-    boolean allowInsecureTls
+    boolean allowInsecureTls,
+    List<String> discordExcludedSourceServers
 ) {
     static ProxyConfig load(Path dataDirectory) throws IOException {
         Files.createDirectories(dataDirectory);
@@ -43,6 +44,7 @@ record ProxyConfig(
             root = loaded instanceof Map<?, ?> map ? stringMap(map) : Map.of();
         }
         Map<String, Object> api = child(root, "api");
+        Map<String, Object> discord = child(root, "discord");
         Map<String, String> channels = new LinkedHashMap<>();
         child(root, "channelNames").forEach((key, value) -> channels.put(key, String.valueOf(value)));
         Map<String, ServerCapacity> capacities = new LinkedHashMap<>();
@@ -65,7 +67,8 @@ record ProxyConfig(
             text(api, "apiKey", ""),
             (int) number(api, "timeoutMillis", 3000L),
             Math.max(250L, number(api, "discordPollMillis", 500L)),
-            bool(api, "allowInsecureTls", false)
+            bool(api, "allowInsecureTls", false),
+            textList(discord, "excludedSourceServers")
         );
     }
 
@@ -75,6 +78,11 @@ record ProxyConfig(
 
     boolean isGameServer(String serverId) {
         return gameServers.stream().anyMatch(value -> value.equalsIgnoreCase(serverId));
+    }
+
+    boolean isDiscordSourceServerExcluded(String serverId) {
+        return serverId != null
+            && discordExcludedSourceServers.stream().anyMatch(value -> value.equalsIgnoreCase(serverId));
     }
 
     ServerCapacity capacity(String serverId) {
@@ -115,6 +123,19 @@ record ProxyConfig(
             return flag;
         }
         return value == null ? fallback : Boolean.parseBoolean(String.valueOf(value).trim());
+    }
+
+    private static List<String> textList(Map<String, Object> source, String key) {
+        Object value = source.get(key);
+        if (!(value instanceof List<?> list)) {
+            return List.of();
+        }
+        return list.stream()
+            .filter(item -> item != null)
+            .map(String::valueOf)
+            .map(String::trim)
+            .filter(item -> !item.isEmpty())
+            .toList();
     }
 
     /**
