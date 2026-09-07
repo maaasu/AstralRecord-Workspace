@@ -289,10 +289,11 @@ public final class SkillBindPresetService {
             value.add("passiveSkillSlots", slotArray(preset.getPassiveSkillSlots()));
             Integer expectedVersion = persistedPresetVersions
                 .getOrDefault(accountId, Map.of()).get(preset.getPresetIndex());
-            value.add("expectedVersion", expectedVersion == null
+            // version=0 はAPI未保存行のローカル表現なので、新規行として送信します。
+            value.add("expectedVersion", expectedVersion == null || expectedVersion < 1
                 ? com.google.gson.JsonNull.INSTANCE
                 : new com.google.gson.JsonPrimitive(expectedVersion));
-            value.addProperty("targetVersion", preset.getVersion());
+            value.addProperty("targetVersion", Math.max(1, preset.getVersion()));
             presets.add(value);
         }
         payload.add("presets", presets);

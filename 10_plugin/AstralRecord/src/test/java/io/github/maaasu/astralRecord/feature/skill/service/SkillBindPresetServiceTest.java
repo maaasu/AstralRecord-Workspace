@@ -78,6 +78,40 @@ class SkillBindPresetServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
+     * 検証契約: API未保存プリセットはexpectedVersionを省略し、targetVersionを1以上で送信する。
+     */
+    @Test
+    void snapshotNormalizesUnpersistedPresetVersionsForApi() {
+        UUID accountId = UUID.randomUUID();
+        SkillBindPresetService service = new SkillBindPresetService(
+            mock(Plugin.class), mock(SkillBindPresetRepository.class));
+        service.setLocalStatePersistence(localPersistence(accountId));
+        service.applyInitialPresets(accountId, List.of());
+
+        service.selectPreset(accountId, 2);
+
+        JsonArray presets = service.snapshotPlayerState(accountId).payload().getAsJsonObject()
+            .getAsJsonArray("presets");
+        assertEquals(6, presets.size());
+        for (com.google.gson.JsonElement element : presets) {
+            JsonObject preset = element.getAsJsonObject();
+            assertTrue(preset.get("expectedVersion").isJsonNull());
+            assertEquals(1, preset.get("targetVersion").getAsInt());
+        }
+
+        PlayerStateSection first = service.snapshotPlayerState(accountId);
+        first.acknowledge().accept(presetAck(first, 1));
+        service.saveAsync(accountId, 2, List.of("new-skill"), null, List.of(), accountId,
+            ignored -> { }, () -> { throw new AssertionError("local save should succeed"); });
+        JsonObject nextPreset = service.snapshotPlayerState(accountId).payload().getAsJsonObject()
+            .getAsJsonArray("presets").get(1).getAsJsonObject();
+        assertEquals(1, nextPreset.get("expectedVersion").getAsInt());
+        assertEquals(2, nextPreset.get("targetVersion").getAsInt());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 7. bind preset cache / 保存
      * 検証契約: プリセット切替は通信なしでローカル確定し、保存キューへ渡す。
      */
     @Test
