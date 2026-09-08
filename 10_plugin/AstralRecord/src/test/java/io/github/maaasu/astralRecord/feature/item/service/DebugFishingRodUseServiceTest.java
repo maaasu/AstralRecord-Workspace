@@ -19,6 +19,7 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -122,6 +123,66 @@ class DebugFishingRodUseServiceTest {
         assertFalse(DebugFishingRodUseService.advanceHook(active));
         assertEquals(impactY - DebugFishingRodUseService.WATER_SINK_SPEED_PER_TICK, active.currentHook.getY(), 0.0001D);
         assertEquals(1, active.sinkTicks);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
+     * 検証契約: キャスト距離は糸の最大長であり、最大長へ到達しても空中で保持状態へ遷移せず、重力で落下する。
+     */
+    @Test
+    void outboundHookContinuesFallingAfterReachingMaxLineLength() {
+        World world = mock(World.class);
+        when(world.rayTraceBlocks(
+            any(Location.class),
+            any(Vector.class),
+            anyDouble(),
+            eq(FluidCollisionMode.ALWAYS),
+            eq(false)
+        )).thenReturn(null);
+        Location rodTip = new Location(world, 0.5D, 64.5D, 0.5D);
+        DebugFishingRodUseService.ActiveCast active = activeCast(
+            rodTip,
+            new Location(world, 4.5D, 64.5D, 0.5D)
+        );
+
+        for (int tick = 0; tick < 4; tick++) {
+            assertFalse(DebugFishingRodUseService.advanceHook(active));
+        }
+
+        assertEquals(DebugFishingRodUseService.CastPhase.OUTBOUND, active.phase);
+        assertTrue(active.currentHook.getY() < rodTip.getY());
+        assertTrue(active.currentHook.distance(rodTip) <= 4.0001D);
+        double yAfterFourTicks = active.currentHook.getY();
+
+        assertFalse(DebugFishingRodUseService.advanceHook(active));
+        assertTrue(active.currentHook.getY() < yAfterFourTicks);
+        assertTrue(active.currentHook.distance(rodTip) <= 4.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
+     * 章・見出し: # 04_3-サービス > ## 7. 補助サービス > ### デバッグ釣り竿仮想キャスト
+     * 検証契約: 最大長まで伸びた糸が水中へ沈むとき、糸長を超えず、針は下方かつ竿先側へ移動する。
+     */
+    @Test
+    void sinkingHookMovesTowardRodTipWhenLineIsFullyExtended() {
+        World world = mock(World.class);
+        Block waterBlock = mock(Block.class);
+        when(waterBlock.getType()).thenReturn(Material.WATER);
+        when(world.getBlockAt(anyInt(), anyInt(), anyInt())).thenReturn(waterBlock);
+        Location rodTip = new Location(world, 0.5D, 64.5D, 0.5D);
+        Location maxLengthPoint = new Location(world, 4.5D, 64.5D, 0.5D);
+        DebugFishingRodUseService.ActiveCast active = activeCast(rodTip, maxLengthPoint);
+        active.currentHook = maxLengthPoint.clone();
+        active.phase = DebugFishingRodUseService.CastPhase.SINKING;
+
+        assertFalse(DebugFishingRodUseService.advanceHook(active));
+
+        assertEquals(DebugFishingRodUseService.CastPhase.SINKING, active.phase);
+        assertTrue(active.currentHook.getX() < maxLengthPoint.getX());
+        assertTrue(active.currentHook.getY() < maxLengthPoint.getY());
+        assertTrue(active.currentHook.distance(rodTip) <= 4.0001D);
     }
 
     /**
