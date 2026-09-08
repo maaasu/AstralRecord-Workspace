@@ -57,6 +57,7 @@ import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
+import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.effect.SharedParticleDefinitions;
 import io.github.maaasu.astralRecord.shared.challenge.ChallengeDeathPolicy;
@@ -96,6 +97,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.OptionalLong;
@@ -116,6 +118,10 @@ import java.time.Instant;
 public final class DungeonService {
     /** 受付ゲート候補と中心までの距離です。 */
     public record DungeonEntryHit(@NotNull String dungeonId, double hitDistance) {
+    }
+
+    /** 管理者向けに表示する稼働中ダンジョンセッションの識別情報です。 */
+    public record AdminSessionInfo(@NotNull UUID sessionId, @NotNull String description) {
     }
     private static final String INSTANCE_ROOT_PATH = "plugins/AstralRecord/_world_instances/dungeon";
     private static final long ENTRY_VISUAL_PERIOD_TICKS = 10L;
@@ -762,6 +768,89 @@ public final class DungeonService {
         return session != null
                 && !isWaitingForPartyMembers(session)
                 && isSidebarParticipant(session.participants, session.waitingAbsentParticipants, playerId);
+    }
+
+    /**
+     * 管理者向けに稼働中ダンジョンセッションの表示情報を返します。
+     *
+     * @return セッション UUID と表示行の一覧
+     * @throws IllegalStateException メインスレッド以外から呼び出した場合
+     */
+    public @NotNull List<AdminSessionInfo> describeActiveForAdmin() {
+        requireMainThread();
+        List<AdminSessionInfo> entries = new ArrayList<>();
+        for (Session session : sessionsById.values()) {
+            long elapsed = session.startedAtMs <= 0L
+                    ? 0L
+                    : Math.max(0L, (System.currentTimeMillis() - session.startedAtMs) / 1000L);
+            Long timeLimit = session.loaded.definition().challenge().timeLimitSeconds();
+            String remaining = timeLimit == null || session.startedAtMs <= 0L
+                    ? timeLimit == null ? "制限なし" : timeLimit + "秒"
+                    : Math.max(0L, timeLimit - elapsed) + "秒";
+            String worldName = session.instanceWorld == null ? "-" : session.instanceWorld.world().getName();
+            String dungeonName = ColorCodeUtil.toPlainText(
+                    session.loaded.definition().displayName(),
+                    session.loaded.definition().id()
+            );
+            String description = String.format(
+                    Locale.ROOT,
+                    "%s | パーティー=%s | ダンジョン=%s | 状態=%s | 参加者=%d | ワールド=%s | 経過=%d秒 | 残り=%s",
+                    session.id,
+                    session.partyKey,
+                    dungeonName,
+                    adminStateDisplayName(session),
+                    session.participants.size(),
+                    worldName,
+                    elapsed,
+                    remaining
+            );
+            entries.add(new AdminSessionInfo(session.id, description));
+        }
+        return entries;
+    }
+
+    /**
+     * 管理者を指定ダンジョンの現在のパーティーリーダー位置へ転送します。
+     *
+     * @param admin 転送対象の管理者。呼び出し側で管理者権限を確認済みであること
+     * @param sessionId 対象ダンジョンセッション UUID
+     * @return リーダーがオンラインでセッションが有効、かつ転送に成功した場合は {@code true}
+     * @throws IllegalStateException メインスレッド以外から呼び出した場合
+     */
+    public boolean teleportAdminToLeader(@NotNull Player admin, @NotNull UUID sessionId) {
+        requireMainThread();
+        Session session = sessionsById.get(sessionId);
+        if (session == null || session.ending) {
+            return false;
+        }
+        UUID leaderId;
+        if (session.partyKey.startsWith("solo:")) {
+            leaderId = session.initiatorId;
+        } else {
+            Party party = currentParty(session);
+            if (party == null) {
+                return false;
+            }
+            leaderId = party.getLeaderId();
+        }
+        if (!session.participants.contains(leaderId)) {
+            return false;
+        }
+        Player leader = Bukkit.getPlayer(leaderId);
+        if (leader == null || !leader.isOnline()) {
+            return false;
+        }
+        return PlayerTeleportService.teleport(admin, leader.getLocation());
+    }
+
+    private @NotNull String adminStateDisplayName(@NotNull Session session) {
+        if (session.ending) {
+            return "終了処理中";
+        }
+        if (session.cleared) {
+            return "結果待ち";
+        }
+        return session.combatStarted ? "戦闘中" : "準備中";
     }
 
     /**

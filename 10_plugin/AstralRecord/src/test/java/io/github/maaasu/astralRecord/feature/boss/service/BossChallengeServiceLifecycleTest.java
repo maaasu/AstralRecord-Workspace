@@ -33,6 +33,7 @@ import org.mockito.Mockito;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -106,6 +107,71 @@ class BossChallengeServiceLifecycleTest extends MockBukkitTestBase {
         assertEquals(BossChallengeState.ENDING, challenge.state());
         server().getScheduler().performTicks(1L);
         assertFalse(registry.contains(challenge.challengeId()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-コマンド.md
+     * 章・見出し: # 26_3-コマンド > ## 3. 管理者挑戦リーダー位置への転送
+     * 検証契約: 管理者一覧の対象 UUID を構造化情報として返し、現在の party leader が参加者としてオンラインならその位置へ転送する。
+     */
+    @SuppressWarnings("unchecked")
+    @Test
+    void exposesAdminChallengeInfoAndTeleportsToCurrentPartyLeader() throws Exception {
+        WorldServiceFixture fixture = new WorldServiceFixture();
+        BossChallengeService service = service(fixture.worldService, fixture.partyService);
+        World world = server().addSimpleWorld("boss-admin-teleport");
+        PlayerMock leader = server().addPlayer("boss-leader");
+        PlayerMock admin = server().addPlayer("boss-admin");
+        leader.teleport(new Location(world, 42.5D, 70.0D, 18.5D));
+        admin.teleport(new Location(world, 0.5D, 70.0D, 0.5D));
+
+        UUID partyId = UUID.randomUUID();
+        Party party = new Party(partyId, leader.getUniqueId());
+        when(fixture.partyService.findPartyById(partyId)).thenReturn(party);
+
+        BossLocation location = new BossLocation("entry", 0.5D, 64.0D, 0.5D, 0.0F, 0.0F);
+        BossChallengeConfig config = new BossChallengeConfig(
+                "field",
+                location,
+                2.0D,
+                location,
+                location,
+                1,
+                6,
+                600L,
+                0,
+                5L,
+                BossScalingConfig.EMPTY
+        );
+        BossChallengeInstance challenge = new BossChallengeInstance(
+                UUID.randomUUID(),
+                "party:" + partyId,
+                leader.getUniqueId(),
+                DesignTestFixtures.mobInstance(
+                        MobCategory.BOSS,
+                        100.0D,
+                        0.0D,
+                        0.0D,
+                        io.github.maaasu.astralRecord.feature.mob.model.MobShieldConfig.EMPTY
+                ).template(),
+                config,
+                List.of(leader.getUniqueId())
+        );
+        challenge.confirmParticipants(List.of(leader.getUniqueId()));
+        Map<UUID, BossChallengeInstance> challenges = field(service, "challengesById", Map.class);
+        challenges.put(challenge.challengeId(), challenge);
+
+        List<BossChallengeService.AdminChallengeInfo> entries = service.describeActiveForAdmin();
+
+        assertEquals(1, entries.size());
+        assertEquals(challenge.challengeId(), entries.getFirst().challengeId());
+        assertTrue(entries.getFirst().description().contains("ボス="));
+        assertTrue(service.teleportAdminToLeader(admin, challenge.challengeId()));
+        assertEquals(42.5D, admin.getLocation().getX(), 0.01D);
+        assertEquals(18.5D, admin.getLocation().getZ(), 0.01D);
+
+        challenge.state(BossChallengeState.ENDING);
+        assertFalse(service.teleportAdminToLeader(admin, challenge.challengeId()));
     }
 
     private BossChallengeService service(

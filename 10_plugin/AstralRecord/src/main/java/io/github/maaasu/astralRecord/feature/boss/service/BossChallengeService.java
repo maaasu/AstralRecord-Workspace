@@ -81,6 +81,10 @@ public final class BossChallengeService {
     public record BossEntryHit(@NotNull String bossId, double hitDistance) {
     }
 
+    /** 管理者向けに表示する稼働中ボス挑戦の識別情報です。 */
+    public record AdminChallengeInfo(@NotNull UUID challengeId, @NotNull String description) {
+    }
+
     private static final long FIELD_START_DELAY_TICKS = 40L;
     private static final long DEFEATED_RESULT_WAIT_TICKS = 15L * 20L;
     private static final long ENTRY_VISUAL_PERIOD_TICKS = 10L;
@@ -903,32 +907,97 @@ public final class BossChallengeService {
     }
 
     /**
-     * Returns active challenge descriptions for admin commands.
+     * 管理者向けに稼働中ボス挑戦の表示情報を返します。
      *
-     * @return description lines
+     * @return 挑戦 UUID と表示行の一覧
      */
-    public @NotNull List<String> describeActive() {
-        List<String> lines = new ArrayList<>();
+    public @NotNull List<AdminChallengeInfo> describeActiveForAdmin() {
+        List<AdminChallengeInfo> entries = new ArrayList<>();
         for (BossChallengeInstance challenge : challengesById.values()) {
             long elapsed = challenge.startedAtMs() <= 0L ? 0L : (System.currentTimeMillis() - challenge.startedAtMs()) / 1000L;
             long remaining = challenge.startedAtMs() <= 0L
                     ? challenge.config().timeLimitSeconds()
                     : Math.max(0L, challenge.config().timeLimitSeconds() - elapsed);
             String worldName = challenge.field() == null ? "-" : challenge.field().worldName();
-            lines.add(String.format(
-                    Locale.ROOT,
-                    "%s | パーティー=%s | ボス=%s | 状態=%s | 参加者=%d | ワールド=%s | 経過=%d秒 | 残り=%d秒",
+            entries.add(new AdminChallengeInfo(
                     challenge.challengeId(),
-                    challenge.partyKey(),
-                    challenge.bossTemplate().id(),
-                    stateDisplayName(challenge.state()),
-                    displayParticipantIds(challenge).size(),
-                    worldName,
-                    elapsed,
-                    remaining
+                    String.format(
+                            Locale.ROOT,
+                            "%s | パーティー=%s | ボス=%s | 状態=%s | 参加者=%d | ワールド=%s | 経過=%d秒 | 残り=%d秒",
+                            challenge.challengeId(),
+                            challenge.partyKey(),
+                            challenge.bossTemplate().id(),
+                            stateDisplayName(challenge.state()),
+                            displayParticipantIds(challenge).size(),
+                            worldName,
+                            elapsed,
+                            remaining
+                    )
             ));
         }
-        return lines;
+        return entries;
+    }
+
+    /**
+     * Returns active challenge descriptions for admin commands.
+     *
+     * @return description lines
+     */
+    public @NotNull List<String> describeActive() {
+        return describeActiveForAdmin().stream()
+                .map(AdminChallengeInfo::description)
+                .toList();
+    }
+
+    /**
+     * 管理者を指定ボス挑戦の現在のパーティーリーダー位置へ転送します。
+     *
+     * @param admin 転送対象の管理者。呼び出し側で管理者権限を確認済みであること
+     * @param challengeId 対象ボス挑戦 UUID
+     * @return リーダーがオンラインで挑戦が有効、かつ転送に成功した場合は {@code true}
+     * @throws IllegalStateException メインスレッド以外から呼び出した場合
+     */
+    public boolean teleportAdminToLeader(@NotNull Player admin, @NotNull UUID challengeId) {
+        if (!Bukkit.isPrimaryThread()) {
+            throw new IllegalStateException("Boss challenge admin teleport must run on the main thread");
+        }
+        BossChallengeInstance challenge = challengesById.get(challengeId);
+        if (challenge == null
+                || challenge.state() == BossChallengeState.ENDING
+                || challenge.state() == BossChallengeState.ENDED) {
+            return false;
+        }
+        UUID leaderId = resolveCurrentLeaderId(challenge);
+        if (leaderId == null) {
+            return false;
+        }
+        List<UUID> participantIds = challenge.participantsConfirmed()
+                ? challenge.participantIds()
+                : challenge.expectedParticipantIds();
+        if (!participantIds.contains(leaderId)) {
+            return false;
+        }
+        Player leader = Bukkit.getPlayer(leaderId);
+        if (leader == null || !leader.isOnline()) {
+            return false;
+        }
+        return PlayerTeleportService.teleport(admin, leader.getLocation());
+    }
+
+    private @Nullable UUID resolveCurrentLeaderId(@NotNull BossChallengeInstance challenge) {
+        if (challenge.partyKey().startsWith("solo:")) {
+            return challenge.initiatorId();
+        }
+        if (!challenge.partyKey().startsWith("party:")) {
+            return null;
+        }
+        try {
+            UUID partyId = UUID.fromString(challenge.partyKey().substring("party:".length()));
+            Party party = partyService.findPartyById(partyId);
+            return party == null ? null : party.getLeaderId();
+        } catch (IllegalArgumentException exception) {
+            return null;
+        }
     }
 
     private @NotNull String stateDisplayName(@NotNull BossChallengeState state) {

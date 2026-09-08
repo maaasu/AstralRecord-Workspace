@@ -138,6 +138,57 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/26-boss/3-メソッド仕様/26_3-コマンド.md
+     * 章・見出し: # 26_3-コマンド > ## 3. 管理者挑戦リーダー位置への転送
+     * 検証契約: 管理者一覧の対象 UUID を構造化情報として返し、現在の party leader が参加者としてオンラインならその位置へ転送する。
+     */
+    @Test
+    void exposesAdminDungeonInfoAndTeleportsToCurrentPartyLeader() throws Exception {
+        PartyService partyService = mock(PartyService.class);
+        DungeonService service = service(
+                mock(MobService.class),
+                mock(DisplayTextService.class),
+                mock(WorldService.class),
+                mock(MobDropService.class),
+                partyService
+        );
+        World world = server().addSimpleWorld("dungeon-admin-teleport");
+        PlayerMock leader = server().addPlayer("dungeon-leader");
+        PlayerMock admin = server().addPlayer("dungeon-admin");
+        leader.teleport(new Location(world, 32.5D, 70.0D, 16.5D));
+        admin.teleport(new Location(world, 0.5D, 70.0D, 0.5D));
+
+        UUID partyId = UUID.randomUUID();
+        Party party = new Party(partyId, leader.getUniqueId());
+        when(partyService.findPartyById(partyId)).thenReturn(party);
+        Object session = session(
+                List.of(leader.getUniqueId()),
+                List.of(),
+                "party:" + partyId
+        );
+        UUID sessionId = field(session, "id", UUID.class);
+        setField(session, "instanceWorld", new DungeonInstanceWorldService.InstanceWorld(
+                world,
+                Path.of("target", world.getName()),
+                Set.of()
+        ));
+        setField(session, "combatStarted", true);
+        mapField(service, "sessionsById").put(sessionId, session);
+
+        List<DungeonService.AdminSessionInfo> entries = service.describeActiveForAdmin();
+
+        assertEquals(1, entries.size());
+        assertEquals(sessionId, entries.getFirst().sessionId());
+        assertTrue(entries.getFirst().description().contains("ダンジョン="));
+        assertTrue(service.teleportAdminToLeader(admin, sessionId));
+        assertEquals(32.5D, admin.getLocation().getX(), 0.01D);
+        assertEquals(16.5D, admin.getLocation().getZ(), 0.01D);
+
+        setField(session, "ending", true);
+        assertFalse(service.teleportAdminToLeader(admin, sessionId));
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_3-処理契約.md
      * 章・見出し: # 32_3-処理契約 > ## 4. 開始・生成・転送
      * 設計入力: 00_docs/10_Plugin設計書/feature/32-dungeon/32_0-概要.md
