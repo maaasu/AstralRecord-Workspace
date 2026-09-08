@@ -28,7 +28,8 @@ final class BackendProtocol {
                 case CONNECT -> new Connect(input.readUTF(), input.available() >= Integer.BYTES ? input.readInt() : 0);
                 case METADATA -> new Metadata(
                     UUID.fromString(input.readUTF()), input.readUTF(), input.readUTF(), input.readUTF(),
-                    input.readInt(), input.readUTF(), input.readBoolean());
+                    input.readInt(), input.readUTF(), input.readBoolean(),
+                    input.available() >= Integer.BYTES ? input.readInt() : 0);
                 case CHAT -> new Chat(
                     UUID.fromString(input.readUTF()), UUID.fromString(input.readUTF()), input.readUTF(),
                     input.readUTF(), input.readUTF(), input.readInt(), input.readUTF(), input.readUTF());
@@ -63,7 +64,8 @@ final class BackendProtocol {
         String displayName,
         int level,
         String className,
-        boolean afk
+        boolean afk,
+        int permission
     ) implements Incoming {
     }
 

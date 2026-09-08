@@ -22,6 +22,7 @@ import com.velocitypowered.api.proxy.player.TabList;
 import com.velocitypowered.api.proxy.player.TabListEntry;
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.format.NamedTextColor;
+import net.kyori.adventure.text.format.TextDecoration;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.slf4j.Logger;
 
@@ -43,6 +44,7 @@ import java.util.concurrent.atomic.AtomicReference;
 @Plugin(id = "astralrecordproxy", name = "AstralRecordProxy", version = "1.0.0")
 public final class AstralRecordProxyPlugin {
     static final long SERVER_METRICS_TTL_NANOS = TimeUnit.SECONDS.toNanos(15L);
+    private static final int DONOR_PERMISSION = 5;
     private static final MinecraftChannelIdentifier CHANNEL =
         MinecraftChannelIdentifier.from(BackendProtocol.CHANNEL);
     private static final LegacyComponentSerializer LEGACY_SERIALIZER = LegacyComponentSerializer.legacySection();
@@ -196,7 +198,7 @@ public final class AstralRecordProxyPlugin {
                 }
                 metadata.put(update.playerId(), new PlayerMetadata(
                     update.playerId(), update.mcid(), sourceServer, update.channel(), update.displayName(),
-                    update.level(), update.className(), update.afk()));
+                    update.level(), update.className(), update.afk(), update.permission()));
             } else if (incoming instanceof BackendProtocol.Chat chat) {
                 if (!connection.getPlayer().getUniqueId().equals(chat.playerId())) {
                     return;
@@ -512,13 +514,20 @@ public final class AstralRecordProxyPlugin {
         return prefix
             .append(classTag)
             .append(afk)
-            .append(Component.text(value.displayName(), NamedTextColor.WHITE));
+            .append(accountDisplayName(value));
+    }
+
+    private static Component accountDisplayName(PlayerMetadata value) {
+        Component accountName = Component.text(value.displayName(), NamedTextColor.GRAY);
+        return value.permission() == DONOR_PERMISSION
+            ? accountName.decorate(TextDecoration.BOLD).color(NamedTextColor.AQUA)
+            : accountName;
     }
 
     private PlayerMetadata lobbyMetadata(Player player, String serverId) {
         return new PlayerMetadata(
             player.getUniqueId(), player.getUsername(), serverId, config.channelName(serverId),
-            player.getUsername(), null, null, false);
+            player.getUsername(), null, null, false, 0);
     }
 
     /**

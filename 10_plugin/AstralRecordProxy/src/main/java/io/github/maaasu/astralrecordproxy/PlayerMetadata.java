@@ -10,12 +10,13 @@ record PlayerMetadata(
     String displayName,
     Integer level,
     String className,
-    boolean afk
+    boolean afk,
+    int permission
 ) {
     PlayerMetadata withServer(String newServerId, String newChannel) {
         if (newServerId.equalsIgnoreCase(serverId)) {
             return this;
         }
-        return new PlayerMetadata(playerId, mcid, newServerId, newChannel, mcid, null, null, false);
+        return new PlayerMetadata(playerId, mcid, newServerId, newChannel, mcid, null, null, false, 0);
     }
 }

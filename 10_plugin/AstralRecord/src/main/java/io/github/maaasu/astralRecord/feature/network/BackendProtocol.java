@@ -40,6 +40,7 @@ final class BackendProtocol {
             output.writeInt(player.getClassLevel());
             output.writeUTF(className);
             output.writeBoolean(afk);
+            output.writeInt(player.getUser().getPermission());
         });
     }
 

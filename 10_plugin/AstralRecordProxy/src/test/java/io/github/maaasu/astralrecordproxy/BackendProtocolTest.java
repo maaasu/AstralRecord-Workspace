@@ -4,6 +4,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.ByteArrayOutputStream;
 import java.io.DataOutputStream;
+import java.util.UUID;
 
 import org.junit.jupiter.api.Test;
 
@@ -54,5 +55,48 @@ class BackendProtocolTest {
             (BackendProtocol.ServerMetrics) BackendProtocol.decode(payload);
 
         assertEquals(12.34D, metrics.mspt());
+    }
+
+    @Test
+    void decodesDonorPermissionFromMetadata() throws Exception {
+        byte[] payload;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+             DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeUTF("metadata");
+            output.writeUTF(UUID.randomUUID().toString());
+            output.writeUTF("mcid");
+            output.writeUTF("rpg");
+            output.writeUTF("account#0");
+            output.writeInt(4);
+            output.writeUTF("MAG");
+            output.writeBoolean(false);
+            output.writeInt(5);
+            payload = bytes.toByteArray();
+        }
+
+        BackendProtocol.Metadata metadata = (BackendProtocol.Metadata) BackendProtocol.decode(payload);
+
+        assertEquals(5, metadata.permission());
+    }
+
+    @Test
+    void legacyMetadataDefaultsToPlayerPermission() throws Exception {
+        byte[] payload;
+        try (ByteArrayOutputStream bytes = new ByteArrayOutputStream();
+             DataOutputStream output = new DataOutputStream(bytes)) {
+            output.writeUTF("metadata");
+            output.writeUTF(UUID.randomUUID().toString());
+            output.writeUTF("mcid");
+            output.writeUTF("rpg");
+            output.writeUTF("account#0");
+            output.writeInt(4);
+            output.writeUTF("MAG");
+            output.writeBoolean(false);
+            payload = bytes.toByteArray();
+        }
+
+        BackendProtocol.Metadata metadata = (BackendProtocol.Metadata) BackendProtocol.decode(payload);
+
+        assertEquals(0, metadata.permission());
     }
 }

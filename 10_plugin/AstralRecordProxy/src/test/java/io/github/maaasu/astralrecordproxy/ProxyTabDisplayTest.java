@@ -85,7 +85,7 @@ class ProxyTabDisplayTest {
     @Test
     void rendersRpgStyleTabEntry() {
         PlayerMetadata metadata = new PlayerMetadata(
-            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§dMAG", false);
+            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§dMAG", false, 0);
 
         Component classTag = Component.text("[", NamedTextColor.DARK_GRAY)
             .append(Component.text("MAG", NamedTextColor.LIGHT_PURPLE))
@@ -95,7 +95,39 @@ class ProxyTabDisplayTest {
 
         assertEquals(Component.text("[rpg] ", NamedTextColor.GRAY)
             .append(classTag)
-            .append(Component.text("account#0", NamedTextColor.WHITE)),
+            .append(Component.text("account#0", NamedTextColor.GRAY)),
+            AstralRecordProxyPlugin.tabDisplayName(metadata));
+    }
+
+    @Test
+    void rendersDonorAccountNameInBoldAqua() {
+        PlayerMetadata metadata = new PlayerMetadata(
+            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§dMAG", false, 5);
+
+        Component classTag = Component.text("[", NamedTextColor.DARK_GRAY)
+            .append(Component.text("MAG", NamedTextColor.LIGHT_PURPLE))
+            .append(Component.text(" Lv.", NamedTextColor.GRAY))
+            .append(Component.text("4", NamedTextColor.YELLOW))
+            .append(Component.text("] ", NamedTextColor.DARK_GRAY));
+
+        assertEquals(Component.text("[rpg] ", NamedTextColor.GRAY)
+            .append(classTag)
+            .append(Component.text("account#0", NamedTextColor.AQUA, TextDecoration.BOLD)),
+            AstralRecordProxyPlugin.tabDisplayName(metadata));
+    }
+
+    @Test
+    void rendersAdminAccountNameInGrayWithoutDonorDecoration() {
+        PlayerMetadata metadata = new PlayerMetadata(
+            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§dMAG", false, 99);
+
+        assertEquals(Component.text("[rpg] ", NamedTextColor.GRAY)
+            .append(Component.text("[", NamedTextColor.DARK_GRAY)
+                .append(Component.text("MAG", NamedTextColor.LIGHT_PURPLE))
+                .append(Component.text(" Lv.", NamedTextColor.GRAY))
+                .append(Component.text("4", NamedTextColor.YELLOW))
+                .append(Component.text("] ", NamedTextColor.DARK_GRAY)))
+            .append(Component.text("account#0", NamedTextColor.GRAY)),
             AstralRecordProxyPlugin.tabDisplayName(metadata));
     }
 
@@ -107,7 +139,7 @@ class ProxyTabDisplayTest {
     @Test
     void rendersRedAfkPrefixInTabEntry() {
         PlayerMetadata metadata = new PlayerMetadata(
-            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§c§lADM", true);
+            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", 4, "§c§lADM", true, 0);
 
         Component classTag = Component.text("[", NamedTextColor.DARK_GRAY)
             .append(Component.text("ADM", NamedTextColor.RED, TextDecoration.BOLD))
@@ -118,7 +150,7 @@ class ProxyTabDisplayTest {
         assertEquals(Component.text("[rpg] ", NamedTextColor.GRAY)
             .append(classTag)
             .append(Component.text("[AFK] ", NamedTextColor.RED))
-            .append(Component.text("account#0", NamedTextColor.WHITE)),
+            .append(Component.text("account#0", NamedTextColor.GRAY)),
             AstralRecordProxyPlugin.tabDisplayName(metadata));
     }
 
@@ -130,7 +162,7 @@ class ProxyTabDisplayTest {
     @Test
     void rendersMcidWhenClassMetadataIsUnavailable() {
         PlayerMetadata metadata = new PlayerMetadata(
-            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", null, null, false);
+            PLAYER_ID, "test-account", "rpg-1", "rpg", "account#0", null, null, false, 0);
 
         assertEquals(Component.text("[rpg] ", NamedTextColor.GRAY)
             .append(Component.text("test-account", NamedTextColor.WHITE)),
