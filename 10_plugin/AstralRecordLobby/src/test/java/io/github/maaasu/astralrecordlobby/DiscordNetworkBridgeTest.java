@@ -6,7 +6,6 @@ import io.papermc.paper.event.player.AsyncChatEvent;
 import org.bukkit.entity.Player;
 import org.junit.jupiter.api.Test;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -18,10 +17,10 @@ class DiscordNetworkBridgeTest {
      * 検証契約: LobbyがキャンセルしたMinecraftチャットはDiscordSRV標準経路へ送らず、独自中継だけを使用する。
      */
     @Test
-    void cancelsDiscordSrvRelayForCancelledBukkitChat() {
+    void cancelsDiscordSrvRelayRegardlessOfBukkitChatCancellationState() {
         DiscordNetworkBridge bridge = new DiscordNetworkBridge(null, null);
         AsyncChatEvent bukkitEvent = mock(AsyncChatEvent.class);
-        when(bukkitEvent.isCancelled()).thenReturn(true);
+        when(bukkitEvent.isCancelled()).thenReturn(false);
         GameChatMessagePreProcessEvent event = new GameChatMessagePreProcessEvent(
             "global", Component.text("hello"), mock(Player.class), bukkitEvent);
 
@@ -33,18 +32,16 @@ class DiscordNetworkBridgeTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/33-network/33_4-統合フロー.md
      * 章・見出し: # 33_4-統合フロー > ## 全体チャット
-     * 検証契約: キャンセルされていないBukkitチャットはDiscordSRV標準経路の判定を変更しない。
+     * 検証契約: DiscordSRVイベントから元のBukkitイベントを取得できない場合も、標準Minecraft→Discord経路を抑止する。
      */
     @Test
-    void leavesDiscordSrvRelayUntouchedForActiveBukkitChat() {
+    void cancelsDiscordSrvRelayWhenTriggeringBukkitEventIsUnavailable() {
         DiscordNetworkBridge bridge = new DiscordNetworkBridge(null, null);
-        AsyncChatEvent bukkitEvent = mock(AsyncChatEvent.class);
-        when(bukkitEvent.isCancelled()).thenReturn(false);
         GameChatMessagePreProcessEvent event = new GameChatMessagePreProcessEvent(
-            "global", Component.text("hello"), mock(Player.class), bukkitEvent);
+            "global", Component.text("hello"), mock(Player.class));
 
         bridge.onGameChatMessagePreProcess(event);
 
-        assertFalse(event.isCancelled());
+        assertTrue(event.isCancelled());
     }
 }

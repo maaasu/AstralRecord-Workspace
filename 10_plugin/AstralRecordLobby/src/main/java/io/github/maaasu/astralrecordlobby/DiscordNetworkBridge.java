@@ -7,7 +7,6 @@ import github.scarsz.discordsrv.api.events.DiscordGuildMessagePreProcessEvent;
 import github.scarsz.discordsrv.api.events.GameChatMessagePreProcessEvent;
 import github.scarsz.discordsrv.util.DiscordUtil;
 import org.bukkit.Bukkit;
-import org.bukkit.event.Cancellable;
 import org.bukkit.scheduler.BukkitTask;
 
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -148,16 +147,16 @@ final class DiscordNetworkBridge {
     }
 
     /**
-     * LobbyがキャンセルしたMinecraftチャットをDiscordSRV標準中継から除外する。
-     * 独自のNetwork API経由の中継だけをDiscordへ送るため、標準経路との二重送信を防ぐ。
+     * 独自のNetwork API経由の中継だけをDiscordへ送るため、
+     * DiscordSRVのMinecraft→Discord標準経路を除外する。
+     * LobbyのMinecraftチャットはLobbyListenerが常にキャンセルしてProxyへ送るため、
+     * triggeringBukkitEventの状態に依存せず、このイベント自体を常にキャンセルする。
      *
      * @param event DiscordSRVのMinecraftチャット処理前イベント
      */
     @Subscribe(priority = ListenerPriority.HIGHEST)
     public void onGameChatMessagePreProcess(GameChatMessagePreProcessEvent event) {
-        if (event.getTriggeringBukkitEvent() instanceof Cancellable cancellable && cancellable.isCancelled()) {
-            event.setCancelled(true);
-        }
+        event.setCancelled(true);
     }
 
     private void pollMinecraft() {
