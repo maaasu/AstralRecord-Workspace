@@ -664,16 +664,26 @@ public final class BossMechanicService {
         return List.copyOf(displayEntityIds);
     }
 
+    /**
+     * ボスのHPフェーズ遷移に伴う固有ギミックとシールド再展開を処理します。
+     *
+     * <p>サンバードの30%境界ではバードメテオを開始して終了し、シールドを増加・再展開しません。
+     * それ以外の対象では、有効なシールドを現在の表示容量まで再展開した後、フェーズ固有の演出を処理します。</p>
+     *
+     * <p>呼び出し元はメインスレッド上で、{@code runtime.phase} を更新済みの状態で実行する必要があります。
+     * 処理により、シールド値、ボスの専用行動状態、未発動ギミック、演出用Entity、次回行動時刻を変更します。</p>
+     *
+     * @param profile 対象ボスのフェーズ・ギミック定義
+     * @param boss 対象ボスの実行時インスタンス
+     * @param entity 対象ボスに紐付くBukkit Entity
+     * @param runtime 対象ボスのギミック実行時状態
+     */
     private void handlePhaseTransition(
         @NotNull BossMechanicProfile profile,
         @NotNull MobInstance boss,
         @NotNull Entity entity,
         @NotNull BossRuntime runtime
     ) {
-        if (boss.template().shield().active()) {
-            boss.currentShield(boss.shieldDisplayCapacity(), System.currentTimeMillis());
-            runtime.observedShield = boss.currentShield();
-        }
         if (BossMechanicProfile.MIDGARD_SAVANNA_SUNBIRD.equals(boss.template().id())
             && runtime.phase >= 2
             && !runtime.finalPhaseTriggered) {
@@ -691,6 +701,11 @@ public final class BossMechanicService {
                 SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS);
             runtime.nextActionTick = clockTicks + SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS + 20L;
             return;
+        }
+
+        if (boss.template().shield().active()) {
+            boss.currentShield(boss.shieldDisplayCapacity(), System.currentTimeMillis());
+            runtime.observedShield = boss.currentShield();
         }
 
         Location center = entity.getLocation().add(0.0D, 0.5D, 0.0D);
