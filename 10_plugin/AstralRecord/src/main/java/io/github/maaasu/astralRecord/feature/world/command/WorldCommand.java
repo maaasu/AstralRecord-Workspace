@@ -30,7 +30,7 @@ public class WorldCommand extends AstCommand {
      * @param worldService WorldMasterData サービス
      */
     public WorldCommand(@NotNull WorldService worldService) {
-        super("world", "ワールドのマスターデータを管理します。", "/world <list|info|tp|loaded|reload> [worldId]",
+        super("world", "ワールドのマスターデータを管理します。", "/world <list|info|tp|loaded|reload> [worldId|[temp]worldName]",
                 true, UserPermission.ADMIN.getValue());
         this.worldService = worldService;
     }
@@ -77,7 +77,7 @@ public class WorldCommand extends AstCommand {
             return;
         }
 
-        WorldMasterData world = worldService.getById(args[1]);
+        WorldMasterData world = worldService.getByCommandName(args[1]);
         if (world == null) {
             sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5754.getId(), args[1]));
             return;
@@ -114,7 +114,7 @@ public class WorldCommand extends AstCommand {
             return;
         }
 
-        WorldMasterData data = worldService.getById(args[1]);
+        WorldMasterData data = worldService.getByCommandName(args[1]);
         if (data == null) {
             sendError(player.getBukkit(), PlayerMsgResource.format(PlayerMsgId.P_5754.getId(), args[1]));
             return;

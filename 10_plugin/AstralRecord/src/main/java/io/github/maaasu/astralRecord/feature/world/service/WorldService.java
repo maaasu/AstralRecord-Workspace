@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
+import io.github.maaasu.astralRecord.feature.world.model.WorldSpawnLocation;
 import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
@@ -23,8 +24,10 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.File;
+import java.nio.file.Path;
 import java.time.Duration;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
@@ -40,10 +43,11 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 /**
- * WorldMasterData をロードし、Plugin 内で保持するサービスです。
+ * WorldMasterData と system/_temp の一時ワールド定義をロードし、Plugin 内で保持するサービスです。
  */
 public class WorldService {
     private static final String DEFAULT_BOSS_FIELD_DISPLAY_NAME = "ボスフィールド";
+    private static final String TEMP_WORLD_DISPLAY_PREFIX = "[temp]";
 
     private static final long TELEPORT_PREPARE_DELAY_TICKS = 2L;
     private static final long TELEPORT_RESUME_DELAY_TICKS = 10L;
@@ -53,6 +57,7 @@ public class WorldService {
     private final WorldRepository repository;
     private final Supplier<File> worldContainerSupplier;
     private final Supplier<Collection<org.bukkit.World>> bukkitWorldsSupplier;
+    private final Supplier<File> tempWorldRootSupplier;
     private volatile Map<String, WorldMasterData> loadedWorlds = Map.of();
     private final Map<String, org.bukkit.World> resolvedBukkitWorldsById = new LinkedHashMap<>();
     private final Map<UUID, String> worldIdByBukkitWorldId = new LinkedHashMap<>();
@@ -65,14 +70,14 @@ public class WorldService {
      * @param repository WorldMasterData リポジトリ
      */
     public WorldService(@NotNull WorldRepository repository) {
-        this(repository, Bukkit::getWorldContainer, Bukkit::getWorlds);
+        this(repository, Bukkit::getWorldContainer, Bukkit::getWorlds, WorldService::defaultTempWorldRoot);
     }
 
     WorldService(
             @NotNull WorldRepository repository,
             @NotNull Supplier<File> worldContainerSupplier
     ) {
-        this(repository, worldContainerSupplier, List::of);
+        this(repository, worldContainerSupplier, List::of, () -> null);
     }
 
     WorldService(
@@ -80,13 +85,24 @@ public class WorldService {
             @NotNull Supplier<File> worldContainerSupplier,
             @NotNull Supplier<Collection<org.bukkit.World>> bukkitWorldsSupplier
     ) {
+        this(repository, worldContainerSupplier, bukkitWorldsSupplier, () -> null);
+    }
+
+    WorldService(
+            @NotNull WorldRepository repository,
+            @NotNull Supplier<File> worldContainerSupplier,
+            @NotNull Supplier<Collection<org.bukkit.World>> bukkitWorldsSupplier,
+            @NotNull Supplier<File> tempWorldRootSupplier
+    ) {
         this.repository = repository;
         this.worldContainerSupplier = worldContainerSupplier;
         this.bukkitWorldsSupplier = bukkitWorldsSupplier;
+        this.tempWorldRootSupplier = tempWorldRootSupplier;
     }
 
     /**
-     * WorldMasterData を API から全件ロードし、autoLoad が有効なワールドだけ Bukkit ワールドとして読み込みます。
+     * WorldMasterData を API から全件ロードし、system/_temp の一時ワールドも検出して、
+     * autoLoad が有効なワールドを Bukkit ワールドとして読み込みます。
      *
      * @return WorldMasterData のロード件数
      */
@@ -98,12 +114,17 @@ public class WorldService {
     }
 
     /**
-     * WorldMasterData を API から取得し、公開前のスナップショットを作成します。
+     * WorldMasterData を API から取得し、system/_temp の一時ワールドを加えた公開前のスナップショットを作成します。
      *
      * @return 検証済み WorldMasterData スナップショット
      */
     public @NotNull DefinitionSnapshot loadDefinitionSnapshot() {
-        List<WorldMasterData> worlds = repository.findAll().stream()
+        List<WorldMasterData> worlds = new ArrayList<>(repository.findAll());
+        Set<String> occupiedWorldIds = worlds.stream()
+                .map(WorldMasterData::id)
+                .collect(Collectors.toCollection(LinkedHashSet::new));
+        discoverTempWorlds(occupiedWorldIds).forEach(worlds::add);
+        worlds = worlds.stream()
                 .sorted(Comparator.comparing(WorldMasterData::id))
                 .toList();
         validateOverworldTeleportGuiSlots(worlds);
@@ -175,7 +196,7 @@ public class WorldService {
     }
 
     /**
-     * ロード済み WorldMasterData 一覧を返します。
+     * ロード済み WorldMasterData 一覧を返します。一時ワールドの合成定義も含みます。
      *
      * @return WorldMasterData 一覧
      */
@@ -206,6 +227,50 @@ public class WorldService {
     @Nullable
     public synchronized WorldMasterData getById(@NotNull String worldId) {
         return loadedWorlds.get(worldId);
+    }
+
+    /**
+     * コマンド入力からワールド定義を解決します。
+     * 一時ワールドは予測変換に表示する {@code [temp]ワールド名} と、タグのない実ワールド名の両方を受け付けます。
+     *
+     * @param worldName コマンドへ入力されたワールド名またはワールド ID
+     * @return 対応する定義。未解決の場合は {@code null}
+     */
+    @Nullable
+    public synchronized WorldMasterData getByCommandName(@NotNull String worldName) {
+        String normalized = worldName.trim();
+        WorldMasterData temporaryByTaggedName = loadedWorlds.values().stream()
+                .filter(this::isTemporaryWorld)
+                .filter(world -> commandWorldName(world).equals(normalized))
+                .findFirst()
+                .orElse(null);
+        if (temporaryByTaggedName != null) {
+            return temporaryByTaggedName;
+        }
+
+        WorldMasterData direct = loadedWorlds.get(normalized);
+        if (direct != null) {
+            return direct;
+        }
+
+        return loadedWorlds.values().stream()
+                .filter(this::isTemporaryWorld)
+                .filter(world -> temporaryWorldName(world).equals(normalized))
+                .findFirst()
+                .orElse(null);
+    }
+
+    /**
+     * {@code /world tp} と {@code /wtp} が表示するワールド名一覧を返します。
+     *
+     * @return コマンド入力として使用できるワールド名一覧
+     */
+    @NotNull
+    public synchronized List<String> getCommandWorldNames() {
+        return loadedWorlds.values().stream()
+                .map(this::commandWorldName)
+                .distinct()
+                .toList();
     }
 
     /**
@@ -400,6 +465,7 @@ public class WorldService {
 
     /**
      * WorldMasterData のスポーン地点を Bukkit Location に変換します。
+     * TEMP の場合は、対応する Bukkit world の保存済み spawn 地点を返します。
      *
      * @param data WorldMasterData
      * @return スポーン地点。ワールド未ロード時は {@code null}
@@ -411,12 +477,12 @@ public class WorldService {
             return null;
         }
 
-        var spawn = data.spawnLocation();
-        return new Location(world, spawn.x(), spawn.y(), spawn.z(), spawn.yaw(), spawn.pitch());
+        return resolveSpawnLocation(data, world);
     }
 
     /**
      * WorldMasterData のスポーン地点を Bukkit Location に変換します。
+     * TEMP の場合は、対応する Bukkit world の保存済み spawn 地点を返します。
      * 対応する Bukkit ワールドが未ロードの場合は、baseWorldPath からオンデマンドでロードします。
      *
      * @param data WorldMasterData
@@ -429,8 +495,7 @@ public class WorldService {
             return null;
         }
 
-        var spawn = data.spawnLocation();
-        return new Location(world, spawn.x(), spawn.y(), spawn.z(), spawn.yaw(), spawn.pitch());
+        return resolveSpawnLocation(data, world);
     }
 
     /**
@@ -447,11 +512,12 @@ public class WorldService {
 
     /**
      * 指定した Bukkit ワールド内の WorldMasterData スポーン地点へプレイヤーを移動します。
+     * TEMP の場合は、指定ワールドの保存済み spawn 地点へ移動します。
      * 同一マスターから複数の runtime world が存在する場合でも、指定ワールドを転送先として使用します。
      *
      * @param player 移動対象プレイヤー
      * @param data 移動先 WorldMasterData
-     * @param targetWorld マスタースポーン座標を適用する Bukkit ワールド
+     * @param targetWorld 通常ワールドではマスタースポーン座標、TEMPでは保存済みspawn地点を適用する Bukkit ワールド
      * @return 移動に成功した場合は {@code true}
      */
     public boolean teleportToSpawnInWorld(
@@ -459,16 +525,21 @@ public class WorldService {
             @NotNull WorldMasterData data,
             @NotNull org.bukkit.World targetWorld
     ) {
-        var spawn = data.spawnLocation();
-        Location spawnLocation = new Location(
-                targetWorld,
-                spawn.x(),
-                spawn.y(),
-                spawn.z(),
-                spawn.yaw(),
-                spawn.pitch()
-        );
+        Location spawnLocation = resolveSpawnLocation(data, targetWorld);
         return teleportToSpawnLocation(player, spawnLocation);
+    }
+
+    @NotNull
+    private Location resolveSpawnLocation(
+            @NotNull WorldMasterData data,
+            @NotNull org.bukkit.World world
+    ) {
+        if (isTemporaryWorld(data)) {
+            return world.getSpawnLocation();
+        }
+
+        var spawn = data.spawnLocation();
+        return new Location(world, spawn.x(), spawn.y(), spawn.z(), spawn.yaw(), spawn.pitch());
     }
 
     private boolean teleportToSpawnLocation(
@@ -742,7 +813,9 @@ public class WorldService {
         org.bukkit.World existing = resolveLoadedWorld(data);
         if (existing != null) {
             Logger.log(LogId.D_5751, data.id(), existing.getName());
-            applyRpgGameRules(existing);
+            if (!isTemporaryWorld(data)) {
+                applyRpgGameRules(existing);
+            }
             return existing;
         }
 
@@ -768,7 +841,9 @@ public class WorldService {
                 return null;
             }
             cacheResolvedWorld(data, created);
-            applyRpgGameRules(created);
+            if (!isTemporaryWorld(data)) {
+                applyRpgGameRules(created);
+            }
             Logger.log(LogId.D_5751, data.id(), created.getName());
             return created;
         } catch (RuntimeException e) {
@@ -866,6 +941,117 @@ public class WorldService {
             }
         }
         return null;
+    }
+
+    private List<WorldMasterData> discoverTempWorlds(@NotNull Set<String> occupiedWorldIds) {
+        File root;
+        try {
+            root = tempWorldRootSupplier.get();
+        } catch (RuntimeException ignored) {
+            return List.of();
+        }
+        if (root == null || !root.isDirectory()) {
+            return List.of();
+        }
+
+        File[] children;
+        try {
+            children = root.listFiles(file -> file.isDirectory() && new File(file, "level.dat").isFile());
+        } catch (SecurityException ignored) {
+            return List.of();
+        }
+        if (children == null) {
+            return List.of();
+        }
+
+        List<WorldMasterData> worlds = new ArrayList<>();
+        Arrays.sort(children, Comparator.comparing(File::getName));
+        for (File child : children) {
+            WorldMasterData world = createTempWorldData(child, occupiedWorldIds);
+            if (world != null) {
+                worlds.add(world);
+            }
+        }
+        return worlds;
+    }
+
+    @Nullable
+    private WorldMasterData createTempWorldData(
+            @NotNull File worldFolder,
+            @NotNull Set<String> occupiedWorldIds
+    ) {
+        String worldName = worldFolder.getName().trim();
+        if (worldName.isBlank()) {
+            return null;
+        }
+
+        String id = TEMP_WORLD_DISPLAY_PREFIX + worldName;
+        int suffix = 2;
+        while (!occupiedWorldIds.add(id)) {
+            id = TEMP_WORLD_DISPLAY_PREFIX + worldName + "#" + suffix++;
+        }
+
+        return new WorldMasterData(
+                1,
+                id,
+                TEMP_WORLD_DISPLAY_PREFIX + worldName,
+                WorldType.TEMP,
+                worldPath(worldFolder),
+                "",
+                true,
+                false,
+                0,
+                false,
+                false,
+                false,
+                false,
+                WorldSpawnLocation.defaultLocation(),
+                "",
+                null,
+                null,
+                null,
+                null
+        );
+    }
+
+    @NotNull
+    private String worldPath(@NotNull File worldFolder) {
+        Path container = worldContainerSupplier.get().toPath().toAbsolutePath().normalize();
+        Path absoluteFolder = worldFolder.toPath().toAbsolutePath().normalize();
+        if (absoluteFolder.startsWith(container)) {
+            return normalizeWorldPath(container.relativize(absoluteFolder).toString());
+        }
+        return normalizeWorldPath(absoluteFolder.toString());
+    }
+
+    private boolean isTemporaryWorld(@NotNull WorldMasterData world) {
+        return world.worldType() == WorldType.TEMP;
+    }
+
+    @NotNull
+    private String commandWorldName(@NotNull WorldMasterData world) {
+        if (isTemporaryWorld(world)) {
+            return world.displayName();
+        }
+        return world.id();
+    }
+
+    @NotNull
+    private String temporaryWorldName(@NotNull WorldMasterData world) {
+        String displayName = world.displayName();
+        if (displayName.startsWith(TEMP_WORLD_DISPLAY_PREFIX)) {
+            return displayName.substring(TEMP_WORLD_DISPLAY_PREFIX.length());
+        }
+        return new File(normalizeWorldPath(world.baseWorldPath())).getName();
+    }
+
+    @Nullable
+    private static File defaultTempWorldRoot() {
+        AstralRecord plugin = AstralRecord.getInstance();
+        if (plugin == null || plugin.getDataFolder() == null) {
+            return null;
+        }
+        return new File(plugin.getDataFolder(), "worlds/system/_temp");
     }
 
     /**

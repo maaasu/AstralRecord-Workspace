@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.world.event;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
+import io.github.maaasu.astralRecord.feature.world.model.WorldType;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import org.bukkit.Bukkit;
 import org.bukkit.Chunk;
@@ -154,6 +155,6 @@ public class WorldNaturalSpawnBlockEventHandler extends AbstractEventHandler {
 
     private boolean isManagedWorld(@NotNull World world) {
         WorldMasterData worldData = worldService.findByBukkitWorld(world);
-        return worldData != null;
+        return worldData != null && worldData.worldType() != WorldType.TEMP;
     }
 }

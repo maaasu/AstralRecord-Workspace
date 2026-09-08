@@ -16,7 +16,9 @@ public enum WorldType {
     /** 特定の敵が特定数湧くダンジョン。 */
     DUNGEON("ダンジョン"),
     /** 特定ボスが湧くボス戦フィールド。 */
-    BOSS_FIELD("ボスフィールド");
+    BOSS_FIELD("ボスフィールド"),
+    /** マスターデータ管理外の一時ワールド。 */
+    TEMP("一時ワールド");
 
     private final String regionDisplayName;
 

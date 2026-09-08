@@ -9,15 +9,19 @@ import io.github.maaasu.astralRecord.feature.world.repository.WorldRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.shared.teleport.PlayerTeleportService;
 import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
+import org.bukkit.Bukkit;
 import org.bukkit.GameRules;
 import org.bukkit.Location;
 import org.bukkit.World;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.mockbukkit.mockbukkit.entity.PlayerMock;
 import org.mockito.MockedStatic;
 import org.mockito.Mockito;
 
 import java.io.File;
+import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -389,6 +393,148 @@ class WorldServiceDesignTest extends MockBukkitTestBase {
         service.registerRuntimeWorld(runtimeWorld, fieldData);
 
         assertEquals("ボスフィールド", service.resolveDisplayName(runtimeWorld));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## 定義 snapshot 読み込み・反映
+     * 検証契約: system/_temp直下のlevel.datを持つワールドはAPI・filebaseの定義なしでsnapshotへ追加され、
+     *       [temp]表示名とTEMP種別を持つ。
+     */
+    @Test
+    void discoversTempWorldsWithoutMasterData(@TempDir Path tempDirectory) throws Exception {
+        WorldRepository repository = mock(WorldRepository.class);
+        Path tempRoot = tempDirectory.resolve("plugins/AstralRecord/worlds/system/_temp");
+        Path tempWorld = tempRoot.resolve("builder_preview");
+        Files.createDirectories(tempWorld);
+        Files.createFile(tempWorld.resolve("level.dat"));
+        Files.createDirectories(tempRoot.resolve("not_a_world"));
+
+        WorldService service = new WorldService(
+                repository,
+                () -> tempDirectory.toFile(),
+                List::of,
+                () -> tempRoot.toFile()
+        );
+        when(repository.findAll()).thenReturn(List.of());
+
+        WorldService.DefinitionSnapshot snapshot = service.loadDefinitionSnapshot();
+
+        assertEquals(List.of("[temp]builder_preview"), snapshot.worlds().stream().map(WorldMasterData::id).toList());
+        WorldMasterData data = snapshot.worlds().getFirst();
+        assertEquals(WorldType.TEMP, data.worldType());
+        assertEquals("[temp]builder_preview", data.displayName());
+        assertEquals("plugins/AstralRecord/worlds/system/_temp/builder_preview", data.baseWorldPath());
+        assertTrue(data.autoLoad());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-コマンド.md
+     * 章・見出し: # 17_3-コマンド > ## 補完と登録
+     * 検証契約: 一時ワールドの予測変換名は[temp]付きで、タグ付き入力と素のワールド名の双方が同じ定義へ解決される。
+     */
+    @Test
+    void tempWorldCommandNamesUseTaggedDisplayAndResolveBothForms(@TempDir Path tempDirectory) throws Exception {
+        WorldRepository repository = mock(WorldRepository.class);
+        Path tempRoot = tempDirectory.resolve("plugins/AstralRecord/worlds/system/_temp");
+        Path tempWorld = tempRoot.resolve("builder_preview");
+        Files.createDirectories(tempWorld);
+        Files.createFile(tempWorld.resolve("level.dat"));
+
+        WorldService service = new WorldService(
+                repository,
+                () -> tempDirectory.toFile(),
+                List::of,
+                () -> tempRoot.toFile()
+        );
+        when(repository.findAll()).thenReturn(List.of());
+        WorldService.DefinitionSnapshot snapshot = service.loadDefinitionSnapshot();
+        try (MockedStatic<io.github.maaasu.astralRecord.infrastructure.logging.Logger> logger =
+                     Mockito.mockStatic(io.github.maaasu.astralRecord.infrastructure.logging.Logger.class)) {
+            service.replaceDefinitionSnapshot(snapshot);
+        }
+
+        WorldMasterData expected = snapshot.worlds().getFirst();
+        assertEquals(List.of("[temp]builder_preview"), service.getCommandWorldNames());
+        assertSame(expected, service.getByCommandName("[temp]builder_preview"));
+        assertSame(expected, service.getByCommandName("builder_preview"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_1-モデル定義.md
+     * 章・見出し: # 17_1-モデル定義 > ## 補助モデル > ### 一時ワールド定義
+     * 検証契約: 一時ワールドの内部IDは通常のmaster IDと衝突せず、同名でもTEMP定義をsnapshotへ追加する。
+     */
+    @Test
+    void tempWorldIsNotDroppedWhenFolderNameMatchesMasterId(@TempDir Path tempDirectory) throws Exception {
+        WorldRepository repository = mock(WorldRepository.class);
+        Path tempRoot = tempDirectory.resolve("plugins/AstralRecord/worlds/system/_temp");
+        Path tempWorld = tempRoot.resolve("builder_preview");
+        Files.createDirectories(tempWorld);
+        Files.createFile(tempWorld.resolve("level.dat"));
+
+        WorldService service = new WorldService(
+                repository,
+                () -> tempDirectory.toFile(),
+                List::of,
+                () -> tempRoot.toFile()
+        );
+        WorldMasterData master = world(
+                "builder_preview",
+                "Builder Preview Master",
+                WorldType.BASE,
+                "builder_preview",
+                WorldSpawnLocation.defaultLocation(),
+                false
+        );
+        when(repository.findAll()).thenReturn(List.of(master));
+
+        WorldService.DefinitionSnapshot snapshot = service.loadDefinitionSnapshot();
+
+        assertEquals(2, snapshot.worlds().size());
+        assertTrue(snapshot.worlds().stream().anyMatch(world -> world.id().equals("builder_preview")));
+        WorldMasterData temp = snapshot.worlds().stream()
+                .filter(world -> world.worldType() == WorldType.TEMP)
+                .findFirst()
+                .orElseThrow();
+        assertEquals("[temp]builder_preview", temp.id());
+        assertEquals("[temp]builder_preview", temp.displayName());
+        try (MockedStatic<io.github.maaasu.astralRecord.infrastructure.logging.Logger> logger =
+                     Mockito.mockStatic(io.github.maaasu.astralRecord.infrastructure.logging.Logger.class)) {
+            service.replaceDefinitionSnapshot(snapshot);
+        }
+        assertSame(temp, service.getByCommandName("[temp]builder_preview"));
+        assertSame(master, service.getByCommandName("builder_preview"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/3-メソッド仕様/17_3-サービス.md
+     * 章・見出し: # 17_3-サービス > ## スポーン地点解決・転送
+     * 検証契約: TEMPワールドはmasterの固定座標ではなく、ロード済みBukkit worldのspawn地点を転送先にする。
+     */
+    @Test
+    void tempWorldUsesBukkitSpawnLocation() {
+        WorldRepository repository = mock(WorldRepository.class);
+        WorldService service = new WorldService(repository, () -> new File("target/test-world-container"));
+        World loadedWorld = mock(World.class);
+        Location bukkitSpawn = new Location(loadedWorld, 21.5D, 82.0D, -7.5D, 135.0F, 12.0F);
+        when(loadedWorld.getUID()).thenReturn(java.util.UUID.randomUUID());
+        when(loadedWorld.getSpawnLocation()).thenReturn(bukkitSpawn);
+        WorldMasterData temp = world(
+                "[temp]temp_spawn",
+                "[temp]temp_spawn",
+                WorldType.TEMP,
+                "temp_spawn",
+                WorldSpawnLocation.defaultLocation()
+        );
+
+        try (MockedStatic<Bukkit> bukkit = Mockito.mockStatic(Bukkit.class)) {
+            bukkit.when(() -> Bukkit.getWorld("temp_spawn")).thenReturn(loadedWorld);
+
+            Location resolved = service.resolveSpawnLocation(temp);
+
+            assertSame(bukkitSpawn, resolved);
+        }
     }
 
     /**

@@ -1,7 +1,6 @@
 package io.github.maaasu.astralRecord.feature.world.command;
 
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
-import io.github.maaasu.astralRecord.feature.world.model.WorldMasterData;
 import io.github.maaasu.astralRecord.feature.world.service.WorldService;
 import io.github.maaasu.astralRecord.infrastructure.command.AstTabCompleter;
 import org.jetbrains.annotations.NotNull;
@@ -31,7 +30,7 @@ public class WorldTabCompleter extends AstTabCompleter {
             return List.of("list", "info", "tp", "loaded", "reload");
         }
         if (args.length == 2 && ("info".equalsIgnoreCase(args[0]) || "tp".equalsIgnoreCase(args[0]))) {
-            return worldService.getAll().stream().map(WorldMasterData::id).toList();
+            return worldService.getCommandWorldNames();
         }
         return List.of();
     }

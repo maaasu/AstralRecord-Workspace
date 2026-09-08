@@ -22,6 +22,7 @@ class AdminWorldTeleportGuiTest extends MockBukkitTestBase {
      * 設計入力: 00_docs/10_Plugin設計書/feature/17-world/17_1-モデル定義.md
      * 章・見出し: # 17_1-モデル定義 > ## WorldMasterData
      * 検証契約: 管理者用ワールド一覧は master の日本語表示名を使い、内部 world ID を表示名へ露出しない。
+     * 一時ワールドは [temp] 付きの合成表示名をそのまま表示する。
      */
     @Test
     void displaysJapaneseWorldNamesWithoutWorldIds() {
@@ -31,19 +32,22 @@ class AdminWorldTeleportGuiTest extends MockBukkitTestBase {
         gui.open(player, List.of(
                 world("base_world", "星灯りの拠点", WorldType.BASE),
                 world("ancient_dungeon", "古代遺跡", WorldType.DUNGEON),
-                world("boss_field", "", WorldType.BOSS_FIELD)
+                world("boss_field", "", WorldType.BOSS_FIELD),
+                world("temp_preview", "[temp]temp_preview", WorldType.TEMP)
         ));
 
         Inventory inventory = player.getOpenInventory().getTopInventory();
         assertEquals("星灯りの拠点", plainName(inventory, 0));
         assertEquals("古代遺跡", plainName(inventory, 1));
         assertEquals("ボスフィールド", plainName(inventory, 2));
+        assertEquals("[temp]temp_preview", plainName(inventory, 3));
         assertFalse(plainName(inventory, 0).contains("base_world"));
 
         AdminWorldTeleportGui.Holder holder = (AdminWorldTeleportGui.Holder) inventory.getHolder();
         assertEquals("base_world", holder.worldIdsBySlot().get(0));
         assertEquals("ancient_dungeon", holder.worldIdsBySlot().get(1));
         assertEquals("boss_field", holder.worldIdsBySlot().get(2));
+        assertEquals("temp_preview", holder.worldIdsBySlot().get(3));
     }
 
     /**
