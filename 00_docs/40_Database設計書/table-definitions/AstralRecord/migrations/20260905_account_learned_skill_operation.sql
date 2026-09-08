@@ -79,6 +79,17 @@ BEGIN
 END;
 
 IF NOT EXISTS (
+    SELECT 1 FROM sys.check_constraints
+    WHERE [name] = N'CK_account_learned_skill_operation_result_payload_json'
+      AND [parent_object_id] = OBJECT_ID(N'[dbo].[account_learned_skill_operation]')
+)
+BEGIN
+    ALTER TABLE [dbo].[account_learned_skill_operation]
+        ADD CONSTRAINT [CK_account_learned_skill_operation_result_payload_json]
+        CHECK (ISJSON([result_payload_json]) = 1);
+END;
+
+IF NOT EXISTS (
     SELECT 1 FROM sys.indexes
     WHERE [name] = N'IX_account_learned_skill_operation_account_created_at'
       AND [object_id] = OBJECT_ID(N'[dbo].[account_learned_skill_operation]')
