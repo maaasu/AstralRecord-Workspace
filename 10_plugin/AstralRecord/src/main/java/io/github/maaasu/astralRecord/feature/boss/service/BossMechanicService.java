@@ -93,6 +93,11 @@ public final class BossMechanicService {
     private static final double SUNBIRD_BIRD_METEOR_DAMAGE_RATIO = 30.0D;
     private static final double SUNBIRD_BIRD_METEOR_ACCURACY_BONUS = 1000.0D;
     private static final long SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS = 80L;
+    private static final long SUNBIRD_BIRD_METEOR_CHARGE_TICKS = 100L;
+    private static final double SUNBIRD_BIRD_METEOR_CHARGE_RADIUS = 2.5D;
+    private static final int SUNBIRD_BIRD_METEOR_CHARGE_RING_POINT_COUNT = 28;
+    private static final int SUNBIRD_BIRD_METEOR_CHARGE_SPIRAL_POINT_COUNT = 24;
+    private static final double SUNBIRD_BIRD_METEOR_CHARGE_HEIGHT = 2.2D;
     private static final int SUNBIRD_NOVA_DISPLAY_COUNT = 12;
     private static final int SUNBIRD_NOVA_INNER_RING_POINT_COUNT = 36;
     private static final int SUNBIRD_NOVA_MIDDLE_RING_POINT_COUNT = 48;
@@ -122,6 +127,7 @@ public final class BossMechanicService {
     private final Map<UUID, BossRuntime> runtimes = new HashMap<>();
     private final List<PendingMechanic> pendingMechanics = new ArrayList<>();
     private final List<PendingMechanic> deferredPendingMechanics = new ArrayList<>();
+    private final Map<UUID, BirdMeteorChargeState> birdMeteorChargeStates = new HashMap<>();
     private final Map<UUID, BirdMeteorState> birdMeteorStates = new HashMap<>();
     private @Nullable TemporarySkillEffectService temporarySkillEffectService;
 
@@ -171,6 +177,7 @@ public final class BossMechanicService {
             destroySummons(runtime);
             cleanupAldaExposure(bossInstanceId, runtime);
         }
+        finishBirdMeteorCharge(bossInstanceId);
         removePendingForBoss(bossInstanceId);
     }
 
@@ -192,6 +199,9 @@ public final class BossMechanicService {
         deferredPendingMechanics.clear();
         for (UUID bossInstanceId : List.copyOf(birdMeteorStates.keySet())) {
             finishBirdMeteor(bossInstanceId);
+        }
+        for (UUID bossInstanceId : List.copyOf(birdMeteorChargeStates.keySet())) {
+            finishBirdMeteorCharge(bossInstanceId);
         }
         for (BossRuntime runtime : runtimes.values()) {
             destroySummons(runtime);
@@ -233,6 +243,7 @@ public final class BossMechanicService {
                 runtime.phase = observedPhase;
                 handlePhaseTransition(profile, boss, entity, runtime);
             }
+            processBirdMeteorCharge(boss);
             processAldaExposure(boss, entity, runtime);
             processSunbirdArena(boss, entity, runtime);
             processSunbirdTeleport(boss, entity, runtime);
@@ -260,6 +271,7 @@ public final class BossMechanicService {
             }
             destroySummons(entry.getValue());
             cleanupAldaExposure(entry.getKey(), entry.getValue());
+            finishBirdMeteorCharge(entry.getKey());
             removePendingForBoss(entry.getKey());
             iterator.remove();
         }
@@ -283,15 +295,17 @@ public final class BossMechanicService {
 
         Location center = boss.spawnLocation();
         boolean birdMeteorActive = isBirdMeteorActive(boss.instanceId());
+        boolean birdMeteorCharging = isBirdMeteorCharging(boss.instanceId());
         if (clockTicks >= runtime.nextArenaPulseTick) {
             renderSunbirdArenaBoundary(center);
-            if (!birdMeteorActive) {
+            if (!birdMeteorActive && !birdMeteorCharging) {
                 damagePlayersOutsideSunbirdArena(boss, center);
             }
             runtime.nextArenaPulseTick = clockTicks + SUNBIRD_ARENA_PULSE_INTERVAL_TICKS;
         }
 
         if (birdMeteorActive
+            || birdMeteorCharging
             || boss.scriptedAction()
             || horizontalDistanceSquared(entity.getLocation(), center) <= SUNBIRD_ARENA_RADIUS * SUNBIRD_ARENA_RADIUS) {
             return;
@@ -667,7 +681,7 @@ public final class BossMechanicService {
     /**
      * ボスのHPフェーズ遷移に伴う固有ギミックとシールド再展開を処理します。
      *
-     * <p>サンバードの30%境界ではバードメテオを開始して終了し、シールドを増加・再展開しません。
+     * <p>サンバードの30%境界ではバードメテオの事前チャージを開始して終了し、シールドを増加・再展開しません。
      * それ以外の対象では、有効なシールドを現在の表示容量まで再展開した後、フェーズ固有の演出を処理します。</p>
      *
      * <p>呼び出し元はメインスレッド上で、{@code runtime.phase} を更新済みの状態で実行する必要があります。
@@ -690,16 +704,10 @@ public final class BossMechanicService {
             runtime.finalPhaseTriggered = true;
             removePendingForBoss(boss.instanceId());
             boss.scriptedAction(true);
-            mobService.resetPosition(boss, boss.spawnLocation());
-            Entity resetEntity = mobService.entityController().getEntity(boss);
             Location anchor = boss.spawnLocation();
-            Vector direction = resetEntity == null
-                ? new Vector(0.0D, 0.0D, 1.0D)
-                : resetEntity.getFacing().getDirection();
-            startBirdMeteor(boss, anchor);
-            addPending(boss, BossMechanicProfile.Mechanic.SUNBIRD_BIRD_METEOR, anchor, direction,
-                SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS);
-            runtime.nextActionTick = clockTicks + SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS + 20L;
+            startBirdMeteorCharge(boss, anchor);
+            runtime.nextActionTick = clockTicks + SUNBIRD_BIRD_METEOR_CHARGE_TICKS
+                + SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS + 20L;
             return;
         }
 
@@ -746,6 +754,112 @@ public final class BossMechanicService {
             boss.instanceId(),
             new BirdMeteorState(randomBirdMeteorSafeZoneCenter(arenaCenter), bossBar)
         );
+    }
+
+    /**
+     * バードメテオ開始前の5秒間、サンバードを上空へ固定して吸収演出を開始します。
+     *
+     * @param boss 対象ボス
+     * @param arenaCenter バードメテオの攻撃範囲中心
+     */
+    private void startBirdMeteorCharge(
+        @NotNull MobInstance boss,
+        @NotNull Location arenaCenter
+    ) {
+        finishBirdMeteorCharge(boss.instanceId());
+        finishBirdMeteor(boss.instanceId());
+        Location chargeLocation = arenaCenter.clone().add(0.0D, 5.0D, 0.0D);
+        boss.damageImmune(true);
+        Entity entity = mobService.entityController().getEntity(boss);
+        if (entity != null && entity.isValid()) {
+            entity.setInvulnerable(true);
+        }
+        mobService.resetPosition(boss, chargeLocation);
+        birdMeteorChargeStates.put(
+            boss.instanceId(),
+            new BirdMeteorChargeState(arenaCenter, chargeLocation, clockTicks + SUNBIRD_BIRD_METEOR_CHARGE_TICKS)
+        );
+        renderSunbirdBirdMeteorCharge(chargeLocation);
+    }
+
+    /**
+     * バードメテオ開始前のチャージ時間を進行させ、終了時に本来の予兆を開始します。
+     *
+     * @param boss チャージ中のボス
+     */
+    private void processBirdMeteorCharge(@NotNull MobInstance boss) {
+        BirdMeteorChargeState state = birdMeteorChargeStates.get(boss.instanceId());
+        if (state == null) {
+            return;
+        }
+        if (clockTicks >= state.finishTick()) {
+            birdMeteorChargeStates.remove(boss.instanceId());
+            mobService.resetPosition(boss, state.arenaCenter());
+            Entity entity = mobService.entityController().getEntity(boss);
+            Vector direction = entity == null
+                ? new Vector(0.0D, 0.0D, 1.0D)
+                : entity.getFacing().getDirection();
+            startBirdMeteor(boss, state.arenaCenter());
+            addPending(
+                boss,
+                BossMechanicProfile.Mechanic.SUNBIRD_BIRD_METEOR,
+                state.arenaCenter(),
+                direction,
+                SUNBIRD_BIRD_METEOR_TELEGRAPH_TICKS
+            );
+            return;
+        }
+
+        mobService.resetPosition(boss, state.chargeLocation());
+        renderSunbirdBirdMeteorCharge(state.chargeLocation());
+    }
+
+    /**
+     * サンバードがバードメテオ開始前のチャージ中か判定します。
+     *
+     * @param bossInstanceId 判定対象のボスインスタンスID
+     * @return チャージ中ならtrue
+     */
+    private boolean isBirdMeteorCharging(@NotNull UUID bossInstanceId) {
+        return birdMeteorChargeStates.containsKey(bossInstanceId);
+    }
+
+    /**
+     * バードメテオ開始前のチャージ演出を、周囲の閲覧者へ表示します。
+     *
+     * <p>下方の太陽粒子を回転させ、二本の炎の螺旋をボス位置へ収束させることで、
+     * エネルギーを吸収しているように見せます。</p>
+     *
+     * @param center チャージ中のサンバード位置
+     */
+    private void renderSunbirdBirdMeteorCharge(@NotNull Location center) {
+        List<Location> ringLocations = new ArrayList<>(SUNBIRD_BIRD_METEOR_CHARGE_RING_POINT_COUNT);
+        List<Location> spiralLocations = new ArrayList<>(SUNBIRD_BIRD_METEOR_CHARGE_SPIRAL_POINT_COUNT * 2);
+        double phase = clockTicks * 0.18D;
+        for (int index = 0; index < SUNBIRD_BIRD_METEOR_CHARGE_RING_POINT_COUNT; index++) {
+            double angle = phase + Math.PI * 2.0D * index / SUNBIRD_BIRD_METEOR_CHARGE_RING_POINT_COUNT;
+            ringLocations.add(center.clone().add(
+                Math.cos(angle) * SUNBIRD_BIRD_METEOR_CHARGE_RADIUS,
+                -1.8D,
+                Math.sin(angle) * SUNBIRD_BIRD_METEOR_CHARGE_RADIUS
+            ));
+        }
+        for (int strand = 0; strand < 2; strand++) {
+            for (int index = 0; index < SUNBIRD_BIRD_METEOR_CHARGE_SPIRAL_POINT_COUNT; index++) {
+                double progress = (index + 0.5D) / SUNBIRD_BIRD_METEOR_CHARGE_SPIRAL_POINT_COUNT;
+                double angle = phase * (strand == 0 ? 1.0D : -1.0D)
+                    + strand * Math.PI + progress * Math.PI * 3.0D;
+                double radius = SUNBIRD_BIRD_METEOR_CHARGE_RADIUS * (1.0D - progress * 0.88D);
+                double height = -1.8D + progress * SUNBIRD_BIRD_METEOR_CHARGE_HEIGHT;
+                spiralLocations.add(center.clone().add(
+                    Math.cos(angle) * radius,
+                    height,
+                    Math.sin(angle) * radius
+                ));
+            }
+        }
+        renderRange(center, ringLocations, SharedParticleDefinitions.SUNBIRD_SOLAR_DUST);
+        renderRange(center, spiralLocations, SharedParticleDefinitions.SUNBIRD_SOLAR_FLAME);
     }
 
     /**
@@ -802,11 +916,35 @@ public final class BossMechanicService {
         if (boss == null) {
             return;
         }
+        restoreTemplateDamageImmunity(boss);
+    }
+
+    /**
+     * チャージまたはバードメテオ終了後に、Mob定義の無敵設定へ戻します。
+     *
+     * @param boss 対象ボス
+     */
+    private void restoreTemplateDamageImmunity(@NotNull MobInstance boss) {
         boolean templateDamageImmune = boss.template().damageImmune();
         boss.damageImmune(templateDamageImmune);
         Entity entity = mobService.entityController().getEntity(boss);
         if (entity != null && entity.isValid()) {
             entity.setInvulnerable(templateDamageImmune);
+        }
+    }
+
+    /**
+     * バードメテオ開始前のチャージ状態を解除します。
+     *
+     * @param bossInstanceId 対象ボスのインスタンスID
+     */
+    private void finishBirdMeteorCharge(@NotNull UUID bossInstanceId) {
+        if (birdMeteorChargeStates.remove(bossInstanceId) == null) {
+            return;
+        }
+        MobInstance boss = mobService.getInstance(bossInstanceId);
+        if (boss != null) {
+            restoreTemplateDamageImmunity(boss);
         }
     }
 
@@ -2475,6 +2613,17 @@ public final class BossMechanicService {
     ) {
         private BirdMeteorState {
             safeZoneCenter = safeZoneCenter.clone();
+        }
+    }
+
+    private record BirdMeteorChargeState(
+        @NotNull Location arenaCenter,
+        @NotNull Location chargeLocation,
+        long finishTick
+    ) {
+        private BirdMeteorChargeState {
+            arenaCenter = arenaCenter.clone();
+            chargeLocation = chargeLocation.clone();
         }
     }
 
