@@ -303,6 +303,10 @@ public final class SharedParticleDefinitions {
         new SharedParticleDefinition("hookshot_trail", Particle.ELECTRIC_SPARK, 1, 0.01D, 0.01D, 0.01D, 0.0D);
     public static final SharedParticleDefinition HOOKSHOT_ANCHOR =
         new SharedParticleDefinition("hookshot_anchor", Particle.CRIT, 8, 0.12D, 0.12D, 0.12D, 0.04D);
+    public static final SharedParticleDefinition FISHING_ROD_TRAIL =
+        new SharedParticleDefinition("fishing_rod_trail", Particle.END_ROD, 1, 0.01D, 0.01D, 0.01D, 0.0D);
+    public static final SharedParticleDefinition FISHING_ROD_HOOK =
+        new SharedParticleDefinition("fishing_rod_hook", Particle.CRIT, 6, 0.08D, 0.08D, 0.08D, 0.02D);
     public static final SharedParticleDefinition SKILLTREE_TARGET_ENCHANT =
         new SharedParticleDefinition("skilltree_target_enchant", Particle.ENCHANT, 2, 0.10D, 0.10D, 0.10D, 0.01D);
     public static final SharedParticleDefinition SKILLTREE_TARGET_LOCKED_DUST =

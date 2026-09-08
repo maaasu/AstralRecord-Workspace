@@ -63,6 +63,7 @@ import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWaitService
 import io.github.maaasu.astralRecord.feature.hud.event.AdminMessageBossBarEventHandler;
 import io.github.maaasu.astralRecord.feature.hud.service.AdminMessageBossBarService;
 import io.github.maaasu.astralRecord.feature.hud.service.PlayerHudService;
+import io.github.maaasu.astralRecord.feature.item.event.DebugFishingRodInteractionEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.HookshotInteractionEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemInteractionBlockEventHandler;
 import io.github.maaasu.astralRecord.feature.item.event.ItemAdminGuiEventHandler;
@@ -75,6 +76,7 @@ import io.github.maaasu.astralRecord.feature.item.service.BundleUseEffectService
 import io.github.maaasu.astralRecord.feature.item.service.BundleUseService;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityService;
 import io.github.maaasu.astralRecord.feature.item.service.EquipmentDurabilityReminderTask;
+import io.github.maaasu.astralRecord.feature.item.service.DebugFishingRodUseService;
 import io.github.maaasu.astralRecord.feature.item.service.HookshotUseService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemDropAnimationService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemChatShareService;
@@ -449,6 +451,7 @@ public final class AstralRecord extends JavaPlugin {
     private ItemWeaponAttackService itemWeaponAttackService;
     private EquipmentDurabilityService equipmentDurabilityService;
     private EquipmentDurabilityReminderTask equipmentDurabilityReminderTask;
+    private DebugFishingRodUseService debugFishingRodUseService;
     private HookshotUseService hookshotUseService;
     private OrbService orbService;
     private WorldService worldService;
@@ -784,6 +787,9 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (hookshotUseService != null) {
             hookshotUseService.shutdown();
+        }
+        if (debugFishingRodUseService != null) {
+            debugFishingRodUseService.shutdown();
         }
         if (activeSkillTaskService != null) {
             activeSkillTaskService.stop();
@@ -1129,6 +1135,13 @@ public final class AstralRecord extends JavaPlugin {
         statusService = new StatusService(itemService, inventoryService);
         statusService.setPlayerClassService(playerClassService);
         statusService.setSkillTreeService(skillTreeService);
+        debugFishingRodUseService = new DebugFishingRodUseService(
+            this,
+            inventoryService,
+            itemService,
+            statusService,
+            particleDisplayService
+        );
         buffAcquisitionDisplayService = new BuffAcquisitionDisplayService(displayTextService);
         potionUseService = new PotionUseService(
             movementCancelableWaitService,
@@ -1933,8 +1946,10 @@ public final class AstralRecord extends JavaPlugin {
             potionUseService
         );
         var hookshotInteractionEventHandler = new HookshotInteractionEventHandler(hookshotUseService);
+        var debugFishingRodInteractionEventHandler = new DebugFishingRodInteractionEventHandler(debugFishingRodUseService);
         eventManager.registerHandler(itemInteractionBlockEventHandler, getServer().getPluginManager());
         eventManager.registerHandler(hookshotInteractionEventHandler, getServer().getPluginManager());
+        eventManager.registerHandler(debugFishingRodInteractionEventHandler, getServer().getPluginManager());
         menuOpenEventHandler = new MenuOpenEventHandler(
             this,
             menuView,
@@ -2173,6 +2188,7 @@ public final class AstralRecord extends JavaPlugin {
                     baseWorldSpawnTeleportEventHandler,
                     overworldSpawnReturnEventHandler,
                     hookshotInteractionEventHandler,
+                    debugFishingRodInteractionEventHandler,
                     adminWorldTeleportItemEventHandler,
                     itemInteractionBlockEventHandler,
                     menuOpenEventHandler,

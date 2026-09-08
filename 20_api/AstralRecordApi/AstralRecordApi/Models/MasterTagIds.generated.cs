@@ -52,6 +52,8 @@ public static class MasterTagIds
         public const string CARTOGRAPH = "CARTOGRAPH";
         /// <summary>フックショット。</summary>
         public const string HOOKSHOT = "HOOKSHOT";
+        /// <summary>釣り竿。</summary>
+        public const string FISHING_ROD = "FISHING_ROD";
     }
     /// <summary>機能種別タグ。</summary>
     public static class Activity
@@ -331,6 +333,7 @@ public static class MasterTags
                 ["MAIN_MENU"] = new("MAIN_MENU", "メインメニュー", "右クリックでメインメニューを開く装備。", "EQUIPMENT", ["EQUIPMENT"]),
                 ["CARTOGRAPH"] = new("CARTOGRAPH", "カルトグラフ", "ダンジョンの現在地図と踏破記録を閲覧する再利用可能な道具。", "EQUIPMENT", ["EQUIPMENT"]),
                 ["HOOKSHOT"] = new("HOOKSHOT", "フックショット", "フックを装填して固体ブロックへ射出し、使用者を物理的に牽引する道具。", "EQUIPMENT", ["EQUIPMENT"]),
+                ["FISHING_ROD"] = new("FISHING_ROD", "釣り竿", "釣り針を射出する道具。", "EQUIPMENT", ["EQUIPMENT"]),
                 ["active"] = new("active", "アクティブ", "能動的に発動するスキル。", "ACTIVITY", ["SKILL"]),
                 ["passive"] = new("passive", "パッシブ", "常時または条件付きで自動適用されるスキル。", "ACTIVITY", ["SKILL"]),
                 ["mob"] = new("mob", "Mob用", "Mob が使用するスキル。", "ACTIVITY", ["SKILL"]),
