@@ -518,10 +518,20 @@ public final class AstralRecordProxyPlugin {
     }
 
     private static Component accountDisplayName(PlayerMetadata value) {
-        Component accountName = Component.text(value.displayName(), NamedTextColor.GRAY);
-        return value.permission() == DONOR_PERMISSION
-            ? accountName.decorate(TextDecoration.BOLD).color(NamedTextColor.AQUA)
-            : accountName;
+        String displayName = value.displayName();
+        int slotSeparator = displayName.lastIndexOf('#');
+        boolean hasSlotSuffix = slotSeparator >= 0
+            && slotSeparator < displayName.length() - 1
+            && displayName.substring(slotSeparator + 1).chars().allMatch(Character::isDigit);
+        String accountName = hasSlotSuffix ? displayName.substring(0, slotSeparator) : displayName;
+        Component name = Component.text(accountName,
+            value.permission() == DONOR_PERMISSION ? NamedTextColor.AQUA : NamedTextColor.WHITE);
+        if (value.permission() == DONOR_PERMISSION) {
+            name = name.decorate(TextDecoration.BOLD);
+        }
+        return hasSlotSuffix
+            ? name.append(Component.text(displayName.substring(slotSeparator), NamedTextColor.GRAY))
+            : name;
     }
 
     private PlayerMetadata lobbyMetadata(Player player, String serverId) {
