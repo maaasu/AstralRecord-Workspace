@@ -56,6 +56,7 @@ public final class InventoryPersistence {
     private final Map<UUID, Set<UUID>> persistedLoadoutIds = new ConcurrentHashMap<>();
     private final Map<UUID, PlayerInventoryState> liveStates = new ConcurrentHashMap<>();
     private final Set<UUID> blockedSnapshots = ConcurrentHashMap.newKeySet();
+    private final Set<UUID> acknowledgementBlockedSnapshots = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Integer> snapshotAttempts = new ConcurrentHashMap<>();
     private final Map<UUID, Long> retryNotBefore = new ConcurrentHashMap<>();
     private final Map<UUID, Object> snapshotSaveLocks = new ConcurrentHashMap<>();
@@ -276,12 +277,7 @@ public final class InventoryPersistence {
         Long retryAt = retryNotBefore.get(accountId);
         if (retryAt != null && System.nanoTime() - retryAt < 0L) return true;
         try {
-            JsonObject ack = playerStateRepository.saveSnapshot(snapshot.payload);
-            try {
-                snapshot.validateAck(ack);
-            } catch (RuntimeException invalid) {
-                throw new PlayerStateAcknowledgementException(invalid);
-            }
+            JsonObject ack = saveAndResolveAcknowledgement(snapshot);
             var entryVersions = PlayerStateSnapshot.versions(ack, "entries", "inventoryEntryId");
             synchronized (state) {
                  state.acknowledgeSnapshotVersions(snapshot.inventories,
@@ -297,7 +293,15 @@ public final class InventoryPersistence {
                     .addAll(snapshot.inventories.stream().map(InventoryModel::getInventoryId).toList());
                 persistedLoadoutIds.computeIfAbsent(accountId, ignored -> ConcurrentHashMap.newKeySet())
                     .addAll(snapshot.loadoutIds);
-                for (PlayerStateSection section : snapshot.sections) section.acknowledge().accept(ack.get(section.name()));
+                for (PlayerStateSection section : snapshot.sections) {
+                    try {
+                        section.acknowledge().accept(ack.get(section.name()));
+                    } catch (PlayerStateAcknowledgementException invalid) {
+                        throw invalid;
+                    } catch (RuntimeException invalid) {
+                        throw new PlayerStateAcknowledgementException(invalid);
+                    }
+                }
                 Map<UUID, Set<UUID>> savedIds = new HashMap<>(persistedEntryIds.getOrDefault(accountId, Map.of()));
                 Map<UUID, java.time.LocalDateTime> savedVersions = new HashMap<>(persistedEntryVersions.getOrDefault(accountId, Map.of()));
                 snapshot.entries.keySet().forEach(id -> savedIds.getOrDefault(id, Set.of()).forEach(savedVersions::remove));
@@ -310,12 +314,16 @@ public final class InventoryPersistence {
             }
             pendingSnapshots.remove(accountId, snapshot);
             blockedSnapshots.remove(snapshot.snapshotId);
+            acknowledgementBlockedSnapshots.remove(snapshot.snapshotId);
             snapshotAttempts.remove(accountId);
             retryNotBefore.remove(accountId);
         } catch (RuntimeException failure) {
-            if (failure instanceof PlayerStateAcknowledgementException
-                || failure instanceof InventoryApiException api && api.getStatusCode() >= 400 && api.getStatusCode() < 500
-                    && api.getStatusCode() != 408 && api.getStatusCode() != 429) {
+            if (failure instanceof PlayerStateAcknowledgementException) {
+                blockedSnapshots.add(snapshot.snapshotId);
+                acknowledgementBlockedSnapshots.add(snapshot.snapshotId);
+            } else if (failure instanceof InventoryApiException api && api.getStatusCode() >= 400 && api.getStatusCode() < 500
+                    && api.getStatusCode() != 408 && api.getStatusCode() != 425
+                    && api.getStatusCode() != 429) {
                 blockedSnapshots.add(snapshot.snapshotId);
             }
             int attempt = snapshotAttempts.merge(accountId, 1, Integer::sum);
@@ -324,6 +332,43 @@ public final class InventoryPersistence {
             Logger.warn(LogId.W_5252, accountId, failureReason(failure));
         }
         return true;
+    }
+
+    /** HTTP 200 の ACK が壊れていた場合だけ、保存済み台帳の固定 ACK を一度照会します。 */
+    private JsonObject saveAndResolveAcknowledgement(PlayerStateSnapshot snapshot) {
+        JsonObject acknowledgement;
+        try {
+            acknowledgement = playerStateRepository.saveSnapshot(snapshot.payload);
+        } catch (PlayerStateAcknowledgementException invalid) {
+            return recoverAcknowledgement(snapshot, invalid);
+        }
+        try {
+            snapshot.validateAck(acknowledgement);
+            return acknowledgement;
+        } catch (RuntimeException invalid) {
+            return recoverAcknowledgement(snapshot, new PlayerStateAcknowledgementException(invalid));
+        }
+    }
+
+    private JsonObject recoverAcknowledgement(
+        PlayerStateSnapshot snapshot,
+        PlayerStateAcknowledgementException invalidAcknowledgement
+    ) {
+        JsonObject recovered;
+        try {
+            recovered = playerStateRepository.findCompletedSnapshot(snapshot.snapshotId, snapshot.accountId);
+        } catch (RuntimeException lookupFailure) {
+            invalidAcknowledgement.addSuppressed(lookupFailure);
+            throw invalidAcknowledgement;
+        }
+        if (recovered == null) throw invalidAcknowledgement;
+        try {
+            snapshot.validateAck(recovered);
+            return recovered;
+        } catch (RuntimeException recoveredInvalid) {
+            invalidAcknowledgement.addSuppressed(recoveredInvalid);
+            throw invalidAcknowledgement;
+        }
     }
 
     /** state monitor内で捕捉する。API・ファイルI/Oを呼ばない。 */
@@ -405,7 +450,9 @@ public final class InventoryPersistence {
     }
 
     /**
-     * 重要操作の完成状態を保存します。失敗した要求は後から再送せず、呼び出し側の補償処理へ渡します。
+     * 重要操作の完成状態を保存します。通信失敗または確定した保存失敗は後から再送せず、
+     * {@code false} を返して呼び出し側の補償処理へ渡します。SQL 完了後に ACK だけを確定できない場合は
+     * snapshot を保持して例外を投げ、二重適用を避けるため補償処理を実行させません。
      * 先行する通常保存が残っていない状態で、account 保存 lane から呼び出してください。
      */
     public boolean saveCriticalNow(@NotNull PlayerInventoryState state) {
@@ -413,9 +460,15 @@ public final class InventoryPersistence {
         synchronized (snapshotSaveLocks.computeIfAbsent(accountId, ignored -> new Object())) {
             state.markDirty();
             savePlayerStateLocked(state, null);
-            PlayerStateSnapshot failed = pendingSnapshots.remove(accountId);
+            PlayerStateSnapshot failed = pendingSnapshots.get(accountId);
             if (failed == null) return true;
+            if (acknowledgementBlockedSnapshots.contains(failed.snapshotId)) {
+                throw new PlayerStateAcknowledgementException(
+                    new IllegalStateException("Critical snapshot acknowledgement is unresolved"));
+            }
+            pendingSnapshots.remove(accountId, failed);
             blockedSnapshots.remove(failed.snapshotId);
+            acknowledgementBlockedSnapshots.remove(failed.snapshotId);
             snapshotAttempts.remove(accountId);
             retryNotBefore.remove(accountId);
             return false;

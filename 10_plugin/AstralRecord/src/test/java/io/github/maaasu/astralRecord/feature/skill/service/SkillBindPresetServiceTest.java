@@ -22,6 +22,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -250,7 +251,7 @@ class SkillBindPresetServiceTest {
         assertNotNull(snapshot);
         assertEquals(2, snapshot.payload().getAsJsonObject().get("selectedPresetIndex").getAsInt());
         assertEquals("learned-id", service.getPresets(accountId).get(1).getActiveSkillSlots().getFirst());
-        snapshot.acknowledge().accept(new JsonObject());
+        assertThrows(IllegalStateException.class, () -> snapshot.acknowledge().accept(new JsonObject()));
         assertTrue(service.hasLoadedPresets(accountId));
         snapshot.acknowledge().accept(presetAck(snapshot, 9));
         assertFalse(service.hasLoadedPresets(accountId));

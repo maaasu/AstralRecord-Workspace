@@ -65,6 +65,35 @@ class InventoryPersistenceTest {
     }
 
     /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
+     * 検証契約: 結果不明のHTTP 425は通常保存をblockせず、同じpending snapshotをbackoff再試行できる状態に保つ。
+     */
+    @Test
+    void ambiguousTooEarlyResponseDoesNotBlockNormalSnapshotRetry() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        InventoryRepository inventoryRepository = mock(InventoryRepository.class);
+        EquipmentLoadoutRepository loadoutRepository = mock(EquipmentLoadoutRepository.class);
+        ItemService itemService = mock(ItemService.class);
+        PlayerStateRepository playerStateRepository = mock(PlayerStateRepository.class);
+        when(playerStateRepository.saveSnapshot(anyString())).thenThrow(
+            new InventoryApiException("POST", "/api/player-state/snapshots", 425, "too early"));
+        InventoryPersistence persistence = new InventoryPersistence(
+            inventoryRepository,
+            loadoutRepository,
+            itemService,
+            playerStateRepository
+        );
+
+        assertFalse(persistence.saveNow(state));
+        assertFalse(persistence.isPlayerStateBlocked(accountId));
+
+        persistence.save(state, InventoryPersistence.SaveTrigger.AUTO);
+        verify(playerStateRepository).saveSnapshot(anyString());
+    }
+
+    /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
      * 章・見出し: # 08_3-タスク・補助 > ## 5. 永続化制御
      * 検証契約: API正本だけが更新した古いentry snapshotは、409後に正本へ差し替えて保存laneを継続する。

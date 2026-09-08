@@ -57,15 +57,15 @@ public class PlayerStateRepository {
             : unresolvedFailure;
     }
 
-    private static JsonObject parseAcknowledgement(String body) {
-        try {
-            return JsonParser.parseString(body).getAsJsonObject();
-        } catch (RuntimeException invalid) {
-            throw new PlayerStateAcknowledgementException(invalid);
-        }
-    }
-
-    private JsonObject findCompleted(UUID snapshotId, UUID accountId, Throwable originalFailure) {
+    /**
+     * HTTP 200 の ACK を検証できなかった場合に、API が保存した固定 ACK を照会します。
+     *
+     * @param snapshotId 照会する不変 snapshot ID
+     * @param accountId 所有アカウント ID
+     * @return 完了済み snapshot の ACK。台帳に存在しない場合は {@code null}
+     * @throws RuntimeException 通信または結果応答の検証に失敗した場合
+     */
+    public JsonObject findCompletedSnapshot(UUID snapshotId, UUID accountId) {
         String path = "/api/player-state/snapshots/" + snapshotId + "?accountId=" + accountId;
         try {
             var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
@@ -83,9 +83,32 @@ public class PlayerStateRepository {
             return status.getAsJsonObject("ack");
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
-            originalFailure.addSuppressed(interrupted);
-            return null;
-        } catch (IOException | RuntimeException lookupFailure) {
+            throw new IllegalStateException("Player snapshot lookup interrupted", interrupted);
+        } catch (IOException failure) {
+            throw new UncheckedIOException(failure);
+        } catch (InventoryApiException failure) {
+            throw failure;
+        } catch (PlayerStateAcknowledgementException invalid) {
+            throw invalid;
+        } catch (RuntimeException invalid) {
+            throw new PlayerStateAcknowledgementException(invalid);
+        }
+    }
+
+    private static JsonObject parseAcknowledgement(String body) {
+        try {
+            return JsonParser.parseString(body).getAsJsonObject();
+        } catch (RuntimeException invalid) {
+            throw new PlayerStateAcknowledgementException(invalid);
+        }
+    }
+
+    private JsonObject findCompleted(UUID snapshotId, UUID accountId, Throwable originalFailure) {
+        try {
+            return findCompletedSnapshot(snapshotId, accountId);
+        } catch (PlayerStateAcknowledgementException invalidAcknowledgement) {
+            throw invalidAcknowledgement;
+        } catch (RuntimeException lookupFailure) {
             originalFailure.addSuppressed(lookupFailure);
             return null;
         }

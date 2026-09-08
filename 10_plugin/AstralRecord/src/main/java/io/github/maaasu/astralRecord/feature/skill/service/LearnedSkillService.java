@@ -11,6 +11,7 @@ import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigil;
 import io.github.maaasu.astralRecord.feature.skill.repository.LearnedSkillRepository;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
+import io.github.maaasu.astralRecord.infrastructure.util.ApiDateTimeUtil;
 import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -915,31 +916,44 @@ public final class LearnedSkillService {
     ) {
         if (!java.util.Objects.equals(capturedEpoch, playerStateEpochs.get(accountId))
             || capturedRevision <= acknowledgedPlayerStateRevisions.getOrDefault(accountId, -1L)
-            || !dirtyPlayerStates.contains(accountId) || !acknowledged.isJsonObject()) return;
+            || !dirtyPlayerStates.contains(accountId)) return;
+        if (!acknowledged.isJsonObject()) {
+            throw new IllegalStateException("learnedSkills acknowledgement must be an object");
+        }
         JsonObject metadata = acknowledged.getAsJsonObject();
         try {
             if (!metadata.has("clientRevision")
                 || metadata.get("clientRevision").getAsLong() != capturedRevision
                 || !metadata.has("entries") || !metadata.get("entries").isJsonArray()
-                || !metadata.has("deletedIds") || !metadata.get("deletedIds").isJsonArray()) return;
+                || !metadata.has("deletedIds") || !metadata.get("deletedIds").isJsonArray()) {
+                throw new IllegalStateException("learnedSkills acknowledgement metadata is incomplete");
+            }
             Map<UUID, JsonObject> entries = new LinkedHashMap<>();
             for (JsonElement entry : metadata.getAsJsonArray("entries")) {
                 JsonObject value = entry.getAsJsonObject();
                 UUID id = UUID.fromString(value.get("learnedSkillId").getAsString());
-                if (!value.has("version") || value.get("version").isJsonNull() || entries.put(id, value) != null) return;
+                if (!value.has("version") || value.get("version").isJsonNull() || entries.put(id, value) != null) {
+                    throw new IllegalStateException("learnedSkills acknowledgement entry is invalid");
+                }
             }
             Set<UUID> deletedIds = new LinkedHashSet<>();
             for (JsonElement deleted : metadata.getAsJsonArray("deletedIds")) {
-                if (!deletedIds.add(UUID.fromString(deleted.getAsString()))) return;
+                if (!deletedIds.add(UUID.fromString(deleted.getAsString()))) {
+                    throw new IllegalStateException("learnedSkills acknowledgement contains duplicate deleted IDs");
+                }
             }
-            if (!entries.keySet().equals(capturedSkillIds) || !deletedIds.equals(capturedDeletedIds)) return;
+            if (!entries.keySet().equals(capturedSkillIds) || !deletedIds.equals(capturedDeletedIds)) {
+                throw new IllegalStateException("learnedSkills acknowledgement IDs do not match the snapshot");
+            }
             Map<UUID, Integer> receivedVersions = new LinkedHashMap<>();
             Map<UUID, LocalDateTime> receivedUpdatedAts = new LinkedHashMap<>();
             for (Map.Entry<UUID, JsonObject> entry : entries.entrySet()) {
                 receivedVersions.put(entry.getKey(), entry.getValue().get("version").getAsInt());
-                if (entry.getValue().has("updatedAt") && !entry.getValue().get("updatedAt").isJsonNull()) {
-                    receivedUpdatedAts.put(entry.getKey(), LocalDateTime.parse(entry.getValue().get("updatedAt").getAsString()));
+                if (!entry.getValue().has("updatedAt") || entry.getValue().get("updatedAt").isJsonNull()) {
+                    throw new IllegalStateException("learnedSkills acknowledgement timestamp is missing");
                 }
+                receivedUpdatedAts.put(entry.getKey(), ApiDateTimeUtil.parseLocalDateTime(
+                    entry.getValue().get("updatedAt").getAsString()));
             }
             Map<UUID, Integer> versions = persistedSkillVersions.computeIfAbsent(accountId, ignored -> new ConcurrentHashMap<>());
             Map<UUID, LocalDateTime> updatedAts = persistedSkillUpdatedAts.computeIfAbsent(accountId, ignored -> new ConcurrentHashMap<>());
@@ -967,7 +981,9 @@ public final class LearnedSkillService {
                 versions.remove(id); updatedAts.remove(id);
                 if (pending != null) pending.remove(id);
             }
-        } catch (RuntimeException malformedAck) { return; }
+        } catch (RuntimeException malformedAck) {
+            throw new IllegalStateException("Invalid learnedSkills acknowledgement", malformedAck);
+        }
         acknowledgedPlayerStateRevisions.put(accountId, capturedRevision);
         if (playerStateRevisions.getOrDefault(accountId, 0L) == capturedRevision) {
             dirtyPlayerStates.remove(accountId);

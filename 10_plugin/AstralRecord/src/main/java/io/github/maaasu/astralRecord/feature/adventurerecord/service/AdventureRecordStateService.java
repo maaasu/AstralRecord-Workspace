@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -112,14 +113,16 @@ public final class AdventureRecordStateService {
         @NotNull Map<String, Long> capturedDungeonClears,
         @NotNull JsonElement acknowledgement
     ) {
-        if (!acknowledgement.isJsonObject()) return;
+        if (!acknowledgement.isJsonObject()) {
+            throw new IllegalStateException("adventureRecords acknowledgement must be an object");
+        }
         JsonObject ack = acknowledgement.getAsJsonObject();
         if (!ack.has("clientRevision") || ack.get("clientRevision").getAsLong() != capturedRevision
             || !ack.has("mobDefeats") || !ack.get("mobDefeats").isJsonArray()
             || !ack.has("dungeonClears") || !ack.get("dungeonClears").isJsonArray()
             || !containsMobAcknowledgements(ack.getAsJsonArray("mobDefeats"), capturedMobDefeats)
             || !containsDungeonAcknowledgements(ack.getAsJsonArray("dungeonClears"), capturedDungeonClears)) {
-            return;
+            throw new IllegalStateException("adventureRecords acknowledgement does not match the snapshot");
         }
 
         synchronized (capturedState) {
@@ -148,7 +151,10 @@ public final class AdventureRecordStateService {
                 return false;
             }
         }
-        return captured.values().stream().allMatch(delta ->
+        Set<String> expectedIds = captured.values().stream()
+            .map(delta -> delta.mobId().toLowerCase(java.util.Locale.ROOT))
+            .collect(java.util.stream.Collectors.toSet());
+        return counts.keySet().equals(expectedIds) && captured.values().stream().allMatch(delta ->
             counts.getOrDefault(delta.mobId().toLowerCase(java.util.Locale.ROOT), 0L) >= delta.delta());
     }
 
@@ -166,7 +172,10 @@ public final class AdventureRecordStateService {
                 return false;
             }
         }
-        return captured.entrySet().stream().allMatch(entry ->
+        Set<String> expectedIds = captured.keySet().stream()
+            .map(id -> id.toLowerCase(java.util.Locale.ROOT))
+            .collect(java.util.stream.Collectors.toSet());
+        return counts.keySet().equals(expectedIds) && captured.entrySet().stream().allMatch(entry ->
             counts.getOrDefault(entry.getKey().toLowerCase(java.util.Locale.ROOT), 0L) >= entry.getValue());
     }
 

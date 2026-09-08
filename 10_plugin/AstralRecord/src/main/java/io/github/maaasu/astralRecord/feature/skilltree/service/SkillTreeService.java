@@ -1859,15 +1859,21 @@ public class SkillTreeService {
     private synchronized void acknowledgeSnapshot(@NotNull UUID accountId, UUID capturedEpoch,
         long capturedRevision, @NotNull JsonElement acknowledged) {
         if (!Objects.equals(capturedEpoch, playerStateEpochs.get(accountId))
-            || capturedRevision <= acknowledgedPlayerStateRevisions.getOrDefault(accountId, -1L)
-            || !acknowledged.isJsonObject()) return;
+            || capturedRevision <= acknowledgedPlayerStateRevisions.getOrDefault(accountId, -1L)) return;
+        if (!acknowledged.isJsonObject()) {
+            throw new IllegalStateException("skillTree acknowledgement must be an object");
+        }
         final int version;
         try {
             JsonObject metadata = acknowledged.getAsJsonObject();
             if (!metadata.has("clientRevision") || metadata.get("clientRevision").getAsLong() != capturedRevision
-                || !metadata.has("version") || metadata.get("version").isJsonNull()) return;
+                || !metadata.has("version") || metadata.get("version").isJsonNull()) {
+                throw new IllegalStateException("skillTree acknowledgement metadata is incomplete");
+            }
             version = metadata.get("version").getAsInt();
-        } catch (RuntimeException malformedAck) { return; }
+        } catch (RuntimeException malformedAck) {
+            throw new IllegalStateException("Invalid skillTree acknowledgement", malformedAck);
+        }
         persistedPlayerStateVersions.put(accountId, version);
         acknowledgedPlayerStateRevisions.put(accountId, capturedRevision);
         if (playerStateRevisions.getOrDefault(accountId, 0L) == capturedRevision) {

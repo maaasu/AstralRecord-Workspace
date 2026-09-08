@@ -1,7 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skill.service;
 
 import com.google.gson.JsonArray;
-import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
@@ -29,6 +28,7 @@ import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
@@ -418,6 +418,30 @@ class LearnedSkillServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: APIのUTC日時を含む新規習得ACKはdirtyを解除し、返却versionを次回更新のexpectedVersionへ使う。
+     */
+    @Test
+    void utcAcknowledgementAdvancesNewSkillVersionBaseline() {
+        UUID accountId = UUID.randomUUID();
+        LearnedSkillService service = service(accountId, committingInventory(accountId), List.of());
+        assertTrue(service.learnFromManagerAsync(accountId, "adventurer_smash", accountId,
+            List.of(UUID.randomUUID()), ignored -> { }, failure -> { throw new AssertionError(failure); }));
+        UUID learnedSkillId = service.getLearnedSkills(accountId).getFirst().getLearnedSkillId();
+
+        PlayerStateSection created = service.snapshotPlayerState(accountId);
+        assertTrue(onlySkill(created).get("expectedVersion").isJsonNull());
+        created.acknowledge().accept(acknowledgement(created, Map.of(learnedSkillId, 1), List.of()));
+        assertNull(service.snapshotPlayerState(accountId));
+
+        levelUpWithoutPayment(service, accountId, learnedSkillId);
+        JsonObject updated = onlySkill(service.snapshotPlayerState(accountId));
+        assertEquals(1, updated.get("expectedVersion").getAsInt());
+        assertEquals(2, updated.get("targetVersion").getAsInt());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
      * 検証契約: 連続更新中に到着した旧revisionの完全ACKは新しいdirtyを解除せず、返却versionだけを後続expectedVersionへ反映する。
      */
     @Test
@@ -454,9 +478,9 @@ class LearnedSkillServiceTest {
         levelUpWithoutPayment(service, accountId, firstSkill.getLearnedSkillId());
         PlayerStateSection snapshot = service.snapshotPlayerState(accountId);
 
-        snapshot.acknowledge().accept(acknowledgement(
+        assertThrows(IllegalStateException.class, () -> snapshot.acknowledge().accept(acknowledgement(
             snapshot, Map.of(firstSkill.getLearnedSkillId(), 20), List.of()
-        ));
+        )));
 
         PlayerStateSection stillDirty = service.snapshotPlayerState(accountId);
         assertNotNull(stillDirty);
@@ -509,7 +533,7 @@ class LearnedSkillServiceTest {
         PlayerStateSection snapshot = service.snapshotPlayerState(accountId);
 
         assertEquals(1, onlySkill(snapshot).getAsJsonArray("sigils").size());
-        snapshot.acknowledge().accept(new JsonObject());
+        assertThrows(IllegalStateException.class, () -> snapshot.acknowledge().accept(new JsonObject()));
         assertTrue(service.hasLoadedSkills(accountId));
         snapshot.acknowledge().accept(acknowledgement(snapshot, Map.of(skillId, 2), List.of()));
         assertFalse(service.hasLoadedSkills(accountId));
@@ -770,7 +794,7 @@ class LearnedSkillServiceTest {
             JsonObject entry = new JsonObject();
             entry.addProperty("learnedSkillId", learnedSkillId.toString());
             entry.addProperty("version", version);
-            entry.add("updatedAt", JsonNull.INSTANCE);
+            entry.addProperty("updatedAt", "2026-09-08T17:12:53.537Z");
             entries.add(entry);
         });
         acknowledgement.add("entries", entries);

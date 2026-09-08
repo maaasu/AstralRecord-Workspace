@@ -5,9 +5,9 @@ import io.github.maaasu.astralRecord.feature.inventory.model.*;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateAcknowledgementException;
+import io.github.maaasu.astralRecord.infrastructure.util.ApiDateTimeUtil;
 
 import java.time.LocalDateTime;
-import java.time.OffsetDateTime;
 import java.util.*;
 
 /** stateロック下で捕捉し、通信中は変更しないプレイヤー完成状態です。 */
@@ -231,6 +231,11 @@ final class PlayerStateSnapshot {
             }
             expectedIds.addAll(activeIds);
             Map<UUID, LocalDateTime> entryVersions = versions(ack, "entries", "inventoryEntryId");
+            Set<UUID> expectedEntryIds = expectedIds.stream().map(UUID::fromString).collect(
+                java.util.stream.Collectors.toSet());
+            if (!entryVersions.keySet().equals(expectedEntryIds)) {
+                throw new IllegalStateException("Inventory entry acknowledgement key mismatch");
+            }
             Map<String, Boolean> deleted = new HashMap<>();
             for (JsonElement entry : ack.getAsJsonArray("entries")) {
                 JsonObject row = entry.getAsJsonObject();
@@ -253,11 +258,24 @@ final class PlayerStateSnapshot {
                 switch (name) {
                     case "learnedSkills" -> {
                         requireSectionVersions(section.getAsJsonArray("skills"), received, "learnedSkillId");
-                        Set<String> deletedIds = new HashSet<>();
-                        for (JsonElement id : received.getAsJsonArray("deletedIds")) deletedIds.add(id.getAsString());
-                        for (JsonElement row : section.getAsJsonArray("deletedSkills"))
-                            if (!deletedIds.contains(row.getAsJsonObject().get("learnedSkillId").getAsString()))
-                                throw new IllegalStateException("Missing deleted skill acknowledgement");
+                        requireApiDateTimes(received.getAsJsonArray("entries"), "updatedAt");
+                        Set<UUID> requestedDeletedIds = new HashSet<>();
+                        for (JsonElement row : section.getAsJsonArray("deletedSkills")) {
+                            if (!requestedDeletedIds.add(UUID.fromString(
+                                row.getAsJsonObject().get("learnedSkillId").getAsString()))) {
+                                throw new IllegalStateException("Duplicate deleted skill request");
+                            }
+                        }
+                        Set<UUID> receivedDeletedIds = new HashSet<>();
+                        for (JsonElement id : received.getAsJsonArray("deletedIds")) {
+                            if (!id.isJsonPrimitive() || !id.getAsJsonPrimitive().isString()
+                                || !receivedDeletedIds.add(UUID.fromString(id.getAsString()))) {
+                                throw new IllegalStateException("Invalid deleted skill acknowledgement");
+                            }
+                        }
+                        if (!requestedDeletedIds.equals(receivedDeletedIds)) {
+                            throw new IllegalStateException("Deleted skill acknowledgement mismatch");
+                        }
                     }
                     case "skillBindPresets" -> requireSectionVersions(section.getAsJsonArray("presets"), received, "presetIndex");
                     case "skillTree" -> requireVersion(section, received, "expectedVersion", "version");
@@ -283,10 +301,10 @@ final class PlayerStateSnapshot {
                         section.getAsJsonArray("completedStepKeys"), received.getAsJsonArray("completedStepKeys"),
                         "guideId", "stepId");
                     case "adventureRecords" -> {
-                        requireTextKeyRows(section.getAsJsonArray("mobDefeatDeltas"),
-                            received.getAsJsonArray("mobDefeats"), "mobId");
-                        requireTextKeyRows(section.getAsJsonArray("dungeonClearDeltas"),
-                            received.getAsJsonArray("dungeonClears"), "dungeonId");
+                        requireCumulativeRows(section.getAsJsonArray("mobDefeatDeltas"),
+                            received.getAsJsonArray("mobDefeats"), "mobId", "delta", "defeatCount");
+                        requireCumulativeRows(section.getAsJsonArray("dungeonClearDeltas"),
+                            received.getAsJsonArray("dungeonClears"), "dungeonId", "delta", "clearCount");
                     }
                     case "playerSettings" -> requirePlayerSettingVersions(
                         section.getAsJsonArray("settings"), received.getAsJsonArray("settings"));
@@ -319,9 +337,15 @@ final class PlayerStateSnapshot {
 
     private static void requireRows(JsonArray requested, JsonObject ack, String array, String id) {
         Set<UUID> received = versions(ack, array, id).keySet();
-        for (JsonElement row : requested)
-            if (!received.contains(UUID.fromString(row.getAsJsonObject().get(id).getAsString())))
-                throw new IllegalStateException("Missing " + array + " acknowledgement");
+        Set<UUID> expected = new HashSet<>();
+        for (JsonElement row : requested) {
+            if (!expected.add(UUID.fromString(row.getAsJsonObject().get(id).getAsString()))) {
+                throw new IllegalStateException("Duplicate " + array + " request");
+            }
+        }
+        if (!expected.equals(received)) {
+            throw new IllegalStateException(array + " acknowledgement key mismatch");
+        }
     }
 
     private static void requireSectionVersions(JsonArray requested, JsonObject ack, String id) {
@@ -331,9 +355,28 @@ final class PlayerStateSnapshot {
             if (received.put(value.get(id).getAsString(), value) != null)
                 throw new IllegalStateException("Duplicate section acknowledgement");
         }
+        Set<String> requestedIds = new HashSet<>();
         for (JsonElement row : requested) {
             JsonObject value = row.getAsJsonObject();
-            requireVersion(value, received.get(value.get(id).getAsString()), "expectedVersion", "version");
+            String requestedId = value.get(id).getAsString();
+            if (!requestedIds.add(requestedId)) {
+                throw new IllegalStateException("Duplicate section request");
+            }
+            requireVersion(value, received.get(requestedId), "expectedVersion", "version");
+        }
+        if (!requestedIds.equals(received.keySet())) {
+            throw new IllegalStateException("Section acknowledgement key mismatch");
+        }
+    }
+
+    private static void requireApiDateTimes(JsonArray rows, String field) {
+        for (JsonElement element : rows) {
+            JsonElement value = element.getAsJsonObject().get(field);
+            if (value == null || value.isJsonNull() || !value.isJsonPrimitive()
+                || !value.getAsJsonPrimitive().isString()) {
+                throw new IllegalStateException("Missing section acknowledgement timestamp");
+            }
+            ApiDateTimeUtil.parseLocalDateTime(value.getAsString());
         }
     }
 
@@ -362,19 +405,37 @@ final class PlayerStateSnapshot {
         return result;
     }
 
-    private static void requireTextKeyRows(JsonArray requested, JsonArray acknowledged, String keyName) {
-        Set<String> expected = textKeys(requested, keyName);
-        Set<String> received = textKeys(acknowledged, keyName);
-        if (!expected.equals(received)) {
+    private static void requireCumulativeRows(
+        JsonArray requested,
+        JsonArray acknowledged,
+        String keyName,
+        String deltaName,
+        String countName
+    ) {
+        Map<String, Long> expected = longValues(requested, keyName, deltaName);
+        Map<String, Long> received = longValues(acknowledged, keyName, countName);
+        if (!expected.keySet().equals(received.keySet())) {
             throw new IllegalStateException("Section acknowledgement key mismatch");
+        }
+        for (Map.Entry<String, Long> entry : expected.entrySet()) {
+            if (received.get(entry.getKey()) < entry.getValue()) {
+                throw new IllegalStateException("Section acknowledgement counter is stale");
+            }
         }
     }
 
-    private static Set<String> textKeys(JsonArray rows, String keyName) {
-        Set<String> result = new HashSet<>();
+    private static Map<String, Long> longValues(JsonArray rows, String keyName, String valueName) {
+        Map<String, Long> result = new HashMap<>();
         for (JsonElement element : rows) {
-            String key = element.getAsJsonObject().get(keyName).getAsString().toLowerCase(Locale.ROOT);
-            if (!result.add(key)) {
+            JsonObject row = element.getAsJsonObject();
+            String key = row.get(keyName).getAsString().toLowerCase(Locale.ROOT);
+            JsonElement rawValue = row.get(valueName);
+            if (rawValue == null || !rawValue.isJsonPrimitive()
+                || !rawValue.getAsJsonPrimitive().isNumber()) {
+                throw new IllegalStateException("Section acknowledgement counter is missing");
+            }
+            long value = rawValue.getAsBigDecimal().longValueExact();
+            if (result.put(key, value) != null) {
                 throw new IllegalStateException("Duplicate section acknowledgement key");
             }
         }
@@ -423,9 +484,7 @@ final class PlayerStateSnapshot {
         for (JsonElement element : ack.getAsJsonArray(array)) {
             JsonObject row = element.getAsJsonObject();
             String text = row.get("updatedAt").getAsString();
-            LocalDateTime time;
-            try { time = LocalDateTime.parse(text); }
-            catch (java.time.format.DateTimeParseException offset) { time = OffsetDateTime.parse(text).toLocalDateTime(); }
+            LocalDateTime time = ApiDateTimeUtil.parseLocalDateTime(text);
             if (result.put(UUID.fromString(row.get(id).getAsString()), time) != null)
                 throw new IllegalStateException("Duplicate acknowledgement row");
         }

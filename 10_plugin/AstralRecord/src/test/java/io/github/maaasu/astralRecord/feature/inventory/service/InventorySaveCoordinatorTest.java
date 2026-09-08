@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.inventory.service;
 import io.github.maaasu.astralRecord.feature.inventory.state.InventoryPersistence;
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryState;
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateAcknowledgementException;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
@@ -160,8 +161,8 @@ class InventorySaveCoordinatorTest {
         PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
         registry.put(state);
         InventoryPersistence persistence = mock(InventoryPersistence.class);
-        when(persistence.saveNow(state)).thenReturn(true);
-        when(persistence.hasPendingChanges(state)).thenReturn(false);
+        when(persistence.saveNowWithBaseline(state)).thenReturn(
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of()));
         when(persistence.saveCriticalNow(state)).thenReturn(false);
         ManualExecutor executor = new ManualExecutor();
         InventorySaveCoordinator coordinator = new InventorySaveCoordinator(persistence, registry, executor);
@@ -176,6 +177,69 @@ class InventorySaveCoordinatorTest {
         assertThrows(CompletionException.class, mutation::join);
         assertEquals(10, value[0]);
         assertFalse(coordinator.hasUnresolvedExternalOperation(accountId));
+        verify(persistence).saveCriticalNow(state);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: 完成snapshotのSQL確定をACKで判定できない場合は完成ローカル状態とblockを維持し、補償しない。
+     */
+    @Test
+    void criticalAcknowledgementFailureDoesNotRollBackCommittedState() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        when(persistence.saveNowWithBaseline(state)).thenReturn(
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of()));
+        when(persistence.saveCriticalNow(state)).thenThrow(new PlayerStateAcknowledgementException(
+            new IllegalStateException("invalid completed acknowledgement")));
+        ManualExecutor executor = new ManualExecutor();
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(persistence, registry, executor);
+        int[] value = {10};
+
+        var mutation = coordinator.executeCriticalMutation(accountId, () -> {
+            value[0] = 20;
+            return new InventorySaveCoordinator.CriticalMutation<>("changed", () -> value[0] = 10);
+        });
+        executor.runAll();
+
+        CompletionException failure = assertThrows(CompletionException.class, mutation::join);
+        assertTrue(failure.getCause() instanceof PlayerStateAcknowledgementException);
+        assertEquals(20, value[0]);
+        assertFalse(coordinator.hasUnresolvedExternalOperation(accountId));
+        verify(persistence).saveCriticalNow(state);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: critical pre-saveのcapture中に通常変更が増えた場合は次便まで保存してから重要操作を開始する。
+     */
+    @Test
+    void criticalMutationRetriesPreSaveUntilParticipantChangesAreStable() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        InventoryPersistence.PersistedInventoryBaseline baseline =
+            new InventoryPersistence.PersistedInventoryBaseline(accountId, Map.of());
+        when(persistence.saveNowWithBaseline(state)).thenReturn(null, baseline);
+        when(persistence.saveCriticalNow(state)).thenReturn(true);
+        ManualExecutor executor = new ManualExecutor();
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(persistence, registry, executor, 1_000L);
+        AtomicBoolean changed = new AtomicBoolean();
+
+        var mutation = coordinator.executeCriticalMutation(accountId, () ->
+            new InventorySaveCoordinator.CriticalMutation<>(changed.compareAndSet(false, true), () -> changed.set(false)));
+        executor.runAll();
+
+        assertTrue(mutation.join());
+        assertTrue(changed.get());
+        verify(persistence, times(2)).saveNowWithBaseline(state);
         verify(persistence).saveCriticalNow(state);
     }
 

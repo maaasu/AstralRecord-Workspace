@@ -3,6 +3,7 @@ package io.github.maaasu.astralRecord.feature.inventory.service;
 import io.github.maaasu.astralRecord.feature.inventory.state.InventoryPersistence;
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryState;
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateAcknowledgementException;
 import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -579,10 +580,18 @@ public final class InventorySaveCoordinator {
             if (stateRegistry.get(accountId) != expectedState) {
                 throw new IllegalStateException("Inventory state generation changed for account " + accountId);
             }
+            if (persistence.isPlayerStateBlocked(accountId)) {
+                throw new PlayerStateAcknowledgementException(
+                    new IllegalStateException("Player state acknowledgement is blocked"));
+            }
             InventoryPersistence.PersistedInventoryBaseline baseline =
                 persistence.saveNowWithBaseline(expectedState);
             if (baseline != null && baseline.accountId().equals(accountId)) {
                 return baseline;
+            }
+            if (persistence.isPlayerStateBlocked(accountId)) {
+                throw new PlayerStateAcknowledgementException(
+                    new IllegalStateException("Player state acknowledgement became blocked"));
             }
             ensureExternalOperationWithinDeadline(accountId, deadlineNanos, "before external operation");
             Logger.warn(LogId.W_5255, accountId);
@@ -893,7 +902,8 @@ public final class InventorySaveCoordinator {
 
     /**
      * 重要操作を account lane で排他実行し、完成状態の SQL ACK 後にだけ結果を返します。
-     * 保存失敗時は mutation が返した補償処理を同じ排他境界内で実行します。
+     * 通信失敗または確定した保存失敗では mutation が返した補償処理を同じ排他境界内で実行します。
+     * SQL 完了後に ACK だけを確定できない場合は状態を維持して account を保留し、補償処理を実行しません。
      */
     public <T> @NotNull CompletableFuture<T> executeCriticalMutation(
         @NotNull UUID accountId,
@@ -917,9 +927,11 @@ public final class InventorySaveCoordinator {
             if (stateRegistry.get(accountId) != expectedState) {
                 throw new IllegalStateException("Player state generation changed for account " + accountId);
             }
-            // 重要操作より前の通常変更を先に確定し、補償点を必ずSQL確定済み状態にする。
-            if (!persistence.saveNow(expectedState) || persistence.hasPendingChanges(expectedState)) {
-                throw new CriticalPlayerStateSaveException(accountId, "pre-save failed");
+            // capture中に増えた通常変更も次便で確定し、補償点を安定したSQL保存状態にする。
+            try {
+                awaitStablePreSave(accountId, expectedState);
+            } catch (RuntimeException preSaveFailure) {
+                throw new CriticalPlayerStateSaveException(accountId, "pre-save failed", preSaveFailure);
             }
 
             CriticalMutation<T> change = null;
@@ -936,7 +948,8 @@ public final class InventorySaveCoordinator {
                 completed.set(change.result());
                 return true;
             } catch (RuntimeException | Error failure) {
-                if (change != null && !(failure instanceof CriticalPlayerStateSaveException)) {
+                if (change != null && !(failure instanceof CriticalPlayerStateSaveException)
+                    && !(failure instanceof PlayerStateAcknowledgementException)) {
                     try {
                         change.rollback().run();
                     } catch (RuntimeException rollbackFailure) {
@@ -1329,6 +1342,14 @@ public final class InventorySaveCoordinator {
 
         private CriticalPlayerStateSaveException(@NotNull UUID accountId, @NotNull String detail) {
             super("Critical player state persistence failed for account " + accountId + ": " + detail);
+        }
+
+        private CriticalPlayerStateSaveException(
+            @NotNull UUID accountId,
+            @NotNull String detail,
+            @NotNull Throwable cause
+        ) {
+            super("Critical player state persistence failed for account " + accountId + ": " + detail, cause);
         }
     }
 

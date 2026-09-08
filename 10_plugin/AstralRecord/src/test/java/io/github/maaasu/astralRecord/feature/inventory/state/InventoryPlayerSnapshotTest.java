@@ -13,6 +13,8 @@ import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepos
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentStatRoll;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateAcknowledgementException;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.mutation.repository.PlayerStateRepository;
 import org.junit.jupiter.api.Test;
 
@@ -22,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -120,10 +123,10 @@ class InventoryPlayerSnapshotTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
      * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
-     * 検証契約: 一部のACKが欠落した応答では保存済みと判定しない。
+     * 検証契約: ACKの行が欠落または余分な応答では保存済みと判定しない。
      */
     @Test
-    void rejectsIncompleteAcknowledgementBeforeUpdatingLocalVersions() {
+    void rejectsNonExactAcknowledgementBeforeUpdatingLocalVersions() {
         PlayerInventoryState state = new PlayerInventoryState(account);
         state.putInventory(inventory());
         state.replaceEntries(inventoryId, List.of(entry(10, originalTime)));
@@ -133,6 +136,16 @@ class InventoryPlayerSnapshotTest {
         response.add("inventories", new JsonArray());
 
         assertThrows(IllegalStateException.class, () -> snapshot.validateAck(response));
+        assertEquals(originalTime, state.snapshotEntries(inventoryId).getFirst().getUpdatedAt());
+
+        JsonObject extraResponse = ack(
+            JsonParser.parseString(snapshot.payload).getAsJsonObject(), originalTime.plusSeconds(1));
+        JsonObject extraEntry = new JsonObject();
+        extraEntry.addProperty("inventoryEntryId", UUID.randomUUID().toString());
+        extraEntry.addProperty("updatedAt", originalTime.plusSeconds(1).toString());
+        extraEntry.addProperty("isDeleted", false);
+        extraResponse.getAsJsonArray("entries").add(extraEntry);
+        assertThrows(IllegalStateException.class, () -> snapshot.validateAck(extraResponse));
         assertEquals(originalTime, state.snapshotEntries(inventoryId).getFirst().getUpdatedAt());
     }
 
@@ -243,7 +256,8 @@ class InventoryPlayerSnapshotTest {
              "deletedSkills":[{"learnedSkillId":"%s","expectedVersion":1}]}
             """.formatted(skill, removedSkill)));
         response.add("learnedSkills", JsonParser.parseString("""
-            {"clientRevision":2,"entries":[{"learnedSkillId":"%s","version":5}],"deletedIds":["%s"]}
+            {"clientRevision":2,"entries":[{"learnedSkillId":"%s","version":5,
+             "updatedAt":"2026-09-08T17:12:53.537Z"}],"deletedIds":["%s"]}
             """.formatted(skill, removedSkill)));
         request.add("skillBindPresets", JsonParser.parseString(
             "{\"clientRevision\":3,\"presets\":[{\"presetIndex\":0,\"expectedVersion\":1}]}"));
@@ -282,6 +296,42 @@ class InventoryPlayerSnapshotTest {
             """.formatted(setting)));
 
         assertDoesNotThrow(() -> PlayerStateSnapshot.validatePayloadAck(request.toString(), response));
+
+        JsonObject invalidTimestamp = response.deepCopy();
+        invalidTimestamp.getAsJsonObject("learnedSkills").getAsJsonArray("entries").get(0)
+            .getAsJsonObject().addProperty("updatedAt", "invalid");
+        assertThrows(IllegalStateException.class,
+            () -> PlayerStateSnapshot.validatePayloadAck(request.toString(), invalidTimestamp));
+
+        JsonObject extraLearnedSkill = response.deepCopy();
+        JsonObject learnedSkill = new JsonObject();
+        learnedSkill.addProperty("learnedSkillId", UUID.randomUUID().toString());
+        learnedSkill.addProperty("version", 1);
+        learnedSkill.addProperty("updatedAt", "2026-09-08T17:12:53.537Z");
+        extraLearnedSkill.getAsJsonObject("learnedSkills").getAsJsonArray("entries").add(learnedSkill);
+        assertThrows(IllegalStateException.class,
+            () -> PlayerStateSnapshot.validatePayloadAck(request.toString(), extraLearnedSkill));
+
+        JsonObject extraDeletedSkill = response.deepCopy();
+        extraDeletedSkill.getAsJsonObject("learnedSkills").getAsJsonArray("deletedIds")
+            .add(UUID.randomUUID().toString());
+        assertThrows(IllegalStateException.class,
+            () -> PlayerStateSnapshot.validatePayloadAck(request.toString(), extraDeletedSkill));
+
+        JsonObject extraPreset = response.deepCopy();
+        JsonObject preset = new JsonObject();
+        preset.addProperty("presetIndex", 99);
+        preset.addProperty("version", 1);
+        extraPreset.getAsJsonObject("skillBindPresets").getAsJsonArray("entries").add(preset);
+        assertThrows(IllegalStateException.class,
+            () -> PlayerStateSnapshot.validatePayloadAck(request.toString(), extraPreset));
+
+        JsonObject staleAdventureCounter = response.deepCopy();
+        staleAdventureCounter.getAsJsonObject("adventureRecords").getAsJsonArray("mobDefeats")
+            .get(0).getAsJsonObject().addProperty("defeatCount", 0);
+        assertThrows(IllegalStateException.class,
+            () -> PlayerStateSnapshot.validatePayloadAck(request.toString(), staleAdventureCounter));
+
         for (String name : List.of(
             "learnedSkills", "skillBindPresets", "skillTree", "accountProgress", "waystones",
             "guideProgress", "adventureRecords", "playerSettings"
@@ -319,6 +369,62 @@ class InventoryPlayerSnapshotTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
+     * 検証契約: POSTの200 ACKを検証できない場合は固定ACKを照会し、完全なら保存成功として確定する。
+     */
+    @Test
+    void recoversInvalidPostAcknowledgementFromCompletedSnapshotLookup() {
+        PlayerStateRepository api = mock(PlayerStateRepository.class);
+        InventoryPersistence persistence = newPersistence(api);
+        PlayerInventoryState state = persistence.load(account);
+        AtomicReference<String> sentPayload = new AtomicReference<>();
+        when(api.saveSnapshot(anyString())).thenAnswer(call -> {
+            sentPayload.set(call.getArgument(0, String.class));
+            return new JsonObject();
+        });
+        when(api.findCompletedSnapshot(any(UUID.class), any(UUID.class))).thenAnswer(call -> ack(
+            JsonParser.parseString(sentPayload.get()).getAsJsonObject(),
+            originalTime.plusSeconds(1)));
+
+        state.markDirty();
+
+        assertTrue(persistence.saveNow(state));
+        assertFalse(persistence.isPlayerStateBlocked(account));
+        verify(api).findCompletedSnapshot(any(UUID.class), any(UUID.class));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
+     * 検証契約: section固有のACK適用失敗を保存成功にせず、対象snapshotをブロックして再送しない。
+     */
+    @Test
+    void participantAcknowledgementFailureBlocksSnapshot() {
+        PlayerStateRepository api = mock(PlayerStateRepository.class);
+        InventoryPersistence persistence = newPersistence(api);
+        PlayerInventoryState state = persistence.load(account);
+        JsonObject sectionPayload = JsonParser.parseString(
+            "{\"clientRevision\":1,\"unlockedWaystoneIds\":[\"ws-first\"]}").getAsJsonObject();
+        persistence.registerStateParticipant(ignored -> new PlayerStateSection(
+            "waystones", sectionPayload, ignoredAck -> {
+                throw new IllegalStateException("participant rejected acknowledgement");
+            }));
+        when(api.saveSnapshot(anyString())).thenAnswer(call -> {
+            JsonObject request = JsonParser.parseString(call.getArgument(0, String.class)).getAsJsonObject();
+            JsonObject response = ack(request, originalTime.plusSeconds(1));
+            response.add("waystones", request.get("waystones").deepCopy());
+            return response;
+        });
+
+        assertFalse(persistence.saveNow(state));
+        assertTrue(persistence.isPlayerStateBlocked(account));
+        persistence.save(state, InventoryPersistence.SaveTrigger.AUTO);
+
+        verify(api, times(1)).saveSnapshot(anyString());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
      * 章・見出し: # 03_3-保存 > ## 重要操作のACKと補償
      * 検証契約: 重要操作の保存失敗本文は後送せず、補償後の次回snapshotを新規要求として送れる。
      */
@@ -339,6 +445,26 @@ class InventoryPlayerSnapshotTest {
 
         assertFalse(persistence.hasPendingChanges(state));
         verify(api, times(2)).saveSnapshot(anyString());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## 重要操作のACKと補償
+     * 検証契約: 重要操作の保存済み結果をACKで確定できない場合はsnapshotを保持し、ローカル補償を許可しない。
+     */
+    @Test
+    void keepsCriticalSnapshotBlockedWhenAcknowledgementCannotBeResolved() {
+        PlayerStateRepository api = mock(PlayerStateRepository.class);
+        InventoryPersistence persistence = newPersistence(api);
+        PlayerInventoryState state = persistence.load(account);
+        when(api.saveSnapshot(anyString())).thenReturn(new JsonObject());
+
+        assertThrows(PlayerStateAcknowledgementException.class, () -> persistence.saveCriticalNow(state));
+        assertTrue(persistence.isPlayerStateBlocked(account));
+
+        persistence.save(state, InventoryPersistence.SaveTrigger.AUTO);
+        verify(api, times(1)).saveSnapshot(anyString());
+        verify(api).findCompletedSnapshot(any(UUID.class), any(UUID.class));
     }
 
     /**
@@ -374,21 +500,48 @@ class InventoryPlayerSnapshotTest {
         JsonObject response = new JsonObject();
         response.add("snapshotId", request.get("snapshotId"));
         response.add("accountId", request.get("accountId"));
-        response.add("entries", versions("inventoryEntryId", entryId, time));
-        response.add("inventories", versions("inventoryId", inventoryId, time));
-        response.add("loadouts", new JsonArray());
-        response.add("equipment", new JsonArray());
+        JsonArray entries = new JsonArray();
+        JsonArray inventories = new JsonArray();
+        for (var inventoryElement : request.getAsJsonArray("inventories")) {
+            JsonObject inventory = inventoryElement.getAsJsonObject();
+            inventories.add(version("inventoryId", inventory.get("inventoryId"), time, null));
+            Set<String> activeIds = new java.util.HashSet<>();
+            for (var entryElement : inventory.getAsJsonArray("entries")) {
+                JsonObject entry = entryElement.getAsJsonObject();
+                String id = entry.get("inventoryEntryId").getAsString();
+                activeIds.add(id);
+                entries.add(version("inventoryEntryId", entry.get("inventoryEntryId"), time, false));
+            }
+            for (var expectedElement : inventory.getAsJsonArray("expectedEntries")) {
+                JsonObject expected = expectedElement.getAsJsonObject();
+                if (!activeIds.contains(expected.get("inventoryEntryId").getAsString())) {
+                    entries.add(version("inventoryEntryId", expected.get("inventoryEntryId"), time, true));
+                }
+            }
+        }
+        JsonArray loadouts = new JsonArray();
+        for (var loadoutElement : request.getAsJsonArray("loadouts")) {
+            JsonObject loadout = loadoutElement.getAsJsonObject();
+            loadouts.add(version("equipmentLoadoutId", loadout.get("equipmentLoadoutId"), time, null));
+        }
+        JsonArray equipment = new JsonArray();
+        for (var equipmentElement : request.getAsJsonArray("equipment")) {
+            JsonObject item = equipmentElement.getAsJsonObject();
+            equipment.add(version("equipmentInstanceId", item.get("equipmentInstanceId"), time, null));
+        }
+        response.add("entries", entries);
+        response.add("inventories", inventories);
+        response.add("loadouts", loadouts);
+        response.add("equipment", equipment);
         return response;
     }
 
-    private JsonArray versions(String field, UUID id, LocalDateTime time) {
+    private JsonObject version(String field, com.google.gson.JsonElement id, LocalDateTime time, Boolean deleted) {
         JsonObject row = new JsonObject();
-        row.addProperty(field, id.toString());
+        row.add(field, id.deepCopy());
         row.addProperty("updatedAt", time.toString());
-        row.addProperty("isDeleted", false);
-        JsonArray array = new JsonArray();
-        array.add(row);
-        return array;
+        if (deleted != null) row.addProperty("isDeleted", deleted);
+        return row;
     }
 
     private InventoryModel inventory() {

@@ -12,6 +12,7 @@ import java.util.UUID;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -46,6 +47,29 @@ class AdventureRecordStateServiceTest {
 
         remaining.acknowledge().accept(ack(remaining.payload().getAsJsonObject(), 2L, 0L));
         assertNull(service.snapshotPlayerState(accountId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
+     * 検証契約: 送信delta未満の累計ACKを拒否し、未保存の冒険記録差分を破棄しない。
+     */
+    @Test
+    void staleCounterAcknowledgementKeepsCapturedDeltas() {
+        UUID accountId = UUID.randomUUID();
+        InventoryService inventoryService = mock(InventoryService.class);
+        AdventureRecordStateService service = new AdventureRecordStateService(inventoryService);
+        service.recordMobDefeat(accountId, "slime", MobCategory.ENEMY);
+        PlayerStateSection snapshot = service.snapshotPlayerState(accountId);
+        assertNotNull(snapshot);
+
+        assertThrows(IllegalStateException.class,
+            () -> snapshot.acknowledge().accept(ack(snapshot.payload().getAsJsonObject(), 0L, 0L)));
+
+        PlayerStateSection retained = service.snapshotPlayerState(accountId);
+        assertNotNull(retained);
+        assertEquals(1L, retained.payload().getAsJsonObject().getAsJsonArray("mobDefeatDeltas")
+            .get(0).getAsJsonObject().get("delta").getAsLong());
     }
 
     private JsonObject ack(JsonObject payload, long mobCount, long dungeonCount) {

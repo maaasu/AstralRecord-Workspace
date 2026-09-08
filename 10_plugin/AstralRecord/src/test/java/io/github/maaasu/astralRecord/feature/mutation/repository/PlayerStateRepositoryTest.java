@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.mutation.repository;
 
 import com.google.gson.JsonObject;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateAcknowledgementException;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
@@ -14,6 +15,7 @@ import java.net.http.HttpResponse;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -106,6 +108,30 @@ class PlayerStateRepositoryTest {
         }
 
         assertEquals(snapshotId.toString(), acknowledgement.get("snapshotId").getAsString());
+        assertPostThenResultLookup(client, snapshotId, accountId);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## ACK検証と失敗処理
+     * 検証契約: 結果照会の不正なHTTP 200は元の425へ戻さず、ACK契約不一致として上位へ伝播する。
+     */
+    @Test
+    void propagatesMalformedCompletedLookupInsteadOfReturningOriginalTooEarlyResponse() throws Exception {
+        UUID snapshotId = UUID.randomUUID();
+        UUID accountId = UUID.randomUUID();
+        HttpClient client = mock(HttpClient.class);
+        HttpResponse<String> tooEarly = response(425, "too early");
+        HttpResponse<String> malformed = response(200, "{}");
+        when(client.send(any(HttpRequest.class), anyStringBodyHandler()))
+            .thenReturn(tooEarly)
+            .thenReturn(malformed);
+
+        try (MockedStatic<ApiRequestUtil> api = mockApi(client)) {
+            assertThrows(PlayerStateAcknowledgementException.class,
+                () -> new PlayerStateRepository().saveSnapshot(payload(snapshotId, accountId)));
+        }
+
         assertPostThenResultLookup(client, snapshotId, accountId);
     }
 

@@ -325,19 +325,28 @@ public final class SkillBindPresetService {
         long capturedRevision, Map<Integer, Integer> capturedVersions,
         @NotNull java.util.Set<Integer> capturedPresetIndexes, @NotNull JsonElement acknowledged) {
         if (sessionStates.get(accountId) != capturedState
-            || capturedRevision <= capturedState.acknowledgedRevision || !acknowledged.isJsonObject()) return;
+            || capturedRevision <= capturedState.acknowledgedRevision) return;
+        if (!acknowledged.isJsonObject()) {
+            throw new IllegalStateException("skillBindPresets acknowledgement must be an object");
+        }
         try {
             JsonObject metadata = acknowledged.getAsJsonObject();
             if (!metadata.has("clientRevision") || metadata.get("clientRevision").getAsLong() != capturedRevision
-                || !metadata.has("entries") || !metadata.get("entries").isJsonArray()) return;
+                || !metadata.has("entries") || !metadata.get("entries").isJsonArray()) {
+                throw new IllegalStateException("skillBindPresets acknowledgement metadata is incomplete");
+            }
             Map<Integer, Integer> received = new java.util.LinkedHashMap<>();
             for (JsonElement entry : metadata.getAsJsonArray("entries")) {
                 JsonObject value = entry.getAsJsonObject();
                 int index = value.get("presetIndex").getAsInt();
                 if (!value.has("version") || value.get("version").isJsonNull()
-                    || received.put(index, value.get("version").getAsInt()) != null) return;
+                    || received.put(index, value.get("version").getAsInt()) != null) {
+                    throw new IllegalStateException("skillBindPresets acknowledgement entry is invalid");
+                }
             }
-            if (!received.keySet().equals(capturedPresetIndexes)) return;
+            if (!received.keySet().equals(capturedPresetIndexes)) {
+                throw new IllegalStateException("skillBindPresets acknowledgement IDs do not match the snapshot");
+            }
             persistedPresetVersions.computeIfAbsent(accountId, ignored -> new ConcurrentHashMap<>()).putAll(received);
             List<SkillBindPreset> current = getPresets(accountId);
             presetsByAccount.put(accountId, current.stream().map(preset -> new SkillBindPreset(
@@ -345,7 +354,9 @@ public final class SkillBindPresetService {
                 preset.getLeftClickSkillId(), preset.getPassiveSkillSlots(), preset.isUnlocked(), preset.isSaved(),
                 received.get(preset.getPresetIndex()) + preset.getVersion() - capturedVersions.get(preset.getPresetIndex()),
                 preset.isSelected())).toList());
-        } catch (RuntimeException malformedAck) { return; }
+        } catch (RuntimeException malformedAck) {
+            throw new IllegalStateException("Invalid skillBindPresets acknowledgement", malformedAck);
+        }
         AccountSessionState state = sessionStates.get(accountId);
         if (state == null) {
             return;
