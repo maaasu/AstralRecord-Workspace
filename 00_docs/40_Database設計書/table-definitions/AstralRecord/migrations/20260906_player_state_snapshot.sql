@@ -128,6 +128,18 @@ BEGIN
     );
 END;
 
+-- SQL Server does not allow altering a column used by an index. Recreate the
+-- account/time index after normalizing the DATETIME2 precision below.
+IF EXISTS (
+    SELECT 1 FROM sys.indexes
+    WHERE [name] = N'IX_player_state_snapshot_account_completed'
+      AND [object_id] = OBJECT_ID(N'[dbo].[player_state_snapshot]')
+)
+BEGIN
+    DROP INDEX [IX_player_state_snapshot_account_completed]
+        ON [dbo].[player_state_snapshot];
+END;
+
 -- EF Core's default DateTime mapping is DATETIME2(7). Normalize existing
 -- schemas to the DATETIME2(3) contract before validation.
 IF EXISTS (

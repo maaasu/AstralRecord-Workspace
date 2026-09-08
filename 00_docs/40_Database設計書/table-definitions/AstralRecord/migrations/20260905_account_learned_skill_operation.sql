@@ -38,6 +38,18 @@ BEGIN
         ALTER COLUMN [request_hash] CHAR(64) NOT NULL;
 END;
 
+-- SQL Server does not allow altering a column used by an index. Recreate the
+-- account/time index after normalizing the DATETIME2 precision below.
+IF EXISTS (
+    SELECT 1 FROM sys.indexes
+    WHERE [name] = N'IX_account_learned_skill_operation_account_created_at'
+      AND [object_id] = OBJECT_ID(N'[dbo].[account_learned_skill_operation]')
+)
+BEGIN
+    DROP INDEX [IX_account_learned_skill_operation_account_created_at]
+        ON [dbo].[account_learned_skill_operation];
+END;
+
 -- EF Core's default DateTime mapping is DATETIME2(7). Normalize existing
 -- schemas to the DATETIME2(3) contract before validation.
 IF EXISTS (
