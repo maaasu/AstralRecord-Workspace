@@ -1,0 +1,27 @@
+# design:
+#   motif: "登山具 / 鉤縄"
+#   progression: 10
+schemaVersion: 1
+id: 20a00043
+category: equipment
+name: "&bフックショット"
+icon: CROSSBOW
+rarity: UNCOMMON
+maxStack: 1
+saleValue: 120
+lore:
+  - "&7左クリックでフックを装填し、完了後に固体ブロックへ自動射出する。"
+  - "&7装填完了時にフックを1個、発射時に耐久を消費する。"
+  - "&7装填済みのフックは取り外せない。"
+unTradeable: false
+unSellable: false
+
+equipment:
+  slot: TOOL
+  handType: ONE
+  tag: HOOKSHOT
+  requiredLevel: 0
+  stats: []
+  durability:
+    max: 200
+    consume: 1

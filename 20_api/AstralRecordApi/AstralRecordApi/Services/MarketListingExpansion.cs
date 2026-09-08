@@ -5,10 +5,10 @@ namespace AstralRecordApi.Services;
 /// </summary>
 public static class MarketListingExpansion
 {
-    public const string AlphaTokenItemId = "market_expansion_token_alpha";
-    public const string BetaTokenItemId = "market_expansion_token_beta";
-    public const string GammaTokenItemId = "market_expansion_token_gamma";
-    public const string DeltaTokenItemId = "market_expansion_token_delta";
+    public const string AlphaTokenItemId = "99a00011";
+    public const string BetaTokenItemId = "99a00012";
+    public const string GammaTokenItemId = "99a00013";
+    public const string DeltaTokenItemId = "99a00014";
 
     public const string CurrencyInventoryType = "CURRENCY";
     public const string GameInventoryProfile = "GAME";

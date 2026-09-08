@@ -12,14 +12,14 @@ tags:
   - consumable
 result:
   itemId:
-    ref: item:nox_night_herb_boar_skewer
+    ref: item:30a00005
   amount: 1
 ingredients:
   - itemId:
-      ref: item:grassboar_meat
+      ref: item:10a00001
     amount: 1
   - itemId:
-      ref: item:nox_night_herb
+      ref: item:10a00015
     amount: 2
 requiredLevel: 0
 requiredCurrency: 0

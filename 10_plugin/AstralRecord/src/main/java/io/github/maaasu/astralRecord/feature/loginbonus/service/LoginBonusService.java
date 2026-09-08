@@ -40,7 +40,7 @@ public final class LoginBonusService {
     private static final ZoneId DATE_ZONE = ZoneId.of("Asia/Tokyo");
     private static final int DAILY_LOGIN_BONUS_GOLD = 1000;
     private static final int HOLIDAY_LOGIN_BONUS_ASTRALD = 10;
-    private static final String FREYA_ORB_ITEM_ID = "freya_orb";
+    private static final String FREYA_ORB_ITEM_ID = "40a00002";
     private static final String REWARD_SOURCE = "daily_login_bonus";
 
     private final Plugin plugin;

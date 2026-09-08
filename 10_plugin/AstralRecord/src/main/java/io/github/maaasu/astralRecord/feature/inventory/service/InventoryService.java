@@ -2492,7 +2492,8 @@ public class InventoryService {
             .toList();
         if (inventoryType != InventoryType.CURRENCY
             || hasCurrencyEntry(entries, ItemService.DEFAULT_CURRENCY_ITEM_ID)
-            || hasCurrencyEntry(entries, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID)) {
+            || hasCurrencyEntry(entries, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID)
+            || hasCurrencyEntry(entries, ItemService.LEGACY_PREVIOUS_DEFAULT_CURRENCY_ITEM_ID)) {
             return itemStacks;
         }
 
@@ -2825,13 +2826,9 @@ public class InventoryService {
      * @return 合計ゴールド値
      */
     public long getGoldAmount(@NotNull UUID accountId) {
-        long denominationTotal = GoldCurrencyCalculator.totalValue(
-            denomination -> getCurrencyAmount(accountId, denomination.itemId())
+        return GoldCurrencyCalculator.totalValue(
+            denomination -> getGoldDenominationAmount(accountId, denomination)
         );
-        long legacyAmount = getCurrencyAmount(accountId, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID);
-        return denominationTotal > Long.MAX_VALUE - legacyAmount
-            ? Long.MAX_VALUE
-            : denominationTotal + legacyAmount;
     }
 
     /**
@@ -3916,7 +3913,6 @@ public class InventoryService {
             return false;
         }
         synchronized (state) {
-            long legacyAmount = getCurrencyAmount(accountId, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID);
             long ownedGold = getGoldAmount(accountId);
             long reservedGold = reservedGoldAmount(accountId);
             if (ownedGold < reservedGold || ownedGold - reservedGold < amount) {
@@ -3924,13 +3920,7 @@ public class InventoryService {
             }
             Map<GoldDenomination, Long> remainingBalances = GoldCurrencyCalculator.spendSmallestFirst(
                 denomination -> {
-                    long denominationAmount = getCurrencyAmount(accountId, denomination.itemId());
-                    if (denomination != GoldDenomination.GOLD) {
-                        return denominationAmount;
-                    }
-                    return denominationAmount > Long.MAX_VALUE - legacyAmount
-                        ? Long.MAX_VALUE
-                        : denominationAmount + legacyAmount;
+                    return getGoldDenominationAmount(accountId, denomination);
                 },
                 amount
             );
@@ -3955,7 +3945,7 @@ public class InventoryService {
     /**
      * 指定した通貨を通貨インベントリから減算します。
      * <p>
-     * 基本通貨 {@code gold} は互換 ID {@code ast_gold} の残高も合算して消費します。
+     * 基本通貨 {@code 99a00001} は旧互換 ID {@code gold} / {@code ast_gold} の残高も合算して消費します。
      *
      * @param accountId 対象アカウント ID
      * @param itemId 通貨アイテム ID
@@ -3974,7 +3964,8 @@ public class InventoryService {
         if (normalizedItemId.isBlank()) {
             return false;
         }
-        if (ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(normalizedItemId)) {
+        if (ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(normalizedItemId)
+            || ItemService.LEGACY_PREVIOUS_DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(normalizedItemId)) {
             return consumeGold(accountId, amount);
         }
         PlayerInventoryState state = getState(accountId);
@@ -3984,11 +3975,8 @@ public class InventoryService {
         synchronized (state) {
             InventoryModel inventory = state.findInventory(DEFAULT_PROFILE, InventoryType.CURRENCY);
             GoldDenomination denomination = GoldDenomination.findByItemId(normalizedItemId);
-            boolean legacyGold = ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(
-                normalizedItemId
-            );
-            if (denomination != null || legacyGold) {
-                long unitValue = denomination == null ? 1L : denomination.goldValue();
+            if (denomination != null) {
+                long unitValue = denomination.goldValue();
                 long requestedValue;
                 try {
                     requestedValue = Math.multiplyExact(unitValue, amount);
@@ -4000,6 +3988,11 @@ public class InventoryService {
                 if (ownedGold < reservedGold || ownedGold - reservedGold < requestedValue) {
                     return false;
                 }
+
+                if (inventory == null || !inventory.isEnabled()) {
+                    return false;
+                }
+                return consumeExactCurrencyAmount(state, inventory, denomination, amount) == amount;
             }
             if (inventory == null
                 || !inventory.isEnabled()
@@ -4012,7 +4005,7 @@ public class InventoryService {
 
     /**
      * 価値が等しい組み込みゴールド額面を、同一トランザクション内で交換します。
-     * 基本額面の交換元には互換ID {@code ast_gold} も使用します。
+     * 基本額面の交換元には正本 ID {@code 99a00001} と旧互換 ID {@code gold} / {@code ast_gold} を使用します。
      *
      * @param accountId 対象アカウントID
      * @param sourceItemId 交換元額面ID
@@ -4044,13 +4037,7 @@ public class InventoryService {
             return false;
         }
         synchronized (state) {
-            long available = getCurrencyAmount(accountId, source.itemId());
-            if (source == GoldDenomination.GOLD) {
-                long legacyAmount = getCurrencyAmount(accountId, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID);
-                available = available > Long.MAX_VALUE - legacyAmount
-                    ? Long.MAX_VALUE
-                    : available + legacyAmount;
-            }
+            long available = getGoldDenominationAmount(accountId, source);
             if (available < sourceAmount) {
                 return false;
             }
@@ -4111,14 +4098,14 @@ public class InventoryService {
             if (consumeItemAmountFromInventory(state, inventory, denomination.itemId(), amount) != amount) {
                 return false;
             }
+            for (String legacyItemId : denomination.legacyItemIds()) {
+                long legacyAmount = getCurrencyAmount(state.getAccountId(), legacyItemId);
+                if (consumeItemAmountFromInventory(state, inventory, legacyItemId, legacyAmount) != legacyAmount) {
+                    return false;
+                }
+            }
         }
-        long legacyAmount = getCurrencyAmount(state.getAccountId(), ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID);
-        return consumeItemAmountFromInventory(
-            state,
-            inventory,
-            ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID,
-            legacyAmount
-        ) == legacyAmount;
+        return true;
     }
 
     private boolean addGoldValue(
@@ -4188,13 +4175,13 @@ public class InventoryService {
     ) {
         long remaining = amount;
         remaining -= consumeItemAmountFromInventory(state, inventory, source.itemId(), remaining);
-        if (remaining > 0L && source == GoldDenomination.GOLD) {
-            remaining -= consumeItemAmountFromInventory(
-                state,
-                inventory,
-                ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID,
-                remaining
-            );
+        if (remaining > 0L) {
+            for (String legacyItemId : source.legacyItemIds()) {
+                if (remaining <= 0L) {
+                    break;
+                }
+                remaining -= consumeItemAmountFromInventory(state, inventory, legacyItemId, remaining);
+            }
         }
         return amount - remaining;
     }
@@ -7784,6 +7771,17 @@ public class InventoryService {
             .filter(entry -> !entry.isDeleted())
             .filter(this::isNormalItemEntry)
             .anyMatch(entry -> entry.getItemId().equalsIgnoreCase(itemId));
+    }
+
+    private long getGoldDenominationAmount(
+        @NotNull UUID accountId,
+        @NotNull GoldDenomination denomination
+    ) {
+        long amount = getCurrencyAmount(accountId, denomination.itemId());
+        for (String legacyItemId : denomination.legacyItemIds()) {
+            amount = addAmountsSaturated(amount, getCurrencyAmount(accountId, legacyItemId));
+        }
+        return amount;
     }
 
     private @NotNull List<ItemStack> goldCurrencyDisplay(long amount) {

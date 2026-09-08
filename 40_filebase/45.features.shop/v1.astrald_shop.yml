@@ -7,9 +7,9 @@ type: SHOP
 name: "&bアストラルドショップ"
 access: NPC_ONLY
 items:
-  - id: storage_expansion_token
+  - id: 99a00009
     itemId:
-      ref: item:storage_expansion_token
+      ref: item:99a00009
     category: currency
     amount: 1
     page: 1
@@ -17,12 +17,12 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:astrald
+          ref: item:99a00008
         category: currency
         amount: 100
-  - id: storage_cloud_access_token
+  - id: 99a00010
     itemId:
-      ref: item:storage_cloud_access_token
+      ref: item:99a00010
     category: currency
     amount: 1
     page: 1
@@ -30,12 +30,12 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:astrald
+          ref: item:99a00008
         category: currency
         amount: 300
-  - id: market_expansion_token_alpha
+  - id: 99a00011
     itemId:
-      ref: item:market_expansion_token_alpha
+      ref: item:99a00011
     category: currency
     amount: 1
     page: 1
@@ -43,12 +43,12 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:astrald
+          ref: item:99a00008
         category: currency
         amount: 50
-  - id: market_expansion_token_beta
+  - id: 99a00012
     itemId:
-      ref: item:market_expansion_token_beta
+      ref: item:99a00012
     category: currency
     amount: 1
     page: 1
@@ -56,12 +56,12 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:astrald
+          ref: item:99a00008
         category: currency
         amount: 100
-  - id: market_expansion_token_gamma
+  - id: 99a00013
     itemId:
-      ref: item:market_expansion_token_gamma
+      ref: item:99a00013
     category: currency
     amount: 1
     page: 1
@@ -69,12 +69,12 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:astrald
+          ref: item:99a00008
         category: currency
         amount: 150
-  - id: market_expansion_token_delta
+  - id: 99a00014
     itemId:
-      ref: item:market_expansion_token_delta
+      ref: item:99a00014
     category: currency
     amount: 1
     page: 1
@@ -82,6 +82,6 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:astrald
+          ref: item:99a00008
         category: currency
         amount: 200

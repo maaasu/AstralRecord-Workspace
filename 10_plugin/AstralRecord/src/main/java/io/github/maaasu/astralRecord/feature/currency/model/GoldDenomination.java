@@ -4,20 +4,22 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.Arrays;
+import java.util.List;
 
 /**
  * ゴールド系通貨の額面と表示情報を定義します。
  */
 public enum GoldDenomination {
-    GOLD("gold", "ルーンの金片", "GOLD_NUGGET", 1L),
-    GOLD_COIN("gold_coin", "ヴァルハラの金貨", "RAW_GOLD", 10L),
-    GOLD_INGOT("gold_ingot", "ミズガルズの黄金インゴット", "GOLD_INGOT", 100L),
-    GOLD_BLOCK("gold_block", "アースガルズの黄金ブロック", "GOLD_BLOCK", 1_000L),
-    GOLD_DIAMOND("gold_diamond", "ビフレストのダイヤ", "DIAMOND", 10_000L),
-    GOLD_DIAMOND_BLOCK("gold_diamond_block", "神域のダイヤ結晶", "DIAMOND_BLOCK", 100_000L),
-    YGGDRASIL_STAR_CORE("yggdrasil_star_core", "ユグドラシルの星核", "NETHER_STAR", 1_000_000L);
+    GOLD("99a00001", "ルーンの金片", "GOLD_NUGGET", 1L, "gold", "ast_gold"),
+    GOLD_COIN("99a00002", "ヴァルハラの金貨", "RAW_GOLD", 10L, "gold_coin"),
+    GOLD_INGOT("99a00003", "ミズガルズの黄金インゴット", "GOLD_INGOT", 100L, "gold_ingot"),
+    GOLD_BLOCK("99a00004", "アースガルズの黄金ブロック", "GOLD_BLOCK", 1_000L, "gold_block"),
+    GOLD_DIAMOND("99a00005", "ビフレストのダイヤ", "DIAMOND", 10_000L, "gold_diamond"),
+    GOLD_DIAMOND_BLOCK("99a00006", "神域のダイヤ結晶", "DIAMOND_BLOCK", 100_000L, "gold_diamond_block"),
+    YGGDRASIL_STAR_CORE("99a00007", "ユグドラシルの星核", "NETHER_STAR", 1_000_000L, "yggdrasil_star_core");
 
     private final String itemId;
+    private final String[] legacyItemIds;
     private final String displayName;
     private final String icon;
     private final long goldValue;
@@ -26,9 +28,11 @@ public enum GoldDenomination {
         @NotNull String itemId,
         @NotNull String displayName,
         @NotNull String icon,
-        long goldValue
+        long goldValue,
+        @NotNull String... legacyItemIds
     ) {
         this.itemId = itemId;
+        this.legacyItemIds = legacyItemIds.clone();
         this.displayName = displayName;
         this.icon = icon;
         this.goldValue = goldValue;
@@ -41,6 +45,15 @@ public enum GoldDenomination {
      */
     public @NotNull String itemId() {
         return itemId;
+    }
+
+    /**
+     * ID移行前の互換アイテムIDを返します。
+     *
+     * @return 旧通貨アイテムID一覧
+     */
+    public @NotNull List<String> legacyItemIds() {
+        return List.of(legacyItemIds.clone());
     }
 
     /**
@@ -122,7 +135,9 @@ public enum GoldDenomination {
         }
         String normalized = itemId.trim();
         return Arrays.stream(values())
-            .filter(denomination -> denomination.itemId.equalsIgnoreCase(normalized))
+            .filter(denomination -> denomination.itemId.equalsIgnoreCase(normalized)
+                || Arrays.stream(denomination.legacyItemIds)
+                    .anyMatch(legacyItemId -> legacyItemId.equalsIgnoreCase(normalized)))
             .findFirst()
             .orElse(null);
     }

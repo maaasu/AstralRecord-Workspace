@@ -17,40 +17,40 @@ challenge:
   reviveDelaySeconds: 5
 clearRewards:
   items:
-    - itemId: item:middle_earth_ruins_stone_seal
+    - itemId: item:10a00035
       rate: 12.0
       amount: "1"
-    - itemId: item:middle_earth_ruins_frozen_core
+    - itemId: item:10a00032
       rate: 10.0
       amount: "1"
-    - itemId: item:middle_earth_ruins_greenfield_crest
+    - itemId: item:10a00033
       rate: 8.0
       amount: "1"
-    - itemId: item:middle_earth_hammer
+    - itemId: item:20a00025
       rate: 12.0
       amount: "1"
-    - itemId: item:middle_earth_longbow
+    - itemId: item:20a00026
       rate: 12.0
       amount: "1"
-    - itemId: item:middle_earth_wand
+    - itemId: item:20a00029
       rate: 12.0
       amount: "1"
-    - itemId: item:middle_earth_relic
+    - itemId: item:20a00027
       rate: 16.0
       amount: "1"
-    - itemId: item:middle_earth_talisman
+    - itemId: item:20a00028
       rate: 16.0
       amount: "1"
-    - itemId: item:middle_earth_amulet
+    - itemId: item:20a00024
       rate: 12.0
       amount: "1"
-    - itemId: item:middle_earth_ruins_weathered_coin
+    - itemId: item:10a00036
       rate: 100.0
       amount: "1~32"
-    - itemId: item:middle_earth_ruins_ancient_medallion
+    - itemId: item:10a00031
       rate: 80.0
       amount: "1~12"
-    - itemId: item:middle_earth_ruins_royal_jewel
+    - itemId: item:10a00034
       rate: 25.0
       amount: "1~6"
   lootTable: loot_table:dungeon_common_orb_table

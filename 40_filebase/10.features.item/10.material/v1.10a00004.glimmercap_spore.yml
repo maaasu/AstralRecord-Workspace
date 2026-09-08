@@ -1,0 +1,14 @@
+# NOTE: 現在実装されているマスタデータはすべてデバッグ用の仮設定です。正式なゲームバランス・報酬・入手設計として扱わないでください。
+schemaVersion: 1
+id: 10a00004
+category: material
+name: "&f灯茸の胞子"
+icon: BROWN_MUSHROOM
+rarity: COMMON
+maxStack: 64
+saleValue: 5
+lore:
+  - "&7ほのかに光る小さな茸から採れる胞子。"
+  - "&7回復薬の効きを安定させる調合素材。"
+unTradeable: false
+unSellable: false

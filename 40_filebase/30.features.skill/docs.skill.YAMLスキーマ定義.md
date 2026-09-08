@@ -163,12 +163,12 @@ sigilSlotsByLevel:
   - { level: 1, slots: 1 }
   - { level: 3, slots: 2 }
 allowedSigilIds:
-  - cooldown_sigil
+  - 70a00001
 learnRequiredItems:
-  - itemId: skill_gem_raw
+  - itemId: 10a00019
     amount: 1
 levelUpRequiredItems:
-  - itemId: skill_gem_raw
+  - itemId: 10a00019
     amount: 1
 onCast:
   sound: entity.player.attack.sweep

@@ -9,98 +9,98 @@ access: NPC_ONLY
 items:
   - id: nox_weapon
     itemId:
-      ref: item:simple_weapon
+      ref: item:20a00001
     category: equipment
     amount: 1
     page: 1
     slot: 0
     priceGold: 20
-  - id: simple_talisman
+  - id: 20a00007
     itemId:
-      ref: item:simple_talisman
+      ref: item:20a00007
     category: equipment
     amount: 1
     page: 1
     slot: 7
     priceGold: 20
 
-  - id: nox_armor_helmet
+  - id: 20a00009
     itemId:
-      ref: item:nox_armor_helmet
+      ref: item:20a00009
     category: equipment
     amount: 1
     page: 1
     slot: 1
     priceGold: 15
-  - id: nox_armor_chest
+  - id: 20a00010
     itemId:
-      ref: item:nox_armor_chest
+      ref: item:20a00010
     category: equipment
     amount: 1
     page: 1
     slot: 8
     priceGold: 30
-  - id: nox_armor_legs
+  - id: 20a00011
     itemId:
-      ref: item:nox_armor_legs
+      ref: item:20a00011
     category: equipment
     amount: 1
     page: 1
     slot: 15
     priceGold: 25
-  - id: nox_armor_boots
+  - id: 20a00012
     itemId:
-      ref: item:nox_armor_boots
+      ref: item:20a00012
     category: equipment
     amount: 1
     page: 1
     slot: 22
     priceGold: 15
 
-  - id: nox_pickaxe
+  - id: 20a00006
     itemId:
-      ref: item:nox_pickaxe
+      ref: item:20a00006
     category: equipment
     amount: 1
     page: 1
     slot: 2
     priceGold: 100
-  - id: nox_hoe
+  - id: 20a00005
     itemId:
-      ref: item:nox_hoe
+      ref: item:20a00005
     category: equipment
     amount: 1
     page: 1
     slot: 9
     priceGold: 100
-  - id: hookshot
+  - id: 20a00043
     itemId:
-      ref: item:hookshot
+      ref: item:20a00043
     category: equipment
     amount: 1
     page: 1
     slot: 16
     priceGold: 900
-  - id: hook
+  - id: 10a00057
     itemId:
-      ref: item:hook
+      ref: item:10a00057
     category: material
     amount: 1
     page: 1
     slot: 23
     priceGold: 5
 
-  - id: sindri_orb
+  - id: 40a00011
     itemId:
-      ref: item:sindri_orb
+      ref: item:40a00011
     category: orb
     amount: 1
     page: 1
     slot: 3
     priceGold: 75
-  - id: sindri_orb_intermediate
+  - id: 40a00014
     itemId:
-      ref: item:sindri_orb_intermediate
+      ref: item:40a00014
     category: orb
     amount: 1
     page: 1
@@ -108,12 +108,12 @@ items:
     priceGold: 30
     requiredItems:
       - itemId:
-          ref: item:sindri_orb
+          ref: item:40a00011
         category: orb
         amount: 3
   - id: sindri_orb_advanced_from_base
     itemId:
-      ref: item:sindri_orb_advanced
+      ref: item:40a00015
     category: orb
     amount: 1
     page: 1
@@ -121,12 +121,12 @@ items:
     priceGold: 120
     requiredItems:
       - itemId:
-          ref: item:sindri_orb
+          ref: item:40a00011
         category: orb
         amount: 10
   - id: sindri_orb_advanced_from_intermediate
     itemId:
-      ref: item:sindri_orb_advanced
+      ref: item:40a00015
     category: orb
     amount: 1
     page: 1
@@ -134,22 +134,22 @@ items:
     priceGold: 120
     requiredItems:
       - itemId:
-          ref: item:sindri_orb_intermediate
+          ref: item:40a00014
         category: orb
         amount: 3
 
 
-  - id: nox_menu_tool
+  - id: 20a00013
     itemId:
-      ref: item:nox_menu_tool
+      ref: item:20a00013
     category: equipment
     amount: 1
     page: 1
     slot: 20
     priceGold: 1
-  - id: cartograph
+  - id: 20a00042
     itemId:
-      ref: item:cartograph
+      ref: item:20a00042
     category: equipment
     amount: 1
     page: 1

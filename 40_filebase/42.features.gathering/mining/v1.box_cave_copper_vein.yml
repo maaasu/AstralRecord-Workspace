@@ -26,12 +26,12 @@ sounds:
 drops:
   exp: 2
   items:
-    - itemId: item:box_cave_stone
+    - itemId: item:10a00010
       rate: 100.0
       amount: "2~4"
       luckAffected: true
       hidden: false
-    - itemId: item:box_cave_copper
+    - itemId: item:10a00008
       rate: 100.0
       amount: "1~2"
       luckAffected: true

@@ -19,4 +19,4 @@ Currency は、交換、通行、討伐証明などに使用する item 形式�
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\currency\docs.currency.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\99.currency\docs.currency.YAMLスキーマ定義.md`

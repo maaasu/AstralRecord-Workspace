@@ -16,6 +16,13 @@ internal static class GoldCurrencyBalanceSupport
     private static readonly IReadOnlyDictionary<string, long> GoldValues =
         new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase)
         {
+            ["99a00001"] = 1L,
+            ["99a00002"] = 10L,
+            ["99a00003"] = 100L,
+            ["99a00004"] = 1_000L,
+            ["99a00005"] = 10_000L,
+            ["99a00006"] = 100_000L,
+            ["99a00007"] = 1_000_000L,
             ["gold"] = 1L,
             ["ast_gold"] = 1L,
             ["gold_coin"] = 10L,
@@ -28,13 +35,13 @@ internal static class GoldCurrencyBalanceSupport
 
     private static readonly (string ItemId, long Value)[] CanonicalGold =
     [
-        ("yggdrasil_star_core", 1_000_000L),
-        ("gold_diamond_block", 100_000L),
-        ("gold_diamond", 10_000L),
-        ("gold_block", 1_000L),
-        ("gold_ingot", 100L),
-        ("gold_coin", 10L),
-        ("gold", 1L),
+        ("99a00007", 1_000_000L),
+        ("99a00006", 100_000L),
+        ("99a00005", 10_000L),
+        ("99a00004", 1_000L),
+        ("99a00003", 100L),
+        ("99a00002", 10L),
+        ("99a00001", 1L),
     ];
 
     internal static bool IsMarketGoldCurrency(string? currencyId)

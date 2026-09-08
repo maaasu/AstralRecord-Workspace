@@ -73,12 +73,20 @@ public final class CurrencyService {
      * @return 表示用所持数量
      */
     public long getDisplayCurrencyAmount(@NotNull UUID accountId, @NotNull String itemId) {
-        long amount = getCurrencyAmount(accountId, itemId);
-        if (ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(itemId)) {
-            long legacyAmount = getCurrencyAmount(accountId, ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID);
-            amount = amount > Long.MAX_VALUE - legacyAmount ? Long.MAX_VALUE : amount + legacyAmount;
+        GoldDenomination denomination = GoldDenomination.findByItemId(itemId);
+        if (denomination == null) {
+            return getCurrencyAmount(accountId, itemId);
+        }
+
+        long amount = getCurrencyAmount(accountId, denomination.itemId());
+        for (String legacyItemId : denomination.legacyItemIds()) {
+            amount = saturatingAdd(amount, getCurrencyAmount(accountId, legacyItemId));
         }
         return amount;
+    }
+
+    private static long saturatingAdd(long left, long right) {
+        return left > Long.MAX_VALUE - right ? Long.MAX_VALUE : left + right;
     }
 
     /**
@@ -88,7 +96,7 @@ public final class CurrencyService {
      * @return 最上位額面を1個以上所持している場合はtrue
      */
     public boolean hasHighestGoldDenomination(@NotNull UUID accountId) {
-        return getCurrencyAmount(accountId, GoldDenomination.highest().itemId()) > 0L;
+        return getDisplayCurrencyAmount(accountId, GoldDenomination.highest().itemId()) > 0L;
     }
 
     /**

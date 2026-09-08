@@ -23,12 +23,12 @@ sounds:
 drops:
   exp: 1
   items:
-    - itemId: item:glimmercap_spore
+    - itemId: item:10a00004
       rate: 100.0
       amount: "1"
       luckAffected: true
       hidden: false
-    - itemId: item:glowstone_shard
+    - itemId: item:10a00005
       rate: 18.0
       amount: "1"
       luckAffected: true

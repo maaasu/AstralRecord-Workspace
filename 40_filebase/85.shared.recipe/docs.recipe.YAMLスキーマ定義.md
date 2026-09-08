@@ -106,7 +106,7 @@ tags:
   - consumable
 result:
   itemId:
-    ref: item:healing_potion_small
+    ref: item:30a00002
   amount: 2
 ingredients:
   - itemId:

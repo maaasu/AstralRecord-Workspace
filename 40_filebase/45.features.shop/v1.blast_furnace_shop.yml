@@ -10,7 +10,7 @@ access: NPC_ONLY
 items:
   - id: box_cave_copper_ingot_from_materials
     itemId:
-      ref: item:box_cave_copper_ingot
+      ref: item:10a00009
     category: material
     amount: 1
     page: 1
@@ -18,16 +18,16 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:box_cave_copper
+          ref: item:10a00008
         category: material
         amount: 1
       - itemId:
-          ref: item:box_cave_coal
+          ref: item:10a00006
         category: material
         amount: 1
   - id: box_cave_compressed_stone_from_stone
     itemId:
-      ref: item:box_cave_compressed_stone
+      ref: item:10a00007
     category: material
     amount: 1
     page: 1
@@ -35,6 +35,6 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:box_cave_stone
+          ref: item:10a00010
         category: material
         amount: 4

@@ -7,9 +7,9 @@ type: SHOP
 name: "&bポーションショップ"
 access: NPC_ONLY
 items:
-  - id: healing_potion_small
+  - id: 30a00002
     itemId:
-      ref: item:healing_potion_small
+      ref: item:30a00002
     category: consumable
     amount: 1
     page: 1
@@ -17,12 +17,12 @@ items:
     priceGold: 6
     requiredItems:
       - itemId:
-          ref: item:nox_dewgrass_leaf
+          ref: item:10a00011
         category: material
         amount: 1
-  - id: healing_potion_medium
+  - id: 30a00004
     itemId:
-      ref: item:healing_potion_medium
+      ref: item:30a00004
     category: consumable
     amount: 1
     page: 1
@@ -30,15 +30,15 @@ items:
     priceGold: 35
     requiredItems:
       - itemId:
-          ref: item:glimmercap_spore
+          ref: item:10a00004
         amount: 1
       - itemId:
-          ref: item:nox_dewgrass_leaf
+          ref: item:10a00011
         amount: 1
 
-  - id: mana_potion_small
+  - id: 30a00003
     itemId:
-      ref: item:mana_potion_small
+      ref: item:30a00003
     category: consumable
     amount: 1
     page: 1
@@ -46,12 +46,12 @@ items:
     priceGold: 16
     requiredItems:
       - itemId:
-          ref: item:windleaf_sprig
+          ref: item:10a00003
         category: material
         amount: 1
-  - id: mana_potion_medium
+  - id: 30a00006
     itemId:
-      ref: item:mana_potion_medium
+      ref: item:30a00006
     category: consumable
     amount: 1
     page: 1
@@ -59,8 +59,8 @@ items:
     priceGold: 60
     requiredItems:
       - itemId:
-          ref: item:windleaf_sprig
+          ref: item:10a00003
         amount: 1
       - itemId:
-          ref: item:nox_dewgrass_leaf
+          ref: item:10a00011
         amount: 3

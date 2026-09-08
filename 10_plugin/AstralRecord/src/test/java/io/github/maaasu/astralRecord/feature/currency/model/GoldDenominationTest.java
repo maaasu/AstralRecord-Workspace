@@ -30,8 +30,25 @@ class GoldDenominationTest {
      */
     @Test
     void resolvesDenominationByItemId() {
+        assertEquals(GoldDenomination.GOLD_INGOT, GoldDenomination.findByItemId("99a00003"));
         assertEquals(GoldDenomination.GOLD_INGOT, GoldDenomination.findByItemId("gold_ingot"));
+        assertEquals(GoldDenomination.GOLD, GoldDenomination.findByItemId("ast_gold"));
         assertNull(GoldDenomination.findByItemId("astrald"));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/16-currency/16_1-モデル定義.md
+     * 章・見出し: # 16_1-モデル定義 > ## 1. ゴールド額面
+     * 検証契約: 組み込みゴールド額面の正本IDは99カテゴリの採番形式であり、旧IDは移行互換として解決できる。
+     */
+    @Test
+    void exposesNumberedCanonicalIdsAndLegacyAliases() {
+        assertEquals("99a00001", GoldDenomination.GOLD.itemId());
+        assertEquals("99a00007", GoldDenomination.YGGDRASIL_STAR_CORE.itemId());
+        assertEquals(
+            java.util.List.of("gold", "ast_gold"),
+            GoldDenomination.GOLD.legacyItemIds()
+        );
     }
 
     /**

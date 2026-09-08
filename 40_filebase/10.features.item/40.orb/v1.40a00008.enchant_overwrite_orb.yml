@@ -1,0 +1,20 @@
+# design:
+#   motif: "ギリシャ神話 / モイライ"
+#   progression: 1
+schemaVersion: 1
+id: 40a00008
+category: orb
+name: "&5モイライのオーブ"
+icon: STRING
+rarity: RARE
+maxStack: 64
+saleValue: 100
+lore:
+  - "&7既存エンチャント1枠をランダムに上書きする。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: ENCHANT
+    enchantMasterId: enchant:enchant001
+    enchantOperation: OVERWRITE_RANDOM

@@ -40,11 +40,13 @@ import java.util.concurrent.ThreadLocalRandom;
  * APIから取得したアイテムをメモリに保持し、一覧/詳細参照に使用します。
  */
 public class ItemService {
-    public static final String DEFAULT_CURRENCY_ITEM_ID = "gold";
+    public static final String DEFAULT_CURRENCY_ITEM_ID = "99a00001";
     public static final String LEGACY_DEFAULT_CURRENCY_ITEM_ID = "ast_gold";
-    public static final String ASTRALD_CURRENCY_ITEM_ID = "astrald";
-    public static final String STORAGE_EXPANSION_TOKEN_ITEM_ID = "storage_expansion_token";
-    public static final String STORAGE_REMOTE_ACCESS_TOKEN_ITEM_ID = "storage_cloud_access_token";
+    public static final String LEGACY_PREVIOUS_DEFAULT_CURRENCY_ITEM_ID = "gold";
+    public static final String ASTRALD_CURRENCY_ITEM_ID = "99a00008";
+    public static final String LEGACY_ASTRALD_CURRENCY_ITEM_ID = "astrald";
+    public static final String STORAGE_EXPANSION_TOKEN_ITEM_ID = "99a00009";
+    public static final String STORAGE_REMOTE_ACCESS_TOKEN_ITEM_ID = "99a00010";
 
     private final ItemRepository itemRepository;
     private final SetEffectRepository setEffectRepository;
@@ -319,7 +321,8 @@ public class ItemService {
         if (LEGACY_DEFAULT_CURRENCY_ITEM_ID.equals(normalizedId)) {
             return createGoldCurrencyItem(GoldDenomination.GOLD, normalizedId);
         }
-        if (ASTRALD_CURRENCY_ITEM_ID.equals(normalizedId)) {
+        if (ASTRALD_CURRENCY_ITEM_ID.equals(normalizedId)
+            || LEGACY_ASTRALD_CURRENCY_ITEM_ID.equals(normalizedId)) {
             return createAstraldCurrencyItem();
         }
         return null;

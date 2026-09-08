@@ -60,7 +60,7 @@ drops:
   exp: 18
   items:
     - itemId:
-        ref: item:moss_shell_fragment
+        ref: item:10a00020
       rate: 60.0
       amount: 1
       luckAffected: true

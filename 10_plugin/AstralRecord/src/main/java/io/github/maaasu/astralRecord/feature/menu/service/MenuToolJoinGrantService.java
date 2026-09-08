@@ -25,8 +25,8 @@ import java.util.concurrent.Executor;
  * 通行証の所持状態をフラグとして、参加時のメニュー導線を初期付与します。
  */
 public final class MenuToolJoinGrantService {
-    public static final String MENU_ITEM_ID = "nox_menu_tool";
-    public static final String PASS_ITEM_ID = "nox_city_pass";
+    public static final String MENU_ITEM_ID = "20a00013";
+    public static final String PASS_ITEM_ID = "99a00016";
 
     private final ItemService itemService;
     private final InventoryService inventoryService;

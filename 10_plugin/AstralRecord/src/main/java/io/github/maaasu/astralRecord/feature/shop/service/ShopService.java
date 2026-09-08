@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.shop.service;
 
+import io.github.maaasu.astralRecord.feature.currency.model.GoldDenomination;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
@@ -388,7 +389,7 @@ public final class ShopService {
         boolean hasStorageRemoteAccess
     ) {
         if (isCurrencyCost(cost)) {
-            if (ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(cost.itemId())) {
+            if (isGoldCurrencyId(cost.itemId())) {
                 return currencyService.getGoldAmount(accountId);
             }
             return hasStorageRemoteAccess
@@ -406,7 +407,7 @@ public final class ShopService {
         boolean hasStorageRemoteAccess
     ) {
         if (isCurrencyCost(cost)) {
-            if (ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(cost.itemId())) {
+            if (isGoldCurrencyId(cost.itemId())) {
                 return inventoryService.consumeCurrency(accountId, cost.itemId(), cost.amount());
             }
             return hasStorageRemoteAccess
@@ -420,6 +421,13 @@ public final class ShopService {
 
     private boolean isCurrencyCost(@NotNull ShopCostItem cost) {
         return "currency".equalsIgnoreCase(cost.category());
+    }
+
+    private boolean isGoldCurrencyId(@NotNull String itemId) {
+        return ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(itemId)
+            || ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(itemId)
+            || ItemService.LEGACY_PREVIOUS_DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(itemId)
+            || GoldDenomination.GOLD == GoldDenomination.findByItemId(itemId);
     }
 
     private int toIntAmount(long amount) {

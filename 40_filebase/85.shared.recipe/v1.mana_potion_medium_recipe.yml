@@ -13,14 +13,14 @@ tags:
   - consumable
 result:
   itemId:
-    ref: item:mana_potion_medium
+    ref: item:30a00006
   amount: 1
 ingredients:
   - itemId:
-      ref: item:nox_moonshadowgrass_leaf
+      ref: item:10a00021
     amount: 1
   - itemId:
-      ref: item:nox_dewgrass_leaf
+      ref: item:10a00011
     amount: 2
 requiredLevel: 0
 requiredCurrency: 0

@@ -22,7 +22,7 @@ spawnLocation:
   pitch: 0.0
 description: "広大な探索域を備え、冒険の中心となる大規模オープンワールド"
 requiredItemId:
-  ref: "item:eriva_waystone"
+  ref: "item:99a00015"
 guiIconMaterial: FILLED_MAP
 adventureGuide:
   recommendedLevelMin: 15

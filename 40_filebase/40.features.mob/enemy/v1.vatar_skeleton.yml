@@ -40,19 +40,19 @@ levels:
       exp: 160
       items:
         - itemId:
-            ref: item:alda_origin_ruins_fragment
+            ref: item:10a00064
           rate: 40.0
           amount: 1~2
           luckAffected: true
           hidden: false
         - itemId:
-            ref: item:alda_origin_vatar_bone
+            ref: item:10a00066
           rate: 20.0
           amount: 1
           luckAffected: true
           hidden: false
         - itemId:
-            ref: item:alda_origin_plate
+            ref: item:20a00063
           rate: 0.3
           amount: 1
           luckAffected: false

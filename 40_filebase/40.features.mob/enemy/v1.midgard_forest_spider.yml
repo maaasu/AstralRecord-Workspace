@@ -41,13 +41,13 @@ levels:
       exp: 65
       items:
         - itemId:
-            ref: item:forest_spider_venom_sack
+            ref: item:10a00042
           rate: 50.0
           amount: 1
           luckAffected: true
           hidden: false
         - itemId:
-            ref: item:forest_spider_poisoned_eye
+            ref: item:10a00041
           rate: 1.0
           amount: 1
           luckAffected: true
@@ -99,13 +99,13 @@ drops:
   exp: 55
   items:
     - itemId:
-        ref: item:forest_spider_venom_sack
+        ref: item:10a00042
       rate: 45.0
       amount: 1
       luckAffected: true
       hidden: false
     - itemId:
-        ref: item:forest_spider_poisoned_eye
+        ref: item:10a00041
       rate: 1.0
       amount: 1
       luckAffected: true

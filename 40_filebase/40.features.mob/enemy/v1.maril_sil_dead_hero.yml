@@ -59,13 +59,13 @@ drops:
   exp: 135
   items:
     - itemId:
-        ref: item:maril_sil_hero_shard
+        ref: item:10a00058
       rate: 50.0
       amount: 1~2
       luckAffected: true
       hidden: false
     - itemId:
-        ref: item:silmarilsil_core
+        ref: item:20a00053
       rate: 0.1
       amount: 1
       luckAffected: true

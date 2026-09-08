@@ -51,7 +51,7 @@ steps:
       - "&7インベントリで&e初ログインバンドル&7をクリックして開封する。"
     condition:
       type: BUNDLE_OPENED
-      targetId: initial_login_bundle
+      targetId: 50a00001
   - id: buy_starter_weapon
     text: "&f雑貨商で&e簡素な武器&fを購入する"
     details:
@@ -73,7 +73,7 @@ steps:
       description: "&dクリックで雑貨商の場所を表示し、発光させる。"
     condition:
       type: SHOP_PURCHASED
-      targetId: nox_armor_helmet
+      targetId: 20a00009
   - id: buy_starter_armor_chest
     text: "&f雑貨商で&eノクスメイル&fを購入する"
     details:
@@ -84,7 +84,7 @@ steps:
       description: "&dクリックで雑貨商の場所を表示し、発光させる。"
     condition:
       type: SHOP_PURCHASED
-      targetId: nox_armor_chest
+      targetId: 20a00010
   - id: buy_starter_armor_legs
     text: "&f雑貨商で&eノクスグリーブ&fを購入する"
     details:
@@ -95,7 +95,7 @@ steps:
       description: "&dクリックで雑貨商の場所を表示し、発光させる。"
     condition:
       type: SHOP_PURCHASED
-      targetId: nox_armor_legs
+      targetId: 20a00011
   - id: buy_starter_armor_boots
     text: "&f雑貨商で&eノクスブーツ&fを購入する"
     details:
@@ -106,7 +106,7 @@ steps:
       description: "&dクリックで雑貨商の場所を表示し、発光させる。"
     condition:
       type: SHOP_PURCHASED
-      targetId: nox_armor_boots
+      targetId: 20a00012
   - id: unlock_free_node
     text: "&fスキルツリーの&e無料ルートノード&fを解放する"
     details:
@@ -199,7 +199,7 @@ steps:
       description: "&dクリックで雑貨商の場所を表示し、発光させる。"
     condition:
       type: SHOP_PURCHASED
-      targetId: nox_hoe
+      targetId: 20a00005
   - id: accept_gathering_quest
     text: "&f村長マルクスから&e採集依頼&fを受注する"
     details:

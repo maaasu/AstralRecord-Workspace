@@ -20,7 +20,7 @@ steps:
       description: "&dクリックで雑貨商ミナの場所を表示し、発光させる。"
     condition:
       type: SHOP_PURCHASED
-      targetId: nox_pickaxe
+      targetId: 20a00006
   - id: teleport_to_nox_cave
     text: "&f近くのテレポーターから&eノクス洞窟採掘場&fへ移動する"
     details:
@@ -73,14 +73,14 @@ steps:
     condition:
       type: SHOP_PURCHASED
       targetIds:
-        - nox_sword
-        - nox_bow
-        - nox_staff
+        - 20a00002
+        - 20a00003
+        - 20a00004
   - id: cast_matching_weapon_skill
     text: "&f武器に合ったタグのスキルを発動する"
     details:
       - "&7武器には近接攻撃力・間接攻撃力・魔法攻撃力があり、スキルにも対応する攻撃種別のタグが付いている。"
-      - "&7{item:nox_sword}なら近接タグ、{item:nox_bow}なら間接タグ、{item:nox_staff}なら魔法タグのスキルを発動する。"
+      - "&7{item:20a00002}なら近接タグ、{item:20a00003}なら間接タグ、{item:20a00004}なら魔法タグのスキルを発動する。"
       - "&a武器とスキルの攻撃種別を合わせて、武器の強さを活かそう。"
     action:
       type: OPEN_MENU
@@ -89,6 +89,6 @@ steps:
     condition:
       type: WEAPON_SKILL_CAST
       targetIds:
-        - "nox_sword:melee"
-        - "nox_bow:ranged"
-        - "nox_staff:magic"
+        - "20a00002:melee"
+        - "20a00003:ranged"
+        - "20a00004:magic"

@@ -926,6 +926,13 @@ public class EquipmentOrbOperationRepositoryTests
         private static readonly IReadOnlyDictionary<string, long> GoldValues =
             new Dictionary<string, long>(StringComparer.OrdinalIgnoreCase)
             {
+                ["99a00001"] = 1,
+                ["99a00002"] = 10,
+                ["99a00003"] = 100,
+                ["99a00004"] = 1_000,
+                ["99a00005"] = 10_000,
+                ["99a00006"] = 100_000,
+                ["99a00007"] = 1_000_000,
                 ["gold"] = 1,
                 ["ast_gold"] = 1,
                 ["gold_coin"] = 10,

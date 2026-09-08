@@ -45,13 +45,13 @@ levels:
       exp: 82
       items:
         - itemId:
-            ref: item:savanna_hide_scrap
+            ref: item:10a00043
           rate: 50.0
           amount: 1~2
           luckAffected: true
           hidden: false
         - itemId:
-            ref: item:savanna_camel_guard_scute
+            ref: item:10a00050
           rate: 3.0
           amount: 1
           luckAffected: true
@@ -109,13 +109,13 @@ drops:
   exp: 70
   items:
     - itemId:
-        ref: item:savanna_hide_scrap
+        ref: item:10a00043
       rate: 45.0
       amount: 1~2
       luckAffected: true
       hidden: false
     - itemId:
-        ref: item:savanna_camel_guard_scute
+        ref: item:10a00050
       rate: 2.0
       amount: 1
       luckAffected: true

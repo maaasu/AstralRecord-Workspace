@@ -41,13 +41,13 @@ levels:
       exp: 55
       items:
         - itemId:
-            ref: item:forest_wolf_fang
+            ref: item:10a00039
           rate: 50.0
           amount: 1
           luckAffected: true
           hidden: false
         - itemId:
-            ref: item:forest_wolf_claw
+            ref: item:10a00038
           rate: 4.0
           amount: 1
           luckAffected: true
@@ -73,13 +73,13 @@ levels:
       exp: 65
       items:
         - itemId:
-            ref: item:forest_wolf_fang
+            ref: item:10a00039
           rate: 55.0
           amount: 1
           luckAffected: true
           hidden: false
         - itemId:
-            ref: item:forest_wolf_claw
+            ref: item:10a00038
           rate: 5.0
           amount: 1
           luckAffected: true
@@ -123,13 +123,13 @@ drops:
   exp: 45
   items:
     - itemId:
-        ref: item:forest_wolf_fang
+        ref: item:10a00039
       rate: 45.0
       amount: 1
       luckAffected: true
       hidden: false
     - itemId:
-        ref: item:forest_wolf_claw
+        ref: item:10a00038
       rate: 3.0
       amount: 1
       luckAffected: true

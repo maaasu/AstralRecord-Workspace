@@ -6,18 +6,18 @@ id: dungeon_common_orb_pool
 type: LOOT_POOL
 contents:
   - itemId:
-      ref: item:aegis_orb
+      ref: item:40a00001
     rate: 70.0
     amount: "1~5"
   - itemId:
-      ref: item:tyr_orb
+      ref: item:40a00003
     rate: 70.0
     amount: "1~5"
   - itemId:
-      ref: item:freya_orb
+      ref: item:40a00002
     rate: 70.0
     amount: "1~5"
   - itemId:
-      ref: item:sindri_orb_intermediate
+      ref: item:40a00014
     rate: 90.0
     amount: "1~2"

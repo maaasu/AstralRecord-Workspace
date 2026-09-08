@@ -21,52 +21,52 @@ challenge:
   timeLimitSeconds: 720
 clearRewards:
   items:
-    - itemId: item:melkor_sanctum_ash
+    - itemId: item:10a00049
       rate: 100.0
       amount: "1~32"
-    - itemId: item:melkor_sanctum_alloy
+    - itemId: item:10a00048
       rate: 80.0
       amount: "1~12"
-    - itemId: item:melkor_sanctum_shadow_crystal
+    - itemId: item:10a00055
       rate: 25.0
       amount: "1~6"
-    - itemId: item:melkor_sanctum_black_crown
+    - itemId: item:10a00054
       rate: 8.0
       amount: "1"
-    - itemId: item:iluvatar_sanctum_gilded_token
+    - itemId: item:10a00046
       rate: 100.0
       amount: "1~32"
-    - itemId: item:iluvatar_sanctum_flame_signet
+    - itemId: item:10a00045
       rate: 80.0
       amount: "1~12"
-    - itemId: item:iluvatar_sanctum_primal_crystal
+    - itemId: item:10a00047
       rate: 25.0
       amount: "1~6"
-    - itemId: item:iluvatar_sanctum_ember_talisman
+    - itemId: item:20a00036
       rate: 16.0
       amount: "1"
-    - itemId: item:iluvatar_sanctum_flame_talisman
+    - itemId: item:20a00037
       rate: 16.0
       amount: "1"
-    - itemId: item:balrog_charm
+    - itemId: item:20a00033
       rate: 10.0
       amount: "1"
-    - itemId: item:merian_charm
+    - itemId: item:20a00038
       rate: 10.0
       amount: "1"
-    - itemId: item:sauron_charm
+    - itemId: item:20a00039
       rate: 10.0
       amount: "1"
-    - itemId: item:melkor_plate
+    - itemId: item:20a00041
       rate: 5.0
       amount: "1"
-    - itemId: item:anarion_spear
+    - itemId: item:20a00031
       rate: 5.0
       amount: "1"
-    - itemId: item:anarion_shortbow
+    - itemId: item:20a00030
       rate: 5.0
       amount: "1"
-    - itemId: item:anarion_staff
+    - itemId: item:20a00032
       rate: 5.0
       amount: "1"
   lootTable: loot_table:dungeon_common_orb_table

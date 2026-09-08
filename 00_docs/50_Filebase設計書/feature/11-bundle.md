@@ -23,7 +23,7 @@ Mob/Bossドロップ専用の Bundle は `10 tick（0.5秒）` を指定しま�
 
 ## 正本参照
 
-- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\bundle\docs.bundle.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\50.bundle\docs.bundle.YAMLスキーマ定義.md`
 
 ## 使用時演出
 

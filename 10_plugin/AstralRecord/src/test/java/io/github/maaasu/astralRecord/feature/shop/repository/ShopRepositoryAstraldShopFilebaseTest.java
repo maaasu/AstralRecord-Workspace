@@ -35,9 +35,9 @@ class ShopRepositoryAstraldShopFilebaseTest {
                 mode: SHOP
                 access: NPC_ONLY
                 items:
-                  - id: storage_expansion_token
+                  - id: 99a00009
                     itemId:
-                      ref: item:storage_expansion_token
+                      ref: item:99a00009
                     category: currency
                     amount: 1
                     page: 1
@@ -45,12 +45,12 @@ class ShopRepositoryAstraldShopFilebaseTest {
                     priceGold: 0
                     requiredItems:
                       - itemId:
-                          ref: item:astrald
+                          ref: item:99a00008
                         category: currency
                         amount: 100
-                  - id: storage_cloud_access_token
+                  - id: 99a00010
                     itemId:
-                      ref: item:storage_cloud_access_token
+                      ref: item:99a00010
                     category: currency
                     amount: 1
                     page: 1
@@ -58,12 +58,12 @@ class ShopRepositoryAstraldShopFilebaseTest {
                     priceGold: 0
                     requiredItems:
                       - itemId:
-                          ref: item:astrald
+                          ref: item:99a00008
                         category: currency
                         amount: 300
-                  - id: market_expansion_token_alpha
+                  - id: 99a00011
                     itemId:
-                      ref: item:market_expansion_token_alpha
+                      ref: item:99a00011
                     category: currency
                     amount: 1
                     page: 1
@@ -71,12 +71,12 @@ class ShopRepositoryAstraldShopFilebaseTest {
                     priceGold: 0
                     requiredItems:
                       - itemId:
-                          ref: item:astrald
+                          ref: item:99a00008
                         category: currency
                         amount: 50
-                  - id: market_expansion_token_beta
+                  - id: 99a00012
                     itemId:
-                      ref: item:market_expansion_token_beta
+                      ref: item:99a00012
                     category: currency
                     amount: 1
                     page: 1
@@ -84,12 +84,12 @@ class ShopRepositoryAstraldShopFilebaseTest {
                     priceGold: 0
                     requiredItems:
                       - itemId:
-                          ref: item:astrald
+                          ref: item:99a00008
                         category: currency
                         amount: 100
-                  - id: market_expansion_token_gamma
+                  - id: 99a00013
                     itemId:
-                      ref: item:market_expansion_token_gamma
+                      ref: item:99a00013
                     category: currency
                     amount: 1
                     page: 1
@@ -97,12 +97,12 @@ class ShopRepositoryAstraldShopFilebaseTest {
                     priceGold: 0
                     requiredItems:
                       - itemId:
-                          ref: item:astrald
+                          ref: item:99a00008
                         category: currency
                         amount: 150
-                  - id: market_expansion_token_delta
+                  - id: 99a00014
                     itemId:
-                      ref: item:market_expansion_token_delta
+                      ref: item:99a00014
                     category: currency
                     amount: 1
                     page: 1
@@ -110,7 +110,7 @@ class ShopRepositoryAstraldShopFilebaseTest {
                     priceGold: 0
                     requiredItems:
                       - itemId:
-                          ref: item:astrald
+                          ref: item:99a00008
                         category: currency
                         amount: 200
                 """);
@@ -124,15 +124,15 @@ class ShopRepositoryAstraldShopFilebaseTest {
                 .filter(definition -> definition.id().equals("astrald_shop"))
                 .findFirst()
                 .orElseThrow();
-        assertEquals(new ShopCostItem("astrald", "currency", 100), entry(shop, "storage_expansion_token").requiredItems().getFirst());
-        assertEquals(0, entry(shop, "storage_expansion_token").slot());
-        assertEquals(1, entry(shop, "storage_cloud_access_token").slot());
-        assertEquals(7, entry(shop, "market_expansion_token_alpha").slot());
-        assertEquals(8, entry(shop, "market_expansion_token_beta").slot());
-        assertEquals(9, entry(shop, "market_expansion_token_gamma").slot());
-        assertEquals(10, entry(shop, "market_expansion_token_delta").slot());
-        assertEquals(List.of(new ShopCostItem("astrald", "currency", 200)),
-                entry(shop, "market_expansion_token_delta").requiredItems());
+        assertEquals(new ShopCostItem("99a00008", "currency", 100), entry(shop, "99a00009").requiredItems().getFirst());
+        assertEquals(0, entry(shop, "99a00009").slot());
+        assertEquals(1, entry(shop, "99a00010").slot());
+        assertEquals(7, entry(shop, "99a00011").slot());
+        assertEquals(8, entry(shop, "99a00012").slot());
+        assertEquals(9, entry(shop, "99a00013").slot());
+        assertEquals(10, entry(shop, "99a00014").slot());
+        assertEquals(List.of(new ShopCostItem("99a00008", "currency", 200)),
+                entry(shop, "99a00014").requiredItems());
     }
 
     private ShopEntry entry(ShopDefinition shop, String id) {

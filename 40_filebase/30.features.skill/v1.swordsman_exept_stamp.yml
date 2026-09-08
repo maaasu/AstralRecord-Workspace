@@ -44,10 +44,10 @@ sigilSlotsByLevel:
   - { level: 3, slots: 2 }
   - { level: 5, slots: 3 }
 allowedSigilIds:
-  - cooldown_sigil
-  - cooldown_sigil_ii
-learnRequiredItems: [{ itemId: skill_gem_raw, amount: 3 }]
-levelUpRequiredItems: [{ itemId: skill_gem_raw, amount: 3 }]
+  - 70a00001
+  - 70a00002
+learnRequiredItems: [{ itemId: 10a00019, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00019, amount: 3 }]
 params:
   radius: 1.0
   damageRatio: 1.10

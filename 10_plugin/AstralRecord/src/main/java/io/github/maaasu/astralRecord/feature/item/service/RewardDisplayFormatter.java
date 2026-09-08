@@ -64,7 +64,8 @@ public final class RewardDisplayFormatter {
             return "アストラルド";
         }
         if (ItemService.DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(model.getId())
-            || ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(model.getId())) {
+            || ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(model.getId())
+            || ItemService.LEGACY_PREVIOUS_DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(model.getId())) {
             return "ゴールド";
         }
         if (model.getName() == null || model.getName().isBlank()) {

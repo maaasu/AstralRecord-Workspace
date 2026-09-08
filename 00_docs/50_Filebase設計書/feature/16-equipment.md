@@ -73,7 +73,7 @@ Equipment は、装備中のステータス、武器タグに応じた通常攻�
 
 ## カルトグラフ
 
-`cartograph` は共有equipment tag `CARTOGRAPH` を持つ、1スタックの再利用可能な `TOOL` です。最大耐久は300、`durability.consume` は75です。今回、loot・shop・quest・recipe等の入手経路は追加しません。
+`20a00042` (`cartograph`) は共有equipment tag `CARTOGRAPH` を持つ、1スタックの再利用可能な `TOOL` です。最大耐久は300、`durability.consume` は75です。今回、loot・shop・quest・recipe等の入手経路は追加しません。
 
 - ダンジョン内のmain hand右クリックは、装備instanceへ現在のdungeon session mapをメモリ登録してGUIを開きます。
 - 新規session登録時だけ現在耐久75以上を要求して固定75を消費します。同じsessionの再表示は消費せず、残耐久0でも可能です。同じmasterでもsessionが異なれば新規登録です。
@@ -83,13 +83,13 @@ Equipment は、装備中のステータス、武器タグに応じた通常攻�
 
 ## フックショット
 
-`hookshot` は共有equipment tag `HOOKSHOT` を持つ、crossbow iconの1スタック `TOOL` です。最大耐久は200、`durability.consume` は1です。今回、loot・shop・quest・recipe等の入手経路は追加しません。
+`20a00043` (`hookshot`) は共有equipment tag `HOOKSHOT` を持つ、crossbow iconの1スタック `TOOL` です。最大耐久は200、`durability.consume` は1です。今回、loot・shop・quest・recipe等の入手経路は追加しません。
 
 - 未装填のmain hand左クリックは1.5秒（30 tick）の装填を開始する。装填中は通常移動速度を50%低下させ、ActionBarへ残り時間と進捗を表示する。右クリックは何も発動しない。装填開始・中断では素材も耐久も消費しない。
-- 装填完了時だけ `hook` materialを1個消費し、個体のinventory entry metadataへ装填済み状態を保存する。装填済みのフックは取り外せず、通常の持ち替え・収納・再ログイン後も状態を保持する。
+- 装填完了時だけ `10a00057` materialを1個消費し、個体のinventory entry metadataへ装填済み状態を保存する。装填済みのフックは取り外せず、通常の持ち替え・収納・再ログイン後も状態を保持する。
 - 装填完了時に現在の照準が最大24 block先までの最初の固体blockへ命中する場合は自動発射する。発射時だけinstance耐久を1消費して装填状態を外す。照準失敗・耐久不足では装填状態と耐久を保持し、次のmain hand左クリックで発射を再試行する。
 - プレイヤーをteleportせず、現在velocityの前方成分を維持し横方向だけを減衰しながら、距離比例のアンカー方向加速を加える。衝突・重力・落下はゲーム物理に従う。牽引は最大44 tick、速度上限は2.05である。
-- 命中面には短命の金属格子型BlockDisplay、プレイヤーとアンカーの間にはparticle tetherを表示します。素材 `hook` のiconは `TRIPWIRE_HOOK` ですが、アイテム専用MaterialのためBlockDisplayには使いません。
+- 命中面には短命の金属格子型BlockDisplay、プレイヤーとアンカーの間にはparticle tetherを表示します。素材 `10a00057` のiconは `TRIPWIRE_HOOK` ですが、アイテム専用MaterialのためBlockDisplayには使いません。
 - 耐久は既存の装備instance耐久として管理し、generic repair orbで回復できます。
 
 ## 入手方法の確認
@@ -107,10 +107,10 @@ Equipment は、装備中のステータス、武器タグに応じた通常攻�
 ## 正本参照
 
 - 戦闘・ゲームバランス: ステータス、強化、特殊効果、装備更新に関わる値を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
-- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\equipment\docs.equipment.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\20.equipment\docs.equipment.YAMLスキーマ定義.md`
 - 共通 enchant YAML: `E:\AstralRecord-Workspace\40_filebase\12.features.enchant\docs.enchant.YAMLスキーマ定義.md`
-- orb YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\orb\docs.orb.YAMLスキーマ定義.md`
-- set effect YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\equipment\set_effect\docs.set_effect.YAMLスキーマ定義.md`
+- orb YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\40.orb\docs.orb.YAMLスキーマ定義.md`
+- set effect YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\20.equipment\set_effect\docs.set_effect.YAMLスキーマ定義.md`
 - status: `E:\AstralRecord-Workspace\40_filebase\75.shared.status\v1.status_types.yml`
 - slot / hand type / enhance / enchant / rune / transcendence: `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main\java\io\github\maaasu\astralRecord\feature\item\model\ItemEquipment.kt`
 - accessory slot / tag: `E:\AstralRecord-Workspace\10_plugin\AstralRecord\src\main\java\io\github\maaasu\astralRecord\feature\inventory\model\AccessorySlotType.java`

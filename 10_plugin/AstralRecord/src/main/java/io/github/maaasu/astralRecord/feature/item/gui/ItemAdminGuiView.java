@@ -226,7 +226,10 @@ public final class ItemAdminGuiView {
         List<Component> lore = meta.lore() == null ? new ArrayList<>() : new ArrayList<>(meta.lore());
         lore.add(Component.empty());
         lore.add(Component.text("管理者配布", NamedTextColor.GOLD, TextDecoration.BOLD).decoration(TextDecoration.ITALIC, false));
-        lore.add(Component.text("カテゴリ: " + ItemCategory.displayNameJa(model.getCategory()), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
+        lore.add(Component.text(
+            "カテゴリ: " + ItemCategory.displayNameJa(model.getCategory()) + " / ID: " + model.getId(),
+            NamedTextColor.GRAY
+        ).decoration(TextDecoration.ITALIC, false));
         lore.add(Component.text("レア度: " + ItemRarity.displayNameJa(model.getRarity()), NamedTextColor.GRAY).decoration(TextDecoration.ITALIC, false));
         lore.add(Component.text("左=1個 / 右=半スタック / Shift+左=1スタック", NamedTextColor.GREEN)
             .decoration(TextDecoration.ITALIC, false));

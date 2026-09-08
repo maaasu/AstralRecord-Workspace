@@ -66,14 +66,14 @@ rewards:
   gold: 100
   items:
     - itemId:
-        ref: item:healing_potion_medium
+        ref: item:30a00004
       category: consumable
       amount: 1
     - itemId:
-        ref: item:mana_potion_medium
+        ref: item:30a00006
       category: consumable
       amount: 1
     - itemId:
-        ref: item:energy_baked
+        ref: item:30a00001
       category: consumable
       amount: 2

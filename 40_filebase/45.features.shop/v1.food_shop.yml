@@ -7,9 +7,9 @@ type: SHOP
 name: "&e食料品店"
 access: NPC_ONLY
 items:
-  - id: energy_baked
+  - id: 30a00001
     itemId:
-      ref: item:energy_baked
+      ref: item:30a00001
     category: consumable
     amount: 1
     page: 1
@@ -17,12 +17,12 @@ items:
     priceGold: 6
     requiredItems:
       - itemId:
-          ref: item:grassboar_meat
+          ref: item:10a00001
         category: material
         amount: 1
-  - id: nox_night_herb_boar_skewer
+  - id: 30a00005
     itemId:
-      ref: item:nox_night_herb_boar_skewer
+      ref: item:30a00005
     category: consumable
     amount: 1
     page: 1
@@ -30,10 +30,10 @@ items:
     priceGold: 2
     requiredItems:
       - itemId:
-          ref: item:grassboar_meat
+          ref: item:10a00001
         category: material
         amount: 1
       - itemId:
-          ref: item:nox_night_herb
+          ref: item:10a00015
         category: material
         amount: 2

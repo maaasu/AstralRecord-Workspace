@@ -92,19 +92,19 @@ drops:
     max: 6
   items:
     - itemId:
-        ref: item:skeleton_bone_fragment
+        ref: item:10a00023
       rate: 75.0
       amount: 1~2
       luckAffected: true
       hidden: false
     - itemId:
-        ref: item:skeleton_bowstring
+        ref: item:10a00024
       rate: 35.0
       amount: 1
       luckAffected: true
       hidden: false
     - itemId:
-        ref: item:windcutter_feather
+        ref: item:10a00026
       rate: 12.0
       amount: 1
       luckAffected: true

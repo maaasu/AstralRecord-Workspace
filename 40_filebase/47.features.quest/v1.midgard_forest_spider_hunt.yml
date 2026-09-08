@@ -30,18 +30,18 @@ rewards:
   gold: 420
   items:
     - itemId:
-        ref: item:healing_potion_medium
+        ref: item:30a00004
       category: consumable
       amount: 2
     - itemId:
-        ref: item:mana_potion_medium
+        ref: item:30a00006
       category: consumable
       amount: 2
     - itemId:
-        ref: item:energy_baked
+        ref: item:30a00001
       category: consumable
       amount: 3
     - itemId:
-        ref: item:forest_spider_venom_sack
+        ref: item:10a00042
       category: material
       amount: 2

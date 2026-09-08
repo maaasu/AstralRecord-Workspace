@@ -1,0 +1,39 @@
+# design:
+#   motif: "星影の街ノクス / 旅立ちの支援"
+#   progression: 0
+schemaVersion: 1
+id: 50a00001
+category: bundle
+name: "&b初ログインバンドル"
+icon: CHEST
+rarity: RARE
+maxStack: 1
+lore:
+  - "&7ノクスでの冒険を始める者へ贈られる支援箱。"
+unTradeable: true
+unSellable: true
+bundle:
+  gold: 1500
+  items:
+    - itemId: 10a00019
+      amount: 4
+    - itemId: 40a00003
+      amount: 5
+    - itemId: 40a00001
+      amount: 5
+    - itemId: 40a00002
+      amount: 5
+    - itemId: 40a00011
+      amount: 5
+  onUse:
+    sound:
+      sound: block.chest.open
+      volume: 0.8
+      pitch: 1.15
+    particle:
+      particle: TOTEM_OF_UNDYING
+      count: 24
+      originOffsetY: 1.0
+      offsetX: 0.4
+      offsetY: 0.5
+      offsetZ: 0.4

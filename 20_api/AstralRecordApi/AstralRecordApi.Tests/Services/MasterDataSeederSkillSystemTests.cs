@@ -76,8 +76,10 @@ public class MasterDataSeederSkillSystemTests
     /// 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_0-概要.md
     /// 検証契約: Plugin組み込み通貨astraldはFilebase item定義なしでも必須参照として解決できる。
     /// </summary>
-    [Fact]
-    public async Task ValidateReferencesAsync_ResolvesBuiltInAstraldCurrencyItemReference()
+    [Theory]
+    [InlineData("99a00008")]
+    [InlineData("astrald")]
+    public async Task ValidateReferencesAsync_ResolvesBuiltInAstraldCurrencyItemReference(string referenceId)
     {
         await using var fixture = await Fixture.CreateAsync();
         var shop = fixture.AddEntry("shop", "astrald_shop", null, "{}");
@@ -88,7 +90,7 @@ public class MasterDataSeederSkillSystemTests
             FromMasterType = "shop",
             FromMasterId = "astrald_shop",
             ReferenceType = "item",
-            ReferenceIdValue = "astrald",
+            ReferenceIdValue = referenceId,
             ReferencePath = "$.items[0].requiredItems[0].itemId",
             IsRequired = true,
             CreatedAt = fixture.Now,
@@ -139,7 +141,7 @@ public class MasterDataSeederSkillSystemTests
     }
 
     /// <summary>
-    /// 設計入力: 40_filebase/10.features.item/orb/docs.orb.YAMLスキーマ定義.md
+    /// 設計入力: 40_filebase/10.features.item/40.orb/docs.orb.YAMLスキーマ定義.md
     /// 検証契約: オーブが参照する共通エンチャントマスタが存在しない場合、Seeder は必須参照エラーにする。
     /// </summary>
     [Fact]

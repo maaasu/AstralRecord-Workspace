@@ -37,8 +37,8 @@ levels:
     statusModifiers: [{ status: SKILL_DAMAGE_INCREASE, value: 5 }]
 sigilSlotsByLevel: []
 allowedSigilIds: []
-learnRequiredItems: [{ itemId: skill_gem_raw, amount: 3 }]
-levelUpRequiredItems: [{ itemId: skill_gem_raw, amount: 3 }]
+learnRequiredItems: [{ itemId: 10a00019, amount: 3 }]
+levelUpRequiredItems: [{ itemId: 10a00019, amount: 3 }]
 params:
   range: 6.0
   damageRatio: 1.875

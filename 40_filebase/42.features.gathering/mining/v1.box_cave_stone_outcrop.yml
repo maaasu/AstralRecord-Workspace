@@ -26,7 +26,7 @@ sounds:
 drops:
   exp: 1
   items:
-    - itemId: item:box_cave_stone
+    - itemId: item:10a00010
       rate: 100.0
       amount: "2~4"
       luckAffected: true

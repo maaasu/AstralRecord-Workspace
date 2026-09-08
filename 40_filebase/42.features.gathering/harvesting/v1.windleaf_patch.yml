@@ -23,7 +23,7 @@ sounds:
 drops:
   exp: 1
   items:
-    - itemId: item:windleaf_sprig
+    - itemId: item:10a00003
       rate: 100.0
       amount: "1~2"
       luckAffected: true

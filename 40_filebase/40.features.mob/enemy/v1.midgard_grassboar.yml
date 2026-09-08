@@ -74,13 +74,13 @@ drops:
   exp: 8
   items:
     - itemId:
-        ref: item:grassboar_pelt
+        ref: item:10a00002
       rate: 35.0
       amount: 1
       luckAffected: true
       hidden: false
     - itemId:
-        ref: item:grassboar_meat
+        ref: item:10a00001
       rate: 80.0
       amount: 2~3
       luckAffected: true

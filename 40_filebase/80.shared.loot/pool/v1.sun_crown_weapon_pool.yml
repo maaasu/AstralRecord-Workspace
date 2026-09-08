@@ -7,14 +7,14 @@ type: LOOT_POOL
 pick: 1
 contents:
   - itemId:
-      ref: item:sun_crown_sword
+      ref: item:20a00056
     rate: 100.0
     amount: 1
   - itemId:
-      ref: item:sun_crown_bow
+      ref: item:20a00054
     rate: 100.0
     amount: 1
   - itemId:
-      ref: item:sun_crown_staff
+      ref: item:20a00055
     rate: 100.0
     amount: 1

@@ -10,6 +10,6 @@ publishFrom: "2026-01-01T00:00:00"
 publishTo: null
 receiveOnRead: true
 rewards:
-  - itemId: astrald
+  - itemId: 99a00008
     category: currency
     amount: 50

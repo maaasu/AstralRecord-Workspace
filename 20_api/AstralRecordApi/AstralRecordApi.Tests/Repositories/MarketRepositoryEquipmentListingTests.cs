@@ -1209,6 +1209,13 @@ public class MarketRepositoryEquipmentListingTests
                                  select entry).ToListAsync();
             return entries.Sum(entry => entry.ItemId switch
             {
+                "99a00001" => entry.Quantity,
+                "99a00002" => entry.Quantity * 10L,
+                "99a00003" => entry.Quantity * 100L,
+                "99a00004" => entry.Quantity * 1_000L,
+                "99a00005" => entry.Quantity * 10_000L,
+                "99a00006" => entry.Quantity * 100_000L,
+                "99a00007" => entry.Quantity * 1_000_000L,
                 "gold" or "ast_gold" => entry.Quantity,
                 "gold_coin" => entry.Quantity * 10L,
                 "gold_ingot" => entry.Quantity * 100L,

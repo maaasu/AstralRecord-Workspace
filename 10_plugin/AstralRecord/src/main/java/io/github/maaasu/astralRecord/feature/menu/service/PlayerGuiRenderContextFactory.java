@@ -2,7 +2,6 @@ package io.github.maaasu.astralRecord.feature.menu.service;
 
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.currency.model.GoldDenomination;
-import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.menu.model.CurrencyDisplayEntry;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerEquipmentSnapshot;
 import io.github.maaasu.astralRecord.feature.menu.model.PlayerGuiRenderContext;
@@ -82,10 +81,9 @@ public final class PlayerGuiRenderContextFactory {
             if (currencyId == null) {
                 continue;
             }
-            String canonicalId = ItemService.LEGACY_DEFAULT_CURRENCY_ITEM_ID.equalsIgnoreCase(currencyId)
-                ? ItemService.DEFAULT_CURRENCY_ITEM_ID
-                : currencyId.toLowerCase(Locale.ROOT);
-            Component displayName = GoldDenomination.GOLD.itemId().equalsIgnoreCase(canonicalId)
+            GoldDenomination denomination = GoldDenomination.findByItemId(currencyId);
+            String canonicalId = denomination == null ? currencyId.toLowerCase(Locale.ROOT) : denomination.itemId();
+            Component displayName = denomination == GoldDenomination.GOLD
                 ? Component.text(GoldDenomination.GOLD.displayName(), NamedTextColor.GOLD)
                 : displayName(itemStack);
             displayNamesById.putIfAbsent(canonicalId, displayName);

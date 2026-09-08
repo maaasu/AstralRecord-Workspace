@@ -21,8 +21,8 @@ Orb は、通常プレイヤーインベントリからクリックして装備�
 
 | ID | 名称・モチーフ | progression | rarity | 操作 |
 |:--|:--|--:|:--|:--|
-| `bragi_orb` | ブラギのオーブ（北欧神話・詩歌） | `1` | `UNCOMMON` | シジル装着 |
-| `mimir_orb` | ミーミルのオーブ（北欧神話・知恵の泉） | `1` | `RARE` | シジル脱着・返却 |
+| `40a00006` (`bragi_orb`) | ブラギのオーブ（北欧神話・詩歌） | `1` | `UNCOMMON` | シジル装着 |
+| `40a00010` (`mimir_orb`) | ミーミルのオーブ（北欧神話・知恵の泉） | `1` | `RARE` | シジル脱着・返却 |
 
 返却を伴う脱着オーブは装着オーブより高いrarityとします。
 
@@ -33,6 +33,6 @@ Orb は、通常プレイヤーインベントリからクリックして装備�
 ## 正本参照
 
 - 戦闘・ゲームバランス: 効果量、装備更新に関わる値を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
-- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\orb\docs.orb.YAMLスキーマ定義.md`
+- YAML: `E:\AstralRecord-Workspace\40_filebase\10.features.item\40.orb\docs.orb.YAMLスキーマ定義.md`
 - 共通 enchant: `E:\AstralRecord-Workspace\40_filebase\12.features.enchant\docs.enchant.YAMLスキーマ定義.md`
-- equipment: `E:\AstralRecord-Workspace\40_filebase\10.features.item\equipment\docs.equipment.YAMLスキーマ定義.md`
+- equipment: `E:\AstralRecord-Workspace\40_filebase\10.features.item\20.equipment\docs.equipment.YAMLスキーマ定義.md`

@@ -21,10 +21,10 @@ steps:
       type: DUNGEON_CLEARED
       targetId: middle_earth_ruins
   - id: farm_gold_and_buy_cartograph
-    text: "&fダンジョンを周回してお金を集め、{item:cartograph}&fを購入する"
+    text: "&fダンジョンを周回してお金を集め、{item:20a00042}&fを購入する"
     details:
-      - "&7ダンジョンを周回してお金を集め、&e{item:cartograph}&7を購入できるようにする。"
-      - "&7お金が貯まったら、雑貨商ミナから&e{item:cartograph}&7を購入しよう。"
+      - "&7ダンジョンを周回してお金を集め、&e{item:20a00042}&7を購入できるようにする。"
+      - "&7お金が貯まったら、雑貨商ミナから&e{item:20a00042}&7を購入しよう。"
       - "&aカルトグラフがあれば、攻略したダンジョンの情報を確認できる。"
     action:
       type: NAVIGATE_NPC
@@ -32,4 +32,4 @@ steps:
       description: "&dクリックで雑貨商ミナの場所を表示し、発光させる。"
     condition:
       type: SHOP_PURCHASED
-      targetId: cartograph
+      targetId: 20a00042

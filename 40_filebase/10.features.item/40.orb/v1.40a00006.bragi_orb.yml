@@ -1,0 +1,15 @@
+# design:
+#   motif: "北欧神話 / ブラギ / 詩歌"
+#   progression: 1
+schemaVersion: 1
+id: 40a00006
+category: orb
+name: "&aブラギのオーブ"
+icon: ENCHANTED_BOOK
+rarity: UNCOMMON
+lore:
+  - "&7習得済みスキルを選択し、所持シジルを一つ装着する。"
+maxStack: 64
+orb:
+  effect:
+    type: SIGIL_ATTACH

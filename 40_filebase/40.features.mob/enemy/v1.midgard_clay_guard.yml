@@ -63,13 +63,13 @@ drops:
   exp: 28
   items:
     - itemId:
-        ref: item:clay_guard_fragment
+        ref: item:10a00027
       rate: 70.0
       amount: 1~2
       luckAffected: true
       hidden: false
     - itemId:
-        ref: item:ancient_clay_rune
+        ref: item:10a00029
       rate: 8.0
       amount: 1
       luckAffected: true

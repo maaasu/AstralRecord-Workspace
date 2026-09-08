@@ -1,0 +1,20 @@
+# design:
+#   motif: "ギリシャ神話 / アテナ"
+#   progression: 1
+schemaVersion: 1
+id: 40a00007
+category: orb
+name: "&bアテナのオーブ"
+icon: ENCHANTED_BOOK
+rarity: RARE
+maxStack: 64
+saleValue: 100
+lore:
+  - "&7空いているエンチャント枠1つへ付与する。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: ENCHANT
+    enchantMasterId: enchant:enchant001
+    enchantOperation: FILL_ONE_EMPTY

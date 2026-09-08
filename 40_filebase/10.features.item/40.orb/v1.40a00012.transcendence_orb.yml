@@ -1,0 +1,21 @@
+# design:
+#   motif: "ギリシャ神話 / プロメテウス"
+#   progression: 1
+schemaVersion: 1
+id: 40a00012
+category: orb
+name: "&cプロメテウスのオーブ"
+icon: BLAZE_POWDER
+rarity: RARE
+maxStack: 64
+saleValue: 150
+lore:
+  - "&7現在のランクが0の装備に使用できる。"
+  - "&7ランク1へ状態変化を行う。"
+unTradeable: false
+unSellable: false
+orb:
+  effect:
+    type: TRANSCENDENCE
+    rank: 1
+    rankMode: EXACT

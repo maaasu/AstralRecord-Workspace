@@ -1,0 +1,33 @@
+# design:
+#   motif: "錬金術 / 癒やしの小瓶"
+#   progression: 0
+# NOTE: 現在実装されているマスタデータはすべてデバッグ用の仮設定です。正式なゲームバランス・報酬・入手設計として扱わないでください。
+schemaVersion: 1
+id: 30a00002
+category: consumable
+name: "&a回復ポーション【小】"
+icon: POTION
+rarity: COMMON
+maxStack: 64
+saleValue: 10
+appearance:
+  potionType: HEALING
+lore:
+  - "&7傷を癒やす力を封じた小瓶。"
+unTradeable: false
+unSellable: false
+
+consumable:
+  onUse:
+    usingSound: entity.generic.drink
+    sound: entity.generic.drink
+    effect: heart
+    amount: 1
+    useTimeTicks: 20
+    cooldownTicks: 40
+  effects:
+    - type: RECOVER
+      status: HP
+      value: 35
+      isPercent: false
+      rate: 100

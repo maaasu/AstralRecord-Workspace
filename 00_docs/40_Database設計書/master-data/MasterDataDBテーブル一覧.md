@@ -16,7 +16,7 @@
 | master_type  | 対応 filebase                                   | 主な API                       |
 | :----------- | :-------------------------------------------- | :--------------------------- |
 | `item`       | `10.features.item/**/v*.yml`                  | `/api/item/{itemId}`         |
-| `set_effect` | `10.features.item/equipment/set_effect/*.yml` | `/api/seteffect/{setId}`     |
+| `set_effect` | `10.features.item/20.equipment/set_effect/*.yml` | `/api/seteffect/{setId}`     |
 | `class`      | `20.features.class/*.yml`                     | `/api/class/{classId}`       |
 | `skill`      | `30.features.skill/*.yml`                     | `/api/skill/{skillId}`       |
 | `mob`        | `40.features.mob/**/*.yml`                    | 未定                           |

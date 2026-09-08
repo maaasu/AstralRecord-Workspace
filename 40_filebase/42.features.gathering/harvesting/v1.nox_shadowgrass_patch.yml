@@ -26,12 +26,12 @@ sounds:
 drops:
   exp: 1
   items:
-    - itemId: item:nox_night_herb
+    - itemId: item:10a00015
       rate: 100.0
       amount: "1"
       luckAffected: true
       hidden: false
-    - itemId: item:nox_shadowgrass_fiber
+    - itemId: item:10a00016
       rate: 100.0
       amount: "1~2"
       luckAffected: true

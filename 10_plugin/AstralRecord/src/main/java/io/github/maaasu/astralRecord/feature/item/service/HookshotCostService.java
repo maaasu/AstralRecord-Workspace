@@ -11,7 +11,7 @@ import org.jetbrains.annotations.Nullable;
 
 /** フックショットの装填素材と発射耐久を、別の確定時点で扱います。 */
 public final class HookshotCostService {
-    public static final String HOOK_ITEM_ID = "hook";
+    public static final String HOOK_ITEM_ID = "10a00057";
     public static final long HOOK_AMOUNT_PER_LOAD = 1L;
 
     private final InventoryService inventoryService;

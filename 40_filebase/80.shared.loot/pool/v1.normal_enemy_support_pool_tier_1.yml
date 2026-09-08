@@ -7,10 +7,10 @@ type: LOOT_POOL
 pick: 1
 contents:
   - itemId:
-      ref: item:skill_gem_raw
+      ref: item:10a00019
     rate: 13.0
     amount: 1
   - itemId:
-      ref: item:sindri_orb
+      ref: item:40a00011
     rate: 8.0
     amount: 1

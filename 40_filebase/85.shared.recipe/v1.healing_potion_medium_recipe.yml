@@ -13,17 +13,17 @@ tags:
   - consumable
 result:
   itemId:
-    ref: item:healing_potion_medium
+    ref: item:30a00004
   amount: 1
 ingredients:
   - itemId:
-      ref: item:windleaf_sprig
+      ref: item:10a00003
     amount: 2
   - itemId:
-      ref: item:glimmercap_spore
+      ref: item:10a00004
     amount: 1
   - itemId:
-      ref: item:nox_dewgrass_leaf
+      ref: item:10a00011
     amount: 1
 requiredLevel: 0
 requiredCurrency: 0

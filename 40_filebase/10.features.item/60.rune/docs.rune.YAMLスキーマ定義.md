@@ -1,0 +1,162 @@
+# RUNE (ルーン) YAML スキーマ定義
+
+装備のスロットに嵌め込むことでステータス補正を付与する「ルーン」アイテムを表現します。ルーンからのスキル付与は行いません。
+通常のアイテム共通項目（`schemaVersion` / `id` / `category` / `name` など）は `docs.item.YAMLスキーマ定義.md` を参照し、本書では Rune 固有項目のみ定義します。
+
+> **StatusType について**: `status`フィールドに使用できるIDは、共有カタログ`40_filebase/75.shared.status/v1.status_types.yml`を参照してください。
+
+## スキーマ定義
+
+| キー                             | 型            | 必須 | デフォルト | 説明                                                                              |
+|:-------------------------------|:-------------|:--:|:------|:--------------------------------------------------------------------------------|
+| `rune.targetSlots[]`           | List<String> | ○  | -     | このルーンを装備できる装備スロット種別のリスト（`WEAPON` / `HEAD` / `CHEST` など）。`ANY` を指定すると全スロット対応。    |
+| `rune.targetTags[]`            | List<String> | ×  | 空リスト | 装備の `equipment.tag` による追加条件。共有タグカタログの `EQUIPMENT` 対象 ID を指定し、未指定時はタグ制限なし。          |
+| `rune.requiredEnhanceLevel`    | Integer      | ×  | 0     | このルーンをセットするために必要な装備の強化（`enhance`）レベルの最小値。`0` で制限なし。                             |
+| `rune.stats[]`                 | List         | ×  | -     | ルーン装着中に装備へ付与されるステータス補正のリスト。                                                     |
+| `rune.stats[].status`          | String       | ×  | -     | 対象ステータス（`StatusType`）。例: `ATTACK` / `DEFENSE` / `CRITICAL_RATE`。                |
+| `rune.stats[].type`            | String       | ×  | -     | 補正方式（`FLAT` / `SCALAR`）。`FLAT` は加算、`SCALAR` は乗算係数。                              |
+| `rune.stats[].value`           | String       | ×  | -     | 補正値。固定値のみ（例: `5`）。`SCALAR` の場合は `0.10 = +10%`。                                      |
+
+### rune.targetSlots[]
+以下のいずれかの値を指定します（複数指定可）。
+
+- `ANY` : 全スロット対応
+- `WEAPON`
+- `SUBWEAPON`
+- `HEAD`
+- `CHEST`
+- `LEGS`
+- `FEET`
+- `ACCESSORY`
+- `TOOL`
+
+### rune.targetTags[]
+
+`40_filebase/76.shared.tag/v1.tags.yml` の `EQUIPMENT` 対象タグ ID を指定します。複数指定時は OR 条件です。
+`targetSlots[]` と `targetTags[]` の両方を指定した場合は、スロット条件とタグ条件の AND 条件になります。
+未指定または空リストの場合は、スロット条件だけで判定します。
+
+例: 剣専用ルーンは次のように指定します。
+
+```yaml
+rune:
+  targetSlots: [WEAPON]
+  targetTags: [SWORD]
+```
+
+### rune.stats[].type
+- `FLAT` : 定数加算
+- `SCALAR` : 乗算（ベース値に対して）
+
+### rune.requiredEnhanceLevel について
+
+装備側の `enhance` レベルが `requiredEnhanceLevel` 以上でなければ、このルーンをセットできません。
+`0` または未指定の場合は強化レベルに関係なくセット可能です。
+
+### スタックと固定値
+
+ルーンは `itemId` で管理する通常のスタックアイテムです。個別 instance ID、作成時の乱数ロール、および値範囲は使用しません。`maxStack` は他の通常アイテムと同様に指定し、`rune.stats[].value` は必ず固定値にします。
+
+## YAML 例
+
+### 例1: 基本的なルーン（ステータス補正のみ）
+
+```yaml
+schemaVersion: 1
+id: 60a00001
+category: RUNE
+name: "&c攻撃のルーン【小】"
+icon: BRICK
+rarity: COMMON
+lore:
+  - "&7装備に嵌め込むことで攻撃力を高める。"
+
+maxStack: 64
+rune:
+  targetSlots:
+    - WEAPON
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value: 5
+```
+
+### 例2: 複数スロット対応・強化レベル条件付きルーン
+
+```yaml
+schemaVersion: 1
+id: rune_defense_medium
+category: RUNE
+name: "&a防御のルーン【中】"
+icon: NETHER_BRICK
+rarity: UNCOMMON
+lore:
+  - "&7防御力と魔法防御力を高める中級ルーン。"
+  - "&e強化レベル3以上の装備にセット可能。"
+
+maxStack: 64
+rune:
+  targetSlots:
+    - HEAD
+    - CHEST
+    - LEGS
+    - FEET
+  requiredEnhanceLevel: 3
+  stats:
+    - status: DEFENSE
+      type: FLAT
+      value: 10
+    - status: MAGIC_DEFENSE
+      type: FLAT
+      value: 8
+```
+
+### 例3: 攻撃補正ルーン（強化レベル条件付き）
+
+```yaml
+schemaVersion: 1
+id: rune_fire_blade
+category: RUNE
+name: "&6炎刃のルーン"
+icon: BLAZE_ROD
+rarity: RARE
+lore:
+  - "&7武器に炎の力を宿すルーン。"
+  - "&e強化レベル5以上の武器にセット可能。"
+
+maxStack: 64
+rune:
+  targetSlots:
+    - WEAPON
+  requiredEnhanceLevel: 5
+  stats:
+    - status: ATTACK
+      type: FLAT
+      value: 15
+    - status: CRITICAL_RATE
+      type: FLAT
+      value: 0.05
+```
+
+### 例4: 全スロット対応ルーン（スカラー補正）
+
+```yaml
+schemaVersion: 1
+id: rune_exp_boost
+category: RUNE
+name: "&b経験値のルーン"
+icon: EXPERIENCE_BOTTLE
+rarity: UNCOMMON
+lore:
+  - "&7どの装備にも嵌め込める汎用ルーン。"
+  - "&7獲得経験値量が増加する。"
+
+maxStack: 64
+rune:
+  targetSlots:
+    - ANY
+  stats:
+    - status: EXP_GAIN
+      type: SCALAR
+      value: 0.10
+```

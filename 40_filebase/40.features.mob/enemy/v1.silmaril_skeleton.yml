@@ -69,13 +69,13 @@ drops:
   exp: 115
   items:
     - itemId:
-        ref: item:silmaril_bone_fragment
+        ref: item:10a00056
       rate: 50.0
       amount: 1~2
       luckAffected: true
       hidden: false
     - itemId:
-        ref: item:silmarilsil_core
+        ref: item:20a00053
       rate: 0.1
       amount: 1
       luckAffected: true

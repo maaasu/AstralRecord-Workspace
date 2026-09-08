@@ -20,6 +20,6 @@ Enchant は、エンチャントオーブから装備へ付与する効果の共
 
 - 戦闘・ゲームバランス: ステータス、効果量、装備更新に関わる値を追加・変更する場合は、`E:\AstralRecord-Workspace\00_docs\60_戦闘バランス設計書\README.md` を入口に該当資料を参照します。
 - YAML: `E:\AstralRecord-Workspace\40_filebase\12.features.enchant\docs.enchant.YAMLスキーマ定義.md`
-- 装備: `E:\AstralRecord-Workspace\40_filebase\10.features.item\equipment\docs.equipment.YAMLスキーマ定義.md`
-- オーブ: `E:\AstralRecord-Workspace\40_filebase\10.features.item\orb\docs.orb.YAMLスキーマ定義.md`
+- 装備: `E:\AstralRecord-Workspace\40_filebase\10.features.item\20.equipment\docs.equipment.YAMLスキーマ定義.md`
+- オーブ: `E:\AstralRecord-Workspace\40_filebase\10.features.item\40.orb\docs.orb.YAMLスキーマ定義.md`
 - status: `E:\AstralRecord-Workspace\40_filebase\75.shared.status\v1.status_types.yml`

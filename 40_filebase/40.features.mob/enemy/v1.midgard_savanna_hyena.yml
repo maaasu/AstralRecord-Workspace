@@ -40,13 +40,13 @@ levels:
       exp: 65
       items:
         - itemId:
-            ref: item:savanna_hide_scrap
+            ref: item:10a00043
           rate: 50.0
           amount: 1~2
           luckAffected: true
           hidden: false
         - itemId:
-            ref: item:savanna_hyena_fang
+            ref: item:10a00051
           rate: 3.0
           amount: 1
           luckAffected: true
@@ -90,13 +90,13 @@ drops:
   exp: 55
   items:
     - itemId:
-        ref: item:savanna_hide_scrap
+        ref: item:10a00043
       rate: 45.0
       amount: 1~2
       luckAffected: true
       hidden: false
     - itemId:
-        ref: item:savanna_hyena_fang
+        ref: item:10a00051
       rate: 2.0
       amount: 1
       luckAffected: true

@@ -1,0 +1,66 @@
+# design:
+#   motif: "中つ国 / 遺跡アクセサリ / レリック"
+#   progression: 5
+schemaVersion: 1
+id: 20a00027
+category: equipment
+name: "&bアース遺跡のレリック"
+icon: stone_brick_wall
+rarity: RARE
+maxStack: 1
+saleValue: 320
+lore:
+  - "&7遺跡の守りを閉じ込めた、冷たい遺物。"
+unTradeable: false
+unSellable: false
+equipment:
+  slot: ACCESSORY
+  tag: RELIC
+  requiredLevel: 5
+  durability:
+    max: 160
+  stats:
+    - status: MAX_HEALTH
+      type: FLAT
+      value: 20~35
+    - status: DEFENSE
+      type: FLAT
+      value: 4~6
+  enhance:
+    maxLevel: 10
+    levels:
+      - level: 1
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 2
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 3
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 4
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 5
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 1.0
+        failAction: NONE
+      - level: 6
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 0.75
+      - level: 7
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 0.75
+      - level: 8
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 0.75
+      - level: 9
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 0.75
+      - level: 10
+        statIncrease: [{ status: MAX_HEALTH, type: FLAT, value: 3 }]
+        successRate: 0.75

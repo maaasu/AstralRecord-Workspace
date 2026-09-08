@@ -102,31 +102,31 @@ drops:
     max: 1200
   items:
     - itemId:
-        ref: item:sun_crown_bundle
+        ref: item:50a00002
       rate: 10.0
       amount: 1
       luckAffected: true
       hidden: false
     - itemId:
-        ref: item:rune_attack_small
+        ref: item:60a00001
       rate: 1.5
       amount: 1
       luckAffected: true
       hidden: false
     - itemId:
-        ref: item:verdandi_orb
+        ref: item:40a00005
       rate: 2.0
       amount: 1
       luckAffected: true
       hidden: false
     - itemId:
-        ref: item:sunbird_crown_feather
+        ref: item:10a00059
       rate: 100.0
       amount: 2~4
       luckAffected: true
       hidden: false
     - itemId:
-        ref: item:sunbird_solar_core
+        ref: item:10a00060
       rate: 12.0
       amount: 1
       luckAffected: true

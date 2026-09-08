@@ -66,18 +66,18 @@ rewards:
   gold: 1800
   items:
     - itemId:
-        ref: item:healing_potion_medium
+        ref: item:30a00004
       category: consumable
       amount: 4
     - itemId:
-        ref: item:mana_potion_medium
+        ref: item:30a00006
       category: consumable
       amount: 4
     - itemId:
-        ref: item:energy_baked
+        ref: item:30a00001
       category: consumable
       amount: 6
     - itemId:
-        ref: item:freya_orb
+        ref: item:40a00002
       category: orb
       amount: 5

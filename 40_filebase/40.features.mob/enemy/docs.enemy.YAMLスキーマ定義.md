@@ -138,7 +138,7 @@ drops:
     max: 4
   items:
     - itemId:
-        ref: item:grassboar_pelt
+        ref: item:10a00002
       rate: 18.0
       amount: 1
       luckAffected: true

@@ -8,6 +8,6 @@ publishTo: null
 firstLoginOnly: true
 receiveOnRead: true
 rewards:
-  - itemId: initial_login_bundle
+  - itemId: 50a00001
     category: bundle
     amount: 1

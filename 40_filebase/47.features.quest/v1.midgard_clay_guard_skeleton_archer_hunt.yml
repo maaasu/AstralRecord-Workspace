@@ -38,18 +38,18 @@ rewards:
   gold: 260
   items:
     - itemId:
-        ref: item:healing_potion_medium
+        ref: item:30a00004
       category: consumable
       amount: 1
     - itemId:
-        ref: item:mana_potion_medium
+        ref: item:30a00006
       category: consumable
       amount: 1
     - itemId:
-        ref: item:nox_night_herb_boar_skewer
+        ref: item:30a00005
       category: consumable
       amount: 2
     - itemId:
-        ref: item:sindri_orb
+        ref: item:40a00011
       category: orb
       amount: 1

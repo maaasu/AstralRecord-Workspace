@@ -29,7 +29,7 @@ database:
     path: 45.features.shop
 
   - name: set_effect
-    path: 10.features.item/equipment/set_effect
+    path: 10.features.item/20.equipment/set_effect
 
   - name: buff
     path: 70.shared.buff

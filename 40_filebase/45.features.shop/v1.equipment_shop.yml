@@ -8,9 +8,9 @@ name: "&6装備ショップ"
 mode: EXCHANGE
 access: NPC_ONLY
 items:
-  - id: nox_sword
+  - id: 20a00002
     itemId:
-      ref: item:nox_sword
+      ref: item:20a00002
     category: equipment
     amount: 1
     page: 1
@@ -18,16 +18,16 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:nox_starshine_stone
+          ref: item:10a00018
         category: material
         amount: 1
       - itemId:
-          ref: item:nox_moonshadow_stone
+          ref: item:10a00014
         category: material
         amount: 1
-  - id: nox_bow
+  - id: 20a00003
     itemId:
-      ref: item:nox_bow
+      ref: item:20a00003
     category: equipment
     amount: 1
     page: 1
@@ -35,16 +35,16 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:nox_starshine_stone
+          ref: item:10a00018
         category: material
         amount: 1
       - itemId:
-          ref: item:nox_moonshadow_stone
+          ref: item:10a00014
         category: material
         amount: 1
-  - id: nox_staff
+  - id: 20a00004
     itemId:
-      ref: item:nox_staff
+      ref: item:20a00004
     category: equipment
     amount: 1
     page: 1
@@ -52,16 +52,16 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:nox_starshine_stone
+          ref: item:10a00018
         category: material
         amount: 1
       - itemId:
-          ref: item:nox_moonshadow_stone
+          ref: item:10a00014
         category: material
         amount: 1
-  - id: sun_crown_sword
+  - id: 20a00056
     itemId:
-      ref: item:sun_crown_sword
+      ref: item:20a00056
     category: equipment
     amount: 1
     page: 2
@@ -69,16 +69,16 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:sunbird_crown_feather
+          ref: item:10a00059
         category: material
         amount: 55
       - itemId:
-          ref: item:sunbird_solar_core
+          ref: item:10a00060
         category: material
         amount: 3
-  - id: sun_crown_bow
+  - id: 20a00054
     itemId:
-      ref: item:sun_crown_bow
+      ref: item:20a00054
     category: equipment
     amount: 1
     page: 2
@@ -86,16 +86,16 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:sunbird_crown_feather
+          ref: item:10a00059
         category: material
         amount: 55
       - itemId:
-          ref: item:sunbird_solar_core
+          ref: item:10a00060
         category: material
         amount: 3
-  - id: sun_crown_staff
+  - id: 20a00055
     itemId:
-      ref: item:sun_crown_staff
+      ref: item:20a00055
     category: equipment
     amount: 1
     page: 2
@@ -103,16 +103,16 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:sunbird_crown_feather
+          ref: item:10a00059
         category: material
         amount: 55
       - itemId:
-          ref: item:sunbird_solar_core
+          ref: item:10a00060
         category: material
         amount: 3
-  - id: midgard_clay_guardian_plate
+  - id: 20a00014
     itemId:
-      ref: item:midgard_clay_guardian_plate
+      ref: item:20a00014
     category: equipment
     amount: 1
     page: 1
@@ -121,24 +121,24 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:ancient_clay_rune
+          ref: item:10a00029
         category: material
         amount: 2
       - itemId:
-          ref: item:clay_guard_fragment
+          ref: item:10a00027
         category: material
         amount: 16
       - itemId:
-          ref: item:box_cave_compressed_stone
+          ref: item:10a00007
         category: material
         amount: 4
       - itemId:
-          ref: item:box_cave_copper_ingot
+          ref: item:10a00009
         category: material
         amount: 2
-  - id: melkor_plate
+  - id: 20a00041
     itemId:
-      ref: item:melkor_plate
+      ref: item:20a00041
     category: equipment
     amount: 1
     page: 2
@@ -146,27 +146,27 @@ items:
     column: 4
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:melkor_sanctum_ash }
+      - itemId: { ref: item:10a00049 }
         category: material
         amount: 156
-      - itemId: { ref: item:melkor_sanctum_alloy }
+      - itemId: { ref: item:10a00048 }
         category: material
         amount: 60
-      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+      - itemId: { ref: item:10a00055 }
         category: material
         amount: 14
-      - itemId: { ref: item:melkor_sanctum_black_crown }
+      - itemId: { ref: item:10a00054 }
         category: material
         amount: 9
-      - itemId: { ref: item:silmaril_bone_fragment }
+      - itemId: { ref: item:10a00056 }
         category: material
         amount: 72
-      - itemId: { ref: item:maril_sil_hero_shard }
+      - itemId: { ref: item:10a00058 }
         category: material
         amount: 22
-  - id: midgard_kuinya_helm
+  - id: 20a00018
     itemId:
-      ref: item:midgard_kuinya_helm
+      ref: item:20a00018
     category: equipment
     amount: 1
     page: 1
@@ -175,24 +175,24 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:grassboar_pelt
+          ref: item:10a00002
         category: material
         amount: 8
       - itemId:
-          ref: item:moss_shell_fragment
+          ref: item:10a00020
         category: material
         amount: 6
       - itemId:
-          ref: item:box_cave_compressed_stone
+          ref: item:10a00007
         category: material
         amount: 1
       - itemId:
-          ref: item:box_cave_copper_ingot
+          ref: item:10a00009
         category: material
         amount: 1
-  - id: midgard_kuinya_greaves
+  - id: 20a00017
     itemId:
-      ref: item:midgard_kuinya_greaves
+      ref: item:20a00017
     category: equipment
     amount: 1
     page: 1
@@ -201,24 +201,24 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:moss_shell_fragment
+          ref: item:10a00020
         category: material
         amount: 8
       - itemId:
-          ref: item:skeleton_bone_fragment
+          ref: item:10a00023
         category: material
         amount: 6
       - itemId:
-          ref: item:box_cave_compressed_stone
+          ref: item:10a00007
         category: material
         amount: 1
       - itemId:
-          ref: item:box_cave_copper_ingot
+          ref: item:10a00009
         category: material
         amount: 1
-  - id: midgard_kuinya_sabaton
+  - id: 20a00021
     itemId:
-      ref: item:midgard_kuinya_sabaton
+      ref: item:20a00021
     category: equipment
     amount: 1
     page: 1
@@ -227,24 +227,24 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:grassboar_pelt
+          ref: item:10a00002
         category: material
         amount: 6
       - itemId:
-          ref: item:skeleton_bone_fragment
+          ref: item:10a00023
         category: material
         amount: 8
       - itemId:
-          ref: item:box_cave_compressed_stone
+          ref: item:10a00007
         category: material
         amount: 1
       - itemId:
-          ref: item:box_cave_copper_ingot
+          ref: item:10a00009
         category: material
         amount: 1
-  - id: midgard_kuinya_hood
+  - id: 20a00019
     itemId:
-      ref: item:midgard_kuinya_hood
+      ref: item:20a00019
     category: equipment
     amount: 1
     page: 1
@@ -253,24 +253,24 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:grassboar_pelt
+          ref: item:10a00002
         category: material
         amount: 6
       - itemId:
-          ref: item:windcutter_feather
+          ref: item:10a00026
         category: material
         amount: 8
       - itemId:
-          ref: item:box_cave_compressed_stone
+          ref: item:10a00007
         category: material
         amount: 1
       - itemId:
-          ref: item:box_cave_copper_ingot
+          ref: item:10a00009
         category: material
         amount: 1
-  - id: midgard_kuinya_leggings
+  - id: 20a00020
     itemId:
-      ref: item:midgard_kuinya_leggings
+      ref: item:20a00020
     category: equipment
     amount: 1
     page: 1
@@ -279,24 +279,24 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:skeleton_bone_fragment
+          ref: item:10a00023
         category: material
         amount: 6
       - itemId:
-          ref: item:windcutter_feather
+          ref: item:10a00026
         category: material
         amount: 8
       - itemId:
-          ref: item:box_cave_compressed_stone
+          ref: item:10a00007
         category: material
         amount: 1
       - itemId:
-          ref: item:box_cave_copper_ingot
+          ref: item:10a00009
         category: material
         amount: 1
-  - id: midgard_kuinya_boots
+  - id: 20a00015
     itemId:
-      ref: item:midgard_kuinya_boots
+      ref: item:20a00015
     category: equipment
     amount: 1
     page: 1
@@ -305,24 +305,24 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:grassboar_pelt
+          ref: item:10a00002
         category: material
         amount: 4
       - itemId:
-          ref: item:windcutter_feather
+          ref: item:10a00026
         category: material
         amount: 6
       - itemId:
-          ref: item:box_cave_compressed_stone
+          ref: item:10a00007
         category: material
         amount: 1
       - itemId:
-          ref: item:box_cave_copper_ingot
+          ref: item:10a00009
         category: material
         amount: 1
-  - id: midgard_kuinya_circlet
+  - id: 20a00016
     itemId:
-      ref: item:midgard_kuinya_circlet
+      ref: item:20a00016
     category: equipment
     amount: 1
     page: 1
@@ -331,24 +331,24 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:skeleton_bone_fragment
+          ref: item:10a00023
         category: material
         amount: 6
       - itemId:
-          ref: item:skeleton_bowstring
+          ref: item:10a00024
         category: material
         amount: 4
       - itemId:
-          ref: item:box_cave_compressed_stone
+          ref: item:10a00007
         category: material
         amount: 1
       - itemId:
-          ref: item:box_cave_copper_ingot
+          ref: item:10a00009
         category: material
         amount: 1
-  - id: midgard_kuinya_trousers
+  - id: 20a00023
     itemId:
-      ref: item:midgard_kuinya_trousers
+      ref: item:20a00023
     category: equipment
     amount: 1
     page: 1
@@ -357,24 +357,24 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:moss_shell_fragment
+          ref: item:10a00020
         category: material
         amount: 6
       - itemId:
-          ref: item:skeleton_bowstring
+          ref: item:10a00024
         category: material
         amount: 6
       - itemId:
-          ref: item:box_cave_compressed_stone
+          ref: item:10a00007
         category: material
         amount: 1
       - itemId:
-          ref: item:box_cave_copper_ingot
+          ref: item:10a00009
         category: material
         amount: 1
-  - id: midgard_kuinya_sandals
+  - id: 20a00022
     itemId:
-      ref: item:midgard_kuinya_sandals
+      ref: item:20a00022
     category: equipment
     amount: 1
     page: 1
@@ -383,24 +383,24 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:skeleton_bowstring
+          ref: item:10a00024
         category: material
         amount: 4
       - itemId:
-          ref: item:windcutter_feather
+          ref: item:10a00026
         category: material
         amount: 6
       - itemId:
-          ref: item:box_cave_compressed_stone
+          ref: item:10a00007
         category: material
         amount: 1
       - itemId:
-          ref: item:box_cave_copper_ingot
+          ref: item:10a00009
         category: material
         amount: 1
-  - id: middle_earth_hammer
+  - id: 20a00025
     itemId:
-      ref: item:middle_earth_hammer
+      ref: item:20a00025
     category: equipment
     amount: 1
     page: 1
@@ -409,16 +409,16 @@ items:
     priceGold: 150
     requiredItems:
       - itemId:
-          ref: item:middle_earth_ruins_stone_seal
+          ref: item:10a00035
         category: material
         amount: 2
       - itemId:
-          ref: item:middle_earth_ruins_frozen_core
+          ref: item:10a00032
         category: material
         amount: 1
-  - id: middle_earth_longbow
+  - id: 20a00026
     itemId:
-      ref: item:middle_earth_longbow
+      ref: item:20a00026
     category: equipment
     amount: 1
     page: 1
@@ -427,16 +427,16 @@ items:
     priceGold: 150
     requiredItems:
       - itemId:
-          ref: item:middle_earth_ruins_greenfield_crest
+          ref: item:10a00033
         category: material
         amount: 2
       - itemId:
-          ref: item:middle_earth_ruins_stone_seal
+          ref: item:10a00035
         category: material
         amount: 1
-  - id: middle_earth_wand
+  - id: 20a00029
     itemId:
-      ref: item:middle_earth_wand
+      ref: item:20a00029
     category: equipment
     amount: 1
     page: 1
@@ -445,16 +445,16 @@ items:
     priceGold: 150
     requiredItems:
       - itemId:
-          ref: item:middle_earth_ruins_frozen_core
+          ref: item:10a00032
         category: material
         amount: 2
       - itemId:
-          ref: item:middle_earth_ruins_greenfield_crest
+          ref: item:10a00033
         category: material
         amount: 1
-  - id: fang_shield
+  - id: 20a00035
     itemId:
-      ref: item:fang_shield
+      ref: item:20a00035
     category: equipment
     amount: 1
     page: 1
@@ -463,20 +463,20 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:savanna_camel_guard_scute
+          ref: item:10a00050
         category: material
         amount: 1
       - itemId:
-          ref: item:savanna_hide_scrap
+          ref: item:10a00043
         category: material
         amount: 12
       - itemId:
-          ref: item:forest_wolf_fang
+          ref: item:10a00039
         category: material
         amount: 6
-  - id: venom_quiver
+  - id: 20a00040
     itemId:
-      ref: item:venom_quiver
+      ref: item:20a00040
     category: equipment
     amount: 1
     page: 1
@@ -485,20 +485,20 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:forest_spider_venom_sack
+          ref: item:10a00042
         category: material
         amount: 4
       - itemId:
-          ref: item:windcutter_feather
+          ref: item:10a00026
         category: material
         amount: 12
       - itemId:
-          ref: item:forest_spider_poisoned_eye
+          ref: item:10a00041
         category: material
         amount: 2
-  - id: cinder_grimoire
+  - id: 20a00034
     itemId:
-      ref: item:cinder_grimoire
+      ref: item:20a00034
     category: equipment
     amount: 1
     page: 1
@@ -507,20 +507,20 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:savanna_witch_cinder
+          ref: item:10a00052
         category: material
         amount: 5
       - itemId:
-          ref: item:forest_spider_poisoned_eye
+          ref: item:10a00041
         category: material
         amount: 3
       - itemId:
-          ref: item:savanna_hide_scrap
+          ref: item:10a00043
         category: material
         amount: 8
-  - id: melkor_helm
+  - id: 20a00047
     itemId:
-      ref: item:melkor_helm
+      ref: item:20a00047
     category: equipment
     amount: 1
     page: 2
@@ -528,27 +528,27 @@ items:
     column: 2
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:melkor_sanctum_ash }
+      - itemId: { ref: item:10a00049 }
         category: material
         amount: 16
-      - itemId: { ref: item:melkor_sanctum_alloy }
+      - itemId: { ref: item:10a00048 }
         category: material
         amount: 6
-      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+      - itemId: { ref: item:10a00055 }
         category: material
         amount: 1
-      - itemId: { ref: item:melkor_sanctum_black_crown }
+      - itemId: { ref: item:10a00054 }
         category: material
         amount: 1
-      - itemId: { ref: item:silmaril_bone_fragment }
+      - itemId: { ref: item:10a00056 }
         category: material
         amount: 8
-      - itemId: { ref: item:maril_sil_hero_shard }
+      - itemId: { ref: item:10a00058 }
         category: material
         amount: 2
-  - id: melkor_greaves
+  - id: 20a00046
     itemId:
-      ref: item:melkor_greaves
+      ref: item:20a00046
     category: equipment
     amount: 1
     page: 2
@@ -556,27 +556,27 @@ items:
     column: 2
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:melkor_sanctum_ash }
+      - itemId: { ref: item:10a00049 }
         category: material
         amount: 20
-      - itemId: { ref: item:melkor_sanctum_alloy }
+      - itemId: { ref: item:10a00048 }
         category: material
         amount: 8
-      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+      - itemId: { ref: item:10a00055 }
         category: material
         amount: 2
-      - itemId: { ref: item:melkor_sanctum_black_crown }
+      - itemId: { ref: item:10a00054 }
         category: material
         amount: 1
-      - itemId: { ref: item:silmaril_bone_fragment }
+      - itemId: { ref: item:10a00056 }
         category: material
         amount: 10
-      - itemId: { ref: item:maril_sil_hero_shard }
+      - itemId: { ref: item:10a00058 }
         category: material
         amount: 3
-  - id: melkor_sabaton
+  - id: 20a00050
     itemId:
-      ref: item:melkor_sabaton
+      ref: item:20a00050
     category: equipment
     amount: 1
     page: 2
@@ -584,27 +584,27 @@ items:
     column: 2
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:melkor_sanctum_ash }
+      - itemId: { ref: item:10a00049 }
         category: material
         amount: 16
-      - itemId: { ref: item:melkor_sanctum_alloy }
+      - itemId: { ref: item:10a00048 }
         category: material
         amount: 6
-      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+      - itemId: { ref: item:10a00055 }
         category: material
         amount: 1
-      - itemId: { ref: item:melkor_sanctum_black_crown }
+      - itemId: { ref: item:10a00054 }
         category: material
         amount: 1
-      - itemId: { ref: item:silmaril_bone_fragment }
+      - itemId: { ref: item:10a00056 }
         category: material
         amount: 10
-      - itemId: { ref: item:maril_sil_hero_shard }
+      - itemId: { ref: item:10a00058 }
         category: material
         amount: 3
-  - id: melkor_hood
+  - id: 20a00048
     itemId:
-      ref: item:melkor_hood
+      ref: item:20a00048
     category: equipment
     amount: 1
     page: 2
@@ -612,27 +612,27 @@ items:
     column: 4
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:melkor_sanctum_ash }
+      - itemId: { ref: item:10a00049 }
         category: material
         amount: 16
-      - itemId: { ref: item:melkor_sanctum_alloy }
+      - itemId: { ref: item:10a00048 }
         category: material
         amount: 6
-      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+      - itemId: { ref: item:10a00055 }
         category: material
         amount: 2
-      - itemId: { ref: item:melkor_sanctum_black_crown }
+      - itemId: { ref: item:10a00054 }
         category: material
         amount: 1
-      - itemId: { ref: item:silmaril_bone_fragment }
+      - itemId: { ref: item:10a00056 }
         category: material
         amount: 8
-      - itemId: { ref: item:maril_sil_hero_shard }
+      - itemId: { ref: item:10a00058 }
         category: material
         amount: 2
-  - id: melkor_leggings
+  - id: 20a00049
     itemId:
-      ref: item:melkor_leggings
+      ref: item:20a00049
     category: equipment
     amount: 1
     page: 2
@@ -640,27 +640,27 @@ items:
     column: 4
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:melkor_sanctum_ash }
+      - itemId: { ref: item:10a00049 }
         category: material
         amount: 20
-      - itemId: { ref: item:melkor_sanctum_alloy }
+      - itemId: { ref: item:10a00048 }
         category: material
         amount: 8
-      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+      - itemId: { ref: item:10a00055 }
         category: material
         amount: 2
-      - itemId: { ref: item:melkor_sanctum_black_crown }
+      - itemId: { ref: item:10a00054 }
         category: material
         amount: 1
-      - itemId: { ref: item:silmaril_bone_fragment }
+      - itemId: { ref: item:10a00056 }
         category: material
         amount: 10
-      - itemId: { ref: item:maril_sil_hero_shard }
+      - itemId: { ref: item:10a00058 }
         category: material
         amount: 3
-  - id: melkor_boots
+  - id: 20a00044
     itemId:
-      ref: item:melkor_boots
+      ref: item:20a00044
     category: equipment
     amount: 1
     page: 2
@@ -668,27 +668,27 @@ items:
     column: 4
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:melkor_sanctum_ash }
+      - itemId: { ref: item:10a00049 }
         category: material
         amount: 16
-      - itemId: { ref: item:melkor_sanctum_alloy }
+      - itemId: { ref: item:10a00048 }
         category: material
         amount: 6
-      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+      - itemId: { ref: item:10a00055 }
         category: material
         amount: 1
-      - itemId: { ref: item:melkor_sanctum_black_crown }
+      - itemId: { ref: item:10a00054 }
         category: material
         amount: 1
-      - itemId: { ref: item:silmaril_bone_fragment }
+      - itemId: { ref: item:10a00056 }
         category: material
         amount: 6
-      - itemId: { ref: item:maril_sil_hero_shard }
+      - itemId: { ref: item:10a00058 }
         category: material
         amount: 2
-  - id: melkor_circlet
+  - id: 20a00045
     itemId:
-      ref: item:melkor_circlet
+      ref: item:20a00045
     category: equipment
     amount: 1
     page: 2
@@ -696,27 +696,27 @@ items:
     column: 6
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:melkor_sanctum_ash }
+      - itemId: { ref: item:10a00049 }
         category: material
         amount: 16
-      - itemId: { ref: item:melkor_sanctum_alloy }
+      - itemId: { ref: item:10a00048 }
         category: material
         amount: 6
-      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+      - itemId: { ref: item:10a00055 }
         category: material
         amount: 2
-      - itemId: { ref: item:melkor_sanctum_black_crown }
+      - itemId: { ref: item:10a00054 }
         category: material
         amount: 1
-      - itemId: { ref: item:silmaril_bone_fragment }
+      - itemId: { ref: item:10a00056 }
         category: material
         amount: 6
-      - itemId: { ref: item:maril_sil_hero_shard }
+      - itemId: { ref: item:10a00058 }
         category: material
         amount: 2
-  - id: melkor_trousers
+  - id: 20a00052
     itemId:
-      ref: item:melkor_trousers
+      ref: item:20a00052
     category: equipment
     amount: 1
     page: 2
@@ -724,27 +724,27 @@ items:
     column: 6
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:melkor_sanctum_ash }
+      - itemId: { ref: item:10a00049 }
         category: material
         amount: 20
-      - itemId: { ref: item:melkor_sanctum_alloy }
+      - itemId: { ref: item:10a00048 }
         category: material
         amount: 8
-      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+      - itemId: { ref: item:10a00055 }
         category: material
         amount: 2
-      - itemId: { ref: item:melkor_sanctum_black_crown }
+      - itemId: { ref: item:10a00054 }
         category: material
         amount: 1
-      - itemId: { ref: item:silmaril_bone_fragment }
+      - itemId: { ref: item:10a00056 }
         category: material
         amount: 8
-      - itemId: { ref: item:maril_sil_hero_shard }
+      - itemId: { ref: item:10a00058 }
         category: material
         amount: 3
-  - id: melkor_sandals
+  - id: 20a00051
     itemId:
-      ref: item:melkor_sandals
+      ref: item:20a00051
     category: equipment
     amount: 1
     page: 2
@@ -752,27 +752,27 @@ items:
     column: 6
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:melkor_sanctum_ash }
+      - itemId: { ref: item:10a00049 }
         category: material
         amount: 16
-      - itemId: { ref: item:melkor_sanctum_alloy }
+      - itemId: { ref: item:10a00048 }
         category: material
         amount: 6
-      - itemId: { ref: item:melkor_sanctum_shadow_crystal }
+      - itemId: { ref: item:10a00055 }
         category: material
         amount: 1
-      - itemId: { ref: item:melkor_sanctum_black_crown }
+      - itemId: { ref: item:10a00054 }
         category: material
         amount: 1
-      - itemId: { ref: item:silmaril_bone_fragment }
+      - itemId: { ref: item:10a00056 }
         category: material
         amount: 6
-      - itemId: { ref: item:maril_sil_hero_shard }
+      - itemId: { ref: item:10a00058 }
         category: material
         amount: 2
-  - id: alda_origin_plate
+  - id: 20a00063
     itemId:
-      ref: item:alda_origin_plate
+      ref: item:20a00063
     category: equipment
     amount: 1
     page: 3
@@ -780,27 +780,27 @@ items:
     column: 4
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:alda_origin_ruins_fragment }
+      - itemId: { ref: item:10a00064 }
         category: material
         amount: 480
-      - itemId: { ref: item:alda_origin_skeleton_fragment }
+      - itemId: { ref: item:10a00065 }
         category: material
         amount: 64
-      - itemId: { ref: item:alda_origin_bowstring }
+      - itemId: { ref: item:10a00062 }
         category: material
         amount: 64
-      - itemId: { ref: item:alda_origin_piglin_alloy }
+      - itemId: { ref: item:10a00063 }
         category: material
         amount: 48
-      - itemId: { ref: item:alda_origin_vatar_bone }
+      - itemId: { ref: item:10a00066 }
         category: material
         amount: 36
-      - itemId: { ref: item:alda_origin_ainua_hide }
+      - itemId: { ref: item:10a00061 }
         category: material
         amount: 48
-  - id: alda_origin_helm
+  - id: 20a00060
     itemId:
-      ref: item:alda_origin_helm
+      ref: item:20a00060
     category: equipment
     amount: 1
     page: 3
@@ -808,21 +808,21 @@ items:
     column: 2
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:alda_origin_ruins_fragment }
+      - itemId: { ref: item:10a00064 }
         category: material
         amount: 48
-      - itemId: { ref: item:alda_origin_skeleton_fragment }
+      - itemId: { ref: item:10a00065 }
         category: material
         amount: 18
-      - itemId: { ref: item:alda_origin_piglin_alloy }
+      - itemId: { ref: item:10a00063 }
         category: material
         amount: 10
-      - itemId: { ref: item:alda_origin_vatar_bone }
+      - itemId: { ref: item:10a00066 }
         category: material
         amount: 6
-  - id: alda_origin_greaves
+  - id: 20a00059
     itemId:
-      ref: item:alda_origin_greaves
+      ref: item:20a00059
     category: equipment
     amount: 1
     page: 3
@@ -830,21 +830,21 @@ items:
     column: 2
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:alda_origin_ruins_fragment }
+      - itemId: { ref: item:10a00064 }
         category: material
         amount: 64
-      - itemId: { ref: item:alda_origin_skeleton_fragment }
+      - itemId: { ref: item:10a00065 }
         category: material
         amount: 24
-      - itemId: { ref: item:alda_origin_piglin_alloy }
+      - itemId: { ref: item:10a00063 }
         category: material
         amount: 14
-      - itemId: { ref: item:alda_origin_vatar_bone }
+      - itemId: { ref: item:10a00066 }
         category: material
         amount: 8
-  - id: alda_origin_sabaton
+  - id: 20a00064
     itemId:
-      ref: item:alda_origin_sabaton
+      ref: item:20a00064
     category: equipment
     amount: 1
     page: 3
@@ -852,21 +852,21 @@ items:
     column: 2
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:alda_origin_ruins_fragment }
+      - itemId: { ref: item:10a00064 }
         category: material
         amount: 48
-      - itemId: { ref: item:alda_origin_skeleton_fragment }
+      - itemId: { ref: item:10a00065 }
         category: material
         amount: 18
-      - itemId: { ref: item:alda_origin_piglin_alloy }
+      - itemId: { ref: item:10a00063 }
         category: material
         amount: 10
-      - itemId: { ref: item:alda_origin_vatar_bone }
+      - itemId: { ref: item:10a00066 }
         category: material
         amount: 8
-  - id: alda_origin_hood
+  - id: 20a00061
     itemId:
-      ref: item:alda_origin_hood
+      ref: item:20a00061
     category: equipment
     amount: 1
     page: 3
@@ -874,21 +874,21 @@ items:
     column: 4
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:alda_origin_ruins_fragment }
+      - itemId: { ref: item:10a00064 }
         category: material
         amount: 48
-      - itemId: { ref: item:alda_origin_bowstring }
+      - itemId: { ref: item:10a00062 }
         category: material
         amount: 18
-      - itemId: { ref: item:alda_origin_ainua_hide }
+      - itemId: { ref: item:10a00061 }
         category: material
         amount: 10
-      - itemId: { ref: item:alda_origin_piglin_alloy }
+      - itemId: { ref: item:10a00063 }
         category: material
         amount: 8
-  - id: alda_origin_leggings
+  - id: 20a00062
     itemId:
-      ref: item:alda_origin_leggings
+      ref: item:20a00062
     category: equipment
     amount: 1
     page: 3
@@ -896,21 +896,21 @@ items:
     column: 4
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:alda_origin_ruins_fragment }
+      - itemId: { ref: item:10a00064 }
         category: material
         amount: 64
-      - itemId: { ref: item:alda_origin_bowstring }
+      - itemId: { ref: item:10a00062 }
         category: material
         amount: 24
-      - itemId: { ref: item:alda_origin_ainua_hide }
+      - itemId: { ref: item:10a00061 }
         category: material
         amount: 14
-      - itemId: { ref: item:alda_origin_piglin_alloy }
+      - itemId: { ref: item:10a00063 }
         category: material
         amount: 10
-  - id: alda_origin_boots
+  - id: 20a00057
     itemId:
-      ref: item:alda_origin_boots
+      ref: item:20a00057
     category: equipment
     amount: 1
     page: 3
@@ -918,21 +918,21 @@ items:
     column: 4
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:alda_origin_ruins_fragment }
+      - itemId: { ref: item:10a00064 }
         category: material
         amount: 48
-      - itemId: { ref: item:alda_origin_bowstring }
+      - itemId: { ref: item:10a00062 }
         category: material
         amount: 18
-      - itemId: { ref: item:alda_origin_ainua_hide }
+      - itemId: { ref: item:10a00061 }
         category: material
         amount: 10
-      - itemId: { ref: item:alda_origin_piglin_alloy }
+      - itemId: { ref: item:10a00063 }
         category: material
         amount: 8
-  - id: alda_origin_circlet
+  - id: 20a00058
     itemId:
-      ref: item:alda_origin_circlet
+      ref: item:20a00058
     category: equipment
     amount: 1
     page: 3
@@ -940,21 +940,21 @@ items:
     column: 6
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:alda_origin_ruins_fragment }
+      - itemId: { ref: item:10a00064 }
         category: material
         amount: 48
-      - itemId: { ref: item:alda_origin_vatar_bone }
+      - itemId: { ref: item:10a00066 }
         category: material
         amount: 18
-      - itemId: { ref: item:alda_origin_ainua_hide }
+      - itemId: { ref: item:10a00061 }
         category: material
         amount: 10
-      - itemId: { ref: item:alda_origin_piglin_alloy }
+      - itemId: { ref: item:10a00063 }
         category: material
         amount: 8
-  - id: alda_origin_trousers
+  - id: 20a00066
     itemId:
-      ref: item:alda_origin_trousers
+      ref: item:20a00066
     category: equipment
     amount: 1
     page: 3
@@ -962,21 +962,21 @@ items:
     column: 6
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:alda_origin_ruins_fragment }
+      - itemId: { ref: item:10a00064 }
         category: material
         amount: 64
-      - itemId: { ref: item:alda_origin_vatar_bone }
+      - itemId: { ref: item:10a00066 }
         category: material
         amount: 24
-      - itemId: { ref: item:alda_origin_ainua_hide }
+      - itemId: { ref: item:10a00061 }
         category: material
         amount: 14
-      - itemId: { ref: item:alda_origin_piglin_alloy }
+      - itemId: { ref: item:10a00063 }
         category: material
         amount: 10
-  - id: alda_origin_sandals
+  - id: 20a00065
     itemId:
-      ref: item:alda_origin_sandals
+      ref: item:20a00065
     category: equipment
     amount: 1
     page: 3
@@ -984,15 +984,15 @@ items:
     column: 6
     priceGold: 0
     requiredItems:
-      - itemId: { ref: item:alda_origin_ruins_fragment }
+      - itemId: { ref: item:10a00064 }
         category: material
         amount: 48
-      - itemId: { ref: item:alda_origin_vatar_bone }
+      - itemId: { ref: item:10a00066 }
         category: material
         amount: 18
-      - itemId: { ref: item:alda_origin_ainua_hide }
+      - itemId: { ref: item:10a00061 }
         category: material
         amount: 10
-      - itemId: { ref: item:alda_origin_piglin_alloy }
+      - itemId: { ref: item:10a00063 }
         category: material
         amount: 8

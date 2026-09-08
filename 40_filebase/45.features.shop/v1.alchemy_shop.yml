@@ -10,7 +10,7 @@ access: NPC_ONLY
 items:
   - id: nox_starshine_stone_from_materials
     itemId:
-      ref: item:nox_starshine_stone
+      ref: item:10a00018
     category: material
     amount: 1
     page: 1
@@ -18,20 +18,20 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:nox_starrygrass_seed
+          ref: item:10a00017
         category: material
         amount: 1
       - itemId:
-          ref: item:nox_duskbell_petal
+          ref: item:10a00012
         category: material
         amount: 1
       - itemId:
-          ref: item:box_cave_stone
+          ref: item:10a00010
         category: material
         amount: 2
   - id: nox_moonshadow_stone_from_materials
     itemId:
-      ref: item:nox_moonshadow_stone
+      ref: item:10a00014
     category: material
     amount: 1
     page: 1
@@ -39,14 +39,14 @@ items:
     priceGold: 0
     requiredItems:
       - itemId:
-          ref: item:nox_shadowgrass_fiber
+          ref: item:10a00016
         category: material
         amount: 1
       - itemId:
-          ref: item:nox_moonpetal_petal
+          ref: item:10a00013
         category: material
         amount: 1
       - itemId:
-          ref: item:box_cave_stone
+          ref: item:10a00010
         category: material
         amount: 2

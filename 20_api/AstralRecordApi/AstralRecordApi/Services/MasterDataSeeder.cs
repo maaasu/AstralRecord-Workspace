@@ -23,7 +23,8 @@ public class MasterDataSeeder(
     private const string StatusRunning = "RUNNING";
     private const string StatusSucceeded = "SUCCEEDED";
     private const string StatusFailed = "FAILED";
-    private const string BuiltInAstraldCurrencyItemId = "astrald";
+    private const string BuiltInAstraldCurrencyItemId = "99a00008";
+    private const string LegacyBuiltInAstraldCurrencyItemId = "astrald";
     private const int InventoryItemIdMaxLength = 100;
     private const int LearnedSkillSigilIdMaxLength = 128;
 
@@ -31,6 +32,26 @@ public class MasterDataSeeder(
     private static readonly SemaphoreSlim Gate = new(1, 1);
 
     private static readonly StringComparer KeyComparer = StringComparer.OrdinalIgnoreCase;
+
+    // item のディレクトリ名は表示・採番順を持つが、DB/API の category は従来どおり論理名を保持する。
+    private static readonly IReadOnlyDictionary<string, string> ItemCategoryByDirectory =
+        new Dictionary<string, string>(KeyComparer)
+        {
+            ["10.material"] = "material",
+            ["20.equipment"] = "equipment",
+            ["30.consumable"] = "consumable",
+            ["40.orb"] = "orb",
+            ["50.bundle"] = "bundle",
+            ["60.rune"] = "rune",
+            ["70.sigil"] = "sigil",
+            ["99.currency"] = "currency",
+        };
+
+    private static readonly IReadOnlyDictionary<string, string> ItemCategoryCodeByName =
+        ItemCategoryByDirectory.ToDictionary(
+            pair => pair.Value,
+            pair => pair.Key[..2],
+            KeyComparer);
 
     // サブディレクトリの扱いがデフォルト(Flat)と異なる source。
     private static readonly IReadOnlyDictionary<string, SourceStructure> StructureBySource =
@@ -314,6 +335,8 @@ public class MasterDataSeeder(
 
                 var masterId = RequireScalar(root, "id", file.RelativePath);
                 var schemaVersion = RequireInt(root, "schemaVersion", file.RelativePath);
+                if (KeyComparer.Equals(plan.MasterType, "item"))
+                    ValidateItemFileContract(root, masterId, schemaVersion, file);
                 var type = OptionalScalar(root, "type");
                 var displayName = OptionalScalar(root, "name");
                 if (string.Equals(plan.MasterType, "class", StringComparison.OrdinalIgnoreCase))
@@ -461,7 +484,8 @@ public class MasterDataSeeder(
                 string.Equals(masterType, reference.ReferenceType, StringComparison.OrdinalIgnoreCase)
                 || masterType.StartsWith(reference.ReferenceType + ".", StringComparison.OrdinalIgnoreCase))
                 || (KeyComparer.Equals(reference.ReferenceType, "item")
-                    && KeyComparer.Equals(reference.ReferenceIdValue, BuiltInAstraldCurrencyItemId));
+                    && (KeyComparer.Equals(reference.ReferenceIdValue, BuiltInAstraldCurrencyItemId)
+                        || KeyComparer.Equals(reference.ReferenceIdValue, LegacyBuiltInAstraldCurrencyItemId)));
 
             if (resolved)
                 continue;
@@ -668,7 +692,10 @@ public class MasterDataSeeder(
         {
             foreach (var subDirectory in EnumerateSubDirectories(plan.AbsolutePath))
             {
-                var category = Path.GetFileName(subDirectory);
+                var directoryName = Path.GetFileName(subDirectory);
+                var category = KeyComparer.Equals(plan.MasterType, "item")
+                    ? NormalizeItemCategory(directoryName, plan.RelativePath)
+                    : directoryName;
                 foreach (var file in EnumerateYamlFiles(subDirectory))
                     yield return ToSeedFile(plan, file, category);
             }
@@ -708,6 +735,15 @@ public class MasterDataSeeder(
         => Directory.EnumerateFiles(directory, "*.yml", SearchOption.TopDirectoryOnly)
             .Where(path => !Path.GetFileName(path).StartsWith('.'))
             .OrderBy(path => path, StringComparer.OrdinalIgnoreCase);
+
+    private static string NormalizeItemCategory(string directoryName, string sourcePath)
+    {
+        if (ItemCategoryByDirectory.TryGetValue(directoryName, out var category))
+            return category;
+
+        throw new InvalidOperationException(
+            $"item のカテゴリディレクトリは採番済み形式である必要があります: {sourcePath}/{directoryName}");
+    }
 
     // ---- YAML / JSON 変換 -------------------------------------------------
 
@@ -798,6 +834,62 @@ public class MasterDataSeeder(
         => root.TryGetPropertyValue(key, out var node) && node is JsonValue value
             ? value.ToString()
             : null;
+
+    private static void ValidateItemFileContract(
+        JsonObject root,
+        string masterId,
+        int schemaVersion,
+        SeedFile file)
+    {
+        if (file.Category is null || !ItemCategoryCodeByName.TryGetValue(file.Category, out var categoryCode))
+            throw new InvalidOperationException($"item のカテゴリを解決できません: {file.RelativePath}");
+
+        var declaredCategory = RequireScalar(root, "category", file.RelativePath);
+        if (!KeyComparer.Equals(declaredCategory, file.Category))
+        {
+            throw new InvalidOperationException(
+                $"item.category とカテゴリディレクトリが一致しません: {file.RelativePath} "
+                + $"(YAML={declaredCategory}, directory={file.Category})");
+        }
+
+        var fileName = Path.GetFileName(file.RelativePath);
+        if (!fileName.EndsWith(".yml", StringComparison.OrdinalIgnoreCase))
+            throw new InvalidOperationException($"item ファイルは .yml である必要があります: {file.RelativePath}");
+
+        var stem = fileName[..^4];
+        var parts = stem.Split('.', 3, StringSplitOptions.None);
+        if (parts.Length != 3
+            || parts[0].Length < 2
+            || parts[0][0] != 'v'
+            || !int.TryParse(parts[0][1..], out var fileSchemaVersion)
+            || fileSchemaVersion != schemaVersion
+            || !string.Equals(parts[1], masterId, StringComparison.Ordinal)
+            || string.IsNullOrWhiteSpace(parts[2]))
+        {
+            throw new InvalidOperationException(
+                $"item ファイル名は v<schemaVersion>.<id>.<slug>.yml 形式で、YAML id と一致する必要があります: "
+                + file.RelativePath);
+        }
+
+        if (masterId.Length != 8
+            || !masterId.StartsWith(categoryCode, StringComparison.Ordinal)
+            || masterId[2] is < 'a' or > 'z'
+            || !int.TryParse(masterId[3..], out var sequence)
+            || sequence is < 1 or > 99_999)
+        {
+            throw new InvalidOperationException(
+                $"item.id はカテゴリ番号2桁 + 英字1桁 + 00001～99999の5桁で指定してください: "
+                + file.RelativePath);
+        }
+
+        var isDebugId = masterId[2] == 'z';
+        var isDebugSlug = parts[2].StartsWith("debug_", StringComparison.OrdinalIgnoreCase);
+        if (isDebugId != isDebugSlug)
+        {
+            throw new InvalidOperationException(
+                $"item のデバッグID(z)は debug_ で始まるslugにだけ使用してください: {file.RelativePath}");
+        }
+    }
 
     private static int RequireInt(JsonObject root, string key, string relativePath)
     {

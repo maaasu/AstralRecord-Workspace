@@ -7,14 +7,14 @@ type: LOOT_POOL
 pick: 1
 contents:
   - itemId:
-      ref: item:tyr_orb
+      ref: item:40a00003
     rate: 4.0
     amount: 1
   - itemId:
-      ref: item:aegis_orb
+      ref: item:40a00001
     rate: 6.0
     amount: 1
   - itemId:
-      ref: item:freya_orb
+      ref: item:40a00002
     rate: 2.0
     amount: 1
