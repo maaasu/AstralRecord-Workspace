@@ -1304,6 +1304,16 @@ public final class DamageService {
             return;
         }
 
+        if (result.shieldDamage() > 0.0D || effectiveHealthDamage(victim, result) > 0.0D) {
+            long currentTick = Bukkit.getCurrentTick();
+            if (attacker != null && attacker.isMob() && attacker.mob() != null) {
+                attacker.mob().lastCombatActivityTick(currentTick);
+            }
+            if (victim.isMob() && victim.mob() != null) {
+                victim.mob().lastCombatActivityTick(currentTick);
+            }
+        }
+
         if (result.shieldDamage() > 0.0D) {
             applyShieldThreat(attacker, victim, result.shieldDamage());
             playShieldEffect(victim, result.shieldBroken());

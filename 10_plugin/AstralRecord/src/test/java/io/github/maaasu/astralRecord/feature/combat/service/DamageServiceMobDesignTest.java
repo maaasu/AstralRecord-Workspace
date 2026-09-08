@@ -42,6 +42,7 @@ import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotEquals;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyDouble;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -269,6 +270,53 @@ class DamageServiceMobDesignTest extends MockBukkitTestBase {
         assertEquals(15.0D, skill.finalDamage(), 0.0001D);
         assertEquals(25.0D, normalAttackVictim.currentHealth(), 0.0001D);
         assertEquals(25.0D, skillVictim.currentHealth(), 0.0001D);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### ダメージ委譲
+     * 検証契約: 実ダメージが成立したMob攻撃では、攻撃者と被攻撃者の最終戦闘活動tickを更新する。
+     */
+    @Test
+    void mobDamageRecordsCombatActivityForAttackerAndVictim() {
+        DamageHarness harness = damageHarness();
+        MobInstance attacker = DesignTestFixtures.mobInstanceWithAttack(100.0D, 10.0D, 0.0D, 0.0D);
+        MobInstance victim = DesignTestFixtures.mobInstance(40.0D, 0.0D, 0.0D);
+
+        DamageResult result = harness.service.attack(
+                AstEntity.mob(attacker),
+                AstEntity.mob(victim),
+                AttackType.MELEE
+        );
+
+        assertEquals(10.0D, result.finalDamage(), 0.0001D);
+        assertNotEquals(-1L, attacker.lastCombatActivityTick());
+        assertNotEquals(-1L, victim.lastCombatActivityTick());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### ダメージ委譲
+     * 検証契約: HP 1 の nonLethal Mob に実 HP damage が発生しない hit では、戦闘活動 tick を更新しない。
+     */
+    @Test
+    void nonLethalMobAtOneHealthDoesNotRecordCombatActivity() {
+        DamageHarness harness = damageHarness();
+        MobInstance attacker = DesignTestFixtures.mobInstanceWithAttack(100.0D, 10.0D, 0.0D, 0.0D);
+        MobInstance victim = DesignTestFixtures.mobInstance(40.0D, 0.0D, 0.0D);
+        victim.nonLethal(true);
+        victim.currentHealth(1.0D);
+
+        DamageResult result = harness.service.attack(
+                AstEntity.mob(attacker),
+                AstEntity.mob(victim),
+                AttackType.MELEE
+        );
+
+        assertEquals(10.0D, result.finalDamage(), 0.0001D);
+        assertEquals(1.0D, victim.currentHealth(), 0.0001D);
+        assertEquals(-1L, attacker.lastCombatActivityTick());
+        assertEquals(-1L, victim.lastCombatActivityTick());
     }
 
     /**

@@ -649,6 +649,39 @@ public class MobService {
     }
 
     /**
+     * 直前の viewer 更新で得た集合だけを使い、指定距離内のプレイヤー有無を判定します。
+     *
+     * <p>viewer 集合自体は 64 ブロック以内を保持するため、ここでは追加のオンラインプレイヤー全走査を行わず、
+     * 対象距離で再判定します。呼び出し元は同一 tick 内に {@link #updateViewers()} を先に実行してください。</p>
+     *
+     * @param instance 判定対象 Mob
+     * @param distance 判定距離（ブロック）
+     * @return 指定距離内に有効なプレイヤーがいる場合は {@code true}
+     */
+    boolean hasPlayerWithinDistanceUsingCachedViewers(@NotNull MobInstance instance, double distance) {
+        if (!Double.isFinite(distance) || distance < 0.0D) {
+            return false;
+        }
+        Set<UUID> currentViewers = viewers.get(instance.instanceId());
+        if (currentViewers == null || currentViewers.isEmpty()) {
+            return false;
+        }
+
+        Location loc = instance.currentLocation();
+        double distanceSquared = distance * distance;
+        for (UUID playerId : currentViewers) {
+            Player player = Bukkit.getPlayer(playerId);
+            if (player == null || !player.isOnline() || player.isDead() || player.getWorld() != loc.getWorld()) {
+                continue;
+            }
+            if (player.getLocation().distanceSquared(loc) <= distanceSquared) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
      * 表示中の PLAYER 型 NPC について、位置・体の向き・頭部回転を viewer へ同期します。
      *
      * <p>viewer 集合の探索とは分離し、AI の毎 tick ループから呼び出すことで移動表示を滑らかに保ちます。</p>

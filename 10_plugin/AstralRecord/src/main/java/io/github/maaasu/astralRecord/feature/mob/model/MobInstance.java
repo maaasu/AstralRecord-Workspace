@@ -47,6 +47,10 @@ public final class MobInstance {
     private UUID targetId;
     private UUID lastAttackerUuid;
     private long lastAttackTick;
+    /** 近接プレイヤー不在状態へ遷移したサーバー tick。未観測時は -1。 */
+    private long noNearbyPlayerSinceTick = -1L;
+    /** 最後に実ダメージまたはシールドダメージが成立したサーバー tick。未成立時は -1。 */
+    private long lastCombatActivityTick = -1L;
     private int nextCombatSkillIndex;
     private String castingSkillName;
     private long castingStartedAtMs;
@@ -528,6 +532,34 @@ public final class MobInstance {
      */
     public void lastAttackTick(long tick) {
         this.lastAttackTick = tick;
+    }
+
+    /** 近接プレイヤー不在状態へ遷移したサーバー tick を返します。 */
+    public long noNearbyPlayerSinceTick() {
+        return noNearbyPlayerSinceTick;
+    }
+
+    /**
+     * 近接プレイヤー不在状態へ遷移したサーバー tick を更新します。
+     *
+     * @param tick サーバー tick。未観測状態へ戻す場合は {@code -1}
+     */
+    public void noNearbyPlayerSinceTick(long tick) {
+        this.noNearbyPlayerSinceTick = tick;
+    }
+
+    /** 最後に実ダメージまたはシールドダメージが成立したサーバー tick を返します。 */
+    public long lastCombatActivityTick() {
+        return lastCombatActivityTick;
+    }
+
+    /**
+     * 最後に実ダメージまたはシールドダメージが成立したサーバー tick を更新します。
+     *
+     * @param tick ダメージが成立したサーバー tick
+     */
+    public void lastCombatActivityTick(long tick) {
+        this.lastCombatActivityTick = tick;
     }
 
     /** 次に発動する戦闘スキルのインデックスを返します。 */

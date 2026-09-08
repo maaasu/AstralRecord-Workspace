@@ -56,6 +56,12 @@ public class MobAiService {
 
     /** 頭上 packet display 用 viewer キャッシュ更新間隔。 */
     private static final long VIEWER_UPDATE_INTERVAL_TICKS = 5L;
+    /** 近接プレイヤー不在 Mob のデスポーン判定間隔。 */
+    private static final long IDLE_DESPAWN_CHECK_INTERVAL_TICKS = 20L;
+    /** 近接プレイヤー不在 Mob を破棄するまでの時間（1分）。 */
+    private static final long IDLE_DESPAWN_TIMEOUT_TICKS = 20L * 60L;
+    /** 近接プレイヤー不在判定のプレイヤー距離（ブロック）。 */
+    private static final double IDLE_DESPAWN_PLAYER_DISTANCE = 20.0D;
     private static final long BLOCK_NPC_PARTICLE_INTERVAL_TICKS = 20L;
 
     /** スポーン地点から許容する上下方向の距離。超過時は直接スポーン地点へ戻す。 */
@@ -256,10 +262,60 @@ public class MobAiService {
             if (internalTick % VIEWER_UPDATE_INTERVAL_TICKS == 0L) {
                 mobService.updateViewers();
                 mobService.destroyEnemiesOutsideViewDistanceUsingCachedViewers();
+                if (internalTick % IDLE_DESPAWN_CHECK_INTERVAL_TICKS == 0L) {
+                    destroyMobsAfterIdleTimeout(Bukkit.getCurrentTick());
+                }
             }
             mobService.syncPlayerSkinPacketViews();
         } catch (RuntimeException ex) {
             Logger.error(LogId.E_5702, ex);
+        }
+    }
+
+    /**
+     * 近接プレイヤー不在かつ戦闘活動のない ENEMY / BOSS を破棄します。
+     *
+     * <p>プレイヤーの全走査は行わず、直前に {@link MobService#updateViewers()} が更新した
+     * viewer 集合を距離 20 ブロックで再利用します。プレイヤーまたはターゲットが戻った場合、
+     * 不在時間の計測を最初からやり直します。</p>
+     *
+     * @param serverTick 現在のサーバー tick
+     */
+    private void destroyMobsAfterIdleTimeout(long serverTick) {
+        List<UUID> targetIds = new ArrayList<>();
+        for (MobInstance instance : mobService.getInstances()) {
+            MobCategory category = instance.template().category();
+            if ((category != MobCategory.ENEMY && category != MobCategory.BOSS)
+                    || instance.keepWhenUnobserved()
+                    || instance.state() == MobState.DEAD) {
+                instance.noNearbyPlayerSinceTick(-1L);
+                continue;
+            }
+
+            boolean hasTarget = instance.targetId() != null;
+            boolean hasNearbyPlayer = mobService.hasPlayerWithinDistanceUsingCachedViewers(
+                    instance,
+                    IDLE_DESPAWN_PLAYER_DISTANCE
+            );
+            if (hasTarget || hasNearbyPlayer) {
+                instance.noNearbyPlayerSinceTick(-1L);
+                continue;
+            }
+
+            long noNearbySince = instance.noNearbyPlayerSinceTick();
+            if (noNearbySince < 0L) {
+                instance.noNearbyPlayerSinceTick(serverTick);
+                continue;
+            }
+
+            long quietSince = Math.max(noNearbySince, instance.lastCombatActivityTick());
+            if (serverTick >= quietSince && serverTick - quietSince >= IDLE_DESPAWN_TIMEOUT_TICKS) {
+                targetIds.add(instance.instanceId());
+            }
+        }
+
+        for (UUID instanceId : targetIds) {
+            mobService.destroy(instanceId);
         }
     }
 

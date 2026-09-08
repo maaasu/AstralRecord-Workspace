@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
@@ -236,6 +237,29 @@ class MobServiceLifecycleTest extends MockBukkitTestBase {
         assertEquals(1, service.destroyEnemiesOutsideViewDistanceUsingCachedViewers());
         assertNull(service.getInstance(instance.instanceId()));
         assertNotNull(service.getInstance(kept.instanceId()));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 1. MobService メソッド仕様 > ### viewer キャッシュによる近接プレイヤー判定
+     * 検証契約: 64ブロックviewerのキャッシュを再利用し、20ブロック境界で近接プレイヤーの有無を判定する。
+     */
+    @Test
+    void cachedViewerDistanceCanBeNarrowedToTwentyBlocks() {
+        PluginMock plugin = PluginMock.builder().withPluginName("AstralRecordTest").build();
+        MobService service = new MobService(plugin, mock(MobRepository.class));
+        World world = server().addSimpleWorld("mob_nearby_player_cache_world");
+        PlayerMock player = server().addPlayer();
+        player.teleport(new Location(world, 19.5D, 64.0D, 0.5D));
+
+        MobInstance instance = service.spawn(template(), new Location(world, 0.5D, 64.0D, 0.5D));
+        assertNotNull(instance);
+        service.updateViewers();
+        assertTrue(service.hasPlayerWithinDistanceUsingCachedViewers(instance, 20.0D));
+
+        player.teleport(new Location(world, 21.5D, 64.0D, 0.5D));
+        service.updateViewers();
+        assertFalse(service.hasPlayerWithinDistanceUsingCachedViewers(instance, 20.0D));
     }
 
     /**

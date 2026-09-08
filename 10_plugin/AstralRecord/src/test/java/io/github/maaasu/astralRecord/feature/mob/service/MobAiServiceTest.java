@@ -194,6 +194,152 @@ class MobAiServiceTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
      * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
+     * 検証契約: targetなし・20ブロック以内のプレイヤーなし・戦闘活動なしのENEMYは、1,200サーバーtick後に破棄する。
+     */
+    @Test
+    void destroysIdleEnemyAfterOneMinuteWithoutNearbyPlayerOrCombatActivity()
+            throws ReflectiveOperationException {
+        MobService mobService = mock(MobService.class);
+        World world = mock(World.class);
+        MobInstance instance = new MobInstance(
+                UUID.randomUUID(),
+                enemyTemplate(),
+                new Location(world, 0.0D, 64.0D, 0.0D)
+        );
+        instance.scriptedAction(true);
+        when(mobService.getInstances()).thenReturn(List.of(instance));
+        when(mobService.syncLocation(instance)).thenReturn(true);
+        when(mobService.hasPlayerWithinDistanceUsingCachedViewers(instance, 20.0D)).thenReturn(false);
+
+        MobAiService aiService = new MobAiService(
+                mobService,
+                mock(MobCombatService.class),
+                mock(MobSkillService.class)
+        );
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getCurrentTick).thenReturn(100, 1300);
+            setInternalTick(aiService, 19L);
+            aiService.tick();
+            assertEquals(100L, instance.noNearbyPlayerSinceTick());
+
+            setInternalTick(aiService, 39L);
+            aiService.tick();
+        }
+
+        verify(mobService).destroy(instance.instanceId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 1. MobService メソッド仕様 > ### 近接プレイヤー不在 Mob 破棄
+     * 検証契約: BOSSは対象となり、維持指定・ターゲット設定・近接プレイヤー復帰中のMobは破棄しない。
+     */
+    @Test
+    void destroysIdleBossButKeepsMobsWhenExclusionConditionReturns()
+            throws ReflectiveOperationException {
+        MobService mobService = mock(MobService.class);
+        World world = mock(World.class);
+        MobInstance boss = new MobInstance(
+                UUID.randomUUID(),
+                bossTemplate(),
+                new Location(world, 0.0D, 64.0D, 0.0D)
+        );
+        MobInstance kept = new MobInstance(
+                UUID.randomUUID(),
+                enemyTemplate(),
+                new Location(world, 2.0D, 64.0D, 0.0D)
+        );
+        kept.keepWhenUnobserved(true);
+        MobInstance targeted = new MobInstance(
+                UUID.randomUUID(),
+                enemyTemplate(),
+                new Location(world, 4.0D, 64.0D, 0.0D)
+        );
+        MobInstance nearby = new MobInstance(
+                UUID.randomUUID(),
+                enemyTemplate(),
+                new Location(world, 6.0D, 64.0D, 0.0D)
+        );
+        for (MobInstance instance : List.of(boss, kept, targeted, nearby)) {
+            instance.scriptedAction(true);
+        }
+        when(mobService.getInstances()).thenReturn(List.of(boss, kept, targeted, nearby));
+        when(mobService.syncLocation(any(MobInstance.class))).thenReturn(true);
+        when(mobService.hasPlayerWithinDistanceUsingCachedViewers(boss, 20.0D)).thenReturn(false);
+        when(mobService.hasPlayerWithinDistanceUsingCachedViewers(targeted, 20.0D)).thenReturn(false);
+        when(mobService.hasPlayerWithinDistanceUsingCachedViewers(nearby, 20.0D))
+                .thenReturn(false, true);
+
+        MobAiService aiService = new MobAiService(
+                mobService,
+                mock(MobCombatService.class),
+                mock(MobSkillService.class)
+        );
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getCurrentTick).thenReturn(100, 1300);
+            setInternalTick(aiService, 19L);
+            aiService.tick();
+
+            targeted.targetId(UUID.randomUUID());
+            setInternalTick(aiService, 39L);
+            aiService.tick();
+        }
+
+        verify(mobService).destroy(boss.instanceId());
+        verify(mobService, never()).destroy(kept.instanceId());
+        verify(mobService, never()).destroy(targeted.instanceId());
+        verify(mobService, never()).destroy(nearby.instanceId());
+        assertEquals(-1L, targeted.noNearbyPlayerSinceTick());
+        assertEquals(-1L, nearby.noNearbyPlayerSinceTick());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 1. MobService メソッド仕様 > ### 近接プレイヤー不在 Mob 破棄
+     * 検証契約: 近接プレイヤー不在中の戦闘活動後は、その活動 tick を起点に1,200 tickを再計測する。
+     */
+    @Test
+    void restartsIdleDespawnTimeoutAfterCombatActivity() throws ReflectiveOperationException {
+        MobService mobService = mock(MobService.class);
+        World world = mock(World.class);
+        MobInstance instance = new MobInstance(
+                UUID.randomUUID(),
+                enemyTemplate(),
+                new Location(world, 0.0D, 64.0D, 0.0D)
+        );
+        instance.scriptedAction(true);
+        when(mobService.getInstances()).thenReturn(List.of(instance));
+        when(mobService.syncLocation(instance)).thenReturn(true);
+        when(mobService.hasPlayerWithinDistanceUsingCachedViewers(instance, 20.0D)).thenReturn(false);
+
+        MobAiService aiService = new MobAiService(
+                mobService,
+                mock(MobCombatService.class),
+                mock(MobSkillService.class)
+        );
+
+        try (MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class)) {
+            bukkit.when(Bukkit::getCurrentTick).thenReturn(100, 1300, 1500);
+            setInternalTick(aiService, 19L);
+            aiService.tick();
+            instance.lastCombatActivityTick(200L);
+
+            setInternalTick(aiService, 39L);
+            aiService.tick();
+            verify(mobService, never()).destroy(instance.instanceId());
+
+            setInternalTick(aiService, 59L);
+            aiService.tick();
+        }
+
+        verify(mobService).destroy(instance.instanceId());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-サービス.md
+     * 章・見出し: # 12_3-サービス > ## 3. MobAiService メソッド仕様 > ### AI tick 本体
      * 検証契約: NPCのWANDERが30秒周期で配置アンカーへの経路を設定し、テレポートを実行しない。
      */
     @Test
@@ -576,6 +722,32 @@ class MobAiServiceTest {
                 "enemy:taunt_ai_test",
                 MobCategory.ENEMY,
                 "Taunt AI Test",
+                null,
+                1,
+                EntityType.ARMOR_STAND,
+                true,
+                null,
+                List.of(),
+                List.of(),
+                null,
+                MobEquipmentConfig.EMPTY,
+                List.of(new MobBaseStat("MAX_HEALTH", 100.0D)),
+                MobShieldConfig.EMPTY,
+                MobIdleConfig.defaults(),
+                false,
+                MobInteractionsConfig.EMPTY,
+                new MobTargetingConfig(TargetStrategy.HIGHEST_THREAT, 100.0D, 10.0D, 100.0D, false),
+                null,
+                null
+        );
+    }
+
+    private static MobTemplate bossTemplate() {
+        return new MobTemplate(
+                1,
+                "boss:idle_despawn_test",
+                MobCategory.BOSS,
+                "Idle Despawn Boss",
                 null,
                 1,
                 EntityType.ARMOR_STAND,
