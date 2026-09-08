@@ -626,7 +626,8 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
                 .HasMaxLength(32);
             entity.Property(operation => operation.RequestHash)
                 .HasColumnName("request_hash")
-                .HasMaxLength(64);
+                .HasColumnType("char(64)")
+                .IsFixedLength();
             entity.Property(operation => operation.ResultPayloadJson).HasColumnName("result_payload_json");
             entity.Property(operation => operation.CreatedAt).HasColumnName("created_at");
             entity.Property(operation => operation.CompletedAt).HasColumnName("completed_at");
@@ -782,7 +783,10 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(operation => operation.OrbInventoryEntryId).HasColumnName("orb_inventory_entry_id");
             entity.Property(operation => operation.OrbItemId).HasColumnName("orb_item_id").HasMaxLength(128);
             entity.Property(operation => operation.OperationType).HasColumnName("operation_type").HasMaxLength(32);
-            entity.Property(operation => operation.RequestHash).HasColumnName("request_hash").HasMaxLength(64);
+            entity.Property(operation => operation.RequestHash)
+                .HasColumnName("request_hash")
+                .HasColumnType("char(64)")
+                .IsFixedLength();
             entity.Property(operation => operation.ResultCode).HasColumnName("result_code").HasMaxLength(32);
             entity.Property(operation => operation.ResultPayloadJson).HasColumnName("result_payload_json");
             entity.Property(operation => operation.PaymentConsumed).HasColumnName("payment_consumed");
@@ -965,7 +969,10 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(e => e.OperationId).HasColumnName("operation_id");
             entity.Property(e => e.PlayerAAccountId).HasColumnName("player_a_account_id");
             entity.Property(e => e.PlayerBAccountId).HasColumnName("player_b_account_id");
-            entity.Property(e => e.RequestHash).HasColumnName("request_hash").HasMaxLength(64);
+            entity.Property(e => e.RequestHash)
+                .HasColumnName("request_hash")
+                .HasColumnType("char(64)")
+                .IsFixedLength();
             entity.Property(e => e.ResultPayloadJson).HasColumnName("result_payload_json");
             entity.Property(e => e.CompletedAt).HasColumnName("completed_at");
             entity.Property(e => e.CreatedAt).HasColumnName("created_at");
@@ -980,7 +987,10 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.HasKey(snapshot => snapshot.SnapshotId);
             entity.Property(snapshot => snapshot.SnapshotId).HasColumnName("snapshot_id");
             entity.Property(snapshot => snapshot.AccountId).HasColumnName("account_id");
-            entity.Property(snapshot => snapshot.RequestHash).HasColumnName("request_hash").HasMaxLength(64);
+            entity.Property(snapshot => snapshot.RequestHash)
+                .HasColumnName("request_hash")
+                .HasColumnType("char(64)")
+                .IsFixedLength();
             entity.Property(snapshot => snapshot.AckPayloadJson).HasColumnName("ack_payload_json");
             entity.Property(snapshot => snapshot.CreatedAt).HasColumnName("created_at");
             entity.Property(snapshot => snapshot.CompletedAt).HasColumnName("completed_at");

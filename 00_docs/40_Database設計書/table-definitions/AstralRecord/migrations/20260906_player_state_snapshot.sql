@@ -128,6 +128,48 @@ BEGIN
     );
 END;
 
+-- A schema created by EF Core before this migration may have request_hash as
+-- NVARCHAR(64). Normalize it to the CHAR(64) contract before validation.
+IF EXISTS (
+    SELECT 1
+    FROM sys.columns AS c
+    INNER JOIN sys.types AS t
+        ON t.user_type_id = c.user_type_id
+    WHERE c.[object_id] = OBJECT_ID(N'[dbo].[player_state_snapshot]')
+      AND c.[name] = N'request_hash'
+      AND (
+          t.[name] <> N'char'
+          OR c.[max_length] <> 64
+          OR c.[is_nullable] <> 0
+      )
+)
+BEGIN
+    ALTER TABLE [dbo].[player_state_snapshot]
+        ALTER COLUMN [request_hash] CHAR(64) NOT NULL;
+END;
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.check_constraints
+    WHERE [name] = N'CK_player_state_snapshot_request_hash'
+      AND [parent_object_id] = OBJECT_ID(N'[dbo].[player_state_snapshot]')
+)
+BEGIN
+    ALTER TABLE [dbo].[player_state_snapshot]
+        ADD CONSTRAINT [CK_player_state_snapshot_request_hash]
+        CHECK ([request_hash] LIKE '[0-9A-Fa-f]' + REPLICATE('[0-9A-Fa-f]', 63));
+END;
+
+IF NOT EXISTS (
+    SELECT 1 FROM sys.check_constraints
+    WHERE [name] = N'CK_player_state_snapshot_ack_payload_json'
+      AND [parent_object_id] = OBJECT_ID(N'[dbo].[player_state_snapshot]')
+)
+BEGIN
+    ALTER TABLE [dbo].[player_state_snapshot]
+        ADD CONSTRAINT [CK_player_state_snapshot_ack_payload_json]
+        CHECK (ISJSON([ack_payload_json]) = 1);
+END;
+
 IF NOT EXISTS (
     SELECT 1 FROM sys.indexes
     WHERE [name] = N'IX_player_state_snapshot_account_completed'
