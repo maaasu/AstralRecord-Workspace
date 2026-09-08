@@ -629,8 +629,12 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
                 .HasColumnType("char(64)")
                 .IsFixedLength();
             entity.Property(operation => operation.ResultPayloadJson).HasColumnName("result_payload_json");
-            entity.Property(operation => operation.CreatedAt).HasColumnName("created_at");
-            entity.Property(operation => operation.CompletedAt).HasColumnName("completed_at");
+            entity.Property(operation => operation.CreatedAt)
+                .HasColumnName("created_at")
+                .HasColumnType("datetime2(3)");
+            entity.Property(operation => operation.CompletedAt)
+                .HasColumnName("completed_at")
+                .HasColumnType("datetime2(3)");
             entity.Property(operation => operation.CreatedBy).HasColumnName("created_by");
             entity.HasIndex(operation => new { operation.AccountId, operation.CreatedAt })
                 .HasDatabaseName("IX_account_learned_skill_operation_account_created_at");
@@ -992,8 +996,12 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
                 .HasColumnType("char(64)")
                 .IsFixedLength();
             entity.Property(snapshot => snapshot.AckPayloadJson).HasColumnName("ack_payload_json");
-            entity.Property(snapshot => snapshot.CreatedAt).HasColumnName("created_at");
-            entity.Property(snapshot => snapshot.CompletedAt).HasColumnName("completed_at");
+            entity.Property(snapshot => snapshot.CreatedAt)
+                .HasColumnName("created_at")
+                .HasColumnType("datetime2(3)");
+            entity.Property(snapshot => snapshot.CompletedAt)
+                .HasColumnName("completed_at")
+                .HasColumnType("datetime2(3)");
             entity.Property(snapshot => snapshot.CreatedBy).HasColumnName("created_by");
             entity.HasIndex(snapshot => new { snapshot.AccountId, snapshot.CompletedAt })
                 .HasDatabaseName("IX_player_state_snapshot_account_completed");

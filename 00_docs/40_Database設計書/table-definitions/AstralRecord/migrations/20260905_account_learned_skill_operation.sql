@@ -38,6 +38,46 @@ BEGIN
         ALTER COLUMN [request_hash] CHAR(64) NOT NULL;
 END;
 
+-- EF Core's default DateTime mapping is DATETIME2(7). Normalize existing
+-- schemas to the DATETIME2(3) contract before validation.
+IF EXISTS (
+    SELECT 1
+    FROM sys.columns AS c
+    INNER JOIN sys.types AS t
+        ON t.user_type_id = c.user_type_id
+    WHERE c.[object_id] = OBJECT_ID(N'[dbo].[account_learned_skill_operation]')
+      AND c.[name] = N'created_at'
+      AND (
+          t.[name] <> N'datetime2'
+          OR c.[precision] <> 23
+          OR c.[scale] <> 3
+          OR c.[is_nullable] <> 0
+      )
+)
+BEGIN
+    ALTER TABLE [dbo].[account_learned_skill_operation]
+        ALTER COLUMN [created_at] DATETIME2(3) NOT NULL;
+END;
+
+IF EXISTS (
+    SELECT 1
+    FROM sys.columns AS c
+    INNER JOIN sys.types AS t
+        ON t.user_type_id = c.user_type_id
+    WHERE c.[object_id] = OBJECT_ID(N'[dbo].[account_learned_skill_operation]')
+      AND c.[name] = N'completed_at'
+      AND (
+          t.[name] <> N'datetime2'
+          OR c.[precision] <> 23
+          OR c.[scale] <> 3
+          OR c.[is_nullable] <> 0
+      )
+)
+BEGIN
+    ALTER TABLE [dbo].[account_learned_skill_operation]
+        ALTER COLUMN [completed_at] DATETIME2(3) NOT NULL;
+END;
+
 IF NOT EXISTS (
     SELECT 1 FROM sys.indexes
     WHERE [name] = N'IX_account_learned_skill_operation_account_created_at'

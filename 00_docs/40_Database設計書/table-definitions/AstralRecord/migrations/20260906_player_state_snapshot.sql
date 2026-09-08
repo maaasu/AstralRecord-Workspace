@@ -128,6 +128,46 @@ BEGIN
     );
 END;
 
+-- EF Core's default DateTime mapping is DATETIME2(7). Normalize existing
+-- schemas to the DATETIME2(3) contract before validation.
+IF EXISTS (
+    SELECT 1
+    FROM sys.columns AS c
+    INNER JOIN sys.types AS t
+        ON t.user_type_id = c.user_type_id
+    WHERE c.[object_id] = OBJECT_ID(N'[dbo].[player_state_snapshot]')
+      AND c.[name] = N'created_at'
+      AND (
+          t.[name] <> N'datetime2'
+          OR c.[precision] <> 23
+          OR c.[scale] <> 3
+          OR c.[is_nullable] <> 0
+      )
+)
+BEGIN
+    ALTER TABLE [dbo].[player_state_snapshot]
+        ALTER COLUMN [created_at] DATETIME2(3) NOT NULL;
+END;
+
+IF EXISTS (
+    SELECT 1
+    FROM sys.columns AS c
+    INNER JOIN sys.types AS t
+        ON t.user_type_id = c.user_type_id
+    WHERE c.[object_id] = OBJECT_ID(N'[dbo].[player_state_snapshot]')
+      AND c.[name] = N'completed_at'
+      AND (
+          t.[name] <> N'datetime2'
+          OR c.[precision] <> 23
+          OR c.[scale] <> 3
+          OR c.[is_nullable] <> 0
+      )
+)
+BEGIN
+    ALTER TABLE [dbo].[player_state_snapshot]
+        ALTER COLUMN [completed_at] DATETIME2(3) NOT NULL;
+END;
+
 -- A schema created by EF Core before this migration may have request_hash as
 -- NVARCHAR(64). Normalize it to the CHAR(64) contract before validation.
 IF EXISTS (
