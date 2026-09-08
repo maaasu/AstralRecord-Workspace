@@ -9,6 +9,7 @@ import io.github.maaasu.astralRecord.feature.player.event.PlayerJoinEventHandler
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerSessionTransitionGuard;
 import io.github.maaasu.astralRecord.feature.skill.event.SkillBindGuiEventHandler;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
@@ -79,6 +80,33 @@ class AccountSwitchCommandTest {
         assertTrue(PlainTextComponentSerializer.plainText().serialize(messageCaptor.getValue())
             .contains("カーソル上のアイテムを空にしてからアカウントを切り替えてください。"));
         verify(player, never()).setItemOnCursor(any(ItemStack.class));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
+     * 章・見出し: # 03_3-保存 > ## player-state snapshot
+     * 検証契約: channel transferがSQL ACKを待つ間はaccount切替を開始せず、旧session/cacheを保持する。
+     */
+    @Test
+    void rejectsAccountSwitchWhileChannelTransferOwnsTransition() {
+        UUID userId = UUID.randomUUID();
+        UUID playerId = UUID.randomUUID();
+        Player player = player(playerId);
+        AstPlayer astPlayer = astPlayer(userId, UUID.randomUUID());
+        Fixture fixture = fixture(player, astPlayer);
+        fixture.transitionGuard().tryBegin(
+            playerId,
+            PlayerSessionTransitionGuard.Transition.CHANNEL_TRANSFER
+        );
+
+        runCommand(fixture, player, astPlayer, "1");
+
+        verify(fixture.accountService(), never()).getAccounts(any());
+        verify(fixture.playerJoinEventHandler(), never()).prepareAccountSwitch(any());
+        assertEquals(
+            PlayerSessionTransitionGuard.Transition.CHANNEL_TRANSFER,
+            fixture.transitionGuard().current(playerId)
+        );
     }
 
     /**
@@ -478,12 +506,14 @@ class AccountSwitchCommandTest {
         PlayerJoinEventHandler playerJoinEventHandler = mock(PlayerJoinEventHandler.class);
         SkillBindGuiEventHandler skillBindGuiEventHandler = mock(SkillBindGuiEventHandler.class);
         PlayerMessageService messageService = mock(PlayerMessageService.class);
+        PlayerSessionTransitionGuard transitionGuard = new PlayerSessionTransitionGuard();
         when(plugin.getServer()).thenReturn(server);
         when(plugin.getAccountService()).thenReturn(accountService);
         when(plugin.getUserService()).thenReturn(userService);
         when(plugin.getPlayerService()).thenReturn(playerService);
         when(plugin.getPlayerJoinEventHandler()).thenReturn(playerJoinEventHandler);
         when(plugin.getSkillBindGuiEventHandler()).thenReturn(skillBindGuiEventHandler);
+        when(plugin.getPlayerSessionTransitionGuard()).thenReturn(transitionGuard);
         when(server.getScheduler()).thenReturn(scheduler);
         when(scheduler.runTaskAsynchronously(eq(plugin), any(Runnable.class))).thenAnswer(invocation -> {
             invocation.<Runnable>getArgument(1).run();
@@ -501,6 +531,7 @@ class AccountSwitchCommandTest {
             playerJoinEventHandler,
             skillBindGuiEventHandler,
             messageService,
+            transitionGuard,
             player,
             astPlayer
         );
@@ -548,6 +579,7 @@ class AccountSwitchCommandTest {
         PlayerJoinEventHandler playerJoinEventHandler,
         SkillBindGuiEventHandler skillBindGuiEventHandler,
         PlayerMessageService messageService,
+        PlayerSessionTransitionGuard transitionGuard,
         Player player,
         AstPlayer astPlayer
     ) {

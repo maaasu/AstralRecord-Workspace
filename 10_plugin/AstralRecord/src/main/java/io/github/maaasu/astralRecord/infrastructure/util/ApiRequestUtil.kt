@@ -22,6 +22,9 @@ import javax.net.ssl.X509ExtendedTrustManager
  */
 object ApiRequestUtil {
 
+    @Volatile
+    private var pooledClient: HttpClient? = null
+
     /**
      * JSON リクエストボディを構築します。
      * 生の JSON 文字列連結を避け、キー名や値のタイプミスを防ぎやすくします。
@@ -53,6 +56,19 @@ object ApiRequestUtil {
             builder.sslParameters(SSLParameters().apply { endpointIdentificationAlgorithm = "" })
         }
         return builder.build()
+    }
+
+    /**
+     * Plugin の高頻度 API 通信用に、接続プールを共有する単一クライアントを返します。
+     * Plugin の稼働中に transport 設定は変更されないため、生成は初回の一度だけです。
+     * 呼び出し側はこのクライアントを close しません。
+     */
+    @JvmStatic
+    fun sharedClient(): HttpClient {
+        pooledClient?.let { return it }
+        return synchronized(this) {
+            pooledClient ?: buildClient().also { pooledClient = it }
+        }
     }
 
     /**

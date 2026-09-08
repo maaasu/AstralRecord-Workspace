@@ -24,12 +24,37 @@ final class PlayerStateSnapshot {
     PlayerStateSnapshot(PlayerInventoryState state, List<EquipmentInstance> equipment,
                         List<PlayerStateSection> sections, Map<UUID, Set<UUID>> persistedEntries,
                         Map<UUID, LocalDateTime> persistedVersions) {
-        this(state, equipment, sections, persistedEntries, persistedVersions, false);
+        this(state, equipment, sections, persistedEntries, persistedVersions,
+            state.snapshotInventories().stream().map(InventoryModel::getInventoryId).collect(java.util.stream.Collectors.toSet()),
+            state.snapshotLoadouts(InventoryProfile.GAME).stream().map(EquipmentLoadoutModel::getEquipmentLoadoutId)
+                .collect(java.util.stream.Collectors.toSet()), Set.of(), false);
     }
 
     PlayerStateSnapshot(PlayerInventoryState state, List<EquipmentInstance> equipment,
                         List<PlayerStateSection> sections, Map<UUID, Set<UUID>> persistedEntries,
                         Map<UUID, LocalDateTime> persistedVersions, boolean includePendingInventories) {
+        this(state, equipment, sections, persistedEntries, persistedVersions,
+            state.snapshotInventories().stream().map(InventoryModel::getInventoryId).collect(java.util.stream.Collectors.toSet()),
+            state.snapshotLoadouts(InventoryProfile.GAME).stream().map(EquipmentLoadoutModel::getEquipmentLoadoutId)
+                .collect(java.util.stream.Collectors.toSet()), Set.of(), includePendingInventories);
+    }
+
+    PlayerStateSnapshot(PlayerInventoryState state, List<EquipmentInstance> equipment,
+                        List<PlayerStateSection> sections, Map<UUID, Set<UUID>> persistedEntries,
+                        Map<UUID, LocalDateTime> persistedVersions, Set<String> pendingEquipmentCreationIds,
+                        boolean includePendingInventories) {
+        this(state, equipment, sections, persistedEntries, persistedVersions,
+            state.snapshotInventories().stream().map(InventoryModel::getInventoryId).collect(java.util.stream.Collectors.toSet()),
+            state.snapshotLoadouts(InventoryProfile.GAME).stream().map(EquipmentLoadoutModel::getEquipmentLoadoutId)
+                .collect(java.util.stream.Collectors.toSet()), pendingEquipmentCreationIds, includePendingInventories);
+    }
+
+    PlayerStateSnapshot(PlayerInventoryState state, List<EquipmentInstance> equipment,
+                        List<PlayerStateSection> sections, Map<UUID, Set<UUID>> persistedEntries,
+                        Map<UUID, LocalDateTime> persistedVersions,
+                        Set<UUID> persistedInventoryIds, Set<UUID> persistedLoadoutIds,
+                        Set<String> pendingEquipmentCreationIds,
+                        boolean includePendingInventories) {
         this.accountId = state.getAccountId();
         this.equipment = List.copyOf(equipment);
         this.sections = List.copyOf(sections);
@@ -46,10 +71,21 @@ final class PlayerStateSnapshot {
         Set<UUID> metadataDirty = new HashSet<>();
         state.snapshotDirtyMetadataInventories().forEach(value -> metadataDirty.add(value.getInventoryId()));
         for (InventoryModel inventory : inventories) {
+            boolean isNew = !persistedInventoryIds.contains(inventory.getInventoryId());
             JsonObject object = new JsonObject();
             object.addProperty("inventoryId", inventory.getInventoryId().toString());
-            object.addProperty("expectedUpdatedAt", inventory.getUpdatedAt().toString());
-            object.addProperty("metadataDirty", metadataDirty.contains(inventory.getInventoryId()));
+            object.addProperty("isNew", isNew);
+            if (isNew) {
+                object.add("expectedUpdatedAt", JsonNull.INSTANCE);
+                object.addProperty("inventoryType", inventory.getInventoryType().getCode());
+                object.addProperty("inventoryProfile", inventory.getInventoryProfile());
+                if (inventory.getSlotCapacity() == null) object.add("slotCapacity", JsonNull.INSTANCE);
+                else object.addProperty("slotCapacity", inventory.getSlotCapacity());
+                object.addProperty("isEnabled", inventory.isEnabled());
+            } else {
+                object.addProperty("expectedUpdatedAt", inventory.getUpdatedAt().toString());
+            }
+            object.addProperty("metadataDirty", !isNew && metadataDirty.contains(inventory.getInventoryId()));
             object.addProperty("metadataJson", inventory.getMetadataJson());
             JsonArray expectedRows = new JsonArray();
             persistedEntries.getOrDefault(inventory.getInventoryId(), Set.of()).stream().sorted()
@@ -86,9 +122,20 @@ final class PlayerStateSnapshot {
         for (EquipmentLoadoutModel loadout : inventoryDirty ? state.snapshotLoadouts(InventoryProfile.GAME) : List.<EquipmentLoadoutModel>of()) {
             if (loadout.isDeleted()) continue;
             loadoutIds.add(loadout.getEquipmentLoadoutId());
+            boolean isNew = !persistedLoadoutIds.contains(loadout.getEquipmentLoadoutId());
             JsonObject object = new JsonObject();
             object.addProperty("equipmentLoadoutId", loadout.getEquipmentLoadoutId().toString());
-            object.addProperty("expectedUpdatedAt", loadout.getUpdatedAt().toString());
+            object.addProperty("isNew", isNew);
+            if (isNew) {
+                object.add("expectedUpdatedAt", JsonNull.INSTANCE);
+                object.addProperty("loadoutProfile", loadout.getLoadoutProfile());
+                object.addProperty("loadoutName", loadout.getLoadoutName());
+                object.addProperty("sortOrder", loadout.getSortOrder());
+                object.addProperty("isActive", loadout.isActive());
+                object.addProperty("metadataJson", loadout.getMetadataJson());
+            } else {
+                object.addProperty("expectedUpdatedAt", loadout.getUpdatedAt().toString());
+            }
             JsonArray slots = new JsonArray();
             for (EquipmentLoadoutSlotModel slot : loadout.getSlots()) {
                 if (slot.isDeleted()) continue;
@@ -105,15 +152,20 @@ final class PlayerStateSnapshot {
         JsonArray equipmentArray = new JsonArray();
         Gson gson = new Gson();
         for (EquipmentInstance instance : equipment) {
+            boolean isNew = pendingEquipmentCreationIds.contains(
+                instance.getEquipmentInstanceId().trim().toLowerCase(Locale.ROOT));
             JsonObject object = new JsonObject();
             object.addProperty("equipmentInstanceId", instance.getEquipmentInstanceId());
-            object.addProperty("expectedUpdatedAt", instance.getUpdatedAt());
+            object.addProperty("isNew", isNew);
+            object.addProperty("itemId", isNew ? instance.getItemId() : null);
+            object.addProperty("expectedUpdatedAt", isNew ? null : instance.getUpdatedAt());
             object.addProperty("enhanceLevel", instance.getEnhanceLevel());
             object.addProperty("runeMaxSlots", instance.getRuneMaxSlots());
             object.addProperty("transcendenceRank", instance.getTranscendenceRank());
             boolean withoutDurability = instance.getDurabilityMax() == 0 && instance.getDurabilityValue() == 0;
             object.addProperty("durabilityMax", withoutDurability ? null : Integer.valueOf(instance.getDurabilityMax()));
             object.addProperty("durabilityValue", withoutDurability ? null : Integer.valueOf(instance.getDurabilityValue()));
+            object.add("statRolls", isNew ? gson.toJsonTree(instance.getStatRolls()) : new JsonArray());
             object.add("enchants", gson.toJsonTree(instance.getEnchants()));
             object.add("runes", gson.toJsonTree(instance.getRunes()));
             equipmentArray.add(object);
@@ -189,7 +241,11 @@ final class PlayerStateSnapshot {
                     || !Objects.equals(deleted.get(id), !activeIds.contains(id)))
                     throw new IllegalStateException("Missing or inconsistent entry acknowledgement");
             }
-            for (String name : List.of("learnedSkills", "skillBindPresets", "skillTree", "accountProgress", "waystones")) {
+            for (String name : List.of(
+                "learnedSkills", "skillBindPresets", "skillTree", "accountProgress", "waystones",
+                "questState", "loginBonusClaims", "guideProgress", "adventureRecords", "playerSettings",
+                "mailClaim", "mailDelete"
+            )) {
                 if (!request.has(name)) continue;
                 JsonObject section = request.getAsJsonObject(name);
                 JsonObject received = ack.getAsJsonObject(name);
@@ -208,6 +264,45 @@ final class PlayerStateSnapshot {
                     case "accountProgress" -> requireVersion(section, received, "expectedProgressVersion", "progressVersion");
                     case "waystones" -> {
                         requireEqual(section.get("unlockedWaystoneIds"), received.get("unlockedWaystoneIds"));
+                    }
+                    case "questState" -> requireVersion(section, received, "expectedVersion", "version");
+                    case "loginBonusClaims" -> {
+                        Set<String> requestedDates = new HashSet<>();
+                        for (JsonElement date : section.getAsJsonArray("claimDates")) {
+                            requestedDates.add(date.getAsString());
+                        }
+                        Set<String> receivedDates = new HashSet<>();
+                        for (JsonElement claim : received.getAsJsonArray("claims")) {
+                            receivedDates.add(claim.getAsJsonObject().get("claimDate").getAsString());
+                        }
+                        if (!requestedDates.equals(receivedDates)) {
+                            throw new IllegalStateException("Login bonus acknowledgement mismatch");
+                        }
+                    }
+                    case "guideProgress" -> requireCompositeKeyRows(
+                        section.getAsJsonArray("completedStepKeys"), received.getAsJsonArray("completedStepKeys"),
+                        "guideId", "stepId");
+                    case "adventureRecords" -> {
+                        requireTextKeyRows(section.getAsJsonArray("mobDefeatDeltas"),
+                            received.getAsJsonArray("mobDefeats"), "mobId");
+                        requireTextKeyRows(section.getAsJsonArray("dungeonClearDeltas"),
+                            received.getAsJsonArray("dungeonClears"), "dungeonId");
+                    }
+                    case "playerSettings" -> requirePlayerSettingVersions(
+                        section.getAsJsonArray("settings"), received.getAsJsonArray("settings"));
+                    case "mailClaim" -> {
+                        requireEqual(section.get("mailId"), received.get("mailId"));
+                        if (!received.has("version") || received.get("version").getAsInt() < 2
+                            || !received.has("readAt") || received.get("readAt").isJsonNull()) {
+                            throw new IllegalStateException("Mail claim acknowledgement mismatch");
+                        }
+                    }
+                    case "mailDelete" -> {
+                        requireEqual(section.get("mailId"), received.get("mailId"));
+                        if (!received.has("version") || received.get("version").getAsInt() < 2
+                            || !received.has("deletedAt") || received.get("deletedAt").isJsonNull()) {
+                            throw new IllegalStateException("Mail delete acknowledgement mismatch");
+                        }
                     }
                     default -> throw new IllegalStateException("Unsupported section");
                 }
@@ -239,6 +334,69 @@ final class PlayerStateSnapshot {
         for (JsonElement row : requested) {
             JsonObject value = row.getAsJsonObject();
             requireVersion(value, received.get(value.get(id).getAsString()), "expectedVersion", "version");
+        }
+    }
+
+    private static void requireCompositeKeyRows(
+        JsonArray requested,
+        JsonArray acknowledged,
+        String firstKey,
+        String secondKey
+    ) {
+        Set<String> expected = textCompositeKeys(requested, firstKey, secondKey);
+        Set<String> received = textCompositeKeys(acknowledged, firstKey, secondKey);
+        if (!expected.equals(received)) {
+            throw new IllegalStateException("Section acknowledgement key mismatch");
+        }
+    }
+
+    private static Set<String> textCompositeKeys(JsonArray rows, String firstKey, String secondKey) {
+        Set<String> result = new HashSet<>();
+        for (JsonElement element : rows) {
+            JsonObject row = element.getAsJsonObject();
+            String key = row.get(firstKey).getAsString() + '\u001f' + row.get(secondKey).getAsString();
+            if (!result.add(key)) {
+                throw new IllegalStateException("Duplicate section acknowledgement key");
+            }
+        }
+        return result;
+    }
+
+    private static void requireTextKeyRows(JsonArray requested, JsonArray acknowledged, String keyName) {
+        Set<String> expected = textKeys(requested, keyName);
+        Set<String> received = textKeys(acknowledged, keyName);
+        if (!expected.equals(received)) {
+            throw new IllegalStateException("Section acknowledgement key mismatch");
+        }
+    }
+
+    private static Set<String> textKeys(JsonArray rows, String keyName) {
+        Set<String> result = new HashSet<>();
+        for (JsonElement element : rows) {
+            String key = element.getAsJsonObject().get(keyName).getAsString().toLowerCase(Locale.ROOT);
+            if (!result.add(key)) {
+                throw new IllegalStateException("Duplicate section acknowledgement key");
+            }
+        }
+        return result;
+    }
+
+    private static void requirePlayerSettingVersions(JsonArray requested, JsonArray acknowledged) {
+        Map<String, JsonObject> received = new HashMap<>();
+        for (JsonElement element : acknowledged) {
+            JsonObject row = element.getAsJsonObject();
+            if (received.put(row.get("userSettingId").getAsString(), row) != null) {
+                throw new IllegalStateException("Duplicate player setting acknowledgement");
+            }
+        }
+        if (received.size() != requested.size()) {
+            throw new IllegalStateException("Player setting acknowledgement size mismatch");
+        }
+        for (JsonElement element : requested) {
+            JsonObject row = element.getAsJsonObject();
+            JsonObject ack = received.get(row.get("userSettingId").getAsString());
+            requireEqual(row.get("settingKey"), ack == null ? null : ack.get("settingKey"));
+            requireVersion(row, ack, "expectedVersion", "version");
         }
     }
 

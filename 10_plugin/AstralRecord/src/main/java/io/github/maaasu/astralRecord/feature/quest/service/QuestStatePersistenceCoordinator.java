@@ -1,44 +1,29 @@
 package io.github.maaasu.astralRecord.feature.quest.service;
 
 import io.github.maaasu.astralRecord.feature.quest.model.QuestPlayerState;
-import io.github.maaasu.astralRecord.feature.quest.repository.QuestPlayerStateRepository;
-import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
-import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.util.ArrayList;
 import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
+import java.util.function.Function;
 
 /**
- * クエスト状態の世代管理と、アカウント単位の直列保存を担当します。
+ * 非同期ロードと、SQL ACK 待ちの runtime quest state の世代を調停します。
+ * 保存処理は inventory の account lane と player-state snapshot だけが担当します。
  */
 final class QuestStatePersistenceCoordinator {
-    private static final long INITIAL_RETRY_DELAY_MILLIS = 1_000L;
-    private static final long MAX_RETRY_DELAY_MILLIS = 60_000L;
-    private final StateStorage storage;
-    private final Executor executor;
+    private final Function<UUID, QuestPlayerState> loader;
     private final Map<UUID, AccountChannel> channels = new ConcurrentHashMap<>();
-    private volatile boolean shuttingDown;
 
-    QuestStatePersistenceCoordinator(@NotNull StateStorage storage, @NotNull Executor executor) {
-        this.storage = storage;
-        this.executor = executor;
+    QuestStatePersistenceCoordinator(@NotNull Function<UUID, QuestPlayerState> loader) {
+        this.loader = loader;
     }
 
-    /**
-     * ロード中に保存世代が進んだ場合、保持中の最新スナップショットを優先して返します。
-     *
-     * @param accountId 対象アカウント ID
-     * @return 適用時検証用トークンを含むロード結果
-     */
+    /** ロード中にローカル世代が進んだ場合は、DBから読んだ古い状態より保持中の状態を優先します。 */
     @NotNull LoadedState load(@NotNull UUID accountId) {
         AccountChannel channel = channel(accountId);
         long loadToken;
@@ -54,37 +39,29 @@ final class QuestStatePersistenceCoordinator {
 
         try {
             while (true) {
-                QuestPlayerState diskState = storage.load(accountId);
+                QuestPlayerState databaseState = loader.apply(accountId);
                 synchronized (channel) {
                     if (channel.latestSnapshot != null) {
                         return loaded(accountId, loadToken, channel.latestGeneration, channel.latestSnapshot);
                     }
                     if (channel.latestGeneration == observedGeneration) {
-                        return loaded(accountId, loadToken, observedGeneration, diskState);
+                        return loaded(accountId, loadToken, observedGeneration, databaseState);
                     }
                     observedGeneration = channel.latestGeneration;
                 }
             }
-        } catch (RuntimeException exception) {
+        } catch (RuntimeException failure) {
             synchronized (channel) {
                 channel.pendingLoadTokens.remove(loadToken);
             }
-            evictReleasedPersisted(accountId);
-            throw exception;
+            evictReleased(accountId);
+            throw failure;
         }
     }
 
-    /**
-     * ロード結果を現在世代と照合してセッションへ適用します。
-     *
-     * @param loadedState ロード結果
-     * @return 適用可能な最新状態。より新しいロードが存在する場合は {@code null}
-     */
     @Nullable QuestPlayerState apply(@NotNull LoadedState loadedState) {
         AccountChannel channel = channels.get(loadedState.accountId());
-        if (channel == null) {
-            return null;
-        }
+        if (channel == null) return null;
         synchronized (channel) {
             if (!channel.pendingLoadTokens.remove(loadedState.loadToken())
                 || loadedState.loadToken() != channel.latestLoadToken) {
@@ -99,20 +76,13 @@ final class QuestStatePersistenceCoordinator {
         }
     }
 
-    /**
-     * 適用されなかったロードトークンを破棄します。
-     *
-     * @param loadedState 破棄するロード結果
-     */
     void discard(@NotNull LoadedState loadedState) {
         AccountChannel channel = channels.get(loadedState.accountId());
-        if (channel == null) {
-            return;
-        }
+        if (channel == null) return;
         synchronized (channel) {
             channel.pendingLoadTokens.remove(loadedState.loadToken());
         }
-        evictReleasedPersisted(loadedState.accountId());
+        evictReleased(loadedState.accountId());
     }
 
     void activate(@NotNull UUID accountId) {
@@ -138,199 +108,19 @@ final class QuestStatePersistenceCoordinator {
         }
     }
 
-    /**
-     * サーバ停止時の最終保存を開始し、非同期保存の一時的な失敗を同期リトライへ委ねます。
-     */
-    void beginShutdown() {
-        shuttingDown = true;
-    }
-
-    boolean hasPendingSave(@NotNull UUID accountId) {
+    /** 呼出元が SQL ACK 済みと確認した released state だけを破棄します。 */
+    void evictReleased(@NotNull UUID accountId) {
         AccountChannel channel = channels.get(accountId);
-        if (channel == null) {
-            return false;
-        }
-        synchronized (channel) {
-            return channel.latestGeneration > channel.persistedGeneration;
-        }
-    }
-
-    boolean isLatestPersisted(@NotNull UUID accountId) {
-        return !hasPendingSave(accountId);
-    }
-
-    /**
-     * 通常保存を再試行できる最短時刻を返します。
-     *
-     * @param accountId 対象アカウント ID
-     * @return epoch milliseconds。再試行待ちがなければ {@code 0}
-     */
-    long retryNotBeforeMillis(@NotNull UUID accountId) {
-        AccountChannel channel = channels.get(accountId);
-        if (channel == null) {
-            return 0L;
-        }
-        synchronized (channel) {
-            return channel.retryNotBeforeMillis;
-        }
-    }
-
-    @NotNull Set<UUID> accountIds() {
-        return Set.copyOf(channels.keySet());
-    }
-
-    /**
-     * 最新未保存世代を、同一アカウントの直前保存へ連結して保存します。
-     *
-     * @param accountId 対象アカウント ID
-     * @return 今回連結した保存試行の成否を保持する Future。保存失敗時は例外完了する
-     */
-    @NotNull CompletableFuture<Void> flushLatest(@NotNull UUID accountId) {
-        AccountChannel channel = channels.get(accountId);
-        if (channel == null) {
-            return CompletableFuture.completedFuture(null);
-        }
-        synchronized (channel) {
-            if (channel.latestSnapshot == null
-                || channel.latestGeneration <= channel.scheduledGeneration) {
-                return channel.tail;
-            }
-            long generation = channel.latestGeneration;
-            QuestPlayerState snapshot = channel.latestSnapshot.snapshot();
-            CompletableFuture<Void> previous = channel.tail;
-            channel.scheduledGeneration = generation;
-            CompletableFuture<Void> attempt;
-            try {
-                attempt = previous.thenRunAsync(() -> storage.save(snapshot), executor);
-            } catch (RuntimeException exception) {
-                // Bukkit scheduler が停止処理に入ると、新規タスク登録を拒否することがある。
-                // scheduledGeneration を戻し、stop() の同期リトライ対象として残す。
-                channel.scheduledGeneration = channel.persistedGeneration;
-                CompletableFuture<Void> rejected = new CompletableFuture<>();
-                rejected.completeExceptionally(exception);
-                return rejected;
-            }
-            CompletableFuture<Void> outcome = new CompletableFuture<>();
-            channel.tail = attempt.handle((ignored, failure) -> {
-                finishSave(accountId, channel, generation, failure);
-                Throwable cause = unwrap(failure);
-                if (cause == null) {
-                    outcome.complete(null);
-                } else {
-                    outcome.completeExceptionally(cause);
-                }
-                return null;
-            });
-            return outcome;
-        }
-    }
-
-    /**
-     * 連結済みの全保存処理が終了するまで待機します。
-     */
-    void awaitAll() {
-        while (true) {
-            List<CompletableFuture<Void>> futures = new ArrayList<>();
-            for (AccountChannel channel : channels.values()) {
-                synchronized (channel) {
-                    futures.add(channel.tail);
-                }
-            }
-            CompletableFuture.allOf(futures.toArray(CompletableFuture[]::new)).join();
-
-            boolean settled = true;
-            for (AccountChannel channel : channels.values()) {
-                synchronized (channel) {
-                    if (!channel.tail.isDone()) {
-                        settled = false;
-                        break;
-                    }
-                }
-            }
-            if (settled) {
-                return;
-            }
-        }
-    }
-
-    /**
-     * 非同期キュー終了後に残った最新世代を、競合のない状態で同期再試行します。
-     */
-    void retryOutstandingSynchronously() {
-        for (Map.Entry<UUID, AccountChannel> entry : channels.entrySet()) {
-            UUID accountId = entry.getKey();
-            AccountChannel channel = entry.getValue();
-            QuestPlayerState snapshot;
-            long generation;
-            synchronized (channel) {
-                if (channel.latestSnapshot == null
-                    || channel.latestGeneration <= channel.persistedGeneration) {
-                    continue;
-                }
-                snapshot = channel.latestSnapshot.snapshot();
-                generation = channel.latestGeneration;
-            }
-            try {
-                storage.save(snapshot);
-                synchronized (channel) {
-                    channel.persistedGeneration = Math.max(channel.persistedGeneration, generation);
-                    channel.scheduledGeneration = Math.max(channel.scheduledGeneration, generation);
-                    channel.consecutiveSaveFailures = 0;
-                    channel.retryNotBeforeMillis = 0L;
-                }
-            } catch (RuntimeException exception) {
-                logSaveFailure(accountId, exception);
-            }
-        }
-    }
-
-    void evictReleasedPersisted(@NotNull UUID accountId) {
-        AccountChannel channel = channels.get(accountId);
-        if (channel == null) {
-            return;
-        }
+        if (channel == null) return;
         boolean removable;
         synchronized (channel) {
-            removable = channel.released
-                && channel.pendingLoadTokens.isEmpty()
-                && channel.latestGeneration <= channel.persistedGeneration
-                && channel.tail.isDone();
+            removable = channel.released && channel.pendingLoadTokens.isEmpty();
         }
-        if (removable) {
-            channels.remove(accountId, channel);
-        }
+        if (removable) channels.remove(accountId, channel);
     }
 
     void clear() {
         channels.clear();
-    }
-
-    private void finishSave(
-        @NotNull UUID accountId,
-        @NotNull AccountChannel channel,
-        long generation,
-        @Nullable Throwable failure
-    ) {
-        Throwable cause = unwrap(failure);
-        synchronized (channel) {
-            if (cause == null) {
-                channel.persistedGeneration = Math.max(channel.persistedGeneration, generation);
-                channel.consecutiveSaveFailures = 0;
-                channel.retryNotBeforeMillis = 0L;
-            } else if (channel.scheduledGeneration == generation) {
-                channel.scheduledGeneration = channel.persistedGeneration;
-                channel.consecutiveSaveFailures++;
-                channel.retryNotBeforeMillis = System.currentTimeMillis()
-                    + retryDelayMillis(channel.consecutiveSaveFailures);
-            }
-        }
-        if (cause != null && !shuttingDown) {
-            logSaveFailure(accountId, cause);
-        }
-    }
-
-    private void logSaveFailure(@NotNull UUID accountId, @NotNull Throwable cause) {
-        Logger.log(LogId.W_6600, cause, accountId, cause.getClass().getSimpleName());
     }
 
     private @NotNull LoadedState loaded(
@@ -346,24 +136,6 @@ final class QuestStatePersistenceCoordinator {
         return channels.computeIfAbsent(accountId, ignored -> new AccountChannel());
     }
 
-    private @Nullable Throwable unwrap(@Nullable Throwable failure) {
-        if (failure == null) {
-            return null;
-        }
-        return failure.getCause() == null ? failure : failure.getCause();
-    }
-
-    private long retryDelayMillis(int consecutiveFailures) {
-        int exponent = Math.min(Math.max(0, consecutiveFailures - 1), 6);
-        return Math.min(MAX_RETRY_DELAY_MILLIS, INITIAL_RETRY_DELAY_MILLIS << exponent);
-    }
-
-    interface StateStorage {
-        @NotNull QuestPlayerState load(@NotNull UUID accountId);
-
-        void save(@NotNull QuestPlayerState state);
-    }
-
     record LoadedState(
         @NotNull UUID accountId,
         long loadToken,
@@ -374,14 +146,9 @@ final class QuestStatePersistenceCoordinator {
 
     private static final class AccountChannel {
         private long latestGeneration;
-        private long scheduledGeneration;
-        private long persistedGeneration;
         private long latestLoadToken;
         private QuestPlayerState latestSnapshot;
         private boolean released;
-        private int consecutiveSaveFailures;
-        private long retryNotBeforeMillis;
         private final Set<Long> pendingLoadTokens = new HashSet<>();
-        private CompletableFuture<Void> tail = CompletableFuture.completedFuture(null);
     }
 }

@@ -33,10 +33,12 @@ import java.util.function.Supplier;
  * Bukkit メインスレッドへ持ち込まないよう、指定された非同期 executor 上で処理します。
  */
 public final class InventorySaveCoordinator {
+    private static final int BOUNDARY_SAVE_ATTEMPTS = 3;
 
     private static final long EXTERNAL_SAVE_RETRY_INITIAL_MILLIS = 25L;
     private static final long EXTERNAL_SAVE_RETRY_MAX_MILLIS = 1_000L;
     private static final long DEFAULT_EXTERNAL_OPERATION_TIMEOUT_MILLIS = 60_000L;
+    static final long AUTO_SAVE_DEBOUNCE_MILLIS = 200L;
 
     private final InventoryPersistence persistence;
     private final PlayerInventoryStateRegistry stateRegistry;
@@ -44,12 +46,14 @@ public final class InventorySaveCoordinator {
     private final long externalOperationTimeoutMillis;
     private final Object laneLock = new Object();
     private final Map<UUID, SaveLane> lanes = new HashMap<>();
+    private final Map<UUID, AutoSaveBatch> scheduledAutoSaves = new HashMap<>();
     private final Object retainedStateLock = new Object();
     private final Object unresolvedBoundaryLock = new Object();
     private final Map<UUID, RetainedStateSlot> retainedStates = new HashMap<>();
     /** accountごとに外部操作の所有者を保持し、古いcleanupが新しい操作を解除しないようにします。 */
     private final Map<UUID, UUID> unresolvedExternalOperations = new ConcurrentHashMap<>();
     private final java.util.Set<UUID> backgroundRetries = ConcurrentHashMap.newKeySet();
+    private final ThreadLocal<UUID> criticalMutationAccount = new ThreadLocal<>();
     private volatile boolean closing;
 
     /**
@@ -110,7 +114,7 @@ public final class InventorySaveCoordinator {
             return CompletableFuture.completedFuture(false);
         }
         state.markDirty();
-        checkpoint(state);
+        flushScheduledAuto(accountId);
         return enqueue(accountId, true, () -> {
             if (stateRegistry.get(accountId) != state) {
                 return true;
@@ -120,13 +124,46 @@ public final class InventorySaveCoordinator {
                 return false;
             }
             boolean succeeded = persistence.saveNow(state);
-            if (succeeded && persistence.usesPlayerStateSnapshots() && persistence.hasPendingChanges(state))
+            if (succeeded && persistence.hasPendingChanges(state))
                 scheduleBackgroundSave(accountId);
             if (!succeeded) {
-                if (persistence.usesPlayerStateSnapshots()) scheduleBackgroundSave(accountId);
-                else Logger.warn(LogId.W_5255, accountId);
+                scheduleBackgroundSave(accountId);
             }
             return succeeded;
+        });
+    }
+
+    /**
+     * チャンネル移動などの境界で、呼出時点の全プレイヤー状態を未保存差分がなくなるまで確定します。
+     * 通常保存と同じ account lane 上で実行し、失敗時もセッション state は解放しません。
+     *
+     * @param accountId 対象アカウント ID
+     * @return SQL ACK 済みで未保存差分がない場合だけ {@code true} となる future
+     */
+    public @NotNull CompletableFuture<Boolean> saveForBoundary(@NotNull UUID accountId) {
+        PlayerInventoryState state = stateRegistry.get(accountId);
+        if (state == null) {
+            Logger.warn(LogId.W_5254, accountId);
+            return CompletableFuture.completedFuture(false);
+        }
+        flushScheduledAuto(accountId);
+        return enqueue(accountId, false, () -> {
+            if (stateRegistry.get(accountId) != state
+                || unresolvedExternalOperations.containsKey(accountId)) {
+                state.restoreDirty();
+                return false;
+            }
+            for (int attempt = 0; attempt < BOUNDARY_SAVE_ATTEMPTS; attempt++) {
+                if (!persistence.saveNow(state)) {
+                    scheduleBackgroundSave(accountId);
+                    return false;
+                }
+                if (!persistence.hasPendingChanges(state)) {
+                    return true;
+                }
+            }
+            scheduleBackgroundSave(accountId);
+            return false;
         });
     }
 
@@ -141,8 +178,41 @@ public final class InventorySaveCoordinator {
      */
     public @NotNull CompletableFuture<Boolean> saveAuto(@NotNull PlayerInventoryState state) {
         UUID accountId = state.getAccountId();
-        checkpoint(state);
-        return enqueue(accountId, true, () -> {
+        CompletableFuture<Boolean> result = new CompletableFuture<>();
+        AutoSaveBatch batch;
+        boolean schedule = false;
+        synchronized (laneLock) {
+            if (closing) {
+                result.complete(false);
+                return result;
+            }
+            batch = scheduledAutoSaves.get(accountId);
+            if (batch == null) {
+                batch = new AutoSaveBatch(state);
+                scheduledAutoSaves.put(accountId, batch);
+                schedule = true;
+            } else {
+                batch.state = state;
+            }
+            batch.results.add(result);
+        }
+        if (schedule) {
+            AutoSaveBatch scheduled = batch;
+            CompletableFuture.delayedExecutor(AUTO_SAVE_DEBOUNCE_MILLIS, TimeUnit.MILLISECONDS, asyncExecutor)
+                .execute(() -> dispatchAutoSave(accountId, scheduled));
+        }
+        return result;
+    }
+
+    private void dispatchAutoSave(@NotNull UUID accountId, @NotNull AutoSaveBatch batch) {
+        PlayerInventoryState state;
+        List<CompletableFuture<Boolean>> results;
+        synchronized (laneLock) {
+            if (!scheduledAutoSaves.remove(accountId, batch)) return;
+            state = batch.state;
+            results = List.copyOf(batch.results);
+        }
+        CompletableFuture<Boolean> queued = enqueue(accountId, true, () -> {
             if (stateRegistry.get(accountId) != state) {
                 return true;
             }
@@ -152,9 +222,21 @@ public final class InventorySaveCoordinator {
             }
             persistence.save(state, InventoryPersistence.SaveTrigger.AUTO);
             boolean succeeded = !persistence.hasPendingChanges(state);
-            if (!succeeded && persistence.usesPlayerStateSnapshots()) scheduleBackgroundSave(accountId);
+            if (!succeeded) scheduleBackgroundSave(accountId);
             return succeeded;
         });
+        queued.whenComplete((succeeded, failure) -> results.forEach(result -> {
+            if (failure == null) result.complete(succeeded);
+            else result.completeExceptionally(failure);
+        }));
+    }
+
+    private void flushScheduledAuto(@NotNull UUID accountId) {
+        AutoSaveBatch batch;
+        synchronized (laneLock) {
+            batch = scheduledAutoSaves.get(accountId);
+        }
+        if (batch != null) dispatchAutoSave(accountId, batch);
     }
 
     /**
@@ -641,6 +723,9 @@ public final class InventorySaveCoordinator {
         @Nullable PlayerInventoryState expectedState,
         @NotNull Supplier<Boolean> logoutSave
     ) {
+        // debounce 待ちの通常保存を logout より前の lane job に確定し、
+        // state 解放後に遅延 task だけが残ることを防ぎます。
+        flushScheduledAuto(accountId);
         CompletableFuture<Boolean> future = enqueue(accountId, false, () -> {
             if (unresolvedExternalOperations.containsKey(accountId)) {
                 if (expectedState != null) {
@@ -711,6 +796,7 @@ public final class InventorySaveCoordinator {
      * @return 先行保存がすべて完了したときに完了する future
      */
     public @NotNull CompletableFuture<Void> awaitQueuedSaves(@NotNull UUID accountId) {
+        flushScheduledAuto(accountId);
         CompletableFuture<Boolean> barrier = new CompletableFuture<>();
         synchronized (laneLock) {
             SaveLane lane = lanes.get(accountId);
@@ -733,6 +819,7 @@ public final class InventorySaveCoordinator {
      * @return 先行保存がすべて成功したときに完了し、失敗時は例外完了する future
      */
     public @NotNull CompletableFuture<Void> awaitQueuedSavesOrThrow(@NotNull UUID accountId) {
+        flushScheduledAuto(accountId);
         CompletableFuture<Boolean> barrier = new CompletableFuture<>();
         List<CompletableFuture<Boolean>> priorResults;
         boolean startDrain = false;
@@ -795,11 +882,80 @@ public final class InventorySaveCoordinator {
      */
     public <T> T executeLocalMutation(@NotNull UUID accountId, @NotNull Supplier<T> mutation) {
         synchronized (unresolvedBoundaryLock) {
-            if (closing || unresolvedExternalOperations.containsKey(accountId) || persistence.isPlayerStateBlocked(accountId)) {
+            boolean ownsCriticalBoundary = accountId.equals(criticalMutationAccount.get());
+            if (closing || !ownsCriticalBoundary && unresolvedExternalOperations.containsKey(accountId)
+                || persistence.isPlayerStateBlocked(accountId)) {
                 throw new ExternalOperationPendingException(accountId);
             }
             return mutation.get();
         }
+    }
+
+    /**
+     * 重要操作を account lane で排他実行し、完成状態の SQL ACK 後にだけ結果を返します。
+     * 保存失敗時は mutation が返した補償処理を同じ排他境界内で実行します。
+     */
+    public <T> @NotNull CompletableFuture<T> executeCriticalMutation(
+        @NotNull UUID accountId,
+        @NotNull Supplier<CriticalMutation<T>> mutation
+    ) {
+        UUID boundaryToken = claimExternalBoundary(accountId, null, false);
+        if (boundaryToken == null || persistence.isPlayerStateBlocked(accountId)) {
+            if (boundaryToken != null) releaseExternalBoundary(accountId, boundaryToken);
+            return rejectedExternalOperation(accountId);
+        }
+        PlayerInventoryState expectedState = stateRegistry.get(accountId);
+        if (expectedState == null) {
+            releaseExternalBoundary(accountId, boundaryToken);
+            return rejectedExternalOperation(accountId);
+        }
+
+        flushScheduledAuto(accountId);
+        CompletableFuture<T> result = new CompletableFuture<>();
+        AtomicReference<T> completed = new AtomicReference<>();
+        CompletableFuture<Boolean> laneResult = enqueue(accountId, false, () -> {
+            if (stateRegistry.get(accountId) != expectedState) {
+                throw new IllegalStateException("Player state generation changed for account " + accountId);
+            }
+            // 重要操作より前の通常変更を先に確定し、補償点を必ずSQL確定済み状態にする。
+            if (!persistence.saveNow(expectedState) || persistence.hasPendingChanges(expectedState)) {
+                throw new CriticalPlayerStateSaveException(accountId, "pre-save failed");
+            }
+
+            CriticalMutation<T> change = null;
+            criticalMutationAccount.set(accountId);
+            try {
+                change = mutation.get();
+                if (change == null) {
+                    throw new IllegalStateException("Critical mutation did not return a result");
+                }
+                if (!persistence.saveCriticalNow(expectedState)) {
+                    change.rollback().run();
+                    throw new CriticalPlayerStateSaveException(accountId, "commit save failed");
+                }
+                completed.set(change.result());
+                return true;
+            } catch (RuntimeException | Error failure) {
+                if (change != null && !(failure instanceof CriticalPlayerStateSaveException)) {
+                    try {
+                        change.rollback().run();
+                    } catch (RuntimeException rollbackFailure) {
+                        failure.addSuppressed(rollbackFailure);
+                    }
+                }
+                throw failure;
+            } finally {
+                criticalMutationAccount.remove();
+            }
+        });
+        laneResult.whenComplete((succeeded, failure) -> {
+            releaseExternalBoundary(accountId, boundaryToken);
+            if (failure != null) result.completeExceptionally(failure);
+            else if (!Boolean.TRUE.equals(succeeded)) {
+                result.completeExceptionally(new CriticalPlayerStateSaveException(accountId, "lane rejected"));
+            } else result.complete(completed.get());
+        });
+        return result;
     }
 
     private void scheduleBackgroundSave(UUID accountId) {
@@ -811,27 +967,9 @@ public final class InventorySaveCoordinator {
         });
     }
 
-    private CompletableFuture<Void> checkpoint(PlayerInventoryState state) {
-        UUID accountId = state.getAccountId();
-        if (!persistence.usesPlayerStateSnapshots() || stateRegistry.get(accountId) != state)
-            return CompletableFuture.completedFuture(null);
-        return persistence.checkpointAsync(state, asyncExecutor,
-            () -> !unresolvedExternalOperations.containsKey(accountId));
-    }
-
-    /**
-     * 停止時、API queueの成否に依存せず現在のローカル状態をファイルへ退避します。
-     * @return 全対象のローカル記録が完了するfuture
-     */
+    /** ローカル保留ファイル廃止後の停止互換フックです。 */
     public @NotNull CompletableFuture<Void> flushLocalCheckpoints() {
-        List<CompletableFuture<Void>> pending = new ArrayList<>();
-        for (PlayerInventoryState state : stateRegistry.all()) {
-            if (closing && persistence.usesPlayerStateSnapshots())
-                pending.add(persistence.freezeCheckpointAsync(state, asyncExecutor,
-                    () -> !unresolvedExternalOperations.containsKey(state.getAccountId())));
-            else pending.add(checkpoint(state));
-        }
-        return CompletableFuture.allOf(pending.toArray(CompletableFuture[]::new));
+        return CompletableFuture.completedFuture(null);
     }
 
     private @Nullable UUID claimExternalBoundary(
@@ -1005,6 +1143,11 @@ public final class InventorySaveCoordinator {
      * @return 期限内に全キューが完了した場合 {@code true}
      */
     public boolean awaitPendingWrites(long timeoutMillis) {
+        List<UUID> scheduledAccountIds;
+        synchronized (laneLock) {
+            scheduledAccountIds = List.copyOf(scheduledAutoSaves.keySet());
+        }
+        scheduledAccountIds.forEach(this::flushScheduledAuto);
         long deadlineNanos = System.nanoTime()
             + TimeUnit.MILLISECONDS.toNanos(Math.max(1L, timeoutMillis));
         List<UUID> accountIds;
@@ -1138,6 +1281,15 @@ public final class InventorySaveCoordinator {
         }
     }
 
+    private static final class AutoSaveBatch {
+        private PlayerInventoryState state;
+        private final List<CompletableFuture<Boolean>> results = new ArrayList<>();
+
+        private AutoSaveBatch(@NotNull PlayerInventoryState state) {
+            this.state = state;
+        }
+    }
+
     /**
      * 保存失敗後に保持した inventory state の所有世代です。
      *
@@ -1166,6 +1318,18 @@ public final class InventorySaveCoordinator {
         @NotNull InventoryPersistence.PersistedInventoryBaseline baseline,
         @NotNull UUID boundaryToken
     ) {
+    }
+
+    /** 重要操作の成功値と、SQL未確定時に呼ぶ操作前状態への補償です。 */
+    public record CriticalMutation<T>(@NotNull T result, @NotNull Runnable rollback) {
+    }
+
+    public static final class CriticalPlayerStateSaveException extends IllegalStateException {
+        private static final long serialVersionUID = 1L;
+
+        private CriticalPlayerStateSaveException(@NotNull UUID accountId, @NotNull String detail) {
+            super("Critical player state persistence failed for account " + accountId + ": " + detail);
+        }
     }
 
     /** 同一 account に未確定の外部操作が残っているため、新規操作を拒否したことを表します。 */

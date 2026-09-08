@@ -3,7 +3,7 @@ package io.github.maaasu.astralRecord.feature.dungeon.service;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.adventurerecord.repository.AdventureRecordRepository;
-import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureDungeonRecord;
+import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordStateService;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.dungeon.DungeonTestFixtures;
 import io.github.maaasu.astralRecord.feature.dungeon.gui.DungeonRewardGui;
@@ -69,7 +69,6 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.nio.file.Path;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
@@ -600,14 +599,10 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         when(displayTextService.create(any(DisplayAnchor.class), any(DisplayTextOptions.class)))
                 .thenReturn(mock(DisplayTextService.ManagedTextDisplay.class));
         AdventureRecordRepository adventureRecordRepository = mock(AdventureRecordRepository.class);
-        when(adventureRecordRepository.recordDungeonClear(
-                any(UUID.class), eq("test_dungeon"), any(UUID.class)))
-                .thenAnswer(invocation -> new AdventureDungeonRecord(
-                        UUID.randomUUID(), invocation.getArgument(0), "test_dungeon", 1L,
-                        Instant.now(), Instant.now()));
+        AdventureRecordStateService adventureRecordStateService = mock(AdventureRecordStateService.class);
         DungeonService service = service(
                 mock(MobService.class), displayTextService, mobDropService,
-                adventureRecordRepository);
+                adventureRecordRepository, adventureRecordStateService);
         World dungeonWorld = server().addSimpleWorld("dungeon-clear-guide");
         World outsideWorld = server().addSimpleWorld("dungeon-clear-guide-outside");
         PlayerMock eligible = server().addPlayer();
@@ -631,6 +626,8 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         }
 
         assertEquals(List.of(eligible.getUniqueId() + ":test_dungeon"), notifications);
+        verify(adventureRecordStateService).recordDungeonClear(
+                eligibleAstPlayer.getAccount().getUuid(), "test_dungeon");
         assertEquals(1L, eligible.getHeardSounds().stream()
                 .filter(sound -> sound.getSound().equals("ui.toast.challenge_complete"))
                 .count());
@@ -981,16 +978,17 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
         return service(mobService, displayTextService, mock(WorldService.class), mobDropService);
     }
 
-    /** 踏破記録リポジトリまで検証可能な依存でサービスを構成します。 */
+    /** 踏破記録の読込とローカル保存を検証可能な依存でサービスを構成します。 */
     private DungeonService service(
             MobService mobService,
             DisplayTextService displayTextService,
             MobDropService mobDropService,
-            AdventureRecordRepository adventureRecordRepository
+            AdventureRecordRepository adventureRecordRepository,
+            AdventureRecordStateService adventureRecordStateService
     ) {
         return service(
                 mobService, displayTextService, mock(WorldService.class), mobDropService,
-                mock(PartyService.class), adventureRecordRepository);
+                mock(PartyService.class), adventureRecordRepository, adventureRecordStateService);
     }
 
     /** テスト対象サービスをWorldとMobドロップ抽選サービスの検証可能な依存で構成します。 */
@@ -1013,7 +1011,7 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
     ) {
         return service(
                 mobService, displayTextService, worldService, mobDropService, partyService,
-                mock(AdventureRecordRepository.class));
+                mock(AdventureRecordRepository.class), mock(AdventureRecordStateService.class));
     }
 
     /** すべての可変依存を指定してテスト対象サービスを構成します。 */
@@ -1023,7 +1021,8 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
             WorldService worldService,
             MobDropService mobDropService,
             PartyService partyService,
-            AdventureRecordRepository adventureRecordRepository
+            AdventureRecordRepository adventureRecordRepository,
+            AdventureRecordStateService adventureRecordStateService
     ) {
         AstralRecord plugin = mock(AstralRecord.class);
         when(plugin.isEnabled()).thenReturn(true);
@@ -1044,6 +1043,7 @@ class DungeonServiceRoomLifecycleTest extends MockBukkitTestBase {
                 mock(ItemStackFactory.class),
                 mock(LootService.class),
                 adventureRecordRepository,
+                adventureRecordStateService,
                 "hub"
         );
     }

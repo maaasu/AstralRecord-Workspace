@@ -11,7 +11,6 @@ import io.github.maaasu.astralRecord.feature.inventory.model.AccessorySlotType;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentLoadoutModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentLoadoutSlotModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentType;
-import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryDraft;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryInstanceType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryModel;
@@ -54,6 +53,7 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.LocalDateTime;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -142,8 +142,8 @@ public class InventoryService {
     /**
      * インベントリサービスを構築します。
      *
-     * @param inventoryRepository インベントリ API リポジトリ（ensureInventory の同期作成・loadout 削除で使用）
-     * @param equipmentLoadoutRepository 装備ロードアウト API リポジトリ（ensureActiveLoadout の同期作成で使用）
+     * @param inventoryRepository 外部取引後の正本照合に使うインベントリ API リポジトリ
+     * @param equipmentLoadoutRepository ロード時リポジトリ依存を構築元で共有するための引数
      * @param itemService アイテム定義サービス
      * @param itemStackFactory ItemStack 生成ヘルパ
      * @param stateRegistry プレイヤー state レジストリ
@@ -536,19 +536,24 @@ public class InventoryService {
         PlayerInventoryState state = getState(accountId);
         if (state == null) throw new IllegalStateException("Player state is not loaded: " + accountId);
         synchronized (state) {
-            if (pendingLegacyMutations.test(accountId)) throw new InventorySaveCoordinator.ExternalOperationPendingException(accountId);
             return saveCoordinator.executeLocalMutation(accountId, mutation);
         }
     }
 
-    private java.util.function.Predicate<UUID> pendingLegacyMutations = ignored -> false;
-
     /**
-     * 旧outbox移行中のアカウントへ新操作を重ねないための判定を接続します。
-     * @param pending 旧形式の未受領操作がある場合trueを返す述語
+     * 重要操作を同一 account の保存 lane へ登録し、SQL ACK 後に成功結果を返します。
+     * mutation は通信や Bukkit API を呼ばず、失敗時の補償処理を併せて返してください。
      */
-    public void setPendingLegacyMutations(@NotNull java.util.function.Predicate<UUID> pending) {
-        pendingLegacyMutations = pending;
+    public <T> @NotNull CompletableFuture<T> executeCriticalPlayerMutation(
+        @NotNull UUID accountId,
+        @NotNull java.util.function.Supplier<InventorySaveCoordinator.CriticalMutation<T>> mutation
+    ) {
+        return saveCoordinator.executeCriticalMutation(accountId, mutation);
+    }
+
+    /** チャンネル移動などの境界で、登録済み全 section を含む完成状態を確定します。 */
+    public @NotNull CompletableFuture<Boolean> saveForBoundary(@NotNull UUID accountId) {
+        return saveCoordinator.saveForBoundary(accountId);
     }
 
     /**
@@ -1151,9 +1156,8 @@ public class InventoryService {
     }
 
     /**
-     * 指定 profile / 種別のインベントリを取得し、未存在の場合は API へ同期的に作成します。
-     * <p>
-     * 通信失敗時は例外を投げます。呼び出し側は state が読み込まれているプレイヤーに対してのみ使用してください。
+     * 指定 profile / 種別のインベントリを取得し、未存在の場合はローカル stateへ即時作成します。
+     * 親行とentryは次のplayer-state snapshotで同じSQL transactionへ保存します。
      *
      * @param state 対象 state
      * @param inventoryType 種別
@@ -1169,21 +1173,31 @@ public class InventoryService {
         @NotNull UUID createdBy,
         @NotNull InventoryProfile profile
     ) {
-        InventoryModel cached = state.findInventory(profile, inventoryType);
-        if (cached != null) {
-            return cached;
+        synchronized (state) {
+            InventoryModel cached = state.findInventory(profile, inventoryType);
+            if (cached != null) {
+                return cached;
+            }
+            LocalDateTime now = LocalDateTime.now();
+            InventoryModel created = new InventoryModel(
+                stableStateId("inventory", state.getAccountId(), profile.getCode(), inventoryType.getCode()),
+                state.getAccountId(),
+                inventoryType,
+                profile.getCode(),
+                slotCapacity,
+                true,
+                null,
+                now,
+                now,
+                createdBy,
+                createdBy,
+                false
+            );
+            state.putInventory(created);
+            state.replaceEntriesFromLoad(created.getInventoryId(), List.of());
+            state.markDirty();
+            return created;
         }
-        InventoryModel created = inventoryRepository.create(
-            state.getAccountId(),
-            inventoryType,
-            slotCapacity,
-            createdBy,
-            profile,
-            null
-        );
-        state.putInventory(created);
-        state.replaceEntriesFromLoad(created.getInventoryId(), List.of());
-        return created;
     }
 
     private @NotNull InventoryModel ensureInventory(
@@ -1207,7 +1221,7 @@ public class InventoryService {
      * 通常インベントリへアイテムを追加します。
      * <p>
      * 追加先は model のカテゴリに応じて自動判定し、対応するインベントリ種別へ entry を追加します。
-     * EQUIPMENT は API でインスタンスを生成（同期）した後、entry を state に追加します。
+     * EQUIPMENT は個体をローカル生成し、次回の player-state snapshot で entry と同時保存します。
      * RUNE は通常itemと同じく itemId / quantity でstackへ追加します。
      * 永続化は次回オートセーブで行われます。
      *
@@ -1263,6 +1277,29 @@ public class InventoryService {
         int amount,
         @NotNull String source
     ) {
+        return addItemToNormalInventoryInternal(astPlayer, model, amount, source, true);
+    }
+
+    /**
+     * 重要操作の保存 lane から、Bukkit GUI を触らずに通常インベントリへ付与します。
+     * 呼出側は SQL ACK 後に main thread で表示を更新してください。
+     */
+    public int addItemToNormalInventoryStateOnly(
+        @NotNull AstPlayer astPlayer,
+        @NotNull ItemModel model,
+        int amount,
+        @NotNull String source
+    ) {
+        return addItemToNormalInventoryInternal(astPlayer, model, amount, source, false).grantedAmount();
+    }
+
+    private @NotNull NormalInventoryGrantResult addItemToNormalInventoryInternal(
+        @NotNull AstPlayer astPlayer,
+        @NotNull ItemModel model,
+        int amount,
+        @NotNull String source,
+        boolean reflectToGui
+    ) {
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         int safeAmount = Math.max(1, amount);
         if (state == null) {
@@ -1288,7 +1325,7 @@ public class InventoryService {
                 remainingBagSlotsAfter = remainingBagSlotCount(state, targetInventory);
             }
         }
-        if (granted > 0) {
+        if (granted > 0 && reflectToGui) {
             autoSwitchDisplayedInventory(astPlayer, inventoryType);
         }
         int newlyOccupiedBagSlots = remainingBagSlotsBefore < 0 || remainingBagSlotsAfter < 0
@@ -1353,6 +1390,26 @@ public class InventoryService {
         int amount,
         @NotNull String source
     ) {
+        return addItemToStorageIfPresentOtherwiseNormalInventoryInternal(astPlayer, model, amount, source, true);
+    }
+
+    /** GUI を更新せず、STORAGE 優先の報酬を重要操作の完成状態へ追加します。 */
+    public @NotNull StorageFallbackGrantResult addItemToStorageIfPresentOtherwiseNormalInventoryStateOnly(
+        @NotNull AstPlayer astPlayer,
+        @NotNull ItemModel model,
+        int amount,
+        @NotNull String source
+    ) {
+        return addItemToStorageIfPresentOtherwiseNormalInventoryInternal(astPlayer, model, amount, source, false);
+    }
+
+    private @NotNull StorageFallbackGrantResult addItemToStorageIfPresentOtherwiseNormalInventoryInternal(
+        @NotNull AstPlayer astPlayer,
+        @NotNull ItemModel model,
+        int amount,
+        @NotNull String source,
+        boolean reflectToGui
+    ) {
         PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
         int safeAmount = Math.max(1, amount);
         if (state == null) {
@@ -1393,13 +1450,27 @@ public class InventoryService {
                 default -> addStackedItems(state, targetInventory, model, safeAmount);
             };
         }
-        if (granted > 0) {
+        if (granted > 0 && reflectToGui) {
             autoSwitchDisplayedInventory(astPlayer, targetType);
         }
         return new StorageFallbackGrantResult(safeAmount, granted, false);
     }
 
     public int addPreparedInstanceToNormalInventory(
+        @NotNull AstPlayer astPlayer,
+        @NotNull ItemModel model,
+        @NotNull InventoryInstanceType instanceType,
+        @NotNull UUID instanceId
+    ) {
+        int added = addPreparedInstanceToNormalInventoryStateOnly(astPlayer, model, instanceType, instanceId);
+        if (added > 0) {
+            autoSwitchDisplayedInventory(astPlayer, resolveTargetInventoryType(model));
+        }
+        return added;
+    }
+
+    /** GUI を更新せず、準備済み個体を重要操作の完成状態へ追加します。 */
+    public int addPreparedInstanceToNormalInventoryStateOnly(
         @NotNull AstPlayer astPlayer,
         @NotNull ItemModel model,
         @NotNull InventoryInstanceType instanceType,
@@ -1437,15 +1508,14 @@ public class InventoryService {
             ));
             state.replaceEntries(targetInventory.getInventoryId(), entries);
         }
-        autoSwitchDisplayedInventory(astPlayer, inventoryType);
         return 1;
     }
 
     /**
-     * 非同期で生成する装備個体のために、BAG の空き slot を予約します。
+     * 遅延確定する装備個体のために、BAG の空き slot を予約します。
      * <p>
      * 予約済み slot は通常のアイテム付与・移動処理からも使用済みとして扱われます。
-     * 呼び出し元は API 個体生成に成功した場合
+     * 呼び出し元はローカル個体生成と player-state snapshot の準備に成功した場合
      * {@link #completePreparedInstanceReservation(AstPlayer, ItemModel, InventoryInstanceType, UUID, PreparedInstanceSlotReservation)}、
      * 失敗または取消時は {@link #releasePreparedInstanceReservation(PreparedInstanceSlotReservation)} を必ず呼び出してください。
      *
@@ -1502,7 +1572,7 @@ public class InventoryService {
     }
 
     /**
-     * 予約済み BAG slot へ API 生成済みの装備個体を確定追加します。
+     * 予約済み BAG slot へ生成済みの装備個体を確定追加し、表示を更新します。
      * <p>
      * 予約時と同じ player state が有効である場合だけ、予約 slot を instance entry へ原子的に置き換えます。
      * state が入れ替わった場合は entry を追加せず成功フラグ {@code false} を返すため、呼び出し元は既存の取消・退場時処理へ委譲します。
@@ -1522,6 +1592,38 @@ public class InventoryService {
         @NotNull PreparedInstanceSlotReservation reservation
     ) {
         UUID accountId = astPlayer.getAccount().getUuid();
+        PreparedInstanceReservationCompletion completion = completePreparedInstanceReservationStateOnly(
+            accountId,
+            model,
+            instanceType,
+            instanceId,
+            reservation
+        );
+        if (completion.completed()) {
+            autoSwitchDisplayedInventory(astPlayer, InventoryType.BAG);
+        }
+        return completion;
+    }
+
+    /**
+     * 予約済み BAG slot を装備 entry へ置き換えます。
+     * Bukkit API と保存 I/O は呼ばないため、重要操作の account lane 内で使用できます。
+     * 呼び出し元は SQL ACK 後に {@link #refreshNormalInventoryGrantUi(AstPlayer)} を呼び出してください。
+     *
+     * @param accountId    追加先アカウント
+     * @param model        追加するアイテム定義
+     * @param instanceType 生成済み個体の種別
+     * @param instanceId   生成済み個体 ID
+     * @param reservation 事前取得した BAG slot 予約
+     * @return 予約 slot への追加結果
+     */
+    public @NotNull PreparedInstanceReservationCompletion completePreparedInstanceReservationStateOnly(
+        @NotNull UUID accountId,
+        @NotNull ItemModel model,
+        @NotNull InventoryInstanceType instanceType,
+        @NotNull UUID instanceId,
+        @NotNull PreparedInstanceSlotReservation reservation
+    ) {
         if (!accountId.equals(reservation.accountId())) {
             return new PreparedInstanceReservationCompletion(false, -1);
         }
@@ -1575,16 +1677,18 @@ public class InventoryService {
                 }
             }
         }
-        if (completed) {
-            autoSwitchDisplayedInventory(astPlayer, InventoryType.BAG);
-        }
         return new PreparedInstanceReservationCompletion(completed, remainingBagSlots);
+    }
+
+    /** SQL ACK 済みの通常インベントリ付与を Bukkit inventory へ反映します。 */
+    public void refreshNormalInventoryGrantUi(@NotNull AstPlayer astPlayer) {
+        autoSwitchDisplayedInventory(astPlayer, InventoryType.BAG);
     }
 
     /**
      * 未使用の装備用 BAG slot 予約を解除します。
      * <p>
-     * API 個体生成失敗、回収演出の取消、プレイヤー退出時の既存フォールバックへ移る前に呼び出します。
+     * ローカル個体生成失敗、回収演出の取消、プレイヤー退出時に呼び出します。
      * 既に確定または解除済みの予約を指定しても何もしません。
      *
      * @param reservation 解除する BAG slot 予約
@@ -1612,6 +1716,31 @@ public class InventoryService {
     public @Nullable InventoryGrantReceipt addPreparedRewardsToNormalInventory(
         @NotNull AstPlayer astPlayer,
         @NotNull List<PreparedInventoryReward> rewards
+    ) {
+        return addPreparedRewardsToNormalInventory(astPlayer, rewards, true);
+    }
+
+    /**
+     * Bukkit GUIを更新せず、準備済み報酬を同一の重要操作snapshotへ追加します。
+     *
+     * <p>呼出元は {@link #executeCriticalPlayerMutation(UUID, java.util.function.Supplier)} の
+     * mutation内で使用し、SQL ACK後にメインスレッドでGUIを更新してください。</p>
+     *
+     * @param astPlayer 追加対象プレイヤー。Bukkit APIへはアクセスしない
+     * @param rewards 事前解決済みの報酬
+     * @return 追加したentryの差分。全量を追加できない場合は {@code null}
+     */
+    public @Nullable InventoryGrantReceipt addPreparedRewardsToNormalInventoryStateOnly(
+        @NotNull AstPlayer astPlayer,
+        @NotNull List<PreparedInventoryReward> rewards
+    ) {
+        return addPreparedRewardsToNormalInventory(astPlayer, rewards, false);
+    }
+
+    private @Nullable InventoryGrantReceipt addPreparedRewardsToNormalInventory(
+        @NotNull AstPlayer astPlayer,
+        @NotNull List<PreparedInventoryReward> rewards,
+        boolean reflectToGui
     ) {
         if (rewards.isEmpty()) {
             return new InventoryGrantReceipt(astPlayer.getAccount().getUuid(), List.of());
@@ -1694,8 +1823,10 @@ public class InventoryService {
             }
 
             List<InventoryGrantMutation> mutations = collectGrantMutations(state, beforeEntries);
-            for (InventoryType changedType : changedTypes) {
-                autoSwitchDisplayedInventory(astPlayer, changedType);
+            if (reflectToGui) {
+                for (InventoryType changedType : changedTypes) {
+                    autoSwitchDisplayedInventory(astPlayer, changedType);
+                }
             }
             return new InventoryGrantReceipt(state.getAccountId(), mutations);
         }
@@ -3943,11 +4074,16 @@ public class InventoryService {
      * @return 全量を加算できた場合は {@code true}
      */
     public boolean addGold(@NotNull AstPlayer astPlayer, long amount) {
+        return addGoldStateOnly(astPlayer.getAccount().getUuid(), amount);
+    }
+
+    /** Bukkit API を呼ばず、重要操作の保存 lane 内でゴールドを加算します。 */
+    public boolean addGoldStateOnly(@NotNull UUID accountId, long amount) {
         if (amount <= 0L) {
             return true;
         }
 
-        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        PlayerInventoryState state = getState(accountId);
         if (state == null) {
             return false;
         }
@@ -3956,7 +4092,7 @@ public class InventoryService {
             return false;
         }
         synchronized (state) {
-            InventoryStateSnapshot snapshot = snapshotState(astPlayer.getAccount().getUuid());
+            InventoryStateSnapshot snapshot = snapshotState(accountId);
             if (snapshot == null || !addGoldValue(state, inventory, amount)) {
                 restoreState(snapshot);
                 return false;
@@ -4440,31 +4576,71 @@ public class InventoryService {
         if (state == null) {
             return null;
         }
-        EquipmentLoadoutModel active = state.findActiveLoadout(DEFAULT_PROFILE);
-        if (active != null) {
-            return active;
-        }
-        try {
-            List<EquipmentLoadoutModel> loadouts = equipmentLoadoutRepository.findByAccountId(accountId, DEFAULT_PROFILE);
-            for (EquipmentLoadoutModel loadout : loadouts) {
-                state.putLoadout(loadout);
+        synchronized (state) {
+            EquipmentLoadoutModel active = state.findActiveLoadout(DEFAULT_PROFILE);
+            if (active != null) {
+                return active;
             }
-            if (!loadouts.isEmpty()) {
-                EquipmentLoadoutModel activated = equipmentLoadoutRepository.activate(loadouts.get(0).getEquipmentLoadoutId(), accountId);
-                if (activated != null) {
-                    state.putLoadout(activated);
-                    return activated;
+            List<EquipmentLoadoutModel> existing = state.snapshotLoadouts(DEFAULT_PROFILE).stream()
+                .filter(loadout -> !loadout.isDeleted())
+                .sorted(Comparator.comparingInt(EquipmentLoadoutModel::getSortOrder)
+                    .thenComparing(EquipmentLoadoutModel::getEquipmentLoadoutId))
+                .toList();
+            if (!existing.isEmpty()) {
+                EquipmentLoadoutModel selected = existing.getFirst();
+                EquipmentLoadoutModel activated = withLoadoutActive(selected, true, accountId);
+                state.putLoadout(activated);
+                for (int index = 1; index < existing.size(); index++) {
+                    EquipmentLoadoutModel other = existing.get(index);
+                    if (other.isActive()) state.putLoadout(withLoadoutActive(other, false, accountId));
                 }
+                state.markDirty();
+                return activated;
             }
-            EquipmentLoadoutModel created = equipmentLoadoutRepository.create(
-                accountId, DEFAULT_LOADOUT_NAME, accountId, DEFAULT_PROFILE, 0, true, null
+            LocalDateTime now = LocalDateTime.now();
+            EquipmentLoadoutModel created = new EquipmentLoadoutModel(
+                stableStateId("loadout", accountId, DEFAULT_PROFILE.getCode(), DEFAULT_LOADOUT_NAME),
+                accountId,
+                DEFAULT_PROFILE.getCode(),
+                DEFAULT_LOADOUT_NAME,
+                0,
+                true,
+                null,
+                List.of(),
+                now,
+                now,
+                accountId,
+                accountId,
+                false
             );
             state.putLoadout(created);
+            state.markDirty();
             return created;
-        } catch (RuntimeException e) {
-            Logger.warn(LogId.W_5253, accountId, e.getMessage());
-            return null;
         }
+    }
+
+    private static @NotNull EquipmentLoadoutModel withLoadoutActive(
+        @NotNull EquipmentLoadoutModel loadout,
+        boolean active,
+        @NotNull UUID updatedBy
+    ) {
+        return new EquipmentLoadoutModel(
+            loadout.getEquipmentLoadoutId(), loadout.getAccountId(), loadout.getLoadoutProfile(),
+            loadout.getLoadoutName(), loadout.getSortOrder(), active, loadout.getMetadataJson(),
+            loadout.getSlots(), loadout.getCreatedAt(), loadout.getUpdatedAt(), loadout.getCreatedBy(),
+            updatedBy, loadout.isDeleted()
+        );
+    }
+
+    private static @NotNull UUID stableStateId(
+        @NotNull String kind,
+        @NotNull UUID accountId,
+        @NotNull String profile,
+        @NotNull String name
+    ) {
+        String identity = "astralrecord:" + kind + ":v1:" + accountId + ":"
+            + profile.toUpperCase(Locale.ROOT) + ":" + name.toUpperCase(Locale.ROOT);
+        return UUID.nameUUIDFromBytes(identity.getBytes(StandardCharsets.UTF_8));
     }
 
     /**
@@ -5074,14 +5250,42 @@ public class InventoryService {
         @NotNull String expectedItemId,
         int amount
     ) {
-        PlayerInventoryState state = getState(astPlayer.getAccount().getUuid());
+        InventoryEntryModel entry = getHotbarEntryInHand(astPlayer, hand);
+        if (entry == null) {
+            return false;
+        }
+        boolean consumed = consumeHotbarEntryStateOnly(
+            astPlayer.getAccount().getUuid(), entry.getInventoryEntryId(), expectedItemId, amount);
+        if (consumed) {
+            renderHotbarInventory(astPlayer);
+        }
+        return consumed;
+    }
+
+    /**
+     * Bukkit API を呼ばず、指定した HOTBAR entry をローカル state から消費します。
+     * critical save lane で使用し、表示更新は ACK 後に main thread で行います。
+     */
+    public boolean consumeHotbarEntryStateOnly(
+        @NotNull UUID accountId,
+        @NotNull UUID inventoryEntryId,
+        @NotNull String expectedItemId,
+        int amount
+    ) {
+        PlayerInventoryState state = getState(accountId);
         if (state == null) {
             return false;
         }
         synchronized (state) {
             int safeAmount = Math.max(1, amount);
-            int hotbarSlot = toHotbarDbSlot(astPlayer, hand);
-            InventoryEntryModel entry = findHotbarEntryBySlot(state, hotbarSlot);
+            InventoryModel hotbarInventory = state.findInventory(DEFAULT_PROFILE, InventoryType.HOTBAR);
+            if (hotbarInventory == null || !hotbarInventory.isEnabled() || hotbarInventory.isDeleted()) {
+                return false;
+            }
+            InventoryEntryModel entry = state.snapshotEntries(hotbarInventory.getInventoryId()).stream()
+                .filter(candidate -> candidate.getInventoryEntryId().equals(inventoryEntryId))
+                .findFirst()
+                .orElse(null);
             if (entry == null || entry.isDeleted()) {
                 return false;
             }
@@ -5100,8 +5304,6 @@ public class InventoryService {
                 return false;
             }
 
-            InventoryModel hotbarInventory = ensureInventory(
-                state, InventoryType.HOTBAR, HotbarLayout.CAPACITY, state.getAccountId(), DEFAULT_PROFILE);
             List<InventoryEntryModel> entries = new ArrayList<>(
                 state.snapshotEntries(hotbarInventory.getInventoryId()).stream()
                     .filter(e -> !e.isDeleted())
@@ -5120,7 +5322,6 @@ public class InventoryService {
                     entries.remove(index);
                 }
                 state.replaceEntries(hotbarInventory.getInventoryId(), entries);
-                renderHotbarInventory(astPlayer);
                 return true;
             }
 
@@ -7598,8 +7799,7 @@ public class InventoryService {
         @NotNull UUID accountId,
         @NotNull String source
     ) {
-        EquipmentInstance instance = itemService.createEquipmentInstance(
-            model.getId(), accountId.toString(), source, accountId.toString());
+        EquipmentInstance instance = itemService.createLocalEquipmentInstance(model, accountId);
         String instanceId = instance == null ? null : instance.getEquipmentInstanceId();
         return instanceId == null ? null : parseUuidOrNull(instanceId);
     }
@@ -8056,7 +8256,7 @@ public class InventoryService {
     }
 
     /**
-     * API 個体生成前の BAG slot 予約結果です。
+     * 装備個体をローカル生成する前の BAG slot 予約結果です。
      *
      * @param reservation 予約成功時の予約情報。空きなしまたは state 未登録時は {@code null}
      * @param remainingBagSlots 判定後の BAG 空き slot 数。state 未登録または対象外カテゴリでは {@code -1}
@@ -8084,7 +8284,7 @@ public class InventoryService {
     }
 
     /**
-     * API 側で生成済みのインスタンス参照です。
+     * critical mutation 内でローカル生成したインスタンス参照です。
      *
      * @param instanceType インスタンス種別
      * @param instanceId インスタンス ID

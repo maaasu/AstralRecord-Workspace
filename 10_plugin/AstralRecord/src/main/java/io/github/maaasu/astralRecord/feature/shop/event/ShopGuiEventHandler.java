@@ -13,6 +13,7 @@ import io.github.maaasu.astralRecord.feature.shop.model.ShopDefinition;
 import io.github.maaasu.astralRecord.feature.shop.model.ShopEntry;
 import io.github.maaasu.astralRecord.feature.shop.service.ShopService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import io.github.maaasu.astralRecord.shared.gui.hotbar.HotbarShortcutClickSupport;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.bukkit.entity.Player;
@@ -210,13 +211,26 @@ public final class ShopGuiEventHandler extends AbstractEventHandler {
             GuiSound.DENY.play(player);
             return;
         }
-        if (!shopService.purchase(astPlayer, entry, quantity)) {
-            shopGui.openConfirm(player, shop, entry, quantity, shopService.preview(astPlayer, entry, quantity), pageIndex);
-            GuiSound.DENY.play(player);
-            return;
-        }
-        shopGui.openConfirm(player, shop, entry, quantity, shopService.preview(astPlayer, entry, quantity), pageIndex);
-        GuiSound.PURCHASE.play(player);
+        shopService.purchase(astPlayer, entry, quantity).whenComplete((purchased, failure) ->
+            AsyncTaskUtil.runSyncEventually(AstralRecord.getInstance(), () -> {
+                AstPlayer current = AstPlayerCache.get(player);
+                if (current == null || !player.isOnline()) return;
+                if (failure != null || !Boolean.TRUE.equals(purchased)) {
+                    inventoryService.applyInventoriesToGui(current);
+                    if (failure != null) {
+                        PlayerMessageService.getInstance().send(current, PlayerMsgId.P_5252);
+                    }
+                    shopGui.openConfirm(
+                        player, shop, entry, quantity, shopService.preview(current, entry, quantity), pageIndex);
+                    GuiSound.DENY.play(player);
+                    return;
+                }
+                shopService.applyCommittedPurchase(current, entry);
+                shopGui.openConfirm(
+                    player, shop, entry, quantity, shopService.preview(current, entry, quantity), pageIndex);
+                GuiSound.PURCHASE.play(player);
+            })
+        );
     }
 
     private boolean isInventoryFull(

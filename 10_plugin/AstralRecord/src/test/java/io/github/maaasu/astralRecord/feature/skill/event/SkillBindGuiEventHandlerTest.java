@@ -18,8 +18,6 @@ import io.github.maaasu.astralRecord.feature.skill.model.SkillBindScreen;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindSession;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindType;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
-import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException;
-import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationFailure;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillManagerEntry;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillKind;
@@ -80,26 +78,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 class SkillBindGuiEventHandlerTest {
-
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md
-     * 章・見出し: # 13_3-イベント > ## 1. スキルマネージャー表示・操作
-     * 検証契約: APIのシジル拒否理由は合成素材の汎用エラーへ畳み込まず、理由別メッセージIDへ対応付ける。
-     */
-    @Test
-    void synthesisMutationFailuresKeepSpecificPlayerMessages() throws ReflectiveOperationException {
-        SkillBindGuiEventHandler handler = newHandler();
-        Method method = SkillBindGuiEventHandler.class.getDeclaredMethod("mutationFailureMessage", Throwable.class);
-        method.setAccessible(true);
-
-        assertEquals(PlayerMsgId.P_5859, method.invoke(handler,
-            new LearnedSkillMutationException(LearnedSkillMutationFailure.SIGIL_NOT_ALLOWED, "not allowed")));
-        assertEquals(PlayerMsgId.P_5860, method.invoke(handler,
-            new LearnedSkillMutationException(LearnedSkillMutationFailure.NO_SIGIL_SLOT, "no slot")));
-        assertEquals(PlayerMsgId.P_5861, method.invoke(handler,
-            new LearnedSkillMutationException(LearnedSkillMutationFailure.DUPLICATE_SIGIL_GROUP, "duplicate")));
-        assertEquals(PlayerMsgId.P_5864, method.invoke(handler, new IllegalStateException("inventory sync failed")));
-    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-イベント.md

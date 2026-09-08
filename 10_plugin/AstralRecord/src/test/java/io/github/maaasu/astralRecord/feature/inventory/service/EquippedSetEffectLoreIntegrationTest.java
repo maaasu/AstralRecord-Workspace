@@ -167,7 +167,8 @@ class EquippedSetEffectLoreIntegrationTest extends MockBukkitTestBase {
         InventoryPersistence persistence = new InventoryPersistence(
             inventoryRepository,
             equipmentLoadoutRepository,
-            itemService
+            itemService,
+            mock(io.github.maaasu.astralRecord.feature.mutation.repository.PlayerStateRepository.class)
         );
         InventorySaveCoordinator saveCoordinator = new InventorySaveCoordinator(
             persistence,

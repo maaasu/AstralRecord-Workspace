@@ -1,5 +1,8 @@
 package io.github.maaasu.astralRecord.feature.guide.service;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideConditionType;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideEntry;
@@ -7,8 +10,10 @@ import io.github.maaasu.astralRecord.feature.guide.model.GuideStep;
 import io.github.maaasu.astralRecord.feature.guide.model.GuideStepKey;
 import io.github.maaasu.astralRecord.feature.guide.repository.GuideProgressRepository;
 import io.github.maaasu.astralRecord.feature.guide.repository.GuideRepository;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
@@ -21,7 +26,10 @@ import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -34,7 +42,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 public class GuideService {
-    private static final long PROGRESS_RETRY_DELAY_TICKS = 100L;
+    private static final String PROGRESS_SECTION_NAME = "guideProgress";
     private static final Pattern REFERENCE_PATTERN = Pattern.compile("\\{([a-zA-Z_]+):([^}]+)}");
 
     /** 初参加者へ案内する導入ガイドの ID。 */
@@ -49,8 +57,9 @@ public class GuideService {
     private final ItemService itemService;
     private final PlayerClassService playerClassService;
     private final WorldService worldService;
+    private final InventoryService inventoryService;
     private final Map<String, GuideEntry> loadedGuides = new LinkedHashMap<>();
-    private final Map<UUID, Set<GuideStepKey>> completedStepsByAccount = new ConcurrentHashMap<>();
+    private final Map<UUID, ProgressState> progressByAccount = new ConcurrentHashMap<>();
     private final Map<UUID, Long> progressGenerations = new ConcurrentHashMap<>();
     private final Map<UUID, CompletableFuture<Boolean>> progressLoadFutures = new ConcurrentHashMap<>();
     private final Map<UUID, List<GuideConditionEvent>> pendingConditionsByAccount = new ConcurrentHashMap<>();
@@ -66,6 +75,7 @@ public class GuideService {
      * @param playerClassService class参照解決サービス
      * @param worldService world参照解決サービス
      * @param playerMessageService 達成通知サービス
+     * @param inventoryService プレイヤー完成状態の集約保存サービス
      */
     public GuideService(
         @NotNull AstralRecord plugin,
@@ -74,7 +84,8 @@ public class GuideService {
         @NotNull ItemService itemService,
         @NotNull PlayerClassService playerClassService,
         @NotNull WorldService worldService,
-        @NotNull PlayerMessageService playerMessageService
+        @NotNull PlayerMessageService playerMessageService,
+        @NotNull InventoryService inventoryService
     ) {
         this.plugin = plugin;
         this.repository = repository;
@@ -83,6 +94,7 @@ public class GuideService {
         this.playerClassService = playerClassService;
         this.worldService = worldService;
         this.playerMessageService = playerMessageService;
+        this.inventoryService = inventoryService;
     }
 
     public synchronized int loadAll() {
@@ -145,7 +157,11 @@ public class GuideService {
      *         読み込み失敗または古い世代の結果になった場合はfalse
      */
     public @NotNull CompletableFuture<Boolean> loadProgressAsync(@NotNull UUID accountId) {
-        if (completedStepsByAccount.containsKey(accountId)) {
+        ProgressState cached = progressByAccount.get(accountId);
+        if (cached != null) {
+            synchronized (cached) {
+                cached.released = false;
+            }
             return CompletableFuture.completedFuture(true);
         }
         CompletableFuture<Boolean> existing = progressLoadFutures.get(accountId);
@@ -165,7 +181,8 @@ public class GuideService {
                 Set<GuideStepKey> loaded = ConcurrentHashMap.newKeySet();
                 loaded.addAll(progressRepository.findByAccountId(accountId));
                 if (progressGenerations.getOrDefault(accountId, 0L) == generation) {
-                    completedStepsByAccount.put(accountId, loaded);
+                    ProgressState state = new ProgressState(loaded);
+                    progressByAccount.put(accountId, state);
                     List<GuideConditionEvent> pending = pendingConditionsByAccount.remove(accountId);
                     if (pending != null && !pending.isEmpty()) {
                         plugin.getServer().getScheduler().runTask(plugin, () -> pending.forEach(event ->
@@ -197,7 +214,15 @@ public class GuideService {
      */
     public void releaseProgress(@NotNull UUID accountId) {
         progressGenerations.merge(accountId, 1L, Long::sum);
-        completedStepsByAccount.remove(accountId);
+        ProgressState state = progressByAccount.get(accountId);
+        if (state != null) {
+            synchronized (state) {
+                state.released = true;
+                if (!state.dirty) {
+                    progressByAccount.remove(accountId, state);
+                }
+            }
+        }
         progressLoadFutures.remove(accountId);
         pendingConditionsByAccount.remove(accountId);
         initialGuideOpenedAccounts.remove(accountId);
@@ -224,8 +249,13 @@ public class GuideService {
      * @return 達成済みの場合は true
      */
     public boolean isStepCompleted(@Nullable UUID accountId, @NotNull String guideId, @NotNull String stepId) {
-        Set<GuideStepKey> completed = accountId == null ? null : completedStepsByAccount.get(accountId);
-        return completed != null && completed.contains(new GuideStepKey(guideId, stepId));
+        ProgressState state = accountId == null ? null : progressByAccount.get(accountId);
+        if (state == null) {
+            return false;
+        }
+        synchronized (state) {
+            return state.completed.contains(new GuideStepKey(guideId, stepId));
+        }
     }
 
     /**
@@ -296,28 +326,38 @@ public class GuideService {
         if (eventType == GuideConditionType.GUIDE_OPENED) {
             initialGuideOpenedAccounts.add(accountId);
         }
-        Set<GuideStepKey> completed = completedStepsByAccount.get(accountId);
-        if (completed == null) {
+        ProgressState state = progressByAccount.get(accountId);
+        if (state == null) {
             pendingConditionsByAccount.computeIfAbsent(accountId, ignored -> new java.util.concurrent.CopyOnWriteArrayList<>())
                 .add(new GuideConditionEvent(player, eventType, targetId, targetLevel, notifyPlayer));
             loadProgressAsync(accountId);
             return;
         }
 
-        for (GuideEntry guide : getAll()) {
-            for (GuideStep step : GuideProgressEvaluator.evaluate(
-                guide, completed, eventType, targetId, targetLevel
-            )) {
-                GuideStepKey key = new GuideStepKey(guide.id(), step.id());
-                if (!completed.add(key)) {
-                    continue;
+        List<CompletedStep> newlyCompleted = new ArrayList<>();
+        synchronized (state) {
+            for (GuideEntry guide : getAll()) {
+                for (GuideStep step : GuideProgressEvaluator.evaluate(
+                    guide, state.completed, eventType, targetId, targetLevel
+                )) {
+                    GuideStepKey key = new GuideStepKey(guide.id(), step.id());
+                    if (state.completed.add(key)) {
+                        newlyCompleted.add(new CompletedStep(guide, step));
+                    }
                 }
-
-                if (notifyPlayer) {
-                    notifyStepCompleted(player, guide, step);
-                }
-                persistStepAsync(player, guide, key);
             }
+            if (!newlyCompleted.isEmpty()) {
+                state.revision = Math.addExact(state.revision, 1L);
+                state.dirty = true;
+            }
+        }
+        for (CompletedStep completed : newlyCompleted) {
+            if (notifyPlayer) {
+                notifyStepCompleted(player, completed.guide(), completed.step());
+            }
+        }
+        if (!newlyCompleted.isEmpty()) {
+            inventoryService.queueLocalPlayerSave(accountId);
         }
     }
 
@@ -334,28 +374,86 @@ public class GuideService {
         }
     }
 
-    private void persistStepAsync(
-        @NotNull AstPlayer player,
-        @NotNull GuideEntry guide,
-        @NotNull GuideStepKey key
-    ) {
-        UUID accountId = player.getAccount().getUuid();
-        UUID updatedBy = player.getUser().getUuid();
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                progressRepository.completeStep(accountId, key, updatedBy);
-            } catch (RuntimeException e) {
-                Set<GuideStepKey> completed = completedStepsByAccount.get(accountId);
-                if (completed != null && completed.contains(key)) {
-                    plugin.getServer().getScheduler().runTaskLaterAsynchronously(
-                        plugin,
-                        () -> persistStepAsync(player, guide, key),
-                        PROGRESS_RETRY_DELAY_TICKS
-                    );
-                }
-                Logger.log(LogId.E_5182, e, "complete", guide.id() + ":" + key.stepId(), failureReason(e));
+    /** inventory と同じ SQL transaction へ含めるガイド完成状態を捕捉します。 */
+    public @Nullable PlayerStateSection snapshotPlayerState(@NotNull UUID accountId) {
+        ProgressState state = progressByAccount.get(accountId);
+        if (state == null) {
+            return null;
+        }
+
+        long capturedRevision;
+        Set<GuideStepKey> capturedSteps;
+        synchronized (state) {
+            if (!state.dirty) {
+                return null;
             }
-        });
+            capturedRevision = state.revision;
+            capturedSteps = Set.copyOf(state.completed);
+        }
+
+        JsonObject payload = new JsonObject();
+        payload.addProperty("accountId", accountId.toString());
+        payload.addProperty("clientRevision", capturedRevision);
+        payload.addProperty("isFullSnapshot", true);
+        JsonArray completedSteps = new JsonArray();
+        capturedSteps.stream()
+            .sorted(Comparator.comparing(GuideStepKey::guideId).thenComparing(GuideStepKey::stepId))
+            .forEach(key -> {
+                JsonObject row = new JsonObject();
+                row.addProperty("guideId", key.guideId());
+                row.addProperty("stepId", key.stepId());
+                completedSteps.add(row);
+            });
+        payload.add("completedStepKeys", completedSteps);
+        return new PlayerStateSection(PROGRESS_SECTION_NAME, payload,
+            acknowledgement -> acknowledgeProgress(accountId, state, capturedRevision, capturedSteps, acknowledgement));
+    }
+
+    private void acknowledgeProgress(
+        @NotNull UUID accountId,
+        @NotNull ProgressState capturedState,
+        long capturedRevision,
+        @NotNull Set<GuideStepKey> capturedSteps,
+        @NotNull JsonElement acknowledgement
+    ) {
+        if (!acknowledgement.isJsonObject()) {
+            throw new IllegalStateException("Guide progress acknowledgement must be an object");
+        }
+        JsonObject ack = acknowledgement.getAsJsonObject();
+        if (!ack.has("clientRevision") || ack.get("clientRevision").getAsLong() != capturedRevision
+            || !ack.has("completedStepKeys") || !ack.get("completedStepKeys").isJsonArray()
+            || !parseAcknowledgedSteps(ack.getAsJsonArray("completedStepKeys")).equals(capturedSteps)) {
+            throw new IllegalStateException("Guide progress acknowledgement mismatch");
+        }
+
+        synchronized (capturedState) {
+            if (progressByAccount.get(accountId) != capturedState
+                || capturedRevision <= capturedState.acknowledgedRevision) {
+                return;
+            }
+            capturedState.acknowledgedRevision = capturedRevision;
+            if (capturedState.revision == capturedRevision) {
+                capturedState.dirty = false;
+            }
+            if (capturedState.released && !capturedState.dirty) {
+                progressByAccount.remove(accountId, capturedState);
+            }
+        }
+    }
+
+    private @NotNull Set<GuideStepKey> parseAcknowledgedSteps(@NotNull JsonArray rows) {
+        Set<GuideStepKey> result = new HashSet<>();
+        for (JsonElement element : rows) {
+            if (!element.isJsonObject()) {
+                throw new IllegalStateException("Guide progress acknowledgement entry must be an object");
+            }
+            JsonObject row = element.getAsJsonObject();
+            if (!row.has("guideId") || !row.has("stepId")
+                || !result.add(new GuideStepKey(row.get("guideId").getAsString(), row.get("stepId").getAsString()))) {
+                throw new IllegalStateException("Guide progress acknowledgement contains an invalid or duplicate entry");
+            }
+        }
+        return result;
     }
 
     public @NotNull String resolveText(@NotNull String text) {
@@ -433,5 +531,20 @@ public class GuideService {
         @Nullable Integer targetLevel,
         boolean notifyPlayer
     ) {
+    }
+
+    private record CompletedStep(@NotNull GuideEntry guide, @NotNull GuideStep step) {
+    }
+
+    private static final class ProgressState {
+        private final Set<GuideStepKey> completed = new LinkedHashSet<>();
+        private long revision;
+        private long acknowledgedRevision = -1L;
+        private boolean dirty;
+        private boolean released;
+
+        private ProgressState(@NotNull Set<GuideStepKey> completed) {
+            this.completed.addAll(completed);
+        }
     }
 }

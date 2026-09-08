@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.inventory.model.InventoryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryProfile;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryState;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
@@ -16,6 +17,9 @@ import org.junit.jupiter.api.Test;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNull;
@@ -27,6 +31,7 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.doAnswer;
 
 class MenuToolJoinGrantServiceTest {
 
@@ -43,13 +48,13 @@ class MenuToolJoinGrantServiceTest {
         ItemService itemService = mock(ItemService.class);
         InventoryService inventoryService = mock(InventoryService.class);
 
-        MenuToolJoinGrantService service = new MenuToolJoinGrantService(itemService, inventoryService);
+        MenuToolJoinGrantService service = new MenuToolJoinGrantService(itemService, inventoryService, Runnable::run);
 
         assertNull(service.prepareIfMissing(state));
 
         verify(itemService, never()).findLoadedById(anyString());
-        verify(itemService, never()).createEquipmentInstance(anyString(), anyString(), anyString(), anyString());
-        verify(inventoryService, never()).addPreparedRewardsToNormalInventory(any(), any());
+        verify(itemService, never()).createLocalEquipmentInstance(any(), any());
+        verify(inventoryService, never()).addPreparedRewardsToNormalInventoryStateOnly(any(), any());
     }
 
     /**
@@ -73,29 +78,28 @@ class MenuToolJoinGrantServiceTest {
         when(inventoryService.getCurrencyAmount(accountId, MenuToolJoinGrantService.PASS_ITEM_ID)).thenReturn(0L);
         when(itemService.findLoadedById(MenuToolJoinGrantService.MENU_ITEM_ID)).thenReturn(menuItem);
         when(itemService.findLoadedById(MenuToolJoinGrantService.PASS_ITEM_ID)).thenReturn(passItem);
-        when(itemService.createEquipmentInstance(
-            eq(MenuToolJoinGrantService.MENU_ITEM_ID),
-            eq(accountId.toString()),
-            anyString(),
-            eq(accountId.toString())
-        )).thenReturn(instance);
+        when(itemService.createLocalEquipmentInstance(menuItem, accountId)).thenReturn(instance);
         when(instance.getEquipmentInstanceId()).thenReturn(instanceId);
-        MenuToolJoinGrantService service = new MenuToolJoinGrantService(itemService, inventoryService);
+        when(inventoryService.snapshotState(accountId)).thenReturn(new InventoryService.InventoryStateSnapshot(
+            accountId, java.util.Map.of(), InventoryType.BAG, false));
+        when(itemService.captureEquipmentStateRollback(accountId)).thenReturn(() -> { });
+        completeCriticalMutations(inventoryService);
+        MenuToolJoinGrantService service = new MenuToolJoinGrantService(itemService, inventoryService, Runnable::run);
         MenuToolJoinGrantService.PreparedGrant preparedGrant = service.prepareIfMissing(state);
         when(inventoryService.getCurrencyAmount(accountId, MenuToolJoinGrantService.PASS_ITEM_ID)).thenReturn(0L);
-        when(inventoryService.addPreparedRewardsToNormalInventory(eq(astPlayer), any())).thenAnswer(invocation -> {
+        when(inventoryService.addPreparedRewardsToNormalInventoryStateOnly(eq(astPlayer), any())).thenAnswer(invocation -> {
             capturedRewards.set(invocation.getArgument(1));
             return new InventoryService.InventoryGrantReceipt(accountId, List.of());
         });
 
-        service.grantPreparedIfMissing(astPlayer, preparedGrant);
+        service.grantPreparedIfMissing(astPlayer, preparedGrant).join();
 
-        verify(inventoryService).addPreparedRewardsToNormalInventory(eq(astPlayer), any());
+        verify(inventoryService).addPreparedRewardsToNormalInventoryStateOnly(eq(astPlayer), any());
         List<InventoryService.PreparedInventoryReward> rewards = capturedRewards.get();
         assertEquals(2, rewards.size());
         assertEquals(menuItem, rewards.get(0).model());
         assertEquals(passItem, rewards.get(1).model());
-        verify(itemService, never()).deleteEquipmentInstance(instanceId);
+        verify(itemService, never()).evictEquipmentInstanceFromCache(instanceId);
     }
 
     /**
@@ -118,21 +122,25 @@ class MenuToolJoinGrantServiceTest {
         when(inventoryService.getCurrencyAmount(accountId, MenuToolJoinGrantService.PASS_ITEM_ID)).thenReturn(0L);
         when(itemService.findLoadedById(MenuToolJoinGrantService.MENU_ITEM_ID)).thenReturn(menuItem);
         when(itemService.findLoadedById(MenuToolJoinGrantService.PASS_ITEM_ID)).thenReturn(passItem);
-        when(itemService.createEquipmentInstance(anyString(), anyString(), anyString(), anyString()))
+        when(itemService.createLocalEquipmentInstance(eq(menuItem), eq(accountId)))
             .thenReturn(instance);
         when(instance.getEquipmentInstanceId()).thenReturn(instanceId);
-        MenuToolJoinGrantService service = new MenuToolJoinGrantService(itemService, inventoryService);
+        InventoryService.InventoryStateSnapshot before = new InventoryService.InventoryStateSnapshot(
+            accountId, java.util.Map.of(), InventoryType.BAG, false);
+        when(inventoryService.snapshotState(accountId)).thenReturn(before);
+        when(itemService.captureEquipmentStateRollback(accountId)).thenReturn(() -> { });
+        completeCriticalMutations(inventoryService);
+        MenuToolJoinGrantService service = new MenuToolJoinGrantService(itemService, inventoryService, Runnable::run);
         MenuToolJoinGrantService.PreparedGrant preparedGrant = service.prepareIfMissing(state);
         when(inventoryService.getCurrencyAmount(accountId, MenuToolJoinGrantService.PASS_ITEM_ID)).thenReturn(0L);
-        when(inventoryService.addPreparedRewardsToNormalInventory(eq(astPlayer), any())).thenReturn(null);
+        when(inventoryService.addPreparedRewardsToNormalInventoryStateOnly(eq(astPlayer), any())).thenReturn(null);
 
         assertThrows(
-            IllegalStateException.class,
-            () -> service.grantPreparedIfMissing(astPlayer, preparedGrant)
+            CompletionException.class,
+            () -> service.grantPreparedIfMissing(astPlayer, preparedGrant).join()
         );
 
-        service.cleanupPreparedGrant(preparedGrant);
-        verify(itemService).deleteEquipmentInstance(instanceId);
+        verify(inventoryService).restoreState(before);
     }
 
     private PlayerInventoryState inventoryState(UUID accountId, boolean hasPass) {
@@ -169,5 +177,17 @@ class MenuToolJoinGrantServiceTest {
         when(item.getId()).thenReturn(id);
         when(item.getCategory()).thenReturn(category);
         return item;
+    }
+
+    private static void completeCriticalMutations(InventoryService inventoryService) {
+        doAnswer(invocation -> {
+            try {
+                @SuppressWarnings("unchecked")
+                Supplier<InventorySaveCoordinator.CriticalMutation<Object>> supplier = invocation.getArgument(1);
+                return CompletableFuture.completedFuture(supplier.get().result());
+            } catch (RuntimeException failure) {
+                return CompletableFuture.failedFuture(failure);
+            }
+        }).when(inventoryService).executeCriticalPlayerMutation(any(UUID.class), any());
     }
 }

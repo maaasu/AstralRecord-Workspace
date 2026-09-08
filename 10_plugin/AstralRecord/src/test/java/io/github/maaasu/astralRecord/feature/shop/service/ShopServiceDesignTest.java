@@ -5,6 +5,7 @@ import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
@@ -30,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Supplier;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
@@ -107,10 +109,11 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         when(harness.inventoryService.consumeGold(player.getAccount().getUuid(), 15L)).thenReturn(true);
         when(harness.inventoryService.consumeNormalItemIncludingStorage(
             player.getAccount().getUuid(), "herb", 6)).thenReturn(true);
-        when(harness.inventoryService.addItemToNormalInventory(player, potion, 6, "shop")).thenReturn(6);
+        when(harness.inventoryService.addItemToNormalInventoryStateOnly(player, potion, 6, "shop")).thenReturn(6);
         when(harness.inventoryService.resolveInventoryType(potion)).thenReturn(InventoryType.BAG);
 
-        boolean purchased = harness.service.purchase(player, entry, 3);
+        boolean purchased = harness.service.purchase(player, entry, 3).join();
+        harness.service.applyCommittedPurchase(player, entry);
 
         assertTrue(purchased);
         InOrder order = inOrder(harness.inventoryService);
@@ -118,15 +121,15 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         order.verify(harness.inventoryService).consumeGold(player.getAccount().getUuid(), 15L);
         order.verify(harness.inventoryService).consumeNormalItemIncludingStorage(
             player.getAccount().getUuid(), "herb", 6);
-        order.verify(harness.inventoryService).addItemToNormalInventory(player, potion, 6, "shop");
+        order.verify(harness.inventoryService).addItemToNormalInventoryStateOnly(player, potion, 6, "shop");
         order.verify(harness.inventoryService).applyInventoryToGui(player, InventoryType.BAG);
-        order.verify(harness.inventoryService).saveNow(player.getAccount().getUuid());
+        verify(harness.inventoryService).executeCriticalPlayerMutation(eq(player.getAccount().getUuid()), any());
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/20-shop/20_3-メソッド仕様.md
      * 章・見出し: # 20_3-メソッド仕様 > ## 購入
-     * 検証契約: 購入通知は即時に行い、保存成功通知はsaveNow完了後だけ行う。
+     * 検証契約: 購入通知はSQL ACKより前に行わず、ACK後のmain-thread反映でまとめて行う。
      */
     @Test
     void purchaseNotifiesImmediatelyAndNotifiesSavedListenerAfterSuccessfulSave() {
@@ -134,23 +137,21 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
         ItemModel potion = DesignTestFixtures.item("potion", ItemCategory.CONSUMABLE, 16);
         ShopEntry entry = shopEntry("potion", 1, 4, List.of(), null);
-        CompletableFuture<Boolean> saveFuture = new CompletableFuture<>();
         List<String> events = new java.util.ArrayList<>();
         when(harness.itemService.findLoadedById("potion")).thenReturn(potion);
         when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(10L);
         when(harness.inventoryService.canAddItemToNormalInventory(player, potion, 1)).thenReturn(true);
         when(harness.inventoryService.snapshotState(player.getAccount().getUuid())).thenReturn(snapshot(player));
         when(harness.inventoryService.consumeGold(player.getAccount().getUuid(), 4L)).thenReturn(true);
-        when(harness.inventoryService.addItemToNormalInventory(player, potion, 1, "shop")).thenReturn(1);
+        when(harness.inventoryService.addItemToNormalInventoryStateOnly(player, potion, 1, "shop")).thenReturn(1);
         when(harness.inventoryService.resolveInventoryType(potion)).thenReturn(InventoryType.BAG);
-        when(harness.inventoryService.saveNow(player.getAccount().getUuid())).thenReturn(saveFuture);
         harness.service.setPurchaseListener((ignoredPlayer, ignoredEntryId) -> events.add("immediate"));
         harness.service.setPurchaseSavedListener((ignoredPlayer, ignoredEntryId) -> events.add("saved"));
 
-        assertTrue(harness.service.purchase(player, entry, 1));
-        assertEquals(List.of("immediate"), events);
+        assertTrue(harness.service.purchase(player, entry, 1).join());
+        assertEquals(List.of(), events);
 
-        saveFuture.complete(true);
+        harness.service.applyCommittedPurchase(player, entry);
         assertEquals(List.of("immediate", "saved"), events);
     }
 
@@ -175,13 +176,13 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
 
         boolean purchased;
         try (MockedStatic<AstralRecord> ignored = mockPluginLogger()) {
-            purchased = harness.service.purchase(player, entry, 1);
+            purchased = harness.service.purchase(player, entry, 1).join();
         }
 
         assertFalse(purchased);
-        verify(harness.inventoryService, never()).addItemToNormalInventory(player, potion, 1, "shop");
+        verify(harness.inventoryService, never()).addItemToNormalInventoryStateOnly(player, potion, 1, "shop");
         verify(harness.inventoryService, never()).applyInventoryToGui(player, InventoryType.BAG);
-        verify(harness.inventoryService, never()).saveNow(player.getAccount().getUuid());
+        verify(harness.inventoryService).executeCriticalPlayerMutation(eq(player.getAccount().getUuid()), any());
         verify(harness.inventoryService).restoreState(snapshot);
     }
 
@@ -200,12 +201,12 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         when(harness.currencyService.getGoldAmount(player.getAccount().getUuid())).thenReturn(10L);
         when(harness.inventoryService.canAddItemToNormalInventory(player, potion, 1)).thenReturn(false);
 
-        assertFalse(harness.service.purchase(player, entry, 1));
+        assertFalse(harness.service.purchase(player, entry, 1).join());
 
         verify(harness.inventoryService, never()).snapshotState(player.getAccount().getUuid());
         verify(harness.inventoryService, never()).consumeGold(player.getAccount().getUuid(), 4L);
-        verify(harness.inventoryService, never()).addItemToNormalInventory(player, potion, 1, "shop");
-        verify(harness.inventoryService, never()).saveNow(player.getAccount().getUuid());
+        verify(harness.inventoryService, never()).addItemToNormalInventoryStateOnly(player, potion, 1, "shop");
+        verify(harness.inventoryService, never()).executeCriticalPlayerMutation(eq(player.getAccount().getUuid()), any());
     }
 
     /**
@@ -235,17 +236,17 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         when(harness.inventoryService.snapshotState(player.getAccount().getUuid())).thenReturn(snapshot);
         when(harness.inventoryService.consumeNormalItemIncludingStorage(
             player.getAccount().getUuid(), "storage_material", 4L)).thenReturn(true);
-        when(harness.inventoryService.addItemToNormalInventory(player, potion, 2, "shop")).thenReturn(1);
+        when(harness.inventoryService.addItemToNormalInventoryStateOnly(player, potion, 2, "shop")).thenReturn(1);
         when(harness.inventoryService.restoreState(snapshot)).thenReturn(true);
 
         try (MockedStatic<AstralRecord> ignored = mockPluginLogger()) {
-            assertFalse(harness.service.purchase(player, entry, 1));
+            assertFalse(harness.service.purchase(player, entry, 1).join());
         }
 
         verify(harness.inventoryService).consumeNormalItemIncludingStorage(
             player.getAccount().getUuid(), "storage_material", 4L);
         verify(harness.inventoryService).restoreState(snapshot);
-        verify(harness.inventoryService, never()).saveNow(player.getAccount().getUuid());
+        verify(harness.inventoryService).executeCriticalPlayerMutation(eq(player.getAccount().getUuid()), any());
     }
 
     /**
@@ -401,10 +402,10 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         when(harness.inventoryService.canAddItemToNormalInventory(player, potion, 1)).thenReturn(true);
         when(harness.inventoryService.snapshotState(accountId)).thenReturn(snapshot(player));
         when(harness.inventoryService.consumeNormalItem(accountId, "material", 2L)).thenReturn(true);
-        when(harness.inventoryService.addItemToNormalInventory(player, potion, 1, "shop")).thenReturn(1);
+        when(harness.inventoryService.addItemToNormalInventoryStateOnly(player, potion, 1, "shop")).thenReturn(1);
         when(harness.inventoryService.resolveInventoryType(potion)).thenReturn(InventoryType.BAG);
 
-        assertTrue(harness.service.purchase(player, entry, 1));
+        assertTrue(harness.service.purchase(player, entry, 1).join());
 
         verify(harness.inventoryService).consumeNormalItem(accountId, "material", 2L);
         verify(harness.inventoryService, never()).consumeNormalItemIncludingStorage(
@@ -440,15 +441,15 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         when(harness.inventoryService.canAddItemToNormalInventory(player, goldCoin, 1)).thenReturn(true);
         when(harness.inventoryService.snapshotState(player.getAccount().getUuid())).thenReturn(snapshot);
         when(harness.inventoryService.consumeCurrency(player.getAccount().getUuid(), "gold", 10L)).thenReturn(true);
-        when(harness.inventoryService.addItemToNormalInventory(player, goldCoin, 1, "shop")).thenReturn(1);
+        when(harness.inventoryService.addItemToNormalInventoryStateOnly(player, goldCoin, 1, "shop")).thenReturn(1);
         when(harness.inventoryService.resolveInventoryType(goldCoin)).thenReturn(InventoryType.CURRENCY);
 
-        assertTrue(harness.service.purchase(player, entry, 1));
+        assertTrue(harness.service.purchase(player, entry, 1).join());
 
         InOrder order = inOrder(harness.inventoryService);
         order.verify(harness.inventoryService).consumeCurrency(player.getAccount().getUuid(), "gold", 10L);
-        order.verify(harness.inventoryService).addItemToNormalInventory(player, goldCoin, 1, "shop");
-        order.verify(harness.inventoryService).saveNow(player.getAccount().getUuid());
+        order.verify(harness.inventoryService).addItemToNormalInventoryStateOnly(player, goldCoin, 1, "shop");
+        verify(harness.inventoryService).executeCriticalPlayerMutation(eq(player.getAccount().getUuid()), any());
         verify(harness.inventoryService, never()).applyInventoryToGui(player, InventoryType.CURRENCY);
     }
 
@@ -501,6 +502,16 @@ class ShopServiceDesignTest extends MockBukkitTestBase {
         ItemService itemService = mock(ItemService.class);
         InventoryService inventoryService = mock(InventoryService.class);
         CurrencyService currencyService = mock(CurrencyService.class);
+        when(itemService.captureEquipmentStateRollback(any(UUID.class))).thenReturn(() -> { });
+        when(inventoryService.<Boolean>executeCriticalPlayerMutation(any(UUID.class), any())).thenAnswer(invocation -> {
+            Supplier<InventorySaveCoordinator.CriticalMutation<Boolean>> mutation = invocation.getArgument(1);
+            try {
+                InventorySaveCoordinator.CriticalMutation<Boolean> result = mutation.get();
+                return CompletableFuture.completedFuture(result.result());
+            } catch (Throwable failure) {
+                return CompletableFuture.failedFuture(failure);
+            }
+        });
         if (recipe != null) {
             when(recipeRepository.findShopRecipeById(recipe.recipeId())).thenReturn(recipe);
         }

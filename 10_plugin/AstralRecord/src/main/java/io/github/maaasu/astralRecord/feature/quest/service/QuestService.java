@@ -1,20 +1,23 @@
 package io.github.maaasu.astralRecord.feature.quest.service;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.feature.account.model.AccountExperienceResult;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.account.service.AccountService;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryInstanceType;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
-import io.github.maaasu.astralRecord.feature.playerclass.model.ClassExperienceResult;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestBoardDefinition;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestCompletionMode;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestDefinition;
@@ -86,8 +89,10 @@ public final class QuestService {
     private final Map<UUID, QuestPlayerState> states = new LinkedHashMap<>();
     private final Set<UUID> dirtyStates = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Long> saveDueAtMillis = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> stateRevisions = new ConcurrentHashMap<>();
+    private final Map<UUID, Long> pendingStateRevisions = new ConcurrentHashMap<>();
+    private final Set<UUID> releaseWhenAcknowledged = ConcurrentHashMap.newKeySet();
     private final Map<RewardClaimKey, UUID> pendingRewardClaims = new ConcurrentHashMap<>();
-    private final Map<RewardClaimKey, RewardPersistenceRetry> rewardPersistenceRetries = new ConcurrentHashMap<>();
     private final Map<UUID, CompletableFuture<Void>> rewardProcessingTails = new ConcurrentHashMap<>();
     private BiConsumer<AstPlayer, String> questAcceptedListener = (player, questId) -> { };
     private BiConsumer<AstPlayer, String> questCompletedListener = (player, questId) -> { };
@@ -199,20 +204,7 @@ public final class QuestService {
         this.particleDisplayService = particleDisplayService;
         this.asyncExecutor = asyncExecutor;
         this.mainExecutor = mainExecutor;
-        this.persistenceCoordinator = new QuestStatePersistenceCoordinator(
-            new QuestStatePersistenceCoordinator.StateStorage() {
-                @Override
-                public @NotNull QuestPlayerState load(@NotNull UUID accountId) {
-                    return stateRepository.load(accountId);
-                }
-
-                @Override
-                public void save(@NotNull QuestPlayerState state) {
-                    stateRepository.save(state);
-                }
-            },
-            asyncExecutor
-        );
+        this.persistenceCoordinator = new QuestStatePersistenceCoordinator(stateRepository::load);
     }
 
     /** クエスト状態の定期保存タスクを開始します。 */
@@ -234,28 +226,15 @@ public final class QuestService {
      */
     public void stop() {
         stopping = true;
-        persistenceCoordinator.beginShutdown();
         if (saveTask != null) {
             saveTask.cancel();
             saveTask = null;
         }
         for (QuestPlayerState state : List.copyOf(states.values())) {
-            persistenceCoordinator.recordLatest(state);
-            dirtyStates.add(state.accountId());
-            saveDueAtMillis.put(state.accountId(), 0L);
+            markStateChanged(state, false);
         }
-        for (UUID accountId : persistenceCoordinator.accountIds()) {
-            persistenceCoordinator.flushLatest(accountId);
-        }
-        persistenceCoordinator.awaitAll();
-        persistenceCoordinator.retryOutstandingSynchronously();
-        states.clear();
-        dirtyStates.clear();
-        saveDueAtMillis.clear();
         pendingRewardClaims.clear();
-        rewardPersistenceRetries.clear();
         rewardProcessingTails.clear();
-        persistenceCoordinator.clear();
     }
 
     /**
@@ -306,15 +285,31 @@ public final class QuestService {
      * @param accountId 対象アカウント ID
      */
     public void releaseState(@NotNull UUID accountId) {
-        QuestPlayerState current = states.remove(accountId);
+        QuestPlayerState current = states.get(accountId);
         if (current == null) {
             return;
         }
         persistenceCoordinator.recordLatest(current);
         persistenceCoordinator.markReleased(accountId);
-        dirtyStates.add(accountId);
-        saveDueAtMillis.put(accountId, 0L);
-        flushStateAsync(accountId);
+        releaseWhenAcknowledged.add(accountId);
+        if (!pendingStateRevisions.containsKey(accountId)) {
+            states.remove(accountId, current);
+            releaseWhenAcknowledged.remove(accountId);
+            persistenceCoordinator.evictReleased(accountId);
+        }
+    }
+
+    /**
+     * runtime state を保持したまま、現在のクエスト状態を API/SQL へ即時保存します。
+     * チャンネル移動はこの Future の正常完了を ACK として扱います。
+     *
+     * @param accountId 対象アカウント ID
+     * @return 最新世代の保存完了 Future
+     */
+    public @NotNull CompletableFuture<Void> flushState(@NotNull UUID accountId) {
+        return inventoryService.saveForBoundary(accountId).thenCompose(saved -> Boolean.TRUE.equals(saved)
+            ? CompletableFuture.completedFuture(null)
+            : CompletableFuture.failedFuture(new IllegalStateException("quest_state_not_persisted")));
     }
 
     public int loadAll() {
@@ -427,19 +422,56 @@ public final class QuestService {
             send(player, PlayerMsgId.P_6600);
             return false;
         }
-        if (state.activeQuests().size() >= maxActiveQuests(player)) {
+        int maxActive = maxActiveQuests(player);
+        if (state.activeQuests().size() >= maxActive) {
             send(player, PlayerMsgId.P_6601);
             return false;
         }
-        if (!consumeRequirements(player, quest)) {
-            send(player, PlayerMsgId.P_6602);
-            return false;
-        }
-        state.activeQuests().put(quest.id(), QuestProgress.start(quest, stripNullablePrefix(npcId)));
-        save(state);
-        questAcceptedListener.accept(player, quest.id());
-        send(player, PlayerMsgId.P_6603, quest.name());
-        player.getBukkit().playSound(player.getBukkit().getLocation(), Sound.UI_TOAST_IN, SoundCategory.PLAYERS, 0.7F, 1.1F);
+        UUID accountId = state.accountId();
+        String acceptedNpcId = stripNullablePrefix(npcId);
+        inventoryService.executeCriticalPlayerMutation(accountId, () -> {
+            InventoryService.InventoryStateSnapshot inventoryBefore = inventoryService.snapshotState(accountId);
+            if (inventoryBefore == null) {
+                throw new QuestAcceptRejectedException(false);
+            }
+            QuestMutationCheckpoint questBefore;
+            synchronized (this) {
+                QuestPlayerState current = states.get(accountId);
+                if (current != state || current.activeQuests().containsKey(quest.id())
+                    || current.activeQuests().size() >= maxActive) {
+                    throw new QuestAcceptRejectedException(false);
+                }
+                questBefore = captureQuestMutation(accountId, current);
+            }
+            if (!consumeRequirementsStateOnly(accountId, quest)) {
+                inventoryService.restoreState(inventoryBefore);
+                throw new QuestAcceptRejectedException(true);
+            }
+            synchronized (this) {
+                state.activeQuests().put(quest.id(), QuestProgress.start(quest, acceptedNpcId));
+                markStateChanged(state, false);
+            }
+            return new io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator.CriticalMutation<>(
+                true,
+                () -> {
+                    inventoryService.restoreState(inventoryBefore);
+                    restoreQuestMutation(accountId, state, questBefore);
+                }
+            );
+        }).whenComplete((accepted, failure) -> mainExecutor.execute(() -> {
+            if (failure != null || !Boolean.TRUE.equals(accepted)) {
+                Throwable cause = unwrapFailure(failure);
+                send(player, cause instanceof QuestAcceptRejectedException rejected && rejected.requirementFailure
+                    ? PlayerMsgId.P_6602
+                    : cause instanceof QuestAcceptRejectedException
+                        ? PlayerMsgId.P_6600
+                        : criticalSaveFailed(cause) ? PlayerMsgId.P_6609 : PlayerMsgId.P_6606);
+                return;
+            }
+            questAcceptedListener.accept(player, quest.id());
+            send(player, PlayerMsgId.P_6603, quest.name());
+            player.getBukkit().playSound(player.getBukkit().getLocation(), Sound.UI_TOAST_IN, SoundCategory.PLAYERS, 0.7F, 1.1F);
+        }));
         return true;
     }
 
@@ -529,6 +561,7 @@ public final class QuestService {
             if (quest == null || progress.readyToTurnIn()) {
                 continue;
             }
+            boolean progressChanged = false;
             for (QuestObjectiveDefinition objective : quest.objectives()) {
                 if (objective.type() != type
                     || !objective.targetId().equalsIgnoreCase(stripPrefix(targetId))
@@ -538,18 +571,23 @@ public final class QuestService {
                 int next = Math.min(objective.amount(), progress.progress(objective.id()) + 1);
                 if (next != progress.progress(objective.id())) {
                     progress.setProgress(objective.id(), next);
-                    changed = true;
+                    progressChanged = true;
                 }
             }
             if (isComplete(quest, progress)) {
                 if (quest.isAutoReward()) {
-                    complete(player, state, quest);
+                    // complete() は ready 状態の通常保存と、報酬を含む critical snapshot を担当する。
+                    // 開始できなかった場合だけ、この呼出で進んだ objective を通常保存へ残す。
+                    if (complete(player, state, quest)) {
+                        progressChanged = false;
+                    }
                 } else {
                     progress.readyToTurnIn(true);
-                    changed = true;
+                    progressChanged = true;
                     notifyReady(player, quest);
                 }
             }
+            changed |= progressChanged;
         }
         if (changed) {
             save(state);
@@ -703,36 +741,14 @@ public final class QuestService {
                     continue;
                 }
                 for (int index = 0; index < item.amount(); index++) {
-                    UUID instanceId = prepareEquipmentInstance(model, accountId);
-                    if (instanceId == null) {
-                        return PreparedRewards.failure(stackRewards, instanceRewards);
-                    }
                     instanceRewards.add(new PreparedInstanceReward(
-                        model, InventoryInstanceType.EQUIPMENT, instanceId));
+                        model, InventoryInstanceType.EQUIPMENT, null));
                 }
             }
             return PreparedRewards.success(stackRewards, instanceRewards);
         } catch (RuntimeException exception) {
             Logger.log(LogId.W_6601, exception, accountId, quest.id(), exception.getMessage());
             return PreparedRewards.failure(stackRewards, instanceRewards);
-        }
-    }
-
-    private @Nullable UUID prepareEquipmentInstance(
-        @NotNull ItemModel model,
-        @NotNull UUID accountId
-    ) {
-        EquipmentInstance instance = itemService.createEquipmentInstance(
-            model.getId(), accountId.toString(), REWARD_SOURCE, accountId.toString());
-        String instanceId = instance == null ? null : instance.getEquipmentInstanceId();
-        if (instanceId == null) {
-            return null;
-        }
-        try {
-            return UUID.fromString(instanceId);
-        } catch (IllegalArgumentException exception) {
-            itemService.deleteEquipmentInstance(instanceId);
-            return null;
         }
     }
 
@@ -781,126 +797,65 @@ public final class QuestService {
             completeRewardProcessing(expectedState.accountId(), rewardProcessing);
             return false;
         }
-        AppliedRewards applied = inventoryService.executeLocalPlayerMutation(
-            expectedState.accountId(),
-            () -> applyPreparedRewards(player, quest, prepared)
-        );
-        if (applied == null) {
-            cleanupPreparedInstances(prepared);
-            pendingRewardClaims.remove(claimKey, claimId);
-            send(player, PlayerMsgId.P_6606);
-            completeRewardProcessing(expectedState.accountId(), rewardProcessing);
-            return false;
-        }
-
-        currentState.activeQuests().remove(quest.id());
-        long now = System.currentTimeMillis();
-        currentState.completedAt().put(quest.id(), now);
-        if (quest.repeatMode() == QuestRepeatMode.COOLDOWN && quest.cooldownSeconds() > 0L) {
-            currentState.cooldownUntil().put(quest.id(), now + quest.cooldownSeconds() * 1000L);
-        }
-        // 保存開始後の失敗は応答不明も含むため、報酬や後続操作を補償で巻き戻さない。
-        save(currentState);
-        continueRewardPersistence(player, currentState, quest, claimKey, claimId,
-            applied, rewardProcessing, onCompleted, 0);
-        return true;
-    }
-
-    /**
-     * 最新quest保存とinventory保存を順に試み、失敗時は完了状態とclaimを保持して再送します。
-     * 再送では報酬を再付与せず、coordinatorにある最新世代を使い、後続quest進行も保持します。
-     *
-     * @param player 対象プレイヤー
-     * @param currentState 完了をローカル確定した状態
-     * @param quest 対象クエスト
-     * @param claimKey 多重受取防止キー
-     * @param claimId 今回の受取要求ID
-     * @param applied 反映済み報酬
-     * @param rewardProcessing account単位の待機Future
-     * @param onCompleted 保存成功後のcallback
-     * @param attempt 再試行回数
-     */
-    private void continueRewardPersistence(
-        @NotNull AstPlayer player,
-        @NotNull QuestPlayerState currentState,
-        @NotNull QuestDefinition quest,
-        @NotNull RewardClaimKey claimKey,
-        @NotNull UUID claimId,
-        @NotNull AppliedRewards applied,
-        @NotNull CompletableFuture<Void> rewardProcessing,
-        @NotNull Runnable onCompleted,
-        int attempt
-    ) {
-        if (!claimId.equals(pendingRewardClaims.get(claimKey))) {
-            return;
-        }
-        CompletableFuture<Boolean> persistence;
-        try {
-            persistence = persistenceCoordinator.flushLatest(currentState.accountId()).thenCompose(ignored -> {
-                // 通常flush/logoutと同じtailへ合流した場合、tail自体は失敗を吸収する。
-                // 完了だけを成功とせず、最新世代の保存済み状態も確認する。
-                if (!persistenceCoordinator.isLatestPersisted(currentState.accountId())) {
-                    return CompletableFuture.failedFuture(new IllegalStateException("quest_state_not_persisted"));
+        UUID accountId = expectedState.accountId();
+        inventoryService.executeCriticalPlayerMutation(accountId, () -> {
+            Runnable equipmentRollback = itemService.captureEquipmentStateRollback(accountId);
+            QuestMutationCheckpoint questBefore;
+            synchronized (this) {
+                QuestPlayerState latest = states.get(accountId);
+                QuestProgress latestProgress = latest == null ? null : latest.activeQuests().get(quest.id());
+                if (latest != currentState || latestProgress == null || !latestProgress.readyToTurnIn()) {
+                    throw new IllegalStateException("Quest completion state changed");
                 }
-                return applied.inventorySnapshot() == null && !applied.progressChanged()
-                    ? CompletableFuture.completedFuture(true)
-                    : inventoryService.saveNow(currentState.accountId());
-            });
-        } catch (RuntimeException exception) {
-            persistence = CompletableFuture.failedFuture(exception);
-        }
-        persistence.whenComplete((saved, failure) -> {
-            Runnable completion = () -> {
-                if (!claimId.equals(pendingRewardClaims.get(claimKey))) {
-                    return;
-                }
-                if (failure == null && Boolean.TRUE.equals(saved)) {
-                    rewardPersistenceRetries.remove(claimKey);
-                    clearPersistedMarker(currentState.accountId());
-                    finishRewardPersistence(player, currentState, quest, claimKey, claimId,
-                        rewardProcessing, onCompleted);
-                } else {
-                    Throwable cause = unwrapFailure(failure);
-                    if (cause == null) {
-                        Logger.warn(LogId.W_5071, "quest_reward", quest.id(), currentState.accountId(), "save_returned_false");
-                    } else {
-                        Logger.error(LogId.W_5071, cause, "quest_reward", quest.id(), currentState.accountId(), cause.getClass().getSimpleName());
-                    }
-                    scheduleRewardPersistenceRetry(claimKey, attempt, () ->
-                        continueRewardPersistence(player, currentState, quest, claimKey, claimId,
-                            applied, rewardProcessing, onCompleted, attempt + 1));
-                }
-            };
+                questBefore = captureQuestMutation(accountId, latest);
+            }
+            AppliedRewards applied = null;
             try {
-                mainExecutor.execute(completion);
-            } catch (RuntimeException exception) {
-                // 完了処理の受付失敗でもclaimを保持する。成功済み保存を報酬取消へ変換しない。
-                Logger.error(LogId.W_5071, exception, "quest_reward_completion", quest.id(), currentState.accountId(), exception.getClass().getSimpleName());
-                scheduleRewardPersistenceRetry(claimKey, attempt, completion);
+                applied = applyPreparedRewards(player, quest, prepared);
+                if (applied == null) {
+                    throw new IllegalStateException("Quest rewards could not be applied");
+                }
+                synchronized (this) {
+                    currentState.activeQuests().remove(quest.id());
+                    long now = System.currentTimeMillis();
+                    currentState.completedAt().put(quest.id(), now);
+                    if (quest.repeatMode() == QuestRepeatMode.COOLDOWN && quest.cooldownSeconds() > 0L) {
+                        currentState.cooldownUntil().put(quest.id(), now + quest.cooldownSeconds() * 1000L);
+                    }
+                    markStateChanged(currentState, false);
+                }
+                AppliedRewards completedRewards = applied;
+                return new io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator.CriticalMutation<>(
+                    completedRewards,
+                    () -> {
+                        rollbackAppliedRewards(player, completedRewards, quest.id());
+                        equipmentRollback.run();
+                        restoreQuestMutation(accountId, currentState, questBefore);
+                    }
+                );
+            } catch (RuntimeException | Error failure) {
+                if (applied != null) rollbackAppliedRewards(player, applied, quest.id());
+                equipmentRollback.run();
+                restoreQuestMutation(accountId, currentState, questBefore);
+                throw failure;
             }
-        });
-    }
-
-    /**
-     * 次の定期tickへ再送を予約します。同期executorでも再帰せず、1秒から最大60秒へbackoffします。
-     */
-    private void scheduleRewardPersistenceRetry(
-        @NotNull RewardClaimKey key, int attempt, @NotNull Runnable action
-    ) {
-        long delay = Math.min(60_000L, 1_000L << Math.min(6, Math.max(0, attempt)));
-        long dueAt = Math.max(System.currentTimeMillis() + delay,
-            persistenceCoordinator.retryNotBeforeMillis(key.accountId()));
-        rewardPersistenceRetries.put(key, new RewardPersistenceRetry(dueAt, action));
-    }
-
-    /** 定期tickで期限到来した報酬保存だけを一度取り出して再試行します。 */
-    void retryRewardPersistence(long now) {
-        for (var entry : List.copyOf(rewardPersistenceRetries.entrySet())) {
-            RewardPersistenceRetry retry = entry.getValue();
-            if (retry.dueAtMillis() <= now && rewardPersistenceRetries.remove(entry.getKey(), retry)) {
-                retry.action().run();
+        }).whenComplete((applied, failure) -> mainExecutor.execute(() -> {
+            if (failure != null || applied == null) {
+                cleanupPreparedInstances(prepared);
+                pendingRewardClaims.remove(claimKey, claimId);
+                inventoryService.refreshManagedInventoryUi(player);
+                send(player, criticalSaveFailed(unwrapFailure(failure))
+                    ? PlayerMsgId.P_6609
+                    : PlayerMsgId.P_6606);
+                completeRewardProcessing(accountId, rewardProcessing);
+                return;
             }
-        }
+            inventoryService.refreshManagedInventoryUi(player);
+            refreshRewardDerivedState(player, applied);
+            finishRewardPersistence(player, currentState, quest, claimKey, claimId,
+                rewardProcessing, onCompleted);
+        }));
+        return true;
     }
 
     /**
@@ -968,6 +923,11 @@ public final class QuestService {
         return failure.getCause() == null ? failure : failure.getCause();
     }
 
+    private boolean criticalSaveFailed(@Nullable Throwable failure) {
+        return failure instanceof InventorySaveCoordinator.CriticalPlayerStateSaveException
+            || failure instanceof InventorySaveCoordinator.ExternalOperationPendingException;
+    }
+
     private @Nullable AppliedRewards applyPreparedRewards(
         @NotNull AstPlayer player,
         @NotNull QuestDefinition quest,
@@ -989,12 +949,12 @@ public final class QuestService {
         }
         boolean progressChanged = false;
         try {
-            if (quest.rewards().gold() > 0L && !inventoryService.addGold(player, quest.rewards().gold())) {
+            if (quest.rewards().gold() > 0L && !inventoryService.addGoldStateOnly(accountId, quest.rewards().gold())) {
                 inventoryService.restoreState(inventorySnapshot);
                 return null;
             }
             for (ResolvedItemReward itemReward : prepared.stackRewards()) {
-                int added = inventoryService.addItemToNormalInventory(
+                int added = inventoryService.addItemToNormalInventoryStateOnly(
                     player,
                     itemReward.model(),
                     itemReward.amount(),
@@ -1006,11 +966,20 @@ public final class QuestService {
                 }
             }
             for (PreparedInstanceReward instanceReward : prepared.instanceRewards()) {
-                int added = inventoryService.addPreparedInstanceToNormalInventory(
+                UUID instanceId = instanceReward.instanceId();
+                if (instanceId == null) {
+                    EquipmentInstance created = itemService.createLocalEquipmentInstance(instanceReward.model(), accountId);
+                    if (created == null) {
+                        inventoryService.restoreState(inventorySnapshot);
+                        return null;
+                    }
+                    instanceId = UUID.fromString(created.getEquipmentInstanceId());
+                }
+                int added = inventoryService.addPreparedInstanceToNormalInventoryStateOnly(
                     player,
                     instanceReward.model(),
                     instanceReward.instanceType(),
-                    instanceReward.instanceId()
+                    instanceId
                 );
                 if (added != 1) {
                     inventoryService.restoreState(inventorySnapshot);
@@ -1026,17 +995,10 @@ public final class QuestService {
                 );
                 progressChanged = true;
                 player.setAccount(result.updatedAccount());
-                ClassExperienceResult classProgress = playerClassService.grantClassExperience(
+                playerClassService.grantClassExperienceStateOnly(
                     player,
                     quest.rewards().exp()
                 );
-                if (result.leveledUp() || classProgress.getLeveledUp()) {
-                    if (skillTreeService != null) {
-                        skillTreeService.refreshProgressDerivedState(player);
-                    } else {
-                        statusService.refreshStatus(player);
-                    }
-                }
             }
             return new AppliedRewards(
                 inventorySnapshot,
@@ -1100,11 +1062,6 @@ public final class QuestService {
                 applied.previousAccount(),
                 player.getUser().getUuid()
             );
-            if (skillTreeService != null) {
-                skillTreeService.refreshProgressDerivedState(player);
-            }
-            statusService.refreshStatus(player);
-            playerClassService.updatePlayerListName(player);
         } catch (RuntimeException exception) {
             Logger.log(
                 LogId.W_6606,
@@ -1115,17 +1072,30 @@ public final class QuestService {
         }
     }
 
+    private void refreshRewardDerivedState(@NotNull AstPlayer player, @NotNull AppliedRewards applied) {
+        if (!applied.progressChanged()) {
+            return;
+        }
+        if (skillTreeService != null) {
+            skillTreeService.refreshProgressDerivedState(player);
+        } else {
+            statusService.refreshStatus(player);
+        }
+        playerClassService.updatePlayerListName(player);
+    }
+
     private void cleanupPreparedInstances(@NotNull PreparedRewards prepared) {
         List<UUID> equipmentInstanceIds = prepared.instanceRewards().stream()
             .filter(reward -> reward.instanceType() == InventoryInstanceType.EQUIPMENT)
             .map(PreparedInstanceReward::instanceId)
+            .filter(java.util.Objects::nonNull)
             .toList();
         if (equipmentInstanceIds.isEmpty()) {
             return;
         }
-        asyncExecutor.execute(() -> equipmentInstanceIds.forEach(instanceId ->
-            itemService.deleteEquipmentInstance(instanceId.toString())
-        ));
+        equipmentInstanceIds.forEach(instanceId ->
+            itemService.evictEquipmentInstanceFromCache(instanceId.toString())
+        );
     }
 
     private boolean canMeetRequirements(@NotNull AstPlayer player, @NotNull QuestDefinition quest) {
@@ -1138,17 +1108,12 @@ public final class QuestService {
         return true;
     }
 
-    private boolean consumeRequirements(@NotNull AstPlayer player, @NotNull QuestDefinition quest) {
-        if (!canMeetRequirements(player, quest)) {
-            return false;
-        }
-        UUID accountId = player.getAccount().getUuid();
+    private boolean consumeRequirementsStateOnly(@NotNull UUID accountId, @NotNull QuestDefinition quest) {
         for (Map.Entry<String, Long> requirement : aggregateRequirementAmounts(quest, true).entrySet()) {
             if (!inventoryService.consumeNormalItem(accountId, requirement.getKey(), requirement.getValue())) {
                 return false;
             }
         }
-        saveInventory(accountId);
         return true;
     }
 
@@ -1174,10 +1139,6 @@ public final class QuestService {
             );
         }
         return amounts;
-    }
-
-    private void saveInventory(@NotNull UUID accountId) {
-        asyncExecutor.execute(() -> inventoryService.saveNow(accountId));
     }
 
     /**
@@ -1227,13 +1188,113 @@ public final class QuestService {
     }
 
     private void save(@NotNull QuestPlayerState state) {
+        markStateChanged(state, true);
+    }
+
+    private void markStateChanged(@NotNull QuestPlayerState state, boolean enqueueSave) {
         persistenceCoordinator.recordLatest(state);
+        long revision = stateRevisions.merge(state.accountId(), 1L, Math::addExact);
+        pendingStateRevisions.put(state.accountId(), revision);
         dirtyStates.add(state.accountId());
         saveDueAtMillis.put(state.accountId(), System.currentTimeMillis() + SAVE_DEBOUNCE_MILLIS);
+        if (enqueueSave) {
+            inventoryService.queueLocalPlayerSave(state.accountId());
+        }
+    }
+
+    private @NotNull QuestMutationCheckpoint captureQuestMutation(
+        @NotNull UUID accountId,
+        @NotNull QuestPlayerState state
+    ) {
+        return new QuestMutationCheckpoint(
+            state.snapshot(),
+            stateRevisions.get(accountId),
+            pendingStateRevisions.get(accountId),
+            dirtyStates.contains(accountId),
+            saveDueAtMillis.get(accountId),
+            releaseWhenAcknowledged.contains(accountId)
+        );
+    }
+
+    private void restoreQuestMutation(
+        @NotNull UUID accountId,
+        @NotNull QuestPlayerState state,
+        @NotNull QuestMutationCheckpoint checkpoint
+    ) {
+        synchronized (this) {
+            state.restore(checkpoint.state);
+            states.put(accountId, state);
+            restoreMapValue(stateRevisions, accountId, checkpoint.revision);
+            restoreMapValue(pendingStateRevisions, accountId, checkpoint.pendingRevision);
+            restoreMapValue(saveDueAtMillis, accountId, checkpoint.saveDueAtMillis);
+            if (checkpoint.dirty) dirtyStates.add(accountId);
+            else dirtyStates.remove(accountId);
+            if (checkpoint.releaseWhenAcknowledged) releaseWhenAcknowledged.add(accountId);
+            else releaseWhenAcknowledged.remove(accountId);
+            persistenceCoordinator.recordLatest(state);
+        }
+    }
+
+    private static <T> void restoreMapValue(
+        @NotNull Map<UUID, T> values,
+        @NotNull UUID accountId,
+        @Nullable T value
+    ) {
+        if (value == null) values.remove(accountId);
+        else values.put(accountId, value);
     }
 
     boolean hasPendingSave(@NotNull UUID accountId) {
-        return persistenceCoordinator.hasPendingSave(accountId);
+        return pendingStateRevisions.containsKey(accountId);
+    }
+
+    /** inventory と同じ SQL transaction へ含めるクエスト完成状態を捕捉します。 */
+    public @Nullable PlayerStateSection snapshotPlayerState(@NotNull UUID accountId) {
+        final QuestPlayerState captured;
+        final long capturedRevision;
+        synchronized (this) {
+            Long pendingRevision = pendingStateRevisions.get(accountId);
+            QuestPlayerState current = states.get(accountId);
+            if (pendingRevision == null || current == null) {
+                return null;
+            }
+            captured = current.snapshot();
+            capturedRevision = pendingRevision;
+        }
+        JsonObject payload = stateRepository.createSnapshotSection(captured, capturedRevision);
+        return new PlayerStateSection("questState", payload,
+            acknowledged -> acknowledgeSnapshot(accountId, captured, capturedRevision, acknowledged));
+    }
+
+    private void acknowledgeSnapshot(
+        @NotNull UUID accountId,
+        @NotNull QuestPlayerState captured,
+        long capturedRevision,
+        @NotNull JsonElement acknowledged
+    ) {
+        if (!acknowledged.isJsonObject()) {
+            throw new IllegalStateException("Quest acknowledgement must be an object");
+        }
+        JsonObject ack = acknowledged.getAsJsonObject();
+        if (!ack.has("clientRevision") || ack.get("clientRevision").getAsLong() != capturedRevision
+            || !ack.has("version") || ack.get("version").getAsInt() != captured.persistedVersion() + 1) {
+            throw new IllegalStateException("Quest acknowledgement version mismatch");
+        }
+        int persistedVersion = ack.get("version").getAsInt();
+        synchronized (this) {
+            QuestPlayerState current = states.get(accountId);
+            if (current != null && current.persistedVersion() == captured.persistedVersion()) {
+                current.acknowledgePersistedVersion(persistedVersion);
+                persistenceCoordinator.recordLatest(current);
+            }
+            pendingStateRevisions.computeIfPresent(accountId,
+                (ignored, revision) -> revision == capturedRevision ? null : revision);
+            clearPersistedMarker(accountId);
+            if (!pendingStateRevisions.containsKey(accountId) && releaseWhenAcknowledged.remove(accountId)) {
+                states.remove(accountId);
+                persistenceCoordinator.evictReleased(accountId);
+            }
+        }
     }
 
     boolean hasPendingRewardClaim(@NotNull UUID accountId, @NotNull String questId) {
@@ -1242,16 +1303,14 @@ public final class QuestService {
 
     private void flushDueStates() {
         long now = System.currentTimeMillis();
-        retryRewardPersistence(now);
         for (UUID accountId : List.copyOf(dirtyStates)) {
             clearPersistedMarker(accountId);
             if (!dirtyStates.contains(accountId)) {
-                persistenceCoordinator.evictReleasedPersisted(accountId);
+                persistenceCoordinator.evictReleased(accountId);
                 continue;
             }
             long saveDueAt = saveDueAtMillis.getOrDefault(accountId, Long.MAX_VALUE);
-            long retryNotBefore = persistenceCoordinator.retryNotBeforeMillis(accountId);
-            if (Math.max(saveDueAt, retryNotBefore) > now) {
+            if (saveDueAt > now) {
                 continue;
             }
             flushStateAsync(accountId);
@@ -1259,15 +1318,12 @@ public final class QuestService {
     }
 
     private void flushStateAsync(@NotNull UUID accountId) {
-        CompletableFuture<Void> future = persistenceCoordinator.flushLatest(accountId);
-        future.thenRun(() -> {
-            clearPersistedMarker(accountId);
-            persistenceCoordinator.evictReleasedPersisted(accountId);
-        });
+        inventoryService.queueLocalPlayerSave(accountId);
+        saveDueAtMillis.put(accountId, System.currentTimeMillis() + SAVE_DEBOUNCE_MILLIS);
     }
 
     private void clearPersistedMarker(@NotNull UUID accountId) {
-        if (persistenceCoordinator.isLatestPersisted(accountId)) {
+        if (!pendingStateRevisions.containsKey(accountId)) {
             dirtyStates.remove(accountId);
             saveDueAtMillis.remove(accountId);
         }
@@ -1330,7 +1386,7 @@ public final class QuestService {
     private record PreparedInstanceReward(
         @NotNull ItemModel model,
         @NotNull InventoryInstanceType instanceType,
-        @NotNull UUID instanceId
+        @Nullable UUID instanceId
     ) {
     }
 
@@ -1369,9 +1425,25 @@ public final class QuestService {
     ) {
     }
 
-    private record RewardPersistenceRetry(long dueAtMillis, @NotNull Runnable action) {
+    private record RewardClaimKey(@NotNull UUID accountId, @NotNull String questId) {
     }
 
-    private record RewardClaimKey(@NotNull UUID accountId, @NotNull String questId) {
+    private record QuestMutationCheckpoint(
+        @NotNull QuestPlayerState state,
+        @Nullable Long revision,
+        @Nullable Long pendingRevision,
+        boolean dirty,
+        @Nullable Long saveDueAtMillis,
+        boolean releaseWhenAcknowledged
+    ) {
+    }
+
+    private static final class QuestAcceptRejectedException extends IllegalStateException {
+        private static final long serialVersionUID = 1L;
+        private final boolean requirementFailure;
+
+        private QuestAcceptRejectedException(boolean requirementFailure) {
+            this.requirementFailure = requirementFailure;
+        }
     }
 }

@@ -27,7 +27,7 @@ class SetEffectRepository {
     fun findAll(): List<SetEffect> {
         val path = "/api/seteffect"
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 return when (response.statusCode()) {
@@ -54,7 +54,7 @@ class SetEffectRepository {
         val path = "/api/seteffect/$encodedSetId"
 
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 return when (response.statusCode()) {

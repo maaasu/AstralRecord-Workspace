@@ -8,10 +8,8 @@ import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentLoadoutSlo
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryProfile
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil
 import java.io.IOException
-import java.net.URLEncoder
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
-import java.nio.charset.StandardCharsets
 import java.time.LocalDateTime
 import java.time.OffsetDateTime
 import java.time.format.DateTimeFormatter
@@ -35,81 +33,9 @@ class EquipmentLoadoutRepository {
         return sendGetSingle(path, ::parseLoadoutModel)
     }
 
-    fun create(
-        accountId: UUID,
-        loadoutName: String,
-        createdBy: UUID,
-        loadoutProfile: InventoryProfile = InventoryProfile.GAME,
-        sortOrder: Int = 0,
-        isActive: Boolean = false,
-        metadataJson: String? = null,
-    ): EquipmentLoadoutModel {
-        val body = ApiRequestUtil.buildJsonBody {
-            addProperty("accountId", accountId.toString())
-            addProperty("loadoutProfile", loadoutProfile.code)
-            addProperty("loadoutName", loadoutName)
-            addProperty("sortOrder", sortOrder)
-            addProperty("isActive", isActive)
-            if (metadataJson != null) {
-                addProperty("metadataJson", metadataJson)
-            } else {
-                addProperty("metadataJson", null as String?)
-            }
-            addProperty("createdBy", createdBy.toString())
-        }
-        return sendWithBody("/api/equipment/loadouts", "POST", body, ::parseLoadoutModel)
-    }
-
-    fun activate(loadoutId: UUID, updatedBy: UUID): EquipmentLoadoutModel? {
-        val body = ApiRequestUtil.buildJsonBody {
-            addProperty("updatedBy", updatedBy.toString())
-        }
-        return sendWithNullableBody("/api/equipment/loadouts/$loadoutId/activate", "POST", body, ::parseLoadoutModel)
-    }
-
-    fun upsertSlot(
-        loadoutId: UUID,
-        slotType: String,
-        slotIndex: Int,
-        equipmentInstanceId: UUID,
-        updatedBy: UUID,
-    ): EquipmentLoadoutSlotModel? {
-        val body = ApiRequestUtil.buildJsonBody {
-            addProperty("slotType", slotType)
-            addProperty("slotIndex", slotIndex)
-            addProperty("equipmentInstanceId", equipmentInstanceId.toString())
-            addProperty("updatedBy", updatedBy.toString())
-        }
-        return sendWithNullableBody("/api/equipment/loadouts/$loadoutId/slots", "PUT", body, ::parseSlotModel)
-    }
-
-    fun deleteSlot(
-        loadoutId: UUID,
-        slotType: String,
-        slotIndex: Int,
-        updatedBy: UUID,
-    ): Boolean {
-        val encodedSlotType = URLEncoder.encode(slotType, StandardCharsets.UTF_8)
-        val path = "/api/equipment/loadouts/$loadoutId/slots/$encodedSlotType/$slotIndex?updated_by=$updatedBy"
-        try {
-            ApiRequestUtil.buildClient().use { client ->
-                val request = ApiRequestUtil.buildRequestBuilder(path).DELETE().build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-                return when (response.statusCode()) {
-                    204 -> true
-                    404 -> false
-                    else -> throw IOException("Unexpected status ${response.statusCode()} for DELETE $path")
-                }
-            }
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-            throw RuntimeException(e)
-        }
-    }
-
     private fun <T> sendGetList(path: String, parser: (String) -> List<T>): List<T> {
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 return when (response.statusCode()) {
@@ -127,40 +53,13 @@ class EquipmentLoadoutRepository {
 
     private fun <T> sendGetSingle(path: String, parser: (String) -> T): T? {
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 return when (response.statusCode()) {
                     200 -> parser(response.body())
                     404 -> null
                     else -> throw IOException("Unexpected status ${response.statusCode()} for GET $path")
-                }
-            }
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-            throw RuntimeException(e)
-        }
-    }
-
-    private fun <T> sendWithBody(path: String, method: String, body: String, parser: (String) -> T): T {
-        return sendWithNullableBody(path, method, body, parser)
-            ?: throw IOException("Unexpected 404 for $method $path")
-    }
-
-    private fun <T> sendWithNullableBody(path: String, method: String, body: String, parser: (String) -> T): T? {
-        try {
-            ApiRequestUtil.buildClient().use { client ->
-                val builder = ApiRequestUtil.buildRequestBuilder(path)
-                val request = when (method) {
-                    "POST" -> builder.POST(HttpRequest.BodyPublishers.ofString(body)).build()
-                    "PUT" -> builder.PUT(HttpRequest.BodyPublishers.ofString(body)).build()
-                    else -> throw IllegalArgumentException("Unsupported method: $method")
-                }
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-                return when (response.statusCode()) {
-                    in 200..299 -> parser(response.body())
-                    404 -> null
-                    else -> throw IOException("Unexpected status ${response.statusCode()} for $method $path")
                 }
             }
         } catch (e: InterruptedException) {

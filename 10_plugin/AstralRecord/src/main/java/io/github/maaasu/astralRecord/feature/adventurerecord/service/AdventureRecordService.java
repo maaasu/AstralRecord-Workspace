@@ -1,6 +1,7 @@
 package io.github.maaasu.astralRecord.feature.adventurerecord.service;
 
 import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureDungeonRecord;
 import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureMobRecord;
 import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureRecordListType;
 import io.github.maaasu.astralRecord.feature.adventurerecord.repository.AdventureRecordRepository;
@@ -15,8 +16,6 @@ import io.github.maaasu.astralRecord.feature.mob.service.MobService;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKey;
 import io.github.maaasu.astralRecord.feature.playersetting.service.PlayerSettingService;
-import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
-import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -39,6 +38,7 @@ public class AdventureRecordService {
     private final MobService mobService;
     private final PlayerSettingService playerSettingService;
     private final LootService lootService;
+    private final AdventureRecordStateService stateService;
 
     /**
      * 冒険記録サービスを構築します。
@@ -48,19 +48,22 @@ public class AdventureRecordService {
      * @param mobService Mob テンプレートサービス
      * @param playerSettingService プレイヤー設定サービス
      * @param lootService ロード済み LootTable の参照サービス
+     * @param stateService 討伐・踏破差分の完成スナップショット参加サービス
      */
     public AdventureRecordService(
         @NotNull AstralRecord plugin,
         @NotNull AdventureRecordRepository repository,
         @NotNull MobService mobService,
         @NotNull PlayerSettingService playerSettingService,
-        @NotNull LootService lootService
+        @NotNull LootService lootService,
+        @NotNull AdventureRecordStateService stateService
     ) {
         this.plugin = plugin;
         this.repository = repository;
         this.mobService = mobService;
         this.playerSettingService = playerSettingService;
         this.lootService = lootService;
+        this.stateService = stateService;
     }
 
     /**
@@ -149,24 +152,26 @@ public class AdventureRecordService {
     }
 
     /**
-     * Mob 討伐を非同期に記録します。
+     * Mob 討伐をローカル差分へ即時記録し、account 保存 lane へ集約します。
      *
      * @param recipient 記録対象プレイヤー
      * @param template 討伐された Mob テンプレート
      */
-    public void recordDefeatAsync(@NotNull AstPlayer recipient, @NotNull MobTemplate template) {
+    public void recordDefeat(@NotNull AstPlayer recipient, @NotNull MobTemplate template) {
         if (template.category() != MobCategory.ENEMY && template.category() != MobCategory.BOSS) {
             return;
         }
-        UUID accountId = recipient.getAccount().getUuid();
-        UUID userId = recipient.getUser().getUuid();
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                repository.recordMobDefeat(accountId, template.id(), template.category(), userId);
-            } catch (RuntimeException ex) {
-                Logger.error(LogId.E_6550, ex, accountId, template.id());
-            }
-        });
+        stateService.recordMobDefeat(recipient.getAccount().getUuid(), template.id(), template.category());
+    }
+
+    /** Dungeon 踏破をローカル差分へ即時記録します。 */
+    public void recordDungeonClear(@NotNull AstPlayer player, @NotNull String dungeonId) {
+        stateService.recordDungeonClear(player.getAccount().getUuid(), dungeonId);
+    }
+
+    /** Dungeon archive の初期表示用に SQL 正本を取得します。 */
+    public @NotNull List<AdventureDungeonRecord> findDungeonRecords(@NotNull UUID accountId) {
+        return repository.findDungeonRecords(accountId);
     }
 
     /**

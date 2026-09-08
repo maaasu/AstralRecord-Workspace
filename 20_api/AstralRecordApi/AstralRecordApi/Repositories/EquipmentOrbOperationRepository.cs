@@ -37,6 +37,8 @@ public class EquipmentOrbOperationRepository(
             dbContext.ChangeTracker.Clear();
             await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
+            // account を全プレイヤー状態更新の先頭ロックにして、snapshot 保存との逆順待機を防ぐ。
+            await LockAccountAsync(request.AccountId);
             var existing = await FindLedgerForUpdateAsync(request.OperationId);
             if (existing is not null)
             {
@@ -664,6 +666,19 @@ public class EquipmentOrbOperationRepository(
         }
         return await dbContext.EquipmentOrbOperations
             .SingleOrDefaultAsync(operation => operation.OperationId == operationId);
+    }
+
+    private async Task LockAccountAsync(Guid accountId)
+    {
+        if (dbContext.Database.IsSqlServer())
+        {
+            await dbContext.Accounts.FromSqlInterpolated($"""
+                SELECT * FROM [dbo].[account] WITH (UPDLOCK, HOLDLOCK)
+                WHERE [uuid] = {accountId}
+                """).SingleOrDefaultAsync();
+            return;
+        }
+        await dbContext.Accounts.SingleOrDefaultAsync(account => account.Uuid == accountId);
     }
 
     private async Task<EquipmentInstanceEntity?> FindEquipmentForUpdateAsync(Guid equipmentInstanceId)

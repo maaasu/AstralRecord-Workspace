@@ -18,11 +18,24 @@ public sealed class PlayerStateSnapshotSaveRequest
     public JsonElement? SkillTree { get; init; }
     public JsonElement? AccountProgress { get; init; }
     public JsonElement? Waystones { get; init; }
+    public JsonElement? QuestState { get; init; }
+    public JsonElement? LoginBonusClaims { get; init; }
+    public JsonElement? GuideProgress { get; init; }
+    public JsonElement? AdventureRecords { get; init; }
+    public JsonElement? PlayerSettings { get; init; }
+    public JsonElement? MailClaim { get; init; }
+    public JsonElement? MailDelete { get; init; }
 }
 
 public sealed class PlayerStateInventorySnapshot
 {
     public Guid InventoryId { get; init; }
+    public bool IsNew { get; init; }
+    public string? InventoryType { get; init; }
+    public string? InventoryProfile { get; init; }
+    public int? SlotCapacity { get; init; }
+    /// <summary>新規 inventory の必須属性。既存 inventory では null。</summary>
+    public bool? IsEnabled { get; init; }
     public bool MetadataDirty { get; init; }
     public DateTime? ExpectedUpdatedAt { get; init; }
     public string? MetadataJson { get; init; }
@@ -53,7 +66,14 @@ public sealed class PlayerStateInventoryEntrySnapshot
 public sealed class PlayerStateLoadoutSnapshot
 {
     public Guid EquipmentLoadoutId { get; init; }
-    public DateTime ExpectedUpdatedAt { get; init; }
+    public bool IsNew { get; init; }
+    public string? LoadoutProfile { get; init; }
+    public string? LoadoutName { get; init; }
+    public int SortOrder { get; init; }
+    /// <summary>新規 loadout の必須属性。既存 loadout では null。</summary>
+    public bool? IsActive { get; init; }
+    public string? MetadataJson { get; init; }
+    public DateTime? ExpectedUpdatedAt { get; init; }
     public IReadOnlyList<PlayerStateLoadoutSlotSnapshot> Slots { get; init; } = [];
 }
 
@@ -67,14 +87,29 @@ public sealed class PlayerStateLoadoutSlotSnapshot
 public sealed class PlayerStateEquipmentSnapshot
 {
     public Guid EquipmentInstanceId { get; init; }
-    public DateTime ExpectedUpdatedAt { get; init; }
+    /// <summary>true の場合は Plugin が確定した新規個体をこの snapshot transaction 内で作成する。</summary>
+    public bool IsNew { get; init; }
+    /// <summary>新規作成時の装備マスタ ID。既存更新では null。</summary>
+    public string? ItemId { get; init; }
+    /// <summary>既存更新時の楽観ロック値。新規作成では null。</summary>
+    public DateTime? ExpectedUpdatedAt { get; init; }
     public int EnhanceLevel { get; init; }
     public int RuneMaxSlots { get; init; }
     public int TranscendenceRank { get; init; }
     public int? DurabilityMax { get; init; }
     public int? DurabilityValue { get; init; }
+    public IReadOnlyList<PlayerStateEquipmentStatRollSnapshot> StatRolls { get; init; } = [];
     public IReadOnlyList<PlayerStateEquipmentEnchantSnapshot> Enchants { get; init; } = [];
     public IReadOnlyList<PlayerStateEquipmentRuneSnapshot> Runes { get; init; } = [];
+}
+
+public sealed class PlayerStateEquipmentStatRollSnapshot
+{
+    public Guid StatRollId { get; init; }
+    public required string Status { get; init; }
+    public required string Min { get; init; }
+    public required string Max { get; init; }
+    public int SortOrder { get; init; }
 }
 
 public sealed class PlayerStateEquipmentEnchantSnapshot
@@ -182,6 +217,94 @@ public sealed class PlayerStateWaystonesSection
     public IReadOnlyList<string> UnlockedWaystoneIds { get; init; } = [];
 }
 
+/// <summary>クエスト進行全体を期待 version 付きで置換する section です。</summary>
+public sealed class PlayerStateQuestStateSection
+{
+    public Guid AccountId { get; init; }
+    public long ClientRevision { get; init; }
+    public int ExpectedVersion { get; init; }
+    public IReadOnlyList<AccountQuestActiveRequest> ActiveQuests { get; init; } = [];
+    public IReadOnlyList<AccountQuestCompletionRequest> Completions { get; init; } = [];
+    public IReadOnlyList<AccountQuestCooldownRequest> Cooldowns { get; init; } = [];
+}
+
+/// <summary>今回の完成状態と同時に確定するログインボーナス受取日です。</summary>
+public sealed class PlayerStateLoginBonusClaimsSection
+{
+    public long ClientRevision { get; init; }
+    public IReadOnlyList<DateOnly> ClaimDates { get; init; } = [];
+}
+
+/// <summary>完了済みガイド手順の追記、または読込済み完全集合との整合確認を行う section です。</summary>
+public sealed class PlayerStateGuideProgressSection
+{
+    public Guid AccountId { get; init; }
+    public long ClientRevision { get; init; }
+    public bool IsFullSnapshot { get; init; }
+    public IReadOnlyList<PlayerStateGuideStepKey> CompletedStepKeys { get; init; } = [];
+}
+
+public sealed class PlayerStateGuideStepKey
+{
+    public required string GuideId { get; init; }
+    public required string StepId { get; init; }
+}
+
+/// <summary>今回の確定イベント数だけを加算する冒険記録 section です。</summary>
+public sealed class PlayerStateAdventureRecordsSection
+{
+    public Guid AccountId { get; init; }
+    public long ClientRevision { get; init; }
+    public IReadOnlyList<PlayerStateMobDefeatDelta> MobDefeatDeltas { get; init; } = [];
+    public IReadOnlyList<PlayerStateDungeonClearDelta> DungeonClearDeltas { get; init; } = [];
+}
+
+public sealed class PlayerStateMobDefeatDelta
+{
+    public required string MobId { get; init; }
+    public required string MobCategory { get; init; }
+    public long Delta { get; init; }
+}
+
+public sealed class PlayerStateDungeonClearDelta
+{
+    public required string DungeonId { get; init; }
+    public long Delta { get; init; }
+}
+
+/// <summary>user 単位設定の完全 state。既存行は ExpectedVersion を必須とします。</summary>
+public sealed class PlayerStatePlayerSettingsSection
+{
+    public Guid UserId { get; init; }
+    public long ClientRevision { get; init; }
+    public IReadOnlyList<PlayerStatePlayerSettingSnapshot> Settings { get; init; } = [];
+}
+
+public sealed class PlayerStatePlayerSettingSnapshot
+{
+    public Guid UserSettingId { get; init; }
+    public required string SettingKey { get; init; }
+    public required string SettingValueJson { get; init; }
+    /// <summary>既存設定の読込時 version。新規設定では null。</summary>
+    public int? ExpectedVersion { get; init; }
+}
+
+/// <summary>メール既読と添付報酬の完成状態を同じ transaction で確定する section です。</summary>
+public sealed class PlayerStateMailClaimSection
+{
+    public Guid AccountId { get; init; }
+    public Guid ClientRevision { get; init; }
+    public required string MailId { get; init; }
+}
+
+/// <summary>メール削除状態を完成スナップショットと同じ transaction で確定する section です。</summary>
+public sealed class PlayerStateMailDeleteSection
+{
+    public Guid AccountId { get; init; }
+    public Guid ClientRevision { get; init; }
+    public required string MailId { get; init; }
+}
+
 /// <summary>ACK は state content を返さず、Plugin が pending snapshot の metadata だけを更新するための値に限る。</summary>
 public sealed class PlayerStateSnapshotAck
 {
@@ -196,6 +319,20 @@ public sealed class PlayerStateSnapshotAck
     public JsonElement? SkillTree { get; init; }
     public JsonElement? AccountProgress { get; init; }
     public JsonElement? Waystones { get; init; }
+    public JsonElement? QuestState { get; init; }
+    public JsonElement? LoginBonusClaims { get; init; }
+    public JsonElement? GuideProgress { get; init; }
+    public JsonElement? AdventureRecords { get; init; }
+    public JsonElement? PlayerSettings { get; init; }
+    public JsonElement? MailClaim { get; init; }
+    public JsonElement? MailDelete { get; init; }
+}
+
+/// <summary>通信結果が失われた Plugin が、冪等 snapshot の確定結果を照会する応答です。</summary>
+public sealed class PlayerStateSnapshotStatusResponse
+{
+    public required string Status { get; init; }
+    public required PlayerStateSnapshotAck Ack { get; init; }
 }
 
 public sealed class PlayerStateInventoryEntryAck

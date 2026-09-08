@@ -1,6 +1,11 @@
 package io.github.maaasu.astralRecord.feature.mob.service;
 
+import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryInstanceType;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemDropAnimationService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
@@ -21,14 +26,24 @@ import org.bukkit.plugin.Plugin;
 import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
+import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.mockStatic;
+import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
@@ -316,17 +331,139 @@ class MobDropPresentationServiceTest {
         );
     }
 
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### ドロップ配布対象と演出
+     * 検証契約: 装備個体は重要操作内でローカル生成し、SQL ACK 後にだけ Bukkit inventory へ反映する。
+     */
+    @Test
+    void equipmentDropCreatesLocalInstanceInsideCriticalMutationAndRefreshesAfterAck() {
+        UUID accountId = UUID.randomUUID();
+        UUID instanceId = UUID.randomUUID();
+        AstPlayer recipient = astPlayer(accountId, true);
+        ItemModel model = mock(ItemModel.class);
+        when(model.getId()).thenReturn("rare_sword");
+        ItemService itemService = mock(ItemService.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        EquipmentInstance instance = mock(EquipmentInstance.class);
+        when(instance.getEquipmentInstanceId()).thenReturn(instanceId.toString());
+        when(itemService.createLocalEquipmentInstance(model, accountId)).thenReturn(instance);
+        InventoryService.InventoryStateSnapshot before = new InventoryService.InventoryStateSnapshot(
+            accountId, Map.of(), InventoryType.BAG, false);
+        when(inventoryService.snapshotState(accountId)).thenReturn(before);
+        when(itemService.captureEquipmentStateRollback(accountId)).thenReturn(() -> { });
+        InventoryService.PreparedInstanceSlotReservation reservation =
+            new InventoryService.PreparedInstanceSlotReservation(UUID.randomUUID(), accountId);
+        when(inventoryService.completePreparedInstanceReservationStateOnly(
+            accountId, model, InventoryInstanceType.EQUIPMENT, instanceId, reservation))
+            .thenReturn(new InventoryService.PreparedInstanceReservationCompletion(true, 5));
+
+        AtomicReference<Supplier<InventorySaveCoordinator.CriticalMutation<Integer>>> captured =
+            new AtomicReference<>();
+        CompletableFuture<Integer> ack = new CompletableFuture<>();
+        doAnswer(invocation -> {
+            captured.set(invocation.getArgument(1));
+            return ack;
+        }).when(inventoryService).executeCriticalPlayerMutation(eq(accountId), any());
+        MobDropPresentationService service = createService(itemService, inventoryService);
+
+        CompletableFuture<Boolean> result = service.grantPreparedInstance(recipient, model, reservation);
+
+        verify(itemService, never()).createLocalEquipmentInstance(any(), any());
+        InventorySaveCoordinator.CriticalMutation<Integer> mutation = captured.get().get();
+        verify(itemService).createLocalEquipmentInstance(model, accountId);
+        verify(inventoryService, never()).refreshNormalInventoryGrantUi(any());
+
+        ack.complete(mutation.result());
+
+        assertTrue(result.join());
+        verify(inventoryService).refreshNormalInventoryGrantUi(recipient);
+        verify(inventoryService).releasePreparedInstanceReservation(reservation);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/12-mob/3-メソッド仕様/12_3-戦闘.md
+     * 章・見出し: # 12_3-戦闘 > ## 1. MobCombatService メソッド仕様 > ### ドロップ配布対象と演出
+     * 検証契約: 装備ドロップの SQL 保存失敗時は inventory と装備 cache を復元し、プレイヤーへ失敗を通知する。
+     */
+    @Test
+    void equipmentDropSaveFailureRollsBackAndNotifiesPlayer() {
+        UUID accountId = UUID.randomUUID();
+        UUID instanceId = UUID.randomUUID();
+        AstPlayer recipient = astPlayer(accountId, true);
+        ItemModel model = mock(ItemModel.class);
+        when(model.getId()).thenReturn("rare_sword");
+        ItemService itemService = mock(ItemService.class);
+        InventoryService inventoryService = mock(InventoryService.class);
+        EquipmentInstance instance = mock(EquipmentInstance.class);
+        when(instance.getEquipmentInstanceId()).thenReturn(instanceId.toString());
+        when(itemService.createLocalEquipmentInstance(model, accountId)).thenReturn(instance);
+        InventoryService.InventoryStateSnapshot before = new InventoryService.InventoryStateSnapshot(
+            accountId, Map.of(), InventoryType.BAG, false);
+        when(inventoryService.snapshotState(accountId)).thenReturn(before);
+        Runnable equipmentRollback = mock(Runnable.class);
+        when(itemService.captureEquipmentStateRollback(accountId)).thenReturn(equipmentRollback);
+        InventoryService.PreparedInstanceSlotReservation reservation =
+            new InventoryService.PreparedInstanceSlotReservation(UUID.randomUUID(), accountId);
+        when(inventoryService.completePreparedInstanceReservationStateOnly(
+            accountId, model, InventoryInstanceType.EQUIPMENT, instanceId, reservation))
+            .thenReturn(new InventoryService.PreparedInstanceReservationCompletion(true, 5));
+        doAnswer(invocation -> {
+            @SuppressWarnings("unchecked")
+            Supplier<InventorySaveCoordinator.CriticalMutation<Integer>> supplier = invocation.getArgument(1);
+            InventorySaveCoordinator.CriticalMutation<Integer> mutation = supplier.get();
+            mutation.rollback().run();
+            return CompletableFuture.failedFuture(new IllegalStateException("save failed"));
+        }).when(inventoryService).executeCriticalPlayerMutation(eq(accountId), any());
+        MobDropPresentationService service = createService(itemService, inventoryService);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+
+        try (MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+            assertThrows(
+                CompletionException.class,
+                () -> service.grantPreparedInstance(recipient, model, reservation).join()
+            );
+        }
+
+        verify(inventoryService).restoreState(before);
+        verify(equipmentRollback).run();
+        verify(messageService).send(recipient, PlayerMsgId.P_5731);
+        verify(inventoryService, never()).refreshNormalInventoryGrantUi(any());
+    }
+
     private static @org.jetbrains.annotations.NotNull MobDropPresentationService createService(
+        @org.jetbrains.annotations.NotNull InventoryService inventoryService
+    ) {
+        return createService(mock(ItemService.class), inventoryService);
+    }
+
+    private static @org.jetbrains.annotations.NotNull MobDropPresentationService createService(
+        @org.jetbrains.annotations.NotNull ItemService itemService,
         @org.jetbrains.annotations.NotNull InventoryService inventoryService
     ) {
         return new MobDropPresentationService(
             mock(Plugin.class),
-            mock(ItemService.class),
+            itemService,
             inventoryService,
             mock(ItemStackFactory.class),
             mock(ItemDropAnimationService.class),
-            mock(PlayerSettingService.class)
+            mock(PlayerSettingService.class),
+            Runnable::run
         );
+    }
+
+    private static @org.jetbrains.annotations.NotNull AstPlayer astPlayer(UUID accountId, boolean online) {
+        AccountModel account = mock(AccountModel.class);
+        when(account.getUuid()).thenReturn(accountId);
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        when(astPlayer.getAccount()).thenReturn(account);
+        Player player = mock(Player.class);
+        when(player.isOnline()).thenReturn(online);
+        when(player.getLocation()).thenReturn(mock(Location.class));
+        when(astPlayer.getBukkit()).thenReturn(player);
+        return astPlayer;
     }
 
     private static @org.jetbrains.annotations.NotNull Player onlinePlayer() {

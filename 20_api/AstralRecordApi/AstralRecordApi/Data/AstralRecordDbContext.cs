@@ -680,6 +680,10 @@ public class AstralRecordDbContext(DbContextOptions<AstralRecordDbContext> optio
             entity.Property(entry => entry.IsDeleted).HasColumnName("is_deleted");
             entity.HasIndex(entry => entry.InventoryId)
                 .HasDatabaseName("IX_inventory_entry_inventory_id");
+            entity.HasIndex(entry => new { entry.InventoryId, entry.InventoryEntryId })
+                .HasDatabaseName("IX_inventory_entry_active_inventory")
+                .HasFilter("[is_deleted] = 0")
+                .IncludeProperties(entry => entry.UpdatedAt);
         });
 
         modelBuilder.Entity<EquipmentInstanceEntity>(entity =>

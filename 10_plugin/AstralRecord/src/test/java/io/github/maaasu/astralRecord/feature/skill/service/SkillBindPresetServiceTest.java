@@ -127,7 +127,6 @@ class SkillBindPresetServiceTest {
 
         assertEquals(4, service.selectedPresetIndex(accountId));
         verify(persistence).queueLocalPlayerSave(accountId);
-        verify(repository, never()).select(any(), anyInt(), any());
     }
 
     /**
@@ -151,7 +150,6 @@ class SkillBindPresetServiceTest {
         assertEquals(5, service.snapshotPlayerState(accountId).payload().getAsJsonObject()
             .get("selectedPresetIndex").getAsInt());
         verify(persistence, times(2)).queueLocalPlayerSave(accountId);
-        verify(repository, never()).select(any(), anyInt(), any());
     }
 
     /**
@@ -187,7 +185,6 @@ class SkillBindPresetServiceTest {
         assertEquals(3, service.snapshotPlayerState(accountId).payload().getAsJsonObject().getAsJsonArray("presets")
             .get(1).getAsJsonObject().get("targetVersion").getAsInt());
         verify(persistence).queueLocalPlayerSave(accountId);
-        verify(repository, never()).save(any(), anyInt(), anyList(), any(), anyList(), any());
     }
 
     /**
@@ -233,7 +230,6 @@ class SkillBindPresetServiceTest {
         assertTrue(service.snapshotPlayerState(accountId).payload().getAsJsonObject().getAsJsonArray("presets")
             .get(0).getAsJsonObject().get("leftClickSkillId").isJsonNull());
         verify(persistence).queueLocalPlayerSave(accountId);
-        verify(repository, never()).save(any(), anyInt(), anyList(), any(), anyList(), any());
     }
 
     /**

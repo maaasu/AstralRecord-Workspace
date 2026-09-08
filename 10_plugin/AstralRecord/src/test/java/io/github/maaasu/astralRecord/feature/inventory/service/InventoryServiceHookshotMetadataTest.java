@@ -52,7 +52,8 @@ class InventoryServiceHookshotMetadataTest extends MockBukkitTestBase {
         InventoryRepository inventoryRepository = mock(InventoryRepository.class);
         EquipmentLoadoutRepository loadoutRepository = mock(EquipmentLoadoutRepository.class);
         PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
-        InventoryPersistence persistence = new InventoryPersistence(inventoryRepository, loadoutRepository, itemService);
+        InventoryPersistence persistence = new InventoryPersistence(inventoryRepository, loadoutRepository, itemService,
+            mock(io.github.maaasu.astralRecord.feature.mutation.repository.PlayerStateRepository.class));
         InventoryService service = new InventoryService(
             inventoryRepository,
             loadoutRepository,
@@ -147,7 +148,8 @@ class InventoryServiceHookshotMetadataTest extends MockBukkitTestBase {
         InventoryRepository inventoryRepository = mock(InventoryRepository.class);
         EquipmentLoadoutRepository loadoutRepository = mock(EquipmentLoadoutRepository.class);
         PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
-        InventoryPersistence persistence = new InventoryPersistence(inventoryRepository, loadoutRepository, itemService);
+        InventoryPersistence persistence = new InventoryPersistence(inventoryRepository, loadoutRepository, itemService,
+            mock(io.github.maaasu.astralRecord.feature.mutation.repository.PlayerStateRepository.class));
         ItemStackFactory itemStackFactory = mock(ItemStackFactory.class);
         InventoryService service = new InventoryService(
             inventoryRepository,
@@ -228,7 +230,8 @@ class InventoryServiceHookshotMetadataTest extends MockBukkitTestBase {
         InventoryRepository inventoryRepository = mock(InventoryRepository.class);
         EquipmentLoadoutRepository loadoutRepository = mock(EquipmentLoadoutRepository.class);
         PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
-        InventoryPersistence persistence = new InventoryPersistence(inventoryRepository, loadoutRepository, itemService);
+        InventoryPersistence persistence = new InventoryPersistence(inventoryRepository, loadoutRepository, itemService,
+            mock(io.github.maaasu.astralRecord.feature.mutation.repository.PlayerStateRepository.class));
         ItemStackFactory itemStackFactory = mock(ItemStackFactory.class);
         InventoryService service = new InventoryService(
             inventoryRepository,

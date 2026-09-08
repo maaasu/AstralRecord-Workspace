@@ -40,7 +40,8 @@ public final class ApiHealthChecker {
         String url = ConfigProperties.getInstance().getApiBaseUrl() + HEALTH_PATH;
         Logger.log(LogId.I_1600, url);
 
-        try (HttpClient client = ApiRequestUtil.buildClient()) {
+        try {
+            HttpClient client = ApiRequestUtil.sharedClient();
             HttpResponse<Void> response = client.send(
                     ApiRequestUtil.buildRequestBuilder(HEALTH_PATH).GET().build(),
                     HttpResponse.BodyHandlers.discarding()

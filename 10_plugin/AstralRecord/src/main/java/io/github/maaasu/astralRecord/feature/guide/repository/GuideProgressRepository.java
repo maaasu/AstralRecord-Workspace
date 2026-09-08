@@ -11,14 +11,13 @@ import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
 import org.jetbrains.annotations.NotNull;
 
 import java.io.IOException;
-import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.LinkedHashSet;
 import java.util.Set;
 import java.util.UUID;
 
 /**
- * AstralRecord API 経由でアカウント単位のガイド進行を読み書きする repository です。
+ * AstralRecord API 経由でアカウント単位のガイド進行を読み込む repository です。
  */
 public final class GuideProgressRepository {
 
@@ -31,58 +30,19 @@ public final class GuideProgressRepository {
     public @NotNull Set<GuideStepKey> findByAccountId(@NotNull UUID accountId) {
         String path = "/api/account-guide/" + accountId;
         try {
-            try (var client = ApiRequestUtil.buildClient()) {
-                var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() != 200) {
-                    throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
-                }
-                return parseProgress(response.body());
+            var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
+            HttpResponse<String> response = ApiRequestUtil.sharedClient()
+                .send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
             }
+            return parseProgress(response.body());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             Logger.error(LogId.E_5182, e, "load", accountId, failureReason(e));
             throw new RuntimeException(e);
         } catch (IOException e) {
             Logger.error(LogId.E_5182, e, "load", accountId, failureReason(e));
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * ガイド手順を完了済みとして冪等登録します。
-     *
-     * @param accountId アカウント ID
-     * @param key 完了するガイド手順
-     * @param updatedBy 更新者 user ID
-     */
-    public void completeStep(
-        @NotNull UUID accountId,
-        @NotNull GuideStepKey key,
-        @NotNull UUID updatedBy
-    ) {
-        String path = "/api/account-guide/" + accountId + "/steps/complete";
-        JsonObject json = new JsonObject();
-        json.addProperty("guideId", key.guideId());
-        json.addProperty("stepId", key.stepId());
-        json.addProperty("updatedBy", updatedBy.toString());
-        String body = json.toString();
-        try {
-            try (var client = ApiRequestUtil.buildClient()) {
-                var request = ApiRequestUtil.buildRequestBuilder(path)
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .build();
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() != 200) {
-                    throw new IOException("Unexpected status " + response.statusCode() + " for POST " + path);
-                }
-            }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            Logger.error(LogId.E_5182, e, "complete", accountId + ":" + key.guideId() + ":" + key.stepId(), failureReason(e));
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            Logger.error(LogId.E_5182, e, "complete", accountId + ":" + key.guideId() + ":" + key.stepId(), failureReason(e));
             throw new RuntimeException(e);
         }
     }

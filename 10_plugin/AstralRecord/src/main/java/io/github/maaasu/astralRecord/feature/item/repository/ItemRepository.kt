@@ -5,9 +5,6 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentEnchant
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance
-import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationResult
-import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationResultType
-import io.github.maaasu.astralRecord.feature.mutation.model.LocalMutationCommand
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentRune
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentStatRoll
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundle
@@ -73,7 +70,7 @@ class ItemRepository {
     fun findAll(): List<ItemSummary> {
         val path = "/api/item"
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 return when (response.statusCode()) {
@@ -127,53 +124,6 @@ class ItemRepository {
     }
 
     /**
-     * 装備インスタンスを新規作成します。
-     * ステータス乱数ロールは API 側で解決され、結果を返します。
-     * POST /api/equipment/instances
-     *
-     * @param equipmentId アイテムテンプレート ID
-     * @param accountId   所有アカウント ID（UUID 文字列）
-     * @param source      取得元（例: "loot_drop"）
-     * @param createdBy   作成者アカウント ID（UUID 文字列）
-     */
-    fun createEquipmentInstance(
-        equipmentId: String,
-        accountId: String,
-        source: String,
-        createdBy: String,
-    ): EquipmentInstance? {
-        val path = "/api/equipment/instances"
-        val body = ApiRequestUtil.buildJsonBody {
-            addProperty("equipmentId", equipmentId)
-            addProperty("accountId", accountId)
-            addProperty("source", source)
-            addProperty("createdBy", createdBy)
-        }
-        try {
-            ApiRequestUtil.buildClient().use { client ->
-                val request = ApiRequestUtil.buildRequestBuilder(path)
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-                return when (response.statusCode()) {
-                    200, 201 -> parseEquipmentInstance(response.body())
-                    else -> {
-                        Logger.log(LogId.E_5200, "HTTP ${response.statusCode()} for POST $path")
-                        throw IOException("Unexpected status ${response.statusCode()} for POST $path")
-                    }
-                }
-            }
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
-            throw RuntimeException(e)
-        } catch (e: IOException) {
-            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
-            throw e
-        }
-    }
-
-    /**
      * 指定した装備インスタンスを取得します。
      * GET /api/equipment/instances/{instanceId}
      *
@@ -181,7 +131,7 @@ class ItemRepository {
      */
     fun findEquipmentInstanceById(instanceId: String): EquipmentInstance? {        val path = "/api/equipment/instances/$instanceId"
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 return when (response.statusCode()) {
@@ -206,72 +156,9 @@ class ItemRepository {
         }
     }
 
-    fun updateEquipmentDurability(
-        instanceId: String,
-        durabilityValue: Int,
-        updatedBy: String,
-    ): EquipmentInstance? {
-        val path = "/api/equipment/durability"
-        val body = ApiRequestUtil.buildJsonBody {
-            addProperty("equipmentInstanceId", instanceId)
-            addProperty("durabilityValue", durabilityValue)
-            addProperty("updatedBy", updatedBy)
-        }
-        try {
-            ApiRequestUtil.buildClient().use { client ->
-                val request = ApiRequestUtil.buildRequestBuilder(path)
-                    .POST(HttpRequest.BodyPublishers.ofString(body))
-                    .build()
-                val response = client.send(request, HttpResponse.BodyHandlers.ofString())
-                return when (response.statusCode()) {
-                    200 -> parseEquipmentInstance(response.body())
-                    404 -> null
-                    else -> {
-                        Logger.log(LogId.E_5200, "HTTP ${response.statusCode()} for POST $path")
-                        throw IOException("Unexpected status ${response.statusCode()} for POST $path")
-                    }
-                }
-            }
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
-            throw RuntimeException(e)
-        } catch (e: IOException) {
-            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
-            throw e
-        }
-    }
-
-    fun deleteEquipmentInstance(instanceId: String): Boolean {
-        val path = "/api/equipment/instances/$instanceId"
-        try {
-            ApiRequestUtil.buildClient().use { client ->
-                val request = ApiRequestUtil.buildRequestBuilder(path)
-                    .DELETE()
-                    .build()
-                val response = client.send(request, HttpResponse.BodyHandlers.discarding())
-                return when (response.statusCode()) {
-                    204 -> true
-                    404 -> false
-                    else -> {
-                        Logger.log(LogId.E_5200, "HTTP ${response.statusCode()} for DELETE $path")
-                        throw IOException("Unexpected status ${response.statusCode()} for DELETE $path")
-                    }
-                }
-            }
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
-            throw RuntimeException(e)
-        } catch (e: IOException) {
-            Logger.error(LogId.E_5200, e, e.message ?: e.javaClass.simpleName)
-            throw e
-        }
-    }
-
     private fun fetchItem(path: String, itemId: String, categoryForLog: String): ItemModel? {
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 return when (response.statusCode()) {
@@ -354,84 +241,13 @@ class ItemRepository {
         val encodedId = URLEncoder.encode(enchantMasterId, StandardCharsets.UTF_8).replace("+", "%20")
         val path = "/api/enchant/$encodedId"
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val response = client.send(
                     ApiRequestUtil.buildRequestBuilder(path).GET().build(),
                     HttpResponse.BodyHandlers.ofString(),
                 )
                 return when (response.statusCode()) {
                     200 -> parseEnchantMaster(response.body())
-                    404 -> null
-                    else -> throw IOException("Unexpected status ${response.statusCode()} for GET $path")
-                }
-            }
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-            throw RuntimeException(e)
-        }
-    }
-
-    /** オーブ支払いと装備更新を同一 operationId でAPIへ要求します。オーブ消費元はAPIが共通順で確定します。 */
-    @JvmOverloads
-    fun applyEquipmentOrbOperation(
-        operationId: String,
-        accountId: String,
-        instanceId: String,
-        orbInventoryEntryId: String,
-        orbItemId: String,
-        runeItemId: String? = null,
-        runeSlotIndex: Int? = null,
-        clientState: LocalMutationCommand.EquipmentOrb? = null,
-    ): EquipmentOrbOperationResult? {
-        val path = "/api/equipment/orb-operations"
-        val body = ApiRequestUtil.buildJsonBody {
-            addProperty("operationId", operationId)
-            addProperty("accountId", accountId)
-            addProperty("equipmentInstanceId", instanceId)
-            addProperty("orbInventoryEntryId", orbInventoryEntryId)
-            addProperty("orbItemId", orbItemId)
-            if (runeItemId != null) addProperty("runeItemId", runeItemId)
-            if (runeSlotIndex != null) addProperty("runeSlotIndex", runeSlotIndex)
-            if (clientState != null) {
-                val client = JsonObject()
-                client.addProperty("baseEnhanceLevel", clientState.baseEnhanceLevel())
-                client.addProperty("baseTranscendenceRank", clientState.baseTranscendenceRank())
-                client.addProperty("enhanceLevel", clientState.enhanceLevel())
-                client.addProperty("enhancementSucceeded", clientState.enhancementSucceeded())
-                add("clientState", client)
-            }
-        }
-        try {
-            ApiRequestUtil.buildClient().use { client ->
-                val response = client.send(
-                    ApiRequestUtil.buildRequestBuilder(path)
-                        .POST(HttpRequest.BodyPublishers.ofString(body))
-                        .build(),
-                    HttpResponse.BodyHandlers.ofString(),
-                )
-                return when (response.statusCode()) {
-                    200, 409 -> parseOrbOperationResult(response.body())
-                    else -> throw IOException("Unexpected status ${response.statusCode()} for POST $path")
-                }
-            }
-        } catch (e: InterruptedException) {
-            Thread.currentThread().interrupt()
-            throw RuntimeException(e)
-        }
-    }
-
-    /** operationIdに保存されたオーブ装備操作結果を照会します。 */
-    fun findEquipmentOrbOperation(operationId: String, accountId: String): EquipmentOrbOperationResult? {
-        val encodedAccountId = URLEncoder.encode(accountId, StandardCharsets.UTF_8).replace("+", "%20")
-        val path = "/api/equipment/orb-operations/$operationId?account_id=$encodedAccountId"
-        try {
-            ApiRequestUtil.buildClient().use { client ->
-                val response = client.send(
-                    ApiRequestUtil.buildRequestBuilder(path).GET().build(),
-                    HttpResponse.BodyHandlers.ofString(),
-                )
-                return when (response.statusCode()) {
-                    200 -> parseOrbOperationResult(response.body())
                     404 -> null
                     else -> throw IOException("Unexpected status ${response.statusCode()} for GET $path")
                 }
@@ -959,30 +775,6 @@ class ItemRepository {
             statRolls = parseStatRolls(parseArrayOrNull(obj, "statRolls")),
             enchants = parseEnchants(parseArrayOrNull(obj, "enchants")),
             runes = parseRunes(parseArrayOrNull(obj, "runes")),
-        )
-    }
-
-    private fun parseOrbOperationResult(json: String): EquipmentOrbOperationResult {
-        val obj = JsonParser.parseString(json).asJsonObject
-        val equipment = parseObjectOrNull(obj, "equipment")?.let(::parseEquipmentInstance)
-        val failAction = parseStringOrNull(obj, "failAction")?.let {
-            ItemEquipmentEnhanceFailAction.fromApiValue(it)
-        }
-        return EquipmentOrbOperationResult(
-            operationId = parseStringOrNull(obj, "operationId") ?: "",
-            result = EquipmentOrbOperationResultType.fromApiValue(parseStringOrNull(obj, "result")),
-            operationType = parseStringOrNull(obj, "operationType") ?: "",
-            equipment = equipment,
-            targetAvailable = obj.get("targetAvailable")?.takeIf { !it.isJsonNull }?.asBoolean ?: false,
-            affectedInventoryEntryIds = parseStringList(parseArrayOrNull(obj, "affectedInventoryEntryIds")),
-            paymentConsumed = obj.get("paymentConsumed")?.takeIf { !it.isJsonNull }?.asBoolean ?: false,
-            enhancementSucceeded = obj.get("enhancementSucceeded")?.takeIf { !it.isJsonNull }?.asBoolean ?: false,
-            failAction = failAction,
-            successRate = obj.get("successRate")?.takeIf { !it.isJsonNull }?.asDouble,
-            repairedAmount = parseIntOrNull(obj, "repairedAmount"),
-            transitionName = parseStringOrNull(obj, "transitionName"),
-            inventorySnapshot = io.github.maaasu.astralRecord.feature.inventory.repository.InventoryOperationSnapshotParser
-                .parse(parseObjectOrNull(obj, "inventorySnapshot")),
         )
     }
 

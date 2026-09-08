@@ -38,7 +38,7 @@ public class GuideRepository {
     public @NotNull List<GuideEntry> findAll() {
         String path = "/api/guide";
         try {
-            try (var client = ApiRequestUtil.buildClient()) {
+            var client = ApiRequestUtil.sharedClient();
                 var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 if (response.statusCode() != 200) {
@@ -46,7 +46,6 @@ public class GuideRepository {
                     throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
                 }
                 return parseList(response.body());
-            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             Logger.error(LogId.E_5180, e, "find_all", path, failureReason(e));
@@ -67,7 +66,7 @@ public class GuideRepository {
         String encoded = URLEncoder.encode(guideId, StandardCharsets.UTF_8).replace("+", "%20");
         String path = "/api/guide/" + encoded;
         try {
-            try (var client = ApiRequestUtil.buildClient()) {
+            var client = ApiRequestUtil.sharedClient();
                 var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
                 return switch (response.statusCode()) {
@@ -78,7 +77,6 @@ public class GuideRepository {
                         throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
                     }
                 };
-            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             Logger.error(LogId.E_5180, e, "find_by_id", path, failureReason(e));

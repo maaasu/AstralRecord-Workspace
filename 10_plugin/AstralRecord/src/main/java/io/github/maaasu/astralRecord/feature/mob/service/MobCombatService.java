@@ -354,7 +354,7 @@ public class MobCombatService {
                 mobDefeatedLevelListener.accept(recipient, new MobDefeated(template.id(), template.level()));
             }
             applyExperienceAndSkillPoints(recipient, result);
-            adventureRecordService.recordDefeatAsync(recipient, template);
+            adventureRecordService.recordDefeat(recipient, template);
             dropPresentationService.presentAndGrant(
                     recipient,
                     instance.currentLocation(),

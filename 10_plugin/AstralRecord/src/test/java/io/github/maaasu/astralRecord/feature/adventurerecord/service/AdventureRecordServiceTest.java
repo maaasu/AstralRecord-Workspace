@@ -62,6 +62,7 @@ class AdventureRecordServiceTest {
         MobService mobService = mock(MobService.class);
         PlayerSettingService playerSettingService = mock(PlayerSettingService.class);
         LootService lootService = mock(LootService.class);
+        AdventureRecordStateService stateService = mock(AdventureRecordStateService.class);
         AstPlayer player = mock(AstPlayer.class);
         AccountModel account = mock(AccountModel.class);
         UserModel user = mock(UserModel.class);
@@ -89,7 +90,8 @@ class AdventureRecordServiceTest {
             repository,
             mobService,
             playerSettingService,
-            lootService
+            lootService,
+            stateService
         );
         AtomicReference<AdventureRecordService.EntryResult> result = new AtomicReference<>();
         AtomicBoolean failed = new AtomicBoolean();
@@ -125,6 +127,7 @@ class AdventureRecordServiceTest {
         MobService mobService = mock(MobService.class);
         PlayerSettingService playerSettingService = mock(PlayerSettingService.class);
         LootService lootService = mock(LootService.class);
+        AdventureRecordStateService stateService = mock(AdventureRecordStateService.class);
         AstPlayer player = mock(AstPlayer.class);
         AccountModel account = mock(AccountModel.class);
         UserModel user = mock(UserModel.class);
@@ -157,7 +160,8 @@ class AdventureRecordServiceTest {
             repository,
             mobService,
             playerSettingService,
-            lootService
+            lootService,
+            stateService
         );
 
         List<AdventureRecordService.Entry> all = service.buildEntries(
@@ -198,6 +202,7 @@ class AdventureRecordServiceTest {
         MobService mobService = mock(MobService.class);
         PlayerSettingService playerSettingService = mock(PlayerSettingService.class);
         LootService lootService = mock(LootService.class);
+        AdventureRecordStateService stateService = mock(AdventureRecordStateService.class);
         AstPlayer player = mock(AstPlayer.class);
         AccountModel account = mock(AccountModel.class);
         UserModel user = mock(UserModel.class);
@@ -237,7 +242,8 @@ class AdventureRecordServiceTest {
             repository,
             mobService,
             playerSettingService,
-            lootService
+            lootService,
+            stateService
         );
 
         List<AdventureRecordService.Entry> result = service.buildEntries(
@@ -247,6 +253,31 @@ class AdventureRecordServiceTest {
         );
 
         assertEquals(List.of("loot_mob"), result.stream().map(entry -> entry.template().id()).toList());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/21-adventurerecord/21_3-メソッド仕様.md
+     * 章・見出し: # 21_3-メソッド仕様 > ## 討伐・踏破のローカル加算
+     * 検証契約: Mob討伐は個別APIを呼ばず、ローカル差分サービスへ即時委譲する。
+     */
+    @Test
+    void defeatIsRecordedAsLocalSnapshotDelta() {
+        UUID accountId = UUID.randomUUID();
+        AdventureRecordRepository repository = mock(AdventureRecordRepository.class);
+        AdventureRecordStateService stateService = mock(AdventureRecordStateService.class);
+        AstPlayer player = mock(AstPlayer.class);
+        AccountModel account = mock(AccountModel.class);
+        when(player.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+        MobTemplate template = DungeonTestFixtures.mob("enemy", 1, MobCategory.ENEMY);
+        AdventureRecordService service = new AdventureRecordService(
+            mock(AstralRecord.class), repository, mock(MobService.class),
+            mock(PlayerSettingService.class), mock(LootService.class), stateService);
+
+        service.recordDefeat(player, template);
+
+        verify(stateService).recordMobDefeat(accountId, "enemy", MobCategory.ENEMY);
+        verify(repository, never()).findMobRecords(any(), any());
     }
 
     private MobTemplate mobWithDrops(String id, MobDropConfig drops) {

@@ -12,6 +12,7 @@ import io.github.maaasu.astralRecord.feature.player.event.PlayerJoinEventHandler
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerSessionTransitionGuard;
 import io.github.maaasu.astralRecord.feature.user.model.SystemUser;
 import io.github.maaasu.astralRecord.feature.user.model.UserModel;
 import io.github.maaasu.astralRecord.feature.user.model.UserPermission;
@@ -103,6 +104,19 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
             sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5341.getId()));
             return;
         }
+        PlayerSessionTransitionGuard transitionGuard = plugin.getPlayerSessionTransitionGuard();
+        if (target != null && !transitionGuard.tryBegin(
+            target.getUniqueId(),
+            PlayerSessionTransitionGuard.Transition.ACCOUNT_SWITCH
+        )) {
+            pendingTargets.remove(pendingKey);
+            PlayerMsgId messageId = transitionGuard.current(target.getUniqueId())
+                == PlayerSessionTransitionGuard.Transition.CHANNEL_TRANSFER
+                ? PlayerMsgId.P_7151
+                : PlayerMsgId.P_5341;
+            sendError(sender, PlayerMsgResource.getMessage(messageId.getId()));
+            return;
+        }
 
         UUID updatedBy = getUpdatedBy(sender);
         TargetRequest request = new TargetRequest(
@@ -127,6 +141,7 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
             if (onlineTarget != null && onlineTarget.isOnline() && hasCursorItem(onlineTarget)) {
                 pendingTargets.remove(pendingKey);
                 frozenPlayers.remove(onlineTarget.getUniqueId());
+                releaseAccountSwitch(onlineTarget);
                 sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5344.getId()));
                 return;
             }
@@ -413,6 +428,7 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
         Player target = resolved.onlinePlayer();
         if (target != null) {
             frozenPlayers.remove(target.getUniqueId());
+            releaseAccountSwitch(target);
         }
         String messageId = resolved.created() ? PlayerMsgId.P_5346.getId() : PlayerMsgId.P_5345.getId();
         sendSuccess(sender, PlayerMsgResource.format(
@@ -442,6 +458,7 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
         pendingTargets.remove(pendingKey);
         if (target != null) {
             frozenPlayers.remove(target.getUniqueId());
+            releaseAccountSwitch(target);
         }
         sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5062.getId()));
     }
@@ -459,6 +476,7 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
         pendingTargets.remove(pendingKey);
         if (target != null) {
             frozenPlayers.remove(target.getUniqueId());
+            releaseAccountSwitch(target);
         }
         sendError(sender, PlayerMsgResource.getMessage(PlayerMsgId.P_5062.getId()));
     }
@@ -476,6 +494,7 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
         Player target = resolved.onlinePlayer();
         if (target != null) {
             frozenPlayers.remove(target.getUniqueId());
+            releaseAccountSwitch(target);
             if (target.isOnline()) {
                 target.kick(PlayerMsgResource.getComponent(PlayerMsgId.P_5339.getId()));
                 return;
@@ -529,6 +548,13 @@ public final class AccountSwitchCommand extends AstCommand implements EventHandl
             tradeService.cancelRelatedSessions(player);
         }
         player.closeInventory();
+    }
+
+    private void releaseAccountSwitch(@NotNull Player player) {
+        AstralRecord.getInstance().getPlayerSessionTransitionGuard().end(
+            player.getUniqueId(),
+            PlayerSessionTransitionGuard.Transition.ACCOUNT_SWITCH
+        );
     }
 
     private UUID getUpdatedBy(@NotNull CommandSender sender) {

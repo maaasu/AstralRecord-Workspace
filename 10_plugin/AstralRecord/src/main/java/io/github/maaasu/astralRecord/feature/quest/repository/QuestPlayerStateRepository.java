@@ -5,80 +5,39 @@ import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestPlayerState;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestProgress;
-import io.github.maaasu.astralRecord.feature.mutation.service.PendingStateStore;
 import io.github.maaasu.astralRecord.infrastructure.util.ApiRequestUtil;
-import org.bukkit.configuration.ConfigurationSection;
-import org.bukkit.configuration.file.YamlConfiguration;
-import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
 
 /**
  * プレイヤー単位のクエスト状態を AstralRecord API 経由で永続化します。
- * 既存の quest-states YAML は初回 API 保存時だけ移行用に読み込みます。
  */
 public final class QuestPlayerStateRepository {
-    private final File legacyDirectory;
-    private final PendingStateStore pendingStateStore;
-
-    public QuestPlayerStateRepository(@NotNull Plugin plugin) {
-        this.legacyDirectory = new File(plugin.getDataFolder(), "quest-states");
-        this.pendingStateStore = new PendingStateStore(
-            Path.of(plugin.getDataFolder().getPath(), "pending-quest-states")
-        );
-    }
-
     /**
-     * API からアカウントのクエスト状態を読み込み、未保存状態の場合だけ旧 YAML を移行します。
+     * API からアカウントのクエスト状態を読み込みます。
      *
      * @param accountId 対象アカウント ID
      * @return クエスト状態
      * @throws RuntimeException API 通信またはレスポンス解析に失敗した場合
      */
     public @NotNull QuestPlayerState load(@NotNull UUID accountId) {
-        String pending = pendingStateStore.read(accountId);
-        if (pending != null) {
-            QuestPlayerState localState = parsePending(accountId, pending);
-            try {
-                save(localState);
-            } catch (RuntimeException ignored) {
-                // API障害時もローカル完成状態を旧API値へ戻さず、次回ロードで再送する。
-            }
-            return localState;
-        }
-        JsonObject response = request(accountId, HttpRequest.BodyPublishers.noBody(), "GET");
-        QuestPlayerState apiState = parseApi(accountId, response);
-        if (response.has("isSaved") && !response.get("isSaved").getAsBoolean()) {
-            File legacyFile = file(accountId);
-            if (legacyFile.exists()) {
-                QuestPlayerState legacyState = loadLegacy(legacyFile, accountId);
-                save(legacyState);
-                if (!legacyFile.delete()) {
-                    throw new IllegalStateException("旧クエスト状態 YAML の削除に失敗しました: " + legacyFile);
-                }
-                return legacyState;
-            }
-        }
-        return apiState;
+        JsonObject response = request(accountId);
+        return parseApi(accountId, response);
     }
 
-    /**
-     * クエスト状態を API へ置換保存します。
-     *
-     * @param state 保存するクエスト状態
-     * @throws RuntimeException API 通信または保存に失敗した場合
-     */
-    public void save(@NotNull QuestPlayerState state) {
+    /** player-state snapshot の questState section を構築します。通信は行いません。 */
+    public @NotNull JsonObject createSnapshotSection(@NotNull QuestPlayerState state, long clientRevision) {
         JsonObject body = new JsonObject();
+        body.addProperty("accountId", state.accountId().toString());
+        body.addProperty("clientRevision", clientRevision);
+        body.addProperty("expectedVersion", state.persistedVersion());
         JsonArray activeQuests = new JsonArray();
         for (QuestProgress progress : state.activeQuests().values()) {
             JsonObject active = new JsonObject();
@@ -117,33 +76,17 @@ public final class QuestPlayerStateRepository {
         body.add("activeQuests", activeQuests);
         body.add("completions", completions);
         body.add("cooldowns", cooldowns);
-        body.addProperty("updatedBy", state.accountId().toString());
-        String payload = body.toString();
-        // API待ち・停止・プロセス再起動に備え、完成状態を先にローカルへ固定する。
-        pendingStateStore.write(state.accountId(), payload);
-        try {
-            request(state.accountId(), HttpRequest.BodyPublishers.ofString(payload), "PUT");
-            pendingStateStore.delete(state.accountId());
-        } catch (RuntimeException failure) {
-            // 受領不明を含めてファイルを残し、次回ロード時に同じ完成状態を再送する。
-            throw failure;
-        }
+        return body;
     }
 
-    private @NotNull JsonObject request(
-        @NotNull UUID accountId,
-        @NotNull HttpRequest.BodyPublisher body,
-        @NotNull String method
-    ) {
+    private @NotNull JsonObject request(@NotNull UUID accountId) {
         String path = "/api/account-quest/" + accountId;
-        try (var client = ApiRequestUtil.buildClient()) {
-            HttpRequest.Builder builder = ApiRequestUtil.buildRequestBuilder(path);
-            HttpRequest request = "PUT".equals(method)
-                ? builder.PUT(body).build()
-                : builder.GET().build();
+        try {
+            var client = ApiRequestUtil.sharedClient();
+            HttpRequest request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() != 200) {
-                throw new IOException("Unexpected status " + response.statusCode() + " for " + method + " " + path);
+                throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
             }
             return JsonParser.parseString(response.body()).getAsJsonObject();
         } catch (InterruptedException exception) {
@@ -182,49 +125,10 @@ public final class QuestPlayerStateRepository {
             accountId,
             active,
             parseLongMap(object, "completions", "questId", "completedAtEpochMillis"),
-            parseLongMap(object, "cooldowns", "questId", "cooldownUntilEpochMillis")
-        );
-    }
-
-    private @NotNull QuestPlayerState parsePending(@NotNull UUID accountId, @NotNull String payload) {
-        JsonObject object = JsonParser.parseString(payload).getAsJsonObject();
-        if (!accountId.toString().equalsIgnoreCase(object.get("updatedBy").getAsString())) {
-            throw new IllegalStateException("Quest pending state account mismatch");
-        }
-        return parseApi(accountId, object);
-    }
-
-    private @NotNull QuestPlayerState loadLegacy(@NotNull File file, @NotNull UUID accountId) {
-        YamlConfiguration yaml = YamlConfiguration.loadConfiguration(file);
-        Map<String, QuestProgress> active = new LinkedHashMap<>();
-        ConfigurationSection activeSection = yaml.getConfigurationSection("active");
-        if (activeSection != null) {
-            for (String questId : activeSection.getKeys(false)) {
-                ConfigurationSection questSection = activeSection.getConfigurationSection(questId);
-                if (questSection == null) {
-                    continue;
-                }
-                Map<String, Integer> objectives = new LinkedHashMap<>();
-                ConfigurationSection objectivesSection = questSection.getConfigurationSection("objectives");
-                if (objectivesSection != null) {
-                    for (String objectiveId : objectivesSection.getKeys(false)) {
-                        objectives.put(objectiveId, objectivesSection.getInt(objectiveId, 0));
-                    }
-                }
-                active.put(questId, new QuestProgress(
-                    questId,
-                    questSection.getLong("acceptedAt", System.currentTimeMillis()),
-                    questSection.getString("acceptedNpcId"),
-                    objectives,
-                    questSection.getBoolean("readyToTurnIn", false)
-                ));
-            }
-        }
-        return new QuestPlayerState(
-            accountId,
-            active,
-            readLongMap(yaml.getConfigurationSection("completedAt")),
-            readLongMap(yaml.getConfigurationSection("cooldownUntil"))
+            parseLongMap(object, "cooldowns", "questId", "cooldownUntilEpochMillis"),
+            object.has("version") && !object.get("version").isJsonNull()
+                ? Math.max(0, object.get("version").getAsInt())
+                : 0
         );
     }
 
@@ -249,18 +153,4 @@ public final class QuestPlayerStateRepository {
         return object.has(key) && !object.get(key).isJsonNull() ? object.get(key).getAsString() : null;
     }
 
-    private @NotNull Map<String, Long> readLongMap(@Nullable ConfigurationSection section) {
-        Map<String, Long> result = new LinkedHashMap<>();
-        if (section == null) {
-            return result;
-        }
-        for (String key : section.getKeys(false)) {
-            result.put(key, section.getLong(key, 0L));
-        }
-        return result;
-    }
-
-    private @NotNull File file(@NotNull UUID accountId) {
-        return new File(legacyDirectory, accountId + ".yml");
-    }
 }

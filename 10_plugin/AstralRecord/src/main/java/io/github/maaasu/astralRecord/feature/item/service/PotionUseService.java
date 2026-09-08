@@ -1,7 +1,10 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.buff.model.ActiveBuff;
 import io.github.maaasu.astralRecord.feature.buff.service.BuffAcquisitionDisplayService;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemConsumable;
 import io.github.maaasu.astralRecord.feature.item.model.ItemConsumableEffect;
@@ -42,6 +45,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.time.Duration;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
@@ -244,16 +249,70 @@ public final class PotionUseService {
         if (!pending.astPlayer().getBukkit().isOnline() || !isStillHolding(pending)) {
             return;
         }
-        if (!applyAndConsume(pending)) {
+        List<ItemConsumableEffect> selectedEffects = new ArrayList<>();
+        for (ItemConsumableEffect effect : pending.consumable().getEffects()) {
+            if (isApplicableEffect(effect) && passesRate(effect.getRate())) {
+                selectedEffects.add(effect);
+            }
+        }
+        if (selectedEffects.isEmpty()) {
             return;
         }
-        showResultTitle(
-            pending.astPlayer().getBukkit(),
-            PlayerMsgId.P_5268,
-            PlayerMsgId.P_5269,
-            displayItemName(pending.model())
-        );
-        startCooldown(playerId, pending.model().getId(), resolveCooldownTicks(pending.consumable()));
+        InventoryEntryModel consumedEntry = inventoryService.getHotbarEntryInHand(
+            pending.astPlayer(), pending.hand());
+        if (consumedEntry == null || consumedEntry.getItemId() == null
+            || !pending.model().getId().equalsIgnoreCase(consumedEntry.getItemId())) {
+            return;
+        }
+        int consumeAmount = pending.consumable().getOnUse() == null
+            ? 1
+            : Math.max(1, pending.consumable().getOnUse().getAmount());
+        UUID accountId = pending.astPlayer().getAccount().getUuid();
+        inventoryService.executeCriticalPlayerMutation(accountId, () -> {
+            InventoryService.InventoryStateSnapshot inventoryBefore = inventoryService.snapshotState(accountId);
+            if (inventoryBefore == null) throw new PotionMutationRejectedException();
+            try {
+                if (!inventoryService.consumeHotbarEntryStateOnly(
+                    accountId, consumedEntry.getInventoryEntryId(), pending.model().getId(), consumeAmount)) {
+                    throw new PotionMutationRejectedException();
+                }
+                return new InventorySaveCoordinator.CriticalMutation<>(true,
+                    () -> inventoryService.restoreState(inventoryBefore));
+            } catch (RuntimeException | Error failure) {
+                inventoryService.restoreState(inventoryBefore);
+                throw failure;
+            }
+        }).whenComplete((saved, failure) -> runOnMainThread(() -> {
+            if (failure != null || !Boolean.TRUE.equals(saved)) {
+                Logger.warn(LogId.W_5252, accountId,
+                    failure == null ? PotionMutationRejectedException.class.getSimpleName() : failure.getMessage());
+                if (pending.astPlayer().getBukkit().isOnline()) {
+                    PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5273);
+                    inventoryService.applyHotbarInventoryToGui(pending.astPlayer());
+                }
+                return;
+            }
+            if (!pending.astPlayer().getBukkit().isOnline()) return;
+            inventoryService.applyHotbarInventoryToGui(pending.astPlayer());
+            String recoverySource = plainDisplayItemName(pending.model());
+            boolean applied = false;
+            for (ItemConsumableEffect effect : selectedEffects) {
+                applied |= applyEffect(pending.astPlayer(), effect, recoverySource);
+            }
+            if (!applied) {
+                Logger.warn(LogId.W_5252, accountId, PotionMutationRejectedException.class.getSimpleName());
+                PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5273);
+                return;
+            }
+            playOnUse(pending.astPlayer(), pending.consumable().getOnUse());
+            showResultTitle(
+                pending.astPlayer().getBukkit(),
+                PlayerMsgId.P_5268,
+                PlayerMsgId.P_5269,
+                displayItemName(pending.model())
+            );
+            startCooldown(playerId, pending.model().getId(), resolveCooldownTicks(pending.consumable()));
+        }));
     }
 
     private void tickPendingUse(
@@ -363,35 +422,33 @@ public final class PotionUseService {
         player.playSound(player.getLocation(), Sound.ENTITY_GENERIC_DRINK, SoundCategory.PLAYERS, volume, pitch);
     }
 
-    private boolean applyAndConsume(@NotNull PendingPotionUse pending) {
-        boolean applied = false;
-        String recoverySource = plainDisplayItemName(pending.model());
-        for (ItemConsumableEffect effect : pending.consumable().getEffects()) {
-            if (!passesRate(effect.getRate())) {
-                continue;
-            }
-            applied |= applyEffect(pending.astPlayer(), effect, recoverySource);
+    private boolean isApplicableEffect(@NotNull ItemConsumableEffect effect) {
+        if (effect.getType() == ItemConsumableEffectType.BUFF) {
+            return effect.getBuffId() != null && !effect.getBuffId().isBlank();
         }
-
-        if (!applied) {
+        if (effect.getType() != ItemConsumableEffectType.RECOVER
+            || effect.getValue() == null || effect.getValue() <= 0.0D) {
             return false;
         }
+        return switch (normalizeStatus(effect.getStatus())) {
+            case STATUS_HP, STATUS_HEALTH, STATUS_MAX_HEALTH,
+                 STATUS_MP, STATUS_MANA, STATUS_MAX_MANA,
+                 STATUS_EN, STATUS_ENERGY, STATUS_MAX_ENERGY -> true;
+            default -> false;
+        };
+    }
 
-        int consumeAmount = pending.consumable().getOnUse() == null
-            ? 1
-            : Math.max(1, pending.consumable().getOnUse().getAmount());
-        if (!inventoryService.consumeHotbarItemInHand(
-            pending.astPlayer(),
-            pending.hand(),
-            pending.model().getId(),
-            consumeAmount
-        )) {
-            PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5245);
-            return false;
+    private void runOnMainThread(@NotNull Runnable action) {
+        AstralRecord plugin = AstralRecord.getInstance();
+        if (plugin == null || Bukkit.isPrimaryThread()) {
+            action.run();
+            return;
         }
+        plugin.getServer().getScheduler().runTask(plugin, action);
+    }
 
-        playOnUse(pending.astPlayer(), pending.consumable().getOnUse());
-        return true;
+    private static final class PotionMutationRejectedException extends IllegalStateException {
+        private static final long serialVersionUID = 1L;
     }
 
     private boolean isStillHolding(@NotNull PendingPotionUse pending) {

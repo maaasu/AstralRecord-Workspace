@@ -1,304 +1,91 @@
 package io.github.maaasu.astralRecord.feature.quest.service;
 
-import io.github.maaasu.astralRecord.feature.account.model.AccountMode;
-import io.github.maaasu.astralRecord.feature.account.service.AccountService;
-import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.item.service.ItemService;
-import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
-import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
-import io.github.maaasu.astralRecord.feature.quest.model.QuestBoardDefinition;
-import io.github.maaasu.astralRecord.feature.quest.model.QuestCompletionMode;
-import io.github.maaasu.astralRecord.feature.quest.model.QuestDefinition;
-import io.github.maaasu.astralRecord.feature.quest.model.QuestObjectiveDefinition;
-import io.github.maaasu.astralRecord.feature.quest.model.QuestObjectiveType;
 import io.github.maaasu.astralRecord.feature.quest.model.QuestPlayerState;
-import io.github.maaasu.astralRecord.feature.quest.model.QuestRepeatMode;
-import io.github.maaasu.astralRecord.feature.quest.model.QuestRewardDefinition;
-import io.github.maaasu.astralRecord.feature.quest.repository.QuestBoardRepository;
-import io.github.maaasu.astralRecord.feature.quest.repository.QuestDefinitionRepository;
-import io.github.maaasu.astralRecord.feature.quest.repository.QuestPlayerStateRepository;
-import io.github.maaasu.astralRecord.feature.status.model.StatusType;
-import io.github.maaasu.astralRecord.feature.status.service.StatusService;
-import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
-import io.github.maaasu.astralRecord.support.DesignTestFixtures;
-import io.github.maaasu.astralRecord.support.MockBukkitTestBase;
-import org.bukkit.Material;
+import io.github.maaasu.astralRecord.feature.quest.model.QuestProgress;
 import org.junit.jupiter.api.Test;
 
-import java.time.Duration;
-import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.RejectedExecutionException;
-import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.junit.jupiter.api.Assertions.assertTimeoutPreemptively;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.doAnswer;
-import static org.mockito.Mockito.mock;
-import static org.mockito.Mockito.never;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 
-class QuestServicePersistenceTest extends MockBukkitTestBase {
+class QuestServicePersistenceTest {
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
-     * 章・見出し: # 29_3-メソッド仕様 > ## 5. ロード・保存世代管理
-     * 検証契約: 通常保存の連続失敗は指数バックオフし、次回成功時に再試行待機を解除する。
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_1-モデル定義.md
+     * 章・見出し: # 29_1-モデル定義 > ## 9. 永続化世代
+     * 検証契約: 最新ロード要求だけをセッションへ適用し、古い非同期結果を捨てる。
      */
     @Test
-    void failedSavesBackOffUntilASubsequentSaveSucceeds() {
+    void appliesOnlyTheLatestLoadToken() {
         UUID accountId = UUID.randomUUID();
-        AtomicInteger saveAttempts = new AtomicInteger();
         QuestStatePersistenceCoordinator coordinator = new QuestStatePersistenceCoordinator(
-            new QuestStatePersistenceCoordinator.StateStorage() {
-                @Override
-                public QuestPlayerState load(UUID ignoredAccountId) {
-                    return new QuestPlayerState(ignoredAccountId, Map.of(), Map.of(), Map.of());
-                }
+            ignored -> emptyState(accountId));
 
-                @Override
-                public void save(QuestPlayerState ignoredState) {
-                    if (saveAttempts.getAndIncrement() < 2) {
-                        throw new IllegalStateException("api unavailable");
-                    }
-                }
-            },
-            Runnable::run
-        );
-        QuestPlayerState state = new QuestPlayerState(accountId, Map.of(), Map.of(), Map.of());
+        QuestStatePersistenceCoordinator.LoadedState first = coordinator.load(accountId);
+        QuestStatePersistenceCoordinator.LoadedState second = coordinator.load(accountId);
 
-        coordinator.recordLatest(state);
-        assertThrows(CompletionException.class, () -> coordinator.flushLatest(accountId).join());
-        long firstRetryNotBefore = coordinator.retryNotBeforeMillis(accountId);
-        assertTrue(firstRetryNotBefore >= System.currentTimeMillis() + 900L);
-
-        coordinator.recordLatest(state);
-        assertThrows(CompletionException.class, () -> coordinator.flushLatest(accountId).join());
-        long secondRetryNotBefore = coordinator.retryNotBeforeMillis(accountId);
-        assertTrue(secondRetryNotBefore >= firstRetryNotBefore + 900L);
-
-        coordinator.recordLatest(state);
-        assertDoesNotThrow(() -> coordinator.flushLatest(accountId).join());
-        assertTrue(coordinator.retryNotBeforeMillis(accountId) == 0L);
+        assertNull(coordinator.apply(first));
+        assertNotNull(coordinator.apply(second));
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_3-メソッド仕様.md
-     * 章・見出し: # 29_3-メソッド仕様 > ## 5. ロード・保存世代管理
-     * 検証契約: 停止時にasync executorがtaskを拒否しても最新stateを同期保存して例外を外へ出さない。
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_1-モデル定義.md
+     * 章・見出し: # 29_1-モデル定義 > ## 9. 永続化世代
+     * 検証契約: SQL ACK待ちの退出直後の再ログインでDBの古い状態をruntimeへ上書きしない。
      */
     @Test
-    void stopFallsBackToSynchronousSaveWhenAsyncExecutorRejectsShutdownTask() {
-        List<QuestPlayerState> savedStates = new CopyOnWriteArrayList<>();
-        AtomicInteger submittedTasks = new AtomicInteger();
-        QuestHarness harness = harness(command -> {
-            if (submittedTasks.getAndIncrement() == 0) {
-                command.run();
-                return;
-            }
-            throw new RejectedExecutionException("executor is shutting down");
+    void quickRelogUsesRetainedUnacknowledgedState() {
+        UUID accountId = UUID.randomUUID();
+        AtomicInteger loads = new AtomicInteger();
+        QuestStatePersistenceCoordinator coordinator = new QuestStatePersistenceCoordinator(ignored -> {
+            loads.incrementAndGet();
+            return emptyState(accountId);
         });
-        doAnswer(invocation -> {
-            savedStates.add(invocation.getArgument(0, QuestPlayerState.class).snapshot());
-            return null;
-        }).when(harness.stateRepository()).save(any(QuestPlayerState.class));
+        QuestPlayerState runtime = emptyState(accountId);
+        runtime.activeQuests().put("alpha", new QuestProgress("alpha", 1L, null, Map.of(), false));
+        coordinator.recordLatest(runtime);
+        coordinator.markReleased(accountId);
 
-        AstPlayer player = player();
-        when(harness.statusService().getStatus(player)).thenReturn(player.getStatusSnapshot());
-        harness.service().applyInitialState(emptyState(player));
-        assertTrue(harness.service().accept(player, harness.quest(), null));
+        QuestPlayerState reloaded = coordinator.apply(coordinator.load(accountId));
 
-        assertDoesNotThrow(harness.service()::stop);
-        assertTrue(savedStates.stream().anyMatch(state -> state.activeQuests().containsKey(harness.quest().id())));
+        assertNotNull(reloaded);
+        assertEquals(0, loads.get());
+        assertNotNull(reloaded.activeQuests().get("alpha"));
     }
 
     /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_4-統合フロー.md
-     * 章・見出し: # 29_4-統合フロー > ## 5. 通常保存・ログアウト・停止
-     * 検証契約: logout保存中の即時再loginは保持中の最新snapshotを使い、古いrepository stateを再読込しない。
+     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_1-モデル定義.md
+     * 章・見出し: # 29_1-モデル定義 > ## 9. 永続化世代
+     * 検証契約: SQL ACK確認後に解放された次回ログインはDBから状態を読み直す。
      */
     @Test
-    void quickRelogUsesRetainedStateWithoutReadingStaleDisk() throws Exception {
-        ExecutorService persistenceExecutor = Executors.newSingleThreadExecutor();
-        CountDownLatch saveStarted = new CountDownLatch(1);
-        CountDownLatch releaseSave = new CountDownLatch(1);
-        try {
-            QuestHarness harness = harness(persistenceExecutor);
-            doAnswer(invocation -> {
-                saveStarted.countDown();
-                assertTrue(releaseSave.await(5, TimeUnit.SECONDS));
-                return null;
-            }).when(harness.stateRepository()).save(any(QuestPlayerState.class));
+    void acknowledgedReleasedStateIsEvicted() {
+        UUID accountId = UUID.randomUUID();
+        AtomicReference<QuestPlayerState> database = new AtomicReference<>(emptyState(accountId));
+        AtomicInteger loads = new AtomicInteger();
+        QuestStatePersistenceCoordinator coordinator = new QuestStatePersistenceCoordinator(ignored -> {
+            loads.incrementAndGet();
+            return database.get();
+        });
+        QuestPlayerState runtime = emptyState(accountId);
+        runtime.activeQuests().put("alpha", new QuestProgress("alpha", 1L, null, Map.of(), false));
+        coordinator.recordLatest(runtime);
+        coordinator.markReleased(accountId);
+        coordinator.evictReleased(accountId);
 
-            AstPlayer player = player();
-            when(harness.statusService().getStatus(player)).thenReturn(player.getStatusSnapshot());
-            QuestPlayerState initial = emptyState(player);
-            harness.service().applyInitialState(initial);
-            assertTrue(harness.service().accept(player, harness.quest(), null));
+        QuestPlayerState loaded = coordinator.apply(coordinator.load(accountId));
 
-            UUID accountId = player.getAccount().getUuid();
-            harness.service().releaseState(accountId);
-            assertTrue(saveStarted.await(5, TimeUnit.SECONDS));
-
-            QuestService.InitialState relog = harness.service().loadInitialState(accountId);
-            assertTrue(relog.state().activeQuests().containsKey(harness.quest().id()));
-            assertTrue(harness.service().applyInitialState(relog));
-            verify(harness.stateRepository(), never()).load(accountId);
-
-            releaseSave.countDown();
-            assertTimeoutPreemptively(Duration.ofSeconds(5), harness.service()::stop);
-        } finally {
-            releaseSave.countDown();
-            persistenceExecutor.shutdownNow();
-        }
+        assertNotNull(loaded);
+        assertEquals(1, loads.get());
+        assertNull(loaded.activeQuests().get("alpha"));
     }
 
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/29-quest/29_4-統合フロー.md
-     * 章・見出し: # 29_4-統合フロー > ## 5. 通常保存・ログアウト・停止
-     * 検証契約: 停止時の最新世代保存を進行中saveのaccount別tail後へ直列化し、同時保存せず最後に最新stateを永続化する。
-     */
-    @Test
-    void stopChainsLatestGenerationBehindInFlightSave() throws Exception {
-        ExecutorService persistenceExecutor = Executors.newSingleThreadExecutor();
-        ExecutorService stopExecutor = Executors.newSingleThreadExecutor();
-        CountDownLatch firstSaveStarted = new CountDownLatch(1);
-        CountDownLatch releaseFirstSave = new CountDownLatch(1);
-        CountDownLatch stopStarted = new CountDownLatch(1);
-        List<QuestPlayerState> savedStates = new CopyOnWriteArrayList<>();
-        AtomicInteger concurrentSaves = new AtomicInteger();
-        AtomicInteger maximumConcurrentSaves = new AtomicInteger();
-        try {
-            QuestHarness harness = harness(persistenceExecutor);
-            AtomicInteger saveCount = new AtomicInteger();
-            doAnswer(invocation -> {
-                QuestPlayerState snapshot = invocation.getArgument(0, QuestPlayerState.class).snapshot();
-                int concurrent = concurrentSaves.incrementAndGet();
-                maximumConcurrentSaves.accumulateAndGet(concurrent, Math::max);
-                try {
-                    if (saveCount.getAndIncrement() == 0) {
-                        firstSaveStarted.countDown();
-                        assertTrue(releaseFirstSave.await(5, TimeUnit.SECONDS));
-                    }
-                    savedStates.add(snapshot);
-                    return null;
-                } finally {
-                    concurrentSaves.decrementAndGet();
-                }
-            }).when(harness.stateRepository()).save(any(QuestPlayerState.class));
-
-            AstPlayer player = player();
-            when(harness.statusService().getStatus(player)).thenReturn(player.getStatusSnapshot());
-            UUID accountId = player.getAccount().getUuid();
-            harness.service().applyInitialState(emptyState(player));
-            assertTrue(harness.service().accept(player, harness.quest(), null));
-            harness.service().releaseState(accountId);
-            assertTrue(firstSaveStarted.await(5, TimeUnit.SECONDS));
-
-            QuestService.InitialState relog = harness.service().loadInitialState(accountId);
-            assertTrue(harness.service().applyInitialState(relog));
-            assertTrue(harness.service().abandon(player, harness.quest().id()));
-
-            CompletableFuture<Void> stopping = CompletableFuture.runAsync(() -> {
-                stopStarted.countDown();
-                harness.service().stop();
-            }, stopExecutor);
-            assertTrue(stopStarted.await(5, TimeUnit.SECONDS));
-            assertFalse(stopping.isDone());
-            assertTrue(maximumConcurrentSaves.get() <= 1);
-
-            releaseFirstSave.countDown();
-            stopping.get(5, TimeUnit.SECONDS);
-
-            assertTrue(savedStates.size() >= 2);
-            assertTrue(savedStates.get(0).activeQuests().containsKey(harness.quest().id()));
-            assertFalse(savedStates.get(savedStates.size() - 1).activeQuests().containsKey(harness.quest().id()));
-            assertTrue(maximumConcurrentSaves.get() <= 1);
-        } finally {
-            releaseFirstSave.countDown();
-            persistenceExecutor.shutdownNow();
-            stopExecutor.shutdownNow();
-        }
-    }
-
-    private QuestHarness harness(Executor persistenceExecutor) {
-        QuestDefinition quest = new QuestDefinition(
-            "persistence_test",
-            "persistence_test",
-            List.of(),
-            Material.PAPER,
-            QuestRepeatMode.ONCE,
-            0L,
-            QuestCompletionMode.NPC,
-            null,
-            List.of(new QuestObjectiveDefinition("kill", QuestObjectiveType.KILL_MOB, "wolf", "Wolf", 1)),
-            List.of(),
-            new QuestRewardDefinition(0, 0L, List.of())
-        );
-        QuestDefinitionRepository questRepository = mock(QuestDefinitionRepository.class);
-        QuestBoardRepository boardRepository = mock(QuestBoardRepository.class);
-        QuestPlayerStateRepository stateRepository = mock(QuestPlayerStateRepository.class);
-        ItemService itemService = mock(ItemService.class);
-        InventoryService inventoryService = mock(InventoryService.class);
-        AccountService accountService = mock(AccountService.class);
-        PlayerClassService playerClassService = mock(PlayerClassService.class);
-        StatusService statusService = mock(StatusService.class);
-        ParticleDisplayService particleDisplayService = mock(ParticleDisplayService.class);
-        when(questRepository.findAll()).thenReturn(List.of(quest));
-        when(boardRepository.findAll()).thenReturn(List.<QuestBoardDefinition>of());
-
-        QuestService service = new QuestService(
-            null,
-            questRepository,
-            boardRepository,
-            stateRepository,
-            itemService,
-            inventoryService,
-            accountService,
-            playerClassService,
-            statusService,
-            particleDisplayService,
-            persistenceExecutor,
-            Runnable::run
-        );
-        service.loadAll();
-        return new QuestHarness(quest, stateRepository, statusService, service);
-    }
-
-    private AstPlayer player() {
-        AstPlayer player = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
-        player.setStatusSnapshot(DesignTestFixtures.statusSnapshot(
-            Map.of(StatusType.QUEST_LIMIT, 3.0D),
-            100.0D,
-            0.0D,
-            0.0D
-        ));
-        return player;
-    }
-
-    private QuestPlayerState emptyState(AstPlayer player) {
-        return new QuestPlayerState(player.getAccount().getUuid(), Map.of(), Map.of(), Map.of());
-    }
-
-    private record QuestHarness(
-        QuestDefinition quest,
-        QuestPlayerStateRepository stateRepository,
-        StatusService statusService,
-        QuestService service
-    ) {
+    private static QuestPlayerState emptyState(UUID accountId) {
+        return new QuestPlayerState(accountId, Map.of(), Map.of(), Map.of());
     }
 }

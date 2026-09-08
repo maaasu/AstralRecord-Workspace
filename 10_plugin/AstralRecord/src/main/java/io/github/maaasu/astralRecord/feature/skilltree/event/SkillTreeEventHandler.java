@@ -1,5 +1,6 @@
 package io.github.maaasu.astralRecord.feature.skilltree.event;
 
+import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -59,6 +60,7 @@ public class SkillTreeEventHandler extends AbstractEventHandler
 
     private final SkillTreeService service;
     private final Set<UUID> relockConfirmationSuppressed = new HashSet<>();
+    private final Set<UUID> pendingNodeMutations = new HashSet<>();
 
     public SkillTreeEventHandler(@NotNull SkillTreeService service) {
         this.service = service;
@@ -120,6 +122,11 @@ public class SkillTreeEventHandler extends AbstractEventHandler
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5836);
             return;
         }
+        if (pendingNodeMutations.contains(astPlayer.getAccount().getUuid())) {
+            playDenied(player, 0.75F);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5825);
+            return;
+        }
         if (family == InputFamily.LEFT_CLICK) {
             unlockNode(player, astPlayer, node);
             return;
@@ -164,16 +171,29 @@ public class SkillTreeEventHandler extends AbstractEventHandler
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5825);
             return;
         }
-        boolean unlocked = consumedClassId == null
-                ? service.unlockNode(astPlayer, node)
-                : service.unlockNode(astPlayer, node, consumedClassId);
-        if (unlocked) {
-            playUnlock(player);
-            sendUnlockSuccess(player, astPlayer, node, consumedClassId);
-        } else {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        if (!pendingNodeMutations.add(accountId)) {
             playDenied(player, 0.75F);
             PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5825);
+            return;
         }
+        (consumedClassId == null
+                ? service.unlockNodeAsync(astPlayer, node)
+                : service.unlockNodeAsync(astPlayer, node, consumedClassId))
+                .whenComplete((mutation, failure) -> runOnMainThread(() -> {
+                    pendingNodeMutations.remove(accountId);
+                    if (failure != null || mutation == null || !mutation.changed()) {
+                        playDenied(player, 0.75F);
+                        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5825);
+                        return;
+                    }
+                    service.acknowledgeCommittedNodeMutation(astPlayer, node, mutation, true);
+                    if (!player.isOnline()) {
+                        return;
+                    }
+                    playUnlock(player);
+                    sendUnlockSuccess(player, astPlayer, node, consumedClassId);
+                }));
     }
 
     /**
@@ -342,7 +362,23 @@ public class SkillTreeEventHandler extends AbstractEventHandler
             @NotNull AstPlayer astPlayer,
             @NotNull SkillTreeNodeDefinition node
     ) {
-        if (service.relockNode(astPlayer, node)) {
+        UUID accountId = astPlayer.getAccount().getUuid();
+        if (!pendingNodeMutations.add(accountId)) {
+            playDenied(player, 0.75F);
+            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5827);
+            return;
+        }
+        service.relockNodeAsync(astPlayer, node).whenComplete((mutation, failure) -> runOnMainThread(() -> {
+            pendingNodeMutations.remove(accountId);
+            if (failure != null || mutation == null || !mutation.changed()) {
+                playDenied(player, 0.75F);
+                PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5827);
+                return;
+            }
+            service.acknowledgeCommittedNodeMutation(astPlayer, node, mutation, false);
+            if (!player.isOnline()) {
+                return;
+            }
             GuiSound.SKILL_RELOCK.play(player);
             PlayerMessageService.getInstance().send(
                     player,
@@ -350,10 +386,15 @@ public class SkillTreeEventHandler extends AbstractEventHandler
                     ColorCodeUtil.toLegacyText(node.name(), node.nodeId()),
                     SkillTreeService.RELOCK_GOLD_COST
             );
-        } else {
-            playDenied(player, 0.75F);
-            PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5827);
+        }));
+    }
+
+    private void runOnMainThread(@NotNull Runnable action) {
+        if (Bukkit.isPrimaryThread()) {
+            action.run();
+            return;
         }
+        Bukkit.getScheduler().runTask(AstralRecord.getInstance(), action);
     }
 
     private void openRelockConfirmation(

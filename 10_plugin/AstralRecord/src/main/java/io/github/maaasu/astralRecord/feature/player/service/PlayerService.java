@@ -149,31 +149,10 @@ public class PlayerService {
      */
     public @Nullable AccountModel loadPlayerJoinAccount(@NotNull UserModel user, @NotNull String playerName) {
         var account = accountService.getSelectedAccount(user.getUuid(), user.getAccountId());
-        if (account != null && recoverPendingPlayerState(account.getUuid())) {
-            account = accountService.getAccount(account.getUuid());
-        }
         if (account == null) {
             Logger.log(LogId.W_5070, playerName);
         }
         return account;
-    }
-
-    /**
-     * account/skillの初期値を採用する前に未受領状態を復元します。
-     * @param accountId 対象account
-     * @return APIからaccountを再読込する必要がある場合true
-     */
-    public boolean recoverPendingPlayerState(@NotNull UUID accountId) {
-        return inventoryPersistence.recoverPendingSnapshot(accountId);
-    }
-
-    /**
-     * 復元済みの切替先accountを、現在のユーザー選択値に依存せず再取得します。
-     * @param accountId 切替先account
-     * @return 復元後のaccount。存在しない場合null
-     */
-    public @Nullable AccountModel reloadPlayerJoinAccount(@NotNull UUID accountId) {
-        return accountService.getAccount(accountId);
     }
 
     /**
@@ -372,6 +351,24 @@ public class PlayerService {
         statusService.clearShieldRuntimeState(player.getUniqueId());
         AstPlayerCache.remove(player.getUniqueId());
         return save;
+    }
+
+    /**
+     * チャンネル移動前に Bukkit 上の最新状態を取り込み、統合プレイヤー状態を SQL へ確定します。
+     * セッションと各 runtime cache は保持したままなので、保存失敗時も現在チャンネルで継続できます。
+     *
+     * @param player 移動するオンラインプレイヤー
+     * @return SQL ACK まで完了した場合だけ {@code true} となる future
+     */
+    public @NotNull CompletableFuture<Boolean> saveForChannelTransfer(@NotNull AstPlayer player) {
+        Player bukkit = player.getBukkit();
+        if (AstPlayerCache.get(bukkit) != player) {
+            return CompletableFuture.completedFuture(false);
+        }
+        if (!playerSaveCoordinator.prepare(player, PlayerSaveTrigger.MANUAL)) {
+            return CompletableFuture.completedFuture(false);
+        }
+        return inventorySaveCoordinator.saveForBoundary(player.getAccount().getUuid());
     }
 
     /**

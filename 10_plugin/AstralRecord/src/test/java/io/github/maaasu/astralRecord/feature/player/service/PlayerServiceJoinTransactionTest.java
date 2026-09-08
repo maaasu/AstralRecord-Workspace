@@ -164,38 +164,6 @@ class PlayerServiceJoinTransactionTest {
         }
     }
 
-    /**
-     * 設計入力: 00_docs/10_Plugin設計書/feature/03-player/3-メソッド仕様/03_3-保存.md
-     * 章・見出し: # 03_3-保存 > ## 1. save メソッド仕様 > ### ローカルファイルと再送
-     * 検証契約: 未受領snapshot復元後にaccountを再取得し、復元前の進行値をjoinに返さない。
-     */
-    @Test
-    void reloadsAccountAfterPendingSnapshotRecovery() {
-        UUID userId = UUID.randomUUID();
-        UUID accountId = UUID.randomUUID();
-        UserModel user = mock(UserModel.class);
-        when(user.getUuid()).thenReturn(userId);
-        when(user.getAccountId()).thenReturn(accountId);
-        AccountModel before = mock(AccountModel.class);
-        AccountModel after = mock(AccountModel.class);
-        when(before.getUuid()).thenReturn(accountId);
-        AccountService accounts = mock(AccountService.class);
-        when(accounts.getSelectedAccount(userId, accountId)).thenReturn(before);
-        when(accounts.getAccount(accountId)).thenReturn(after);
-        InventoryPersistence persistence = mock(InventoryPersistence.class);
-        when(persistence.recoverPendingSnapshot(accountId)).thenReturn(true);
-        PlayerService service = new PlayerService(mock(UserService.class), accounts,
-            mock(InventoryService.class), mock(InventorySaveCoordinator.class), persistence,
-            new PlayerInventoryStateRegistry(), mock(StatusService.class),
-            mock(PlayerSaveCoordinator.class), mock(PlayerRegionService.class));
-
-        assertSame(after, service.loadPlayerJoinAccount(user, "recovered"));
-        var order = org.mockito.Mockito.inOrder(accounts, persistence);
-        order.verify(accounts).getSelectedAccount(userId, accountId);
-        order.verify(persistence).recoverPendingSnapshot(accountId);
-        order.verify(accounts).getAccount(accountId);
-    }
-
     private PlayerService service(
         PlayerInventoryStateRegistry registry,
         InventorySaveCoordinator saveCoordinator,

@@ -32,9 +32,10 @@
 | `AstralRecord` | `AstralRecord/migrations/20260901_account_delete_receipt.sql` | アカウント削除の確定応答台帳を追加 |
 | `AstralRecord` | `AstralRecord/migrations/20260904_add_inventory_entry_lookup_index.sql` | inventory entry 一括置換の inventory 単位検索用インデックスを追加 |
 | `AstralRecord` | `AstralRecord/migrations/20260905_account_learned_skill_operation.sql` | スキル mutation の冪等操作台帳を追加 |
-| `AstralRecord` | `AstralRecord/migrations/20260906_player_state_snapshot.sql` | player-state snapshot 冪等台帳と account 進行度専用版を追加。inventory個体行の正本item ID併記をCHECKで許容し、スロットなしitem一意索引はstack行に限定 |
 
 本番配置時に適用する migration は `60_tool/db-migrate/db-migrate.config.json` の manifest で管理する。`01-deploy-debug.bat` は API 配置前に manifest の適用と対象スキーマ検査を実行し、失敗時は API を配置しない。`04-db-rebuild.bat` は既存データを削除する再構築用であり、稼働中DBの差分適用には使用しない。
+
+player-state snapshot は既存DB向け migration を持たない。新しい `init.sql` でDBを作成するか、`60_tool/11-db-reset-except-release-notes.bat` で Release Note 以外を再構築して導入する。
 
 ## AstralRecord
 

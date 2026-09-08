@@ -37,7 +37,7 @@ public class WebAuthRepository {
         body.addProperty("requestedAt", Instant.now().toString());
 
         try {
-            try (var client = ApiRequestUtil.buildClient()) {
+            var client = ApiRequestUtil.sharedClient();
                 var request = ApiRequestUtil.buildRequestBuilder("/api/web-auth/challenges")
                     .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
                     .build();
@@ -53,7 +53,6 @@ public class WebAuthRepository {
                     Instant.parse(object.get("expiresAt").getAsString()),
                     object.get("loginUrl").getAsString()
                 );
-            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);

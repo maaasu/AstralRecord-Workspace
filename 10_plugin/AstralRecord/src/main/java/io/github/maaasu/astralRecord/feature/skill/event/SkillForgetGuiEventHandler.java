@@ -1,6 +1,5 @@
 package io.github.maaasu.astralRecord.feature.skill.event;
 
-import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.core.event.AbstractEventHandler;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -25,11 +24,9 @@ import io.github.maaasu.astralRecord.feature.skill.service.SkillOwnershipService
 import io.github.maaasu.astralRecord.feature.skill.service.SkillPresentationUtil;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillService;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
-import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
 import io.github.maaasu.astralRecord.shared.gui.confirm.ConfirmDialogView;
 import io.github.maaasu.astralRecord.shared.gui.session.GuiSessionEndEvent;
 import io.github.maaasu.astralRecord.shared.gui.sound.GuiSound;
-import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.EventPriority;
@@ -47,7 +44,6 @@ import java.util.concurrent.ConcurrentHashMap;
 
 /** NPC 専用スキル忘却 GUI の開閉と操作を処理します。 */
 public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
-    private final AstralRecord plugin;
     private final SkillForgetGui gui;
     private final SkillService skillService;
     private final SkillOwnershipService ownershipService;
@@ -59,7 +55,6 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
     private final Map<UUID, UUID> forgetting = new ConcurrentHashMap<>();
 
     public SkillForgetGuiEventHandler(
-        @NotNull AstralRecord plugin,
         @NotNull SkillForgetGui gui,
         @NotNull SkillService skillService,
         @NotNull SkillOwnershipService ownershipService,
@@ -69,7 +64,6 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
         @NotNull ItemService itemService,
         @NotNull ShopService shopService
     ) {
-        this.plugin = plugin;
         this.gui = gui;
         this.skillService = skillService;
         this.ownershipService = ownershipService;
@@ -224,33 +218,19 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
             rejectPaidForget(player, playerId, PlayerMsgId.P_5870);
             return;
         }
-        if (paidForget && !inventoryService.consumeCurrency(
-            accountId, ItemService.ASTRALD_CURRENCY_ITEM_ID, 100
-        )) {
+        if (paidForget && inventoryService.getCurrencyAmount(
+            accountId, ItemService.ASTRALD_CURRENCY_ITEM_ID) < 100L) {
             rejectPaidForget(player, playerId, PlayerMsgId.P_5868);
             return;
         }
-        if (paidForget) {
-            inventoryService.saveNow(accountId).whenComplete((saved, saveError) ->
-                runOnMainThread(() -> {
-                    if (saveError != null || !Boolean.TRUE.equals(saved)) {
-                        refundPaidForget(player, accountId);
-                        failForget(player, playerId, PlayerMsgId.P_5867);
-                        return;
-                    }
-                    requestForget(
-                        player, playerId, accountId, learnedSkillId, entry, holder.pageIndex(),
-                        compensationMaterial
-                    );
-                })
-            );
-            return;
-        }
-        requestForget(player, playerId, accountId, learnedSkillId, entry, holder.pageIndex(), null);
+        requestForget(
+            player, astPlayer, playerId, accountId, learnedSkillId, entry, holder.pageIndex(),
+            compensationMaterial);
     }
 
     private void requestForget(
         @NotNull Player player,
+        @NotNull AstPlayer astPlayer,
         @NotNull UUID playerId,
         @NotNull UUID accountId,
         @NotNull UUID learnedSkillId,
@@ -258,23 +238,32 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
         int returnPage,
         @Nullable PurchaseMaterial compensationMaterial
     ) {
-        boolean accepted = learnedSkillService.forgetAsync(
+        Runnable inventoryMutation = compensationMaterial == null ? () -> { } : () -> {
+            if (!inventoryService.consumeCurrency(accountId, ItemService.ASTRALD_CURRENCY_ITEM_ID, 100L)) {
+                throw new PaidForgetPaymentUnavailableException();
+            }
+            int granted = inventoryService.addItemToNormalInventoryStateOnly(
+                astPlayer,
+                compensationMaterial.item(),
+                compensationMaterial.amount(),
+                "skill_forgetting_compensation"
+            );
+            if (granted != compensationMaterial.amount()) {
+                throw new PaidForgetCompensationUnavailableException();
+            }
+        };
+        boolean accepted = learnedSkillService.forgetWithInventoryMutationAsync(
             accountId,
             learnedSkillId,
             accountId,
+            inventoryMutation,
             ignored -> {
                 forgetting.remove(playerId);
                 AstPlayer current = AstPlayerCache.get(player);
                 if (current != null) {
                     passiveSkillService.reconcileNow(current);
                     if (compensationMaterial != null) {
-                        inventoryService.addItemToNormalInventory(
-                            current,
-                            compensationMaterial.item(),
-                            compensationMaterial.amount(),
-                            "skill_forgetting_compensation"
-                        );
-                        inventoryService.saveNow(accountId);
+                        inventoryService.applyInventoriesToGui(current);
                     }
                 }
                 openList(player, returnPage);
@@ -287,8 +276,12 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
             },
             error -> {
                 forgetting.remove(playerId);
-                if (compensationMaterial != null) refundPaidForget(player, accountId);
-                failForget(player, playerId, PlayerMsgId.P_5867);
+                PlayerMsgId messageId = error instanceof PaidForgetPaymentUnavailableException
+                    ? PlayerMsgId.P_5868
+                    : error instanceof PaidForgetCompensationUnavailableException
+                        ? PlayerMsgId.P_5870
+                        : PlayerMsgId.P_5867;
+                failForget(player, playerId, messageId);
             },
             () -> {
                 if (!forgetting.containsKey(playerId) || !player.isOnline()) return;
@@ -298,7 +291,6 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
             }
         );
         if (!accepted) {
-            if (compensationMaterial != null) refundPaidForget(player, accountId);
             failForget(player, playerId, PlayerMsgId.P_5867);
         }
     }
@@ -323,29 +315,12 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
         PlayerMessageService.getInstance().send(player, messageId);
     }
 
-    private void refundPaidForget(@NotNull Player player, @NotNull UUID accountId) {
-        AstPlayer current = AstPlayerCache.get(player);
-        ItemModel astrald = itemService.findLoadedById(ItemService.ASTRALD_CURRENCY_ITEM_ID);
-        if (current != null && astrald != null) {
-            inventoryService.addItemToNormalInventory(current, astrald, 100, "skill_forgetting_refund");
-            inventoryService.saveNow(accountId);
-        }
-    }
-
     private @Nullable PurchaseMaterial findPurchaseMaterial(@NotNull SkillDefinition skill) {
         List<io.github.maaasu.astralRecord.feature.skill.model.SkillRequiredItemDefinition> costs = skill.getLearnRequiredItems();
         if (costs.size() != 1 || costs.get(0).getAmount() <= 0) return null;
         var cost = costs.get(0);
         ItemModel material = itemService.findLoadedById(cost.getItemId());
         return material == null ? null : new PurchaseMaterial(material, cost.getAmount());
-    }
-
-    private void runOnMainThread(@NotNull Runnable action) {
-        if (Bukkit.isPrimaryThread()) {
-            action.run();
-            return;
-        }
-        AsyncTaskUtil.runSyncEventually(plugin, action);
     }
 
     private void openList(@NotNull Player player, int page) {
@@ -373,5 +348,13 @@ public final class SkillForgetGuiEventHandler extends AbstractEventHandler {
     }
 
     private record PurchaseMaterial(@NotNull ItemModel item, int amount) {
+    }
+
+    private static final class PaidForgetPaymentUnavailableException extends IllegalStateException {
+        private static final long serialVersionUID = 1L;
+    }
+
+    private static final class PaidForgetCompensationUnavailableException extends IllegalStateException {
+        private static final long serialVersionUID = 1L;
     }
 }

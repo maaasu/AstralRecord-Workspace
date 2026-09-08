@@ -4,14 +4,11 @@ import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.inventory.state.InventoryPersistence;
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryStateRegistry;
 import io.github.maaasu.astralRecord.feature.item.gui.OrbGuiHolder;
 import io.github.maaasu.astralRecord.feature.item.model.EnchantMaster;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentRune;
-import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationResult;
-import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationResultType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentEnhanceFailAction;
 import io.github.maaasu.astralRecord.feature.item.model.ItemEquipmentTranscendence;
@@ -19,8 +16,6 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffect;
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffectType;
 import io.github.maaasu.astralRecord.feature.item.model.ItemReference;
-import io.github.maaasu.astralRecord.feature.mutation.model.LocalMutationCommand;
-import io.github.maaasu.astralRecord.feature.mutation.service.LocalMutationOutbox;
 import io.github.maaasu.astralRecord.feature.player.AccountModeGuard;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
@@ -28,7 +23,6 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.status.service.StatusService;
 import io.github.maaasu.astralRecord.feature.skill.service.SkillSigilOrbService;
-import io.github.maaasu.astralRecord.infrastructure.config.ConfigProperties;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.AsyncTaskUtil;
@@ -67,9 +61,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
 
 /**
@@ -103,34 +95,23 @@ public final class OrbService {
     private static final int MATERIAL_LIST_BACK_SLOT = 49;
     private static final int MATERIAL_LIST_NEXT_PAGE_SLOT = 53;
     private static final Material PROCESSING_ICON = Material.CLOCK;
-    private static final long OPERATION_RETRY_INITIAL_MILLIS = 250L;
-    private static final long OPERATION_RETRY_MAX_MILLIS = 2_000L;
-    private static final long DEFAULT_OPERATION_TIMEOUT_MILLIS = 60_000L;
-
     private final Plugin plugin;
     private final InventoryService inventoryService;
-    private final InventorySaveCoordinator inventorySaveCoordinator;
     private final PlayerInventoryStateRegistry inventoryStateRegistry;
     private final ItemService itemService;
     private final ItemStackFactory itemStackFactory;
     private final OrbInventoryOpener inventoryOpener;
-    private final OrbRetryWaiter retryWaiter;
-    private final long operationTimeoutMillis;
     private final Map<UUID, OrbSession> sessions = new ConcurrentHashMap<>();
     private final Map<UUID, OrbInventoryListSession> inventoryOrbListSessions = new ConcurrentHashMap<>();
-    private final Map<UUID, PendingOrbOperation> pendingOrbOperations = new ConcurrentHashMap<>();
-    private final Set<UUID> pendingOrbAccounts = ConcurrentHashMap.newKeySet();
     private @Nullable StatusService statusService;
     private @NotNull BiConsumer<AstPlayer, String> useSuccessListener = (player, orbItemId) -> { };
     private @Nullable SkillSigilOrbService skillSigilOrbService;
-    private @Nullable LocalMutationOutbox mutationOutbox;
 
     /**
      * オーブ GUI サービスを初期化します。
      *
      * @param plugin Bukkit task の所有プラグイン
      * @param inventoryService 所持品の正本参照・差分消費サービス
-     * @param inventorySaveCoordinator ログアウト保存との直列化サービス
      * @param inventoryStateRegistry ログイン世代 state の検証レジストリ
      * @param itemService 装備・共通マスタ参照と更新サービス
      * @param itemStackFactory 装備表示生成サービス
@@ -138,7 +119,6 @@ public final class OrbService {
     public OrbService(
         @NotNull Plugin plugin,
         @NotNull InventoryService inventoryService,
-        @NotNull InventorySaveCoordinator inventorySaveCoordinator,
         @NotNull PlayerInventoryStateRegistry inventoryStateRegistry,
         @NotNull ItemService itemService,
         @NotNull ItemStackFactory itemStackFactory
@@ -146,86 +126,27 @@ public final class OrbService {
         this(
             plugin,
             inventoryService,
-            inventorySaveCoordinator,
             inventoryStateRegistry,
             itemService,
             itemStackFactory,
-            GuiOpenSupport::open,
-            OrbService::sleepForOperationRetry,
-            configuredOperationTimeoutMillis()
+            GuiOpenSupport::open
         );
     }
 
     OrbService(
         @NotNull Plugin plugin,
         @NotNull InventoryService inventoryService,
-        @NotNull InventorySaveCoordinator inventorySaveCoordinator,
         @NotNull PlayerInventoryStateRegistry inventoryStateRegistry,
         @NotNull ItemService itemService,
         @NotNull ItemStackFactory itemStackFactory,
         @NotNull OrbInventoryOpener inventoryOpener
     ) {
-        this(
-            plugin,
-            inventoryService,
-            inventorySaveCoordinator,
-            inventoryStateRegistry,
-            itemService,
-            itemStackFactory,
-            inventoryOpener,
-            OrbService::sleepForOperationRetry,
-            configuredOperationTimeoutMillis()
-        );
-    }
-
-    OrbService(
-        @NotNull Plugin plugin,
-        @NotNull InventoryService inventoryService,
-        @NotNull InventorySaveCoordinator inventorySaveCoordinator,
-        @NotNull PlayerInventoryStateRegistry inventoryStateRegistry,
-        @NotNull ItemService itemService,
-        @NotNull ItemStackFactory itemStackFactory,
-        @NotNull OrbInventoryOpener inventoryOpener,
-        @NotNull OrbRetryWaiter retryWaiter
-    ) {
-        this(
-            plugin,
-            inventoryService,
-            inventorySaveCoordinator,
-            inventoryStateRegistry,
-            itemService,
-            itemStackFactory,
-            inventoryOpener,
-            retryWaiter,
-            configuredOperationTimeoutMillis()
-        );
-    }
-
-    OrbService(
-        @NotNull Plugin plugin,
-        @NotNull InventoryService inventoryService,
-        @NotNull InventorySaveCoordinator inventorySaveCoordinator,
-        @NotNull PlayerInventoryStateRegistry inventoryStateRegistry,
-        @NotNull ItemService itemService,
-        @NotNull ItemStackFactory itemStackFactory,
-        @NotNull OrbInventoryOpener inventoryOpener,
-        @NotNull OrbRetryWaiter retryWaiter,
-        long operationTimeoutMillis
-    ) {
         this.plugin = plugin;
         this.inventoryService = inventoryService;
-        this.inventorySaveCoordinator = inventorySaveCoordinator;
         this.inventoryStateRegistry = inventoryStateRegistry;
         this.itemService = itemService;
         this.itemStackFactory = itemStackFactory;
         this.inventoryOpener = inventoryOpener;
-        this.retryWaiter = retryWaiter;
-        this.operationTimeoutMillis = Math.max(1_000L, operationTimeoutMillis);
-    }
-
-    private static long configuredOperationTimeoutMillis() {
-        long configured = ConfigProperties.getInstance().getApiOperationTimeout();
-        return configured > 0L ? configured : DEFAULT_OPERATION_TIMEOUT_MILLIS;
     }
 
     /**
@@ -253,11 +174,6 @@ public final class OrbService {
      */
     public void setSkillSigilOrbService(@Nullable SkillSigilOrbService skillSigilOrbService) {
         this.skillSigilOrbService = skillSigilOrbService;
-    }
-
-    /** 装備のローカル確定結果を後送するoutboxを接続します。 */
-    public void setMutationOutbox(@Nullable LocalMutationOutbox mutationOutbox) {
-        this.mutationOutbox = mutationOutbox;
     }
 
     /**
@@ -306,12 +222,6 @@ public final class OrbService {
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             return false;
         }
-        if (pendingOrbAccounts.contains(astPlayer.getAccount().getUuid())) {
-            event.setCancelled(true);
-            notifyOrbOperationPending(player);
-            return true;
-        }
-
         event.setCancelled(true);
         openInventoryOrbList(player, astPlayer, null);
         return true;
@@ -333,11 +243,6 @@ public final class OrbService {
         AstPlayer astPlayer = AstPlayerCache.get(player);
         if (!AccountModeGuard.isGameplayPlayer(astPlayer)) {
             return false;
-        }
-        if (pendingOrbAccounts.contains(astPlayer.getAccount().getUuid())) {
-            event.setCancelled(true);
-            notifyOrbOperationPending(player);
-            return true;
         }
         InventoryEntryModel entry = inventoryService.getOwnedEntryAtBukkitSlot(astPlayer, event.getSlot());
         ItemModel orbModel = resolveOrbModel(entry);
@@ -364,10 +269,6 @@ public final class OrbService {
         @NotNull ItemModel orbModel,
         boolean returnToInventoryOrbListOnFailure
     ) {
-        if (pendingOrbAccounts.contains(astPlayer.getAccount().getUuid())) {
-            notifyOrbOperationPending(player);
-            return;
-        }
         OrbSession previous = sessions.get(player.getUniqueId());
         if (previous != null
             && (previous.operationFuture != null || previous.preloadFuture != null)) {
@@ -720,10 +621,6 @@ public final class OrbService {
         OrbSession currentOperation = sessions.get(player.getUniqueId());
         if (previousOperation != null && currentOperation != previousOperation) {
             GuiSound.DENY.play(player);
-            return;
-        }
-        if (pendingOrbAccounts.contains(astPlayer.getAccount().getUuid())) {
-            notifyOrbOperationPending(player);
             return;
         }
         if (currentOperation != null
@@ -2292,7 +2189,6 @@ public final class OrbService {
         }
         session.interactionLock.beginMutation();
         session.operationId = operationId;
-        session.externalOperationStarted = false;
         completeLocalMutation(session, target, currentOrb, operationId);
     }
 
@@ -2335,7 +2231,7 @@ public final class OrbService {
 
     /**
      * 予約済み支払いと全種類のオーブ結果を同一player state lockで確定します。
-     * API command/outboxは送信せず、確定後の完全スナップショット保存だけを非同期要求します。
+     * 完成スナップショットの SQL ACK 後だけ成功結果を通知します。
      */
     private void completeLocalMutation(
         @NotNull OrbSession session,
@@ -2347,71 +2243,92 @@ public final class OrbService {
             new java.util.concurrent.atomic.AtomicReference<>();
         java.util.concurrent.atomic.AtomicBoolean rejected = new java.util.concurrent.atomic.AtomicBoolean();
         try {
-            boolean committed = inventoryService.commitLocalOrbOperationPayment(
-                session.accountId,
-                operationId,
-                () -> {
-                    EquipmentInstance current = itemService.findLoadedEquipmentInstanceById(
-                        target.instance.getEquipmentInstanceId());
-                    ItemModel currentModel = current == null ? null : itemService.findLoadedById(current.getItemId());
-                    if (current == null || currentModel == null
-                        || !current.getAccountId().equalsIgnoreCase(session.accountId.toString())) {
-                        rejected.set(true);
-                        throw new LocalMutationRejectedException();
-                    }
-                    ItemOrbEffect effect = orbModel.getOrb().getEffect();
-                    EnchantMaster enchantMaster = effect.getType() == ItemOrbEffectType.ENCHANT
-                        && effect.getEnchantMasterId() != null
-                        ? itemService.findEnchantMasterById(effect.getEnchantMasterId())
-                        : null;
-                    ItemModel runeItem = session.selectedRuneItemId == null ? null
-                        : itemService.findLoadedById(session.selectedRuneItemId);
-                    if (effect.getType() == ItemOrbEffectType.RUNE_DETACH
-                        && (session.selectedRuneItemId == null || current.getRunes().stream().noneMatch(rune ->
-                            rune.getSlotIndex() == session.selectedRuneSlot
-                                && rune.getItemId().equalsIgnoreCase(session.selectedRuneItemId)))) {
-                        rejected.set(true);
-                        throw new LocalMutationRejectedException();
-                    }
-                    OrbLocalMutationCalculator.LocalResult local = OrbLocalMutationCalculator.apply(
-                        effect,
-                        currentModel,
-                        current,
-                        enchantMaster,
-                        runeItem,
-                        effect.getType() == ItemOrbEffectType.RUNE_DETACH ? session.selectedRuneSlot : null
-                    );
-                    if (local == null) {
-                        rejected.set(true);
-                        throw new LocalMutationRejectedException();
-                    }
-                    MutationResult result = toLocalMutationResult(effect.getType(), currentModel, local);
-                    if (local.returnedRuneItemId() != null) {
-                        ItemModel returnedRune = itemService.findLoadedById(local.returnedRuneItemId());
-                        if (returnedRune == null || inventoryService.addItemToNormalInventory(
-                            session.astPlayer, returnedRune, 1, "orb_rune_detach") != 1) {
-                            rejected.set(true);
-                            throw new LocalMutationRejectedException();
+            var persistence = inventoryService.executeCriticalPlayerMutation(session.accountId, () -> {
+                InventoryService.InventoryStateSnapshot inventoryBefore =
+                    inventoryService.snapshotState(session.accountId);
+                Runnable equipmentRollback = itemService.captureEquipmentStateRollback(session.accountId);
+                try {
+                    boolean committed = inventoryService.commitLocalOrbOperationPayment(
+                        session.accountId,
+                        operationId,
+                        () -> {
+                            EquipmentInstance current = itemService.findLoadedEquipmentInstanceById(
+                                target.instance.getEquipmentInstanceId());
+                            ItemModel currentModel = current == null ? null : itemService.findLoadedById(current.getItemId());
+                            if (current == null || currentModel == null
+                                || !current.getAccountId().equalsIgnoreCase(session.accountId.toString())) {
+                                rejected.set(true);
+                                throw new LocalMutationRejectedException();
+                            }
+                            ItemOrbEffect effect = orbModel.getOrb().getEffect();
+                            EnchantMaster enchantMaster = effect.getType() == ItemOrbEffectType.ENCHANT
+                                && effect.getEnchantMasterId() != null
+                                ? itemService.findEnchantMasterById(effect.getEnchantMasterId())
+                                : null;
+                            ItemModel runeItem = session.selectedRuneItemId == null ? null
+                                : itemService.findLoadedById(session.selectedRuneItemId);
+                            if (effect.getType() == ItemOrbEffectType.RUNE_DETACH
+                                && (session.selectedRuneItemId == null || current.getRunes().stream().noneMatch(rune ->
+                                    rune.getSlotIndex() == session.selectedRuneSlot
+                                        && rune.getItemId().equalsIgnoreCase(session.selectedRuneItemId)))) {
+                                rejected.set(true);
+                                throw new LocalMutationRejectedException();
+                            }
+                            OrbLocalMutationCalculator.LocalResult local = OrbLocalMutationCalculator.apply(
+                                effect,
+                                currentModel,
+                                current,
+                                enchantMaster,
+                                runeItem,
+                                effect.getType() == ItemOrbEffectType.RUNE_DETACH ? session.selectedRuneSlot : null
+                            );
+                            if (local == null) {
+                                rejected.set(true);
+                                throw new LocalMutationRejectedException();
+                            }
+                            MutationResult result = toLocalMutationResult(effect.getType(), currentModel, local);
+                            if (local.returnedRuneItemId() != null) {
+                                ItemModel returnedRune = itemService.findLoadedById(local.returnedRuneItemId());
+                                if (returnedRune == null || inventoryService.addItemToNormalInventoryStateOnly(
+                                    session.astPlayer, returnedRune, 1, "orb_rune_detach") != 1) {
+                                    rejected.set(true);
+                                    throw new LocalMutationRejectedException();
+                                }
+                            }
+                            if (itemService.applyLocalEquipmentInstance(local.instance()) == null) {
+                                rejected.set(true);
+                                throw new LocalMutationRejectedException();
+                            }
+                            resultReference.set(result);
                         }
-                    }
-                    if (itemService.applyLocalEquipmentInstance(local.instance()) == null) {
-                        rejected.set(true);
+                    );
+                    if (!committed || resultReference.get() == null) {
                         throw new LocalMutationRejectedException();
                     }
-                    resultReference.set(result);
+                } catch (RuntimeException | Error failure) {
+                    inventoryService.restoreState(inventoryBefore);
+                    equipmentRollback.run();
+                    throw failure;
                 }
-            );
-            if (!committed || resultReference.get() == null) {
+                return new InventorySaveCoordinator.CriticalMutation<>(
+                    resultReference.get(),
+                    () -> {
+                        inventoryService.restoreState(inventoryBefore);
+                        equipmentRollback.run();
+                    }
+                );
+            });
+            session.operationFuture = persistence;
+            persistence.whenComplete((result, failure) -> AsyncTaskUtil.runSyncEventually(plugin, () -> {
                 inventoryService.releaseOrbOperationPayment(session.accountId, operationId);
-                completeMutation(session, MutationResult.failed(
-                    rejected.get() ? MutationStatus.TARGET_CHANGED : MutationStatus.PAYMENT_UNAVAILABLE));
-                return;
-            }
-            inventoryService.queueLocalPlayerSave(session.accountId);
-            completeMutation(session, resultReference.get());
-        } catch (LocalMutationRejectedException rejection) {
-            inventoryService.releaseOrbOperationPayment(session.accountId, operationId);
-            completeMutation(session, MutationResult.failed(MutationStatus.TARGET_CHANGED));
+                if (failure != null) {
+                    Logger.warn(LogId.W_5252, session.accountId, failureReason(failure));
+                    completeMutation(session, MutationResult.failed(
+                        rejected.get() ? MutationStatus.TARGET_CHANGED : MutationStatus.FAILED));
+                    return;
+                }
+                completeMutation(session, result);
+            }));
         } catch (RuntimeException failure) {
             inventoryService.releaseOrbOperationPayment(session.accountId, operationId);
             Logger.warn(LogId.W_5252, session.accountId, failureReason(failure));
@@ -2438,283 +2355,6 @@ public final class OrbService {
         };
     }
 
-    /** outboxから一件ずつ実行する装備mutationの送信入口です。 */
-    public @NotNull CompletionStage<LocalMutationOutbox.Delivery> dispatchLocalMutation(
-        @NotNull LocalMutationCommand command
-    ) {
-        if (!(command instanceof LocalMutationCommand.EquipmentOrb equipment)) {
-            return CompletableFuture.completedFuture(LocalMutationOutbox.Delivery.RETRY);
-        }
-        UUID accountId = equipment.accountId();
-        boolean recovery = inventorySaveCoordinator.hasUnresolvedExternalOperation(accountId);
-        CompletableFuture<EquipmentOrbOperationResult> future = recovery
-            ? inventorySaveCoordinator.executeExclusiveAfterSaveRecovery(
-                accountId,
-                equipment.operationId(),
-                baseline -> performLocalOrbOperation(equipment, baseline)
-            )
-            : inventorySaveCoordinator.executeExclusiveAfterSave(
-                accountId,
-                equipment.operationId(),
-                baseline -> performLocalOrbOperation(equipment, baseline)
-            );
-        return future.handle((result, failure) -> {
-            if (failure != null || result == null) {
-                return LocalMutationOutbox.Delivery.RETRY;
-            }
-            inventoryService.releaseOrbOperationPayment(accountId, equipment.operationId());
-            inventoryService.releaseHiddenEntryQuantity(accountId, equipment.orbInventoryEntryId(), 1);
-            refreshAccountAfterLocalMutation(accountId, result);
-            return LocalMutationOutbox.Delivery.ACK;
-        });
-    }
-
-    private @NotNull EquipmentOrbOperationResult performLocalOrbOperation(
-        @NotNull LocalMutationCommand.EquipmentOrb command,
-        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline
-    ) {
-        if (!inventoryService.reserveOrbOperationPayment(
-            command.accountId(), command.operationId(), Map.of(command.orbItemId(), 1L), 0L)) {
-            throw new IllegalStateException("Local orb payment is unavailable.");
-        }
-        if (!inventoryService.finalizeOrbOperationPaymentReservation(
-            command.accountId(), command.operationId(), baseline)) {
-            throw new IllegalStateException("Local orb payment allocation failed.");
-        }
-        EquipmentOrbOperationResult operation = itemService.applyEquipmentOrbOperation(
-            command.operationId().toString(),
-            command.accountId().toString(),
-            command.equipmentInstanceId().toString(),
-            command.orbInventoryEntryId().toString(),
-            command.orbItemId(),
-            null,
-            null,
-            command
-        );
-        if (operation == null) {
-            operation = itemService.findEquipmentOrbOperation(
-                command.operationId().toString(),
-                command.accountId().toString()
-            );
-        }
-        if (operation == null) {
-            throw new IllegalStateException("Local orb operation result is not available.");
-        }
-
-        Set<UUID> affectedEntryIds = new LinkedHashSet<>();
-        for (String entryId : operation.getAffectedInventoryEntryIds()) {
-            affectedEntryIds.add(UUID.fromString(entryId));
-        }
-        affectedEntryIds.add(command.orbInventoryEntryId());
-        if (operation.getInventorySnapshot() == null) {
-            inventoryService.reconcileOrbOperationEntries(command.accountId(), affectedEntryIds, baseline);
-        } else {
-            inventoryService.reconcileOrbOperationEntries(
-                command.accountId(), affectedEntryIds, baseline, operation.getInventorySnapshot());
-        }
-        if (!operation.getTargetAvailable()
-            && operation.getResult() != EquipmentOrbOperationResultType.OPERATION_CONFLICT
-            && operation.getResult() != EquipmentOrbOperationResultType.INVALID) {
-            itemService.evictEquipmentInstanceFromCache(command.equipmentInstanceId().toString());
-            inventoryService.discardUnavailableEquipmentInstance(
-                command.accountId(), command.equipmentInstanceId());
-        }
-        return operation;
-    }
-
-    private void refreshAccountAfterLocalMutation(
-        @NotNull UUID accountId,
-        @NotNull EquipmentOrbOperationResult operation
-    ) {
-        boolean rejected = operation.getResult() != EquipmentOrbOperationResultType.APPLIED
-            || !operation.getTargetAvailable();
-        AsyncTaskUtil.runSyncEventually(plugin, () -> AstPlayerCache.getAll().stream()
-            .filter(player -> player.getAccount().getUuid().equals(accountId))
-            .forEach(player -> {
-                inventoryService.refreshManagedInventoryUi(player);
-                if (!rejected && operation.getEquipment() != null) {
-                    inventoryService.refreshEquipmentInstanceDisplay(player, operation.getEquipment());
-                } else {
-                    inventoryService.refreshEquipmentDisplaysForSave(player);
-                }
-                if (statusService != null) {
-                    statusService.refreshStatus(player);
-                }
-                if (rejected && player.getBukkit().isOnline()) {
-                    PlayerMessageService.getInstance().send(player.getBukkit(), PlayerMsgId.P_5295);
-                    GuiSound.DENY.play(player.getBukkit());
-                }
-            }));
-    }
-
-    /** 保存 lane 内で事前保存、冪等 API 操作、影響 entry の正本照合を一続きで実行します。 */
-    private void startAsyncMutation(
-        @NotNull OrbSession session,
-        @NotNull OrbCandidate target,
-        @NotNull ItemModel orbModel
-    ) {
-        UUID operationId = Objects.requireNonNull(session.operationId);
-        // 初回の external outcome unknown では pending UI の main task と recovery task が
-        // 競合し得るため、pending map の存在も recovery 判定に含める。
-        boolean recovery = session.pending || pendingOrbOperations.containsKey(operationId);
-        CompletableFuture<MutationResult> future = recovery
-            ? inventorySaveCoordinator.executeExclusiveAfterSaveRecovery(
-                session.accountId,
-                operationId,
-                baseline -> performOrbOperation(session, target, orbModel, operationId, baseline)
-            )
-            : inventorySaveCoordinator.executeExclusiveAfterSave(
-                session.accountId,
-                operationId,
-                baseline -> performOrbOperation(session, target, orbModel, operationId, baseline)
-            );
-        session.operationFuture = future;
-        future.whenComplete((result, throwable) -> {
-            Throwable failure = unwrapFailure(throwable);
-            boolean externalOutcomeUnknown = session.externalOperationStarted
-                && (failure != null || result == null);
-            if (externalOutcomeUnknown || failure instanceof OrbOperationPendingException) {
-                PendingOrbOperation pending = pendingOrbOperations.computeIfAbsent(
-                    operationId,
-                    ignored -> new PendingOrbOperation(session, target, orbModel, operationId)
-                );
-                pendingOrbAccounts.add(session.accountId);
-                schedulePendingOrbRecovery(pending);
-                if (!session.pending) {
-                    AsyncTaskUtil.runSyncEventually(
-                        plugin,
-                        () -> markOperationPending(session, operationId)
-                    );
-                }
-                return;
-            }
-            if ((failure == null && result != null) || !session.externalOperationStarted) {
-                inventoryService.releaseOrbOperationPayment(session.accountId, operationId);
-            }
-            if (session.pending || pendingOrbOperations.containsKey(operationId)) {
-                AsyncTaskUtil.runSyncEventually(plugin, () -> {
-                    removePendingOrbOperation(session, operationId);
-                    if (Objects.equals(operationId, session.operationId)) {
-                        completeMutation(
-                            session,
-                            failure == null && result != null
-                                ? result
-                                : MutationResult.failed(MutationStatus.FAILED)
-                        );
-                    }
-                });
-                return;
-            }
-            pendingOrbOperations.remove(operationId);
-            removePendingOrbAccountIfUnused(session.accountId);
-            if (session.detached) {
-                return;
-            }
-            AsyncTaskUtil.runSyncEventually(plugin, () -> {
-                if (session.detached
-                    || !Objects.equals(operationId, session.operationId)
-                    || sessions.get(session.player.getUniqueId()) != session) {
-                    return;
-                }
-                completeMutation(
-                    session,
-                    failure == null && result != null
-                        ? result
-                        : MutationResult.failed(MutationStatus.FAILED)
-                );
-            });
-        });
-    }
-
-    private @Nullable Throwable unwrapFailure(@Nullable Throwable throwable) {
-        if (throwable == null) {
-            return null;
-        }
-        Throwable failure = throwable;
-        while ((failure instanceof java.util.concurrent.CompletionException
-            || failure instanceof java.util.concurrent.ExecutionException)
-            && failure.getCause() != null) {
-            failure = failure.getCause();
-        }
-        return failure;
-    }
-
-    private void schedulePendingOrbRecovery(@NotNull PendingOrbOperation pending) {
-        synchronized (pending) {
-            if (pending.recoveryScheduled || pendingOrbOperations.get(pending.operationId) != pending) {
-                return;
-            }
-            long delayMillis = pending.nextDelayMillis;
-            long delayTicks = Math.max(1L, (delayMillis + 49L) / 50L);
-            pending.nextDelayMillis = Math.min(OPERATION_RETRY_MAX_MILLIS, delayMillis * 2L);
-            pending.recoveryScheduled = true;
-            try {
-                plugin.getServer().getScheduler().runTaskLaterAsynchronously(
-                    plugin,
-                    () -> {
-                        synchronized (pending) {
-                            pending.recoveryScheduled = false;
-                        }
-                        runPendingOrbRecovery(pending);
-                    },
-                    delayTicks
-                );
-            } catch (Throwable schedulingFailure) {
-                // Bukkit scheduler が一時的に task を受理できない場合は、plugin scheduler に
-                // 依存しない遅延 executor へ切り替える。未確定支払いと境界は保持する。
-                pending.recoveryScheduled = false;
-                Logger.warn(
-                    LogId.W_5252,
-                    pending.session.accountId,
-                    failureReason(schedulingFailure)
-                );
-                pending.recoveryScheduled = true;
-                try {
-                    CompletableFuture.delayedExecutor(delayMillis, TimeUnit.MILLISECONDS)
-                        .execute(() -> {
-                            synchronized (pending) {
-                                pending.recoveryScheduled = false;
-                            }
-                            runPendingOrbRecovery(pending);
-                        });
-                } catch (Throwable fallbackFailure) {
-                    pending.recoveryScheduled = false;
-                    Logger.warn(
-                        LogId.W_5252,
-                        pending.session.accountId,
-                        failureReason(fallbackFailure)
-                    );
-                }
-            }
-        }
-    }
-
-    private void runPendingOrbRecovery(@NotNull PendingOrbOperation pending) {
-        if (pendingOrbOperations.get(pending.operationId) != pending || !plugin.isEnabled()) return;
-        try {
-            startAsyncMutation(pending.session, pending.target, pending.orbModel);
-        } catch (Throwable recoveryFailure) {
-            Logger.warn(LogId.W_5252, pending.session.accountId, failureReason(recoveryFailure));
-            schedulePendingOrbRecovery(pending);
-        }
-    }
-
-    private void removePendingOrbOperation(@NotNull OrbSession session, @NotNull UUID operationId) {
-        PendingOrbOperation pending = pendingOrbOperations.get(operationId);
-        if (pending != null && pending.session == session) {
-            pendingOrbOperations.remove(operationId, pending);
-        } else {
-            pendingOrbOperations.remove(operationId);
-        }
-        removePendingOrbAccountIfUnused(session.accountId);
-    }
-
-    private void removePendingOrbAccountIfUnused(@NotNull UUID accountId) {
-        boolean remains = pendingOrbOperations.values().stream()
-            .anyMatch(pending -> pending.session.accountId.equals(accountId));
-        if (!remains) pendingOrbAccounts.remove(accountId);
-    }
-
     private static @NotNull String failureReason(@NotNull Throwable throwable) {
         Throwable cause = throwable;
         while (cause.getCause() != null) {
@@ -2726,230 +2366,10 @@ public final class OrbService {
             : message;
     }
 
-    private void markOperationPending(@NotNull OrbSession session, @NotNull UUID operationId) {
-        if (session.pending
-            || !Objects.equals(session.operationId, operationId)
-            || session.operationFuture == null) {
-            return;
-        }
-        session.pending = true;
-        session.detached = true;
-        session.uiClosed = true;
-        cancelReopenTask(session);
-        boolean shouldClose = isCurrentInventory(session.player, session);
-        sessions.remove(session.player.getUniqueId(), session);
-        session.interactionLock.close();
-        if (shouldClose && session.player.isOnline()) {
-            session.player.closeInventory();
-        }
-        if (session.player.isOnline()) {
-            notifyOrbOperationPending(session.player);
-        }
-    }
-
-    /** transport failure 時も同一 operationId を保持し、台帳結果と正本照合を保留回復します。 */
-    private @NotNull MutationResult performOrbOperation(
-        @NotNull OrbSession session,
-        @NotNull OrbCandidate target,
-        @NotNull ItemModel orbModel,
-        @NotNull UUID operationId,
-        @NotNull InventoryPersistence.PersistedInventoryBaseline baseline
-    ) {
-        if (!inventoryService.finalizeOrbOperationPaymentReservation(
-            session.accountId,
-            operationId,
-            baseline
-        )) {
-            return MutationResult.failed(MutationStatus.PAYMENT_UNAVAILABLE);
-        }
-        // From this point onward the POST may commit even if its response is lost. A failure must
-        // retain both the unresolved account lane and payment reservation until reconciliation.
-        session.externalOperationStarted = true;
-        String accountId = session.accountId.toString();
-        String operationIdText = operationId.toString();
-        long deadlineNanos = operationDeadline();
-        long retryDelayMillis = OPERATION_RETRY_INITIAL_MILLIS;
-        EquipmentOrbOperationResult operation = null;
-        while (operation == null) {
-            ensureOperationWithinDeadline(operationId, deadlineNanos);
-            operation = itemService.applyEquipmentOrbOperation(
-                operationIdText,
-                accountId,
-                target.instance.getEquipmentInstanceId(),
-                session.orbEntryId.toString(),
-                orbModel.getId(),
-                session.selectedRuneItemId,
-                session.screen == OrbGuiHolder.Screen.RUNE_DETACH ? session.selectedRuneSlot : null
-            );
-            if (operation == null) {
-                operation = itemService.findEquipmentOrbOperation(operationIdText, accountId);
-            }
-            if (operation == null) {
-                waitForOperationRetry(operationId, retryDelayMillis, deadlineNanos);
-                retryDelayMillis = Math.min(OPERATION_RETRY_MAX_MILLIS, retryDelayMillis * 2L);
-            }
-        }
-
-        Set<UUID> reconciliationEntryIds = new LinkedHashSet<>();
-        for (String affectedEntryId : operation.getAffectedInventoryEntryIds()) {
-            reconciliationEntryIds.add(UUID.fromString(affectedEntryId));
-        }
-        // request origin は古いAPIのaffected欠落や業務失敗でも必ず照合する。
-        reconciliationEntryIds.add(session.orbEntryId);
-        while (true) {
-            ensureOperationWithinDeadline(operationId, deadlineNanos);
-            try {
-                if (operation.getInventorySnapshot() == null) {
-                    inventoryService.reconcileOrbOperationEntries(session.accountId, reconciliationEntryIds, baseline);
-                } else {
-                    inventoryService.reconcileOrbOperationEntries(
-                        session.accountId, reconciliationEntryIds, baseline, operation.getInventorySnapshot());
-                }
-                break;
-            } catch (Exception reconciliationFailure) {
-                waitForOperationRetry(operationId, retryDelayMillis, deadlineNanos);
-                retryDelayMillis = Math.min(OPERATION_RETRY_MAX_MILLIS, retryDelayMillis * 2L);
-            }
-        }
-
-        // 三者マージは上で一度だけ完了済み。以後のcleanup retryでAPI消費deltaを再適用しない。
-        if (!operation.getTargetAvailable()
-            && operation.getResult() != EquipmentOrbOperationResultType.OPERATION_CONFLICT
-            && operation.getResult() != EquipmentOrbOperationResultType.INVALID) {
-            UUID targetInstanceId = UUID.fromString(target.instance.getEquipmentInstanceId());
-            while (true) {
-                ensureOperationWithinDeadline(operationId, deadlineNanos);
-                try {
-                    itemService.evictEquipmentInstanceFromCache(target.instance.getEquipmentInstanceId());
-                    inventoryService.discardUnavailableEquipmentInstance(session.accountId, targetInstanceId);
-                    break;
-                } catch (Exception cleanupFailure) {
-                    waitForOperationRetry(operationId, retryDelayMillis, deadlineNanos);
-                    retryDelayMillis = Math.min(OPERATION_RETRY_MAX_MILLIS, retryDelayMillis * 2L);
-                }
-            }
-        }
-        MutationResult result = toMutationResult(operation, target, orbModel);
-        return result;
-    }
-
-    /** shutdown interrupt時はpending境界を残したままlane jobを失敗させます。 */
-    private void ensureOperationThreadActive(@NotNull UUID operationId) {
-        if (Thread.currentThread().isInterrupted()) {
-            throw new IllegalStateException("Orb operation reconciliation interrupted: " + operationId);
-        }
-    }
-
-    private long operationDeadline() {
-        return System.nanoTime() + TimeUnit.MILLISECONDS.toNanos(operationTimeoutMillis);
-    }
-
-    private void ensureOperationWithinDeadline(@NotNull UUID operationId, long deadlineNanos) {
-        ensureOperationThreadActive(operationId);
-        if (System.nanoTime() >= deadlineNanos) {
-            throw new OrbOperationPendingException(operationId);
-        }
-    }
-
-    /** 同一operationId再送の指数backoffを非メインスレッドで待機します。 */
-    private void waitForOperationRetry(
-        @NotNull UUID operationId,
-        long delayMillis,
-        long deadlineNanos
-    ) {
-        long remainingNanos = deadlineNanos - System.nanoTime();
-        if (remainingNanos <= 0L) {
-            throw new OrbOperationPendingException(operationId);
-        }
-        long remainingMillis = Math.max(1L, TimeUnit.NANOSECONDS.toMillis(remainingNanos));
-        retryWaiter.await(operationId, Math.min(Math.max(1L, delayMillis), remainingMillis));
-    }
-
-    /** production用の再送待機。interruptを復元してpending境界を維持したまま失敗させます。 */
-    private static void sleepForOperationRetry(@NotNull UUID operationId, long delayMillis) {
-        try {
-            Thread.sleep(delayMillis);
-        } catch (InterruptedException interrupted) {
-            Thread.currentThread().interrupt();
-            throw new IllegalStateException(
-                "Orb operation reconciliation interrupted: " + operationId,
-                interrupted
-            );
-        }
-    }
-
-    /** API 台帳結果を GUI 反映用の結果へ変換します。 */
-    private @NotNull MutationResult toMutationResult(
-        @NotNull EquipmentOrbOperationResult operation,
-        @NotNull OrbCandidate target,
-        @NotNull ItemModel orbModel
-    ) {
-        // Availability is current-state metadata, so it takes precedence over the fixed
-        // business result (including PAYMENT_UNAVAILABLE/NO_CANDIDATE replays).
-        if (!operation.getTargetAvailable()
-            && operation.getResult() != EquipmentOrbOperationResultType.OPERATION_CONFLICT
-            && operation.getResult() != EquipmentOrbOperationResultType.INVALID) {
-            return MutationResult.failed(MutationStatus.TARGET_UNAVAILABLE);
-        }
-        if (operation.getResult() == EquipmentOrbOperationResultType.NO_CANDIDATE
-            || operation.getResult() == EquipmentOrbOperationResultType.NO_SLOT) {
-            return MutationResult.failed(MutationStatus.NO_CANDIDATE);
-        }
-        if (operation.getResult() == EquipmentOrbOperationResultType.PAYMENT_UNAVAILABLE) {
-            return MutationResult.failed(MutationStatus.PAYMENT_UNAVAILABLE);
-        }
-        EquipmentInstance instance = operation.getEquipment();
-        if (instance == null && operation.getResult() == EquipmentOrbOperationResultType.APPLIED) {
-            return MutationResult.failed(MutationStatus.FAILED);
-        }
-        if (operation.getResult() == EquipmentOrbOperationResultType.NOT_ELIGIBLE) {
-            return MutationResult.failed(MutationStatus.TARGET_CHANGED);
-        }
-        if (operation.getResult() != EquipmentOrbOperationResultType.APPLIED) {
-            return MutationResult.failed(MutationStatus.FAILED);
-        }
-        ItemModel model = itemService.findLoadedById(instance.getItemId());
-        if (model == null) {
-            model = target.model;
-        }
-        return switch (operation.getOperationType().trim().toUpperCase(Locale.ROOT)) {
-            case "ENHANCE" -> MutationResult.enhancement(
-                model,
-                instance,
-                operation.getEnhancementSucceeded(),
-                Objects.requireNonNullElse(operation.getFailAction(), ItemEquipmentEnhanceFailAction.NONE),
-                Objects.requireNonNullElse(operation.getSuccessRate(), 0.0D)
-            );
-            case "REPAIR" -> MutationResult.repair(
-                model,
-                instance,
-                Objects.requireNonNullElse(operation.getRepairedAmount(), 0)
-            );
-            case "ENCHANT" -> MutationResult.enchant(model, instance);
-            case "RUNE_ATTACH", "RUNE_DETACH" -> MutationResult.rune(model, instance);
-            case "TRANSCENDENCE" -> {
-                String name = operation.getTransitionName();
-                if (name == null || name.isBlank()) {
-                    OrbEligibility.TranscendencePlan plan = OrbEligibility.resolveTranscendence(
-                        orbModel.getOrb().getEffect(), target.model, target.instance);
-                    name = plan == null ? "次の状態" : transitionName(plan.definition());
-                }
-                yield MutationResult.transcendence(model, instance, name);
-            }
-            default -> MutationResult.failed(MutationStatus.FAILED);
-        };
-    }
-
     /** 装備処理結果を業務失敗表示または即時の結果反映へ収束させます。 */
     private void completeMutation(@NotNull OrbSession session, @NotNull MutationResult result) {
-        boolean pending = session.pending;
         session.operationFuture = null;
         session.operationId = null;
-        session.externalOperationStarted = false;
-        if (pending) {
-            completePendingMutation(session, result);
-            return;
-        }
         if (result.status != MutationStatus.SUCCESS) {
             if (!session.batchActive) {
                 session.interactionLock.release();
@@ -2957,9 +2377,7 @@ public final class OrbService {
             if (session.detached) {
                 return;
             }
-            // Failure responses still carry authoritative origin-entry reconciliation.
-            // Redraw BAG/HOTBAR before closing or re-rendering the orb screen so a removed
-            // orb cannot remain as a ghost Bukkit ItemStack.
+            // ローカル状態は critical mutation の rollback 済みなので、Bukkit 表示も同じ状態へ戻す。
             inventoryService.refreshManagedInventoryUi(session.astPlayer);
             if (result.status == MutationStatus.TARGET_UNAVAILABLE
                 || result.status == MutationStatus.TARGET_CHANGED) {
@@ -3010,68 +2428,6 @@ public final class OrbService {
             return;
         }
         finishSuccessfulMutation(session, result);
-    }
-
-    /**
-     * 待機表示を閉じた後に確定した結果を、GUI再表示なしで正本・表示へ反映します。
-     * 保留中は旧GUIを再利用しない一方、成功通知、ガイド、装備表示、status再計算は省略しません。
-     */
-    private void completePendingMutation(
-        @NotNull OrbSession session,
-        @NotNull MutationResult result
-    ) {
-        session.pending = false;
-        session.interactionLock.release();
-        if (result.status != MutationStatus.SUCCESS) {
-            if (session.player.isOnline()) {
-                inventoryService.refreshManagedInventoryUi(session.astPlayer);
-                if (result.status == MutationStatus.TARGET_UNAVAILABLE
-                    || result.status == MutationStatus.TARGET_CHANGED) {
-                    inventoryService.refreshEquipmentDisplaysForSave(session.astPlayer);
-                    if (statusService != null) {
-                        statusService.refreshStatus(session.astPlayer);
-                    }
-                }
-                if (session.batchActive) {
-                    finishBatchMutation(session, result);
-                    return;
-                }
-                PlayerMessageService.getInstance().send(
-                    session.player,
-                    mutationFailureMessage(session, result)
-                );
-                GuiSound.DENY.play(session.player);
-            }
-            if (session.batchActive) {
-                finishBatchMutation(session, result);
-                return;
-            }
-            sessions.remove(session.player.getUniqueId(), session);
-            return;
-        }
-
-        useSuccessListener.accept(session.astPlayer, session.orbItemId);
-        if (result.instance != null && session.player.isOnline()) {
-            inventoryService.refreshManagedInventoryUi(session.astPlayer);
-            inventoryService.refreshEquipmentInstanceDisplay(session.astPlayer, result.instance);
-            if (statusService != null) {
-                statusService.refreshStatus(session.astPlayer);
-            }
-        }
-        if (session.batchActive) {
-            recordBatchResult(session, result);
-            finishBatchMutation(session, result);
-            return;
-        }
-        if (session.player.isOnline()) {
-            sendMutationResult(session.player, result);
-            if (result.kind == MutationKind.ENHANCEMENT && !result.enhancementSucceeded) {
-                GuiSound.DENY.play(session.player);
-            } else {
-                GuiSound.SUCCESS.play(session.player);
-            }
-        }
-        sessions.remove(session.player.getUniqueId(), session);
     }
 
     /** 複数回適用の成功結果を集計し、次の1個を同じ対象へ開始します。 */
@@ -3352,11 +2708,6 @@ public final class OrbService {
         }
     }
 
-    private void notifyOrbOperationPending(@NotNull Player player) {
-        PlayerMessageService.getInstance().send(player, PlayerMsgId.P_5296);
-        GuiSound.DENY.play(player);
-    }
-
     /**
      * 現在画面であることを先に判定してtask・session・GUIを終了します。
      *
@@ -3470,12 +2821,6 @@ public final class OrbService {
             @NotNull Runnable onOpened,
             @NotNull Runnable onCancelled
         );
-    }
-
-    /** API台帳の再照会backoffをテストから制御する境界です。 */
-    @FunctionalInterface
-    interface OrbRetryWaiter {
-        void await(@NotNull UUID operationId, long delayMillis);
     }
 
     private record MutationResult(
@@ -3681,9 +3026,7 @@ public final class OrbService {
         private boolean uiClosed;
         private boolean reopening;
         private volatile boolean detached;
-        private volatile boolean pending;
         private volatile UUID operationId;
-        private volatile boolean externalOperationStarted;
         private int processingSlot = -1;
         private CompletableFuture<ItemService.EquipmentPreloadResult> preloadFuture;
         private volatile CompletableFuture<MutationResult> operationFuture;
@@ -3716,35 +3059,6 @@ public final class OrbService {
             this.orbEntryId = orbEntryId;
             this.orbItemId = orbItemId;
             this.returnToInventoryOrbListOnFailure = returnToInventoryOrbListOnFailure;
-        }
-    }
-
-    private static final class PendingOrbOperation {
-        private final OrbSession session;
-        private final OrbCandidate target;
-        private final ItemModel orbModel;
-        private final UUID operationId;
-        private long nextDelayMillis = OPERATION_RETRY_INITIAL_MILLIS;
-        private boolean recoveryScheduled;
-
-        private PendingOrbOperation(
-            @NotNull OrbSession session,
-            @NotNull OrbCandidate target,
-            @NotNull ItemModel orbModel,
-            @NotNull UUID operationId
-        ) {
-            this.session = session;
-            this.target = target;
-            this.orbModel = orbModel;
-            this.operationId = operationId;
-        }
-    }
-
-    private static final class OrbOperationPendingException extends IllegalStateException {
-        private static final long serialVersionUID = 1L;
-
-        private OrbOperationPendingException(@NotNull UUID operationId) {
-            super("Orb operation remains unresolved after the player wait deadline: " + operationId);
         }
     }
 

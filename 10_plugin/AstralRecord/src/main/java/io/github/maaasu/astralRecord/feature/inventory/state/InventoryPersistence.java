@@ -1,8 +1,6 @@
 package io.github.maaasu.astralRecord.feature.inventory.state;
 
 import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentLoadoutModel;
-import io.github.maaasu.astralRecord.feature.inventory.model.EquipmentLoadoutSlotModel;
-import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryDraft;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryProfile;
@@ -13,7 +11,6 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemService;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateAcknowledgementException;
 import io.github.maaasu.astralRecord.feature.mutation.repository.PlayerStateRepository;
-import io.github.maaasu.astralRecord.feature.mutation.service.PendingStateStore;
 import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
@@ -51,48 +48,37 @@ public final class InventoryPersistence {
     private final InventoryRepository inventoryRepository;
     private final EquipmentLoadoutRepository equipmentLoadoutRepository;
     private final ItemService itemService;
-    /** アカウントID → 直前に保存済みの装備ロードアウトスロット (キー: SlotKey, 値: 装備インスタンスID)。 */
-    private final Map<UUID, Map<SlotKey, UUID>> lastPersistedLoadoutSlots = new ConcurrentHashMap<>();
     private final List<java.util.function.Function<UUID, PlayerStateSection>> stateParticipants = new java.util.concurrent.CopyOnWriteArrayList<>();
     private final Map<UUID, PlayerStateSnapshot> pendingSnapshots = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, Set<UUID>>> persistedEntryIds = new ConcurrentHashMap<>();
     private final Map<UUID, Map<UUID, java.time.LocalDateTime>> persistedEntryVersions = new ConcurrentHashMap<>();
-    private final Map<UUID, Object> journalLocks = new ConcurrentHashMap<>();
+    private final Map<UUID, Set<UUID>> persistedInventoryIds = new ConcurrentHashMap<>();
+    private final Map<UUID, Set<UUID>> persistedLoadoutIds = new ConcurrentHashMap<>();
     private final Map<UUID, PlayerInventoryState> liveStates = new ConcurrentHashMap<>();
-    private final Map<UUID, CheckpointLane> checkpointLanes = new ConcurrentHashMap<>();
-    private final Set<UUID> frozenAccounts = ConcurrentHashMap.newKeySet();
     private final Set<UUID> blockedSnapshots = ConcurrentHashMap.newKeySet();
     private final Map<UUID, Integer> snapshotAttempts = new ConcurrentHashMap<>();
     private final Map<UUID, Long> retryNotBefore = new ConcurrentHashMap<>();
     private final Map<UUID, Object> snapshotSaveLocks = new ConcurrentHashMap<>();
-    private @Nullable PlayerStateRepository playerStateRepository;
-    private @Nullable PendingStateStore pendingStateStore;
+    private final PlayerStateRepository playerStateRepository;
 
     /**
      * 永続層との同期処理を構築します。
      *
      * @param inventoryRepository インベントリ repository
      * @param equipmentLoadoutRepository 装備ロードアウト repository
-     * @param itemService 装備耐久値の dirty flush に使うアイテムサービス
+     * @param itemService 装備状態を同じ snapshot に含めるアイテムサービス
+     * @param playerStateRepository 完成状態を一括保存する repository
      */
     public InventoryPersistence(
         @NotNull InventoryRepository inventoryRepository,
         @NotNull EquipmentLoadoutRepository equipmentLoadoutRepository,
-        @NotNull ItemService itemService
+        @NotNull ItemService itemService,
+        @NotNull PlayerStateRepository playerStateRepository
     ) {
         this.inventoryRepository = inventoryRepository;
         this.equipmentLoadoutRepository = equipmentLoadoutRepository;
         this.itemService = itemService;
-    }
-
-    /**
-     * 初期化時に完成状態の一括保存を有効にします。
-     * @param repository snapshot保存API
-     * @param directory 未受領snapshotを保持する専用ローカルディレクトリ
-     */
-    public void enablePlayerStateSnapshots(@NotNull PlayerStateRepository repository, @NotNull java.nio.file.Path directory) {
-        playerStateRepository = repository;
-        pendingStateStore = new PendingStateStore(directory);
+        this.playerStateRepository = playerStateRepository;
     }
 
     /**
@@ -101,11 +87,6 @@ public final class InventoryPersistence {
      */
     public void registerStateParticipant(@NotNull java.util.function.Function<UUID, PlayerStateSection> participant) {
         stateParticipants.add(participant);
-    }
-
-    /** @return 完成状態保存が初期化済みの場合true */
-    public boolean usesPlayerStateSnapshots() {
-        return playerStateRepository != null;
     }
 
     /**
@@ -132,16 +113,18 @@ public final class InventoryPersistence {
      * @return 構築済み state
      */
     public @NotNull PlayerInventoryState load(@NotNull UUID accountId) {
-        recoverPendingSnapshot(accountId);
         PlayerInventoryState state = new PlayerInventoryState(accountId);
+        Set<UUID> loadedInventoryIds = ConcurrentHashMap.newKeySet();
+        Set<UUID> loadedLoadoutIds = ConcurrentHashMap.newKeySet();
+        persistedInventoryIds.put(accountId, loadedInventoryIds);
+        persistedLoadoutIds.put(accountId, loadedLoadoutIds);
         try {
-            // 過去に itemId を併記せず保存された装備 entry を、マーケット照合前に API 正本で補正する。
-            inventoryRepository.repairEquipmentEntryItemIds(accountId);
             List<InventoryModel> inventories = inventoryRepository.findByAccountId(accountId);
             Map<UUID, Set<UUID>> loadedEntryIds = new HashMap<>();
             Map<UUID, java.time.LocalDateTime> loadedEntryVersions = new HashMap<>();
             for (InventoryModel inventory : inventories) {
                 state.putInventory(inventory);
+                loadedInventoryIds.add(inventory.getInventoryId());
                 List<InventoryEntryModel> entries = inventoryRepository.findEntries(inventory.getInventoryId());
                 state.replaceEntriesFromLoad(inventory.getInventoryId(), entries);
                 entries.stream().filter(entry -> !entry.isDeleted()).forEach(entry ->
@@ -155,6 +138,7 @@ public final class InventoryPersistence {
                 .findByAccountId(accountId, InventoryProfile.GAME);
             for (EquipmentLoadoutModel loadout : loadouts) {
                 state.putLoadout(loadout);
+                loadedLoadoutIds.add(loadout.getEquipmentLoadoutId());
             }
             Set<String> equipmentInstanceIds = new HashSet<>();
             for (InventoryModel inventory : state.snapshotInventories()) {
@@ -170,8 +154,6 @@ public final class InventoryPersistence {
                 .filter(slot -> !slot.isDeleted())
                 .map(slot -> slot.getEquipmentInstanceId().toString())
                 .forEach(equipmentInstanceIds::add);
-            // APIから取得したloadoutをcleanup前に保存し、owner不一致slotを次回saveのdelete diffへ残す。
-            Map<SlotKey, UUID> persistedLoadoutSlots = snapshotLoadoutSlots(state);
             ItemService.EquipmentPreloadResult preloadResult =
                 itemService.preloadEquipmentInstances(equipmentInstanceIds);
             if (preloadResult == ItemService.EquipmentPreloadResult.UNAVAILABLE) {
@@ -193,7 +175,6 @@ public final class InventoryPersistence {
                     itemService.evictEquipmentInstanceFromCache(instanceId);
                 }
             }
-            lastPersistedLoadoutSlots.put(accountId, persistedLoadoutSlots);
             boolean discardedUnavailableEquipment = state.isDirty();
             boolean discardedUnavailableNormalItems = discardUnavailableNormalItemEntries(state);
             if (discardedUnavailableEquipment || discardedUnavailableNormalItems) {
@@ -247,7 +228,7 @@ public final class InventoryPersistence {
      * @return 実際に save 処理を走らせた場合 true
      */
     public boolean save(@NotNull PlayerInventoryState state, @NotNull SaveTrigger trigger) {
-        return save(state, trigger, null);
+        return savePlayerState(state, null);
     }
 
     private boolean save(
@@ -255,165 +236,7 @@ public final class InventoryPersistence {
         @NotNull SaveTrigger trigger,
         @Nullable Map<UUID, List<InventoryEntryModel>> persistedEntries
     ) {
-        if (usesPlayerStateSnapshots()) return savePlayerState(state, persistedEntries);
-        UUID accountId = state.getAccountId();
-        boolean inventoryDirty = state.takeAndClearDirty();
-        boolean durabilityDirty = itemService.hasDirtyEquipmentDurability(accountId);
-        if (!inventoryDirty && !durabilityDirty) {
-            return false;
-        }
-        boolean allOk = true;
-        try {
-            if (inventoryDirty) {
-                for (InventoryModel inventory : state.snapshotDirtyMetadataInventories()) {
-                    if (!inventory.isEnabled() || inventory.isDeleted()) {
-                        continue;
-                    }
-                    try {
-                        InventoryModel updated = inventoryRepository.updateMetadata(
-                            inventory.getInventoryId(),
-                            inventory.getMetadataJson(),
-                            accountId
-                        );
-                        state.putInventory(updated);
-                        state.clearMetadataDirty(inventory.getInventoryId());
-                    } catch (RuntimeException e) {
-                        Logger.warn(LogId.W_5252, inventory.getInventoryId(), e.getMessage());
-                        allOk = false;
-                    }
-                }
-
-                for (InventoryModel inventory : state.snapshotInventories()) {
-                    if (!inventory.isEnabled() || inventory.isDeleted()) {
-                        continue;
-                    }
-                    List<InventoryEntryModel> entries = state.snapshotEntries(inventory.getInventoryId());
-                    List<InventoryEntryDraft> drafts = entries.stream()
-                        .filter(e -> !e.isDeleted())
-                        .map(InventoryPersistence::toDraft)
-                        .toList();
-                    InventoryModel targetInventory = inventory;
-                    try {
-                        List<InventoryEntryModel> persisted = inventoryRepository.replaceEntries(
-                            targetInventory.getInventoryId(),
-                            drafts,
-                            accountId
-                        );
-                        state.acknowledgePersistedEntries(targetInventory.getInventoryId(), entries, persisted);
-                        capturePersistedEntries(persistedEntries, targetInventory.getInventoryId(), persisted);
-                    } catch (InventoryApiException e) {
-                        if (e.getStatusCode() == 409) {
-                            try {
-                                List<InventoryEntryModel> authoritative = inventoryRepository.findEntries(
-                                    targetInventory.getInventoryId()
-                                );
-                                if (state.replaceEntriesFromAuthoritativeSnapshotIfUnchanged(
-                                    targetInventory.getInventoryId(),
-                                    entries,
-                                    authoritative
-                                )) {
-                                    capturePersistedEntries(
-                                        persistedEntries,
-                                        targetInventory.getInventoryId(),
-                                        authoritative
-                                    );
-                                    continue;
-                                }
-                            } catch (RuntimeException recoveryFailure) {
-                                logInventorySyncFailure(
-                                    accountId,
-                                    targetInventory.getInventoryId(),
-                                    trigger,
-                                    entries.size(),
-                                    recoveryFailure
-                                );
-                                allOk = false;
-                                continue;
-                            }
-                        }
-                        if (e.getStatusCode() != 404) {
-                            logInventorySyncFailure(accountId, targetInventory.getInventoryId(), trigger, entries.size(), e);
-                            allOk = false;
-                            continue;
-                        }
-
-                        InventoryModel replacement;
-                        try {
-                            replacement = recoverMissingInventory(state, targetInventory, accountId, trigger);
-                        } catch (RuntimeException recoveryFailure) {
-                            logInventorySyncFailure(
-                                accountId,
-                                targetInventory.getInventoryId(),
-                                trigger,
-                                entries.size(),
-                                recoveryFailure
-                            );
-                            allOk = false;
-                            continue;
-                        }
-                        if (replacement == null) {
-                            logInventorySyncFailure(accountId, targetInventory.getInventoryId(), trigger, entries.size(), e);
-                            allOk = false;
-                            continue;
-                        }
-
-                        targetInventory = replacement;
-                        entries = state.snapshotEntries(targetInventory.getInventoryId());
-                        drafts = entries.stream()
-                            .filter(entry -> !entry.isDeleted())
-                            .map(InventoryPersistence::toDraft)
-                            .toList();
-                        try {
-                            List<InventoryEntryModel> persisted = inventoryRepository.replaceEntries(
-                                targetInventory.getInventoryId(),
-                                drafts,
-                                accountId
-                            );
-                            state.acknowledgePersistedEntries(targetInventory.getInventoryId(), entries, persisted);
-                            capturePersistedEntries(persistedEntries, targetInventory.getInventoryId(), persisted);
-                        } catch (RuntimeException retryFailure) {
-                            logInventorySyncFailure(
-                                accountId,
-                                targetInventory.getInventoryId(),
-                                trigger,
-                                entries.size(),
-                                retryFailure
-                            );
-                            allOk = false;
-                        }
-                    } catch (RuntimeException e) {
-                        logInventorySyncFailure(accountId, targetInventory.getInventoryId(), trigger, entries.size(), e);
-                        allOk = false;
-                    }
-                }
-
-                try {
-                    saveLoadoutSlotsDiff(state);
-                } catch (RuntimeException e) {
-                    Logger.warn(LogId.W_5253, accountId, e.getMessage());
-                    allOk = false;
-                }
-            }
-
-            if (durabilityDirty) {
-                try {
-                    if (!itemService.flushDirtyEquipmentDurability(accountId)) {
-                        allOk = false;
-                    }
-                } catch (RuntimeException e) {
-                    Logger.warn(LogId.W_5252, accountId, e.getMessage());
-                    allOk = false;
-                }
-            }
-        } catch (RuntimeException e) {
-            Logger.warn(LogId.W_5252, accountId, e.getMessage());
-            allOk = false;
-        }
-
-        if (!allOk && inventoryDirty) {
-            state.restoreDirty();
-        }
-        return true;
+        return savePlayerState(state, persistedEntries);
     }
 
     /**
@@ -426,8 +249,8 @@ public final class InventoryPersistence {
         synchronized (state) {
             return state.isDirty() || pendingSnapshots.containsKey(state.getAccountId())
                 || itemService.hasDirtyEquipmentDurability(state.getAccountId())
-                || usesPlayerStateSnapshots() && (!itemService.snapshotDirtyEquipmentState(state.getAccountId()).isEmpty()
-                    || stateParticipants.stream().anyMatch(participant -> participant.apply(state.getAccountId()) != null));
+                || !itemService.snapshotDirtyEquipmentState(state.getAccountId()).isEmpty()
+                || stateParticipants.stream().anyMatch(participant -> participant.apply(state.getAccountId()) != null);
         }
     }
 
@@ -439,29 +262,20 @@ public final class InventoryPersistence {
 
     private boolean savePlayerStateLocked(PlayerInventoryState state, Map<UUID, List<InventoryEntryModel>> baselineTarget) {
         UUID accountId = state.getAccountId();
-        if (frozenAccounts.contains(accountId)) return false;
         liveStates.put(accountId, state);
-        PlayerStateSnapshot snapshot;
-        synchronized (journalLock(accountId)) {
-            if (frozenAccounts.contains(accountId)) return false;
-            snapshot = pendingSnapshots.get(accountId);
-            if (snapshot == null) {
-                synchronized (state) {
-                    snapshot = captureState(state, false);
-                    if (snapshot == null) return false;
-                    state.takeAndClearDirty();
-                    pendingSnapshots.put(accountId, snapshot);
-                }
+        PlayerStateSnapshot snapshot = pendingSnapshots.get(accountId);
+        if (snapshot == null) {
+            synchronized (state) {
+                snapshot = captureState(state, false);
+                if (snapshot == null) return false;
+                state.takeAndClearDirty();
+                pendingSnapshots.put(accountId, snapshot);
             }
         }
         if (blockedSnapshots.contains(snapshot.snapshotId)) return true;
         Long retryAt = retryNotBefore.get(accountId);
         if (retryAt != null && System.nanoTime() - retryAt < 0L) return true;
         try {
-            synchronized (journalLock(accountId)) {
-                if (frozenAccounts.contains(accountId)) return false;
-                writeJournal(state, snapshot);
-            }
             JsonObject ack = playerStateRepository.saveSnapshot(snapshot.payload);
             try {
                 snapshot.validateAck(ack);
@@ -469,17 +283,9 @@ public final class InventoryPersistence {
                 throw new PlayerStateAcknowledgementException(invalid);
             }
             var entryVersions = PlayerStateSnapshot.versions(ack, "entries", "inventoryEntryId");
-            synchronized (journalLock(accountId)) {
-              if (frozenAccounts.contains(accountId)) {
-                  acknowledgeFrozenJournal(accountId, snapshot, ack);
-                  pendingSnapshots.remove(accountId, snapshot);
-                  snapshotAttempts.remove(accountId);
-                  retryNotBefore.remove(accountId);
-                  return true;
-              }
-              synchronized (state) {
-                state.acknowledgeSnapshotVersions(snapshot.inventories,
-                    PlayerStateSnapshot.versions(ack, "inventories", "inventoryId"),
+            synchronized (state) {
+                 state.acknowledgeSnapshotVersions(snapshot.inventories,
+                     PlayerStateSnapshot.versions(ack, "inventories", "inventoryId"),
                     PlayerStateSnapshot.versions(ack, "loadouts", "equipmentLoadoutId"), entryVersions);
                 Map<String, String> equipmentVersions = new HashMap<>();
                 for (var element : ack.getAsJsonArray("equipment")) {
@@ -487,6 +293,10 @@ public final class InventoryPersistence {
                     equipmentVersions.put(row.get("equipmentInstanceId").getAsString(), row.get("updatedAt").getAsString());
                 }
                 itemService.acknowledgeEquipmentState(accountId, snapshot.equipment, equipmentVersions);
+                persistedInventoryIds.computeIfAbsent(accountId, ignored -> ConcurrentHashMap.newKeySet())
+                    .addAll(snapshot.inventories.stream().map(InventoryModel::getInventoryId).toList());
+                persistedLoadoutIds.computeIfAbsent(accountId, ignored -> ConcurrentHashMap.newKeySet())
+                    .addAll(snapshot.loadoutIds);
                 for (PlayerStateSection section : snapshot.sections) section.acknowledge().accept(ack.get(section.name()));
                 Map<UUID, Set<UUID>> savedIds = new HashMap<>(persistedEntryIds.getOrDefault(accountId, Map.of()));
                 Map<UUID, java.time.LocalDateTime> savedVersions = new HashMap<>(persistedEntryVersions.getOrDefault(accountId, Map.of()));
@@ -495,13 +305,11 @@ public final class InventoryPersistence {
                     .map(InventoryEntryModel::getInventoryEntryId).collect(java.util.stream.Collectors.toCollection(HashSet::new))));
                 persistedEntryIds.put(accountId, savedIds);
                 snapshot.entries.values().forEach(rows -> rows.forEach(row -> savedVersions.put(row.getInventoryEntryId(), entryVersions.get(row.getInventoryEntryId()))));
-                persistedEntryVersions.put(accountId, savedVersions);
-                if (baselineTarget != null) baselineTarget.putAll(snapshot.baseline(ack).entriesByInventoryId());
+                 persistedEntryVersions.put(accountId, savedVersions);
+                 if (baselineTarget != null) baselineTarget.putAll(snapshot.baseline(ack).entriesByInventoryId());
             }
-              // ACK後の後続状態を先に耐久化する。書込失敗なら旧headを残して再試行する。
-              writeJournal(state, null);
-              pendingSnapshots.remove(accountId, snapshot);
-            }
+            pendingSnapshots.remove(accountId, snapshot);
+            blockedSnapshots.remove(snapshot.snapshotId);
             snapshotAttempts.remove(accountId);
             retryNotBefore.remove(accountId);
         } catch (RuntimeException failure) {
@@ -518,22 +326,6 @@ public final class InventoryPersistence {
         return true;
     }
 
-    private Object journalLock(UUID accountId) {
-        return journalLocks.computeIfAbsent(accountId, ignored -> new Object());
-    }
-
-    private void acknowledgeFrozenJournal(UUID accountId, PlayerStateSnapshot snapshot, JsonObject ack) {
-        String stored = pendingStateStore.read(accountId);
-        if (stored == null) throw new IllegalStateException("Missing frozen player-state journal");
-        PlayerStateJournal journal = PlayerStateJournal.decode(stored);
-        journal.validateAccount(accountId);
-        if (!com.google.gson.JsonParser.parseString(journal.inFlight()).getAsJsonObject().get("snapshotId")
-            .getAsString().equals(snapshot.snapshotId.toString()))
-            throw new IllegalStateException("Frozen journal head mismatch");
-        if (journal.successor() == null) pendingStateStore.delete(accountId);
-        else pendingStateStore.write(accountId, new PlayerStateJournal(journal.advance(ack), null).encode());
-    }
-
     /** state monitor内で捕捉する。API・ファイルI/Oを呼ばない。 */
     private PlayerStateSnapshot captureState(PlayerInventoryState state, boolean includePendingInventories) {
         UUID accountId = state.getAccountId();
@@ -542,156 +334,10 @@ public final class InventoryPersistence {
         var equipment = itemService.snapshotDirtyEquipmentState(accountId);
         if (!state.isDirty() && equipment.isEmpty() && sections.isEmpty() && !includePendingInventories) return null;
         return new PlayerStateSnapshot(state, equipment, sections, persistedEntryIds.getOrDefault(accountId, Map.of()),
-            persistedEntryVersions.getOrDefault(accountId, Map.of()), includePendingInventories);
-    }
-
-    /** journal lockを保持し、現在値から毎回捕捉するため古いwriterが新しい内容を上書きしない。 */
-    private void writeJournal(PlayerInventoryState state, PlayerStateSnapshot head) {
-        PlayerStateSnapshot latest;
-        synchronized (state) {
-            latest = captureState(state, head != null && !head.inventories.isEmpty());
-        }
-        if (head == null && latest == null) {
-            pendingStateStore.delete(state.getAccountId());
-            return;
-        }
-        String first = head == null ? latest.payload : head.payload;
-        String next = head != null && latest != null && !PlayerStateJournal.sameState(first, latest.payload)
-            ? latest.payload : null;
-        pendingStateStore.write(state.getAccountId(), new PlayerStateJournal(first, next).encode());
-    }
-
-    /**
-     * API laneとは独立して、送信中と後続最新状態をファイルへ記録します。連打は最新一世代へ合流します。
-     * @param state 対象の現在state
-     * @param executor ローカルI/Oを実行するexecutor
-     * @return この要求までのファイル書込完了。API応答は待たない
-     */
-    public java.util.concurrent.CompletableFuture<Void> checkpointAsync(
-        @NotNull PlayerInventoryState state, @NotNull java.util.concurrent.Executor executor
-    ) {
-        return checkpointAsync(state, executor, () -> true);
-    }
-
-    /**
-     * 外部取引の未解決境界を検査した上で、ローカル記録を要求します。
-     * @param state 対象state
-     * @param executor I/O executor
-     * @param allowed 実捕捉時に外部取引が未解決でなければtrue
-     * @return ローカル記録の完了
-     */
-    public java.util.concurrent.CompletableFuture<Void> checkpointAsync(
-        @NotNull PlayerInventoryState state, @NotNull java.util.concurrent.Executor executor,
-        @NotNull java.util.function.BooleanSupplier allowed
-    ) {
-        if (!usesPlayerStateSnapshots()) return java.util.concurrent.CompletableFuture.completedFuture(null);
-        UUID accountId = state.getAccountId();
-        liveStates.put(accountId, state);
-        CheckpointLane lane = checkpointLanes.computeIfAbsent(accountId, ignored -> new CheckpointLane());
-        synchronized (lane) {
-            lane.state = state;
-            lane.allowed = allowed;
-            lane.revision++;
-            if (lane.future != null) return lane.future;
-            var result = new java.util.concurrent.CompletableFuture<Void>();
-            lane.future = result;
-            try {
-                executor.execute(() -> drainCheckpoints(accountId, lane, result));
-            } catch (RuntimeException rejected) {
-                lane.future = null;
-                result.completeExceptionally(rejected);
-            }
-            return result;
-        }
-    }
-
-    private void drainCheckpoints(UUID accountId, CheckpointLane lane, java.util.concurrent.CompletableFuture<Void> result) {
-        try {
-            while (true) {
-                PlayerInventoryState state;
-                java.util.function.BooleanSupplier allowed;
-                long revision;
-                synchronized (lane) {
-                    state = lane.state;
-                    allowed = lane.allowed;
-                    revision = lane.revision;
-                }
-                synchronized (journalLock(accountId)) {
-                    if (liveStates.get(accountId) == state && !frozenAccounts.contains(accountId) && allowed.getAsBoolean())
-                        writeJournal(state, pendingSnapshots.get(accountId));
-                }
-                synchronized (lane) {
-                    if (revision == lane.revision) {
-                        lane.future = null;
-                        result.complete(null);
-                        return;
-                    }
-                }
-            }
-        } catch (RuntimeException failure) {
-            synchronized (lane) { lane.future = null; }
-            result.completeExceptionally(failure);
-            Logger.warn(LogId.W_5252, accountId, failureReason(failure));
-        }
-    }
-
-    private static final class CheckpointLane {
-        private PlayerInventoryState state;
-        private java.util.function.BooleanSupplier allowed;
-        private long revision;
-        private java.util.concurrent.CompletableFuture<Void> future;
-    }
-
-    /**
-     * 正常停止用の最終記録。以後の遅延ACKはメモリから再捕捉せず、凍結した後続本文を引き継ぎます。
-     * @param state 最終state
-     * @param executor ローカルI/O executor
-     * @param allowed 外部取引が未解決でなければtrue
-     * @return 最終記録完了
-     */
-    public java.util.concurrent.CompletableFuture<Void> freezeCheckpointAsync(
-        @NotNull PlayerInventoryState state, @NotNull java.util.concurrent.Executor executor,
-        @NotNull java.util.function.BooleanSupplier allowed
-    ) {
-        if (!usesPlayerStateSnapshots()) return java.util.concurrent.CompletableFuture.completedFuture(null);
-        return java.util.concurrent.CompletableFuture.runAsync(() -> {
-            UUID accountId = state.getAccountId();
-            synchronized (journalLock(accountId)) {
-                if (!frozenAccounts.contains(accountId) && allowed.getAsBoolean())
-                    writeJournal(state, pendingSnapshots.get(accountId));
-                frozenAccounts.add(accountId);
-            }
-        }, executor);
-    }
-
-    /**
-     * account・skillを含む通常ロードの前に、再起動で残った完成状態を復元します。
-     * @param accountId 復元対象account
-     * @return 保存ファイルを再送して受領確認できた場合true
-     */
-    public boolean recoverPendingSnapshot(@NotNull UUID accountId) {
-        synchronized (snapshotSaveLocks.computeIfAbsent(accountId, ignored -> new Object())) {
-            return recoverPendingSnapshotLocked(accountId);
-        }
-    }
-
-    private boolean recoverPendingSnapshotLocked(UUID accountId) {
-        if (!usesPlayerStateSnapshots() || liveStates.containsKey(accountId) || pendingSnapshots.containsKey(accountId)) return false;
-        String pending = pendingStateStore.read(accountId);
-        if (pending == null) return false;
-        PlayerStateJournal journal = PlayerStateJournal.decode(pending);
-        journal.validateAccount(accountId);
-        while (true) {
-            JsonObject ack = playerStateRepository.saveSnapshot(journal.inFlight());
-            PlayerStateSnapshot.validatePayloadAck(journal.inFlight(), ack);
-            if (journal.successor() == null) {
-                pendingStateStore.delete(accountId);
-                return true;
-            }
-            journal = new PlayerStateJournal(journal.advance(ack), null);
-            // 先行が既に受領済みであることと次便の期待版を、次便POSTより先に記録する。
-            pendingStateStore.write(accountId, journal.encode());
-        }
+            persistedEntryVersions.getOrDefault(accountId, Map.of()),
+            persistedInventoryIds.getOrDefault(accountId, Set.of()),
+            persistedLoadoutIds.getOrDefault(accountId, Set.of()),
+            itemService.snapshotPendingEquipmentCreationIds(accountId), includePendingInventories);
     }
 
     /**
@@ -746,22 +392,34 @@ public final class InventoryPersistence {
      * @return 通信が成功して反映された場合 true
      */
     public boolean saveNow(@NotNull PlayerInventoryState state) {
-        if (usesPlayerStateSnapshots()) {
-            synchronized (snapshotSaveLocks.computeIfAbsent(state.getAccountId(), ignored -> new Object())) {
-                if (frozenAccounts.contains(state.getAccountId())) return false;
-                boolean previousPending = pendingSnapshots.containsKey(state.getAccountId());
-                state.markDirty();
-                savePlayerStateLocked(state, null);
-                if (pendingSnapshots.containsKey(state.getAccountId())) return false;
-                // 先行便だけのACKを今回の保存成功と取り違えない。
-                if (previousPending) savePlayerStateLocked(state, null);
-                // 捕捉後のdirtyは次便の仕事。今回ACK済みの操作失敗ではない。
-                return !pendingSnapshots.containsKey(state.getAccountId());
-            }
+        synchronized (snapshotSaveLocks.computeIfAbsent(state.getAccountId(), ignored -> new Object())) {
+            boolean previousPending = pendingSnapshots.containsKey(state.getAccountId());
+            state.markDirty();
+            savePlayerStateLocked(state, null);
+            if (pendingSnapshots.containsKey(state.getAccountId())) return false;
+            // 先行便だけのACKを今回の保存成功と取り違えない。
+            if (previousPending) savePlayerStateLocked(state, null);
+            // 捕捉後のdirtyは次便の仕事。今回ACK済みの操作失敗ではない。
+            return !pendingSnapshots.containsKey(state.getAccountId());
         }
-        state.markDirty();
-        save(state, SaveTrigger.IMMEDIATE);
-        return !hasPendingChanges(state);
+    }
+
+    /**
+     * 重要操作の完成状態を保存します。失敗した要求は後から再送せず、呼び出し側の補償処理へ渡します。
+     * 先行する通常保存が残っていない状態で、account 保存 lane から呼び出してください。
+     */
+    public boolean saveCriticalNow(@NotNull PlayerInventoryState state) {
+        UUID accountId = state.getAccountId();
+        synchronized (snapshotSaveLocks.computeIfAbsent(accountId, ignored -> new Object())) {
+            state.markDirty();
+            savePlayerStateLocked(state, null);
+            PlayerStateSnapshot failed = pendingSnapshots.remove(accountId);
+            if (failed == null) return true;
+            blockedSnapshots.remove(failed.snapshotId);
+            snapshotAttempts.remove(accountId);
+            retryNotBefore.remove(accountId);
+            return false;
+        }
     }
 
     /**
@@ -786,106 +444,20 @@ public final class InventoryPersistence {
         return new PersistedInventoryBaseline(state.getAccountId(), persistedEntries);
     }
 
-    private static void capturePersistedEntries(
-        @Nullable Map<UUID, List<InventoryEntryModel>> target,
-        @NotNull UUID inventoryId,
-        @NotNull List<InventoryEntryModel> persisted
-    ) {
-        if (target != null) {
-            target.put(inventoryId, List.copyOf(persisted));
-        }
-    }
-
-    private void saveLoadoutSlotsDiff(@NotNull PlayerInventoryState state) {
-        UUID accountId = state.getAccountId();
-        EquipmentLoadoutModel active = state.findActiveLoadout(InventoryProfile.GAME);
-        Map<SlotKey, UUID> current = new HashMap<>();
-        if (active != null) {
-            for (EquipmentLoadoutSlotModel slot : active.getSlots()) {
-                if (slot.isDeleted()) {
-                    continue;
-                }
-                current.put(new SlotKey(slot.getSlotType(), slot.getSlotIndex()), slot.getEquipmentInstanceId());
-            }
-        }
-
-        Map<SlotKey, UUID> previous = lastPersistedLoadoutSlots.getOrDefault(accountId, Map.of());
-        if (active == null) {
-            // active ロードアウトが消えた → 旧スロットを削除のみ
-            for (SlotKey key : previous.keySet()) {
-                equipmentLoadoutRepository.deleteSlot(
-                    inferLoadoutIdForDelete(state, accountId),
-                    key.slotType(),
-                    key.slotIndex(),
-                    accountId
-                );
-            }
-            lastPersistedLoadoutSlots.put(accountId, Map.of());
-            return;
-        }
-
-        Set<SlotKey> toDelete = new HashSet<>(previous.keySet());
-        toDelete.removeAll(current.keySet());
-        for (SlotKey key : toDelete) {
-            equipmentLoadoutRepository.deleteSlot(
-                active.getEquipmentLoadoutId(),
-                key.slotType(),
-                key.slotIndex(),
-                accountId
-            );
-        }
-        for (Map.Entry<SlotKey, UUID> entry : current.entrySet()) {
-            UUID previousInstance = previous.get(entry.getKey());
-            if (previousInstance != null && previousInstance.equals(entry.getValue())) {
-                continue;
-            }
-            equipmentLoadoutRepository.upsertSlot(
-                active.getEquipmentLoadoutId(),
-                entry.getKey().slotType(),
-                entry.getKey().slotIndex(),
-                entry.getValue(),
-                accountId
-            );
-        }
-        lastPersistedLoadoutSlots.put(accountId, current);
-    }
-
-    private @NotNull UUID inferLoadoutIdForDelete(@NotNull PlayerInventoryState state, @NotNull UUID accountId) {
-        for (EquipmentLoadoutModel loadout : state.snapshotLoadouts(InventoryProfile.GAME)) {
-            return loadout.getEquipmentLoadoutId();
-        }
-        return accountId;
-    }
-
-    private static @NotNull Map<SlotKey, UUID> snapshotLoadoutSlots(@NotNull PlayerInventoryState state) {
-        EquipmentLoadoutModel active = state.findActiveLoadout(InventoryProfile.GAME);
-        Map<SlotKey, UUID> snapshot = new HashMap<>();
-        if (active == null) {
-            return snapshot;
-        }
-        for (EquipmentLoadoutSlotModel slot : active.getSlots()) {
-            if (slot.isDeleted()) {
-                continue;
-            }
-            snapshot.put(new SlotKey(slot.getSlotType(), slot.getSlotIndex()), slot.getEquipmentInstanceId());
-        }
-        return snapshot;
-    }
-
     /**
      * 状態破棄時 (プレイヤー退出後など) に内部スナップショットも削除します。
      *
      * @param accountId 対象アカウントID
      */
     public void clearAccount(@NotNull UUID accountId) {
-        synchronized (journalLock(accountId)) {
+        synchronized (snapshotSaveLocks.computeIfAbsent(accountId, ignored -> new Object())) {
             PlayerInventoryState state = liveStates.get(accountId);
             if (pendingSnapshots.containsKey(accountId) || state != null && hasPendingChanges(state)) return;
             liveStates.remove(accountId);
-            checkpointLanes.remove(accountId);
             persistedEntryIds.remove(accountId);
             persistedEntryVersions.remove(accountId);
-            lastPersistedLoadoutSlots.remove(accountId);
+            persistedInventoryIds.remove(accountId);
+            persistedLoadoutIds.remove(accountId);
             itemService.clearEquipmentState(accountId);
         }
     }
@@ -904,114 +476,9 @@ public final class InventoryPersistence {
         }
     }
 
-    private static @NotNull InventoryEntryDraft toDraft(@NotNull InventoryEntryModel entry) {
-        return new InventoryEntryDraft(
-            entry.getSlotIndex(),
-            entry.getItemCategory(),
-            entry.getItemId(),
-            entry.getInstanceType(),
-            entry.getInstanceId(),
-            entry.getQuantity(),
-            entry.getMetadataJson(),
-            entry.getInventoryEntryId(),
-            entry.getUpdatedAt()
-        );
-    }
-
-    /**
-     * API 側で消失した inventory を同じ account/profile/type の正本へ再結合します。
-     *
-     * @param state 対象 state
-     * @param missing 消失した inventory
-     * @param accountId account ID
-     * @param trigger 保存契機
-     * @return 再結合先。復旧できない場合は null
-     */
-    private @Nullable InventoryModel recoverMissingInventory(
-        @NotNull PlayerInventoryState state,
-        @NotNull InventoryModel missing,
-        @NotNull UUID accountId,
-        @NotNull SaveTrigger trigger
-    ) {
-        InventoryModel replacement = inventoryRepository.findByAccountId(accountId).stream()
-            .filter(candidate -> candidate.isEnabled() && !candidate.isDeleted())
-            .filter(candidate -> candidate.getInventoryType() == missing.getInventoryType())
-            .filter(candidate -> candidate.getInventoryProfile().equalsIgnoreCase(missing.getInventoryProfile()))
-            .findFirst()
-            .orElse(null);
-        if (replacement == null) {
-            InventoryProfile profile = InventoryProfile.fromCode(missing.getInventoryProfile());
-            if (profile == null) {
-                return null;
-            }
-            replacement = inventoryRepository.create(
-                accountId,
-                missing.getInventoryType(),
-                missing.getSlotCapacity(),
-                accountId,
-                profile,
-                missing.getMetadataJson()
-            );
-        }
-        if (replacement.getInventoryId().equals(missing.getInventoryId())) {
-            return null;
-        }
-        state.replaceInventoryReference(missing.getInventoryId(), replacement);
-        Logger.warn(
-            LogId.W_5259,
-            accountId,
-            missing.getInventoryId(),
-            replacement.getInventoryId(),
-            trigger
-        );
-        return replacement;
-    }
-
-    /**
-     * インベントリ同期失敗の HTTP 情報と保存契機を詳細ログへ出します。
-     *
-     * @param accountId account ID
-     * @param inventoryId 対象 inventory ID
-     * @param trigger 保存契機
-     * @param entryCount ローカル entry 件数
-     * @param failure 失敗原因
-     */
-    private void logInventorySyncFailure(
-        @NotNull UUID accountId,
-        @NotNull UUID inventoryId,
-        @NotNull SaveTrigger trigger,
-        int entryCount,
-        @NotNull Throwable failure
-    ) {
-        int statusCode = failure instanceof InventoryApiException apiFailure
-            ? apiFailure.getStatusCode()
-            : -1;
-        String responseBody = failure instanceof InventoryApiException apiFailure
-            ? apiFailure.getResponseBody()
-            : "<not-http>";
-        Logger.warn(
-            LogId.W_5258,
-            accountId,
-            inventoryId,
-            trigger,
-            entryCount,
-            statusCode,
-            responseBody
-        );
-        Logger.warn(LogId.W_5252, inventoryId, failureReason(failure));
-    }
-
     private static @NotNull String failureReason(@NotNull Throwable failure) {
         String message = failure.getMessage();
         return message == null || message.isBlank() ? failure.getClass().getSimpleName() : message;
-    }
-
-    /** ロードアウトスロットを (slotType, slotIndex) で一意化するキー。 */
-    private record SlotKey(@NotNull String slotType, int slotIndex) {
-        private SlotKey(@NotNull String slotType, int slotIndex) {
-            this.slotType = slotType.toUpperCase(java.util.Locale.ROOT);
-            this.slotIndex = slotIndex;
-        }
     }
 
     /** 保存契機。 */
@@ -1059,14 +526,4 @@ public final class InventoryPersistence {
         }
     }
 
-    /**
-     * 内部の登録キーで型を持ちたい場合のために、SlotKey のヘルパを公開します。
-     *
-     * @param slotType スロット種別
-     * @param slotIndex slot_index
-     * @return ロードアウト Repository に渡せる正規化済みキー
-     */
-    public static @NotNull String normalizeSlotType(@Nullable String slotType) {
-        return slotType == null ? "" : slotType.toUpperCase(java.util.Locale.ROOT);
-    }
 }

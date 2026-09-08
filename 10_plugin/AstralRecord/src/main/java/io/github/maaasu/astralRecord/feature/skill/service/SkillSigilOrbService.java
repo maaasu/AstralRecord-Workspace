@@ -12,8 +12,6 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillSigilOrbGuiHolder;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
-import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException;
-import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationFailure;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigil;
 import io.github.maaasu.astralRecord.feature.skill.model.ResolvedLearnedSkill;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillDefinition;
@@ -555,17 +553,7 @@ public final class SkillSigilOrbService {
     }
 
     private @NotNull PlayerMsgId failureMessage(@Nullable Throwable error) {
-        if (error instanceof LearnedSkillService.MutationPreflightTimeoutException) {
-            return PlayerMsgId.P_5875;
-        }
-        if (!(error instanceof LearnedSkillMutationException mutation)) return PlayerMsgId.P_5873;
-        LearnedSkillMutationFailure failure = mutation.getFailure();
-        return switch (failure) {
-            case SIGIL_NOT_ALLOWED -> PlayerMsgId.P_5859;
-            case NO_SIGIL_SLOT -> PlayerMsgId.P_5860;
-            case DUPLICATE_SIGIL_GROUP -> PlayerMsgId.P_5861;
-            default -> PlayerMsgId.P_5873;
-        };
+        return PlayerMsgId.P_5873;
     }
 
     private void sendEligibilityFailure(@NotNull Player player, @NotNull MaterialKind kind) {

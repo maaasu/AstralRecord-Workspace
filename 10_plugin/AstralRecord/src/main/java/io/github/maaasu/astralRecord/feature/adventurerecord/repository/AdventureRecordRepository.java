@@ -13,7 +13,6 @@ import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
 import java.net.URLEncoder;
-import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Instant;
@@ -27,7 +26,8 @@ import java.util.List;
 import java.util.UUID;
 
 /**
- * AstralRecord API を通じて冒険記録を読み書きするリポジトリです。
+ * AstralRecord API から冒険記録の初期状態を取得するリポジトリです。
+ * 更新は player-state 完成スナップショットへ集約します。
  */
 public class AdventureRecordRepository {
 
@@ -48,59 +48,20 @@ public class AdventureRecordRepository {
         }
 
         try {
-            try (var client = ApiRequestUtil.buildClient()) {
-                var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() != 200) {
-                    throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
-                }
-                JsonArray array = JsonParser.parseString(response.body()).getAsJsonArray();
-                List<AdventureMobRecord> result = new ArrayList<>();
-                for (JsonElement element : array) {
-                    if (element.isJsonObject()) {
-                        result.add(parseRecord(element.getAsJsonObject()));
-                    }
-                }
-                return result;
+            var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
+            HttpResponse<String> response = ApiRequestUtil.sharedClient()
+                .send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Mob 討伐を 1 件記録します。
-     *
-     * @param accountId 対象アカウント ID
-     * @param mobId Mob マスタ ID
-     * @param category Mob カテゴリ
-     * @param updatedBy 更新者ユーザー ID
-     */
-    public void recordMobDefeat(
-        @NotNull UUID accountId,
-        @NotNull String mobId,
-        @NotNull MobCategory category,
-        @NotNull UUID updatedBy
-    ) {
-        JsonObject body = new JsonObject();
-        body.addProperty("accountId", accountId.toString());
-        body.addProperty("mobId", mobId);
-        body.addProperty("mobCategory", category.name());
-        body.addProperty("updatedBy", updatedBy.toString());
-
-        try {
-            try (var client = ApiRequestUtil.buildClient()) {
-                var request = ApiRequestUtil.buildRequestBuilder("/api/adventure-record/mob/defeat")
-                    .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
-                    .build();
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() != 200) {
-                    throw new IOException("Unexpected status " + response.statusCode() + " for POST /api/adventure-record/mob/defeat");
+            JsonArray array = JsonParser.parseString(response.body()).getAsJsonArray();
+            List<AdventureMobRecord> result = new ArrayList<>();
+            for (JsonElement element : array) {
+                if (element.isJsonObject()) {
+                    result.add(parseRecord(element.getAsJsonObject()));
                 }
             }
+            return result;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
@@ -118,58 +79,20 @@ public class AdventureRecordRepository {
     public @NotNull List<AdventureDungeonRecord> findDungeonRecords(@NotNull UUID accountId) {
         String path = "/api/adventure-record/dungeon?account_id=" + accountId;
         try {
-            try (var client = ApiRequestUtil.buildClient()) {
-                var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() != 200) {
-                    throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
-                }
-                JsonArray array = JsonParser.parseString(response.body()).getAsJsonArray();
-                List<AdventureDungeonRecord> result = new ArrayList<>();
-                for (JsonElement element : array) {
-                    if (element.isJsonObject()) {
-                        result.add(parseDungeonRecord(element.getAsJsonObject()));
-                    }
-                }
-                return List.copyOf(result);
+            var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
+            HttpResponse<String> response = ApiRequestUtil.sharedClient()
+                .send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() != 200) {
+                throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * ダンジョン踏破を 1 回記録します。
-     *
-     * @param accountId 対象アカウント ID
-     * @param dungeonId ダンジョンマスタ ID
-     * @param updatedBy 更新者ユーザー ID
-     * @return API が確定した踏破記録
-     */
-    public @NotNull AdventureDungeonRecord recordDungeonClear(
-            @NotNull UUID accountId,
-            @NotNull String dungeonId,
-            @NotNull UUID updatedBy
-    ) {
-        JsonObject body = new JsonObject();
-        body.addProperty("accountId", accountId.toString());
-        body.addProperty("dungeonId", dungeonId);
-        body.addProperty("updatedBy", updatedBy.toString());
-        String path = "/api/adventure-record/dungeon/clear";
-        try {
-            try (var client = ApiRequestUtil.buildClient()) {
-                var request = ApiRequestUtil.buildRequestBuilder(path)
-                        .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
-                        .build();
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() != 200) {
-                    throw new IOException("Unexpected status " + response.statusCode() + " for POST " + path);
+            JsonArray array = JsonParser.parseString(response.body()).getAsJsonArray();
+            List<AdventureDungeonRecord> result = new ArrayList<>();
+            for (JsonElement element : array) {
+                if (element.isJsonObject()) {
+                    result.add(parseDungeonRecord(element.getAsJsonObject()));
                 }
-                return parseDungeonRecord(JsonParser.parseString(response.body()).getAsJsonObject());
             }
+            return List.copyOf(result);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);

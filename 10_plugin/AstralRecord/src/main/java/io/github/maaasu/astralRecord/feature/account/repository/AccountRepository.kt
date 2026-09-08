@@ -39,7 +39,7 @@ class AccountRepository {
     fun findByUserId(userId: UUID): List<AccountModel> {
         val path = "/api/account?user_id=$userId"
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 return when (response.statusCode()) {
@@ -74,7 +74,7 @@ class AccountRepository {
     fun findByUuid(uuid: UUID): AccountModel? {
         val path = "/api/account/$uuid"
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 return when (response.statusCode()) {
@@ -114,7 +114,7 @@ class AccountRepository {
         val path = "/api/account"
         val body = buildAccountJson(model)
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path)
                     .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build()
@@ -149,7 +149,7 @@ class AccountRepository {
         val path = "/api/account/$targetUuid"
         val body = buildSwitchActiveAccountJson(updatedBy)
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path)
                     .PUT(HttpRequest.BodyPublishers.ofString(body))
                     .build()
@@ -179,7 +179,7 @@ class AccountRepository {
         val path = "/api/account/$targetUuid"
         val body = buildAccountUpdateJson(isActive = null, mode = mode, updatedBy = updatedBy)
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path)
                     .PUT(HttpRequest.BodyPublishers.ofString(body))
                     .build()
@@ -212,7 +212,7 @@ class AccountRepository {
             addProperty("updatedBy", updatedBy.toString())
         }
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path)
                     .PUT(HttpRequest.BodyPublishers.ofString(body))
                     .build()
@@ -251,7 +251,7 @@ class AccountRepository {
             totalExperience = totalExperience
         )
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path)
                     .PUT(HttpRequest.BodyPublishers.ofString(body))
                     .build()
@@ -296,7 +296,7 @@ class AccountRepository {
             classProgresses = classProgresses
         )
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path)
                     .PUT(HttpRequest.BodyPublishers.ofString(body))
                     .build()
@@ -325,7 +325,7 @@ class AccountRepository {
         val path = "/api/account/$targetUuid"
         val body = ApiRequestUtil.buildJsonBody { addProperty("deletedBy", deletedBy.toString()) }
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path)
                     .method("DELETE", HttpRequest.BodyPublishers.ofString(body))
                     .build()

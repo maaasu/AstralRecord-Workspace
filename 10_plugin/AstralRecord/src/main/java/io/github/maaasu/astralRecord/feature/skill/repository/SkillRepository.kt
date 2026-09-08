@@ -37,7 +37,7 @@ class SkillRepository {
     fun findAll(): List<SkillSummary> {
         val path = "/api/skill"
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 return when (response.statusCode()) {
@@ -67,7 +67,7 @@ class SkillRepository {
         val path = "/api/skill/$encoded"
 
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 return when (response.statusCode()) {

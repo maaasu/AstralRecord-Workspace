@@ -30,3 +30,9 @@
 - `IX_user_setting_user_id`
 - `UX_user_setting_user_key_active`: 未削除行のユーザー・設定キーを一意にする。
 - `IX_user_setting_is_deleted`
+
+## 運用メモ
+
+- Plugin は設定変更をローカル cache へ即時反映し、user の有効設定全体を player-state snapshot の `playerSettings` section で保存します。
+- 既存行は `version` を楽観ロックとして検証し、新規行は Plugin が採番した `user_setting_id` を同じ transaction で作成します。DB にだけ存在する有効行がある要求は競合にします。
+- 初期読込は Player Setting API の GET を使用し、Plugin は個別 POST／PUT を使用しません。

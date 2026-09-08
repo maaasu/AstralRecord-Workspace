@@ -34,11 +34,26 @@ builder.Services.Configure<ReleaseNoteOptions>(
 builder.Services.Configure<DiscordReleaseNotificationOptions>(
     builder.Configuration.GetSection(DiscordReleaseNotificationOptions.SectionName));
 
+var databaseCommandTimeoutSeconds = Math.Max(
+    1,
+    builder.Configuration.GetValue<int?>("Database:CommandTimeoutSeconds") ?? 30);
+var databaseRetryCount = Math.Max(
+    0,
+    builder.Configuration.GetValue<int?>("Database:MaxRetryCount") ?? 3);
+var databaseRetryDelayMilliseconds = Math.Max(
+    0,
+    builder.Configuration.GetValue<int?>("Database:MaxRetryDelayMilliseconds") ?? 250);
+
 builder.Services.AddDbContext<AstralRecordDbContext>(options =>
     options.UseSqlServer(
         builder.Configuration.GetConnectionString("SqlServer")
         ?? throw new InvalidOperationException("Connection string 'SqlServer' is not configured."),
-        sqlServerOptions => sqlServerOptions.EnableRetryOnFailure()));
+        sqlServerOptions => sqlServerOptions
+            .CommandTimeout(databaseCommandTimeoutSeconds)
+            .EnableRetryOnFailure(
+                databaseRetryCount,
+                TimeSpan.FromMilliseconds(databaseRetryDelayMilliseconds),
+                errorNumbersToAdd: [1205])));
 
 builder.Services.AddDbContext<MasterDataDbContext>(options =>
     options.UseSqlServer(

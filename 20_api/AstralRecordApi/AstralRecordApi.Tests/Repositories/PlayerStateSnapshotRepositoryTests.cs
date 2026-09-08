@@ -12,6 +12,44 @@ namespace AstralRecordApi.Tests.Repositories;
 public sealed partial class PlayerStateSnapshotRepositoryTests
 {
     [Fact]
+    public async Task FindCompletedAsync_ReturnsOnlyMatchingCommittedSnapshot()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var snapshotId = Guid.NewGuid();
+        var repository = new PlayerStateSnapshotRepository(fixture.DbContext);
+
+        Assert.Null(await repository.FindCompletedAsync(snapshotId, fixture.AccountId));
+        var saved = await repository.SaveAsync(fixture.CreateMoveRequest(snapshotId));
+        Assert.True(saved.Succeeded, saved.Detail);
+
+        var found = await repository.FindCompletedAsync(snapshotId, fixture.AccountId);
+        Assert.NotNull(found);
+        Assert.Equal(saved.Ack!.SnapshotId, found!.SnapshotId);
+        Assert.Null(await repository.FindCompletedAsync(snapshotId, Guid.NewGuid()));
+    }
+
+    [Fact]
+    public async Task FindCompletedAsync_RejectsStoredAcknowledgementForAnotherIdentity()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var snapshotId = Guid.NewGuid();
+        var repository = new PlayerStateSnapshotRepository(fixture.DbContext);
+        var saved = await repository.SaveAsync(fixture.CreateMoveRequest(snapshotId));
+        Assert.True(saved.Succeeded, saved.Detail);
+
+        var stored = await fixture.DbContext.PlayerStateSnapshots.SingleAsync();
+        stored.AckPayloadJson = JsonSerializer.Serialize(new PlayerStateSnapshotAck
+        {
+            SnapshotId = Guid.NewGuid(),
+            AccountId = fixture.AccountId,
+        });
+        await fixture.DbContext.SaveChangesAsync();
+        fixture.DbContext.ChangeTracker.Clear();
+
+        Assert.Null(await repository.FindCompletedAsync(snapshotId, fixture.AccountId));
+    }
+
+    [Fact]
     public async Task SaveAsync_MovesEntryAcrossSnapshotParents_AndReplaysFixedAck()
     {
         await using var fixture = await SnapshotFixture.CreateAsync();
@@ -183,6 +221,330 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
         Assert.Equal(0, runes[secondRuneId].SlotIndex);
         Assert.True(await fixture.DbContext.AccountLearnedSkills.AsNoTracking().AnyAsync(skill => skill.LearnedSkillId == learnedSkillId && !skill.IsDeleted));
         Assert.True(await fixture.DbContext.AccountSkillTreeUnlockedNodes.AsNoTracking().AnyAsync(node => node.NodeId == "starter"));
+    }
+
+    [Fact]
+    public async Task SaveAsync_CreatesEquipmentRollInventoryEntryAndLoadoutInOneIdempotentSnapshot()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var snapshotId = Guid.NewGuid();
+        var equipmentId = Guid.NewGuid();
+        var statRollId = Guid.NewGuid();
+        var equipmentEntryId = Guid.NewGuid();
+        var loadoutId = Guid.NewGuid();
+        fixture.DbContext.EquipmentLoadouts.Add(new EquipmentLoadoutEntity
+        {
+            EquipmentLoadoutId = loadoutId, AccountId = fixture.AccountId, LoadoutProfile = "GAME",
+            LoadoutName = "snapshot-new-equipment", SortOrder = 0, IsActive = true,
+            CreatedAt = fixture.BaseTime, UpdatedAt = fixture.BaseTime,
+            CreatedBy = fixture.AccountId, UpdatedBy = fixture.AccountId,
+        });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var request = new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = snapshotId, AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            Inventories =
+            [
+                new PlayerStateInventorySnapshot
+                {
+                    InventoryId = fixture.FirstInventoryId,
+                    ExpectedEntries =
+                    [
+                        new PlayerStateExpectedInventoryEntry
+                            { InventoryEntryId = fixture.EntryId, UpdatedAt = fixture.BaseTime },
+                    ],
+                    Entries =
+                    [
+                        new PlayerStateInventoryEntrySnapshot
+                        {
+                            InventoryEntryId = fixture.EntryId, ExpectedUpdatedAt = fixture.BaseTime,
+                            ItemCategory = "CURRENCY", ItemId = "gold", Quantity = 10,
+                        },
+                        new PlayerStateInventoryEntrySnapshot
+                        {
+                            InventoryEntryId = equipmentEntryId, SlotIndex = 0, ItemCategory = "EQUIPMENT",
+                            ItemId = "iron_sword", InstanceType = "EQUIPMENT", InstanceId = equipmentId, Quantity = 1,
+                        },
+                    ],
+                },
+            ],
+            Equipment =
+            [
+                new PlayerStateEquipmentSnapshot
+                {
+                    EquipmentInstanceId = equipmentId, IsNew = true, ItemId = "iron_sword",
+                    RuneMaxSlots = 2, DurabilityMax = 100, DurabilityValue = 100,
+                    StatRolls =
+                    [
+                        new PlayerStateEquipmentStatRollSnapshot
+                        {
+                            StatRollId = statRollId, Status = "PHYSICAL_ATTACK", Min = "12.5", Max = "18", SortOrder = 0,
+                        },
+                    ],
+                },
+            ],
+            Loadouts =
+            [
+                new PlayerStateLoadoutSnapshot
+                {
+                    EquipmentLoadoutId = loadoutId, ExpectedUpdatedAt = fixture.BaseTime,
+                    Slots =
+                    [
+                        new PlayerStateLoadoutSlotSnapshot
+                            { SlotType = "WEAPON", SlotIndex = 0, EquipmentInstanceId = equipmentId },
+                    ],
+                },
+            ],
+        };
+
+        var first = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(request);
+        var replay = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(request);
+
+        Assert.True(first.Succeeded, first.Detail);
+        Assert.True(replay.Succeeded, replay.Detail);
+        Assert.Equal(first.Ack!.Equipment.Single().UpdatedAt, replay.Ack!.Equipment.Single().UpdatedAt);
+        fixture.DbContext.ChangeTracker.Clear();
+        var equipment = await fixture.DbContext.EquipmentInstances.AsNoTracking().SingleAsync(e => e.EquipmentInstanceId == equipmentId);
+        Assert.Equal("iron_sword", equipment.ItemId);
+        Assert.Equal(100, equipment.DurabilityValue);
+        var roll = await fixture.DbContext.EquipmentInstanceStatRolls.AsNoTracking().SingleAsync(r => r.StatRollId == statRollId);
+        Assert.Equal("12.5", roll.RandomMin);
+        Assert.Equal("18", roll.RandomMax);
+        Assert.True(await fixture.DbContext.InventoryEntries.AsNoTracking().AnyAsync(e =>
+            e.InventoryEntryId == equipmentEntryId && e.InstanceId == equipmentId && e.ItemId == "iron_sword"));
+        Assert.True(await fixture.DbContext.EquipmentLoadoutSlots.AsNoTracking().AnyAsync(s =>
+            s.EquipmentLoadoutId == loadoutId && s.EquipmentInstanceId == equipmentId && !s.IsDeleted));
+        Assert.Single(await fixture.DbContext.EquipmentInstances.AsNoTracking().Where(e => e.EquipmentInstanceId == equipmentId).ToListAsync());
+        Assert.Single(await fixture.DbContext.EquipmentInstanceStatRolls.AsNoTracking().Where(r => r.StatRollId == statRollId).ToListAsync());
+    }
+
+    [Fact]
+    public async Task SaveAsync_CreatesNewInventoryLoadoutEquipmentEntryAndSlotInOneIdempotentSnapshot()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var snapshotId = Guid.NewGuid();
+        var inventoryId = Guid.NewGuid();
+        var loadoutId = Guid.NewGuid();
+        var equipmentId = Guid.NewGuid();
+        var entryId = Guid.NewGuid();
+        var statRollId = Guid.NewGuid();
+        var request = new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = snapshotId, AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            Inventories =
+            [
+                new PlayerStateInventorySnapshot
+                {
+                    InventoryId = inventoryId, IsNew = true, InventoryType = "MATERIAL", InventoryProfile = "GAME",
+                    SlotCapacity = 36, IsEnabled = true, MetadataJson = "{}", ExpectedEntries = [],
+                    Entries =
+                    [
+                        new PlayerStateInventoryEntrySnapshot
+                        {
+                            InventoryEntryId = entryId, SlotIndex = 0, ItemCategory = "EQUIPMENT", ItemId = "iron_sword",
+                            InstanceType = "EQUIPMENT", InstanceId = equipmentId, Quantity = 1,
+                        },
+                    ],
+                },
+            ],
+            Equipment =
+            [
+                new PlayerStateEquipmentSnapshot
+                {
+                    EquipmentInstanceId = equipmentId, IsNew = true, ItemId = "iron_sword", RuneMaxSlots = 1,
+                    StatRolls = [new PlayerStateEquipmentStatRollSnapshot
+                    {
+                        StatRollId = statRollId, Status = "PHYSICAL_ATTACK", Min = "1", Max = "2", SortOrder = 0,
+                    }],
+                },
+            ],
+            Loadouts =
+            [
+                new PlayerStateLoadoutSnapshot
+                {
+                    EquipmentLoadoutId = loadoutId, IsNew = true, LoadoutProfile = "GAME", LoadoutName = "main",
+                    SortOrder = 0, IsActive = true, MetadataJson = "{}",
+                    Slots = [new PlayerStateLoadoutSlotSnapshot
+                    {
+                        SlotType = "WEAPON", SlotIndex = 0, EquipmentInstanceId = equipmentId,
+                    }],
+                },
+            ],
+        };
+
+        var first = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(request);
+        var replay = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(request);
+
+        Assert.True(first.Succeeded, first.Detail);
+        Assert.True(replay.Succeeded, replay.Detail);
+        Assert.Equal(first.Ack!.Inventories.Single().UpdatedAt, replay.Ack!.Inventories.Single().UpdatedAt);
+        Assert.Equal(first.Ack.Loadouts.Single().UpdatedAt, replay.Ack.Loadouts.Single().UpdatedAt);
+        fixture.DbContext.ChangeTracker.Clear();
+        Assert.True(await fixture.DbContext.Inventories.AsNoTracking().AnyAsync(inventory =>
+            inventory.InventoryId == inventoryId && inventory.InventoryType == "MATERIAL" && inventory.SlotCapacity == 36));
+        Assert.True(await fixture.DbContext.EquipmentLoadouts.AsNoTracking().AnyAsync(loadout =>
+            loadout.EquipmentLoadoutId == loadoutId && loadout.IsActive && loadout.LoadoutName == "main"));
+        Assert.True(await fixture.DbContext.InventoryEntries.AsNoTracking().AnyAsync(entry =>
+            entry.InventoryEntryId == entryId && entry.InventoryId == inventoryId && entry.InstanceId == equipmentId));
+        Assert.True(await fixture.DbContext.EquipmentLoadoutSlots.AsNoTracking().AnyAsync(slot =>
+            slot.EquipmentLoadoutId == loadoutId && slot.EquipmentInstanceId == equipmentId && !slot.IsDeleted));
+        Assert.Single(await fixture.DbContext.EquipmentInstanceStatRolls.AsNoTracking()
+            .Where(roll => roll.StatRollId == statRollId).ToListAsync());
+    }
+
+    [Fact]
+    public async Task SaveAsync_RollsBackNewInventoryLoadoutAndEquipmentWhenSectionConflicts()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var inventoryId = Guid.NewGuid();
+        var loadoutId = Guid.NewGuid();
+        var equipmentId = Guid.NewGuid();
+        var entryId = Guid.NewGuid();
+        fixture.DbContext.AccountSkillTreeStates.Add(new AccountSkillTreeStateEntity
+        {
+            AccountSkillTreeStateId = Guid.NewGuid(), AccountId = fixture.AccountId, Version = 2,
+            CreatedAt = fixture.BaseTime, UpdatedAt = fixture.BaseTime, CreatedBy = fixture.AccountId, UpdatedBy = fixture.AccountId,
+        });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            Inventories = [new PlayerStateInventorySnapshot
+            {
+                InventoryId = inventoryId, IsNew = true, InventoryType = "MATERIAL", InventoryProfile = "GAME",
+                SlotCapacity = 36, IsEnabled = true, ExpectedEntries = [],
+                Entries = [new PlayerStateInventoryEntrySnapshot
+                {
+                    InventoryEntryId = entryId, SlotIndex = 0, ItemCategory = "EQUIPMENT", ItemId = "iron_sword",
+                    InstanceType = "EQUIPMENT", InstanceId = equipmentId, Quantity = 1,
+                }],
+            }],
+            Equipment = [new PlayerStateEquipmentSnapshot
+            {
+                EquipmentInstanceId = equipmentId, IsNew = true, ItemId = "iron_sword", RuneMaxSlots = 1,
+            }],
+            Loadouts = [new PlayerStateLoadoutSnapshot
+            {
+                EquipmentLoadoutId = loadoutId, IsNew = true, LoadoutProfile = "GAME", LoadoutName = "main",
+                SortOrder = 0, IsActive = true,
+                Slots = [new PlayerStateLoadoutSlotSnapshot { SlotType = "WEAPON", SlotIndex = 0, EquipmentInstanceId = equipmentId }],
+            }],
+            SkillTree = Section(new PlayerStateSkillTreeSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = 1, ExpectedVersion = 1, TargetVersion = 2,
+            }),
+        });
+
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, result.Failure);
+        fixture.DbContext.ChangeTracker.Clear();
+        Assert.False(await fixture.DbContext.Inventories.AsNoTracking().AnyAsync(inventory => inventory.InventoryId == inventoryId));
+        Assert.False(await fixture.DbContext.EquipmentLoadouts.AsNoTracking().AnyAsync(loadout => loadout.EquipmentLoadoutId == loadoutId));
+        Assert.False(await fixture.DbContext.EquipmentInstances.AsNoTracking().AnyAsync(equipment => equipment.EquipmentInstanceId == equipmentId));
+        Assert.False(await fixture.DbContext.InventoryEntries.AsNoTracking().AnyAsync(entry => entry.InventoryEntryId == entryId));
+    }
+
+    [Fact]
+    public async Task SaveAsync_RejectsIncompleteOrDuplicateNewInventoryAndLoadoutAttributes()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            Inventories =
+            [
+                new PlayerStateInventorySnapshot
+                {
+                    InventoryId = Guid.NewGuid(), IsNew = true, InventoryType = "MATERIAL", InventoryProfile = "GAME",
+                    SlotCapacity = 10, IsEnabled = true, ExpectedEntries = [],
+                },
+                new PlayerStateInventorySnapshot
+                {
+                    InventoryId = Guid.NewGuid(), IsNew = true, InventoryType = "material", InventoryProfile = "game",
+                    SlotCapacity = 10, IsEnabled = true, ExpectedEntries = [],
+                },
+            ],
+            Loadouts =
+            [
+                new PlayerStateLoadoutSnapshot
+                {
+                    EquipmentLoadoutId = Guid.NewGuid(), IsNew = true, LoadoutProfile = "GAME", LoadoutName = "main",
+                    SortOrder = 0, IsActive = true,
+                },
+                new PlayerStateLoadoutSnapshot
+                {
+                    EquipmentLoadoutId = Guid.NewGuid(), IsNew = true, LoadoutProfile = "game", LoadoutName = "secondary",
+                    SortOrder = 1, IsActive = true,
+                },
+            ],
+        });
+
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Invalid, result.Failure);
+        Assert.Empty(await fixture.DbContext.Inventories.AsNoTracking().Where(inventory => inventory.InventoryType == "MATERIAL").ToListAsync());
+        Assert.Empty(await fixture.DbContext.EquipmentLoadouts.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task SaveAsync_RollsBackNewEquipmentWhenSectionConflicts()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var equipmentId = Guid.NewGuid();
+        var equipmentEntryId = Guid.NewGuid();
+        fixture.DbContext.AccountSkillTreeStates.Add(new AccountSkillTreeStateEntity
+        {
+            AccountSkillTreeStateId = Guid.NewGuid(), AccountId = fixture.AccountId, Version = 2,
+            CreatedAt = fixture.BaseTime, UpdatedAt = fixture.BaseTime,
+            CreatedBy = fixture.AccountId, UpdatedBy = fixture.AccountId,
+        });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            Inventories =
+            [
+                new PlayerStateInventorySnapshot
+                {
+                    InventoryId = fixture.FirstInventoryId,
+                    ExpectedEntries =
+                    [
+                        new PlayerStateExpectedInventoryEntry
+                            { InventoryEntryId = fixture.EntryId, UpdatedAt = fixture.BaseTime },
+                    ],
+                    Entries =
+                    [
+                        new PlayerStateInventoryEntrySnapshot
+                        {
+                            InventoryEntryId = fixture.EntryId, ExpectedUpdatedAt = fixture.BaseTime,
+                            ItemCategory = "CURRENCY", ItemId = "gold", Quantity = 10,
+                        },
+                        new PlayerStateInventoryEntrySnapshot
+                        {
+                            InventoryEntryId = equipmentEntryId, SlotIndex = 0, ItemCategory = "EQUIPMENT",
+                            ItemId = "iron_sword", InstanceType = "EQUIPMENT", InstanceId = equipmentId, Quantity = 1,
+                        },
+                    ],
+                },
+            ],
+            Equipment =
+            [
+                new PlayerStateEquipmentSnapshot
+                {
+                    EquipmentInstanceId = equipmentId, IsNew = true, ItemId = "iron_sword", RuneMaxSlots = 1,
+                },
+            ],
+            SkillTree = Section(new PlayerStateSkillTreeSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = 1, ExpectedVersion = 1, TargetVersion = 2,
+            }),
+        });
+
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, result.Failure);
+        fixture.DbContext.ChangeTracker.Clear();
+        Assert.False(await fixture.DbContext.EquipmentInstances.AsNoTracking().AnyAsync(e => e.EquipmentInstanceId == equipmentId));
+        Assert.False(await fixture.DbContext.InventoryEntries.AsNoTracking().AnyAsync(e => e.InventoryEntryId == equipmentEntryId));
+        Assert.Empty(await fixture.DbContext.PlayerStateSnapshots.AsNoTracking().ToListAsync());
     }
 
     [Fact]
@@ -534,6 +896,414 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
         Assert.Equal(2, result.Ack!.AccountProgress!.Value.GetProperty("progressVersion").GetInt32());
     }
 
+    [Fact]
+    public async Task SaveAsync_PersistsQuestLoginClaimAndInventoryInOneReplayableSnapshot()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var claimDate = new DateOnly(2026, 9, 5);
+        var snapshotId = Guid.NewGuid();
+        var request = new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = snapshotId,
+            AccountId = fixture.AccountId,
+            UpdatedBy = fixture.AccountId,
+            Inventories =
+            [
+                new PlayerStateInventorySnapshot
+                {
+                    InventoryId = fixture.FirstInventoryId,
+                    ExpectedEntries = [new PlayerStateExpectedInventoryEntry { InventoryEntryId = fixture.EntryId, UpdatedAt = fixture.BaseTime }],
+                    Entries = [new PlayerStateInventoryEntrySnapshot
+                    {
+                        InventoryEntryId = fixture.EntryId, ExpectedUpdatedAt = fixture.BaseTime,
+                        ItemCategory = "CURRENCY", ItemId = "gold", Quantity = 11,
+                    }],
+                },
+            ],
+            QuestState = Section(new PlayerStateQuestStateSection
+            {
+                AccountId = fixture.AccountId,
+                ClientRevision = 4,
+                ExpectedVersion = 0,
+                ActiveQuests = [new AccountQuestActiveRequest
+                {
+                    QuestId = "alpha-quest", AcceptedAtEpochMillis = 1_700_000_000_000,
+                    ReadyToTurnIn = false,
+                    ObjectiveProgress = [new AccountQuestObjectiveProgressRequest { ObjectiveId = "kill", Progress = 2 }],
+                }],
+                Completions = [],
+                Cooldowns = [],
+            }),
+            LoginBonusClaims = Section(new PlayerStateLoginBonusClaimsSection
+            {
+                ClientRevision = 7,
+                ClaimDates = [claimDate],
+            }),
+        };
+
+        var first = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(request);
+        var replay = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(request);
+
+        Assert.True(first.Succeeded, first.Detail);
+        Assert.True(replay.Succeeded, replay.Detail);
+        Assert.Equal(11, await fixture.DbContext.InventoryEntries.AsNoTracking()
+            .Where(entry => entry.InventoryEntryId == fixture.EntryId).Select(entry => entry.Quantity).SingleAsync());
+        Assert.Equal(1, await fixture.DbContext.AccountQuestStates.AsNoTracking()
+            .Where(state => state.AccountId == fixture.AccountId).Select(state => state.Version).SingleAsync());
+        Assert.Single(await fixture.DbContext.AccountQuestActives.AsNoTracking().ToListAsync());
+        Assert.Single(await fixture.DbContext.LoginBonusClaims.AsNoTracking()
+            .Where(claim => claim.AccountId == fixture.AccountId && claim.ClaimDate == claimDate && !claim.IsDeleted)
+            .ToListAsync());
+        Assert.Equal(first.Ack!.QuestState?.GetRawText(), replay.Ack!.QuestState?.GetRawText());
+        Assert.Equal(first.Ack.LoginBonusClaims?.GetRawText(), replay.Ack.LoginBonusClaims?.GetRawText());
+    }
+
+    [Fact]
+    public async Task SaveAsync_RollsBackQuestAndInventoryWhenLoginClaimAlreadyExists()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var claimDate = new DateOnly(2026, 9, 5);
+        fixture.DbContext.LoginBonusClaims.Add(new LoginBonusClaimEntity
+        {
+            LoginBonusClaimId = Guid.NewGuid(), AccountId = fixture.AccountId, ClaimDate = claimDate,
+            ClaimedAt = fixture.BaseTime, CreatedAt = fixture.BaseTime, UpdatedAt = fixture.BaseTime,
+            CreatedBy = fixture.AccountId, UpdatedBy = fixture.AccountId,
+        });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            Inventories = [new PlayerStateInventorySnapshot
+            {
+                InventoryId = fixture.FirstInventoryId,
+                ExpectedEntries = [new PlayerStateExpectedInventoryEntry { InventoryEntryId = fixture.EntryId, UpdatedAt = fixture.BaseTime }],
+                Entries = [new PlayerStateInventoryEntrySnapshot
+                {
+                    InventoryEntryId = fixture.EntryId, ExpectedUpdatedAt = fixture.BaseTime,
+                    ItemCategory = "CURRENCY", ItemId = "gold", Quantity = 12,
+                }],
+            }],
+            QuestState = Section(new PlayerStateQuestStateSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = 1, ExpectedVersion = 0,
+                ActiveQuests = [],
+                Completions = [new AccountQuestCompletionRequest
+                    { QuestId = "alpha-quest", CompletedAtEpochMillis = 1_700_000_000_000 }],
+                Cooldowns = [],
+            }),
+            LoginBonusClaims = Section(new PlayerStateLoginBonusClaimsSection
+                { ClientRevision = 1, ClaimDates = [claimDate] }),
+        });
+
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, result.Failure);
+        fixture.DbContext.ChangeTracker.Clear();
+        Assert.Equal(10, await fixture.DbContext.InventoryEntries.AsNoTracking()
+            .Where(entry => entry.InventoryEntryId == fixture.EntryId).Select(entry => entry.Quantity).SingleAsync());
+        Assert.Empty(await fixture.DbContext.AccountQuestStates.AsNoTracking().ToListAsync());
+        Assert.Single(await fixture.DbContext.LoginBonusClaims.AsNoTracking().ToListAsync());
+        Assert.Empty(await fixture.DbContext.PlayerStateSnapshots.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task SaveAsync_ClaimsMailAndInventoryInOneReplayableSnapshot()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        const string mailId = "alpha-reward-mail";
+        fixture.DbContext.PlayerMailDeliveries.Add(CreateMailDelivery(mailId, fixture));
+        await fixture.DbContext.SaveChangesAsync();
+        var clientRevision = Guid.NewGuid();
+        var request = new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            Inventories = [new PlayerStateInventorySnapshot
+            {
+                InventoryId = fixture.FirstInventoryId,
+                ExpectedEntries = [new PlayerStateExpectedInventoryEntry { InventoryEntryId = fixture.EntryId, UpdatedAt = fixture.BaseTime }],
+                Entries = [new PlayerStateInventoryEntrySnapshot
+                {
+                    InventoryEntryId = fixture.EntryId, ExpectedUpdatedAt = fixture.BaseTime,
+                    ItemCategory = "CURRENCY", ItemId = "gold", Quantity = 11,
+                }],
+            }],
+            MailClaim = Section(new PlayerStateMailClaimSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = clientRevision, MailId = mailId,
+            }),
+        };
+
+        var first = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(request);
+        var replay = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(request);
+
+        Assert.True(first.Succeeded, first.Detail);
+        Assert.True(replay.Succeeded, replay.Detail);
+        fixture.DbContext.ChangeTracker.Clear();
+        Assert.Equal(11, await fixture.DbContext.InventoryEntries.AsNoTracking()
+            .Where(entry => entry.InventoryEntryId == fixture.EntryId).Select(entry => entry.Quantity).SingleAsync());
+        var state = await fixture.DbContext.PlayerMailStates.AsNoTracking()
+            .SingleAsync(value => value.AccountId == fixture.AccountId && value.MailId == mailId);
+        Assert.True(state.IsRead);
+        Assert.Equal(2, state.Version);
+        Assert.Equal(mailId, first.Ack!.MailClaim!.Value.GetProperty("mailId").GetString());
+        Assert.Equal(clientRevision, first.Ack.MailClaim.Value.GetProperty("clientRevision").GetGuid());
+        Assert.Equal(first.Ack.MailClaim?.GetRawText(), replay.Ack!.MailClaim?.GetRawText());
+    }
+
+    [Fact]
+    public async Task SaveAsync_RollsBackInventoryWhenMailWasAlreadyClaimed()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        const string mailId = "already-claimed-mail";
+        fixture.DbContext.PlayerMailDeliveries.Add(CreateMailDelivery(mailId, fixture));
+        fixture.DbContext.PlayerMailStates.Add(new PlayerMailStateEntity
+        {
+            PlayerMailStateId = Guid.NewGuid(), AccountId = fixture.AccountId, MailId = mailId,
+            IsRead = true, ReadAt = fixture.BaseTime, Version = 2,
+            CreatedAt = fixture.BaseTime, UpdatedAt = fixture.BaseTime,
+            CreatedBy = fixture.AccountId, UpdatedBy = fixture.AccountId,
+        });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            Inventories = [new PlayerStateInventorySnapshot
+            {
+                InventoryId = fixture.FirstInventoryId,
+                ExpectedEntries = [new PlayerStateExpectedInventoryEntry { InventoryEntryId = fixture.EntryId, UpdatedAt = fixture.BaseTime }],
+                Entries = [new PlayerStateInventoryEntrySnapshot
+                {
+                    InventoryEntryId = fixture.EntryId, ExpectedUpdatedAt = fixture.BaseTime,
+                    ItemCategory = "CURRENCY", ItemId = "gold", Quantity = 12,
+                }],
+            }],
+            MailClaim = Section(new PlayerStateMailClaimSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = Guid.NewGuid(), MailId = mailId,
+            }),
+        });
+
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, result.Failure);
+        fixture.DbContext.ChangeTracker.Clear();
+        Assert.Equal(10, await fixture.DbContext.InventoryEntries.AsNoTracking()
+            .Where(entry => entry.InventoryEntryId == fixture.EntryId).Select(entry => entry.Quantity).SingleAsync());
+        Assert.Single(await fixture.DbContext.PlayerMailStates.AsNoTracking().ToListAsync());
+        Assert.Empty(await fixture.DbContext.PlayerStateSnapshots.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task SaveAsync_AppliesGuideProgressAndAdventureDeltasOnceOnReplay()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var request = new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            GuideProgress = Section(new PlayerStateGuideProgressSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = 1, IsFullSnapshot = false,
+                CompletedStepKeys = [new PlayerStateGuideStepKey { GuideId = "intro", StepId = "welcome" }],
+            }),
+            AdventureRecords = Section(new PlayerStateAdventureRecordsSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = 2,
+                MobDefeatDeltas = [new PlayerStateMobDefeatDelta { MobId = "slime", MobCategory = "ENEMY", Delta = 2 }],
+                DungeonClearDeltas = [new PlayerStateDungeonClearDelta { DungeonId = "cave", Delta = 1 }],
+            }),
+        };
+        var first = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(request);
+        var replay = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(request);
+
+        Assert.True(first.Succeeded, first.Detail);
+        Assert.True(replay.Succeeded, replay.Detail);
+        Assert.Equal(2, await fixture.DbContext.AccountMobRecords.Where(record => record.MobId == "slime")
+            .Select(record => record.DefeatCount).SingleAsync());
+        Assert.Equal(1, await fixture.DbContext.AccountDungeonRecords.Where(record => record.DungeonId == "cave")
+            .Select(record => record.ClearCount).SingleAsync());
+        Assert.Single(await fixture.DbContext.AccountGuideStepProgresses.ToListAsync());
+        Assert.Equal(first.Ack!.AdventureRecords?.GetRawText(), replay.Ack!.AdventureRecords?.GetRawText());
+    }
+
+    [Fact]
+    public async Task SaveAsync_RejectsInvalidAdventureDelta()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            AdventureRecords = Section(new PlayerStateAdventureRecordsSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = 1,
+                MobDefeatDeltas = [new PlayerStateMobDefeatDelta { MobId = "slime", MobCategory = "ENEMY", Delta = 0 }],
+            }),
+        });
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Invalid, result.Failure);
+        Assert.Empty(await fixture.DbContext.AccountMobRecords.ToListAsync());
+    }
+
+    [Fact]
+    public async Task SaveAsync_RejectsUnsupportedAdventureMobCategory()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            AdventureRecords = Section(new PlayerStateAdventureRecordsSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = 1,
+                MobDefeatDeltas = [new PlayerStateMobDefeatDelta { MobId = "slime", MobCategory = "NPC", Delta = 1 }],
+            }),
+        });
+
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Invalid, result.Failure);
+        Assert.Empty(await fixture.DbContext.AccountMobRecords.ToListAsync());
+    }
+
+    [Fact]
+    public async Task SaveAsync_MatchesFullGuideProgressWithoutCaseSensitiveDuplicateInsert()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        fixture.DbContext.AccountGuideStepProgresses.Add(new AccountGuideStepProgressEntity
+        {
+            AccountGuideStepProgressId = Guid.NewGuid(), AccountId = fixture.AccountId,
+            GuideId = "Intro", StepId = "Welcome", CompletedAt = fixture.BaseTime,
+            CreatedAt = fixture.BaseTime, CreatedBy = fixture.AccountId,
+        });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            GuideProgress = Section(new PlayerStateGuideProgressSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = 1, IsFullSnapshot = true,
+                CompletedStepKeys = [new PlayerStateGuideStepKey { GuideId = "intro", StepId = "welcome" }],
+            }),
+        });
+
+        Assert.True(result.Succeeded, result.Detail);
+        Assert.Single(await fixture.DbContext.AccountGuideStepProgresses.ToListAsync());
+    }
+
+    [Fact]
+    public async Task SaveAsync_RejectsPlayerSettingVersionConflict()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var userId = (await fixture.DbContext.Accounts.SingleAsync()).UserId;
+        var settingId = Guid.NewGuid();
+        fixture.DbContext.PlayerSettings.Add(new PlayerSettingEntity
+        {
+            UserSettingId = settingId, UserId = userId, SettingKey = "ui", SettingValueJson = "{}", Version = 2,
+            CreatedAt = fixture.BaseTime, UpdatedAt = fixture.BaseTime, CreatedBy = fixture.AccountId, UpdatedBy = fixture.AccountId,
+        });
+        await fixture.DbContext.SaveChangesAsync();
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            PlayerSettings = Section(new PlayerStatePlayerSettingsSection
+            {
+                UserId = userId, ClientRevision = 1,
+                Settings = [new PlayerStatePlayerSettingSnapshot { UserSettingId = settingId, SettingKey = "ui", SettingValueJson = "{\"a\":1}", ExpectedVersion = 1 }],
+            }),
+        });
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, result.Failure);
+        Assert.Equal("{}", await fixture.DbContext.PlayerSettings.Where(setting => setting.UserSettingId == settingId).Select(setting => setting.SettingValueJson).SingleAsync());
+    }
+
+    [Fact]
+    public async Task SaveAsync_RejectsRenamingExistingPlayerSettingKey()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var userId = (await fixture.DbContext.Accounts.SingleAsync()).UserId;
+        var settingId = Guid.NewGuid();
+        fixture.DbContext.PlayerSettings.Add(new PlayerSettingEntity
+        {
+            UserSettingId = settingId, UserId = userId, SettingKey = "ui.locale", SettingValueJson = "{}", Version = 2,
+            CreatedAt = fixture.BaseTime, UpdatedAt = fixture.BaseTime, CreatedBy = fixture.AccountId, UpdatedBy = fixture.AccountId,
+        });
+        await fixture.DbContext.SaveChangesAsync();
+
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            PlayerSettings = Section(new PlayerStatePlayerSettingsSection
+            {
+                UserId = userId, ClientRevision = 1,
+                Settings = [new PlayerStatePlayerSettingSnapshot
+                {
+                    UserSettingId = settingId, SettingKey = "ui.language", SettingValueJson = "{}", ExpectedVersion = 2,
+                }],
+            }),
+        });
+
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, result.Failure);
+        Assert.Equal("ui.locale", await fixture.DbContext.PlayerSettings.Where(setting => setting.UserSettingId == settingId)
+            .Select(setting => setting.SettingKey).SingleAsync());
+    }
+
+    [Fact]
+    public async Task SaveAsync_RollsBackGuideAdventureAndSettingsWhenLaterMailSectionConflicts()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        var userId = (await fixture.DbContext.Accounts.SingleAsync()).UserId;
+        var settingId = Guid.NewGuid();
+        var result = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            GuideProgress = Section(new PlayerStateGuideProgressSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = 1, CompletedStepKeys = [new PlayerStateGuideStepKey { GuideId = "intro", StepId = "welcome" }],
+            }),
+            AdventureRecords = Section(new PlayerStateAdventureRecordsSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = 1,
+                MobDefeatDeltas = [new PlayerStateMobDefeatDelta { MobId = "slime", MobCategory = "ENEMY", Delta = 1 }],
+            }),
+            PlayerSettings = Section(new PlayerStatePlayerSettingsSection
+            {
+                UserId = userId, ClientRevision = 1,
+                Settings = [new PlayerStatePlayerSettingSnapshot { UserSettingId = settingId, SettingKey = "ui", SettingValueJson = "{}" }],
+            }),
+            MailClaim = Section(new PlayerStateMailClaimSection { AccountId = fixture.AccountId, ClientRevision = Guid.NewGuid(), MailId = "not-delivered" }),
+        });
+        Assert.Equal(PlayerStateSnapshotSaveFailure.Conflict, result.Failure);
+        fixture.DbContext.ChangeTracker.Clear();
+        Assert.Empty(await fixture.DbContext.AccountGuideStepProgresses.AsNoTracking().ToListAsync());
+        Assert.Empty(await fixture.DbContext.AccountMobRecords.AsNoTracking().ToListAsync());
+        Assert.Empty(await fixture.DbContext.PlayerSettings.AsNoTracking().ToListAsync());
+    }
+
+    [Fact]
+    public async Task SaveAsync_DeletesMailInReplayableSnapshot()
+    {
+        await using var fixture = await SnapshotFixture.CreateAsync();
+        const string mailId = "alpha-delete-mail";
+        fixture.DbContext.PlayerMailDeliveries.Add(CreateMailDelivery(mailId, fixture));
+        await fixture.DbContext.SaveChangesAsync();
+        var clientRevision = Guid.NewGuid();
+        var request = new PlayerStateSnapshotSaveRequest
+        {
+            SnapshotId = Guid.NewGuid(), AccountId = fixture.AccountId, UpdatedBy = fixture.AccountId,
+            MailDelete = Section(new PlayerStateMailDeleteSection
+            {
+                AccountId = fixture.AccountId, ClientRevision = clientRevision, MailId = mailId,
+            }),
+        };
+
+        var first = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(request);
+        var replay = await new PlayerStateSnapshotRepository(fixture.DbContext).SaveAsync(request);
+
+        Assert.True(first.Succeeded, first.Detail);
+        Assert.True(replay.Succeeded, replay.Detail);
+        fixture.DbContext.ChangeTracker.Clear();
+        var state = await fixture.DbContext.PlayerMailStates.AsNoTracking()
+            .SingleAsync(value => value.AccountId == fixture.AccountId && value.MailId == mailId);
+        Assert.True(state.IsDeleted);
+        Assert.NotNull(state.DeletedAt);
+        Assert.Equal(mailId, first.Ack!.MailDelete!.Value.GetProperty("mailId").GetString());
+        Assert.Equal(clientRevision, first.Ack.MailDelete.Value.GetProperty("clientRevision").GetGuid());
+        Assert.Equal(first.Ack.MailDelete?.GetRawText(), replay.Ack!.MailDelete?.GetRawText());
+    }
+
     private static JsonElement Section<T>(T section) => JsonSerializer.SerializeToElement(section, new JsonSerializerOptions(JsonSerializerDefaults.Web));
 
     private static DateTime RoundToMilliseconds(DateTime value)
@@ -562,6 +1332,20 @@ public sealed partial class PlayerStateSnapshotRepositoryTests
     {
         EquipmentLoadoutSlotId = Guid.NewGuid(), EquipmentLoadoutId = loadoutId, SlotType = slotType, SlotIndex = slotIndex, EquipmentInstanceId = equipmentId,
         CreatedAt = fixture.BaseTime, UpdatedAt = fixture.BaseTime, CreatedBy = fixture.AccountId, UpdatedBy = fixture.AccountId,
+    };
+
+    private static PlayerMailDeliveryEntity CreateMailDelivery(string mailId, SnapshotFixture fixture) => new()
+    {
+        PlayerMailDeliveryId = Guid.NewGuid(), AccountId = fixture.AccountId, MailId = mailId,
+        PayloadJson = JsonSerializer.Serialize(new MailResponse
+        {
+            SchemaVersion = 1, Id = mailId, Icon = "CHEST", Title = "Reward", Body = "Alpha reward",
+            PublishFrom = fixture.BaseTime.AddMinutes(-1), PublishTo = fixture.BaseTime.AddHours(1),
+            FirstLoginOnly = false, ReceiveOnRead = true,
+            Rewards = [new MailRewardResponse { ItemId = "gold", Category = "CURRENCY", Amount = 1 }],
+        }, new JsonSerializerOptions(JsonSerializerDefaults.Web)),
+        Version = 1, CreatedAt = fixture.BaseTime, UpdatedAt = fixture.BaseTime,
+        CreatedBy = fixture.AccountId, UpdatedBy = fixture.AccountId,
     };
 
     private sealed class SnapshotFixture : IAsyncDisposable

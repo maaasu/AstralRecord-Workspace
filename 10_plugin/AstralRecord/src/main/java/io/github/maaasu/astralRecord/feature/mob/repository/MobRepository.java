@@ -73,7 +73,7 @@ public class MobRepository {
         String path = "/api/mob";
 
         try {
-            try (var client = ApiRequestUtil.buildClient()) {
+            var client = ApiRequestUtil.sharedClient();
                 var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
@@ -96,7 +96,6 @@ public class MobRepository {
                     }
                 }
                 return result;
-            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
@@ -117,7 +116,7 @@ public class MobRepository {
         String path = "/api/mob/" + encoded;
 
         try {
-            try (var client = ApiRequestUtil.buildClient()) {
+            var client = ApiRequestUtil.sharedClient();
                 var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
@@ -132,7 +131,6 @@ public class MobRepository {
                         throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
                     }
                 };
-            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);

@@ -69,3 +69,9 @@ CREATE NONCLUSTERED INDEX [IX_account_dungeon_record_account_last_cleared]
 CREATE NONCLUSTERED INDEX [IX_account_dungeon_record_is_deleted]
     ON [dbo].[account_dungeon_record] ([is_deleted]);
 ```
+
+## 運用メモ
+
+- Plugin の踏破イベントはメモリで account・Dungeon 単位に集約し、player-state snapshot の `adventureRecords.dungeonClearDeltas` で加算します。
+- 加算は player-state の account transaction 内で行い、同じ `snapshot_id` の再送は完成台帳により二重加算しません。
+- カルトグラフ archive の初期読込は Adventure Record API の GET を使用します。

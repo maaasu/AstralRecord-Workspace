@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.shop.service;
 
 import io.github.maaasu.astralRecord.feature.currency.service.CurrencyService;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
@@ -26,6 +27,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.function.BiConsumer;
 
 public final class ShopService {
@@ -206,76 +208,124 @@ public final class ShopService {
         );
     }
 
-    public boolean purchase(@NotNull AstPlayer player, @NotNull ShopEntry entry, int quantity) {
+    /**
+     * 支払いと商品付与を完成スナップショットで確定します。
+     * 返された future は SQL ACK 後にだけ {@code true} で完了します。
+     */
+    public @NotNull CompletableFuture<Boolean> purchase(
+        @NotNull AstPlayer player,
+        @NotNull ShopEntry entry,
+        int quantity
+    ) {
         if (!AccountModeGuard.isGameplayPlayer(player)) {
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
         ItemModel model = resolveItem(entry);
         if (model == null) {
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
         ShopPurchasePreview preview = preview(player, entry, quantity);
         if (!preview.canPurchase()) {
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
         UUID accountId = player.getAccount().getUuid();
+        String playerName = player.getBukkit().getName();
         int amount = Math.max(1, entry.amount()) * preview.quantity();
         if (!inventoryService.canAddItemToNormalInventory(player, model, amount)) {
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
-        InventoryService.InventoryStateSnapshot snapshot = inventoryService.snapshotState(accountId);
-        if (snapshot == null) {
-            return false;
-        }
-        if (preview.requiredGold() > 0L && !inventoryService.consumeGold(accountId, preview.requiredGold())) {
-            restorePurchase(snapshot, player, entry, amount, "gold_consume_failed");
-            return false;
-        }
-        boolean hasStorageRemoteAccess = inventoryService.hasStorageRemoteAccessToken(accountId);
-        for (ShopCostItem cost : preview.requiredItems()) {
-            if (!consumeCost(accountId, cost, hasStorageRemoteAccess)) {
-                restorePurchase(snapshot, player, entry, amount, "cost_consume_failed:" + cost.itemId());
-                return false;
+
+        CompletableFuture<Boolean> persistence = inventoryService.executeCriticalPlayerMutation(accountId, () -> {
+            ShopPurchasePreview currentPreview = preview(player, entry, quantity);
+            if (!currentPreview.canPurchase()
+                || !inventoryService.canAddItemToNormalInventory(player, model, amount)) {
+                throw new PurchaseRejectedException("purchase_precondition_changed");
+            }
+
+            InventoryService.InventoryStateSnapshot inventoryBefore = inventoryService.snapshotState(accountId);
+            if (inventoryBefore == null) {
+                throw new PurchaseRejectedException("inventory_state_unavailable");
+            }
+            Runnable equipmentRollback = itemService.captureEquipmentStateRollback(accountId);
+            try {
+                if (currentPreview.requiredGold() > 0L
+                    && !inventoryService.consumeGold(accountId, currentPreview.requiredGold())) {
+                    throw new PurchaseRejectedException("gold_consume_failed");
+                }
+                boolean hasStorageRemoteAccess = inventoryService.hasStorageRemoteAccessToken(accountId);
+                for (ShopCostItem cost : currentPreview.requiredItems()) {
+                    if (!consumeCost(accountId, cost, hasStorageRemoteAccess)) {
+                        throw new PurchaseRejectedException("cost_consume_failed:" + cost.itemId());
+                    }
+                }
+                int granted = inventoryService.addItemToNormalInventoryStateOnly(player, model, amount, PURCHASE_SOURCE);
+                if (granted != amount) {
+                    throw new PurchaseRejectedException("item_grant_failed:" + granted);
+                }
+                return new InventorySaveCoordinator.CriticalMutation<>(true, () ->
+                    restorePurchase(inventoryBefore, equipmentRollback, playerName, entry, amount,
+                        "snapshot_save_failed"));
+            } catch (RuntimeException | Error failure) {
+                restorePurchase(inventoryBefore, equipmentRollback, playerName, entry, amount,
+                    failure.getMessage() == null ? "purchase_mutation_failed" : failure.getMessage());
+                throw failure;
+            }
+        });
+        return persistence.exceptionally(failure -> {
+            Throwable cause = unwrapCompletionFailure(failure);
+            if (cause instanceof PurchaseRejectedException) return false;
+            throw new CompletionException(cause);
+        });
+    }
+
+    /** SQL ACK 後に Bukkit main thread から購入結果を反映します。 */
+    public void applyCommittedPurchase(@NotNull AstPlayer player, @NotNull ShopEntry entry) {
+        ItemModel model = resolveItem(entry);
+        if (model != null) {
+            InventoryType type = inventoryService.resolveInventoryType(model);
+            if (type != InventoryType.CURRENCY) {
+                inventoryService.applyInventoryToGui(player, type);
             }
         }
-        int granted = inventoryService.addItemToNormalInventory(player, model, amount, PURCHASE_SOURCE);
-        if (granted != amount) {
-            restorePurchase(snapshot, player, entry, amount, "item_grant_failed:" + granted);
-            return false;
-        }
-        InventoryType type = inventoryService.resolveInventoryType(model);
-        if (type != InventoryType.CURRENCY) {
-            inventoryService.applyInventoryToGui(player, type);
-        }
         purchaseListener.accept(player, entry.id());
-        CompletableFuture<Boolean> saveFuture = inventoryService.saveNow(accountId);
-        if (saveFuture != null) {
-            saveFuture.whenComplete((saved, saveError) -> {
-                if (Boolean.TRUE.equals(saved)) {
-                    purchaseSavedListener.accept(player, entry.id());
-                }
-            });
-        }
-        return true;
+        purchaseSavedListener.accept(player, entry.id());
     }
 
 
     private void restorePurchase(
         @NotNull InventoryService.InventoryStateSnapshot snapshot,
-        @NotNull AstPlayer player,
+        @NotNull Runnable equipmentRollback,
+        @NotNull String playerName,
         @NotNull ShopEntry entry,
         int amount,
         @NotNull String reason
     ) {
         boolean restored = inventoryService.restoreState(snapshot);
+        equipmentRollback.run();
         Logger.log(
             LogId.W_6300,
-            player.getBukkit().getName(),
+            playerName,
             entry.id(),
             entry.itemId(),
             amount,
             restored ? reason : reason + ":rollback_failed"
         );
+    }
+
+    private static final class PurchaseRejectedException extends IllegalStateException {
+        private static final long serialVersionUID = 1L;
+
+        private PurchaseRejectedException(@NotNull String detail) {
+            super(detail);
+        }
+    }
+
+    private static @NotNull Throwable unwrapCompletionFailure(@NotNull Throwable failure) {
+        Throwable current = failure;
+        while (current instanceof CompletionException && current.getCause() != null) {
+            current = current.getCause();
+        }
+        return current;
     }
 
     public int resolveGoldCost(@NotNull ShopEntry entry) {

@@ -1,5 +1,10 @@
 package io.github.maaasu.astralRecord.feature.inventory.state;
 
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.JsonParser;
+
 import io.github.maaasu.astralRecord.feature.inventory.repository.EquipmentLoadoutRepository;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryApiException;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepository;
@@ -10,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
+import io.github.maaasu.astralRecord.feature.mutation.repository.PlayerStateRepository;
 import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
@@ -20,6 +26,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.mockito.ArgumentMatchers.anyList;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -32,28 +39,29 @@ class InventoryPersistenceTest {
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
      * 設計入力: 00_docs/10_Plugin設計書/feature/04-item/3-メソッド仕様/04_3-サービス.md
-     * 章・見出し: # 04_3-サービス > ## 4. 装備耐久値 > ### dirty耐久値照会・保存・破棄
+     * 章・見出し: # 04_3-サービス > ## 4. 装備耐久値
      * 検証契約: dirty耐久値をflushしてもpendingが残る場合、inventoryのsaveNowはfalseを返す。
      */
     @Test
-    void saveNowFailsWhileEquipmentDurabilityRemainsPending() {
+    void saveNowDoesNotFallBackToLegacyEquipmentDurabilityWrite() {
         UUID accountId = UUID.randomUUID();
         PlayerInventoryState state = new PlayerInventoryState(accountId);
         InventoryRepository inventoryRepository = mock(InventoryRepository.class);
         EquipmentLoadoutRepository loadoutRepository = mock(EquipmentLoadoutRepository.class);
         ItemService itemService = mock(ItemService.class);
-        when(itemService.hasDirtyEquipmentDurability(accountId)).thenReturn(true, true);
-        when(itemService.flushDirtyEquipmentDurability(accountId)).thenReturn(true);
+        PlayerStateRepository playerStateRepository = mock(PlayerStateRepository.class);
+        when(playerStateRepository.saveSnapshot(anyString())).thenThrow(new RuntimeException("unavailable"));
         InventoryPersistence persistence = new InventoryPersistence(
             inventoryRepository,
             loadoutRepository,
-            itemService
+            itemService,
+            playerStateRepository
         );
 
         boolean succeeded = persistence.saveNow(state);
 
         assertFalse(succeeded);
-        verify(itemService).flushDirtyEquipmentDurability(accountId);
+        verify(playerStateRepository).saveSnapshot(anyString());
     }
 
     /**
@@ -62,7 +70,7 @@ class InventoryPersistenceTest {
      * 検証契約: API正本だけが更新した古いentry snapshotは、409後に正本へ差し替えて保存laneを継続する。
      */
     @Test
-    void staleSnapshotConflictRefreshesUnchangedEntriesFromApi() {
+    void staleSnapshotConflictDoesNotFallBackToLegacyEntryReplacement() {
         UUID accountId = UUID.randomUUID();
         UUID inventoryId = UUID.randomUUID();
         UUID entryId = UUID.randomUUID();
@@ -97,45 +105,27 @@ class InventoryPersistenceTest {
             accountId,
             false
         );
-        InventoryEntryModel authoritative = new InventoryEntryModel(
-            entryId,
-            inventoryId,
-            1,
-            "CURRENCY",
-            "gold",
-            null,
-            null,
-            125L,
-            null,
-            baselineAt,
-            baselineAt.plusSeconds(1),
-            accountId,
-            accountId,
-            false
-        );
         PlayerInventoryState state = new PlayerInventoryState(accountId);
         state.putInventory(inventory);
         state.replaceEntriesFromLoad(inventoryId, List.of(stale));
         InventoryRepository inventoryRepository = mock(InventoryRepository.class);
         EquipmentLoadoutRepository loadoutRepository = mock(EquipmentLoadoutRepository.class);
         ItemService itemService = mock(ItemService.class);
-        when(inventoryRepository.replaceEntries(eq(inventoryId), anyList(), eq(accountId)))
-            .thenThrow(new InventoryApiException("PUT", "/api/inventory/entries", 409, "stale"));
-        when(inventoryRepository.findEntries(inventoryId)).thenReturn(List.of(authoritative));
-        when(itemService.hasDirtyEquipmentDurability(accountId)).thenReturn(false);
+        PlayerStateRepository playerStateRepository = mock(PlayerStateRepository.class);
+        when(playerStateRepository.saveSnapshot(anyString()))
+            .thenThrow(new InventoryApiException("POST", "/api/player-state/snapshots", 409, "stale"));
         InventoryPersistence persistence = new InventoryPersistence(
             inventoryRepository,
             loadoutRepository,
-            itemService
+            itemService,
+            playerStateRepository
         );
 
-        InventoryPersistence.PersistedInventoryBaseline baseline = persistence.saveNowWithBaseline(state);
+        boolean saved = persistence.saveCriticalNow(state);
 
-        assertNotNull(baseline);
-        assertEquals(List.of(authoritative), state.snapshotEntries(inventoryId));
-        assertEquals(List.of(authoritative), baseline.entries(inventoryId));
-        assertFalse(persistence.hasPendingChanges(state));
-        verify(inventoryRepository).findEntries(inventoryId);
+        assertFalse(saved);
+        assertEquals(List.of(stale), state.snapshotEntries(inventoryId));
+        verify(inventoryRepository, never()).findEntries(inventoryId);
     }
 
     /**
@@ -237,6 +227,7 @@ class InventoryPersistenceTest {
         InventoryRepository inventoryRepository = mock(InventoryRepository.class);
         EquipmentLoadoutRepository loadoutRepository = mock(EquipmentLoadoutRepository.class);
         ItemService itemService = mock(ItemService.class);
+        PlayerStateRepository playerStateRepository = snapshotRepository();
         ItemModel validItem = mock(ItemModel.class);
         when(inventoryRepository.findByAccountId(accountId)).thenReturn(List.of(inventory));
         when(inventoryRepository.findEntries(inventoryId)).thenReturn(List.of(legacySkillGemEntry, validEntry));
@@ -244,21 +235,17 @@ class InventoryPersistenceTest {
         when(itemService.isMasterDataLoaded()).thenReturn(true);
         when(itemService.findLoadedById("still_valid")).thenReturn(validItem);
         when(itemService.hasDirtyEquipmentDurability(accountId)).thenReturn(false);
-        when(inventoryRepository.replaceEntries(eq(inventoryId), anyList(), eq(accountId)))
-            .thenReturn(List.of(validEntry));
         InventoryPersistence persistence = new InventoryPersistence(
-            inventoryRepository, loadoutRepository, itemService
+            inventoryRepository, loadoutRepository, itemService, playerStateRepository
         );
 
         PlayerInventoryState loaded = persistence.load(accountId);
 
-        assertEquals(List.of(validEntry), loaded.snapshotEntries(inventoryId));
-        verify(inventoryRepository).replaceEntries(
-            eq(inventoryId),
-            org.mockito.ArgumentMatchers.argThat(entries -> entries.size() == 1
-                && "still_valid".equals(entries.getFirst().getItemId())),
-            eq(accountId)
-        );
+        List<InventoryEntryModel> persistedEntries = loaded.snapshotEntries(inventoryId);
+        assertEquals(1, persistedEntries.size());
+        assertEquals(validEntry.getInventoryEntryId(), persistedEntries.getFirst().getInventoryEntryId());
+        assertEquals(LocalDateTime.of(2026, 9, 6, 1, 0, 1), persistedEntries.getFirst().getUpdatedAt());
+        verify(playerStateRepository).saveSnapshot(anyString());
     }
 
     /**
@@ -282,18 +269,18 @@ class InventoryPersistenceTest {
         InventoryRepository inventoryRepository = mock(InventoryRepository.class);
         EquipmentLoadoutRepository loadoutRepository = mock(EquipmentLoadoutRepository.class);
         ItemService itemService = mock(ItemService.class);
+        PlayerStateRepository playerStateRepository = snapshotRepository();
         when(inventoryRepository.findByAccountId(accountId)).thenReturn(List.of(inventory));
         when(inventoryRepository.findEntries(inventoryId)).thenReturn(List.of(entry));
         when(loadoutRepository.findByAccountId(accountId, InventoryProfile.GAME)).thenReturn(List.of());
         when(itemService.isMasterDataLoaded()).thenReturn(false);
         InventoryPersistence persistence = new InventoryPersistence(
-            inventoryRepository, loadoutRepository, itemService
+            inventoryRepository, loadoutRepository, itemService, playerStateRepository
         );
 
         PlayerInventoryState loaded = persistence.load(accountId);
 
         assertEquals(List.of(entry), loaded.snapshotEntries(inventoryId));
-        verify(inventoryRepository, never()).replaceEntries(eq(inventoryId), anyList(), eq(accountId));
     }
 
     /**
@@ -322,6 +309,7 @@ class InventoryPersistenceTest {
         InventoryRepository inventoryRepository = mock(InventoryRepository.class);
         EquipmentLoadoutRepository loadoutRepository = mock(EquipmentLoadoutRepository.class);
         ItemService itemService = mock(ItemService.class);
+        PlayerStateRepository playerStateRepository = snapshotRepository();
         EquipmentInstance equipmentInstance = mock(EquipmentInstance.class);
         when(inventoryRepository.findByAccountId(accountId)).thenReturn(List.of(inventory));
         when(inventoryRepository.findEntries(inventoryId)).thenReturn(List.of(equipmentEntry, normalEntry));
@@ -333,14 +321,58 @@ class InventoryPersistenceTest {
         when(equipmentInstance.getAccountId()).thenReturn(accountId.toString());
         when(equipmentInstance.getItemId()).thenReturn("deleted_equipment");
         when(itemService.hasDirtyEquipmentDurability(accountId)).thenReturn(false);
-        when(inventoryRepository.replaceEntries(eq(inventoryId), anyList(), eq(accountId))).thenReturn(List.of());
         InventoryPersistence persistence = new InventoryPersistence(
-            inventoryRepository, loadoutRepository, itemService
+            inventoryRepository, loadoutRepository, itemService, playerStateRepository
         );
 
         PlayerInventoryState loaded = persistence.load(accountId);
 
         assertEquals(List.of(), loaded.snapshotEntries(inventoryId));
-        verify(inventoryRepository).replaceEntries(eq(inventoryId), eq(List.of()), eq(accountId));
+        verify(playerStateRepository).saveSnapshot(anyString());
+    }
+
+    private static PlayerStateRepository snapshotRepository() {
+        PlayerStateRepository repository = mock(PlayerStateRepository.class);
+        when(repository.saveSnapshot(anyString())).thenAnswer(invocation ->
+            acknowledge(JsonParser.parseString(invocation.getArgument(0, String.class)).getAsJsonObject()));
+        return repository;
+    }
+
+    private static JsonObject acknowledge(JsonObject request) {
+        JsonObject acknowledgement = new JsonObject();
+        acknowledgement.add("snapshotId", request.get("snapshotId"));
+        acknowledgement.add("accountId", request.get("accountId"));
+        JsonArray inventories = new JsonArray();
+        JsonArray entries = new JsonArray();
+        for (JsonElement inventoryElement : request.getAsJsonArray("inventories")) {
+            JsonObject inventory = inventoryElement.getAsJsonObject();
+            JsonObject inventoryAck = new JsonObject();
+            inventoryAck.add("inventoryId", inventory.get("inventoryId"));
+            inventoryAck.addProperty("updatedAt", "2026-09-06T01:00:01");
+            inventories.add(inventoryAck);
+            java.util.Set<String> activeIds = new java.util.HashSet<>();
+            for (JsonElement entryElement : inventory.getAsJsonArray("entries")) {
+                String id = entryElement.getAsJsonObject().get("inventoryEntryId").getAsString();
+                activeIds.add(id);
+                entries.add(entryAck(id, false));
+            }
+            for (JsonElement expectedElement : inventory.getAsJsonArray("expectedEntries")) {
+                String id = expectedElement.getAsJsonObject().get("inventoryEntryId").getAsString();
+                if (!activeIds.contains(id)) entries.add(entryAck(id, true));
+            }
+        }
+        acknowledgement.add("inventories", inventories);
+        acknowledgement.add("entries", entries);
+        acknowledgement.add("loadouts", new JsonArray());
+        acknowledgement.add("equipment", new JsonArray());
+        return acknowledgement;
+    }
+
+    private static JsonObject entryAck(String id, boolean deleted) {
+        JsonObject entry = new JsonObject();
+        entry.addProperty("inventoryEntryId", id);
+        entry.addProperty("updatedAt", "2026-09-06T01:00:01");
+        entry.addProperty("isDeleted", deleted);
+        return entry;
     }
 }

@@ -66,6 +66,7 @@
 |:---|:---|:---|:---|
 | `PK_inventory_entry` | `inventory_entry_id` | CLUSTERED | 主キー検索 |
 | `IX_inventory_entry_inventory_id` | `inventory_id` | NONCLUSTERED | インベントリ単位取得 |
+| `IX_inventory_entry_active_inventory` | `inventory_id`, `inventory_entry_id` INCLUDE `updated_at` | NONCLUSTERED FILTERED | player-state 保存時の有効 entry 集合・版照合 |
 | `UX_inventory_entry_inventory_slot` | `inventory_id`, `slot_index` | UNIQUE FILTERED | スロット重複防止 |
 | `UX_inventory_entry_inventory_item` | `inventory_id`, `item_id` | UNIQUE FILTERED | スロットレスなスタック型重複防止 |
 | `IX_inventory_entry_instance` | `instance_type`, `instance_id` | NONCLUSTERED | インスタンス紐付き |
@@ -108,6 +109,12 @@ GO
 
 CREATE NONCLUSTERED INDEX [IX_inventory_entry_inventory_id]
     ON [dbo].[inventory_entry] ([inventory_id]);
+GO
+
+CREATE NONCLUSTERED INDEX [IX_inventory_entry_active_inventory]
+    ON [dbo].[inventory_entry] ([inventory_id], [inventory_entry_id])
+    INCLUDE ([updated_at])
+    WHERE [is_deleted] = 0;
 GO
 
 CREATE UNIQUE NONCLUSTERED INDEX [UX_inventory_entry_inventory_slot]

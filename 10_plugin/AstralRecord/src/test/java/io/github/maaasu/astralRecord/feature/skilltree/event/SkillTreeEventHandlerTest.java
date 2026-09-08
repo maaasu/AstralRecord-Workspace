@@ -17,6 +17,7 @@ import io.github.maaasu.astralRecord.shared.interaction.PlayerInputContext;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionRayTrace;
 import io.github.maaasu.astralRecord.shared.interaction.PlayerInteractionSnapshot;
 import org.bukkit.FluidCollisionMode;
+import org.bukkit.Bukkit;
 import org.bukkit.Location;
 import org.bukkit.Material;
 import org.bukkit.World;
@@ -30,6 +31,8 @@ import org.junit.jupiter.api.Test;
 import org.mockito.MockedStatic;
 
 import java.util.Collection;
+import java.util.Set;
+import java.util.concurrent.CompletableFuture;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -71,6 +74,7 @@ class SkillTreeEventHandlerTest {
         when(player.getUniqueId()).thenReturn(
             UUID.fromString("00000000-0000-0000-0000-000000000581")
         );
+        when(player.isOnline()).thenReturn(true);
         when(service.isPlayerModeSkillTree(player)).thenReturn(true);
 
         context = new PlayerInputContext<>(
@@ -100,6 +104,11 @@ class SkillTreeEventHandlerTest {
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 12. skill tree 入力候補・node 実行
      * 検証契約: node hit時にnode IDとray入口距離を持つplayer-control候補を1件返す。
+     */
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: SQL ACK 前はスキルツリー解除通知を送信しない。
      */
     @Test
     void returnsPlayerControlCandidateWhenPlayerTargetsSkillTreeNode() {
@@ -139,7 +148,8 @@ class SkillTreeEventHandlerTest {
         when(service.isStateReady(astPlayer)).thenReturn(true);
         when(service.hasAvailableUnlockPoint(astPlayer)).thenReturn(true);
         when(service.canUnlockNode(astPlayer, node)).thenReturn(true);
-        when(service.unlockNode(astPlayer, node)).thenReturn(true);
+        stubAccount(astPlayer);
+        when(service.unlockNodeAsync(astPlayer, node)).thenReturn(successfulMutation());
         when(service.availablePassivePoints(astPlayer)).thenReturn(4);
 
         PlayerInputContext<PlayerInteractionSnapshot> leftClickContext = new PlayerInputContext<>(
@@ -155,15 +165,19 @@ class SkillTreeEventHandlerTest {
             .next();
 
         try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
              MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
             cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
             messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
 
             assertTrue(candidate.executeIfValid());
         }
 
         verify(service).preloadState(astPlayer);
-        verify(service).unlockNode(astPlayer, node);
+        verify(service).unlockNodeAsync(astPlayer, node);
+        verify(service).acknowledgeCommittedNodeMutation(astPlayer, node,
+            new SkillTreeService.SkillTreeMutationResult(true, Set.of()), true);
         verify(messageService).send(player, PlayerMsgId.P_5824, "Test Node", "PP", 4);
         verify(service, never()).findTargetedNode(player);
     }
@@ -200,7 +214,8 @@ class SkillTreeEventHandlerTest {
         when(service.isStateReady(astPlayer)).thenReturn(true);
         when(service.hasAvailableUnlockPoint(astPlayer)).thenReturn(true);
         when(service.canUnlockNode(astPlayer, node)).thenReturn(true);
-        when(service.unlockNode(astPlayer, node)).thenReturn(true);
+        stubAccount(astPlayer);
+        when(service.unlockNodeAsync(astPlayer, node)).thenReturn(successfulMutation());
         when(service.cpSourceOptions(astPlayer)).thenReturn(List.of(
             new SkillTreeService.CpSourceOption("adventurer", "&6冒険者", 3, 2)
         ));
@@ -218,8 +233,10 @@ class SkillTreeEventHandlerTest {
             .next();
 
         try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
              MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
             cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
             messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
 
             assertTrue(candidate.executeIfValid());
@@ -250,7 +267,8 @@ class SkillTreeEventHandlerTest {
             when(service.isStateReady(astPlayer)).thenReturn(true);
             when(service.hasAvailableUnlockPoint(astPlayer)).thenReturn(false);
             when(service.canUnlockNode(astPlayer, node)).thenReturn(true);
-            when(service.unlockNode(astPlayer, node)).thenReturn(true);
+            stubAccount(astPlayer);
+            when(service.unlockNodeAsync(astPlayer, node)).thenReturn(successfulMutation());
 
             PlayerInputContext<PlayerInteractionSnapshot> leftClickContext = new PlayerInputContext<>(
                 UUID.fromString("00000000-0000-0000-0000-000000000581"),
@@ -265,15 +283,17 @@ class SkillTreeEventHandlerTest {
                 .next();
 
             try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+                 MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
                  MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
                 cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+                bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
                 messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
 
                 assertTrue(candidate.executeIfValid());
             }
 
             verify(service, never()).hasAvailableUnlockPoint(astPlayer);
-            verify(service).unlockNode(astPlayer, node);
+            verify(service).unlockNodeAsync(astPlayer, node);
         }
     }
 
@@ -298,6 +318,7 @@ class SkillTreeEventHandlerTest {
         when(service.getNode(nodeId)).thenReturn(node);
         when(service.isStateReady(astPlayer)).thenReturn(true);
         when(service.hasAvailableUnlockPoint(astPlayer)).thenReturn(false);
+        stubAccount(astPlayer);
 
         PlayerInputContext<PlayerInteractionSnapshot> leftClickContext = new PlayerInputContext<>(
             UUID.fromString("00000000-0000-0000-0000-000000000581"),
@@ -321,7 +342,7 @@ class SkillTreeEventHandlerTest {
 
         verify(service).hasAvailableUnlockPoint(astPlayer);
         verify(service, never()).canUnlockNode(astPlayer, node);
-        verify(service, never()).unlockNode(astPlayer, node);
+        verify(service, never()).unlockNodeAsync(astPlayer, node);
     }
 
     /**
@@ -348,6 +369,7 @@ class SkillTreeEventHandlerTest {
         when(service.isStateReady(astPlayer)).thenReturn(true);
         when(service.isNodeUnlocked(astPlayer, node)).thenReturn(true);
         when(service.canAffordRelock(astPlayer)).thenReturn(true);
+        when(service.relockNodeAsync(astPlayer, node)).thenReturn(successfulMutation());
         SkillTreeEventHandler handler = new SkillTreeEventHandler(service);
         suppressRelockConfirmation(handler);
 
@@ -357,15 +379,68 @@ class SkillTreeEventHandlerTest {
             .next();
 
         try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
              MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
             cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
             messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
 
             assertTrue(candidate.executeIfValid());
         }
 
-        verify(service).relockNode(astPlayer, node);
+        verify(service).relockNodeAsync(astPlayer, node);
         verify(service, never()).findTargetedNode(player);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: SQL ACK 前はスキルツリー解除通知を送信しない。
+     */
+    @Test
+    void unlockDoesNotNotifyBeforeSqlAck() {
+        SkillTreePosition position = new SkillTreePosition("1000", "skill_tree", 0, 64, 0);
+        SkillTreeService.SkillTreePositionHit hit = new SkillTreeService.SkillTreePositionHit(position, 2.5D);
+        SkillTreeNodeDefinition node = node("1000");
+        AstPlayer astPlayer = mock(AstPlayer.class);
+        PlayerMessageService messageService = mock(PlayerMessageService.class);
+        CompletableFuture<SkillTreeService.SkillTreeMutationResult> pending = new CompletableFuture<>();
+
+        allowSnapshotRefresh();
+        when(service.findTargetedPositionHit(any(PlayerInteractionSnapshot.class))).thenReturn(Optional.of(hit));
+        when(service.getNode("1000")).thenReturn(node);
+        when(service.isStateReady(astPlayer)).thenReturn(true);
+        when(service.hasAvailableUnlockPoint(astPlayer)).thenReturn(true);
+        when(service.canUnlockNode(astPlayer, node)).thenReturn(true);
+        stubAccount(astPlayer);
+        when(service.unlockNodeAsync(astPlayer, node)).thenReturn(pending);
+        when(service.availablePassivePoints(astPlayer)).thenReturn(4);
+
+        PlayerInputCandidate candidate = new SkillTreeEventHandler(service)
+                .resolve(new PlayerInputContext<>(
+                        player.getUniqueId(), 6L, InputFamily.LEFT_CLICK,
+                        InputSource.PRE_PLAYER_ATTACK_ENTITY, snapshot
+                ))
+                .iterator()
+                .next();
+
+        try (MockedStatic<AstPlayerCache> cache = mockStatic(AstPlayerCache.class);
+             MockedStatic<Bukkit> bukkit = mockStatic(Bukkit.class);
+             MockedStatic<PlayerMessageService> messages = mockStatic(PlayerMessageService.class)) {
+            cache.when(() -> AstPlayerCache.get(player)).thenReturn(astPlayer);
+            bukkit.when(Bukkit::isPrimaryThread).thenReturn(true);
+            messages.when(PlayerMessageService::getInstance).thenReturn(messageService);
+
+            assertTrue(candidate.executeIfValid());
+            verify(service, never()).acknowledgeCommittedNodeMutation(any(), any(), any(), anyBoolean());
+            verify(messageService, never()).send(player, PlayerMsgId.P_5824, "Test Node", "PP", 4);
+
+            pending.complete(new SkillTreeService.SkillTreeMutationResult(true, Set.of()));
+        }
+
+        verify(service).acknowledgeCommittedNodeMutation(astPlayer, node,
+                new SkillTreeService.SkillTreeMutationResult(true, Set.of()), true);
+        verify(messageService).send(player, PlayerMsgId.P_5824, "Test Node", "PP", 4);
     }
 
     @SuppressWarnings("unchecked")
@@ -377,6 +452,17 @@ class SkillTreeEventHandlerTest {
         } catch (ReflectiveOperationException exception) {
             throw new AssertionError(exception);
         }
+    }
+
+    private void stubAccount(AstPlayer astPlayer) {
+        AccountModel account = mock(AccountModel.class);
+        UUID accountId = player.getUniqueId();
+        when(astPlayer.getAccount()).thenReturn(account);
+        when(account.getUuid()).thenReturn(accountId);
+    }
+
+    private CompletableFuture<SkillTreeService.SkillTreeMutationResult> successfulMutation() {
+        return CompletableFuture.completedFuture(new SkillTreeService.SkillTreeMutationResult(true, Set.of()));
     }
 
     /**

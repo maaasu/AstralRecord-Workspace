@@ -434,7 +434,7 @@ class InventoryServiceOrbReconciliationTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
      * 検証契約: BAG内entryの数量だけが減少した場合、疎なslot配置を前詰めしない。
      */
     @Test
@@ -1364,7 +1364,7 @@ class InventoryServiceOrbReconciliationTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
      * 検証契約: HOTBARからentryが全削除されても固定slotを前詰めしない。
      */
     @Test
@@ -1395,7 +1395,7 @@ class InventoryServiceOrbReconciliationTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
      * 検証契約: ルーン脱着でAPIが既存stackへ1個返却した場合、三者マージ後も共通返却処理を通して同じitemIdを一つのstackへ統合する。
      */
     @Test
@@ -1440,7 +1440,7 @@ class InventoryServiceOrbReconciliationTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
      * 検証契約: ルーン脱着の新規未配置返却entryは、共通追加処理により有効なBAG slotへ配置する。
      */
     @Test
@@ -1478,7 +1478,7 @@ class InventoryServiceOrbReconciliationTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
      * 検証契約: API返却分の共通追加に失敗して同じbaselineで再試行しても、返却数量を重複適用しない。
      */
     @Test
@@ -1530,7 +1530,7 @@ class InventoryServiceOrbReconciliationTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
      * 検証契約: ルーン脱着で未配置の1個が返却されたとき、既存の同一ルーンfull stackを再構築せず、共通追加処理で次の空きslotへ1個だけ追加する。
      */
     @Test
@@ -1578,7 +1578,7 @@ class InventoryServiceOrbReconciliationTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
      * 検証契約: BAG通常容量が満杯でも、API確定済みのルーン返却分は容量外slotへ保持する。
      */
     @Test
@@ -1619,7 +1619,7 @@ class InventoryServiceOrbReconciliationTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
      * 検証契約: ルーン脱着の返却分はHOTBARだけにある同一stackへ統合せず、BAGへ追加する。
      */
     @Test
@@ -1672,7 +1672,7 @@ class InventoryServiceOrbReconciliationTest {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
-     * 章・見出し: # 08_3-サービス > ## 15.1. オーブ操作の保存laneとAPI正本照合
+     * 章・見出し: # 08_3-サービス > ## 15.1. 重要操作と外部取引の保存lane
      * 検証契約: BAGからentryが全削除された場合だけ、残存entryを表示順で前詰めする。
      */
     @Test

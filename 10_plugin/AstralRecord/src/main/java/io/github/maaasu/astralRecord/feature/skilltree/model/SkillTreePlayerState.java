@@ -15,16 +15,26 @@ import java.util.UUID;
 public final class SkillTreePlayerState {
     private final UUID accountId;
     private final Map<String, SkillTreeUnlockedNode> unlockedNodes;
+    private final int persistedVersion;
 
     public SkillTreePlayerState(@NotNull UUID accountId, @NotNull Set<String> unlockedNodeIds) {
         this(accountId, unlockedNodeIds.stream()
                 .map(nodeId -> new SkillTreeUnlockedNode(nodeId, null))
-                .toList());
+                .toList(), 0);
     }
 
     public SkillTreePlayerState(@NotNull UUID accountId, @NotNull List<SkillTreeUnlockedNode> unlockedNodes) {
+        this(accountId, unlockedNodes, 0);
+    }
+
+    public SkillTreePlayerState(
+            @NotNull UUID accountId,
+            @NotNull List<SkillTreeUnlockedNode> unlockedNodes,
+            int persistedVersion
+    ) {
         this.accountId = accountId;
         this.unlockedNodes = new LinkedHashMap<>();
+        this.persistedVersion = Math.max(0, persistedVersion);
         for (SkillTreeUnlockedNode unlockedNode : unlockedNodes) {
             if (!unlockedNode.nodeId().isBlank()) {
                 this.unlockedNodes.putIfAbsent(unlockedNode.nodeId(), unlockedNode);
@@ -35,6 +45,10 @@ public final class SkillTreePlayerState {
     @NotNull
     public UUID accountId() {
         return accountId;
+    }
+
+    public int persistedVersion() {
+        return persistedVersion;
     }
 
     public boolean isUnlocked(@NotNull String nodeId) {

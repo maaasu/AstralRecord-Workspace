@@ -12,7 +12,6 @@ import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
 import io.github.maaasu.astralRecord.feature.skill.gui.SkillBindGui;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
-import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillMutationException;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindInventoryHolder;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindPreset;
 import io.github.maaasu.astralRecord.feature.skill.model.SkillBindScreen;
@@ -454,7 +453,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 AstPlayer current = AstPlayerCache.get(player);
                 if (current != null
                     && learnedSkillService.hasMutationInProgress(current.getAccount().getUuid())
-                    && !learnedSkillService.hasLocalMutationPending(current.getAccount().getUuid())
                     && sessions.get(player.getUniqueId()) == session) {
                     openDetail(player, session, entry, holder.pageIndex(), true);
                 }
@@ -1033,7 +1031,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
                 GuiSound.DENY.play(player);
                 PlayerMessageService.getInstance().send(player, mutationFailureMessage(error));
                 if (sessions.get(playerId) != session) return;
-                if (learnedSkillService.hasLocalMutationPending(current.getAccount().getUuid())) return;
                 SkillManagerEntry currentEntry = entry(current, entry.learnedSkill().getLearnedSkillId().toString());
                 if (keepDetail) {
                     if (currentEntry != null) {
@@ -1302,22 +1299,6 @@ public final class SkillBindGuiEventHandler extends AbstractEventHandler {
     }
 
     private PlayerMsgId mutationFailureMessage(@Nullable Throwable error) {
-        Throwable current = error;
-        while (current != null) {
-            if (current instanceof LearnedSkillService.MutationPreflightTimeoutException) {
-                return PlayerMsgId.P_5875;
-            }
-            if (current instanceof LearnedSkillMutationException mutationException) {
-                return switch (mutationException.getFailure()) {
-                    case NO_SIGIL_SLOT -> PlayerMsgId.P_5860;
-                    case SIGIL_NOT_ALLOWED -> PlayerMsgId.P_5859;
-                    case DUPLICATE_SIGIL_GROUP -> PlayerMsgId.P_5861;
-                    case INVALID_MATERIAL, MAX_LEVEL_REACHED -> PlayerMsgId.P_5862;
-                    default -> PlayerMsgId.P_5864;
-                };
-            }
-            current = current.getCause();
-        }
         return PlayerMsgId.P_5864;
     }
 

@@ -345,25 +345,46 @@ public final class TeleporterService {
         }
         UUID accountId = astPlayer.getAccount().getUuid();
         long cost = Math.max(0L, definition.unlockGold());
-        UnlockCommitResult result;
-        try {
-            result = inventory.executeLocalPlayerMutation(accountId,
-                () -> commitWaystoneUnlock(accountId, definition, inventory, cost));
-        } catch (RuntimeException e) {
-            throw e;
-        }
-        if (result == UnlockCommitResult.ALREADY_UNLOCKED) {
-            openGui(player, astPlayer, definition, 0);
-            return;
-        }
-        if (result == UnlockCommitResult.INSUFFICIENT_GOLD) {
-            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5955, cost);
-            return;
-        }
-        inventory.queueLocalPlayerSave(accountId);
-        PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5952, definition.name(), cost);
-        syncView(player);
-        playUnlockEffects(player, definition);
+        inventory.executeCriticalPlayerMutation(accountId, () -> {
+            InventoryService.InventoryStateSnapshot inventoryBefore = inventory.snapshotState(accountId);
+            if (inventoryBefore == null) {
+                throw new IllegalStateException("Inventory state is unavailable for waystone unlock");
+            }
+            UnlockStateCheckpoint unlockBefore = captureUnlockState(accountId);
+            UnlockCommitResult result = commitWaystoneUnlock(accountId, definition, inventory, cost);
+            if (result != UnlockCommitResult.UNLOCKED) {
+                throw new WaystoneUnlockRejectedException(result);
+            }
+            return new io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator.CriticalMutation<>(
+                result,
+                () -> {
+                    inventory.restoreState(inventoryBefore);
+                    restoreUnlockState(accountId, unlockBefore);
+                }
+            );
+        }).whenComplete((result, failure) -> Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            Throwable cause = unwrap(failure);
+            if (cause instanceof WaystoneUnlockRejectedException rejected
+                && rejected.result == UnlockCommitResult.ALREADY_UNLOCKED) {
+                openGui(player, astPlayer, definition, 0);
+                return;
+            }
+            if (cause instanceof WaystoneUnlockRejectedException rejected
+                && rejected.result == UnlockCommitResult.INSUFFICIENT_GOLD) {
+                PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5955, cost);
+                return;
+            }
+            if (failure != null || result != UnlockCommitResult.UNLOCKED) {
+                PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5963);
+                return;
+            }
+            PlayerMessageService.getInstance().send(astPlayer, PlayerMsgId.P_5952, definition.name(), cost);
+            syncView(player);
+            playUnlockEffects(player, definition);
+        }));
     }
 
     /**
@@ -521,6 +542,37 @@ public final class TeleporterService {
         }
     }
 
+    private @NotNull UnlockStateCheckpoint captureUnlockState(@NotNull UUID accountId) {
+        synchronized (unlockStateLock) {
+            WaystoneUnlockState state = unlockStatesByAccount.get(accountId);
+            LinkedHashMap<String, Long> pending = pendingUnlockRevisionsByAccount.get(accountId);
+            return new UnlockStateCheckpoint(
+                state,
+                pending == null ? null : new LinkedHashMap<>(pending),
+                unlockStateRevisionsByAccount.get(accountId),
+                releaseWhenAcknowledgedAccounts.contains(accountId)
+            );
+        }
+    }
+
+    private void restoreUnlockState(@NotNull UUID accountId, @NotNull UnlockStateCheckpoint checkpoint) {
+        synchronized (unlockStateLock) {
+            if (checkpoint.state == null) unlockStatesByAccount.remove(accountId);
+            else unlockStatesByAccount.put(accountId, checkpoint.state);
+            if (checkpoint.pending == null) pendingUnlockRevisionsByAccount.remove(accountId);
+            else pendingUnlockRevisionsByAccount.put(accountId, new LinkedHashMap<>(checkpoint.pending));
+            if (checkpoint.revision == null) unlockStateRevisionsByAccount.remove(accountId);
+            else unlockStateRevisionsByAccount.put(accountId, checkpoint.revision);
+            if (checkpoint.releaseWhenAcknowledged) releaseWhenAcknowledgedAccounts.add(accountId);
+            else releaseWhenAcknowledgedAccounts.remove(accountId);
+        }
+    }
+
+    private static @Nullable Throwable unwrap(@Nullable Throwable failure) {
+        if (failure == null) return null;
+        return failure.getCause() == null ? failure : failure.getCause();
+    }
+
     private void mergeLoadedUnlockState(@NotNull UUID accountId, @NotNull WaystoneUnlockState loaded) {
         synchronized (unlockStateLock) {
             Set<String> merged = new LinkedHashSet<>(loaded.unlockedWaystoneIds());
@@ -647,6 +699,23 @@ public final class TeleporterService {
         UNLOCKED,
         ALREADY_UNLOCKED,
         INSUFFICIENT_GOLD
+    }
+
+    private record UnlockStateCheckpoint(
+        @Nullable WaystoneUnlockState state,
+        @Nullable LinkedHashMap<String, Long> pending,
+        @Nullable Long revision,
+        boolean releaseWhenAcknowledged
+    ) {
+    }
+
+    private static final class WaystoneUnlockRejectedException extends IllegalStateException {
+        private static final long serialVersionUID = 1L;
+        private final UnlockCommitResult result;
+
+        private WaystoneUnlockRejectedException(@NotNull UnlockCommitResult result) {
+            this.result = result;
+        }
     }
 
     @NotNull

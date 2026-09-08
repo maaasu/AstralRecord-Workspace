@@ -4,6 +4,7 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.adventurerecord.model.AdventureDungeonRecord;
 import io.github.maaasu.astralRecord.feature.adventurerecord.repository.AdventureRecordRepository;
+import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordStateService;
 import io.github.maaasu.astralRecord.feature.boss.service.BossMobScalingService;
 import io.github.maaasu.astralRecord.feature.combat.model.AstEntity;
 import io.github.maaasu.astralRecord.feature.dungeon.generation.DungeonBlockPlanner;
@@ -156,6 +157,7 @@ public final class DungeonService {
     private final ItemService itemService;
     private final LootService lootService;
     private final AdventureRecordRepository adventureRecordRepository;
+    private final AdventureRecordStateService adventureRecordStateService;
     private final CartographDurabilityService cartographDurabilityService;
     private final CartographSessionRegistry cartographBindings = new CartographSessionRegistry();
     private final DungeonCancelGui cancelGui;
@@ -206,7 +208,8 @@ public final class DungeonService {
      * @param itemService アイテム定義サービス
      * @param itemStackFactory 報酬 GUI の ItemStack 生成サービス
      * @param lootService ロード済みルートテーブルサービス
-     * @param adventureRecordRepository 踏破記録 API リポジトリ
+     * @param adventureRecordRepository 踏破記録読込リポジトリ
+     * @param adventureRecordStateService 踏破差分の完成スナップショット参加サービス
      * @param hubWorldId 生成待機中に参加者を退避する HUB World ID
      */
     public DungeonService(
@@ -225,6 +228,7 @@ public final class DungeonService {
             @NotNull ItemStackFactory itemStackFactory,
             @NotNull LootService lootService,
             @NotNull AdventureRecordRepository adventureRecordRepository,
+            @NotNull AdventureRecordStateService adventureRecordStateService,
             @NotNull String hubWorldId
     ) {
         this(
@@ -243,6 +247,7 @@ public final class DungeonService {
                 itemStackFactory,
                 lootService,
                 adventureRecordRepository,
+                adventureRecordStateService,
                 hubWorldId,
                 new InstanceCreationQueue(InstanceCreationQueueConfig.DEFAULT_DUNGEON),
                 new ChallengeParticipationRegistry(),
@@ -267,7 +272,8 @@ public final class DungeonService {
      * @param itemService アイテム定義サービス
      * @param itemStackFactory 報酬GUIのItemStack生成サービス
      * @param lootService ルートテーブルサービス
-     * @param adventureRecordRepository 踏破記録リポジトリ
+     * @param adventureRecordRepository 踏破記録読込リポジトリ
+     * @param adventureRecordStateService 踏破差分の完成スナップショット参加サービス
      * @param hubWorldId 生成待機中に参加者を退避するHub World ID
      * @param creationQueue インスタンス作成枠キュー
      * @param challengeParticipationRegistry Dungeon/Boss 共通の挑戦参加予約
@@ -288,6 +294,7 @@ public final class DungeonService {
             @NotNull ItemStackFactory itemStackFactory,
             @NotNull LootService lootService,
             @NotNull AdventureRecordRepository adventureRecordRepository,
+            @NotNull AdventureRecordStateService adventureRecordStateService,
             @NotNull String hubWorldId,
             @NotNull InstanceCreationQueue creationQueue,
             @NotNull ChallengeParticipationRegistry challengeParticipationRegistry
@@ -308,6 +315,7 @@ public final class DungeonService {
                 itemStackFactory,
                 lootService,
                 adventureRecordRepository,
+                adventureRecordStateService,
                 hubWorldId,
                 creationQueue,
                 challengeParticipationRegistry,
@@ -332,7 +340,8 @@ public final class DungeonService {
      * @param itemService アイテム定義サービス
      * @param itemStackFactory 報酬GUIのItemStack生成サービス
      * @param lootService ルートテーブルサービス
-     * @param adventureRecordRepository 踏破記録リポジトリ
+     * @param adventureRecordRepository 踏破記録読込リポジトリ
+     * @param adventureRecordStateService 踏破差分の完成スナップショット参加サービス
      * @param hubWorldId 生成待機中に参加者を退避するHub World ID
      * @param creationQueue インスタンス作成枠キュー
      * @param challengeParticipationRegistry Dungeon/Boss 共通の挑戦参加予約
@@ -354,6 +363,7 @@ public final class DungeonService {
             @NotNull ItemStackFactory itemStackFactory,
             @NotNull LootService lootService,
             @NotNull AdventureRecordRepository adventureRecordRepository,
+            @NotNull AdventureRecordStateService adventureRecordStateService,
             @NotNull String hubWorldId,
             @NotNull InstanceCreationQueue creationQueue,
             @NotNull ChallengeParticipationRegistry challengeParticipationRegistry,
@@ -379,6 +389,7 @@ public final class DungeonService {
         this.itemService = itemService;
         this.lootService = lootService;
         this.adventureRecordRepository = adventureRecordRepository;
+        this.adventureRecordStateService = adventureRecordStateService;
         this.cartographDurabilityService = new CartographDurabilityService(inventoryService, itemService);
         this.cancelGui = new DungeonCancelGui();
         this.rewardGui = new DungeonRewardGui(itemService, itemStackFactory);
@@ -409,7 +420,8 @@ public final class DungeonService {
      * @param itemService アイテム定義サービス
      * @param itemStackFactory 報酬GUIのItemStack生成サービス
      * @param lootService ルートテーブルサービス
-     * @param adventureRecordRepository 踏破記録リポジトリ
+     * @param adventureRecordRepository 踏破記録読込リポジトリ
+     * @param adventureRecordStateService 踏破差分の完成スナップショット参加サービス
      * @param hubWorldId 生成待機中に参加者を退避するHUB World ID
      * @param creationQueue インスタンス作成枠キュー
      */
@@ -429,6 +441,7 @@ public final class DungeonService {
             @NotNull ItemStackFactory itemStackFactory,
             @NotNull LootService lootService,
             @NotNull AdventureRecordRepository adventureRecordRepository,
+            @NotNull AdventureRecordStateService adventureRecordStateService,
             @NotNull String hubWorldId,
             @NotNull InstanceCreationQueue creationQueue
     ) {
@@ -448,6 +461,7 @@ public final class DungeonService {
                 itemStackFactory,
                 lootService,
                 adventureRecordRepository,
+                adventureRecordStateService,
                 hubWorldId,
                 creationQueue,
                 new ChallengeParticipationRegistry()
@@ -1828,7 +1842,7 @@ public final class DungeonService {
                 List<DungeonRewardEntry> rewards = rollClearRewards(astPlayer, session.loaded.definition());
                 session.rewardsByPlayer.put(player.getUniqueId(), new ArrayList<>(rewards));
                 openRewardGui(session, player, 0);
-                recordDungeonClearAsync(astPlayer, session.loaded.definition());
+                recordDungeonClear(astPlayer, session.loaded.definition());
                 clearListener.accept(astPlayer, session.loaded.definition().id());
             }
         Location chestLocation = findRewardChestLocation(session, bossRoom);
@@ -1862,13 +1876,12 @@ public final class DungeonService {
         }
     }
 
-    /** 踏破記録をキャッシュへ楽観反映した上で、APIへ非同期保存します。 */
-    private void recordDungeonClearAsync(
+    /** 踏破記録をキャッシュとローカル差分へ反映し、完成スナップショット保存を予約します。 */
+    private void recordDungeonClear(
             @NotNull AstPlayer astPlayer,
             @NotNull DungeonDefinition definition
     ) {
         UUID accountId = astPlayer.getAccount().getUuid();
-        UUID userId = astPlayer.getUser().getUuid();
         DungeonArchiveGui.ArchiveDungeon previous = archiveByAccount
                 .getOrDefault(accountId, List.of()).stream()
                 .filter(entry -> entry.dungeonId().equals(definition.id()))
@@ -1879,26 +1892,7 @@ public final class DungeonService {
                 definition, optimisticCount, Instant.now());
         archiveByAccount.put(accountId, mergeArchive(
                 List.of(optimistic), archiveByAccount.getOrDefault(accountId, List.of())));
-        Bukkit.getScheduler().runTaskAsynchronously(plugin, () -> {
-            try {
-                AdventureDungeonRecord persisted = adventureRecordRepository.recordDungeonClear(
-                        accountId, definition.id(), userId);
-                runMain(() -> {
-                    DungeonArchiveGui.ArchiveDungeon entry = toArchiveDungeon(persisted);
-                    if (entry != null) {
-                        archiveByAccount.put(accountId, mergeArchive(
-                                List.of(entry), archiveByAccount.getOrDefault(accountId, List.of())));
-                    }
-                });
-            } catch (RuntimeException failure) {
-                Logger.log(LogId.E_7006, failure, accountId, definition.id());
-                runMain(() -> {
-                    // API/DBを正本とするため、失敗時は次回archive表示で必ず再取得します。
-                    archiveByAccount.remove(accountId);
-                    loadedArchiveAccounts.remove(accountId);
-                });
-            }
-        });
+        adventureRecordStateService.recordDungeonClear(accountId, definition.id());
     }
 
     private @NotNull Location findRewardChestLocation(

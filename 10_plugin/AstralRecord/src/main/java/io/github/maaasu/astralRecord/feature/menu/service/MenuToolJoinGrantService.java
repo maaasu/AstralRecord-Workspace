@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.inventory.model.InventoryModel;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryProfile;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.state.PlayerInventoryState;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
@@ -17,6 +18,8 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executor;
 
 /**
  * 通行証の所持状態をフラグとして、参加時のメニュー導線を初期付与します。
@@ -25,10 +28,9 @@ public final class MenuToolJoinGrantService {
     public static final String MENU_ITEM_ID = "nox_menu_tool";
     public static final String PASS_ITEM_ID = "nox_city_pass";
 
-    private static final String INSTANCE_SOURCE = "join_initial_menu";
-
     private final ItemService itemService;
     private final InventoryService inventoryService;
+    private final Executor mainExecutor;
 
     /**
      * 参加時メニュー導線の付与サービスを生成します。
@@ -38,16 +40,18 @@ public final class MenuToolJoinGrantService {
      */
     public MenuToolJoinGrantService(
         @NotNull ItemService itemService,
-        @NotNull InventoryService inventoryService
+        @NotNull InventoryService inventoryService,
+        @NotNull Executor mainExecutor
     ) {
         this.itemService = itemService;
         this.inventoryService = inventoryService;
+        this.mainExecutor = mainExecutor;
     }
 
     /**
-     * 参加時インベントリのスナップショットを確認し、必要な外部装備インスタンスを非同期で準備します。
+     * 参加時インベントリのスナップショットを確認し、必要なローカル装備インスタンスを準備します。
      * <p>
-     * 装備インスタンス生成は API I/O を伴うため、Bukkit メインスレッドから呼び出してはいけません。
+     * 生成した個体は報酬entryと同じplayer-state snapshotで保存してください。
      * 通行証が既にあれば {@code null} を返し、外部状態を変更しません。
      *
      * @param state 参加時に読み込んだアカウント単位のインベントリ状態
@@ -62,28 +66,10 @@ public final class MenuToolJoinGrantService {
 
         ItemModel menuItem = requireItem(MENU_ITEM_ID, ItemCategory.EQUIPMENT);
         ItemModel passItem = requireItem(PASS_ITEM_ID, ItemCategory.CURRENCY);
-        EquipmentInstance menuInstance = itemService.createEquipmentInstance(
-            menuItem.getId(),
-            accountId.toString(),
-            INSTANCE_SOURCE,
-            accountId.toString()
-        );
-        if (menuInstance == null) {
-            throw new IllegalStateException("failed to create initial menu equipment: " + MENU_ITEM_ID);
-        }
-
-        UUID instanceId = parseInstanceId(menuInstance.getEquipmentInstanceId());
-        if (instanceId == null) {
-            deleteUnreferencedInstance(menuInstance);
-            throw new IllegalStateException("invalid initial menu equipment instance id: " + MENU_ITEM_ID);
-        }
-
         return new PreparedGrant(
             accountId,
             menuItem,
-            passItem,
-            new InventoryService.PreparedInventoryInstance(InventoryInstanceType.EQUIPMENT, instanceId),
-            menuInstance.getEquipmentInstanceId()
+            passItem
         );
     }
 
@@ -99,7 +85,7 @@ public final class MenuToolJoinGrantService {
      * @throws IllegalArgumentException アカウントが準備対象と異なる場合
      * @throws IllegalStateException ローカル付与に失敗した場合
      */
-    public boolean grantPreparedIfMissing(
+    public @NotNull CompletableFuture<Boolean> grantPreparedIfMissing(
         @NotNull AstPlayer astPlayer,
         @NotNull PreparedGrant preparedGrant
     ) {
@@ -108,35 +94,61 @@ public final class MenuToolJoinGrantService {
             throw new IllegalArgumentException("prepared menu grant account does not match player account");
         }
         if (inventoryService.getCurrencyAmount(accountId, PASS_ITEM_ID) > 0L) {
-            return false;
+            return CompletableFuture.completedFuture(false);
         }
-
-        InventoryService.InventoryGrantReceipt receipt = inventoryService.addPreparedRewardsToNormalInventory(
-            astPlayer,
-            List.of(
-                new InventoryService.PreparedInventoryReward(
-                    preparedGrant.menuItem(),
-                    1,
-                    List.of(preparedGrant.menuInstance())
-                ),
-                new InventoryService.PreparedInventoryReward(preparedGrant.passItem(), 1, List.of())
-            )
-        );
-        if (receipt == null) {
-            throw new IllegalStateException("failed to add initial menu rewards: " + accountId);
-        }
-        return true;
-    }
-
-    /**
-     * 付与前に作成したがインベントリへ登録されなかった装備インスタンスを削除します。
-     * <p>
-     * API I/O を伴うため、Bukkit メインスレッド外から呼び出してください。
-     *
-     * @param preparedGrant 破棄対象の準備済み付与情報
-     */
-    public void cleanupPreparedGrant(@NotNull PreparedGrant preparedGrant) {
-        itemService.deleteEquipmentInstance(preparedGrant.externalInstanceId());
+        CompletableFuture<Boolean> committed = inventoryService.executeCriticalPlayerMutation(accountId, () -> {
+            InventoryService.InventoryStateSnapshot inventoryBefore = inventoryService.snapshotState(accountId);
+            if (inventoryBefore == null) {
+                throw new IllegalStateException("initial menu inventory state is unavailable");
+            }
+            Runnable equipmentRollback = itemService.captureEquipmentStateRollback(accountId);
+            try {
+                if (inventoryService.getCurrencyAmount(accountId, PASS_ITEM_ID) > 0L) {
+                    return new InventorySaveCoordinator.CriticalMutation<>(false, () -> { });
+                }
+                EquipmentInstance menuInstance = itemService.createLocalEquipmentInstance(
+                    preparedGrant.menuItem(), accountId);
+                if (menuInstance == null) {
+                    throw new IllegalStateException("failed to create initial menu equipment: " + MENU_ITEM_ID);
+                }
+                UUID instanceId = parseInstanceId(menuInstance.getEquipmentInstanceId());
+                if (instanceId == null) {
+                    throw new IllegalStateException("invalid initial menu equipment instance id: " + MENU_ITEM_ID);
+                }
+                InventoryService.PreparedInventoryInstance menuPrepared =
+                    new InventoryService.PreparedInventoryInstance(InventoryInstanceType.EQUIPMENT, instanceId);
+                InventoryService.InventoryGrantReceipt receipt =
+                    inventoryService.addPreparedRewardsToNormalInventoryStateOnly(
+                        astPlayer,
+                        List.of(
+                            new InventoryService.PreparedInventoryReward(
+                                preparedGrant.menuItem(), 1, List.of(menuPrepared)),
+                            new InventoryService.PreparedInventoryReward(preparedGrant.passItem(), 1, List.of())
+                        )
+                    );
+                if (receipt == null) {
+                    throw new IllegalStateException("failed to add initial menu rewards: " + accountId);
+                }
+                return new InventorySaveCoordinator.CriticalMutation<>(true, () -> {
+                    inventoryService.restoreState(inventoryBefore);
+                    equipmentRollback.run();
+                });
+            } catch (RuntimeException | Error failure) {
+                inventoryService.restoreState(inventoryBefore);
+                equipmentRollback.run();
+                throw failure;
+            }
+        });
+        committed.thenAccept(granted -> {
+            if (Boolean.TRUE.equals(granted)) {
+                mainExecutor.execute(() -> {
+                    if (astPlayer.getBukkit() != null && astPlayer.getBukkit().isOnline()) {
+                        inventoryService.refreshManagedInventoryUi(astPlayer);
+                    }
+                });
+            }
+        });
+        return committed;
     }
 
     private boolean hasPass(@NotNull PlayerInventoryState state) {
@@ -173,25 +185,17 @@ public final class MenuToolJoinGrantService {
         }
     }
 
-    private void deleteUnreferencedInstance(@NotNull EquipmentInstance instance) {
-        itemService.deleteEquipmentInstance(instance.getEquipmentInstanceId());
-    }
-
     /**
      * 非同期に準備し、メインスレッドで適用する参加時付与情報です。
      *
      * @param accountId 対象アカウント ID
      * @param menuItem メニューアイテム定義
      * @param passItem 通行証定義
-     * @param menuInstance インベントリへ登録する装備インスタンス参照
-     * @param externalInstanceId 破棄時に API へ渡す装備インスタンス ID
      */
     public record PreparedGrant(
         @NotNull UUID accountId,
         @NotNull ItemModel menuItem,
-        @NotNull ItemModel passItem,
-        @NotNull InventoryService.PreparedInventoryInstance menuInstance,
-        @NotNull String externalInstanceId
+        @NotNull ItemModel passItem
     ) {
     }
 }

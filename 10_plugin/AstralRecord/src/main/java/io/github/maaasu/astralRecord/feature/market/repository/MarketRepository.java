@@ -267,7 +267,7 @@ public class MarketRepository {
 
     private HttpResponse<String> send(@NotNull HttpRequest request, @NotNull String path) {
         try {
-            var client = ApiRequestUtil.buildClient();
+            var client = ApiRequestUtil.sharedClient();
             return client.send(request, HttpResponse.BodyHandlers.ofString());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

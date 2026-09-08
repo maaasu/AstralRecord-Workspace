@@ -1,4 +1,5 @@
 using System.Data;
+using System.Globalization;
 using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json;
@@ -13,7 +14,9 @@ namespace AstralRecordApi.Repositories;
 /// Plugin がローカルで確定した state を保存する transaction 境界です。
 /// 個別のゲーム操作を再計算・再消費せず、期待版と所有者を検証した snapshot だけを適用します。
 /// </summary>
-public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContext) : IPlayerStateSnapshotRepository
+public sealed class PlayerStateSnapshotRepository(
+    AstralRecordDbContext dbContext,
+    MasterDataDbContext? masterDataDbContext = null) : IPlayerStateSnapshotRepository
 {
     private static readonly JsonSerializerOptions JsonOptions = new(JsonSerializerDefaults.Web);
 
@@ -37,7 +40,7 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
                     return Failure(PlayerStateSnapshotSaveFailure.Conflict, "snapshotId is already associated with another payload.");
 
                 var replay = JsonSerializer.Deserialize<PlayerStateSnapshotAck>(existing.AckPayloadJson, JsonOptions);
-                return replay is null
+                return replay is null || replay.SnapshotId != request.SnapshotId || replay.AccountId != request.AccountId
                     ? Failure(PlayerStateSnapshotSaveFailure.Conflict, "Stored snapshot acknowledgement is invalid.")
                     : Success(replay);
             }
@@ -49,8 +52,12 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
                 return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Child ID belongs to another parent or deleted state.");
 
             var now = RoundToMilliseconds(DateTime.UtcNow);
-            var accountInventories = await FindAccountInventoriesForUpdateAsync(request.AccountId);
-            var accountEntries = await FindAccountEntriesForUpdateAsync(request.AccountId);
+            var accountInventories = request.Inventories.Count == 0
+                ? Array.Empty<InventoryEntity>()
+                : await FindAccountInventoriesForUpdateAsync(request.AccountId);
+            var accountEntries = request.Inventories.Count == 0
+                ? Array.Empty<InventoryEntryEntity>()
+                : await FindActiveAccountEntriesForUpdateAsync(request.AccountId);
             var result = await ApplyCoreStateAsync(request, accountInventories, accountEntries, now);
             if (!result.Succeeded)
                 return result;
@@ -78,6 +85,31 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
         });
     }
 
+    public async Task<PlayerStateSnapshotAck?> FindCompletedAsync(Guid snapshotId, Guid accountId)
+    {
+        if (snapshotId == Guid.Empty || accountId == Guid.Empty)
+            return null;
+
+        var stored = await dbContext.PlayerStateSnapshots.AsNoTracking()
+            .SingleOrDefaultAsync(snapshot => snapshot.SnapshotId == snapshotId && snapshot.AccountId == accountId);
+        if (stored is null)
+            return null;
+
+        try
+        {
+            var acknowledgement = JsonSerializer.Deserialize<PlayerStateSnapshotAck>(stored.AckPayloadJson, JsonOptions);
+            return acknowledgement is not null
+                && acknowledgement.SnapshotId == snapshotId
+                && acknowledgement.AccountId == accountId
+                ? acknowledgement
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
+        }
+    }
+
     private async Task<PlayerStateSnapshotSaveResult> ApplyCoreStateAsync(
         PlayerStateSnapshotSaveRequest request,
         IReadOnlyList<InventoryEntity> accountInventories,
@@ -85,6 +117,23 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
         DateTime now)
     {
         var inventoriesById = accountInventories.ToDictionary(inventory => inventory.InventoryId);
+        foreach (var snapshot in request.Inventories.Where(snapshot => snapshot.IsNew))
+        {
+            if (inventoriesById.ContainsKey(snapshot.InventoryId)
+                || accountInventories.Any(inventory => string.Equals(inventory.InventoryType, snapshot.InventoryType!.Trim(), StringComparison.OrdinalIgnoreCase)
+                    && string.Equals(inventory.InventoryProfile, snapshot.InventoryProfile!.Trim(), StringComparison.OrdinalIgnoreCase)))
+                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "New inventory conflicts with an existing inventory.");
+            var inventory = new InventoryEntity
+            {
+                InventoryId = snapshot.InventoryId, AccountId = request.AccountId,
+                InventoryType = snapshot.InventoryType!.Trim(), InventoryProfile = snapshot.InventoryProfile!.Trim(),
+                SlotCapacity = snapshot.SlotCapacity, IsEnabled = snapshot.IsEnabled!.Value, MetadataJson = snapshot.MetadataJson,
+                CreatedAt = now, UpdatedAt = now, CreatedBy = request.UpdatedBy, UpdatedBy = request.UpdatedBy,
+                IsDeleted = false,
+            };
+            await dbContext.Inventories.AddAsync(inventory);
+            inventoriesById.Add(inventory.InventoryId, inventory);
+        }
         if (request.Inventories.Any(snapshot => !inventoriesById.ContainsKey(snapshot.InventoryId)))
             return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Inventory ownership conflict.");
 
@@ -119,7 +168,7 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
                     pair.First.InventoryEntryId != pair.Second.InventoryEntryId
                     || pair.First.UpdatedAt != pair.Second.UpdatedAt))
                 return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Inventory entry baseline snapshot is stale.");
-            if (inventorySnapshot.MetadataDirty)
+            if (inventorySnapshot.MetadataDirty && !inventorySnapshot.IsNew)
             {
                 if (!inventorySnapshot.ExpectedUpdatedAt.HasValue || inventory.UpdatedAt != inventorySnapshot.ExpectedUpdatedAt.Value)
                     return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Inventory metadata snapshot is stale.");
@@ -152,11 +201,14 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             }
         }
 
-        var equipmentById = await ApplyEquipmentAsync(request, now);
+        var equipmentById = request.Equipment.Count == 0
+            ? new Dictionary<Guid, EquipmentInstanceEntity>()
+            : await ApplyEquipmentAsync(request, now);
         if (equipmentById is null)
             return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Equipment ownership or expectedUpdatedAt conflict.");
 
-        var loadoutResult = await ApplyLoadoutsAsync(request, now);
+        var loadoutResult = request.Loadouts.Count == 0
+            || await ApplyLoadoutsAsync(request, now, equipmentById);
         if (!loadoutResult)
             return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Loadout ownership or expectedUpdatedAt conflict.");
 
@@ -191,7 +243,7 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
                     entriesById.Add(entry.InventoryEntryId, entry);
                 }
 
-                var itemId = await ResolveEntryItemIdAsync(entrySnapshot, request.AccountId);
+                var itemId = await ResolveEntryItemIdAsync(entrySnapshot, request.AccountId, equipmentById);
                 if (itemId is null)
                     return Failure(PlayerStateSnapshotSaveFailure.Conflict, "Inventory equipment entry does not match owned equipment.");
 
@@ -227,40 +279,88 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
         var entities = await dbContext.EquipmentInstances
             .Where(entity => ids.Contains(entity.EquipmentInstanceId))
             .ToListAsync();
-        if (entities.Count != ids.Length || entities.Any(entity => entity.AccountId != request.AccountId || entity.IsDeleted))
-            return null;
-        foreach (var equipmentId in ids)
-        {
-            if (await MarketListingRangeLock.HasActiveOrSuspendedAsync(dbContext, "EQUIPMENT", equipmentId))
-                return null;
-        }
-
         var byId = entities.ToDictionary(entity => entity.EquipmentInstanceId);
         foreach (var snapshot in request.Equipment)
         {
-            var entity = byId[snapshot.EquipmentInstanceId];
-            if (entity.UpdatedAt != snapshot.ExpectedUpdatedAt || !IsValidEquipment(snapshot))
+            if ((snapshot.IsNew && byId.ContainsKey(snapshot.EquipmentInstanceId))
+                || (!snapshot.IsNew && (!byId.TryGetValue(snapshot.EquipmentInstanceId, out var current)
+                    || current.AccountId != request.AccountId || current.IsDeleted)))
                 return null;
+            if (!snapshot.IsNew
+                && await MarketListingRangeLock.HasActiveOrSuspendedAsync(
+                    dbContext, "EQUIPMENT", snapshot.EquipmentInstanceId))
+                return null;
+        }
 
-            entity.EnhanceLevel = snapshot.EnhanceLevel;
-            entity.RuneMaxSlots = snapshot.RuneMaxSlots;
-            entity.TranscendenceRank = snapshot.TranscendenceRank;
-            entity.DurabilityMax = snapshot.DurabilityMax;
-            entity.DurabilityValue = snapshot.DurabilityValue;
-            entity.UpdatedAt = AdvanceUpdatedAt(entity.UpdatedAt, now);
-            entity.UpdatedBy = request.UpdatedBy;
+        foreach (var snapshot in request.Equipment)
+        {
+            EquipmentInstanceEntity entity;
+            if (snapshot.IsNew)
+            {
+                entity = new EquipmentInstanceEntity
+                {
+                    EquipmentInstanceId = snapshot.EquipmentInstanceId,
+                    AccountId = request.AccountId,
+                    ItemId = snapshot.ItemId!.Trim(),
+                    EnhanceLevel = snapshot.EnhanceLevel,
+                    RuneMaxSlots = snapshot.RuneMaxSlots,
+                    TranscendenceRank = snapshot.TranscendenceRank,
+                    DurabilityMax = snapshot.DurabilityMax,
+                    DurabilityValue = snapshot.DurabilityValue,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    CreatedBy = request.UpdatedBy,
+                    UpdatedBy = request.UpdatedBy,
+                    IsDeleted = false,
+                };
+                await dbContext.EquipmentInstances.AddAsync(entity);
+                byId.Add(entity.EquipmentInstanceId, entity);
+                foreach (var statRollSnapshot in snapshot.StatRolls)
+                {
+                    await dbContext.EquipmentInstanceStatRolls.AddAsync(new EquipmentInstanceStatRollEntity
+                    {
+                        StatRollId = statRollSnapshot.StatRollId,
+                        EquipmentInstanceId = entity.EquipmentInstanceId,
+                        Status = statRollSnapshot.Status.Trim(),
+                        RandomMin = statRollSnapshot.Min.Trim(),
+                        RandomMax = statRollSnapshot.Max.Trim(),
+                        SortOrder = statRollSnapshot.SortOrder,
+                        CreatedAt = now,
+                        UpdatedAt = now,
+                        CreatedBy = request.UpdatedBy,
+                        UpdatedBy = request.UpdatedBy,
+                    });
+                }
+            }
+            else
+            {
+                entity = byId[snapshot.EquipmentInstanceId];
+                if (!snapshot.ExpectedUpdatedAt.HasValue || entity.UpdatedAt != snapshot.ExpectedUpdatedAt.Value)
+                    return null;
 
-            var existingEnchants = await dbContext.EquipmentInstanceEnchants
-                .Where(enchant => enchant.EquipmentInstanceId == entity.EquipmentInstanceId)
-                .ToListAsync();
-            var existingRunes = await dbContext.EquipmentInstanceRunes
-                .Where(rune => rune.EquipmentInstanceId == entity.EquipmentInstanceId)
-                .ToListAsync();
-            dbContext.EquipmentInstanceEnchants.RemoveRange(existingEnchants);
-            dbContext.EquipmentInstanceRunes.RemoveRange(existingRunes);
-            // Unique (slot/effect) constraints require physical child deletion to reach the database
-            // before reusing an ID at another position in this full-state replacement.
-            await dbContext.SaveChangesAsync();
+                entity.EnhanceLevel = snapshot.EnhanceLevel;
+                entity.RuneMaxSlots = snapshot.RuneMaxSlots;
+                entity.TranscendenceRank = snapshot.TranscendenceRank;
+                entity.DurabilityMax = snapshot.DurabilityMax;
+                entity.DurabilityValue = snapshot.DurabilityValue;
+                entity.UpdatedAt = AdvanceUpdatedAt(entity.UpdatedAt, now);
+                entity.UpdatedBy = request.UpdatedBy;
+
+                var existingEnchants = await dbContext.EquipmentInstanceEnchants
+                    .Where(enchant => enchant.EquipmentInstanceId == entity.EquipmentInstanceId)
+                    .ToListAsync();
+                var existingRunes = await dbContext.EquipmentInstanceRunes
+                    .Where(rune => rune.EquipmentInstanceId == entity.EquipmentInstanceId)
+                    .ToListAsync();
+                dbContext.EquipmentInstanceEnchants.RemoveRange(existingEnchants);
+                dbContext.EquipmentInstanceRunes.RemoveRange(existingRunes);
+                // Unique (slot/effect) constraints require physical child deletion to reach the database
+                // before reusing an ID at another position in this full-state replacement.
+                if (existingEnchants.Count > 0 || existingRunes.Count > 0)
+                    await dbContext.SaveChangesAsync();
+            }
+            if (!IsValidEquipment(snapshot))
+                return null;
             foreach (var enchantSnapshot in snapshot.Enchants)
             {
                 var enchant = new EquipmentInstanceEnchantEntity
@@ -301,31 +401,56 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
 
     private async Task<bool> ApplyLoadoutsAsync(
         PlayerStateSnapshotSaveRequest request,
-        DateTime now)
+        DateTime now,
+        IReadOnlyDictionary<Guid, EquipmentInstanceEntity> equipmentById)
     {
         var ids = request.Loadouts.Select(loadout => loadout.EquipmentLoadoutId).ToArray();
         if (ids.Distinct().Count() != ids.Length)
             return false;
-        var loadouts = await dbContext.EquipmentLoadouts.Where(loadout => ids.Contains(loadout.EquipmentLoadoutId)).ToListAsync();
-        if (loadouts.Count != ids.Length || loadouts.Any(loadout => loadout.AccountId != request.AccountId || loadout.IsDeleted))
+        var loadouts = (await FindAccountLoadoutsForUpdateAsync(request.AccountId)).ToList();
+        if (loadouts.Any(loadout => loadout.AccountId != request.AccountId || loadout.IsDeleted)
+            || request.Loadouts.Where(snapshot => !snapshot.IsNew).Any(snapshot => !loadouts.Any(loadout => loadout.EquipmentLoadoutId == snapshot.EquipmentLoadoutId)))
             return false;
+        foreach (var snapshot in request.Loadouts.Where(snapshot => snapshot.IsNew))
+        {
+            if (loadouts.Any(loadout => loadout.EquipmentLoadoutId == snapshot.EquipmentLoadoutId)
+                || loadouts.Any(loadout => string.Equals(loadout.LoadoutProfile, snapshot.LoadoutProfile!.Trim(), StringComparison.OrdinalIgnoreCase)
+                    && (loadout.IsActive && snapshot.IsActive!.Value || string.Equals(loadout.LoadoutName, snapshot.LoadoutName!.Trim(), StringComparison.OrdinalIgnoreCase))))
+                return false;
+            var loadout = new EquipmentLoadoutEntity
+            {
+                EquipmentLoadoutId = snapshot.EquipmentLoadoutId, AccountId = request.AccountId,
+                LoadoutProfile = snapshot.LoadoutProfile!.Trim(), LoadoutName = snapshot.LoadoutName!.Trim(),
+                SortOrder = snapshot.SortOrder, IsActive = snapshot.IsActive!.Value, MetadataJson = snapshot.MetadataJson,
+                CreatedAt = now, UpdatedAt = now, CreatedBy = request.UpdatedBy, UpdatedBy = request.UpdatedBy,
+                IsDeleted = false,
+            };
+            await dbContext.EquipmentLoadouts.AddAsync(loadout);
+            loadouts.Add(loadout);
+        }
 
         foreach (var snapshot in request.Loadouts)
         {
             var loadout = loadouts.Single(entity => entity.EquipmentLoadoutId == snapshot.EquipmentLoadoutId);
-            if (loadout.UpdatedAt != snapshot.ExpectedUpdatedAt
+            if ((!snapshot.IsNew && (!snapshot.ExpectedUpdatedAt.HasValue || loadout.UpdatedAt != snapshot.ExpectedUpdatedAt.Value))
                 || snapshot.Slots.Any(slot => slot.EquipmentInstanceId == Guid.Empty || slot.SlotIndex < 0 || string.IsNullOrWhiteSpace(slot.SlotType))
                 || snapshot.Slots.GroupBy(slot => $"{slot.SlotType.Trim().ToUpperInvariant()}\u001f{slot.SlotIndex}").Any(group => group.Count() > 1)
                 || snapshot.Slots.GroupBy(slot => slot.EquipmentInstanceId).Any(group => group.Count() > 1))
                 return false;
 
-            var equipmentIds = snapshot.Slots.Select(slot => slot.EquipmentInstanceId).ToArray();
+            var equipmentIds = snapshot.Slots.Select(slot => slot.EquipmentInstanceId).Distinct().ToArray();
+            var pendingEquipmentIds = equipmentIds.Where(id =>
+                    equipmentById.TryGetValue(id, out var equipment)
+                    && equipment.AccountId == request.AccountId
+                    && dbContext.Entry(equipment).State == EntityState.Added)
+                .ToHashSet();
+            var persistedEquipmentIds = equipmentIds.Where(id => !pendingEquipmentIds.Contains(id)).ToArray();
             var ownedEquipmentCount = await dbContext.EquipmentInstances.AsNoTracking()
-                .CountAsync(equipment => equipmentIds.Contains(equipment.EquipmentInstanceId)
+                .CountAsync(equipment => persistedEquipmentIds.Contains(equipment.EquipmentInstanceId)
                     && equipment.AccountId == request.AccountId && !equipment.IsDeleted);
-            if (ownedEquipmentCount != equipmentIds.Length)
+            if (ownedEquipmentCount != persistedEquipmentIds.Length)
                 return false;
-            foreach (var equipmentId in equipmentIds.Distinct())
+            foreach (var equipmentId in persistedEquipmentIds)
             {
                 if (await MarketListingRangeLock.HasActiveOrSuspendedAsync(dbContext, "EQUIPMENT", equipmentId))
                     return false;
@@ -379,29 +504,37 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
         var entryIds = request.Inventories.SelectMany(inventory => inventory.ExpectedEntries.Select(entry => entry.InventoryEntryId)
                 .Concat(inventory.Entries.Select(entry => entry.InventoryEntryId)))
             .Distinct().ToArray();
-        var entries = await dbContext.InventoryEntries.AsNoTracking()
-            .Where(entry => entryIds.Contains(entry.InventoryEntryId))
-            .Select(entry => new PlayerStateInventoryEntryAck
-            {
-                InventoryEntryId = entry.InventoryEntryId,
-                UpdatedAt = entry.UpdatedAt,
-                IsDeleted = entry.IsDeleted,
-            }).ToListAsync();
+        var entries = entryIds.Length == 0
+            ? []
+            : await dbContext.InventoryEntries.AsNoTracking()
+                .Where(entry => entryIds.Contains(entry.InventoryEntryId))
+                .Select(entry => new PlayerStateInventoryEntryAck
+                {
+                    InventoryEntryId = entry.InventoryEntryId,
+                    UpdatedAt = entry.UpdatedAt,
+                    IsDeleted = entry.IsDeleted,
+                }).ToListAsync();
         var inventoryIds = request.Inventories.Select(inventory => inventory.InventoryId).ToArray();
-        var inventories = await dbContext.Inventories.AsNoTracking()
-            .Where(inventory => inventoryIds.Contains(inventory.InventoryId))
-            .Select(inventory => new PlayerStateInventoryAck { InventoryId = inventory.InventoryId, UpdatedAt = inventory.UpdatedAt })
-            .ToListAsync();
+        var inventories = inventoryIds.Length == 0
+            ? []
+            : await dbContext.Inventories.AsNoTracking()
+                .Where(inventory => inventoryIds.Contains(inventory.InventoryId))
+                .Select(inventory => new PlayerStateInventoryAck { InventoryId = inventory.InventoryId, UpdatedAt = inventory.UpdatedAt })
+                .ToListAsync();
         var loadoutIds = request.Loadouts.Select(loadout => loadout.EquipmentLoadoutId).ToArray();
-        var loadouts = await dbContext.EquipmentLoadouts.AsNoTracking()
-            .Where(loadout => loadoutIds.Contains(loadout.EquipmentLoadoutId))
-            .Select(loadout => new PlayerStateLoadoutAck { EquipmentLoadoutId = loadout.EquipmentLoadoutId, UpdatedAt = loadout.UpdatedAt })
-            .ToListAsync();
+        var loadouts = loadoutIds.Length == 0
+            ? []
+            : await dbContext.EquipmentLoadouts.AsNoTracking()
+                .Where(loadout => loadoutIds.Contains(loadout.EquipmentLoadoutId))
+                .Select(loadout => new PlayerStateLoadoutAck { EquipmentLoadoutId = loadout.EquipmentLoadoutId, UpdatedAt = loadout.UpdatedAt })
+                .ToListAsync();
         var equipmentIds = request.Equipment.Select(equipment => equipment.EquipmentInstanceId).ToArray();
-        var equipment = await dbContext.EquipmentInstances.AsNoTracking()
-            .Where(entity => equipmentIds.Contains(entity.EquipmentInstanceId))
-            .Select(entity => new PlayerStateEquipmentAck { EquipmentInstanceId = entity.EquipmentInstanceId, UpdatedAt = entity.UpdatedAt })
-            .ToListAsync();
+        var equipment = equipmentIds.Length == 0
+            ? []
+            : await dbContext.EquipmentInstances.AsNoTracking()
+                .Where(entity => equipmentIds.Contains(entity.EquipmentInstanceId))
+                .Select(entity => new PlayerStateEquipmentAck { EquipmentInstanceId = entity.EquipmentInstanceId, UpdatedAt = entity.UpdatedAt })
+                .ToListAsync();
         return new PlayerStateSnapshotAck
         {
             SnapshotId = baseAck.SnapshotId,
@@ -415,6 +548,13 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             SkillTree = baseAck.SkillTree,
             AccountProgress = baseAck.AccountProgress,
             Waystones = baseAck.Waystones,
+            QuestState = baseAck.QuestState,
+            LoginBonusClaims = baseAck.LoginBonusClaims,
+            GuideProgress = baseAck.GuideProgress,
+            AdventureRecords = baseAck.AdventureRecords,
+            PlayerSettings = baseAck.PlayerSettings,
+            MailClaim = baseAck.MailClaim,
+            MailDelete = baseAck.MailDelete,
         };
     }
 
@@ -429,6 +569,13 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
         JsonElement? skillTreeAck = null;
         JsonElement? accountProgressAck = null;
         JsonElement? waystonesAck = null;
+        JsonElement? questStateAck = null;
+        JsonElement? loginBonusClaimsAck = null;
+        JsonElement? guideProgressAck = null;
+        JsonElement? adventureRecordsAck = null;
+        JsonElement? playerSettingsAck = null;
+        JsonElement? mailClaimAck = null;
+        JsonElement? mailDeleteAck = null;
 
         if (request.LearnedSkills.HasValue)
         {
@@ -487,6 +634,83 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             waystonesAck = JsonSerializer.SerializeToElement(applied, JsonOptions);
         }
 
+        if (request.QuestState.HasValue)
+        {
+            var section = TryDeserializeSection<PlayerStateQuestStateSection>(request.QuestState.Value);
+            if (section is null || section.AccountId != request.AccountId)
+                return Failure(PlayerStateSnapshotSaveFailure.Invalid, "questState section is invalid.");
+            var applied = await ApplyQuestStateAsync(section, request, now);
+            if (applied is null)
+                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "questState section conflicts with current state.");
+            questStateAck = JsonSerializer.SerializeToElement(applied, JsonOptions);
+        }
+
+        if (request.LoginBonusClaims.HasValue)
+        {
+            var section = TryDeserializeSection<PlayerStateLoginBonusClaimsSection>(request.LoginBonusClaims.Value);
+            if (section is null)
+                return Failure(PlayerStateSnapshotSaveFailure.Invalid, "loginBonusClaims section is invalid.");
+            var applied = await ApplyLoginBonusClaimsAsync(section, request, now);
+            if (applied is null)
+                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "loginBonusClaims section conflicts with current state.");
+            loginBonusClaimsAck = JsonSerializer.SerializeToElement(applied, JsonOptions);
+        }
+
+        if (request.GuideProgress.HasValue)
+        {
+            var section = TryDeserializeSection<PlayerStateGuideProgressSection>(request.GuideProgress.Value);
+            if (section is null || section.AccountId != request.AccountId)
+                return Failure(PlayerStateSnapshotSaveFailure.Invalid, "guideProgress section is invalid.");
+            var applied = await ApplyGuideProgressAsync(section, request, now);
+            if (applied is null)
+                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "guideProgress section conflicts with current state.");
+            guideProgressAck = JsonSerializer.SerializeToElement(applied, JsonOptions);
+        }
+
+        if (request.AdventureRecords.HasValue)
+        {
+            var section = TryDeserializeSection<PlayerStateAdventureRecordsSection>(request.AdventureRecords.Value);
+            if (section is null || section.AccountId != request.AccountId)
+                return Failure(PlayerStateSnapshotSaveFailure.Invalid, "adventureRecords section is invalid.");
+            var applied = await ApplyAdventureRecordsAsync(section, request, now);
+            if (applied is null)
+                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "adventureRecords section conflicts with current state.");
+            adventureRecordsAck = JsonSerializer.SerializeToElement(applied, JsonOptions);
+        }
+
+        if (request.PlayerSettings.HasValue)
+        {
+            var section = TryDeserializeSection<PlayerStatePlayerSettingsSection>(request.PlayerSettings.Value);
+            if (section is null || section.UserId != account.UserId)
+                return Failure(PlayerStateSnapshotSaveFailure.Invalid, "playerSettings section is invalid.");
+            var applied = await ApplyPlayerSettingsAsync(section, request, now);
+            if (applied is null)
+                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "playerSettings section conflicts with current state.");
+            playerSettingsAck = JsonSerializer.SerializeToElement(applied, JsonOptions);
+        }
+
+        if (request.MailClaim.HasValue)
+        {
+            var section = TryDeserializeSection<PlayerStateMailClaimSection>(request.MailClaim.Value);
+            if (section is null || section.AccountId != request.AccountId)
+                return Failure(PlayerStateSnapshotSaveFailure.Invalid, "mailClaim section is invalid.");
+            var applied = await ApplyMailClaimAsync(section, account, request, now);
+            if (applied is null)
+                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "mailClaim section conflicts with current state.");
+            mailClaimAck = JsonSerializer.SerializeToElement(applied, JsonOptions);
+        }
+
+        if (request.MailDelete.HasValue)
+        {
+            var section = TryDeserializeSection<PlayerStateMailDeleteSection>(request.MailDelete.Value);
+            if (section is null || section.AccountId != request.AccountId)
+                return Failure(PlayerStateSnapshotSaveFailure.Invalid, "mailDelete section is invalid.");
+            var applied = await ApplyMailDeleteAsync(section, account, request, now);
+            if (applied is null)
+                return Failure(PlayerStateSnapshotSaveFailure.Conflict, "mailDelete section conflicts with current state.");
+            mailDeleteAck = JsonSerializer.SerializeToElement(applied, JsonOptions);
+        }
+
         return Success(new PlayerStateSnapshotAck
         {
             SnapshotId = baseAck.SnapshotId,
@@ -496,6 +720,13 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             SkillTree = skillTreeAck,
             AccountProgress = accountProgressAck,
             Waystones = waystonesAck,
+            QuestState = questStateAck,
+            LoginBonusClaims = loginBonusClaimsAck,
+            GuideProgress = guideProgressAck,
+            AdventureRecords = adventureRecordsAck,
+            PlayerSettings = playerSettingsAck,
+            MailClaim = mailClaimAck,
+            MailDelete = mailDeleteAck,
         });
     }
 
@@ -546,6 +777,460 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             clientRevision = section.ClientRevision,
             unlockedWaystoneIds = normalizedWaystoneIds,
         };
+    }
+
+    private async Task<object?> ApplyQuestStateAsync(
+        PlayerStateQuestStateSection section,
+        PlayerStateSnapshotSaveRequest request,
+        DateTime now)
+    {
+        var state = await dbContext.AccountQuestStates
+            .Include(value => value.ActiveQuests)
+                .ThenInclude(active => active.ObjectiveProgress)
+            .Include(value => value.Completions)
+            .Include(value => value.Cooldowns)
+            .FirstOrDefaultAsync(value => value.AccountId == request.AccountId && !value.IsDeleted);
+
+        if (state is null)
+        {
+            if (section.ExpectedVersion != 0)
+                return null;
+            state = new AccountQuestStateEntity
+            {
+                AccountQuestStateId = Guid.NewGuid(),
+                AccountId = request.AccountId,
+                Version = 1,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = request.UpdatedBy,
+                UpdatedBy = request.UpdatedBy,
+                IsDeleted = false,
+            };
+            await dbContext.AccountQuestStates.AddAsync(state);
+        }
+        else
+        {
+            if (state.Version != section.ExpectedVersion)
+                return null;
+            state.Version = Math.Max(1, state.Version + 1);
+            state.UpdatedAt = now;
+            state.UpdatedBy = request.UpdatedBy;
+            dbContext.AccountQuestObjectiveProgresses.RemoveRange(
+                state.ActiveQuests.SelectMany(active => active.ObjectiveProgress));
+            dbContext.AccountQuestActives.RemoveRange(state.ActiveQuests);
+            dbContext.AccountQuestCompletions.RemoveRange(state.Completions);
+            dbContext.AccountQuestCooldowns.RemoveRange(state.Cooldowns);
+            await dbContext.SaveChangesAsync();
+            state.ActiveQuests.Clear();
+            state.Completions.Clear();
+            state.Cooldowns.Clear();
+        }
+
+        foreach (var snapshot in section.ActiveQuests)
+        {
+            var active = new AccountQuestActiveEntity
+            {
+                AccountQuestActiveId = Guid.NewGuid(),
+                AccountQuestStateId = state.AccountQuestStateId,
+                QuestId = snapshot.QuestId.Trim(),
+                AcceptedAt = FromEpochMillis(snapshot.AcceptedAtEpochMillis),
+                AcceptedNpcId = string.IsNullOrWhiteSpace(snapshot.AcceptedNpcId) ? null : snapshot.AcceptedNpcId.Trim(),
+                ReadyToTurnIn = snapshot.ReadyToTurnIn,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = request.UpdatedBy,
+                UpdatedBy = request.UpdatedBy,
+            };
+            foreach (var objectiveSnapshot in snapshot.ObjectiveProgress)
+            {
+                active.ObjectiveProgress.Add(new AccountQuestObjectiveProgressEntity
+                {
+                    AccountQuestObjectiveProgressId = Guid.NewGuid(),
+                    AccountQuestActiveId = active.AccountQuestActiveId,
+                    ObjectiveId = objectiveSnapshot.ObjectiveId.Trim(),
+                    Progress = objectiveSnapshot.Progress,
+                    CreatedAt = now,
+                    UpdatedAt = now,
+                    CreatedBy = request.UpdatedBy,
+                    UpdatedBy = request.UpdatedBy,
+                });
+            }
+            state.ActiveQuests.Add(active);
+            await dbContext.AccountQuestActives.AddAsync(active);
+        }
+        foreach (var snapshot in section.Completions)
+        {
+            var completion = new AccountQuestCompletionEntity
+            {
+                AccountQuestCompletionId = Guid.NewGuid(),
+                AccountQuestStateId = state.AccountQuestStateId,
+                QuestId = snapshot.QuestId.Trim(),
+                CompletedAt = FromEpochMillis(snapshot.CompletedAtEpochMillis),
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = request.UpdatedBy,
+                UpdatedBy = request.UpdatedBy,
+            };
+            state.Completions.Add(completion);
+            await dbContext.AccountQuestCompletions.AddAsync(completion);
+        }
+        foreach (var snapshot in section.Cooldowns)
+        {
+            var cooldown = new AccountQuestCooldownEntity
+            {
+                AccountQuestCooldownId = Guid.NewGuid(),
+                AccountQuestStateId = state.AccountQuestStateId,
+                QuestId = snapshot.QuestId.Trim(),
+                CooldownUntil = FromEpochMillis(snapshot.CooldownUntilEpochMillis),
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = request.UpdatedBy,
+                UpdatedBy = request.UpdatedBy,
+            };
+            state.Cooldowns.Add(cooldown);
+            await dbContext.AccountQuestCooldowns.AddAsync(cooldown);
+        }
+        return new { clientRevision = section.ClientRevision, version = state.Version, updatedAt = state.UpdatedAt };
+    }
+
+    private async Task<object?> ApplyLoginBonusClaimsAsync(
+        PlayerStateLoginBonusClaimsSection section,
+        PlayerStateSnapshotSaveRequest request,
+        DateTime now)
+    {
+        var requestedDates = section.ClaimDates.ToHashSet();
+        if (await dbContext.LoginBonusClaims.AnyAsync(claim =>
+            claim.AccountId == request.AccountId && requestedDates.Contains(claim.ClaimDate) && !claim.IsDeleted))
+            return null;
+
+        var acknowledgements = new List<object>();
+        foreach (var claimDate in section.ClaimDates.Order())
+        {
+            var claim = new LoginBonusClaimEntity
+            {
+                LoginBonusClaimId = Guid.NewGuid(),
+                AccountId = request.AccountId,
+                ClaimDate = claimDate,
+                ClaimedAt = now,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = request.UpdatedBy,
+                UpdatedBy = request.UpdatedBy,
+                IsDeleted = false,
+            };
+            await dbContext.LoginBonusClaims.AddAsync(claim);
+            acknowledgements.Add(new
+            {
+                claimDate,
+                loginBonusClaimId = claim.LoginBonusClaimId,
+                claimedAt = claim.ClaimedAt,
+            });
+        }
+        return new { clientRevision = section.ClientRevision, claims = acknowledgements };
+    }
+
+    private async Task<object?> ApplyGuideProgressAsync(
+        PlayerStateGuideProgressSection section,
+        PlayerStateSnapshotSaveRequest request,
+        DateTime now)
+    {
+        var existing = await dbContext.AccountGuideStepProgresses
+            .Where(progress => progress.AccountId == request.AccountId)
+            .ToListAsync();
+        var existingKeys = existing.Select(progress => GuideStepKey(progress.GuideId, progress.StepId))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        var requestedSteps = section.CompletedStepKeys
+            .Select(step => (GuideId: step.GuideId.Trim(), StepId: step.StepId.Trim())).ToArray();
+        var requestedKeys = requestedSteps.Select(step => GuideStepKey(step.GuideId, step.StepId))
+            .ToHashSet(StringComparer.OrdinalIgnoreCase);
+        if (section.IsFullSnapshot && existingKeys.Except(requestedKeys, StringComparer.OrdinalIgnoreCase).Any())
+            return null;
+
+        foreach (var (guideId, stepId) in requestedSteps
+            .Where(step => !existingKeys.Contains(GuideStepKey(step.GuideId, step.StepId))))
+        {
+            await dbContext.AccountGuideStepProgresses.AddAsync(new AccountGuideStepProgressEntity
+            {
+                AccountGuideStepProgressId = Guid.NewGuid(), AccountId = request.AccountId,
+                GuideId = guideId, StepId = stepId, CompletedAt = now, CreatedAt = now,
+                CreatedBy = request.UpdatedBy,
+            });
+        }
+        return new
+        {
+            clientRevision = section.ClientRevision,
+            completedStepKeys = requestedSteps.OrderBy(key => key.GuideId).ThenBy(key => key.StepId)
+                .Select(key => new { guideId = key.GuideId, stepId = key.StepId }),
+        };
+    }
+
+    private async Task<object?> ApplyAdventureRecordsAsync(
+        PlayerStateAdventureRecordsSection section,
+        PlayerStateSnapshotSaveRequest request,
+        DateTime now)
+    {
+        var mobIds = section.MobDefeatDeltas.Select(delta => delta.MobId.Trim()).ToArray();
+        var mobs = await dbContext.AccountMobRecords
+            .Where(record => record.AccountId == request.AccountId && mobIds.Contains(record.MobId))
+            .ToListAsync();
+        var mobsById = mobs.ToDictionary(record => record.MobId, StringComparer.OrdinalIgnoreCase);
+        foreach (var delta in section.MobDefeatDeltas)
+        {
+            var mobId = delta.MobId.Trim();
+            if (!mobsById.TryGetValue(mobId, out var record))
+            {
+                record = new AccountMobRecordEntity
+                {
+                    AccountMobRecordId = Guid.NewGuid(), AccountId = request.AccountId, MobId = mobId,
+                    MobCategory = delta.MobCategory.Trim().ToUpperInvariant(), DefeatCount = delta.Delta,
+                    FirstDefeatedAt = now, LastDefeatedAt = now, CreatedAt = now, UpdatedAt = now,
+                    CreatedBy = request.UpdatedBy, UpdatedBy = request.UpdatedBy, IsDeleted = false,
+                };
+                await dbContext.AccountMobRecords.AddAsync(record);
+                mobsById.Add(mobId, record);
+            }
+            else
+            {
+                try { record.DefeatCount = checked(record.DefeatCount + delta.Delta); }
+                catch (OverflowException) { return null; }
+                record.MobCategory = delta.MobCategory.Trim().ToUpperInvariant();
+                record.LastDefeatedAt = now;
+                record.UpdatedAt = now;
+                record.UpdatedBy = request.UpdatedBy;
+                record.IsDeleted = false;
+            }
+        }
+
+        var dungeonIds = section.DungeonClearDeltas.Select(delta => delta.DungeonId.Trim()).ToArray();
+        var dungeons = await dbContext.AccountDungeonRecords
+            .Where(record => record.AccountId == request.AccountId && dungeonIds.Contains(record.DungeonId))
+            .ToListAsync();
+        var dungeonsById = dungeons.ToDictionary(record => record.DungeonId, StringComparer.OrdinalIgnoreCase);
+        foreach (var delta in section.DungeonClearDeltas)
+        {
+            var dungeonId = delta.DungeonId.Trim();
+            if (!dungeonsById.TryGetValue(dungeonId, out var record))
+            {
+                record = new AccountDungeonRecordEntity
+                {
+                    AccountDungeonRecordId = Guid.NewGuid(), AccountId = request.AccountId, DungeonId = dungeonId,
+                    ClearCount = delta.Delta, FirstClearedAt = now, LastClearedAt = now, CreatedAt = now, UpdatedAt = now,
+                    CreatedBy = request.UpdatedBy, UpdatedBy = request.UpdatedBy, IsDeleted = false,
+                };
+                await dbContext.AccountDungeonRecords.AddAsync(record);
+                dungeonsById.Add(dungeonId, record);
+            }
+            else
+            {
+                try { record.ClearCount = checked(record.ClearCount + delta.Delta); }
+                catch (OverflowException) { return null; }
+                record.LastClearedAt = now;
+                record.UpdatedAt = now;
+                record.UpdatedBy = request.UpdatedBy;
+                record.IsDeleted = false;
+            }
+        }
+        return new
+        {
+            clientRevision = section.ClientRevision,
+            mobDefeats = mobsById.Values.OrderBy(record => record.MobId).Select(record => new
+            {
+                mobId = record.MobId, mobCategory = record.MobCategory, defeatCount = record.DefeatCount,
+                updatedAt = record.UpdatedAt,
+            }),
+            dungeonClears = dungeonsById.Values.OrderBy(record => record.DungeonId).Select(record => new
+            {
+                dungeonId = record.DungeonId, clearCount = record.ClearCount, updatedAt = record.UpdatedAt,
+            }),
+        };
+    }
+
+    private async Task<object?> ApplyPlayerSettingsAsync(
+        PlayerStatePlayerSettingsSection section,
+        PlayerStateSnapshotSaveRequest request,
+        DateTime now)
+    {
+        var existing = await FindPlayerSettingsForUpdateAsync(section.UserId);
+        var existingById = existing.ToDictionary(setting => setting.UserSettingId);
+        var requestedIds = section.Settings.Select(setting => setting.UserSettingId).ToHashSet();
+        if (existingById.Keys.Any(id => !requestedIds.Contains(id)))
+            return null;
+        var newIds = requestedIds.Where(id => !existingById.ContainsKey(id)).ToArray();
+        if (newIds.Length > 0 && await dbContext.PlayerSettings.AsNoTracking()
+            .AnyAsync(setting => newIds.Contains(setting.UserSettingId)))
+            return null;
+
+        foreach (var snapshot in section.Settings)
+        {
+            if (existingById.TryGetValue(snapshot.UserSettingId, out var setting))
+            {
+                if (!snapshot.ExpectedVersion.HasValue || setting.Version != snapshot.ExpectedVersion.Value
+                    || !string.Equals(setting.SettingKey, snapshot.SettingKey.Trim(), StringComparison.OrdinalIgnoreCase))
+                    return null;
+                setting.SettingKey = snapshot.SettingKey.Trim();
+                setting.SettingValueJson = snapshot.SettingValueJson;
+                setting.Version = checked(setting.Version + 1);
+                setting.UpdatedAt = now;
+                setting.UpdatedBy = request.UpdatedBy;
+            }
+            else
+            {
+                if (snapshot.ExpectedVersion.HasValue)
+                    return null;
+                await dbContext.PlayerSettings.AddAsync(new PlayerSettingEntity
+                {
+                    UserSettingId = snapshot.UserSettingId, UserId = section.UserId,
+                    SettingKey = snapshot.SettingKey.Trim(), SettingValueJson = snapshot.SettingValueJson,
+                    Version = 1, CreatedAt = now, UpdatedAt = now,
+                    CreatedBy = request.UpdatedBy, UpdatedBy = request.UpdatedBy, IsDeleted = false,
+                });
+            }
+        }
+        return new
+        {
+            clientRevision = section.ClientRevision,
+            settings = section.Settings.OrderBy(setting => setting.SettingKey, StringComparer.OrdinalIgnoreCase).Select(setting => new
+            {
+                userSettingId = setting.UserSettingId,
+                settingKey = setting.SettingKey.Trim(),
+                version = existingById.TryGetValue(setting.UserSettingId, out var existingSetting)
+                    ? existingSetting.Version : 1,
+            }),
+        };
+    }
+
+    private async Task<object?> ApplyMailClaimAsync(
+        PlayerStateMailClaimSection section,
+        AccountEntity account,
+        PlayerStateSnapshotSaveRequest request,
+        DateTime now)
+    {
+        var mailId = section.MailId.Trim();
+        var mail = await FindAvailableMailAsync(mailId, request.AccountId);
+        if (mail is null
+            || !string.Equals(mail.Id, mailId, StringComparison.OrdinalIgnoreCase)
+            || mail.IsDeleted
+            || mail.PublishFrom > now
+            || mail.PublishTo is { } publishTo && publishTo < now
+            || mail.FirstLoginOnly && account.CreatedAt < mail.PublishFrom)
+            return null;
+
+        var state = await dbContext.PlayerMailStates
+            .FirstOrDefaultAsync(value => value.AccountId == request.AccountId && value.MailId == mailId);
+        if (state is { IsRead: true } or { IsDeleted: true })
+            return null;
+
+        if (state is null)
+        {
+            state = new PlayerMailStateEntity
+            {
+                PlayerMailStateId = Guid.NewGuid(),
+                AccountId = request.AccountId,
+                MailId = mailId,
+                IsRead = true,
+                ReadAt = now,
+                Version = 2,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = request.UpdatedBy,
+                UpdatedBy = request.UpdatedBy,
+                IsDeleted = false,
+            };
+            await dbContext.PlayerMailStates.AddAsync(state);
+        }
+        else
+        {
+            state.IsRead = true;
+            state.ReadAt = now;
+            state.Version += 1;
+            state.UpdatedAt = now;
+            state.UpdatedBy = request.UpdatedBy;
+        }
+
+        return new
+        {
+            clientRevision = section.ClientRevision,
+            mailId,
+            version = state.Version,
+            readAt = state.ReadAt,
+        };
+    }
+
+    private async Task<object?> ApplyMailDeleteAsync(
+        PlayerStateMailDeleteSection section,
+        AccountEntity account,
+        PlayerStateSnapshotSaveRequest request,
+        DateTime now)
+    {
+        var mailId = section.MailId.Trim();
+        var mail = await FindAvailableMailAsync(mailId, request.AccountId);
+        if (mail is null
+            || !string.Equals(mail.Id, mailId, StringComparison.OrdinalIgnoreCase)
+            || mail.IsDeleted
+            || mail.PublishFrom > now
+            || mail.PublishTo is { } publishTo && publishTo < now
+            || mail.FirstLoginOnly && account.CreatedAt < mail.PublishFrom)
+            return null;
+
+        var state = await dbContext.PlayerMailStates
+            .FirstOrDefaultAsync(value => value.AccountId == request.AccountId && value.MailId == mailId);
+        if (state is { IsDeleted: true })
+            return null;
+
+        if (state is null)
+        {
+            state = new PlayerMailStateEntity
+            {
+                PlayerMailStateId = Guid.NewGuid(),
+                AccountId = request.AccountId,
+                MailId = mailId,
+                IsRead = false,
+                IsDeleted = true,
+                DeletedAt = now,
+                Version = 2,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = request.UpdatedBy,
+                UpdatedBy = request.UpdatedBy,
+            };
+            await dbContext.PlayerMailStates.AddAsync(state);
+        }
+        else
+        {
+            state.IsDeleted = true;
+            state.DeletedAt = now;
+            state.Version = Math.Max(1, state.Version + 1);
+            state.UpdatedAt = now;
+            state.UpdatedBy = request.UpdatedBy;
+        }
+
+        return new
+        {
+            clientRevision = section.ClientRevision,
+            mailId,
+            version = state.Version,
+            deletedAt = state.DeletedAt,
+        };
+    }
+
+    private async Task<MailResponse?> FindAvailableMailAsync(string mailId, Guid accountId)
+    {
+        var deliveryPayload = await dbContext.PlayerMailDeliveries.AsNoTracking()
+            .Where(delivery => delivery.AccountId == accountId
+                && delivery.MailId == mailId
+                && !delivery.IsDeleted)
+            .Select(delivery => delivery.PayloadJson)
+            .FirstOrDefaultAsync();
+        if (deliveryPayload is not null)
+            return MasterDataPayloadJson.Deserialize<MailResponse>(deliveryPayload);
+
+        if (masterDataDbContext is null)
+            return null;
+        var masterPayload = await masterDataDbContext.Entries.AsNoTracking()
+            .Where(entry => !entry.IsDeleted && entry.MasterType == "mail" && entry.MasterId == mailId)
+            .Select(entry => entry.PayloadJson)
+            .FirstOrDefaultAsync();
+        return masterPayload is null ? null : MasterDataPayloadJson.Deserialize<MailResponse>(masterPayload);
     }
 
     private async Task<object?> ApplyLearnedSkillsAsync(
@@ -842,6 +1527,22 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
         return await dbContext.Accounts.SingleOrDefaultAsync(account => account.Uuid == accountId && !account.IsDeleted);
     }
 
+    private async Task<IReadOnlyList<PlayerSettingEntity>> FindPlayerSettingsForUpdateAsync(Guid userId)
+    {
+        if (dbContext.Database.IsSqlServer())
+        {
+            return await dbContext.PlayerSettings.FromSqlInterpolated($"""
+                SELECT * FROM [dbo].[user_setting] WITH (UPDLOCK, HOLDLOCK)
+                WHERE [user_id] = {userId} AND [is_deleted] = 0
+                ORDER BY [user_setting_id]
+                """).ToListAsync();
+        }
+        return await dbContext.PlayerSettings
+            .Where(setting => setting.UserId == userId && !setting.IsDeleted)
+            .OrderBy(setting => setting.UserSettingId)
+            .ToListAsync();
+    }
+
     private async Task<IReadOnlyList<InventoryEntity>> FindAccountInventoriesForUpdateAsync(Guid accountId)
     {
         if (dbContext.Database.IsSqlServer())
@@ -856,7 +1557,7 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             .OrderBy(inventory => inventory.InventoryId).ToListAsync();
     }
 
-    private async Task<IReadOnlyList<InventoryEntryEntity>> FindAccountEntriesForUpdateAsync(Guid accountId)
+    private async Task<IReadOnlyList<InventoryEntryEntity>> FindActiveAccountEntriesForUpdateAsync(Guid accountId)
     {
         if (dbContext.Database.IsSqlServer())
         {
@@ -864,26 +1565,55 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
                 SELECT entry.* FROM [dbo].[inventory_entry] entry WITH (UPDLOCK, HOLDLOCK)
                 INNER JOIN [dbo].[inventory] inventory WITH (HOLDLOCK) ON inventory.[inventory_id] = entry.[inventory_id]
                 WHERE inventory.[account_id] = {accountId}
+                  AND inventory.[is_deleted] = 0
+                  AND entry.[is_deleted] = 0
                 ORDER BY entry.[inventory_entry_id]
                 """).ToListAsync();
         }
         return await (from entry in dbContext.InventoryEntries
                       join inventory in dbContext.Inventories on entry.InventoryId equals inventory.InventoryId
-                      where inventory.AccountId == accountId
+                      where inventory.AccountId == accountId && !inventory.IsDeleted && !entry.IsDeleted
                       orderby entry.InventoryEntryId
                       select entry).ToListAsync();
     }
 
-    private async Task<string?> ResolveEntryItemIdAsync(PlayerStateInventoryEntrySnapshot entry, Guid accountId)
+    private async Task<IReadOnlyList<EquipmentLoadoutEntity>> FindAccountLoadoutsForUpdateAsync(Guid accountId)
+    {
+        if (dbContext.Database.IsSqlServer())
+        {
+            return await dbContext.EquipmentLoadouts.FromSqlInterpolated($"""
+                SELECT * FROM [dbo].[equipment_loadout] WITH (UPDLOCK, HOLDLOCK)
+                WHERE [account_id] = {accountId} AND [is_deleted] = 0
+                ORDER BY [equipment_loadout_id]
+                """).ToListAsync();
+        }
+        return await dbContext.EquipmentLoadouts
+            .Where(loadout => loadout.AccountId == accountId && !loadout.IsDeleted)
+            .OrderBy(loadout => loadout.EquipmentLoadoutId).ToListAsync();
+    }
+
+    private async Task<string?> ResolveEntryItemIdAsync(
+        PlayerStateInventoryEntrySnapshot entry,
+        Guid accountId,
+        IReadOnlyDictionary<Guid, EquipmentInstanceEntity> equipmentById)
     {
         if (string.IsNullOrWhiteSpace(entry.InstanceType) || !entry.InstanceId.HasValue)
             return entry.ItemId;
         if (!string.Equals(entry.InstanceType.Trim(), "EQUIPMENT", StringComparison.OrdinalIgnoreCase))
             return null;
-        var authoritativeItemId = await dbContext.EquipmentInstances.AsNoTracking()
-            .Where(instance => instance.EquipmentInstanceId == entry.InstanceId.Value
-                && instance.AccountId == accountId && !instance.IsDeleted)
-            .Select(instance => instance.ItemId).FirstOrDefaultAsync();
+        string? authoritativeItemId;
+        if (equipmentById.TryGetValue(entry.InstanceId.Value, out var captured)
+            && captured.AccountId == accountId && !captured.IsDeleted)
+        {
+            authoritativeItemId = captured.ItemId;
+        }
+        else
+        {
+            authoritativeItemId = await dbContext.EquipmentInstances.AsNoTracking()
+                .Where(instance => instance.EquipmentInstanceId == entry.InstanceId.Value
+                    && instance.AccountId == accountId && !instance.IsDeleted)
+                .Select(instance => instance.ItemId).FirstOrDefaultAsync();
+        }
         return string.IsNullOrWhiteSpace(authoritativeItemId)
             || (!string.IsNullOrWhiteSpace(entry.ItemId)
                 && !string.Equals(entry.ItemId, authoritativeItemId, StringComparison.OrdinalIgnoreCase))
@@ -893,29 +1623,43 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
 
     private async Task<bool> ChildIdsBelongToSnapshotParentsAsync(PlayerStateSnapshotSaveRequest request)
     {
-        var enchants = request.Equipment.SelectMany(e => e.Enchants.Select(c => (c.EnchantId, e.EquipmentInstanceId)))
-            .ToDictionary(c => c.EnchantId, c => c.EquipmentInstanceId);
-        var enchantIds = enchants.Keys.ToArray();
-        var existingEnchants = await dbContext.EquipmentInstanceEnchants.AsNoTracking()
-            .Where(c => enchantIds.Contains(c.EnchantId)).ToListAsync();
-        if (existingEnchants.Any(c => enchants[c.EnchantId] != c.EquipmentInstanceId)) return false;
-        var runes = request.Equipment.SelectMany(e => e.Runes.Select(c => (c.RuneId, e.EquipmentInstanceId)))
-            .ToDictionary(c => c.RuneId, c => c.EquipmentInstanceId);
-        var runeIds = runes.Keys.ToArray();
-        var existingRunes = await dbContext.EquipmentInstanceRunes.AsNoTracking()
-            .Where(c => runeIds.Contains(c.RuneId)).ToListAsync();
-        if (existingRunes.Any(c => runes[c.RuneId] != c.EquipmentInstanceId)) return false;
+        if (request.Equipment.Count > 0)
+        {
+            var statRolls = request.Equipment.SelectMany(e => e.StatRolls.Select(c => (c.StatRollId, e.EquipmentInstanceId)))
+                .ToDictionary(c => c.StatRollId, c => c.EquipmentInstanceId);
+            var statRollIds = statRolls.Keys.ToArray();
+            if (statRollIds.Length > 0 && await dbContext.EquipmentInstanceStatRolls.AsNoTracking()
+                .AnyAsync(c => statRollIds.Contains(c.StatRollId))) return false;
+            var enchants = request.Equipment.SelectMany(e => e.Enchants.Select(c => (c.EnchantId, e.EquipmentInstanceId)))
+                .ToDictionary(c => c.EnchantId, c => c.EquipmentInstanceId);
+            var enchantIds = enchants.Keys.ToArray();
+            var existingEnchants = enchantIds.Length == 0
+                ? []
+                : await dbContext.EquipmentInstanceEnchants.AsNoTracking()
+                    .Where(c => enchantIds.Contains(c.EnchantId)).ToListAsync();
+            if (existingEnchants.Any(c => enchants[c.EnchantId] != c.EquipmentInstanceId)) return false;
+            var runes = request.Equipment.SelectMany(e => e.Runes.Select(c => (c.RuneId, e.EquipmentInstanceId)))
+                .ToDictionary(c => c.RuneId, c => c.EquipmentInstanceId);
+            var runeIds = runes.Keys.ToArray();
+            var existingRunes = runeIds.Length == 0
+                ? []
+                : await dbContext.EquipmentInstanceRunes.AsNoTracking()
+                    .Where(c => runeIds.Contains(c.RuneId)).ToListAsync();
+            if (existingRunes.Any(c => runes[c.RuneId] != c.EquipmentInstanceId)) return false;
+        }
         if (request.LearnedSkills is { } json)
         {
             var section = json.Deserialize<PlayerStateLearnedSkillsSection>(JsonOptions)!;
             var skillIds = section.Skills.Select(s => s.LearnedSkillId).ToArray();
-            if (await dbContext.AccountLearnedSkills.AsNoTracking().AnyAsync(s => skillIds.Contains(s.LearnedSkillId)
+            if (skillIds.Length > 0 && await dbContext.AccountLearnedSkills.AsNoTracking().AnyAsync(s => skillIds.Contains(s.LearnedSkillId)
                 && (s.AccountId != request.AccountId || s.IsDeleted))) return false;
             var sigils = section.Skills.SelectMany(s => s.Sigils.Select(c => (c.LearnedSkillSigilId, s.LearnedSkillId)))
                 .ToDictionary(c => c.LearnedSkillSigilId, c => c.LearnedSkillId);
             var sigilIds = sigils.Keys.ToArray();
-            var existingSigils = await dbContext.AccountLearnedSkillSigils.AsNoTracking()
-                .Where(c => sigilIds.Contains(c.LearnedSkillSigilId)).ToListAsync();
+            var existingSigils = sigilIds.Length == 0
+                ? []
+                : await dbContext.AccountLearnedSkillSigils.AsNoTracking()
+                    .Where(c => sigilIds.Contains(c.LearnedSkillSigilId)).ToListAsync();
             if (existingSigils.Any(c => sigils[c.LearnedSkillSigilId] != c.LearnedSkillId || c.IsDeleted)) return false;
         }
         return true;
@@ -927,9 +1671,10 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
         if (request.Inventories is null || request.Loadouts is null || request.Equipment is null
             || request.Inventories.Any(i => i is null || i.ExpectedEntries is null || i.Entries is null)
             || request.Loadouts.Any(l => l is null || l.Slots is null)
-            || request.Equipment.Any(e => e is null || e.Enchants is null || e.Runes is null))
+            || request.Equipment.Any(e => e is null || e.StatRolls is null || e.Enchants is null || e.Runes is null))
             return false;
-        if (request.Inventories.Any(i => i.ExpectedEntries.Any(e => e is null || e.InventoryEntryId == Guid.Empty)
+        if (request.Inventories.Any(i => !IsValidInventorySnapshot(i)
+                || i.ExpectedEntries.Any(e => e is null || e.InventoryEntryId == Guid.Empty)
                 || i.Entries.Any(e => e is null || !IsValidEntry(e) || !IsJsonOrNull(e.MetadataJson))
                 || (i.MetadataDirty && !IsJsonOrNull(i.MetadataJson))
                 || HasDuplicates(i.Entries.Where(e => e.SlotIndex.HasValue).Select(e => e.SlotIndex))
@@ -938,12 +1683,14 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             || HasDuplicates(request.Inventories.SelectMany(i => i.Entries).Select(e => e.InventoryEntryId))
             || HasDuplicates(request.Inventories.SelectMany(i => i.ExpectedEntries).Select(e => e.InventoryEntryId))
             || HasDuplicates(request.Loadouts.Select(l => l.EquipmentLoadoutId))
-            || request.Loadouts.Any(l => l.Slots.Any(s => s is null || s.EquipmentInstanceId == Guid.Empty
+            || request.Loadouts.Any(l => !IsValidLoadoutSnapshot(l)
+                || l.Slots.Any(s => s is null || s.EquipmentInstanceId == Guid.Empty
                     || s.SlotIndex < 0 || !ValidText(s.SlotType, 30))
                 || HasDuplicates(l.Slots.Select(s => (s.SlotType.Trim().ToUpperInvariant(), s.SlotIndex)))
                 || HasDuplicates(l.Slots.Select(s => s.EquipmentInstanceId)))
             || HasDuplicates(request.Equipment.Select(e => e.EquipmentInstanceId))
             || request.Equipment.Any(e => !IsValidEquipment(e))
+            || HasDuplicates(request.Equipment.SelectMany(e => e.StatRolls).Select(e => e.StatRollId))
             || HasDuplicates(request.Equipment.SelectMany(e => e.Enchants).Select(e => e.EnchantId))
             || HasDuplicates(request.Equipment.SelectMany(e => e.Runes).Select(e => e.RuneId)))
             return false;
@@ -960,6 +1707,23 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
             detail = "inventoryId is invalid or duplicated.";
             return false;
         }
+        if (request.Inventories.Where(inventory => inventory.IsNew)
+                .GroupBy(inventory => $"{inventory.InventoryType!.Trim()}\u001f{inventory.InventoryProfile!.Trim()}", StringComparer.OrdinalIgnoreCase)
+                .Any(group => group.Count() > 1))
+        {
+            detail = "new inventory type/profile is duplicated.";
+            return false;
+        }
+        if (request.Loadouts.Where(loadout => loadout.IsNew)
+                .GroupBy(loadout => $"{loadout.LoadoutProfile!.Trim()}\u001f{loadout.LoadoutName!.Trim()}", StringComparer.OrdinalIgnoreCase)
+                .Any(group => group.Count() > 1)
+            || request.Loadouts.Where(loadout => loadout.IsNew && loadout.IsActive!.Value)
+                .GroupBy(loadout => loadout.LoadoutProfile!.Trim(), StringComparer.OrdinalIgnoreCase)
+                .Any(group => group.Count() > 1))
+        {
+            detail = "new loadout name or active profile is duplicated.";
+            return false;
+        }
         if (request.Loadouts.Select(loadout => loadout.EquipmentLoadoutId).Any(id => id == Guid.Empty)
             || request.Equipment.Select(equipment => equipment.EquipmentInstanceId).Any(id => id == Guid.Empty))
         {
@@ -969,6 +1733,36 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
         detail = null;
         return true;
     }
+
+    private static bool IsValidInventorySnapshot(PlayerStateInventorySnapshot snapshot)
+        => snapshot.IsNew
+            ? !snapshot.ExpectedUpdatedAt.HasValue
+                && snapshot.ExpectedEntries.Count == 0
+                && !snapshot.MetadataDirty
+                && ValidText(snapshot.InventoryType, 30)
+                && ValidText(snapshot.InventoryProfile, 20)
+                && snapshot.SlotCapacity is null or >= 0
+                && snapshot.IsEnabled.HasValue
+                && IsJsonOrNull(snapshot.MetadataJson)
+            : string.IsNullOrWhiteSpace(snapshot.InventoryType)
+                && string.IsNullOrWhiteSpace(snapshot.InventoryProfile)
+                && !snapshot.SlotCapacity.HasValue
+                && !snapshot.IsEnabled.HasValue;
+
+    private static bool IsValidLoadoutSnapshot(PlayerStateLoadoutSnapshot snapshot)
+        => snapshot.IsNew
+            ? !snapshot.ExpectedUpdatedAt.HasValue
+                && ValidText(snapshot.LoadoutProfile, 20)
+                && ValidText(snapshot.LoadoutName, 100)
+                && snapshot.SortOrder >= 0
+                && snapshot.IsActive.HasValue
+                && IsJsonOrNull(snapshot.MetadataJson)
+            : snapshot.ExpectedUpdatedAt.HasValue
+                && string.IsNullOrWhiteSpace(snapshot.LoadoutProfile)
+                && string.IsNullOrWhiteSpace(snapshot.LoadoutName)
+                && snapshot.SortOrder == 0
+                && !snapshot.IsActive.HasValue
+                && snapshot.MetadataJson is null;
 
     private static bool IsValidEntry(PlayerStateInventoryEntrySnapshot entry)
         => entry.InventoryEntryId != Guid.Empty
@@ -981,7 +1775,27 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
                     && entry.InstanceId.HasValue && entry.InstanceId != Guid.Empty && entry.Quantity == 1));
 
     private static bool IsValidEquipment(PlayerStateEquipmentSnapshot snapshot)
-        => snapshot.EnhanceLevel >= 0
+        => (snapshot.IsNew
+                ? !snapshot.ExpectedUpdatedAt.HasValue
+                    && ValidText(snapshot.ItemId, 100)
+                    && snapshot.EnhanceLevel == 0
+                    && snapshot.TranscendenceRank == 0
+                    && snapshot.Enchants.Count == 0
+                    && snapshot.Runes.Count == 0
+                    && snapshot.StatRolls.All(statRoll => statRoll is not null
+                        && statRoll.StatRollId != Guid.Empty
+                        && statRoll.SortOrder >= 0
+                        && ValidText(statRoll.Status, 50)
+                        && ValidNumericText(statRoll.Min, 20)
+                        && ValidNumericText(statRoll.Max, 20))
+                    && snapshot.StatRolls.GroupBy(statRoll => statRoll.StatRollId).All(group => group.Count() == 1)
+                    && snapshot.StatRolls.GroupBy(
+                        statRoll => (statRoll.Status.Trim().ToUpperInvariant(), statRoll.SortOrder))
+                        .All(group => group.Count() == 1)
+                : snapshot.ExpectedUpdatedAt.HasValue
+                    && string.IsNullOrWhiteSpace(snapshot.ItemId)
+                    && snapshot.StatRolls.Count == 0)
+            && snapshot.EnhanceLevel >= 0
             && snapshot.RuneMaxSlots >= 0
             && snapshot.TranscendenceRank >= 0
             && ((snapshot.DurabilityMax is null && snapshot.DurabilityValue is null)
@@ -1006,6 +1820,8 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
         catch (JsonException) { return false; }
     }
 
+    private static bool ValidJson(string? value) => !string.IsNullOrWhiteSpace(value) && IsJsonOrNull(value);
+
     private static T? TryDeserializeSection<T>(JsonElement element)
     {
         try { return element.Deserialize<T>(JsonOptions); }
@@ -1027,6 +1843,26 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
     private static bool HasDuplicates<T>(IEnumerable<T> values) => values.GroupBy(value => value).Any(group => group.Count() > 1);
 
     private static bool ValidText(string? value, int maxLength) => !string.IsNullOrWhiteSpace(value) && value.Trim().Length <= maxLength;
+
+    private static bool ValidNumericText(string? value, int maxLength)
+        => ValidText(value, maxLength)
+            && decimal.TryParse(value!.Trim(), NumberStyles.Number, CultureInfo.InvariantCulture, out _);
+
+    private static bool ValidEpochMillis(long value)
+    {
+        try
+        {
+            _ = DateTimeOffset.FromUnixTimeMilliseconds(value);
+            return true;
+        }
+        catch (ArgumentOutOfRangeException)
+        {
+            return false;
+        }
+    }
+
+    private static DateTime FromEpochMillis(long value) =>
+        DateTimeOffset.FromUnixTimeMilliseconds(value).UtcDateTime;
 
     private static bool ValidateSections(PlayerStateSnapshotSaveRequest request)
     {
@@ -1084,6 +1920,89 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
                 || HasDuplicates(section.UnlockedWaystoneIds.Select(id => id.ToUpperInvariant())))
                 return false;
         }
+        if (request.QuestState is { } questJson)
+        {
+            var section = TryDeserializeSection<PlayerStateQuestStateSection>(questJson);
+            if (section is null || section.AccountId != request.AccountId || section.ClientRevision < 0
+                || section.ExpectedVersion < 0 || section.ActiveQuests is null
+                || section.Completions is null || section.Cooldowns is null
+                || section.ActiveQuests.Any(active => active is null || !ValidText(active.QuestId, 100)
+                    || !ValidEpochMillis(active.AcceptedAtEpochMillis)
+                    || active.AcceptedNpcId is not null && !ValidText(active.AcceptedNpcId, 100)
+                    || active.ObjectiveProgress is null
+                    || active.ObjectiveProgress.Any(objective => objective is null
+                        || !ValidText(objective.ObjectiveId, 100) || objective.Progress < 0)
+                    || HasDuplicates(active.ObjectiveProgress.Select(
+                        objective => objective.ObjectiveId.Trim().ToUpperInvariant())))
+                || section.Completions.Any(completion => completion is null
+                    || !ValidText(completion.QuestId, 100)
+                    || !ValidEpochMillis(completion.CompletedAtEpochMillis))
+                || section.Cooldowns.Any(cooldown => cooldown is null
+                    || !ValidText(cooldown.QuestId, 100)
+                    || !ValidEpochMillis(cooldown.CooldownUntilEpochMillis))
+                || HasDuplicates(section.ActiveQuests.Select(active => active.QuestId.Trim().ToUpperInvariant()))
+                || HasDuplicates(section.Completions.Select(completion => completion.QuestId.Trim().ToUpperInvariant()))
+                || HasDuplicates(section.Cooldowns.Select(cooldown => cooldown.QuestId.Trim().ToUpperInvariant())))
+                return false;
+        }
+        if (request.LoginBonusClaims is { } loginBonusJson)
+        {
+            var section = TryDeserializeSection<PlayerStateLoginBonusClaimsSection>(loginBonusJson);
+            if (section is null || section.ClientRevision < 0 || section.ClaimDates is null
+                || section.ClaimDates.Any(date => date == default)
+                || HasDuplicates(section.ClaimDates))
+                return false;
+        }
+        if (request.GuideProgress is { } guideProgressJson)
+        {
+            var section = TryDeserializeSection<PlayerStateGuideProgressSection>(guideProgressJson);
+            if (section is null || section.AccountId != request.AccountId || section.ClientRevision < 0
+                || section.CompletedStepKeys is null
+                || section.CompletedStepKeys.Any(step => step is null || !ValidText(step.GuideId, 100) || !ValidText(step.StepId, 100))
+                || HasDuplicates(section.CompletedStepKeys.Select(step =>
+                    $"{step.GuideId.Trim()}\u001f{step.StepId.Trim()}".ToUpperInvariant())))
+                return false;
+        }
+        if (request.AdventureRecords is { } adventureRecordsJson)
+        {
+            var section = TryDeserializeSection<PlayerStateAdventureRecordsSection>(adventureRecordsJson);
+            if (section is null || section.AccountId != request.AccountId || section.ClientRevision < 0
+                || section.MobDefeatDeltas is null || section.DungeonClearDeltas is null
+                || section.MobDefeatDeltas.Any(delta => delta is null || !ValidText(delta.MobId, 100)
+                    || !ValidText(delta.MobCategory, 20)
+                    || !string.Equals(delta.MobCategory.Trim(), "ENEMY", StringComparison.OrdinalIgnoreCase)
+                        && !string.Equals(delta.MobCategory.Trim(), "BOSS", StringComparison.OrdinalIgnoreCase)
+                    || delta.Delta < 1)
+                || section.DungeonClearDeltas.Any(delta => delta is null || !ValidText(delta.DungeonId, 100) || delta.Delta < 1)
+                || HasDuplicates(section.MobDefeatDeltas.Select(delta => delta.MobId.Trim().ToUpperInvariant()))
+                || HasDuplicates(section.DungeonClearDeltas.Select(delta => delta.DungeonId.Trim().ToUpperInvariant())))
+                return false;
+        }
+        if (request.PlayerSettings is { } playerSettingsJson)
+        {
+            var section = TryDeserializeSection<PlayerStatePlayerSettingsSection>(playerSettingsJson);
+            if (section is null || section.UserId == Guid.Empty || section.ClientRevision < 0 || section.Settings is null
+                || section.Settings.Any(setting => setting is null || setting.UserSettingId == Guid.Empty
+                    || !ValidText(setting.SettingKey, 100) || setting.SettingKey != setting.SettingKey.Trim()
+                    || !ValidJson(setting.SettingValueJson) || setting.ExpectedVersion is < 1)
+                || HasDuplicates(section.Settings.Select(setting => setting.UserSettingId))
+                || HasDuplicates(section.Settings.Select(setting => setting.SettingKey.Trim().ToUpperInvariant())))
+                return false;
+        }
+        if (request.MailClaim is { } mailClaimJson)
+        {
+            var section = TryDeserializeSection<PlayerStateMailClaimSection>(mailClaimJson);
+            if (section is null || section.AccountId != request.AccountId || section.ClientRevision == Guid.Empty
+                || !ValidText(section.MailId, 100) || section.MailId != section.MailId.Trim())
+                return false;
+        }
+        if (request.MailDelete is { } mailDeleteJson)
+        {
+            var section = TryDeserializeSection<PlayerStateMailDeleteSection>(mailDeleteJson);
+            if (section is null || section.AccountId != request.AccountId || section.ClientRevision == Guid.Empty
+                || !ValidText(section.MailId, 100) || section.MailId != section.MailId.Trim())
+                return false;
+        }
         return true;
     }
 
@@ -1094,6 +2013,9 @@ public sealed class PlayerStateSnapshotRepository(AstralRecordDbContext dbContex
 
     private static string ComputeRequestHash(PlayerStateSnapshotSaveRequest request)
         => Convert.ToHexString(SHA256.HashData(Encoding.UTF8.GetBytes(JsonSerializer.Serialize(request, JsonOptions)))).ToLowerInvariant();
+
+    private static string GuideStepKey(string guideId, string stepId)
+        => $"{guideId.Trim()}\u001f{stepId.Trim()}";
 
     private static PlayerStateSnapshotSaveResult Success(PlayerStateSnapshotAck ack)
         => new(ack, PlayerStateSnapshotSaveFailure.None);

@@ -35,7 +35,7 @@ class UserRepository {
     fun findByUuid(uuid: UUID): UserModel? {
         val path = "/api/user/$uuid"
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 return when (response.statusCode()) {
@@ -71,7 +71,7 @@ class UserRepository {
     fun findByUuidSilent(uuid: UUID): UserModel? {
         val path = "/api/user/$uuid"
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 return when (response.statusCode()) {
@@ -101,7 +101,7 @@ class UserRepository {
     fun findByMcid(mcid: String): UserModel? {
         val path = "/api/user/mcid/$mcid"
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 return when (response.statusCode()) {
@@ -129,7 +129,7 @@ class UserRepository {
             "/api/user/mcids?prefix=$encodedPrefix"
         }
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 if (response.statusCode() !in 200..299) {
@@ -165,7 +165,7 @@ class UserRepository {
         val path = "/api/user/by-ip?globalIp=$encodedIp&excludeUuid=$uuid"
         val endpoint = "/api/user/by-ip"
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())
                 if (response.statusCode() !in 200..299) {
@@ -200,7 +200,7 @@ class UserRepository {
         val path = "/api/user"
         val body = buildUserJson(model)
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path)
                     .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build()
@@ -237,7 +237,7 @@ class UserRepository {
             updatedBy = updatedBy,
         )
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path)
                     .PUT(HttpRequest.BodyPublishers.ofString(body))
                     .build()
@@ -270,7 +270,7 @@ class UserRepository {
             updatedBy = updatedBy,
         )
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path)
                     .PUT(HttpRequest.BodyPublishers.ofString(body))
                     .build()
@@ -303,7 +303,7 @@ class UserRepository {
             updatedBy = updatedBy,
         )
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path)
                     .PUT(HttpRequest.BodyPublishers.ofString(body))
                     .build()
@@ -345,7 +345,7 @@ class UserRepository {
             addProperty("updatedBy", updatedBy.toString())
         }
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path)
                     .PUT(HttpRequest.BodyPublishers.ofString(body))
                     .build()
@@ -387,7 +387,7 @@ class UserRepository {
             addProperty("payloadJson", null as String?)
         }
         try {
-            ApiRequestUtil.buildClient().use { client ->
+            ApiRequestUtil.sharedClient().let { client ->
                 val request = ApiRequestUtil.buildRequestBuilder(path)
                     .POST(HttpRequest.BodyPublishers.ofString(body))
                     .build()

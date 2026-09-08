@@ -8,9 +8,14 @@ import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateAcknowled
 
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.io.IOException;
+import java.io.UncheckedIOException;
+import java.util.UUID;
 
 /** プレイヤー完成状態の保存と受領確認を行うAPI境界です。ゲーム状態は変更しません。 */
 public class PlayerStateRepository {
+    private static final int MAX_POST_ATTEMPTS = 2;
+
     /**
      * 同じsnapshotIdと内容で再送可能な完成状態を保存します。
      * @param payload 不変のスナップショットJSON
@@ -19,23 +24,74 @@ public class PlayerStateRepository {
      */
     public JsonObject saveSnapshot(String payload) {
         String path = "/api/player-state/snapshots";
-        try (var client = ApiRequestUtil.buildClient()) {
-            var request = ApiRequestUtil.buildRequestBuilder(path)
-                .POST(HttpRequest.BodyPublishers.ofString(payload)).build();
-            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() != 200) {
-                throw new InventoryApiException("POST", path, response.statusCode(), response.body());
-            }
+        JsonObject snapshot = JsonParser.parseString(payload).getAsJsonObject();
+        UUID snapshotId = UUID.fromString(snapshot.get("snapshotId").getAsString());
+        UUID accountId = UUID.fromString(snapshot.get("accountId").getAsString());
+        RuntimeException unresolvedFailure = null;
+        for (int attempt = 1; attempt <= MAX_POST_ATTEMPTS; attempt++) {
             try {
-                return JsonParser.parseString(response.body()).getAsJsonObject();
-            } catch (RuntimeException invalid) {
-                throw new PlayerStateAcknowledgementException(invalid);
+                var request = ApiRequestUtil.buildRequestBuilder(path)
+                    .POST(HttpRequest.BodyPublishers.ofString(payload)).build();
+                var response = ApiRequestUtil.sharedClient().send(request, HttpResponse.BodyHandlers.ofString());
+                if (response.statusCode() == 200) {
+                    return parseAcknowledgement(response.body());
+                }
+
+                InventoryApiException failure = new InventoryApiException(
+                    "POST", path, response.statusCode(), response.body());
+                if (!isOutcomeUnknown(response.statusCode())) throw failure;
+                JsonObject recovered = findCompleted(snapshotId, accountId, failure);
+                if (recovered != null) return recovered;
+                unresolvedFailure = failure;
+            } catch (InterruptedException interrupted) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException("Player snapshot save interrupted", interrupted);
+            } catch (IOException failure) {
+                JsonObject recovered = findCompleted(snapshotId, accountId, failure);
+                if (recovered != null) return recovered;
+                unresolvedFailure = new UncheckedIOException(failure);
             }
+        }
+        throw unresolvedFailure == null
+            ? new IllegalStateException("Player snapshot outcome could not be resolved")
+            : unresolvedFailure;
+    }
+
+    private static JsonObject parseAcknowledgement(String body) {
+        try {
+            return JsonParser.parseString(body).getAsJsonObject();
+        } catch (RuntimeException invalid) {
+            throw new PlayerStateAcknowledgementException(invalid);
+        }
+    }
+
+    private JsonObject findCompleted(UUID snapshotId, UUID accountId, Throwable originalFailure) {
+        String path = "/api/player-state/snapshots/" + snapshotId + "?accountId=" + accountId;
+        try {
+            var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
+            var response = ApiRequestUtil.sharedClient().send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 404) return null;
+            if (response.statusCode() != 200) {
+                throw new InventoryApiException("GET", path, response.statusCode(), response.body());
+            }
+            JsonObject status = JsonParser.parseString(response.body()).getAsJsonObject();
+            if (!status.has("status") || !"COMPLETED".equals(status.get("status").getAsString())
+                || !status.has("ack") || !status.get("ack").isJsonObject()) {
+                throw new PlayerStateAcknowledgementException(
+                    new IllegalStateException("Invalid player snapshot status response"));
+            }
+            return status.getAsJsonObject("ack");
         } catch (InterruptedException interrupted) {
             Thread.currentThread().interrupt();
-            throw new IllegalStateException("Player snapshot save interrupted", interrupted);
-        } catch (java.io.IOException failure) {
-            throw new java.io.UncheckedIOException(failure);
+            originalFailure.addSuppressed(interrupted);
+            return null;
+        } catch (IOException | RuntimeException lookupFailure) {
+            originalFailure.addSuppressed(lookupFailure);
+            return null;
         }
+    }
+
+    private static boolean isOutcomeUnknown(int statusCode) {
+        return statusCode == 408 || statusCode == 425 || statusCode == 429 || statusCode >= 500;
     }
 }

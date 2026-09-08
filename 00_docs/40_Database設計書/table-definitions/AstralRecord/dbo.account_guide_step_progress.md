@@ -26,4 +26,5 @@
 - ガイド本文・手順順序・達成条件は `40_filebase/09.features.guide` を正本とし、このテーブルへ複製しません。
 - ガイド全体の達成状態は、現行マスターの全stepが登録済みかPlugin側で導出します。
 - マスターから削除されたガイドやstepの行は履歴として残り、現行ガイド判定からは参照されません。
-- PluginはDBへ直接接続せず、AstralRecord API `/api/account-guide` 経由で読み書きします。
+- PluginはDBへ直接接続しません。初期読込は AstralRecord API `/api/account-guide`、完了手順の追記は player-state snapshot の `guideProgress` section を使用します。
+- `isFullSnapshot=true` の要求では、DB にだけ存在する `(guide_id, step_id)` があれば transaction 全体を競合にします。不足行だけを追加し、同じ `snapshot_id` の再送は完成台帳で冪等化します。

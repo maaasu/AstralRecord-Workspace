@@ -73,7 +73,7 @@ public final class TradeRepository {
 
     private @NotNull HttpResponse<String> send(@NotNull HttpRequest request) {
         try {
-            return ApiRequestUtil.buildClient().send(request, HttpResponse.BodyHandlers.ofString());
+            return ApiRequestUtil.sharedClient().send(request, HttpResponse.BodyHandlers.ofString());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Trade API request was interrupted.", e);

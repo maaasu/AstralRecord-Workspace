@@ -13,10 +13,8 @@ import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.io.IOException;
-import java.net.URLEncoder;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -39,7 +37,7 @@ public class MailRepository {
     public @NotNull List<MailEntry> findAvailable(@NotNull UUID accountId, @NotNull MailFilter filter) {
         String path = "/api/mail?account_id=" + accountId + "&filter=" + filter.getApiValue();
         try {
-            var client = ApiRequestUtil.buildClient();
+            var client = ApiRequestUtil.sharedClient();
             var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
             var response = client.send(request, HttpResponse.BodyHandlers.ofString());
             if (response.statusCode() == 200) {
@@ -55,94 +53,6 @@ public class MailRepository {
             Logger.error(LogId.E_5190, e, "find_available", path, failureReason(e));
             throw new RuntimeException(e);
         }
-    }
-
-    /**
-     * メールを既読化します。
-     *
-     * @param accountId 対象アカウント ID
-     * @param mailId メール ID
-     * @return 更新後メール。存在しない場合 null
-     */
-    public @Nullable MailEntry markRead(
-        @NotNull UUID accountId,
-        @NotNull UUID updatedBy,
-        @NotNull String mailId
-    ) {
-        return sendAction(accountId, updatedBy, mailId, "read");
-    }
-
-    /**
-     * メールをアカウント単位で削除状態にします。
-     *
-     * @param accountId 対象アカウント ID
-     * @param mailId メール ID
-     * @return 削除状態へ更新できた場合 true
-     */
-    public boolean delete(@NotNull UUID accountId, @NotNull UUID updatedBy, @NotNull String mailId) {
-        String encodedMailId = URLEncoder.encode(mailId, StandardCharsets.UTF_8).replace("+", "%20");
-        String path = "/api/mail/" + encodedMailId + "/delete";
-        try {
-            var client = ApiRequestUtil.buildClient();
-            var request = ApiRequestUtil.buildRequestBuilder(path)
-                .PUT(HttpRequest.BodyPublishers.ofString(actionBody(accountId, updatedBy)))
-                .build();
-            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() == 204) {
-                return true;
-            }
-            if (response.statusCode() == 404) {
-                return false;
-            }
-            Logger.log(LogId.E_5190, "delete", path, "http_status:" + response.statusCode());
-            throw new IOException("Unexpected status " + response.statusCode() + " for PUT " + path);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            Logger.error(LogId.E_5190, e, "delete", path, failureReason(e));
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            Logger.error(LogId.E_5190, e, "delete", path, failureReason(e));
-            throw new RuntimeException(e);
-        }
-    }
-
-    private @Nullable MailEntry sendAction(
-        @NotNull UUID accountId,
-        @NotNull UUID updatedBy,
-        @NotNull String mailId,
-        @NotNull String action
-    ) {
-        String encodedMailId = URLEncoder.encode(mailId, StandardCharsets.UTF_8).replace("+", "%20");
-        String path = "/api/mail/" + encodedMailId + "/" + action;
-        try {
-            var client = ApiRequestUtil.buildClient();
-            var request = ApiRequestUtil.buildRequestBuilder(path)
-                .PUT(HttpRequest.BodyPublishers.ofString(actionBody(accountId, updatedBy)))
-                .build();
-            var response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            if (response.statusCode() == 200) {
-                return parse(JsonParser.parseString(response.body()).getAsJsonObject());
-            }
-            if (response.statusCode() == 404) {
-                return null;
-            }
-            Logger.log(LogId.E_5190, action, path, "http_status:" + response.statusCode());
-            throw new IOException("Unexpected status " + response.statusCode() + " for PUT " + path);
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            Logger.error(LogId.E_5190, e, action, path, failureReason(e));
-            throw new RuntimeException(e);
-        } catch (IOException e) {
-            Logger.error(LogId.E_5190, e, action, path, failureReason(e));
-            throw new RuntimeException(e);
-        }
-    }
-
-    private @NotNull String actionBody(@NotNull UUID accountId, @NotNull UUID updatedBy) {
-        JsonObject body = new JsonObject();
-        body.addProperty("accountId", accountId.toString());
-        body.addProperty("updatedBy", updatedBy.toString());
-        return body.toString();
     }
 
     private @NotNull List<MailEntry> parseList(@NotNull String json) {

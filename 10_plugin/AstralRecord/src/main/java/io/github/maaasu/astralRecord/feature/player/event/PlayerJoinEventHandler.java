@@ -402,15 +402,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 return;
             }
 
-            AccountModel currentAccount = account;
-            if (playerService.recoverPendingPlayerState(account.getUuid())) {
-                currentAccount = playerService.reloadPlayerJoinAccount(account.getUuid());
-                if (currentAccount == null || !currentAccount.getUuid().equals(account.getUuid())) {
-                    finishAccountLoad(attempt, false, completionListener);
-                    return;
-                }
-            }
-            loadInventoryStep(attempt, playerName, user, currentAccount, false, completionListener);
+            loadInventoryStep(attempt, playerName, user, account, false, completionListener);
         }, completionListener);
     }
 
@@ -500,9 +492,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     if (inventoryState != null) {
                         playerService.discardPlayerJoinInventoryState(inventoryState);
                     }
-                    if (preparedMenuGrant != null) {
-                        menuToolJoinGrantService.cleanupPreparedGrant(preparedMenuGrant);
-                    }
                 }
             }
         }, completionListener);
@@ -523,7 +512,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         boolean questApplied = false;
         boolean skillTreeApplied = false;
         boolean skillBindPresetsApplied = false;
-        boolean preparedMenuGrantCleanupScheduled = false;
         @Nullable CompletableFuture<Boolean> guideProgressLoad = null;
         PlayerService.PlayerJoinApplication playerJoinApplication = null;
         AstPlayer appliedPlayer = null;
@@ -543,7 +531,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     false,
                     null
                 );
-                cleanupPreparedGrantAsync(preparedMenuGrant);
                 finishAccountLoad(attempt, false, completionListener);
                 return;
             }
@@ -558,7 +545,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     false,
                     null
                 );
-                cleanupPreparedGrantAsync(preparedMenuGrant);
                 finishAccountLoad(attempt, false, completionListener);
                 return;
             }
@@ -574,7 +560,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     false,
                     null
                 );
-                cleanupPreparedGrantAsync(preparedMenuGrant);
                 finishAccountLoad(attempt, false, completionListener);
                 return;
             }
@@ -596,7 +581,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                     skillBindPresetsApplied,
                     null
                 );
-                cleanupPreparedGrantAsync(preparedMenuGrant);
                 finishAccountLoad(attempt, false, completionListener);
                 return;
             }
@@ -605,10 +589,11 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 if (appliedPlayer == null) {
                     throw new IllegalStateException("AstPlayer was not published after join application");
                 }
-                if (!menuToolJoinGrantService.grantPreparedIfMissing(appliedPlayer, preparedMenuGrant)) {
-                    cleanupPreparedGrantAsync(preparedMenuGrant);
-                    preparedMenuGrantCleanupScheduled = true;
-                }
+                menuToolJoinGrantService.grantPreparedIfMissing(appliedPlayer, preparedMenuGrant)
+                    .exceptionally(failure -> {
+                        Logger.log(LogId.E_5070, failure, playerName);
+                        return false;
+                    });
             }
             if (completionListener == null) {
                 loginBonusService.openAfterDataLoaded(player);
@@ -642,9 +627,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 skillBindPresetsApplied,
                 playerJoinApplication
             );
-            if (!preparedMenuGrantCleanupScheduled) {
-                cleanupPreparedGrantAsync(preparedMenuGrant);
-            }
             Logger.log(LogId.E_5070, exception, playerName);
             finishAccountLoad(attempt, false, completionListener);
             return;
@@ -740,19 +722,6 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
                 () -> playerService.discardPlayerJoinInventoryState(joinData.inventoryState())
             );
         }
-    }
-
-    private void cleanupPreparedGrantAsync(
-        @Nullable MenuToolJoinGrantService.PreparedGrant preparedMenuGrant
-    ) {
-        MenuToolJoinGrantService grantService = menuToolJoinGrantService;
-        if (grantService == null || preparedMenuGrant == null) {
-            return;
-        }
-        plugin.getServer().getScheduler().runTaskAsynchronously(
-            plugin,
-            () -> grantService.cleanupPreparedGrant(preparedMenuGrant)
-        );
     }
 
     private void runJoinRollbackStep(String playerName, Runnable rollbackStep) {
@@ -865,7 +834,7 @@ public class PlayerJoinEventHandler extends AbstractEventHandler {
         boolean loggedFailure = false;
         while (isJoinLoading(attempt)) {
             try {
-                return skillTreeService.loadInitialPlayerState(accountId, userId);
+                return skillTreeService.loadInitialPlayerState(accountId);
             } catch (RuntimeException e) {
                 if (!loggedFailure) {
                     Logger.log(LogId.W_9002, accountId, e.getMessage());

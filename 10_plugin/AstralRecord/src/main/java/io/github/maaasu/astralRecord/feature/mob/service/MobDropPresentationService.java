@@ -2,6 +2,7 @@ package io.github.maaasu.astralRecord.feature.mob.service;
 
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryInstanceType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
@@ -71,7 +72,7 @@ public final class MobDropPresentationService {
     private final ItemStackFactory itemStackFactory;
     private final ItemDropAnimationService itemDropAnimationService;
     private final PlayerSettingService playerSettingService;
-    private final Executor asyncExecutor;
+    private final Executor mainExecutor;
     private AfkService afkService;
 
     /**
@@ -92,13 +93,33 @@ public final class MobDropPresentationService {
         @NotNull ItemDropAnimationService itemDropAnimationService,
         @NotNull PlayerSettingService playerSettingService
     ) {
+        this(
+            plugin,
+            itemService,
+            inventoryService,
+            itemStackFactory,
+            itemDropAnimationService,
+            playerSettingService,
+            command -> plugin.getServer().getScheduler().runTask(plugin, command)
+        );
+    }
+
+    MobDropPresentationService(
+        @NotNull Plugin plugin,
+        @NotNull ItemService itemService,
+        @NotNull InventoryService inventoryService,
+        @NotNull ItemStackFactory itemStackFactory,
+        @NotNull ItemDropAnimationService itemDropAnimationService,
+        @NotNull PlayerSettingService playerSettingService,
+        @NotNull Executor mainExecutor
+    ) {
         this.plugin = plugin;
         this.itemService = itemService;
         this.inventoryService = inventoryService;
         this.itemStackFactory = itemStackFactory;
         this.itemDropAnimationService = itemDropAnimationService;
         this.playerSettingService = playerSettingService;
-        this.asyncExecutor = command -> plugin.getServer().getScheduler().runTaskAsynchronously(plugin, command);
+        this.mainExecutor = mainExecutor;
     }
 
     /**
@@ -425,7 +446,7 @@ public final class MobDropPresentationService {
         if (requiresPreparedInstanceSlot(item) && reservation == null) {
             return;
         }
-        CompletableFuture<PreparedDropGrant> future = prepareDropAsync(recipient, item, dropSource);
+        CompletableFuture<PreparedDropGrant> future = prepareDropAsync(item);
         future.whenComplete((ignored, ex) -> {
             if (ex != null) {
                 releaseReservation(reservation);
@@ -464,19 +485,17 @@ public final class MobDropPresentationService {
         if (requiresPreparedInstanceSlot(item) && reservation == null) {
             return;
         }
-        CompletableFuture<PreparedDropGrant> future = prepareDropAsync(recipient, item, dropSource);
-        future.whenComplete((prepared, ex) -> plugin.getServer().getScheduler().runTask(plugin, () -> {
+        CompletableFuture<PreparedDropGrant> future = prepareDropAsync(item);
+        future.whenComplete((prepared, ex) -> mainExecutor.execute(() -> {
             if (ex != null) {
                 releaseReservation(reservation);
                 Logger.error(LogId.E_5202, ex, item.model().getId());
                 return;
             }
             if (prepared == null || !recipient.getBukkit().isOnline()) {
-                if (prepared != null) {
-                    releaseReservation(reservation);
+                releaseReservation(reservation);
+                if (prepared != null && prepared.kind() == PreparedDropKind.STACKED) {
                     dropPreparedItem(deathLocation, prepared);
-                } else {
-                    releaseReservation(reservation);
                 }
                 return;
             }
@@ -491,7 +510,7 @@ public final class MobDropPresentationService {
     }
 
     /**
-     * 装備の API 個体生成前に BAG slot を予約し、空き不足時は取得拒否を通知します。
+     * 装備のローカル個体生成前に BAG slot を予約し、空き不足時は取得拒否を通知します。
      *
      * @param recipient 受取プレイヤー
      * @param item 付与対象アイテム
@@ -514,7 +533,7 @@ public final class MobDropPresentationService {
     }
 
     /**
-     * 指定ドロップが個体 API を生成する装備またはルーンかを判定します。
+     * 指定ドロップが個体を生成する装備かを判定します。
      *
      * @param item 判定対象ドロップ
      * @return BAG slot の事前予約が必要な場合 {@code true}
@@ -525,33 +544,18 @@ public final class MobDropPresentationService {
     }
 
     /**
-     * 個体が必要なドロップだけを非同期で API 生成し、通常スタック品は即時結果に変換します。
+     * ドロップ定義を演出へ渡す準備済み結果へ変換します。
+     * 装備個体はここでは生成せず、回収確定時の重要 player-state mutation 内で生成します。
      *
-     * @param recipient 受取プレイヤー
      * @param item 生成対象ドロップ
-     * @param dropSource インスタンス生成元
      * @return 付与可能な準備済みドロップの future
      */
     private @NotNull CompletableFuture<PreparedDropGrant> prepareDropAsync(
-        @NotNull AstPlayer recipient,
-        @NotNull ResolvedDropItem item,
-        @NotNull String dropSource
+        @NotNull ResolvedDropItem item
     ) {
         ItemCategory category = ItemCategory.fromApiValue(item.model().getCategory());
         if (category == ItemCategory.EQUIPMENT) {
-            return CompletableFuture.supplyAsync(() -> {
-                EquipmentInstance instance = itemService.createEquipmentInstance(
-                    item.model().getId(),
-                    recipient.getAccount().getUuid().toString(),
-                    dropSource,
-                    recipient.getAccount().getUuid().toString()
-                );
-                UUID instanceId = instance == null ? null : parseUuidOrNull(instance.getEquipmentInstanceId());
-                if (instance == null || instanceId == null) {
-                    throw new IllegalStateException("Failed to create equipment instance for " + item.model().getId());
-                }
-                return PreparedDropGrant.equipment(item, instanceId, instance);
-            }, asyncExecutor);
+            return CompletableFuture.completedFuture(PreparedDropGrant.equipment(item));
         }
         return CompletableFuture.completedFuture(PreparedDropGrant.stacked(item));
     }
@@ -579,13 +583,15 @@ public final class MobDropPresentationService {
         }
         if (!recipient.getBukkit().isOnline()) {
             releaseReservation(reservation);
-            dropPreparedItem(dropLocation, prepared);
+            if (prepared.kind() == PreparedDropKind.STACKED) {
+                dropPreparedItem(dropLocation, prepared);
+            }
             return;
         }
 
         switch (prepared.kind()) {
             case STACKED -> grantStackedItem(recipient, prepared, dropSource);
-            case EQUIPMENT -> grantPreparedInstance(recipient, dropLocation, prepared, reservation);
+            case EQUIPMENT -> grantPreparedInstance(recipient, prepared.item().model(), reservation);
         }
     }
 
@@ -636,50 +642,88 @@ public final class MobDropPresentationService {
     }
 
     /**
-     * 予約済み slot へ装備個体を確定追加します。
-     * <p>
-     * 通常の容量不足は API 個体生成前に予約で拒否されるため、ここでの失敗は state 入れ替わりなど
-     * 非容量系の既存 world-drop fallback として扱います。
+     * 装備個体と予約済み inventory entry をローカルで作り、同じ player-state snapshot で確定します。
+     * SQL ACK 前は Bukkit inventory を更新せず、保存失敗時は両方のキャッシュを操作前へ戻します。
      *
      * @param recipient 受取プレイヤー
-     * @param dropLocation 非容量系 fallback の位置
-     * @param prepared API 生成済み個体
+     * @param model 装備ドロップ定義
      * @param reservation 事前予約した BAG slot
-     * @return インベントリへ追加した場合は 1、それ以外は fallback 数
+     * @return SQL ACK 完了後に true となる future
      */
-    private int grantPreparedInstance(
+    @NotNull CompletableFuture<Boolean> grantPreparedInstance(
         @NotNull AstPlayer recipient,
-        @NotNull Location dropLocation,
-        @NotNull PreparedDropGrant prepared,
+        @NotNull ItemModel model,
         @Nullable InventoryService.PreparedInstanceSlotReservation reservation
     ) {
         if (reservation == null) {
-            return 0;
+            return CompletableFuture.completedFuture(false);
         }
-        InventoryInstanceType instanceType = prepared.instanceType();
-        UUID instanceId = prepared.instanceId();
-        if (instanceType == null || instanceId == null) {
+
+        UUID accountId = recipient.getAccount().getUuid();
+        CompletableFuture<Integer> committed = inventoryService.executeCriticalPlayerMutation(accountId, () -> {
+            InventoryService.InventoryStateSnapshot inventoryBefore = inventoryService.snapshotState(accountId);
+            if (inventoryBefore == null) {
+                throw new IllegalStateException("mob drop inventory state is unavailable: " + accountId);
+            }
+            Runnable equipmentRollback = itemService.captureEquipmentStateRollback(accountId);
+            try {
+                EquipmentInstance instance = itemService.createLocalEquipmentInstance(
+                    model, accountId);
+                UUID instanceId = instance == null
+                    ? null
+                    : parseUuidOrNull(instance.getEquipmentInstanceId());
+                if (instanceId == null) {
+                    throw new IllegalStateException(
+                        "failed to create local mob drop equipment: " + model.getId());
+                }
+
+                InventoryService.PreparedInstanceReservationCompletion completion =
+                    inventoryService.completePreparedInstanceReservationStateOnly(
+                        accountId,
+                        model,
+                        InventoryInstanceType.EQUIPMENT,
+                        instanceId,
+                        reservation
+                    );
+                if (!completion.completed()) {
+                    throw new IllegalStateException(
+                        "mob drop slot reservation is no longer available: " + accountId);
+                }
+                return new InventorySaveCoordinator.CriticalMutation<>(
+                    completion.remainingBagSlots(),
+                    () -> {
+                        inventoryService.restoreState(inventoryBefore);
+                        equipmentRollback.run();
+                    }
+                );
+            } catch (RuntimeException | Error failure) {
+                inventoryService.restoreState(inventoryBefore);
+                equipmentRollback.run();
+                throw failure;
+            }
+        });
+
+        committed.whenComplete((remainingBagSlots, failure) -> mainExecutor.execute(() -> {
             releaseReservation(reservation);
-            return dropPreparedItem(dropLocation, prepared);
-        }
-        InventoryService.PreparedInstanceReservationCompletion completion =
-            inventoryService.completePreparedInstanceReservation(
-            recipient,
-            prepared.item().model(),
-            instanceType,
-            instanceId,
-            reservation
-        );
-        if (completion.completed()) {
-            notifyInventoryCapacityAfterReservedInstance(recipient, completion.remainingBagSlots());
-            return 1;
-        }
-        releaseReservation(reservation);
-        return dropPreparedItem(dropLocation, prepared);
+            if (failure != null) {
+                Logger.error(LogId.E_5202, failure, model.getId());
+                if (recipient.getBukkit().isOnline()) {
+                    PlayerMessageService.getInstance().send(recipient, PlayerMsgId.P_5731);
+                    GuiSound.DENY.play(recipient.getBukkit());
+                }
+                return;
+            }
+            if (recipient.getBukkit().isOnline()) {
+                inventoryService.refreshNormalInventoryGrantUi(recipient);
+                notifyInventoryCapacityAfterReservedInstance(recipient, remainingBagSlots);
+            }
+        }));
+        return committed.thenApply(ignored -> true);
     }
 
     /**
-     * 回収演出が取消された場合、予約を解除して従来どおり準備済みアイテムをワールドへ戻します。
+     * 回収演出が取消された場合、予約を解除します。通常スタック品だけをワールドへ戻し、
+     * 未確定の装備個体は生成しません。
      *
      * @param dropLocation world-drop fallback の位置
      * @param future 準備済みドロップ future
@@ -691,9 +735,11 @@ public final class MobDropPresentationService {
         @Nullable InventoryService.PreparedInstanceSlotReservation reservation
     ) {
         future.thenAccept(prepared ->
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
+            mainExecutor.execute(() -> {
                 releaseReservation(reservation);
-                dropPreparedItem(dropLocation, prepared);
+                if (prepared.kind() == PreparedDropKind.STACKED) {
+                    dropPreparedItem(dropLocation, prepared);
+                }
             })
         ).exceptionally(ex -> {
             releaseReservation(reservation);
@@ -782,7 +828,7 @@ public final class MobDropPresentationService {
     private int dropPreparedItem(@NotNull Location location, @NotNull PreparedDropGrant prepared) {
         return switch (prepared.kind()) {
             case STACKED -> dropStackedItem(location, prepared.item().model(), prepared.item().amount());
-            case EQUIPMENT -> dropEquipmentInstance(location, prepared.item().model(), prepared.equipmentInstance());
+            case EQUIPMENT -> 0;
         };
     }
 
@@ -803,21 +849,6 @@ public final class MobDropPresentationService {
             remaining -= stackAmount;
         }
         return dropped;
-    }
-
-    private int dropEquipmentInstance(
-        @NotNull Location location,
-        @NotNull ItemModel model,
-        @Nullable EquipmentInstance instance
-    ) {
-        World world = location.getWorld();
-        if (world == null || instance == null) {
-            return 0;
-        }
-
-        ItemStack stack = itemStackFactory.create(model, instance, 1);
-        world.dropItemNaturally(location, itemStackFactory.asDisplayStack(stack));
-        return 1;
     }
 
     private @Nullable PreparedDropGrant joinPrepared(@NotNull CompletableFuture<PreparedDropGrant> future) {
@@ -876,27 +907,14 @@ public final class MobDropPresentationService {
 
     private record PreparedDropGrant(
         @NotNull PreparedDropKind kind,
-        @NotNull ResolvedDropItem item,
-        @Nullable InventoryInstanceType instanceType,
-        @Nullable UUID instanceId,
-        @Nullable EquipmentInstance equipmentInstance
+        @NotNull ResolvedDropItem item
     ) {
         private static @NotNull PreparedDropGrant stacked(@NotNull ResolvedDropItem item) {
-            return new PreparedDropGrant(PreparedDropKind.STACKED, item, null, null, null);
+            return new PreparedDropGrant(PreparedDropKind.STACKED, item);
         }
 
-        private static @NotNull PreparedDropGrant equipment(
-            @NotNull ResolvedDropItem item,
-            @NotNull UUID instanceId,
-            @NotNull EquipmentInstance instance
-        ) {
-            return new PreparedDropGrant(
-                PreparedDropKind.EQUIPMENT,
-                item,
-                InventoryInstanceType.EQUIPMENT,
-                instanceId,
-                instance
-            );
+        private static @NotNull PreparedDropGrant equipment(@NotNull ResolvedDropItem item) {
+            return new PreparedDropGrant(PreparedDropKind.EQUIPMENT, item);
         }
     }
 }

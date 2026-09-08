@@ -31,7 +31,7 @@ class LootRepository {
         val tablePath = "/api/loot/table"
         val poolPath = "/api/loot/pool"
         try {
-            val client = ApiRequestUtil.buildClient()
+            val client = ApiRequestUtil.sharedClient()
             client.use {
                 val tableResponse = client.send(
                     ApiRequestUtil.buildRequestBuilder(tablePath).GET().build(),
@@ -72,7 +72,7 @@ class LootRepository {
         val path = "/api/loot/table/$encodedId"
 
         try {
-            val client = ApiRequestUtil.buildClient()
+            val client = ApiRequestUtil.sharedClient()
             client.use {
                 val request = ApiRequestUtil.buildRequestBuilder(path).GET().build()
                 val response = client.send(request, HttpResponse.BodyHandlers.ofString())

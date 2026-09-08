@@ -49,9 +49,34 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 
 class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
+     * 章・見出し: # 08_3-サービス > ## 2. 通常インベントリアイテム追加
+     * 検証契約: 未作成inventory/loadoutはPlugin内で即時生成し、個別作成APIを待たない。
+     */
+    @Test
+    void missingInventoryAndLoadoutAreCreatedLocallyWithoutRepositoryCalls() {
+        InventoryHarness harness = inventoryHarness();
+        AstPlayer astPlayer = DesignTestFixtures.astPlayer(server().addPlayer(), AccountMode.PLAYER);
+        PlayerInventoryState state = harness.registerState(astPlayer);
+        state.setBagSlotCapacity(1);
+
+        assertEquals(1, harness.inventoryService.addItemToNormalInventoryStateOnly(
+            astPlayer, DesignTestFixtures.item("local_parent_test", ItemCategory.MATERIAL, 64), 1,
+            "local_parent_test"));
+        var loadout = harness.inventoryService.ensureActiveEquipmentLoadout(state.getAccountId());
+
+        assertNotNull(state.findInventory(InventoryProfile.GAME, InventoryType.BAG));
+        assertNotNull(loadout);
+        assertTrue(loadout.isActive());
+        assertTrue(state.isDirty());
+        verifyNoInteractions(harness.inventoryRepository, harness.equipmentLoadoutRepository);
+    }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-サービス.md
@@ -469,7 +494,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/08_1-モデル定義.md
-     * 章・見出し: # 08_1-モデル定義 > ## 9. インベントリエントリ下書き
+     * 章・見出し: # 08_1-モデル定義 > ## 9. 完成状態スナップショット
      * 検証契約: 既存stackのローカル数量変更は、API が採番した expectedUpdatedAt を保存成功まで維持する。
      */
     @Test
@@ -658,7 +683,8 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         PlayerInventoryState state = harness.registerState(astPlayer);
         InventoryModel bagInventory = harness.addInventory(state, InventoryType.BAG);
         UUID equipmentInstanceId = UUID.randomUUID();
-        when(harness.itemService.createEquipmentInstance("bronze_sword", astPlayer.getAccount().getUuid().toString(), "command", astPlayer.getAccount().getUuid().toString()))
+        ItemModel equipment = DesignTestFixtures.item("bronze_sword", ItemCategory.EQUIPMENT, 1);
+        when(harness.itemService.createLocalEquipmentInstance(equipment, astPlayer.getAccount().getUuid()))
             .thenReturn(DesignTestFixtures.equipmentInstance(
                 equipmentInstanceId,
                 astPlayer.getAccount().getUuid(),
@@ -669,7 +695,7 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
             ));
         int grantedEquipment = harness.inventoryService.addItemToNormalInventory(
             astPlayer,
-            DesignTestFixtures.item("bronze_sword", ItemCategory.EQUIPMENT, 1),
+            equipment,
             1,
             "command"
         );
@@ -1892,7 +1918,8 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         InventoryPersistence persistence = new InventoryPersistence(
             inventoryRepository,
             equipmentLoadoutRepository,
-            itemService
+            itemService,
+            mock(io.github.maaasu.astralRecord.feature.mutation.repository.PlayerStateRepository.class)
         );
         InventorySaveCoordinator saveCoordinator = new InventorySaveCoordinator(
             persistence,
@@ -1902,6 +1929,8 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
         return new InventoryHarness(
             itemService,
             stateRegistry,
+            inventoryRepository,
+            equipmentLoadoutRepository,
             new InventoryService(
                 inventoryRepository,
                 equipmentLoadoutRepository,
@@ -2099,6 +2128,8 @@ class ItemInventoryStatusDesignTest extends MockBukkitTestBase {
     private record InventoryHarness(
         ItemService itemService,
         PlayerInventoryStateRegistry stateRegistry,
+        InventoryRepository inventoryRepository,
+        EquipmentLoadoutRepository equipmentLoadoutRepository,
         InventoryService inventoryService
     ) {
         private PlayerInventoryState registerState(AstPlayer astPlayer) {

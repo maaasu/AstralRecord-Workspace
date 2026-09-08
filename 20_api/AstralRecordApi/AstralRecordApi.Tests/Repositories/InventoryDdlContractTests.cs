@@ -9,10 +9,9 @@ namespace AstralRecordApi.Tests.Repositories;
 
 public sealed partial class PlayerStateSnapshotRepositoryTests
 {
-    // AR-CODE-010: execute the actual CHECK predicate/filter from all three authoritative DDL copies.
+    // AR-CODE-010: execute the actual CHECK predicate/filter from the authoritative initial DDL and table definition.
     [Theory]
     [InlineData("init.sql")]
-    [InlineData("migration.sql")]
     [InlineData("inventory_entry.md")]
     public async Task InventoryDdl_AcceptsAuthoritativeEquipmentItemIdsAndRejectsIncompletePairs(string file)
     {

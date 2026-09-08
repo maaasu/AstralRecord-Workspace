@@ -6,6 +6,7 @@ import io.github.maaasu.astralRecord.feature.adventurerecord.event.AdventureReco
 import io.github.maaasu.astralRecord.feature.adventurerecord.gui.AdventureRecordGui;
 import io.github.maaasu.astralRecord.feature.adventurerecord.repository.AdventureRecordRepository;
 import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordService;
+import io.github.maaasu.astralRecord.feature.adventurerecord.service.AdventureRecordStateService;
 import io.github.maaasu.astralRecord.feature.account.repository.AccountRepository;
 import io.github.maaasu.astralRecord.feature.account.service.AccountClassProgressSaveTask;
 import io.github.maaasu.astralRecord.feature.account.service.AccountModeApplicationService;
@@ -82,7 +83,6 @@ import io.github.maaasu.astralRecord.feature.item.service.ItemDropAnimationServi
 import io.github.maaasu.astralRecord.feature.item.service.ItemChatShareService;
 import io.github.maaasu.astralRecord.feature.item.service.ItemWeaponAttackService;
 import io.github.maaasu.astralRecord.feature.item.service.OrbService;
-import io.github.maaasu.astralRecord.feature.mutation.service.LocalMutationOutbox;
 import io.github.maaasu.astralRecord.feature.item.service.PotionUseService;
 import io.github.maaasu.astralRecord.feature.inventory.repository.InventoryRepository;
 import io.github.maaasu.astralRecord.feature.inventory.repository.EquipmentLoadoutRepository;
@@ -176,6 +176,7 @@ import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService
 import io.github.maaasu.astralRecord.feature.player.service.PlayerCapacityService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerRegionService;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerService;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerSessionTransitionGuard;
 import io.github.maaasu.astralRecord.feature.player.service.StoneButtonReachService;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
 import io.github.maaasu.astralRecord.feature.quest.event.QuestGuiEventHandler;
@@ -345,6 +346,7 @@ public final class AstralRecord extends JavaPlugin {
     private UserService userService;
     private PlayerCapacityService playerCapacityService;
     private PlayerService playerService;
+    private final PlayerSessionTransitionGuard playerSessionTransitionGuard = new PlayerSessionTransitionGuard();
     private PlayerJoinEventHandler playerJoinEventHandler;
     private PlayerMessageService playerMessageService;
     private GlobalChatBridge globalChatBridge;
@@ -353,7 +355,6 @@ public final class AstralRecord extends JavaPlugin {
     private AfkService afkService;
     private InventoryService inventoryService;
     private InventorySaveCoordinator inventorySaveCoordinator;
-    private LocalMutationOutbox localMutationOutbox;
     private InventoryPersistence inventoryPersistence;
     private java.util.concurrent.ExecutorService playerStateExecutor;
     private PlayerInventoryStateRegistry inventoryStateRegistry;
@@ -638,19 +639,6 @@ public final class AstralRecord extends JavaPlugin {
         }
         if (orbService != null) {
             orbService.prepareAllForShutdown();
-        }
-        if (localMutationOutbox != null) {
-            localMutationOutbox.close();
-        }
-        if (playerSettingService != null) {
-            try {
-                playerSettingService.flushPendingWrites().get(5L, java.util.concurrent.TimeUnit.SECONDS);
-            } catch (InterruptedException interrupted) {
-                Thread.currentThread().interrupt();
-                Logger.warn(LogId.W_5252, "player-settings", interrupted.getMessage());
-            } catch (java.util.concurrent.ExecutionException | java.util.concurrent.TimeoutException failure) {
-                Logger.warn(LogId.W_5252, "player-settings", failure.getMessage());
-            }
         }
         if (inventorySaveCoordinator != null) {
             // accepted済み操作・正本照合を先に待つ。main threadへ戻った後に現在装備表示を再構築し、
@@ -1028,18 +1016,15 @@ public final class AstralRecord extends JavaPlugin {
         var equipmentLoadoutRepository = new EquipmentLoadoutRepository();
         inventoryStateRegistry = new PlayerInventoryStateRegistry();
         playerStateExecutor = java.util.concurrent.Executors.newVirtualThreadPerTaskExecutor();
-        inventoryPersistence = new InventoryPersistence(inventoryRepository, equipmentLoadoutRepository, itemService);
-        inventoryPersistence.enablePlayerStateSnapshots(
-            new io.github.maaasu.astralRecord.feature.mutation.repository.PlayerStateRepository(),
-            getDataFolder().toPath().resolve("player-state-pending")
+        inventoryPersistence = new InventoryPersistence(
+            inventoryRepository,
+            equipmentLoadoutRepository,
+            itemService,
+            new io.github.maaasu.astralRecord.feature.mutation.repository.PlayerStateRepository()
         );
         inventorySaveCoordinator = new InventorySaveCoordinator(
             inventoryPersistence,
             inventoryStateRegistry,
-            playerStateExecutor
-        );
-        localMutationOutbox = new LocalMutationOutbox(
-            getDataFolder().toPath(),
             playerStateExecutor
         );
         inventoryService = new InventoryService(
@@ -1052,7 +1037,6 @@ public final class AstralRecord extends JavaPlugin {
             inventorySaveCoordinator
         );
         accountModeApplicationService = new AccountModeApplicationService(accountService, inventoryService);
-        inventoryService.setPendingLegacyMutations(localMutationOutbox::hasPending);
         accountService.setLocalPlayerSaveRequester(inventoryService::queueLocalPlayerSave);
         inventoryPersistence.registerStateParticipant(accountService::snapshotPlayerState);
         inventoryPersistence.registerStateParticipant(teleporterService::snapshotPlayerState);
@@ -1066,7 +1050,8 @@ public final class AstralRecord extends JavaPlugin {
             new PlayerSettingCache(),
             playerStateExecutor
         );
-        playerSettingService.setPersistence(getDataFolder().toPath().resolve("player-settings"));
+        playerSettingService.setLocalPlayerSaveRequester(inventoryService::queueLocalPlayerSave);
+        inventoryPersistence.registerStateParticipant(playerSettingService::snapshotPlayerState);
         // class
         playerClassService = new PlayerClassService(accountService);
         playerClassService.setInventoryService(inventoryService);
@@ -1084,12 +1069,15 @@ public final class AstralRecord extends JavaPlugin {
             playerSettingService,
             playerMessageService
         );
+        AdventureRecordStateService adventureRecordStateService = new AdventureRecordStateService(inventoryService);
+        inventoryPersistence.registerStateParticipant(adventureRecordStateService::snapshotPlayerState);
         adventureRecordService = new AdventureRecordService(
             this,
             new AdventureRecordRepository(),
             mobService,
             playerSettingService,
-            lootService
+            lootService,
+            adventureRecordStateService
         );
         particleDisplayService = new ParticleDisplayService(playerSettingService);
         skillTreeService.setParticleDisplayService(particleDisplayService);
@@ -1283,6 +1271,7 @@ public final class AstralRecord extends JavaPlugin {
             itemStackFactory,
             lootService,
             new AdventureRecordRepository(),
+            adventureRecordStateService,
             bossHubWorldId,
             new InstanceCreationQueue(instanceCreationQueueConfig.dungeon()),
             challengeParticipationRegistry,
@@ -1353,8 +1342,10 @@ public final class AstralRecord extends JavaPlugin {
             itemService,
             playerClassService,
             worldService,
-            playerMessageService
+            playerMessageService,
+            inventoryService
         );
+        inventoryPersistence.registerStateParticipant(guideService::snapshotPlayerState);
         teleporterService.setTeleportSuccessListener((player, waystoneId) ->
             guideService.recordCondition(player, GuideConditionType.WAYSTONE_TELEPORTED, waystoneId)
         );
@@ -1384,12 +1375,10 @@ public final class AstralRecord extends JavaPlugin {
         orbService = new OrbService(
             this,
             inventoryService,
-            inventorySaveCoordinator,
             inventoryStateRegistry,
             itemService,
             itemStackFactory
         );
-        orbService.setMutationOutbox(localMutationOutbox);
         orbService.setStatusService(statusService);
         orbService.setUseSuccessListener((player, orbItemId) ->
             guideService.recordCondition(player, GuideConditionType.ORB_USED, orbItemId)
@@ -1420,6 +1409,7 @@ public final class AstralRecord extends JavaPlugin {
         loginBonusService.setClaimSuccessListener(player ->
             guideService.recordCondition(player, GuideConditionType.LOGIN_BONUS_CLAIMED, null)
         );
+        inventoryPersistence.registerStateParticipant(loginBonusService::snapshotPlayerState);
         partyMemberActionGui = new PartyMemberActionGui();
         mailService = new MailService(this, new MailRepository(), itemService, inventoryService);
         mailService.setMailReceivedListener((player, mailId) ->
@@ -1451,7 +1441,7 @@ public final class AstralRecord extends JavaPlugin {
             this,
             new QuestDefinitionRepository(),
             new QuestBoardRepository(),
-            new QuestPlayerStateRepository(this),
+            new QuestPlayerStateRepository(),
             itemService,
             inventoryService,
             accountService,
@@ -1466,6 +1456,7 @@ public final class AstralRecord extends JavaPlugin {
             guideService.recordCondition(player, GuideConditionType.QUEST_COMPLETED, questId)
         );
         questService.setSkillTreeService(skillTreeService);
+        inventoryPersistence.registerStateParticipant(questService::snapshotPlayerState);
         gatheringService.setProgressionServices(
             accountService,
             playerClassService,
@@ -1614,13 +1605,6 @@ public final class AstralRecord extends JavaPlugin {
         bossMechanicService.setTemporarySkillEffectService(temporarySkillEffectService);
         skillService.registerBuiltInDefinitions(BuiltInWeaponAttackDefinitions.definitions());
         learnedSkillService = new LearnedSkillService(this, new LearnedSkillRepository(), inventoryService);
-        learnedSkillService.setMutationOutbox(localMutationOutbox);
-        localMutationOutbox.setDispatcher(command -> {
-            if (command instanceof io.github.maaasu.astralRecord.feature.mutation.model.LocalMutationCommand.EquipmentOrb) {
-                return orbService.dispatchLocalMutation(command);
-            }
-            return learnedSkillService.dispatchLocalMutation(command);
-        });
         skillOwnershipService = new SkillOwnershipService(learnedSkillService);
         skillBindPresetService.setLocalStatePersistence(inventoryService);
         inventoryPersistence.registerStateParticipant(learnedSkillService::snapshotPlayerState);
@@ -1773,7 +1757,13 @@ public final class AstralRecord extends JavaPlugin {
 
     /** Velocity ProxyとのRPGネットワーク連携を初期化します。 */
     private void setupNetworkBridge() {
-        networkBridgeService = new NetworkBridgeService(this, playerClassService, afkService);
+        networkBridgeService = new NetworkBridgeService(
+            this,
+            playerClassService,
+            afkService,
+            questService,
+            playerSessionTransitionGuard
+        );
         networkBridgeService.start();
         playerMessageService.setNetworkChatBridge(networkBridgeService);
     }
@@ -1818,7 +1808,11 @@ public final class AstralRecord extends JavaPlugin {
             new PlayerCapacityEventHandler(userService, playerCapacityService),
             getServer().getPluginManager()
         );
-        var menuToolJoinGrantService = new MenuToolJoinGrantService(itemService, inventoryService);
+        var menuToolJoinGrantService = new MenuToolJoinGrantService(
+            itemService,
+            inventoryService,
+            action -> getServer().getScheduler().runTask(this, action)
+        );
         playerJoinEventHandler = new PlayerJoinEventHandler(
             this,
             playerService,
@@ -2079,7 +2073,6 @@ public final class AstralRecord extends JavaPlugin {
         );
         var skillForgetGui = new SkillForgetGui(this);
         var skillForgetGuiEventHandler = new SkillForgetGuiEventHandler(
-            this,
             skillForgetGui,
             skillService,
             skillOwnershipService,
@@ -2508,6 +2501,15 @@ public final class AstralRecord extends JavaPlugin {
     /** Velocity Proxy連携サービスを返します。 */
     public NetworkBridgeService getNetworkBridgeService() {
         return networkBridgeService;
+    }
+
+    /**
+     * チャンネル移動とアカウント切替で共有するセッション遷移ゲートを返します。
+     *
+     * @return Plugin プロセス内で共有するセッション遷移ゲート
+     */
+    public PlayerSessionTransitionGuard getPlayerSessionTransitionGuard() {
+        return playerSessionTransitionGuard;
     }
 
     /**

@@ -15,6 +15,7 @@ import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeStatusEffe
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeUnlockCondition;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePlayerState;
 import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreePointType;
+import io.github.maaasu.astralRecord.feature.skilltree.model.SkillTreeUnlockedNode;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeNodeRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreePlayerStateRepository;
 import io.github.maaasu.astralRecord.feature.skilltree.repository.SkillTreeStructureRepository;
@@ -61,6 +62,7 @@ import static org.mockito.ArgumentMatchers.anyLong;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.mockStatic;
@@ -74,15 +76,16 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
-     * 検証契約: 現在構造にない解放済みnodeを含むログイン状態は、API補修で全解除へ置換する。
+     * 検証契約: 現在構造にない解放済みnodeを含むログイン状態は、ローカルで全解除しsnapshot保存対象にする。
      */
     @Test
-    void initialLoadRepairsStateContainingDeletedNode() {
+    void initialLoadResetsStateContainingDeletedNodeLocally() {
         UUID accountId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
         SkillTreeNodeDefinition root = node("1000");
-        SkillTreePlayerState invalidState = new SkillTreePlayerState(accountId, Set.of("1000", "9999"));
-        SkillTreePlayerState repairedState = new SkillTreePlayerState(accountId, Set.of());
+        SkillTreePlayerState invalidState = new SkillTreePlayerState(accountId, List.of(
+            new SkillTreeUnlockedNode("1000", null),
+            new SkillTreeUnlockedNode("9999", null)
+        ), 4);
         SkillTreePlayerStateRepository stateRepository = mock(SkillTreePlayerStateRepository.class);
         SkillTreeService service = newService(root, stateRepository);
         service.replaceMasterDataSnapshot(new SkillTreeService.SkillTreeMasterDataSnapshot(
@@ -92,28 +95,26 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
                 List.of()
         ));
         when(stateRepository.load(accountId)).thenReturn(invalidState);
-        when(stateRepository.repairInvalidState(eq(accountId), eq(userId), any(String.class)))
-                .thenReturn(repairedState);
 
-        SkillTreePlayerState result = service.loadInitialPlayerState(accountId, userId);
+        SkillTreePlayerState result = service.loadInitialPlayerState(accountId);
+        service.applyInitialPlayerState(result);
 
         assertTrue(result.unlockedNodeIds().isEmpty());
-        verify(stateRepository).repairInvalidState(eq(accountId), eq(userId), any(String.class));
+        assertEquals(4, service.snapshotPlayerState(accountId).payload().getAsJsonObject()
+            .get("expectedVersion").getAsInt());
     }
 
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
      * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
-     * 検証契約: rootから到達できない解放済みnodeを含むログイン状態は、全解除へ補修する。
+     * 検証契約: rootから到達できない解放済みnodeを含むログイン状態は、ローカルで全解除する。
      */
     @Test
-    void initialLoadRepairsDisconnectedUnlockedNodes() {
+    void initialLoadResetsDisconnectedUnlockedNodesLocally() {
         UUID accountId = UUID.randomUUID();
-        UUID userId = UUID.randomUUID();
         SkillTreeNodeDefinition root = node("1000");
         SkillTreeNodeDefinition disconnected = node("1001");
         SkillTreePlayerState invalidState = new SkillTreePlayerState(accountId, Set.of("1000", "1001"));
-        SkillTreePlayerState repairedState = new SkillTreePlayerState(accountId, Set.of());
         SkillTreePlayerStateRepository stateRepository = mock(SkillTreePlayerStateRepository.class);
         SkillTreeService service = newService(root, stateRepository);
         service.replaceMasterDataSnapshot(new SkillTreeService.SkillTreeMasterDataSnapshot(
@@ -126,13 +127,10 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
                 List.of()
         ));
         when(stateRepository.load(accountId)).thenReturn(invalidState);
-        when(stateRepository.repairInvalidState(eq(accountId), eq(userId), any(String.class)))
-                .thenReturn(repairedState);
 
-        SkillTreePlayerState result = service.loadInitialPlayerState(accountId, userId);
+        SkillTreePlayerState result = service.loadInitialPlayerState(accountId);
 
         assertTrue(result.unlockedNodeIds().isEmpty());
-        verify(stateRepository).repairInvalidState(eq(accountId), eq(userId), any(String.class));
     }
 
     /**
@@ -161,10 +159,9 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         ));
         when(stateRepository.load(accountId)).thenReturn(validState);
 
-        SkillTreePlayerState result = service.loadInitialPlayerState(accountId, userId);
+        SkillTreePlayerState result = service.loadInitialPlayerState(accountId);
 
         assertEquals(Set.of("1000", "1001"), result.unlockedNodeIds());
-        verify(stateRepository, never()).repairInvalidState(any(), any(), any());
     }
 
     /**
@@ -502,7 +499,7 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         AstPlayer player = astPlayer(accountId);
         service.applyInitialPlayerState(new SkillTreePlayerState(accountId, Set.of()));
 
-        service.unlockNode(player, passiveNode);
+        unlockAndAcknowledge(service, player, passiveNode);
 
         verify(passiveSkillService).reconcileSkillPermissionDelta(
                 eq(player),
@@ -542,7 +539,7 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         AstPlayer player = astPlayer(accountId);
         service.applyInitialPlayerState(new SkillTreePlayerState(accountId, Set.of()));
 
-        service.unlockNode(player, statusNode);
+        unlockAndAcknowledge(service, player, statusNode);
 
         verify(passiveSkillService).reconcileNow(player, false);
         verify(statusService).refreshStatus(player);
@@ -579,8 +576,8 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
 
         assertTrue(service.requiresCpSourceSelection(classNode));
         assertTrue(service.canUnlockNode(player, classNode));
-        assertFalse(service.unlockNode(player, classNode));
-        assertTrue(service.unlockNode(player, classNode, "hunter"));
+        assertFalse(unlockAndAcknowledge(service, player, classNode));
+        assertTrue(unlockAndAcknowledge(service, player, classNode, "hunter"));
         assertEquals("hunter", state.unlockedNode("1000").consumedClassId());
         assertEquals(0, service.availableClassPoints(player));
         assertEquals(4, service.cpSourceOptions(player).stream()
@@ -622,7 +619,7 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         SkillTreePlayerState state = new SkillTreePlayerState(accountId, Set.of());
         service.applyInitialPlayerState(state);
 
-        assertTrue(service.unlockNode(player, classNode));
+        assertTrue(unlockAndAcknowledge(service, player, classNode));
         assertEquals("adventurer", state.unlockedNode("1000").consumedClassId());
         assertEquals(9, service.availableClassPoints(player));
         assertEquals(0, service.cpSourceOptions(player).stream()
@@ -943,7 +940,7 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         service.applyInitialPlayerState(local);
         service.markDirty(local);
         var sent = service.snapshotPlayerState(accountId);
-        assertEquals(local.unlockedNodeIds(), service.loadInitialPlayerState(accountId, UUID.randomUUID()).unlockedNodeIds());
+        assertEquals(local.unlockedNodeIds(), service.loadInitialPlayerState(accountId).unlockedNodeIds());
         com.google.gson.JsonObject ack = new com.google.gson.JsonObject();
         ack.addProperty("clientRevision", sent.payload().getAsJsonObject().get("clientRevision").getAsLong());
         ack.addProperty("version", 9);
@@ -955,7 +952,6 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
         assertEquals(9, next.get("expectedVersion").getAsInt());
         assertEquals(10, next.get("targetVersion").getAsInt());
         verify(repository, never()).load(accountId);
-        verify(repository, never()).repairInvalidState(any(), any(), any());
     }
 
     /**
@@ -1027,6 +1023,10 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
             java.util.function.Supplier<?> mutation = invocation.getArgument(1);
             return mutation.get();
         }).when(inventoryService).executeLocalPlayerMutation(any(UUID.class), any());
+        doAnswer(invocation -> {
+            java.util.function.Supplier<io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator.CriticalMutation<?>> mutation = invocation.getArgument(1);
+            return java.util.concurrent.CompletableFuture.completedFuture(mutation.get().result());
+        }).when(inventoryService).executeCriticalPlayerMutation(any(UUID.class), any());
         when(inventoryService.consumeGold(any(UUID.class), anyLong())).thenReturn(true);
 
         Plugin plugin = mock(Plugin.class);
@@ -1046,6 +1046,61 @@ class SkillTreeServiceTest extends MockBukkitTestBase {
             putRootNodeId(service, node.nodeId());
         }
         return service;
+    }
+
+    private boolean unlockAndAcknowledge(
+            SkillTreeService service,
+            AstPlayer player,
+            SkillTreeNodeDefinition node
+    ) {
+        SkillTreeService.SkillTreeMutationResult mutation = service.unlockNodeAsync(player, node).join();
+        service.acknowledgeCommittedNodeMutation(player, node, mutation, true);
+        return mutation.changed();
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 11. skill tree unlock・relock・派生効果
+     * 検証契約: SQL ACK失敗時のrelockはnode状態とgold snapshotを復元する。
+     */
+    @Test
+    void relockRestoresNodeAndGoldSnapshotWhenSqlAckFails() {
+        SkillTreeNodeDefinition root = node("1000");
+        SkillTreeService service = newService(root);
+        UUID accountId = UUID.fromString("00000000-0000-0000-0000-000000000590");
+        AstPlayer player = astPlayer(accountId);
+        service.applyInitialPlayerState(new SkillTreePlayerState(accountId, Set.of(root.nodeId())));
+
+        InventoryService failingPersistence = mock(InventoryService.class);
+        InventoryService.InventoryStateSnapshot inventoryBefore = new InventoryService.InventoryStateSnapshot(
+            accountId, Map.of(), io.github.maaasu.astralRecord.feature.inventory.model.InventoryType.BAG, false
+        );
+        when(failingPersistence.snapshotState(accountId)).thenReturn(inventoryBefore);
+        when(failingPersistence.consumeGold(accountId, SkillTreeService.RELOCK_GOLD_COST)).thenReturn(true);
+        doAnswer(invocation -> {
+            java.util.function.Supplier<io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator.CriticalMutation<?>> mutation = invocation.getArgument(1);
+            io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator.CriticalMutation<?> committed = mutation.get();
+            committed.rollback().run();
+            return java.util.concurrent.CompletableFuture.failedFuture(new IllegalStateException("SQL ACK failed"));
+        }).when(failingPersistence).executeCriticalPlayerMutation(any(UUID.class), any());
+        service.setInventoryService(failingPersistence);
+
+        assertThrows(java.util.concurrent.CompletionException.class,
+                () -> service.relockNodeAsync(player, root).join());
+
+        assertTrue(service.isNodeUnlocked(player, root));
+        verify(failingPersistence).restoreState(inventoryBefore);
+    }
+
+    private boolean unlockAndAcknowledge(
+            SkillTreeService service,
+            AstPlayer player,
+            SkillTreeNodeDefinition node,
+            String consumedClassId
+    ) {
+        SkillTreeService.SkillTreeMutationResult mutation = service.unlockNodeAsync(player, node, consumedClassId).join();
+        service.acknowledgeCommittedNodeMutation(player, node, mutation, true);
+        return mutation.changed();
     }
 
     private SkillTreeService.SkillTreeMasterDataSnapshot emptyMasterDataSnapshot() {

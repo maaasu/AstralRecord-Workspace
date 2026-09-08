@@ -1,13 +1,11 @@
 package io.github.maaasu.astralRecord.feature.playersetting.service;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
-import java.util.List;
-
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
-import io.github.maaasu.astralRecord.feature.playersetting.OptimisticLockConflictException;
-import io.github.maaasu.astralRecord.feature.playersetting.PlayerSettingMsgId;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
+import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.playersetting.cache.PlayerSettingCache;
 import io.github.maaasu.astralRecord.feature.playersetting.model.ParticleDensity;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingChangeRequest;
@@ -16,88 +14,61 @@ import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingKe
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingModel;
 import io.github.maaasu.astralRecord.feature.playersetting.model.PlayerSettingSnapshot;
 import io.github.maaasu.astralRecord.feature.playersetting.repository.PlayerSettingRepository;
-import io.github.maaasu.astralRecord.feature.mutation.service.PendingStateStore;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import java.util.EnumMap;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
-import java.nio.file.Path;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.concurrent.locks.ReentrantLock;
+import java.util.function.Consumer;
 import java.util.function.Supplier;
 
-/**
- * プレイヤー設定のロード・参照・更新を扱うサービスです。
- */
+/** 初期 GET、cache 参照、player-state section の作成を扱う設定サービスです。 */
 public final class PlayerSettingService {
     private static final long NO_ACTIVE_SESSION = 0L;
-
+    private static final String SECTION_NAME = "playerSettings";
     private final PlayerSettingRepository repository;
     private final PlayerSettingDefaults defaults;
     private final PlayerSettingCache cache;
-    private final Executor asyncExecutor;
     private final Object sessionMonitor = new Object();
     private final AtomicLong sessionSequence = new AtomicLong();
+    private final AtomicLong revisionSequence = new AtomicLong();
     private final ConcurrentMap<UUID, Long> activeSessionTokens = new ConcurrentHashMap<>();
     private final ConcurrentMap<UUID, UserOperationLock> operationLocks = new ConcurrentHashMap<>();
-    /** userごとの API delivery を一つにし、shutdown drain と通常再送を重複送信させない。 */
-    private final ConcurrentMap<UUID, Object> deliveryLocks = new ConcurrentHashMap<>();
-    /** capture後の古いpayloadが新しいpending fileを上書きしないためのwriter直列化。 */
-    private final ConcurrentMap<UUID, Object> pendingFileWriteLocks = new ConcurrentHashMap<>();
+    private final ConcurrentMap<UUID, UUID> userIdsByAccount = new ConcurrentHashMap<>();
+    private final ConcurrentMap<UUID, UUID> accountIdsByUser = new ConcurrentHashMap<>();
+    private volatile Consumer<UUID> localPlayerSaveRequester = ignored -> { };
+    /** 通信失敗時にも disk へ退避せず memory に保持する dirty state。 */
     private final ConcurrentMap<UUID, EnumMap<PlayerSettingKey, PendingSetting>> pendingSettings = new ConcurrentHashMap<>();
-    private final ConcurrentMap<UUID, Boolean> deliveryScheduled = new ConcurrentHashMap<>();
-    private final ConcurrentMap<UUID, RetryState> deliveryRetries = new ConcurrentHashMap<>();
-    private final AtomicLong pendingRevisionSequence = new AtomicLong();
-    private @Nullable PendingStateStore pendingStateStore;
 
-    public PlayerSettingService(
-        @NotNull PlayerSettingRepository repository,
-        @NotNull PlayerSettingDefaults defaults,
-        @NotNull PlayerSettingCache cache
-    ) {
-        this(repository, defaults, cache, Runnable::run);
-    }
-
-    /**
-     * プレイヤー設定サービスを構築します。
-     *
-     * @param repository API 通信を行う repository
-     * @param defaults key ごとの既定値
-     * @param cache online session 用の snapshot cache
-     * @param asyncExecutor API 送信と再送を実行する非同期 executor
-     */
-    public PlayerSettingService(
-        @NotNull PlayerSettingRepository repository,
-        @NotNull PlayerSettingDefaults defaults,
-        @NotNull PlayerSettingCache cache,
-        @NotNull Executor asyncExecutor
-    ) {
+    public PlayerSettingService(@NotNull PlayerSettingRepository repository, @NotNull PlayerSettingDefaults defaults,
+                                @NotNull PlayerSettingCache cache) {
         this.repository = repository;
         this.defaults = defaults;
         this.cache = cache;
-        this.asyncExecutor = asyncExecutor;
     }
 
-    /**
-     * 現在のセッションに対して設定をロードします。
-     *
-     * @param userId ロード対象ユーザー ID
-     * @return ロードした設定スナップショット
-     */
+    /** 独自 writer 廃止後も既存の生成箇所と互換にする。executor は使用しない。 */
+    public PlayerSettingService(@NotNull PlayerSettingRepository repository, @NotNull PlayerSettingDefaults defaults,
+                                @NotNull PlayerSettingCache cache, @NotNull Executor ignoredAsyncExecutor) {
+        this(repository, defaults, cache);
+    }
+
+    /** 初期 GET の結果を current session の cache へ公開する。 */
     public @NotNull PlayerSettingSnapshot loadPlayerSettings(@NotNull UUID userId) {
-        long sessionToken = captureSessionToken(userId);
-        return withUserOperationLock(userId, () -> loadPlayerSettingsLocked(userId, sessionToken));
+        return withLock(userId, () -> loadPlayerSettingsLocked(userId, captureSessionToken(userId)));
     }
 
-    private @NotNull PlayerSettingSnapshot loadPlayerSettingsLocked(@NotNull UUID userId, long sessionToken) {
+    private @NotNull PlayerSettingSnapshot loadPlayerSettingsLocked(@NotNull UUID userId, long token) {
         Map<PlayerSettingKey, PlayerSettingEntry> entries = createDefaultEntries();
         try {
             for (PlayerSettingModel model : repository.findByUserId(userId)) {
@@ -106,809 +77,319 @@ public final class PlayerSettingService {
                     Logger.log(LogId.W_5311, userId, model.getSettingKey(), "unknown key");
                     continue;
                 }
-                Object value = parseJsonValue(key, model.getSettingValueJson(), userId);
-                entries.put(key, new PlayerSettingEntry(
-                    model.getUserSettingId(),
-                    key,
-                    value,
-                    model.getVersion()
-                ));
+                entries.put(key, new PlayerSettingEntry(model.getUserSettingId(), key,
+                    parseJsonValue(key, model.getSettingValueJson(), userId), model.getVersion()));
             }
-        } catch (Exception e) {
-            Logger.log(LogId.W_5310, userId, e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+        } catch (Exception exception) {
+            Logger.log(LogId.W_5310, userId,
+                exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage());
         }
-
         PlayerSettingSnapshot snapshot = overlayPending(new PlayerSettingSnapshot(userId, entries));
-        publishIfSessionActive(snapshot, sessionToken);
+        publishIfActive(snapshot, token);
         return snapshot;
     }
 
-    /**
-     * ログインセッションを開始し、後続の非同期処理で使用するトークンを返します。
-     *
-     * @param userId セッションを開始するユーザー ID
-     * @return 新しいセッショントークン
-     */
     public long beginSession(@NotNull UUID userId) {
         synchronized (sessionMonitor) {
-            long sessionToken = nextSessionToken();
-            activeSessionTokens.put(userId, sessionToken);
-            if (!hasPendingSettings(userId)) {
-                cache.remove(userId);
-            }
-            return sessionToken;
+            long token = nextSessionToken();
+            activeSessionTokens.put(userId, token);
+            if (!hasPending(userId)) cache.remove(userId);
+            return token;
         }
     }
 
-    /**
-     * 現在有効なログインセッションのトークンを取得します。
-     *
-     * @param userId 対象ユーザー ID
-     * @return 有効なセッションのトークン。未ログインの場合は {@code 0}
-     */
     public long captureSessionToken(@NotNull UUID userId) {
         return activeSessionTokens.getOrDefault(userId, NO_ACTIVE_SESSION);
     }
 
-    /**
-     * 指定セッション向けに設定キャッシュを準備します。
-     *
-     * @param userId 対象ユーザー ID
-     * @param sessionToken ログイン時に取得したセッショントークン
-     */
-    public void warmup(@NotNull UUID userId, long sessionToken) {
-        withUserOperationLock(userId, () -> {
-            loadPlayerSettingsLocked(userId, sessionToken);
-            return null;
-        });
-        scheduleDelivery(userId, 0L);
+    /** 設定変更を account 単位の 200ms 集約保存へ接続します。 */
+    public void setLocalPlayerSaveRequester(@NotNull Consumer<UUID> requester) {
+        localPlayerSaveRequester = requester;
     }
 
-    /**
-     * ログインセッションと設定キャッシュを破棄します。
-     *
-     * @param userId 対象ユーザー ID
-     */
+    /** 初期 GET 専用。個別 POST/PUT と独自再送は行わない。 */
+    public void warmup(@NotNull UUID userId, long token) {
+        withLock(userId, () -> { loadPlayerSettingsLocked(userId, token); return null; });
+    }
+
     public void clear(@NotNull UUID userId) {
         synchronized (sessionMonitor) {
             activeSessionTokens.remove(userId);
-            if (!hasPendingSettings(userId)) {
+            if (!hasPending(userId)) {
                 cache.remove(userId);
+                forgetAccount(userId);
             }
         }
     }
 
     public @NotNull PlayerSettingSnapshot getSnapshot(@NotNull UUID userId) {
         PlayerSettingSnapshot snapshot = cache.find(userId);
-        if (snapshot != null) {
-            return snapshot;
-        }
-        long sessionToken = captureSessionToken(userId);
-        return withUserOperationLock(userId, () -> {
-            PlayerSettingSnapshot cachedSnapshot = cache.find(userId);
-            if (cachedSnapshot != null) {
-                return cachedSnapshot;
-            }
-            return loadPlayerSettingsLocked(userId, sessionToken);
+        if (snapshot != null) return snapshot;
+        return withLock(userId, () -> {
+            PlayerSettingSnapshot cached = cache.find(userId);
+            return cached == null ? loadPlayerSettingsLocked(userId, captureSessionToken(userId)) : cached;
         });
     }
 
     public @NotNull Object getPlayerSetting(@NotNull UUID userId, @NotNull PlayerSettingKey key) {
         PlayerSettingEntry entry = getSnapshot(userId).getEntry(key);
-        if (entry != null) {
-            return entry.getValue();
-        }
-        return defaults.resolveDefault(key);
+        return entry == null ? defaults.resolveDefault(key) : entry.getValue();
     }
 
     public double getParticleDensityScale(@NotNull UUID userId) {
         Object value = getPlayerSetting(userId, PlayerSettingKey.PARTICLE_DENSITY);
-        if (value instanceof ParticleDensity density) {
-            return density.getDensityScale();
-        }
-        return ParticleDensity.NORMAL.getDensityScale();
+        return value instanceof ParticleDensity density ? density.getDensityScale() : ParticleDensity.NORMAL.getDensityScale();
     }
+    public boolean isDamageLogDisplayEnabled(@NotNull UUID userId) { return booleanSetting(userId, PlayerSettingKey.DAMAGE_LOG_DISPLAY, true); }
+    public boolean isDamageLogMessageEnabled(@NotNull UUID userId) { return booleanSetting(userId, PlayerSettingKey.DAMAGE_LOG_MESSAGE, false); }
+    public boolean isPerformanceInfoDisplayEnabled(@NotNull UUID userId) { return booleanSetting(userId, PlayerSettingKey.PERFORMANCE_INFO_DISPLAY, false); }
+    public boolean isBuffSidebarDisplayEnabled(@NotNull UUID userId) { return booleanSetting(userId, PlayerSettingKey.BUFF_SIDEBAR_DISPLAY, false); }
+    public boolean isDropLogDisplayEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.DROP_LOG_DISPLAY, true); }
+    public boolean isAutoSaveMessageEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.AUTO_SAVE_MESSAGE, false); }
+    public boolean isArmorDisplayEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.ARMOR_DISPLAY, true); }
+    public boolean isActionRingHoldSelectEnabled(@NotNull UUID userId) { return cachedBooleanSetting(userId, PlayerSettingKey.ACTION_RING_HOLD_SELECT, false); }
 
-    /**
-     * 指定プレイヤーでダメージログ表示が有効かを返します。
-     *
-     * @param userId 判定対象ユーザー ID
-     * @return ダメージログ表示が有効な場合は {@code true}
-     */
-    public boolean isDamageLogDisplayEnabled(@NotNull UUID userId) {
-        Object value = getPlayerSetting(userId, PlayerSettingKey.DAMAGE_LOG_DISPLAY);
-        return value instanceof Boolean enabled ? enabled : (Boolean) PlayerSettingKey.DAMAGE_LOG_DISPLAY.getDefaultValue();
-    }
-
-    /**
-     * 指定プレイヤーでレアドロップログ表示が有効かを返します。
-     *
-     * @param userId 判定対象ユーザー ID
-     * @return レアドロップログ表示が有効な場合は {@code true}
-     */
-    public boolean isDropLogDisplayEnabled(@NotNull UUID userId) {
-        PlayerSettingSnapshot snapshot = cache.find(userId);
-        if (snapshot == null) {
-            return (Boolean) PlayerSettingKey.DROP_LOG_DISPLAY.getDefaultValue();
-        }
-        PlayerSettingEntry entry = snapshot.getEntry(PlayerSettingKey.DROP_LOG_DISPLAY);
-        Object value = entry == null ? null : entry.getValue();
-        return value instanceof Boolean enabled ? enabled : (Boolean) PlayerSettingKey.DROP_LOG_DISPLAY.getDefaultValue();
-    }
-
-    /**
-     * 指定プレイヤーでダメージ詳細メッセージが有効かを返します。
-     *
-     * @param userId 判定対象ユーザー ID
-     * @return ダメージ詳細メッセージが有効な場合は {@code true}
-     */
-    public boolean isDamageLogMessageEnabled(@NotNull UUID userId) {
-        Object value = getPlayerSetting(userId, PlayerSettingKey.DAMAGE_LOG_MESSAGE);
-        return value instanceof Boolean enabled ? enabled : (Boolean) PlayerSettingKey.DAMAGE_LOG_MESSAGE.getDefaultValue();
-    }
-
-    /**
-     * 指定プレイヤーで MSPT・Ping の診断表示が有効かを返します。
-     *
-     * @param userId 判定対象ユーザー ID
-     * @return 診断表示が有効な場合は {@code true}
-     */
-    public boolean isPerformanceInfoDisplayEnabled(@NotNull UUID userId) {
-        Object value = getPlayerSetting(userId, PlayerSettingKey.PERFORMANCE_INFO_DISPLAY);
-        return value instanceof Boolean enabled
-                ? enabled
-                : (Boolean) PlayerSettingKey.PERFORMANCE_INFO_DISPLAY.getDefaultValue();
-    }
-
-    /**
-     * 指定プレイヤーでバフ情報のサイドバー表示が有効かを返します。
-     *
-     * @param userId 判定対象ユーザー ID
-     * @return バフ情報をサイドバーへ表示する場合は {@code true}
-     */
-    public boolean isBuffSidebarDisplayEnabled(@NotNull UUID userId) {
-        Object value = getPlayerSetting(userId, PlayerSettingKey.BUFF_SIDEBAR_DISPLAY);
-        return value instanceof Boolean enabled
-                ? enabled
-                : (Boolean) PlayerSettingKey.BUFF_SIDEBAR_DISPLAY.getDefaultValue();
-    }
-
-    /**
-     * 指定プレイヤーでオートセーブメッセージが有効かを返します。
-     *
-     * @param userId 判定対象ユーザー ID
-     * @return オートセーブメッセージが有効な場合は {@code true}
-     */
-    public boolean isAutoSaveMessageEnabled(@NotNull UUID userId) {
-        PlayerSettingSnapshot snapshot = cache.find(userId);
-        if (snapshot == null) {
-            return (Boolean) PlayerSettingKey.AUTO_SAVE_MESSAGE.getDefaultValue();
-        }
-        PlayerSettingEntry entry = snapshot.getEntry(PlayerSettingKey.AUTO_SAVE_MESSAGE);
-        Object value = entry == null ? null : entry.getValue();
-        return value instanceof Boolean enabled
-                ? enabled
-                : (Boolean) PlayerSettingKey.AUTO_SAVE_MESSAGE.getDefaultValue();
-    }
-
-    /**
-     * 指定プレイヤーで防具の身体描画が有効かを、API 通信を行わずキャッシュから返します。
-     *
-     * <p>パケット送信スレッドから呼ばれるため、cache miss 時は既定値へ直ちに
-     * fallback します。</p>
-     *
-     * @param userId 判定対象ユーザー ID
-     * @return 防具の身体描画が有効な場合は {@code true}
-     */
-    public boolean isArmorDisplayEnabled(@NotNull UUID userId) {
-        PlayerSettingSnapshot snapshot = cache.find(userId);
-        if (snapshot == null) {
-            return (Boolean) PlayerSettingKey.ARMOR_DISPLAY.getDefaultValue();
-        }
-        PlayerSettingEntry entry = snapshot.getEntry(PlayerSettingKey.ARMOR_DISPLAY);
-        Object value = entry == null ? null : entry.getValue();
-        return value instanceof Boolean enabled
-            ? enabled
-            : (Boolean) PlayerSettingKey.ARMOR_DISPLAY.getDefaultValue();
-    }
-
-    /**
-     * 指定プレイヤーでアクションリング長押し選択が有効かを、API 通信を行わずキャッシュから返します。
-     *
-     * <p>クリック入力の処理中に呼ばれるため、cache miss 時は従来操作を維持する既定値 {@code false} へ
-     * 直ちに fallback します。</p>
-     *
-     * @param userId 判定対象ユーザー ID
-     * @return 長押しで選択を確定する場合は {@code true}
-     */
-    public boolean isActionRingHoldSelectEnabled(@NotNull UUID userId) {
-        PlayerSettingSnapshot snapshot = cache.find(userId);
-        if (snapshot == null) {
-            return (Boolean) PlayerSettingKey.ACTION_RING_HOLD_SELECT.getDefaultValue();
-        }
-        PlayerSettingEntry entry = snapshot.getEntry(PlayerSettingKey.ACTION_RING_HOLD_SELECT);
-        Object value = entry == null ? null : entry.getValue();
-        return value instanceof Boolean enabled
-            ? enabled
-            : (Boolean) PlayerSettingKey.ACTION_RING_HOLD_SELECT.getDefaultValue();
-    }
-
-    /**
-     * 指定セッションのプレイヤー設定を更新します。
-     *
-     * <p>同一ユーザーの更新は直列化されます。呼び出し元はリポジトリ通信を Bukkit
-     * メインスレッド外で実行してください。</p>
-     *
-     * @param request 設定変更要求
-     * @param sessionToken 非同期処理の開始前に取得したセッショントークン
-     * @return 更新結果
-     */
-    public @NotNull UpdateResult updatePlayerSetting(
-        @NotNull PlayerSettingChangeRequest request,
-        long sessionToken
-    ) {
-        return withUserOperationLock(
-            request.userId(),
-            () -> updatePlayerSettingLocked(request, sessionToken)
-        );
-    }
-
-    private @NotNull UpdateResult updatePlayerSettingLocked(
-        @NotNull PlayerSettingChangeRequest request,
-        long sessionToken
-    ) {
-        if (!isSessionActive(request.userId(), sessionToken)) {
-            return UpdateResult.staleSession(request.settingKey());
-        }
-
-        PlayerSettingSnapshot snapshot = cache.find(request.userId());
-        if (snapshot == null) {
-            // Bukkit main thread の設定操作で API 読込を発生させない。join warmup の遅延中でも
-            // 既定値から直ちにローカル反映し、取得結果は pending 値の metadata だけへ重ねる。
-            snapshot = new PlayerSettingSnapshot(request.userId(), createDefaultEntries());
-            publishIfSessionActive(snapshot, sessionToken);
-        }
-
-        PlayerSettingEntry currentEntry = snapshot.getEntry(request.settingKey());
-        if (currentEntry == null) {
-            currentEntry = defaultEntry(request.settingKey());
-        }
-
-        PlayerSettingEntry localEntry = new PlayerSettingEntry(
-            currentEntry.getUserSettingId(), request.settingKey(), request.newValue(), currentEntry.getVersion()
-        );
-        publishIfSessionActive(snapshot.withEntry(localEntry), sessionToken);
-        PendingSetting pending = new PendingSetting(
-            request.settingKey(), request.newValue(), request.requestedBy(), pendingRevisionSequence.incrementAndGet()
-        );
-        pendingSettings.compute(request.userId(), (ignored, current) -> {
-            EnumMap<PlayerSettingKey, PendingSetting> updated = current == null
-                ? new EnumMap<>(PlayerSettingKey.class)
-                : new EnumMap<>(current);
-            updated.put(request.settingKey(), pending);
-            return updated;
-        });
-        scheduleDelivery(request.userId(), 0L);
-        return UpdateResult.success(request.settingKey(), request.newValue());
-    }
-
-    /**
-     * 未送信の設定を非同期 write-behind に登録します。同一 user/key は最後の値だけを送信し、
-     * API 応答は値をロールバックせず ID・version metadata のみを更新します。
-     *
-     * @param userId 送信対象ユーザー ID
-     * @param delayMillis 再送までの待機時間
-     */
-    private void scheduleDelivery(@NotNull UUID userId, long delayMillis) {
-        if (deliveryScheduled.putIfAbsent(userId, Boolean.TRUE) != null) {
-            return;
-        }
-        long actualDelay = Math.max(delayMillis, remainingRetryDelayMillis(userId));
-        try {
-            java.util.concurrent.CompletableFuture.delayedExecutor(
-                actualDelay,
-                java.util.concurrent.TimeUnit.MILLISECONDS,
-                asyncExecutor
-            ).execute(() -> deliverPending(userId));
-        } catch (Throwable schedulingFailure) {
-            deliveryScheduled.remove(userId);
-            Logger.log(LogId.W_5312, userId, schedulingFailure.getClass().getSimpleName());
-        }
-    }
-
-    private void deliverPending(@NotNull UUID userId) {
-        deliveryScheduled.remove(userId);
-        long remainingRetryDelay = remainingRetryDelayMillis(userId);
-        if (remainingRetryDelay > 0L) {
-            scheduleDelivery(userId, remainingRetryDelay);
-            return;
-        }
-        withDeliveryLock(userId, () -> deliverPendingLocked(userId));
-    }
-
-    private void deliverPendingLocked(@NotNull UUID userId) {
-        PendingSetting pending = nextPendingSetting(userId);
-        if (pending == null) {
-            return;
-        }
-
-        try {
-            deliverOne(userId, pending);
-        } catch (RuntimeException failure) {
-            Logger.log(LogId.W_5312, userId, failure.getMessage() == null
-                ? failure.getClass().getSimpleName()
-                : failure.getMessage());
-            scheduleDelivery(userId, registerDeliveryFailure(userId));
-            return;
-        }
-        scheduleDelivery(userId, 0L);
-    }
-
-    private @Nullable PendingSetting nextPendingSetting(@NotNull UUID userId) {
-        return withUserOperationLock(userId, () -> {
-            EnumMap<PlayerSettingKey, PendingSetting> entries = pendingSettings.get(userId);
-            if (entries == null || entries.isEmpty()) {
-                return null;
-            }
-            return entries.values().iterator().next();
-        });
-    }
-
-    private void deliverOne(@NotNull UUID userId, @NotNull PendingSetting pending) {
-        DeliveryContext context = withUserOperationLock(userId, () -> {
-            PendingSetting currentPending = pendingSetting(userId, pending.key());
-            if (currentPending != pending) {
-                return null;
-            }
-            PlayerSettingSnapshot snapshot = cache.find(userId);
-            PlayerSettingEntry currentEntry = snapshot == null ? defaultEntry(pending.key()) : snapshot.getEntry(pending.key());
-            if (currentEntry == null) {
-                currentEntry = defaultEntry(pending.key());
-            }
-            return new DeliveryContext(currentPending, currentEntry, serializeValue(pending.key(), pending.value()));
-        });
-        if (context == null) {
-            return;
-        }
-        persistPendingSettings(userId);
-        try {
-            PlayerSettingModel updated = context.entry().getUserSettingId() == null || context.entry().getVersion() == null
-                ? repository.create(userId, pending.key().getCode(), context.valueJson(), pending.requestedBy())
-                : repository.update(
-                    context.entry().getUserSettingId(),
-                    context.valueJson(),
-                    context.entry().getVersion(),
-                    pending.requestedBy()
-                );
-            if (updated == null) {
-                updated = repository.create(userId, pending.key().getCode(), context.valueJson(), pending.requestedBy());
-            }
-            PlayerSettingModel acknowledged = updated;
-            withUserOperationLock(userId, () -> {
-                acknowledgeMetadata(userId, context.pending(), acknowledged);
-                return null;
+    /** Bukkit 操作時は cache と dirty state だけを即時更新する。 */
+    public @NotNull UpdateResult updatePlayerSetting(@NotNull PlayerSettingChangeRequest request, long token) {
+        UUID accountId = rememberOnlineAccount(request.userId());
+        UpdateResult result = withLock(request.userId(), () -> {
+            if (!isActive(request.userId(), token)) return UpdateResult.staleSession(request.settingKey());
+            PlayerSettingSnapshot snapshot = cache.find(request.userId());
+            if (snapshot == null) snapshot = new PlayerSettingSnapshot(request.userId(), createDefaultEntries());
+            PlayerSettingEntry old = snapshot.getEntry(request.settingKey());
+            if (old == null) old = defaultEntry(request.settingKey());
+            cache.put(snapshot.withEntry(new PlayerSettingEntry(old.getUserSettingId(), request.settingKey(),
+                request.newValue(), old.getVersion())));
+            PendingSetting pending = new PendingSetting(request.settingKey(), revisionSequence.incrementAndGet());
+            pendingSettings.compute(request.userId(), (ignored, previous) -> {
+                EnumMap<PlayerSettingKey, PendingSetting> next = previous == null
+                    ? new EnumMap<>(PlayerSettingKey.class) : new EnumMap<>(previous);
+                next.put(request.settingKey(), pending);
+                return next;
             });
-            deliveryRetries.remove(userId);
-            // ACK直後に新しいdirtyが入っても、最新pendingを再判定する単一writerへ委譲する。
-            persistPendingSettings(userId);
-        } catch (OptimisticLockConflictException conflict) {
-            withUserOperationLock(userId, () -> {
-                // 最新 version を取り込みつつ、ユーザーが最後に選んだ値は維持して再送する。
-                applyLatestMetadata(userId, pending.key(), pending.value(), conflict.getCurrent());
-                return null;
-            });
-            scheduleDelivery(userId, 250L);
-        }
-    }
-
-    private long remainingRetryDelayMillis(@NotNull UUID userId) {
-        RetryState retry = deliveryRetries.get(userId);
-        return retry == null ? 0L : Math.max(0L, retry.nextAllowedAtMillis() - System.currentTimeMillis());
-    }
-
-    private long registerDeliveryFailure(@NotNull UUID userId) {
-        long now = System.currentTimeMillis();
-        RetryState retry = deliveryRetries.compute(userId, (ignored, current) -> {
-            int attempt = current == null ? 1 : current.attempt() + 1;
-            return new RetryState(attempt, now + retryDelayMillis(attempt));
+            return UpdateResult.success(request.settingKey(), request.newValue());
         });
-        return Math.max(0L, retry.nextAllowedAtMillis() - now);
-    }
-
-    static long retryDelayMillis(int attempt) {
-        int normalizedAttempt = Math.max(1, attempt);
-        long seconds = 1L << Math.min(normalizedAttempt - 1, 5);
-        return Math.min(30L, seconds) * 1_000L;
-    }
-
-    private void acknowledgeMetadata(
-        @NotNull UUID userId,
-        @NotNull PendingSetting delivered,
-        @NotNull PlayerSettingModel updated
-    ) {
-        updateEntryMetadata(userId, delivered.key(), delivered.value(), updated);
-        pendingSettings.computeIfPresent(userId, (ignored, entries) -> {
-            EnumMap<PlayerSettingKey, PendingSetting> remaining = new EnumMap<>(entries);
-            if (remaining.get(delivered.key()) == delivered) {
-                remaining.remove(delivered.key());
-            }
-            return remaining.isEmpty() ? null : remaining;
-        });
-    }
-
-    private void applyLatestMetadata(
-        @NotNull UUID userId,
-        @NotNull PlayerSettingKey key,
-        @NotNull Object desiredValue,
-        @NotNull PlayerSettingModel latest
-    ) {
-        updateEntryMetadata(userId, key, desiredValue, latest);
-    }
-
-    private void updateEntryMetadata(
-        @NotNull UUID userId,
-        @NotNull PlayerSettingKey key,
-        @NotNull Object desiredValue,
-        @NotNull PlayerSettingModel model
-    ) {
-        PlayerSettingSnapshot snapshot = cache.find(userId);
-        if (snapshot == null) {
-            snapshot = new PlayerSettingSnapshot(userId, createDefaultEntries());
+        if (result.success() && accountId != null) {
+            localPlayerSaveRequester.accept(accountId);
         }
-        PlayerSettingEntry existing = snapshot.getEntry(key);
-        Object currentValue = existing == null ? desiredValue : existing.getValue();
-        cache.put(snapshot.withEntry(new PlayerSettingEntry(
-            model.getUserSettingId(), key, currentValue, model.getVersion()
-        )));
+        return result;
     }
 
-    private @NotNull PlayerSettingSnapshot overlayPending(@NotNull PlayerSettingSnapshot snapshot) {
-        EnumMap<PlayerSettingKey, PendingSetting> pending = pendingSettings.get(snapshot.getUserId());
-        if (pending == null || pending.isEmpty()) {
-            return snapshot;
+    /** dirty な完成状態を通常 save lane 用の section として返す。 */
+    public @Nullable PlayerStateSection snapshotPlayerState(@NotNull UUID accountId) {
+        UUID userId = resolveUserId(accountId);
+        if (userId == null) return null;
+        CapturedSnapshot captured = withLock(userId, () -> capture(userId));
+        if (captured == null) return null;
+        JsonObject payload = new JsonObject();
+        payload.addProperty("userId", userId.toString());
+        payload.addProperty("clientRevision", captured.revision());
+        JsonArray settings = new JsonArray();
+        for (CapturedSetting setting : captured.settings().values()) {
+            JsonObject entry = new JsonObject();
+            entry.addProperty("userSettingId", setting.id().toString());
+            entry.addProperty("settingKey", setting.key().getCode());
+            entry.addProperty("settingValueJson", serializeValue(setting.key(), setting.value()));
+            if (setting.expectedVersion() != null) entry.addProperty("expectedVersion", setting.expectedVersion());
+            settings.add(entry);
         }
-        PlayerSettingSnapshot overlaid = snapshot;
-        for (PendingSetting entry : pending.values()) {
-            PlayerSettingEntry remote = overlaid.getEntry(entry.key());
-            overlaid = overlaid.withEntry(new PlayerSettingEntry(
-                remote == null ? null : remote.getUserSettingId(),
-                entry.key(),
-                entry.value(),
-                remote == null ? null : remote.getVersion()
-            ));
-        }
-        return overlaid;
+        payload.add("settings", settings);
+        return new PlayerStateSection(SECTION_NAME, payload, ack -> acknowledge(captured, ack));
     }
 
-    private @Nullable PendingSetting pendingSetting(@NotNull UUID userId, @NotNull PlayerSettingKey key) {
-        EnumMap<PlayerSettingKey, PendingSetting> settings = pendingSettings.get(userId);
-        return settings == null ? null : settings.get(key);
-    }
-
-    private boolean hasPendingSettings(@NotNull UUID userId) {
-        EnumMap<PlayerSettingKey, PendingSetting> settings = pendingSettings.get(userId);
-        return settings != null && !settings.isEmpty();
-    }
-
-    private void persistPendingSettings(@NotNull UUID userId) {
-        PendingStateStore store = pendingStateStore;
-        if (store == null) {
-            return;
-        }
-        withPendingFileWriteLock(userId, () -> {
-            String payload = withUserOperationLock(userId, () -> serializePendingSettings(userId));
-            if (payload == null) {
-                store.delete(userId);
-                return;
-            }
-            store.write(userId, payload);
-        });
-    }
-
-    private @Nullable String serializePendingSettings(@NotNull UUID userId) {
-        EnumMap<PlayerSettingKey, PendingSetting> pending = pendingSettings.get(userId);
-        if (pending == null || pending.isEmpty()) {
-            return null;
-        }
-        JsonObject root = new JsonObject();
-        com.google.gson.JsonArray entries = new com.google.gson.JsonArray();
-        for (PendingSetting entry : pending.values()) {
-            JsonObject value = new JsonObject();
-            value.addProperty("key", entry.key().getCode());
-            value.addProperty("valueJson", serializeValue(entry.key(), entry.value()));
-            value.addProperty("requestedBy", entry.requestedBy().toString());
-            value.addProperty("revision", entry.revision());
-            entries.add(value);
-        }
-        root.add("entries", entries);
-        return root.toString();
-    }
-
-    private void deletePersistedSettings(@NotNull UUID userId) {
-        PendingStateStore store = pendingStateStore;
-        if (store != null) {
-            withPendingFileWriteLock(userId, () -> store.delete(userId));
-        }
-    }
-
-    private void restorePendingSettings() {
-        PendingStateStore store = pendingStateStore;
-        if (store == null) {
-            return;
-        }
-        for (UUID userId : store.subjects()) {
-            try {
-                String json = store.read(userId);
-                if (json == null) {
-                    continue;
-                }
-                JsonObject root = JsonParser.parseString(json).getAsJsonObject();
-                EnumMap<PlayerSettingKey, PendingSetting> restored = new EnumMap<>(PlayerSettingKey.class);
-                for (JsonElement element : root.getAsJsonArray("entries")) {
-                    JsonObject entry = element.getAsJsonObject();
-                    PlayerSettingKey key = PlayerSettingKey.fromInput(entry.get("key").getAsString());
-                    if (key == null) {
-                        continue;
-                    }
-                    Object value = parseJsonValue(key, entry.get("valueJson").getAsString(), userId);
-                    UUID requestedBy = UUID.fromString(entry.get("requestedBy").getAsString());
-                    long revision = entry.has("revision") ? entry.get("revision").getAsLong()
-                        : pendingRevisionSequence.incrementAndGet();
-                    pendingRevisionSequence.accumulateAndGet(revision, Math::max);
-                    restored.put(key, new PendingSetting(key, value, requestedBy, revision));
-                }
-                if (restored.isEmpty()) {
-                    persistPendingSettings(userId);
-                } else {
-                    boolean warmedUp = withUserOperationLock(userId, () -> {
-                        EnumMap<PlayerSettingKey, PendingSetting> merged = new EnumMap<>(restored);
-                        EnumMap<PlayerSettingKey, PendingSetting> current = pendingSettings.get(userId);
-                        if (current != null) {
-                            // 起動前ファイルのrevision値にかかわらず、今sessionの希望値を優先する。
-                            merged.putAll(current);
-                        }
-                        pendingSettings.put(userId, merged);
-                        PlayerSettingSnapshot snapshot = cache.find(userId);
-                        if (snapshot != null) {
-                            cache.put(overlayPending(snapshot));
-                        }
-                        return snapshot != null;
-                    });
-                    if (warmedUp) {
-                        scheduleDelivery(userId, 0L);
-                    }
-                }
-            } catch (RuntimeException failure) {
-                Logger.log(LogId.W_5312, userId, failure.getClass().getSimpleName());
-            }
-        }
-    }
-
-    /**
-     * plugin disable 前に未送信値を async writer 上で保存・送信し、完了を返します。
-     * API 送信に失敗しても dirty は削除せず、最後に PendingStateStore へ書き戻すため、
-     * bootstrap はこの Future 完了後に writer を停止できます。
-     *
-     * @return 全 user の shutdown drain 完了 Future
-     */
-    public @NotNull CompletableFuture<Void> flushPendingWrites() {
-        CompletableFuture<Void> completion = new CompletableFuture<>();
-        try {
-            asyncExecutor.execute(() -> {
-                try {
-                    List<UUID> users = List.copyOf(pendingSettings.keySet());
-                    // delivery lock/API応答待ちに入る前に、全userの最新dirtyを durable にする。
-                    for (UUID userId : users) {
-                        persistPendingSettings(userId);
-                    }
-                    for (UUID userId : users) {
-                        drainPendingWritesForShutdown(userId);
-                    }
-                    completion.complete(null);
-                } catch (RuntimeException failure) {
-                    completion.completeExceptionally(failure);
-                }
-            });
-        } catch (RuntimeException schedulingFailure) {
-            completion.completeExceptionally(schedulingFailure);
-        }
-        return completion;
-    }
-
-    private void drainPendingWritesForShutdown(@NotNull UUID userId) {
-        withDeliveryLock(userId, () -> {
-            int attemptsRemaining = Math.max(2, PlayerSettingKey.values().length * 3);
-            while (attemptsRemaining-- > 0) {
-                PendingSetting pending = nextPendingSetting(userId);
-                if (pending == null) {
-                    break;
-                }
-                try {
-                    deliverOne(userId, pending);
-                } catch (RuntimeException failure) {
-                    Logger.log(LogId.W_5312, userId, failure.getMessage() == null
-                        ? failure.getClass().getSimpleName()
-                        : failure.getMessage());
-                    break;
-                }
-            }
-            // 競合反復上限・通信失敗時も、再ログイン時に overlay できる値を残す。
-            persistPendingSettings(userId);
-        });
-    }
-
-    /**
-     * user設定の未受領write-behindを復元するローカル保存先を設定します。
-     * ファイル操作は delivery executor だけで行い、Bukkit main thread では実行しません。
-     *
-     * @param root `player-settings` 用の専用ディレクトリ
-     */
-    public void setPersistence(@NotNull Path root) {
-        pendingStateStore = new PendingStateStore(root);
-        try {
-            asyncExecutor.execute(this::restorePendingSettings);
-        } catch (Throwable failure) {
-            Logger.log(LogId.W_5312, root.toString(), failure.getClass().getSimpleName());
-        }
-    }
-
-    private long nextSessionToken() {
-        long sessionToken = sessionSequence.incrementAndGet();
-        if (sessionToken != NO_ACTIVE_SESSION) {
-            return sessionToken;
-        }
-        return sessionSequence.incrementAndGet();
-    }
-
-    private boolean isSessionActive(@NotNull UUID userId, long sessionToken) {
-        return sessionToken != NO_ACTIVE_SESSION
-            && activeSessionTokens.getOrDefault(userId, NO_ACTIVE_SESSION) == sessionToken;
-    }
-
-    private void publishIfSessionActive(
-        @NotNull PlayerSettingSnapshot snapshot,
-        long sessionToken
-    ) {
-        synchronized (sessionMonitor) {
-            if (isSessionActive(snapshot.getUserId(), sessionToken)) {
-                cache.put(snapshot);
-            }
-        }
-    }
-
-    private <T> T withUserOperationLock(@NotNull UUID userId, @NotNull Supplier<T> operation) {
-        UserOperationLock operationLock = operationLocks.compute(userId, (ignored, existing) -> {
-            UserOperationLock retained = existing == null ? new UserOperationLock() : existing;
-            retained.references++;
-            return retained;
-        });
-        operationLock.lock.lock();
-        try {
-            return operation.get();
-        } finally {
-            operationLock.lock.unlock();
-            operationLocks.computeIfPresent(userId, (ignored, existing) -> {
-                if (existing != operationLock) {
-                    return existing;
-                }
-                operationLock.references--;
-                return operationLock.references == 0 ? null : operationLock;
-            });
-        }
-    }
-
-    private void withDeliveryLock(@NotNull UUID userId, @NotNull Runnable operation) {
-        Object lock = deliveryLocks.computeIfAbsent(userId, ignored -> new Object());
-        synchronized (lock) {
-            operation.run();
-        }
-    }
-
-    private void withPendingFileWriteLock(@NotNull UUID userId, @NotNull Runnable operation) {
-        Object lock = pendingFileWriteLocks.computeIfAbsent(userId, ignored -> new Object());
-        synchronized (lock) {
-            operation.run();
-        }
-    }
-
-    private @NotNull Map<PlayerSettingKey, PlayerSettingEntry> createDefaultEntries() {
-        EnumMap<PlayerSettingKey, PlayerSettingEntry> entries = new EnumMap<>(PlayerSettingKey.class);
+    private @Nullable CapturedSnapshot capture(@NotNull UUID userId) {
+        EnumMap<PlayerSettingKey, PendingSetting> dirty = pendingSettings.get(userId);
+        if (dirty == null || dirty.isEmpty()) return null;
+        PlayerSettingSnapshot complete = ensureComplete(cache.find(userId) == null
+            ? new PlayerSettingSnapshot(userId, createDefaultEntries()) : cache.find(userId));
+        Map<PlayerSettingKey, CapturedSetting> captured = new LinkedHashMap<>();
+        PlayerSettingSnapshot identified = complete;
         for (PlayerSettingKey key : PlayerSettingKey.values()) {
-            entries.put(key, defaultEntry(key));
+            PlayerSettingEntry entry = complete.getEntry(key);
+            UUID id = entry.getUserSettingId() == null ? UUID.randomUUID() : entry.getUserSettingId();
+            if (!id.equals(entry.getUserSettingId())) {
+                entry = new PlayerSettingEntry(id, key, entry.getValue(), entry.getVersion());
+                identified = identified.withEntry(entry);
+            }
+            captured.put(key, new CapturedSetting(id, key, entry.getValue(), entry.getVersion()));
         }
+        cache.put(identified);
+        long revision = dirty.values().stream().mapToLong(PendingSetting::revision).max().orElseThrow();
+        return new CapturedSnapshot(userId, revision, captured);
+    }
+
+    private void acknowledge(@NotNull CapturedSnapshot captured, @NotNull JsonElement acknowledgement) {
+        if (!acknowledgement.isJsonObject()) throw new IllegalStateException("Player settings acknowledgement must be an object");
+        JsonObject ack = acknowledgement.getAsJsonObject();
+        if (!ack.has("clientRevision") || ack.get("clientRevision").getAsLong() != captured.revision()
+            || !ack.has("settings") || !ack.get("settings").isJsonArray()) {
+            throw new IllegalStateException("Player settings acknowledgement is invalid");
+        }
+        Map<PlayerSettingKey, AcknowledgedSetting> versions = parseAcknowledgement(ack.getAsJsonArray("settings"));
+        if (versions.size() != PlayerSettingKey.values().length || !versions.keySet().containsAll(captured.settings().keySet())) {
+            throw new IllegalStateException("Player settings acknowledgement is incomplete");
+        }
+        withLock(captured.userId(), () -> {
+            PlayerSettingSnapshot current = cache.find(captured.userId());
+            PlayerSettingSnapshot merged = ensureComplete(current == null
+                ? new PlayerSettingSnapshot(captured.userId(), createDefaultEntries()) : current);
+            for (Map.Entry<PlayerSettingKey, AcknowledgedSetting> entry : versions.entrySet()) {
+                PlayerSettingEntry local = merged.getEntry(entry.getKey());
+                Object value = local == null ? captured.settings().get(entry.getKey()).value() : local.getValue();
+                merged = merged.withEntry(new PlayerSettingEntry(entry.getValue().id(), entry.getKey(), value, entry.getValue().version()));
+            }
+            cache.put(merged);
+            pendingSettings.computeIfPresent(captured.userId(), (ignored, dirty) -> {
+                EnumMap<PlayerSettingKey, PendingSetting> remaining = new EnumMap<>(dirty);
+                remaining.entrySet().removeIf(entry -> entry.getValue().revision() <= captured.revision());
+                return remaining.isEmpty() ? null : remaining;
+            });
+            if (!hasPending(captured.userId()) && !isActive(captured.userId(), captureSessionToken(captured.userId()))) {
+                cache.remove(captured.userId());
+                forgetAccount(captured.userId());
+            }
+            return null;
+        });
+    }
+
+    private @NotNull Map<PlayerSettingKey, AcknowledgedSetting> parseAcknowledgement(@NotNull JsonArray array) {
+        Map<PlayerSettingKey, AcknowledgedSetting> result = new EnumMap<>(PlayerSettingKey.class);
+        for (JsonElement element : array) {
+            if (!element.isJsonObject()) throw new IllegalStateException("Player settings acknowledgement entry is invalid");
+            JsonObject entry = element.getAsJsonObject();
+            PlayerSettingKey key = PlayerSettingKey.fromInput(requiredString(entry, "settingKey"));
+            if (key == null || !entry.has("version") || result.put(key, new AcknowledgedSetting(
+                UUID.fromString(requiredString(entry, "userSettingId")), entry.get("version").getAsInt())) != null) {
+                throw new IllegalStateException("Player settings acknowledgement contains invalid keys");
+            }
+        }
+        return result;
+    }
+
+    private @NotNull String requiredString(@NotNull JsonObject object, @NotNull String name) {
+        if (!object.has(name) || object.get(name).isJsonNull()) throw new IllegalStateException("Player settings acknowledgement is missing " + name);
+        return object.get(name).getAsString();
+    }
+
+    private boolean booleanSetting(UUID userId, PlayerSettingKey key, boolean fallback) {
+        Object value = getPlayerSetting(userId, key);
+        return value instanceof Boolean enabled ? enabled : fallback;
+    }
+    private boolean cachedBooleanSetting(UUID userId, PlayerSettingKey key, boolean fallback) {
+        PlayerSettingSnapshot snapshot = cache.find(userId);
+        PlayerSettingEntry entry = snapshot == null ? null : snapshot.getEntry(key);
+        return entry != null && entry.getValue() instanceof Boolean enabled ? enabled : fallback;
+    }
+    private PlayerSettingSnapshot ensureComplete(PlayerSettingSnapshot source) {
+        PlayerSettingSnapshot complete = source;
+        for (PlayerSettingKey key : PlayerSettingKey.values()) if (complete.getEntry(key) == null) complete = complete.withEntry(defaultEntry(key));
+        return complete;
+    }
+    private PlayerSettingSnapshot overlayPending(PlayerSettingSnapshot remote) {
+        EnumMap<PlayerSettingKey, PendingSetting> dirty = pendingSettings.get(remote.getUserId());
+        PlayerSettingSnapshot local = cache.find(remote.getUserId());
+        if (dirty == null || local == null) return remote;
+        PlayerSettingSnapshot result = remote;
+        for (PlayerSettingKey key : dirty.keySet()) {
+            PlayerSettingEntry localEntry = local.getEntry(key);
+            PlayerSettingEntry remoteEntry = result.getEntry(key);
+            if (localEntry != null) result = result.withEntry(new PlayerSettingEntry(
+                remoteEntry == null ? localEntry.getUserSettingId() : remoteEntry.getUserSettingId(), key,
+                localEntry.getValue(), remoteEntry == null ? localEntry.getVersion() : remoteEntry.getVersion()));
+        }
+        return result;
+    }
+    private Map<PlayerSettingKey, PlayerSettingEntry> createDefaultEntries() {
+        Map<PlayerSettingKey, PlayerSettingEntry> entries = new EnumMap<>(PlayerSettingKey.class);
+        for (PlayerSettingKey key : PlayerSettingKey.values()) entries.put(key, defaultEntry(key));
         return entries;
     }
-
-    private @NotNull PlayerSettingEntry defaultEntry(@NotNull PlayerSettingKey key) {
-        return new PlayerSettingEntry(null, key, defaults.resolveDefault(key), null);
-    }
-
-    private @NotNull PlayerSettingEntry entryFromModel(@NotNull PlayerSettingModel model, @NotNull PlayerSettingKey key) {
-        return new PlayerSettingEntry(
-            model.getUserSettingId(),
-            key,
-            parseJsonValue(key, model.getSettingValueJson(), model.getUserId()),
-            model.getVersion()
-        );
-    }
-
-    private @NotNull Object parseJsonValue(@NotNull PlayerSettingKey key, @NotNull String settingValueJson, @NotNull UUID userId) {
+    private PlayerSettingEntry defaultEntry(PlayerSettingKey key) { return new PlayerSettingEntry(null, key, defaults.resolveDefault(key), null); }
+    private Object parseJsonValue(PlayerSettingKey key, String source, UUID userId) {
         try {
-            JsonObject obj = JsonParser.parseString(settingValueJson).getAsJsonObject();
-            if (key.isBooleanValue()) {
-                return obj.get("enabled").getAsBoolean();
-            }
+            JsonObject value = JsonParser.parseString(source).getAsJsonObject();
+            if (key.isBooleanValue()) return value.get("enabled").getAsBoolean();
             if (key.isParticleDensityValue()) {
-                ParticleDensity density = ParticleDensity.fromInput(obj.get("value").getAsString());
-                if (density != null) {
-                    return density;
-                }
+                ParticleDensity density = ParticleDensity.fromInput(value.get("value").getAsString());
+                if (density != null) return density;
             }
             throw new IllegalArgumentException("invalid value");
-        } catch (Exception e) {
-            Logger.log(LogId.W_5311, userId, key.getCode(), e.getMessage() == null ? e.getClass().getSimpleName() : e.getMessage());
+        } catch (Exception exception) {
+            Logger.log(LogId.W_5311, userId, key.getCode(), exception.getMessage() == null ? exception.getClass().getSimpleName() : exception.getMessage());
             return defaults.resolveDefault(key);
         }
     }
-
-    private @NotNull String serializeValue(@NotNull PlayerSettingKey key, @NotNull Object value) {
-        JsonObject obj = new JsonObject();
-        if (key.isBooleanValue()) {
-            obj.addProperty("enabled", (Boolean) value);
-            return obj.toString();
-        }
-        if (key.isParticleDensityValue()) {
-            obj.addProperty("value", ((ParticleDensity) value).getCode());
-            return obj.toString();
-        }
+    private String serializeValue(PlayerSettingKey key, Object value) {
+        JsonObject result = new JsonObject();
+        if (key.isBooleanValue()) { result.addProperty("enabled", (Boolean) value); return result.toString(); }
+        if (key.isParticleDensityValue()) { result.addProperty("value", ((ParticleDensity) value).getCode()); return result.toString(); }
         throw new IllegalArgumentException("Unsupported player setting key: " + key.getCode());
     }
-
-    public record UpdateResult(
-        boolean success,
-        boolean conflict,
-        boolean staleSession,
-        @NotNull PlayerSettingKey key,
-        @Nullable Object value,
-        @Nullable String message
-    ) {
-        public static @NotNull UpdateResult success(@NotNull PlayerSettingKey key, @NotNull Object value) {
-            return new UpdateResult(true, false, false, key, value, null);
+    private boolean hasPending(UUID userId) { var dirty = pendingSettings.get(userId); return dirty != null && !dirty.isEmpty(); }
+    private @Nullable UUID resolveUserId(@NotNull UUID accountId) {
+        UUID mapped = userIdsByAccount.get(accountId);
+        if (mapped != null) return mapped;
+        return AstPlayerCache.getAll().stream()
+            .filter(player -> accountId.equals(player.getAccount().getUuid()))
+            .findFirst()
+            .map(player -> {
+                UUID userId = player.getUser().getUuid();
+                rememberAccount(userId, accountId);
+                return userId;
+            })
+            .orElse(null);
+    }
+    private @Nullable UUID rememberOnlineAccount(@NotNull UUID userId) {
+        UUID mapped = accountIdsByUser.get(userId);
+        if (mapped != null) return mapped;
+        return AstPlayerCache.getAll().stream()
+            .filter(player -> userId.equals(player.getUser().getUuid()))
+            .findFirst()
+            .map(player -> {
+                UUID accountId = player.getAccount().getUuid();
+                rememberAccount(userId, accountId);
+                return accountId;
+            })
+            .orElse(null);
+    }
+    private void rememberAccount(@NotNull UUID userId, @NotNull UUID accountId) {
+        UUID previousAccount = accountIdsByUser.put(userId, accountId);
+        if (previousAccount != null && !previousAccount.equals(accountId)) {
+            userIdsByAccount.remove(previousAccount, userId);
         }
-
-        public static @NotNull UpdateResult conflict(
-            @NotNull PlayerSettingKey key,
-            @NotNull Object value,
-            @NotNull String message
-        ) {
-            return new UpdateResult(false, true, false, key, value, message);
-        }
-
-        public static @NotNull UpdateResult staleSession(@NotNull PlayerSettingKey key) {
-            return new UpdateResult(false, false, true, key, null, null);
+        UUID previousUser = userIdsByAccount.put(accountId, userId);
+        if (previousUser != null && !previousUser.equals(userId)) {
+            accountIdsByUser.remove(previousUser, accountId);
         }
     }
-
-    private static final class UserOperationLock {
-        private final ReentrantLock lock = new ReentrantLock();
-        private int references;
+    private void forgetAccount(@NotNull UUID userId) {
+        UUID accountId = accountIdsByUser.remove(userId);
+        if (accountId != null) userIdsByAccount.remove(accountId, userId);
+    }
+    private long nextSessionToken() { long token = sessionSequence.incrementAndGet(); return token == 0L ? sessionSequence.incrementAndGet() : token; }
+    private boolean isActive(UUID userId, long token) { return token != 0L && activeSessionTokens.getOrDefault(userId, 0L) == token; }
+    private void publishIfActive(PlayerSettingSnapshot snapshot, long token) {
+        synchronized (sessionMonitor) { if (isActive(snapshot.getUserId(), token)) cache.put(snapshot); }
+    }
+    private <T> T withLock(UUID userId, Supplier<T> work) {
+        UserOperationLock holder = operationLocks.compute(userId, (ignored, existing) -> { UserOperationLock lock = existing == null ? new UserOperationLock() : existing; lock.references++; return lock; });
+        holder.lock.lock();
+        try { return work.get(); }
+        finally {
+            holder.lock.unlock();
+            operationLocks.computeIfPresent(userId, (ignored, existing) -> { if (existing != holder) return existing; holder.references--; return holder.references == 0 ? null : holder; });
+        }
     }
 
-    private record PendingSetting(
-        @NotNull PlayerSettingKey key,
-        @NotNull Object value,
-        @NotNull UUID requestedBy,
-        long revision
-    ) {
+    public record UpdateResult(boolean success, boolean conflict, boolean staleSession, @NotNull PlayerSettingKey key,
+                               @Nullable Object value, @Nullable String message) {
+        public static @NotNull UpdateResult success(@NotNull PlayerSettingKey key, @NotNull Object value) { return new UpdateResult(true, false, false, key, value, null); }
+        public static @NotNull UpdateResult conflict(@NotNull PlayerSettingKey key, @NotNull Object value, @NotNull String message) { return new UpdateResult(false, true, false, key, value, message); }
+        public static @NotNull UpdateResult staleSession(@NotNull PlayerSettingKey key) { return new UpdateResult(false, false, true, key, null, null); }
     }
-
-    private record RetryState(int attempt, long nextAllowedAtMillis) {
-    }
-
-    private record DeliveryContext(
-        @NotNull PendingSetting pending,
-        @NotNull PlayerSettingEntry entry,
-        @NotNull String valueJson
-    ) {
-    }
+    private static final class UserOperationLock { private final ReentrantLock lock = new ReentrantLock(); private int references; }
+    private record PendingSetting(@NotNull PlayerSettingKey key, long revision) {}
+    private record CapturedSetting(@NotNull UUID id, @NotNull PlayerSettingKey key, @NotNull Object value, @Nullable Integer expectedVersion) {}
+    private record CapturedSnapshot(@NotNull UUID userId, long revision, @NotNull Map<PlayerSettingKey, CapturedSetting> settings) {}
+    private record AcknowledgedSetting(@NotNull UUID id, int version) {}
 }

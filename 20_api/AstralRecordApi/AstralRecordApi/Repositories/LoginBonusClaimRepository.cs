@@ -2,6 +2,7 @@ using AstralRecordApi.Data;
 using AstralRecordApi.Data.Entities;
 using AstralRecordApi.Models;
 using Microsoft.EntityFrameworkCore;
+using System.Data;
 
 namespace AstralRecordApi.Repositories;
 
@@ -28,64 +29,70 @@ public class LoginBonusClaimRepository(AstralRecordDbContext dbContext) : ILogin
 
     public async Task<LoginBonusClaimResponse> ClaimAsync(Guid accountId, LoginBonusClaimRequest request)
     {
-        await EnsureAccountExists(accountId);
         if (request.ClaimDate == default)
             throw new ArgumentException("ClaimDate is required.", nameof(request));
         if (request.UpdatedBy == Guid.Empty)
             throw new ArgumentException("UpdatedBy is required.", nameof(request));
 
-        var existing = await FindActiveClaim(accountId, request.ClaimDate);
-        if (existing is not null)
-            return Map(existing, false);
-
-        var now = DateTime.UtcNow;
-        var entity = new LoginBonusClaimEntity
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
         {
-            LoginBonusClaimId = Guid.NewGuid(),
-            AccountId = accountId,
-            ClaimDate = request.ClaimDate,
-            ClaimedAt = now,
-            CreatedAt = now,
-            UpdatedAt = now,
-            CreatedBy = request.UpdatedBy,
-            UpdatedBy = request.UpdatedBy,
-            IsDeleted = false,
-        };
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            await EnsureAccountExistsForUpdate(accountId);
+            var existing = await FindActiveClaim(accountId, request.ClaimDate);
+            if (existing is not null)
+            {
+                await transaction.CommitAsync();
+                return Map(existing, false);
+            }
 
-        await dbContext.LoginBonusClaims.AddAsync(entity);
-        try
-        {
+            var now = DateTime.UtcNow;
+            var entity = new LoginBonusClaimEntity
+            {
+                LoginBonusClaimId = Guid.NewGuid(),
+                AccountId = accountId,
+                ClaimDate = request.ClaimDate,
+                ClaimedAt = now,
+                CreatedAt = now,
+                UpdatedAt = now,
+                CreatedBy = request.UpdatedBy,
+                UpdatedBy = request.UpdatedBy,
+                IsDeleted = false,
+            };
+            await dbContext.LoginBonusClaims.AddAsync(entity);
             await dbContext.SaveChangesAsync();
-        }
-        catch (DbUpdateException)
-        {
-            dbContext.Entry(entity).State = EntityState.Detached;
-            var raced = await FindActiveClaim(accountId, request.ClaimDate);
-            if (raced is not null)
-                return Map(raced, false);
-            throw;
-        }
-
-        return Map(entity, true);
+            await transaction.CommitAsync();
+            return Map(entity, true);
+        });
     }
 
     public async Task<bool> CancelAsync(Guid accountId, DateOnly claimDate, Guid updatedBy)
     {
-        await EnsureAccountExists(accountId);
         if (claimDate == default)
             throw new ArgumentException("ClaimDate is required.", nameof(claimDate));
         if (updatedBy == Guid.Empty)
             throw new ArgumentException("UpdatedBy is required.", nameof(updatedBy));
 
-        var existing = await FindActiveClaim(accountId, claimDate);
-        if (existing is null)
-            return false;
-
-        existing.IsDeleted = true;
-        existing.UpdatedAt = DateTime.UtcNow;
-        existing.UpdatedBy = updatedBy;
-        await dbContext.SaveChangesAsync();
-        return true;
+        var strategy = dbContext.Database.CreateExecutionStrategy();
+        return await strategy.ExecuteAsync(async () =>
+        {
+            dbContext.ChangeTracker.Clear();
+            await using var transaction = await dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
+            await EnsureAccountExistsForUpdate(accountId);
+            var existing = await FindActiveClaim(accountId, claimDate);
+            if (existing is null)
+            {
+                await transaction.CommitAsync();
+                return false;
+            }
+            existing.IsDeleted = true;
+            existing.UpdatedAt = DateTime.UtcNow;
+            existing.UpdatedBy = updatedBy;
+            await dbContext.SaveChangesAsync();
+            await transaction.CommitAsync();
+            return true;
+        });
     }
 
     private Task<LoginBonusClaimEntity?> FindActiveClaim(Guid accountId, DateOnly claimDate)
@@ -102,6 +109,20 @@ public class LoginBonusClaimRepository(AstralRecordDbContext dbContext) : ILogin
             .AsNoTracking()
             .AnyAsync(account => account.Uuid == accountId && !account.IsDeleted);
         if (!accountExists)
+            throw new KeyNotFoundException($"Account not found: {accountId}");
+    }
+
+    private async Task EnsureAccountExistsForUpdate(Guid accountId)
+    {
+        var exists = dbContext.Database.IsSqlServer()
+            ? await dbContext.Accounts.FromSqlInterpolated($"""
+                SELECT TOP (1) *
+                FROM [dbo].[account] WITH (UPDLOCK, HOLDLOCK)
+                WHERE [uuid] = {accountId} AND [is_deleted] = 0
+                """).AsNoTracking().AnyAsync()
+            : await dbContext.Accounts.AsNoTracking()
+                .AnyAsync(account => account.Uuid == accountId && !account.IsDeleted);
+        if (!exists)
             throw new KeyNotFoundException($"Account not found: {accountId}");
     }
 

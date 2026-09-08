@@ -16,7 +16,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * account-waystone API を通じてアカウント別解除状態を読み書きします。
+ * account-waystone API からアカウント別解除状態を読み込みます。
  */
 public final class AccountWaystoneRepository {
     /**
@@ -29,17 +29,16 @@ public final class AccountWaystoneRepository {
     public Set<String> loadUnlockedWaystoneIds(@NotNull UUID accountId) {
         String path = "/api/account-waystone/" + accountId;
         try {
-            try (var client = ApiRequestUtil.buildClient()) {
-                HttpRequest request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() == 404) {
-                    return Set.of();
-                }
-                if (response.statusCode() != 200) {
-                    throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
-                }
-                return parseUnlockedIds(JsonParser.parseString(response.body()).getAsJsonObject());
+            HttpRequest request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
+            HttpResponse<String> response = ApiRequestUtil.sharedClient()
+                .send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 404) {
+                return Set.of();
             }
+            if (response.statusCode() != 200) {
+                throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
+            }
+            return parseUnlockedIds(JsonParser.parseString(response.body()).getAsJsonObject());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);

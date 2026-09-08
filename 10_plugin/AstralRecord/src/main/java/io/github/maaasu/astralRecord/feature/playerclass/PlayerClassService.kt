@@ -162,6 +162,15 @@ class PlayerClassService @JvmOverloads constructor(
      * @return クラス経験値加算結果
      */
     fun grantClassExperience(astPlayer: AstPlayer, experience: Int): ClassExperienceResult {
+        val result = grantClassExperienceStateOnly(astPlayer, experience)
+        if (result.updatedLevel != result.previousLevel) {
+            updatePlayerListName(astPlayer)
+        }
+        return result
+    }
+
+    /** Bukkit の表示を触らず、player-state snapshot 用のクラス経験値だけを更新します。 */
+    fun grantClassExperienceStateOnly(astPlayer: AstPlayer, experience: Int): ClassExperienceResult {
         val model = classService.getLoadedClass(astPlayer.classId)
             ?: return ClassExperienceResult(astPlayer.classLevel.coerceAtLeast(1), astPlayer.classLevel.coerceAtLeast(1), 0, 0)
         val maxLevel = maxClassLevel(model)
@@ -180,9 +189,6 @@ class PlayerClassService @JvmOverloads constructor(
             astPlayer.classLevel = level
             persistClassProgress(astPlayer)
             ClassExperienceResult(previousLevel, level, experience, (level - previousLevel).coerceAtLeast(0))
-        }
-        if (result.updatedLevel != previousLevel) {
-            updatePlayerListName(astPlayer)
         }
         return result
     }

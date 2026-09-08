@@ -1,8 +1,10 @@
 package io.github.maaasu.astralRecord.feature.mail.service;
 
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.feature.inventory.model.InventoryInstanceType;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
-import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
 import io.github.maaasu.astralRecord.feature.item.model.ItemCategory;
 import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.service.ItemService;
@@ -14,6 +16,7 @@ import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import org.bukkit.entity.Player;
 import org.bukkit.plugin.Plugin;
 import org.jetbrains.annotations.NotNull;
@@ -21,6 +24,7 @@ import org.jetbrains.annotations.Nullable;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
@@ -31,8 +35,8 @@ import java.util.function.Consumer;
  * メール一覧、既読化、報酬受取を扱うサービスです。
  */
 public final class MailService {
-    private static final String REWARD_SOURCE = "mail";
-    private static final long RECONCILIATION_DELAY_TICKS = 100L;
+    private static final String MAIL_CLAIM_SECTION = "mailClaim";
+    private static final String MAIL_DELETE_SECTION = "mailDelete";
 
     private final Plugin plugin;
     private final MailRepository mailRepository;
@@ -40,6 +44,8 @@ public final class MailService {
     private final InventoryService inventoryService;
     private final Set<MailClaimKey> claimsInFlight = ConcurrentHashMap.newKeySet();
     private final Set<MailClaimKey> completedClaims = ConcurrentHashMap.newKeySet();
+    private final Map<UUID, PendingMailClaim> pendingClaimsByAccount = new ConcurrentHashMap<>();
+    private final Map<UUID, PendingMailDelete> pendingDeletesByAccount = new ConcurrentHashMap<>();
     private final Set<PendingReceivedNotification> pendingReceivedNotifications = ConcurrentHashMap.newKeySet();
     private BiConsumer<AstPlayer, String> mailReceivedListener = (player, mailId) -> { };
 
@@ -47,7 +53,7 @@ public final class MailService {
      * メールの既読化・報酬受取処理の結果です。
      *
      * @param success 既読化処理が成功した場合は {@code true}
-     * @param rewardReceived この呼び出しで報酬がインベントリへ付与された場合は {@code true}
+     * @param rewardReceived この呼び出しで報酬がインベントリへ付与され、SQL ACKまで完了した場合は {@code true}
      */
     public record ReadAndReceiveResult(boolean success, boolean rewardReceived) {
     }
@@ -70,6 +76,7 @@ public final class MailService {
         this.mailRepository = mailRepository;
         this.itemService = itemService;
         this.inventoryService = inventoryService;
+        inventoryService.getPersistence().registerStateParticipant(this::captureMailAction);
     }
 
     /**
@@ -188,8 +195,8 @@ public final class MailService {
 
         plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
             PreparedClaimRewards prepared = mail.receiveOnRead()
-                ? prepareRewards(accountId, mail.rewards())
-                : new PreparedClaimRewards(List.of(), List.of());
+                ? prepareRewards(mail.rewards())
+                : new PreparedClaimRewards(List.of());
             plugin.getServer().getScheduler().runTask(plugin, () -> {
                 if (prepared == null) {
                     finishClaimFailure(claimKey, currentPlayer(playerId, userId, accountId), mail,
@@ -198,38 +205,18 @@ public final class MailService {
                 }
                 AstPlayer current = currentPlayer(playerId, userId, accountId);
                 if (current == null) {
-                    cleanupPreparedInstancesAsync(prepared.instances());
                     finishClaimFailure(claimKey, null, mail, completion, PlayerMsgId.P_5623);
                     return;
                 }
-
-                InventoryService.InventoryGrantReceipt receipt;
-                if (prepared.rewards().isEmpty()) {
-                    receipt = new InventoryService.InventoryGrantReceipt(accountId, List.of());
-                } else {
-                    receipt = inventoryService.addPreparedRewardsToNormalInventory(current, prepared.rewards());
-                }
-                if (receipt == null) {
-                    cleanupPreparedInstancesAsync(prepared.instances());
-                    finishClaimFailure(claimKey, current, mail, completion, PlayerMsgId.P_5623);
-                    return;
-                }
-                markReadAfterGrant(
-                    playerId,
-                    userId,
-                    accountId,
-                    claimKey,
-                    mail,
-                    prepared.instances(),
-                    receipt,
-                    completion
+                claimWithinCriticalSnapshot(
+                    current, playerId, userId, accountId, claimKey, mail, prepared, completion
                 );
             });
         });
     }
 
     /**
-     * アカウント単位でメールを削除状態にします。
+     * アカウント単位でメールを削除状態にし、完成スナップショットのSQL ACK後に完了します。
      *
      * @param astPlayer 対象プレイヤー
      * @param mailId メール ID
@@ -243,116 +230,170 @@ public final class MailService {
         UUID playerId = astPlayer.getBukkit().getUniqueId();
         UUID userId = astPlayer.getUser().getUuid();
         UUID accountId = astPlayer.getAccount().getUuid();
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            boolean deleted;
-            try {
-                deleted = mailRepository.delete(accountId, userId, mailId);
-            } catch (RuntimeException e) {
-                deleted = false;
+        inventoryService.executeCriticalPlayerMutation(accountId, () -> {
+            PendingMailDelete pending = new PendingMailDelete(accountId, UUID.randomUUID(), mailId);
+            if (pendingDeletesByAccount.putIfAbsent(accountId, pending) != null) {
+                throw new IllegalStateException("Mail delete is already pending for account " + accountId);
             }
-            boolean result = deleted;
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                AstPlayer current = currentPlayer(playerId, userId, accountId);
-                if (current != null) {
-                    PlayerMessageService.getInstance().send(
-                        current,
-                        result ? PlayerMsgId.P_5621 : PlayerMsgId.P_5622
-                    );
-                }
-                completion.accept(result);
-            });
-        });
+            return new io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator.CriticalMutation<>(
+                true,
+                () -> pendingDeletesByAccount.remove(accountId, pending)
+            );
+        }).whenComplete((deleted, failure) -> plugin.getServer().getScheduler().runTask(plugin, () -> {
+            boolean result = failure == null && Boolean.TRUE.equals(deleted);
+            AstPlayer current = currentPlayer(playerId, userId, accountId);
+            if (current != null) {
+                PlayerMessageService.getInstance().send(
+                    current,
+                    result ? PlayerMsgId.P_5621 : PlayerMsgId.P_5622
+                );
+            }
+            completion.accept(result);
+        }));
     }
 
-    private void markReadAfterGrant(
+    /**
+     * 未読メールの既読化と報酬付与を、同一player-state snapshotで確定します。
+     *
+     * <p>local mutation と SQL 通信は account lane で実行されます。完了通知と Bukkit GUI 操作だけを
+     * メインスレッドへ戻すため、通信中にプレイヤーへ未確定の報酬を表示しません。</p>
+     */
+    private void claimWithinCriticalSnapshot(
+        @NotNull AstPlayer astPlayer,
         @NotNull UUID playerId,
         @NotNull UUID userId,
         @NotNull UUID accountId,
         @NotNull MailClaimKey claimKey,
         @NotNull MailEntry mail,
-        @NotNull List<InventoryService.PreparedInventoryInstance> preparedInstances,
-        @NotNull InventoryService.InventoryGrantReceipt receipt,
+        @NotNull PreparedClaimRewards prepared,
         @NotNull Consumer<ReadAndReceiveResult> completion
     ) {
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            MailEntry updated;
-            try {
-                updated = mailRepository.markRead(accountId, userId, mail.id());
-            } catch (RuntimeException e) {
-                updated = null;
+        inventoryService.executeCriticalPlayerMutation(accountId, () -> {
+            InventoryService.InventoryStateSnapshot inventoryRollback = inventoryService.snapshotState(accountId);
+            if (inventoryRollback == null) {
+                throw new IllegalStateException("Mail claim inventory state is not loaded");
             }
-            MailEntry result = updated;
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                AstPlayer online = currentPlayer(playerId, userId, accountId);
-                if (result == null) {
-                    if (inventoryService.rollbackPreparedRewards(receipt)) {
-                        cleanupPreparedInstancesAsync(preparedInstances);
-                        finishClaimFailure(claimKey, online, mail, completion, PlayerMsgId.P_5622);
-                    } else {
-                        completion.accept(new ReadAndReceiveResult(false, !receipt.mutations().isEmpty()));
-                        scheduleClaimReconciliation(
-                            playerId,
-                            userId,
-                            claimKey,
-                            mail,
-                            preparedInstances,
-                            receipt
-                        );
-                    }
-                    return;
-                }
+            Runnable equipmentRollback = itemService.captureEquipmentStateRollback(accountId);
+            List<InventoryService.PreparedInventoryReward> rewards = materializePreparedRewards(
+                accountId, prepared.rewards()
+            );
+            if (rewards == null) {
+                equipmentRollback.run();
+                throw new IllegalStateException("Mail reward equipment creation failed");
+            }
 
-                boolean rewardReceived = !receipt.mutations().isEmpty();
-                if (rewardReceived && online != null) {
-                    PlayerMessageService.getInstance().send(
-                        online,
-                        PlayerMsgId.P_5620,
-                        mail.title()
-                    );
+            PendingMailClaim pending = new PendingMailClaim(
+                accountId, UUID.randomUUID(), mail.id()
+            );
+            if (pendingClaimsByAccount.putIfAbsent(accountId, pending) != null) {
+                equipmentRollback.run();
+                throw new IllegalStateException("Mail claim is already pending for account " + accountId);
+            }
+            InventoryService.InventoryGrantReceipt receipt = inventoryService
+                .addPreparedRewardsToNormalInventoryStateOnly(astPlayer, rewards);
+            if (receipt == null) {
+                pendingClaimsByAccount.remove(accountId, pending);
+                inventoryService.restoreState(inventoryRollback);
+                equipmentRollback.run();
+                throw new IllegalStateException("Mail reward inventory grant failed");
+            }
+            return new io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator.CriticalMutation<>(
+                receipt,
+                () -> {
+                    pendingClaimsByAccount.remove(accountId, pending);
+                    inventoryService.restoreState(inventoryRollback);
+                    equipmentRollback.run();
                 }
-                completedClaims.add(claimKey);
-                claimsInFlight.remove(claimKey);
-                if (rewardReceived) {
-                    notifyMailReceived(claimKey, playerId, userId, accountId, mail.id());
-                }
-                completion.accept(new ReadAndReceiveResult(true, rewardReceived));
-            });
-        });
+            );
+        }).whenComplete((receipt, failure) -> plugin.getServer().getScheduler().runTask(plugin, () -> {
+            AstPlayer online = currentPlayer(playerId, userId, accountId);
+            if (failure != null || receipt == null) {
+                finishClaimFailure(claimKey, online, mail, completion, PlayerMsgId.P_5625);
+                return;
+            }
+            boolean rewardReceived = !receipt.mutations().isEmpty();
+            if (rewardReceived && online != null) {
+                inventoryService.applyInventoryToGui(online, InventoryType.BAG);
+                PlayerMessageService.getInstance().send(online, PlayerMsgId.P_5620, mail.title());
+            }
+            completedClaims.add(claimKey);
+            claimsInFlight.remove(claimKey);
+            if (rewardReceived) {
+                notifyMailReceived(claimKey, playerId, userId, accountId, mail.id());
+            }
+            completion.accept(new ReadAndReceiveResult(true, rewardReceived));
+        }));
     }
 
-    private void scheduleClaimReconciliation(
-        @NotNull UUID playerId,
-        @NotNull UUID userId,
-        @NotNull MailClaimKey claimKey,
-        @NotNull MailEntry mail,
-        @NotNull List<InventoryService.PreparedInventoryInstance> preparedInstances,
-        @NotNull InventoryService.InventoryGrantReceipt receipt
+    /**
+     * 未確定メール受領をplayer-state snapshotのmailClaim sectionへ捕捉します。
+     *
+     * <p>APIは {@code clientRevision} と {@code mailId} が一致するACKだけを返します。不一致は
+     * ACK不正として重要操作全体を失敗させ、InventorySaveCoordinator がローカル変更を補償します。</p>
+     */
+    private @Nullable PlayerStateSection captureMailAction(@NotNull UUID accountId) {
+        PlayerStateSection claim = captureMailClaim(accountId);
+        return claim != null ? claim : captureMailDelete(accountId);
+    }
+
+    private @Nullable PlayerStateSection captureMailClaim(@NotNull UUID accountId) {
+        PendingMailClaim pending = pendingClaimsByAccount.get(accountId);
+        if (pending == null) {
+            return null;
+        }
+        JsonObject payload = new JsonObject();
+        payload.addProperty("accountId", pending.accountId().toString());
+        payload.addProperty("clientRevision", pending.clientRevision().toString());
+        payload.addProperty("mailId", pending.mailId());
+        return new PlayerStateSection(MAIL_CLAIM_SECTION, payload,
+            acknowledgement -> acknowledgeMailClaim(pending, acknowledgement));
+    }
+
+    private @Nullable PlayerStateSection captureMailDelete(@NotNull UUID accountId) {
+        PendingMailDelete pending = pendingDeletesByAccount.get(accountId);
+        if (pending == null) {
+            return null;
+        }
+        JsonObject payload = new JsonObject();
+        payload.addProperty("accountId", pending.accountId().toString());
+        payload.addProperty("clientRevision", pending.clientRevision().toString());
+        payload.addProperty("mailId", pending.mailId());
+        return new PlayerStateSection(MAIL_DELETE_SECTION, payload,
+            acknowledgement -> acknowledgeMailDelete(pending, acknowledgement));
+    }
+
+    private void acknowledgeMailClaim(
+        @NotNull PendingMailClaim pending,
+        @Nullable JsonElement acknowledgement
     ) {
-        plugin.getServer().getScheduler().runTaskLaterAsynchronously(plugin, () -> {
-            MailEntry updated;
-            try {
-                updated = mailRepository.markRead(receipt.accountId(), userId, mail.id());
-            } catch (RuntimeException e) {
-                updated = null;
-            }
-            MailEntry result = updated;
-            plugin.getServer().getScheduler().runTask(plugin, () -> {
-                if (result != null) {
-                    completedClaims.add(claimKey);
-                    claimsInFlight.remove(claimKey);
-                    if (!receipt.mutations().isEmpty()) {
-                        notifyMailReceived(claimKey, playerId, userId, receipt.accountId(), mail.id());
-                    }
-                    return;
-                }
-                if (inventoryService.rollbackPreparedRewards(receipt)) {
-                    cleanupPreparedInstancesAsync(preparedInstances);
-                    claimsInFlight.remove(claimKey);
-                    return;
-                }
-                scheduleClaimReconciliation(playerId, userId, claimKey, mail, preparedInstances, receipt);
-            });
-        }, RECONCILIATION_DELAY_TICKS);
+        if (acknowledgement == null || !acknowledgement.isJsonObject()) {
+            throw new IllegalStateException("Missing mail claim acknowledgement");
+        }
+        JsonObject ack = acknowledgement.getAsJsonObject();
+        if (!ack.has("clientRevision") || !ack.has("mailId")
+            || !ack.has("version") || !ack.has("readAt")
+            || !pending.clientRevision().toString().equals(ack.get("clientRevision").getAsString())
+            || !pending.mailId().equals(ack.get("mailId").getAsString())) {
+            throw new IllegalStateException("Mismatched mail claim acknowledgement");
+        }
+        pendingClaimsByAccount.remove(pending.accountId(), pending);
+    }
+
+    private void acknowledgeMailDelete(
+        @NotNull PendingMailDelete pending,
+        @Nullable JsonElement acknowledgement
+    ) {
+        if (acknowledgement == null || !acknowledgement.isJsonObject()) {
+            throw new IllegalStateException("Missing mail delete acknowledgement");
+        }
+        JsonObject ack = acknowledgement.getAsJsonObject();
+        if (!ack.has("clientRevision") || !ack.has("mailId")
+            || !ack.has("version") || !ack.has("deletedAt")
+            || !pending.clientRevision().toString().equals(ack.get("clientRevision").getAsString())
+            || !pending.mailId().equals(ack.get("mailId").getAsString())) {
+            throw new IllegalStateException("Mismatched mail delete acknowledgement");
+        }
+        pendingDeletesByAccount.remove(pending.accountId(), pending);
     }
 
     private void notifyMailReceived(
@@ -385,100 +426,58 @@ public final class MailService {
     }
 
     private @Nullable PreparedClaimRewards prepareRewards(
-        @NotNull UUID accountId,
         @NotNull List<MailReward> rewards
     ) {
-        List<InventoryService.PreparedInventoryReward> preparedRewards = new ArrayList<>();
-        List<InventoryService.PreparedInventoryInstance> preparedInstances = new ArrayList<>();
-        try {
-            for (MailReward reward : rewards) {
-                if (reward.amount() <= 0) {
-                    continue;
-                }
-                ItemModel model = resolveRewardModel(reward);
-                if (model == null) {
-                    cleanupPreparedInstances(preparedInstances);
-                    return null;
-                }
-
-                ItemCategory category = ItemCategory.fromApiValue(model.getCategory());
-                List<InventoryService.PreparedInventoryInstance> rewardInstances = new ArrayList<>();
-                for (int index = 0; index < reward.amount(); index++) {
-                    InventoryService.PreparedInventoryInstance prepared = switch (category) {
-                        case EQUIPMENT -> prepareEquipmentInstance(model, accountId);
-                        default -> null;
-                    };
-                    if (category == ItemCategory.EQUIPMENT
-                        && prepared == null) {
-                        cleanupPreparedInstances(preparedInstances);
-                        return null;
-                    }
-                    if (prepared != null) {
-                        rewardInstances.add(prepared);
-                        preparedInstances.add(prepared);
-                    } else {
-                        break;
-                    }
-                }
-                preparedRewards.add(new InventoryService.PreparedInventoryReward(
-                    model,
-                    reward.amount(),
-                    rewardInstances
-                ));
+        List<PreparedReward> preparedRewards = new ArrayList<>();
+        for (MailReward reward : rewards) {
+            if (reward.amount() <= 0) {
+                continue;
             }
-            return new PreparedClaimRewards(preparedRewards, preparedInstances);
-        } catch (RuntimeException e) {
-            cleanupPreparedInstances(preparedInstances);
-            return null;
+            ItemModel model = resolveRewardModel(reward);
+            if (model == null) {
+                return null;
+            }
+            preparedRewards.add(new PreparedReward(model, reward.amount()));
         }
+        return new PreparedClaimRewards(preparedRewards);
     }
 
-    private @Nullable InventoryService.PreparedInventoryInstance prepareEquipmentInstance(
-        @NotNull ItemModel model,
-        @NotNull UUID accountId
+    /**
+     * API通信前に解決済みの報酬定義から、snapshotへ含める個体参照を生成します。
+     * UUIDと乱数はこの一度だけ決め、同一snapshotの再送では再生成しません。
+     */
+    private @Nullable List<InventoryService.PreparedInventoryReward> materializePreparedRewards(
+        @NotNull UUID accountId,
+        @NotNull List<PreparedReward> rewards
     ) {
-        EquipmentInstance instance = itemService.createEquipmentInstance(
-            model.getId(),
-            accountId.toString(),
-            REWARD_SOURCE,
-            accountId.toString()
-        );
-        if (instance == null) {
-            return null;
+        List<InventoryService.PreparedInventoryReward> materialized = new ArrayList<>();
+        for (PreparedReward reward : rewards) {
+            List<InventoryService.PreparedInventoryInstance> instances = new ArrayList<>();
+            if (ItemCategory.fromApiValue(reward.model().getCategory()) == ItemCategory.EQUIPMENT) {
+                for (int index = 0; index < reward.amount(); index++) {
+                    var instance = itemService.createLocalEquipmentInstance(reward.model(), accountId);
+                    if (instance == null) {
+                        return null;
+                    }
+                    UUID instanceId = parseUuidOrNull(instance.getEquipmentInstanceId());
+                    if (instanceId == null) {
+                        return null;
+                    }
+                    instances.add(new InventoryService.PreparedInventoryInstance(
+                        InventoryInstanceType.EQUIPMENT, instanceId
+                    ));
+                }
+            }
+            materialized.add(new InventoryService.PreparedInventoryReward(
+                reward.model(), reward.amount(), instances
+            ));
         }
-        UUID instanceId = parseUuidOrNull(instance.getEquipmentInstanceId());
-        if (instanceId == null) {
-            itemService.deleteEquipmentInstance(instance.getEquipmentInstanceId());
-            return null;
-        }
-        return new InventoryService.PreparedInventoryInstance(InventoryInstanceType.EQUIPMENT, instanceId);
+        return materialized;
     }
 
     private @Nullable ItemModel resolveRewardModel(@NotNull MailReward reward) {
         ItemModel model = itemService.findLoadedById(reward.itemId());
         return model != null ? model : itemService.loadItem(reward.itemId(), reward.category());
-    }
-
-    private void cleanupPreparedInstancesAsync(
-        @NotNull List<InventoryService.PreparedInventoryInstance> preparedInstances
-    ) {
-        if (preparedInstances.isEmpty()) {
-            return;
-        }
-        plugin.getServer().getScheduler().runTaskAsynchronously(
-            plugin,
-            () -> cleanupPreparedInstances(preparedInstances)
-        );
-    }
-
-    private void cleanupPreparedInstances(
-        @NotNull List<InventoryService.PreparedInventoryInstance> preparedInstances
-    ) {
-        for (InventoryService.PreparedInventoryInstance prepared : preparedInstances) {
-            if (prepared.instanceType() == InventoryInstanceType.EQUIPMENT) {
-                itemService.deleteEquipmentInstance(prepared.instanceId().toString());
-            }
-        }
     }
 
     private void finishClaimFailure(
@@ -524,6 +523,20 @@ public final class MailService {
     private record MailClaimKey(@NotNull UUID accountId, @NotNull String mailId) {
     }
 
+    private record PendingMailClaim(
+        @NotNull UUID accountId,
+        @NotNull UUID clientRevision,
+        @NotNull String mailId
+    ) {
+    }
+
+    private record PendingMailDelete(
+        @NotNull UUID accountId,
+        @NotNull UUID clientRevision,
+        @NotNull String mailId
+    ) {
+    }
+
     private record PendingReceivedNotification(
         @NotNull UUID userId,
         @NotNull UUID accountId,
@@ -531,13 +544,12 @@ public final class MailService {
     ) {
     }
 
-    private record PreparedClaimRewards(
-        @NotNull List<InventoryService.PreparedInventoryReward> rewards,
-        @NotNull List<InventoryService.PreparedInventoryInstance> instances
-    ) {
+    private record PreparedReward(@NotNull ItemModel model, int amount) {
+    }
+
+    private record PreparedClaimRewards(@NotNull List<PreparedReward> rewards) {
         private PreparedClaimRewards {
             rewards = List.copyOf(rewards);
-            instances = List.copyOf(instances);
         }
     }
 }

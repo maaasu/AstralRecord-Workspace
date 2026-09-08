@@ -3,18 +3,23 @@ package io.github.maaasu.astralRecord.feature.skill.service;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonNull;
 import com.google.gson.JsonObject;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillInstance;
 import io.github.maaasu.astralRecord.feature.skill.model.LearnedSkillSigil;
 import io.github.maaasu.astralRecord.feature.skill.repository.LearnedSkillRepository;
+import org.bukkit.Server;
 import org.bukkit.plugin.Plugin;
+import org.bukkit.scheduler.BukkitScheduler;
+import org.bukkit.scheduler.BukkitTask;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -61,8 +66,7 @@ class LearnedSkillServiceTest {
         JsonObject snapshotSkill = onlySkill(service.snapshotPlayerState(accountId));
         assertTrue(snapshotSkill.get("expectedVersion").isJsonNull());
         assertEquals(1, snapshotSkill.get("targetVersion").getAsInt());
-        verify(inventory).queueLocalPlayerSave(accountId);
-        verify(repository, never()).learn(any(), any(), any(), any());
+        verify(inventory).executeCriticalPlayerMutation(eq(accountId), any());
     }
 
     /**
@@ -91,7 +95,7 @@ class LearnedSkillServiceTest {
             eq(accountId), eq(operationId.getValue()), any(Runnable.class)
         );
         assertEquals(1, service.getLearnedSkills(accountId).size());
-        verify(inventory).queueLocalPlayerSave(accountId);
+        verify(inventory).executeCriticalPlayerMutation(eq(accountId), any());
     }
 
     /**
@@ -113,14 +117,14 @@ class LearnedSkillServiceTest {
             ignored -> { throw new AssertionError("insufficient payment must not learn"); }, failure::set
         );
 
-        assertFalse(accepted);
+        assertTrue(accepted);
         assertNotNull(failure.get());
         assertTrue(service.getLearnedSkills(accountId).isEmpty());
         ArgumentCaptor<UUID> operationId = ArgumentCaptor.forClass(UUID.class);
         verify(inventory).reserveLocalMutationPayment(eq(accountId), operationId.capture(), any());
         verify(inventory).releaseOrbOperationPayment(accountId, operationId.getValue());
         verify(inventory, never()).commitLocalOrbOperationPayment(any(), any(), any());
-        verify(inventory, never()).queueLocalPlayerSave(accountId);
+        verify(inventory).executeCriticalPlayerMutation(eq(accountId), any());
     }
 
     /**
@@ -146,7 +150,7 @@ class LearnedSkillServiceTest {
         assertEquals(5, succeeded.get().getVersion());
         assertSame(succeeded.get(), service.findInstance(accountId, learned.getLearnedSkillId()));
         verify(inventory).reserveLocalMutationPayment(eq(accountId), any(), eq(Map.of(materialEntryId, 3L)));
-        verify(inventory).queueLocalPlayerSave(accountId);
+        verify(inventory).executeCriticalPlayerMutation(eq(accountId), any());
     }
 
     /**
@@ -164,7 +168,7 @@ class LearnedSkillServiceTest {
         when(inventory.commitLocalOrbOperationPayment(eq(accountId), any(), any())).thenReturn(false);
         LearnedSkillService service = service(accountId, inventory, List.of(learned));
 
-        assertFalse(service.levelUpFromManagerWithPaymentsAsync(
+        assertTrue(service.levelUpFromManagerWithPaymentsAsync(
             accountId, learned.getLearnedSkillId(), accountId, Map.of(materialEntryId, 1L),
             ignored -> { throw new AssertionError("failed commit must not level up"); }, ignored -> { }, () -> { }
         ));
@@ -174,7 +178,7 @@ class LearnedSkillServiceTest {
         assertEquals(2, unchanged.getLevel());
         assertEquals(4, unchanged.getVersion());
         verify(inventory).releaseOrbOperationPayment(eq(accountId), any());
-        verify(inventory, never()).queueLocalPlayerSave(accountId);
+        verify(inventory).executeCriticalPlayerMutation(eq(accountId), any());
     }
 
     /**
@@ -189,14 +193,14 @@ class LearnedSkillServiceTest {
         AtomicReference<Throwable> failure = new AtomicReference<>();
         LearnedSkillService service = service(accountId, inventory, List.of());
 
-        assertFalse(service.levelUpFromManagerWithPaymentsAsync(
+        assertTrue(service.levelUpFromManagerWithPaymentsAsync(
             accountId, UUID.randomUUID(), accountId, Map.of(UUID.randomUUID(), 1L),
             ignored -> { }, failure::set, () -> { }
         ));
 
         assertNotNull(failure.get());
         verify(inventory).releaseOrbOperationPayment(eq(accountId), any());
-        verify(inventory, never()).queueLocalPlayerSave(accountId);
+        verify(inventory).executeCriticalPlayerMutation(eq(accountId), any());
     }
 
     /**
@@ -226,7 +230,7 @@ class LearnedSkillServiceTest {
         verify(inventory).reserveLocalMutationPayment(
             eq(accountId), any(), eq(Map.of(orbEntryId, 1L, sigilEntryId, 1L))
         );
-        verify(inventory).queueLocalPlayerSave(accountId);
+        verify(inventory).executeCriticalPlayerMutation(eq(accountId), any());
     }
 
     /**
@@ -243,7 +247,7 @@ class LearnedSkillServiceTest {
         AtomicReference<Throwable> failure = new AtomicReference<>();
         LearnedSkillService service = service(accountId, inventory, List.of(learned));
 
-        assertFalse(service.attachSigilLocally(
+        assertTrue(service.attachSigilLocally(
             accountId, learned.getLearnedSkillId(), UUID.randomUUID(),
             sigil("sigil_power_large", "POWER", 1), UUID.randomUUID(),
             ignored -> { }, failure::set
@@ -252,7 +256,7 @@ class LearnedSkillServiceTest {
         assertNotNull(failure.get());
         assertEquals(List.of(existing), service.findInstance(accountId, learned.getLearnedSkillId()).getSigils());
         verify(inventory).releaseOrbOperationPayment(eq(accountId), any());
-        verify(inventory, never()).queueLocalPlayerSave(accountId);
+        verify(inventory).executeCriticalPlayerMutation(eq(accountId), any());
     }
 
     /**
@@ -280,7 +284,7 @@ class LearnedSkillServiceTest {
         assertNotNull(updated);
         assertTrue(updated.getSigils().isEmpty());
         assertEquals(5, updated.getVersion());
-        verify(inventory).queueLocalPlayerSave(accountId);
+        verify(inventory).executeCriticalPlayerMutation(eq(accountId), any());
     }
 
     /**
@@ -296,14 +300,14 @@ class LearnedSkillServiceTest {
         AtomicInteger returns = new AtomicInteger();
         LearnedSkillService service = service(accountId, inventory, List.of(learned));
 
-        assertFalse(service.detachSigilLocally(
+        assertTrue(service.detachSigilLocally(
             accountId, learned.getLearnedSkillId(), UUID.randomUUID(), UUID.randomUUID(),
             returns::incrementAndGet, ignored -> { }, ignored -> { }
         ));
 
         assertEquals(0, returns.get());
         verify(inventory).releaseOrbOperationPayment(eq(accountId), any());
-        verify(inventory, never()).queueLocalPlayerSave(accountId);
+        verify(inventory).executeCriticalPlayerMutation(eq(accountId), any());
     }
 
     /**
@@ -330,8 +334,37 @@ class LearnedSkillServiceTest {
         JsonObject deletion = onlyDeletedSkill(service.snapshotPlayerState(accountId));
         assertEquals(learned.getLearnedSkillId().toString(), deletion.get("learnedSkillId").getAsString());
         assertEquals(4, deletion.get("expectedVersion").getAsInt());
-        verify(inventory).queueLocalPlayerSave(accountId);
-        verify(repository, never()).forget(any(), any(), any(), any());
+        verify(inventory).executeCriticalPlayerMutation(eq(accountId), any());
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/13-skill/3-メソッド仕様/13_3-サービス.md
+     * 章・見出し: # 13_3-サービス > ## 習得済みスキル個体
+     * 検証契約: 有償忘却のinventory変更とskill削除は一つのcritical mutation内で実行する。
+     */
+    @Test
+    void paidForgetRunsInventoryMutationInsideSameCriticalBoundary() {
+        UUID accountId = UUID.randomUUID();
+        LearnedSkillInstance learned = learned(accountId, 1, 4, List.of());
+        InventoryService inventory = committingInventory(accountId);
+        AtomicInteger inventoryMutations = new AtomicInteger();
+        AtomicReference<LearnedSkillInstance> removed = new AtomicReference<>();
+        LearnedSkillService service = service(accountId, inventory, List.of(learned));
+
+        assertTrue(service.forgetWithInventoryMutationAsync(
+            accountId,
+            learned.getLearnedSkillId(),
+            accountId,
+            inventoryMutations::incrementAndGet,
+            removed::set,
+            failure -> { throw new AssertionError(failure); },
+            () -> { }
+        ));
+
+        assertEquals(1, inventoryMutations.get());
+        assertSame(learned, removed.get());
+        assertNull(service.findInstance(accountId, learned.getLearnedSkillId()));
+        verify(inventory).executeCriticalPlayerMutation(eq(accountId), any());
     }
 
     /**
@@ -346,13 +379,13 @@ class LearnedSkillServiceTest {
         AtomicReference<Throwable> failure = new AtomicReference<>();
         LearnedSkillService service = service(accountId, inventory, List.of());
 
-        assertFalse(service.forgetAsync(
+        assertTrue(service.forgetAsync(
             accountId, UUID.randomUUID(), accountId, ignored -> { }, failure::set
         ));
 
         assertNotNull(failure.get());
         assertNull(service.snapshotPlayerState(accountId));
-        verify(inventory, never()).queueLocalPlayerSave(accountId);
+        verify(inventory).executeCriticalPlayerMutation(eq(accountId), any());
     }
 
     /**
@@ -628,9 +661,22 @@ class LearnedSkillServiceTest {
         LearnedSkillRepository repository,
         List<LearnedSkillInstance> skills
     ) {
-        LearnedSkillService service = new LearnedSkillService(mock(Plugin.class), repository, inventory);
+        LearnedSkillService service = new LearnedSkillService(immediatePlugin(), repository, inventory);
         service.applyInitialSkills(accountId, skills);
         return service;
+    }
+
+    private static Plugin immediatePlugin() {
+        Plugin plugin = mock(Plugin.class);
+        Server server = mock(Server.class);
+        BukkitScheduler scheduler = mock(BukkitScheduler.class);
+        when(plugin.getServer()).thenReturn(server);
+        when(server.getScheduler()).thenReturn(scheduler);
+        doAnswer(invocation -> {
+            invocation.getArgument(1, Runnable.class).run();
+            return mock(BukkitTask.class);
+        }).when(scheduler).runTask(eq(plugin), any(Runnable.class));
+        return plugin;
     }
 
     private static LearnedSkillInstance learned(
@@ -652,6 +698,16 @@ class LearnedSkillServiceTest {
         InventoryService inventory = mock(InventoryService.class);
         doAnswer(invocation -> invocation.<java.util.function.Supplier<?>>getArgument(1).get())
             .when(inventory).executeLocalPlayerMutation(eq(accountId), any());
+        doAnswer(invocation -> {
+            try {
+                Object supplied = invocation.<java.util.function.Supplier<?>>getArgument(1).get();
+                InventorySaveCoordinator.CriticalMutation<?> mutation =
+                    (InventorySaveCoordinator.CriticalMutation<?>) supplied;
+                return CompletableFuture.completedFuture(mutation.result());
+            } catch (Throwable failure) {
+                return CompletableFuture.failedFuture(failure);
+            }
+        }).when(inventory).executeCriticalPlayerMutation(eq(accountId), any());
         return inventory;
     }
 

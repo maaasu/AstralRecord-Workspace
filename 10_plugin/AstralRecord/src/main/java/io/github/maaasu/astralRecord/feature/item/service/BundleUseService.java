@@ -1,5 +1,9 @@
 package io.github.maaasu.astralRecord.feature.item.service;
 
+import io.github.maaasu.astralRecord.AstralRecord;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryEntryModel;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundle;
 import io.github.maaasu.astralRecord.feature.item.model.ItemBundleReward;
@@ -13,6 +17,8 @@ import io.github.maaasu.astralRecord.feature.loot.service.LootService;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
+import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import io.github.maaasu.astralRecord.shared.effect.ParticleDisplayService;
 import io.github.maaasu.astralRecord.shared.timing.MovementCancelableWait;
@@ -256,69 +262,97 @@ public class BundleUseService {
             return;
         }
 
+        InventoryEntryModel bundleEntry = inventoryService.getHotbarEntryInHand(
+            pending.astPlayer(), pending.hand());
+        if (bundleEntry == null || bundleEntry.getItemId() == null
+            || !pending.model().getId().equalsIgnoreCase(bundleEntry.getItemId())) {
+            return;
+        }
+
         Map<String, Integer> rewards = rollRewards(pending.bundle(), pending.lootModel());
+        List<ResolvedReward> resolvedRewards = new ArrayList<>();
         for (Map.Entry<String, Integer> reward : rewards.entrySet()) {
             if (reward.getValue() <= 0) continue;
             ItemModel rewardModel = itemService.findLoadedById(reward.getKey());
-            if (rewardModel == null) rewardModel = itemService.loadItem(reward.getKey());
             if (rewardModel == null || !inventoryService.canAddItemToNormalInventory(
                 pending.astPlayer(), rewardModel, reward.getValue()
             )) {
                 PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5245);
                 return;
             }
+            resolvedRewards.add(new ResolvedReward(rewardModel, reward.getValue()));
         }
-        if (!inventoryService.consumeHotbarItemInHand(
-            pending.astPlayer(),
-            pending.hand(),
-            pending.model().getId(),
-            1
-        )) {
-            PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5245);
+        UUID accountId = pending.astPlayer().getAccount().getUuid();
+        inventoryService.executeCriticalPlayerMutation(accountId, () -> {
+            InventoryService.InventoryStateSnapshot inventoryBefore = inventoryService.snapshotState(accountId);
+            if (inventoryBefore == null) throw new BundleMutationRejectedException();
+            Runnable equipmentRollback = itemService.captureEquipmentStateRollback(accountId);
+            try {
+                if (!inventoryService.consumeHotbarEntryStateOnly(
+                    accountId, bundleEntry.getInventoryEntryId(), pending.model().getId(), 1)) {
+                    throw new BundleMutationRejectedException();
+                }
+                for (ResolvedReward reward : resolvedRewards) {
+                    if (inventoryService.addItemToNormalInventoryStateOnly(
+                        pending.astPlayer(), reward.model(), reward.amount(), SOURCE_BUNDLE_USE) != reward.amount()) {
+                        throw new BundleMutationRejectedException();
+                    }
+                }
+                if (pending.bundle().getGold() > 0L
+                    && !inventoryService.addGold(pending.astPlayer(), pending.bundle().getGold())) {
+                    throw new BundleMutationRejectedException();
+                }
+                return new InventorySaveCoordinator.CriticalMutation<>(true, () -> {
+                    inventoryService.restoreState(inventoryBefore);
+                    equipmentRollback.run();
+                });
+            } catch (RuntimeException | Error failure) {
+                inventoryService.restoreState(inventoryBefore);
+                equipmentRollback.run();
+                throw failure;
+            }
+        }).whenComplete((saved, failure) -> runOnMainThread(() -> {
+            if (failure != null || !Boolean.TRUE.equals(saved)) {
+                Logger.warn(LogId.W_5252, accountId,
+                    failure == null ? BundleMutationRejectedException.class.getSimpleName() : failure.getMessage());
+                if (pending.astPlayer().getBukkit().isOnline()) {
+                    PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5245);
+                    inventoryService.applyHotbarInventoryToGui(pending.astPlayer());
+                }
+                return;
+            }
+            if (!pending.astPlayer().getBukkit().isOnline()) return;
+            inventoryService.applyHotbarInventoryToGui(pending.astPlayer());
+            resolvedRewards.stream().map(reward -> inventoryService.resolveInventoryType(reward.model()))
+                .filter(type -> type != InventoryType.CURRENCY).distinct()
+                .forEach(type -> inventoryService.applyInventoryToGui(pending.astPlayer(), type));
+            playUseEffects(pending.astPlayer(), pending.bundle());
+            playRewardDropAnimations(pending.astPlayer(), resolvedRewards);
+            int rewardKinds = resolvedRewards.size() + (pending.bundle().getGold() > 0L ? 1 : 0);
+            int totalGranted = resolvedRewards.stream().mapToInt(ResolvedReward::amount).sum()
+                + (pending.bundle().getGold() > 0L ? 1 : 0);
+            PlayerMessageService.getInstance().send(
+                pending.astPlayer(), PlayerMsgId.P_5243, rewardKinds, totalGranted);
+            for (ResolvedReward reward : resolvedRewards) {
+                PlayerMessageService.getInstance().send(
+                    pending.astPlayer(), PlayerMsgId.P_5248,
+                    buildRewardSummary(reward.model(), reward.amount()));
+            }
+            bundleOpenedListener.accept(pending.astPlayer(), pending.model().getId());
+        }));
+    }
+
+    private void runOnMainThread(@NotNull Runnable action) {
+        AstralRecord plugin = AstralRecord.getInstance();
+        if (plugin == null || Bukkit.isPrimaryThread()) {
+            action.run();
             return;
         }
+        plugin.getServer().getScheduler().runTask(plugin, action);
+    }
 
-        int rewardKinds = 0;
-        int totalGranted = 0;
-        List<String> rewardSummaries = new ArrayList<>();
-        List<ResolvedReward> resolvedRewards = new ArrayList<>();
-        for (Map.Entry<String, Integer> reward : rewards.entrySet()) {
-            if (reward.getValue() <= 0) {
-                continue;
-            }
-
-            ItemModel rewardModel = itemService.findLoadedById(reward.getKey());
-            if (rewardModel == null) {
-                rewardModel = itemService.loadItem(reward.getKey());
-            }
-            if (rewardModel == null) {
-                continue;
-            }
-
-            int requestedAmount = reward.getValue();
-            int granted = inventoryService.addItemToNormalInventory(
-                pending.astPlayer(), rewardModel, requestedAmount, SOURCE_BUNDLE_USE);
-            totalGranted += granted;
-            if (granted > 0) {
-                rewardKinds++;
-                resolvedRewards.add(new ResolvedReward(rewardModel, granted));
-                rewardSummaries.add(buildRewardSummary(rewardModel, granted));
-            }
-
-        }
-        if (pending.bundle().getGold() > 0L
-            && inventoryService.addGold(pending.astPlayer(), pending.bundle().getGold())) {
-            rewardKinds++;
-            totalGranted++;
-        }
-
-        playUseEffects(pending.astPlayer(), pending.bundle());
-        playRewardDropAnimations(pending.astPlayer(), resolvedRewards);
-        PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5243, rewardKinds, totalGranted);
-        for (String rewardSummary : rewardSummaries) {
-            PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5248, rewardSummary);
-        }
-        bundleOpenedListener.accept(pending.astPlayer(), pending.model().getId());
+    private static final class BundleMutationRejectedException extends IllegalStateException {
+        private static final long serialVersionUID = 1L;
     }
 
     private @NotNull String buildRewardSummary(@NotNull ItemModel rewardModel, int amount) {

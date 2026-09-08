@@ -906,6 +906,12 @@ CREATE NONCLUSTERED INDEX [IX_inventory_entry_inventory_id]
     ON [dbo].[inventory_entry] ([inventory_id]);
 GO
 
+CREATE NONCLUSTERED INDEX [IX_inventory_entry_active_inventory]
+    ON [dbo].[inventory_entry] ([inventory_id], [inventory_entry_id])
+    INCLUDE ([updated_at])
+    WHERE [is_deleted] = 0;
+GO
+
 CREATE UNIQUE NONCLUSTERED INDEX [UX_inventory_entry_inventory_slot]
     ON [dbo].[inventory_entry] ([inventory_id], [slot_index])
     WHERE [slot_index] IS NOT NULL

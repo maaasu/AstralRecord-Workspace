@@ -286,33 +286,80 @@ public final class ReturnToBaseService {
             return;
         }
 
-        if (!inventoryService.consumeGold(pending.astPlayer().getAccount().getUuid(), pending.goldCost())) {
-            PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5609, pending.goldCost());
-            showResultTitle(player, PlayerMsgId.P_5615, PlayerMsgId.P_5609, pending.goldCost());
-            return;
-        }
-        inventoryService.saveNow(pending.astPlayer().getAccount().getUuid());
-
-        player.playSound(player.getLocation(), Sound.ITEM_CHORUS_FRUIT_TELEPORT, SoundCategory.PLAYERS, 0.9F, 1.05F);
-        worldService.teleportToSpawnAsync(player, pending.baseWorld()).whenComplete((success, throwable) ->
-            Bukkit.getScheduler().runTask(plugin, () -> {
-                if (!player.isOnline()) {
-                    return;
+        UUID accountId = pending.astPlayer().getAccount().getUuid();
+        inventoryService.executeCriticalPlayerMutation(accountId, () -> {
+            InventoryService.InventoryStateSnapshot before = inventoryService.snapshotState(accountId);
+            if (before == null || !inventoryService.consumeGold(accountId, pending.goldCost())) {
+                throw new InsufficientReturnGoldException();
+            }
+            return new io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator.CriticalMutation<>(
+                true,
+                () -> inventoryService.restoreState(before)
+            );
+        }).whenComplete((ignored, paymentFailure) -> Bukkit.getScheduler().runTask(plugin, () -> {
+            if (!player.isOnline()) {
+                return;
+            }
+            if (paymentFailure != null) {
+                if (unwrap(paymentFailure) instanceof InsufficientReturnGoldException) {
+                    PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5609, pending.goldCost());
+                    showResultTitle(player, PlayerMsgId.P_5615, PlayerMsgId.P_5609, pending.goldCost());
+                } else {
+                    showReturnFailure(player, pending);
                 }
-                if (throwable != null || !Boolean.TRUE.equals(success)) {
-                    inventoryService.addGold(pending.astPlayer(), pending.goldCost());
-                    inventoryService.saveNow(pending.astPlayer().getAccount().getUuid());
-                    PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5611);
-                    showResultTitle(player, PlayerMsgId.P_5615, PlayerMsgId.P_5611);
-                    player.playSound(player.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, SoundCategory.PLAYERS, 0.8F, 0.85F);
-                    return;
-                }
+                return;
+            }
 
-                PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5610, pending.goldCost());
-                showResultTitle(player, PlayerMsgId.P_5617, PlayerMsgId.P_5618);
-                playArrivalEffects(player);
-            })
-        );
+            player.playSound(player.getLocation(), Sound.ITEM_CHORUS_FRUIT_TELEPORT, SoundCategory.PLAYERS, 0.9F, 1.05F);
+            worldService.teleportToSpawnAsync(player, pending.baseWorld()).whenComplete((success, throwable) ->
+                Bukkit.getScheduler().runTask(plugin, () -> {
+                    if (throwable == null && Boolean.TRUE.equals(success)) {
+                        if (player.isOnline()) {
+                            PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5610, pending.goldCost());
+                            showResultTitle(player, PlayerMsgId.P_5617, PlayerMsgId.P_5618);
+                            playArrivalEffects(player);
+                        }
+                        return;
+                    }
+                    refundFailedReturn(player, pending, accountId);
+                })
+            );
+        }));
+    }
+
+    private void refundFailedReturn(
+        @NotNull Player player,
+        @NotNull PendingReturn pending,
+        @NotNull UUID accountId
+    ) {
+        inventoryService.executeCriticalPlayerMutation(accountId, () -> {
+            InventoryService.InventoryStateSnapshot before = inventoryService.snapshotState(accountId);
+            if (before == null || !inventoryService.addGoldStateOnly(accountId, pending.goldCost())) {
+                throw new IllegalStateException("Failed to restore return-to-base gold");
+            }
+            return new io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator.CriticalMutation<>(
+                true,
+                () -> inventoryService.restoreState(before)
+            );
+        }).whenComplete((ignored, refundFailure) -> Bukkit.getScheduler().runTask(plugin, () -> {
+            if (player.isOnline()) {
+                showReturnFailure(player, pending);
+            }
+        }));
+    }
+
+    private void showReturnFailure(@NotNull Player player, @NotNull PendingReturn pending) {
+        PlayerMessageService.getInstance().send(pending.astPlayer(), PlayerMsgId.P_5611);
+        showResultTitle(player, PlayerMsgId.P_5615, PlayerMsgId.P_5611);
+        player.playSound(player.getLocation(), Sound.BLOCK_BEACON_DEACTIVATE, SoundCategory.PLAYERS, 0.8F, 0.85F);
+    }
+
+    private static @NotNull Throwable unwrap(@NotNull Throwable failure) {
+        return failure.getCause() == null ? failure : failure.getCause();
+    }
+
+    private static final class InsufficientReturnGoldException extends IllegalStateException {
+        private static final long serialVersionUID = 1L;
     }
 
     private boolean cancelPending(@NotNull UUID playerId, boolean notify) {

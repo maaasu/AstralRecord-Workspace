@@ -73,3 +73,9 @@ CREATE NONCLUSTERED INDEX [IX_account_mob_record_account_category_last_defeated]
 CREATE NONCLUSTERED INDEX [IX_account_mob_record_is_deleted]
     ON [dbo].[account_mob_record] ([is_deleted]);
 ```
+
+## 運用メモ
+
+- Plugin の討伐イベントはメモリで account・Mob 単位に集約し、player-state snapshot の `adventureRecords.mobDefeatDeltas` で加算します。
+- 加算は player-state の account transaction 内で行い、同じ `snapshot_id` の再送は完成台帳により二重加算しません。
+- 冒険記録 GUI の初期読込は Adventure Record API の GET を使用します。

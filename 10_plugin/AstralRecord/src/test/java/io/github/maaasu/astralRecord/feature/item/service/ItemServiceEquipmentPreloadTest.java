@@ -10,6 +10,7 @@ import java.util.Locale;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertSame;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -83,11 +84,6 @@ class ItemServiceEquipmentPreloadTest {
         when(repository.findEquipmentInstanceById(instanceId))
             .thenReturn(senderOwned)
             .thenReturn(recipientOwned);
-        when(repository.updateEquipmentDurability(
-            instanceId,
-            75,
-            recipientAccountId.toString()
-        )).thenReturn(recipientOwned);
         service.preloadEquipmentInstances(List.of(instanceId));
         service.updateEquipmentDurability(instanceId, 75, "updated-by");
 
@@ -98,8 +94,11 @@ class ItemServiceEquipmentPreloadTest {
         assertEquals(recipientAccountId, UUID.fromString(
             service.findLoadedEquipmentInstanceById(instanceId).getAccountId()));
         assertTrue(service.hasDirtyEquipmentDurability(recipientAccountId));
-        assertTrue(service.flushDirtyEquipmentDurability(recipientAccountId));
-        verify(repository).updateEquipmentDurability(instanceId, 75, recipientAccountId.toString());
+        List<EquipmentInstance> captured = service.snapshotDirtyEquipmentState(recipientAccountId);
+        service.acknowledgeEquipmentState(
+            recipientAccountId, captured, java.util.Map.of(instanceId, "2026-08-11T00:00:00")
+        );
+        assertFalse(service.hasDirtyEquipmentDurability(recipientAccountId));
         verify(repository, times(2)).findEquipmentInstanceById(instanceId);
     }
 

@@ -4,12 +4,12 @@ import io.github.maaasu.astralRecord.AstralRecord;
 import io.github.maaasu.astralRecord.feature.account.service.AccountDisplayNameFormatter;
 import io.github.maaasu.astralRecord.feature.player.AstPlayerCache;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
-import io.github.maaasu.astralRecord.feature.player.PlayerMsgResource;
 import io.github.maaasu.astralRecord.feature.player.afk.service.AfkService;
-import io.github.maaasu.astralRecord.feature.player.event.PlayerJoinEventHandler;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
 import io.github.maaasu.astralRecord.feature.player.service.PlayerMessageService;
+import io.github.maaasu.astralRecord.feature.player.service.PlayerSessionTransitionGuard;
 import io.github.maaasu.astralRecord.feature.playerclass.PlayerClassService;
+import io.github.maaasu.astralRecord.feature.quest.service.QuestService;
 import io.github.maaasu.astralRecord.infrastructure.util.ColorCodeUtil;
 import org.bukkit.Bukkit;
 import org.bukkit.entity.Player;
@@ -32,6 +32,7 @@ import org.jetbrains.annotations.NotNull;
 
 import java.util.Set;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 
 /** RPGサーバーとVelocity Proxy間の転送・チャット・Tabメタデータを管理します。 */
@@ -39,6 +40,8 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
     private final AstralRecord plugin;
     private final PlayerClassService playerClassService;
     private final AfkService afkService;
+    private final QuestService questService;
+    private final PlayerSessionTransitionGuard transitionGuard;
     private final boolean enabled;
     private final String channelName;
     private final String lobbyServer;
@@ -48,11 +51,15 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
     public NetworkBridgeService(
         @NotNull AstralRecord plugin,
         @NotNull PlayerClassService playerClassService,
-        @NotNull AfkService afkService
+        @NotNull AfkService afkService,
+        @NotNull QuestService questService,
+        @NotNull PlayerSessionTransitionGuard transitionGuard
     ) {
         this.plugin = plugin;
         this.playerClassService = playerClassService;
         this.afkService = afkService;
+        this.questService = questService;
+        this.transitionGuard = transitionGuard;
         this.enabled = plugin.getConfig().getBoolean("network.enabled", true);
         this.channelName = plugin.getConfig().getString("network.channelName", "dev");
         this.lobbyServer = plugin.getConfig().getString("network.lobbyServer", "lobby");
@@ -77,6 +84,8 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
             plugin.getServer().getMessenger().unregisterOutgoingPluginChannel(plugin, BackendProtocol.CHANNEL);
             HandlerList.unregisterAll(this);
         }
+        transfers.forEach(playerId ->
+            transitionGuard.end(playerId, PlayerSessionTransitionGuard.Transition.CHANNEL_TRANSFER));
         transfers.clear();
         playerClassService.setPlayerListNameUpdatesEnabled(true);
     }
@@ -107,7 +116,19 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
             PlayerMessageService.getInstance().send(bukkit, PlayerMsgId.P_7150);
             return;
         }
+        if (!transitionGuard.tryBegin(
+            playerId,
+            PlayerSessionTransitionGuard.Transition.CHANNEL_TRANSFER
+        )) {
+            PlayerMsgId messageId = transitionGuard.current(playerId)
+                == PlayerSessionTransitionGuard.Transition.ACCOUNT_SWITCH
+                ? PlayerMsgId.P_5341
+                : PlayerMsgId.P_7151;
+            PlayerMessageService.getInstance().send(bukkit, messageId);
+            return;
+        }
         if (!transfers.add(playerId)) {
+            transitionGuard.end(playerId, PlayerSessionTransitionGuard.Transition.CHANNEL_TRANSFER);
             PlayerMessageService.getInstance().send(bukkit, PlayerMsgId.P_7151);
             return;
         }
@@ -121,45 +142,46 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
         }
         bukkit.closeInventory();
         bukkit.setInvulnerable(true);
-        PlayerJoinEventHandler.AccountSwitchPreparation preparation =
-            plugin.getPlayerJoinEventHandler().prepareAccountSwitch(bukkit);
-        if (preparation == null) {
-            transfers.remove(playerId);
+        CompletableFuture<Boolean> playerStateSave;
+        try {
+            playerStateSave = plugin.getPlayerService().saveForChannelTransfer(player);
+        } catch (RuntimeException failure) {
+            releaseTransfer(playerId);
             bukkit.setInvulnerable(false);
-            PlayerMessageService.getInstance().send(bukkit, PlayerMsgId.P_7152);
+            PlayerMessageService.getInstance().send(bukkit, PlayerMsgId.P_7153);
             return;
         }
 
-        plugin.getServer().getScheduler().runTaskAsynchronously(plugin, () -> {
-            RuntimeException failure = null;
-            try {
-                plugin.getPlayerService().awaitQueuedSavesForAccountSwitch(
-                    preparation.accountId(),
-                    preparation.logoutSave()
-                );
-            } catch (RuntimeException exception) {
-                failure = exception;
-            }
-            RuntimeException saveFailure = failure;
+        playerStateSave.whenComplete((ignored, failure) ->
             plugin.getServer().getScheduler().runTask(plugin, () -> {
                 if (!bukkit.isOnline()) {
-                    transfers.remove(playerId);
+                    releaseTransfer(playerId);
                     return;
                 }
-                if (saveFailure != null) {
-                    transfers.remove(playerId);
-                    bukkit.kick(PlayerMsgResource.getComponent(PlayerMsgId.P_7153.getId()));
+                if (failure != null || !Boolean.TRUE.equals(playerStateSave.getNow(false))) {
+                    releaseTransfer(playerId);
+                    bukkit.setInvulnerable(false);
+                    PlayerMessageService.getInstance().send(bukkit, PlayerMsgId.P_7153);
                     return;
                 }
-                BackendProtocol.sendConnect(plugin, bukkit, lobbyServer);
+                try {
+                    BackendProtocol.sendConnect(plugin, bukkit, lobbyServer);
+                } catch (RuntimeException connectFailure) {
+                    releaseTransfer(playerId);
+                    bukkit.setInvulnerable(false);
+                    PlayerMessageService.getInstance().send(bukkit, PlayerMsgId.P_7154);
+                    return;
+                }
                 plugin.getServer().getScheduler().runTaskLater(plugin, () -> {
-                    boolean stillPending = transfers.remove(playerId);
+                    boolean stillPending = transfers.contains(playerId);
+                    releaseTransfer(playerId);
                     if (bukkit.isOnline() && stillPending) {
-                        bukkit.kick(PlayerMsgResource.getComponent(PlayerMsgId.P_7154.getId()));
+                        bukkit.setInvulnerable(false);
+                        PlayerMessageService.getInstance().send(bukkit, PlayerMsgId.P_7154);
                     }
                 }, 100L);
-            });
-        });
+            })
+        );
     }
 
     @EventHandler(ignoreCancelled = true)
@@ -220,7 +242,12 @@ public final class NetworkBridgeService implements NetworkChatBridge, Listener {
 
     @EventHandler
     public void onPlayerQuit(@NotNull PlayerQuitEvent event) {
-        transfers.remove(event.getPlayer().getUniqueId());
+        releaseTransfer(event.getPlayer().getUniqueId());
+    }
+
+    private void releaseTransfer(@NotNull UUID playerId) {
+        transfers.remove(playerId);
+        transitionGuard.end(playerId, PlayerSessionTransitionGuard.Transition.CHANNEL_TRANSFER);
     }
 
     private void publishMetadata(@NotNull AstPlayer player) {

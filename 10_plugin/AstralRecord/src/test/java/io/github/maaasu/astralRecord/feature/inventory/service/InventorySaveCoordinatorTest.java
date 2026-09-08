@@ -71,6 +71,117 @@ class InventorySaveCoordinatorTest {
     /**
      * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
      * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: 200ms以内に到着した通常autosaveを1回のsnapshot保存へ集約する。
+     */
+    @Test
+    void coalescesAutosavesWithinDebounceWindow() throws Exception {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        when(persistence.hasPendingChanges(state)).thenReturn(false);
+        ManualExecutor executor = new ManualExecutor();
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(persistence, registry, executor);
+
+        var first = coordinator.saveAuto(state);
+        var second = coordinator.saveAuto(state);
+
+        assertFalse(first.isDone());
+        assertFalse(second.isDone());
+        awaitPendingTask(executor);
+        executor.runAll();
+
+        assertTrue(first.join());
+        assertTrue(second.join());
+        verify(persistence, times(1)).save(state, InventoryPersistence.SaveTrigger.AUTO);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: チャンネル境界保存はsnapshot中に増えた差分も再保存し、未保存差分が消えたACK後だけ成功する。
+     */
+    @Test
+    void boundarySaveRetriesUntilNoPendingChangesRemain() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        when(persistence.saveNow(state)).thenReturn(true);
+        when(persistence.hasPendingChanges(state)).thenReturn(true, true, false);
+        ManualExecutor executor = new ManualExecutor();
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(persistence, registry, executor);
+
+        var save = coordinator.saveForBoundary(accountId);
+        executor.runAll();
+
+        assertTrue(save.join());
+        verify(persistence, times(3)).saveNow(state);
+        assertSame(state, registry.get(accountId));
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: チャンネル境界のsnapshot保存が失敗した場合はstateを解放せず移動失敗を返す。
+     */
+    @Test
+    void boundarySaveFailureRetainsCurrentSessionState() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        state.markDirty();
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        when(persistence.saveNow(state)).thenReturn(false);
+        ManualExecutor executor = new ManualExecutor();
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(persistence, registry, executor);
+
+        var save = coordinator.saveForBoundary(accountId);
+        executor.runAll();
+
+        assertFalse(save.join());
+        assertSame(state, registry.get(accountId));
+        assertTrue(state.isDirty());
+        verify(persistence, never()).clearAccount(accountId);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
+     * 検証契約: 重要操作の完成snapshotがSQL ACKを得られない場合は操作前状態へ補償して失敗確定する。
+     */
+    @Test
+    void criticalSaveFailureRollsBackBeforeFailureCompletes() {
+        UUID accountId = UUID.randomUUID();
+        PlayerInventoryState state = new PlayerInventoryState(accountId);
+        PlayerInventoryStateRegistry registry = new PlayerInventoryStateRegistry();
+        registry.put(state);
+        InventoryPersistence persistence = mock(InventoryPersistence.class);
+        when(persistence.saveNow(state)).thenReturn(true);
+        when(persistence.hasPendingChanges(state)).thenReturn(false);
+        when(persistence.saveCriticalNow(state)).thenReturn(false);
+        ManualExecutor executor = new ManualExecutor();
+        InventorySaveCoordinator coordinator = new InventorySaveCoordinator(persistence, registry, executor);
+        int[] value = {10};
+
+        var mutation = coordinator.executeCriticalMutation(accountId, () -> {
+            value[0] = 20;
+            return new InventorySaveCoordinator.CriticalMutation<>("changed", () -> value[0] = 10);
+        });
+        executor.runAll();
+
+        assertThrows(CompletionException.class, mutation::join);
+        assertEquals(10, value[0]);
+        assertFalse(coordinator.hasUnresolvedExternalOperation(accountId));
+        verify(persistence).saveCriticalNow(state);
+    }
+
+    /**
+     * 設計入力: 00_docs/10_Plugin設計書/feature/08-inventory/3-メソッド仕様/08_3-タスク・補助.md
+     * 章・見出し: # 08_3-タスク・補助 > ## 6. アカウント別保存調停
      * 検証契約: reconciliation境界を跨ぐsaveをcoalesceせず順序を維持する。
      */
     @Test
@@ -745,5 +856,13 @@ class InventorySaveCoordinatorTest {
                 task.run();
             }
         }
+    }
+
+    private static void awaitPendingTask(ManualExecutor executor) throws InterruptedException {
+        long deadlineNanos = System.nanoTime() + TimeUnit.SECONDS.toNanos(2);
+        while (executor.pendingCount() == 0 && System.nanoTime() < deadlineNanos) {
+            Thread.sleep(5L);
+        }
+        assertTrue(executor.pendingCount() > 0, "Debounced autosave was not dispatched within 2 seconds");
     }
 }

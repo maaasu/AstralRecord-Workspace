@@ -35,7 +35,7 @@ public class WorldRepository {
         String path = "/api/master-data/seed";
 
         try {
-            try (var client = ApiRequestUtil.buildClient()) {
+            var client = ApiRequestUtil.sharedClient();
                 var request = ApiRequestUtil.buildRequestBuilder(path)
                         .POST(HttpRequest.BodyPublishers.noBody())
                         .build();
@@ -45,7 +45,6 @@ public class WorldRepository {
                     Logger.log(LogId.E_5751, "seed status=" + response.statusCode());
                     throw new IOException("Unexpected status " + response.statusCode() + " for POST " + path);
                 }
-            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
@@ -64,7 +63,7 @@ public class WorldRepository {
         String path = "/api/world";
 
         try {
-            try (var client = ApiRequestUtil.buildClient()) {
+            var client = ApiRequestUtil.sharedClient();
                 var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
@@ -75,7 +74,6 @@ public class WorldRepository {
 
                 JsonArray array = JsonParser.parseString(response.body()).getAsJsonArray();
                 return resolveListPayload(array);
-            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);
@@ -133,7 +131,7 @@ public class WorldRepository {
         String path = "/api/world/" + encoded;
 
         try {
-            try (var client = ApiRequestUtil.buildClient()) {
+            var client = ApiRequestUtil.sharedClient();
                 var request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
                 HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
 
@@ -148,7 +146,6 @@ public class WorldRepository {
                         throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
                     }
                 };
-            }
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);

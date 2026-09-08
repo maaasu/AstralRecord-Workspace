@@ -20,7 +20,7 @@ import java.util.Set;
 import java.util.UUID;
 
 /**
- * login-bonus API を通じてログインボーナス受取履歴を読み書きします。
+ * login-bonus API からログインボーナス受取履歴を読み取ります。
  */
 public final class LoginBonusClaimRepository {
     /**
@@ -37,90 +37,16 @@ public final class LoginBonusClaimRepository {
             + "&from=" + encode(from.toString())
             + "&to=" + encode(to.toString());
         try {
-            try (var client = ApiRequestUtil.buildClient()) {
-                HttpRequest request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() == 404) {
-                    return Set.of();
-                }
-                if (response.statusCode() != 200) {
-                    throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
-                }
-                return parseClaimDates(JsonParser.parseString(response.body()).getAsJsonArray());
+            HttpRequest request = ApiRequestUtil.buildRequestBuilder(path).GET().build();
+            HttpResponse<String> response = ApiRequestUtil.sharedClient()
+                .send(request, HttpResponse.BodyHandlers.ofString());
+            if (response.statusCode() == 404) {
+                return Set.of();
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        } catch (IOException | RuntimeException e) {
-            Logger.log(LogId.E_5071, e, path);
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * 指定日をログインボーナス受取済みとして登録します。
-     *
-     * @param accountId 対象アカウントID
-     * @param claimDate 受取日
-     * @return 新規登録、受け取り済み、登録失敗のいずれか
-     */
-    public @NotNull LoginBonusClaimResult tryClaim(@NotNull UUID accountId, @NotNull LocalDate claimDate) {
-        String path = "/api/login-bonus/accounts/" + accountId + "/claims";
-        JsonObject body = new JsonObject();
-        body.addProperty("claimDate", claimDate.toString());
-        body.addProperty("updatedBy", accountId.toString());
-        try {
-            try (var client = ApiRequestUtil.buildClient()) {
-                HttpRequest request = ApiRequestUtil.buildRequestBuilder(path)
-                    .POST(HttpRequest.BodyPublishers.ofString(body.toString()))
-                    .build();
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() == 404) {
-                    return LoginBonusClaimResult.FAILED;
-                }
-                if (response.statusCode() != 200) {
-                    throw new IOException("Unexpected status " + response.statusCode() + " for POST " + path);
-                }
-                JsonObject responseBody = JsonParser.parseString(response.body()).getAsJsonObject();
-                if (!responseBody.has("wasCreated")) {
-                    return LoginBonusClaimResult.FAILED;
-                }
-                return responseBody.get("wasCreated").getAsBoolean()
-                    ? LoginBonusClaimResult.CREATED
-                    : LoginBonusClaimResult.ALREADY_CLAIMED;
+            if (response.statusCode() != 200) {
+                throw new IOException("Unexpected status " + response.statusCode() + " for GET " + path);
             }
-        } catch (InterruptedException e) {
-            Thread.currentThread().interrupt();
-            throw new RuntimeException(e);
-        } catch (IOException | RuntimeException e) {
-            Logger.log(LogId.E_5071, e, path);
-            return LoginBonusClaimResult.FAILED;
-        }
-    }
-
-    /**
-     * 報酬付与に失敗した日の受取登録を取り消します。
-     *
-     * @param accountId 対象アカウントID
-     * @param claimDate 取消対象日
-     * @return API が取消を受理した場合は {@code true}
-     */
-    public boolean cancelClaim(@NotNull UUID accountId, @NotNull LocalDate claimDate) {
-        String path = "/api/login-bonus/accounts/" + accountId + "/claims/" + claimDate;
-        try {
-            try (var client = ApiRequestUtil.buildClient()) {
-                HttpRequest request = ApiRequestUtil.buildRequestBuilder(path)
-                    .DELETE()
-                    .build();
-                HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-                if (response.statusCode() == 404) {
-                    return false;
-                }
-                if (response.statusCode() != 204) {
-                    throw new IOException("Unexpected status " + response.statusCode() + " for DELETE " + path);
-                }
-                return true;
-            }
+            return parseClaimDates(JsonParser.parseString(response.body()).getAsJsonArray());
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new RuntimeException(e);

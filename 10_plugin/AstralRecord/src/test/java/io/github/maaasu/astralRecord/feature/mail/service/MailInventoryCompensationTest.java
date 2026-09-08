@@ -42,7 +42,8 @@ class MailInventoryCompensationTest extends MockBukkitTestBase {
         InventoryRepository inventoryRepository = mock(InventoryRepository.class);
         EquipmentLoadoutRepository loadoutRepository = mock(EquipmentLoadoutRepository.class);
         PlayerInventoryStateRegistry stateRegistry = new PlayerInventoryStateRegistry();
-        InventoryPersistence persistence = new InventoryPersistence(inventoryRepository, loadoutRepository, itemService);
+        InventoryPersistence persistence = new InventoryPersistence(inventoryRepository, loadoutRepository, itemService,
+            mock(io.github.maaasu.astralRecord.feature.mutation.repository.PlayerStateRepository.class));
         InventorySaveCoordinator saveCoordinator = new InventorySaveCoordinator(
             persistence,
             stateRegistry,

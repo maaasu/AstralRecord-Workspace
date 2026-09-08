@@ -4,6 +4,8 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import io.github.maaasu.astralRecord.feature.account.model.AccountModel;
 import io.github.maaasu.astralRecord.feature.inventory.service.InventoryService;
+import io.github.maaasu.astralRecord.feature.inventory.service.InventorySaveCoordinator;
+import io.github.maaasu.astralRecord.feature.inventory.model.InventoryType;
 import io.github.maaasu.astralRecord.feature.mutation.model.PlayerStateSection;
 import io.github.maaasu.astralRecord.feature.player.PlayerMsgId;
 import io.github.maaasu.astralRecord.feature.player.model.AstPlayer;
@@ -240,7 +242,7 @@ class TeleporterServicePersistenceTest {
         }
 
         verify(harness.inventoryService).consumeGold(harness.accountId, 50L);
-        verify(harness.inventoryService).queueLocalPlayerSave(harness.accountId);
+        verify(harness.inventoryService).executeCriticalPlayerMutation(eq(harness.accountId), any());
         PlayerStateSection section = harness.service.snapshotPlayerState(harness.accountId);
         assertNotNull(section);
         assertEquals("waystones", section.name());
@@ -328,7 +330,7 @@ class TeleporterServicePersistenceTest {
         }
 
         verify(harness.inventoryService, times(1)).consumeGold(harness.accountId, 50L);
-        verify(harness.inventoryService, times(1)).queueLocalPlayerSave(harness.accountId);
+        verify(harness.inventoryService, times(1)).executeCriticalPlayerMutation(eq(harness.accountId), any());
     }
 
     /**
@@ -347,7 +349,7 @@ class TeleporterServicePersistenceTest {
             harness.service.unlockWaystone(harness.player, harness.astPlayer, definition);
         }
 
-        verify(harness.inventoryService, never()).queueLocalPlayerSave(harness.accountId);
+        verify(harness.inventoryService).executeCriticalPlayerMutation(eq(harness.accountId), any());
         assertNull(harness.service.snapshotPlayerState(harness.accountId));
     }
 
@@ -455,10 +457,20 @@ class TeleporterServicePersistenceTest {
                 accountWaystoneRepository
         );
         InventoryService inventoryService = mock(InventoryService.class);
+        when(inventoryService.snapshotState(any(UUID.class))).thenReturn(new InventoryService.InventoryStateSnapshot(
+            UUID.randomUUID(), java.util.Map.of(), InventoryType.BAG, false
+        ));
         doAnswer(invocation -> {
             java.util.function.Supplier<?> mutation = invocation.getArgument(1);
-            return mutation.get();
-        }).when(inventoryService).executeLocalPlayerMutation(any(UUID.class), any());
+            try {
+                ((InventorySaveCoordinator.CriticalMutation<?>) mutation.get()).result();
+                // 実稼働では coordinator が SQL ACK 後に完了する。ここでは local mutation だけを実行し、
+                // ACK 待ち future を返して旧 local-writer の成功完了を偽装しない。
+                return new CompletableFuture<>();
+            } catch (Throwable failure) {
+                return CompletableFuture.failedFuture(failure);
+            }
+        }).when(inventoryService).executeCriticalPlayerMutation(any(UUID.class), any());
         service.setRuntimeServices(
                 inventoryService,
                 mock(WorldService.class),

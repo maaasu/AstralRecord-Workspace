@@ -7,22 +7,25 @@ import io.github.maaasu.astralRecord.feature.item.model.ItemModel;
 import io.github.maaasu.astralRecord.feature.item.model.ItemSummary;
 import io.github.maaasu.astralRecord.feature.item.model.ItemOrbEffectType;
 import io.github.maaasu.astralRecord.feature.item.model.EquipmentInstance;
-import io.github.maaasu.astralRecord.feature.item.model.EquipmentOrbOperationResult;
+import io.github.maaasu.astralRecord.feature.item.model.EquipmentStatRoll;
 import io.github.maaasu.astralRecord.feature.item.model.EnchantMaster;
 import io.github.maaasu.astralRecord.feature.item.model.SetEffect;
 import io.github.maaasu.astralRecord.feature.item.repository.ItemRepository;
-import io.github.maaasu.astralRecord.feature.mutation.model.LocalMutationCommand;
 import io.github.maaasu.astralRecord.feature.item.repository.SetEffectRepository;
 import io.github.maaasu.astralRecord.infrastructure.logging.LogId;
 import io.github.maaasu.astralRecord.infrastructure.logging.Logger;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -30,6 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ThreadLocalRandom;
 
 /**
  * アイテム機能の最小サービス。
@@ -52,6 +56,8 @@ public class ItemService {
     private final Map<String, PendingDurabilityUpdate> dirtyEquipmentDurability;
     /** snapshot 保存へ渡す装備全体の最新世代。耐久だけの変更も同じ集合へ含める。 */
     private final Map<String, DirtyEquipmentState> dirtyEquipmentState;
+    /** 完成 player-state snapshot の transaction 内で新規作成する装備個体 ID。 */
+    private final Set<String> pendingEquipmentCreations;
     private final Object equipmentStateMutex = new Object();
     private long durabilityRevision;
 
@@ -72,6 +78,7 @@ public class ItemService {
         this.instanceReloadLocks = new ConcurrentHashMap<>();
         this.dirtyEquipmentDurability = new ConcurrentHashMap<>();
         this.dirtyEquipmentState = new ConcurrentHashMap<>();
+        this.pendingEquipmentCreations = ConcurrentHashMap.newKeySet();
     }
 
     /**
@@ -432,30 +439,69 @@ public class ItemService {
     }
 
     /**
-     * 装備インスタンスを API 経由で新規作成します。
+     * 装備個体を通信せずに生成し、次の player-state snapshot で inventory entry と同時作成します。
+     * 乱数値と UUID は呼出時に一度だけ確定するため、同じ snapshot の再送でも変化しません。
      *
-     * @param equipmentId アイテムテンプレート ID
-     * @param accountId   所有アカウント ID（UUID 文字列）
-     * @param source      取得元（例: "command", "loot_drop"）
-     * @param createdBy   作成者アカウント ID（UUID 文字列）
-     * @return 作成された装備インスタンス。失敗時は null
+     * @param model 装備マスタ
+     * @param accountId 所有アカウント
+     * @return ローカル確定した新規装備。装備マスタでない場合は null
      */
-    public @Nullable EquipmentInstance createEquipmentInstance(
-        @NotNull String equipmentId,
-        @NotNull String accountId,
-        @NotNull String source,
-        @NotNull String createdBy
+    public @Nullable EquipmentInstance createLocalEquipmentInstance(
+        @NotNull ItemModel model,
+        @NotNull UUID accountId
     ) {
         try {
-            EquipmentInstance instance = itemRepository.createEquipmentInstance(equipmentId, accountId, source, createdBy);
-            if (instance != null) {
-                synchronized (equipmentStateMutex) {
-                    loadedEquipmentInstances.put(normalize(instance.getEquipmentInstanceId()), instance);
+            var equipment = model.getEquipment();
+            if (equipment == null) {
+                return null;
+            }
+
+            String instanceId = UUID.randomUUID().toString();
+            int runeMaxSlots = equipment.getRune() == null
+                ? 0
+                : resolveRandomInt(equipment.getRune().getMaxSlotsRaw());
+            int durabilityMax = equipment.getDurability() == null
+                ? 0
+                : Math.max(0, equipment.getDurability().getMax());
+            List<EquipmentStatRoll> statRolls = new ArrayList<>();
+            int sortOrder = 0;
+            for (var stat : equipment.getStats()) {
+                if (stat.getStatus() == null || stat.getStatus().isBlank()) {
+                    continue;
                 }
+                statRolls.add(new EquipmentStatRoll(
+                    UUID.randomUUID().toString(),
+                    stat.getStatus().trim(),
+                    resolveRandomNumericString(stat.getRawMin(), stat.getMin()),
+                    resolveRandomNumericString(stat.getRawMax(), stat.getMax()),
+                    sortOrder++
+                ));
+            }
+            String now = Instant.now().toString();
+            EquipmentInstance instance = new EquipmentInstance(
+                instanceId,
+                accountId.toString(),
+                model.getId(),
+                0,
+                Math.max(0, runeMaxSlots),
+                0,
+                durabilityMax,
+                durabilityMax,
+                now,
+                now,
+                List.copyOf(statRolls),
+                List.of(),
+                List.of()
+            );
+            String key = normalize(instanceId);
+            synchronized (equipmentStateMutex) {
+                loadedEquipmentInstances.put(key, instance);
+                pendingEquipmentCreations.add(key);
+                markEquipmentStateDirty(key, instance);
             }
             return instance;
-        } catch (Exception e) {
-            Logger.log(LogId.E_5202, e, equipmentId);
+        } catch (RuntimeException exception) {
+            Logger.log(LogId.E_5202, exception, model.getId());
             return null;
         }
     }
@@ -528,6 +574,50 @@ public class ItemService {
             markEquipmentStateDirty(key, instance);
             return instance;
         }
+    }
+
+    /**
+     * 重要操作の保存失敗時に、対象アカウントの装備 cache と dirty 世代を操作前へ戻す補償を返します。
+     */
+    public @NotNull Runnable captureEquipmentStateRollback(@NotNull UUID accountId) {
+        String targetAccountId = accountId.toString();
+        Map<String, EquipmentInstance> loadedBefore = new LinkedHashMap<>();
+        Map<String, PendingDurabilityUpdate> durabilityBefore = new LinkedHashMap<>();
+        Map<String, DirtyEquipmentState> dirtyBefore = new LinkedHashMap<>();
+        Set<String> pendingCreationsBefore = new HashSet<>();
+        synchronized (equipmentStateMutex) {
+            loadedEquipmentInstances.forEach((key, instance) -> {
+                if (instance.getAccountId().equalsIgnoreCase(targetAccountId)) {
+                    loadedBefore.put(key, instance);
+                    if (pendingEquipmentCreations.contains(key)) pendingCreationsBefore.add(key);
+                }
+            });
+            dirtyEquipmentDurability.forEach((key, pending) -> {
+                if (pending.accountId().equalsIgnoreCase(targetAccountId)) durabilityBefore.put(key, pending);
+            });
+            dirtyEquipmentState.forEach((key, dirty) -> {
+                if (dirty.instance().getAccountId().equalsIgnoreCase(targetAccountId)) dirtyBefore.put(key, dirty);
+            });
+        }
+        return () -> {
+            synchronized (equipmentStateMutex) {
+                Set<String> currentAccountInstanceIds = loadedEquipmentInstances.entrySet().stream()
+                    .filter(entry -> entry.getValue().getAccountId().equalsIgnoreCase(targetAccountId))
+                    .map(Map.Entry::getKey)
+                    .collect(java.util.stream.Collectors.toSet());
+                pendingEquipmentCreations.removeAll(currentAccountInstanceIds);
+                loadedEquipmentInstances.entrySet().removeIf(
+                    entry -> entry.getValue().getAccountId().equalsIgnoreCase(targetAccountId));
+                dirtyEquipmentDurability.entrySet().removeIf(
+                    entry -> entry.getValue().accountId().equalsIgnoreCase(targetAccountId));
+                dirtyEquipmentState.entrySet().removeIf(
+                    entry -> entry.getValue().instance().getAccountId().equalsIgnoreCase(targetAccountId));
+                loadedEquipmentInstances.putAll(loadedBefore);
+                dirtyEquipmentDurability.putAll(durabilityBefore);
+                dirtyEquipmentState.putAll(dirtyBefore);
+                pendingEquipmentCreations.addAll(pendingCreationsBefore);
+            }
+        };
     }
 
     /**
@@ -658,13 +748,15 @@ public class ItemService {
             loaded.getRunes()
         );
         loadedEquipmentInstances.put(key, merged);
+        long revision = ++durabilityRevision;
+        dirtyEquipmentState.put(key, new DirtyEquipmentState(merged, revision));
         dirtyEquipmentDurability.put(key, new PendingDurabilityUpdate(
             pending.instanceId(),
             loaded.getAccountId(),
             loaded.getDurabilityValue(),
             mergedDurabilityValue,
             loaded.getAccountId(),
-            ++durabilityRevision
+            revision
         ));
         return merged;
     }
@@ -674,164 +766,10 @@ public class ItemService {
         return instanceReloadLocks.computeIfAbsent(instanceType + ":" + key, ignored -> new Object());
     }
 
-    /**
-     * オーブ装備操作をAPIへ送信し、確定装備を耐久dirtyと原子的にマージします。
-     *
-     * @param operationId 冪等操作ID
-     * @param accountId 所有アカウントID
-     * @param instanceId 対象装備個体ID
-     * @param orbInventoryEntryId 共通消費順で直近に解決したオーブentry ID
-     * @param orbItemId オーブitem ID
-     * @param runeItemId 装着するルーンitem ID。脱着・通常操作ではnull
-     * @param runeSlotIndex 脱着するルーンスロット。装着・通常操作ではnull
-     * @return API確定結果。通信失敗時は {@code null}
-     */
-    public @Nullable EquipmentOrbOperationResult applyEquipmentOrbOperation(
-        @NotNull String operationId,
-        @NotNull String accountId,
-        @NotNull String instanceId,
-        @NotNull String orbInventoryEntryId,
-        @NotNull String orbItemId,
-        @Nullable String runeItemId,
-        @Nullable Integer runeSlotIndex
-    ) {
-        return applyEquipmentOrbOperation(
-            operationId,
-            accountId,
-            instanceId,
-            orbInventoryEntryId,
-            orbItemId,
-            runeItemId,
-            runeSlotIndex,
-            null
-        );
-    }
-
-    /** ローカル確定結果を同梱して装備オーブ操作をAPIへ送信します。 */
-    public @Nullable EquipmentOrbOperationResult applyEquipmentOrbOperation(
-        @NotNull String operationId,
-        @NotNull String accountId,
-        @NotNull String instanceId,
-        @NotNull String orbInventoryEntryId,
-        @NotNull String orbItemId,
-        @Nullable String runeItemId,
-        @Nullable Integer runeSlotIndex,
-        @Nullable LocalMutationCommand.EquipmentOrb clientState
-    ) {
-        try {
-            EquipmentOrbOperationResult result = clientState == null
-                ? itemRepository.applyEquipmentOrbOperation(
-                    operationId, accountId, instanceId, orbInventoryEntryId, orbItemId,
-                    runeItemId, runeSlotIndex)
-                : itemRepository.applyEquipmentOrbOperation(
-                    operationId, accountId, instanceId, orbInventoryEntryId, orbItemId,
-                    runeItemId, runeSlotIndex, clientState);
-            return mergeOrbOperationResult(result);
-        } catch (Exception exception) {
-            Logger.log(LogId.E_5202, exception, instanceId);
-            return null;
-        }
-    }
-
-    /**
-     * 保存済みオーブ操作結果を照会し、確定装備をキャッシュへ反映します。
-     *
-     * @param operationId 冪等操作ID
-     * @param accountId 所有アカウントID
-     * @return 保存済み結果。未確定または通信失敗時は {@code null}
-     */
-    public @Nullable EquipmentOrbOperationResult findEquipmentOrbOperation(
-        @NotNull String operationId,
-        @NotNull String accountId
-    ) {
-        try {
-            return mergeOrbOperationResult(itemRepository.findEquipmentOrbOperation(operationId, accountId));
-        } catch (Exception exception) {
-            Logger.log(LogId.E_5202, exception, operationId);
-            return null;
-        }
-    }
-
-    /** 装備のローカル耐久差分を合成し、API応答のインベントリ正本はそのまま引き継ぐ。 */
-    private @Nullable EquipmentOrbOperationResult mergeOrbOperationResult(
-        @Nullable EquipmentOrbOperationResult result
-    ) {
-        if (result == null || result.getEquipment() == null) {
-            return result;
-        }
-        EquipmentInstance merged = cacheEquipmentMutationResult(result.getEquipment());
-        return new EquipmentOrbOperationResult(
-            result.getOperationId(),
-            result.getResult(),
-            result.getOperationType(),
-            merged,
-            result.getTargetAvailable(),
-            result.getAffectedInventoryEntryIds(),
-            result.getPaymentConsumed(),
-            result.getEnhancementSucceeded(),
-            result.getFailAction(),
-            result.getSuccessRate(),
-            result.getRepairedAmount(),
-            result.getTransitionName(),
-            result.getInventorySnapshot()
-        );
-    }
-
     /** 指定IDの共通エンチャントマスタを通信なしでスナップショットから取得します。 */
     public @Nullable EnchantMaster findEnchantMasterById(@NotNull String enchantMasterId) {
         String key = normalize(enchantMasterId);
         return loadedMasterData.enchantMasters().get(key);
-    }
-
-    private @NotNull EquipmentInstance cacheEquipmentMutationResult(@NotNull EquipmentInstance result) {
-        String key = normalize(result.getEquipmentInstanceId());
-        synchronized (equipmentStateMutex) {
-            return cacheEquipmentMutationResultLocked(key, result);
-        }
-    }
-
-    private @NotNull EquipmentInstance cacheEquipmentMutationResultLocked(
-        @NotNull String key,
-        @NotNull EquipmentInstance result
-    ) {
-        PendingDurabilityUpdate pending = dirtyEquipmentDurability.get(key);
-        if (pending == null) {
-            loadedEquipmentInstances.put(key, result);
-            return result;
-        }
-        int mergedDurabilityMax = result.getDurabilityMax();
-        // pre-saveで確定したbaseline以前の損耗はAPI結果へ既に含まれる。
-        // operation待機中に発生した差分だけを結果へ重ね、REPAIR効果を古い欠損量で打ち消さない。
-        int pendingDelta = pending.durabilityValue() - pending.baseDurabilityValue();
-        int mergedDurabilityValue = Math.max(0, Math.min(
-            mergedDurabilityMax,
-            result.getDurabilityValue() + pendingDelta
-        ));
-        EquipmentInstance merged = new EquipmentInstance(
-            result.getEquipmentInstanceId(),
-            result.getAccountId(),
-            result.getItemId(),
-            result.getEnhanceLevel(),
-            result.getRuneMaxSlots(),
-            result.getTranscendenceRank(),
-            mergedDurabilityMax,
-            mergedDurabilityValue,
-            result.getCreatedAt(),
-            result.getUpdatedAt(),
-            result.getStatRolls(),
-            result.getEnchants(),
-            result.getRunes()
-        );
-        loadedEquipmentInstances.put(key, merged);
-        dirtyEquipmentDurability.put(key, new PendingDurabilityUpdate(
-            pending.instanceId(),
-            pending.accountId(),
-            result.getDurabilityValue(),
-            mergedDurabilityValue,
-            pending.updatedBy(),
-            ++durabilityRevision
-        ));
-        return merged;
     }
 
     /**
@@ -926,6 +864,18 @@ public class ItemService {
         }
     }
 
+    /** player-state snapshot に新規作成として含める装備個体 ID を返します。 */
+    public @NotNull Set<String> snapshotPendingEquipmentCreationIds(@NotNull UUID accountId) {
+        String targetAccountId = accountId.toString();
+        synchronized (equipmentStateMutex) {
+            return loadedEquipmentInstances.entrySet().stream()
+                .filter(entry -> pendingEquipmentCreations.contains(entry.getKey()))
+                .filter(entry -> entry.getValue().getAccountId().equalsIgnoreCase(targetAccountId))
+                .map(Map.Entry::getKey)
+                .collect(java.util.stream.Collectors.toUnmodifiableSet());
+        }
+    }
+
     /**
      * 保存済みcaptureを確認し、capture以後に変化していないdirtyだけを解除します。
      * APIが返した更新日時はcapture世代が古くても現在cacheの同一個体へ反映し、後続の保存の
@@ -955,6 +905,7 @@ public class ItemService {
                 if (currentDirty != null && currentDirty.instance().equals(entry.getValue())) {
                     dirtyEquipmentState.remove(entry.getKey(), currentDirty);
                     dirtyEquipmentDurability.remove(entry.getKey());
+                    pendingEquipmentCreations.remove(entry.getKey());
                 }
             }
             updatedAtById.forEach((instanceId, updatedAt) -> {
@@ -973,56 +924,6 @@ public class ItemService {
     }
 
     /**
-     * 対象アカウントの未保存装備耐久値を API へ反映します。
-     * 失敗した更新は dirty に残し、次回保存で再試行できる状態にします。
-     *
-     * @param accountId 対象アカウント ID
-     * @return 対象の dirty 更新をすべて反映できた場合は {@code true}
-     */
-    public boolean flushDirtyEquipmentDurability(@NotNull UUID accountId) {
-        String targetAccountId = accountId.toString();
-        List<Map.Entry<String, PendingDurabilityUpdate>> snapshots;
-        synchronized (equipmentStateMutex) {
-            snapshots = dirtyEquipmentDurability.entrySet().stream()
-                .filter(entry -> entry.getValue().accountId().equalsIgnoreCase(targetAccountId))
-                .map(entry -> Map.entry(entry.getKey(), entry.getValue()))
-                .toList();
-        }
-        boolean allOk = true;
-        for (Map.Entry<String, PendingDurabilityUpdate> entry : snapshots) {
-            PendingDurabilityUpdate pending = entry.getValue();
-            try {
-                EquipmentInstance persisted = itemRepository.updateEquipmentDurability(
-                    pending.instanceId(),
-                    pending.durabilityValue(),
-                    pending.updatedBy()
-                );
-                if (persisted != null) {
-                    synchronized (equipmentStateMutex) {
-                        PendingDurabilityUpdate current = dirtyEquipmentDurability.get(entry.getKey());
-                        if (current != null && current.revision() == pending.revision()) {
-                            loadedEquipmentInstances.put(entry.getKey(), persisted);
-                            dirtyEquipmentDurability.remove(entry.getKey());
-                            DirtyEquipmentState dirty = dirtyEquipmentState.get(entry.getKey());
-                            if (dirty != null && withUpdatedAt(dirty.instance(), persisted.getUpdatedAt()).equals(persisted)) {
-                                dirtyEquipmentState.remove(entry.getKey(), dirty);
-                            }
-                        } else {
-                            allOk = false;
-                        }
-                    }
-                } else {
-                    allOk = false;
-                }
-            } catch (RuntimeException e) {
-                Logger.warn(LogId.W_5252, pending.instanceId(), e.getMessage());
-                allOk = false;
-            }
-        }
-        return allOk;
-    }
-
-    /**
      * 対象アカウントの未保存装備耐久値を破棄します。
      * ログアウト後の state 破棄と同じ境界で呼び出します。
      *
@@ -1035,6 +936,10 @@ public class ItemService {
                 entry -> entry.getValue().accountId().equalsIgnoreCase(targetAccountId));
             dirtyEquipmentState.entrySet().removeIf(
                 entry -> entry.getValue().instance().getAccountId().equalsIgnoreCase(targetAccountId));
+            pendingEquipmentCreations.removeIf(key -> {
+                EquipmentInstance instance = loadedEquipmentInstances.get(key);
+                return instance == null || instance.getAccountId().equalsIgnoreCase(targetAccountId);
+            });
         }
     }
 
@@ -1042,6 +947,11 @@ public class ItemService {
     public void clearEquipmentState(@NotNull UUID accountId) {
         String targetAccountId = accountId.toString();
         synchronized (equipmentStateMutex) {
+            Set<String> targetInstanceIds = loadedEquipmentInstances.entrySet().stream()
+                .filter(entry -> entry.getValue().getAccountId().equalsIgnoreCase(targetAccountId))
+                .map(Map.Entry::getKey)
+                .collect(java.util.stream.Collectors.toSet());
+            pendingEquipmentCreations.removeAll(targetInstanceIds);
             loadedEquipmentInstances.entrySet().removeIf(
                 entry -> entry.getValue().getAccountId().equalsIgnoreCase(targetAccountId));
             dirtyEquipmentDurability.entrySet().removeIf(
@@ -1052,10 +962,10 @@ public class ItemService {
     }
 
     /**
-     * API が削除・譲渡済みと確定した装備個体を、通信せずローカル状態から破棄します。
+     * 保存前に破棄する個体、または API が削除・譲渡済みと確定した個体をローカル状態から破棄します。
      * durability dirty も同じ排他境界で除去し、後続保存による旧所有者からの復活を防ぎます。
      *
-     * @param instanceId API 正本で利用不能と確定した装備個体 ID
+     * @param instanceId 破棄する装備個体 ID
      */
     public void evictEquipmentInstanceFromCache(@NotNull String instanceId) {
         String normalizedId = normalize(instanceId);
@@ -1066,6 +976,7 @@ public class ItemService {
             loadedEquipmentInstances.remove(normalizedId);
             dirtyEquipmentDurability.remove(normalizedId);
             dirtyEquipmentState.remove(normalizedId);
+            pendingEquipmentCreations.remove(normalizedId);
         }
     }
 
@@ -1096,27 +1007,6 @@ public class ItemService {
             current.getDurabilityMax(), current.getDurabilityValue(), current.getCreatedAt(), updatedAt,
             current.getStatRolls(), current.getEnchants(), current.getRunes()
         );
-    }
-
-    public boolean deleteEquipmentInstance(@NotNull String instanceId) {
-        String normalizedId = normalize(instanceId);
-        if (normalizedId.isBlank()) {
-            return false;
-        }
-        try {
-            boolean deleted = itemRepository.deleteEquipmentInstance(instanceId);
-            if (deleted) {
-                synchronized (equipmentStateMutex) {
-                    loadedEquipmentInstances.remove(normalizedId);
-                    dirtyEquipmentDurability.remove(normalizedId);
-                    dirtyEquipmentState.remove(normalizedId);
-                }
-            }
-            return deleted;
-        } catch (Exception e) {
-            Logger.log(LogId.E_5202, e, instanceId);
-            return false;
-        }
     }
 
     /**
@@ -1163,6 +1053,61 @@ public class ItemService {
         updatedEnchantMasters.putAll(resolvedEnchantMasters);
         loadedMasterData = new MasterDataSnapshot(updatedItems, updatedEnchantMasters);
         items.forEach(item -> Logger.log(LogId.D_5203, item));
+    }
+
+    /** API 側の RangeValueResolver と同じ固定値 / min~max 契約をローカルで解決します。 */
+    private int resolveRandomInt(@NotNull String rawValue) {
+        String value = rawValue.trim().replace('～', '~');
+        int separator = value.indexOf('~');
+        if (separator < 0) {
+            return Integer.parseInt(value);
+        }
+        int min = Integer.parseInt(value.substring(0, separator).trim());
+        int max = Integer.parseInt(value.substring(separator + 1).trim());
+        if (min > max) {
+            int swapped = min;
+            min = max;
+            max = swapped;
+        }
+        return min == max ? min : ThreadLocalRandom.current().nextInt(min, Math.addExact(max, 1));
+    }
+
+    /** API 側と同様に、小数範囲は小数第4位へ丸めて一度だけ確定します。 */
+    private @NotNull String resolveRandomNumericString(@Nullable String rawValue, double fallbackValue) {
+        String value = rawValue == null || rawValue.isBlank()
+            ? BigDecimal.valueOf(fallbackValue).stripTrailingZeros().toPlainString()
+            : rawValue.trim().replace('～', '~');
+        int separator = value.indexOf('~');
+        if (separator < 0) {
+            return new BigDecimal(value).stripTrailingZeros().toPlainString();
+        }
+        String minText = value.substring(0, separator).trim();
+        String maxText = value.substring(separator + 1).trim();
+        try {
+            int min = Integer.parseInt(minText);
+            int max = Integer.parseInt(maxText);
+            if (min > max) {
+                int swapped = min;
+                min = max;
+                max = swapped;
+            }
+            return Integer.toString(min == max
+                ? min
+                : ThreadLocalRandom.current().nextInt(min, Math.addExact(max, 1)));
+        } catch (NumberFormatException ignored) {
+            BigDecimal min = new BigDecimal(minText);
+            BigDecimal max = new BigDecimal(maxText);
+            if (min.compareTo(max) > 0) {
+                BigDecimal swapped = min;
+                min = max;
+                max = swapped;
+            }
+            BigDecimal sample = BigDecimal.valueOf(ThreadLocalRandom.current().nextDouble());
+            return min.add(max.subtract(min).multiply(sample))
+                .setScale(4, RoundingMode.HALF_UP)
+                .stripTrailingZeros()
+                .toPlainString();
+        }
     }
 
     /** 原子的に公開するアイテム・共通エンチャントマスタのスナップショットです。 */
